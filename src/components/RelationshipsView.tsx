@@ -120,6 +120,11 @@ export function RelationshipsView() {
                       {typeLabel}
                     </span>
                     <span className="text-stone-800">{to?.name ?? '—'}</span>
+                    {rel.origin === 'ai' && (
+                      <span className="ml-2 text-[9px] uppercase tracking-[0.18em] text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded align-middle">
+                        ia
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={() => deleteRelationship(rel.id)}

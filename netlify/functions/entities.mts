@@ -11,7 +11,7 @@ export default async (req: Request, context: Context) => {
 
   if (req.method === 'GET') {
     const rows = await sql`
-      SELECT id, type, name, year, description, created_at
+      SELECT id, type, name, year, description, origin, created_at
       FROM entities
       ORDER BY created_at DESC
     `
@@ -24,11 +24,13 @@ export default async (req: Request, context: Context) => {
       name: string
       year?: number | null
       description?: string | null
+      origin?: string | null
     }
+    const origin = body.origin === 'ai' ? 'ai' : 'manual'
     const rows = await sql`
-      INSERT INTO entities (type, name, year, description)
-      VALUES (${body.type}, ${body.name}, ${body.year ?? null}, ${body.description ?? null})
-      RETURNING id, type, name, year, description, created_at
+      INSERT INTO entities (type, name, year, description, origin)
+      VALUES (${body.type}, ${body.name}, ${body.year ?? null}, ${body.description ?? null}, ${origin})
+      RETURNING id, type, name, year, description, origin, created_at
     `
     return Response.json(rows[0], { status: 201 })
   }

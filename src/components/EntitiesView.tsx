@@ -108,6 +108,11 @@ export function EntitiesView() {
                       <span className="ml-3 text-[10px] uppercase tracking-[0.18em] text-stone-400 align-middle">
                         {ENTITY_TYPES.find((t) => t.value === entity.type)?.label}
                       </span>
+                      {entity.origin === 'ai' && (
+                        <span className="ml-2 text-[9px] uppercase tracking-[0.18em] text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded align-middle">
+                          ia
+                        </span>
+                      )}
                     </div>
                     <button
                       onClick={() => {

@@ -1,4 +1,4 @@
-import type { Entity, Quote, Relationship } from './types'
+import type { Entity, Origin, Quote, Relationship } from './types'
 
 const KEYS = {
   entities: 'trama:entities:v1',
@@ -6,7 +6,7 @@ const KEYS = {
   quotes: 'trama:quotes:v1',
 }
 
-function load<T>(key: string): T[] {
+function loadRaw<T>(key: string): T[] {
   try {
     const raw = localStorage.getItem(key)
     return raw ? (JSON.parse(raw) as T[]) : []
@@ -19,11 +19,15 @@ function save<T>(key: string, items: T[]): void {
   localStorage.setItem(key, JSON.stringify(items))
 }
 
+function ensureOrigin<T extends { origin?: Origin }>(item: T): T & { origin: Origin } {
+  return { ...item, origin: item.origin ?? 'manual' }
+}
+
 export const storage = {
-  loadEntities: () => load<Entity>(KEYS.entities),
+  loadEntities: () => loadRaw<Entity>(KEYS.entities).map(ensureOrigin),
   saveEntities: (items: Entity[]) => save(KEYS.entities, items),
-  loadRelationships: () => load<Relationship>(KEYS.relationships),
+  loadRelationships: () => loadRaw<Relationship>(KEYS.relationships).map(ensureOrigin),
   saveRelationships: (items: Relationship[]) => save(KEYS.relationships, items),
-  loadQuotes: () => load<Quote>(KEYS.quotes),
+  loadQuotes: () => loadRaw<Quote>(KEYS.quotes).map(ensureOrigin),
   saveQuotes: (items: Quote[]) => save(KEYS.quotes, items),
 }

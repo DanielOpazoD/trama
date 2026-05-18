@@ -1,6 +1,8 @@
 import type {
   Entity,
   EntityType,
+  ExtractionProposal,
+  Origin,
   Quote,
   Relationship,
   RelationshipType,
@@ -12,6 +14,7 @@ type EntityRow = {
   name: string
   year: number | null
   description: string | null
+  origin: string
   created_at: string
 }
 
@@ -21,6 +24,7 @@ type RelationshipRow = {
   to_id: string
   type: string
   notes: string | null
+  origin: string
   created_at: string
 }
 
@@ -30,7 +34,12 @@ type QuoteRow = {
   text: string
   source: string | null
   context: string | null
+  origin: string
   created_at: string
+}
+
+function asOrigin(value: string): Origin {
+  return value === 'ai' ? 'ai' : 'manual'
 }
 
 function entityFromRow(row: EntityRow): Entity {
@@ -40,6 +49,7 @@ function entityFromRow(row: EntityRow): Entity {
     name: row.name,
     year: row.year ?? undefined,
     description: row.description ?? undefined,
+    origin: asOrigin(row.origin),
     createdAt: row.created_at,
   }
 }
@@ -51,6 +61,7 @@ function relationshipFromRow(row: RelationshipRow): Relationship {
     toId: row.to_id,
     type: row.type as RelationshipType,
     notes: row.notes ?? undefined,
+    origin: asOrigin(row.origin),
     createdAt: row.created_at,
   }
 }
@@ -62,6 +73,7 @@ function quoteFromRow(row: QuoteRow): Quote {
     text: row.text,
     source: row.source ?? undefined,
     context: row.context ?? undefined,
+    origin: asOrigin(row.origin),
     createdAt: row.created_at,
   }
 }
@@ -75,7 +87,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     },
   })
   if (!response.ok) {
-    throw new Error(`${init?.method ?? 'GET'} ${url} → ${response.status}`)
+    const text = await response.text().catch(() => '')
+    throw new Error(`${init?.method ?? 'GET'} ${url} → ${response.status} ${text}`.trim())
   }
   if (response.status === 204) {
     return undefined as T
@@ -96,6 +109,7 @@ export const api = {
         name: data.name,
         year: data.year ?? null,
         description: data.description ?? null,
+        origin: data.origin,
       }),
     })
     return entityFromRow(row)
@@ -118,6 +132,7 @@ export const api = {
         to_id: data.toId,
         type: data.type,
         notes: data.notes ?? null,
+        origin: data.origin,
       }),
     })
     return relationshipFromRow(row)
@@ -138,11 +153,19 @@ export const api = {
         text: data.text,
         source: data.source ?? null,
         context: data.context ?? null,
+        origin: data.origin,
       }),
     })
     return quoteFromRow(row)
   },
   async deleteQuote(id: string): Promise<void> {
     await request<void>(`/api/quotes/${id}`, { method: 'DELETE' })
+  },
+
+  async extract(text: string): Promise<ExtractionProposal> {
+    return request<ExtractionProposal>('/api/extract', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    })
   },
 }

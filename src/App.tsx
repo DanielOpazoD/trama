@@ -3,10 +3,12 @@ import { StateProvider, useTrama } from './state'
 import { EntitiesView } from './components/EntitiesView'
 import { QuotesView } from './components/QuotesView'
 import { RelationshipsView } from './components/RelationshipsView'
+import { ExtractView } from './components/ExtractView'
 
-type Tab = 'entidades' | 'citas' | 'relaciones'
+type Tab = 'extraer' | 'entidades' | 'citas' | 'relaciones'
 
 const TABS: { value: Tab; label: string }[] = [
+  { value: 'extraer', label: 'extraer' },
   { value: 'entidades', label: 'entidades' },
   { value: 'citas', label: 'citas' },
   { value: 'relaciones', label: 'relaciones' },
@@ -14,7 +16,7 @@ const TABS: { value: Tab; label: string }[] = [
 
 function Shell() {
   const { loading, error, offline } = useTrama()
-  const [tab, setTab] = useState<Tab>('entidades')
+  const [tab, setTab] = useState<Tab>('extraer')
 
   return (
     <div className="min-h-screen px-6 py-12 md:px-12 md:py-16 max-w-3xl mx-auto">
@@ -56,6 +58,7 @@ function Shell() {
         <p className="text-stone-400 italic">cargando…</p>
       ) : (
         <>
+          {tab === 'extraer' && <ExtractView />}
           {tab === 'entidades' && <EntitiesView />}
           {tab === 'citas' && <QuotesView />}
           {tab === 'relaciones' && <RelationshipsView />}
@@ -63,7 +66,7 @@ function Shell() {
       )}
 
       <footer className="mt-24 text-center text-xs uppercase tracking-[0.2em] text-stone-300">
-        trama · v0.1.0
+        trama · v0.2.0
       </footer>
     </div>
   )

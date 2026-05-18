@@ -11,7 +11,7 @@ export default async (req: Request, context: Context) => {
 
   if (req.method === 'GET') {
     const rows = await sql`
-      SELECT id, from_id, to_id, type, notes, created_at
+      SELECT id, from_id, to_id, type, notes, origin, created_at
       FROM relationships
       ORDER BY created_at DESC
     `
@@ -24,11 +24,13 @@ export default async (req: Request, context: Context) => {
       to_id: string
       type: string
       notes?: string | null
+      origin?: string | null
     }
+    const origin = body.origin === 'ai' ? 'ai' : 'manual'
     const rows = await sql`
-      INSERT INTO relationships (from_id, to_id, type, notes)
-      VALUES (${body.from_id}, ${body.to_id}, ${body.type}, ${body.notes ?? null})
-      RETURNING id, from_id, to_id, type, notes, created_at
+      INSERT INTO relationships (from_id, to_id, type, notes, origin)
+      VALUES (${body.from_id}, ${body.to_id}, ${body.type}, ${body.notes ?? null}, ${origin})
+      RETURNING id, from_id, to_id, type, notes, origin, created_at
     `
     return Response.json(rows[0], { status: 201 })
   }

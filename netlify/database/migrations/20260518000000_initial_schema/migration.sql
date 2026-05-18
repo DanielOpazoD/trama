@@ -6,6 +6,7 @@ CREATE TABLE entities (
   name        TEXT NOT NULL,
   year        INTEGER,
   description TEXT,
+  origin      TEXT NOT NULL DEFAULT 'manual' CHECK (origin IN ('manual', 'ai')),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -15,6 +16,7 @@ CREATE TABLE relationships (
   to_id      UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
   type       TEXT NOT NULL,
   notes      TEXT,
+  origin     TEXT NOT NULL DEFAULT 'manual' CHECK (origin IN ('manual', 'ai')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -24,6 +26,7 @@ CREATE TABLE quotes (
   text       TEXT NOT NULL,
   source     TEXT,
   context    TEXT,
+  origin     TEXT NOT NULL DEFAULT 'manual' CHECK (origin IN ('manual', 'ai')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

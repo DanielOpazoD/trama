@@ -8,12 +8,15 @@ export type EntityType =
   | 'concepto'
   | 'idea'
 
+export type Origin = 'manual' | 'ai'
+
 export type Entity = {
   id: string
   type: EntityType
   name: string
   year?: number
   description?: string
+  origin: Origin
   createdAt: string
 }
 
@@ -44,6 +47,7 @@ export type Relationship = {
   toId: string
   type: RelationshipType
   notes?: string
+  origin: Origin
   createdAt: string
 }
 
@@ -68,5 +72,36 @@ export type Quote = {
   text: string
   source?: string
   context?: string
+  origin: Origin
   createdAt: string
+}
+
+// ---------- AI extraction proposal shapes (transient — not persisted until accepted) ----------
+
+export type ProposedEntity = {
+  matchedId?: string // present if name matches an existing entity in the map
+  type: EntityType
+  name: string
+  year?: number
+  description?: string
+}
+
+export type ProposedRelationship = {
+  fromName: string
+  toName: string
+  type: RelationshipType
+  notes?: string
+}
+
+export type ProposedQuote = {
+  entityName: string
+  text: string
+  source?: string
+  context?: string
+}
+
+export type ExtractionProposal = {
+  entities: ProposedEntity[]
+  relationships: ProposedRelationship[]
+  quotes: ProposedQuote[]
 }

@@ -104,6 +104,11 @@ export function QuotesView() {
                     {quote.source && (
                       <span className="text-stone-400 ml-2">· {quote.source}</span>
                     )}
+                    {quote.origin === 'ai' && (
+                      <span className="ml-2 text-[9px] uppercase tracking-[0.18em] text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded">
+                        ia
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={() => deleteQuote(quote.id)}

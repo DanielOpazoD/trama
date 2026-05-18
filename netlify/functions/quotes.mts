@@ -11,7 +11,7 @@ export default async (req: Request, context: Context) => {
 
   if (req.method === 'GET') {
     const rows = await sql`
-      SELECT id, entity_id, text, source, context, created_at
+      SELECT id, entity_id, text, source, context, origin, created_at
       FROM quotes
       ORDER BY created_at DESC
     `
@@ -24,11 +24,13 @@ export default async (req: Request, context: Context) => {
       text: string
       source?: string | null
       context?: string | null
+      origin?: string | null
     }
+    const origin = body.origin === 'ai' ? 'ai' : 'manual'
     const rows = await sql`
-      INSERT INTO quotes (entity_id, text, source, context)
-      VALUES (${body.entity_id}, ${body.text}, ${body.source ?? null}, ${body.context ?? null})
-      RETURNING id, entity_id, text, source, context, created_at
+      INSERT INTO quotes (entity_id, text, source, context, origin)
+      VALUES (${body.entity_id}, ${body.text}, ${body.source ?? null}, ${body.context ?? null}, ${origin})
+      RETURNING id, entity_id, text, source, context, origin, created_at
     `
     return Response.json(rows[0], { status: 201 })
   }

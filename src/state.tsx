@@ -6,9 +6,21 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Entity, Quote, Relationship } from './types'
+import type {
+  Entity,
+  ExtractionProposal,
+  Origin,
+  Quote,
+  Relationship,
+} from './types'
 import { api } from './api'
 import { storage } from './storage'
+
+type EntityInput = Omit<Entity, 'id' | 'createdAt' | 'origin'> & { origin?: Origin }
+type RelationshipInput = Omit<Relationship, 'id' | 'createdAt' | 'origin'> & {
+  origin?: Origin
+}
+type QuoteInput = Omit<Quote, 'id' | 'createdAt' | 'origin'> & { origin?: Origin }
 
 type State = {
   entities: Entity[]
@@ -17,12 +29,13 @@ type State = {
   loading: boolean
   error: string | null
   offline: boolean
-  addEntity: (data: Omit<Entity, 'id' | 'createdAt'>) => Promise<void>
+  addEntity: (data: EntityInput) => Promise<Entity | null>
   deleteEntity: (id: string) => Promise<void>
-  addRelationship: (data: Omit<Relationship, 'id' | 'createdAt'>) => Promise<void>
+  addRelationship: (data: RelationshipInput) => Promise<Relationship | null>
   deleteRelationship: (id: string) => Promise<void>
-  addQuote: (data: Omit<Quote, 'id' | 'createdAt'>) => Promise<void>
+  addQuote: (data: QuoteInput) => Promise<Quote | null>
   deleteQuote: (id: string) => Promise<void>
+  extract: (text: string) => Promise<ExtractionProposal>
 }
 
 const Ctx = createContext<State | null>(null)
@@ -98,16 +111,20 @@ export function StateProvider({ children }: { children: ReactNode }) {
     error,
     offline,
     addEntity: async (data) => {
+      const origin = data.origin ?? 'manual'
+      const payload = { ...data, origin }
       if (offlineRef.current) {
-        const created: Entity = { ...data, id: newId(), createdAt: nowIso() }
+        const created: Entity = { ...payload, id: newId(), createdAt: nowIso() }
         setEntities((prev) => [created, ...prev])
-        return
+        return created
       }
       try {
-        const created = await api.createEntity(data)
+        const created = await api.createEntity(payload)
         setEntities((prev) => [created, ...prev])
+        return created
       } catch (err) {
         reportError(err)
+        return null
       }
     },
     deleteEntity: async (id) => {
@@ -130,16 +147,20 @@ export function StateProvider({ children }: { children: ReactNode }) {
       }
     },
     addRelationship: async (data) => {
+      const origin = data.origin ?? 'manual'
+      const payload = { ...data, origin }
       if (offlineRef.current) {
-        const created: Relationship = { ...data, id: newId(), createdAt: nowIso() }
+        const created: Relationship = { ...payload, id: newId(), createdAt: nowIso() }
         setRelationships((prev) => [created, ...prev])
-        return
+        return created
       }
       try {
-        const created = await api.createRelationship(data)
+        const created = await api.createRelationship(payload)
         setRelationships((prev) => [created, ...prev])
+        return created
       } catch (err) {
         reportError(err)
+        return null
       }
     },
     deleteRelationship: async (id) => {
@@ -155,16 +176,20 @@ export function StateProvider({ children }: { children: ReactNode }) {
       }
     },
     addQuote: async (data) => {
+      const origin = data.origin ?? 'manual'
+      const payload = { ...data, origin }
       if (offlineRef.current) {
-        const created: Quote = { ...data, id: newId(), createdAt: nowIso() }
+        const created: Quote = { ...payload, id: newId(), createdAt: nowIso() }
         setQuotes((prev) => [created, ...prev])
-        return
+        return created
       }
       try {
-        const created = await api.createQuote(data)
+        const created = await api.createQuote(payload)
         setQuotes((prev) => [created, ...prev])
+        return created
       } catch (err) {
         reportError(err)
+        return null
       }
     },
     deleteQuote: async (id) => {
@@ -178,6 +203,14 @@ export function StateProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         reportError(err)
       }
+    },
+    extract: async (text) => {
+      if (offlineRef.current) {
+        throw new Error(
+          'La extracción por IA requiere conexión al backend. Estás en modo local.',
+        )
+      }
+      return api.extract(text)
     },
   }
 
