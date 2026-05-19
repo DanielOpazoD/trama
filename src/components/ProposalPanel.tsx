@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTrama } from '../state'
 import {
   ENTITY_TYPES,
@@ -38,6 +38,14 @@ export function ProposalPanel({
   const [checked, setChecked] = useState<CheckedState>(() => initialChecked(proposal))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !submitting) onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [submitting, onClose])
 
   const entitiesByLowerName = useMemo(() => {
     const map = new Map<string, string>()
@@ -121,7 +129,11 @@ export function ProposalPanel({
   }
 
   return (
-    <div className="h-full flex flex-col bg-paper-50 border-l border-ink-100/60">
+    <div
+      className="h-full flex flex-col bg-paper-50 border-l border-ink-100/60"
+      role="region"
+      aria-label="Propuesta de la IA"
+    >
       <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-[0.2em] text-ink-300">Propuesta</p>

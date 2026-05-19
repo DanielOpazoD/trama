@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTrama } from '../state'
 import {
   ENTITY_TYPES,
@@ -26,6 +26,17 @@ export function NodeDetailPanel({
   const entity = entities.find((e) => e.id === entityId)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        if (confirmingDelete) setConfirmingDelete(false)
+        else onClose()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [confirmingDelete, onClose])
+
   if (!entity) {
     return (
       <div className="h-full flex flex-col bg-paper-50 border-l border-ink-100/60 p-5">
@@ -43,7 +54,11 @@ export function NodeDetailPanel({
   const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label
 
   return (
-    <div className="h-full flex flex-col bg-paper-50 border-l border-ink-100/60">
+    <div
+      className="h-full flex flex-col bg-paper-50 border-l border-ink-100/60"
+      role="region"
+      aria-label={`Detalle de ${entity.name}`}
+    >
       <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-[0.2em] text-ink-300">

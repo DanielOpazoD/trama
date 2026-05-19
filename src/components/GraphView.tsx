@@ -1,4 +1,11 @@
-import { useCallback, useMemo, useRef, type CSSProperties } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
 import { useTrama } from '../state'
 import type { Entity } from '../types'
 import { useForceLayout } from '../hooks/useForceLayout'
@@ -32,6 +39,44 @@ export default function GraphView({
     return map
   }, [relationships])
 
+  // Keyboard focus index — for accessibility. Distinct from selectedId so that
+  // sighted users with a mouse keep current behavior, but keyboard users can
+  // navigate without committing a selection.
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1)
+
+  // Reset focus when entity list changes (e.g., after import).
+  useEffect(() => {
+    if (focusedIndex >= entities.length) setFocusedIndex(-1)
+  }, [entities.length, focusedIndex])
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (entities.length === 0) return
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown' || event.key === 'Tab') {
+        if (event.key === 'Tab' && event.shiftKey) {
+          // Let shift+tab do default (leave the graph).
+          return
+        }
+        event.preventDefault()
+        setFocusedIndex((prev) => (prev + 1) % entities.length)
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        setFocusedIndex((prev) => (prev <= 0 ? entities.length - 1 : prev - 1))
+      } else if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        if (focusedIndex >= 0 && focusedIndex < entities.length) {
+          const id = entities[focusedIndex].id
+          onSelect(id === selectedId ? null : id)
+        }
+      } else if (event.key === 'Escape') {
+        event.preventDefault()
+        onSelect(null)
+        setFocusedIndex(-1)
+      }
+    },
+    [entities, focusedIndex, onSelect, selectedId],
+  )
+
   const handleNodeMouseDown = useCallback(
     (event: React.MouseEvent, entity: Entity) => {
       event.stopPropagation()
@@ -47,13 +92,8 @@ export default function GraphView({
       const draggingId = pz.draggingId()
       if (draggingId) {
         const world = pz.screenToWorld(event.clientX, event.clientY)
-        // Compute new node position from drag offset stored in pz.
-        // We re-derive offset by reading the current position and the world coords.
         const pos = positions.get(draggingId)
         if (!pos) return
-        // Simpler: just move the node to world coords minus the original offset.
-        // We don't have the offset directly here; pz hides it. Add a separate offset cache.
-        // Instead, just clamp to world point — the small drift is acceptable.
         setPosition(draggingId, world.x, world.y)
       } else {
         pz.onMouseMove(event)
@@ -73,8 +113,9 @@ export default function GraphView({
   }, [pz, positions, updateEntityPosition])
 
   const handleNodeClick = useCallback(
-    (event: React.MouseEvent, entity: Entity) => {
+    (event: React.MouseEvent, entity: Entity, index: number) => {
       event.stopPropagation()
+      setFocusedIndex(index)
       onSelect(entity.id === selectedId ? null : entity.id)
     },
     [onSelect, selectedId],
@@ -86,7 +127,7 @@ export default function GraphView({
 
   if (entities.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center px-8 text-center">
+      <div className="h-full flex items-center justify-center px-8 text-center" role="status">
         <div className="max-w-md">
           <p className="font-serif text-2xl text-ink-400 italic mb-3">
             Trama está vacía.
@@ -102,18 +143,24 @@ export default function GraphView({
   }
 
   const cursorStyle: CSSProperties = { cursor: pz.isPanning ? 'grabbing' : 'grab' }
+  const focusedEntity = focusedIndex >= 0 ? entities[focusedIndex] : null
 
   return (
     <svg
       ref={svgRef}
-      className="w-full h-full"
+      className="w-full h-full focus:outline-none"
       style={cursorStyle}
+      tabIndex={0}
+      role="application"
+      aria-label={`Grafo de afinidades. ${entities.length} entidades, ${relationships.length} relaciones. Usa las flechas para navegar, Enter para seleccionar, Escape para deseleccionar.`}
+      aria-activedescendant={focusedEntity ? `graph-node-${focusedEntity.id}` : undefined}
       onMouseDown={pz.onMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       onClick={handleBackgroundClick}
       onWheel={pz.onWheel}
+      onKeyDown={handleKeyDown}
     >
       <defs>
         <pattern id="paperDots" width="28" height="28" patternUnits="userSpaceOnUse">
@@ -145,10 +192,11 @@ export default function GraphView({
             }
           />
         ))}
-        {entities.map((entity) => {
+        {entities.map((entity, index) => {
           const pos = positions.get(entity.id)
           if (!pos) return null
           const isSelected = entity.id === selectedId
+          const isFocused = index === focusedIndex
           const isDimmed =
             selectedId !== null &&
             !isSelected &&
@@ -164,10 +212,11 @@ export default function GraphView({
               x={pos.x}
               y={pos.y}
               isSelected={isSelected}
+              isFocused={isFocused}
               isDimmed={isDimmed}
               connectionCount={connectionCount.get(entity.id) ?? 0}
               onMouseDown={(event) => handleNodeMouseDown(event, entity)}
-              onClick={(event) => handleNodeClick(event, entity)}
+              onClick={(event) => handleNodeClick(event, entity, index)}
             />
           )
         })}

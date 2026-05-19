@@ -24,6 +24,7 @@ export function GraphNode({
   x,
   y,
   isSelected,
+  isFocused = false,
   isDimmed,
   connectionCount,
   onMouseDown,
@@ -33,6 +34,7 @@ export function GraphNode({
   x: number
   y: number
   isSelected: boolean
+  isFocused?: boolean
   isDimmed: boolean
   connectionCount: number
   onMouseDown: (event: React.MouseEvent) => void
@@ -45,8 +47,18 @@ export function GraphNode({
   const opacity = isDimmed ? 0.25 : 1
   const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label
 
+  // Border: focused shows a keyboard focus ring; selected darkens; otherwise type accent.
+  const strokeColor = isSelected ? '#3A3429' : isFocused ? '#5A4E3A' : accent
+  const strokeWidth = isSelected || isFocused ? 2 : 1
+  const strokeDasharray = isFocused && !isSelected ? '4 2' : undefined
+
   return (
     <g
+      id={`graph-node-${entity.id}`}
+      role="button"
+      aria-label={`${entity.name}, ${typeLabel}${
+        connectionCount > 0 ? `, ${connectionCount} conexiones` : ''
+      }${isSelected ? ', seleccionado' : ''}`}
       transform={`translate(${x - w / 2} ${y - h / 2})`}
       style={{ cursor: 'pointer', opacity, transition: 'opacity 150ms' }}
       onMouseDown={onMouseDown}
@@ -58,9 +70,10 @@ export function GraphNode({
         rx={h / 2}
         ry={h / 2}
         fill="#FBF8F0"
-        stroke={isSelected ? '#3A3429' : accent}
-        strokeWidth={isSelected ? 2 : 1}
-        strokeOpacity={isSelected ? 1 : 0.5}
+        stroke={strokeColor}
+        strokeWidth={strokeWidth}
+        strokeOpacity={isSelected || isFocused ? 1 : 0.5}
+        strokeDasharray={strokeDasharray}
       />
       <circle cx={14 * scale} cy={h / 2} r={3 * scale} fill={accent} />
       <text
