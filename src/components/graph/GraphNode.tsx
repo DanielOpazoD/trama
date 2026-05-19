@@ -1,24 +1,29 @@
 import { ENTITY_TYPES, type Entity, type EntityType } from '../../types'
 
-// Subtle per-type accent — soft, paper-friendly hues.
+/**
+ * Restrained earth-tone palette. Distinguishable but cohesive — every accent
+ * reads as a variation of ink on paper, not as rainbow chips.
+ */
 export const TYPE_ACCENT: Record<EntityType, string> = {
-  persona:  '#9C6F3B',
-  libro:    '#3D3528',
-  cancion:  '#A04763',
-  album:    '#7E54A8',
-  pelicula: '#4F7AA8',
-  obra:     '#5A8060',
-  concepto: '#9C8233',
-  idea:     '#B26B2E',
+  persona:  '#8E5A2C', // warm umber
+  libro:    '#3D3528', // deep ink
+  cancion:  '#9A4F4B', // muted terracotta
+  album:    '#6D4A78', // dusty plum
+  pelicula: '#4F6584', // muted slate
+  obra:     '#6B7440', // olive
+  concepto: '#8E6B33', // muted gold
+  idea:     '#9C5934', // rust
 }
-
-const NODE_WIDTH = 140
-const NODE_HEIGHT = 44
 
 function truncate(s: string, max: number): string {
   return s.length <= max ? s : s.slice(0, max - 1) + '…'
 }
 
+/**
+ * Node rendering as a circle with the entity name set below it.
+ * Size scales with the connection count (square-root scale, capped).
+ * Hover/selection/focus expressed as ring stroke variations + opacity.
+ */
 export function GraphNode({
   entity,
   x,
@@ -43,16 +48,18 @@ export function GraphNode({
   onClick: (event: React.MouseEvent) => void
 }) {
   const accent = TYPE_ACCENT[entity.type]
-  const scale = Math.min(1 + connectionCount * 0.03, 1.2)
-  const w = NODE_WIDTH * scale
-  const h = NODE_HEIGHT * scale
-  const opacity = isDimmed ? 0.25 : 1
+  // Radius scales by square-root of connections — visible difference between
+  // a leaf node and a hub, without hubs dominating the view.
+  const radius = Math.min(9 + Math.sqrt(connectionCount) * 4.5, 28)
+  const opacity = isDimmed ? 0.28 : 1
   const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label
+  const labelY = radius + 14
+  const typeLabelY = labelY + 10
 
-  // Border: focused shows a keyboard focus ring; selected darkens; otherwise type accent.
-  const strokeColor = isSelected ? '#3A3429' : isFocused ? '#5A4E3A' : accent
-  const strokeWidth = isSelected || isFocused ? 2 : 1
-  const strokeDasharray = isFocused && !isSelected ? '4 2' : undefined
+  const ringStroke = isSelected ? '#1A1812' : isFocused ? '#3D3528' : accent
+  const ringWidth = isSelected ? 2.2 : isFocused ? 2 : 1.4
+  const ringOpacity = isSelected || isFocused ? 0.95 : 0.75
+  const ringDash = isFocused && !isSelected ? '4 2' : undefined
 
   return (
     <g
@@ -61,49 +68,77 @@ export function GraphNode({
       aria-label={`${entity.name}, ${typeLabel}${
         connectionCount > 0 ? `, ${connectionCount} conexiones` : ''
       }${isSelected ? ', seleccionado' : ''}`}
-      transform={`translate(${x - w / 2} ${y - h / 2})`}
+      transform={`translate(${x} ${y})`}
       className={isFresh ? 'animate-node-in' : undefined}
       style={{
         cursor: 'pointer',
         opacity,
         transition: 'opacity 200ms ease',
-        transformOrigin: `${w / 2}px ${h / 2}px`,
       }}
       onMouseDown={onMouseDown}
       onClick={onClick}
     >
-      <rect
-        width={w}
-        height={h}
-        rx={h / 2}
-        ry={h / 2}
+      {/* Selection halo (drawn behind the node) */}
+      {isSelected && (
+        <circle
+          cx={0}
+          cy={0}
+          r={radius + 4}
+          fill="none"
+          stroke="#1A1812"
+          strokeOpacity={0.15}
+          strokeWidth={6}
+        />
+      )}
+      {/* Node body */}
+      <circle
+        cx={0}
+        cy={0}
+        r={radius}
         fill="#FBF8F0"
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-        strokeOpacity={isSelected || isFocused ? 1 : 0.5}
-        strokeDasharray={strokeDasharray}
+        stroke={ringStroke}
+        strokeOpacity={ringOpacity}
+        strokeWidth={ringWidth}
+        strokeDasharray={ringDash}
       />
-      <circle cx={14 * scale} cy={h / 2} r={3 * scale} fill={accent} />
+      {/* Inner accent dot — subtle color reveal */}
+      <circle cx={0} cy={0} r={Math.max(radius - 7, 2)} fill={accent} fillOpacity={0.08} />
+      {/* Origin indicator: tiny ai pip on the upper-right when AI-added */}
+      {entity.origin.kind === 'ai' && (
+        <circle
+          cx={radius * 0.7}
+          cy={-radius * 0.7}
+          r={2.5}
+          fill="#5680A8"
+          stroke="#FBF8F0"
+          strokeWidth={1.5}
+        />
+      )}
+      {/* Name label below the node */}
       <text
-        x={24 * scale}
-        y={h / 2 - 2}
-        fontSize={12 * scale}
-        fill="#3D3528"
-        dominantBaseline="middle"
+        y={labelY}
+        textAnchor="middle"
+        fontSize={12}
+        fontWeight={500}
+        fill={isSelected ? '#1A1812' : '#3D3528'}
         style={{ userSelect: 'none', pointerEvents: 'none' }}
       >
-        {truncate(entity.name, 18)}
+        {truncate(entity.name, 24)}
       </text>
+      {/* Type label, dimmer, beneath the name */}
       <text
-        x={24 * scale}
-        y={h / 2 + 10 * scale}
-        fontSize={7 * scale}
+        y={typeLabelY}
+        textAnchor="middle"
+        fontSize={8.5}
         fill="#857C66"
-        letterSpacing="1.5"
-        dominantBaseline="middle"
-        style={{ userSelect: 'none', pointerEvents: 'none', textTransform: 'uppercase' }}
+        letterSpacing="1.4"
+        style={{
+          userSelect: 'none',
+          pointerEvents: 'none',
+          textTransform: 'uppercase',
+        }}
       >
-        {typeLabel?.toUpperCase()}
+        {typeLabel}
       </text>
     </g>
   )
