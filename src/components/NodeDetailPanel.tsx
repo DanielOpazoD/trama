@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useTrama } from '../state'
+import {
+  useEntitiesQuery,
+  useQuotesQuery,
+  useRelationshipsQuery,
+  useDeleteEntity,
+  useDeleteRelationship,
+  useDeleteQuote,
+} from '../state'
 import {
   ENTITY_TYPES,
   RELATIONSHIP_TYPES,
@@ -14,14 +21,12 @@ export function NodeDetailPanel({
   entityId: string
   onClose: () => void
 }) {
-  const {
-    entities,
-    quotes,
-    relationships,
-    deleteEntity,
-    deleteRelationship,
-    deleteQuote,
-  } = useTrama()
+  const { data: entities = [] } = useEntitiesQuery()
+  const { data: quotes = [] } = useQuotesQuery()
+  const { data: relationships = [] } = useRelationshipsQuery()
+  const deleteEntity = useDeleteEntity()
+  const deleteRelationship = useDeleteRelationship()
+  const deleteQuote = useDeleteQuote()
 
   const entity = entities.find((e) => e.id === entityId)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -101,7 +106,7 @@ export function NodeDetailPanel({
                       )}
                     </div>
                     <button
-                      onClick={() => deleteQuote(quote.id)}
+                      onClick={() => deleteQuote.mutate(quote.id)}
                       className="opacity-0 group-hover:opacity-100 text-ink-300 hover:text-ink-700 transition-opacity"
                     >
                       eliminar
@@ -130,7 +135,7 @@ export function NodeDetailPanel({
                   rel={rel}
                   direction="out"
                   otherEntity={entities.find((e) => e.id === rel.toId)}
-                  onDelete={() => deleteRelationship(rel.id)}
+                  onDelete={() => deleteRelationship.mutate(rel.id)}
                 />
               ))}
               {incoming.map((rel) => (
@@ -139,7 +144,7 @@ export function NodeDetailPanel({
                   rel={rel}
                   direction="in"
                   otherEntity={entities.find((e) => e.id === rel.fromId)}
-                  onDelete={() => deleteRelationship(rel.id)}
+                  onDelete={() => deleteRelationship.mutate(rel.id)}
                 />
               ))}
             </ul>
@@ -163,7 +168,7 @@ export function NodeDetailPanel({
             </button>
             <button
               onClick={async () => {
-                await deleteEntity(entity.id)
+                await deleteEntity.mutateAsync(entity.id)
                 onClose()
               }}
               className="text-red-700 hover:text-red-900 text-sm"

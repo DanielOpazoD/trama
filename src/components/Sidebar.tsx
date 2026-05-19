@@ -1,5 +1,11 @@
 import { useMemo, useRef, useState } from 'react'
-import { useTrama } from '../state'
+import {
+  useEntitiesQuery,
+  useQuotesQuery,
+  useRelationshipsQuery,
+  useExport,
+  useImport,
+} from '../state'
 import type { ExportPayload } from '../types'
 
 export type ViewMode = 'grafo' | 'entidades' | 'citas' | 'relaciones'
@@ -17,14 +23,21 @@ export function Sidebar({
   collapsed,
   onToggleCollapsed,
   onSelectEntity,
+  offline,
 }: {
   view: ViewMode
   onChangeView: (v: ViewMode) => void
   collapsed: boolean
   onToggleCollapsed: () => void
   onSelectEntity?: (id: string) => void
+  offline: boolean
 }) {
-  const { entities, relationships, quotes, offline, exportAll, importAll } = useTrama()
+  const { data: entities = [] } = useEntitiesQuery()
+  const { data: relationships = [] } = useRelationshipsQuery()
+  const { data: quotes = [] } = useQuotesQuery()
+  const doExport = useExport()
+  const doImport = useImport()
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -37,9 +50,6 @@ export function Sidebar({
     relaciones: relationships.length,
   }
 
-  // Client-side fuzzy match: case-insensitive substring on name + description.
-  // Good enough for graphs up to a few thousand entities. Beyond that, switch to
-  // backend /api/search which uses Postgres FTS + trigrams.
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return []
@@ -55,7 +65,7 @@ export function Sidebar({
   async function handleExport() {
     setBusy(true); setMessage(null)
     try {
-      const payload = await exportAll()
+      const payload = await doExport()
       const json = JSON.stringify(payload, null, 2)
       const blob = new Blob([json], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -81,7 +91,7 @@ export function Sidebar({
       const text = await file.text()
       const payload = JSON.parse(text) as ExportPayload
       if (payload.version !== 1) throw new Error(`versión ${payload.version} no soportada`)
-      const imported = await importAll(payload)
+      const imported = await doImport(payload)
       setMessage(`Importado: ${imported} elementos`)
     } catch (err) {
       setMessage(err instanceof Error ? `Error: ${err.message}` : 'Error al importar')
@@ -210,7 +220,7 @@ export function Sidebar({
             </button>
           </div>
           <p className="text-[10px] uppercase tracking-[0.18em] text-ink-200 text-center pt-1">
-            trama · v0.5.0
+            trama · v0.6.0
           </p>
         </div>
       )}

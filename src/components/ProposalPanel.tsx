@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useTrama } from '../state'
+import {
+  useEntitiesQuery,
+  useAddEntity,
+  useAddRelationship,
+  useAddQuote,
+} from '../state'
 import {
   ENTITY_TYPES,
   RELATIONSHIP_TYPES,
@@ -34,7 +39,11 @@ export function ProposalPanel({
   onClose: () => void
   onConfirmed: () => void
 }) {
-  const { entities, addEntity, addRelationship, addQuote } = useTrama()
+  const { data: entities = [] } = useEntitiesQuery()
+  const addEntity = useAddEntity()
+  const addRelationship = useAddRelationship()
+  const addQuote = useAddQuote()
+
   const [checked, setChecked] = useState<CheckedState>(() => initialChecked(proposal))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -81,14 +90,18 @@ export function ProposalPanel({
         }
         const existing = idByLowerName.get(e.name.trim().toLowerCase())
         if (existing) continue
-        const created = await addEntity({
-          type: e.type,
-          name: e.name,
-          year: e.year,
-          description: e.description,
-          origin: { kind: 'ai' },
-        })
-        if (created) idByLowerName.set(created.name.trim().toLowerCase(), created.id)
+        try {
+          const created = await addEntity.mutateAsync({
+            type: e.type,
+            name: e.name,
+            year: e.year,
+            description: e.description,
+            origin: { kind: 'ai' },
+          })
+          idByLowerName.set(created.name.trim().toLowerCase(), created.id)
+        } catch {
+          /* skip — error surfaces via the mutation's error state */
+        }
       }
 
       for (let i = 0; i < proposal.relationships.length; i++) {
@@ -97,13 +110,17 @@ export function ProposalPanel({
         const fromId = idByLowerName.get(r.fromName.trim().toLowerCase())
         const toId = idByLowerName.get(r.toName.trim().toLowerCase())
         if (!fromId || !toId || fromId === toId) continue
-        await addRelationship({
-          fromId,
-          toId,
-          type: r.type,
-          notes: r.notes,
-          origin: { kind: 'ai' },
-        })
+        try {
+          await addRelationship.mutateAsync({
+            fromId,
+            toId,
+            type: r.type,
+            notes: r.notes,
+            origin: { kind: 'ai' },
+          })
+        } catch {
+          /* skip */
+        }
       }
 
       for (let i = 0; i < proposal.quotes.length; i++) {
@@ -111,13 +128,17 @@ export function ProposalPanel({
         const q = proposal.quotes[i]
         const entityId = idByLowerName.get(q.entityName.trim().toLowerCase())
         if (!entityId) continue
-        await addQuote({
-          entityId,
-          text: q.text,
-          source: q.source,
-          context: q.context,
-          origin: { kind: 'ai' },
-        })
+        try {
+          await addQuote.mutateAsync({
+            entityId,
+            text: q.text,
+            source: q.source,
+            context: q.context,
+            origin: { kind: 'ai' },
+          })
+        } catch {
+          /* skip */
+        }
       }
 
       onConfirmed()

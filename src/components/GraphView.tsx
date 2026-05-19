@@ -6,7 +6,11 @@ import {
   useState,
   type CSSProperties,
 } from 'react'
-import { useTrama } from '../state'
+import {
+  useEntitiesQuery,
+  useRelationshipsQuery,
+  useUpdateEntityPosition,
+} from '../state'
 import type { Entity } from '../types'
 import { useForceLayout } from '../hooks/useForceLayout'
 import { usePanZoom } from '../hooks/usePanZoom'
@@ -20,7 +24,9 @@ export default function GraphView({
   selectedId: string | null
   onSelect: (id: string | null) => void
 }) {
-  const { entities, relationships, updateEntityPosition } = useTrama()
+  const { data: entities = [] } = useEntitiesQuery()
+  const { data: relationships = [] } = useRelationshipsQuery()
+  const updateEntityPosition = useUpdateEntityPosition()
   const svgRef = useRef<SVGSVGElement>(null)
 
   const { positions, setPosition } = useForceLayout({

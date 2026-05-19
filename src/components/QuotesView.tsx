@@ -1,8 +1,12 @@
 import { useState, type FormEvent } from 'react'
-import { useTrama } from '../state'
+import { useEntitiesQuery, useQuotesQuery, useAddQuote, useDeleteQuote } from '../state'
 
 export function QuotesView() {
-  const { entities, quotes, addQuote, deleteQuote } = useTrama()
+  const { data: entities = [] } = useEntitiesQuery()
+  const { data: quotes = [] } = useQuotesQuery()
+  const addQuote = useAddQuote()
+  const deleteQuote = useDeleteQuote()
+
   const [entityId, setEntityId] = useState('')
   const [text, setText] = useState('')
   const [source, setSource] = useState('')
@@ -13,15 +17,19 @@ export function QuotesView() {
     event.preventDefault()
     const trimmedText = text.trim()
     if (!trimmedText || !entityId) return
-    await addQuote({
-      entityId,
-      text: trimmedText,
-      source: source.trim() || undefined,
-      context: context.trim() || undefined,
-    })
-    setText('')
-    setSource('')
-    setContext('')
+    try {
+      await addQuote.mutateAsync({
+        entityId,
+        text: trimmedText,
+        source: source.trim() || undefined,
+        context: context.trim() || undefined,
+      })
+      setText('')
+      setSource('')
+      setContext('')
+    } catch {
+      /* error surfaces via addQuote.error */
+    }
   }
 
   return (
@@ -83,16 +91,14 @@ export function QuotesView() {
                 rows={2}
                 className="input-paper w-full resize-none"
               />
-              <button type="submit" className="btn-ink">
-                Añadir cita
+              <button type="submit" disabled={addQuote.isPending} className="btn-ink">
+                {addQuote.isPending ? 'añadiendo…' : 'Añadir cita'}
               </button>
             </form>
           )}
 
           {quotes.length === 0 ? (
-            <p className="text-ink-400 italic leading-relaxed">
-              Aún sin citas.
-            </p>
+            <p className="text-ink-400 italic leading-relaxed">Aún sin citas.</p>
           ) : (
             <ul className="space-y-8">
               {quotes.map((quote) => {
@@ -117,7 +123,7 @@ export function QuotesView() {
                         )}
                       </div>
                       <button
-                        onClick={() => deleteQuote(quote.id)}
+                        onClick={() => deleteQuote.mutate(quote.id)}
                         className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-ink-700 text-xs"
                       >
                         eliminar

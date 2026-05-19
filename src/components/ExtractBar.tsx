@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { useTrama } from '../state'
+import { useExtract, useOffline } from '../state'
 import type { ExtractionProposal } from '../types'
 
 export function ExtractBar({
@@ -9,13 +9,11 @@ export function ExtractBar({
   onProposal: (text: string, proposal: ExtractionProposal) => void
   busy: boolean
 }) {
-  const { extract, offline } = useTrama()
+  const extract = useExtract()
+  const { offline } = useOffline()
   const [text, setText] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-grow textarea up to a cap.
   useEffect(() => {
     const el = textareaRef.current
     if (!el) return
@@ -26,17 +24,13 @@ export function ExtractBar({
   async function handleSubmit(event?: FormEvent) {
     event?.preventDefault()
     const trimmed = text.trim()
-    if (!trimmed || loading || busy) return
-    setError(null)
-    setLoading(true)
+    if (!trimmed || extract.isPending || busy) return
     try {
-      const proposal = await extract(trimmed)
+      const proposal = await extract.mutateAsync(trimmed)
       onProposal(trimmed, proposal)
       setText('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido')
-    } finally {
-      setLoading(false)
+    } catch {
+      // error surfaces via extract.error
     }
   }
 
@@ -47,14 +41,15 @@ export function ExtractBar({
     }
   }
 
-  const disabled = !text.trim() || loading || busy || offline
+  const disabled = !text.trim() || extract.isPending || busy || offline
+  const errorMessage = extract.error?.message ?? null
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-6 flex justify-center">
       <div className="pointer-events-auto w-full max-w-2xl">
-        {error && (
+        {errorMessage && (
           <div className="mb-2 px-3 py-2 bg-red-50/95 border border-red-200 rounded-lg text-xs text-red-800 shadow-sm">
-            {error}
+            {errorMessage}
           </div>
         )}
         {offline && (
@@ -74,7 +69,7 @@ export function ExtractBar({
             onKeyDown={handleKeyDown}
             placeholder="¿en qué andabas pensando? un libro, una idea suelta, una conversación…"
             rows={1}
-            disabled={loading || busy}
+            disabled={extract.isPending || busy}
             className="flex-1 resize-none bg-transparent px-3 py-2 text-ink-700 placeholder:text-ink-300 focus:outline-none leading-relaxed"
           />
           <button
@@ -84,7 +79,7 @@ export function ExtractBar({
             className="self-end mb-1 mr-1 size-9 rounded-full bg-ink-700 text-paper-50 hover:bg-ink-600 disabled:bg-ink-100 disabled:text-ink-300 transition-colors flex items-center justify-center"
             title="Extraer (⌘/Ctrl+Enter)"
           >
-            {loading ? (
+            {extract.isPending ? (
               <span className="size-3.5 border-2 border-paper-50/40 border-t-paper-50 rounded-full animate-spin" />
             ) : (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

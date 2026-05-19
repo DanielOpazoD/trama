@@ -1,9 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { RELATIONSHIP_TYPES, type RelationshipType } from '../types'
-import { useTrama } from '../state'
+import {
+  useEntitiesQuery,
+  useRelationshipsQuery,
+  useAddRelationship,
+  useDeleteRelationship,
+} from '../state'
 
 export function RelationshipsView() {
-  const { entities, relationships, addRelationship, deleteRelationship } = useTrama()
+  const { data: entities = [] } = useEntitiesQuery()
+  const { data: relationships = [] } = useRelationshipsQuery()
+  const addRelationship = useAddRelationship()
+  const deleteRelationship = useDeleteRelationship()
+
   const [fromId, setFromId] = useState('')
   const [type, setType] = useState<RelationshipType>('influye_en')
   const [toId, setToId] = useState('')
@@ -13,15 +22,19 @@ export function RelationshipsView() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (!fromId || !toId || fromId === toId) return
-    await addRelationship({
-      fromId,
-      toId,
-      type,
-      notes: notes.trim() || undefined,
-    })
-    setFromId('')
-    setToId('')
-    setNotes('')
+    try {
+      await addRelationship.mutateAsync({
+        fromId,
+        toId,
+        type,
+        notes: notes.trim() || undefined,
+      })
+      setFromId('')
+      setToId('')
+      setNotes('')
+    } catch {
+      /* error surfaces via addRelationship.error */
+    }
   }
 
   return (
@@ -57,9 +70,7 @@ export function RelationshipsView() {
                 >
                   <option value="">— origen —</option>
                   {entities.map((entity) => (
-                    <option key={entity.id} value={entity.id}>
-                      {entity.name}
-                    </option>
+                    <option key={entity.id} value={entity.id}>{entity.name}</option>
                   ))}
                 </select>
                 <select
@@ -68,9 +79,7 @@ export function RelationshipsView() {
                   className="input-paper"
                 >
                   {RELATIONSHIP_TYPES.map((relType) => (
-                    <option key={relType.value} value={relType.value}>
-                      {relType.label}
-                    </option>
+                    <option key={relType.value} value={relType.value}>{relType.label}</option>
                   ))}
                 </select>
                 <select
@@ -79,13 +88,9 @@ export function RelationshipsView() {
                   className="input-paper flex-1"
                 >
                   <option value="">— destino —</option>
-                  {entities
-                    .filter((entity) => entity.id !== fromId)
-                    .map((entity) => (
-                      <option key={entity.id} value={entity.id}>
-                        {entity.name}
-                      </option>
-                    ))}
+                  {entities.filter((entity) => entity.id !== fromId).map((entity) => (
+                    <option key={entity.id} value={entity.id}>{entity.name}</option>
+                  ))}
                 </select>
               </div>
               <input
@@ -95,16 +100,14 @@ export function RelationshipsView() {
                 placeholder="Nota sobre la relación (opcional)"
                 className="input-paper w-full"
               />
-              <button type="submit" className="btn-ink">
-                Añadir relación
+              <button type="submit" disabled={addRelationship.isPending} className="btn-ink">
+                {addRelationship.isPending ? 'añadiendo…' : 'Añadir relación'}
               </button>
             </form>
           )}
 
           {relationships.length === 0 ? (
-            <p className="text-ink-400 italic leading-relaxed">
-              Aún sin relaciones.
-            </p>
+            <p className="text-ink-400 italic leading-relaxed">Aún sin relaciones.</p>
           ) : (
             <ul className="space-y-2">
               {relationships.map((rel) => {
@@ -131,16 +134,14 @@ export function RelationshipsView() {
                         )}
                       </div>
                       <button
-                        onClick={() => deleteRelationship(rel.id)}
+                        onClick={() => deleteRelationship.mutate(rel.id)}
                         className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-ink-700 text-xs"
                       >
                         eliminar
                       </button>
                     </div>
                     {rel.notes && (
-                      <p className="mt-1 text-sm text-ink-400 leading-relaxed">
-                        {rel.notes}
-                      </p>
+                      <p className="mt-1 text-sm text-ink-400 leading-relaxed">{rel.notes}</p>
                     )}
                   </li>
                 )

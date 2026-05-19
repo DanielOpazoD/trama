@@ -1,9 +1,20 @@
 import { useState, type FormEvent } from 'react'
 import { ENTITY_TYPES, type EntityType } from '../types'
-import { useTrama } from '../state'
+import {
+  useEntitiesQuery,
+  useQuotesQuery,
+  useRelationshipsQuery,
+  useAddEntity,
+  useDeleteEntity,
+} from '../state'
 
 export function EntitiesView() {
-  const { entities, addEntity, deleteEntity, quotes, relationships } = useTrama()
+  const { data: entities = [] } = useEntitiesQuery()
+  const { data: quotes = [] } = useQuotesQuery()
+  const { data: relationships = [] } = useRelationshipsQuery()
+  const addEntity = useAddEntity()
+  const deleteEntity = useDeleteEntity()
+
   const [name, setName] = useState('')
   const [type, setType] = useState<EntityType>('persona')
   const [year, setYear] = useState('')
@@ -14,15 +25,19 @@ export function EntitiesView() {
     event.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) return
-    await addEntity({
-      type,
-      name: trimmed,
-      year: year ? Number(year) : undefined,
-      description: description.trim() || undefined,
-    })
-    setName('')
-    setYear('')
-    setDescription('')
+    try {
+      await addEntity.mutateAsync({
+        type,
+        name: trimmed,
+        year: year ? Number(year) : undefined,
+        description: description.trim() || undefined,
+      })
+      setName('')
+      setYear('')
+      setDescription('')
+    } catch {
+      /* error surfaces via addEntity.error */
+    }
   }
 
   return (
@@ -77,8 +92,8 @@ export function EntitiesView() {
             rows={2}
             className="input-paper w-full resize-none"
           />
-          <button type="submit" className="btn-ink">
-            Añadir
+          <button type="submit" disabled={addEntity.isPending} className="btn-ink">
+            {addEntity.isPending ? 'añadiendo…' : 'Añadir'}
           </button>
         </form>
       )}
@@ -104,9 +119,7 @@ export function EntitiesView() {
                   <div className="min-w-0">
                     <span className="text-ink-700">{entity.name}</span>
                     {entity.year !== undefined && (
-                      <span className="ml-2 text-ink-300 text-sm">
-                        ({entity.year})
-                      </span>
+                      <span className="ml-2 text-ink-300 text-sm">({entity.year})</span>
                     )}
                     <span className="ml-3 text-[10px] uppercase tracking-[0.18em] text-ink-300 align-middle">
                       {ENTITY_TYPES.find((t) => t.value === entity.type)?.label}
@@ -124,7 +137,7 @@ export function EntitiesView() {
                           `¿Eliminar "${entity.name}"? Sus citas y relaciones también se borrarán.`,
                         )
                       ) {
-                        deleteEntity(entity.id)
+                        deleteEntity.mutate(entity.id)
                       }
                     }}
                     className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-ink-700 text-xs"

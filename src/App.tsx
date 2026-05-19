@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { StateProvider, useTrama } from './state'
+import {
+  Provider,
+  useEntitiesQuery,
+  useQuotesQuery,
+  useRelationshipsQuery,
+  useOffline,
+} from './state'
 import { Sidebar, type ViewMode } from './components/Sidebar'
 import GraphView from './components/GraphView'
 import { EntitiesView } from './components/EntitiesView'
@@ -13,7 +19,19 @@ import type { ExtractionProposal } from './types'
 type PendingProposal = { text: string; proposal: ExtractionProposal }
 
 function Shell() {
-  const { loading, error } = useTrama()
+  const entitiesQuery = useEntitiesQuery()
+  const relationshipsQuery = useRelationshipsQuery()
+  const quotesQuery = useQuotesQuery()
+  const { offline } = useOffline()
+
+  const loading =
+    entitiesQuery.isLoading || relationshipsQuery.isLoading || quotesQuery.isLoading
+  const error =
+    entitiesQuery.error?.message ??
+    relationshipsQuery.error?.message ??
+    quotesQuery.error?.message ??
+    null
+
   const [view, setView] = useState<ViewMode>('grafo')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
@@ -37,6 +55,7 @@ function Shell() {
           setView('grafo')
           setSelectedEntityId(id)
         }}
+        offline={offline}
       />
 
       <main className="flex-1 relative overflow-hidden">
@@ -98,8 +117,8 @@ function Shell() {
 
 export default function App() {
   return (
-    <StateProvider>
+    <Provider>
       <Shell />
-    </StateProvider>
+    </Provider>
   )
 }
