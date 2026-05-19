@@ -19,15 +19,36 @@ function save<T>(key: string, items: T[]): void {
   localStorage.setItem(key, JSON.stringify(items))
 }
 
-function ensureOrigin<T extends { origin?: Origin }>(item: T): T & { origin: Origin } {
-  return { ...item, origin: item.origin ?? 'manual' }
+/**
+ * Coerce legacy localStorage shapes into the current type.
+ * - `origin` used to be 'manual' | 'ai' string. Now it's an object.
+ * - `updatedAt` may be missing on old rows — fall back to `createdAt`.
+ */
+function normalizeOrigin(value: unknown): Origin {
+  if (value && typeof value === 'object' && 'kind' in (value as Record<string, unknown>)) {
+    return value as Origin
+  }
+  if (typeof value === 'string') {
+    return { kind: value === 'ai' ? 'ai' : 'manual' }
+  }
+  return { kind: 'manual' }
+}
+
+function normalizeBase<T extends { createdAt: string; updatedAt?: string; origin?: unknown }>(
+  item: T,
+): T & { origin: Origin; updatedAt: string } {
+  return {
+    ...item,
+    origin: normalizeOrigin(item.origin),
+    updatedAt: item.updatedAt ?? item.createdAt,
+  }
 }
 
 export const storage = {
-  loadEntities: () => loadRaw<Entity>(KEYS.entities).map(ensureOrigin),
+  loadEntities: () => loadRaw<Entity>(KEYS.entities).map(normalizeBase),
   saveEntities: (items: Entity[]) => save(KEYS.entities, items),
-  loadRelationships: () => loadRaw<Relationship>(KEYS.relationships).map(ensureOrigin),
+  loadRelationships: () => loadRaw<Relationship>(KEYS.relationships).map(normalizeBase),
   saveRelationships: (items: Relationship[]) => save(KEYS.relationships, items),
-  loadQuotes: () => loadRaw<Quote>(KEYS.quotes).map(ensureOrigin),
+  loadQuotes: () => loadRaw<Quote>(KEYS.quotes).map(normalizeBase),
   saveQuotes: (items: Quote[]) => save(KEYS.quotes, items),
 }

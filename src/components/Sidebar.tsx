@@ -1,4 +1,6 @@
+import { useRef, useState } from 'react'
 import { useTrama } from '../state'
+import type { ExportPayload } from '../types'
 
 export type ViewMode = 'grafo' | 'entidades' | 'citas' | 'relaciones'
 
@@ -20,12 +22,65 @@ export function Sidebar({
   collapsed: boolean
   onToggleCollapsed: () => void
 }) {
-  const { entities, relationships, quotes, offline } = useTrama()
+  const { entities, relationships, quotes, offline, exportAll, importAll } = useTrama()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+
   const counts: Record<ViewMode, number | null> = {
     grafo: null,
     entidades: entities.length,
     citas: quotes.length,
     relaciones: relationships.length,
+  }
+
+  async function handleExport() {
+    setBusy(true)
+    setMessage(null)
+    try {
+      const payload = await exportAll()
+      const json = JSON.stringify(payload, null, 2)
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const stamp = new Date().toISOString().slice(0, 10)
+      a.href = url
+      a.download = `trama-${stamp}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      setMessage('Exportado')
+    } catch (err) {
+      setMessage(err instanceof Error ? `Error: ${err.message}` : 'Error al exportar')
+    } finally {
+      setBusy(false)
+      window.setTimeout(() => setMessage(null), 3000)
+    }
+  }
+
+  async function handleImportClick() {
+    fileInputRef.current?.click()
+  }
+
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setBusy(true)
+    setMessage(null)
+    try {
+      const text = await file.text()
+      const payload = JSON.parse(text) as ExportPayload
+      if (payload.version !== 1) {
+        throw new Error(`versión ${payload.version} no soportada`)
+      }
+      const imported = await importAll(payload)
+      setMessage(`Importado: ${imported} elementos`)
+    } catch (err) {
+      setMessage(err instanceof Error ? `Error: ${err.message}` : 'Error al importar')
+    } finally {
+      setBusy(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      window.setTimeout(() => setMessage(null), 4000)
+    }
   }
 
   return (
@@ -94,10 +149,43 @@ export function Sidebar({
       <div className="flex-1" />
 
       {!collapsed && (
-        <footer className="p-3 text-[10px] uppercase tracking-[0.18em] text-ink-200">
-          trama · v0.3.0
-        </footer>
+        <div className="px-3 pb-3 space-y-2">
+          {message && (
+            <p className="text-[10px] uppercase tracking-[0.16em] text-ink-400">
+              {message}
+            </p>
+          )}
+          <div className="flex gap-1.5">
+            <button
+              onClick={handleExport}
+              disabled={busy}
+              className="flex-1 text-[10px] uppercase tracking-[0.16em] text-ink-400 hover:text-ink-700 transition-colors py-1.5 disabled:text-ink-200"
+              title="Exportar toda tu trama como JSON"
+            >
+              exportar
+            </button>
+            <button
+              onClick={handleImportClick}
+              disabled={busy}
+              className="flex-1 text-[10px] uppercase tracking-[0.16em] text-ink-400 hover:text-ink-700 transition-colors py-1.5 disabled:text-ink-200"
+              title="Importar un JSON exportado previamente"
+            >
+              importar
+            </button>
+          </div>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-ink-200 text-center pt-1">
+            trama · v0.4.0
+          </p>
+        </div>
       )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/json"
+        onChange={handleFileChange}
+        className="hidden"
+      />
     </aside>
   )
 }

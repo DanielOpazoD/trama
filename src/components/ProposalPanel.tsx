@@ -78,7 +78,7 @@ export function ProposalPanel({
           name: e.name,
           year: e.year,
           description: e.description,
-          origin: 'ai',
+          origin: { kind: 'ai' },
         })
         if (created) idByLowerName.set(created.name.trim().toLowerCase(), created.id)
       }
@@ -89,7 +89,13 @@ export function ProposalPanel({
         const fromId = idByLowerName.get(r.fromName.trim().toLowerCase())
         const toId = idByLowerName.get(r.toName.trim().toLowerCase())
         if (!fromId || !toId || fromId === toId) continue
-        await addRelationship({ fromId, toId, type: r.type, notes: r.notes, origin: 'ai' })
+        await addRelationship({
+          fromId,
+          toId,
+          type: r.type,
+          notes: r.notes,
+          origin: { kind: 'ai' },
+        })
       }
 
       for (let i = 0; i < proposal.quotes.length; i++) {
@@ -102,7 +108,7 @@ export function ProposalPanel({
           text: q.text,
           source: q.source,
           context: q.context,
-          origin: 'ai',
+          origin: { kind: 'ai' },
         })
       }
 

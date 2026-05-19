@@ -111,7 +111,7 @@ export function EntitiesView() {
                     <span className="ml-3 text-[10px] uppercase tracking-[0.18em] text-ink-300 align-middle">
                       {ENTITY_TYPES.find((t) => t.value === entity.type)?.label}
                     </span>
-                    {entity.origin === 'ai' && (
+                    {entity.origin.kind === 'ai' && (
                       <span className="ml-2 text-[9px] uppercase tracking-[0.18em] text-sky-700/70 align-middle">
                         ia
                       </span>

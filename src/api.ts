@@ -1,6 +1,7 @@
 import type {
   Entity,
   EntityType,
+  ExportPayload,
   ExtractionProposal,
   Origin,
   Quote,
@@ -14,8 +15,11 @@ type EntityRow = {
   name: string
   year: number | null
   description: string | null
-  origin: string
+  position_x: number | null
+  position_y: number | null
+  origin: Origin | string
   created_at: string
+  updated_at: string
 }
 
 type RelationshipRow = {
@@ -24,8 +28,9 @@ type RelationshipRow = {
   to_id: string
   type: string
   notes: string | null
-  origin: string
+  origin: Origin | string
   created_at: string
+  updated_at: string
 }
 
 type QuoteRow = {
@@ -34,12 +39,15 @@ type QuoteRow = {
   text: string
   source: string | null
   context: string | null
-  origin: string
+  origin: Origin | string
   created_at: string
+  updated_at: string
 }
 
-function asOrigin(value: string): Origin {
-  return value === 'ai' ? 'ai' : 'manual'
+function asOrigin(value: Origin | string | null | undefined): Origin {
+  if (value && typeof value === 'object' && 'kind' in value) return value
+  if (typeof value === 'string') return { kind: value === 'ai' ? 'ai' : 'manual' }
+  return { kind: 'manual' }
 }
 
 function entityFromRow(row: EntityRow): Entity {
@@ -49,8 +57,11 @@ function entityFromRow(row: EntityRow): Entity {
     name: row.name,
     year: row.year ?? undefined,
     description: row.description ?? undefined,
+    positionX: row.position_x ?? undefined,
+    positionY: row.position_y ?? undefined,
     origin: asOrigin(row.origin),
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
@@ -63,6 +74,7 @@ function relationshipFromRow(row: RelationshipRow): Relationship {
     notes: row.notes ?? undefined,
     origin: asOrigin(row.origin),
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
@@ -75,6 +87,7 @@ function quoteFromRow(row: QuoteRow): Quote {
     context: row.context ?? undefined,
     origin: asOrigin(row.origin),
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
@@ -101,7 +114,7 @@ export const api = {
     const rows = await request<EntityRow[]>('/api/entities')
     return rows.map(entityFromRow)
   },
-  async createEntity(data: Omit<Entity, 'id' | 'createdAt'>): Promise<Entity> {
+  async createEntity(data: Omit<Entity, 'id' | 'createdAt' | 'updatedAt'>): Promise<Entity> {
     const row = await request<EntityRow>('/api/entities', {
       method: 'POST',
       body: JSON.stringify({
@@ -109,10 +122,18 @@ export const api = {
         name: data.name,
         year: data.year ?? null,
         description: data.description ?? null,
+        position_x: data.positionX ?? null,
+        position_y: data.positionY ?? null,
         origin: data.origin,
       }),
     })
     return entityFromRow(row)
+  },
+  async updateEntityPosition(id: string, positionX: number, positionY: number): Promise<void> {
+    await request<void>(`/api/entities/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ position_x: positionX, position_y: positionY }),
+    })
   },
   async deleteEntity(id: string): Promise<void> {
     await request<void>(`/api/entities/${id}`, { method: 'DELETE' })
@@ -123,7 +144,7 @@ export const api = {
     return rows.map(relationshipFromRow)
   },
   async createRelationship(
-    data: Omit<Relationship, 'id' | 'createdAt'>,
+    data: Omit<Relationship, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<Relationship> {
     const row = await request<RelationshipRow>('/api/relationships', {
       method: 'POST',
@@ -145,7 +166,7 @@ export const api = {
     const rows = await request<QuoteRow[]>('/api/quotes')
     return rows.map(quoteFromRow)
   },
-  async createQuote(data: Omit<Quote, 'id' | 'createdAt'>): Promise<Quote> {
+  async createQuote(data: Omit<Quote, 'id' | 'createdAt' | 'updatedAt'>): Promise<Quote> {
     const row = await request<QuoteRow>('/api/quotes', {
       method: 'POST',
       body: JSON.stringify({
@@ -166,6 +187,17 @@ export const api = {
     return request<ExtractionProposal>('/api/extract', {
       method: 'POST',
       body: JSON.stringify({ text }),
+    })
+  },
+
+  async exportAll(): Promise<ExportPayload> {
+    return request<ExportPayload>('/api/export')
+  },
+
+  async importAll(payload: ExportPayload): Promise<{ imported: number }> {
+    return request<{ imported: number }>('/api/import', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     })
   },
 }

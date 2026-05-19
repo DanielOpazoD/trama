@@ -8,6 +8,7 @@ import {
 } from 'react'
 import type {
   Entity,
+  ExportPayload,
   ExtractionProposal,
   Origin,
   Quote,
@@ -16,11 +17,15 @@ import type {
 import { api } from './api'
 import { storage } from './storage'
 
-type EntityInput = Omit<Entity, 'id' | 'createdAt' | 'origin'> & { origin?: Origin }
-type RelationshipInput = Omit<Relationship, 'id' | 'createdAt' | 'origin'> & {
+type EntityInput = Omit<Entity, 'id' | 'createdAt' | 'updatedAt' | 'origin'> & {
   origin?: Origin
 }
-type QuoteInput = Omit<Quote, 'id' | 'createdAt' | 'origin'> & { origin?: Origin }
+type RelationshipInput = Omit<Relationship, 'id' | 'createdAt' | 'updatedAt' | 'origin'> & {
+  origin?: Origin
+}
+type QuoteInput = Omit<Quote, 'id' | 'createdAt' | 'updatedAt' | 'origin'> & {
+  origin?: Origin
+}
 
 type State = {
   entities: Entity[]
@@ -30,12 +35,15 @@ type State = {
   error: string | null
   offline: boolean
   addEntity: (data: EntityInput) => Promise<Entity | null>
+  updateEntityPosition: (id: string, x: number, y: number) => void
   deleteEntity: (id: string) => Promise<void>
   addRelationship: (data: RelationshipInput) => Promise<Relationship | null>
   deleteRelationship: (id: string) => Promise<void>
   addQuote: (data: QuoteInput) => Promise<Quote | null>
   deleteQuote: (id: string) => Promise<void>
   extract: (text: string) => Promise<ExtractionProposal>
+  exportAll: () => Promise<ExportPayload>
+  importAll: (payload: ExportPayload) => Promise<number>
 }
 
 const Ctx = createContext<State | null>(null)
@@ -48,6 +56,8 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
+const DEFAULT_ORIGIN: Origin = { kind: 'manual' }
+
 export function StateProvider({ children }: { children: ReactNode }) {
   const [entities, setEntities] = useState<Entity[]>([])
   const [relationships, setRelationships] = useState<Relationship[]>([])
@@ -56,6 +66,7 @@ export function StateProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [offline, setOffline] = useState(false)
   const offlineRef = useRef(false)
+  const positionSaveTimer = useRef<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -111,10 +122,15 @@ export function StateProvider({ children }: { children: ReactNode }) {
     error,
     offline,
     addEntity: async (data) => {
-      const origin = data.origin ?? 'manual'
+      const origin = data.origin ?? DEFAULT_ORIGIN
       const payload = { ...data, origin }
       if (offlineRef.current) {
-        const created: Entity = { ...payload, id: newId(), createdAt: nowIso() }
+        const created: Entity = {
+          ...payload,
+          id: newId(),
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        }
         setEntities((prev) => [created, ...prev])
         return created
       }
@@ -125,6 +141,23 @@ export function StateProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         reportError(err)
         return null
+      }
+    },
+    updateEntityPosition: (id, x, y) => {
+      // Optimistic local update.
+      setEntities((prev) =>
+        prev.map((entity) =>
+          entity.id === id ? { ...entity, positionX: x, positionY: y } : entity,
+        ),
+      )
+      // Debounced persist when online.
+      if (!offlineRef.current) {
+        if (positionSaveTimer.current !== null) {
+          window.clearTimeout(positionSaveTimer.current)
+        }
+        positionSaveTimer.current = window.setTimeout(() => {
+          api.updateEntityPosition(id, x, y).catch(reportError)
+        }, 400)
       }
     },
     deleteEntity: async (id) => {
@@ -147,10 +180,15 @@ export function StateProvider({ children }: { children: ReactNode }) {
       }
     },
     addRelationship: async (data) => {
-      const origin = data.origin ?? 'manual'
+      const origin = data.origin ?? DEFAULT_ORIGIN
       const payload = { ...data, origin }
       if (offlineRef.current) {
-        const created: Relationship = { ...payload, id: newId(), createdAt: nowIso() }
+        const created: Relationship = {
+          ...payload,
+          id: newId(),
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        }
         setRelationships((prev) => [created, ...prev])
         return created
       }
@@ -176,10 +214,15 @@ export function StateProvider({ children }: { children: ReactNode }) {
       }
     },
     addQuote: async (data) => {
-      const origin = data.origin ?? 'manual'
+      const origin = data.origin ?? DEFAULT_ORIGIN
       const payload = { ...data, origin }
       if (offlineRef.current) {
-        const created: Quote = { ...payload, id: newId(), createdAt: nowIso() }
+        const created: Quote = {
+          ...payload,
+          id: newId(),
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        }
         setQuotes((prev) => [created, ...prev])
         return created
       }
@@ -211,6 +254,44 @@ export function StateProvider({ children }: { children: ReactNode }) {
         )
       }
       return api.extract(text)
+    },
+    exportAll: async () => {
+      if (offlineRef.current) {
+        return {
+          version: 1,
+          exportedAt: nowIso(),
+          entities,
+          relationships,
+          quotes,
+        }
+      }
+      return api.exportAll()
+    },
+    importAll: async (payload) => {
+      if (offlineRef.current) {
+        // Merge by id: anything new gets added; existing is left untouched.
+        const existingEntityIds = new Set(entities.map((e) => e.id))
+        const existingRelIds = new Set(relationships.map((r) => r.id))
+        const existingQuoteIds = new Set(quotes.map((q) => q.id))
+        const newEntities = payload.entities.filter((e) => !existingEntityIds.has(e.id))
+        const newRels = payload.relationships.filter((r) => !existingRelIds.has(r.id))
+        const newQuotes = payload.quotes.filter((q) => !existingQuoteIds.has(q.id))
+        setEntities((prev) => [...newEntities, ...prev])
+        setRelationships((prev) => [...newRels, ...prev])
+        setQuotes((prev) => [...newQuotes, ...prev])
+        return newEntities.length + newRels.length + newQuotes.length
+      }
+      const result = await api.importAll(payload)
+      // Refresh from server after import.
+      const [e, r, q] = await Promise.all([
+        api.listEntities(),
+        api.listRelationships(),
+        api.listQuotes(),
+      ])
+      setEntities(e)
+      setRelationships(r)
+      setQuotes(q)
+      return result.imported
     },
   }
 

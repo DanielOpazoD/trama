@@ -110,7 +110,7 @@ export function QuotesView() {
                         {quote.source && (
                           <span className="text-ink-300 ml-2">· {quote.source}</span>
                         )}
-                        {quote.origin === 'ai' && (
+                        {quote.origin.kind === 'ai' && (
                           <span className="ml-2 text-[9px] uppercase tracking-[0.18em] text-sky-700/70">
                             ia
                           </span>

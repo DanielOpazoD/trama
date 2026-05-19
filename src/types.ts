@@ -1,3 +1,5 @@
+// ---------- Entity types ----------
+
 export type EntityType =
   | 'persona'
   | 'libro'
@@ -7,18 +9,6 @@ export type EntityType =
   | 'obra'
   | 'concepto'
   | 'idea'
-
-export type Origin = 'manual' | 'ai'
-
-export type Entity = {
-  id: string
-  type: EntityType
-  name: string
-  year?: number
-  description?: string
-  origin: Origin
-  createdAt: string
-}
 
 export const ENTITY_TYPES: { value: EntityType; label: string }[] = [
   { value: 'persona', label: 'persona' },
@@ -31,6 +21,8 @@ export const ENTITY_TYPES: { value: EntityType; label: string }[] = [
   { value: 'idea', label: 'idea' },
 ]
 
+// ---------- Relationship types ----------
+
 export type RelationshipType =
   | 'influye_en'
   | 'cita_a'
@@ -40,16 +32,6 @@ export type RelationshipType =
   | 'inspira'
   | 'contradice'
   | 'asociado_con'
-
-export type Relationship = {
-  id: string
-  fromId: string
-  toId: string
-  type: RelationshipType
-  notes?: string
-  origin: Origin
-  createdAt: string
-}
 
 export const RELATIONSHIP_TYPES: {
   value: RelationshipType
@@ -66,6 +48,46 @@ export const RELATIONSHIP_TYPES: {
   { value: 'asociado_con', label: 'asociado con', reverseLabel: 'asociado con' },
 ]
 
+// ---------- Origin (provenance) ----------
+
+export type OriginKind = 'manual' | 'ai' | 'imported'
+
+export type Origin = {
+  kind: OriginKind
+  provider?: string         // e.g. 'deepseek', 'openai'
+  model?: string            // e.g. 'deepseek-chat'
+  extractionLogId?: string  // ref to extraction_log row
+  importedFrom?: string     // e.g. 'json-export', 'obsidian'
+}
+
+export const MANUAL_ORIGIN: Origin = { kind: 'manual' }
+
+// ---------- Core entities ----------
+
+export type Entity = {
+  id: string
+  type: EntityType
+  name: string
+  year?: number
+  description?: string
+  positionX?: number
+  positionY?: number
+  origin: Origin
+  createdAt: string
+  updatedAt: string
+}
+
+export type Relationship = {
+  id: string
+  fromId: string
+  toId: string
+  type: RelationshipType
+  notes?: string
+  origin: Origin
+  createdAt: string
+  updatedAt: string
+}
+
 export type Quote = {
   id: string
   entityId: string
@@ -74,12 +96,13 @@ export type Quote = {
   context?: string
   origin: Origin
   createdAt: string
+  updatedAt: string
 }
 
 // ---------- AI extraction proposal shapes (transient — not persisted until accepted) ----------
 
 export type ProposedEntity = {
-  matchedId?: string // present if name matches an existing entity in the map
+  matchedId?: string
   type: EntityType
   name: string
   year?: number
@@ -104,4 +127,14 @@ export type ExtractionProposal = {
   entities: ProposedEntity[]
   relationships: ProposedRelationship[]
   quotes: ProposedQuote[]
+}
+
+// ---------- Export/import payload ----------
+
+export type ExportPayload = {
+  version: 1
+  exportedAt: string
+  entities: Entity[]
+  relationships: Relationship[]
+  quotes: Quote[]
 }

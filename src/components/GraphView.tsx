@@ -18,7 +18,14 @@ import {
 // ---------- A small force-directed layout written by hand ----------
 // Iterative Fruchterman-Reingold approximation. Pure JS, no dependencies.
 
-type LayoutNode = { id: string; x: number; y: number; vx: number; vy: number }
+type LayoutNode = {
+  id: string
+  x: number
+  y: number
+  vx: number
+  vy: number
+  fixed?: boolean
+}
 type LayoutEdge = { from: string; to: string }
 
 function runLayout(
@@ -69,9 +76,10 @@ function runLayout(
       b.vy += fy
     }
 
-    // Apply with a cooling factor.
+    // Apply with a cooling factor. Fixed nodes don't move.
     const temperature = Math.max(0.5, 8 * (1 - iter / iterations))
     for (const node of nodes) {
+      if (node.fixed) continue
       const speed = Math.sqrt(node.vx * node.vx + node.vy * node.vy) + 0.01
       const limited = Math.min(speed, temperature)
       node.x += (node.vx / speed) * limited
@@ -104,7 +112,7 @@ export default function GraphView({
   selectedId: string | null
   onSelect: (id: string | null) => void
 }) {
-  const { entities, relationships } = useTrama()
+  const { entities, relationships, updateEntityPosition } = useTrama()
   const svgRef = useRef<SVGSVGElement>(null)
   const positionsRef = useRef<Map<string, { x: number; y: number }>>(new Map())
 
@@ -122,32 +130,49 @@ export default function GraphView({
     new Map(),
   )
 
-  // Run layout when set of entities/relationships changes.
+  // Compute positions: prefer persisted (positionX/Y from entity) over cached over
+  // freshly-laid-out. Only nodes that lack a known position go through force layout;
+  // the persisted ones stay where the user (or a previous layout) put them.
   useEffect(() => {
     if (entities.length === 0) {
       setPositions(new Map())
       return
     }
-    const layoutNodes: LayoutNode[] = entities.map((entity) => {
-      const cached = positionsRef.current.get(entity.id)
-      return cached
-        ? { id: entity.id, x: cached.x, y: cached.y, vx: 0, vy: 0 }
-        : {
-            id: entity.id,
-            x: (Math.random() - 0.5) * 400,
-            y: (Math.random() - 0.5) * 400,
-            vx: 0,
-            vy: 0,
-          }
-    })
-    const layoutEdges: LayoutEdge[] = relationships
-      .filter((r) => r.fromId !== r.toId)
-      .map((r) => ({ from: r.fromId, to: r.toId }))
 
-    runLayout(layoutNodes, layoutEdges, 350)
+    type SimNode = LayoutNode & { fixed: boolean }
+    const simNodes: SimNode[] = entities.map((entity) => {
+      // Priority: persisted position from DB → cached position from this session → random.
+      if (entity.positionX !== undefined && entity.positionY !== undefined) {
+        const x = entity.positionX
+        const y = entity.positionY
+        positionsRef.current.set(entity.id, { x, y })
+        return { id: entity.id, x, y, vx: 0, vy: 0, fixed: true }
+      }
+      const cached = positionsRef.current.get(entity.id)
+      if (cached) {
+        return { id: entity.id, x: cached.x, y: cached.y, vx: 0, vy: 0, fixed: true }
+      }
+      return {
+        id: entity.id,
+        x: (Math.random() - 0.5) * 400,
+        y: (Math.random() - 0.5) * 400,
+        vx: 0,
+        vy: 0,
+        fixed: false,
+      }
+    })
+
+    // If everything is already placed, skip the layout entirely.
+    const anyFree = simNodes.some((n) => !n.fixed)
+    if (anyFree) {
+      const layoutEdges: LayoutEdge[] = relationships
+        .filter((r) => r.fromId !== r.toId)
+        .map((r) => ({ from: r.fromId, to: r.toId }))
+      runLayout(simNodes, layoutEdges, 350)
+    }
 
     const next = new Map<string, { x: number; y: number }>()
-    for (const node of layoutNodes) {
+    for (const node of simNodes) {
       next.set(node.id, { x: node.x, y: node.y })
       positionsRef.current.set(node.id, { x: node.x, y: node.y })
     }
@@ -217,10 +242,16 @@ export default function GraphView({
   )
 
   const handleMouseUp = useCallback(() => {
+    // If we just finished dragging a node, persist its final position.
+    if (dragging.current) {
+      const id = dragging.current.id
+      const pos = positionsRef.current.get(id)
+      if (pos) updateEntityPosition(id, pos.x, pos.y)
+    }
     dragging.current = null
     panStart.current = null
     setIsPanning(false)
-  }, [])
+  }, [updateEntityPosition])
 
   const handleWheel = useCallback((event: React.WheelEvent) => {
     event.preventDefault()
@@ -412,14 +443,14 @@ function EdgeLine({
   dimmed: boolean
 }) {
   if (!from || !to) return null
-  const stroke = rel.origin === 'ai' ? '#7AA7C7' : '#5A4E3A'
+  const stroke = rel.origin.kind === 'ai' ? '#7AA7C7' : '#5A4E3A'
   const opacity = dimmed ? 0.1 : highlighted ? 0.85 : 0.4
   const strokeWidth = highlighted ? 1.5 : 1
   const midX = (from.x + to.x) / 2
   const midY = (from.y + to.y) / 2
   const typeLabel =
     RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ?? rel.type
-  const markerId = rel.origin === 'ai' ? 'edgeArrowAi' : 'edgeArrow'
+  const markerId = rel.origin.kind === 'ai' ? 'edgeArrowAi' : 'edgeArrow'
   return (
     <g style={{ pointerEvents: 'none' }}>
       <line

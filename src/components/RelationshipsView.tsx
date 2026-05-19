@@ -124,7 +124,7 @@ export function RelationshipsView() {
                           {typeLabel}
                         </span>
                         <span className="text-ink-700">{to?.name ?? '—'}</span>
-                        {rel.origin === 'ai' && (
+                        {rel.origin.kind === 'ai' && (
                           <span className="ml-2 text-[9px] uppercase tracking-[0.18em] text-sky-700/70 align-middle">
                             ia
                           </span>

@@ -49,7 +49,7 @@ export function NodeDetailPanel({
           <p className="text-[10px] uppercase tracking-[0.2em] text-ink-300">
             {typeLabel ?? entity.type}
             {entity.year !== undefined && <span className="ml-1">· {entity.year}</span>}
-            {entity.origin === 'ai' && (
+            {entity.origin.kind === 'ai' && (
               <span className="ml-2 text-sky-700/80">añadido por IA</span>
             )}
           </p>
@@ -81,7 +81,7 @@ export function NodeDetailPanel({
                       {quote.source && (
                         <span className="text-ink-300">· {quote.source}</span>
                       )}
-                      {quote.origin === 'ai' && (
+                      {quote.origin.kind === 'ai' && (
                         <span className="ml-2 text-sky-700/70">ia</span>
                       )}
                     </div>
@@ -189,7 +189,7 @@ function RelationshipLine({
           {label ?? rel.type}
         </span>
         <span className="text-ink-700">{otherEntity?.name ?? '—'}</span>
-        {rel.origin === 'ai' && (
+        {rel.origin.kind === 'ai' && (
           <span className="ml-2 text-[9px] uppercase tracking-[0.16em] text-sky-700/70">
             ia
           </span>
