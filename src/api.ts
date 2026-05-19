@@ -215,6 +215,11 @@ export const api = {
     await request<void>(`/api/entity-types/${slug}`, { method: 'DELETE' })
   },
 
+  async search(q: string): Promise<SearchResults> {
+    if (!q.trim()) return { entities: [], quotes: [] }
+    return request<SearchResults>(`/api/search?q=${encodeURIComponent(q)}`)
+  },
+
   async listRelationshipTypes(): Promise<Array<{ slug: string; label: string; reverse_label: string; sort_order: number }>> {
     return request('/api/relationship-types')
   },
@@ -247,4 +252,9 @@ export type ExtractionLogResponse = {
     totalCostCents: number
     totalTokens: number
   }
+}
+
+export type SearchResults = {
+  entities: Array<{ id: string; name: string; type: string; rank: number }>
+  quotes: Array<{ id: string; entityId: string; text: string; rank: number }>
 }

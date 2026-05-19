@@ -33,6 +33,10 @@ function Shell() {
         }}
         collapsed={sidebarCollapsed}
         onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
+        onSelectEntity={(id) => {
+          setView('grafo')
+          setSelectedEntityId(id)
+        }}
       />
 
       <main className="flex-1 relative overflow-hidden">
