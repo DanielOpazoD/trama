@@ -144,7 +144,7 @@ describe('askLLMForJson — OpenAI-compatible request shape', () => {
     )
 
     const result = await askLLMForJson([{ role: 'user', content: 'x' }])
-    expect(result).toEqual({ foo: 'bar', n: 42 })
+    expect(result.content).toEqual({ foo: 'bar', n: 42 })
   })
 })
 
@@ -176,7 +176,7 @@ describe('askLLMForJson — Anthropic request shape', () => {
       }),
     )
     const result = await askLLMForJson([{ role: 'user', content: 'x' }])
-    expect(result).toEqual({ r: 1 })
+    expect(result.content).toEqual({ r: 1 })
   })
 })
 
@@ -199,6 +199,34 @@ describe('askLLMForJson — Gemini request shape', () => {
     expect(body.contents[0].parts[0].text).toContain('a')
     expect(body.contents[0].parts[0].text).toContain('b')
     expect(body.generationConfig.responseMimeType).toBe('application/json')
+  })
+})
+
+describe('askLLMForJson — usage tracking', () => {
+  it('returns tokens and cost from OpenAI-style response', async () => {
+    vi.stubGlobal(
+      'fetch',
+      mockFetch({
+        choices: [{ message: { content: '{}' } }],
+        usage: { prompt_tokens: 1000, completion_tokens: 500 },
+      }),
+    )
+
+    const result = await askLLMForJson([{ role: 'user', content: 'x' }])
+    expect(result.usage.tokensIn).toBe(1000)
+    expect(result.usage.tokensOut).toBe(500)
+    expect(result.usage.provider).toBe('deepseek')
+    expect(result.usage.model).toBe('deepseek-chat')
+    // deepseek: 14 in + 28 out per million. 1000 in + 500 out → 0.014 + 0.014 = 0.028 cents
+    expect(result.usage.costCents).toBeCloseTo(0.028, 4)
+  })
+
+  it('returns 0 tokens when API omits usage', async () => {
+    vi.stubGlobal('fetch', mockFetch({ choices: [{ message: { content: '{}' } }] }))
+    const result = await askLLMForJson([{ role: 'user', content: 'x' }])
+    expect(result.usage.tokensIn).toBe(0)
+    expect(result.usage.tokensOut).toBe(0)
+    expect(result.usage.costCents).toBe(0)
   })
 })
 

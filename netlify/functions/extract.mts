@@ -33,18 +33,38 @@ export default async (req: Request, _context: Context) => {
   `) as Array<{ id: string; name: string; type: string }>
 
   const messages = buildExtractionPrompt(text, existing)
-  let raw: unknown
   try {
-    raw = await askLLMForJson(messages)
-  } catch (err) {
-    return new Response(
-      `Error llamando al LLM: ${err instanceof Error ? err.message : String(err)}`,
-      { status: 502 },
-    )
-  }
+    const { content, usage } = await askLLMForJson(messages)
+    const cleaned = validateExtraction(content, existing)
 
-  const cleaned = validateExtraction(raw, existing)
-  return Response.json(cleaned)
+    // Persist the extraction event (fire-and-forget; don't block the response on logging).
+    sql`
+      INSERT INTO extraction_log (
+        input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
+      ) VALUES (
+        ${text},
+        ${JSON.stringify(cleaned)}::jsonb,
+        ${usage.provider},
+        ${usage.model},
+        ${usage.tokensIn},
+        ${usage.tokensOut},
+        ${usage.costCents},
+        ${usage.durationMs}
+      )
+    `.catch(() => {
+      // Best-effort logging — failure here shouldn't break extraction.
+    })
+
+    return Response.json(cleaned)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    // Log the failure too so we can debug bad prompts / API outages.
+    sql`
+      INSERT INTO extraction_log (input_text, proposal, provider, model, error)
+      VALUES (${text}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message})
+    `.catch(() => {})
+    return new Response(`Error llamando al LLM: ${message}`, { status: 502 })
+  }
 }
 
 export const config: Config = {

@@ -200,4 +200,31 @@ export const api = {
       body: JSON.stringify(payload),
     })
   },
+
+  async extractionLog(limit = 50): Promise<ExtractionLogResponse> {
+    return request<ExtractionLogResponse>(`/api/extraction-log?limit=${limit}`)
+  },
+}
+
+export type ExtractionLogEntry = {
+  id: string
+  inputText: string
+  proposal: unknown
+  provider: string
+  model: string
+  tokensIn: number
+  tokensOut: number
+  costCents: number
+  durationMs: number
+  error: string | null
+  createdAt: string
+}
+
+export type ExtractionLogResponse = {
+  entries: ExtractionLogEntry[]
+  totals: {
+    totalCalls: number
+    totalCostCents: number
+    totalTokens: number
+  }
 }

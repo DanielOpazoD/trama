@@ -5,12 +5,7 @@
  *   AI_PROVIDER  → 'deepseek' | 'openai' | 'gemini' | 'anthropic'  (default: 'deepseek')
  *   AI_API_KEY   → the API key for the chosen provider
  *
- * The DeepSeek, OpenAI, and Anthropic implementations share the OpenAI-compatible
- * chat-completions shape (Anthropic uses messages API but the wrapper here normalizes).
- * Gemini uses its own REST shape and is normalized in the same wrapper.
- *
- * Returns the model's response as a JS object parsed from JSON. The caller is
- * responsible for validating the shape against its expected schema.
+ * Returns the parsed JSON content AND usage metadata (tokens + estimated cost).
  */
 
 export type LLMProvider = 'deepseek' | 'openai' | 'gemini' | 'anthropic'
@@ -20,25 +15,52 @@ export type LLMMessage = {
   content: string
 }
 
-const PROVIDER_DEFAULTS: Record<
-  LLMProvider,
-  { baseUrl: string; model: string }
-> = {
+export type LLMUsage = {
+  provider: LLMProvider
+  model: string
+  tokensIn: number
+  tokensOut: number
+  costCents: number
+  durationMs: number
+}
+
+export type LLMResult = {
+  content: unknown // parsed JSON
+  usage: LLMUsage
+}
+
+type ProviderConfig = {
+  baseUrl: string
+  model: string
+  /** Cost per million tokens, in USD cents. */
+  costPerMillionIn: number
+  costPerMillionOut: number
+}
+
+const PROVIDER_DEFAULTS: Record<LLMProvider, ProviderConfig> = {
   deepseek: {
     baseUrl: 'https://api.deepseek.com/v1',
     model: 'deepseek-chat',
+    costPerMillionIn: 14, // ~$0.14 per M
+    costPerMillionOut: 28, // ~$0.28 per M
   },
   openai: {
     baseUrl: 'https://api.openai.com/v1',
     model: 'gpt-4o-mini',
+    costPerMillionIn: 15,
+    costPerMillionOut: 60,
   },
   anthropic: {
     baseUrl: 'https://api.anthropic.com/v1',
     model: 'claude-haiku-4-5-20251001',
+    costPerMillionIn: 100, // approx for Haiku
+    costPerMillionOut: 500,
   },
   gemini: {
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
     model: 'gemini-2.5-flash',
+    costPerMillionIn: 7.5,
+    costPerMillionOut: 30,
   },
 }
 
@@ -58,30 +80,56 @@ function readApiKey(): string {
   return key
 }
 
-/**
- * Sends a JSON-mode request to the configured LLM.
- * Returns the parsed JSON object from the model's response.
- */
-export async function askLLMForJson(messages: LLMMessage[]): Promise<unknown> {
+function computeCostCents(usage: { tokensIn: number; tokensOut: number }, config: ProviderConfig): number {
+  return (
+    (usage.tokensIn * config.costPerMillionIn) / 1_000_000 +
+    (usage.tokensOut * config.costPerMillionOut) / 1_000_000
+  )
+}
+
+export async function askLLMForJson(messages: LLMMessage[]): Promise<LLMResult> {
   const provider = readProvider()
   const apiKey = readApiKey()
   const config = PROVIDER_DEFAULTS[provider]
+  const start = Date.now()
+
+  let content: unknown
+  let tokensIn = 0
+  let tokensOut = 0
 
   if (provider === 'gemini') {
-    return askGemini(apiKey, config, messages)
+    const result = await askGemini(apiKey, config, messages)
+    content = result.content
+    tokensIn = result.tokensIn
+    tokensOut = result.tokensOut
+  } else if (provider === 'anthropic') {
+    const result = await askAnthropic(apiKey, config, messages)
+    content = result.content
+    tokensIn = result.tokensIn
+    tokensOut = result.tokensOut
+  } else {
+    const result = await askOpenAICompatible(apiKey, config, messages)
+    content = result.content
+    tokensIn = result.tokensIn
+    tokensOut = result.tokensOut
   }
-  if (provider === 'anthropic') {
-    return askAnthropic(apiKey, config, messages)
+
+  return {
+    content,
+    usage: {
+      provider,
+      model: config.model,
+      tokensIn,
+      tokensOut,
+      costCents: computeCostCents({ tokensIn, tokensOut }, config),
+      durationMs: Date.now() - start,
+    },
   }
-  // deepseek and openai share the OpenAI chat-completions schema
-  return askOpenAICompatible(apiKey, config, messages)
 }
 
-async function askOpenAICompatible(
-  apiKey: string,
-  config: { baseUrl: string; model: string },
-  messages: LLMMessage[],
-): Promise<unknown> {
+type RawResult = { content: unknown; tokensIn: number; tokensOut: number }
+
+async function askOpenAICompatible(apiKey: string, config: ProviderConfig, messages: LLMMessage[]): Promise<RawResult> {
   const response = await fetch(`${config.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -103,17 +151,18 @@ async function askOpenAICompatible(
 
   const data = (await response.json()) as {
     choices: { message: { content: string } }[]
+    usage?: { prompt_tokens?: number; completion_tokens?: number }
   }
-  const content = data.choices?.[0]?.message?.content
-  if (!content) throw new Error('LLM no devolvió contenido')
-  return JSON.parse(content)
+  const text = data.choices?.[0]?.message?.content
+  if (!text) throw new Error('LLM no devolvió contenido')
+  return {
+    content: JSON.parse(text),
+    tokensIn: data.usage?.prompt_tokens ?? 0,
+    tokensOut: data.usage?.completion_tokens ?? 0,
+  }
 }
 
-async function askAnthropic(
-  apiKey: string,
-  config: { baseUrl: string; model: string },
-  messages: LLMMessage[],
-): Promise<unknown> {
+async function askAnthropic(apiKey: string, config: ProviderConfig, messages: LLMMessage[]): Promise<RawResult> {
   const system = messages.find((m) => m.role === 'system')?.content ?? ''
   const userMessages = messages
     .filter((m) => m.role === 'user')
@@ -142,22 +191,20 @@ async function askAnthropic(
 
   const data = (await response.json()) as {
     content: { type: string; text: string }[]
+    usage?: { input_tokens?: number; output_tokens?: number }
   }
   const text = data.content?.find((c) => c.type === 'text')?.text
   if (!text) throw new Error('Anthropic no devolvió texto')
-  return JSON.parse(text)
+  return {
+    content: JSON.parse(text),
+    tokensIn: data.usage?.input_tokens ?? 0,
+    tokensOut: data.usage?.output_tokens ?? 0,
+  }
 }
 
-async function askGemini(
-  apiKey: string,
-  config: { baseUrl: string; model: string },
-  messages: LLMMessage[],
-): Promise<unknown> {
+async function askGemini(apiKey: string, config: ProviderConfig, messages: LLMMessage[]): Promise<RawResult> {
   const system = messages.find((m) => m.role === 'system')?.content ?? ''
-  const userText = messages
-    .filter((m) => m.role === 'user')
-    .map((m) => m.content)
-    .join('\n\n')
+  const userText = messages.filter((m) => m.role === 'user').map((m) => m.content).join('\n\n')
 
   const response = await fetch(
     `${config.baseUrl}/models/${config.model}:generateContent?key=${apiKey}`,
@@ -167,10 +214,7 @@ async function askGemini(
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: [{ role: 'user', parts: [{ text: userText }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.2,
-        },
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
       }),
     },
   )
@@ -182,8 +226,13 @@ async function askGemini(
 
   const data = (await response.json()) as {
     candidates: { content: { parts: { text: string }[] } }[]
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number }
   }
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text
   if (!text) throw new Error('Gemini no devolvió texto')
-  return JSON.parse(text)
+  return {
+    content: JSON.parse(text),
+    tokensIn: data.usageMetadata?.promptTokenCount ?? 0,
+    tokensOut: data.usageMetadata?.candidatesTokenCount ?? 0,
+  }
 }
