@@ -162,10 +162,10 @@ export default function GraphView({
     >
       <defs>
         <pattern id="paperDots" width="28" height="28" patternUnits="userSpaceOnUse">
-          <circle cx="14" cy="14" r="0.7" fill="#BFAE87" opacity="0.45" />
+          <circle cx="14" cy="14" r="0.7" fill="var(--dot)" opacity="0.55" />
         </pattern>
         <marker id="edgeArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#5A4E3A" opacity="0.5" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-2)" opacity="0.5" />
         </marker>
         <marker id="edgeArrowAi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
           <path d="M 0 0 L 10 5 L 0 10 z" fill="#7AA7C7" opacity="0.6" />
@@ -223,7 +223,7 @@ export default function GraphView({
       </g>
 
       <g transform="translate(20 20)">
-        <text fontSize={10} fontFamily="inherit" fill="#857C66" style={{ userSelect: 'none' }}>
+        <text fontSize={10} fontFamily="inherit" fill="var(--ink-dim)" style={{ userSelect: 'none' }}>
           {Math.round(pz.zoom * 100)}%
         </text>
       </g>

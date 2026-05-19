@@ -1,38 +1,33 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
-        // Spectral has more character than Iowan/Palatino. Editorial feel.
         serif: ['Spectral', '"Iowan Old Style"', 'Palatino', 'Georgia', 'serif'],
       },
+      // Palette wired to CSS variables. When .dark is applied to <html>,
+      // the variables change values and every Tailwind class auto-updates.
+      // No need to sprinkle dark:text-stone-XXX everywhere.
       colors: {
-        // Paper palette — warm cream with ink-like text
         paper: {
-          50: '#FBF8F0',
-          100: '#F5EFE0',
-          200: '#ECE3CB',
-          300: '#DBCFAF',
-          400: '#BFAE87',
-          500: '#9E8C66',
-          600: '#7A6B4F',
-          700: '#5A4E3A',
-          800: '#3D3528',
-          900: '#251F17',
+          50:  'var(--paper-50)',
+          100: 'var(--paper-100)',
+          200: 'var(--paper-200)',
+          300: 'var(--paper-300)',
         },
         ink: {
-          50: '#F1EEE7',
-          100: '#D9D3C5',
-          200: '#B0A790',
-          300: '#857C66',
-          400: '#5C5443',
-          500: '#3A3429',
-          600: '#262219',
-          700: '#1A1812',
-          800: '#13110C',
-          900: '#0D0B08',
+          50:  'var(--ink-50)',
+          100: 'var(--ink-100)',
+          200: 'var(--ink-200)',
+          300: 'var(--ink-300)',
+          400: 'var(--ink-400)',
+          500: 'var(--ink-500)',
+          600: 'var(--ink-600)',
+          700: 'var(--ink-700)',
+          800: 'var(--ink-800)',
         },
       },
     },

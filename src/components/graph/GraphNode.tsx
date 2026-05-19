@@ -56,7 +56,7 @@ export function GraphNode({
   const labelY = radius + 14
   const typeLabelY = labelY + 10
 
-  const ringStroke = isSelected ? '#1A1812' : isFocused ? '#3D3528' : accent
+  const ringStroke = isSelected ? 'var(--ink)' : isFocused ? 'var(--ink-2)' : accent
   const ringWidth = isSelected ? 2.2 : isFocused ? 2 : 1.4
   const ringOpacity = isSelected || isFocused ? 0.95 : 0.75
   const ringDash = isFocused && !isSelected ? '4 2' : undefined
@@ -85,7 +85,7 @@ export function GraphNode({
           cy={0}
           r={radius + 4}
           fill="none"
-          stroke="#1A1812"
+          stroke="var(--ink)"
           strokeOpacity={0.15}
           strokeWidth={6}
         />
@@ -95,22 +95,22 @@ export function GraphNode({
         cx={0}
         cy={0}
         r={radius}
-        fill="#FBF8F0"
+        fill="var(--bg-card)"
         stroke={ringStroke}
         strokeOpacity={ringOpacity}
         strokeWidth={ringWidth}
         strokeDasharray={ringDash}
       />
       {/* Inner accent dot — subtle color reveal */}
-      <circle cx={0} cy={0} r={Math.max(radius - 7, 2)} fill={accent} fillOpacity={0.08} />
+      <circle cx={0} cy={0} r={Math.max(radius - 7, 2)} fill={accent} fillOpacity={0.12} />
       {/* Origin indicator: tiny ai pip on the upper-right when AI-added */}
       {entity.origin.kind === 'ai' && (
         <circle
           cx={radius * 0.7}
           cy={-radius * 0.7}
           r={2.5}
-          fill="#5680A8"
-          stroke="#FBF8F0"
+          fill="#7AA7C7"
+          stroke="var(--bg-card)"
           strokeWidth={1.5}
         />
       )}
@@ -120,7 +120,7 @@ export function GraphNode({
         textAnchor="middle"
         fontSize={12}
         fontWeight={500}
-        fill={isSelected ? '#1A1812' : '#3D3528'}
+        fill="var(--ink)"
         style={{ userSelect: 'none', pointerEvents: 'none' }}
       >
         {truncate(entity.name, 24)}
@@ -130,7 +130,7 @@ export function GraphNode({
         y={typeLabelY}
         textAnchor="middle"
         fontSize={8.5}
-        fill="#857C66"
+        fill="var(--ink-dim)"
         letterSpacing="1.4"
         style={{
           userSelect: 'none',

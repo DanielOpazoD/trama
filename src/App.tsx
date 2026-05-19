@@ -6,6 +6,7 @@ import {
   useRelationshipsQuery,
   useOffline,
 } from './state'
+import { useTheme } from './hooks/useTheme'
 import { Sidebar, type ViewMode } from './components/Sidebar'
 import GraphView from './components/GraphView'
 import { EntitiesView } from './components/EntitiesView'
@@ -23,6 +24,7 @@ function Shell() {
   const relationshipsQuery = useRelationshipsQuery()
   const quotesQuery = useQuotesQuery()
   const { offline } = useOffline()
+  const { theme, toggle: toggleTheme } = useTheme()
 
   const loading =
     entitiesQuery.isLoading || relationshipsQuery.isLoading || quotesQuery.isLoading
@@ -56,6 +58,8 @@ function Shell() {
           setSelectedEntityId(id)
         }}
         offline={offline}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       <main className="flex-1 relative overflow-hidden">

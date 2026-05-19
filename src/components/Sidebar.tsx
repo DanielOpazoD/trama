@@ -24,6 +24,8 @@ export function Sidebar({
   onToggleCollapsed,
   onSelectEntity,
   offline,
+  theme,
+  onToggleTheme,
 }: {
   view: ViewMode
   onChangeView: (v: ViewMode) => void
@@ -31,6 +33,8 @@ export function Sidebar({
   onToggleCollapsed: () => void
   onSelectEntity?: (id: string) => void
   offline: boolean
+  theme: 'paper' | 'night'
+  onToggleTheme: () => void
 }) {
   const { data: entities = [] } = useEntitiesQuery()
   const { data: relationships = [] } = useRelationshipsQuery()
@@ -106,7 +110,7 @@ export function Sidebar({
     <aside
       className={`${collapsed ? 'w-12' : 'w-64'} shrink-0 transition-[width] duration-200 border-r border-ink-100/60 bg-paper-50/60 backdrop-blur-sm flex flex-col`}
     >
-      <header className="px-3 py-4 flex items-center justify-between gap-2">
+      <header className="px-3 py-4 flex items-start justify-between gap-2">
         {!collapsed && (
           <div className="flex flex-col gap-0.5">
             <div className="flex items-baseline gap-2">
@@ -125,13 +129,36 @@ export function Sidebar({
             </p>
           </div>
         )}
-        <button
-          onClick={onToggleCollapsed}
-          aria-label={collapsed ? 'Expandir sidebar' : 'Contraer sidebar'}
-          className="p-1.5 text-ink-300 hover:text-ink-600 hover:bg-ink-50 rounded transition-colors"
-        >
-          {collapsed ? '›' : '‹'}
-        </button>
+        <div className="flex items-center gap-1">
+          {!collapsed && (
+            <button
+              onClick={onToggleTheme}
+              aria-label={theme === 'paper' ? 'Cambiar a modo noche' : 'Cambiar a modo papel'}
+              title={theme === 'paper' ? 'modo noche' : 'modo papel'}
+              className="p-1.5 text-ink-300 hover:text-ink-600 hover:bg-ink-50 rounded transition-colors"
+            >
+              {theme === 'paper' ? (
+                /* moon */
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              ) : (
+                /* sun */
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                </svg>
+              )}
+            </button>
+          )}
+          <button
+            onClick={onToggleCollapsed}
+            aria-label={collapsed ? 'Expandir sidebar' : 'Contraer sidebar'}
+            className="p-1.5 text-ink-300 hover:text-ink-600 hover:bg-ink-50 rounded transition-colors"
+          >
+            {collapsed ? '›' : '‹'}
+          </button>
+        </div>
       </header>
 
       {!collapsed && entities.length > 0 && (
@@ -225,7 +252,7 @@ export function Sidebar({
             </button>
           </div>
           <p className="text-[10px] uppercase tracking-[0.18em] text-ink-200 text-center pt-1">
-            trama · v0.6.0
+            trama · v0.7.0
           </p>
         </div>
       )}

@@ -8,10 +8,55 @@
 @tailwind utilities;
 
 @layer base {
+  /* Paper mode — warm cream backgrounds, ink text */
+  :root {
+    --paper-50:  #FBF8F0;
+    --paper-100: #F5EFE0;
+    --paper-200: #ECE3CB;
+    --paper-300: #DBCFAF;
+
+    --ink-50:  #F1EEE7;
+    --ink-100: #D9D3C5;
+    --ink-200: #B0A790;
+    --ink-300: #857C66;
+    --ink-400: #5C5443;
+    --ink-500: #3A3429;
+    --ink-600: #262219;
+    --ink-700: #1A1812;
+    --ink-800: #13110C;
+
+    --bg-card: #FFFFFF;
+    --dot: #BFAE87;
+    --panel-bg: #FBF8F0;
+    --panel-border: rgba(217, 211, 197, 0.6);
+  }
+
+  /* Night mode — coffee-toned dark, warm cream text */
+  html.dark {
+    --paper-50:  #1a1614;  /* main background */
+    --paper-100: #221d1a;  /* slight elevation */
+    --paper-200: #2a2520;  /* card */
+    --paper-300: #3a3530;
+
+    --ink-50:  #2a2520;
+    --ink-100: #3a3530;
+    --ink-200: #5a4f43;
+    --ink-300: #8a8175;  /* dim labels */
+    --ink-400: #a8a08f;
+    --ink-500: #c4baa8;
+    --ink-600: #d8cfba;
+    --ink-700: #e6dfd1;  /* body text */
+    --ink-800: #f0eadc;
+
+    --bg-card: #2a2520;
+    --dot: #4a3f37;
+    --panel-bg: #221d1a;
+    --panel-border: rgba(80, 70, 60, 0.5);
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    color-scheme: light;
   }
 
   html,
@@ -21,84 +66,54 @@
   }
 
   body {
-    @apply bg-paper-50 text-ink-700;
+    background-color: var(--paper-50);
+    color: var(--ink-700);
     font-family: theme('fontFamily.sans');
     font-feature-settings: 'ss01', 'cv11';
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.15  0 0 0 0 0.12  0 0 0 0 0.08  0 0 0 0.025 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
     background-attachment: fixed;
+    transition: background-color 220ms ease, color 220ms ease;
+  }
+
+  html.dark body {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.85  0 0 0 0 0.80  0 0 0 0 0.70  0 0 0 0.030 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   }
 
   *:focus-visible {
-    @apply outline-none ring-2 ring-ink-300 ring-offset-2 ring-offset-paper-50;
+    outline: none;
+    box-shadow: 0 0 0 2px var(--paper-50), 0 0 0 4px var(--ink-300);
   }
 }
 
 @layer utilities {
-  /* Spring-in animation for new graph nodes. Uses scale + opacity. */
   @keyframes node-spring-in {
-    0% {
-      opacity: 0;
-      transform: scale(0.4);
-    }
-    60% {
-      opacity: 1;
-      transform: scale(1.08);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
+    0%   { opacity: 0; transform: scale(0.4); }
+    60%  { opacity: 1; transform: scale(1.08); }
+    100% { opacity: 1; transform: scale(1); }
   }
-
   .animate-node-in {
     animation: node-spring-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
 
-  /* Soft fade for incoming edges. */
   @keyframes edge-fade-in {
     from { stroke-opacity: 0; }
-    to { stroke-opacity: var(--final-opacity, 0.4); }
+    to   { stroke-opacity: var(--final-opacity, 0.4); }
   }
-
   .animate-edge-in {
     animation: edge-fade-in 600ms ease-out 200ms both;
   }
 
-  /* Right-side panel slides in from the right. */
   @keyframes slide-in-right {
-    from {
-      opacity: 0;
-      transform: translateX(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
   }
+  .animate-slide-in-right { animation: slide-in-right 220ms ease-out; }
 
-  .animate-slide-in-right {
-    animation: slide-in-right 220ms ease-out;
-  }
-
-  /* Cross-fade for view transitions. */
   @keyframes view-fade {
     from { opacity: 0; }
-    to { opacity: 1; }
+    to   { opacity: 1; }
   }
-
-  .animate-view-fade {
-    animation: view-fade 180ms ease-out;
-  }
-
-  /* Subtle pulse for the selected node halo. */
-  @keyframes selected-pulse {
-    0%, 100% { stroke-opacity: 0.9; }
-    50% { stroke-opacity: 0.4; }
-  }
-
-  .animate-selected-pulse {
-    animation: selected-pulse 2.4s ease-in-out infinite;
-  }
+  .animate-view-fade { animation: view-fade 180ms ease-out; }
 }
 
 @layer components {
@@ -118,16 +133,13 @@
     @apply text-ink-300 hover:text-ink-600 transition-colors text-sm;
   }
 
-  /* Wordmark: a thin, slightly condensed serif with deep tracking adjustment */
   .wordmark {
     font-family: theme('fontFamily.serif');
     font-weight: 400;
     letter-spacing: -0.02em;
     font-feature-settings: 'liga', 'dlig';
-    /* A small visual flourish: the first letter slightly darker */
   }
 
-  /* Quote block — for blockquotes inside detail panels and quote views */
   .quote-block {
     font-family: theme('fontFamily.serif');
     font-style: italic;

@@ -67,7 +67,7 @@ export function GraphEdge({
   const { d, midX, midY } = curvedPath(trimmed.from, trimmed.to)
 
   const isAi = rel.origin.kind === 'ai'
-  const stroke = isAi ? '#7AA7C7' : '#5A4E3A'
+  const stroke = isAi ? '#7AA7C7' : 'var(--ink-2)'
   const opacity = dimmed ? 0.08 : highlighted ? 0.85 : 0.32
   const strokeWidth = highlighted ? 1.6 : 1.1
   const typeLabel =
@@ -90,7 +90,6 @@ export function GraphEdge({
       />
       {highlighted && (
         <g>
-          {/* Tiny background to keep label legible over the dot pattern */}
           <rect
             x={midX - typeLabel.length * 3 - 6}
             y={midY - 7}
@@ -98,14 +97,14 @@ export function GraphEdge({
             height={14}
             rx={7}
             ry={7}
-            fill="#FBF8F0"
+            fill="var(--bg-card)"
             fillOpacity={0.92}
           />
           <text
             x={midX}
             y={midY + 3}
             fontSize={9.5}
-            fill="#3D3528"
+            fill="var(--ink)"
             textAnchor="middle"
             style={{ userSelect: 'none', letterSpacing: '0.05em' }}
           >
