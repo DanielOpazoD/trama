@@ -176,19 +176,31 @@ Componentes React y `state.tsx` no tienen tests todavía — se cubrirán cuando
 
 Una falla en cualquier paso bloquea el merge (o sería visible como check rojo si las branch protections están activas).
 
-## Bloques de mejora pendientes
+## Bloques completados
 
-Ver el plan en la conversación / TodoWrite. A 2026-05-18:
-- ✅ Bloque 0: docs base
-- ✅ Bloque 1: durabilidad de esquema + portabilidad
-- ✅ Bloque 2: red de seguridad de tests
-- ⏳ Bloque 3: TanStack Query + descomponer estado
-- ⏳ Bloque 4: descomponer GraphView
-- ⏳ Bloque 5: log de extracción + costos
-- ⏳ Bloque 6: tipos como datos
-- ⏳ Bloque 7: búsqueda full-text
-- ⏳ Bloque 8: LLM resiliente
-- ⏳ Bloque 9: accesibilidad
-- ⏳ Bloque 10: docs finales
+A 2026-05-18, los 10 bloques iniciales están implementados:
+
+| # | Bloque | Entregó |
+|---|---|---|
+| 0 | Docs base | ARCHITECTURE.md inicial |
+| 1 | Durabilidad de esquema | updated_at, deleted_at, position_x/y, origin JSONB, export/import |
+| 2 | Red de seguridad | Vitest, 55 tests, CI con GitHub Actions |
+| 3 | TanStack Query | Hooks por dominio bajo src/state/, optimistic updates, auto-refetch |
+| 4 | Descomposición GraphView | useForceLayout, usePanZoom hooks; GraphNode, GraphEdge componentes |
+| 5 | Log de extracción + costos | Tabla extraction_log; tracking de tokens, costo, duración |
+| 6 | Tipos como datos | entity_types, relationship_types con CRUD; extractor lee de DB |
+| 7 | Búsqueda full-text | tsvector + trigrams; endpoint /api/search; búsqueda inline en sidebar |
+| 8 | LLM resiliente | Retry con backoff, cache in-memory, max-tokens cap |
+| 9 | Accesibilidad | Navegación de teclado en grafo, ARIA labels, Escape en paneles |
+| 10 | Docs finales | README.md, CLAUDE.md, esta sección |
+
+## Bloques de futuro (aplazados conscientemente)
+
+- **Local-first sync con CRDTs** — cuando se use en 2+ dispositivos en simultáneo
+- **Autenticación real** (Netlify Identity) — si el alcance crece más allá de personal
+- **Migrar grafo a xyflow o sigma.js** — al superar ~150 nodos
+- **UI de gestión de tipos** — los endpoints existen; falta el formulario
+- **UI del extraction log** — endpoint listo; falta la vista
+- **Tests de componentes UI** — agregar React Testing Library
 
 Última revisión: 2026-05-18
