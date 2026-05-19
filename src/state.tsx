@@ -1,11 +1,5 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
+import { QueryClientProvider } from '@tanstack/react-query'
 import type {
   Entity,
   ExportPayload,
@@ -16,6 +10,12 @@ import type {
 } from './types'
 import { api } from './api'
 import { storage } from './storage'
+import { queryClient } from './state/queryClient'
+import { OfflineContext } from './state/offline'
+import { useEntitiesQuery, useAddEntity, useUpdateEntityPosition, useDeleteEntity } from './state/useEntities'
+import { useRelationshipsQuery, useAddRelationship, useDeleteRelationship } from './state/useRelationships'
+import { useQuotesQuery, useAddQuote, useDeleteQuote } from './state/useQuotes'
+import { createContext, useContext } from 'react'
 
 type EntityInput = Omit<Entity, 'id' | 'createdAt' | 'updatedAt' | 'origin'> & {
   origin?: Origin
@@ -48,254 +48,145 @@ type State = {
 
 const Ctx = createContext<State | null>(null)
 
-function newId(): string {
-  return crypto.randomUUID()
-}
-
 function nowIso(): string {
   return new Date().toISOString()
 }
 
-const DEFAULT_ORIGIN: Origin = { kind: 'manual' }
+function InnerProvider({ children }: { children: ReactNode }) {
+  const entitiesQuery = useEntitiesQuery()
+  const relationshipsQuery = useRelationshipsQuery()
+  const quotesQuery = useQuotesQuery()
 
-export function StateProvider({ children }: { children: ReactNode }) {
-  const [entities, setEntities] = useState<Entity[]>([])
-  const [relationships, setRelationships] = useState<Relationship[]>([])
-  const [quotes, setQuotes] = useState<Quote[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [offline, setOffline] = useState(false)
-  const offlineRef = useRef(false)
-  const positionSaveTimer = useRef<number | null>(null)
+  const addEntity = useAddEntity()
+  const updateEntityPosition = useUpdateEntityPosition()
+  const deleteEntityMut = useDeleteEntity()
 
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const [e, r, q] = await Promise.all([
-          api.listEntities(),
-          api.listRelationships(),
-          api.listQuotes(),
+  const addRelationshipMut = useAddRelationship()
+  const deleteRelationshipMut = useDeleteRelationship()
+
+  const addQuoteMut = useAddQuote()
+  const deleteQuoteMut = useDeleteQuote()
+
+  const entities = entitiesQuery.data ?? []
+  const relationships = relationshipsQuery.data ?? []
+  const quotes = quotesQuery.data ?? []
+  const loading = entitiesQuery.isLoading || relationshipsQuery.isLoading || quotesQuery.isLoading
+  const error =
+    addEntity.error?.message ??
+    deleteEntityMut.error?.message ??
+    addRelationshipMut.error?.message ??
+    deleteRelationshipMut.error?.message ??
+    addQuoteMut.error?.message ??
+    deleteQuoteMut.error?.message ??
+    null
+
+  const { offline } = useContext(OfflineContext)
+
+  const value = useMemo<State>(
+    () => ({
+      entities,
+      relationships,
+      quotes,
+      loading,
+      error,
+      offline,
+      addEntity: async (data) => {
+        try {
+          return await addEntity.mutateAsync(data)
+        } catch {
+          return null
+        }
+      },
+      updateEntityPosition,
+      deleteEntity: async (id) => {
+        await deleteEntityMut.mutateAsync(id).catch(() => undefined)
+      },
+      addRelationship: async (data) => {
+        try {
+          return await addRelationshipMut.mutateAsync(data)
+        } catch {
+          return null
+        }
+      },
+      deleteRelationship: async (id) => {
+        await deleteRelationshipMut.mutateAsync(id).catch(() => undefined)
+      },
+      addQuote: async (data) => {
+        try {
+          return await addQuoteMut.mutateAsync(data)
+        } catch {
+          return null
+        }
+      },
+      deleteQuote: async (id) => {
+        await deleteQuoteMut.mutateAsync(id).catch(() => undefined)
+      },
+      extract: async (text) => {
+        if (offline) {
+          throw new Error(
+            'La extracción por IA requiere conexión al backend. Estás en modo local.',
+          )
+        }
+        return api.extract(text)
+      },
+      exportAll: async () => {
+        if (offline) {
+          return {
+            version: 1,
+            exportedAt: nowIso(),
+            entities,
+            relationships,
+            quotes,
+          }
+        }
+        return api.exportAll()
+      },
+      importAll: async (payload) => {
+        if (offline) {
+          const existingEntityIds = new Set(entities.map((e) => e.id))
+          const existingRelIds = new Set(relationships.map((r) => r.id))
+          const existingQuoteIds = new Set(quotes.map((q) => q.id))
+          const newEntities = payload.entities.filter((e) => !existingEntityIds.has(e.id))
+          const newRels = payload.relationships.filter((r) => !existingRelIds.has(r.id))
+          const newQuotes = payload.quotes.filter((q) => !existingQuoteIds.has(q.id))
+          const updatedEntities = [...newEntities, ...entities]
+          const updatedRels = [...newRels, ...relationships]
+          const updatedQuotes = [...newQuotes, ...quotes]
+          storage.saveEntities(updatedEntities)
+          storage.saveRelationships(updatedRels)
+          storage.saveQuotes(updatedQuotes)
+          queryClient.setQueryData(['entities'], updatedEntities)
+          queryClient.setQueryData(['relationships'], updatedRels)
+          queryClient.setQueryData(['quotes'], updatedQuotes)
+          return newEntities.length + newRels.length + newQuotes.length
+        }
+        const result = await api.importAll(payload)
+        await Promise.all([
+          entitiesQuery.refetch(),
+          relationshipsQuery.refetch(),
+          quotesQuery.refetch(),
         ])
-        if (cancelled) return
-        setEntities(e)
-        setRelationships(r)
-        setQuotes(q)
-      } catch {
-        if (cancelled) return
-        offlineRef.current = true
-        setOffline(true)
-        setEntities(storage.loadEntities())
-        setRelationships(storage.loadRelationships())
-        setQuotes(storage.loadQuotes())
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    if (offlineRef.current) storage.saveEntities(entities)
-  }, [entities])
-
-  useEffect(() => {
-    if (offlineRef.current) storage.saveRelationships(relationships)
-  }, [relationships])
-
-  useEffect(() => {
-    if (offlineRef.current) storage.saveQuotes(quotes)
-  }, [quotes])
-
-  function reportError(err: unknown) {
-    setError(err instanceof Error ? err.message : 'Error desconocido')
-  }
-
-  const value: State = {
-    entities,
-    relationships,
-    quotes,
-    loading,
-    error,
-    offline,
-    addEntity: async (data) => {
-      const origin = data.origin ?? DEFAULT_ORIGIN
-      const payload = { ...data, origin }
-      if (offlineRef.current) {
-        const created: Entity = {
-          ...payload,
-          id: newId(),
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        }
-        setEntities((prev) => [created, ...prev])
-        return created
-      }
-      try {
-        const created = await api.createEntity(payload)
-        setEntities((prev) => [created, ...prev])
-        return created
-      } catch (err) {
-        reportError(err)
-        return null
-      }
-    },
-    updateEntityPosition: (id, x, y) => {
-      // Optimistic local update.
-      setEntities((prev) =>
-        prev.map((entity) =>
-          entity.id === id ? { ...entity, positionX: x, positionY: y } : entity,
-        ),
-      )
-      // Debounced persist when online.
-      if (!offlineRef.current) {
-        if (positionSaveTimer.current !== null) {
-          window.clearTimeout(positionSaveTimer.current)
-        }
-        positionSaveTimer.current = window.setTimeout(() => {
-          api.updateEntityPosition(id, x, y).catch(reportError)
-        }, 400)
-      }
-    },
-    deleteEntity: async (id) => {
-      const cascade = () => {
-        setEntities((prev) => prev.filter((entity) => entity.id !== id))
-        setRelationships((prev) =>
-          prev.filter((rel) => rel.fromId !== id && rel.toId !== id),
-        )
-        setQuotes((prev) => prev.filter((quote) => quote.entityId !== id))
-      }
-      if (offlineRef.current) {
-        cascade()
-        return
-      }
-      try {
-        await api.deleteEntity(id)
-        cascade()
-      } catch (err) {
-        reportError(err)
-      }
-    },
-    addRelationship: async (data) => {
-      const origin = data.origin ?? DEFAULT_ORIGIN
-      const payload = { ...data, origin }
-      if (offlineRef.current) {
-        const created: Relationship = {
-          ...payload,
-          id: newId(),
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        }
-        setRelationships((prev) => [created, ...prev])
-        return created
-      }
-      try {
-        const created = await api.createRelationship(payload)
-        setRelationships((prev) => [created, ...prev])
-        return created
-      } catch (err) {
-        reportError(err)
-        return null
-      }
-    },
-    deleteRelationship: async (id) => {
-      if (offlineRef.current) {
-        setRelationships((prev) => prev.filter((rel) => rel.id !== id))
-        return
-      }
-      try {
-        await api.deleteRelationship(id)
-        setRelationships((prev) => prev.filter((rel) => rel.id !== id))
-      } catch (err) {
-        reportError(err)
-      }
-    },
-    addQuote: async (data) => {
-      const origin = data.origin ?? DEFAULT_ORIGIN
-      const payload = { ...data, origin }
-      if (offlineRef.current) {
-        const created: Quote = {
-          ...payload,
-          id: newId(),
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        }
-        setQuotes((prev) => [created, ...prev])
-        return created
-      }
-      try {
-        const created = await api.createQuote(payload)
-        setQuotes((prev) => [created, ...prev])
-        return created
-      } catch (err) {
-        reportError(err)
-        return null
-      }
-    },
-    deleteQuote: async (id) => {
-      if (offlineRef.current) {
-        setQuotes((prev) => prev.filter((quote) => quote.id !== id))
-        return
-      }
-      try {
-        await api.deleteQuote(id)
-        setQuotes((prev) => prev.filter((quote) => quote.id !== id))
-      } catch (err) {
-        reportError(err)
-      }
-    },
-    extract: async (text) => {
-      if (offlineRef.current) {
-        throw new Error(
-          'La extracción por IA requiere conexión al backend. Estás en modo local.',
-        )
-      }
-      return api.extract(text)
-    },
-    exportAll: async () => {
-      if (offlineRef.current) {
-        return {
-          version: 1,
-          exportedAt: nowIso(),
-          entities,
-          relationships,
-          quotes,
-        }
-      }
-      return api.exportAll()
-    },
-    importAll: async (payload) => {
-      if (offlineRef.current) {
-        // Merge by id: anything new gets added; existing is left untouched.
-        const existingEntityIds = new Set(entities.map((e) => e.id))
-        const existingRelIds = new Set(relationships.map((r) => r.id))
-        const existingQuoteIds = new Set(quotes.map((q) => q.id))
-        const newEntities = payload.entities.filter((e) => !existingEntityIds.has(e.id))
-        const newRels = payload.relationships.filter((r) => !existingRelIds.has(r.id))
-        const newQuotes = payload.quotes.filter((q) => !existingQuoteIds.has(q.id))
-        setEntities((prev) => [...newEntities, ...prev])
-        setRelationships((prev) => [...newRels, ...prev])
-        setQuotes((prev) => [...newQuotes, ...prev])
-        return newEntities.length + newRels.length + newQuotes.length
-      }
-      const result = await api.importAll(payload)
-      // Refresh from server after import.
-      const [e, r, q] = await Promise.all([
-        api.listEntities(),
-        api.listRelationships(),
-        api.listQuotes(),
-      ])
-      setEntities(e)
-      setRelationships(r)
-      setQuotes(q)
-      return result.imported
-    },
-  }
+        return result.imported
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [entities, relationships, quotes, loading, error, offline],
+  )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+}
+
+export function StateProvider({ children }: { children: ReactNode }) {
+  const [offline, setOffline] = useState(false)
+  const offlineCtxValue = useMemo(() => ({ offline, setOffline }), [offline])
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <OfflineContext.Provider value={offlineCtxValue}>
+        <InnerProvider>{children}</InnerProvider>
+      </OfflineContext.Provider>
+    </QueryClientProvider>
+  )
 }
 
 export function useTrama(): State {
