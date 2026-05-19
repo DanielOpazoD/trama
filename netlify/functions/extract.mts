@@ -5,6 +5,8 @@ import { buildExtractionPrompt } from './_lib/extract-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { logEvent } from './_lib/observability.js'
+import { rateLimit } from './_lib/rate-limit.js'
+import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
 // Fallback types if the type tables are not yet populated (first deploy, etc).
 const FALLBACK_ENTITY_TYPES = [
@@ -19,6 +21,15 @@ export default withObservability('extract', async (req: Request, _context: Conte
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
   }
+
+  // Rate limit: 30 extraction calls per IP per hour. Generous for personal use,
+  // protective against runaway scripts.
+  const rateLimited = rateLimit(req, { max: 30, windowMs: 60 * 60 * 1000 })
+  if (rateLimited) return rateLimited
+
+  // Monthly cost cap before incurring LLM cost.
+  const budgetExceeded = await checkMonthlyBudget()
+  if (budgetExceeded) return budgetExceeded
 
   let body: { text?: string }
   try {
