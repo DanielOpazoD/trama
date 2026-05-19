@@ -144,8 +144,51 @@ Provisionado automáticamente al hacer deploy si el proyecto lo necesita. No req
 3. Push a `main`. Netlify aplica antes del próximo build.
 4. Las migraciones aplicadas son inmutables — no editar, siempre agregar nuevas.
 
+## Testing
+
+Vitest corre tests con `npm test`. Configuración en `vitest.config.ts`.
+
+### Convenciones
+
+- Tests **colocados** con su código: `foo.ts` → `foo.test.ts` en la misma carpeta.
+- Patrones incluidos: `src/**/*.test.ts` y `netlify/**/*.test.ts`.
+- Sin globals (`globals: false`): cada test importa `describe, it, expect, vi` de `vitest`.
+- Mocks de fetch/Netlify.env con `vi.stubGlobal`, limpieza en `afterEach`.
+
+### Qué se testea hoy
+
+| Archivo | Cobertura | Qué cubre |
+|---|---|---|
+| `src/api.ts` | 70% | Transformación snake_case ↔ camelCase, normalización de `origin` legacy, request shape de POST/PATCH, manejo de errores HTTP |
+| `src/storage.ts` | 74% | Carga de localStorage con normalización de shapes viejos, round-trip save/load, tolerancia a JSON corrupto |
+| `netlify/functions/_lib/llm.ts` | 91% | Dispatch correcto por proveedor (DeepSeek/OpenAI/Anthropic/Gemini), headers y body shape por API, parsing de respuestas, manejo de errores y env vars faltantes |
+| `netlify/functions/_lib/extract-validate.ts` | 100% | Validación de tipo de entidad y relación, dedup case-insensitive contra entidades existentes, rechazo de self-loops, manejo de input malformado (null, string, array, shape incorrecto) |
+
+Componentes React y `state.tsx` no tienen tests todavía — se cubrirán cuando se descompongan en hooks/sub-componentes (Bloques 3 y 4).
+
+### CI
+
+`.github/workflows/test.yml` corre en cada push y PR a `main`:
+1. `npm ci`
+2. `npm run typecheck` (tsc -b)
+3. `npm test`
+4. `npm run build`
+
+Una falla en cualquier paso bloquea el merge (o sería visible como check rojo si las branch protections están activas).
+
 ## Bloques de mejora pendientes
 
-Ver `MEJORAS.md` (TODO crear).
+Ver el plan en la conversación / TodoWrite. A 2026-05-18:
+- ✅ Bloque 0: docs base
+- ✅ Bloque 1: durabilidad de esquema + portabilidad
+- ✅ Bloque 2: red de seguridad de tests
+- ⏳ Bloque 3: TanStack Query + descomponer estado
+- ⏳ Bloque 4: descomponer GraphView
+- ⏳ Bloque 5: log de extracción + costos
+- ⏳ Bloque 6: tipos como datos
+- ⏳ Bloque 7: búsqueda full-text
+- ⏳ Bloque 8: LLM resiliente
+- ⏳ Bloque 9: accesibilidad
+- ⏳ Bloque 10: docs finales
 
 Última revisión: 2026-05-18

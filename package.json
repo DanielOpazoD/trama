@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "node_modules/.bin/tsc -b && node_modules/.bin/vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node_modules/.bin/vitest run",
+    "test:watch": "node_modules/.bin/vitest",
+    "test:coverage": "node_modules/.bin/vitest run --coverage",
+    "typecheck": "node_modules/.bin/tsc -b"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -18,10 +22,12 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^4.1.6",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vitest": "^4.1.6"
   }
 }
