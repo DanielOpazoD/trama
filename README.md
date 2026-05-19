@@ -26,13 +26,26 @@ npm run build        # tsc + vite build
 
 Sin backend desplegado, la app funciona en modo local: los datos viven en `localStorage` del navegador. Cuando se conecta a Netlify (con DB provisionada), los datos pasan a Postgres.
 
-Para correr la app **con backend local** (requiere Netlify CLI autenticado y proyecto vinculado):
+### Opción A — Netlify CLI (requiere autenticación)
 
 ```bash
 netlify dev
 ```
 
-Esto provisiona automáticamente una DB local de prueba y monta los functions en `localhost`.
+Provisiona DB local de prueba y monta functions. Requiere `netlify` CLI logueado.
+
+### Opción B — Docker Postgres local (recomendado para iterar)
+
+```bash
+cp .env.example .env       # editar con tu AI_API_KEY
+npm run db:up              # levanta Postgres en localhost:5433 y aplica migraciones
+netlify dev                # arranca functions con .env vars
+```
+
+Comandos útiles:
+- `npm run db:reset` — borra y recrea la base (datos perdidos, schema fresco).
+- `npm run db:psql` — abre `psql` interactivo dentro del contenedor.
+- `npm run db:down` — apaga el contenedor.
 
 ## Variables de entorno (en Netlify dashboard)
 

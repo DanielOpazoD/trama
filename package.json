@@ -10,7 +10,11 @@
     "test": "node_modules/.bin/vitest run",
     "test:watch": "node_modules/.bin/vitest",
     "test:coverage": "node_modules/.bin/vitest run --coverage",
-    "typecheck": "node_modules/.bin/tsc -b"
+    "typecheck": "node_modules/.bin/tsc -b",
+    "db:up": "docker compose up -d postgres && sleep 3 && scripts/apply-migrations.sh",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d postgres && sleep 3 && scripts/apply-migrations.sh",
+    "db:psql": "docker exec -it trama-postgres psql -U trama -d trama"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

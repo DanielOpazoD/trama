@@ -39,3 +39,8 @@ pnpm-debug.log*
 dev.log
 *.tsbuildinfo
 coverage
+
+# Environment
+.env
+.env.local
+.env.*.local
