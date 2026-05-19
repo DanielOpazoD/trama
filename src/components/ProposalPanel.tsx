@@ -13,6 +13,7 @@ import {
   type ProposedQuote,
   type ProposedRelationship,
 } from '../types'
+import { CloseIcon } from './Icons'
 
 type CheckedState = {
   entities: boolean[]
@@ -162,8 +163,12 @@ export function ProposalPanel({
             {sourceText.length > 60 ? `${sourceText.slice(0, 60)}…` : sourceText}
           </h2>
         </div>
-        <button onClick={onClose} className="btn-ghost" aria-label="Cerrar">
-          ✕
+        <button
+          onClick={onClose}
+          className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
+          aria-label="Cerrar"
+        >
+          <CloseIcon />
         </button>
       </header>
 

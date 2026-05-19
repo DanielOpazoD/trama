@@ -6,6 +6,7 @@ import {
   useAddRelationship,
   useDeleteRelationship,
 } from '../state'
+import { SparkleIcon } from './Icons'
 
 export function RelationshipsView() {
   const { data: entities = [] } = useEntitiesQuery()
@@ -128,8 +129,8 @@ export function RelationshipsView() {
                         </span>
                         <span className="text-ink-700">{to?.name ?? '—'}</span>
                         {rel.origin.kind === 'ai' && (
-                          <span className="ml-2 text-[9px] uppercase tracking-[0.18em] text-sky-700/70 align-middle">
-                            ia
+                          <span className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle" title="propuesta por IA">
+                            <SparkleIcon size={10} />
                           </span>
                         )}
                       </div>

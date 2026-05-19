@@ -69,9 +69,9 @@ export function GraphNode({
         connectionCount > 0 ? `, ${connectionCount} conexiones` : ''
       }${isSelected ? ', seleccionado' : ''}`}
       transform={`translate(${x} ${y})`}
-      className={isFresh ? 'animate-node-in' : undefined}
+      className={`graph-node ${isFresh ? 'animate-node-in' : ''}`}
       style={{
-        cursor: 'pointer',
+        cursor: 'grab',
         opacity,
         transition: 'opacity 200ms ease',
       }}

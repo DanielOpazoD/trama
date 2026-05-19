@@ -7,6 +7,15 @@ import {
   useImport,
 } from '../state'
 import type { ExportPayload } from '../types'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  DownloadIcon,
+  MoonIcon,
+  SearchIcon,
+  SunIcon,
+  UploadIcon,
+} from './Icons'
 
 export type ViewMode = 'grafo' | 'entidades' | 'citas' | 'relaciones'
 
@@ -137,18 +146,7 @@ export function Sidebar({
               title={theme === 'paper' ? 'modo noche' : 'modo papel'}
               className="p-1.5 text-ink-300 hover:text-ink-600 hover:bg-ink-50 rounded transition-colors"
             >
-              {theme === 'paper' ? (
-                /* moon */
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                </svg>
-              ) : (
-                /* sun */
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-                </svg>
-              )}
+              {theme === 'paper' ? <MoonIcon /> : <SunIcon />}
             </button>
           )}
           <button
@@ -156,21 +154,27 @@ export function Sidebar({
             aria-label={collapsed ? 'Expandir sidebar' : 'Contraer sidebar'}
             className="p-1.5 text-ink-300 hover:text-ink-600 hover:bg-ink-50 rounded transition-colors"
           >
-            {collapsed ? '›' : '‹'}
+            {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
           </button>
         </div>
       </header>
 
       {!collapsed && entities.length > 0 && (
         <div className="px-3 pb-3">
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar…"
-            aria-label="Buscar entidades"
-            className="input-paper w-full text-sm"
-          />
+          <div className="relative">
+            <SearchIcon
+              size={13}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-300 pointer-events-none"
+            />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar…"
+              aria-label="Buscar entidades"
+              className="input-paper w-full text-sm pl-8"
+            />
+          </div>
           {searchResults.length > 0 && (
             <ul className="mt-2 space-y-0.5 max-h-64 overflow-y-auto">
               {searchResults.map((entity) => (
@@ -237,17 +241,19 @@ export function Sidebar({
             <button
               onClick={handleExport}
               disabled={busy}
-              className="flex-1 text-[10px] uppercase tracking-[0.16em] text-ink-400 hover:text-ink-700 transition-colors py-1.5 disabled:text-ink-200"
+              className="flex-1 flex items-center justify-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-ink-400 hover:text-ink-700 transition-colors py-1.5 disabled:text-ink-200"
               title="Exportar toda tu trama como JSON"
             >
+              <DownloadIcon size={11} />
               exportar
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={busy}
-              className="flex-1 text-[10px] uppercase tracking-[0.16em] text-ink-400 hover:text-ink-700 transition-colors py-1.5 disabled:text-ink-200"
+              className="flex-1 flex items-center justify-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-ink-400 hover:text-ink-700 transition-colors py-1.5 disabled:text-ink-200"
               title="Importar un JSON exportado previamente"
             >
+              <UploadIcon size={11} />
               importar
             </button>
           </div>

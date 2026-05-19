@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useEntitiesQuery, useQuotesQuery, useAddQuote, useDeleteQuote } from '../state'
+import { SparkleIcon } from './Icons'
 
 export function QuotesView() {
   const { data: entities = [] } = useEntitiesQuery()
@@ -117,8 +118,8 @@ export function QuotesView() {
                           <span className="text-ink-300 ml-2">· {quote.source}</span>
                         )}
                         {quote.origin.kind === 'ai' && (
-                          <span className="ml-2 text-[9px] uppercase tracking-[0.18em] text-sky-700/70">
-                            ia
+                          <span className="ml-1.5 inline-flex items-center text-sky-700/70" title="propuesta por IA">
+                            <SparkleIcon size={10} />
                           </span>
                         )}
                       </div>

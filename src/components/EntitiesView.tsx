@@ -7,6 +7,7 @@ import {
   useAddEntity,
   useDeleteEntity,
 } from '../state'
+import { SparkleIcon } from './Icons'
 
 export function EntitiesView() {
   const { data: entities = [] } = useEntitiesQuery()
@@ -125,8 +126,8 @@ export function EntitiesView() {
                       {ENTITY_TYPES.find((t) => t.value === entity.type)?.label}
                     </span>
                     {entity.origin.kind === 'ai' && (
-                      <span className="ml-2 text-[9px] uppercase tracking-[0.18em] text-sky-700/70 align-middle">
-                        ia
+                      <span className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle" title="añadido por IA">
+                        <SparkleIcon size={10} />
                       </span>
                     )}
                   </div>

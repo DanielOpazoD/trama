@@ -13,6 +13,7 @@ import {
   type Entity,
   type Relationship,
 } from '../types'
+import { CloseIcon, SparkleIcon } from './Icons'
 
 export function NodeDetailPanel({
   entityId,
@@ -70,13 +71,20 @@ export function NodeDetailPanel({
             {typeLabel ?? entity.type}
             {entity.year !== undefined && <span className="ml-1">· {entity.year}</span>}
             {entity.origin.kind === 'ai' && (
-              <span className="ml-2 text-sky-700/80">añadido por IA</span>
+              <span className="ml-2 inline-flex items-center gap-1 text-sky-700/80">
+                <SparkleIcon size={10} />
+                añadido por IA
+              </span>
             )}
           </p>
           <h2 className="font-serif text-2xl text-ink-700 truncate">{entity.name}</h2>
         </div>
-        <button onClick={onClose} className="btn-ghost" aria-label="Cerrar">
-          ✕
+        <button
+          onClick={onClose}
+          className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
+          aria-label="Cerrar"
+        >
+          <CloseIcon />
         </button>
       </header>
 
@@ -102,7 +110,9 @@ export function NodeDetailPanel({
                         <span className="text-ink-300">· {quote.source}</span>
                       )}
                       {quote.origin.kind === 'ai' && (
-                        <span className="ml-2 text-sky-700/70">ia</span>
+                        <span className="ml-2 inline-flex items-center text-sky-700/70" title="propuesta por IA">
+                          <SparkleIcon size={10} />
+                        </span>
                       )}
                     </div>
                     <button
@@ -210,8 +220,8 @@ function RelationshipLine({
         </span>
         <span className="text-ink-700">{otherEntity?.name ?? '—'}</span>
         {rel.origin.kind === 'ai' && (
-          <span className="ml-2 text-[9px] uppercase tracking-[0.16em] text-sky-700/70">
-            ia
+          <span className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle" title="propuesta por IA">
+            <SparkleIcon size={10} />
           </span>
         )}
       </span>
