@@ -3,6 +3,8 @@ import type { Config, Context } from '@netlify/functions'
 import { askLLMForJson } from './_lib/llm.js'
 import { buildExtractionPrompt } from './_lib/extract-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
+import { withObservability } from './_lib/handler-wrap.js'
+import { logEvent } from './_lib/observability.js'
 
 // Fallback types if the type tables are not yet populated (first deploy, etc).
 const FALLBACK_ENTITY_TYPES = [
@@ -13,7 +15,7 @@ const FALLBACK_RELATIONSHIP_TYPES = [
   'suena_como', 'inspira', 'contradice', 'asociado_con',
 ]
 
-export default async (req: Request, _context: Context) => {
+export default withObservability('extract', async (req: Request, _context: Context) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
   }
@@ -53,13 +55,27 @@ export default async (req: Request, _context: Context) => {
   const messages = buildExtractionPrompt(text, existing, entityTypes, relationshipTypes)
 
   try {
-    const { content, usage } = await askLLMForJson(messages)
+    const { content, usage, fromCache } = await askLLMForJson(messages)
     const cleaned = validateExtraction(
       content,
       existing,
       new Set(entityTypes),
       new Set(relationshipTypes),
     )
+
+    logEvent({
+      event: 'extraction_completed',
+      provider: usage.provider,
+      model: usage.model,
+      tokensIn: usage.tokensIn,
+      tokensOut: usage.tokensOut,
+      costCents: usage.costCents,
+      durationMs: usage.durationMs,
+      fromCache,
+      proposedEntities: cleaned.entities.length,
+      proposedRelationships: cleaned.relationships.length,
+      proposedQuotes: cleaned.quotes.length,
+    })
 
     sql`
       INSERT INTO extraction_log (
@@ -85,7 +101,7 @@ export default async (req: Request, _context: Context) => {
     `.catch(() => {})
     return new Response(`Error llamando al LLM: ${message}`, { status: 502 })
   }
-}
+})
 
 export const config: Config = {
   path: '/api/extract',

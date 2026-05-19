@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless'
 import type { Config, Context } from '@netlify/functions'
+import { withObservability } from './_lib/handler-wrap.js'
 
 type Origin = { kind: string; [key: string]: unknown }
 
@@ -13,7 +14,7 @@ function normalizeOrigin(value: unknown): Origin {
   return { kind: 'manual' }
 }
 
-export default async (req: Request, context: Context) => {
+export default withObservability('relationships', async (req: Request, context: Context) => {
   const connectionString = Netlify.env.get('NETLIFY_DATABASE_URL')
   if (!connectionString) {
     return new Response('NETLIFY_DATABASE_URL no está configurada', { status: 500 })
@@ -60,7 +61,7 @@ export default async (req: Request, context: Context) => {
   }
 
   return new Response('Method not allowed', { status: 405 })
-}
+})
 
 export const config: Config = {
   path: ['/api/relationships', '/api/relationships/:id'],
