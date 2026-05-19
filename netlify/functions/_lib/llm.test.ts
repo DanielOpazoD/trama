@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { askLLMForJson } from './llm'
+import { askLLMForJson, clearLLMCache } from './llm'
 
 function stubEnv(provider: string | undefined, apiKey: string | undefined) {
   vi.stubGlobal('Netlify', {
@@ -24,6 +24,7 @@ function mockFetch(response: Record<string, unknown>) {
 
 beforeEach(() => {
   stubEnv('deepseek', 'test-key')
+  clearLLMCache()
 })
 
 afterEach(() => {
@@ -230,20 +231,94 @@ describe('askLLMForJson — usage tracking', () => {
   })
 })
 
+describe('askLLMForJson — retry behavior', () => {
+  it('retries on 500 and eventually succeeds', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () => 'server error',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify(SIMPLE_RESPONSE_OPENAI),
+        json: async () => SIMPLE_RESPONSE_OPENAI,
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await askLLMForJson([
+      { role: 'user', content: 'unique-content-for-retry-test-' + Math.random() },
+    ])
+    expect(result.content).toBeDefined()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  }, 10000)
+
+  it('does NOT retry on 400 (client error)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () => 'bad request',
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      askLLMForJson([{ role: 'user', content: 'unique-' + Math.random() }]),
+    ).rejects.toThrow(/400/)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('askLLMForJson — caching', () => {
+  it('returns cached result for identical messages', async () => {
+    const fetchMock = mockFetch(SIMPLE_RESPONSE_OPENAI)
+    vi.stubGlobal('fetch', fetchMock)
+    const messages = [{ role: 'user' as const, content: 'cache-test-' + Math.random() }]
+
+    const first = await askLLMForJson(messages)
+    const second = await askLLMForJson(messages)
+
+    expect(first.fromCache).toBe(false)
+    expect(second.fromCache).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('does NOT cache when AI_CACHE_TTL_SECONDS is 0', async () => {
+    vi.stubGlobal('Netlify', {
+      env: {
+        get: vi.fn((key: string) => {
+          if (key === 'AI_PROVIDER') return 'deepseek'
+          if (key === 'AI_API_KEY') return 'test-key'
+          if (key === 'AI_CACHE_TTL_SECONDS') return '0'
+          return undefined
+        }),
+      },
+    })
+    const fetchMock = mockFetch(SIMPLE_RESPONSE_OPENAI)
+    vi.stubGlobal('fetch', fetchMock)
+    const messages = [{ role: 'user' as const, content: 'no-cache-' + Math.random() }]
+
+    await askLLMForJson(messages)
+    await askLLMForJson(messages)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+})
+
 describe('askLLMForJson — error propagation', () => {
-  it('throws when fetch returns non-2xx', async () => {
+  it('throws when fetch returns non-retryable 4xx', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
         ok: false,
-        status: 429,
-        text: async () => 'rate limited',
+        status: 401,
+        text: async () => 'invalid api key',
         json: async () => ({}),
       }),
     )
-    await expect(askLLMForJson([{ role: 'user', content: 'x' }])).rejects.toThrow(
-      /429/,
-    )
+    await expect(
+      askLLMForJson([{ role: 'user', content: 'unique-401-' + Math.random() }]),
+    ).rejects.toThrow(/401/)
   })
 
   it('throws when response has no content', async () => {
