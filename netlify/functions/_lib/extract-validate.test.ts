@@ -6,6 +6,18 @@ const EXISTING = [
   { id: 'e-extranjero', name: 'El extranjero', type: 'libro' },
 ]
 
+const ENTITY_TYPES = new Set([
+  'persona', 'libro', 'cancion', 'album', 'pelicula', 'obra', 'concepto', 'idea',
+])
+const RELATIONSHIP_TYPES = new Set([
+  'influye_en', 'cita_a', 'responde_a', 'me_llego_por',
+  'suena_como', 'inspira', 'contradice', 'asociado_con',
+])
+
+function v(raw: unknown, existing = EXISTING) {
+  return validateExtraction(raw, existing, ENTITY_TYPES, RELATIONSHIP_TYPES)
+}
+
 describe('validateExtraction — happy path', () => {
   it('accepts well-formed proposal and returns it cleaned', () => {
     const raw = {
@@ -21,7 +33,7 @@ describe('validateExtraction — happy path', () => {
       ],
     }
 
-    const result = validateExtraction(raw, EXISTING)
+    const result = v(raw)
 
     expect(result.entities).toHaveLength(2)
     expect(result.entities[0].name).toBe('Iris Murdoch')
@@ -34,7 +46,7 @@ describe('validateExtraction — happy path', () => {
     const raw = {
       entities: [{ type: 'persona', name: 'albert camus' }], // different case
     }
-    const result = validateExtraction(raw, EXISTING)
+    const result = v(raw)
     expect(result.entities[0].matchedId).toBe('e-camus')
   })
 })
@@ -47,7 +59,7 @@ describe('validateExtraction — invalid entity type', () => {
         { type: 'invalid_type', name: 'Whatever' },
       ],
     }
-    const result = validateExtraction(raw, EXISTING)
+    const result = v(raw)
     expect(result.entities).toHaveLength(1)
     expect(result.entities[0].name).toBe('Borges')
   })
@@ -60,7 +72,7 @@ describe('validateExtraction — invalid entity type', () => {
         { type: 'persona', name: 'OK' },
       ],
     }
-    const result = validateExtraction(raw, EXISTING)
+    const result = v(raw)
     expect(result.entities).toHaveLength(1)
     expect(result.entities[0].name).toBe('OK')
   })
@@ -74,7 +86,7 @@ describe('validateExtraction — invalid relationship', () => {
         { fromName: 'A', toName: 'B', type: 'random_thing' },
       ],
     }
-    const result = validateExtraction(raw, EXISTING)
+    const result = v(raw)
     expect(result.relationships).toHaveLength(1)
   })
 
@@ -85,7 +97,7 @@ describe('validateExtraction — invalid relationship', () => {
         { fromName: 'Camus', toName: 'CAMUS', type: 'influye_en' }, // case-insensitive
       ],
     }
-    const result = validateExtraction(raw, EXISTING)
+    const result = v(raw)
     expect(result.relationships).toHaveLength(0)
   })
 
@@ -97,7 +109,7 @@ describe('validateExtraction — invalid relationship', () => {
         { fromName: 'A', toName: 'B' }, // no type
       ],
     }
-    const result = validateExtraction(raw, EXISTING)
+    const result = v(raw)
     expect(result.relationships).toHaveLength(0)
   })
 })
@@ -112,7 +124,7 @@ describe('validateExtraction — invalid quote', () => {
         { entityName: 'Camus', text: 'real quote' },
       ],
     }
-    const result = validateExtraction(raw, EXISTING)
+    const result = v(raw)
     expect(result.quotes).toHaveLength(1)
     expect(result.quotes[0].text).toBe('real quote')
   })
@@ -121,34 +133,34 @@ describe('validateExtraction — invalid quote', () => {
     const raw = {
       quotes: [{ text: 'orphan quote' }],
     }
-    const result = validateExtraction(raw, EXISTING)
+    const result = v(raw)
     expect(result.quotes).toHaveLength(0)
   })
 })
 
 describe('validateExtraction — garbage in, structured out', () => {
   it('returns empty arrays when input is null', () => {
-    const result = validateExtraction(null, EXISTING)
+    const result = v(null)
     expect(result).toEqual({ entities: [], relationships: [], quotes: [] })
   })
 
   it('returns empty arrays when input is wrong shape', () => {
-    const result = validateExtraction({ entities: 'not an array' }, EXISTING)
+    const result = v({ entities: 'not an array' })
     expect(result.entities).toEqual([])
   })
 
   it('returns empty arrays when input is a string', () => {
-    const result = validateExtraction('garbage', EXISTING)
+    const result = v('garbage')
     expect(result).toEqual({ entities: [], relationships: [], quotes: [] })
   })
 
   it('returns empty arrays when input is an array directly', () => {
-    const result = validateExtraction([1, 2, 3], EXISTING)
+    const result = v([1, 2, 3])
     expect(result).toEqual({ entities: [], relationships: [], quotes: [] })
   })
 
   it('handles empty input gracefully', () => {
-    const result = validateExtraction({}, EXISTING)
+    const result = v({})
     expect(result).toEqual({ entities: [], relationships: [], quotes: [] })
   })
 })
@@ -162,7 +174,7 @@ describe('validateExtraction — field trimming and coercion', () => {
       ],
       quotes: [{ entityName: '  Camus  ', text: '  quote  ', source: '  src  ' }],
     }
-    const result = validateExtraction(raw, EXISTING)
+    const result = v(raw)
     expect(result.entities[0].name).toBe('Camus')
     expect(result.relationships[0].fromName).toBe('A')
     expect(result.relationships[0].notes).toBe('note')
@@ -174,7 +186,7 @@ describe('validateExtraction — field trimming and coercion', () => {
     const raw = {
       entities: [{ type: 'persona', name: 'X', year: 'not-a-number' }],
     }
-    const result = validateExtraction(raw, EXISTING)
+    const result = v(raw)
     expect(result.entities[0].year).toBeUndefined()
   })
 
@@ -182,7 +194,7 @@ describe('validateExtraction — field trimming and coercion', () => {
     const raw = {
       entities: [{ type: 'persona', name: 'X', description: '   ' }],
     }
-    const result = validateExtraction(raw, EXISTING)
+    const result = v(raw)
     expect(result.entities[0].description).toBeUndefined()
   })
 })

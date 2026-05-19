@@ -4,6 +4,15 @@ import { askLLMForJson } from './_lib/llm.js'
 import { buildExtractionPrompt } from './_lib/extract-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
 
+// Fallback types if the type tables are not yet populated (first deploy, etc).
+const FALLBACK_ENTITY_TYPES = [
+  'persona', 'libro', 'cancion', 'album', 'pelicula', 'obra', 'concepto', 'idea',
+]
+const FALLBACK_RELATIONSHIP_TYPES = [
+  'influye_en', 'cita_a', 'responde_a', 'me_llego_por',
+  'suena_como', 'inspira', 'contradice', 'asociado_con',
+]
+
 export default async (req: Request, _context: Context) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
@@ -26,18 +35,32 @@ export default async (req: Request, _context: Context) => {
     return new Response('NETLIFY_DATABASE_URL no está configurada', { status: 500 })
   }
   const sql = neon(connectionString)
-  const existing = (await sql`
-    SELECT id, name, type FROM entities
-    WHERE deleted_at IS NULL
-    ORDER BY created_at DESC LIMIT 500
-  `) as Array<{ id: string; name: string; type: string }>
 
-  const messages = buildExtractionPrompt(text, existing)
+  // Fetch context: valid type slugs and existing entities.
+  const [entityTypeRows, relTypeRows, existing] = await Promise.all([
+    sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<Array<{ slug: string }>>,
+    sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<Array<{ slug: string }>>,
+    sql`SELECT id, name, type FROM entities WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 500` as unknown as Promise<Array<{ id: string; name: string; type: string }>>,
+  ])
+
+  const entityTypes = entityTypeRows.length > 0
+    ? entityTypeRows.map((r) => r.slug)
+    : FALLBACK_ENTITY_TYPES
+  const relationshipTypes = relTypeRows.length > 0
+    ? relTypeRows.map((r) => r.slug)
+    : FALLBACK_RELATIONSHIP_TYPES
+
+  const messages = buildExtractionPrompt(text, existing, entityTypes, relationshipTypes)
+
   try {
     const { content, usage } = await askLLMForJson(messages)
-    const cleaned = validateExtraction(content, existing)
+    const cleaned = validateExtraction(
+      content,
+      existing,
+      new Set(entityTypes),
+      new Set(relationshipTypes),
+    )
 
-    // Persist the extraction event (fire-and-forget; don't block the response on logging).
     sql`
       INSERT INTO extraction_log (
         input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
@@ -51,14 +74,11 @@ export default async (req: Request, _context: Context) => {
         ${usage.costCents},
         ${usage.durationMs}
       )
-    `.catch(() => {
-      // Best-effort logging — failure here shouldn't break extraction.
-    })
+    `.catch(() => {})
 
     return Response.json(cleaned)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    // Log the failure too so we can debug bad prompts / API outages.
     sql`
       INSERT INTO extraction_log (input_text, proposal, provider, model, error)
       VALUES (${text}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message})

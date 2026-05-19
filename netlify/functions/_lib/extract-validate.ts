@@ -32,41 +32,21 @@ export type CleanedProposal = {
   }>
 }
 
-const VALID_ENTITY_TYPES = new Set([
-  'persona',
-  'libro',
-  'cancion',
-  'album',
-  'pelicula',
-  'obra',
-  'concepto',
-  'idea',
-])
-
-const VALID_RELATIONSHIP_TYPES = new Set([
-  'influye_en',
-  'cita_a',
-  'responde_a',
-  'me_llego_por',
-  'suena_como',
-  'inspira',
-  'contradice',
-  'asociado_con',
-])
-
 function normalizeName(s: string): string {
   return s.trim().toLowerCase()
 }
 
 /**
- * Validate and clean a raw extraction response.
- *
- * @param raw  Whatever the LLM returned (could be any shape, including garbage).
- * @param existing  Existing entities in the graph, used for dedup by name.
+ * @param raw  Whatever the LLM returned.
+ * @param existing  Existing entities, for dedup-by-name.
+ * @param validEntityTypes  Whitelist of acceptable entity type slugs.
+ * @param validRelationshipTypes  Whitelist of acceptable relationship type slugs.
  */
 export function validateExtraction(
   raw: unknown,
   existing: ExistingEntityLite[],
+  validEntityTypes: ReadonlySet<string>,
+  validRelationshipTypes: ReadonlySet<string>,
 ): CleanedProposal {
   const proposal = (raw ?? {}) as {
     entities?: unknown
@@ -87,7 +67,7 @@ export function validateExtraction(
             e !== null &&
             typeof e.name === 'string' &&
             typeof e.type === 'string' &&
-            VALID_ENTITY_TYPES.has(e.type),
+            validEntityTypes.has(e.type),
         )
         .map((e) => {
           const name = (e.name as string).trim()
@@ -114,7 +94,7 @@ export function validateExtraction(
             typeof r.fromName === 'string' &&
             typeof r.toName === 'string' &&
             typeof r.type === 'string' &&
-            VALID_RELATIONSHIP_TYPES.has(r.type) &&
+            validRelationshipTypes.has(r.type) &&
             normalizeName(r.fromName as string) !== normalizeName(r.toName as string),
         )
         .map((r) => ({
