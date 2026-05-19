@@ -6,12 +6,14 @@ export function GraphEdge({
   to,
   highlighted,
   dimmed,
+  fresh = false,
 }: {
   rel: Relationship
   from: { x: number; y: number } | undefined
   to: { x: number; y: number } | undefined
   highlighted: boolean
   dimmed: boolean
+  fresh?: boolean
 }) {
   if (!from || !to) return null
   const stroke = rel.origin.kind === 'ai' ? '#7AA7C7' : '#5A4E3A'
@@ -24,7 +26,10 @@ export function GraphEdge({
   const markerId = rel.origin.kind === 'ai' ? 'edgeArrowAi' : 'edgeArrow'
 
   return (
-    <g style={{ pointerEvents: 'none' }}>
+    <g
+      style={{ pointerEvents: 'none', ['--final-opacity' as never]: opacity }}
+      className={fresh ? 'animate-edge-in' : undefined}
+    >
       <line
         x1={from.x}
         y1={from.y}

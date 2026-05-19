@@ -26,6 +26,7 @@ export function GraphNode({
   isSelected,
   isFocused = false,
   isDimmed,
+  isFresh = false,
   connectionCount,
   onMouseDown,
   onClick,
@@ -36,6 +37,7 @@ export function GraphNode({
   isSelected: boolean
   isFocused?: boolean
   isDimmed: boolean
+  isFresh?: boolean
   connectionCount: number
   onMouseDown: (event: React.MouseEvent) => void
   onClick: (event: React.MouseEvent) => void
@@ -60,7 +62,13 @@ export function GraphNode({
         connectionCount > 0 ? `, ${connectionCount} conexiones` : ''
       }${isSelected ? ', seleccionado' : ''}`}
       transform={`translate(${x - w / 2} ${y - h / 2})`}
-      style={{ cursor: 'pointer', opacity, transition: 'opacity 150ms' }}
+      className={isFresh ? 'animate-node-in' : undefined}
+      style={{
+        cursor: 'pointer',
+        opacity,
+        transition: 'opacity 200ms ease',
+        transformOrigin: `${w / 2}px ${h / 2}px`,
+      }}
       onMouseDown={onMouseDown}
       onClick={onClick}
     >

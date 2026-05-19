@@ -33,6 +33,74 @@
   }
 }
 
+@layer utilities {
+  /* Spring-in animation for new graph nodes. Uses scale + opacity. */
+  @keyframes node-spring-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-node-in {
+    animation: node-spring-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* Soft fade for incoming edges. */
+  @keyframes edge-fade-in {
+    from { stroke-opacity: 0; }
+    to { stroke-opacity: var(--final-opacity, 0.4); }
+  }
+
+  .animate-edge-in {
+    animation: edge-fade-in 600ms ease-out 200ms both;
+  }
+
+  /* Right-side panel slides in from the right. */
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 220ms ease-out;
+  }
+
+  /* Cross-fade for view transitions. */
+  @keyframes view-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .animate-view-fade {
+    animation: view-fade 180ms ease-out;
+  }
+
+  /* Subtle pulse for the selected node halo. */
+  @keyframes selected-pulse {
+    0%, 100% { stroke-opacity: 0.9; }
+    50% { stroke-opacity: 0.4; }
+  }
+
+  .animate-selected-pulse {
+    animation: selected-pulse 2.4s ease-in-out infinite;
+  }
+}
+
 @layer components {
   .input-paper {
     @apply px-3 py-2 bg-paper-50/70 border border-ink-100 rounded

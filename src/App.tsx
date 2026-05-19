@@ -70,7 +70,7 @@ function Shell() {
             <p className="text-ink-300 italic">cargando…</p>
           </div>
         ) : (
-          <>
+          <div key={view} className="animate-view-fade h-full">
             {view === 'grafo' && (
               <GraphView
                 selectedId={selectedEntityId}
@@ -84,7 +84,7 @@ function Shell() {
                 {view === 'relaciones' && <RelationshipsView />}
               </div>
             )}
-          </>
+          </div>
         )}
 
         <ExtractBar
@@ -97,18 +97,22 @@ function Shell() {
         className={`${rightPanelOpen ? 'w-96' : 'w-0'} transition-[width] duration-200 overflow-hidden shrink-0`}
       >
         {showProposal && pendingProposal && (
-          <ProposalPanel
-            proposal={pendingProposal.proposal}
-            sourceText={pendingProposal.text}
-            onClose={() => setPendingProposal(null)}
-            onConfirmed={() => setPendingProposal(null)}
-          />
+          <div className="animate-slide-in-right h-full">
+            <ProposalPanel
+              proposal={pendingProposal.proposal}
+              sourceText={pendingProposal.text}
+              onClose={() => setPendingProposal(null)}
+              onConfirmed={() => setPendingProposal(null)}
+            />
+          </div>
         )}
         {showDetail && selectedEntityId && (
-          <NodeDetailPanel
-            entityId={selectedEntityId}
-            onClose={() => setSelectedEntityId(null)}
-          />
+          <div className="animate-slide-in-right h-full">
+            <NodeDetailPanel
+              entityId={selectedEntityId}
+              onClose={() => setSelectedEntityId(null)}
+            />
+          </div>
         )}
       </div>
     </div>

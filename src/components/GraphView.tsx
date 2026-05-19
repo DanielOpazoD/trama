@@ -14,6 +14,7 @@ import {
 import type { Entity } from '../types'
 import { useForceLayout } from '../hooks/useForceLayout'
 import { usePanZoom } from '../hooks/usePanZoom'
+import { useFreshIds } from '../hooks/useFreshIds'
 import { GraphNode } from './graph/GraphNode'
 import { GraphEdge } from './graph/GraphEdge'
 
@@ -35,6 +36,9 @@ export default function GraphView({
   })
 
   const pz = usePanZoom(svgRef)
+
+  const freshEntities = useFreshIds(entities.map((e) => e.id))
+  const freshRels = useFreshIds(relationships.map((r) => r.id))
 
   const connectionCount = useMemo(() => {
     const map = new Map<string, number>()
@@ -196,6 +200,7 @@ export default function GraphView({
               selectedId !== rel.fromId &&
               selectedId !== rel.toId
             }
+            fresh={freshRels.has(rel.id)}
           />
         ))}
         {entities.map((entity, index) => {
@@ -220,6 +225,7 @@ export default function GraphView({
               isSelected={isSelected}
               isFocused={isFocused}
               isDimmed={isDimmed}
+              isFresh={freshEntities.has(entity.id)}
               connectionCount={connectionCount.get(entity.id) ?? 0}
               onMouseDown={(event) => handleNodeMouseDown(event, entity)}
               onClick={(event) => handleNodeClick(event, entity, index)}
