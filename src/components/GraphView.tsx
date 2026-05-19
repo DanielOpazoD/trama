@@ -17,6 +17,7 @@ import { usePanZoom } from '../hooks/usePanZoom'
 import { useFreshIds } from '../hooks/useFreshIds'
 import { GraphNode } from './graph/GraphNode'
 import { GraphEdge } from './graph/GraphEdge'
+import { EmptyState } from './EmptyState'
 
 export default function GraphView({
   selectedId,
@@ -136,20 +137,7 @@ export default function GraphView({
   }, [pz, onSelect])
 
   if (entities.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center px-8 text-center" role="status">
-        <div className="max-w-md">
-          <p className="font-serif text-2xl text-ink-400 italic mb-3">
-            Trama está vacía.
-          </p>
-          <p className="text-ink-400 text-sm leading-relaxed">
-            Pega un texto en la barra de abajo — una nota, una cita, un párrafo
-            desordenado — y la IA propondrá los primeros nodos. O añade entidades a
-            mano desde las pestañas de la izquierda.
-          </p>
-        </div>
-      </div>
-    )
+    return <EmptyState />
   }
 
   const cursorStyle: CSSProperties = { cursor: pz.isPanning ? 'grabbing' : 'grab' }
