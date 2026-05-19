@@ -5,7 +5,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
-        serif: ['"Iowan Old Style"', 'Palatino', 'Georgia', 'Cambria', 'serif'],
+        // Spectral has more character than Iowan/Palatino. Editorial feel.
+        serif: ['Spectral', '"Iowan Old Style"', 'Palatino', 'Georgia', 'serif'],
       },
       colors: {
         // Paper palette — warm cream with ink-like text

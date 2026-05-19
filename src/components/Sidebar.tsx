@@ -108,16 +108,21 @@ export function Sidebar({
     >
       <header className="px-3 py-4 flex items-center justify-between gap-2">
         {!collapsed && (
-          <div className="flex items-baseline gap-2">
-            <h1 className="font-serif text-2xl text-ink-700 leading-none">Trama</h1>
-            {offline && (
-              <span
-                title="Sin conexión al backend — usando almacenamiento local del navegador"
-                className="text-[9px] uppercase tracking-[0.18em] text-amber-700/80 leading-none"
-              >
-                local
-              </span>
-            )}
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-baseline gap-2">
+              <h1 className="wordmark text-3xl text-ink-700 leading-none">Trama</h1>
+              {offline && (
+                <span
+                  title="Sin conexión al backend — usando almacenamiento local del navegador"
+                  className="text-[9px] uppercase tracking-[0.18em] text-amber-700/80 leading-none"
+                >
+                  local
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-ink-200">
+              mapa de afinidades
+            </p>
           </div>
         )}
         <button
