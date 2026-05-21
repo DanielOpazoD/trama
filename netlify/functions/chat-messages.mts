@@ -1,6 +1,6 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
-import { askLLMForText } from './_lib/llm.js'
+import { askLLMForText, askLLMForTextStreaming } from './_lib/llm.js'
 import {
   buildChatPrompt,
   buildChatTitlePrompt,
@@ -76,7 +76,6 @@ export default withObservability(
     const budgetExceeded = await checkMonthlyBudget()
     if (budgetExceeded) return budgetExceeded
 
-    // Ensure thread exists (would otherwise FK-violate when we insert).
     const threadRows = (await sql`
       SELECT id, title FROM chat_threads WHERE id = ${threadId} AND deleted_at IS NULL
     `) as Array<{ id: string; title: string | null }>
@@ -85,7 +84,7 @@ export default withObservability(
     }
     const thread = threadRows[0]
 
-    // Persist user message first so it survives even if the LLM call fails.
+    // Persist user message first so it survives an LLM failure.
     type UserInsertRow = { id: string; created_at: string }
     const userRows = (await sql`
       INSERT INTO chat_messages (thread_id, role, content)
@@ -100,19 +99,16 @@ export default withObservability(
       proposal: null,
     }
 
-    // Build context: prior history + trama snapshot.
-    type HistoryRow = { role: 'user' | 'assistant'; content: string; created_at: string }
+    // Gather context.
+    type HistoryRow = { role: 'user' | 'assistant'; content: string }
     const historyRows = (await sql`
-      SELECT role, content, created_at
+      SELECT role, content
       FROM chat_messages
       WHERE thread_id = ${threadId}
       ORDER BY created_at ASC
       LIMIT ${HISTORY_LIMIT}
     `) as HistoryRow[]
-    const history: ChatTurn[] = historyRows.map((r) => ({
-      role: r.role,
-      content: r.content,
-    }))
+    const history: ChatTurn[] = historyRows.map((r) => ({ role: r.role, content: r.content }))
 
     type EntityCtxRow = {
       id: string
@@ -121,17 +117,8 @@ export default withObservability(
       year: number | null
       description: string | null
     }
-    type RelCtxRow = {
-      from_name: string
-      to_name: string
-      type: string
-      notes: string | null
-    }
-    type QuoteCtxRow = {
-      entity_name: string
-      text: string
-      source: string | null
-    }
+    type RelCtxRow = { from_name: string; to_name: string; type: string; notes: string | null }
+    type QuoteCtxRow = { entity_name: string; text: string; source: string | null }
     type TypeRow = { slug: string }
 
     const [entityRows, relRows, quoteRows, entityTypeRows, relTypeRows] = await Promise.all([
@@ -185,98 +172,131 @@ export default withObservability(
 
     const messages = buildChatPrompt(history, tramaContext, relationshipTypes, entityTypes)
 
-    let replyText: string
-    let usage = {
-      provider: 'unknown',
-      model: 'unknown',
-      tokensIn: 0,
-      tokensOut: 0,
-      costCents: 0,
-      durationMs: 0,
-    }
-    try {
-      const llm = await askLLMForText(messages)
-      replyText = typeof llm.content === 'string' ? llm.content : String(llm.content)
-      usage = llm.usage
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return Response.json(
-        {
-          userMessage,
-          error: `Error llamando al LLM: ${message}`,
-        },
-        { status: 502 },
-      )
-    }
-
-    const { prose, proposal } = parseChatReply(replyText)
-    const proposalToStore = hasAnyProposal(proposal) ? proposal : null
-
-    type AssistantInsertRow = { id: string; created_at: string }
-    const assistantRows = (await sql`
-      INSERT INTO chat_messages (
-        thread_id, role, content, proposal, tokens_in, tokens_out, cost_cents, provider, model
-      ) VALUES (
-        ${threadId}, 'assistant', ${prose},
-        ${proposalToStore ? JSON.stringify(proposalToStore) : null}::jsonb,
-        ${usage.tokensIn}, ${usage.tokensOut}, ${usage.costCents},
-        ${usage.provider}, ${usage.model}
-      )
-      RETURNING id, created_at
-    `) as AssistantInsertRow[]
-
-    // Bump thread updated_at so it sorts to the top in the sidebar.
-    await sql`UPDATE chat_threads SET updated_at = NOW() WHERE id = ${threadId}`
-
-    // Auto-generate a thread title on first exchange if it's still null.
-    if (!thread.title && historyRows.length <= 1) {
-      try {
-        const titleMessages = buildChatTitlePrompt(userText)
-        const titleResp = await askLLMForText(titleMessages)
-        const rawTitle = typeof titleResp.content === 'string' ? titleResp.content : ''
-        const cleanTitle = rawTitle.trim().replace(/^["']|["']$/g, '').slice(0, 80)
-        if (cleanTitle) {
-          await sql`UPDATE chat_threads SET title = ${cleanTitle} WHERE id = ${threadId}`
+    // Stream the assistant reply back as SSE. The client subscribes to the
+    // event stream and renders partial text as it arrives. At the end we send
+    // a 'done' frame with the persisted assistant message id and proposal.
+    const stream = new ReadableStream({
+      async start(controller) {
+        const enc = new TextEncoder()
+        function send(event: string, data: unknown) {
+          controller.enqueue(enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
         }
-      } catch {
-        // Title generation is best-effort. A missing title shows as "(sin título)".
-      }
-    }
 
-    logEvent({
-      event: 'chat_message_completed',
-      provider: usage.provider,
-      model: usage.model,
-      tokensIn: usage.tokensIn,
-      tokensOut: usage.tokensOut,
-      costCents: usage.costCents,
-      durationMs: usage.durationMs,
-      hasProposal: !!proposalToStore,
+        // Tell the client about the user message id immediately so it can
+        // reconcile the optimistic message.
+        send('user', userMessage)
+
+        let assembled = ''
+        let usage = {
+          provider: 'unknown',
+          model: 'unknown',
+          tokensIn: 0,
+          tokensOut: 0,
+          costCents: 0,
+          durationMs: 0,
+        }
+        let llmError: string | null = null
+
+        try {
+          for await (const frame of askLLMForTextStreaming(messages)) {
+            if (frame.type === 'chunk') {
+              assembled += frame.content
+              send('chunk', { content: frame.content })
+            } else if (frame.type === 'done') {
+              assembled = frame.content || assembled
+              usage = frame.usage
+            } else if (frame.type === 'error') {
+              llmError = frame.message
+            }
+          }
+        } catch (err) {
+          llmError = err instanceof Error ? err.message : String(err)
+        }
+
+        if (llmError) {
+          send('error', { message: llmError })
+          controller.close()
+          return
+        }
+
+        const { prose, proposal } = parseChatReply(assembled)
+        const proposalToStore = hasAnyProposal(proposal) ? proposal : null
+
+        type AssistantInsertRow = { id: string; created_at: string }
+        const assistantRows = (await sql`
+          INSERT INTO chat_messages (
+            thread_id, role, content, proposal, tokens_in, tokens_out, cost_cents, provider, model
+          ) VALUES (
+            ${threadId}, 'assistant', ${prose},
+            ${proposalToStore ? JSON.stringify(proposalToStore) : null}::jsonb,
+            ${usage.tokensIn}, ${usage.tokensOut}, ${usage.costCents},
+            ${usage.provider}, ${usage.model}
+          )
+          RETURNING id, created_at
+        `) as AssistantInsertRow[]
+
+        await sql`UPDATE chat_threads SET updated_at = NOW() WHERE id = ${threadId}`
+
+        // Best-effort thread title autogenneration on first exchange.
+        if (!thread.title && historyRows.length <= 1) {
+          try {
+            const titleMessages = buildChatTitlePrompt(userText)
+            const titleResp = await askLLMForText(titleMessages)
+            const rawTitle = typeof titleResp.content === 'string' ? titleResp.content : ''
+            const cleanTitle = rawTitle.trim().replace(/^["']|["']$/g, '').slice(0, 80)
+            if (cleanTitle) {
+              await sql`UPDATE chat_threads SET title = ${cleanTitle} WHERE id = ${threadId}`
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        logEvent({
+          event: 'chat_message_completed',
+          provider: usage.provider,
+          model: usage.model,
+          tokensIn: usage.tokensIn,
+          tokensOut: usage.tokensOut,
+          costCents: usage.costCents,
+          durationMs: usage.durationMs,
+          hasProposal: !!proposalToStore,
+          streaming: true,
+        })
+
+        sql`
+          INSERT INTO extraction_log (
+            input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
+          ) VALUES (
+            ${`chat:${threadId}`},
+            ${JSON.stringify({ proposal: proposalToStore })}::jsonb,
+            ${usage.provider},
+            ${usage.model},
+            ${usage.tokensIn},
+            ${usage.tokensOut},
+            ${usage.costCents},
+            ${usage.durationMs}
+          )
+        `.catch(() => {})
+
+        send('done', {
+          assistantMessage: {
+            id: assistantRows[0].id,
+            role: 'assistant' as const,
+            content: prose,
+            proposal: proposalToStore,
+            createdAt: assistantRows[0].created_at,
+          },
+        })
+        controller.close()
+      },
     })
 
-    sql`
-      INSERT INTO extraction_log (
-        input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
-      ) VALUES (
-        ${`chat:${threadId}`},
-        ${JSON.stringify({ proposal: proposalToStore })}::jsonb,
-        ${usage.provider},
-        ${usage.model},
-        ${usage.tokensIn},
-        ${usage.tokensOut},
-        ${usage.costCents},
-        ${usage.durationMs}
-      )
-    `.catch(() => {})
-
-    return Response.json({
-      userMessage,
-      assistantMessage: {
-        id: assistantRows[0].id,
-        role: 'assistant' as const,
-        content: prose,
-        proposal: proposalToStore,
-        createdAt: assistantRows[0].created_at,
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        'X-Accel-Buffering': 'no',
       },
     })
   },

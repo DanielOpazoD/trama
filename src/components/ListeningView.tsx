@@ -1,9 +1,9 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, type FormEvent } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { api, type SpotifyPlayGroup } from '../api'
 import { useAddEntity } from '../state'
 import { SparkleIcon } from './Icons'
-import type { EntityType, Origin } from '../types'
+import type { EntityType, ExtractionProposal, Origin } from '../types'
 
 type Group = 'artist' | 'album' | 'track'
 
@@ -34,10 +34,13 @@ const ENTITY_TYPE_FOR_GROUP: Record<Group, EntityType> = {
 
 export function ListeningView({
   onSelectEntity,
+  onProposal,
 }: {
   onSelectEntity?: (id: string) => void
+  onProposal?: (title: string, proposal: ExtractionProposal) => void
 }) {
   const [group, setGroup] = useState<Group>('artist')
+  const [playlistInput, setPlaylistInput] = useState('')
   const playsQuery = useQuery({
     queryKey: ['spotify', 'plays', group],
     queryFn: () => api.spotifyPlays(group, 60),
@@ -49,7 +52,35 @@ export function ListeningView({
     retry: false,
   })
 
+  const importPlaylist = useMutation({
+    mutationFn: (input: string) => api.importSpotifyPlaylist(input),
+  })
+
   const addEntity = useAddEntity()
+
+  async function handleImportPlaylist(e: FormEvent) {
+    e.preventDefault()
+    const input = playlistInput.trim()
+    if (!input || importPlaylist.isPending) return
+    try {
+      const result = await importPlaylist.mutateAsync(input)
+      setPlaylistInput('')
+      const title = `Playlist · ${result.playlist.name}`
+      onProposal?.(title, {
+        entities: result.proposal.entities.map((e) => ({
+          type: e.type,
+          name: e.name,
+          year: e.year,
+          description: e.description,
+          spotifyUrl: e.spotifyUrl,
+        })),
+        relationships: result.proposal.relationships,
+        quotes: result.proposal.quotes,
+      })
+    } catch {
+      // surfaces via importPlaylist.error
+    }
+  }
 
   async function handleAccept(item: SpotifyPlayGroup) {
     const type = ENTITY_TYPE_FOR_GROUP[group]
@@ -96,6 +127,45 @@ export function ListeningView({
         </div>
       ) : (
         <>
+          {/* Playlist importer */}
+          <form
+            onSubmit={handleImportPlaylist}
+            className="mb-8 p-4 bg-paper-100/40 border border-ink-100/50 rounded-xl"
+          >
+            <div className="flex items-baseline justify-between gap-3 mb-2">
+              <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-400">
+                importar playlist
+              </h3>
+              <span className="text-xs text-ink-300">
+                pega URL · extrae artistas + canciones con link
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={playlistInput}
+                onChange={(e) => setPlaylistInput(e.target.value)}
+                placeholder="https://open.spotify.com/playlist/…"
+                className="input-paper flex-1"
+                disabled={importPlaylist.isPending}
+              />
+              <button
+                type="submit"
+                disabled={!playlistInput.trim() || importPlaylist.isPending}
+                className="btn-ink text-xs"
+              >
+                {importPlaylist.isPending ? 'leyendo…' : 'importar'}
+              </button>
+            </div>
+            {importPlaylist.error && (
+              <p className="mt-2 text-xs text-red-700">
+                {importPlaylist.error instanceof Error
+                  ? importPlaylist.error.message
+                  : 'No se pudo importar la playlist.'}
+              </p>
+            )}
+          </form>
+
           {/* Group selector */}
           <div className="flex gap-1 p-1 bg-paper-100/60 rounded-lg border border-ink-100/50 w-fit mb-6">
             {(['artist', 'album', 'track'] as Group[]).map((g) => (

@@ -76,9 +76,12 @@ export function buildChatPrompt(
 
 1. Responder preguntas sobre la trama y sobre los temas que ella contiene.
 2. Conversar sobre las personas, obras, ideas y citas que el usuario guarda — añadiendo contexto, conexiones culturales, biografía, lecturas posibles.
-3. Cuando el usuario te pregunte o cuando lo amerite, PROPONER agregar elementos a la trama: entidades nuevas, relaciones, citas, o reclasificaciones de entidades existentes.
+3. Recomendar música, libros, películas, lecturas, conceptos cuando el usuario los pida o cuando sea natural en la conversación.
+4. Cuando el usuario te pregunte o cuando lo amerite, PROPONER agregar elementos a la trama: entidades nuevas, relaciones, citas, o reclasificaciones de entidades existentes.
 
 NUNCA agregues, modifiques ni borres nada sin el consentimiento del usuario. Tus propuestas son sugerencias que la UI mostrará como botones inline.
+
+Si propones entidades MUSICALES (tipo banda, musico, cancion, album, disco) y conoces la URL pública en Spotify (https://open.spotify.com/...), inclúyela en el campo "spotifyUrl". Si no la conoces con certeza, omítela — NO inventes IDs.
 
 FORMATO DE RESPUESTA:
 
@@ -88,7 +91,7 @@ Si tienes propuestas concretas que el usuario podría querer agregar, AL FINAL d
 
 <<<TRAMA-PROPOSAL
 {
-  "entities":      [{ "type": "uno de los tipos válidos", "name": "string", "year": 1234, "description": "frase corta opcional" }],
+  "entities":      [{ "type": "uno de los tipos válidos", "name": "string", "year": 1234, "description": "frase corta opcional", "spotifyUrl": "https://open.spotify.com/... opcional" }],
   "relationships": [{ "fromName": "string", "toName": "string", "type": "uno de los tipos válidos", "notes": "string opcional" }],
   "quotes":        [{ "entityName": "string", "text": "la cita", "source": "fuente opcional" }],
   "reclassifications": [{ "name": "string", "newType": "uno de los tipos válidos", "reason": "por qué" }]

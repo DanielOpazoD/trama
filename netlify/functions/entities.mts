@@ -20,7 +20,7 @@ export default withObservability('entities', async (req: Request, context: Conte
 
   if (req.method === 'GET') {
     const rows = await sql`
-      SELECT id, type, name, year, description, position_x, position_y, origin, created_at, updated_at
+      SELECT id, type, name, year, description, position_x, position_y, origin, spotify_url, created_at, updated_at
       FROM entities
       WHERE deleted_at IS NULL
       ORDER BY created_at DESC
@@ -37,10 +37,11 @@ export default withObservability('entities', async (req: Request, context: Conte
       position_x?: number | null
       position_y?: number | null
       origin?: unknown
+      spotify_url?: string | null
     }
     const origin = JSON.stringify(normalizeOrigin(body.origin))
     const rows = await sql`
-      INSERT INTO entities (type, name, year, description, position_x, position_y, origin)
+      INSERT INTO entities (type, name, year, description, position_x, position_y, origin, spotify_url)
       VALUES (
         ${body.type},
         ${body.name},
@@ -48,9 +49,10 @@ export default withObservability('entities', async (req: Request, context: Conte
         ${body.description ?? null},
         ${body.position_x ?? null},
         ${body.position_y ?? null},
-        ${origin}::jsonb
+        ${origin}::jsonb,
+        ${body.spotify_url ?? null}
       )
-      RETURNING id, type, name, year, description, position_x, position_y, origin, created_at, updated_at
+      RETURNING id, type, name, year, description, position_x, position_y, origin, spotify_url, created_at, updated_at
     `
     return Response.json(rows[0], { status: 201 })
   }
@@ -63,6 +65,7 @@ export default withObservability('entities', async (req: Request, context: Conte
       description?: string | null
       position_x?: number | null
       position_y?: number | null
+      spotify_url?: string | null
     }
     // Only update fields that were actually sent. Postgres COALESCE pattern.
     const rows = await sql`
@@ -73,9 +76,10 @@ export default withObservability('entities', async (req: Request, context: Conte
         year        = CASE WHEN ${body.year !== undefined} THEN ${body.year ?? null} ELSE year END,
         description = CASE WHEN ${body.description !== undefined} THEN ${body.description ?? null} ELSE description END,
         position_x  = CASE WHEN ${body.position_x !== undefined} THEN ${body.position_x ?? null} ELSE position_x END,
-        position_y  = CASE WHEN ${body.position_y !== undefined} THEN ${body.position_y ?? null} ELSE position_y END
+        position_y  = CASE WHEN ${body.position_y !== undefined} THEN ${body.position_y ?? null} ELSE position_y END,
+        spotify_url = CASE WHEN ${body.spotify_url !== undefined} THEN ${body.spotify_url ?? null} ELSE spotify_url END
       WHERE id = ${id} AND deleted_at IS NULL
-      RETURNING id, type, name, year, description, position_x, position_y, origin, created_at, updated_at
+      RETURNING id, type, name, year, description, position_x, position_y, origin, spotify_url, created_at, updated_at
     `
     if (rows.length === 0) {
       return new Response('Entidad no encontrada', { status: 404 })

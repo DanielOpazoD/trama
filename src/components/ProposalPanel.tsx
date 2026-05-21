@@ -97,6 +97,7 @@ export function ProposalPanel({
             name: e.name,
             year: e.year,
             description: e.description,
+            spotifyUrl: e.spotifyUrl,
             origin: { kind: 'ai' },
           })
           idByLowerName.set(created.name.trim().toLowerCase(), created.id)

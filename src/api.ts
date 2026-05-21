@@ -18,6 +18,7 @@ type EntityRow = {
   position_x: number | null
   position_y: number | null
   origin: Origin | string
+  spotify_url: string | null
   created_at: string
   updated_at: string
 }
@@ -60,6 +61,7 @@ function entityFromRow(row: EntityRow): Entity {
     positionX: row.position_x ?? undefined,
     positionY: row.position_y ?? undefined,
     origin: asOrigin(row.origin),
+    spotifyUrl: row.spotify_url ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -125,6 +127,7 @@ export const api = {
         position_x: data.positionX ?? null,
         position_y: data.positionY ?? null,
         origin: data.origin,
+        spotify_url: data.spotifyUrl ?? null,
       }),
     })
     return entityFromRow(row)
@@ -134,6 +137,28 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ position_x: positionX, position_y: positionY }),
     })
+  },
+  async updateEntity(
+    id: string,
+    patch: Partial<{
+      name: string
+      type: string
+      year: number | null
+      description: string | null
+      spotifyUrl: string | null
+    }>,
+  ): Promise<Entity> {
+    const body: Record<string, unknown> = {}
+    if (patch.name !== undefined) body.name = patch.name
+    if (patch.type !== undefined) body.type = patch.type
+    if (patch.year !== undefined) body.year = patch.year
+    if (patch.description !== undefined) body.description = patch.description
+    if (patch.spotifyUrl !== undefined) body.spotify_url = patch.spotifyUrl
+    const row = await request<EntityRow>(`/api/entities/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    })
+    return entityFromRow(row)
   },
   async updateEntityType(id: string, type: string): Promise<void> {
     await request<void>(`/api/entities/${id}`, {
@@ -203,6 +228,13 @@ export const api = {
     })
   },
 
+  async importSpotifyPlaylist(input: string): Promise<SpotifyPlaylistImport> {
+    return request<SpotifyPlaylistImport>('/api/spotify/import-playlist', {
+      method: 'POST',
+      body: JSON.stringify({ url: input }),
+    })
+  },
+
   async reclassifyEntities(): Promise<ReclassifyResponse> {
     return request<ReclassifyResponse>('/api/reclassify-entities', {
       method: 'POST',
@@ -226,14 +258,64 @@ export const api = {
   async listChatMessages(threadId: string): Promise<ChatMessage[]> {
     return request<ChatMessage[]>(`/api/chat/threads/${threadId}/messages`)
   },
-  async sendChatMessage(
+  async streamChatMessage(
     threadId: string,
     content: string,
-  ): Promise<{ userMessage: ChatMessage; assistantMessage?: ChatMessage; error?: string }> {
-    return request(`/api/chat/threads/${threadId}/messages`, {
+    handlers: {
+      onUser?: (msg: ChatMessage) => void
+      onChunk?: (text: string) => void
+      onDone?: (msg: ChatMessage) => void
+      onError?: (message: string) => void
+    },
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const response = await fetch(`/api/chat/threads/${threadId}/messages`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content }),
+      signal,
     })
+    if (!response.ok || !response.body) {
+      const text = await response.text().catch(() => '')
+      handlers.onError?.(text || `HTTP ${response.status}`)
+      return
+    }
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let sepIdx: number
+      while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, sepIdx)
+        buffer = buffer.slice(sepIdx + 2)
+        let event = 'message'
+        const dataLines: string[] = []
+        for (const line of block.split('\n')) {
+          if (line.startsWith('event:')) event = line.slice(6).trim()
+          else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim())
+        }
+        if (dataLines.length === 0) continue
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(dataLines.join('\n'))
+        } catch {
+          continue
+        }
+        if (event === 'user') handlers.onUser?.(parsed as ChatMessage)
+        else if (event === 'chunk') {
+          const c = (parsed as { content?: string }).content ?? ''
+          if (c) handlers.onChunk?.(c)
+        } else if (event === 'done') {
+          const msg = (parsed as { assistantMessage?: ChatMessage }).assistantMessage
+          if (msg) handlers.onDone?.(msg)
+        } else if (event === 'error') {
+          handlers.onError?.((parsed as { message?: string }).message ?? 'unknown error')
+        }
+      }
+    }
   },
 
   async exportAll(): Promise<ExportPayload> {
@@ -369,6 +451,7 @@ export type ChatProposal = {
     name: string
     year?: number
     description?: string
+    spotifyUrl?: string
   }>
   relationships?: Array<{
     fromName: string
@@ -394,6 +477,36 @@ export type ChatMessage = {
   content: string
   proposal: ChatProposal | null
   createdAt: string
+}
+
+export type SpotifyPlaylistImport = {
+  playlist: {
+    id: string
+    name: string
+    description: string
+    ownerName: string
+    totalTracks: number
+  }
+  proposal: {
+    entities: Array<{
+      type: string
+      name: string
+      year?: number
+      description?: string
+      spotifyUrl?: string
+    }>
+    relationships: Array<{
+      fromName: string
+      toName: string
+      type: string
+      notes?: string
+    }>
+    quotes: Array<{
+      entityName: string
+      text: string
+      source?: string
+    }>
+  }
 }
 
 export type Reclassification = {

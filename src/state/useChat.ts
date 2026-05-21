@@ -1,3 +1,4 @@
+import { useCallback, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type ChatMessage, type ChatThread } from '../api'
 import { useOffline } from './offline'
@@ -51,37 +52,99 @@ export function useChatMessagesQuery(threadId: string | null) {
   })
 }
 
+/**
+ * Streaming send.
+ *
+ * The flow:
+ *  1. caller invokes send(content)
+ *  2. we append a temporary user bubble + an empty assistant bubble
+ *  3. as chunks arrive we mutate the assistant bubble's content in cache
+ *  4. on `done` we replace it with the persisted record (real id, proposal)
+ *  5. on `error` we set an error string the component can render
+ */
 export function useSendChatMessage(threadId: string | null) {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
-  return useMutation({
-    mutationFn: async (content: string) => {
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Local placeholder ids so we can find and update the optimistic bubbles.
+  const userIdRef = useRef<string | null>(null)
+  const assistantIdRef = useRef<string | null>(null)
+
+  const send = useCallback(
+    async (content: string) => {
       if (!threadId) throw new Error('No hay hilo activo')
-      if (offline) throw new Error('El chat con IA requiere conexión al backend.')
-      return api.sendChatMessage(threadId, content)
+      if (offline) {
+        setError('El chat con IA requiere conexión al backend.')
+        return
+      }
+      setPending(true)
+      setError(null)
+
+      userIdRef.current = `tmp-u-${Date.now()}`
+      assistantIdRef.current = `tmp-a-${Date.now()}`
+      const optimisticUser: ChatMessage = {
+        id: userIdRef.current,
+        role: 'user',
+        content,
+        proposal: null,
+        createdAt: new Date().toISOString(),
+      }
+      const optimisticAssistant: ChatMessage = {
+        id: assistantIdRef.current,
+        role: 'assistant',
+        content: '',
+        proposal: null,
+        createdAt: new Date().toISOString(),
+      }
+      queryClient.setQueryData<ChatMessage[]>(messagesKey(threadId), (prev) => [
+        ...(prev ?? []),
+        optimisticUser,
+        optimisticAssistant,
+      ])
+
+      try {
+        await api.streamChatMessage(threadId, content, {
+          onUser: (real) => {
+            // Replace the optimistic user message with the real persisted one.
+            queryClient.setQueryData<ChatMessage[]>(messagesKey(threadId), (prev) =>
+              (prev ?? []).map((m) => (m.id === userIdRef.current ? real : m)),
+            )
+            userIdRef.current = real.id
+          },
+          onChunk: (text) => {
+            queryClient.setQueryData<ChatMessage[]>(messagesKey(threadId), (prev) =>
+              (prev ?? []).map((m) =>
+                m.id === assistantIdRef.current
+                  ? { ...m, content: m.content + text }
+                  : m,
+              ),
+            )
+          },
+          onDone: (real) => {
+            queryClient.setQueryData<ChatMessage[]>(messagesKey(threadId), (prev) =>
+              (prev ?? []).map((m) => (m.id === assistantIdRef.current ? real : m)),
+            )
+            assistantIdRef.current = real.id
+            queryClient.invalidateQueries({ queryKey: THREADS_KEY })
+          },
+          onError: (msg) => {
+            setError(msg)
+            // Drop the empty assistant bubble so we don't leave a ghost.
+            queryClient.setQueryData<ChatMessage[]>(messagesKey(threadId), (prev) =>
+              (prev ?? []).filter((m) => m.id !== assistantIdRef.current),
+            )
+          },
+        })
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err))
+      } finally {
+        setPending(false)
+      }
     },
-    onSuccess: (res) => {
-      if (!threadId) return
-      queryClient.setQueryData<ChatMessage[]>(messagesKey(threadId), (prev) => {
-        const next = [...(prev ?? []), res.userMessage]
-        if (res.assistantMessage) next.push(res.assistantMessage)
-        return next
-      })
-      // Bump thread to the top of the sidebar list.
-      queryClient.setQueryData<ChatThread[]>(THREADS_KEY, (prev) => {
-        const list = prev ?? []
-        const idx = list.findIndex((t) => t.id === threadId)
-        if (idx === -1) return list
-        const bumped = {
-          ...list[idx],
-          updatedAt: new Date().toISOString(),
-          messageCount:
-            list[idx].messageCount + 1 + (res.assistantMessage ? 1 : 0),
-        }
-        return [bumped, ...list.filter((t) => t.id !== threadId)]
-      })
-      // Title may have been auto-generated server-side; refresh the thread list.
-      queryClient.invalidateQueries({ queryKey: THREADS_KEY })
-    },
-  })
+    [threadId, offline, queryClient],
+  )
+
+  return { send, pending, error }
 }

@@ -104,7 +104,10 @@ function Shell() {
                   />
                 )}
                 {view === 'escuchas' && (
-                  <ListeningView onSelectEntity={setSelectedEntityId} />
+                  <ListeningView
+                    onSelectEntity={setSelectedEntityId}
+                    onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
+                  />
                 )}
               </div>
             )}

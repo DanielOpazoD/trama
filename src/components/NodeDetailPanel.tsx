@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import {
   useEntitiesQuery,
   useQuotesQuery,
   useRelationshipsQuery,
+  useAddQuote,
   useDeleteEntity,
   useDeleteRelationship,
   useDeleteQuote,
+  useUpdateEntity,
 } from '../state'
 import {
   ENTITY_TYPES,
@@ -14,6 +16,11 @@ import {
   type Relationship,
 } from '../types'
 import { CloseIcon, SparkleIcon } from './Icons'
+
+// Music-y types where a Spotify link makes sense.
+const SPOTIFY_TYPES = new Set([
+  'banda', 'musico', 'cancion', 'album', 'disco', 'artista',
+])
 
 export function NodeDetailPanel({
   entityId,
@@ -25,6 +32,8 @@ export function NodeDetailPanel({
   const { data: entities = [] } = useEntitiesQuery()
   const { data: quotes = [] } = useQuotesQuery()
   const { data: relationships = [] } = useRelationshipsQuery()
+  const updateEntity = useUpdateEntity()
+  const addQuote = useAddQuote()
   const deleteEntity = useDeleteEntity()
   const deleteRelationship = useDeleteRelationship()
   const deleteQuote = useDeleteQuote()
@@ -32,16 +41,32 @@ export function NodeDetailPanel({
   const entity = entities.find((e) => e.id === entityId)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
+  // Inline edit state for description + spotify url.
+  const [editing, setEditing] = useState(false)
+  const [descDraft, setDescDraft] = useState('')
+  const [urlDraft, setUrlDraft] = useState('')
+
+  // Quick note: writes a quote without source/context — fastest way to add a thought.
+  const [noteDraft, setNoteDraft] = useState('')
+
+  useEffect(() => {
+    if (entity) {
+      setDescDraft(entity.description ?? '')
+      setUrlDraft(entity.spotifyUrl ?? '')
+    }
+  }, [entity])
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         if (confirmingDelete) setConfirmingDelete(false)
+        else if (editing) setEditing(false)
         else onClose()
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [confirmingDelete, onClose])
+  }, [confirmingDelete, editing, onClose])
 
   if (!entity) {
     return (
@@ -58,6 +83,47 @@ export function NodeDetailPanel({
   const outgoing = relationships.filter((r) => r.fromId === entity.id)
   const incoming = relationships.filter((r) => r.toId === entity.id)
   const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label
+  const allowsSpotify = SPOTIFY_TYPES.has(entity.type)
+
+  async function handleSaveEdit() {
+    if (!entity) return
+    const desc = descDraft.trim()
+    const url = urlDraft.trim()
+    const patch: Parameters<typeof updateEntity.mutate>[0]['patch'] = {}
+    if ((entity.description ?? '') !== desc) {
+      patch.description = desc ? desc : null
+    }
+    if ((entity.spotifyUrl ?? '') !== url) {
+      patch.spotifyUrl = url ? url : null
+    }
+    if (Object.keys(patch).length === 0) {
+      setEditing(false)
+      return
+    }
+    try {
+      await updateEntity.mutateAsync({ id: entity.id, patch })
+      setEditing(false)
+    } catch {
+      // error surfaces via updateEntity.error
+    }
+  }
+
+  async function handleAddNote(e: FormEvent) {
+    e.preventDefault()
+    if (!entity) return
+    const text = noteDraft.trim()
+    if (!text || addQuote.isPending) return
+    try {
+      await addQuote.mutateAsync({
+        entityId: entity.id,
+        text,
+        origin: { kind: 'manual' },
+      })
+      setNoteDraft('')
+    } catch {
+      /* surfaces via addQuote.error */
+    }
+  }
 
   return (
     <div
@@ -78,6 +144,16 @@ export function NodeDetailPanel({
             )}
           </p>
           <h2 className="font-serif text-2xl text-ink-700 truncate">{entity.name}</h2>
+          {entity.spotifyUrl && (
+            <a
+              href={entity.spotifyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] text-emerald-700/80 hover:text-emerald-900 transition-colors"
+            >
+              ↗ abrir en Spotify
+            </a>
+          )}
         </div>
         <button
           onClick={onClose}
@@ -89,14 +165,92 @@ export function NodeDetailPanel({
       </header>
 
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
-        {entity.description && (
-          <p className="text-ink-600 leading-relaxed">{entity.description}</p>
-        )}
+        {/* Description / edit block */}
+        <section>
+          {editing ? (
+            <div className="space-y-2">
+              <textarea
+                value={descDraft}
+                onChange={(e) => setDescDraft(e.target.value)}
+                placeholder="descripción"
+                rows={3}
+                className="input-paper w-full resize-none"
+              />
+              {allowsSpotify && (
+                <input
+                  type="url"
+                  value={urlDraft}
+                  onChange={(e) => setUrlDraft(e.target.value)}
+                  placeholder="https://open.spotify.com/…"
+                  className="input-paper w-full text-sm"
+                />
+              )}
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setEditing(false)
+                    setDescDraft(entity.description ?? '')
+                    setUrlDraft(entity.spotifyUrl ?? '')
+                  }}
+                  className="btn-ghost text-xs"
+                >
+                  cancelar
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={updateEntity.isPending}
+                  className="btn-ink text-xs"
+                >
+                  {updateEntity.isPending ? 'guardando…' : 'guardar'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="group">
+              {entity.description ? (
+                <p className="text-ink-600 leading-relaxed">{entity.description}</p>
+              ) : (
+                <p className="text-ink-300 italic text-sm">sin descripción.</p>
+              )}
+              <button
+                onClick={() => setEditing(true)}
+                className="mt-2 text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+              >
+                editar
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* Quick note */}
+        <section>
+          <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-300 mb-2">
+            añadir nota
+          </h3>
+          <form onSubmit={handleAddNote} className="flex flex-col gap-2">
+            <textarea
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              placeholder="algo que quieras recordar sobre esta entidad…"
+              rows={2}
+              className="input-paper w-full resize-none text-sm"
+            />
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={!noteDraft.trim() || addQuote.isPending}
+                className="btn-ink text-xs"
+              >
+                {addQuote.isPending ? 'añadiendo…' : 'añadir nota'}
+              </button>
+            </div>
+          </form>
+        </section>
 
         {entityQuotes.length > 0 && (
           <section>
             <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-300 mb-3">
-              {entityQuotes.length === 1 ? 'Cita' : `${entityQuotes.length} citas`}
+              {entityQuotes.length === 1 ? 'Nota / cita' : `${entityQuotes.length} notas / citas`}
             </h3>
             <ul className="space-y-4">
               {entityQuotes.map((quote) => (
@@ -169,13 +323,6 @@ export function NodeDetailPanel({
               ))}
             </ul>
           </section>
-        )}
-
-        {entityQuotes.length === 0 && outgoing.length === 0 && incoming.length === 0 && (
-          <p className="text-ink-300 italic text-sm">
-            Aún no tiene citas ni conexiones. Pega un texto en la barra de abajo y la
-            IA propondrá relaciones.
-          </p>
         )}
       </div>
 

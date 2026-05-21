@@ -116,6 +116,33 @@ export function useUpdateEntityType() {
   })
 }
 
+type EntityPatch = Partial<{
+  name: string
+  type: string
+  year: number | null
+  description: string | null
+  spotifyUrl: string | null
+}>
+
+export function useUpdateEntity() {
+  const queryClient = useQueryClient()
+  const { offline } = useOffline()
+
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: EntityPatch }) => {
+      if (offline) {
+        throw new Error('Editar requiere conexión al backend.')
+      }
+      return api.updateEntity(id, patch)
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) =>
+        (prev ?? []).map((e) => (e.id === updated.id ? updated : e)),
+      )
+    },
+  })
+}
+
 export function useDeleteEntity() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()

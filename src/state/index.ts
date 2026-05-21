@@ -13,6 +13,7 @@ export {
   useAddEntity,
   useUpdateEntityPosition,
   useUpdateEntityType,
+  useUpdateEntity,
   useDeleteEntity,
 } from './useEntities'
 export { useReclassifyEntities } from './useReclassifyEntities'

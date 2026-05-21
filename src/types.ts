@@ -81,6 +81,8 @@ export type Entity = {
   positionX?: number
   positionY?: number
   origin: Origin
+  /** Optional Spotify URL — populated for music entities (banda, musico, cancion, album, disco). */
+  spotifyUrl?: string
   createdAt: string
   updatedAt: string
 }
@@ -115,6 +117,7 @@ export type ProposedEntity = {
   name: string
   year?: number
   description?: string
+  spotifyUrl?: string
 }
 
 export type ProposedRelationship = {

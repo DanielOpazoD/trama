@@ -189,6 +189,131 @@ export async function askLLMForText(messages: LLMMessage[]): Promise<LLMResult> 
   return callLLM(messages, 'text')
 }
 
+/**
+ * Streaming variant of askLLMForText. Yields content chunks as they arrive
+ * from the provider, then a final 'done' frame carrying usage info and the
+ * full assembled content.
+ *
+ * Currently implemented for OpenAI-compatible providers (DeepSeek default).
+ * For Anthropic and Gemini we fall back to the non-streaming path and emit
+ * the full reply as a single chunk so the consumer's contract is identical.
+ */
+export type StreamFrame =
+  | { type: 'chunk'; content: string }
+  | { type: 'done'; content: string; usage: LLMUsage }
+  | { type: 'error'; message: string }
+
+export async function* askLLMForTextStreaming(
+  messages: LLMMessage[],
+): AsyncGenerator<StreamFrame, void, void> {
+  const provider = readProvider()
+  const apiKey = readApiKey()
+  const config = PROVIDER_DEFAULTS[provider]
+  const maxTokens = readMaxTokens()
+
+  const start = Date.now()
+
+  if (provider === 'gemini' || provider === 'anthropic') {
+    // No native streaming wired up for these yet — surface the whole reply
+    // as a single chunk so the consumer's API is uniform.
+    try {
+      const result = await callLLM(messages, 'text')
+      const content = typeof result.content === 'string' ? result.content : String(result.content)
+      yield { type: 'chunk', content }
+      yield { type: 'done', content, usage: result.usage }
+    } catch (err) {
+      yield { type: 'error', message: err instanceof Error ? err.message : String(err) }
+    }
+    return
+  }
+
+  // OpenAI-compatible streaming via SSE.
+  let response: Response
+  try {
+    response = await fetchWithRetry(() =>
+      fetch(`${config.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: config.model,
+          messages,
+          stream: true,
+          stream_options: { include_usage: true },
+          temperature: 0.6,
+          max_tokens: maxTokens,
+        }),
+      }),
+    )
+  } catch (err) {
+    yield { type: 'error', message: err instanceof Error ? err.message : String(err) }
+    return
+  }
+
+  if (!response.ok || !response.body) {
+    const text = await response.text().catch(() => '')
+    yield {
+      type: 'error',
+      message: `LLM error ${response.status}: ${text.slice(0, 500)}`,
+    }
+    return
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let assembled = ''
+  let tokensIn = 0
+  let tokensOut = 0
+
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    // Process complete SSE events (separated by blank lines).
+    let sepIdx: number
+    while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+      const eventBlock = buffer.slice(0, sepIdx).trim()
+      buffer = buffer.slice(sepIdx + 2)
+      if (!eventBlock) continue
+      // Each block can have multiple `data:` lines; OpenAI uses one per chunk.
+      for (const line of eventBlock.split('\n')) {
+        if (!line.startsWith('data:')) continue
+        const payload = line.slice(5).trim()
+        if (payload === '[DONE]') continue
+        let parsed: {
+          choices?: Array<{ delta?: { content?: string } }>
+          usage?: { prompt_tokens?: number; completion_tokens?: number }
+        }
+        try {
+          parsed = JSON.parse(payload)
+        } catch {
+          continue
+        }
+        const delta = parsed.choices?.[0]?.delta?.content
+        if (typeof delta === 'string' && delta.length > 0) {
+          assembled += delta
+          yield { type: 'chunk', content: delta }
+        }
+        if (parsed.usage) {
+          tokensIn = parsed.usage.prompt_tokens ?? tokensIn
+          tokensOut = parsed.usage.completion_tokens ?? tokensOut
+        }
+      }
+    }
+  }
+
+  const usage: LLMUsage = {
+    provider,
+    model: config.model,
+    tokensIn,
+    tokensOut,
+    costCents: computeCostCents({ tokensIn, tokensOut }, config),
+    durationMs: Date.now() - start,
+  }
+  yield { type: 'done', content: assembled, usage }
+}
+
 async function callLLM(
   messages: LLMMessage[],
   mode: 'json' | 'text',

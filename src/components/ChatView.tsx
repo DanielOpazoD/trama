@@ -33,7 +33,7 @@ export function ChatView() {
   }, [threads, activeId])
 
   const { data: messages = [], isLoading: messagesLoading } = useChatMessagesQuery(activeId)
-  const send = useSendChatMessage(activeId)
+  const { send, pending: sendPending, error: sendError } = useSendChatMessage(activeId)
 
   const [draft, setDraft] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -48,7 +48,7 @@ export function ChatView() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages.length, send.isPending])
+  }, [messages.length, sendPending])
 
   async function handleNewThread() {
     try {
@@ -62,7 +62,7 @@ export function ChatView() {
   async function handleSubmit(event?: FormEvent) {
     event?.preventDefault()
     const text = draft.trim()
-    if (!text || send.isPending) return
+    if (!text || sendPending) return
 
     // If there's no active thread, create one before sending.
     let threadId = activeId
@@ -77,11 +77,7 @@ export function ChatView() {
     }
 
     setDraft('')
-    try {
-      await send.mutateAsync(text)
-    } catch {
-      // Error shown below via send.error.
-    }
+    await send(text)
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -194,15 +190,15 @@ export function ChatView() {
               {messages.map((m) => (
                 <MessageBubble key={m.id} message={m} />
               ))}
-              {send.isPending && (
+              {sendPending && messages[messages.length - 1]?.role !== 'assistant' && (
                 <li className="text-ink-300 italic text-sm flex items-center gap-2">
                   <span className="size-3 border-2 border-ink-200 border-t-ink-500 rounded-full animate-spin" />
                   pensando…
                 </li>
               )}
-              {send.error && (
+              {sendError && (
                 <li className="px-4 py-3 bg-red-50/80 border border-red-200/60 rounded-xl text-sm text-red-800">
-                  {send.error.message}
+                  {sendError}
                 </li>
               )}
               <div ref={messagesEndRef} />
@@ -221,12 +217,12 @@ export function ChatView() {
             onKeyDown={handleKeyDown}
             placeholder="pregúntale a la IA sobre tu trama, sus temas, las personas que la habitan…"
             rows={1}
-            disabled={send.isPending}
+            disabled={sendPending}
             className="flex-1 resize-none bg-paper-100/40 border border-ink-100/60 rounded-2xl px-4 py-2.5 text-ink-700 placeholder:text-ink-300 focus:outline-none focus:border-ink-200 leading-relaxed transition-colors"
           />
           <button
             type="submit"
-            disabled={!draft.trim() || send.isPending}
+            disabled={!draft.trim() || sendPending}
             className="self-end mb-0.5 size-10 rounded-full bg-ink-700 text-paper-50 hover:bg-ink-600 active:scale-90 disabled:bg-ink-100 disabled:text-ink-300 disabled:active:scale-100 transition-all duration-150 ease-out flex items-center justify-center"
             aria-label="Enviar"
             title="Enter para enviar · Shift+Enter para nueva línea"

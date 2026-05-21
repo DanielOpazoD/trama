@@ -51,6 +51,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
         name: e.name,
         year: e.year,
         description: e.description,
+        spotifyUrl: e.spotifyUrl,
         origin: AI_ORIGIN,
       })
       setStatusEntities((s) => s.map((v, idx) => (idx === i ? 'applied' : v)))
@@ -166,6 +167,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
             primary={e.name}
             secondary={labelEntityType(e.type)}
             extra={e.description}
+            spotifyUrl={e.spotifyUrl}
           />
         ))}
         {relList.map((r, i) => (
@@ -208,12 +210,14 @@ function ProposalRow({
   primary,
   secondary,
   extra,
+  spotifyUrl,
 }: {
   status: 'pending' | 'applied' | 'failed'
   onAccept: () => void
   primary: string
   secondary: string
   extra?: string
+  spotifyUrl?: string
 }) {
   return (
     <li className="flex items-start gap-2 text-sm">
@@ -222,6 +226,16 @@ function ProposalRow({
         <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-ink-400">
           {secondary}
         </span>
+        {spotifyUrl && (
+          <a
+            href={spotifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-2 text-[10px] uppercase tracking-[0.18em] text-emerald-700/80 hover:text-emerald-900 transition-colors"
+          >
+            ↗ Spotify
+          </a>
+        )}
         {extra && (
           <p className="text-ink-400 text-xs leading-relaxed mt-0.5">{extra}</p>
         )}
