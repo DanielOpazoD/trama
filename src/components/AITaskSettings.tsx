@@ -20,6 +20,9 @@ const TASKS: Array<{ key: AITaskKey; label: string; hint: string }> = [
 
 const VISION_REQUIRED: Array<AITaskKey> = ['extract-image']
 
+// Tasks where a second model can review the primary's proposals.
+const VERIFIABLE: Array<AITaskKey> = ['reclassify', 'suggest-relationships']
+
 /**
  * Per-task LLM provider configuration. Each task can use a different model.
  * Empty/default means "fall back to AI_PROVIDER (env var)".
@@ -47,7 +50,35 @@ export function AITaskSettings() {
   async function pick(task: AITaskKey, provider: string) {
     setBusyTask(task)
     try {
-      await setProvider.mutateAsync({ task, provider })
+      const current = settings.data?.tasks.find((t) => t.task === task)
+      await setProvider.mutateAsync({
+        task,
+        provider,
+        // Keep verifyWith if it's still distinct from the new provider; clear otherwise.
+        verifyWith:
+          current?.verifyWith && current.verifyWith !== provider
+            ? current.verifyWith
+            : null,
+      })
+    } finally {
+      setBusyTask(null)
+    }
+  }
+
+  async function pickVerifier(task: AITaskKey, verifyWith: string) {
+    setBusyTask(task)
+    try {
+      const current = settings.data?.tasks.find((t) => t.task === task)
+      const provider = current?.provider ?? settings.data?.defaultProvider ?? ''
+      if (verifyWith && verifyWith === provider) {
+        // Don't allow same provider on both sides — front-end safety net.
+        return
+      }
+      await setProvider.mutateAsync({
+        task,
+        provider: current?.provider ?? '',
+        verifyWith: verifyWith || null,
+      })
     } finally {
       setBusyTask(null)
     }
@@ -67,31 +98,57 @@ export function AITaskSettings() {
       <ul className="divide-y divide-ink-100/60">
         {TASKS.map((task) => {
           const current = byTask.get(task.key)
+          const activeProvider = current?.provider ?? defaultProvider
           const requiresVision = VISION_REQUIRED.includes(task.key)
+          const verifiable = VERIFIABLE.includes(task.key)
           return (
-            <li key={task.key} className="py-2.5 flex items-baseline gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="text-sm text-ink-700">{task.label}</div>
-                <div className="text-[11px] text-ink-400 leading-snug">
-                  {task.hint}
+            <li key={task.key} className="py-3 space-y-1.5">
+              <div className="flex items-baseline gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm text-ink-700">{task.label}</div>
+                  <div className="text-[11px] text-ink-400 leading-snug">
+                    {task.hint}
+                  </div>
                 </div>
+                <select
+                  value={current?.provider ?? ''}
+                  onChange={(e) => pick(task.key, e.target.value)}
+                  disabled={busyTask === task.key}
+                  className="input-paper text-xs py-1 pr-7"
+                  style={{ minWidth: '11rem' }}
+                >
+                  <option value="">default ({defaultProvider})</option>
+                  {PROVIDERS.filter((p) =>
+                    !requiresVision || p.value === 'openai' || p.value === 'gemini',
+                  ).map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label} — {p.notes}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <select
-                value={current?.provider ?? ''}
-                onChange={(e) => pick(task.key, e.target.value)}
-                disabled={busyTask === task.key}
-                className="input-paper text-xs py-1 pr-7"
-                style={{ minWidth: '11rem' }}
-              >
-                <option value="">default ({defaultProvider})</option>
-                {PROVIDERS.filter((p) =>
-                  !requiresVision || p.value === 'openai' || p.value === 'gemini',
-                ).map((p) => (
-                  <option key={p.value} value={p.value}>
-                    {p.label} — {p.notes}
-                  </option>
-                ))}
-              </select>
+              {verifiable && (
+                <div className="flex items-baseline gap-3 pl-4 border-l-2 border-ink-100/60">
+                  <div className="flex-1 text-[11px] text-ink-400 leading-snug">
+                    Verificar con un segundo modelo (otro provider revisa
+                    cada propuesta y marca dudas)
+                  </div>
+                  <select
+                    value={current?.verifyWith ?? ''}
+                    onChange={(e) => pickVerifier(task.key, e.target.value)}
+                    disabled={busyTask === task.key}
+                    className="input-paper text-xs py-1 pr-7"
+                    style={{ minWidth: '11rem' }}
+                  >
+                    <option value="">sin verificación</option>
+                    {PROVIDERS.filter((p) => p.value !== activeProvider).map((p) => (
+                      <option key={p.value} value={p.value}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </li>
           )
         })}

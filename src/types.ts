@@ -137,6 +137,8 @@ export type ProposedRelationship = {
   toName: string
   type: RelationshipType
   notes?: string
+  /** Optional second-model review attached when cross-verification ran. */
+  verification?: { agreed: boolean; note?: string; verifier: string }
 }
 
 export type ProposedQuote = {

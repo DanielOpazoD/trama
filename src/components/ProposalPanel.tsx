@@ -321,6 +321,24 @@ function ProposedRelationshipRow({
         {rel.notes && (
           <p className="mt-1 text-ink-400 leading-relaxed">{rel.notes}</p>
         )}
+        {rel.verification && (
+          <div className="mt-1">
+            {rel.verification.agreed ? (
+              <span className="text-[10px] uppercase tracking-[0.18em] text-emerald-700/80">
+                ✓ verificado por {rel.verification.verifier}
+              </span>
+            ) : (
+              <span className="text-[10px] uppercase tracking-[0.18em] text-amber-700/90">
+                ⚠ {rel.verification.verifier} dudó
+                {rel.verification.note && (
+                  <span className="normal-case tracking-normal text-ink-500 italic ml-1">
+                    — {rel.verification.note}
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </li>
   )

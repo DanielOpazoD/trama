@@ -614,6 +614,7 @@ export type Reclassification = {
   oldType: string
   newType: string
   reason?: string
+  verification?: { agreed: boolean; note?: string; verifier: string }
 }
 
 export type ReclassifyResponse = {

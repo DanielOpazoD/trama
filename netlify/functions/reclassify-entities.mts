@@ -14,6 +14,7 @@ import {
 import { withObservability } from './_lib/handler-wrap.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
+import { crossVerify, type VerifyVerdict } from './_lib/cross-verify.js'
 
 const MAX_ENTITIES = 120
 const MAX_QUOTES_PER_ENTITY = 3
@@ -94,6 +95,45 @@ export default withObservability(
       const validTypes = new Set(typeRows.map((t) => t.slug))
       const reclassifications = validateReclassify(content, entityLookup, validTypes)
 
+      // Optional cross-verification. Only fires if (a) the user configured a
+      // verifier for this task, (b) it's a different provider than the
+      // primary, and (c) we actually have proposals worth reviewing.
+      let verifications: VerifyVerdict[] = []
+      let verifierProvider: string | null = null
+      let verifierUsage: typeof usage | null = null
+      if (
+        taskCfg.verifyWith &&
+        taskCfg.verifyWith !== (taskCfg.provider || '') &&
+        taskCfg.verifyWith !== usage.provider &&
+        reclassifications.length > 0
+      ) {
+        const result = await crossVerify({
+          items: reclassifications,
+          describe: (r) =>
+            `"${r.name}" — actualmente "${r.oldType}", propuesto "${r.newType}"${
+              r.reason ? ` (razón: ${r.reason})` : ''
+            }`,
+          context: 'cambios de tipo (reclasificación de entidades)',
+          verifierProvider: taskCfg.verifyWith,
+          primaryProviderName: usage.provider,
+        })
+        verifierProvider = taskCfg.verifyWith
+        verifierUsage = result.usage
+        verifications = reclassifications.map(
+          (_, i) => result.verdictsByIndex.get(i) ?? { agreed: true },
+        )
+      }
+
+      const responseBody = {
+        reclassifications: reclassifications.map((r, i) => ({
+          ...r,
+          ...(verifierProvider
+            ? { verification: { ...verifications[i], verifier: verifierProvider } }
+            : {}),
+        })),
+        verifierProvider,
+      }
+
       logEvent({
         event: 'reclassify_entities_completed',
         provider: usage.provider,
@@ -105,6 +145,8 @@ export default withObservability(
         fromCache,
         entitiesIn: entitiesForPrompt.length,
         proposed: reclassifications.length,
+        verifier: verifierProvider,
+        verifierCostCents: verifierUsage?.costCents ?? 0,
       })
 
       sql`
@@ -112,17 +154,17 @@ export default withObservability(
           input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
         ) VALUES (
           ${'reclassify-entities'},
-          ${JSON.stringify({ reclassifications })}::jsonb,
+          ${JSON.stringify(responseBody)}::jsonb,
           ${usage.provider},
           ${usage.model},
-          ${usage.tokensIn},
-          ${usage.tokensOut},
-          ${usage.costCents},
-          ${usage.durationMs}
+          ${usage.tokensIn + (verifierUsage?.tokensIn ?? 0)},
+          ${usage.tokensOut + (verifierUsage?.tokensOut ?? 0)},
+          ${usage.costCents + (verifierUsage?.costCents ?? 0)},
+          ${usage.durationMs + (verifierUsage?.durationMs ?? 0)}
         )
       `.catch(() => {})
 
-      return Response.json({ reclassifications })
+      return Response.json(responseBody)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       sql`

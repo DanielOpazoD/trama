@@ -11,6 +11,7 @@ import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
+import { crossVerify, type VerifyVerdict } from './_lib/cross-verify.js'
 
 const FALLBACK_RELATIONSHIP_TYPES = [
   'influye_en', 'cita_a', 'responde_a', 'me_llego_por',
@@ -145,10 +146,42 @@ export default withObservability(
         return true
       })
 
+      // Optional cross-verification with a second provider.
+      let verifications: VerifyVerdict[] = []
+      let verifierProvider: string | null = null
+      let verifierUsage: typeof usage | null = null
+      if (
+        taskCfg.verifyWith &&
+        taskCfg.verifyWith !== (taskCfg.provider || '') &&
+        taskCfg.verifyWith !== usage.provider &&
+        filteredRelationships.length > 0
+      ) {
+        const result = await crossVerify({
+          items: filteredRelationships,
+          describe: (r) =>
+            `${r.fromName} → ${r.type} → ${r.toName}${r.notes ? ` (${r.notes})` : ''}`,
+          context: 'nuevas relaciones propuestas entre entidades existentes',
+          verifierProvider: taskCfg.verifyWith,
+          primaryProviderName: usage.provider,
+        })
+        verifierProvider = taskCfg.verifyWith
+        verifierUsage = result.usage
+        verifications = filteredRelationships.map(
+          (_, i) => result.verdictsByIndex.get(i) ?? { agreed: true },
+        )
+      }
+
+      const relationshipsWithVerdicts = filteredRelationships.map((r, i) =>
+        verifierProvider
+          ? { ...r, verification: { ...verifications[i], verifier: verifierProvider } }
+          : r,
+      )
+
       const result = {
         entities: [],
-        relationships: filteredRelationships,
+        relationships: relationshipsWithVerdicts,
         quotes: [],
+        verifierProvider,
       }
 
       logEvent({
@@ -163,6 +196,8 @@ export default withObservability(
         entitiesIn: entitiesForPrompt.length,
         existingRels: existingRels.length,
         proposedRelationships: filteredRelationships.length,
+        verifier: verifierProvider,
+        verifierCostCents: verifierUsage?.costCents ?? 0,
       })
 
       sql`

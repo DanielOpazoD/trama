@@ -100,6 +100,9 @@ export function ReclassifyPanel({
                   {p.reason}
                 </p>
               )}
+              {p.verification && (
+                <VerificationChip verification={p.verification} />
+              )}
             </div>
           </li>
         ))}
@@ -126,5 +129,29 @@ export function ReclassifyPanel({
         </button>
       </footer>
     </section>
+  )
+}
+
+function VerificationChip({
+  verification,
+}: {
+  verification: { agreed: boolean; note?: string; verifier: string }
+}) {
+  if (verification.agreed) {
+    return (
+      <span className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] text-emerald-700/80">
+        ✓ verificado por {verification.verifier}
+      </span>
+    )
+  }
+  return (
+    <span className="mt-1 inline-flex items-baseline gap-1 text-[10px] uppercase tracking-[0.18em] text-amber-700/90">
+      ⚠ {verification.verifier} dudó
+      {verification.note && (
+        <span className="normal-case tracking-normal text-ink-500 italic ml-1">
+          — {verification.note}
+        </span>
+      )}
+    </span>
   )
 }
