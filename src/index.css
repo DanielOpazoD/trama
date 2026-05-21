@@ -137,22 +137,40 @@
     animation: fade-up 320ms cubic-bezier(0.25, 1, 0.5, 1) both;
   }
 
-  /* Pulse halo for selected nodes */
+  /* Pulse halo for selected nodes — opacity only (r animation is finicky cross-browser) */
   @keyframes halo-pulse {
-    0%, 100% { stroke-opacity: 0.25; r: var(--halo-r, 20); }
-    50%      { stroke-opacity: 0.10; r: calc(var(--halo-r, 20) * 1.12); }
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%      { opacity: 0.20; transform: scale(1.18); }
   }
   .animate-halo-pulse {
-    animation: halo-pulse 2.4s ease-in-out infinite;
+    animation: halo-pulse 2.6s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
   }
 
   /* Subtle dash flow on highlighted edges */
   @keyframes dash-flow {
-    to { stroke-dashoffset: -16; }
+    to { stroke-dashoffset: -20; }
   }
   .animate-dash-flow {
-    stroke-dasharray: 4 4;
-    animation: dash-flow 1.6s linear infinite;
+    stroke-dasharray: 5 4;
+    animation: dash-flow 2.2s linear infinite;
+  }
+
+  /* Slow ambient drift for graph nodes — each node uses its own delay so the
+     ensemble breathes rather than oscillating in unison. */
+  @keyframes node-drift {
+    0%   { transform: translate(0px, 0px); }
+    20%  { transform: translate(1.5px, -1.2px); }
+    40%  { transform: translate(2.4px, 0.6px); }
+    60%  { transform: translate(0.8px, 2px); }
+    80%  { transform: translate(-1.8px, 0.4px); }
+    100% { transform: translate(0px, 0px); }
+  }
+  .animate-node-drift {
+    animation: node-drift 14s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
   }
 
   @keyframes view-fade {

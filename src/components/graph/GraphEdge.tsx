@@ -87,6 +87,7 @@ export function GraphEdge({
         strokeOpacity={opacity}
         strokeLinecap="round"
         markerEnd={`url(#${markerId})`}
+        className={highlighted ? 'animate-dash-flow' : undefined}
       />
       {highlighted && (
         <g>
