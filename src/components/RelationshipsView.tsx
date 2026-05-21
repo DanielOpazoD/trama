@@ -8,7 +8,11 @@ import {
 } from '../state'
 import { SparkleIcon } from './Icons'
 
-export function RelationshipsView() {
+export function RelationshipsView({
+  onSelectEntity,
+}: {
+  onSelectEntity?: (id: string) => void
+}) {
   const { data: entities = [] } = useEntitiesQuery()
   const { data: relationships = [] } = useRelationshipsQuery()
   const addRelationship = useAddRelationship()
@@ -130,11 +134,29 @@ export function RelationshipsView() {
                   >
                     <div className="flex justify-between items-baseline gap-4">
                       <div className="text-ink-600 leading-relaxed">
-                        <span className="text-ink-700">{from?.name ?? '—'}</span>
+                        {from ? (
+                          <button
+                            onClick={() => onSelectEntity?.(from.id)}
+                            className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
+                          >
+                            {from.name}
+                          </button>
+                        ) : (
+                          <span className="text-ink-700">—</span>
+                        )}
                         <span className="mx-2 text-[10px] uppercase tracking-[0.18em] text-ink-300">
                           {typeLabel}
                         </span>
-                        <span className="text-ink-700">{to?.name ?? '—'}</span>
+                        {to ? (
+                          <button
+                            onClick={() => onSelectEntity?.(to.id)}
+                            className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
+                          >
+                            {to.name}
+                          </button>
+                        ) : (
+                          <span className="text-ink-700">—</span>
+                        )}
                         {rel.origin.kind === 'ai' && (
                           <span className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle" title="propuesta por IA">
                             <SparkleIcon size={10} />

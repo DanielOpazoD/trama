@@ -7,9 +7,13 @@ import {
   useAddEntity,
   useDeleteEntity,
 } from '../state'
-import { SparkleIcon } from './Icons'
+import { ChevronRightIcon, SparkleIcon } from './Icons'
 
-export function EntitiesView() {
+export function EntitiesView({
+  onSelectEntity,
+}: {
+  onSelectEntity?: (id: string) => void
+}) {
   const { data: entities = [] } = useEntitiesQuery()
   const { data: quotes = [] } = useQuotesQuery()
   const { data: relationships = [] } = useRelationshipsQuery()
@@ -120,58 +124,76 @@ export function EntitiesView() {
             return (
               <li
                 key={entity.id}
-                className="group p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl transition-all duration-200 hover:shadow-md hover:shadow-ink-900/5 hover:border-ink-100 hover:bg-paper-50/70 animate-fade-up"
+                className="group relative animate-fade-up"
                 style={{ animationDelay: `${Math.min(idx * 40, 280)}ms` }}
               >
-                <div className="flex justify-between items-baseline gap-4">
-                  <div className="min-w-0">
-                    <span className="text-ink-700">{entity.name}</span>
-                    {entity.year !== undefined && (
-                      <span className="ml-2 text-ink-300 text-sm">({entity.year})</span>
-                    )}
-                    <span className="ml-3 text-[10px] uppercase tracking-[0.18em] text-ink-300 align-middle">
-                      {ENTITY_TYPES.find((t) => t.value === entity.type)?.label}
-                    </span>
-                    {entity.origin.kind === 'ai' && (
-                      <span className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle" title="añadido por IA">
-                        <SparkleIcon size={10} />
+                <button
+                  type="button"
+                  onClick={() => onSelectEntity?.(entity.id)}
+                  className="w-full text-left p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl transition-all duration-200 hover:shadow-md hover:shadow-ink-900/5 hover:border-ink-100 hover:bg-paper-50/70 active:scale-[0.995]"
+                  aria-label={`Ver ${entity.name}, ${quoteCount} ${
+                    quoteCount === 1 ? 'cita' : 'citas'
+                  }`}
+                >
+                  <div className="flex justify-between items-baseline gap-4">
+                    <div className="min-w-0">
+                      <span className="text-ink-700">{entity.name}</span>
+                      {entity.year !== undefined && (
+                        <span className="ml-2 text-ink-300 text-sm">({entity.year})</span>
+                      )}
+                      <span className="ml-3 text-[10px] uppercase tracking-[0.18em] text-ink-300 align-middle">
+                        {ENTITY_TYPES.find((t) => t.value === entity.type)?.label}
                       </span>
-                    )}
+                      {entity.origin.kind === 'ai' && (
+                        <span className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle" title="añadido por IA">
+                          <SparkleIcon size={10} />
+                        </span>
+                      )}
+                    </div>
+                    <ChevronRightIcon
+                      size={12}
+                      className="text-ink-200 group-hover:text-ink-400 transition-colors shrink-0"
+                    />
                   </div>
-                  <button
-                    onClick={() => {
-                      if (
-                        confirm(
-                          `¿Eliminar "${entity.name}"? Sus citas y relaciones también se borrarán.`,
-                        )
-                      ) {
-                        deleteEntity.mutate(entity.id)
-                      }
-                    }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-ink-700 text-xs"
-                  >
-                    eliminar
-                  </button>
-                </div>
-                {entity.description && (
-                  <p className="mt-1 text-ink-500 text-sm leading-relaxed">
-                    {entity.description}
-                  </p>
-                )}
-                {(quoteCount > 0 || relCount > 0) && (
-                  <div className="mt-1.5 flex gap-3 text-[10px] uppercase tracking-[0.16em] text-ink-300">
-                    {quoteCount > 0 && (
-                      <span>
-                        {quoteCount} {quoteCount === 1 ? 'cita' : 'citas'}
-                      </span>
-                    )}
-                    {relCount > 0 && (
-                      <span>
-                        {relCount} {relCount === 1 ? 'relación' : 'relaciones'}
-                      </span>
-                    )}
-                  </div>
-                )}
+                  {entity.description && (
+                    <p className="mt-1 text-ink-500 text-sm leading-relaxed">
+                      {entity.description}
+                    </p>
+                  )}
+                  {(quoteCount > 0 || relCount > 0) && (
+                    <div className="mt-1.5 flex gap-3 text-[10px] uppercase tracking-[0.16em] text-ink-300">
+                      {quoteCount > 0 && (
+                        <span>
+                          {quoteCount} {quoteCount === 1 ? 'cita' : 'citas'}
+                        </span>
+                      )}
+                      {relCount > 0 && (
+                        <span>
+                          {relCount} {relCount === 1 ? 'relación' : 'relaciones'}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </button>
+                {/* Delete button sits absolutely over the card — separate from the
+                    main button so we don't have nested <button>s. */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (
+                      confirm(
+                        `¿Eliminar "${entity.name}"? Sus citas y relaciones también se borrarán.`,
+                      )
+                    ) {
+                      deleteEntity.mutate(entity.id)
+                    }
+                  }}
+                  className="absolute top-2 right-9 opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-red-700 text-xs px-2 py-1"
+                  aria-label={`Eliminar ${entity.name}`}
+                >
+                  eliminar
+                </button>
               </li>
             )
           })}

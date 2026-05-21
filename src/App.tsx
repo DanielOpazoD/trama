@@ -43,7 +43,9 @@ function Shell() {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const showProposal = pendingProposal !== null
-  const showDetail = !showProposal && view === 'grafo' && selectedEntityId !== null
+  // Detail panel is available from any view, not just the graph — clicking an
+  // entity card in Entidades or an attribution in Citas opens the same panel.
+  const showDetail = !showProposal && selectedEntityId !== null
   const rightPanelOpen = showProposal || showDetail
 
   return (
@@ -85,9 +87,15 @@ function Shell() {
             )}
             {view !== 'grafo' && (
               <div className="h-full overflow-y-auto px-8 py-10 pb-32 max-w-3xl mx-auto">
-                {view === 'entidades' && <EntitiesView />}
-                {view === 'citas' && <QuotesView />}
-                {view === 'relaciones' && <RelationshipsView />}
+                {view === 'entidades' && (
+                  <EntitiesView onSelectEntity={setSelectedEntityId} />
+                )}
+                {view === 'citas' && (
+                  <QuotesView onSelectEntity={setSelectedEntityId} />
+                )}
+                {view === 'relaciones' && (
+                  <RelationshipsView onSelectEntity={setSelectedEntityId} />
+                )}
               </div>
             )}
           </div>

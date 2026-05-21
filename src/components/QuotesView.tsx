@@ -31,7 +31,11 @@ function withDropCap(text: string) {
   )
 }
 
-export function QuotesView() {
+export function QuotesView({
+  onSelectEntity,
+}: {
+  onSelectEntity?: (id: string) => void
+}) {
   const { data: entities = [] } = useEntitiesQuery()
   const { data: quotes = [] } = useQuotesQuery()
   const addQuote = useAddQuote()
@@ -163,9 +167,16 @@ export function QuotesView() {
                       }`}
                     >
                       <div className="text-sm">
-                        <span className="text-ink-500">
-                          — {entity?.name ?? 'entidad eliminada'}
-                        </span>
+                        {entity ? (
+                          <button
+                            onClick={() => onSelectEntity?.(entity.id)}
+                            className="text-ink-500 hover:text-ink-700 transition-colors border-b border-transparent hover:border-ink-300"
+                          >
+                            — {entity.name}
+                          </button>
+                        ) : (
+                          <span className="text-ink-300">— entidad eliminada</span>
+                        )}
                         {quote.source && (
                           <span className="text-ink-300 ml-2 italic">· {quote.source}</span>
                         )}
