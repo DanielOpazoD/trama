@@ -114,6 +114,16 @@ export function NodeDetailPanel({
                           <SparkleIcon size={10} />
                         </span>
                       )}
+                      <span
+                        className="ml-2 text-ink-300 tabular-nums"
+                        title={`Añadida el ${new Date(quote.createdAt).toLocaleString('es')}`}
+                      >
+                        {new Date(quote.createdAt).toLocaleDateString('es', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </span>
                     </div>
                     <button
                       onClick={() => deleteQuote.mutate(quote.id)}

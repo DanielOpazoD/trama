@@ -15,6 +15,7 @@ import { RelationshipsView } from './components/RelationshipsView'
 import { ExtractBar } from './components/ExtractBar'
 import { ProposalPanel } from './components/ProposalPanel'
 import { NodeDetailPanel } from './components/NodeDetailPanel'
+import { Settings } from './components/Settings'
 import { Splash } from './components/Splash'
 import type { ExtractionProposal } from './types'
 
@@ -39,6 +40,7 @@ function Shell() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
   const [pendingProposal, setPendingProposal] = useState<PendingProposal | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const showProposal = pendingProposal !== null
   const showDetail = !showProposal && view === 'grafo' && selectedEntityId !== null
@@ -59,8 +61,7 @@ function Shell() {
           setSelectedEntityId(id)
         }}
         offline={offline}
-        theme={theme}
-        onToggleTheme={toggleTheme}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       <main className="flex-1 relative overflow-hidden">
@@ -97,6 +98,13 @@ function Shell() {
           onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
         />
       </main>
+
+      <Settings
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
 
       {/* Floating right-side panel — appears as a glass card over the canvas
           instead of as a hard-edge column. Click outside to close. */}

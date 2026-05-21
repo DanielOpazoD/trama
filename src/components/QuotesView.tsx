@@ -2,6 +2,20 @@ import { useState, type FormEvent } from 'react'
 import { useEntitiesQuery, useQuotesQuery, useAddQuote, useDeleteQuote } from '../state'
 import { SparkleIcon } from './Icons'
 
+/** Format an ISO date as "20 may 2026" — short, ink-on-paper style. */
+function formatDate(iso: string): string {
+  try {
+    const d = new Date(iso)
+    return d.toLocaleDateString('es', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).replace(/\./g, '')
+  } catch {
+    return ''
+  }
+}
+
 /** Drop-cap on the first letter of a quote — adds editorial weight. */
 function withDropCap(text: string) {
   if (!text) return null
@@ -160,6 +174,12 @@ export function QuotesView() {
                             <SparkleIcon size={10} />
                           </span>
                         )}
+                        <span
+                          className="ml-3 text-[11px] text-ink-300 tabular-nums"
+                          title={`Añadida el ${new Date(quote.createdAt).toLocaleString('es')}`}
+                        >
+                          añadida {formatDate(quote.createdAt)}
+                        </span>
                       </div>
                       <button
                         onClick={() => deleteQuote.mutate(quote.id)}
