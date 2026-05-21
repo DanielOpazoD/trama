@@ -60,7 +60,7 @@ export function ExtractBar({
         )}
         <form
           onSubmit={handleSubmit}
-          className="flex items-end gap-2 bg-paper-50/95 border border-ink-100 rounded-2xl shadow-lg shadow-ink-900/5 p-2 backdrop-blur-sm"
+          className="flex items-end gap-2 bg-paper-50/90 border border-ink-100/80 rounded-2xl shadow-xl shadow-ink-900/10 p-2 backdrop-blur-md transition-shadow duration-300 focus-within:shadow-2xl focus-within:shadow-ink-900/15 focus-within:border-ink-200"
         >
           <textarea
             ref={textareaRef}
@@ -76,7 +76,7 @@ export function ExtractBar({
             type="submit"
             disabled={disabled}
             aria-label="Extraer"
-            className="self-end mb-1 mr-1 size-9 rounded-full bg-ink-700 text-paper-50 hover:bg-ink-600 disabled:bg-ink-100 disabled:text-ink-300 transition-colors flex items-center justify-center"
+            className="self-end mb-1 mr-1 size-9 rounded-full bg-ink-700 text-paper-50 hover:bg-ink-600 active:scale-90 disabled:bg-ink-100 disabled:text-ink-300 disabled:active:scale-100 transition-all duration-150 ease-out flex items-center justify-center"
             title="Extraer (⌘/Ctrl+Enter)"
           >
             {extract.isPending ? (

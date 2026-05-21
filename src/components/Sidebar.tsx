@@ -158,7 +158,7 @@ export function Sidebar({
                 onClick={() => onChangeView(item.value)}
                 aria-label={item.label}
                 title={item.label}
-                className={`relative p-2.5 rounded-md transition-colors ${
+                className={`relative p-2.5 rounded-lg transition-all duration-250 ease-out active:scale-95 ${
                   active
                     ? 'bg-ink-700/10 text-ink-700'
                     : 'text-ink-300 hover:text-ink-700 hover:bg-ink-700/5'
@@ -290,7 +290,7 @@ export function Sidebar({
               key={item.value}
               onClick={() => onChangeView(item.value)}
               aria-label={item.label}
-              className={`group flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm transition-colors relative ${
+              className={`group flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ease-out active:scale-[0.98] relative ${
                 active
                   ? 'bg-ink-700/8 text-ink-700'
                   : 'text-ink-400 hover:text-ink-700 hover:bg-ink-700/4'
