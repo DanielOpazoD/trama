@@ -1,5 +1,4 @@
--- gen_random_uuid() is in core Postgres 13+; pgcrypto extension not needed
--- (Netlify Database doesn't expose pgcrypto anyway).
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Trigger function: bumps updated_at on every UPDATE.
 CREATE OR REPLACE FUNCTION set_updated_at()

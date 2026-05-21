@@ -1,10 +1,9 @@
 -- Full-text search via Postgres tsvector + GIN indexes.
 -- Uses the 'simple' dictionary (no stemming, language-agnostic) which works well
 -- for Spanish names/titles where we don't want "Camus" to be stemmed weirdly.
---
--- pg_trgm extension would give us fuzzy/trigram matching on entity names but
--- Netlify Database doesn't expose it. Falls back to tsvector-only search for
--- now (still very good — substring/typo tolerance comes from search.mts client logic).
+-- If you want Spanish-aware stemming, swap to 'spanish' but be aware of side effects.
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 ALTER TABLE entities
   ADD COLUMN search_vector tsvector GENERATED ALWAYS AS (
@@ -13,6 +12,7 @@ ALTER TABLE entities
   ) STORED;
 
 CREATE INDEX idx_entities_search ON entities USING GIN(search_vector) WHERE deleted_at IS NULL;
+CREATE INDEX idx_entities_name_trgm ON entities USING GIN(name gin_trgm_ops) WHERE deleted_at IS NULL;
 
 ALTER TABLE quotes
   ADD COLUMN search_vector tsvector GENERATED ALWAYS AS (
