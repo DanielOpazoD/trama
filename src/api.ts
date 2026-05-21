@@ -229,6 +229,56 @@ export const api = {
   async deleteRelationshipType(slug: string): Promise<void> {
     await request<void>(`/api/relationship-types/${slug}`, { method: 'DELETE' })
   },
+
+  // ---------- Spotify ----------
+
+  async spotifyStatus(): Promise<SpotifyStatus> {
+    return request<SpotifyStatus>('/api/spotify/status')
+  },
+  async spotifySync(): Promise<{ fetched: number; inserted: number; mostRecentPlay: string | null }> {
+    return request('/api/spotify/sync', { method: 'POST' })
+  },
+  async spotifyDisconnect(): Promise<void> {
+    await request<void>('/api/spotify/status', { method: 'DELETE' })
+  },
+  async spotifyPlays(
+    group: 'artist' | 'album' | 'track' = 'artist',
+    limit = 50,
+  ): Promise<SpotifyPlaysResponse> {
+    return request<SpotifyPlaysResponse>(
+      `/api/spotify/plays?group=${group}&limit=${limit}`,
+    )
+  },
+}
+
+export type SpotifyStatus =
+  | { connected: false }
+  | {
+      connected: true
+      spotifyUserId: string | null
+      displayName: string | null
+      connectedAt: string
+      lastSyncedAt: string | null
+      counts: {
+        totalPlays: number
+        uniqueTracks: number
+        mostRecentPlay: string | null
+      }
+    }
+
+export type SpotifyPlayGroup = {
+  key: string
+  plays: number
+  firstPlayed: string
+  lastPlayed: string
+  existingEntityId: string | null
+  spotifyId: string | null
+}
+
+export type SpotifyPlaysResponse = {
+  group: 'artist' | 'album' | 'track'
+  since: string
+  items: SpotifyPlayGroup[]
 }
 
 export type ExtractionLogEntry = {

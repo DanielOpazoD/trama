@@ -12,6 +12,7 @@ import GraphView from './components/GraphView'
 import { EntitiesView } from './components/EntitiesView'
 import { QuotesView } from './components/QuotesView'
 import { RelationshipsView } from './components/RelationshipsView'
+import { ListeningView } from './components/ListeningView'
 import { ExtractBar } from './components/ExtractBar'
 import { ProposalPanel } from './components/ProposalPanel'
 import { NodeDetailPanel } from './components/NodeDetailPanel'
@@ -95,6 +96,9 @@ function Shell() {
                 )}
                 {view === 'relaciones' && (
                   <RelationshipsView onSelectEntity={setSelectedEntityId} />
+                )}
+                {view === 'escuchas' && (
+                  <ListeningView onSelectEntity={setSelectedEntityId} />
                 )}
               </div>
             )}

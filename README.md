@@ -58,7 +58,26 @@ Comandos útiles:
 | `AI_API_KEY` | string | Key del proveedor elegido |
 | `AI_MAX_TOKENS` | int (default `4096`) | Cap de tokens de respuesta del LLM |
 | `AI_CACHE_TTL_SECONDS` | int (default `600`) | TTL del cache in-memory del LLM. `0` desactiva. |
+| `AI_MONTHLY_BUDGET_CENTS` | int (default `500`) | Cap mensual de gasto del LLM en centavos USD. |
 | `NETLIFY_DATABASE_URL` | string | Auto-provisionada por Netlify Database |
+| `SPOTIFY_CLIENT_ID` | string | OAuth client id de tu app en Spotify Developer |
+| `SPOTIFY_CLIENT_SECRET` | string | OAuth client secret. **NUNCA al frontend.** |
+| `SPOTIFY_REDIRECT_URI` | url | Debe coincidir exacta con la registrada en Spotify Developer |
+
+## Configurar Spotify
+
+Trama puede registrar lo que escuchas para que luego elijas qué entra a tu trama (nada entra sin tu aprobación explícita).
+
+1. Ve a [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) y crea una app nueva.
+2. **Settings → Redirect URIs**: agrega ambas URLs (una para desarrollo, otra para producción):
+   - `http://localhost:5173/api/spotify/callback` (dev local)
+   - `https://proyectotrama.netlify.app/api/spotify/callback` (producción)
+3. Copia el **Client ID** y el **Client Secret** a las env vars de Netlify (o tu `.env` local).
+4. En `SPOTIFY_REDIRECT_URI`, pon la URL que corresponde al entorno (la de localhost para `.env` local; la de producción para Netlify).
+5. Abre Trama → *Configuración* → *Spotify* → *Conectar con Spotify*. Te llevará a la pantalla de consentimiento de Spotify, autoriza, y volverás a Trama conectado.
+6. Después: clic en *Sincronizar ahora* para traer tus últimas 50 reproducciones. Las verás en la pestaña **Escuchas** del sidebar, agrupadas por artista, álbum o canción. Decide cuáles agregar a la trama.
+
+Spotify solo retiene las 50 reproducciones más recientes — un sync regular (cada hora o así) es lo que mantiene el log completo. En el futuro, un *scheduled function* puede sincronizar automáticamente.
 
 ## Deploy
 
