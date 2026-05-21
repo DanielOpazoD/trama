@@ -152,7 +152,7 @@ export function ProposalPanel({
 
   return (
     <div
-      className="h-full flex flex-col bg-paper-50 border-l border-ink-100/60"
+      className="h-full flex flex-col"
       role="region"
       aria-label="Propuesta de la IA"
     >

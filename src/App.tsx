@@ -97,28 +97,39 @@ function Shell() {
         />
       </main>
 
-      <div
-        className={`${rightPanelOpen ? 'w-96' : 'w-0'} transition-[width] duration-200 overflow-hidden shrink-0`}
-      >
-        {showProposal && pendingProposal && (
-          <div className="animate-slide-in-right h-full">
-            <ProposalPanel
-              proposal={pendingProposal.proposal}
-              sourceText={pendingProposal.text}
-              onClose={() => setPendingProposal(null)}
-              onConfirmed={() => setPendingProposal(null)}
-            />
+      {/* Floating right-side panel — appears as a glass card over the canvas
+          instead of as a hard-edge column. Click outside to close. */}
+      {rightPanelOpen && (
+        <>
+          <button
+            onClick={() => {
+              setPendingProposal(null)
+              setSelectedEntityId(null)
+            }}
+            aria-label="Cerrar panel"
+            className="fixed inset-0 z-10 cursor-default"
+            tabIndex={-1}
+          />
+          <div className="fixed top-4 right-4 bottom-4 w-[22rem] max-w-[calc(100vw-2rem)] z-20 animate-slide-in-right pointer-events-none">
+            <div className="h-full pointer-events-auto rounded-2xl border border-ink-100/50 bg-paper-50/85 backdrop-blur-md shadow-2xl shadow-ink-900/15 overflow-hidden">
+              {showProposal && pendingProposal && (
+                <ProposalPanel
+                  proposal={pendingProposal.proposal}
+                  sourceText={pendingProposal.text}
+                  onClose={() => setPendingProposal(null)}
+                  onConfirmed={() => setPendingProposal(null)}
+                />
+              )}
+              {showDetail && selectedEntityId && (
+                <NodeDetailPanel
+                  entityId={selectedEntityId}
+                  onClose={() => setSelectedEntityId(null)}
+                />
+              )}
+            </div>
           </div>
-        )}
-        {showDetail && selectedEntityId && (
-          <div className="animate-slide-in-right h-full">
-            <NodeDetailPanel
-              entityId={selectedEntityId}
-              onClose={() => setSelectedEntityId(null)}
-            />
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   )
 }

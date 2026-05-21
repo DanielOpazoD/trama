@@ -90,6 +90,17 @@
   }
 }
 
+/* Shared paper texture pattern — used by the canvas AND surfaces that want to
+   feel continuous with it (none of the panels should look like a different page). */
+.paper-surface {
+  background-color: transparent;
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    rgb(var(--paper-50)) 0%,
+    rgb(var(--paper-50) / 0.94) 100%
+  );
+}
+
 @layer utilities {
   @keyframes node-spring-in {
     0%   { opacity: 0; transform: scale(0.4); }

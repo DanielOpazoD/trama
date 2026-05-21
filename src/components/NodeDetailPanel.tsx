@@ -45,7 +45,7 @@ export function NodeDetailPanel({
 
   if (!entity) {
     return (
-      <div className="h-full flex flex-col bg-paper-50 border-l border-ink-100/60 p-5">
+      <div className="h-full flex flex-col p-5">
         <p className="text-ink-300 italic">Entidad no encontrada.</p>
         <button onClick={onClose} className="btn-ghost mt-3 self-start">
           cerrar
@@ -61,7 +61,7 @@ export function NodeDetailPanel({
 
   return (
     <div
-      className="h-full flex flex-col bg-paper-50 border-l border-ink-100/60"
+      className="h-full flex flex-col"
       role="region"
       aria-label={`Detalle de ${entity.name}`}
     >

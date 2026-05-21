@@ -129,7 +129,7 @@ export function Sidebar({
   // ---------- collapsed sidebar ----------
   if (collapsed) {
     return (
-      <aside className="w-14 shrink-0 border-r border-ink-100/60 bg-paper-50/60 backdrop-blur-sm flex flex-col items-center py-4 gap-1">
+      <aside className="w-14 shrink-0 border-r border-ink-100/40 flex flex-col items-center py-4 gap-1">
         {/* Monogram top */}
         <div className="text-ink-700 mb-2" aria-label="Trama">
           <TramaMark size={22} />
@@ -202,7 +202,7 @@ export function Sidebar({
 
   // ---------- expanded sidebar ----------
   return (
-    <aside className="w-64 shrink-0 border-r border-ink-100/60 bg-paper-50/60 backdrop-blur-sm flex flex-col">
+    <aside className="w-64 shrink-0 border-r border-ink-100/40 flex flex-col">
       <header className="px-3 py-4 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <TramaMark size={26} className="text-ink-700 shrink-0" />
