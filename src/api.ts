@@ -308,6 +308,21 @@ export const api = {
     })
   },
 
+  async listProactiveSuggestions(
+    status: 'pending' | 'applied' | 'dismissed' = 'pending',
+  ): Promise<ProactiveSuggestion[]> {
+    return request<ProactiveSuggestion[]>(`/api/proactive-suggestions?status=${status}`)
+  },
+  async generateProactiveSuggestions(): Promise<{ inserted: number; suggestions: ProactiveSuggestion[] }> {
+    return request('/api/proactive-suggestions', { method: 'POST', body: '{}' })
+  },
+  async resolveProactiveSuggestion(id: string, status: 'applied' | 'dismissed'): Promise<void> {
+    await request<void>(`/api/proactive-suggestions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    })
+  },
+
   async reclassifyEntities(): Promise<ReclassifyResponse> {
     return request<ReclassifyResponse>('/api/reclassify-entities', {
       method: 'POST',
@@ -550,6 +565,27 @@ export type ChatMessage = {
   content: string
   proposal: ChatProposal | null
   createdAt: string
+}
+
+export type ProactiveSuggestion = {
+  id: string
+  kind: 'relationship' | 'reclassification' | 'description' | string
+  payload: {
+    fromName?: string
+    toName?: string
+    type?: string
+    entityId?: string
+    name?: string
+    oldType?: string
+    newType?: string
+    description?: string
+    reason?: string
+  }
+  status: 'pending' | 'applied' | 'dismissed'
+  provider: string | null
+  model: string | null
+  createdAt: string
+  statusChangedAt: string | null
 }
 
 export type AITaskKey =

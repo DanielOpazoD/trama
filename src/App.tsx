@@ -14,6 +14,7 @@ import { QuotesView } from './components/QuotesView'
 import { RelationshipsView } from './components/RelationshipsView'
 import { ListeningView } from './components/ListeningView'
 import { ChatView } from './components/ChatView'
+import { ProactiveView } from './components/ProactiveView'
 import { ExtractBar } from './components/ExtractBar'
 import { ProposalPanel } from './components/ProposalPanel'
 import { NodeDetailPanel } from './components/NodeDetailPanel'
@@ -109,6 +110,7 @@ function Shell() {
                     onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
                   />
                 )}
+                {view === 'sugerencias' && <ProactiveView />}
               </div>
             )}
           </div>

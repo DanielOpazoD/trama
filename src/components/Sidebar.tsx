@@ -15,10 +15,11 @@ import {
   RelationsIcon,
   SearchIcon,
   SettingsIcon,
+  SparkleIcon,
   TramaMark,
 } from './Icons'
 
-export type ViewMode = 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'chat'
+export type ViewMode = 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'chat' | 'sugerencias'
 
 type NavItem = {
   value: ViewMode
@@ -33,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { value: 'relaciones', label: 'Relaciones', icon: RelationsIcon },
   { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
   { value: 'chat', label: 'Chat', icon: ChatIcon },
+  { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
 ]
 
 export function Sidebar({
@@ -65,6 +67,7 @@ export function Sidebar({
     relaciones: relationships.length,
     escuchas: null,
     chat: null,
+    sugerencias: null,
   }
 
   const searchResults = useMemo(() => {

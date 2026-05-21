@@ -19,6 +19,11 @@ export {
 export { useReclassifyEntities } from './useReclassifyEntities'
 export { useAISettingsQuery, useSetAITaskProvider } from './useAISettings'
 export {
+  useProactiveQuery,
+  useGenerateProactive,
+  useResolveProactive,
+} from './useProactive'
+export {
   useChatThreadsQuery,
   useCreateChatThread,
   useDeleteChatThread,
