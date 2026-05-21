@@ -2,7 +2,9 @@
 
 Mapa cognitivo personal de afinidades intelectuales y estéticas.
 
-Una webapp donde escribes texto desordenado sobre lo que estás leyendo, escuchando o pensando — y una IA extrae entidades (personas, libros, conceptos, canciones…) y las conecta entre sí. El producto es un **grafo** que crece con el tiempo: tu propia constelación de influencias.
+Un lugar donde guardar las ideas que han pasado por la cabeza —propias o prestadas— y dejar que con el tiempo el mapa muestre por dónde se ha movido el pensamiento, qué patrones aparecen, qué cosas aparentemente desconectadas resultan estar unidas.
+
+> Para entender **qué es Trama y por qué existe**, ver [`FILOSOFIA.md`](./FILOSOFIA.md). Es la pieza más importante del repositorio.
 
 ## Stack
 
@@ -12,7 +14,8 @@ Una webapp donde escribes texto desordenado sobre lo que estás leyendo, escucha
 - **LLM:** DeepSeek por defecto, con abstracción multi-proveedor (OpenAI, Anthropic, Gemini)
 - **Tests:** Vitest
 
-Ver [`ARCHITECTURE.md`](./ARCHITECTURE.md) para el detalle de decisiones y modelo de datos.
+Ver [`ARCHITECTURE.md`](./ARCHITECTURE.md) para detalle de decisiones técnicas y modelo de datos.
+Ver [`CLAUDE.md`](./CLAUDE.md) para convenciones que no deben romperse sin pensarlo dos veces.
 
 ## Desarrollo local
 
