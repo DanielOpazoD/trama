@@ -23,8 +23,11 @@ const GROUP_LABEL: Record<Group, string> = {
   track: 'Canciones',
 }
 
+// Default entity types when promoting a Spotify play into the trama. 'artist'
+// gets 'musico' because that covers both solo artists and band members; the
+// user can reclassify to 'banda' later via the AI button.
 const ENTITY_TYPE_FOR_GROUP: Record<Group, EntityType> = {
-  artist: 'persona',
+  artist: 'musico',
   album: 'album',
   track: 'cancion',
 }

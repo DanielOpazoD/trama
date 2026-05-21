@@ -58,6 +58,7 @@ export default withObservability('entities', async (req: Request, context: Conte
   if (req.method === 'PATCH' && id) {
     const body = (await req.json()) as {
       name?: string
+      type?: string
       year?: number | null
       description?: string | null
       position_x?: number | null
@@ -68,6 +69,7 @@ export default withObservability('entities', async (req: Request, context: Conte
       UPDATE entities
       SET
         name        = COALESCE(${body.name ?? null}, name),
+        type        = COALESCE(${body.type ?? null}, type),
         year        = CASE WHEN ${body.year !== undefined} THEN ${body.year ?? null} ELSE year END,
         description = CASE WHEN ${body.description !== undefined} THEN ${body.description ?? null} ELSE description END,
         position_x  = CASE WHEN ${body.position_x !== undefined} THEN ${body.position_x ?? null} ELSE position_x END,

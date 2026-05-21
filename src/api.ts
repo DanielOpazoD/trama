@@ -135,6 +135,12 @@ export const api = {
       body: JSON.stringify({ position_x: positionX, position_y: positionY }),
     })
   },
+  async updateEntityType(id: string, type: string): Promise<void> {
+    await request<void>(`/api/entities/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ type }),
+    })
+  },
   async deleteEntity(id: string): Promise<void> {
     await request<void>(`/api/entities/${id}`, { method: 'DELETE' })
   },
@@ -192,6 +198,13 @@ export const api = {
 
   async suggestRelationships(): Promise<ExtractionProposal> {
     return request<ExtractionProposal>('/api/suggest-relationships', {
+      method: 'POST',
+      body: '{}',
+    })
+  },
+
+  async reclassifyEntities(): Promise<ReclassifyResponse> {
+    return request<ReclassifyResponse>('/api/reclassify-entities', {
       method: 'POST',
       body: '{}',
     })
@@ -314,4 +327,16 @@ export type ExtractionLogResponse = {
 export type SearchResults = {
   entities: Array<{ id: string; name: string; type: string; rank: number }>
   quotes: Array<{ id: string; entityId: string; text: string; rank: number }>
+}
+
+export type Reclassification = {
+  id: string
+  name: string
+  oldType: string
+  newType: string
+  reason?: string
+}
+
+export type ReclassifyResponse = {
+  reclassifications: Reclassification[]
 }

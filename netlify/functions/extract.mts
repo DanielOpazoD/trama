@@ -9,7 +9,11 @@ import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
 // Fallback types if the type tables are not yet populated (first deploy, etc).
 const FALLBACK_ENTITY_TYPES = [
-  'persona', 'libro', 'cancion', 'album', 'pelicula', 'obra', 'concepto', 'idea',
+  'persona', 'escritor', 'filosofo', 'musico', 'banda', 'director', 'artista', 'cientifico',
+  'libro', 'ensayo', 'poema', 'articulo',
+  'cancion', 'podcast', 'album', 'disco',
+  'pelicula', 'serie', 'documental',
+  'obra', 'concepto', 'idea', 'lugar', 'evento',
 ]
 const FALLBACK_RELATIONSHIP_TYPES = [
   'influye_en', 'cita_a', 'responde_a', 'me_llego_por',

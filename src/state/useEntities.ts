@@ -93,6 +93,29 @@ export function useUpdateEntityPosition() {
   }
 }
 
+export function useUpdateEntityType() {
+  const queryClient = useQueryClient()
+  const { offline } = useOffline()
+
+  return useMutation({
+    mutationFn: async ({ id, type }: { id: string; type: string }) => {
+      if (!offline) await api.updateEntityType(id, type)
+      return { id, type }
+    },
+    onSuccess: ({ id, type }) => {
+      queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) =>
+        (prev ?? []).map((entity) =>
+          entity.id === id ? { ...entity, type } : entity,
+        ),
+      )
+      if (offline) {
+        const e = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
+        storage.saveEntities(e)
+      }
+    },
+  })
+}
+
 export function useDeleteEntity() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()

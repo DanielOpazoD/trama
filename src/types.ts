@@ -1,24 +1,38 @@
 // ---------- Entity types ----------
+//
+// EntityType is intentionally just `string`: the real source of truth lives in
+// the `entity_types` table in Postgres, so adding a new type (banda, escritor,
+// podcast, etc.) is a SQL insert — no code change required. ENTITY_TYPES below
+// is a fallback used by older UI surfaces that haven't migrated to the dynamic
+// list yet; keep it in sync with the seed migrations.
 
-export type EntityType =
-  | 'persona'
-  | 'libro'
-  | 'cancion'
-  | 'album'
-  | 'pelicula'
-  | 'obra'
-  | 'concepto'
-  | 'idea'
+export type EntityType = string
 
 export const ENTITY_TYPES: { value: EntityType; label: string }[] = [
   { value: 'persona', label: 'persona' },
+  { value: 'escritor', label: 'escritor' },
+  { value: 'filosofo', label: 'filósofo' },
+  { value: 'musico', label: 'músico' },
+  { value: 'banda', label: 'banda / grupo' },
+  { value: 'director', label: 'director' },
+  { value: 'artista', label: 'artista' },
+  { value: 'cientifico', label: 'científico' },
   { value: 'libro', label: 'libro' },
+  { value: 'ensayo', label: 'ensayo' },
+  { value: 'poema', label: 'poema' },
+  { value: 'articulo', label: 'artículo' },
   { value: 'cancion', label: 'canción' },
+  { value: 'podcast', label: 'podcast' },
   { value: 'album', label: 'álbum' },
+  { value: 'disco', label: 'disco' },
   { value: 'pelicula', label: 'película' },
+  { value: 'serie', label: 'serie' },
+  { value: 'documental', label: 'documental' },
   { value: 'obra', label: 'obra' },
   { value: 'concepto', label: 'concepto' },
   { value: 'idea', label: 'idea' },
+  { value: 'lugar', label: 'lugar' },
+  { value: 'evento', label: 'evento' },
 ]
 
 // ---------- Relationship types ----------

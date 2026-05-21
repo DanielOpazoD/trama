@@ -12,8 +12,10 @@ export {
   useEntitiesQuery,
   useAddEntity,
   useUpdateEntityPosition,
+  useUpdateEntityType,
   useDeleteEntity,
 } from './useEntities'
+export { useReclassifyEntities } from './useReclassifyEntities'
 export {
   useRelationshipsQuery,
   useAddRelationship,

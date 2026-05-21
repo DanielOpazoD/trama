@@ -6,8 +6,13 @@ import {
   useRelationshipsQuery,
   useAddEntity,
   useDeleteEntity,
+  useOffline,
+  useReclassifyEntities,
+  useUpdateEntityType,
 } from '../state'
+import type { Reclassification } from '../api'
 import { ChevronRightIcon, SparkleIcon } from './Icons'
+import { ReclassifyPanel } from './ReclassifyPanel'
 
 export function EntitiesView({
   onSelectEntity,
@@ -19,12 +24,31 @@ export function EntitiesView({
   const { data: relationships = [] } = useRelationshipsQuery()
   const addEntity = useAddEntity()
   const deleteEntity = useDeleteEntity()
+  const reclassify = useReclassifyEntities()
+  const updateType = useUpdateEntityType()
+  const { offline } = useOffline()
 
   const [name, setName] = useState('')
   const [type, setType] = useState<EntityType>('persona')
   const [year, setYear] = useState('')
   const [description, setDescription] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [pending, setPending] = useState<Reclassification[] | null>(null)
+  const [emptyHint, setEmptyHint] = useState(false)
+
+  async function handleReclassify() {
+    setEmptyHint(false)
+    try {
+      const res = await reclassify.mutateAsync()
+      if (res.reclassifications.length === 0) {
+        setEmptyHint(true)
+        return
+      }
+      setPending(res.reclassifications)
+    } catch {
+      // surfaces via reclassify.error
+    }
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -55,13 +79,64 @@ export function EntitiesView({
             obras, conceptos, ideas. Cada nodo del grafo es una entidad.
           </p>
         </div>
-        <button
-          onClick={() => setShowForm((s) => !s)}
-          className="text-xs uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
-        >
-          {showForm ? 'cerrar' : 'añadir manualmente'}
-        </button>
+        <div className="flex items-baseline gap-4 shrink-0">
+          {entities.length > 0 && (
+            <button
+              onClick={handleReclassify}
+              disabled={reclassify.isPending || offline}
+              className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.18em] text-sky-700/80 hover:text-sky-900 disabled:text-ink-200 disabled:cursor-not-allowed transition-colors"
+              title="La IA revisa los tipos actuales y propone reclasificaciones cuando hay uno mejor"
+            >
+              {reclassify.isPending ? (
+                <>
+                  <span className="size-3 border-2 border-sky-700/30 border-t-sky-700 rounded-full animate-spin" />
+                  revisando…
+                </>
+              ) : (
+                <>
+                  <SparkleIcon size={11} />
+                  reclasificar con IA
+                </>
+              )}
+            </button>
+          )}
+          <button
+            onClick={() => setShowForm((s) => !s)}
+            className="text-xs uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+          >
+            {showForm ? 'cerrar' : 'añadir manualmente'}
+          </button>
+        </div>
       </header>
+
+      {reclassify.error && (
+        <div className="mb-6 px-4 py-3 bg-red-50/80 border border-red-200/60 rounded-xl text-sm text-red-800">
+          {reclassify.error.message}
+        </div>
+      )}
+      {emptyHint && !reclassify.isPending && (
+        <div className="mb-6 px-4 py-3 bg-paper-100/60 border border-ink-100/60 rounded-xl text-sm text-ink-500 leading-relaxed">
+          La IA no encontró mejores clasificaciones. Si hay alguna entidad obviamente mal tipada,
+          puedes corregirla a mano (próximamente desde el detalle).
+        </div>
+      )}
+      {pending && (
+        <ReclassifyPanel
+          proposals={pending}
+          onClose={() => setPending(null)}
+          onApply={async (selected) => {
+            // Fire updates sequentially to avoid hitting the same row twice.
+            for (const r of selected) {
+              try {
+                await updateType.mutateAsync({ id: r.id, type: r.newType })
+              } catch {
+                /* skip; surface in mutation state */
+              }
+            }
+            setPending(null)
+          }}
+        />
+      )}
 
       {showForm && (
         <form
