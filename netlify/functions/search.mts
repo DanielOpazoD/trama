@@ -42,10 +42,9 @@ export default async (req: Request) => {
   const [entities, quotes] = await Promise.all([
     sql`
       SELECT id, name, type,
-             ts_rank(search_vector, ${tsq}) + similarity(name, ${q}) * 0.5 AS rank
+             ts_rank(search_vector, ${tsq}) AS rank
       FROM entities
-      WHERE deleted_at IS NULL
-        AND (search_vector @@ ${tsq} OR name % ${q})
+      WHERE deleted_at IS NULL AND search_vector @@ ${tsq}
       ORDER BY rank DESC
       LIMIT 25
     ` as unknown as Promise<EntityHit[]>,
