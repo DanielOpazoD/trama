@@ -206,21 +206,16 @@ export function Sidebar({
       <header className="px-3 py-4 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5 trama-mark-interactive" title="Trama">
           <TramaMark size={26} className="text-ink-700 shrink-0" />
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <div className="flex items-baseline gap-2">
-              <h1 className="wordmark text-2xl text-ink-700 leading-none">Trama</h1>
-              {offline && (
-                <span
-                  title="Sin conexión al backend"
-                  className="text-[9px] uppercase tracking-[0.18em] text-amber-700/80 leading-none"
-                >
-                  local
-                </span>
-              )}
-            </div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-ink-200">
-              mapa de afinidades
-            </p>
+          <div className="flex items-baseline gap-2 min-w-0">
+            <h1 className="wordmark text-2xl text-ink-700 leading-none">Trama</h1>
+            {offline && (
+              <span
+                title="Sin conexión al backend"
+                className="text-[9px] uppercase tracking-[0.18em] text-amber-700/80 leading-none"
+              >
+                local
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-0.5 -mr-1 shrink-0">

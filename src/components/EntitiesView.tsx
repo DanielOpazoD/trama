@@ -43,12 +43,13 @@ export function EntitiesView() {
 
   return (
     <>
-      <header className="mb-10 flex items-baseline justify-between">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.22em] text-ink-300 mb-1">
-            catálogo
+      <header className="mb-10 flex items-baseline justify-between gap-6">
+        <div className="min-w-0">
+          <h2 className="font-serif text-4xl text-ink-700 leading-none">Entidades</h2>
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-md">
+            Las cosas que conectas: personas, libros, canciones, álbumes, películas,
+            obras, conceptos, ideas. Cada nodo del grafo es una entidad.
           </p>
-          <h2 className="font-serif text-4xl text-ink-700">Entidades</h2>
         </div>
         <button
           onClick={() => setShowForm((s) => !s)}

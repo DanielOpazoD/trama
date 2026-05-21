@@ -40,12 +40,13 @@ export function RelationshipsView() {
 
   return (
     <>
-      <header className="mb-10 flex items-baseline justify-between">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.22em] text-ink-300 mb-1">
-            tejido
+      <header className="mb-10 flex items-baseline justify-between gap-6">
+        <div className="min-w-0">
+          <h2 className="font-serif text-4xl text-ink-700 leading-none">Relaciones</h2>
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-md">
+            Vínculos entre dos entidades — quién influye en quién, qué cita a qué,
+            qué te llegó por dónde. Las líneas del grafo.
           </p>
-          <h2 className="font-serif text-4xl text-ink-700">Relaciones</h2>
         </div>
         {entities.length >= 2 && (
           <button

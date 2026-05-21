@@ -56,7 +56,7 @@ export function Splash() {
             strokeLinecap="round"
           />
         </svg>
-        <p className="wordmark text-3xl text-ink-700 mark-thread">Trama</p>
+        <p className="wordmark text-3xl text-ink-700 mark-thread leading-none">Trama</p>
       </div>
     </div>
   )
