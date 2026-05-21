@@ -2,6 +2,21 @@ import { useState, type FormEvent } from 'react'
 import { useEntitiesQuery, useQuotesQuery, useAddQuote, useDeleteQuote } from '../state'
 import { SparkleIcon } from './Icons'
 
+/** Drop-cap on the first letter of a quote — adds editorial weight. */
+function withDropCap(text: string) {
+  if (!text) return null
+  const first = text[0]
+  const rest = text.slice(1)
+  return (
+    <>
+      <span className="float-left mr-2 mt-1 text-6xl leading-[0.85] font-serif text-ink-700 select-none">
+        {first}
+      </span>
+      {rest}
+    </>
+  )
+}
+
 export function QuotesView() {
   const { data: entities = [] } = useEntitiesQuery()
   const { data: quotes = [] } = useQuotesQuery()
@@ -35,8 +50,13 @@ export function QuotesView() {
 
   return (
     <>
-      <header className="mb-8 flex items-baseline justify-between">
-        <h2 className="font-serif text-3xl text-ink-700">Citas</h2>
+      <header className="mb-10 flex items-baseline justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.22em] text-ink-300 mb-1">
+            florilegio
+          </p>
+          <h2 className="font-serif text-4xl text-ink-700">Citas</h2>
+        </div>
         {entities.length > 0 && (
           <button
             onClick={() => setShowForm((s) => !s)}
@@ -57,7 +77,7 @@ export function QuotesView() {
           {showForm && (
             <form
               onSubmit={handleSubmit}
-              className="mb-10 p-4 bg-paper-100/50 border border-ink-100 rounded-lg space-y-3"
+              className="mb-12 p-4 bg-paper-100/50 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
             >
               <select
                 value={entityId}
@@ -101,21 +121,38 @@ export function QuotesView() {
           {quotes.length === 0 ? (
             <p className="text-ink-400 italic leading-relaxed">Aún sin citas.</p>
           ) : (
-            <ul className="space-y-8">
-              {quotes.map((quote) => {
+            <ul className="space-y-14">
+              {quotes.map((quote, index) => {
                 const entity = entities.find((e) => e.id === quote.entityId)
+                // First quote gets the editorial drop-cap treatment;
+                // others get a slightly smaller, still elegant block.
+                const isFeature = index === 0
                 return (
-                  <li key={quote.id} className="group">
-                    <blockquote className="font-serif text-ink-600 italic leading-relaxed border-l-2 border-ink-200 pl-4">
-                      «{quote.text}»
-                    </blockquote>
-                    <div className="mt-2 pl-4 flex justify-between items-baseline gap-4">
+                  <li
+                    key={quote.id}
+                    className="group animate-fade-up"
+                    style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
+                  >
+                    {isFeature ? (
+                      <blockquote className="quote-block text-2xl md:text-3xl text-ink-700 leading-snug clear-both overflow-hidden">
+                        {withDropCap(quote.text)}
+                      </blockquote>
+                    ) : (
+                      <blockquote className="quote-block text-lg md:text-xl text-ink-600 leading-relaxed border-l-2 border-ink-200 pl-5">
+                        «{quote.text}»
+                      </blockquote>
+                    )}
+                    <div
+                      className={`mt-3 flex justify-between items-baseline gap-4 ${
+                        isFeature ? '' : 'pl-5'
+                      }`}
+                    >
                       <div className="text-sm">
                         <span className="text-ink-500">
                           — {entity?.name ?? 'entidad eliminada'}
                         </span>
                         {quote.source && (
-                          <span className="text-ink-300 ml-2">· {quote.source}</span>
+                          <span className="text-ink-300 ml-2 italic">· {quote.source}</span>
                         )}
                         {quote.origin.kind === 'ai' && (
                           <span className="ml-1.5 inline-flex items-center text-sky-700/70" title="propuesta por IA">
@@ -131,7 +168,11 @@ export function QuotesView() {
                       </button>
                     </div>
                     {quote.context && (
-                      <p className="mt-1 pl-4 text-ink-400 text-sm leading-relaxed">
+                      <p
+                        className={`mt-2 text-ink-400 text-sm leading-relaxed italic ${
+                          isFeature ? '' : 'pl-5'
+                        }`}
+                      >
                         {quote.context}
                       </p>
                     )}

@@ -40,8 +40,13 @@ export function RelationshipsView() {
 
   return (
     <>
-      <header className="mb-8 flex items-baseline justify-between">
-        <h2 className="font-serif text-3xl text-ink-700">Relaciones</h2>
+      <header className="mb-10 flex items-baseline justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.22em] text-ink-300 mb-1">
+            tejido
+          </p>
+          <h2 className="font-serif text-4xl text-ink-700">Relaciones</h2>
+        </div>
         {entities.length >= 2 && (
           <button
             onClick={() => setShowForm((s) => !s)}
@@ -61,7 +66,7 @@ export function RelationshipsView() {
           {showForm && (
             <form
               onSubmit={handleSubmit}
-              className="mb-10 p-4 bg-paper-100/50 border border-ink-100 rounded-lg space-y-3"
+              className="mb-10 p-4 bg-paper-100/50 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
             >
               <div className="flex flex-col sm:flex-row gap-3">
                 <select
@@ -111,7 +116,7 @@ export function RelationshipsView() {
             <p className="text-ink-400 italic leading-relaxed">Aún sin relaciones.</p>
           ) : (
             <ul className="space-y-2">
-              {relationships.map((rel) => {
+              {relationships.map((rel, idx) => {
                 const from = entities.find((entity) => entity.id === rel.fromId)
                 const to = entities.find((entity) => entity.id === rel.toId)
                 const typeLabel =
@@ -119,7 +124,8 @@ export function RelationshipsView() {
                 return (
                   <li
                     key={rel.id}
-                    className="group p-3 bg-paper-50 border border-ink-100/60 rounded-lg transition-shadow hover:shadow-sm"
+                    className="group p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl transition-all duration-200 hover:shadow-md hover:shadow-ink-900/5 hover:border-ink-100 hover:bg-paper-50/70 animate-fade-up"
+                    style={{ animationDelay: `${Math.min(idx * 40, 280)}ms` }}
                   >
                     <div className="flex justify-between items-baseline gap-4">
                       <div className="text-ink-600 leading-relaxed">

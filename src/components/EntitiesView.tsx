@@ -43,8 +43,13 @@ export function EntitiesView() {
 
   return (
     <>
-      <header className="mb-8 flex items-baseline justify-between">
-        <h2 className="font-serif text-3xl text-ink-700">Entidades</h2>
+      <header className="mb-10 flex items-baseline justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.22em] text-ink-300 mb-1">
+            catálogo
+          </p>
+          <h2 className="font-serif text-4xl text-ink-700">Entidades</h2>
+        </div>
         <button
           onClick={() => setShowForm((s) => !s)}
           className="text-xs uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
@@ -56,7 +61,7 @@ export function EntitiesView() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="mb-10 p-4 bg-paper-100/50 border border-ink-100 rounded-lg space-y-3"
+          className="mb-10 p-4 bg-paper-100/50 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
         >
           <div className="flex flex-col sm:flex-row gap-3">
             <input
@@ -106,7 +111,7 @@ export function EntitiesView() {
         </p>
       ) : (
         <ul className="space-y-2">
-          {entities.map((entity) => {
+          {entities.map((entity, idx) => {
             const quoteCount = quotes.filter((q) => q.entityId === entity.id).length
             const relCount = relationships.filter(
               (r) => r.fromId === entity.id || r.toId === entity.id,
@@ -114,7 +119,8 @@ export function EntitiesView() {
             return (
               <li
                 key={entity.id}
-                className="group p-3 bg-paper-50 border border-ink-100/60 rounded-lg transition-shadow hover:shadow-sm"
+                className="group p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl transition-all duration-200 hover:shadow-md hover:shadow-ink-900/5 hover:border-ink-100 hover:bg-paper-50/70 animate-fade-up"
+                style={{ animationDelay: `${Math.min(idx * 40, 280)}ms` }}
               >
                 <div className="flex justify-between items-baseline gap-4">
                   <div className="min-w-0">
