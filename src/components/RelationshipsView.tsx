@@ -1,28 +1,51 @@
 import { useState, type FormEvent } from 'react'
-import { RELATIONSHIP_TYPES, type RelationshipType } from '../types'
+import { RELATIONSHIP_TYPES, type ExtractionProposal, type RelationshipType } from '../types'
 import {
   useEntitiesQuery,
   useRelationshipsQuery,
   useAddRelationship,
   useDeleteRelationship,
+  useSuggestRelationships,
+  useOffline,
 } from '../state'
 import { SparkleIcon } from './Icons'
 
 export function RelationshipsView({
   onSelectEntity,
+  onProposal,
 }: {
   onSelectEntity?: (id: string) => void
+  onProposal?: (text: string, proposal: ExtractionProposal) => void
 }) {
   const { data: entities = [] } = useEntitiesQuery()
   const { data: relationships = [] } = useRelationshipsQuery()
   const addRelationship = useAddRelationship()
   const deleteRelationship = useDeleteRelationship()
+  const suggest = useSuggestRelationships()
+  const { offline } = useOffline()
 
   const [fromId, setFromId] = useState('')
   const [type, setType] = useState<RelationshipType>('influye_en')
   const [toId, setToId] = useState('')
   const [notes, setNotes] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [emptyHint, setEmptyHint] = useState<string | null>(null)
+
+  async function handleSuggest() {
+    setEmptyHint(null)
+    try {
+      const proposal = await suggest.mutateAsync()
+      if (proposal.relationships.length === 0) {
+        setEmptyHint(
+          'La IA no encontró relaciones nuevas obvias. Si esperabas alguna, prueba dándole más contexto: añade citas o descripciones a las entidades.',
+        )
+        return
+      }
+      onProposal?.('Sugerencias entre entidades existentes', proposal)
+    } catch {
+      // surfaces via suggest.error
+    }
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -53,14 +76,45 @@ export function RelationshipsView({
           </p>
         </div>
         {entities.length >= 2 && (
-          <button
-            onClick={() => setShowForm((s) => !s)}
-            className="text-xs uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
-          >
-            {showForm ? 'cerrar' : 'añadir manualmente'}
-          </button>
+          <div className="flex items-baseline gap-4 shrink-0">
+            <button
+              onClick={handleSuggest}
+              disabled={suggest.isPending || offline}
+              className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.18em] text-sky-700/80 hover:text-sky-900 disabled:text-ink-200 disabled:cursor-not-allowed transition-colors"
+              title="Sugerir relaciones nuevas entre entidades ya existentes"
+            >
+              {suggest.isPending ? (
+                <>
+                  <span className="size-3 border-2 border-sky-700/30 border-t-sky-700 rounded-full animate-spin" />
+                  pensando…
+                </>
+              ) : (
+                <>
+                  <SparkleIcon size={11} />
+                  descubrir con IA
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => setShowForm((s) => !s)}
+              className="text-xs uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+            >
+              {showForm ? 'cerrar' : 'añadir manualmente'}
+            </button>
+          </div>
         )}
       </header>
+
+      {suggest.error && (
+        <div className="mb-6 px-4 py-3 bg-red-50/80 border border-red-200/60 rounded-xl text-sm text-red-800">
+          {suggest.error.message}
+        </div>
+      )}
+      {emptyHint && !suggest.isPending && (
+        <div className="mb-6 px-4 py-3 bg-paper-100/60 border border-ink-100/60 rounded-xl text-sm text-ink-500 leading-relaxed">
+          {emptyHint}
+        </div>
+      )}
 
       {entities.length < 2 ? (
         <p className="text-ink-400 italic leading-relaxed">

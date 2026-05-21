@@ -95,7 +95,10 @@ function Shell() {
                   <QuotesView onSelectEntity={setSelectedEntityId} />
                 )}
                 {view === 'relaciones' && (
-                  <RelationshipsView onSelectEntity={setSelectedEntityId} />
+                  <RelationshipsView
+                    onSelectEntity={setSelectedEntityId}
+                    onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
+                  />
                 )}
                 {view === 'escuchas' && (
                   <ListeningView onSelectEntity={setSelectedEntityId} />

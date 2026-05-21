@@ -25,4 +25,5 @@ export {
   useDeleteQuote,
 } from './useQuotes'
 export { useExtract } from './useExtract'
+export { useSuggestRelationships } from './useSuggestRelationships'
 export { useExport, useImport } from './useExportImport'

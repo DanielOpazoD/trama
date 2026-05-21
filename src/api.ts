@@ -190,6 +190,13 @@ export const api = {
     })
   },
 
+  async suggestRelationships(): Promise<ExtractionProposal> {
+    return request<ExtractionProposal>('/api/suggest-relationships', {
+      method: 'POST',
+      body: '{}',
+    })
+  },
+
   async exportAll(): Promise<ExportPayload> {
     return request<ExportPayload>('/api/export')
   },
