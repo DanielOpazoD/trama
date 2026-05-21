@@ -17,6 +17,13 @@ export {
 } from './useEntities'
 export { useReclassifyEntities } from './useReclassifyEntities'
 export {
+  useChatThreadsQuery,
+  useCreateChatThread,
+  useDeleteChatThread,
+  useChatMessagesQuery,
+  useSendChatMessage,
+} from './useChat'
+export {
   useRelationshipsQuery,
   useAddRelationship,
   useDeleteRelationship,

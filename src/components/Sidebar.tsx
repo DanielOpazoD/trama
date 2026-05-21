@@ -7,6 +7,7 @@ import {
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
+  ChatIcon,
   EntitiesIcon,
   GraphIcon,
   MusicIcon,
@@ -17,7 +18,7 @@ import {
   TramaMark,
 } from './Icons'
 
-export type ViewMode = 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas'
+export type ViewMode = 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'chat'
 
 type NavItem = {
   value: ViewMode
@@ -31,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { value: 'citas', label: 'Citas', icon: QuoteIcon },
   { value: 'relaciones', label: 'Relaciones', icon: RelationsIcon },
   { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
+  { value: 'chat', label: 'Chat', icon: ChatIcon },
 ]
 
 export function Sidebar({
@@ -62,6 +64,7 @@ export function Sidebar({
     citas: quotes.length,
     relaciones: relationships.length,
     escuchas: null,
+    chat: null,
   }
 
   const searchResults = useMemo(() => {

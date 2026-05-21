@@ -37,15 +37,9 @@ export const ENTITY_TYPES: { value: EntityType; label: string }[] = [
 
 // ---------- Relationship types ----------
 
-export type RelationshipType =
-  | 'influye_en'
-  | 'cita_a'
-  | 'responde_a'
-  | 'me_llego_por'
-  | 'suena_como'
-  | 'inspira'
-  | 'contradice'
-  | 'asociado_con'
+// Like EntityType: the real source of truth is relationship_types in the DB.
+// Keep RELATIONSHIP_TYPES below in sync with the seed for the manual form.
+export type RelationshipType = string
 
 export const RELATIONSHIP_TYPES: {
   value: RelationshipType

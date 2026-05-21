@@ -13,7 +13,7 @@
 export type LLMProvider = 'deepseek' | 'openai' | 'gemini' | 'anthropic'
 
 export type LLMMessage = {
-  role: 'system' | 'user'
+  role: 'system' | 'user' | 'assistant'
   content: string
 }
 
@@ -177,24 +177,40 @@ async function fetchWithRetry(makeRequest: FetchAttempt, retries = 2): Promise<R
 // ---------- Main entry ----------
 
 export async function askLLMForJson(messages: LLMMessage[]): Promise<LLMResult> {
+  return callLLM(messages, 'json')
+}
+
+/**
+ * Like askLLMForJson but returns the model's reply as raw text (not parsed).
+ * Used by the chat where the assistant produces prose with an optional fenced
+ * JSON trailer for structured proposals.
+ */
+export async function askLLMForText(messages: LLMMessage[]): Promise<LLMResult> {
+  return callLLM(messages, 'text')
+}
+
+async function callLLM(
+  messages: LLMMessage[],
+  mode: 'json' | 'text',
+): Promise<LLMResult> {
   const provider = readProvider()
   const apiKey = readApiKey()
   const config = PROVIDER_DEFAULTS[provider]
   const maxTokens = readMaxTokens()
   const cacheTtl = readCacheTtlSeconds()
 
-  const cacheKey = await hashMessages(messages, provider)
+  const cacheKey = await hashMessages(messages, `${provider}|${mode}`)
   const cached = getCached(cacheKey)
   if (cached) return cached
 
   const start = Date.now()
   let raw: RawResult
   if (provider === 'gemini') {
-    raw = await askGemini(apiKey, config, messages, maxTokens)
+    raw = await askGemini(apiKey, config, messages, maxTokens, mode)
   } else if (provider === 'anthropic') {
-    raw = await askAnthropic(apiKey, config, messages, maxTokens)
+    raw = await askAnthropic(apiKey, config, messages, maxTokens, mode)
   } else {
-    raw = await askOpenAICompatible(apiKey, config, messages, maxTokens)
+    raw = await askOpenAICompatible(apiKey, config, messages, maxTokens, mode)
   }
 
   const result: LLMResult = {
@@ -221,18 +237,21 @@ async function askOpenAICompatible(
   config: ProviderConfig,
   messages: LLMMessage[],
   maxTokens: number,
+  mode: 'json' | 'text',
 ): Promise<RawResult> {
+  const body: Record<string, unknown> = {
+    model: config.model,
+    messages,
+    temperature: mode === 'json' ? 0.2 : 0.6,
+    max_tokens: maxTokens,
+  }
+  if (mode === 'json') body.response_format = { type: 'json_object' }
+
   const response = await fetchWithRetry(() =>
     fetch(`${config.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: config.model,
-        messages,
-        response_format: { type: 'json_object' },
-        temperature: 0.2,
-        max_tokens: maxTokens,
-      }),
+      body: JSON.stringify(body),
     }),
   )
 
@@ -248,7 +267,7 @@ async function askOpenAICompatible(
   const text = data.choices?.[0]?.message?.content
   if (!text) throw new Error('LLM no devolvió contenido')
   return {
-    content: JSON.parse(text),
+    content: mode === 'json' ? JSON.parse(text) : text,
     tokensIn: data.usage?.prompt_tokens ?? 0,
     tokensOut: data.usage?.completion_tokens ?? 0,
   }
@@ -259,11 +278,17 @@ async function askAnthropic(
   config: ProviderConfig,
   messages: LLMMessage[],
   maxTokens: number,
+  mode: 'json' | 'text',
 ): Promise<RawResult> {
   const system = messages.find((m) => m.role === 'system')?.content ?? ''
-  const userMessages = messages
-    .filter((m) => m.role === 'user')
-    .map((m) => ({ role: 'user' as const, content: m.content }))
+  const nonSystemMessages = messages
+    .filter((m) => m.role !== 'system')
+    .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+
+  const systemPrompt =
+    mode === 'json'
+      ? system + '\n\nRespond ONLY with a JSON object. No markdown, no commentary.'
+      : system
 
   const response = await fetchWithRetry(() =>
     fetch(`${config.baseUrl}/messages`, {
@@ -275,10 +300,10 @@ async function askAnthropic(
       },
       body: JSON.stringify({
         model: config.model,
-        system: system + '\n\nRespond ONLY with a JSON object. No markdown, no commentary.',
-        messages: userMessages,
+        system: systemPrompt,
+        messages: nonSystemMessages,
         max_tokens: maxTokens,
-        temperature: 0.2,
+        temperature: mode === 'json' ? 0.2 : 0.6,
       }),
     }),
   )
@@ -295,7 +320,7 @@ async function askAnthropic(
   const text = data.content?.find((c) => c.type === 'text')?.text
   if (!text) throw new Error('Anthropic no devolvió texto')
   return {
-    content: JSON.parse(text),
+    content: mode === 'json' ? JSON.parse(text) : text,
     tokensIn: data.usage?.input_tokens ?? 0,
     tokensOut: data.usage?.output_tokens ?? 0,
   }
@@ -306,9 +331,22 @@ async function askGemini(
   config: ProviderConfig,
   messages: LLMMessage[],
   maxTokens: number,
+  mode: 'json' | 'text',
 ): Promise<RawResult> {
   const system = messages.find((m) => m.role === 'system')?.content ?? ''
-  const userText = messages.filter((m) => m.role === 'user').map((m) => m.content).join('\n\n')
+  // Gemini accepts a chat-like sequence under `contents`. Map roles: 'assistant' → 'model'.
+  const contents = messages
+    .filter((m) => m.role !== 'system')
+    .map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }))
+
+  const generationConfig: Record<string, unknown> = {
+    temperature: mode === 'json' ? 0.2 : 0.6,
+    maxOutputTokens: maxTokens,
+  }
+  if (mode === 'json') generationConfig.responseMimeType = 'application/json'
 
   const response = await fetchWithRetry(() =>
     fetch(`${config.baseUrl}/models/${config.model}:generateContent?key=${apiKey}`, {
@@ -316,12 +354,8 @@ async function askGemini(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: 'user', parts: [{ text: userText }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.2,
-          maxOutputTokens: maxTokens,
-        },
+        contents,
+        generationConfig,
       }),
     }),
   )
@@ -338,7 +372,7 @@ async function askGemini(
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text
   if (!text) throw new Error('Gemini no devolvió texto')
   return {
-    content: JSON.parse(text),
+    content: mode === 'json' ? JSON.parse(text) : text,
     tokensIn: data.usageMetadata?.promptTokenCount ?? 0,
     tokensOut: data.usageMetadata?.candidatesTokenCount ?? 0,
   }

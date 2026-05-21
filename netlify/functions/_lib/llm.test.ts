@@ -184,7 +184,7 @@ describe('askLLMForJson — Anthropic request shape', () => {
 describe('askLLMForJson — Gemini request shape', () => {
   beforeEach(() => stubEnv('gemini', 'test-key'))
 
-  it('puts system in systemInstruction and concatenates user messages', async () => {
+  it('puts system in systemInstruction and forwards each non-system message as its own contents item', async () => {
     const fetchMock = mockFetch(SIMPLE_RESPONSE_GEMINI)
     vi.stubGlobal('fetch', fetchMock)
 
@@ -197,8 +197,9 @@ describe('askLLMForJson — Gemini request shape', () => {
     const [, init] = fetchMock.mock.calls[0]
     const body = JSON.parse(init.body)
     expect(body.systemInstruction).toEqual({ parts: [{ text: 'sys' }] })
-    expect(body.contents[0].parts[0].text).toContain('a')
-    expect(body.contents[0].parts[0].text).toContain('b')
+    expect(body.contents).toHaveLength(2)
+    expect(body.contents[0]).toEqual({ role: 'user', parts: [{ text: 'a' }] })
+    expect(body.contents[1]).toEqual({ role: 'user', parts: [{ text: 'b' }] })
     expect(body.generationConfig.responseMimeType).toBe('application/json')
   })
 })

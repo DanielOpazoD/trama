@@ -210,6 +210,32 @@ export const api = {
     })
   },
 
+  // ---------- Chat ----------
+  async listChatThreads(): Promise<ChatThread[]> {
+    return request<ChatThread[]>('/api/chat/threads')
+  },
+  async createChatThread(title?: string): Promise<ChatThread> {
+    return request<ChatThread>('/api/chat/threads', {
+      method: 'POST',
+      body: JSON.stringify(title ? { title } : {}),
+    })
+  },
+  async deleteChatThread(id: string): Promise<void> {
+    await request<void>(`/api/chat/threads/${id}`, { method: 'DELETE' })
+  },
+  async listChatMessages(threadId: string): Promise<ChatMessage[]> {
+    return request<ChatMessage[]>(`/api/chat/threads/${threadId}/messages`)
+  },
+  async sendChatMessage(
+    threadId: string,
+    content: string,
+  ): Promise<{ userMessage: ChatMessage; assistantMessage?: ChatMessage; error?: string }> {
+    return request(`/api/chat/threads/${threadId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    })
+  },
+
   async exportAll(): Promise<ExportPayload> {
     return request<ExportPayload>('/api/export')
   },
@@ -327,6 +353,47 @@ export type ExtractionLogResponse = {
 export type SearchResults = {
   entities: Array<{ id: string; name: string; type: string; rank: number }>
   quotes: Array<{ id: string; entityId: string; text: string; rank: number }>
+}
+
+export type ChatThread = {
+  id: string
+  title: string | null
+  createdAt: string
+  updatedAt: string
+  messageCount: number
+}
+
+export type ChatProposal = {
+  entities?: Array<{
+    type: string
+    name: string
+    year?: number
+    description?: string
+  }>
+  relationships?: Array<{
+    fromName: string
+    toName: string
+    type: string
+    notes?: string
+  }>
+  quotes?: Array<{
+    entityName: string
+    text: string
+    source?: string
+  }>
+  reclassifications?: Array<{
+    name: string
+    newType: string
+    reason?: string
+  }>
+}
+
+export type ChatMessage = {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  proposal: ChatProposal | null
+  createdAt: string
 }
 
 export type Reclassification = {

@@ -13,6 +13,7 @@ import { EntitiesView } from './components/EntitiesView'
 import { QuotesView } from './components/QuotesView'
 import { RelationshipsView } from './components/RelationshipsView'
 import { ListeningView } from './components/ListeningView'
+import { ChatView } from './components/ChatView'
 import { ExtractBar } from './components/ExtractBar'
 import { ProposalPanel } from './components/ProposalPanel'
 import { NodeDetailPanel } from './components/NodeDetailPanel'
@@ -87,7 +88,8 @@ function Shell() {
                 onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
               />
             )}
-            {view !== 'grafo' && (
+            {view === 'chat' && <ChatView />}
+            {view !== 'grafo' && view !== 'chat' && (
               <div className="h-full overflow-y-auto px-8 py-10 pb-32 max-w-3xl mx-auto">
                 {view === 'entidades' && (
                   <EntitiesView onSelectEntity={setSelectedEntityId} />
@@ -109,10 +111,12 @@ function Shell() {
           </div>
         )}
 
-        <ExtractBar
-          busy={showProposal}
-          onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
-        />
+        {view !== 'chat' && (
+          <ExtractBar
+            busy={showProposal}
+            onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
+          />
+        )}
       </main>
 
       <Settings
