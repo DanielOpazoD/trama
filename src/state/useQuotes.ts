@@ -7,8 +7,9 @@ import { useOffline } from './offline'
 
 const DEFAULT_ORIGIN: Origin = { kind: 'manual' }
 
-type QuoteInput = Omit<Quote, 'id' | 'createdAt' | 'updatedAt' | 'origin'> & {
+type QuoteInput = Omit<Quote, 'id' | 'createdAt' | 'updatedAt' | 'origin' | 'linkedQuoteIds'> & {
   origin?: Origin
+  linkedQuoteIds?: string[]
 }
 
 function newId(): string {
@@ -43,7 +44,8 @@ export function useAddQuote() {
   return useMutation({
     mutationFn: async (data: QuoteInput): Promise<Quote> => {
       const origin = data.origin ?? DEFAULT_ORIGIN
-      const payload = { ...data, origin }
+      const linkedQuoteIds = data.linkedQuoteIds ?? []
+      const payload = { ...data, origin, linkedQuoteIds }
       if (offline) {
         const created: Quote = {
           ...payload,
@@ -62,6 +64,50 @@ export function useAddQuote() {
         created,
         ...(prev ?? []),
       ])
+    },
+  })
+}
+
+type QuotePatch = Partial<{
+  text: string
+  source: string | null
+  context: string | null
+  userReflection: string | null
+  aiReflection: string | null
+  aiReflectionProvider: string | null
+  aiReflectionModel: string | null
+  linkedQuoteIds: string[]
+}>
+
+export function useUpdateQuote() {
+  const queryClient = useQueryClient()
+  const { offline } = useOffline()
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: QuotePatch }) => {
+      if (offline) throw new Error('Editar requiere conexión al backend.')
+      return api.updateQuote(id, patch)
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Quote[]>(queryKeys.quotes, (prev) =>
+        (prev ?? []).map((q) => (q.id === updated.id ? updated : q)),
+      )
+    },
+  })
+}
+
+/**
+ * Generate an on-demand AI interpretation for a quote.
+ *
+ * The result is returned but NOT persisted — the caller decides whether to
+ * save it (via useUpdateQuote) or discard. This keeps the "AI scribe, human
+ * curates" contract: the model produces a reading, the user decides.
+ */
+export function useReflectQuote() {
+  const { offline } = useOffline()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (offline) throw new Error('La reflexión IA requiere conexión al backend.')
+      return api.reflectQuote(id)
     },
   })
 }

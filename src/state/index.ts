@@ -32,6 +32,8 @@ export {
 export {
   useQuotesQuery,
   useAddQuote,
+  useUpdateQuote,
+  useReflectQuote,
   useDeleteQuote,
 } from './useQuotes'
 export { useExtract } from './useExtract'

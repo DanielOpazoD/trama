@@ -1,0 +1,310 @@
+import { useState } from 'react'
+import { useDeleteQuote, useReflectQuote, useUpdateQuote } from '../state'
+import type { Quote } from '../types'
+import { SparkleIcon } from './Icons'
+
+/**
+ * One quote, expanded.
+ *
+ * Shows the literal text, the source/context (if any), the user's own
+ * reflection (if any), and the AI reflection (if generated and saved).
+ *
+ * Affordances:
+ *   - "tu reflexión" → toggle to add/edit a user_reflection
+ *   - "pedir interpretación" → calls /api/quotes/:id/reflect, shows the
+ *     result inline with [guardar / descartar] buttons. Only persists if the
+ *     user confirms (same AI-scribe-human-curates contract).
+ *   - "eliminar" → soft-delete the quote.
+ *
+ * Linked quotes are rendered as small chips at the bottom — clicking one
+ * fires onSelectLinked(id) so the parent can scroll/highlight.
+ */
+export function QuoteCard({
+  quote,
+  linkedQuotes,
+  onSelectEntity,
+  onSelectLinked,
+}: {
+  quote: Quote
+  linkedQuotes?: Quote[]
+  onSelectEntity?: (id: string) => void
+  onSelectLinked?: (quoteId: string) => void
+}) {
+  const updateQuote = useUpdateQuote()
+  const reflectQuote = useReflectQuote()
+  const deleteQuote = useDeleteQuote()
+
+  const [editingUserRefl, setEditingUserRefl] = useState(false)
+  const [userReflDraft, setUserReflDraft] = useState(quote.userReflection ?? '')
+
+  // Pending AI reflection — generated but not yet saved.
+  const [pendingAi, setPendingAi] = useState<{ text: string; provider: string; model: string } | null>(null)
+  const [reflectError, setReflectError] = useState<string | null>(null)
+
+  async function handleSaveUserReflection() {
+    const next = userReflDraft.trim() || null
+    if ((quote.userReflection ?? null) === next) {
+      setEditingUserRefl(false)
+      return
+    }
+    try {
+      await updateQuote.mutateAsync({ id: quote.id, patch: { userReflection: next } })
+      setEditingUserRefl(false)
+    } catch {
+      // surfaces via updateQuote.error
+    }
+  }
+
+  async function handleAskReflection() {
+    setReflectError(null)
+    setPendingAi(null)
+    try {
+      const res = await reflectQuote.mutateAsync(quote.id)
+      setPendingAi({ text: res.reflection, provider: res.provider, model: res.model })
+    } catch (err) {
+      setReflectError(err instanceof Error ? err.message : 'Error pidiendo interpretación')
+    }
+  }
+
+  async function handleAcceptAi() {
+    if (!pendingAi) return
+    try {
+      await updateQuote.mutateAsync({
+        id: quote.id,
+        patch: {
+          aiReflection: pendingAi.text,
+          aiReflectionProvider: pendingAi.provider,
+          aiReflectionModel: pendingAi.model,
+        },
+      })
+      setPendingAi(null)
+    } catch {
+      /* surfaces */
+    }
+  }
+
+  async function handleDiscardAiSaved() {
+    try {
+      await updateQuote.mutateAsync({
+        id: quote.id,
+        patch: {
+          aiReflection: null,
+          aiReflectionProvider: null,
+          aiReflectionModel: null,
+        },
+      })
+    } catch {
+      /* surfaces */
+    }
+  }
+
+  return (
+    <li className="group border-l-2 border-ink-200/70 pl-3">
+      <blockquote className="font-serif text-ink-600 italic leading-relaxed text-sm">
+        «{quote.text}»
+      </blockquote>
+
+      <div className="mt-1 flex items-baseline gap-3 text-xs">
+        {quote.source && <span className="text-ink-400">{quote.source}</span>}
+        {quote.origin.kind === 'ai' && (
+          <span className="inline-flex items-center text-sky-700/70" title="propuesta por IA">
+            <SparkleIcon size={10} />
+          </span>
+        )}
+        <span
+          className="text-ink-300 tabular-nums"
+          title={`Añadida el ${new Date(quote.createdAt).toLocaleString('es')}`}
+        >
+          {new Date(quote.createdAt).toLocaleDateString('es', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })}
+        </span>
+        <span className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => deleteQuote.mutate(quote.id)}
+            className="text-ink-300 hover:text-red-700 text-[10px] uppercase tracking-[0.18em]"
+          >
+            eliminar
+          </button>
+        </span>
+      </div>
+
+      {quote.context && (
+        <p className="mt-1 text-ink-400 text-xs leading-relaxed">{quote.context}</p>
+      )}
+
+      {/* User reflection */}
+      <div className="mt-3">
+        {editingUserRefl ? (
+          <div className="space-y-2">
+            <textarea
+              value={userReflDraft}
+              onChange={(e) => setUserReflDraft(e.target.value)}
+              placeholder="tu reflexión sobre esta cita…"
+              rows={3}
+              className="input-paper w-full resize-none text-sm"
+              autoFocus
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  setEditingUserRefl(false)
+                  setUserReflDraft(quote.userReflection ?? '')
+                }}
+                className="btn-ghost text-xs"
+              >
+                cancelar
+              </button>
+              <button
+                onClick={handleSaveUserReflection}
+                disabled={updateQuote.isPending}
+                className="btn-ink text-xs"
+              >
+                {updateQuote.isPending ? 'guardando…' : 'guardar reflexión'}
+              </button>
+            </div>
+          </div>
+        ) : quote.userReflection ? (
+          <div className="group/refl">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[10px] uppercase tracking-[0.18em] text-ink-400">
+                tu reflexión
+              </span>
+              <button
+                onClick={() => setEditingUserRefl(true)}
+                className="opacity-0 group-hover/refl:opacity-100 transition-opacity text-[10px] text-ink-300 hover:text-ink-700"
+              >
+                editar
+              </button>
+            </div>
+            <p className="text-ink-600 text-sm leading-relaxed mt-0.5 whitespace-pre-wrap">
+              {quote.userReflection}
+            </p>
+          </div>
+        ) : (
+          <button
+            onClick={() => setEditingUserRefl(true)}
+            className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+          >
+            + añadir tu reflexión
+          </button>
+        )}
+      </div>
+
+      {/* AI reflection — saved */}
+      {quote.aiReflection && !pendingAi && (
+        <div className="mt-3 group/airefl">
+          <div className="flex items-baseline gap-2">
+            <SparkleIcon size={10} className="text-sky-700/70" />
+            <span className="text-[10px] uppercase tracking-[0.18em] text-sky-700/80">
+              interpretación de la IA
+            </span>
+            {quote.aiReflectionAt && (
+              <span className="text-[10px] text-ink-300 tabular-nums">
+                {new Date(quote.aiReflectionAt).toLocaleDateString('es', {
+                  day: 'numeric',
+                  month: 'short',
+                })}
+              </span>
+            )}
+            <button
+              onClick={handleDiscardAiSaved}
+              className="opacity-0 group-hover/airefl:opacity-100 transition-opacity text-[10px] text-ink-300 hover:text-red-700"
+              title="Eliminar esta interpretación"
+            >
+              eliminar
+            </button>
+          </div>
+          <p className="text-ink-500 text-sm leading-relaxed mt-0.5 whitespace-pre-wrap">
+            {quote.aiReflection}
+          </p>
+        </div>
+      )}
+
+      {/* AI reflection — pending review */}
+      {pendingAi && (
+        <div className="mt-3 border border-sky-200/60 bg-sky-50/40 rounded-lg p-3">
+          <div className="flex items-baseline gap-2 mb-1">
+            <SparkleIcon size={10} className="text-sky-700/70" />
+            <span className="text-[10px] uppercase tracking-[0.18em] text-sky-700/80">
+              propuesta de la IA
+            </span>
+          </div>
+          <p className="text-ink-600 text-sm leading-relaxed whitespace-pre-wrap">
+            {pendingAi.text}
+          </p>
+          <div className="mt-2 flex items-center justify-end gap-2">
+            <button onClick={() => setPendingAi(null)} className="btn-ghost text-xs">
+              descartar
+            </button>
+            <button
+              onClick={handleAcceptAi}
+              disabled={updateQuote.isPending}
+              className="btn-ink text-xs"
+            >
+              {updateQuote.isPending ? 'guardando…' : 'guardar'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* No AI reflection yet — offer to generate */}
+      {!quote.aiReflection && !pendingAi && (
+        <div className="mt-2">
+          <button
+            onClick={handleAskReflection}
+            disabled={reflectQuote.isPending}
+            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] text-sky-700/70 hover:text-sky-900 disabled:text-ink-200 transition-colors"
+          >
+            {reflectQuote.isPending ? (
+              <>
+                <span className="size-2.5 border-2 border-sky-700/30 border-t-sky-700 rounded-full animate-spin" />
+                pensando…
+              </>
+            ) : (
+              <>
+                <SparkleIcon size={10} />
+                pedir interpretación a la IA
+              </>
+            )}
+          </button>
+          {reflectError && (
+            <p className="mt-1 text-xs text-red-700">{reflectError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Linked quotes — chips */}
+      {linkedQuotes && linkedQuotes.length > 0 && (
+        <div className="mt-3">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-ink-300">
+            citas vinculadas
+          </span>
+          <ul className="mt-1 flex flex-wrap gap-1.5">
+            {linkedQuotes.map((q) => (
+              <li key={q.id}>
+                <button
+                  onClick={() => onSelectLinked?.(q.id)}
+                  className="text-[11px] px-2 py-0.5 rounded-full bg-paper-100 border border-ink-100/60 text-ink-500 hover:text-ink-700 hover:border-ink-200 transition-colors"
+                  title={q.text}
+                >
+                  «{truncate(q.text, 40)}»
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {onSelectEntity && (
+        <span className="sr-only" data-entity-link={quote.entityId} />
+      )}
+    </li>
+  )
+}
+
+function truncate(s: string, n: number): string {
+  return s.length <= n ? s : s.slice(0, n - 1) + '…'
+}

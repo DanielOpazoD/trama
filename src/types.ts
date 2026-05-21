@@ -77,7 +77,10 @@ export type Entity = {
   type: EntityType
   name: string
   year?: number
+  /** One-liner. Convention: max ~15 words, written as if labeling the entity. */
   description?: string
+  /** Long-form personal note about the entity. Markdown allowed. */
+  essay?: string
   positionX?: number
   positionY?: number
   origin: Origin
@@ -104,6 +107,15 @@ export type Quote = {
   text: string
   source?: string
   context?: string
+  /** What the user thought when saving the quote. The user's own voice, distinct from the quote text. */
+  userReflection?: string
+  /** AI-generated interpretation. Stored only after the user explicitly saved it (on-demand, not auto). */
+  aiReflection?: string
+  aiReflectionProvider?: string
+  aiReflectionModel?: string
+  aiReflectionAt?: string
+  /** Soft references to other quotes (no FK, so a deletion doesn't cascade-cleanse). */
+  linkedQuoteIds: string[]
   origin: Origin
   createdAt: string
   updatedAt: string

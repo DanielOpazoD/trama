@@ -121,6 +121,7 @@ type EntityPatch = Partial<{
   type: string
   year: number | null
   description: string | null
+  essay: string | null
   spotifyUrl: string | null
 }>
 

@@ -45,6 +45,7 @@ export function QuotesView({
   const [text, setText] = useState('')
   const [source, setSource] = useState('')
   const [context, setContext] = useState('')
+  const [userReflection, setUserReflection] = useState('')
   const [showForm, setShowForm] = useState(false)
 
   async function handleSubmit(event: FormEvent) {
@@ -57,10 +58,12 @@ export function QuotesView({
         text: trimmedText,
         source: source.trim() || undefined,
         context: context.trim() || undefined,
+        userReflection: userReflection.trim() || undefined,
       })
       setText('')
       setSource('')
       setContext('')
+      setUserReflection('')
     } catch {
       /* error surfaces via addQuote.error */
     }
@@ -127,7 +130,14 @@ export function QuotesView({
               <textarea
                 value={context}
                 onChange={(event) => setContext(event.target.value)}
-                placeholder="Tu nota o contexto (opcional)"
+                placeholder="Contexto de la cita (de qué habla, dónde aparece — opcional)"
+                rows={2}
+                className="input-paper w-full resize-none"
+              />
+              <textarea
+                value={userReflection}
+                onChange={(event) => setUserReflection(event.target.value)}
+                placeholder="Tu reflexión propia (qué viste en esto, por qué la guardas — opcional)"
                 rows={2}
                 className="input-paper w-full resize-none"
               />
@@ -207,6 +217,27 @@ export function QuotesView({
                       >
                         {quote.context}
                       </p>
+                    )}
+                    {quote.userReflection && (
+                      <div className={`mt-3 ${isFeature ? '' : 'pl-5'}`}>
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 mb-1">
+                          tu reflexión
+                        </div>
+                        <p className="text-ink-600 text-sm leading-relaxed whitespace-pre-wrap">
+                          {quote.userReflection}
+                        </p>
+                      </div>
+                    )}
+                    {quote.aiReflection && (
+                      <div className={`mt-3 ${isFeature ? '' : 'pl-5'}`}>
+                        <div className="flex items-baseline gap-1.5 text-[10px] uppercase tracking-[0.2em] text-sky-700/80 mb-1">
+                          <SparkleIcon size={10} />
+                          interpretación de la IA
+                        </div>
+                        <p className="text-ink-500 text-sm leading-relaxed whitespace-pre-wrap">
+                          {quote.aiReflection}
+                        </p>
+                      </div>
                     )}
                   </li>
                 )

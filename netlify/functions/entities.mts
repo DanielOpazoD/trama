@@ -20,7 +20,7 @@ export default withObservability('entities', async (req: Request, context: Conte
 
   if (req.method === 'GET') {
     const rows = await sql`
-      SELECT id, type, name, year, description, position_x, position_y, origin, spotify_url, created_at, updated_at
+      SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
       FROM entities
       WHERE deleted_at IS NULL
       ORDER BY created_at DESC
@@ -34,6 +34,7 @@ export default withObservability('entities', async (req: Request, context: Conte
       name: string
       year?: number | null
       description?: string | null
+      essay?: string | null
       position_x?: number | null
       position_y?: number | null
       origin?: unknown
@@ -41,18 +42,19 @@ export default withObservability('entities', async (req: Request, context: Conte
     }
     const origin = JSON.stringify(normalizeOrigin(body.origin))
     const rows = await sql`
-      INSERT INTO entities (type, name, year, description, position_x, position_y, origin, spotify_url)
+      INSERT INTO entities (type, name, year, description, essay, position_x, position_y, origin, spotify_url)
       VALUES (
         ${body.type},
         ${body.name},
         ${body.year ?? null},
         ${body.description ?? null},
+        ${body.essay ?? null},
         ${body.position_x ?? null},
         ${body.position_y ?? null},
         ${origin}::jsonb,
         ${body.spotify_url ?? null}
       )
-      RETURNING id, type, name, year, description, position_x, position_y, origin, spotify_url, created_at, updated_at
+      RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
     `
     return Response.json(rows[0], { status: 201 })
   }
@@ -63,6 +65,7 @@ export default withObservability('entities', async (req: Request, context: Conte
       type?: string
       year?: number | null
       description?: string | null
+      essay?: string | null
       position_x?: number | null
       position_y?: number | null
       spotify_url?: string | null
@@ -75,11 +78,12 @@ export default withObservability('entities', async (req: Request, context: Conte
         type        = COALESCE(${body.type ?? null}, type),
         year        = CASE WHEN ${body.year !== undefined} THEN ${body.year ?? null} ELSE year END,
         description = CASE WHEN ${body.description !== undefined} THEN ${body.description ?? null} ELSE description END,
+        essay       = CASE WHEN ${body.essay !== undefined} THEN ${body.essay ?? null} ELSE essay END,
         position_x  = CASE WHEN ${body.position_x !== undefined} THEN ${body.position_x ?? null} ELSE position_x END,
         position_y  = CASE WHEN ${body.position_y !== undefined} THEN ${body.position_y ?? null} ELSE position_y END,
         spotify_url = CASE WHEN ${body.spotify_url !== undefined} THEN ${body.spotify_url ?? null} ELSE spotify_url END
       WHERE id = ${id} AND deleted_at IS NULL
-      RETURNING id, type, name, year, description, position_x, position_y, origin, spotify_url, created_at, updated_at
+      RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
     `
     if (rows.length === 0) {
       return new Response('Entidad no encontrada', { status: 404 })

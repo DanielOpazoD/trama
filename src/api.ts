@@ -15,6 +15,7 @@ type EntityRow = {
   name: string
   year: number | null
   description: string | null
+  essay: string | null
   position_x: number | null
   position_y: number | null
   origin: Origin | string
@@ -39,6 +40,12 @@ type QuoteRow = {
   entity_id: string
   text: string
   source: string | null
+  user_reflection?: string | null
+  ai_reflection?: string | null
+  ai_reflection_provider?: string | null
+  ai_reflection_model?: string | null
+  ai_reflection_at?: string | null
+  linked_quote_ids?: string[] | null
   context: string | null
   origin: Origin | string
   created_at: string
@@ -58,6 +65,7 @@ function entityFromRow(row: EntityRow): Entity {
     name: row.name,
     year: row.year ?? undefined,
     description: row.description ?? undefined,
+    essay: row.essay ?? undefined,
     positionX: row.position_x ?? undefined,
     positionY: row.position_y ?? undefined,
     origin: asOrigin(row.origin),
@@ -87,6 +95,12 @@ function quoteFromRow(row: QuoteRow): Quote {
     text: row.text,
     source: row.source ?? undefined,
     context: row.context ?? undefined,
+    userReflection: row.user_reflection ?? undefined,
+    aiReflection: row.ai_reflection ?? undefined,
+    aiReflectionProvider: row.ai_reflection_provider ?? undefined,
+    aiReflectionModel: row.ai_reflection_model ?? undefined,
+    aiReflectionAt: row.ai_reflection_at ?? undefined,
+    linkedQuoteIds: Array.isArray(row.linked_quote_ids) ? row.linked_quote_ids : [],
     origin: asOrigin(row.origin),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -145,6 +159,7 @@ export const api = {
       type: string
       year: number | null
       description: string | null
+      essay: string | null
       spotifyUrl: string | null
     }>,
   ): Promise<Entity> {
@@ -153,6 +168,7 @@ export const api = {
     if (patch.type !== undefined) body.type = patch.type
     if (patch.year !== undefined) body.year = patch.year
     if (patch.description !== undefined) body.description = patch.description
+    if (patch.essay !== undefined) body.essay = patch.essay
     if (patch.spotifyUrl !== undefined) body.spotify_url = patch.spotifyUrl
     const row = await request<EntityRow>(`/api/entities/${id}`, {
       method: 'PATCH',
@@ -197,7 +213,9 @@ export const api = {
     const rows = await request<QuoteRow[]>('/api/quotes')
     return rows.map(quoteFromRow)
   },
-  async createQuote(data: Omit<Quote, 'id' | 'createdAt' | 'updatedAt'>): Promise<Quote> {
+  async createQuote(data: Omit<Quote, 'id' | 'createdAt' | 'updatedAt' | 'linkedQuoteIds'> & {
+    linkedQuoteIds?: string[]
+  }): Promise<Quote> {
     const row = await request<QuoteRow>('/api/quotes', {
       method: 'POST',
       body: JSON.stringify({
@@ -205,10 +223,43 @@ export const api = {
         text: data.text,
         source: data.source ?? null,
         context: data.context ?? null,
+        user_reflection: data.userReflection ?? null,
+        linked_quote_ids: data.linkedQuoteIds ?? [],
         origin: data.origin,
       }),
     })
     return quoteFromRow(row)
+  },
+  async updateQuote(
+    id: string,
+    patch: Partial<{
+      text: string
+      source: string | null
+      context: string | null
+      userReflection: string | null
+      aiReflection: string | null
+      aiReflectionProvider: string | null
+      aiReflectionModel: string | null
+      linkedQuoteIds: string[]
+    }>,
+  ): Promise<Quote> {
+    const body: Record<string, unknown> = {}
+    if (patch.text !== undefined) body.text = patch.text
+    if (patch.source !== undefined) body.source = patch.source
+    if (patch.context !== undefined) body.context = patch.context
+    if (patch.userReflection !== undefined) body.user_reflection = patch.userReflection
+    if (patch.aiReflection !== undefined) body.ai_reflection = patch.aiReflection
+    if (patch.aiReflectionProvider !== undefined) body.ai_reflection_provider = patch.aiReflectionProvider
+    if (patch.aiReflectionModel !== undefined) body.ai_reflection_model = patch.aiReflectionModel
+    if (patch.linkedQuoteIds !== undefined) body.linked_quote_ids = patch.linkedQuoteIds
+    const row = await request<QuoteRow>(`/api/quotes/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    })
+    return quoteFromRow(row)
+  },
+  async reflectQuote(id: string): Promise<{ reflection: string; provider: string; model: string }> {
+    return request(`/api/quotes/${id}/reflect`, { method: 'POST', body: '{}' })
   },
   async deleteQuote(id: string): Promise<void> {
     await request<void>(`/api/quotes/${id}`, { method: 'DELETE' })

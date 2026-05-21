@@ -6,7 +6,6 @@ import {
   useAddQuote,
   useDeleteEntity,
   useDeleteRelationship,
-  useDeleteQuote,
   useUpdateEntity,
 } from '../state'
 import {
@@ -16,6 +15,7 @@ import {
   type Relationship,
 } from '../types'
 import { CloseIcon, SparkleIcon } from './Icons'
+import { QuoteCard } from './QuoteCard'
 
 // Music-y types where a Spotify link makes sense.
 const SPOTIFY_TYPES = new Set([
@@ -36,7 +36,6 @@ export function NodeDetailPanel({
   const addQuote = useAddQuote()
   const deleteEntity = useDeleteEntity()
   const deleteRelationship = useDeleteRelationship()
-  const deleteQuote = useDeleteQuote()
 
   const entity = entities.find((e) => e.id === entityId)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -46,13 +45,20 @@ export function NodeDetailPanel({
   const [descDraft, setDescDraft] = useState('')
   const [urlDraft, setUrlDraft] = useState('')
 
+  // Essay edit (long-form note about the entity).
+  const [editingEssay, setEditingEssay] = useState(false)
+  const [essayDraft, setEssayDraft] = useState('')
+
   // Quick note: writes a quote without source/context — fastest way to add a thought.
   const [noteDraft, setNoteDraft] = useState('')
+  const [noteReflectionDraft, setNoteReflectionDraft] = useState('')
+  const [showNoteReflection, setShowNoteReflection] = useState(false)
 
   useEffect(() => {
     if (entity) {
       setDescDraft(entity.description ?? '')
       setUrlDraft(entity.spotifyUrl ?? '')
+      setEssayDraft(entity.essay ?? '')
     }
   }, [entity])
 
@@ -117,11 +123,29 @@ export function NodeDetailPanel({
       await addQuote.mutateAsync({
         entityId: entity.id,
         text,
+        userReflection: noteReflectionDraft.trim() || undefined,
         origin: { kind: 'manual' },
       })
       setNoteDraft('')
+      setNoteReflectionDraft('')
+      setShowNoteReflection(false)
     } catch {
       /* surfaces via addQuote.error */
+    }
+  }
+
+  async function handleSaveEssay() {
+    if (!entity) return
+    const next = essayDraft.trim() || null
+    if ((entity.essay ?? null) === next) {
+      setEditingEssay(false)
+      return
+    }
+    try {
+      await updateEntity.mutateAsync({ id: entity.id, patch: { essay: next } })
+      setEditingEssay(false)
+    } catch {
+      /* surfaces */
     }
   }
 
@@ -222,26 +246,100 @@ export function NodeDetailPanel({
           )}
         </section>
 
-        {/* Quick note */}
+        {/* Essay / long-form note */}
+        <section>
+          {editingEssay ? (
+            <div className="space-y-2">
+              <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-300">ensayo</h3>
+              <textarea
+                value={essayDraft}
+                onChange={(e) => setEssayDraft(e.target.value)}
+                placeholder="una nota más larga sobre esta entidad — qué te atrajo, cuándo apareció, qué viene después. markdown ligero permitido."
+                rows={8}
+                className="input-paper w-full resize-none text-sm leading-relaxed"
+                autoFocus
+              />
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setEditingEssay(false)
+                    setEssayDraft(entity.essay ?? '')
+                  }}
+                  className="btn-ghost text-xs"
+                >
+                  cancelar
+                </button>
+                <button
+                  onClick={handleSaveEssay}
+                  disabled={updateEntity.isPending}
+                  className="btn-ink text-xs"
+                >
+                  {updateEntity.isPending ? 'guardando…' : 'guardar ensayo'}
+                </button>
+              </div>
+            </div>
+          ) : entity.essay ? (
+            <div className="group/essay">
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-ink-300">ensayo</span>
+                <button
+                  onClick={() => setEditingEssay(true)}
+                  className="opacity-0 group-hover/essay:opacity-100 transition-opacity text-[10px] text-ink-300 hover:text-ink-700"
+                >
+                  editar
+                </button>
+              </div>
+              <div className="text-ink-600 text-sm leading-relaxed whitespace-pre-wrap font-serif">
+                {entity.essay}
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setEditingEssay(true)}
+              className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+            >
+              + añadir ensayo
+            </button>
+          )}
+        </section>
+
+        {/* Quick note form */}
         <section>
           <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-300 mb-2">
-            añadir nota
+            añadir cita o nota
           </h3>
           <form onSubmit={handleAddNote} className="flex flex-col gap-2">
             <textarea
               value={noteDraft}
               onChange={(e) => setNoteDraft(e.target.value)}
-              placeholder="algo que quieras recordar sobre esta entidad…"
+              placeholder="una cita, o un pensamiento que quieras retener…"
               rows={2}
               className="input-paper w-full resize-none text-sm"
             />
+            {showNoteReflection ? (
+              <textarea
+                value={noteReflectionDraft}
+                onChange={(e) => setNoteReflectionDraft(e.target.value)}
+                placeholder="tu reflexión propia (qué viste en esto, por qué la guardas)…"
+                rows={2}
+                className="input-paper w-full resize-none text-sm"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowNoteReflection(true)}
+                className="self-start text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+              >
+                + añadir tu reflexión
+              </button>
+            )}
             <div className="flex justify-end">
               <button
                 type="submit"
                 disabled={!noteDraft.trim() || addQuote.isPending}
                 className="btn-ink text-xs"
               >
-                {addQuote.isPending ? 'añadiendo…' : 'añadir nota'}
+                {addQuote.isPending ? 'añadiendo…' : 'añadir'}
               </button>
             </div>
           </form>
@@ -250,49 +348,21 @@ export function NodeDetailPanel({
         {entityQuotes.length > 0 && (
           <section>
             <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-300 mb-3">
-              {entityQuotes.length === 1 ? 'Nota / cita' : `${entityQuotes.length} notas / citas`}
+              {entityQuotes.length === 1 ? 'Cita / nota' : `${entityQuotes.length} citas / notas`}
             </h3>
-            <ul className="space-y-4">
-              {entityQuotes.map((quote) => (
-                <li key={quote.id} className="group">
-                  <blockquote className="font-serif text-ink-600 italic border-l-2 border-ink-200 pl-3 leading-relaxed text-sm">
-                    «{quote.text}»
-                  </blockquote>
-                  <div className="mt-1 pl-3 flex items-baseline justify-between text-xs">
-                    <div>
-                      {quote.source && (
-                        <span className="text-ink-300">· {quote.source}</span>
-                      )}
-                      {quote.origin.kind === 'ai' && (
-                        <span className="ml-2 inline-flex items-center text-sky-700/70" title="propuesta por IA">
-                          <SparkleIcon size={10} />
-                        </span>
-                      )}
-                      <span
-                        className="ml-2 text-ink-300 tabular-nums"
-                        title={`Añadida el ${new Date(quote.createdAt).toLocaleString('es')}`}
-                      >
-                        {new Date(quote.createdAt).toLocaleDateString('es', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => deleteQuote.mutate(quote.id)}
-                      className="opacity-0 group-hover:opacity-100 text-ink-300 hover:text-ink-700 transition-opacity"
-                    >
-                      eliminar
-                    </button>
-                  </div>
-                  {quote.context && (
-                    <p className="mt-1 pl-3 text-ink-400 text-xs leading-relaxed">
-                      {quote.context}
-                    </p>
-                  )}
-                </li>
-              ))}
+            <ul className="space-y-5">
+              {entityQuotes.map((quote) => {
+                const linkedQuotes = quote.linkedQuoteIds
+                  .map((id) => quotes.find((q) => q.id === id))
+                  .filter((q): q is NonNullable<typeof q> => q !== undefined)
+                return (
+                  <QuoteCard
+                    key={quote.id}
+                    quote={quote}
+                    linkedQuotes={linkedQuotes}
+                  />
+                )
+              })}
             </ul>
           </section>
         )}

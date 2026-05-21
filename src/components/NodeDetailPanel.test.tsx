@@ -32,6 +32,7 @@ const QUOTE: Quote = {
   entityId: 'camus',
   text: 'En el centro del invierno aprendí finalmente que había en mí un verano invencible.',
   source: 'El verano',
+  linkedQuoteIds: [],
   origin: { kind: 'manual' },
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',

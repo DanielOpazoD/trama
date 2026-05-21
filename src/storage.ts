@@ -44,11 +44,18 @@ function normalizeBase<T extends { createdAt: string; updatedAt?: string; origin
   }
 }
 
+function normalizeQuote(item: Partial<Quote> & { id: string; entityId: string; text: string; createdAt: string }): Quote {
+  return {
+    ...normalizeBase(item as Quote),
+    linkedQuoteIds: Array.isArray(item.linkedQuoteIds) ? item.linkedQuoteIds : [],
+  }
+}
+
 export const storage = {
   loadEntities: () => loadRaw<Entity>(KEYS.entities).map(normalizeBase),
   saveEntities: (items: Entity[]) => save(KEYS.entities, items),
   loadRelationships: () => loadRaw<Relationship>(KEYS.relationships).map(normalizeBase),
   saveRelationships: (items: Relationship[]) => save(KEYS.relationships, items),
-  loadQuotes: () => loadRaw<Quote>(KEYS.quotes).map(normalizeBase),
+  loadQuotes: () => loadRaw<Quote>(KEYS.quotes).map(normalizeQuote),
   saveQuotes: (items: Quote[]) => save(KEYS.quotes, items),
 }
