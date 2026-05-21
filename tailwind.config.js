@@ -8,26 +8,27 @@ export default {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
         serif: ['Spectral', '"Iowan Old Style"', 'Palatino', 'Georgia', 'serif'],
       },
-      // Palette wired to CSS variables. When .dark is applied to <html>,
-      // the variables change values and every Tailwind class auto-updates.
-      // No need to sprinkle dark:text-stone-XXX everywhere.
+      // Palette wired to CSS variables in rgb-triplet form, so Tailwind's
+      // alpha modifier works (bg-paper-50/70 → rgb(var(--paper-50) / 0.7)).
+      // When .dark is applied to <html>, the variables flip and the whole UI
+      // adapts without a single `dark:` class needed in components.
       colors: {
         paper: {
-          50:  'var(--paper-50)',
-          100: 'var(--paper-100)',
-          200: 'var(--paper-200)',
-          300: 'var(--paper-300)',
+          50:  'rgb(var(--paper-50) / <alpha-value>)',
+          100: 'rgb(var(--paper-100) / <alpha-value>)',
+          200: 'rgb(var(--paper-200) / <alpha-value>)',
+          300: 'rgb(var(--paper-300) / <alpha-value>)',
         },
         ink: {
-          50:  'var(--ink-50)',
-          100: 'var(--ink-100)',
-          200: 'var(--ink-200)',
-          300: 'var(--ink-300)',
-          400: 'var(--ink-400)',
-          500: 'var(--ink-500)',
-          600: 'var(--ink-600)',
-          700: 'var(--ink-700)',
-          800: 'var(--ink-800)',
+          50:  'rgb(var(--ink-50) / <alpha-value>)',
+          100: 'rgb(var(--ink-100) / <alpha-value>)',
+          200: 'rgb(var(--ink-200) / <alpha-value>)',
+          300: 'rgb(var(--ink-300) / <alpha-value>)',
+          400: 'rgb(var(--ink-400) / <alpha-value>)',
+          500: 'rgb(var(--ink-500) / <alpha-value>)',
+          600: 'rgb(var(--ink-600) / <alpha-value>)',
+          700: 'rgb(var(--ink-700) / <alpha-value>)',
+          800: 'rgb(var(--ink-800) / <alpha-value>)',
         },
       },
     },
