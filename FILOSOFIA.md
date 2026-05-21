@@ -14,11 +14,9 @@ Con el tiempo eso se vuelve una topografía. Por dónde se ha movido mi cerebro 
 
 ## Cómo se piensa con Trama
 
-Cuatro gestos:
+Tres gestos:
 
-**Capturar.** Una frase desordenada, una cita, una idea suelta. La IA estructura: identifica las entidades mencionadas (personas, obras, conceptos), las conexiones implícitas, y propone qué agregar al mapa. Yo decido qué entra.
-
-**Curar.** Lo que entra es mío. Si rechazo una propuesta, no se guarda. Si edito un nombre, queda con mi versión. La IA es escribano, no autor.
+**Capturar.** Una frase desordenada, una cita, una idea suelta. La IA estructura: identifica las entidades mencionadas (personas, obras, conceptos), las conexiones implícitas, y propone qué agregar al mapa. Pero nada entra a la trama hasta que yo lo apruebo. Rechazo lo que no encaja, edito lo que necesita matiz, acepto solo lo que resuena. La IA es escribano, no autor — el contenido lo trae ella, el criterio es mío.
 
 **Conectar.** Cada entidad puede vincularse a otras — *influye en*, *cita a*, *responde a*, *me llegó por*, *suena como*. Los tipos de relación no son un esquema rígido; son etiquetas que sirven para reconocer parentescos.
 
