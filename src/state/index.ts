@@ -42,6 +42,6 @@ export {
   useReflectQuote,
   useDeleteQuote,
 } from './useQuotes'
-export { useExtract, useExtractFromImage } from './useExtract'
+export { useExtract, useExtractFromImage, useAsk } from './useExtract'
 export { useSuggestRelationships } from './useSuggestRelationships'
 export { useExport, useImport } from './useExportImport'

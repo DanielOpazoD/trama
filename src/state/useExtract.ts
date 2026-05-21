@@ -29,3 +29,28 @@ export function useExtractFromImage() {
     },
   })
 }
+
+/**
+ * The unified "ask" mutation that drives the universal bar.
+ *
+ * The bar isn't an extractor anymore — it's a conversation entrypoint that
+ * also extracts when the input looks like a capture. The endpoint decides.
+ */
+export function useAsk() {
+  const { offline } = useOffline()
+  return useMutation({
+    mutationFn: async (input: {
+      text: string
+      view?: string | null
+      selectedEntityId?: string | null
+    }) => {
+      if (offline) {
+        throw new Error('Requiere conexión al backend. Estás en modo local.')
+      }
+      return api.ask(input.text, {
+        view: input.view,
+        selectedEntityId: input.selectedEntityId,
+      })
+    },
+  })
+}

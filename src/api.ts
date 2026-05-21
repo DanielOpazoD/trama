@@ -279,6 +279,20 @@ export const api = {
     })
   },
 
+  async ask(
+    text: string,
+    options?: { view?: string | null; selectedEntityId?: string | null },
+  ): Promise<AskResponse> {
+    return request<AskResponse>('/api/ask', {
+      method: 'POST',
+      body: JSON.stringify({
+        text,
+        view: options?.view ?? null,
+        selectedEntityId: options?.selectedEntityId ?? null,
+      }),
+    })
+  },
+
   async suggestRelationships(): Promise<ExtractionProposal> {
     return request<ExtractionProposal>('/api/suggest-relationships', {
       method: 'POST',
@@ -565,6 +579,12 @@ export type ChatMessage = {
   content: string
   proposal: ChatProposal | null
   createdAt: string
+}
+
+export type AskResponse = {
+  reply: string
+  proposal: ExtractionProposal | null
+  provider: string
 }
 
 export type ProactiveSuggestion = {

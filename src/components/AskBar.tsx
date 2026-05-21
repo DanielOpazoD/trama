@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { useExtract, useExtractFromImage, useOffline } from '../state'
+import { useAsk, useExtractFromImage, useOffline } from '../state'
 import type { ExtractionProposal } from '../types'
 
 /** Convert a File to a base64 string (without the data URL prefix). */
@@ -20,17 +20,40 @@ async function fileToBase64(file: File): Promise<string> {
   })
 }
 
-export function ExtractBar({
+type Reply = {
+  text: string
+  /** Where the reply came from — shown discreetly so user knows which model spoke. */
+  provider?: string
+}
+
+/**
+ * Universal "ask" bar. Replaces the old extract-only bar.
+ *
+ * The user types anything. The backend decides:
+ *   • capture → extracts and offers a proposal via onProposal()
+ *   • question / conversation → returns prose, shown as an inline reply
+ *   • mixed → both: shows reply AND offers a proposal
+ *
+ * Context (current view + selected entity) is passed so the model can adapt
+ * its tone — meditative when reading quotes, technical when editing graph,
+ * etc.
+ */
+export function AskBar({
+  view,
+  selectedEntityId,
   onProposal,
   busy,
 }: {
+  view: string | null
+  selectedEntityId: string | null
   onProposal: (text: string, proposal: ExtractionProposal) => void
   busy: boolean
 }) {
-  const extract = useExtract()
+  const ask = useAsk()
   const extractFromImage = useExtractFromImage()
   const { offline } = useOffline()
   const [text, setText] = useState('')
+  const [reply, setReply] = useState<Reply | null>(null)
   const [imageError, setImageError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -42,16 +65,36 @@ export function ExtractBar({
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`
   }, [text])
 
+  // Clear the reply when the user changes view — it was attached to a
+  // particular context that no longer applies.
+  useEffect(() => {
+    setReply(null)
+  }, [view])
+
   async function handleSubmit(event?: FormEvent) {
     event?.preventDefault()
     const trimmed = text.trim()
-    if (!trimmed || extract.isPending || busy) return
+    if (!trimmed || ask.isPending || busy) return
     try {
-      const proposal = await extract.mutateAsync(trimmed)
-      onProposal(trimmed, proposal)
+      const result = await ask.mutateAsync({
+        text: trimmed,
+        view,
+        selectedEntityId,
+      })
+      if (result.reply) {
+        setReply({ text: result.reply, provider: result.provider })
+      } else {
+        setReply(null)
+      }
+      if (result.proposal) {
+        // If there's both a reply and a proposal we still hand the proposal
+        // to the side panel — the user sees the reply in the bar AND has
+        // the items to accept on the right.
+        onProposal(trimmed, result.proposal)
+      }
       setText('')
     } catch {
-      // error surfaces via extract.error
+      // error surfaces via ask.error
     }
   }
 
@@ -84,12 +127,9 @@ export function ExtractBar({
     }
   }
 
-  const disabled = !text.trim() || extract.isPending || busy || offline
+  const disabled = !text.trim() || ask.isPending || busy || offline
   const errorMessage =
-    extract.error?.message ??
-    extractFromImage.error?.message ??
-    imageError ??
-    null
+    ask.error?.message ?? extractFromImage.error?.message ?? imageError ?? null
   const imageBusy = extractFromImage.isPending
 
   return (
@@ -102,8 +142,26 @@ export function ExtractBar({
         )}
         {offline && (
           <div className="mb-2 px-3 py-2 bg-amber-50/95 border border-amber-200 rounded-lg text-xs text-amber-800 shadow-sm">
-            Sin backend — la extracción por IA no está disponible en modo local. Lo
-            manual sí funciona desde las listas en la barra lateral.
+            Sin backend — la IA no está disponible en modo local. Lo manual sí funciona
+            desde las listas en la barra lateral.
+          </div>
+        )}
+        {reply && (
+          <div className="mb-2 px-4 py-3 bg-paper-50/95 border border-ink-100/80 rounded-2xl shadow-xl shadow-ink-900/10 backdrop-blur-md animate-fade-up">
+            <div className="flex items-baseline justify-between gap-3 mb-1">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-ink-300">
+                respuesta{reply.provider ? ` · ${reply.provider}` : ''}
+              </span>
+              <button
+                onClick={() => setReply(null)}
+                className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+              >
+                cerrar
+              </button>
+            </div>
+            <p className="text-ink-700 text-sm leading-relaxed whitespace-pre-wrap font-serif">
+              {reply.text}
+            </p>
           </div>
         )}
         <form
@@ -135,7 +193,6 @@ export function ExtractBar({
             onChange={(e) => {
               const file = e.target.files?.[0]
               if (file) handleImageSelected(file)
-              // Reset so re-selecting the same file works.
               e.target.value = ''
             }}
           />
@@ -144,19 +201,19 @@ export function ExtractBar({
             value={text}
             onChange={(event) => setText(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="¿en qué andabas pensando? un libro, una idea suelta, una conversación… o sube una foto."
+            placeholder={placeholderForView(view)}
             rows={1}
-            disabled={extract.isPending || busy || imageBusy}
+            disabled={ask.isPending || busy || imageBusy}
             className="flex-1 resize-none bg-transparent px-3 py-2 text-ink-700 placeholder:text-ink-300 focus:outline-none leading-relaxed"
           />
           <button
             type="submit"
             disabled={disabled}
-            aria-label="Extraer"
+            aria-label="Enviar"
             className="self-end mb-1 mr-1 size-9 rounded-full bg-ink-700 text-paper-50 hover:bg-ink-600 active:scale-90 disabled:bg-ink-100 disabled:text-ink-300 disabled:active:scale-100 transition-all duration-150 ease-out flex items-center justify-center"
-            title="Extraer (⌘/Ctrl+Enter)"
+            title="Enviar (⌘/Ctrl+Enter)"
           >
-            {extract.isPending ? (
+            {ask.isPending ? (
               <span className="size-3.5 border-2 border-paper-50/40 border-t-paper-50 rounded-full animate-spin" />
             ) : (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -168,4 +225,23 @@ export function ExtractBar({
       </div>
     </div>
   )
+}
+
+function placeholderForView(view: string | null): string {
+  switch (view) {
+    case 'citas':
+      return 'pregunta sobre estas citas, pega una nueva, o pídele a la IA que medite…'
+    case 'entidades':
+      return 'pregunta sobre una entidad, propone una nueva, o conversa…'
+    case 'relaciones':
+      return 'pregunta por una conexión, propone una nueva…'
+    case 'escuchas':
+      return 'pregunta por tu música, pide recomendaciones afines…'
+    case 'sugerencias':
+      return 'pregunta por una sugerencia, pide otra ronda…'
+    case 'grafo':
+      return '¿en qué andabas pensando? un libro, una idea, una conversación… o una pregunta a tu trama.'
+    default:
+      return '¿en qué andabas pensando? un libro, una idea suelta, una conversación… o sube una foto.'
+  }
 }

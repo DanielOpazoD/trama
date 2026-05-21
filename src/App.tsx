@@ -15,7 +15,7 @@ import { RelationshipsView } from './components/RelationshipsView'
 import { ListeningView } from './components/ListeningView'
 import { ChatView } from './components/ChatView'
 import { ProactiveView } from './components/ProactiveView'
-import { ExtractBar } from './components/ExtractBar'
+import { AskBar } from './components/AskBar'
 import { ProposalPanel } from './components/ProposalPanel'
 import { NodeDetailPanel } from './components/NodeDetailPanel'
 import { Settings } from './components/Settings'
@@ -117,7 +117,9 @@ function Shell() {
         )}
 
         {view !== 'chat' && (
-          <ExtractBar
+          <AskBar
+            view={view}
+            selectedEntityId={selectedEntityId}
             busy={showProposal}
             onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
           />
