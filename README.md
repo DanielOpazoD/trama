@@ -71,7 +71,7 @@ Trama puede registrar lo que escuchas para que luego elijas qué entra a tu tram
 1. Ve a [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) y crea una app nueva.
 2. **Settings → Redirect URIs**: agrega ambas URLs (una para desarrollo, otra para producción):
    - `http://localhost:5173/api/spotify/callback` (dev local)
-   - `https://proyectotrama.netlify.app/api/spotify/callback` (producción)
+   - `https://tramadaod.netlify.app/api/spotify/callback` (producción)
 3. Copia el **Client ID** y el **Client Secret** a las env vars de Netlify (o tu `.env` local).
 4. En `SPOTIFY_REDIRECT_URI`, pon la URL que corresponde al entorno (la de localhost para `.env` local; la de producción para Netlify).
 5. Abre Trama → *Configuración* → *Spotify* → *Conectar con Spotify*. Te llevará a la pantalla de consentimiento de Spotify, autoriza, y volverás a Trama conectado.
