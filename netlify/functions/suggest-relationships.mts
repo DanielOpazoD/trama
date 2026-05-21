@@ -9,7 +9,6 @@ import {
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { logEvent } from './_lib/observability.js'
-import { rateLimit } from './_lib/rate-limit.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
 const FALLBACK_RELATIONSHIP_TYPES = [
@@ -30,14 +29,6 @@ export default withObservability(
     if (req.method !== 'POST') {
       return new Response('Method not allowed', { status: 405 })
     }
-
-    // Stricter than /api/extract — this is the "expensive scan everything" path.
-    const rateLimited = rateLimit(req, {
-      max: 6,
-      windowMs: 60 * 60 * 1000,
-      key: 'suggest-relationships',
-    })
-    if (rateLimited) return rateLimited
 
     const budgetExceeded = await checkMonthlyBudget()
     if (budgetExceeded) return budgetExceeded

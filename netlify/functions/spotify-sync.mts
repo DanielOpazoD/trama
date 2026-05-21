@@ -7,7 +7,6 @@ import {
   storePlays,
 } from './_lib/spotify.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { rateLimit } from './_lib/rate-limit.js'
 
 /**
  * Fetches recent plays from Spotify and stores them. Idempotent: re-running
@@ -21,10 +20,6 @@ export default withObservability('spotify-sync', async (req) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
   }
-
-  // Modest rate limit: sync at most 10 times per minute.
-  const blocked = rateLimit(req, { max: 10, windowMs: 60_000, key: 'spotify-sync' })
-  if (blocked) return blocked
 
   const sql = getSql()
 
