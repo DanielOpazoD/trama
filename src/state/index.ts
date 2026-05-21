@@ -17,6 +17,7 @@ export {
   useDeleteEntity,
 } from './useEntities'
 export { useReclassifyEntities } from './useReclassifyEntities'
+export { useAISettingsQuery, useSetAITaskProvider } from './useAISettings'
 export {
   useChatThreadsQuery,
   useCreateChatThread,

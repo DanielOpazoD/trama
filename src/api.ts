@@ -293,6 +293,21 @@ export const api = {
     })
   },
 
+  async getAISettings(): Promise<AISettingsResponse> {
+    return request<AISettingsResponse>('/api/ai-settings')
+  },
+  async setAITaskProvider(
+    task: string,
+    provider: string,
+    model?: string | null,
+    verifyWith?: string | null,
+  ): Promise<void> {
+    await request<void>('/api/ai-settings', {
+      method: 'PUT',
+      body: JSON.stringify({ task, provider, model, verifyWith }),
+    })
+  },
+
   async reclassifyEntities(): Promise<ReclassifyResponse> {
     return request<ReclassifyResponse>('/api/reclassify-entities', {
       method: 'POST',
@@ -535,6 +550,32 @@ export type ChatMessage = {
   content: string
   proposal: ChatProposal | null
   createdAt: string
+}
+
+export type AITaskKey =
+  | 'extract'
+  | 'extract-image'
+  | 'suggest-relationships'
+  | 'reclassify'
+  | 'reflect'
+  | 'chat'
+  | 'panel'
+
+export type AITaskConfig = {
+  task: AITaskKey
+  /** null = use default (env var) */
+  provider: string | null
+  /** null = use provider's default model */
+  model: string | null
+  /** null = no cross-verification */
+  verifyWith: string | null
+  updatedAt: string | null
+}
+
+export type AISettingsResponse = {
+  defaultProvider: string
+  visionDefaultProvider: string | null
+  tasks: AITaskConfig[]
 }
 
 export type SpotifyPlaylistImport = {

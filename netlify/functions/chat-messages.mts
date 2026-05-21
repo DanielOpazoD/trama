@@ -1,6 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { askLLMForText, askLLMForTextStreaming } from './_lib/llm.js'
+import { resolveTaskProvider } from './_lib/ai-tasks.js'
 import {
   buildChatPrompt,
   buildChatTitlePrompt,
@@ -197,8 +198,13 @@ export default withObservability(
         }
         let llmError: string | null = null
 
+        const chatTask = await resolveTaskProvider('chat').catch(() => null)
+        const chatOverride = chatTask
+          ? { provider: chatTask.provider || undefined, model: chatTask.model }
+          : undefined
+
         try {
-          for await (const frame of askLLMForTextStreaming(messages)) {
+          for await (const frame of askLLMForTextStreaming(messages, chatOverride)) {
             if (frame.type === 'chunk') {
               assembled += frame.content
               send('chunk', { content: frame.content })
@@ -241,7 +247,7 @@ export default withObservability(
         if (!thread.title && historyRows.length <= 1) {
           try {
             const titleMessages = buildChatTitlePrompt(userText)
-            const titleResp = await askLLMForText(titleMessages)
+            const titleResp = await askLLMForText(titleMessages, chatOverride)
             const rawTitle = typeof titleResp.content === 'string' ? titleResp.content : ''
             const cleanTitle = rawTitle.trim().replace(/^["']|["']$/g, '').slice(0, 80)
             if (cleanTitle) {

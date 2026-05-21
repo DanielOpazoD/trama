@@ -1,6 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { askLLMForJson } from './_lib/llm.js'
+import { resolveTaskProvider } from './_lib/ai-tasks.js'
 import {
   buildReclassifyPrompt,
   type EntityForReclassify,
@@ -80,7 +81,11 @@ export default withObservability(
     const messages = buildReclassifyPrompt(entitiesForPrompt, typeOptions)
 
     try {
-      const { content, usage, fromCache } = await askLLMForJson(messages)
+      const taskCfg = await resolveTaskProvider('reclassify')
+      const { content, usage, fromCache } = await askLLMForJson(messages, {
+        provider: taskCfg.provider || undefined,
+        model: taskCfg.model,
+      })
       const entityLookup: EntityLookup[] = entityRows.map((e) => ({
         id: e.id,
         name: e.name,

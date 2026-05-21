@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { useExport, useImport } from '../state'
 import type { ExportPayload } from '../types'
+import { AITaskSettings } from './AITaskSettings'
 import {
   CloseIcon,
   DownloadIcon,
@@ -256,6 +257,19 @@ export function Settings({
                 Conectar con Spotify
               </a>
             )}
+          </section>
+
+          {/* IA por tarea */}
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-sm font-medium text-ink-700">IA por tarea</h3>
+              <p className="text-xs text-ink-400 mt-0.5">
+                Cada tarea puede usar un modelo distinto. La capa interna
+                pasa por el provider elegido aquí; si no eliges nada, usa el
+                default general de Netlify.
+              </p>
+            </div>
+            <AITaskSettings />
           </section>
 
           {/* Data */}

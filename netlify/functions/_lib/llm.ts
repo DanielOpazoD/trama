@@ -213,8 +213,21 @@ async function fetchWithRetry(makeRequest: FetchAttempt, retries = 2): Promise<R
 
 // ---------- Main entry ----------
 
-export async function askLLMForJson(messages: LLMMessage[]): Promise<LLMResult> {
-  return callLLM(messages, 'json')
+/**
+ * Optional per-call override. Used by task-aware callers to pick a specific
+ * provider (and optionally model) for a particular invocation, instead of the
+ * env-var default. Empty/undefined override falls back to env.
+ */
+export type LLMOverride = {
+  provider?: string
+  model?: string | null
+}
+
+export async function askLLMForJson(
+  messages: LLMMessage[],
+  override?: LLMOverride,
+): Promise<LLMResult> {
+  return callLLM(messages, 'json', override)
 }
 
 /**
@@ -222,8 +235,11 @@ export async function askLLMForJson(messages: LLMMessage[]): Promise<LLMResult> 
  * Used by the chat where the assistant produces prose with an optional fenced
  * JSON trailer for structured proposals.
  */
-export async function askLLMForText(messages: LLMMessage[]): Promise<LLMResult> {
-  return callLLM(messages, 'text')
+export async function askLLMForText(
+  messages: LLMMessage[],
+  override?: LLMOverride,
+): Promise<LLMResult> {
+  return callLLM(messages, 'text', override)
 }
 
 /**
@@ -242,10 +258,9 @@ export type StreamFrame =
 
 export async function* askLLMForTextStreaming(
   messages: LLMMessage[],
+  override?: LLMOverride,
 ): AsyncGenerator<StreamFrame, void, void> {
-  const provider = readProvider()
-  const apiKey = readApiKey()
-  const config = PROVIDER_DEFAULTS[provider]
+  const { provider, apiKey, config } = resolveProvider(override)
   const maxTokens = readMaxTokens()
 
   const start = Date.now()
@@ -254,7 +269,7 @@ export async function* askLLMForTextStreaming(
     // No native streaming wired up for these yet — surface the whole reply
     // as a single chunk so the consumer's API is uniform.
     try {
-      const result = await callLLM(messages, 'text')
+      const result = await callLLM(messages, 'text', override)
       const content = typeof result.content === 'string' ? result.content : String(result.content)
       yield { type: 'chunk', content }
       yield { type: 'done', content, usage: result.usage }
@@ -351,17 +366,43 @@ export async function* askLLMForTextStreaming(
   yield { type: 'done', content: assembled, usage }
 }
 
+/**
+ * Resolve a (provider, apiKey, config) tuple from either an explicit override
+ * or the env-var default. The override.provider is validated; an unknown value
+ * falls back to env. The override.model swaps in for the provider's default
+ * config.model when present.
+ */
+function resolveProvider(override?: LLMOverride): {
+  provider: LLMProvider
+  apiKey: string
+  config: ProviderConfig
+} {
+  let provider = readProvider()
+  if (override?.provider) {
+    const p = override.provider.toLowerCase()
+    if (p === 'openai' || p === 'gemini' || p === 'anthropic' || p === 'deepseek') {
+      provider = p
+    }
+  }
+  const apiKey = readApiKey()
+  const baseConfig = PROVIDER_DEFAULTS[provider]
+  const config: ProviderConfig =
+    override?.model
+      ? { ...baseConfig, model: override.model }
+      : baseConfig
+  return { provider, apiKey, config }
+}
+
 async function callLLM(
   messages: LLMMessage[],
   mode: 'json' | 'text',
+  override?: LLMOverride,
 ): Promise<LLMResult> {
-  const provider = readProvider()
-  const apiKey = readApiKey()
-  const config = PROVIDER_DEFAULTS[provider]
+  const { provider, apiKey, config } = resolveProvider(override)
   const maxTokens = readMaxTokens()
   const cacheTtl = readCacheTtlSeconds()
 
-  const cacheKey = await hashMessages(messages, `${provider}|${mode}`)
+  const cacheKey = await hashMessages(messages, `${provider}|${config.model}|${mode}`)
   const cached = getCached(cacheKey)
   if (cached) return cached
 
@@ -554,9 +595,22 @@ export async function askLLMForVision(
   userText: string,
   imageBase64: string,
   mimeType: string,
+  override?: LLMOverride,
 ): Promise<LLMResult> {
-  const { provider, apiKey } = readVisionProvider()
-  const config = PROVIDER_DEFAULTS[provider]
+  // Override only honored if it picks a vision-capable provider.
+  let provider: 'openai' | 'gemini'
+  let apiKey: string
+  if (override?.provider === 'openai' || override?.provider === 'gemini') {
+    provider = override.provider
+    apiKey = readApiKey()
+  } else {
+    const resolved = readVisionProvider()
+    provider = resolved.provider
+    apiKey = resolved.apiKey
+  }
+  const baseConfig = PROVIDER_DEFAULTS[provider]
+  const config: ProviderConfig =
+    override?.model ? { ...baseConfig, model: override.model } : baseConfig
   const maxTokens = readMaxTokens()
   const cacheTtl = readCacheTtlSeconds()
 
