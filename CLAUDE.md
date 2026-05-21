@@ -46,7 +46,7 @@ La lógica pura está aislada en `_lib/`:
 ## Patrón de añadir un nuevo endpoint
 
 1. Crea `netlify/functions/<name>.mts` con default export y `config.path`.
-2. Usa `Netlify.env.get('NETLIFY_DATABASE_URL')` y `neon(connectionString)`.
+2. Para obtener el cliente SQL: `import { getSql } from './_lib/db.js'` y dentro del handler `const sql = getSql()`. El helper resuelve la conexión vía `@netlify/database` (la nueva integración que reemplazó a `@netlify/neon`); no leas `NETLIFY_DATABASE_URL` directo.
 3. Para GET/POST/PATCH/DELETE en el mismo path, branch por `req.method`.
 4. Agrega el cliente en `src/api.ts`.
 5. Si hay UI, hook en `src/state/` (con TanStack Query).

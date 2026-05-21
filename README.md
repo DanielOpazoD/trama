@@ -59,7 +59,7 @@ Comandos útiles:
 | `AI_MAX_TOKENS` | int (default `4096`) | Cap de tokens de respuesta del LLM |
 | `AI_CACHE_TTL_SECONDS` | int (default `600`) | TTL del cache in-memory del LLM. `0` desactiva. |
 | `AI_MONTHLY_BUDGET_CENTS` | int (default `500`) | Cap mensual de gasto del LLM en centavos USD. |
-| `NETLIFY_DATABASE_URL` | string | Auto-provisionada por Netlify Database |
+| `NETLIFY_DB_URL` | string | Auto-provisionada por la extensión Netlify Database (vía `@netlify/database`). El código no la lee directo; `getSql()` la resuelve internamente. |
 | `SPOTIFY_CLIENT_ID` | string | OAuth client id de tu app en Spotify Developer |
 | `SPOTIFY_CLIENT_SECRET` | string | OAuth client secret. **NUNCA al frontend.** |
 | `SPOTIFY_REDIRECT_URI` | url | Debe coincidir exacta con la registrada en Spotify Developer |
