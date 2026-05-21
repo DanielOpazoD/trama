@@ -131,7 +131,7 @@ export function Sidebar({
     return (
       <aside className="w-14 shrink-0 border-r border-ink-100/40 flex flex-col items-center py-4 gap-1">
         {/* Monogram top */}
-        <div className="text-ink-700 mb-2" aria-label="Trama">
+        <div className="text-ink-700 mb-2 trama-mark-interactive" aria-label="Trama" title="Trama">
           <TramaMark size={22} />
         </div>
 
@@ -204,7 +204,7 @@ export function Sidebar({
   return (
     <aside className="w-64 shrink-0 border-r border-ink-100/40 flex flex-col">
       <header className="px-3 py-4 flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 trama-mark-interactive" title="Trama">
           <TramaMark size={26} className="text-ink-700 shrink-0" />
           <div className="flex flex-col gap-0.5 min-w-0">
             <div className="flex items-baseline gap-2">

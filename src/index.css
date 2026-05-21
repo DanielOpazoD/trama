@@ -157,6 +157,50 @@
     animation: dash-flow 2.2s linear infinite;
   }
 
+  /* Trama monogram weaves itself in: crossbar draws, then vertical, then threads */
+  @keyframes mark-draw-crossbar {
+    from { stroke-dashoffset: 14; }
+    to   { stroke-dashoffset: 0; }
+  }
+  @keyframes mark-draw-vertical {
+    from { stroke-dashoffset: 14; }
+    to   { stroke-dashoffset: 0; }
+  }
+  @keyframes mark-thread-in {
+    from { opacity: 0; }
+    to   { opacity: 0.55; }
+  }
+  .mark-crossbar {
+    stroke-dasharray: 14;
+    animation: mark-draw-crossbar 600ms cubic-bezier(0.5, 0, 0.4, 1) both;
+  }
+  .mark-vertical {
+    stroke-dasharray: 14;
+    animation: mark-draw-vertical 700ms cubic-bezier(0.5, 0, 0.4, 1) 300ms both;
+  }
+  .mark-thread {
+    opacity: 0;
+    animation: mark-thread-in 500ms ease-out 800ms both;
+  }
+
+  /* Splash overlay fades out after the wordmark draws */
+  @keyframes splash-out {
+    0%, 70% { opacity: 1; pointer-events: auto; }
+    100%    { opacity: 0; pointer-events: none; visibility: hidden; }
+  }
+  .animate-splash-out {
+    animation: splash-out 1.8s ease-out forwards;
+  }
+
+  /* The shell fades up under the splash */
+  @keyframes shell-rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-shell-rise {
+    animation: shell-rise 600ms ease-out 1.2s both;
+  }
+
   /* Slow ambient drift for graph nodes — each node uses its own delay so the
      ensemble breathes rather than oscillating in unison. */
   @keyframes node-drift {
@@ -227,5 +271,24 @@
   }
   .graph-node:active {
     cursor: grabbing;
+  }
+
+  /* Trama mark — threads gently breathe on hover, suggesting the weave */
+  .trama-mark-interactive {
+    cursor: pointer;
+  }
+  .trama-mark-interactive svg path:nth-child(3),
+  .trama-mark-interactive svg path:nth-child(4) {
+    transition: stroke-opacity 600ms ease, transform 600ms ease;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .trama-mark-interactive:hover svg path:nth-child(3) {
+    stroke-opacity: 0.9;
+    transform: translateX(0.5px);
+  }
+  .trama-mark-interactive:hover svg path:nth-child(4) {
+    stroke-opacity: 0.9;
+    transform: translateX(-0.5px);
   }
 }

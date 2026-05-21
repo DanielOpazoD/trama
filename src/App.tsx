@@ -15,6 +15,7 @@ import { RelationshipsView } from './components/RelationshipsView'
 import { ExtractBar } from './components/ExtractBar'
 import { ProposalPanel } from './components/ProposalPanel'
 import { NodeDetailPanel } from './components/NodeDetailPanel'
+import { Splash } from './components/Splash'
 import type { ExtractionProposal } from './types'
 
 type PendingProposal = { text: string; proposal: ExtractionProposal }
@@ -137,7 +138,10 @@ function Shell() {
 export default function App() {
   return (
     <Provider>
-      <Shell />
+      <Splash />
+      <div className="animate-shell-rise h-full">
+        <Shell />
+      </div>
     </Provider>
   )
 }
