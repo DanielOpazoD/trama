@@ -40,7 +40,5 @@ dev.log
 *.tsbuildinfo
 coverage
 
-# Environment
-.env
-.env.local
-.env.*.local
+# Local tooling state
+.claude/
