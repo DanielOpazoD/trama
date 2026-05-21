@@ -77,7 +77,15 @@ Trama puede registrar lo que escuchas para que luego elijas qué entra a tu tram
 5. Abre Trama → *Configuración* → *Spotify* → *Conectar con Spotify*. Te llevará a la pantalla de consentimiento de Spotify, autoriza, y volverás a Trama conectado.
 6. Después: clic en *Sincronizar ahora* para traer tus últimas 50 reproducciones. Las verás en la pestaña **Escuchas** del sidebar, agrupadas por artista, álbum o canción. Decide cuáles agregar a la trama.
 
-Spotify solo retiene las 50 reproducciones más recientes — un sync regular (cada hora o así) es lo que mantiene el log completo. En el futuro, un *scheduled function* puede sincronizar automáticamente.
+Spotify solo retiene las 50 reproducciones más recientes — un sync regular es lo que mantiene el log completo.
+
+**Sync automático cada 3 horas:** la función `netlify/functions/spotify-scheduled-sync.mts` corre 8 veces al día (a las 00, 03, 06, 09, 12, 15, 18, 21 UTC) sin que tengas que hacer nada. La dispara Netlify en sus servidores; tu app puede estar cerrada. Si Spotify no está conectado, la función es un no-op silencioso.
+
+Para cambiar la frecuencia, edita el `schedule` en `spotify-scheduled-sync.mts`. Acepta cualquier cron estándar:
+- `0 * * * *` — cada hora
+- `0 */6 * * *` — cada 6 horas
+- `0 8,20 * * *` — 8 AM y 8 PM UTC
+- `@hourly`, `@daily` — atajos de Netlify
 
 ## Deploy
 
