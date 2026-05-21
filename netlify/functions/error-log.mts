@@ -1,16 +1,12 @@
-import { neon } from '@neondatabase/serverless'
 import type { Config } from '@netlify/functions'
+import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 
 export default withObservability('error-log', async (req) => {
   if (req.method !== 'GET') {
     return new Response('Method not allowed', { status: 405 })
   }
-  const connectionString = Netlify.env.get('NETLIFY_DATABASE_URL')
-  if (!connectionString) {
-    return new Response('NETLIFY_DATABASE_URL no está configurada', { status: 500 })
-  }
-  const sql = neon(connectionString)
+  const sql = getSql()
   const url = new URL(req.url)
   const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '100', 10), 500)
 

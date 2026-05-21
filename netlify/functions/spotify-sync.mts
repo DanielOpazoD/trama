@@ -1,5 +1,5 @@
-import { neon } from '@neondatabase/serverless'
 import type { Config } from '@netlify/functions'
+import { getSql } from './_lib/db.js'
 import {
   fetchRecentlyPlayed,
   getValidAccessToken,
@@ -26,11 +26,7 @@ export default withObservability('spotify-sync', async (req) => {
   const blocked = rateLimit(req, { max: 10, windowMs: 60_000, key: 'spotify-sync' })
   if (blocked) return blocked
 
-  const connectionString = Netlify.env.get('NETLIFY_DATABASE_URL')
-  if (!connectionString) {
-    return new Response('NETLIFY_DATABASE_URL no está configurada', { status: 500 })
-  }
-  const sql = neon(connectionString)
+  const sql = getSql()
 
   const accessToken = await getValidAccessToken(sql)
   if (!accessToken) {

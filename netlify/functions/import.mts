@@ -1,5 +1,5 @@
-import { neon } from '@neondatabase/serverless'
 import type { Config } from '@netlify/functions'
+import { getSql } from './_lib/db.js'
 
 type IncomingEntity = {
   id?: string
@@ -48,11 +48,7 @@ export default async (req: Request) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
   }
-  const connectionString = Netlify.env.get('NETLIFY_DATABASE_URL')
-  if (!connectionString) {
-    return new Response('NETLIFY_DATABASE_URL no está configurada', { status: 500 })
-  }
-  const sql = neon(connectionString)
+  const sql = getSql()
 
   let payload: ImportPayload
   try {

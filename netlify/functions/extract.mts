@@ -1,5 +1,5 @@
-import { neon } from '@neondatabase/serverless'
 import type { Config, Context } from '@netlify/functions'
+import { getSql } from './_lib/db.js'
 import { askLLMForJson } from './_lib/llm.js'
 import { buildExtractionPrompt } from './_lib/extract-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
@@ -43,11 +43,7 @@ export default withObservability('extract', async (req: Request, _context: Conte
     return new Response('Falta el campo "text"', { status: 400 })
   }
 
-  const connectionString = Netlify.env.get('NETLIFY_DATABASE_URL')
-  if (!connectionString) {
-    return new Response('NETLIFY_DATABASE_URL no está configurada', { status: 500 })
-  }
-  const sql = neon(connectionString)
+  const sql = getSql()
 
   // Fetch context: valid type slugs and existing entities.
   const [entityTypeRows, relTypeRows, existing] = await Promise.all([

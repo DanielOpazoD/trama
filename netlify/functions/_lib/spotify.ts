@@ -11,9 +11,9 @@
  *   SPOTIFY_REDIRECT_URI   — must match what's registered in the Spotify app
  */
 
-import { neon } from '@neondatabase/serverless'
+import type { getSql } from './db.js'
 
-type SqlClient = ReturnType<typeof neon>
+type SqlClient = ReturnType<typeof getSql>
 
 const TOKEN_URL = 'https://accounts.spotify.com/api/token'
 const AUTH_URL = 'https://accounts.spotify.com/authorize'

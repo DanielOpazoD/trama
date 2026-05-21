@@ -1,5 +1,5 @@
-import { neon } from '@neondatabase/serverless'
 import type { Config } from '@netlify/functions'
+import { getSql } from './_lib/db.js'
 import { disconnectSpotify, getStoredTokens } from './_lib/spotify.js'
 import { withObservability } from './_lib/handler-wrap.js'
 
@@ -8,11 +8,7 @@ import { withObservability } from './_lib/handler-wrap.js'
  * DELETE → disconnects (removes stored tokens).
  */
 export default withObservability('spotify-status', async (req) => {
-  const connectionString = Netlify.env.get('NETLIFY_DATABASE_URL')
-  if (!connectionString) {
-    return new Response('NETLIFY_DATABASE_URL no está configurada', { status: 500 })
-  }
-  const sql = neon(connectionString)
+  const sql = getSql()
 
   if (req.method === 'DELETE') {
     await disconnectSpotify(sql)

@@ -1,5 +1,6 @@
-import { neon } from '@neondatabase/serverless'
 import type { Config } from '@netlify/functions'
+import { getSql } from './_lib/db.js'
+import { MissingDatabaseConnectionError } from '@netlify/database'
 import {
   fetchRecentlyPlayed,
   getStoredTokens,
@@ -30,16 +31,20 @@ export default async (req: Request) => {
     // Ignore — body shape is documented but defensive parsing never hurts.
   }
 
-  const connectionString = Netlify.env.get('NETLIFY_DATABASE_URL')
-  if (!connectionString) {
-    logErrorEvent({
-      event: 'spotify_scheduled_sync_skipped',
-      reason: 'no_db_url',
-      message: 'NETLIFY_DATABASE_URL no está configurada',
-    })
-    return new Response(null, { status: 202 })
+  let sql: ReturnType<typeof getSql>
+  try {
+    sql = getSql()
+  } catch (err) {
+    if (err instanceof MissingDatabaseConnectionError) {
+      logErrorEvent({
+        event: 'spotify_scheduled_sync_skipped',
+        reason: 'no_db_url',
+        message: 'Netlify Database no está conectada (NETLIFY_DB_URL falta)',
+      })
+      return new Response(null, { status: 202 })
+    }
+    throw err
   }
-  const sql = neon(connectionString)
 
   // If the user hasn't connected Spotify, this function has nothing to do.
   const tokens = await getStoredTokens(sql).catch(() => null)

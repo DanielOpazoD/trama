@@ -1,5 +1,5 @@
-import { neon } from '@neondatabase/serverless'
 import type { Config } from '@netlify/functions'
+import { getSql } from './_lib/db.js'
 import {
   exchangeCodeForTokens,
   getSpotifyProfile,
@@ -33,11 +33,7 @@ export default withObservability('spotify-callback', async (req) => {
     return redirectWith('/?spotify_error=state_mismatch')
   }
 
-  const connection = Netlify.env.get('NETLIFY_DATABASE_URL')
-  if (!connection) {
-    return new Response('NETLIFY_DATABASE_URL no está configurada', { status: 500 })
-  }
-  const sql = neon(connection)
+  const sql = getSql()
 
   const tokens = await exchangeCodeForTokens(code)
   const profile = await getSpotifyProfile(tokens.access_token)

@@ -6,7 +6,7 @@
  * Returns null if under budget, or a Response (429) if over.
  */
 
-import { neon } from '@neondatabase/serverless'
+import { safeSql } from './observability.js'
 
 function readBudgetCents(): number {
   const raw = Netlify.env.get('AI_MONTHLY_BUDGET_CENTS')
@@ -15,9 +15,8 @@ function readBudgetCents(): number {
 }
 
 export async function checkMonthlyBudget(): Promise<Response | null> {
-  const url = Netlify.env.get('NETLIFY_DATABASE_URL')
-  if (!url) return null // No DB → can't check, fail open.
-  const sql = neon(url)
+  const sql = safeSql()
+  if (!sql) return null // No DB → can't check, fail open.
   const budget = readBudgetCents()
 
   type Row = { total: string }

@@ -10,9 +10,9 @@
  * Both are non-blocking. Use them generously without performance fear.
  */
 
-import { neon } from '@neondatabase/serverless'
+import { getSql } from './db.js'
 
-type SqlClient = ReturnType<typeof neon>
+type SqlClient = ReturnType<typeof getSql>
 
 type LogPayload = {
   event: string
@@ -73,14 +73,12 @@ export function persistError(sql: SqlClient | null, error: ErrorContext): void {
 }
 
 /**
- * Convenience: returns a SQL client if NETLIFY_DATABASE_URL is set, else null.
+ * Convenience: returns a SQL client if the Netlify Database is wired up, else null.
  * Useful for error handlers that may run BEFORE the DB connection is needed.
  */
 export function safeSql(): SqlClient | null {
-  const url = Netlify.env.get('NETLIFY_DATABASE_URL')
-  if (!url) return null
   try {
-    return neon(url)
+    return getSql()
   } catch {
     return null
   }

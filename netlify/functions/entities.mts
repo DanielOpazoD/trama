@@ -1,5 +1,5 @@
-import { neon } from '@neondatabase/serverless'
 import type { Config, Context } from '@netlify/functions'
+import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 
 type Origin = { kind: string; [key: string]: unknown }
@@ -15,11 +15,7 @@ function normalizeOrigin(value: unknown): Origin {
 }
 
 export default withObservability('entities', async (req: Request, context: Context) => {
-  const connectionString = Netlify.env.get('NETLIFY_DATABASE_URL')
-  if (!connectionString) {
-    return new Response('NETLIFY_DATABASE_URL no está configurada', { status: 500 })
-  }
-  const sql = neon(connectionString)
+  const sql = getSql()
   const id = context.params.id
 
   if (req.method === 'GET') {
