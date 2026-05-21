@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -30,6 +31,22 @@ export default function GraphView({
   const { data: relationships = [] } = useRelationshipsQuery()
   const updateEntityPosition = useUpdateEntityPosition()
   const svgRef = useRef<SVGSVGElement>(null)
+  const [svgSize, setSvgSize] = useState({ width: 0, height: 0 })
+
+  // Measure the SVG so we can center the world group using numeric translate.
+  // (SVG transform attribute does not accept percentage values.)
+  useLayoutEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+    const update = () => {
+      const rect = svg.getBoundingClientRect()
+      setSvgSize({ width: rect.width, height: rect.height })
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(svg)
+    return () => observer.disconnect()
+  }, [])
 
   const { positions, setPosition } = useForceLayout({
     nodes: entities,
@@ -173,8 +190,7 @@ export default function GraphView({
       </defs>
       <rect width="100%" height="100%" fill="url(#paperDots)" />
       <g
-        transform={`translate(50% 50%) scale(${pz.zoom}) translate(${pz.pan.x} ${pz.pan.y})`}
-        style={{ transformOrigin: 'center' }}
+        transform={`translate(${svgSize.width / 2} ${svgSize.height / 2}) scale(${pz.zoom}) translate(${pz.pan.x} ${pz.pan.y})`}
       >
         {relationships.map((rel) => (
           <GraphEdge
