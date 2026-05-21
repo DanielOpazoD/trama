@@ -272,6 +272,13 @@ export const api = {
     })
   },
 
+  async extractFromImage(imageBase64: string, mimeType: string): Promise<ExtractionProposal> {
+    return request<ExtractionProposal>('/api/extract-from-image', {
+      method: 'POST',
+      body: JSON.stringify({ imageBase64, mimeType }),
+    })
+  },
+
   async suggestRelationships(): Promise<ExtractionProposal> {
     return request<ExtractionProposal>('/api/suggest-relationships', {
       method: 'POST',

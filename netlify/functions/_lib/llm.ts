@@ -80,6 +80,43 @@ function readApiKey(): string {
   return key
 }
 
+/**
+ * Vision is supported by OpenAI (gpt-4o-mini and friends) and Gemini. DeepSeek
+ * Chat doesn't take images; Anthropic does but we haven't wired it up.
+ *
+ * If AI_PROVIDER is one of the vision-capable ones we use it directly. Else
+ * we look for AI_VISION_PROVIDER + AI_VISION_API_KEY as a separate channel —
+ * lets users keep DeepSeek as their text default while using OpenAI/Gemini
+ * only for the rarer vision calls.
+ */
+function readVisionProvider(): { provider: 'openai' | 'gemini'; apiKey: string } {
+  const visionOverride = Netlify.env.get('AI_VISION_PROVIDER')?.toLowerCase()
+  if (visionOverride === 'openai' || visionOverride === 'gemini') {
+    const key = Netlify.env.get('AI_VISION_API_KEY')
+    if (!key) {
+      throw new Error(
+        `AI_VISION_PROVIDER=${visionOverride} pero AI_VISION_API_KEY no está configurada.`,
+      )
+    }
+    return { provider: visionOverride, apiKey: key }
+  }
+  if (visionOverride && visionOverride !== '') {
+    throw new Error(
+      `AI_VISION_PROVIDER no reconocido: ${visionOverride}. Usa "openai" o "gemini".`,
+    )
+  }
+
+  // No override: try to use the main provider if it supports vision.
+  const main = readProvider()
+  if (main === 'openai' || main === 'gemini') {
+    return { provider: main, apiKey: readApiKey() }
+  }
+  throw new Error(
+    `El proveedor configurado (${main}) no soporta imágenes. ` +
+      'Configura AI_VISION_PROVIDER=openai o gemini, y AI_VISION_API_KEY.',
+  )
+}
+
 function readMaxTokens(): number {
   const raw = Netlify.env.get('AI_MAX_TOKENS')
   const n = raw ? parseInt(raw, 10) : NaN
@@ -498,6 +535,160 @@ async function askGemini(
   if (!text) throw new Error('Gemini no devolvió texto')
   return {
     content: mode === 'json' ? JSON.parse(text) : text,
+    tokensIn: data.usageMetadata?.promptTokenCount ?? 0,
+    tokensOut: data.usageMetadata?.candidatesTokenCount ?? 0,
+  }
+}
+
+// ---------- Vision ----------
+
+/**
+ * Ask a vision-capable LLM to read an image and return JSON. Used for OCR +
+ * structured extraction from photos of book pages, screenshots, posters, etc.
+ *
+ * The image is passed as a base64-encoded data URL. We force JSON mode so
+ * the caller can parse cleanly.
+ */
+export async function askLLMForVision(
+  systemPrompt: string,
+  userText: string,
+  imageBase64: string,
+  mimeType: string,
+): Promise<LLMResult> {
+  const { provider, apiKey } = readVisionProvider()
+  const config = PROVIDER_DEFAULTS[provider]
+  const maxTokens = readMaxTokens()
+  const cacheTtl = readCacheTtlSeconds()
+
+  // Cache by hash of system + user text + image bytes (truncated) — exact
+  // duplicates are rare for vision but cheap to dedupe.
+  const cacheKey = await hashMessages(
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userText + ':' + imageBase64.slice(0, 64) },
+    ],
+    `${provider}|vision`,
+  )
+  const cached = getCached(cacheKey)
+  if (cached) return cached
+
+  const start = Date.now()
+  let raw: RawResult
+  if (provider === 'openai') {
+    raw = await askOpenAIVision(apiKey, config, systemPrompt, userText, imageBase64, mimeType, maxTokens)
+  } else {
+    raw = await askGeminiVision(apiKey, config, systemPrompt, userText, imageBase64, mimeType, maxTokens)
+  }
+
+  const result: LLMResult = {
+    content: raw.content,
+    usage: {
+      provider,
+      model: config.model,
+      tokensIn: raw.tokensIn,
+      tokensOut: raw.tokensOut,
+      costCents: computeCostCents(raw, config),
+      durationMs: Date.now() - start,
+    },
+    fromCache: false,
+  }
+  putCached(cacheKey, result, cacheTtl)
+  return result
+}
+
+async function askOpenAIVision(
+  apiKey: string,
+  config: ProviderConfig,
+  systemPrompt: string,
+  userText: string,
+  imageBase64: string,
+  mimeType: string,
+  maxTokens: number,
+): Promise<RawResult> {
+  const dataUrl = `data:${mimeType};base64,${imageBase64}`
+  const response = await fetchWithRetry(() =>
+    fetch(`${config.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: userText },
+              { type: 'image_url', image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.2,
+        max_tokens: maxTokens,
+      }),
+    }),
+  )
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`OpenAI vision error ${response.status}: ${errorText}`)
+  }
+  const data = (await response.json()) as {
+    choices: { message: { content: string } }[]
+    usage?: { prompt_tokens?: number; completion_tokens?: number }
+  }
+  const text = data.choices?.[0]?.message?.content
+  if (!text) throw new Error('OpenAI vision no devolvió contenido')
+  return {
+    content: JSON.parse(text),
+    tokensIn: data.usage?.prompt_tokens ?? 0,
+    tokensOut: data.usage?.completion_tokens ?? 0,
+  }
+}
+
+async function askGeminiVision(
+  apiKey: string,
+  config: ProviderConfig,
+  systemPrompt: string,
+  userText: string,
+  imageBase64: string,
+  mimeType: string,
+  maxTokens: number,
+): Promise<RawResult> {
+  const response = await fetchWithRetry(() =>
+    fetch(`${config.baseUrl}/models/${config.model}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: userText },
+              { inlineData: { mimeType, data: imageBase64 } },
+            ],
+          },
+        ],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.2,
+          maxOutputTokens: maxTokens,
+        },
+      }),
+    }),
+  )
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Gemini vision error ${response.status}: ${errorText}`)
+  }
+  const data = (await response.json()) as {
+    candidates: { content: { parts: { text: string }[] } }[]
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number }
+  }
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!text) throw new Error('Gemini vision no devolvió texto')
+  return {
+    content: JSON.parse(text),
     tokensIn: data.usageMetadata?.promptTokenCount ?? 0,
     tokensOut: data.usageMetadata?.candidatesTokenCount ?? 0,
   }

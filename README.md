@@ -80,6 +80,8 @@ Comandos útiles:
 | `AI_MAX_TOKENS` | int (default `4096`) | Cap de tokens de respuesta del LLM |
 | `AI_CACHE_TTL_SECONDS` | int (default `600`) | TTL del cache in-memory del LLM. `0` desactiva. |
 | `AI_MONTHLY_BUDGET_CENTS` | int (default `500`) | Cap mensual de gasto del LLM en centavos USD. Las llamadas se cortan al cap. |
+| `AI_VISION_PROVIDER` | `openai` o `gemini` (opcional) | Provider separado para llamadas con imagen. Necesario si `AI_PROVIDER` es DeepSeek o Anthropic (que no soportan visión). Si `AI_PROVIDER=openai` o `gemini`, esta var no es necesaria. |
+| `AI_VISION_API_KEY` | string (opcional) | Key del provider de visión. Necesaria si `AI_VISION_PROVIDER` está definida. |
 | `NETLIFY_DB_URL` | string | Auto-provisionada por la extensión Netlify Database. `getSql()` la resuelve internamente; el código no la lee directo. |
 | `SPOTIFY_CLIENT_ID` | string | OAuth client id de tu app en Spotify Developer |
 | `SPOTIFY_CLIENT_SECRET` | string | OAuth client secret. **NUNCA al frontend.** |
