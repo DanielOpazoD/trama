@@ -9,29 +9,39 @@ import {
 } from 'react'
 import {
   useEntitiesQuery,
+  useOffline,
   useRelationshipsQuery,
+  useSuggestRelationships,
   useUpdateEntityPosition,
 } from '../state'
-import type { Entity } from '../types'
-import { useForceLayout } from '../hooks/useForceLayout'
+import type { Entity, ExtractionProposal } from '../types'
+import { useGraphLayout } from '../hooks/useGraphLayout'
 import { usePanZoom } from '../hooks/usePanZoom'
 import { useFreshIds } from '../hooks/useFreshIds'
 import { GraphNode } from './graph/GraphNode'
 import { GraphEdge } from './graph/GraphEdge'
+import { GraphToolbar } from './graph/GraphToolbar'
 import { EmptyState } from './EmptyState'
+import type { LayoutMode } from '../hooks/layouts/types'
 
 export default function GraphView({
   selectedId,
   onSelect,
+  onProposal,
 }: {
   selectedId: string | null
   onSelect: (id: string | null) => void
+  onProposal?: (text: string, proposal: ExtractionProposal) => void
 }) {
   const { data: entities = [] } = useEntitiesQuery()
   const { data: relationships = [] } = useRelationshipsQuery()
   const updateEntityPosition = useUpdateEntityPosition()
+  const suggest = useSuggestRelationships()
+  const { offline } = useOffline()
   const svgRef = useRef<SVGSVGElement>(null)
   const [svgSize, setSvgSize] = useState({ width: 0, height: 0 })
+  const [mode, setMode] = useState<LayoutMode>('organic')
+  const [suggestEmpty, setSuggestEmpty] = useState(false)
 
   // Measure the SVG so we can center the world group using numeric translate.
   // (SVG transform attribute does not accept percentage values.)
@@ -48,7 +58,8 @@ export default function GraphView({
     return () => observer.disconnect()
   }, [])
 
-  const { positions, setPosition } = useForceLayout({
+  const { positions, setPosition, reorganize } = useGraphLayout({
+    mode,
     nodes: entities,
     edges: relationships,
   })
@@ -67,12 +78,8 @@ export default function GraphView({
     return map
   }, [relationships])
 
-  // Keyboard focus index — for accessibility. Distinct from selectedId so that
-  // sighted users with a mouse keep current behavior, but keyboard users can
-  // navigate without committing a selection.
   const [focusedIndex, setFocusedIndex] = useState<number>(-1)
 
-  // Reset focus when entity list changes (e.g., after import).
   useEffect(() => {
     if (focusedIndex >= entities.length) setFocusedIndex(-1)
   }, [entities.length, focusedIndex])
@@ -81,10 +88,7 @@ export default function GraphView({
     (event: React.KeyboardEvent) => {
       if (entities.length === 0) return
       if (event.key === 'ArrowRight' || event.key === 'ArrowDown' || event.key === 'Tab') {
-        if (event.key === 'Tab' && event.shiftKey) {
-          // Let shift+tab do default (leave the graph).
-          return
-        }
+        if (event.key === 'Tab' && event.shiftKey) return
         event.preventDefault()
         setFocusedIndex((prev) => (prev + 1) % entities.length)
       } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
@@ -134,11 +138,13 @@ export default function GraphView({
     const id = pz.draggingId()
     if (id) {
       const pos = positions.get(id)
-      if (pos) updateEntityPosition(id, pos.x, pos.y)
+      // Only persist drag positions when we're in organic mode — other modes
+      // recompute deterministically, so persistence would be misleading.
+      if (pos && mode === 'organic') updateEntityPosition(id, pos.x, pos.y)
     }
     pz.cancelDrag()
     pz.onMouseUp()
-  }, [pz, positions, updateEntityPosition])
+  }, [pz, positions, updateEntityPosition, mode])
 
   const handleNodeClick = useCallback(
     (event: React.MouseEvent, entity: Entity, index: number) => {
@@ -153,6 +159,20 @@ export default function GraphView({
     if (!pz.isDragging()) onSelect(null)
   }, [pz, onSelect])
 
+  const handleSuggest = useCallback(async () => {
+    setSuggestEmpty(false)
+    try {
+      const proposal = await suggest.mutateAsync()
+      if (proposal.relationships.length === 0) {
+        setSuggestEmpty(true)
+        return
+      }
+      onProposal?.('Sugerencias entre entidades existentes', proposal)
+    } catch {
+      // surfaces via suggest.error
+    }
+  }, [suggest, onProposal])
+
   if (entities.length === 0) {
     return <EmptyState />
   }
@@ -161,88 +181,112 @@ export default function GraphView({
   const focusedEntity = focusedIndex >= 0 ? entities[focusedIndex] : null
 
   return (
-    <svg
-      ref={svgRef}
-      className="w-full h-full focus:outline-none"
-      style={cursorStyle}
-      tabIndex={0}
-      role="application"
-      aria-label={`Grafo de afinidades. ${entities.length} entidades, ${relationships.length} relaciones. Usa las flechas para navegar, Enter para seleccionar, Escape para deseleccionar.`}
-      aria-activedescendant={focusedEntity ? `graph-node-${focusedEntity.id}` : undefined}
-      onMouseDown={pz.onMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onClick={handleBackgroundClick}
-      onWheel={pz.onWheel}
-      onKeyDown={handleKeyDown}
-    >
-      <defs>
-        <pattern id="paperDots" width="28" height="28" patternUnits="userSpaceOnUse">
-          <circle cx="14" cy="14" r="0.7" fill="var(--dot)" opacity="0.55" />
-        </pattern>
-        <marker id="edgeArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-2)" opacity="0.5" />
-        </marker>
-        <marker id="edgeArrowAi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#7AA7C7" opacity="0.6" />
-        </marker>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#paperDots)" />
-      <g
-        transform={`translate(${svgSize.width / 2} ${svgSize.height / 2}) scale(${pz.zoom}) translate(${pz.pan.x} ${pz.pan.y})`}
-      >
-        {relationships.map((rel) => (
-          <GraphEdge
-            key={rel.id}
-            rel={rel}
-            from={positions.get(rel.fromId)}
-            to={positions.get(rel.toId)}
-            highlighted={selectedId === rel.fromId || selectedId === rel.toId}
-            dimmed={
-              selectedId !== null &&
-              selectedId !== rel.fromId &&
-              selectedId !== rel.toId
-            }
-            fresh={freshRels.has(rel.id)}
-          />
-        ))}
-        {entities.map((entity, index) => {
-          const pos = positions.get(entity.id)
-          if (!pos) return null
-          const isSelected = entity.id === selectedId
-          const isFocused = index === focusedIndex
-          const isDimmed =
-            selectedId !== null &&
-            !isSelected &&
-            !relationships.some(
-              (r) =>
-                (r.fromId === selectedId && r.toId === entity.id) ||
-                (r.toId === selectedId && r.fromId === entity.id),
-            )
-          return (
-            <GraphNode
-              key={entity.id}
-              entity={entity}
-              x={pos.x}
-              y={pos.y}
-              isSelected={isSelected}
-              isFocused={isFocused}
-              isDimmed={isDimmed}
-              isFresh={freshEntities.has(entity.id)}
-              connectionCount={connectionCount.get(entity.id) ?? 0}
-              onMouseDown={(event) => handleNodeMouseDown(event, entity)}
-              onClick={(event) => handleNodeClick(event, entity, index)}
-            />
-          )
-        })}
-      </g>
+    <div className="relative h-full w-full">
+      <GraphToolbar
+        mode={mode}
+        onModeChange={setMode}
+        onReorganize={reorganize}
+        onSuggest={handleSuggest}
+        suggestPending={suggest.isPending}
+        suggestDisabled={offline || entities.length < 2}
+        zoomPercent={Math.round(pz.zoom * 100)}
+        entityCount={entities.length}
+        relationshipCount={relationships.length}
+      />
 
-      <g transform="translate(20 20)">
-        <text fontSize={10} fontFamily="inherit" fill="var(--ink-dim)" style={{ userSelect: 'none' }}>
-          {Math.round(pz.zoom * 100)}%
-        </text>
-      </g>
-    </svg>
+      {(suggest.error || suggestEmpty) && (
+        <div className="pointer-events-none absolute top-16 inset-x-0 z-10 flex justify-center px-3">
+          <div
+            className={
+              suggest.error
+                ? 'pointer-events-auto px-4 py-2 bg-red-50/95 border border-red-200/70 rounded-xl text-sm text-red-800 shadow-md max-w-md'
+                : 'pointer-events-auto px-4 py-2 bg-paper-50/95 border border-ink-100/70 rounded-xl text-sm text-ink-500 shadow-md max-w-md leading-relaxed'
+            }
+          >
+            {suggest.error
+              ? suggest.error.message
+              : 'La IA no encontró relaciones nuevas obvias. Prueba añadiendo descripciones o citas a las entidades para darle más contexto.'}
+          </div>
+        </div>
+      )}
+
+      <svg
+        ref={svgRef}
+        className="w-full h-full focus:outline-none"
+        style={cursorStyle}
+        tabIndex={0}
+        role="application"
+        aria-label={`Grafo de afinidades. ${entities.length} entidades, ${relationships.length} relaciones. Modo ${mode}. Usa las flechas para navegar, Enter para seleccionar, Escape para deseleccionar.`}
+        aria-activedescendant={focusedEntity ? `graph-node-${focusedEntity.id}` : undefined}
+        onMouseDown={pz.onMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onClick={handleBackgroundClick}
+        onWheel={pz.onWheel}
+        onKeyDown={handleKeyDown}
+      >
+        <defs>
+          <pattern id="paperDots" width="28" height="28" patternUnits="userSpaceOnUse">
+            <circle cx="14" cy="14" r="0.7" fill="var(--dot)" opacity="0.55" />
+          </pattern>
+          <marker id="edgeArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-2)" opacity="0.5" />
+          </marker>
+          <marker id="edgeArrowAi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#7AA7C7" opacity="0.6" />
+          </marker>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#paperDots)" />
+        <g
+          transform={`translate(${svgSize.width / 2} ${svgSize.height / 2}) scale(${pz.zoom}) translate(${pz.pan.x} ${pz.pan.y})`}
+        >
+          {relationships.map((rel) => (
+            <GraphEdge
+              key={rel.id}
+              rel={rel}
+              from={positions.get(rel.fromId)}
+              to={positions.get(rel.toId)}
+              highlighted={selectedId === rel.fromId || selectedId === rel.toId}
+              dimmed={
+                selectedId !== null &&
+                selectedId !== rel.fromId &&
+                selectedId !== rel.toId
+              }
+              fresh={freshRels.has(rel.id)}
+            />
+          ))}
+          {entities.map((entity, index) => {
+            const pos = positions.get(entity.id)
+            if (!pos) return null
+            const isSelected = entity.id === selectedId
+            const isFocused = index === focusedIndex
+            const isDimmed =
+              selectedId !== null &&
+              !isSelected &&
+              !relationships.some(
+                (r) =>
+                  (r.fromId === selectedId && r.toId === entity.id) ||
+                  (r.toId === selectedId && r.fromId === entity.id),
+              )
+            return (
+              <GraphNode
+                key={entity.id}
+                entity={entity}
+                x={pos.x}
+                y={pos.y}
+                isSelected={isSelected}
+                isFocused={isFocused}
+                isDimmed={isDimmed}
+                isFresh={freshEntities.has(entity.id)}
+                connectionCount={connectionCount.get(entity.id) ?? 0}
+                onMouseDown={(event) => handleNodeMouseDown(event, entity)}
+                onClick={(event) => handleNodeClick(event, entity, index)}
+              />
+            )
+          })}
+        </g>
+      </svg>
+    </div>
   )
 }

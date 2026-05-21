@@ -84,6 +84,7 @@ function Shell() {
               <GraphView
                 selectedId={selectedEntityId}
                 onSelect={setSelectedEntityId}
+                onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
               />
             )}
             {view !== 'grafo' && (
