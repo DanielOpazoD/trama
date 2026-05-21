@@ -4,83 +4,110 @@ Documento vivo de decisiones. Cada bloque de mejoras lo actualiza.
 
 ## Visión del producto
 
-Mapa cognitivo personal de afinidades intelectuales y estéticas. La cara visible es **un grafo**; el motor es una **IA que estructura texto desordenado** en nodos y relaciones que el usuario revisa y confirma.
+Mapa cognitivo personal de afinidades intelectuales y estéticas. La cara visible es **un grafo**; el motor es una **IA que estructura texto desordenado** en nodos y relaciones que el usuario revisa y confirma. Una pestaña paralela de chat permite conversar con la trama y recibir sugerencias inline.
 
 Tres pilares:
 1. **Visualización primero.** El producto es el grafo, no los formularios.
-2. **IA como escribano, humano como curador.** El usuario aporta texto bruto; la IA propone estructura; el usuario decide qué entra.
+2. **IA como escribano, humano como curador.** El usuario aporta texto bruto o un input ambiguo; la IA propone estructura; el usuario decide qué entra. Nunca nada automático.
 3. **Persistencia en la nube, durabilidad en décadas.** Diseñado para ser usable a lo largo de 10+ años, con respaldo exportable en cualquier momento.
 
 ## Stack técnico
 
 | Capa | Elección | Por qué |
 |---|---|---|
-| Frontend | React 18 + Vite + TypeScript + Tailwind | Vita rápido, TS para seguridad de tipos, Tailwind para iterar estética sin CSS suelto |
-| Hosting | Netlify | El usuario ya tiene cuenta Pro, despliegues automáticos en push a `main` |
-| Backend | Netlify Functions (serverless) | Cero servidor que mantener, escala automática, idéntico stack TS que el frontend |
-| Base de datos | Netlify Database (Postgres serverless via Neon) | Provisionado por Netlify, gratis hasta julio 2026 luego por créditos de uso real |
-| Driver Postgres | `@neondatabase/serverless` | Cliente liviano (1 paquete sin árbol de transitives), tagged template literals con parametrización segura |
-| Grafo | SVG con layout force-directed casero | Cero dependencias, suficiente hasta ~100 nodos. A migrar a `xyflow` o `sigma.js` si crece |
+| Frontend | React 18 + Vite + TypeScript + Tailwind | Vite rápido, TS para seguridad de tipos, Tailwind para iterar estética sin CSS suelto |
+| Hosting | Netlify | El usuario ya tiene cuenta Pro, despliegues automáticos en push a `main`, scheduled functions incluidas |
+| Backend | Netlify Functions (Node 22, ESM) | Cero servidor que mantener, escala automática, idéntico stack TS que el frontend |
+| Base de datos | Netlify Database (Postgres serverless via Neon) | Provisionado por Netlify, plan Pro incluye uso gratuito hasta cierto volumen |
+| Driver Postgres | `@netlify/database` → `getSql()` | Resuelve la conexión vía la extensión Netlify Database. Bajo el capó usa `@neondatabase/serverless` (HTTP), tagged template literals con parametrización segura |
+| Streaming | SSE para chat con DeepSeek/OpenAI; fallback de un chunk para Anthropic/Gemini | Token-by-token donde el provider lo soporta; API consumer-side uniforme |
+| Grafo | SVG con cuatro modos de layout caseros | Cero dependencias, suficiente hasta ~100 nodos. A migrar a `xyflow` o `sigma.js` si crece |
 | LLM | Abstracción multi-proveedor: DeepSeek por defecto, OpenAI/Anthropic/Gemini swappables vía env var | El modelo cambia cada 6 meses; la capa de invocación no debería |
-| Sync local | localStorage como fallback offline | Temporal; migrar a CRDTs (Yjs) cuando se use en múltiples dispositivos |
+| Spotify | OAuth client + scheduled function de sync | Importa playlists y registra escuchas, sin escribir nada a la trama sin aprobación |
+| Sync local | localStorage como fallback offline (unidireccional) | Temporal; migrar a CRDTs (Yjs) cuando se use en múltiples dispositivos |
 
 ## Estructura del repositorio
 
-```
-trama/
-├── ARCHITECTURE.md          ← este archivo
-├── netlify.toml             ← config de build y functions
-├── package.json
-├── src/                     ← frontend React
-│   ├── App.tsx              ← shell con sidebar + canvas + paneles
-│   ├── main.tsx             ← entry point
-│   ├── types.ts             ← tipos compartidos (Entity, Relationship, Quote, Origin, Proposal)
-│   ├── api.ts               ← cliente HTTP con transforms snake_case ↔ camelCase
-│   ├── state.tsx            ← React Context con estado + acciones CRUD
-│   ├── storage.ts           ← fallback a localStorage cuando no hay backend
-│   ├── index.css            ← Tailwind base + custom components (input-paper, btn-ink)
-│   └── components/
-│       ├── Sidebar.tsx           ← navegación + colapsable
-│       ├── GraphView.tsx         ← SVG + force layout + drag/pan/zoom
-│       ├── ExtractBar.tsx        ← textarea flotante inferior
-│       ├── ProposalPanel.tsx     ← panel derecho cuando IA devuelve propuesta
-│       ├── NodeDetailPanel.tsx   ← panel derecho cuando se selecciona un nodo
-│       ├── EntitiesView.tsx      ← lista alterna + formulario manual
-│       ├── QuotesView.tsx
-│       └── RelationshipsView.tsx
-└── netlify/
-    ├── database/
-    │   └── migrations/<timestamp>_<slug>/migration.sql
-    └── functions/
-        ├── _lib/
-        │   ├── llm.ts                ← abstracción multi-proveedor (DeepSeek, OpenAI, Anthropic, Gemini)
-        │   └── extract-prompt.ts     ← prompt para extracción semántica
-        ├── entities.mts              ← GET/POST/PATCH/DELETE /api/entities[/:id]
-        ├── relationships.mts
-        ├── quotes.mts
-        ├── extract.mts               ← POST /api/extract — IA propone estructura desde texto
-        ├── export.mts                ← GET /api/export — dump JSON completo
-        └── import.mts                ← POST /api/import — restaura desde dump
-```
+Ver el árbol completo en [`README.md`](./README.md#layout-del-repo). Resumen:
+
+- `src/` — frontend React
+  - `App.tsx` — shell con sidebar + canvas + paneles. Coordina state global mínimo (vista activa, entidad seleccionada, propuesta pendiente)
+  - `state/` — hooks granulares por dominio sobre TanStack Query
+  - `hooks/layouts/` — funciones puras de cálculo de posiciones (organic, byType, byYear, byDegree)
+  - `components/` — vistas (GraphView, EntitiesView, QuotesView, RelationshipsView, ListeningView, ChatView) + paneles (NodeDetailPanel, ProposalPanel, ReclassifyPanel)
+- `netlify/functions/` — endpoints serverless
+  - `_lib/` — utilidades reutilizables: conexión DB, LLM, prompts, validators, observabilidad
+  - `*.mts` — handlers HTTP, uno por endpoint o grupo de paths
+- `netlify/database/migrations/` — SQL versionado aplicado por Netlify en deploy
 
 ## Modelo de datos
 
-Tres tablas centrales conectadas:
+Tablas centrales y sus relaciones:
 
 ```
 entities (1) ─── (∞) relationships ─── (1) entities
         │
         └── (∞) quotes
+
+chat_threads (1) ─── (∞) chat_messages
+spotify_tokens (single row, id='default')
+spotify_plays
+entity_types, relationship_types        ← catálogos (datos, no código)
+extraction_log, error_log               ← observabilidad
 ```
 
 ### Convenciones de columnas
 
-Cada tabla incluye:
+Las tablas de dominio incluyen:
 - `id UUID PRIMARY KEY` — generado por DB (`gen_random_uuid()`)
 - `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()` — inmutable
 - `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()` — actualizado por trigger en cada UPDATE
 - `deleted_at TIMESTAMPTZ NULL` — soft delete (las queries filtran por `WHERE deleted_at IS NULL`)
 - `origin JSONB NOT NULL DEFAULT '{"kind": "manual"}'` — procedencia estructurada (ver abajo)
+
+Excepciones: `chat_messages` no tiene `updated_at`/`deleted_at` (es append-only y la borrada cae por CASCADE del thread). `spotify_plays` ídem.
+
+### Tabla `entities`
+
+Además de las columnas estándar:
+- `type TEXT NOT NULL` — slug del tipo (referencia lógica a `entity_types.slug`, no FK estricta)
+- `name TEXT NOT NULL`
+- `year INTEGER NULL` — año asociado (nacimiento, publicación, lanzamiento)
+- `description TEXT NULL` — descripción libre, una frase corta
+- `position_x DOUBLE PRECISION NULL`, `position_y DOUBLE PRECISION NULL` — coordenadas para el modo de layout orgánico
+- `spotify_url TEXT NULL` — link público de Spotify para entidades musicales (banda, musico, cancion, album, disco)
+
+Tipos de entidad seedados (24): persona, escritor, filósofo, músico, banda, director, artista, científico, libro, ensayo, poema, artículo, canción, podcast, álbum, disco, película, serie, documental, obra, concepto, idea, lugar, evento.
+
+### Tabla `relationships`
+
+- `from_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE`
+- `to_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE`
+- `type TEXT NOT NULL` — slug del tipo de relación
+- `notes TEXT NULL` — justificación o contexto
+
+Tipos seedados (8): influye_en, cita_a, responde_a, me_llego_por, suena_como, inspira, contradice, asociado_con.
+
+### Tabla `quotes`
+
+- `entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE`
+- `text TEXT NOT NULL`
+- `source TEXT NULL` — referencia bibliográfica o URL
+- `context TEXT NULL` — comentario sobre la cita
+
+Las notas rápidas que el usuario añade desde `NodeDetailPanel` son quotes sin `source`/`context`.
+
+### Tablas de chat
+
+`chat_threads`: id, title (auto-generado por LLM tras el primer mensaje), timestamps, soft delete.
+
+`chat_messages`: thread_id (FK con CASCADE), role (`'user' | 'assistant'`), content, proposal (JSONB), tokens_in/out/cost_cents (per-message), provider/model. Append-only.
+
+### Tablas Spotify
+
+`spotify_tokens`: una sola fila id='default'. Guarda access_token, refresh_token, expires_at, scope, profile.
+
+`spotify_plays`: cada reproducción con track_id, artist_ids[], album_id, played_at. Unique en (track_id, played_at) para que el sync sea idempotente.
 
 ### El campo `origin`
 
@@ -99,50 +126,99 @@ O cuando viene de la IA:
 }
 ```
 
-JSONB porque: (a) flexible para agregar campos sin migración, (b) consultable con operadores `->`, `->>`, `@>`, (c) preparado para nuevas fuentes futuras (`imported`, `pdf`, `voice`, etc.).
+O cuando viene de un import (Spotify, archivo JSON):
+```json
+{
+  "kind": "imported",
+  "importedFrom": "spotify"
+}
+```
+
+JSONB porque: (a) flexible para agregar campos sin migración, (b) consultable con operadores `->`, `->>`, `@>`, (c) preparado para nuevas fuentes futuras (`pdf`, `voice`, etc.).
 
 ### Eliminación en cascada
 
-Si una entidad se soft-deletea (`deleted_at` se setea), también se soft-deletean sus relaciones (entrantes y salientes) y sus citas. Esto se hace en la Netlify Function `DELETE /api/entities/:id` con tres UPDATE en secuencia.
+Si una entidad se soft-deletea (`deleted_at` se setea), también se soft-deletean sus relaciones (entrantes y salientes) y sus citas. Esto se hace en `entities.mts` con tres UPDATE secuenciales después del UPDATE principal.
+
+## El flujo principal de la IA
+
+Hay cinco caminos donde la IA produce sugerencias estructuradas:
+
+1. **Extract** (`POST /api/extract`) — texto libre → entidades + relaciones + citas.
+2. **Suggest relationships** (`POST /api/suggest-relationships`) — recorre la trama y propone vínculos nuevos entre entidades existentes.
+3. **Reclassify** (`POST /api/reclassify-entities`) — revisa los tipos actuales y propone cambios cuando hay uno mejor en el catálogo.
+4. **Chat** (`POST /api/chat/threads/:id/messages`, SSE) — diálogo persistido con la trama completa como contexto. La respuesta puede traer un bloque JSON entre marcadores `<<<TRAMA-PROPOSAL ... TRAMA-PROPOSAL>>>` que el cliente parsea en propuestas inline.
+5. **Import playlist Spotify** (`POST /api/spotify/import-playlist`) — la "IA" aquí es determinística (no LLM): parsea el ID de la URL, llama Spotify API, agrupa por artista único y devuelve una propuesta.
+
+Todos los caminos terminan en el mismo flujo: la UI muestra una propuesta y el usuario aprueba/rechaza por item. Las que aprueba se persisten con `origin.kind = 'ai'` (o `'imported'` para playlist).
+
+### `_lib/llm.ts`
+
+Punto único de entrada al LLM. Tres funciones:
+- `askLLMForJson(messages)` — fuerza `response_format: json_object`. Para extract/suggest/reclassify.
+- `askLLMForText(messages)` — texto plano. Para chat (no-streaming) y para auto-título de threads.
+- `askLLMForTextStreaming(messages)` — async generator de `{chunk|done|error}` frames. SSE en DeepSeek/OpenAI; fallback de un solo chunk en Anthropic/Gemini.
+
+Cada función:
+- Lee provider y key de env vars
+- Cachea por hash del input (TTL configurable, default 600s)
+- Hace retry con backoff en 5xx/429, no en 4xx
+- Devuelve `{ content, usage, fromCache }` — usage incluye costo estimado y tokens
 
 ## Decisiones clave y por qué
 
 ### Por qué `origin` es JSONB y no enum
 
-Hoy solo distingue manual vs IA. Mañana queremos saber qué modelo, qué prompt, qué fuente original. El enum forzaría una migración SQL cada vez. JSONB no.
+Hoy distingue manual / ai / imported. Mañana queremos saber qué prompt, qué fuente original, qué thread de chat dio origen. El enum forzaría una migración SQL cada vez. JSONB no.
+
+### Por qué `EntityType` y `RelationshipType` son `string` y no unions cerradas
+
+La fuente de verdad real son las tablas `entity_types` y `relationship_types`. Las antiguas unions literales forzaban un cast cada vez que aparecía un tipo nuevo en la DB. Las constantes `ENTITY_TYPES` y `RELATIONSHIP_TYPES` en `src/types.ts` siguen siendo útiles para los selects manuales — son un fallback en sync con la migración seed, no la verdad.
+
+### Por qué los layouts del grafo son funciones puras separadas
+
+`useGraphLayout(mode, nodes, edges)` despacha a una de cuatro funciones puras en `src/hooks/layouts/`. Cada una recibe `LayoutNode[]` + `LayoutEdge[]` y devuelve `Map<id, {x,y}>`. Esto:
+- hace cada modo testeable sin React,
+- permite agregar un modo nuevo (radial, jerárquico, por color, etc.) sin tocar el resto,
+- evita persistir posiciones cuando el modo no es orgánico (las otras vistas se recalculan determinísticamente).
 
 ### Por qué snake_case en SQL y camelCase en JS
 
-Convención dominante de cada ecosistema. En vez de quotear identificadores en SQL o nombrar variables raras en JS, se hace transformación explícita en `api.ts` — la frontera está en un solo archivo.
+Convención dominante de cada ecosistema. En vez de quotear identificadores en SQL o nombrar variables raras en JS, se hace transformación explícita en `api.ts` y en cada `*.mts`. La frontera está marcada.
 
 ### Por qué un layout force-directed casero en vez de xyflow
 
-El entorno local tiene problemas SSL al instalar paquetes nuevos del registry de npm, que bloquearon `@xyflow/react`. El layout casero (~50 líneas, Fruchterman-Reingold) funciona limpio hasta ~100 nodos. Si la trama crece más allá de eso, migrar a `xyflow` o `sigma.js` es un swap localizado en `GraphView.tsx`.
+El entorno local tuvo problemas SSL al instalar paquetes nuevos del registry de npm, que bloquearon `@xyflow/react`. El layout casero (~120 líneas, Fruchterman-Reingold) funciona limpio hasta ~100 nodos. Si la trama crece más allá de eso, migrar a `xyflow` o `sigma.js` es un swap localizado en `useGraphLayout.ts`.
 
 ### Por qué localStorage como fallback en vez de error duro
 
 Permite trabajar local sin desplegar el backend. Es un fallback de un solo sentido (no sube a la nube cuando recuperas conexión) — temporal hasta migrar a un modelo local-first real con CRDTs.
 
+### Por qué `getSql()` y no leer `NETLIFY_DATABASE_URL` directo
+
+La extensión heredada `@netlify/neon` fue retirada por Netlify y la env var `NETLIFY_DATABASE_URL` dejó de inyectarse. La integración nueva (`@netlify/database`) expone `getDatabase()` que resuelve la conexión vía `NETLIFY_DB_URL` internamente. `_lib/db.ts` envuelve esto en un `getSql()` que devuelve el `httpClient` de Neon — el mismo tagged-template literal de antes, ningún cambio en los call sites.
+
+### Por qué SSE en vez de WebSocket para el chat
+
+SSE es one-way (servidor → cliente) y soporta proxies/CDN sin configuración. El cliente lee chunks con `fetch().body.getReader()`. WebSocket añadiría un upgrade dance que no necesitamos: el usuario manda un mensaje vía POST normal, el servidor responde con el stream.
+
 ### Por qué Netlify Database (Neon) y no Supabase, Turso, etc.
 
-Provisionado automáticamente al hacer deploy si el proyecto lo necesita. No requiere cuentas externas. Plan Pro de Netlify incluye uso gratuito hasta cierto volumen. El driver `@neondatabase/serverless` es estándar y portable — migrar a otro Postgres es solo cambiar `NETLIFY_DATABASE_URL`.
+Provisionada automáticamente con la extensión. Plan Pro de Netlify incluye uso gratuito hasta cierto volumen. El driver es estándar (Neon HTTP) — migrar a otro Postgres es swap del wrapper en `_lib/db.ts` y de la env var.
 
 ## Cómo desplegar
 
 1. Push a `main` en GitHub.
 2. Si el sitio Netlify está conectado al repo, deploy automático.
 3. En primer deploy: Netlify detecta migraciones nuevas y las aplica antes de servir.
-4. Variables de entorno requeridas en Netlify:
-   - `AI_PROVIDER` — `deepseek` (default) | `openai` | `anthropic` | `gemini`
-   - `AI_API_KEY` — key del proveedor elegido
-   - `NETLIFY_DATABASE_URL` — autoprovisionada por Netlify Database
+4. Variables de entorno requeridas en Netlify (ver [`README.md`](./README.md#variables-de-entorno-en-netlify-dashboard)).
 
 ## Cómo aplicar una migración
 
 1. Crear directorio: `netlify/database/migrations/<unix_timestamp>_<slug>/migration.sql`
-2. Escribir SQL (idempotente cuando sea posible: `CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... IF NOT EXISTS`).
+2. Escribir SQL (idempotente cuando sea posible: `CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
 3. Push a `main`. Netlify aplica antes del próximo build.
-4. Las migraciones aplicadas son inmutables — no editar, siempre agregar nuevas.
+4. **Las migraciones aplicadas son inmutables** — no editar, siempre agregar nuevas. Netlify rechaza el deploy si una migración previamente registrada cambió de hash.
 
 ## Testing
 
@@ -153,18 +229,23 @@ Vitest corre tests con `npm test`. Configuración en `vitest.config.ts`.
 - Tests **colocados** con su código: `foo.ts` → `foo.test.ts` en la misma carpeta.
 - Patrones incluidos: `src/**/*.test.ts` y `netlify/**/*.test.ts`.
 - Sin globals (`globals: false`): cada test importa `describe, it, expect, vi` de `vitest`.
-- Mocks de fetch/Netlify.env con `vi.stubGlobal`, limpieza en `afterEach`.
+- Mocks de `fetch`/`Netlify.env` con `vi.stubGlobal`, limpieza en `afterEach`.
 
-### Qué se testea hoy
+### Qué se testea
 
-| Archivo | Cobertura | Qué cubre |
-|---|---|---|
-| `src/api.ts` | 70% | Transformación snake_case ↔ camelCase, normalización de `origin` legacy, request shape de POST/PATCH, manejo de errores HTTP |
-| `src/storage.ts` | 74% | Carga de localStorage con normalización de shapes viejos, round-trip save/load, tolerancia a JSON corrupto |
-| `netlify/functions/_lib/llm.ts` | 91% | Dispatch correcto por proveedor (DeepSeek/OpenAI/Anthropic/Gemini), headers y body shape por API, parsing de respuestas, manejo de errores y env vars faltantes |
-| `netlify/functions/_lib/extract-validate.ts` | 100% | Validación de tipo de entidad y relación, dedup case-insensitive contra entidades existentes, rechazo de self-loops, manejo de input malformado (null, string, array, shape incorrecto) |
+| Archivo | Qué cubre |
+|---|---|
+| `netlify/functions/_lib/llm.ts` | Dispatch correcto por proveedor (DeepSeek/OpenAI/Anthropic/Gemini), headers y body shape por API, parsing de respuestas, manejo de errores y env vars faltantes |
+| `netlify/functions/_lib/extract-validate.ts` | Validación de tipo, dedup case-insensitive contra existentes, rechazo de self-loops, input malformado |
+| `netlify/functions/_lib/reclassify-prompt.ts` | El prompt menciona todos los tipos, todas las entidades, exige catálogo y conservadurismo |
+| `netlify/functions/_lib/reclassify-validate.ts` | Drop de items sin entity match, type no válido, no-op (mismo tipo), reason opcional |
+| `netlify/functions/_lib/suggest-relationships-prompt.ts` | Prompt lista entidades + citas + relaciones existentes; demanda justificación |
+| `netlify/functions/_lib/chat-validate.ts` | Parse del marker `<<<TRAMA-PROPOSAL ... TRAMA-PROPOSAL>>>`, tolerancia a JSON malformado, detección de propuestas vacías |
+| `src/api.ts` | Transforms snake↔camel, normalización de `origin` legacy |
+| `src/storage.ts` | LocalStorage round-trip, tolerancia a JSON corrupto |
+| `src/hooks/layouts/byType.ts`, `byYear.ts`, `byDegree.ts` | Cada layout: nodos posicionados, clustering correcto, edge cases |
 
-Componentes React y `state.tsx` no tienen tests todavía — se cubrirán cuando se descompongan en hooks/sub-componentes (Bloques 3 y 4).
+Componentes React de momento se prueban end-to-end con `npm run dev`.
 
 ### CI
 
@@ -174,33 +255,17 @@ Componentes React y `state.tsx` no tienen tests todavía — se cubrirán cuando
 3. `npm test`
 4. `npm run build`
 
-Una falla en cualquier paso bloquea el merge (o sería visible como check rojo si las branch protections están activas).
+Una falla en cualquier paso aparece como check rojo. No hay branch protection forzando passing en este momento.
 
-## Bloques completados
+## Cosas conscientemente aplazadas
 
-A 2026-05-18, los 10 bloques iniciales están implementados:
+- **Local-first sync con CRDTs (Yjs/Automerge).** Vale la pena cuando se use en 2+ dispositivos en simultáneo. Hoy localStorage es solo fallback unidireccional.
+- **Auth real (Netlify Identity).** Hoy se protege con site password. Si el alcance crece más allá de personal, considerar.
+- **Migrar grafo a xyflow o sigma.js.** El layout casero escala bien hasta ~150 nodos. Más allá, considerar.
+- **UI de gestión de tipos de entidad y relación.** Las tablas y endpoints existen; falta el formulario.
+- **UI del extraction log.** El endpoint `/api/extraction-log` existe. Falta la vista de costos / historial.
+- **Tests de componentes UI con React Testing Library.** El scaffold de Vitest está; agregar `@testing-library/react` cuando se quiera cubrir UI.
+- **Búsqueda dentro del chat.** Los hilos están en DB; falta vista de búsqueda.
+- **Streaming en Anthropic/Gemini.** Por ahora fallback de un chunk. Cuando se use uno de esos providers en producción, agregar el SSE específico.
 
-| # | Bloque | Entregó |
-|---|---|---|
-| 0 | Docs base | ARCHITECTURE.md inicial |
-| 1 | Durabilidad de esquema | updated_at, deleted_at, position_x/y, origin JSONB, export/import |
-| 2 | Red de seguridad | Vitest, 55 tests, CI con GitHub Actions |
-| 3 | TanStack Query | Hooks por dominio bajo src/state/, optimistic updates, auto-refetch |
-| 4 | Descomposición GraphView | useForceLayout, usePanZoom hooks; GraphNode, GraphEdge componentes |
-| 5 | Log de extracción + costos | Tabla extraction_log; tracking de tokens, costo, duración |
-| 6 | Tipos como datos | entity_types, relationship_types con CRUD; extractor lee de DB |
-| 7 | Búsqueda full-text | tsvector + trigrams; endpoint /api/search; búsqueda inline en sidebar |
-| 8 | LLM resiliente | Retry con backoff, cache in-memory, max-tokens cap |
-| 9 | Accesibilidad | Navegación de teclado en grafo, ARIA labels, Escape en paneles |
-| 10 | Docs finales | README.md, CLAUDE.md, esta sección |
-
-## Bloques de futuro (aplazados conscientemente)
-
-- **Local-first sync con CRDTs** — cuando se use en 2+ dispositivos en simultáneo
-- **Autenticación real** (Netlify Identity) — si el alcance crece más allá de personal
-- **Migrar grafo a xyflow o sigma.js** — al superar ~150 nodos
-- **UI de gestión de tipos** — los endpoints existen; falta el formulario
-- **UI del extraction log** — endpoint listo; falta la vista
-- **Tests de componentes UI** — agregar React Testing Library
-
-Última revisión: 2026-05-18
+Última revisión: 2026-05-21

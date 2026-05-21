@@ -14,15 +14,23 @@ Con el tiempo eso se vuelve una topografía. Por dónde se ha movido mi cerebro 
 
 ## Cómo se piensa con Trama
 
-Tres gestos:
+Cuatro gestos:
 
-**Capturar.** Una frase desordenada, una cita, una idea suelta. La IA estructura: identifica las entidades mencionadas (personas, obras, conceptos), las conexiones implícitas, y propone qué agregar al mapa. Pero nada entra a la trama hasta que yo lo apruebo. Rechazo lo que no encaja, edito lo que necesita matiz, acepto solo lo que resuena. La IA es escribano, no autor — el contenido lo trae ella, el criterio es mío.
+**Capturar.** Una frase desordenada, una cita, una idea suelta. La IA estructura: identifica las entidades mencionadas (personas, escritores, bandas, canciones, libros, conceptos), las conexiones implícitas, y propone qué agregar al mapa. Pero nada entra a la trama hasta que yo lo apruebo. Rechazo lo que no encaja, edito lo que necesita matiz, acepto solo lo que resuena. La IA es escribano, no autor — el contenido lo trae ella, el criterio es mío.
 
-**Conectar.** Cada entidad puede vincularse a otras — *influye en*, *cita a*, *responde a*, *me llegó por*, *suena como*. Los tipos de relación no son un esquema rígido; son etiquetas que sirven para reconocer parentescos.
+**Conectar.** Cada entidad puede vincularse a otras — *influye en*, *cita a*, *responde a*, *me llegó por*, *suena como*. Los tipos de relación no son un esquema rígido; son etiquetas que sirven para reconocer parentescos. Cuando dos entidades llevan tiempo en la trama sin estar conectadas, basta pedírselo a la IA: revisa lo que sabe de cada una y propone vínculos plausibles. Aprobás los que tengan sentido.
 
-**Consultar.** El grafo es la lectura. Puedo abrirlo y ver dónde están las constelaciones densas — los lugares donde mi pensamiento se ha posado más. Puedo seleccionar un nodo y ver a quién está conectado, qué le he atribuido, cuándo lo agregué.
+**Conversar.** La trama no es una cosa que se mira en silencio. Hay un chat: le hablas a la IA y ella te responde con todo el mapa cargado como contexto — qué autores te interesan, qué citas guardaste, qué se relaciona con qué. Le preguntas qué leer después de un libro, qué bandas se parecen a otra que ya está adentro, qué une dos ideas que tenías sueltas. Cuando la conversación deriva en algo concreto que valga la pena retener, ella misma te propone agregarlo — y vuelve a ser tu decisión.
 
-Ese último punto importa: **Trama no es un archivo pasivo**. Es generativa. La red ya construida sirve para indicar dónde mirar después — qué autor afín a uno que admiro me he perdido, qué concepto unifica varias citas que tenía como dispersas, qué libro complementaría una línea de pensamiento incipiente. La propia trama sugiere sus próximas lecturas.
+**Consultar.** El grafo es la lectura. Puedo abrirlo y ver dónde están las constelaciones densas — los lugares donde mi pensamiento se ha posado más. Cuatro modos de vista revelan cosas distintas: el orgánico (las afinidades se atraen), el agrupado por tipo (qué tipo de cosas pueblan más la trama), el cronológico (cómo se ha movido en el tiempo), el de densidad (cuáles son los hubs). Puedo seleccionar un nodo y ver a quién está conectado, qué he atribuido, cuándo lo agregué; y editar la descripción, anotar un comentario, abrirlo en Spotify si es música.
+
+Trama no es un archivo pasivo. Es generativa. La red ya construida sirve para indicar dónde mirar después — qué autor afín a uno que admiro me he perdido, qué concepto unifica varias citas que tenía como dispersas, qué libro complementaría una línea de pensamiento incipiente. La propia trama sugiere sus próximas lecturas.
+
+## Música
+
+Lo que escucho también es parte de cómo pienso. Trama se conecta a Spotify y registra las reproducciones — pero nada entra al mapa sin que yo lo decida. La vista *Escuchas* muestra lo que sonó, agrupado, y desde ahí puedo promover a la trama lo que valió la pena. Si tengo una playlist con algo que quiero guardar entero, la pego: la IA saca los artistas y las canciones y me los propone con sus links de Spotify ya listos.
+
+Esto es importante: el flujo es siempre *hacia* la trama, nunca automático. Spotify es un afluente; el filtro lo sigo poniendo yo.
 
 ## Linaje
 
@@ -34,7 +42,7 @@ En los años veinte del siglo XX, Aby Warburg ensambló su *Bilderatlas Mnemosyn
 
 Borges entendió la biblioteca como universo y la memoria como construcción. Cada lector arma su propio canon, su propio panteón.
 
-Trama es la versión digital de ese gesto. Más exigente porque la pantalla pide diseño; más poderosa porque la IA puede sugerir desde la red ya construida. Pero el gesto es el mismo: **un lector cuida sus afinidades**.
+Trama es la versión digital de ese gesto. Más exigente porque la pantalla pide diseño; más poderosa porque la IA puede sugerir desde la red ya construida y conversar sobre ella. Pero el gesto es el mismo: **un lector cuida sus afinidades**.
 
 ## Lo que Trama no es
 
@@ -43,17 +51,20 @@ Trama es la versión digital de ese gesto. Más exigente porque la pantalla pide
 - **No es un CRM ni una base de datos profesional.** Lo que guardas son cosas que te importan a ti, no a una organización.
 - **No es para compartir públicamente.** Si quieres compartir un fragmento, exporta. La trama completa es tuya.
 - **No es Anki.** No memoriza, recuerda.
+- **No es un chatbot.** El chat con la IA es una herramienta para pensar la trama, no un fin en sí. Las conversaciones quedan guardadas, pero el chat sirve a la trama y no al revés.
+- **No es automática.** Spotify alimenta sugerencias; la IA propone relaciones, reclasificaciones, lecturas. Pero nada entra sin que lo aceptes con un clic. No hay auto-tagging, no hay auto-importación, no hay "lo agregué por ti".
 - **No es definitiva.** Lo que agregas hoy puede borrarse mañana, editarse en cinco años, expandirse en quince. La trama crece contigo.
 
 ## Patrones que emergen
 
 El valor real aparece con el tiempo. A los seis meses tienes treinta entidades; ves grupos pequeños alrededor de tus obsesiones recientes. A los tres años, doscientas; aparecen constelaciones temáticas que no habías nombrado. A los diez años, mil; el mapa entero se vuelve un retrato indirecto.
 
-Trama responde tres tipos de preguntas que ninguna otra herramienta responde:
+Trama responde cuatro tipos de preguntas que ninguna otra herramienta responde:
 
 1. **¿Por dónde he andado?** — el rastro temporal de las ideas que entraron y se quedaron.
 2. **¿Qué conecta lo aparentemente disperso?** — los nodos que parecían aislados resultan estar enlazados por temas, por épocas, por afinidades indirectas.
-3. **¿Qué viene después?** — la propia red sugiere lecturas, autores, conceptos que faltan dado el contorno actual.
+3. **¿Qué viene después?** — la propia red sugiere lecturas, autores, canciones, conceptos que faltan dado el contorno actual.
+4. **¿Esto que estoy descubriendo, dónde encaja?** — el chat permite preguntarle a la trama y dejarse responder con el contexto entero a la vista.
 
 ## El horizonte largo
 
@@ -67,4 +78,4 @@ Es eso. Un mapa, no un archivo.
 
 ---
 
-*Última revisión: 2026-05-20*
+*Última revisión: 2026-05-21*

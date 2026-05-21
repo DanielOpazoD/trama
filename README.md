@@ -6,12 +6,33 @@ Un lugar donde guardar las ideas que han pasado por la cabeza —propias o prest
 
 > Para entender **qué es Trama y por qué existe**, ver [`FILOSOFIA.md`](./FILOSOFIA.md). Es la pieza más importante del repositorio.
 
+## Funciones
+
+**Grafo.** Vista principal. Cuatro modos de layout: orgánico (fuerzas), por tipo (cluster por persona/libro/canción/etc.), por año (timeline horizontal), por densidad (los hubs al centro). Drag para reacomodar nodos; el botón *Reorganizar* recalcula desde cero. *Descubrir con IA* propone relaciones nuevas entre entidades existentes.
+
+**Entidades.** 24 tipos: persona, escritor, filósofo, músico, banda, director, artista, científico, libro, ensayo, poema, artículo, canción, podcast, álbum, disco, película, serie, documental, obra, concepto, idea, lugar, evento. Los tipos viven en la DB; agregar uno nuevo es un INSERT. *Reclasificar con IA* revisa toda la lista y propone tipos mejores (ej. "Pink Floyd" como `persona` → `banda`).
+
+**Citas.** Texto literal asociado a una entidad, con fuente y contexto opcionales. Las notas rápidas que añades desde el detalle de una entidad son citas sin fuente.
+
+**Relaciones.** Vínculos dirigidos tipados entre entidades (*influye en*, *cita a*, *responde a*, *me llegó por*, *suena como*, *inspira*, *contradice*, *asociado con*). Crear manualmente o pedirle a la IA que las descubra.
+
+**Escuchas.** Lo que has reproducido en Spotify, agrupado por artista / álbum / canción, con sync automático cada 3 horas. Importar playlist por URL: la IA extrae artistas y canciones con sus links de Spotify y te los propone como entidades + relaciones.
+
+**Chat.** Conversación con una IA que tiene tu trama completa cargada como contexto (hasta 80 entidades, 150 relaciones y 60 citas). Hilos persistidos, streaming de respuestas, propuestas inline para agregar entidades/relaciones/citas o reclasificar — todo con un clic, nada automático.
+
+**Extractor.** Pega un párrafo desordenado en la barra de abajo del grafo; la IA propone entidades, relaciones y citas que aparezcan en el texto.
+
+**Búsqueda.** Full-text (tsvector) + trigrams para tolerancia a typos. Caja en el sidebar.
+
+**Detalle de entidad.** Click en cualquier nodo abre un panel lateral con descripción editable, citas asociadas, conexiones, y para entidades musicales un campo `spotify_url` con botón *Abrir en Spotify*.
+
 ## Stack
 
 - **Frontend:** React 18 + Vite + TypeScript + Tailwind
 - **Backend:** Netlify Functions (Node 22, ESM)
-- **Database:** Netlify Database (Postgres serverless de Neon)
+- **Database:** Netlify Database (Postgres serverless de Neon) vía `@netlify/database`
 - **LLM:** DeepSeek por defecto, con abstracción multi-proveedor (OpenAI, Anthropic, Gemini)
+- **Streaming:** SSE para el chat (provider-side cuando lo soporta, fallback de un solo chunk si no)
 - **Tests:** Vitest
 
 Ver [`ARCHITECTURE.md`](./ARCHITECTURE.md) para detalle de decisiones técnicas y modelo de datos.
@@ -29,7 +50,7 @@ npm run build        # tsc + vite build
 
 Sin backend desplegado, la app funciona en modo local: los datos viven en `localStorage` del navegador. Cuando se conecta a Netlify (con DB provisionada), los datos pasan a Postgres.
 
-### Opción A — Netlify CLI (requiere autenticación)
+### Opción A — Netlify CLI (recomendado)
 
 ```bash
 netlify dev
@@ -37,7 +58,7 @@ netlify dev
 
 Provisiona DB local de prueba y monta functions. Requiere `netlify` CLI logueado.
 
-### Opción B — Docker Postgres local (recomendado para iterar)
+### Opción B — Docker Postgres local
 
 ```bash
 cp .env.example .env       # editar con tu AI_API_KEY
@@ -54,19 +75,17 @@ Comandos útiles:
 
 | Variable | Valores | Descripción |
 |---|---|---|
-| `AI_PROVIDER` | `deepseek` (default), `openai`, `anthropic`, `gemini` | Proveedor del LLM para la extracción |
+| `AI_PROVIDER` | `deepseek` (default), `openai`, `anthropic`, `gemini` | Proveedor del LLM |
 | `AI_API_KEY` | string | Key del proveedor elegido |
 | `AI_MAX_TOKENS` | int (default `4096`) | Cap de tokens de respuesta del LLM |
 | `AI_CACHE_TTL_SECONDS` | int (default `600`) | TTL del cache in-memory del LLM. `0` desactiva. |
-| `AI_MONTHLY_BUDGET_CENTS` | int (default `500`) | Cap mensual de gasto del LLM en centavos USD. |
-| `NETLIFY_DB_URL` | string | Auto-provisionada por la extensión Netlify Database (vía `@netlify/database`). El código no la lee directo; `getSql()` la resuelve internamente. |
+| `AI_MONTHLY_BUDGET_CENTS` | int (default `500`) | Cap mensual de gasto del LLM en centavos USD. Las llamadas se cortan al cap. |
+| `NETLIFY_DB_URL` | string | Auto-provisionada por la extensión Netlify Database. `getSql()` la resuelve internamente; el código no la lee directo. |
 | `SPOTIFY_CLIENT_ID` | string | OAuth client id de tu app en Spotify Developer |
 | `SPOTIFY_CLIENT_SECRET` | string | OAuth client secret. **NUNCA al frontend.** |
 | `SPOTIFY_REDIRECT_URI` | url | Debe coincidir exacta con la registrada en Spotify Developer |
 
 ## Configurar Spotify
-
-Trama puede registrar lo que escuchas para que luego elijas qué entra a tu trama (nada entra sin tu aprobación explícita).
 
 1. Ve a [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) y crea una app nueva.
 2. **Settings → Redirect URIs**: agrega ambas URLs (una para desarrollo, otra para producción):
@@ -75,17 +94,15 @@ Trama puede registrar lo que escuchas para que luego elijas qué entra a tu tram
 3. Copia el **Client ID** y el **Client Secret** a las env vars de Netlify (o tu `.env` local).
 4. En `SPOTIFY_REDIRECT_URI`, pon la URL que corresponde al entorno (la de localhost para `.env` local; la de producción para Netlify).
 5. Abre Trama → *Configuración* → *Spotify* → *Conectar con Spotify*. Te llevará a la pantalla de consentimiento de Spotify, autoriza, y volverás a Trama conectado.
-6. Después: clic en *Sincronizar ahora* para traer tus últimas 50 reproducciones. Las verás en la pestaña **Escuchas** del sidebar, agrupadas por artista, álbum o canción. Decide cuáles agregar a la trama.
+6. Después: clic en *Sincronizar ahora* para traer tus últimas 50 reproducciones. Las verás en la pestaña **Escuchas** del sidebar, agrupadas por artista, álbum o canción.
 
 Spotify solo retiene las 50 reproducciones más recientes — un sync regular es lo que mantiene el log completo.
 
-**Sync automático cada 3 horas:** la función `netlify/functions/spotify-scheduled-sync.mts` corre 8 veces al día (a las 00, 03, 06, 09, 12, 15, 18, 21 UTC) sin que tengas que hacer nada. La dispara Netlify en sus servidores; tu app puede estar cerrada. Si Spotify no está conectado, la función es un no-op silencioso.
+**Sync automático cada 3 horas:** la función `netlify/functions/spotify-scheduled-sync.mts` corre 8 veces al día (a las 00, 03, 06, 09, 12, 15, 18, 21 UTC) sin que tengas que hacer nada. La dispara Netlify en sus servidores; tu app puede estar cerrada. Si Spotify no está conectado, la función es un no-op silencioso. Para cambiar la frecuencia, edita el `schedule` en ese archivo.
 
-Para cambiar la frecuencia, edita el `schedule` en `spotify-scheduled-sync.mts`. Acepta cualquier cron estándar:
-- `0 * * * *` — cada hora
-- `0 */6 * * *` — cada 6 horas
-- `0 8,20 * * *` — 8 AM y 8 PM UTC
-- `@hourly`, `@daily` — atajos de Netlify
+**Scopes pedidos:** `user-read-recently-played`, `user-read-currently-playing`, `user-top-read`, `user-read-private`, `playlist-read-private`, `playlist-read-collaborative`. Si actualizas el listado, los usuarios existentes deben desconectar y reconectar Spotify.
+
+**Importar playlist:** en la pestaña *Escuchas*, pega un enlace `https://open.spotify.com/playlist/...` y la IA te devuelve una propuesta con todos los artistas y canciones (cada uno con su link de Spotify ya enlazado) lista para revisar.
 
 ## Deploy
 
@@ -109,30 +126,84 @@ npm run preview             # vite preview del build
 
 ```
 trama/
-├── src/                          # frontend
-│   ├── App.tsx                   # shell con sidebar + canvas + paneles
-│   ├── api.ts                    # cliente HTTP con transforms snake↔camel
-│   ├── state.tsx                 # Context aggregator sobre TanStack Query
-│   ├── state/                    # hooks por dominio (useEntities, etc.)
-│   ├── storage.ts                # localStorage fallback
-│   ├── types.ts                  # tipos compartidos
-│   ├── hooks/                    # useForceLayout, usePanZoom
-│   └── components/               # vistas y paneles
-│       └── graph/                # GraphNode, GraphEdge
+├── src/                              # frontend
+│   ├── App.tsx                       # shell con sidebar + canvas + paneles
+│   ├── api.ts                        # cliente HTTP con transforms snake↔camel
+│   ├── state.tsx                     # Provider TanStack Query (sin agregador)
+│   ├── state/                        # hooks por dominio
+│   │   ├── useEntities.ts            # query, add, update, updateType, delete
+│   │   ├── useRelationships.ts
+│   │   ├── useQuotes.ts
+│   │   ├── useExtract.ts
+│   │   ├── useSuggestRelationships.ts
+│   │   ├── useReclassifyEntities.ts
+│   │   ├── useChat.ts                # threads, messages, streaming send
+│   │   ├── useExportImport.ts
+│   │   └── offline.tsx
+│   ├── storage.ts                    # localStorage fallback
+│   ├── types.ts                      # tipos compartidos
+│   ├── hooks/
+│   │   ├── useGraphLayout.ts         # orquesta los 4 modos de layout
+│   │   ├── usePanZoom.ts
+│   │   ├── useFreshIds.ts
+│   │   └── layouts/
+│   │       ├── organic.ts            # Fruchterman-Reingold
+│   │       ├── byType.ts             # cluster por tipo de entidad
+│   │       ├── byYear.ts             # timeline horizontal
+│   │       └── byDegree.ts           # concéntrico por conexiones
+│   └── components/                   # vistas y paneles
+│       ├── GraphView.tsx
+│       ├── EntitiesView.tsx
+│       ├── QuotesView.tsx
+│       ├── RelationshipsView.tsx
+│       ├── ListeningView.tsx
+│       ├── ChatView.tsx
+│       ├── NodeDetailPanel.tsx       # edit description + spotify_url + add note
+│       ├── ProposalPanel.tsx
+│       ├── ReclassifyPanel.tsx
+│       ├── ExtractBar.tsx
+│       ├── Sidebar.tsx
+│       ├── Settings.tsx
+│       ├── chat/InlineProposal.tsx
+│       └── graph/{GraphNode,GraphEdge,GraphToolbar}.tsx
 └── netlify/
-    ├── database/migrations/      # SQL versionado, aplicado por Netlify en deploy
-    └── functions/                # endpoints serverless
-        ├── _lib/                 # llm, extract-prompt, extract-validate
-        ├── entities.mts
+    ├── database/migrations/          # SQL versionado, aplicado por Netlify en deploy
+    └── functions/
+        ├── _lib/
+        │   ├── db.ts                 # getSql() — wrapper @netlify/database
+        │   ├── llm.ts                # askLLMForJson, askLLMForText, askLLMForTextStreaming
+        │   ├── extract-prompt.ts
+        │   ├── extract-validate.ts
+        │   ├── suggest-relationships-prompt.ts
+        │   ├── reclassify-prompt.ts
+        │   ├── reclassify-validate.ts
+        │   ├── chat-prompt.ts
+        │   ├── chat-validate.ts
+        │   ├── spotify.ts            # OAuth, sync, playlist fetch
+        │   ├── handler-wrap.ts
+        │   ├── observability.ts
+        │   └── cost-cap.ts
+        ├── entities.mts              # GET/POST/PATCH/DELETE /api/entities[/:id]
         ├── relationships.mts
         ├── quotes.mts
-        ├── extract.mts           # IA propone, valida, persiste log
-        ├── extraction-log.mts
         ├── entity-types.mts
         ├── relationship-types.mts
+        ├── extract.mts               # POST /api/extract — IA estructura texto libre
+        ├── suggest-relationships.mts # POST /api/suggest-relationships
+        ├── reclassify-entities.mts   # POST /api/reclassify-entities
+        ├── chat-threads.mts          # CRUD /api/chat/threads
+        ├── chat-messages.mts         # SSE streaming /api/chat/threads/:id/messages
+        ├── spotify-callback.mts
+        ├── spotify-status.mts
+        ├── spotify-sync.mts
+        ├── spotify-scheduled-sync.mts # cron 0 */3 * * *
+        ├── spotify-plays.mts
+        ├── spotify-import-playlist.mts # extracts artists + tracks from URL
         ├── search.mts
         ├── export.mts
-        └── import.mts
+        ├── import.mts
+        ├── extraction-log.mts
+        └── error-log.mts
 ```
 
 ## Tests
@@ -144,13 +215,7 @@ npm test           # corre una vez
 npm run test:watch # modo watch
 ```
 
-Coverage actual (zonas críticas):
-- `extract-validate.ts`: 100%
-- `llm.ts`: ~90%
-- `storage.ts`: 74%
-- `api.ts`: 70%
-
-Los componentes UI no tienen tests todavía — se cubrirán cuando se agregue React Testing Library.
+Cobertura focalizada en la lógica pura: validadores de propuestas (extract, reclassify, chat), prompts (extract, suggest-relationships, reclassify), dispatch del LLM por proveedor, layouts del grafo, transforms del cliente. Los componentes React de momento se prueban end-to-end con `npm run dev`.
 
 ## Contribuir
 
