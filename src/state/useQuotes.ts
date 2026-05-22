@@ -90,6 +90,7 @@ export function useAddQuote() {
       // Reset the infinite list so QuotesView re-fetches from the top and
       // the new quote appears in page 1 without dedupe gymnastics.
       queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.counts })
     },
   })
 }
@@ -154,6 +155,7 @@ export function useDeleteQuote() {
         (prev ?? []).filter((q) => q.id !== id),
       )
       queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.counts })
       if (offline) {
         const current = queryClient.getQueryData<Quote[]>(queryKeys.quotes) ?? []
         storage.saveQuotes(current)

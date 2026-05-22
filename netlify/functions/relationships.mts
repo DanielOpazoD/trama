@@ -19,12 +19,22 @@ export default withObservability('relationships', async (req: Request, context: 
   const id = context.params.id
 
   if (req.method === 'GET') {
+    // See entities.mts for rationale: relationships are also consumed
+    // wholesale (graph edges, lookups). Cap at 10k since relationships
+    // typically outnumber entities ~2-4x.
+    const REL_HARD_CAP = 10000
     const rows = await sql`
       SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
       FROM relationships
       WHERE deleted_at IS NULL
       ORDER BY created_at DESC
+      LIMIT ${REL_HARD_CAP}
     `
+    if (rows.length >= REL_HARD_CAP) {
+      console.warn(
+        `[relationships] hit REL_HARD_CAP (${REL_HARD_CAP}). Pagination across the app is now needed.`,
+      )
+    }
     return Response.json(rows)
   }
 

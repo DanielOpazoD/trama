@@ -62,6 +62,7 @@ export function useAddEntity() {
         created,
         ...(prev ?? []),
       ])
+      queryClient.invalidateQueries({ queryKey: queryKeys.counts })
     },
   })
 }
@@ -166,6 +167,9 @@ export function useDeleteEntity() {
         const list = (prev as Array<{ entityId: string }> | undefined) ?? []
         return list.filter((q) => q.entityId !== id)
       })
+      // Counts moved for entities + cascaded soft-deletes on quotes/rels.
+      queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
       if (offline) {
         const e = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
         storage.saveEntities(e)

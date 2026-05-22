@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
 import {
+  useCountsQuery,
   useEntitiesQuery,
   useProactiveQuery,
-  useQuotesQuery,
-  useRelationshipsQuery,
 } from '../state'
 import { useIsMobile } from '../hooks/useIsMobile'
 import {
@@ -60,9 +59,11 @@ export function Sidebar({
   onOpenSettings: () => void
 }) {
   const { data: entities = [] } = useEntitiesQuery()
-  const { data: relationships = [] } = useRelationshipsQuery()
-  const { data: quotes = [] } = useQuotesQuery()
   const { data: pendingSuggestions = [] } = useProactiveQuery()
+  // Counts come from the aggregate endpoint — no need to load every quote
+  // and relationship just to render the badge numbers. Falls back to the
+  // locally-loaded entities length if the endpoint hasn't responded yet.
+  const { data: totals } = useCountsQuery()
   const isMobile = useIsMobile()
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -70,9 +71,9 @@ export function Sidebar({
   const counts: Record<ViewMode, number | null> = {
     inicio: null,
     grafo: null,
-    entidades: entities.length,
-    citas: quotes.length,
-    relaciones: relationships.length,
+    entidades: totals?.entities ?? entities.length,
+    citas: totals?.quotes ?? null,
+    relaciones: totals?.relationships ?? null,
     escuchas: null,
     chat: null,
     sugerencias: pendingSuggestions.length > 0 ? pendingSuggestions.length : null,

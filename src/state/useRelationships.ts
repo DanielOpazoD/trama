@@ -62,6 +62,7 @@ export function useAddRelationship() {
         created,
         ...(prev ?? []),
       ])
+      queryClient.invalidateQueries({ queryKey: queryKeys.counts })
     },
   })
 }
@@ -101,6 +102,7 @@ export function useDeleteRelationship() {
       queryClient.setQueryData<Relationship[]>(queryKeys.relationships, (prev) =>
         (prev ?? []).filter((r) => r.id !== id),
       )
+      queryClient.invalidateQueries({ queryKey: queryKeys.counts })
       if (offline) {
         const current = queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
         storage.saveRelationships(current)

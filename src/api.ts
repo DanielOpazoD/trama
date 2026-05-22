@@ -244,6 +244,9 @@ export const api = {
     const rows = await request<QuoteRow[]>('/api/quotes')
     return rows.map(quoteFromRow)
   },
+  async getCounts(): Promise<{ entities: number; quotes: number; relationships: number }> {
+    return request('/api/counts')
+  },
   /** Cursor-paginated list. `cursor` null/undefined fetches the first page. */
   async listQuotesPage(
     limit: number,

@@ -15,4 +15,5 @@ export const queryKeys = {
   relationships: ['relationships'] as const,
   quotes: ['quotes'] as const,
   quotesInfinite: ['quotes', 'infinite'] as const,
+  counts: ['counts'] as const,
 }

@@ -8,6 +8,7 @@
 
 export { Provider } from './Provider'
 export { useOffline } from './offline'
+export { useCountsQuery } from './useCounts'
 export {
   useEntitiesQuery,
   useAddEntity,

@@ -19,12 +19,23 @@ export default withObservability('entities', async (req: Request, context: Conte
   const id = context.params.id
 
   if (req.method === 'GET') {
+    // Safety cap: the graph + sidebar + autocomplete consume this endpoint
+    // wholesale (they can't paginate without breaking semantics), so we cap
+    // it at 5000 rows. Above that, the user is at a scale where pagination
+    // becomes necessary across the board — we log a warning to detect it.
+    const ENTITY_HARD_CAP = 5000
     const rows = await sql`
       SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
       FROM entities
       WHERE deleted_at IS NULL
       ORDER BY created_at DESC
+      LIMIT ${ENTITY_HARD_CAP}
     `
+    if (rows.length >= ENTITY_HARD_CAP) {
+      console.warn(
+        `[entities] hit ENTITY_HARD_CAP (${ENTITY_HARD_CAP}). Pagination across the app is now needed.`,
+      )
+    }
     return Response.json(rows)
   }
 
