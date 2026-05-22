@@ -222,6 +222,9 @@ export type ExtractionProposal = {
   edits?: ProposedEdit[]
   /** Soft-deletes proposed by the AI. Opt-in only. */
   deletes?: ProposedDelete[]
+  /** Which model produced this proposal — surfaced as a chip in the UI. */
+  provider?: string
+  model?: string
 }
 
 // ---------- Export/import payload ----------

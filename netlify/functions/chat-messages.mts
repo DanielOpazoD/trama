@@ -45,9 +45,11 @@ export default withObservability(
         content: string
         proposal: unknown
         created_at: string
+        provider: string | null
+        model: string | null
       }
       const rows = (await sql`
-        SELECT id, role, content, proposal, created_at
+        SELECT id, role, content, proposal, created_at, provider, model
         FROM chat_messages
         WHERE thread_id = ${threadId}
         ORDER BY created_at ASC
@@ -60,6 +62,8 @@ export default withObservability(
           content: r.content,
           proposal: r.proposal,
           createdAt: r.created_at,
+          provider: r.provider ?? undefined,
+          model: r.model ?? undefined,
         })),
       )
     }
@@ -294,6 +298,8 @@ export default withObservability(
             content: prose,
             proposal: proposalToStore,
             createdAt: assistantRows[0].created_at,
+            provider: usage.provider,
+            model: usage.model,
           },
         })
         controller.close()

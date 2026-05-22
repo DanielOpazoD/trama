@@ -240,17 +240,25 @@ export function ChatView() {
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
   return (
-    <li className={isUser ? 'flex justify-end' : 'flex justify-start'}>
+    <li className={isUser ? 'flex justify-end' : 'flex flex-col items-start'}>
       <div
         className={
           isUser
-            ? 'max-w-[75%] px-3.5 py-2 bg-ink-700 text-paper-50 rounded-2xl rounded-br-md text-sm leading-relaxed whitespace-pre-wrap'
+            ? 'self-end max-w-[75%] px-3.5 py-2 bg-ink-700 text-paper-50 rounded-2xl rounded-br-md text-sm leading-relaxed whitespace-pre-wrap'
             : 'max-w-[80%] px-3.5 py-2 bg-paper-100/60 border border-ink-100/50 text-ink-700 rounded-2xl rounded-bl-md text-sm leading-relaxed'
         }
       >
         <div className="whitespace-pre-wrap">{message.content}</div>
         {!isUser && message.proposal && <InlineProposal proposal={message.proposal} />}
       </div>
+      {!isUser && message.model && (
+        <span
+          className="mt-1 ml-1 text-[9px] uppercase tracking-[0.18em] text-ink-300"
+          title={message.provider ? `provider: ${message.provider}` : undefined}
+        >
+          {message.model}
+        </span>
+      )}
     </li>
   )
 }

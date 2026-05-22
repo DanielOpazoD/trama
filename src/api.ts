@@ -613,12 +613,16 @@ export type ChatMessage = {
   content: string
   proposal: ChatProposal | null
   createdAt: string
+  /** Which model produced this assistant message — undefined for user messages. */
+  provider?: string
+  model?: string
 }
 
 export type AskResponse = {
   reply: string
   proposal: ExtractionProposal | null
   provider: string
+  model: string
 }
 
 export type ProactiveSuggestion = {

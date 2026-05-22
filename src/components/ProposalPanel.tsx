@@ -216,7 +216,18 @@ export function ProposalPanel({
     >
       <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-ink-300">Propuesta</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-ink-300 flex items-center gap-2 flex-wrap">
+            <span>Propuesta</span>
+            {proposal.model && (
+              <span
+                className="chip"
+                data-tone="primary"
+                title={proposal.provider ? `provider: ${proposal.provider}` : undefined}
+              >
+                {proposal.model}
+              </span>
+            )}
+          </p>
           <h2 className="font-serif text-lg text-ink-700 truncate" title={sourceText}>
             {sourceText.length > 60 ? `${sourceText.slice(0, 60)}…` : sourceText}
           </h2>

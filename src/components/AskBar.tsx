@@ -24,6 +24,7 @@ type Reply = {
   text: string
   /** Where the reply came from — shown discreetly so user knows which model spoke. */
   provider?: string
+  model?: string
 }
 
 /**
@@ -82,7 +83,7 @@ export function AskBar({
         selectedEntityId,
       })
       if (result.reply) {
-        setReply({ text: result.reply, provider: result.provider })
+        setReply({ text: result.reply, provider: result.provider, model: result.model })
       } else {
         setReply(null)
       }
@@ -99,7 +100,8 @@ export function AskBar({
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+    // Enter envía. Shift+Enter inserta salto de línea. Coherente con ChatView.
+    if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
       handleSubmit()
     }
@@ -157,7 +159,7 @@ export function AskBar({
                   className="inline-block size-1.5 rounded-full"
                   style={{ backgroundColor: 'var(--accent-primary)' }}
                 />
-                respuesta{reply.provider ? ` · ${reply.provider}` : ''}
+                respuesta{reply.model ? ` · ${reply.model}` : reply.provider ? ` · ${reply.provider}` : ''}
               </span>
               <button
                 onClick={() => setReply(null)}

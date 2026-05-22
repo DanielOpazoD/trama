@@ -215,8 +215,11 @@ export default withObservability('ask', async (req) => {
 
     return Response.json({
       reply,
-      proposal: hasProposal ? cleanedProposal : null,
+      proposal: hasProposal
+        ? { ...cleanedProposal, provider: usage.provider, model: usage.model }
+        : null,
       provider: usage.provider,
+      model: usage.model,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

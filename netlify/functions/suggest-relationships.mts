@@ -182,6 +182,8 @@ export default withObservability(
         relationships: relationshipsWithVerdicts,
         quotes: [],
         verifierProvider,
+        provider: usage.provider,
+        model: usage.model,
       }
 
       logEvent({

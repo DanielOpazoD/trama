@@ -116,7 +116,11 @@ export default withObservability('extract-from-image', async (req) => {
       )
     `.catch(() => {})
 
-    return Response.json(cleaned)
+    return Response.json({
+      ...cleaned,
+      provider: usage.provider,
+      model: usage.model,
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     sql`
