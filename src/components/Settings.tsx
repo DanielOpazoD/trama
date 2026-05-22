@@ -272,6 +272,20 @@ export function Settings({
             <AITaskSettings />
           </section>
 
+          {/* Búsqueda semántica */}
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-sm font-medium text-ink-700">Búsqueda semántica</h3>
+              <p className="text-xs text-ink-400 mt-0.5">
+                La búsqueda en la sidebar combina coincidencia textual con
+                similitud por significado vía embeddings. Las entidades y
+                citas que añades de aquí en adelante se indexan al guardarse.
+                Para indexar lo que ya tenías, dispara una reindexación.
+              </p>
+            </div>
+            <ReindexEmbeddingsSection />
+          </section>
+
           {/* Data */}
           <section className="space-y-3">
             <div>
@@ -314,5 +328,93 @@ export function Settings({
         />
       </div>
     </>
+  )
+}
+
+/**
+ * Triggers a batched reindex of entities and quotes that don't have an
+ * embedding yet. Polls the same endpoint with POST until remaining=0.
+ * Kept local because nothing else needs it.
+ */
+function ReindexEmbeddingsSection() {
+  const [pending, setPending] = useState<{ entities: number; quotes: number } | null>(null)
+  const [running, setRunning] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [batchInfo, setBatchInfo] = useState<string | null>(null)
+
+  // Initial check so the button text reflects what's pending.
+  useEffect(() => {
+    let mounted = true
+    fetch('/api/reindex-embeddings')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (mounted && data) setPending(data)
+      })
+      .catch(() => {})
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  async function run() {
+    setRunning(true)
+    setError(null)
+    setBatchInfo(null)
+    try {
+      let total = 0
+      // Up to 200 iterations × 25 rows each = 5000 rows. Plenty for a
+      // personal trama at this stage. Each iteration is one HTTP call.
+      for (let i = 0; i < 200; i++) {
+        const res = await fetch('/api/reindex-embeddings', { method: 'POST' })
+        if (!res.ok) {
+          const text = await res.text().catch(() => '')
+          throw new Error(text || `HTTP ${res.status}`)
+        }
+        const data = (await res.json()) as {
+          processed: number
+          remaining: { entities: number; quotes: number }
+        }
+        total += data.processed
+        setPending(data.remaining)
+        setBatchInfo(
+          `${total} indexados · faltan ${data.remaining.entities + data.remaining.quotes}`,
+        )
+        if (data.processed === 0) break
+        if (data.remaining.entities + data.remaining.quotes === 0) break
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  const totalPending = pending ? pending.entities + pending.quotes : null
+
+  return (
+    <div className="space-y-2">
+      {totalPending !== null && (
+        <p className="text-xs text-ink-400">
+          {totalPending === 0
+            ? 'Todo indexado. Tu trama es buscable por significado.'
+            : `Sin indexar: ${pending?.entities ?? 0} entidades, ${
+                pending?.quotes ?? 0
+              } citas.`}
+        </p>
+      )}
+      <div className="flex items-baseline gap-3">
+        <button
+          onClick={run}
+          disabled={running || totalPending === 0}
+          className="text-sm px-3 py-2 border border-ink-100/60 rounded-lg hover:bg-ink-50 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {running ? 'indexando…' : 'Indexar lo pendiente'}
+        </button>
+        {batchInfo && (
+          <span className="text-xs text-ink-400 tabular-nums">{batchInfo}</span>
+        )}
+      </div>
+      {error && <p className="text-xs text-red-700">{error}</p>}
+    </div>
   )
 }
