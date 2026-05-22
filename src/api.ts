@@ -236,6 +236,7 @@ export const api = {
       text: string
       source: string | null
       context: string | null
+      entityId: string
       userReflection: string | null
       aiReflection: string | null
       aiReflectionProvider: string | null
@@ -247,6 +248,7 @@ export const api = {
     if (patch.text !== undefined) body.text = patch.text
     if (patch.source !== undefined) body.source = patch.source
     if (patch.context !== undefined) body.context = patch.context
+    if (patch.entityId !== undefined) body.entity_id = patch.entityId
     if (patch.userReflection !== undefined) body.user_reflection = patch.userReflection
     if (patch.aiReflection !== undefined) body.ai_reflection = patch.aiReflection
     if (patch.aiReflectionProvider !== undefined) body.ai_reflection_provider = patch.aiReflectionProvider

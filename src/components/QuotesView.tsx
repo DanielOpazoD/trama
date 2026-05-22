@@ -1,5 +1,11 @@
 import { useState, type FormEvent } from 'react'
-import { useEntitiesQuery, useQuotesQuery, useAddQuote, useDeleteQuote } from '../state'
+import {
+  useEntitiesQuery,
+  useQuotesQuery,
+  useRelationshipsQuery,
+  useAddQuote,
+  useDeleteQuote,
+} from '../state'
 import { SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 
@@ -40,6 +46,35 @@ export function QuotesView({
 }) {
   const { data: entities = [] } = useEntitiesQuery()
   const { data: quotes = [] } = useQuotesQuery()
+  const { data: relationships = [] } = useRelationshipsQuery()
+
+  // For "work" entities (libro, ensayo, cancion, album, etc.), find the
+  // person/writer linked to it so we can show "— Marco Aurelio · Meditaciones"
+  // instead of just "— Meditaciones". Reads the relationship table once and
+  // builds a quick lookup.
+  const WORK_TYPES = new Set([
+    'libro', 'ensayo', 'poema', 'articulo',
+    'cancion', 'podcast', 'album', 'disco',
+    'pelicula', 'serie', 'documental', 'obra',
+  ])
+  const PERSON_TYPES = new Set([
+    'persona', 'escritor', 'filosofo', 'musico', 'banda',
+    'director', 'artista', 'cientifico',
+  ])
+  function authorOf(workId: string): typeof entities[number] | undefined {
+    // Try both directions: work → person and person → work, prefer the latter.
+    for (const rel of relationships) {
+      if (rel.toId === workId) {
+        const candidate = entities.find((e) => e.id === rel.fromId)
+        if (candidate && PERSON_TYPES.has(candidate.type)) return candidate
+      }
+      if (rel.fromId === workId) {
+        const candidate = entities.find((e) => e.id === rel.toId)
+        if (candidate && PERSON_TYPES.has(candidate.type)) return candidate
+      }
+    }
+    return undefined
+  }
   const addQuote = useAddQuote()
   const deleteQuote = useDeleteQuote()
 
@@ -172,6 +207,11 @@ export function QuotesView({
             <ul className="space-y-14">
               {quotes.map((quote, index) => {
                 const entity = entities.find((e) => e.id === quote.entityId)
+                // If the quote is attached to a work (libro, cancion, etc.)
+                // and that work has a linked person/writer, surface BOTH so
+                // the reader sees "Marco Aurelio · Meditaciones" instead of
+                // just "— Meditaciones".
+                const author = entity && WORK_TYPES.has(entity.type) ? authorOf(entity.id) : undefined
                 // First quote gets the editorial drop-cap treatment;
                 // others get a slightly smaller, still elegant block.
                 const isFeature = index === 0
@@ -196,7 +236,23 @@ export function QuotesView({
                       }`}
                     >
                       <div className="text-sm">
-                        {entity ? (
+                        {author && entity ? (
+                          <>
+                            <button
+                              onClick={() => onSelectEntity?.(author.id)}
+                              className="text-ink-500 hover:text-ink-700 transition-colors border-b border-transparent hover:border-ink-300"
+                            >
+                              — {author.name}
+                            </button>
+                            <span className="text-ink-300 mx-1.5">·</span>
+                            <button
+                              onClick={() => onSelectEntity?.(entity.id)}
+                              className="text-ink-400 italic hover:text-ink-700 transition-colors border-b border-transparent hover:border-ink-300"
+                            >
+                              {entity.name}
+                            </button>
+                          </>
+                        ) : entity ? (
                           <button
                             onClick={() => onSelectEntity?.(entity.id)}
                             className="text-ink-500 hover:text-ink-700 transition-colors border-b border-transparent hover:border-ink-300"

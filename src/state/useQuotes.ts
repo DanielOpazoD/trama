@@ -72,6 +72,7 @@ type QuotePatch = Partial<{
   text: string
   source: string | null
   context: string | null
+  entityId: string
   userReflection: string | null
   aiReflection: string | null
   aiReflectionProvider: string | null

@@ -68,6 +68,7 @@ export default withObservability('quotes', async (req: Request, context: Context
       text?: string
       source?: string | null
       context?: string | null
+      entity_id?: string
       user_reflection?: string | null
       ai_reflection?: string | null
       ai_reflection_provider?: string | null
@@ -75,13 +76,16 @@ export default withObservability('quotes', async (req: Request, context: Context
       linked_quote_ids?: string[] | null
     }
     // Only update fields that were actually sent. ai_reflection has the
-    // side effect of stamping ai_reflection_at when it changes.
+    // side effect of stamping ai_reflection_at when it changes. entity_id
+    // can move the quote to a different entity (useful for fixing quotes
+    // that ended up attached to a book instead of its author).
     const rows = await sql`
       UPDATE quotes
       SET
         text                   = COALESCE(${body.text ?? null}, text),
         source                 = CASE WHEN ${body.source !== undefined} THEN ${body.source ?? null} ELSE source END,
         context                = CASE WHEN ${body.context !== undefined} THEN ${body.context ?? null} ELSE context END,
+        entity_id              = COALESCE(${body.entity_id ?? null}, entity_id),
         user_reflection        = CASE WHEN ${body.user_reflection !== undefined} THEN ${body.user_reflection ?? null} ELSE user_reflection END,
         ai_reflection          = CASE WHEN ${body.ai_reflection !== undefined} THEN ${body.ai_reflection ?? null} ELSE ai_reflection END,
         ai_reflection_provider = CASE WHEN ${body.ai_reflection_provider !== undefined} THEN ${body.ai_reflection_provider ?? null} ELSE ai_reflection_provider END,

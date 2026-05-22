@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { useDeleteQuote, useReflectQuote, useUpdateQuote } from '../state'
+import {
+  useDeleteQuote,
+  useEntitiesQuery,
+  useReflectQuote,
+  useUpdateQuote,
+} from '../state'
 import type { Quote } from '../types'
 import { SparkleIcon } from './Icons'
 
@@ -33,9 +38,46 @@ export function QuoteCard({
   const updateQuote = useUpdateQuote()
   const reflectQuote = useReflectQuote()
   const deleteQuote = useDeleteQuote()
+  const { data: entities = [] } = useEntitiesQuery()
 
   const [editingUserRefl, setEditingUserRefl] = useState(false)
   const [userReflDraft, setUserReflDraft] = useState(quote.userReflection ?? '')
+
+  // Full edit mode — text + source + context + which entity it belongs to.
+  const [editingFull, setEditingFull] = useState(false)
+  const [textDraft, setTextDraft] = useState(quote.text)
+  const [sourceDraft, setSourceDraft] = useState(quote.source ?? '')
+  const [contextDraft, setContextDraft] = useState(quote.context ?? '')
+  const [entityIdDraft, setEntityIdDraft] = useState(quote.entityId)
+
+  function startFullEdit() {
+    setTextDraft(quote.text)
+    setSourceDraft(quote.source ?? '')
+    setContextDraft(quote.context ?? '')
+    setEntityIdDraft(quote.entityId)
+    setEditingFull(true)
+  }
+
+  async function handleSaveFullEdit() {
+    const text = textDraft.trim()
+    if (!text) return
+    try {
+      await updateQuote.mutateAsync({
+        id: quote.id,
+        patch: {
+          text,
+          source: sourceDraft.trim() || null,
+          context: contextDraft.trim() || null,
+          // entityId can move to another entity — useful when an AI extract
+          // attached the quote to the book and the user wants it on the author.
+          ...(entityIdDraft !== quote.entityId && { entityId: entityIdDraft }),
+        },
+      })
+      setEditingFull(false)
+    } catch {
+      /* surfaces */
+    }
+  }
 
   // Pending AI reflection — generated but not yet saved.
   const [pendingAi, setPendingAi] = useState<{ text: string; provider: string; model: string } | null>(null)
@@ -98,6 +140,70 @@ export function QuoteCard({
     }
   }
 
+  if (editingFull) {
+    return (
+      <li className="group border-l-2 border-ink-200/70 pl-3 space-y-2">
+        <div className="text-[10px] uppercase tracking-[0.2em] text-ink-300">
+          editar cita
+        </div>
+        <textarea
+          value={textDraft}
+          onChange={(e) => setTextDraft(e.target.value)}
+          rows={3}
+          placeholder="texto de la cita"
+          className="input-paper w-full resize-none text-sm font-serif italic"
+        />
+        <input
+          type="text"
+          value={sourceDraft}
+          onChange={(e) => setSourceDraft(e.target.value)}
+          placeholder="fuente (libro, página, año — opcional)"
+          className="input-paper w-full text-sm"
+        />
+        <textarea
+          value={contextDraft}
+          onChange={(e) => setContextDraft(e.target.value)}
+          rows={2}
+          placeholder="contexto (qué pasaba alrededor — opcional)"
+          className="input-paper w-full resize-none text-sm"
+        />
+        <div>
+          <label className="text-[10px] uppercase tracking-[0.18em] text-ink-400 block mb-1">
+            atribuida a
+          </label>
+          <select
+            value={entityIdDraft}
+            onChange={(e) => setEntityIdDraft(e.target.value)}
+            className="input-paper w-full text-sm"
+          >
+            {entities.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name}
+                {e.type ? ` · ${e.type}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => setEditingFull(false)}
+            className="btn-ghost text-xs"
+            disabled={updateQuote.isPending}
+          >
+            cancelar
+          </button>
+          <button
+            onClick={handleSaveFullEdit}
+            disabled={updateQuote.isPending || !textDraft.trim()}
+            className="btn-ink text-xs"
+          >
+            {updateQuote.isPending ? 'guardando…' : 'guardar'}
+          </button>
+        </div>
+      </li>
+    )
+  }
+
   return (
     <li className="group border-l-2 border-ink-200/70 pl-3">
       <blockquote className="font-serif text-ink-600 italic leading-relaxed text-sm">
@@ -121,7 +227,13 @@ export function QuoteCard({
             year: 'numeric',
           })}
         </span>
-        <span className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="ml-auto flex items-baseline gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={startFullEdit}
+            className="text-ink-300 hover:text-ink-700 text-[10px] uppercase tracking-[0.18em]"
+          >
+            editar
+          </button>
           <button
             onClick={() => deleteQuote.mutate(quote.id)}
             className="text-ink-300 hover:text-red-700 text-[10px] uppercase tracking-[0.18em]"
@@ -254,24 +366,23 @@ export function QuoteCard({
         </div>
       )}
 
-      {/* No AI reflection yet — offer to generate */}
+      {/* No AI reflection yet — a discrete icon button (with tooltip) sits in
+          the meta row below the quote, alongside Spotify / source. Keeps the
+          card visually quiet until the user actually wants AI help. */}
       {!quote.aiReflection && !pendingAi && (
         <div className="mt-2">
           <button
             onClick={handleAskReflection}
             disabled={reflectQuote.isPending}
-            className="ai-cta"
+            aria-label="Pedir interpretación a la IA"
+            title="Pedir interpretación a la IA"
+            className="inline-flex items-center justify-center size-7 rounded-full transition-colors hover:bg-[color:var(--accent-primary-soft)] disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ color: 'var(--accent-primary)' }}
           >
             {reflectQuote.isPending ? (
-              <>
-                <span className="size-2.5 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--accent-primary-ring)', borderTopColor: 'var(--accent-primary)' }} />
-                pensando…
-              </>
+              <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--accent-primary-ring)', borderTopColor: 'var(--accent-primary)' }} />
             ) : (
-              <>
-                <SparkleIcon size={10} />
-                pedir interpretación a la IA
-              </>
+              <SparkleIcon size={13} />
             )}
           </button>
           {reflectError && (
