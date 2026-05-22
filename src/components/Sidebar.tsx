@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api'
 import {
   useCountsQuery,
-  useEntitiesQuery,
   useProactiveQuery,
 } from '../state'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -60,11 +59,9 @@ export function Sidebar({
   offline: boolean
   onOpenSettings: () => void
 }) {
-  const { data: entities = [] } = useEntitiesQuery()
   const { data: pendingSuggestions = [] } = useProactiveQuery()
-  // Counts come from the aggregate endpoint — no need to load every quote
-  // and relationship just to render the badge numbers. Falls back to the
-  // locally-loaded entities length if the endpoint hasn't responded yet.
+  // Counts vienen del endpoint agregado — el Sidebar ya no carga la lista
+  // completa de entidades. A 100k+ es la única opción viable.
   const { data: totals } = useCountsQuery()
   const isMobile = useIsMobile()
 
@@ -73,7 +70,9 @@ export function Sidebar({
   const counts: Record<ViewMode, number | null> = {
     inicio: null,
     grafo: null,
-    entidades: totals?.entities ?? entities.length,
+    // Sin fallback wholesale: si los totales todavía no cargaron, mostramos
+    // null (la UI no pinta el badge). Es mejor que mentir con "0".
+    entidades: totals?.entities ?? null,
     citas: totals?.quotes ?? null,
     relaciones: totals?.relationships ?? null,
     escuchas: null,
@@ -81,8 +80,7 @@ export function Sidebar({
     sugerencias: pendingSuggestions.length > 0 ? pendingSuggestions.length : null,
   }
 
-  // Debounce the search query so we don't fire an embed-bearing API call on
-  // every keystroke. 250ms feels responsive but lets the user finish typing.
+  // Debounce 250ms antes de cada fetch para no embebir en cada tecla.
   const [debouncedQuery, setDebouncedQuery] = useState('')
   useEffect(() => {
     const trimmed = searchQuery.trim()
@@ -94,9 +92,10 @@ export function Sidebar({
     return () => clearTimeout(id)
   }, [searchQuery])
 
-  // Hybrid (lexical + semantic) search via /api/search. Falls back to a
-  // pure-local name match if the API fails or hasn't responded yet, so the
-  // sidebar feels immediate even on the first keystroke.
+  // Hybrid (lexical + semantic) search via /api/search. Sin fallback local:
+  // a 100k+ no podemos asumir que tenemos la lista cargada en memoria.
+  // Mientras espera, mostramos "buscando…". Si falla, mostramos el mensaje
+  // de error (Trama queda visible pero sin resultados de búsqueda).
   const searchResp = useQuery({
     queryKey: ['search', debouncedQuery],
     queryFn: () => api.search(debouncedQuery, { limit: 8 }),
@@ -104,28 +103,15 @@ export function Sidebar({
     staleTime: 60_000,
   })
 
-  const localFallback = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return []
-    return entities
-      .filter(
-        (e) =>
-          e.name.toLowerCase().includes(q) ||
-          (e.description?.toLowerCase().includes(q) ?? false),
-      )
-      .slice(0, 8)
-  }, [searchQuery, entities])
-
   const searchResults =
     searchResp.data?.entities.map((hit) => ({
       id: hit.id,
       name: hit.name,
       type: hit.type,
       score: hit.score,
-    })) ??
-    (debouncedQuery
-      ? localFallback.map((e) => ({ id: e.id, name: e.name, type: e.type, score: 0 }))
-      : [])
+    })) ?? []
+  const searchPending =
+    !!debouncedQuery && (searchResp.isLoading || searchResp.isFetching)
 
   // ---------- collapsed sidebar ----------
   if (collapsed) {
@@ -240,7 +226,10 @@ export function Sidebar({
         </button>
       </header>
 
-      {entities.length > 0 && (
+      {/* Mostramos la barra siempre que no sepamos con certeza que la
+          trama está vacía. Si totals aún no respondió, asumimos no-vacío
+          para que el input aparezca de inmediato. */}
+      {(totals === undefined || totals.entities > 0) && (
         <div className="px-3 pb-3">
           <div className="relative">
             <SearchIcon
@@ -256,25 +245,39 @@ export function Sidebar({
               className="input-paper w-full text-sm pl-8"
             />
           </div>
-          {searchResults.length > 0 && (
-            <ul className="mt-2 space-y-0.5 max-h-64 overflow-y-auto">
-              {searchResults.map((entity) => (
-                <li key={entity.id}>
-                  <button
-                    onClick={() => {
-                      onSelectEntity?.(entity.id)
-                      setSearchQuery('')
-                    }}
-                    className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-ink-700/5 transition-colors"
-                  >
-                    <span className="text-ink-700">{entity.name}</span>
-                    <span className="ml-2 text-[9px] uppercase tracking-[0.16em] text-ink-300">
-                      {entity.type}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+          {debouncedQuery && (
+            <div className="mt-2 max-h-64 overflow-y-auto">
+              {searchPending ? (
+                <p className="px-2 py-1.5 text-xs text-ink-300 italic">buscando…</p>
+              ) : searchResp.error ? (
+                <p className="px-2 py-1.5 text-xs text-red-700">
+                  No se pudo buscar.
+                </p>
+              ) : searchResults.length === 0 ? (
+                <p className="px-2 py-1.5 text-xs text-ink-300 italic">
+                  sin resultados
+                </p>
+              ) : (
+                <ul className="space-y-0.5">
+                  {searchResults.map((entity) => (
+                    <li key={entity.id}>
+                      <button
+                        onClick={() => {
+                          onSelectEntity?.(entity.id)
+                          setSearchQuery('')
+                        }}
+                        className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-ink-700/5 transition-colors"
+                      >
+                        <span className="text-ink-700">{entity.name}</span>
+                        <span className="ml-2 text-[9px] uppercase tracking-[0.16em] text-ink-300">
+                          {entity.type}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
         </div>
       )}
