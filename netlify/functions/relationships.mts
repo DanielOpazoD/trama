@@ -51,6 +51,25 @@ export default withObservability('relationships', async (req: Request, context: 
     return Response.json(rows[0], { status: 201 })
   }
 
+  if (req.method === 'PATCH' && id) {
+    const body = (await req.json()) as {
+      type?: string
+      notes?: string | null
+    }
+    const rows = await sql`
+      UPDATE relationships
+      SET
+        type  = COALESCE(${body.type ?? null}, type),
+        notes = CASE WHEN ${body.notes !== undefined} THEN ${body.notes ?? null} ELSE notes END
+      WHERE id = ${id} AND deleted_at IS NULL
+      RETURNING id, from_id, to_id, type, notes, origin, created_at, updated_at
+    `
+    if (rows.length === 0) {
+      return new Response('Relación no encontrada', { status: 404 })
+    }
+    return Response.json(rows[0])
+  }
+
   if (req.method === 'DELETE' && id) {
     await sql`UPDATE relationships SET deleted_at = NOW() WHERE id = ${id} AND deleted_at IS NULL`
     return new Response(null, { status: 204 })

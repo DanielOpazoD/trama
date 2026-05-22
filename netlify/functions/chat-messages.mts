@@ -118,8 +118,8 @@ export default withObservability(
       year: number | null
       description: string | null
     }
-    type RelCtxRow = { from_name: string; to_name: string; type: string; notes: string | null }
-    type QuoteCtxRow = { entity_name: string; text: string; source: string | null }
+    type RelCtxRow = { id: string; from_name: string; to_name: string; type: string; notes: string | null }
+    type QuoteCtxRow = { id: string; entity_name: string; text: string; source: string | null }
     type TypeRow = { slug: string }
 
     const [entityRows, relRows, quoteRows, entityTypeRows, relTypeRows] = await Promise.all([
@@ -128,14 +128,14 @@ export default withObservability(
           WHERE deleted_at IS NULL
           ORDER BY created_at DESC
           LIMIT ${CONTEXT_ENTITY_LIMIT}` as unknown as Promise<EntityCtxRow[]>,
-      sql`SELECT ef.name AS from_name, et.name AS to_name, r.type, r.notes
+      sql`SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
           FROM relationships r
           JOIN entities ef ON ef.id = r.from_id
           JOIN entities et ON et.id = r.to_id
           WHERE r.deleted_at IS NULL
           ORDER BY r.created_at DESC
           LIMIT ${CONTEXT_RELATIONSHIP_LIMIT}` as unknown as Promise<RelCtxRow[]>,
-      sql`SELECT e.name AS entity_name, q.text, q.source
+      sql`SELECT q.id, e.name AS entity_name, q.text, q.source
           FROM quotes q
           JOIN entities e ON e.id = q.entity_id
           WHERE q.deleted_at IS NULL
@@ -154,12 +154,14 @@ export default withObservability(
         description: e.description,
       })),
       relationships: relRows.map((r) => ({
+        id: r.id,
         fromName: r.from_name,
         toName: r.to_name,
         type: r.type,
         notes: r.notes,
       })),
       quotes: quoteRows.map((q) => ({
+        id: q.id,
         entityName: q.entity_name,
         text: q.text,
         source: q.source,

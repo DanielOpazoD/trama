@@ -13,12 +13,14 @@ export type AskContext = {
   }>
   /** Compact list of all existing relationships. */
   relationships: Array<{
+    id: string
     fromName: string
     toName: string
     type: string
   }>
   /** A few recent quotes — the model gets a flavor of what's been saved. */
   recentQuotes: Array<{
+    id: string
     entityName: string
     text: string
     source?: string | null
@@ -55,7 +57,7 @@ export function buildAskPrompt(userText: string, ctx: AskContext): LLMMessage[] 
           .map((e) => {
             const meta = [e.type, e.year ?? null].filter(Boolean).join(', ')
             const desc = e.description ? ` — ${e.description}` : ''
-            return `• "${e.name}" [${meta}]${desc}`
+            return `• [id=${e.id}] "${e.name}" [${meta}]${desc}`
           })
           .join('\n')
 
@@ -64,7 +66,7 @@ export function buildAskPrompt(userText: string, ctx: AskContext): LLMMessage[] 
       ? '(sin relaciones todavía)'
       : ctx.relationships
           .slice(0, 80)
-          .map((r) => `- ${r.fromName} → ${r.type} → ${r.toName}`)
+          .map((r) => `- [id=${r.id}] ${r.fromName} → ${r.type} → ${r.toName}`)
           .join('\n')
 
   const quotesBlock =
@@ -72,7 +74,7 @@ export function buildAskPrompt(userText: string, ctx: AskContext): LLMMessage[] 
       ? '(sin citas)'
       : ctx.recentQuotes
           .slice(0, 20)
-          .map((q) => `- ${q.entityName}: «${q.text}»${q.source ? ` [${q.source}]` : ''}`)
+          .map((q) => `- [id=${q.id}] ${q.entityName}: «${q.text}»${q.source ? ` [${q.source}]` : ''}`)
           .join('\n')
 
   const viewHints: Record<string, string> = {
@@ -118,12 +120,25 @@ FORMATO DE RESPUESTA — SIEMPRE JSON con esta forma exacta:
   "proposal": {
     "entities":      [{ "type": "uno válido", "name": "string", "year": 1234, "description": "frase corta opcional", "spotifyUrl": "https://open.spotify.com/... opcional" }],
     "relationships": [{ "fromName": "string", "toName": "string", "type": "uno válido", "notes": "string opcional" }],
-    "quotes":        [{ "entityName": "string", "text": "la cita", "source": "fuente opcional" }]
+    "quotes":        [{ "entityName": "string", "text": "la cita", "source": "fuente opcional" }],
+    "edits": [
+      { "kind": "entity",       "id": "uuid", "patch": { "name": "...", "type": "...", "year": 1234, "description": "...", "essay": "...", "spotifyUrl": "..." }, "reason": "..." },
+      { "kind": "quote",        "id": "uuid", "patch": { "text": "...", "source": "...", "context": "...", "entityId": "uuid-otra", "userReflection": "..." }, "reason": "..." },
+      { "kind": "relationship", "id": "uuid", "patch": { "type": "...", "notes": "..." }, "reason": "..." }
+    ],
+    "deletes": [
+      { "kind": "entity",       "id": "uuid", "reason": "duplicada" },
+      { "kind": "quote",        "id": "uuid", "reason": "..." },
+      { "kind": "relationship", "id": "uuid", "reason": "..." }
+    ]
   }
 }
 
 - Si no hay propuesta, devuelve "proposal": null (o arrays vacíos).
 - Si solo hay propuesta y nada que conversar, "reply" puede ser cadena vacía.
+- Para edits y deletes, el "id" debe coincidir EXACTAMENTE con un id que aparece en el estado de la trama abajo. NUNCA inventes IDs.
+- En "edits", incluye en "patch" solo los campos que cambian. El resto se preserva.
+- Propón "deletes" solo si el usuario lo pide explícitamente o ves duplicados claros — el usuario los aprueba opt-in.
 - Tipos válidos de entidad: ${ctx.entityTypes.join(', ')}
 - Tipos válidos de relación: ${ctx.relationshipTypes.join(', ')}
 

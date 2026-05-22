@@ -141,7 +141,7 @@ describe('validateExtraction — invalid quote', () => {
 describe('validateExtraction — garbage in, structured out', () => {
   it('returns empty arrays when input is null', () => {
     const result = v(null)
-    expect(result).toEqual({ entities: [], relationships: [], quotes: [] })
+    expect(result).toEqual({ entities: [], relationships: [], quotes: [], edits: [], deletes: [] })
   })
 
   it('returns empty arrays when input is wrong shape', () => {
@@ -151,17 +151,17 @@ describe('validateExtraction — garbage in, structured out', () => {
 
   it('returns empty arrays when input is a string', () => {
     const result = v('garbage')
-    expect(result).toEqual({ entities: [], relationships: [], quotes: [] })
+    expect(result).toEqual({ entities: [], relationships: [], quotes: [], edits: [], deletes: [] })
   })
 
   it('returns empty arrays when input is an array directly', () => {
     const result = v([1, 2, 3])
-    expect(result).toEqual({ entities: [], relationships: [], quotes: [] })
+    expect(result).toEqual({ entities: [], relationships: [], quotes: [], edits: [], deletes: [] })
   })
 
   it('handles empty input gracefully', () => {
     const result = v({})
-    expect(result).toEqual({ entities: [], relationships: [], quotes: [] })
+    expect(result).toEqual({ entities: [], relationships: [], quotes: [], edits: [], deletes: [] })
   })
 })
 

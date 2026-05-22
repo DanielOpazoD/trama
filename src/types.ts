@@ -148,10 +148,80 @@ export type ProposedQuote = {
   context?: string
 }
 
+/**
+ * Edits proposed by the AI to existing rows. The id is the existing row's
+ * UUID; the patch carries only the fields the AI wants to change. The UI
+ * checkbox is opt-in per row.
+ */
+export type ProposedEntityEdit = {
+  kind: 'entity'
+  id: string
+  /** Name shown to the user as context — not part of the patch. */
+  name: string
+  patch: {
+    name?: string
+    type?: string
+    year?: number | null
+    description?: string | null
+    essay?: string | null
+    spotifyUrl?: string | null
+  }
+  reason?: string
+}
+
+export type ProposedQuoteEdit = {
+  kind: 'quote'
+  id: string
+  /** Truncated text + entity name shown for context. */
+  preview: string
+  entityName?: string
+  patch: {
+    text?: string
+    source?: string | null
+    context?: string | null
+    entityId?: string
+    userReflection?: string | null
+  }
+  reason?: string
+}
+
+export type ProposedRelationshipEdit = {
+  kind: 'relationship'
+  id: string
+  /** "X → asociado_con → Y" shown for context. */
+  preview: string
+  patch: {
+    type?: string
+    notes?: string | null
+  }
+  reason?: string
+}
+
+export type ProposedEdit =
+  | ProposedEntityEdit
+  | ProposedQuoteEdit
+  | ProposedRelationshipEdit
+
+/**
+ * Deletes proposed by the AI. The UI ALWAYS shows these unchecked by default
+ * — the user has to opt in explicitly because the operation is destructive.
+ */
+export type ProposedDelete = {
+  kind: 'entity' | 'quote' | 'relationship'
+  id: string
+  /** Label or "X → type → Y" for context. */
+  preview: string
+  reason?: string
+}
+
 export type ExtractionProposal = {
   entities: ProposedEntity[]
   relationships: ProposedRelationship[]
   quotes: ProposedQuote[]
+  /** Edits to existing rows — only present when the AI proposes them. */
+  edits?: ProposedEdit[]
+  /** Soft-deletes proposed by the AI. Opt-in only. */
+  deletes?: ProposedDelete[]
 }
 
 // ---------- Export/import payload ----------

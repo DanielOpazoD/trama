@@ -33,6 +33,7 @@ export {
 export {
   useRelationshipsQuery,
   useAddRelationship,
+  useUpdateRelationship,
   useDeleteRelationship,
 } from './useRelationships'
 export {

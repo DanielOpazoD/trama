@@ -61,8 +61,8 @@ export default withObservability('ask', async (req) => {
     year: number | null
     description: string | null
   }
-  type RelCtxRow = { from_name: string; to_name: string; type: string }
-  type QuoteCtxRow = { entity_name: string; text: string; source: string | null }
+  type RelCtxRow = { id: string; from_name: string; to_name: string; type: string }
+  type QuoteCtxRow = { id: string; entity_name: string; text: string; source: string | null }
   type TypeRow = { slug: string }
 
   const [entityRows, relRows, quoteRows, entityTypeRows, relTypeRows, selectedRows] =
@@ -72,14 +72,14 @@ export default withObservability('ask', async (req) => {
           WHERE deleted_at IS NULL
           ORDER BY created_at DESC
           LIMIT ${CONTEXT_ENTITY_LIMIT}` as unknown as Promise<EntityCtxRow[]>,
-      sql`SELECT ef.name AS from_name, et.name AS to_name, r.type
+      sql`SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type
           FROM relationships r
           JOIN entities ef ON ef.id = r.from_id
           JOIN entities et ON et.id = r.to_id
           WHERE r.deleted_at IS NULL
           ORDER BY r.created_at DESC
           LIMIT ${CONTEXT_REL_LIMIT}` as unknown as Promise<RelCtxRow[]>,
-      sql`SELECT e.name AS entity_name, q.text, q.source
+      sql`SELECT q.id, e.name AS entity_name, q.text, q.source
           FROM quotes q
           JOIN entities e ON e.id = q.entity_id
           WHERE q.deleted_at IS NULL
@@ -110,11 +110,13 @@ export default withObservability('ask', async (req) => {
       description: e.description,
     })),
     relationships: relRows.map((r) => ({
+      id: r.id,
       fromName: r.from_name,
       toName: r.to_name,
       type: r.type,
     })),
     recentQuotes: quoteRows.map((q) => ({
+      id: q.id,
       entityName: q.entity_name,
       text: q.text,
       source: q.source,
@@ -146,17 +148,39 @@ export default withObservability('ask', async (req) => {
       proposal?: unknown
     }
     const reply = typeof raw.reply === 'string' ? raw.reply.trim() : ''
+
+    // Build the existingIds maps so the validator can clean edits/deletes
+    // against real rows. Without this the validator drops them entirely as
+    // a safety default.
+    const existingIds = {
+      entities: new Map(
+        ctx.entities.map((e) => [e.id, { name: e.name, type: e.type }]),
+      ),
+      quotes: new Map(
+        ctx.recentQuotes.map((q) => [q.id, { text: q.text, entityName: q.entityName }]),
+      ),
+      relationships: new Map(
+        ctx.relationships.map((r) => [
+          r.id,
+          { preview: `${r.fromName} → ${r.type} → ${r.toName}` },
+        ]),
+      ),
+    }
+
     const cleanedProposal = validateExtraction(
       raw.proposal ?? {},
       ctx.entities,
       new Set(entityTypes),
       new Set(relationshipTypes),
+      existingIds,
     )
 
     const hasProposal =
       cleanedProposal.entities.length +
         cleanedProposal.relationships.length +
-        cleanedProposal.quotes.length >
+        cleanedProposal.quotes.length +
+        cleanedProposal.edits.length +
+        cleanedProposal.deletes.length >
       0
 
     logEvent({

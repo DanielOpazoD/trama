@@ -205,6 +205,19 @@ export const api = {
     })
     return relationshipFromRow(row)
   },
+  async updateRelationship(
+    id: string,
+    patch: Partial<{ type: string; notes: string | null }>,
+  ): Promise<Relationship> {
+    const body: Record<string, unknown> = {}
+    if (patch.type !== undefined) body.type = patch.type
+    if (patch.notes !== undefined) body.notes = patch.notes
+    const row = await request<RelationshipRow>(`/api/relationships/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    })
+    return relationshipFromRow(row)
+  },
   async deleteRelationship(id: string): Promise<void> {
     await request<void>(`/api/relationships/${id}`, { method: 'DELETE' })
   },
@@ -571,6 +584,25 @@ export type ChatProposal = {
   reclassifications?: Array<{
     name: string
     newType: string
+    reason?: string
+  }>
+  /** Inline edits to existing rows. id is the existing row's UUID. */
+  edits?: Array<{
+    kind: 'entity' | 'quote' | 'relationship'
+    id: string
+    /** Loose: components introspect what's present. */
+    patch: Record<string, unknown>
+    reason?: string
+    /** For display: name (entity), preview (quote/rel). */
+    name?: string
+    preview?: string
+    entityName?: string
+  }>
+  /** Soft-delete proposals. UI shows these unchecked by default. */
+  deletes?: Array<{
+    kind: 'entity' | 'quote' | 'relationship'
+    id: string
+    preview: string
     reason?: string
   }>
 }

@@ -66,6 +66,28 @@ export function useAddRelationship() {
   })
 }
 
+export function useUpdateRelationship() {
+  const queryClient = useQueryClient()
+  const { offline } = useOffline()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      patch,
+    }: {
+      id: string
+      patch: Partial<{ type: string; notes: string | null }>
+    }) => {
+      if (offline) throw new Error('Editar requiere conexión al backend.')
+      return api.updateRelationship(id, patch)
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Relationship[]>(queryKeys.relationships, (prev) =>
+        (prev ?? []).map((r) => (r.id === updated.id ? updated : r)),
+      )
+    },
+  })
+}
+
 export function useDeleteRelationship() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()

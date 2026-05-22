@@ -4,7 +4,13 @@ import {
   useAddQuote,
   useAddRelationship,
   useEntitiesQuery,
+  useUpdateEntity,
   useUpdateEntityType,
+  useUpdateQuote,
+  useUpdateRelationship,
+  useDeleteEntity,
+  useDeleteQuote,
+  useDeleteRelationship,
 } from '../../state'
 import { ENTITY_TYPES, RELATIONSHIP_TYPES, type Origin } from '../../types'
 import type { ChatProposal } from '../../api'
@@ -23,6 +29,12 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
   const addRelationship = useAddRelationship()
   const addQuote = useAddQuote()
   const updateType = useUpdateEntityType()
+  const updateEntity = useUpdateEntity()
+  const updateQuote = useUpdateQuote()
+  const updateRelationship = useUpdateRelationship()
+  const deleteEntity = useDeleteEntity()
+  const deleteQuote = useDeleteQuote()
+  const deleteRelationship = useDeleteRelationship()
 
   // Track per-item: 'pending' | 'applied' | 'failed'
   type Status = 'pending' | 'applied' | 'failed'
@@ -30,6 +42,8 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
   const relList = proposal.relationships ?? []
   const quoteList = proposal.quotes ?? []
   const reclassList = proposal.reclassifications ?? []
+  const editList = proposal.edits ?? []
+  const deleteList = proposal.deletes ?? []
 
   const [statusEntities, setStatusEntities] = useState<Status[]>(
     entityList.map(() => 'pending'),
@@ -37,6 +51,8 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
   const [statusRels, setStatusRels] = useState<Status[]>(relList.map(() => 'pending'))
   const [statusQuotes, setStatusQuotes] = useState<Status[]>(quoteList.map(() => 'pending'))
   const [statusReclass, setStatusReclass] = useState<Status[]>(reclassList.map(() => 'pending'))
+  const [statusEdits, setStatusEdits] = useState<Status[]>(editList.map(() => 'pending'))
+  const [statusDeletes, setStatusDeletes] = useState<Status[]>(deleteList.map(() => 'pending'))
 
   function lookupEntityId(name: string): string | undefined {
     const n = name.trim().toLowerCase()
@@ -117,12 +133,43 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
     }
   }
 
+  async function applyEdit(i: number) {
+    const e = editList[i]
+    try {
+      if (e.kind === 'entity') {
+        await updateEntity.mutateAsync({ id: e.id, patch: e.patch as Parameters<typeof updateEntity.mutateAsync>[0]['patch'] })
+      } else if (e.kind === 'quote') {
+        await updateQuote.mutateAsync({ id: e.id, patch: e.patch as Parameters<typeof updateQuote.mutateAsync>[0]['patch'] })
+      } else if (e.kind === 'relationship') {
+        await updateRelationship.mutateAsync({ id: e.id, patch: e.patch as Parameters<typeof updateRelationship.mutateAsync>[0]['patch'] })
+      }
+      setStatusEdits((s) => s.map((v, idx) => (idx === i ? 'applied' : v)))
+    } catch {
+      setStatusEdits((s) => s.map((v, idx) => (idx === i ? 'failed' : v)))
+    }
+  }
+
+  async function applyDelete(i: number) {
+    const d = deleteList[i]
+    try {
+      if (d.kind === 'entity') await deleteEntity.mutateAsync(d.id)
+      else if (d.kind === 'quote') await deleteQuote.mutateAsync(d.id)
+      else if (d.kind === 'relationship') await deleteRelationship.mutateAsync(d.id)
+      setStatusDeletes((s) => s.map((v, idx) => (idx === i ? 'applied' : v)))
+    } catch {
+      setStatusDeletes((s) => s.map((v, idx) => (idx === i ? 'failed' : v)))
+    }
+  }
+
   async function applyAll() {
+    // "Aceptar todo" applies non-destructive items by default. Deletes stay
+    // out — they must be individually clicked.
     await Promise.all([
       ...statusEntities.map((s, i) => (s === 'pending' ? applyEntity(i) : null)),
       ...statusRels.map((s, i) => (s === 'pending' ? applyRelationship(i) : null)),
       ...statusQuotes.map((s, i) => (s === 'pending' ? applyQuote(i) : null)),
       ...statusReclass.map((s, i) => (s === 'pending' ? applyReclass(i) : null)),
+      ...statusEdits.map((s, i) => (s === 'pending' ? applyEdit(i) : null)),
     ])
   }
 
@@ -135,10 +182,12 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
     statusEntities.filter((s) => s === 'pending').length +
     statusRels.filter((s) => s === 'pending').length +
     statusQuotes.filter((s) => s === 'pending').length +
-    statusReclass.filter((s) => s === 'pending').length
+    statusReclass.filter((s) => s === 'pending').length +
+    statusEdits.filter((s) => s === 'pending').length
 
   const hasItems =
-    entityList.length + relList.length + quoteList.length + reclassList.length > 0
+    entityList.length + relList.length + quoteList.length + reclassList.length +
+    editList.length + deleteList.length > 0
   if (!hasItems) return null
 
   return (
@@ -203,6 +252,34 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
             extra={r.reason}
           />
         ))}
+        {editList.map((e, i) => {
+          const kindLabel =
+            e.kind === 'entity' ? 'edit entidad' : e.kind === 'quote' ? 'edit cita' : 'edit relación'
+          const patchSummary = Object.entries(e.patch)
+            .map(([k, v]) => `${k}: ${v === null ? '—' : String(v).slice(0, 40)}`)
+            .join(' · ')
+          return (
+            <ProposalRow
+              key={`ed${i}`}
+              status={statusEdits[i]}
+              onAccept={() => applyEdit(i)}
+              primary={e.name ?? e.preview ?? e.id.slice(0, 8)}
+              secondary={kindLabel}
+              extra={[patchSummary, e.reason].filter(Boolean).join(' — ')}
+            />
+          )
+        })}
+        {deleteList.map((d, i) => (
+          <ProposalRow
+            key={`del${i}`}
+            status={statusDeletes[i]}
+            onAccept={() => applyDelete(i)}
+            primary={d.preview}
+            secondary={`borrar ${d.kind === 'entity' ? 'entidad' : d.kind === 'quote' ? 'cita' : 'relación'}`}
+            extra={d.reason}
+            tone="warn"
+          />
+        ))}
       </ul>
     </div>
   )
@@ -215,6 +292,7 @@ function ProposalRow({
   secondary,
   extra,
   spotifyUrl,
+  tone,
 }: {
   status: 'pending' | 'applied' | 'failed'
   onAccept: () => void
@@ -222,12 +300,18 @@ function ProposalRow({
   secondary: string
   extra?: string
   spotifyUrl?: string
+  tone?: 'warn'
 }) {
+  const secondaryStyle =
+    tone === 'warn' ? { color: 'var(--accent-clay)' } : undefined
   return (
     <li className="flex items-start gap-2 text-sm">
       <div className="min-w-0 flex-1 leading-relaxed">
         <span className="text-ink-700">{primary}</span>
-        <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-ink-400">
+        <span
+          className="ml-2 text-[10px] uppercase tracking-[0.18em] text-ink-400"
+          style={secondaryStyle}
+        >
           {secondary}
         </span>
         {spotifyUrl && (

@@ -4,11 +4,19 @@ import {
   useAddEntity,
   useAddRelationship,
   useAddQuote,
+  useUpdateEntity,
+  useUpdateQuote,
+  useUpdateRelationship,
+  useDeleteEntity,
+  useDeleteRelationship,
+  useDeleteQuote,
 } from '../state'
 import {
   ENTITY_TYPES,
   RELATIONSHIP_TYPES,
   type ExtractionProposal,
+  type ProposedEdit,
+  type ProposedDelete,
   type ProposedEntity,
   type ProposedQuote,
   type ProposedRelationship,
@@ -19,6 +27,9 @@ type CheckedState = {
   entities: boolean[]
   relationships: boolean[]
   quotes: boolean[]
+  edits: boolean[]
+  /** Deletes default to UNCHECKED — opt-in only. */
+  deletes: boolean[]
 }
 
 function initialChecked(proposal: ExtractionProposal): CheckedState {
@@ -26,6 +37,8 @@ function initialChecked(proposal: ExtractionProposal): CheckedState {
     entities: proposal.entities.map(() => true),
     relationships: proposal.relationships.map(() => true),
     quotes: proposal.quotes.map(() => true),
+    edits: (proposal.edits ?? []).map(() => true),
+    deletes: (proposal.deletes ?? []).map(() => false), // opt-in
   }
 }
 
@@ -44,6 +57,12 @@ export function ProposalPanel({
   const addEntity = useAddEntity()
   const addRelationship = useAddRelationship()
   const addQuote = useAddQuote()
+  const updateEntity = useUpdateEntity()
+  const updateQuote = useUpdateQuote()
+  const updateRelationship = useUpdateRelationship()
+  const deleteEntity = useDeleteEntity()
+  const deleteRelationship = useDeleteRelationship()
+  const deleteQuote = useDeleteQuote()
 
   const [checked, setChecked] = useState<CheckedState>(() => initialChecked(proposal))
   const [submitting, setSubmitting] = useState(false)
@@ -63,10 +82,14 @@ export function ProposalPanel({
     return map
   }, [entities])
 
+  const edits = proposal.edits ?? []
+  const deletes = proposal.deletes ?? []
   const total =
     proposal.entities.length +
     proposal.relationships.length +
-    proposal.quotes.length
+    proposal.quotes.length +
+    edits.length +
+    deletes.length
 
   function toggle(section: keyof CheckedState, index: number) {
     setChecked((prev) => {
@@ -138,6 +161,40 @@ export function ProposalPanel({
             context: q.context,
             origin: { kind: 'ai' },
           })
+        } catch {
+          /* skip */
+        }
+      }
+
+      // ---------- edits ----------
+      for (let i = 0; i < edits.length; i++) {
+        if (!checked.edits[i]) continue
+        const e = edits[i]
+        try {
+          if (e.kind === 'entity') {
+            await updateEntity.mutateAsync({ id: e.id, patch: e.patch })
+          } else if (e.kind === 'quote') {
+            await updateQuote.mutateAsync({ id: e.id, patch: e.patch })
+          } else if (e.kind === 'relationship') {
+            await updateRelationship.mutateAsync({ id: e.id, patch: e.patch })
+          }
+        } catch {
+          /* skip */
+        }
+      }
+
+      // ---------- deletes (opt-in) ----------
+      for (let i = 0; i < deletes.length; i++) {
+        if (!checked.deletes[i]) continue
+        const d = deletes[i]
+        try {
+          if (d.kind === 'entity') {
+            await deleteEntity.mutateAsync(d.id)
+          } else if (d.kind === 'quote') {
+            await deleteQuote.mutateAsync(d.id)
+          } else if (d.kind === 'relationship') {
+            await deleteRelationship.mutateAsync(d.id)
+          }
         } catch {
           /* skip */
         }
@@ -219,6 +276,32 @@ export function ProposalPanel({
           </Section>
         )}
 
+        {edits.length > 0 && (
+          <Section title="Cambios">
+            {edits.map((edit, index) => (
+              <ProposedEditRow
+                key={index}
+                edit={edit}
+                checked={checked.edits[index]}
+                onToggle={() => toggle('edits', index)}
+              />
+            ))}
+          </Section>
+        )}
+
+        {deletes.length > 0 && (
+          <Section title="Eliminar — opt-in" tone="warn">
+            {deletes.map((del, index) => (
+              <ProposedDeleteRow
+                key={index}
+                del={del}
+                checked={checked.deletes[index]}
+                onToggle={() => toggle('deletes', index)}
+              />
+            ))}
+          </Section>
+        )}
+
         {error && (
           <div className="px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-800">
             {error}
@@ -240,14 +323,108 @@ export function ProposalPanel({
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  tone,
+}: {
+  title: string
+  children: React.ReactNode
+  tone?: 'warn'
+}) {
   return (
     <div>
-      <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-300 mb-2">
+      <h3
+        className={`text-[10px] uppercase tracking-[0.2em] mb-2 ${
+          tone === 'warn' ? '' : 'text-ink-300'
+        }`}
+        style={tone === 'warn' ? { color: 'var(--accent-clay)' } : undefined}
+      >
         {title}
       </h3>
       <ul className="space-y-2">{children}</ul>
     </div>
+  )
+}
+
+function ProposedEditRow({
+  edit,
+  checked,
+  onToggle,
+}: {
+  edit: ProposedEdit
+  checked: boolean
+  onToggle: () => void
+}) {
+  return (
+    <li className="flex items-start gap-3 p-3 bg-paper-100/50 border border-ink-100 rounded-lg">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onToggle}
+        className="mt-1 accent-ink-600"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2 text-sm">
+          <span
+            className="text-[10px] uppercase tracking-[0.18em]"
+            style={{ color: 'var(--accent-primary)' }}
+          >
+            editar {edit.kind === 'entity' ? 'entidad' : edit.kind === 'quote' ? 'cita' : 'relación'}
+          </span>
+          <span className="text-ink-700">
+            {edit.kind === 'entity' ? edit.name : edit.preview}
+          </span>
+        </div>
+        <div className="mt-1 text-xs text-ink-500 space-y-0.5">
+          {Object.entries(edit.patch).map(([k, v]) => (
+            <div key={k}>
+              <span className="text-ink-300">{k}:</span>{' '}
+              <span className="text-ink-600">{v === null ? '—' : String(v)}</span>
+            </div>
+          ))}
+        </div>
+        {edit.reason && (
+          <p className="mt-1 text-xs text-ink-400 italic">{edit.reason}</p>
+        )}
+      </div>
+    </li>
+  )
+}
+
+function ProposedDeleteRow({
+  del,
+  checked,
+  onToggle,
+}: {
+  del: ProposedDelete
+  checked: boolean
+  onToggle: () => void
+}) {
+  return (
+    <li className="flex items-start gap-3 p-3 border rounded-lg" style={{ borderColor: 'var(--accent-clay)', backgroundColor: 'rgb(162 82 57 / 0.04)' }}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onToggle}
+        className="mt-1"
+        style={{ accentColor: 'var(--accent-clay)' }}
+      />
+      <div className="min-w-0 flex-1 text-sm">
+        <div className="flex items-baseline gap-2">
+          <span
+            className="text-[10px] uppercase tracking-[0.18em]"
+            style={{ color: 'var(--accent-clay)' }}
+          >
+            borrar {del.kind === 'entity' ? 'entidad' : del.kind === 'quote' ? 'cita' : 'relación'}
+          </span>
+          <span className="text-ink-700">{del.preview}</span>
+        </div>
+        {del.reason && (
+          <p className="mt-1 text-xs text-ink-400 italic">{del.reason}</p>
+        )}
+      </div>
+    </li>
   )
 }
 

@@ -9,12 +9,14 @@ export type ChatTramaContext = {
     description?: string | null
   }>
   relationships: Array<{
+    id: string
     fromName: string
     toName: string
     type: string
     notes?: string | null
   }>
   quotes: Array<{
+    id: string
     entityName: string
     text: string
     source?: string | null
@@ -41,6 +43,8 @@ export function buildChatPrompt(
   relationshipTypes: string[],
   entityTypes: string[],
 ): LLMMessage[] {
+  // Each row includes its UUID so the model can reference it in edits and
+  // deletes. IDs are noisy but unavoidable — name alone is ambiguous.
   const entityBlock =
     context.entities.length === 0
       ? '(la trama todavía está vacía)'
@@ -48,7 +52,7 @@ export function buildChatPrompt(
           .map((e) => {
             const meta = [e.type, e.year ?? null].filter(Boolean).join(', ')
             const desc = e.description ? ` — ${e.description}` : ''
-            return `• "${e.name}" [${meta}]${desc}`
+            return `• [id=${e.id}] "${e.name}" [${meta}]${desc}`
           })
           .join('\n')
 
@@ -58,7 +62,7 @@ export function buildChatPrompt(
       : context.relationships
           .map((r) => {
             const note = r.notes ? ` — ${r.notes}` : ''
-            return `- ${r.fromName} → ${r.type} → ${r.toName}${note}`
+            return `- [id=${r.id}] ${r.fromName} → ${r.type} → ${r.toName}${note}`
           })
           .join('\n')
 
@@ -68,7 +72,7 @@ export function buildChatPrompt(
       : context.quotes
           .map((q) => {
             const src = q.source ? ` [${q.source}]` : ''
-            return `- ${q.entityName}: «${q.text}»${src}`
+            return `- [id=${q.id}] ${q.entityName}: «${q.text}»${src}`
           })
           .join('\n')
 
@@ -94,12 +98,25 @@ Si tienes propuestas concretas que el usuario podría querer agregar, AL FINAL d
   "entities":      [{ "type": "uno de los tipos válidos", "name": "string", "year": 1234, "description": "frase corta opcional", "spotifyUrl": "https://open.spotify.com/... opcional" }],
   "relationships": [{ "fromName": "string", "toName": "string", "type": "uno de los tipos válidos", "notes": "string opcional" }],
   "quotes":        [{ "entityName": "string", "text": "la cita", "source": "fuente opcional" }],
-  "reclassifications": [{ "name": "string", "newType": "uno de los tipos válidos", "reason": "por qué" }]
+  "reclassifications": [{ "name": "string", "newType": "uno de los tipos válidos", "reason": "por qué" }],
+  "edits": [
+    { "kind": "entity",       "id": "uuid", "patch": { "name": "...", "type": "...", "year": 1234, "description": "...", "essay": "...", "spotifyUrl": "..." }, "reason": "por qué" },
+    { "kind": "quote",        "id": "uuid", "patch": { "text": "...", "source": "...", "context": "...", "entityId": "uuid-de-otra-entidad", "userReflection": "..." }, "reason": "..." },
+    { "kind": "relationship", "id": "uuid", "patch": { "type": "...", "notes": "..." }, "reason": "..." }
+  ],
+  "deletes": [
+    { "kind": "entity",       "id": "uuid", "reason": "duplicada de X" },
+    { "kind": "quote",        "id": "uuid", "reason": "..." },
+    { "kind": "relationship", "id": "uuid", "reason": "..." }
+  ]
 }
 TRAMA-PROPOSAL>>>
 
 - Arrays pueden ser vacíos. Omite el bloque entero si no hay nada que proponer.
-- Para reclassifications, "name" debe coincidir con una entidad existente.
+- Para EDITS y DELETES, el "id" debe coincidir EXACTAMENTE con un id que te pasé arriba en el estado de la trama. NUNCA inventes IDs.
+- En "edits", incluye en "patch" SOLO los campos que cambian. Los demás se preservan.
+- Propón "deletes" únicamente cuando el usuario lo pida explícitamente o cuando detectes duplicados claros. El usuario debe aprobar los borrados de forma opt-in — sé conservador.
+- Para reclassifications (forma legacy), "name" debe coincidir con una entidad existente; equivalente a un edit de tipo entidad con patch.type.
 - Tipos válidos de entidad: ${entityTypes.join(', ')}
 - Tipos válidos de relación: ${relationshipTypes.join(', ')}
 
