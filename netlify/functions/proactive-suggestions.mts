@@ -1,7 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { askLLMForJson } from './_lib/llm.js'
-import { resolveTaskProvider } from './_lib/ai-tasks.js'
+import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import {
   buildProactivePrompt,
   type EntityForProactive,
@@ -148,11 +148,13 @@ export default withObservability(
         ),
       )
 
+      const invocation = await resolveAIInvocation(req, 'suggest-relationships')
+      if (invocation.kind === 'off') return aiOffResponse()
+
       try {
-        const taskCfg = await resolveTaskProvider('suggest-relationships')
         const { content, usage } = await askLLMForJson(messages, {
-          provider: taskCfg.provider || undefined,
-          model: taskCfg.model,
+          provider: invocation.provider,
+          model: invocation.model,
         })
 
         const raw = (content ?? {}) as { suggestions?: unknown }

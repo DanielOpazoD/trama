@@ -1,7 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { askLLMForText } from './_lib/llm.js'
-import { resolveTaskProvider } from './_lib/ai-tasks.js'
+import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildReflectPrompt } from './_lib/reflect-prompt.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { logEvent } from './_lib/observability.js'
@@ -64,11 +64,13 @@ export default withObservability(
       },
     })
 
+    const invocation = await resolveAIInvocation(req, 'reflect')
+    if (invocation.kind === 'off') return aiOffResponse()
+
     try {
-      const taskCfg = await resolveTaskProvider('reflect')
       const { content, usage, fromCache } = await askLLMForText(messages, {
-        provider: taskCfg.provider || undefined,
-        model: taskCfg.model,
+        provider: invocation.provider,
+        model: invocation.model,
       })
       const reflection = typeof content === 'string' ? content.trim() : String(content).trim()
 

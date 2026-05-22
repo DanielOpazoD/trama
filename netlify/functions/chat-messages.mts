@@ -1,7 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { askLLMForText, askLLMForTextStreaming } from './_lib/llm.js'
-import { resolveTaskProvider } from './_lib/ai-tasks.js'
+import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import {
   buildChatPrompt,
   buildChatTitlePrompt,
@@ -80,6 +80,11 @@ export default withObservability(
 
     const budgetExceeded = await checkMonthlyBudget()
     if (budgetExceeded) return budgetExceeded
+
+    // Resolve AI mode upfront so we don't persist a user message that the
+    // assistant can never answer (Off blocks the whole exchange).
+    const invocation = await resolveAIInvocation(req, 'chat')
+    if (invocation.kind === 'off') return aiOffResponse()
 
     const threadRows = (await sql`
       SELECT id, title FROM chat_threads WHERE id = ${threadId} AND deleted_at IS NULL
@@ -204,10 +209,10 @@ export default withObservability(
         }
         let llmError: string | null = null
 
-        const chatTask = await resolveTaskProvider('chat').catch(() => null)
-        const chatOverride = chatTask
-          ? { provider: chatTask.provider || undefined, model: chatTask.model }
-          : undefined
+        const chatOverride = {
+          provider: invocation.provider,
+          model: invocation.model,
+        }
 
         try {
           for await (const frame of askLLMForTextStreaming(messages, chatOverride)) {

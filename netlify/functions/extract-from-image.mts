@@ -1,7 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { askLLMForVision } from './_lib/llm.js'
-import { resolveTaskProvider } from './_lib/ai-tasks.js'
+import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildImageExtractionPrompt } from './_lib/extract-image-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
@@ -71,14 +71,16 @@ export default withObservability('extract-from-image', async (req) => {
 
   const { system, user } = buildImageExtractionPrompt(entityTypes, relationshipTypes)
 
+  const invocation = await resolveAIInvocation(req, 'extract-image')
+  if (invocation.kind === 'off') return aiOffResponse()
+
   try {
-    const taskCfg = await resolveTaskProvider('extract-image')
     const { content, usage, fromCache } = await askLLMForVision(
       system,
       user,
       imageBase64,
       mimeType,
-      { provider: taskCfg.provider || undefined, model: taskCfg.model },
+      { provider: invocation.provider, model: invocation.model },
     )
     const cleaned = validateExtraction(
       content,

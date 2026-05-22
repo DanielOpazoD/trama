@@ -1,7 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { askLLMForJson } from './_lib/llm.js'
-import { resolveTaskProvider } from './_lib/ai-tasks.js'
+import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import {
   buildSuggestRelationshipsPrompt,
   type EntityForSuggest,
@@ -102,11 +102,13 @@ export default withObservability(
       relationshipTypes,
     )
 
+    const invocation = await resolveAIInvocation(req, 'suggest-relationships')
+    if (invocation.kind === 'off') return aiOffResponse()
+
     try {
-      const taskCfg = await resolveTaskProvider('suggest-relationships')
       const { content, usage, fromCache } = await askLLMForJson(messages, {
-        provider: taskCfg.provider || undefined,
-        model: taskCfg.model,
+        provider: invocation.provider,
+        model: invocation.model,
       })
       const existingEntitiesForValidator = entityRows.map((e) => ({
         id: e.id,
@@ -151,9 +153,9 @@ export default withObservability(
       let verifierProvider: string | null = null
       let verifierUsage: typeof usage | null = null
       if (
-        taskCfg.verifyWith &&
-        taskCfg.verifyWith !== (taskCfg.provider || '') &&
-        taskCfg.verifyWith !== usage.provider &&
+        invocation.verifyWith &&
+        invocation.verifyWith !== (invocation.provider || '') &&
+        invocation.verifyWith !== usage.provider &&
         filteredRelationships.length > 0
       ) {
         const result = await crossVerify({
@@ -161,10 +163,10 @@ export default withObservability(
           describe: (r) =>
             `${r.fromName} → ${r.type} → ${r.toName}${r.notes ? ` (${r.notes})` : ''}`,
           context: 'nuevas relaciones propuestas entre entidades existentes',
-          verifierProvider: taskCfg.verifyWith,
+          verifierProvider: invocation.verifyWith,
           primaryProviderName: usage.provider,
         })
-        verifierProvider = taskCfg.verifyWith
+        verifierProvider = invocation.verifyWith
         verifierUsage = result.usage
         verifications = filteredRelationships.map(
           (_, i) => result.verdictsByIndex.get(i) ?? { agreed: true },

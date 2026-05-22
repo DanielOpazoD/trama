@@ -21,6 +21,7 @@ import {
   SparkleIcon,
   TramaMark,
 } from './Icons'
+import { AIModeToggle } from './AIModeToggle'
 
 export type ViewMode = 'inicio' | 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'chat' | 'sugerencias'
 
@@ -145,6 +146,7 @@ export function Sidebar({
               aria-label="Sin conexión al backend"
             />
           )}
+          <AIModeToggle collapsed />
           <button
             onClick={onOpenSettings}
             aria-label="Configuración"
@@ -295,7 +297,8 @@ export function Sidebar({
 
       <div className="flex-1" />
 
-      <div className="px-2 pb-3 pt-2 border-t border-ink-100/40 mx-3">
+      <div className="px-2 pb-3 pt-2 border-t border-ink-100/40 mx-3 space-y-1">
+        <AIModeToggle />
         <button
           onClick={onOpenSettings}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-ink-400 hover:text-ink-700 hover:bg-ink-700/4 transition-all duration-200 active:scale-[0.98]"

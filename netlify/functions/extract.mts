@@ -1,7 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { askLLMForJson } from './_lib/llm.js'
-import { resolveTaskProvider } from './_lib/ai-tasks.js'
+import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildExtractionPrompt } from './_lib/extract-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
@@ -60,11 +60,13 @@ export default withObservability('extract', async (req: Request, _context: Conte
 
   const messages = buildExtractionPrompt(text, existing, entityTypes, relationshipTypes)
 
+  const invocation = await resolveAIInvocation(req, 'extract')
+  if (invocation.kind === 'off') return aiOffResponse()
+
   try {
-    const taskCfg = await resolveTaskProvider('extract')
     const { content, usage, fromCache } = await askLLMForJson(messages, {
-      provider: taskCfg.provider || undefined,
-      model: taskCfg.model,
+      provider: invocation.provider,
+      model: invocation.model,
     })
     const cleaned = validateExtraction(
       content,

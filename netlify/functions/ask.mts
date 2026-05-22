@@ -1,7 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { askLLMForJson } from './_lib/llm.js'
-import { resolveTaskProvider } from './_lib/ai-tasks.js'
+import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildAskPrompt, type AskContext } from './_lib/ask-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
@@ -136,11 +136,13 @@ export default withObservability('ask', async (req) => {
 
   const messages = buildAskPrompt(userText, ctx)
 
+  const invocation = await resolveAIInvocation(req, 'chat')
+  if (invocation.kind === 'off') return aiOffResponse()
+
   try {
-    const taskCfg = await resolveTaskProvider('chat')
     const { content, usage, fromCache } = await askLLMForJson(messages, {
-      provider: taskCfg.provider || undefined,
-      model: taskCfg.model,
+      provider: invocation.provider,
+      model: invocation.model,
     })
 
     const raw = (content ?? {}) as {

@@ -1,7 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { askLLMForJson } from './_lib/llm.js'
-import { resolveTaskProvider } from './_lib/ai-tasks.js'
+import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import {
   buildReclassifyPrompt,
   type EntityForReclassify,
@@ -81,11 +81,13 @@ export default withObservability(
 
     const messages = buildReclassifyPrompt(entitiesForPrompt, typeOptions)
 
+    const invocation = await resolveAIInvocation(req, 'reclassify')
+    if (invocation.kind === 'off') return aiOffResponse()
+
     try {
-      const taskCfg = await resolveTaskProvider('reclassify')
       const { content, usage, fromCache } = await askLLMForJson(messages, {
-        provider: taskCfg.provider || undefined,
-        model: taskCfg.model,
+        provider: invocation.provider,
+        model: invocation.model,
       })
       const entityLookup: EntityLookup[] = entityRows.map((e) => ({
         id: e.id,
@@ -102,9 +104,9 @@ export default withObservability(
       let verifierProvider: string | null = null
       let verifierUsage: typeof usage | null = null
       if (
-        taskCfg.verifyWith &&
-        taskCfg.verifyWith !== (taskCfg.provider || '') &&
-        taskCfg.verifyWith !== usage.provider &&
+        invocation.verifyWith &&
+        invocation.verifyWith !== (invocation.provider || '') &&
+        invocation.verifyWith !== usage.provider &&
         reclassifications.length > 0
       ) {
         const result = await crossVerify({
@@ -114,10 +116,10 @@ export default withObservability(
               r.reason ? ` (razón: ${r.reason})` : ''
             }`,
           context: 'cambios de tipo (reclasificación de entidades)',
-          verifierProvider: taskCfg.verifyWith,
+          verifierProvider: invocation.verifyWith,
           primaryProviderName: usage.provider,
         })
-        verifierProvider = taskCfg.verifyWith
+        verifierProvider = invocation.verifyWith
         verifierUsage = result.usage
         verifications = reclassifications.map(
           (_, i) => result.verdictsByIndex.get(i) ?? { agreed: true },
