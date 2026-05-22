@@ -109,6 +109,45 @@ describe('askLLMForJson — provider routing', () => {
       /AI_API_KEY/,
     )
   })
+
+  it('prefers the per-provider key over AI_API_KEY', async () => {
+    vi.stubGlobal('Netlify', {
+      env: {
+        get: vi.fn((key: string) => {
+          if (key === 'AI_PROVIDER') return 'openai'
+          if (key === 'OPENAI_API_KEY') return 'specific-openai-key'
+          if (key === 'AI_API_KEY') return 'shared-fallback-key'
+          return undefined
+        }),
+      },
+    })
+    const fetchMock = mockFetch(SIMPLE_RESPONSE_OPENAI)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await askLLMForJson([{ role: 'user', content: 'hi' }])
+
+    const [, init] = fetchMock.mock.calls[0]
+    expect(init.headers['Authorization']).toBe('Bearer specific-openai-key')
+  })
+
+  it('falls back to AI_API_KEY when the per-provider key is absent', async () => {
+    vi.stubGlobal('Netlify', {
+      env: {
+        get: vi.fn((key: string) => {
+          if (key === 'AI_PROVIDER') return 'openai'
+          if (key === 'AI_API_KEY') return 'shared-fallback-key'
+          return undefined
+        }),
+      },
+    })
+    const fetchMock = mockFetch(SIMPLE_RESPONSE_OPENAI)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await askLLMForJson([{ role: 'user', content: 'hi' }])
+
+    const [, init] = fetchMock.mock.calls[0]
+    expect(init.headers['Authorization']).toBe('Bearer shared-fallback-key')
+  })
 })
 
 describe('askLLMForJson — OpenAI-compatible request shape', () => {

@@ -3,7 +3,12 @@
  *
  * Reads env vars:
  *   AI_PROVIDER  → 'deepseek' | 'openai' | 'gemini' | 'anthropic'  (default 'deepseek')
- *   AI_API_KEY   → API key for the chosen provider
+ *   AI_API_KEY   → API key fallback for whichever provider is active
+ *   DEEPSEEK_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY
+ *                → per-provider keys. When present, take precedence over AI_API_KEY
+ *                  for that provider. Lets you keep keys for several providers and
+ *                  switch between them (globally via AI_PROVIDER, or per task via
+ *                  the ai_task_providers table) without rotating env vars.
  *   AI_MAX_TOKENS → optional cap on completion tokens (default 4096)
  *   AI_CACHE_TTL_SECONDS → optional in-memory cache TTL (default 600)
  *
@@ -74,10 +79,29 @@ function readProvider(): LLMProvider {
   throw new Error(`AI_PROVIDER no reconocido: ${raw}`)
 }
 
-function readApiKey(): string {
-  const key = Netlify.env.get('AI_API_KEY')
-  if (!key) throw new Error('AI_API_KEY no está configurada en el entorno')
-  return key
+const PROVIDER_KEY_ENV: Record<LLMProvider, string> = {
+  deepseek: 'DEEPSEEK_API_KEY',
+  openai: 'OPENAI_API_KEY',
+  anthropic: 'ANTHROPIC_API_KEY',
+  gemini: 'GEMINI_API_KEY',
+}
+
+/**
+ * Resolve the API key for a given provider. Per-provider env vars
+ * (DEEPSEEK_API_KEY, OPENAI_API_KEY, …) take precedence, so you can keep keys
+ * for several providers configured at the same time and switch between them
+ * (globally or per-task). Falls back to the legacy AI_API_KEY for setups that
+ * still use a single key.
+ */
+function readApiKeyFor(provider: LLMProvider): string {
+  const specific = Netlify.env.get(PROVIDER_KEY_ENV[provider])
+  if (specific) return specific
+  const fallback = Netlify.env.get('AI_API_KEY')
+  if (fallback) return fallback
+  throw new Error(
+    `No hay API key para ${provider}. Configura ${PROVIDER_KEY_ENV[provider]} ` +
+      `(recomendado) o AI_API_KEY como fallback.`,
+  )
 }
 
 /**
@@ -92,10 +116,16 @@ function readApiKey(): string {
 function readVisionProvider(): { provider: 'openai' | 'gemini'; apiKey: string } {
   const visionOverride = Netlify.env.get('AI_VISION_PROVIDER')?.toLowerCase()
   if (visionOverride === 'openai' || visionOverride === 'gemini') {
-    const key = Netlify.env.get('AI_VISION_API_KEY')
+    // AI_VISION_API_KEY takes precedence (legacy dedicated channel); else fall
+    // back to the per-provider key, then AI_API_KEY.
+    const key =
+      Netlify.env.get('AI_VISION_API_KEY') ??
+      Netlify.env.get(PROVIDER_KEY_ENV[visionOverride]) ??
+      Netlify.env.get('AI_API_KEY')
     if (!key) {
       throw new Error(
-        `AI_VISION_PROVIDER=${visionOverride} pero AI_VISION_API_KEY no está configurada.`,
+        `AI_VISION_PROVIDER=${visionOverride} pero no hay key disponible ` +
+          `(probé AI_VISION_API_KEY, ${PROVIDER_KEY_ENV[visionOverride]}, AI_API_KEY).`,
       )
     }
     return { provider: visionOverride, apiKey: key }
@@ -109,7 +139,7 @@ function readVisionProvider(): { provider: 'openai' | 'gemini'; apiKey: string }
   // No override: try to use the main provider if it supports vision.
   const main = readProvider()
   if (main === 'openai' || main === 'gemini') {
-    return { provider: main, apiKey: readApiKey() }
+    return { provider: main, apiKey: readApiKeyFor(main) }
   }
   throw new Error(
     `El proveedor configurado (${main}) no soporta imágenes. ` +
@@ -384,7 +414,7 @@ function resolveProvider(override?: LLMOverride): {
       provider = p
     }
   }
-  const apiKey = readApiKey()
+  const apiKey = readApiKeyFor(provider)
   const baseConfig = PROVIDER_DEFAULTS[provider]
   const config: ProviderConfig =
     override?.model
@@ -602,7 +632,7 @@ export async function askLLMForVision(
   let apiKey: string
   if (override?.provider === 'openai' || override?.provider === 'gemini') {
     provider = override.provider
-    apiKey = readApiKey()
+    apiKey = readApiKeyFor(provider)
   } else {
     const resolved = readVisionProvider()
     provider = resolved.provider
