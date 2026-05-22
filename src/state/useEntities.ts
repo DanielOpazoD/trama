@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { api } from '../api'
 import { storage } from '../storage'
 import type { Entity, Origin } from '../types'
@@ -32,11 +37,29 @@ export function useEntitiesQuery() {
         const result = await api.listEntities()
         if (offline) setOffline(false)
         return result
-      } catch (err) {
+      } catch {
         setOffline(true)
         return storage.loadEntities()
       }
     },
+  })
+}
+
+const ENTITIES_PAGE_SIZE = 60
+
+/**
+ * Cursor-paginated entities for EntitiesView. La query wholesale
+ * (useEntitiesQuery) sigue existiendo para los call sites que aún la
+ * necesitan (grafo, búsqueda en sidebar, ProposalPanel matching). Este
+ * hook es solo para la lista grande virtualizada.
+ */
+export function useInfiniteEntitiesQuery() {
+  return useInfiniteQuery({
+    queryKey: queryKeys.entitiesInfinite,
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) =>
+      api.listEntitiesPage(ENTITIES_PAGE_SIZE, pageParam ?? null),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
   })
 }
 
@@ -68,6 +91,7 @@ export function useAddEntity() {
         ...(prev ?? []),
       ])
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
     },
   })
 }
@@ -114,6 +138,7 @@ export function useUpdateEntityType() {
           entity.id === id ? { ...entity, type } : entity,
         ),
       )
+      queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
       if (offline) {
         const e = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
         storage.saveEntities(e)
@@ -146,6 +171,7 @@ export function useUpdateEntity() {
       queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) =>
         (prev ?? []).map((e) => (e.id === updated.id ? updated : e)),
       )
+      queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
     },
   })
 }
@@ -174,7 +200,9 @@ export function useDeleteEntity() {
       })
       // Counts moved for entities + cascaded soft-deletes on quotes/rels.
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
       queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
       if (offline) {
         const e = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
         storage.saveEntities(e)

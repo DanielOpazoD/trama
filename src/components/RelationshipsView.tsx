@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { RELATIONSHIP_TYPES, type Entity, type ExtractionProposal, type Relationship, type RelationshipType } from '../types'
 import {
   useEntitiesQuery,
-  useRelationshipsQuery,
+  useInfiniteRelationshipsQuery,
   useAddRelationship,
   useDeleteRelationship,
   useSuggestRelationships,
@@ -19,8 +19,16 @@ export function RelationshipsView({
   onSelectEntity?: (id: string) => void
   onProposal?: (text: string, proposal: ExtractionProposal) => void
 }) {
+  // Paginated relationships for the list. entities stays wholesale because
+  // the form selects (from/to) and the row name resolution both need it.
+  // Cuando entities crezca a 100k habrá que reemplazar los selects por un
+  // autocomplete con /api/entities-lookup.
   const { data: entities = [] } = useEntitiesQuery()
-  const { data: relationships = [] } = useRelationshipsQuery()
+  const relsPaged = useInfiniteRelationshipsQuery()
+  const relationships = useMemo(
+    () => relsPaged.data?.pages.flatMap((p) => p.items) ?? [],
+    [relsPaged.data],
+  )
   const addRelationship = useAddRelationship()
   const deleteRelationship = useDeleteRelationship()
   const suggest = useSuggestRelationships()
@@ -46,6 +54,17 @@ export function RelationshipsView({
     overscan: 10,
     deps: [showForm, relationships.length, emptyHint !== null, !!suggest.error],
   })
+
+  // Infinite scroll trigger.
+  const virtualItems = virtualizer.getVirtualItems()
+  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1].index : 0
+  useEffect(() => {
+    if (!relsPaged.hasNextPage || relsPaged.isFetchingNextPage) return
+    if (relationships.length === 0) return
+    if (lastVisibleIndex >= relationships.length - 5) {
+      relsPaged.fetchNextPage()
+    }
+  }, [lastVisibleIndex, relationships.length, relsPaged])
 
   async function handleSuggest() {
     setEmptyHint(null)
@@ -215,7 +234,9 @@ export function RelationshipsView({
             </form>
           )}
 
-          {relationships.length === 0 ? (
+          {relsPaged.isLoading ? (
+            <p className="text-ink-300 italic text-sm">cargando…</p>
+          ) : relationships.length === 0 ? (
             <EmptyMessage
               title="Las entidades están sueltas."
               body={
@@ -259,6 +280,11 @@ export function RelationshipsView({
                 )
               })}
             </div>
+          )}
+          {relsPaged.isFetchingNextPage && (
+            <p className="mt-4 text-center text-xs uppercase tracking-[0.2em] text-ink-300">
+              cargando más…
+            </p>
           )}
         </>
       )}

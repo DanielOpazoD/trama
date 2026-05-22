@@ -12,7 +12,9 @@ export const queryClient = new QueryClient({
 
 export const queryKeys = {
   entities: ['entities'] as const,
+  entitiesInfinite: ['entities', 'infinite'] as const,
   relationships: ['relationships'] as const,
+  relationshipsInfinite: ['relationships', 'infinite'] as const,
   quotes: ['quotes'] as const,
   quotesInfinite: ['quotes', 'infinite'] as const,
   counts: ['counts'] as const,

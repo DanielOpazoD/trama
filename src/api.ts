@@ -179,6 +179,20 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  async listEntitiesPage(
+    limit: number,
+    cursor: string | null,
+  ): Promise<{ items: Entity[]; nextCursor: string | null }> {
+    const params = new URLSearchParams({ limit: String(limit) })
+    if (cursor) params.set('cursor', cursor)
+    const res = await request<{ items: EntityRow[]; nextCursor: string | null }>(
+      `/api/entities?${params.toString()}`,
+    )
+    return {
+      items: res.items.map(entityFromRow),
+      nextCursor: res.nextCursor,
+    }
+  },
   async listEntities(): Promise<Entity[]> {
     const rows = await request<EntityRow[]>('/api/entities')
     return rows.map(entityFromRow)
@@ -246,6 +260,20 @@ export const api = {
   async listRelationships(): Promise<Relationship[]> {
     const rows = await request<RelationshipRow[]>('/api/relationships')
     return rows.map(relationshipFromRow)
+  },
+  async listRelationshipsPage(
+    limit: number,
+    cursor: string | null,
+  ): Promise<{ items: Relationship[]; nextCursor: string | null }> {
+    const params = new URLSearchParams({ limit: String(limit) })
+    if (cursor) params.set('cursor', cursor)
+    const res = await request<{ items: RelationshipRow[]; nextCursor: string | null }>(
+      `/api/relationships?${params.toString()}`,
+    )
+    return {
+      items: res.items.map(relationshipFromRow),
+      nextCursor: res.nextCursor,
+    }
   },
   async createRelationship(
     data: Omit<Relationship, 'id' | 'createdAt' | 'updatedAt'>,

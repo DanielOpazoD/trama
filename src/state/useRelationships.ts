@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { api } from '../api'
 import { storage } from '../storage'
 import type { Origin, Relationship } from '../types'
@@ -36,6 +41,23 @@ export function useRelationshipsQuery() {
   })
 }
 
+const RELATIONSHIPS_PAGE_SIZE = 60
+
+/**
+ * Cursor-paginated relationships para RelationshipsView. La wholesale
+ * (useRelationshipsQuery) sigue para el grafo y lookups que necesitan
+ * la lista completa.
+ */
+export function useInfiniteRelationshipsQuery() {
+  return useInfiniteQuery({
+    queryKey: queryKeys.relationshipsInfinite,
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) =>
+      api.listRelationshipsPage(RELATIONSHIPS_PAGE_SIZE, pageParam ?? null),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+  })
+}
+
 export function useAddRelationship() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
@@ -63,6 +85,7 @@ export function useAddRelationship() {
         ...(prev ?? []),
       ])
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
     },
   })
 }
@@ -85,6 +108,7 @@ export function useUpdateRelationship() {
       queryClient.setQueryData<Relationship[]>(queryKeys.relationships, (prev) =>
         (prev ?? []).map((r) => (r.id === updated.id ? updated : r)),
       )
+      queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
     },
   })
 }
@@ -103,6 +127,7 @@ export function useDeleteRelationship() {
         (prev ?? []).filter((r) => r.id !== id),
       )
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
       if (offline) {
         const current = queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
         storage.saveRelationships(current)

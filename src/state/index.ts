@@ -11,6 +11,7 @@ export { useOffline } from './offline'
 export { useCountsQuery } from './useCounts'
 export {
   useEntitiesQuery,
+  useInfiniteEntitiesQuery,
   useAddEntity,
   useUpdateEntityPosition,
   useUpdateEntityType,
@@ -33,6 +34,7 @@ export {
 } from './useChat'
 export {
   useRelationshipsQuery,
+  useInfiniteRelationshipsQuery,
   useAddRelationship,
   useUpdateRelationship,
   useDeleteRelationship,

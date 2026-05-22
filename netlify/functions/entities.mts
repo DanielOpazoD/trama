@@ -24,24 +24,76 @@ export default withObservability('entities', async (req: Request, context: Conte
   const id = context.params.id
 
   if (req.method === 'GET') {
-    // Safety cap: the graph + sidebar + autocomplete consume this endpoint
-    // wholesale (they can't paginate without breaking semantics), so we cap
-    // it at 5000 rows. Above that, the user is at a scale where pagination
-    // becomes necessary across the board — we log a warning to detect it.
-    const ENTITY_HARD_CAP = 5000
-    const rows = await sql`
-      SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
-      FROM entities
-      WHERE deleted_at IS NULL
-      ORDER BY created_at DESC
-      LIMIT ${ENTITY_HARD_CAP}
-    `
-    if (rows.length >= ENTITY_HARD_CAP) {
-      console.warn(
-        `[entities] hit ENTITY_HARD_CAP (${ENTITY_HARD_CAP}). Pagination across the app is now needed.`,
-      )
+    const url = new URL(req.url)
+    const limitParam = url.searchParams.get('limit')
+
+    // Backwards-compatible: sin ?limit devolvemos full array (lo que esperan
+    // GraphView, sidebar search, ProposalPanel, etc. — modo wholesale).
+    // Con ?limit pasamos a paginación por cursor, igual que /api/quotes.
+    if (!limitParam) {
+      const ENTITY_HARD_CAP = 5000
+      const rows = await sql`
+        SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
+        FROM entities
+        WHERE deleted_at IS NULL
+        ORDER BY created_at DESC, id DESC
+        LIMIT ${ENTITY_HARD_CAP}
+      `
+      if (rows.length >= ENTITY_HARD_CAP) {
+        console.warn(
+          `[entities] hit ENTITY_HARD_CAP (${ENTITY_HARD_CAP}). Pagination across the app is now needed.`,
+        )
+      }
+      return Response.json(rows)
     }
-    return Response.json(rows)
+
+    // Paginated mode. Cursor = "<created_at_iso>:<uuid>" del último item
+    // entregado. Tuple comparison (created_at, id) DESC. El compuesto
+    // (created_at DESC, id DESC) que se añadió en la migración A vuelve
+    // esto sublineal.
+    const parsedLimit = Number.parseInt(limitParam, 10)
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), 200)
+      : 50
+
+    const cursorParam = url.searchParams.get('cursor')
+    let cursorTs: string | null = null
+    let cursorId: string | null = null
+    if (cursorParam) {
+      const sep = cursorParam.lastIndexOf(':')
+      if (sep > 0) {
+        cursorTs = cursorParam.slice(0, sep)
+        cursorId = cursorParam.slice(sep + 1)
+      }
+    }
+
+    const rows = cursorTs && cursorId
+      ? (await sql`
+          SELECT id, type, name, year, description, essay,
+                 position_x, position_y, origin, spotify_url,
+                 created_at, updated_at
+          FROM entities
+          WHERE deleted_at IS NULL
+            AND (created_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
+          ORDER BY created_at DESC, id DESC
+          LIMIT ${limit + 1}
+        `)
+      : (await sql`
+          SELECT id, type, name, year, description, essay,
+                 position_x, position_y, origin, spotify_url,
+                 created_at, updated_at
+          FROM entities
+          WHERE deleted_at IS NULL
+          ORDER BY created_at DESC, id DESC
+          LIMIT ${limit + 1}
+        `)
+
+    const items = (rows as Array<{ id: string; created_at: string }>).slice(0, limit)
+    const hasMore = rows.length > limit
+    const last = items[items.length - 1]
+    const nextCursor = hasMore && last ? `${last.created_at}:${last.id}` : null
+
+    return Response.json({ items, nextCursor })
   }
 
   if (req.method === 'POST') {

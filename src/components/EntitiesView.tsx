@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { ENTITY_TYPES, type EntityType } from '../types'
 import {
-  useEntitiesQuery,
+  useInfiniteEntitiesQuery,
   useQuotesQuery,
   useRelationshipsQuery,
   useAddEntity,
@@ -24,7 +24,14 @@ export function EntitiesView({
 }: {
   onSelectEntity?: (id: string) => void
 }) {
-  const { data: entities = [] } = useEntitiesQuery()
+  // Paginated for the list view. La AI flow de reclasificar no consume
+  // entidades del cliente — el endpoint las trae solo. quotes y rels siguen
+  // wholesale para que quoteCountById/relCountById sean coherentes.
+  const entitiesPaged = useInfiniteEntitiesQuery()
+  const entities = useMemo(
+    () => entitiesPaged.data?.pages.flatMap((p) => p.items) ?? [],
+    [entitiesPaged.data],
+  )
   const { data: quotes = [] } = useQuotesQuery()
   const { data: relationships = [] } = useRelationshipsQuery()
   const addEntity = useAddEntity()
@@ -72,6 +79,17 @@ export function EntitiesView({
     overscan: 10,
     deps: [showForm, entities.length, pending !== null, emptyHint],
   })
+
+  // Fetch next page when the virtualizer enters the last few items.
+  const virtualItems = virtualizer.getVirtualItems()
+  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1].index : 0
+  useEffect(() => {
+    if (!entitiesPaged.hasNextPage || entitiesPaged.isFetchingNextPage) return
+    if (entities.length === 0) return
+    if (lastVisibleIndex >= entities.length - 5) {
+      entitiesPaged.fetchNextPage()
+    }
+  }, [lastVisibleIndex, entities.length, entitiesPaged])
 
   async function handleReclassify() {
     setEmptyHint(false)
@@ -290,7 +308,9 @@ export function EntitiesView({
         </form>
       )}
 
-      {entities.length === 0 ? (
+      {entitiesPaged.isLoading ? (
+        <p className="text-ink-300 italic text-sm">cargando…</p>
+      ) : entities.length === 0 ? (
         <EmptyMessage
           title="Todavía nadie habita la trama."
           body={
@@ -344,6 +364,11 @@ export function EntitiesView({
             )
           })}
         </div>
+      )}
+      {entitiesPaged.isFetchingNextPage && (
+        <p className="mt-4 text-center text-xs uppercase tracking-[0.2em] text-ink-300">
+          cargando más…
+        </p>
       )}
     </>
   )

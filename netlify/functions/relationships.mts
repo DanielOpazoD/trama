@@ -19,23 +19,67 @@ export default withObservability('relationships', async (req: Request, context: 
   const id = context.params.id
 
   if (req.method === 'GET') {
-    // See entities.mts for rationale: relationships are also consumed
-    // wholesale (graph edges, lookups). Cap at 10k since relationships
-    // typically outnumber entities ~2-4x.
-    const REL_HARD_CAP = 10000
-    const rows = await sql`
-      SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
-      FROM relationships
-      WHERE deleted_at IS NULL
-      ORDER BY created_at DESC
-      LIMIT ${REL_HARD_CAP}
-    `
-    if (rows.length >= REL_HARD_CAP) {
-      console.warn(
-        `[relationships] hit REL_HARD_CAP (${REL_HARD_CAP}). Pagination across the app is now needed.`,
-      )
+    const url = new URL(req.url)
+    const limitParam = url.searchParams.get('limit')
+
+    // Backwards-compatible: sin ?limit → wholesale (GraphView lo consume así).
+    if (!limitParam) {
+      const REL_HARD_CAP = 10000
+      const rows = await sql`
+        SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
+        FROM relationships
+        WHERE deleted_at IS NULL
+        ORDER BY created_at DESC, id DESC
+        LIMIT ${REL_HARD_CAP}
+      `
+      if (rows.length >= REL_HARD_CAP) {
+        console.warn(
+          `[relationships] hit REL_HARD_CAP (${REL_HARD_CAP}). Pagination across the app is now needed.`,
+        )
+      }
+      return Response.json(rows)
     }
-    return Response.json(rows)
+
+    // Paginated mode. Mismo patrón que /api/quotes y /api/entities.
+    const parsedLimit = Number.parseInt(limitParam, 10)
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), 200)
+      : 50
+
+    const cursorParam = url.searchParams.get('cursor')
+    let cursorTs: string | null = null
+    let cursorId: string | null = null
+    if (cursorParam) {
+      const sep = cursorParam.lastIndexOf(':')
+      if (sep > 0) {
+        cursorTs = cursorParam.slice(0, sep)
+        cursorId = cursorParam.slice(sep + 1)
+      }
+    }
+
+    const rows = cursorTs && cursorId
+      ? (await sql`
+          SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
+          FROM relationships
+          WHERE deleted_at IS NULL
+            AND (created_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
+          ORDER BY created_at DESC, id DESC
+          LIMIT ${limit + 1}
+        `)
+      : (await sql`
+          SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
+          FROM relationships
+          WHERE deleted_at IS NULL
+          ORDER BY created_at DESC, id DESC
+          LIMIT ${limit + 1}
+        `)
+
+    const items = (rows as Array<{ id: string; created_at: string }>).slice(0, limit)
+    const hasMore = rows.length > limit
+    const last = items[items.length - 1]
+    const nextCursor = hasMore && last ? `${last.created_at}:${last.id}` : null
+
+    return Response.json({ items, nextCursor })
   }
 
   if (req.method === 'POST') {
