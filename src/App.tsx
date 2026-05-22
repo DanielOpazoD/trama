@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useIsMobile } from './hooks/useIsMobile'
 import {
   Provider,
   useEntitiesQuery,
@@ -41,8 +42,14 @@ function Shell() {
     quotesQuery.error?.message ??
     null
 
+  const isMobile = useIsMobile()
   const [view, setView] = useState<ViewMode>('inicio')
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  // On phones the sidebar starts collapsed by default; the user expands it
+  // with the menu icon.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') return window.innerWidth < 768
+    return false
+  })
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
   const [pendingProposal, setPendingProposal] = useState<PendingProposal | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -137,7 +144,7 @@ function Shell() {
           </div>
         )}
 
-        {view !== 'chat' && (
+        {view !== 'chat' && !(isMobile && rightPanelOpen) && (
           <AskBar
             view={view}
             selectedEntityId={selectedEntityId}
@@ -176,8 +183,28 @@ function Shell() {
             className="fixed inset-0 z-10 cursor-default"
             tabIndex={-1}
           />
-          <div className="fixed top-4 right-4 bottom-4 w-[22rem] max-w-[calc(100vw-2rem)] z-20 animate-slide-in-right pointer-events-none">
-            <div className="h-full pointer-events-auto rounded-2xl border border-ink-100/50 bg-paper-50/85 backdrop-blur-md shadow-2xl shadow-ink-900/15 overflow-hidden">
+          {/* Desktop: glass card anchored to the right. Mobile: bottom sheet
+              that slides up from below, covering most of the screen. */}
+          <div
+            className={
+              isMobile
+                ? 'fixed inset-x-0 bottom-0 top-12 z-20 animate-slide-up pointer-events-none'
+                : 'fixed top-4 right-4 bottom-4 w-[22rem] max-w-[calc(100vw-2rem)] z-20 animate-slide-in-right pointer-events-none'
+            }
+          >
+            <div
+              className={
+                isMobile
+                  ? 'h-full pointer-events-auto rounded-t-2xl border-t border-x border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-2xl shadow-ink-900/25 overflow-hidden'
+                  : 'h-full pointer-events-auto rounded-2xl border border-ink-100/50 bg-paper-50/85 backdrop-blur-md shadow-2xl shadow-ink-900/15 overflow-hidden'
+              }
+            >
+              {/* Drag handle on mobile — purely visual cue that it's a sheet. */}
+              {isMobile && (
+                <div className="pt-2 pb-1 flex justify-center">
+                  <div className="w-10 h-1 rounded-full bg-ink-200/70" />
+                </div>
+              )}
               {showProposal && pendingProposal && (
                 <ProposalPanel
                   proposal={pendingProposal.proposal}

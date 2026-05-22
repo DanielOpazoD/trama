@@ -5,6 +5,7 @@ import {
   useQuotesQuery,
   useRelationshipsQuery,
 } from '../state'
+import { useIsMobile } from '../hooks/useIsMobile'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -61,6 +62,7 @@ export function Sidebar({
   const { data: relationships = [] } = useRelationshipsQuery()
   const { data: quotes = [] } = useQuotesQuery()
   const { data: pendingSuggestions = [] } = useProactiveQuery()
+  const isMobile = useIsMobile()
 
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -158,7 +160,23 @@ export function Sidebar({
 
   // ---------- expanded sidebar ----------
   return (
-    <aside className="w-64 shrink-0 border-r border-ink-100/40 flex flex-col">
+    <>
+      {/* Mobile: backdrop closes the sidebar when tapped. */}
+      {isMobile && (
+        <button
+          onClick={onToggleCollapsed}
+          aria-label="Cerrar menú"
+          className="fixed inset-0 z-30 bg-ink-900/30 backdrop-blur-sm cursor-default md:hidden"
+          tabIndex={-1}
+        />
+      )}
+    <aside
+      className={
+        isMobile
+          ? 'fixed inset-y-0 left-0 w-64 z-40 border-r border-ink-100/40 flex flex-col bg-paper-50 shadow-2xl'
+          : 'w-64 shrink-0 border-r border-ink-100/40 flex flex-col'
+      }
+    >
       <header className="px-3 py-4 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5 trama-mark-interactive" title="Trama">
           <TramaMark size={26} className="text-ink-700 shrink-0" />
@@ -290,5 +308,6 @@ export function Sidebar({
         </p>
       </div>
     </aside>
+    </>
   )
 }
