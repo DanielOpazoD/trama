@@ -167,3 +167,62 @@ export const TramaMark = ({ size = 22, className }: Props) => (
     />
   </svg>
 )
+
+/* Editorial ornament — a printer's flourish that picks up the woven-thread
+   motif from TramaMark. Used as a section break between long blocks
+   (Featured Quote / Timeline / Threads). Wider than tall on purpose: it
+   sits like a rule across the column. */
+export const OrnamentBreak = ({ size = 72, className }: Props) => (
+  <svg
+    width={size}
+    height={(size * 12) / 72}
+    viewBox="0 0 72 12"
+    className={className}
+    fill="none"
+    aria-hidden="true"
+  >
+    {/* central diamond — the knot of the weave */}
+    <path
+      d="M36 2l3 4-3 4-3-4z"
+      stroke="currentColor"
+      strokeWidth={0.9}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeOpacity={0.7}
+    />
+    {/* threads radiating outward, fading to nothing */}
+    <path
+      d="M30 6h-10M42 6h10"
+      stroke="currentColor"
+      strokeWidth={0.8}
+      strokeLinecap="round"
+      strokeOpacity={0.45}
+    />
+    {/* terminal dots */}
+    <circle cx="19" cy="6" r="0.9" fill="currentColor" fillOpacity={0.5} />
+    <circle cx="53" cy="6" r="0.9" fill="currentColor" fillOpacity={0.5} />
+  </svg>
+)
+
+/* End-of-content mark — a single woven dot, used like ❦ to close a long
+   section or a featured quote. Smaller and quieter than OrnamentBreak. */
+export const EndMark = ({ size = 14, className }: Props) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    aria-hidden="true"
+  >
+    <path
+      d="M12 5l4 7-4 7-4-7z"
+      stroke="currentColor"
+      strokeWidth={1}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeOpacity={0.65}
+    />
+    <circle cx="12" cy="12" r="1.2" fill="currentColor" fillOpacity={0.45} />
+  </svg>
+)

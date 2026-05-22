@@ -186,6 +186,31 @@
   );
 }
 
+/* Stronger grain overlay — layered on top of cards that sit above the body
+   (right panel, modals). Reads as "different stock" without the seam: it's
+   the same noise as the body, just denser, so the surface looks like
+   it was printed on the same paper but with a slightly different press run. */
+.paper-grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch' seed='3'/><feColorMatrix type='matrix' values='0 0 0 0 0.18  0 0 0 0 0.14  0 0 0 0 0.08  0 0 0 0.045 0'/></filter><rect width='100%25' height='100%25' filter='url(%23g)'/></svg>");
+  mix-blend-mode: multiply;
+  opacity: 0.6;
+}
+html.dark .paper-grain::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch' seed='3'/><feColorMatrix type='matrix' values='0 0 0 0 0.85  0 0 0 0 0.80  0 0 0 0 0.70  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23g)'/></svg>");
+  mix-blend-mode: screen;
+  opacity: 0.4;
+}
+
+/* Editorial ornament colors used by OrnamentBreak / EndMark. Defaults to
+   the soft ink — sits like a printed mark without competing with text. */
+.ornament { color: rgb(var(--ink-300)); }
+.ornament-accent { color: var(--accent-primary); opacity: 0.7; }
+
 @layer utilities {
   @keyframes node-spring-in {
     0%   { opacity: 0; transform: scale(0.4); }

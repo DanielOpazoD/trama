@@ -195,8 +195,8 @@ function Shell() {
             <div
               className={
                 isMobile
-                  ? 'h-full pointer-events-auto rounded-t-2xl border-t border-x border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-2xl shadow-ink-900/25 overflow-hidden'
-                  : 'h-full pointer-events-auto rounded-2xl border border-ink-100/50 bg-paper-50/85 backdrop-blur-md shadow-2xl shadow-ink-900/15 overflow-hidden'
+                  ? 'relative paper-grain h-full pointer-events-auto rounded-t-2xl border-t border-x border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-2xl shadow-ink-900/25 overflow-hidden'
+                  : 'relative paper-grain h-full pointer-events-auto rounded-2xl border border-ink-100/50 bg-paper-50/85 backdrop-blur-md shadow-2xl shadow-ink-900/15 overflow-hidden'
               }
             >
               {/* Drag handle on mobile — purely visual cue that it's a sheet. */}

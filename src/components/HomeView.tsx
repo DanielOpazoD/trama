@@ -6,7 +6,7 @@ import {
   useRelationshipsQuery,
 } from '../state'
 import { ENTITY_TYPES, type Entity, type Quote } from '../types'
-import { ChevronRightIcon, SparkleIcon } from './Icons'
+import { ChevronRightIcon, EndMark, OrnamentBreak, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 import { typeAccent } from './graph/GraphNode'
 
@@ -111,6 +111,12 @@ export function HomeView({
             />
           )}
 
+          {featuredQuote && timeline.length > 0 && (
+            <div className="flex justify-center -my-4">
+              <OrnamentBreak className="ornament" />
+            </div>
+          )}
+
           {timeline.length > 0 && (
             <section>
               <div className="flex items-baseline justify-between mb-4">
@@ -140,6 +146,12 @@ export function HomeView({
                 ))}
               </ul>
             </section>
+          )}
+
+          {(featuredQuote || timeline.length > 0) && (
+            <div className="flex justify-center pt-2 pb-1">
+              <EndMark className="ornament" />
+            </div>
           )}
         </div>
       )}
