@@ -17,7 +17,7 @@
 
 import { embedSafe, toPgVector } from './embeddings.js'
 import { describeEntity, describeQuote, llmRerank } from './llm-rerank.js'
-import type { LLMOverride } from './llm.js'
+import { askLLMForText, type LLMOverride } from './llm.js'
 
 // Compact context rows shaped to feed the prompt builder. Mismas formas
 // que las queries existentes en ask.mts / chat-messages.mts, así los
@@ -49,6 +49,8 @@ export type RagContext = {
   quotes: QuoteCtxRow[]
   /** true = al menos parte del contexto vino de retrieval semántico. */
   usedRag: boolean
+  /** true = se embebió un párrafo HyDE en lugar de la query cruda. */
+  usedHyde?: boolean
 }
 
 type SqlClient = (
@@ -82,6 +84,11 @@ export async function buildRagContext(
     rerank?: boolean
     /** Provider override para el reranker (mismo que el chat). */
     rerankOverride?: LLMOverride
+    /** HyDE: si true, genera un párrafo hipotético de respuesta vía LLM
+        y embebe ESO en lugar de la query del usuario. Mejor recall en
+        preguntas vagas o abstractas. Costo: +1 LLM call (~500ms-1s).
+        Por defecto false. */
+    hyde?: boolean
   },
 ): Promise<RagContext> {
   const semE = options?.semanticEntityLimit ?? 30
@@ -90,8 +97,32 @@ export async function buildRagContext(
   const recQ = options?.recentQuoteLimit ?? 10
   const relCap = options?.relationshipLimit ?? 100
 
-  // 1) Embed query (best-effort). On failure, semantic branch returns empty.
-  const emb = userQuery.trim() ? await embedSafe(userQuery) : null
+  // 1) HyDE opcional: en vez de embeber la query (corta, abstracta),
+  // pedimos al LLM un párrafo hipotético de respuesta y embebemos ESO.
+  // El vector cae en el espacio semántico de las citas/descripciones del
+  // usuario, no en el de "preguntas", lo que mejora drásticamente el
+  // recall para queries vagas como "¿qué tengo sobre el tiempo?".
+  //
+  // Solo se activa para queries con substancia (>10 chars); para "Bo" o
+  // "?" no tiene sentido y agregaría latencia injustificada.
+  const trimmedQuery = userQuery.trim()
+  const useHyde =
+    options?.hyde && trimmedQuery.length > 10 && trimmedQuery.length < 500
+  let textToEmbed = trimmedQuery
+  let hydeUsed = false
+  if (useHyde) {
+    const hypothetical = await generateHypotheticalDoc(
+      trimmedQuery,
+      options?.rerankOverride,
+    )
+    if (hypothetical) {
+      textToEmbed = hypothetical
+      hydeUsed = true
+    }
+  }
+
+  // 2) Embed (best-effort). On failure, semantic branch returns empty.
+  const emb = textToEmbed ? await embedSafe(textToEmbed) : null
   const queryVec = emb ? toPgVector(emb.vector) : null
 
   // 2) Two parallel queries per table: semantic + recent.
@@ -214,5 +245,51 @@ export async function buildRagContext(
     relationships,
     quotes,
     usedRag: semanticEntities.length > 0 || semanticQuotes.length > 0,
+    usedHyde: hydeUsed,
+  }
+}
+
+/**
+ * HyDE — Hypothetical Document Embeddings (Gao et al. 2022).
+ *
+ * Pide al LLM que escriba un párrafo BREVE como si estuviera contestando
+ * la pregunta del usuario. No genera una respuesta canónica — solo el
+ * tipo de texto que viviría en una base de conocimiento que pueda
+ * responderla.
+ *
+ * Best-effort: si el LLM falla, devuelve null y el caller cae a embeber
+ * la query cruda.
+ */
+async function generateHypotheticalDoc(
+  query: string,
+  override?: LLMOverride,
+): Promise<string | null> {
+  const prompt = `Escribe un párrafo BREVE (3-4 oraciones, máximo 80 palabras) que sería el TIPO DE TEXTO que respondería esta consulta. NO contestes la pregunta — solo escribe el tipo de párrafo cuya existencia indicaría que la pregunta tiene respuesta.
+
+Ejemplos:
+Consulta: "¿qué tengo sobre la muerte como acto creativo?"
+Párrafo: "La idea de la muerte como momento de máxima libertad creativa aparece en pensadores como Borges y Marco Aurelio. La aceptación del fin como condición de la obra. El gesto último que da forma al resto. La autodestrucción del artista como firma."
+
+Consulta: "música argentina contemporánea"
+Párrafo: "Artistas como Dillom, Bizarrap, Wos, Ca7riel y Paco Amoroso. La escena urbana porteña combinando trap, jazz y rock. El cambio generacional desde el rock argentino clásico hacia formas más fragmentadas y experimentales."
+
+CONSULTA DEL USUARIO:
+"${query}"
+
+DEVUELVE SOLO EL PÁRRAFO. Sin comillas, sin introducción, sin advertencias.`
+
+  try {
+    const { content } = await askLLMForText(
+      [{ role: 'user', content: prompt }],
+      override,
+    )
+    const text = typeof content === 'string' ? content.trim() : String(content).trim()
+    // Saneo: descartar respuestas muy cortas (probable falla del modelo)
+    // o que claramente NO sean un párrafo (e.g., comienzan con "No puedo").
+    if (text.length < 20) return null
+    if (/^(no\s|disculp|lo siento|i can'?t)/i.test(text)) return null
+    return text
+  } catch {
+    return null
   }
 }

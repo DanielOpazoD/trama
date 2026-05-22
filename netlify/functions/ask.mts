@@ -101,6 +101,11 @@ export default withObservability('ask', async (req) => {
         relationshipLimit: FALLBACK_REL_LIMIT,
         rerank: true,
         rerankOverride,
+        // HyDE on para queries con substancia. Para una captura
+        // ("pega: cita...") no aporta; para "qué tengo sobre X" mejora
+        // mucho el recall. La función lo desactiva sola si la query es
+        // muy corta o larga.
+        hyde: true,
       },
     ),
     sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
@@ -216,6 +221,7 @@ export default withObservability('ask', async (req) => {
       replyLen: reply.length,
       hasProposal,
       usedRag: ragCtx.usedRag,
+      usedHyde: ragCtx.usedHyde ?? false,
       contextEntities: ctx.entities.length,
       contextQuotes: ctx.recentQuotes.length,
     })

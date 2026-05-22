@@ -86,4 +86,23 @@ describe('buildRagContext — fallback to recency when embedding key is absent',
     expect(ctx.entities).toHaveLength(1)
     expect(ctx.usedRag).toBe(false)
   })
+
+  it('HyDE: si está on pero la query es muy corta, no se aplica', async () => {
+    const sql = makeSqlMock(() => [])
+    // Sin API key, HyDE intentaría llamar askLLMForText y fallaría.
+    // Para queries ≤10 chars, el chequeo de longitud lo desactiva antes.
+    const ctx = await buildRagContext(sql, 'Bo', { hyde: true })
+    expect(ctx.usedHyde).toBe(false)
+  })
+
+  it('HyDE: si la query es larga pero el LLM no responde, no rompe', async () => {
+    // Sin API key, askLLMForText va a fallar internamente. La función
+    // debe degradar a embebido directo (que tampoco funciona sin key,
+    // así que termina en recency-only). El test verifica que NO throw.
+    const sql = makeSqlMock(() => [])
+    const ctx = await buildRagContext(sql, 'qué tengo sobre el tiempo y la creación?', { hyde: true })
+    // usedHyde puede ser false (porque askLLMForText falló) — lo
+    // importante es que la llamada no haya crashed.
+    expect(ctx).toBeDefined()
+  })
 })

@@ -152,6 +152,7 @@ export default withObservability(
     let entityTypeRows: TypeRow[]
     let relTypeRows: TypeRow[]
     let usedRag = false
+    let usedHyde = false
 
     if (focusEntityId) {
       ;[entityRows, relRows, quoteRows, entityTypeRows, relTypeRows] = await Promise.all([
@@ -198,6 +199,9 @@ export default withObservability(
               provider: invocation.provider,
               model: invocation.model,
             },
+            // HyDE: el chat es donde más rinde, las queries suelen ser
+            // vagas y abstractas ("¿qué hay del tiempo en mis citas?").
+            hyde: true,
           },
         ),
         sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
@@ -209,6 +213,7 @@ export default withObservability(
       entityTypeRows = eTypes
       relTypeRows = rTypes
       usedRag = ragCtx.usedRag
+      usedHyde = ragCtx.usedHyde ?? false
     }
 
     const tramaContext: ChatTramaContext = {
@@ -349,6 +354,7 @@ export default withObservability(
           streaming: true,
           focused: !!focusEntityId,
           usedRag,
+          usedHyde,
         })
 
         sql`
