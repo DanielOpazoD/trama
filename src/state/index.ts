@@ -9,6 +9,7 @@
 export { Provider } from './Provider'
 export { useOffline } from './offline'
 export { useCountsQuery } from './useCounts'
+export { useNeighborsQuery } from './useNeighbors'
 export {
   useEntitiesQuery,
   useInfiniteEntitiesQuery,

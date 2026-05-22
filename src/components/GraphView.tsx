@@ -9,21 +9,26 @@ import {
 } from 'react'
 import {
   useEntitiesQuery,
+  useNeighborsQuery,
   useOffline,
   useRelationshipsQuery,
   useSuggestRelationships,
   useUpdateEntityPosition,
 } from '../state'
-import type { Entity, ExtractionProposal } from '../types'
+import type { Entity, ExtractionProposal, Relationship } from '../types'
 import { useGraphLayout } from '../hooks/useGraphLayout'
 import { usePanZoom } from '../hooks/usePanZoom'
 import { useFreshIds } from '../hooks/useFreshIds'
 import { GraphNode } from './graph/GraphNode'
 import { GraphEdge } from './graph/GraphEdge'
-import { GraphToolbar } from './graph/GraphToolbar'
+import { GraphToolbar, type GraphMode } from './graph/GraphToolbar'
 import { EmptyState } from './EmptyState'
 import { CloseIcon } from './Icons'
 import type { LayoutMode } from '../hooks/layouts/types'
+
+// Persisted in localStorage so reloads keep the user's mode + focus.
+const GRAPH_MODE_KEY = 'trama.graphMode'
+const GRAPH_FOCUS_KEY = 'trama.graphFocus'
 
 export default function GraphView({
   selectedId,
@@ -34,8 +39,12 @@ export default function GraphView({
   onSelect: (id: string | null) => void
   onProposal?: (text: string, proposal: ExtractionProposal) => void
 }) {
-  const { data: entities = [] } = useEntitiesQuery()
-  const { data: relationships = [] } = useRelationshipsQuery()
+  // Wholesale: fed by useEntitiesQuery / useRelationshipsQuery. La opción
+  // "completo" usa estos. A 100k+ es inviable y se cambia a "exploratorio",
+  // que ataca /api/graph/neighbors desde una entidad focal.
+  const { data: allEntities = [] } = useEntitiesQuery()
+  const { data: allRelationships = [] } = useRelationshipsQuery()
+
   const updateEntityPosition = useUpdateEntityPosition()
   const suggest = useSuggestRelationships()
   const { offline } = useOffline()
@@ -43,6 +52,66 @@ export default function GraphView({
   const [svgSize, setSvgSize] = useState({ width: 0, height: 0 })
   const [mode, setMode] = useState<LayoutMode>('organic')
   const [suggestEmpty, setSuggestEmpty] = useState(false)
+
+  // Graph mode + focus, both persisted so el modo + el nodo focal
+  // sobreviven recargas y navegación entre vistas.
+  const [graphMode, setGraphModeState] = useState<GraphMode>(() => {
+    if (typeof window === 'undefined') return 'completo'
+    const raw = window.localStorage.getItem(GRAPH_MODE_KEY)
+    return raw === 'exploratorio' ? 'exploratorio' : 'completo'
+  })
+  const [focusId, setFocusIdState] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    return window.localStorage.getItem(GRAPH_FOCUS_KEY)
+  })
+
+  function setGraphMode(m: GraphMode) {
+    setGraphModeState(m)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(GRAPH_MODE_KEY, m)
+    }
+    // Auto-pick a focus on first switch to exploratory if none is set.
+    if (m === 'exploratorio' && !focusId) {
+      const candidate = selectedId ?? allEntities[0]?.id ?? null
+      if (candidate) setFocusId(candidate)
+    }
+  }
+  function setFocusId(id: string | null) {
+    setFocusIdState(id)
+    if (typeof window === 'undefined') return
+    if (id) window.localStorage.setItem(GRAPH_FOCUS_KEY, id)
+    else window.localStorage.removeItem(GRAPH_FOCUS_KEY)
+  }
+
+  const neighborsQuery = useNeighborsQuery(
+    graphMode === 'exploratorio' ? focusId : null,
+    { hops: 2, limit: 120 },
+  )
+
+  // Decide the dataset for the rest of the render. In completo mode we use
+  // the wholesale arrays. In exploratorio we use the subgraph from /neighbors.
+  const entities: Entity[] =
+    graphMode === 'exploratorio'
+      ? (neighborsQuery.data
+          ? [
+              neighborsQuery.data.from,
+              ...neighborsQuery.data.entities.filter(
+                (e) => e.id !== neighborsQuery.data!.from.id,
+              ),
+            ]
+          : [])
+      : allEntities
+  const relationships: Relationship[] =
+    graphMode === 'exploratorio'
+      ? (neighborsQuery.data?.relationships ?? [])
+      : allRelationships
+
+  const focusName =
+    graphMode === 'exploratorio'
+      ? neighborsQuery.data?.from.name ?? null
+      : null
+  const truncated =
+    graphMode === 'exploratorio' ? neighborsQuery.data?.truncated ?? false : false
 
   // Measure the SVG so we can center the world group using numeric translate.
   // (SVG transform attribute does not accept percentage values.)
@@ -187,8 +256,46 @@ export default function GraphView({
     return () => clearTimeout(id)
   }, [suggest])
 
-  if (entities.length === 0) {
+  // Auto-pick a focus when entering exploratorio without one (e.g. fresh
+  // session, or the persisted focus got deleted). Defaults to the latest
+  // entity to keep the experience predictable.
+  useEffect(() => {
+    if (graphMode !== 'exploratorio') return
+    if (focusId) return
+    if (allEntities.length === 0) return
+    const candidate = selectedId ?? allEntities[0]?.id
+    if (candidate) setFocusId(candidate)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graphMode, focusId, allEntities])
+
+  // If the persisted focus is stale (entity deleted → 404), clear it so the
+  // auto-pick above can run.
+  useEffect(() => {
+    if (graphMode !== 'exploratorio') return
+    if (!neighborsQuery.isError) return
+    setFocusId(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graphMode, neighborsQuery.isError])
+
+  // In completo mode, the empty state means "there are no entities at all".
+  // In exploratorio mode there are several "empty" possibilities:
+  //   - the trama is genuinely empty → show EmptyState (no neighbors anyway)
+  //   - the focus id is stale (entity was deleted) → reset focus
+  //   - the neighbors query is still loading → silent (the SVG renders nothing
+  //     for a moment, harmless)
+  if (graphMode === 'completo' && allEntities.length === 0) {
     return <EmptyState />
+  }
+  if (graphMode === 'exploratorio') {
+    if (allEntities.length === 0) return <EmptyState />
+    if (!focusId) {
+      // Auto-pick once we have data.
+      // The setFocusId is safe to call inside render? No — defer.
+      // Show a tiny "choose a starting point" hint.
+    } else if (neighborsQuery.isError) {
+      // Probably the focus was deleted. Try to recover by clearing focus.
+      // Keep the toolbar visible so the user can switch modes.
+    }
   }
 
   const cursorStyle: CSSProperties = { cursor: pz.isPanning ? 'grabbing' : 'grab' }
@@ -206,6 +313,14 @@ export default function GraphView({
         zoomPercent={Math.round(pz.zoom * 100)}
         entityCount={entities.length}
         relationshipCount={relationships.length}
+        graphMode={graphMode}
+        onGraphModeChange={setGraphMode}
+        focusName={focusName}
+        truncated={truncated}
+        onFocusSelected={() => {
+          if (selectedId) setFocusId(selectedId)
+        }}
+        focusSelectedDisabled={!selectedId || selectedId === focusId}
       />
 
       {(suggest.error || suggestEmpty) && (

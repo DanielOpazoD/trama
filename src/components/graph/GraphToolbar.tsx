@@ -1,6 +1,8 @@
 import { SparkleIcon } from '../Icons'
 import type { LayoutMode } from '../../hooks/layouts/types'
 
+export type GraphMode = 'completo' | 'exploratorio'
+
 type Props = {
   mode: LayoutMode
   onModeChange: (mode: LayoutMode) => void
@@ -11,6 +13,15 @@ type Props = {
   zoomPercent: number
   entityCount: number
   relationshipCount: number
+  graphMode: GraphMode
+  onGraphModeChange: (m: GraphMode) => void
+  // Optional info for explorer mode
+  focusName?: string | null
+  truncated?: boolean
+  /** When set and graphMode='exploratorio', a "hacer foco" button appears
+      to swap the focal entity to the currently-selected one. */
+  onFocusSelected?: () => void
+  focusSelectedDisabled?: boolean
 }
 
 const MODE_OPTIONS: Array<{ value: LayoutMode; label: string; hint: string }> = [
@@ -30,30 +41,72 @@ export function GraphToolbar({
   zoomPercent,
   entityCount,
   relationshipCount,
+  graphMode,
+  onGraphModeChange,
+  focusName,
+  truncated,
+  onFocusSelected,
+  focusSelectedDisabled,
 }: Props) {
   const activeHint = MODE_OPTIONS.find((o) => o.value === mode)?.hint ?? ''
 
   return (
     <>
       <div className="pointer-events-none absolute top-3 left-3 right-3 z-10 flex items-start justify-between gap-3">
-        <div className="pointer-events-auto flex items-center gap-1 px-2 py-1.5 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm">
-          {MODE_OPTIONS.map((opt) => (
+        <div className="flex items-center gap-2">
+          <div className="pointer-events-auto flex items-center gap-1 px-2 py-1.5 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm">
+            {MODE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => onModeChange(opt.value)}
+                className={
+                  mode === opt.value
+                    ? 'px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.15em] bg-ink-700 text-paper-50 transition-colors'
+                    : 'px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.15em] text-ink-400 hover:text-ink-700 transition-colors'
+                }
+                title={opt.hint}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div className="pointer-events-auto flex items-center gap-1 px-2 py-1.5 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm">
             <button
-              key={opt.value}
-              onClick={() => onModeChange(opt.value)}
+              onClick={() => onGraphModeChange('completo')}
               className={
-                mode === opt.value
+                graphMode === 'completo'
                   ? 'px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.15em] bg-ink-700 text-paper-50 transition-colors'
                   : 'px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.15em] text-ink-400 hover:text-ink-700 transition-colors'
               }
-              title={opt.hint}
+              title="Ver el grafo completo. A 100k+ entidades cambia a exploratorio."
             >
-              {opt.label}
+              completo
             </button>
-          ))}
+            <button
+              onClick={() => onGraphModeChange('exploratorio')}
+              className={
+                graphMode === 'exploratorio'
+                  ? 'px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.15em] bg-ink-700 text-paper-50 transition-colors'
+                  : 'px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.15em] text-ink-400 hover:text-ink-700 transition-colors'
+              }
+              title="Arranca en una entidad focal y abre vecinos al hacer click. Necesario a partir de ~2-5k nodos."
+            >
+              explorar
+            </button>
+          </div>
         </div>
 
         <div className="pointer-events-auto flex items-center gap-2">
+          {graphMode === 'exploratorio' && onFocusSelected && (
+            <button
+              onClick={onFocusSelected}
+              disabled={focusSelectedDisabled}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-[0.15em] text-ink-400 hover:text-ink-700 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Mover el foco del subgrafo a la entidad seleccionada"
+            >
+              hacer foco
+            </button>
+          )}
           <button
             onClick={onSuggest}
             disabled={suggestPending || suggestDisabled}
@@ -91,7 +144,16 @@ export function GraphToolbar({
         <span className="mx-2">·</span>
         <span>
           {entityCount} entidades · {relationshipCount} relaciones
+          {truncated && <span className="ml-1 text-amber-700/70">· truncado</span>}
         </span>
+        {graphMode === 'exploratorio' && focusName && (
+          <>
+            <span className="mx-2">·</span>
+            <span className="italic normal-case tracking-normal text-ink-400/70">
+              foco: {focusName}
+            </span>
+          </>
+        )}
         <span className="mx-2">·</span>
         <span className="italic normal-case tracking-normal text-ink-400/70">{activeHint}</span>
       </div>
