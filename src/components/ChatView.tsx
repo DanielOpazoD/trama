@@ -146,10 +146,23 @@ export function ChatView() {
                     }
                   >
                     <div className="text-sm text-ink-700 truncate">
-                      {t.title ?? '(sin título)'}
+                      {t.title ?? defaultTitleFor(t.context)}
                     </div>
-                    <div className="text-[10px] uppercase tracking-[0.18em] text-ink-300 mt-0.5">
-                      {t.messageCount} {t.messageCount === 1 ? 'mensaje' : 'mensajes'}
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-ink-300 mt-0.5 flex items-baseline gap-2">
+                      <span>
+                        {t.messageCount} {t.messageCount === 1 ? 'mensaje' : 'mensajes'}
+                      </span>
+                      {t.context && (
+                        <span
+                          className="px-1.5 py-0.5 rounded-full font-medium"
+                          style={{
+                            backgroundColor: 'var(--accent-primary-soft)',
+                            color: 'var(--accent-primary)',
+                          }}
+                        >
+                          {t.context}
+                        </span>
+                      )}
                     </div>
                   </button>
                   <button
@@ -170,7 +183,7 @@ export function ChatView() {
       <section className="flex-1 flex flex-col min-w-0">
         <header className="px-6 py-4 border-b border-ink-100/50">
           <h2 className="font-serif text-2xl text-ink-700 leading-none">
-            {activeThread?.title ?? 'Chat'}
+            {activeThread?.title ?? defaultTitleFor(activeThread?.context)}
           </h2>
           <p className="mt-1.5 text-xs text-ink-400 leading-relaxed">
             La IA ve toda tu trama: entidades, relaciones y citas. Pregúntale,
@@ -276,4 +289,12 @@ function EmptyChatHint() {
       </p>
     </div>
   )
+}
+
+/** Friendly title for a thread that doesn't have one yet — falls back to its
+    section context (e.g., "Hilo de Citas") instead of "(sin título)". */
+function defaultTitleFor(context: string | null | undefined): string {
+  if (!context) return '(sin título)'
+  const label = context.charAt(0).toUpperCase() + context.slice(1)
+  return `Hilo de ${label}`
 }

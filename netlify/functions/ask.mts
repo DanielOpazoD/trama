@@ -38,6 +38,7 @@ export default withObservability('ask', async (req) => {
     text?: string
     view?: string
     selectedEntityId?: string
+    threadId?: string
   }
   const userText = (body.text ?? '').trim()
   if (!userText) {
@@ -49,10 +50,29 @@ export default withObservability('ask', async (req) => {
       ? (body.view as ViewSlug)
       : null
 
+  const incomingThreadId =
+    typeof body.threadId === 'string' && body.threadId.length > 0 ? body.threadId : null
+
   const budgetExceeded = await checkMonthlyBudget()
   if (budgetExceeded) return budgetExceeded
 
   const sql = getSql()
+
+  // Conversational history for this section thread, if any. Reused last N=10
+  // turns (5 user + 5 assistant on average). Older turns drop off the prompt
+  // but stay in the DB for the user to scroll through in ChatView.
+  type HistoryRow = { role: 'user' | 'assistant'; content: string }
+  let history: HistoryRow[] = []
+  if (incomingThreadId) {
+    const rows = (await sql`
+      SELECT role, content
+      FROM chat_messages
+      WHERE thread_id = ${incomingThreadId}
+      ORDER BY created_at DESC
+      LIMIT 10
+    `) as HistoryRow[]
+    history = rows.slice().reverse()
+  }
 
   type EntityCtxRow = {
     id: string
@@ -132,6 +152,7 @@ export default withObservability('ask', async (req) => {
             description: selectedRows[0].description,
           }
         : null,
+    history,
   }
 
   const messages = buildAskPrompt(userText, ctx)
@@ -215,6 +236,47 @@ export default withObservability('ask', async (req) => {
       )
     `.catch(() => {})
 
+    // Persist the turn to chat_messages so the AskBar has memory across
+    // submissions. If the client didn't send a threadId yet we create one
+    // tagged with the current view as its context.
+    let activeThreadId: string | null = incomingThreadId
+    if (!activeThreadId && view) {
+      type TIdRow = { id: string }
+      const created = (await sql`
+        INSERT INTO chat_threads (context) VALUES (${view}) RETURNING id
+      `) as TIdRow[]
+      activeThreadId = created[0]?.id ?? null
+    }
+
+    if (activeThreadId) {
+      // Insert user message first, then assistant. We do them serially so
+      // their created_at order matches the conversation order. Best-effort:
+      // a failure here shouldn't break the response the user already sees.
+      const proposalToStore = hasProposal ? cleanedProposal : null
+      await sql`
+        INSERT INTO chat_messages (thread_id, role, content)
+        VALUES (${activeThreadId}, 'user', ${userText})
+      `.catch(() => {})
+      await sql`
+        INSERT INTO chat_messages (
+          thread_id, role, content, proposal,
+          tokens_in, tokens_out, cost_cents, provider, model
+        ) VALUES (
+          ${activeThreadId},
+          'assistant',
+          ${reply},
+          ${proposalToStore ? JSON.stringify(proposalToStore) : null}::jsonb,
+          ${usage.tokensIn},
+          ${usage.tokensOut},
+          ${usage.costCents},
+          ${usage.provider},
+          ${usage.model}
+        )
+      `.catch(() => {})
+      // Bump the thread so it sorts to the top of the rail.
+      await sql`UPDATE chat_threads SET updated_at = NOW() WHERE id = ${activeThreadId}`.catch(() => {})
+    }
+
     return Response.json({
       reply,
       proposal: hasProposal
@@ -222,6 +284,7 @@ export default withObservability('ask', async (req) => {
         : null,
       provider: usage.provider,
       model: usage.model,
+      threadId: activeThreadId,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

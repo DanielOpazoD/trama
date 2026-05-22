@@ -332,7 +332,12 @@ export const api = {
 
   async ask(
     text: string,
-    options?: { view?: string | null; selectedEntityId?: string | null },
+    options?: {
+      view?: string | null
+      selectedEntityId?: string | null
+      /** Section thread id; if omitted, the server creates one and returns it. */
+      threadId?: string | null
+    },
   ): Promise<AskResponse> {
     return request<AskResponse>('/api/ask', {
       method: 'POST',
@@ -340,6 +345,7 @@ export const api = {
         text,
         view: options?.view ?? null,
         selectedEntityId: options?.selectedEntityId ?? null,
+        threadId: options?.threadId ?? null,
       }),
     })
   },
@@ -596,6 +602,8 @@ export type SearchResults = {
 export type ChatThread = {
   id: string
   title: string | null
+  /** Section that spawned the thread (e.g., 'citas', 'entidades'). null = free chat. */
+  context: string | null
   createdAt: string
   updatedAt: string
   messageCount: number
@@ -662,6 +670,8 @@ export type AskResponse = {
   proposal: ExtractionProposal | null
   provider: string
   model: string
+  /** Section thread id — present whenever a view was sent (so future turns can chain). */
+  threadId: string | null
 }
 
 export type ProactiveSuggestion = {

@@ -19,12 +19,13 @@ export default withObservability(
       type Row = {
         id: string
         title: string | null
+        context: string | null
         created_at: string
         updated_at: string
         message_count: string
       }
       const rows = (await sql`
-        SELECT t.id, t.title, t.created_at, t.updated_at,
+        SELECT t.id, t.title, t.context, t.created_at, t.updated_at,
                COUNT(m.id) AS message_count
         FROM chat_threads t
         LEFT JOIN chat_messages m ON m.thread_id = t.id
@@ -37,6 +38,7 @@ export default withObservability(
         rows.map((r) => ({
           id: r.id,
           title: r.title,
+          context: r.context,
           createdAt: r.created_at,
           updatedAt: r.updated_at,
           messageCount: Number(r.message_count),
@@ -45,18 +47,29 @@ export default withObservability(
     }
 
     if (req.method === 'POST') {
-      const body = (await req.json().catch(() => ({}))) as { title?: string }
+      const body = (await req.json().catch(() => ({}))) as {
+        title?: string
+        context?: string
+      }
       const title = body.title?.trim() || null
+      const context = body.context?.trim() || null
       const rows = (await sql`
-        INSERT INTO chat_threads (title)
-        VALUES (${title})
-        RETURNING id, title, created_at, updated_at
-      `) as Array<{ id: string; title: string | null; created_at: string; updated_at: string }>
+        INSERT INTO chat_threads (title, context)
+        VALUES (${title}, ${context})
+        RETURNING id, title, context, created_at, updated_at
+      `) as Array<{
+        id: string
+        title: string | null
+        context: string | null
+        created_at: string
+        updated_at: string
+      }>
       const row = rows[0]
       return Response.json(
         {
           id: row.id,
           title: row.title,
+          context: row.context,
           createdAt: row.created_at,
           updatedAt: row.updated_at,
           messageCount: 0,

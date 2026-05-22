@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useAsk, useExtractFromImage, useOffline } from '../state'
 import type { ExtractionProposal } from '../types'
+import { useThreadIdForView } from '../hooks/useThreadIdForView'
 
 /** Convert a File to a base64 string (without the data URL prefix). */
 async function fileToBase64(file: File): Promise<string> {
@@ -58,6 +59,9 @@ export function AskBar({
   const [imageError, setImageError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Section-scoped thread memory. Each section (Citas, Entidades, etc.)
+  // keeps its own active thread so the AskBar can follow up across turns.
+  const { threadId, setThreadId } = useThreadIdForView(view)
 
   useEffect(() => {
     const el = textareaRef.current
@@ -81,7 +85,13 @@ export function AskBar({
         text: trimmed,
         view,
         selectedEntityId,
+        threadId,
       })
+      // The server may have created a thread if this was the first turn in
+      // the section. Persist whatever id came back so the next Enter chains.
+      if (result.threadId && result.threadId !== threadId) {
+        setThreadId(result.threadId)
+      }
       if (result.reply) {
         setReply({ text: result.reply, provider: result.provider, model: result.model })
       } else {
@@ -97,6 +107,11 @@ export function AskBar({
     } catch {
       // error surfaces via ask.error
     }
+  }
+
+  function handleNewThread() {
+    setThreadId(null)
+    setReply(null)
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -161,16 +176,32 @@ export function AskBar({
                 />
                 respuesta{reply.model ? ` · ${reply.model}` : reply.provider ? ` · ${reply.provider}` : ''}
               </span>
-              <button
-                onClick={() => setReply(null)}
-                className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
-              >
-                cerrar
-              </button>
+              <div className="flex items-baseline gap-3">
+                {threadId && (
+                  <button
+                    onClick={handleNewThread}
+                    className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+                    title="Olvida el hilo actual y empieza uno nuevo en esta sección"
+                  >
+                    nuevo hilo
+                  </button>
+                )}
+                <button
+                  onClick={() => setReply(null)}
+                  className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+                >
+                  cerrar
+                </button>
+              </div>
             </div>
             <p className="text-ink-700 text-[13px] leading-relaxed whitespace-pre-wrap">
               {reply.text}
             </p>
+            {threadId && (
+              <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-ink-300">
+                continuando hilo · la IA recuerda lo previo
+              </p>
+            )}
           </div>
         )}
         <form

@@ -35,6 +35,14 @@ export type AskContext = {
     type: string
     description?: string | null
   } | null
+  /**
+   * Previous turns in the same section thread, oldest first. Empty array =
+   * single-turn ask. Populated by ask.mts when the AskBar sends a threadId.
+   */
+  history?: Array<{
+    role: 'user' | 'assistant'
+    content: string
+  }>
 }
 
 /**
@@ -153,8 +161,27 @@ ${relsBlock}
 CITAS RECIENTES:
 ${quotesBlock}`
 
+  // If the AskBar is sending a thread history, include it as prior turns so
+  // the model can resolve references ("¿y eso por qué?", "agrega también X").
+  // Last assistant turns may contain a TRAMA-PROPOSAL block — strip it before
+  // replaying so the model doesn't try to extend a stale proposal.
+  const history: LLMMessage[] = (ctx.history ?? []).map((turn) => ({
+    role: turn.role,
+    content: turn.role === 'assistant' ? stripProposalBlock(turn.content) : turn.content,
+  }))
+
   return [
     { role: 'system', content: system },
+    ...history,
     { role: 'user', content: userText },
   ]
+}
+
+/** The chat prompt uses <<<TRAMA-PROPOSAL ... TRAMA-PROPOSAL>>> markers; the
+    AskBar's JSON shape doesn't. Either way, when replaying past assistant
+    turns we want just the prose, not stale proposal JSON. */
+function stripProposalBlock(text: string): string {
+  return text
+    .replace(/<<<TRAMA-PROPOSAL[\s\S]*?TRAMA-PROPOSAL>>>/g, '')
+    .trim()
 }

@@ -43,6 +43,7 @@ export function useAsk() {
       text: string
       view?: string | null
       selectedEntityId?: string | null
+      threadId?: string | null
     }) => {
       if (offline) {
         throw new Error('Requiere conexión al backend. Estás en modo local.')
@@ -50,6 +51,7 @@ export function useAsk() {
       return api.ask(input.text, {
         view: input.view,
         selectedEntityId: input.selectedEntityId,
+        threadId: input.threadId,
       })
     },
   })
