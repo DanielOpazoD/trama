@@ -3,12 +3,16 @@
  *
  * Reads env vars:
  *   AI_PROVIDER  → 'deepseek' | 'openai' | 'gemini' | 'anthropic'  (default 'deepseek')
- *   AI_API_KEY   → API key fallback for whichever provider is active
- *   DEEPSEEK_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY
- *                → per-provider keys. When present, take precedence over AI_API_KEY
- *                  for that provider. Lets you keep keys for several providers and
- *                  switch between them (globally via AI_PROVIDER, or per task via
- *                  the ai_task_providers table) without rotating env vars.
+ *   AI_API_KEY   → DeepSeek's API key (legacy name; remains the canonical
+ *                  variable for DeepSeek so existing setups don't break).
+ *                  Also used as a fallback for the other providers when no
+ *                  provider-specific key is set.
+ *   OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY
+ *                → per-provider keys. When present, take precedence over
+ *                  AI_API_KEY for that provider. Lets you keep keys for
+ *                  several providers and switch between them (globally via
+ *                  AI_PROVIDER, or per task via the ai_task_providers table)
+ *                  without rotating env vars.
  *   AI_MAX_TOKENS → optional cap on completion tokens (default 4096)
  *   AI_CACHE_TTL_SECONDS → optional in-memory cache TTL (default 600)
  *
@@ -79,28 +83,38 @@ function readProvider(): LLMProvider {
   throw new Error(`AI_PROVIDER no reconocido: ${raw}`)
 }
 
+/**
+ * Per-provider env var names. DeepSeek keeps the legacy AI_API_KEY name
+ * (it's the historical default and changing it would break existing setups);
+ * everyone else uses their canonical PROVIDER_API_KEY name.
+ */
 const PROVIDER_KEY_ENV: Record<LLMProvider, string> = {
-  deepseek: 'DEEPSEEK_API_KEY',
+  deepseek: 'AI_API_KEY',
   openai: 'OPENAI_API_KEY',
   anthropic: 'ANTHROPIC_API_KEY',
   gemini: 'GEMINI_API_KEY',
 }
 
 /**
- * Resolve the API key for a given provider. Per-provider env vars
- * (DEEPSEEK_API_KEY, OPENAI_API_KEY, …) take precedence, so you can keep keys
- * for several providers configured at the same time and switch between them
- * (globally or per-task). Falls back to the legacy AI_API_KEY for setups that
- * still use a single key.
+ * Resolve the API key for a given provider. The provider's canonical env var
+ * is tried first; AI_API_KEY acts as a fallback for providers other than
+ * DeepSeek so a single shared key still works for tests or simple setups.
  */
 function readApiKeyFor(provider: LLMProvider): string {
-  const specific = Netlify.env.get(PROVIDER_KEY_ENV[provider])
+  const canonical = PROVIDER_KEY_ENV[provider]
+  const specific = Netlify.env.get(canonical)
   if (specific) return specific
-  const fallback = Netlify.env.get('AI_API_KEY')
-  if (fallback) return fallback
+  // For non-deepseek providers, AI_API_KEY can act as a shared fallback.
+  // (For deepseek it IS the canonical name, already tried above.)
+  if (provider !== 'deepseek') {
+    const fallback = Netlify.env.get('AI_API_KEY')
+    if (fallback) return fallback
+  }
   throw new Error(
-    `No hay API key para ${provider}. Configura ${PROVIDER_KEY_ENV[provider]} ` +
-      `(recomendado) o AI_API_KEY como fallback.`,
+    provider === 'deepseek'
+      ? 'AI_API_KEY no está configurada (key de DeepSeek).'
+      : `No hay API key para ${provider}. Configura ${canonical} ` +
+          `(recomendado) o AI_API_KEY como fallback compartido.`,
   )
 }
 
