@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
+import { fuseRanked, type Ranked } from './_lib/rrf.js'
 
 /**
  * Hybrid search across entities (name + description) and quotes (text +
@@ -125,109 +126,51 @@ export default async (req: Request) => {
   const lex = await lexicalEntities
   const lexQ = await lexicalQuotes
 
-  // Convert cosine distance ∈ [0,2] into similarity ∈ [0,1].
-  const cosineScore = (d: number) => Math.max(0, Math.min(1, 1 - Number(d) / 2))
+  // ---------- Merge via Reciprocal Rank Fusion ----------
+  // Antes sumábamos scores de escalas distintas (ts_rank vs cosine sim).
+  // RRF descarta los scores y se queda con los RANKINGS. Mejor stability
+  // cuando una rama trae noise, mejor combinación cuando ambas tienen señal.
+  // Ver _lib/rrf.ts para el detalle.
 
-  // Merge results: collect by id, sum scores. Lexical rank is roughly ∈ [0,1]
-  // for ts_rank in our usage; semantic similarity is in [0,1]. Equal weight
-  // for hybrid; we don't overthink this — the user just wants reasonable
-  // results, and small score nudges either way are fine.
-  type Merged = {
-    score: number
-    lexical: number
-    semantic: number
-    payload: Record<string, unknown>
+  function toRanked<T extends { id: string }>(list: T[]): Ranked<T>[] {
+    return list.map((item) => ({ id: item.id, item }))
   }
 
-  function mergeEntities(): Array<Record<string, unknown>> {
-    const map = new Map<string, Merged>()
-    for (const e of lex) {
-      map.set(e.id, {
-        score: Number(e.rank),
-        lexical: Number(e.rank),
-        semantic: 0,
-        payload: {
-          id: e.id,
-          name: e.name,
-          type: e.type,
-          description: e.description,
-          year: e.year,
-        },
-      })
-    }
-    for (const e of semanticEntities) {
-      const sim = cosineScore(e.distance)
-      const existing = map.get(e.id)
-      if (existing) {
-        existing.semantic = sim
-        existing.score = existing.lexical + sim
-      } else {
-        map.set(e.id, {
-          score: sim,
-          lexical: 0,
-          semantic: sim,
-          payload: {
-            id: e.id,
-            name: e.name,
-            type: e.type,
-            description: e.description,
-            year: e.year,
-          },
-        })
-      }
-    }
-    return Array.from(map.values())
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit)
-      .map((m) => ({ ...m.payload, score: m.score, lexical: m.lexical, semantic: m.semantic }))
-  }
+  const entitiesFused = fuseRanked([toRanked(lex), toRanked(semanticEntities)])
+    .slice(0, limit)
+    .map((entry) => ({
+      id: entry.item.id,
+      name: entry.item.name,
+      type: entry.item.type,
+      description: entry.item.description,
+      year: entry.item.year,
+      score: entry.score,
+      lexicalRank: entry.ranks[0],
+      semanticRank: entry.ranks[1],
+      // Compat con clientes que esperaban estos campos crudos. En RRF lo
+      // significativo es el rank, no el score absoluto.
+      lexical: 0,
+      semantic: 0,
+    }))
 
-  function mergeQuotes(): Array<Record<string, unknown>> {
-    const map = new Map<string, Merged>()
-    for (const q of lexQ) {
-      map.set(q.id, {
-        score: Number(q.rank),
-        lexical: Number(q.rank),
-        semantic: 0,
-        payload: {
-          id: q.id,
-          entityId: q.entity_id,
-          entityName: q.entity_name,
-          text: q.text,
-          source: q.source,
-        },
-      })
-    }
-    for (const q of semanticQuotes) {
-      const sim = cosineScore(q.distance)
-      const existing = map.get(q.id)
-      if (existing) {
-        existing.semantic = sim
-        existing.score = existing.lexical + sim
-      } else {
-        map.set(q.id, {
-          score: sim,
-          lexical: 0,
-          semantic: sim,
-          payload: {
-            id: q.id,
-            entityId: q.entity_id,
-            entityName: q.entity_name,
-            text: q.text,
-            source: q.source,
-          },
-        })
-      }
-    }
-    return Array.from(map.values())
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit)
-      .map((m) => ({ ...m.payload, score: m.score, lexical: m.lexical, semantic: m.semantic }))
-  }
+  const quotesFused = fuseRanked([toRanked(lexQ), toRanked(semanticQuotes)])
+    .slice(0, limit)
+    .map((entry) => ({
+      id: entry.item.id,
+      entityId: entry.item.entity_id,
+      entityName: entry.item.entity_name,
+      text: entry.item.text,
+      source: entry.item.source,
+      score: entry.score,
+      lexicalRank: entry.ranks[0],
+      semanticRank: entry.ranks[1],
+      lexical: 0,
+      semantic: 0,
+    }))
 
   return Response.json({
-    entities: mergeEntities(),
-    quotes: mergeQuotes(),
+    entities: entitiesFused,
+    quotes: quotesFused,
     mode,
   })
 }
