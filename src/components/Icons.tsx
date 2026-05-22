@@ -128,6 +128,14 @@ export const ChatIcon = ({ size = 16, className }: Props) => (
   </svg>
 )
 
+/* Simple house outline for the Inicio tab */
+export const HomeIcon = ({ size = 16, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M3 10.5 12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20Z" />
+    <path d="M9 21v-7h6v7" />
+  </svg>
+)
+
 /* Musical note for the Escuchas tab */
 export const MusicIcon = ({ size = 16, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

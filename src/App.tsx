@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Provider,
   useEntitiesQuery,
@@ -15,6 +15,8 @@ import { RelationshipsView } from './components/RelationshipsView'
 import { ListeningView } from './components/ListeningView'
 import { ChatView } from './components/ChatView'
 import { ProactiveView } from './components/ProactiveView'
+import { HomeView } from './components/HomeView'
+import { CommandPalette } from './components/CommandPalette'
 import { AskBar } from './components/AskBar'
 import { ProposalPanel } from './components/ProposalPanel'
 import { NodeDetailPanel } from './components/NodeDetailPanel'
@@ -39,11 +41,24 @@ function Shell() {
     quotesQuery.error?.message ??
     null
 
-  const [view, setView] = useState<ViewMode>('grafo')
+  const [view, setView] = useState<ViewMode>('inicio')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
   const [pendingProposal, setPendingProposal] = useState<PendingProposal | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  // Global keyboard shortcuts. Cmd/Ctrl+K toggles the command palette.
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setPaletteOpen((open) => !open)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   const showProposal = pendingProposal !== null
   // Detail panel is available from any view, not just the graph — clicking an
@@ -92,6 +107,12 @@ function Shell() {
             {view === 'chat' && <ChatView />}
             {view !== 'grafo' && view !== 'chat' && (
               <div className="h-full overflow-y-auto px-8 py-10 pb-32 max-w-3xl mx-auto">
+                {view === 'inicio' && (
+                  <HomeView
+                    onNavigate={(v) => setView(v)}
+                    onSelectEntity={setSelectedEntityId}
+                  />
+                )}
                 {view === 'entidades' && (
                   <EntitiesView onSelectEntity={setSelectedEntityId} />
                 )}
@@ -131,6 +152,15 @@ function Shell() {
         onClose={() => setSettingsOpen(false)}
         theme={theme}
         onToggleTheme={toggleTheme}
+      />
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onNavigate={(v) => setView(v)}
+        onSelectEntity={(id) => {
+          setSelectedEntityId(id)
+        }}
       />
 
       {/* Floating right-side panel — appears as a glass card over the canvas

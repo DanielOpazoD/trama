@@ -10,6 +10,7 @@ import {
   ChatIcon,
   EntitiesIcon,
   GraphIcon,
+  HomeIcon,
   MusicIcon,
   QuoteIcon,
   RelationsIcon,
@@ -19,7 +20,7 @@ import {
   TramaMark,
 } from './Icons'
 
-export type ViewMode = 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'chat' | 'sugerencias'
+export type ViewMode = 'inicio' | 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'chat' | 'sugerencias'
 
 type NavItem = {
   value: ViewMode
@@ -28,6 +29,7 @@ type NavItem = {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { value: 'inicio', label: 'Inicio', icon: HomeIcon },
   { value: 'grafo', label: 'Grafo', icon: GraphIcon },
   { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
   { value: 'citas', label: 'Citas', icon: QuoteIcon },
@@ -61,6 +63,7 @@ export function Sidebar({
   const [searchQuery, setSearchQuery] = useState('')
 
   const counts: Record<ViewMode, number | null> = {
+    inicio: null,
     grafo: null,
     entidades: entities.length,
     citas: quotes.length,
