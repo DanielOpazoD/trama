@@ -7,6 +7,7 @@ import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
+import { buildRagContext } from './_lib/rag-context.js'
 
 const FALLBACK_ENTITY_TYPES = [
   'persona', 'escritor', 'filosofo', 'musico', 'banda', 'director', 'artista', 'cientifico',
@@ -20,9 +21,10 @@ const FALLBACK_RELATIONSHIP_TYPES = [
   'suena_como', 'inspira', 'contradice', 'asociado_con',
 ]
 
-const CONTEXT_ENTITY_LIMIT = 80
-const CONTEXT_REL_LIMIT = 100
-const CONTEXT_QUOTE_LIMIT = 20
+// Legacy context limits, kept as fallback for the (very rare) case where
+// buildRagContext doesn't apply (e.g., empty query) — though in practice
+// ask.mts always has a userText so RAG always runs.
+const FALLBACK_REL_LIMIT = 100
 
 type ViewSlug = AskContext['view']
 const VALID_VIEWS: ViewSlug[] = [
@@ -74,46 +76,26 @@ export default withObservability('ask', async (req) => {
     history = rows.slice().reverse()
   }
 
-  type EntityCtxRow = {
-    id: string
-    name: string
-    type: string
-    year: number | null
-    description: string | null
-  }
-  type RelCtxRow = { id: string; from_name: string; to_name: string; type: string }
-  type QuoteCtxRow = { id: string; entity_name: string; text: string; source: string | null }
   type TypeRow = { slug: string }
 
-  const [entityRows, relRows, quoteRows, entityTypeRows, relTypeRows, selectedRows] =
-    await Promise.all([
-      sql`SELECT id, name, type, year, description
-          FROM entities
-          WHERE deleted_at IS NULL
-          ORDER BY created_at DESC
-          LIMIT ${CONTEXT_ENTITY_LIMIT}` as unknown as Promise<EntityCtxRow[]>,
-      sql`SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type
-          FROM relationships r
-          JOIN entities ef ON ef.id = r.from_id
-          JOIN entities et ON et.id = r.to_id
-          WHERE r.deleted_at IS NULL
-          ORDER BY r.created_at DESC
-          LIMIT ${CONTEXT_REL_LIMIT}` as unknown as Promise<RelCtxRow[]>,
-      sql`SELECT q.id, e.name AS entity_name, q.text, q.source
-          FROM quotes q
-          JOIN entities e ON e.id = q.entity_id
-          WHERE q.deleted_at IS NULL
-          ORDER BY q.created_at DESC
-          LIMIT ${CONTEXT_QUOTE_LIMIT}` as unknown as Promise<QuoteCtxRow[]>,
-      sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
-      sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
-      body.selectedEntityId
-        ? (sql`SELECT id, name, type, description FROM entities
-                WHERE id = ${body.selectedEntityId} AND deleted_at IS NULL` as unknown as Promise<
-            Array<{ id: string; name: string; type: string; description: string | null }>
-          >)
-        : Promise.resolve([] as Array<{ id: string; name: string; type: string; description: string | null }>),
-    ])
+  // Retrieval-augmented context: semantic top-K + recency, merged. Replaces
+  // the legacy "últimas 80 entidades por created_at" cuyo problema era ser
+  // ciego al pasado. Si el embedding falla o no hay rows embebidas todavía,
+  // degrada a recency-only.
+  const [ragCtx, entityTypeRows, relTypeRows, selectedRows] = await Promise.all([
+    buildRagContext(sql as unknown as (
+      strings: TemplateStringsArray,
+      ...values: unknown[]
+    ) => Promise<unknown>, userText, { relationshipLimit: FALLBACK_REL_LIMIT }),
+    sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
+    sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
+    body.selectedEntityId
+      ? (sql`SELECT id, name, type, description FROM entities
+              WHERE id = ${body.selectedEntityId} AND deleted_at IS NULL` as unknown as Promise<
+          Array<{ id: string; name: string; type: string; description: string | null }>
+        >)
+      : Promise.resolve([] as Array<{ id: string; name: string; type: string; description: string | null }>),
+  ])
 
   const entityTypes =
     entityTypeRows.length > 0 ? entityTypeRows.map((r) => r.slug) : FALLBACK_ENTITY_TYPES
@@ -122,20 +104,20 @@ export default withObservability('ask', async (req) => {
 
   const ctx: AskContext = {
     view,
-    entities: entityRows.map((e) => ({
+    entities: ragCtx.entities.map((e) => ({
       id: e.id,
       name: e.name,
       type: e.type,
       year: e.year,
       description: e.description,
     })),
-    relationships: relRows.map((r) => ({
+    relationships: ragCtx.relationships.map((r) => ({
       id: r.id,
       fromName: r.from_name,
       toName: r.to_name,
       type: r.type,
     })),
-    recentQuotes: quoteRows.map((q) => ({
+    recentQuotes: ragCtx.quotes.map((q) => ({
       id: q.id,
       entityName: q.entity_name,
       text: q.text,
@@ -219,6 +201,9 @@ export default withObservability('ask', async (req) => {
       hasSelected: !!ctx.selectedEntity,
       replyLen: reply.length,
       hasProposal,
+      usedRag: ragCtx.usedRag,
+      contextEntities: ctx.entities.length,
+      contextQuotes: ctx.recentQuotes.length,
     })
 
     sql`

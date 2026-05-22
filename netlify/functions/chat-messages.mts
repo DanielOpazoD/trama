@@ -2,6 +2,7 @@ import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { askLLMForText, askLLMForTextStreaming } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
+import { buildRagContext } from './_lib/rag-context.js'
 import {
   buildChatPrompt,
   buildChatTitlePrompt,
@@ -138,60 +139,68 @@ export default withObservability(
     type QuoteCtxRow = { id: string; entity_name: string; text: string; source: string | null }
     type TypeRow = { slug: string }
 
-    const entitiesQuery = focusEntityId
-      ? (sql`SELECT id, name, type, year, description
-             FROM entities
-             WHERE deleted_at IS NULL
-               AND (id = ${focusEntityId}
-                    OR id IN (
-                      SELECT CASE WHEN from_id = ${focusEntityId} THEN to_id ELSE from_id END
-                      FROM relationships
-                      WHERE deleted_at IS NULL
-                        AND (from_id = ${focusEntityId} OR to_id = ${focusEntityId})
-                    ))` as unknown as Promise<EntityCtxRow[]>)
-      : (sql`SELECT id, name, type, year, description
-             FROM entities
-             WHERE deleted_at IS NULL
-             ORDER BY created_at DESC
-             LIMIT ${CONTEXT_ENTITY_LIMIT}` as unknown as Promise<EntityCtxRow[]>)
+    // Three branches for context loading, depending on the thread:
+    //   - focusEntity:  narrow to that entity + its direct neighbors + its citas
+    //   - general chat: RAG (semantic top-K + recency) keyed off the user's
+    //                   latest message → escala a 100k+ y trae lo topical
+    //                   aunque sea antiguo.
+    //   - (history-only call with no new message would skip both, but
+    //     /api/chat/threads/:id/messages always POSTs a userText.)
+    let entityRows: EntityCtxRow[]
+    let relRows: RelCtxRow[]
+    let quoteRows: QuoteCtxRow[]
+    let entityTypeRows: TypeRow[]
+    let relTypeRows: TypeRow[]
+    let usedRag = false
 
-    const relsQuery = focusEntityId
-      ? (sql`SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
-             FROM relationships r
-             JOIN entities ef ON ef.id = r.from_id
-             JOIN entities et ON et.id = r.to_id
-             WHERE r.deleted_at IS NULL
-               AND (r.from_id = ${focusEntityId} OR r.to_id = ${focusEntityId})
-             ORDER BY r.created_at DESC` as unknown as Promise<RelCtxRow[]>)
-      : (sql`SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
-             FROM relationships r
-             JOIN entities ef ON ef.id = r.from_id
-             JOIN entities et ON et.id = r.to_id
-             WHERE r.deleted_at IS NULL
-             ORDER BY r.created_at DESC
-             LIMIT ${CONTEXT_RELATIONSHIP_LIMIT}` as unknown as Promise<RelCtxRow[]>)
-
-    const quotesQuery = focusEntityId
-      ? (sql`SELECT q.id, e.name AS entity_name, q.text, q.source
-             FROM quotes q
-             JOIN entities e ON e.id = q.entity_id
-             WHERE q.deleted_at IS NULL
-               AND q.entity_id = ${focusEntityId}
-             ORDER BY q.created_at DESC` as unknown as Promise<QuoteCtxRow[]>)
-      : (sql`SELECT q.id, e.name AS entity_name, q.text, q.source
-             FROM quotes q
-             JOIN entities e ON e.id = q.entity_id
-             WHERE q.deleted_at IS NULL
-             ORDER BY q.created_at DESC
-             LIMIT ${CONTEXT_QUOTE_LIMIT}` as unknown as Promise<QuoteCtxRow[]>)
-
-    const [entityRows, relRows, quoteRows, entityTypeRows, relTypeRows] = await Promise.all([
-      entitiesQuery,
-      relsQuery,
-      quotesQuery,
-      sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
-      sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
-    ])
+    if (focusEntityId) {
+      ;[entityRows, relRows, quoteRows, entityTypeRows, relTypeRows] = await Promise.all([
+        sql`SELECT id, name, type, year, description
+            FROM entities
+            WHERE deleted_at IS NULL
+              AND (id = ${focusEntityId}
+                   OR id IN (
+                     SELECT CASE WHEN from_id = ${focusEntityId} THEN to_id ELSE from_id END
+                     FROM relationships
+                     WHERE deleted_at IS NULL
+                       AND (from_id = ${focusEntityId} OR to_id = ${focusEntityId})
+                   ))` as unknown as Promise<EntityCtxRow[]>,
+        sql`SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
+            FROM relationships r
+            JOIN entities ef ON ef.id = r.from_id
+            JOIN entities et ON et.id = r.to_id
+            WHERE r.deleted_at IS NULL
+              AND (r.from_id = ${focusEntityId} OR r.to_id = ${focusEntityId})
+            ORDER BY r.created_at DESC` as unknown as Promise<RelCtxRow[]>,
+        sql`SELECT q.id, e.name AS entity_name, q.text, q.source
+            FROM quotes q
+            JOIN entities e ON e.id = q.entity_id
+            WHERE q.deleted_at IS NULL
+              AND q.entity_id = ${focusEntityId}
+            ORDER BY q.created_at DESC` as unknown as Promise<QuoteCtxRow[]>,
+        sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
+        sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
+      ])
+    } else {
+      const [ragCtx, eTypes, rTypes] = await Promise.all([
+        buildRagContext(
+          sql as unknown as (
+            strings: TemplateStringsArray,
+            ...values: unknown[]
+          ) => Promise<unknown>,
+          userText,
+          { relationshipLimit: CONTEXT_RELATIONSHIP_LIMIT },
+        ),
+        sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
+        sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
+      ])
+      entityRows = ragCtx.entities
+      relRows = ragCtx.relationships
+      quoteRows = ragCtx.quotes
+      entityTypeRows = eTypes
+      relTypeRows = rTypes
+      usedRag = ragCtx.usedRag
+    }
 
     const tramaContext: ChatTramaContext = {
       entities: entityRows.map((e) => ({
@@ -329,6 +338,8 @@ export default withObservability(
           durationMs: usage.durationMs,
           hasProposal: !!proposalToStore,
           streaming: true,
+          focused: !!focusEntityId,
+          usedRag,
         })
 
         sql`
