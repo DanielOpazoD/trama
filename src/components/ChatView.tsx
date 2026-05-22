@@ -16,13 +16,36 @@ import {
 } from '../state'
 import { InlineProposal } from './chat/InlineProposal'
 
-export function ChatView() {
+export function ChatView({
+  initialThreadId,
+  onConsumedInitialThread,
+}: {
+  /** When set, ChatView opens this thread on mount instead of the most-recent.
+      Used for deep-link from AskBar ("ver historial"). */
+  initialThreadId?: string | null
+  /** Fired the first time initialThreadId is honored, so the parent can
+      clear it and the next navigation to /chat behaves normally. */
+  onConsumedInitialThread?: () => void
+} = {}) {
   const { offline } = useOffline()
   const { data: threads = [], isLoading: threadsLoading } = useChatThreadsQuery()
   const createThread = useCreateChatThread()
   const deleteThread = useDeleteChatThread()
 
-  const [activeId, setActiveId] = useState<string | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(initialThreadId ?? null)
+  // Filter the rail by section. 'all' = no filter. 'free' = threads with
+  // context=NULL (the dedicated /chat). Otherwise = a section slug.
+  const [contextFilter, setContextFilter] = useState<string>('all')
+
+  // If an initialThreadId arrives after mount (e.g., user clicks "ver
+  // historial" while ChatView is already mounted), swap the active thread.
+  useEffect(() => {
+    if (initialThreadId && initialThreadId !== activeId) {
+      setActiveId(initialThreadId)
+      onConsumedInitialThread?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialThreadId])
 
   // Auto-select the most recent thread on first load. Don't override an
   // explicit user selection.
@@ -110,6 +133,19 @@ export function ChatView() {
 
   const activeThread = threads.find((t) => t.id === activeId) ?? null
 
+  // Build the list of section filters from the threads themselves — chips
+  // only show for contexts that actually have a thread, so we don't bloat
+  // the rail with empty filters.
+  const availableContexts = Array.from(
+    new Set(threads.map((t) => t.context).filter((c): c is string => !!c)),
+  ).sort()
+
+  const visibleThreads = threads.filter((t) => {
+    if (contextFilter === 'all') return true
+    if (contextFilter === 'free') return t.context === null
+    return t.context === contextFilter
+  })
+
   return (
     <div className="h-full flex">
       {/* Left rail: thread list */}
@@ -125,6 +161,28 @@ export function ChatView() {
             + nueva
           </button>
         </div>
+        {availableContexts.length > 0 && (
+          <div className="px-3 py-2 border-b border-ink-100/40 flex flex-wrap gap-1">
+            <FilterChip
+              label="todos"
+              active={contextFilter === 'all'}
+              onClick={() => setContextFilter('all')}
+            />
+            <FilterChip
+              label="libres"
+              active={contextFilter === 'free'}
+              onClick={() => setContextFilter('free')}
+            />
+            {availableContexts.map((c) => (
+              <FilterChip
+                key={c}
+                label={c}
+                active={contextFilter === c}
+                onClick={() => setContextFilter(c)}
+              />
+            ))}
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto">
           {threadsLoading ? (
             <p className="px-4 py-6 text-ink-300 italic text-sm">cargando…</p>
@@ -133,9 +191,13 @@ export function ChatView() {
               Aún sin conversaciones. Empieza una arriba o pregunta algo abajo y la
               IA usará tu trama como contexto.
             </p>
+          ) : visibleThreads.length === 0 ? (
+            <p className="px-4 py-6 text-ink-300 italic text-sm leading-relaxed">
+              Sin hilos en esta sección.
+            </p>
           ) : (
             <ul>
-              {threads.map((t) => (
+              {visibleThreads.map((t) => (
                 <li key={t.id} className="group relative">
                   <button
                     onClick={() => setActiveId(t.id)}
@@ -297,4 +359,35 @@ function defaultTitleFor(context: string | null | undefined): string {
   if (!context) return '(sin título)'
   const label = context.charAt(0).toUpperCase() + context.slice(1)
   return `Hilo de ${label}`
+}
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        active
+          ? 'px-2 py-0.5 rounded-full text-[10px] uppercase tracking-[0.16em] font-medium transition-colors'
+          : 'px-2 py-0.5 rounded-full text-[10px] uppercase tracking-[0.16em] text-ink-400 hover:text-ink-700 hover:bg-ink-700/5 transition-colors'
+      }
+      style={
+        active
+          ? {
+              backgroundColor: 'var(--accent-primary-soft)',
+              color: 'var(--accent-primary)',
+            }
+          : undefined
+      }
+    >
+      {label}
+    </button>
+  )
 }

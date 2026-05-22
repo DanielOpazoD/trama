@@ -45,11 +45,15 @@ export function AskBar({
   selectedEntityId,
   onProposal,
   busy,
+  onOpenThread,
 }: {
   view: string | null
   selectedEntityId: string | null
   onProposal: (text: string, proposal: ExtractionProposal) => void
   busy: boolean
+  /** Navigate to ChatView with this thread pre-opened. AskBar calls it via
+      the "ver historial" link when there's an active section thread. */
+  onOpenThread?: (threadId: string) => void
 }) {
   const ask = useAsk()
   const extractFromImage = useExtractFromImage()
@@ -177,6 +181,15 @@ export function AskBar({
                 respuesta{reply.model ? ` · ${reply.model}` : reply.provider ? ` · ${reply.provider}` : ''}
               </span>
               <div className="flex items-baseline gap-3">
+                {threadId && onOpenThread && (
+                  <button
+                    onClick={() => onOpenThread(threadId)}
+                    className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+                    title="Ver toda la conversación en la vista de chat"
+                  >
+                    ver historial
+                  </button>
+                )}
                 {threadId && (
                   <button
                     onClick={handleNewThread}

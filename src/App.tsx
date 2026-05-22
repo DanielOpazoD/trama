@@ -52,6 +52,8 @@ function Shell() {
   })
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
   const [pendingProposal, setPendingProposal] = useState<PendingProposal | null>(null)
+  // Set when the AskBar deep-links to chat with a specific thread.
+  const [pendingChatThreadId, setPendingChatThreadId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
 
@@ -111,7 +113,12 @@ function Shell() {
                 onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
               />
             )}
-            {view === 'chat' && <ChatView />}
+            {view === 'chat' && (
+              <ChatView
+                initialThreadId={pendingChatThreadId}
+                onConsumedInitialThread={() => setPendingChatThreadId(null)}
+              />
+            )}
             {view !== 'grafo' && view !== 'chat' && (
               <div id="main-scroll" className="h-full overflow-y-auto px-8 py-10 pb-32 max-w-3xl mx-auto">
                 {view === 'inicio' && (
@@ -150,6 +157,10 @@ function Shell() {
             selectedEntityId={selectedEntityId}
             busy={showProposal}
             onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
+            onOpenThread={(threadId) => {
+              setPendingChatThreadId(threadId)
+              setView('chat')
+            }}
           />
         )}
       </main>
