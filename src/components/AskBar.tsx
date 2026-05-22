@@ -46,6 +46,7 @@ export function AskBar({
   onProposal,
   busy,
   onOpenThread,
+  onOpenReading,
 }: {
   view: string | null
   selectedEntityId: string | null
@@ -54,6 +55,8 @@ export function AskBar({
   /** Navigate to ChatView with this thread pre-opened. AskBar calls it via
       the "ver historial" link when there's an active section thread. */
   onOpenThread?: (threadId: string) => void
+  /** Opens the reading-mode modal for long-text chunked extraction. */
+  onOpenReading?: () => void
 }) {
   const ask = useAsk()
   const extractFromImage = useExtractFromImage()
@@ -238,6 +241,20 @@ export function AskBar({
               </svg>
             )}
           </button>
+          {onOpenReading && (
+            <button
+              type="button"
+              onClick={onOpenReading}
+              disabled={offline || busy}
+              aria-label="Modo lectura"
+              title="Modo lectura: pega un texto largo y se procesa por trozos"
+              className="self-end mb-1 size-9 rounded-full text-ink-400 hover:text-ink-700 hover:bg-ink-50 disabled:text-ink-200 disabled:cursor-not-allowed transition-all duration-150 ease-out flex items-center justify-center"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 5h16M4 9h16M4 13h10M4 17h12" />
+              </svg>
+            </button>
+          )}
           <input
             ref={fileInputRef}
             type="file"

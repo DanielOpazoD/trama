@@ -21,6 +21,7 @@ import { CommandPalette } from './components/CommandPalette'
 import { AskBar } from './components/AskBar'
 import { ProposalPanel } from './components/ProposalPanel'
 import { NodeDetailPanel } from './components/NodeDetailPanel'
+import { ReadingMode } from './components/ReadingMode'
 import { Settings } from './components/Settings'
 import { Splash } from './components/Splash'
 import type { ExtractionProposal } from './types'
@@ -55,6 +56,7 @@ function Shell() {
   // Set when the AskBar deep-links to chat with a specific thread.
   const [pendingChatThreadId, setPendingChatThreadId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [readingOpen, setReadingOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
 
   // Global keyboard shortcuts. Cmd/Ctrl+K toggles the command palette.
@@ -161,8 +163,15 @@ function Shell() {
               setPendingChatThreadId(threadId)
               setView('chat')
             }}
+            onOpenReading={() => setReadingOpen(true)}
           />
         )}
+
+        <ReadingMode
+          open={readingOpen}
+          onClose={() => setReadingOpen(false)}
+          onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
+        />
       </main>
 
       <Settings
