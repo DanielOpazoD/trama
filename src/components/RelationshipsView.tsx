@@ -11,6 +11,7 @@ import {
 import { CloseIcon, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
+import { EntityCombobox } from './EntityCombobox'
 
 export function RelationshipsView({
   onSelectEntity,
@@ -191,16 +192,14 @@ export function RelationshipsView({
               className="mb-10 p-4 bg-paper-100/50 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
             >
               <div className="flex flex-col sm:flex-row gap-3">
-                <select
-                  value={fromId}
-                  onChange={(event) => setFromId(event.target.value)}
-                  className="input-paper flex-1"
-                >
-                  <option value="">— origen —</option>
-                  {entities.map((entity) => (
-                    <option key={entity.id} value={entity.id}>{entity.name}</option>
-                  ))}
-                </select>
+                <div className="flex-1">
+                  <EntityCombobox
+                    value={fromId || null}
+                    onChange={(entity) => setFromId(entity?.id ?? '')}
+                    selectedName={fromId ? entitiesById.get(fromId)?.name ?? null : null}
+                    placeholder="— origen —"
+                  />
+                </div>
                 <select
                   value={type}
                   onChange={(event) => setType(event.target.value as RelationshipType)}
@@ -210,16 +209,15 @@ export function RelationshipsView({
                     <option key={relType.value} value={relType.value}>{relType.label}</option>
                   ))}
                 </select>
-                <select
-                  value={toId}
-                  onChange={(event) => setToId(event.target.value)}
-                  className="input-paper flex-1"
-                >
-                  <option value="">— destino —</option>
-                  {entities.filter((entity) => entity.id !== fromId).map((entity) => (
-                    <option key={entity.id} value={entity.id}>{entity.name}</option>
-                  ))}
-                </select>
+                <div className="flex-1">
+                  <EntityCombobox
+                    value={toId || null}
+                    onChange={(entity) => setToId(entity?.id ?? '')}
+                    selectedName={toId ? entitiesById.get(toId)?.name ?? null : null}
+                    excludeId={fromId || null}
+                    placeholder="— destino —"
+                  />
+                </div>
               </div>
               <input
                 type="text"
