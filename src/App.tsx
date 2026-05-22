@@ -113,7 +113,7 @@ function Shell() {
             )}
             {view === 'chat' && <ChatView />}
             {view !== 'grafo' && view !== 'chat' && (
-              <div className="h-full overflow-y-auto px-8 py-10 pb-32 max-w-3xl mx-auto">
+              <div id="main-scroll" className="h-full overflow-y-auto px-8 py-10 pb-32 max-w-3xl mx-auto">
                 {view === 'inicio' && (
                   <HomeView
                     onNavigate={(v) => setView(v)}

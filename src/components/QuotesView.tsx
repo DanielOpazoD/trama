@@ -8,6 +8,8 @@ import {
 } from '../state'
 import { SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
+import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
+import type { Entity, Quote } from '../types'
 
 /** Format an ISO date as "20 may 2026" — short, ink-on-paper style. */
 function formatDate(iso: string): string {
@@ -39,6 +41,16 @@ function withDropCap(text: string) {
   )
 }
 
+const WORK_TYPES = new Set([
+  'libro', 'ensayo', 'poema', 'articulo',
+  'cancion', 'podcast', 'album', 'disco',
+  'pelicula', 'serie', 'documental', 'obra',
+])
+const PERSON_TYPES = new Set([
+  'persona', 'escritor', 'filosofo', 'musico', 'banda',
+  'director', 'artista', 'cientifico',
+])
+
 export function QuotesView({
   onSelectEntity,
 }: {
@@ -48,21 +60,9 @@ export function QuotesView({
   const { data: quotes = [] } = useQuotesQuery()
   const { data: relationships = [] } = useRelationshipsQuery()
 
-  // For "work" entities (libro, ensayo, cancion, album, etc.), find the
-  // person/writer linked to it so we can show "— Marco Aurelio · Meditaciones"
-  // instead of just "— Meditaciones". Reads the relationship table once and
-  // builds a quick lookup.
-  const WORK_TYPES = new Set([
-    'libro', 'ensayo', 'poema', 'articulo',
-    'cancion', 'podcast', 'album', 'disco',
-    'pelicula', 'serie', 'documental', 'obra',
-  ])
-  const PERSON_TYPES = new Set([
-    'persona', 'escritor', 'filosofo', 'musico', 'banda',
-    'director', 'artista', 'cientifico',
-  ])
-  function authorOf(workId: string): typeof entities[number] | undefined {
-    // Try both directions: work → person and person → work, prefer the latter.
+  // For "work" entities, find the linked person/writer so we can show
+  // "— Marco Aurelio · Meditaciones" instead of just "— Meditaciones".
+  function authorOf(workId: string): Entity | undefined {
     for (const rel of relationships) {
       if (rel.toId === workId) {
         const candidate = entities.find((e) => e.id === rel.fromId)
@@ -105,6 +105,18 @@ export function QuotesView({
       /* error surfaces via addQuote.error */
     }
   }
+
+  // Virtualized rendering: at 500+ quotes the previous full-list render
+  // started to lag. We mount only the visible window + a small overscan.
+  // estimateSize is intentionally generous (typical quote with author +
+  // optional context + reflection lands around 300-360px). The measureElement
+  // hook on each row corrects the estimate as soon as it's measured.
+  const { listRef, virtualizer } = useMainScrollVirtualizer({
+    count: quotes.length,
+    estimateSize: 320,
+    overscan: 8,
+    deps: [showForm, quotes.length],
+  })
 
   return (
     <>
@@ -204,123 +216,158 @@ export function QuotesView({
               hint="Pega texto abajo o usa el botón de cámara para empezar."
             />
           ) : (
-            <ul className="space-y-14">
-              {quotes.map((quote, index) => {
+            <div
+              ref={listRef}
+              style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
+            >
+              {virtualizer.getVirtualItems().map((virtualRow) => {
+                const quote = quotes[virtualRow.index]
                 const entity = entities.find((e) => e.id === quote.entityId)
-                // If the quote is attached to a work (libro, cancion, etc.)
-                // and that work has a linked person/writer, surface BOTH so
-                // the reader sees "Marco Aurelio · Meditaciones" instead of
-                // just "— Meditaciones".
                 const author = entity && WORK_TYPES.has(entity.type) ? authorOf(entity.id) : undefined
-                // First quote gets the editorial drop-cap treatment;
-                // others get a slightly smaller, still elegant block.
-                const isFeature = index === 0
+                const isFeature = virtualRow.index === 0
                 return (
-                  <li
-                    key={quote.id}
-                    className="group animate-fade-up"
-                    style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
+                  <div
+                    key={virtualRow.key}
+                    data-index={virtualRow.index}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
+                      paddingBottom: '3.5rem', // space-y-14 equivalent between items
+                    }}
                   >
-                    {isFeature ? (
-                      <blockquote className="quote-block text-lg md:text-xl text-ink-700 leading-snug clear-both overflow-hidden">
-                        {withDropCap(quote.text)}
-                      </blockquote>
-                    ) : (
-                      <blockquote className="quote-block text-base md:text-lg text-ink-600 leading-relaxed border-l-2 border-ink-200 pl-4">
-                        «{quote.text}»
-                      </blockquote>
-                    )}
-                    <div
-                      className={`mt-3 flex justify-between items-baseline gap-4 ${
-                        isFeature ? '' : 'pl-5'
-                      }`}
-                    >
-                      <div className="text-sm">
-                        {author && entity ? (
-                          <>
-                            <button
-                              onClick={() => onSelectEntity?.(author.id)}
-                              className="text-ink-500 hover:text-ink-700 transition-colors border-b border-transparent hover:border-ink-300"
-                            >
-                              — {author.name}
-                            </button>
-                            <span className="text-ink-300 mx-1.5">·</span>
-                            <button
-                              onClick={() => onSelectEntity?.(entity.id)}
-                              className="text-ink-400 italic hover:text-ink-700 transition-colors border-b border-transparent hover:border-ink-300"
-                            >
-                              {entity.name}
-                            </button>
-                          </>
-                        ) : entity ? (
-                          <button
-                            onClick={() => onSelectEntity?.(entity.id)}
-                            className="text-ink-500 hover:text-ink-700 transition-colors border-b border-transparent hover:border-ink-300"
-                          >
-                            — {entity.name}
-                          </button>
-                        ) : (
-                          <span className="text-ink-300">— entidad eliminada</span>
-                        )}
-                        {quote.source && (
-                          <span className="text-ink-300 ml-2 italic">· {quote.source}</span>
-                        )}
-                        {quote.origin.kind === 'ai' && (
-                          <span className="ml-1.5 inline-flex items-center text-sky-700/70" title="propuesta por IA">
-                            <SparkleIcon size={10} />
-                          </span>
-                        )}
-                        <span
-                          className="ml-3 text-[11px] text-ink-300 tabular-nums"
-                          title={`Añadida el ${new Date(quote.createdAt).toLocaleString('es')}`}
-                        >
-                          añadida {formatDate(quote.createdAt)}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => deleteQuote.mutate(quote.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-ink-700 text-xs"
-                      >
-                        eliminar
-                      </button>
-                    </div>
-                    {quote.context && (
-                      <p
-                        className={`mt-2 text-ink-400 text-sm leading-relaxed italic ${
-                          isFeature ? '' : 'pl-5'
-                        }`}
-                      >
-                        {quote.context}
-                      </p>
-                    )}
-                    {quote.userReflection && (
-                      <div className={`mt-3 ${isFeature ? '' : 'pl-5'}`}>
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 mb-1">
-                          tu reflexión
-                        </div>
-                        <p className="text-ink-600 text-sm leading-relaxed whitespace-pre-wrap">
-                          {quote.userReflection}
-                        </p>
-                      </div>
-                    )}
-                    {quote.aiReflection && (
-                      <div className={`mt-3 ${isFeature ? '' : 'pl-5'}`}>
-                        <div className="flex items-baseline gap-1.5 text-[10px] uppercase tracking-[0.2em] text-sky-700/80 mb-1">
-                          <SparkleIcon size={10} />
-                          interpretación de la IA
-                        </div>
-                        <p className="text-ink-500 text-sm leading-relaxed whitespace-pre-wrap">
-                          {quote.aiReflection}
-                        </p>
-                      </div>
-                    )}
-                  </li>
+                    <QuoteItem
+                      quote={quote}
+                      entity={entity}
+                      author={author}
+                      isFeature={isFeature}
+                      onSelectEntity={onSelectEntity}
+                      onDelete={() => deleteQuote.mutate(quote.id)}
+                    />
+                  </div>
                 )
               })}
-            </ul>
+            </div>
           )}
         </>
       )}
     </>
+  )
+}
+
+function QuoteItem({
+  quote,
+  entity,
+  author,
+  isFeature,
+  onSelectEntity,
+  onDelete,
+}: {
+  quote: Quote
+  entity: Entity | undefined
+  author: Entity | undefined
+  isFeature: boolean
+  onSelectEntity?: (id: string) => void
+  onDelete: () => void
+}) {
+  return (
+    <div className="group">
+      {isFeature ? (
+        <blockquote className="quote-block text-lg md:text-xl text-ink-700 leading-snug clear-both overflow-hidden">
+          {withDropCap(quote.text)}
+        </blockquote>
+      ) : (
+        <blockquote className="quote-block text-base md:text-lg text-ink-600 leading-relaxed border-l-2 border-ink-200 pl-4">
+          «{quote.text}»
+        </blockquote>
+      )}
+      <div
+        className={`mt-3 flex justify-between items-baseline gap-4 ${
+          isFeature ? '' : 'pl-5'
+        }`}
+      >
+        <div className="text-sm">
+          {author && entity ? (
+            <>
+              <button
+                onClick={() => onSelectEntity?.(author.id)}
+                className="text-ink-500 hover:text-ink-700 transition-colors border-b border-transparent hover:border-ink-300"
+              >
+                — {author.name}
+              </button>
+              <span className="text-ink-300 mx-1.5">·</span>
+              <button
+                onClick={() => onSelectEntity?.(entity.id)}
+                className="text-ink-400 italic hover:text-ink-700 transition-colors border-b border-transparent hover:border-ink-300"
+              >
+                {entity.name}
+              </button>
+            </>
+          ) : entity ? (
+            <button
+              onClick={() => onSelectEntity?.(entity.id)}
+              className="text-ink-500 hover:text-ink-700 transition-colors border-b border-transparent hover:border-ink-300"
+            >
+              — {entity.name}
+            </button>
+          ) : (
+            <span className="text-ink-300">— entidad eliminada</span>
+          )}
+          {quote.source && (
+            <span className="text-ink-300 ml-2 italic">· {quote.source}</span>
+          )}
+          {quote.origin.kind === 'ai' && (
+            <span className="ml-1.5 inline-flex items-center text-sky-700/70" title="propuesta por IA">
+              <SparkleIcon size={10} />
+            </span>
+          )}
+          <span
+            className="ml-3 text-[11px] text-ink-300 tabular-nums"
+            title={`Añadida el ${new Date(quote.createdAt).toLocaleString('es')}`}
+          >
+            añadida {formatDate(quote.createdAt)}
+          </span>
+        </div>
+        <button
+          onClick={onDelete}
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-ink-700 text-xs"
+        >
+          eliminar
+        </button>
+      </div>
+      {quote.context && (
+        <p
+          className={`mt-2 text-ink-400 text-sm leading-relaxed italic ${
+            isFeature ? '' : 'pl-5'
+          }`}
+        >
+          {quote.context}
+        </p>
+      )}
+      {quote.userReflection && (
+        <div className={`mt-3 ${isFeature ? '' : 'pl-5'}`}>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 mb-1">
+            tu reflexión
+          </div>
+          <p className="text-ink-600 text-sm leading-relaxed whitespace-pre-wrap">
+            {quote.userReflection}
+          </p>
+        </div>
+      )}
+      {quote.aiReflection && (
+        <div className={`mt-3 ${isFeature ? '' : 'pl-5'}`}>
+          <div className="flex items-baseline gap-1.5 text-[10px] uppercase tracking-[0.2em] text-sky-700/80 mb-1">
+            <SparkleIcon size={10} />
+            interpretación de la IA
+          </div>
+          <p className="text-ink-500 text-sm leading-relaxed whitespace-pre-wrap">
+            {quote.aiReflection}
+          </p>
+        </div>
+      )}
+    </div>
   )
 }

@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { RELATIONSHIP_TYPES, type ExtractionProposal, type RelationshipType } from '../types'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { RELATIONSHIP_TYPES, type Entity, type ExtractionProposal, type Relationship, type RelationshipType } from '../types'
 import {
   useEntitiesQuery,
   useRelationshipsQuery,
@@ -10,6 +10,7 @@ import {
 } from '../state'
 import { CloseIcon, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
+import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 
 export function RelationshipsView({
   onSelectEntity,
@@ -31,6 +32,20 @@ export function RelationshipsView({
   const [notes, setNotes] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [emptyHint, setEmptyHint] = useState<string | null>(null)
+
+  // O(1) entity lookup so the virtualized rows aren't O(rel × entities) each frame.
+  const entitiesById = useMemo(() => {
+    const map = new Map<string, Entity>()
+    for (const e of entities) map.set(e.id, e)
+    return map
+  }, [entities])
+
+  const { listRef, virtualizer } = useMainScrollVirtualizer({
+    count: relationships.length,
+    estimateSize: 72,
+    overscan: 10,
+    deps: [showForm, relationships.length, emptyHint !== null, !!suggest.error],
+  })
 
   async function handleSuggest() {
     setEmptyHint(null)
@@ -213,66 +228,102 @@ export function RelationshipsView({
               hint="Pulsa “descubrir con IA” arriba para que te sugiera las primeras."
             />
           ) : (
-            <ul className="space-y-2">
-              {relationships.map((rel, idx) => {
-                const from = entities.find((entity) => entity.id === rel.fromId)
-                const to = entities.find((entity) => entity.id === rel.toId)
-                const typeLabel =
-                  RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ?? rel.type
+            <div
+              ref={listRef}
+              style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
+            >
+              {virtualizer.getVirtualItems().map((virtualRow) => {
+                const rel = relationships[virtualRow.index]
                 return (
-                  <li
-                    key={rel.id}
-                    className="group p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl transition-all duration-200 hover:shadow-md hover:shadow-ink-900/5 hover:border-ink-100 hover:bg-paper-50/70 animate-fade-up"
-                    style={{ animationDelay: `${Math.min(idx * 40, 280)}ms` }}
+                  <div
+                    key={virtualRow.key}
+                    data-index={virtualRow.index}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
+                      paddingBottom: '0.5rem',
+                    }}
                   >
-                    <div className="flex justify-between items-baseline gap-4">
-                      <div className="text-ink-600 leading-relaxed">
-                        {from ? (
-                          <button
-                            onClick={() => onSelectEntity?.(from.id)}
-                            className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
-                          >
-                            {from.name}
-                          </button>
-                        ) : (
-                          <span className="text-ink-700">—</span>
-                        )}
-                        <span className="mx-2 text-[10px] uppercase tracking-[0.18em] text-ink-300">
-                          {typeLabel}
-                        </span>
-                        {to ? (
-                          <button
-                            onClick={() => onSelectEntity?.(to.id)}
-                            className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
-                          >
-                            {to.name}
-                          </button>
-                        ) : (
-                          <span className="text-ink-700">—</span>
-                        )}
-                        {rel.origin.kind === 'ai' && (
-                          <span className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle" title="propuesta por IA">
-                            <SparkleIcon size={10} />
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => deleteRelationship.mutate(rel.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-ink-700 text-xs"
-                      >
-                        eliminar
-                      </button>
-                    </div>
-                    {rel.notes && (
-                      <p className="mt-1 text-sm text-ink-400 leading-relaxed">{rel.notes}</p>
-                    )}
-                  </li>
+                    <RelationshipRow
+                      rel={rel}
+                      from={entitiesById.get(rel.fromId)}
+                      to={entitiesById.get(rel.toId)}
+                      onSelectEntity={onSelectEntity}
+                      onDelete={() => deleteRelationship.mutate(rel.id)}
+                    />
+                  </div>
                 )
               })}
-            </ul>
+            </div>
           )}
         </>
       )}
     </>
+  )
+}
+
+function RelationshipRow({
+  rel,
+  from,
+  to,
+  onSelectEntity,
+  onDelete,
+}: {
+  rel: Relationship
+  from: Entity | undefined
+  to: Entity | undefined
+  onSelectEntity?: (id: string) => void
+  onDelete: () => void
+}) {
+  const typeLabel =
+    RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ?? rel.type
+  return (
+    <div className="group p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl transition-all duration-200 hover:shadow-md hover:shadow-ink-900/5 hover:border-ink-100 hover:bg-paper-50/70">
+      <div className="flex justify-between items-baseline gap-4">
+        <div className="text-ink-600 leading-relaxed">
+          {from ? (
+            <button
+              onClick={() => onSelectEntity?.(from.id)}
+              className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
+            >
+              {from.name}
+            </button>
+          ) : (
+            <span className="text-ink-700">—</span>
+          )}
+          <span className="mx-2 text-[10px] uppercase tracking-[0.18em] text-ink-300">
+            {typeLabel}
+          </span>
+          {to ? (
+            <button
+              onClick={() => onSelectEntity?.(to.id)}
+              className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
+            >
+              {to.name}
+            </button>
+          ) : (
+            <span className="text-ink-700">—</span>
+          )}
+          {rel.origin.kind === 'ai' && (
+            <span className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle" title="propuesta por IA">
+              <SparkleIcon size={10} />
+            </span>
+          )}
+        </div>
+        <button
+          onClick={onDelete}
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-ink-700 text-xs"
+        >
+          eliminar
+        </button>
+      </div>
+      {rel.notes && (
+        <p className="mt-1 text-sm text-ink-400 leading-relaxed">{rel.notes}</p>
+      )}
+    </div>
   )
 }
