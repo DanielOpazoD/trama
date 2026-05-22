@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useEntitiesQuery, useQuotesQuery, useAddQuote, useDeleteQuote } from '../state'
 import { SparkleIcon } from './Icons'
+import { EmptyMessage } from './EmptyMessage'
 
 /** Format an ISO date as "20 may 2026" — short, ink-on-paper style. */
 function formatDate(iso: string): string {
@@ -90,10 +91,16 @@ export function QuotesView({
       </header>
 
       {entities.length === 0 ? (
-        <p className="text-ink-400 italic leading-relaxed">
-          Las citas se atan a entidades. Primero crea al menos una entidad — pegando
-          un texto en la barra de abajo o desde la pestaña <em>Entidades</em>.
-        </p>
+        <EmptyMessage
+          title="No hay todavía a quién atribuir nada."
+          body={
+            <>
+              Las citas viven pegadas a una entidad: una persona, un libro,
+              una canción. Crea la primera entidad y vuelve.
+            </>
+          }
+          hint="Pega un texto en la barra de abajo o entra a Entidades para empezar."
+        />
       ) : (
         <>
           {showForm && (
@@ -148,7 +155,17 @@ export function QuotesView({
           )}
 
           {quotes.length === 0 ? (
-            <p className="text-ink-400 italic leading-relaxed">Aún sin citas.</p>
+            <EmptyMessage
+              title="Una página todavía en blanco."
+              body={
+                <>
+                  Las citas son piezas que se quedan: una frase que te detuvo,
+                  un verso que volvió. Cuando guardes la primera, su tipografía
+                  va a verse mejor que esto.
+                </>
+              }
+              hint="Pega texto abajo o usa el botón de cámara para empezar."
+            />
           ) : (
             <ul className="space-y-14">
               {quotes.map((quote, index) => {

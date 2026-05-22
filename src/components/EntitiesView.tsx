@@ -13,6 +13,7 @@ import {
 import type { Reclassification } from '../api'
 import { ChevronRightIcon, SparkleIcon } from './Icons'
 import { ReclassifyPanel } from './ReclassifyPanel'
+import { EmptyMessage } from './EmptyMessage'
 
 export function EntitiesView({
   onSelectEntity,
@@ -185,10 +186,17 @@ export function EntitiesView({
       )}
 
       {entities.length === 0 ? (
-        <p className="text-ink-400 italic leading-relaxed">
-          Aún sin entidades. Pega un texto en la barra de abajo y la IA propondrá las
-          primeras.
-        </p>
+        <EmptyMessage
+          title="Todavía nadie habita la trama."
+          body={
+            <>
+              Las entidades son los nudos: las personas, los libros, las
+              canciones, los conceptos que vale la pena retener. La trama crece
+              alrededor de ellos.
+            </>
+          }
+          hint="Pega un párrafo en la barra de abajo y la IA propone las primeras."
+        />
       ) : (
         <ul className="space-y-2">
           {entities.map((entity, idx) => {

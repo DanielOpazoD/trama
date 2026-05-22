@@ -147,7 +147,7 @@ export function AskBar({
           </div>
         )}
         {reply && (
-          <div className="mb-2 px-4 py-3 bg-paper-50/95 border border-ink-100/80 rounded-2xl shadow-xl shadow-ink-900/10 backdrop-blur-md animate-fade-up">
+          <div className="mb-2 px-4 py-3 bg-paper-50/95 border border-ink-100/80 rounded-2xl shadow-xl shadow-ink-900/10 backdrop-blur-md animate-ai-arrive">
             <div className="flex items-baseline justify-between gap-3 mb-1">
               <span className="text-[10px] uppercase tracking-[0.2em] text-ink-300">
                 respuesta{reply.provider ? ` · ${reply.provider}` : ''}

@@ -11,6 +11,7 @@ import {
 import type { ProactiveSuggestion } from '../api'
 import { ENTITY_TYPES, RELATIONSHIP_TYPES } from '../types'
 import { SparkleIcon } from './Icons'
+import { EmptyMessage } from './EmptyMessage'
 
 /**
  * Inbox of proactive AI suggestions. The AI does a sweep over the trama and
@@ -115,16 +116,17 @@ export function ProactiveView() {
       {list.isLoading ? (
         <p className="text-ink-300 italic">cargando…</p>
       ) : suggestions.length === 0 ? (
-        <div className="px-6 py-10 border border-dashed border-ink-100/60 rounded-2xl text-center max-w-lg">
-          <p className="font-serif text-lg text-ink-500 italic leading-relaxed">
-            Sin sugerencias pendientes.
-          </p>
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed">
-            Pulsa <em>pedir ronda</em> arriba para que la IA revise tu trama
-            y te proponga relaciones nuevas, reclasificaciones y descripciones
-            faltantes.
-          </p>
-        </div>
+        <EmptyMessage
+          icon={<SparkleIcon size={18} />}
+          title="Nada pendiente. La trama por ahora se ve serena."
+          body={
+            <>
+              Cuando pulses <em>pedir ronda</em>, la IA revisa lo que has
+              guardado y deja aquí relaciones nuevas, tipos que podrían
+              afinarse, descripciones que faltan.
+            </>
+          }
+        />
       ) : (
         <ul className="space-y-3">
           {suggestions.map((s, idx) => (

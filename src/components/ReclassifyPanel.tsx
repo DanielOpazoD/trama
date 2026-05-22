@@ -52,7 +52,7 @@ export function ReclassifyPanel({
     <section
       role="region"
       aria-label="Propuesta de reclasificación"
-      className="mb-8 border border-sky-200/60 bg-sky-50/40 rounded-xl overflow-hidden animate-fade-up"
+      className="mb-8 border border-sky-200/60 bg-sky-50/40 rounded-xl overflow-hidden animate-ai-arrive"
     >
       <header className="px-4 py-3 flex items-baseline justify-between border-b border-sky-200/50">
         <div className="flex items-baseline gap-2">

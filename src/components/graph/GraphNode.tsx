@@ -1,34 +1,21 @@
 import { ENTITY_TYPES, type Entity } from '../../types'
 
-// Accent color per entity type. New types added later still render — they
-// fall through to the default below — but it's worth adding a deliberate
-// color whenever a new type starts appearing often.
-const DEFAULT_ACCENT = '#7A6748'
-export const TYPE_ACCENT: Record<string, string> = {
-  persona:    '#8E5A2C',
-  escritor:   '#7A4E2A',
-  filosofo:   '#5C4628',
-  musico:     '#9A4F4B',
-  banda:      '#A0524B',
-  director:   '#7E4F62',
-  artista:    '#8B5E3C',
-  cientifico: '#4A6B58',
-  libro:      '#3D3528',
-  ensayo:     '#4C4030',
-  poema:      '#6E4F3E',
-  articulo:   '#5E5040',
-  cancion:    '#9A4F4B',
-  podcast:    '#7B5648',
-  album:      '#6D4A78',
-  disco:      '#604068',
-  pelicula:   '#4F6584',
-  serie:      '#566F8E',
-  documental: '#4D7280',
-  obra:       '#6B7440',
-  concepto:   '#8E6B33',
-  idea:       '#9C5934',
-  lugar:      '#5E7558',
-  evento:     '#7C5E3A',
+// Accent color per entity type. Resolved through CSS variables so dark mode
+// can shift each accent toward a higher-lightness counterpart automatically
+// (definitions live in src/index.css under :root and html.dark).
+//
+// Known types map to var(--type-<slug>); unknown types fall through to
+// var(--type-default). This means adding a new type doesn't require a code
+// change — only the SQL insert and (optionally) a new CSS variable.
+const KNOWN_TYPES = new Set([
+  'persona', 'escritor', 'filosofo', 'musico', 'banda', 'director', 'artista', 'cientifico',
+  'libro', 'ensayo', 'poema', 'articulo',
+  'cancion', 'podcast', 'album', 'disco',
+  'pelicula', 'serie', 'documental',
+  'obra', 'concepto', 'idea', 'lugar', 'evento',
+])
+export function typeAccent(type: string): string {
+  return KNOWN_TYPES.has(type) ? `var(--type-${type})` : 'var(--type-default)'
 }
 
 const NODE_TRUNCATE = 24
@@ -67,7 +54,7 @@ export function GraphNode({
   onMouseDown: (event: React.MouseEvent) => void
   onClick: (event: React.MouseEvent) => void
 }) {
-  const accent = TYPE_ACCENT[entity.type] ?? DEFAULT_ACCENT
+  const accent = typeAccent(entity.type)
   const radius = Math.min(9 + Math.sqrt(connectionCount) * 4.5, 28)
   const opacity = isDimmed ? 0.28 : 1
   const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label

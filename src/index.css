@@ -33,6 +33,35 @@
     --ink: #1A1812;
     --ink-2: #3A3429;
     --ink-dim: #857C66;
+
+    /* Entity-type accent colors — light theme. Used by GraphNode.
+       Dark theme overrides below shift these toward warmer/lighter tones so
+       they keep readable contrast against the dark paper. */
+    --type-persona:     #8E5A2C;
+    --type-escritor:    #7A4E2A;
+    --type-filosofo:    #5C4628;
+    --type-musico:      #9A4F4B;
+    --type-banda:       #A0524B;
+    --type-director:    #7E4F62;
+    --type-artista:     #8B5E3C;
+    --type-cientifico:  #4A6B58;
+    --type-libro:       #3D3528;
+    --type-ensayo:      #4C4030;
+    --type-poema:       #6E4F3E;
+    --type-articulo:    #5E5040;
+    --type-cancion:     #9A4F4B;
+    --type-podcast:     #7B5648;
+    --type-album:       #6D4A78;
+    --type-disco:       #604068;
+    --type-pelicula:    #4F6584;
+    --type-serie:       #566F8E;
+    --type-documental:  #4D7280;
+    --type-obra:        #6B7440;
+    --type-concepto:    #8E6B33;
+    --type-idea:        #9C5934;
+    --type-lugar:       #5E7558;
+    --type-evento:      #7C5E3A;
+    --type-default:     #7A6748;
   }
 
   /* Night mode — coffee-toned dark, warm cream text */
@@ -57,6 +86,34 @@
     --ink: #e6dfd1;
     --ink-2: #c4baa8;
     --ink-dim: #8a8175;
+
+    /* Entity-type accents — dark theme. Same hue, raised lightness so they
+       sit comfortably on the coffee-toned paper. */
+    --type-persona:     #c79568;
+    --type-escritor:    #c19062;
+    --type-filosofo:    #a98864;
+    --type-musico:      #d28a86;
+    --type-banda:       #d68b85;
+    --type-director:    #bb8da0;
+    --type-artista:     #c89b75;
+    --type-cientifico:  #88b59c;
+    --type-libro:       #b5a187;
+    --type-ensayo:      #b8a48a;
+    --type-poema:       #b8907d;
+    --type-articulo:    #aa9b87;
+    --type-cancion:     #d28a86;
+    --type-podcast:     #c79b88;
+    --type-album:       #a98ab8;
+    --type-disco:       #9d80a8;
+    --type-pelicula:    #8aa3c2;
+    --type-serie:       #92add0;
+    --type-documental:  #88b0c2;
+    --type-obra:        #aab87f;
+    --type-concepto:    #ccae72;
+    --type-idea:        #d4936c;
+    --type-lugar:       #9ab394;
+    --type-evento:      #bb9c75;
+    --type-default:     #b8a47e;
   }
 
   html {
@@ -135,6 +192,18 @@
   }
   .animate-fade-up {
     animation: fade-up 320ms cubic-bezier(0.25, 1, 0.5, 1) both;
+  }
+
+  /* Distinctive "constellation" arrival for AI proposals — a brief sky-blue
+     glow rises and fades, while the content scales in from below. Visible
+     enough to feel like "the AI just answered" without being noisy. */
+  @keyframes ai-arrive {
+    0%   { opacity: 0; transform: translateY(10px) scale(0.985); box-shadow: 0 0 0 0 rgba(124, 167, 199, 0); }
+    35%  { opacity: 1; transform: translateY(0) scale(1); box-shadow: 0 0 32px 4px rgba(124, 167, 199, 0.28); }
+    100% { opacity: 1; transform: translateY(0) scale(1); box-shadow: 0 0 0 0 rgba(124, 167, 199, 0); }
+  }
+  .animate-ai-arrive {
+    animation: ai-arrive 900ms cubic-bezier(0.2, 0.85, 0.4, 1) both;
   }
 
   /* Pulse halo for selected nodes — opacity only (r animation is finicky cross-browser) */

@@ -9,6 +9,7 @@ import {
   useOffline,
 } from '../state'
 import { SparkleIcon } from './Icons'
+import { EmptyMessage } from './EmptyMessage'
 
 export function RelationshipsView({
   onSelectEntity,
@@ -117,9 +118,15 @@ export function RelationshipsView({
       )}
 
       {entities.length < 2 ? (
-        <p className="text-ink-400 italic leading-relaxed">
-          Necesitas al menos dos entidades para tener una relación.
-        </p>
+        <EmptyMessage
+          title="Una relación necesita dos."
+          body={
+            <>
+              Una relación es una línea entre dos entidades — sin segundo
+              extremo no hay línea. Volvé cuando tengas al menos dos.
+            </>
+          }
+        />
       ) : (
         <>
           {showForm && (
@@ -172,7 +179,17 @@ export function RelationshipsView({
           )}
 
           {relationships.length === 0 ? (
-            <p className="text-ink-400 italic leading-relaxed">Aún sin relaciones.</p>
+            <EmptyMessage
+              title="Las entidades están sueltas."
+              body={
+                <>
+                  Las relaciones son lo que vuelve constelación a una colección
+                  de nombres. Conecta dos cosas que ya tienes y la trama
+                  empieza a tener forma.
+                </>
+              }
+              hint="Pulsa “descubrir con IA” arriba para que te sugiera las primeras."
+            />
           ) : (
             <ul className="space-y-2">
               {relationships.map((rel, idx) => {
