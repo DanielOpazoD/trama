@@ -22,6 +22,7 @@ import { GraphNode } from './graph/GraphNode'
 import { GraphEdge } from './graph/GraphEdge'
 import { GraphToolbar } from './graph/GraphToolbar'
 import { EmptyState } from './EmptyState'
+import { CloseIcon } from './Icons'
 import type { LayoutMode } from '../hooks/layouts/types'
 
 export default function GraphView({
@@ -173,6 +174,19 @@ export default function GraphView({
     }
   }, [suggest, onProposal])
 
+  // Auto-dismiss the "no nuevas relaciones" toast and any suggest error after
+  // a few seconds. The user can still close them manually with the X.
+  useEffect(() => {
+    if (!suggestEmpty) return
+    const id = setTimeout(() => setSuggestEmpty(false), 6000)
+    return () => clearTimeout(id)
+  }, [suggestEmpty])
+  useEffect(() => {
+    if (!suggest.error) return
+    const id = setTimeout(() => suggest.reset(), 8000)
+    return () => clearTimeout(id)
+  }, [suggest])
+
   if (entities.length === 0) {
     return <EmptyState />
   }
@@ -199,13 +213,30 @@ export default function GraphView({
           <div
             className={
               suggest.error
-                ? 'pointer-events-auto px-4 py-2 bg-red-50/95 border border-red-200/70 rounded-xl text-sm text-red-800 shadow-md max-w-md'
-                : 'pointer-events-auto px-4 py-2 bg-paper-50/95 border border-ink-100/70 rounded-xl text-sm text-ink-500 shadow-md max-w-md leading-relaxed'
+                ? 'pointer-events-auto flex items-start gap-2 pl-3 pr-1.5 py-1.5 bg-red-50/95 border border-red-200/70 rounded-lg text-xs text-red-800 shadow-md max-w-xs'
+                : 'pointer-events-auto flex items-start gap-2 pl-3 pr-1.5 py-1.5 bg-paper-50/95 border border-ink-100/70 rounded-lg text-xs text-ink-500 shadow-md max-w-xs leading-snug'
             }
+            role="status"
           >
-            {suggest.error
-              ? suggest.error.message
-              : 'La IA no encontró relaciones nuevas obvias. Prueba añadiendo descripciones o citas a las entidades para darle más contexto.'}
+            <span className="flex-1">
+              {suggest.error
+                ? suggest.error.message
+                : 'Sin relaciones nuevas obvias. Añade citas o descripciones para darle más contexto.'}
+            </span>
+            <button
+              onClick={() => {
+                setSuggestEmpty(false)
+                if (suggest.error) suggest.reset()
+              }}
+              aria-label="Cerrar aviso"
+              className={
+                suggest.error
+                  ? 'shrink-0 p-1 -m-0.5 text-red-600 hover:text-red-900 rounded transition-colors'
+                  : 'shrink-0 p-1 -m-0.5 text-ink-300 hover:text-ink-700 rounded transition-colors'
+              }
+            >
+              <CloseIcon size={12} />
+            </button>
           </div>
         </div>
       )}

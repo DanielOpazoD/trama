@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { RELATIONSHIP_TYPES, type ExtractionProposal, type RelationshipType } from '../types'
 import {
   useEntitiesQuery,
@@ -8,7 +8,7 @@ import {
   useSuggestRelationships,
   useOffline,
 } from '../state'
-import { SparkleIcon } from './Icons'
+import { CloseIcon, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 
 export function RelationshipsView({
@@ -38,7 +38,7 @@ export function RelationshipsView({
       const proposal = await suggest.mutateAsync()
       if (proposal.relationships.length === 0) {
         setEmptyHint(
-          'La IA no encontró relaciones nuevas obvias. Si esperabas alguna, prueba dándole más contexto: añade citas o descripciones a las entidades.',
+          'Sin relaciones nuevas obvias. Añade citas o descripciones para darle más contexto.',
         )
         return
       }
@@ -47,6 +47,13 @@ export function RelationshipsView({
       // surfaces via suggest.error
     }
   }
+
+  // Auto-dismiss the empty hint after 6s; the user can close it sooner with X.
+  useEffect(() => {
+    if (!emptyHint) return
+    const id = setTimeout(() => setEmptyHint(null), 6000)
+    return () => clearTimeout(id)
+  }, [emptyHint])
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -108,13 +115,27 @@ export function RelationshipsView({
       </header>
 
       {suggest.error && (
-        <div className="mb-6 px-4 py-3 bg-red-50/80 border border-red-200/60 rounded-xl text-sm text-red-800">
-          {suggest.error.message}
+        <div className="mb-6 flex items-start gap-2 pl-3 pr-1.5 py-2 bg-red-50/80 border border-red-200/60 rounded-lg text-xs text-red-800">
+          <span className="flex-1">{suggest.error.message}</span>
+          <button
+            onClick={() => suggest.reset()}
+            aria-label="Cerrar aviso"
+            className="shrink-0 p-1 -m-0.5 text-red-600 hover:text-red-900 rounded transition-colors"
+          >
+            <CloseIcon size={12} />
+          </button>
         </div>
       )}
       {emptyHint && !suggest.isPending && (
-        <div className="mb-6 px-4 py-3 bg-paper-100/60 border border-ink-100/60 rounded-xl text-sm text-ink-500 leading-relaxed">
-          {emptyHint}
+        <div className="mb-6 flex items-start gap-2 pl-3 pr-1.5 py-2 bg-paper-100/60 border border-ink-100/60 rounded-lg text-xs text-ink-500 leading-snug">
+          <span className="flex-1">{emptyHint}</span>
+          <button
+            onClick={() => setEmptyHint(null)}
+            aria-label="Cerrar aviso"
+            className="shrink-0 p-1 -m-0.5 text-ink-300 hover:text-ink-700 rounded transition-colors"
+          >
+            <CloseIcon size={12} />
+          </button>
         </div>
       )}
 
