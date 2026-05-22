@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '../api'
 import {
   useCountsQuery,
   useEntitiesQuery,
@@ -79,7 +81,30 @@ export function Sidebar({
     sugerencias: pendingSuggestions.length > 0 ? pendingSuggestions.length : null,
   }
 
-  const searchResults = useMemo(() => {
+  // Debounce the search query so we don't fire an embed-bearing API call on
+  // every keystroke. 250ms feels responsive but lets the user finish typing.
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  useEffect(() => {
+    const trimmed = searchQuery.trim()
+    if (!trimmed) {
+      setDebouncedQuery('')
+      return
+    }
+    const id = setTimeout(() => setDebouncedQuery(trimmed), 250)
+    return () => clearTimeout(id)
+  }, [searchQuery])
+
+  // Hybrid (lexical + semantic) search via /api/search. Falls back to a
+  // pure-local name match if the API fails or hasn't responded yet, so the
+  // sidebar feels immediate even on the first keystroke.
+  const searchResp = useQuery({
+    queryKey: ['search', debouncedQuery],
+    queryFn: () => api.search(debouncedQuery, { limit: 8 }),
+    enabled: !!debouncedQuery,
+    staleTime: 60_000,
+  })
+
+  const localFallback = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return []
     return entities
@@ -90,6 +115,17 @@ export function Sidebar({
       )
       .slice(0, 8)
   }, [searchQuery, entities])
+
+  const searchResults =
+    searchResp.data?.entities.map((hit) => ({
+      id: hit.id,
+      name: hit.name,
+      type: hit.type,
+      score: hit.score,
+    })) ??
+    (debouncedQuery
+      ? localFallback.map((e) => ({ id: e.id, name: e.name, type: e.type, score: 0 }))
+      : [])
 
   // ---------- collapsed sidebar ----------
   if (collapsed) {

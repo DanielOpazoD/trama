@@ -1,6 +1,11 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import {
+  embedSafe,
+  quoteEmbeddingText,
+  toPgVector,
+} from './_lib/embeddings.js'
 
 type Origin = { kind: string; [key: string]: unknown }
 
@@ -100,9 +105,28 @@ export default withObservability('quotes', async (req: Request, context: Context
     }
     const origin = JSON.stringify(normalizeOrigin(body.origin))
     const linked = Array.isArray(body.linked_quote_ids) ? body.linked_quote_ids : []
+
+    // Look up the entity name so the embedding has the attribution baked in
+    // (so "frase de Borges sobre el tiempo" matches even if "Borges" is just
+    // in the relationship, not in the quote text).
+    const entityNameRows = (await sql`
+      SELECT name FROM entities WHERE id = ${body.entity_id} AND deleted_at IS NULL
+    `) as Array<{ name: string }>
+    const entityName = entityNameRows[0]?.name ?? null
+
+    const emb = await embedSafe(
+      quoteEmbeddingText({
+        text: body.text,
+        entityName,
+        source: body.source ?? null,
+        context: body.context ?? null,
+      }),
+    )
+
     const rows = await sql`
       INSERT INTO quotes (
-        entity_id, text, source, context, user_reflection, linked_quote_ids, origin
+        entity_id, text, source, context, user_reflection, linked_quote_ids, origin,
+        embedding, embedding_model, embedding_at
       ) VALUES (
         ${body.entity_id},
         ${body.text},
@@ -110,7 +134,10 @@ export default withObservability('quotes', async (req: Request, context: Context
         ${body.context ?? null},
         ${body.user_reflection ?? null},
         ${linked}::uuid[],
-        ${origin}::jsonb
+        ${origin}::jsonb,
+        ${emb ? toPgVector(emb.vector) : null}::vector,
+        ${emb?.model ?? null},
+        ${emb ? new Date().toISOString() : null}
       )
       RETURNING id, entity_id, text, source, context,
                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
@@ -158,6 +185,44 @@ export default withObservability('quotes', async (req: Request, context: Context
     if (rows.length === 0) {
       return new Response('Cita no encontrada', { status: 404 })
     }
+
+    // Re-embed when anything that goes into the embedding changed. Fire and
+    // forget so the PATCH response isn't held up by an embeddings call.
+    const embeddingDirty =
+      body.text !== undefined ||
+      body.source !== undefined ||
+      body.context !== undefined ||
+      body.entity_id !== undefined
+    if (embeddingDirty) {
+      const updated = rows[0] as {
+        text: string
+        source: string | null
+        context: string | null
+        entity_id: string
+      }
+      ;(async () => {
+        const nameRows = (await sql`
+          SELECT name FROM entities WHERE id = ${updated.entity_id} AND deleted_at IS NULL
+        `) as Array<{ name: string }>
+        const emb = await embedSafe(
+          quoteEmbeddingText({
+            text: updated.text,
+            entityName: nameRows[0]?.name ?? null,
+            source: updated.source,
+            context: updated.context,
+          }),
+        )
+        if (!emb) return
+        await sql`
+          UPDATE quotes
+          SET embedding = ${toPgVector(emb.vector)}::vector,
+              embedding_model = ${emb.model},
+              embedding_at = NOW()
+          WHERE id = ${id}
+        `
+      })().catch(() => {})
+    }
+
     return Response.json(rows[0])
   }
 

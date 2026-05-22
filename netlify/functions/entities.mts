@@ -1,6 +1,11 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import {
+  embedSafe,
+  entityEmbeddingText,
+  toPgVector,
+} from './_lib/embeddings.js'
 
 type Origin = { kind: string; [key: string]: unknown }
 
@@ -52,8 +57,24 @@ export default withObservability('entities', async (req: Request, context: Conte
       spotify_url?: string | null
     }
     const origin = JSON.stringify(normalizeOrigin(body.origin))
+
+    // Embed before inserting so the row lands with its vector populated.
+    // embedSafe returns null on any failure (no key, network issue, etc.) —
+    // the row is still created and a future re-index can backfill.
+    const emb = await embedSafe(
+      entityEmbeddingText({
+        name: body.name,
+        type: body.type,
+        year: body.year ?? null,
+        description: body.description ?? null,
+      }),
+    )
+
     const rows = await sql`
-      INSERT INTO entities (type, name, year, description, essay, position_x, position_y, origin, spotify_url)
+      INSERT INTO entities (
+        type, name, year, description, essay, position_x, position_y, origin, spotify_url,
+        embedding, embedding_model, embedding_at
+      )
       VALUES (
         ${body.type},
         ${body.name},
@@ -63,7 +84,10 @@ export default withObservability('entities', async (req: Request, context: Conte
         ${body.position_x ?? null},
         ${body.position_y ?? null},
         ${origin}::jsonb,
-        ${body.spotify_url ?? null}
+        ${body.spotify_url ?? null},
+        ${emb ? toPgVector(emb.vector) : null}::vector,
+        ${emb?.model ?? null},
+        ${emb ? new Date().toISOString() : null}
       )
       RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
     `
@@ -99,6 +123,43 @@ export default withObservability('entities', async (req: Request, context: Conte
     if (rows.length === 0) {
       return new Response('Entidad no encontrada', { status: 404 })
     }
+
+    // Re-embed if anything that feeds the embedding changed. We don't await
+    // before responding to keep the PATCH snappy — the embedding catches up
+    // in the background (best-effort).
+    const embeddingDirty =
+      body.name !== undefined ||
+      body.type !== undefined ||
+      body.year !== undefined ||
+      body.description !== undefined
+    if (embeddingDirty) {
+      const updated = rows[0] as {
+        name: string
+        type: string
+        year: number | null
+        description: string | null
+      }
+      embedSafe(
+        entityEmbeddingText({
+          name: updated.name,
+          type: updated.type,
+          year: updated.year,
+          description: updated.description,
+        }),
+      )
+        .then((emb) => {
+          if (!emb) return
+          return sql`
+            UPDATE entities
+            SET embedding = ${toPgVector(emb.vector)}::vector,
+                embedding_model = ${emb.model},
+                embedding_at = NOW()
+            WHERE id = ${id}
+          `
+        })
+        .catch(() => {})
+    }
+
     return Response.json(rows[0])
   }
 

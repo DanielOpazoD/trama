@@ -247,6 +247,17 @@ export const api = {
   async getCounts(): Promise<{ entities: number; quotes: number; relationships: number }> {
     return request('/api/counts')
   },
+  /**
+   * Hybrid (lexical + semantic) search. Returns top entities and quotes
+   * matching the query, ranked by combined score.
+   */
+  async search(q: string, options?: { limit?: number; mode?: 'hybrid' | 'lexical' | 'semantic' }):
+    Promise<SearchResponse> {
+    const params = new URLSearchParams({ q })
+    if (options?.limit) params.set('limit', String(options.limit))
+    if (options?.mode) params.set('mode', options.mode)
+    return request<SearchResponse>(`/api/search?${params.toString()}`)
+  },
   /** Cursor-paginated list. `cursor` null/undefined fetches the first page. */
   async listQuotesPage(
     limit: number,
@@ -511,11 +522,6 @@ export const api = {
     await request<void>(`/api/entity-types/${slug}`, { method: 'DELETE' })
   },
 
-  async search(q: string): Promise<SearchResults> {
-    if (!q.trim()) return { entities: [], quotes: [] }
-    return request<SearchResults>(`/api/search?q=${encodeURIComponent(q)}`)
-  },
-
   async listRelationshipTypes(): Promise<Array<{ slug: string; label: string; reverse_label: string; sort_order: number }>> {
     return request('/api/relationship-types')
   },
@@ -600,11 +606,6 @@ export type ExtractionLogResponse = {
   }
 }
 
-export type SearchResults = {
-  entities: Array<{ id: string; name: string; type: string; rank: number }>
-  quotes: Array<{ id: string; entityId: string; text: string; rank: number }>
-}
-
 export type ChatThread = {
   id: string
   title: string | null
@@ -669,6 +670,34 @@ export type ChatMessage = {
   /** Which model produced this assistant message — undefined for user messages. */
   provider?: string
   model?: string
+}
+
+export type SearchEntityHit = {
+  id: string
+  name: string
+  type: string
+  description: string | null
+  year: number | null
+  score: number
+  lexical: number
+  semantic: number
+}
+
+export type SearchQuoteHit = {
+  id: string
+  entityId: string
+  entityName: string
+  text: string
+  source: string | null
+  score: number
+  lexical: number
+  semantic: number
+}
+
+export type SearchResponse = {
+  entities: SearchEntityHit[]
+  quotes: SearchQuoteHit[]
+  mode: 'hybrid' | 'lexical' | 'semantic'
 }
 
 export type AskResponse = {
