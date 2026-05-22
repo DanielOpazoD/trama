@@ -42,6 +42,10 @@ export function buildChatPrompt(
   context: ChatTramaContext,
   relationshipTypes: string[],
   entityTypes: string[],
+  /** If present, the thread is focused on a single entity. The system prompt
+      shifts to "conversación con X" tone and the trama context shown is
+      already filtered to that entity + neighbors. */
+  focusEntity?: { id: string; name: string; type: string } | null,
 ): LLMMessage[] {
   // Each row includes its UUID so the model can reference it in edits and
   // deletes. IDs are noisy but unavoidable — name alone is ambiguous.
@@ -76,7 +80,11 @@ export function buildChatPrompt(
           })
           .join('\n')
 
-  const system = `Eres un colaborador del usuario en su "Trama" — un mapa cognitivo personal de afinidades intelectuales y estéticas (personas, libros, canciones, conceptos, ideas, sus relaciones y citas). Tu rol:
+  const focusPreamble = focusEntity
+    ? `Esta conversación está FOCALIZADA en una entidad específica: "${focusEntity.name}" [${focusEntity.type}]. El usuario quiere conversar sobre ELLA en particular — sus citas, sus conexiones, su contexto, lo que se relaciona con ella. El estado de la trama abajo ya viene FILTRADO a esa entidad y sus vecinos directos. Mantén el foco; si el usuario pregunta por algo aparte, puedes responder pero recuérdale que el hilo es sobre ${focusEntity.name}.\n\n`
+    : ''
+
+  const system = `${focusPreamble}Eres un colaborador del usuario en su "Trama" — un mapa cognitivo personal de afinidades intelectuales y estéticas (personas, libros, canciones, conceptos, ideas, sus relaciones y citas). Tu rol:
 
 1. Responder preguntas sobre la trama y sobre los temas que ella contiene.
 2. Conversar sobre las personas, obras, ideas y citas que el usuario guarda — añadiendo contexto, conexiones culturales, biografía, lecturas posibles.

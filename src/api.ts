@@ -405,10 +405,16 @@ export const api = {
   async listChatThreads(): Promise<ChatThread[]> {
     return request<ChatThread[]>('/api/chat/threads')
   },
-  async createChatThread(title?: string): Promise<ChatThread> {
+  async createChatThread(
+    titleOrOpts?: string | { title?: string; context?: string },
+  ): Promise<ChatThread> {
+    const body =
+      typeof titleOrOpts === 'string'
+        ? { title: titleOrOpts }
+        : titleOrOpts ?? {}
     return request<ChatThread>('/api/chat/threads', {
       method: 'POST',
-      body: JSON.stringify(title ? { title } : {}),
+      body: JSON.stringify(body),
     })
   },
   async deleteChatThread(id: string): Promise<void> {

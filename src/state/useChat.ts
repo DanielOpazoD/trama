@@ -18,7 +18,8 @@ export function useChatThreadsQuery() {
 export function useCreateChatThread() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (title?: string) => api.createChatThread(title),
+    mutationFn: (input?: string | { title?: string; context?: string }) =>
+      api.createChatThread(input),
     onSuccess: (thread) => {
       queryClient.setQueryData<ChatThread[]>(THREADS_KEY, (prev) => [
         thread,

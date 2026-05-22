@@ -87,12 +87,19 @@ export default withObservability(
     if (invocation.kind === 'off') return aiOffResponse()
 
     const threadRows = (await sql`
-      SELECT id, title FROM chat_threads WHERE id = ${threadId} AND deleted_at IS NULL
-    `) as Array<{ id: string; title: string | null }>
+      SELECT id, title, context FROM chat_threads WHERE id = ${threadId} AND deleted_at IS NULL
+    `) as Array<{ id: string; title: string | null; context: string | null }>
     if (threadRows.length === 0) {
       return new Response('Thread no encontrado', { status: 404 })
     }
     const thread = threadRows[0]
+
+    // Entity-focused threads have context = "entity:<uuid>". When present we
+    // narrow the trama context fed to the model to that one entity + its
+    // direct neighbors, so the model can sustain a focused conversation
+    // about "this person/book/etc." without drowning in unrelated rows.
+    const entityFocusMatch = thread.context?.match(/^entity:([0-9a-f-]{36})$/i)
+    const focusEntityId = entityFocusMatch?.[1] ?? null
 
     // Persist user message first so it survives an LLM failure.
     type UserInsertRow = { id: string; created_at: string }
@@ -131,25 +138,57 @@ export default withObservability(
     type QuoteCtxRow = { id: string; entity_name: string; text: string; source: string | null }
     type TypeRow = { slug: string }
 
+    const entitiesQuery = focusEntityId
+      ? (sql`SELECT id, name, type, year, description
+             FROM entities
+             WHERE deleted_at IS NULL
+               AND (id = ${focusEntityId}
+                    OR id IN (
+                      SELECT CASE WHEN from_id = ${focusEntityId} THEN to_id ELSE from_id END
+                      FROM relationships
+                      WHERE deleted_at IS NULL
+                        AND (from_id = ${focusEntityId} OR to_id = ${focusEntityId})
+                    ))` as unknown as Promise<EntityCtxRow[]>)
+      : (sql`SELECT id, name, type, year, description
+             FROM entities
+             WHERE deleted_at IS NULL
+             ORDER BY created_at DESC
+             LIMIT ${CONTEXT_ENTITY_LIMIT}` as unknown as Promise<EntityCtxRow[]>)
+
+    const relsQuery = focusEntityId
+      ? (sql`SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
+             FROM relationships r
+             JOIN entities ef ON ef.id = r.from_id
+             JOIN entities et ON et.id = r.to_id
+             WHERE r.deleted_at IS NULL
+               AND (r.from_id = ${focusEntityId} OR r.to_id = ${focusEntityId})
+             ORDER BY r.created_at DESC` as unknown as Promise<RelCtxRow[]>)
+      : (sql`SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
+             FROM relationships r
+             JOIN entities ef ON ef.id = r.from_id
+             JOIN entities et ON et.id = r.to_id
+             WHERE r.deleted_at IS NULL
+             ORDER BY r.created_at DESC
+             LIMIT ${CONTEXT_RELATIONSHIP_LIMIT}` as unknown as Promise<RelCtxRow[]>)
+
+    const quotesQuery = focusEntityId
+      ? (sql`SELECT q.id, e.name AS entity_name, q.text, q.source
+             FROM quotes q
+             JOIN entities e ON e.id = q.entity_id
+             WHERE q.deleted_at IS NULL
+               AND q.entity_id = ${focusEntityId}
+             ORDER BY q.created_at DESC` as unknown as Promise<QuoteCtxRow[]>)
+      : (sql`SELECT q.id, e.name AS entity_name, q.text, q.source
+             FROM quotes q
+             JOIN entities e ON e.id = q.entity_id
+             WHERE q.deleted_at IS NULL
+             ORDER BY q.created_at DESC
+             LIMIT ${CONTEXT_QUOTE_LIMIT}` as unknown as Promise<QuoteCtxRow[]>)
+
     const [entityRows, relRows, quoteRows, entityTypeRows, relTypeRows] = await Promise.all([
-      sql`SELECT id, name, type, year, description
-          FROM entities
-          WHERE deleted_at IS NULL
-          ORDER BY created_at DESC
-          LIMIT ${CONTEXT_ENTITY_LIMIT}` as unknown as Promise<EntityCtxRow[]>,
-      sql`SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
-          FROM relationships r
-          JOIN entities ef ON ef.id = r.from_id
-          JOIN entities et ON et.id = r.to_id
-          WHERE r.deleted_at IS NULL
-          ORDER BY r.created_at DESC
-          LIMIT ${CONTEXT_RELATIONSHIP_LIMIT}` as unknown as Promise<RelCtxRow[]>,
-      sql`SELECT q.id, e.name AS entity_name, q.text, q.source
-          FROM quotes q
-          JOIN entities e ON e.id = q.entity_id
-          WHERE q.deleted_at IS NULL
-          ORDER BY q.created_at DESC
-          LIMIT ${CONTEXT_QUOTE_LIMIT}` as unknown as Promise<QuoteCtxRow[]>,
+      entitiesQuery,
+      relsQuery,
+      quotesQuery,
       sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
       sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
     ])
@@ -182,7 +221,18 @@ export default withObservability(
     const relationshipTypes =
       relTypeRows.length > 0 ? relTypeRows.map((r) => r.slug) : FALLBACK_RELATIONSHIP_TYPES
 
-    const messages = buildChatPrompt(history, tramaContext, relationshipTypes, entityTypes)
+    // If this is an entity-focused thread, look up the focus entity's name+type
+    // so the prompt can address it explicitly ("conversación sobre Borges").
+    const focusEntity = focusEntityId
+      ? tramaContext.entities.find((e) => e.id === focusEntityId) ?? null
+      : null
+    const messages = buildChatPrompt(
+      history,
+      tramaContext,
+      relationshipTypes,
+      entityTypes,
+      focusEntity ? { id: focusEntity.id, name: focusEntity.name, type: focusEntity.type } : null,
+    )
 
     // Stream the assistant reply back as SSE. The client subscribes to the
     // event stream and renders partial text as it arrives. At the end we send

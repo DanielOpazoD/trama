@@ -228,6 +228,11 @@ function Shell() {
                 <NodeDetailPanel
                   entityId={selectedEntityId}
                   onClose={() => setSelectedEntityId(null)}
+                  onOpenThread={(threadId) => {
+                    setSelectedEntityId(null)
+                    setPendingChatThreadId(threadId)
+                    setView('chat')
+                  }}
                 />
               )}
             </div>

@@ -135,14 +135,22 @@ export function ChatView({
 
   // Build the list of section filters from the threads themselves — chips
   // only show for contexts that actually have a thread, so we don't bloat
-  // the rail with empty filters.
+  // the rail with empty filters. Entity-focused threads (context starts with
+  // "entity:<id>") collapse into a single "entidad" chip so we don't list
+  // one chip per entity uuid.
   const availableContexts = Array.from(
-    new Set(threads.map((t) => t.context).filter((c): c is string => !!c)),
+    new Set(
+      threads
+        .map((t) => t.context)
+        .filter((c): c is string => !!c)
+        .map((c) => (c.startsWith('entity:') ? 'entidad' : c)),
+    ),
   ).sort()
 
   const visibleThreads = threads.filter((t) => {
     if (contextFilter === 'all') return true
     if (contextFilter === 'free') return t.context === null
+    if (contextFilter === 'entidad') return t.context?.startsWith('entity:') ?? false
     return t.context === contextFilter
   })
 
@@ -222,7 +230,7 @@ export function ChatView({
                             color: 'var(--accent-primary)',
                           }}
                         >
-                          {t.context}
+                          {t.context.startsWith('entity:') ? 'entidad' : t.context}
                         </span>
                       )}
                     </div>
@@ -357,6 +365,7 @@ function EmptyChatHint() {
     section context (e.g., "Hilo de Citas") instead of "(sin título)". */
 function defaultTitleFor(context: string | null | undefined): string {
   if (!context) return '(sin título)'
+  if (context.startsWith('entity:')) return 'Conversación con una entidad'
   const label = context.charAt(0).toUpperCase() + context.slice(1)
   return `Hilo de ${label}`
 }

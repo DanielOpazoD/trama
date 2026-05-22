@@ -8,6 +8,7 @@ import {
   useDeleteRelationship,
   useUpdateEntity,
 } from '../state'
+import { useChatThreadsQuery, useCreateChatThread } from '../state/useChat'
 import {
   ENTITY_TYPES,
   RELATIONSHIP_TYPES,
@@ -25,9 +26,13 @@ const SPOTIFY_TYPES = new Set([
 export function NodeDetailPanel({
   entityId,
   onClose,
+  onOpenThread,
 }: {
   entityId: string
   onClose: () => void
+  /** Opens ChatView with a specific thread. Used by "hablar con esta
+      entidad" — we find or create the entity's focus thread and route there. */
+  onOpenThread?: (threadId: string) => void
 }) {
   const { data: entities = [] } = useEntitiesQuery()
   const { data: quotes = [] } = useQuotesQuery()
@@ -36,6 +41,8 @@ export function NodeDetailPanel({
   const addQuote = useAddQuote()
   const deleteEntity = useDeleteEntity()
   const deleteRelationship = useDeleteRelationship()
+  const { data: chatThreads = [] } = useChatThreadsQuery()
+  const createChatThread = useCreateChatThread()
 
   const entity = entities.find((e) => e.id === entityId)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -134,6 +141,27 @@ export function NodeDetailPanel({
     }
   }
 
+  async function handleTalkAboutEntity() {
+    if (!entity || !onOpenThread) return
+    const wantedContext = `entity:${entity.id}`
+    // Reuse an existing entity-focused thread if there is one; otherwise
+    // create a new thread tagged with this entity's id.
+    const existing = chatThreads.find((t) => t.context === wantedContext)
+    if (existing) {
+      onOpenThread(existing.id)
+      return
+    }
+    try {
+      const created = await createChatThread.mutateAsync({
+        context: wantedContext,
+        title: `Sobre ${entity.name}`,
+      })
+      onOpenThread(created.id)
+    } catch {
+      /* surfaces via createChatThread.error */
+    }
+  }
+
   async function handleSaveEssay() {
     if (!entity) return
     const next = essayDraft.trim() || null
@@ -179,13 +207,26 @@ export function NodeDetailPanel({
             </a>
           )}
         </div>
-        <button
-          onClick={onClose}
-          className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
-          aria-label="Cerrar"
-        >
-          <CloseIcon />
-        </button>
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <button
+            onClick={onClose}
+            className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
+            aria-label="Cerrar"
+          >
+            <CloseIcon />
+          </button>
+          {onOpenThread && (
+            <button
+              onClick={handleTalkAboutEntity}
+              disabled={createChatThread.isPending}
+              className="ai-cta text-[10px]"
+              title="Abre un hilo de chat focalizado en esta entidad: su contexto, sus citas y sus relaciones."
+            >
+              <SparkleIcon size={10} />
+              hablar con esta entidad
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
