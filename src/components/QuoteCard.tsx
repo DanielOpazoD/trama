@@ -107,7 +107,7 @@ export function QuoteCard({
       <div className="mt-1 flex items-baseline gap-3 text-xs">
         {quote.source && <span className="text-ink-400">{quote.source}</span>}
         {quote.origin.kind === 'ai' && (
-          <span className="inline-flex items-center text-sky-700/70" title="propuesta por IA">
+          <span className="inline-flex items-center" style={{ color: 'var(--accent-primary)' }} title="propuesta por IA">
             <SparkleIcon size={10} />
           </span>
         )}
@@ -197,8 +197,10 @@ export function QuoteCard({
       {quote.aiReflection && !pendingAi && (
         <div className="mt-3 group/airefl">
           <div className="flex items-baseline gap-2">
-            <SparkleIcon size={10} className="text-sky-700/70" />
-            <span className="text-[10px] uppercase tracking-[0.18em] text-sky-700/80">
+            <span style={{ color: 'var(--accent-primary)' }} className="inline-flex">
+              <SparkleIcon size={10} />
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.18em]" style={{ color: 'var(--accent-primary)' }}>
               interpretación de la IA
             </span>
             {quote.aiReflectionAt && (
@@ -225,10 +227,12 @@ export function QuoteCard({
 
       {/* AI reflection — pending review */}
       {pendingAi && (
-        <div className="mt-3 border border-sky-200/60 bg-sky-50/40 rounded-lg p-3">
+        <div className="mt-3 ai-panel p-3">
           <div className="flex items-baseline gap-2 mb-1">
-            <SparkleIcon size={10} className="text-sky-700/70" />
-            <span className="text-[10px] uppercase tracking-[0.18em] text-sky-700/80">
+            <span style={{ color: 'var(--accent-primary)' }} className="inline-flex">
+              <SparkleIcon size={10} />
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.18em]" style={{ color: 'var(--accent-primary)' }}>
               propuesta de la IA
             </span>
           </div>
@@ -256,11 +260,11 @@ export function QuoteCard({
           <button
             onClick={handleAskReflection}
             disabled={reflectQuote.isPending}
-            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] text-sky-700/70 hover:text-sky-900 disabled:text-ink-200 transition-colors"
+            className="ai-cta"
           >
             {reflectQuote.isPending ? (
               <>
-                <span className="size-2.5 border-2 border-sky-700/30 border-t-sky-700 rounded-full animate-spin" />
+                <span className="size-2.5 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--accent-primary-ring)', borderTopColor: 'var(--accent-primary)' }} />
                 pensando…
               </>
             ) : (

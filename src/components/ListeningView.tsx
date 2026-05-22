@@ -107,6 +107,7 @@ export function ListeningView({
       <header className="mb-10 flex items-baseline justify-between gap-6">
         <div className="min-w-0">
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Escuchas</h2>
+          <div className="accent-rule mt-3 mb-2" />
           <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-md">
             Lo que has reproducido en Spotify, agrupado y ordenado por frecuencia.
             Nada de esto está en tu trama todavía — revisa y agrega lo que resuene.

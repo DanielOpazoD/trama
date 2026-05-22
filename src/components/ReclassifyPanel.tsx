@@ -52,12 +52,15 @@ export function ReclassifyPanel({
     <section
       role="region"
       aria-label="Propuesta de reclasificación"
-      className="mb-8 border border-sky-200/60 bg-sky-50/40 rounded-xl overflow-hidden animate-ai-arrive"
+      className="mb-8 ai-panel animate-ai-arrive"
     >
-      <header className="px-4 py-3 flex items-baseline justify-between border-b border-sky-200/50">
-        <div className="flex items-baseline gap-2">
+      <header
+        className="px-4 py-3 flex items-baseline justify-between"
+        style={{ borderBottom: '1px solid var(--accent-primary-ring)' }}
+      >
+        <div className="flex items-baseline gap-2" style={{ color: 'var(--accent-primary)' }}>
           <SparkleIcon size={12} />
-          <h3 className="text-[11px] uppercase tracking-[0.2em] text-sky-900/80">
+          <h3 className="text-[11px] uppercase tracking-[0.2em]">
             reclasificación sugerida
           </h3>
           <span className="text-xs text-ink-400">
@@ -91,7 +94,7 @@ export function ReclassifyPanel({
                   {label(p.oldType)}
                 </span>
                 <span className="mx-1.5 text-ink-300">→</span>
-                <span className="text-[10px] uppercase tracking-[0.18em] text-sky-800">
+                <span className="text-[10px] uppercase tracking-[0.18em]" style={{ color: 'var(--accent-primary)' }}>
                   {label(p.newType)}
                 </span>
               </div>
@@ -108,7 +111,10 @@ export function ReclassifyPanel({
         ))}
       </ul>
 
-      <footer className="px-4 py-3 border-t border-sky-200/50 flex items-center justify-end gap-2">
+      <footer
+        className="px-4 py-3 flex items-center justify-end gap-2"
+        style={{ borderTop: '1px solid var(--accent-primary-ring)' }}
+      >
         <button
           onClick={onClose}
           disabled={submitting}

@@ -142,16 +142,20 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
   if (!hasItems) return null
 
   return (
-    <div className="mt-3 border border-sky-200/60 bg-sky-50/40 rounded-xl overflow-hidden">
-      <header className="px-3 py-2 flex items-baseline justify-between border-b border-sky-200/50">
-        <div className="flex items-baseline gap-2 text-[10px] uppercase tracking-[0.2em] text-sky-900/80">
+    <div className="mt-3 ai-panel">
+      <header
+        className="px-3 py-2 flex items-baseline justify-between"
+        style={{ borderBottom: '1px solid var(--accent-primary-ring)' }}
+      >
+        <div className="flex items-baseline gap-2 text-[10px] uppercase tracking-[0.2em]" style={{ color: 'var(--accent-primary)' }}>
           <SparkleIcon size={11} />
           propuestas
         </div>
         {totalPending > 1 && (
           <button
             onClick={applyAll}
-            className="text-[10px] uppercase tracking-[0.18em] text-sky-700 hover:text-sky-900 transition-colors"
+            className="text-[10px] uppercase tracking-[0.18em] hover:opacity-80 transition-opacity"
+            style={{ color: 'var(--accent-primary)' }}
           >
             aceptar todo
           </button>
@@ -243,13 +247,17 @@ function ProposalRow({
       {status === 'pending' && (
         <button
           onClick={onAccept}
-          className="text-[10px] uppercase tracking-[0.18em] text-sky-700 hover:text-sky-900 transition-colors px-2 py-0.5"
+          className="text-[10px] uppercase tracking-[0.18em] hover:opacity-80 transition-opacity px-2 py-0.5"
+          style={{ color: 'var(--accent-primary)' }}
         >
           aceptar
         </button>
       )}
       {status === 'applied' && (
-        <span className="text-[10px] uppercase tracking-[0.18em] text-emerald-700/80 px-2 py-0.5">
+        <span
+          className="text-[10px] uppercase tracking-[0.18em] px-2 py-0.5"
+          style={{ color: 'var(--accent-sage)' }}
+        >
           ✓ en la trama
         </span>
       )}

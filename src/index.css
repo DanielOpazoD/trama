@@ -34,6 +34,23 @@
     --ink-2: #3A3429;
     --ink-dim: #857C66;
 
+    /* Editorial accent palette — applied with discipline (one main accent
+       across the app, two specialized helpers). These are NOT tied to entity
+       types; they belong to UI state and meaning:
+         primary   → links, focused CTAs, active selection, AI sparkle
+         primary-soft → hover backgrounds & subtle fills of primary
+         sage      → confirmation / "saved" / agreement
+         gold      → editorial highlights (featured quote underline, etc.)
+       Tone: pensativo (deep) but vivo (saturated against the cream paper). */
+    --accent-primary:      #1f4d6b;  /* deep prussian — quiet but legible */
+    --accent-primary-soft: rgb(31 77 107 / 0.08);
+    --accent-primary-ring: rgb(31 77 107 / 0.18);
+    --accent-sage:         #5f7a55;  /* warm sage — for ✓ confirmations */
+    --accent-sage-soft:    rgb(95 122 85 / 0.10);
+    --accent-gold:         #93732f;  /* aged gold — for featured / IA */
+    --accent-gold-soft:    rgb(147 115 47 / 0.10);
+    --accent-clay:         #a25239;  /* terracotta — for warnings/delete on hover */
+
     /* Entity-type accent colors — light theme. Used by GraphNode.
        Dark theme overrides below shift these toward warmer/lighter tones so
        they keep readable contrast against the dark paper. */
@@ -86,6 +103,17 @@
     --ink: #e6dfd1;
     --ink-2: #c4baa8;
     --ink-dim: #8a8175;
+
+    /* Editorial accents — dark theme. Same hues raised so they sit on the
+       coffee paper instead of disappearing into it. */
+    --accent-primary:      #8db8d6;
+    --accent-primary-soft: rgb(141 184 214 / 0.12);
+    --accent-primary-ring: rgb(141 184 214 / 0.25);
+    --accent-sage:         #a3bd96;
+    --accent-sage-soft:    rgb(163 189 150 / 0.14);
+    --accent-gold:         #c9a763;
+    --accent-gold-soft:    rgb(201 167 99 / 0.14);
+    --accent-clay:         #d18667;
 
     /* Entity-type accents — dark theme. Same hue, raised lightness so they
        sit comfortably on the coffee-toned paper. */
@@ -296,8 +324,15 @@
 @layer components {
   .input-paper {
     @apply px-3 py-2 bg-paper-50/70 border border-ink-100 rounded-lg
-      focus:outline-none focus:border-ink-300 transition-all duration-200
+      transition-all duration-200
       text-ink-700 placeholder:text-ink-200;
+    /* Focus ring uses the editorial primary accent — prussian on cream,
+       lights up to ~3px without shifting layout. */
+  }
+  .input-paper:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-primary-ring);
   }
 
   .btn-ink {
@@ -305,10 +340,50 @@
       hover:bg-ink-600 active:scale-[0.97]
       transition-all duration-150 ease-out
       disabled:bg-ink-200 disabled:cursor-not-allowed disabled:active:scale-100;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 0 transparent;
+  }
+  .btn-ink:hover:not(:disabled) {
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+  }
+
+  /* Secondary "primary" — uses the editorial accent instead of ink. For
+     actions that should feel more inviting than the heavy ink button:
+     "abrir", "explorar", "ver más". */
+  .btn-accent {
+    @apply px-4 py-2 rounded-lg text-sm font-medium
+      transition-all duration-150 ease-out active:scale-[0.97]
+      disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+    background-color: var(--accent-primary);
+    color: rgb(var(--paper-50));
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+  }
+  .btn-accent:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
   }
 
   .btn-ghost {
     @apply text-ink-300 hover:text-ink-600 transition-colors duration-200 text-sm;
+  }
+
+  /* Editorial chip — used for tiny pill labels (origin: IA, verified, etc.).
+     Less generic than text-sky-700/70 inline classes scattered around.
+     Variants by data-tone attribute. */
+  .chip {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full
+      text-[10px] uppercase tracking-[0.18em] font-medium;
+  }
+  .chip[data-tone='primary'] {
+    color: var(--accent-primary);
+    background-color: var(--accent-primary-soft);
+  }
+  .chip[data-tone='gold'] {
+    color: var(--accent-gold);
+    background-color: var(--accent-gold-soft);
+  }
+  .chip[data-tone='sage'] {
+    color: var(--accent-sage);
+    background-color: var(--accent-sage-soft);
   }
 
   /* All interactive things get a consistent press feel */
@@ -328,6 +403,55 @@
     font-style: italic;
     font-weight: 400;
     font-feature-settings: 'liga', 'kern';
+  }
+
+  /* Editorial accent rule — a narrow primary-color underline that sits
+     under section headings. Adds vibration without shouting. */
+  .accent-rule {
+    width: 32px;
+    height: 2px;
+    border-radius: 1px;
+    background-color: var(--accent-primary);
+    opacity: 0.7;
+  }
+
+  /* The little "AI action" link/button style: a discreet CTA that lives in
+     the corner of section headers ("descubrir con IA", "pedir ronda", etc.).
+     Always primary-accent so the AI's voice has a consistent color
+     throughout the app, instead of nine different bluish greys. */
+  .ai-cta {
+    @apply inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.18em]
+      transition-colors disabled:cursor-not-allowed;
+    color: var(--accent-primary);
+  }
+  .ai-cta:hover:not(:disabled) {
+    filter: brightness(0.85);
+  }
+  .ai-cta:disabled {
+    @apply text-ink-200;
+  }
+  /* Same style but with the inset-pill background that the GraphToolbar uses */
+  .ai-cta-pill {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-[0.15em]
+      bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm
+      transition-all disabled:cursor-not-allowed;
+    color: var(--accent-primary);
+  }
+  .ai-cta-pill:hover:not(:disabled) {
+    border-color: var(--accent-primary-ring);
+    box-shadow: 0 2px 8px var(--accent-primary-ring);
+  }
+  .ai-cta-pill:disabled {
+    @apply text-ink-200;
+  }
+
+  /* AI proposal panel — used by ReclassifyPanel and the inline proposal that
+     comes back in chat messages. Same look across the app: tinted card with
+     primary-accent border. */
+  .ai-panel {
+    @apply rounded-xl overflow-hidden;
+    background-color: var(--accent-primary-soft);
+    border: 1px solid var(--accent-primary-ring);
   }
 
   /* Graph node hover affordance */

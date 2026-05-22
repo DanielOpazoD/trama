@@ -233,12 +233,16 @@ export function Sidebar({
               aria-label={item.label}
               className={`group flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ease-out active:scale-[0.98] relative ${
                 active
-                  ? 'bg-ink-700/10 text-ink-700 shadow-sm shadow-ink-900/5'
+                  ? 'text-ink-700 shadow-sm shadow-ink-900/5'
                   : 'text-ink-400 hover:text-ink-700 hover:bg-ink-700/5'
               }`}
+              style={active ? { backgroundColor: 'var(--accent-primary-soft)' } : undefined}
             >
               {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r bg-ink-700" />
+                <span
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r"
+                  style={{ backgroundColor: 'var(--accent-primary)' }}
+                />
               )}
               <span className="flex items-center gap-2.5">
                 <Icon
@@ -248,7 +252,21 @@ export function Sidebar({
                 <span>{item.label}</span>
               </span>
               {counts[item.value] !== null && (
-                <span className="text-xs text-ink-300 tabular-nums">
+                <span
+                  className={`tabular-nums text-xs ${
+                    item.value === 'sugerencias'
+                      ? 'px-1.5 py-0.5 rounded-full font-medium'
+                      : 'text-ink-300'
+                  }`}
+                  style={
+                    item.value === 'sugerencias'
+                      ? {
+                          backgroundColor: 'var(--accent-primary-soft)',
+                          color: 'var(--accent-primary)',
+                        }
+                      : undefined
+                  }
+                >
                   {counts[item.value]}
                 </span>
               )}

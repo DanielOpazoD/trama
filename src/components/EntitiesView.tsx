@@ -76,6 +76,7 @@ export function EntitiesView({
       <header className="mb-10 flex items-baseline justify-between gap-6">
         <div className="min-w-0">
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Entidades</h2>
+          <div className="accent-rule mt-3 mb-2" />
           <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-md">
             Las cosas que conectas: personas, libros, canciones, álbumes, películas,
             obras, conceptos, ideas. Cada nodo del grafo es una entidad.
@@ -86,12 +87,12 @@ export function EntitiesView({
             <button
               onClick={handleReclassify}
               disabled={reclassify.isPending || offline}
-              className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.18em] text-sky-700/80 hover:text-sky-900 disabled:text-ink-200 disabled:cursor-not-allowed transition-colors"
+              className="ai-cta"
               title="La IA revisa los tipos actuales y propone reclasificaciones cuando hay uno mejor"
             >
               {reclassify.isPending ? (
                 <>
-                  <span className="size-3 border-2 border-sky-700/30 border-t-sky-700 rounded-full animate-spin" />
+                  <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: `var(--accent-primary-ring)`, borderTopColor: `var(--accent-primary)` }} />
                   revisando…
                 </>
               ) : (

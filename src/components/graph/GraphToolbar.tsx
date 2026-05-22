@@ -57,12 +57,12 @@ export function GraphToolbar({
           <button
             onClick={onSuggest}
             disabled={suggestPending || suggestDisabled}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-[0.15em] text-sky-700/80 hover:text-sky-900 disabled:text-ink-200 disabled:cursor-not-allowed bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm transition-colors"
+            className="ai-cta-pill"
             title="Propón relaciones nuevas con IA entre las entidades existentes"
           >
             {suggestPending ? (
               <>
-                <span className="size-3 border-2 border-sky-700/30 border-t-sky-700 rounded-full animate-spin" />
+                <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: `var(--accent-primary-ring)`, borderTopColor: `var(--accent-primary)` }} />
                 pensando…
               </>
             ) : (

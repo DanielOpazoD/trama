@@ -80,6 +80,7 @@ export function ProactiveView() {
       <header className="mb-10 flex items-baseline justify-between gap-6">
         <div className="min-w-0">
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Sugerencias</h2>
+          <div className="accent-rule mt-3 mb-2" />
           <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-md">
             La IA recorre tu trama y deja aquí lo que cree que vale la pena
             agregar. Acepta lo que te resuene, descarta el resto. Pídele otra
@@ -89,11 +90,11 @@ export function ProactiveView() {
         <button
           onClick={() => generate.mutate()}
           disabled={generate.isPending || offline}
-          className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.18em] text-sky-700/80 hover:text-sky-900 disabled:text-ink-200 disabled:cursor-not-allowed transition-colors"
+          className="ai-cta"
         >
           {generate.isPending ? (
             <>
-              <span className="size-3 border-2 border-sky-700/30 border-t-sky-700 rounded-full animate-spin" />
+              <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: `var(--accent-primary-ring)`, borderTopColor: `var(--accent-primary)` }} />
               pensando…
             </>
           ) : (

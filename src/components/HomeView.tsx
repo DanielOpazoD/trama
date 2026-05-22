@@ -68,6 +68,7 @@ export function HomeView({
           <h2 className="font-serif text-4xl text-ink-700 leading-none mt-2">
             Inicio
           </h2>
+          <div className="accent-rule mt-3 mb-2" />
           <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-md">
             {totalEntities === 0
               ? 'Todavía vacía. Pega un texto abajo y la trama empieza.'
@@ -79,7 +80,7 @@ export function HomeView({
         {pendingCount > 0 && (
           <button
             onClick={() => onNavigate('sugerencias')}
-            className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.18em] text-sky-700/80 hover:text-sky-900 transition-colors"
+            className="ai-cta"
           >
             <SparkleIcon size={11} />
             {pendingCount} {pendingCount === 1 ? 'sugerencia' : 'sugerencias'} pendiente
@@ -183,8 +184,11 @@ function FeaturedQuote({
   const rest = quote.text.slice(1)
   return (
     <section className="animate-fade-up">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-ink-300 mb-3">
-        una cita de tu trama
+      <p
+        className="text-[10px] uppercase tracking-[0.2em] mb-3"
+        style={{ color: 'var(--accent-gold)' }}
+      >
+        ◆ una cita de tu trama
       </p>
       <blockquote className="quote-block text-lg md:text-xl text-ink-700 leading-snug clear-both overflow-hidden">
         <span className="float-left mr-1.5 mt-1 text-4xl leading-[0.85] font-serif text-ink-700 select-none">
