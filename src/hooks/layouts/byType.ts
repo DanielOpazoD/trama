@@ -11,6 +11,9 @@ import { organicLayout } from './organic'
 export function byTypeLayout(
   nodes: LayoutNode[],
   edges: LayoutEdge[],
+  /** Optional rotation seed so "reorganizar" produces a visibly different
+   *  arrangement on each click without changing the clustering itself. */
+  seed = 0,
 ): LayoutResult {
   const byType = new Map<string, LayoutNode[]>()
   for (const n of nodes) {
@@ -27,8 +30,12 @@ export function byTypeLayout(
   const typeCount = types.length
   const ringRadius = Math.max(280, 120 * typeCount)
 
+  // Each reseed shifts the ring by a fraction of a slot — visible rotation.
+  const rotationOffset = (seed % typeCount) * ((Math.PI * 2) / typeCount) * 0.5
+
   types.forEach((type, typeIdx) => {
-    const angle = (typeIdx / typeCount) * Math.PI * 2 - Math.PI / 2
+    const angle =
+      (typeIdx / typeCount) * Math.PI * 2 - Math.PI / 2 + rotationOffset
     const cx = Math.cos(angle) * ringRadius
     const cy = Math.sin(angle) * ringRadius
 

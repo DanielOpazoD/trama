@@ -7,7 +7,13 @@ import type { LayoutNode, LayoutResult } from './types'
  *
  * Reveals "how my interests have moved through time".
  */
-export function byYearLayout(nodes: LayoutNode[]): LayoutResult {
+export function byYearLayout(
+  nodes: LayoutNode[],
+  /** Each reseed shuffles which items sit above vs below the timeline so the
+   *  click on "reorganizar" produces visible motion without breaking the
+   *  chronological reading. */
+  seed = 0,
+): LayoutResult {
   const out: LayoutResult = new Map()
   if (nodes.length === 0) return out
 
@@ -39,7 +45,8 @@ export function byYearLayout(nodes: LayoutNode[]): LayoutResult {
       const x = (xRatio - 0.5) * TIMELINE_WIDTH
       bucket.forEach((node, i) => {
         // Alternate above/below the timeline so stacks balance visually.
-        const sign = i % 2 === 0 ? 1 : -1
+        // The seed flips the parity so reorganize visibly mirrors stacks.
+        const sign = (i + seed) % 2 === 0 ? 1 : -1
         const offset = Math.ceil(i / 2) * ROW_HEIGHT * sign
         out.set(node.id, { x, y: TIMELINE_Y_CENTER + offset })
       })

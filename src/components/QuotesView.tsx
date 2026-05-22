@@ -17,14 +17,15 @@ function formatDate(iso: string): string {
   }
 }
 
-/** Drop-cap on the first letter of a quote — adds editorial weight. */
+/** Drop-cap on the first letter of a quote — adds editorial weight without
+    blowing up the layout. Size aligned with the body type below. */
 function withDropCap(text: string) {
   if (!text) return null
   const first = text[0]
   const rest = text.slice(1)
   return (
     <>
-      <span className="float-left mr-2 mt-1 text-6xl leading-[0.85] font-serif text-ink-700 select-none">
+      <span className="float-left mr-1.5 mt-1 text-4xl leading-[0.85] font-serif text-ink-700 select-none">
         {first}
       </span>
       {rest}
@@ -180,11 +181,11 @@ export function QuotesView({
                     style={{ animationDelay: `${Math.min(index * 60, 360)}ms` }}
                   >
                     {isFeature ? (
-                      <blockquote className="quote-block text-2xl md:text-3xl text-ink-700 leading-snug clear-both overflow-hidden">
+                      <blockquote className="quote-block text-lg md:text-xl text-ink-700 leading-snug clear-both overflow-hidden">
                         {withDropCap(quote.text)}
                       </blockquote>
                     ) : (
-                      <blockquote className="quote-block text-lg md:text-xl text-ink-600 leading-relaxed border-l-2 border-ink-200 pl-5">
+                      <blockquote className="quote-block text-base md:text-lg text-ink-600 leading-relaxed border-l-2 border-ink-200 pl-4">
                         «{quote.text}»
                       </blockquote>
                     )}

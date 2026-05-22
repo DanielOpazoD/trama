@@ -78,11 +78,11 @@ export function useGraphLayout({ mode, nodes, edges }: Options) {
         fixSeeded: reseed === 0,
       })
     } else if (mode === 'by-type') {
-      result = byTypeLayout(layoutNodes, layoutEdges)
+      result = byTypeLayout(layoutNodes, layoutEdges, reseed)
     } else if (mode === 'by-year') {
-      result = byYearLayout(layoutNodes)
+      result = byYearLayout(layoutNodes, reseed)
     } else {
-      result = byDegreeLayout(layoutNodes, layoutEdges)
+      result = byDegreeLayout(layoutNodes, layoutEdges, reseed)
     }
 
     if (mode === 'organic') {

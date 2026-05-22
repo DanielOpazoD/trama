@@ -159,7 +159,7 @@ export function AskBar({
                 cerrar
               </button>
             </div>
-            <p className="text-ink-700 text-sm leading-relaxed whitespace-pre-wrap font-serif">
+            <p className="text-ink-700 text-[13px] leading-relaxed whitespace-pre-wrap">
               {reply.text}
             </p>
           </div>

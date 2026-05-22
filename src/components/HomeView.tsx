@@ -8,6 +8,7 @@ import {
 import { ENTITY_TYPES, type Entity, type Quote } from '../types'
 import { ChevronRightIcon, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
+import { typeAccent } from './graph/GraphNode'
 
 /**
  * Home is the first thing the user sees. It's not the graph (intimidating
@@ -185,8 +186,8 @@ function FeaturedQuote({
       <p className="text-[10px] uppercase tracking-[0.2em] text-ink-300 mb-3">
         una cita de tu trama
       </p>
-      <blockquote className="quote-block text-2xl md:text-3xl text-ink-700 leading-snug clear-both overflow-hidden">
-        <span className="float-left mr-2 mt-1 text-6xl leading-[0.85] font-serif text-ink-700 select-none">
+      <blockquote className="quote-block text-lg md:text-xl text-ink-700 leading-snug clear-both overflow-hidden">
+        <span className="float-left mr-1.5 mt-1 text-4xl leading-[0.85] font-serif text-ink-700 select-none">
           {first}
         </span>
         {rest}
@@ -306,7 +307,8 @@ function TimelineRow({
     return (
       <button
         onClick={() => onSelectEntity(event.id)}
-        className="group w-full text-left p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl hover:border-ink-100 hover:bg-paper-50/70 transition-all"
+        style={{ borderLeftColor: typeAccent(event.payload.type) }}
+        className="group w-full text-left p-3 pl-4 bg-paper-50/40 border border-ink-100/50 border-l-[3px] rounded-xl hover:border-ink-100 hover:bg-paper-50/70 transition-all"
       >
         <div className="flex items-baseline justify-between gap-3">
           <div className="min-w-0">
@@ -314,7 +316,10 @@ function TimelineRow({
               entidad
             </span>
             <span className="text-ink-700">{event.payload.name}</span>
-            <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-ink-300">
+            <span
+              className="ml-2 text-[10px] uppercase tracking-[0.18em]"
+              style={{ color: typeAccent(event.payload.type) }}
+            >
               {typeLabel}
             </span>
             {event.payload.isAI && (

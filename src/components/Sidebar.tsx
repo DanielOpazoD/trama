@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   useEntitiesQuery,
+  useProactiveQuery,
   useQuotesQuery,
   useRelationshipsQuery,
 } from '../state'
@@ -59,6 +60,7 @@ export function Sidebar({
   const { data: entities = [] } = useEntitiesQuery()
   const { data: relationships = [] } = useRelationshipsQuery()
   const { data: quotes = [] } = useQuotesQuery()
+  const { data: pendingSuggestions = [] } = useProactiveQuery()
 
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -70,7 +72,7 @@ export function Sidebar({
     relaciones: relationships.length,
     escuchas: null,
     chat: null,
-    sugerencias: null,
+    sugerencias: pendingSuggestions.length > 0 ? pendingSuggestions.length : null,
   }
 
   const searchResults = useMemo(() => {
@@ -231,12 +233,12 @@ export function Sidebar({
               aria-label={item.label}
               className={`group flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ease-out active:scale-[0.98] relative ${
                 active
-                  ? 'bg-ink-700/8 text-ink-700'
-                  : 'text-ink-400 hover:text-ink-700 hover:bg-ink-700/4'
+                  ? 'bg-ink-700/10 text-ink-700 shadow-sm shadow-ink-900/5'
+                  : 'text-ink-400 hover:text-ink-700 hover:bg-ink-700/5'
               }`}
             >
               {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r bg-ink-700" />
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r bg-ink-700" />
               )}
               <span className="flex items-center gap-2.5">
                 <Icon

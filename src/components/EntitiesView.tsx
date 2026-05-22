@@ -14,6 +14,7 @@ import type { Reclassification } from '../api'
 import { ChevronRightIcon, SparkleIcon } from './Icons'
 import { ReclassifyPanel } from './ReclassifyPanel'
 import { EmptyMessage } from './EmptyMessage'
+import { typeAccent } from './graph/GraphNode'
 
 export function EntitiesView({
   onSelectEntity,
@@ -213,7 +214,8 @@ export function EntitiesView({
                 <button
                   type="button"
                   onClick={() => onSelectEntity?.(entity.id)}
-                  className="w-full text-left p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl transition-all duration-200 hover:shadow-md hover:shadow-ink-900/5 hover:border-ink-100 hover:bg-paper-50/70 active:scale-[0.995]"
+                  style={{ borderLeftColor: typeAccent(entity.type) }}
+                  className="w-full text-left p-3 pl-4 bg-paper-50/40 border border-ink-100/50 border-l-[3px] rounded-xl transition-all duration-200 hover:shadow-md hover:shadow-ink-900/5 hover:border-ink-100 hover:bg-paper-50/70 active:scale-[0.995]"
                   aria-label={`Ver ${entity.name}, ${quoteCount} ${
                     quoteCount === 1 ? 'cita' : 'citas'
                   }`}
@@ -224,7 +226,10 @@ export function EntitiesView({
                       {entity.year !== undefined && (
                         <span className="ml-2 text-ink-300 text-sm">({entity.year})</span>
                       )}
-                      <span className="ml-3 text-[10px] uppercase tracking-[0.18em] text-ink-300 align-middle">
+                      <span
+                        className="ml-3 text-[10px] uppercase tracking-[0.18em] align-middle"
+                        style={{ color: typeAccent(entity.type) }}
+                      >
                         {ENTITY_TYPES.find((t) => t.value === entity.type)?.label}
                       </span>
                       {entity.origin.kind === 'ai' && (

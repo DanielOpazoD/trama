@@ -7,6 +7,9 @@ import type { LayoutEdge, LayoutNode, LayoutResult } from './types'
 export function byDegreeLayout(
   nodes: LayoutNode[],
   edges: LayoutEdge[],
+  /** Rotation seed: each click on "reorganizar" rotates the rings so the
+   *  user sees motion, even though the ordering by degree is unchanged. */
+  seed = 0,
 ): LayoutResult {
   const degree = new Map<string, number>()
   for (const n of nodes) degree.set(n.id, 0)
@@ -37,8 +40,14 @@ export function byDegreeLayout(
     const ringRadius = 130 * ring
     const capacity = Math.max(6, Math.floor(2 * Math.PI * ring))
     const ringNodes = sorted.slice(placed, placed + capacity)
+    // Rotate by a fraction of a slot per reseed. Alternates direction by ring
+    // so adjacent rings don't move in lockstep.
+    const direction = ring % 2 === 0 ? 1 : -1
+    const rotationOffset =
+      direction * (seed % ringNodes.length) * ((Math.PI * 2) / ringNodes.length) * 0.4
     ringNodes.forEach((node, i) => {
-      const angle = (i / ringNodes.length) * Math.PI * 2 - Math.PI / 2
+      const angle =
+        (i / ringNodes.length) * Math.PI * 2 - Math.PI / 2 + rotationOffset
       out.set(node.id, {
         x: Math.cos(angle) * ringRadius,
         y: Math.sin(angle) * ringRadius,
