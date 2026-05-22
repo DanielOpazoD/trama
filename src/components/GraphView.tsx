@@ -29,6 +29,10 @@ import type { LayoutMode } from '../hooks/layouts/types'
 // Persisted in localStorage so reloads keep the user's mode + focus.
 const GRAPH_MODE_KEY = 'trama.graphMode'
 const GRAPH_FOCUS_KEY = 'trama.graphFocus'
+const GRAPH_EXPLORE_HINT_DISMISSED = 'trama.graphExploreHint.dismissed'
+// Sobre este número de entidades en modo "completo", sugerimos cambiar
+// a "exploratorio". Es la zona donde el render SVG empieza a notarse.
+const EXPLORE_HINT_THRESHOLD = 2000
 
 export default function GraphView({
   selectedId,
@@ -59,6 +63,12 @@ export default function GraphView({
     if (typeof window === 'undefined') return 'completo'
     const raw = window.localStorage.getItem(GRAPH_MODE_KEY)
     return raw === 'exploratorio' ? 'exploratorio' : 'completo'
+  })
+  // Dismiss state for "considera modo explorar" — persistido, una vez
+  // descartado no vuelve a aparecer en esa instalación.
+  const [exploreHintDismissed, setExploreHintDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem(GRAPH_EXPLORE_HINT_DISMISSED) === '1'
   })
   const [focusId, setFocusIdState] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null
@@ -322,6 +332,48 @@ export default function GraphView({
         }}
         focusSelectedDisabled={!selectedId || selectedId === focusId}
       />
+
+      {graphMode === 'completo' &&
+        !exploreHintDismissed &&
+        allEntities.length > EXPLORE_HINT_THRESHOLD && (
+          <div className="pointer-events-none absolute top-16 inset-x-0 z-10 flex justify-center px-3">
+            <div
+              className="pointer-events-auto flex items-start gap-3 pl-3 pr-1.5 py-2 bg-paper-50/95 border border-ink-100/70 rounded-lg text-xs text-ink-600 shadow-md max-w-md leading-snug"
+              role="status"
+            >
+              <span className="flex-1">
+                Tu trama ya pesa {allEntities.length.toLocaleString('es')} entidades.
+                Probá <strong className="text-ink-700">explorar</strong> en la
+                toolbar — pinta solo el vecindario del nodo focal y se siente
+                más liviano.
+              </span>
+              <button
+                onClick={() => {
+                  setGraphMode('exploratorio')
+                  if (typeof window !== 'undefined') {
+                    window.localStorage.setItem(GRAPH_EXPLORE_HINT_DISMISSED, '1')
+                  }
+                  setExploreHintDismissed(true)
+                }}
+                className="shrink-0 px-2 py-0.5 rounded text-[10px] uppercase tracking-[0.18em] text-ink-700 hover:bg-ink-50 transition-colors"
+              >
+                cambiar
+              </button>
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.localStorage.setItem(GRAPH_EXPLORE_HINT_DISMISSED, '1')
+                  }
+                  setExploreHintDismissed(true)
+                }}
+                aria-label="No recordar"
+                className="shrink-0 p-1 -m-0.5 text-ink-300 hover:text-ink-700 rounded transition-colors"
+              >
+                <CloseIcon size={12} />
+              </button>
+            </div>
+          </div>
+        )}
 
       {(suggest.error || suggestEmpty) && (
         <div className="pointer-events-none absolute top-16 inset-x-0 z-10 flex justify-center px-3">
