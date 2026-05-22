@@ -286,6 +286,42 @@ export const api = {
   async getCounts(): Promise<{ entities: number; quotes: number; relationships: number }> {
     return request('/api/counts')
   },
+
+  // Lookup helpers: usar estos en vez de cargar la lista completa de
+  // entidades y filtrarla en memoria. A 100k es lo único viable.
+  async lookupEntityByName(name: string): Promise<Entity[]> {
+    if (!name.trim()) return []
+    const rows = await request<EntityRow[]>(
+      `/api/entities-lookup?name=${encodeURIComponent(name)}`,
+    )
+    return rows.map(entityFromRow)
+  },
+  async lookupEntitiesByPrefix(prefix: string): Promise<Entity[]> {
+    if (!prefix.trim()) return []
+    const rows = await request<EntityRow[]>(
+      `/api/entities-lookup?prefix=${encodeURIComponent(prefix)}`,
+    )
+    return rows.map(entityFromRow)
+  },
+  async getEntitiesByIds(ids: string[]): Promise<Entity[]> {
+    if (ids.length === 0) return []
+    const rows = await request<EntityRow[]>(
+      `/api/entities-lookup?ids=${ids.map(encodeURIComponent).join(',')}`,
+    )
+    return rows.map(entityFromRow)
+  },
+
+  // Subgrafo de vecinos: úselo en vez de "cargar todo el grafo". GraphView
+  // se refactorizará para consumir esto progresivamente.
+  async getNeighbors(
+    fromId: string,
+    options?: { hops?: number; limit?: number },
+  ): Promise<NeighborsResponse> {
+    const params = new URLSearchParams({ from: fromId })
+    if (options?.hops) params.set('hops', String(options.hops))
+    if (options?.limit) params.set('limit', String(options.limit))
+    return request<NeighborsResponse>(`/api/graph/neighbors?${params.toString()}`)
+  },
   /**
    * Hybrid (lexical + semantic) search. Returns top entities and quotes
    * matching the query, ranked by combined score.
@@ -709,6 +745,17 @@ export type ChatMessage = {
   /** Which model produced this assistant message — undefined for user messages. */
   provider?: string
   model?: string
+}
+
+export type NeighborWithHop = Entity & { hopDistance: number }
+
+export type NeighborsResponse = {
+  from: NeighborWithHop
+  entities: NeighborWithHop[]
+  relationships: Relationship[]
+  hops: number
+  limit: number
+  truncated: boolean
 }
 
 export type SearchEntityHit = {
