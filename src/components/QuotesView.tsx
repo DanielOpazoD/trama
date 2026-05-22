@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   useEntitiesQuery,
-  useQuotesQuery,
+  useInfiniteQuotesQuery,
   useRelationshipsQuery,
   useAddQuote,
   useDeleteQuote,
@@ -57,7 +57,11 @@ export function QuotesView({
   onSelectEntity?: (id: string) => void
 }) {
   const { data: entities = [] } = useEntitiesQuery()
-  const { data: quotes = [] } = useQuotesQuery()
+  const quotesPaged = useInfiniteQuotesQuery()
+  const quotes = useMemo(
+    () => quotesPaged.data?.pages.flatMap((p) => p.items) ?? [],
+    [quotesPaged.data],
+  )
   const { data: relationships = [] } = useRelationshipsQuery()
 
   // For "work" entities, find the linked person/writer so we can show
@@ -117,6 +121,19 @@ export function QuotesView({
     overscan: 8,
     deps: [showForm, quotes.length],
   })
+
+  // Trigger next-page fetch when the user scrolls into the last 5 items of
+  // the currently rendered window. Reads the highest virtual index instead
+  // of a sentinel element — keeps it tied to the virtualizer's own state.
+  const virtualItems = virtualizer.getVirtualItems()
+  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1].index : 0
+  useEffect(() => {
+    if (!quotesPaged.hasNextPage || quotesPaged.isFetchingNextPage) return
+    if (quotes.length === 0) return
+    if (lastVisibleIndex >= quotes.length - 5) {
+      quotesPaged.fetchNextPage()
+    }
+  }, [lastVisibleIndex, quotes.length, quotesPaged])
 
   return (
     <>
@@ -251,6 +268,11 @@ export function QuotesView({
                 )
               })}
             </div>
+          )}
+          {quotesPaged.isFetchingNextPage && (
+            <p className="mt-4 text-center text-xs uppercase tracking-[0.2em] text-ink-300">
+              cargando más…
+            </p>
           )}
         </>
       )}

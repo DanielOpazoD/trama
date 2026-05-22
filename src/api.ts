@@ -244,6 +244,21 @@ export const api = {
     const rows = await request<QuoteRow[]>('/api/quotes')
     return rows.map(quoteFromRow)
   },
+  /** Cursor-paginated list. `cursor` null/undefined fetches the first page. */
+  async listQuotesPage(
+    limit: number,
+    cursor: string | null,
+  ): Promise<{ items: Quote[]; nextCursor: string | null }> {
+    const params = new URLSearchParams({ limit: String(limit) })
+    if (cursor) params.set('cursor', cursor)
+    const res = await request<{ items: QuoteRow[]; nextCursor: string | null }>(
+      `/api/quotes?${params.toString()}`,
+    )
+    return {
+      items: res.items.map(quoteFromRow),
+      nextCursor: res.nextCursor,
+    }
+  },
   async createQuote(data: Omit<Quote, 'id' | 'createdAt' | 'updatedAt' | 'linkedQuoteIds'> & {
     linkedQuoteIds?: string[]
   }): Promise<Quote> {

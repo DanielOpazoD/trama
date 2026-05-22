@@ -38,6 +38,7 @@ export {
 } from './useRelationships'
 export {
   useQuotesQuery,
+  useInfiniteQuotesQuery,
   useAddQuote,
   useUpdateQuote,
   useReflectQuote,

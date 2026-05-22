@@ -14,4 +14,5 @@ export const queryKeys = {
   entities: ['entities'] as const,
   relationships: ['relationships'] as const,
   quotes: ['quotes'] as const,
+  quotesInfinite: ['quotes', 'infinite'] as const,
 }

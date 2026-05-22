@@ -19,16 +19,73 @@ export default withObservability('quotes', async (req: Request, context: Context
   const id = context.params.id
 
   if (req.method === 'GET') {
-    const rows = await sql`
-      SELECT id, entity_id, text, source, context,
-             user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
-             linked_quote_ids,
-             origin, created_at, updated_at
-      FROM quotes
-      WHERE deleted_at IS NULL
-      ORDER BY created_at DESC
-    `
-    return Response.json(rows)
+    const url = new URL(req.url)
+    const limitParam = url.searchParams.get('limit')
+
+    // Backwards-compatible: without ?limit we keep returning the full array
+    // (the historical shape, used by hooks that still need every quote).
+    // With ?limit we switch to cursor pagination, returning { items, nextCursor }.
+    if (!limitParam) {
+      const rows = await sql`
+        SELECT id, entity_id, text, source, context,
+               user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
+               linked_quote_ids,
+               origin, created_at, updated_at
+        FROM quotes
+        WHERE deleted_at IS NULL
+        ORDER BY created_at DESC, id DESC
+      `
+      return Response.json(rows)
+    }
+
+    // Paginated mode. Cursor is "<iso_ts>:<uuid>" of the last item the
+    // client received. Tuple comparison on (created_at, id) keeps the page
+    // boundary stable even when many quotes share the same created_at.
+    const parsedLimit = Number.parseInt(limitParam, 10)
+    const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 200) : 50
+
+    const cursorParam = url.searchParams.get('cursor')
+    let cursorTs: string | null = null
+    let cursorId: string | null = null
+    if (cursorParam) {
+      const sep = cursorParam.lastIndexOf(':')
+      if (sep > 0) {
+        cursorTs = cursorParam.slice(0, sep)
+        cursorId = cursorParam.slice(sep + 1)
+      }
+    }
+
+    // We fetch limit + 1 so we can tell whether there's a next page without
+    // a separate count query.
+    const rows = cursorTs && cursorId
+      ? (await sql`
+          SELECT id, entity_id, text, source, context,
+                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
+                 linked_quote_ids,
+                 origin, created_at, updated_at
+          FROM quotes
+          WHERE deleted_at IS NULL
+            AND (created_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
+          ORDER BY created_at DESC, id DESC
+          LIMIT ${limit + 1}
+        `)
+      : (await sql`
+          SELECT id, entity_id, text, source, context,
+                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
+                 linked_quote_ids,
+                 origin, created_at, updated_at
+          FROM quotes
+          WHERE deleted_at IS NULL
+          ORDER BY created_at DESC, id DESC
+          LIMIT ${limit + 1}
+        `)
+
+    const items = rows.slice(0, limit) as Array<{ id: string; created_at: string }>
+    const hasMore = rows.length > limit
+    const last = items[items.length - 1]
+    const nextCursor = hasMore && last ? `${last.created_at}:${last.id}` : null
+
+    return Response.json({ items, nextCursor })
   }
 
   if (req.method === 'POST') {

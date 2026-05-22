@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { api } from '../api'
 import { storage } from '../storage'
 import type { Origin, Quote } from '../types'
@@ -37,6 +42,24 @@ export function useQuotesQuery() {
   })
 }
 
+const QUOTES_PAGE_SIZE = 50
+
+/**
+ * Cursor-paginated quotes for the long list in QuotesView. Each page is N
+ * items; scroll triggers fetchNextPage. The other consumers (HomeView
+ * featured quote, sidebar count) keep using useQuotesQuery, which loads
+ * everything — until commit 3 introduces /api/counts and lighter shapes.
+ */
+export function useInfiniteQuotesQuery() {
+  return useInfiniteQuery({
+    queryKey: queryKeys.quotesInfinite,
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) =>
+      api.listQuotesPage(QUOTES_PAGE_SIZE, pageParam ?? null),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+  })
+}
+
 export function useAddQuote() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
@@ -64,6 +87,9 @@ export function useAddQuote() {
         created,
         ...(prev ?? []),
       ])
+      // Reset the infinite list so QuotesView re-fetches from the top and
+      // the new quote appears in page 1 without dedupe gymnastics.
+      queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
     },
   })
 }
@@ -92,6 +118,7 @@ export function useUpdateQuote() {
       queryClient.setQueryData<Quote[]>(queryKeys.quotes, (prev) =>
         (prev ?? []).map((q) => (q.id === updated.id ? updated : q)),
       )
+      queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
     },
   })
 }
@@ -126,6 +153,7 @@ export function useDeleteQuote() {
       queryClient.setQueryData<Quote[]>(queryKeys.quotes, (prev) =>
         (prev ?? []).filter((q) => q.id !== id),
       )
+      queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
       if (offline) {
         const current = queryClient.getQueryData<Quote[]>(queryKeys.quotes) ?? []
         storage.saveQuotes(current)
