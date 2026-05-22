@@ -2,6 +2,8 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
 import { fuseRanked, type Ranked } from './_lib/rrf.js'
+import { describeEntity, describeQuote, llmRerank } from './_lib/llm-rerank.js'
+import { resolveAIInvocation } from './_lib/ai-mode.js'
 
 /**
  * Hybrid search across entities (name + description) and quotes (text +
@@ -32,6 +34,9 @@ export default async (req: Request) => {
   const limitParam = url.searchParams.get('limit')
   const limit = Math.min(Math.max(Number.parseInt(limitParam ?? '15', 10) || 15, 1), 50)
   const mode = (url.searchParams.get('mode') ?? 'hybrid').toLowerCase()
+  // ?rerank=true activa el LLM-as-reranker (lento, ~1-2s; alta calidad).
+  // No lo usa la sidebar (que debe ser fast). Sí lo usa el chat RAG.
+  const wantsRerank = url.searchParams.get('rerank') === 'true'
 
   if (!q) {
     return Response.json({ entities: [], quotes: [] })
@@ -136,9 +141,70 @@ export default async (req: Request) => {
     return list.map((item) => ({ id: item.id, item }))
   }
 
-  const entitiesFused = fuseRanked([toRanked(lex), toRanked(semanticEntities)])
+  // RRF deja una lista cruda. Para el rerank LLM tomamos un overhead más
+  // ancho (limit × 2) así el reranker tiene margen real para subir cosas.
+  const fusedWidth = wantsRerank ? Math.min(limit * 2, 30) : limit
+
+  const entitiesFusedFull = fuseRanked([toRanked(lex), toRanked(semanticEntities)]).slice(0, fusedWidth)
+  const quotesFusedFull = fuseRanked([toRanked(lexQ), toRanked(semanticQuotes)]).slice(0, fusedWidth)
+
+  // ---------- Rerank opcional vía LLM ----------
+  // Solo si el caller lo pidió (?rerank=true). El LLM-as-reranker reordena
+  // candidates ya rankeados por RRF, con una cabeza más sofisticada que
+  // cosine + tsvector. Mejor relevancia, pero +1-2s de latencia.
+  let entitiesReorderedIds: string[] | null = null
+  let quotesReorderedIds: string[] | null = null
+  if (wantsRerank) {
+    const invocation = await resolveAIInvocation(req, 'chat').catch(() => null)
+    const override =
+      invocation && invocation.kind === 'ready'
+        ? { provider: invocation.provider, model: invocation.model }
+        : undefined
+
+    if (entitiesFusedFull.length > 1) {
+      entitiesReorderedIds = await llmRerank(
+        q,
+        entitiesFusedFull.map((e) => ({
+          id: e.item.id,
+          text: describeEntity(e.item),
+        })),
+        { override: override ?? undefined },
+      )
+    }
+    if (quotesFusedFull.length > 1) {
+      quotesReorderedIds = await llmRerank(
+        q,
+        quotesFusedFull.map((q) => ({
+          id: q.item.id,
+          text: describeQuote({
+            text: q.item.text,
+            entityName: q.item.entity_name,
+            source: q.item.source,
+          }),
+        })),
+        { override: override ?? undefined },
+      )
+    }
+  }
+
+  // Aplica el reorden del LLM si está disponible; si no, el orden RRF.
+  function applyRerank<T extends { item: { id: string } }>(
+    fused: T[],
+    reordered: string[] | null,
+  ): T[] {
+    if (!reordered) return fused
+    const map = new Map(fused.map((e) => [e.item.id, e]))
+    const result: T[] = []
+    for (const id of reordered) {
+      const hit = map.get(id)
+      if (hit) result.push(hit)
+    }
+    return result
+  }
+
+  const entitiesFinal = applyRerank(entitiesFusedFull, entitiesReorderedIds)
     .slice(0, limit)
-    .map((entry) => ({
+    .map((entry, idx) => ({
       id: entry.item.id,
       name: entry.item.name,
       type: entry.item.type,
@@ -147,15 +213,16 @@ export default async (req: Request) => {
       score: entry.score,
       lexicalRank: entry.ranks[0],
       semanticRank: entry.ranks[1],
-      // Compat con clientes que esperaban estos campos crudos. En RRF lo
-      // significativo es el rank, no el score absoluto.
+      finalRank: idx + 1,
+      reranked: !!entitiesReorderedIds,
+      // Compat con clientes anteriores.
       lexical: 0,
       semantic: 0,
     }))
 
-  const quotesFused = fuseRanked([toRanked(lexQ), toRanked(semanticQuotes)])
+  const quotesFinal = applyRerank(quotesFusedFull, quotesReorderedIds)
     .slice(0, limit)
-    .map((entry) => ({
+    .map((entry, idx) => ({
       id: entry.item.id,
       entityId: entry.item.entity_id,
       entityName: entry.item.entity_name,
@@ -164,14 +231,17 @@ export default async (req: Request) => {
       score: entry.score,
       lexicalRank: entry.ranks[0],
       semanticRank: entry.ranks[1],
+      finalRank: idx + 1,
+      reranked: !!quotesReorderedIds,
       lexical: 0,
       semantic: 0,
     }))
 
   return Response.json({
-    entities: entitiesFused,
-    quotes: quotesFused,
+    entities: entitiesFinal,
+    quotes: quotesFinal,
     mode,
+    reranked: wantsRerank && (!!entitiesReorderedIds || !!quotesReorderedIds),
   })
 }
 

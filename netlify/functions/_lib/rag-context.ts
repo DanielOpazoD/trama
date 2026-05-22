@@ -16,6 +16,8 @@
  */
 
 import { embedSafe, toPgVector } from './embeddings.js'
+import { describeEntity, describeQuote, llmRerank } from './llm-rerank.js'
+import type { LLMOverride } from './llm.js'
 
 // Compact context rows shaped to feed the prompt builder. Mismas formas
 // que las queries existentes en ask.mts / chat-messages.mts, así los
@@ -74,6 +76,12 @@ export async function buildRagContext(
     recentEntityLimit?: number
     recentQuoteLimit?: number
     relationshipLimit?: number
+    /** Si true, después del retrieval pasa por un LLM-as-reranker.
+        Mejora relevancia con costo de ~1-2s. Solo en chat (donde la
+        latencia se acepta), nunca en sidebar. */
+    rerank?: boolean
+    /** Provider override para el reranker (mismo que el chat). */
+    rerankOverride?: LLMOverride
   },
 ): Promise<RagContext> {
   const semE = options?.semanticEntityLimit ?? 30
@@ -128,12 +136,60 @@ export async function buildRagContext(
   const entitiesById = new Map<string, EntityCtxRow>()
   for (const e of semanticEntities) entitiesById.set(e.id, e)
   for (const e of recentEntities) if (!entitiesById.has(e.id)) entitiesById.set(e.id, e)
-  const entities = Array.from(entitiesById.values())
+  let entities = Array.from(entitiesById.values())
 
   const quotesById = new Map<string, QuoteCtxRow>()
   for (const q of semanticQuotes) quotesById.set(q.id, q)
   for (const q of recentQuotes) if (!quotesById.has(q.id)) quotesById.set(q.id, q)
-  const quotes = Array.from(quotesById.values())
+  let quotes = Array.from(quotesById.values())
+
+  // 3.5) Rerank opcional vía LLM. Solo cuando el caller lo pide y solo
+  // si la query no es trivial — un usuario tecleando "Bo" no necesita
+  // que un LLM razone sobre 30 candidatos.
+  if (options?.rerank && userQuery.trim().length > 3) {
+    const [reorderedEntityIds, reorderedQuoteIds] = await Promise.all([
+      entities.length > 1
+        ? llmRerank(
+            userQuery,
+            entities.map((e) => ({ id: e.id, text: describeEntity(e) })),
+            { override: options.rerankOverride },
+          )
+        : Promise.resolve<string[] | null>(null),
+      quotes.length > 1
+        ? llmRerank(
+            userQuery,
+            quotes.map((q) => ({
+              id: q.id,
+              text: describeQuote({
+                text: q.text,
+                entityName: q.entity_name,
+                source: q.source,
+              }),
+            })),
+            { override: options.rerankOverride },
+          )
+        : Promise.resolve<string[] | null>(null),
+    ])
+
+    if (reorderedEntityIds) {
+      const byId = new Map(entities.map((e) => [e.id, e]))
+      const reranked: EntityCtxRow[] = []
+      for (const id of reorderedEntityIds) {
+        const e = byId.get(id)
+        if (e) reranked.push(e)
+      }
+      entities = reranked
+    }
+    if (reorderedQuoteIds) {
+      const byId = new Map(quotes.map((q) => [q.id, q]))
+      const reranked: QuoteCtxRow[] = []
+      for (const id of reorderedQuoteIds) {
+        const q = byId.get(id)
+        if (q) reranked.push(q)
+      }
+      quotes = reranked
+    }
+  }
 
   // 4) Relationships: bring in edges connecting any of the entities we
   // already selected. This keeps the prompt coherent (the model sees X,

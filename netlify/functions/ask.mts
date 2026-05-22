@@ -78,15 +78,31 @@ export default withObservability('ask', async (req) => {
 
   type TypeRow = { slug: string }
 
-  // Retrieval-augmented context: semantic top-K + recency, merged. Replaces
-  // the legacy "últimas 80 entidades por created_at" cuyo problema era ser
-  // ciego al pasado. Si el embedding falla o no hay rows embebidas todavía,
-  // degrada a recency-only.
+  // Resolvemos el AI mode upfront para poder honrarlo en TODAS las llamadas
+  // LLM (incluido el rerank). Si está en Off, salimos antes de cualquier
+  // trabajo LLM, ahorrando latencia y tokens.
+  const invocation = await resolveAIInvocation(req, 'chat')
+  if (invocation.kind === 'off') return aiOffResponse()
+  const rerankOverride = {
+    provider: invocation.provider,
+    model: invocation.model,
+  }
+
+  // Retrieval-augmented context: semantic top-K + recency, merged, y
+  // opcionalmente reordenado por el LLM como cross-encoder informal.
   const [ragCtx, entityTypeRows, relTypeRows, selectedRows] = await Promise.all([
-    buildRagContext(sql as unknown as (
-      strings: TemplateStringsArray,
-      ...values: unknown[]
-    ) => Promise<unknown>, userText, { relationshipLimit: FALLBACK_REL_LIMIT }),
+    buildRagContext(
+      sql as unknown as (
+        strings: TemplateStringsArray,
+        ...values: unknown[]
+      ) => Promise<unknown>,
+      userText,
+      {
+        relationshipLimit: FALLBACK_REL_LIMIT,
+        rerank: true,
+        rerankOverride,
+      },
+    ),
     sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
     sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
     body.selectedEntityId
@@ -139,9 +155,7 @@ export default withObservability('ask', async (req) => {
 
   const messages = buildAskPrompt(userText, ctx)
 
-  const invocation = await resolveAIInvocation(req, 'chat')
-  if (invocation.kind === 'off') return aiOffResponse()
-
+  // invocation ya fue resuelto arriba (necesario para el rerank).
   try {
     const { content, usage, fromCache } = await askLLMForJson(messages, {
       provider: invocation.provider,

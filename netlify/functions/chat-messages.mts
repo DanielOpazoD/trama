@@ -189,7 +189,16 @@ export default withObservability(
             ...values: unknown[]
           ) => Promise<unknown>,
           userText,
-          { relationshipLimit: CONTEXT_RELATIONSHIP_LIMIT },
+          {
+            relationshipLimit: CONTEXT_RELATIONSHIP_LIMIT,
+            // Activamos LLM-as-reranker en el chat — la calidad del
+            // contexto importa más que los ~1-2s de latencia extra.
+            rerank: true,
+            rerankOverride: {
+              provider: invocation.provider,
+              model: invocation.model,
+            },
+          },
         ),
         sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
         sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
