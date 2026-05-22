@@ -47,7 +47,9 @@ const PROPOSAL: ExtractionProposal = {
 function mockApi(responses: Record<string, unknown>) {
   return vi.fn().mockImplementation((url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET'
-    const key = `${method} ${url}`
+    // Strip query string so "POST /api/entities" matches "/api/entities?force=true".
+    const path = url.split('?')[0]
+    const key = `${method} ${path}`
     if (responses[key] !== undefined) {
       return Promise.resolve({
         ok: true,
@@ -193,7 +195,7 @@ describe('<ProposalPanel />', () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        '/api/entities',
+        expect.stringMatching(/^\/api\/entities(\?.*)?$/),
         expect.objectContaining({ method: 'POST' }),
       )
       expect(fetch).toHaveBeenCalledWith(

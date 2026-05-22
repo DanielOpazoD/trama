@@ -17,6 +17,7 @@ import { EmptyMessage } from './EmptyMessage'
 import { typeAccent } from './graph/GraphNode'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import type { Entity } from '../types'
+import { DuplicateEntityError } from '../api'
 
 export function EntitiesView({
   onSelectEntity,
@@ -39,6 +40,12 @@ export function EntitiesView({
   const [showForm, setShowForm] = useState(false)
   const [pending, setPending] = useState<Reclassification[] | null>(null)
   const [emptyHint, setEmptyHint] = useState(false)
+  // When the server detects a near-duplicate during create, we surface its
+  // suggestions here so the user can pick one — or override and create
+  // anyway via the "crear igual" action.
+  const [dupCandidates, setDupCandidates] = useState<
+    DuplicateEntityError['suggestions'] | null
+  >(null)
 
   // Build O(1) counts so the virtualized rows don't have to filter the full
   // arrays on every render. Without this, scrolling 500+ entities would do
@@ -80,22 +87,27 @@ export function EntitiesView({
     }
   }
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent, force = false) {
     event.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) return
+    setDupCandidates(null)
     try {
       await addEntity.mutateAsync({
         type,
         name: trimmed,
         year: year ? Number(year) : undefined,
         description: description.trim() || undefined,
+        _force: force,
       })
       setName('')
       setYear('')
       setDescription('')
-    } catch {
-      /* error surfaces via addEntity.error */
+    } catch (err) {
+      if (err instanceof DuplicateEntityError) {
+        setDupCandidates(err.suggestions)
+      }
+      // otros errores ya salen vía addEntity.error
     }
   }
 
@@ -212,6 +224,69 @@ export function EntitiesView({
           <button type="submit" disabled={addEntity.isPending} className="btn-ink">
             {addEntity.isPending ? 'añadiendo…' : 'Añadir'}
           </button>
+          {dupCandidates && dupCandidates.length > 0 && (
+            <div
+              className="rounded-lg p-3 mt-2"
+              style={{
+                backgroundColor: 'var(--accent-primary-soft)',
+                border: '1px solid var(--accent-primary-ring)',
+              }}
+            >
+              <p
+                className="text-[10px] uppercase tracking-[0.18em] font-medium mb-2"
+                style={{ color: 'var(--accent-primary)' }}
+              >
+                ¿es la misma entidad?
+              </p>
+              <p className="text-xs text-ink-500 mb-2 leading-relaxed">
+                Ya tienes una entidad muy parecida. Si es la misma, mejor
+                quédate con la existente:
+              </p>
+              <ul className="space-y-1 mb-2">
+                {dupCandidates.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelectEntity?.(c.id)
+                        setDupCandidates(null)
+                        setName('')
+                        setYear('')
+                        setDescription('')
+                      }}
+                      className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-paper-50/70 transition-colors flex items-baseline justify-between gap-3"
+                    >
+                      <span>
+                        <span className="text-ink-700">{c.name}</span>
+                        <span className="ml-2 text-[10px] uppercase tracking-[0.16em] text-ink-300">
+                          {c.type}
+                        </span>
+                      </span>
+                      <span className="text-[10px] uppercase tracking-[0.16em] text-ink-300 tabular-nums">
+                        {(c.similarity * 100).toFixed(0)}%
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={(e) => handleSubmit(e as unknown as FormEvent, true)}
+                  className="text-[11px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-700 transition-colors"
+                >
+                  crear igual ↪
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDupCandidates(null)}
+                  className="text-[11px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+                >
+                  cerrar
+                </button>
+              </div>
+            </div>
+          )}
         </form>
       )}
 

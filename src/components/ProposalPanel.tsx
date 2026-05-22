@@ -122,6 +122,10 @@ export function ProposalPanel({
             description: e.description,
             spotifyUrl: e.spotifyUrl,
             origin: { kind: 'ai' },
+            // The AI extraction already had the existing entities as context
+            // and proposed matchedId for any near-dups it spotted. Trust the
+            // user's review here and bypass the server-side dup guard.
+            _force: true,
           })
           idByLowerName.set(created.name.trim().toLowerCase(), created.id)
         } catch {

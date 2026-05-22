@@ -119,6 +119,26 @@ function aiModeHeader(): string {
   return 'auto'
 }
 
+/**
+ * Thrown when /api/entities POST refuses with HTTP 409 because the new entity
+ * looks like a near-duplicate of an existing one. Carries the candidates the
+ * UI can present ("did you mean…?").
+ */
+export class DuplicateEntityError extends Error {
+  suggestions: Array<{
+    id: string
+    name: string
+    type: string
+    description: string | null
+    similarity: number
+  }>
+  constructor(suggestions: DuplicateEntityError['suggestions']) {
+    super('Posible entidad duplicada')
+    this.name = 'DuplicateEntityError'
+    this.suggestions = suggestions
+  }
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
@@ -135,6 +155,21 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     if (response.status === 423) {
       throw new Error(text || 'IA deshabilitada por el usuario (modo Off).')
     }
+    // 409 on /api/entities → dup detection. Parse and throw a typed error.
+    if (response.status === 409 && url.startsWith('/api/entities')) {
+      try {
+        const body = JSON.parse(text) as {
+          error?: string
+          suggestions?: DuplicateEntityError['suggestions']
+        }
+        if (body.error === 'possible_duplicate' && Array.isArray(body.suggestions)) {
+          throw new DuplicateEntityError(body.suggestions)
+        }
+      } catch (parseErr) {
+        if (parseErr instanceof DuplicateEntityError) throw parseErr
+        // fall through to generic error if body wasn't the expected shape
+      }
+    }
     throw new Error(`${init?.method ?? 'GET'} ${url} → ${response.status} ${text}`.trim())
   }
   if (response.status === 204) {
@@ -148,8 +183,12 @@ export const api = {
     const rows = await request<EntityRow[]>('/api/entities')
     return rows.map(entityFromRow)
   },
-  async createEntity(data: Omit<Entity, 'id' | 'createdAt' | 'updatedAt'>): Promise<Entity> {
-    const row = await request<EntityRow>('/api/entities', {
+  async createEntity(
+    data: Omit<Entity, 'id' | 'createdAt' | 'updatedAt'>,
+    options?: { force?: boolean },
+  ): Promise<Entity> {
+    const url = options?.force ? '/api/entities?force=true' : '/api/entities'
+    const row = await request<EntityRow>(url, {
       method: 'POST',
       body: JSON.stringify({
         type: data.type,

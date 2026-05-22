@@ -9,6 +9,10 @@ const DEFAULT_ORIGIN: Origin = { kind: 'manual' }
 
 type EntityInput = Omit<Entity, 'id' | 'createdAt' | 'updatedAt' | 'origin'> & {
   origin?: Origin
+  /** When true, skips the server's duplicate-detection guard. Used by AI
+      flows that already had the user's approval, and as the "create anyway"
+      action on the duplicate warning. */
+  _force?: boolean
 }
 
 function newId(): string {
@@ -43,7 +47,8 @@ export function useAddEntity() {
   return useMutation({
     mutationFn: async (data: EntityInput): Promise<Entity> => {
       const origin = data.origin ?? DEFAULT_ORIGIN
-      const payload = { ...data, origin }
+      const { _force, ...rest } = data
+      const payload = { ...rest, origin }
       if (offline) {
         const created: Entity = {
           ...payload,
@@ -55,7 +60,7 @@ export function useAddEntity() {
         storage.saveEntities([created, ...current])
         return created
       }
-      return api.createEntity(payload)
+      return api.createEntity(payload, { force: _force })
     },
     onSuccess: (created) => {
       queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) => [

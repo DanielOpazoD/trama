@@ -70,6 +70,49 @@ export default withObservability('entities', async (req: Request, context: Conte
       }),
     )
 
+    // Duplicate-detection guard: if the caller didn't pass `?force=true`,
+    // we check whether the new embedding is unusually close to an existing
+    // entity (cosine distance < 0.20 ≈ similarity ≥ 0.90). If so, return
+    // 409 with the suggested matches so the UI can ask "¿es la misma que X?"
+    // before persisting. Skipped when there's no embedding (no key, etc.) —
+    // we don't want to block writes just because embeddings are unavailable.
+    const url = new URL(req.url)
+    const force = url.searchParams.get('force') === 'true'
+    if (emb && !force) {
+      type DupRow = {
+        id: string
+        name: string
+        type: string
+        description: string | null
+        distance: number
+      }
+      const dupRows = (await sql`
+        SELECT id, name, type, description,
+               (embedding <=> ${toPgVector(emb.vector)}::vector) AS distance
+        FROM entities
+        WHERE deleted_at IS NULL
+          AND embedding IS NOT NULL
+          AND embedding <=> ${toPgVector(emb.vector)}::vector < 0.20
+        ORDER BY embedding <=> ${toPgVector(emb.vector)}::vector
+        LIMIT 3
+      `) as DupRow[]
+      if (dupRows.length > 0) {
+        return Response.json(
+          {
+            error: 'possible_duplicate',
+            suggestions: dupRows.map((d) => ({
+              id: d.id,
+              name: d.name,
+              type: d.type,
+              description: d.description,
+              similarity: Math.max(0, Math.min(1, 1 - Number(d.distance) / 2)),
+            })),
+          },
+          { status: 409 },
+        )
+      }
+    }
+
     const rows = await sql`
       INSERT INTO entities (
         type, name, year, description, essay, position_x, position_y, origin, spotify_url,
