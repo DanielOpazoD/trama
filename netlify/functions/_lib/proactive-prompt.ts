@@ -25,11 +25,19 @@ export type ExistingRelPair = {
  * One call produces multiple kinds. The validator extracts each kind, drops
  * anything malformed, and persists what survives.
  */
+export type DismissedSuggestion = {
+  kind: 'relationship' | 'reclassification' | 'description' | string
+  summary: string
+}
+
 export function buildProactivePrompt(
   entities: EntityForProactive[],
   existingRels: ExistingRelPair[],
   entityTypes: string[],
   relationshipTypes: string[],
+  /** Sugerencias que el usuario YA descartó previamente. Se le pide al
+      LLM que no las vuelva a proponer. */
+  dismissed: DismissedSuggestion[] = [],
 ): LLMMessage[] {
   const entityBlock = entities
     .map((e) => {
@@ -76,6 +84,13 @@ ${entityBlock}
 
 Relaciones que YA existen:
 ${relsBlock}
+
+${
+  dismissed.length > 0
+    ? `Sugerencias que el usuario YA DESCARTÓ — NO las vuelvas a proponer:
+${dismissed.slice(0, 60).map((d) => `- (${d.kind}) ${d.summary}`).join('\n')}`
+    : ''
+}
 
 DEVUELVE EXCLUSIVAMENTE un objeto JSON con esta forma exacta:
 

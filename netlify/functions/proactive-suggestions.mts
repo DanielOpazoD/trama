@@ -4,6 +4,7 @@ import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import {
   buildProactivePrompt,
+  type DismissedSuggestion,
   type EntityForProactive,
   type ExistingRelPair,
 } from './_lib/proactive-prompt.js'
@@ -92,8 +93,9 @@ export default withObservability(
       type QuoteRow = { entity_id: string; text: string }
       type RelRow = { from_name: string; to_name: string; type: string }
       type TypeRow = { slug: string }
+      type DismissedRow = { kind: string; payload: Record<string, unknown> }
 
-      const [entityRows, quoteRows, relRows, entityTypeRows, relTypeRows] = await Promise.all([
+      const [entityRows, quoteRows, relRows, entityTypeRows, relTypeRows, dismissedRows] = await Promise.all([
         sql`SELECT id, name, type, year, description
             FROM entities WHERE deleted_at IS NULL
             ORDER BY created_at DESC LIMIT ${MAX_ENTITIES_IN_PROMPT}` as unknown as Promise<EntityRow[]>,
@@ -106,6 +108,12 @@ export default withObservability(
             WHERE r.deleted_at IS NULL` as unknown as Promise<RelRow[]>,
         sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
         sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
+        // Sugerencias previamente descartadas — para que el LLM NO las
+        // vuelva a proponer en esta ronda.
+        sql`SELECT kind, payload FROM proactive_suggestions
+            WHERE status = 'dismissed'
+            ORDER BY status_changed_at DESC NULLS LAST, created_at DESC
+            LIMIT 60` as unknown as Promise<DismissedRow[]>,
       ])
 
       if (entityRows.length === 0) {
@@ -136,7 +144,31 @@ export default withObservability(
       const relationshipTypes =
         relTypeRows.length > 0 ? relTypeRows.map((r) => r.slug) : FALLBACK_RELATIONSHIP_TYPES
 
-      const messages = buildProactivePrompt(entities, existingRels, entityTypes, relationshipTypes)
+      // Convertimos los payloads descartados en summaries legibles para que
+      // el LLM entienda QUÉ se le pidió no proponer (no le pasamos el JSON
+      // crudo — gastaría tokens sin agregar información).
+      const dismissed: DismissedSuggestion[] = dismissedRows.map((row) => {
+        const p = row.payload as Record<string, unknown>
+        let summary = ''
+        if (row.kind === 'relationship') {
+          summary = `${p.fromName ?? '?'} → ${p.type ?? '?'} → ${p.toName ?? '?'}`
+        } else if (row.kind === 'reclassification') {
+          summary = `${p.name ?? '?'}: ${p.oldType ?? '?'} → ${p.newType ?? '?'}`
+        } else if (row.kind === 'description') {
+          summary = `descripción para "${p.name ?? '?'}"`
+        } else {
+          summary = JSON.stringify(p).slice(0, 80)
+        }
+        return { kind: row.kind, summary }
+      })
+
+      const messages = buildProactivePrompt(
+        entities,
+        existingRels,
+        entityTypes,
+        relationshipTypes,
+        dismissed,
+      )
       const entityIds = new Set(entityRows.map((e) => e.id))
       const validEntityTypes = new Set(entityTypes)
       const validRelTypes = new Set(relationshipTypes)
