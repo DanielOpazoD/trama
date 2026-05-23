@@ -207,7 +207,9 @@ export function Sidebar({
       <header className="px-3 py-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 trama-mark-interactive min-w-0" title="Trama">
           <TramaMark size={22} className="text-ink-700 shrink-0" />
-          <h1 className="wordmark text-lg text-ink-800 leading-none truncate">Trama</h1>
+          {/* Brand wordmark — no es heading semántico de la página
+              (el h1 vive en TopBar con el título de la vista). */}
+          <span className="wordmark text-lg text-ink-800 leading-none truncate">Trama</span>
           {offline && (
             <span
               title="Sin conexión al backend"

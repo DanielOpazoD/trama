@@ -169,7 +169,7 @@ export function EmptyState() {
           <figcaption className="text-sm text-ink-300">
             — {quote.author}
             {quote.source && (
-              <span className="text-ink-200 ml-2">· {quote.source}</span>
+              <span className="text-ink-300 ml-2">· {quote.source}</span>
             )}
           </figcaption>
         </figure>

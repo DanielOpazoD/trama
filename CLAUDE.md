@@ -51,6 +51,22 @@ El sistema visual usa tokens semánticos definidos en `tailwind.config.js`. **NO
 
 **Animaciones — 5 canónicas:** `animate-fade-up`, `animate-slide-in-right`, `animate-slide-up`, `animate-shimmer`, `animate-pulse-subtle`. Todas usan `cubic-bezier(0.25, 1, 0.5, 1)` ("ease-out-quart"). Si querés otra animación, primero pensá si una de estas no resuelve.
 
+## Accesibilidad (estado actual)
+
+- `lang="es"` en `<html>`
+- Semantic HTML: `<main>`, `<aside>`, `<nav>`, `<header>`, `<footer>` usados consistentemente
+- Jerarquía de headings: un solo `<h1>` por pantalla (vive en TopBar; el wordmark "Trama" del Sidebar es `<span>` decorativo)
+- `aria-label` en 48+ icon buttons; `aria-describedby` automático en `<Tooltip>`
+- `role="alert"` en ErrorBoundary fallback y banners de error
+- `role="status"` en ToastHost (`aria-live="polite"`)
+- `role="tooltip"` en `<Tooltip>` con id linkeado al trigger
+- `:focus-visible` global con outline azul (no se recorta por overflow:hidden)
+- `prefers-reduced-motion` respetado en shimmer del skeleton
+
+**Texto vs contraste**: `text-ink-300` (#71717a) es el muted más claro permitido para texto legible — pasa AA con ~4.6:1 sobre `paper-50` blanco. `text-ink-200` (#d4d4d8) NO se usa para texto, solo para iconos decorativos, separators (·), o disabled states.
+
+**Pendiente para futuro audit** con axe-core en CI: color contrast de chips de tipos sobre fondo de card (algunos `typeAccent` claros podrían fallar), touch target sizes en mobile (algunos icon buttons son <44px).
+
 ## La conexión a la DB
 
 `netlify/functions/_lib/db.ts` exporta `getSql()`. Eso es lo único que importás en una function:
