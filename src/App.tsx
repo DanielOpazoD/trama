@@ -127,6 +127,18 @@ function Shell() {
             </div>
           )}
 
+          {/* Fade mask debajo del scroll — desvanece el contenido a
+              paper-50 antes de llegar al AskBar. Sin esto el texto que
+              cae al final se ve filtrarse detrás de la barra (que es
+              semitransparente con backdrop-blur). Solo aparece donde
+              hay AskBar visible. */}
+          {view !== 'chat' && view !== 'grafo' && !(isMobile && rightPanelOpen) && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-gradient-to-b from-transparent via-paper-50/75 to-paper-50"
+            />
+          )}
+
           {view !== 'chat' && !(isMobile && rightPanelOpen) && (
             <AskBar
               view={view}
