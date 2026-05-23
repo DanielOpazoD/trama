@@ -181,9 +181,32 @@
   .surface-sidebar { background-color: var(--surface-sidebar); }
   .surface-topbar  { background-color: var(--surface-topbar); }
 
-  *:focus-visible {
+  /* Focus visible global — keyboard nav debe ser obvio en cualquier
+     elemento focusable. Usa outline (no box-shadow) para que no se
+     recorte cuando el contenedor padre tiene overflow:hidden. El
+     offset crea un anillo respirado en vez de pegado al borde.
+
+     Reglas:
+       - `:focus` solo (sin -visible) NO dibuja anillo — eso evita
+         que el click muestre el anillo en mouse users.
+       - Componentes que no quieran este ring (por estética en algún
+         caso muy específico) pueden usar `focus-visible:outline-none`
+         y dibujar el suyo. Pero el default es accesible. */
+  *:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgb(var(--paper-50)), 0 0 0 4px var(--accent-primary-ring);
+  }
+  *:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  /* Inputs y textareas deben tener focus-visible con outline (en vez
+     del border-color shift que algunos tenían), porque al usar la
+     herramienta de teclado el usuario espera ver dónde está. */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline-offset: 0;
   }
 }
 
@@ -417,7 +440,10 @@ html.dark .paper-grain::before {
   }
 
   .btn-ghost {
-    @apply text-ink-300 hover:text-ink-600 transition-colors duration-200 text-sm;
+    @apply text-ink-300 hover:text-ink-600 active:scale-[0.97]
+      transition-all duration-150 text-sm
+      disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+    transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
   }
 
   /* Editorial chip — used for tiny pill labels (origin: IA, verified, etc.).
@@ -425,7 +451,7 @@ html.dark .paper-grain::before {
      Variants by data-tone attribute. */
   .chip {
     @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full
-      text-[10px] uppercase tracking-[0.18em] font-medium;
+      text-micro uppercase tracking-eyebrow font-medium;
   }
   .chip[data-tone='primary'] {
     color: var(--accent-primary);
@@ -440,9 +466,21 @@ html.dark .paper-grain::before {
     background-color: var(--accent-sage-soft);
   }
 
-  /* All interactive things get a consistent press feel */
-  button:not(:disabled):active {
+  /* All interactive things get a consistent press feel — un pequeño
+     scale al hacer click. Aplica a botones y enlaces para que el "tap"
+     se sienta uniforme. Los botones que ya tienen `active:scale-...`
+     explícito ganan por specificity. Excluimos disabled. */
+  button:not(:disabled):active,
+  a:not([aria-disabled='true']):active {
+    transform: scale(0.97);
     transition-duration: 80ms;
+  }
+  /* Excepción: si el botón tiene .no-press, no aplica (para nav icons
+     en sidebar donde el scale se siente raro porque el icono ya es
+     pequeño y el container tiene rounded background). */
+  button.no-press:active,
+  a.no-press:active {
+    transform: none;
   }
 
   .wordmark {
@@ -497,6 +535,29 @@ html.dark .paper-grain::before {
   }
   .ai-cta-pill:disabled {
     @apply text-ink-200;
+  }
+
+  /* Pressable — feedback de active state sistematizado. Aplica un
+     pequeño scale al hacer click. Pensado para botones e icon buttons
+     donde el "tap" se siente bien. La animation depende de la curva
+     out-quart definida en tailwind.config.
+
+     Uso típico:
+       <button className="pressable focus-ring ...">  */
+  .pressable {
+    @apply active:scale-[0.97] transition-transform duration-150;
+    transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  /* Focus ring opt-in cuando el global de :focus-visible está
+     suprimido (e.g. inside una card con overflow:hidden donde el
+     outline se vería incómodo). Por default no hace falta. */
+  .focus-ring {
+    @apply focus-visible:outline-none
+           focus-visible:ring-2
+           focus-visible:ring-offset-2;
+    --tw-ring-color: var(--accent-primary);
+    --tw-ring-offset-color: rgb(var(--paper-50));
   }
 
   /* AI proposal panel — used by ReclassifyPanel and the inline proposal that

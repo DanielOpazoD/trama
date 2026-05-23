@@ -442,7 +442,7 @@ export default function GraphView({
       ) : (
       <svg
         ref={svgRef}
-        className="w-full h-full focus:outline-none"
+        className="w-full h-full"
         style={cursorStyle}
         tabIndex={0}
         role="application"

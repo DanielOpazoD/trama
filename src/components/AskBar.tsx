@@ -274,7 +274,7 @@ export function AskBar({
             placeholder={placeholderForView(view)}
             rows={1}
             disabled={ask.isPending || busy || imageBusy}
-            className="flex-1 resize-none bg-transparent px-3 py-2 text-ink-700 placeholder:text-ink-300 focus:outline-none leading-relaxed"
+            className="flex-1 resize-none bg-transparent px-3 py-2 text-ink-700 placeholder:text-ink-300 leading-relaxed"
           />
           <button
             type="submit"
