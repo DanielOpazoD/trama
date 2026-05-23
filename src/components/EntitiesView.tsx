@@ -332,9 +332,13 @@ export function EntitiesView({
         </form>
       )}
 
-      {/* Filtro por tipo. Solo aparece si hay más de un tipo en la trama. */}
+      {/* Filtro por tipo. Solo aparece si hay más de un tipo en la trama.
+          Sticky al top del scroll cuando el usuario baja — el control
+          siempre disponible sin necesidad de scrollear de vuelta arriba.
+          Background paper-50/95 con backdrop-blur para que el contenido
+          que pasa abajo se sienta correctamente "filtrado". */}
       {availableTypes.length > 1 && (
-        <div className="mb-4 flex flex-wrap gap-1.5">
+        <div className="sticky top-0 z-10 -mx-8 px-8 py-2 mb-4 bg-paper-50/90 backdrop-blur border-b border-ink-100/40 flex flex-wrap gap-1.5">
           <button
             onClick={() => setTypeFilter(null)}
             className={
