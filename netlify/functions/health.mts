@@ -45,6 +45,9 @@ export default withObservability('health', async (req) => {
     created_at: string
   }
 
+  type ErrorCountRow = { c: string }
+  type EmbeddingPendingRow = { entities: string; quotes: string }
+
   const [
     entitiesCountRows,
     quotesCountRows,
@@ -52,6 +55,8 @@ export default withObservability('health', async (req) => {
     monthTotalsRows,
     providerRows,
     errorRows,
+    errors24hRows,
+    embeddingPendingRows,
   ] = await Promise.all([
     sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL` as unknown as Promise<CountRow[]>,
     sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL` as unknown as Promise<CountRow[]>,
@@ -85,12 +90,91 @@ export default withObservability('health', async (req) => {
       ORDER BY created_at DESC
       LIMIT 10
     ` as unknown as Promise<ErrorRow[]>,
+    // Errores en las últimas 24h — para alertar de "algo está pasando ahora"
+    // vs el histórico de 7 días.
+    sql`
+      SELECT COUNT(*)::text AS c
+      FROM error_log
+      WHERE created_at >= NOW() - INTERVAL '24 hours'
+    ` as unknown as Promise<ErrorCountRow[]>,
+    // Filas sin embedding — alertar cuando vale la pena reindexar.
+    sql`
+      SELECT
+        (SELECT COUNT(*) FROM entities WHERE deleted_at IS NULL AND embedding IS NULL)::text AS entities,
+        (SELECT COUNT(*) FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL)::text AS quotes
+    ` as unknown as Promise<EmbeddingPendingRow[]>,
   ])
 
   // Read the configured monthly budget; default 5000 cents if unset.
   const budgetCentsRaw = Netlify.env.get('AI_MONTHLY_BUDGET_CENTS')
   const budgetCents = budgetCentsRaw ? Number.parseFloat(budgetCentsRaw) : 5000
   const monthCostCents = Number(monthTotalsRows[0]?.cost_cents ?? 0)
+  const budgetPct = budgetCents > 0 ? Math.min(1, monthCostCents / budgetCents) : 0
+
+  // ── Alertas calculadas en runtime ──────────────────────────────
+  // Cada alerta es algo que el usuario debería mirar. Tres severidades:
+  //   info  — útil saber, no urgente (gradient azul muy sutil)
+  //   warn  — vale la pena revisar (ámbar)
+  //   error — algo está fallando ahora (rojo)
+  // La UI consume `alerts[]` para decidir si pinta un dot en el sidebar
+  // y de qué color. Si el array está vacío, todo silencioso.
+  type Alert = {
+    severity: 'info' | 'warn' | 'error'
+    code: string
+    label: string
+    hint: string
+  }
+  const alerts: Alert[] = []
+
+  // Budget — alerta antes de tocar el cap, para que el usuario pueda
+  // decidir si subir el cap o pausar antes de que se corten las llamadas.
+  if (budgetPct >= 0.9) {
+    alerts.push({
+      severity: 'error',
+      code: 'budget_critical',
+      label: 'Gasto IA al 90% del cap',
+      hint: 'Próximamente las llamadas LLM van a bloquearse hasta el próximo mes. Subí AI_MONTHLY_BUDGET_CENTS o pausá flujos.',
+    })
+  } else if (budgetPct >= 0.7) {
+    alerts.push({
+      severity: 'warn',
+      code: 'budget_high',
+      label: `Gasto IA al ${Math.round(budgetPct * 100)}% del cap`,
+      hint: 'Vas por encima del 70% del presupuesto mensual. Mirá el breakdown por provider abajo.',
+    })
+  }
+
+  // Errores recientes — el "hubo algo raro en las últimas 24h".
+  const errors24h = Number(errors24hRows[0]?.c ?? 0)
+  if (errors24h >= 10) {
+    alerts.push({
+      severity: 'error',
+      code: 'errors_burst',
+      label: `${errors24h} errores en 24h`,
+      hint: 'Algo está fallando recurrente. Mirá la lista de abajo y los stacks.',
+    })
+  } else if (errors24h >= 3) {
+    alerts.push({
+      severity: 'warn',
+      code: 'errors_recent',
+      label: `${errors24h} errores en 24h`,
+      hint: 'Hay más errores de los habituales. Vale la pena una mirada.',
+    })
+  }
+
+  // Embeddings sin indexar — info, no urgente. Aparece solo si hay un
+  // backlog significativo (>50). Por debajo no vale interrumpir.
+  const pendingEntities = Number(embeddingPendingRows[0]?.entities ?? 0)
+  const pendingQuotes = Number(embeddingPendingRows[0]?.quotes ?? 0)
+  const pendingTotal = pendingEntities + pendingQuotes
+  if (pendingTotal >= 50) {
+    alerts.push({
+      severity: 'info',
+      code: 'embeddings_pending',
+      label: `${pendingTotal} sin indexar`,
+      hint: 'Búsqueda semántica no las cubre todavía. Reindexá desde la sección Búsqueda.',
+    })
+  }
 
   return Response.json({
     counts: {
@@ -107,7 +191,12 @@ export default withObservability('health', async (req) => {
     budget: {
       limitCents: budgetCents,
       remainingCents: Math.max(0, budgetCents - monthCostCents),
-      pct: budgetCents > 0 ? Math.min(1, monthCostCents / budgetCents) : 0,
+      pct: budgetPct,
+    },
+    alerts,
+    embeddings: {
+      pendingEntities,
+      pendingQuotes,
     },
     byProvider: providerRows.map((r) => ({
       provider: r.provider,

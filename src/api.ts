@@ -796,6 +796,13 @@ export type ChatMessage = {
   model?: string
 }
 
+export type HealthAlert = {
+  severity: 'info' | 'warn' | 'error'
+  code: string
+  label: string
+  hint: string
+}
+
 export type HealthResponse = {
   counts: { entities: number; quotes: number; relationships: number }
   month: {
@@ -824,6 +831,11 @@ export type HealthResponse = {
     message: string
     createdAt: string
   }>
+  alerts: HealthAlert[]
+  embeddings: {
+    pendingEntities: number
+    pendingQuotes: number
+  }
 }
 
 export type NeighborWithHop = Entity & { hopDistance: number }

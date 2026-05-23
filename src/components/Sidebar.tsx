@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api'
 import {
   useCountsQuery,
+  useHealthAlerts,
   useProactiveQuery,
 } from '../state'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -64,6 +65,10 @@ export function Sidebar({
   // Counts vienen del endpoint agregado — el Sidebar ya no carga la lista
   // completa de entidades. A 100k+ es la única opción viable.
   const { data: totals } = useCountsQuery()
+  // Alertas de salud (budget alto, errores recientes, embeddings sin
+  // indexar). Si hay algo activo, pintamos un dot en el botón de
+  // Configuración como guiño "abre Estado del sistema".
+  const healthAlerts = useHealthAlerts()
   const isMobile = useIsMobile()
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -171,13 +176,36 @@ export function Sidebar({
             />
           )}
           <AIModeToggle collapsed />
-          <Tooltip content="Configuración" side="bottom">
+          <Tooltip
+            content={
+              healthAlerts.maxSeverity
+                ? `Configuración — ${healthAlerts.count} ${healthAlerts.count === 1 ? 'alerta' : 'alertas'}`
+                : 'Configuración'
+            }
+            side="bottom"
+          >
             <button
               onClick={onOpenSettings}
-              aria-label="Configuración"
-              className="p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors active:scale-95"
+              aria-label={
+                healthAlerts.maxSeverity
+                  ? `Configuración (${healthAlerts.count} ${healthAlerts.count === 1 ? 'alerta' : 'alertas'})`
+                  : 'Configuración'
+              }
+              className="relative p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors active:scale-95"
             >
               <SettingsIcon size={14} />
+              {healthAlerts.maxSeverity && (
+                <span
+                  aria-hidden
+                  className={`absolute top-1 right-1 size-1.5 rounded-full ${
+                    healthAlerts.maxSeverity === 'error'
+                      ? 'bg-red-600'
+                      : healthAlerts.maxSeverity === 'warn'
+                        ? 'bg-amber-500'
+                        : 'bg-sky-500'
+                  } ${healthAlerts.maxSeverity !== 'info' ? 'animate-pulse-subtle' : ''}`}
+                />
+              )}
             </button>
           </Tooltip>
         </div>
@@ -339,7 +367,23 @@ export function Sidebar({
           className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-body text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
         >
           <SettingsIcon size={14} className="text-ink-400" />
-          <span>Configuración</span>
+          <span className="flex-1 text-left">Configuración</span>
+          {healthAlerts.maxSeverity && (
+            <span
+              className={`text-micro uppercase tracking-eyebrow tabular-nums px-1.5 py-0.5 rounded-full font-medium ${
+                healthAlerts.maxSeverity === 'error'
+                  ? 'bg-red-100 text-red-700'
+                  : healthAlerts.maxSeverity === 'warn'
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-sky-100 text-sky-700'
+              }`}
+              aria-label={`${healthAlerts.count} ${
+                healthAlerts.count === 1 ? 'alerta' : 'alertas'
+              }`}
+            >
+              {healthAlerts.count}
+            </span>
+          )}
         </button>
         <p className="text-micro uppercase tracking-wider text-ink-300 text-center pt-2 pb-0.5">
           trama · v0.8.0

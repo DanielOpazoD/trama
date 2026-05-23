@@ -574,6 +574,41 @@ function HealthSectionPanel() {
         hint="Gasto IA del mes, conteos, errores recientes. Si algo va raro, mirá acá antes que en cualquier otro lado."
       />
 
+      {/* Alertas activas — banners arriba para que sean lo primero que
+          se ve cuando hay algo que mirar. Si el array está vacío, no
+          se renderiza nada. */}
+      {data.alerts.length > 0 && (
+        <ul className="space-y-2" aria-label="Alertas activas">
+          {data.alerts.map((alert) => (
+            <li
+              key={alert.code}
+              className={`flex items-start gap-3 px-4 py-3 rounded-lg border ${
+                alert.severity === 'error'
+                  ? 'alert-error'
+                  : alert.severity === 'warn'
+                    ? 'alert-warn'
+                    : 'bg-sky-50/80 border-sky-200/60 text-sky-900'
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`mt-1.5 size-1.5 rounded-full shrink-0 ${
+                  alert.severity === 'error'
+                    ? 'bg-red-600'
+                    : alert.severity === 'warn'
+                      ? 'bg-amber-600'
+                      : 'bg-sky-600'
+                } ${alert.severity !== 'info' ? 'animate-pulse-subtle' : ''}`}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium leading-tight">{alert.label}</div>
+                <p className="mt-1 text-xs leading-relaxed opacity-80">{alert.hint}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {/* Counts hero */}
       <div className="grid grid-cols-3 gap-3">
         <CountTile label="Entidades" value={data.counts.entities} />
