@@ -12,6 +12,7 @@ import { Sidebar, type ViewMode } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { CommandPalette } from './components/CommandPalette'
 import { ShortcutsModal } from './components/ShortcutsModal'
+import { Onboarding } from './components/Onboarding'
 import { ToastHost } from './components/ToastHost'
 import { AskBar } from './components/AskBar'
 import { ReadingMode } from './components/ReadingMode'
@@ -195,6 +196,21 @@ function Shell() {
       <ShortcutsModal
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
+      />
+
+      {/* Onboarding — solo aparece la primera vez, cuando la trama
+          está literalmente vacía. El propio componente checa
+          localStorage y se cierra si ya lo vio. */}
+      <Onboarding
+        enabled={
+          !loading &&
+          entitiesQuery.data?.length === 0 &&
+          quotesQuery.data?.length === 0 &&
+          relationshipsQuery.data?.length === 0
+        }
+        onComplete={() => {
+          /* Persistencia y close manejados dentro del componente. */
+        }}
       />
 
       <ToastHost />
