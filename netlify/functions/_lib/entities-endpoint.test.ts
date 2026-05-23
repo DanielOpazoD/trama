@@ -1,8 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockContext, mockSqlResponses, setupMockSql } from './_lib/test-utils'
+import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
 
 // El mock del módulo db tiene que estar ANTES del import del handler.
-vi.mock('./_lib/db.js', () => setupMockSql())
+// Nota: este test vive en _lib/ por restricciones de naming de Netlify Functions
+// (no acepta `.test.ts` en /netlify/functions/ porque interpreta el "." como
+// inválido). Por eso el path al handler es `../entities` y el mock del módulo
+// es `./db.js` desde la perspectiva del SUT.
+vi.mock('./db.js', () => setupMockSql())
 // observability.persistError usa safeSql() que llama al wrapper; con el
 // mock de db.js arriba ya retorna sql, así que persistError intenta hacer
 // INSERT INTO error_log... pero como el mock devuelve [] sin error, está OK.
@@ -14,7 +18,7 @@ vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
   json: async () => ({}),
 }))
 
-import handler from './entities'
+import handler from '../entities'
 
 describe('entities endpoint — integration', () => {
   beforeEach(() => {

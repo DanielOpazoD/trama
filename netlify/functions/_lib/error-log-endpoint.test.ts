@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockContext, mockSqlResponses, setupMockSql } from './_lib/test-utils'
+import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
 
-vi.mock('./_lib/db.js', () => setupMockSql())
+// Test vive en _lib/ por restricciones de naming de Netlify Functions.
+// Handler en `../`, mock del db en `./db.js`.
+vi.mock('./db.js', () => setupMockSql())
 
-import handler from './error-log'
+import handler from '../error-log'
 
 describe('error-log endpoint — integration', () => {
   beforeEach(() => mockSqlResponses.reset())
