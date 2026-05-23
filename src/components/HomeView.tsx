@@ -13,6 +13,7 @@ import {
   SkeletonList,
   TimelineRowSkeleton,
 } from './Skeleton'
+import { WeeklyActivity } from './WeeklyActivity'
 import { typeAccent } from './graph/GraphNode'
 
 /**
@@ -127,6 +128,14 @@ export function HomeView({
         />
       ) : (
         <div className="space-y-14">
+          {/* Pulso de la semana — solo aparece si hubo actividad en
+              los últimos 7 días. Si no, no contamina la portada. */}
+          <WeeklyActivity
+            entities={entities}
+            quotes={quotes}
+            relationships={relationships}
+          />
+
           {featuredQuote && (
             <FeaturedQuote
               quote={featuredQuote}
