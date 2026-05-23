@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   useAddEntity,
   useAddQuote,
@@ -54,22 +54,38 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
   const [statusEdits, setStatusEdits] = useState<Status[]>(editList.map(() => 'pending'))
   const [statusDeletes, setStatusDeletes] = useState<Status[]>(deleteList.map(() => 'pending'))
 
+  // Map local de ids recién creados durante la ronda de "aceptar todo".
+  // Se usa como overlay encima del cache `entities` porque el cache no se
+  // refleja sincrónicamente entre la creación de una entidad y el lookup
+  // siguiente — esa carrera causaba los "FALLÓ" en relaciones que dependen
+  // de entidades recién creadas en el mismo batch.
+  const recentlyCreatedRef = useRef<Map<string, string>>(new Map())
+
   function lookupEntityId(name: string): string | undefined {
     const n = name.trim().toLowerCase()
+    const fresh = recentlyCreatedRef.current.get(n)
+    if (fresh) return fresh
     return entities.find((e) => e.name.trim().toLowerCase() === n)?.id
   }
 
   async function applyEntity(i: number) {
     const e = entityList[i]
     try {
-      await addEntity.mutateAsync({
+      const created = await addEntity.mutateAsync({
         type: e.type,
         name: e.name,
         year: e.year,
         description: e.description,
         spotifyUrl: e.spotifyUrl,
         origin: AI_ORIGIN,
+        // El chat propuso estas entidades con el contexto de la trama
+        // actual. Trust the user's review aquí y bypass el dup guard.
+        _force: true,
       })
+      // Registrar en el map local para que applyRelationship/applyQuote
+      // hechas inmediatamente después puedan resolver el id sin esperar
+      // a que el cache de TanStack se actualice.
+      recentlyCreatedRef.current.set(created.name.trim().toLowerCase(), created.id)
       setStatusEntities((s) => s.map((v, idx) => (idx === i ? 'applied' : v)))
     } catch {
       setStatusEntities((s) => s.map((v, idx) => (idx === i ? 'failed' : v)))
@@ -164,8 +180,20 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
   async function applyAll() {
     // "Aceptar todo" applies non-destructive items by default. Deletes stay
     // out — they must be individually clicked.
+    //
+    // IMPORTANTE: SECUENCIAL en dos fases.
+    // - Fase 1: entidades. Cada applyEntity registra el id recién creado
+    //   en recentlyCreatedRef. Sin esto, las relaciones que referencian
+    //   entidades NUEVAS por nombre fallan porque el cache de TanStack
+    //   aún no se actualizó cuando applyRelationship hace su lookup.
+    // - Fase 2: el resto puede correr en paralelo entre sí, ya con todos
+    //   los ids resueltos.
+    for (let i = 0; i < statusEntities.length; i++) {
+      if (statusEntities[i] === 'pending') {
+        await applyEntity(i)
+      }
+    }
     await Promise.all([
-      ...statusEntities.map((s, i) => (s === 'pending' ? applyEntity(i) : null)),
       ...statusRels.map((s, i) => (s === 'pending' ? applyRelationship(i) : null)),
       ...statusQuotes.map((s, i) => (s === 'pending' ? applyQuote(i) : null)),
       ...statusReclass.map((s, i) => (s === 'pending' ? applyReclass(i) : null)),
