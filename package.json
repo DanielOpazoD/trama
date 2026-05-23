@@ -10,6 +10,9 @@
     "test": "node_modules/.bin/vitest run",
     "test:watch": "node_modules/.bin/vitest",
     "test:coverage": "node_modules/.bin/vitest run --coverage",
+    "e2e": "node_modules/.bin/playwright test",
+    "e2e:ui": "node_modules/.bin/playwright test --ui",
+    "e2e:install": "node_modules/.bin/playwright install --with-deps chromium",
     "typecheck": "node_modules/.bin/tsc -b",
     "db:up": "docker compose up -d postgres && sleep 3 && scripts/apply-migrations.sh",
     "db:down": "docker compose down",
@@ -25,6 +28,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

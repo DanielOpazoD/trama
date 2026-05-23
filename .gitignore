@@ -42,3 +42,8 @@ coverage
 
 # Local tooling state
 .claude/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
