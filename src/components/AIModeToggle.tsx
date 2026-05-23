@@ -92,8 +92,8 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
           role="menu"
           className={
             collapsed
-              ? 'absolute left-full ml-2 bottom-0 w-56 z-40 paper-grain relative rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-2xl shadow-ink-900/20 p-1.5'
-              : 'absolute left-0 right-0 bottom-full mb-2 z-40 paper-grain rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-2xl shadow-ink-900/20 p-1.5'
+              ? 'absolute left-full ml-2 bottom-0 w-56 z-40 paper-grain relative rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 p-1.5'
+              : 'absolute left-0 right-0 bottom-full mb-2 z-40 paper-grain rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 p-1.5'
           }
         >
           <p className="px-2 pt-1 pb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">

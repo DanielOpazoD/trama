@@ -29,7 +29,7 @@ export function EmptyMessage({
 }) {
   const wrapper =
     variant === 'soft'
-      ? 'mt-8 px-8 py-10 border border-dashed border-ink-100/60 rounded-2xl bg-paper-50/30 max-w-xl mx-auto text-center animate-fade-up'
+      ? 'mt-8 px-8 py-10 border border-dashed border-ink-100/60 rounded-xl bg-paper-50/30 max-w-xl mx-auto text-center animate-fade-up'
       : 'mt-8 px-2 py-6 max-w-xl mx-auto text-center animate-fade-up'
 
   return (

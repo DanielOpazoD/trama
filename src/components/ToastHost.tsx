@@ -58,7 +58,7 @@ export function ToastHost() {
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-up pointer-events-none"
     >
       <div
-        className={`pointer-events-auto flex items-center gap-3 pl-4 pr-2 py-2.5 rounded-xl border shadow-2xl shadow-ink-900/40 min-w-[260px] max-w-[480px] ${toneClass}`}
+        className={`pointer-events-auto flex items-center gap-3 pl-4 pr-2 py-2.5 rounded-xl border shadow-lg shadow-ink-900/25 min-w-[260px] max-w-[480px] ${toneClass}`}
       >
         <span className="text-sm leading-snug flex-1">{current.message}</span>
         {current.action && (

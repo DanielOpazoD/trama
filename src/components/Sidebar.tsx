@@ -228,7 +228,7 @@ export function Sidebar({
     <aside
       className={
         isMobile
-          ? 'surface-sidebar fixed inset-y-0 left-0 w-64 z-40 border-r border-ink-100 flex flex-col shadow-2xl'
+          ? 'surface-sidebar fixed inset-y-0 left-0 w-64 z-40 border-r border-ink-100 flex flex-col shadow-lg'
           : 'surface-sidebar w-64 shrink-0 border-r border-ink-100 flex flex-col'
       }
     >

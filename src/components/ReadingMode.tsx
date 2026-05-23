@@ -191,7 +191,7 @@ export function ReadingMode({
         tabIndex={-1}
       />
       <div
-        className="fixed inset-x-4 top-12 bottom-12 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[680px] md:max-w-[calc(100vw-2rem)] z-40 flex flex-col rounded-2xl border border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-2xl shadow-ink-900/20 overflow-hidden animate-slide-up"
+        className="fixed inset-x-4 top-12 bottom-12 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[680px] md:max-w-[calc(100vw-2rem)] z-40 flex flex-col rounded-xl border border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 overflow-hidden animate-slide-up"
       >
         <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
           <div className="min-w-0">

@@ -86,7 +86,7 @@ export function Settings({
         role="dialog"
         aria-label="Configuración"
         className="fixed inset-4 md:inset-8 lg:inset-12 z-40 max-w-6xl max-h-[calc(100vh-4rem)] mx-auto
-                   bg-paper-50 border border-ink-100 rounded-2xl shadow-2xl shadow-ink-900/30
+                   bg-paper-50 border border-ink-100 rounded-xl shadow-lg shadow-ink-900/15
                    animate-fade-up flex flex-col overflow-hidden"
       >
         <header className="px-6 py-4 border-b border-ink-100/60 flex items-baseline justify-between shrink-0">

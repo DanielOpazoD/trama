@@ -92,7 +92,7 @@ export function ShortcutsModal({
         role="dialog"
         aria-label="Atajos de teclado"
         className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-40 w-full max-w-2xl max-h-[85vh]
-                   bg-paper-50 border border-ink-100 rounded-2xl shadow-2xl shadow-ink-900/25
+                   bg-paper-50 border border-ink-100 rounded-xl shadow-lg shadow-ink-900/12
                    animate-fade-up flex flex-col overflow-hidden"
       >
         <header className="px-6 py-4 border-b border-ink-100/60 flex items-baseline justify-between shrink-0">
