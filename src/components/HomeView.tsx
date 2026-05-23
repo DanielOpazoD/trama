@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   useEntitiesQuery,
   useProactiveQuery,
@@ -35,10 +35,16 @@ export function HomeView({
   const proactive = useProactiveQuery()
   const pendingCount = proactive.data?.length ?? 0
 
-  // Featured quote: deterministic-ish randomness — picks the quote whose id
-  // hashes lowest among today's calendar day. Same quote during the day,
-  // a different one tomorrow. Cheap re-discovery without flicker.
-  const featuredQuote = useMemo(() => pickFeaturedQuote(quotes), [quotes])
+  // Featured quote: rotación aleatoria.
+  // Antes era determinístico por día (mismo destacado durante 24h). El
+  // usuario pidió que rote. Cada montaje de HomeView elige al azar; un
+  // contador (rollCounter) deja que el botón "rotar" pida otra.
+  const [rollCounter, setRollCounter] = useState(0)
+  const featuredQuote = useMemo(
+    () => pickFeaturedQuote(quotes),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [quotes, rollCounter],
+  )
 
   // Recent activity: last 8 events across entities + quotes + relationships,
   // newest first. Each one keeps a typed payload so the row renders correctly.
@@ -108,6 +114,7 @@ export function HomeView({
               quote={featuredQuote}
               entity={entities.find((e) => e.id === featuredQuote.entityId)}
               onSelectEntity={onSelectEntity}
+              onReroll={quotes.length > 1 ? () => setRollCounter((c) => c + 1) : undefined}
             />
           )}
 
@@ -163,45 +170,44 @@ export function HomeView({
 
 function pickFeaturedQuote(quotes: Quote[]): Quote | null {
   if (quotes.length === 0) return null
-  // Stable pick per calendar day in user's tz.
-  const day = new Date()
-  const seed =
-    day.getFullYear() * 1000 + day.getMonth() * 50 + day.getDate()
-  // Hash-ish: take the quote whose id, summed with the day seed, has the
-  // lowest numeric remainder. Deterministic within the same day.
-  let best: Quote = quotes[0]
-  let bestScore = Number.POSITIVE_INFINITY
-  for (const q of quotes) {
-    let sum = seed
-    for (let i = 0; i < q.id.length; i++) sum = (sum * 31 + q.id.charCodeAt(i)) >>> 0
-    const score = sum % 1000
-    if (score < bestScore) {
-      bestScore = score
-      best = q
-    }
-  }
-  return best
+  // Pick aleatorio. Si hay más de una cita, evitamos repetir la primera
+  // del array por sesgo del orden — simplemente Math.random sobre todo.
+  const idx = Math.floor(Math.random() * quotes.length)
+  return quotes[idx]
 }
 
 function FeaturedQuote({
   quote,
   entity,
   onSelectEntity,
+  onReroll,
 }: {
   quote: Quote
   entity: Entity | undefined
   onSelectEntity: (id: string) => void
+  onReroll?: () => void
 }) {
   const first = quote.text[0]
   const rest = quote.text.slice(1)
   return (
     <section className="animate-fade-up">
-      <p
-        className="text-[10px] uppercase tracking-[0.2em] mb-3"
-        style={{ color: 'var(--accent-gold)' }}
-      >
-        ◆ una cita de tu trama
-      </p>
+      <div className="mb-3 flex items-baseline justify-between">
+        <p
+          className="text-[10px] uppercase tracking-[0.2em]"
+          style={{ color: 'var(--accent-gold)' }}
+        >
+          ◆ una cita de tu trama
+        </p>
+        {onReroll && (
+          <button
+            onClick={onReroll}
+            className="text-xs uppercase tracking-wider text-ink-300 hover:text-ink-700 transition-colors"
+            title="Rotar a otra cita"
+          >
+            Otra
+          </button>
+        )}
+      </div>
       <blockquote className="quote-block text-lg md:text-xl text-ink-700 leading-snug clear-both overflow-hidden">
         <span className="float-left mr-1.5 mt-1 text-4xl leading-[0.85] font-serif text-ink-700 select-none">
           {first}

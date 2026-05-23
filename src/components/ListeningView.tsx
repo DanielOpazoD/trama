@@ -258,7 +258,19 @@ export function ListeningView({
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-3 flex-wrap">
-                        <span className="text-ink-700">{item.key}</span>
+                        {item.spotifyId ? (
+                          <a
+                            href={`https://open.spotify.com/${group}/${item.spotifyId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-ink-700 hover:text-emerald-700 transition-colors border-b border-transparent hover:border-emerald-700/40"
+                            title="Abrir en Spotify"
+                          >
+                            {item.key}
+                          </a>
+                        ) : (
+                          <span className="text-ink-700">{item.key}</span>
+                        )}
                         <span className="text-xs text-ink-400 tabular-nums">
                           {item.plays} {item.plays === 1 ? 'reproducción' : 'reproducciones'}
                         </span>
