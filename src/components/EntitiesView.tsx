@@ -391,6 +391,7 @@ export function EntitiesView({
         </div>
       ) : entities.length === 0 ? (
         <EmptyMessage
+          illustration="weave"
           title="Todavía nadie habita la trama."
           body={
             <>

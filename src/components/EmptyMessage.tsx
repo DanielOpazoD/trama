@@ -1,19 +1,25 @@
 import type { ReactNode } from 'react'
-import { SparkleIcon } from './Icons'
+import { EmptyIllustration, SparkleIcon } from './Icons'
 
 /**
  * Designed empty state. The plain "Aún sin citas." pattern that lived in every
  * view feels like a system error message — this component dignifies the
- * emptiness with editorial composition: a heading in serif, a subtitle in
- * sans-serif, an optional aspirational hint, and optional action(s).
+ * emptiness with editorial composition: an optional illustration, a heading
+ * in serif, a subtitle in sans-serif, an optional aspirational hint, and
+ * optional action(s).
  *
  * Variants:
  *   - 'soft'  → light card on paper, used when the list is paginated or the
  *                view loads with no rows yet (most common case).
  *   - 'plain' → no card, just spaced text. For places already inside a card.
+ *
+ * Para empty states con illustration usar la prop `illustration` con
+ * "weave" (default), "pair" o "thread" — son variaciones del woven motif
+ * que da identidad al producto sin gritar.
  */
 export function EmptyMessage({
   icon,
+  illustration,
   title,
   body,
   hint,
@@ -21,6 +27,9 @@ export function EmptyMessage({
   variant = 'soft',
 }: {
   icon?: ReactNode
+  /** Tipo de SVG ilustrado encima del título. Reemplaza al `icon` chico
+      cuando se quiere algo más editorial. */
+  illustration?: 'weave' | 'pair' | 'thread'
   title: string
   body?: ReactNode
   hint?: ReactNode
@@ -34,7 +43,13 @@ export function EmptyMessage({
 
   return (
     <div className={wrapper}>
-      {icon && <div className="text-ink-300 flex justify-center mb-3">{icon}</div>}
+      {illustration ? (
+        <div className="text-ink-300 flex justify-center mb-5">
+          <EmptyIllustration kind={illustration} size={120} />
+        </div>
+      ) : (
+        icon && <div className="text-ink-300 flex justify-center mb-3">{icon}</div>
+      )}
       <h3 className="font-serif text-2xl text-ink-600 italic leading-tight">
         {title}
       </h3>

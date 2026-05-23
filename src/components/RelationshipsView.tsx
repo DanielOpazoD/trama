@@ -176,6 +176,7 @@ export function RelationshipsView({
 
       {entities.length < 2 ? (
         <EmptyMessage
+          illustration="pair"
           title="Una relación necesita dos."
           body={
             <>
@@ -236,6 +237,7 @@ export function RelationshipsView({
             <p className="text-ink-300 italic text-sm">cargando…</p>
           ) : relationships.length === 0 ? (
             <EmptyMessage
+              illustration="pair"
               title="Las entidades están sueltas."
               body={
                 <>

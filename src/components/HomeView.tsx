@@ -116,6 +116,7 @@ export function HomeView({
 
       {totalEntities === 0 ? (
         <EmptyMessage
+          illustration="weave"
           title="Una trama recién empieza así, en silencio."
           body={
             <>

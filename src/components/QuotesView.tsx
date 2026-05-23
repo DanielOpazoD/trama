@@ -158,6 +158,7 @@ export function QuotesView({
 
       {entities.length === 0 ? (
         <EmptyMessage
+          illustration="thread"
           title="No hay todavía a quién atribuir nada."
           body={
             <>
@@ -222,6 +223,7 @@ export function QuotesView({
 
           {quotes.length === 0 ? (
             <EmptyMessage
+              illustration="thread"
               title="Una página todavía en blanco."
               body={
                 <>
