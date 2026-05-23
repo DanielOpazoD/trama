@@ -187,26 +187,26 @@ export function AskBar({
                 {threadId && onOpenThread && (
                   <button
                     onClick={() => onOpenThread(threadId)}
-                    className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
-                    title="Ver toda la conversación en la vista de chat"
+                    className="text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
+                    title="Ver en chat"
                   >
-                    ver historial
+                    Historial
                   </button>
                 )}
                 {threadId && (
                   <button
                     onClick={handleNewThread}
-                    className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
-                    title="Olvida el hilo actual y empieza uno nuevo en esta sección"
+                    className="text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
+                    title="Empezar hilo nuevo"
                   >
-                    nuevo hilo
+                    Nuevo
                   </button>
                 )}
                 <button
                   onClick={() => setReply(null)}
-                  className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+                  className="text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
                 >
-                  cerrar
+                  Cerrar
                 </button>
               </div>
             </div>
@@ -214,8 +214,8 @@ export function AskBar({
               {reply.text}
             </p>
             {threadId && (
-              <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-ink-300">
-                continuando hilo · la IA recuerda lo previo
+              <p className="mt-2 text-xs uppercase tracking-wider text-ink-400">
+                Hilo activo
               </p>
             )}
           </div>
@@ -300,18 +300,18 @@ export function AskBar({
 function placeholderForView(view: string | null): string {
   switch (view) {
     case 'citas':
-      return 'pregunta sobre estas citas, pega una nueva, o pídele a la IA que medite…'
+      return 'Pregunta, pega una cita…'
     case 'entidades':
-      return 'pregunta sobre una entidad, propone una nueva, o conversa…'
+      return 'Pregunta o propone…'
     case 'relaciones':
-      return 'pregunta por una conexión, propone una nueva…'
+      return 'Pregunta o propone…'
     case 'escuchas':
-      return 'pregunta por tu música, pide recomendaciones afines…'
+      return 'Pregunta o recomienda…'
     case 'sugerencias':
-      return 'pregunta por una sugerencia, pide otra ronda…'
+      return 'Pregunta…'
     case 'grafo':
-      return '¿en qué andabas pensando? un libro, una idea, una conversación… o una pregunta a tu trama.'
+      return 'Pregunta o captura…'
     default:
-      return '¿en qué andabas pensando? un libro, una idea suelta, una conversación… o sube una foto.'
+      return 'Pregunta o captura…'
   }
 }

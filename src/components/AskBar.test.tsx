@@ -26,7 +26,7 @@ describe('<AskBar />', () => {
     renderWithProviders(
       <AskBar busy={false} view={null} selectedEntityId={null} onProposal={vi.fn()} />,
     )
-    expect(screen.getByPlaceholderText(/andabas pensando|sube una foto/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/pregunta|captura/i)).toBeInTheDocument()
   })
 
   it('disables send button when empty', () => {
@@ -41,7 +41,7 @@ describe('<AskBar />', () => {
     renderWithProviders(
       <AskBar busy={false} view={null} selectedEntityId={null} onProposal={vi.fn()} />,
     )
-    await user.type(screen.getByPlaceholderText(/andabas pensando|sube una foto/i), 'algo')
+    await user.type(screen.getByPlaceholderText(/pregunta|captura/i), 'algo')
     expect(screen.getByLabelText('Enviar')).toBeEnabled()
   })
 
@@ -56,7 +56,7 @@ describe('<AskBar />', () => {
       <AskBar busy={false} view="citas" selectedEntityId={null} onProposal={vi.fn()} />,
     )
 
-    await user.type(screen.getByPlaceholderText(/pega una nueva|medite/i), 'qué hago aquí')
+    await user.type(screen.getByPlaceholderText(/pregunta|pega/i), 'qué hago aquí')
     await user.click(screen.getByLabelText('Enviar'))
 
     await waitFor(() => {
@@ -78,7 +78,7 @@ describe('<AskBar />', () => {
       <AskBar busy={false} view={null} selectedEntityId={null} onProposal={onProposal} />,
     )
 
-    await user.type(screen.getByPlaceholderText(/andabas pensando|sube una foto/i), 'capturé esto')
+    await user.type(screen.getByPlaceholderText(/pregunta|captura/i), 'capturé esto')
     await user.click(screen.getByLabelText('Enviar'))
 
     await waitFor(() => {
@@ -100,7 +100,7 @@ describe('<AskBar />', () => {
       <AskBar busy={false} view={null} selectedEntityId={null} onProposal={onProposal} />,
     )
 
-    await user.type(screen.getByPlaceholderText(/andabas pensando|sube una foto/i), 'mixto')
+    await user.type(screen.getByPlaceholderText(/pregunta|captura/i), 'mixto')
     await user.click(screen.getByLabelText('Enviar'))
 
     await waitFor(() => {
@@ -118,7 +118,7 @@ describe('<AskBar />', () => {
     )
 
     const textarea = screen.getByPlaceholderText(
-      /andabas pensando|sube una foto/i,
+      /pregunta|captura/i,
     ) as HTMLTextAreaElement
     await user.type(textarea, 'algo')
     await user.click(screen.getByLabelText('Enviar'))

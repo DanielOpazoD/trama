@@ -15,7 +15,7 @@ import {
   type Entity,
   type Relationship,
 } from '../types'
-import { CloseIcon, SparkleIcon } from './Icons'
+import { CloseIcon, SparkleIcon, TrashIcon } from './Icons'
 import { QuoteCard } from './QuoteCard'
 
 // Music-y types where a Spotify link makes sense.
@@ -244,9 +244,7 @@ export function NodeDetailPanel({
             title="Abre un hilo de chat focalizado en esta entidad: su contexto, sus citas y sus relaciones."
           >
             <SparkleIcon size={12} />
-            {createChatThread.isPending
-              ? 'abriendo hilo…'
-              : 'hablar con esta entidad'}
+            {createChatThread.isPending ? 'Abriendo…' : 'Hablar'}
           </button>
         </div>
       )}
@@ -317,7 +315,7 @@ export function NodeDetailPanel({
               <textarea
                 value={essayDraft}
                 onChange={(e) => setEssayDraft(e.target.value)}
-                placeholder="una nota más larga sobre esta entidad — qué te atrajo, cuándo apareció, qué viene después. markdown ligero permitido."
+                placeholder="Nota larga sobre esto…"
                 rows={8}
                 className="input-paper w-full resize-none text-sm leading-relaxed"
                 autoFocus
@@ -361,7 +359,7 @@ export function NodeDetailPanel({
               onClick={() => setEditingEssay(true)}
               className="text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
             >
-              + añadir ensayo
+              + Ensayo
             </button>
           )}
         </section>
@@ -369,13 +367,13 @@ export function NodeDetailPanel({
         {/* Quick note form */}
         <section>
           <h3 className="text-xs uppercase tracking-wider text-ink-400 mb-2">
-            añadir cita o nota
+            Cita o nota
           </h3>
           <form onSubmit={handleAddNote} className="flex flex-col gap-2">
             <textarea
               value={noteDraft}
               onChange={(e) => setNoteDraft(e.target.value)}
-              placeholder="una cita, o un pensamiento que quieras retener…"
+              placeholder="Una cita, una nota…"
               rows={2}
               className="input-paper w-full resize-none text-sm"
             />
@@ -383,7 +381,7 @@ export function NodeDetailPanel({
               <textarea
                 value={noteReflectionDraft}
                 onChange={(e) => setNoteReflectionDraft(e.target.value)}
-                placeholder="tu reflexión propia (qué viste en esto, por qué la guardas)…"
+                placeholder="Tu reflexión…"
                 rows={2}
                 className="input-paper w-full resize-none text-sm"
               />
@@ -393,7 +391,7 @@ export function NodeDetailPanel({
                 onClick={() => setShowNoteReflection(true)}
                 className="self-start text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
               >
-                + añadir tu reflexión
+                + Reflexión
               </button>
             )}
             <div className="flex justify-end">
@@ -459,12 +457,12 @@ export function NodeDetailPanel({
         )}
       </div>
 
-      <footer className="px-5 py-3 border-t border-ink-100/60 flex justify-end">
+      <footer className="px-5 py-3 border-t border-ink-100 flex justify-end">
         {confirmingDelete ? (
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-ink-500">¿borrar entidad y todo lo asociado?</span>
+            <span className="text-ink-600">¿Borrar?</span>
             <button onClick={() => setConfirmingDelete(false)} className="btn-ghost">
-              cancelar
+              Cancelar
             </button>
             <button
               onClick={async () => {
@@ -473,15 +471,17 @@ export function NodeDetailPanel({
               }}
               className="text-red-700 hover:text-red-900 text-sm"
             >
-              sí, eliminar
+              Sí
             </button>
           </div>
         ) : (
           <button
             onClick={() => setConfirmingDelete(true)}
-            className="text-ink-300 hover:text-red-700 text-xs uppercase tracking-[0.18em] transition-colors"
+            className="p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded transition-colors"
+            aria-label="Eliminar"
+            title="Eliminar"
           >
-            eliminar entidad
+            <TrashIcon size={14} />
           </button>
         )}
       </footer>

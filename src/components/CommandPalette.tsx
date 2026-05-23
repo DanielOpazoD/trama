@@ -148,7 +148,7 @@ export function CommandPalette({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="buscar entidades, citas, secciones…"
+            placeholder="Buscar…"
             className="w-full px-5 py-4 bg-transparent text-ink-700 placeholder:text-ink-300 focus:outline-none font-serif text-lg leading-none border-b border-ink-100/60"
             autoComplete="off"
           />

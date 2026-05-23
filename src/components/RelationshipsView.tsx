@@ -8,7 +8,7 @@ import {
   useSuggestRelationships,
   useOffline,
 } from '../state'
-import { CloseIcon, SparkleIcon } from './Icons'
+import { CloseIcon, SparkleIcon, TrashIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import { EntityCombobox } from './EntityCombobox'
@@ -143,7 +143,7 @@ export function RelationshipsView({
               onClick={() => setShowForm((s) => !s)}
               className="text-xs uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
             >
-              {showForm ? 'cerrar' : 'añadir manualmente'}
+              {showForm ? 'Cerrar' : 'Añadir'}
             </button>
           </div>
         )}
@@ -227,7 +227,7 @@ export function RelationshipsView({
                 className="input-paper w-full"
               />
               <button type="submit" disabled={addRelationship.isPending} className="btn-ink">
-                {addRelationship.isPending ? 'añadiendo…' : 'Añadir relación'}
+                {addRelationship.isPending ? 'Añadiendo…' : 'Añadir'}
               </button>
             </form>
           )}
@@ -340,9 +340,11 @@ function RelationshipRow({
         </div>
         <button
           onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-ink-700 text-xs"
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
+          aria-label="Eliminar"
+          title="Eliminar"
         >
-          eliminar
+          <TrashIcon size={12} />
         </button>
       </div>
       {rel.notes && (

@@ -131,11 +131,12 @@ describe('<NodeDetailPanel />', () => {
     })
 
     const user = userEvent.setup()
-    await user.click(screen.getByText(/eliminar entidad/))
+    // Delete trigger is now icon-only; locate by aria-label.
+    await user.click(screen.getByLabelText('Eliminar'))
     // Confirmation appears
-    expect(screen.getByText(/¿borrar entidad/)).toBeInTheDocument()
+    expect(screen.getByText(/¿Borrar\?/)).toBeInTheDocument()
     // Click sí
-    await user.click(screen.getByText(/sí, eliminar/))
+    await user.click(screen.getByRole('button', { name: /^Sí$/ }))
 
     await waitFor(() => {
       expect(deleteFetch).toHaveBeenCalledWith(

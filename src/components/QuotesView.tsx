@@ -6,7 +6,7 @@ import {
   useAddQuote,
   useDeleteQuote,
 } from '../state'
-import { SparkleIcon } from './Icons'
+import { SparkleIcon, TrashIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import type { Entity, Quote } from '../types'
@@ -151,7 +151,7 @@ export function QuotesView({
             onClick={() => setShowForm((s) => !s)}
             className="text-xs uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
           >
-            {showForm ? 'cerrar' : 'añadir manualmente'}
+            {showForm ? 'Cerrar' : 'Añadir'}
           </button>
         )}
       </header>
@@ -215,7 +215,7 @@ export function QuotesView({
                 className="input-paper w-full resize-none"
               />
               <button type="submit" disabled={addQuote.isPending} className="btn-ink">
-                {addQuote.isPending ? 'añadiendo…' : 'Añadir cita'}
+                {addQuote.isPending ? 'Añadiendo…' : 'Añadir'}
               </button>
             </form>
           )}
@@ -355,9 +355,11 @@ function QuoteItem({
         </div>
         <button
           onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-ink-700 text-xs"
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
+          aria-label="Eliminar"
+          title="Eliminar"
         >
-          eliminar
+          <TrashIcon size={12} />
         </button>
       </div>
       {quote.context && (

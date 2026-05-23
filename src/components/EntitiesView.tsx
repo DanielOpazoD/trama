@@ -11,7 +11,7 @@ import {
   useUpdateEntityType,
 } from '../state'
 import type { Reclassification } from '../api'
-import { ChevronRightIcon, SparkleIcon } from './Icons'
+import { ChevronRightIcon, SparkleIcon, TrashIcon } from './Icons'
 import { ReclassifyPanel } from './ReclassifyPanel'
 import { EmptyMessage } from './EmptyMessage'
 import { typeAccent } from './graph/GraphNode'
@@ -165,7 +165,7 @@ export function EntitiesView({
             onClick={() => setShowForm((s) => !s)}
             className="text-xs uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
           >
-            {showForm ? 'cerrar' : 'añadir manualmente'}
+            {showForm ? 'Cerrar' : 'Añadir'}
           </button>
         </div>
       </header>
@@ -240,7 +240,7 @@ export function EntitiesView({
             className="input-paper w-full resize-none"
           />
           <button type="submit" disabled={addEntity.isPending} className="btn-ink">
-            {addEntity.isPending ? 'añadiendo…' : 'Añadir'}
+            {addEntity.isPending ? 'Añadiendo…' : 'Añadir'}
           </button>
           {dupCandidates && dupCandidates.length > 0 && (
             <div
@@ -447,10 +447,11 @@ function EntityRow({
           e.stopPropagation()
           onDelete()
         }}
-        className="absolute top-2 right-9 opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-red-700 text-xs px-2 py-1"
+        className="absolute top-2 right-9 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
         aria-label={`Eliminar ${entity.name}`}
+        title="Eliminar"
       >
-        eliminar
+        <TrashIcon size={12} />
       </button>
     </div>
   )
