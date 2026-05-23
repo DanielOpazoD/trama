@@ -69,11 +69,11 @@ const STEPS: Step[] = [
     body: (
       <>
         Apretá{' '}
-        <kbd className="font-sans text-micro tabular-nums leading-none px-1.5 py-1 mx-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-600 shadow-sm">
+        <kbd className="font-mono text-micro leading-none px-1.5 py-1 mx-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-600 shadow-sm">
           ⌘ K
         </kbd>{' '}
         para buscar cualquier cosa,{' '}
-        <kbd className="font-sans text-micro tabular-nums leading-none px-1.5 py-1 mx-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-600 shadow-sm">
+        <kbd className="font-mono text-micro leading-none px-1.5 py-1 mx-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-600 shadow-sm">
           ?
         </kbd>{' '}
         para ver todos los atajos. El sidebar de la izquierda te lleva a

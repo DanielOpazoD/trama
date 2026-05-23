@@ -128,7 +128,7 @@ export function ShortcutsModal({
                       {s.keys.map((k, ki) => (
                         <kbd
                           key={ki}
-                          className="font-sans text-micro tabular-nums leading-none px-1.5 py-1 min-w-[1.5rem] text-center bg-paper-100 border border-ink-200/70 rounded text-ink-600 shadow-sm"
+                          className="font-mono text-micro leading-none px-1.5 py-1 min-w-[1.5rem] text-center bg-paper-100 border border-ink-200/70 rounded text-ink-600 shadow-sm"
                         >
                           {k}
                         </kbd>

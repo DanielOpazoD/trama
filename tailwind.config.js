@@ -7,6 +7,17 @@ export default {
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
         serif: ['Spectral', '"Iowan Old Style"', 'Palatino', 'Georgia', 'serif'],
+        // Monospace para metadata técnica — timestamps, IDs, conteos
+        // tabulares, atajos de teclado. JetBrains Mono y SF Mono caen
+        // bien en macOS; Menlo es fallback robusto.
+        mono: [
+          '"JetBrains Mono"',
+          '"SF Mono"',
+          'Menlo',
+          'Monaco',
+          '"Cascadia Code"',
+          'monospace',
+        ],
       },
       // Palette wired to CSS variables in rgb-triplet form, so Tailwind's
       // alpha modifier works (bg-paper-50/70 → rgb(var(--paper-50) / 0.7)).
