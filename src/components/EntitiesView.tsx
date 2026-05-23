@@ -155,7 +155,7 @@ export function EntitiesView({
         <div className="min-w-0">
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Entidades</h2>
           <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-md">
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
             Las cosas que conectas: personas, libros, canciones, álbumes, películas,
             obras, conceptos, ideas. Cada nodo del grafo es una entidad.
           </p>

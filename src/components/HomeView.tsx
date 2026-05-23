@@ -93,7 +93,7 @@ export function HomeView({
             Inicio
           </h2>
           <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-md">
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
             {totalEntities === 0
               ? 'Todavía vacía. Pega un texto abajo y la trama empieza.'
               : `${totalEntities} ${totalEntities === 1 ? 'entidad' : 'entidades'} ·` +
