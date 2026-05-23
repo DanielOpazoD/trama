@@ -41,6 +41,7 @@ export function TopBar({
   view,
   actions,
   onOpenPalette,
+  breadcrumb,
 }: {
   view: ViewMode
   actions?: React.ReactNode
@@ -48,17 +49,42 @@ export function TopBar({
       Su rol es discoverability — el atajo existe igual, pero sin esto
       el usuario nuevo no lo sabe. */
   onOpenPalette?: () => void
+  /** Segundo nivel del breadcrumb — se muestra como "View › crumb"
+      cuando hay un detalle abierto. Si está, reemplaza el subtitle. */
+  breadcrumb?: { label: string; onClickRoot?: () => void } | null
 }) {
   const { title, subtitle } = TITLES[view]
   const status = useGlobalStatus()
   return (
     <div className="surface-topbar shrink-0 border-b border-ink-100 px-6 py-2.5 flex items-center justify-between gap-4">
       <div className="min-w-0 flex items-baseline gap-3">
-        <h1 className="font-serif text-xl text-ink-800 leading-none tracking-tight">
-          {title}
-        </h1>
-        {subtitle && (
-          <span className="text-sm text-ink-400 truncate">{subtitle}</span>
+        {breadcrumb ? (
+          // Path-style — clickeable la raíz para volver a la vista
+          // sin abrir entidad. Lo que hace Codex con `repo › file.tsx`.
+          <nav
+            aria-label="Breadcrumb"
+            className="min-w-0 flex items-baseline gap-2"
+          >
+            <button
+              onClick={breadcrumb.onClickRoot}
+              className="font-serif text-xl text-ink-400 hover:text-ink-700 leading-none tracking-tight transition-colors shrink-0"
+            >
+              {title}
+            </button>
+            <span className="text-ink-300 text-lg leading-none">›</span>
+            <h1 className="font-serif text-xl text-ink-800 leading-none tracking-tight truncate">
+              {breadcrumb.label}
+            </h1>
+          </nav>
+        ) : (
+          <>
+            <h1 className="font-serif text-xl text-ink-800 leading-none tracking-tight">
+              {title}
+            </h1>
+            {subtitle && (
+              <span className="text-sm text-ink-400 truncate">{subtitle}</span>
+            )}
+          </>
         )}
       </div>
       <div className="shrink-0 flex items-center gap-3">

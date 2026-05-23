@@ -123,7 +123,23 @@ function Shell() {
 
       <main className="flex-1 relative overflow-hidden flex flex-col">
         <div className="animate-shell-topbar">
-          <TopBar view={view} onOpenPalette={() => setPaletteOpen(true)} />
+          <TopBar
+            view={view}
+            onOpenPalette={() => setPaletteOpen(true)}
+            breadcrumb={
+              // Si hay una entidad seleccionada y existe en cache,
+              // muestra "View › Nombre" — orientación visual estilo
+              // Codex (path-style) en lugar de solo el título de vista.
+              showDetail && selectedEntityId
+                ? {
+                    label:
+                      entitiesQuery.data?.find((e) => e.id === selectedEntityId)?.name ??
+                      'entidad',
+                    onClickRoot: () => setSelectedEntityId(null),
+                  }
+                : null
+            }
+          />
         </div>
         <div className="flex-1 relative overflow-hidden animate-shell-main">
           {error && (
