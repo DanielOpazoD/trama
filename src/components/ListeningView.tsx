@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { api, type SpotifyPlayGroup } from '../api'
-import { useAddEntity } from '../state'
+import { useAddEntity, useExtract } from '../state'
 import { SparkleIcon } from './Icons'
 import type { EntityType, ExtractionProposal, Origin } from '../types'
 
@@ -57,6 +57,10 @@ export function ListeningView({
   })
 
   const addEntity = useAddEntity()
+  const extract = useExtract()
+  // Tracking de qué item está siendo enriquecido por la IA, para mostrar
+  // un spinner por fila en vez de un loading global.
+  const [enrichingKey, setEnrichingKey] = useState<string | null>(null)
 
   async function handleImportPlaylist(e: FormEvent) {
     e.preventDefault()
@@ -84,19 +88,65 @@ export function ListeningView({
 
   async function handleAccept(item: SpotifyPlayGroup) {
     const type = ENTITY_TYPE_FOR_GROUP[group]
-    const origin: Origin = {
-      kind: 'imported',
-      importedFrom: 'spotify',
-      provider: 'spotify',
-    }
-    const created = await addEntity.mutateAsync({
-      type,
-      name: item.key,
-      description: undefined,
-      origin,
-    })
-    if (created) {
-      onSelectEntity?.(created.id)
+    const spotifyUrl =
+      item.spotifyId != null
+        ? `https://open.spotify.com/${group}/${item.spotifyId}`
+        : null
+
+    // Pedimos a la IA que enriquezca la entidad antes de proponerla. El
+    // usuario revisa y decide en el panel lateral, igual que al pegar
+    // texto. Si la IA falla (sin key, cap mensual, etc.), caemos al
+    // flujo manual de antes.
+    setEnrichingKey(item.key)
+    const typeLabel =
+      type === 'musico'
+        ? 'artista solista o músico'
+        : type === 'banda'
+          ? 'banda'
+          : type === 'album'
+            ? 'álbum musical'
+            : 'canción'
+
+    const hint = [
+      `Agrega a mi trama el ${typeLabel} "${item.key}".`,
+      spotifyUrl ? `URL de Spotify: ${spotifyUrl}` : '',
+      'Devuelve UNA SOLA entidad principal con:',
+      '- descripción breve (≤15 palabras) con género/origen/contexto',
+      '- año (de inicio del artista, salida del álbum, o lanzamiento de la canción) SOLO si lo sabes con certeza',
+      `- type: "${type}" por default, pero si "${item.key}" es claramente una banda (grupo de varios miembros), usa "banda" en su lugar.`,
+      'OPCIONALMENTE propuestas de relaciones con entidades existentes de mi trama si tiene sentido sólido (sin especular).',
+      'NO inventes citas — el array quotes debe quedar vacío.',
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    try {
+      const proposal = await extract.mutateAsync(hint)
+
+      // Si la IA no incluyó el spotifyUrl en la entidad principal, lo
+      // inyectamos. No queremos perder ese dato.
+      if (spotifyUrl && proposal.entities.length > 0 && !proposal.entities[0].spotifyUrl) {
+        proposal.entities[0].spotifyUrl = spotifyUrl
+      }
+      onProposal?.(item.key, proposal)
+    } catch {
+      // Fallback al flujo manual sin IA.
+      const origin: Origin = {
+        kind: 'imported',
+        importedFrom: 'spotify',
+        provider: 'spotify',
+      }
+      const created = await addEntity.mutateAsync({
+        type,
+        name: item.key,
+        spotifyUrl: spotifyUrl ?? undefined,
+        origin,
+      })
+      if (created) {
+        onSelectEntity?.(created.id)
+      }
+    } finally {
+      setEnrichingKey(null)
     }
   }
 
@@ -223,10 +273,29 @@ export function ListeningView({
                     ) : (
                       <button
                         onClick={() => handleAccept(item)}
-                        disabled={addEntity.isPending}
-                        className="text-xs px-3 py-1.5 border border-ink-100/60 rounded-md hover:bg-ink-50 active:scale-[0.95] transition-all opacity-0 group-hover:opacity-100 disabled:opacity-30"
+                        disabled={
+                          addEntity.isPending || enrichingKey !== null
+                        }
+                        className="text-xs px-3 py-1.5 border border-ink-100/60 rounded-md hover:bg-ink-50 active:scale-[0.95] transition-all opacity-0 group-hover:opacity-100 disabled:opacity-30 flex items-center gap-1.5"
+                        title="La IA propondrá descripción, año y posibles conexiones"
                       >
-                        añadir a la trama
+                        {enrichingKey === item.key ? (
+                          <>
+                            <span
+                              className="size-3 border-2 rounded-full animate-spin"
+                              style={{
+                                borderColor: 'var(--accent-primary-ring)',
+                                borderTopColor: 'var(--accent-primary)',
+                              }}
+                            />
+                            preparando…
+                          </>
+                        ) : (
+                          <>
+                            <SparkleIcon size={11} />
+                            añadir a la trama
+                          </>
+                        )}
                       </button>
                     )}
                   </div>
