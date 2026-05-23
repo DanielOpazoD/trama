@@ -9,6 +9,8 @@ import {
 import { EndMark, SparkleIcon, TrashIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
+import { typeAccent } from './graph/GraphNode'
+import { ENTITY_TYPES } from '../types'
 import type { Entity, Quote } from '../types'
 
 /** Format an ISO date as "20 may 2026" — short, ink-on-paper style. */
@@ -58,11 +60,43 @@ export function QuotesView({
 }) {
   const { data: entities = [] } = useEntitiesQuery()
   const quotesPaged = useInfiniteQuotesQuery()
-  const quotes = useMemo(
+  const allLoadedQuotes = useMemo(
     () => quotesPaged.data?.pages.flatMap((p) => p.items) ?? [],
     [quotesPaged.data],
   )
   const { data: relationships = [] } = useRelationshipsQuery()
+
+  // Filtro por tipo de la entidad atribuida (chips arriba, mismo patrón que
+  // EntitiesView). null = todos. Filtra client-side sobre las páginas ya
+  // cargadas — coherente con cómo filtra Entidades.
+  const [typeFilter, setTypeFilter] = useState<string | null>(null)
+
+  // Mapa entityId → type, para evitar O(n×m) cuando hay muchas citas y entidades.
+  const entityTypeById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const e of entities) map.set(e.id, e.type)
+    return map
+  }, [entities])
+
+  // Conteos por tipo en las citas YA cargadas — alimenta los chips.
+  const availableTypes = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const q of allLoadedQuotes) {
+      const t = entityTypeById.get(q.entityId)
+      if (t) counts.set(t, (counts.get(t) ?? 0) + 1)
+    }
+    return Array.from(counts.entries())
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count)
+  }, [allLoadedQuotes, entityTypeById])
+
+  const quotes = useMemo(
+    () =>
+      typeFilter
+        ? allLoadedQuotes.filter((q) => entityTypeById.get(q.entityId) === typeFilter)
+        : allLoadedQuotes,
+    [allLoadedQuotes, typeFilter, entityTypeById],
+  )
 
   // For "work" entities, find the linked person/writer so we can show
   // "— Marco Aurelio · Meditaciones" instead of just "— Meditaciones".
@@ -119,7 +153,7 @@ export function QuotesView({
     count: quotes.length,
     estimateSize: 320,
     overscan: 8,
-    deps: [showForm, quotes.length],
+    deps: [showForm, quotes.length, typeFilter],
   })
 
   // Trigger next-page fetch when the user scrolls into the last 5 items of
@@ -221,19 +255,103 @@ export function QuotesView({
             </form>
           )}
 
+          {/* Chips de filtro por tipo de entidad atribuida. Mismo patrón que
+              EntitiesView: sticky al top con backdrop blur, Todos + chip por
+              tipo presente. Solo aparece si hay >1 tipo (con un solo tipo el
+              chip no aporta nada). */}
+          {availableTypes.length > 1 && (
+            <div className="sticky top-0 z-10 -mx-8 px-8 py-2 mb-4 bg-paper-50/90 backdrop-blur border-b border-ink-100/40 flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setTypeFilter(null)}
+                className={
+                  typeFilter === null
+                    ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors'
+                    : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors'
+                }
+                style={
+                  typeFilter === null
+                    ? {
+                        backgroundColor: 'var(--accent-primary-soft)',
+                        color: 'var(--accent-primary)',
+                      }
+                    : undefined
+                }
+              >
+                Todas
+                <span className="ml-1.5 text-micro tabular-nums opacity-70">
+                  {allLoadedQuotes.length}
+                </span>
+              </button>
+              {availableTypes.map(({ type, count }) => {
+                const active = typeFilter === type
+                const label = ENTITY_TYPES.find((t) => t.value === type)?.label ?? type
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setTypeFilter(active ? null : type)}
+                    className={
+                      active
+                        ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors'
+                        : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors'
+                    }
+                    style={
+                      active
+                        ? {
+                            backgroundColor: `${typeAccent(type)}22`,
+                            color: typeAccent(type),
+                          }
+                        : undefined
+                    }
+                  >
+                    {label}
+                    <span className="ml-1.5 text-micro tabular-nums opacity-70">{count}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
           {quotes.length === 0 ? (
-            <EmptyMessage
-              illustration="thread"
-              title="Una página todavía en blanco."
-              body={
-                <>
-                  Las citas son piezas que se quedan: una frase que te detuvo,
-                  un verso que volvió. Cuando guardes la primera, su tipografía
-                  va a verse mejor que esto.
-                </>
-              }
-              hint="Pega texto abajo o usa el botón de cámara para empezar."
-            />
+            typeFilter ? (
+              // Hay quotes cargadas, pero ninguna matchea el filtro actual.
+              // Distinto del empty state global: acá hay datos, sólo no este tipo.
+              <EmptyMessage
+                illustration="thread"
+                title="No hay citas de ese tipo todavía."
+                body={
+                  <>
+                    Filtrando por{' '}
+                    <strong>
+                      {ENTITY_TYPES.find((t) => t.value === typeFilter)?.label ?? typeFilter}
+                    </strong>{' '}
+                    no aparece nada. Las citas se atribuyen al crearlas — si
+                    quieres alguna de este tipo, atribúyela a una entidad de
+                    ese tipo.
+                  </>
+                }
+                hint={
+                  <button
+                    onClick={() => setTypeFilter(null)}
+                    className="underline hover:text-ink-700 transition-colors"
+                  >
+                    Mostrar todas
+                  </button>
+                }
+              />
+            ) : (
+              <EmptyMessage
+                illustration="thread"
+                title="Una página todavía en blanco."
+                body={
+                  <>
+                    Las citas son piezas que se quedan: una frase que te detuvo,
+                    un verso que volvió. Cuando guardes la primera, su tipografía
+                    va a verse mejor que esto.
+                  </>
+                }
+                hint="Pega texto abajo o usa el botón de cámara para empezar."
+              />
+            )
           ) : (
             <div
               ref={listRef}
