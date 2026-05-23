@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useDeleteEntity } from '../../state'
 import type { Entity } from '../../types'
 import { TrashIcon } from '../Icons'
+import { Tooltip } from '../Tooltip'
 
 /**
  * Footer del panel con el botón de eliminar (two-step: primero confirma).
@@ -44,14 +45,15 @@ export function DeleteFooter({
 
   return (
     <footer className="px-5 py-3 border-t border-ink-100 flex justify-end">
-      <button
-        onClick={() => setConfirming(true)}
-        className="p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded transition-colors"
-        aria-label="Eliminar"
-        title="Eliminar"
-      >
-        <TrashIcon size={14} />
-      </button>
+      <Tooltip content="Eliminar entidad">
+        <button
+          onClick={() => setConfirming(true)}
+          className="p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded transition-colors"
+          aria-label="Eliminar"
+        >
+          <TrashIcon size={14} />
+        </button>
+      </Tooltip>
     </footer>
   )
 }

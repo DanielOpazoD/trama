@@ -22,6 +22,7 @@ import {
   TramaMark,
 } from './Icons'
 import { AIModeToggle } from './AIModeToggle'
+import { Tooltip } from './Tooltip'
 
 export type ViewMode = 'inicio' | 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'chat' | 'sugerencias'
 
@@ -136,27 +137,27 @@ export function Sidebar({
             const active = view === item.value
             const Icon = item.icon
             return (
-              <button
-                key={item.value}
-                onClick={() => onChangeView(item.value)}
-                aria-label={item.label}
-                title={item.label}
-                className={`relative p-2.5 rounded-lg transition-all duration-250 ease-out active:scale-95 ${
-                  active
-                    ? 'bg-ink-700/10 text-ink-700'
-                    : 'text-ink-300 hover:text-ink-700 hover:bg-ink-700/5'
-                }`}
-              >
-                <Icon size={18} />
-                {active && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-1 h-5 rounded-r bg-ink-700" />
-                )}
-                {counts[item.value] !== null && counts[item.value]! > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-ink-700 text-paper-50 text-micro font-medium tabular-nums flex items-center justify-center">
-                    {counts[item.value]}
-                  </span>
-                )}
-              </button>
+              <Tooltip key={item.value} content={item.label} side="bottom">
+                <button
+                  onClick={() => onChangeView(item.value)}
+                  aria-label={item.label}
+                  className={`relative p-2.5 rounded-lg transition-all duration-250 ease-out active:scale-95 ${
+                    active
+                      ? 'bg-ink-700/10 text-ink-700'
+                      : 'text-ink-300 hover:text-ink-700 hover:bg-ink-700/5'
+                  }`}
+                >
+                  <Icon size={18} />
+                  {active && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-1 h-5 rounded-r bg-ink-700" />
+                  )}
+                  {counts[item.value] !== null && counts[item.value]! > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-ink-700 text-paper-50 text-micro font-medium tabular-nums flex items-center justify-center">
+                      {counts[item.value]}
+                    </span>
+                  )}
+                </button>
+              </Tooltip>
             )
           })}
         </nav>
@@ -170,14 +171,15 @@ export function Sidebar({
             />
           )}
           <AIModeToggle collapsed />
-          <button
-            onClick={onOpenSettings}
-            aria-label="Configuración"
-            title="Configuración"
-            className="p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors active:scale-95"
-          >
-            <SettingsIcon size={14} />
-          </button>
+          <Tooltip content="Configuración" side="bottom">
+            <button
+              onClick={onOpenSettings}
+              aria-label="Configuración"
+              className="p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors active:scale-95"
+            >
+              <SettingsIcon size={14} />
+            </button>
+          </Tooltip>
         </div>
       </aside>
     )

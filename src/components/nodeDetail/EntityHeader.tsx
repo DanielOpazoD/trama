@@ -1,5 +1,6 @@
 import { ENTITY_TYPES, type Entity } from '../../types'
 import { CloseIcon, SparkleIcon } from '../Icons'
+import { Tooltip } from '../Tooltip'
 
 /**
  * Header del panel de detalle: tipo + año + badge IA + nombre + link
@@ -53,13 +54,15 @@ export function EntityHeader({
           </a>
         )}
       </div>
-      <button
-        onClick={onClose}
-        className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors shrink-0"
-        aria-label="Cerrar"
-      >
-        <CloseIcon size={14} />
-      </button>
+      <Tooltip content="Cerrar panel">
+        <button
+          onClick={onClose}
+          className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors shrink-0"
+          aria-label="Cerrar"
+        >
+          <CloseIcon size={14} />
+        </button>
+      </Tooltip>
     </header>
   )
 }
