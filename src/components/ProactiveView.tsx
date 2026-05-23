@@ -107,7 +107,7 @@ export function ProactiveView() {
       </header>
 
       {generate.error && (
-        <div className="mb-6 px-4 py-3 bg-red-50/80 border border-red-200/60 rounded-xl text-sm text-red-800">
+        <div className="alert-error mb-6 px-4 py-3 rounded-xl text-sm">
           {generate.error instanceof Error
             ? generate.error.message
             : 'Error generando sugerencias'}

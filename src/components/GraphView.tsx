@@ -393,7 +393,7 @@ export default function GraphView({
           <div
             className={
               suggest.error
-                ? 'pointer-events-auto flex items-start gap-2 pl-3 pr-1.5 py-1.5 bg-red-50/95 border border-red-200/70 rounded-lg text-xs text-red-800 shadow-md max-w-xs'
+                ? 'alert-error pointer-events-auto flex items-start gap-2 pl-3 pr-1.5 py-1.5 text-xs shadow-md max-w-xs'
                 : 'pointer-events-auto flex items-start gap-2 pl-3 pr-1.5 py-1.5 bg-paper-50/95 border border-ink-100/70 rounded-lg text-xs text-ink-500 shadow-md max-w-xs leading-snug'
             }
             role="status"

@@ -280,7 +280,7 @@ export function ChatView({
                 </li>
               )}
               {sendError && (
-                <li className="px-4 py-3 bg-red-50/80 border border-red-200/60 rounded-xl text-sm text-red-800">
+                <li className="alert-error px-4 py-3 rounded-xl text-sm">
                   {sendError}
                 </li>
               )}

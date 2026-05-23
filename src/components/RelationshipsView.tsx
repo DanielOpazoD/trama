@@ -150,12 +150,12 @@ export function RelationshipsView({
       </header>
 
       {suggest.error && (
-        <div className="mb-6 flex items-start gap-2 pl-3 pr-1.5 py-2 bg-red-50/80 border border-red-200/60 rounded-lg text-xs text-red-800">
+        <div className="alert-error mb-6 flex items-start gap-2 pl-3 pr-1.5 py-2 text-xs">
           <span className="flex-1">{suggest.error.message}</span>
           <button
             onClick={() => suggest.reset()}
             aria-label="Cerrar aviso"
-            className="shrink-0 p-1 -m-0.5 text-red-600 hover:text-red-900 rounded transition-colors"
+            className="shrink-0 p-1 -m-0.5 opacity-70 hover:opacity-100 rounded transition-opacity"
           >
             <CloseIcon size={12} />
           </button>

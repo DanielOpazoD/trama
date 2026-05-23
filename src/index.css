@@ -508,6 +508,34 @@ html.dark .paper-grain::before {
     border: 1px solid var(--accent-primary-ring);
   }
 
+  /* Alert banners — colores semánticos que respetan el tema.
+     Sustituyen al patrón antes repetido de "bg-red-50 border-red-200 text-red-800"
+     que se quedaba pintado de claro en dark mode.
+     Light: mismo look que antes (red-50/red-200/red-800).
+     Dark: invertido para legibilidad en fondos oscuros. */
+  .alert-error {
+    @apply rounded-lg border;
+    background-color: rgb(254 242 242 / 0.8); /* red-50 */
+    border-color: rgb(254 202 202 / 0.6); /* red-200 */
+    color: rgb(153 27 27); /* red-800 */
+  }
+  html.dark .alert-error {
+    background-color: rgb(127 29 29 / 0.3); /* red-900/30 */
+    border-color: rgb(185 28 28 / 0.4); /* red-700/40 */
+    color: rgb(254 202 202); /* red-200 */
+  }
+  .alert-warn {
+    @apply rounded-lg border;
+    background-color: rgb(255 251 235 / 0.85); /* amber-50 */
+    border-color: rgb(253 230 138 / 0.6); /* amber-200 */
+    color: rgb(146 64 14); /* amber-800 */
+  }
+  html.dark .alert-warn {
+    background-color: rgb(120 53 15 / 0.3); /* amber-900/30 */
+    border-color: rgb(180 83 9 / 0.4); /* amber-700/40 */
+    color: rgb(253 230 138); /* amber-200 */
+  }
+
   /* Graph node hover affordance */
   .graph-node {
     transition: opacity 200ms ease;

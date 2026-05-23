@@ -160,12 +160,12 @@ export function AskBar({
     <div className="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-6 flex justify-center">
       <div className="pointer-events-auto w-full max-w-2xl">
         {errorMessage && (
-          <div className="mb-2 px-3 py-2 bg-red-50/95 border border-red-200 rounded-lg text-xs text-red-800 shadow-sm">
+          <div className="alert-error mb-2 px-3 py-2 text-xs shadow-sm">
             {errorMessage}
           </div>
         )}
         {offline && (
-          <div className="mb-2 px-3 py-2 bg-amber-50/95 border border-amber-200 rounded-lg text-xs text-amber-800 shadow-sm">
+          <div className="alert-warn mb-2 px-3 py-2 text-xs shadow-sm">
             Sin backend — la IA no está disponible en modo local. Lo manual sí funciona
             desde las listas en la barra lateral.
           </div>
