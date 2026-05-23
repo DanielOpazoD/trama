@@ -302,8 +302,11 @@ export function Sidebar({
             </span>
           )}
         </button>
+        {/* Versión leída del package.json en build-time (vite.config.ts
+            inyecta VITE_APP_VERSION). Single source of truth — no hay
+            que recordar actualizar este string a mano. */}
         <p className="text-micro uppercase tracking-wider text-ink-300 text-center pt-2 pb-0.5">
-          trama · v0.8.0
+          trama · v{import.meta.env.VITE_APP_VERSION}
         </p>
       </div>
     </aside>
