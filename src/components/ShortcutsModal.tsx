@@ -32,6 +32,7 @@ const GROUPS: Group[] = [
     shortcuts: [
       { keys: [CMD, 'K'], label: 'Buscar entidades, citas, ir a sección' },
       { keys: ['?'], label: 'Ver este menú de atajos' },
+      { keys: ['\\'], label: 'Modo focus — ocultar sidebar + topbar' },
       { keys: ['Esc'], label: 'Cerrar modal o panel activo' },
     ],
   },

@@ -67,11 +67,21 @@ function Shell() {
   const [readingOpen, setReadingOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  // Focus mode — esconde sidebar, topbar y askbar. Solo queda el
+  // contenido. Persiste en localStorage para que el usuario que
+  // prefiere modo zen no tenga que activarlo cada sesión.
+  const [focusMode, setFocusMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem('trama:focus-mode') === '1'
+  })
 
   // Atajos globales:
   //   Cmd/Ctrl+K → CommandPalette
-  //   ?          → ShortcutsModal (cheatsheet, igual que GitHub/Linear)
-  //                Solo si no estamos escribiendo en un input/textarea.
+  //   ?          → ShortcutsModal (cheatsheet)
+  //   \          → toggle focus mode (zen, como editores markdown)
+  //
+  // Para los que no usan modifiers (? y \) ignoramos cuando el foco
+  // está en un input/textarea — no rompemos la escritura.
   useEffect(() => {
     function handler(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -79,16 +89,28 @@ function Shell() {
         setPaletteOpen((open) => !open)
         return
       }
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName
+      const inField =
+        tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable
+      if (inField) return
+
       if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        // Ignorar si el foco está en un input/textarea para no
-        // interrumpir cuando el usuario tipea una pregunta.
-        const target = e.target as HTMLElement | null
-        const tag = target?.tagName
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) {
-          return
-        }
         e.preventDefault()
         setShortcutsOpen((open) => !open)
+        return
+      }
+      if (e.key === '\\' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault()
+        setFocusMode((on) => {
+          const next = !on
+          try {
+            window.localStorage.setItem('trama:focus-mode', next ? '1' : '0')
+          } catch {
+            /* storage disabled */
+          }
+          return next
+        })
       }
     }
     window.addEventListener('keydown', handler)
@@ -102,45 +124,54 @@ function Shell() {
   const rightPanelOpen = showProposal || showDetail
 
   return (
-    <div className="h-screen w-screen flex overflow-hidden">
-      <div className="animate-shell-sidebar shrink-0 h-full flex">
-        <Sidebar
-          view={view}
-          onChangeView={(v) => {
-            setView(v)
-            if (v !== 'grafo') setSelectedEntityId(null)
-          }}
-          collapsed={sidebarCollapsed}
-          onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
-          onSelectEntity={(id) => {
-            setView('grafo')
-            setSelectedEntityId(id)
-          }}
-          offline={offline}
-          onOpenSettings={() => setSettingsOpen(true)}
-        />
-      </div>
-
-      <main className="flex-1 relative overflow-hidden flex flex-col">
-        <div className="animate-shell-topbar">
-          <TopBar
+    <div
+      className="h-screen w-screen flex overflow-hidden"
+      data-focus-mode={focusMode || undefined}
+    >
+      {/* Sidebar — se oculta en focus mode para liberar todo el viewport
+          al contenido. La animation se preserva al regresar de focus. */}
+      {!focusMode && (
+        <div className="animate-shell-sidebar shrink-0 h-full flex">
+          <Sidebar
             view={view}
-            onOpenPalette={() => setPaletteOpen(true)}
-            breadcrumb={
-              // Si hay una entidad seleccionada y existe en cache,
-              // muestra "View › Nombre" — orientación visual estilo
-              // Codex (path-style) en lugar de solo el título de vista.
-              showDetail && selectedEntityId
-                ? {
-                    label:
-                      entitiesQuery.data?.find((e) => e.id === selectedEntityId)?.name ??
-                      'entidad',
-                    onClickRoot: () => setSelectedEntityId(null),
-                  }
-                : null
-            }
+            onChangeView={(v) => {
+              setView(v)
+              if (v !== 'grafo') setSelectedEntityId(null)
+            }}
+            collapsed={sidebarCollapsed}
+            onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
+            onSelectEntity={(id) => {
+              setView('grafo')
+              setSelectedEntityId(id)
+            }}
+            offline={offline}
+            onOpenSettings={() => setSettingsOpen(true)}
           />
         </div>
+      )}
+
+      <main className="flex-1 relative overflow-hidden flex flex-col">
+        {!focusMode && (
+          <div className="animate-shell-topbar">
+            <TopBar
+              view={view}
+              onOpenPalette={() => setPaletteOpen(true)}
+              breadcrumb={
+                // Si hay una entidad seleccionada y existe en cache,
+                // muestra "View › Nombre" — orientación visual estilo
+                // Codex (path-style) en lugar de solo el título de vista.
+                showDetail && selectedEntityId
+                  ? {
+                      label:
+                        entitiesQuery.data?.find((e) => e.id === selectedEntityId)?.name ??
+                        'entidad',
+                      onClickRoot: () => setSelectedEntityId(null),
+                    }
+                  : null
+              }
+            />
+          </div>
+        )}
         <div className="flex-1 relative overflow-hidden animate-shell-main">
           {error && (
             <div className="alert-error absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 text-sm shadow-md z-10">
@@ -171,14 +202,14 @@ function Shell() {
               cae al final se ve filtrarse detrás de la barra (que es
               semitransparente con backdrop-blur). Solo aparece donde
               hay AskBar visible. */}
-          {view !== 'chat' && view !== 'grafo' && !(isMobile && rightPanelOpen) && (
+          {!focusMode && view !== 'chat' && view !== 'grafo' && !(isMobile && rightPanelOpen) && (
             <div
               aria-hidden
               className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-gradient-to-b from-transparent via-paper-50/75 to-paper-50"
             />
           )}
 
-          {view !== 'chat' && !(isMobile && rightPanelOpen) && (
+          {!focusMode && view !== 'chat' && !(isMobile && rightPanelOpen) && (
             <AskBar
               view={view}
               selectedEntityId={selectedEntityId}
@@ -198,6 +229,30 @@ function Shell() {
             onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
           />
         </div>
+
+        {/* Pill flotante de salida de focus mode — sin esto el usuario
+            podría no saber cómo volver al shell completo. Discreto en
+            la esquina superior derecha; click o tecla `\` para salir. */}
+        {focusMode && (
+          <button
+            onClick={() => {
+              setFocusMode(false)
+              try {
+                window.localStorage.setItem('trama:focus-mode', '0')
+              } catch {
+                /* storage disabled */
+              }
+            }}
+            aria-label="Salir del modo focus"
+            title="Salir del modo focus (\)"
+            className="fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 bg-paper-50/90 hover:bg-paper-50 border border-ink-100/60 hover:border-ink-200 rounded-md backdrop-blur transition-colors animate-fade-up"
+          >
+            <span>focus</span>
+            <kbd className="font-mono text-micro px-1.5 py-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-500 leading-none">
+              \
+            </kbd>
+          </button>
+        )}
       </main>
 
       <Settings
