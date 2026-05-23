@@ -4,6 +4,7 @@ import { api } from '../api'
 import { useExport, useImport } from '../state'
 import type { ExportPayload } from '../types'
 import { AITaskSettings } from './AITaskSettings'
+import { ProgressBar } from './ProgressBar'
 import {
   CloseIcon,
   DownloadIcon,
@@ -435,7 +436,10 @@ function ReindexEmbeddingsSection() {
   const [pending, setPending] = useState<{ entities: number; quotes: number } | null>(null)
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [batchInfo, setBatchInfo] = useState<string | null>(null)
+  // Total al inicio del run — para calcular progreso real (processed/total)
+  // en lugar de un spinner indeterminate.
+  const [runStartTotal, setRunStartTotal] = useState(0)
+  const [runProcessed, setRunProcessed] = useState(0)
 
   useEffect(() => {
     let mounted = true
@@ -453,7 +457,9 @@ function ReindexEmbeddingsSection() {
   async function run() {
     setRunning(true)
     setError(null)
-    setBatchInfo(null)
+    const startTotal = (pending?.entities ?? 0) + (pending?.quotes ?? 0)
+    setRunStartTotal(startTotal)
+    setRunProcessed(0)
     try {
       let total = 0
       for (let i = 0; i < 200; i++) {
@@ -468,9 +474,7 @@ function ReindexEmbeddingsSection() {
         }
         total += data.processed
         setPending(data.remaining)
-        setBatchInfo(
-          `${total} indexados · faltan ${data.remaining.entities + data.remaining.quotes}`,
-        )
+        setRunProcessed(total)
         if (data.processed === 0) break
         if (data.remaining.entities + data.remaining.quotes === 0) break
       }
@@ -484,8 +488,8 @@ function ReindexEmbeddingsSection() {
   const totalPending = pending ? pending.entities + pending.quotes : null
 
   return (
-    <div className="space-y-2">
-      {totalPending !== null && (
+    <div className="space-y-3">
+      {totalPending !== null && !running && (
         <p className="text-xs text-ink-400">
           {totalPending === 0
             ? 'Todo indexado. Tu trama es buscable por significado.'
@@ -493,6 +497,14 @@ function ReindexEmbeddingsSection() {
                 pending?.quotes ?? 0
               } citas.`}
         </p>
+      )}
+      {running && (
+        <ProgressBar
+          label="Indexando embeddings"
+          current={runProcessed}
+          total={runStartTotal}
+          hint="25 items por batch — no recargues la página"
+        />
       )}
       <div className="flex items-baseline gap-3">
         <button
@@ -502,9 +514,6 @@ function ReindexEmbeddingsSection() {
         >
           {running ? 'indexando…' : 'Indexar lo pendiente'}
         </button>
-        {batchInfo && (
-          <span className="text-xs text-ink-400 tabular-nums">{batchInfo}</span>
-        )}
       </div>
       {error && <p className="text-xs text-red-700">{error}</p>}
     </div>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import type { ExtractionProposal } from '../types'
 import { CloseIcon, SparkleIcon } from './Icons'
+import { ProgressBar } from './ProgressBar'
 
 /**
  * Modo lectura: el usuario pega un texto largo (un capítulo, una entrevista,
@@ -236,24 +237,16 @@ export function ReadingMode({
             </p>
           )}
           {processing && (
-            <div className="space-y-2">
-              <p className="text-sm text-ink-500 leading-relaxed">
-                Procesando fragmento{' '}
-                <strong className="text-ink-700 tabular-nums">{chunkIdx}</strong>{' '}
-                de{' '}
-                <strong className="text-ink-700 tabular-nums">{totalChunks}</strong>
-                …
-              </p>
-              <div className="h-1 rounded-full bg-ink-100/60 overflow-hidden">
-                <div
-                  className="h-full transition-all duration-300"
-                  style={{
-                    width: totalChunks > 0 ? `${(chunkIdx / totalChunks) * 100}%` : '0%',
-                    backgroundColor: 'var(--accent-primary)',
-                  }}
-                />
-              </div>
-            </div>
+            <ProgressBar
+              label="Procesando fragmento"
+              current={chunkIdx}
+              total={totalChunks}
+              hint={
+                chunkIdx === totalChunks
+                  ? 'unificando propuestas…'
+                  : 'el LLM lee un trozo a la vez'
+              }
+            />
           )}
           {error && (
             <p className="text-xs text-red-700 leading-relaxed">{error}</p>
