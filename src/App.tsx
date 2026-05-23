@@ -16,6 +16,7 @@ import { AskBar } from './components/AskBar'
 import { ReadingMode } from './components/ReadingMode'
 import { Settings } from './components/Settings'
 import { Splash } from './components/Splash'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { RightPanel, type PendingProposal } from './components/RightPanel'
 import { ViewRouter } from './components/ViewRouter'
 
@@ -99,7 +100,7 @@ function Shell() {
         <TopBar view={view} onOpenPalette={() => setPaletteOpen(true)} />
         <div className="flex-1 relative overflow-hidden">
           {error && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-red-50/95 border border-red-200 rounded-lg text-sm text-red-800 shadow-md z-10">
+            <div className="alert-error absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 text-sm shadow-md z-10">
               {error}
             </div>
           )}
@@ -181,12 +182,17 @@ function Shell() {
 }
 
 export default function App() {
+  // ErrorBoundary envuelve Shell pero queda DENTRO del Provider para que
+  // el fallback tenga acceso al toast y al QueryClient si los necesita
+  // en el futuro. Esta posición captura todo error de render de la UI.
   return (
     <Provider>
       <Splash />
-      <div className="animate-shell-rise h-full">
-        <Shell />
-      </div>
+      <ErrorBoundary>
+        <div className="animate-shell-rise h-full">
+          <Shell />
+        </div>
+      </ErrorBoundary>
     </Provider>
   )
 }
