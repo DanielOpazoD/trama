@@ -314,6 +314,9 @@ export const api = {
   async getCounts(): Promise<{ entities: number; quotes: number; relationships: number }> {
     return request('/api/counts')
   },
+  async getHealth(): Promise<HealthResponse> {
+    return request<HealthResponse>('/api/health')
+  },
 
   // Lookup helpers: usar estos en vez de cargar la lista completa de
   // entidades y filtrarla en memoria. A 100k es lo único viable.
@@ -773,6 +776,36 @@ export type ChatMessage = {
   /** Which model produced this assistant message — undefined for user messages. */
   provider?: string
   model?: string
+}
+
+export type HealthResponse = {
+  counts: { entities: number; quotes: number; relationships: number }
+  month: {
+    calls: number
+    tokensIn: number
+    tokensOut: number
+    costCents: number
+  }
+  budget: {
+    limitCents: number
+    remainingCents: number
+    pct: number
+  }
+  byProvider: Array<{
+    provider: string
+    model: string
+    calls: number
+    costCents: number
+  }>
+  recentErrors: Array<{
+    id: string
+    functionName: string
+    httpMethod: string | null
+    httpPath: string | null
+    statusCode: number | null
+    message: string
+    createdAt: string
+  }>
 }
 
 export type NeighborWithHop = Entity & { hopDistance: number }

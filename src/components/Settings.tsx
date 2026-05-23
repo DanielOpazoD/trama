@@ -167,6 +167,19 @@ export function Settings({
         </header>
 
         <div className="p-6 space-y-7 overflow-y-auto">
+          {/* Health: estado del sistema, gasto IA, errores. Arriba porque
+              cuando algo va mal, esto es lo primero que querés abrir. */}
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-sm font-medium text-ink-700">Estado del sistema</h3>
+              <p className="text-xs text-ink-400 mt-0.5">
+                Gasto IA del mes, errores recientes, conteos. Si algo va
+                raro, mirá acá antes que en cualquier otro lado.
+              </p>
+            </div>
+            <HealthSection />
+          </section>
+
           {/* Theme */}
           <section className="space-y-3">
             <div>
@@ -415,6 +428,175 @@ function ReindexEmbeddingsSection() {
         )}
       </div>
       {error && <p className="text-xs text-red-700">{error}</p>}
+    </div>
+  )
+}
+
+/**
+ * Panel de estado del sistema. Trae todo de /api/health en un solo
+ * fetch y lo muestra como bloque. Refresca al abrir Settings (staleTime
+ * corto) para que los números sean actuales.
+ */
+function HealthSection() {
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
+    queryKey: ['health'],
+    queryFn: () => api.getHealth(),
+    staleTime: 15_000,
+  })
+
+  if (isLoading) {
+    return <p className="text-xs text-ink-300 italic">cargando…</p>
+  }
+  if (error || !data) {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs text-red-700">
+          No se pudo cargar el estado del sistema.
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="text-xs px-3 py-1.5 border border-ink-100/60 rounded-md hover:bg-ink-50 transition-all"
+        >
+          reintentar
+        </button>
+      </div>
+    )
+  }
+
+  const budgetPctDisplay = Math.round(data.budget.pct * 100)
+  const budgetEur = (data.budget.limitCents / 100).toFixed(2)
+  const monthEur = (data.month.costCents / 100).toFixed(2)
+  const remainingEur = (data.budget.remainingCents / 100).toFixed(2)
+
+  // El color del badge cambia según consumo: verde <50%, ámbar 50-80%, rojo >80%.
+  const budgetTone =
+    data.budget.pct < 0.5
+      ? { bg: 'var(--accent-sage-soft)', fg: 'var(--accent-sage)' }
+      : data.budget.pct < 0.8
+        ? { bg: 'var(--accent-gold-soft)', fg: 'var(--accent-gold)' }
+        : { bg: 'rgb(239 68 68 / 0.10)', fg: 'rgb(185 28 28)' }
+
+  return (
+    <div className="space-y-4 p-4 bg-paper-100/40 border border-ink-100/50 rounded-lg">
+      {/* Counts */}
+      <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-ink-500">
+        <span><strong className="text-ink-700 tabular-nums">{data.counts.entities}</strong> entidades</span>
+        <span><strong className="text-ink-700 tabular-nums">{data.counts.quotes}</strong> citas</span>
+        <span><strong className="text-ink-700 tabular-nums">{data.counts.relationships}</strong> relaciones</span>
+      </div>
+
+      {/* Budget */}
+      <div className="space-y-1.5">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-xs uppercase tracking-[0.18em] text-ink-400">
+            gasto IA este mes
+          </span>
+          <span
+            className="text-[10px] uppercase tracking-[0.16em] font-medium px-1.5 py-0.5 rounded-full tabular-nums"
+            style={{ backgroundColor: budgetTone.bg, color: budgetTone.fg }}
+          >
+            {budgetPctDisplay}% del cap
+          </span>
+        </div>
+        <div className="h-1.5 rounded-full bg-ink-100/60 overflow-hidden">
+          <div
+            className="h-full transition-all duration-500"
+            style={{
+              width: `${Math.min(100, budgetPctDisplay)}%`,
+              backgroundColor: budgetTone.fg,
+            }}
+          />
+        </div>
+        <div className="flex items-baseline justify-between text-xs text-ink-400 tabular-nums">
+          <span>
+            <strong className="text-ink-700">USD {monthEur}</strong> usados ·{' '}
+            <span className="text-ink-300">USD {budgetEur} cap</span>
+          </span>
+          <span className="text-ink-300">USD {remainingEur} restantes</span>
+        </div>
+        <p className="text-[10px] text-ink-300 tabular-nums">
+          {data.month.calls} llamadas · {data.month.tokensIn.toLocaleString('es')} tokens in ·{' '}
+          {data.month.tokensOut.toLocaleString('es')} tokens out
+        </p>
+      </div>
+
+      {/* Provider breakdown */}
+      {data.byProvider.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs uppercase tracking-[0.18em] text-ink-400">
+            por provider / modelo (mes)
+          </p>
+          <ul className="space-y-1">
+            {data.byProvider.map((row) => (
+              <li
+                key={`${row.provider}-${row.model}`}
+                className="flex items-baseline justify-between gap-2 text-xs"
+              >
+                <span className="text-ink-600 truncate">
+                  <span className="font-medium">{row.provider}</span>
+                  <span className="text-ink-400"> · {row.model}</span>
+                </span>
+                <span className="text-ink-400 tabular-nums shrink-0">
+                  {row.calls} · USD {(row.costCents / 100).toFixed(3)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Recent errors */}
+      <div className="space-y-1.5">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-xs uppercase tracking-[0.18em] text-ink-400">
+            errores recientes (7d)
+          </p>
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
+          >
+            {isFetching ? 'recargando…' : 'recargar'}
+          </button>
+        </div>
+        {data.recentErrors.length === 0 ? (
+          <p className="text-xs text-ink-300 italic">
+            sin errores. nada que mirar.
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {data.recentErrors.map((e) => (
+              <li
+                key={e.id}
+                className="text-xs space-y-0.5 px-2 py-1.5 bg-red-50/40 border border-red-200/40 rounded"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-ink-700 font-medium">
+                    {e.functionName}
+                    {e.statusCode && (
+                      <span className="ml-1.5 text-[10px] text-red-700/80">
+                        [{e.statusCode}]
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[10px] text-ink-300 tabular-nums shrink-0">
+                    {new Date(e.createdAt).toLocaleString('es', {
+                      day: '2-digit',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+                <p className="text-ink-500 break-words leading-snug">
+                  {e.message.slice(0, 240)}
+                  {e.message.length > 240 ? '…' : ''}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   )
 }
