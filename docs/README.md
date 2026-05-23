@@ -12,6 +12,7 @@ Documentación pensada para Daniel — usuario único, no programador — cuando
 - [**ai.md**](ai.md) — providers, cost cap, modo Off, qué hacer si la IA se vuelve cara o lenta.
 - [**incidentes.md**](incidentes.md) — síntomas comunes (la app no carga, el chat no responde, los embeddings no se generan) y qué hacer.
 - [**escala.md**](escala.md) — cuándo y cómo activar los modos de escala (paginación de quotes, modo explorar del grafo, etc.).
+- [**migracion-multi-user.md**](migracion-multi-user.md) — plan para convertir Trama a multi-user con login. **Solo si decides compartirla.** Hoy es single-user por diseño.
 
 ## Cuándo abrir cada uno
 
@@ -24,6 +25,7 @@ Documentación pensada para Daniel — usuario único, no programador — cuando
 | Quiero saber cuánto he gastado en IA este mes | [ai.md](ai.md) |
 | La app no abre / muestra error genérico | [incidentes.md](incidentes.md) |
 | Tengo 5000+ entidades y va lento | [escala.md](escala.md) |
+| Quiero compartir Trama con alguien más | [migracion-multi-user.md](migracion-multi-user.md) |
 
 ## Convención de los runbooks
 

@@ -151,8 +151,8 @@ Errores de cualquier function se persisten en `error_log` vía `persistError()` 
 Documentadas para no re-litigar:
 
 - **Local-first sync con CRDTs (Yjs/Automerge).** Vale la pena cuando se use en 2+ dispositivos en simultáneo. Hoy localStorage es solo fallback unidireccional.
-- **Auth real (Netlify Identity).** Hoy se protege con site password. Si el alcance crece más allá de uso personal, considerar.
-- **Migrar grafo a xyflow o sigma.js.** El layout casero escala bien hasta ~150 nodos. Más allá, considerar.
+- **Auth real (Netlify Identity) + multi-user.** Hoy single-user implícito (sin `user_id` en las tablas). Plan completo en [`docs/migracion-multi-user.md`](docs/migracion-multi-user.md) — 4-6 commits separados, ~12-15h. Solo ejecutar si se decide compartir Trama. Mientras sea uso personal, deferido por diseño.
+- **Migrar grafo a xyflow.** El renderer SVG escala bien hasta ~1k nodos; a partir de ahí ya está sigma.js (commit Q). xyflow es otra opción si se quiere un sistema de nodos más interactivo (drag, conexiones manuales).
 - **UI de gestión de tipos.** Las tablas existen, los endpoints existen. Falta el formulario.
 - **UI del extraction log y error log.** Los endpoints existen. Faltan las vistas.
 - **Tests de componentes UI con React Testing Library.** El scaffold de Vitest está; agregar `@testing-library/react` cuando se quiera cubrir UI.
