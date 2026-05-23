@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { act, screen } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useMutation } from '@tanstack/react-query'
 import { TopBar } from './TopBar'
@@ -102,11 +102,14 @@ describe('<TopBar />', () => {
     // Resolve the mutation
     await act(async () => {
       resolveFn!()
-      // wait a microtask for the state to update
-      await new Promise((r) => setTimeout(r, 0))
     })
 
-    expect(screen.queryByText(/guardando…/i)).toBeNull()
+    // El estado "saved" no es síncrono — TanStack tarda en marcar isMutating=0
+    // y luego el useEffect del useGlobalStatus levanta showSaved. waitFor
+    // tolera el delay sin hardcodear un sleep arbitrario.
+    await waitFor(() => {
+      expect(screen.queryByText(/guardando…/i)).toBeNull()
+    })
     expect(screen.getByText(/^guardado$/i)).toBeInTheDocument()
   })
 })

@@ -8,6 +8,11 @@ import {
 import { ENTITY_TYPES, type Entity, type Quote } from '../types'
 import { ChevronRightIcon, EndMark, OrnamentBreak, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
+import {
+  QuoteSkeleton,
+  SkeletonList,
+  TimelineRowSkeleton,
+} from './Skeleton'
 import { typeAccent } from './graph/GraphNode'
 
 /**
@@ -57,9 +62,22 @@ export function HomeView({
   const totalEntities = entities.length
 
   if (entitiesLoading) {
+    // Skeleton de Home — header placeholder + featured quote silueta +
+    // timeline de 5 filas con stagger. Reemplaza al "cargando…" italic
+    // que se sentía amateur en la portada del producto.
     return (
-      <div className="h-full flex items-center justify-center">
-        <p className="text-ink-300 italic">cargando…</p>
+      <div>
+        <header className="mb-12 space-y-3">
+          <div className="h-3 w-32 bg-ink-100/40 rounded animate-pulse-subtle" />
+          <div className="h-10 w-40 bg-ink-100/40 rounded animate-pulse-subtle" />
+          <div className="h-3 w-80 bg-ink-100/40 rounded animate-pulse-subtle mt-4" />
+        </header>
+        <div className="mb-12">
+          <QuoteSkeleton />
+        </div>
+        <section className="space-y-2">
+          <SkeletonList count={5} Component={TimelineRowSkeleton} />
+        </section>
       </div>
     )
   }

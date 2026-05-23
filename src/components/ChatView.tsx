@@ -15,6 +15,7 @@ import {
   useSendChatMessage,
 } from '../state'
 import { InlineProposal } from './chat/InlineProposal'
+import { SkeletonList, ThreadRowSkeleton } from './Skeleton'
 
 export function ChatView({
   initialThreadId,
@@ -193,7 +194,9 @@ export function ChatView({
         )}
         <div className="flex-1 overflow-y-auto">
           {threadsLoading ? (
-            <p className="px-4 py-6 text-ink-300 italic text-sm">cargando…</p>
+            <div className="py-2">
+              <SkeletonList count={5} Component={ThreadRowSkeleton} />
+            </div>
           ) : threads.length === 0 ? (
             <p className="px-4 py-6 text-ink-400 italic text-sm leading-relaxed">
               Aún sin conversaciones. Empieza una arriba o pregunta algo abajo y la

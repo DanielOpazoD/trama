@@ -14,6 +14,7 @@ import type { Reclassification } from '../api'
 import { ChevronRightIcon, SparkleIcon, TrashIcon } from './Icons'
 import { ReclassifyPanel } from './ReclassifyPanel'
 import { EmptyMessage } from './EmptyMessage'
+import { EntityCardSkeleton, SkeletonList } from './Skeleton'
 import { typeAccent } from './graph/GraphNode'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import type { Entity } from '../types'
@@ -381,7 +382,9 @@ export function EntitiesView({
       )}
 
       {entitiesPaged.isLoading ? (
-        <p className="text-ink-300 italic text-sm">cargando…</p>
+        <div className="space-y-2">
+          <SkeletonList count={6} Component={EntityCardSkeleton} />
+        </div>
       ) : entities.length === 0 ? (
         <EmptyMessage
           title="Todavía nadie habita la trama."
