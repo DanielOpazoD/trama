@@ -8,48 +8,56 @@
 @tailwind utilities;
 
 @layer base {
-  /* Paper mode — warm cream backgrounds, ink text */
+  /* Light mode — modern white + neutral grays, high contrast text.
+     Antes era "paper cream" pero ofrecía poco contraste y los labels
+     micro (text-[10px] sobre ink-300) eran inilegibles. Mantenemos
+     los nombres paper/ink para no romper las clases Tailwind
+     existentes, solo retuneamos los valores. */
   /* Values are space-separated RGB so Tailwind's opacity modifier works:
      bg-paper-50/70 → rgb(var(--paper-50) / 0.7) */
   :root {
-    --paper-50:  251 248 240; /* #FBF8F0 */
-    --paper-100: 245 239 224; /* #F5EFE0 */
-    --paper-200: 236 227 203; /* #ECE3CB */
-    --paper-300: 219 207 175; /* #DBCFAF */
+    --paper-50:  255 255 255; /* #ffffff — main background, blanco puro */
+    --paper-100: 250 250 250; /* #fafafa — sutil elevación */
+    --paper-200: 244 244 245; /* #f4f4f5 — sidebar gris (estilo ChatGPT) */
+    --paper-300: 228 228 231; /* #e4e4e7 — borders definidos */
 
-    --ink-50:  241 238 231; /* #F1EEE7 */
-    --ink-100: 217 211 197; /* #D9D3C5 */
-    --ink-200: 176 167 144; /* #B0A790 */
-    --ink-300: 133 124 102; /* #857C66 */
-    --ink-400: 92  84  67;  /* #5C5443 */
-    --ink-500: 58  52  41;  /* #3A3429 */
-    --ink-600: 38  34  25;  /* #262219 */
-    --ink-700: 26  24  18;  /* #1A1812 */
-    --ink-800: 19  17  12;  /* #13110C */
+    /* "ink" scale — del más sutil (100) al más contrastado (800).
+       Mapea ~ a la escala "zinc" de Tailwind, alineada a estándares
+       modernos de UI. */
+    --ink-50:  244 244 245; /* #f4f4f5 — superficie suave */
+    --ink-100: 228 228 231; /* #e4e4e7 — border principal */
+    --ink-200: 212 212 216; /* #d4d4d8 — border sutil */
+    --ink-300: 113 113 122; /* #71717a — muted text (legible) */
+    --ink-400: 82  82  91;  /* #52525b — secondary text */
+    --ink-500: 63  63  70;  /* #3f3f46 — semi-strong */
+    --ink-600: 39  39  42;  /* #27272a — strong text */
+    --ink-700: 24  24  27;  /* #18181b — body principal (casi negro) */
+    --ink-800: 9   9   11;  /* #09090b — headings */
 
     /* Direct-use (non-Tailwind) values for SVG and inline styles */
     --bg-card: #FFFFFF;
-    --dot: #BFAE87;
-    --ink: #1A1812;
-    --ink-2: #3A3429;
-    --ink-dim: #857C66;
+    --dot: #d4d4d8;
+    --ink: #18181b;
+    --ink-2: #3f3f46;
+    --ink-dim: #71717a;
+
+    /* Surface tokens nuevos — para diferenciar el sidebar del main. */
+    --surface-sidebar: #f7f7f8; /* gris muy claro, casi blanco */
+    --surface-topbar:  #ffffff;
+    --border-subtle:   #e5e7eb;
+    --border-strong:   #d4d4d8;
 
     /* Editorial accent palette — applied with discipline (one main accent
        across the app, two specialized helpers). These are NOT tied to entity
-       types; they belong to UI state and meaning:
-         primary   → links, focused CTAs, active selection, AI sparkle
-         primary-soft → hover backgrounds & subtle fills of primary
-         sage      → confirmation / "saved" / agreement
-         gold      → editorial highlights (featured quote underline, etc.)
-       Tone: pensativo (deep) but vivo (saturated against the cream paper). */
+       types; they belong to UI state and meaning. */
     --accent-primary:      #1f4d6b;  /* deep prussian — quiet but legible */
-    --accent-primary-soft: rgb(31 77 107 / 0.08);
-    --accent-primary-ring: rgb(31 77 107 / 0.18);
-    --accent-sage:         #5f7a55;  /* warm sage — for ✓ confirmations */
-    --accent-sage-soft:    rgb(95 122 85 / 0.10);
-    --accent-gold:         #93732f;  /* aged gold — for featured / IA */
-    --accent-gold-soft:    rgb(147 115 47 / 0.10);
-    --accent-clay:         #a25239;  /* terracotta — for warnings/delete on hover */
+    --accent-primary-soft: rgb(31 77 107 / 0.10);
+    --accent-primary-ring: rgb(31 77 107 / 0.25);
+    --accent-sage:         #4a7c3a;  /* sage moderno — para ✓ confirmaciones */
+    --accent-sage-soft:    rgb(74 124 58 / 0.10);
+    --accent-gold:         #a07900;  /* dorado contrastado para IA / featured */
+    --accent-gold-soft:    rgb(160 121 0 / 0.10);
+    --accent-clay:         #b91c1c;  /* rojo nítido — destructivo */
 
     /* Entity-type accent colors — light theme. Used by GraphNode.
        Dark theme overrides below shift these toward warmer/lighter tones so
@@ -81,22 +89,27 @@
     --type-default:     #7A6748;
   }
 
-  /* Night mode — coffee-toned dark, warm cream text */
+  /* Night mode — neutro oscuro moderno, alto contraste */
   html.dark {
-    --paper-50:  26 22 20;   /* #1a1614 — main background */
-    --paper-100: 34 29 26;   /* #221d1a — slight elevation */
-    --paper-200: 42 37 32;   /* #2a2520 — card */
-    --paper-300: 58 53 48;   /* #3a3530 */
+    --paper-50:  9   9   11;   /* #09090b — main background */
+    --paper-100: 24  24  27;   /* #18181b — sutil elevación */
+    --paper-200: 39  39  42;   /* #27272a — cards / sidebar */
+    --paper-300: 63  63  70;   /* #3f3f46 */
 
-    --ink-50:  42 37 32;     /* #2a2520 */
-    --ink-100: 58 53 48;     /* #3a3530 */
-    --ink-200: 90 79 67;     /* #5a4f43 */
-    --ink-300: 138 129 117;  /* #8a8175 — dim labels */
-    --ink-400: 168 160 143;  /* #a8a08f */
-    --ink-500: 196 186 168;  /* #c4baa8 */
-    --ink-600: 216 207 186;  /* #d8cfba */
-    --ink-700: 230 223 209;  /* #e6dfd1 — body text */
-    --ink-800: 240 234 220;  /* #f0eadc */
+    --ink-50:  39  39  42;     /* #27272a */
+    --ink-100: 63  63  70;     /* #3f3f46 — border principal */
+    --ink-200: 82  82  91;     /* #52525b */
+    --ink-300: 161 161 170;    /* #a1a1aa — muted text */
+    --ink-400: 212 212 216;    /* #d4d4d8 */
+    --ink-500: 228 228 231;    /* #e4e4e7 */
+    --ink-600: 244 244 245;    /* #f4f4f5 */
+    --ink-700: 250 250 250;    /* #fafafa — body */
+    --ink-800: 255 255 255;    /* #ffffff — headings */
+
+    --surface-sidebar: #18181b;
+    --surface-topbar:  #09090b;
+    --border-subtle:   #27272a;
+    --border-strong:   #3f3f46;
 
     --bg-card: #2a2520;
     --dot: #4a3f37;
@@ -160,18 +173,17 @@
     color: rgb(var(--ink-700));
     font-family: theme('fontFamily.sans');
     font-feature-settings: 'ss01', 'cv11';
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.15  0 0 0 0 0.12  0 0 0 0 0.08  0 0 0 0.025 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-    background-attachment: fixed;
     transition: background-color 220ms ease, color 220ms ease;
   }
 
-  html.dark body {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.85  0 0 0 0 0.80  0 0 0 0 0.70  0 0 0 0.030 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  }
+  /* Sidebar / topbar usan el surface-* en lugar de paper-* para que se
+     distingan del main content visualmente sin depender de la opacity. */
+  .surface-sidebar { background-color: var(--surface-sidebar); }
+  .surface-topbar  { background-color: var(--surface-topbar); }
 
   *:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px rgb(var(--paper-50)), 0 0 0 4px rgb(var(--ink-300));
+    box-shadow: 0 0 0 2px rgb(var(--paper-50)), 0 0 0 4px var(--accent-primary-ring);
   }
 }
 
@@ -186,21 +198,22 @@
   );
 }
 
-/* Stronger grain overlay — layered on top of cards that sit above the body
-   (right panel, modals). Reads as "different stock" without the seam: it's
-   the same noise as the body, just denser, so the surface looks like
-   it was printed on the same paper but with a slightly different press run. */
+/* paper-grain antes añadía una textura noise sobre los paneles flotantes.
+   Sobre un fondo blanco moderno se ve sucio — la dejamos como no-op en
+   light mode. En dark mode una sutil textura sí ayuda a diferenciar
+   superficies. */
 .paper-grain::before {
+  content: none;
+}
+html.dark .paper-grain {
+  position: relative;
+}
+html.dark .paper-grain::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch' seed='3'/><feColorMatrix type='matrix' values='0 0 0 0 0.18  0 0 0 0 0.14  0 0 0 0 0.08  0 0 0 0.045 0'/></filter><rect width='100%25' height='100%25' filter='url(%23g)'/></svg>");
-  mix-blend-mode: multiply;
-  opacity: 0.6;
-}
-html.dark .paper-grain::before {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch' seed='3'/><feColorMatrix type='matrix' values='0 0 0 0 0.85  0 0 0 0 0.80  0 0 0 0 0.70  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23g)'/></svg>");
   mix-blend-mode: screen;
   opacity: 0.4;

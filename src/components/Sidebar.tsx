@@ -116,7 +116,7 @@ export function Sidebar({
   // ---------- collapsed sidebar ----------
   if (collapsed) {
     return (
-      <aside className="w-14 shrink-0 border-r border-ink-100/40 flex flex-col items-center py-4 gap-1">
+      <aside className="surface-sidebar w-14 shrink-0 border-r border-ink-100 flex flex-col items-center py-4 gap-1">
         <div className="text-ink-700 mb-2 trama-mark-interactive" aria-label="Trama" title="Trama">
           <TramaMark size={22} />
         </div>
@@ -198,8 +198,8 @@ export function Sidebar({
     <aside
       className={
         isMobile
-          ? 'fixed inset-y-0 left-0 w-64 z-40 border-r border-ink-100/40 flex flex-col bg-paper-50 shadow-2xl'
-          : 'w-64 shrink-0 border-r border-ink-100/40 flex flex-col'
+          ? 'surface-sidebar fixed inset-y-0 left-0 w-64 z-40 border-r border-ink-100 flex flex-col shadow-2xl'
+          : 'surface-sidebar w-64 shrink-0 border-r border-ink-100 flex flex-col'
       }
     >
       <header className="px-3 py-4 flex items-start justify-between gap-2">

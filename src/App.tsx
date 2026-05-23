@@ -9,6 +9,7 @@ import {
 } from './state'
 import { useTheme } from './hooks/useTheme'
 import { Sidebar, type ViewMode } from './components/Sidebar'
+import { TopBar } from './components/TopBar'
 import GraphView from './components/GraphView'
 import { EntitiesView } from './components/EntitiesView'
 import { QuotesView } from './components/QuotesView'
@@ -95,7 +96,9 @@ function Shell() {
         onOpenSettings={() => setSettingsOpen(true)}
       />
 
-      <main className="flex-1 relative overflow-hidden">
+      <main className="flex-1 relative overflow-hidden flex flex-col">
+        <TopBar view={view} />
+        <div className="flex-1 relative overflow-hidden">
         {error && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-red-50/95 border border-red-200 rounded-lg text-sm text-red-800 shadow-md z-10">
             {error}
@@ -172,6 +175,7 @@ function Shell() {
           onClose={() => setReadingOpen(false)}
           onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
         />
+        </div>
       </main>
 
       <Settings
