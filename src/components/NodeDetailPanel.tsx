@@ -183,51 +183,73 @@ export function NodeDetailPanel({
       role="region"
       aria-label={`Detalle de ${entity.name}`}
     >
-      <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-ink-300">
-            {typeLabel ?? entity.type}
-            {entity.year !== undefined && <span className="ml-1">· {entity.year}</span>}
+      <header className="px-5 py-4 border-b border-ink-100 flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs uppercase tracking-wider text-ink-400 flex items-center gap-2 flex-wrap">
+            <span>{typeLabel ?? entity.type}</span>
+            {entity.year !== undefined && (
+              <>
+                <span className="text-ink-200">·</span>
+                <span>{entity.year}</span>
+              </>
+            )}
             {entity.origin.kind === 'ai' && (
-              <span className="ml-2 inline-flex items-center gap-1 text-sky-700/80">
+              <span
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full font-medium"
+                style={{
+                  backgroundColor: 'var(--accent-gold-soft)',
+                  color: 'var(--accent-gold)',
+                }}
+              >
                 <SparkleIcon size={10} />
-                añadido por IA
+                IA
               </span>
             )}
           </p>
-          <h2 className="font-serif text-2xl text-ink-700 truncate">{entity.name}</h2>
+          <h2 className="font-serif text-2xl text-ink-800 leading-tight mt-1 break-words">
+            {entity.name}
+          </h2>
           {entity.spotifyUrl && (
             <a
               href={entity.spotifyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] text-emerald-700/80 hover:text-emerald-900 transition-colors"
+              className="mt-2 inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 transition-colors"
             >
               ↗ abrir en Spotify
             </a>
           )}
         </div>
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <button
-            onClick={onClose}
-            className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
-            aria-label="Cerrar"
-          >
-            <CloseIcon />
-          </button>
-          {onOpenThread && (
-            <button
-              onClick={handleTalkAboutEntity}
-              disabled={createChatThread.isPending}
-              className="ai-cta text-[10px]"
-              title="Abre un hilo de chat focalizado en esta entidad: su contexto, sus citas y sus relaciones."
-            >
-              <SparkleIcon size={10} />
-              hablar con esta entidad
-            </button>
-          )}
-        </div>
+        <button
+          onClick={onClose}
+          className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors shrink-0"
+          aria-label="Cerrar"
+        >
+          <CloseIcon size={16} />
+        </button>
       </header>
+
+      {/* Acción IA primaria — fuera del header para que tenga su espacio
+          y el título no compita con ella por ancho. */}
+      {onOpenThread && (
+        <div className="px-5 pt-3">
+          <button
+            onClick={handleTalkAboutEntity}
+            disabled={createChatThread.isPending}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: 'var(--accent-primary-soft)',
+              color: 'var(--accent-primary)',
+            }}
+            title="Abre un hilo de chat focalizado en esta entidad: su contexto, sus citas y sus relaciones."
+          >
+            <SparkleIcon size={12} />
+            {createChatThread.isPending
+              ? 'abriendo hilo…'
+              : 'hablar con esta entidad'}
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
         {/* Description / edit block */}
@@ -273,13 +295,13 @@ export function NodeDetailPanel({
           ) : (
             <div className="group">
               {entity.description ? (
-                <p className="text-ink-600 leading-relaxed">{entity.description}</p>
+                <p className="text-ink-700 leading-relaxed">{entity.description}</p>
               ) : (
                 <p className="text-ink-300 italic text-sm">sin descripción.</p>
               )}
               <button
                 onClick={() => setEditing(true)}
-                className="mt-2 text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+                className="mt-2 text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
               >
                 editar
               </button>
@@ -291,7 +313,7 @@ export function NodeDetailPanel({
         <section>
           {editingEssay ? (
             <div className="space-y-2">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-300">ensayo</h3>
+              <h3 className="text-xs uppercase tracking-wider text-ink-400">ensayo</h3>
               <textarea
                 value={essayDraft}
                 onChange={(e) => setEssayDraft(e.target.value)}
@@ -322,22 +344,22 @@ export function NodeDetailPanel({
           ) : entity.essay ? (
             <div className="group/essay">
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-ink-300">ensayo</span>
+                <span className="text-xs uppercase tracking-wider text-ink-400">ensayo</span>
                 <button
                   onClick={() => setEditingEssay(true)}
-                  className="opacity-0 group-hover/essay:opacity-100 transition-opacity text-[10px] text-ink-300 hover:text-ink-700"
+                  className="opacity-0 group-hover/essay:opacity-100 transition-opacity text-xs text-ink-400 hover:text-ink-700"
                 >
                   editar
                 </button>
               </div>
-              <div className="text-ink-600 text-sm leading-relaxed whitespace-pre-wrap font-serif">
+              <div className="text-ink-700 text-sm leading-relaxed whitespace-pre-wrap font-serif">
                 {entity.essay}
               </div>
             </div>
           ) : (
             <button
               onClick={() => setEditingEssay(true)}
-              className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+              className="text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
             >
               + añadir ensayo
             </button>
@@ -346,7 +368,7 @@ export function NodeDetailPanel({
 
         {/* Quick note form */}
         <section>
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-300 mb-2">
+          <h3 className="text-xs uppercase tracking-wider text-ink-400 mb-2">
             añadir cita o nota
           </h3>
           <form onSubmit={handleAddNote} className="flex flex-col gap-2">
@@ -369,7 +391,7 @@ export function NodeDetailPanel({
               <button
                 type="button"
                 onClick={() => setShowNoteReflection(true)}
-                className="self-start text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+                className="self-start text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
               >
                 + añadir tu reflexión
               </button>
@@ -388,7 +410,7 @@ export function NodeDetailPanel({
 
         {entityQuotes.length > 0 && (
           <section>
-            <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-300 mb-3">
+            <h3 className="text-xs uppercase tracking-wider text-ink-400 mb-3">
               {entityQuotes.length === 1 ? 'Cita / nota' : `${entityQuotes.length} citas / notas`}
             </h3>
             <ul className="space-y-5">
@@ -410,7 +432,7 @@ export function NodeDetailPanel({
 
         {(outgoing.length > 0 || incoming.length > 0) && (
           <section>
-            <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-300 mb-3">
+            <h3 className="text-xs uppercase tracking-wider text-ink-400 mb-3">
               Conexiones
             </h3>
             <ul className="space-y-1.5">
@@ -483,7 +505,7 @@ function RelationshipLine({
   return (
     <li className="group flex items-baseline justify-between gap-2 text-sm">
       <span className="leading-relaxed">
-        <span className="text-[10px] uppercase tracking-[0.16em] text-ink-300 mr-2">
+        <span className="text-xs uppercase tracking-wider text-ink-400 mr-2">
           {label ?? rel.type}
         </span>
         <span className="text-ink-700">{otherEntity?.name ?? '—'}</span>

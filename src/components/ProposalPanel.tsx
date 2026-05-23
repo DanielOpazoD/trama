@@ -220,7 +220,7 @@ export function ProposalPanel({
     >
       <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-ink-300 flex items-center gap-2 flex-wrap">
+          <p className="text-xs uppercase tracking-wider text-ink-400 flex items-center gap-2 flex-wrap">
             <span>Propuesta</span>
             {proposal.model && (
               <span
@@ -350,7 +350,7 @@ function Section({
   return (
     <div>
       <h3
-        className={`text-[10px] uppercase tracking-[0.2em] mb-2 ${
+        className={`text-xs uppercase tracking-wider mb-2 ${
           tone === 'warn' ? '' : 'text-ink-300'
         }`}
         style={tone === 'warn' ? { color: 'var(--accent-clay)' } : undefined}
@@ -382,7 +382,7 @@ function ProposedEditRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2 text-sm">
           <span
-            className="text-[10px] uppercase tracking-[0.18em]"
+            className="text-xs uppercase tracking-wider"
             style={{ color: 'var(--accent-primary)' }}
           >
             editar {edit.kind === 'entity' ? 'entidad' : edit.kind === 'quote' ? 'cita' : 'relación'}
@@ -428,7 +428,7 @@ function ProposedDeleteRow({
       <div className="min-w-0 flex-1 text-sm">
         <div className="flex items-baseline gap-2">
           <span
-            className="text-[10px] uppercase tracking-[0.18em]"
+            className="text-xs uppercase tracking-wider"
             style={{ color: 'var(--accent-clay)' }}
           >
             borrar {del.kind === 'entity' ? 'entidad' : del.kind === 'quote' ? 'cita' : 'relación'}
@@ -467,11 +467,11 @@ function ProposedEntityRow({
           {entity.year !== undefined && (
             <span className="text-ink-300 text-sm">({entity.year})</span>
           )}
-          <span className="text-[10px] uppercase tracking-[0.18em] text-ink-300">
+          <span className="text-xs uppercase tracking-wider text-ink-400">
             {typeLabel ?? entity.type}
           </span>
           {entity.matchedId && (
-            <span className="text-[10px] uppercase tracking-[0.18em] text-emerald-700/80">
+            <span className="text-xs uppercase tracking-wider text-emerald-700/80">
               ya existe
             </span>
           )}
@@ -506,7 +506,7 @@ function ProposedRelationshipRow({
       />
       <div className="min-w-0 flex-1 text-sm">
         <span className="text-ink-700">{rel.fromName}</span>
-        <span className="mx-2 text-[10px] uppercase tracking-[0.18em] text-ink-300">
+        <span className="mx-2 text-xs uppercase tracking-wider text-ink-400">
           {typeLabel ?? rel.type}
         </span>
         <span className="text-ink-700">{rel.toName}</span>
@@ -516,11 +516,11 @@ function ProposedRelationshipRow({
         {rel.verification && (
           <div className="mt-1">
             {rel.verification.agreed ? (
-              <span className="text-[10px] uppercase tracking-[0.18em] text-emerald-700/80">
+              <span className="text-xs uppercase tracking-wider text-emerald-700/80">
                 ✓ verificado por {rel.verification.verifier}
               </span>
             ) : (
-              <span className="text-[10px] uppercase tracking-[0.18em] text-amber-700/90">
+              <span className="text-xs uppercase tracking-wider text-amber-700/90">
                 ⚠ {rel.verification.verifier} dudó
                 {rel.verification.note && (
                   <span className="normal-case tracking-normal text-ink-500 italic ml-1">

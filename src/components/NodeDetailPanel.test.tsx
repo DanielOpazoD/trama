@@ -161,6 +161,7 @@ describe('<NodeDetailPanel />', () => {
       queryClient,
     })
 
-    expect(screen.getByText(/añadido por IA/i)).toBeInTheDocument()
+    // Chip "IA" en el header (text-xs uppercase, antes era "añadido por IA").
+    expect(screen.getByText(/^IA$/i)).toBeInTheDocument()
   })
 })
