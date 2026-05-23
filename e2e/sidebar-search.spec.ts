@@ -2,12 +2,18 @@ import { expect, test } from '@playwright/test'
 import { emptyState, mockBackend } from './fixtures'
 
 /**
- * Flujo crítico: buscar en la sidebar y abrir un resultado.
- * Cubre que el debounce + el endpoint server-only + el render de hits
- * funcionan end-to-end. Sin esto, la principal forma de navegación
- * cuando hay muchas entidades está rota.
+ * Flujo crítico: abrir el palette con ⌘K, buscar una entidad y abrirla.
+ *
+ * Antes este test apuntaba al input de búsqueda del sidebar. Ese input se
+ * eliminó (commit 14991bf) cuando se consolidó la búsqueda en una sola
+ * entrada — la palette con ⌘K. La intención del test (buscar y navegar
+ * end-to-end) sigue siendo válida, solo cambia el componente.
+ *
+ * El nombre del archivo se conserva (`sidebar-search.spec.ts`) para no
+ * romper history de runs anteriores; el contenido sí refleja el flujo
+ * actual.
  */
-test('búsqueda en sidebar muestra resultados y permite navegar', async ({ page }) => {
+test('palette ⌘K muestra resultados y permite abrir una entidad', async ({ page }) => {
   const state = emptyState()
   state.entities.push({
     id: 'e-borges',
@@ -41,47 +47,38 @@ test('búsqueda en sidebar muestra resultados y permite navegar', async ({ page 
   await mockBackend(page, state)
   await page.goto('/')
 
-  // Scope al sidebar (aside) — la HomeView también muestra entities
-  // como botones en su timeline, lo cual confunde el locator global.
-  const sidebar = page.locator('aside').first()
+  // Abrir la palette con ⌘K (Meta+K en Mac, Control+K en Linux/Win — Playwright
+  // mapea "Meta" al control en Linux CI, pero el handler en App.tsx acepta
+  // ambos via `metaKey || ctrlKey`).
+  await page.keyboard.press('Control+k')
 
-  // Escribir en la barra de búsqueda — debe debouncear ~250ms.
-  await sidebar.getByPlaceholder('Buscar…').fill('borges')
+  // El diálogo aparece con aria-label="Buscar".
+  const palette = page.getByRole('dialog', { name: 'Buscar' })
+  await expect(palette).toBeVisible()
 
-  // Esperar que aparezca el resultado en el dropdown del sidebar.
+  // El input del palette tiene el placeholder "Buscar…".
+  await palette.getByPlaceholder('Buscar…').fill('borges')
+
+  // El resultado de Borges aparece como botón en la lista.
   await expect(
-    sidebar.getByRole('button', { name: /Jorge Luis Borges/ }),
+    palette.getByRole('button', { name: /Jorge Luis Borges/ }),
   ).toBeVisible()
 
-  // El otro escritor NO debe aparecer en el dropdown (no matchea).
+  // El otro escritor NO debe estar en los resultados filtrados.
   await expect(
-    sidebar.getByRole('button', { name: /Julio Cortázar/ }),
+    palette.getByRole('button', { name: /Julio Cortázar/ }),
   ).not.toBeVisible()
 })
 
-test('búsqueda con query vacío no muestra resultados', async ({ page }) => {
+test('palette ⌘K se cierra con Escape', async ({ page }) => {
   const state = emptyState()
-  state.entities.push({
-    id: 'e-borges',
-    type: 'escritor',
-    name: 'Borges',
-    year: null,
-    description: null,
-    essay: null,
-    position_x: null,
-    position_y: null,
-    origin: { kind: 'manual' },
-    spotify_url: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  })
   await mockBackend(page, state)
   await page.goto('/')
 
-  // Scope al sidebar: la HomeView puede mostrar Borges en su timeline,
-  // pero el dropdown de búsqueda del sidebar no debe tener nada.
-  const sidebar = page.locator('aside').first()
-  await expect(
-    sidebar.getByRole('button', { name: /Borges/ }),
-  ).not.toBeVisible()
+  await page.keyboard.press('Control+k')
+  const palette = page.getByRole('dialog', { name: 'Buscar' })
+  await expect(palette).toBeVisible()
+
+  await page.keyboard.press('Escape')
+  await expect(palette).not.toBeVisible()
 })
