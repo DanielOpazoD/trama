@@ -361,6 +361,30 @@ html.dark .paper-grain::before {
     animation: ai-arrive 900ms cubic-bezier(0.2, 0.85, 0.4, 1) both;
   }
 
+  /* View Transitions API — refinamiento del default del browser.
+     El navegador anima entre dos elementos con el mismo
+     view-transition-name (e.g., EntityRow → EntityHeader). Tunear
+     la duración/easing para que matchee el feel del resto de la app
+     (ease-out-quart, ~280ms — coincide con slide-in-right). */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 280ms;
+    animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  /* Cada par card↔header tiene su nombre único `entity-card-{id}`.
+     Aplicamos la curva via el wildcard sin tener que enumerar IDs. */
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 320ms;
+    animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation-duration: 0ms;
+    }
+  }
+
   /* Progress indeterminate — barra deslizante para operaciones donde
      no sabemos el total. Va de left:-33% a left:100% loop. Más sutil
      que un spinner. */

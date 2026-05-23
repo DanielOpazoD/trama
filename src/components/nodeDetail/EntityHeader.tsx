@@ -17,7 +17,13 @@ export function EntityHeader({
 }) {
   const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label
   return (
-    <header className="px-5 py-4 border-b border-ink-100 flex items-start justify-between gap-3">
+    <header
+      // viewTransitionName matchea con el EntityRow en lista — el navegador
+      // anima del card al header automáticamente cuando se abre el panel.
+      // Solo funciona en Chrome 111+/Safari 18+ con la View Transitions API.
+      style={{ viewTransitionName: `entity-card-${entity.id}` } as React.CSSProperties}
+      className="px-5 py-4 border-b border-ink-100 flex items-start justify-between gap-3"
+    >
       <div className="min-w-0 flex-1">
         <p className="text-xs uppercase tracking-wider text-ink-400 flex items-center gap-2 flex-wrap">
           <span>{typeLabel ?? entity.type}</span>

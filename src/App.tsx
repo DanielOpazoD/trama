@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useSearchParamState } from './hooks/useSearchParamState'
+import { startViewTransition } from './lib/viewTransition'
 import {
   Provider,
   useEntitiesQuery,
@@ -59,7 +60,18 @@ function Shell() {
   // una entidad y compartirlo, o recargar la página manteniendo el panel
   // abierto. Internamente sigue siendo un state, pero ahora también vive
   // en la URL.
-  const [selectedEntityId, setSelectedEntityId] = useSearchParamState('entity')
+  const [selectedEntityId, _setSelectedEntityId] = useSearchParamState('entity')
+
+  // Wrapper que pasa por la View Transitions API — el EntityRow en la
+  // lista y el EntityHeader del panel tienen el mismo viewTransitionName,
+  // así que el browser anima del card al header automáticamente. Si el
+  // browser no soporta la API, el state cambia sin animación.
+  const setSelectedEntityId = useCallback(
+    (id: string | null) => {
+      startViewTransition(() => _setSelectedEntityId(id))
+    },
+    [_setSelectedEntityId],
+  )
   const [pendingProposal, setPendingProposal] = useState<PendingProposal | null>(null)
   // Cuando el AskBar deep-linkea a chat con un thread específico.
   const [pendingChatThreadId, setPendingChatThreadId] = useState<string | null>(null)

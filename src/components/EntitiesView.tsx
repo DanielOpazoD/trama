@@ -487,7 +487,13 @@ function EntityRow({
   onDelete: () => void
 }) {
   return (
-    <div className="group relative">
+    <div
+      // viewTransitionName matchea con el EntityHeader del panel. Cuando
+      // el usuario abre el panel, el browser anima del card al header.
+      // Inline style porque viewTransitionName aún no está en CSSProperties.
+      style={{ viewTransitionName: `entity-card-${entity.id}` } as React.CSSProperties}
+      className="group relative"
+    >
       <button
         type="button"
         onClick={onToggleExpand}
