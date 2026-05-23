@@ -67,6 +67,10 @@ export function EntitiesView({
   const [showForm, setShowForm] = useState(false)
   const [pending, setPending] = useState<Reclassification[] | null>(null)
   const [emptyHint, setEmptyHint] = useState(false)
+  // Inline expansion — solo una entidad expandida a la vez. Si el
+  // usuario expande otra, la actual colapsa. El virtualizer mide la
+  // altura dinámicamente via measureElement.
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   // When the server detects a near-duplicate during create, we surface its
   // suggestions here so the user can pick one — or override and create
   // anyway via the "crear igual" action.
@@ -424,6 +428,10 @@ export function EntitiesView({
                   entity={entity}
                   quoteCount={quoteCount}
                   relCount={relCount}
+                  expanded={expandedId === entity.id}
+                  onToggleExpand={() => {
+                    setExpandedId((cur) => (cur === entity.id ? null : entity.id))
+                  }}
                   onSelectEntity={onSelectEntity}
                   onDelete={() => {
                     if (
@@ -460,12 +468,16 @@ function EntityRow({
   entity,
   quoteCount,
   relCount,
+  expanded,
+  onToggleExpand,
   onSelectEntity,
   onDelete,
 }: {
   entity: Entity
   quoteCount: number
   relCount: number
+  expanded: boolean
+  onToggleExpand: () => void
   onSelectEntity?: (id: string) => void
   onDelete: () => void
 }) {
@@ -473,12 +485,15 @@ function EntityRow({
     <div className="group relative">
       <button
         type="button"
-        onClick={() => onSelectEntity?.(entity.id)}
+        onClick={onToggleExpand}
         style={{ borderLeftColor: typeAccent(entity.type) }}
-        className="card-paper-hover w-full text-left p-3 pl-4 border-l-[3px] hover:shadow-ink-900/5 active:scale-[0.995]"
+        className={`card-paper-hover w-full text-left p-3 pl-4 border-l-[3px] hover:shadow-ink-900/5 active:scale-[0.995] ${
+          expanded ? 'ring-1 ring-ink-100' : ''
+        }`}
         aria-label={`Ver ${entity.name}, ${quoteCount} ${
           quoteCount === 1 ? 'cita' : 'citas'
         }`}
+        aria-expanded={expanded}
       >
         <div className="flex justify-between items-baseline gap-4">
           <div className="min-w-0">
@@ -498,13 +513,20 @@ function EntityRow({
               </span>
             )}
           </div>
+          {/* Chevron que rota — indica si está expandida o no */}
           <ChevronRightIcon
             size={12}
-            className="text-ink-200 group-hover:text-ink-400 transition-colors shrink-0"
+            className={`text-ink-200 group-hover:text-ink-400 transition-all shrink-0 ${
+              expanded ? 'rotate-90 text-ink-500' : ''
+            }`}
           />
         </div>
         {entity.description && (
-          <p className="mt-1 text-ink-500 text-sm leading-relaxed">
+          <p
+            className={`mt-1 text-ink-500 text-sm leading-relaxed ${
+              expanded ? '' : 'line-clamp-1'
+            }`}
+          >
             {entity.description}
           </p>
         )}
@@ -522,6 +544,39 @@ function EntityRow({
             )}
           </div>
         )}
+
+        {/* Expansion inline — preview de meta + atajo a panel completo.
+            Solo se renderiza cuando expanded. El virtualizer mide la
+            altura dinámicamente via measureElement. */}
+        {expanded && (
+          <div className="mt-3 pt-3 border-t border-ink-100/60 space-y-2 animate-fade-up">
+            <div className="flex items-baseline gap-3 text-micro uppercase tracking-eyebrow text-ink-400">
+              <span className="font-mono normal-case tracking-normal text-ink-300">
+                {entity.id.slice(0, 8)}
+              </span>
+              {entity.spotifyUrl && (
+                <a
+                  href={entity.spotifyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-emerald-700 hover:text-emerald-900 transition-colors"
+                >
+                  ↗ Spotify
+                </a>
+              )}
+              <span
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelectEntity?.(entity.id)
+                }}
+                className="ml-auto text-ink-400 hover:text-ink-700 transition-colors cursor-pointer"
+              >
+                abrir panel →
+              </span>
+            </div>
+          </div>
+        )}
       </button>
       {/* Toolbar flotante de acciones — solo aparece al hover. Como
           Linear/Codex, en vez de tener botones permanentes. */}
@@ -533,7 +588,7 @@ function EntityRow({
             onSelectEntity?.(entity.id)
           }}
           aria-label={`Abrir ${entity.name}`}
-          title="Abrir"
+          title="Abrir panel"
         >
           <ChevronRightIcon size={12} />
         </button>
