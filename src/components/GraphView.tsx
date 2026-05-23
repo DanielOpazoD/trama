@@ -1,4 +1,6 @@
 import {
+  Suspense,
+  lazy,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -22,6 +24,13 @@ import { useFreshIds } from '../hooks/useFreshIds'
 import { GraphNode } from './graph/GraphNode'
 import { GraphEdge } from './graph/GraphEdge'
 import { GraphToolbar, type GraphMode } from './graph/GraphToolbar'
+
+// Lazy-load del renderer WebGL: sigma + graphology pesan ~165KB extra
+// y solo se usan cuando la trama cruza WEBGL_THRESHOLD. Para usuarios
+// con <1k entidades el bundle inicial no carga esa dependencia.
+const GraphCanvasSigma = lazy(() =>
+  import('./graph/GraphCanvasSigma').then((m) => ({ default: m.GraphCanvasSigma })),
+)
 import { EmptyState } from './EmptyState'
 import { CloseIcon } from './Icons'
 import type { LayoutMode } from '../hooks/layouts/types'
@@ -33,6 +42,10 @@ const GRAPH_EXPLORE_HINT_DISMISSED = 'trama.graphExploreHint.dismissed'
 // Sobre este número de entidades en modo "completo", sugerimos cambiar
 // a "exploratorio". Es la zona donde el render SVG empieza a notarse.
 const EXPLORE_HINT_THRESHOLD = 2000
+// Sobre este número, el renderer cambia automáticamente a WebGL (sigma.js).
+// El SVG es rico (drop shadows, drift, etc.) pero al cruzar 1k nodos
+// el render se vuelve perceptiblemente lento. WebGL pinta 10k+ sin sudar.
+const WEBGL_THRESHOLD = 1000
 
 export default function GraphView({
   selectedId,
@@ -408,6 +421,25 @@ export default function GraphView({
         </div>
       )}
 
+      {/* Renderer switch: WebGL via sigma cuando entidades ≥ 1000 en modo
+          completo. Para subgrafos (exploratorio) y trama chica, SVG. */}
+      {graphMode === 'completo' && entities.length >= WEBGL_THRESHOLD ? (
+        <Suspense
+          fallback={
+            <div className="h-full flex items-center justify-center">
+              <p className="text-ink-300 italic text-sm">cargando renderer…</p>
+            </div>
+          }
+        >
+          <GraphCanvasSigma
+            entities={entities}
+            relationships={relationships}
+            positions={positions}
+            selectedId={selectedId}
+            onSelect={onSelect}
+          />
+        </Suspense>
+      ) : (
       <svg
         ref={svgRef}
         className="w-full h-full focus:outline-none"
@@ -485,6 +517,7 @@ export default function GraphView({
           })}
         </g>
       </svg>
+      )}
     </div>
   )
 }
