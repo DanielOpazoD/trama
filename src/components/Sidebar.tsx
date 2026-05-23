@@ -1,4 +1,5 @@
 import {
+  acknowledgeHealthAlerts,
   useCountsQuery,
   useHealthAlerts,
   useProactiveQuery,
@@ -60,10 +61,21 @@ export function Sidebar({
   // completa de entidades. A 100k+ es la única opción viable.
   const { data: totals } = useCountsQuery()
   // Alertas de salud (budget alto, errores recientes, embeddings sin
-  // indexar). Si hay algo activo, pintamos un dot en el botón de
-  // Configuración como guiño "abre Estado del sistema".
+  // indexar). Si hay algo activo Y todavía no las vio el user, pintamos
+  // un dot en el botón de Configuración como guiño "abre Estado del
+  // sistema". Al click reconocemos los códigos visibles — el dot
+  // desaparece hasta que llegue uno nuevo.
   const healthAlerts = useHealthAlerts()
   const isMobile = useIsMobile()
+
+  function handleOpenSettings() {
+    // ACK los códigos actualmente activos. Si reaparecen exactos no
+    // vuelven a notificar; si aparece un código nuevo (e.g.
+    // "embeddings-pending" después de un nuevo extract sin key) el dot
+    // vuelve a iluminarse.
+    acknowledgeHealthAlerts(healthAlerts.alerts.map((a) => a.code))
+    onOpenSettings()
+  }
 
   const counts: Record<ViewMode, number | null> = {
     inicio: null,
@@ -144,7 +156,7 @@ export function Sidebar({
             side="bottom"
           >
             <button
-              onClick={onOpenSettings}
+              onClick={handleOpenSettings}
               aria-label={
                 healthAlerts.maxSeverity
                   ? `Configuración (${healthAlerts.count} ${healthAlerts.count === 1 ? 'alerta' : 'alertas'})`
@@ -280,7 +292,7 @@ export function Sidebar({
       <div className="px-2 pt-2 pb-2 mt-2 border-t border-ink-100 space-y-px">
         <AIModeToggle />
         <button
-          onClick={onOpenSettings}
+          onClick={handleOpenSettings}
           className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-body text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
         >
           <SettingsIcon size={14} className="text-ink-400" />
