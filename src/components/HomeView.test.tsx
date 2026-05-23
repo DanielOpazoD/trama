@@ -92,7 +92,9 @@ describe('<HomeView />', () => {
 
   it('renderiza una cita destacada cuando hay quotes', () => {
     setupCache([ENTITY], [QUOTE_A], [])
-    expect(screen.getByText(/frase A/)).toBeInTheDocument()
+    // El texto puede aparecer en la featured quote y en el timeline.
+    // Basta con que aparezca al menos una vez.
+    expect(screen.getAllByText(/frase A/).length).toBeGreaterThan(0)
   })
 
   it('NO muestra "Otra" cuando solo hay una cita', () => {

@@ -172,8 +172,63 @@
     background-color: rgb(var(--paper-50));
     color: rgb(var(--ink-700));
     font-family: theme('fontFamily.sans');
-    font-feature-settings: 'ss01', 'cv11';
+    /* Inter feature settings:
+       - ss01: alternate single-storey 'a'   (más sutil, menos browser-default)
+       - cv11: rounded 6/9                   (sentido editorial)
+       - calt: contextual alternates         (ligaduras automáticas)
+       - kern: kerning entre pares           (espaciado óptico)
+       Tabular numerals (tnum) NO globales — solo donde aplique con .tabular-nums.
+       Eso permite que el body siga teniendo cifras proporcionales para texto
+       fluido, mientras las cifras en chips/metadata mantienen alineación. */
+    font-feature-settings: 'ss01', 'cv11', 'calt', 'kern';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     transition: background-color 220ms ease, color 220ms ease;
+  }
+
+  /* Spectral serif para títulos editoriales — habilita estilísticas
+     antiguas que dan el feel "letterpress" sin ser ostentoso. */
+  .font-serif {
+    font-feature-settings: 'liga', 'dlig', 'kern';
+  }
+
+  /* Selection: usar el accent-primary suave en vez del azul nativo del
+     OS. Da identidad editorial al producto y respeta dark mode (la
+     variable cambia con el tema). */
+  ::selection {
+    background-color: var(--accent-primary-soft);
+    color: rgb(var(--ink-800));
+  }
+  ::-moz-selection {
+    background-color: var(--accent-primary-soft);
+    color: rgb(var(--ink-800));
+  }
+
+  /* Scrollbars custom — thin, paper-tinted, no las grises del OS.
+     Solo aplica en navegadores con soporte (Chrome/Safari y Firefox).
+     Mobile no muestra scrollbar nativo así que esto es solo desktop. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--ink-200) / 0.5) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--ink-200) / 0.45);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--ink-300) / 0.7);
+    background-clip: content-box;
+    border: 2px solid transparent;
   }
 
   /* Sidebar / topbar usan el surface-* en lugar de paper-* para que se
@@ -535,6 +590,26 @@ html.dark .paper-grain::before {
   }
   .ai-cta-pill:disabled {
     @apply text-ink-200;
+  }
+
+  /* Drop cap editorial — para la primera letra de la cita destacada
+     en Inicio. Hace la página de bienvenida sentir como una portada
+     de revista. Usa Spectral, lining numerals, y una altura calibrada
+     para alinearse al baseline de la línea 3.
+
+     Solo aplica el efecto si el contenido tiene >=120 caracteres
+     (vía clase manual); citas cortas con drop-cap se ven raras. */
+  .drop-cap::first-letter {
+    font-family: theme('fontFamily.serif');
+    font-weight: 500;
+    font-size: 3.4em;
+    line-height: 1;
+    float: left;
+    padding-right: 0.12em;
+    padding-top: 0.04em;
+    margin-bottom: -0.05em;
+    color: var(--accent-primary);
+    font-feature-settings: 'lnum', 'kern';
   }
 
   /* Skeleton shimmer — gradient horizontal animado para placeholders

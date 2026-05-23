@@ -205,8 +205,8 @@ function FeaturedQuote({
   onSelectEntity: (id: string) => void
   onReroll?: () => void
 }) {
-  const first = quote.text[0]
-  const rest = quote.text.slice(1)
+  // Drop cap solo en citas medianas+, en cortas se ve apretado.
+  const useDropCap = quote.text.length >= 80
   return (
     <section className="animate-fade-up">
       <div className="mb-3 flex items-baseline justify-between">
@@ -226,11 +226,12 @@ function FeaturedQuote({
           </button>
         )}
       </div>
-      <blockquote className="quote-block text-lg md:text-xl text-ink-700 leading-snug clear-both overflow-hidden">
-        <span className="float-left mr-1.5 mt-1 text-4xl leading-[0.85] font-serif text-ink-700 select-none">
-          {first}
-        </span>
-        {rest}
+      <blockquote
+        className={`quote-block text-lg md:text-xl text-ink-700 leading-snug clear-both overflow-hidden font-serif ${
+          useDropCap ? 'drop-cap' : ''
+        }`}
+      >
+        {quote.text}
       </blockquote>
       <div className="mt-4 text-sm text-ink-400">
         {entity ? (
