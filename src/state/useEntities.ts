@@ -9,6 +9,7 @@ import { storage } from '../storage'
 import type { Entity, Origin } from '../types'
 import { queryKeys } from './queryClient'
 import { useOffline } from './offline'
+import { useToast } from './toast'
 
 const DEFAULT_ORIGIN: Origin = { kind: 'manual' }
 
@@ -183,16 +184,34 @@ export function useUpdateEntity() {
   })
 }
 
+/**
+ * Input para useDeleteEntity / useDeleteRelationship / useDeleteQuote.
+ *
+ * Forma corta `string` para los flujos de usuario directo (botón eliminar);
+ * forma objeto con `silent: true` para flujos donde el toast con "Deshacer"
+ * sería ruido (aplicar propuestas IA, p. ej., donde el usuario ya confirmó
+ * en un modal).
+ */
+export type DeleteInput = string | { id: string; silent?: boolean }
+
+function normalizeDeleteInput(input: DeleteInput): { id: string; silent: boolean } {
+  if (typeof input === 'string') return { id: input, silent: false }
+  return { id: input.id, silent: input.silent ?? false }
+}
+
 export function useDeleteEntity() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
+  const toast = useToast()
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      if (!offline) await api.deleteEntity(id)
-      return id
+    mutationFn: async (input: DeleteInput) => {
+      const { id, silent } = normalizeDeleteInput(input)
+      if (offline) return { id, silent, deletedAt: null as string | null }
+      const res = await api.deleteEntity(id)
+      return { id, silent, deletedAt: res.deletedAt as string | null }
     },
-    onSuccess: (id) => {
+    onSuccess: ({ id, silent, deletedAt }) => {
       // Cascade: also remove from relationships and quotes caches.
       queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) =>
         (prev ?? []).filter((e) => e.id !== id),
@@ -213,6 +232,27 @@ export function useDeleteEntity() {
       if (offline) {
         const e = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
         storage.saveEntities(e)
+      }
+
+      // Toast con Deshacer. Solo cuando hay deletedAt real (online) y el
+      // caller no pidió silent.
+      if (deletedAt && !silent && !offline) {
+        toast.show({
+          message: 'Entidad eliminada',
+          action: {
+            label: 'Deshacer',
+            onAction: async () => {
+              await api.restoreEntity(id, deletedAt)
+              queryClient.invalidateQueries({ queryKey: queryKeys.entities })
+              queryClient.invalidateQueries({ queryKey: queryKeys.relationships })
+              queryClient.invalidateQueries({ queryKey: queryKeys.quotes })
+              queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+              queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
+              queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
+              queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
+            },
+          },
+        })
       }
     },
   })

@@ -9,6 +9,13 @@ import { storage } from '../storage'
 import type { Origin, Relationship } from '../types'
 import { queryKeys } from './queryClient'
 import { useOffline } from './offline'
+import { useToast } from './toast'
+import { type DeleteInput } from './useEntities'
+
+function normalizeDeleteInput(input: DeleteInput): { id: string; silent: boolean } {
+  if (typeof input === 'string') return { id: input, silent: false }
+  return { id: input.id, silent: input.silent ?? false }
+}
 
 const DEFAULT_ORIGIN: Origin = { kind: 'manual' }
 
@@ -120,13 +127,16 @@ export function useUpdateRelationship() {
 export function useDeleteRelationship() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
+  const toast = useToast()
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      if (!offline) await api.deleteRelationship(id)
-      return id
+    mutationFn: async (input: DeleteInput) => {
+      const { id, silent } = normalizeDeleteInput(input)
+      if (offline) return { id, silent, deletedAt: null as string | null }
+      const res = await api.deleteRelationship(id)
+      return { id, silent, deletedAt: res.deletedAt as string | null }
     },
-    onSuccess: (id) => {
+    onSuccess: ({ id, silent, deletedAt }) => {
       queryClient.setQueryData<Relationship[]>(queryKeys.relationships, (prev) =>
         (prev ?? []).filter((r) => r.id !== id),
       )
@@ -135,6 +145,21 @@ export function useDeleteRelationship() {
       if (offline) {
         const current = queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
         storage.saveRelationships(current)
+      }
+
+      if (deletedAt && !silent && !offline) {
+        toast.show({
+          message: 'Relación eliminada',
+          action: {
+            label: 'Deshacer',
+            onAction: async () => {
+              await api.restoreRelationship(id, deletedAt)
+              queryClient.invalidateQueries({ queryKey: queryKeys.relationships })
+              queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+              queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
+            },
+          },
+        })
       }
     },
   })

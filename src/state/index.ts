@@ -8,6 +8,7 @@
 
 export { Provider } from './Provider'
 export { useOffline } from './offline'
+export { useToast, type Toast, type ToastAction } from './toast'
 export { useGlobalStatus, type GlobalStatus } from './useGlobalStatus'
 export { useCountsQuery } from './useCounts'
 export { useNeighborsQuery } from './useNeighbors'

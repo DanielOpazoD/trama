@@ -168,9 +168,12 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
   async function applyDelete(i: number) {
     const d = deleteList[i]
     try {
-      if (d.kind === 'entity') await deleteEntity.mutateAsync(d.id)
-      else if (d.kind === 'quote') await deleteQuote.mutateAsync(d.id)
-      else if (d.kind === 'relationship') await deleteRelationship.mutateAsync(d.id)
+      // silent: el usuario ya está revisando esta propuesta inline,
+      // no necesita un toast "Deshacer" superpuesto.
+      if (d.kind === 'entity') await deleteEntity.mutateAsync({ id: d.id, silent: true })
+      else if (d.kind === 'quote') await deleteQuote.mutateAsync({ id: d.id, silent: true })
+      else if (d.kind === 'relationship')
+        await deleteRelationship.mutateAsync({ id: d.id, silent: true })
       setStatusDeletes((s) => s.map((v, idx) => (idx === i ? 'applied' : v)))
     } catch {
       setStatusDeletes((s) => s.map((v, idx) => (idx === i ? 'failed' : v)))

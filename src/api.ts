@@ -253,8 +253,14 @@ export const api = {
       body: JSON.stringify({ type }),
     })
   },
-  async deleteEntity(id: string): Promise<void> {
-    await request<void>(`/api/entities/${id}`, { method: 'DELETE' })
+  async deleteEntity(id: string): Promise<{ deletedAt: string }> {
+    return request<{ deletedAt: string }>(`/api/entities/${id}`, { method: 'DELETE' })
+  },
+  async restoreEntity(id: string, deletedAt: string): Promise<void> {
+    await request<{ restored: boolean }>(`/api/entities/${id}/restore`, {
+      method: 'POST',
+      body: JSON.stringify({ deletedAt }),
+    })
   },
 
   async listRelationships(): Promise<Relationship[]> {
@@ -303,8 +309,14 @@ export const api = {
     })
     return relationshipFromRow(row)
   },
-  async deleteRelationship(id: string): Promise<void> {
-    await request<void>(`/api/relationships/${id}`, { method: 'DELETE' })
+  async deleteRelationship(id: string): Promise<{ deletedAt: string }> {
+    return request<{ deletedAt: string }>(`/api/relationships/${id}`, { method: 'DELETE' })
+  },
+  async restoreRelationship(id: string, deletedAt: string): Promise<void> {
+    await request<{ restored: boolean }>(`/api/relationships/${id}/restore`, {
+      method: 'POST',
+      body: JSON.stringify({ deletedAt }),
+    })
   },
 
   async listQuotes(): Promise<Quote[]> {
@@ -429,8 +441,14 @@ export const api = {
   async reflectQuote(id: string): Promise<{ reflection: string; provider: string; model: string }> {
     return request(`/api/quotes/${id}/reflect`, { method: 'POST', body: '{}' })
   },
-  async deleteQuote(id: string): Promise<void> {
-    await request<void>(`/api/quotes/${id}`, { method: 'DELETE' })
+  async deleteQuote(id: string): Promise<{ deletedAt: string }> {
+    return request<{ deletedAt: string }>(`/api/quotes/${id}`, { method: 'DELETE' })
+  },
+  async restoreQuote(id: string, deletedAt: string): Promise<void> {
+    await request<{ restored: boolean }>(`/api/quotes/${id}/restore`, {
+      method: 'POST',
+      body: JSON.stringify({ deletedAt }),
+    })
   },
 
   async extract(text: string): Promise<ExtractionProposal> {

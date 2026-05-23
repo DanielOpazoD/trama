@@ -9,6 +9,13 @@ import { storage } from '../storage'
 import type { Origin, Quote } from '../types'
 import { queryKeys } from './queryClient'
 import { useOffline } from './offline'
+import { useToast } from './toast'
+import { type DeleteInput } from './useEntities'
+
+function normalizeDeleteInput(input: DeleteInput): { id: string; silent: boolean } {
+  if (typeof input === 'string') return { id: input, silent: false }
+  return { id: input.id, silent: input.silent ?? false }
+}
 
 const DEFAULT_ORIGIN: Origin = { kind: 'manual' }
 
@@ -149,13 +156,16 @@ export function useReflectQuote() {
 export function useDeleteQuote() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
+  const toast = useToast()
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      if (!offline) await api.deleteQuote(id)
-      return id
+    mutationFn: async (input: DeleteInput) => {
+      const { id, silent } = normalizeDeleteInput(input)
+      if (offline) return { id, silent, deletedAt: null as string | null }
+      const res = await api.deleteQuote(id)
+      return { id, silent, deletedAt: res.deletedAt as string | null }
     },
-    onSuccess: (id) => {
+    onSuccess: ({ id, silent, deletedAt }) => {
       queryClient.setQueryData<Quote[]>(queryKeys.quotes, (prev) =>
         (prev ?? []).filter((q) => q.id !== id),
       )
@@ -164,6 +174,21 @@ export function useDeleteQuote() {
       if (offline) {
         const current = queryClient.getQueryData<Quote[]>(queryKeys.quotes) ?? []
         storage.saveQuotes(current)
+      }
+
+      if (deletedAt && !silent && !offline) {
+        toast.show({
+          message: 'Cita eliminada',
+          action: {
+            label: 'Deshacer',
+            onAction: async () => {
+              await api.restoreQuote(id, deletedAt)
+              queryClient.invalidateQueries({ queryKey: queryKeys.quotes })
+              queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
+              queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+            },
+          },
+        })
       }
     },
   })

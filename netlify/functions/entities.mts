@@ -259,16 +259,34 @@ export default withObservability('entities', async (req: Request, context: Conte
   }
 
   if (req.method === 'DELETE' && id) {
-    // Soft delete: also cascade-soft-delete the entity's relationships and quotes.
-    await sql`UPDATE entities SET deleted_at = NOW() WHERE id = ${id} AND deleted_at IS NULL`
-    await sql`UPDATE relationships SET deleted_at = NOW() WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at IS NULL`
-    await sql`UPDATE quotes SET deleted_at = NOW() WHERE entity_id = ${id} AND deleted_at IS NULL`
-    return new Response(null, { status: 204 })
+    // Soft delete con timestamp compartido entre la entidad y su cascade.
+    // El restore lo usa para identificar exactamente qué se borró en este
+    // acto y revertir solo eso (no relaciones borradas en otro momento).
+    const tsRows = (await sql`SELECT NOW() AS now`) as Array<{ now: string }>
+    const deletedAt = tsRows[0].now
+    await sql`UPDATE entities SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL`
+    await sql`UPDATE relationships SET deleted_at = ${deletedAt} WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at IS NULL`
+    await sql`UPDATE quotes SET deleted_at = ${deletedAt} WHERE entity_id = ${id} AND deleted_at IS NULL`
+    return Response.json({ deletedAt })
+  }
+
+  // Restore (undo del DELETE). Recibe el deletedAt exacto del borrado para
+  // restaurar la entidad + las filas cascadeadas en ese mismo acto.
+  const url = new URL(req.url)
+  if (req.method === 'POST' && id && url.pathname.endsWith('/restore')) {
+    const body = (await req.json().catch(() => ({}))) as { deletedAt?: string }
+    if (!body.deletedAt) {
+      return new Response('deletedAt requerido', { status: 400 })
+    }
+    await sql`UPDATE entities SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt}`
+    await sql`UPDATE relationships SET deleted_at = NULL WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at = ${body.deletedAt}`
+    await sql`UPDATE quotes SET deleted_at = NULL WHERE entity_id = ${id} AND deleted_at = ${body.deletedAt}`
+    return Response.json({ restored: true })
   }
 
   return new Response('Method not allowed', { status: 405 })
 })
 
 export const config: Config = {
-  path: ['/api/entities', '/api/entities/:id'],
+  path: ['/api/entities', '/api/entities/:id', '/api/entities/:id/restore'],
 }

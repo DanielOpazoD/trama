@@ -125,13 +125,25 @@ export default withObservability('relationships', async (req: Request, context: 
   }
 
   if (req.method === 'DELETE' && id) {
-    await sql`UPDATE relationships SET deleted_at = NOW() WHERE id = ${id} AND deleted_at IS NULL`
-    return new Response(null, { status: 204 })
+    const tsRows = (await sql`SELECT NOW() AS now`) as Array<{ now: string }>
+    const deletedAt = tsRows[0].now
+    await sql`UPDATE relationships SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL`
+    return Response.json({ deletedAt })
+  }
+
+  const url = new URL(req.url)
+  if (req.method === 'POST' && id && url.pathname.endsWith('/restore')) {
+    const body = (await req.json().catch(() => ({}))) as { deletedAt?: string }
+    if (!body.deletedAt) {
+      return new Response('deletedAt requerido', { status: 400 })
+    }
+    await sql`UPDATE relationships SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt}`
+    return Response.json({ restored: true })
   }
 
   return new Response('Method not allowed', { status: 405 })
 })
 
 export const config: Config = {
-  path: ['/api/relationships', '/api/relationships/:id'],
+  path: ['/api/relationships', '/api/relationships/:id', '/api/relationships/:id/restore'],
 }

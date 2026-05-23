@@ -192,12 +192,15 @@ export function ProposalPanel({
         if (!checked.deletes[i]) continue
         const d = deletes[i]
         try {
+          // silent: no queremos un toast "Deshacer" por cada delete
+          // dentro de un bulk apply — el usuario ya revisó y aceptó
+          // la propuesta entera en el modal.
           if (d.kind === 'entity') {
-            await deleteEntity.mutateAsync(d.id)
+            await deleteEntity.mutateAsync({ id: d.id, silent: true })
           } else if (d.kind === 'quote') {
-            await deleteQuote.mutateAsync(d.id)
+            await deleteQuote.mutateAsync({ id: d.id, silent: true })
           } else if (d.kind === 'relationship') {
-            await deleteRelationship.mutateAsync(d.id)
+            await deleteRelationship.mutateAsync({ id: d.id, silent: true })
           }
         } catch {
           /* skip */

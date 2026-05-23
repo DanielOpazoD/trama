@@ -117,11 +117,12 @@ describe('<NodeDetailPanel />', () => {
     queryClient.setQueryData(queryKeys.quotes, [])
     queryClient.setQueryData(queryKeys.relationships, [])
 
+    // DELETE ahora devuelve { deletedAt } para alimentar el flujo de undo.
     const deleteFetch = vi.fn().mockResolvedValue({
       ok: true,
-      status: 204,
-      text: async () => '',
-      json: async () => undefined,
+      status: 200,
+      text: async () => JSON.stringify({ deletedAt: '2025-01-01T00:00:00Z' }),
+      json: async () => ({ deletedAt: '2025-01-01T00:00:00Z' }),
     })
     vi.stubGlobal('fetch', deleteFetch)
 

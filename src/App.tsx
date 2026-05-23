@@ -19,6 +19,7 @@ import { ChatView } from './components/ChatView'
 import { ProactiveView } from './components/ProactiveView'
 import { HomeView } from './components/HomeView'
 import { CommandPalette } from './components/CommandPalette'
+import { ToastHost } from './components/ToastHost'
 import { AskBar } from './components/AskBar'
 import { ProposalPanel } from './components/ProposalPanel'
 import { NodeDetailPanel } from './components/NodeDetailPanel'
@@ -193,6 +194,8 @@ function Shell() {
           setSelectedEntityId(id)
         }}
       />
+
+      <ToastHost />
 
       {/* Floating right-side panel — appears as a glass card over the canvas
           instead of as a hard-edge column. Click outside to close. */}
