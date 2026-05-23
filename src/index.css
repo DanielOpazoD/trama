@@ -422,12 +422,36 @@ html.dark .paper-grain::before {
      para position:fixed. Eso rompía la Settings modal: en vez de
      posicionarse respecto al viewport, se posicionaba respecto al div
      con animación, apareciendo por debajo de la pantalla. */
+  /* Shell entry choreography — el splash sale a ~1.2s y los componentes
+     del shell entran en escalera. La sensación es que la app se "monta"
+     pieza por pieza, no que aparece de golpe.
+
+     Cada animación arranca antes (delay 1.0s) que termina el splash
+     porque el splash usa fade-out con scale, así que se solapan
+     suavemente en lugar de cortar bruscamente. */
   @keyframes shell-rise {
     from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: none; }
   }
+  @keyframes shell-sidebar-in {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes shell-topbar-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: none; }
+  }
   .animate-shell-rise {
-    animation: shell-rise 600ms ease-out 1.2s both;
+    animation: shell-rise 600ms cubic-bezier(0.25, 1, 0.5, 1) 1.0s both;
+  }
+  .animate-shell-sidebar {
+    animation: shell-sidebar-in 500ms cubic-bezier(0.25, 1, 0.5, 1) 0.95s both;
+  }
+  .animate-shell-topbar {
+    animation: shell-topbar-in 500ms cubic-bezier(0.25, 1, 0.5, 1) 1.05s both;
+  }
+  .animate-shell-main {
+    animation: shell-rise 600ms cubic-bezier(0.25, 1, 0.5, 1) 1.15s both;
   }
 
   /* Slow ambient drift for graph nodes — each node uses its own delay so the

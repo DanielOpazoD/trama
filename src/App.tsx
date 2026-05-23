@@ -80,25 +80,29 @@ function Shell() {
 
   return (
     <div className="h-screen w-screen flex overflow-hidden">
-      <Sidebar
-        view={view}
-        onChangeView={(v) => {
-          setView(v)
-          if (v !== 'grafo') setSelectedEntityId(null)
-        }}
-        collapsed={sidebarCollapsed}
-        onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
-        onSelectEntity={(id) => {
-          setView('grafo')
-          setSelectedEntityId(id)
-        }}
-        offline={offline}
-        onOpenSettings={() => setSettingsOpen(true)}
-      />
+      <div className="animate-shell-sidebar shrink-0 h-full flex">
+        <Sidebar
+          view={view}
+          onChangeView={(v) => {
+            setView(v)
+            if (v !== 'grafo') setSelectedEntityId(null)
+          }}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
+          onSelectEntity={(id) => {
+            setView('grafo')
+            setSelectedEntityId(id)
+          }}
+          offline={offline}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+      </div>
 
       <main className="flex-1 relative overflow-hidden flex flex-col">
-        <TopBar view={view} onOpenPalette={() => setPaletteOpen(true)} />
-        <div className="flex-1 relative overflow-hidden">
+        <div className="animate-shell-topbar">
+          <TopBar view={view} onOpenPalette={() => setPaletteOpen(true)} />
+        </div>
+        <div className="flex-1 relative overflow-hidden animate-shell-main">
           {error && (
             <div className="alert-error absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 text-sm shadow-md z-10">
               {error}
@@ -185,11 +189,14 @@ export default function App() {
   // ErrorBoundary envuelve Shell pero queda DENTRO del Provider para que
   // el fallback tenga acceso al toast y al QueryClient si los necesita
   // en el futuro. Esta posición captura todo error de render de la UI.
+  // El wrapper ya no usa shell-rise único — las animaciones de entrada
+  // viven dentro de Shell, aplicadas a Sidebar / TopBar / Main con delays
+  // escalonados (Z6 — page-load choreography).
   return (
     <Provider>
       <Splash />
       <ErrorBoundary>
-        <div className="animate-shell-rise h-full">
+        <div className="h-full">
           <Shell />
         </div>
       </ErrorBoundary>
