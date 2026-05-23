@@ -321,12 +321,22 @@ export function Sidebar({
               key={item.value}
               onClick={() => onChangeView(item.value)}
               aria-label={item.label}
-              className={`group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-body transition-colors relative ${
+              className={`group flex items-center justify-between gap-2 pl-3 pr-2.5 py-1.5 rounded-md text-body transition-colors relative ${
                 active
-                  ? 'text-ink-800 bg-ink-100 font-medium'
+                  ? 'text-ink-800 font-medium'
                   : 'text-ink-500 hover:text-ink-800 hover:bg-ink-100/60'
               }`}
             >
+              {/* Active state — barra lateral 2px en lugar del bg-fill.
+                  Codex/Cursor lo hacen así: la indicación viene del lado
+                  izquierdo, no del relleno del botón. Más sutil, menos
+                  ruido visual. */}
+              {active && (
+                <span
+                  aria-hidden
+                  className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r bg-ink-700"
+                />
+              )}
               <span className="flex items-center gap-2.5 min-w-0">
                 <Icon
                   size={14}
