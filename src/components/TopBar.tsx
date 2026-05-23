@@ -1,5 +1,14 @@
 import { useGlobalStatus, type GlobalStatus } from '../state'
+import { SearchIcon } from './Icons'
 import type { ViewMode } from './Sidebar'
+
+// El símbolo del modificador de atajos depende de la plataforma. En Mac
+// es ⌘, en el resto es "Ctrl". El check vive en módulo para no recalcular
+// en cada render. SSR-safe (devuelve false si no hay navigator).
+const IS_MAC =
+  typeof navigator !== 'undefined' &&
+  /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
+const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 
 /**
  * Barra superior estilo ChatGPT/OpenAI Platform.
@@ -31,9 +40,14 @@ const TITLES: Record<ViewMode, { title: string; subtitle?: string }> = {
 export function TopBar({
   view,
   actions,
+  onOpenPalette,
 }: {
   view: ViewMode
   actions?: React.ReactNode
+  /** Si está presente, dibuja un pill "Buscar ⌘K" que abre el palette.
+      Su rol es discoverability — el atajo existe igual, pero sin esto
+      el usuario nuevo no lo sabe. */
+  onOpenPalette?: () => void
 }) {
   const { title, subtitle } = TITLES[view]
   const status = useGlobalStatus()
@@ -49,9 +63,32 @@ export function TopBar({
       </div>
       <div className="shrink-0 flex items-center gap-3">
         <StatusPill status={status} />
+        {onOpenPalette && <PalettePill onClick={onOpenPalette} />}
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
     </div>
+  )
+}
+
+/**
+ * Pill discreto "Buscar ⌘K" que abre el CommandPalette. Se oculta en mobile
+ * (sin teclado físico el atajo no aplica, y el sidebar ya tiene su propio
+ * search arriba en esa vista).
+ */
+function PalettePill({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      title={`Buscar (${SHORTCUT_KEY} K)`}
+      aria-label="Buscar"
+      className="hidden sm:flex items-center gap-2 px-2.5 py-1 text-xs text-ink-400 hover:text-ink-700 bg-paper-100/60 hover:bg-paper-100 border border-ink-100/60 hover:border-ink-200 rounded-md transition-colors"
+    >
+      <SearchIcon size={11} />
+      <span className="leading-none">Buscar</span>
+      <kbd className="ml-1 text-[10px] px-1.5 py-0.5 bg-paper-50 border border-ink-200/70 rounded text-ink-400 tabular-nums leading-none font-sans">
+        {SHORTCUT_KEY} K
+      </kbd>
+    </button>
   )
 }
 

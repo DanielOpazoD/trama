@@ -98,7 +98,7 @@ function Shell() {
       />
 
       <main className="flex-1 relative overflow-hidden flex flex-col">
-        <TopBar view={view} />
+        <TopBar view={view} onOpenPalette={() => setPaletteOpen(true)} />
         <div className="flex-1 relative overflow-hidden">
         {error && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-red-50/95 border border-red-200 rounded-lg text-sm text-red-800 shadow-md z-10">
