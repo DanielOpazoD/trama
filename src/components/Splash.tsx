@@ -1,15 +1,37 @@
 import { useEffect, useState } from 'react'
+import { OrnamentBreak } from './Icons'
 
 /**
- * First-render splash: a Trama monogram weaves itself in, then fades.
- * Only shown once per session (sessionStorage) to avoid annoying repeat
- * viewers — first impression matters, second visit shouldn't.
+ * First-render splash. Identidad editorial desde el primer pixel:
+ *   - eyebrow uppercase pequeño (categoría del producto)
+ *   - monograma woven Trama animado (thread-in)
+ *   - wordmark Spectral
+ *   - ornament editorial
+ *   - aforismo en serif italic — rotado por sesión para que cada
+ *     visita se sienta distinta
+ *
+ * Solo se muestra una vez por sesión (sessionStorage). Primera
+ * impresión importa; segunda visita no.
  */
+const APHORISMS = [
+  'hilo a hilo',
+  'lo que retuviste',
+  'una conexión a la vez',
+  'el mapa de lo que leíste',
+  'lo que te llegó',
+  'tu trama personal',
+]
+
+function pickAphorism(): string {
+  return APHORISMS[Math.floor(Math.random() * APHORISMS.length)]
+}
+
 export function Splash() {
   const [shown, setShown] = useState(() => {
     if (typeof window === 'undefined') return false
     return !window.sessionStorage.getItem('trama:splash-seen')
   })
+  const [aphorism] = useState(pickAphorism)
 
   useEffect(() => {
     if (!shown) return
@@ -32,7 +54,11 @@ export function Splash() {
       style={{ backgroundColor: 'rgb(var(--paper-50))' }}
       aria-hidden="true"
     >
-      <div className="flex flex-col items-center gap-5">
+      <div className="flex flex-col items-center gap-4">
+        <p className="text-micro uppercase tracking-shout text-ink-300 mark-thread">
+          mapa cognitivo personal
+        </p>
+
         <svg width="72" height="72" viewBox="0 0 24 24" fill="none">
           <path
             className="mark-crossbar"
@@ -56,7 +82,18 @@ export function Splash() {
             strokeLinecap="round"
           />
         </svg>
-        <p className="wordmark text-3xl text-ink-700 mark-thread leading-none">Trama</p>
+
+        <p className="wordmark text-3xl text-ink-700 mark-thread leading-none">
+          Trama
+        </p>
+
+        <div className="mark-thread text-ink-200">
+          <OrnamentBreak size={56} />
+        </div>
+
+        <p className="mark-thread font-serif italic text-sm text-ink-400 leading-snug">
+          {aphorism}
+        </p>
       </div>
     </div>
   )
