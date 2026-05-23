@@ -1,6 +1,3 @@
-import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '../api'
 import {
   useCountsQuery,
   useHealthAlerts,
@@ -17,7 +14,6 @@ import {
   MusicIcon,
   QuoteIcon,
   RelationsIcon,
-  SearchIcon,
   SettingsIcon,
   SparkleIcon,
   TramaMark,
@@ -49,7 +45,6 @@ export function Sidebar({
   onChangeView,
   collapsed,
   onToggleCollapsed,
-  onSelectEntity,
   offline,
   onOpenSettings,
 }: {
@@ -57,7 +52,6 @@ export function Sidebar({
   onChangeView: (v: ViewMode) => void
   collapsed: boolean
   onToggleCollapsed: () => void
-  onSelectEntity?: (id: string) => void
   offline: boolean
   onOpenSettings: () => void
 }) {
@@ -71,8 +65,6 @@ export function Sidebar({
   const healthAlerts = useHealthAlerts()
   const isMobile = useIsMobile()
 
-  const [searchQuery, setSearchQuery] = useState('')
-
   const counts: Record<ViewMode, number | null> = {
     inicio: null,
     grafo: null,
@@ -85,39 +77,6 @@ export function Sidebar({
     chat: null,
     sugerencias: pendingSuggestions.length > 0 ? pendingSuggestions.length : null,
   }
-
-  // Debounce 250ms antes de cada fetch para no embebir en cada tecla.
-  const [debouncedQuery, setDebouncedQuery] = useState('')
-  useEffect(() => {
-    const trimmed = searchQuery.trim()
-    if (!trimmed) {
-      setDebouncedQuery('')
-      return
-    }
-    const id = setTimeout(() => setDebouncedQuery(trimmed), 250)
-    return () => clearTimeout(id)
-  }, [searchQuery])
-
-  // Hybrid (lexical + semantic) search via /api/search. Sin fallback local:
-  // a 100k+ no podemos asumir que tenemos la lista cargada en memoria.
-  // Mientras espera, mostramos "buscando…". Si falla, mostramos el mensaje
-  // de error (Trama queda visible pero sin resultados de búsqueda).
-  const searchResp = useQuery({
-    queryKey: ['search', debouncedQuery],
-    queryFn: () => api.search(debouncedQuery, { limit: 8 }),
-    enabled: !!debouncedQuery,
-    staleTime: 60_000,
-  })
-
-  const searchResults =
-    searchResp.data?.entities.map((hit) => ({
-      id: hit.id,
-      name: hit.name,
-      type: hit.type,
-      score: hit.score,
-    })) ?? []
-  const searchPending =
-    !!debouncedQuery && (searchResp.isLoading || searchResp.isFetching)
 
   // ---------- collapsed sidebar ----------
   if (collapsed) {
@@ -256,61 +215,9 @@ export function Sidebar({
         </button>
       </header>
 
-      {/* Mostramos la barra siempre que no sepamos con certeza que la
-          trama está vacía. Si totals aún no respondió, asumimos no-vacío
-          para que el input aparezca de inmediato. */}
-      {(totals === undefined || totals.entities > 0) && (
-        <div className="px-3 pb-2">
-          <div className="relative">
-            <SearchIcon
-              size={12}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none"
-            />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar"
-              aria-label="Buscar entidades"
-              className="w-full text-body pl-7 pr-2 py-1.5 rounded-md border border-ink-100 bg-paper-50 text-ink-700 placeholder:text-ink-400 focus:outline-none focus:border-ink-200 focus:ring-1 focus:ring-ink-200 transition-colors"
-            />
-          </div>
-          {debouncedQuery && (
-            <div className="mt-1.5 max-h-64 overflow-y-auto">
-              {searchPending ? (
-                <p className="px-2.5 py-1 text-xs text-ink-400 italic">buscando…</p>
-              ) : searchResp.error ? (
-                <p className="px-2.5 py-1 text-xs text-red-700">
-                  No se pudo buscar.
-                </p>
-              ) : searchResults.length === 0 ? (
-                <p className="px-2.5 py-1 text-xs text-ink-400 italic">
-                  sin resultados
-                </p>
-              ) : (
-                <ul className="space-y-0.5">
-                  {searchResults.map((entity) => (
-                    <li key={entity.id}>
-                      <button
-                        onClick={() => {
-                          onSelectEntity?.(entity.id)
-                          setSearchQuery('')
-                        }}
-                        className="w-full text-left px-2.5 py-1 text-body rounded hover:bg-ink-100 transition-colors flex items-baseline justify-between gap-2"
-                      >
-                        <span className="text-ink-700 truncate">{entity.name}</span>
-                        <span className="text-micro uppercase tracking-wider text-ink-400 shrink-0">
-                          {entity.type}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Búsqueda unificada en ⌘K (TopBar palette pill o atajo de teclado).
+          Antes había un input acá que duplicaba la intención — Codex/Linear
+          tienen una sola entrada de búsqueda, no dos. */}
 
       <nav className="flex flex-col px-2 gap-px">
         {NAV_ITEMS.map((item) => {

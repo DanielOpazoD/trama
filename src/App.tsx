@@ -152,10 +152,6 @@ function Shell() {
             }}
             collapsed={sidebarCollapsed}
             onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
-            onSelectEntity={(id) => {
-              setView('grafo')
-              setSelectedEntityId(id)
-            }}
             offline={offline}
             onOpenSettings={() => setSettingsOpen(true)}
           />
