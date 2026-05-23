@@ -523,18 +523,33 @@ function EntityRow({
           </div>
         )}
       </button>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation()
-          onDelete()
-        }}
-        className="absolute top-2 right-9 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
-        aria-label={`Eliminar ${entity.name}`}
-        title="Eliminar"
-      >
-        <TrashIcon size={12} />
-      </button>
+      {/* Toolbar flotante de acciones — solo aparece al hover. Como
+          Linear/Codex, en vez de tener botones permanentes. */}
+      <div className="hover-actions">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onSelectEntity?.(entity.id)
+          }}
+          aria-label={`Abrir ${entity.name}`}
+          title="Abrir"
+        >
+          <ChevronRightIcon size={12} />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete()
+          }}
+          className="hover-action-destructive"
+          aria-label={`Eliminar ${entity.name}`}
+          title="Eliminar"
+        >
+          <TrashIcon size={12} />
+        </button>
+      </div>
     </div>
   )
 }
