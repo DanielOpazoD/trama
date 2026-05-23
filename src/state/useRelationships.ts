@@ -34,7 +34,11 @@ export function useRelationshipsQuery() {
         if (offline) setOffline(false)
         return result
       } catch {
-        setOffline(true)
+        // Ver comentario en useEntities: solo offline si el browser
+        // confirma falta de red.
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          setOffline(true)
+        }
         return storage.loadRelationships()
       }
     },

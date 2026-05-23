@@ -3,7 +3,10 @@ import { QueryClient } from '@tanstack/react-query'
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: false,
+      // 2 retries con backoff: protege contra cold-starts de Netlify
+      // Functions y 503s transitorios sin marcar la app como offline.
+      retry: 2,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
       staleTime: 30_000,
       refetchOnWindowFocus: true,
     },

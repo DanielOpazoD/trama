@@ -338,10 +338,15 @@ html.dark .paper-grain::before {
     animation: splash-out 1.8s ease-out forwards;
   }
 
-  /* The shell fades up under the splash */
+  /* The shell fades up under the splash.
+     IMPORTANTE: el estado final usa `transform: none` (no translateY(0))
+     porque cualquier transform en un padre crea un nuevo containing block
+     para position:fixed. Eso rompía la Settings modal: en vez de
+     posicionarse respecto al viewport, se posicionaba respecto al div
+     con animación, apareciendo por debajo de la pantalla. */
   @keyframes shell-rise {
     from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: none; }
   }
   .animate-shell-rise {
     animation: shell-rise 600ms ease-out 1.2s both;

@@ -38,7 +38,14 @@ export function useEntitiesQuery() {
         if (offline) setOffline(false)
         return result
       } catch {
-        setOffline(true)
+        // Solo marcar offline si el browser CONFIRMA que estamos sin red.
+        // Una falla de la API con red disponible (cold start, 503 transient)
+        // NO es razón para entrar a modo local. Antes esto disparaba el
+        // mensaje "Sin backend" falsamente cuando solo había sido un retry
+        // fallido inicial.
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          setOffline(true)
+        }
         return storage.loadEntities()
       }
     },

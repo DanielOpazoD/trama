@@ -151,6 +151,10 @@ export function ListeningView({
   }
 
   const isConnected = statusQuery.data?.connected === true
+  // Estado intermedio: mientras la query carga, NO sabemos si Spotify
+  // está conectado. Antes mostrábamos el mensaje "no conectado" durante
+  // ese momento, que parpadeaba al usuario aunque sí estuviera vinculado.
+  const isStatusKnown = statusQuery.isFetched
 
   return (
     <>
@@ -165,7 +169,9 @@ export function ListeningView({
         </div>
       </header>
 
-      {!isConnected ? (
+      {!isStatusKnown ? (
+        <p className="text-ink-300 italic text-sm">Cargando…</p>
+      ) : !isConnected ? (
         <div className="p-6 border border-ink-100/60 rounded-xl bg-paper-100/30">
           <p className="text-ink-500 italic leading-relaxed">
             Spotify aún no está conectado.

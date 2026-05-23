@@ -35,7 +35,12 @@ export function useQuotesQuery() {
         if (offline) setOffline(false)
         return result
       } catch {
-        setOffline(true)
+        // Ver comentario equivalente en useEntities: solo marcamos offline
+        // si el browser confirma falta de red, no por errores transient
+        // de la API.
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          setOffline(true)
+        }
         return storage.loadQuotes()
       }
     },
