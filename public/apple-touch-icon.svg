@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <!-- iOS espera el icon con background sólido (no transparente).
+       Usamos paper-50 con un radius mayor (estilo squircle iOS) y
+       el monograma centrado. -->
+  <rect width="180" height="180" rx="40" fill="#ffffff" />
+  <path d="M40 65h100" stroke="#18181b" stroke-width="11" stroke-linecap="round" />
+  <path d="M90 65v75" stroke="#18181b" stroke-width="11" stroke-linecap="round" />
+  <path d="M65 95l50 30M115 95l-50 30"
+        stroke="#18181b" stroke-width="7"
+        stroke-linecap="round" stroke-opacity="0.55" />
+</svg>
