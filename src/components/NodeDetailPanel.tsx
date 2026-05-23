@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
+  useAsk,
   useEntitiesQuery,
   useQuotesQuery,
   useRelationshipsQuery,
@@ -39,6 +40,7 @@ export function NodeDetailPanel({
   const { data: relationships = [] } = useRelationshipsQuery()
   const updateEntity = useUpdateEntity()
   const addQuote = useAddQuote()
+  const askLLM = useAsk()
   const deleteEntity = useDeleteEntity()
   const deleteRelationship = useDeleteRelationship()
   const { data: chatThreads = [] } = useChatThreadsQuery()
@@ -97,6 +99,24 @@ export function NodeDetailPanel({
   const incoming = relationships.filter((r) => r.toId === entity.id)
   const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label
   const allowsSpotify = SPOTIFY_TYPES.has(entity.type)
+
+  async function handleSuggestDescription() {
+    if (!entity || askLLM.isPending) return
+    const meta = [
+      entity.type,
+      entity.year !== undefined ? `año ${entity.year}` : '',
+    ]
+      .filter(Boolean)
+      .join(', ')
+    const prompt = `Genera UNA descripción breve para "${entity.name}" (${meta}). Máximo 15 palabras. Sin comillas, sin punto final, sin "es un/una". Solo la frase descriptiva.`
+    try {
+      const res = await askLLM.mutateAsync({ text: prompt, view: 'entidades' })
+      const text = res.reply.trim().replace(/^["']|["']$/g, '')
+      if (text) setDescDraft(text)
+    } catch {
+      /* surfaces via askLLM.error si quisiéramos mostrarlo */
+    }
+  }
 
   async function handleSaveEdit() {
     if (!entity) return
@@ -270,24 +290,51 @@ export function NodeDetailPanel({
                   className="input-paper w-full text-sm"
                 />
               )}
-              <div className="flex items-center justify-end gap-2">
+              <div className="flex items-center justify-between gap-2">
                 <button
-                  onClick={() => {
-                    setEditing(false)
-                    setDescDraft(entity.description ?? '')
-                    setUrlDraft(entity.spotifyUrl ?? '')
-                  }}
-                  className="btn-ghost text-xs"
+                  onClick={handleSuggestDescription}
+                  disabled={askLLM.isPending}
+                  className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-ink-100 hover:bg-ink-100 transition-colors disabled:opacity-50"
+                  style={{ color: 'var(--accent-primary)' }}
+                  title="Generar descripción con IA"
                 >
-                  cancelar
+                  {askLLM.isPending ? (
+                    <>
+                      <span
+                        className="size-3 border-2 rounded-full animate-spin"
+                        style={{
+                          borderColor: 'var(--accent-primary-ring)',
+                          borderTopColor: 'var(--accent-primary)',
+                        }}
+                      />
+                      Pensando…
+                    </>
+                  ) : (
+                    <>
+                      <SparkleIcon size={11} />
+                      IA
+                    </>
+                  )}
                 </button>
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={updateEntity.isPending}
-                  className="btn-ink text-xs"
-                >
-                  {updateEntity.isPending ? 'guardando…' : 'guardar'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setEditing(false)
+                      setDescDraft(entity.description ?? '')
+                      setUrlDraft(entity.spotifyUrl ?? '')
+                    }}
+                    className="btn-ghost text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={updateEntity.isPending}
+                    className="btn-ink text-xs"
+                  >
+                    {updateEntity.isPending ? 'Guardando…' : 'Guardar'}
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
