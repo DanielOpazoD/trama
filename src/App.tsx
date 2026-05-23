@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useIsMobile } from './hooks/useIsMobile'
+import { useSearchParamState } from './hooks/useSearchParamState'
 import {
   Provider,
   useEntitiesQuery,
@@ -54,7 +55,11 @@ function Shell() {
     if (typeof window !== 'undefined') return window.innerWidth < 768
     return false
   })
-  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null)
+  // Sincronizado con `?entity=uuid` de la URL — permite copiar el link de
+  // una entidad y compartirlo, o recargar la página manteniendo el panel
+  // abierto. Internamente sigue siendo un state, pero ahora también vive
+  // en la URL.
+  const [selectedEntityId, setSelectedEntityId] = useSearchParamState('entity')
   const [pendingProposal, setPendingProposal] = useState<PendingProposal | null>(null)
   // Cuando el AskBar deep-linkea a chat con un thread específico.
   const [pendingChatThreadId, setPendingChatThreadId] = useState<string | null>(null)
