@@ -208,8 +208,12 @@ export function ChatView({
             </p>
           ) : (
             <ul>
-              {visibleThreads.map((t) => (
-                <li key={t.id} className="group relative">
+              {visibleThreads.map((t, idx) => (
+                <li
+                  key={t.id}
+                  className="group relative animate-fade-up"
+                  style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
+                >
                   <button
                     onClick={() => setActiveId(t.id)}
                     className={

@@ -59,36 +59,22 @@ export default {
         eyebrow: '0.18em',   // uppercase labels, badges, breadcrumbs
         shout:   '0.3em',    // greetings, ornaments separators
       },
-      // Animaciones canónicas — 5 reutilizables en vez de 13 fragmentadas.
-      // Cada componente debería elegir una de estas; nada de keyframes
-      // ad-hoc en CSS de componente.
+      // Animaciones nuevas (skeleton shimmer + pulse-subtle). Las otras
+      // (fade-up, slide-in-right, slide-up, ai-arrive, halo-pulse,
+      // dash-flow, node-drift, etc.) viven en src/index.css porque
+      // ya tienen keyframes calibrados con overshoot/easing específico
+      // que serían tedious de expresar en config.
+      //
+      // El contrato global es: TODAS las animations usan
+      // cubic-bezier(0.25, 1, 0.5, 1) ("out-quart") o variantes con
+      // overshoot suave. Nada de linear ni ease.
       keyframes: {
-        'fade-up': {
-          from: { opacity: '0', transform: 'translateY(6px)' },
-          to:   { opacity: '1', transform: 'none' },
-        },
-        'slide-in-right': {
-          from: { opacity: '0', transform: 'translateX(8px)' },
-          to:   { opacity: '1', transform: 'none' },
-        },
-        'slide-up': {
-          from: { opacity: '0', transform: 'translateY(16px)' },
-          to:   { opacity: '1', transform: 'none' },
-        },
-        shimmer: {
-          '0%':   { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
-        },
         'pulse-subtle': {
           '0%, 100%': { opacity: '1' },
           '50%':      { opacity: '0.55' },
         },
       },
       animation: {
-        'fade-up':        'fade-up 250ms cubic-bezier(0.25, 1, 0.5, 1) both',
-        'slide-in-right': 'slide-in-right 280ms cubic-bezier(0.25, 1, 0.5, 1) both',
-        'slide-up':       'slide-up 320ms cubic-bezier(0.25, 1, 0.5, 1) both',
-        shimmer:          'shimmer 1.8s linear infinite',
         'pulse-subtle':   'pulse-subtle 2s ease-in-out infinite',
       },
       transitionTimingFunction: {
