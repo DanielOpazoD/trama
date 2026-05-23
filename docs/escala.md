@@ -1,0 +1,100 @@
+# Escala: cuándo activar qué
+
+## Cuándo abrir esto
+
+- La trama tiene 2000+ entidades y siento la app más lenta.
+- El grafo se cuelga al abrirse.
+- La búsqueda tarda en cargar.
+- "Cuánto puede aguantar esto antes de tener que migrar?"
+
+## Lo que hace cada escalón
+
+Trama tiene escalones de escalabilidad que se activan a distintos tamaños:
+
+| Tamaño | Qué tienes | Qué se activa solo | Qué tienes que decidir tú |
+|---|---|---|---|
+| 0-500 | Modo "completo" del grafo va sobrado, sin pensar | — | — |
+| 500-2000 | Listas (Citas/Entidades/Relaciones) virtualizadas | Cursor pagination activa cuando llegues a las 60 primeras | — |
+| 2000-5000 | Grafo completo empieza a notarse | Banner sugiere modo explorar | Decidir si pasar al modo explorar |
+| 5000-15000 | Necesitás explorar obligatorio | Hard caps en /api/entities y /api/relationships | Migrar al modo explorar del grafo si no lo hiciste |
+| 15000-50000 | HNSW empieza a ser indispensable | (Ya está activo) | Refactor WebGL del grafo cuando llegues |
+| 50000+ | Particionar logs | Indices BRIN siguen ágiles | Implementar el plan de partition de F |
+
+## GraphView va lento
+
+### A 2000-5000 entidades
+
+Síntoma: el grafo tarda 2-5 seg en arrancar. Pan/zoom va lento.
+
+Solución: en la toolbar del grafo, cambiar de "completo" a **"explorar"**. El grafo arranca en la última entidad seleccionada y solo pinta sus vecinos directos. Mucho más liviano.
+
+El banner debería sugerirlo automáticamente cuando crucés las 2k.
+
+### A 5000+ entidades
+
+Modo "completo" probablemente esté inutilizable. Mantente en "explorar" siempre.
+
+Si querés ver el grafo completo en alguna ocasión (rara), aceptá los 10-30 seg de carga y no esperes pan/zoom suave.
+
+### A 15000+
+
+Cuando llegues, hay que refactorizar GraphView para usar WebGL (sigma.js o cosmograph). Eso es trabajo de programación — sin atajos. Está en el roadmap como tarea Q.
+
+## Quotes / Citas
+
+QuotesView ya tiene paginación por cursor + virtualización. Aguanta 100k+ sin problemas, **siempre que** el `featured quote` en HomeView no cargue todas (actualmente lo hace, queda como TODO de mejora).
+
+Si HomeView empieza a tardar al abrir: hay que cambiar el featured-picker para usar la primera página solo. Búsqueda de "pickFeaturedQuote" en HomeView.tsx.
+
+## Entidades / Relaciones (listas)
+
+Ya paginadas e virtualizadas (commit D). Sin acciones.
+
+**Excepción**: el formulario de "añadir relación manualmente" (en RelationshipsView) usaba un `<select>` con todas las entidades. Se reemplazó por un autocomplete (commit H). Pero la **resolución de nombres en cada fila** todavía depende de la lista wholesale de entidades. A 100k probablemente vaya bien igual (el browser aguanta un Map de 100k uuid→name), pero si se nota, hay que cambiar `/api/relationships` para que devuelva from_name/to_name en el JOIN.
+
+## Búsqueda en la sidebar
+
+Ya server-only (commit J). A cualquier escala, una búsqueda son ~2 queries SQL con índices. Sub-segundo.
+
+Si va lento:
+1. ¿Tenés muchas entidades sin embedding? Settings → "Indexar lo pendiente".
+2. ¿La query es muy específica + cero matches lexicales? Debería degradar limpio. Ver consola del browser por errores.
+
+## Costo de Neon (DB)
+
+Plan free de Neon: 0.5 GB de storage + 191 horas de compute al mes.
+
+| Tamaño | Storage estimado | ¿Plan free aguanta? |
+|---|---|---|
+| 1k entidades + 5k quotes + embeddings | ~50 MB | sí |
+| 10k + 50k + embeddings | ~500 MB | al límite |
+| 100k + 500k + embeddings | ~5 GB | no, necesitás plan Launch ($19/mes) |
+
+Embeddings 1536d × 8 bytes = 12 KB por entidad o quote. Es lo que más pesa.
+
+Cuando se acerque el límite del plan free, considerá:
+- Plan Launch de Neon ($19/mes, 10 GB).
+- O archivar embeddings de quotes muy antiguas (las que no sea probable buscar).
+
+## Costo de Netlify (functions + ancho de banda)
+
+Plan free: 125k function invocations / mes, 100 GB de bandwidth.
+
+A uso típico personal (no compartido) estás 100x debajo. Solo te preocuparías si compartís Trama públicamente.
+
+## "Quiero medir cuánto tarda algo"
+
+Settings → Health muestra latencias agregadas de las llamadas IA. Para queries SQL, mirar directamente:
+
+```sql
+EXPLAIN ANALYZE
+SELECT * FROM entities WHERE name ILIKE 'borges%' AND deleted_at IS NULL;
+```
+
+en Neon Console. Te dice cuánto tarda y qué índices usa.
+
+## Contexto técnico
+
+- Los caps duros de wholesale (5000 entities, 10000 relationships) están en `entities.mts` y `relationships.mts`. Se loguean en `console.warn` cuando se alcanzan.
+- El umbral del banner de "modo explorar" es `EXPLORE_HINT_THRESHOLD = 2000` en `GraphView.tsx`.
+- El page size de las listas paginadas: 60 (entities/relationships) y 50 (quotes). Configurable en cada hook.
