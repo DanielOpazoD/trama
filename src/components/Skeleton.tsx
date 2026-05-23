@@ -37,7 +37,7 @@ export function Skeleton({ className = '', shimmer = true }: SkeletonProps) {
 export function EntityCardSkeleton({ animationDelay = 0 }: { animationDelay?: number }) {
   return (
     <div
-      className="p-4 bg-paper-50/40 border border-ink-100/40 rounded-xl animate-fade-up"
+      className="p-4 card-paper animate-fade-up"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       <div className="flex items-baseline justify-between gap-3">
@@ -74,7 +74,7 @@ export function QuoteSkeleton({ animationDelay = 0 }: { animationDelay?: number 
 export function TimelineRowSkeleton({ animationDelay = 0 }: { animationDelay?: number }) {
   return (
     <div
-      className="p-3 bg-paper-50/40 border border-ink-100/40 rounded-xl animate-fade-up"
+      className="p-3 card-paper animate-fade-up"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       <div className="flex items-baseline justify-between gap-3">

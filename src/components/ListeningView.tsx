@@ -252,7 +252,7 @@ export function ListeningView({
               {playsQuery.data.items.map((item, idx) => (
                 <li
                   key={`${item.key}-${idx}`}
-                  className="group p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl transition-all duration-200 hover:shadow-md hover:shadow-ink-900/5 hover:border-ink-100 hover:bg-paper-50/70 animate-fade-up"
+                  className="group card-paper-hover p-3 hover:shadow-ink-900/5 animate-fade-up"
                   style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
                 >
                   <div className="flex items-center justify-between gap-4">

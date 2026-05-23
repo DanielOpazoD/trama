@@ -468,7 +468,7 @@ function EntityRow({
         type="button"
         onClick={() => onSelectEntity?.(entity.id)}
         style={{ borderLeftColor: typeAccent(entity.type) }}
-        className="w-full text-left p-3 pl-4 bg-paper-50/40 border border-ink-100/50 border-l-[3px] rounded-xl transition-all duration-200 hover:shadow-md hover:shadow-ink-900/5 hover:border-ink-100 hover:bg-paper-50/70 active:scale-[0.995]"
+        className="card-paper-hover w-full text-left p-3 pl-4 border-l-[3px] hover:shadow-ink-900/5 active:scale-[0.995]"
         aria-label={`Ver ${entity.name}, ${quoteCount} ${
           quoteCount === 1 ? 'cita' : 'citas'
         }`}

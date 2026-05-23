@@ -666,6 +666,33 @@ html.dark .paper-grain::before {
     --tw-ring-offset-color: rgb(var(--paper-50));
   }
 
+  /* Card paper — patrón canónico de "fila/card en lista".
+     Aparecía repetido 8+ veces como "bg-paper-50/40 border border-ink-100/50
+     rounded-xl". Centralizar significa que cuando cambiamos el feel de las
+     cards lo hacemos en un lugar.
+
+     Variantes:
+       .card-paper            base (background, border, radius)
+       .card-paper-hover      añade hover state con shadow + bg shift
+       .card-paper-elevated   panels más prominentes (mayor opacity) */
+  .card-paper {
+    @apply bg-paper-50/40 border border-ink-100/50 rounded-xl;
+  }
+  .card-paper-hover {
+    @apply card-paper transition-all duration-200
+      hover:shadow-md hover:border-ink-100 hover:bg-paper-50/70;
+  }
+  .card-paper-elevated {
+    @apply bg-paper-50/70 border border-ink-100/60 rounded-xl;
+  }
+
+  /* Section eyebrow — el label uppercase chico que va arriba de cada
+     sección. Aparecía como "text-micro uppercase tracking-eyebrow
+     text-ink-400" docenas de veces. */
+  .section-eyebrow {
+    @apply text-micro uppercase tracking-eyebrow text-ink-400;
+  }
+
   /* AI proposal panel — used by ReclassifyPanel and the inline proposal that
      comes back in chat messages. Same look across the app: tinted card with
      primary-accent border. */

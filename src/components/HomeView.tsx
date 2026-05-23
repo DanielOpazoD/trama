@@ -349,7 +349,7 @@ function TimelineRow({
       <button
         onClick={() => onSelectEntity(event.id)}
         style={{ borderLeftColor: typeAccent(event.payload.type) }}
-        className="group w-full text-left p-3 pl-4 bg-paper-50/40 border border-ink-100/50 border-l-[3px] rounded-xl hover:border-ink-100 hover:bg-paper-50/70 transition-all"
+        className="group card-paper-hover w-full text-left p-3 pl-4 border-l-[3px]"
       >
         <div className="flex items-baseline justify-between gap-3">
           <div className="min-w-0">
@@ -386,7 +386,7 @@ function TimelineRow({
     return (
       <button
         onClick={() => entity && onSelectEntity(entity.id)}
-        className="group w-full text-left p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl hover:border-ink-100 hover:bg-paper-50/70 transition-all"
+        className="group card-paper-hover w-full text-left p-3"
       >
         <div className="flex items-baseline justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -419,7 +419,7 @@ function TimelineRow({
   const from = entities.find((e) => e.id === event.payload.fromId)
   const to = entities.find((e) => e.id === event.payload.toId)
   return (
-    <div className="p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl">
+    <div className="card-paper p-3">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <div className="min-w-0">
           <span className="text-micro uppercase tracking-eyebrow text-ink-300 mr-2">

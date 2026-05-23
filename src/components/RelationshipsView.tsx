@@ -306,7 +306,7 @@ function RelationshipRow({
   const typeLabel =
     RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ?? rel.type
   return (
-    <div className="group p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl transition-all duration-200 hover:shadow-md hover:shadow-ink-900/5 hover:border-ink-100 hover:bg-paper-50/70">
+    <div className="group card-paper-hover p-3 hover:shadow-ink-900/5">
       <div className="flex justify-between items-baseline gap-4">
         <div className="text-ink-600 leading-relaxed">
           {from ? (
