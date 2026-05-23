@@ -81,7 +81,12 @@ export function EssayEditor({ entity }: { entity: Entity }) {
             editar
           </button>
         </div>
-        <div className="text-ink-700 text-sm leading-relaxed whitespace-pre-wrap font-serif">
+        {/* Doble-click sobre el ensayo entra a edit. */}
+        <div
+          onDoubleClick={() => setEditing(true)}
+          className="text-ink-700 text-sm leading-relaxed whitespace-pre-wrap font-serif cursor-text select-text"
+          title="Doble click para editar"
+        >
           {entity.essay}
         </div>
       </section>

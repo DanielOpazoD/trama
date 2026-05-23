@@ -55,9 +55,9 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: 'Atajos del sistema',
+    title: 'Edición inline',
     shortcuts: [
-      { keys: ['Doble click'], label: 'Editar campo inline (próximamente)' },
+      { keys: ['Doble click'], label: 'Editar descripción / ensayo / cita directo' },
     ],
   },
 ]
