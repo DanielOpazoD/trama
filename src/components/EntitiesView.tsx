@@ -28,9 +28,28 @@ export function EntitiesView({
   // entidades del cliente — el endpoint las trae solo. quotes y rels siguen
   // wholesale para que quoteCountById/relCountById sean coherentes.
   const entitiesPaged = useInfiniteEntitiesQuery()
-  const entities = useMemo(
+  const allLoadedEntities = useMemo(
     () => entitiesPaged.data?.pages.flatMap((p) => p.items) ?? [],
     [entitiesPaged.data],
+  )
+
+  // Filtro por tipo (chips arriba de la lista). null = todos.
+  // Por ahora filtra client-side sobre las páginas ya cargadas; a 100k+
+  // por type habría que mover el filtro al server.
+  const [typeFilter, setTypeFilter] = useState<string | null>(null)
+  const availableTypes = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const e of allLoadedEntities) {
+      counts.set(e.type, (counts.get(e.type) ?? 0) + 1)
+    }
+    return Array.from(counts.entries())
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count)
+  }, [allLoadedEntities])
+
+  const entities = useMemo(
+    () => (typeFilter ? allLoadedEntities.filter((e) => e.type === typeFilter) : allLoadedEntities),
+    [allLoadedEntities, typeFilter],
   )
   const { data: quotes = [] } = useQuotesQuery()
   const { data: relationships = [] } = useRelationshipsQuery()
@@ -306,6 +325,59 @@ export function EntitiesView({
             </div>
           )}
         </form>
+      )}
+
+      {/* Filtro por tipo. Solo aparece si hay más de un tipo en la trama. */}
+      {availableTypes.length > 1 && (
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setTypeFilter(null)}
+            className={
+              typeFilter === null
+                ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors'
+                : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors'
+            }
+            style={
+              typeFilter === null
+                ? {
+                    backgroundColor: 'var(--accent-primary-soft)',
+                    color: 'var(--accent-primary)',
+                  }
+                : undefined
+            }
+          >
+            Todos
+            <span className="ml-1.5 text-[10px] tabular-nums opacity-70">
+              {allLoadedEntities.length}
+            </span>
+          </button>
+          {availableTypes.map(({ type, count }) => {
+            const active = typeFilter === type
+            const label = ENTITY_TYPES.find((t) => t.value === type)?.label ?? type
+            return (
+              <button
+                key={type}
+                onClick={() => setTypeFilter(active ? null : type)}
+                className={
+                  active
+                    ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors'
+                    : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors'
+                }
+                style={
+                  active
+                    ? {
+                        backgroundColor: `${typeAccent(type)}22`,
+                        color: typeAccent(type),
+                      }
+                    : undefined
+                }
+              >
+                {label}
+                <span className="ml-1.5 text-[10px] tabular-nums opacity-70">{count}</span>
+              </button>
+            )
+          })}
+        </div>
       )}
 
       {entitiesPaged.isLoading ? (
