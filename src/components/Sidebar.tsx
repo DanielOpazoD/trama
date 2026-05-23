@@ -202,27 +202,25 @@ export function Sidebar({
           : 'surface-sidebar w-64 shrink-0 border-r border-ink-100 flex flex-col'
       }
     >
-      <header className="px-3 py-4 flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2.5 trama-mark-interactive" title="Trama">
-          <TramaMark size={26} className="text-ink-700 shrink-0" />
-          <div className="flex items-baseline gap-2 min-w-0">
-            <h1 className="wordmark text-2xl text-ink-700 leading-none">Trama</h1>
-            {offline && (
-              <span
-                title="Sin conexión al backend"
-                className="text-[9px] uppercase tracking-[0.18em] text-amber-700/80 leading-none"
-              >
-                local
-              </span>
-            )}
-          </div>
+      <header className="px-3 py-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 trama-mark-interactive min-w-0" title="Trama">
+          <TramaMark size={20} className="text-ink-700 shrink-0" />
+          <h1 className="wordmark text-lg text-ink-800 leading-none truncate">Trama</h1>
+          {offline && (
+            <span
+              title="Sin conexión al backend"
+              className="text-[10px] uppercase tracking-wider text-amber-700 leading-none shrink-0"
+            >
+              local
+            </span>
+          )}
         </div>
         <button
           onClick={onToggleCollapsed}
           aria-label="Contraer sidebar"
-          className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors -mr-1 shrink-0"
+          className="p-1 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors shrink-0"
         >
-          <ChevronLeftIcon />
+          <ChevronLeftIcon size={14} />
         </button>
       </header>
 
@@ -230,31 +228,31 @@ export function Sidebar({
           trama está vacía. Si totals aún no respondió, asumimos no-vacío
           para que el input aparezca de inmediato. */}
       {(totals === undefined || totals.entities > 0) && (
-        <div className="px-3 pb-3">
+        <div className="px-3 pb-2">
           <div className="relative">
             <SearchIcon
-              size={13}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-300 pointer-events-none"
+              size={12}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none"
             />
             <input
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar…"
+              placeholder="Buscar"
               aria-label="Buscar entidades"
-              className="input-paper w-full text-sm pl-8"
+              className="w-full text-[13px] pl-7 pr-2 py-1.5 rounded-md border border-ink-100 bg-paper-50 text-ink-700 placeholder:text-ink-400 focus:outline-none focus:border-ink-200 focus:ring-1 focus:ring-ink-200 transition-colors"
             />
           </div>
           {debouncedQuery && (
-            <div className="mt-2 max-h-64 overflow-y-auto">
+            <div className="mt-1.5 max-h-64 overflow-y-auto">
               {searchPending ? (
-                <p className="px-2 py-1.5 text-xs text-ink-300 italic">buscando…</p>
+                <p className="px-2 py-1 text-xs text-ink-400 italic">buscando…</p>
               ) : searchResp.error ? (
-                <p className="px-2 py-1.5 text-xs text-red-700">
+                <p className="px-2 py-1 text-xs text-red-700">
                   No se pudo buscar.
                 </p>
               ) : searchResults.length === 0 ? (
-                <p className="px-2 py-1.5 text-xs text-ink-300 italic">
+                <p className="px-2 py-1 text-xs text-ink-400 italic">
                   sin resultados
                 </p>
               ) : (
@@ -266,10 +264,10 @@ export function Sidebar({
                           onSelectEntity?.(entity.id)
                           setSearchQuery('')
                         }}
-                        className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-ink-700/5 transition-colors"
+                        className="w-full text-left px-2 py-1 text-[13px] rounded hover:bg-ink-100 transition-colors flex items-baseline justify-between gap-2"
                       >
-                        <span className="text-ink-700">{entity.name}</span>
-                        <span className="ml-2 text-[9px] uppercase tracking-[0.16em] text-ink-300">
+                        <span className="text-ink-700 truncate">{entity.name}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-ink-400 shrink-0">
                           {entity.type}
                         </span>
                       </button>
@@ -282,7 +280,7 @@ export function Sidebar({
         </div>
       )}
 
-      <nav className="flex flex-col px-2 mt-1 gap-0.5">
+      <nav className="flex flex-col px-2 gap-px">
         {NAV_ITEMS.map((item) => {
           const active = view === item.value
           const Icon = item.icon
@@ -291,33 +289,26 @@ export function Sidebar({
               key={item.value}
               onClick={() => onChangeView(item.value)}
               aria-label={item.label}
-              className={`group flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ease-out active:scale-[0.98] relative ${
+              className={`group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-[13px] transition-colors relative ${
                 active
-                  ? 'text-ink-700 shadow-sm shadow-ink-900/5'
-                  : 'text-ink-400 hover:text-ink-700 hover:bg-ink-700/5'
+                  ? 'text-ink-800 bg-ink-100 font-medium'
+                  : 'text-ink-500 hover:text-ink-800 hover:bg-ink-100/60'
               }`}
-              style={active ? { backgroundColor: 'var(--accent-primary-soft)' } : undefined}
             >
-              {active && (
-                <span
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r"
-                  style={{ backgroundColor: 'var(--accent-primary)' }}
-                />
-              )}
-              <span className="flex items-center gap-2.5">
+              <span className="flex items-center gap-2.5 min-w-0">
                 <Icon
-                  size={15}
-                  className={active ? 'text-ink-700' : 'text-ink-300 group-hover:text-ink-600'}
+                  size={14}
+                  className={active ? 'text-ink-700' : 'text-ink-400 group-hover:text-ink-600'}
                 />
-                <span>{item.label}</span>
+                <span className="truncate">{item.label}</span>
               </span>
               {counts[item.value] !== null && (
                 <span
-                  className={`tabular-nums text-xs ${
+                  className={
                     item.value === 'sugerencias'
-                      ? 'px-1.5 py-0.5 rounded-full font-medium'
-                      : 'text-ink-300'
-                  }`}
+                      ? 'tabular-nums text-[11px] px-1.5 py-px rounded font-medium'
+                      : 'tabular-nums text-[11px] text-ink-400 font-normal'
+                  }
                   style={
                     item.value === 'sugerencias'
                       ? {
@@ -337,16 +328,16 @@ export function Sidebar({
 
       <div className="flex-1" />
 
-      <div className="px-2 pb-3 pt-2 border-t border-ink-100/40 mx-3 space-y-1">
+      <div className="px-2 pt-2 pb-2 mt-2 border-t border-ink-100 space-y-px">
         <AIModeToggle />
         <button
           onClick={onOpenSettings}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-ink-400 hover:text-ink-700 hover:bg-ink-700/4 transition-all duration-200 active:scale-[0.98]"
+          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
         >
-          <SettingsIcon size={15} className="text-ink-300 group-hover:text-ink-600" />
+          <SettingsIcon size={14} className="text-ink-400" />
           <span>Configuración</span>
         </button>
-        <p className="text-[10px] uppercase tracking-[0.18em] text-ink-200 text-center pt-3">
+        <p className="text-[10px] uppercase tracking-wider text-ink-300 text-center pt-2 pb-0.5">
           trama · v0.8.0
         </p>
       </div>

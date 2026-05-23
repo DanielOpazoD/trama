@@ -63,8 +63,8 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
         title={title}
         className={
           collapsed
-            ? 'p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors active:scale-95 relative'
-            : 'w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg text-sm text-ink-400 hover:text-ink-700 hover:bg-ink-700/4 transition-all duration-200 active:scale-[0.98]'
+            ? 'p-2 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded-md transition-colors relative'
+            : 'w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-[13px] text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
         }
       >
         <span className={collapsed ? 'inline-flex' : 'flex items-center gap-2.5'}>
@@ -73,10 +73,10 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
         </span>
         {!collapsed && (
           <span
-            className="text-[10px] uppercase tracking-[0.16em]"
+            className="text-[10px] uppercase tracking-wider tabular-nums"
             style={
               isOff
-                ? { color: 'rgb(var(--ink-300))' }
+                ? { color: 'rgb(var(--ink-400))' }
                 : isForced
                   ? { color: 'var(--accent-gold)' }
                   : { color: 'var(--accent-primary)' }
