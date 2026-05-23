@@ -1,6 +1,18 @@
 /**
- * Small icon set, drawn inline so we don't ship an icon library dependency.
- * 1.6px stroke is the house weight; sizes default to 14px.
+ * Small icon set, drawn inline (no icon library dependency).
+ *
+ * Stroke-width system — coherencia óptica:
+ *   - 1.6  ui            (la "house weight", todos los UI icons usan esta)
+ *   - 1.4  accent        (SparkleIcon — las 8 rayitas se ven amontonadas
+ *                         con 1.6, baja a 1.4 para que respiren)
+ *   - 1.7  brand-primary (TramaMark T principal — logo, intencional ancho)
+ *   - 1.1  brand-detail  (TramaMark threads — sub-ornament del logo)
+ *   - 1.0  ornament      (EndMark diamond — flourish discreto)
+ *   - 0.8–0.9 ornament-thread (OrnamentBreak threads — flujo editorial)
+ *
+ * Si vas a añadir un icon UI nuevo, no inventes un grosor: usá `base`
+ * (1.6). Solo desvías cuando hay una razón clara (densidad alta, o el
+ * icon es decorativo no informativo).
  */
 
 type Props = { size?: number; className?: string }
@@ -39,7 +51,7 @@ export const SearchIcon = ({ size = 14, className }: Props) => (
 )
 
 export const ArrowRightIcon = ({ size = 14, className }: Props) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base} strokeWidth={2}>
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
     <path d="M5 12h14M13 5l7 7-7 7" />
   </svg>
 )
