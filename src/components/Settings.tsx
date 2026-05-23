@@ -492,7 +492,7 @@ function HealthSection() {
             gasto IA este mes
           </span>
           <span
-            className="text-micro uppercase tracking-eyebrow font-medium px-1.5 py-0.5 rounded-full tabular-nums"
+            className="text-micro uppercase tracking-eyebrow font-medium px-2 py-0.5 rounded-full tabular-nums"
             style={{ backgroundColor: budgetTone.bg, color: budgetTone.fg }}
           >
             {budgetPctDisplay}% del cap
@@ -568,7 +568,7 @@ function HealthSection() {
             {data.recentErrors.map((e) => (
               <li
                 key={e.id}
-                className="text-xs space-y-0.5 px-2 py-1.5 bg-red-50/40 border border-red-200/40 rounded"
+                className="text-xs space-y-0.5 px-2.5 py-1.5 bg-red-50/40 border border-red-200/40 rounded"
               >
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-ink-700 font-medium">

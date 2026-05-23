@@ -114,8 +114,8 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
                     }}
                     className={
                       active
-                        ? 'w-full flex items-baseline justify-between gap-3 px-2 py-1.5 rounded-md text-sm transition-colors'
-                        : 'w-full flex items-baseline justify-between gap-3 px-2 py-1.5 rounded-md text-sm text-ink-500 hover:text-ink-700 hover:bg-ink-700/5 transition-colors'
+                        ? 'w-full flex items-baseline justify-between gap-3 px-2.5 py-1.5 rounded-md text-sm transition-colors'
+                        : 'w-full flex items-baseline justify-between gap-3 px-2.5 py-1.5 rounded-md text-sm text-ink-500 hover:text-ink-700 hover:bg-ink-700/5 transition-colors'
                     }
                     style={active ? { backgroundColor: 'var(--accent-primary-soft)', color: 'var(--accent-primary)' } : undefined}
                   >

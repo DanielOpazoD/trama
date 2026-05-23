@@ -28,7 +28,7 @@ export function EntityHeader({
           )}
           {entity.origin.kind === 'ai' && (
             <span
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full font-medium"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium"
               style={{
                 backgroundColor: 'var(--accent-gold-soft)',
                 color: 'var(--accent-gold)',

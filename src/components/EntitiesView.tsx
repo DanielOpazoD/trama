@@ -292,7 +292,7 @@ export function EntitiesView({
                         setYear('')
                         setDescription('')
                       }}
-                      className="w-full text-left px-2 py-1.5 rounded text-sm hover:bg-paper-50/70 transition-colors flex items-baseline justify-between gap-3"
+                      className="w-full text-left px-2.5 py-1.5 rounded text-sm hover:bg-paper-50/70 transition-colors flex items-baseline justify-between gap-3"
                     >
                       <span>
                         <span className="text-ink-700">{c.name}</span>

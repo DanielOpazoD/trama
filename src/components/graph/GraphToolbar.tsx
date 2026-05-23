@@ -54,15 +54,15 @@ export function GraphToolbar({
     <>
       <div className="pointer-events-none absolute top-3 left-3 right-3 z-10 flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="pointer-events-auto flex items-center gap-1 px-2 py-1.5 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm">
+          <div className="pointer-events-auto flex items-center gap-1 px-2.5 py-1.5 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm">
             {MODE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => onModeChange(opt.value)}
                 className={
                   mode === opt.value
-                    ? 'px-3 py-1 rounded-full text-caption uppercase tracking-eyebrow bg-ink-700 text-paper-50 transition-colors'
-                    : 'px-3 py-1 rounded-full text-caption uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors'
+                    ? 'px-3 py-1.5 rounded-full text-caption uppercase tracking-eyebrow bg-ink-700 text-paper-50 transition-colors'
+                    : 'px-3 py-1.5 rounded-full text-caption uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors'
                 }
                 title={opt.hint}
               >
@@ -70,13 +70,13 @@ export function GraphToolbar({
               </button>
             ))}
           </div>
-          <div className="pointer-events-auto flex items-center gap-1 px-2 py-1.5 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm">
+          <div className="pointer-events-auto flex items-center gap-1 px-2.5 py-1.5 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm">
             <button
               onClick={() => onGraphModeChange('completo')}
               className={
                 graphMode === 'completo'
-                  ? 'px-3 py-1 rounded-full text-caption uppercase tracking-eyebrow bg-ink-700 text-paper-50 transition-colors'
-                  : 'px-3 py-1 rounded-full text-caption uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors'
+                  ? 'px-3 py-1.5 rounded-full text-caption uppercase tracking-eyebrow bg-ink-700 text-paper-50 transition-colors'
+                  : 'px-3 py-1.5 rounded-full text-caption uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors'
               }
               title="Ver el grafo completo. A 100k+ entidades cambia a exploratorio."
             >
@@ -86,8 +86,8 @@ export function GraphToolbar({
               onClick={() => onGraphModeChange('exploratorio')}
               className={
                 graphMode === 'exploratorio'
-                  ? 'px-3 py-1 rounded-full text-caption uppercase tracking-eyebrow bg-ink-700 text-paper-50 transition-colors'
-                  : 'px-3 py-1 rounded-full text-caption uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors'
+                  ? 'px-3 py-1.5 rounded-full text-caption uppercase tracking-eyebrow bg-ink-700 text-paper-50 transition-colors'
+                  : 'px-3 py-1.5 rounded-full text-caption uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors'
               }
               title="Arranca en una entidad focal y abre vecinos al hacer click. Necesario a partir de ~2-5k nodos."
             >

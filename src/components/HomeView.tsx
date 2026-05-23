@@ -67,7 +67,7 @@ export function HomeView({
     // que se sentía amateur en la portada del producto.
     return (
       <div>
-        <header className="mb-12 space-y-3">
+        <header className="mb-10 space-y-3">
           <div className="h-3 w-32 bg-ink-100/40 rounded animate-pulse-subtle" />
           <div className="h-10 w-40 bg-ink-100/40 rounded animate-pulse-subtle" />
           <div className="h-3 w-80 bg-ink-100/40 rounded animate-pulse-subtle mt-4" />
@@ -84,7 +84,7 @@ export function HomeView({
 
   return (
     <>
-      <header className="mb-12 flex items-baseline justify-between gap-6">
+      <header className="mb-10 flex items-baseline justify-between gap-6">
         <div className="min-w-0">
           <p className="text-micro uppercase tracking-shout text-ink-300">
             {greeting}

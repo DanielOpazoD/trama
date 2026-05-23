@@ -85,7 +85,7 @@ function PalettePill({ onClick }: { onClick: () => void }) {
     >
       <SearchIcon size={12} />
       <span className="leading-none">Buscar</span>
-      <kbd className="ml-1 text-micro px-1.5 py-0.5 bg-paper-50 border border-ink-200/70 rounded text-ink-400 tabular-nums leading-none font-sans">
+      <kbd className="ml-1 text-micro px-2 py-0.5 bg-paper-50 border border-ink-200/70 rounded text-ink-400 tabular-nums leading-none font-sans">
         {SHORTCUT_KEY} K
       </kbd>
     </button>

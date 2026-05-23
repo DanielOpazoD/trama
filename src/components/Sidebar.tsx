@@ -246,13 +246,13 @@ export function Sidebar({
           {debouncedQuery && (
             <div className="mt-1.5 max-h-64 overflow-y-auto">
               {searchPending ? (
-                <p className="px-2 py-1 text-xs text-ink-400 italic">buscando…</p>
+                <p className="px-2.5 py-1 text-xs text-ink-400 italic">buscando…</p>
               ) : searchResp.error ? (
-                <p className="px-2 py-1 text-xs text-red-700">
+                <p className="px-2.5 py-1 text-xs text-red-700">
                   No se pudo buscar.
                 </p>
               ) : searchResults.length === 0 ? (
-                <p className="px-2 py-1 text-xs text-ink-400 italic">
+                <p className="px-2.5 py-1 text-xs text-ink-400 italic">
                   sin resultados
                 </p>
               ) : (
@@ -264,7 +264,7 @@ export function Sidebar({
                           onSelectEntity?.(entity.id)
                           setSearchQuery('')
                         }}
-                        className="w-full text-left px-2 py-1 text-body rounded hover:bg-ink-100 transition-colors flex items-baseline justify-between gap-2"
+                        className="w-full text-left px-2.5 py-1 text-body rounded hover:bg-ink-100 transition-colors flex items-baseline justify-between gap-2"
                       >
                         <span className="text-ink-700 truncate">{entity.name}</span>
                         <span className="text-micro uppercase tracking-wider text-ink-400 shrink-0">
