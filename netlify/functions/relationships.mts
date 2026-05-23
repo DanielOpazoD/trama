@@ -74,10 +74,15 @@ export default withObservability('relationships', async (req: Request, context: 
           LIMIT ${limit + 1}
         `)
 
-    const items = (rows as Array<{ id: string; created_at: string }>).slice(0, limit)
+    // Ver entities.mts para el contexto: Neon HTTP devuelve created_at como
+    // Date, y la stringificación default es ilegible para Postgres. Forzamos
+    // ISO para que el cursor sea reparseable en la siguiente página.
+    const items = (rows as Array<{ id: string; created_at: string | Date }>).slice(0, limit)
     const hasMore = rows.length > limit
     const last = items[items.length - 1]
-    const nextCursor = hasMore && last ? `${last.created_at}:${last.id}` : null
+    const nextCursor = hasMore && last
+      ? `${new Date(last.created_at).toISOString()}:${last.id}`
+      : null
 
     return Response.json({ items, nextCursor })
   }

@@ -95,6 +95,44 @@ describe('entities endpoint — integration', () => {
       expect(body).toHaveProperty('items')
       expect(body).toHaveProperty('nextCursor')
     })
+
+    it('regresión: encoda el cursor en ISO 8601 aunque created_at venga como Date', async () => {
+      // Repro del bug γ1 (4094 errores en 24h en prod): Neon HTTP deserializa
+      // timestamptz como Date, no como string. Si el endpoint mete eso en
+      // una template literal, sale algo como "Thu May 21 2026 16:12:30 ..."
+      // que Postgres no parsea en el siguiente fetch del cursor. Acá pasamos
+      // Date objects explícitos en la fila simulada y verificamos que el
+      // nextCursor sea ISO.
+      const rowDate = new Date('2026-05-21T16:12:30.000Z')
+      // Devolvemos limit+1 filas para que hasMore=true y se calcule cursor.
+      const makeRow = (id: string) => ({
+        id,
+        type: 'persona',
+        name: id,
+        year: null,
+        description: null,
+        essay: null,
+        position_x: null,
+        position_y: null,
+        origin: { kind: 'manual' },
+        spotify_url: null,
+        created_at: rowDate, // ← clave: pasamos Date, no string
+        updated_at: rowDate,
+      })
+      mockSqlResponses.push([
+        makeRow('a'),
+        makeRow('b'),
+        makeRow('c'),
+      ])
+
+      const req = new Request('http://localhost/api/entities?limit=2')
+      const res = await handler(req, mockContext())
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.nextCursor).toBe('2026-05-21T16:12:30.000Z:b')
+      // Asegurar que el cursor NO contiene el formato Date.toString default.
+      expect(body.nextCursor).not.toMatch(/GMT|Coordinated Universal Time/)
+    })
   })
 
   describe('DELETE /api/entities/:id', () => {

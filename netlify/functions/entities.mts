@@ -88,10 +88,19 @@ export default withObservability('entities', async (req: Request, context: Conte
           LIMIT ${limit + 1}
         `)
 
-    const items = (rows as Array<{ id: string; created_at: string }>).slice(0, limit)
+    // OJO con el tipo de created_at: el driver Neon HTTP lo deserializa como
+    // Date, no como string ISO. Si lo dejamos pasar a una template literal
+    // (`${last.created_at}`), JS llama Date.prototype.toString() que produce
+    // "Thu May 21 2026 16:12:30 GMT+0000 (Coordinated Universal Time)" — un
+    // formato que Postgres NO parsea como timestamptz. Ese cursor vuelve al
+    // server, falla el cast `::timestamptz`, y devolvemos 500 en cada scroll.
+    // Forzamos ISO 8601 acá, que sí es estable y parseable.
+    const items = (rows as Array<{ id: string; created_at: string | Date }>).slice(0, limit)
     const hasMore = rows.length > limit
     const last = items[items.length - 1]
-    const nextCursor = hasMore && last ? `${last.created_at}:${last.id}` : null
+    const nextCursor = hasMore && last
+      ? `${new Date(last.created_at).toISOString()}:${last.id}`
+      : null
 
     return Response.json({ items, nextCursor })
   }
