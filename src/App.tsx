@@ -11,6 +11,7 @@ import { useTheme } from './hooks/useTheme'
 import { Sidebar, type ViewMode } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { CommandPalette } from './components/CommandPalette'
+import { ShortcutsModal } from './components/ShortcutsModal'
 import { ToastHost } from './components/ToastHost'
 import { AskBar } from './components/AskBar'
 import { ReadingMode } from './components/ReadingMode'
@@ -59,13 +60,29 @@ function Shell() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [readingOpen, setReadingOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
 
-  // Atajos globales. Cmd/Ctrl+K toggle del CommandPalette.
+  // Atajos globales:
+  //   Cmd/Ctrl+K → CommandPalette
+  //   ?          → ShortcutsModal (cheatsheet, igual que GitHub/Linear)
+  //                Solo si no estamos escribiendo en un input/textarea.
   useEffect(() => {
     function handler(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         setPaletteOpen((open) => !open)
+        return
+      }
+      if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        // Ignorar si el foco está en un input/textarea para no
+        // interrumpir cuando el usuario tipea una pregunta.
+        const target = e.target as HTMLElement | null
+        const tag = target?.tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) {
+          return
+        }
+        e.preventDefault()
+        setShortcutsOpen((open) => !open)
       }
     }
     window.addEventListener('keydown', handler)
@@ -173,6 +190,11 @@ function Shell() {
         onClose={() => setPaletteOpen(false)}
         onNavigate={(v) => setView(v)}
         onSelectEntity={(id) => setSelectedEntityId(id)}
+      />
+
+      <ShortcutsModal
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
       />
 
       <ToastHost />
