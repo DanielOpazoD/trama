@@ -227,14 +227,14 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
         className="px-3 py-2 flex items-baseline justify-between"
         style={{ borderBottom: '1px solid var(--accent-primary-ring)' }}
       >
-        <div className="flex items-baseline gap-2 text-[10px] uppercase tracking-[0.2em]" style={{ color: 'var(--accent-primary)' }}>
-          <SparkleIcon size={11} />
+        <div className="flex items-baseline gap-2 text-micro uppercase tracking-eyebrow" style={{ color: 'var(--accent-primary)' }}>
+          <SparkleIcon size={12} />
           propuestas
         </div>
         {totalPending > 1 && (
           <button
             onClick={applyAll}
-            className="text-[10px] uppercase tracking-[0.18em] hover:opacity-80 transition-opacity"
+            className="text-micro uppercase tracking-eyebrow hover:opacity-80 transition-opacity"
             style={{ color: 'var(--accent-primary)' }}
           >
             aceptar todo
@@ -340,7 +340,7 @@ function ProposalRow({
       <div className="min-w-0 flex-1 leading-relaxed">
         <span className="text-ink-700">{primary}</span>
         <span
-          className="ml-2 text-[10px] uppercase tracking-[0.18em] text-ink-400"
+          className="ml-2 text-micro uppercase tracking-eyebrow text-ink-400"
           style={secondaryStyle}
         >
           {secondary}
@@ -350,7 +350,7 @@ function ProposalRow({
             href={spotifyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-2 text-[10px] uppercase tracking-[0.18em] text-emerald-700/80 hover:text-emerald-900 transition-colors"
+            className="ml-2 text-micro uppercase tracking-eyebrow text-emerald-700/80 hover:text-emerald-900 transition-colors"
           >
             ↗ Spotify
           </a>
@@ -362,7 +362,7 @@ function ProposalRow({
       {status === 'pending' && (
         <button
           onClick={onAccept}
-          className="text-[10px] uppercase tracking-[0.18em] hover:opacity-80 transition-opacity px-2 py-0.5"
+          className="text-micro uppercase tracking-eyebrow hover:opacity-80 transition-opacity px-2 py-0.5"
           style={{ color: 'var(--accent-primary)' }}
         >
           aceptar
@@ -370,14 +370,14 @@ function ProposalRow({
       )}
       {status === 'applied' && (
         <span
-          className="text-[10px] uppercase tracking-[0.18em] px-2 py-0.5"
+          className="text-micro uppercase tracking-eyebrow px-2 py-0.5"
           style={{ color: 'var(--accent-sage)' }}
         >
           ✓ en la trama
         </span>
       )}
       {status === 'failed' && (
-        <span className="text-[10px] uppercase tracking-[0.18em] text-red-700 px-2 py-0.5">
+        <span className="text-micro uppercase tracking-eyebrow text-red-700 px-2 py-0.5">
           falló
         </span>
       )}

@@ -174,7 +174,7 @@ export function AskBar({
           <div className="mb-2 px-4 py-3 bg-paper-50/95 border border-ink-100/80 rounded-2xl shadow-xl shadow-ink-900/10 backdrop-blur-md animate-ai-arrive">
             <div className="flex items-baseline justify-between gap-3 mb-1">
               <span
-                className="text-[10px] uppercase tracking-[0.2em] inline-flex items-center gap-1.5"
+                className="text-micro uppercase tracking-eyebrow inline-flex items-center gap-1.5"
                 style={{ color: 'var(--accent-primary)' }}
               >
                 <span
@@ -210,7 +210,7 @@ export function AskBar({
                 </button>
               </div>
             </div>
-            <p className="text-ink-700 text-[13px] leading-relaxed whitespace-pre-wrap">
+            <p className="text-ink-700 text-body leading-relaxed whitespace-pre-wrap">
               {reply.text}
             </p>
             {threadId && (

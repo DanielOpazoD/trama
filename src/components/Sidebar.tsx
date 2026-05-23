@@ -147,12 +147,12 @@ export function Sidebar({
                     : 'text-ink-300 hover:text-ink-700 hover:bg-ink-700/5'
                 }`}
               >
-                <Icon size={17} />
+                <Icon size={18} />
                 {active && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-1 h-5 rounded-r bg-ink-700" />
                 )}
                 {counts[item.value] !== null && counts[item.value]! > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-ink-700 text-paper-50 text-[9px] font-medium tabular-nums flex items-center justify-center">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-ink-700 text-paper-50 text-micro font-medium tabular-nums flex items-center justify-center">
                     {counts[item.value]}
                   </span>
                 )}
@@ -176,7 +176,7 @@ export function Sidebar({
             title="Configuración"
             className="p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors active:scale-95"
           >
-            <SettingsIcon size={15} />
+            <SettingsIcon size={14} />
           </button>
         </div>
       </aside>
@@ -204,12 +204,12 @@ export function Sidebar({
     >
       <header className="px-3 py-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 trama-mark-interactive min-w-0" title="Trama">
-          <TramaMark size={20} className="text-ink-700 shrink-0" />
+          <TramaMark size={22} className="text-ink-700 shrink-0" />
           <h1 className="wordmark text-lg text-ink-800 leading-none truncate">Trama</h1>
           {offline && (
             <span
               title="Sin conexión al backend"
-              className="text-[10px] uppercase tracking-wider text-amber-700 leading-none shrink-0"
+              className="text-micro uppercase tracking-wider text-amber-700 leading-none shrink-0"
             >
               local
             </span>
@@ -240,7 +240,7 @@ export function Sidebar({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar"
               aria-label="Buscar entidades"
-              className="w-full text-[13px] pl-7 pr-2 py-1.5 rounded-md border border-ink-100 bg-paper-50 text-ink-700 placeholder:text-ink-400 focus:outline-none focus:border-ink-200 focus:ring-1 focus:ring-ink-200 transition-colors"
+              className="w-full text-body pl-7 pr-2 py-1.5 rounded-md border border-ink-100 bg-paper-50 text-ink-700 placeholder:text-ink-400 focus:outline-none focus:border-ink-200 focus:ring-1 focus:ring-ink-200 transition-colors"
             />
           </div>
           {debouncedQuery && (
@@ -264,10 +264,10 @@ export function Sidebar({
                           onSelectEntity?.(entity.id)
                           setSearchQuery('')
                         }}
-                        className="w-full text-left px-2 py-1 text-[13px] rounded hover:bg-ink-100 transition-colors flex items-baseline justify-between gap-2"
+                        className="w-full text-left px-2 py-1 text-body rounded hover:bg-ink-100 transition-colors flex items-baseline justify-between gap-2"
                       >
                         <span className="text-ink-700 truncate">{entity.name}</span>
-                        <span className="text-[10px] uppercase tracking-wider text-ink-400 shrink-0">
+                        <span className="text-micro uppercase tracking-wider text-ink-400 shrink-0">
                           {entity.type}
                         </span>
                       </button>
@@ -289,7 +289,7 @@ export function Sidebar({
               key={item.value}
               onClick={() => onChangeView(item.value)}
               aria-label={item.label}
-              className={`group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-[13px] transition-colors relative ${
+              className={`group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-body transition-colors relative ${
                 active
                   ? 'text-ink-800 bg-ink-100 font-medium'
                   : 'text-ink-500 hover:text-ink-800 hover:bg-ink-100/60'
@@ -306,8 +306,8 @@ export function Sidebar({
                 <span
                   className={
                     item.value === 'sugerencias'
-                      ? 'tabular-nums text-[11px] px-1.5 py-px rounded font-medium'
-                      : 'tabular-nums text-[11px] text-ink-400 font-normal'
+                      ? 'tabular-nums text-caption px-1.5 py-px rounded font-medium'
+                      : 'tabular-nums text-caption text-ink-400 font-normal'
                   }
                   style={
                     item.value === 'sugerencias'
@@ -332,12 +332,12 @@ export function Sidebar({
         <AIModeToggle />
         <button
           onClick={onOpenSettings}
-          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
+          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-body text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
         >
           <SettingsIcon size={14} className="text-ink-400" />
           <span>Configuración</span>
         </button>
-        <p className="text-[10px] uppercase tracking-wider text-ink-300 text-center pt-2 pb-0.5">
+        <p className="text-micro uppercase tracking-wider text-ink-300 text-center pt-2 pb-0.5">
           trama · v0.8.0
         </p>
       </div>

@@ -174,7 +174,7 @@ export function EntitiesView({
                 </>
               ) : (
                 <>
-                  <SparkleIcon size={11} />
+                  <SparkleIcon size={12} />
                   reclasificar con IA
                 </>
               )}
@@ -182,7 +182,7 @@ export function EntitiesView({
           )}
           <button
             onClick={() => setShowForm((s) => !s)}
-            className="text-xs uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+            className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
           >
             {showForm ? 'Cerrar' : 'Añadir'}
           </button>
@@ -270,7 +270,7 @@ export function EntitiesView({
               }}
             >
               <p
-                className="text-[10px] uppercase tracking-[0.18em] font-medium mb-2"
+                className="text-micro uppercase tracking-eyebrow font-medium mb-2"
                 style={{ color: 'var(--accent-primary)' }}
               >
                 ¿es la misma entidad?
@@ -295,11 +295,11 @@ export function EntitiesView({
                     >
                       <span>
                         <span className="text-ink-700">{c.name}</span>
-                        <span className="ml-2 text-[10px] uppercase tracking-[0.16em] text-ink-300">
+                        <span className="ml-2 text-micro uppercase tracking-eyebrow text-ink-300">
                           {c.type}
                         </span>
                       </span>
-                      <span className="text-[10px] uppercase tracking-[0.16em] text-ink-300 tabular-nums">
+                      <span className="text-micro uppercase tracking-eyebrow text-ink-300 tabular-nums">
                         {(c.similarity * 100).toFixed(0)}%
                       </span>
                     </button>
@@ -310,14 +310,14 @@ export function EntitiesView({
                 <button
                   type="button"
                   onClick={(e) => handleSubmit(e as unknown as FormEvent, true)}
-                  className="text-[11px] uppercase tracking-[0.18em] text-ink-500 hover:text-ink-700 transition-colors"
+                  className="text-caption uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 transition-colors"
                 >
                   crear igual ↪
                 </button>
                 <button
                   type="button"
                   onClick={() => setDupCandidates(null)}
-                  className="text-[11px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+                  className="text-caption uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
                 >
                   cerrar
                 </button>
@@ -347,7 +347,7 @@ export function EntitiesView({
             }
           >
             Todos
-            <span className="ml-1.5 text-[10px] tabular-nums opacity-70">
+            <span className="ml-1.5 text-micro tabular-nums opacity-70">
               {allLoadedEntities.length}
             </span>
           </button>
@@ -373,7 +373,7 @@ export function EntitiesView({
                 }
               >
                 {label}
-                <span className="ml-1.5 text-[10px] tabular-nums opacity-70">{count}</span>
+                <span className="ml-1.5 text-micro tabular-nums opacity-70">{count}</span>
               </button>
             )
           })}
@@ -438,7 +438,7 @@ export function EntitiesView({
         </div>
       )}
       {entitiesPaged.isFetchingNextPage && (
-        <p className="mt-4 text-center text-xs uppercase tracking-[0.2em] text-ink-300">
+        <p className="mt-4 text-center text-xs uppercase tracking-eyebrow text-ink-300">
           cargando más…
         </p>
       )}
@@ -477,7 +477,7 @@ function EntityRow({
               <span className="ml-2 text-ink-300 text-sm">({entity.year})</span>
             )}
             <span
-              className="ml-3 text-[10px] uppercase tracking-[0.18em] align-middle"
+              className="ml-3 text-micro uppercase tracking-eyebrow align-middle"
               style={{ color: typeAccent(entity.type) }}
             >
               {ENTITY_TYPES.find((t) => t.value === entity.type)?.label}
@@ -499,7 +499,7 @@ function EntityRow({
           </p>
         )}
         {(quoteCount > 0 || relCount > 0) && (
-          <div className="mt-1.5 flex gap-3 text-[10px] uppercase tracking-[0.16em] text-ink-300">
+          <div className="mt-1.5 flex gap-3 text-micro uppercase tracking-eyebrow text-ink-300">
             {quoteCount > 0 && (
               <span>
                 {quoteCount} {quoteCount === 1 ? 'cita' : 'citas'}

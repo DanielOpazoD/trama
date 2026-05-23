@@ -195,8 +195,8 @@ export function ReadingMode({
       >
         <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-ink-300 flex items-center gap-1.5">
-              <SparkleIcon size={11} />
+            <p className="text-micro uppercase tracking-eyebrow text-ink-300 flex items-center gap-1.5">
+              <SparkleIcon size={12} />
               modo lectura
             </p>
             <h2 className="font-serif text-lg text-ink-700 mt-0.5">
@@ -272,14 +272,14 @@ export function ReadingMode({
                 onClick={() => {
                   cancelRef.current = true
                 }}
-                className="text-xs uppercase tracking-[0.18em] text-ink-400 hover:text-ink-700 transition-colors"
+                className="text-xs uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
               >
                 cancelar
               </button>
             ) : (
               <button
                 onClick={onClose}
-                className="text-xs uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+                className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
               >
                 cerrar
               </button>

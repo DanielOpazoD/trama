@@ -83,9 +83,9 @@ function PalettePill({ onClick }: { onClick: () => void }) {
       aria-label="Buscar"
       className="hidden sm:flex items-center gap-2 px-2.5 py-1 text-xs text-ink-400 hover:text-ink-700 bg-paper-100/60 hover:bg-paper-100 border border-ink-100/60 hover:border-ink-200 rounded-md transition-colors"
     >
-      <SearchIcon size={11} />
+      <SearchIcon size={12} />
       <span className="leading-none">Buscar</span>
-      <kbd className="ml-1 text-[10px] px-1.5 py-0.5 bg-paper-50 border border-ink-200/70 rounded text-ink-400 tabular-nums leading-none font-sans">
+      <kbd className="ml-1 text-micro px-1.5 py-0.5 bg-paper-50 border border-ink-200/70 rounded text-ink-400 tabular-nums leading-none font-sans">
         {SHORTCUT_KEY} K
       </kbd>
     </button>
@@ -105,7 +105,7 @@ function StatusPill({ status }: { status: GlobalStatus }) {
   if (status.kind === 'offline') {
     return (
       <span
-        className="flex items-center gap-1.5 text-[11px] text-amber-700 leading-none"
+        className="flex items-center gap-1.5 text-caption text-amber-700 leading-none"
         title="No se puede contactar al backend. Trabajás contra el caché local."
       >
         <span className="size-1.5 rounded-full bg-amber-600" aria-hidden />
@@ -117,7 +117,7 @@ function StatusPill({ status }: { status: GlobalStatus }) {
   if (status.kind === 'saving') {
     return (
       <span
-        className="flex items-center gap-1.5 text-[11px] text-ink-400 leading-none"
+        className="flex items-center gap-1.5 text-caption text-ink-400 leading-none"
         title={`Guardando ${status.pending} cambio${status.pending === 1 ? '' : 's'} en el servidor`}
       >
         <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" aria-hidden />
@@ -129,7 +129,7 @@ function StatusPill({ status }: { status: GlobalStatus }) {
   // saved
   return (
     <span
-      className="flex items-center gap-1.5 text-[11px] leading-none animate-fade-up"
+      className="flex items-center gap-1.5 text-caption leading-none animate-fade-up"
       style={{ color: 'var(--accent-sage)' }}
       title="Cambios guardados"
     >

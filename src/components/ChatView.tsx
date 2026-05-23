@@ -159,7 +159,7 @@ export function ChatView({
       {/* Left rail: thread list */}
       <aside className="w-64 shrink-0 border-r border-ink-100/50 flex flex-col">
         <div className="px-4 py-3 border-b border-ink-100/50 flex items-baseline justify-between">
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-400">conversaciones</h3>
+          <h3 className="text-micro uppercase tracking-eyebrow text-ink-400">conversaciones</h3>
           <button
             onClick={handleNewThread}
             disabled={createThread.isPending}
@@ -218,7 +218,7 @@ export function ChatView({
                     <div className="text-sm text-ink-700 truncate">
                       {t.title ?? defaultTitleFor(t.context)}
                     </div>
-                    <div className="text-[10px] uppercase tracking-[0.18em] text-ink-300 mt-0.5 flex items-baseline gap-2">
+                    <div className="text-micro uppercase tracking-eyebrow text-ink-300 mt-0.5 flex items-baseline gap-2">
                       <span>
                         {t.messageCount} {t.messageCount === 1 ? 'mensaje' : 'mensajes'}
                       </span>
@@ -237,7 +237,7 @@ export function ChatView({
                   </button>
                   <button
                     onClick={() => handleDeleteThread(t.id)}
-                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-red-700 text-[10px] uppercase tracking-[0.18em]"
+                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-red-700 text-micro uppercase tracking-eyebrow"
                     aria-label="Eliminar conversación"
                   >
                     borrar
@@ -336,7 +336,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       </div>
       {!isUser && message.model && (
         <span
-          className="mt-1 ml-1 text-[9px] uppercase tracking-[0.18em] text-ink-300"
+          className="mt-1 ml-1 text-micro uppercase tracking-eyebrow text-ink-300"
           title={message.provider ? `provider: ${message.provider}` : undefined}
         >
           {message.model}
@@ -384,8 +384,8 @@ function FilterChip({
       onClick={onClick}
       className={
         active
-          ? 'px-2 py-0.5 rounded-full text-[10px] uppercase tracking-[0.16em] font-medium transition-colors'
-          : 'px-2 py-0.5 rounded-full text-[10px] uppercase tracking-[0.16em] text-ink-400 hover:text-ink-700 hover:bg-ink-700/5 transition-colors'
+          ? 'px-2 py-0.5 rounded-full text-micro uppercase tracking-eyebrow font-medium transition-colors'
+          : 'px-2 py-0.5 rounded-full text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 hover:bg-ink-700/5 transition-colors'
       }
       style={
         active

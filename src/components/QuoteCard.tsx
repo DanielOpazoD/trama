@@ -143,7 +143,7 @@ export function QuoteCard({
   if (editingFull) {
     return (
       <li className="group border-l-2 border-ink-200/70 pl-3 space-y-2">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-ink-300">
+        <div className="text-micro uppercase tracking-eyebrow text-ink-300">
           editar cita
         </div>
         <textarea
@@ -168,7 +168,7 @@ export function QuoteCard({
           className="input-paper w-full resize-none text-sm"
         />
         <div>
-          <label className="text-[10px] uppercase tracking-[0.18em] text-ink-400 block mb-1">
+          <label className="text-micro uppercase tracking-eyebrow text-ink-400 block mb-1">
             atribuida a
           </label>
           <select
@@ -230,13 +230,13 @@ export function QuoteCard({
         <span className="ml-auto flex items-baseline gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={startFullEdit}
-            className="text-ink-300 hover:text-ink-700 text-[10px] uppercase tracking-[0.18em]"
+            className="text-ink-300 hover:text-ink-700 text-micro uppercase tracking-eyebrow"
           >
             editar
           </button>
           <button
             onClick={() => deleteQuote.mutate(quote.id)}
-            className="text-ink-300 hover:text-red-700 text-[10px] uppercase tracking-[0.18em]"
+            className="text-ink-300 hover:text-red-700 text-micro uppercase tracking-eyebrow"
           >
             eliminar
           </button>
@@ -281,12 +281,12 @@ export function QuoteCard({
         ) : quote.userReflection ? (
           <div className="group/refl">
             <div className="flex items-baseline gap-2">
-              <span className="text-[10px] uppercase tracking-[0.18em] text-ink-400">
+              <span className="text-micro uppercase tracking-eyebrow text-ink-400">
                 tu reflexión
               </span>
               <button
                 onClick={() => setEditingUserRefl(true)}
-                className="opacity-0 group-hover/refl:opacity-100 transition-opacity text-[10px] text-ink-300 hover:text-ink-700"
+                className="opacity-0 group-hover/refl:opacity-100 transition-opacity text-micro text-ink-300 hover:text-ink-700"
               >
                 editar
               </button>
@@ -298,7 +298,7 @@ export function QuoteCard({
         ) : (
           <button
             onClick={() => setEditingUserRefl(true)}
-            className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+            className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
           >
             + añadir tu reflexión
           </button>
@@ -312,11 +312,11 @@ export function QuoteCard({
             <span style={{ color: 'var(--accent-primary)' }} className="inline-flex">
               <SparkleIcon size={10} />
             </span>
-            <span className="text-[10px] uppercase tracking-[0.18em]" style={{ color: 'var(--accent-primary)' }}>
+            <span className="text-micro uppercase tracking-eyebrow" style={{ color: 'var(--accent-primary)' }}>
               interpretación de la IA
             </span>
             {quote.aiReflectionAt && (
-              <span className="text-[10px] text-ink-300 tabular-nums">
+              <span className="text-micro text-ink-300 tabular-nums">
                 {new Date(quote.aiReflectionAt).toLocaleDateString('es', {
                   day: 'numeric',
                   month: 'short',
@@ -325,7 +325,7 @@ export function QuoteCard({
             )}
             <button
               onClick={handleDiscardAiSaved}
-              className="opacity-0 group-hover/airefl:opacity-100 transition-opacity text-[10px] text-ink-300 hover:text-red-700"
+              className="opacity-0 group-hover/airefl:opacity-100 transition-opacity text-micro text-ink-300 hover:text-red-700"
               title="Eliminar esta interpretación"
             >
               eliminar
@@ -344,7 +344,7 @@ export function QuoteCard({
             <span style={{ color: 'var(--accent-primary)' }} className="inline-flex">
               <SparkleIcon size={10} />
             </span>
-            <span className="text-[10px] uppercase tracking-[0.18em]" style={{ color: 'var(--accent-primary)' }}>
+            <span className="text-micro uppercase tracking-eyebrow" style={{ color: 'var(--accent-primary)' }}>
               propuesta de la IA
             </span>
           </div>
@@ -382,7 +382,7 @@ export function QuoteCard({
             {reflectQuote.isPending ? (
               <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--accent-primary-ring)', borderTopColor: 'var(--accent-primary)' }} />
             ) : (
-              <SparkleIcon size={13} />
+              <SparkleIcon size={14} />
             )}
           </button>
           {reflectError && (
@@ -394,7 +394,7 @@ export function QuoteCard({
       {/* Linked quotes — chips */}
       {linkedQuotes && linkedQuotes.length > 0 && (
         <div className="mt-3">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-ink-300">
+          <span className="text-micro uppercase tracking-eyebrow text-ink-300">
             citas vinculadas
           </span>
           <ul className="mt-1 flex flex-wrap gap-1.5">
@@ -402,7 +402,7 @@ export function QuoteCard({
               <li key={q.id}>
                 <button
                   onClick={() => onSelectLinked?.(q.id)}
-                  className="text-[11px] px-2 py-0.5 rounded-full bg-paper-100 border border-ink-100/60 text-ink-500 hover:text-ink-700 hover:border-ink-200 transition-colors"
+                  className="text-caption px-2 py-0.5 rounded-full bg-paper-100 border border-ink-100/60 text-ink-500 hover:text-ink-700 hover:border-ink-200 transition-colors"
                   title={q.text}
                 >
                   «{truncate(q.text, 40)}»

@@ -99,7 +99,7 @@ export function ProactiveView() {
             </>
           ) : (
             <>
-              <SparkleIcon size={11} />
+              <SparkleIcon size={12} />
               {suggestions.length === 0 ? 'pedir ronda' : 'pedir otra ronda'}
             </>
           )}
@@ -138,16 +138,16 @@ export function ProactiveView() {
             >
               <div className="flex items-baseline gap-2 mb-1.5">
                 <SparkleIcon size={10} className="text-sky-700/70" />
-                <span className="text-[10px] uppercase tracking-[0.2em] text-sky-700/80">
+                <span className="text-micro uppercase tracking-eyebrow text-sky-700/80">
                   {kindLabel(s.kind)}
                 </span>
                 {s.provider && (
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-ink-300">
+                  <span className="text-micro uppercase tracking-eyebrow text-ink-300">
                     · {s.provider}
                   </span>
                 )}
                 <span
-                  className="ml-auto text-[10px] uppercase tracking-[0.18em] text-ink-300 tabular-nums"
+                  className="ml-auto text-micro uppercase tracking-eyebrow text-ink-300 tabular-nums"
                   title={new Date(s.createdAt).toLocaleString('es')}
                 >
                   {new Date(s.createdAt).toLocaleDateString('es', {
@@ -212,7 +212,7 @@ function SuggestionBody({ suggestion }: { suggestion: ProactiveSuggestion }) {
     return (
       <p className="text-sm text-ink-700 leading-relaxed">
         <span>{p.fromName}</span>
-        <span className="mx-2 text-[10px] uppercase tracking-[0.18em] text-ink-300">
+        <span className="mx-2 text-micro uppercase tracking-eyebrow text-ink-300">
           {relTypeLabel(p.type)}
         </span>
         <span>{p.toName}</span>
@@ -223,11 +223,11 @@ function SuggestionBody({ suggestion }: { suggestion: ProactiveSuggestion }) {
     return (
       <p className="text-sm text-ink-700 leading-relaxed">
         <span>{p.name}</span>
-        <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-ink-400 line-through decoration-ink-300/60">
+        <span className="ml-2 text-micro uppercase tracking-eyebrow text-ink-400 line-through decoration-ink-300/60">
           {entityTypeLabel(p.oldType)}
         </span>
         <span className="mx-1.5 text-ink-300">→</span>
-        <span className="text-[10px] uppercase tracking-[0.18em] text-sky-800">
+        <span className="text-micro uppercase tracking-eyebrow text-sky-800">
           {entityTypeLabel(p.newType)}
         </span>
       </p>
@@ -237,7 +237,7 @@ function SuggestionBody({ suggestion }: { suggestion: ProactiveSuggestion }) {
     return (
       <div className="text-sm leading-relaxed">
         <span className="text-ink-700">{p.name}</span>
-        <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-ink-300">
+        <span className="ml-2 text-micro uppercase tracking-eyebrow text-ink-300">
           añadir descripción
         </span>
         <p className="mt-1 text-ink-600 italic">"{p.description}"</p>

@@ -172,7 +172,7 @@ export function CommandPalette({
               </li>
             ))}
           </ul>
-          <div className="px-5 py-2 border-t border-ink-100/60 text-[10px] uppercase tracking-[0.18em] text-ink-300 flex justify-between">
+          <div className="px-5 py-2 border-t border-ink-100/60 text-micro uppercase tracking-eyebrow text-ink-300 flex justify-between">
             <span>↑↓ navegar · enter abrir · esc cerrar</span>
             <span>{items.length} resultados</span>
           </div>
@@ -192,7 +192,7 @@ function ItemRow({ item }: { item: Item }) {
   if (item.kind === 'view') {
     return (
       <>
-        <span className="text-[10px] uppercase tracking-[0.18em] text-ink-300 w-20 shrink-0">
+        <span className="text-micro uppercase tracking-eyebrow text-ink-300 w-20 shrink-0">
           ir a
         </span>
         <span className="text-ink-700">{item.label}</span>
@@ -206,11 +206,11 @@ function ItemRow({ item }: { item: Item }) {
     const label = ENTITY_TYPES.find((t) => t.value === item.type)?.label ?? item.type
     return (
       <>
-        <span className="text-[10px] uppercase tracking-[0.18em] text-ink-300 w-20 shrink-0">
+        <span className="text-micro uppercase tracking-eyebrow text-ink-300 w-20 shrink-0">
           entidad
         </span>
         <span className="text-ink-700">{item.name}</span>
-        <span className="text-[10px] uppercase tracking-[0.18em] text-ink-300 ml-2">
+        <span className="text-micro uppercase tracking-eyebrow text-ink-300 ml-2">
           {label}
         </span>
       </>
@@ -218,7 +218,7 @@ function ItemRow({ item }: { item: Item }) {
   }
   return (
     <>
-      <span className="text-[10px] uppercase tracking-[0.18em] text-ink-300 w-20 shrink-0">
+      <span className="text-micro uppercase tracking-eyebrow text-ink-300 w-20 shrink-0">
         cita
       </span>
       <span className="text-ink-600 italic font-serif truncate flex-1">

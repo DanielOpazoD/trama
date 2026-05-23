@@ -115,7 +115,7 @@ function ErrorFallback({
       className="h-screen w-screen flex items-center justify-center p-6 bg-paper-50"
     >
       <div className="max-w-lg w-full bg-paper-50 border border-ink-100 rounded-2xl shadow-xl shadow-ink-900/10 p-8">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-ink-300 mb-2">
+        <p className="text-micro uppercase tracking-shout text-ink-300 mb-2">
           Error
         </p>
         <h1 className="font-serif text-2xl text-ink-800 leading-tight mb-3">
@@ -128,10 +128,10 @@ function ErrorFallback({
         </p>
 
         <details className="mb-5 group">
-          <summary className="text-xs uppercase tracking-[0.18em] text-ink-400 hover:text-ink-700 cursor-pointer transition-colors">
+          <summary className="text-xs uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 cursor-pointer transition-colors">
             Detalles técnicos
           </summary>
-          <pre className="mt-3 p-3 bg-ink-50 border border-ink-100 rounded-md text-[11px] text-ink-600 leading-relaxed overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap">
+          <pre className="mt-3 p-3 bg-ink-50 border border-ink-100 rounded-md text-caption text-ink-600 leading-relaxed overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap">
             {details}
           </pre>
         </details>
@@ -145,7 +145,7 @@ function ErrorFallback({
           </button>
           <button
             onClick={copyDetails}
-            className="ml-auto text-xs uppercase tracking-[0.18em] text-ink-400 hover:text-ink-700 transition-colors"
+            className="ml-auto text-xs uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
           >
             Copiar detalles
           </button>

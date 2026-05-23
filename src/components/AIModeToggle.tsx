@@ -64,7 +64,7 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
         className={
           collapsed
             ? 'p-2 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded-md transition-colors relative'
-            : 'w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-[13px] text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
+            : 'w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-body text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
         }
       >
         <span className={collapsed ? 'inline-flex' : 'flex items-center gap-2.5'}>
@@ -73,7 +73,7 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
         </span>
         {!collapsed && (
           <span
-            className="text-[10px] uppercase tracking-wider tabular-nums"
+            className="text-micro uppercase tracking-wider tabular-nums"
             style={
               isOff
                 ? { color: 'rgb(var(--ink-400))' }
@@ -96,7 +96,7 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
               : 'absolute left-0 right-0 bottom-full mb-2 z-40 paper-grain rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-2xl shadow-ink-900/20 p-1.5'
           }
         >
-          <p className="px-2 pt-1 pb-1.5 text-[9px] uppercase tracking-[0.2em] text-ink-300">
+          <p className="px-2 pt-1 pb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
             Modo IA
           </p>
           <ul className="space-y-0.5">
@@ -128,7 +128,7 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
                     )}
                   </button>
                   {opt.hint && (
-                    <p className="px-2 -mt-0.5 mb-0.5 text-[10px] text-ink-300 leading-tight">
+                    <p className="px-2 -mt-0.5 mb-0.5 text-micro text-ink-300 leading-tight">
                       {opt.hint}
                     </p>
                   )}

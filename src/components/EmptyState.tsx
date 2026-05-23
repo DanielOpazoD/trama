@@ -183,7 +183,7 @@ export function EmptyState() {
           <button
             onClick={handleLoadExample}
             disabled={seeding}
-            className="text-xs uppercase tracking-[0.2em] text-ink-500 hover:text-ink-700 transition-colors py-2 px-4 border-b border-ink-200 hover:border-ink-500 disabled:text-ink-200 disabled:border-ink-100"
+            className="text-xs uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 transition-colors py-2 px-4 border-b border-ink-200 hover:border-ink-500 disabled:text-ink-200 disabled:border-ink-100"
           >
             {seeding ? 'cargando…' : 'cargar ejemplo'}
           </button>

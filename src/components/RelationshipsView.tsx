@@ -134,14 +134,14 @@ export function RelationshipsView({
                 </>
               ) : (
                 <>
-                  <SparkleIcon size={11} />
+                  <SparkleIcon size={12} />
                   descubrir con IA
                 </>
               )}
             </button>
             <button
               onClick={() => setShowForm((s) => !s)}
-              className="text-xs uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+              className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
             >
               {showForm ? 'Cerrar' : 'Añadir'}
             </button>
@@ -280,7 +280,7 @@ export function RelationshipsView({
             </div>
           )}
           {relsPaged.isFetchingNextPage && (
-            <p className="mt-4 text-center text-xs uppercase tracking-[0.2em] text-ink-300">
+            <p className="mt-4 text-center text-xs uppercase tracking-eyebrow text-ink-300">
               cargando más…
             </p>
           )}
@@ -319,7 +319,7 @@ function RelationshipRow({
           ) : (
             <span className="text-ink-700">—</span>
           )}
-          <span className="mx-2 text-[10px] uppercase tracking-[0.18em] text-ink-300">
+          <span className="mx-2 text-micro uppercase tracking-eyebrow text-ink-300">
             {typeLabel}
           </span>
           {to ? (

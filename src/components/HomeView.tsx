@@ -68,7 +68,7 @@ export function HomeView({
     <>
       <header className="mb-12 flex items-baseline justify-between gap-6">
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-ink-300">
+          <p className="text-micro uppercase tracking-shout text-ink-300">
             {greeting}
           </p>
           <h2 className="font-serif text-4xl text-ink-700 leading-none mt-2">
@@ -88,7 +88,7 @@ export function HomeView({
             onClick={() => onNavigate('sugerencias')}
             className="ai-cta"
           >
-            <SparkleIcon size={11} />
+            <SparkleIcon size={12} />
             {pendingCount} {pendingCount === 1 ? 'sugerencia' : 'sugerencias'} pendiente
             {pendingCount === 1 ? '' : 's'}
           </button>
@@ -127,12 +127,12 @@ export function HomeView({
           {timeline.length > 0 && (
             <section>
               <div className="flex items-baseline justify-between mb-4">
-                <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-300">
+                <h3 className="text-micro uppercase tracking-eyebrow text-ink-300">
                   Hilos recientes
                 </h3>
                 <button
                   onClick={() => onNavigate('grafo')}
-                  className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+                  className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
                 >
                   ver grafo →
                 </button>
@@ -193,7 +193,7 @@ function FeaturedQuote({
     <section className="animate-fade-up">
       <div className="mb-3 flex items-baseline justify-between">
         <p
-          className="text-[10px] uppercase tracking-[0.2em]"
+          className="text-micro uppercase tracking-eyebrow"
           style={{ color: 'var(--accent-gold)' }}
         >
           ◆ una cita de tu trama
@@ -231,7 +231,7 @@ function FeaturedQuote({
       </div>
       {quote.userReflection && (
         <div className="mt-4">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-ink-300 mb-1">
+          <p className="text-micro uppercase tracking-eyebrow text-ink-300 mb-1">
             tu reflexión
           </p>
           <p className="text-ink-600 text-sm leading-relaxed whitespace-pre-wrap font-serif italic">
@@ -334,12 +334,12 @@ function TimelineRow({
       >
         <div className="flex items-baseline justify-between gap-3">
           <div className="min-w-0">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-ink-300 mr-2">
+            <span className="text-micro uppercase tracking-eyebrow text-ink-300 mr-2">
               entidad
             </span>
             <span className="text-ink-700">{event.payload.name}</span>
             <span
-              className="ml-2 text-[10px] uppercase tracking-[0.18em]"
+              className="ml-2 text-micro uppercase tracking-eyebrow"
               style={{ color: typeAccent(event.payload.type) }}
             >
               {typeLabel}
@@ -354,7 +354,7 @@ function TimelineRow({
             )}
           </div>
           <div className="flex items-baseline gap-2 shrink-0">
-            <span className="text-[10px] text-ink-300 tabular-nums">{date}</span>
+            <span className="text-micro text-ink-300 tabular-nums">{date}</span>
             <ChevronRightIcon size={12} className="text-ink-200 group-hover:text-ink-400" />
           </div>
         </div>
@@ -372,7 +372,7 @@ function TimelineRow({
         <div className="flex items-baseline justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2 flex-wrap">
-              <span className="text-[10px] uppercase tracking-[0.18em] text-ink-300">cita</span>
+              <span className="text-micro uppercase tracking-eyebrow text-ink-300">cita</span>
               <span className="text-ink-500 text-sm">— {entity?.name ?? '?'}</span>
               {event.payload.isAI && (
                 <span
@@ -388,7 +388,7 @@ function TimelineRow({
             </p>
           </div>
           <div className="flex items-baseline gap-2 shrink-0">
-            <span className="text-[10px] text-ink-300 tabular-nums">{date}</span>
+            <span className="text-micro text-ink-300 tabular-nums">{date}</span>
             <ChevronRightIcon size={12} className="text-ink-200 group-hover:text-ink-400" />
           </div>
         </div>
@@ -403,7 +403,7 @@ function TimelineRow({
     <div className="p-3 bg-paper-50/40 border border-ink-100/50 rounded-xl">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <div className="min-w-0">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-ink-300 mr-2">
+          <span className="text-micro uppercase tracking-eyebrow text-ink-300 mr-2">
             relación
           </span>
           {from ? (
@@ -416,7 +416,7 @@ function TimelineRow({
           ) : (
             <span className="text-ink-400">—</span>
           )}
-          <span className="mx-2 text-[10px] uppercase tracking-[0.18em] text-ink-300">
+          <span className="mx-2 text-micro uppercase tracking-eyebrow text-ink-300">
             {event.payload.type}
           </span>
           {to ? (
@@ -438,7 +438,7 @@ function TimelineRow({
             </span>
           )}
         </div>
-        <span className="text-[10px] text-ink-300 tabular-nums shrink-0">{date}</span>
+        <span className="text-micro text-ink-300 tabular-nums shrink-0">{date}</span>
       </div>
     </div>
   )

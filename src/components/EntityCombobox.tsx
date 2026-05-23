@@ -121,7 +121,7 @@ export function EntityCombobox({
           type="button"
           onClick={handleClear}
           aria-label="Cambiar entidad"
-          className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors shrink-0"
+          className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors shrink-0"
         >
           cambiar
         </button>
@@ -174,7 +174,7 @@ export function EntityCombobox({
                     }
                   >
                     <span className="text-ink-700">{entity.name}</span>
-                    <span className="ml-2 text-[10px] uppercase tracking-[0.16em] text-ink-300">
+                    <span className="ml-2 text-micro uppercase tracking-eyebrow text-ink-300">
                       {ENTITY_TYPES.find((t) => t.value === entity.type)?.label ?? entity.type}
                     </span>
                   </button>

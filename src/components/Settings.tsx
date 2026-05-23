@@ -154,7 +154,7 @@ export function Settings({
       >
         <header className="px-6 py-4 border-b border-ink-100/60 flex items-baseline justify-between shrink-0">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-ink-300 mb-1">ajustes</p>
+            <p className="text-micro uppercase tracking-eyebrow text-ink-300 mb-1">ajustes</p>
             <h2 className="font-serif text-2xl text-ink-700 leading-none">Configuración</h2>
           </div>
           <button
@@ -162,7 +162,7 @@ export function Settings({
             aria-label="Cerrar"
             className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors active:scale-90"
           >
-            <CloseIcon size={16} />
+            <CloseIcon size={14} />
           </button>
         </header>
 
@@ -236,7 +236,7 @@ export function Settings({
                       {spotify.displayName ?? spotify.spotifyUserId ?? 'tu cuenta'}
                     </strong>
                   </p>
-                  <span className="text-[10px] text-ink-400 tabular-nums">
+                  <span className="text-micro text-ink-400 tabular-nums">
                     {formatRelative(spotify.lastSyncedAt)}
                   </span>
                 </div>
@@ -314,7 +314,7 @@ export function Settings({
                 disabled={busy}
                 className="flex items-center gap-2 px-3 py-2 text-sm border border-ink-100/60 rounded-lg hover:bg-ink-50 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <DownloadIcon size={13} />
+                <DownloadIcon size={14} />
                 Exportar
               </button>
               <button
@@ -322,7 +322,7 @@ export function Settings({
                 disabled={busy}
                 className="flex items-center gap-2 px-3 py-2 text-sm border border-ink-100/60 rounded-lg hover:bg-ink-50 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <UploadIcon size={13} />
+                <UploadIcon size={14} />
                 Importar
               </button>
             </div>
@@ -488,11 +488,11 @@ function HealthSection() {
       {/* Budget */}
       <div className="space-y-1.5">
         <div className="flex items-baseline justify-between gap-3">
-          <span className="text-xs uppercase tracking-[0.18em] text-ink-400">
+          <span className="text-xs uppercase tracking-eyebrow text-ink-400">
             gasto IA este mes
           </span>
           <span
-            className="text-[10px] uppercase tracking-[0.16em] font-medium px-1.5 py-0.5 rounded-full tabular-nums"
+            className="text-micro uppercase tracking-eyebrow font-medium px-1.5 py-0.5 rounded-full tabular-nums"
             style={{ backgroundColor: budgetTone.bg, color: budgetTone.fg }}
           >
             {budgetPctDisplay}% del cap
@@ -514,7 +514,7 @@ function HealthSection() {
           </span>
           <span className="text-ink-300">USD {remainingEur} restantes</span>
         </div>
-        <p className="text-[10px] text-ink-300 tabular-nums">
+        <p className="text-micro text-ink-300 tabular-nums">
           {data.month.calls} llamadas · {data.month.tokensIn.toLocaleString('es')} tokens in ·{' '}
           {data.month.tokensOut.toLocaleString('es')} tokens out
         </p>
@@ -523,7 +523,7 @@ function HealthSection() {
       {/* Provider breakdown */}
       {data.byProvider.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-xs uppercase tracking-[0.18em] text-ink-400">
+          <p className="text-xs uppercase tracking-eyebrow text-ink-400">
             por provider / modelo (mes)
           </p>
           <ul className="space-y-1">
@@ -548,13 +548,13 @@ function HealthSection() {
       {/* Recent errors */}
       <div className="space-y-1.5">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="text-xs uppercase tracking-[0.18em] text-ink-400">
+          <p className="text-xs uppercase tracking-eyebrow text-ink-400">
             errores recientes (7d)
           </p>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
+            className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
           >
             {isFetching ? 'recargando…' : 'recargar'}
           </button>
@@ -574,12 +574,12 @@ function HealthSection() {
                   <span className="text-ink-700 font-medium">
                     {e.functionName}
                     {e.statusCode && (
-                      <span className="ml-1.5 text-[10px] text-red-700/80">
+                      <span className="ml-1.5 text-micro text-red-700/80">
                         [{e.statusCode}]
                       </span>
                     )}
                   </span>
-                  <span className="text-[10px] text-ink-300 tabular-nums shrink-0">
+                  <span className="text-micro text-ink-300 tabular-nums shrink-0">
                     {new Date(e.createdAt).toLocaleString('es', {
                       day: '2-digit',
                       month: 'short',

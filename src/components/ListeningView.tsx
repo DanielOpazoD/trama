@@ -190,7 +190,7 @@ export function ListeningView({
             className="mb-8 p-4 bg-paper-100/40 border border-ink-100/50 rounded-xl"
           >
             <div className="flex items-baseline justify-between gap-3 mb-2">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-ink-400">
+              <h3 className="text-micro uppercase tracking-eyebrow text-ink-400">
                 importar playlist
               </h3>
               <span className="text-xs text-ink-300">
@@ -285,7 +285,7 @@ export function ListeningView({
                         className="text-xs px-2.5 py-1 text-ink-400 hover:text-ink-700 transition-colors flex items-center gap-1"
                         title="Ya está en tu trama — abrir su panel"
                       >
-                        <SparkleIcon size={11} />
+                        <SparkleIcon size={12} />
                         en la trama
                       </button>
                     ) : (
@@ -310,7 +310,7 @@ export function ListeningView({
                           </>
                         ) : (
                           <>
-                            <SparkleIcon size={11} />
+                            <SparkleIcon size={12} />
                             añadir a la trama
                           </>
                         )}

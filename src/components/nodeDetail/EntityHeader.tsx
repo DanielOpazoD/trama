@@ -58,7 +58,7 @@ export function EntityHeader({
         className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors shrink-0"
         aria-label="Cerrar"
       >
-        <CloseIcon size={16} />
+        <CloseIcon size={14} />
       </button>
     </header>
   )

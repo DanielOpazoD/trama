@@ -92,7 +92,7 @@ export function AITaskSettings() {
       <p className="text-xs text-ink-500 leading-relaxed">
         Distintos modelos son buenos en cosas distintas. Aquí elegís qué provider
         usa cada tarea. <em>Default</em> usa el provider general configurado en
-        Netlify (<code className="text-[10px] bg-paper-100 px-1 rounded">{defaultProvider}</code>).
+        Netlify (<code className="text-micro bg-paper-100 px-1 rounded">{defaultProvider}</code>).
       </p>
 
       <ul className="divide-y divide-ink-100/60">
@@ -106,7 +106,7 @@ export function AITaskSettings() {
               <div className="flex items-baseline gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="text-sm text-ink-700">{task.label}</div>
-                  <div className="text-[11px] text-ink-400 leading-snug">
+                  <div className="text-caption text-ink-400 leading-snug">
                     {task.hint}
                   </div>
                 </div>
@@ -129,7 +129,7 @@ export function AITaskSettings() {
               </div>
               {verifiable && (
                 <div className="flex items-baseline gap-3 pl-4 border-l-2 border-ink-100/60">
-                  <div className="flex-1 text-[11px] text-ink-400 leading-snug">
+                  <div className="flex-1 text-caption text-ink-400 leading-snug">
                     Verificar con un segundo modelo (otro provider revisa
                     cada propuesta y marca dudas)
                   </div>

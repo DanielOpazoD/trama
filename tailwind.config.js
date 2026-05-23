@@ -31,6 +31,72 @@ export default {
           800: 'rgb(var(--ink-800) / <alpha-value>)',
         },
       },
+      // Type scale canónico — 6 niveles semánticos. Antes había 12 variantes
+      // (text-xs, text-[10px], text-[11px], text-[13px], text-sm, etc.). Usar
+      // SIEMPRE estos nombres semánticos:
+      //   - micro:   chips, eyebrows uppercase, kbd hints, conteos
+      //   - caption: labels, metadata, dates en tabular-nums
+      //   - body:    default UI, párrafos cortos
+      //   - lead:    primer párrafo, intros, cita destacada
+      //   - h2:      títulos de sección
+      //   - h1:      títulos de vista
+      // Los aliases legacy (xs/sm/base/lg/xl/2xl/3xl/4xl) los mantiene
+      // Tailwind por default; pero el nuevo código debería usar los
+      // nombres semánticos.
+      fontSize: {
+        micro:   ['10px', { lineHeight: '1.4', letterSpacing: '0.02em' }],
+        caption: ['12px', { lineHeight: '1.5' }],
+        body:    ['14px', { lineHeight: '1.55' }],
+        lead:    ['16px', { lineHeight: '1.65' }],
+        h2:      ['20px', { lineHeight: '1.3', letterSpacing: '-0.01em' }],
+        h1:      ['32px', { lineHeight: '1.15', letterSpacing: '-0.02em' }],
+      },
+      // Tracking canónico — 4 valores semánticos. Antes había 9 (incluyendo
+      // tracking-[0.18em] y tracking-wider que son casi idénticos).
+      letterSpacing: {
+        tight:   '-0.02em',  // serif headings que se ven mejor compactos
+        normal:  '0',
+        eyebrow: '0.18em',   // uppercase labels, badges, breadcrumbs
+        shout:   '0.3em',    // greetings, ornaments separators
+      },
+      // Animaciones canónicas — 5 reutilizables en vez de 13 fragmentadas.
+      // Cada componente debería elegir una de estas; nada de keyframes
+      // ad-hoc en CSS de componente.
+      keyframes: {
+        'fade-up': {
+          from: { opacity: '0', transform: 'translateY(6px)' },
+          to:   { opacity: '1', transform: 'none' },
+        },
+        'slide-in-right': {
+          from: { opacity: '0', transform: 'translateX(8px)' },
+          to:   { opacity: '1', transform: 'none' },
+        },
+        'slide-up': {
+          from: { opacity: '0', transform: 'translateY(16px)' },
+          to:   { opacity: '1', transform: 'none' },
+        },
+        shimmer: {
+          '0%':   { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        'pulse-subtle': {
+          '0%, 100%': { opacity: '1' },
+          '50%':      { opacity: '0.55' },
+        },
+      },
+      animation: {
+        'fade-up':        'fade-up 250ms cubic-bezier(0.25, 1, 0.5, 1) both',
+        'slide-in-right': 'slide-in-right 280ms cubic-bezier(0.25, 1, 0.5, 1) both',
+        'slide-up':       'slide-up 320ms cubic-bezier(0.25, 1, 0.5, 1) both',
+        shimmer:          'shimmer 1.8s linear infinite',
+        'pulse-subtle':   'pulse-subtle 2s ease-in-out infinite',
+      },
+      transitionTimingFunction: {
+        // Curva "expo-out" estilo Apple — empieza rápido, decelera suave.
+        // Usar en cualquier transition que tenga transform o que sea más
+        // larga que 150ms. Para color-only seguimos con ease (default).
+        'out-quart': 'cubic-bezier(0.25, 1, 0.5, 1)',
+      },
     },
   },
   plugins: [],

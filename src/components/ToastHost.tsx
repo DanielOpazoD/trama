@@ -68,7 +68,7 @@ export function ToastHost() {
               dismiss()
               await fn()
             }}
-            className="text-xs uppercase tracking-[0.16em] font-medium px-2.5 py-1 rounded-md transition-colors hover:bg-paper-50/15"
+            className="text-xs uppercase tracking-eyebrow font-medium px-2.5 py-1 rounded-md transition-colors hover:bg-paper-50/15"
           >
             {current.action.label}
           </button>

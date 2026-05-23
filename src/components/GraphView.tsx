@@ -368,7 +368,7 @@ export default function GraphView({
                   }
                   setExploreHintDismissed(true)
                 }}
-                className="shrink-0 px-2 py-0.5 rounded text-[10px] uppercase tracking-[0.18em] text-ink-700 hover:bg-ink-50 transition-colors"
+                className="shrink-0 px-2 py-0.5 rounded text-micro uppercase tracking-eyebrow text-ink-700 hover:bg-ink-50 transition-colors"
               >
                 cambiar
               </button>

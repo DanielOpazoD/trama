@@ -118,7 +118,7 @@ export function DescriptionEditor({ entity }: { entity: Entity }) {
                 </>
               ) : (
                 <>
-                  <SparkleIcon size={11} />
+                  <SparkleIcon size={12} />
                   IA
                 </>
               )}

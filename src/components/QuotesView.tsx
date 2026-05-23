@@ -149,7 +149,7 @@ export function QuotesView({
         {entities.length > 0 && (
           <button
             onClick={() => setShowForm((s) => !s)}
-            className="text-xs uppercase tracking-[0.18em] text-ink-300 hover:text-ink-700 transition-colors"
+            className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
           >
             {showForm ? 'Cerrar' : 'Añadir'}
           </button>
@@ -270,7 +270,7 @@ export function QuotesView({
             </div>
           )}
           {quotesPaged.isFetchingNextPage && (
-            <p className="mt-4 text-center text-xs uppercase tracking-[0.2em] text-ink-300">
+            <p className="mt-4 text-center text-xs uppercase tracking-eyebrow text-ink-300">
               cargando más…
             </p>
           )}
@@ -347,7 +347,7 @@ function QuoteItem({
             </span>
           )}
           <span
-            className="ml-3 text-[11px] text-ink-300 tabular-nums"
+            className="ml-3 text-caption text-ink-300 tabular-nums"
             title={`Añadida el ${new Date(quote.createdAt).toLocaleString('es')}`}
           >
             añadida {formatDate(quote.createdAt)}
@@ -373,7 +373,7 @@ function QuoteItem({
       )}
       {quote.userReflection && (
         <div className={`mt-3 ${isFeature ? '' : 'pl-5'}`}>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-ink-400 mb-1">
+          <div className="text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
             tu reflexión
           </div>
           <p className="text-ink-600 text-sm leading-relaxed whitespace-pre-wrap">
@@ -383,7 +383,7 @@ function QuoteItem({
       )}
       {quote.aiReflection && (
         <div className={`mt-3 ${isFeature ? '' : 'pl-5'}`}>
-          <div className="flex items-baseline gap-1.5 text-[10px] uppercase tracking-[0.2em] text-sky-700/80 mb-1">
+          <div className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-sky-700/80 mb-1">
             <SparkleIcon size={10} />
             interpretación de la IA
           </div>

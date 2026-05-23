@@ -60,7 +60,7 @@ export function ReclassifyPanel({
       >
         <div className="flex items-baseline gap-2" style={{ color: 'var(--accent-primary)' }}>
           <SparkleIcon size={12} />
-          <h3 className="text-[11px] uppercase tracking-[0.2em]">
+          <h3 className="text-caption uppercase tracking-eyebrow">
             reclasificación sugerida
           </h3>
           <span className="text-xs text-ink-400">
@@ -90,11 +90,11 @@ export function ReclassifyPanel({
             <div className="min-w-0 flex-1 text-sm leading-relaxed">
               <div>
                 <span className="text-ink-700">{p.name}</span>
-                <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-ink-400 line-through decoration-ink-300/60">
+                <span className="ml-2 text-micro uppercase tracking-eyebrow text-ink-400 line-through decoration-ink-300/60">
                   {label(p.oldType)}
                 </span>
                 <span className="mx-1.5 text-ink-300">→</span>
-                <span className="text-[10px] uppercase tracking-[0.18em]" style={{ color: 'var(--accent-primary)' }}>
+                <span className="text-micro uppercase tracking-eyebrow" style={{ color: 'var(--accent-primary)' }}>
                   {label(p.newType)}
                 </span>
               </div>
@@ -145,13 +145,13 @@ function VerificationChip({
 }) {
   if (verification.agreed) {
     return (
-      <span className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] text-emerald-700/80">
+      <span className="mt-1 inline-flex items-center gap-1 text-micro uppercase tracking-eyebrow text-emerald-700/80">
         ✓ verificado por {verification.verifier}
       </span>
     )
   }
   return (
-    <span className="mt-1 inline-flex items-baseline gap-1 text-[10px] uppercase tracking-[0.18em] text-amber-700/90">
+    <span className="mt-1 inline-flex items-baseline gap-1 text-micro uppercase tracking-eyebrow text-amber-700/90">
       ⚠ {verification.verifier} dudó
       {verification.note && (
         <span className="normal-case tracking-normal text-ink-500 italic ml-1">

@@ -61,8 +61,8 @@ export function GraphToolbar({
                 onClick={() => onModeChange(opt.value)}
                 className={
                   mode === opt.value
-                    ? 'px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.15em] bg-ink-700 text-paper-50 transition-colors'
-                    : 'px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.15em] text-ink-400 hover:text-ink-700 transition-colors'
+                    ? 'px-3 py-1 rounded-full text-caption uppercase tracking-eyebrow bg-ink-700 text-paper-50 transition-colors'
+                    : 'px-3 py-1 rounded-full text-caption uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors'
                 }
                 title={opt.hint}
               >
@@ -75,8 +75,8 @@ export function GraphToolbar({
               onClick={() => onGraphModeChange('completo')}
               className={
                 graphMode === 'completo'
-                  ? 'px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.15em] bg-ink-700 text-paper-50 transition-colors'
-                  : 'px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.15em] text-ink-400 hover:text-ink-700 transition-colors'
+                  ? 'px-3 py-1 rounded-full text-caption uppercase tracking-eyebrow bg-ink-700 text-paper-50 transition-colors'
+                  : 'px-3 py-1 rounded-full text-caption uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors'
               }
               title="Ver el grafo completo. A 100k+ entidades cambia a exploratorio."
             >
@@ -86,8 +86,8 @@ export function GraphToolbar({
               onClick={() => onGraphModeChange('exploratorio')}
               className={
                 graphMode === 'exploratorio'
-                  ? 'px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.15em] bg-ink-700 text-paper-50 transition-colors'
-                  : 'px-3 py-1 rounded-full text-[11px] uppercase tracking-[0.15em] text-ink-400 hover:text-ink-700 transition-colors'
+                  ? 'px-3 py-1 rounded-full text-caption uppercase tracking-eyebrow bg-ink-700 text-paper-50 transition-colors'
+                  : 'px-3 py-1 rounded-full text-caption uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors'
               }
               title="Arranca en una entidad focal y abre vecinos al hacer click. Necesario a partir de ~2-5k nodos."
             >
@@ -101,7 +101,7 @@ export function GraphToolbar({
             <button
               onClick={onFocusSelected}
               disabled={focusSelectedDisabled}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-[0.15em] text-ink-400 hover:text-ink-700 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-caption uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Mover el foco del subgrafo a la entidad seleccionada"
             >
               hacer foco
@@ -120,14 +120,14 @@ export function GraphToolbar({
               </>
             ) : (
               <>
-                <SparkleIcon size={11} />
+                <SparkleIcon size={12} />
                 descubrir IA
               </>
             )}
           </button>
           <button
             onClick={onReorganize}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-[0.15em] text-ink-400 hover:text-ink-700 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-caption uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm transition-colors"
             title="Reacomodar los nodos con el modo actual desde cero"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -139,7 +139,7 @@ export function GraphToolbar({
         </div>
       </div>
 
-      <div className="hidden md:block pointer-events-none absolute bottom-3 left-3 z-10 text-[10px] uppercase tracking-[0.2em] text-ink-300/70">
+      <div className="hidden md:block pointer-events-none absolute bottom-3 left-3 z-10 text-micro uppercase tracking-eyebrow text-ink-300/70">
         <span>{zoomPercent}%</span>
         <span className="mx-2">·</span>
         <span>
