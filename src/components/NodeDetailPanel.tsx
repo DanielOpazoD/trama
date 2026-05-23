@@ -564,7 +564,9 @@ function RelationshipLine({
       </span>
       <button
         onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 text-ink-300 hover:text-ink-700 transition-opacity text-xs"
+        aria-label="Eliminar relación"
+        title="Eliminar relación"
+        className="opacity-0 group-hover:opacity-100 text-ink-300 hover:text-red-700 transition-opacity text-xs"
       >
         ✕
       </button>

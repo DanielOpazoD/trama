@@ -345,7 +345,10 @@ function TimelineRow({
               {typeLabel}
             </span>
             {event.payload.isAI && (
-              <span className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle">
+              <span
+                className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle"
+                title="añadido por IA"
+              >
                 <SparkleIcon size={10} />
               </span>
             )}
@@ -372,7 +375,10 @@ function TimelineRow({
               <span className="text-[10px] uppercase tracking-[0.18em] text-ink-300">cita</span>
               <span className="text-ink-500 text-sm">— {entity?.name ?? '?'}</span>
               {event.payload.isAI && (
-                <span className="inline-flex items-center text-sky-700/70">
+                <span
+                  className="inline-flex items-center text-sky-700/70"
+                  title="propuesta por IA"
+                >
                   <SparkleIcon size={10} />
                 </span>
               )}
@@ -424,7 +430,10 @@ function TimelineRow({
             <span className="text-ink-400">—</span>
           )}
           {event.payload.isAI && (
-            <span className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle">
+            <span
+              className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle"
+              title="propuesta por IA"
+            >
               <SparkleIcon size={10} />
             </span>
           )}
