@@ -8,6 +8,7 @@
 
 export { Provider } from './Provider'
 export { useOffline } from './offline'
+export { useGlobalStatus, type GlobalStatus } from './useGlobalStatus'
 export { useCountsQuery } from './useCounts'
 export { useNeighborsQuery } from './useNeighbors'
 export {

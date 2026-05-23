@@ -1,3 +1,4 @@
+import { useGlobalStatus, type GlobalStatus } from '../state'
 import type { ViewMode } from './Sidebar'
 
 /**
@@ -12,6 +13,9 @@ import type { ViewMode } from './Sidebar'
  *   - Title en serif para mantener identidad editorial; subtítulo en
  *     sans para metadata.
  *   - Altura compacta (~48px) para no quitar espacio al contenido.
+ *   - Status pill discreto a la derecha — "guardando…" / "guardado" /
+ *     "sin conexión". Es el único feedback persistente de qué hace el
+ *     backend; sin esto, el usuario no sabe si su edición se persistió.
  */
 const TITLES: Record<ViewMode, { title: string; subtitle?: string }> = {
   inicio: { title: 'Inicio', subtitle: 'tu trama de hoy' },
@@ -32,6 +36,7 @@ export function TopBar({
   actions?: React.ReactNode
 }) {
   const { title, subtitle } = TITLES[view]
+  const status = useGlobalStatus()
   return (
     <div className="surface-topbar shrink-0 border-b border-ink-100 px-6 py-2.5 flex items-center justify-between gap-4">
       <div className="min-w-0 flex items-baseline gap-3">
@@ -42,7 +47,61 @@ export function TopBar({
           <span className="text-sm text-ink-400 truncate">{subtitle}</span>
         )}
       </div>
-      {actions && <div className="shrink-0 flex items-center gap-2">{actions}</div>}
+      <div className="shrink-0 flex items-center gap-3">
+        <StatusPill status={status} />
+        {actions && <div className="flex items-center gap-2">{actions}</div>}
+      </div>
     </div>
+  )
+}
+
+/**
+ * Indicador minimalista del estado del backend. Tres formas:
+ *   - guardando…   dot ámbar pulsando + texto
+ *   - guardado     dot verde + texto, dura 1.2s
+ *   - sin conexión dot rojo + texto, persistente
+ *   - idle         nada (no contamina)
+ */
+function StatusPill({ status }: { status: GlobalStatus }) {
+  if (status.kind === 'idle') return null
+
+  if (status.kind === 'offline') {
+    return (
+      <span
+        className="flex items-center gap-1.5 text-[11px] text-amber-700 leading-none"
+        title="No se puede contactar al backend. Trabajás contra el caché local."
+      >
+        <span className="size-1.5 rounded-full bg-amber-600" aria-hidden />
+        sin conexión
+      </span>
+    )
+  }
+
+  if (status.kind === 'saving') {
+    return (
+      <span
+        className="flex items-center gap-1.5 text-[11px] text-ink-400 leading-none"
+        title={`Guardando ${status.pending} cambio${status.pending === 1 ? '' : 's'} en el servidor`}
+      >
+        <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" aria-hidden />
+        guardando…
+      </span>
+    )
+  }
+
+  // saved
+  return (
+    <span
+      className="flex items-center gap-1.5 text-[11px] leading-none animate-fade-up"
+      style={{ color: 'var(--accent-sage)' }}
+      title="Cambios guardados"
+    >
+      <span
+        className="size-1.5 rounded-full"
+        style={{ backgroundColor: 'var(--accent-sage)' }}
+        aria-hidden
+      />
+      guardado
+    </span>
   )
 }
