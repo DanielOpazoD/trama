@@ -1,11 +1,12 @@
 /**
- * Helpers to render components under a fresh QueryClient + offline context.
- * Each test gets isolated state.
+ * Helpers to render components under a fresh QueryClient + offline + toast
+ * contexts. Each test gets isolated state.
  */
 import { type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, type RenderOptions } from '@testing-library/react'
 import { OfflineContext } from './state/offline'
+import { ToastProvider } from './state/toast'
 
 export function makeQueryClient() {
   return new QueryClient({
@@ -31,7 +32,7 @@ export function renderWithProviders(
     return (
       <QueryClientProvider client={queryClient}>
         <OfflineContext.Provider value={{ offline, setOffline }}>
-          {children}
+          <ToastProvider>{children}</ToastProvider>
         </OfflineContext.Provider>
       </QueryClientProvider>
     )
