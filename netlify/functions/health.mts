@@ -47,6 +47,7 @@ export default withObservability('health', async (req) => {
 
   type ErrorCountRow = { c: string }
   type EmbeddingPendingRow = { entities: string; quotes: string }
+  type DailyCostRow = { day: string; cost_cents: string; calls: string }
 
   const [
     entitiesCountRows,
@@ -57,6 +58,7 @@ export default withObservability('health', async (req) => {
     errorRows,
     errors24hRows,
     embeddingPendingRows,
+    dailyCostRows,
   ] = await Promise.all([
     sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL` as unknown as Promise<CountRow[]>,
     sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL` as unknown as Promise<CountRow[]>,
@@ -103,6 +105,19 @@ export default withObservability('health', async (req) => {
         (SELECT COUNT(*) FROM entities WHERE deleted_at IS NULL AND embedding IS NULL)::text AS entities,
         (SELECT COUNT(*) FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL)::text AS quotes
     ` as unknown as Promise<EmbeddingPendingRow[]>,
+    // Serie diaria de costo IA — para sparklines en Health.
+    // Últimos 30 días, agrupados por día. Días sin actividad no aparecen
+    // en el resultado (se rellenan a 0 en el cliente).
+    sql`
+      SELECT
+        date_trunc('day', created_at)::date::text AS day,
+        COALESCE(SUM(cost_cents), 0)::text AS cost_cents,
+        COUNT(*)::text AS calls
+      FROM extraction_log
+      WHERE created_at >= NOW() - INTERVAL '30 days'
+      GROUP BY day
+      ORDER BY day ASC
+    ` as unknown as Promise<DailyCostRow[]>,
   ])
 
   // Read the configured monthly budget; default 5000 cents if unset.
@@ -176,6 +191,32 @@ export default withObservability('health', async (req) => {
     })
   }
 
+  // Serie diaria de los últimos 30 días — rellenamos días sin
+  // actividad con 0 para que el sparkline se vea como una línea
+  // continua. El cliente espera `dailyCost: { day, costCents, calls }[]`
+  // de longitud 30, ordenado del día más viejo al más reciente.
+  const dailyMap = new Map<string, { cost: number; calls: number }>()
+  for (const r of dailyCostRows) {
+    dailyMap.set(r.day, {
+      cost: Number(r.cost_cents),
+      calls: Number(r.calls),
+    })
+  }
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const dailyCost: Array<{ day: string; costCents: number; calls: number }> = []
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const dayStr = d.toISOString().slice(0, 10)
+    const found = dailyMap.get(dayStr)
+    dailyCost.push({
+      day: dayStr,
+      costCents: found?.cost ?? 0,
+      calls: found?.calls ?? 0,
+    })
+  }
+
   return Response.json({
     counts: {
       entities: Number(entitiesCountRows[0]?.c ?? 0),
@@ -198,6 +239,7 @@ export default withObservability('health', async (req) => {
       pendingEntities,
       pendingQuotes,
     },
+    dailyCost,
     byProvider: providerRows.map((r) => ({
       provider: r.provider,
       model: r.model,

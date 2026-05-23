@@ -5,6 +5,7 @@ import { useExport, useImport } from '../state'
 import type { ExportPayload } from '../types'
 import { AITaskSettings } from './AITaskSettings'
 import { ProgressBar } from './ProgressBar'
+import { Sparkline } from './Sparkline'
 import {
   CloseIcon,
   DownloadIcon,
@@ -659,6 +660,34 @@ function HealthSectionPanel() {
           {data.month.tokensOut.toLocaleString('es')} tokens out
         </p>
       </div>
+
+      {/* Sparkline 30d — la forma del gasto diario. Más informativo que
+          el total mensual: ¿gastas parejo, picos puntuales, tendencia? */}
+      {data.dailyCost && data.dailyCost.length > 0 && (
+        <div className="card-paper p-4 space-y-2">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-micro uppercase tracking-eyebrow text-ink-400">
+              consumo diario · últimos 30 días
+            </span>
+            <span className="text-micro text-ink-300 tabular-nums">
+              {data.dailyCost.filter((d) => d.calls > 0).length} días activos
+            </span>
+          </div>
+          <Sparkline
+            data={data.dailyCost.map((d) => d.costCents)}
+            width={520}
+            height={48}
+            color="var(--accent-primary)"
+            ariaLabel="Consumo de IA por día, últimos 30 días"
+          />
+          <div className="flex items-baseline justify-between text-micro text-ink-400 tabular-nums">
+            <span>
+              hace 30d
+            </span>
+            <span>hoy</span>
+          </div>
+        </div>
+      )}
 
       {/* Provider breakdown */}
       {data.byProvider.length > 0 && (

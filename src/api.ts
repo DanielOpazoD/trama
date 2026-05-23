@@ -836,6 +836,13 @@ export type HealthResponse = {
     pendingEntities: number
     pendingQuotes: number
   }
+  /** Serie diaria de los últimos 30 días para sparklines. Días sin
+      actividad aparecen con costCents=0, calls=0. */
+  dailyCost: Array<{
+    day: string
+    costCents: number
+    calls: number
+  }>
 }
 
 export type NeighborWithHop = Entity & { hopDistance: number }
