@@ -41,6 +41,7 @@ export function TopBar({
   view,
   actions,
   onOpenPalette,
+  breadcrumb,
 }: {
   view: ViewMode
   actions?: React.ReactNode
@@ -48,17 +49,42 @@ export function TopBar({
       Su rol es discoverability — el atajo existe igual, pero sin esto
       el usuario nuevo no lo sabe. */
   onOpenPalette?: () => void
+  /** Segundo nivel del breadcrumb — se muestra como "View › crumb"
+      cuando hay un detalle abierto. Si está, reemplaza el subtitle. */
+  breadcrumb?: { label: string; onClickRoot?: () => void } | null
 }) {
   const { title, subtitle } = TITLES[view]
   const status = useGlobalStatus()
   return (
     <div className="surface-topbar shrink-0 border-b border-ink-100 px-6 py-2.5 flex items-center justify-between gap-4">
       <div className="min-w-0 flex items-baseline gap-3">
-        <h1 className="font-serif text-xl text-ink-800 leading-none tracking-tight">
-          {title}
-        </h1>
-        {subtitle && (
-          <span className="text-sm text-ink-400 truncate">{subtitle}</span>
+        {breadcrumb ? (
+          // Path-style — clickeable la raíz para volver a la vista
+          // sin abrir entidad. Lo que hace Codex con `repo › file.tsx`.
+          <nav
+            aria-label="Breadcrumb"
+            className="min-w-0 flex items-baseline gap-2"
+          >
+            <button
+              onClick={breadcrumb.onClickRoot}
+              className="font-serif text-xl text-ink-400 hover:text-ink-700 leading-none tracking-tight transition-colors shrink-0"
+            >
+              {title}
+            </button>
+            <span className="text-ink-300 text-lg leading-none">›</span>
+            <h1 className="font-serif text-xl text-ink-800 leading-none tracking-tight truncate">
+              {breadcrumb.label}
+            </h1>
+          </nav>
+        ) : (
+          <>
+            <h1 className="font-serif text-xl text-ink-800 leading-none tracking-tight">
+              {title}
+            </h1>
+            {subtitle && (
+              <span className="text-sm text-ink-400 truncate">{subtitle}</span>
+            )}
+          </>
         )}
       </div>
       <div className="shrink-0 flex items-center gap-3">
@@ -85,7 +111,7 @@ function PalettePill({ onClick }: { onClick: () => void }) {
     >
       <SearchIcon size={12} />
       <span className="leading-none">Buscar</span>
-      <kbd className="ml-1 text-micro px-2 py-0.5 bg-paper-50 border border-ink-200/70 rounded text-ink-400 tabular-nums leading-none font-sans">
+      <kbd className="ml-1 text-micro px-2 py-0.5 bg-paper-50 border border-ink-200/70 rounded text-ink-400 leading-none font-mono">
         {SHORTCUT_KEY} K
       </kbd>
     </button>
@@ -126,18 +152,29 @@ function StatusPill({ status }: { status: GlobalStatus }) {
     )
   }
 
-  // saved
+  // saved — ✓ con scale-in animation, más visceral que un dot estático.
+  // La cifra `animate-check-pop` está en index.css y dura ~400ms con un
+  // pequeño overshoot (scale 0 → 1.15 → 1) que se siente como "tick".
   return (
     <span
       className="flex items-center gap-1.5 text-caption leading-none animate-fade-up"
       style={{ color: 'var(--accent-sage)' }}
       title="Cambios guardados"
     >
-      <span
-        className="size-1.5 rounded-full"
-        style={{ backgroundColor: 'var(--accent-sage)' }}
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="animate-check-pop"
         aria-hidden
-      />
+      >
+        <path d="M5 13l4 4L19 7" />
+      </svg>
       guardado
     </span>
   )

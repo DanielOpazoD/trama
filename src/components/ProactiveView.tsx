@@ -81,7 +81,7 @@ export function ProactiveView() {
         <div className="min-w-0">
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Sugerencias</h2>
           <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-md">
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
             La IA recorre tu trama y deja aquí lo que cree que vale la pena
             agregar. Acepta lo que te resuene, descarta el resto. Pídele otra
             ronda cuando quieras.

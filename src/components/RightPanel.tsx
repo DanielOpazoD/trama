@@ -63,8 +63,8 @@ export function RightPanel({
         <div
           className={
             isMobile
-              ? 'relative paper-grain h-full pointer-events-auto rounded-t-2xl border-t border-x border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-2xl shadow-ink-900/25 overflow-hidden'
-              : 'relative paper-grain h-full pointer-events-auto rounded-2xl border border-ink-100/50 bg-paper-50/85 backdrop-blur-md shadow-2xl shadow-ink-900/15 overflow-hidden'
+              ? 'relative paper-grain h-full pointer-events-auto rounded-t-2xl border-t border-x border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/12 overflow-hidden'
+              : 'relative paper-grain h-full pointer-events-auto rounded-xl border border-ink-100/50 bg-paper-50/85 backdrop-blur-md shadow-lg shadow-ink-900/10 overflow-hidden'
           }
         >
           {/* Drag handle on mobile — visual cue de que es un sheet. */}

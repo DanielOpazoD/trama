@@ -142,7 +142,7 @@ export function CommandPalette({
         aria-label="Buscar"
         className="fixed top-[15vh] left-1/2 -translate-x-1/2 w-[90vw] max-w-xl z-40 animate-fade-up"
       >
-        <div className="bg-paper-50 border border-ink-100/80 rounded-2xl shadow-2xl shadow-ink-900/30 overflow-hidden">
+        <div className="bg-paper-50 border border-ink-100/80 rounded-xl shadow-lg shadow-ink-900/15 overflow-hidden">
           <input
             ref={inputRef}
             type="text"

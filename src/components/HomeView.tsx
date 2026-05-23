@@ -13,6 +13,7 @@ import {
   SkeletonList,
   TimelineRowSkeleton,
 } from './Skeleton'
+import { WeeklyActivity } from './WeeklyActivity'
 import { typeAccent } from './graph/GraphNode'
 
 /**
@@ -93,7 +94,7 @@ export function HomeView({
             Inicio
           </h2>
           <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-md">
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
             {totalEntities === 0
               ? 'Todavía vacía. Pega un texto abajo y la trama empieza.'
               : `${totalEntities} ${totalEntities === 1 ? 'entidad' : 'entidades'} ·` +
@@ -115,6 +116,7 @@ export function HomeView({
 
       {totalEntities === 0 ? (
         <EmptyMessage
+          illustration="weave"
           title="Una trama recién empieza así, en silencio."
           body={
             <>
@@ -127,6 +129,14 @@ export function HomeView({
         />
       ) : (
         <div className="space-y-14">
+          {/* Pulso de la semana — solo aparece si hubo actividad en
+              los últimos 7 días. Si no, no contamina la portada. */}
+          <WeeklyActivity
+            entities={entities}
+            quotes={quotes}
+            relationships={relationships}
+          />
+
           {featuredQuote && (
             <FeaturedQuote
               quote={featuredQuote}

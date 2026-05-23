@@ -3,7 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trama — mapa de afinidades</title>
+
+    <!-- Favicon SVG — escala perfecto en cualquier resolución, respeta
+         prefers-color-scheme dentro del propio archivo. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+
+    <!-- PWA manifest — habilita "Add to Home Screen" en iOS/Android con
+         icono propio y modo standalone. -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- theme-color responsive — matchea paper-50 light y paper-50 dark.
+         Algunos browsers solo respetan el primero, pero Chrome y Safari
+         honran el media-query. -->
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- iOS standalone web app — barra de status y nombre cuando se
+         agrega a Home Screen. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Trama" />
+
+    <!-- SEO + descripción base -->
+    <meta name="description" content="Trama — tu mapa cognitivo personal. Entidades, citas, relaciones, conexiones." />
+
+    <!-- Open Graph — cuando se comparte el link en Twitter, Slack, etc. -->
+    <meta property="og:title" content="Trama — mapa cognitivo personal" />
+    <meta property="og:description" content="Hilo a hilo. Tu mapa de entidades, citas y relaciones, con la IA como copiloto silencioso." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter Card — same image, summary_large_image expone la imagen
+         a full width en el preview. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Trama — mapa cognitivo personal" />
+    <meta name="twitter:description" content="Hilo a hilo. Tu mapa de entidades, citas y relaciones." />
+    <meta name="twitter:image" content="/og-image.svg" />
+
+    <title>Trama — mapa cognitivo personal</title>
   </head>
   <body>
     <div id="root"></div>

@@ -114,7 +114,7 @@ function ErrorFallback({
       role="alert"
       className="h-screen w-screen flex items-center justify-center p-6 bg-paper-50"
     >
-      <div className="max-w-lg w-full bg-paper-50 border border-ink-100 rounded-2xl shadow-xl shadow-ink-900/10 p-8">
+      <div className="max-w-lg w-full bg-paper-50 border border-ink-100 rounded-xl shadow-xl shadow-ink-900/10 p-8">
         <p className="text-micro uppercase tracking-shout text-ink-300 mb-2">
           Error
         </p>

@@ -93,7 +93,8 @@ export default withObservability('quotes', async (req: Request, context: Context
     return Response.json({ items, nextCursor })
   }
 
-  if (req.method === 'POST') {
+  // POST /api/quotes (crear) — pero NO /api/quotes/:id/restore.
+  if (req.method === 'POST' && !new URL(req.url).pathname.endsWith('/restore')) {
     const body = (await req.json()) as {
       entity_id: string
       text: string

@@ -308,7 +308,7 @@ export function ChatView({
             placeholder="pregúntale a la IA sobre tu trama, sus temas, las personas que la habitan…"
             rows={1}
             disabled={sendPending}
-            className="flex-1 resize-none bg-paper-100/40 border border-ink-100/60 rounded-2xl px-3 py-2 text-sm text-ink-700 placeholder:text-ink-300 focus:outline-none focus:border-ink-200 leading-relaxed transition-colors"
+            className="flex-1 resize-none bg-paper-100/40 border border-ink-100/60 rounded-xl px-3 py-2 text-sm text-ink-700 placeholder:text-ink-300 focus:outline-none focus:border-ink-200 leading-relaxed transition-colors"
           />
           <button
             type="submit"
@@ -334,8 +334,8 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       <div
         className={
           isUser
-            ? 'self-end max-w-[75%] px-3 py-2 bg-ink-700 text-paper-50 rounded-2xl rounded-br-md text-sm leading-relaxed whitespace-pre-wrap'
-            : 'max-w-[80%] px-3 py-2 bg-paper-100/60 border border-ink-100/50 text-ink-700 rounded-2xl rounded-bl-md text-sm leading-relaxed'
+            ? 'self-end max-w-[75%] px-3 py-2 bg-ink-700 text-paper-50 rounded-xl rounded-br-md text-sm leading-relaxed whitespace-pre-wrap'
+            : 'max-w-[80%] px-3 py-2 bg-paper-100/60 border border-ink-100/50 text-ink-700 rounded-xl rounded-bl-md text-sm leading-relaxed'
         }
       >
         <div className="whitespace-pre-wrap">{message.content}</div>

@@ -206,7 +206,13 @@ export function QuoteCard({
 
   return (
     <li className="group border-l-2 border-ink-200/70 pl-3">
-      <blockquote className="font-serif text-ink-600 italic leading-relaxed text-sm">
+      {/* Doble-click sobre la cita entra a edit full directo —
+          patrón estándar Linear/Notion. */}
+      <blockquote
+        onDoubleClick={startFullEdit}
+        className="font-serif text-ink-600 italic leading-relaxed text-sm cursor-text select-text"
+        title="Doble click para editar"
+      >
         «{quote.text}»
       </blockquote>
 

@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '../api'
 import {
   useCountsQuery,
+  useHealthAlerts,
   useProactiveQuery,
 } from '../state'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -16,7 +14,6 @@ import {
   MusicIcon,
   QuoteIcon,
   RelationsIcon,
-  SearchIcon,
   SettingsIcon,
   SparkleIcon,
   TramaMark,
@@ -48,7 +45,6 @@ export function Sidebar({
   onChangeView,
   collapsed,
   onToggleCollapsed,
-  onSelectEntity,
   offline,
   onOpenSettings,
 }: {
@@ -56,7 +52,6 @@ export function Sidebar({
   onChangeView: (v: ViewMode) => void
   collapsed: boolean
   onToggleCollapsed: () => void
-  onSelectEntity?: (id: string) => void
   offline: boolean
   onOpenSettings: () => void
 }) {
@@ -64,9 +59,11 @@ export function Sidebar({
   // Counts vienen del endpoint agregado — el Sidebar ya no carga la lista
   // completa de entidades. A 100k+ es la única opción viable.
   const { data: totals } = useCountsQuery()
+  // Alertas de salud (budget alto, errores recientes, embeddings sin
+  // indexar). Si hay algo activo, pintamos un dot en el botón de
+  // Configuración como guiño "abre Estado del sistema".
+  const healthAlerts = useHealthAlerts()
   const isMobile = useIsMobile()
-
-  const [searchQuery, setSearchQuery] = useState('')
 
   const counts: Record<ViewMode, number | null> = {
     inicio: null,
@@ -80,39 +77,6 @@ export function Sidebar({
     chat: null,
     sugerencias: pendingSuggestions.length > 0 ? pendingSuggestions.length : null,
   }
-
-  // Debounce 250ms antes de cada fetch para no embebir en cada tecla.
-  const [debouncedQuery, setDebouncedQuery] = useState('')
-  useEffect(() => {
-    const trimmed = searchQuery.trim()
-    if (!trimmed) {
-      setDebouncedQuery('')
-      return
-    }
-    const id = setTimeout(() => setDebouncedQuery(trimmed), 250)
-    return () => clearTimeout(id)
-  }, [searchQuery])
-
-  // Hybrid (lexical + semantic) search via /api/search. Sin fallback local:
-  // a 100k+ no podemos asumir que tenemos la lista cargada en memoria.
-  // Mientras espera, mostramos "buscando…". Si falla, mostramos el mensaje
-  // de error (Trama queda visible pero sin resultados de búsqueda).
-  const searchResp = useQuery({
-    queryKey: ['search', debouncedQuery],
-    queryFn: () => api.search(debouncedQuery, { limit: 8 }),
-    enabled: !!debouncedQuery,
-    staleTime: 60_000,
-  })
-
-  const searchResults =
-    searchResp.data?.entities.map((hit) => ({
-      id: hit.id,
-      name: hit.name,
-      type: hit.type,
-      score: hit.score,
-    })) ?? []
-  const searchPending =
-    !!debouncedQuery && (searchResp.isLoading || searchResp.isFetching)
 
   // ---------- collapsed sidebar ----------
   if (collapsed) {
@@ -171,13 +135,36 @@ export function Sidebar({
             />
           )}
           <AIModeToggle collapsed />
-          <Tooltip content="Configuración" side="bottom">
+          <Tooltip
+            content={
+              healthAlerts.maxSeverity
+                ? `Configuración — ${healthAlerts.count} ${healthAlerts.count === 1 ? 'alerta' : 'alertas'}`
+                : 'Configuración'
+            }
+            side="bottom"
+          >
             <button
               onClick={onOpenSettings}
-              aria-label="Configuración"
-              className="p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors active:scale-95"
+              aria-label={
+                healthAlerts.maxSeverity
+                  ? `Configuración (${healthAlerts.count} ${healthAlerts.count === 1 ? 'alerta' : 'alertas'})`
+                  : 'Configuración'
+              }
+              className="relative p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors active:scale-95"
             >
               <SettingsIcon size={14} />
+              {healthAlerts.maxSeverity && (
+                <span
+                  aria-hidden
+                  className={`absolute top-1 right-1 size-1.5 rounded-full ${
+                    healthAlerts.maxSeverity === 'error'
+                      ? 'bg-red-600'
+                      : healthAlerts.maxSeverity === 'warn'
+                        ? 'bg-amber-500'
+                        : 'bg-sky-500'
+                  } ${healthAlerts.maxSeverity !== 'info' ? 'animate-pulse-subtle' : ''}`}
+                />
+              )}
             </button>
           </Tooltip>
         </div>
@@ -200,7 +187,7 @@ export function Sidebar({
     <aside
       className={
         isMobile
-          ? 'surface-sidebar fixed inset-y-0 left-0 w-64 z-40 border-r border-ink-100 flex flex-col shadow-2xl'
+          ? 'surface-sidebar fixed inset-y-0 left-0 w-64 z-40 border-r border-ink-100 flex flex-col shadow-lg'
           : 'surface-sidebar w-64 shrink-0 border-r border-ink-100 flex flex-col'
       }
     >
@@ -228,61 +215,9 @@ export function Sidebar({
         </button>
       </header>
 
-      {/* Mostramos la barra siempre que no sepamos con certeza que la
-          trama está vacía. Si totals aún no respondió, asumimos no-vacío
-          para que el input aparezca de inmediato. */}
-      {(totals === undefined || totals.entities > 0) && (
-        <div className="px-3 pb-2">
-          <div className="relative">
-            <SearchIcon
-              size={12}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none"
-            />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar"
-              aria-label="Buscar entidades"
-              className="w-full text-body pl-7 pr-2 py-1.5 rounded-md border border-ink-100 bg-paper-50 text-ink-700 placeholder:text-ink-400 focus:outline-none focus:border-ink-200 focus:ring-1 focus:ring-ink-200 transition-colors"
-            />
-          </div>
-          {debouncedQuery && (
-            <div className="mt-1.5 max-h-64 overflow-y-auto">
-              {searchPending ? (
-                <p className="px-2.5 py-1 text-xs text-ink-400 italic">buscando…</p>
-              ) : searchResp.error ? (
-                <p className="px-2.5 py-1 text-xs text-red-700">
-                  No se pudo buscar.
-                </p>
-              ) : searchResults.length === 0 ? (
-                <p className="px-2.5 py-1 text-xs text-ink-400 italic">
-                  sin resultados
-                </p>
-              ) : (
-                <ul className="space-y-0.5">
-                  {searchResults.map((entity) => (
-                    <li key={entity.id}>
-                      <button
-                        onClick={() => {
-                          onSelectEntity?.(entity.id)
-                          setSearchQuery('')
-                        }}
-                        className="w-full text-left px-2.5 py-1 text-body rounded hover:bg-ink-100 transition-colors flex items-baseline justify-between gap-2"
-                      >
-                        <span className="text-ink-700 truncate">{entity.name}</span>
-                        <span className="text-micro uppercase tracking-wider text-ink-400 shrink-0">
-                          {entity.type}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Búsqueda unificada en ⌘K (TopBar palette pill o atajo de teclado).
+          Antes había un input acá que duplicaba la intención — Codex/Linear
+          tienen una sola entrada de búsqueda, no dos. */}
 
       <nav className="flex flex-col px-2 gap-px">
         {NAV_ITEMS.map((item) => {
@@ -293,12 +228,22 @@ export function Sidebar({
               key={item.value}
               onClick={() => onChangeView(item.value)}
               aria-label={item.label}
-              className={`group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-body transition-colors relative ${
+              className={`group flex items-center justify-between gap-2 pl-3 pr-2.5 py-1.5 rounded-md text-body transition-colors relative ${
                 active
-                  ? 'text-ink-800 bg-ink-100 font-medium'
+                  ? 'text-ink-800 font-medium'
                   : 'text-ink-500 hover:text-ink-800 hover:bg-ink-100/60'
               }`}
             >
+              {/* Active state — barra lateral 2px en lugar del bg-fill.
+                  Codex/Cursor lo hacen así: la indicación viene del lado
+                  izquierdo, no del relleno del botón. Más sutil, menos
+                  ruido visual. */}
+              {active && (
+                <span
+                  aria-hidden
+                  className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r bg-ink-700"
+                />
+              )}
               <span className="flex items-center gap-2.5 min-w-0">
                 <Icon
                   size={14}
@@ -339,10 +284,29 @@ export function Sidebar({
           className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-body text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
         >
           <SettingsIcon size={14} className="text-ink-400" />
-          <span>Configuración</span>
+          <span className="flex-1 text-left">Configuración</span>
+          {healthAlerts.maxSeverity && (
+            <span
+              className={`text-micro uppercase tracking-eyebrow tabular-nums px-1.5 py-0.5 rounded-full font-medium ${
+                healthAlerts.maxSeverity === 'error'
+                  ? 'bg-red-100 text-red-700'
+                  : healthAlerts.maxSeverity === 'warn'
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-sky-100 text-sky-700'
+              }`}
+              aria-label={`${healthAlerts.count} ${
+                healthAlerts.count === 1 ? 'alerta' : 'alertas'
+              }`}
+            >
+              {healthAlerts.count}
+            </span>
+          )}
         </button>
+        {/* Versión leída del package.json en build-time (vite.config.ts
+            inyecta VITE_APP_VERSION). Single source of truth — no hay
+            que recordar actualizar este string a mano. */}
         <p className="text-micro uppercase tracking-wider text-ink-300 text-center pt-2 pb-0.5">
-          trama · v0.8.0
+          trama · v{import.meta.env.VITE_APP_VERSION}
         </p>
       </div>
     </aside>

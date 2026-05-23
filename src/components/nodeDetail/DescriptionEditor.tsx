@@ -150,10 +150,26 @@ export function DescriptionEditor({ entity }: { entity: Entity }) {
 
   return (
     <section className="group">
+      {/* Doble-click sobre el texto entra a modo edit directo — patrón
+          estándar Linear/Notion. El botón "editar" sigue ahí para
+          descubribilidad y para teclado/touch donde double-click es
+          menos natural. */}
       {entity.description ? (
-        <p className="text-ink-700 leading-relaxed">{entity.description}</p>
+        <p
+          onDoubleClick={() => setEditing(true)}
+          className="text-ink-700 leading-relaxed cursor-text select-text"
+          title="Doble click para editar"
+        >
+          {entity.description}
+        </p>
       ) : (
-        <p className="text-ink-300 italic text-sm">sin descripción.</p>
+        <p
+          onDoubleClick={() => setEditing(true)}
+          className="text-ink-300 italic text-sm cursor-text"
+          title="Doble click para añadir descripción"
+        >
+          sin descripción.
+        </p>
       )}
       <button
         onClick={() => setEditing(true)}

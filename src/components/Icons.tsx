@@ -216,6 +216,100 @@ export const OrnamentBreak = ({ size = 72, className }: Props) => (
   </svg>
 )
 
+/* Empty-state illustration — "hilos que aún no se tejen". Dos trazos
+   que casi se cruzan pero no llegan a entretejerse, evocando el
+   concepto "trama" en estado potencial. Diseño minimalista que
+   complementa la composición editorial del EmptyMessage sin gritar.
+
+   Tres tamaños semánticos:
+     - 'thread'   un solo trazo con punto al final (sin algo, ej. citas)
+     - 'pair'     dos trazos paralelos que no se cruzan (sin relación)
+     - 'weave'    los dos trazos curvos con punto central (sin entidades) */
+type IllustrationKind = 'thread' | 'pair' | 'weave'
+
+export const EmptyIllustration = ({
+  kind = 'weave',
+  size = 96,
+  className,
+}: { kind?: IllustrationKind; size?: number; className?: string }) => {
+  if (kind === 'thread') {
+    return (
+      <svg
+        width={size}
+        height={(size * 24) / 96}
+        viewBox="0 0 96 24"
+        fill="none"
+        className={className}
+        aria-hidden="true"
+      >
+        <path
+          d="M8 12h70"
+          stroke="currentColor"
+          strokeWidth={1.2}
+          strokeLinecap="round"
+          strokeOpacity={0.45}
+          strokeDasharray="1 5"
+        />
+        <circle cx="82" cy="12" r="1.4" fill="currentColor" fillOpacity={0.6} />
+      </svg>
+    )
+  }
+  if (kind === 'pair') {
+    return (
+      <svg
+        width={size}
+        height={(size * 36) / 96}
+        viewBox="0 0 96 36"
+        fill="none"
+        className={className}
+        aria-hidden="true"
+      >
+        <circle cx="14" cy="10" r="2.2" fill="currentColor" fillOpacity={0.5} />
+        <circle cx="14" cy="26" r="2.2" fill="currentColor" fillOpacity={0.5} />
+        <path
+          d="M22 10h60M22 26h60"
+          stroke="currentColor"
+          strokeWidth={1}
+          strokeOpacity={0.35}
+          strokeDasharray="1 4"
+          strokeLinecap="round"
+        />
+      </svg>
+    )
+  }
+  // weave (default)
+  return (
+    <svg
+      width={size}
+      height={(size * 48) / 96}
+      viewBox="0 0 96 48"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* Dos curvas que se cruzan en el centro — el "weave" sugerido */}
+      <path
+        d="M8 12 C 28 12, 36 36, 56 36 S 84 36, 88 36"
+        stroke="currentColor"
+        strokeWidth={1.2}
+        strokeLinecap="round"
+        strokeOpacity={0.45}
+        fill="none"
+      />
+      <path
+        d="M8 36 C 28 36, 36 12, 56 12 S 84 12, 88 12"
+        stroke="currentColor"
+        strokeWidth={1.2}
+        strokeLinecap="round"
+        strokeOpacity={0.45}
+        fill="none"
+      />
+      {/* Nodo central — el punto de encuentro */}
+      <circle cx="48" cy="24" r="1.8" fill="currentColor" fillOpacity={0.7} />
+    </svg>
+  )
+}
+
 /* End-of-content mark — a single woven dot, used like ❦ to close a long
    section or a featured quote. Smaller and quieter than OrnamentBreak. */
 export const EndMark = ({ size = 14, className }: Props) => (

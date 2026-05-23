@@ -114,7 +114,7 @@ export function RelationshipsView({
         <div className="min-w-0">
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Relaciones</h2>
           <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-md">
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
             Vínculos entre dos entidades — quién influye en quién, qué cita a qué,
             qué te llegó por dónde. Las líneas del grafo.
           </p>
@@ -176,6 +176,7 @@ export function RelationshipsView({
 
       {entities.length < 2 ? (
         <EmptyMessage
+          illustration="pair"
           title="Una relación necesita dos."
           body={
             <>
@@ -236,6 +237,7 @@ export function RelationshipsView({
             <p className="text-ink-300 italic text-sm">cargando…</p>
           ) : relationships.length === 0 ? (
             <EmptyMessage
+              illustration="pair"
               title="Las entidades están sueltas."
               body={
                 <>

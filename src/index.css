@@ -361,6 +361,67 @@ html.dark .paper-grain::before {
     animation: ai-arrive 900ms cubic-bezier(0.2, 0.85, 0.4, 1) both;
   }
 
+  /* View Transitions API — refinamiento del default del browser.
+     El navegador anima entre dos elementos con el mismo
+     view-transition-name (e.g., EntityRow → EntityHeader). Tunear
+     la duración/easing para que matchee el feel del resto de la app
+     (ease-out-quart, ~280ms — coincide con slide-in-right). */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 280ms;
+    animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  /* Cada par card↔header tiene su nombre único `entity-card-{id}`.
+     Aplicamos la curva via el wildcard sin tener que enumerar IDs. */
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 320ms;
+    animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation-duration: 0ms;
+    }
+  }
+
+  /* Progress indeterminate — barra deslizante para operaciones donde
+     no sabemos el total. Va de left:-33% a left:100% loop. Más sutil
+     que un spinner. */
+  @keyframes progress-indeterminate {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+  .progress-indeterminate {
+    animation: progress-indeterminate 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .progress-indeterminate {
+      animation: none;
+      width: 100% !important;
+      opacity: 0.5;
+    }
+  }
+
+  /* Check pop — para el ✓ del status "guardado". Pequeño overshoot
+     (0 → 1.15 → 1) que se siente como un "tick" táctil. Es la
+     diferencia entre "se grabó" silencioso y "se grabó" satisfactorio.
+     Respeta prefers-reduced-motion. */
+  @keyframes check-pop {
+    0%   { opacity: 0; transform: scale(0.4); }
+    60%  { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .animate-check-pop {
+    animation: check-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    transform-origin: center;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-check-pop {
+      animation: none;
+    }
+  }
+
   /* Pulse halo for selected nodes — opacity only (r animation is finicky cross-browser) */
   @keyframes halo-pulse {
     0%, 100% { opacity: 0.55; transform: scale(1); }
@@ -688,6 +749,39 @@ html.dark .paper-grain::before {
            focus-visible:ring-offset-2;
     --tw-ring-color: var(--accent-primary);
     --tw-ring-offset-color: rgb(var(--paper-50));
+  }
+
+  /* Hover actions bar — toolbar flotante de acciones rápidas que
+     aparece al hover sobre una card. Pensado para los patrones tipo
+     Linear/Codex: las acciones permanentes ensucian el visual, solo
+     aparecen cuando el cursor está cerca.
+
+     Uso típico:
+       <div className="group relative">
+         <button>...</button>  ← contenido principal del card
+         <div className="hover-actions">
+           <button>...</button> ← acciones rápidas
+           <button className="hover-action-destructive">...</button>
+         </div>
+       </div>
+
+     El padre necesita `group relative`. Las animaciones respetan
+     prefers-reduced-motion via la duración corta (150ms). */
+  .hover-actions {
+    @apply absolute top-2 right-2 opacity-0 group-hover:opacity-100
+           focus-within:opacity-100 transition-opacity duration-150
+           flex items-center gap-0.5 p-0.5
+           bg-paper-50/95 border border-ink-100/80 rounded-md
+           shadow-sm backdrop-blur-sm;
+  }
+  .hover-actions > button,
+  .hover-actions > a {
+    @apply p-1 rounded text-ink-400 hover:text-ink-700 hover:bg-ink-100
+           transition-colors;
+  }
+  .hover-actions > .hover-action-destructive:hover {
+    color: rgb(185 28 28);
+    background-color: rgb(254 226 226 / 0.7);
   }
 
   /* Card paper — patrón canónico de "fila/card en lista".

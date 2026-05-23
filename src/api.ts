@@ -796,6 +796,13 @@ export type ChatMessage = {
   model?: string
 }
 
+export type HealthAlert = {
+  severity: 'info' | 'warn' | 'error'
+  code: string
+  label: string
+  hint: string
+}
+
 export type HealthResponse = {
   counts: { entities: number; quotes: number; relationships: number }
   month: {
@@ -823,6 +830,18 @@ export type HealthResponse = {
     statusCode: number | null
     message: string
     createdAt: string
+  }>
+  alerts: HealthAlert[]
+  embeddings: {
+    pendingEntities: number
+    pendingQuotes: number
+  }
+  /** Serie diaria de los últimos 30 días para sparklines. Días sin
+      actividad aparecen con costCents=0, calls=0. */
+  dailyCost: Array<{
+    day: string
+    costCents: number
+    calls: number
   }>
 }
 

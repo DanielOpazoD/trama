@@ -82,7 +82,8 @@ export default withObservability('relationships', async (req: Request, context: 
     return Response.json({ items, nextCursor })
   }
 
-  if (req.method === 'POST') {
+  // POST /api/relationships (crear) — pero NO /api/relationships/:id/restore.
+  if (req.method === 'POST' && !new URL(req.url).pathname.endsWith('/restore')) {
     const body = (await req.json()) as {
       from_id: string
       to_id: string

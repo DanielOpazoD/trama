@@ -171,7 +171,7 @@ export function AskBar({
           </div>
         )}
         {reply && (
-          <div className="mb-2 px-4 py-3 bg-paper-50/95 border border-ink-100/80 rounded-2xl shadow-xl shadow-ink-900/10 backdrop-blur-md animate-ai-arrive">
+          <div className="mb-2 px-4 py-3 bg-paper-50/95 border border-ink-100/80 rounded-xl shadow-xl shadow-ink-900/10 backdrop-blur-md animate-ai-arrive">
             <div className="flex items-baseline justify-between gap-3 mb-1">
               <span
                 className="text-micro uppercase tracking-eyebrow inline-flex items-center gap-1.5"
@@ -222,7 +222,7 @@ export function AskBar({
         )}
         <form
           onSubmit={handleSubmit}
-          className="flex items-end gap-2 bg-paper-50/90 border border-ink-100/80 rounded-2xl shadow-xl shadow-ink-900/10 p-2 backdrop-blur-md transition-shadow duration-300 focus-within:shadow-2xl focus-within:shadow-ink-900/15 focus-within:border-ink-200"
+          className="flex items-end gap-2 bg-paper-50/90 border border-ink-100/80 rounded-xl shadow-xl shadow-ink-900/10 p-2 backdrop-blur-md transition-shadow duration-300 focus-within:shadow-lg focus-within:shadow-ink-900/10 focus-within:border-ink-200"
         >
           <button
             type="button"

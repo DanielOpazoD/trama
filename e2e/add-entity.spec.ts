@@ -14,12 +14,21 @@ test('crear entidad manualmente desde EntitiesView', async ({ page }) => {
 
   // Navegar a Entidades desde la sidebar.
   await page.getByRole('button', { name: 'Entidades' }).click()
-  await expect(page.getByRole('heading', { name: 'Entidades' })).toBeVisible()
+  // El TopBar ahora pone también un <h1> con el nombre de la sección (commit β4),
+  // así que hay dos headings "Entidades": el h1 del TopBar y el h2 del page header.
+  // Apuntamos explícitamente al h2 del page header para evitar strict-mode violation.
+  await expect(
+    page.getByRole('heading', { name: 'Entidades', level: 2 }),
+  ).toBeVisible()
 
-  // Abrir el formulario.
-  await page.getByRole('button', { name: 'añadir manualmente' }).click()
+  // Abrir el formulario — el botón del header toggle se llama "Añadir" (era
+  // "añadir manualmente" antes de T4: UX copy minimal). Al click, ese botón
+  // pasa a "Cerrar" y aparece un segundo botón "Añadir" como submit del form.
+  // Por eso primer click usa el botón actual (único "Añadir") con regex anclado.
+  await page.getByRole('button', { name: /^Añadir$/ }).click()
 
-  // Rellenar y enviar.
+  // Rellenar y enviar. Una vez abierto el form, el header toggle muestra
+  // "Cerrar" y el único "Añadir" restante es el submit del form.
   await page.getByPlaceholder('Nombre').fill('Borges')
   await page.getByPlaceholder('Año').fill('1899')
   await page.getByPlaceholder('Nota o descripción (opcional)').fill('ensayista argentino')

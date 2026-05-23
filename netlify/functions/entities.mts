@@ -96,7 +96,11 @@ export default withObservability('entities', async (req: Request, context: Conte
     return Response.json({ items, nextCursor })
   }
 
-  if (req.method === 'POST') {
+  // POST /api/entities (crear) — pero NO /api/entities/:id/restore (que es
+  // otro POST manejado más abajo). Sin este guard, el flujo de crear
+  // intentaría parsear el body de restore como una nueva entidad y caería
+  // en 500.
+  if (req.method === 'POST' && !new URL(req.url).pathname.endsWith('/restore')) {
     const body = (await req.json()) as {
       type: string
       name: string

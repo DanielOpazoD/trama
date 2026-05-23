@@ -10,6 +10,7 @@ export { Provider } from './Provider'
 export { useOffline } from './offline'
 export { useToast, type Toast, type ToastAction } from './toast'
 export { useGlobalStatus, type GlobalStatus } from './useGlobalStatus'
+export { useHealthAlerts, type HealthAlertSummary } from './useHealthAlerts'
 export { useCountsQuery } from './useCounts'
 export { useNeighborsQuery } from './useNeighbors'
 export {
