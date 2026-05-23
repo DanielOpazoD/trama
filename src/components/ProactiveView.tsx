@@ -10,7 +10,7 @@ import {
 } from '../state'
 import type { ProactiveSuggestion } from '../api'
 import { ENTITY_TYPES, RELATIONSHIP_TYPES } from '../types'
-import { SparkleIcon } from './Icons'
+import { EndMark, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 
 /**
@@ -129,6 +129,7 @@ export function ProactiveView() {
           }
         />
       ) : (
+        <>
         <ul className="space-y-3">
           {suggestions.map((s, idx) => (
             <li
@@ -184,6 +185,12 @@ export function ProactiveView() {
             </li>
           ))}
         </ul>
+        {suggestions.length >= 3 && (
+          <div className="flex justify-center mt-8 mb-2 text-ink-300">
+            <EndMark size={14} />
+          </div>
+        )}
+        </>
       )}
     </>
   )

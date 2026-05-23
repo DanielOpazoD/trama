@@ -8,7 +8,7 @@ import {
   useSuggestRelationships,
   useOffline,
 } from '../state'
-import { CloseIcon, SparkleIcon, TrashIcon } from './Icons'
+import { CloseIcon, EndMark, SparkleIcon, TrashIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import { EntityCombobox } from './EntityCombobox'
@@ -284,6 +284,13 @@ export function RelationshipsView({
               cargando más…
             </p>
           )}
+          {!relsPaged.hasNextPage &&
+            !relsPaged.isLoading &&
+            relationships.length >= 5 && (
+              <div className="flex justify-center mt-8 mb-2 text-ink-300">
+                <EndMark size={14} />
+              </div>
+            )}
         </>
       )}
     </>

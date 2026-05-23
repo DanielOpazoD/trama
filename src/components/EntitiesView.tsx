@@ -11,7 +11,7 @@ import {
   useUpdateEntityType,
 } from '../state'
 import type { Reclassification } from '../api'
-import { ChevronRightIcon, SparkleIcon, TrashIcon } from './Icons'
+import { ChevronRightIcon, EndMark, SparkleIcon, TrashIcon } from './Icons'
 import { ReclassifyPanel } from './ReclassifyPanel'
 import { EmptyMessage } from './EmptyMessage'
 import { EntityCardSkeleton, SkeletonList } from './Skeleton'
@@ -445,6 +445,13 @@ export function EntitiesView({
           cargando más…
         </p>
       )}
+      {!entitiesPaged.hasNextPage &&
+        !entitiesPaged.isLoading &&
+        entities.length >= 5 && (
+          <div className="flex justify-center mt-8 mb-2 text-ink-300">
+            <EndMark size={14} />
+          </div>
+        )}
     </>
   )
 }

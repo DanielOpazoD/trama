@@ -6,7 +6,7 @@ import {
   useAddQuote,
   useDeleteQuote,
 } from '../state'
-import { SparkleIcon, TrashIcon } from './Icons'
+import { EndMark, SparkleIcon, TrashIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import type { Entity, Quote } from '../types'
@@ -274,6 +274,13 @@ export function QuotesView({
               cargando más…
             </p>
           )}
+          {!quotesPaged.hasNextPage &&
+            !quotesPaged.isLoading &&
+            quotes.length >= 5 && (
+              <div className="flex justify-center mt-8 mb-2 text-ink-300">
+                <EndMark size={14} />
+              </div>
+            )}
         </>
       )}
     </>
