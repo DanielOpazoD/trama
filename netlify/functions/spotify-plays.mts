@@ -67,42 +67,75 @@ export default withObservability('spotify-plays', async (req) => {
       LIMIT ${limit}
     `) as unknown as Group[]
   } else if (group === 'album') {
-    // π3: añadimos artists ─ tomamos los artist_names del primer play del
-    // álbum como representativos (todos los plays del mismo album_name
-    // suelen tener los mismos artistas, salvo compilaciones).
+    // π3-fix: para llevar artist_names al cliente, usamos DISTINCT ON
+    // sobre el play más reciente. ARRAY_AGG(text[]) era frágil — si dos
+    // plays del mismo álbum tenían arrays de distinto largo (1 artista
+    // vs un feat con 2), PG podía tirar "cannot accumulate arrays of
+    // different sizes" o devolver text[][] mal serializado por el
+    // driver. DISTINCT ON garantiza UNA fila → UN array.
     rows = (await sql`
-      SELECT album_name AS key,
-             COUNT(*)::int AS plays,
-             MIN(played_at) AS first_played,
-             MAX(played_at) AS last_played,
-             (ARRAY_AGG(album_id))[1] AS sample_spotify_id,
-             (ARRAY_AGG(artist_names))[1] AS artists,
+      WITH per_album AS (
+        SELECT DISTINCT ON (album_name)
+          album_name, artist_names, album_id, played_at
+        FROM spotify_plays
+        WHERE played_at >= ${since} AND album_name IS NOT NULL
+        ORDER BY album_name, played_at DESC
+      ),
+      counts AS (
+        SELECT album_name,
+               COUNT(*)::int AS plays,
+               MIN(played_at) AS first_played,
+               MAX(played_at) AS last_played
+        FROM spotify_plays
+        WHERE played_at >= ${since} AND album_name IS NOT NULL
+        GROUP BY album_name
+      )
+      SELECT c.album_name AS key,
+             c.plays,
+             c.first_played,
+             c.last_played,
+             p.album_id AS sample_spotify_id,
+             p.artist_names AS artists,
              e.id AS existing_entity_id
-      FROM spotify_plays p
+      FROM counts c
+      JOIN per_album p ON p.album_name = c.album_name
       LEFT JOIN entities e
-        ON LOWER(e.name) = LOWER(p.album_name) AND e.deleted_at IS NULL
-      WHERE p.played_at >= ${since} AND album_name IS NOT NULL
-      GROUP BY album_name, e.id
-      ORDER BY plays DESC
+        ON LOWER(e.name) = LOWER(c.album_name) AND e.deleted_at IS NULL
+      ORDER BY c.plays DESC
       LIMIT ${limit}
     `) as unknown as Group[]
   } else {
-    // π3: tracks ─ idem, agregamos artists para que el listado no sea
-    // ambiguo ("Y2K Cataclysm" puede ser cualquier cosa sin autoría).
+    // π3-fix: idem tracks. DISTINCT ON sobre played_at DESC nos da la
+    // versión más reciente del track con SU artist_names intacto.
     rows = (await sql`
-      SELECT track_name AS key,
-             COUNT(*)::int AS plays,
-             MIN(played_at) AS first_played,
-             MAX(played_at) AS last_played,
-             (ARRAY_AGG(track_id))[1] AS sample_spotify_id,
-             (ARRAY_AGG(artist_names))[1] AS artists,
+      WITH per_track AS (
+        SELECT DISTINCT ON (track_name)
+          track_name, artist_names, track_id, played_at
+        FROM spotify_plays
+        WHERE played_at >= ${since}
+        ORDER BY track_name, played_at DESC
+      ),
+      counts AS (
+        SELECT track_name,
+               COUNT(*)::int AS plays,
+               MIN(played_at) AS first_played,
+               MAX(played_at) AS last_played
+        FROM spotify_plays
+        WHERE played_at >= ${since}
+        GROUP BY track_name
+      )
+      SELECT c.track_name AS key,
+             c.plays,
+             c.first_played,
+             c.last_played,
+             p.track_id AS sample_spotify_id,
+             p.artist_names AS artists,
              e.id AS existing_entity_id
-      FROM spotify_plays p
+      FROM counts c
+      JOIN per_track p ON p.track_name = c.track_name
       LEFT JOIN entities e
-        ON LOWER(e.name) = LOWER(p.track_name) AND e.deleted_at IS NULL
-      WHERE p.played_at >= ${since}
-      GROUP BY track_name, e.id
-      ORDER BY plays DESC
+        ON LOWER(e.name) = LOWER(c.track_name) AND e.deleted_at IS NULL
+      ORDER BY c.plays DESC
       LIMIT ${limit}
     `) as unknown as Group[]
   }
