@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useUpdateEntity } from '../../state'
 import type { Entity } from '../../types'
+import { ReadingModeEssay } from '../ReadingModeEssay'
 
 /**
  * Editor del "ensayo" — una nota larga en formato libre que vive en
@@ -16,6 +17,9 @@ export function EssayEditor({ entity }: { entity: Entity }) {
   const updateEntity = useUpdateEntity()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(entity.essay ?? '')
+  // δ4: reading mode — open full-screen serif modal. Solo aplica cuando
+  // hay essay; ver ReadingModeEssay para los detalles tipográficos.
+  const [readingOpen, setReadingOpen] = useState(false)
 
   useEffect(() => {
     setDraft(entity.essay ?? '')
@@ -71,25 +75,44 @@ export function EssayEditor({ entity }: { entity: Entity }) {
 
   if (entity.essay) {
     return (
-      <section className="group/essay">
-        <div className="flex items-baseline gap-2 mb-2">
-          <span className="text-xs uppercase tracking-wider text-ink-400">ensayo</span>
-          <button
-            onClick={() => setEditing(true)}
-            className="opacity-0 group-hover/essay:opacity-100 transition-opacity text-xs text-ink-400 hover:text-ink-700"
+      <>
+        <section className="group/essay">
+          <div className="flex items-baseline gap-3 mb-2">
+            <span className="text-xs uppercase tracking-wider text-ink-400">ensayo</span>
+            {/* δ4: dos affordances al hover — "leer" abre modo lectura
+                full-screen (tipografía generosa para texto largo), "editar"
+                entra al editor inline. El doble click sobre el cuerpo sigue
+                yendo a editar (era el atajo de B1). */}
+            <button
+              onClick={() => setReadingOpen(true)}
+              className="opacity-0 group-hover/essay:opacity-100 transition-opacity text-xs text-ink-400 hover:text-ink-700"
+              title="Abrir en modo lectura (serif, columna ancha)"
+            >
+              leer
+            </button>
+            <button
+              onClick={() => setEditing(true)}
+              className="opacity-0 group-hover/essay:opacity-100 transition-opacity text-xs text-ink-400 hover:text-ink-700"
+            >
+              editar
+            </button>
+          </div>
+          {/* Doble-click sobre el ensayo entra a edit. */}
+          <div
+            onDoubleClick={() => setEditing(true)}
+            className="text-ink-700 text-sm leading-relaxed whitespace-pre-wrap font-serif cursor-text select-text"
+            title="Doble click para editar · botón 'leer' para modo lectura"
           >
-            editar
-          </button>
-        </div>
-        {/* Doble-click sobre el ensayo entra a edit. */}
-        <div
-          onDoubleClick={() => setEditing(true)}
-          className="text-ink-700 text-sm leading-relaxed whitespace-pre-wrap font-serif cursor-text select-text"
-          title="Doble click para editar"
-        >
-          {entity.essay}
-        </div>
-      </section>
+            {entity.essay}
+          </div>
+        </section>
+        <ReadingModeEssay
+          title={entity.name}
+          body={entity.essay}
+          open={readingOpen}
+          onClose={() => setReadingOpen(false)}
+        />
+      </>
     )
   }
 

@@ -216,6 +216,38 @@
      antiguas que dan el feel "letterpress" sin ser ostentoso. */
   .font-serif {
     font-feature-settings: 'liga', 'dlig', 'kern';
+    /* δ3: hanging-punctuation hace que las comillas y guiones iniciales
+       "cuelguen" fuera del borde izquierdo del bloque, alineando el
+       primer carácter alfanumérico con el resto del texto. Es lo que
+       hace que una página de libro impreso se vea tallada en vez de
+       alineada. Solo Safari lo soporta hoy (~25% del market), pero al
+       resto no le rompe nada — degrada silenciosamente. */
+    hanging-punctuation: first last;
+  }
+
+  /* δ3: mono con ligatures + alternates. JetBrains Mono tiene "=>"
+     "===" "!==" "->" "<=" como ligatures naturales — útiles para los
+     atajos visibles del kbd (Ctrl+K, ⌘ →, etc.) y para fragmentos de
+     código que aparecen ocasionalmente en chat/proposals. */
+  .font-mono {
+    font-feature-settings: 'liga', 'calt', 'kern';
+  }
+
+  /* δ3: una variante eyebrow editorial — serif + small caps reales.
+     Inter (sans, el que usamos por default en eyebrows) no tiene smcp
+     real en su OpenType table, así que ese feature-setting sería ruido.
+     Spectral SÍ tiene 'smcp' + 'c2sc'. Para opt-in donde quiero el
+     refinamiento (cita del día, ornaments, splash), uso esta clase
+     adicional .section-eyebrow-serif que sustituye el uppercase
+     compuesto por small caps tipográficos verdaderos. */
+  .section-eyebrow-serif {
+    font-family: theme('fontFamily.serif');
+    font-variant-caps: small-caps;
+    font-feature-settings: 'smcp', 'c2sc', 'kern';
+    letter-spacing: 0.08em; /* relajado vs eyebrow estándar 0.18em */
+    text-transform: lowercase; /* small caps muestra mayúsculas sintéticas si recibe lowercase */
+    color: rgb(var(--ink-300));
+    font-size: 12px;
   }
 
   /* Selection: usar el accent-primary suave en vez del azul nativo del

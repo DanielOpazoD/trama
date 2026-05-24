@@ -242,8 +242,12 @@ function FeaturedQuote({
     // resto del flujo.
     <section className="animate-fade-up pad-block-5 max-w-prose mx-auto">
       <div className="mb-4 flex items-baseline justify-between">
+        {/* Eyebrow editorial con small caps reales — Spectral 'smcp'.
+            Se ve más calmado y refinado que el uppercase + tracking
+            shouty del resto de los eyebrows. Reservado para momentos
+            de carga visual editorial alta. */}
         <p
-          className="text-micro uppercase tracking-eyebrow"
+          className="section-eyebrow-serif"
           style={{ color: 'var(--accent-gold)' }}
         >
           ◆ una cita de tu trama
