@@ -20,16 +20,10 @@ import {
   TramaMark,
 } from './Icons'
 import { AIModeToggle } from './AIModeToggle'
-import { NumberTicker } from './NumberTicker'
+import { NavButton, type NavItem } from './sidebar/NavButton'
 import { Tooltip } from './Tooltip'
 
 export type ViewMode = 'inicio' | 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'chat' | 'sugerencias'
-
-type NavItem = {
-  value: ViewMode
-  label: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
-}
 
 const NAV_ITEMS: NavItem[] = [
   { value: 'inicio', label: 'Inicio', icon: HomeIcon },
@@ -110,46 +104,16 @@ export function Sidebar({
         <div className="w-7 h-px bg-ink-100/70 my-2" />
 
         <nav className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => {
-            const active = view === item.value
-            const Icon = item.icon
-            // Mismo trato que en el sidebar expandido: incluir el count en
-            // aria-label para no romper label-content-name-mismatch. Acá el
-            // badge visible es el número solo (sin label), así que el screen
-            // reader lee "Entidades, 63 items" mientras el sighted ve solo
-            // el icono + badge "63".
-            const count = counts[item.value]
-            // δ8: axe rule label-content-name-mismatch compara contra el
-            // texto visible. Antes generábamos "Entidades (63)" pero el
-            // visible es "Entidades 63" (sin parens), y axe pide substring
-            // exacto. Sin parens, el aria-label coincide literal.
-            const ariaLabel = count !== null && count > 0
-              ? `${item.label} ${count}`
-              : item.label
-            return (
-              <Tooltip key={item.value} content={item.label} side="bottom">
-                <button
-                  onClick={() => onChangeView(item.value)}
-                  aria-label={ariaLabel}
-                  className={`relative p-2.5 rounded-lg transition-all duration-250 ease-out active:scale-95 ${
-                    active
-                      ? 'bg-ink-700/10 text-ink-700'
-                      : 'text-ink-300 hover:text-ink-700 hover:bg-ink-700/5'
-                  }`}
-                >
-                  <Icon size={18} />
-                  {active && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-1 h-5 rounded-r bg-ink-700" />
-                  )}
-                  {counts[item.value] !== null && counts[item.value]! > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-ink-700 text-paper-50 text-micro font-medium flex items-center justify-center">
-                      <NumberTicker value={counts[item.value]!} />
-                    </span>
-                  )}
-                </button>
-              </Tooltip>
-            )
-          })}
+          {NAV_ITEMS.map((item) => (
+            <NavButton
+              key={item.value}
+              item={item}
+              active={view === item.value}
+              count={counts[item.value]}
+              mode="collapsed"
+              onClick={() => onChangeView(item.value)}
+            />
+          ))}
         </nav>
 
         <div className="mt-auto flex flex-col gap-1 items-center">
@@ -246,70 +210,17 @@ export function Sidebar({
           tienen una sola entrada de búsqueda, no dos. */}
 
       <nav className="flex flex-col px-2 gap-px">
-        {NAV_ITEMS.map((item) => {
-          const active = view === item.value
-          const Icon = item.icon
-          // aria-label incluye el count cuando hay uno, para que el screen
-          // reader anuncie "Entidades, 63 items" — coincide con lo que el
-          // sighted user ve (texto "Entidades" + badge "63"). Antes el
-          // aria-label decía sólo "Entidades" y Lighthouse marcaba
-          // label-content-name-mismatch.
-          const count = counts[item.value]
-          const ariaLabel = count !== null && count > 0
-            ? `${item.label} (${count})`
-            : item.label
-          return (
-            <button
-              key={item.value}
-              onClick={() => onChangeView(item.value)}
-              aria-label={ariaLabel}
-              className={`group flex items-center justify-between gap-2 pl-3 pr-2.5 py-1.5 rounded-md text-body transition-colors relative ${
-                active
-                  ? 'text-ink-800 font-medium'
-                  : 'text-ink-500 hover:text-ink-800 hover:bg-ink-100/60'
-              }`}
-            >
-              {/* Active state — barra lateral 2px en lugar del bg-fill.
-                  Codex/Cursor lo hacen así: la indicación viene del lado
-                  izquierdo, no del relleno del botón. Más sutil, menos
-                  ruido visual. */}
-              {active && (
-                <span
-                  aria-hidden
-                  className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r bg-ink-700"
-                />
-              )}
-              <span className="flex items-center gap-2.5 min-w-0">
-                <Icon
-                  size={14}
-                  className={active ? 'text-ink-700' : 'text-ink-400 group-hover:text-ink-600'}
-                />
-                <span className="truncate">{item.label}</span>
-              </span>
-              {counts[item.value] !== null && (
-                <span
-                  className={
-                    item.value === 'sugerencias'
-                      ? 'text-caption px-1.5 py-px rounded font-medium'
-                      : 'text-caption text-ink-400 font-normal'
-                  }
-                  style={
-                    item.value === 'sugerencias'
-                      ? {
-                          backgroundColor: 'var(--accent-primary-soft)',
-                          color: 'var(--accent-primary)',
-                        }
-                      : undefined
-                  }
-                >
-                  {/* δ5: NumberTicker en lugar de valor literal — anima
-                      63→64 cuando agregás una entidad. */}
-                  <NumberTicker value={counts[item.value]!} />
-                </span>
-              )}
-            </button>
-          )
-        })}
+        {NAV_ITEMS.map((item) => (
+          <NavButton
+            key={item.value}
+            item={item}
+            active={view === item.value}
+            count={counts[item.value]}
+            mode="expanded"
+            badgeTone={item.value === 'sugerencias' ? 'accent' : 'default'}
+            onClick={() => onChangeView(item.value)}
+          />
+        ))}
       </nav>
 
       <div className="flex-1" />
