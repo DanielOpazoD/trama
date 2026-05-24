@@ -308,9 +308,7 @@ function placeholderForView(view: string | null): string {
     case 'citas':
       return 'Ofrece una cita, una frase que quieres guardar…'
     case 'entidades':
-      return 'Nombra a alguien, propón una idea…'
-    case 'relaciones':
-      return 'Propón un vínculo, una influencia…'
+      return 'Nombra a alguien, propón un vínculo, una idea…'
     case 'escuchas':
       return 'Pregunta o describe una música…'
     case 'sugerencias':

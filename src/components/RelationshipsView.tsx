@@ -140,44 +140,38 @@ export function RelationshipsView({
 
   return (
     <>
-      <header className="mb-10 flex items-baseline justify-between gap-6">
-        <div className="min-w-0">
-          <h2 className="font-serif text-4xl text-ink-700 leading-none">Relaciones</h2>
-          <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
-            Vínculos entre dos entidades — quién influye en quién, qué cita a qué,
-            qué te llegó por dónde. Las líneas del grafo.
-          </p>
+      {/* ο1: el <header> con h2 "Relaciones" + descripción + accent-rule se
+          movió a EntitiesWorkbench (esta vista pasó a ser una tab interna).
+          Conservamos solo los CTAs contextuales ("descubrir con IA",
+          "Añadir") en una toolbar inline alineada a la derecha. */}
+      {entities.length >= 2 && (
+        <div className="mb-8 flex items-baseline justify-end gap-4">
+          <button
+            onClick={handleSuggest}
+            disabled={suggest.isPending || offline}
+            className="ai-cta"
+            title="Sugerir relaciones nuevas entre entidades ya existentes"
+          >
+            {suggest.isPending ? (
+              <>
+                <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: `var(--accent-primary-ring)`, borderTopColor: `var(--accent-primary)` }} />
+                pensando…
+              </>
+            ) : (
+              <>
+                <SparkleIcon size={12} />
+                descubrir con IA
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => setShowForm((s) => !s)}
+            className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+          >
+            {showForm ? 'Cerrar' : 'Añadir'}
+          </button>
         </div>
-        {entities.length >= 2 && (
-          <div className="flex items-baseline gap-4 shrink-0">
-            <button
-              onClick={handleSuggest}
-              disabled={suggest.isPending || offline}
-              className="ai-cta"
-              title="Sugerir relaciones nuevas entre entidades ya existentes"
-            >
-              {suggest.isPending ? (
-                <>
-                  <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: `var(--accent-primary-ring)`, borderTopColor: `var(--accent-primary)` }} />
-                  pensando…
-                </>
-              ) : (
-                <>
-                  <SparkleIcon size={12} />
-                  descubrir con IA
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => setShowForm((s) => !s)}
-              className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
-            >
-              {showForm ? 'Cerrar' : 'Añadir'}
-            </button>
-          </div>
-        )}
-      </header>
+      )}
 
       {suggest.error && (
         <div className="alert-error mb-6 flex items-start gap-2 pl-3 pr-1.5 py-2 text-xs">

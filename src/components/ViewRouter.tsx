@@ -1,12 +1,11 @@
 import { ChatView } from './ChatView'
-import { EntitiesView } from './EntitiesView'
+import { EntitiesWorkbench } from './EntitiesWorkbench'
 import GraphView from './GraphView'
 import { HomeView } from './HomeView'
 import { ListeningView } from './ListeningView'
 import { MomentosView } from './MomentosView'
 import { ProactiveView } from './ProactiveView'
 import { QuotesView } from './QuotesView'
-import { RelationshipsView } from './RelationshipsView'
 import type { ViewMode } from './Sidebar'
 import type { ExtractionProposal } from '../types'
 
@@ -64,11 +63,13 @@ export function ViewRouter({
       {view === 'inicio' && (
         <HomeView onNavigate={onChangeView} onSelectEntity={onSelectEntity} />
       )}
-      {view === 'entidades' && <EntitiesView onSelectEntity={onSelectEntity} />}
-      {view === 'citas' && <QuotesView onSelectEntity={onSelectEntity} />}
-      {view === 'relaciones' && (
-        <RelationshipsView onSelectEntity={onSelectEntity} onProposal={onProposal} />
+      {view === 'entidades' && (
+        <EntitiesWorkbench
+          onSelectEntity={onSelectEntity}
+          onProposal={onProposal}
+        />
       )}
+      {view === 'citas' && <QuotesView onSelectEntity={onSelectEntity} />}
       {view === 'escuchas' && (
         <ListeningView onSelectEntity={onSelectEntity} onProposal={onProposal} />
       )}

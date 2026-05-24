@@ -34,7 +34,7 @@ export function HomeView({
   onNavigate,
   onSelectEntity,
 }: {
-  onNavigate: (view: 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'sugerencias') => void
+  onNavigate: (view: 'grafo' | 'entidades' | 'citas' | 'sugerencias') => void
   onSelectEntity: (id: string) => void
 }) {
   const { data: entities = [], isLoading: entitiesLoading } = useEntitiesQuery()
