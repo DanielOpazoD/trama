@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
+import { buildTimingBuckets } from './timing-helpers'
 
 /**
  * π4: visualizaciones temporales de Spotify plays.
@@ -10,31 +11,20 @@ import { api } from '../../api'
  *     relativo al máximo. Muestra el patrón "cuándo escucho".
  *
  *   - Sparkline daily trend: 30 días hacia atrás. Cada barra es plays
- *     de ese día. Muestra evolución reciente — si estás escuchando más
- *     o menos que antes.
+ *     de ese día.
  *
  * Las dos vistas se agregan client-side en TZ local porque "escucho a
  * las 11pm" es una afirmación que solo tiene sentido en hora local.
  *
- * Si no hay datos en el período (cuenta nueva o sincronización pendiente),
- * el componente devuelve null — la vista padre decide qué mostrar en su
- * lugar.
+ * Toda la lógica de bucketing vive en `timing-helpers.ts` (puro, testeable
+ * sin DOM). Este archivo solo orquesta query + render.
+ *
+ * Si no hay datos en el período el componente devuelve null — la vista
+ * padre decide qué mostrar.
  */
 
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'] // lun..dom
 const HOUR_TICKS = [0, 6, 12, 18] // labels en el eje horizontal
-
-function dayOfWeekMondayBased(d: Date): number {
-  // Date.getDay() devuelve 0=dom..6=sab. Convertimos a 0=lun..6=dom.
-  const dow = d.getDay()
-  return dow === 0 ? 6 : dow - 1
-}
-
-function startOfLocalDay(d: Date): number {
-  const t = new Date(d)
-  t.setHours(0, 0, 0, 0)
-  return t.getTime()
-}
 
 export function PlaysTiming({
   since,
@@ -54,40 +44,7 @@ export function PlaysTiming({
     if (!timingQuery.data) return null
     const playedAts = timingQuery.data.playedAts
     if (playedAts.length === 0) return null
-
-    // Heatmap: 7 días × 24 horas inicializado en 0.
-    const heatmap: number[][] = Array.from({ length: 7 }, () =>
-      Array(24).fill(0),
-    )
-
-    // Daily trend: últimos 30 días en TZ local.
-    const now = new Date()
-    const todayMs = startOfLocalDay(now)
-    const trendStart = todayMs - 29 * 86_400_000 // 30 días incluyendo hoy
-    const trend: number[] = Array(30).fill(0)
-
-    let maxHeatmap = 0
-    let maxTrend = 0
-    for (const iso of playedAts) {
-      const d = new Date(iso)
-      if (Number.isNaN(d.getTime())) continue
-
-      // Heatmap (TZ local)
-      const dow = dayOfWeekMondayBased(d)
-      const hour = d.getHours()
-      heatmap[dow][hour] += 1
-      if (heatmap[dow][hour] > maxHeatmap) maxHeatmap = heatmap[dow][hour]
-
-      // Trend (TZ local) — solo entran si el día cae en la ventana
-      const dayMs = startOfLocalDay(d)
-      const offset = Math.floor((dayMs - trendStart) / 86_400_000)
-      if (offset >= 0 && offset < 30) {
-        trend[offset] += 1
-        if (trend[offset] > maxTrend) maxTrend = trend[offset]
-      }
-    }
-
-    return { heatmap, trend, maxHeatmap, maxTrend, total: playedAts.length }
+    return buildTimingBuckets(playedAts)
   }, [timingQuery.data])
 
   if (timingQuery.isLoading) {

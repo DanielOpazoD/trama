@@ -182,7 +182,13 @@ export function SuggestArtists() {
                     ↗
                   </a>
                   {accepted ? (
-                    <span className="text-micro uppercase tracking-eyebrow text-sage-700/80 flex items-center gap-1">
+                    // π-fix: 'sage-700' no es un token Tailwind — usamos
+                    // inline style con la CSS var --accent-sage que sí
+                    // existe (definida en index.css y re-tinted por tema).
+                    <span
+                      className="text-micro uppercase tracking-eyebrow flex items-center gap-1"
+                      style={{ color: 'var(--accent-sage)' }}
+                    >
                       <span aria-hidden>✓</span>
                       añadido
                     </span>
