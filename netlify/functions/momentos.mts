@@ -2,6 +2,7 @@ import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
+import { momentoEmbedText, type MomentoKind } from './_lib/momento-embed.js'
 
 /**
  * /api/momentos — la dimensión temporal de la trama.
@@ -33,28 +34,8 @@ function normalizeOrigin(value: unknown): Origin {
   return { kind: 'manual' }
 }
 
-type MomentoKind = 'nota' | 'recorte' | 'foto'
-
 function isValidKind(v: unknown): v is MomentoKind {
   return v === 'nota' || v === 'recorte' || v === 'foto'
-}
-
-/** Texto agregado del momento para embedding semántico. Concatena los
- *  campos que tendrían sentido en una búsqueda "¿qué tengo sobre X?". */
-function momentoEmbedText(kind: MomentoKind, payload: Record<string, unknown>, note: string | null): string {
-  const parts: string[] = []
-  if (note) parts.push(note)
-  if (kind === 'nota') {
-    if (typeof payload.bodyText === 'string') parts.push(payload.bodyText)
-  } else if (kind === 'recorte') {
-    if (typeof payload.title === 'string') parts.push(payload.title)
-    if (typeof payload.bodyText === 'string') parts.push(payload.bodyText)
-    if (typeof payload.author === 'string') parts.push(payload.author)
-    if (typeof payload.source === 'string') parts.push(payload.source)
-  } else if (kind === 'foto') {
-    if (typeof payload.caption === 'string') parts.push(payload.caption)
-  }
-  return parts.filter(Boolean).join('\n').trim()
 }
 
 export default withObservability('momentos', async (req: Request, context: Context) => {

@@ -1,5 +1,6 @@
 import type { Config } from '@netlify/functions'
 import { withObservability } from './_lib/handler-wrap.js'
+import { findMeta, findTitle, prettySource } from './_lib/og-parse.js'
 
 /**
  * GET /api/momentos/url-preview?url=https://example.com
@@ -43,56 +44,6 @@ function emptyPreview(url: string, source: string | null): Preview {
     image: null,
     fetched: false,
   }
-}
-
-/** Extrae el host "limpio" para mostrar como fuente. */
-function prettySource(rawUrl: string): string | null {
-  try {
-    const u = new URL(rawUrl)
-    const host = u.hostname.replace(/^www\./, '')
-    return host
-  } catch {
-    return null
-  }
-}
-
-/** Decodifica entidades HTML básicas en strings extraídos de meta tags. */
-function decodeEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-}
-
-/** Busca un meta tag por property o name attribute, devuelve content. */
-function findMeta(html: string, key: string): string | null {
-  // Caso 1: property="og:title" content="..."
-  // Caso 2: name="description" content="..."
-  // Ambos órdenes posibles (content antes o después de key).
-  const patterns = [
-    new RegExp(
-      `<meta[^>]+(?:property|name)=["']${key}["'][^>]*content=["']([^"']*)["']`,
-      'i',
-    ),
-    new RegExp(
-      `<meta[^>]+content=["']([^"']*)["'][^>]*(?:property|name)=["']${key}["']`,
-      'i',
-    ),
-  ]
-  for (const pat of patterns) {
-    const m = html.match(pat)
-    if (m && m[1]) return decodeEntities(m[1].trim())
-  }
-  return null
-}
-
-function findTitle(html: string): string | null {
-  const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
-  if (m && m[1]) return decodeEntities(m[1].trim())
-  return null
 }
 
 export default withObservability('momentos-url-preview', async (req: Request) => {
