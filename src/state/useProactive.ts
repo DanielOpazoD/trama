@@ -13,6 +13,9 @@ export function useProactiveQuery() {
 export function useGenerateProactive() {
   const queryClient = useQueryClient()
   return useMutation({
+    // η1: generar sugerencias proactivas es un propose IA — el usuario
+    // las acepta o descarta después. Silent.
+    meta: { silent: true },
     mutationFn: () => api.generateProactiveSuggestions(),
     onSuccess: ({ suggestions }) => {
       queryClient.setQueryData<ProactiveSuggestion[]>(PENDING_KEY, (prev) => [

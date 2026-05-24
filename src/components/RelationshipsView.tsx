@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { RELATIONSHIP_TYPES, type Entity, type ExtractionProposal, type Relationship, type RelationshipType } from '../types'
 import {
   useEntitiesQuery,
@@ -41,6 +41,11 @@ export function RelationshipsView({
   const [notes, setNotes] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [emptyHint, setEmptyHint] = useState<string | null>(null)
+  // η2: lista acumulada (durante esta sesión de RelationshipsView) de
+  // proposals que la IA ha sugerido y el usuario NO aceptó. La pasamos
+  // al server en el próximo "descubrir IA" para que evite repetirlas.
+  // Cap de 50 para no crecer infinitamente. Reset al mount.
+  const avoidPreviousRef = useRef<Array<{ fromName: string; toName: string; type: string }>>([])
 
   // O(1) entity lookup so the virtualized rows aren't O(rel × entities) each frame.
   const entitiesById = useMemo(() => {
@@ -70,13 +75,38 @@ export function RelationshipsView({
   async function handleSuggest() {
     setEmptyHint(null)
     try {
-      const proposal = await suggest.mutateAsync()
+      // η2: pasar las propuestas previas como "evita éstas" para que la
+      // IA genere relaciones distintas. La lista se acumula durante la
+      // sesión y se cappea a 50.
+      const proposal = await suggest.mutateAsync({
+        avoidPrevious: avoidPreviousRef.current,
+      })
       if (proposal.relationships.length === 0) {
         setEmptyHint(
           'Sin relaciones nuevas obvias. Añade citas o descripciones para darle más contexto.',
         )
         return
       }
+      // Acumular las nuevas para el próximo intento. Si el usuario acepta
+      // alguna, también termina en la lista de "evita" la próxima vez —
+      // pero como ya existe en la DB, el endpoint la deduplicaría igual.
+      // Lo importante: las que descartó NO se repiten.
+      const fresh = proposal.relationships.map((r) => ({
+        fromName: r.fromName,
+        toName: r.toName,
+        type: r.type,
+      }))
+      const merged = [...avoidPreviousRef.current, ...fresh]
+      // Dedupe por (from + type + to), cap 50 (mantener las más recientes).
+      const seen = new Set<string>()
+      const deduped: typeof merged = []
+      for (let i = merged.length - 1; i >= 0 && deduped.length < 50; i--) {
+        const key = `${merged[i].fromName}|${merged[i].type}|${merged[i].toName}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        deduped.unshift(merged[i])
+      }
+      avoidPreviousRef.current = deduped
       onProposal?.('Sugerencias entre entidades existentes', proposal)
     } catch {
       // surfaces via suggest.error

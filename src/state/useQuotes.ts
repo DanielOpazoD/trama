@@ -146,6 +146,10 @@ export function useUpdateQuote() {
 export function useReflectQuote() {
   const { offline } = useOffline()
   return useMutation({
+    // η1: la reflexión IA persiste pero el usuario la dispara desde un
+    // botón inline que ya muestra "pensando…". El indicador global
+    // "guardando" sería redundante. Silent.
+    meta: { silent: true },
     mutationFn: async (id: string) => {
       if (offline) throw new Error('La reflexión IA requiere conexión al backend.')
       return api.reflectQuote(id)

@@ -485,10 +485,16 @@ export const api = {
     })
   },
 
-  async suggestRelationships(): Promise<ExtractionProposal> {
+  async suggestRelationships(opts?: {
+    /** η2: lista de proposals que el usuario descartó previamente. La IA
+        las recibe como "no las repitas" y propone otras. */
+    avoidPrevious?: Array<{ fromName: string; toName: string; type: string }>
+  }): Promise<ExtractionProposal> {
     return request<ExtractionProposal>('/api/suggest-relationships', {
       method: 'POST',
-      body: '{}',
+      body: JSON.stringify({
+        avoidPrevious: opts?.avoidPrevious ?? [],
+      }),
     })
   },
 

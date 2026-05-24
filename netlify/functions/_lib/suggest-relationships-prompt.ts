@@ -27,6 +27,12 @@ export function buildSuggestRelationshipsPrompt(
   entities: EntityForSuggest[],
   existing: ExistingRelationshipPair[],
   relationshipTypes: string[],
+  /**
+   * η2: proposals que el usuario descartó en runs anteriores. Las
+   * incluimos en el prompt como "no las repitas" para que la IA
+   * proponga COSAS DIFERENTES, no las mismas con otra justificación.
+   */
+  avoidPrevious: ExistingRelationshipPair[] = [],
 ): LLMMessage[] {
   const entityBlock = entities
     .map((e) => {
@@ -49,6 +55,14 @@ export function buildSuggestRelationshipsPrompt(
           .map((r) => `- ${r.fromName} → ${r.type} → ${r.toName}`)
           .join('\n')
 
+  const avoidBlock =
+    avoidPrevious.length === 0
+      ? ''
+      : '\n\nDESCARTADAS por el usuario en intentos anteriores — NO las propongas de nuevo (busca relaciones genuinamente distintas):\n' +
+        avoidPrevious
+          .map((r) => `- ${r.fromName} → ${r.type} → ${r.toName}`)
+          .join('\n')
+
   const system = `Eres un asistente que enriquece la "Trama" del usuario: un mapa cognitivo personal de afinidades intelectuales y estéticas.
 
 El usuario ya tiene una lista de entidades (personas, libros, conceptos, álbumes, etc.) cada una con su descripción y, a veces, citas que las acompañan. También tiene relaciones ya registradas entre ellas.
@@ -68,7 +82,7 @@ Entidades en la Trama del usuario:
 ${entityBlock}
 
 Relaciones que YA existen (no las repitas):
-${existingBlock}
+${existingBlock}${avoidBlock}
 
 DEVUELVE EXCLUSIVAMENTE un objeto JSON con esta forma exacta:
 

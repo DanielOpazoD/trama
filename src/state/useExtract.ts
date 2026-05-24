@@ -5,6 +5,12 @@ import { useOffline } from './offline'
 export function useExtract() {
   const { offline } = useOffline()
   return useMutation({
+    // η1: meta.silent indica a useGlobalStatus que esta mutation NO debe
+    // disparar el pill "guardando…". Las extracciones de IA proponen
+    // entidades/relaciones para que el usuario apruebe — no persisten
+    // nada hasta el accept. Si el indicador dijera "guardando" sería
+    // mentira y se confunde con un save real.
+    meta: { silent: true },
     mutationFn: async (text: string) => {
       if (offline) {
         throw new Error(
@@ -19,6 +25,7 @@ export function useExtract() {
 export function useExtractFromImage() {
   const { offline } = useOffline()
   return useMutation({
+    meta: { silent: true },
     mutationFn: async ({ imageBase64, mimeType }: { imageBase64: string; mimeType: string }) => {
       if (offline) {
         throw new Error(
@@ -39,6 +46,9 @@ export function useExtractFromImage() {
 export function useAsk() {
   const { offline } = useOffline()
   return useMutation({
+    // η1: ask es la barra universal — extrae propuestas o conversa con
+    // chat. Ninguna persiste data; el "guardando" sería engañoso.
+    meta: { silent: true },
     mutationFn: async (input: {
       text: string
       view?: string | null

@@ -2,6 +2,21 @@ import { useEffect, useRef, useState } from 'react'
 import { useIsMutating } from '@tanstack/react-query'
 import { useOffline } from './offline'
 
+/**
+ * η1: Filtro para useIsMutating — solo contamos mutations que
+ * efectivamente persisten data. Las que vienen de flujos IA donde el
+ * usuario tiene que aceptar/descartar antes de guardar (extract,
+ * suggest, reclassify, reflect, generate proactive) están marcadas con
+ * meta.silent=true en su definición.
+ *
+ * Sin este filtro, apretar "reclasificar con IA" disparaba "guardando…"
+ * en el indicador global aunque nada se hubiera guardado todavía —
+ * confundía al usuario sobre qué acciones persisten.
+ */
+function isPersistMutation(mutation: { state?: unknown; options?: { meta?: { silent?: boolean } } }): boolean {
+  return mutation.options?.meta?.silent !== true
+}
+
 export type GlobalStatus =
   | { kind: 'idle' }
   | { kind: 'saving'; pending: number }
@@ -27,7 +42,11 @@ export type GlobalStatus =
  * saving→idle.
  */
 export function useGlobalStatus(): GlobalStatus {
-  const isMutating = useIsMutating()
+  // useIsMutating con predicate — solo cuenta mutations no-silent.
+  // Las AI propose mutations llevan meta.silent=true y son ignoradas.
+  const isMutating = useIsMutating({
+    predicate: (m) => isPersistMutation(m as { options?: { meta?: { silent?: boolean } } }),
+  })
   const { offline } = useOffline()
   const [showSaved, setShowSaved] = useState(false)
   const wasMutatingRef = useRef(false)

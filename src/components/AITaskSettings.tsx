@@ -9,6 +9,35 @@ const PROVIDERS = [
   { value: 'gemini', label: 'Gemini', notes: 'gratis hasta cap, visión' },
 ] as const
 
+/**
+ * η3: modelos disponibles por provider. La lista no es exhaustiva — son
+ * los que vale la pena exponer en UI. La columna "" (string vacío) =
+ * default del provider (lo que dice PROVIDER_DEFAULTS en llm.ts).
+ *
+ * Para DeepSeek incluimos `deepseek-reasoner` (R1) — más caro y lento
+ * pero genera relaciones más sutiles. Es el modelo "pensador" que el
+ * usuario pidió para "descubrir IA" con propuestas menos básicas.
+ */
+const MODELS_BY_PROVIDER: Record<string, Array<{ value: string; label: string; notes: string }>> = {
+  deepseek: [
+    { value: '', label: 'V3 (chat) — default', notes: 'rápido, barato' },
+    { value: 'deepseek-reasoner', label: 'R1 (reasoner)', notes: 'pensador, mejor para sugerencias sutiles' },
+  ],
+  openai: [
+    { value: '', label: 'gpt-4o-mini — default', notes: 'barato, visión' },
+    { value: 'gpt-4o', label: 'gpt-4o', notes: 'más preciso, más caro' },
+    { value: 'gpt-4.1-mini', label: 'gpt-4.1-mini', notes: 'la generación nueva, similar costo' },
+  ],
+  anthropic: [
+    { value: '', label: 'haiku — default', notes: 'rápido' },
+    { value: 'claude-sonnet-4-5-20251001', label: 'sonnet 4.5', notes: 'más reflexivo, más caro' },
+  ],
+  gemini: [
+    { value: '', label: 'flash — default', notes: 'gratis hasta cap' },
+    { value: 'gemini-2.5-pro', label: 'pro 2.5', notes: 'más capaz, más caro' },
+  ],
+}
+
 const TASKS: Array<{ key: AITaskKey; label: string; hint: string }> = [
   { key: 'extract', label: 'Extracción de texto', hint: 'pegás un párrafo y la IA propone entidades' },
   { key: 'extract-image', label: 'Extracción desde imagen', hint: 'OCR + estructura desde foto (requiere visión)' },
@@ -54,11 +83,31 @@ export function AITaskSettings() {
       await setProvider.mutateAsync({
         task,
         provider,
+        // η3: al cambiar de provider, limpiar el model override —
+        // un model de deepseek no es válido para openai. El usuario
+        // puede re-elegir model después.
+        model: null,
         // Keep verifyWith if it's still distinct from the new provider; clear otherwise.
         verifyWith:
           current?.verifyWith && current.verifyWith !== provider
             ? current.verifyWith
             : null,
+      })
+    } finally {
+      setBusyTask(null)
+    }
+  }
+
+  // η3: cambiar el modelo dentro del provider activo (e.g. DeepSeek V3 → R1).
+  async function pickModel(task: AITaskKey, model: string) {
+    setBusyTask(task)
+    try {
+      const current = settings.data?.tasks.find((t) => t.task === task)
+      await setProvider.mutateAsync({
+        task,
+        provider: current?.provider ?? '',
+        model: model || null,
+        verifyWith: current?.verifyWith ?? null,
       })
     } finally {
       setBusyTask(null)
@@ -101,6 +150,14 @@ export function AITaskSettings() {
           const activeProvider = current?.provider ?? defaultProvider
           const requiresVision = VISION_REQUIRED.includes(task.key)
           const verifiable = VERIFIABLE.includes(task.key)
+          // η3: lista de modelos del provider activo (si hay rows).
+          // Si no hay rows (sin override de provider), no mostramos
+          // selector de modelo — el modelo lo dicta el default del
+          // provider de Netlify env.
+          const activeProvOverride = current?.provider ?? ''
+          const modelChoices = activeProvOverride
+            ? MODELS_BY_PROVIDER[activeProvOverride] ?? []
+            : []
           return (
             <li key={task.key} className="py-3 space-y-1.5">
               <div className="flex items-baseline gap-3">
@@ -127,6 +184,28 @@ export function AITaskSettings() {
                   ))}
                 </select>
               </div>
+              {/* η3: model picker — aparece solo cuando hay un provider
+                  explícito (con default no tiene sentido elegir model). */}
+              {modelChoices.length > 1 && (
+                <div className="flex items-baseline gap-3 pl-4 border-l-2 border-ink-100/60">
+                  <div className="flex-1 text-caption text-ink-400 leading-snug">
+                    Modelo dentro de {PROVIDERS.find((p) => p.value === activeProvOverride)?.label}
+                  </div>
+                  <select
+                    value={current?.model ?? ''}
+                    onChange={(e) => pickModel(task.key, e.target.value)}
+                    disabled={busyTask === task.key}
+                    className="input-paper text-xs py-1 pr-7"
+                    style={{ minWidth: '11rem' }}
+                  >
+                    {modelChoices.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label} — {m.notes}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {verifiable && (
                 <div className="flex items-baseline gap-3 pl-4 border-l-2 border-ink-100/60">
                   <div className="flex-1 text-caption text-ink-400 leading-snug">

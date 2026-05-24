@@ -35,6 +35,17 @@ export default withObservability(
     const budgetExceeded = await checkMonthlyBudget()
     if (budgetExceeded) return budgetExceeded
 
+    // η2: body opcional. Si el usuario clickeó "descubrir IA" tras
+    // descartar sugerencias, el cliente nos manda las descartadas
+    // para que la IA proponga DIFERENTES.
+    type Body = {
+      avoidPrevious?: Array<{ fromName: string; toName: string; type: string }>
+    }
+    const body: Body = await req
+      .json()
+      .catch(() => ({} as Body))
+    const avoidPrevious = Array.isArray(body.avoidPrevious) ? body.avoidPrevious : []
+
     const sql = getSql()
 
     type EntityRow = {
@@ -100,6 +111,7 @@ export default withObservability(
       entitiesForPrompt,
       existingRels,
       relationshipTypes,
+      avoidPrevious,
     )
 
     const invocation = await resolveAIInvocation(req, 'suggest-relationships')
@@ -109,6 +121,11 @@ export default withObservability(
       const { content, usage, fromCache } = await askLLMForJson(messages, {
         provider: invocation.provider,
         model: invocation.model,
+        // η2: nonce por request — el usuario clickeó otra vez tras
+        // descartar; queremos sugerencias nuevas. Si avoidPrevious tiene
+        // elementos, el prompt ya cambió (cache bypass automático); si
+        // no, el nonce fuerza fresh. Timestamp basta.
+        freshNonce: Date.now(),
       })
       const existingEntitiesForValidator = entityRows.map((e) => ({
         id: e.id,

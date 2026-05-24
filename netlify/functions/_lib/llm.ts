@@ -265,6 +265,14 @@ async function fetchWithRetry(makeRequest: FetchAttempt, retries = 2): Promise<R
 export type LLMOverride = {
   provider?: string
   model?: string | null
+  /**
+   * η2: nonce que se incluye en el hash del cache. Cuando el caller quiere
+   * variedad (e.g. "descubrir IA" tras descartar sugerencias), pasa un
+   * valor único (Date.now() típicamente) y el cache se bypassa
+   * efectivamente para esa llamada. Si se omite, comportamiento normal
+   * (mismo prompt = mismo resultado por TTL).
+   */
+  freshNonce?: string | number
 }
 
 export async function askLLMForJson(
@@ -446,7 +454,13 @@ async function callLLM(
   const maxTokens = readMaxTokens()
   const cacheTtl = readCacheTtlSeconds()
 
-  const cacheKey = await hashMessages(messages, `${provider}|${config.model}|${mode}`)
+  // η2: freshNonce participa del cache key — si el caller lo pasa, cada
+  // call con nonce distinto evita el cache. Útil para "descubrir IA" donde
+  // el usuario espera variedad entre clicks.
+  const cacheKey = await hashMessages(
+    messages,
+    `${provider}|${config.model}|${mode}|${override?.freshNonce ?? ''}`,
+  )
   const cached = getCached(cacheKey)
   if (cached) return cached
 

@@ -328,7 +328,10 @@ export default function GraphView({
   const handleSuggest = useCallback(async () => {
     setSuggestEmpty(false)
     try {
-      const proposal = await suggest.mutateAsync()
+      // η2: en GraphView no llevamos historia de descartados (es momento
+      // de exploración). El nonce del server (Date.now()) ya garantiza
+      // freshness entre clicks.
+      const proposal = await suggest.mutateAsync({})
       if (proposal.relationships.length === 0) {
         setSuggestEmpty(true)
         return
