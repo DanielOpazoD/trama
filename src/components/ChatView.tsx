@@ -16,6 +16,7 @@ import {
 } from '../state'
 import { InlineProposal } from './chat/InlineProposal'
 import { SkeletonList, ThreadRowSkeleton } from './Skeleton'
+import { AISourceTag } from './AISourceTag'
 
 export function ChatView({
   initialThreadId,
@@ -368,26 +369,24 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         <div className="whitespace-pre-wrap">{message.content}</div>
         {!isUser && message.proposal && <InlineProposal proposal={message.proposal} />}
       </div>
-      {/* ζ9: marginal con timestamp + (assistant) modelo. Pegado al lado
-          que coincide con el bubble (right para user, left para assistant)
-          en italic chico. Como una nota al margen de una página, no como
-          un dato debajo del mensaje. */}
-      {ts && (
+      {/* ζ9 + κ-info: marginal con timestamp en italic serif (como nota al
+          margen de página). En assistant, ya no inlineamos el nombre del
+          modelo — esa info vive ahora detrás del icono AISourceTag, que
+          al hover muestra provider + modelo + hora completa. La página
+          queda más limpia y la metadata sigue accesible a un gesto. */}
+      {(ts || (!isUser && message.model)) && (
         <span
-          className={`mt-1 text-micro tracking-normal text-ink-300/80 font-serif italic ${
-            isUser ? 'mr-1' : 'ml-1'
+          className={`mt-1 inline-flex items-center gap-1.5 text-micro tracking-normal text-ink-300/80 font-serif italic ${
+            isUser ? 'self-end mr-1' : 'self-start ml-1'
           }`}
-          title={
-            message.model
-              ? `${message.provider ?? ''} · ${message.model}`.trim()
-              : undefined
-          }
         >
-          {ts}
-          {!isUser && message.model && (
-            <span className="ml-2 not-italic text-ink-300/60 tracking-wider uppercase font-sans">
-              {message.model}
-            </span>
+          {ts && <span>{ts}</span>}
+          {!isUser && (message.model || message.provider) && (
+            <AISourceTag
+              provider={message.provider}
+              model={message.model}
+              at={message.createdAt}
+            />
           )}
         </span>
       )}

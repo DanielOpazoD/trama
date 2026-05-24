@@ -7,6 +7,7 @@ import {
   useDeleteQuote,
 } from '../state'
 import { EndMark, SparkleIcon, TrashIcon } from './Icons'
+import { AISourceTag } from './AISourceTag'
 import { EmptyMessage } from './EmptyMessage'
 import { Folio } from './Folio'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
@@ -517,7 +518,15 @@ function QuoteItem({
         <div className={`mt-3 ${isFeature ? '' : 'pl-5'}`}>
           <div className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-sky-700/80 mb-1">
             <SparkleIcon size={10} />
-            interpretación de la IA
+            <span>interpretación de la IA</span>
+            {/* κ-info: surfacing del modelo detrás del icono "i" — no
+                contamina la jerarquía visual y queda a un hover. */}
+            <AISourceTag
+              provider={quote.aiReflectionProvider}
+              model={quote.aiReflectionModel}
+              at={quote.aiReflectionAt}
+              className="ml-auto"
+            />
           </div>
           <p className="text-ink-500 text-sm leading-relaxed whitespace-pre-wrap">
             {quote.aiReflection}

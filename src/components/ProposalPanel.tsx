@@ -22,6 +22,7 @@ import {
   type ProposedRelationship,
 } from '../types'
 import { CloseIcon } from './Icons'
+import { AISourceTag } from './AISourceTag'
 
 type CheckedState = {
   entities: boolean[]
@@ -233,14 +234,14 @@ export function ProposalPanel({
           >
             <span>◆ propuesta</span>
             {proposal.model && (
-              <span
-                className="chip"
-                data-tone="primary"
-                title={proposal.provider ? `provider: ${proposal.provider}` : undefined}
-              >
+              <span className="chip" data-tone="primary">
                 {proposal.model}
               </span>
             )}
+            {/* κ-info: el chip ya muestra el modelo; el icono añade tooltip
+                editorial con provider y metadatos sin pelearse con la
+                jerarquía visual del header. */}
+            <AISourceTag provider={proposal.provider} model={proposal.model} />
           </p>
           <h2 className="font-serif text-xl text-ink-700 leading-tight truncate" title={sourceText}>
             {sourceText.length > 60 ? `${sourceText.slice(0, 60)}…` : sourceText}
