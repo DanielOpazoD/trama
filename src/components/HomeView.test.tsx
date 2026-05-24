@@ -85,9 +85,19 @@ describe('<HomeView />', () => {
 
   it('muestra resumen con conteos cuando hay datos', () => {
     setupCache([ENTITY, ENTITY_2], [QUOTE_A], [REL])
-    expect(screen.getByText(/2 entidades/)).toBeInTheDocument()
-    expect(screen.getByText(/1 cita/)).toBeInTheDocument()
-    expect(screen.getByText(/1 relación/)).toBeInTheDocument()
+    // δ5: el conteo se renderiza con NumberTicker (anima), así que el
+    // número y la palabra viven en text nodes separados. Asertamos sobre
+    // el textContent combinado del párrafo en lugar de buscar el string
+    // entero por matcher exacto.
+    const summary = screen
+      .getAllByText(/entidades|cita|relación/i)
+      .find((el) => el.tagName === 'P')
+    expect(summary).toBeTruthy()
+    expect(summary!.textContent).toContain('2')
+    expect(summary!.textContent).toContain('entidades')
+    expect(summary!.textContent).toContain('1')
+    expect(summary!.textContent).toContain('cita')
+    expect(summary!.textContent).toContain('relación')
   })
 
   it('renderiza una cita destacada cuando hay quotes', () => {

@@ -10,6 +10,7 @@ import {
   useRelationshipsQuery,
 } from './state'
 import { useTheme } from './hooks/useTheme'
+import { useTimeOfDayAccent } from './hooks/useTimeOfDayAccent'
 import { Sidebar, type ViewMode } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { CommandPalette } from './components/CommandPalette'
@@ -39,6 +40,9 @@ function Shell() {
   const quotesQuery = useQuotesQuery()
   const { offline } = useOffline()
   const { theme, toggle: toggleTheme } = useTheme()
+  // δ6: shift sutil del --accent-gold según hora local. La app se siente
+  // distinta según cuándo entres — sin que el usuario tenga que pensarlo.
+  useTimeOfDayAccent()
 
   const loading =
     entitiesQuery.isLoading || relationshipsQuery.isLoading || quotesQuery.isLoading

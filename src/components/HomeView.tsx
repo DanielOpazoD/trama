@@ -14,6 +14,7 @@ import {
   TimelineRowSkeleton,
 } from './Skeleton'
 import { WeeklyActivity } from './WeeklyActivity'
+import { NumberTicker } from './NumberTicker'
 import { typeAccent } from './graph/GraphNode'
 
 /**
@@ -99,11 +100,22 @@ export function HomeView({
           </h2>
           <div className="accent-rule" />
           <p className="text-sm text-ink-400 leading-relaxed max-w-xl">
-            {totalEntities === 0
-              ? 'Todavía vacía. Pega un texto abajo y la trama empieza.'
-              : `${totalEntities} ${totalEntities === 1 ? 'entidad' : 'entidades'} ·` +
-                ` ${quotes.length} ${quotes.length === 1 ? 'cita' : 'citas'} ·` +
-                ` ${relationships.length} ${relationships.length === 1 ? 'relación' : 'relaciones'}`}
+            {totalEntities === 0 ? (
+              'Todavía vacía. Pega un texto abajo y la trama empieza.'
+            ) : (
+              // δ5: cada count anima con NumberTicker cuando crece — el
+              // ojo te lleva al lugar exacto del cambio (el dígito que
+              // subió) en vez de tener que adivinar qué cambió en la
+              // string completa.
+              <>
+                <NumberTicker value={totalEntities} />{' '}
+                {totalEntities === 1 ? 'entidad' : 'entidades'} ·{' '}
+                <NumberTicker value={quotes.length} />{' '}
+                {quotes.length === 1 ? 'cita' : 'citas'} ·{' '}
+                <NumberTicker value={relationships.length} />{' '}
+                {relationships.length === 1 ? 'relación' : 'relaciones'}
+              </>
+            )}
           </p>
         </div>
         {pendingCount > 0 && (

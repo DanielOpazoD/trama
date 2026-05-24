@@ -69,6 +69,10 @@ export function GraphNode({
   // Ambient drift: stable random phase per entity so the graph breathes
   // without all nodes moving in unison.
   const driftDelay = `${-(hashToUnit(entity.id) * 14)}s`
+  // δ6: breathe offset — independiente del drift para que dos nodos
+  // no estén en la misma fase ni de uno ni de otro. Resultado: el
+  // grafo entero pulsa pero como sutiles olas, no como un reloj.
+  const breatheOffset = `${-(hashToUnit(entity.id + 'breathe') * 4.2)}s`
 
   return (
     <g
@@ -88,11 +92,18 @@ export function GraphNode({
       onClick={onClick}
     >
       {/* Inner group applies ambient drift; outer stays at the layout position
-          so dragging and force-layout still work normally. */}
+          so dragging and force-layout still work normally. δ6: anidamos
+          un segundo wrapper para combinar drift (translate) + breathe
+          (opacity + scale). Si los pusiéramos en el mismo elemento, la
+          última declaración de animation ganaría. */}
       <g
         className={isSelected ? undefined : 'animate-node-drift'}
         style={{ animationDelay: driftDelay }}
       >
+       <g
+         className={isSelected ? undefined : 'animate-node-breathe'}
+         style={{ '--breathe-offset': breatheOffset } as React.CSSProperties}
+       >
         {/* Selection halo with gentle pulse */}
         {isSelected && (
           <circle
@@ -155,6 +166,7 @@ export function GraphNode({
         >
           {typeLabel}
         </text>
+       </g>
       </g>
     </g>
   )

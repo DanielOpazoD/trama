@@ -20,6 +20,7 @@ import {
   TramaMark,
 } from './Icons'
 import { AIModeToggle } from './AIModeToggle'
+import { NumberTicker } from './NumberTicker'
 import { Tooltip } from './Tooltip'
 
 export type ViewMode = 'inicio' | 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'chat' | 'sugerencias'
@@ -137,8 +138,8 @@ export function Sidebar({
                     <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-1 h-5 rounded-r bg-ink-700" />
                   )}
                   {counts[item.value] !== null && counts[item.value]! > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-ink-700 text-paper-50 text-micro font-medium tabular-nums flex items-center justify-center">
-                      {counts[item.value]}
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-ink-700 text-paper-50 text-micro font-medium flex items-center justify-center">
+                      <NumberTicker value={counts[item.value]!} />
                     </span>
                   )}
                 </button>
@@ -285,8 +286,8 @@ export function Sidebar({
                 <span
                   className={
                     item.value === 'sugerencias'
-                      ? 'tabular-nums text-caption px-1.5 py-px rounded font-medium'
-                      : 'tabular-nums text-caption text-ink-400 font-normal'
+                      ? 'text-caption px-1.5 py-px rounded font-medium'
+                      : 'text-caption text-ink-400 font-normal'
                   }
                   style={
                     item.value === 'sugerencias'
@@ -297,7 +298,9 @@ export function Sidebar({
                       : undefined
                   }
                 >
-                  {counts[item.value]}
+                  {/* δ5: NumberTicker en lugar de valor literal — anima
+                      63→64 cuando agregás una entidad. */}
+                  <NumberTicker value={counts[item.value]!} />
                 </span>
               )}
             </button>
