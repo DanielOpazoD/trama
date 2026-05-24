@@ -12,6 +12,7 @@ import {
   EntitiesIcon,
   GraphIcon,
   HomeIcon,
+  MomentosIcon,
   MusicIcon,
   QuoteIcon,
   RelationsIcon,
@@ -23,13 +24,14 @@ import { AIModeToggle } from './AIModeToggle'
 import { NavButton, type NavItem } from './sidebar/NavButton'
 import { Tooltip } from './Tooltip'
 
-export type ViewMode = 'inicio' | 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'chat' | 'sugerencias'
+export type ViewMode = 'inicio' | 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'momentos' | 'chat' | 'sugerencias'
 
 const NAV_ITEMS: NavItem[] = [
   { value: 'inicio', label: 'Inicio', icon: HomeIcon },
   { value: 'grafo', label: 'Grafo', icon: GraphIcon },
   { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
   { value: 'citas', label: 'Citas', icon: QuoteIcon },
+  { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
   { value: 'relaciones', label: 'Relaciones', icon: RelationsIcon },
   { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
   { value: 'chat', label: 'Chat', icon: ChatIcon },
@@ -58,6 +60,7 @@ const SECTION_ACCENT: Record<ViewMode, string> = {
   grafo: 'var(--accent-primary)',
   entidades: 'var(--type-persona)',
   citas: 'var(--accent-gold)',
+  momentos: 'var(--type-evento)',
   relaciones: 'var(--accent-sage)',
   escuchas: 'var(--type-musico)',
   chat: 'var(--accent-primary)',
@@ -107,6 +110,7 @@ export function Sidebar({
     // null (la UI no pinta el badge). Es mejor que mentir con "0".
     entidades: totals?.entities ?? null,
     citas: totals?.quotes ?? null,
+    momentos: null, // se podría sumar pero exige otro endpoint; por ahora null
     relaciones: totals?.relationships ?? null,
     escuchas: null,
     chat: null,

@@ -3,6 +3,7 @@ import { EntitiesView } from './EntitiesView'
 import GraphView from './GraphView'
 import { HomeView } from './HomeView'
 import { ListeningView } from './ListeningView'
+import { MomentosView } from './MomentosView'
 import { ProactiveView } from './ProactiveView'
 import { QuotesView } from './QuotesView'
 import { RelationshipsView } from './RelationshipsView'
@@ -71,6 +72,7 @@ export function ViewRouter({
       {view === 'escuchas' && (
         <ListeningView onSelectEntity={onSelectEntity} onProposal={onProposal} />
       )}
+      {view === 'momentos' && <MomentosView />}
       {view === 'sugerencias' && <ProactiveView />}
     </div>
   )

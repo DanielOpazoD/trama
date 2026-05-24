@@ -3,6 +3,9 @@ import type {
   EntityType,
   ExportPayload,
   ExtractionProposal,
+  Momento,
+  MomentoKind,
+  MomentoPayload,
   Origin,
   Quote,
   Relationship,
@@ -694,6 +697,114 @@ export const api = {
       body: '{}',
     })
   },
+
+  // ---------- ξ — Momentos ----------
+
+  async listMomentos(opts?: {
+    cursor?: string | null
+    limit?: number
+    kind?: MomentoKind
+  }): Promise<{ items: Momento[]; nextCursor: string | null }> {
+    const params = new URLSearchParams()
+    if (opts?.cursor) params.set('cursor', opts.cursor)
+    if (opts?.limit) params.set('limit', String(opts.limit))
+    if (opts?.kind) params.set('kind', opts.kind)
+    const q = params.toString()
+    const res = await request<{
+      items: MomentoRow[]
+      nextCursor: string | null
+    }>(`/api/momentos${q ? `?${q}` : ''}`)
+    return {
+      items: res.items.map(momentoFromRow),
+      nextCursor: res.nextCursor,
+    }
+  },
+
+  async getMomento(id: string): Promise<Momento> {
+    const row = await request<MomentoRow>(`/api/momentos/${id}`)
+    return momentoFromRow(row)
+  },
+
+  async createMomento(data: {
+    kind: MomentoKind
+    payload: MomentoPayload
+    note?: string | null
+    capturedAt?: string
+    entityIds?: string[]
+    origin?: Origin
+  }): Promise<Momento> {
+    const row = await request<MomentoRow>('/api/momentos', {
+      method: 'POST',
+      body: JSON.stringify({
+        kind: data.kind,
+        payload: data.payload,
+        note: data.note ?? null,
+        captured_at: data.capturedAt,
+        entity_ids: data.entityIds ?? [],
+        origin: data.origin ?? { kind: 'manual' },
+      }),
+    })
+    return momentoFromRow(row)
+  },
+
+  async updateMomento(
+    id: string,
+    patch: Partial<{
+      payload: MomentoPayload
+      note: string | null
+      capturedAt: string
+      entityIds: string[]
+    }>,
+  ): Promise<Momento> {
+    const body: Record<string, unknown> = {}
+    if (patch.payload !== undefined) body.payload = patch.payload
+    if (patch.note !== undefined) body.note = patch.note
+    if (patch.capturedAt !== undefined) body.captured_at = patch.capturedAt
+    if (patch.entityIds !== undefined) body.entity_ids = patch.entityIds
+    const row = await request<MomentoRow>(`/api/momentos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    })
+    return momentoFromRow(row)
+  },
+
+  async deleteMomento(id: string): Promise<{ deletedAt: string }> {
+    return request<{ deletedAt: string }>(`/api/momentos/${id}`, {
+      method: 'DELETE',
+    })
+  },
+}
+
+// ---------- Momento row transform ----------
+
+type MomentoRow = {
+  id: string
+  kind: string
+  captured_at: string
+  payload: Record<string, unknown> | null
+  note: string | null
+  origin: unknown
+  entity_ids?: string[]
+  created_at: string
+  updated_at: string
+}
+
+function momentoFromRow(row: MomentoRow): Momento {
+  const kind: MomentoKind =
+    row.kind === 'recorte' || row.kind === 'foto' ? row.kind : 'nota'
+  return {
+    id: row.id,
+    kind,
+    capturedAt: row.captured_at,
+    payload: (row.payload ?? {}) as MomentoPayload,
+    note: row.note ?? undefined,
+    origin: (row.origin && typeof row.origin === 'object'
+      ? row.origin
+      : { kind: 'manual' }) as Origin,
+    entityIds: row.entity_ids ?? [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
 }
 
 export type SpotifyLibrarySnapshot = {
