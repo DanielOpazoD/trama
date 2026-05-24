@@ -36,6 +36,34 @@ const NAV_ITEMS: NavItem[] = [
   { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
 ]
 
+/**
+ * λ4: cada vista del sidebar tiene una "firma cromática" que se aplica
+ * a la barra lateral del activo + al icono activo. Antes todas usaban
+ * ink-700 (gris uniforme), lo que dejaba la nav sin pulso. Ahora:
+ *
+ *   Inicio       → gold        (saludo cálido, momento de entrada)
+ *   Grafo        → primary     (azul prusia — el mapa)
+ *   Entidades    → persona     (marrón cálido de la mayoría de tipos)
+ *   Citas        → gold        (el lugar donde el lenguaje pesa)
+ *   Relaciones   → sage        (vínculos vegetales, no técnicos)
+ *   Escuchas     → musico      (el rojo-tierra del tipo "musico")
+ *   Chat         → primary     (azul, conversación con la IA)
+ *   Sugerencias  → primary     (mismo azul; la IA propone)
+ *
+ * El color se inyecta como CSS var inline para que NavButton lo aplique
+ * sin saber qué sección renderiza.
+ */
+const SECTION_ACCENT: Record<ViewMode, string> = {
+  inicio: 'var(--accent-gold)',
+  grafo: 'var(--accent-primary)',
+  entidades: 'var(--type-persona)',
+  citas: 'var(--accent-gold)',
+  relaciones: 'var(--accent-sage)',
+  escuchas: 'var(--type-musico)',
+  chat: 'var(--accent-primary)',
+  sugerencias: 'var(--accent-primary)',
+}
+
 export function Sidebar({
   view,
   onChangeView,
@@ -111,6 +139,7 @@ export function Sidebar({
               active={view === item.value}
               count={counts[item.value]}
               mode="collapsed"
+              accentColor={SECTION_ACCENT[item.value]}
               onClick={() => onChangeView(item.value)}
             />
           ))}
@@ -218,6 +247,7 @@ export function Sidebar({
             count={counts[item.value]}
             mode="expanded"
             badgeTone={item.value === 'sugerencias' ? 'accent' : 'default'}
+            accentColor={SECTION_ACCENT[item.value]}
             onClick={() => onChangeView(item.value)}
           />
         ))}

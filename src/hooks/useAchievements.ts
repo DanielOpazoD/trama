@@ -134,7 +134,10 @@ export function useAchievements(counts: Counts): void {
 
     toast.show({
       message: winner.message,
-      tone: 'success',
+      // λ6: tone 'achievement' usa el backplate gold cálido del ToastHost
+      // — distinto de 'success' (verde de undo/save) para que el momento
+      // editorial se sienta como un evento, no como una confirmación.
+      tone: 'achievement',
       durationMs: 6000,
     })
   }, [counts.entities, counts.quotes, counts.relationships, toast])

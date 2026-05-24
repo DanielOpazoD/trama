@@ -58,7 +58,16 @@ export function Splash() {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center animate-splash-out"
-      style={{ backgroundColor: 'rgb(var(--paper-50))' }}
+      style={{
+        // λ10: paper de fondo + wash radial gold-soft enorme centrado.
+        // El gradient se compone como capa encima del paper para que la
+        // luz cálida emane desde el centro donde está la TramaMark. Da
+        // sensación de "entrar a una página recién impresa con sol"
+        // en vez de paper plano clínico.
+        backgroundColor: 'rgb(var(--paper-50))',
+        backgroundImage:
+          'radial-gradient(circle at center, var(--accent-gold-soft) 0%, transparent 55%)',
+      }}
       aria-hidden="true"
     >
       <div className="flex flex-col items-center gap-4">

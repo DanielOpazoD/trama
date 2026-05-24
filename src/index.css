@@ -775,7 +775,12 @@ html.dark .paper-grain::before {
     padding-right: 0.12em;
     padding-top: 0.04em;
     margin-bottom: -0.05em;
-    color: var(--accent-primary);
+    /* λ8: la inicial editorial pasa de accent-primary (azul prusia) a
+       accent-gold. El gold ya se mueve con la hora del día (δ6) así
+       que el drop-cap "respira" cálido en la mañana, ámbar al
+       atardecer, lavanda en la noche — la página da más sensación
+       de momento que de UI fría. */
+    color: var(--accent-gold);
     font-feature-settings: 'lnum', 'kern';
   }
 

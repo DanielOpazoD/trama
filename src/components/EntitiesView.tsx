@@ -530,6 +530,18 @@ export function EntitiesView({
           {availableTypes.map(({ type, count }) => {
             const active = typeFilter === type
             const label = ENTITY_TYPES.find((t) => t.value === type)?.label ?? type
+            // λ3: typeAccent devuelve `var(--type-X)`. Para producir un wash
+            // con alfa controlada usamos color-mix con transparent — los
+            // browsers modernos lo soportan (>= 90% en caniuse). Si fallara
+            // por agente raro, la chip activa cae a color sólido sin
+            // background (sigue legible).
+            const accentColor = typeAccent(type)
+            const activeStyle: React.CSSProperties | undefined = active
+              ? {
+                  backgroundColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`,
+                  color: accentColor,
+                }
+              : undefined
             return (
               <button
                 key={type}
@@ -539,14 +551,7 @@ export function EntitiesView({
                     ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors'
                     : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors'
                 }
-                style={
-                  active
-                    ? {
-                        backgroundColor: `${typeAccent(type)}22`,
-                        color: typeAccent(type),
-                      }
-                    : undefined
-                }
+                style={activeStyle}
               >
                 {label}
                 <span className="ml-1.5 text-micro tabular-nums opacity-70">{count}</span>

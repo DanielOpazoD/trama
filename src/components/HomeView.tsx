@@ -102,7 +102,20 @@ export function HomeView({
 
           Caso empty (totalEntities === 0): el EmptyMessage abajo cubre
           la guía con su illustration + body completos. */}
-      <header className="pad-block-5 flex items-baseline justify-between gap-6 stack-3">
+      <header
+        className="pad-block-5 flex items-baseline justify-between gap-6 stack-3 relative"
+        style={{
+          // λ10: wash radial gold-soft detrás del saludo + título. Sale
+          // del cuadrante superior izquierdo (donde está el greeting) y
+          // se disipa antes de llegar al accent-rule. Combinado con
+          // δ6 useTimeOfDayAccent, el saludo "respira" cobre cálido en
+          // la mañana, dorado al mediodía, ámbar al atardecer, lavanda
+          // azulada en la noche — el "qué hora es" se siente desde la
+          // primera mirada.
+          backgroundImage:
+            'radial-gradient(ellipse 60% 80% at 15% 20%, var(--accent-gold-soft) 0%, transparent 70%)',
+        }}
+      >
         <div className="min-w-0 stack-2">
           <p className="text-micro uppercase tracking-shout text-ink-300">
             {greeting}
@@ -246,7 +259,19 @@ function FeaturedQuote({
     // (~65ch) aún en pantallas anchas; mx-auto la centra. Pad-block-5
     // añade un colchón generoso arriba y abajo que separa la cita del
     // resto del flujo.
-    <section className="animate-fade-up pad-block-5 max-w-prose mx-auto">
+    <section
+      className="animate-fade-up pad-block-5 max-w-prose mx-auto relative"
+      style={{
+        // λ2: backplate cálido — wash radial muy sutil de gold-soft que
+        // emana del centro hacia los bordes. No es un card (no hay border
+        // ni padding agregado), es atmósfera: hace que la cita destacada
+        // se sienta como una página de portada respirando luz cálida en
+        // vez de papel plano. ~14% pico en el centro, fade a transparente
+        // bien antes de los bordes para no robarle peso al texto.
+        backgroundImage:
+          'radial-gradient(ellipse at center, var(--accent-gold-soft) 0%, transparent 65%)',
+      }}
+    >
       <div className="mb-4 flex items-baseline justify-between">
         {/* Eyebrow editorial con small caps reales — Spectral 'smcp'.
             Se ve más calmado y refinado que el uppercase + tracking
