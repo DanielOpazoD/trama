@@ -50,14 +50,19 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
   const isOff = mode === 'off'
   const isForced = mode.startsWith('forced-')
   const stateLabel = labelFor(mode)
+  // El visible muestra "IA AUTO" (dos spans separados). El title con dos
+  // puntos queda bien para tooltip, pero el aria-label se compara contra el
+  // texto visible — axe pide que sea un superset. Sin los dos puntos cumple
+  // sin perder claridad.
   const title = `IA: ${stateLabel}`
+  const ariaLabel = `IA ${stateLabel}`
 
   return (
     <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={title}
+        aria-label={ariaLabel}
         aria-haspopup="menu"
         aria-expanded={open}
         title={title}

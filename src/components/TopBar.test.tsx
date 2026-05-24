@@ -29,7 +29,9 @@ describe('<TopBar />', () => {
   it('renderiza la pill "Buscar" cuando se pasa onOpenPalette', async () => {
     const onOpenPalette = vi.fn()
     renderWithProviders(<TopBar view="inicio" onOpenPalette={onOpenPalette} />)
-    const pill = screen.getByLabelText('Buscar')
+    // El aria-label ahora incluye el atajo (γ4: label-content-name-mismatch),
+    // así que matcheamos por prefijo en vez del texto literal.
+    const pill = screen.getByLabelText(/^Buscar/)
     expect(pill).toBeInTheDocument()
     const user = userEvent.setup()
     await user.click(pill)
@@ -38,7 +40,7 @@ describe('<TopBar />', () => {
 
   it('NO renderiza la pill "Buscar" si no se pasa onOpenPalette', () => {
     renderWithProviders(<TopBar view="inicio" />)
-    expect(screen.queryByLabelText('Buscar')).toBeNull()
+    expect(screen.queryByLabelText(/^Buscar/)).toBeNull()
   })
 
   it('renderiza children opcionales en el slot actions', () => {

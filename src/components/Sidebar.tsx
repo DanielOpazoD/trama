@@ -112,11 +112,20 @@ export function Sidebar({
           {NAV_ITEMS.map((item) => {
             const active = view === item.value
             const Icon = item.icon
+            // Mismo trato que en el sidebar expandido: incluir el count en
+            // aria-label para no romper label-content-name-mismatch. Acá el
+            // badge visible es el número solo (sin label), así que el screen
+            // reader lee "Entidades, 63 items" mientras el sighted ve solo
+            // el icono + badge "63".
+            const count = counts[item.value]
+            const ariaLabel = count !== null && count > 0
+              ? `${item.label} (${count})`
+              : item.label
             return (
               <Tooltip key={item.value} content={item.label} side="bottom">
                 <button
                   onClick={() => onChangeView(item.value)}
-                  aria-label={item.label}
+                  aria-label={ariaLabel}
                   className={`relative p-2.5 rounded-lg transition-all duration-250 ease-out active:scale-95 ${
                     active
                       ? 'bg-ink-700/10 text-ink-700'
@@ -235,11 +244,20 @@ export function Sidebar({
         {NAV_ITEMS.map((item) => {
           const active = view === item.value
           const Icon = item.icon
+          // aria-label incluye el count cuando hay uno, para que el screen
+          // reader anuncie "Entidades, 63 items" — coincide con lo que el
+          // sighted user ve (texto "Entidades" + badge "63"). Antes el
+          // aria-label decía sólo "Entidades" y Lighthouse marcaba
+          // label-content-name-mismatch.
+          const count = counts[item.value]
+          const ariaLabel = count !== null && count > 0
+            ? `${item.label} (${count})`
+            : item.label
           return (
             <button
               key={item.value}
               onClick={() => onChangeView(item.value)}
-              aria-label={item.label}
+              aria-label={ariaLabel}
               className={`group flex items-center justify-between gap-2 pl-3 pr-2.5 py-1.5 rounded-md text-body transition-colors relative ${
                 active
                   ? 'text-ink-800 font-medium'

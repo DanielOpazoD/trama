@@ -106,7 +106,9 @@ function PalettePill({ onClick }: { onClick: () => void }) {
     <button
       onClick={onClick}
       title={`Buscar (${SHORTCUT_KEY} K)`}
-      aria-label="Buscar"
+      // aria-label incluye el atajo porque el <kbd> visible también lo
+      // tiene. Antes era sólo "Buscar" y Lighthouse marcaba mismatch.
+      aria-label={`Buscar (${SHORTCUT_KEY} K)`}
       className="hidden sm:flex items-center gap-2 px-2.5 py-1 text-xs text-ink-400 hover:text-ink-700 bg-paper-100/60 hover:bg-paper-100 border border-ink-100/60 hover:border-ink-200 rounded-md transition-colors"
     >
       <SearchIcon size={12} />
