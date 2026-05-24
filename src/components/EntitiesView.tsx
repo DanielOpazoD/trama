@@ -14,7 +14,6 @@ import {
 } from '../state'
 import { api, type Reclassification } from '../api'
 import { ChevronRightIcon, EndMark, SparkleIcon, TrashIcon } from './Icons'
-import { EntitySigil } from './EntitySigil'
 import { ReclassifyPanel } from './ReclassifyPanel'
 import { EmptyMessage } from './EmptyMessage'
 import { EntityCardSkeleton, SkeletonList } from './Skeleton'
@@ -677,18 +676,12 @@ function EntityRow({
         }`}
         aria-expanded={expanded}
       >
-        <div className="flex justify-between items-start gap-3">
-          {/* μ2: sigilo al inicio de la fila — el monograma de 2 letras
-              en typeAccent texturiza la lista, antes era todo texto sin
-              ancla visual. Tamaño md (40×40); en mobile sigue siendo
-              cómodo. mt-0.5 alinea ópticamente con el baseline del nombre. */}
-          <EntitySigil
-            name={entity.name}
-            type={entity.type}
-            size="md"
-            className="mt-0.5"
-          />
-          <div className="min-w-0 flex-1">
+        <div className="flex justify-between items-baseline gap-4">
+          {/* μ2 reverted aquí: el sigilo de 2 letras se quitó del listado
+              porque agregaba ruido sin información (el nombre ya está al
+              lado). Sigue activo en el EntityHeader del panel detail,
+              donde tiene más justificación como ancla visual. */}
+          <div className="min-w-0">
             <span className="text-ink-700">{entity.name}</span>
             {entity.year !== undefined && (
               <span className="ml-2 text-ink-300 text-sm">({entity.year})</span>
@@ -708,7 +701,7 @@ function EntityRow({
           {/* Chevron que rota — indica si está expandida o no */}
           <ChevronRightIcon
             size={12}
-            className={`text-ink-200 group-hover:text-ink-400 transition-all shrink-0 mt-3 ${
+            className={`text-ink-200 group-hover:text-ink-400 transition-all shrink-0 ${
               expanded ? 'rotate-90 text-ink-500' : ''
             }`}
           />
