@@ -281,9 +281,18 @@ export function ChatView({
                 <MessageBubble key={m.id} message={m} />
               ))}
               {sendPending && messages[messages.length - 1]?.role !== 'assistant' && (
-                <li className="text-ink-300 italic text-sm flex items-center gap-2">
-                  <span className="size-3 border-2 border-ink-200 border-t-ink-500 rounded-full animate-spin" />
-                  pensando…
+                // ζ11: indicador "pensando" en lenguaje editorial. En vez
+                // del spinner técnico, una elipsis serif que late en
+                // sentido literal: cada punto fade-in escalonado. Más en
+                // sintonía con el resto de la app que se construye sobre
+                // typography más que sobre iconography.
+                <li className="text-ink-400 italic text-sm font-serif flex items-baseline gap-1.5">
+                  <span>pensando</span>
+                  <span aria-hidden className="inline-flex items-baseline gap-[2px]">
+                    <span className="dots-dot" style={{ animationDelay: '0ms' }}>·</span>
+                    <span className="dots-dot" style={{ animationDelay: '180ms' }}>·</span>
+                    <span className="dots-dot" style={{ animationDelay: '360ms' }}>·</span>
+                  </span>
                 </li>
               )}
               {sendError && (
@@ -329,24 +338,57 @@ export function ChatView({
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
+  // ζ9: timestamp humano para marginal. Solo mostramos hora:minuto en
+  // bubbles del día corriente; fecha si es de antes. Si no hay
+  // createdAt válido, dejamos vacío para no decir "Invalid Date".
+  const ts = (() => {
+    if (!message.createdAt) return ''
+    const d = new Date(message.createdAt)
+    if (isNaN(d.getTime())) return ''
+    const sameDay = d.toDateString() === new Date().toDateString()
+    return sameDay
+      ? d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+      : d.toLocaleDateString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+  })()
   return (
-    <li className={isUser ? 'flex justify-end' : 'flex flex-col items-start'}>
+    <li className={isUser ? 'flex flex-col items-end' : 'flex flex-col items-start'}>
       <div
         className={
           isUser
-            ? 'self-end max-w-[75%] px-3 py-2 bg-ink-700 text-paper-50 rounded-xl rounded-br-md text-sm leading-relaxed whitespace-pre-wrap'
-            : 'max-w-[80%] px-3 py-2 bg-paper-100/60 border border-ink-100/50 text-ink-700 rounded-xl rounded-bl-md text-sm leading-relaxed'
+            ? // User: sans, ink-on-paper, mantiene voz "cotidiana".
+              'self-end max-w-[75%] px-3 py-2 bg-ink-700 text-paper-50 rounded-xl rounded-br-md text-sm leading-relaxed whitespace-pre-wrap'
+            : // ζ7+ζ8: Assistant en Spectral serif sobre fondo papel con
+              // textura sutil (.bubble-paper en index.css). El cambio de
+              // registro tipográfico señala que esto es una "respuesta de
+              // catálogo", no un mensaje cotidiano. font-size sube a 15
+              // porque Spectral a 14 se ve apretado; a 15 respira.
+              'max-w-[80%] px-4 py-3 bubble-paper border border-ink-100/50 text-ink-700 rounded-xl rounded-bl-md font-serif text-[15px] leading-relaxed'
         }
       >
         <div className="whitespace-pre-wrap">{message.content}</div>
         {!isUser && message.proposal && <InlineProposal proposal={message.proposal} />}
       </div>
-      {!isUser && message.model && (
+      {/* ζ9: marginal con timestamp + (assistant) modelo. Pegado al lado
+          que coincide con el bubble (right para user, left para assistant)
+          en italic chico. Como una nota al margen de una página, no como
+          un dato debajo del mensaje. */}
+      {ts && (
         <span
-          className="mt-1 ml-1 text-micro uppercase tracking-eyebrow text-ink-300"
-          title={message.provider ? `provider: ${message.provider}` : undefined}
+          className={`mt-1 text-micro tracking-normal text-ink-300/80 font-serif italic ${
+            isUser ? 'mr-1' : 'ml-1'
+          }`}
+          title={
+            message.model
+              ? `${message.provider ?? ''} · ${message.model}`.trim()
+              : undefined
+          }
         >
-          {message.model}
+          {ts}
+          {!isUser && message.model && (
+            <span className="ml-2 not-italic text-ink-300/60 tracking-wider uppercase font-sans">
+              {message.model}
+            </span>
+          )}
         </span>
       )}
     </li>

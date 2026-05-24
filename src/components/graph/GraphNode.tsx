@@ -42,6 +42,8 @@ export function GraphNode({
   connectionCount,
   onMouseDown,
   onClick,
+  onHoverStart,
+  onHoverEnd,
 }: {
   entity: Entity
   x: number
@@ -53,6 +55,11 @@ export function GraphNode({
   connectionCount: number
   onMouseDown: (event: React.MouseEvent) => void
   onClick: (event: React.MouseEvent) => void
+  /** ζ5: callbacks de hover usados por GraphView para mostrar la preview
+      card después de un delay. El delay lo maneja el parent (acá solo
+      emitimos enter/leave). */
+  onHoverStart?: () => void
+  onHoverEnd?: () => void
 }) {
   const accent = typeAccent(entity.type)
   const radius = Math.min(9 + Math.sqrt(connectionCount) * 4.5, 28)
@@ -90,6 +97,8 @@ export function GraphNode({
       }}
       onMouseDown={onMouseDown}
       onClick={onClick}
+      onMouseEnter={onHoverStart}
+      onMouseLeave={onHoverEnd}
     >
       {/* Inner group applies ambient drift; outer stays at the layout position
           so dragging and force-layout still work normally. δ6: anidamos
@@ -104,17 +113,46 @@ export function GraphNode({
          className={isSelected ? undefined : 'animate-node-breathe'}
          style={{ '--breathe-offset': breatheOffset } as React.CSSProperties}
        >
-        {/* Selection halo with gentle pulse */}
+        {/* ζ4: Selection halo refinado — antes era un círculo grueso
+            (strokeWidth 6) que se sentía pesado. Ahora un anillo fino
+            con ticks radiales tipo marca de hora de un reloj. Sutil
+            pero claramente "esto está seleccionado". */}
         {isSelected && (
-          <circle
-            cx={0}
-            cy={0}
-            r={radius + 4}
-            fill="none"
-            stroke="var(--ink)"
-            strokeWidth={6}
-            className="animate-halo-pulse"
-          />
+          <g className="animate-halo-pulse">
+            {/* Anillo interior fino */}
+            <circle
+              cx={0}
+              cy={0}
+              r={radius + 4}
+              fill="none"
+              stroke="var(--ink)"
+              strokeWidth={1.2}
+              strokeOpacity={0.7}
+            />
+            {/* Ticks radiales — 8 marcas a 45° de separación, como las
+                horas de un reloj. Cada tick es una línea corta del
+                radius+6 al radius+10. Las cardinales (0, 90, 180, 270)
+                son ligeramente más largas para sugerir "norte". */}
+            {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => {
+              const rad = (angle * Math.PI) / 180
+              const isCardinal = angle % 90 === 0
+              const inner = radius + 6
+              const outer = radius + (isCardinal ? 12 : 9)
+              return (
+                <line
+                  key={angle}
+                  x1={Math.cos(rad) * inner}
+                  y1={Math.sin(rad) * inner}
+                  x2={Math.cos(rad) * outer}
+                  y2={Math.sin(rad) * outer}
+                  stroke="var(--ink)"
+                  strokeWidth={1.2}
+                  strokeOpacity={isCardinal ? 0.8 : 0.5}
+                  strokeLinecap="round"
+                />
+              )
+            })}
+          </g>
         )}
         {/* Node body */}
         <circle
@@ -140,13 +178,17 @@ export function GraphNode({
             strokeWidth={1.5}
           />
         )}
-        {/* Name */}
+        {/* ζ3: Name en Spectral serif (era sans). Los nodos del grafo
+            ahora se ven como entradas de un índice impreso, no como
+            tags de un dashboard. fontWeight 400 (regular) porque el
+            serif a 12px con 500 se ve apretado; en regular respira. */}
         <text
           y={labelY}
           textAnchor="middle"
-          fontSize={12}
-          fontWeight={500}
+          fontSize={12.5}
+          fontWeight={400}
           fill="var(--ink)"
+          fontFamily="Spectral, Iowan Old Style, Palatino, Georgia, serif"
           style={{ userSelect: 'none', pointerEvents: 'none' }}
         >
           {truncate(entity.name, NODE_TRUNCATE)}

@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { RELATIONSHIP_TYPES, type Relationship } from '../../types'
+import type { LayoutMode } from '../../hooks/layouts/types'
 
 type Point = { x: number; y: number }
 
@@ -54,6 +56,7 @@ export function GraphEdge({
   highlighted,
   dimmed,
   fresh = false,
+  layoutMode,
 }: {
   rel: Relationship
   from: Point | undefined
@@ -61,24 +64,39 @@ export function GraphEdge({
   highlighted: boolean
   dimmed: boolean
   fresh?: boolean
+  /** ζ1: el modo de layout decide si curvamos o no. En 'by-year' las
+      conexiones cruzan una línea de tiempo donde la dirección horizontal
+      es semántica; curvar rompe esa intuición. En el resto curvamos
+      sutilmente porque las líneas rectas se ven "técnicas". */
+  layoutMode?: LayoutMode
 }) {
+  // ζ2: hover-on-edge state local. Cuando el cursor está sobre el edge
+  // (su hit area expandida), mostramos el label aún si no está highlighted.
+  // highlighted (selección de nodo conectado) gana sobre hover (el highlight
+  // ya implica mostrar label además de animar dash).
+  const [hovered, setHovered] = useState(false)
+
   if (!from || !to) return null
   const trimmed = trimEndpoints(from, to)
-  const { d, midX, midY } = curvedPath(trimmed.from, trimmed.to)
+  // En by-year usamos rectas (curvature 0). En el resto, bezier sutil.
+  // ζ1: bajado de 0.18 a 0.12 — la curva era un poco aspaventosa en
+  // distancias largas. 12% queda elegante sin ser histriónico.
+  const curvature = layoutMode === 'by-year' ? 0 : 0.12
+  const { d, midX, midY } = curvedPath(trimmed.from, trimmed.to, curvature)
 
   const isAi = rel.origin.kind === 'ai'
   const stroke = isAi ? '#7AA7C7' : 'var(--ink-2)'
-  const opacity = dimmed ? 0.08 : highlighted ? 0.85 : 0.32
-  const strokeWidth = highlighted ? 1.6 : 1.1
+  const opacity = dimmed ? 0.08 : highlighted ? 0.85 : hovered ? 0.6 : 0.32
+  const strokeWidth = highlighted ? 1.6 : hovered ? 1.4 : 1.1
   const typeLabel =
     RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ?? rel.type
   const markerId = isAi ? 'edgeArrowAi' : 'edgeArrow'
+  const showLabel = highlighted || hovered
 
   return (
-    <g
-      style={{ pointerEvents: 'none', ['--final-opacity' as never]: opacity }}
-      className={fresh ? 'animate-edge-in' : undefined}
-    >
+    <g style={{ ['--final-opacity' as never]: opacity }} className={fresh ? 'animate-edge-in' : undefined}>
+      {/* Visible stroke — sin pointer events para que no robe focus al
+          hit area transparente de abajo. */}
       <path
         d={d}
         fill="none"
@@ -88,18 +106,37 @@ export function GraphEdge({
         strokeLinecap="round"
         markerEnd={`url(#${markerId})`}
         className={highlighted ? 'animate-dash-flow' : undefined}
+        style={{ pointerEvents: 'none', transition: 'stroke-width 200ms ease, stroke-opacity 200ms ease' }}
       />
-      {highlighted && (
-        <g>
+      {/* ζ2: hit area transparente más gruesa (8x) para que el hover sea
+          cazable aún en edges finos. pointer-events=stroke = solo activa
+          en el trazo (no en el fill interior). */}
+      <path
+        d={d}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={12}
+        style={{ pointerEvents: 'stroke', cursor: 'help' }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      />
+      {showLabel && (
+        <g style={{ pointerEvents: 'none' }}>
+          {/* ζ2: backplate con border sutil — antes era solo fill con
+              opacidad 0.92; ahora le ponemos un border de 0.5 al --ink-100
+              para que se sienta como una etiqueta de catálogo, no como
+              un sticker. */}
           <rect
-            x={midX - typeLabel.length * 3 - 6}
-            y={midY - 7}
-            width={typeLabel.length * 6 + 12}
-            height={14}
-            rx={7}
-            ry={7}
+            x={midX - typeLabel.length * 3 - 7}
+            y={midY - 7.5}
+            width={typeLabel.length * 6 + 14}
+            height={15}
+            rx={7.5}
+            ry={7.5}
             fill="var(--bg-card)"
-            fillOpacity={0.92}
+            fillOpacity={0.95}
+            stroke="var(--border-subtle)"
+            strokeWidth={0.5}
           />
           <text
             x={midX}

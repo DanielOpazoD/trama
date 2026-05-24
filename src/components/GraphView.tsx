@@ -18,6 +18,7 @@ import {
   useUpdateEntityPosition,
 } from '../state'
 import type { Entity, ExtractionProposal, Relationship } from '../types'
+import { ENTITY_TYPES } from '../types'
 import { useGraphLayout } from '../hooks/useGraphLayout'
 import { usePanZoom } from '../hooks/usePanZoom'
 import { useFreshIds } from '../hooks/useFreshIds'
@@ -90,6 +91,25 @@ export default function GraphView({
     }
   }
   const [suggestEmpty, setSuggestEmpty] = useState(false)
+
+  // ζ5: hover preview — al hover prolongado sobre un nodo (~600ms) mostramos
+  // una card flotante con sus stats. Estado: id de la entidad hovered + un
+  // timer para el delay. Si el cursor se va antes del delay, cancelamos.
+  const [hoveredEntityId, setHoveredEntityId] = useState<string | null>(null)
+  const hoverTimerRef = useRef<number | null>(null)
+  function scheduleHover(id: string) {
+    if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current)
+    hoverTimerRef.current = window.setTimeout(() => {
+      setHoveredEntityId(id)
+    }, 600)
+  }
+  function cancelHover() {
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current)
+      hoverTimerRef.current = null
+    }
+    setHoveredEntityId(null)
+  }
 
   // Graph mode + focus, both persisted so el modo + el nodo focal
   // sobreviven recargas y navegación entre vistas.
@@ -191,6 +211,38 @@ export default function GraphView({
     }
     return map
   }, [relationships])
+
+  // ζ6: cluster annotations en modo by-type. Calculamos el centroide de
+  // cada cluster (promedio de posiciones de los nodos de ese tipo) y
+  // rendereamos el label grande detrás. Solo se calcula en by-type
+  // — en otros modos no tiene sentido (los nodos no están agrupados).
+  const clusterCentroids = useMemo(() => {
+    if (mode !== 'by-type') return null
+    const byType = new Map<string, { sumX: number; sumY: number; count: number }>()
+    for (const ent of entities) {
+      const pos = positions.get(ent.id)
+      if (!pos) continue
+      const acc = byType.get(ent.type) ?? { sumX: 0, sumY: 0, count: 0 }
+      acc.sumX += pos.x
+      acc.sumY += pos.y
+      acc.count += 1
+      byType.set(ent.type, acc)
+    }
+    const result: Array<{ type: string; label: string; cx: number; cy: number; count: number }> = []
+    for (const [type, { sumX, sumY, count }] of byType) {
+      // Skip clusters de 1 — un solo nodo no necesita label decorativa.
+      if (count < 2) continue
+      const label = ENTITY_TYPES.find((t) => t.value === type)?.label ?? type
+      result.push({
+        type,
+        label,
+        cx: sumX / count,
+        cy: sumY / count,
+        count,
+      })
+    }
+    return result
+  }, [mode, entities, positions])
 
   const [focusedIndex, setFocusedIndex] = useState<number>(-1)
 
@@ -495,6 +547,27 @@ export default function GraphView({
         <g
           transform={`translate(${svgSize.width / 2} ${svgSize.height / 2}) scale(${pz.zoom}) translate(${pz.pan.x} ${pz.pan.y})`}
         >
+          {/* ζ6: cluster annotations. Labels gigantes traslúcidos en serif
+              italic atrás de cada grupo en modo by-type. El grafo se
+              autocomenta: "estos son tus libros", "estos tus filósofos".
+              Renderizado ANTES de los edges para que quede debajo. */}
+          {clusterCentroids && clusterCentroids.map(({ type, label, cx, cy }) => (
+            <text
+              key={`cluster-${type}`}
+              x={cx}
+              y={cy}
+              textAnchor="middle"
+              fontSize={64}
+              fontFamily="Spectral, Iowan Old Style, Palatino, Georgia, serif"
+              fontStyle="italic"
+              fontWeight={300}
+              fill="var(--ink)"
+              fillOpacity={0.06}
+              style={{ userSelect: 'none', pointerEvents: 'none', textTransform: 'lowercase' }}
+            >
+              {label}
+            </text>
+          ))}
           {relationships.map((rel) => (
             <GraphEdge
               key={rel.id}
@@ -508,6 +581,7 @@ export default function GraphView({
                 selectedId !== rel.toId
               }
               fresh={freshRels.has(rel.id)}
+              layoutMode={mode}
             />
           ))}
           {entities.map((entity, index) => {
@@ -536,9 +610,95 @@ export default function GraphView({
                 connectionCount={connectionCount.get(entity.id) ?? 0}
                 onMouseDown={(event) => handleNodeMouseDown(event, entity)}
                 onClick={(event) => handleNodeClick(event, entity, index)}
+                onHoverStart={() => scheduleHover(entity.id)}
+                onHoverEnd={cancelHover}
               />
             )
           })}
+          {/* ζ5: hover preview card — al final del grupo así queda encima
+              de todos los nodos. Solo render si hay hover Y la entidad
+              existe en positions. */}
+          {hoveredEntityId && (() => {
+            const ent = entities.find((e) => e.id === hoveredEntityId)
+            const pos = positions.get(hoveredEntityId)
+            if (!ent || !pos) return null
+            const typeLabel = ENTITY_TYPES.find((t) => t.value === ent.type)?.label ?? ent.type
+            const conns = connectionCount.get(ent.id) ?? 0
+            const cardW = 200
+            const cardH = ent.year ? 76 : 60
+            // Mostrar a la derecha del nodo si hay espacio; si no a la izq.
+            // Ya que sabemos las coords del nodo, podemos offsetear.
+            const offsetX = 28
+            const offsetY = -cardH / 2
+            return (
+              <g
+                transform={`translate(${pos.x + offsetX} ${pos.y + offsetY})`}
+                style={{ pointerEvents: 'none' }}
+                className="animate-fade-up"
+              >
+                <rect
+                  width={cardW}
+                  height={cardH}
+                  rx={8}
+                  ry={8}
+                  fill="var(--bg-card)"
+                  fillOpacity={0.98}
+                  stroke="var(--border-subtle)"
+                  strokeWidth={1}
+                />
+                {/* Eyebrow: tipo de entidad en small caps */}
+                <text
+                  x={12}
+                  y={18}
+                  fontSize={9}
+                  fill="var(--ink-dim)"
+                  fontFamily="Spectral, Iowan Old Style, Palatino, Georgia, serif"
+                  fontStyle="italic"
+                  style={{ userSelect: 'none' }}
+                >
+                  {typeLabel.toLowerCase()}
+                  {ent.year && <> · {ent.year}</>}
+                </text>
+                {/* Nombre en serif */}
+                <text
+                  x={12}
+                  y={38}
+                  fontSize={14}
+                  fontWeight={500}
+                  fill="var(--ink)"
+                  fontFamily="Spectral, Iowan Old Style, Palatino, Georgia, serif"
+                  style={{ userSelect: 'none' }}
+                >
+                  {ent.name.length > 28 ? ent.name.slice(0, 27) + '…' : ent.name}
+                </text>
+                {/* Stats inline */}
+                <text
+                  x={12}
+                  y={ent.year ? 60 : 54}
+                  fontSize={10}
+                  fill="var(--ink-dim)"
+                  style={{ userSelect: 'none', letterSpacing: '0.05em' }}
+                >
+                  {conns} {conns === 1 ? 'conexión' : 'conexiones'}
+                </text>
+                {ent.description && (
+                  <text
+                    x={12}
+                    y={ent.year ? 72 : 66}
+                    fontSize={9.5}
+                    fill="var(--ink-dim)"
+                    fontStyle="italic"
+                    fontFamily="Spectral, Iowan Old Style, Palatino, Georgia, serif"
+                    style={{ userSelect: 'none' }}
+                  >
+                    {ent.description.length > 40
+                      ? ent.description.slice(0, 39) + '…'
+                      : ent.description}
+                  </text>
+                )}
+              </g>
+            )
+          })()}
         </g>
       </svg>
       )}

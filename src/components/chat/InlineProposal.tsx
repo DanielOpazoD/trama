@@ -222,7 +222,12 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
   if (!hasItems) return null
 
   return (
-    <div className="mt-3 ai-panel">
+    // ζ10: marco editorial. La caja tenía solo border + bg; ahora le
+    // añadimos cuatro marcas en las esquinas (estilo corner brackets de
+    // documentos archivísticos) para que el momento "la IA propuso algo"
+    // se sienta de catálogo, no de UI genérica. Los corner marks están
+    // en CSS pseudo-elementos para no contaminar el JSX.
+    <div className="mt-3 ai-panel proposal-frame relative">
       <header
         className="px-3 py-2 flex items-baseline justify-between"
         style={{ borderBottom: '1px solid var(--accent-primary-ring)' }}
