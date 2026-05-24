@@ -158,8 +158,12 @@ export function ListeningView({
 
   return (
     <>
+      {/* ι6: eyebrow editorial coherente con Sugerencias. */}
       <header className="mb-10 flex items-baseline justify-between gap-6">
         <div className="min-w-0">
+          <p className="section-eyebrow-serif mb-2" style={{ color: 'var(--accent-gold)' }}>
+            tu música reciente
+          </p>
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Escuchas</h2>
           <div className="accent-rule mt-3 mb-2" />
           <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">

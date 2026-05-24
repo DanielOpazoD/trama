@@ -135,6 +135,18 @@ export function Settings({
               {section === 'ai' && <AIPanel />}
               {section === 'search' && <SearchPanel />}
               {section === 'data' && <DataPanel />}
+
+              {/* ι5: Colophon editorial — al pie de cada panel, como en
+                  un libro impreso ("compuesto en…" al final). Italic
+                  serif, ink-300 muted, ornament chico arriba. Gesto que
+                  hace que la app se sienta autorada, no generada. */}
+              <footer className="mt-16 pt-6 border-t border-ink-100/40 text-center">
+                <p className="font-serif italic text-xs text-ink-300 leading-relaxed">
+                  Trama — compuesto en Spectral e Inter,
+                  <br />
+                  primavera de {new Date().getFullYear()}
+                </p>
+              </footer>
             </div>
           </main>
         </div>

@@ -77,8 +77,13 @@ export function ProactiveView() {
 
   return (
     <>
+      {/* ι6: eyebrow editorial arriba del título para anclar la vista
+          en el sistema visual del resto de la app. */}
       <header className="mb-10 flex items-baseline justify-between gap-6">
         <div className="min-w-0">
+          <p className="section-eyebrow-serif mb-2" style={{ color: 'var(--accent-gold)' }}>
+            lecturas de la IA
+          </p>
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Sugerencias</h2>
           <div className="accent-rule mt-3 mb-2" />
           <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">

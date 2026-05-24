@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { CloseIcon } from './Icons'
+import { CloseIcon, OrnamentBreak } from './Icons'
 
 /**
  * Modal con todos los keyboard shortcuts disponibles. Se abre con `?`
@@ -96,14 +96,20 @@ export function ShortcutsModal({
                    bg-paper-50 border border-ink-100 rounded-xl shadow-lg shadow-ink-900/12
                    animate-fade-up flex flex-col overflow-hidden"
       >
-        <header className="px-6 py-4 border-b border-ink-100/60 flex items-baseline justify-between shrink-0">
-          <div>
-            <p className="text-micro uppercase tracking-eyebrow text-ink-300 mb-1">
-              cheat sheet
-            </p>
-            <h2 className="font-serif text-2xl text-ink-700 leading-none">
+        {/* ι1: header como portada de capítulo — ornament arriba en lugar
+            de un eyebrow texto, título serif más grande, accent-rule
+            debajo. Le da peso editorial. */}
+        <header className="px-6 pad-block-5 border-b border-ink-100/60 flex items-baseline justify-between shrink-0">
+          <div className="stack-2">
+            <div className="text-ink-300">
+              <OrnamentBreak size={40} />
+            </div>
+            <h2 className="font-serif text-[28px] text-ink-800 leading-tight tracking-tight">
               Atajos de teclado
             </h2>
+            <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
+              cheat sheet
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -114,17 +120,21 @@ export function ShortcutsModal({
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {GROUPS.map((group) => (
+        {/* ι1: cada grupo separado con más aire (space-y-8 era space-y-6),
+            section-eyebrow-serif en lugar de section-eyebrow plano,
+            shortcut rows con border-b sutil entre items para que se
+            sientan como entradas de índice. */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+          {GROUPS.map((group, gIdx) => (
             <section key={group.title}>
-              <h3 className="section-eyebrow mb-3">{group.title}</h3>
-              <ul className="space-y-1.5">
+              <h3 className="section-eyebrow-serif mb-3">{group.title}</h3>
+              <ul className="divide-y divide-ink-100/40">
                 {group.shortcuts.map((s, i) => (
                   <li
                     key={i}
-                    className="flex items-center justify-between gap-4 px-3 py-1.5 rounded-md hover:bg-paper-100/50 transition-colors"
+                    className="flex items-center justify-between gap-4 px-2 py-2 hover:bg-paper-100/40 rounded transition-colors"
                   >
-                    <span className="text-sm text-ink-600">{s.label}</span>
+                    <span className="text-sm text-ink-700">{s.label}</span>
                     <div className="flex items-center gap-1 shrink-0">
                       {s.keys.map((k, ki) => (
                         <kbd
@@ -138,6 +148,14 @@ export function ShortcutsModal({
                   </li>
                 ))}
               </ul>
+              {/* Ornament break entre secciones (no después de la última)
+                  — suaviza la lectura del cheat sheet, como pausas entre
+                  capítulos cortos. */}
+              {gIdx < GROUPS.length - 1 && (
+                <div className="flex justify-center mt-6 text-ink-200">
+                  <OrnamentBreak size={28} />
+                </div>
+              )}
             </section>
           ))}
         </div>

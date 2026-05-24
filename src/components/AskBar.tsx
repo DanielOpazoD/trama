@@ -274,7 +274,10 @@ export function AskBar({
             placeholder={placeholderForView(view)}
             rows={1}
             disabled={ask.isPending || busy || imageBusy}
-            className="flex-1 resize-none bg-transparent px-3 py-2 text-ink-700 placeholder:text-ink-300 leading-relaxed"
+            // ι3: font-serif para que el input se sienta como escribir
+            // en un cuaderno, no en un form. El placeholder también
+            // se beneficia (italic implícito en Spectral).
+            className="flex-1 resize-none bg-transparent px-3 py-2 text-ink-700 placeholder:text-ink-300 placeholder:italic leading-relaxed font-serif text-base"
           />
           <button
             type="submit"
@@ -298,20 +301,23 @@ export function AskBar({
 }
 
 function placeholderForView(view: string | null): string {
+  // ι3: placeholders editoriales — cada vista invita en su propio idioma.
+  // El input ahora es serif, así que la voz puede ser más íntima sin
+  // sentirse fuera de lugar.
   switch (view) {
     case 'citas':
-      return 'Pregunta, pega una cita…'
+      return 'Ofrece una cita, una frase que quieres guardar…'
     case 'entidades':
-      return 'Pregunta o propone…'
+      return 'Nombra a alguien, propon una idea…'
     case 'relaciones':
-      return 'Pregunta o propone…'
+      return 'Propon un vínculo, una influencia…'
     case 'escuchas':
-      return 'Pregunta o recomienda…'
+      return 'Pregunta o describe una música…'
     case 'sugerencias':
-      return 'Pregunta…'
+      return 'Pregunta a la IA sobre lo que ya tienes…'
     case 'grafo':
-      return 'Pregunta o captura…'
+      return 'Pregunta, captura, navega…'
     default:
-      return 'Pregunta o captura…'
+      return 'Captura algo, pregunta, propon…'
   }
 }

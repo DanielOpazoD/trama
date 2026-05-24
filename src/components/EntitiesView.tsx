@@ -15,6 +15,7 @@ import { ChevronRightIcon, EndMark, SparkleIcon, TrashIcon } from './Icons'
 import { ReclassifyPanel } from './ReclassifyPanel'
 import { EmptyMessage } from './EmptyMessage'
 import { EntityCardSkeleton, SkeletonList } from './Skeleton'
+import { Folio } from './Folio'
 import { typeAccent } from './graph/GraphNode'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import type { Entity } from '../types'
@@ -224,10 +225,22 @@ export function EntitiesView({
       )}
 
       {showForm && (
+        // ι4: new-card pattern — título serif, inputs agrupados, footer
+        // con Cancelar + Añadir alineados a la derecha. Le da peso de
+        // "estoy creando una entidad nueva" en vez de "hay una forma
+        // perdida arriba de la lista".
         <form
           onSubmit={handleSubmit}
-          className="mb-10 p-4 bg-paper-100/50 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
+          className="mb-10 p-5 bg-paper-100/40 border border-ink-100/60 rounded-xl space-y-4 animate-fade-up"
         >
+          <header className="stack-2 pb-3 border-b border-ink-100/60">
+            <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
+              nueva entrada
+            </p>
+            <h3 className="font-serif text-xl text-ink-800 leading-tight">
+              Una entidad nueva en tu trama
+            </h3>
+          </header>
           <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
@@ -263,9 +276,18 @@ export function EntitiesView({
             rows={2}
             className="input-paper w-full resize-none"
           />
-          <button type="submit" disabled={addEntity.isPending} className="btn-ink">
-            {addEntity.isPending ? 'Añadiendo…' : 'Añadir'}
-          </button>
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="text-xs uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button type="submit" disabled={addEntity.isPending} className="btn-ink">
+              {addEntity.isPending ? 'Añadiendo…' : 'Añadir'}
+            </button>
+          </div>
           {dupCandidates && dupCandidates.length > 0 && (
             <div
               className="rounded-lg p-3 mt-2"
@@ -467,6 +489,9 @@ export function EntitiesView({
             <EndMark size={14} />
           </div>
         )}
+      {/* ι5: folio number flotante — fade-in al scrollear. Muestra el
+          índice del último item visible vs el total. */}
+      <Folio current={Math.min(lastVisibleIndex + 1, entities.length)} total={entities.length} />
     </>
   )
 }

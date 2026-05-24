@@ -56,7 +56,10 @@ describe('<AskBar />', () => {
       <AskBar busy={false} view="citas" selectedEntityId={null} onProposal={vi.fn()} />,
     )
 
-    await user.type(screen.getByPlaceholderText(/pregunta|pega/i), 'qué hago aquí')
+    // ι3: placeholders más editoriales — el de citas ahora es
+    // "Ofrece una cita…" en vez de "Pregunta, pega una cita…". Buscamos
+    // por "cita" que sigue siendo estable.
+    await user.type(screen.getByPlaceholderText(/cita/i), 'qué hago aquí')
     await user.click(screen.getByLabelText('Enviar'))
 
     await waitFor(() => {

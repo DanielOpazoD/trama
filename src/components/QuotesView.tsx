@@ -8,6 +8,7 @@ import {
 } from '../state'
 import { EndMark, SparkleIcon, TrashIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
+import { Folio } from './Folio'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import { typeAccent } from './graph/GraphNode'
 import { ENTITY_TYPES } from '../types'
@@ -403,6 +404,8 @@ export function QuotesView({
                 <EndMark size={14} />
               </div>
             )}
+          {/* ι5: folio number — número de página de libro impreso. */}
+          <Folio current={Math.min(lastVisibleIndex + 1, quotes.length)} total={quotes.length} />
         </>
       )}
     </>
