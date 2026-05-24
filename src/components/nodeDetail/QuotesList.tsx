@@ -19,7 +19,9 @@ export function QuotesList({ entity }: { entity: Entity }) {
 
   return (
     <section>
-      <h3 className="text-xs uppercase tracking-wider text-ink-400 mb-3">
+      {/* θ1: header editorial en small-caps serif. Count + label como
+          epígrafe de capítulo. */}
+      <h3 className="section-eyebrow-serif mb-3">
         {entityQuotes.length === 1 ? 'Cita / nota' : `${entityQuotes.length} citas / notas`}
       </h3>
       <ul className="space-y-5">

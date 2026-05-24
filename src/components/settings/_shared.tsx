@@ -9,16 +9,35 @@
 
 /**
  * Header estándar de cada panel — título serif + hint sans con respiro
- * en rhythm vertical. δ2 lo definió; lo movemos acá para que cada
- * panel lo importe sin redefinir.
+ * en rhythm vertical. δ2 lo definió; θ2 lo refina con un eyebrow chico
+ * arriba (estilo "secciones de revista") y una accent-rule debajo.
  */
-export function PanelHeader({ title, hint }: { title: string; hint: string }) {
+export function PanelHeader({
+  title,
+  hint,
+  /** Eyebrow opcional arriba del título, en small caps serif. Si se
+      omite, el header arranca directo con el título. */
+  eyebrow,
+}: {
+  title: string
+  hint: string
+  eyebrow?: string
+}) {
   return (
-    // pad-block-3 abajo = 16px (--space-3), stack-2 = 11px (--space-2)
-    // entre título y hint. El border-b sutil ancla el header al panel.
-    <header className="pad-block-3 border-b border-ink-100/40 mb-6 stack-2">
-      <h3 className="font-serif text-xl text-ink-800 leading-tight">{title}</h3>
-      <p className="text-sm text-ink-400 leading-relaxed">{hint}</p>
+    // pad-block-4 abajo (~22px) para más aire que antes; stack-2 entre
+    // los elementos. La accent-rule del bottom da identidad editorial:
+    // el header se siente como el título de un capítulo subrayado.
+    <header className="pad-block-4 mb-6 stack-2">
+      {eyebrow && (
+        <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
+          {eyebrow}
+        </p>
+      )}
+      <h3 className="font-serif text-2xl text-ink-800 leading-tight tracking-tight">{title}</h3>
+      <p className="text-sm text-ink-400 leading-relaxed max-w-prose">{hint}</p>
+      {/* Accent-rule sutil debajo — el header termina como una entrada
+          de índice subrayada en un libro. */}
+      <div className="accent-rule mt-3" />
     </header>
   )
 }

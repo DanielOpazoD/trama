@@ -69,7 +69,10 @@ export function NodeDetailPanel({
           y el título no compita con ella por ancho. */}
       {onOpenThread && <TalkButton entity={entity} onOpenThread={onOpenThread} />}
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-6">
+      {/* θ1: padding horizontal px-6 (era p-5=20px) para acompañar el
+          ancho 520px del panel. space-y-8 entre secciones grandes para
+          que respiren como capítulos de un libro. */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-8">
         <DescriptionEditor entity={entity} />
         <EssayEditor entity={entity} />
         <QuickNoteForm entity={entity} />

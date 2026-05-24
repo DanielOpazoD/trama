@@ -221,10 +221,17 @@ export function ProposalPanel({
       role="region"
       aria-label="Propuesta de la IA"
     >
-      <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wider text-ink-400 flex items-center gap-2 flex-wrap">
-            <span>Propuesta</span>
+      {/* θ6: header rediseñado — eyebrow serif para "propuesta IA"
+          (en vez de uppercase plano), modelo como chip más prominente,
+          source-text en serif más grande. El panel ahora se siente
+          como un manuscrito de la IA, no como un dialog modal. */}
+      <header className="px-6 pad-block-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
+        <div className="min-w-0 stack-2">
+          <p
+            className="section-eyebrow-serif flex items-center gap-2 flex-wrap"
+            style={{ color: 'var(--accent-gold)' }}
+          >
+            <span>◆ propuesta</span>
             {proposal.model && (
               <span
                 className="chip"
@@ -235,7 +242,7 @@ export function ProposalPanel({
               </span>
             )}
           </p>
-          <h2 className="font-serif text-lg text-ink-700 truncate" title={sourceText}>
+          <h2 className="font-serif text-xl text-ink-700 leading-tight truncate" title={sourceText}>
             {sourceText.length > 60 ? `${sourceText.slice(0, 60)}…` : sourceText}
           </h2>
         </div>
@@ -248,7 +255,9 @@ export function ProposalPanel({
         </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-6">
+      {/* θ6: padding alineado con el resto del RightPanel (px-6).
+          space-y-8 entre secciones grandes para que respiren. */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-8">
         {total === 0 && (
           <p className="text-ink-300 italic text-sm">
             La IA no detectó nada concreto. Prueba con más contexto.
@@ -352,10 +361,11 @@ function Section({
 }) {
   return (
     <div>
+      {/* θ6: section-eyebrow-serif (small caps Spectral) en vez del
+          uppercase tracking-wider plano. Más coherente con QuickNoteForm
+          y QuotesList del NodeDetailPanel. */}
       <h3
-        className={`text-xs uppercase tracking-wider mb-2 ${
-          tone === 'warn' ? '' : 'text-ink-300'
-        }`}
+        className="section-eyebrow-serif mb-3"
         style={tone === 'warn' ? { color: 'var(--accent-clay)' } : undefined}
       >
         {title}
@@ -517,16 +527,38 @@ function ProposedRelationshipRow({
           <p className="mt-1 text-ink-400 leading-relaxed">{rel.notes}</p>
         )}
         {rel.verification && (
-          <div className="mt-1">
+          <div className="mt-2">
+            {/* θ6: verdict badges con backplate de chip — antes era solo
+                texto uppercase, ahora se sienten como un sello (pasó
+                verificación) o una banderita (dudó). Más fácil de
+                escanear cuando hay varias propuestas. */}
             {rel.verification.agreed ? (
-              <span className="text-xs uppercase tracking-wider text-emerald-700/80">
-                ✓ verificado por {rel.verification.verifier}
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro uppercase tracking-eyebrow font-medium"
+                style={{
+                  backgroundColor: 'var(--accent-sage-soft)',
+                  color: 'var(--accent-sage)',
+                }}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                verificado por {rel.verification.verifier}
               </span>
             ) : (
-              <span className="text-xs uppercase tracking-wider text-amber-700/90">
-                ⚠ {rel.verification.verifier} dudó
+              <span className="inline-flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro uppercase tracking-eyebrow font-medium"
+                  style={{
+                    backgroundColor: 'var(--accent-gold-soft)',
+                    color: 'var(--accent-gold)',
+                  }}
+                >
+                  <span aria-hidden>⚠</span>
+                  {rel.verification.verifier} dudó
+                </span>
                 {rel.verification.note && (
-                  <span className="normal-case tracking-normal text-ink-500 italic ml-1">
+                  <span className="text-xs text-ink-500 italic">
                     — {rel.verification.note}
                   </span>
                 )}

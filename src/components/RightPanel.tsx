@@ -57,7 +57,7 @@ export function RightPanel({
         className={
           isMobile
             ? 'fixed inset-x-0 bottom-0 top-12 z-20 animate-slide-up pointer-events-none'
-            : 'fixed top-4 right-4 bottom-4 w-[22rem] max-w-[calc(100vw-2rem)] z-20 animate-slide-in-right pointer-events-none'
+            : 'fixed top-4 right-4 bottom-4 w-[32rem] max-w-[calc(100vw-2rem)] z-20 animate-slide-in-right pointer-events-none'
         }
       >
         <div
