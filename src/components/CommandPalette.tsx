@@ -7,9 +7,9 @@ import {
   EntitiesIcon,
   GraphIcon,
   HomeIcon,
+  MomentosIcon,
   MusicIcon,
   QuoteIcon,
-  RelationsIcon,
   SparkleIcon,
 } from './Icons'
 
@@ -21,9 +21,9 @@ type Item =
 const VIEWS: Array<{ view: ViewMode; label: string; hint: string }> = [
   { view: 'inicio', label: 'Inicio', hint: 'la página principal' },
   { view: 'grafo', label: 'Grafo', hint: 'el mapa visual' },
-  { view: 'entidades', label: 'Entidades', hint: 'lista de personas, libros, etc.' },
+  { view: 'entidades', label: 'Entidades', hint: 'personas, libros, vínculos' },
   { view: 'citas', label: 'Citas', hint: 'fragmentos guardados' },
-  { view: 'relaciones', label: 'Relaciones', hint: 'vínculos entre entidades' },
+  { view: 'momentos', label: 'Momentos', hint: 'la dimensión temporal de la trama' },
   { view: 'escuchas', label: 'Escuchas', hint: 'tu música reciente' },
   { view: 'chat', label: 'Chat', hint: 'conversación con la IA' },
   { view: 'sugerencias', label: 'Sugerencias', hint: 'la IA revisa la trama' },
@@ -226,7 +226,7 @@ function ViewIcon({ view }: { view: ViewMode }) {
     case 'grafo': return <GraphIcon {...props} />
     case 'entidades': return <EntitiesIcon {...props} />
     case 'citas': return <QuoteIcon {...props} />
-    case 'relaciones': return <RelationsIcon {...props} />
+    case 'momentos': return <MomentosIcon {...props} />
     case 'escuchas': return <MusicIcon {...props} />
     case 'chat': return <ChatIcon {...props} />
     case 'sugerencias': return <SparkleIcon {...props} />

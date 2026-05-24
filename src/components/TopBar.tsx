@@ -31,8 +31,8 @@ const TITLES: Record<ViewMode, { title: string; subtitle?: string }> = {
   grafo: { title: 'Grafo', subtitle: 'mapa visual de tus conexiones' },
   entidades: { title: 'Entidades', subtitle: 'personas, obras, conceptos' },
   citas: { title: 'Citas', subtitle: 'fragmentos que retuviste' },
-  relaciones: { title: 'Relaciones', subtitle: 'las líneas entre nodos' },
   escuchas: { title: 'Escuchas', subtitle: 'tu música reciente' },
+  momentos: { title: 'Momentos', subtitle: 'la dimensión temporal de tu trama' },
   chat: { title: 'Chat', subtitle: 'conversa con tu trama' },
   sugerencias: { title: 'Sugerencias', subtitle: 'propuestas de la IA' },
 }

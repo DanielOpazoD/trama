@@ -12,6 +12,7 @@ import {
 import { useTheme } from './hooks/useTheme'
 import { useTimeOfDayAccent } from './hooks/useTimeOfDayAccent'
 import { useAchievements } from './hooks/useAchievements'
+import { useWeeklyProactiveNudge } from './hooks/useWeeklyProactiveNudge'
 import { Sidebar, type ViewMode } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { CommandPalette } from './components/CommandPalette'
@@ -40,7 +41,7 @@ function Shell() {
   const relationshipsQuery = useRelationshipsQuery()
   const quotesQuery = useQuotesQuery()
   const { offline } = useOffline()
-  const { theme, toggle: toggleTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
   // δ6: shift sutil del --accent-gold según hora local. La app se siente
   // distinta según cuándo entres — sin que el usuario tenga que pensarlo.
   useTimeOfDayAccent()
@@ -99,6 +100,14 @@ function Shell() {
     if (typeof window === 'undefined') return false
     return window.localStorage.getItem('trama:focus-mode') === '1'
   })
+
+  // κ2: nudge semanal cuando hay sugerencias proactivas pendientes y
+  // ya pasaron 7+ días desde el último toast. La declaración va aquí
+  // porque depende de setView (defined arriba) para el CTA.
+  const navigateToProactive = useCallback(() => {
+    setView('sugerencias')
+  }, [])
+  useWeeklyProactiveNudge({ onNavigate: navigateToProactive })
 
   // Atajos globales:
   //   Cmd/Ctrl+K → CommandPalette
@@ -280,7 +289,7 @@ function Shell() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         theme={theme}
-        onToggleTheme={toggleTheme}
+        onSetTheme={setTheme}
       />
 
       <CommandPalette

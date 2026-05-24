@@ -5,9 +5,14 @@ import {
   useRelationshipsQuery,
   useAddQuote,
   useDeleteQuote,
+  useReflectQuote,
+  useUpdateQuote,
+  useToast,
 } from '../state'
 import { EndMark, SparkleIcon, TrashIcon } from './Icons'
+import { AISourceTag } from './AISourceTag'
 import { EmptyMessage } from './EmptyMessage'
+import { Folio } from './Folio'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import { typeAccent } from './graph/GraphNode'
 import { ENTITY_TYPES } from '../types'
@@ -259,7 +264,7 @@ export function QuotesView({
               EntitiesView: sticky al top con backdrop blur, Todos + chip por
               tipo presente. No-sticky (siguiendo el cambio en
               EntitiesView): los chips scrollean con el contenido,
-              desaparecen al subir las citas en el viewport. Si querés
+              desaparecen al subir las citas en el viewport. Si quieres
               cambiar filtro, scroll up. */}
           {availableTypes.length > 1 && (
             <div className="py-2 mb-4 border-b border-ink-100/60 flex flex-wrap gap-1.5">
@@ -287,6 +292,16 @@ export function QuotesView({
               {availableTypes.map(({ type, count }) => {
                 const active = typeFilter === type
                 const label = ENTITY_TYPES.find((t) => t.value === type)?.label ?? type
+                // λ3: typeAccent devuelve `var(--type-X)`; usamos color-mix
+                // para producir el wash de fondo sin tener que mantener un
+                // mapeo paralelo de softs.
+                const accentColor = typeAccent(type)
+                const activeStyle: React.CSSProperties | undefined = active
+                  ? {
+                      backgroundColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`,
+                      color: accentColor,
+                    }
+                  : undefined
                 return (
                   <button
                     key={type}
@@ -296,14 +311,7 @@ export function QuotesView({
                         ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors'
                         : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors'
                     }
-                    style={
-                      active
-                        ? {
-                            backgroundColor: `${typeAccent(type)}22`,
-                            color: typeAccent(type),
-                          }
-                        : undefined
-                    }
+                    style={activeStyle}
                   >
                     {label}
                     <span className="ml-1.5 text-micro tabular-nums opacity-70">{count}</span>
@@ -403,6 +411,8 @@ export function QuotesView({
                 <EndMark size={14} />
               </div>
             )}
+          {/* ι5: folio number — número de página de libro impreso. */}
+          <Folio current={Math.min(lastVisibleIndex + 1, quotes.length)} total={quotes.length} />
         </>
       )}
     </>
@@ -424,6 +434,52 @@ function QuoteItem({
   onSelectEntity?: (id: string) => void
   onDelete: () => void
 }) {
+  // κ6: estado local para la reflexión IA pendiente. Una vez generada,
+  // mostramos un preview con guardar/descartar; al guardar se persiste
+  // vía updateQuote y este estado se limpia (porque quote.aiReflection
+  // pasa a tener valor y la rama de render cambia).
+  const reflect = useReflectQuote()
+  const updateQuote = useUpdateQuote()
+  const toast = useToast()
+  const [draftReflection, setDraftReflection] = useState<{
+    text: string
+    provider: string
+    model: string
+  } | null>(null)
+
+  async function handleReflect() {
+    try {
+      const res = await reflect.mutateAsync(quote.id)
+      setDraftReflection({
+        text: res.reflection,
+        provider: res.provider,
+        model: res.model,
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al pedir interpretación'
+      toast.show({ message: msg, tone: 'error' })
+    }
+  }
+
+  async function handleSaveReflection() {
+    if (!draftReflection) return
+    try {
+      await updateQuote.mutateAsync({
+        id: quote.id,
+        patch: {
+          aiReflection: draftReflection.text,
+          aiReflectionProvider: draftReflection.provider,
+          aiReflectionModel: draftReflection.model,
+        },
+      })
+      setDraftReflection(null)
+      toast.show({ message: 'Interpretación guardada', tone: 'success' })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No se pudo guardar'
+      toast.show({ message: msg, tone: 'error' })
+    }
+  }
+
   return (
     <div className="group">
       {isFeature ? (
@@ -505,7 +561,9 @@ function QuoteItem({
           <div className="text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
             tu reflexión
           </div>
-          <p className="text-ink-600 text-sm leading-relaxed whitespace-pre-wrap">
+          {/* μ1: marginalia manuscrita — Caveat 17px / ink-500. Distingue
+              la voz tuya de la voz del catálogo (serif) y de la IA (sky). */}
+          <p className="marginalia-script whitespace-pre-wrap">
             {quote.userReflection}
           </p>
         </div>
@@ -514,11 +572,83 @@ function QuoteItem({
         <div className={`mt-3 ${isFeature ? '' : 'pl-5'}`}>
           <div className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-sky-700/80 mb-1">
             <SparkleIcon size={10} />
-            interpretación de la IA
+            <span>interpretación de la IA</span>
+            {/* κ-info: surfacing del modelo detrás del icono "i" — no
+                contamina la jerarquía visual y queda a un hover. */}
+            <AISourceTag
+              provider={quote.aiReflectionProvider}
+              model={quote.aiReflectionModel}
+              at={quote.aiReflectionAt}
+              className="ml-auto"
+            />
           </div>
           <p className="text-ink-500 text-sm leading-relaxed whitespace-pre-wrap">
             {quote.aiReflection}
           </p>
+        </div>
+      )}
+
+      {/* κ6: Reflexión IA bajo demanda. Si todavía no hay y no se está
+          dibujando un draft, mostramos un trigger discreto que solo
+          aparece al hover de la card (group-hover) — la idea no es
+          empujar la función, sino dejarla a un gesto cuando la quieres. */}
+      {!quote.aiReflection && !draftReflection && (
+        <div
+          className={`mt-3 ${isFeature ? '' : 'pl-5'} opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity`}
+        >
+          <button
+            onClick={handleReflect}
+            disabled={reflect.isPending}
+            className="inline-flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-sky-700/70 hover:text-sky-700 transition-colors disabled:opacity-60"
+          >
+            <SparkleIcon size={10} />
+            {reflect.isPending ? 'leyendo…' : 'reflexionar con IA'}
+          </button>
+        </div>
+      )}
+
+      {/* κ6: Draft preview — la IA respondió, el usuario decide si la
+          guarda. La cabecera deja ver el provider/modelo y un hint de que
+          tomó citas vecinas como contexto. */}
+      {draftReflection && (
+        <div
+          className={`mt-3 ${isFeature ? '' : 'pl-5'} animate-fade-up`}
+          aria-live="polite"
+        >
+          <div className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-sky-700/80 mb-1">
+            <SparkleIcon size={10} />
+            <span>lectura cruzada (borrador)</span>
+            <AISourceTag
+              provider={draftReflection.provider}
+              model={draftReflection.model}
+              className="ml-auto"
+            />
+          </div>
+          <p className="text-ink-500 text-sm leading-relaxed whitespace-pre-wrap border-l-2 border-sky-700/30 pl-3">
+            {draftReflection.text}
+          </p>
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              onClick={handleSaveReflection}
+              disabled={updateQuote.isPending}
+              className="text-micro uppercase tracking-eyebrow text-sky-700 hover:text-sky-900 transition-colors disabled:opacity-60"
+            >
+              {updateQuote.isPending ? 'guardando…' : 'guardar'}
+            </button>
+            <button
+              onClick={handleReflect}
+              disabled={reflect.isPending}
+              className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-60"
+            >
+              {reflect.isPending ? 'releyendo…' : 'otra lectura'}
+            </button>
+            <button
+              onClick={() => setDraftReflection(null)}
+              className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-500 transition-colors ml-auto"
+            >
+              descartar
+            </button>
+          </div>
         </div>
       )}
     </div>

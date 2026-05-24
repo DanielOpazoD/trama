@@ -30,6 +30,7 @@ export function NavButton({
   count,
   mode,
   badgeTone = 'default',
+  accentColor,
   onClick,
 }: {
   item: NavItem
@@ -38,6 +39,10 @@ export function NavButton({
   count: number | null
   mode: 'expanded' | 'collapsed'
   badgeTone?: 'default' | 'accent'
+  /** λ4: color de la barra lateral activa + del icono activo. Si se omite,
+      cae a ink-700 (el comportamiento β3 original). El color sólo se ve
+      cuando active=true; en estado no-activo el botón sigue siendo ink. */
+  accentColor?: string
   onClick: () => void
 }) {
   const Icon = item.icon
@@ -70,7 +75,8 @@ export function NavButton({
           {active && (
             <span
               aria-hidden
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-1 h-5 rounded-r bg-ink-700"
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-1 h-5 rounded-r"
+              style={{ backgroundColor: accentColor ?? 'rgb(var(--ink-700))' }}
             />
           )}
           {showCount && (
@@ -100,14 +106,34 @@ export function NavButton({
       {active && (
         <span
           aria-hidden
-          className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r bg-ink-700"
+          className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r"
+          style={{ backgroundColor: accentColor ?? 'rgb(var(--ink-700))' }}
         />
       )}
       <span className="flex items-center gap-2.5 min-w-0">
-        <Icon
-          size={14}
-          className={active ? 'text-ink-700' : 'text-ink-400 group-hover:text-ink-600'}
-        />
+        {/* λ4: cuando active + accentColor, el icono respira con el color de
+            la sección. El label sigue ink-800 (legibilidad). Sin accentColor
+            caemos al comportamiento β3 (gris uniforme).
+            Wrapper span con currentColor para que el stroke del SVG hereda. */}
+        <span
+          className="inline-flex shrink-0"
+          style={
+            active && accentColor
+              ? { color: accentColor }
+              : undefined
+          }
+        >
+          <Icon
+            size={14}
+            className={
+              active && accentColor
+                ? undefined
+                : active
+                  ? 'text-ink-700'
+                  : 'text-ink-400 group-hover:text-ink-600'
+            }
+          />
+        </span>
         <span className="truncate">{item.label}</span>
       </span>
       {showCount && (

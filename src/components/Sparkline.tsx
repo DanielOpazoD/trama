@@ -10,7 +10,7 @@
  *   - Si todos los valores son 0, render flat line en muted (sin data)
  *
  * Pensado para data viz inline tipo Stripe Dashboard o Vercel Analytics
- * — el contexto importa más que la precisión exacta. Si querés tooltips
+ * — el contexto importa más que la precisión exacta. Si quieres tooltips
  * con valores por punto, mejor un chart real (Recharts/Visx).
  */
 

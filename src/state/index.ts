@@ -34,6 +34,12 @@ export {
   useResolveProactive,
 } from './useProactive'
 export {
+  useInfiniteMomentosQuery,
+  useAddMomento,
+  useUpdateMomento,
+  useDeleteMomento,
+} from './useMomentos'
+export {
   useChatThreadsQuery,
   useCreateChatThread,
   useDeleteChatThread,

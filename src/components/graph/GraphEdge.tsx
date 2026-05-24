@@ -5,6 +5,45 @@ import type { LayoutMode } from '../../hooks/layouts/types'
 type Point = { x: number; y: number }
 
 /**
+ * λ9: cada tipo de relación tiene su propia firma cromática. Antes todos
+ * los edges eran gris uniforme (ink-2), lo que hacía que el grafo se viera
+ * técnico — un diagrama de aristas sin semántica visual. Ahora la dirección
+ * del color insinúa el contenido del vínculo:
+ *
+ *   influye_en    → primary (azul prusia, el vínculo intelectual canónico)
+ *   cita_a        → gold    (la cita literal trae la marca cálida de la cita)
+ *   responde_a    → primary (diálogo intelectual, mismo registro que influye)
+ *   me_llego_por  → sage    (vegetal, "por dónde te llegó")
+ *   suena_como    → musico  (rojo-tierra de la afinidad sonora)
+ *   inspira       → gold    (la inspiración es luz cálida)
+ *   contradice    → clay    (rojo nítido del disenso)
+ *   asociado_con  → sage    (el más laxo, vegetal neutral)
+ *
+ * Las propuestas IA mantienen su tinte primary distinguible (igual que
+ * antes el sky-700) — sigue siendo importante saber "esto lo propuso la IA"
+ * aunque la relación sea de un tipo cálido.
+ */
+export function relTypeAccent(type: string): string {
+  switch (type) {
+    case 'influye_en':
+    case 'responde_a':
+      return 'var(--accent-primary)'
+    case 'cita_a':
+    case 'inspira':
+      return 'var(--accent-gold)'
+    case 'me_llego_por':
+    case 'asociado_con':
+      return 'var(--accent-sage)'
+    case 'suena_como':
+      return 'var(--type-musico)'
+    case 'contradice':
+      return 'var(--accent-clay)'
+    default:
+      return 'var(--ink-2)'
+  }
+}
+
+/**
  * Compute a quadratic Bezier path between two points with a perpendicular
  * curvature. The control point sits off the midpoint, perpendicular to the
  * line, by `curvature * length`. Same-direction siblings between two nodes
@@ -85,7 +124,11 @@ export function GraphEdge({
   const { d, midX, midY } = curvedPath(trimmed.from, trimmed.to, curvature)
 
   const isAi = rel.origin.kind === 'ai'
-  const stroke = isAi ? '#7AA7C7' : 'var(--ink-2)'
+  // λ9: stroke por tipo de relación. Si es propuesta IA, mantenemos el
+  // tinte azul claro distintivo (preserva el patrón de "ojo a la propuesta")
+  // sobre el color del tipo — la procedencia importa visualmente más que
+  // el contenido. Para relaciones manuales/imported, el color cuenta el tipo.
+  const stroke = isAi ? '#7AA7C7' : relTypeAccent(rel.type)
   const opacity = dimmed ? 0.08 : highlighted ? 0.85 : hovered ? 0.6 : 0.32
   const strokeWidth = highlighted ? 1.6 : hovered ? 1.4 : 1.1
   const typeLabel =

@@ -37,6 +37,7 @@ export default withObservability('spotify-plays', async (req) => {
     last_played: string
     existing_entity_id: string | null
     sample_spotify_id?: string
+    artists?: string[] // π3: para track/album, mostrar autoría
   }
 
   let rows: Group[] = []
@@ -66,37 +67,105 @@ export default withObservability('spotify-plays', async (req) => {
       LIMIT ${limit}
     `) as unknown as Group[]
   } else if (group === 'album') {
+    // π3-fix: para llevar artist_names al cliente, usamos DISTINCT ON
+    // sobre el play más reciente. ARRAY_AGG(text[]) era frágil — si dos
+    // plays del mismo álbum tenían arrays de distinto largo (1 artista
+    // vs un feat con 2), PG podía tirar "cannot accumulate arrays of
+    // different sizes" o devolver text[][] mal serializado por el
+    // driver. DISTINCT ON garantiza UNA fila → UN array.
     rows = (await sql`
-      SELECT album_name AS key,
-             COUNT(*)::int AS plays,
-             MIN(played_at) AS first_played,
-             MAX(played_at) AS last_played,
-             (ARRAY_AGG(album_id))[1] AS sample_spotify_id,
+      WITH per_album AS (
+        SELECT DISTINCT ON (album_name)
+          album_name, artist_names, album_id, played_at
+        FROM spotify_plays
+        WHERE played_at >= ${since} AND album_name IS NOT NULL
+        ORDER BY album_name, played_at DESC
+      ),
+      counts AS (
+        SELECT album_name,
+               COUNT(*)::int AS plays,
+               MIN(played_at) AS first_played,
+               MAX(played_at) AS last_played
+        FROM spotify_plays
+        WHERE played_at >= ${since} AND album_name IS NOT NULL
+        GROUP BY album_name
+      )
+      SELECT c.album_name AS key,
+             c.plays,
+             c.first_played,
+             c.last_played,
+             p.album_id AS sample_spotify_id,
+             p.artist_names AS artists,
              e.id AS existing_entity_id
-      FROM spotify_plays p
+      FROM counts c
+      JOIN per_album p ON p.album_name = c.album_name
       LEFT JOIN entities e
-        ON LOWER(e.name) = LOWER(p.album_name) AND e.deleted_at IS NULL
-      WHERE p.played_at >= ${since} AND album_name IS NOT NULL
-      GROUP BY album_name, e.id
-      ORDER BY plays DESC
+        ON LOWER(e.name) = LOWER(c.album_name) AND e.deleted_at IS NULL
+      ORDER BY c.plays DESC
       LIMIT ${limit}
     `) as unknown as Group[]
   } else {
+    // π3-fix: idem tracks. DISTINCT ON sobre played_at DESC nos da la
+    // versión más reciente del track con SU artist_names intacto.
     rows = (await sql`
-      SELECT track_name AS key,
-             COUNT(*)::int AS plays,
-             MIN(played_at) AS first_played,
-             MAX(played_at) AS last_played,
-             (ARRAY_AGG(track_id))[1] AS sample_spotify_id,
+      WITH per_track AS (
+        SELECT DISTINCT ON (track_name)
+          track_name, artist_names, track_id, played_at
+        FROM spotify_plays
+        WHERE played_at >= ${since}
+        ORDER BY track_name, played_at DESC
+      ),
+      counts AS (
+        SELECT track_name,
+               COUNT(*)::int AS plays,
+               MIN(played_at) AS first_played,
+               MAX(played_at) AS last_played
+        FROM spotify_plays
+        WHERE played_at >= ${since}
+        GROUP BY track_name
+      )
+      SELECT c.track_name AS key,
+             c.plays,
+             c.first_played,
+             c.last_played,
+             p.track_id AS sample_spotify_id,
+             p.artist_names AS artists,
              e.id AS existing_entity_id
-      FROM spotify_plays p
+      FROM counts c
+      JOIN per_track p ON p.track_name = c.track_name
       LEFT JOIN entities e
-        ON LOWER(e.name) = LOWER(p.track_name) AND e.deleted_at IS NULL
-      WHERE p.played_at >= ${since}
-      GROUP BY track_name, e.id
-      ORDER BY plays DESC
+        ON LOWER(e.name) = LOWER(c.track_name) AND e.deleted_at IS NULL
+      ORDER BY c.plays DESC
       LIMIT ${limit}
     `) as unknown as Group[]
+  }
+
+  // π3: summary aggregado del mismo período. Una query única, barata
+  // gracias al index BRIN sobre played_at. Devolvemos junto al listado
+  // para evitar un round-trip extra del cliente.
+  type SummaryRow = {
+    total_plays: number
+    unique_tracks: number
+    unique_artists: number
+    unique_albums: number
+    total_minutes: number
+  }
+  const summaryRows = (await sql`
+    SELECT
+      COUNT(*)::int AS total_plays,
+      COUNT(DISTINCT track_id)::int AS unique_tracks,
+      COUNT(DISTINCT artist_name)::int AS unique_artists,
+      COUNT(DISTINCT album_id)::int AS unique_albums,
+      ROUND(COALESCE(SUM(duration_ms), 0) / 60000.0)::int AS total_minutes
+    FROM spotify_plays, UNNEST(artist_names) AS artist_name
+    WHERE played_at >= ${since}
+  `) as unknown as SummaryRow[]
+  const summary = summaryRows[0] ?? {
+    total_plays: 0,
+    unique_tracks: 0,
+    unique_artists: 0,
+    unique_albums: 0,
+    total_minutes: 0,
   }
 
   return Response.json({
@@ -109,7 +178,15 @@ export default withObservability('spotify-plays', async (req) => {
       lastPlayed: r.last_played,
       existingEntityId: r.existing_entity_id ?? null,
       spotifyId: r.sample_spotify_id ?? null,
+      artists: Array.isArray(r.artists) ? r.artists : undefined,
     })),
+    summary: {
+      totalPlays: summary.total_plays,
+      uniqueTracks: summary.unique_tracks,
+      uniqueArtists: summary.unique_artists,
+      uniqueAlbums: summary.unique_albums,
+      totalMinutes: summary.total_minutes,
+    },
   })
 })
 

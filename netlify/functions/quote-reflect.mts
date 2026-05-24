@@ -36,12 +36,14 @@ export default withObservability(
       source: string | null
       context: string | null
       user_reflection: string | null
+      embedding: string | null
       entity_name: string
       entity_type: string
       entity_description: string | null
     }
     const rows = (await sql`
       SELECT q.text, q.source, q.context, q.user_reflection,
+             q.embedding::text AS embedding,
              e.name AS entity_name, e.type AS entity_type, e.description AS entity_description
       FROM quotes q
       JOIN entities e ON e.id = q.entity_id
@@ -51,6 +53,27 @@ export default withObservability(
       return new Response('Cita no encontrada', { status: 404 })
     }
     const r = rows[0]
+
+    // κ6: traer citas semánticamente vecinas si esta cita tiene embedding.
+    // Excluimos la propia (self) y citas de la misma entidad de menor
+    // interés (la IA tiende a comparar Cervantes-vs-Cervantes; lo que
+    // queremos es el SALTO entre afinidades). Si no hay embedding, el
+    // bloque queda vacío y la prompt sigue funcionando como antes.
+    type NeighborRow = { text: string; entity_name: string }
+    let neighbors: NeighborRow[] = []
+    if (r.embedding) {
+      neighbors = (await sql`
+        SELECT q.text, e.name AS entity_name
+        FROM quotes q
+        JOIN entities e ON e.id = q.entity_id
+        WHERE q.id <> ${id}
+          AND q.deleted_at IS NULL
+          AND e.deleted_at IS NULL
+          AND q.embedding IS NOT NULL
+        ORDER BY q.embedding <=> ${r.embedding}::vector
+        LIMIT 5
+      `) as NeighborRow[]
+    }
 
     const messages = buildReflectPrompt({
       text: r.text,
@@ -62,6 +85,10 @@ export default withObservability(
         type: r.entity_type,
         description: r.entity_description,
       },
+      neighbors: neighbors.map((n) => ({
+        text: n.text,
+        entityName: n.entity_name,
+      })),
     })
 
     const invocation = await resolveAIInvocation(req, 'reflect')

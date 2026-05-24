@@ -1,6 +1,7 @@
 import { ENTITY_TYPES, type Entity } from '../../types'
 import { CloseIcon, SparkleIcon } from '../Icons'
 import { Tooltip } from '../Tooltip'
+import { EntitySigil } from '../EntitySigil'
 
 /**
  * Header del panel de detalle: tipo + año + badge IA + nombre + link
@@ -32,6 +33,10 @@ export function EntityHeader({
       // Padding horizontal ampliado a px-6 ahora que el panel mide 520px.
       className="px-6 pad-block-5 border-b border-ink-100 flex items-start justify-between gap-3"
     >
+      {/* μ2: sigilo grande al lado del nombre. Da identidad visual al
+          panel ANTES de leer el nombre. typeAccent en el border-l del
+          sigilo refuerza el chip de tipo de abajo. */}
+      <EntitySigil name={entity.name} type={entity.type} size="lg" className="mt-1" />
       <div className="min-w-0 flex-1 stack-2">
         <p className="text-micro uppercase tracking-eyebrow text-ink-400 flex items-center gap-2 flex-wrap">
           <span>{typeLabel ?? entity.type}</span>

@@ -151,9 +151,9 @@ Las tres:
 
 **No llames a APIs de LLM directamente.** Si necesitas un proveedor nuevo, agrégalo en `PROVIDER_DEFAULTS` y en cada función dispatcher. Nunca hagas `fetch('https://api.openai.com/...')` desde otro archivo.
 
-## Los cuatro caminos de propuesta IA
+## Los caminos de propuesta IA
 
-Cinco endpoints terminan en propuestas estructuradas que la UI muestra para aprobar:
+Endpoints que terminan en propuestas estructuradas que la UI muestra para aprobar:
 
 | Endpoint | Prompt | Validator |
 |---|---|---|
@@ -162,6 +162,9 @@ Cinco endpoints terminan en propuestas estructuradas que la UI muestra para apro
 | `/api/reclassify-entities` | `_lib/reclassify-prompt.ts` | `_lib/reclassify-validate.ts` |
 | `/api/chat/threads/:id/messages` | `_lib/chat-prompt.ts` (system + history) | `_lib/chat-validate.ts` (extrae JSON entre markers `<<<TRAMA-PROPOSAL ... TRAMA-PROPOSAL>>>`) |
 | `/api/spotify/import-playlist` | (no LLM — parse y fetch determinístico) | filtra en el endpoint |
+| `/api/quotes/:id/reflect` (κ6) | `_lib/reflect-prompt.ts` | (texto plano, no JSON) |
+| `/api/momentos/:id/suggest-entities` (ξ2) | inline en el handler | filtra IDs válidos contra existing |
+| `/api/momentos/:id/vision-suggest` (ξ3) | inline (vision multimodal) | filtra IDs válidos contra existing |
 
 Cuando agregues un camino nuevo, sigue el patrón: prompt aislado, validator puro, endpoint que orquesta. Loguea el resultado en `extraction_log` para que el dashboard de costos lo capture.
 
@@ -205,6 +208,58 @@ El streaming funciona así:
 
 El bloque `<<<TRAMA-PROPOSAL ... TRAMA-PROPOSAL>>>` que sale al final del texto se parsea en el SERVIDOR (`parseChatReply` en `_lib/chat-validate.ts`) — el cliente recibe el prose ya limpio + el objeto `proposal` aparte. El usuario nunca ve el JSON crudo.
 
+## Cuando edites Momentos (ξ — la dimensión temporal)
+
+Momentos es el dominio donde vive la **memoria fechada** de la trama: notas sueltas del día, recortes del mundo (tweets, links, screenshots), y fotos. Es el contrapeso temporal a entidades+citas que son atemporales.
+
+**Tabla:** `momentos` con `kind ∈ {nota, recorte, foto}` + `payload jsonb` variante por kind + `captured_at` separado de `created_at` (importante: una foto subida hoy puede tener captured_at de hace 5 años). Junction `momento_entities` N:M con entidades.
+
+**Shape de `payload` por kind** (validación en `_lib/momento-embed.ts → validatePayloadForKind`):
+- `nota`: `{ bodyText: string }` (requerido)
+- `recorte`: `{ url?, title?, bodyText?, source?, author? }` — al menos uno de url/title/bodyText
+- `foto`: `{ storageKey, width, height, caption?, exifDate? }` — storageKey requerido
+
+**Backend** (un endpoint por path, con multi-method handler):
+- `/api/momentos` GET/POST y `/api/momentos/:id` GET/PATCH/DELETE — CRUD principal
+- `/api/momentos/url-preview?url=` — server-side fetch de og:title/description/source/author (Twitter bloqueado por defecto)
+- `/api/momentos/:id/suggest-entities` — IA propone qué entidades existentes están mencionadas (no crea nuevas)
+- `/api/momentos/:id/vision-suggest` — para `kind=foto`, vision LLM propone caption + matches
+- `/api/momentos/upload` — multipart/form-data → Netlify Blobs store `momentos-media`
+- `/api/momentos/file/:key` — sirve el blob con cache inmutable
+
+**Frontend** vive en `src/components/momentos/`:
+- `MomentosView.tsx` — orquestador delgado (<200 líneas)
+- `MomentoComposer.tsx` + `useMomentoComposer.ts` — form con 3 branches por kind
+- `MomentoLinkingPanel.tsx` + `useMomentoLinking.ts` — panel post-guardar con AI suggest
+- `MomentoEntry.tsx` — renderer del timeline (despacha por kind)
+- `AlbumGrid.tsx` — vista grid alternativa para fotos
+- `MomentosFilters.tsx` — chips de filtro + toggle vista
+- `helpers.ts` — `groupByDay`, `groupByMonth`, `formatDateHeading`, `readImageDimensions`
+
+**Reglas específicas:**
+- **NO cambies `kind` via PATCH** — requeriría re-encoding del payload entero. Si necesitás eso, borrá y recreá.
+- **PATCH solo re-embedea si cambió `payload` o `note`** (no en cada link de entityIds). El handler decide con `shouldReembed`.
+- **Validá el payload con `validatePayloadForKind` en POST y PATCH** — protege contra `foto` sin storageKey, `nota` vacía, etc.
+- **Fotos viven en Netlify Blobs, no en Postgres.** El payload guarda `storageKey` (random hex hash + extension). Para servir, `/api/momentos/file/:key` con cache inmutable (la key NUNCA se sobreescribe).
+- **Vision base64: usar `Buffer.from(arrayBuffer).toString('base64')`**, NO `btoa(String.fromCharCode(...))` que se rompe con imágenes >2MB.
+
+## Netlify Blobs (storage no-DB)
+
+Trama agregó Netlify Blobs en ξ3 como capa de blob storage para fotos. Antes de ξ todo vivía en Neon Postgres (texto). El stack ahora es **dos persistencias**: Postgres para datos estructurados + Blobs para binarios.
+
+```ts
+import { getStore } from '@netlify/blobs'
+const store = getStore('momentos-media')  // store name = namespace
+await store.set(key, arrayBuffer, { metadata: { mime: '...' } })
+const blob = await store.getWithMetadata(key, { type: 'arrayBuffer' })
+```
+
+**Convenciones:**
+- Una store por dominio (`momentos-media` hoy; si surge otro caso, store nueva).
+- Keys son hash random hex + extension (`abc123…def.jpg`). Inmutables.
+- Mime y tamaño en `metadata`. Strip EXIF NO se hace (defer hasta que importe — el endpoint que sirve no expone metadata extra).
+- El cliente NUNCA llama a Netlify Blobs directo. Siempre via los endpoints `/api/momentos/upload` y `/api/momentos/file/:key`.
+
 ## Costos y observabilidad
 
 Cada llamada al LLM (extract, suggest, reclassify, chat) se loguea en `extraction_log` con tokens y costo estimado. Para ver el dashboard manualmente:
@@ -228,6 +283,9 @@ Errores de cualquier function se persisten en `error_log` vía `persistError()` 
 
 - **Hard-deletear filas** (rompe `deleted_at` semantics, salvo en tablas append-only).
 - **Cambiar el shape de `origin`** (rompe parsers en muchos lugares).
+- **Cambiar `kind` de un Momento via PATCH** (ver "Cuando edites Momentos").
+- **Llamar a `@netlify/blobs` desde el cliente** (rompe seguridad y modelo de caching — usá los endpoints).
+- **Re-embedear en PATCH sin verificar que cambió el texto** (cuesta a OpenAI cada link de entityIds — chequear `shouldReembed`).
 - **Saltarse los transforms en `api.ts`** (snake_case llegará al React state, todo se rompe).
 - **Llamar fetch directo a una API de LLM** (rompe abstracción + costos + retry + cache).
 - **Llamar `neon()` o leer `NETLIFY_DATABASE_URL` directo** (rompe el patrón `getSql()`; la variable correcta ahora es `NETLIFY_DB_URL` y la maneja el wrapper).

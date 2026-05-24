@@ -18,6 +18,17 @@ import { EndMark, OrnamentBreak, SparkleIcon } from './Icons'
 
 const STORAGE_KEY = 'trama:onboarded'
 
+/**
+ * ι2: convertir 1..N a numeral romano en minúsculas (i, ii, iii, iv).
+ * Suficiente para 4-5 pasos máximo. Si onboarding crece más, extender.
+ */
+function romanNumeral(n: number): string {
+  const map: Record<number, string> = {
+    1: 'i', 2: 'ii', 3: 'iii', 4: 'iv', 5: 'v', 6: 'vi', 7: 'vii', 8: 'viii',
+  }
+  return map[n] ?? String(n)
+}
+
 type Step = {
   eyebrow: string
   title: string
@@ -31,7 +42,7 @@ const STEPS: Step[] = [
     title: 'Trama es un mapa de tus afinidades.',
     body: (
       <>
-        Acá guardás <strong>entidades</strong> (personas, libros, canciones,
+        Aquí guardas <strong>entidades</strong> (personas, libros, canciones,
         ideas), las <strong>citas</strong> que te llegaron de ellas, y las{' '}
         <strong>relaciones</strong> entre todo eso. Crece despacio, con
         intención — no es un dump.
@@ -41,10 +52,10 @@ const STEPS: Step[] = [
   },
   {
     eyebrow: 'cómo empezar',
-    title: 'Pegá un párrafo.',
+    title: 'Pega un párrafo.',
     body: (
       <>
-        En la barra de abajo escribís — o pegás — algo que te llegó. Una
+        En la barra de abajo escribes — o pegas — algo que te llegó. Una
         frase de un libro, un fragmento de conversación, lo que sea. La IA
         lee y propone qué entidades, citas y relaciones extraer.
       </>
@@ -53,10 +64,10 @@ const STEPS: Step[] = [
   },
   {
     eyebrow: 'cómo decide',
-    title: 'Vos aprobás todo.',
+    title: 'Tú apruebas todo.',
     body: (
       <>
-        Nada entra a la trama sin tu confirmación. La IA propone, vos elegís
+        Nada entra a la trama sin tu confirmación. La IA propone, tú eliges
         qué resuena. Lo que no, se descarta. Tu mapa es tuyo —{' '}
         <em>la IA es solo un copiloto silencioso</em>.
       </>
@@ -64,11 +75,11 @@ const STEPS: Step[] = [
     primary: 'Sigue',
   },
   {
-    eyebrow: 'cómo te orientás',
+    eyebrow: 'cómo te orientas',
     title: 'Los atajos son tus amigos.',
     body: (
       <>
-        Apretá{' '}
+        Aprieta{' '}
         <kbd className="font-mono text-micro leading-none px-1.5 py-1 mx-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-600 shadow-sm">
           ⌘ K
         </kbd>{' '}
@@ -161,18 +172,37 @@ export function Onboarding({
         className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-up"
       >
         <div className="w-full max-w-xl">
+          {/* ι2: folio number como en una página de prólogo — "i / iv".
+              Roman numerals, font serif italic, separado del ornament
+              de abajo. Le da peso de cuaderno con capítulos numerados. */}
+          <p
+            className="text-center font-serif italic text-sm text-ink-300 mb-4 tabular-nums"
+            aria-hidden
+          >
+            {romanNumeral(stepIdx + 1)} · {romanNumeral(STEPS.length)}
+          </p>
+
           {/* Ornament arriba — guiño editorial */}
           <div className="flex justify-center mb-6 text-ink-300">
             <OrnamentBreak size={84} />
           </div>
 
-          <p className="section-eyebrow text-center mb-3" style={{ color: 'var(--accent-gold)' }}>
+          {/* ι2: eyebrow en small caps serif Spectral (era el plano
+              section-eyebrow). Más refinado, coherente con HomeView. */}
+          <p
+            className="section-eyebrow-serif text-center mb-3"
+            style={{ color: 'var(--accent-gold)' }}
+          >
             {step.eyebrow}
           </p>
 
-          <h2 className="font-serif text-h1 text-ink-800 leading-tight tracking-tight text-center mb-5">
+          <h2 className="font-serif text-h1 text-ink-800 leading-tight tracking-tight text-center mb-3">
             {step.title}
           </h2>
+
+          {/* ι2: accent-rule entre título y body — pausa visual breve,
+              como una entradilla de capítulo. */}
+          <div className="accent-rule mx-auto w-12 mb-5" />
 
           <div className="text-ink-500 text-lead leading-relaxed text-center max-w-lg mx-auto mb-10">
             {step.body}

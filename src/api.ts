@@ -3,6 +3,9 @@ import type {
   EntityType,
   ExportPayload,
   ExtractionProposal,
+  Momento,
+  MomentoKind,
+  MomentoPayload,
   Origin,
   Quote,
   Relationship,
@@ -680,11 +683,224 @@ export const api = {
   async spotifyPlays(
     group: 'artist' | 'album' | 'track' = 'artist',
     limit = 50,
+    /** π3: ventana temporal (ISO string). Si se omite, el servidor usa 90d. */
+    since?: string,
   ): Promise<SpotifyPlaysResponse> {
-    return request<SpotifyPlaysResponse>(
-      `/api/spotify/plays?group=${group}&limit=${limit}`,
+    const params = new URLSearchParams({ group, limit: String(limit) })
+    if (since) params.set('since', since)
+    return request<SpotifyPlaysResponse>(`/api/spotify/plays?${params}`)
+  },
+  /** π5: la IA propone 5-8 artistas nuevos basándose en tu perfil
+      musical (top artists + géneros). Excluye los que ya tenés en tu
+      trama o son tus top. */
+  async spotifySuggestArtists(): Promise<SpotifyArtistSuggestionsResponse> {
+    return request<SpotifyArtistSuggestionsResponse>(
+      '/api/spotify/suggest-artists',
+      { method: 'POST', body: '{}' },
     )
   },
+  /** π4: timestamps crudos para construir heatmap hora/día y trend
+      diario en TZ LOCAL del cliente. */
+  async spotifyTiming(since?: string): Promise<SpotifyTimingResponse> {
+    const params = new URLSearchParams()
+    if (since) params.set('since', since)
+    const q = params.toString()
+    return request<SpotifyTimingResponse>(
+      `/api/spotify/timing${q ? `?${q}` : ''}`,
+    )
+  },
+  /** κ-spotify: snapshot agregado de la paleta musical (top géneros, décadas,
+      saved count, párrafo IA). El servidor lo devuelve fresco; el cliente lo
+      cachea en localStorage para no re-generar cada vez. */
+  async spotifyLibrarySnapshot(): Promise<SpotifyLibrarySnapshot> {
+    return request<SpotifyLibrarySnapshot>('/api/spotify/library-snapshot', {
+      method: 'POST',
+      body: '{}',
+    })
+  },
+
+  // ---------- ξ — Momentos ----------
+
+  async listMomentos(opts?: {
+    cursor?: string | null
+    limit?: number
+    kind?: MomentoKind
+  }): Promise<{ items: Momento[]; nextCursor: string | null }> {
+    const params = new URLSearchParams()
+    if (opts?.cursor) params.set('cursor', opts.cursor)
+    if (opts?.limit) params.set('limit', String(opts.limit))
+    if (opts?.kind) params.set('kind', opts.kind)
+    const q = params.toString()
+    const res = await request<{
+      items: MomentoRow[]
+      nextCursor: string | null
+    }>(`/api/momentos${q ? `?${q}` : ''}`)
+    return {
+      items: res.items.map(momentoFromRow),
+      nextCursor: res.nextCursor,
+    }
+  },
+
+  async getMomento(id: string): Promise<Momento> {
+    const row = await request<MomentoRow>(`/api/momentos/${id}`)
+    return momentoFromRow(row)
+  },
+
+  async createMomento(data: {
+    kind: MomentoKind
+    payload: MomentoPayload
+    note?: string | null
+    capturedAt?: string
+    entityIds?: string[]
+    origin?: Origin
+  }): Promise<Momento> {
+    const row = await request<MomentoRow>('/api/momentos', {
+      method: 'POST',
+      body: JSON.stringify({
+        kind: data.kind,
+        payload: data.payload,
+        note: data.note ?? null,
+        captured_at: data.capturedAt,
+        entity_ids: data.entityIds ?? [],
+        origin: data.origin ?? { kind: 'manual' },
+      }),
+    })
+    return momentoFromRow(row)
+  },
+
+  async updateMomento(
+    id: string,
+    patch: Partial<{
+      payload: MomentoPayload
+      note: string | null
+      capturedAt: string
+      entityIds: string[]
+    }>,
+  ): Promise<Momento> {
+    const body: Record<string, unknown> = {}
+    if (patch.payload !== undefined) body.payload = patch.payload
+    if (patch.note !== undefined) body.note = patch.note
+    if (patch.capturedAt !== undefined) body.captured_at = patch.capturedAt
+    if (patch.entityIds !== undefined) body.entity_ids = patch.entityIds
+    const row = await request<MomentoRow>(`/api/momentos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    })
+    return momentoFromRow(row)
+  },
+
+  async deleteMomento(id: string): Promise<{ deletedAt: string }> {
+    return request<{ deletedAt: string }>(`/api/momentos/${id}`, {
+      method: 'DELETE',
+    })
+  },
+
+  /** ξ2: server-side fetch del OG/Twitter meta de una URL. */
+  async momentoUrlPreview(url: string): Promise<MomentoUrlPreview> {
+    return request<MomentoUrlPreview>(
+      `/api/momentos/url-preview?url=${encodeURIComponent(url)}`,
+    )
+  },
+
+  /** ξ2: pide a la IA qué entidades EXISTENTES de la trama están mencionadas
+      en el momento. No propone entidades nuevas — pipeline más liviana. */
+  async momentoSuggestEntities(
+    id: string,
+  ): Promise<{ matchedIds: string[]; provider: string | null; model: string | null }> {
+    return request(`/api/momentos/${id}/suggest-entities`, {
+      method: 'POST',
+      body: '{}',
+    })
+  },
+
+  /** ξ3: sube un archivo de imagen a Netlify Blobs. Devuelve la storageKey
+      que el cliente luego inserta en el payload del momento foto. */
+  async momentoUpload(file: File): Promise<{
+    storageKey: string
+    mime: string
+    size: number
+  }> {
+    const form = new FormData()
+    form.append('file', file)
+    const response = await fetch('/api/momentos/upload', {
+      method: 'POST',
+      body: form,
+      headers: { 'X-AI-Mode': aiModeHeader() },
+    })
+    if (!response.ok) {
+      const text = await response.text().catch(() => '')
+      throw new Error(`upload → ${response.status} ${text}`.trim())
+    }
+    return response.json()
+  },
+
+  /** ξ3: vision suggest. Para fotos: pide caption + matchedIds (personas
+      registradas que aparecen). Solo aplicable a kind='foto'. */
+  async momentoVisionSuggest(id: string): Promise<{
+    caption: string | null
+    matchedIds: string[]
+    provider: string | null
+    model: string | null
+  }> {
+    return request(`/api/momentos/${id}/vision-suggest`, {
+      method: 'POST',
+      body: '{}',
+    })
+  },
+}
+
+export type MomentoUrlPreview = {
+  url: string
+  title: string | null
+  description: string | null
+  source: string | null
+  author: string | null
+  image: string | null
+  fetched: boolean
+}
+
+// ---------- Momento row transform ----------
+
+type MomentoRow = {
+  id: string
+  kind: string
+  captured_at: string
+  payload: Record<string, unknown> | null
+  note: string | null
+  origin: unknown
+  entity_ids?: string[]
+  created_at: string
+  updated_at: string
+}
+
+function momentoFromRow(row: MomentoRow): Momento {
+  const kind: MomentoKind =
+    row.kind === 'recorte' || row.kind === 'foto' ? row.kind : 'nota'
+  return {
+    id: row.id,
+    kind,
+    capturedAt: row.captured_at,
+    payload: (row.payload ?? {}) as MomentoPayload,
+    note: row.note ?? undefined,
+    origin: (row.origin && typeof row.origin === 'object'
+      ? row.origin
+      : { kind: 'manual' }) as Origin,
+    entityIds: row.entity_ids ?? [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+export type SpotifyLibrarySnapshot = {
+  savedCount: number
+  topGenres: Array<{ name: string; weight: number }>
+  topArtists: Array<{ name: string; popularity: number; genres: string[] }>
+  topTracks: Array<{ name: string; artists: string[]; year: number | null }>
+  decades: Array<{ decade: string; count: number }>
+  aiSummary: string | null
+  provider: string | null
+  model: string | null
+  aiError?: string
 }
 
 export type SpotifyStatus =
@@ -709,12 +925,49 @@ export type SpotifyPlayGroup = {
   lastPlayed: string
   existingEntityId: string | null
   spotifyId: string | null
+  /** π3: presente para group='track' y 'album'. Para 'artist' es undefined
+      (el key YA es el artista). */
+  artists?: string[]
+}
+
+/** π3: agregado del período. Mismo `since` que la lista. */
+export type SpotifyPlaysSummary = {
+  totalPlays: number
+  uniqueTracks: number
+  uniqueArtists: number
+  uniqueAlbums: number
+  /** Minutos totales escuchados (redondeados). */
+  totalMinutes: number
 }
 
 export type SpotifyPlaysResponse = {
   group: 'artist' | 'album' | 'track'
   since: string
   items: SpotifyPlayGroup[]
+  summary: SpotifyPlaysSummary
+}
+
+/** π4: timestamps crudos para agregación client-side en TZ local. */
+export type SpotifyTimingResponse = {
+  since: string
+  playedAts: string[]
+  /** true si la lista se cortó por el cap de seguridad del server. */
+  truncated: boolean
+}
+
+/** π5: sugerencias de artistas para descubrir, devueltas por el LLM. */
+export type SpotifyArtistSuggestion = {
+  name: string
+  type: 'musico' | 'banda'
+  description: string
+  reason: string
+}
+
+export type SpotifyArtistSuggestionsResponse = {
+  suggestions: SpotifyArtistSuggestion[]
+  provider: string | null
+  model: string | null
+  reason?: string
 }
 
 export type ExtractionLogEntry = {

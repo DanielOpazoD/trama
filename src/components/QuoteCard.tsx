@@ -297,7 +297,9 @@ export function QuoteCard({
                 editar
               </button>
             </div>
-            <p className="text-ink-600 text-sm leading-relaxed mt-0.5 whitespace-pre-wrap">
+            {/* μ1: marginalia manuscrita — la reflexión propia se lee
+                como anotación tuya, no como prosa del catálogo. */}
+            <p className="marginalia-script mt-0.5 whitespace-pre-wrap">
               {quote.userReflection}
             </p>
           </div>

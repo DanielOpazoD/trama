@@ -12,6 +12,7 @@ import type { ProactiveSuggestion } from '../api'
 import { ENTITY_TYPES, RELATIONSHIP_TYPES } from '../types'
 import { EndMark, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
+import { AISourceTag } from './AISourceTag'
 
 /**
  * Inbox of proactive AI suggestions. The AI does a sweep over the trama and
@@ -77,8 +78,13 @@ export function ProactiveView() {
 
   return (
     <>
+      {/* ι6: eyebrow editorial arriba del título para anclar la vista
+          en el sistema visual del resto de la app. */}
       <header className="mb-10 flex items-baseline justify-between gap-6">
         <div className="min-w-0">
+          <p className="section-eyebrow-serif mb-2" style={{ color: 'var(--accent-gold)' }}>
+            lecturas de la IA
+          </p>
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Sugerencias</h2>
           <div className="accent-rule mt-3 mb-2" />
           <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
@@ -142,11 +148,14 @@ export function ProactiveView() {
                 <span className="text-micro uppercase tracking-eyebrow text-sky-700/80">
                   {kindLabel(s.kind)}
                 </span>
-                {s.provider && (
-                  <span className="text-micro uppercase tracking-eyebrow text-ink-300">
-                    · {s.provider}
-                  </span>
-                )}
+                {/* κ-info: provider antes era texto plano "· deepseek". Ahora
+                    se condensa en el icono "i" con tooltip rico (provider +
+                    modelo + timestamp). Más limpio, mismo contenido. */}
+                <AISourceTag
+                  provider={s.provider}
+                  model={s.model}
+                  at={s.createdAt}
+                />
                 <span
                   className="ml-auto text-micro uppercase tracking-eyebrow text-ink-300 tabular-nums"
                   title={new Date(s.createdAt).toLocaleString('es')}

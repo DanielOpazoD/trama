@@ -17,7 +17,7 @@ describe('<TopBar />', () => {
     ['grafo', 'Grafo'],
     ['entidades', 'Entidades'],
     ['citas', 'Citas'],
-    ['relaciones', 'Relaciones'],
+    ['momentos', 'Momentos'],
     ['escuchas', 'Escuchas'],
     ['chat', 'Chat'],
     ['sugerencias', 'Sugerencias'],

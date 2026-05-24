@@ -157,6 +157,27 @@ export const MusicIcon = ({ size = 16, className }: Props) => (
   </svg>
 )
 
+/* ξ — Momentos: reloj de arena estilizado / clepsidra editorial. La idea
+   es "tiempo que se acumula", no "tiempo que pasa de un lado al otro".
+   Dos triángulos espejados con un punto central que es el ahora. */
+export const MomentosIcon = ({ size = 16, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M7 4h10M7 20h10" />
+    <path d="M7 4c0 4 5 6 5 8s-5 4-5 8" />
+    <path d="M17 4c0 4-5 6-5 8s5 4 5 8" />
+    <circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none" />
+  </svg>
+)
+
+/* Info — círculo con "i" delicado. Tamaño default 12 (chip-friendly). */
+export const InfoIcon = ({ size = 12, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base} strokeWidth={1.4}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5" />
+    <circle cx="12" cy="8" r="0.6" fill="currentColor" stroke="none" />
+  </svg>
+)
+
 /* Gear / settings */
 export const SettingsIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

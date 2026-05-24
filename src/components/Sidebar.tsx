@@ -12,9 +12,9 @@ import {
   EntitiesIcon,
   GraphIcon,
   HomeIcon,
+  MomentosIcon,
   MusicIcon,
   QuoteIcon,
-  RelationsIcon,
   SettingsIcon,
   SparkleIcon,
   TramaMark,
@@ -23,18 +23,49 @@ import { AIModeToggle } from './AIModeToggle'
 import { NavButton, type NavItem } from './sidebar/NavButton'
 import { Tooltip } from './Tooltip'
 
-export type ViewMode = 'inicio' | 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'chat' | 'sugerencias'
+// ο1: 'relaciones' se eliminó del top-level. Ahora vive como tab interna
+// "Vínculos" dentro de Entidades — refleja la dependencia conceptual real
+// (una relación nunca existe sola, siempre conecta entidades).
+export type ViewMode = 'inicio' | 'grafo' | 'entidades' | 'citas' | 'escuchas' | 'momentos' | 'chat' | 'sugerencias'
 
 const NAV_ITEMS: NavItem[] = [
   { value: 'inicio', label: 'Inicio', icon: HomeIcon },
   { value: 'grafo', label: 'Grafo', icon: GraphIcon },
   { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
   { value: 'citas', label: 'Citas', icon: QuoteIcon },
-  { value: 'relaciones', label: 'Relaciones', icon: RelationsIcon },
+  { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
   { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
   { value: 'chat', label: 'Chat', icon: ChatIcon },
   { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
 ]
+
+/**
+ * λ4: cada vista del sidebar tiene una "firma cromática" que se aplica
+ * a la barra lateral del activo + al icono activo. Antes todas usaban
+ * ink-700 (gris uniforme), lo que dejaba la nav sin pulso. Ahora:
+ *
+ *   Inicio       → gold        (saludo cálido, momento de entrada)
+ *   Grafo        → primary     (azul prusia — el mapa)
+ *   Entidades    → persona     (marrón cálido de la mayoría de tipos)
+ *   Citas        → gold        (el lugar donde el lenguaje pesa)
+ *   Relaciones   → sage        (vínculos vegetales, no técnicos)
+ *   Escuchas     → musico      (el rojo-tierra del tipo "musico")
+ *   Chat         → primary     (azul, conversación con la IA)
+ *   Sugerencias  → primary     (mismo azul; la IA propone)
+ *
+ * El color se inyecta como CSS var inline para que NavButton lo aplique
+ * sin saber qué sección renderiza.
+ */
+const SECTION_ACCENT: Record<ViewMode, string> = {
+  inicio: 'var(--accent-gold)',
+  grafo: 'var(--accent-primary)',
+  entidades: 'var(--type-persona)',
+  citas: 'var(--accent-gold)',
+  momentos: 'var(--type-evento)',
+  escuchas: 'var(--type-musico)',
+  chat: 'var(--accent-primary)',
+  sugerencias: 'var(--accent-primary)',
+}
 
 export function Sidebar({
   view,
@@ -79,11 +110,19 @@ export function Sidebar({
     // null (la UI no pinta el badge). Es mejor que mentir con "0".
     entidades: totals?.entities ?? null,
     citas: totals?.quotes ?? null,
-    relaciones: totals?.relationships ?? null,
+    momentos: null, // se podría sumar pero exige otro endpoint; por ahora null
     escuchas: null,
     chat: null,
     sugerencias: pendingSuggestions.length > 0 ? pendingSuggestions.length : null,
   }
+
+  // ο2: Sugerencias auto-hide del nav cuando no hay propuestas pendientes.
+  // El CommandPalette mantiene la entrada accesible siempre (para forzar
+  // "pedir ronda"); el toast semanal κ2 sigue siendo el wake-up natural.
+  // Si vacío, evitamos el badge muerto en la nav y bajamos a 7 items.
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => item.value !== 'sugerencias' || pendingSuggestions.length > 0,
+  )
 
   // ---------- collapsed sidebar ----------
   if (collapsed) {
@@ -104,13 +143,14 @@ export function Sidebar({
         <div className="w-7 h-px bg-ink-100/70 my-2" />
 
         <nav className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavButton
               key={item.value}
               item={item}
               active={view === item.value}
               count={counts[item.value]}
               mode="collapsed"
+              accentColor={SECTION_ACCENT[item.value]}
               onClick={() => onChangeView(item.value)}
             />
           ))}
@@ -210,7 +250,7 @@ export function Sidebar({
           tienen una sola entrada de búsqueda, no dos. */}
 
       <nav className="flex flex-col px-2 gap-px">
-        {NAV_ITEMS.map((item) => (
+        {visibleNavItems.map((item) => (
           <NavButton
             key={item.value}
             item={item}
@@ -218,6 +258,7 @@ export function Sidebar({
             count={counts[item.value]}
             mode="expanded"
             badgeTone={item.value === 'sugerencias' ? 'accent' : 'default'}
+            accentColor={SECTION_ACCENT[item.value]}
             onClick={() => onChangeView(item.value)}
           />
         ))}

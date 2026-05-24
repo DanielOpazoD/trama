@@ -76,7 +76,7 @@ function pickMessage(kind: 'entities' | 'quotes' | 'relationships', n: number): 
     if (n === 50) return '✦ cincuenta citas. un florilegio propio.'
     if (n === 100) return '✦ cien fragmentos. esto es lo que viste.'
     if (n === 250) return '✦ doscientas cincuenta citas — una antología.'
-    if (n === 500) return '✦ quinientas. ya podés releerte como autor.'
+    if (n === 500) return '✦ quinientas. ya puedes releerte como autor.'
     if (n === 1000) return '✦ mil citas. archivo de una conciencia.'
     return `✦ ${n.toLocaleString('es')} citas.`
   }
@@ -134,7 +134,10 @@ export function useAchievements(counts: Counts): void {
 
     toast.show({
       message: winner.message,
-      tone: 'success',
+      // λ6: tone 'achievement' usa el backplate gold cálido del ToastHost
+      // — distinto de 'success' (verde de undo/save) para que el momento
+      // editorial se sienta como un evento, no como una confirmación.
+      tone: 'achievement',
       durationMs: 6000,
     })
   }, [counts.entities, counts.quotes, counts.relationships, toast])

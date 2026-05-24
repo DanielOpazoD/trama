@@ -34,6 +34,7 @@ pnpm-debug.log*
 
 # Netlify
 .netlify
+deno.lock
 
 # Build / dev artifacts
 dev.log

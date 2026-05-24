@@ -121,6 +121,42 @@ export type Quote = {
   updatedAt: string
 }
 
+// ---------- Momentos (ξ — capa temporal de la mente) ----------
+
+export type MomentoKind = 'nota' | 'recorte' | 'foto'
+
+/** Payload variante por kind. Sin discriminated union estricto porque la
+ *  validación se hace en el endpoint server-side; el cliente sólo lee. */
+export type MomentoPayload = {
+  // 'nota'
+  bodyText?: string
+  // 'recorte'
+  url?: string
+  title?: string
+  source?: string
+  author?: string
+  screenshotKey?: string
+  // 'foto'
+  storageKey?: string
+  width?: number
+  height?: number
+  caption?: string
+  exifDate?: string
+}
+
+export type Momento = {
+  id: string
+  kind: MomentoKind
+  capturedAt: string
+  payload: MomentoPayload
+  note?: string
+  origin: Origin
+  /** Entidades vinculadas (extraídas por AI o marcadas manualmente). */
+  entityIds: string[]
+  createdAt: string
+  updatedAt: string
+}
+
 // ---------- AI extraction proposal shapes (transient — not persisted until accepted) ----------
 
 export type ProposedEntity = {
