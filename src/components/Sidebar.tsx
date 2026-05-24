@@ -119,8 +119,12 @@ export function Sidebar({
             // reader lee "Entidades, 63 items" mientras el sighted ve solo
             // el icono + badge "63".
             const count = counts[item.value]
+            // δ8: axe rule label-content-name-mismatch compara contra el
+            // texto visible. Antes generábamos "Entidades (63)" pero el
+            // visible es "Entidades 63" (sin parens), y axe pide substring
+            // exacto. Sin parens, el aria-label coincide literal.
             const ariaLabel = count !== null && count > 0
-              ? `${item.label} (${count})`
+              ? `${item.label} ${count}`
               : item.label
             return (
               <Tooltip key={item.value} content={item.label} side="bottom">
