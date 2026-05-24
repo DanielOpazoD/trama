@@ -636,6 +636,10 @@ export const api = {
     return request<ExtractionLogResponse>(`/api/extraction-log?limit=${limit}`)
   },
 
+  async errorLog(limit = 100): Promise<ErrorLogEntry[]> {
+    return request<ErrorLogEntry[]>(`/api/error-log?limit=${limit}`)
+  },
+
   async listEntityTypes(): Promise<Array<{ slug: string; label: string; sort_order: number }>> {
     return request('/api/entity-types')
   },
@@ -728,6 +732,18 @@ export type ExtractionLogResponse = {
     totalCostCents: number
     totalTokens: number
   }
+}
+
+export type ErrorLogEntry = {
+  id: string
+  functionName: string
+  httpMethod: string | null
+  httpPath: string | null
+  statusCode: number | null
+  message: string
+  stack: string | null
+  context: unknown
+  createdAt: string
 }
 
 export type ChatThread = {

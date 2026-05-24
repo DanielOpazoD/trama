@@ -6,6 +6,7 @@ import { AIPanel } from './settings/AIPanel'
 import { SearchPanel } from './settings/SearchPanel'
 import { DataPanel } from './settings/DataPanel'
 import { HealthPanel } from './settings/HealthPanel'
+import { LogsPanel } from './settings/LogsPanel'
 
 /**
  * Settings — modal full-screen con layout de dos columnas:
@@ -25,10 +26,11 @@ import { HealthPanel } from './settings/HealthPanel'
  * a SECTIONS, branch en el switch del render.
  */
 
-type SectionId = 'health' | 'appearance' | 'spotify' | 'ai' | 'search' | 'data'
+type SectionId = 'health' | 'logs' | 'appearance' | 'spotify' | 'ai' | 'search' | 'data'
 
 const SECTIONS: Array<{ id: SectionId; label: string; hint: string }> = [
   { id: 'health',     label: 'Estado',        hint: 'gasto, conteos, errores' },
+  { id: 'logs',       label: 'Logs',          hint: 'historial detallado' },
   { id: 'appearance', label: 'Apariencia',    hint: 'papel / noche' },
   { id: 'spotify',    label: 'Spotify',       hint: 'sincronización' },
   { id: 'ai',         label: 'IA por tarea',  hint: 'modelo por flujo' },
@@ -125,6 +127,7 @@ export function Settings({
           <main className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10">
             <div className="max-w-2xl mx-auto animate-fade-up">
               {section === 'health' && <HealthPanel />}
+              {section === 'logs' && <LogsPanel />}
               {section === 'appearance' && (
                 <AppearancePanel theme={theme} onToggleTheme={onToggleTheme} />
               )}

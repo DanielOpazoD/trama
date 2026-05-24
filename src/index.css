@@ -27,7 +27,10 @@
     --ink-50:  244 244 245; /* #f4f4f5 — superficie suave */
     --ink-100: 228 228 231; /* #e4e4e7 — border principal */
     --ink-200: 212 212 216; /* #d4d4d8 — border sutil */
-    --ink-300: 113 113 122; /* #71717a — muted text (legible) */
+    --ink-300: 99 99 107;   /* #63636b — muted text. Bajado de 113→99
+                               para pasar WCAG AA 4.5:1 en text-micro
+                               (10px). Lo viejo daba 4.43; este da ~5.1.
+                               Detectado por axe-core en ε5. */
     --ink-400: 82  82  91;  /* #52525b — secondary text */
     --ink-500: 63  63  70;  /* #3f3f46 — semi-strong */
     --ink-600: 39  39  42;  /* #27272a — strong text */
