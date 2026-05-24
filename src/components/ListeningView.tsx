@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { api, type SpotifyPlayGroup } from '../api'
 import { useAddEntity, useExtract } from '../state'
 import { SparkleIcon } from './Icons'
+import { MusicPaletteCard } from './MusicPaletteCard'
 import type { EntityType, ExtractionProposal, Origin } from '../types'
 
 type Group = 'artist' | 'album' | 'track'
@@ -188,6 +189,12 @@ export function ListeningView({
         </div>
       ) : (
         <>
+          {/* κ-spotify: paleta musical sintética (saved + top genres +
+              décadas + retrato IA). Aparece arriba porque es la mirada
+              MÁS sintética que ofrecemos sobre la cuenta de Spotify;
+              la lista detallada debajo es el material crudo. */}
+          <MusicPaletteCard />
+
           {/* Playlist importer */}
           <form
             onSubmit={handleImportPlaylist}

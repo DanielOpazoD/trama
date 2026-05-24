@@ -685,6 +685,27 @@ export const api = {
       `/api/spotify/plays?group=${group}&limit=${limit}`,
     )
   },
+  /** κ-spotify: snapshot agregado de la paleta musical (top géneros, décadas,
+      saved count, párrafo IA). El servidor lo devuelve fresco; el cliente lo
+      cachea en localStorage para no re-generar cada vez. */
+  async spotifyLibrarySnapshot(): Promise<SpotifyLibrarySnapshot> {
+    return request<SpotifyLibrarySnapshot>('/api/spotify/library-snapshot', {
+      method: 'POST',
+      body: '{}',
+    })
+  },
+}
+
+export type SpotifyLibrarySnapshot = {
+  savedCount: number
+  topGenres: Array<{ name: string; weight: number }>
+  topArtists: Array<{ name: string; popularity: number; genres: string[] }>
+  topTracks: Array<{ name: string; artists: string[]; year: number | null }>
+  decades: Array<{ decade: string; count: number }>
+  aiSummary: string | null
+  provider: string | null
+  model: string | null
+  aiError?: string
 }
 
 export type SpotifyStatus =
