@@ -20,8 +20,12 @@
     <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
     <meta name="color-scheme" content="light dark" />
 
-    <!-- iOS standalone web app — barra de status y nombre cuando se
-         agrega a Home Screen. -->
+    <!-- Standalone web app — barra de status y nombre cuando se agrega
+         a Home Screen. El "mobile-web-app-capable" es el estándar moderno
+         (Chrome lo reconoce); el "apple-mobile-web-app-capable" se queda
+         para que iOS Safari, que todavía no implementa el moderno, siga
+         funcionando. Cuando iOS lo adopte, podemos retirar el apple-. -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Trama" />
