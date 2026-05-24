@@ -39,7 +39,7 @@ const MODELS_BY_PROVIDER: Record<string, Array<{ value: string; label: string; n
 }
 
 const TASKS: Array<{ key: AITaskKey; label: string; hint: string }> = [
-  { key: 'extract', label: 'Extracción de texto', hint: 'pegás un párrafo y la IA propone entidades' },
+  { key: 'extract', label: 'Extracción de texto', hint: 'pegas un párrafo y la IA propone entidades' },
   { key: 'extract-image', label: 'Extracción desde imagen', hint: 'OCR + estructura desde foto (requiere visión)' },
   { key: 'suggest-relationships', label: 'Descubrir relaciones', hint: 'IA propone vínculos entre entidades existentes' },
   { key: 'reclassify', label: 'Reclasificar', hint: 'IA revisa tipos actuales y propone mejores' },
@@ -139,7 +139,7 @@ export function AITaskSettings() {
   return (
     <div className="space-y-3">
       <p className="text-xs text-ink-500 leading-relaxed">
-        Distintos modelos son buenos en cosas distintas. Aquí elegís qué provider
+        Distintos modelos son buenos en cosas distintas. Aquí eliges qué provider
         usa cada tarea. <em>Default</em> usa el provider general configurado en
         Netlify (<code className="text-micro bg-paper-100 px-1 rounded">{defaultProvider}</code>).
       </p>

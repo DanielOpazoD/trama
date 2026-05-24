@@ -5,7 +5,7 @@ import { PanelHeader } from './_shared'
 
 /**
  * ε4: Panel "Logs" — UIs para error_log y extraction_log que el HealthPanel
- * solo resumía. Acá podés ver:
+ * solo resumía. Aquí puedes ver:
  *   - errores históricos con stack trace expandible
  *   - cada llamada al LLM con costo/tokens/duración
  *

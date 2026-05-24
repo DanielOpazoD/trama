@@ -359,7 +359,7 @@ export function EntitiesView({
           en pantalla durante el scroll y se sentía como chrome que no
           se va. El usuario lo pidió no-sticky: una vez elegido el
           filtro la barra desaparece al scrollear, como cualquier
-          sección normal. Si querés cambiar filtro, scroll up. Es lo
+          sección normal. Si quieres cambiar filtro, scroll up. Es lo
           mismo que hace un libro — la portada del capítulo no flota. */}
       {availableTypes.length > 1 && (
         <div className="py-2 mb-4 border-b border-ink-100/60 flex flex-wrap gap-1.5">

@@ -302,15 +302,15 @@ export function AskBar({
 
 function placeholderForView(view: string | null): string {
   // ι3: placeholders editoriales — cada vista invita en su propio idioma.
-  // El input ahora es serif, así que la voz puede ser más íntima sin
-  // sentirse fuera de lugar.
+  // Español neutro (tú-form), sin voseo. "Propón" con tilde es la
+  // imperativa tú del verbo proponer.
   switch (view) {
     case 'citas':
       return 'Ofrece una cita, una frase que quieres guardar…'
     case 'entidades':
-      return 'Nombra a alguien, propon una idea…'
+      return 'Nombra a alguien, propón una idea…'
     case 'relaciones':
-      return 'Propon un vínculo, una influencia…'
+      return 'Propón un vínculo, una influencia…'
     case 'escuchas':
       return 'Pregunta o describe una música…'
     case 'sugerencias':
@@ -318,6 +318,6 @@ function placeholderForView(view: string | null): string {
     case 'grafo':
       return 'Pregunta, captura, navega…'
     default:
-      return 'Captura algo, pregunta, propon…'
+      return 'Captura algo, pregunta, propón…'
   }
 }

@@ -42,7 +42,7 @@ const STEPS: Step[] = [
     title: 'Trama es un mapa de tus afinidades.',
     body: (
       <>
-        Acá guardás <strong>entidades</strong> (personas, libros, canciones,
+        Aquí guardas <strong>entidades</strong> (personas, libros, canciones,
         ideas), las <strong>citas</strong> que te llegaron de ellas, y las{' '}
         <strong>relaciones</strong> entre todo eso. Crece despacio, con
         intención — no es un dump.
@@ -52,10 +52,10 @@ const STEPS: Step[] = [
   },
   {
     eyebrow: 'cómo empezar',
-    title: 'Pegá un párrafo.',
+    title: 'Pega un párrafo.',
     body: (
       <>
-        En la barra de abajo escribís — o pegás — algo que te llegó. Una
+        En la barra de abajo escribes — o pegas — algo que te llegó. Una
         frase de un libro, un fragmento de conversación, lo que sea. La IA
         lee y propone qué entidades, citas y relaciones extraer.
       </>
@@ -64,10 +64,10 @@ const STEPS: Step[] = [
   },
   {
     eyebrow: 'cómo decide',
-    title: 'Vos aprobás todo.',
+    title: 'Tú apruebas todo.',
     body: (
       <>
-        Nada entra a la trama sin tu confirmación. La IA propone, vos elegís
+        Nada entra a la trama sin tu confirmación. La IA propone, tú eliges
         qué resuena. Lo que no, se descarta. Tu mapa es tuyo —{' '}
         <em>la IA es solo un copiloto silencioso</em>.
       </>
@@ -75,11 +75,11 @@ const STEPS: Step[] = [
     primary: 'Sigue',
   },
   {
-    eyebrow: 'cómo te orientás',
+    eyebrow: 'cómo te orientas',
     title: 'Los atajos son tus amigos.',
     body: (
       <>
-        Apretá{' '}
+        Aprieta{' '}
         <kbd className="font-mono text-micro leading-none px-1.5 py-1 mx-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-600 shadow-sm">
           ⌘ K
         </kbd>{' '}

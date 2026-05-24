@@ -260,7 +260,7 @@ export function QuotesView({
               EntitiesView: sticky al top con backdrop blur, Todos + chip por
               tipo presente. No-sticky (siguiendo el cambio en
               EntitiesView): los chips scrollean con el contenido,
-              desaparecen al subir las citas en el viewport. Si querés
+              desaparecen al subir las citas en el viewport. Si quieres
               cambiar filtro, scroll up. */}
           {availableTypes.length > 1 && (
             <div className="py-2 mb-4 border-b border-ink-100/60 flex flex-wrap gap-1.5">

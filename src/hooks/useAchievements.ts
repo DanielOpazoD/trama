@@ -76,7 +76,7 @@ function pickMessage(kind: 'entities' | 'quotes' | 'relationships', n: number): 
     if (n === 50) return '✦ cincuenta citas. un florilegio propio.'
     if (n === 100) return '✦ cien fragmentos. esto es lo que viste.'
     if (n === 250) return '✦ doscientas cincuenta citas — una antología.'
-    if (n === 500) return '✦ quinientas. ya podés releerte como autor.'
+    if (n === 500) return '✦ quinientas. ya puedes releerte como autor.'
     if (n === 1000) return '✦ mil citas. archivo de una conciencia.'
     return `✦ ${n.toLocaleString('es')} citas.`
   }
