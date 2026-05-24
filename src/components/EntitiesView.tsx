@@ -335,10 +335,13 @@ export function EntitiesView({
       {/* Filtro por tipo. Solo aparece si hay más de un tipo en la trama.
           Sticky al top del scroll cuando el usuario baja — el control
           siempre disponible sin necesidad de scrollear de vuelta arriba.
-          Background paper-50/95 con backdrop-blur para que el contenido
-          que pasa abajo se sienta correctamente "filtrado". */}
+          Background paper-50 100% opaco para que las rows scrolleen
+          cleanly "al pasado" detrás. Antes era /90 + backdrop-blur (default)
+          que dejaba texto translucirse — el usuario veía el row mezclado
+          con la barra de chips, ruido visual. shadow-sm fade abajo
+          sugiere "esto flota sobre el contenido". */}
       {availableTypes.length > 1 && (
-        <div className="sticky top-0 z-10 -mx-8 px-8 py-2 mb-4 bg-paper-50/90 backdrop-blur border-b border-ink-100/40 flex flex-wrap gap-1.5">
+        <div className="sticky top-0 z-10 -mx-8 px-8 py-2 mb-4 bg-paper-50 border-b border-ink-100/60 shadow-[0_4px_8px_-6px_rgba(0,0,0,0.06)] flex flex-wrap gap-1.5">
           <button
             onClick={() => setTypeFilter(null)}
             className={

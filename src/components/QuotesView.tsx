@@ -258,9 +258,10 @@ export function QuotesView({
           {/* Chips de filtro por tipo de entidad atribuida. Mismo patrón que
               EntitiesView: sticky al top con backdrop blur, Todos + chip por
               tipo presente. Solo aparece si hay >1 tipo (con un solo tipo el
-              chip no aporta nada). */}
+              chip no aporta nada). bg-paper-50 fully opaque + shadow sutil
+              para que las quotes scrolleen "al pasado" sin translucirse. */}
           {availableTypes.length > 1 && (
-            <div className="sticky top-0 z-10 -mx-8 px-8 py-2 mb-4 bg-paper-50/90 backdrop-blur border-b border-ink-100/40 flex flex-wrap gap-1.5">
+            <div className="sticky top-0 z-10 -mx-8 px-8 py-2 mb-4 bg-paper-50 border-b border-ink-100/60 shadow-[0_4px_8px_-6px_rgba(0,0,0,0.06)] flex flex-wrap gap-1.5">
               <button
                 onClick={() => setTypeFilter(null)}
                 className={
