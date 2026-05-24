@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { momentoEmbedText } from './momento-embed'
+import { momentoEmbedText, validatePayloadForKind } from './momento-embed'
 
 describe('momentoEmbedText', () => {
   it('nota: usa solo bodyText (más note si lo hay)', () => {
@@ -84,5 +84,57 @@ describe('momentoEmbedText', () => {
     expect(momentoEmbedText('nota', {}, 'solo nota')).toBe('solo nota')
     expect(momentoEmbedText('recorte', {}, 'solo nota')).toBe('solo nota')
     expect(momentoEmbedText('foto', {}, 'solo nota')).toBe('solo nota')
+  })
+})
+
+describe('validatePayloadForKind', () => {
+  describe('kind=nota', () => {
+    it('acepta payload con bodyText no vacío', () => {
+      expect(validatePayloadForKind('nota', { bodyText: 'hola' })).toBeNull()
+    })
+    it('rechaza bodyText vacío o ausente', () => {
+      expect(validatePayloadForKind('nota', {})).toMatch(/bodyText/)
+      expect(validatePayloadForKind('nota', { bodyText: '' })).toMatch(/bodyText/)
+      expect(validatePayloadForKind('nota', { bodyText: '   ' })).toMatch(/bodyText/)
+    })
+  })
+
+  describe('kind=recorte', () => {
+    it('acepta cuando hay url, title o bodyText (al menos uno)', () => {
+      expect(validatePayloadForKind('recorte', { url: 'https://x.com' })).toBeNull()
+      expect(validatePayloadForKind('recorte', { title: 'X' })).toBeNull()
+      expect(validatePayloadForKind('recorte', { bodyText: 'algo' })).toBeNull()
+      expect(
+        validatePayloadForKind('recorte', { url: 'x', title: 'y', bodyText: 'z' }),
+      ).toBeNull()
+    })
+    it('rechaza recorte sin ningún campo textual', () => {
+      expect(validatePayloadForKind('recorte', {})).toMatch(/url, title o bodyText/)
+      expect(
+        validatePayloadForKind('recorte', { source: 'Twitter', author: '@x' }),
+      ).toMatch(/url, title o bodyText/)
+    })
+    it('rechaza campos con solo espacios', () => {
+      expect(
+        validatePayloadForKind('recorte', { url: '   ', title: '', bodyText: '' }),
+      ).toMatch(/url, title o bodyText/)
+    })
+  })
+
+  describe('kind=foto', () => {
+    it('acepta cuando storageKey existe y es string no vacía', () => {
+      expect(validatePayloadForKind('foto', { storageKey: 'abc123.jpg' })).toBeNull()
+    })
+    it('rechaza foto sin storageKey', () => {
+      expect(validatePayloadForKind('foto', {})).toMatch(/storageKey/)
+      expect(
+        validatePayloadForKind('foto', { caption: 'algo', width: 100 }),
+      ).toMatch(/storageKey/)
+    })
+    it('rechaza storageKey con valor no-string', () => {
+      expect(validatePayloadForKind('foto', { storageKey: 42 as never })).toMatch(
+        /storageKey/,
+      )
+    })
   })
 })

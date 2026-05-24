@@ -61,14 +61,12 @@ export default withObservability(
     }
     const mime =
       typeof blob.metadata.mime === 'string' ? blob.metadata.mime : 'image/jpeg'
-    // Base64 encode para pasarlo al LLM. arrayBuffer → bytes → base64.
-    const bytes = new Uint8Array(blob.data)
-    let binary = ''
-    const chunkSize = 32768
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      binary += String.fromCharCode(...bytes.slice(i, i + chunkSize))
-    }
-    const imageBase64 = btoa(binary)
+    // ξ-fix-3: Buffer.from(ArrayBuffer).toString('base64') es el canónico
+    // en Node — maneja imágenes de cualquier tamaño sin riesgo de stack
+    // overflow. La versión anterior usaba btoa + String.fromCharCode
+    // sobre chunks, que es lento y frágil para fotos >2MB. Buffer está
+    // disponible en Netlify Functions runtime (Node 20+).
+    const imageBase64 = Buffer.from(blob.data).toString('base64')
 
     // Existing entities — solo personas y lugares como candidatos (esos son
     // los típicos "visibles" en foto). Conceptos / libros / canciones no

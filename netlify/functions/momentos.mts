@@ -2,7 +2,11 @@ import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
-import { momentoEmbedText, type MomentoKind } from './_lib/momento-embed.js'
+import {
+  momentoEmbedText,
+  validatePayloadForKind,
+  type MomentoKind,
+} from './_lib/momento-embed.js'
 
 /**
  * /api/momentos — la dimensión temporal de la trama.
@@ -201,6 +205,14 @@ export default withObservability('momentos', async (req: Request, context: Conte
       body.payload && typeof body.payload === 'object'
         ? (body.payload as Record<string, unknown>)
         : {}
+
+    // Validación shape por kind — defiende contra "foto sin storageKey",
+    // "nota vacía", etc. Validator puro extraído a _lib/momento-embed.ts.
+    const payloadError = validatePayloadForKind(kind, payload)
+    if (payloadError) {
+      return new Response(payloadError, { status: 400 })
+    }
+
     const note = typeof body.note === 'string' ? body.note.trim() || null : null
     const origin = normalizeOrigin(body.origin)
     const capturedAt =
@@ -276,10 +288,17 @@ export default withObservability('momentos', async (req: Request, context: Conte
     }
     const kind = current[0].kind
 
-    const newPayload =
-      body.payload && typeof body.payload === 'object'
-        ? (body.payload as Record<string, unknown>)
-        : current[0].payload
+    // ξ-fix-3: detectamos qué cambia realmente para decidir si re-embedear.
+    // Antes este PATCH gastaba una llamada a OpenAI en CADA update aunque
+    // el cliente solo cambiara entity_ids o captured_at — caro y sin
+    // sentido. Ahora solo re-embedeamos cuando cambia payload o note.
+    const payloadChanged =
+      body.payload !== undefined && typeof body.payload === 'object'
+    const noteChanged = body.note !== undefined
+
+    const newPayload = payloadChanged
+      ? (body.payload as Record<string, unknown>)
+      : current[0].payload
     const newNote =
       body.note === null
         ? null
@@ -291,11 +310,25 @@ export default withObservability('momentos', async (req: Request, context: Conte
         ? body.captured_at
         : null // null = no cambia
 
-    // Re-embed si cambió el texto fuente (payload o note).
-    const embedSource = momentoEmbedText(kind, newPayload, newNote)
-    const emb = embedSource.length > 0 ? await embedSafe(embedSource) : null
+    // Validación shape post-merge (no aceptamos transiciones que dejen
+    // el payload inconsistente con el kind).
+    if (payloadChanged) {
+      const err = validatePayloadForKind(kind, newPayload)
+      if (err) return new Response(err, { status: 400 })
+    }
 
-    if (newCapturedAt) {
+    // Re-embed solo si cambió el texto fuente. Si no, conservamos el
+    // embedding viejo (no se sobreescribe a null).
+    const shouldReembed = payloadChanged || noteChanged
+    const embedSource = shouldReembed
+      ? momentoEmbedText(kind, newPayload, newNote)
+      : ''
+    const emb =
+      shouldReembed && embedSource.length > 0 ? await embedSafe(embedSource) : null
+
+    // El UPDATE solo toca embedding cuando hubo cambio textual — si
+    // shouldReembed=false, lo dejamos como estaba (no se incluye en SET).
+    if (newCapturedAt && shouldReembed) {
       await sql`
         UPDATE momentos
         SET payload = ${JSON.stringify(newPayload)}::jsonb,
@@ -307,7 +340,15 @@ export default withObservability('momentos', async (req: Request, context: Conte
             updated_at = NOW()
         WHERE id = ${id}
       `
-    } else {
+    } else if (newCapturedAt) {
+      // Solo captured_at + posiblemente entityIds — sin re-embed.
+      await sql`
+        UPDATE momentos
+        SET captured_at = ${newCapturedAt}::timestamptz,
+            updated_at = NOW()
+        WHERE id = ${id}
+      `
+    } else if (shouldReembed) {
       await sql`
         UPDATE momentos
         SET payload = ${JSON.stringify(newPayload)}::jsonb,
