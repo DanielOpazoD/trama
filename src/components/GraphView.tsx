@@ -25,6 +25,7 @@ import { useFreshIds } from '../hooks/useFreshIds'
 import { GraphNode } from './graph/GraphNode'
 import { GraphEdge } from './graph/GraphEdge'
 import { GraphToolbar, type GraphMode } from './graph/GraphToolbar'
+import { GraphMinimap } from './graph/GraphMinimap'
 
 // Lazy-load del renderer WebGL: sigma + graphology pesan ~165KB extra
 // y solo se usan cuando la trama cruza WEBGL_THRESHOLD. Para usuarios
@@ -704,6 +705,26 @@ export default function GraphView({
           })()}
         </g>
       </svg>
+      )}
+
+      {/* π2: minimap. Solo visible con >100 nodos — con pocas entidades el
+          grafo entra entero en pantalla y el minimap es chrome. Se oculta
+          en modo Sigma (WebGL) porque el pan/zoom no pasa por usePanZoom
+          ahí; añadir un minimap-Sigma es scope aparte. */}
+      {!(graphMode === 'completo' && entities.length >= WEBGL_THRESHOLD) &&
+        entities.length > 100 &&
+        svgSize.width > 0 && (
+        <div className="absolute bottom-3 left-3 z-10 animate-fade-up">
+          <GraphMinimap
+            entities={entities}
+            positions={positions}
+            pan={pz.pan}
+            zoom={pz.zoom}
+            hostWidth={svgSize.width}
+            hostHeight={svgSize.height}
+            onJumpTo={(x, y) => pz.setPanTo(x, y)}
+          />
+        </div>
       )}
     </div>
   )

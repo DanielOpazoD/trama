@@ -205,6 +205,86 @@
     --type-default:     #b8a47e;
   }
 
+  /* ν3: Modo Vela — opt-in dark cálido. La estructura es "dark" + estos
+     overrides; se aplica por html.theme-vela (que SIEMPRE convive con
+     .dark gracias a useTheme.ts). La paleta:
+       - papel: sepias profundos (no negro técnico, café-oscuro)
+       - inks: cálidos crema, no blancos crudos
+       - accents: gold y clay vivos, primary y sage atenuados
+     Para uso nocturno con LED bajo, la pantalla pesa MENOS para los ojos. */
+  html.dark.theme-vela {
+    --paper-50:  26  20  14;   /* #1A140E — café profundo casi negro */
+    --paper-100: 38  29  20;   /* #261D14 — elevación tibia */
+    --paper-200: 54  41  29;   /* #36291D — cards */
+    --paper-300: 80  62  44;   /* #503E2C */
+
+    --ink-50:  54  41  29;     /* matches paper-200 */
+    --ink-100: 80  62  44;     /* border principal */
+    --ink-200: 108 87  62;     /* #6C573E */
+    --ink-300: 178 159 130;    /* #B29F82 — muted */
+    --ink-400: 211 195 168;    /* #D3C3A8 */
+    --ink-500: 224 211 187;    /* #E0D3BB */
+    --ink-600: 236 224 203;    /* #ECE0CB */
+    --ink-700: 247 238 220;    /* #F7EEDC — body */
+    --ink-800: 255 248 230;    /* #FFF8E6 — headings */
+
+    --surface-sidebar: #1F1810;
+    --surface-topbar:  #1A140E;
+    --border-subtle:   #36291D;
+    --border-strong:   #503E2C;
+
+    --bg-card: #2A1F15;
+    --dot: #503E2C;
+    --ink: #F7EEDC;
+    --ink-2: #D3C3A8;
+    --ink-dim: #B29F82;
+
+    /* Accents — gold y clay protagonistas; primary y sage atenuados
+       porque el tema completo respira ámbar. */
+    --accent-primary:      #b8a070;   /* whisky atenuado, no azul */
+    --accent-primary-soft: rgb(184 160 112 / 0.14);
+    --accent-primary-ring: rgb(184 160 112 / 0.28);
+    --accent-sage:         #8a9b6f;
+    --accent-sage-soft:    rgb(138 155 111 / 0.14);
+    --accent-gold:         #e0b863;
+    --accent-gold-soft:    rgb(224 184 99 / 0.16);
+    --accent-clay:         #d8836c;
+
+    /* Sombras: más profundas porque el papel es muy oscuro y necesitan
+       contraste para dar lift. Tinte cobre evidente. */
+    --card-shadow:       0 1px 2px rgb(0 0 0 / 0.45), 0 0 0 0 transparent;
+    --card-shadow-hover: 0 6px 18px rgb(0 0 0 / 0.55), 0 1px 3px rgb(80 50 20 / 0.30);
+
+    /* Entity-type accents reajustados para sentarse bien sobre sepia
+       — todos hacia los cálidos amarillos/cobres, sin azules ni verdes
+       fríos. */
+    --type-persona:     #d6a570;
+    --type-escritor:    #cda06a;
+    --type-filosofo:    #ba8e60;
+    --type-musico:      #de8c7d;
+    --type-banda:       #e08e7c;
+    --type-director:    #c89094;
+    --type-artista:     #d6a47b;
+    --type-cientifico:  #a8b58e;
+    --type-libro:       #c2ad8c;
+    --type-ensayo:      #c4b08e;
+    --type-poema:       #c89880;
+    --type-articulo:    #b8a890;
+    --type-cancion:     #de8c7d;
+    --type-podcast:     #d4a285;
+    --type-album:       #c0a2c8;
+    --type-disco:       #b294b8;
+    --type-pelicula:    #b5b0a8;
+    --type-serie:       #beb6a4;
+    --type-documental:  #b8b09c;
+    --type-obra:        #bfc090;
+    --type-concepto:    #dab57a;
+    --type-idea:        #e29c70;
+    --type-lugar:       #b3c0a0;
+    --type-evento:      #c8a778;
+    --type-default:     #c5ae84;
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

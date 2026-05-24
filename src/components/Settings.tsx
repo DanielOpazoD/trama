@@ -42,12 +42,14 @@ export function Settings({
   open,
   onClose,
   theme,
-  onToggleTheme,
+  onSetTheme,
 }: {
   open: boolean
   onClose: () => void
-  theme: 'paper' | 'night'
-  onToggleTheme: () => void
+  // ν3: tres temas. AppearancePanel acepta setTheme directo en vez de
+  // toggle binario.
+  theme: 'paper' | 'night' | 'vela'
+  onSetTheme: (t: 'paper' | 'night' | 'vela') => void
 }) {
   const [section, setSection] = useState<SectionId>('health')
 
@@ -129,7 +131,7 @@ export function Settings({
               {section === 'health' && <HealthPanel />}
               {section === 'logs' && <LogsPanel />}
               {section === 'appearance' && (
-                <AppearancePanel theme={theme} onToggleTheme={onToggleTheme} />
+                <AppearancePanel theme={theme} onSetTheme={onSetTheme} />
               )}
               {section === 'spotify' && <SpotifyPanel />}
               {section === 'ai' && <AIPanel />}

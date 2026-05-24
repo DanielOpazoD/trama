@@ -41,7 +41,7 @@ function Shell() {
   const relationshipsQuery = useRelationshipsQuery()
   const quotesQuery = useQuotesQuery()
   const { offline } = useOffline()
-  const { theme, toggle: toggleTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
   // δ6: shift sutil del --accent-gold según hora local. La app se siente
   // distinta según cuándo entres — sin que el usuario tenga que pensarlo.
   useTimeOfDayAccent()
@@ -289,7 +289,7 @@ function Shell() {
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         theme={theme}
-        onToggleTheme={toggleTheme}
+        onSetTheme={setTheme}
       />
 
       <CommandPalette

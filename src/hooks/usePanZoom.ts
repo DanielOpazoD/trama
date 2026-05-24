@@ -21,6 +21,9 @@ export type PanZoomControls = {
   zoomOut: () => void
   /** Resetea zoom a 1 y pan a (0,0) — botón "centrar vista". */
   resetView: () => void
+  /** π2: set pan a una coordenada world específica. Usado por el minimap
+      para centrar el viewport en un punto cuando el usuario clickea. */
+  setPanTo: (worldX: number, worldY: number) => void
 }
 
 /**
@@ -111,6 +114,14 @@ export function usePanZoom(
     setPan({ x: 0, y: 0 })
   }, [])
 
+  // π2: centra el viewport en (worldX, worldY). El sistema usa
+  // translate(50%, 50%) scale(zoom) translate(pan.x, pan.y), así que para
+  // poner el punto (worldX, worldY) en el centro visual basta con
+  // pan = -worldXY. (Conserva el zoom actual.)
+  const setPanTo = useCallback((worldX: number, worldY: number) => {
+    setPan({ x: -worldX, y: -worldY })
+  }, [])
+
   return {
     pan,
     zoom,
@@ -123,6 +134,7 @@ export function usePanZoom(
     zoomIn,
     zoomOut,
     resetView,
+    setPanTo,
     isDragging: () => dragging.current !== null,
     startDrag: (id, offset) => {
       dragging.current = { id, offsetX: offset.x, offsetY: offset.y }

@@ -13,13 +13,13 @@ describe('useTheme', () => {
     // Limpiamos cualquier residuo entre tests para que cada uno arranque
     // desde el default del SO.
     window.localStorage.clear()
-    document.documentElement.classList.remove('dark')
+    document.documentElement.classList.remove('dark', 'theme-vela')
     document.documentElement.style.colorScheme = ''
   })
 
   afterEach(() => {
     window.localStorage.clear()
-    document.documentElement.classList.remove('dark')
+    document.documentElement.classList.remove('dark', 'theme-vela')
   })
 
   it('arranca en "paper" por default cuando no hay localStorage ni prefers-dark', () => {
@@ -39,12 +39,14 @@ describe('useTheme', () => {
     expect(result.current.theme).toBe('night')
   })
 
-  it('toggle() alterna entre paper y night', () => {
+  it('toggle() rota paper → night → vela → paper (ν3)', () => {
     window.localStorage.setItem(STORAGE_KEY, 'paper')
     const { result } = renderHook(() => useTheme())
     expect(result.current.theme).toBe('paper')
     act(() => result.current.toggle())
     expect(result.current.theme).toBe('night')
+    act(() => result.current.toggle())
+    expect(result.current.theme).toBe('vela')
     act(() => result.current.toggle())
     expect(result.current.theme).toBe('paper')
   })
@@ -61,21 +63,29 @@ describe('useTheme', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(false)
   })
 
-  it('actualiza la class "dark" en cada cambio', () => {
+  it('actualiza la class "dark" en cada cambio (paper→night→vela→paper)', () => {
     window.localStorage.setItem(STORAGE_KEY, 'paper')
     const { result } = renderHook(() => useTheme())
     expect(document.documentElement.classList.contains('dark')).toBe(false)
     act(() => result.current.toggle())
+    expect(document.documentElement.classList.contains('dark')).toBe(true) // night
+    expect(document.documentElement.classList.contains('theme-vela')).toBe(false)
+    act(() => result.current.toggle())
+    // vela mantiene "dark" + agrega "theme-vela"
     expect(document.documentElement.classList.contains('dark')).toBe(true)
+    expect(document.documentElement.classList.contains('theme-vela')).toBe(true)
     act(() => result.current.toggle())
     expect(document.documentElement.classList.contains('dark')).toBe(false)
+    expect(document.documentElement.classList.contains('theme-vela')).toBe(false)
   })
 
-  it('persiste el cambio en localStorage', () => {
+  it('persiste el cambio en localStorage (rotación tri-state)', () => {
     window.localStorage.setItem(STORAGE_KEY, 'paper')
     const { result } = renderHook(() => useTheme())
     act(() => result.current.toggle())
     expect(readStored()).toBe('night')
+    act(() => result.current.toggle())
+    expect(readStored()).toBe('vela')
     act(() => result.current.toggle())
     expect(readStored()).toBe('paper')
   })
