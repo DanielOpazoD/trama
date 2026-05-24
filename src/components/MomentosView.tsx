@@ -92,7 +92,7 @@ export function MomentosView() {
     return map
   }, [entities])
 
-  // ξ2: tab del composer. nota = texto plano. recorte = url/title/body/source/author.
+  // ξ2/ξ3: tab del composer. nota / recorte / foto.
   const [composerKind, setComposerKind] = useState<MomentoKind>('nota')
 
   // Estados del composer — uno por tipo de campo. Vacíos al iniciar y
@@ -106,6 +106,24 @@ export function MomentosView() {
   const [recorteNote, setRecorteNote] = useState('')
   const [previewing, setPreviewing] = useState(false)
 
+  // ξ3: estados de foto.
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
+  const [photoCaption, setPhotoCaption] = useState('')
+  const [photoNote, setPhotoNote] = useState('')
+  const [photoUploading, setPhotoUploading] = useState(false)
+
+  function handlePhotoFileChange(file: File | null) {
+    // Revocar URL anterior para evitar leaks.
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
+    setPhotoFile(file)
+    if (file) {
+      setPhotoPreviewUrl(URL.createObjectURL(file))
+    } else {
+      setPhotoPreviewUrl(null)
+    }
+  }
+
   // ξ2: pidiendo a la IA que sugiera entidades para el último recorte
   // creado. Se gatilla automáticamente al guardar y se muestra un panel
   // inline para confirmar vínculos.
@@ -113,6 +131,8 @@ export function MomentosView() {
   const [suggestedIds, setSuggestedIds] = useState<string[]>([])
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set())
   const [suggesting, setSuggesting] = useState(false)
+  /** ξ3: caption sugerido por vision AI para una foto recién subida. */
+  const [visionCaption, setVisionCaption] = useState<string | null>(null)
 
   async function fetchPreview() {
     const url = recorteUrl.trim()
@@ -157,48 +177,127 @@ export function MomentosView() {
       return
     }
 
-    // composerKind === 'recorte'
-    const hasAnything =
-      recorteUrl.trim() ||
-      recorteTitle.trim() ||
-      recorteBody.trim() ||
-      recorteNote.trim()
-    if (!hasAnything) return
-    payload = {
-      url: recorteUrl.trim() || undefined,
-      title: recorteTitle.trim() || undefined,
-      bodyText: recorteBody.trim() || undefined,
-      source: recorteSource.trim() || undefined,
-      author: recorteAuthor.trim() || undefined,
+    if (composerKind === 'recorte') {
+      const hasAnything =
+        recorteUrl.trim() ||
+        recorteTitle.trim() ||
+        recorteBody.trim() ||
+        recorteNote.trim()
+      if (!hasAnything) return
+      payload = {
+        url: recorteUrl.trim() || undefined,
+        title: recorteTitle.trim() || undefined,
+        bodyText: recorteBody.trim() || undefined,
+        source: recorteSource.trim() || undefined,
+        author: recorteAuthor.trim() || undefined,
+      }
+      try {
+        const created = await addMomento.mutateAsync({
+          kind: 'recorte',
+          payload,
+          note: recorteNote.trim() || undefined,
+        })
+        setRecorteUrl('')
+        setRecorteTitle('')
+        setRecorteBody('')
+        setRecorteSource('')
+        setRecorteAuthor('')
+        setRecorteNote('')
+        setLinkingMomento(created)
+        setConfirmedIds(new Set())
+        setSuggestedIds([])
+        const hasText =
+          (payload.title?.length ?? 0) > 0 ||
+          (payload.bodyText?.length ?? 0) > 30 ||
+          (created.note?.length ?? 0) > 0
+        if (hasText) {
+          triggerSuggest(created.id)
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'No se pudo guardar'
+        toast.show({ message: msg, tone: 'error' })
+      }
+      return
     }
+
+    // composerKind === 'foto'
+    if (!photoFile) {
+      toast.show({ message: 'Elige una imagen', tone: 'default' })
+      return
+    }
+    setPhotoUploading(true)
     try {
+      // 1) Upload del archivo a Netlify Blobs.
+      const uploaded = await api.momentoUpload(photoFile)
+      // 2) Leer dimensiones del lado del cliente para poder mostrar
+      //    aspect ratio sin re-cargar la imagen.
+      const { width, height } = await readImageDimensions(photoFile)
+      // 3) Crear momento foto.
+      payload = {
+        storageKey: uploaded.storageKey,
+        width,
+        height,
+        caption: photoCaption.trim() || undefined,
+      }
       const created = await addMomento.mutateAsync({
-        kind: 'recorte',
+        kind: 'foto',
         payload,
-        note: recorteNote.trim() || undefined,
+        note: photoNote.trim() || undefined,
       })
       // Limpiar form.
-      setRecorteUrl('')
-      setRecorteTitle('')
-      setRecorteBody('')
-      setRecorteSource('')
-      setRecorteAuthor('')
-      setRecorteNote('')
-      // Lanzar el flow de "vincular entidades".
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
+      setPhotoFile(null)
+      setPhotoPreviewUrl(null)
+      setPhotoCaption('')
+      setPhotoNote('')
+      // Vision suggest auto-trigger.
       setLinkingMomento(created)
       setConfirmedIds(new Set())
       setSuggestedIds([])
-      // Auto-trigger suggest si hay contexto suficiente.
-      const hasText =
-        (payload.title?.length ?? 0) > 0 ||
-        (payload.bodyText?.length ?? 0) > 30 ||
-        (created.note?.length ?? 0) > 0
-      if (hasText) {
-        triggerSuggest(created.id)
-      }
+      triggerVisionSuggest(created.id)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'No se pudo guardar'
+      const msg = err instanceof Error ? err.message : 'No se pudo subir'
       toast.show({ message: msg, tone: 'error' })
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  /** Lee width/height de un File de imagen creando un Image temporal. */
+  function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file)
+      const img = new Image()
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        resolve({ width: img.naturalWidth, height: img.naturalHeight })
+      }
+      img.onerror = () => {
+        URL.revokeObjectURL(url)
+        resolve({ width: 0, height: 0 })
+      }
+      img.src = url
+    })
+  }
+
+  async function triggerVisionSuggest(momentoId: string) {
+    setSuggesting(true)
+    try {
+      const res = await api.momentoVisionSuggest(momentoId)
+      // Si la IA propuso un caption y no tenemos uno, lo aplicamos.
+      if (res.caption && linkingMomento) {
+        // Sin acceso fácil al payload actual aquí; el caption queda como
+        // sugerencia para el usuario en el panel de linking.
+        // Lo mostramos abajo en el panel — guardamos en state separado.
+        setVisionCaption(res.caption)
+      }
+      setSuggestedIds(res.matchedIds)
+      setConfirmedIds(new Set(res.matchedIds))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No se pudo analizar la imagen'
+      toast.show({ message: msg, tone: 'error' })
+    } finally {
+      setSuggesting(false)
     }
   }
 
@@ -216,24 +315,43 @@ export function MomentosView() {
     }
   }
 
-  async function applyLinks() {
+  async function applyLinks(opts?: { acceptCaption?: boolean }) {
     if (!linkingMomento) return
     const ids = Array.from(confirmedIds)
+    const patch: {
+      entityIds: string[]
+      payload?: MomentoPayload
+    } = { entityIds: ids }
+
+    // ξ3: si la IA propuso un caption para una foto y el usuario lo
+    // aceptó, lo incluimos en el patch del payload.
+    if (
+      opts?.acceptCaption &&
+      visionCaption &&
+      linkingMomento.kind === 'foto'
+    ) {
+      patch.payload = {
+        ...linkingMomento.payload,
+        caption: visionCaption,
+      }
+    }
+
     try {
       await updateMomento.mutateAsync({
         id: linkingMomento.id,
-        patch: { entityIds: ids },
+        patch,
       })
       toast.show({
         message:
           ids.length === 0
-            ? 'Sin vínculos. Recorte guardado.'
+            ? 'Sin vínculos. Momento guardado.'
             : `${ids.length} vínculo${ids.length === 1 ? '' : 's'} guardado${ids.length === 1 ? '' : 's'}.`,
         tone: 'success',
       })
       setLinkingMomento(null)
       setSuggestedIds([])
       setConfirmedIds(new Set())
+      setVisionCaption(null)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'No se pudo vincular'
       toast.show({ message: msg, tone: 'error' })
@@ -288,7 +406,7 @@ export function MomentosView() {
 
         {/* Tabs kind */}
         <div className="flex gap-1 p-1 bg-paper-50/60 rounded-lg border border-ink-100/50 w-fit">
-          {(['nota', 'recorte'] as MomentoKind[]).map((k) => (
+          {(['nota', 'recorte', 'foto'] as MomentoKind[]).map((k) => (
             <button
               key={k}
               type="button"
@@ -299,7 +417,7 @@ export function MomentosView() {
                   : 'text-ink-400 hover:text-ink-700'
               }`}
             >
-              {k === 'nota' ? 'Nota' : 'Recorte'}
+              {k === 'nota' ? 'Nota' : k === 'recorte' ? 'Recorte' : 'Foto'}
             </button>
           ))}
         </div>
@@ -382,18 +500,91 @@ export function MomentosView() {
           </div>
         )}
 
+        {composerKind === 'foto' && (
+          <div className="space-y-3">
+            {/* File picker — clickable label + drag overlay opcional. */}
+            <label
+              className={`block border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                photoFile
+                  ? 'border-transparent'
+                  : 'border-ink-200/60 hover:border-ink-300 hover:bg-paper-50/50'
+              }`}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault()
+                const f = e.dataTransfer.files?.[0]
+                if (f && f.type.startsWith('image/')) {
+                  handlePhotoFileChange(f)
+                }
+              }}
+            >
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null
+                  handlePhotoFileChange(f)
+                }}
+                disabled={photoUploading || addMomento.isPending}
+              />
+              {photoPreviewUrl ? (
+                <div className="space-y-2">
+                  <img
+                    src={photoPreviewUrl}
+                    alt="preview"
+                    className="max-h-64 mx-auto rounded shadow-sm"
+                  />
+                  <p className="text-caption text-ink-400 italic">
+                    Click para cambiar la imagen
+                  </p>
+                </div>
+              ) : (
+                <div className="text-ink-400">
+                  <p className="text-sm">Arrastra una imagen aquí o click para elegir</p>
+                  <p className="text-caption italic mt-1">
+                    JPEG / PNG / WebP / GIF · hasta 10 MB
+                  </p>
+                </div>
+              )}
+            </label>
+            <input
+              type="text"
+              value={photoCaption}
+              onChange={(e) => setPhotoCaption(e.target.value)}
+              placeholder="Caption (opcional — la IA propondrá uno)"
+              className="input-paper w-full"
+              disabled={photoUploading || addMomento.isPending}
+            />
+            <textarea
+              value={photoNote}
+              onChange={(e) => setPhotoNote(e.target.value)}
+              placeholder="Tu nota sobre la foto (opcional)"
+              rows={2}
+              className="input-paper w-full resize-none marginalia-script placeholder:italic placeholder:font-sans"
+              disabled={photoUploading || addMomento.isPending}
+            />
+          </div>
+        )}
+
         <div className="flex items-center justify-between gap-3 pt-1">
           <p className="text-caption text-ink-300 italic">
             {composerKind === 'recorte'
               ? 'Al guardar, la IA propone vínculos a tus entidades.'
-              : 'Se guarda fechado hoy.'}
+              : composerKind === 'foto'
+                ? 'La IA lee la imagen y propone caption + vínculos.'
+                : 'Se guarda fechado hoy.'}
           </p>
           <button
             type="submit"
-            disabled={addMomento.isPending}
+            disabled={addMomento.isPending || photoUploading}
             className="btn-ink"
           >
-            {addMomento.isPending ? 'Guardando…' : 'Guardar'}
+            {photoUploading
+              ? 'Subiendo…'
+              : addMomento.isPending
+                ? 'Guardando…'
+                : 'Guardar'}
           </button>
         </div>
       </form>
@@ -429,9 +620,23 @@ export function MomentosView() {
             </button>
           </header>
 
+          {/* ξ3: caption sugerido por vision AI para fotos. */}
+          {linkingMomento?.kind === 'foto' && visionCaption && (
+            <div className="p-3 rounded bg-paper-50/60 border border-ink-100/60">
+              <p className="text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
+                caption propuesto
+              </p>
+              <p className="font-serif text-sm text-ink-600 italic">
+                {visionCaption}
+              </p>
+            </div>
+          )}
+
           {suggesting && suggestedIds.length === 0 && (
             <p className="text-caption text-ink-400 italic">
-              La IA está revisando tus {entities.length} entidades…
+              {linkingMomento?.kind === 'foto'
+                ? 'La IA está mirando la imagen…'
+                : `La IA está revisando tus ${entities.length} entidades…`}
             </p>
           )}
 
@@ -498,14 +703,21 @@ export function MomentosView() {
             </button>
             <button
               type="button"
-              onClick={applyLinks}
+              onClick={() =>
+                applyLinks({
+                  acceptCaption:
+                    linkingMomento?.kind === 'foto' && Boolean(visionCaption),
+                })
+              }
               disabled={updateMomento.isPending}
               className="btn-ink text-xs"
             >
               {updateMomento.isPending
                 ? 'guardando…'
                 : confirmedIds.size === 0
-                  ? 'Guardar sin vínculos'
+                  ? linkingMomento?.kind === 'foto' && visionCaption
+                    ? 'Guardar caption'
+                    : 'Guardar sin vínculos'
                   : `Guardar ${confirmedIds.size} vínculo${confirmedIds.size === 1 ? '' : 's'}`}
             </button>
           </div>
@@ -612,11 +824,7 @@ function MomentoEntry({
           <RecorteBody momento={momento} />
         )}
 
-        {momento.kind === 'foto' && (
-          <p className="text-caption italic text-ink-400">
-            (foto — renderer pendiente en ξ3)
-          </p>
-        )}
+        {momento.kind === 'foto' && <FotoBody momento={momento} />}
 
         {momento.origin.kind === 'ai' && (
           <span className="ml-2 inline-flex items-center text-sky-700/70" title="origen IA">
@@ -655,6 +863,45 @@ function MomentoEntry({
         <TrashIcon size={12} />
       </button>
     </li>
+  )
+}
+
+function FotoBody({ momento }: { momento: Momento }) {
+  const { storageKey, caption, width, height } = momento.payload
+  if (!storageKey) {
+    return (
+      <p className="text-caption italic text-ink-400">
+        (imagen no encontrada)
+      </p>
+    )
+  }
+  const aspectRatio =
+    width && height && width > 0 && height > 0
+      ? `${width} / ${height}`
+      : undefined
+
+  return (
+    <article className="space-y-2">
+      <div className="rounded-md overflow-hidden border border-ink-100/60 max-w-md">
+        <img
+          src={`/api/momentos/file/${encodeURIComponent(storageKey)}`}
+          alt={caption ?? 'momento'}
+          loading="lazy"
+          className="block w-full h-auto"
+          style={aspectRatio ? { aspectRatio } : undefined}
+        />
+      </div>
+      {caption && (
+        <p className="font-serif text-sm italic text-ink-500 max-w-md">
+          {caption}
+        </p>
+      )}
+      {momento.note && (
+        <p className="marginalia-script whitespace-pre-wrap max-w-md">
+          {momento.note}
+        </p>
+      )}
+    </article>
   )
 }
 

@@ -791,6 +791,41 @@ export const api = {
       body: '{}',
     })
   },
+
+  /** ξ3: sube un archivo de imagen a Netlify Blobs. Devuelve la storageKey
+      que el cliente luego inserta en el payload del momento foto. */
+  async momentoUpload(file: File): Promise<{
+    storageKey: string
+    mime: string
+    size: number
+  }> {
+    const form = new FormData()
+    form.append('file', file)
+    const response = await fetch('/api/momentos/upload', {
+      method: 'POST',
+      body: form,
+      headers: { 'X-AI-Mode': aiModeHeader() },
+    })
+    if (!response.ok) {
+      const text = await response.text().catch(() => '')
+      throw new Error(`upload → ${response.status} ${text}`.trim())
+    }
+    return response.json()
+  },
+
+  /** ξ3: vision suggest. Para fotos: pide caption + matchedIds (personas
+      registradas que aparecen). Solo aplicable a kind='foto'. */
+  async momentoVisionSuggest(id: string): Promise<{
+    caption: string | null
+    matchedIds: string[]
+    provider: string | null
+    model: string | null
+  }> {
+    return request(`/api/momentos/${id}/vision-suggest`, {
+      method: 'POST',
+      body: '{}',
+    })
+  },
 }
 
 export type MomentoUrlPreview = {
