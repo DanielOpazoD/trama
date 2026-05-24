@@ -37,8 +37,11 @@ import type { LayoutMode } from '../hooks/layouts/types'
 
 // Persisted in localStorage so reloads keep the user's mode + focus.
 const GRAPH_MODE_KEY = 'trama.graphMode'
+const GRAPH_LAYOUT_MODE_KEY = 'trama.graphLayoutMode'
 const GRAPH_FOCUS_KEY = 'trama.graphFocus'
 const GRAPH_EXPLORE_HINT_DISMISSED = 'trama.graphExploreHint.dismissed'
+
+const VALID_LAYOUT_MODES: ReadonlyArray<LayoutMode> = ['organic', 'by-type', 'by-year', 'by-degree']
 // Sobre este número de entidades en modo "completo", sugerimos cambiar
 // a "exploratorio". Es la zona donde el render SVG empieza a notarse.
 const EXPLORE_HINT_THRESHOLD = 2000
@@ -67,7 +70,25 @@ export default function GraphView({
   const { offline } = useOffline()
   const svgRef = useRef<SVGSVGElement>(null)
   const [svgSize, setSvgSize] = useState({ width: 0, height: 0 })
-  const [mode, setMode] = useState<LayoutMode>('organic')
+  // Default 'by-degree' (por densidad) — los hubs caen al centro y el
+  // grafo se entiende a primer vistazo. Antes era 'organic' que es más
+  // bonito pero menos informativo en el primer load. La elección del
+  // usuario persiste en localStorage.
+  const [mode, setModeState] = useState<LayoutMode>(() => {
+    if (typeof window === 'undefined') return 'by-degree'
+    const raw = window.localStorage.getItem(GRAPH_LAYOUT_MODE_KEY)
+    return raw && VALID_LAYOUT_MODES.includes(raw as LayoutMode)
+      ? (raw as LayoutMode)
+      : 'by-degree'
+  })
+  const setMode = (next: LayoutMode) => {
+    setModeState(next)
+    try {
+      window.localStorage.setItem(GRAPH_LAYOUT_MODE_KEY, next)
+    } catch {
+      /* localStorage disabled */
+    }
+  }
   const [suggestEmpty, setSuggestEmpty] = useState(false)
 
   // Graph mode + focus, both persisted so el modo + el nodo focal
@@ -334,6 +355,9 @@ export default function GraphView({
         suggestPending={suggest.isPending}
         suggestDisabled={offline || entities.length < 2}
         zoomPercent={Math.round(pz.zoom * 100)}
+        onZoomIn={pz.zoomIn}
+        onZoomOut={pz.zoomOut}
+        onResetView={pz.resetView}
         entityCount={entities.length}
         relationshipCount={relationships.length}
         graphMode={graphMode}
