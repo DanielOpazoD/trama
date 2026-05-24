@@ -333,15 +333,14 @@ export function EntitiesView({
       )}
 
       {/* Filtro por tipo. Solo aparece si hay más de un tipo en la trama.
-          Sticky al top del scroll cuando el usuario baja — el control
-          siempre disponible sin necesidad de scrollear de vuelta arriba.
-          Background paper-50 100% opaco para que las rows scrolleen
-          cleanly "al pasado" detrás. Antes era /90 + backdrop-blur (default)
-          que dejaba texto translucirse — el usuario veía el row mezclado
-          con la barra de chips, ruido visual. shadow-sm fade abajo
-          sugiere "esto flota sobre el contenido". */}
+          Antes era sticky (β2/δ8/anterior commit), pero quedaba siempre
+          en pantalla durante el scroll y se sentía como chrome que no
+          se va. El usuario lo pidió no-sticky: una vez elegido el
+          filtro la barra desaparece al scrollear, como cualquier
+          sección normal. Si querés cambiar filtro, scroll up. Es lo
+          mismo que hace un libro — la portada del capítulo no flota. */}
       {availableTypes.length > 1 && (
-        <div className="sticky top-0 z-10 -mx-8 px-8 py-2 mb-4 bg-paper-50 border-b border-ink-100/60 shadow-[0_4px_8px_-6px_rgba(0,0,0,0.06)] flex flex-wrap gap-1.5">
+        <div className="py-2 mb-4 border-b border-ink-100/60 flex flex-wrap gap-1.5">
           <button
             onClick={() => setTypeFilter(null)}
             className={
