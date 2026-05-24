@@ -773,6 +773,34 @@ export const api = {
       method: 'DELETE',
     })
   },
+
+  /** ξ2: server-side fetch del OG/Twitter meta de una URL. */
+  async momentoUrlPreview(url: string): Promise<MomentoUrlPreview> {
+    return request<MomentoUrlPreview>(
+      `/api/momentos/url-preview?url=${encodeURIComponent(url)}`,
+    )
+  },
+
+  /** ξ2: pide a la IA qué entidades EXISTENTES de la trama están mencionadas
+      en el momento. No propone entidades nuevas — pipeline más liviana. */
+  async momentoSuggestEntities(
+    id: string,
+  ): Promise<{ matchedIds: string[]; provider: string | null; model: string | null }> {
+    return request(`/api/momentos/${id}/suggest-entities`, {
+      method: 'POST',
+      body: '{}',
+    })
+  },
+}
+
+export type MomentoUrlPreview = {
+  url: string
+  title: string | null
+  description: string | null
+  source: string | null
+  author: string | null
+  image: string | null
+  fetched: boolean
 }
 
 // ---------- Momento row transform ----------

@@ -2,10 +2,14 @@ import { useMemo, useState, type FormEvent } from 'react'
 import {
   useInfiniteMomentosQuery,
   useAddMomento,
+  useUpdateMomento,
   useDeleteMomento,
+  useEntitiesQuery,
   useToast,
 } from '../state'
-import type { Momento } from '../types'
+import { api } from '../api'
+import { typeAccent } from './graph/GraphNode'
+import type { Entity, Momento, MomentoKind, MomentoPayload } from '../types'
 import { EndMark, SparkleIcon, TrashIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 import { OrnamentBreak } from './Icons'
@@ -72,7 +76,9 @@ function groupByDay(items: Momento[]): Array<{ dayKey: string; entries: Momento[
 export function MomentosView() {
   const momentosQuery = useInfiniteMomentosQuery()
   const addMomento = useAddMomento()
+  const updateMomento = useUpdateMomento()
   const deleteMomento = useDeleteMomento()
+  const { data: entities = [] } = useEntitiesQuery()
   const toast = useToast()
 
   const items = useMemo(
@@ -80,21 +86,156 @@ export function MomentosView() {
     [momentosQuery.data],
   )
   const groups = useMemo(() => groupByDay(items), [items])
+  const entitiesById = useMemo(() => {
+    const map = new Map<string, Entity>()
+    for (const e of entities) map.set(e.id, e)
+    return map
+  }, [entities])
 
-  const [draft, setDraft] = useState('')
+  // ξ2: tab del composer. nota = texto plano. recorte = url/title/body/source/author.
+  const [composerKind, setComposerKind] = useState<MomentoKind>('nota')
+
+  // Estados del composer — uno por tipo de campo. Vacíos al iniciar y
+  // se limpian post-guardar.
+  const [noteDraft, setNoteDraft] = useState('')
+  const [recorteUrl, setRecorteUrl] = useState('')
+  const [recorteTitle, setRecorteTitle] = useState('')
+  const [recorteBody, setRecorteBody] = useState('')
+  const [recorteSource, setRecorteSource] = useState('')
+  const [recorteAuthor, setRecorteAuthor] = useState('')
+  const [recorteNote, setRecorteNote] = useState('')
+  const [previewing, setPreviewing] = useState(false)
+
+  // ξ2: pidiendo a la IA que sugiera entidades para el último recorte
+  // creado. Se gatilla automáticamente al guardar y se muestra un panel
+  // inline para confirmar vínculos.
+  const [linkingMomento, setLinkingMomento] = useState<Momento | null>(null)
+  const [suggestedIds, setSuggestedIds] = useState<string[]>([])
+  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set())
+  const [suggesting, setSuggesting] = useState(false)
+
+  async function fetchPreview() {
+    const url = recorteUrl.trim()
+    if (!url || previewing) return
+    setPreviewing(true)
+    try {
+      const preview = await api.momentoUrlPreview(url)
+      // Solo rellenamos campos vacíos para no pisar lo que el usuario tipeó.
+      if (preview.title && !recorteTitle.trim()) setRecorteTitle(preview.title)
+      if (preview.description && !recorteBody.trim()) setRecorteBody(preview.description)
+      if (preview.source && !recorteSource.trim()) setRecorteSource(preview.source)
+      if (preview.author && !recorteAuthor.trim()) setRecorteAuthor(preview.author)
+      if (!preview.fetched) {
+        toast.show({
+          message: 'No se pudo extraer info de la URL. Completa los campos a mano.',
+          tone: 'default',
+        })
+      }
+    } catch {
+      // Silencioso — el usuario sigue pudiendo llenar manual.
+    } finally {
+      setPreviewing(false)
+    }
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    const text = draft.trim()
-    if (!text || addMomento.isPending) return
+    if (addMomento.isPending) return
+
+    let payload: MomentoPayload
+    if (composerKind === 'nota') {
+      const text = noteDraft.trim()
+      if (!text) return
+      payload = { bodyText: text }
+      try {
+        await addMomento.mutateAsync({ kind: 'nota', payload })
+        setNoteDraft('')
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'No se pudo guardar'
+        toast.show({ message: msg, tone: 'error' })
+      }
+      return
+    }
+
+    // composerKind === 'recorte'
+    const hasAnything =
+      recorteUrl.trim() ||
+      recorteTitle.trim() ||
+      recorteBody.trim() ||
+      recorteNote.trim()
+    if (!hasAnything) return
+    payload = {
+      url: recorteUrl.trim() || undefined,
+      title: recorteTitle.trim() || undefined,
+      bodyText: recorteBody.trim() || undefined,
+      source: recorteSource.trim() || undefined,
+      author: recorteAuthor.trim() || undefined,
+    }
     try {
-      await addMomento.mutateAsync({
-        kind: 'nota',
-        payload: { bodyText: text },
+      const created = await addMomento.mutateAsync({
+        kind: 'recorte',
+        payload,
+        note: recorteNote.trim() || undefined,
       })
-      setDraft('')
+      // Limpiar form.
+      setRecorteUrl('')
+      setRecorteTitle('')
+      setRecorteBody('')
+      setRecorteSource('')
+      setRecorteAuthor('')
+      setRecorteNote('')
+      // Lanzar el flow de "vincular entidades".
+      setLinkingMomento(created)
+      setConfirmedIds(new Set())
+      setSuggestedIds([])
+      // Auto-trigger suggest si hay contexto suficiente.
+      const hasText =
+        (payload.title?.length ?? 0) > 0 ||
+        (payload.bodyText?.length ?? 0) > 30 ||
+        (created.note?.length ?? 0) > 0
+      if (hasText) {
+        triggerSuggest(created.id)
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'No se pudo guardar'
+      toast.show({ message: msg, tone: 'error' })
+    }
+  }
+
+  async function triggerSuggest(momentoId: string) {
+    setSuggesting(true)
+    try {
+      const res = await api.momentoSuggestEntities(momentoId)
+      setSuggestedIds(res.matchedIds)
+      setConfirmedIds(new Set(res.matchedIds)) // pre-check todos los matches
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No se pudo sugerir'
+      toast.show({ message: msg, tone: 'error' })
+    } finally {
+      setSuggesting(false)
+    }
+  }
+
+  async function applyLinks() {
+    if (!linkingMomento) return
+    const ids = Array.from(confirmedIds)
+    try {
+      await updateMomento.mutateAsync({
+        id: linkingMomento.id,
+        patch: { entityIds: ids },
+      })
+      toast.show({
+        message:
+          ids.length === 0
+            ? 'Sin vínculos. Recorte guardado.'
+            : `${ids.length} vínculo${ids.length === 1 ? '' : 's'} guardado${ids.length === 1 ? '' : 's'}.`,
+        tone: 'success',
+      })
+      setLinkingMomento(null)
+      setSuggestedIds([])
+      setConfirmedIds(new Set())
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No se pudo vincular'
       toast.show({ message: msg, tone: 'error' })
     }
   }
@@ -125,7 +266,8 @@ export function MomentosView() {
         </p>
       </header>
 
-      {/* Composer — minimal por ahora (solo notas). */}
+      {/* Composer con tabs por kind. Las fotos vienen en ξ3 — todavía no
+          tienen tab visible. */}
       <form
         onSubmit={handleSubmit}
         className="mb-10 p-5 bg-paper-100/40 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
@@ -138,30 +280,237 @@ export function MomentosView() {
             nueva entrada
           </p>
           <h3 className="font-serif text-xl text-ink-800 leading-tight">
-            ¿Qué viste, leíste o pensaste hoy?
+            {composerKind === 'nota'
+              ? '¿Qué viste, leíste o pensaste hoy?'
+              : 'Algo del mundo que te llamó la atención'}
           </h3>
         </header>
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Una observación, una idea, un recuerdo del día…"
-          rows={3}
-          className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
-          disabled={addMomento.isPending}
-        />
+
+        {/* Tabs kind */}
+        <div className="flex gap-1 p-1 bg-paper-50/60 rounded-lg border border-ink-100/50 w-fit">
+          {(['nota', 'recorte'] as MomentoKind[]).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setComposerKind(k)}
+              className={`px-3 py-1 rounded text-caption transition-all duration-150 active:scale-95 ${
+                composerKind === k
+                  ? 'bg-paper-50 text-ink-700 shadow-sm'
+                  : 'text-ink-400 hover:text-ink-700'
+              }`}
+            >
+              {k === 'nota' ? 'Nota' : 'Recorte'}
+            </button>
+          ))}
+        </div>
+
+        {composerKind === 'nota' && (
+          <textarea
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            placeholder="Una observación, una idea, un recuerdo del día…"
+            rows={3}
+            className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
+            disabled={addMomento.isPending}
+          />
+        )}
+
+        {composerKind === 'recorte' && (
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={recorteUrl}
+                onChange={(e) => setRecorteUrl(e.target.value)}
+                onBlur={fetchPreview}
+                placeholder="https://… (opcional, pega y la IA lo lee)"
+                className="input-paper flex-1"
+                disabled={addMomento.isPending}
+              />
+              <button
+                type="button"
+                onClick={fetchPreview}
+                disabled={!recorteUrl.trim() || previewing}
+                className="text-micro uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 disabled:opacity-50 px-2"
+                title="Buscar título y descripción de la URL"
+              >
+                {previewing ? 'leyendo…' : '↻ leer'}
+              </button>
+            </div>
+            <input
+              type="text"
+              value={recorteTitle}
+              onChange={(e) => setRecorteTitle(e.target.value)}
+              placeholder="Título"
+              className="input-paper w-full"
+              disabled={addMomento.isPending}
+            />
+            <textarea
+              value={recorteBody}
+              onChange={(e) => setRecorteBody(e.target.value)}
+              placeholder="Texto del recorte (el tweet, el párrafo, lo que pegues)"
+              rows={3}
+              className="input-paper w-full resize-none font-serif text-sm leading-relaxed placeholder:italic"
+              disabled={addMomento.isPending}
+            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={recorteAuthor}
+                onChange={(e) => setRecorteAuthor(e.target.value)}
+                placeholder="Autor (opcional)"
+                className="input-paper flex-1"
+                disabled={addMomento.isPending}
+              />
+              <input
+                type="text"
+                value={recorteSource}
+                onChange={(e) => setRecorteSource(e.target.value)}
+                placeholder="Fuente (Twitter, blog…)"
+                className="input-paper flex-1"
+                disabled={addMomento.isPending}
+              />
+            </div>
+            <textarea
+              value={recorteNote}
+              onChange={(e) => setRecorteNote(e.target.value)}
+              placeholder="Tu nota: por qué te llamó la atención"
+              rows={2}
+              className="input-paper w-full resize-none marginalia-script placeholder:italic placeholder:font-sans"
+              disabled={addMomento.isPending}
+            />
+          </div>
+        )}
+
         <div className="flex items-center justify-between gap-3 pt-1">
           <p className="text-caption text-ink-300 italic">
-            Se guarda fechado hoy. Después podrás editar la fecha o vincular entidades.
+            {composerKind === 'recorte'
+              ? 'Al guardar, la IA propone vínculos a tus entidades.'
+              : 'Se guarda fechado hoy.'}
           </p>
           <button
             type="submit"
-            disabled={!draft.trim() || addMomento.isPending}
+            disabled={addMomento.isPending}
             className="btn-ink"
           >
             {addMomento.isPending ? 'Guardando…' : 'Guardar'}
           </button>
         </div>
       </form>
+
+      {/* ξ2: panel de vinculación post-guardar de un recorte. */}
+      {linkingMomento && (
+        <section
+          className="mb-10 p-5 bg-paper-100/60 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
+          style={{
+            backgroundImage:
+              'radial-gradient(ellipse at center, var(--accent-gold-soft) 0%, transparent 70%)',
+          }}
+        >
+          <header className="flex items-baseline justify-between gap-3">
+            <div>
+              <p
+                className="section-eyebrow-serif"
+                style={{ color: 'var(--accent-gold)' }}
+              >
+                ✦ vincular entidades
+              </p>
+              <p className="text-caption text-ink-400 italic mt-0.5">
+                ¿A qué entidades de tu trama refiere este recorte?
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => triggerSuggest(linkingMomento.id)}
+              disabled={suggesting}
+              className="text-micro uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 disabled:opacity-50"
+            >
+              {suggesting ? 'pensando…' : '↻ re-buscar'}
+            </button>
+          </header>
+
+          {suggesting && suggestedIds.length === 0 && (
+            <p className="text-caption text-ink-400 italic">
+              La IA está revisando tus {entities.length} entidades…
+            </p>
+          )}
+
+          {!suggesting && suggestedIds.length === 0 && (
+            <p className="text-caption text-ink-400 italic">
+              La IA no encontró menciones explícitas. Puedes guardar sin vínculos o re-buscar.
+            </p>
+          )}
+
+          {suggestedIds.length > 0 && (
+            <ul className="flex flex-wrap gap-2">
+              {suggestedIds.map((id) => {
+                const ent = entitiesById.get(id)
+                if (!ent) return null
+                const checked = confirmedIds.has(id)
+                const accent = typeAccent(ent.type)
+                return (
+                  <li key={id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConfirmedIds((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(id)) next.delete(id)
+                          else next.add(id)
+                          return next
+                        })
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-caption transition-all active:scale-95"
+                      style={
+                        checked
+                          ? {
+                              backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)`,
+                              color: accent,
+                              border: `1px solid ${accent}`,
+                            }
+                          : {
+                              backgroundColor: 'transparent',
+                              color: 'rgb(var(--ink-400))',
+                              border: '1px solid rgb(var(--ink-100))',
+                            }
+                      }
+                    >
+                      <span>{checked ? '✓' : '+'}</span>
+                      {ent.name}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-2 border-t border-ink-100/40">
+            <button
+              type="button"
+              onClick={() => {
+                setLinkingMomento(null)
+                setSuggestedIds([])
+                setConfirmedIds(new Set())
+              }}
+              className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700"
+            >
+              omitir
+            </button>
+            <button
+              type="button"
+              onClick={applyLinks}
+              disabled={updateMomento.isPending}
+              className="btn-ink text-xs"
+            >
+              {updateMomento.isPending
+                ? 'guardando…'
+                : confirmedIds.size === 0
+                  ? 'Guardar sin vínculos'
+                  : `Guardar ${confirmedIds.size} vínculo${confirmedIds.size === 1 ? '' : 's'}`}
+            </button>
+          </div>
+        </section>
+      )}
 
       {momentosQuery.isLoading ? (
         <p className="text-ink-300 italic text-sm">Cargando momentos…</p>
@@ -197,6 +546,7 @@ export function MomentosView() {
                   <MomentoEntry
                     key={m.id}
                     momento={m}
+                    entitiesById={entitiesById}
                     onDelete={() => handleDelete(m.id)}
                   />
                 ))}
@@ -230,11 +580,17 @@ export function MomentosView() {
 
 function MomentoEntry({
   momento,
+  entitiesById,
   onDelete,
 }: {
   momento: Momento
+  entitiesById: Map<string, Entity>
   onDelete: () => void
 }) {
+  const linkedEntities = momento.entityIds
+    .map((id) => entitiesById.get(id))
+    .filter((e): e is Entity => Boolean(e))
+
   return (
     <li className="group relative pl-5">
       {/* Marca temporal a la izquierda — italic tipográfico, no chip. */}
@@ -245,21 +601,49 @@ function MomentoEntry({
         {formatTime(momento.capturedAt)}
       </span>
       <div className="ml-12">
+        {/* Render por kind. */}
         {momento.kind === 'nota' && momento.payload.bodyText && (
           <p className="font-serif text-base text-ink-700 leading-relaxed whitespace-pre-wrap">
             {momento.payload.bodyText}
           </p>
         )}
-        {/* Recorte y foto se renderizan en ξ2 / ξ3. Placeholder por ahora. */}
-        {momento.kind !== 'nota' && (
+
+        {momento.kind === 'recorte' && (
+          <RecorteBody momento={momento} />
+        )}
+
+        {momento.kind === 'foto' && (
           <p className="text-caption italic text-ink-400">
-            ({momento.kind} — renderer pendiente)
+            (foto — renderer pendiente en ξ3)
           </p>
         )}
+
         {momento.origin.kind === 'ai' && (
           <span className="ml-2 inline-flex items-center text-sky-700/70" title="origen IA">
             <SparkleIcon size={10} />
           </span>
+        )}
+
+        {/* ξ2: chips de entidades vinculadas, color por tipo. */}
+        {linkedEntities.length > 0 && (
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {linkedEntities.map((e) => {
+              const accent = typeAccent(e.type)
+              return (
+                <li
+                  key={e.id}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-micro tracking-eyebrow"
+                  style={{
+                    backgroundColor: `color-mix(in srgb, ${accent} 11%, transparent)`,
+                    color: accent,
+                  }}
+                  title={e.type}
+                >
+                  {e.name}
+                </li>
+              )
+            })}
+          </ul>
         )}
       </div>
       <button
@@ -271,5 +655,57 @@ function MomentoEntry({
         <TrashIcon size={12} />
       </button>
     </li>
+  )
+}
+
+function RecorteBody({ momento }: { momento: Momento }) {
+  const { url, title, bodyText, source, author } = momento.payload
+  return (
+    <article className="space-y-1.5">
+      {(source || author) && (
+        <p className="section-eyebrow-serif flex items-baseline gap-2 flex-wrap">
+          {author && <span style={{ color: 'var(--accent-gold)' }}>{author}</span>}
+          {author && source && <span className="text-ink-200">·</span>}
+          {source && <span className="text-ink-400">{source}</span>}
+        </p>
+      )}
+      {title && (
+        <h4 className="font-serif text-lg text-ink-700 leading-snug">
+          {url ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-ink-900 transition-colors border-b border-dotted border-transparent hover:border-ink-400"
+            >
+              {title}
+              <span className="text-ink-300 text-sm ml-1">↗</span>
+            </a>
+          ) : (
+            title
+          )}
+        </h4>
+      )}
+      {!title && url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-ink-500 hover:text-ink-700 transition-colors underline decoration-dotted"
+        >
+          {url} ↗
+        </a>
+      )}
+      {bodyText && (
+        <p className="font-serif text-base text-ink-600 leading-relaxed whitespace-pre-wrap border-l-2 border-ink-200/60 pl-3 italic">
+          {bodyText}
+        </p>
+      )}
+      {momento.note && (
+        <p className="marginalia-script whitespace-pre-wrap mt-2">
+          {momento.note}
+        </p>
+      )}
+    </article>
   )
 }
