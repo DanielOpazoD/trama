@@ -2,6 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useEntitiesQuery, useQuotesQuery } from '../state'
 import { ENTITY_TYPES } from '../types'
 import type { ViewMode } from './Sidebar'
+import {
+  ChatIcon,
+  EntitiesIcon,
+  GraphIcon,
+  HomeIcon,
+  MusicIcon,
+  QuoteIcon,
+  RelationsIcon,
+  SparkleIcon,
+} from './Icons'
 
 type Item =
   | { kind: 'view'; view: ViewMode; label: string; hint?: string }
@@ -167,7 +177,7 @@ export function CommandPalette({
                     idx === focusIdx ? 'bg-paper-100/70' : 'hover:bg-paper-100/40'
                   }`}
                 >
-                  <ItemRow item={item} />
+                  <ItemRow item={item} query={query} />
                 </button>
               </li>
             ))}
@@ -188,14 +198,49 @@ function itemKey(item: Item): string {
   return item.id
 }
 
-function ItemRow({ item }: { item: Item }) {
+/**
+ * θ5: highlight del match — partimos el texto en (pre, match, post) y
+ * renderizamos la coincidencia en bold. Si query está vacío o no
+ * matchea, devolvemos el texto plano.
+ */
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  const q = query.trim().toLowerCase()
+  if (!q) return <>{text}</>
+  const lower = text.toLowerCase()
+  const idx = lower.indexOf(q)
+  if (idx < 0) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, idx)}
+      <strong className="text-ink-800 font-semibold">{text.slice(idx, idx + q.length)}</strong>
+      {text.slice(idx + q.length)}
+    </>
+  )
+}
+
+/** Icono por view — el palette se escanea más rápido con glyph que con label. */
+function ViewIcon({ view }: { view: ViewMode }) {
+  const props = { size: 14, className: 'text-ink-400 shrink-0' }
+  switch (view) {
+    case 'inicio': return <HomeIcon {...props} />
+    case 'grafo': return <GraphIcon {...props} />
+    case 'entidades': return <EntitiesIcon {...props} />
+    case 'citas': return <QuoteIcon {...props} />
+    case 'relaciones': return <RelationsIcon {...props} />
+    case 'escuchas': return <MusicIcon {...props} />
+    case 'chat': return <ChatIcon {...props} />
+    case 'sugerencias': return <SparkleIcon {...props} />
+  }
+}
+
+function ItemRow({ item, query }: { item: Item; query: string }) {
   if (item.kind === 'view') {
     return (
       <>
-        <span className="text-micro uppercase tracking-eyebrow text-ink-300 w-20 shrink-0">
-          ir a
+        <ViewIcon view={item.view} />
+        <span className="text-ink-700">
+          <HighlightedText text={item.label} query={query} />
         </span>
-        <span className="text-ink-700">{item.label}</span>
         {item.hint && (
           <span className="text-ink-300 text-xs ml-2 truncate">— {item.hint}</span>
         )}
@@ -206,10 +251,10 @@ function ItemRow({ item }: { item: Item }) {
     const label = ENTITY_TYPES.find((t) => t.value === item.type)?.label ?? item.type
     return (
       <>
-        <span className="text-micro uppercase tracking-eyebrow text-ink-300 w-20 shrink-0">
-          entidad
+        <EntitiesIcon size={14} className="text-ink-400 shrink-0" />
+        <span className="text-ink-700">
+          <HighlightedText text={item.name} query={query} />
         </span>
-        <span className="text-ink-700">{item.name}</span>
         <span className="text-micro uppercase tracking-eyebrow text-ink-300 ml-2">
           {label}
         </span>
@@ -218,11 +263,9 @@ function ItemRow({ item }: { item: Item }) {
   }
   return (
     <>
-      <span className="text-micro uppercase tracking-eyebrow text-ink-300 w-20 shrink-0">
-        cita
-      </span>
+      <QuoteIcon size={14} className="text-ink-400 shrink-0" />
       <span className="text-ink-600 italic font-serif truncate flex-1">
-        «{item.text.slice(0, 80)}{item.text.length > 80 ? '…' : ''}»
+        «<HighlightedText text={item.text.slice(0, 80) + (item.text.length > 80 ? '…' : '')} query={query} />»
       </span>
       <span className="text-ink-300 text-xs ml-2 shrink-0">— {item.entityName}</span>
     </>

@@ -38,19 +38,22 @@ export function TalkButton({
   }
 
   return (
-    <div className="px-5 pt-3">
+    // θ1: padding alineado con el resto del panel (px-6) y más vertical
+    // (py-4) para que el CTA tenga presencia. El botón ahora es más
+    // ancho y con sparkle más visible — es la acción primaria del panel.
+    <div className="px-6 pt-4">
       <button
         onClick={handleClick}
         disabled={createChatThread.isPending}
-        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 hover:brightness-95 active:scale-[0.98] disabled:opacity-50"
         style={{
           backgroundColor: 'var(--accent-primary-soft)',
           color: 'var(--accent-primary)',
         }}
         title="Abre un hilo de chat focalizado en esta entidad: su contexto, sus citas y sus relaciones."
       >
-        <SparkleIcon size={12} />
-        {createChatThread.isPending ? 'Abriendo…' : 'Hablar'}
+        <SparkleIcon size={14} />
+        {createChatThread.isPending ? 'Abriendo…' : `Hablar con ${entity.name.length < 18 ? entity.name : 'esta entidad'}`}
       </button>
     </div>
   )

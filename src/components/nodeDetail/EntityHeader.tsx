@@ -25,15 +25,20 @@ export function EntityHeader({
       // δ2: pad-block-4 = 22px arriba/abajo en vez de 16px (py-4). El
       // nombre de la entidad es el ancla visual del panel, merece
       // respirar.
-      className="px-5 pad-block-4 border-b border-ink-100 flex items-start justify-between gap-3"
+      // θ1: header reorganizado en jerarquía editorial:
+      //   - eyebrow (tipo · año · IA badge) arriba en small caps style
+      //   - nombre serif grande con drop-tight leading
+      //   - link Spotify si aplica
+      // Padding horizontal ampliado a px-6 ahora que el panel mide 520px.
+      className="px-6 pad-block-5 border-b border-ink-100 flex items-start justify-between gap-3"
     >
-      <div className="min-w-0 flex-1">
-        <p className="text-xs uppercase tracking-wider text-ink-400 flex items-center gap-2 flex-wrap">
+      <div className="min-w-0 flex-1 stack-2">
+        <p className="text-micro uppercase tracking-eyebrow text-ink-400 flex items-center gap-2 flex-wrap">
           <span>{typeLabel ?? entity.type}</span>
           {entity.year !== undefined && (
             <>
               <span className="text-ink-200">·</span>
-              <span>{entity.year}</span>
+              <span className="tabular-nums">{entity.year}</span>
             </>
           )}
           {entity.origin.kind === 'ai' && (
@@ -49,10 +54,10 @@ export function EntityHeader({
             </span>
           )}
         </p>
-        {/* mt-2 (en vez de mt-1) da media línea más entre el chip de tipo
-            y el nombre — la pausa que tiene una portada de libro entre la
-            categoría y el título. */}
-        <h2 className="font-serif text-2xl text-ink-800 leading-tight mt-2 break-words">
+        {/* Nombre serif más grande ahora que el panel es más ancho. 28px
+            con leading apretado para que un nombre largo entre en una o
+            dos líneas elegantes. */}
+        <h2 className="font-serif text-[28px] text-ink-800 leading-[1.15] tracking-tight break-words">
           {entity.name}
         </h2>
         {entity.spotifyUrl && (
@@ -60,7 +65,7 @@ export function EntityHeader({
             href={entity.spotifyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2 inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 transition-colors"
+            className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 transition-colors"
           >
             ↗ abrir en Spotify
           </a>
