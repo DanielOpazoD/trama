@@ -37,6 +37,7 @@ export default withObservability('spotify-plays', async (req) => {
     last_played: string
     existing_entity_id: string | null
     sample_spotify_id?: string
+    artists?: string[] // π3: para track/album, mostrar autoría
   }
 
   let rows: Group[] = []
@@ -66,12 +67,16 @@ export default withObservability('spotify-plays', async (req) => {
       LIMIT ${limit}
     `) as unknown as Group[]
   } else if (group === 'album') {
+    // π3: añadimos artists ─ tomamos los artist_names del primer play del
+    // álbum como representativos (todos los plays del mismo album_name
+    // suelen tener los mismos artistas, salvo compilaciones).
     rows = (await sql`
       SELECT album_name AS key,
              COUNT(*)::int AS plays,
              MIN(played_at) AS first_played,
              MAX(played_at) AS last_played,
              (ARRAY_AGG(album_id))[1] AS sample_spotify_id,
+             (ARRAY_AGG(artist_names))[1] AS artists,
              e.id AS existing_entity_id
       FROM spotify_plays p
       LEFT JOIN entities e
@@ -82,12 +87,15 @@ export default withObservability('spotify-plays', async (req) => {
       LIMIT ${limit}
     `) as unknown as Group[]
   } else {
+    // π3: tracks ─ idem, agregamos artists para que el listado no sea
+    // ambiguo ("Y2K Cataclysm" puede ser cualquier cosa sin autoría).
     rows = (await sql`
       SELECT track_name AS key,
              COUNT(*)::int AS plays,
              MIN(played_at) AS first_played,
              MAX(played_at) AS last_played,
              (ARRAY_AGG(track_id))[1] AS sample_spotify_id,
+             (ARRAY_AGG(artist_names))[1] AS artists,
              e.id AS existing_entity_id
       FROM spotify_plays p
       LEFT JOIN entities e
@@ -97,6 +105,34 @@ export default withObservability('spotify-plays', async (req) => {
       ORDER BY plays DESC
       LIMIT ${limit}
     `) as unknown as Group[]
+  }
+
+  // π3: summary aggregado del mismo período. Una query única, barata
+  // gracias al index BRIN sobre played_at. Devolvemos junto al listado
+  // para evitar un round-trip extra del cliente.
+  type SummaryRow = {
+    total_plays: number
+    unique_tracks: number
+    unique_artists: number
+    unique_albums: number
+    total_minutes: number
+  }
+  const summaryRows = (await sql`
+    SELECT
+      COUNT(*)::int AS total_plays,
+      COUNT(DISTINCT track_id)::int AS unique_tracks,
+      COUNT(DISTINCT artist_name)::int AS unique_artists,
+      COUNT(DISTINCT album_id)::int AS unique_albums,
+      ROUND(COALESCE(SUM(duration_ms), 0) / 60000.0)::int AS total_minutes
+    FROM spotify_plays, UNNEST(artist_names) AS artist_name
+    WHERE played_at >= ${since}
+  `) as unknown as SummaryRow[]
+  const summary = summaryRows[0] ?? {
+    total_plays: 0,
+    unique_tracks: 0,
+    unique_artists: 0,
+    unique_albums: 0,
+    total_minutes: 0,
   }
 
   return Response.json({
@@ -109,7 +145,15 @@ export default withObservability('spotify-plays', async (req) => {
       lastPlayed: r.last_played,
       existingEntityId: r.existing_entity_id ?? null,
       spotifyId: r.sample_spotify_id ?? null,
+      artists: Array.isArray(r.artists) ? r.artists : undefined,
     })),
+    summary: {
+      totalPlays: summary.total_plays,
+      uniqueTracks: summary.unique_tracks,
+      uniqueArtists: summary.unique_artists,
+      uniqueAlbums: summary.unique_albums,
+      totalMinutes: summary.total_minutes,
+    },
   })
 })
 

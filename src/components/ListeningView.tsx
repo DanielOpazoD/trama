@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { api, type SpotifyPlayGroup } from '../api'
 import { useAddEntity, useExtract } from '../state'
 import { SparkleIcon } from './Icons'
 import { MusicPaletteCard } from './MusicPaletteCard'
+import { PlaysTiming } from './listening/PlaysTiming'
+import { SuggestArtists } from './listening/SuggestArtists'
 import type { EntityType, ExtractionProposal, Origin } from '../types'
 
 type Group = 'artist' | 'album' | 'track'
@@ -41,10 +43,18 @@ export function ListeningView({
   onProposal?: (title: string, proposal: ExtractionProposal) => void
 }) {
   const [group, setGroup] = useState<Group>('artist')
+  // π3: ventana temporal. '90d' es el default histórico del endpoint.
+  // Otras opciones: 7d (semana), 30d (mes), 365d (año). El cambio invalida
+  // la query (porque entra en la queryKey) y dispara refetch.
+  const [periodDays, setPeriodDays] = useState<7 | 30 | 90 | 365>(90)
+  const sinceIso = useMemo(
+    () => new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString(),
+    [periodDays],
+  )
   const [playlistInput, setPlaylistInput] = useState('')
   const playsQuery = useQuery({
-    queryKey: ['spotify', 'plays', group],
-    queryFn: () => api.spotifyPlays(group, 60),
+    queryKey: ['spotify', 'plays', group, periodDays],
+    queryFn: () => api.spotifyPlays(group, 60, sinceIso),
     retry: false,
   })
   const statusQuery = useQuery({
@@ -234,22 +244,74 @@ export function ListeningView({
             )}
           </form>
 
-          {/* Group selector */}
-          <div className="flex gap-1 p-1 bg-paper-100/60 rounded-lg border border-ink-100/50 w-fit mb-6">
-            {(['artist', 'album', 'track'] as Group[]).map((g) => (
-              <button
-                key={g}
-                onClick={() => setGroup(g)}
-                className={`px-3 py-1.5 rounded text-sm transition-all duration-150 active:scale-95 ${
-                  group === g
-                    ? 'bg-paper-50 text-ink-700 shadow-sm'
-                    : 'text-ink-400 hover:text-ink-700'
-                }`}
-              >
-                {GROUP_LABEL[g]}
-              </button>
-            ))}
+          {/* π3: período + group selector lado a lado.
+              Período define la ventana temporal de TODO el bloque de
+              abajo (summary + lista). Cambiarlo refetchea desde el
+              servidor (entra a la queryKey). */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div
+              className="flex gap-1 p-1 bg-paper-100/60 rounded-lg border border-ink-100/50 w-fit"
+              role="tablist"
+              aria-label="Ventana temporal"
+            >
+              {(
+                [
+                  { days: 7 as const, label: '7d' },
+                  { days: 30 as const, label: '30d' },
+                  { days: 90 as const, label: '90d' },
+                  { days: 365 as const, label: '1a' },
+                ]
+              ).map(({ days, label }) => (
+                <button
+                  key={days}
+                  onClick={() => setPeriodDays(days)}
+                  className={`px-2.5 py-1 rounded text-caption transition-all duration-150 active:scale-95 ${
+                    periodDays === days
+                      ? 'bg-paper-50 text-ink-700 shadow-sm'
+                      : 'text-ink-400 hover:text-ink-700'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-1 p-1 bg-paper-100/60 rounded-lg border border-ink-100/50 w-fit">
+              {(['artist', 'album', 'track'] as Group[]).map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setGroup(g)}
+                  className={`px-3 py-1.5 rounded text-sm transition-all duration-150 active:scale-95 ${
+                    group === g
+                      ? 'bg-paper-50 text-ink-700 shadow-sm'
+                      : 'text-ink-400 hover:text-ink-700'
+                  }`}
+                >
+                  {GROUP_LABEL[g]}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* π3: Summary card — totales agregados del período. Si el
+              servidor todavía no respondió, mostramos placeholder con
+              "—" en los números para no saltar visual al cargar. */}
+          <PlaysSummary
+            summary={playsQuery.data?.summary}
+            periodDays={periodDays}
+            loading={playsQuery.isLoading}
+          />
+
+          {/* π4: Patrón temporal — heatmap 7×24 (día×hora) + trend 30d.
+              Se renderea solo si hay plays en el período (el componente
+              devuelve null si no). enabled=true porque ya pasamos el
+              check de Spotify connected arriba. */}
+          <PlaysTiming since={sinceIso} enabled={true} />
+
+          {/* π5: Sugerencias IA de artistas nuevos. Botón manual — no
+              prefetch porque cada call cuesta tokens. El usuario decide
+              cuándo pedir. */}
+          <SuggestArtists />
 
           {playsQuery.isLoading ? (
             <p className="text-ink-300 italic">cargando…</p>
@@ -281,6 +343,18 @@ export function ListeningView({
                           </a>
                         ) : (
                           <span className="text-ink-700">{item.key}</span>
+                        )}
+                        {/* π3: autoría junto al título cuando el group es
+                            track o album — antes solo se veía "Y2K
+                            Cataclysm" sin saber de quién. */}
+                        {item.artists && item.artists.length > 0 && (
+                          <span
+                            className="text-xs text-ink-400 italic truncate max-w-[18rem]"
+                            title={item.artists.join(', ')}
+                          >
+                            — {item.artists.slice(0, 2).join(', ')}
+                            {item.artists.length > 2 && ` +${item.artists.length - 2}`}
+                          </span>
                         )}
                         <span className="text-xs text-ink-400 tabular-nums">
                           {item.plays} {item.plays === 1 ? 'reproducción' : 'reproducciones'}
@@ -335,5 +409,101 @@ export function ListeningView({
         </>
       )}
     </>
+  )
+}
+
+/**
+ * π3: Tarjeta de resumen del período. Cuatro stats grandes en serif +
+ * "minutos escuchados" como subtítulo. Formato editorial — no es un
+ * dashboard genérico de KPIs sino una "página de inicio" para tu música.
+ */
+function PlaysSummary({
+  summary,
+  periodDays,
+  loading,
+}: {
+  summary?: {
+    totalPlays: number
+    uniqueTracks: number
+    uniqueArtists: number
+    uniqueAlbums: number
+    totalMinutes: number
+  }
+  periodDays: number
+  loading: boolean
+}) {
+  const formatNum = (n: number | undefined) => {
+    if (loading || n == null) return '—'
+    return n.toLocaleString('es')
+  }
+  const hours = useMemo(() => {
+    if (loading || !summary) return null
+    return Math.round(summary.totalMinutes / 60)
+  }, [summary, loading])
+
+  const periodLabel =
+    periodDays === 7 ? 'última semana'
+    : periodDays === 30 ? 'último mes'
+    : periodDays === 90 ? 'últimos 90 días'
+    : 'último año'
+
+  return (
+    <section
+      className="card-paper-elevated px-5 py-4 mb-6 animate-fade-up"
+      aria-label={`Resumen de escuchas — ${periodLabel}`}
+    >
+      <div className="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
+        <p className="section-eyebrow">{periodLabel}</p>
+        {hours !== null && hours > 0 && (
+          <p className="text-caption text-ink-400 italic tabular-nums">
+            {hours} {hours === 1 ? 'hora' : 'horas'} de música
+          </p>
+        )}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <SummaryStat
+          label="reproducciones"
+          value={formatNum(summary?.totalPlays)}
+          color="var(--type-musico)"
+        />
+        <SummaryStat
+          label="canciones"
+          value={formatNum(summary?.uniqueTracks)}
+          color="var(--accent-gold)"
+        />
+        <SummaryStat
+          label="artistas"
+          value={formatNum(summary?.uniqueArtists)}
+          color="var(--type-persona)"
+        />
+        <SummaryStat
+          label="álbumes"
+          value={formatNum(summary?.uniqueAlbums)}
+          color="var(--accent-sage)"
+        />
+      </div>
+    </section>
+  )
+}
+
+function SummaryStat({
+  label,
+  value,
+  color,
+}: {
+  label: string
+  value: string
+  color: string
+}) {
+  return (
+    <div>
+      <p
+        className="font-serif text-2xl leading-none tabular-nums"
+        style={{ color }}
+      >
+        {value}
+      </p>
+      <p className="text-caption text-ink-400 mt-1">{label}</p>
+    </div>
   )
 }
