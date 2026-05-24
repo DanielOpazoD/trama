@@ -14,7 +14,6 @@ import {
   TimelineRowSkeleton,
 } from './Skeleton'
 import { WeeklyActivity } from './WeeklyActivity'
-import { NumberTicker } from './NumberTicker'
 import { typeAccent } from './graph/GraphNode'
 import { useHiloOfTheDay } from '../hooks/useHiloOfTheDay'
 
@@ -93,10 +92,16 @@ export function HomeView({
 
   return (
     <>
-      {/* Header del HomeView: padding vertical generoso (--space-8 = 66px,
-          tres unidades de rhythm). El greeting + título + meta caen en
-          un stack con --space-2 entre ellos para que el ojo los lea
-          como una sola estancia. */}
+      {/* Header del HomeView: greeting + título + accent rule.
+          Antes había un párrafo con los totales "63 entidades · 77 citas
+          · 160 relaciones" pero era información duplicada: el sidebar
+          ya muestra los counts (con NumberTicker), y la sección "ESTA
+          SEMANA" abajo muestra los deltas de actividad. La portada queda
+          más limpia sin esa fila — el ojo va directo a la Cita destacada
+          en vez de pasar por una métrica.
+
+          Caso empty (totalEntities === 0): el EmptyMessage abajo cubre
+          la guía con su illustration + body completos. */}
       <header className="pad-block-5 flex items-baseline justify-between gap-6 stack-3">
         <div className="min-w-0 stack-2">
           <p className="text-micro uppercase tracking-shout text-ink-300">
@@ -106,24 +111,6 @@ export function HomeView({
             Inicio
           </h2>
           <div className="accent-rule" />
-          <p className="text-sm text-ink-400 leading-relaxed max-w-xl">
-            {totalEntities === 0 ? (
-              'Todavía vacía. Pega un texto abajo y la trama empieza.'
-            ) : (
-              // δ5: cada count anima con NumberTicker cuando crece — el
-              // ojo te lleva al lugar exacto del cambio (el dígito que
-              // subió) en vez de tener que adivinar qué cambió en la
-              // string completa.
-              <>
-                <NumberTicker value={totalEntities} />{' '}
-                {totalEntities === 1 ? 'entidad' : 'entidades'} ·{' '}
-                <NumberTicker value={quotes.length} />{' '}
-                {quotes.length === 1 ? 'cita' : 'citas'} ·{' '}
-                <NumberTicker value={relationships.length} />{' '}
-                {relationships.length === 1 ? 'relación' : 'relaciones'}
-              </>
-            )}
-          </p>
         </div>
         {pendingCount > 0 && (
           <button

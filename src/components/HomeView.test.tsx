@@ -83,21 +83,17 @@ describe('<HomeView />', () => {
     expect(screen.getByText(/Una trama recién empieza/i)).toBeInTheDocument()
   })
 
-  it('muestra resumen con conteos cuando hay datos', () => {
+  it('no muestra los totales en el header del HomeView (viven solo en sidebar)', () => {
+    // El párrafo "63 entidades · 77 citas · 160 relaciones" fue removido
+    // de la portada — era info duplicada (sidebar la muestra con counts,
+    // ESTA SEMANA muestra los deltas). El header del HomeView ahora es
+    // solo greeting + título + accent-rule.
     setupCache([ENTITY, ENTITY_2], [QUOTE_A], [REL])
-    // δ5: el conteo se renderiza con NumberTicker (anima), así que el
-    // número y la palabra viven en text nodes separados. Asertamos sobre
-    // el textContent combinado del párrafo en lugar de buscar el string
-    // entero por matcher exacto.
-    const summary = screen
-      .getAllByText(/entidades|cita|relación/i)
-      .find((el) => el.tagName === 'P')
-    expect(summary).toBeTruthy()
-    expect(summary!.textContent).toContain('2')
-    expect(summary!.textContent).toContain('entidades')
-    expect(summary!.textContent).toContain('1')
-    expect(summary!.textContent).toContain('cita')
-    expect(summary!.textContent).toContain('relación')
+    // El h2 "Inicio" sigue ahí, pero NO el párrafo con counts inline.
+    expect(screen.getByRole('heading', { name: 'Inicio', level: 2 })).toBeInTheDocument()
+    // No debe haber un párrafo del header con "2 entidades" como string.
+    const inlineSummary = screen.queryByText(/^2\s+entidades.*1\s+cita/i)
+    expect(inlineSummary).toBeNull()
   })
 
   it('renderiza una cita destacada cuando hay quotes', () => {
