@@ -22,7 +22,10 @@ export function EntityHeader({
       // anima del card al header automáticamente cuando se abre el panel.
       // Solo funciona en Chrome 111+/Safari 18+ con la View Transitions API.
       style={{ viewTransitionName: `entity-card-${entity.id}` } as React.CSSProperties}
-      className="px-5 py-4 border-b border-ink-100 flex items-start justify-between gap-3"
+      // δ2: pad-block-4 = 22px arriba/abajo en vez de 16px (py-4). El
+      // nombre de la entidad es el ancla visual del panel, merece
+      // respirar.
+      className="px-5 pad-block-4 border-b border-ink-100 flex items-start justify-between gap-3"
     >
       <div className="min-w-0 flex-1">
         <p className="text-xs uppercase tracking-wider text-ink-400 flex items-center gap-2 flex-wrap">
@@ -46,7 +49,10 @@ export function EntityHeader({
             </span>
           )}
         </p>
-        <h2 className="font-serif text-2xl text-ink-800 leading-tight mt-1 break-words">
+        {/* mt-2 (en vez de mt-1) da media línea más entre el chip de tipo
+            y el nombre — la pausa que tiene una portada de libro entre la
+            categoría y el título. */}
+        <h2 className="font-serif text-2xl text-ink-800 leading-tight mt-2 break-words">
           {entity.name}
         </h2>
         {entity.spotifyUrl && (

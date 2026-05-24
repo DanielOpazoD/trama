@@ -87,6 +87,31 @@
     --type-lugar:       #5E7558;
     --type-evento:      #7C5E3A;
     --type-default:     #7A6748;
+
+    /* ─────────────────────────────────────────────────────────────────────
+       Vertical rhythm — derivado del lineHeight del body (14px × 1.55 ≈
+       21.7px → redondeado a 22px). Cada step es múltiplo de la unidad
+       base, así el ojo "siente" que las cosas están alineadas aunque
+       no haga falta una grilla rígida.
+
+       Uso típico:
+         margin entre párrafos →  --space-2
+         padding interno card →   --space-3
+         separación entre secciones de una vista → --space-6
+         padding del header de vista →           --space-8
+
+       NO usar para spacing horizontal — para eso seguimos con la escala
+       de Tailwind (px-2, gap-4, etc.). El rhythm es vertical solamente.
+       ───────────────────────────────────────────────────────────────────── */
+    --rhythm-unit: 22px;
+    --space-1:  calc(var(--rhythm-unit) * 0.25);  /*  5.5px  */
+    --space-2:  calc(var(--rhythm-unit) * 0.5);   /* 11px    */
+    --space-3:  calc(var(--rhythm-unit) * 0.75);  /* 16.5px  */
+    --space-4:  var(--rhythm-unit);               /* 22px    */
+    --space-5:  calc(var(--rhythm-unit) * 1.5);   /* 33px    */
+    --space-6:  calc(var(--rhythm-unit) * 2);     /* 44px    */
+    --space-8:  calc(var(--rhythm-unit) * 3);     /* 66px    */
+    --space-12: calc(var(--rhythm-unit) * 4.5);   /* 99px    */
   }
 
   /* Night mode — neutro oscuro moderno, alto contraste */
@@ -878,4 +903,32 @@ html.dark .paper-grain::before {
     stroke-opacity: 0.9;
     transform: translateX(-0.5px);
   }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     Vertical rhythm utilities. Consumen las CSS custom properties
+     --space-N definidas en :root. El propósito es darle a las vistas
+     una métrica común sin pelearse con la escala de spacing de Tailwind
+     (que sigue siendo válida para padding horizontal/gaps).
+
+     - .stack-N → space-y-N pero atado al rhythm
+     - .pad-block-N → padding-block: var(--space-N)
+     - .gap-block-N → row-gap: var(--space-N)
+
+     Convención: usar estas SOLO en headers de vista, separación entre
+     secciones grandes, y card padding vertical. El resto sigue con
+     Tailwind utilities normales para que el contraste de "esto vive
+     en el rhythm" siga siendo legible al leer el JSX.
+     ───────────────────────────────────────────────────────────────────── */
+  .stack-2 > * + * { margin-top: var(--space-2); }
+  .stack-3 > * + * { margin-top: var(--space-3); }
+  .stack-4 > * + * { margin-top: var(--space-4); }
+  .stack-5 > * + * { margin-top: var(--space-5); }
+  .stack-6 > * + * { margin-top: var(--space-6); }
+  .stack-8 > * + * { margin-top: var(--space-8); }
+
+  .pad-block-3 { padding-block: var(--space-3); }
+  .pad-block-4 { padding-block: var(--space-4); }
+  .pad-block-5 { padding-block: var(--space-5); }
+  .pad-block-6 { padding-block: var(--space-6); }
+  .pad-block-8 { padding-block: var(--space-8); }
 }

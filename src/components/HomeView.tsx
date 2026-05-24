@@ -85,16 +85,20 @@ export function HomeView({
 
   return (
     <>
-      <header className="mb-10 flex items-baseline justify-between gap-6">
-        <div className="min-w-0">
+      {/* Header del HomeView: padding vertical generoso (--space-8 = 66px,
+          tres unidades de rhythm). El greeting + título + meta caen en
+          un stack con --space-2 entre ellos para que el ojo los lea
+          como una sola estancia. */}
+      <header className="pad-block-5 flex items-baseline justify-between gap-6 stack-3">
+        <div className="min-w-0 stack-2">
           <p className="text-micro uppercase tracking-shout text-ink-300">
             {greeting}
           </p>
-          <h2 className="font-serif text-4xl text-ink-700 leading-none mt-2">
+          <h2 className="font-serif text-4xl text-ink-700 leading-none">
             Inicio
           </h2>
-          <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
+          <div className="accent-rule" />
+          <p className="text-sm text-ink-400 leading-relaxed max-w-xl">
             {totalEntities === 0
               ? 'Todavía vacía. Pega un texto abajo y la trama empieza.'
               : `${totalEntities} ${totalEntities === 1 ? 'entidad' : 'entidades'} ·` +
@@ -128,15 +132,14 @@ export function HomeView({
           hint="Si tienes Spotify conectado, también puedes pegar una playlist."
         />
       ) : (
-        <div className="space-y-14">
-          {/* Pulso de la semana — solo aparece si hubo actividad en
-              los últimos 7 días. Si no, no contamina la portada. */}
-          <WeeklyActivity
-            entities={entities}
-            quotes={quotes}
-            relationships={relationships}
-          />
-
+        // Reorden δ2: la Cita primero, Weekly después.
+        // Razón: Trama es un cuaderno de citas + entidades. La cita
+        // destacada ES la portada editorial; el dashboard de actividad
+        // es el dato secundario. Antes era al revés y el primer impacto
+        // visual era una gráfica de barras — útil pero no característico.
+        // Ahora arrancás con tipografía serif y atribución, como abrir
+        // un libro al azar. El ritmo total es --space-8 entre secciones.
+        <div className="space-y-12">
           {featuredQuote && (
             <FeaturedQuote
               quote={featuredQuote}
@@ -146,8 +149,22 @@ export function HomeView({
             />
           )}
 
-          {featuredQuote && timeline.length > 0 && (
-            <div className="flex justify-center -my-4">
+          {featuredQuote && (
+            <div className="flex justify-center -my-2">
+              <OrnamentBreak className="ornament" />
+            </div>
+          )}
+
+          {/* Pulso de la semana — solo aparece si hubo actividad en
+              los últimos 7 días. Si no, no contamina la portada. */}
+          <WeeklyActivity
+            entities={entities}
+            quotes={quotes}
+            relationships={relationships}
+          />
+
+          {timeline.length > 0 && (
+            <div className="flex justify-center -my-2">
               <OrnamentBreak className="ornament" />
             </div>
           )}
@@ -218,8 +235,13 @@ function FeaturedQuote({
   // Drop cap solo en citas medianas+, en cortas se ve apretado.
   const useDropCap = quote.text.length >= 80
   return (
-    <section className="animate-fade-up">
-      <div className="mb-3 flex items-baseline justify-between">
+    // Pull-quote editorial — más aire vertical para que respire como
+    // página de libro. max-w-prose mantiene una columna confortable
+    // (~65ch) aún en pantallas anchas; mx-auto la centra. Pad-block-5
+    // añade un colchón generoso arriba y abajo que separa la cita del
+    // resto del flujo.
+    <section className="animate-fade-up pad-block-5 max-w-prose mx-auto">
+      <div className="mb-4 flex items-baseline justify-between">
         <p
           className="text-micro uppercase tracking-eyebrow"
           style={{ color: 'var(--accent-gold)' }}
@@ -236,14 +258,19 @@ function FeaturedQuote({
           </button>
         )}
       </div>
+      {/* La cita misma: tamaño más generoso (text-2xl en desktop), serif
+          con leading relajado, y el drop-cap cuando la longitud justifica.
+          Comillas tipográficas decorativas no embebidas en el texto: una
+          comilla grande gris bajando como ornamento del lado izquierdo
+          superior, sin interferir con el texto leíble. */}
       <blockquote
-        className={`quote-block text-lg md:text-xl text-ink-700 leading-snug clear-both overflow-hidden font-serif ${
+        className={`quote-block font-serif text-xl md:text-2xl text-ink-700 leading-relaxed clear-both overflow-hidden ${
           useDropCap ? 'drop-cap' : ''
         }`}
       >
         {quote.text}
       </blockquote>
-      <div className="mt-4 text-sm text-ink-400">
+      <div className="mt-5 text-sm text-ink-400 text-right">
         {entity ? (
           <button
             onClick={() => onSelectEntity(entity.id)}
@@ -259,7 +286,7 @@ function FeaturedQuote({
         )}
       </div>
       {quote.userReflection && (
-        <div className="mt-4">
+        <div className="mt-6 pl-4 border-l-2 border-ink-200/60">
           <p className="text-micro uppercase tracking-eyebrow text-ink-300 mb-1">
             tu reflexión
           </p>

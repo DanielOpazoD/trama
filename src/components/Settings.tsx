@@ -162,9 +162,12 @@ export function Settings({
 
 function PanelHeader({ title, hint }: { title: string; hint: string }) {
   return (
-    <header className="mb-6">
+    // δ2: el header de cada panel respira un poco más — pad-block-3 abajo
+    // = 16px que coincide con --space-3 del rhythm, y stack-2 entre el
+    // título y la hint para que se lean como una sola estampa.
+    <header className="pad-block-3 border-b border-ink-100/40 mb-6 stack-2">
       <h3 className="font-serif text-xl text-ink-800 leading-tight">{title}</h3>
-      <p className="mt-1 text-sm text-ink-400 leading-relaxed">{hint}</p>
+      <p className="text-sm text-ink-400 leading-relaxed">{hint}</p>
     </header>
   )
 }
