@@ -11,6 +11,7 @@ import {
 } from './state'
 import { useTheme } from './hooks/useTheme'
 import { useTimeOfDayAccent } from './hooks/useTimeOfDayAccent'
+import { useAchievements } from './hooks/useAchievements'
 import { Sidebar, type ViewMode } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { CommandPalette } from './components/CommandPalette'
@@ -43,6 +44,14 @@ function Shell() {
   // δ6: shift sutil del --accent-gold según hora local. La app se siente
   // distinta según cuándo entres — sin que el usuario tenga que pensarlo.
   useTimeOfDayAccent()
+  // δ7: achievement moments — un toast efímero cuando cruzás un umbral
+  // (10, 25, 50, 100, 250… entidades/citas/relaciones). Lee de las
+  // queries cacheadas; las llamadas que ya están arriba alimentan esto.
+  useAchievements({
+    entities: entitiesQuery.data?.length ?? 0,
+    quotes: quotesQuery.data?.length ?? 0,
+    relationships: relationshipsQuery.data?.length ?? 0,
+  })
 
   const loading =
     entitiesQuery.isLoading || relationshipsQuery.isLoading || quotesQuery.isLoading

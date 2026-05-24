@@ -16,6 +16,7 @@ import {
 import { WeeklyActivity } from './WeeklyActivity'
 import { NumberTicker } from './NumberTicker'
 import { typeAccent } from './graph/GraphNode'
+import { useHiloOfTheDay } from '../hooks/useHiloOfTheDay'
 
 /**
  * Home is the first thing the user sees. It's not the graph (intimidating
@@ -41,6 +42,12 @@ export function HomeView({
   const { data: relationships = [] } = useRelationshipsQuery()
   const proactive = useProactiveQuery()
   const pendingCount = proactive.data?.length ?? 0
+
+  // δ7: una vez por día, detectamos aniversarios en la data del usuario
+  // y cacheamos un "hilo del día" en localStorage. El próximo splash lo
+  // lee y reemplaza el aforismo random. Si no hay aniversario para hoy,
+  // queda null y el splash sigue con random — degrada silenciosamente.
+  useHiloOfTheDay(entities, quotes)
 
   // Featured quote: rotación aleatoria.
   // Antes era determinístico por día (mismo destacado durante 24h). El

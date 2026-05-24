@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { OrnamentBreak } from './Icons'
+import { readHiloOfTheDay } from '../hooks/useHiloOfTheDay'
 
 /**
  * First-render splash. Identidad editorial desde el primer pixel:
@@ -23,6 +24,12 @@ const APHORISMS = [
 ]
 
 function pickAphorism(): string {
+  // δ7: si HomeView cacheó un "hilo del día" (aniversario detectado
+  // en la data del usuario), preferimos esa frase personalizada. Si no
+  // hay hilo para hoy, caemos al aforismo random — comportamiento
+  // original. La cache se actualiza una vez por día desde HomeView.
+  const hilo = readHiloOfTheDay()
+  if (hilo) return hilo
   return APHORISMS[Math.floor(Math.random() * APHORISMS.length)]
 }
 
