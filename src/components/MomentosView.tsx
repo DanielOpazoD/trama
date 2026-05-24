@@ -74,7 +74,16 @@ function groupByDay(items: Momento[]): Array<{ dayKey: string; entries: Momento[
 }
 
 export function MomentosView() {
-  const momentosQuery = useInfiniteMomentosQuery()
+  // ξ4: filtro por kind. null = todos. Modifica la queryKey de la
+  // infinite query, así que el cache no se mezcla entre filtros.
+  const [filterKind, setFilterKind] = useState<MomentoKind | null>(null)
+  // ξ4: toggle entre vista cronológica (default) y vista álbum (grid).
+  // Solo tiene sentido en álbum cuando filterKind === 'foto'.
+  const [viewMode, setViewMode] = useState<'timeline' | 'album'>('timeline')
+
+  const momentosQuery = useInfiniteMomentosQuery(
+    filterKind ? { kind: filterKind } : undefined,
+  )
   const addMomento = useAddMomento()
   const updateMomento = useUpdateMomento()
   const deleteMomento = useDeleteMomento()
@@ -724,6 +733,63 @@ export function MomentosView() {
         </section>
       )}
 
+      {/* ξ4: filtros por kind + toggle de view (timeline | álbum). */}
+      <div className="mb-6 flex items-center gap-3 flex-wrap">
+        <div className="flex gap-1.5">
+          <FilterChip
+            label="Todos"
+            active={filterKind === null}
+            onClick={() => setFilterKind(null)}
+          />
+          <FilterChip
+            label="Notas"
+            active={filterKind === 'nota'}
+            onClick={() => {
+              setFilterKind('nota')
+              setViewMode('timeline')
+            }}
+          />
+          <FilterChip
+            label="Recortes"
+            active={filterKind === 'recorte'}
+            onClick={() => {
+              setFilterKind('recorte')
+              setViewMode('timeline')
+            }}
+          />
+          <FilterChip
+            label="Fotos"
+            active={filterKind === 'foto'}
+            onClick={() => setFilterKind('foto')}
+          />
+        </div>
+        {/* Toggle timeline ↔ álbum, solo relevante con filterKind='foto'. */}
+        {filterKind === 'foto' && (
+          <div className="ml-auto flex gap-1 p-0.5 bg-paper-100/60 rounded-md border border-ink-100/50">
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`px-2.5 py-1 rounded text-caption transition-colors ${
+                viewMode === 'timeline'
+                  ? 'bg-paper-50 text-ink-700 shadow-sm'
+                  : 'text-ink-400 hover:text-ink-700'
+              }`}
+            >
+              Línea
+            </button>
+            <button
+              onClick={() => setViewMode('album')}
+              className={`px-2.5 py-1 rounded text-caption transition-colors ${
+                viewMode === 'album'
+                  ? 'bg-paper-50 text-ink-700 shadow-sm'
+                  : 'text-ink-400 hover:text-ink-700'
+              }`}
+            >
+              Álbum
+            </button>
+          </div>
+        )}
+      </div>
+
       {momentosQuery.isLoading ? (
         <p className="text-ink-300 italic text-sm">Cargando momentos…</p>
       ) : items.length === 0 ? (
@@ -736,6 +802,13 @@ export function MomentosView() {
               hoy, solo notas tuyas para empezar.
             </>
           }
+        />
+      ) : viewMode === 'album' && filterKind === 'foto' ? (
+        // ξ4: vista álbum — grid masonry-like de thumbnails, grouped por mes.
+        <AlbumGrid
+          items={items}
+          entitiesById={entitiesById}
+          onDelete={handleDelete}
         />
       ) : (
         <div className="space-y-10">
@@ -858,6 +931,166 @@ function MomentoEntry({
         onClick={onDelete}
         className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
         aria-label="Eliminar momento"
+        title="Eliminar"
+      >
+        <TrashIcon size={12} />
+      </button>
+    </li>
+  )
+}
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-2.5 py-1 rounded-full text-xs transition-colors"
+      style={
+        active
+          ? {
+              backgroundColor: 'var(--accent-gold-soft)',
+              color: 'var(--accent-gold)',
+              fontWeight: 500,
+            }
+          : {
+              color: 'rgb(var(--ink-500))',
+            }
+      }
+    >
+      {label}
+    </button>
+  )
+}
+
+function AlbumGrid({
+  items,
+  entitiesById,
+  onDelete,
+}: {
+  items: Momento[]
+  entitiesById: Map<string, Entity>
+  onDelete: (id: string) => void
+}) {
+  // Agrupamos por mes-año. Las fotos dentro del mes mantienen orden
+  // captured_at desc.
+  const groupsByMonth = useMemo(() => {
+    const map = new Map<string, Momento[]>()
+    for (const m of items) {
+      if (m.kind !== 'foto') continue
+      const d = new Date(m.capturedAt)
+      if (Number.isNaN(d.getTime())) continue
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const arr = map.get(key) ?? []
+      arr.push(m)
+      map.set(key, arr)
+    }
+    return Array.from(map.entries())
+  }, [items])
+
+  if (groupsByMonth.length === 0) {
+    return (
+      <EmptyMessage
+        title="No hay fotos todavía"
+        body={<>Sube una imagen desde el composer de arriba.</>}
+      />
+    )
+  }
+
+  return (
+    <div className="space-y-10">
+      {groupsByMonth.map(([monthKey, photos]) => {
+        const [year, monthNum] = monthKey.split('-')
+        const monthLabel = new Date(
+          Number(year),
+          Number(monthNum) - 1,
+          1,
+        ).toLocaleDateString('es', { month: 'long', year: 'numeric' })
+        return (
+          <section key={monthKey} className="animate-fade-up">
+            <div className="mb-3 flex items-baseline gap-3">
+              <h3
+                className="section-eyebrow-serif"
+                style={{ color: 'var(--accent-gold)' }}
+              >
+                {monthLabel}
+              </h3>
+              <span className="flex-1 h-px bg-ink-100/40" />
+              <span className="text-caption text-ink-300 tabular-nums">
+                {photos.length} {photos.length === 1 ? 'foto' : 'fotos'}
+              </span>
+            </div>
+            <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {photos.map((p) => (
+                <AlbumTile
+                  key={p.id}
+                  momento={p}
+                  entitiesById={entitiesById}
+                  onDelete={() => onDelete(p.id)}
+                />
+              ))}
+            </ul>
+          </section>
+        )
+      })}
+    </div>
+  )
+}
+
+function AlbumTile({
+  momento,
+  entitiesById,
+  onDelete,
+}: {
+  momento: Momento
+  entitiesById: Map<string, Entity>
+  onDelete: () => void
+}) {
+  const { storageKey, caption } = momento.payload
+  const linkedEntities = momento.entityIds
+    .map((id) => entitiesById.get(id))
+    .filter((e): e is Entity => Boolean(e))
+  if (!storageKey) return null
+  const d = new Date(momento.capturedAt)
+  const dateLabel = !Number.isNaN(d.getTime())
+    ? d.toLocaleDateString('es', { day: 'numeric', month: 'short' })
+    : ''
+
+  return (
+    <li className="group relative">
+      <div className="aspect-square overflow-hidden rounded-md border border-ink-100/60 bg-paper-100/40">
+        <img
+          src={`/api/momentos/file/${encodeURIComponent(storageKey)}`}
+          alt={caption ?? 'momento'}
+          loading="lazy"
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      </div>
+      <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-ink-900/70 to-transparent rounded-b-md opacity-0 group-hover:opacity-100 transition-opacity">
+        {caption && (
+          <p className="text-paper-50 text-xs font-serif italic line-clamp-2">
+            {caption}
+          </p>
+        )}
+        <p className="text-paper-200/80 text-micro tracking-wider mt-0.5">
+          {dateLabel}
+        </p>
+      </div>
+      {linkedEntities.length > 0 && (
+        <p className="mt-1 text-caption text-ink-400 truncate">
+          {linkedEntities.map((e) => e.name).join(' · ')}
+        </p>
+      )}
+      <button
+        onClick={onDelete}
+        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-paper-50/80 backdrop-blur-sm rounded text-ink-500 hover:text-red-700"
+        aria-label="Eliminar foto"
         title="Eliminar"
       >
         <TrashIcon size={12} />
