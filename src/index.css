@@ -2,6 +2,11 @@
 @import url('https://rsms.me/inter/inter.css');
 /* Spectral — editorial serif with character, for headings and quotes */
 @import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500&display=swap');
+/* μ1: Caveat — manuscrito casual para la voz del usuario.
+   userReflection se renderiza con esta face para señalar que es ANOTACIÓN
+   suya en el catálogo (no UI, no prosa generada). Tres pesos cubren
+   la cursividad sin agregar bulk innecesario. */
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -61,6 +66,14 @@
     --accent-gold:         #a07900;  /* dorado contrastado para IA / featured */
     --accent-gold-soft:    rgb(160 121 0 / 0.10);
     --accent-clay:         #b91c1c;  /* rojo nítido — destructivo */
+
+    /* ν1: sombras tintadas — antes box-shadow usaba rgb(0 0 0) puro. Le
+       agregamos un componente cálido del accent-gold (~12% del gold sobre
+       una base mayormente negra) para que las cards floten en "habitación
+       con luz cálida" en vez de "estudio fotográfico". Las dos variables
+       cubren los dos pesos canónicos (1px lift y 4px hover). */
+    --card-shadow:       0 1px 2px rgb(70 50 20 / 0.10), 0 0 0 0 transparent;
+    --card-shadow-hover: 0 4px 14px rgb(70 50 20 / 0.16), 0 1px 3px rgb(70 50 20 / 0.08);
 
     /* Entity-type accent colors — light theme. Used by GraphNode.
        Dark theme overrides below shift these toward warmer/lighter tones so
@@ -156,6 +169,13 @@
     --accent-gold-soft:    rgb(201 167 99 / 0.14);
     --accent-clay:         #d18667;
 
+    /* ν1: sombras dark — en oscuro las cards no flotan sobre paper claro
+       sino sobre noche; las sombras se vuelven sutiles pero conservan el
+       tinte cálido (importante: NO usar pure black que se traga el contraste,
+       ni pure ink-900 que se ve "techy"). */
+    --card-shadow:       0 1px 2px rgb(0 0 0 / 0.30), 0 0 0 0 transparent;
+    --card-shadow-hover: 0 4px 14px rgb(0 0 0 / 0.45), 0 1px 3px rgb(60 40 10 / 0.20);
+
     /* Entity-type accents — dark theme. Same hue, raised lightness so they
        sit comfortably on the coffee-toned paper. */
     --type-persona:     #c79568;
@@ -200,6 +220,12 @@
     background-color: rgb(var(--paper-50));
     color: rgb(var(--ink-700));
     font-family: theme('fontFamily.sans');
+    /* ν2: paper-grain global — textura noise SVG inline (~0.4KB) que da
+       la sensación de "papel real" sin afectar performance. La aplicamos
+       vía ::before en .paper-grain. Como body ya es un layer base, el
+       ::before queda detrás del contenido (z-index 0) sin interferir
+       con clicks ni scroll. */
+    position: relative;
     /* Inter feature settings:
        - ss01: alternate single-storey 'a'   (más sutil, menos browser-default)
        - cv11: rounded 6/9                   (sentido editorial)
@@ -251,6 +277,24 @@
     text-transform: lowercase; /* small caps muestra mayúsculas sintéticas si recibe lowercase */
     color: rgb(var(--ink-300));
     font-size: 12px;
+  }
+
+  /* μ1: marginalia manuscrita — para userReflection y otras anotaciones
+     de la voz del usuario (no prosa IA, no UI). Caveat es una cursiva
+     casual con personalidad pero legible a 16px; le bajamos el contraste
+     al ink-500 para que se lea como "nota a lápiz", no como contenido
+     principal. line-height generoso porque la altura óptica de Caveat
+     a 16px es menor que Spectral. La idea: el catálogo está impreso
+     en serif/sans; las marginalia tuyas se ven como hojas pegadas. */
+  .marginalia-script {
+    font-family: 'Caveat', 'Bradley Hand', 'Segoe Script', cursive;
+    font-size: 17px;
+    line-height: 1.4;
+    color: rgb(var(--ink-500));
+    letter-spacing: 0.005em;
+    /* Caveat tiene optical sizing decente pero leemos a contraste bajo;
+       el font-feature-settings 'kern' mejora pares como "fy", "av". */
+    font-feature-settings: 'kern';
   }
 
   /* Selection: usar el accent-primary suave en vez del azul nativo del
@@ -336,23 +380,31 @@
   );
 }
 
-/* paper-grain antes añadía una textura noise sobre los paneles flotantes.
-   Sobre un fondo blanco moderno se ve sucio — la dejamos como no-op en
-   light mode. En dark mode una sutil textura sí ayuda a diferenciar
-   superficies. */
-.paper-grain::before {
-  content: none;
-}
-html.dark .paper-grain {
+/* ν2: paper-grain — textura noise sutil para que el papel deje de
+   sentirse como color flat de CSS. Antes era no-op en light mode (porque
+   sobre paper crema agresivo se veía sucio); ahora con paper-50 más blanco
+   y baseFrequency más alto, el patrón queda imperceptible al observar
+   un punto, pero presente al barrer el ojo por la página. Se compone con
+   mix-blend-mode multiply para que oscurezca apenas, no añada ruido HSV. */
+.paper-grain {
   position: relative;
 }
-html.dark .paper-grain::before {
+.paper-grain::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch' seed='3'/><feColorMatrix type='matrix' values='0 0 0 0 0.85  0 0 0 0 0.80  0 0 0 0 0.70  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23g)'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' seed='5'/><feColorMatrix type='matrix' values='0 0 0 0 0.25  0 0 0 0 0.22  0 0 0 0 0.18  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23g)'/></svg>");
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+  z-index: 0;
+}
+html.dark .paper-grain::before {
+  /* En dark el grain se invierte: tinta más clara que oscurece el papel
+     no funciona — necesitamos un grain que aporte highlights. Screen mode
+     con un color claro produce ese efecto. */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch' seed='3'/><feColorMatrix type='matrix' values='0 0 0 0 0.85  0 0 0 0 0.80  0 0 0 0 0.70  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23g)'/></svg>");
   mix-blend-mode: screen;
   opacity: 0.4;
 }
@@ -885,10 +937,19 @@ html.dark .paper-grain::before {
   }
   .card-paper-hover {
     @apply card-paper transition-all duration-200
-      hover:shadow-md hover:border-ink-100 hover:bg-paper-50/70;
+      hover:border-ink-100 hover:bg-paper-50/70;
+    /* ν1: shadow tintada al hover. La var --card-shadow-hover muta
+       entre temas (light → tinte gold cálido; dark → tinte cobre profundo). */
+    box-shadow: var(--card-shadow);
+  }
+  .card-paper-hover:hover {
+    box-shadow: var(--card-shadow-hover);
   }
   .card-paper-elevated {
     @apply bg-paper-50/70 border border-ink-100/60 rounded-xl;
+    /* ν1: cards elevadas (WeeklyActivity hero, panels) usan la sombra
+       cálida estática — no necesitan hover state pero sí "lift". */
+    box-shadow: var(--card-shadow-hover);
   }
 
   /* ζ8: .bubble-paper — fondo de bubble del assistant. Combina:

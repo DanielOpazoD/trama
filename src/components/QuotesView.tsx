@@ -561,7 +561,9 @@ function QuoteItem({
           <div className="text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
             tu reflexión
           </div>
-          <p className="text-ink-600 text-sm leading-relaxed whitespace-pre-wrap">
+          {/* μ1: marginalia manuscrita — Caveat 17px / ink-500. Distingue
+              la voz tuya de la voz del catálogo (serif) y de la IA (sky). */}
+          <p className="marginalia-script whitespace-pre-wrap">
             {quote.userReflection}
           </p>
         </div>

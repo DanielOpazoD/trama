@@ -14,6 +14,7 @@ import {
   TimelineRowSkeleton,
 } from './Skeleton'
 import { WeeklyActivity } from './WeeklyActivity'
+import { CalendarHeatmap } from './CalendarHeatmap'
 import { typeAccent } from './graph/GraphNode'
 import { useHiloOfTheDay } from '../hooks/useHiloOfTheDay'
 
@@ -182,6 +183,15 @@ export function HomeView({
             relationships={relationships}
           />
 
+          {/* π1: Heatmap de 12 semanas. Vista larga del pulso — complementa
+              el WeeklyActivity inmediato. Mismo mapeo de colores (λ7).
+              Self-hide si no hay datos en la ventana. */}
+          <CalendarHeatmap
+            entities={entities}
+            quotes={quotes}
+            relationships={relationships}
+          />
+
           {timeline.length > 0 && (
             <div className="flex justify-center -my-2">
               <OrnamentBreak className="ornament" />
@@ -325,7 +335,9 @@ function FeaturedQuote({
           <p className="text-micro uppercase tracking-eyebrow text-ink-300 mb-1">
             tu reflexión
           </p>
-          <p className="text-ink-600 text-sm leading-relaxed whitespace-pre-wrap font-serif italic">
+          {/* μ1: marginalia manuscrita — el corazón del featured quote
+              merece la voz manuscrita. */}
+          <p className="marginalia-script whitespace-pre-wrap">
             {quote.userReflection}
           </p>
         </div>
