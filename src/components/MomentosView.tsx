@@ -79,7 +79,9 @@ export function MomentosView() {
 
   return (
     <>
-      <header className="mb-10">
+      {/* χ-followup: mb-10 → mb-6 — el header pesaba mucho aire encima
+          del composer y obligaba a scrollear para arrancar a escribir. */}
+      <header className="mb-6">
         <p
           className="section-eyebrow-serif mb-2"
           style={{ color: 'var(--accent-gold)' }}
@@ -88,9 +90,6 @@ export function MomentosView() {
         </p>
         <h2 className="font-serif text-4xl text-ink-700 leading-none">Momentos</h2>
         <div className="accent-rule mt-3 mb-2" />
-        {/* σ-followup: subtitle descriptivo removido. El eyebrow
-            "memoria fechada" + el composer abajo ("¿Qué viste, leíste
-            o pensaste hoy?") ya cuentan el concepto. */}
       </header>
 
       <MomentoComposer composer={composer} />

@@ -27,7 +27,10 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mb-10 p-5 bg-paper-100/40 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
+      // χ-followup: padding bajado de p-5 a p-4 + margen inferior
+      // bajado de mb-10 a mb-6. El card del composer estaba demasiado
+      // alto vs el cuerpo del timeline.
+      className="mb-6 p-4 bg-paper-100/40 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
     >
       <header className="stack-2 pb-3 border-b border-ink-100/60 flex items-baseline justify-between gap-4">
         <div className="min-w-0">
@@ -70,14 +73,12 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
 
       <MomentoQRModal open={qrOpen} onClose={() => setQrOpen(false)} />
 
-      <div className="flex items-center justify-between gap-3 pt-1">
-        {/* υ-no-ai: copy simplificado. Antes mostraba "La IA propone
-            vínculos…" / "La IA lee la imagen y propone caption…" — el
-            flow de IA se removió, así que esa promesa quedaba colgada.
-            Ahora un único hint neutro: el momento se guarda fechado. */}
-        <p className="text-caption text-ink-300 italic">
-          Se guarda fechado hoy.
-        </p>
+      {/* χ-followup: el hint "Se guarda fechado hoy." fue eliminado.
+          Era redundante: el composer ya está dentro de la sección
+          "memoria fechada" y al guardar el momento aparece en
+          el timeline con su fecha. Mantenemos solo el botón Guardar
+          alineado a la derecha. */}
+      <div className="flex justify-end pt-1">
         <button
           type="submit"
           disabled={composer.isPending}

@@ -188,7 +188,7 @@ export function QuotesView({
           </p>
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Citas</h2>
           <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-2xl">
             Fragmentos textuales que atribuyes a una entidad. Una frase de un libro,
             algo que dijo una persona, un verso de una canción.
           </p>

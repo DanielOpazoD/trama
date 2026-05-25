@@ -3,6 +3,7 @@ import { typeAccent } from '../graph/GraphNode'
 import type { Entity, Momento } from '../../types'
 import { SparkleIcon, TrashIcon } from '../Icons'
 import { formatTime } from './helpers'
+import { MomentoEditModal } from './MomentoEditModal'
 
 /**
  * Una entrada del timeline de Momentos. Despacha al renderer correcto
@@ -25,6 +26,10 @@ export function MomentoEntry({
   const linkedEntities = momento.entityIds
     .map((id) => entitiesById.get(id))
     .filter((e): e is Entity => Boolean(e))
+  // χ-followup: estado del modal de edición. Solo aplica a kind=foto
+  // (los otros kinds no se editan por ahora — caso de uso primario es
+  // gestionar fotos: agregar, quitar, reordenar portada).
+  const [editOpen, setEditOpen] = useState(false)
 
   return (
     <li className="group relative pl-5">
@@ -55,14 +60,35 @@ export function MomentoEntry({
           <LinkedEntities entities={linkedEntities} />
         )}
       </div>
-      <button
-        onClick={onDelete}
-        className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
-        aria-label="Eliminar momento"
-        title="Eliminar"
-      >
-        <TrashIcon size={12} />
-      </button>
+      {/* χ-followup: toolbar contextual al hover — botón editar
+          (sólo fotos) + botón eliminar. */}
+      <div className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+        {momento.kind === 'foto' && (
+          <button
+            onClick={() => setEditOpen(true)}
+            className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 px-2 py-1.5 rounded transition-colors"
+            aria-label="Editar momento"
+            title="Editar fotos, título y nota"
+          >
+            editar
+          </button>
+        )}
+        <button
+          onClick={onDelete}
+          className="p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded transition-colors"
+          aria-label="Eliminar momento"
+          title="Eliminar"
+        >
+          <TrashIcon size={12} />
+        </button>
+      </div>
+      {momento.kind === 'foto' && (
+        <MomentoEditModal
+          momento={momento}
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
     </li>
   )
 }

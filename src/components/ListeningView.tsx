@@ -177,7 +177,7 @@ export function ListeningView({
           </p>
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Escuchas</h2>
           <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-2xl">
             Lo que has reproducido en Spotify, agrupado y ordenado por frecuencia.
             Nada de esto está en tu trama todavía — revisa y agrega lo que resuene.
           </p>
@@ -205,44 +205,18 @@ export function ListeningView({
               la lista detallada debajo es el material crudo. */}
           <MusicPaletteCard />
 
-          {/* Playlist importer */}
-          <form
+          {/* χ-followup: importar playlist es funcionalidad ocasional —
+              antes ocupaba un card permanente en el medio del flow.
+              Ahora vive detrás de un botón discreto que despliega el
+              form. Cuando está cerrado el espacio se libera para el
+              contenido principal (período / summary / lista). */}
+          <PlaylistImporter
+            value={playlistInput}
+            onChange={setPlaylistInput}
             onSubmit={handleImportPlaylist}
-            className="mb-8 p-4 bg-paper-100/40 border border-ink-100/50 rounded-xl"
-          >
-            <div className="flex items-baseline justify-between gap-3 mb-2">
-              <h3 className="text-micro uppercase tracking-eyebrow text-ink-400">
-                importar playlist
-              </h3>
-              <span className="text-xs text-ink-300">
-                pega URL · extrae artistas + canciones con link
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={playlistInput}
-                onChange={(e) => setPlaylistInput(e.target.value)}
-                placeholder="https://open.spotify.com/playlist/…"
-                className="input-paper flex-1"
-                disabled={importPlaylist.isPending}
-              />
-              <button
-                type="submit"
-                disabled={!playlistInput.trim() || importPlaylist.isPending}
-                className="btn-ink text-xs"
-              >
-                {importPlaylist.isPending ? 'leyendo…' : 'importar'}
-              </button>
-            </div>
-            {importPlaylist.error && (
-              <p className="mt-2 text-xs text-red-700">
-                {importPlaylist.error instanceof Error
-                  ? importPlaylist.error.message
-                  : 'No se pudo importar la playlist.'}
-              </p>
-            )}
-          </form>
+            isPending={importPlaylist.isPending}
+            error={importPlaylist.error}
+          />
 
           {/* π3: período + group selector lado a lado.
               Período define la ventana temporal de TODO el bloque de
@@ -505,5 +479,95 @@ function SummaryStat({
       </p>
       <p className="text-caption text-ink-400 mt-1">{label}</p>
     </div>
+  )
+}
+
+/**
+ * χ-followup: importador de playlist colapsable. Por default está
+ * cerrado y solo se ve un botón "importar playlist" discreto. Al
+ * click se expande el form. Se mantiene abierto si hay error visible
+ * (el usuario probablemente quiere ver el mensaje y reintentar).
+ */
+function PlaylistImporter({
+  value,
+  onChange,
+  onSubmit,
+  isPending,
+  error,
+}: {
+  value: string
+  onChange: (v: string) => void
+  onSubmit: (e: FormEvent) => void
+  isPending: boolean
+  error: unknown
+}) {
+  const [open, setOpen] = useState(false)
+  // Si llega un error mientras está cerrado, abrimos para mostrarlo.
+  // En la próxima edición del usuario el state queda.
+  const hasError = !!error
+  const expanded = open || hasError
+
+  return (
+    <section className="mb-6">
+      {!expanded && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors inline-flex items-center gap-1.5"
+          title="Importar artistas + canciones desde una playlist de Spotify"
+        >
+          <SparkleIcon size={12} />
+          importar playlist
+        </button>
+      )}
+      {expanded && (
+        <form
+          onSubmit={onSubmit}
+          className="p-4 bg-paper-100/40 border border-ink-100/50 rounded-xl animate-fade-up"
+        >
+          <div className="flex items-baseline justify-between gap-3 mb-2">
+            <h3 className="text-micro uppercase tracking-eyebrow text-ink-400">
+              importar playlist
+            </h3>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              disabled={isPending}
+              className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-60"
+            >
+              cerrar
+            </button>
+          </div>
+          <p className="text-xs text-ink-300 mb-2 italic">
+            pega la URL · extrae artistas + canciones con link
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="https://open.spotify.com/playlist/…"
+              className="input-paper flex-1 text-sm"
+              disabled={isPending}
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={!value.trim() || isPending}
+              className="btn-ink text-xs"
+            >
+              {isPending ? 'leyendo…' : 'importar'}
+            </button>
+          </div>
+          {hasError && (
+            <p className="mt-2 text-xs text-red-700">
+              {error instanceof Error
+                ? error.message
+                : 'No se pudo importar la playlist.'}
+            </p>
+          )}
+        </form>
+      )}
+    </section>
   )
 }
