@@ -23,6 +23,7 @@ import { AskBar } from './components/AskBar'
 import { ReadingMode } from './components/ReadingMode'
 import { Settings } from './components/Settings'
 import { Splash } from './components/Splash'
+import { HomeSkeleton } from './components/HomeSkeleton'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { RightPanel, type PendingProposal } from './components/RightPanel'
 import { ViewRouter } from './components/ViewRouter'
@@ -63,7 +64,11 @@ function Shell() {
     null
 
   const isMobile = useIsMobile()
-  const [view, setView] = useState<ViewMode>('inicio')
+  // τ-mobile-bridge: lee `?view=` al mount inicial. Útil para
+  // deep-links externos — el QR de Momentos por ejemplo abre la app
+  // con `?view=momentos&compose=foto` para que el celular caiga directo
+  // en el composer en modo Foto.
+  const [view, setView] = useState<ViewMode>(() => readInitialView())
   // En mobile arrancamos con el sidebar colapsado; el usuario lo expande
   // con el ícono del menú.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -89,6 +94,10 @@ function Shell() {
   const [pendingProposal, setPendingProposal] = useState<PendingProposal | null>(null)
   // Cuando el AskBar deep-linkea a chat con un thread específico.
   const [pendingChatThreadId, setPendingChatThreadId] = useState<string | null>(null)
+  // ρ-struct: tab activo de Entidades — vive en App para que TopBar
+  // pueda exponerlo como tabs contextuales. Antes era state local de
+  // EntitiesWorkbench; ahora controlado desde acá.
+  const [entitiesTab, setEntitiesTab] = useState<'listado' | 'vinculos'>('listado')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [readingOpen, setReadingOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -176,6 +185,7 @@ function Shell() {
             onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
             offline={offline}
             onOpenSettings={() => setSettingsOpen(true)}
+            onOpenPalette={() => setPaletteOpen(true)}
           />
         </div>
       )}
@@ -185,7 +195,6 @@ function Shell() {
           <div className="animate-shell-topbar">
             <TopBar
               view={view}
-              onOpenPalette={() => setPaletteOpen(true)}
               breadcrumb={
                 // Si hay una entidad seleccionada y existe en cache,
                 // muestra "View › Nombre" — orientación visual estilo
@@ -196,6 +205,23 @@ function Shell() {
                         entitiesQuery.data?.find((e) => e.id === selectedEntityId)?.name ??
                         'entidad',
                       onClickRoot: () => setSelectedEntityId(null),
+                    }
+                  : null
+              }
+              tabs={
+                // ρ-struct: tabs contextuales para la vista activa.
+                // Por ahora solo Entidades tiene tabs (Listado/Vínculos).
+                // Si más adelante otra vista necesita tabs, se agrega un
+                // branch acá.
+                view === 'entidades'
+                  ? {
+                      items: [
+                        { value: 'listado', label: 'Listado' },
+                        { value: 'vinculos', label: 'Vínculos' },
+                      ],
+                      active: entitiesTab,
+                      onChange: (v) => setEntitiesTab(v as 'listado' | 'vinculos'),
+                      'aria-label': 'Sub-secciones de Entidades',
                     }
                   : null
               }
@@ -210,15 +236,26 @@ function Shell() {
           )}
 
           {loading ? (
-            <div className="h-full flex items-center justify-center">
-              <p className="text-ink-300 italic">cargando…</p>
-            </div>
+            // ω-C: skeleton específico para la vista Inicio. Para otras
+            // vistas (entidades / citas / etc.) mantenemos el placeholder
+            // genérico — cada una tiene su propio loading inline en su
+            // primer render. Solo Inicio se beneficia de un skeleton
+            // dedicado porque su hero define el carácter editorial.
+            view === 'inicio' ? (
+              <HomeSkeleton />
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <p className="text-ink-300 italic">cargando…</p>
+              </div>
+            )
           ) : (
             <div key={view} className="animate-view-fade h-full">
               <ViewRouter
                 view={view}
                 selectedEntityId={selectedEntityId}
                 pendingChatThreadId={pendingChatThreadId}
+                entitiesTab={entitiesTab}
+                onEntitiesTabChange={setEntitiesTab}
                 onSelectEntity={setSelectedEntityId}
                 onChangeView={setView}
                 onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
@@ -239,7 +276,11 @@ function Shell() {
             />
           )}
 
-          {!focusMode && view !== 'chat' && !(isMobile && rightPanelOpen) && (
+          {/* ρ-consistency: AskBar oculto en Grafo (tapa nodos) y Chat
+              (la conversación tiene su propio input). Antes solo se
+              ocultaba en Chat — en Grafo competía con los nodos centrales
+              y forzaba a scrollear o esconder lo más interesante. */}
+          {!focusMode && view !== 'chat' && view !== 'grafo' && !(isMobile && rightPanelOpen) && (
             <AskBar
               view={view}
               selectedEntityId={selectedEntityId}
@@ -358,4 +399,34 @@ export default function App() {
       </ErrorBoundary>
     </Provider>
   )
+}
+
+/**
+ * τ-mobile-bridge: lee `?view=` de la URL al primer render del App
+ * para honrar deep-links externos (típicamente: el QR de Momentos
+ * abre la app con `?view=momentos&compose=foto`). Whitelist explícita
+ * de valores válidos — un query param malicioso/typeado no debe poder
+ * setear cualquier string en el state. SSR-safe.
+ */
+const VALID_VIEWS: ReadonlyArray<ViewMode> = [
+  'inicio',
+  'grafo',
+  'entidades',
+  'citas',
+  'escuchas',
+  'momentos',
+  'chat',
+  'sugerencias',
+]
+function readInitialView(): ViewMode {
+  if (typeof window === 'undefined') return 'inicio'
+  try {
+    const param = new URLSearchParams(window.location.search).get('view')
+    if (param && VALID_VIEWS.includes(param as ViewMode)) {
+      return param as ViewMode
+    }
+  } catch {
+    /* malformed URL — fallback al default */
+  }
+  return 'inicio'
 }

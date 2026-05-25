@@ -55,7 +55,10 @@ export function Folio({
       }`}
       style={{ fontFamily: 'Spectral, Iowan Old Style, Palatino, Georgia, serif' }}
     >
-      <span className="italic text-xs text-ink-400 tabular-nums">
+      {/* ω-A: removido italic — los números no se benefician de la
+          cursiva. tabular-nums + serif suficiente para el feel de folio
+          de libro. */}
+      <span className="text-xs text-ink-400 tabular-nums">
         {current} <span className="text-ink-200">/</span> {total}
       </span>
     </div>

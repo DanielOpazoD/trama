@@ -140,32 +140,55 @@ export default withObservability('spotify-plays', async (req) => {
     `) as unknown as Group[]
   }
 
-  // π3: summary aggregado del mismo período. Una query única, barata
-  // gracias al index BRIN sobre played_at. Devolvemos junto al listado
-  // para evitar un round-trip extra del cliente.
-  type SummaryRow = {
+  // π3 + ρ-fix-bug: summary aggregado del mismo período.
+  //
+  // ANTES: una sola query con `FROM spotify_plays, UNNEST(artist_names)`
+  // hacía un cross-join entre cada play y sus artistas — así
+  // total_plays se multiplicaba por la cantidad promedio de artistas
+  // por canción (un feat con 2 artistas duplicaba el conteo). Tampoco
+  // se notaba si el usuario solo escuchaba solistas, pero con feats el
+  // total inflaba.
+  //
+  // AHORA: dos queries separadas y baratas — una sobre la tabla cruda
+  // (totales verdaderos) y otra sólo para `unique_artists` que SÍ
+  // necesita el UNNEST porque artist_names es un array. Ambas filtran
+  // por el mismo `since` y aprovechan el index BRIN.
+  type CoreRow = {
     total_plays: number
     unique_tracks: number
-    unique_artists: number
     unique_albums: number
     total_minutes: number
   }
-  const summaryRows = (await sql`
+  const coreRows = (await sql`
     SELECT
       COUNT(*)::int AS total_plays,
       COUNT(DISTINCT track_id)::int AS unique_tracks,
-      COUNT(DISTINCT artist_name)::int AS unique_artists,
       COUNT(DISTINCT album_id)::int AS unique_albums,
       ROUND(COALESCE(SUM(duration_ms), 0) / 60000.0)::int AS total_minutes
-    FROM spotify_plays, UNNEST(artist_names) AS artist_name
+    FROM spotify_plays
     WHERE played_at >= ${since}
-  `) as unknown as SummaryRow[]
-  const summary = summaryRows[0] ?? {
+  `) as unknown as CoreRow[]
+  const core = coreRows[0] ?? {
     total_plays: 0,
     unique_tracks: 0,
-    unique_artists: 0,
     unique_albums: 0,
     total_minutes: 0,
+  }
+
+  type ArtistRow = { unique_artists: number }
+  const artistRows = (await sql`
+    SELECT COUNT(DISTINCT artist_name)::int AS unique_artists
+    FROM spotify_plays, UNNEST(artist_names) AS artist_name
+    WHERE played_at >= ${since}
+  `) as unknown as ArtistRow[]
+  const uniqueArtists = artistRows[0]?.unique_artists ?? 0
+
+  const summary = {
+    total_plays: core.total_plays,
+    unique_tracks: core.unique_tracks,
+    unique_artists: uniqueArtists,
+    unique_albums: core.unique_albums,
+    total_minutes: core.total_minutes,
   }
 
   return Response.json({

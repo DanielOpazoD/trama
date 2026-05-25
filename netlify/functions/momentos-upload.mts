@@ -92,6 +92,10 @@ export default withObservability('momentos-upload', async (req: Request) => {
   })
 })
 
+// υ-bugfix: el path antes era `/api/momentos/upload` y Netlify lo
+// matcheaba contra `/api/momentos/:id` de momentos.mts (tratando
+// "upload" como un id). Resultado: POST devolvía 405 porque ese handler
+// no acepta POST en :id. Mover a un path sin colisión.
 export const config: Config = {
-  path: '/api/momentos/upload',
+  path: '/api/momentos-upload',
 }

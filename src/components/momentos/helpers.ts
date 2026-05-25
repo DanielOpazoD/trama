@@ -133,3 +133,96 @@ export function readImageDimensions(
     img.src = url
   })
 }
+
+/**
+ * υ-multi: compresión client-side de imágenes.
+ *
+ * Pipeline canvas-only (sin libs externas):
+ *   1. Carga la imagen en un canvas.
+ *   2. Si la dimensión más grande > maxDim (default 2400px), se
+ *      reescala manteniendo aspect ratio. 2400px es suficiente para
+ *      ver bien en cualquier display razonable; las fotos de iPhone
+ *      modernas vienen a 3024×4032 (~12MP), que es overkill para una
+ *      timeline visual.
+ *   3. Exporta como JPEG con quality 0.85 — equilibrio entre tamaño y
+ *      calidad percibida. Para fotos típicas de móvil baja de 4-6MB
+ *      a 400-900KB sin pérdida visible.
+ *
+ * Si la imagen YA es chica (dim <= maxDim Y size <= 600KB), devolvemos
+ * el File original sin pasar por canvas — evita pérdida innecesaria.
+ *
+ * GIFs animados: se devuelven sin tocar (canvas perdería la animación).
+ * PNG con alpha: se convierten a JPEG perdiendo alpha — para fotos no
+ * importa, y el bg negro no se nota porque normalmente la imagen llena
+ * el frame. Si el usuario sube un PNG con transparencia intencional,
+ * pierde el alpha; no es el caso de uso primario de Momentos.
+ */
+export async function compressImage(
+  file: File,
+  options?: { maxDim?: number; quality?: number },
+): Promise<File> {
+  const maxDim = options?.maxDim ?? 2400
+  const quality = options?.quality ?? 0.85
+
+  // GIF: si es animado canvas pierde la animación. Pasamos a través.
+  if (file.type === 'image/gif') return file
+
+  // Si la imagen es pequeña y liviana, no la tocamos.
+  if (file.size <= 600 * 1024) {
+    const dims = await readImageDimensions(file)
+    if (
+      dims.width > 0 &&
+      dims.height > 0 &&
+      Math.max(dims.width, dims.height) <= maxDim
+    ) {
+      return file
+    }
+  }
+
+  const dataUrl: string = await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error ?? new Error('FileReader failed'))
+    reader.readAsDataURL(file)
+  })
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image()
+    el.onload = () => resolve(el)
+    el.onerror = () => reject(new Error('Image load failed'))
+    el.src = dataUrl
+  })
+
+  const naturalW = img.naturalWidth
+  const naturalH = img.naturalHeight
+  let targetW = naturalW
+  let targetH = naturalH
+  if (Math.max(naturalW, naturalH) > maxDim) {
+    const scale = maxDim / Math.max(naturalW, naturalH)
+    targetW = Math.round(naturalW * scale)
+    targetH = Math.round(naturalH * scale)
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = targetW
+  canvas.height = targetH
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return file // sin canvas2d (raro), fallback al original
+  // Fondo blanco antes del draw — evita que JPEG con alpha quede negro
+  // en zonas transparentes. Para fotos típicas no afecta nada.
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, targetW, targetH)
+  ctx.drawImage(img, 0, 0, targetW, targetH)
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((b) => resolve(b), 'image/jpeg', quality)
+  })
+  if (!blob) return file
+
+  // Si la compresión NO redujo el tamaño (raro, pero pasa con imágenes
+  // ya muy optimizadas), devolvemos el original.
+  if (blob.size >= file.size) return file
+
+  const cleanName = file.name.replace(/\.(jpg|jpeg|png|webp)$/i, '') + '.jpg'
+  return new File([blob], cleanName, { type: 'image/jpeg' })
+}

@@ -154,13 +154,39 @@ export function MusicPaletteCard() {
             {isStale && <span className="text-ink-400"> · ya pasó una semana</span>}
           </p>
         </div>
-        <button
-          onClick={() => generate.mutate()}
-          disabled={generate.isPending}
-          className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-60 shrink-0"
-        >
-          {generate.isPending ? 'releyendo…' : 'actualizar'}
-        </button>
+        <div className="shrink-0 flex items-center gap-3">
+          <button
+            onClick={() => generate.mutate()}
+            disabled={generate.isPending}
+            className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-60"
+          >
+            {generate.isPending ? 'releyendo…' : 'actualizar'}
+          </button>
+          {/* σ-followup: eliminar la paleta — vuelve al empty state con
+              el botón "generar paleta". Útil cuando el retrato ya no
+              representa tus gustos actuales o querés empezar limpio. */}
+          <button
+            onClick={() => {
+              if (
+                typeof window !== 'undefined' &&
+                window.confirm(
+                  '¿Eliminar tu paleta musical? Podés generarla de nuevo cuando quieras.',
+                )
+              ) {
+                try {
+                  window.localStorage.removeItem(STORAGE_KEY)
+                } catch {
+                  /* localStorage disabled */
+                }
+                setCached(null)
+              }
+            }}
+            className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-red-700 transition-colors"
+            title="Eliminar la paleta guardada"
+          >
+            eliminar
+          </button>
+        </div>
       </header>
 
       {data.aiSummary && (
@@ -225,13 +251,18 @@ export function MusicPaletteCard() {
       </div>
 
       <footer className="mt-5 pt-4 border-t border-ink-100/50 text-caption text-ink-400 flex items-center gap-3 flex-wrap">
-        <span className="inline-flex items-center gap-1.5">
-          <SparkleIcon size={10} className="text-sky-700/70" />
-          {data.savedCount.toLocaleString('es')} canciones con corazón
-        </span>
+        {/* ρ-micro: oculta el "0 canciones con corazón" cuando el usuario
+            no tiene saved tracks — el cero implícito leía como "tu música
+            no te conmueve" sin querer. Si hay >=1, lo mostramos. */}
+        {data.savedCount > 0 && (
+          <span className="inline-flex items-center gap-1.5">
+            <SparkleIcon size={10} className="text-sky-700/70" />
+            {data.savedCount.toLocaleString('es')} canciones con corazón
+          </span>
+        )}
         {data.topArtists.length > 0 && (
           <span>
-            · top artistas:{' '}
+            {data.savedCount > 0 && '· '}top artistas:{' '}
             <span className="text-ink-600">
               {data.topArtists.slice(0, 5).map((a) => a.name).join(' · ')}
             </span>

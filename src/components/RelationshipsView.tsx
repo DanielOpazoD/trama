@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { RELATIONSHIP_TYPES, type Entity, type ExtractionProposal, type Relationship, type RelationshipType } from '../types'
+import { sectionWashStyle } from '../lib/sectionWash'
 import {
   useEntitiesQuery,
   useInfiniteRelationshipsQuery,
@@ -140,38 +141,72 @@ export function RelationshipsView({
 
   return (
     <>
-      {/* ο1: el <header> con h2 "Relaciones" + descripción + accent-rule se
-          movió a EntitiesWorkbench (esta vista pasó a ser una tab interna).
-          Conservamos solo los CTAs contextuales ("descubrir con IA",
-          "Añadir") en una toolbar inline alineada a la derecha. */}
-      {entities.length >= 2 && (
-        <div className="mb-8 flex items-baseline justify-end gap-4">
-          <button
-            onClick={handleSuggest}
-            disabled={suggest.isPending || offline}
-            className="ai-cta"
-            title="Sugerir relaciones nuevas entre entidades ya existentes"
+      {/* ρ-struct: header con h2 + acciones EN LA MISMA FILA — análogo a
+          EntitiesView. "Descubrir con IA" y "Añadir" quedan a la altura
+          del título (lo que pidió el usuario), no flotando aparte. La
+          descripción contextual ("Vínculos entre dos entidades…") vive
+          abajo del h2, no en el TopBar — el TopBar lleva el nombre del
+          workspace ("Entidades") + las tabs. */}
+      {/* ω-B: wash sage — las relaciones son vegetales, no técnicas. */}
+      <header
+        className="mb-8 flex items-baseline justify-between gap-6 px-3 -mx-3 py-2 -my-2 rounded-lg"
+        style={sectionWashStyle('var(--accent-sage)')}
+      >
+        <div className="min-w-0">
+          {/* σ-followup: eyebrow + h2 coherente con el patrón canónico.
+              El h2 dice "Vínculos" (no repite "Entidades") porque el
+              TopBar ya identifica el workspace; acá especificamos la
+              sub-vista. */}
+          <p
+            className="section-eyebrow-serif mb-2"
+            style={{ color: 'var(--accent-gold)' }}
           >
-            {suggest.isPending ? (
-              <>
-                <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: `var(--accent-primary-ring)`, borderTopColor: `var(--accent-primary)` }} />
-                pensando…
-              </>
-            ) : (
-              <>
-                <SparkleIcon size={12} />
-                descubrir con IA
-              </>
-            )}
-          </button>
-          <button
-            onClick={() => setShowForm((s) => !s)}
-            className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
-          >
-            {showForm ? 'Cerrar' : 'Añadir'}
-          </button>
+            las líneas del grafo
+          </p>
+          <h2 className="font-serif text-4xl text-ink-700 leading-none">
+            Vínculos
+          </h2>
+          <div className="accent-rule mt-3 mb-2" />
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-2xl">
+            Vínculos entre dos entidades — quién influye en quién, qué cita a
+            qué, qué te llegó por dónde.
+          </p>
         </div>
-      )}
+        {entities.length >= 2 && (
+          <div className="shrink-0 flex items-center gap-3 mt-1">
+            <button
+              onClick={handleSuggest}
+              disabled={suggest.isPending || offline}
+              className="ai-cta"
+              title="Sugerir relaciones nuevas entre entidades ya existentes"
+            >
+              {suggest.isPending ? (
+                <>
+                  <span
+                    className="size-3 border-2 rounded-full animate-spin"
+                    style={{
+                      borderColor: 'var(--accent-primary-ring)',
+                      borderTopColor: 'var(--accent-primary)',
+                    }}
+                  />
+                  pensando…
+                </>
+              ) : (
+                <>
+                  <SparkleIcon size={12} />
+                  descubrir con IA
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => setShowForm((s) => !s)}
+              className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+            >
+              {showForm ? 'Cerrar' : 'Añadir'}
+            </button>
+          </div>
+        )}
+      </header>
 
       {suggest.error && (
         <div className="alert-error mb-6 flex items-start gap-2 pl-3 pr-1.5 py-2 text-xs">
@@ -337,7 +372,13 @@ function RelationshipRow({
   onDelete: () => void
 }) {
   const typeLabel =
-    RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ?? rel.type
+    RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ??
+    // ρ-consistency: fallback defensivo — si la fila tiene un type que
+    // no existe en el array fallback (e.g. tipos nuevos en la DB que el
+    // cliente todavía no conoce), al menos reemplazamos los underscores
+    // por espacios. Sin esto se renderea "ASOCIADO_CON" con guión bajo
+    // a la vista, que se siente DB-leaky.
+    rel.type.replace(/_/g, ' ')
   return (
     <div className="group card-paper-hover p-3 hover:shadow-ink-900/5">
       <div className="flex justify-between items-baseline gap-4">

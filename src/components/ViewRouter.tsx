@@ -20,6 +20,8 @@ export function ViewRouter({
   view,
   selectedEntityId,
   pendingChatThreadId,
+  entitiesTab,
+  onEntitiesTabChange,
   onSelectEntity,
   onChangeView,
   onProposal,
@@ -28,6 +30,10 @@ export function ViewRouter({
   view: ViewMode
   selectedEntityId: string | null
   pendingChatThreadId: string | null
+  /** ρ-struct: tab activo de Entidades, controlado desde App para que
+      TopBar pueda exponerlo como tabs contextuales. */
+  entitiesTab: 'listado' | 'vinculos'
+  onEntitiesTabChange: (tab: 'listado' | 'vinculos') => void
   onSelectEntity: (id: string | null) => void
   onChangeView: (v: ViewMode) => void
   onProposal: (text: string, proposal: ExtractionProposal) => void
@@ -67,6 +73,8 @@ export function ViewRouter({
         <EntitiesWorkbench
           onSelectEntity={onSelectEntity}
           onProposal={onProposal}
+          tab={entitiesTab}
+          onTabChange={onEntitiesTabChange}
         />
       )}
       {view === 'citas' && <QuotesView onSelectEntity={onSelectEntity} />}

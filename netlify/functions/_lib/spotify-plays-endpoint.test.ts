@@ -35,14 +35,21 @@ describe('spotify-plays endpoint — π3 (summary + artists)', () => {
         existing_entity_id: null,
       },
     ])
-    // Query 2: summary
+    // Query 2 (core summary — sin unique_artists). ρ-fix split la
+    // summary en dos para evitar el cross-join con UNNEST(artist_names)
+    // que antes inflaba total_plays.
     mockSqlResponses.push([
       {
         total_plays: 50,
         unique_tracks: 30,
-        unique_artists: 15,
         unique_albums: 20,
         total_minutes: 180,
+      },
+    ])
+    // Query 3 (artist summary — sólo unique_artists).
+    mockSqlResponses.push([
+      {
+        unique_artists: 15,
       },
     ])
 
@@ -81,15 +88,17 @@ describe('spotify-plays endpoint — π3 (summary + artists)', () => {
         existing_entity_id: null,
       },
     ])
+    // Core summary (sin unique_artists).
     mockSqlResponses.push([
       {
         total_plays: 5,
         unique_tracks: 1,
-        unique_artists: 1,
         unique_albums: 1,
         total_minutes: 20,
       },
     ])
+    // Artist summary.
+    mockSqlResponses.push([{ unique_artists: 1 }])
 
     const res = await handler(
       new Request('http://localhost/api/spotify/plays?group=track'),
@@ -113,15 +122,17 @@ describe('spotify-plays endpoint — π3 (summary + artists)', () => {
         existing_entity_id: null,
       },
     ])
+    // Core summary (sin unique_artists).
     mockSqlResponses.push([
       {
         total_plays: 8,
         unique_tracks: 12,
-        unique_artists: 1,
         unique_albums: 1,
         total_minutes: 45,
       },
     ])
+    // Artist summary.
+    mockSqlResponses.push([{ unique_artists: 1 }])
 
     const res = await handler(
       new Request('http://localhost/api/spotify/plays?group=album'),
@@ -135,15 +146,17 @@ describe('spotify-plays endpoint — π3 (summary + artists)', () => {
 
   it('summary con ceros si el período no tiene plays', async () => {
     mockSqlResponses.push([]) // listado vacío
+    // Core summary (sin unique_artists).
     mockSqlResponses.push([
       {
         total_plays: 0,
         unique_tracks: 0,
-        unique_artists: 0,
         unique_albums: 0,
         total_minutes: 0,
       },
     ])
+    // Artist summary.
+    mockSqlResponses.push([{ unique_artists: 0 }])
 
     const res = await handler(
       new Request('http://localhost/api/spotify/plays'),

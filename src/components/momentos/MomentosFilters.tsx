@@ -50,7 +50,12 @@ export function MomentosFilters({
           onClick={() => onChangeFilterKind('foto')}
         />
       </div>
-      {filterKind === 'foto' && (
+      {/* AA-D: toggle Línea/Álbum disponible también cuando filterKind
+          es null (pestaña "Todos"). En esa combinación, álbum filtra
+          internamente a kind=foto — el usuario sigue viendo solo fotos
+          en grid, pero sin tener que pasar primero por la pestaña Fotos.
+          Para 'nota' y 'recorte' no tiene sentido un grid de tiles. */}
+      {(filterKind === 'foto' || filterKind === null) && (
         <div className="ml-auto flex gap-1 p-0.5 bg-paper-100/60 rounded-md border border-ink-100/50">
           <button
             onClick={() => onChangeViewMode('timeline')}
@@ -69,6 +74,11 @@ export function MomentosFilters({
                 ? 'bg-paper-50 text-ink-700 shadow-sm'
                 : 'text-ink-400 hover:text-ink-700'
             }`}
+            title={
+              filterKind === null
+                ? 'Álbum muestra solo las fotos en grid'
+                : 'Mostrar fotos en grid'
+            }
           >
             Álbum
           </button>

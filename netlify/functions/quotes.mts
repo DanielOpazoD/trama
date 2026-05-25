@@ -62,26 +62,29 @@ export default withObservability('quotes', async (req: Request, context: Context
 
     // We fetch limit + 1 so we can tell whether there's a next page without
     // a separate count query.
+    // ω-E: incluimos pinned_at en el SELECT y lo usamos en el ORDER BY:
+    // pinned_at primero (DESC, nulls al final), después created_at DESC,
+    // después id DESC para tie-break. Las favoritas suben al tope.
     const rows = cursorTs && cursorId
       ? (await sql`
           SELECT id, entity_id, text, source, context,
                  user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
-                 linked_quote_ids,
+                 linked_quote_ids, pinned_at,
                  origin, created_at, updated_at
           FROM quotes
           WHERE deleted_at IS NULL
             AND (created_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
-          ORDER BY created_at DESC, id DESC
+          ORDER BY pinned_at DESC NULLS LAST, created_at DESC, id DESC
           LIMIT ${limit + 1}
         `)
       : (await sql`
           SELECT id, entity_id, text, source, context,
                  user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
-                 linked_quote_ids,
+                 linked_quote_ids, pinned_at,
                  origin, created_at, updated_at
           FROM quotes
           WHERE deleted_at IS NULL
-          ORDER BY created_at DESC, id DESC
+          ORDER BY pinned_at DESC NULLS LAST, created_at DESC, id DESC
           LIMIT ${limit + 1}
         `)
 
@@ -164,6 +167,10 @@ export default withObservability('quotes', async (req: Request, context: Context
       ai_reflection_provider?: string | null
       ai_reflection_model?: string | null
       linked_quote_ids?: string[] | null
+      // ω-E: pinned boolean — el cliente manda true/false. El server
+      // mapea a pinned_at = NOW() o NULL respectivamente. Si no se
+      // manda, no se toca el campo.
+      pinned?: boolean
     }
     // Only update fields that were actually sent. ai_reflection has the
     // side effect of stamping ai_reflection_at when it changes. entity_id
@@ -181,11 +188,16 @@ export default withObservability('quotes', async (req: Request, context: Context
         ai_reflection_provider = CASE WHEN ${body.ai_reflection_provider !== undefined} THEN ${body.ai_reflection_provider ?? null} ELSE ai_reflection_provider END,
         ai_reflection_model    = CASE WHEN ${body.ai_reflection_model !== undefined} THEN ${body.ai_reflection_model ?? null} ELSE ai_reflection_model END,
         ai_reflection_at       = CASE WHEN ${body.ai_reflection !== undefined} THEN NOW() ELSE ai_reflection_at END,
-        linked_quote_ids       = CASE WHEN ${body.linked_quote_ids !== undefined} THEN ${Array.isArray(body.linked_quote_ids) ? body.linked_quote_ids : []}::uuid[] ELSE linked_quote_ids END
+        linked_quote_ids       = CASE WHEN ${body.linked_quote_ids !== undefined} THEN ${Array.isArray(body.linked_quote_ids) ? body.linked_quote_ids : []}::uuid[] ELSE linked_quote_ids END,
+        pinned_at              = CASE
+                                   WHEN ${body.pinned === true} THEN NOW()
+                                   WHEN ${body.pinned === false} THEN NULL
+                                   ELSE pinned_at
+                                 END
       WHERE id = ${id} AND deleted_at IS NULL
       RETURNING id, entity_id, text, source, context,
                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
-                linked_quote_ids,
+                linked_quote_ids, pinned_at,
                 origin, created_at, updated_at
     `
     if (rows.length === 0) {

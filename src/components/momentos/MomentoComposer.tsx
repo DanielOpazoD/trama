@@ -1,6 +1,7 @@
-import type { FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import type { MomentoKind } from '../../types'
 import type { useMomentoComposer } from './useMomentoComposer'
+import { MomentoQRModal } from './MomentoQRModal'
 
 type Composer = ReturnType<typeof useMomentoComposer>
 
@@ -13,6 +14,11 @@ type Composer = ReturnType<typeof useMomentoComposer>
  * dar reuso.
  */
 export function MomentoComposer({ composer }: { composer: Composer }) {
+  // τ-mobile-bridge: state local del modal QR. Vive acá adentro porque
+  // el botón vive en este componente y no hay otro lugar que necesite
+  // saber si está abierto.
+  const [qrOpen, setQrOpen] = useState(false)
+
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     composer.submit()
@@ -21,22 +27,42 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mb-10 p-5 bg-paper-100/40 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
+      // AA-A: aún más apretado — p-2.5 + space-y-1.5 + header pb-1.5
+      // + rounded-lg (era xl). El composer ahora tiene la silueta de
+      // un input grande, no una card-page.
+      className="mb-6 p-2.5 bg-paper-100/40 border border-ink-100/60 rounded-lg space-y-1.5 animate-fade-up"
     >
-      <header className="stack-2 pb-3 border-b border-ink-100/60">
-        <p
-          className="section-eyebrow-serif"
-          style={{ color: 'var(--accent-gold)' }}
-        >
-          nueva entrada
-        </p>
-        <h3 className="font-serif text-xl text-ink-800 leading-tight">
-          {composer.kind === 'nota'
-            ? '¿Qué viste, leíste o pensaste hoy?'
-            : composer.kind === 'recorte'
-              ? 'Algo del mundo que te llamó la atención'
-              : 'Una imagen del día'}
-        </h3>
+      <header className="pb-1.5 border-b border-ink-100/60 flex items-baseline justify-between gap-4">
+        <div className="min-w-0">
+          <p
+            className="section-eyebrow-serif"
+            style={{ color: 'var(--accent-gold)' }}
+          >
+            nueva entrada
+          </p>
+          <h3 className="font-serif text-xl text-ink-800 leading-tight">
+            {composer.kind === 'nota'
+              ? '¿Qué viste, leíste o pensaste hoy?'
+              : composer.kind === 'recorte'
+                ? 'Algo del mundo que te llamó la atención'
+                : 'Una imagen del día'}
+          </h3>
+        </div>
+        {/* τ-mobile-bridge: botón QR — solo se muestra cuando el kind
+            es Foto, porque ese es el caso donde tener el celular a
+            mano cambia el flujo. Para nota/recorte el desktop alcanza. */}
+        {composer.kind === 'foto' && (
+          <button
+            type="button"
+            onClick={() => setQrOpen(true)}
+            className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors shrink-0 flex items-center gap-1.5"
+            title="Escanear QR para abrir el composer en el celular"
+            aria-label="Abrir en el celular vía QR"
+          >
+            <QRGlyph />
+            <span>celular</span>
+          </button>
+        )}
       </header>
 
       <KindTabs kind={composer.kind} onChange={composer.setKind} />
@@ -45,18 +71,16 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
       {composer.kind === 'recorte' && <RecorteFields composer={composer} />}
       {composer.kind === 'foto' && <FotoFields composer={composer} />}
 
-      <div className="flex items-center justify-between gap-3 pt-1">
-        <p className="text-caption text-ink-300 italic">
-          {composer.kind === 'recorte'
-            ? 'Al guardar, la IA propone vínculos a tus entidades.'
-            : composer.kind === 'foto'
-              ? 'La IA lee la imagen y propone caption + vínculos.'
-              : 'Se guarda fechado hoy.'}
-        </p>
+      <MomentoQRModal open={qrOpen} onClose={() => setQrOpen(false)} />
+
+      {/* AA-A: botón Guardar más chico — antes era btn-ink (padding
+          medio). Ahora text-xs + padding mínimo para acompañar la
+          dimensión apretada del composer. */}
+      <div className="flex justify-end pt-0">
         <button
           type="submit"
           disabled={composer.isPending}
-          className="btn-ink"
+          className="px-3 py-1.5 text-xs font-medium bg-ink-900 text-paper-50 rounded-md hover:bg-ink-800 disabled:opacity-60 transition-colors"
         >
           {composer.photoUploading
             ? 'Subiendo…'
@@ -171,7 +195,11 @@ function RecorteFields({ composer }: { composer: Composer }) {
         onChange={(e) => composer.setRecorteNote(e.target.value)}
         placeholder="Tu nota: por qué te llamó la atención"
         rows={2}
-        className="input-paper w-full resize-none marginalia-script placeholder:italic placeholder:font-sans"
+        // φ-photo-polish: sin marginalia-script en el composer — los
+        // tres branches (nota, recorte, foto) ahora usan input-paper
+        // text-sm sans estándar para coherencia. La marginalia vive en
+        // el RENDER del momento, no en el input crudo.
+        className="input-paper w-full text-sm resize-none"
         disabled={composer.isPending}
       />
     </div>
@@ -179,68 +207,240 @@ function RecorteFields({ composer }: { composer: Composer }) {
 }
 
 function FotoFields({ composer }: { composer: Composer }) {
+  const hasDrafts = composer.photoDrafts.length > 0
   return (
     <div className="space-y-3">
       <label
-        className={`block border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-          composer.photoFile
-            ? 'border-transparent'
-            : 'border-ink-200/60 hover:border-ink-300 hover:bg-paper-50/50'
+        className={`block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+          hasDrafts
+            ? 'border-ink-100/60 bg-paper-50/40'
+            : 'border-ink-200/60 hover:border-ink-300 hover:bg-paper-50/50 p-6'
         }`}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault()
-          const f = e.dataTransfer.files?.[0]
-          if (f && f.type.startsWith('image/')) {
-            composer.changePhotoFile(f)
-          }
+          const files = Array.from(e.dataTransfer.files ?? []).filter((f) =>
+            f.type.startsWith('image/'),
+          )
+          if (files.length > 0) composer.addPhotoFiles(files)
         }}
       >
         <input
           type="file"
+          // υ-multi: `multiple` permite seleccionar varias imágenes en
+          // un solo file picker. Combinado con drop-zone multi, el
+          // usuario puede armar el episodio en un paso.
+          multiple
           accept="image/jpeg,image/png,image/webp,image/gif"
           className="sr-only"
-          onChange={(e) => composer.changePhotoFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? [])
+            if (files.length > 0) composer.addPhotoFiles(files)
+            // Reset el input para que seleccionar la misma foto otra
+            // vez dispare onChange (sin esto el navegador no re-fire).
+            e.target.value = ''
+          }}
           disabled={composer.isPending}
         />
-        {composer.photoPreviewUrl ? (
+        {hasDrafts ? (
           <div className="space-y-2">
-            <img
-              src={composer.photoPreviewUrl}
-              alt="preview"
-              className="max-h-64 mx-auto rounded shadow-sm"
-            />
-            <p className="text-caption text-ink-400 italic">
-              Click para cambiar la imagen
+            {/* Grid de previews — hasta 4 columnas en desktop, 2 en
+                mobile. Cada preview tiene un botón × para quitar y un
+                "★ portada" para marcarla como la primera del episodio. */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {composer.photoDrafts.map((draft, idx) => {
+                const isPrimary = idx === 0
+                return (
+                  <div
+                    key={draft.previewUrl}
+                    className={`group relative aspect-square overflow-hidden rounded border ${
+                      isPrimary
+                        ? 'border-2'
+                        : 'border-ink-100/60'
+                    } bg-paper-100/40`}
+                    style={
+                      isPrimary
+                        ? { borderColor: 'var(--accent-gold)' }
+                        : undefined
+                    }
+                  >
+                    <img
+                      src={draft.previewUrl}
+                      alt={`foto ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Botón × — quitar */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        composer.removePhotoDraft(idx)
+                      }}
+                      className="absolute top-1 right-1 size-5 flex items-center justify-center rounded-full bg-ink-900/70 text-paper-50 text-xs hover:bg-ink-900 transition-colors"
+                      aria-label={`Quitar foto ${idx + 1}`}
+                      title="Quitar foto"
+                      disabled={composer.isPending}
+                    >
+                      ×
+                    </button>
+                    {/* φ-photo-polish: badge "portada" cuando es la
+                        primera; en las otras, botón "★ portada" que
+                        la mueve al inicio. */}
+                    {isPrimary ? (
+                      <span
+                        className="absolute top-1 left-1 text-micro uppercase tracking-eyebrow px-1.5 py-0.5 rounded leading-none font-medium"
+                        style={{
+                          backgroundColor: 'var(--accent-gold)',
+                          color: '#fff',
+                        }}
+                        aria-label="Foto principal del episodio"
+                      >
+                        ★ portada
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          composer.setPrimaryPhoto(idx)
+                        }}
+                        className="absolute top-1 left-1 text-micro uppercase tracking-eyebrow px-1.5 py-0.5 rounded leading-none bg-ink-900/55 text-paper-50 hover:bg-ink-900/80 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                        aria-label={`Marcar foto ${idx + 1} como portada`}
+                        title="Marcar como portada"
+                        disabled={composer.isPending}
+                      >
+                        ★ portada
+                      </button>
+                    )}
+                    <span
+                      className="absolute bottom-1 left-1 text-micro tabular-nums bg-ink-900/60 text-paper-50 px-1 rounded leading-none py-0.5"
+                      aria-hidden
+                    >
+                      {idx + 1}
+                    </span>
+                    {/* ψ-photos-rich: flechas ◄ ► para reordenar.
+                        Se ocultan en bordes (◄ en idx=0, ► en última). */}
+                    {composer.photoDrafts.length > 1 && (
+                      <div className="absolute bottom-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {idx > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              composer.movePhoto(idx, -1)
+                            }}
+                            className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
+                            aria-label={`Mover foto ${idx + 1} hacia atrás`}
+                            title="Mover atrás"
+                            disabled={composer.isPending}
+                          >
+                            ‹
+                          </button>
+                        )}
+                        {idx < composer.photoDrafts.length - 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              composer.movePhoto(idx, 1)
+                            }}
+                            className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
+                            aria-label={`Mover foto ${idx + 1} hacia adelante`}
+                            title="Mover adelante"
+                            disabled={composer.isPending}
+                          >
+                            ›
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            {/* ω-A: counts/hints sin italic — son metadata útil. */}
+            <p className="text-caption text-ink-400">
+              {composer.photoDrafts.length}{' '}
+              {composer.photoDrafts.length === 1 ? 'foto' : 'fotos'}
+              {composer.photoDrafts.length > 1 &&
+                ' · pasa el cursor sobre una y elige "★ portada" para fijarla primero'}
+              {composer.photoDrafts.length === 1 && ' · click para agregar más'}
             </p>
           </div>
         ) : (
           <div className="text-ink-400">
             <p className="text-sm">
-              Arrastra una imagen aquí o click para elegir
+              Arrastra una o varias imágenes aquí, o click para elegir
             </p>
             <p className="text-caption italic mt-1">
-              JPEG / PNG / WebP / GIF · hasta 10 MB
+              JPEG / PNG / WebP / GIF · se comprimen antes de subir
             </p>
           </div>
         )}
       </label>
+      {/* υ-multi: progreso del upload. Aparece sólo cuando hay
+          múltiples archivos en proceso — para un solo file el botón
+          "Subiendo…" ya alcanza. */}
+      {composer.photoUploadProgress && composer.photoUploadProgress.total > 1 && (
+        <p className="text-caption text-ink-400 tabular-nums">
+          Subiendo {composer.photoUploadProgress.done} de{' '}
+          {composer.photoUploadProgress.total}…
+        </p>
+      )}
+      {/* φ-photo-polish: dos inputs equivalentes en tipografía.
+          Ambos text-sm sans normal, mismo padding implícito de
+          input-paper. Antes el textarea usaba marginalia-script
+          (Caveat 17px italic) que competía visualmente con el input
+          de texto y rompía la unidad del card. La marginalia sigue
+          existiendo, pero como expresión visual en el RENDER del
+          momento, no como input que se va a guardar pelado. */}
       <input
         type="text"
         value={composer.photoCaption}
         onChange={(e) => composer.setPhotoCaption(e.target.value)}
-        placeholder="Caption (opcional — la IA propondrá uno)"
-        className="input-paper w-full"
+        placeholder="Título del episodio (opcional)"
+        className="input-paper w-full text-sm"
         disabled={composer.isPending}
       />
       <textarea
         value={composer.photoNote}
         onChange={(e) => composer.setPhotoNote(e.target.value)}
-        placeholder="Tu nota sobre la foto (opcional)"
+        placeholder="Tu nota sobre el momento (opcional)"
         rows={2}
-        className="input-paper w-full resize-none marginalia-script placeholder:italic placeholder:font-sans"
+        className="input-paper w-full text-sm resize-none"
         disabled={composer.isPending}
       />
     </div>
+  )
+}
+
+/**
+ * τ-mobile-bridge: glyph QR inline. Sin agregar al set de Icons porque
+ * solo se usa acá. SVG minimal — un "frame" estilizado que evoca un
+ * código QR sin pretender serlo. 12×12 a stroke 1.6 para encajar con
+ * el tracking-eyebrow del botón.
+ */
+function QRGlyph() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="3" y="3" width="6" height="6" rx="0.5" />
+      <rect x="15" y="3" width="6" height="6" rx="0.5" />
+      <rect x="3" y="15" width="6" height="6" rx="0.5" />
+      <path d="M15 15h2M21 15v2M15 19v2M19 19h2" />
+    </svg>
   )
 }

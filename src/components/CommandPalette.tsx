@@ -13,6 +13,13 @@ import {
   SparkleIcon,
 } from './Icons'
 
+// σ-followup: símbolo del modificador. Antes vivía en TopBar — al
+// mover el atajo visual al palette, este módulo lo necesita propio.
+const IS_MAC =
+  typeof navigator !== 'undefined' &&
+  /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
+const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
+
 type Item =
   | { kind: 'view'; view: ViewMode; label: string; hint?: string }
   | { kind: 'entity'; id: string; name: string; type: string }
@@ -150,18 +157,33 @@ export function CommandPalette({
       <div
         role="dialog"
         aria-label="Buscar"
-        className="fixed top-[15vh] left-1/2 -translate-x-1/2 w-[90vw] max-w-xl z-40 animate-fade-up"
+        // σ-followup: centrado vertical real (top-1/2 + -translate-y-1/2)
+        // en vez de top-[15vh]. Antes el modal vivía pegado al tercio
+        // superior; ahora cae justo en el centro óptico de la pantalla.
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-xl z-40 animate-fade-up"
       >
         <div className="bg-paper-50 border border-ink-100/80 rounded-xl shadow-lg shadow-ink-900/15 overflow-hidden">
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar…"
-            className="w-full px-5 py-4 bg-transparent text-ink-700 placeholder:text-ink-300 focus:outline-none font-serif text-lg leading-none border-b border-ink-100/60"
-            autoComplete="off"
-          />
+          {/* σ-followup: kbd visible del atajo arriba derecha del input —
+              se movió desde el sidebar trigger. Da sentido ver "⌘ K"
+              cuando el modal está abierto: refuerza el atajo en el
+              contexto donde aporta. */}
+          <div className="relative">
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar…"
+              className="w-full px-5 py-4 pr-16 bg-transparent text-ink-700 placeholder:text-ink-300 focus:outline-none font-serif text-lg leading-none border-b border-ink-100/60"
+              autoComplete="off"
+            />
+            <kbd
+              aria-hidden
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-micro px-1.5 py-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-400 leading-none font-mono"
+            >
+              {SHORTCUT_KEY} K
+            </kbd>
+          </div>
           <ul className="max-h-[50vh] overflow-y-auto">
             {items.length === 0 && (
               <li className="px-5 py-6 text-ink-400 italic text-sm text-center">

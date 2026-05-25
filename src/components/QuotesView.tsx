@@ -9,7 +9,9 @@ import {
   useUpdateQuote,
   useToast,
 } from '../state'
+import { sectionWashStyle } from '../lib/sectionWash'
 import { EndMark, SparkleIcon, TrashIcon } from './Icons'
+import { QuoteEditModal } from './QuoteEditModal'
 import { AISourceTag } from './AISourceTag'
 import { EmptyMessage } from './EmptyMessage'
 import { Folio } from './Folio'
@@ -75,6 +77,10 @@ export function QuotesView({
   // EntitiesView). null = todos. Filtra client-side sobre las páginas ya
   // cargadas — coherente con cómo filtra Entidades.
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
+  // ω-E: toggle "solo favoritas". Cuando está activo filtra el array
+  // client-side a las que tienen pinnedAt. No requiere refetch porque
+  // las queries traen pinnedAt en el row.
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
 
   // Mapa entityId → type, para evitar O(n×m) cuando hay muchas citas y entidades.
   const entityTypeById = useMemo(() => {
@@ -95,13 +101,19 @@ export function QuotesView({
       .sort((a, b) => b.count - a.count)
   }, [allLoadedQuotes, entityTypeById])
 
-  const quotes = useMemo(
-    () =>
-      typeFilter
-        ? allLoadedQuotes.filter((q) => entityTypeById.get(q.entityId) === typeFilter)
-        : allLoadedQuotes,
-    [allLoadedQuotes, typeFilter, entityTypeById],
+  // ω-E: pinnedCount para mostrar el contador en el chip "favoritas".
+  const pinnedCount = useMemo(
+    () => allLoadedQuotes.filter((q) => q.pinnedAt).length,
+    [allLoadedQuotes],
   )
+
+  const quotes = useMemo(() => {
+    let arr = allLoadedQuotes
+    if (favoritesOnly) arr = arr.filter((q) => q.pinnedAt)
+    if (typeFilter)
+      arr = arr.filter((q) => entityTypeById.get(q.entityId) === typeFilter)
+    return arr
+  }, [allLoadedQuotes, typeFilter, favoritesOnly, entityTypeById])
 
   // For "work" entities, find the linked person/writer so we can show
   // "— Marco Aurelio · Meditaciones" instead of just "— Meditaciones".
@@ -176,11 +188,23 @@ export function QuotesView({
 
   return (
     <>
-      <header className="mb-10 flex items-baseline justify-between gap-6">
+      {/* ω-B: wash gold — el lugar donde el lenguaje pesa. */}
+      <header
+        className="mb-10 flex items-baseline justify-between gap-6 px-3 -mx-3 py-2 -my-2 rounded-lg"
+        style={sectionWashStyle('var(--accent-gold)')}
+      >
         <div className="min-w-0">
+          {/* σ-followup: eyebrow editorial — coherente con Momentos,
+              Escuchas, Sugerencias, Entidades. */}
+          <p
+            className="section-eyebrow-serif mb-2"
+            style={{ color: 'var(--accent-gold)' }}
+          >
+            fragmentos que retuviste
+          </p>
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Citas</h2>
           <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-2xl">
             Fragmentos textuales que atribuyes a una entidad. Una frase de un libro,
             algo que dijo una persona, un verso de una canción.
           </p>
@@ -266,8 +290,42 @@ export function QuotesView({
               EntitiesView): los chips scrollean con el contenido,
               desaparecen al subir las citas en el viewport. Si quieres
               cambiar filtro, scroll up. */}
-          {availableTypes.length > 1 && (
+          {(availableTypes.length > 1 || pinnedCount > 0) && (
             <div className="py-2 mb-4 border-b border-ink-100/60 flex flex-wrap gap-1.5">
+              {/* ω-E: chip "favoritas" — solo aparece cuando hay al
+                  menos una pinneada. Cuando se activa, el filtro de
+                  tipo no se toca (se acumulan: solo favoritas Y de
+                  un cierto tipo si está seleccionado). */}
+              {pinnedCount > 0 && (
+                <button
+                  onClick={() => setFavoritesOnly((v) => !v)}
+                  className={
+                    favoritesOnly
+                      ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors inline-flex items-center gap-1'
+                      : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors inline-flex items-center gap-1'
+                  }
+                  style={
+                    favoritesOnly
+                      ? {
+                          backgroundColor: 'var(--accent-gold-soft)',
+                          color: 'var(--accent-gold)',
+                        }
+                      : undefined
+                  }
+                  aria-pressed={favoritesOnly}
+                  title={
+                    favoritesOnly
+                      ? 'Mostrando solo favoritas — click para mostrar todas'
+                      : 'Mostrar solo favoritas'
+                  }
+                >
+                  <span aria-hidden>★</span>
+                  favoritas
+                  <span className="ml-0.5 text-micro tabular-nums opacity-70">
+                    {pinnedCount}
+                  </span>
+                </button>
+              )}
               <button
                 onClick={() => setTypeFilter(null)}
                 className={
@@ -383,7 +441,11 @@ export function QuotesView({
                       left: 0,
                       right: 0,
                       transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
-                      paddingBottom: '3.5rem', // space-y-14 equivalent between items
+                      // ρ-micro: bajado de 3.5rem (56px) a 2.5rem (40px) entre
+                      // citas. La auditoría visual contaba ~120px de margen
+                      // efectivo entre items; lo bajamos para que el ritmo de
+                      // lectura sea más continuo sin perder respiración.
+                      paddingBottom: '2.5rem',
                     }}
                   >
                     <QuoteItem
@@ -446,6 +508,8 @@ function QuoteItem({
     provider: string
     model: string
   } | null>(null)
+  // AA-D: estado del modal de edición.
+  const [editOpen, setEditOpen] = useState(false)
 
   async function handleReflect() {
     try {
@@ -523,9 +587,16 @@ function QuoteItem({
           ) : (
             <span className="text-ink-300">— entidad eliminada</span>
           )}
-          {quote.source && (
-            <span className="text-ink-300 ml-2 italic">· {quote.source}</span>
-          )}
+          {quote.source &&
+            // ρ-fix-B2: cuando la cita está atada a una entidad-obra
+            // (libro/ensayo/álbum/canción) Y el source es literalmente el
+            // mismo nombre, evitamos imprimirlo dos veces. Ej.: Lao Tse →
+            // "Tao Te Ching" (entity link) ·  Tao Te Ching (source italic).
+            // El match es case-insensitive con trim para tolerar minucias.
+            quote.source.trim().toLowerCase() !==
+              entity?.name.trim().toLowerCase() && (
+              <span className="text-ink-300 ml-2 italic">· {quote.source}</span>
+            )}
           {quote.origin.kind === 'ai' && (
             <span className="ml-1.5 inline-flex items-center text-sky-700/70" title="propuesta por IA">
               <SparkleIcon size={10} />
@@ -538,15 +609,72 @@ function QuoteItem({
             añadida {formatDate(quote.createdAt)}
           </span>
         </div>
-        <button
-          onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
-          aria-label="Eliminar"
-          title="Eliminar"
-        >
-          <TrashIcon size={12} />
-        </button>
+        {/* ω-E + AA-D: toolbar — ★ favorita (siempre visible) +
+            editar (al hover) + eliminar (al hover). */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            onClick={async () => {
+              const next = !quote.pinnedAt
+              try {
+                await updateQuote.mutateAsync({
+                  id: quote.id,
+                  patch: { pinned: next },
+                })
+              } catch (err) {
+                toast.show({
+                  message:
+                    err instanceof Error
+                      ? err.message
+                      : 'No se pudo marcar como favorita',
+                  tone: 'error',
+                })
+              }
+            }}
+            // AA-A: la estrella SIEMPRE visible. Si no está marcada, la
+            // silueta ☆ aparece atenuada (ink-300). Al hover sube
+            // contraste. Antes solo aparecía en hover, lo que ocultaba
+            // la affordance de "puedo marcar esto".
+            className={`p-1.5 rounded transition-colors hover:bg-ink-100 ${
+              quote.pinnedAt ? 'opacity-100' : 'text-ink-300 hover:text-ink-700'
+            }`}
+            style={{
+              color: quote.pinnedAt ? 'var(--accent-gold)' : undefined,
+            }}
+            aria-label={
+              quote.pinnedAt ? 'Quitar de favoritas' : 'Marcar como favorita'
+            }
+            title={
+              quote.pinnedAt ? 'Quitar de favoritas' : 'Marcar como favorita'
+            }
+            aria-pressed={!!quote.pinnedAt}
+          >
+            <span className="text-sm leading-none" aria-hidden>
+              {quote.pinnedAt ? '★' : '☆'}
+            </span>
+          </button>
+          <button
+            onClick={() => setEditOpen(true)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 px-2 py-1.5 rounded"
+            aria-label="Editar cita"
+            title="Editar texto, fuente, contexto o reflexión"
+          >
+            editar
+          </button>
+          <button
+            onClick={onDelete}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
+            aria-label="Eliminar"
+            title="Eliminar"
+          >
+            <TrashIcon size={12} />
+          </button>
+        </div>
       </div>
+      <QuoteEditModal
+        quote={quote}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+      />
       {quote.context && (
         <p
           className={`mt-2 text-ink-400 text-sm leading-relaxed italic ${

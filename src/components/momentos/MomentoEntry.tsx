@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { typeAccent } from '../graph/GraphNode'
 import type { Entity, Momento } from '../../types'
 import { SparkleIcon, TrashIcon } from '../Icons'
 import { formatTime } from './helpers'
+import { MomentoEditModal } from './MomentoEditModal'
+import { PhotoLightbox } from './PhotoLightbox'
 
 /**
  * Una entrada del timeline de Momentos. Despacha al renderer correcto
@@ -24,6 +27,10 @@ export function MomentoEntry({
   const linkedEntities = momento.entityIds
     .map((id) => entitiesById.get(id))
     .filter((e): e is Entity => Boolean(e))
+  // χ-followup: estado del modal de edición. Solo aplica a kind=foto
+  // (los otros kinds no se editan por ahora — caso de uso primario es
+  // gestionar fotos: agregar, quitar, reordenar portada).
+  const [editOpen, setEditOpen] = useState(false)
 
   return (
     <li className="group relative pl-5">
@@ -54,14 +61,35 @@ export function MomentoEntry({
           <LinkedEntities entities={linkedEntities} />
         )}
       </div>
-      <button
-        onClick={onDelete}
-        className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
-        aria-label="Eliminar momento"
-        title="Eliminar"
-      >
-        <TrashIcon size={12} />
-      </button>
+      {/* χ-followup: toolbar contextual al hover — botón editar
+          (sólo fotos) + botón eliminar. */}
+      <div className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+        {momento.kind === 'foto' && (
+          <button
+            onClick={() => setEditOpen(true)}
+            className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 px-2 py-1.5 rounded transition-colors"
+            aria-label="Editar momento"
+            title="Editar fotos, título y nota"
+          >
+            editar
+          </button>
+        )}
+        <button
+          onClick={onDelete}
+          className="p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded transition-colors"
+          aria-label="Eliminar momento"
+          title="Eliminar"
+        >
+          <TrashIcon size={12} />
+        </button>
+      </div>
+      {momento.kind === 'foto' && (
+        <MomentoEditModal
+          momento={momento}
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
     </li>
   )
 }
@@ -126,27 +154,67 @@ function RecorteBody({ momento }: { momento: Momento }) {
 }
 
 function FotoBody({ momento }: { momento: Momento }) {
-  const { storageKey, caption, width, height } = momento.payload
-  if (!storageKey) {
+  // υ-multi + AA-C: render del momento foto.
+  // - Si hay 1 foto: la muestra directo. Click abre lightbox con esa.
+  // - Si hay >1: muestra SOLO la primera + badge "+N" arriba derecha
+  //   indicando que hay más. Click → lightbox con todas en grande
+  //   y navegación.
+  // El render del timeline mantiene altura visual baja sin importar
+  // cuántas fotos tenga el episodio.
+  const { items, storageKey, width, height, caption } = momento.payload
+  const photos: Array<{ storageKey: string; width?: number; height?: number }> =
+    items && items.length > 0
+      ? items
+      : storageKey
+        ? [{ storageKey, width, height }]
+        : []
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+
+  if (photos.length === 0) {
     return (
       <p className="text-caption italic text-ink-400">(imagen no encontrada)</p>
     )
   }
+
+  const cover = photos[0]
+  const extraCount = photos.length - 1
   const aspectRatio =
-    width && height && width > 0 && height > 0
-      ? `${width} / ${height}`
+    cover.width && cover.height && cover.width > 0 && cover.height > 0
+      ? `${cover.width} / ${cover.height}`
       : undefined
 
   return (
     <article className="space-y-2">
-      <div className="rounded-md overflow-hidden border border-ink-100/60 max-w-md">
-        <img
-          src={`/api/momentos/file/${encodeURIComponent(storageKey)}`}
-          alt={caption ?? 'momento'}
-          loading="lazy"
-          className="block w-full h-auto"
-          style={aspectRatio ? { aspectRatio } : undefined}
-        />
+      <div className="max-w-md relative">
+        <button
+          type="button"
+          onClick={() => setLightboxOpen(true)}
+          aria-label={
+            photos.length === 1
+              ? 'Abrir foto'
+              : `Abrir visor — ${photos.length} fotos`
+          }
+          className="block w-full rounded-md overflow-hidden border border-ink-100/60 cursor-zoom-in hover:opacity-95 transition-opacity"
+        >
+          <img
+            src={`/api/momentos-file/${encodeURIComponent(cover.storageKey)}`}
+            alt={caption ?? 'momento'}
+            loading="lazy"
+            className="block w-full h-auto"
+            style={aspectRatio ? { aspectRatio } : undefined}
+          />
+        </button>
+        {/* Badge "+N" si hay más fotos. Sutilmente sobre la esquina
+            superior derecha. No-interactive (el click del button de
+            atrás lo cubre). */}
+        {extraCount > 0 && (
+          <span
+            className="pointer-events-none absolute top-2 right-2 text-micro uppercase tracking-eyebrow tabular-nums bg-ink-900/70 text-paper-50 px-1.5 py-0.5 rounded leading-none"
+            aria-hidden
+          >
+            +{extraCount}
+          </span>
+        )}
       </div>
       {caption && (
         <p className="font-serif text-sm italic text-ink-500 max-w-md">
@@ -158,6 +226,12 @@ function FotoBody({ momento }: { momento: Momento }) {
           {momento.note}
         </p>
       )}
+      <PhotoLightbox
+        photos={photos}
+        caption={caption}
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+      />
     </article>
   )
 }

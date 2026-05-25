@@ -218,20 +218,28 @@ export function HealthPanel() {
           <p className="text-xs text-ink-300 italic">sin errores. nada que mirar.</p>
         ) : (
           <ul className="space-y-1.5">
-            {data.recentErrors.map((e) => (
+            {dedupErrors(data.recentErrors).map((g) => (
               <li
-                key={e.id}
+                key={`${g.functionName}-${g.message.slice(0, 80)}`}
                 className="text-xs space-y-0.5 px-2.5 py-1.5 alert-error rounded"
               >
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="font-medium">
-                    {e.functionName}
-                    {e.statusCode && (
-                      <span className="ml-1.5 text-micro opacity-80">[{e.statusCode}]</span>
+                    {g.functionName}
+                    {g.statusCode && (
+                      <span className="ml-1.5 text-micro opacity-80">[{g.statusCode}]</span>
+                    )}
+                    {/* ρ-micro: cuando el mismo error repite N veces,
+                        mostramos "N×" en vez de N filas idénticas. La
+                        última ocurrencia da el contexto temporal. */}
+                    {g.count > 1 && (
+                      <span className="ml-2 text-micro tabular-nums opacity-70">
+                        {g.count}×
+                      </span>
                     )}
                   </span>
                   <span className="text-micro tabular-nums shrink-0 opacity-70">
-                    {new Date(e.createdAt).toLocaleString('es', {
+                    {new Date(g.latestAt).toLocaleString('es', {
                       day: '2-digit',
                       month: 'short',
                       hour: '2-digit',
@@ -240,8 +248,8 @@ export function HealthPanel() {
                   </span>
                 </div>
                 <p className="break-words leading-snug opacity-80">
-                  {e.message.slice(0, 240)}
-                  {e.message.length > 240 ? '…' : ''}
+                  {g.message.slice(0, 240)}
+                  {g.message.length > 240 ? '…' : ''}
                 </p>
               </li>
             ))}
@@ -249,6 +257,52 @@ export function HealthPanel() {
         )}
       </div>
     </section>
+  )
+}
+
+/**
+ * ρ-micro: agrupa errores idénticos (mismo functionName + mismo message).
+ * Antes una falla recurrente (e.g. el viejo bug del Date.toString)
+ * llenaba la lista con 20 entries iguales. Acá las colapsamos en una
+ * sola entrada con count + timestamp de la más reciente.
+ */
+function dedupErrors(
+  errors: Array<{
+    id: string
+    functionName: string
+    statusCode: number | null
+    message: string
+    createdAt: string
+  }>,
+) {
+  type Group = {
+    functionName: string
+    statusCode: number | null
+    message: string
+    latestAt: string
+    count: number
+  }
+  const groups = new Map<string, Group>()
+  for (const e of errors) {
+    // Hash conservador: usa los primeros 200 chars del message para
+    // evitar diferencias triviales (timestamps, ids únicos al final).
+    const key = `${e.functionName}|${e.statusCode ?? 'NA'}|${e.message.slice(0, 200)}`
+    const existing = groups.get(key)
+    if (existing) {
+      existing.count += 1
+      if (e.createdAt > existing.latestAt) existing.latestAt = e.createdAt
+    } else {
+      groups.set(key, {
+        functionName: e.functionName,
+        statusCode: e.statusCode,
+        message: e.message,
+        latestAt: e.createdAt,
+        count: 1,
+      })
+    }
+  }
+  return Array.from(groups.values()).sort((a, b) =>
+    a.latestAt < b.latestAt ? 1 : -1,
   )
 }
 

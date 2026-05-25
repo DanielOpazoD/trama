@@ -87,10 +87,14 @@ describe('<HomeView />', () => {
     // El párrafo "63 entidades · 77 citas · 160 relaciones" fue removido
     // de la portada — era info duplicada (sidebar la muestra con counts,
     // ESTA SEMANA muestra los deltas). El header del HomeView ahora es
-    // solo greeting + título + accent-rule.
+    // greeting + fecha de hoy + accent-rule (ρ-canvas: la fecha
+    // reemplazó el h2 "Inicio" redundante).
     setupCache([ENTITY, ENTITY_2], [QUOTE_A], [REL])
-    // El h2 "Inicio" sigue ahí, pero NO el párrafo con counts inline.
-    expect(screen.getByRole('heading', { name: 'Inicio', level: 2 })).toBeInTheDocument()
+    // El h2 ahora muestra la fecha capitalizada — chequeamos que haya
+    // un heading level 2 con un texto razonable (cualquier fecha en es).
+    const heading = screen.getByRole('heading', { level: 2 })
+    expect(heading).toBeInTheDocument()
+    expect(heading.textContent).toMatch(/[a-záéíóúñ]+/i)
     // No debe haber un párrafo del header con "2 entidades" como string.
     const inlineSummary = screen.queryByText(/^2\s+entidades.*1\s+cita/i)
     expect(inlineSummary).toBeNull()

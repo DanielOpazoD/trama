@@ -17,16 +17,22 @@ export default withObservability('counts', async (req: Request) => {
 
   const sql = getSql()
   type CountRow = { c: string }
-  const [eRows, qRows, rRows] = await Promise.all([
+  // ρ-consistency: incluir momentos para que el sidebar muestre count
+  // coherente con las demás secciones (antes Momentos era el único item
+  // sin badge). Cuenta sólo no-borrados — los `deleted_at IS NULL`
+  // garantizan el patrón soft-delete del proyecto.
+  const [eRows, qRows, rRows, mRows] = await Promise.all([
     sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL` as unknown as Promise<CountRow[]>,
     sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL` as unknown as Promise<CountRow[]>,
     sql`SELECT COUNT(*)::text AS c FROM relationships WHERE deleted_at IS NULL` as unknown as Promise<CountRow[]>,
+    sql`SELECT COUNT(*)::text AS c FROM momentos WHERE deleted_at IS NULL` as unknown as Promise<CountRow[]>,
   ])
 
   return Response.json({
     entities: Number(eRows[0]?.c ?? 0),
     quotes: Number(qRows[0]?.c ?? 0),
     relationships: Number(rRows[0]?.c ?? 0),
+    momentos: Number(mRows[0]?.c ?? 0),
   })
 })
 

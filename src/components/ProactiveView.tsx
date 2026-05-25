@@ -219,7 +219,13 @@ function entityTypeLabel(slug?: string): string {
 
 function relTypeLabel(slug?: string): string {
   if (!slug) return ''
-  return RELATIONSHIP_TYPES.find((t) => t.value === slug)?.label ?? slug
+  return (
+    RELATIONSHIP_TYPES.find((t) => t.value === slug)?.label ??
+    // ρ-consistency: fallback defensivo — sin esto un type con underscore
+    // que no esté en el fallback array se renderea "ASOCIADO_CON" en
+    // uppercase, leak de la tabla SQL.
+    slug.replace(/_/g, ' ')
+  )
 }
 
 function SuggestionBody({ suggestion }: { suggestion: ProactiveSuggestion }) {

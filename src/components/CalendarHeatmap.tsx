@@ -28,7 +28,12 @@ import type { Entity, Quote, Relationship } from '../types'
  */
 
 const MS_PER_DAY = 86_400_000
-const WEEKS = 12
+// ρ-canvas: subimos de 12 a 24 semanas (medio año). A 12 semanas la
+// card quedaba casi vacía cuando la trama llevaba poco tiempo activa
+// o cuando los datos están concentrados en pocos días — mucho real
+// estate "muerto". Con 24 semanas el heatmap recupera densidad y
+// permite leer rachas, pausas y estacionalidad de la práctica.
+const WEEKS = 24
 const TOTAL_DAYS = WEEKS * 7
 
 type DayBucket = {
@@ -102,10 +107,16 @@ export function CalendarHeatmap({
   entities,
   quotes,
   relationships,
+  onSelectDay,
 }: {
   entities: Entity[]
   quotes: Quote[]
   relationships: Relationship[]
+  /** ω-D: si está presente, cada celda del heatmap se vuelve un
+      botón clickeable que llama esta callback con el ISO date
+      (YYYY-MM-DD) del día. El caller decide qué hacer — típicamente
+      navegar a Momentos filtrado por ese día. */
+  onSelectDay?: (isoDate: string) => void
 }) {
   const { weeks, maxDaily, totalCount } = useMemo(() => {
     const buckets = buildBuckets(entities, quotes, relationships)
@@ -153,10 +164,10 @@ export function CalendarHeatmap({
   return (
     <section
       className="card-paper-elevated px-5 py-4 animate-fade-up"
-      aria-label="Heatmap de actividad — últimas 12 semanas"
+      aria-label={`Heatmap de actividad — últimas ${WEEKS} semanas`}
     >
       <header className="mb-3 flex items-baseline justify-between gap-3 flex-wrap">
-        <p className="section-eyebrow">últimas 12 semanas</p>
+        <p className="section-eyebrow">últimos {Math.round(WEEKS / 4)} meses</p>
         <p className="text-caption text-ink-400 tabular-nums">
           {totalCount} {totalCount === 1 ? 'entrada' : 'entradas'}
         </p>
@@ -211,16 +222,39 @@ export function CalendarHeatmap({
                       day.total > 0 && maxDaily > 0
                         ? 0.3 + 0.7 * (day.total / maxDaily)
                         : 1
+                    const cellStyle = {
+                      backgroundColor: dominantColor(day),
+                      opacity: day.total > 0 ? intensity : 0.4,
+                    } as const
+                    const cellClass = `w-[11px] h-[11px] rounded-[2px] transition-all ${
+                      isToday
+                        ? 'ring-1 ring-ink-700/40 ring-offset-1 ring-offset-paper-50'
+                        : ''
+                    }`
+                    // ω-D: si hay onSelectDay y el día tiene actividad,
+                    // lo renderamos como button — al click navega a
+                    // Momentos filtrado por ese día. Hover hace zoom
+                    // sutil para indicar interactividad. Si no hay
+                    // callback, queda como div estático.
+                    const isoDate = toIsoDate(day.date)
+                    if (onSelectDay && day.total > 0) {
+                      return (
+                        <button
+                          key={di}
+                          type="button"
+                          onClick={() => onSelectDay(isoDate)}
+                          className={`${cellClass} hover:scale-150 hover:opacity-100 focus-visible:scale-150 cursor-pointer`}
+                          style={cellStyle}
+                          title={`${formatDate(day.date)}: ${tooltipFor(day)} · click para ver el día`}
+                          aria-label={`${formatDate(day.date)}: ${tooltipFor(day)}`}
+                        />
+                      )
+                    }
                     return (
                       <div
                         key={di}
-                        className={`w-[11px] h-[11px] rounded-[2px] transition-opacity ${
-                          isToday ? 'ring-1 ring-ink-700/40 ring-offset-1 ring-offset-paper-50' : ''
-                        }`}
-                        style={{
-                          backgroundColor: dominantColor(day),
-                          opacity: day.total > 0 ? intensity : 0.4,
-                        }}
+                        className={cellClass}
+                        style={cellStyle}
                         title={`${formatDate(day.date)}: ${tooltipFor(day)}`}
                       />
                     )
@@ -280,4 +314,16 @@ function tooltipFor(d: DayBucket): string {
   if (d.quotes > 0) parts.push(`${d.quotes} citas`)
   if (d.relationships > 0) parts.push(`${d.relationships} relaciones`)
   return parts.join(' · ')
+}
+
+/**
+ * ω-D: ISO date YYYY-MM-DD a partir de un Date local. NO usamos
+ * toISOString() porque eso convierte a UTC y un día visible "lunes"
+ * en local podría volver "domingo" en UTC dependiendo del huso.
+ */
+function toIsoDate(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }

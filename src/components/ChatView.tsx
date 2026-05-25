@@ -145,14 +145,20 @@ export function ChatView({
       threads
         .map((t) => t.context)
         .filter((c): c is string => !!c)
-        .map((c) => (c.startsWith('entity:') ? 'entidad' : c)),
+        // ρ-consistency: el chip del filtro representa la COLECCIÓN
+        // (varios hilos sobre entidades) — plural. El chip dentro de
+        // cada thread row sigue usando "entidad" singular porque ESE
+        // hilo trata de UNA entidad. Pequeña distinción pero ayuda a
+        // que el filtro lea uniforme: TODOS · LIBRES · CITAS · ENTIDADES
+        // · GRAFO · RELACIONES (todos plural).
+        .map((c) => (c.startsWith('entity:') ? 'entidades' : c)),
     ),
   ).sort()
 
   const visibleThreads = threads.filter((t) => {
     if (contextFilter === 'all') return true
     if (contextFilter === 'free') return t.context === null
-    if (contextFilter === 'entidad') return t.context?.startsWith('entity:') ?? false
+    if (contextFilter === 'entidades') return t.context?.startsWith('entity:') ?? false
     return t.context === contextFilter
   })
 
@@ -172,7 +178,10 @@ export function ChatView({
           </button>
         </div>
         {availableContexts.length > 0 && (
-          <div className="px-3 py-2 border-b border-ink-100/40 flex flex-wrap gap-1">
+          // ρ-fix-chat: gap-0.5 + px-1.5/py-0 en cada chip — antes
+          // gap-1 + px-2 generaba dos filas en wraps típicos. Ahora
+          // entran todos en una sola línea para los 6 valores estándar.
+          <div className="px-3 py-2 border-b border-ink-100/40 flex flex-wrap gap-0.5">
             <FilterChip
               label="todos"
               active={contextFilter === 'all'}
@@ -231,8 +240,13 @@ export function ChatView({
                         {t.messageCount} {t.messageCount === 1 ? 'mensaje' : 'mensajes'}
                       </span>
                       {t.context && (
+                        // ρ-fix-chat: chip de contexto más chico — antes
+                        // px-2/py-0.5 + tracking-eyebrow lo convertía en
+                        // un bloque grueso que dominaba la fila. Ahora
+                        // px-1/py-0 + tracking-wider — sigue legible pero
+                        // se siente "marginalia".
                         <span
-                          className="px-2 py-0.5 rounded-full font-medium"
+                          className="px-1 py-0 rounded text-[9px] uppercase tracking-wider font-medium leading-none"
                           style={{
                             backgroundColor: 'var(--accent-primary-soft)',
                             color: 'var(--accent-primary)',
@@ -263,10 +277,17 @@ export function ChatView({
           <h2 className="font-serif text-2xl text-ink-700 leading-none">
             {activeThread?.title ?? defaultTitleFor(activeThread?.context)}
           </h2>
-          <p className="mt-1.5 text-xs text-ink-400 leading-relaxed">
-            La IA ve toda tu trama: entidades, relaciones y citas. Pregúntale,
-            conversa, y cuando te ofrezca agregar algo, decides.
-          </p>
+          {/* ρ-micro: subtitle por hilo en vez de descripción genérica
+              de la app. Antes era la misma frase ("La IA ve toda tu
+              trama…") siempre — informativa el primer día, ruido a
+              partir del segundo. Ahora dice de dónde nació este hilo
+              específico. Si no hay hilo activo, el EmptyChatHint del
+              cuerpo explica. */}
+          {activeThread && (
+            <p className="mt-1.5 text-xs text-ink-400 leading-relaxed">
+              {threadSubtitle(activeThread.context)}
+            </p>
+          )}
         </header>
 
         <div className="flex-1 overflow-y-auto px-6 py-6">
@@ -416,6 +437,23 @@ function defaultTitleFor(context: string | null | undefined): string {
   if (context.startsWith('entity:')) return 'Conversación con una entidad'
   const label = context.charAt(0).toUpperCase() + context.slice(1)
   return `Hilo de ${label}`
+}
+
+/**
+ * ρ-micro: subtitle contextual del hilo activo. Antes el subtitle era
+ * la misma descripción de la app en todos los hilos (ruido). Ahora
+ * cuenta de DÓNDE nació este hilo en particular — chat libre o
+ * iniciado desde una sección concreta.
+ */
+function threadSubtitle(context: string | null | undefined): string {
+  if (!context) {
+    return 'Conversación libre — la IA usa toda tu trama como contexto.'
+  }
+  if (context.startsWith('entity:')) {
+    return 'Hilo enfocado en una entidad de tu trama.'
+  }
+  const label = context.charAt(0).toUpperCase() + context.slice(1)
+  return `Iniciado desde ${label}.`
 }
 
 function FilterChip({

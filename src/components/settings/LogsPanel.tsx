@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api, type ErrorLogEntry, type ExtractionLogEntry } from '../../api'
 import { PanelHeader } from './_shared'
@@ -92,11 +92,22 @@ function ErrorList() {
     )
   }
 
+  // ρ-micro: agrupamos errores idénticos para que un bug recurrente no
+  // contamine la lista. El "representante" del grupo es el entry más
+  // reciente (su stack es el que se ve al expandir). El conteo aparece
+  // como badge.
+  const grouped = useMemo(() => dedupErrorEntries(data), [data])
+  const totalUnique = grouped.length
+  const totalRaw = data.length
+
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between">
         <p className="text-micro uppercase tracking-eyebrow text-ink-400 tabular-nums">
-          {data.length} {data.length === 1 ? 'error' : 'errores'} · histórico
+          {totalUnique} {totalUnique === 1 ? 'patrón' : 'patrones'}
+          {totalRaw !== totalUnique && (
+            <span className="text-ink-300"> · {totalRaw} eventos</span>
+          )}
         </p>
         <button
           onClick={() => refetch()}
@@ -107,12 +118,15 @@ function ErrorList() {
         </button>
       </div>
       <ul className="space-y-2">
-        {data.map((e) => (
+        {grouped.map((g) => (
           <ErrorRow
-            key={e.id}
-            entry={e}
-            expanded={expandedId === e.id}
-            onToggle={() => setExpandedId(expandedId === e.id ? null : e.id)}
+            key={g.representative.id}
+            entry={g.representative}
+            count={g.count}
+            expanded={expandedId === g.representative.id}
+            onToggle={() =>
+              setExpandedId(expandedId === g.representative.id ? null : g.representative.id)
+            }
           />
         ))}
       </ul>
@@ -120,12 +134,40 @@ function ErrorList() {
   )
 }
 
+/**
+ * ρ-micro: agrupa errores con misma function + same first 200 chars del
+ * message. El representante es el más reciente — su stack es el que se
+ * muestra al expandir.
+ */
+function dedupErrorEntries(
+  entries: ErrorLogEntry[],
+): Array<{ representative: ErrorLogEntry; count: number }> {
+  const groups = new Map<string, { representative: ErrorLogEntry; count: number }>()
+  for (const e of entries) {
+    const key = `${e.functionName}|${e.statusCode ?? 'NA'}|${e.message.slice(0, 200)}`
+    const existing = groups.get(key)
+    if (existing) {
+      existing.count += 1
+      if (e.createdAt > existing.representative.createdAt) {
+        existing.representative = e
+      }
+    } else {
+      groups.set(key, { representative: e, count: 1 })
+    }
+  }
+  return Array.from(groups.values()).sort((a, b) =>
+    a.representative.createdAt < b.representative.createdAt ? 1 : -1,
+  )
+}
+
 function ErrorRow({
   entry,
+  count = 1,
   expanded,
   onToggle,
 }: {
   entry: ErrorLogEntry
+  count?: number
   expanded: boolean
   onToggle: () => void
 }) {
@@ -156,6 +198,15 @@ function ErrorRow({
           <span className="text-xs text-ink-600 font-medium font-mono">
             {entry.functionName}
           </span>
+          {/* ρ-micro: count del patrón de error si está agrupado. */}
+          {count > 1 && (
+            <span
+              className="text-micro tabular-nums text-ink-400 px-1.5 py-0.5 bg-paper-100 rounded"
+              title={`${count} ocurrencias del mismo error`}
+            >
+              {count}×
+            </span>
+          )}
         </div>
 
         {/* message preview — truncado en una línea */}

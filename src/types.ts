@@ -116,6 +116,8 @@ export type Quote = {
   aiReflectionAt?: string
   /** Soft references to other quotes (no FK, so a deletion doesn't cascade-cleanse). */
   linkedQuoteIds: string[]
+  /** ω-E: timestamp de cuándo fue marcada como favorita. null/undefined = no es favorita. */
+  pinnedAt?: string
   origin: Origin
   createdAt: string
   updatedAt: string
@@ -136,12 +138,22 @@ export type MomentoPayload = {
   source?: string
   author?: string
   screenshotKey?: string
-  // 'foto'
+  // 'foto' — single legacy
   storageKey?: string
   width?: number
   height?: number
   caption?: string
   exifDate?: string
+  /** υ-multi: array de fotos para un solo momento (un "episodio").
+   *  Los nuevos momentos foto SIEMPRE guardan `items` (con 1+ entradas).
+   *  Los antiguos siguen funcionando con `storageKey/width/height`
+   *  legacy — el render lee `items` si existe; si no, cae al par
+   *  single. */
+  items?: Array<{
+    storageKey: string
+    width?: number
+    height?: number
+  }>
 }
 
 export type Momento = {

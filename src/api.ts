@@ -49,6 +49,8 @@ type QuoteRow = {
   ai_reflection_model?: string | null
   ai_reflection_at?: string | null
   linked_quote_ids?: string[] | null
+  /** ω-E: pinned (favorita) — timestamp ISO o null. */
+  pinned_at?: string | null
   context: string | null
   origin: Origin | string
   created_at: string
@@ -104,6 +106,7 @@ function quoteFromRow(row: QuoteRow): Quote {
     aiReflectionModel: row.ai_reflection_model ?? undefined,
     aiReflectionAt: row.ai_reflection_at ?? undefined,
     linkedQuoteIds: Array.isArray(row.linked_quote_ids) ? row.linked_quote_ids : [],
+    pinnedAt: row.pinned_at ?? undefined,
     origin: asOrigin(row.origin),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -326,7 +329,7 @@ export const api = {
     const rows = await request<QuoteRow[]>('/api/quotes')
     return rows.map(quoteFromRow)
   },
-  async getCounts(): Promise<{ entities: number; quotes: number; relationships: number }> {
+  async getCounts(): Promise<{ entities: number; quotes: number; relationships: number; momentos: number }> {
     return request('/api/counts')
   },
   async getHealth(): Promise<HealthResponse> {
@@ -423,6 +426,9 @@ export const api = {
       aiReflectionProvider: string | null
       aiReflectionModel: string | null
       linkedQuoteIds: string[]
+      /** ω-E: marcar/desmarcar como favorita. true → set pinned_at = NOW().
+          false → null. undefined → no se toca. */
+      pinned: boolean
     }>,
   ): Promise<Quote> {
     const body: Record<string, unknown> = {}
@@ -435,6 +441,7 @@ export const api = {
     if (patch.aiReflectionProvider !== undefined) body.ai_reflection_provider = patch.aiReflectionProvider
     if (patch.aiReflectionModel !== undefined) body.ai_reflection_model = patch.aiReflectionModel
     if (patch.linkedQuoteIds !== undefined) body.linked_quote_ids = patch.linkedQuoteIds
+    if (patch.pinned !== undefined) body.pinned = patch.pinned
     const row = await request<QuoteRow>(`/api/quotes/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
@@ -797,20 +804,12 @@ export const api = {
 
   /** ξ2: server-side fetch del OG/Twitter meta de una URL. */
   async momentoUrlPreview(url: string): Promise<MomentoUrlPreview> {
+    // υ-bugfix: path movido de `/api/momentos/url-preview` a
+    // `/api/momentos-url-preview` porque `:id` de momentos.mts matcheaba
+    // "url-preview" como un id y rechazaba el GET.
     return request<MomentoUrlPreview>(
-      `/api/momentos/url-preview?url=${encodeURIComponent(url)}`,
+      `/api/momentos-url-preview?url=${encodeURIComponent(url)}`,
     )
-  },
-
-  /** ξ2: pide a la IA qué entidades EXISTENTES de la trama están mencionadas
-      en el momento. No propone entidades nuevas — pipeline más liviana. */
-  async momentoSuggestEntities(
-    id: string,
-  ): Promise<{ matchedIds: string[]; provider: string | null; model: string | null }> {
-    return request(`/api/momentos/${id}/suggest-entities`, {
-      method: 'POST',
-      body: '{}',
-    })
   },
 
   /** ξ3: sube un archivo de imagen a Netlify Blobs. Devuelve la storageKey
@@ -822,7 +821,10 @@ export const api = {
   }> {
     const form = new FormData()
     form.append('file', file)
-    const response = await fetch('/api/momentos/upload', {
+    // υ-bugfix: path movido de `/api/momentos/upload` a
+    // `/api/momentos-upload` por el mismo conflicto con :id que causaba
+    // 405 Method not allowed.
+    const response = await fetch('/api/momentos-upload', {
       method: 'POST',
       body: form,
       headers: { 'X-AI-Mode': aiModeHeader() },
@@ -832,20 +834,6 @@ export const api = {
       throw new Error(`upload → ${response.status} ${text}`.trim())
     }
     return response.json()
-  },
-
-  /** ξ3: vision suggest. Para fotos: pide caption + matchedIds (personas
-      registradas que aparecen). Solo aplicable a kind='foto'. */
-  async momentoVisionSuggest(id: string): Promise<{
-    caption: string | null
-    matchedIds: string[]
-    provider: string | null
-    model: string | null
-  }> {
-    return request(`/api/momentos/${id}/vision-suggest`, {
-      method: 'POST',
-      body: '{}',
-    })
   },
 }
 
