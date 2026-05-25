@@ -3,6 +3,7 @@ import { useExport, useImport } from '../../state'
 import type { ExportPayload } from '../../types'
 import { DownloadIcon, UploadIcon } from '../Icons'
 import { PanelHeader } from './_shared'
+import { RescueOrphansPanel } from '../momentos/RescueOrphansPanel'
 
 export function DataPanel() {
   const doExport = useExport()
@@ -102,6 +103,16 @@ export function DataPanel() {
         onChange={handleFileChange}
         className="hidden"
       />
+
+      {/* DD1: recovery de fotos subidas desde deploy previews. Solo aparece
+          si hay blobs huérfanos. */}
+      <div className="mt-10 pt-6 border-t border-ink-100/50">
+        <PanelHeader
+          title="Fotos huérfanas"
+          hint="Imágenes que están en el storage pero ningún Momento las referencia. Suele pasar cuando se sube desde un deploy preview (la BD del preview es efímera)."
+        />
+        <RescueOrphansPanel />
+      </div>
     </section>
   )
 }
