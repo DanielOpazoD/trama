@@ -154,19 +154,17 @@ export function MergeMomentosBar({
             misma estructura visual, sólo cambian copy + botones. */}
         {confirming ? (
           <div
-            className="px-4 py-3 flex items-baseline justify-between gap-4"
+            className="px-4 py-3 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-3"
             style={{ backgroundColor: 'var(--accent-gold-soft)' }}
             role="alertdialog"
             aria-label="Confirmar fusión"
           >
-            <div className="min-w-0">
-              <p className="text-sm text-ink-700">
-                Vas a fusionar <strong className="tabular-nums">{fotos.length}</strong>{' '}
-                momentos en uno. Los otros{' '}
-                <strong className="tabular-nums">{fotos.length - 1}</strong>{' '}
-                quedarán archivados (podés deshacer desde el toast).
-              </p>
-            </div>
+            <p className="text-sm text-ink-700 min-w-0">
+              Vas a fusionar <strong className="tabular-nums">{fotos.length}</strong>{' '}
+              momentos en uno. Los otros{' '}
+              <strong className="tabular-nums">{fotos.length - 1}</strong>{' '}
+              quedarán archivados (podés deshacer desde el toast).
+            </p>
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
@@ -188,8 +186,8 @@ export function MergeMomentosBar({
             </div>
           </div>
         ) : (
-          <div className="px-4 py-3 flex items-baseline justify-between gap-4 border-b border-ink-100/40">
-            <div className="flex items-baseline gap-3 min-w-0">
+          <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-3 border-b border-ink-100/40">
+            <div className="flex items-baseline flex-wrap gap-x-3 gap-y-1 min-w-0">
               <span className="text-sm text-ink-700 font-medium tabular-nums">
                 {selected.length} {selected.length === 1 ? 'seleccionado' : 'seleccionados'}
               </span>

@@ -315,24 +315,35 @@ function SelectableMomento({
       />
     )
   }
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>): void {
+    // EE-followup #8: a11y — Space + Enter toggle el checkbox.
+    // Es la convención WAI-ARIA estándar para `role="checkbox"`.
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault()
+      onToggleSelect()
+    }
+  }
+
   return (
     <div
-      className={`relative rounded-xl transition-all cursor-pointer ${
+      className={`relative rounded-xl transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
         selected
           ? 'ring-2 ring-offset-2'
           : 'ring-1 ring-transparent hover:ring-ink-100/80'
       }`}
-      style={
-        selected
-          ? {
-              // @ts-expect-error ring color via CSS var
-              '--tw-ring-color': 'var(--accent-gold)',
-            }
-          : undefined
-      }
+      style={{
+        // El ring color via CSS var directa funciona; antes usábamos
+        // un --tw-ring-color como hack que requería @ts-expect-error.
+        // Ahora seteamos boxShadow directo cuando está seleccionado.
+        ...(selected
+          ? { boxShadow: '0 0 0 2px var(--accent-gold), 0 0 0 4px rgb(var(--paper-50))' }
+          : {}),
+      }}
       onClick={onToggleSelect}
+      onKeyDown={handleKeyDown}
       role="checkbox"
       aria-checked={selected}
+      tabIndex={0}
       aria-label={`Seleccionar momento del ${momento.capturedAt.slice(0, 10)}`}
     >
       {/* Checkbox visual arriba a la izquierda */}

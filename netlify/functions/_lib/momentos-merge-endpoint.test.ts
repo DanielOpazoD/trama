@@ -36,11 +36,15 @@ describe('momentos-merge endpoint', () => {
     expect(res.status).toBe(405)
   })
 
+  // UUIDs válidos para tests que llegan a la fase de SQL.
+  const UUID_A = '11111111-1111-1111-1111-111111111111'
+  const UUID_B = '22222222-2222-2222-2222-222222222222'
+
   it('400 sin primaryId', async () => {
     const res = await handler(
       new Request('http://localhost/api/momentos-merge', {
         method: 'POST',
-        body: JSON.stringify({ otherIds: ['a'] }),
+        body: JSON.stringify({ otherIds: [UUID_A] }),
       }),
       mockContext(),
     )
@@ -52,7 +56,7 @@ describe('momentos-merge endpoint', () => {
     const res = await handler(
       new Request('http://localhost/api/momentos-merge', {
         method: 'POST',
-        body: JSON.stringify({ primaryId: 'p', otherIds: [] }),
+        body: JSON.stringify({ primaryId: UUID_A, otherIds: [] }),
       }),
       mockContext(),
     )
@@ -64,12 +68,52 @@ describe('momentos-merge endpoint', () => {
     const res = await handler(
       new Request('http://localhost/api/momentos-merge', {
         method: 'POST',
-        body: JSON.stringify({ primaryId: 'p', otherIds: ['p'] }),
+        body: JSON.stringify({ primaryId: UUID_A, otherIds: [UUID_A] }),
       }),
       mockContext(),
     )
     expect(res.status).toBe(400)
     expect(await res.text()).toMatch(/no puede estar/i)
+  })
+
+  // EE-followup #5: validación UUID en código.
+  it('400 si primaryId no es un UUID válido', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/momentos-merge', {
+        method: 'POST',
+        body: JSON.stringify({ primaryId: 'not-a-uuid', otherIds: [UUID_A] }),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(400)
+    expect(await res.text()).toMatch(/UUID válido/)
+  })
+
+  it('400 si algún otherId no es un UUID válido', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/momentos-merge', {
+        method: 'POST',
+        body: JSON.stringify({ primaryId: UUID_A, otherIds: ['bad-id'] }),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(400)
+    expect(await res.text()).toMatch(/UUID inválido/)
+  })
+
+  it('400 si otherIds > 50 elementos', async () => {
+    const tooMany = Array.from({ length: 51 }, (_, i) =>
+      `${String(i).padStart(8, '0')}-1111-1111-1111-111111111111`
+    )
+    const res = await handler(
+      new Request('http://localhost/api/momentos-merge', {
+        method: 'POST',
+        body: JSON.stringify({ primaryId: UUID_A, otherIds: tooMany }),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(400)
+    expect(await res.text()).toMatch(/máximo 50/)
   })
 
   it('404 si algún id no está en la BD', async () => {
@@ -153,13 +197,30 @@ describe('momentos-merge endpoint', () => {
         note: null,
       },
     ])
-    // UPDATE primary, INSERT entity_links: vacíos.
-    mockSqlResponses.push([])
-    mockSqlResponses.push([])
-    // UPDATE soft-delete others ahora devuelve [{id, deleted_at}] (EE-followup).
+    // CTE atómico (EE-followup #4): un solo query que combina UPDATE
+    // primary + INSERT links + soft-delete others. Devuelve { primary,
+    // deleted_others, links_inserted }.
     mockSqlResponses.push([
-      { id: '22222222-2222-2222-2222-222222222222', deleted_at: '2026-05-25T13:00:00Z' },
-      { id: '33333333-3333-3333-3333-333333333333', deleted_at: '2026-05-25T13:00:00Z' },
+      {
+        primary: {
+          id: '11111111-1111-1111-1111-111111111111',
+          kind: 'foto',
+          captured_at: '2026-05-22T10:00:00Z',
+          payload: {
+            items: [
+              { storageKey: 'a.jpg', width: 100, height: 100 },
+              { storageKey: 'b.jpg' },
+              { storageKey: 'c.jpg' },
+            ],
+          },
+          note: 'Cumpleaños de Ana',
+        },
+        deleted_others: [
+          { id: '22222222-2222-2222-2222-222222222222', deletedAt: '2026-05-25T13:00:00Z' },
+          { id: '33333333-3333-3333-3333-333333333333', deletedAt: '2026-05-25T13:00:00Z' },
+        ],
+        links_inserted: 0,
+      },
     ])
     // SELECT final del primary actualizado.
     mockSqlResponses.push([
@@ -211,17 +272,13 @@ describe('momentos-merge endpoint', () => {
       { id: '33333333-3333-3333-3333-333333333333', deletedAt: '2026-05-25T13:00:00Z' },
     ])
 
-    // Verificar que las queries críticas se hicieron:
-    // - UPDATE primary con payload nuevo (incluye los 3 items)
-    const updatePrimary = mockSqlState.calls.find((c) =>
-      c.template.includes('UPDATE momentos') && c.template.includes('payload =')
+    // Verificar que el CTE atómico se hizo (un solo query con todas las
+    // operaciones de escritura).
+    const cte = mockSqlState.calls.find((c) =>
+      c.template.includes('WITH update_primary') &&
+      c.template.includes('soft_delete_others'),
     )
-    expect(updatePrimary).toBeDefined()
-    // - UPDATE de soft-delete sobre los otherIds.
-    const softDelete = mockSqlState.calls.find((c) =>
-      c.template.includes('SET deleted_at = NOW()'),
-    )
-    expect(softDelete).toBeDefined()
+    expect(cte).toBeDefined()
   })
 
   it('dedupea items[] por storageKey (no agrega duplicados)', async () => {
@@ -243,11 +300,21 @@ describe('momentos-merge endpoint', () => {
         note: null,
       },
     ])
-    // UPDATE primary + INSERT links: vacíos.
-    mockSqlResponses.push([], [])
-    // UPDATE soft-delete others (EE-followup): devuelve la fila borrada.
+    // CTE atómico devuelve {primary, deleted_others, links_inserted}.
     mockSqlResponses.push([
-      { id: '22222222-2222-2222-2222-222222222222', deleted_at: '2026-05-25T13:00:00Z' },
+      {
+        primary: {
+          id: '11111111-1111-1111-1111-111111111111',
+          kind: 'foto',
+          captured_at: '2026-05-22T10:00:00Z',
+          payload: { items: [{ storageKey: 'a.jpg' }, { storageKey: 'b.jpg' }] },
+          note: null,
+        },
+        deleted_others: [
+          { id: '22222222-2222-2222-2222-222222222222', deletedAt: '2026-05-25T13:00:00Z' },
+        ],
+        links_inserted: 0,
+      },
     ])
     mockSqlResponses.push([
       {

@@ -100,6 +100,23 @@ export default withObservability('momentos-merge', async (req: Request) => {
   if (otherIds.includes(primaryId)) {
     return new Response('primaryId no puede estar en otherIds', { status: 400 })
   }
+  // EE-followup #5: validar UUID format en código en vez de dejar que
+  // Postgres reviente con 500 en el cast ::uuid. Devolvemos 400 más
+  // claro al cliente.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_RE.test(primaryId)) {
+    return new Response(`primaryId no es un UUID válido: ${primaryId}`, { status: 400 })
+  }
+  for (const id of otherIds) {
+    if (!UUID_RE.test(id)) {
+      return new Response(`otherIds contiene un UUID inválido: ${id}`, { status: 400 })
+    }
+  }
+  // Defensa contra payloads enormes: 50 es más que cualquier evento
+  // razonable que un humano agruparía como un solo "momento".
+  if (otherIds.length > 50) {
+    return new Response('otherIds: máximo 50 por merge', { status: 400 })
+  }
 
   // Lee todos los momentos involucrados de una. unnest evita N+1 queries.
   type Row = {
@@ -187,52 +204,94 @@ export default withObservability('momentos-merge', async (req: Request) => {
       : primary.captured_at
 
   // Re-embed. La nueva concatenación de items + posible nuevo note
-  // cambia el texto fuente. Best-effort.
+  // cambia el texto fuente. Best-effort — si OpenAI falla, embedding
+  // queda en NULL para este momento (queries semánticas no lo encuentran
+  // hasta el próximo PATCH/re-embed, pero las queries normales sí).
   const embedSource = momentoEmbedText(
     'foto',
     newPayload as Record<string, unknown>,
     newNote,
   )
   const emb = embedSource.length > 0 ? await embedSafe(embedSource) : null
+  const embVector = emb ? toPgVector(emb.vector) : null
+  const embModel = emb?.model ?? null
+  const embAt = emb ? new Date().toISOString() : null
 
-  // UPDATE primary.
-  await sql`
-    UPDATE momentos
-    SET payload = ${JSON.stringify(newPayload)}::jsonb,
-        note = ${newNote},
-        captured_at = ${newCapturedAt}::timestamptz,
-        embedding = ${emb ? toPgVector(emb.vector) : null}::vector,
-        embedding_model = ${emb?.model ?? null},
-        embedding_at = ${emb ? new Date().toISOString() : null}::timestamptz,
-        updated_at = NOW()
-    WHERE id = ${primaryId}
-  `
-
-  // Union de entity_ids. Insertamos los de los others en momento_entities
-  // del primary (ON CONFLICT DO NOTHING dedupea).
-  await sql`
-    INSERT INTO momento_entities (momento_id, entity_id)
-    SELECT ${primaryId}::uuid, entity_id
-    FROM momento_entities
-    WHERE momento_id = ANY(${otherIds}::uuid[])
-    ON CONFLICT DO NOTHING
-  `
-
-  // Soft-delete los otros. Los entity_ids de momento_entities NO se
-  // borran (FK CASCADE no aplica acá porque es soft-delete). Si después
-  // se restaura un other, sus links siguen ahí — está bien, los rows
-  // soft-deletados no aparecen en queries normales.
+  // EE-followup #4: atomicidad real via CTE en un solo statement.
   //
-  // RETURNING captura el deleted_at exacto que se asignó — el cliente
-  // necesita ese timestamp para hacer "deshacer" via /api/momentos-restore.
-  const deletedRows = (await sql`
-    UPDATE momentos
-    SET deleted_at = NOW(), updated_at = NOW()
-    WHERE id = ANY(${otherIds}::uuid[]) AND deleted_at IS NULL
-    RETURNING id, deleted_at
-  `) as Array<{ id: string; deleted_at: string }>
+  // Antes esto eran 3 SQL writes secuenciales (UPDATE primary, INSERT
+  // links, UPDATE soft-delete others). Si el Lambda crasheaba o el HTTP
+  // driver se desconectaba entre cualquiera de ellos, quedaba un estado
+  // inconsistente — primary con items combinados pero others no
+  // borrados, por ejemplo.
+  //
+  // Postgres ejecuta CTEs en un single statement atomic — todos los
+  // sub-writes commitean juntos o ninguno. Esto nos da transacción
+  // sin necesitar el driver Pool con BEGIN/COMMIT (que el Neon HTTP
+  // driver no soporta).
+  //
+  // Orden semántico de las CTEs (Postgres las evalúa según el árbol de
+  // dependencias, pero los `WITH … RETURNING` que NO se referencian
+  // sólo afectan rows; los efectos colaterales corren igual):
+  //   1. update_primary: setea payload + note + capturedAt + embedding
+  //   2. link_others: copia entity_id de others a primary (UNION)
+  //   3. soft_delete_others: marca deleted_at en others
+  // Final SELECT trae el primary actualizado.
+  const result = (await sql`
+    WITH update_primary AS (
+      UPDATE momentos
+      SET payload = ${JSON.stringify(newPayload)}::jsonb,
+          note = ${newNote},
+          captured_at = ${newCapturedAt}::timestamptz,
+          embedding = ${embVector}::vector,
+          embedding_model = ${embModel},
+          embedding_at = ${embAt}::timestamptz,
+          updated_at = NOW()
+      WHERE id = ${primaryId}
+      RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
+    ),
+    link_others AS (
+      INSERT INTO momento_entities (momento_id, entity_id)
+      SELECT ${primaryId}::uuid, entity_id
+      FROM momento_entities
+      WHERE momento_id = ANY(${otherIds}::uuid[])
+      ON CONFLICT DO NOTHING
+      RETURNING 1
+    ),
+    soft_delete_others AS (
+      UPDATE momentos
+      SET deleted_at = NOW(), updated_at = NOW()
+      WHERE id = ANY(${otherIds}::uuid[]) AND deleted_at IS NULL
+      RETURNING id, deleted_at
+    )
+    SELECT
+      (SELECT row_to_json(update_primary) FROM update_primary) AS primary,
+      COALESCE(
+        (SELECT json_agg(json_build_object('id', id, 'deletedAt', deleted_at))
+         FROM soft_delete_others),
+        '[]'::json
+      ) AS deleted_others,
+      (SELECT COUNT(*) FROM link_others)::int AS links_inserted
+  `) as Array<{
+    primary: Record<string, unknown> | null
+    deleted_others: Array<{ id: string; deletedAt: string }>
+    links_inserted: number
+  }>
 
-  // Devolver el primary actualizado con shape estándar.
+  const cteRow = result[0]
+  if (!cteRow || !cteRow.primary) {
+    return new Response('Fusión falló: el primary no se pudo actualizar', {
+      status: 500,
+    })
+  }
+  const deletedRows = cteRow.deleted_others.map((d) => ({
+    id: d.id,
+    deleted_at: d.deletedAt,
+  }))
+
+  // Devolver el primary actualizado. Lo obtuvimos del CTE (cteRow.primary)
+  // pero hacemos un re-SELECT para tener la versión más reciente (por si
+  // el row tiene triggers que tocan updated_at, etc.).
   const updated = (await sql`
     SELECT id, kind, captured_at, payload, note, origin,
            created_at, updated_at
