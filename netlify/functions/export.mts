@@ -1,7 +1,8 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
+import { withObservability } from './_lib/handler-wrap.js'
 
-export default async (req: Request) => {
+export default withObservability('export', async (req: Request) => {
   if (req.method !== 'GET') {
     return new Response('Method not allowed', { status: 405 })
   }
@@ -92,7 +93,7 @@ export default async (req: Request) => {
       'Content-Disposition': `attachment; filename="trama-${new Date().toISOString().slice(0, 10)}.json"`,
     },
   })
-}
+})
 
 export const config: Config = {
   path: '/api/export',

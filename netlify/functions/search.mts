@@ -4,6 +4,7 @@ import { embedSafe, toPgVector } from './_lib/embeddings.js'
 import { fuseRanked, type Ranked } from './_lib/rrf.js'
 import { describeEntity, describeQuote, llmRerank } from './_lib/llm-rerank.js'
 import { resolveAIInvocation } from './_lib/ai-mode.js'
+import { withObservability } from './_lib/handler-wrap.js'
 
 /**
  * Hybrid search across entities (name + description) and quotes (text +
@@ -23,7 +24,7 @@ import { resolveAIInvocation } from './_lib/ai-mode.js'
  *   limit   — optional, default 15, max 50
  *   mode    — 'hybrid' (default) | 'lexical' | 'semantic'
  */
-export default async (req: Request) => {
+export default withObservability('search', async (req: Request) => {
   if (req.method !== 'GET') {
     return new Response('Method not allowed', { status: 405 })
   }
@@ -243,7 +244,7 @@ export default async (req: Request) => {
     mode,
     reranked: wantsRerank && (!!entitiesReorderedIds || !!quotesReorderedIds),
   })
-}
+})
 
 export const config: Config = {
   path: '/api/search',

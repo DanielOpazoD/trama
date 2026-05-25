@@ -1,7 +1,8 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
+import { withObservability } from './_lib/handler-wrap.js'
 
-export default async (req: Request, context: Context) => {
+export default withObservability('entity-types', async (req: Request, context: Context) => {
   const sql = getSql()
   const slug = context.params.slug
 
@@ -52,7 +53,7 @@ export default async (req: Request, context: Context) => {
   }
 
   return new Response('Method not allowed', { status: 405 })
-}
+})
 
 export const config: Config = {
   path: ['/api/entity-types', '/api/entity-types/:slug'],

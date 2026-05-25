@@ -3,6 +3,7 @@ import type {
   EntityType,
   ExportPayload,
   ExtractionProposal,
+  ImportResult,
   Momento,
   MomentoKind,
   MomentoPayload,
@@ -641,8 +642,8 @@ export const api = {
     return request<ExportPayload>('/api/export')
   },
 
-  async importAll(payload: ExportPayload): Promise<{ imported: number }> {
-    return request<{ imported: number }>('/api/import', {
+  async importAll(payload: ExportPayload): Promise<ImportResult> {
+    return request<ImportResult>('/api/import', {
       method: 'POST',
       body: JSON.stringify(payload),
     })
