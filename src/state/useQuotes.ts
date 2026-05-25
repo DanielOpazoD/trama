@@ -72,6 +72,11 @@ export function useInfiniteQuotesQuery() {
   })
 }
 
+/**
+ * BB4: optimistic — insert un Quote temporal en cache antes del round-trip,
+ * y reemplazar con el real al volver. Si el server rechaza, rollback al
+ * snapshot.
+ */
 export function useAddQuote() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
@@ -94,11 +99,34 @@ export function useAddQuote() {
       }
       return api.createQuote(payload)
     },
-    onSuccess: (created) => {
-      queryClient.setQueryData<Quote[]>(queryKeys.quotes, (prev) => [
-        created,
-        ...(prev ?? []),
-      ])
+    onMutate: async (data) => {
+      if (offline) return { previous: null, tempId: null }
+      await queryClient.cancelQueries({ queryKey: queryKeys.quotes })
+      const previous = queryClient.getQueryData<Quote[]>(queryKeys.quotes) ?? []
+      const tempId = `__optimistic_${newId()}`
+      const optimistic: Quote = {
+        ...data,
+        id: tempId,
+        origin: data.origin ?? DEFAULT_ORIGIN,
+        linkedQuoteIds: data.linkedQuoteIds ?? [],
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      }
+      queryClient.setQueryData<Quote[]>(queryKeys.quotes, [optimistic, ...previous])
+      return { previous, tempId }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.quotes, context.previous)
+      }
+    },
+    onSuccess: (created, _vars, context) => {
+      queryClient.setQueryData<Quote[]>(queryKeys.quotes, (prev) => {
+        if (!prev) return [created]
+        const tempId = context?.tempId ?? null
+        const withoutTemp = tempId ? prev.filter((q) => q.id !== tempId) : prev
+        return [created, ...withoutTemp]
+      })
       // Reset the infinite list so QuotesView re-fetches from the top and
       // the new quote appears in page 1 without dedupe gymnastics.
       queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
@@ -127,6 +155,44 @@ export function useUpdateQuote() {
     mutationFn: async ({ id, patch }: { id: string; patch: QuotePatch }) => {
       if (offline) throw new Error('Editar requiere conexión al backend.')
       return api.updateQuote(id, patch)
+    },
+    onMutate: async ({ id, patch }) => {
+      // BB4: aplicar el patch en cache al instante. La estrella ω-E (pinned)
+      // y la edición inline de texto se sienten instantáneas.
+      await queryClient.cancelQueries({ queryKey: queryKeys.quotes })
+      const previous = queryClient.getQueryData<Quote[]>(queryKeys.quotes) ?? []
+      queryClient.setQueryData<Quote[]>(queryKeys.quotes, (prev) =>
+        (prev ?? []).map((q) =>
+          q.id === id
+            ? {
+                ...q,
+                ...(patch.text !== undefined ? { text: patch.text } : {}),
+                ...(patch.source !== undefined ? { source: patch.source ?? undefined } : {}),
+                ...(patch.context !== undefined ? { context: patch.context ?? undefined } : {}),
+                ...(patch.entityId !== undefined ? { entityId: patch.entityId } : {}),
+                ...(patch.userReflection !== undefined
+                  ? { userReflection: patch.userReflection ?? undefined }
+                  : {}),
+                ...(patch.aiReflection !== undefined
+                  ? { aiReflection: patch.aiReflection ?? undefined }
+                  : {}),
+                ...(patch.linkedQuoteIds !== undefined
+                  ? { linkedQuoteIds: patch.linkedQuoteIds }
+                  : {}),
+                ...(patch.pinned !== undefined
+                  ? { pinnedAt: patch.pinned ? nowIso() : undefined }
+                  : {}),
+                updatedAt: nowIso(),
+              }
+            : q,
+        ),
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.quotes, context.previous)
+      }
     },
     onSuccess: (updated) => {
       queryClient.setQueryData<Quote[]>(queryKeys.quotes, (prev) =>
