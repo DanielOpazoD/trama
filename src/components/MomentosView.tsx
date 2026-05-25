@@ -114,6 +114,16 @@ export function MomentosView() {
     setSelectedIds(new Set())
   }
 
+  // EE: si el usuario cambia a vista álbum mientras selectionMode=true,
+  // limpiar para no dejar la barra flotante huérfana. AlbumGrid no
+  // renderiza los SelectableMomento — el wrapping vive solo en el
+  // timeline.
+  useEffect(() => {
+    if (viewMode !== 'timeline' && selectionMode) {
+      exitSelection()
+    }
+  }, [viewMode, selectionMode])
+
   return (
     <>
       {/* χ-followup: mb-10 → mb-6 — el header pesaba mucho aire encima
@@ -162,8 +172,11 @@ export function MomentosView() {
           onChangeViewMode={setViewMode}
         />
         {/* EE: toggle del modo selección. Solo aparece cuando hay >1 item
-            cargado — sin items no tiene sentido seleccionar. */}
-        {items.length > 1 && (
+            cargado Y la vista es timeline — AlbumGrid no soporta selección
+            todavía (TODO: si hay demanda, hacer el wrapping ahí también).
+            Si el usuario está en selectionMode y cambia a álbum, el
+            useEffect de abajo limpia la selección automáticamente. */}
+        {items.length > 1 && viewMode === 'timeline' && (
           <button
             type="button"
             onClick={() => {

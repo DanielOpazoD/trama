@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import type { Momento } from '../../types'
+import { useQueryClient } from '@tanstack/react-query'
+import type { Momento, MomentoPayload } from '../../types'
+import { api } from '../../api'
 import { useMergeMomentos, useToast } from '../../state'
 
 /**
@@ -10,10 +12,11 @@ import { useMergeMomentos, useToast } from '../../state'
  *   - ver cuántos están seleccionados
  *   - elegir el "primary" (el que sobrevive con los datos del header)
  *   - opcionalmente sobreescribir note + capturedAt durante el merge
+ *   - confirmar antes de fusionar (operación destructiva)
+ *   - deshacer post-merge via toast (V1 pattern)
  *   - cancelar la selección
  *
  * Solo fusiona momentos kind='foto'. Los otros kinds quedan bloqueados.
- * Si la selección incluye mixtos, deshabilita el botón con tooltip.
  */
 export function MergeMomentosBar({
   selected,
@@ -26,7 +29,9 @@ export function MergeMomentosBar({
 }) {
   const mergeMutation = useMergeMomentos()
   const toast = useToast()
+  const queryClient = useQueryClient()
   const [showOptions, setShowOptions] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [primaryId, setPrimaryId] = useState<string | null>(null)
   const [newNote, setNewNote] = useState('')
   const [newCapturedAt, setNewCapturedAt] = useState('')
@@ -43,6 +48,7 @@ export function MergeMomentosBar({
   )
   const defaultPrimaryId = sortedByDate[0]?.id ?? null
   const effectivePrimaryId = primaryId ?? defaultPrimaryId
+  const primary = fotos.find((m) => m.id === effectivePrimaryId) ?? null
 
   const totalPhotos = fotos.reduce((acc, m) => {
     const items = m.payload.items
@@ -52,24 +58,74 @@ export function MergeMomentosBar({
   }, 0)
 
   async function handleMerge() {
-    if (!effectivePrimaryId) return
+    if (!effectivePrimaryId || !primary) return
     const otherIds = fotos.map((m) => m.id).filter((id) => id !== effectivePrimaryId)
     if (otherIds.length === 0) return
+
+    // EE-followup: snapshot del payload + note + capturedAt del primary
+    // ANTES del POST. Lo guardamos en una closure para el handler
+    // "deshacer" del toast — si el usuario quiere revertir, el cliente
+    // sabe a qué shape volver.
+    const originalPayload: MomentoPayload = { ...primary.payload }
+    const originalNote = primary.note ?? null
+    const originalCapturedAt = primary.capturedAt
+
     try {
-      await mergeMutation.mutateAsync({
+      const result = await mergeMutation.mutateAsync({
         primaryId: effectivePrimaryId,
         otherIds,
-        // Solo pasamos los campos si el usuario los tocó — undefined
-        // significa "conservar el del primary".
         ...(newNote.trim() ? { note: newNote.trim() } : {}),
         ...(newCapturedAt ? { capturedAt: newCapturedAt } : {}),
       })
+
+      // EE-followup: toast con "deshacer". El undo:
+      //   1. PATCH primary con el payload+note+capturedAt original
+      //   2. Restaurar cada other via /api/momentos-restore
+      //   3. Invalidar la query infinite para re-fetchear
+      // Si alguno falla individualmente, el resto sigue — best-effort.
+      const deletedOthers = result.deletedOthers ?? []
       toast.show({
-        message: `${otherIds.length + 1} momentos fusionados en uno`,
+        message: `${otherIds.length + 1} momentos fusionados`,
         tone: 'success',
+        action: {
+          label: 'Deshacer',
+          onAction: async () => {
+            try {
+              // 1. revertir primary
+              await api.updateMomento(effectivePrimaryId, {
+                payload: originalPayload,
+                note: originalNote,
+                capturedAt: originalCapturedAt,
+              })
+              // 2. restaurar others. Secuencial para no spamear DB.
+              for (const o of deletedOthers) {
+                try {
+                  await api.restoreMomento(o.id, o.deletedAt)
+                } catch {
+                  // Si falla uno, seguimos con el resto. Mejor restaurar
+                  // parcialmente que perder todo por un transient.
+                }
+              }
+              await queryClient.invalidateQueries({
+                queryKey: ['momentos', 'infinite'],
+              })
+              toast.show({ message: 'Fusión deshecha', tone: 'success' })
+            } catch (err) {
+              toast.show({
+                message:
+                  err instanceof Error
+                    ? `No se pudo deshacer: ${err.message}`
+                    : 'No se pudo deshacer',
+                tone: 'error',
+              })
+            }
+          },
+        },
       })
+
       // Reset + cerrar.
       setShowOptions(false)
+      setConfirming(false)
       setNewNote('')
       setNewCapturedAt('')
       setPrimaryId(null)
@@ -92,58 +148,98 @@ export function MergeMomentosBar({
         className="rounded-xl border border-ink-100/80 shadow-xl shadow-ink-900/15 overflow-hidden"
         style={{ backgroundColor: 'rgb(var(--paper-50))' }}
       >
-        {/* Encabezado de la barra */}
-        <div className="px-4 py-3 flex items-baseline justify-between gap-4 border-b border-ink-100/40">
-          <div className="flex items-baseline gap-3 min-w-0">
-            <span className="text-sm text-ink-700 font-medium tabular-nums">
-              {selected.length} {selected.length === 1 ? 'seleccionado' : 'seleccionados'}
-            </span>
-            {totalPhotos > 0 && (
-              <span className="text-micro uppercase tracking-eyebrow text-ink-400">
-                {totalPhotos} {totalPhotos === 1 ? 'foto en total' : 'fotos en total'}
-              </span>
-            )}
-            {hasNonFoto && (
-              <span className="text-micro text-ink-400 italic">
-                solo se fusionan fotos
-              </span>
-            )}
+        {/* EE-followup: paso de confirmación inline antes del merge.
+            En vez de un modal aparte, sustituimos el header de la barra
+            con una versión "están seguro" cuando confirming=true. Es la
+            misma estructura visual, sólo cambian copy + botones. */}
+        {confirming ? (
+          <div
+            className="px-4 py-3 flex items-baseline justify-between gap-4"
+            style={{ backgroundColor: 'var(--accent-gold-soft)' }}
+            role="alertdialog"
+            aria-label="Confirmar fusión"
+          >
+            <div className="min-w-0">
+              <p className="text-sm text-ink-700">
+                Vas a fusionar <strong className="tabular-nums">{fotos.length}</strong>{' '}
+                momentos en uno. Los otros{' '}
+                <strong className="tabular-nums">{fotos.length - 1}</strong>{' '}
+                quedarán archivados (podés deshacer desde el toast).
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={mergeMutation.isPending}
+                className="text-micro uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 transition-colors disabled:opacity-60"
+              >
+                atrás
+              </button>
+              <button
+                type="button"
+                onClick={handleMerge}
+                disabled={mergeMutation.isPending}
+                className="btn-ink"
+                autoFocus
+              >
+                {mergeMutation.isPending ? 'fusionando…' : 'confirmar fusión'}
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={onClear}
-              className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
-            >
-              cancelar
-            </button>
-            {fotos.length >= 2 && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShowOptions((s) => !s)}
-                  className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
-                  aria-expanded={showOptions}
-                >
-                  {showOptions ? 'menos' : 'opciones'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleMerge}
-                  disabled={mergeMutation.isPending || !effectivePrimaryId}
-                  className="btn-ink"
-                >
-                  {mergeMutation.isPending
-                    ? 'fusionando…'
-                    : `fusionar (${fotos.length})`}
-                </button>
-              </>
-            )}
+        ) : (
+          <div className="px-4 py-3 flex items-baseline justify-between gap-4 border-b border-ink-100/40">
+            <div className="flex items-baseline gap-3 min-w-0">
+              <span className="text-sm text-ink-700 font-medium tabular-nums">
+                {selected.length} {selected.length === 1 ? 'seleccionado' : 'seleccionados'}
+              </span>
+              {totalPhotos > 0 && (
+                <span className="text-micro uppercase tracking-eyebrow text-ink-400">
+                  {totalPhotos} {totalPhotos === 1 ? 'foto en total' : 'fotos en total'}
+                </span>
+              )}
+              {hasNonFoto && (
+                <span className="text-micro text-ink-400 italic">
+                  solo se fusionan fotos
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={onClear}
+                className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+              >
+                cancelar
+              </button>
+              {fotos.length >= 2 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowOptions((s) => !s)}
+                    className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+                    aria-expanded={showOptions}
+                  >
+                    {showOptions ? 'menos' : 'opciones'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(true)}
+                    disabled={mergeMutation.isPending || !effectivePrimaryId}
+                    className="btn-ink"
+                  >
+                    fusionar ({fotos.length})
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Panel expandible con opciones del merge */}
-        {showOptions && fotos.length >= 2 && (
+        {/* Panel expandible con opciones del merge — solo visible
+            cuando NO estamos en estado confirming, para no agregar
+            ruido al diálogo de confirmación. */}
+        {showOptions && !confirming && fotos.length >= 2 && (
           <div className="px-4 py-3 space-y-3 bg-paper-100/40">
             <div>
               <label className="block text-micro uppercase tracking-eyebrow text-ink-400 mb-1">

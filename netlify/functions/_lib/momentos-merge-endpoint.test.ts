@@ -153,11 +153,14 @@ describe('momentos-merge endpoint', () => {
         note: null,
       },
     ])
-    // UPDATE primary, INSERT entity_links, UPDATE soft-delete others —
-    // todos vacíos (el endpoint no usa el return value de esos).
+    // UPDATE primary, INSERT entity_links: vacíos.
     mockSqlResponses.push([])
     mockSqlResponses.push([])
-    mockSqlResponses.push([])
+    // UPDATE soft-delete others ahora devuelve [{id, deleted_at}] (EE-followup).
+    mockSqlResponses.push([
+      { id: '22222222-2222-2222-2222-222222222222', deleted_at: '2026-05-25T13:00:00Z' },
+      { id: '33333333-3333-3333-3333-333333333333', deleted_at: '2026-05-25T13:00:00Z' },
+    ])
     // SELECT final del primary actualizado.
     mockSqlResponses.push([
       {
@@ -202,6 +205,11 @@ describe('momentos-merge endpoint', () => {
     expect(body.merged).toBe(2)
     expect(body.itemCount).toBe(3)
     expect(body.payload.items).toHaveLength(3)
+    // EE-followup: deletedOthers expone los deletedAt para "deshacer".
+    expect(body.deletedOthers).toEqual([
+      { id: '22222222-2222-2222-2222-222222222222', deletedAt: '2026-05-25T13:00:00Z' },
+      { id: '33333333-3333-3333-3333-333333333333', deletedAt: '2026-05-25T13:00:00Z' },
+    ])
 
     // Verificar que las queries críticas se hicieron:
     // - UPDATE primary con payload nuevo (incluye los 3 items)
@@ -235,7 +243,12 @@ describe('momentos-merge endpoint', () => {
         note: null,
       },
     ])
-    mockSqlResponses.push([], [], [])
+    // UPDATE primary + INSERT links: vacíos.
+    mockSqlResponses.push([], [])
+    // UPDATE soft-delete others (EE-followup): devuelve la fila borrada.
+    mockSqlResponses.push([
+      { id: '22222222-2222-2222-2222-222222222222', deleted_at: '2026-05-25T13:00:00Z' },
+    ])
     mockSqlResponses.push([
       {
         id: '11111111-1111-1111-1111-111111111111',

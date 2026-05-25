@@ -222,11 +222,15 @@ export default withObservability('momentos-merge', async (req: Request) => {
   // borran (FK CASCADE no aplica acá porque es soft-delete). Si después
   // se restaura un other, sus links siguen ahí — está bien, los rows
   // soft-deletados no aparecen en queries normales.
-  await sql`
+  //
+  // RETURNING captura el deleted_at exacto que se asignó — el cliente
+  // necesita ese timestamp para hacer "deshacer" via /api/momentos-restore.
+  const deletedRows = (await sql`
     UPDATE momentos
     SET deleted_at = NOW(), updated_at = NOW()
     WHERE id = ANY(${otherIds}::uuid[]) AND deleted_at IS NULL
-  `
+    RETURNING id, deleted_at
+  `) as Array<{ id: string; deleted_at: string }>
 
   // Devolver el primary actualizado con shape estándar.
   const updated = (await sql`
@@ -245,6 +249,13 @@ export default withObservability('momentos-merge', async (req: Request) => {
     // Bonus debug-friendly: cuántos se fusionaron y cuántas fotos quedaron.
     merged: otherIds.length,
     itemCount: combinedItems.length,
+    // EE-followup: shape para que el cliente pueda hacer "deshacer".
+    // El payload original del primary lo guarda el cliente antes del POST
+    // (no se devuelve acá para no inflar el response).
+    deletedOthers: deletedRows.map((r) => ({
+      id: r.id,
+      deletedAt: r.deleted_at,
+    })),
   })
 })
 
