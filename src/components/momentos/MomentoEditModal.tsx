@@ -130,6 +130,18 @@ export function MomentoEditModal({
     })
   }
 
+  function moveItem(idx: number, dir: -1 | 1) {
+    setItems((prev) => {
+      const target = idx + dir
+      if (target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      const tmp = next[idx]
+      next[idx] = next[target]
+      next[target] = tmp
+      return next
+    })
+  }
+
   async function handleSave() {
     if (uploading || updateMomento.isPending) return
     if (items.length === 0) {
@@ -330,11 +342,40 @@ export function MomentoEditModal({
                       </span>
                       {it.kind === 'new' && (
                         <span
-                          className="absolute bottom-1 right-1 text-micro uppercase tracking-eyebrow bg-emerald-700/80 text-paper-50 px-1 rounded leading-none py-0.5"
+                          className="absolute top-1 right-7 text-micro uppercase tracking-eyebrow bg-emerald-700/80 text-paper-50 px-1 rounded leading-none py-0.5"
                           title="Foto nueva — se subirá al guardar"
                         >
                           nueva
                         </span>
+                      )}
+                      {/* ψ-photos-rich: flechas ◄ ► para reordenar. */}
+                      {items.length > 1 && (
+                        <div className="absolute bottom-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {idx > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => moveItem(idx, -1)}
+                              className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
+                              aria-label={`Mover foto ${idx + 1} hacia atrás`}
+                              title="Mover atrás"
+                              disabled={uploading || updateMomento.isPending}
+                            >
+                              ‹
+                            </button>
+                          )}
+                          {idx < items.length - 1 && (
+                            <button
+                              type="button"
+                              onClick={() => moveItem(idx, 1)}
+                              className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
+                              aria-label={`Mover foto ${idx + 1} hacia adelante`}
+                              title="Mover adelante"
+                              disabled={uploading || updateMomento.isPending}
+                            >
+                              ›
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   )

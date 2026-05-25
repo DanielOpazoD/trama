@@ -96,6 +96,24 @@ export function useMomentoComposer({
     })
   }
 
+  /**
+   * ψ-photos-rich: mover una foto una posición hacia atrás o adelante.
+   * El usuario reordena con botones ◄ ► visibles al hover sin necesidad
+   * de drag-and-drop. Si está en los bordes (idx=0 y dir=-1, o idx=N-1
+   * y dir=+1) es no-op.
+   */
+  function movePhoto(index: number, dir: -1 | 1) {
+    setPhotoDrafts((prev) => {
+      const target = index + dir
+      if (target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      const tmp = next[index]
+      next[index] = next[target]
+      next[target] = tmp
+      return next
+    })
+  }
+
   function clearPhotoDrafts() {
     for (const d of photoDrafts) URL.revokeObjectURL(d.previewUrl)
     setPhotoDrafts([])
@@ -291,6 +309,7 @@ export function useMomentoComposer({
     addPhotoFiles,
     removePhotoDraft,
     setPrimaryPhoto,
+    movePhoto,
     clearPhotoDrafts,
     photoCaption,
     setPhotoCaption,

@@ -27,12 +27,11 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
   return (
     <form
       onSubmit={handleSubmit}
-      // χ-followup: padding bajado de p-5 a p-4 + margen inferior
-      // bajado de mb-10 a mb-6. El card del composer estaba demasiado
-      // alto vs el cuerpo del timeline.
-      className="mb-6 p-4 bg-paper-100/40 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
+      // ψ-photos-rich: p-3 + space-y-2 — más apretado, menos crema
+      // entre los campos y el botón.
+      className="mb-6 p-3 bg-paper-100/40 border border-ink-100/60 rounded-xl space-y-2 animate-fade-up"
     >
-      <header className="stack-2 pb-3 border-b border-ink-100/60 flex items-baseline justify-between gap-4">
+      <header className="pb-2 border-b border-ink-100/60 flex items-baseline justify-between gap-4">
         <div className="min-w-0">
           <p
             className="section-eyebrow-serif"
@@ -73,12 +72,10 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
 
       <MomentoQRModal open={qrOpen} onClose={() => setQrOpen(false)} />
 
-      {/* χ-followup: el hint "Se guarda fechado hoy." fue eliminado.
-          Era redundante: el composer ya está dentro de la sección
-          "memoria fechada" y al guardar el momento aparece en
-          el timeline con su fecha. Mantenemos solo el botón Guardar
-          alineado a la derecha. */}
-      <div className="flex justify-end pt-1">
+      {/* ψ-photos-rich: pt-0 (era pt-1) — pegamos el botón al campo
+          de arriba. El espacio entre el último input y el botón
+          Guardar se reduce a sólo el space-y-2 del form. */}
+      <div className="flex justify-end pt-0">
         <button
           type="submit"
           disabled={composer.isPending}
@@ -322,6 +319,44 @@ function FotoFields({ composer }: { composer: Composer }) {
                     >
                       {idx + 1}
                     </span>
+                    {/* ψ-photos-rich: flechas ◄ ► para reordenar.
+                        Se ocultan en bordes (◄ en idx=0, ► en última). */}
+                    {composer.photoDrafts.length > 1 && (
+                      <div className="absolute bottom-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {idx > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              composer.movePhoto(idx, -1)
+                            }}
+                            className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
+                            aria-label={`Mover foto ${idx + 1} hacia atrás`}
+                            title="Mover atrás"
+                            disabled={composer.isPending}
+                          >
+                            ‹
+                          </button>
+                        )}
+                        {idx < composer.photoDrafts.length - 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              composer.movePhoto(idx, 1)
+                            }}
+                            className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
+                            aria-label={`Mover foto ${idx + 1} hacia adelante`}
+                            title="Mover adelante"
+                            disabled={composer.isPending}
+                          >
+                            ›
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })}
