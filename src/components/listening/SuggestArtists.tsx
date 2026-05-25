@@ -92,9 +92,10 @@ export function SuggestArtists() {
               <AISourceTag provider={provider} model={model} />
             )}
           </p>
-          <p className="text-caption text-ink-400 italic mt-0.5">
-            la IA mira tu perfil musical y propone descubrimientos
-          </p>
+          {/* ρ-micro: bajamos el subtitle del header — duplicaba la
+              explicación que ya está en el empty state ("Click en
+              descubrir y la IA te propone…"). En estado lleno tampoco
+              aporta. */}
         </div>
         <button
           onClick={() => suggest.mutate()}

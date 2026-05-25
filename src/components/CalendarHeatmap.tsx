@@ -28,7 +28,12 @@ import type { Entity, Quote, Relationship } from '../types'
  */
 
 const MS_PER_DAY = 86_400_000
-const WEEKS = 12
+// ρ-canvas: subimos de 12 a 24 semanas (medio año). A 12 semanas la
+// card quedaba casi vacía cuando la trama llevaba poco tiempo activa
+// o cuando los datos están concentrados en pocos días — mucho real
+// estate "muerto". Con 24 semanas el heatmap recupera densidad y
+// permite leer rachas, pausas y estacionalidad de la práctica.
+const WEEKS = 24
 const TOTAL_DAYS = WEEKS * 7
 
 type DayBucket = {
@@ -153,10 +158,10 @@ export function CalendarHeatmap({
   return (
     <section
       className="card-paper-elevated px-5 py-4 animate-fade-up"
-      aria-label="Heatmap de actividad — últimas 12 semanas"
+      aria-label={`Heatmap de actividad — últimas ${WEEKS} semanas`}
     >
       <header className="mb-3 flex items-baseline justify-between gap-3 flex-wrap">
-        <p className="section-eyebrow">últimas 12 semanas</p>
+        <p className="section-eyebrow">últimos {Math.round(WEEKS / 4)} meses</p>
         <p className="text-caption text-ink-400 tabular-nums">
           {totalCount} {totalCount === 1 ? 'entrada' : 'entradas'}
         </p>

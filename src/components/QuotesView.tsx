@@ -383,7 +383,11 @@ export function QuotesView({
                       left: 0,
                       right: 0,
                       transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
-                      paddingBottom: '3.5rem', // space-y-14 equivalent between items
+                      // ρ-micro: bajado de 3.5rem (56px) a 2.5rem (40px) entre
+                      // citas. La auditoría visual contaba ~120px de margen
+                      // efectivo entre items; lo bajamos para que el ritmo de
+                      // lectura sea más continuo sin perder respiración.
+                      paddingBottom: '2.5rem',
                     }}
                   >
                     <QuoteItem

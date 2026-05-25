@@ -124,7 +124,10 @@ export function Sidebar({
     // null (la UI no pinta el badge). Es mejor que mentir con "0".
     entidades: totals?.entities ?? null,
     citas: totals?.quotes ?? null,
-    momentos: null, // se podría sumar pero exige otro endpoint; por ahora null
+    // ρ-consistency: counts.mts ya devuelve momentos.count; antes este
+    // badge faltaba y Momentos era el único item del sidebar sin
+    // número. Coherencia con las demás secciones.
+    momentos: totals?.momentos ?? null,
     escuchas: null,
     chat: null,
     sugerencias: pendingSuggestions.length > 0 ? pendingSuggestions.length : null,

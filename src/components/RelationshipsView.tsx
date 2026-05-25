@@ -357,7 +357,13 @@ function RelationshipRow({
   onDelete: () => void
 }) {
   const typeLabel =
-    RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ?? rel.type
+    RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ??
+    // ρ-consistency: fallback defensivo — si la fila tiene un type que
+    // no existe en el array fallback (e.g. tipos nuevos en la DB que el
+    // cliente todavía no conoce), al menos reemplazamos los underscores
+    // por espacios. Sin esto se renderea "ASOCIADO_CON" con guión bajo
+    // a la vista, que se siente DB-leaky.
+    rel.type.replace(/_/g, ' ')
   return (
     <div className="group card-paper-hover p-3 hover:shadow-ink-900/5">
       <div className="flex justify-between items-baseline gap-4">

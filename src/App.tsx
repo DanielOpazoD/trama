@@ -262,7 +262,11 @@ function Shell() {
             />
           )}
 
-          {!focusMode && view !== 'chat' && !(isMobile && rightPanelOpen) && (
+          {/* ρ-consistency: AskBar oculto en Grafo (tapa nodos) y Chat
+              (la conversación tiene su propio input). Antes solo se
+              ocultaba en Chat — en Grafo competía con los nodos centrales
+              y forzaba a scrollear o esconder lo más interesante. */}
+          {!focusMode && view !== 'chat' && view !== 'grafo' && !(isMobile && rightPanelOpen) && (
             <AskBar
               view={view}
               selectedEntityId={selectedEntityId}

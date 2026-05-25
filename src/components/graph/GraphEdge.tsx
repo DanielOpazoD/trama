@@ -132,7 +132,8 @@ export function GraphEdge({
   const opacity = dimmed ? 0.08 : highlighted ? 0.85 : hovered ? 0.6 : 0.32
   const strokeWidth = highlighted ? 1.6 : hovered ? 1.4 : 1.1
   const typeLabel =
-    RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ?? rel.type
+    RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ??
+    rel.type.replace(/_/g, ' ')
   const markerId = isAi ? 'edgeArrowAi' : 'edgeArrow'
   const showLabel = highlighted || hovered
 

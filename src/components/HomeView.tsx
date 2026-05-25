@@ -121,8 +121,13 @@ export function HomeView({
           <p className="text-micro uppercase tracking-shout text-ink-300">
             {greeting}
           </p>
-          <h2 className="font-serif text-4xl text-ink-700 leading-none">
-            Inicio
+          {/* ρ-canvas: el h2 antes decía "Inicio" — redundante con el
+              sidebar y el TopBar. Lo reemplaza la fecha de hoy en
+              serif, un gesto editorial que da contexto temporal real
+              ("Sábado, 24 de mayo") en vez de repetir el nombre de la
+              sección. */}
+          <h2 className="font-serif text-3xl md:text-4xl text-ink-700 leading-tight tracking-tight">
+            {formatToday()}
           </h2>
           <div className="accent-rule" />
         </div>
@@ -555,6 +560,21 @@ function greetingForNow(): string {
   if (h < 12) return 'Buenos días'
   if (h < 19) return 'Buenas tardes'
   return 'Buenas noches'
+}
+
+/**
+ * ρ-canvas: fecha de hoy en español, capitalizada. "sábado, 24 de mayo"
+ * → "Sábado, 24 de mayo". Reemplaza el h2 "Inicio" del hero porque ese
+ * h1 repetía la label del sidebar/TopBar; la fecha le da carácter.
+ */
+function formatToday(): string {
+  const today = new Date()
+  const raw = today.toLocaleDateString('es', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+  return raw.charAt(0).toUpperCase() + raw.slice(1)
 }
 
 function formatRelative(iso: string): string {

@@ -326,7 +326,7 @@ export const api = {
     const rows = await request<QuoteRow[]>('/api/quotes')
     return rows.map(quoteFromRow)
   },
-  async getCounts(): Promise<{ entities: number; quotes: number; relationships: number }> {
+  async getCounts(): Promise<{ entities: number; quotes: number; relationships: number; momentos: number }> {
     return request('/api/counts')
   },
   async getHealth(): Promise<HealthResponse> {
