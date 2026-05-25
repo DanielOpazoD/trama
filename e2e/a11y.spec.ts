@@ -80,8 +80,11 @@ test('a11y: HomeView (Inicio) sin violaciones', async ({ page }) => {
   await skipSplash(page)
   await mockBackend(page, state)
   await page.goto('/')
-  // Esperar a que el splash desaparezca y el shell esté renderizado.
-  await page.getByRole('heading', { name: 'Inicio', level: 2 }).waitFor({ timeout: 10_000 })
+  // ρ-canvas: el h2 del HomeView ya no es "Inicio" — ahora es la fecha
+  // de hoy capitalizada ("Sábado, 24 de mayo"). Esperamos al primer
+  // <h2> dentro de main, que es el del hero (estable independiente
+  // del copy concreto).
+  await page.locator('main h2').first().waitFor({ timeout: 10_000 })
   // Pausa breve para que cualquier transition-colors animado del sidebar
   // settlee — axe captura mid-animation puede dar falsos positivos.
   await page.waitForTimeout(400)
@@ -138,7 +141,8 @@ test('a11y: palette ⌘K abierto sin violaciones', async ({ page }) => {
   await skipSplash(page)
   await mockBackend(page, state)
   await page.goto('/')
-  await page.getByRole('heading', { name: 'Inicio', level: 2 }).waitFor({ timeout: 10_000 })
+  // ρ-canvas: idem — esperamos al primer h2 de main, ya no por nombre.
+  await page.locator('main h2').first().waitFor({ timeout: 10_000 })
 
   await page.keyboard.press('Control+k')
   await page.getByRole('dialog', { name: 'Buscar' }).waitFor()
