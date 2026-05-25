@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 /**
  * AA-C: visor dedicado de fotos de un momento (lightbox).
@@ -29,6 +30,8 @@ export function PhotoLightbox({
   onClose: () => void
 }) {
   const [active, setActive] = useState(initialIndex)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(dialogRef, open)
 
   // Reset al re-abrir con un initialIndex distinto.
   useEffect(() => {
@@ -61,6 +64,7 @@ export function PhotoLightbox({
         tabIndex={-1}
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-label="Visor de fotos"
         aria-modal="true"

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Quote } from '../types'
 import { useUpdateQuote, useToast } from '../state'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 
 /**
  * AA-D: modal para editar una cita ya guardada.
@@ -31,6 +32,8 @@ export function QuoteEditModal({
   const [source, setSource] = useState(quote.source ?? '')
   const [context, setContext] = useState(quote.context ?? '')
   const [reflection, setReflection] = useState(quote.userReflection ?? '')
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(dialogRef, open)
 
   useEffect(() => {
     if (!open) return
@@ -88,6 +91,7 @@ export function QuoteEditModal({
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none animate-fade-up">
         <div
+          ref={dialogRef}
           role="dialog"
           aria-label="Editar cita"
           aria-modal="true"
