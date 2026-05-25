@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ENTITY_TYPES, type EntityType } from '../types'
 import { sectionWashStyle } from '../lib/sectionWash'
 import {
@@ -267,41 +267,29 @@ export function EntitiesView({
             Entidades
           </h2>
           <div className="accent-rule mt-3 mb-2" />
-          {/* χ-followup: max-w-xl (576px) era angosto y la descripción
-              quebraba en 3 líneas innecesarias. Subido a max-w-2xl
-              (672px) para que respire en 2 líneas. */}
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-2xl">
+          {/* χ + AA-A: max-w-2xl seguía quebrando en 3 líneas con
+              acciones a la derecha. Subimos a max-w-3xl + permitimos
+              que herede el max-w del contenedor (suficiente).
+              Mantenemos pr-4 para que no choque con los botones del
+              header al ser flex item. */}
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-3xl pr-4">
             Las cosas que conectas: personas, libros, canciones, álbumes,
             películas, obras, conceptos, ideas. Cada nodo del grafo es una
             entidad.
           </p>
         </div>
         <div className="shrink-0 flex items-center gap-3 mt-1">
+          {/* AA-B: dropdown IA — antes era un botón único "reclasificar
+              con IA". Lo convertimos en un menú "IA ▾" que despliega
+              opciones. Hoy solo reclasificar; el patrón está listo
+              para agregar más acciones IA en el futuro sin saturar
+              el header. */}
           {entities.length > 0 && (
-            <button
-              onClick={handleReclassify}
-              disabled={reclassify.isPending || offline}
-              className="ai-cta"
-              title="La IA revisa los tipos actuales y propone reclasificaciones cuando hay uno mejor"
-            >
-              {reclassify.isPending ? (
-                <>
-                  <span
-                    className="size-3 border-2 rounded-full animate-spin"
-                    style={{
-                      borderColor: 'var(--accent-primary-ring)',
-                      borderTopColor: 'var(--accent-primary)',
-                    }}
-                  />
-                  revisando…
-                </>
-              ) : (
-                <>
-                  <SparkleIcon size={12} />
-                  reclasificar con IA
-                </>
-              )}
-            </button>
+            <AIMenu
+              onReclassify={handleReclassify}
+              reclassifyPending={reclassify.isPending}
+              disabled={offline}
+            />
           )}
           <button
             onClick={() => setShowForm((s) => !s)}
@@ -830,6 +818,98 @@ function EntityRow({
           <TrashIcon size={12} />
         </button>
       </div>
+    </div>
+  )
+}
+
+/**
+ * AA-B: menú IA en el header de Entidades. Por ahora una sola opción
+ * (reclasificar). El patrón está pensado para crecer — agregar
+ * "describir con IA" / "sugerir vínculos" / "limpiar tipos huérfanos"
+ * sin tener que repensar el header. Cierra al click afuera o ESC.
+ */
+function AIMenu({
+  onReclassify,
+  reclassifyPending,
+  disabled,
+}: {
+  onReclassify: () => void
+  reclassifyPending: boolean
+  disabled: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        disabled={disabled || reclassifyPending}
+        className="ai-cta"
+        title="Acciones con IA"
+        aria-label="Acciones con IA"
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        {reclassifyPending ? (
+          <>
+            <span
+              className="size-3 border-2 rounded-full animate-spin"
+              style={{
+                borderColor: 'var(--accent-primary-ring)',
+                borderTopColor: 'var(--accent-primary)',
+              }}
+            />
+            revisando…
+          </>
+        ) : (
+          <>
+            <SparkleIcon size={12} />
+            IA
+            <span aria-hidden className="text-ink-400 ml-0.5">
+              ▾
+            </span>
+          </>
+        )}
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full mt-1 min-w-[200px] bg-paper-50 border border-ink-100/80 rounded-md shadow-md shadow-ink-900/15 py-1 z-20 animate-fade-up"
+          style={{ backgroundColor: 'rgb(var(--paper-50))' }}
+        >
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false)
+              onReclassify()
+            }}
+            className="w-full text-left px-3 py-2 text-sm text-ink-700 hover:bg-paper-100/70 transition-colors flex items-center gap-2"
+          >
+            <SparkleIcon size={12} className="text-ink-400" />
+            Reclasificar tipos
+          </button>
+          {/* Espacio futuro para más opciones IA. */}
+        </div>
+      )}
     </div>
   )
 }

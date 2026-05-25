@@ -113,13 +113,19 @@ describe('<EntitiesView />', () => {
     expect(libroChip.className).not.toMatch(/font-medium/)
   })
 
-  it('muestra CTA "reclasificar con IA" cuando hay 2+ entidades', () => {
+  it('muestra el menú IA cuando hay 2+ entidades', () => {
+    // AA-B: el botón "reclasificar con IA" se convirtió en un menú
+    // "IA ▾" que despliega opciones. Ahora chequeamos el trigger del
+    // menú; la opción "Reclasificar tipos" vive dentro al abrir.
     const ents = [
       mkEntity('e1', 'persona', 'Borges'),
       mkEntity('e2', 'libro', 'Rayuela'),
     ]
     const qc = seedEntities(ents)
     renderWithProviders(<EntitiesView />, { queryClient: qc })
-    expect(screen.getByRole('button', { name: /reclasificar con IA/i })).toBeInTheDocument()
+    // Botón con texto IA y aria-haspopup="menu" — usamos title.
+    expect(
+      screen.getByRole('button', { name: /acciones con ia/i }),
+    ).toBeInTheDocument()
   })
 })

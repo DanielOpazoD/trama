@@ -4,6 +4,7 @@ import type { Entity, Momento } from '../../types'
 import { SparkleIcon, TrashIcon } from '../Icons'
 import { formatTime } from './helpers'
 import { MomentoEditModal } from './MomentoEditModal'
+import { PhotoLightbox } from './PhotoLightbox'
 
 /**
  * Una entrada del timeline de Momentos. Despacha al renderer correcto
@@ -153,10 +154,13 @@ function RecorteBody({ momento }: { momento: Momento }) {
 }
 
 function FotoBody({ momento }: { momento: Momento }) {
-  // υ-multi: el render lee `items[]` si existe (momentos nuevos con
-  // 1+ fotos). Si solo hay `storageKey` legacy, lo envuelve en un
-  // array de 1 para tratarlo igual. Si no hay nada, mostramos el
-  // placeholder de error.
+  // υ-multi + AA-C: render del momento foto.
+  // - Si hay 1 foto: la muestra directo. Click abre lightbox con esa.
+  // - Si hay >1: muestra SOLO la primera + badge "+N" arriba derecha
+  //   indicando que hay más. Click → lightbox con todas en grande
+  //   y navegación.
+  // El render del timeline mantiene altura visual baja sin importar
+  // cuántas fotos tenga el episodio.
   const { items, storageKey, width, height, caption } = momento.payload
   const photos: Array<{ storageKey: string; width?: number; height?: number }> =
     items && items.length > 0
@@ -164,6 +168,7 @@ function FotoBody({ momento }: { momento: Momento }) {
       : storageKey
         ? [{ storageKey, width, height }]
         : []
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   if (photos.length === 0) {
     return (
@@ -171,13 +176,46 @@ function FotoBody({ momento }: { momento: Momento }) {
     )
   }
 
+  const cover = photos[0]
+  const extraCount = photos.length - 1
+  const aspectRatio =
+    cover.width && cover.height && cover.width > 0 && cover.height > 0
+      ? `${cover.width} / ${cover.height}`
+      : undefined
+
   return (
     <article className="space-y-2">
-      {photos.length === 1 ? (
-        <SinglePhoto photo={photos[0]} caption={caption} />
-      ) : (
-        <PhotoGallery photos={photos} caption={caption} />
-      )}
+      <div className="max-w-md relative">
+        <button
+          type="button"
+          onClick={() => setLightboxOpen(true)}
+          aria-label={
+            photos.length === 1
+              ? 'Abrir foto'
+              : `Abrir visor — ${photos.length} fotos`
+          }
+          className="block w-full rounded-md overflow-hidden border border-ink-100/60 cursor-zoom-in hover:opacity-95 transition-opacity"
+        >
+          <img
+            src={`/api/momentos-file/${encodeURIComponent(cover.storageKey)}`}
+            alt={caption ?? 'momento'}
+            loading="lazy"
+            className="block w-full h-auto"
+            style={aspectRatio ? { aspectRatio } : undefined}
+          />
+        </button>
+        {/* Badge "+N" si hay más fotos. Sutilmente sobre la esquina
+            superior derecha. No-interactive (el click del button de
+            atrás lo cubre). */}
+        {extraCount > 0 && (
+          <span
+            className="pointer-events-none absolute top-2 right-2 text-micro uppercase tracking-eyebrow tabular-nums bg-ink-900/70 text-paper-50 px-1.5 py-0.5 rounded leading-none"
+            aria-hidden
+          >
+            +{extraCount}
+          </span>
+        )}
+      </div>
       {caption && (
         <p className="font-serif text-sm italic text-ink-500 max-w-md">
           {caption}
@@ -188,124 +226,13 @@ function FotoBody({ momento }: { momento: Momento }) {
           {momento.note}
         </p>
       )}
-    </article>
-  )
-}
-
-function SinglePhoto({
-  photo,
-  caption,
-}: {
-  photo: { storageKey: string; width?: number; height?: number }
-  caption?: string
-}) {
-  const aspectRatio =
-    photo.width && photo.height && photo.width > 0 && photo.height > 0
-      ? `${photo.width} / ${photo.height}`
-      : undefined
-  return (
-    <div className="rounded-md overflow-hidden border border-ink-100/60 max-w-md">
-      <img
-        src={`/api/momentos-file/${encodeURIComponent(photo.storageKey)}`}
-        alt={caption ?? 'momento'}
-        loading="lazy"
-        className="block w-full h-auto"
-        style={aspectRatio ? { aspectRatio } : undefined}
+      <PhotoLightbox
+        photos={photos}
+        caption={caption}
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
       />
-    </div>
-  )
-}
-
-/**
- * υ-multi: visor con paginación interna para un momento con varias
- * fotos. Muestra una foto "activa" grande + thumbs debajo, y permite
- * navegar con flechas (← → en teclado, o tap en los thumbs).
- *
- * El número actual / total ("3 / 7") aparece arriba a la derecha del
- * frame para que el usuario sepa cuántas fotos tiene el episodio.
- */
-function PhotoGallery({
-  photos,
-  caption,
-}: {
-  photos: Array<{ storageKey: string; width?: number; height?: number }>
-  caption?: string
-}) {
-  const [active, setActive] = useState(0)
-  const current = photos[active]
-  const aspectRatio =
-    current.width && current.height && current.width > 0 && current.height > 0
-      ? `${current.width} / ${current.height}`
-      : undefined
-
-  function prev() {
-    setActive((i) => (i === 0 ? photos.length - 1 : i - 1))
-  }
-  function next() {
-    setActive((i) => (i === photos.length - 1 ? 0 : i + 1))
-  }
-
-  return (
-    <div className="max-w-md">
-      <div className="relative rounded-md overflow-hidden border border-ink-100/60 group">
-        <img
-          key={current.storageKey}
-          src={`/api/momentos-file/${encodeURIComponent(current.storageKey)}`}
-          alt={caption ?? `foto ${active + 1} de ${photos.length}`}
-          loading="lazy"
-          className="block w-full h-auto"
-          style={aspectRatio ? { aspectRatio } : undefined}
-        />
-        {/* Contador arriba derecha */}
-        <span
-          className="absolute top-2 right-2 text-micro tabular-nums bg-ink-900/65 text-paper-50 px-1.5 py-0.5 rounded leading-none"
-          aria-hidden
-        >
-          {active + 1} / {photos.length}
-        </span>
-        {/* Botones prev / next — visibles siempre en mobile, fade-in en hover en desktop */}
-        <button
-          type="button"
-          onClick={prev}
-          aria-label="Foto anterior"
-          className="absolute left-1.5 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-full bg-ink-900/55 text-paper-50 hover:bg-ink-900/80 transition-opacity opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-        >
-          ‹
-        </button>
-        <button
-          type="button"
-          onClick={next}
-          aria-label="Foto siguiente"
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-full bg-ink-900/55 text-paper-50 hover:bg-ink-900/80 transition-opacity opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-        >
-          ›
-        </button>
-      </div>
-      {/* Thumbs strip */}
-      <div className="mt-1.5 flex gap-1 overflow-x-auto pb-1">
-        {photos.map((p, idx) => (
-          <button
-            key={p.storageKey}
-            type="button"
-            onClick={() => setActive(idx)}
-            aria-label={`Mostrar foto ${idx + 1}`}
-            aria-current={idx === active ? 'true' : undefined}
-            className={`shrink-0 size-12 rounded overflow-hidden border-2 transition-colors ${
-              idx === active
-                ? 'border-ink-700'
-                : 'border-transparent hover:border-ink-300'
-            }`}
-          >
-            <img
-              src={`/api/momentos-file/${encodeURIComponent(p.storageKey)}`}
-              alt=""
-              loading="lazy"
-              className="w-full h-full object-cover"
-            />
-          </button>
-        ))}
-      </div>
-    </div>
+    </article>
   )
 }
 

@@ -27,11 +27,12 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
   return (
     <form
       onSubmit={handleSubmit}
-      // ψ-photos-rich: p-3 + space-y-2 — más apretado, menos crema
-      // entre los campos y el botón.
-      className="mb-6 p-3 bg-paper-100/40 border border-ink-100/60 rounded-xl space-y-2 animate-fade-up"
+      // AA-A: aún más apretado — p-2.5 + space-y-1.5 + header pb-1.5
+      // + rounded-lg (era xl). El composer ahora tiene la silueta de
+      // un input grande, no una card-page.
+      className="mb-6 p-2.5 bg-paper-100/40 border border-ink-100/60 rounded-lg space-y-1.5 animate-fade-up"
     >
-      <header className="pb-2 border-b border-ink-100/60 flex items-baseline justify-between gap-4">
+      <header className="pb-1.5 border-b border-ink-100/60 flex items-baseline justify-between gap-4">
         <div className="min-w-0">
           <p
             className="section-eyebrow-serif"
@@ -72,14 +73,14 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
 
       <MomentoQRModal open={qrOpen} onClose={() => setQrOpen(false)} />
 
-      {/* ψ-photos-rich: pt-0 (era pt-1) — pegamos el botón al campo
-          de arriba. El espacio entre el último input y el botón
-          Guardar se reduce a sólo el space-y-2 del form. */}
+      {/* AA-A: botón Guardar más chico — antes era btn-ink (padding
+          medio). Ahora text-xs + padding mínimo para acompañar la
+          dimensión apretada del composer. */}
       <div className="flex justify-end pt-0">
         <button
           type="submit"
           disabled={composer.isPending}
-          className="btn-ink"
+          className="px-3 py-1.5 text-xs font-medium bg-ink-900 text-paper-50 rounded-md hover:bg-ink-800 disabled:opacity-60 transition-colors"
         >
           {composer.photoUploading
             ? 'Subiendo…'

@@ -11,6 +11,7 @@ import {
 } from '../state'
 import { sectionWashStyle } from '../lib/sectionWash'
 import { EndMark, SparkleIcon, TrashIcon } from './Icons'
+import { QuoteEditModal } from './QuoteEditModal'
 import { AISourceTag } from './AISourceTag'
 import { EmptyMessage } from './EmptyMessage'
 import { Folio } from './Folio'
@@ -507,6 +508,8 @@ function QuoteItem({
     provider: string
     model: string
   } | null>(null)
+  // AA-D: estado del modal de edición.
+  const [editOpen, setEditOpen] = useState(false)
 
   async function handleReflect() {
     try {
@@ -606,10 +609,8 @@ function QuoteItem({
             añadida {formatDate(quote.createdAt)}
           </span>
         </div>
-        {/* ω-E: toolbar al hover — favorita (★) + eliminar.
-            La estrella es PERSISTENTE (visible siempre) cuando está
-            marcada, así el usuario ve de un vistazo cuáles fijó. Las
-            no-marcadas aparecen en hover. */}
+        {/* ω-E + AA-D: toolbar — ★ favorita (siempre visible) +
+            editar (al hover) + eliminar (al hover). */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             onClick={async () => {
@@ -629,11 +630,13 @@ function QuoteItem({
                 })
               }
             }}
-            className={`p-1.5 rounded transition-colors ${
-              quote.pinnedAt
-                ? 'opacity-100'
-                : 'opacity-0 group-hover:opacity-100'
-            } hover:bg-ink-100`}
+            // AA-A: la estrella SIEMPRE visible. Si no está marcada, la
+            // silueta ☆ aparece atenuada (ink-300). Al hover sube
+            // contraste. Antes solo aparecía en hover, lo que ocultaba
+            // la affordance de "puedo marcar esto".
+            className={`p-1.5 rounded transition-colors hover:bg-ink-100 ${
+              quote.pinnedAt ? 'opacity-100' : 'text-ink-300 hover:text-ink-700'
+            }`}
             style={{
               color: quote.pinnedAt ? 'var(--accent-gold)' : undefined,
             }}
@@ -650,6 +653,14 @@ function QuoteItem({
             </span>
           </button>
           <button
+            onClick={() => setEditOpen(true)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 px-2 py-1.5 rounded"
+            aria-label="Editar cita"
+            title="Editar texto, fuente, contexto o reflexión"
+          >
+            editar
+          </button>
+          <button
             onClick={onDelete}
             className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
             aria-label="Eliminar"
@@ -659,6 +670,11 @@ function QuoteItem({
           </button>
         </div>
       </div>
+      <QuoteEditModal
+        quote={quote}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+      />
       {quote.context && (
         <p
           className={`mt-2 text-ink-400 text-sm leading-relaxed italic ${
