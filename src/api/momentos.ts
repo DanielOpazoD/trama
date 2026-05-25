@@ -105,6 +105,30 @@ export const momentosApi = {
     )
   },
 
+  /** DD1: lista los storageKeys en el store global que NO están referenciados
+      por ningún Momento en la BD actual. Útil para recuperar fotos subidas
+      en deploy previews (cuyos Momentos quedaron en BDs ephemeral). */
+  async listOrphanedBlobs(): Promise<{
+    orphans: string[]
+    totalInStore: number
+    referenced: number
+  }> {
+    return request('/api/momentos-orphaned-blobs')
+  },
+
+  /** DD1: adopta un blob huérfano creando un Momento foto que lo apunte.
+      origin queda marcada como 'imported' / 'orphaned-blob-rescue'. */
+  async rescueOrphanedBlob(input: {
+    storageKey: string
+    note?: string
+    capturedAt?: string
+  }): Promise<Momento> {
+    return request<Momento>('/api/momentos-orphaned-blobs', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  },
+
   /** ξ3: sube un archivo de imagen a Netlify Blobs. Devuelve la storageKey
       que el cliente luego inserta en el payload del momento foto. */
   async momentoUpload(file: File): Promise<{

@@ -131,6 +131,7 @@ export function useAddQuote() {
       // the new quote appears in page 1 without dedupe gymnastics.
       queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
     },
   })
 }
@@ -242,6 +243,7 @@ export function useDeleteQuote() {
       )
       queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
       if (offline) {
         const current = queryClient.getQueryData<Quote[]>(queryKeys.quotes) ?? []
         storage.saveQuotes(current)
@@ -257,6 +259,7 @@ export function useDeleteQuote() {
               queryClient.invalidateQueries({ queryKey: queryKeys.quotes })
               queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
               queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
             },
           },
         })

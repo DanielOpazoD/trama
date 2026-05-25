@@ -3,8 +3,7 @@ import { ENTITY_TYPES } from '../types'
 import { sectionWashStyle } from '../lib/sectionWash'
 import {
   useInfiniteEntitiesQuery,
-  useQuotesQuery,
-  useRelationshipsQuery,
+  useEntityRefsCountQuery,
   useDeleteEntity,
   useOffline,
   useReclassifyEntities,
@@ -53,8 +52,10 @@ export function EntitiesView({
     () => (typeFilter ? allLoadedEntities.filter((e) => e.type === typeFilter) : allLoadedEntities),
     [allLoadedEntities, typeFilter],
   )
-  const { data: quotes = [] } = useQuotesQuery()
-  const { data: relationships = [] } = useRelationshipsQuery()
+  // DD3: counts de citas + relaciones se traen pre-agregados desde el
+  // server (un query con dos GROUP BY) en vez de descargar las listas
+  // wholesome. A 100 entidades es invisible; a 10k+ ahorra MBs de payload.
+  const { data: refsCount } = useEntityRefsCountQuery()
   const deleteEntity = useDeleteEntity()
   const reclassify = useReclassifyEntities()
   const updateType = useUpdateEntityType()
@@ -68,24 +69,20 @@ export function EntitiesView({
   // altura dinámicamente via measureElement.
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  // Build O(1) counts so the virtualized rows don't have to filter the full
-  // arrays on every render. Without this, scrolling 500+ entities would do
-  // 500 × (quotes.length + relationships.length) work each frame.
-  const quoteCountById = (() => {
+  const quoteCountById = useMemo(() => {
     const map = new Map<string, number>()
-    for (const q of quotes) map.set(q.entityId, (map.get(q.entityId) ?? 0) + 1)
-    return map
-  })()
-  const relCountById = (() => {
-    const map = new Map<string, number>()
-    for (const r of relationships) {
-      map.set(r.fromId, (map.get(r.fromId) ?? 0) + 1)
-      if (r.fromId !== r.toId) {
-        map.set(r.toId, (map.get(r.toId) ?? 0) + 1)
-      }
+    if (refsCount) {
+      for (const [id, c] of refsCount) map.set(id, c.quoteCount)
     }
     return map
-  })()
+  }, [refsCount])
+  const relCountById = useMemo(() => {
+    const map = new Map<string, number>()
+    if (refsCount) {
+      for (const [id, c] of refsCount) map.set(id, c.relCount)
+    }
+    return map
+  }, [refsCount])
 
   const { listRef, virtualizer } = useMainScrollVirtualizer({
     count: entities.length,

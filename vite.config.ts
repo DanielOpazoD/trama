@@ -10,4 +10,36 @@ export default defineConfig({
     // sidebar lee de acá en vez de hardcodear "v0.x.0" en JSX.
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version),
   },
+  build: {
+    // DD2: manualChunks separa los vendors del código de aplicación.
+    // Beneficio: los vendors casi nunca cambian entre deploys (versión
+    // de react, tanstack, etc. cambia 1-2 veces al año), pero el código
+    // de la app cambia constantemente. Al ponerlos en chunks separados,
+    // el browser cachea los vendors entre deploys.
+    //
+    // Antes: 1 bundle único hasheaba con cada deploy → browser tenía que
+    // re-descargar 558KB de React + Query + nuestro código.
+    // Ahora: vendor-react.[hash].js + vendor-query.[hash].js queda en cache,
+    // solo se re-descarga index.[hash].js (~280KB).
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('react-dom') || id.match(/[\\/]react[\\/]/)) {
+            return 'vendor-react'
+          }
+          if (id.includes('@tanstack')) {
+            return 'vendor-query'
+          }
+          // sigma y graphology van juntas — y ya están en su lazy chunk
+          // GraphCanvasSigma (cargado solo al entrar al grafo grande).
+          // Si Vite vuelve a meterlas en el principal, las separamos acá.
+          if (id.includes('sigma') || id.includes('graphology')) {
+            return 'vendor-graph'
+          }
+          return undefined
+        },
+      },
+    },
+  },
 })

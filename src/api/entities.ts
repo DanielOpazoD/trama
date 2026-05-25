@@ -118,4 +118,13 @@ export const entitiesApi = {
     )
     return rows.map(entityFromRow)
   },
+
+  /** DD3: counts de citas y relaciones por entidad. EntitiesView lo usa
+      para mostrar "N citas · M relaciones" en cada row sin descargar
+      wholesome useQuotesQuery + useRelationshipsQuery. */
+  async listEntityRefsCount(): Promise<{
+    items: Array<{ id: string; quoteCount: number; relCount: number }>
+  }> {
+    return request('/api/entities-refs-count')
+  },
 }

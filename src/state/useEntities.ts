@@ -29,6 +29,30 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
+/**
+ * DD3: counts de citas + relaciones por entidad, calculados en el server.
+ * Antes EntitiesView usaba useQuotesQuery() + useRelationshipsQuery()
+ * wholesome solo para construir los Maps de count en memoria. A 10k+
+ * entidades eso descarga MBs de datos para renderizar dos números.
+ *
+ * Devuelve un Map<id, { quoteCount, relCount }>. El caller hace O(1)
+ * lookup. staleTime alto porque solo cambia con mutations explícitas.
+ */
+export function useEntityRefsCountQuery() {
+  return useQuery({
+    queryKey: queryKeys.entityRefsCount,
+    queryFn: async () => {
+      const res = await api.listEntityRefsCount()
+      const map = new Map<string, { quoteCount: number; relCount: number }>()
+      for (const item of res.items) {
+        map.set(item.id, { quoteCount: item.quoteCount, relCount: item.relCount })
+      }
+      return map
+    },
+    staleTime: 60_000,
+  })
+}
+
 export function useEntitiesQuery() {
   const { offline, setOffline } = useOffline()
   return useQuery({
@@ -133,6 +157,7 @@ export function useAddEntity() {
         return [created, ...withoutTemp]
       })
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
       queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
     },
   })
@@ -291,6 +316,7 @@ export function useDeleteEntity() {
       })
       // Counts moved for entities + cascaded soft-deletes on quotes/rels.
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
       queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
       queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
       queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
@@ -312,6 +338,7 @@ export function useDeleteEntity() {
               queryClient.invalidateQueries({ queryKey: queryKeys.relationships })
               queryClient.invalidateQueries({ queryKey: queryKeys.quotes })
               queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
               queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
               queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
               queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })

@@ -19,6 +19,7 @@ import { CommandPalette } from './components/CommandPalette'
 import { ShortcutsModal } from './components/ShortcutsModal'
 import { Onboarding } from './components/Onboarding'
 import { ToastHost } from './components/ToastHost'
+import { PreviewBanner } from './components/PreviewBanner'
 import { AskBar } from './components/AskBar'
 import { ReadingMode } from './components/ReadingMode'
 import { Settings } from './components/Settings'
@@ -171,6 +172,9 @@ function Shell() {
       className="h-screen w-screen flex overflow-hidden"
       data-focus-mode={focusMode || undefined}
     >
+      {/* DD1: banner amarillo en deploy previews — la BD del preview es
+          una rama ephemeral, los cambios no llegan a producción. */}
+      <PreviewBanner />
       {/* Sidebar — se oculta en focus mode para liberar todo el viewport
           al contenido. La animation se preserva al regresar de focus. */}
       {!focusMode && (

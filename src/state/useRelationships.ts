@@ -123,6 +123,7 @@ export function useAddRelationship() {
         return [created, ...withoutTemp]
       })
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
       queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
     },
   })
@@ -192,6 +193,7 @@ export function useDeleteRelationship() {
         (prev ?? []).filter((r) => r.id !== id),
       )
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
       queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
       if (offline) {
         const current = queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
@@ -207,6 +209,7 @@ export function useDeleteRelationship() {
               await api.restoreRelationship(id, deletedAt)
               queryClient.invalidateQueries({ queryKey: queryKeys.relationships })
               queryClient.invalidateQueries({ queryKey: queryKeys.counts })
+      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
               queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
             },
           },
