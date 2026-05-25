@@ -89,6 +89,10 @@ function Shell() {
   const [pendingProposal, setPendingProposal] = useState<PendingProposal | null>(null)
   // Cuando el AskBar deep-linkea a chat con un thread específico.
   const [pendingChatThreadId, setPendingChatThreadId] = useState<string | null>(null)
+  // ρ-struct: tab activo de Entidades — vive en App para que TopBar
+  // pueda exponerlo como tabs contextuales. Antes era state local de
+  // EntitiesWorkbench; ahora controlado desde acá.
+  const [entitiesTab, setEntitiesTab] = useState<'listado' | 'vinculos'>('listado')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [readingOpen, setReadingOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -176,6 +180,7 @@ function Shell() {
             onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
             offline={offline}
             onOpenSettings={() => setSettingsOpen(true)}
+            onOpenPalette={() => setPaletteOpen(true)}
           />
         </div>
       )}
@@ -185,7 +190,6 @@ function Shell() {
           <div className="animate-shell-topbar">
             <TopBar
               view={view}
-              onOpenPalette={() => setPaletteOpen(true)}
               breadcrumb={
                 // Si hay una entidad seleccionada y existe en cache,
                 // muestra "View › Nombre" — orientación visual estilo
@@ -196,6 +200,23 @@ function Shell() {
                         entitiesQuery.data?.find((e) => e.id === selectedEntityId)?.name ??
                         'entidad',
                       onClickRoot: () => setSelectedEntityId(null),
+                    }
+                  : null
+              }
+              tabs={
+                // ρ-struct: tabs contextuales para la vista activa.
+                // Por ahora solo Entidades tiene tabs (Listado/Vínculos).
+                // Si más adelante otra vista necesita tabs, se agrega un
+                // branch acá.
+                view === 'entidades'
+                  ? {
+                      items: [
+                        { value: 'listado', label: 'Listado' },
+                        { value: 'vinculos', label: 'Vínculos' },
+                      ],
+                      active: entitiesTab,
+                      onChange: (v) => setEntitiesTab(v as 'listado' | 'vinculos'),
+                      'aria-label': 'Sub-secciones de Entidades',
                     }
                   : null
               }
@@ -219,6 +240,8 @@ function Shell() {
                 view={view}
                 selectedEntityId={selectedEntityId}
                 pendingChatThreadId={pendingChatThreadId}
+                entitiesTab={entitiesTab}
+                onEntitiesTabChange={setEntitiesTab}
                 onSelectEntity={setSelectedEntityId}
                 onChangeView={setView}
                 onProposal={(text, proposal) => setPendingProposal({ text, proposal })}

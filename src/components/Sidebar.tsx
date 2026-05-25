@@ -15,6 +15,7 @@ import {
   MomentosIcon,
   MusicIcon,
   QuoteIcon,
+  SearchIcon,
   SettingsIcon,
   SparkleIcon,
   TramaMark,
@@ -22,6 +23,14 @@ import {
 import { AIModeToggle } from './AIModeToggle'
 import { NavButton, type NavItem } from './sidebar/NavButton'
 import { Tooltip } from './Tooltip'
+
+// El símbolo del modificador de atajos depende de la plataforma. En Mac
+// es ⌘, en el resto es "Ctrl". El check vive en módulo para no recalcular
+// en cada render. SSR-safe (devuelve false si no hay navigator).
+const IS_MAC =
+  typeof navigator !== 'undefined' &&
+  /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
+const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 
 // ο1: 'relaciones' se eliminó del top-level. Ahora vive como tab interna
 // "Vínculos" dentro de Entidades — refleja la dependencia conceptual real
@@ -74,6 +83,7 @@ export function Sidebar({
   onToggleCollapsed,
   offline,
   onOpenSettings,
+  onOpenPalette,
 }: {
   view: ViewMode
   onChangeView: (v: ViewMode) => void
@@ -81,6 +91,10 @@ export function Sidebar({
   onToggleCollapsed: () => void
   offline: boolean
   onOpenSettings: () => void
+  /** ρ-struct: el trigger del CommandPalette (Cmd+K) ahora vive acá en
+      vez del TopBar. El atajo sigue funcionando igual; este botón es
+      solo discoverability — un usuario nuevo lo ve directo. */
+  onOpenPalette: () => void
 }) {
   const { data: pendingSuggestions = [] } = useProactiveQuery()
   // Counts vienen del endpoint agregado — el Sidebar ya no carga la lista
@@ -139,6 +153,16 @@ export function Sidebar({
         >
           <ChevronRightIcon size={14} />
         </button>
+
+        <Tooltip content={`Buscar (${SHORTCUT_KEY} K)`} side="bottom">
+          <button
+            onClick={onOpenPalette}
+            aria-label={`Buscar (${SHORTCUT_KEY} K)`}
+            className="p-2 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors"
+          >
+            <SearchIcon size={14} />
+          </button>
+        </Tooltip>
 
         <div className="w-7 h-px bg-ink-100/70 my-2" />
 
@@ -245,9 +269,23 @@ export function Sidebar({
         </button>
       </header>
 
-      {/* Búsqueda unificada en ⌘K (TopBar palette pill o atajo de teclado).
-          Antes había un input acá que duplicaba la intención — Codex/Linear
-          tienen una sola entrada de búsqueda, no dos. */}
+      {/* ρ-struct: buscador local del sidebar. El atajo ⌘K sigue siendo
+          el camino rápido; este botón visible le da discoverability sin
+          ocupar real-estate del TopBar (que ahora solo lleva título +
+          tabs contextuales). */}
+      <div className="px-2 mb-1.5">
+        <button
+          onClick={onOpenPalette}
+          aria-label={`Buscar (${SHORTCUT_KEY} K)`}
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-caption text-ink-400 hover:text-ink-700 bg-paper-100/40 hover:bg-paper-100 border border-ink-100/60 hover:border-ink-200 rounded-md transition-colors"
+        >
+          <SearchIcon size={12} />
+          <span className="flex-1 text-left leading-none">Buscar</span>
+          <kbd className="text-micro px-1.5 py-0.5 bg-paper-50 border border-ink-200/70 rounded text-ink-400 leading-none font-mono">
+            {SHORTCUT_KEY} K
+          </kbd>
+        </button>
+      </div>
 
       <nav className="flex flex-col px-2 gap-px">
         {visibleNavItems.map((item) => (

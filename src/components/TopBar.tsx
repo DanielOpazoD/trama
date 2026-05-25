@@ -1,14 +1,5 @@
 import { useGlobalStatus, type GlobalStatus } from '../state'
-import { SearchIcon } from './Icons'
 import type { ViewMode } from './Sidebar'
-
-// El símbolo del modificador de atajos depende de la plataforma. En Mac
-// es ⌘, en el resto es "Ctrl". El check vive en módulo para no recalcular
-// en cada render. SSR-safe (devuelve false si no hay navigator).
-const IS_MAC =
-  typeof navigator !== 'undefined' &&
-  /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
-const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 
 /**
  * Barra superior estilo ChatGPT/OpenAI Platform.
@@ -37,27 +28,38 @@ const TITLES: Record<ViewMode, { title: string; subtitle?: string }> = {
   sugerencias: { title: 'Sugerencias', subtitle: 'propuestas de la IA' },
 }
 
+export type TopBarTab = { value: string; label: string }
+
 export function TopBar({
   view,
   actions,
-  onOpenPalette,
   breadcrumb,
+  tabs,
 }: {
   view: ViewMode
   actions?: React.ReactNode
-  /** Si está presente, dibuja un pill "Buscar ⌘K" que abre el palette.
-      Su rol es discoverability — el atajo existe igual, pero sin esto
-      el usuario nuevo no lo sabe. */
-  onOpenPalette?: () => void
   /** Segundo nivel del breadcrumb — se muestra como "View › crumb"
       cuando hay un detalle abierto. Si está, reemplaza el subtitle. */
   breadcrumb?: { label: string; onClickRoot?: () => void } | null
+  /** ρ-struct: tabs contextuales del workspace activo. Antes vivían en
+      el header interno de la vista (EntitiesWorkbench tenía "Listado"
+      y "Vínculos" debajo del h2). Subirlas al TopBar las hace
+      navegables sin importar el scroll y libera el header editorial
+      del cuerpo. Si hay breadcrumb activo, las tabs se ocultan — el
+      contexto manda. */
+  tabs?: {
+    items: TopBarTab[]
+    active: string
+    onChange: (value: string) => void
+    'aria-label'?: string
+  } | null
 }) {
   const { title, subtitle } = TITLES[view]
   const status = useGlobalStatus()
+  const showTabs = !!tabs && !breadcrumb
   return (
     <div className="surface-topbar shrink-0 border-b border-ink-100 px-6 py-2.5 flex items-center justify-between gap-4">
-      <div className="min-w-0 flex items-baseline gap-3">
+      <div className="min-w-0 flex items-baseline gap-4">
         {breadcrumb ? (
           // Path-style — clickeable la raíz para volver a la vista
           // sin abrir entidad. Lo que hace Codex con `repo › file.tsx`.
@@ -78,18 +80,21 @@ export function TopBar({
           </nav>
         ) : (
           <>
-            <h1 className="font-serif text-xl text-ink-800 leading-none tracking-tight">
+            <h1 className="font-serif text-xl text-ink-800 leading-none tracking-tight shrink-0">
               {title}
             </h1>
-            {subtitle && (
-              <span className="text-sm text-ink-400 truncate">{subtitle}</span>
+            {showTabs ? (
+              <TabsStrip tabs={tabs!} />
+            ) : (
+              subtitle && (
+                <span className="text-sm text-ink-400 truncate">{subtitle}</span>
+              )
             )}
           </>
         )}
       </div>
       <div className="shrink-0 flex items-center gap-3">
         <StatusPill status={status} />
-        {onOpenPalette && <PalettePill onClick={onOpenPalette} />}
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
     </div>
@@ -97,27 +102,55 @@ export function TopBar({
 }
 
 /**
- * Pill discreto "Buscar ⌘K" que abre el CommandPalette. Se oculta en mobile
- * (sin teclado físico el atajo no aplica, y el sidebar ya tiene su propio
- * search arriba en esa vista).
+ * ρ-struct: tabs contextuales en TopBar. Estilo de pestañas suave —
+ * activo lleva el text-ink-800 + underline en accent-primary; inactivo
+ * en ink-400. Indicador es absoluto al borde inferior del TopBar para
+ * que se sienta como continuación natural del workspace.
  */
-function PalettePill({ onClick }: { onClick: () => void }) {
+function TabsStrip({
+  tabs,
+}: {
+  tabs: NonNullable<TopBarTabsProp>
+}) {
   return (
-    <button
-      onClick={onClick}
-      title={`Buscar (${SHORTCUT_KEY} K)`}
-      // aria-label incluye el atajo porque el <kbd> visible también lo
-      // tiene. Antes era sólo "Buscar" y Lighthouse marcaba mismatch.
-      aria-label={`Buscar (${SHORTCUT_KEY} K)`}
-      className="hidden sm:flex items-center gap-2 px-2.5 py-1 text-xs text-ink-400 hover:text-ink-700 bg-paper-100/60 hover:bg-paper-100 border border-ink-100/60 hover:border-ink-200 rounded-md transition-colors"
+    <nav
+      role="tablist"
+      aria-label={tabs['aria-label'] ?? 'Sub-secciones'}
+      className="flex items-baseline gap-5"
     >
-      <SearchIcon size={12} />
-      <span className="leading-none">Buscar</span>
-      <kbd className="ml-1 text-micro px-2 py-0.5 bg-paper-50 border border-ink-200/70 rounded text-ink-400 leading-none font-mono">
-        {SHORTCUT_KEY} K
-      </kbd>
-    </button>
+      {tabs.items.map((item) => {
+        const active = item.value === tabs.active
+        return (
+          <button
+            key={item.value}
+            role="tab"
+            aria-selected={active}
+            onClick={() => tabs.onChange(item.value)}
+            className={`relative text-sm leading-none transition-colors ${
+              active
+                ? 'text-ink-800 font-medium'
+                : 'text-ink-400 hover:text-ink-700'
+            }`}
+          >
+            {item.label}
+            {active && (
+              <span
+                aria-hidden
+                className="absolute left-0 right-0 -bottom-[10px] h-[2px] rounded-t"
+                style={{ backgroundColor: 'var(--accent-primary)' }}
+              />
+            )}
+          </button>
+        )
+      })}
+    </nav>
   )
+}
+type TopBarTabsProp = {
+  items: TopBarTab[]
+  active: string
+  onChange: (value: string) => void
+  'aria-label'?: string
 }
 
 /**

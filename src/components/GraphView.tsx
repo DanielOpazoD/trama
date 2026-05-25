@@ -201,6 +201,33 @@ export default function GraphView({
 
   const pz = usePanZoom(svgRef)
 
+  // ρ-fix-B1: cuando cambia el layout mode a uno geométrico (by-type,
+  // by-year, by-degree), los nodos pueden quedar lejos del viewport por
+  // diseño — by-type pone clusters en un anillo de radius hasta ±2640px.
+  // A zoom 0.7 (default) esos clusters no entran. Encuadramos auto al
+  // bounding box de los nodos. Organic no se toca: persiste posiciones
+  // del usuario y el zoom default es suficiente.
+  const lastFittedModeRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (mode === 'organic') {
+      lastFittedModeRef.current = mode
+      return
+    }
+    if (positions.size === 0) return
+    // Solo refit cuando ENTRAMOS al mode (no en cada re-render del mismo).
+    if (lastFittedModeRef.current === mode) return
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const p of positions.values()) {
+      if (p.x < minX) minX = p.x
+      if (p.y < minY) minY = p.y
+      if (p.x > maxX) maxX = p.x
+      if (p.y > maxY) maxY = p.y
+    }
+    if (!isFinite(minX)) return
+    pz.fitToView({ minX, minY, maxX, maxY })
+    lastFittedModeRef.current = mode
+  }, [mode, positions, pz])
+
   const freshEntities = useFreshIds(entities.map((e) => e.id))
   const freshRels = useFreshIds(relationships.map((r) => r.id))
 

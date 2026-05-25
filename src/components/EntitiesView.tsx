@@ -238,39 +238,60 @@ export function EntitiesView({
 
   return (
     <>
-      {/* ο1: el <header> con h2 + descripción + accent-rule se movió a
-          EntitiesWorkbench (la vista pasó a vivir adentro de un wrapper
-          con tabs Listado / Vínculos). Acá conservamos solo los CTAs de
-          acción contextual ("reclasificar con IA", "Añadir") en una
-          toolbar inline alineada a la derecha. */}
-      <div className="mb-8 flex items-baseline justify-end gap-4">
-        {entities.length > 0 && (
+      {/* ρ-struct: header con h2 + acciones EN LA MISMA FILA. Antes el
+          h2 vivía en EntitiesWorkbench y las acciones flotaban abajo
+          alineadas a la derecha — quedaban "huérfanas" visualmente.
+          Ahora "Reclasificar con IA" y "Añadir" están a la altura del
+          título, lo que pidió el usuario en el sprint ρ. La descripción
+          de la sección bajó debajo del h2 (sigue siendo identidad
+          editorial) y la accent-rule mantiene la firma cromática. */}
+      <header className="mb-8 flex items-baseline justify-between gap-6">
+        <div className="min-w-0">
+          <h2 className="font-serif text-4xl text-ink-700 leading-none">
+            Entidades
+          </h2>
+          <div className="accent-rule mt-3 mb-2" />
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
+            Las cosas que conectas: personas, libros, canciones, álbumes,
+            películas, obras, conceptos, ideas. Cada nodo del grafo es una
+            entidad.
+          </p>
+        </div>
+        <div className="shrink-0 flex items-center gap-3 mt-1">
+          {entities.length > 0 && (
+            <button
+              onClick={handleReclassify}
+              disabled={reclassify.isPending || offline}
+              className="ai-cta"
+              title="La IA revisa los tipos actuales y propone reclasificaciones cuando hay uno mejor"
+            >
+              {reclassify.isPending ? (
+                <>
+                  <span
+                    className="size-3 border-2 rounded-full animate-spin"
+                    style={{
+                      borderColor: 'var(--accent-primary-ring)',
+                      borderTopColor: 'var(--accent-primary)',
+                    }}
+                  />
+                  revisando…
+                </>
+              ) : (
+                <>
+                  <SparkleIcon size={12} />
+                  reclasificar con IA
+                </>
+              )}
+            </button>
+          )}
           <button
-            onClick={handleReclassify}
-            disabled={reclassify.isPending || offline}
-            className="ai-cta"
-            title="La IA revisa los tipos actuales y propone reclasificaciones cuando hay uno mejor"
+            onClick={() => setShowForm((s) => !s)}
+            className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
           >
-            {reclassify.isPending ? (
-              <>
-                <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: `var(--accent-primary-ring)`, borderTopColor: `var(--accent-primary)` }} />
-                revisando…
-              </>
-            ) : (
-              <>
-                <SparkleIcon size={12} />
-                reclasificar con IA
-              </>
-            )}
+            {showForm ? 'Cerrar' : 'Añadir'}
           </button>
-        )}
-        <button
-          onClick={() => setShowForm((s) => !s)}
-          className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
-        >
-          {showForm ? 'Cerrar' : 'Añadir'}
-        </button>
-      </div>
+        </div>
+      </header>
 
       {reclassify.error && (
         <div className="alert-error mb-6 px-4 py-3 rounded-xl text-sm">

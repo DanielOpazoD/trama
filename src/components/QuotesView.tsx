@@ -523,9 +523,16 @@ function QuoteItem({
           ) : (
             <span className="text-ink-300">— entidad eliminada</span>
           )}
-          {quote.source && (
-            <span className="text-ink-300 ml-2 italic">· {quote.source}</span>
-          )}
+          {quote.source &&
+            // ρ-fix-B2: cuando la cita está atada a una entidad-obra
+            // (libro/ensayo/álbum/canción) Y el source es literalmente el
+            // mismo nombre, evitamos imprimirlo dos veces. Ej.: Lao Tse →
+            // "Tao Te Ching" (entity link) ·  Tao Te Ching (source italic).
+            // El match es case-insensitive con trim para tolerar minucias.
+            quote.source.trim().toLowerCase() !==
+              entity?.name.trim().toLowerCase() && (
+              <span className="text-ink-300 ml-2 italic">· {quote.source}</span>
+            )}
           {quote.origin.kind === 'ai' && (
             <span className="ml-1.5 inline-flex items-center text-sky-700/70" title="propuesta por IA">
               <SparkleIcon size={10} />

@@ -26,21 +26,56 @@ describe('<TopBar />', () => {
     expect(screen.getByText(expectedTitle)).toBeInTheDocument()
   })
 
-  it('renderiza la pill "Buscar" cuando se pasa onOpenPalette', async () => {
-    const onOpenPalette = vi.fn()
-    renderWithProviders(<TopBar view="inicio" onOpenPalette={onOpenPalette} />)
-    // El aria-label ahora incluye el atajo (γ4: label-content-name-mismatch),
-    // así que matcheamos por prefijo en vez del texto literal.
-    const pill = screen.getByLabelText(/^Buscar/)
-    expect(pill).toBeInTheDocument()
-    const user = userEvent.setup()
-    await user.click(pill)
-    expect(onOpenPalette).toHaveBeenCalledTimes(1)
-  })
-
-  it('NO renderiza la pill "Buscar" si no se pasa onOpenPalette', () => {
+  it('NO renderiza la pill "Buscar" — vive en el sidebar (ρ-struct)', () => {
+    // ρ-struct: el botón "Buscar" se movió al sidebar para liberar el
+    // TopBar de su rol de "barra de búsqueda" y dejarlo solo con
+    // título + tabs contextuales + status.
     renderWithProviders(<TopBar view="inicio" />)
     expect(screen.queryByLabelText(/^Buscar/)).toBeNull()
+  })
+
+  it('renderiza tabs contextuales cuando se pasan en tabs prop', async () => {
+    const onChange = vi.fn()
+    renderWithProviders(
+      <TopBar
+        view="entidades"
+        tabs={{
+          items: [
+            { value: 'listado', label: 'Listado' },
+            { value: 'vinculos', label: 'Vínculos' },
+          ],
+          active: 'listado',
+          onChange,
+        }}
+      />,
+    )
+    const listado = screen.getByRole('tab', { name: 'Listado' })
+    const vinculos = screen.getByRole('tab', { name: 'Vínculos' })
+    expect(listado).toHaveAttribute('aria-selected', 'true')
+    expect(vinculos).toHaveAttribute('aria-selected', 'false')
+    const user = userEvent.setup()
+    await user.click(vinculos)
+    expect(onChange).toHaveBeenCalledWith('vinculos')
+  })
+
+  it('oculta tabs cuando hay un breadcrumb activo (contexto manda)', () => {
+    renderWithProviders(
+      <TopBar
+        view="entidades"
+        breadcrumb={{ label: 'Hermann Hesse' }}
+        tabs={{
+          items: [
+            { value: 'listado', label: 'Listado' },
+            { value: 'vinculos', label: 'Vínculos' },
+          ],
+          active: 'listado',
+          onChange: vi.fn(),
+        }}
+      />,
+    )
+    // El breadcrumb se renderea, las tabs no
+    expect(screen.getByText('Hermann Hesse')).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'Listado' })).toBeNull()
   })
 
   it('renderiza children opcionales en el slot actions', () => {
