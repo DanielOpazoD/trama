@@ -23,6 +23,7 @@ import { AskBar } from './components/AskBar'
 import { ReadingMode } from './components/ReadingMode'
 import { Settings } from './components/Settings'
 import { Splash } from './components/Splash'
+import { HomeSkeleton } from './components/HomeSkeleton'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { RightPanel, type PendingProposal } from './components/RightPanel'
 import { ViewRouter } from './components/ViewRouter'
@@ -235,9 +236,18 @@ function Shell() {
           )}
 
           {loading ? (
-            <div className="h-full flex items-center justify-center">
-              <p className="text-ink-300 italic">cargando…</p>
-            </div>
+            // ω-C: skeleton específico para la vista Inicio. Para otras
+            // vistas (entidades / citas / etc.) mantenemos el placeholder
+            // genérico — cada una tiene su propio loading inline en su
+            // primer render. Solo Inicio se beneficia de un skeleton
+            // dedicado porque su hero define el carácter editorial.
+            view === 'inicio' ? (
+              <HomeSkeleton />
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <p className="text-ink-300 italic">cargando…</p>
+              </div>
+            )
           ) : (
             <div key={view} className="animate-view-fade h-full">
               <ViewRouter

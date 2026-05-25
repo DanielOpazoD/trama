@@ -9,6 +9,7 @@ import {
   useUpdateQuote,
   useToast,
 } from '../state'
+import { sectionWashStyle } from '../lib/sectionWash'
 import { EndMark, SparkleIcon, TrashIcon } from './Icons'
 import { AISourceTag } from './AISourceTag'
 import { EmptyMessage } from './EmptyMessage'
@@ -176,7 +177,11 @@ export function QuotesView({
 
   return (
     <>
-      <header className="mb-10 flex items-baseline justify-between gap-6">
+      {/* ω-B: wash gold — el lugar donde el lenguaje pesa. */}
+      <header
+        className="mb-10 flex items-baseline justify-between gap-6 px-3 -mx-3 py-2 -my-2 rounded-lg"
+        style={sectionWashStyle('var(--accent-gold)')}
+      >
         <div className="min-w-0">
           {/* σ-followup: eyebrow editorial — coherente con Momentos,
               Escuchas, Sugerencias, Entidades. */}

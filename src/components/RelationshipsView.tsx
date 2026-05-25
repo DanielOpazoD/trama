@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { RELATIONSHIP_TYPES, type Entity, type ExtractionProposal, type Relationship, type RelationshipType } from '../types'
+import { sectionWashStyle } from '../lib/sectionWash'
 import {
   useEntitiesQuery,
   useInfiniteRelationshipsQuery,
@@ -146,7 +147,11 @@ export function RelationshipsView({
           descripción contextual ("Vínculos entre dos entidades…") vive
           abajo del h2, no en el TopBar — el TopBar lleva el nombre del
           workspace ("Entidades") + las tabs. */}
-      <header className="mb-8 flex items-baseline justify-between gap-6">
+      {/* ω-B: wash sage — las relaciones son vegetales, no técnicas. */}
+      <header
+        className="mb-8 flex items-baseline justify-between gap-6 px-3 -mx-3 py-2 -my-2 rounded-lg"
+        style={sectionWashStyle('var(--accent-sage)')}
+      >
         <div className="min-w-0">
           {/* σ-followup: eyebrow + h2 coherente con el patrón canónico.
               El h2 dice "Vínculos" (no repite "Entidades") porque el

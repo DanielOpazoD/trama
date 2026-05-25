@@ -361,7 +361,8 @@ function FotoFields({ composer }: { composer: Composer }) {
                 )
               })}
             </div>
-            <p className="text-caption text-ink-400 italic">
+            {/* ω-A: counts/hints sin italic — son metadata útil. */}
+            <p className="text-caption text-ink-400">
               {composer.photoDrafts.length}{' '}
               {composer.photoDrafts.length === 1 ? 'foto' : 'fotos'}
               {composer.photoDrafts.length > 1 &&
@@ -384,7 +385,7 @@ function FotoFields({ composer }: { composer: Composer }) {
           múltiples archivos en proceso — para un solo file el botón
           "Subiendo…" ya alcanza. */}
       {composer.photoUploadProgress && composer.photoUploadProgress.total > 1 && (
-        <p className="text-caption text-ink-400 italic tabular-nums">
+        <p className="text-caption text-ink-400 tabular-nums">
           Subiendo {composer.photoUploadProgress.done} de{' '}
           {composer.photoUploadProgress.total}…
         </p>

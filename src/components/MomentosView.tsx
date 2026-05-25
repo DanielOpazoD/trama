@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   useInfiniteMomentosQuery,
   useDeleteMomento,
@@ -14,6 +14,7 @@ import { MomentoEntry } from './momentos/MomentoEntry'
 import { MomentosFilters } from './momentos/MomentosFilters'
 import { formatDateHeading, groupByDay } from './momentos/helpers'
 import { useMomentoComposer } from './momentos/useMomentoComposer'
+import { sectionWashStyle } from '../lib/sectionWash'
 
 /**
  * Vista Momentos — orquestador.
@@ -55,10 +56,21 @@ export function MomentosView() {
     initialKind,
   })
 
-  const items = useMemo(
-    () => momentosQuery.data?.pages.flatMap((p) => p.items) ?? [],
-    [momentosQuery.data],
-  )
+  // ω-D: filtro por día desde el heatmap del Inicio. Lee `?day=YYYY-MM-DD`
+  // de la URL al mount + responde a popstate. Si está presente, filtramos
+  // `items` client-side para mostrar solo los del día.
+  const dayFilter = useDayFilter()
+
+  const items = useMemo(() => {
+    const all = momentosQuery.data?.pages.flatMap((p) => p.items) ?? []
+    if (!dayFilter) return all
+    return all.filter((m) => {
+      const d = new Date(m.capturedAt)
+      if (Number.isNaN(d.getTime())) return false
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      return iso === dayFilter
+    })
+  }, [momentosQuery.data, dayFilter])
   const groups = useMemo(() => groupByDay(items), [items])
   const entitiesById = useMemo(() => {
     const map = new Map<string, Entity>()
@@ -80,8 +92,12 @@ export function MomentosView() {
   return (
     <>
       {/* χ-followup: mb-10 → mb-6 — el header pesaba mucho aire encima
-          del composer y obligaba a scrollear para arrancar a escribir. */}
-      <header className="mb-6">
+          del composer y obligaba a scrollear para arrancar a escribir.
+          ω-B: wash con accent-gold (la memoria también pesa en oro). */}
+      <header
+        className="mb-6 px-3 -mx-3 py-2 -my-2 rounded-lg"
+        style={sectionWashStyle('var(--accent-gold)')}
+      >
         <p
           className="section-eyebrow-serif mb-2"
           style={{ color: 'var(--accent-gold)' }}
@@ -93,6 +109,25 @@ export function MomentosView() {
       </header>
 
       <MomentoComposer composer={composer} />
+
+      {/* ω-D: banner del filtro por día cuando viene del heatmap. */}
+      {dayFilter && (
+        <div className="mb-4 flex items-center justify-between gap-3 px-4 py-2 bg-paper-100/50 border border-ink-100/60 rounded-lg">
+          <span className="text-caption text-ink-500">
+            Mostrando momentos del{' '}
+            <span className="text-ink-700 font-medium tabular-nums">
+              {formatDayLabel(dayFilter)}
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={clearDayFilter}
+            className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+          >
+            ver todos
+          </button>
+        </div>
+      )}
 
       <MomentosFilters
         filterKind={filterKind}
@@ -189,4 +224,52 @@ function readInitialCompose(): MomentoKind | undefined {
     /* malformed URL — fallback al default del composer */
   }
   return undefined
+}
+
+/**
+ * ω-D: lee `?day=YYYY-MM-DD` de la URL y se actualiza si cambia por
+ * navegación (popstate). Valida el formato — un día con caracteres no
+ * numéricos queda null. Devuelve la string ISO o null.
+ */
+function useDayFilter(): string | null {
+  const [day, setDay] = useState<string | null>(() => readDayParam())
+  useEffect(() => {
+    function onPop() {
+      setDay(readDayParam())
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+  return day
+}
+
+function readDayParam(): string | null {
+  if (typeof window === 'undefined') return null
+  const raw = new URLSearchParams(window.location.search).get('day')
+  if (!raw) return null
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null
+  return raw
+}
+
+function formatDayLabel(iso: string): string {
+  // YYYY-MM-DD → "viernes 23 de mayo 2026" en español, capitalizado.
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d))
+    return iso
+  const date = new Date(y, m - 1, d)
+  const raw = date.toLocaleDateString('es', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+  return raw.charAt(0).toUpperCase() + raw.slice(1)
+}
+
+function clearDayFilter() {
+  if (typeof window === 'undefined') return
+  const url = new URL(window.location.href)
+  url.searchParams.delete('day')
+  window.history.pushState({}, '', url.toString())
+  window.dispatchEvent(new PopStateEvent('popstate'))
 }

@@ -634,8 +634,20 @@ html.dark .paper-grain::before {
     animation: check-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
     transform-origin: center;
   }
+  /* ω-B: onda concéntrica que sale del ✓ guardado — un anillo que se
+     expande y desaparece. Una sola vez, ~600ms. Refuerza la sensación
+     de "se grabó" sin ser pulso continuo. */
+  @keyframes saved-ripple {
+    0%   { opacity: 0.55; transform: scale(0.6); }
+    100% { opacity: 0;    transform: scale(2.4); }
+  }
+  .animate-saved-ripple {
+    animation: saved-ripple 620ms ease-out both;
+    transform-origin: center;
+  }
   @media (prefers-reduced-motion: reduce) {
-    .animate-check-pop {
+    .animate-check-pop,
+    .animate-saved-ripple {
       animation: none;
     }
   }
@@ -853,6 +865,15 @@ html.dark .paper-grain::before {
     font-style: italic;
     font-weight: 400;
     font-feature-settings: 'liga', 'kern';
+    /* ω-A: hanging punctuation editorial. La comilla francesa de
+       apertura (« o `) y la inglesa (" o ") se "cuelgan" del margen
+       izquierdo — el primer carácter alfabético queda alineado con
+       el bloque, no desplazado por el ancho del signo. Es el detalle
+       que distingue libros bien tipografiados. La propiedad
+       `hanging-punctuation` está soportada nativamente en Safari y
+       Firefox; en Chrome cae a comportamiento normal (degradación
+       silenciosa, no rompe nada). */
+    hanging-punctuation: first;
   }
 
   /* Editorial accent rule — a narrow primary-color underline that sits
@@ -1025,9 +1046,23 @@ html.dark .paper-grain::before {
     /* ν1: shadow tintada al hover. La var --card-shadow-hover muta
        entre temas (light → tinte gold cálido; dark → tinte cobre profundo). */
     box-shadow: var(--card-shadow);
+    /* ω-B: micro-tilt al hover — perspective + rotateX muy pequeño
+       (~0.4°) hace que la card se sienta "física" sin caer en kitsch
+       3D. transform-origin top da el efecto de "levantarse hacia el
+       cursor". prefers-reduced-motion lo cancela. */
+    transform-origin: 50% 0%;
+    transform: perspective(800px) rotateX(0deg);
+    will-change: transform;
   }
   .card-paper-hover:hover {
     box-shadow: var(--card-shadow-hover);
+    transform: perspective(800px) rotateX(-0.4deg) translateY(-1px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-paper-hover,
+    .card-paper-hover:hover {
+      transform: none;
+    }
   }
   .card-paper-elevated {
     @apply bg-paper-50/70 border border-ink-100/60 rounded-xl;

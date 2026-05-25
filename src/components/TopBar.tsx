@@ -190,26 +190,33 @@ function StatusPill({ status }: { status: GlobalStatus }) {
   // saved — ✓ con scale-in animation, más visceral que un dot estático.
   // La cifra `animate-check-pop` está en index.css y dura ~400ms con un
   // pequeño overshoot (scale 0 → 1.15 → 1) que se siente como "tick".
+  // ω-B: alrededor del ✓ una micro-onda concéntrica (animate-ripple)
+  // que se expande una vez al aparecer — refuerza la sensación de "tic".
   return (
     <span
       className="flex items-center gap-1.5 text-caption leading-none animate-fade-up"
       style={{ color: 'var(--accent-sage)' }}
       title="Cambios guardados"
     >
-      <svg
-        width="12"
-        height="12"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="animate-check-pop"
-        aria-hidden
-      >
-        <path d="M5 13l4 4L19 7" />
-      </svg>
+      <span className="relative inline-flex" aria-hidden>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="animate-check-pop"
+        >
+          <path d="M5 13l4 4L19 7" />
+        </svg>
+        <span
+          className="absolute inset-0 rounded-full animate-saved-ripple"
+          style={{ border: '1.5px solid currentColor' }}
+        />
+      </span>
       guardado
     </span>
   )

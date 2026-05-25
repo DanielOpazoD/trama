@@ -34,7 +34,7 @@ export function HomeView({
   onNavigate,
   onSelectEntity,
 }: {
-  onNavigate: (view: 'grafo' | 'entidades' | 'citas' | 'sugerencias') => void
+  onNavigate: (view: 'grafo' | 'entidades' | 'citas' | 'momentos' | 'sugerencias') => void
   onSelectEntity: (id: string) => void
 }) {
   const { data: entities = [], isLoading: entitiesLoading } = useEntitiesQuery()
@@ -195,6 +195,22 @@ export function HomeView({
             entities={entities}
             quotes={quotes}
             relationships={relationships}
+            onSelectDay={(iso) => {
+              // ω-D: navegar a Momentos con ?day=ISO. MomentosView
+              // lee el param y filtra el timeline. Si ese día no
+              // tiene momentos pero sí entidades/citas, el banner
+              // del filtro lo aclara — el heatmap mezcla las tres
+              // métricas, los momentos son solo una.
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href)
+                url.searchParams.set('view', 'momentos')
+                url.searchParams.set('day', iso)
+                window.history.pushState({}, '', url.toString())
+                // Disparar popstate manualmente para que App reaccione.
+                window.dispatchEvent(new PopStateEvent('popstate'))
+              }
+              onNavigate('momentos')
+            }}
           />
 
           {timeline.length > 0 && (
@@ -554,12 +570,76 @@ function TimelineRow({
 
 // ---------- helpers ----------
 
+/**
+ * ω-A: greeting con variantes literarias rotando por día. Cada franja
+ * horaria tiene 4 alternativas; el seed estable por (día × franja)
+ * elige una. La app se siente "escrita por alguien" sin tener que
+ * arruinar la previsibilidad — la misma franja del mismo día siempre
+ * devuelve la misma variante (no cambia al re-renderear).
+ */
+const GREETINGS = {
+  // 0-6: aún de noche
+  madrugada: [
+    'Aún de noche',
+    'Antes del alba',
+    'Madrugada en silencio',
+    'A esta hora sólo los gatos',
+  ],
+  // 6-12: mañana
+  manana: [
+    'Buenos días',
+    'Luz oblicua',
+    'Café temprano',
+    'La mañana abierta',
+  ],
+  // 12-15: filo del mediodía
+  mediodia: [
+    'Buenas tardes',
+    'Filo del mediodía',
+    'Pleno día',
+    'Sol alto',
+  ],
+  // 15-19: tarde
+  tarde: [
+    'Buenas tardes',
+    'Tarde tardía',
+    'Luz que baja',
+    'Cae la luz',
+  ],
+  // 19-24: noche
+  noche: [
+    'Buenas noches',
+    'Cae la noche',
+    'Hora de cerrar el día',
+    'Penumbra cómoda',
+  ],
+}
+
+type GreetingBand = keyof typeof GREETINGS
+
+function bandForHour(h: number): GreetingBand {
+  if (h < 6) return 'madrugada'
+  if (h < 12) return 'manana'
+  if (h < 15) return 'mediodia'
+  if (h < 19) return 'tarde'
+  return 'noche'
+}
+
+function dailySeed(): number {
+  const d = new Date()
+  // YYYYMMDD como entero estable. Cambia cada medianoche local.
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()
+}
+
 function greetingForNow(): string {
   const h = new Date().getHours()
-  if (h < 6) return 'Aún de noche'
-  if (h < 12) return 'Buenos días'
-  if (h < 19) return 'Buenas tardes'
-  return 'Buenas noches'
+  const band = bandForHour(h)
+  const options = GREETINGS[band]
+  // Mezclamos el seed con el ordinal de la franja para que dos franjas
+  // del mismo día no caigan en la misma variante por azar.
+  const bandIdx = Object.keys(GREETINGS).indexOf(band)
+  const idx = (dailySeed() + bandIdx * 7) % options.length
+  return options[idx]
 }
 
 /**

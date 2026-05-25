@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { ENTITY_TYPES, type EntityType } from '../types'
+import { sectionWashStyle } from '../lib/sectionWash'
 import {
   useInfiniteEntitiesQuery,
   useQuotesQuery,
@@ -245,7 +246,12 @@ export function EntitiesView({
           título, lo que pidió el usuario en el sprint ρ. La descripción
           de la sección bajó debajo del h2 (sigue siendo identidad
           editorial) y la accent-rule mantiene la firma cromática. */}
-      <header className="mb-8 flex items-baseline justify-between gap-6">
+      {/* ω-B: wash radial sutil del color del tipo "persona" — el
+          accent que comparte la mayoría de las entidades. */}
+      <header
+        className="mb-8 flex items-baseline justify-between gap-6 px-3 -mx-3 py-2 -my-2 rounded-lg"
+        style={sectionWashStyle('var(--type-persona)')}
+      >
         <div className="min-w-0">
           {/* σ-followup: eyebrow editorial coherente con Momentos /
               Escuchas / Sugerencias. El patrón canónico de las vistas

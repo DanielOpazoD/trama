@@ -6,6 +6,7 @@ import { SparkleIcon } from './Icons'
 import { MusicPaletteCard } from './MusicPaletteCard'
 import { PlaysTiming } from './listening/PlaysTiming'
 import { SuggestArtists } from './listening/SuggestArtists'
+import { sectionWashStyle } from '../lib/sectionWash'
 import type { EntityType, ExtractionProposal, Origin } from '../types'
 
 type Group = 'artist' | 'album' | 'track'
@@ -169,8 +170,12 @@ export function ListeningView({
 
   return (
     <>
-      {/* ι6: eyebrow editorial coherente con Sugerencias. */}
-      <header className="mb-10 flex items-baseline justify-between gap-6">
+      {/* ι6: eyebrow editorial coherente con Sugerencias.
+          ω-B: wash con accent del tipo musico — rojo-tierra. */}
+      <header
+        className="mb-10 flex items-baseline justify-between gap-6 px-3 -mx-3 py-2 -my-2 rounded-lg"
+        style={sectionWashStyle('var(--type-musico)')}
+      >
         <div className="min-w-0">
           <p className="section-eyebrow-serif mb-2" style={{ color: 'var(--accent-gold)' }}>
             tu música reciente
@@ -429,7 +434,8 @@ function PlaysSummary({
       <div className="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
         <p className="section-eyebrow">{periodLabel}</p>
         {hours !== null && hours > 0 && (
-          <p className="text-caption text-ink-400 italic tabular-nums">
+          // ω-A: sin italic — es metadata numérica, no cita ni título.
+          <p className="text-caption text-ink-400 tabular-nums">
             {hours} {hours === 1 ? 'hora' : 'horas'} de música
           </p>
         )}
