@@ -21,4 +21,5 @@ export const queryKeys = {
   quotes: ['quotes'] as const,
   quotesInfinite: ['quotes', 'infinite'] as const,
   counts: ['counts'] as const,
+  entityRefsCount: ['entities', 'refs-count'] as const,
 }

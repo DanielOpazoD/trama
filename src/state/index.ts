@@ -19,6 +19,7 @@ export { useCountsQuery } from './useCounts'
 export { useNeighborsQuery } from './useNeighbors'
 export {
   useEntitiesQuery,
+  useEntityRefsCountQuery,
   useInfiniteEntitiesQuery,
   useAddEntity,
   useUpdateEntityPosition,
