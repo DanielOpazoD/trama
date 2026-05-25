@@ -149,7 +149,10 @@ export function MomentosView() {
             </>
           }
         />
-      ) : viewMode === 'album' && filterKind === 'foto' ? (
+      ) : viewMode === 'album' && (filterKind === 'foto' || filterKind === null) ? (
+        // AA-D: álbum visible también en "Todos" — AlbumGrid filtra
+        // internamente a kind=foto, así que el usuario ve solo las
+        // fotos en grid sin tener que cambiar de pestaña antes.
         <AlbumGrid
           items={items}
           entitiesById={entitiesById}
