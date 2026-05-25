@@ -39,6 +39,7 @@ export {
   useAddMomento,
   useUpdateMomento,
   useDeleteMomento,
+  useMergeMomentos,
 } from './useMomentos'
 export {
   useChatThreadsQuery,

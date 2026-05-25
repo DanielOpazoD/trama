@@ -105,6 +105,23 @@ export const momentosApi = {
     )
   },
 
+  /** EE: fusiona N momentos foto en uno solo. El primary sobrevive con
+      todos los items combinados; los otros quedan soft-deleted. */
+  async mergeMomentos(input: {
+    primaryId: string
+    otherIds: string[]
+    note?: string | null
+    capturedAt?: string
+  }): Promise<Momento & { merged: number; itemCount: number }> {
+    return request<Momento & { merged: number; itemCount: number }>(
+      '/api/momentos-merge',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    )
+  },
+
   /** DD1: lista los storageKeys en el store global que NO están referenciados
       por ningún Momento en la BD actual. Útil para recuperar fotos subidas
       en deploy previews (cuyos Momentos quedaron en BDs ephemeral). */
