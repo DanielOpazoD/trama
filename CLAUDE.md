@@ -221,11 +221,14 @@ Momentos es el dominio donde vive la **memoria fechada** de la trama: notas suel
 
 **Backend** (un endpoint por path, con multi-method handler):
 - `/api/momentos` GET/POST y `/api/momentos/:id` GET/PATCH/DELETE — CRUD principal
-- `/api/momentos/url-preview?url=` — server-side fetch de og:title/description/source/author (Twitter bloqueado por defecto)
-- `/api/momentos/:id/suggest-entities` — IA propone qué entidades existentes están mencionadas (no crea nuevas)
-- `/api/momentos/:id/vision-suggest` — para `kind=foto`, vision LLM propone caption + matches
-- `/api/momentos/upload` — multipart/form-data → Netlify Blobs store `momentos-media`
-- `/api/momentos/file/:key` — sirve el blob con cache inmutable
+- `/api/momentos-url-preview?url=` — server-side fetch de og:title/description/source/author
+- `/api/momentos-upload` — multipart/form-data → Netlify Blobs store `momentos-media`
+- `/api/momentos-file/:key` — sirve el blob con cache inmutable
+- `/api/momentos-orphaned-blobs` GET/POST — DD1: lista blobs no referenciados desde momentos en la BD actual + adopta uno creando un Momento foto. Recovery de uploads desde deploy previews
+- `/api/momentos-merge` POST — EE: fusiona N momentos foto en uno. CTE atómico que combina UPDATE primary (payload con `items[]` dedupeado por storageKey) + INSERT links (union entity_ids) + soft-delete others. Devuelve `deletedOthers: [{id, deletedAt}]` para "deshacer"
+- `/api/momentos-restore` POST — EE-followup: restaura un Momento soft-deleted. Body `{id, deletedAt}`; 409 si el deletedAt no matchea (defensa contra race con re-delete)
+
+> **Patrón de paths Momentos:** todos los sub-endpoints usan `momentos-X` (hyphen) en vez de `/api/momentos/X` porque el handler de `momentos.mts` matchea `/api/momentos/:id` y trataría "X" como un id. El bug de upload 405 (υ-bugfix) es la razón histórica.
 
 **Frontend** vive en `src/components/momentos/`:
 - `MomentosView.tsx` — orquestador delgado (<200 líneas)
@@ -240,8 +243,11 @@ Momentos es el dominio donde vive la **memoria fechada** de la trama: notas suel
 - **NO cambies `kind` via PATCH** — requeriría re-encoding del payload entero. Si necesitás eso, borrá y recreá.
 - **PATCH solo re-embedea si cambió `payload` o `note`** (no en cada link de entityIds). El handler decide con `shouldReembed`.
 - **Validá el payload con `validatePayloadForKind` en POST y PATCH** — protege contra `foto` sin storageKey, `nota` vacía, etc.
-- **Fotos viven en Netlify Blobs, no en Postgres.** El payload guarda `storageKey` (random hex hash + extension). Para servir, `/api/momentos/file/:key` con cache inmutable (la key NUNCA se sobreescribe).
+- **Fotos viven en Netlify Blobs, no en Postgres.** El payload guarda `storageKey` (random hex hash + extension). Para servir, `/api/momentos-file/:key` con cache inmutable (la key NUNCA se sobreescribe).
 - **Vision base64: usar `Buffer.from(arrayBuffer).toString('base64')`**, NO `btoa(String.fromCharCode(...))` que se rompe con imágenes >2MB.
+- **Cuando fusiones Momentos (`momentos-merge`), usá CTE atómico** — el driver Neon HTTP no soporta tx multi-statement, pero un single SQL con `WITH update_primary AS (...), link_others AS (...), soft_delete_others AS (...) SELECT ...` da atomicidad real. Si una sub-operación falla, ninguna commitea.
+- **UUID validate en código antes del SQL** para endpoints que reciben ids en body. Sin esto, un id mal formado revienta con 500 en el cast `::uuid` en vez del 400 claro que querés.
+- **Recovery de blobs huérfanos:** los deploy previews tienen BD-rama ephemeral pero el store de Blobs es global. Si subís en preview, los blobs sobreviven pero los Momentos no. Usar `/api/momentos-orphaned-blobs` desde Settings → Datos para recuperarlos.
 
 ## Netlify Blobs (storage no-DB)
 

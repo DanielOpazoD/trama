@@ -79,3 +79,23 @@ export function useDeleteMomento() {
     },
   })
 }
+
+/**
+ * EE: fusionar N momentos foto en uno solo. El primary sobrevive con
+ * todos los items combinados, los others quedan soft-deleted. Útil para
+ * agrupar fotos rescatadas del preview o reorganizar eventos.
+ */
+export function useMergeMomentos() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: {
+      primaryId: string
+      otherIds: string[]
+      note?: string | null
+      capturedAt?: string
+    }) => api.mergeMomentos(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
+    },
+  })
+}

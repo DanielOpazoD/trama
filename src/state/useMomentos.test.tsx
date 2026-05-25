@@ -15,6 +15,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   useAddMomento,
   useDeleteMomento,
+  useMergeMomentos,
   useUpdateMomento,
 } from './useMomentos'
 import * as apiModule from '../api'
@@ -133,6 +134,58 @@ describe('useUpdateMomento', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect(result.current.error?.message).toBe('boom')
+  })
+})
+
+describe('useMergeMomentos', () => {
+  it('llama api.mergeMomentos con los inputs', async () => {
+    const spy = vi.spyOn(apiModule.api, 'mergeMomentos').mockResolvedValue({
+      ...FAKE_MOMENTO,
+      merged: 1,
+      itemCount: 2,
+      deletedOthers: [{ id: 'm2', deletedAt: '2026-05-25T13:00:00Z' }],
+    })
+    const qc = makeQueryClient()
+    const { result } = renderHook(() => useMergeMomentos(), {
+      wrapper: wrapWith(qc),
+    })
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        primaryId: 'm1',
+        otherIds: ['m2'],
+        note: 'fusionado',
+      })
+    })
+
+    expect(spy).toHaveBeenCalledWith({
+      primaryId: 'm1',
+      otherIds: ['m2'],
+      note: 'fusionado',
+    })
+  })
+
+  it('invalida la query infinite tras éxito', async () => {
+    vi.spyOn(apiModule.api, 'mergeMomentos').mockResolvedValue({
+      ...FAKE_MOMENTO,
+      merged: 1,
+      itemCount: 2,
+      deletedOthers: [],
+    })
+    const qc = makeQueryClient()
+    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
+    const { result } = renderHook(() => useMergeMomentos(), {
+      wrapper: wrapWith(qc),
+    })
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        primaryId: 'm1',
+        otherIds: ['m2'],
+      })
+    })
+
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: MOMENTOS_INFINITE })
   })
 })
 

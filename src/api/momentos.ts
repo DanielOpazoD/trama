@@ -105,6 +105,39 @@ export const momentosApi = {
     )
   },
 
+  /** EE: fusiona N momentos foto en uno solo. El primary sobrevive con
+      todos los items combinados; los otros quedan soft-deleted.
+      Devuelve `deletedOthers: [{ id, deletedAt }]` para que el cliente
+      pueda ofrecer "deshacer" via restoreMomento. */
+  async mergeMomentos(input: {
+    primaryId: string
+    otherIds: string[]
+    note?: string | null
+    capturedAt?: string
+  }): Promise<
+    Momento & {
+      merged: number
+      itemCount: number
+      deletedOthers: Array<{ id: string; deletedAt: string }>
+    }
+  > {
+    return request('/api/momentos-merge', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  },
+
+  /** EE-followup: restaura un momento soft-deleted. Análogo a los
+      restore de quotes/entities/relationships (V1). El deletedAt actúa
+      como verificación: si fue restaurado/re-borrado por otro flujo
+      desde que se obtuvo, el server responde 409. */
+  async restoreMomento(id: string, deletedAt: string): Promise<Momento> {
+    return request<Momento>('/api/momentos-restore', {
+      method: 'POST',
+      body: JSON.stringify({ id, deletedAt }),
+    })
+  },
+
   /** DD1: lista los storageKeys en el store global que NO están referenciados
       por ningún Momento en la BD actual. Útil para recuperar fotos subidas
       en deploy previews (cuyos Momentos quedaron en BDs ephemeral). */
