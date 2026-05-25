@@ -116,6 +116,8 @@ export type Quote = {
   aiReflectionAt?: string
   /** Soft references to other quotes (no FK, so a deletion doesn't cascade-cleanse). */
   linkedQuoteIds: string[]
+  /** ω-E: timestamp de cuándo fue marcada como favorita. null/undefined = no es favorita. */
+  pinnedAt?: string
   origin: Origin
   createdAt: string
   updatedAt: string

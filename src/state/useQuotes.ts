@@ -117,6 +117,7 @@ type QuotePatch = Partial<{
   aiReflectionProvider: string | null
   aiReflectionModel: string | null
   linkedQuoteIds: string[]
+  pinned: boolean
 }>
 
 export function useUpdateQuote() {

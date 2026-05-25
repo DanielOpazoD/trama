@@ -49,6 +49,8 @@ type QuoteRow = {
   ai_reflection_model?: string | null
   ai_reflection_at?: string | null
   linked_quote_ids?: string[] | null
+  /** ω-E: pinned (favorita) — timestamp ISO o null. */
+  pinned_at?: string | null
   context: string | null
   origin: Origin | string
   created_at: string
@@ -104,6 +106,7 @@ function quoteFromRow(row: QuoteRow): Quote {
     aiReflectionModel: row.ai_reflection_model ?? undefined,
     aiReflectionAt: row.ai_reflection_at ?? undefined,
     linkedQuoteIds: Array.isArray(row.linked_quote_ids) ? row.linked_quote_ids : [],
+    pinnedAt: row.pinned_at ?? undefined,
     origin: asOrigin(row.origin),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -423,6 +426,9 @@ export const api = {
       aiReflectionProvider: string | null
       aiReflectionModel: string | null
       linkedQuoteIds: string[]
+      /** ω-E: marcar/desmarcar como favorita. true → set pinned_at = NOW().
+          false → null. undefined → no se toca. */
+      pinned: boolean
     }>,
   ): Promise<Quote> {
     const body: Record<string, unknown> = {}
@@ -435,6 +441,7 @@ export const api = {
     if (patch.aiReflectionProvider !== undefined) body.ai_reflection_provider = patch.aiReflectionProvider
     if (patch.aiReflectionModel !== undefined) body.ai_reflection_model = patch.aiReflectionModel
     if (patch.linkedQuoteIds !== undefined) body.linked_quote_ids = patch.linkedQuoteIds
+    if (patch.pinned !== undefined) body.pinned = patch.pinned
     const row = await request<QuoteRow>(`/api/quotes/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(body),

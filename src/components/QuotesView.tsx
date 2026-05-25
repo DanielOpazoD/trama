@@ -76,6 +76,10 @@ export function QuotesView({
   // EntitiesView). null = todos. Filtra client-side sobre las páginas ya
   // cargadas — coherente con cómo filtra Entidades.
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
+  // ω-E: toggle "solo favoritas". Cuando está activo filtra el array
+  // client-side a las que tienen pinnedAt. No requiere refetch porque
+  // las queries traen pinnedAt en el row.
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
 
   // Mapa entityId → type, para evitar O(n×m) cuando hay muchas citas y entidades.
   const entityTypeById = useMemo(() => {
@@ -96,13 +100,19 @@ export function QuotesView({
       .sort((a, b) => b.count - a.count)
   }, [allLoadedQuotes, entityTypeById])
 
-  const quotes = useMemo(
-    () =>
-      typeFilter
-        ? allLoadedQuotes.filter((q) => entityTypeById.get(q.entityId) === typeFilter)
-        : allLoadedQuotes,
-    [allLoadedQuotes, typeFilter, entityTypeById],
+  // ω-E: pinnedCount para mostrar el contador en el chip "favoritas".
+  const pinnedCount = useMemo(
+    () => allLoadedQuotes.filter((q) => q.pinnedAt).length,
+    [allLoadedQuotes],
   )
+
+  const quotes = useMemo(() => {
+    let arr = allLoadedQuotes
+    if (favoritesOnly) arr = arr.filter((q) => q.pinnedAt)
+    if (typeFilter)
+      arr = arr.filter((q) => entityTypeById.get(q.entityId) === typeFilter)
+    return arr
+  }, [allLoadedQuotes, typeFilter, favoritesOnly, entityTypeById])
 
   // For "work" entities, find the linked person/writer so we can show
   // "— Marco Aurelio · Meditaciones" instead of just "— Meditaciones".
@@ -279,8 +289,42 @@ export function QuotesView({
               EntitiesView): los chips scrollean con el contenido,
               desaparecen al subir las citas en el viewport. Si quieres
               cambiar filtro, scroll up. */}
-          {availableTypes.length > 1 && (
+          {(availableTypes.length > 1 || pinnedCount > 0) && (
             <div className="py-2 mb-4 border-b border-ink-100/60 flex flex-wrap gap-1.5">
+              {/* ω-E: chip "favoritas" — solo aparece cuando hay al
+                  menos una pinneada. Cuando se activa, el filtro de
+                  tipo no se toca (se acumulan: solo favoritas Y de
+                  un cierto tipo si está seleccionado). */}
+              {pinnedCount > 0 && (
+                <button
+                  onClick={() => setFavoritesOnly((v) => !v)}
+                  className={
+                    favoritesOnly
+                      ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors inline-flex items-center gap-1'
+                      : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors inline-flex items-center gap-1'
+                  }
+                  style={
+                    favoritesOnly
+                      ? {
+                          backgroundColor: 'var(--accent-gold-soft)',
+                          color: 'var(--accent-gold)',
+                        }
+                      : undefined
+                  }
+                  aria-pressed={favoritesOnly}
+                  title={
+                    favoritesOnly
+                      ? 'Mostrando solo favoritas — click para mostrar todas'
+                      : 'Mostrar solo favoritas'
+                  }
+                >
+                  <span aria-hidden>★</span>
+                  favoritas
+                  <span className="ml-0.5 text-micro tabular-nums opacity-70">
+                    {pinnedCount}
+                  </span>
+                </button>
+              )}
               <button
                 onClick={() => setTypeFilter(null)}
                 className={
@@ -562,14 +606,58 @@ function QuoteItem({
             añadida {formatDate(quote.createdAt)}
           </span>
         </div>
-        <button
-          onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
-          aria-label="Eliminar"
-          title="Eliminar"
-        >
-          <TrashIcon size={12} />
-        </button>
+        {/* ω-E: toolbar al hover — favorita (★) + eliminar.
+            La estrella es PERSISTENTE (visible siempre) cuando está
+            marcada, así el usuario ve de un vistazo cuáles fijó. Las
+            no-marcadas aparecen en hover. */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            onClick={async () => {
+              const next = !quote.pinnedAt
+              try {
+                await updateQuote.mutateAsync({
+                  id: quote.id,
+                  patch: { pinned: next },
+                })
+              } catch (err) {
+                toast.show({
+                  message:
+                    err instanceof Error
+                      ? err.message
+                      : 'No se pudo marcar como favorita',
+                  tone: 'error',
+                })
+              }
+            }}
+            className={`p-1.5 rounded transition-colors ${
+              quote.pinnedAt
+                ? 'opacity-100'
+                : 'opacity-0 group-hover:opacity-100'
+            } hover:bg-ink-100`}
+            style={{
+              color: quote.pinnedAt ? 'var(--accent-gold)' : undefined,
+            }}
+            aria-label={
+              quote.pinnedAt ? 'Quitar de favoritas' : 'Marcar como favorita'
+            }
+            title={
+              quote.pinnedAt ? 'Quitar de favoritas' : 'Marcar como favorita'
+            }
+            aria-pressed={!!quote.pinnedAt}
+          >
+            <span className="text-sm leading-none" aria-hidden>
+              {quote.pinnedAt ? '★' : '☆'}
+            </span>
+          </button>
+          <button
+            onClick={onDelete}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
+            aria-label="Eliminar"
+            title="Eliminar"
+          >
+            <TrashIcon size={12} />
+          </button>
+        </div>
       </div>
       {quote.context && (
         <p
