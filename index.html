@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- BB3: preconnect a Google Fonts. Las 3 familias (Inter, Spectral,
+         Caveat) se importan desde fonts.googleapis.com y los binarios viven
+         en fonts.gstatic.com. Adelantar el TLS handshake con preconnect baja
+         ~100-200ms el First Contentful Paint, especialmente en mobile. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
     <!-- Favicon SVG — escala perfecto en cualquier resolución, respeta
          prefers-color-scheme dentro del propio archivo. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
