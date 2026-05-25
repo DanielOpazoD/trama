@@ -44,6 +44,11 @@ export function MomentosView() {
   const toast = useToast()
 
   const linking = useMomentoLinking()
+  // τ-mobile-bridge: kind inicial controlado por `?compose=`. Al
+  // escanear el QR de Momentos desde el celular, la URL viene con
+  // `?view=momentos&compose=foto` — el composer arranca con el tab
+  // Foto seleccionado, sin que el usuario tenga que tocar nada extra.
+  const initialKind = readInitialCompose()
   const composer = useMomentoComposer({
     onCreated: (created) => {
       // Solo abrimos el panel de linking para recortes/fotos — las notas
@@ -52,6 +57,7 @@ export function MomentosView() {
         linking.openFor(created)
       }
     },
+    initialKind,
   })
 
   const items = useMemo(
@@ -177,4 +183,22 @@ export function MomentosView() {
       )}
     </>
   )
+}
+
+/**
+ * τ-mobile-bridge: lee `?compose=` de la URL. Whitelist a los kinds
+ * válidos de Momento. Si no hay param o es inválido, devuelve undefined
+ * para que el composer arranque en su default ('nota'). SSR-safe.
+ */
+function readInitialCompose(): MomentoKind | undefined {
+  if (typeof window === 'undefined') return undefined
+  try {
+    const param = new URLSearchParams(window.location.search).get('compose')
+    if (param === 'nota' || param === 'recorte' || param === 'foto') {
+      return param
+    }
+  } catch {
+    /* malformed URL — fallback al default del composer */
+  }
+  return undefined
 }

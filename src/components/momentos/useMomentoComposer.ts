@@ -17,13 +17,19 @@ import { readImageDimensions } from './helpers'
  */
 export function useMomentoComposer({
   onCreated,
+  initialKind,
 }: {
   onCreated?: (m: Momento) => void
+  /** τ-mobile-bridge: kind con el que arranca el composer. Se usa al
+      hacer deep-link desde el QR del celular: `?compose=foto` setea
+      el tab Foto directo, sin que el usuario tenga que tocar el
+      switcher después de escanear. */
+  initialKind?: MomentoKind
 }) {
   const addMomento = useAddMomento()
   const toast = useToast()
 
-  const [kind, setKind] = useState<MomentoKind>('nota')
+  const [kind, setKind] = useState<MomentoKind>(initialKind ?? 'nota')
 
   // Nota
   const [noteDraft, setNoteDraft] = useState('')

@@ -1,6 +1,7 @@
-import type { FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import type { MomentoKind } from '../../types'
 import type { useMomentoComposer } from './useMomentoComposer'
+import { MomentoQRModal } from './MomentoQRModal'
 
 type Composer = ReturnType<typeof useMomentoComposer>
 
@@ -13,6 +14,11 @@ type Composer = ReturnType<typeof useMomentoComposer>
  * dar reuso.
  */
 export function MomentoComposer({ composer }: { composer: Composer }) {
+  // τ-mobile-bridge: state local del modal QR. Vive acá adentro porque
+  // el botón vive en este componente y no hay otro lugar que necesite
+  // saber si está abierto.
+  const [qrOpen, setQrOpen] = useState(false)
+
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     composer.submit()
@@ -23,20 +29,37 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
       onSubmit={handleSubmit}
       className="mb-10 p-5 bg-paper-100/40 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
     >
-      <header className="stack-2 pb-3 border-b border-ink-100/60">
-        <p
-          className="section-eyebrow-serif"
-          style={{ color: 'var(--accent-gold)' }}
-        >
-          nueva entrada
-        </p>
-        <h3 className="font-serif text-xl text-ink-800 leading-tight">
-          {composer.kind === 'nota'
-            ? '¿Qué viste, leíste o pensaste hoy?'
-            : composer.kind === 'recorte'
-              ? 'Algo del mundo que te llamó la atención'
-              : 'Una imagen del día'}
-        </h3>
+      <header className="stack-2 pb-3 border-b border-ink-100/60 flex items-baseline justify-between gap-4">
+        <div className="min-w-0">
+          <p
+            className="section-eyebrow-serif"
+            style={{ color: 'var(--accent-gold)' }}
+          >
+            nueva entrada
+          </p>
+          <h3 className="font-serif text-xl text-ink-800 leading-tight">
+            {composer.kind === 'nota'
+              ? '¿Qué viste, leíste o pensaste hoy?'
+              : composer.kind === 'recorte'
+                ? 'Algo del mundo que te llamó la atención'
+                : 'Una imagen del día'}
+          </h3>
+        </div>
+        {/* τ-mobile-bridge: botón QR — solo se muestra cuando el kind
+            es Foto, porque ese es el caso donde tener el celular a
+            mano cambia el flujo. Para nota/recorte el desktop alcanza. */}
+        {composer.kind === 'foto' && (
+          <button
+            type="button"
+            onClick={() => setQrOpen(true)}
+            className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors shrink-0 flex items-center gap-1.5"
+            title="Escanear QR para abrir el composer en el celular"
+            aria-label="Abrir en el celular vía QR"
+          >
+            <QRGlyph />
+            <span>celular</span>
+          </button>
+        )}
       </header>
 
       <KindTabs kind={composer.kind} onChange={composer.setKind} />
@@ -44,6 +67,8 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
       {composer.kind === 'nota' && <NotaFields composer={composer} />}
       {composer.kind === 'recorte' && <RecorteFields composer={composer} />}
       {composer.kind === 'foto' && <FotoFields composer={composer} />}
+
+      <MomentoQRModal open={qrOpen} onClose={() => setQrOpen(false)} />
 
       <div className="flex items-center justify-between gap-3 pt-1">
         <p className="text-caption text-ink-300 italic">
@@ -242,5 +267,32 @@ function FotoFields({ composer }: { composer: Composer }) {
         disabled={composer.isPending}
       />
     </div>
+  )
+}
+
+/**
+ * τ-mobile-bridge: glyph QR inline. Sin agregar al set de Icons porque
+ * solo se usa acá. SVG minimal — un "frame" estilizado que evoca un
+ * código QR sin pretender serlo. 12×12 a stroke 1.6 para encajar con
+ * el tracking-eyebrow del botón.
+ */
+function QRGlyph() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="3" y="3" width="6" height="6" rx="0.5" />
+      <rect x="15" y="3" width="6" height="6" rx="0.5" />
+      <rect x="3" y="15" width="6" height="6" rx="0.5" />
+      <path d="M15 15h2M21 15v2M15 19v2M19 19h2" />
+    </svg>
   )
 }

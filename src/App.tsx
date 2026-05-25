@@ -63,7 +63,11 @@ function Shell() {
     null
 
   const isMobile = useIsMobile()
-  const [view, setView] = useState<ViewMode>('inicio')
+  // τ-mobile-bridge: lee `?view=` al mount inicial. Útil para
+  // deep-links externos — el QR de Momentos por ejemplo abre la app
+  // con `?view=momentos&compose=foto` para que el celular caiga directo
+  // en el composer en modo Foto.
+  const [view, setView] = useState<ViewMode>(() => readInitialView())
   // En mobile arrancamos con el sidebar colapsado; el usuario lo expande
   // con el ícono del menú.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -385,4 +389,34 @@ export default function App() {
       </ErrorBoundary>
     </Provider>
   )
+}
+
+/**
+ * τ-mobile-bridge: lee `?view=` de la URL al primer render del App
+ * para honrar deep-links externos (típicamente: el QR de Momentos
+ * abre la app con `?view=momentos&compose=foto`). Whitelist explícita
+ * de valores válidos — un query param malicioso/typeado no debe poder
+ * setear cualquier string en el state. SSR-safe.
+ */
+const VALID_VIEWS: ReadonlyArray<ViewMode> = [
+  'inicio',
+  'grafo',
+  'entidades',
+  'citas',
+  'escuchas',
+  'momentos',
+  'chat',
+  'sugerencias',
+]
+function readInitialView(): ViewMode {
+  if (typeof window === 'undefined') return 'inicio'
+  try {
+    const param = new URLSearchParams(window.location.search).get('view')
+    if (param && VALID_VIEWS.includes(param as ViewMode)) {
+      return param as ViewMode
+    }
+  } catch {
+    /* malformed URL — fallback al default */
+  }
+  return 'inicio'
 }
