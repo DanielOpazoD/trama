@@ -69,6 +69,7 @@ export function useInfiniteRelationshipsQuery() {
   })
 }
 
+/** BB4: optimistic create. */
 export function useAddRelationship() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
@@ -90,17 +91,44 @@ export function useAddRelationship() {
       }
       return api.createRelationship(payload)
     },
-    onSuccess: (created) => {
-      queryClient.setQueryData<Relationship[]>(queryKeys.relationships, (prev) => [
-        created,
-        ...(prev ?? []),
+    onMutate: async (data) => {
+      if (offline) return { previous: null, tempId: null }
+      await queryClient.cancelQueries({ queryKey: queryKeys.relationships })
+      const previous =
+        queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
+      const tempId = `__optimistic_${newId()}`
+      const optimistic: Relationship = {
+        ...data,
+        id: tempId,
+        origin: data.origin ?? DEFAULT_ORIGIN,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      }
+      queryClient.setQueryData<Relationship[]>(queryKeys.relationships, [
+        optimistic,
+        ...previous,
       ])
+      return { previous, tempId }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.relationships, context.previous)
+      }
+    },
+    onSuccess: (created, _vars, context) => {
+      queryClient.setQueryData<Relationship[]>(queryKeys.relationships, (prev) => {
+        if (!prev) return [created]
+        const tempId = context?.tempId ?? null
+        const withoutTemp = tempId ? prev.filter((r) => r.id !== tempId) : prev
+        return [created, ...withoutTemp]
+      })
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
       queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
     },
   })
 }
 
+/** BB4: optimistic update. */
 export function useUpdateRelationship() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
@@ -114,6 +142,29 @@ export function useUpdateRelationship() {
     }) => {
       if (offline) throw new Error('Editar requiere conexión al backend.')
       return api.updateRelationship(id, patch)
+    },
+    onMutate: async ({ id, patch }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.relationships })
+      const previous =
+        queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
+      queryClient.setQueryData<Relationship[]>(queryKeys.relationships, (prev) =>
+        (prev ?? []).map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                ...(patch.type !== undefined ? { type: patch.type } : {}),
+                ...(patch.notes !== undefined ? { notes: patch.notes ?? undefined } : {}),
+                updatedAt: nowIso(),
+              }
+            : r,
+        ),
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.relationships, context.previous)
+      }
     },
     onSuccess: (updated) => {
       queryClient.setQueryData<Relationship[]>(queryKeys.relationships, (prev) =>

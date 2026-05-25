@@ -1,7 +1,8 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
+import { withObservability } from './_lib/handler-wrap.js'
 
-export default async (req: Request) => {
+export default withObservability('extraction-log', async (req: Request) => {
   if (req.method !== 'GET') {
     return new Response('Method not allowed', { status: 405 })
   }
@@ -60,7 +61,7 @@ export default async (req: Request) => {
       totalTokens: Number(totals[0]?.total_tokens ?? 0),
     },
   })
-}
+})
 
 export const config: Config = {
   path: '/api/extraction-log',

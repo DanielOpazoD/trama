@@ -45,8 +45,21 @@ export function DataPanel() {
       const text = await file.text()
       const payload = JSON.parse(text) as ExportPayload
       if (payload.version !== 1) throw new Error(`versión ${payload.version} no soportada`)
-      const imported = await doImport(payload)
-      setMessage(`Importado: ${imported} elementos`)
+      const result = await doImport(payload)
+      // El endpoint nuevo devuelve {imported, skipped, failed}. Si hay
+      // fallas reales (no solo skipped por duplicado), las contamos
+      // explícitamente para que no pasen desapercibidas. Antes una
+      // importación con 5 errores de SQL retornaba "imported: 145" sin
+      // pista de los 5 perdidos.
+      const failedCount = result.failed?.length ?? 0
+      if (failedCount > 0) {
+        const firstReason = result.failed?.[0]?.reason ?? 'desconocido'
+        setMessage(
+          `Importados ${result.imported}, ${failedCount} con error (primero: ${firstReason.slice(0, 60)}). Revisa Logs en Settings.`,
+        )
+      } else {
+        setMessage(`Importado: ${result.imported} elementos`)
+      }
     } catch (err) {
       setMessage(err instanceof Error ? `Error: ${err.message}` : 'Error al importar')
     } finally {

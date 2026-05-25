@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import type { Momento, MomentoPayload } from '../../types'
 import { useUpdateMomento, useToast } from '../../state'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { compressImage, readImageDimensions } from './helpers'
 
 /**
@@ -67,6 +68,8 @@ export function MomentoEditModal({
   const [note, setNote] = useState(momento.note ?? '')
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(dialogRef, open)
 
   // Rebuild state when the momento changes (e.g., modal reuse).
   useEffect(() => {
@@ -233,6 +236,7 @@ export function MomentoEditModal({
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none animate-fade-up">
         <div
+          ref={dialogRef}
           role="dialog"
           aria-label="Editar momento"
           aria-modal="true"

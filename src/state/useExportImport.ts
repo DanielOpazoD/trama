@@ -1,7 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { storage } from '../storage'
-import type { Entity, ExportPayload, Quote, Relationship } from '../types'
+import type {
+  Entity,
+  ExportPayload,
+  ImportResult,
+  Quote,
+  Relationship,
+} from '../types'
 import { queryKeys } from './queryClient'
 import { useOffline } from './offline'
 
@@ -31,7 +37,7 @@ export function useExport(): () => Promise<ExportPayload> {
   }
 }
 
-export function useImport(): (payload: ExportPayload) => Promise<number> {
+export function useImport(): (payload: ExportPayload) => Promise<ImportResult> {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
 
@@ -59,7 +65,11 @@ export function useImport(): (payload: ExportPayload) => Promise<number> {
       queryClient.setQueryData(queryKeys.entities, updatedEntities)
       queryClient.setQueryData(queryKeys.relationships, updatedRels)
       queryClient.setQueryData(queryKeys.quotes, updatedQuotes)
-      return newEntities.length + newRels.length + newQuotes.length
+      return {
+        imported: newEntities.length + newRels.length + newQuotes.length,
+        skipped: 0,
+        failed: [],
+      }
     }
 
     const result = await api.importAll(payload)
@@ -68,6 +78,6 @@ export function useImport(): (payload: ExportPayload) => Promise<number> {
       queryClient.invalidateQueries({ queryKey: queryKeys.relationships }),
       queryClient.invalidateQueries({ queryKey: queryKeys.quotes }),
     ])
-    return result.imported
+    return result
   }
 }

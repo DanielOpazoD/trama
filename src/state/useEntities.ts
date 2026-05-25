@@ -71,6 +71,12 @@ export function useInfiniteEntitiesQuery() {
   })
 }
 
+/**
+ * BB4: las mutations de escritura ahora aplican el cambio en cache antes
+ * del round-trip al servidor (optimistic update). En éxito reemplazan el
+ * temp con el row real; en error revierten al snapshot anterior. La UI
+ * deja de tener el delay perceptible entre "Guardar" y verlo en la lista.
+ */
 export function useAddEntity() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
@@ -93,11 +99,39 @@ export function useAddEntity() {
       }
       return api.createEntity(payload, { force: _force })
     },
-    onSuccess: (created) => {
-      queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) => [
-        created,
-        ...(prev ?? []),
-      ])
+    onMutate: async (data) => {
+      // Online-only: en offline el mutationFn ya hace el insert y devuelve.
+      if (offline) return { previous: null, tempId: null }
+      await queryClient.cancelQueries({ queryKey: queryKeys.entities })
+      const previous = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
+      const tempId = `__optimistic_${newId()}`
+      const optimistic: Entity = {
+        ...data,
+        id: tempId,
+        origin: data.origin ?? DEFAULT_ORIGIN,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      }
+      queryClient.setQueryData<Entity[]>(queryKeys.entities, [optimistic, ...previous])
+      return { previous, tempId }
+    },
+    onError: (_err, _vars, context) => {
+      // Reponer el snapshot. Si el server respondió 409 (DuplicateEntityError),
+      // la UI muestra el dropdown "¿quisiste decir…?" — el rollback acá deja
+      // la lista exactamente como estaba antes del intento.
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.entities, context.previous)
+      }
+    },
+    onSuccess: (created, _vars, context) => {
+      // Reemplazar el temp por el row real (con id de server, embeddings
+      // listas, etc.). Si no había temp (offline), apenas prepender.
+      queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) => {
+        if (!prev) return [created]
+        const tempId = context?.tempId ?? null
+        const withoutTemp = tempId ? prev.filter((e) => e.id !== tempId) : prev
+        return [created, ...withoutTemp]
+      })
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
       queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
     },
@@ -174,6 +208,37 @@ export function useUpdateEntity() {
         throw new Error('Editar requiere conexión al backend.')
       }
       return api.updateEntity(id, patch)
+    },
+    onMutate: async ({ id, patch }) => {
+      // BB4: aplicar el patch en memoria al instante.
+      await queryClient.cancelQueries({ queryKey: queryKeys.entities })
+      const previous = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
+      queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) =>
+        (prev ?? []).map((e) =>
+          e.id === id
+            ? {
+                ...e,
+                ...(patch.name !== undefined ? { name: patch.name } : {}),
+                ...(patch.type !== undefined ? { type: patch.type } : {}),
+                ...(patch.year !== undefined ? { year: patch.year ?? undefined } : {}),
+                ...(patch.description !== undefined
+                  ? { description: patch.description ?? undefined }
+                  : {}),
+                ...(patch.essay !== undefined ? { essay: patch.essay ?? undefined } : {}),
+                ...(patch.spotifyUrl !== undefined
+                  ? { spotifyUrl: patch.spotifyUrl ?? undefined }
+                  : {}),
+                updatedAt: nowIso(),
+              }
+            : e,
+        ),
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.entities, context.previous)
+      }
     },
     onSuccess: (updated) => {
       queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) =>

@@ -87,6 +87,21 @@ function jsonResp(route: Route, body: unknown, status = 200) {
 }
 
 /**
+ * Helper: matchea sólo URLs cuyo `pathname` corresponde a `/api/<path>`. Sin
+ * esto el glob `**​/api/**` matchea también `/src/api/index.ts` (los assets
+ * que Vite sirve después de BB2 split de src/api.ts → src/api/), y devuelve
+ * JSON cuando el browser pidió un módulo JS. La app queda en blanco.
+ *
+ * - apiPath('entities')                 → exact match /api/entities
+ * - apiPath('quotes', { prefix: true }) → /api/quotes, /api/quotes/foo, etc.
+ */
+function apiPath(path: string, opts?: { prefix?: boolean }) {
+  const target = `/api/${path}`
+  return (url: URL) =>
+    opts?.prefix ? url.pathname.startsWith(target) : url.pathname === target
+}
+
+/**
  * Registra route handlers para todos los endpoints que la app llama al
  * arrancar. Cualquier endpoint no listado responde 200 con `[]` para
  * que la app no se cuelgue.
@@ -98,12 +113,13 @@ export async function mockBackend(page: Page, state: MockState) {
   //
   // Catch-all para cualquier /api no listado: 200 con array vacío. Evita
   // que un endpoint olvidado bloquee el test entero.
-  await page.route('**/api/**', (route) => {
-    return jsonResp(route, [])
-  })
+  await page.route(
+    (url) => url.pathname.startsWith('/api/'),
+    (route) => jsonResp(route, []),
+  )
 
   // GET /api/entities (wholesale)
-  await page.route('**/api/entities', async (route) => {
+  await page.route(apiPath('entities'), async (route) => {
     const url = new URL(route.request().url())
     const limitParam = url.searchParams.get('limit')
     if (limitParam) {
@@ -134,7 +150,7 @@ export async function mockBackend(page: Page, state: MockState) {
   })
 
   // GET /api/relationships
-  await page.route('**/api/relationships*', async (route) => {
+  await page.route(apiPath('relationships', { prefix: true }), async (route) => {
     const url = new URL(route.request().url())
     const limitParam = url.searchParams.get('limit')
     if (limitParam) {
@@ -146,7 +162,7 @@ export async function mockBackend(page: Page, state: MockState) {
   })
 
   // GET /api/quotes (paginated when limit; wholesale otherwise)
-  await page.route('**/api/quotes*', async (route) => {
+  await page.route(apiPath('quotes', { prefix: true }), async (route) => {
     const url = new URL(route.request().url())
     const limitParam = url.searchParams.get('limit')
     if (limitParam) {
@@ -158,16 +174,17 @@ export async function mockBackend(page: Page, state: MockState) {
   })
 
   // /api/counts
-  await page.route('**/api/counts', (route) =>
+  await page.route(apiPath('counts'), (route) =>
     jsonResp(route, {
       entities: state.entities.length,
       quotes: state.quotes.length,
       relationships: state.relationships.length,
+      momentos: 0,
     }),
   )
 
   // /api/search (hybrid). Devuelve hits que coincidan por substring en nombre.
-  await page.route('**/api/search*', (route) => {
+  await page.route(apiPath('search', { prefix: true }), (route) => {
     const url = new URL(route.request().url())
     const q = (url.searchParams.get('q') ?? '').toLowerCase()
     const hits = state.entities
@@ -189,7 +206,7 @@ export async function mockBackend(page: Page, state: MockState) {
   })
 
   // /api/entities-lookup (devuelve por prefix matching)
-  await page.route('**/api/entities-lookup*', (route) => {
+  await page.route(apiPath('entities-lookup', { prefix: true }), (route) => {
     const url = new URL(route.request().url())
     const prefix = (url.searchParams.get('prefix') ?? '').toLowerCase()
     const name = (url.searchParams.get('name') ?? '').toLowerCase()
@@ -200,23 +217,23 @@ export async function mockBackend(page: Page, state: MockState) {
   })
 
   // /api/proactive-suggestions (sin sugerencias)
-  await page.route('**/api/proactive-suggestions*', (route) =>
+  await page.route(apiPath('proactive-suggestions', { prefix: true }), (route) =>
     jsonResp(route, []),
   )
 
   // /api/ai-settings (sin overrides)
-  await page.route('**/api/ai-settings', (route) =>
+  await page.route(apiPath('ai-settings'), (route) =>
     jsonResp(route, { providers: [] }),
   )
 
   // /api/extraction-log (vacío)
-  await page.route('**/api/extraction-log*', (route) =>
+  await page.route(apiPath('extraction-log', { prefix: true }), (route) =>
     jsonResp(route, { entries: [], totals: { totalCalls: 0, totalCostCents: 0, totalTokens: 0 } }),
   )
 
   // /api/error-log y /api/health (vacíos)
-  await page.route('**/api/error-log*', (route) => jsonResp(route, []))
-  await page.route('**/api/health', (route) =>
+  await page.route(apiPath('error-log', { prefix: true }), (route) => jsonResp(route, []))
+  await page.route(apiPath('health'), (route) =>
     jsonResp(route, {
       counts: {
         entities: state.entities.length,
@@ -231,12 +248,12 @@ export async function mockBackend(page: Page, state: MockState) {
   )
 
   // /api/spotify-status (no conectado)
-  await page.route('**/api/spotify*', (route) =>
+  await page.route(apiPath('spotify', { prefix: true }), (route) =>
     jsonResp(route, { connected: false }),
   )
 
   // /api/chat/threads (GET + POST)
-  await page.route('**/api/chat/threads', (route) => {
+  await page.route(apiPath('chat/threads'), (route) => {
     if (route.request().method() === 'POST') {
       const body = JSON.parse(route.request().postData() ?? '{}')
       const thread = {
@@ -256,7 +273,10 @@ export async function mockBackend(page: Page, state: MockState) {
 
   // /api/chat/threads/:id/messages (GET only — SSE skipped in fixture; tests
   // que necesiten send mocking can override per-test).
-  await page.route(/\/api\/chat\/threads\/[^/]+\/messages/, (route) => {
+  // Regex anchored al inicio del pathname para no matchear /src/api/... por accidente.
+  await page.route(
+    (url) => /^\/api\/chat\/threads\/[^/]+\/messages$/.test(url.pathname),
+    (route) => {
     if (route.request().method() === 'GET') {
       const match = route.request().url().match(/threads\/([^/]+)\/messages/)
       const threadId = match?.[1] ?? ''

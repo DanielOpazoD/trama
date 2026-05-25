@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 /**
  * τ-mobile-bridge: modal con un código QR que abre el composer de
@@ -27,6 +28,8 @@ export function MomentoQRModal({
 }) {
   const [svgMarkup, setSvgMarkup] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(dialogRef, open)
 
   const url =
     typeof window !== 'undefined'
@@ -103,6 +106,7 @@ export function MomentoQRModal({
           que el backdrop reciba los clicks fuera del modal. */}
       <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none animate-fade-up">
         <div
+          ref={dialogRef}
           role="dialog"
           aria-label="Escanear con el celular"
           aria-modal="true"

@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   useEntitiesQuery,
   useInfiniteQuotesQuery,
   useRelationshipsQuery,
-  useAddQuote,
   useDeleteQuote,
   useReflectQuote,
   useUpdateQuote,
@@ -19,6 +18,7 @@ import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import { typeAccent } from './graph/GraphNode'
 import { ENTITY_TYPES } from '../types'
 import type { Entity, Quote } from '../types'
+import { QuoteForm } from './quotes/QuoteForm'
 
 /** Format an ISO date as "20 may 2026" — short, ink-on-paper style. */
 function formatDate(iso: string): string {
@@ -130,36 +130,9 @@ export function QuotesView({
     }
     return undefined
   }
-  const addQuote = useAddQuote()
   const deleteQuote = useDeleteQuote()
 
-  const [entityId, setEntityId] = useState('')
-  const [text, setText] = useState('')
-  const [source, setSource] = useState('')
-  const [context, setContext] = useState('')
-  const [userReflection, setUserReflection] = useState('')
   const [showForm, setShowForm] = useState(false)
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    const trimmedText = text.trim()
-    if (!trimmedText || !entityId) return
-    try {
-      await addQuote.mutateAsync({
-        entityId,
-        text: trimmedText,
-        source: source.trim() || undefined,
-        context: context.trim() || undefined,
-        userReflection: userReflection.trim() || undefined,
-      })
-      setText('')
-      setSource('')
-      setContext('')
-      setUserReflection('')
-    } catch {
-      /* error surfaces via addQuote.error */
-    }
-  }
 
   // Virtualized rendering: at 500+ quotes the previous full-list render
   // started to lag. We mount only the visible window + a small overscan.
@@ -233,56 +206,7 @@ export function QuotesView({
         />
       ) : (
         <>
-          {showForm && (
-            <form
-              onSubmit={handleSubmit}
-              className="mb-12 p-4 bg-paper-100/50 border border-ink-100/60 rounded-xl space-y-3 animate-fade-up"
-            >
-              <select
-                value={entityId}
-                onChange={(event) => setEntityId(event.target.value)}
-                className="input-paper w-full"
-              >
-                <option value="">— elige a quién pertenece —</option>
-                {entities.map((entity) => (
-                  <option key={entity.id} value={entity.id}>
-                    {entity.name}
-                  </option>
-                ))}
-              </select>
-              <textarea
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-                placeholder="La cita"
-                rows={4}
-                className="input-paper w-full resize-none"
-              />
-              <input
-                type="text"
-                value={source}
-                onChange={(event) => setSource(event.target.value)}
-                placeholder="Fuente (libro, página, año — opcional)"
-                className="input-paper w-full"
-              />
-              <textarea
-                value={context}
-                onChange={(event) => setContext(event.target.value)}
-                placeholder="Contexto de la cita (de qué habla, dónde aparece — opcional)"
-                rows={2}
-                className="input-paper w-full resize-none"
-              />
-              <textarea
-                value={userReflection}
-                onChange={(event) => setUserReflection(event.target.value)}
-                placeholder="Tu reflexión propia (qué viste en esto, por qué la guardas — opcional)"
-                rows={2}
-                className="input-paper w-full resize-none"
-              />
-              <button type="submit" disabled={addQuote.isPending} className="btn-ink">
-                {addQuote.isPending ? 'Añadiendo…' : 'Añadir'}
-              </button>
-            </form>
-          )}
+          {showForm && <QuoteForm entities={entities} />}
 
           {/* Chips de filtro por tipo de entidad atribuida. Mismo patrón que
               EntitiesView: sticky al top con backdrop blur, Todos + chip por
