@@ -196,7 +196,11 @@ function RecorteFields({ composer }: { composer: Composer }) {
         onChange={(e) => composer.setRecorteNote(e.target.value)}
         placeholder="Tu nota: por qué te llamó la atención"
         rows={2}
-        className="input-paper w-full resize-none marginalia-script placeholder:italic placeholder:font-sans"
+        // φ-photo-polish: sin marginalia-script en el composer — los
+        // tres branches (nota, recorte, foto) ahora usan input-paper
+        // text-sm sans estándar para coherencia. La marginalia vive en
+        // el RENDER del momento, no en el input crudo.
+        className="input-paper w-full text-sm resize-none"
         disabled={composer.isPending}
       />
     </div>
@@ -242,46 +246,91 @@ function FotoFields({ composer }: { composer: Composer }) {
         {hasDrafts ? (
           <div className="space-y-2">
             {/* Grid de previews — hasta 4 columnas en desktop, 2 en
-                mobile. Cada preview tiene un botón × en la esquina
-                para quitar una foto sin tener que limpiar todas. */}
+                mobile. Cada preview tiene un botón × para quitar y un
+                "★ portada" para marcarla como la primera del episodio. */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {composer.photoDrafts.map((draft, idx) => (
-                <div
-                  key={draft.previewUrl}
-                  className="relative aspect-square overflow-hidden rounded border border-ink-100/60 bg-paper-100/40"
-                >
-                  <img
-                    src={draft.previewUrl}
-                    alt={`foto ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      composer.removePhotoDraft(idx)
-                    }}
-                    className="absolute top-1 right-1 size-5 flex items-center justify-center rounded-full bg-ink-900/70 text-paper-50 text-xs hover:bg-ink-900 transition-colors"
-                    aria-label={`Quitar foto ${idx + 1}`}
-                    title="Quitar foto"
-                    disabled={composer.isPending}
+              {composer.photoDrafts.map((draft, idx) => {
+                const isPrimary = idx === 0
+                return (
+                  <div
+                    key={draft.previewUrl}
+                    className={`group relative aspect-square overflow-hidden rounded border ${
+                      isPrimary
+                        ? 'border-2'
+                        : 'border-ink-100/60'
+                    } bg-paper-100/40`}
+                    style={
+                      isPrimary
+                        ? { borderColor: 'var(--accent-gold)' }
+                        : undefined
+                    }
                   >
-                    ×
-                  </button>
-                  <span
-                    className="absolute bottom-1 left-1 text-micro tabular-nums bg-ink-900/60 text-paper-50 px-1 rounded leading-none py-0.5"
-                    aria-hidden
-                  >
-                    {idx + 1}
-                  </span>
-                </div>
-              ))}
+                    <img
+                      src={draft.previewUrl}
+                      alt={`foto ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Botón × — quitar */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        composer.removePhotoDraft(idx)
+                      }}
+                      className="absolute top-1 right-1 size-5 flex items-center justify-center rounded-full bg-ink-900/70 text-paper-50 text-xs hover:bg-ink-900 transition-colors"
+                      aria-label={`Quitar foto ${idx + 1}`}
+                      title="Quitar foto"
+                      disabled={composer.isPending}
+                    >
+                      ×
+                    </button>
+                    {/* φ-photo-polish: badge "portada" cuando es la
+                        primera; en las otras, botón "★ portada" que
+                        la mueve al inicio. */}
+                    {isPrimary ? (
+                      <span
+                        className="absolute top-1 left-1 text-micro uppercase tracking-eyebrow px-1.5 py-0.5 rounded leading-none font-medium"
+                        style={{
+                          backgroundColor: 'var(--accent-gold)',
+                          color: '#fff',
+                        }}
+                        aria-label="Foto principal del episodio"
+                      >
+                        ★ portada
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          composer.setPrimaryPhoto(idx)
+                        }}
+                        className="absolute top-1 left-1 text-micro uppercase tracking-eyebrow px-1.5 py-0.5 rounded leading-none bg-ink-900/55 text-paper-50 hover:bg-ink-900/80 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                        aria-label={`Marcar foto ${idx + 1} como portada`}
+                        title="Marcar como portada"
+                        disabled={composer.isPending}
+                      >
+                        ★ portada
+                      </button>
+                    )}
+                    <span
+                      className="absolute bottom-1 left-1 text-micro tabular-nums bg-ink-900/60 text-paper-50 px-1 rounded leading-none py-0.5"
+                      aria-hidden
+                    >
+                      {idx + 1}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
             <p className="text-caption text-ink-400 italic">
               {composer.photoDrafts.length}{' '}
-              {composer.photoDrafts.length === 1 ? 'foto' : 'fotos'} ·
-              click para agregar más
+              {composer.photoDrafts.length === 1 ? 'foto' : 'fotos'}
+              {composer.photoDrafts.length > 1 &&
+                ' · pasa el cursor sobre una y elige "★ portada" para fijarla primero'}
+              {composer.photoDrafts.length === 1 && ' · click para agregar más'}
             </p>
           </div>
         ) : (
@@ -304,15 +353,19 @@ function FotoFields({ composer }: { composer: Composer }) {
           {composer.photoUploadProgress.total}…
         </p>
       )}
+      {/* φ-photo-polish: dos inputs equivalentes en tipografía.
+          Ambos text-sm sans normal, mismo padding implícito de
+          input-paper. Antes el textarea usaba marginalia-script
+          (Caveat 17px italic) que competía visualmente con el input
+          de texto y rompía la unidad del card. La marginalia sigue
+          existiendo, pero como expresión visual en el RENDER del
+          momento, no como input que se va a guardar pelado. */}
       <input
         type="text"
         value={composer.photoCaption}
         onChange={(e) => composer.setPhotoCaption(e.target.value)}
-        // υ-no-ai: placeholder ya no menciona IA. El caption es manual,
-        // único para el episodio (no por foto individual — eso
-        // complicaría sin beneficio para un single-user diario).
-        placeholder="Caption del episodio (opcional)"
-        className="input-paper w-full"
+        placeholder="Título del episodio (opcional)"
+        className="input-paper w-full text-sm"
         disabled={composer.isPending}
       />
       <textarea
@@ -320,7 +373,7 @@ function FotoFields({ composer }: { composer: Composer }) {
         onChange={(e) => composer.setPhotoNote(e.target.value)}
         placeholder="Tu nota sobre el momento (opcional)"
         rows={2}
-        className="input-paper w-full resize-none marginalia-script placeholder:italic placeholder:font-sans"
+        className="input-paper w-full text-sm resize-none"
         disabled={composer.isPending}
       />
     </div>

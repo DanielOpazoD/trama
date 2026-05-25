@@ -79,6 +79,23 @@ export function useMomentoComposer({
     })
   }
 
+  /**
+   * φ-photo-polish: marca una foto como la "portada" del episodio
+   * moviéndola al inicio del array. La primera foto es la que se ve
+   * por default en el visor (y la única que sale en AlbumGrid como
+   * preview). Sin esto el orden lo dictaba el orden de selección,
+   * que no siempre es lo que el usuario quiere mostrar primero.
+   */
+  function setPrimaryPhoto(index: number) {
+    setPhotoDrafts((prev) => {
+      if (index <= 0 || index >= prev.length) return prev
+      const next = [...prev]
+      const [picked] = next.splice(index, 1)
+      next.unshift(picked)
+      return next
+    })
+  }
+
   function clearPhotoDrafts() {
     for (const d of photoDrafts) URL.revokeObjectURL(d.previewUrl)
     setPhotoDrafts([])
@@ -273,6 +290,7 @@ export function useMomentoComposer({
     photoDrafts,
     addPhotoFiles,
     removePhotoDraft,
+    setPrimaryPhoto,
     clearPhotoDrafts,
     photoCaption,
     setPhotoCaption,
