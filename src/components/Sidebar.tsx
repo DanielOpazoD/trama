@@ -272,21 +272,19 @@ export function Sidebar({
         </button>
       </header>
 
-      {/* ρ-struct: buscador local del sidebar. El atajo ⌘K sigue siendo
-          el camino rápido; este botón visible le da discoverability sin
-          ocupar real-estate del TopBar (que ahora solo lleva título +
-          tabs contextuales). */}
+      {/* σ-followup: buscador del sidebar con fondo blanco (paper-50)
+          y sin el kbd "⌘ K" — el atajo ahora vive visible en el header
+          del CommandPalette modal cuando se abre. Esto deja el botón
+          más limpio y reserva el kbd para el contexto donde aporta
+          (la herramienta abierta), no en el trigger. */}
       <div className="px-2 mb-1.5">
         <button
           onClick={onOpenPalette}
           aria-label={`Buscar (${SHORTCUT_KEY} K)`}
-          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-caption text-ink-400 hover:text-ink-700 bg-paper-100/40 hover:bg-paper-100 border border-ink-100/60 hover:border-ink-200 rounded-md transition-colors"
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-caption text-ink-400 hover:text-ink-700 bg-paper-50 hover:bg-paper-100 border border-ink-100/60 hover:border-ink-200 rounded-md transition-colors"
         >
           <SearchIcon size={12} />
           <span className="flex-1 text-left leading-none">Buscar</span>
-          <kbd className="text-micro px-1.5 py-0.5 bg-paper-50 border border-ink-200/70 rounded text-ink-400 leading-none font-mono">
-            {SHORTCUT_KEY} K
-          </kbd>
         </button>
       </div>
 

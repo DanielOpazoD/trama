@@ -87,10 +87,9 @@ export function MomentosView() {
         </p>
         <h2 className="font-serif text-4xl text-ink-700 leading-none">Momentos</h2>
         <div className="accent-rule mt-3 mb-2" />
-        <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
-          Lo que viste, leíste, viviste un día concreto. La trama gana tiempo:
-          notas sueltas, recortes del mundo, fotos del día.
-        </p>
+        {/* σ-followup: subtitle descriptivo removido. El eyebrow
+            "memoria fechada" + el composer abajo ("¿Qué viste, leíste
+            o pensaste hoy?") ya cuentan el concepto. */}
       </header>
 
       <MomentoComposer composer={composer} />

@@ -148,13 +148,23 @@ export function RelationshipsView({
           workspace ("Entidades") + las tabs. */}
       <header className="mb-8 flex items-baseline justify-between gap-6">
         <div className="min-w-0">
+          {/* σ-followup: eyebrow + h2 coherente con el patrón canónico.
+              El h2 dice "Vínculos" (no repite "Entidades") porque el
+              TopBar ya identifica el workspace; acá especificamos la
+              sub-vista. */}
+          <p
+            className="section-eyebrow-serif mb-2"
+            style={{ color: 'var(--accent-gold)' }}
+          >
+            las líneas del grafo
+          </p>
           <h2 className="font-serif text-4xl text-ink-700 leading-none">
-            Entidades
+            Vínculos
           </h2>
           <div className="accent-rule mt-3 mb-2" />
           <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
             Vínculos entre dos entidades — quién influye en quién, qué cita a
-            qué, qué te llegó por dónde. Las líneas del grafo.
+            qué, qué te llegó por dónde.
           </p>
         </div>
         {entities.length >= 2 && (

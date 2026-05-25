@@ -247,6 +247,16 @@ export function EntitiesView({
           editorial) y la accent-rule mantiene la firma cromática. */}
       <header className="mb-8 flex items-baseline justify-between gap-6">
         <div className="min-w-0">
+          {/* σ-followup: eyebrow editorial coherente con Momentos /
+              Escuchas / Sugerencias. El patrón canónico de las vistas
+              de cuerpo es: eyebrow gold → h2 serif text-4xl → accent
+              rule → subtitle. */}
+          <p
+            className="section-eyebrow-serif mb-2"
+            style={{ color: 'var(--accent-gold)' }}
+          >
+            personas, obras, conceptos
+          </p>
           <h2 className="font-serif text-4xl text-ink-700 leading-none">
             Entidades
           </h2>

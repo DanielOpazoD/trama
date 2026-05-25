@@ -154,13 +154,39 @@ export function MusicPaletteCard() {
             {isStale && <span className="text-ink-400"> · ya pasó una semana</span>}
           </p>
         </div>
-        <button
-          onClick={() => generate.mutate()}
-          disabled={generate.isPending}
-          className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-60 shrink-0"
-        >
-          {generate.isPending ? 'releyendo…' : 'actualizar'}
-        </button>
+        <div className="shrink-0 flex items-center gap-3">
+          <button
+            onClick={() => generate.mutate()}
+            disabled={generate.isPending}
+            className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-60"
+          >
+            {generate.isPending ? 'releyendo…' : 'actualizar'}
+          </button>
+          {/* σ-followup: eliminar la paleta — vuelve al empty state con
+              el botón "generar paleta". Útil cuando el retrato ya no
+              representa tus gustos actuales o querés empezar limpio. */}
+          <button
+            onClick={() => {
+              if (
+                typeof window !== 'undefined' &&
+                window.confirm(
+                  '¿Eliminar tu paleta musical? Podés generarla de nuevo cuando quieras.',
+                )
+              ) {
+                try {
+                  window.localStorage.removeItem(STORAGE_KEY)
+                } catch {
+                  /* localStorage disabled */
+                }
+                setCached(null)
+              }
+            }}
+            className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-red-700 transition-colors"
+            title="Eliminar la paleta guardada"
+          >
+            eliminar
+          </button>
+        </div>
       </header>
 
       {data.aiSummary && (

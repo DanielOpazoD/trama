@@ -178,6 +178,14 @@ export function QuotesView({
     <>
       <header className="mb-10 flex items-baseline justify-between gap-6">
         <div className="min-w-0">
+          {/* σ-followup: eyebrow editorial — coherente con Momentos,
+              Escuchas, Sugerencias, Entidades. */}
+          <p
+            className="section-eyebrow-serif mb-2"
+            style={{ color: 'var(--accent-gold)' }}
+          >
+            fragmentos que retuviste
+          </p>
           <h2 className="font-serif text-4xl text-ink-700 leading-none">Citas</h2>
           <div className="accent-rule mt-3 mb-2" />
           <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">

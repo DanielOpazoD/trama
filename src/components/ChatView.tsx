@@ -178,7 +178,10 @@ export function ChatView({
           </button>
         </div>
         {availableContexts.length > 0 && (
-          <div className="px-3 py-2 border-b border-ink-100/40 flex flex-wrap gap-1">
+          // ρ-fix-chat: gap-0.5 + px-1.5/py-0 en cada chip — antes
+          // gap-1 + px-2 generaba dos filas en wraps típicos. Ahora
+          // entran todos en una sola línea para los 6 valores estándar.
+          <div className="px-3 py-2 border-b border-ink-100/40 flex flex-wrap gap-0.5">
             <FilterChip
               label="todos"
               active={contextFilter === 'all'}
@@ -237,8 +240,13 @@ export function ChatView({
                         {t.messageCount} {t.messageCount === 1 ? 'mensaje' : 'mensajes'}
                       </span>
                       {t.context && (
+                        // ρ-fix-chat: chip de contexto más chico — antes
+                        // px-2/py-0.5 + tracking-eyebrow lo convertía en
+                        // un bloque grueso que dominaba la fila. Ahora
+                        // px-1/py-0 + tracking-wider — sigue legible pero
+                        // se siente "marginalia".
                         <span
-                          className="px-2 py-0.5 rounded-full font-medium"
+                          className="px-1 py-0 rounded text-[9px] uppercase tracking-wider font-medium leading-none"
                           style={{
                             backgroundColor: 'var(--accent-primary-soft)',
                             color: 'var(--accent-primary)',
