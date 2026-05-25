@@ -797,20 +797,12 @@ export const api = {
 
   /** ξ2: server-side fetch del OG/Twitter meta de una URL. */
   async momentoUrlPreview(url: string): Promise<MomentoUrlPreview> {
+    // υ-bugfix: path movido de `/api/momentos/url-preview` a
+    // `/api/momentos-url-preview` porque `:id` de momentos.mts matcheaba
+    // "url-preview" como un id y rechazaba el GET.
     return request<MomentoUrlPreview>(
-      `/api/momentos/url-preview?url=${encodeURIComponent(url)}`,
+      `/api/momentos-url-preview?url=${encodeURIComponent(url)}`,
     )
-  },
-
-  /** ξ2: pide a la IA qué entidades EXISTENTES de la trama están mencionadas
-      en el momento. No propone entidades nuevas — pipeline más liviana. */
-  async momentoSuggestEntities(
-    id: string,
-  ): Promise<{ matchedIds: string[]; provider: string | null; model: string | null }> {
-    return request(`/api/momentos/${id}/suggest-entities`, {
-      method: 'POST',
-      body: '{}',
-    })
   },
 
   /** ξ3: sube un archivo de imagen a Netlify Blobs. Devuelve la storageKey
@@ -822,7 +814,10 @@ export const api = {
   }> {
     const form = new FormData()
     form.append('file', file)
-    const response = await fetch('/api/momentos/upload', {
+    // υ-bugfix: path movido de `/api/momentos/upload` a
+    // `/api/momentos-upload` por el mismo conflicto con :id que causaba
+    // 405 Method not allowed.
+    const response = await fetch('/api/momentos-upload', {
       method: 'POST',
       body: form,
       headers: { 'X-AI-Mode': aiModeHeader() },
@@ -832,20 +827,6 @@ export const api = {
       throw new Error(`upload → ${response.status} ${text}`.trim())
     }
     return response.json()
-  },
-
-  /** ξ3: vision suggest. Para fotos: pide caption + matchedIds (personas
-      registradas que aparecen). Solo aplicable a kind='foto'. */
-  async momentoVisionSuggest(id: string): Promise<{
-    caption: string | null
-    matchedIds: string[]
-    provider: string | null
-    model: string | null
-  }> {
-    return request(`/api/momentos/${id}/vision-suggest`, {
-      method: 'POST',
-      body: '{}',
-    })
   },
 }
 

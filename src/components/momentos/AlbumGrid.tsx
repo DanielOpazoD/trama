@@ -76,7 +76,17 @@ function AlbumTile({
   entitiesById: Map<string, Entity>
   onDelete: () => void
 }) {
-  const { storageKey, caption } = momento.payload
+  // υ-multi: para el grid de álbum mostramos la PRIMERA foto del
+  // episodio. Si hay más, un mini-badge "+N" arriba derecha indica
+  // que el momento tiene varias. Al click se abre la timeline normal
+  // (no implementado todavía — keep simple: grid sigue siendo solo
+  // preview, el visor pleno vive en el timeline).
+  const { items, caption } = momento.payload
+  const storageKey =
+    items && items.length > 0
+      ? items[0].storageKey
+      : momento.payload.storageKey
+  const extraCount = items && items.length > 1 ? items.length - 1 : 0
   const linkedEntities = momento.entityIds
     .map((id) => entitiesById.get(id))
     .filter((e): e is Entity => Boolean(e))
@@ -88,13 +98,24 @@ function AlbumTile({
 
   return (
     <li className="group relative">
-      <div className="aspect-square overflow-hidden rounded-md border border-ink-100/60 bg-paper-100/40">
+      <div className="aspect-square overflow-hidden rounded-md border border-ink-100/60 bg-paper-100/40 relative">
         <img
-          src={`/api/momentos/file/${encodeURIComponent(storageKey)}`}
+          src={`/api/momentos-file/${encodeURIComponent(storageKey)}`}
           alt={caption ?? 'momento'}
           loading="lazy"
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
+        {/* υ-multi: si el momento tiene más fotos, badge "+N" arriba
+            derecha. Le indica al usuario que ese cuadro es un episodio,
+            no una sola foto. */}
+        {extraCount > 0 && (
+          <span
+            className="absolute top-1.5 right-1.5 text-micro tabular-nums bg-ink-900/65 text-paper-50 px-1.5 py-0.5 rounded leading-none"
+            aria-hidden
+          >
+            +{extraCount}
+          </span>
+        )}
       </div>
       <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-ink-900/70 to-transparent rounded-b-md opacity-0 group-hover:opacity-100 transition-opacity">
         {caption && (

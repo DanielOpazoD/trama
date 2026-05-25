@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { api } from '../../api'
 import type { Momento, MomentoKind, MomentoPayload } from '../../types'
 import { useAddMomento, useToast } from '../../state'
-import { readImageDimensions } from './helpers'
+import { compressImage, readImageDimensions } from './helpers'
 
 /**
  * Custom hook que encapsula TODO el state del composer de Momentos.
@@ -43,17 +43,45 @@ export function useMomentoComposer({
   const [recorteNote, setRecorteNote] = useState('')
   const [previewing, setPreviewing] = useState(false)
 
-  // Foto
-  const [photoFile, setPhotoFile] = useState<File | null>(null)
-  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
+  // Foto — υ-multi: ahora un array. Cada item es {file, previewUrl}
+  // para poder iterar y manejarlos individualmente (preview + delete
+  // por imagen, mostrar contador, etc.). El submit los sube todos en
+  // paralelo y arma payload.items[].
+  type PhotoDraft = { file: File; previewUrl: string }
+  const [photoDrafts, setPhotoDrafts] = useState<PhotoDraft[]>([])
   const [photoCaption, setPhotoCaption] = useState('')
   const [photoNote, setPhotoNote] = useState('')
   const [photoUploading, setPhotoUploading] = useState(false)
+  // υ-multi: progreso de upload para feedback ("3 de 5 subidas…").
+  const [photoUploadProgress, setPhotoUploadProgress] = useState<{
+    done: number
+    total: number
+  } | null>(null)
 
-  function changePhotoFile(file: File | null) {
-    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
-    setPhotoFile(file)
-    setPhotoPreviewUrl(file ? URL.createObjectURL(file) : null)
+  function addPhotoFiles(files: File[]) {
+    const valid = files.filter((f) => f.type.startsWith('image/'))
+    if (valid.length === 0) return
+    setPhotoDrafts((prev) => [
+      ...prev,
+      ...valid.map((file) => ({
+        file,
+        previewUrl: URL.createObjectURL(file),
+      })),
+    ])
+  }
+
+  function removePhotoDraft(index: number) {
+    setPhotoDrafts((prev) => {
+      const next = [...prev]
+      const removed = next.splice(index, 1)[0]
+      if (removed) URL.revokeObjectURL(removed.previewUrl)
+      return next
+    })
+  }
+
+  function clearPhotoDrafts() {
+    for (const d of photoDrafts) URL.revokeObjectURL(d.previewUrl)
+    setPhotoDrafts([])
   }
 
   async function fetchPreview() {
@@ -96,11 +124,10 @@ export function useMomentoComposer({
   }
 
   function resetFoto() {
-    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
-    setPhotoFile(null)
-    setPhotoPreviewUrl(null)
+    clearPhotoDrafts()
     setPhotoCaption('')
     setPhotoNote('')
+    setPhotoUploadProgress(null)
   }
 
   async function submit() {
@@ -156,19 +183,48 @@ export function useMomentoComposer({
       return
     }
 
-    // kind === 'foto'
-    if (!photoFile) {
-      toast.show({ message: 'Elige una imagen', tone: 'default' })
+    // kind === 'foto' — υ-multi: subir múltiples imágenes en paralelo
+    // (cada una pasa por compresión client-side primero) y armar el
+    // payload con items[]. Si una falla, abortamos toda la operación
+    // y avisamos al usuario — mejor "nada o todo" que "subiste 2 de 4
+    // y vimos un error confuso".
+    if (photoDrafts.length === 0) {
+      toast.show({ message: 'Elige al menos una imagen', tone: 'default' })
       return
     }
     setPhotoUploading(true)
+    setPhotoUploadProgress({ done: 0, total: photoDrafts.length })
     try {
-      const uploaded = await api.momentoUpload(photoFile)
-      const { width, height } = await readImageDimensions(photoFile)
+      const itemsRaw = await Promise.all(
+        photoDrafts.map(async (draft) => {
+          // 1. Comprimir client-side (resize a max 2400px + JPEG q0.85).
+          //    Si la imagen ya es chica/eficiente, compressImage devuelve
+          //    el File original.
+          const compressed = await compressImage(draft.file)
+          // 2. Leer dimensiones del archivo comprimido (porque puede
+          //    haber sido reescalado).
+          const dims = await readImageDimensions(compressed)
+          // 3. Upload.
+          const uploaded = await api.momentoUpload(compressed)
+          setPhotoUploadProgress((prev) =>
+            prev ? { done: prev.done + 1, total: prev.total } : prev,
+          )
+          return {
+            storageKey: uploaded.storageKey,
+            width: dims.width || undefined,
+            height: dims.height || undefined,
+          }
+        }),
+      )
+      // Para back-compat del render de single-foto: también guardamos
+      // el primer storageKey en el campo legacy. Renders viejos siguen
+      // mostrando la primera foto; renders nuevos prefieren `items[]`.
+      const [first] = itemsRaw
       const payload: MomentoPayload = {
-        storageKey: uploaded.storageKey,
-        width,
-        height,
+        items: itemsRaw,
+        storageKey: first?.storageKey,
+        width: first?.width,
+        height: first?.height,
         caption: photoCaption.trim() || undefined,
       }
       const created = await addMomento.mutateAsync({
@@ -185,6 +241,7 @@ export function useMomentoComposer({
       })
     } finally {
       setPhotoUploading(false)
+      setPhotoUploadProgress(null)
     }
   }
 
@@ -212,15 +269,17 @@ export function useMomentoComposer({
     previewing,
     fetchPreview,
 
-    // Foto
-    photoFile,
-    photoPreviewUrl,
+    // Foto — υ-multi: API basada en array de drafts
+    photoDrafts,
+    addPhotoFiles,
+    removePhotoDraft,
+    clearPhotoDrafts,
     photoCaption,
     setPhotoCaption,
     photoNote,
     setPhotoNote,
     photoUploading,
-    changePhotoFile,
+    photoUploadProgress,
 
     // Submit
     submit,

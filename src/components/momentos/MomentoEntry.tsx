@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { typeAccent } from '../graph/GraphNode'
 import type { Entity, Momento } from '../../types'
 import { SparkleIcon, TrashIcon } from '../Icons'
@@ -126,28 +127,31 @@ function RecorteBody({ momento }: { momento: Momento }) {
 }
 
 function FotoBody({ momento }: { momento: Momento }) {
-  const { storageKey, caption, width, height } = momento.payload
-  if (!storageKey) {
+  // υ-multi: el render lee `items[]` si existe (momentos nuevos con
+  // 1+ fotos). Si solo hay `storageKey` legacy, lo envuelve en un
+  // array de 1 para tratarlo igual. Si no hay nada, mostramos el
+  // placeholder de error.
+  const { items, storageKey, width, height, caption } = momento.payload
+  const photos: Array<{ storageKey: string; width?: number; height?: number }> =
+    items && items.length > 0
+      ? items
+      : storageKey
+        ? [{ storageKey, width, height }]
+        : []
+
+  if (photos.length === 0) {
     return (
       <p className="text-caption italic text-ink-400">(imagen no encontrada)</p>
     )
   }
-  const aspectRatio =
-    width && height && width > 0 && height > 0
-      ? `${width} / ${height}`
-      : undefined
 
   return (
     <article className="space-y-2">
-      <div className="rounded-md overflow-hidden border border-ink-100/60 max-w-md">
-        <img
-          src={`/api/momentos/file/${encodeURIComponent(storageKey)}`}
-          alt={caption ?? 'momento'}
-          loading="lazy"
-          className="block w-full h-auto"
-          style={aspectRatio ? { aspectRatio } : undefined}
-        />
-      </div>
+      {photos.length === 1 ? (
+        <SinglePhoto photo={photos[0]} caption={caption} />
+      ) : (
+        <PhotoGallery photos={photos} caption={caption} />
+      )}
       {caption && (
         <p className="font-serif text-sm italic text-ink-500 max-w-md">
           {caption}
@@ -159,6 +163,123 @@ function FotoBody({ momento }: { momento: Momento }) {
         </p>
       )}
     </article>
+  )
+}
+
+function SinglePhoto({
+  photo,
+  caption,
+}: {
+  photo: { storageKey: string; width?: number; height?: number }
+  caption?: string
+}) {
+  const aspectRatio =
+    photo.width && photo.height && photo.width > 0 && photo.height > 0
+      ? `${photo.width} / ${photo.height}`
+      : undefined
+  return (
+    <div className="rounded-md overflow-hidden border border-ink-100/60 max-w-md">
+      <img
+        src={`/api/momentos-file/${encodeURIComponent(photo.storageKey)}`}
+        alt={caption ?? 'momento'}
+        loading="lazy"
+        className="block w-full h-auto"
+        style={aspectRatio ? { aspectRatio } : undefined}
+      />
+    </div>
+  )
+}
+
+/**
+ * υ-multi: visor con paginación interna para un momento con varias
+ * fotos. Muestra una foto "activa" grande + thumbs debajo, y permite
+ * navegar con flechas (← → en teclado, o tap en los thumbs).
+ *
+ * El número actual / total ("3 / 7") aparece arriba a la derecha del
+ * frame para que el usuario sepa cuántas fotos tiene el episodio.
+ */
+function PhotoGallery({
+  photos,
+  caption,
+}: {
+  photos: Array<{ storageKey: string; width?: number; height?: number }>
+  caption?: string
+}) {
+  const [active, setActive] = useState(0)
+  const current = photos[active]
+  const aspectRatio =
+    current.width && current.height && current.width > 0 && current.height > 0
+      ? `${current.width} / ${current.height}`
+      : undefined
+
+  function prev() {
+    setActive((i) => (i === 0 ? photos.length - 1 : i - 1))
+  }
+  function next() {
+    setActive((i) => (i === photos.length - 1 ? 0 : i + 1))
+  }
+
+  return (
+    <div className="max-w-md">
+      <div className="relative rounded-md overflow-hidden border border-ink-100/60 group">
+        <img
+          key={current.storageKey}
+          src={`/api/momentos-file/${encodeURIComponent(current.storageKey)}`}
+          alt={caption ?? `foto ${active + 1} de ${photos.length}`}
+          loading="lazy"
+          className="block w-full h-auto"
+          style={aspectRatio ? { aspectRatio } : undefined}
+        />
+        {/* Contador arriba derecha */}
+        <span
+          className="absolute top-2 right-2 text-micro tabular-nums bg-ink-900/65 text-paper-50 px-1.5 py-0.5 rounded leading-none"
+          aria-hidden
+        >
+          {active + 1} / {photos.length}
+        </span>
+        {/* Botones prev / next — visibles siempre en mobile, fade-in en hover en desktop */}
+        <button
+          type="button"
+          onClick={prev}
+          aria-label="Foto anterior"
+          className="absolute left-1.5 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-full bg-ink-900/55 text-paper-50 hover:bg-ink-900/80 transition-opacity opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          onClick={next}
+          aria-label="Foto siguiente"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 size-8 flex items-center justify-center rounded-full bg-ink-900/55 text-paper-50 hover:bg-ink-900/80 transition-opacity opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        >
+          ›
+        </button>
+      </div>
+      {/* Thumbs strip */}
+      <div className="mt-1.5 flex gap-1 overflow-x-auto pb-1">
+        {photos.map((p, idx) => (
+          <button
+            key={p.storageKey}
+            type="button"
+            onClick={() => setActive(idx)}
+            aria-label={`Mostrar foto ${idx + 1}`}
+            aria-current={idx === active ? 'true' : undefined}
+            className={`shrink-0 size-12 rounded overflow-hidden border-2 transition-colors ${
+              idx === active
+                ? 'border-ink-700'
+                : 'border-transparent hover:border-ink-300'
+            }`}
+          >
+            <img
+              src={`/api/momentos-file/${encodeURIComponent(p.storageKey)}`}
+              alt=""
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 

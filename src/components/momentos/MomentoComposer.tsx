@@ -71,12 +71,12 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
       <MomentoQRModal open={qrOpen} onClose={() => setQrOpen(false)} />
 
       <div className="flex items-center justify-between gap-3 pt-1">
+        {/* υ-no-ai: copy simplificado. Antes mostraba "La IA propone
+            vínculos…" / "La IA lee la imagen y propone caption…" — el
+            flow de IA se removió, así que esa promesa quedaba colgada.
+            Ahora un único hint neutro: el momento se guarda fechado. */}
         <p className="text-caption text-ink-300 italic">
-          {composer.kind === 'recorte'
-            ? 'Al guardar, la IA propone vínculos a tus entidades.'
-            : composer.kind === 'foto'
-              ? 'La IA lee la imagen y propone caption + vínculos.'
-              : 'Se guarda fechado hoy.'}
+          Se guarda fechado hoy.
         </p>
         <button
           type="submit"
@@ -204,64 +204,121 @@ function RecorteFields({ composer }: { composer: Composer }) {
 }
 
 function FotoFields({ composer }: { composer: Composer }) {
+  const hasDrafts = composer.photoDrafts.length > 0
   return (
     <div className="space-y-3">
       <label
-        className={`block border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-          composer.photoFile
-            ? 'border-transparent'
-            : 'border-ink-200/60 hover:border-ink-300 hover:bg-paper-50/50'
+        className={`block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+          hasDrafts
+            ? 'border-ink-100/60 bg-paper-50/40'
+            : 'border-ink-200/60 hover:border-ink-300 hover:bg-paper-50/50 p-6'
         }`}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault()
-          const f = e.dataTransfer.files?.[0]
-          if (f && f.type.startsWith('image/')) {
-            composer.changePhotoFile(f)
-          }
+          const files = Array.from(e.dataTransfer.files ?? []).filter((f) =>
+            f.type.startsWith('image/'),
+          )
+          if (files.length > 0) composer.addPhotoFiles(files)
         }}
       >
         <input
           type="file"
+          // υ-multi: `multiple` permite seleccionar varias imágenes en
+          // un solo file picker. Combinado con drop-zone multi, el
+          // usuario puede armar el episodio en un paso.
+          multiple
           accept="image/jpeg,image/png,image/webp,image/gif"
           className="sr-only"
-          onChange={(e) => composer.changePhotoFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? [])
+            if (files.length > 0) composer.addPhotoFiles(files)
+            // Reset el input para que seleccionar la misma foto otra
+            // vez dispare onChange (sin esto el navegador no re-fire).
+            e.target.value = ''
+          }}
           disabled={composer.isPending}
         />
-        {composer.photoPreviewUrl ? (
+        {hasDrafts ? (
           <div className="space-y-2">
-            <img
-              src={composer.photoPreviewUrl}
-              alt="preview"
-              className="max-h-64 mx-auto rounded shadow-sm"
-            />
+            {/* Grid de previews — hasta 4 columnas en desktop, 2 en
+                mobile. Cada preview tiene un botón × en la esquina
+                para quitar una foto sin tener que limpiar todas. */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {composer.photoDrafts.map((draft, idx) => (
+                <div
+                  key={draft.previewUrl}
+                  className="relative aspect-square overflow-hidden rounded border border-ink-100/60 bg-paper-100/40"
+                >
+                  <img
+                    src={draft.previewUrl}
+                    alt={`foto ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      composer.removePhotoDraft(idx)
+                    }}
+                    className="absolute top-1 right-1 size-5 flex items-center justify-center rounded-full bg-ink-900/70 text-paper-50 text-xs hover:bg-ink-900 transition-colors"
+                    aria-label={`Quitar foto ${idx + 1}`}
+                    title="Quitar foto"
+                    disabled={composer.isPending}
+                  >
+                    ×
+                  </button>
+                  <span
+                    className="absolute bottom-1 left-1 text-micro tabular-nums bg-ink-900/60 text-paper-50 px-1 rounded leading-none py-0.5"
+                    aria-hidden
+                  >
+                    {idx + 1}
+                  </span>
+                </div>
+              ))}
+            </div>
             <p className="text-caption text-ink-400 italic">
-              Click para cambiar la imagen
+              {composer.photoDrafts.length}{' '}
+              {composer.photoDrafts.length === 1 ? 'foto' : 'fotos'} ·
+              click para agregar más
             </p>
           </div>
         ) : (
           <div className="text-ink-400">
             <p className="text-sm">
-              Arrastra una imagen aquí o click para elegir
+              Arrastra una o varias imágenes aquí, o click para elegir
             </p>
             <p className="text-caption italic mt-1">
-              JPEG / PNG / WebP / GIF · hasta 10 MB
+              JPEG / PNG / WebP / GIF · se comprimen antes de subir
             </p>
           </div>
         )}
       </label>
+      {/* υ-multi: progreso del upload. Aparece sólo cuando hay
+          múltiples archivos en proceso — para un solo file el botón
+          "Subiendo…" ya alcanza. */}
+      {composer.photoUploadProgress && composer.photoUploadProgress.total > 1 && (
+        <p className="text-caption text-ink-400 italic tabular-nums">
+          Subiendo {composer.photoUploadProgress.done} de{' '}
+          {composer.photoUploadProgress.total}…
+        </p>
+      )}
       <input
         type="text"
         value={composer.photoCaption}
         onChange={(e) => composer.setPhotoCaption(e.target.value)}
-        placeholder="Caption (opcional — la IA propondrá uno)"
+        // υ-no-ai: placeholder ya no menciona IA. El caption es manual,
+        // único para el episodio (no por foto individual — eso
+        // complicaría sin beneficio para un single-user diario).
+        placeholder="Caption del episodio (opcional)"
         className="input-paper w-full"
         disabled={composer.isPending}
       />
       <textarea
         value={composer.photoNote}
         onChange={(e) => composer.setPhotoNote(e.target.value)}
-        placeholder="Tu nota sobre la foto (opcional)"
+        placeholder="Tu nota sobre el momento (opcional)"
         rows={2}
         className="input-paper w-full resize-none marginalia-script placeholder:italic placeholder:font-sans"
         disabled={composer.isPending}

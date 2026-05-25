@@ -136,12 +136,22 @@ export type MomentoPayload = {
   source?: string
   author?: string
   screenshotKey?: string
-  // 'foto'
+  // 'foto' — single legacy
   storageKey?: string
   width?: number
   height?: number
   caption?: string
   exifDate?: string
+  /** υ-multi: array de fotos para un solo momento (un "episodio").
+   *  Los nuevos momentos foto SIEMPRE guardan `items` (con 1+ entradas).
+   *  Los antiguos siguen funcionando con `storageKey/width/height`
+   *  legacy — el render lee `items` si existe; si no, cae al par
+   *  single. */
+  items?: Array<{
+    storageKey: string
+    width?: number
+    height?: number
+  }>
 }
 
 export type Momento = {

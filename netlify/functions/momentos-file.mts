@@ -38,6 +38,12 @@ export default withObservability(
   },
 )
 
+// υ-bugfix: el path antes era `/api/momentos/file/:key` que ALGUNOS
+// browsers podrían matchear contra `/api/momentos/:id` antes (Netlify
+// probablemente lo resolvía bien por la sub-ruta /file/:key, pero ya
+// que renombramos los otros endpoints para evitar la colisión con :id,
+// uniformamos a `momentos-file` por consistencia y para reducir riesgo
+// de cualquier ambigüedad futura del router.
 export const config: Config = {
-  path: '/api/momentos/file/:key',
+  path: '/api/momentos-file/:key',
 }

@@ -51,9 +51,24 @@ export function validatePayloadForKind(
     return null
   }
   if (kind === 'foto') {
+    // υ-multi: aceptar items[] (nuevo) o storageKey (legacy).
+    const items = payload.items
+    if (Array.isArray(items) && items.length > 0) {
+      const allValid = items.every(
+        (it) =>
+          it &&
+          typeof it === 'object' &&
+          typeof (it as { storageKey?: unknown }).storageKey === 'string' &&
+          ((it as { storageKey: string }).storageKey).trim().length > 0,
+      )
+      if (!allValid) {
+        return 'kind=foto: cada item del array debe tener storageKey'
+      }
+      return null
+    }
     const key = payload.storageKey
     if (typeof key !== 'string' || key.trim().length === 0) {
-      return 'kind=foto requiere payload.storageKey'
+      return 'kind=foto requiere payload.storageKey o payload.items[]'
     }
     return null
   }

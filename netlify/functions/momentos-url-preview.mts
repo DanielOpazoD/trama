@@ -162,6 +162,8 @@ export default withObservability('momentos-url-preview', async (req: Request) =>
   return Response.json(preview)
 })
 
+// υ-bugfix: mismo conflicto que /api/momentos/upload — `:id` matcheaba
+// "url-preview" y devolvía 405. Movido a path sin colisión.
 export const config: Config = {
-  path: '/api/momentos/url-preview',
+  path: '/api/momentos-url-preview',
 }

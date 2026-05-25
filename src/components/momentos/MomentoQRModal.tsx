@@ -88,16 +88,35 @@ export function MomentoQRModal({
       <button
         onClick={onClose}
         aria-label="Cerrar"
-        className="fixed inset-0 z-30 bg-ink-900/30 backdrop-blur-sm cursor-default animate-fade-up"
+        className="fixed inset-0 z-40 bg-ink-900/40 backdrop-blur-sm cursor-default animate-fade-up"
         tabIndex={-1}
       />
-      <div
-        role="dialog"
-        aria-label="Escanear con el celular"
-        aria-modal="true"
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm z-40 animate-fade-up"
-      >
-        <div className="bg-paper-50 border border-ink-100/80 rounded-xl shadow-lg shadow-ink-900/15 overflow-hidden">
+      {/* υ-bugfix: contenedor con flex centering en lugar de
+          top-1/2 + translate. Razones:
+          1. Centro robusto con altura variable del contenido (sin
+             salirse por arriba cuando el QR + textos son altos).
+          2. max-h-[90vh] + overflow-y-auto evita que el modal nunca
+             quede cortado en pantallas chicas.
+          El z-50 va arriba del backdrop (z-40), antes era ambos al
+          mismo nivel y ciertos browsers renderizaban inconsistente.
+          pointer-events-none en el wrapper + auto en el dialog deja
+          que el backdrop reciba los clicks fuera del modal. */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none animate-fade-up">
+        <div
+          role="dialog"
+          aria-label="Escanear con el celular"
+          aria-modal="true"
+          className="pointer-events-auto w-full max-w-sm max-h-[90vh] overflow-y-auto bg-paper-50 border border-ink-100/80 rounded-xl shadow-xl shadow-ink-900/25"
+          style={{
+            // υ-bugfix: forzamos background-color sólido inline porque
+            // el ::before del .paper-grain global proyecta un overlay
+            // SVG noise sobre todo lo que herede el padding, y con el
+            // shadow-lg + backdrop-blur del wrapper algunos browsers
+            // dejaban "ver" el grain de atrás. Color directo desde la
+            // CSS var → siempre opaco en cualquier theme.
+            backgroundColor: 'rgb(var(--paper-50))',
+          }}
+        >
           <header className="px-5 py-3 border-b border-ink-100/60">
             <p
               className="section-eyebrow-serif"

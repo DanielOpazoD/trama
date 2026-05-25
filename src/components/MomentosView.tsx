@@ -11,11 +11,9 @@ import { EmptyMessage } from './EmptyMessage'
 import { AlbumGrid } from './momentos/AlbumGrid'
 import { MomentoComposer } from './momentos/MomentoComposer'
 import { MomentoEntry } from './momentos/MomentoEntry'
-import { MomentoLinkingPanel } from './momentos/MomentoLinkingPanel'
 import { MomentosFilters } from './momentos/MomentosFilters'
 import { formatDateHeading, groupByDay } from './momentos/helpers'
 import { useMomentoComposer } from './momentos/useMomentoComposer'
-import { useMomentoLinking } from './momentos/useMomentoLinking'
 
 /**
  * Vista Momentos — orquestador.
@@ -43,20 +41,17 @@ export function MomentosView() {
   const { data: entities = [] } = useEntitiesQuery()
   const toast = useToast()
 
-  const linking = useMomentoLinking()
   // τ-mobile-bridge: kind inicial controlado por `?compose=`. Al
   // escanear el QR de Momentos desde el celular, la URL viene con
   // `?view=momentos&compose=foto` — el composer arranca con el tab
   // Foto seleccionado, sin que el usuario tenga que tocar nada extra.
   const initialKind = readInitialCompose()
+  // υ-no-ai: el panel de linking automático con IA (suggest-entities +
+  // vision-suggest) fue removido. Los momentos se guardan tal cual; el
+  // vínculo manual a entidades queda pendiente como feature explícita
+  // si el usuario la pide. Quitamos la fricción de un paso post-guardar
+  // que siempre era opcional.
   const composer = useMomentoComposer({
-    onCreated: (created) => {
-      // Solo abrimos el panel de linking para recortes/fotos — las notas
-      // se guardan y listo (el usuario las vincula a entidades a mano si quiere).
-      if (created.kind === 'recorte' || created.kind === 'foto') {
-        linking.openFor(created)
-      }
-    },
     initialKind,
   })
 
@@ -99,12 +94,6 @@ export function MomentosView() {
       </header>
 
       <MomentoComposer composer={composer} />
-
-      <MomentoLinkingPanel
-        linking={linking}
-        entitiesById={entitiesById}
-        totalEntities={entities.length}
-      />
 
       <MomentosFilters
         filterKind={filterKind}
