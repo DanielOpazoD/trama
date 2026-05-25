@@ -1,0 +1,102 @@
+/**
+ * Barrel del cliente API.
+ *
+ * Antes vivía todo en `src/api.ts` (1247 LOC). En BB2 se dividió por
+ * dominio. Este index.ts:
+ *   1. Recompone el objeto `api` con todos los métodos (igual que antes).
+ *   2. Re-exporta los types públicos que vivían sueltos en api.ts.
+ *
+ * Los call sites (`import { api, type ChatMessage } from '../api'`)
+ * siguen funcionando sin cambios porque Node/Vite resuelve `'../api'` a
+ * `src/api/index.ts`.
+ */
+
+import { aiApi } from './ai'
+import { aiSettingsApi } from './ai-settings'
+import { chatApi } from './chat'
+import { entitiesApi } from './entities'
+import { exportImportApi } from './export-import'
+import { graphApi } from './graph'
+import { healthApi } from './health'
+import { momentosApi } from './momentos'
+import { quotesApi } from './quotes'
+import { relationshipsApi } from './relationships'
+import { searchApi } from './search'
+import { spotifyApi } from './spotify'
+import { typeTablesApi } from './type-tables'
+
+export const api = {
+  ...entitiesApi,
+  ...relationshipsApi,
+  ...quotesApi,
+  ...momentosApi,
+  ...chatApi,
+  ...aiApi,
+  ...aiSettingsApi,
+  ...spotifyApi,
+  ...healthApi,
+  ...searchApi,
+  ...graphApi,
+  ...typeTablesApi,
+  ...exportImportApi,
+}
+
+// ---------- Re-exports públicos ----------
+//
+// Los call sites importan tipos directamente desde 'src/api'. Mantenemos esa
+// superficie pública intacta exportándolos desde acá. Si añadís un type
+// nuevo en algún módulo de dominio, agregalo abajo.
+
+export { DuplicateEntityError } from './request'
+
+export type {
+  AskResponse,
+  ChatMessage,
+  ChatProposal,
+  ChatThread,
+} from './chat'
+
+export type {
+  ProactiveSuggestion,
+  Reclassification,
+  ReclassifyResponse,
+} from './ai'
+
+export type {
+  AISettingsResponse,
+  AITaskConfig,
+  AITaskKey,
+} from './ai-settings'
+
+export type {
+  SpotifyArtistSuggestion,
+  SpotifyArtistSuggestionsResponse,
+  SpotifyLibrarySnapshot,
+  SpotifyPlayGroup,
+  SpotifyPlaylistImport,
+  SpotifyPlaysResponse,
+  SpotifyPlaysSummary,
+  SpotifyStatus,
+  SpotifyTimingResponse,
+} from './spotify'
+
+export type {
+  ErrorLogEntry,
+  ExtractionLogEntry,
+  ExtractionLogResponse,
+  HealthAlert,
+  HealthResponse,
+} from './health'
+
+export type {
+  SearchEntityHit,
+  SearchQuoteHit,
+  SearchResponse,
+} from './search'
+
+export type {
+  NeighborsResponse,
+  NeighborWithHop,
+} from './graph'
+
+export type { MomentoUrlPreview } from './momentos'
