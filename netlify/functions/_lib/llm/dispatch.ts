@@ -20,6 +20,7 @@ import {
   readVisionProvider,
 } from './config.js'
 import { getCached, hashMessages, putCached } from './cache.js'
+import { getCachedFromDB, putCachedToDB } from './db-cache.js'
 import { fetchWithRetry } from './retry.js'
 import { askOpenAICompatible, askOpenAIVision } from './providers/openai-compatible.js'
 import { askAnthropic } from './providers/anthropic.js'
@@ -75,8 +76,18 @@ async function callLLM(
     messages,
     `${provider}|${config.model}|${mode}|${override?.freshNonce ?? ''}`,
   )
+  // DD6: dos niveles. 1) Memoria (sub-ms, mismo Lambda warm). 2) Postgres
+  // (~15-30ms, sobrevive cold starts y deploys). Solo llamamos al provider
+  // si ambas misses.
   const cached = getCached(cacheKey)
   if (cached) return cached
+  const dbCached = await getCachedFromDB(cacheKey)
+  if (dbCached) {
+    // Hot-fill el memory cache para que el próximo hit del mismo Lambda
+    // sea sub-ms en vez de pegarle a Postgres otra vez.
+    putCached(cacheKey, dbCached, cacheTtl)
+    return dbCached
+  }
 
   const start = Date.now()
   let raw: RawResult
@@ -102,6 +113,8 @@ async function callLLM(
   }
 
   putCached(cacheKey, result, cacheTtl)
+  // Persistir a DB best-effort (no await; no debe bloquear el response).
+  void putCachedToDB(cacheKey, result, cacheTtl)
   return result
 }
 
@@ -281,6 +294,12 @@ export async function askLLMForVision(
   )
   const cached = getCached(cacheKey)
   if (cached) return cached
+  // DD6: cache persistente también para vision. Misma estrategia.
+  const dbCached = await getCachedFromDB(cacheKey)
+  if (dbCached) {
+    putCached(cacheKey, dbCached, cacheTtl)
+    return dbCached
+  }
 
   const start = Date.now()
   let raw: RawResult
@@ -303,5 +322,6 @@ export async function askLLMForVision(
     fromCache: false,
   }
   putCached(cacheKey, result, cacheTtl)
+  void putCachedToDB(cacheKey, result, cacheTtl)
   return result
 }
