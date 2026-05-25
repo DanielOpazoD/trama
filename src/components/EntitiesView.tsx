@@ -1,19 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { ENTITY_TYPES, type EntityType } from '../types'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ENTITY_TYPES } from '../types'
 import { sectionWashStyle } from '../lib/sectionWash'
 import {
   useInfiniteEntitiesQuery,
   useQuotesQuery,
   useRelationshipsQuery,
-  useAddEntity,
   useDeleteEntity,
   useOffline,
   useReclassifyEntities,
   useUpdateEntityType,
-  useUpdateEntity,
-  useToast,
 } from '../state'
-import { api, type Reclassification } from '../api'
+import { type Reclassification } from '../api'
 import { ChevronRightIcon, EndMark, SparkleIcon, TrashIcon } from './Icons'
 import { ReclassifyPanel } from './ReclassifyPanel'
 import { EmptyMessage } from './EmptyMessage'
@@ -22,7 +19,7 @@ import { Folio } from './Folio'
 import { typeAccent } from './graph/GraphNode'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import type { Entity } from '../types'
-import { DuplicateEntityError } from '../api'
+import { EntityForm } from './entities/EntityForm'
 
 export function EntitiesView({
   onSelectEntity,
@@ -58,18 +55,11 @@ export function EntitiesView({
   )
   const { data: quotes = [] } = useQuotesQuery()
   const { data: relationships = [] } = useRelationshipsQuery()
-  const addEntity = useAddEntity()
   const deleteEntity = useDeleteEntity()
   const reclassify = useReclassifyEntities()
   const updateType = useUpdateEntityType()
-  const updateEntity = useUpdateEntity()
-  const toast = useToast()
   const { offline } = useOffline()
 
-  const [name, setName] = useState('')
-  const [type, setType] = useState<EntityType>('persona')
-  const [year, setYear] = useState('')
-  const [description, setDescription] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [pending, setPending] = useState<Reclassification[] | null>(null)
   const [emptyHint, setEmptyHint] = useState(false)
@@ -77,89 +67,6 @@ export function EntitiesView({
   // usuario expande otra, la actual colapsa. El virtualizer mide la
   // altura dinámicamente via measureElement.
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  // When the server detects a near-duplicate during create, we surface its
-  // suggestions here so the user can pick one — or override and create
-  // anyway via the "crear igual" action.
-  const [dupCandidates, setDupCandidates] = useState<
-    DuplicateEntityError['suggestions'] | null
-  >(null)
-
-  // κ3: lookup proactivo a medida que el usuario teclea el nombre.
-  // Pega `/api/entities-lookup?prefix=...` con un debounce de 280ms;
-  // muestra hasta 3 entidades parecidas DEBAJO del input para que el
-  // usuario las descubra antes de submit. Evita el ciclo "envío → 409 →
-  // re-leer la card → cancelar" cuando es obvio que ya existe.
-  const [proactiveMatches, setProactiveMatches] = useState<Entity[]>([])
-  useEffect(() => {
-    if (!showForm) {
-      setProactiveMatches([])
-      return
-    }
-    const trimmed = name.trim()
-    if (trimmed.length < 3) {
-      setProactiveMatches([])
-      return
-    }
-    let cancelled = false
-    const handle = window.setTimeout(async () => {
-      try {
-        const matches = await api.lookupEntitiesByPrefix(trimmed)
-        if (!cancelled) setProactiveMatches(matches.slice(0, 3))
-      } catch {
-        if (!cancelled) setProactiveMatches([])
-      }
-    }, 280)
-    return () => {
-      cancelled = true
-      window.clearTimeout(handle)
-    }
-  }, [name, showForm])
-
-  // κ3: cuando el usuario picks un candidato dup, si había datos en el
-  // form (description, year), ofrecemos fusionarlos a la entidad
-  // existente. Esto evita perder el contenido tipeado al "darse cuenta
-  // de que ya existe a mitad de camino".
-  async function handleMergeIntoExisting(target: { id: string; name: string }) {
-    const newDescription = description.trim()
-    const newYear = year ? Number(year) : null
-    const hasNewData = newDescription.length > 0 || (newYear !== null && !Number.isNaN(newYear))
-    if (!hasNewData) {
-      // Nada que fusionar — sólo abrimos la entidad existente.
-      onSelectEntity?.(target.id)
-      setDupCandidates(null)
-      setName('')
-      setYear('')
-      setDescription('')
-      return
-    }
-    try {
-      // Conseguir la entidad para componer description sin pisar lo que ya hay.
-      const existing = allLoadedEntities.find((e) => e.id === target.id)
-      const composedDescription =
-        existing?.description && newDescription
-          ? `${existing.description}\n\n${newDescription}`
-          : newDescription || existing?.description || null
-      await updateEntity.mutateAsync({
-        id: target.id,
-        patch: {
-          description: composedDescription,
-          year: existing?.year ?? (newYear !== null && !Number.isNaN(newYear) ? newYear : null),
-        },
-      })
-      toast.show({
-        message: `Notas fusionadas en "${target.name}"`,
-        tone: 'success',
-      })
-      setDupCandidates(null)
-      setName('')
-      setYear('')
-      setDescription('')
-      onSelectEntity?.(target.id)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'No se pudo fusionar'
-      toast.show({ message: msg, tone: 'error' })
-    }
-  }
 
   // Build O(1) counts so the virtualized rows don't have to filter the full
   // arrays on every render. Without this, scrolling 500+ entities would do
@@ -209,31 +116,6 @@ export function EntitiesView({
       setPending(res.reclassifications)
     } catch {
       // surfaces via reclassify.error
-    }
-  }
-
-  async function handleSubmit(event: FormEvent, force = false) {
-    event.preventDefault()
-    const trimmed = name.trim()
-    if (!trimmed) return
-    setDupCandidates(null)
-    try {
-      await addEntity.mutateAsync({
-        type,
-        name: trimmed,
-        year: year ? Number(year) : undefined,
-        description: description.trim() || undefined,
-        _force: force,
-      })
-      setName('')
-      setYear('')
-      setDescription('')
-      setProactiveMatches([])
-    } catch (err) {
-      if (err instanceof DuplicateEntityError) {
-        setDupCandidates(err.suggestions)
-      }
-      // otros errores ya salen vía addEntity.error
     }
   }
 
@@ -330,195 +212,13 @@ export function EntitiesView({
       )}
 
       {showForm && (
-        // ι4: new-card pattern — título serif, inputs agrupados, footer
-        // con Cancelar + Añadir alineados a la derecha. Le da peso de
-        // "estoy creando una entidad nueva" en vez de "hay una forma
-        // perdida arriba de la lista".
-        <form
-          onSubmit={handleSubmit}
-          className="mb-10 p-5 bg-paper-100/40 border border-ink-100/60 rounded-xl space-y-4 animate-fade-up"
-        >
-          <header className="stack-2 pb-3 border-b border-ink-100/60">
-            <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
-              nueva entrada
-            </p>
-            <h3 className="font-serif text-xl text-ink-800 leading-tight">
-              Una entidad nueva en tu trama
-            </h3>
-          </header>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Nombre"
-              className="input-paper flex-1"
-              autoFocus
-              aria-describedby={
-                proactiveMatches.length > 0 ? 'dup-proactive-hint' : undefined
-              }
-            />
-            <select
-              value={type}
-              onChange={(event) => setType(event.target.value as EntityType)}
-              className="input-paper"
-            >
-              {ENTITY_TYPES.map((entityType) => (
-                <option key={entityType.value} value={entityType.value}>
-                  {entityType.label}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              value={year}
-              onChange={(event) => setYear(event.target.value)}
-              placeholder="Año"
-              className="input-paper w-full sm:w-24"
-            />
-          </div>
-
-          {/* κ3: lookup proactivo. Sólo aparece si hay matches y el server
-              todavía no devolvió un 409 (en ese caso el bloque dupCandidates
-              de abajo, más prominente, toma el control). Hint sutil pero
-              clicable — un atajo a la entidad ya existente. */}
-          {proactiveMatches.length > 0 && !dupCandidates && (
-            <div
-              id="dup-proactive-hint"
-              className="text-caption text-ink-400 leading-relaxed -mt-1"
-              role="status"
-            >
-              <span className="italic">
-                ya escribiste sobre algo parecido:
-              </span>{' '}
-              {proactiveMatches.map((m, i) => (
-                <span key={m.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSelectEntity?.(m.id)
-                      setName('')
-                      setYear('')
-                      setDescription('')
-                      setProactiveMatches([])
-                    }}
-                    className="text-ink-500 hover:text-ink-700 border-b border-dotted border-ink-300 hover:border-ink-500 transition-colors"
-                  >
-                    {m.name}
-                  </button>
-                  {i < proactiveMatches.length - 1 && (
-                    <span className="text-ink-300"> · </span>
-                  )}
-                </span>
-              ))}
-            </div>
-          )}
-          <textarea
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="Nota o descripción (opcional)"
-            rows={2}
-            className="input-paper w-full resize-none"
-          />
-          <div className="flex items-center justify-end gap-3 pt-1">
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="text-xs uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button type="submit" disabled={addEntity.isPending} className="btn-ink">
-              {addEntity.isPending ? 'Añadiendo…' : 'Añadir'}
-            </button>
-          </div>
-          {dupCandidates && dupCandidates.length > 0 && (
-            <div
-              className="rounded-lg p-3 mt-2"
-              style={{
-                backgroundColor: 'var(--accent-primary-soft)',
-                border: '1px solid var(--accent-primary-ring)',
-              }}
-            >
-              <p
-                className="text-micro uppercase tracking-eyebrow font-medium mb-2"
-                style={{ color: 'var(--accent-primary)' }}
-              >
-                ¿es la misma entidad?
-              </p>
-              <p className="text-xs text-ink-500 mb-2 leading-relaxed">
-                Ya tienes una entidad muy parecida. Si es la misma, mejor
-                quédate con la existente:
-              </p>
-              <ul className="space-y-1 mb-2">
-                {dupCandidates.map((c) => {
-                  const hasNewData =
-                    description.trim().length > 0 || year.trim().length > 0
-                  return (
-                    <li key={c.id} className="flex items-baseline gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          // Sólo abre la entidad existente, sin fusionar.
-                          onSelectEntity?.(c.id)
-                          setDupCandidates(null)
-                          setName('')
-                          setYear('')
-                          setDescription('')
-                          setProactiveMatches([])
-                        }}
-                        className="flex-1 text-left px-2.5 py-1.5 rounded text-sm hover:bg-paper-50/70 transition-colors flex items-baseline justify-between gap-3"
-                      >
-                        <span>
-                          <span className="text-ink-700">{c.name}</span>
-                          <span className="ml-2 text-micro uppercase tracking-eyebrow text-ink-300">
-                            {c.type}
-                          </span>
-                        </span>
-                        <span className="text-micro uppercase tracking-eyebrow text-ink-300 tabular-nums">
-                          {(c.similarity * 100).toFixed(0)}%
-                        </span>
-                      </button>
-                      {/* κ3: si el usuario tipeó descripción o año, ofrecemos
-                          fusionar esos datos a la entidad ya existente —
-                          en vez de perderlos al saltar al detalle. */}
-                      {hasNewData && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleMergeIntoExisting({ id: c.id, name: c.name })
-                          }
-                          disabled={updateEntity.isPending}
-                          className="text-micro uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 transition-colors disabled:opacity-60 shrink-0"
-                          title="Fusionar tu descripción/año en la entidad existente"
-                        >
-                          fusionar ↪
-                        </button>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={(e) => handleSubmit(e as unknown as FormEvent, true)}
-                  className="text-caption uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 transition-colors"
-                >
-                  crear igual ↪
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDupCandidates(null)}
-                  className="text-caption uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
-                >
-                  cerrar
-                </button>
-              </div>
-            </div>
-          )}
-        </form>
+        <EntityForm
+          onClose={() => setShowForm(false)}
+          onSelectEntity={onSelectEntity}
+          allLoadedEntities={allLoadedEntities}
+        />
       )}
+
 
       {/* Filtro por tipo. Solo aparece si hay más de un tipo en la trama.
           Antes era sticky (β2/δ8/anterior commit), pero quedaba siempre
