@@ -131,7 +131,7 @@ describe('useCreateChatThread', () => {
     })
 
     await act(async () => {
-      await result.current.mutateAsync()
+      await result.current.mutateAsync(undefined)
     })
 
     const cached = qc.getQueryData<typeof THREAD_A[]>(['chat', 'threads'])
