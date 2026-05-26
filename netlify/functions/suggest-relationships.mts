@@ -10,6 +10,7 @@ import {
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { crossVerify, type VerifyVerdict } from './_lib/cross-verify.js'
@@ -47,6 +48,7 @@ export default withObservability(
       .catch(() => ({} as Body))
     const avoidPrevious = Array.isArray(body.avoidPrevious) ? body.avoidPrevious : []
 
+    const { id: userId } = await getAuthedUser(req)
     const sql = getSql()
 
     type EntityRow = {
@@ -62,18 +64,18 @@ export default withObservability(
     const [entityRows, quoteRows, relRows, relTypeRows] = await Promise.all([
       sql`SELECT id, name, type, year, description
           FROM entities
-          WHERE deleted_at IS NULL
+          WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY created_at DESC
           LIMIT ${MAX_ENTITIES}` as unknown as Promise<EntityRow[]>,
       sql`SELECT entity_id, text
           FROM quotes
-          WHERE deleted_at IS NULL
+          WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY created_at DESC` as unknown as Promise<QuoteRow[]>,
       sql`SELECT ef.name AS from_name, et.name AS to_name, r.type
           FROM relationships r
           JOIN entities ef ON ef.id = r.from_id
           JOIN entities et ON et.id = r.to_id
-          WHERE r.deleted_at IS NULL` as unknown as Promise<RelRow[]>,
+          WHERE r.deleted_at IS NULL AND r.user_id = ${userId}` as unknown as Promise<RelRow[]>,
       sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<Array<{ slug: string }>>,
     ])
 

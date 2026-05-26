@@ -2,6 +2,7 @@ import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 import {
   embedSafe,
   entityEmbeddingText,
@@ -21,6 +22,7 @@ function normalizeOrigin(value: unknown): Origin {
 }
 
 export default withObservability('entities', async (req: Request, context: Context, { requestId }) => {
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
   const id = context.params.id
 
@@ -36,7 +38,7 @@ export default withObservability('entities', async (req: Request, context: Conte
       const rows = await sql`
         SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
         FROM entities
-        WHERE deleted_at IS NULL
+        WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY created_at DESC, id DESC
         LIMIT ${ENTITY_HARD_CAP}
       `
@@ -74,7 +76,7 @@ export default withObservability('entities', async (req: Request, context: Conte
                  position_x, position_y, origin, spotify_url,
                  created_at, updated_at
           FROM entities
-          WHERE deleted_at IS NULL
+          WHERE deleted_at IS NULL AND user_id = ${userId}
             AND (created_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
           ORDER BY created_at DESC, id DESC
           LIMIT ${limit + 1}
@@ -84,7 +86,7 @@ export default withObservability('entities', async (req: Request, context: Conte
                  position_x, position_y, origin, spotify_url,
                  created_at, updated_at
           FROM entities
-          WHERE deleted_at IS NULL
+          WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY created_at DESC, id DESC
           LIMIT ${limit + 1}
         `)
@@ -156,7 +158,7 @@ export default withObservability('entities', async (req: Request, context: Conte
         SELECT id, name, type, description,
                (embedding <=> ${toPgVector(emb.vector)}::vector) AS distance
         FROM entities
-        WHERE deleted_at IS NULL
+        WHERE deleted_at IS NULL AND user_id = ${userId}
           AND embedding IS NOT NULL
           AND embedding <=> ${toPgVector(emb.vector)}::vector < 0.20
         ORDER BY embedding <=> ${toPgVector(emb.vector)}::vector
@@ -183,7 +185,7 @@ export default withObservability('entities', async (req: Request, context: Conte
     const rows = await sql`
       INSERT INTO entities (
         type, name, year, description, essay, position_x, position_y, origin, spotify_url,
-        embedding, embedding_model, embedding_at
+        embedding, embedding_model, embedding_at, user_id
       )
       VALUES (
         ${body.type},
@@ -197,7 +199,8 @@ export default withObservability('entities', async (req: Request, context: Conte
         ${body.spotify_url ?? null},
         ${emb ? toPgVector(emb.vector) : null}::vector,
         ${emb?.model ?? null},
-        ${emb ? new Date().toISOString() : null}
+        ${emb ? new Date().toISOString() : null},
+        ${userId}
       )
       RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
     `
@@ -227,7 +230,7 @@ export default withObservability('entities', async (req: Request, context: Conte
         position_x  = CASE WHEN ${body.position_x !== undefined} THEN ${body.position_x ?? null} ELSE position_x END,
         position_y  = CASE WHEN ${body.position_y !== undefined} THEN ${body.position_y ?? null} ELSE position_y END,
         spotify_url = CASE WHEN ${body.spotify_url !== undefined} THEN ${body.spotify_url ?? null} ELSE spotify_url END
-      WHERE id = ${id} AND deleted_at IS NULL
+      WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
     `
     if (rows.length === 0) {
@@ -279,9 +282,9 @@ export default withObservability('entities', async (req: Request, context: Conte
     // acto y revertir solo eso (no relaciones borradas en otro momento).
     const tsRows = (await sql`SELECT NOW() AS now`) as Array<{ now: string }>
     const deletedAt = tsRows[0].now
-    await sql`UPDATE entities SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL`
-    await sql`UPDATE relationships SET deleted_at = ${deletedAt} WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at IS NULL`
-    await sql`UPDATE quotes SET deleted_at = ${deletedAt} WHERE entity_id = ${id} AND deleted_at IS NULL`
+    await sql`UPDATE entities SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
+    await sql`UPDATE relationships SET deleted_at = ${deletedAt} WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at IS NULL AND user_id = ${userId}`
+    await sql`UPDATE quotes SET deleted_at = ${deletedAt} WHERE entity_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
     return Response.json({ deletedAt })
   }
 
@@ -293,9 +296,9 @@ export default withObservability('entities', async (req: Request, context: Conte
     if (!body.deletedAt) {
       return ApiErrors.validation(requestId, 'deletedAt requerido')
     }
-    await sql`UPDATE entities SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt}`
-    await sql`UPDATE relationships SET deleted_at = NULL WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at = ${body.deletedAt}`
-    await sql`UPDATE quotes SET deleted_at = NULL WHERE entity_id = ${id} AND deleted_at = ${body.deletedAt}`
+    await sql`UPDATE entities SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt} AND user_id = ${userId}`
+    await sql`UPDATE relationships SET deleted_at = NULL WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at = ${body.deletedAt} AND user_id = ${userId}`
+    await sql`UPDATE quotes SET deleted_at = NULL WHERE entity_id = ${id} AND deleted_at = ${body.deletedAt} AND user_id = ${userId}`
     return Response.json({ restored: true })
   }
 

@@ -13,6 +13,7 @@ import {
 } from './_lib/reclassify-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { crossVerify, type VerifyVerdict } from './_lib/cross-verify.js'
@@ -30,6 +31,7 @@ export default withObservability(
     const budgetExceeded = await checkMonthlyBudget()
     if (budgetExceeded) return budgetExceeded
 
+    const { id: userId } = await getAuthedUser(req)
     const sql = getSql()
 
     type EntityRow = {
@@ -45,12 +47,12 @@ export default withObservability(
     const [entityRows, quoteRows, typeRows] = await Promise.all([
       sql`SELECT id, name, type, year, description
           FROM entities
-          WHERE deleted_at IS NULL
+          WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY created_at DESC
           LIMIT ${MAX_ENTITIES}` as unknown as Promise<EntityRow[]>,
       sql`SELECT entity_id, text
           FROM quotes
-          WHERE deleted_at IS NULL
+          WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY created_at DESC` as unknown as Promise<QuoteRow[]>,
       sql`SELECT slug, label FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
     ])

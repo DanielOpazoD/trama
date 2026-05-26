@@ -2,6 +2,7 @@ import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * Chat threads CRUD.
@@ -14,6 +15,7 @@ export default withObservability(
   'chat-threads',
   async (req: Request, context: Context, { requestId }) => {
     const sql = getSql()
+    const { id: userId } = await getAuthedUser(req)
     const id = context.params.id
 
     if (req.method === 'GET') {
@@ -30,7 +32,7 @@ export default withObservability(
                COUNT(m.id) AS message_count
         FROM chat_threads t
         LEFT JOIN chat_messages m ON m.thread_id = t.id
-        WHERE t.deleted_at IS NULL
+        WHERE t.deleted_at IS NULL AND t.user_id = ${userId}
         GROUP BY t.id
         ORDER BY t.updated_at DESC
         LIMIT 200
@@ -55,8 +57,8 @@ export default withObservability(
       const title = body.title?.trim() || null
       const context = body.context?.trim() || null
       const rows = (await sql`
-        INSERT INTO chat_threads (title, context)
-        VALUES (${title}, ${context})
+        INSERT INTO chat_threads (title, context, user_id)
+        VALUES (${title}, ${context}, ${userId})
         RETURNING id, title, context, created_at, updated_at
       `) as Array<{
         id: string
@@ -80,7 +82,7 @@ export default withObservability(
     }
 
     if (req.method === 'DELETE' && id) {
-      await sql`UPDATE chat_threads SET deleted_at = NOW() WHERE id = ${id} AND deleted_at IS NULL`
+      await sql`UPDATE chat_threads SET deleted_at = NOW() WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
       return new Response(null, { status: 204 })
     }
 

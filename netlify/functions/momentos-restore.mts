@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * EE-followup: restaurar un momento soft-deleted.
@@ -24,6 +25,7 @@ export default withObservability('momentos-restore', async (req: Request, _ctx, 
     return ApiErrors.methodNotAllowed(requestId)
   }
   const sql = getSql()
+  const { id: userId } = await getAuthedUser(req)
 
   let body: { id?: unknown; deletedAt?: unknown }
   try {
@@ -42,7 +44,7 @@ export default withObservability('momentos-restore', async (req: Request, _ctx, 
   const result = (await sql`
     UPDATE momentos
     SET deleted_at = NULL, updated_at = NOW()
-    WHERE id = ${id} AND deleted_at = ${deletedAt}::timestamptz
+    WHERE id = ${id} AND deleted_at = ${deletedAt}::timestamptz AND user_id = ${userId}
     RETURNING id, kind, captured_at, payload, note, origin,
               created_at, updated_at
   `) as Array<Record<string, unknown>>

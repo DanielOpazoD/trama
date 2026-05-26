@@ -5,6 +5,7 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
 import { momentoEmbedText } from './_lib/momento-embed.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * DD1: recuperación de blobs huérfanos.
@@ -36,11 +37,11 @@ type FotoPayload = {
  * multi (`items[]`). Soft-deletados se INCLUYEN para no resucitar fotos
  * que el usuario borró a propósito.
  */
-async function collectReferencedKeys(sql: ReturnType<typeof getSql>): Promise<Set<string>> {
+async function collectReferencedKeys(sql: ReturnType<typeof getSql>, userId: string): Promise<Set<string>> {
   const rows = (await sql`
     SELECT payload
     FROM momentos
-    WHERE kind = 'foto'
+    WHERE kind = 'foto' AND user_id = ${userId}
   `) as Array<{ payload: FotoPayload | null }>
 
   const set = new Set<string>()
@@ -62,13 +63,14 @@ async function collectReferencedKeys(sql: ReturnType<typeof getSql>): Promise<Se
 
 export default withObservability('momentos-orphaned-blobs', async (req: Request, _ctx, { requestId }) => {
   const sql = getSql()
+  const { id: userId } = await getAuthedUser(req)
   const store = getStore('momentos-media')
 
   // GET: listar las keys huérfanas + algún metadata útil (mime) para que
   // el cliente pueda renderizar thumbs apuntando al endpoint /file/:key.
   if (req.method === 'GET') {
     const { blobs } = await store.list()
-    const referenced = await collectReferencedKeys(sql)
+    const referenced = await collectReferencedKeys(sql, userId)
     const orphans = blobs
       .map((b) => b.key)
       .filter((k) => !referenced.has(k))
@@ -103,7 +105,7 @@ export default withObservability('momentos-orphaned-blobs', async (req: Request,
     }
 
     // Verificar que no esté ya referenciado (idempotencia).
-    const referenced = await collectReferencedKeys(sql)
+    const referenced = await collectReferencedKeys(sql, userId)
     if (referenced.has(storageKey)) {
       return ApiErrors.conflict(requestId, 'Blob ya está referenciado por otro Momento')
     }
@@ -121,13 +123,14 @@ export default withObservability('momentos-orphaned-blobs', async (req: Request,
     })
 
     const result = (await sql`
-      INSERT INTO momentos (kind, captured_at, payload, note, origin)
+      INSERT INTO momentos (kind, captured_at, payload, note, origin, user_id)
       VALUES (
         'foto',
         ${capturedAt}::timestamptz,
         ${JSON.stringify(payload)}::jsonb,
         ${note},
-        ${origin}::jsonb
+        ${origin}::jsonb,
+        ${userId}
       )
       RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
     `) as Array<Record<string, unknown>>

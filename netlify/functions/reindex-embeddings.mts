@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 import {
   embedSafe,
   entityEmbeddingText,
@@ -23,12 +24,13 @@ import {
  * entity name in their embedding text), then quotes.
  */
 export default withObservability('reindex-embeddings', async (req, _ctx, { requestId }) => {
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
   if (req.method === 'GET') {
     const [eRows, qRows] = await Promise.all([
-      sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND embedding IS NULL` as unknown as Promise<Array<{ c: string }>>,
-      sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL` as unknown as Promise<Array<{ c: string }>>,
+      sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}` as unknown as Promise<Array<{ c: string }>>,
+      sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}` as unknown as Promise<Array<{ c: string }>>,
     ])
     return Response.json({
       entities: Number(eRows[0]?.c ?? 0),
@@ -60,7 +62,7 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
   const entityRows = (await sql`
     SELECT id, name, type, year, description
     FROM entities
-    WHERE deleted_at IS NULL AND embedding IS NULL
+    WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}
     ORDER BY created_at DESC
     LIMIT ${batchSize}
   `) as EntityRow[]
@@ -83,7 +85,7 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
       SET embedding = ${toPgVector(emb.vector)}::vector,
           embedding_model = ${emb.model},
           embedding_at = NOW()
-      WHERE id = ${e.id}
+      WHERE id = ${e.id} AND user_id = ${userId}
     `
     processed += 1
   }
@@ -102,7 +104,7 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
       SELECT q.id, q.text, q.source, q.context, e.name AS entity_name
       FROM quotes q
       LEFT JOIN entities e ON e.id = q.entity_id AND e.deleted_at IS NULL
-      WHERE q.deleted_at IS NULL AND q.embedding IS NULL
+      WHERE q.deleted_at IS NULL AND q.embedding IS NULL AND q.user_id = ${userId}
       ORDER BY q.created_at DESC
       LIMIT ${remainingCapacity}
     `) as QuoteRow[]
@@ -125,15 +127,15 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
         SET embedding = ${toPgVector(emb.vector)}::vector,
             embedding_model = ${emb.model},
             embedding_at = NOW()
-        WHERE id = ${q.id}
+        WHERE id = ${q.id} AND user_id = ${userId}
       `
       processed += 1
     }
   }
 
   const [eLeft, qLeft] = await Promise.all([
-    sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND embedding IS NULL` as unknown as Promise<Array<{ c: string }>>,
-    sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL` as unknown as Promise<Array<{ c: string }>>,
+    sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}` as unknown as Promise<Array<{ c: string }>>,
+    sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}` as unknown as Promise<Array<{ c: string }>>,
   ])
 
   return Response.json({

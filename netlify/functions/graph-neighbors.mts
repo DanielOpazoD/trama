@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * Subgraph endpoint: returns an entity + its N-hop neighborhood.
@@ -43,6 +44,7 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
   const hops = Math.min(Math.max(Number.parseInt(hopsParam ?? '1', 10) || 1, 1), 3)
   const limit = Math.min(Math.max(Number.parseInt(limitParam ?? '120', 10) || 120, 1), 500)
 
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
   // 1) Verify the focal entity exists (and isn't soft-deleted).
@@ -64,7 +66,7 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
     SELECT id, type, name, year, description, essay, position_x, position_y,
            origin, spotify_url, created_at, updated_at
     FROM entities
-    WHERE id = ${fromId} AND deleted_at IS NULL
+    WHERE id = ${fromId} AND deleted_at IS NULL AND user_id = ${userId}
   `) as EntityRow[]
   if (focalRows.length === 0) {
     return ApiErrors.notFound(requestId, 'Entidad no encontrada')
@@ -78,7 +80,7 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
     WITH RECURSIVE walk(id, depth) AS (
       SELECT id, 0
       FROM entities
-      WHERE id = ${fromId} AND deleted_at IS NULL
+      WHERE id = ${fromId} AND deleted_at IS NULL AND user_id = ${userId}
       UNION
       SELECT
         CASE WHEN r.from_id = w.id THEN r.to_id ELSE r.from_id END,
@@ -87,7 +89,7 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
       JOIN relationships r ON (r.from_id = w.id OR r.to_id = w.id)
                           AND r.deleted_at IS NULL
       JOIN entities e ON e.id = (CASE WHEN r.from_id = w.id THEN r.to_id ELSE r.from_id END)
-                     AND e.deleted_at IS NULL
+                     AND e.deleted_at IS NULL AND e.user_id = ${userId}
       WHERE w.depth < ${hops}
     ),
     dedup AS (
@@ -121,7 +123,7 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
           SELECT id, type, name, year, description, essay, position_x, position_y,
                  origin, spotify_url, created_at, updated_at
           FROM entities
-          WHERE id = ANY(${idsInWindow}::uuid[]) AND deleted_at IS NULL
+          WHERE id = ANY(${idsInWindow}::uuid[]) AND deleted_at IS NULL AND user_id = ${userId}
         `) as EntityRow[])
 
   // 4) Fetch edges whose endpoints are BOTH in the window — this is what
@@ -143,6 +145,7 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
           SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
           FROM relationships
           WHERE deleted_at IS NULL
+            AND user_id = ${userId}
             AND from_id = ANY(${idsInWindow}::uuid[])
             AND to_id   = ANY(${idsInWindow}::uuid[])
         `) as RelRow[])

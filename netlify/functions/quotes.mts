@@ -2,6 +2,7 @@ import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 import {
   embedSafe,
   quoteEmbeddingText,
@@ -21,6 +22,7 @@ function normalizeOrigin(value: unknown): Origin {
 }
 
 export default withObservability('quotes', async (req: Request, context: Context, { requestId }) => {
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
   const id = context.params.id
 
@@ -38,7 +40,7 @@ export default withObservability('quotes', async (req: Request, context: Context
                linked_quote_ids,
                origin, created_at, updated_at
         FROM quotes
-        WHERE deleted_at IS NULL
+        WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY created_at DESC, id DESC
       `
       return Response.json(rows)
@@ -73,7 +75,7 @@ export default withObservability('quotes', async (req: Request, context: Context
                  linked_quote_ids, pinned_at,
                  origin, created_at, updated_at
           FROM quotes
-          WHERE deleted_at IS NULL
+          WHERE deleted_at IS NULL AND user_id = ${userId}
             AND (created_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
           ORDER BY pinned_at DESC NULLS LAST, created_at DESC, id DESC
           LIMIT ${limit + 1}
@@ -84,7 +86,7 @@ export default withObservability('quotes', async (req: Request, context: Context
                  linked_quote_ids, pinned_at,
                  origin, created_at, updated_at
           FROM quotes
-          WHERE deleted_at IS NULL
+          WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY pinned_at DESC NULLS LAST, created_at DESC, id DESC
           LIMIT ${limit + 1}
         `)
@@ -136,7 +138,7 @@ export default withObservability('quotes', async (req: Request, context: Context
     const rows = await sql`
       INSERT INTO quotes (
         entity_id, text, source, context, user_reflection, linked_quote_ids, origin,
-        embedding, embedding_model, embedding_at
+        embedding, embedding_model, embedding_at, user_id
       ) VALUES (
         ${body.entity_id},
         ${body.text},
@@ -147,7 +149,8 @@ export default withObservability('quotes', async (req: Request, context: Context
         ${origin}::jsonb,
         ${emb ? toPgVector(emb.vector) : null}::vector,
         ${emb?.model ?? null},
-        ${emb ? new Date().toISOString() : null}
+        ${emb ? new Date().toISOString() : null},
+        ${userId}
       )
       RETURNING id, entity_id, text, source, context,
                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
@@ -195,7 +198,7 @@ export default withObservability('quotes', async (req: Request, context: Context
                                    WHEN ${body.pinned === false} THEN NULL
                                    ELSE pinned_at
                                  END
-      WHERE id = ${id} AND deleted_at IS NULL
+      WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       RETURNING id, entity_id, text, source, context,
                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                 linked_quote_ids, pinned_at,
@@ -248,7 +251,7 @@ export default withObservability('quotes', async (req: Request, context: Context
   if (req.method === 'DELETE' && id) {
     const tsRows = (await sql`SELECT NOW() AS now`) as Array<{ now: string }>
     const deletedAt = tsRows[0].now
-    await sql`UPDATE quotes SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL`
+    await sql`UPDATE quotes SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
     return Response.json({ deletedAt })
   }
 
@@ -258,7 +261,7 @@ export default withObservability('quotes', async (req: Request, context: Context
     if (!body.deletedAt) {
       return ApiErrors.validation(requestId, 'deletedAt requerido')
     }
-    await sql`UPDATE quotes SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt}`
+    await sql`UPDATE quotes SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt} AND user_id = ${userId}`
     return Response.json({ restored: true })
   }
 

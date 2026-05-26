@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * Returns aggregated views of Spotify plays — what you've actually been
@@ -22,7 +23,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
   if (req.method !== 'GET') {
     return ApiErrors.methodNotAllowed(requestId)
   }
-
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
   const url = new URL(req.url)
@@ -48,7 +49,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
       WITH plays AS (
         SELECT UNNEST(artist_names) AS artist_name, UNNEST(artist_ids) AS artist_id, played_at
         FROM spotify_plays
-        WHERE played_at >= ${since}
+        WHERE played_at >= ${since} AND user_id = ${userId}
       ),
       grouped AS (
         SELECT artist_name AS key,
@@ -63,7 +64,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
              e.id AS existing_entity_id
       FROM grouped g
       LEFT JOIN entities e
-        ON LOWER(e.name) = LOWER(g.key) AND e.deleted_at IS NULL
+        ON LOWER(e.name) = LOWER(g.key) AND e.deleted_at IS NULL AND e.user_id = ${userId}
       ORDER BY g.plays DESC
       LIMIT ${limit}
     `) as unknown as Group[]
@@ -79,7 +80,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
         SELECT DISTINCT ON (album_name)
           album_name, artist_names, album_id, played_at
         FROM spotify_plays
-        WHERE played_at >= ${since} AND album_name IS NOT NULL
+        WHERE played_at >= ${since} AND album_name IS NOT NULL AND user_id = ${userId}
         ORDER BY album_name, played_at DESC
       ),
       counts AS (
@@ -88,7 +89,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
                MIN(played_at) AS first_played,
                MAX(played_at) AS last_played
         FROM spotify_plays
-        WHERE played_at >= ${since} AND album_name IS NOT NULL
+        WHERE played_at >= ${since} AND album_name IS NOT NULL AND user_id = ${userId}
         GROUP BY album_name
       )
       SELECT c.album_name AS key,
@@ -101,7 +102,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
       FROM counts c
       JOIN per_album p ON p.album_name = c.album_name
       LEFT JOIN entities e
-        ON LOWER(e.name) = LOWER(c.album_name) AND e.deleted_at IS NULL
+        ON LOWER(e.name) = LOWER(c.album_name) AND e.deleted_at IS NULL AND e.user_id = ${userId}
       ORDER BY c.plays DESC
       LIMIT ${limit}
     `) as unknown as Group[]
@@ -113,7 +114,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
         SELECT DISTINCT ON (track_name)
           track_name, artist_names, track_id, played_at
         FROM spotify_plays
-        WHERE played_at >= ${since}
+        WHERE played_at >= ${since} AND user_id = ${userId}
         ORDER BY track_name, played_at DESC
       ),
       counts AS (
@@ -122,7 +123,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
                MIN(played_at) AS first_played,
                MAX(played_at) AS last_played
         FROM spotify_plays
-        WHERE played_at >= ${since}
+        WHERE played_at >= ${since} AND user_id = ${userId}
         GROUP BY track_name
       )
       SELECT c.track_name AS key,
@@ -135,7 +136,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
       FROM counts c
       JOIN per_track p ON p.track_name = c.track_name
       LEFT JOIN entities e
-        ON LOWER(e.name) = LOWER(c.track_name) AND e.deleted_at IS NULL
+        ON LOWER(e.name) = LOWER(c.track_name) AND e.deleted_at IS NULL AND e.user_id = ${userId}
       ORDER BY c.plays DESC
       LIMIT ${limit}
     `) as unknown as Group[]
@@ -167,7 +168,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
       COUNT(DISTINCT album_id)::int AS unique_albums,
       ROUND(COALESCE(SUM(duration_ms), 0) / 60000.0)::int AS total_minutes
     FROM spotify_plays
-    WHERE played_at >= ${since}
+    WHERE played_at >= ${since} AND user_id = ${userId}
   `) as unknown as CoreRow[]
   const core = coreRows[0] ?? {
     total_plays: 0,
@@ -180,7 +181,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
   const artistRows = (await sql`
     SELECT COUNT(DISTINCT artist_name)::int AS unique_artists
     FROM spotify_plays, UNNEST(artist_names) AS artist_name
-    WHERE played_at >= ${since}
+    WHERE played_at >= ${since} AND user_id = ${userId}
   `) as unknown as ArtistRow[]
   const uniqueArtists = artistRows[0]?.unique_artists ?? 0
 

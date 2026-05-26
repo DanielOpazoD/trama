@@ -5,6 +5,7 @@ import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildReflectPrompt } from './_lib/reflect-prompt.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
@@ -30,6 +31,7 @@ export default withObservability(
     const budgetExceeded = await checkMonthlyBudget()
     if (budgetExceeded) return budgetExceeded
 
+    const { id: userId } = await getAuthedUser(req)
     const sql = getSql()
 
     type Row = {
@@ -48,7 +50,7 @@ export default withObservability(
              e.name AS entity_name, e.type AS entity_type, e.description AS entity_description
       FROM quotes q
       JOIN entities e ON e.id = q.entity_id
-      WHERE q.id = ${id} AND q.deleted_at IS NULL AND e.deleted_at IS NULL
+      WHERE q.id = ${id} AND q.deleted_at IS NULL AND q.user_id = ${userId} AND e.deleted_at IS NULL
     `) as Row[]
     if (rows.length === 0) {
       return ApiErrors.notFound(requestId, 'Cita no encontrada')
@@ -69,6 +71,7 @@ export default withObservability(
         JOIN entities e ON e.id = q.entity_id
         WHERE q.id <> ${id}
           AND q.deleted_at IS NULL
+          AND q.user_id = ${userId}
           AND e.deleted_at IS NULL
           AND q.embedding IS NOT NULL
         ORDER BY q.embedding <=> ${r.embedding}::vector

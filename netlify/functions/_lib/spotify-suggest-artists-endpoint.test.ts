@@ -4,8 +4,14 @@ import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
 vi.mock('./db.js', () => setupMockSql())
 // Netlify.env no existe en el test runtime; stubeamos para evitar
 // ReferenceError cuando cost-cap.ts lee AI_MONTHLY_BUDGET_CENTS.
+// ALLOW_LEGACY_FALLBACK=true para que getAuthedUser() devuelva el
+// usuario legacy en vez de lanzar UnauthenticatedError.
 vi.stubGlobal('Netlify', {
-  env: { get: vi.fn(() => undefined) },
+  env: {
+    get: vi.fn((key: string) =>
+      key === 'ALLOW_LEGACY_FALLBACK' ? 'true' : undefined,
+    ),
+  },
 })
 // LLM nunca se llega a invocar en estos tests (mock fetch a fail).
 vi.stubGlobal(

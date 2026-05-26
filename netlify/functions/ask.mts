@@ -6,6 +6,7 @@ import { buildAskPrompt, type AskContext } from './_lib/ask-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { buildRagContext } from './_lib/rag-context.js'
@@ -56,6 +57,8 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
   const incomingThreadId =
     typeof body.threadId === 'string' && body.threadId.length > 0 ? body.threadId : null
 
+  const { id: userId } = await getAuthedUser(req)
+
   const budgetExceeded = await checkMonthlyBudget()
   if (budgetExceeded) return budgetExceeded
 
@@ -98,6 +101,7 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
         ...values: unknown[]
       ) => Promise<unknown>,
       userText,
+      userId,
       {
         relationshipLimit: FALLBACK_REL_LIMIT,
         rerank: true,

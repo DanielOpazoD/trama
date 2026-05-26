@@ -2,6 +2,7 @@ import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 type Origin = { kind: string; [key: string]: unknown }
 
@@ -16,6 +17,7 @@ function normalizeOrigin(value: unknown): Origin {
 }
 
 export default withObservability('relationships', async (req: Request, context: Context, { requestId }) => {
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
   const id = context.params.id
 
@@ -29,7 +31,7 @@ export default withObservability('relationships', async (req: Request, context: 
       const rows = await sql`
         SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
         FROM relationships
-        WHERE deleted_at IS NULL
+        WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY created_at DESC, id DESC
         LIMIT ${REL_HARD_CAP}
       `
@@ -62,7 +64,7 @@ export default withObservability('relationships', async (req: Request, context: 
       ? (await sql`
           SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
           FROM relationships
-          WHERE deleted_at IS NULL
+          WHERE deleted_at IS NULL AND user_id = ${userId}
             AND (created_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
           ORDER BY created_at DESC, id DESC
           LIMIT ${limit + 1}
@@ -70,7 +72,7 @@ export default withObservability('relationships', async (req: Request, context: 
       : (await sql`
           SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
           FROM relationships
-          WHERE deleted_at IS NULL
+          WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY created_at DESC, id DESC
           LIMIT ${limit + 1}
         `)
@@ -99,13 +101,14 @@ export default withObservability('relationships', async (req: Request, context: 
     }
     const origin = JSON.stringify(normalizeOrigin(body.origin))
     const rows = await sql`
-      INSERT INTO relationships (from_id, to_id, type, notes, origin)
+      INSERT INTO relationships (from_id, to_id, type, notes, origin, user_id)
       VALUES (
         ${body.from_id},
         ${body.to_id},
         ${body.type},
         ${body.notes ?? null},
-        ${origin}::jsonb
+        ${origin}::jsonb,
+        ${userId}
       )
       RETURNING id, from_id, to_id, type, notes, origin, created_at, updated_at
     `
@@ -122,7 +125,7 @@ export default withObservability('relationships', async (req: Request, context: 
       SET
         type  = COALESCE(${body.type ?? null}, type),
         notes = CASE WHEN ${body.notes !== undefined} THEN ${body.notes ?? null} ELSE notes END
-      WHERE id = ${id} AND deleted_at IS NULL
+      WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       RETURNING id, from_id, to_id, type, notes, origin, created_at, updated_at
     `
     if (rows.length === 0) {
@@ -134,7 +137,7 @@ export default withObservability('relationships', async (req: Request, context: 
   if (req.method === 'DELETE' && id) {
     const tsRows = (await sql`SELECT NOW() AS now`) as Array<{ now: string }>
     const deletedAt = tsRows[0].now
-    await sql`UPDATE relationships SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL`
+    await sql`UPDATE relationships SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
     return Response.json({ deletedAt })
   }
 
@@ -144,7 +147,7 @@ export default withObservability('relationships', async (req: Request, context: 
     if (!body.deletedAt) {
       return ApiErrors.validation(requestId, 'deletedAt requerido')
     }
-    await sql`UPDATE relationships SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt}`
+    await sql`UPDATE relationships SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt} AND user_id = ${userId}`
     return Response.json({ restored: true })
   }
 

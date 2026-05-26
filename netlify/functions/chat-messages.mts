@@ -3,6 +3,7 @@ import { getSql } from './_lib/db.js'
 import { askLLMForText, askLLMForTextStreaming } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildRagContext } from './_lib/rag-context.js'
+import { getAuthedUser } from './_lib/auth.js'
 import {
   buildChatPrompt,
   buildChatTitlePrompt,
@@ -38,6 +39,7 @@ export default withObservability(
     const threadId = context.params.threadId
     if (!threadId) return ApiErrors.validation(requestId, 'thread id required')
 
+    const { id: userId } = await getAuthedUser(req)
     const sql = getSql()
 
     if (req.method === 'GET') {
@@ -191,6 +193,7 @@ export default withObservability(
             ...values: unknown[]
           ) => Promise<unknown>,
           userText,
+          userId,
           {
             relationshipLimit: CONTEXT_RELATIONSHIP_LIMIT,
             // Activamos LLM-as-reranker en el chat — la calidad del
