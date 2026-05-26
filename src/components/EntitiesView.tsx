@@ -83,7 +83,7 @@ export function EntitiesView({
 
   // Fetch next page when the virtualizer enters the last few items.
   const virtualItems = virtualizer.getVirtualItems()
-  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1].index : 0
+  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1]!.index : 0
   useEffect(() => {
     if (!entitiesPaged.hasNextPage || entitiesPaged.isFetchingNextPage) return
     if (entities.length === 0) return
@@ -243,6 +243,7 @@ export function EntitiesView({
         >
           {virtualizer.getVirtualItems().map((virtualRow) => {
             const entity = entities[virtualRow.index]
+            if (!entity) return null
             const quoteCount = quoteCountById.get(entity.id) ?? 0
             const relCount = relCountById.get(entity.id) ?? 0
             return (

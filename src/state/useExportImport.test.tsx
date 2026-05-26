@@ -85,7 +85,7 @@ describe('useImport', () => {
     expect(importResult!.imported).toBe(140)
     expect(importResult!.skipped).toBe(5)
     expect(importResult!.failed).toHaveLength(2)
-    expect(importResult!.failed![0].kind).toBe('entity')
+    expect(importResult!.failed![0]!.kind).toBe('entity')
   })
 
   it('devuelve failed[] vacío cuando todo importa OK', async () => {

@@ -157,6 +157,7 @@ export function Onboarding({
   if (!open) return null
 
   const step = STEPS[stepIdx]
+  if (!step) return null
   const isLast = stepIdx === STEPS.length - 1
 
   return (

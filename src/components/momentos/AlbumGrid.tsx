@@ -267,7 +267,7 @@ function AlbumTile({
   const { items, caption } = momento.payload
   const storageKey =
     items && items.length > 0
-      ? items[0].storageKey
+      ? items[0]!.storageKey
       : momento.payload.storageKey
   const extraCount = items && items.length > 1 ? items.length - 1 : 0
   const linkedEntities = momento.entityIds

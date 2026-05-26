@@ -88,7 +88,7 @@ describe('<AITaskSettings />', () => {
     // Find the dropdown next to "Extracción de texto".
     const selects = screen.getAllByRole('combobox')
     // First task row's dropdown.
-    await user.selectOptions(selects[0], 'openai')
+    await user.selectOptions(selects[0]!, 'openai')
 
     await waitFor(() => {
       const putCall = fetchMock.mock.calls.find(

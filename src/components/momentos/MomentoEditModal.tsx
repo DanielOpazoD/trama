@@ -128,6 +128,7 @@ export function MomentoEditModal({
       if (idx <= 0 || idx >= prev.length) return prev
       const next = [...prev]
       const [picked] = next.splice(idx, 1)
+      if (!picked) return prev
       next.unshift(picked)
       return next
     })
@@ -139,7 +140,9 @@ export function MomentoEditModal({
       if (target < 0 || target >= prev.length) return prev
       const next = [...prev]
       const tmp = next[idx]
-      next[idx] = next[target]
+      const swap = next[target]
+      if (tmp === undefined || swap === undefined) return prev
+      next[idx] = swap
       next[target] = tmp
       return next
     })

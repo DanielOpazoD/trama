@@ -116,7 +116,7 @@ function greetingForNow(): string {
   // del mismo día no caigan en la misma variante por azar.
   const bandIdx = Object.keys(GREETINGS).indexOf(band)
   const idx = (dailySeed() + bandIdx * 7) % options.length
-  return options[idx]
+  return options[idx] ?? ''
 }
 
 /**

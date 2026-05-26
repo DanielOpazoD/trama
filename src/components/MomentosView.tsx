@@ -226,7 +226,7 @@ export function MomentosView() {
                   className="section-eyebrow-serif"
                   style={{ color: 'var(--accent-gold)' }}
                 >
-                  {formatDateHeading(entries[0].capturedAt)}
+                  {formatDateHeading(entries[0]!.capturedAt)}
                 </h3>
                 <span className="flex-1 h-px bg-ink-100/40" />
                 <span className="text-caption text-ink-300 tabular-nums">
@@ -417,7 +417,10 @@ function readDayParam(): string | null {
 function formatDayLabel(iso: string): string {
   // YYYY-MM-DD → "viernes 23 de mayo 2026" en español, capitalizado.
   const [y, m, d] = iso.split('-').map(Number)
-  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d))
+  if (
+    y === undefined || m === undefined || d === undefined ||
+    !Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)
+  )
     return iso
   const date = new Date(y, m - 1, d)
   const raw = date.toLocaleDateString('es', {

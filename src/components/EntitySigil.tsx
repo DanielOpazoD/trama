@@ -51,13 +51,14 @@ export function monogramOf(name: string): string {
   const significant = allWords.filter((w) => !STOP_WORDS.has(w.toLowerCase()))
   const words = significant.length > 0 ? significant : allWords
   if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase()
+    return (words[0]![0]! + words[1]![0]!).toUpperCase()
   }
   // Una sola palabra: primera + segunda letra. Si solo hay UNA letra,
   // devolvemos esa letra duplicada.
   const w = words[0]
+  if (!w) return '?'
   if (w.length === 1) return w.toUpperCase()
-  return (w[0] + w[1]).toUpperCase()
+  return (w[0]! + w[1]!).toUpperCase()
 }
 
 type Size = 'sm' | 'md' | 'lg'

@@ -32,6 +32,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      # G4: bundle-size budget. Falla si un chunk crece más de su tope (gzip).
+      # Los budgets viven en scripts/check-bundle-size.mjs — subirlos requiere
+      # justificación, no es un "que pase CI".
+      - name: Bundle size budget
+        run: node scripts/check-bundle-size.mjs
+
       # E2E: Playwright + chromium. Browser binaries no van en npm ci
       # (cuesta ~100MB), se instalan acá. Los tests usan mock fixtures;
       # no requieren backend real ni Neon.

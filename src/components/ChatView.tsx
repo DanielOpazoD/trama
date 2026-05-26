@@ -54,7 +54,7 @@ export function ChatView({
   // explicit user selection.
   useEffect(() => {
     if (!activeId && threads.length > 0) {
-      setActiveId(threads[0].id)
+      setActiveId(threads[0]!.id)
     }
   }, [threads, activeId])
 

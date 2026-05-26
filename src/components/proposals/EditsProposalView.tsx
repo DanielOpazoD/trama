@@ -37,7 +37,7 @@ export function EditsProposalView({
             <ProposedEditRow
               key={index}
               edit={edit}
-              checked={checkedEdits[index]}
+              checked={checkedEdits[index] ?? false}
               onToggle={() => onToggleEdit(index)}
             />
           ))}
@@ -50,7 +50,7 @@ export function EditsProposalView({
             <ProposedDeleteRow
               key={index}
               del={del}
-              checked={checkedDeletes[index]}
+              checked={checkedDeletes[index] ?? false}
               onToggle={() => onToggleDelete(index)}
             />
           ))}

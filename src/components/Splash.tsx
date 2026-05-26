@@ -30,7 +30,7 @@ function pickAphorism(): string {
   // original. La cache se actualiza una vez por día desde HomeView.
   const hilo = readHiloOfTheDay()
   if (hilo) return hilo
-  return APHORISMS[Math.floor(Math.random() * APHORISMS.length)]
+  return APHORISMS[Math.floor(Math.random() * APHORISMS.length)] ?? ''
 }
 
 export function Splash() {

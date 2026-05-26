@@ -104,10 +104,10 @@ describe('groupByDay', () => {
     ]
     const result = groupByDay(items)
     expect(result).toHaveLength(2)
-    expect(result[0].entries).toHaveLength(2) // a, b mismo día
-    expect(result[0].entries.map((e) => e.id)).toEqual(['a', 'b'])
-    expect(result[1].entries).toHaveLength(1)
-    expect(result[1].entries[0].id).toBe('c')
+    expect(result[0]!.entries).toHaveLength(2) // a, b mismo día
+    expect(result[0]!.entries.map((e) => e.id)).toEqual(['a', 'b'])
+    expect(result[1]!.entries).toHaveLength(1)
+    expect(result[1]!.entries[0]!.id).toBe('c')
   })
 
   it('respeta el orden de entrada (asume desc por captured_at)', () => {
@@ -122,8 +122,8 @@ describe('groupByDay', () => {
       }),
     ]
     const result = groupByDay(items)
-    expect(result[0].entries[0].id).toBe('newest')
-    expect(result[1].entries[0].id).toBe('oldest')
+    expect(result[0]!.entries[0]!.id).toBe('newest')
+    expect(result[1]!.entries[0]!.id).toBe('oldest')
   })
 
   it('descarta items con capturedAt inválido', () => {
@@ -133,7 +133,7 @@ describe('groupByDay', () => {
     ]
     const result = groupByDay(items)
     expect(result).toHaveLength(1)
-    expect(result[0].entries[0].id).toBe('ok')
+    expect(result[0]!.entries[0]!.id).toBe('ok')
   })
 
   it('lista vacía → array vacío', () => {
@@ -150,14 +150,14 @@ describe('groupByMonth', () => {
     ]
     const result = groupByMonth(items)
     expect(result).toHaveLength(2)
-    expect(result[0].monthKey).toBe('2026-05')
-    expect(result[0].entries).toHaveLength(2)
-    expect(result[1].monthKey).toBe('2026-04')
+    expect(result[0]!.monthKey).toBe('2026-05')
+    expect(result[0]!.entries).toHaveLength(2)
+    expect(result[1]!.monthKey).toBe('2026-04')
   })
 
   it('monthKey usa zero-padding en el mes', () => {
     const items = [makeMomento({ capturedAt: '2026-03-10T12:00:00.000Z' })]
-    expect(groupByMonth(items)[0].monthKey).toBe('2026-03')
+    expect(groupByMonth(items)[0]!.monthKey).toBe('2026-03')
   })
 
   it('descarta items con capturedAt inválido', () => {
@@ -167,7 +167,7 @@ describe('groupByMonth', () => {
     ]
     const result = groupByMonth(items)
     expect(result).toHaveLength(1)
-    expect(result[0].entries[0].id).toBe('ok')
+    expect(result[0]!.entries[0]!.id).toBe('ok')
   })
 })
 

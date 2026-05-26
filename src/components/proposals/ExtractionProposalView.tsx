@@ -49,7 +49,7 @@ export function ExtractionProposalView({
             <ProposedEntityRow
               key={index}
               entity={entity}
-              checked={checkedEntities[index]}
+              checked={checkedEntities[index] ?? false}
               onToggle={() => onToggleEntity(index)}
             />
           ))}
@@ -62,7 +62,7 @@ export function ExtractionProposalView({
             <ProposedRelationshipRow
               key={index}
               rel={rel}
-              checked={checkedRelationships[index]}
+              checked={checkedRelationships[index] ?? false}
               onToggle={() => onToggleRelationship(index)}
             />
           ))}
@@ -75,7 +75,7 @@ export function ExtractionProposalView({
             <ProposedQuoteRow
               key={index}
               quote={quote}
-              checked={checkedQuotes[index]}
+              checked={checkedQuotes[index] ?? false}
               onToggle={() => onToggleQuote(index)}
             />
           ))}

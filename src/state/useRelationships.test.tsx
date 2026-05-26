@@ -88,7 +88,7 @@ describe('useAddRelationship — optimistic', () => {
       const cached = qc.getQueryData<Relationship[]>(queryKeys.relationships)
       expect(cached).toBeDefined()
       expect(cached!.length).toBe(1)
-      expect(cached![0].id.startsWith('__optimistic_')).toBe(true)
+      expect(cached![0]!.id.startsWith('__optimistic_')).toBe(true)
     })
 
     // Server responde y el optimistic se reemplaza por el real.
@@ -97,7 +97,7 @@ describe('useAddRelationship — optimistic', () => {
 
     const final = qc.getQueryData<Relationship[]>(queryKeys.relationships)
     expect(final).toEqual([REAL_RELATIONSHIP])
-    expect(final![0].id).toBe('rel-real')
+    expect(final![0]!.id).toBe('rel-real')
   })
 
   it('hace rollback en error', async () => {
@@ -159,7 +159,7 @@ describe('useUpdateRelationship — optimistic', () => {
 
     await waitFor(() => {
       const cached = qc.getQueryData<Relationship[]>(queryKeys.relationships)
-      expect(cached![0].notes).toBe('después')
+      expect(cached![0]!.notes).toBe('después')
     })
 
     resolveServer({ ...original, notes: 'después' })
@@ -189,6 +189,6 @@ describe('useUpdateRelationship — optimistic', () => {
     await waitFor(() => expect(result.current.isError).toBe(true))
 
     const after = qc.getQueryData<Relationship[]>(queryKeys.relationships)
-    expect(after![0].notes).toBe('original')
+    expect(after![0]!.notes).toBe('original')
   })
 })

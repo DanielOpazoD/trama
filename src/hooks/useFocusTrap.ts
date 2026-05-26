@@ -43,7 +43,7 @@ export function useFocusTrap(
       const focusables = getFocusableElements(root)
       const alreadyInside = root.contains(document.activeElement)
       if (!alreadyInside && focusables.length > 0) {
-        focusables[0].focus()
+        focusables[0]!.focus()
       }
     }, 0)
 
@@ -55,8 +55,8 @@ export function useFocusTrap(
         // Sin focuseables el modal igual no debería tragar el Tab.
         return
       }
-      const first = focusables[0]
-      const last = focusables[focusables.length - 1]
+      const first = focusables[0]!
+      const last = focusables[focusables.length - 1]!
       const current = document.activeElement as HTMLElement | null
 
       // Shift+Tab desde el primero → ir al último.

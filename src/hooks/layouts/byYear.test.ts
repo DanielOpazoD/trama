@@ -11,8 +11,8 @@ describe('byYearLayout', () => {
     ]
     const out = byYearLayout(nodes)
     const xs = ['a', 'b', 'c'].map((id) => out.get(id)!.x)
-    expect(xs[0]).toBeLessThan(xs[1])
-    expect(xs[1]).toBeLessThan(xs[2])
+    expect(xs[0]!).toBeLessThan(xs[1]!)
+    expect(xs[1]!).toBeLessThan(xs[2]!)
   })
 
   it('stacks same-year nodes alternating around the timeline', () => {

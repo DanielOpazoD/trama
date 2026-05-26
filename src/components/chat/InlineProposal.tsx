@@ -70,6 +70,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
 
   async function applyEntity(i: number) {
     const e = entityList[i]
+    if (!e) return
     try {
       const created = await addEntity.mutateAsync({
         type: e.type,
@@ -94,6 +95,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
 
   async function applyRelationship(i: number) {
     const r = relList[i]
+    if (!r) return
     const fromId = lookupEntityId(r.fromName)
     const toId = lookupEntityId(r.toName)
     if (!fromId || !toId || fromId === toId) {
@@ -116,6 +118,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
 
   async function applyQuote(i: number) {
     const q = quoteList[i]
+    if (!q) return
     const entityId = lookupEntityId(q.entityName)
     if (!entityId) {
       setStatusQuotes((s) => s.map((v, idx) => (idx === i ? 'failed' : v)))
@@ -136,6 +139,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
 
   async function applyReclass(i: number) {
     const r = reclassList[i]
+    if (!r) return
     const id = lookupEntityId(r.name)
     if (!id) {
       setStatusReclass((s) => s.map((v, idx) => (idx === i ? 'failed' : v)))
@@ -151,6 +155,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
 
   async function applyEdit(i: number) {
     const e = editList[i]
+    if (!e) return
     try {
       if (e.kind === 'entity') {
         await updateEntity.mutateAsync({ id: e.id, patch: e.patch as Parameters<typeof updateEntity.mutateAsync>[0]['patch'] })
@@ -167,6 +172,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
 
   async function applyDelete(i: number) {
     const d = deleteList[i]
+    if (!d) return
     try {
       // silent: el usuario ya está revisando esta propuesta inline,
       // no necesita un toast "Deshacer" superpuesto.
@@ -251,7 +257,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
         {entityList.map((e, i) => (
           <ProposalRow
             key={`e${i}`}
-            status={statusEntities[i]}
+            status={statusEntities[i] ?? 'pending'}
             onAccept={() => applyEntity(i)}
             primary={e.name}
             secondary={labelEntityType(e.type)}
@@ -262,7 +268,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
         {relList.map((r, i) => (
           <ProposalRow
             key={`r${i}`}
-            status={statusRels[i]}
+            status={statusRels[i] ?? 'pending'}
             onAccept={() => applyRelationship(i)}
             primary={`${r.fromName} → ${r.toName}`}
             secondary={labelRelType(r.type)}
@@ -272,7 +278,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
         {quoteList.map((q, i) => (
           <ProposalRow
             key={`q${i}`}
-            status={statusQuotes[i]}
+            status={statusQuotes[i] ?? 'pending'}
             onAccept={() => applyQuote(i)}
             primary={`«${q.text}»`}
             secondary={`— ${q.entityName}${q.source ? ' · ' + q.source : ''}`}
@@ -281,7 +287,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
         {reclassList.map((r, i) => (
           <ProposalRow
             key={`x${i}`}
-            status={statusReclass[i]}
+            status={statusReclass[i] ?? 'pending'}
             onAccept={() => applyReclass(i)}
             primary={r.name}
             secondary={`→ ${labelEntityType(r.newType)}`}
@@ -297,7 +303,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
           return (
             <ProposalRow
               key={`ed${i}`}
-              status={statusEdits[i]}
+              status={statusEdits[i] ?? 'pending'}
               onAccept={() => applyEdit(i)}
               primary={e.name ?? e.preview ?? e.id.slice(0, 8)}
               secondary={kindLabel}
@@ -308,7 +314,7 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
         {deleteList.map((d, i) => (
           <ProposalRow
             key={`del${i}`}
-            status={statusDeletes[i]}
+            status={statusDeletes[i] ?? 'pending'}
             onAccept={() => applyDelete(i)}
             primary={d.preview}
             secondary={`borrar ${d.kind === 'entity' ? 'entidad' : d.kind === 'quote' ? 'cita' : 'relación'}`}

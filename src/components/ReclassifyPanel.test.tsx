@@ -52,7 +52,7 @@ describe('<ReclassifyPanel />', () => {
     // With both checked, button reads "aplicar todo".
     expect(screen.getByRole('button', { name: /aplicar todo/i })).toBeInTheDocument()
     const [first] = screen.getAllByRole('checkbox')
-    await user.click(first)
+    await user.click(first!)
     // Now only one is selected, button shows "aplicar 1".
     expect(screen.getByRole('button', { name: /aplicar 1/i })).toBeInTheDocument()
   })
@@ -64,12 +64,12 @@ describe('<ReclassifyPanel />', () => {
       <ReclassifyPanel proposals={TWO_PROPOSALS} onApply={onApply} onClose={vi.fn()} />,
     )
     const [first] = screen.getAllByRole('checkbox')
-    await user.click(first) // uncheck Pink Floyd
+    await user.click(first!) // uncheck Pink Floyd
     await user.click(screen.getByRole('button', { name: /aplicar 1/i }))
     await waitFor(() => expect(onApply).toHaveBeenCalledTimes(1))
-    const passed = onApply.mock.calls[0][0] as Reclassification[]
+    const passed = onApply.mock.calls[0]![0] as Reclassification[]
     expect(passed).toHaveLength(1)
-    expect(passed[0].id).toBe('e2')
+    expect(passed[0]!.id).toBe('e2')
   })
 
   it('discard fires onClose', async () => {
@@ -85,7 +85,7 @@ describe('<ReclassifyPanel />', () => {
   it('shows verification chip when verification.agreed is true', () => {
     const withVerify: Reclassification[] = [
       {
-        ...TWO_PROPOSALS[0],
+        ...TWO_PROPOSALS[0]!,
         verification: { agreed: true, verifier: 'anthropic' },
       },
     ]
@@ -98,7 +98,7 @@ describe('<ReclassifyPanel />', () => {
   it('shows doubt chip with note when verifier disagreed', () => {
     const withVerify: Reclassification[] = [
       {
-        ...TWO_PROPOSALS[0],
+        ...TWO_PROPOSALS[0]!,
         verification: { agreed: false, verifier: 'openai', note: 'no estoy seguro' },
       },
     ]

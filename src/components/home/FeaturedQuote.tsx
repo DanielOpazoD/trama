@@ -123,5 +123,5 @@ export function pickFeaturedQuote(quotes: Quote[]): Quote | null {
   // Pick aleatorio. Si hay más de una cita, evitamos repetir la primera
   // del array por sesgo del orden — simplemente Math.random sobre todo.
   const idx = Math.floor(Math.random() * quotes.length)
-  return quotes[idx]
+  return quotes[idx] ?? null
 }

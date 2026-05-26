@@ -44,7 +44,7 @@ export function byTypeLayout(
 
     // Single member: drop it on the center.
     if (members.length === 1) {
-      out.set(members[0].id, { x: cx, y: cy })
+      out.set(members[0]!.id, { x: cx, y: cy })
       return
     }
 

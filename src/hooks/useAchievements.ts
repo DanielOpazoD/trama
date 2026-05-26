@@ -127,6 +127,7 @@ export function useAchievements(counts: Counts): void {
     // (ej. import masivo que cruza varios), mostramos el mayor; los demás
     // los grabamos como vistos sin notificar — no queremos spammear.
     const winner = fresh[fresh.length - 1] // el último es el de número más alto
+    if (!winner) return
     const next = new Set(seenRef.current)
     for (const a of fresh) next.add(a.key)
     seenRef.current = next

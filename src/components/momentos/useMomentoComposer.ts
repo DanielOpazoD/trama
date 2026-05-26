@@ -91,6 +91,7 @@ export function useMomentoComposer({
       if (index <= 0 || index >= prev.length) return prev
       const next = [...prev]
       const [picked] = next.splice(index, 1)
+      if (!picked) return prev
       next.unshift(picked)
       return next
     })
@@ -108,7 +109,9 @@ export function useMomentoComposer({
       if (target < 0 || target >= prev.length) return prev
       const next = [...prev]
       const tmp = next[index]
-      next[index] = next[target]
+      const swap = next[target]
+      if (tmp === undefined || swap === undefined) return prev
+      next[index] = swap
       next[target] = tmp
       return next
     })

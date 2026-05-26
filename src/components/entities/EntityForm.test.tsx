@@ -71,7 +71,7 @@ describe('EntityForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Añadir$/ }))
 
     await waitFor(() => expect(spy).toHaveBeenCalled())
-    expect(spy.mock.calls[0][0]).toMatchObject({
+    expect(spy.mock.calls[0]![0]).toMatchObject({
       name: 'Camus',
       year: 1913,
       type: 'persona',

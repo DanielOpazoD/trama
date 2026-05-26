@@ -59,7 +59,7 @@ describe('api.listEntities', () => {
     vi.stubGlobal('fetch', mockFetchJson([ENTITY_ROW]))
     const result = await api.listEntities()
     expect(result).toHaveLength(1)
-    const entity = result[0]
+    const entity = result[0]!
     expect(entity.id).toBe(ENTITY_ROW.id)
     expect(entity.type).toBe('persona')
     expect(entity.name).toBe('Albert Camus')
@@ -78,8 +78,8 @@ describe('api.listEntities', () => {
       mockFetchJson([{ ...ENTITY_ROW, year: null, description: null }]),
     )
     const [entity] = await api.listEntities()
-    expect(entity.year).toBeUndefined()
-    expect(entity.description).toBeUndefined()
+    expect(entity!.year).toBeUndefined()
+    expect(entity!.description).toBeUndefined()
   })
 
   it('coerces null position to undefined', async () => {
@@ -88,8 +88,8 @@ describe('api.listEntities', () => {
       mockFetchJson([{ ...ENTITY_ROW, position_x: null, position_y: null }]),
     )
     const [entity] = await api.listEntities()
-    expect(entity.positionX).toBeUndefined()
-    expect(entity.positionY).toBeUndefined()
+    expect(entity!.positionX).toBeUndefined()
+    expect(entity!.positionY).toBeUndefined()
   })
 })
 
@@ -97,10 +97,10 @@ describe('api.listRelationships', () => {
   it('transforms from_id/to_id to fromId/toId', async () => {
     vi.stubGlobal('fetch', mockFetchJson([RELATIONSHIP_ROW]))
     const [rel] = await api.listRelationships()
-    expect(rel.fromId).toBe(RELATIONSHIP_ROW.from_id)
-    expect(rel.toId).toBe(RELATIONSHIP_ROW.to_id)
-    expect(rel.type).toBe('influye_en')
-    expect(rel.origin).toEqual({
+    expect(rel!.fromId).toBe(RELATIONSHIP_ROW.from_id)
+    expect(rel!.toId).toBe(RELATIONSHIP_ROW.to_id)
+    expect(rel!.type).toBe('influye_en')
+    expect(rel!.origin).toEqual({
       kind: 'ai',
       provider: 'deepseek',
       model: 'deepseek-chat',
@@ -112,16 +112,16 @@ describe('api.listQuotes', () => {
   it('transforms entity_id to entityId', async () => {
     vi.stubGlobal('fetch', mockFetchJson([QUOTE_ROW]))
     const [quote] = await api.listQuotes()
-    expect(quote.entityId).toBe(QUOTE_ROW.entity_id)
-    expect(quote.text).toBe('En el centro del invierno...')
-    expect(quote.source).toBe('El verano')
-    expect(quote.context).toBeUndefined()
+    expect(quote!.entityId).toBe(QUOTE_ROW.entity_id)
+    expect(quote!.text).toBe('En el centro del invierno...')
+    expect(quote!.source).toBe('El verano')
+    expect(quote!.context).toBeUndefined()
   })
 
   it('normalizes legacy origin string to object', async () => {
     vi.stubGlobal('fetch', mockFetchJson([QUOTE_ROW]))
     const [quote] = await api.listQuotes()
-    expect(quote.origin).toEqual({ kind: 'manual' })
+    expect(quote!.origin).toEqual({ kind: 'manual' })
   })
 
   it('normalizes legacy "ai" string to ai object', async () => {
@@ -130,7 +130,7 @@ describe('api.listQuotes', () => {
       mockFetchJson([{ ...QUOTE_ROW, origin: 'ai' }]),
     )
     const [quote] = await api.listQuotes()
-    expect(quote.origin).toEqual({ kind: 'ai' })
+    expect(quote!.origin).toEqual({ kind: 'ai' })
   })
 
   it('falls back to manual when origin is missing', async () => {
@@ -139,7 +139,7 @@ describe('api.listQuotes', () => {
       mockFetchJson([{ ...QUOTE_ROW, origin: null }]),
     )
     const [quote] = await api.listQuotes()
-    expect(quote.origin).toEqual({ kind: 'manual' })
+    expect(quote!.origin).toEqual({ kind: 'manual' })
   })
 })
 
@@ -158,7 +158,7 @@ describe('api.createEntity', () => {
       origin: { kind: 'manual' },
     })
 
-    const [, init] = fetchMock.mock.calls[0]
+    const [, init] = fetchMock.mock.calls[0]!
     const body = JSON.parse(init.body)
     expect(body.type).toBe('persona')
     expect(body.name).toBe('Albert Camus')
@@ -180,7 +180,7 @@ describe('api.updateEntityPosition', () => {
 
     await api.updateEntityPosition('id-1', 100, 200)
 
-    const [url, init] = fetchMock.mock.calls[0]
+    const [url, init] = fetchMock.mock.calls[0]!
     expect(url).toBe('/api/entities/id-1')
     expect(init.method).toBe('PATCH')
     const body = JSON.parse(init.body)

@@ -103,6 +103,7 @@ export function ProposalPanel({
       for (let i = 0; i < proposal.entities.length; i++) {
         if (!checked.entities[i]) continue
         const e = proposal.entities[i]
+        if (!e) continue
         if (e.matchedId) {
           idByLowerName.set(e.name.trim().toLowerCase(), e.matchedId)
           continue
@@ -131,6 +132,7 @@ export function ProposalPanel({
       for (let i = 0; i < proposal.relationships.length; i++) {
         if (!checked.relationships[i]) continue
         const r = proposal.relationships[i]
+        if (!r) continue
         const fromId = idByLowerName.get(r.fromName.trim().toLowerCase())
         const toId = idByLowerName.get(r.toName.trim().toLowerCase())
         if (!fromId || !toId || fromId === toId) continue
@@ -150,6 +152,7 @@ export function ProposalPanel({
       for (let i = 0; i < proposal.quotes.length; i++) {
         if (!checked.quotes[i]) continue
         const q = proposal.quotes[i]
+        if (!q) continue
         const entityId = idByLowerName.get(q.entityName.trim().toLowerCase())
         if (!entityId) continue
         try {
@@ -169,6 +172,7 @@ export function ProposalPanel({
       for (let i = 0; i < edits.length; i++) {
         if (!checked.edits[i]) continue
         const e = edits[i]
+        if (!e) continue
         try {
           if (e.kind === 'entity') {
             await updateEntity.mutateAsync({ id: e.id, patch: e.patch })
@@ -186,6 +190,7 @@ export function ProposalPanel({
       for (let i = 0; i < deletes.length; i++) {
         if (!checked.deletes[i]) continue
         const d = deletes[i]
+        if (!d) continue
         try {
           // silent: no queremos un toast "Deshacer" por cada delete
           // dentro de un bulk apply — el usuario ya revisó y aceptó
