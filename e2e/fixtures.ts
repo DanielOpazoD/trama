@@ -167,11 +167,12 @@ export async function mockBackend(page: Page, state: MockState) {
       const payload = JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>
       const created = {
         id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        entity_id: payload.entityId as string,
-        text: payload.text as string,
-        source: (payload.source as string | undefined) ?? null,
-        context: (payload.context as string | undefined) ?? null,
-        user_reflection: (payload.userReflection as string | undefined) ?? null,
+        // La API manda snake_case en el body POST (entity_id).
+        entity_id: ((payload['entity_id'] ?? payload['entityId']) as string | undefined) ?? '',
+        text: payload['text'] as string,
+        source: (payload['source'] as string | undefined) ?? null,
+        context: (payload['context'] as string | undefined) ?? null,
+        user_reflection: (payload['userReflection'] as string | undefined) ?? null,
         ai_reflection: null,
         ai_reflection_provider: null,
         ai_reflection_model: null,
