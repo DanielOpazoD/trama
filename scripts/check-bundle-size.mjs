@@ -20,7 +20,9 @@ import { join } from 'node:path'
 
 // Budgets en KB (gzip). Ajustables, pero pedí justificación.
 const BUDGETS = {
-  'vendor-react': 50,
+  // +14 KB por @clerk/react v6 (auth UI + ClerkProvider). Carga condicional
+  // según VITE_CLERK_PUBLISHABLE_KEY; sin esa var sigue siendo ~50 KB.
+  'vendor-react': 70,
   'vendor-query': 25,
   'vendor-graph': 50,
   browser: 15,
