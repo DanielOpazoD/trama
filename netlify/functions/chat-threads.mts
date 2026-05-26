@@ -1,6 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * Chat threads CRUD.
@@ -11,7 +12,7 @@ import { withObservability } from './_lib/handler-wrap.js'
  */
 export default withObservability(
   'chat-threads',
-  async (req: Request, context: Context) => {
+  async (req: Request, context: Context, { requestId }) => {
     const sql = getSql()
     const id = context.params.id
 
@@ -83,7 +84,7 @@ export default withObservability(
       return new Response(null, { status: 204 })
     }
 
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   },
 )
 

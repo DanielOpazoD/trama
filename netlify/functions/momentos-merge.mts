@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
 import { momentoEmbedText } from './_lib/momento-embed.js'
 
@@ -69,9 +70,9 @@ function payloadToItems(payload: FotoPayload): Array<{
   return []
 }
 
-export default withObservability('momentos-merge', async (req: Request) => {
+export default withObservability('momentos-merge', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
   const sql = getSql()
 
@@ -84,7 +85,7 @@ export default withObservability('momentos-merge', async (req: Request) => {
   try {
     body = (await req.json()) as typeof body
   } catch {
-    return new Response('JSON inválido', { status: 400 })
+    return ApiErrors.validation(requestId, 'JSON inválido')
   }
 
   const primaryId = typeof body.primaryId === 'string' ? body.primaryId : null
@@ -92,30 +93,30 @@ export default withObservability('momentos-merge', async (req: Request) => {
     ? body.otherIds.filter((x): x is string => typeof x === 'string' && x.length > 0)
     : []
   if (!primaryId) {
-    return new Response('primaryId requerido', { status: 400 })
+    return ApiErrors.validation(requestId, 'primaryId requerido')
   }
   if (otherIds.length === 0) {
-    return new Response('otherIds debe tener al menos 1 elemento', { status: 400 })
+    return ApiErrors.validation(requestId, 'otherIds debe tener al menos 1 elemento')
   }
   if (otherIds.includes(primaryId)) {
-    return new Response('primaryId no puede estar en otherIds', { status: 400 })
+    return ApiErrors.validation(requestId, 'primaryId no puede estar en otherIds')
   }
   // EE-followup #5: validar UUID format en código en vez de dejar que
   // Postgres reviente con 500 en el cast ::uuid. Devolvemos 400 más
   // claro al cliente.
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   if (!UUID_RE.test(primaryId)) {
-    return new Response(`primaryId no es un UUID válido: ${primaryId}`, { status: 400 })
+    return ApiErrors.validation(requestId, `primaryId no es un UUID válido: ${primaryId}`)
   }
   for (const id of otherIds) {
     if (!UUID_RE.test(id)) {
-      return new Response(`otherIds contiene un UUID inválido: ${id}`, { status: 400 })
+      return ApiErrors.validation(requestId, `otherIds contiene un UUID inválido: ${id}`)
     }
   }
   // Defensa contra payloads enormes: 50 es más que cualquier evento
   // razonable que un humano agruparía como un solo "momento".
   if (otherIds.length > 50) {
-    return new Response('otherIds: máximo 50 por merge', { status: 400 })
+    return ApiErrors.validation(requestId, 'otherIds: máximo 50 por merge')
   }
 
   // Lee todos los momentos involucrados de una. unnest evita N+1 queries.
@@ -137,14 +138,12 @@ export default withObservability('momentos-merge', async (req: Request) => {
   const found = new Map(rows.map((r) => [r.id, r]))
   for (const id of allIds) {
     if (!found.has(id)) {
-      return new Response(`Momento ${id} no encontrado o ya borrado`, {
-        status: 404,
-      })
+      return ApiErrors.notFound(requestId, `Momento ${id} no encontrado o ya borrado`)
     }
     if (found.get(id)!.kind !== 'foto') {
-      return new Response(
+      return ApiErrors.validation(
+        requestId,
         `Solo se fusionan momentos kind='foto'. El momento ${id} es '${found.get(id)!.kind}'.`,
-        { status: 400 },
       )
     }
   }
@@ -280,9 +279,7 @@ export default withObservability('momentos-merge', async (req: Request) => {
 
   const cteRow = result[0]
   if (!cteRow || !cteRow.primary) {
-    return new Response('Fusión falló: el primary no se pudo actualizar', {
-      status: 500,
-    })
+    return ApiErrors.internal(requestId, 'Fusión falló: el primary no se pudo actualizar')
   }
   const deletedRows = cteRow.deleted_others.map((d) => ({
     id: d.id,

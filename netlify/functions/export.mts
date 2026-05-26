@@ -1,10 +1,11 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
-export default withObservability('export', async (req: Request) => {
+export default withObservability('export', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const sql = getSql()

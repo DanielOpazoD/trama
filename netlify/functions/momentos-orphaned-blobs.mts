@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getStore } from '@netlify/blobs'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
 import { momentoEmbedText } from './_lib/momento-embed.js'
 
@@ -59,7 +60,7 @@ async function collectReferencedKeys(sql: ReturnType<typeof getSql>): Promise<Se
   return set
 }
 
-export default withObservability('momentos-orphaned-blobs', async (req: Request) => {
+export default withObservability('momentos-orphaned-blobs', async (req: Request, _ctx, { requestId }) => {
   const sql = getSql()
   const store = getStore('momentos-media')
 
@@ -87,26 +88,24 @@ export default withObservability('momentos-orphaned-blobs', async (req: Request)
     try {
       body = (await req.json()) as typeof body
     } catch {
-      return new Response('JSON inválido', { status: 400 })
+      return ApiErrors.validation(requestId, 'JSON inválido')
     }
     const storageKey = body.storageKey?.trim()
     if (!storageKey) {
-      return new Response('storageKey requerido', { status: 400 })
+      return ApiErrors.validation(requestId, 'storageKey requerido')
     }
 
     // Verificar que el blob existe — evita crear Momentos apuntando a keys
     // inventadas. También recupera el mime original.
     const meta = await store.getMetadata(storageKey)
     if (!meta) {
-      return new Response('Blob no encontrado en el store', { status: 404 })
+      return ApiErrors.notFound(requestId, 'Blob no encontrado en el store')
     }
 
     // Verificar que no esté ya referenciado (idempotencia).
     const referenced = await collectReferencedKeys(sql)
     if (referenced.has(storageKey)) {
-      return new Response('Blob ya está referenciado por otro Momento', {
-        status: 409,
-      })
+      return ApiErrors.conflict(requestId, 'Blob ya está referenciado por otro Momento')
     }
 
     const capturedAt = body.capturedAt ?? new Date().toISOString()
@@ -154,7 +153,7 @@ export default withObservability('momentos-orphaned-blobs', async (req: Request)
     return Response.json({ ...created, entity_ids: [] }, { status: 201 })
   }
 
-  return new Response('Method not allowed', { status: 405 })
+  return ApiErrors.methodNotAllowed(requestId)
 })
 
 export const config: Config = {

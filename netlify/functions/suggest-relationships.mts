@@ -9,6 +9,7 @@ import {
 } from './_lib/suggest-relationships-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { crossVerify, type VerifyVerdict } from './_lib/cross-verify.js'
@@ -27,9 +28,9 @@ const MAX_QUOTES_PER_ENTITY = 5
 
 export default withObservability(
   'suggest-relationships',
-  async (req: Request, _context: Context) => {
+  async (req: Request, _context: Context, { requestId }) => {
     if (req.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405 })
+      return ApiErrors.methodNotAllowed(requestId)
     }
 
     const budgetExceeded = await checkMonthlyBudget()
@@ -243,7 +244,7 @@ export default withObservability(
         INSERT INTO extraction_log (input_text, proposal, provider, model, error)
         VALUES (${'suggest-relationships'}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message})
       `.catch(() => {})
-      return new Response(`Error llamando al LLM: ${message}`, { status: 502 })
+      return ApiErrors.upstream(requestId, `Error llamando al LLM: ${message}`)
     }
   },
 )

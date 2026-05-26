@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getStore } from '@netlify/blobs'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * POST /api/momentos/upload
@@ -34,15 +35,15 @@ function randomKey(): string {
   return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-export default withObservability('momentos-upload', async (req: Request) => {
+export default withObservability('momentos-upload', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   // Esperamos multipart/form-data con field "file".
   const contentType = req.headers.get('content-type') ?? ''
   if (!contentType.includes('multipart/form-data')) {
-    return new Response('Esperaba multipart/form-data', { status: 415 })
+    return ApiErrors.validation(requestId, 'Esperaba multipart/form-data')
   }
 
   let formData: FormData
@@ -50,22 +51,22 @@ export default withObservability('momentos-upload', async (req: Request) => {
     formData = await req.formData()
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'form-data inválido'
-    return new Response(msg, { status: 400 })
+    return ApiErrors.validation(requestId, msg)
   }
 
   const file = formData.get('file')
   if (!(file instanceof File)) {
-    return new Response('Falta el field "file"', { status: 400 })
+    return ApiErrors.validation(requestId, 'Falta el field "file"')
   }
 
   if (!ALLOWED_MIMES.has(file.type)) {
-    return new Response(
+    return ApiErrors.unsupportedMediaType(
+      requestId,
       `mimeType "${file.type}" no soportado. Usa image/jpeg, image/png, image/webp o image/gif.`,
-      { status: 415 },
     )
   }
   if (file.size > MAX_BYTES) {
-    return new Response('Archivo > 10 MB', { status: 413 })
+    return ApiErrors.payloadTooLarge(requestId, 'Archivo > 10 MB')
   }
 
   const ext =

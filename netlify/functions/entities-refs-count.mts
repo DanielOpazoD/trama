@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * DD3 (audit #1): counts per-entity para EntitiesView.
@@ -17,9 +18,9 @@ import { withObservability } from './_lib/handler-wrap.js'
  * resultado es ~3MB (id + 2 ints por row). Si la trama crece más allá
  * de eso, agregar `?ids=` para filtrar a las que el caller necesita.
  */
-export default withObservability('entities-refs-count', async (req: Request) => {
+export default withObservability('entities-refs-count', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
   const sql = getSql()
 

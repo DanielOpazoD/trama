@@ -2,12 +2,13 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { disconnectSpotify, getStoredTokens } from './_lib/spotify.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * GET → returns the current Spotify connection state + summary counts.
  * DELETE → disconnects (removes stored tokens).
  */
-export default withObservability('spotify-status', async (req) => {
+export default withObservability('spotify-status', async (req, _ctx, { requestId }) => {
   const sql = getSql()
 
   if (req.method === 'DELETE') {
@@ -16,7 +17,7 @@ export default withObservability('spotify-status', async (req) => {
   }
 
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const stored = await getStoredTokens(sql)

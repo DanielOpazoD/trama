@@ -1,8 +1,9 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
-export default withObservability('entity-types', async (req: Request, context: Context) => {
+export default withObservability('entity-types', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
   const slug = context.params.slug
 
@@ -21,10 +22,10 @@ export default withObservability('entity-types', async (req: Request, context: C
       sort_order?: number
     }
     if (!body.slug || !body.label) {
-      return new Response('slug y label requeridos', { status: 400 })
+      return ApiErrors.validation(requestId, 'slug y label requeridos')
     }
     if (!/^[a-z0-9_]+$/.test(body.slug)) {
-      return new Response('slug debe ser lowercase, números o _', { status: 400 })
+      return ApiErrors.validation(requestId, 'slug debe ser lowercase, números o _')
     }
     const rows = await sql`
       INSERT INTO entity_types (slug, label, sort_order)
@@ -43,16 +44,16 @@ export default withObservability('entity-types', async (req: Request, context: C
       SELECT COUNT(*) AS n FROM entities WHERE type = ${slug} AND deleted_at IS NULL
     `) as Array<{ n: string }>
     if (Number(usage[0]?.n ?? 0) > 0) {
-      return new Response(
+      return ApiErrors.conflict(
+        requestId,
         `Tipo en uso por ${usage[0].n} entidad(es). Reasigna antes de borrar.`,
-        { status: 409 },
       )
     }
     await sql`DELETE FROM entity_types WHERE slug = ${slug}`
     return new Response(null, { status: 204 })
   }
 
-  return new Response('Method not allowed', { status: 405 })
+  return ApiErrors.methodNotAllowed(requestId)
 })
 
 export const config: Config = {

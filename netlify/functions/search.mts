@@ -5,6 +5,7 @@ import { fuseRanked, type Ranked } from './_lib/rrf.js'
 import { describeEntity, describeQuote, llmRerank } from './_lib/llm-rerank.js'
 import { resolveAIInvocation } from './_lib/ai-mode.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * Hybrid search across entities (name + description) and quotes (text +
@@ -24,9 +25,9 @@ import { withObservability } from './_lib/handler-wrap.js'
  *   limit   — optional, default 15, max 50
  *   mode    — 'hybrid' (default) | 'lexical' | 'semantic'
  */
-export default withObservability('search', async (req: Request) => {
+export default withObservability('search', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
   const sql = getSql()
 

@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * Resolver liviano para entidades, pensado para los call sites que
@@ -19,9 +20,9 @@ import { withObservability } from './_lib/handler-wrap.js'
  * Responses son siempre arrays de entidades en la misma shape que
  * /api/entities devuelve. Si nada matchea, [] (no 404).
  */
-export default withObservability('entities-lookup', async (req: Request) => {
+export default withObservability('entities-lookup', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const url = new URL(req.url)
@@ -30,10 +31,7 @@ export default withObservability('entities-lookup', async (req: Request) => {
   const idsRaw = url.searchParams.get('ids')
 
   if (!name && !prefix && !idsRaw) {
-    return new Response(
-      'Falta uno de: name, prefix, ids',
-      { status: 400 },
-    )
+    return ApiErrors.validation(requestId, 'Falta uno de: name, prefix, ids')
   }
 
   const sql = getSql()

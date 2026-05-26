@@ -12,6 +12,7 @@ import {
   type EntityLookup,
 } from './_lib/reclassify-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { crossVerify, type VerifyVerdict } from './_lib/cross-verify.js'
@@ -21,9 +22,9 @@ const MAX_QUOTES_PER_ENTITY = 3
 
 export default withObservability(
   'reclassify-entities',
-  async (req: Request, _context: Context) => {
+  async (req: Request, _context: Context, { requestId }) => {
     if (req.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405 })
+      return ApiErrors.methodNotAllowed(requestId)
     }
 
     const budgetExceeded = await checkMonthlyBudget()
@@ -173,7 +174,7 @@ export default withObservability(
         INSERT INTO extraction_log (input_text, proposal, provider, model, error)
         VALUES (${'reclassify-entities'}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message})
       `.catch(() => {})
-      return new Response(`Error llamando al LLM: ${message}`, { status: 502 })
+      return ApiErrors.upstream(requestId, `Error llamando al LLM: ${message}`)
     }
   },
 )

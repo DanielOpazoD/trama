@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * EE-followup: restaurar un momento soft-deleted.
@@ -18,9 +19,9 @@ import { withObservability } from './_lib/handler-wrap.js'
  * este endpoint los devuelve a la vida. Análogo a /api/quotes/:id/restore
  * que ya existe para citas (V1).
  */
-export default withObservability('momentos-restore', async (req: Request) => {
+export default withObservability('momentos-restore', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
   const sql = getSql()
 
@@ -28,13 +29,13 @@ export default withObservability('momentos-restore', async (req: Request) => {
   try {
     body = (await req.json()) as typeof body
   } catch {
-    return new Response('JSON inválido', { status: 400 })
+    return ApiErrors.validation(requestId, 'JSON inválido')
   }
   const id = typeof body.id === 'string' && body.id ? body.id : null
   const deletedAt =
     typeof body.deletedAt === 'string' && body.deletedAt ? body.deletedAt : null
-  if (!id) return new Response('id requerido', { status: 400 })
-  if (!deletedAt) return new Response('deletedAt requerido', { status: 400 })
+  if (!id) return ApiErrors.validation(requestId, 'id requerido')
+  if (!deletedAt) return ApiErrors.validation(requestId, 'deletedAt requerido')
 
   // UPDATE atómico — solo si deleted_at matchea exactamente. Si no
   // matchea (alguien lo restauró o re-borró), 0 rows afectadas → 409.
@@ -47,9 +48,9 @@ export default withObservability('momentos-restore', async (req: Request) => {
   `) as Array<Record<string, unknown>>
 
   if (result.length === 0) {
-    return new Response(
+    return ApiErrors.conflict(
+      requestId,
       'No se pudo restaurar: el momento ya fue restaurado o no existe con ese deletedAt',
-      { status: 409 },
     )
   }
 

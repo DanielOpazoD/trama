@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * Endpoint de "salud" para el panel de Settings → Health.
@@ -16,9 +17,9 @@ import { withObservability } from './_lib/handler-wrap.js'
  * Lo mantenemos en UN endpoint para que el componente Health solo haga
  * un fetch y se actualice como bloque.
  */
-export default withObservability('health', async (req) => {
+export default withObservability('health', async (req, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
   const sql = getSql()
 

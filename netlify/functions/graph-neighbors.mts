@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * Subgraph endpoint: returns an entity + its N-hop neighborhood.
@@ -26,15 +27,15 @@ import { withObservability } from './_lib/handler-wrap.js'
  *   4) Load entity rows for the kept ids and load all edges connecting any
  *      pair of them.
  */
-export default withObservability('graph-neighbors', async (req: Request) => {
+export default withObservability('graph-neighbors', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const url = new URL(req.url)
   const fromId = url.searchParams.get('from')
   if (!fromId) {
-    return new Response('Falta el parámetro "from"', { status: 400 })
+    return ApiErrors.validation(requestId, 'Falta el parámetro "from"')
   }
 
   const hopsParam = url.searchParams.get('hops')
@@ -66,7 +67,7 @@ export default withObservability('graph-neighbors', async (req: Request) => {
     WHERE id = ${fromId} AND deleted_at IS NULL
   `) as EntityRow[]
   if (focalRows.length === 0) {
-    return new Response('Entidad no encontrada', { status: 404 })
+    return ApiErrors.notFound(requestId, 'Entidad no encontrada')
   }
 
   // 2) Walk the neighborhood up to `hops` and rank: closer first, then by

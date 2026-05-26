@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { persistError, safeSql } from './_lib/observability.js'
 
 type IncomingEntity = {
@@ -58,9 +59,9 @@ type FailedItem = {
   reason: string
 }
 
-export default withObservability('import', async (req: Request) => {
+export default withObservability('import', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
   const sql = getSql()
 
@@ -68,10 +69,10 @@ export default withObservability('import', async (req: Request) => {
   try {
     payload = (await req.json()) as ImportPayload
   } catch {
-    return new Response('JSON inválido', { status: 400 })
+    return ApiErrors.validation(requestId, 'JSON inválido')
   }
   if (!payload || payload.version !== 1) {
-    return new Response('Versión de export no soportada (esperado: 1)', { status: 400 })
+    return ApiErrors.validation(requestId, 'Versión de export no soportada (esperado: 1)')
   }
 
   const entities = payload.entities ?? []

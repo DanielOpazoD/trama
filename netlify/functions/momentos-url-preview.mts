@@ -1,5 +1,6 @@
 import type { Config } from '@netlify/functions'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { findMeta, findTitle, prettySource } from './_lib/og-parse.js'
 
 /**
@@ -46,23 +47,23 @@ function emptyPreview(url: string, source: string | null): Preview {
   }
 }
 
-export default withObservability('momentos-url-preview', async (req: Request) => {
+export default withObservability('momentos-url-preview', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
   const url = new URL(req.url).searchParams.get('url')?.trim()
   if (!url) {
-    return new Response('Falta el parámetro url', { status: 400 })
+    return ApiErrors.validation(requestId, 'Falta el parámetro url')
   }
   // Validar que sea una URL absoluta http/https — bloquear file://, etc.
   let parsed: URL
   try {
     parsed = new URL(url)
   } catch {
-    return new Response('URL inválida', { status: 400 })
+    return ApiErrors.validation(requestId, 'URL inválida')
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    return new Response('Solo http(s)', { status: 400 })
+    return ApiErrors.validation(requestId, 'Solo http(s)')
   }
 
   const source = prettySource(url)
