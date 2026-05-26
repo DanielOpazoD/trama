@@ -15,10 +15,11 @@ import { AISourceTag } from './AISourceTag'
 import { EmptyMessage } from './EmptyMessage'
 import { Folio } from './Folio'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
-import { typeAccent } from './graph/GraphNode'
 import { ENTITY_TYPES } from '../types'
 import type { Entity, Quote } from '../types'
 import { QuoteForm } from './quotes/QuoteForm'
+import { useQuotesFilters } from './quotes/useQuotesFilters'
+import { QuotesFiltersBar } from './quotes/QuotesFiltersBar'
 
 /** Format an ISO date as "20 may 2026" — short, ink-on-paper style. */
 function formatDate(iso: string): string {
@@ -73,47 +74,17 @@ export function QuotesView({
   )
   const { data: relationships = [] } = useRelationshipsQuery()
 
-  // Filtro por tipo de la entidad atribuida (chips arriba, mismo patrón que
-  // EntitiesView). null = todos. Filtra client-side sobre las páginas ya
-  // cargadas — coherente con cómo filtra Entidades.
-  const [typeFilter, setTypeFilter] = useState<string | null>(null)
-  // ω-E: toggle "solo favoritas". Cuando está activo filtra el array
-  // client-side a las que tienen pinnedAt. No requiere refetch porque
-  // las queries traen pinnedAt en el row.
-  const [favoritesOnly, setFavoritesOnly] = useState(false)
-
-  // Mapa entityId → type, para evitar O(n×m) cuando hay muchas citas y entidades.
-  const entityTypeById = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const e of entities) map.set(e.id, e.type)
-    return map
-  }, [entities])
-
-  // Conteos por tipo en las citas YA cargadas — alimenta los chips.
-  const availableTypes = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const q of allLoadedQuotes) {
-      const t = entityTypeById.get(q.entityId)
-      if (t) counts.set(t, (counts.get(t) ?? 0) + 1)
-    }
-    return Array.from(counts.entries())
-      .map(([type, count]) => ({ type, count }))
-      .sort((a, b) => b.count - a.count)
-  }, [allLoadedQuotes, entityTypeById])
-
-  // ω-E: pinnedCount para mostrar el contador en el chip "favoritas".
-  const pinnedCount = useMemo(
-    () => allLoadedQuotes.filter((q) => q.pinnedAt).length,
-    [allLoadedQuotes],
-  )
-
-  const quotes = useMemo(() => {
-    let arr = allLoadedQuotes
-    if (favoritesOnly) arr = arr.filter((q) => q.pinnedAt)
-    if (typeFilter)
-      arr = arr.filter((q) => entityTypeById.get(q.entityId) === typeFilter)
-    return arr
-  }, [allLoadedQuotes, typeFilter, favoritesOnly, entityTypeById])
+  // FF3: state + derivaciones de filtros viven en el hook. Filtra
+  // client-side sobre las páginas ya cargadas, coherente con EntitiesView.
+  const {
+    typeFilter,
+    setTypeFilter,
+    favoritesOnly,
+    setFavoritesOnly,
+    availableTypes,
+    pinnedCount,
+    quotes,
+  } = useQuotesFilters({ allLoadedQuotes, entities })
 
   // For "work" entities, find the linked person/writer so we can show
   // "— Marco Aurelio · Meditaciones" instead of just "— Meditaciones".
@@ -214,94 +185,15 @@ export function QuotesView({
               EntitiesView): los chips scrollean con el contenido,
               desaparecen al subir las citas en el viewport. Si quieres
               cambiar filtro, scroll up. */}
-          {(availableTypes.length > 1 || pinnedCount > 0) && (
-            <div className="py-2 mb-4 border-b border-ink-100/60 flex flex-wrap gap-1.5">
-              {/* ω-E: chip "favoritas" — solo aparece cuando hay al
-                  menos una pinneada. Cuando se activa, el filtro de
-                  tipo no se toca (se acumulan: solo favoritas Y de
-                  un cierto tipo si está seleccionado). */}
-              {pinnedCount > 0 && (
-                <button
-                  onClick={() => setFavoritesOnly((v) => !v)}
-                  className={
-                    favoritesOnly
-                      ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors inline-flex items-center gap-1'
-                      : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors inline-flex items-center gap-1'
-                  }
-                  style={
-                    favoritesOnly
-                      ? {
-                          backgroundColor: 'var(--accent-gold-soft)',
-                          color: 'var(--accent-gold)',
-                        }
-                      : undefined
-                  }
-                  aria-pressed={favoritesOnly}
-                  title={
-                    favoritesOnly
-                      ? 'Mostrando solo favoritas — click para mostrar todas'
-                      : 'Mostrar solo favoritas'
-                  }
-                >
-                  <span aria-hidden>★</span>
-                  favoritas
-                  <span className="ml-0.5 text-micro tabular-nums opacity-70">
-                    {pinnedCount}
-                  </span>
-                </button>
-              )}
-              <button
-                onClick={() => setTypeFilter(null)}
-                className={
-                  typeFilter === null
-                    ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors'
-                    : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors'
-                }
-                style={
-                  typeFilter === null
-                    ? {
-                        backgroundColor: 'var(--accent-primary-soft)',
-                        color: 'var(--accent-primary)',
-                      }
-                    : undefined
-                }
-              >
-                Todas
-                <span className="ml-1.5 text-micro tabular-nums opacity-70">
-                  {allLoadedQuotes.length}
-                </span>
-              </button>
-              {availableTypes.map(({ type, count }) => {
-                const active = typeFilter === type
-                const label = ENTITY_TYPES.find((t) => t.value === type)?.label ?? type
-                // λ3: typeAccent devuelve `var(--type-X)`; usamos color-mix
-                // para producir el wash de fondo sin tener que mantener un
-                // mapeo paralelo de softs.
-                const accentColor = typeAccent(type)
-                const activeStyle: React.CSSProperties | undefined = active
-                  ? {
-                      backgroundColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`,
-                      color: accentColor,
-                    }
-                  : undefined
-                return (
-                  <button
-                    key={type}
-                    onClick={() => setTypeFilter(active ? null : type)}
-                    className={
-                      active
-                        ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors'
-                        : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors'
-                    }
-                    style={activeStyle}
-                  >
-                    {label}
-                    <span className="ml-1.5 text-micro tabular-nums opacity-70">{count}</span>
-                  </button>
-                )
-              })}
-            </div>
-          )}
+          <QuotesFiltersBar
+            availableTypes={availableTypes}
+            totalCount={allLoadedQuotes.length}
+            pinnedCount={pinnedCount}
+            typeFilter={typeFilter}
+            setTypeFilter={setTypeFilter}
+            favoritesOnly={favoritesOnly}
+            setFavoritesOnly={setFavoritesOnly}
+          />
 
           {quotes.length === 0 ? (
             typeFilter ? (
