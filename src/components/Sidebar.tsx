@@ -18,6 +18,7 @@ import {
   SearchIcon,
   SettingsIcon,
   SparkleIcon,
+  TramaLockup,
   TramaMark,
 } from './Icons'
 import { AIModeToggle } from './AIModeToggle'
@@ -250,10 +251,9 @@ export function Sidebar({
     >
       <header className="px-3 py-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 trama-mark-interactive min-w-0" title="Trama">
-          <TramaMark size={22} className="text-ink-700 shrink-0" />
-          {/* Brand wordmark — no es heading semántico de la página
-              (el h1 vive en TopBar con el título de la vista). */}
-          <span className="wordmark text-lg text-ink-800 leading-none truncate">Trama</span>
+          {/* EE-brand #21: lockup canónico (mark + wordmark) en vez del
+              ensamble manual. El componente fija peso, gap y leading. */}
+          <TramaLockup size={22} className="text-ink-700 min-w-0" />
           {offline && (
             <span
               title="Sin conexión al backend"

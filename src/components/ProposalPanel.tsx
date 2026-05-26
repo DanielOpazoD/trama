@@ -21,7 +21,7 @@ import {
   type ProposedQuote,
   type ProposedRelationship,
 } from '../types'
-import { CloseIcon } from './Icons'
+import { CheckIcon, CloseIcon } from './Icons'
 import { AISourceTag } from './AISourceTag'
 
 type CheckedState = {
@@ -541,9 +541,7 @@ function ProposedRelationshipRow({
                   color: 'var(--accent-sage)',
                 }}
               >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M5 13l4 4L19 7" />
-                </svg>
+                <CheckIcon size={10} strokeOverride={3} />
                 verificado por {rel.verification.verifier}
               </span>
             ) : (

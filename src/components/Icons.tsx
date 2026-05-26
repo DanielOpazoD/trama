@@ -186,12 +186,38 @@ export const SettingsIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
-/* Trama monogram — a woven "T" for the collapsed sidebar */
-export const TramaMark = ({ size = 22, className }: Props) => (
+/* Trama monogram — a woven "T" with crossed threads beneath.
+   La identidad visual de la marca: una "T" geométrica con dos hilos
+   cruzados que pasan por el stem vertical. Lee como "T" desde lejos
+   (typográfico) y como "telar" de cerca (semántico). El cross-point
+   de los hilos cae exactamente en el stem — no es coincidencia.
+
+   `animate`: cuando true, agrega las clases CSS que dibujan los
+   strokes con dash-offset (mark-crossbar/mark-vertical/mark-thread).
+   Solo activarlo en el Splash — en sidebar/lockup no queremos que
+   anime cada vez que el componente monta. */
+export const TramaMark = ({
+  size = 22,
+  className,
+  animate,
+}: Props & { animate?: boolean }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} fill="none">
-    <path d="M5 6h14" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" />
-    <path d="M12 6v13" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" />
     <path
+      className={animate ? 'mark-crossbar' : undefined}
+      d="M5 6h14"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+    />
+    <path
+      className={animate ? 'mark-vertical' : undefined}
+      d="M12 6v13"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+    />
+    <path
+      className={animate ? 'mark-thread' : undefined}
       d="M9 11l6 4M15 11l-6 4"
       stroke="currentColor"
       strokeWidth={1.1}
@@ -199,6 +225,31 @@ export const TramaMark = ({ size = 22, className }: Props) => (
       strokeLinecap="round"
     />
   </svg>
+)
+
+/* Brand lockup — TramaMark + wordmark "Trama" lado a lado.
+   La presentación canónica de la marca cuando hay espacio para
+   ambos. Usa el mismo gap-2 que el Sidebar para mantener feel
+   consistente. El wordmark hereda el font-family `wordmark`
+   (Spectral) declarado en index.css.
+
+   El gap, peso y leading son fijos — esto es la firma de la marca,
+   no un componente con muchas variantes. Si necesitás otra
+   composición, manualmente. */
+export const TramaLockup = ({
+  size = 22,
+  className,
+  animate,
+  wordmarkClassName,
+}: Props & { animate?: boolean; wordmarkClassName?: string }) => (
+  <span className={`inline-flex items-center gap-2 ${className ?? ''}`}>
+    <TramaMark size={size} animate={animate} className="shrink-0" />
+    <span
+      className={`wordmark leading-none ${wordmarkClassName ?? 'text-lg text-ink-800'}`}
+    >
+      Trama
+    </span>
+  </span>
 )
 
 /* Editorial ornament — a printer's flourish that picks up the woven-thread
@@ -330,6 +381,54 @@ export const EmptyIllustration = ({
     </svg>
   )
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Icons añadidos en EE-brand (P3-#19): extraer SVGs inline que vivían
+   dispersos en AskBar/ChatView/ProposalPanel. Cada uno usaba un stroke
+   distinto (1.8 vs 1.6 vs 3); al unificarlos bajo `base` (1.6) el
+   sistema queda sin desviaciones no documentadas.
+   ───────────────────────────────────────────────────────────────────── */
+
+/** Cámara — usado por AskBar para "subir una foto". Antes vivía inline
+    duplicado; ahora canónico con stroke 1.6. */
+export const CameraIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+    <circle cx="12" cy="13" r="4" />
+  </svg>
+)
+
+/** Líneas de lectura (4 líneas horizontales decrecientes) — botón "modo
+    lectura" de AskBar. Metáfora visual de "texto largo, párrafos". */
+export const ReadingIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M4 5h16M4 9h16M4 13h10M4 17h12" />
+  </svg>
+)
+
+/** Checkmark — usado en chips pequeños "verificado por X" en ProposalPanel.
+    Stroke 2.2 (override automático para size <= 12) porque a 10px el 1.6
+    desaparece. A size >= 14 vuelve a 1.6 — el sistema sigue. */
+export const CheckIcon = ({
+  size = 10,
+  className,
+  strokeOverride,
+}: Props & { strokeOverride?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeOverride ?? (size <= 12 ? 2.2 : 1.6)}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M5 13l4 4L19 7" />
+  </svg>
+)
 
 /* End-of-content mark — a single woven dot, used like ❦ to close a long
    section or a featured quote. Smaller and quieter than OrnamentBreak. */
