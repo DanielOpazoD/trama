@@ -11,38 +11,32 @@ import {
   useDeleteRelationship,
   useDeleteQuote,
 } from '../state'
-import {
-  ENTITY_TYPES,
-  RELATIONSHIP_TYPES,
-  type ExtractionProposal,
-  type ProposedEdit,
-  type ProposedDelete,
-  type ProposedEntity,
-  type ProposedQuote,
-  type ProposedRelationship,
-} from '../types'
-import { CheckIcon, CloseIcon } from './Icons'
+import type { ExtractionProposal } from '../types'
+import { CloseIcon } from './Icons'
 import { AISourceTag } from './AISourceTag'
+import {
+  initialChecked,
+  type CheckedState,
+} from './proposals/utils'
+import { ExtractionProposalView } from './proposals/ExtractionProposalView'
+import { EditsProposalView } from './proposals/EditsProposalView'
 
-type CheckedState = {
-  entities: boolean[]
-  relationships: boolean[]
-  quotes: boolean[]
-  edits: boolean[]
-  /** Deletes default to UNCHECKED — opt-in only. */
-  deletes: boolean[]
-}
-
-function initialChecked(proposal: ExtractionProposal): CheckedState {
-  return {
-    entities: proposal.entities.map(() => true),
-    relationships: proposal.relationships.map(() => true),
-    quotes: proposal.quotes.map(() => true),
-    edits: (proposal.edits ?? []).map(() => true),
-    deletes: (proposal.deletes ?? []).map(() => false), // opt-in
-  }
-}
-
+/**
+ * G2 (FF3-d) — ProposalPanel ahora es el shell del modal de propuestas
+ * IA: header con metadatos del modelo, footer con "descartar / añadir
+ * a la trama", estado de check + handlers de aplicar/cancelar.
+ *
+ * Los renderers de sección viven en `src/components/proposals/`:
+ *   - `ExtractionProposalView` — Entidades / Relaciones / Citas (aditivo)
+ *   - `EditsProposalView`     — Cambios / Eliminar (destructivo + opt-in)
+ *
+ * Reclasificación NO vive acá — el panel para eso es `ReclassifyPanel.tsx`
+ * (distinto modal, distinto shape de propuesta), invocado desde
+ * `EntitiesView` con su propio flujo. La audit lo proyectó en este
+ * archivo pero no encaja: el "kind" del que habla el audit es la sub-
+ * sección dentro de un único `ExtractionProposal`, no propuestas de
+ * tipos distintos.
+ */
 export function ProposalPanel({
   proposal,
   sourceText,
@@ -109,6 +103,7 @@ export function ProposalPanel({
       for (let i = 0; i < proposal.entities.length; i++) {
         if (!checked.entities[i]) continue
         const e = proposal.entities[i]
+        if (!e) continue
         if (e.matchedId) {
           idByLowerName.set(e.name.trim().toLowerCase(), e.matchedId)
           continue
@@ -137,6 +132,7 @@ export function ProposalPanel({
       for (let i = 0; i < proposal.relationships.length; i++) {
         if (!checked.relationships[i]) continue
         const r = proposal.relationships[i]
+        if (!r) continue
         const fromId = idByLowerName.get(r.fromName.trim().toLowerCase())
         const toId = idByLowerName.get(r.toName.trim().toLowerCase())
         if (!fromId || !toId || fromId === toId) continue
@@ -156,6 +152,7 @@ export function ProposalPanel({
       for (let i = 0; i < proposal.quotes.length; i++) {
         if (!checked.quotes[i]) continue
         const q = proposal.quotes[i]
+        if (!q) continue
         const entityId = idByLowerName.get(q.entityName.trim().toLowerCase())
         if (!entityId) continue
         try {
@@ -175,6 +172,7 @@ export function ProposalPanel({
       for (let i = 0; i < edits.length; i++) {
         if (!checked.edits[i]) continue
         const e = edits[i]
+        if (!e) continue
         try {
           if (e.kind === 'entity') {
             await updateEntity.mutateAsync({ id: e.id, patch: e.patch })
@@ -192,6 +190,7 @@ export function ProposalPanel({
       for (let i = 0; i < deletes.length; i++) {
         if (!checked.deletes[i]) continue
         const d = deletes[i]
+        if (!d) continue
         try {
           // silent: no queremos un toast "Deshacer" por cada delete
           // dentro de un bulk apply — el usuario ya revisó y aceptó
@@ -243,7 +242,10 @@ export function ProposalPanel({
                 jerarquía visual del header. */}
             <AISourceTag provider={proposal.provider} model={proposal.model} />
           </p>
-          <h2 className="font-serif text-xl text-ink-700 leading-tight truncate" title={sourceText}>
+          <h2
+            className="font-serif text-xl text-ink-700 leading-tight truncate"
+            title={sourceText}
+          >
             {sourceText.length > 60 ? `${sourceText.slice(0, 60)}…` : sourceText}
           </h2>
         </div>
@@ -265,70 +267,26 @@ export function ProposalPanel({
           </p>
         )}
 
-        {proposal.entities.length > 0 && (
-          <Section title="Entidades">
-            {proposal.entities.map((entity, index) => (
-              <ProposedEntityRow
-                key={index}
-                entity={entity}
-                checked={checked.entities[index]}
-                onToggle={() => toggle('entities', index)}
-              />
-            ))}
-          </Section>
-        )}
+        <ExtractionProposalView
+          entities={proposal.entities}
+          relationships={proposal.relationships}
+          quotes={proposal.quotes}
+          checkedEntities={checked.entities}
+          checkedRelationships={checked.relationships}
+          checkedQuotes={checked.quotes}
+          onToggleEntity={(index) => toggle('entities', index)}
+          onToggleRelationship={(index) => toggle('relationships', index)}
+          onToggleQuote={(index) => toggle('quotes', index)}
+        />
 
-        {proposal.relationships.length > 0 && (
-          <Section title="Relaciones">
-            {proposal.relationships.map((rel, index) => (
-              <ProposedRelationshipRow
-                key={index}
-                rel={rel}
-                checked={checked.relationships[index]}
-                onToggle={() => toggle('relationships', index)}
-              />
-            ))}
-          </Section>
-        )}
-
-        {proposal.quotes.length > 0 && (
-          <Section title="Citas">
-            {proposal.quotes.map((quote, index) => (
-              <ProposedQuoteRow
-                key={index}
-                quote={quote}
-                checked={checked.quotes[index]}
-                onToggle={() => toggle('quotes', index)}
-              />
-            ))}
-          </Section>
-        )}
-
-        {edits.length > 0 && (
-          <Section title="Cambios">
-            {edits.map((edit, index) => (
-              <ProposedEditRow
-                key={index}
-                edit={edit}
-                checked={checked.edits[index]}
-                onToggle={() => toggle('edits', index)}
-              />
-            ))}
-          </Section>
-        )}
-
-        {deletes.length > 0 && (
-          <Section title="Eliminar — opt-in" tone="warn">
-            {deletes.map((del, index) => (
-              <ProposedDeleteRow
-                key={index}
-                del={del}
-                checked={checked.deletes[index]}
-                onToggle={() => toggle('deletes', index)}
-              />
-            ))}
-          </Section>
-        )}
+        <EditsProposalView
+          edits={edits}
+          deletes={deletes}
+          checkedEdits={checked.edits}
+          checkedDeletes={checked.deletes}
+          onToggleEdit={(index) => toggle('edits', index)}
+          onToggleDelete={(index) => toggle('deletes', index)}
+        />
 
         {error && (
           <div className="alert-error px-3 py-2 text-sm">
@@ -348,254 +306,5 @@ export function ProposalPanel({
         </footer>
       )}
     </div>
-  )
-}
-
-function Section({
-  title,
-  children,
-  tone,
-}: {
-  title: string
-  children: React.ReactNode
-  tone?: 'warn'
-}) {
-  return (
-    <div>
-      {/* θ6: section-eyebrow-serif (small caps Spectral) en vez del
-          uppercase tracking-wider plano. Más coherente con QuickNoteForm
-          y QuotesList del NodeDetailPanel. */}
-      <h3
-        className="section-eyebrow-serif mb-3"
-        style={tone === 'warn' ? { color: 'var(--accent-clay)' } : undefined}
-      >
-        {title}
-      </h3>
-      <ul className="space-y-2">{children}</ul>
-    </div>
-  )
-}
-
-function ProposedEditRow({
-  edit,
-  checked,
-  onToggle,
-}: {
-  edit: ProposedEdit
-  checked: boolean
-  onToggle: () => void
-}) {
-  return (
-    <li className="flex items-start gap-3 p-3 bg-paper-100/50 border border-ink-100 rounded-lg">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onToggle}
-        className="mt-1 accent-ink-600"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2 text-sm">
-          <span
-            className="text-xs uppercase tracking-wider"
-            style={{ color: 'var(--accent-primary)' }}
-          >
-            editar {edit.kind === 'entity' ? 'entidad' : edit.kind === 'quote' ? 'cita' : 'relación'}
-          </span>
-          <span className="text-ink-700">
-            {edit.kind === 'entity' ? edit.name : edit.preview}
-          </span>
-        </div>
-        <div className="mt-1 text-xs text-ink-500 space-y-0.5">
-          {Object.entries(edit.patch).map(([k, v]) => (
-            <div key={k}>
-              <span className="text-ink-300">{k}:</span>{' '}
-              <span className="text-ink-600">{v === null ? '—' : String(v)}</span>
-            </div>
-          ))}
-        </div>
-        {edit.reason && (
-          <p className="mt-1 text-xs text-ink-400 italic">{edit.reason}</p>
-        )}
-      </div>
-    </li>
-  )
-}
-
-function ProposedDeleteRow({
-  del,
-  checked,
-  onToggle,
-}: {
-  del: ProposedDelete
-  checked: boolean
-  onToggle: () => void
-}) {
-  return (
-    <li className="flex items-start gap-3 p-3 border rounded-lg" style={{ borderColor: 'var(--accent-clay)', backgroundColor: 'rgb(162 82 57 / 0.04)' }}>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onToggle}
-        className="mt-1"
-        style={{ accentColor: 'var(--accent-clay)' }}
-      />
-      <div className="min-w-0 flex-1 text-sm">
-        <div className="flex items-baseline gap-2">
-          <span
-            className="text-xs uppercase tracking-wider"
-            style={{ color: 'var(--accent-clay)' }}
-          >
-            borrar {del.kind === 'entity' ? 'entidad' : del.kind === 'quote' ? 'cita' : 'relación'}
-          </span>
-          <span className="text-ink-700">{del.preview}</span>
-        </div>
-        {del.reason && (
-          <p className="mt-1 text-xs text-ink-400 italic">{del.reason}</p>
-        )}
-      </div>
-    </li>
-  )
-}
-
-function ProposedEntityRow({
-  entity,
-  checked,
-  onToggle,
-}: {
-  entity: ProposedEntity
-  checked: boolean
-  onToggle: () => void
-}) {
-  const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label
-  return (
-    <li className="flex items-start gap-3 p-3 bg-paper-100/50 border border-ink-100 rounded-lg">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onToggle}
-        className="mt-1 accent-ink-600"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-ink-700">{entity.name}</span>
-          {entity.year !== undefined && (
-            <span className="text-ink-300 text-sm">({entity.year})</span>
-          )}
-          <span className="text-xs uppercase tracking-wider text-ink-400">
-            {typeLabel ?? entity.type}
-          </span>
-          {entity.matchedId && (
-            <span className="text-xs uppercase tracking-wider text-emerald-700/80">
-              ya existe
-            </span>
-          )}
-        </div>
-        {entity.description && (
-          <p className="mt-1 text-ink-500 text-sm leading-relaxed">
-            {entity.description}
-          </p>
-        )}
-      </div>
-    </li>
-  )
-}
-
-function ProposedRelationshipRow({
-  rel,
-  checked,
-  onToggle,
-}: {
-  rel: ProposedRelationship
-  checked: boolean
-  onToggle: () => void
-}) {
-  const typeLabel = RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label
-  return (
-    <li className="flex items-start gap-3 p-3 bg-paper-100/50 border border-ink-100 rounded-lg">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onToggle}
-        className="mt-1 accent-ink-600"
-      />
-      <div className="min-w-0 flex-1 text-sm">
-        <span className="text-ink-700">{rel.fromName}</span>
-        <span className="mx-2 text-xs uppercase tracking-wider text-ink-400">
-          {typeLabel ?? rel.type}
-        </span>
-        <span className="text-ink-700">{rel.toName}</span>
-        {rel.notes && (
-          <p className="mt-1 text-ink-400 leading-relaxed">{rel.notes}</p>
-        )}
-        {rel.verification && (
-          <div className="mt-2">
-            {/* θ6: verdict badges con backplate de chip — antes era solo
-                texto uppercase, ahora se sienten como un sello (pasó
-                verificación) o una banderita (dudó). Más fácil de
-                escanear cuando hay varias propuestas. */}
-            {rel.verification.agreed ? (
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro uppercase tracking-eyebrow font-medium"
-                style={{
-                  backgroundColor: 'var(--accent-sage-soft)',
-                  color: 'var(--accent-sage)',
-                }}
-              >
-                <CheckIcon size={10} strokeOverride={3} />
-                verificado por {rel.verification.verifier}
-              </span>
-            ) : (
-              <span className="inline-flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro uppercase tracking-eyebrow font-medium"
-                  style={{
-                    backgroundColor: 'var(--accent-gold-soft)',
-                    color: 'var(--accent-gold)',
-                  }}
-                >
-                  <span aria-hidden>⚠</span>
-                  {rel.verification.verifier} dudó
-                </span>
-                {rel.verification.note && (
-                  <span className="text-xs text-ink-500 italic">
-                    — {rel.verification.note}
-                  </span>
-                )}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-    </li>
-  )
-}
-
-function ProposedQuoteRow({
-  quote,
-  checked,
-  onToggle,
-}: {
-  quote: ProposedQuote
-  checked: boolean
-  onToggle: () => void
-}) {
-  return (
-    <li className="flex items-start gap-3 p-3 bg-paper-100/50 border border-ink-100 rounded-lg">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onToggle}
-        className="mt-1 accent-ink-600"
-      />
-      <div className="min-w-0 flex-1">
-        <blockquote className="font-serif text-ink-600 leading-relaxed border-l-2 border-ink-200 pl-3 italic text-sm">
-          «{quote.text}»
-        </blockquote>
-        <div className="mt-1 pl-3 text-xs">
-          <span className="text-ink-500">— {quote.entityName}</span>
-          {quote.source && <span className="text-ink-300 ml-2">· {quote.source}</span>}
-        </div>
-      </div>
-    </li>
   )
 }

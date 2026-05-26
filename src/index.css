@@ -735,9 +735,6 @@ html.dark .paper-grain::before {
     from { opacity: 0; transform: translateY(-4px); }
     to   { opacity: 1; transform: none; }
   }
-  .animate-shell-rise {
-    animation: shell-rise 600ms cubic-bezier(0.25, 1, 0.5, 1) 1.0s both;
-  }
   .animate-shell-sidebar {
     animation: shell-sidebar-in 500ms cubic-bezier(0.25, 1, 0.5, 1) 0.95s both;
   }
@@ -975,28 +972,10 @@ html.dark .paper-grain::before {
     100% { background-position: 200% 0; }
   }
 
-  /* Pressable — feedback de active state sistematizado. Aplica un
-     pequeño scale al hacer click. Pensado para botones e icon buttons
-     donde el "tap" se siente bien. La animation depende de la curva
-     out-quart definida en tailwind.config.
-
-     Uso típico:
-       <button className="pressable focus-ring ...">  */
-  .pressable {
-    @apply active:scale-[0.97] transition-transform duration-150;
-    transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
-  }
-
-  /* Focus ring opt-in cuando el global de :focus-visible está
-     suprimido (e.g. inside una card con overflow:hidden donde el
-     outline se vería incómodo). Por default no hace falta. */
-  .focus-ring {
-    @apply focus-visible:outline-none
-           focus-visible:ring-2
-           focus-visible:ring-offset-2;
-    --tw-ring-color: var(--accent-primary);
-    --tw-ring-offset-color: rgb(var(--paper-50));
-  }
+  /* G3: .pressable + .focus-ring removidos — definidos como utilities pero
+     ningún call site los usaba. Si volvés a necesitar feedback de "tap" o
+     ring de focus opt-in, restaurar desde git history. El `:focus-visible`
+     global ya cubre el caso default. */
 
   /* Hover actions bar — toolbar flotante de acciones rápidas que
      aparece al hover sobre una card. Pensado para los patrones tipo
@@ -1232,16 +1211,14 @@ html.dark .paper-grain::before {
      Tailwind utilities normales para que el contraste de "esto vive
      en el rhythm" siga siendo legible al leer el JSX.
      ───────────────────────────────────────────────────────────────────── */
+  /* G3: solo .stack-2 y .stack-3 están en uso. El resto se agrega cuando
+     se necesite — el sistema de --space-N sigue documentado en design.md. */
   .stack-2 > * + * { margin-top: var(--space-2); }
   .stack-3 > * + * { margin-top: var(--space-3); }
-  .stack-4 > * + * { margin-top: var(--space-4); }
-  .stack-5 > * + * { margin-top: var(--space-5); }
-  .stack-6 > * + * { margin-top: var(--space-6); }
-  .stack-8 > * + * { margin-top: var(--space-8); }
 
-  .pad-block-3 { padding-block: var(--space-3); }
+  /* G3: solo definimos los steps en uso (4, 5, 8). Si necesitás 3 o 6
+     o cualquier otro step del sistema --space-N, agregalo cuando lo uses. */
   .pad-block-4 { padding-block: var(--space-4); }
   .pad-block-5 { padding-block: var(--space-5); }
-  .pad-block-6 { padding-block: var(--space-6); }
   .pad-block-8 { padding-block: var(--space-8); }
 }

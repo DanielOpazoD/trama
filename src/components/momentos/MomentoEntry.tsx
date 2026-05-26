@@ -176,7 +176,7 @@ function FotoBody({ momento }: { momento: Momento }) {
     )
   }
 
-  const cover = photos[0]
+  const cover = photos[0]!
   const extraCount = photos.length - 1
   const aspectRatio =
     cover.width && cover.height && cover.width > 0 && cover.height > 0

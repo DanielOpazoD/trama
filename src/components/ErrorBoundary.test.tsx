@@ -67,7 +67,7 @@ describe('<ErrorBoundary />', () => {
     await new Promise((r) => setTimeout(r, 0))
 
     expect(fetchSpy).toHaveBeenCalled()
-    const call = fetchSpy.mock.calls[0]
+    const call = fetchSpy.mock.calls[0]!
     expect(call[0]).toBe('/api/error-log')
     expect(call[1]?.method).toBe('POST')
     const body = JSON.parse(call[1]!.body as string)
@@ -125,7 +125,7 @@ describe('<ErrorBoundary />', () => {
     await new Promise((r) => setTimeout(r, 0))
 
     expect(writeText).toHaveBeenCalled()
-    const text = writeText.mock.calls[0][0]
+    const text = writeText.mock.calls[0]![0]
     expect(text).toMatch(/algo explotó en el render/)
 
     writeText.mockRestore()

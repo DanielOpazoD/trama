@@ -66,12 +66,12 @@ export function organicLayout(
 
   for (let iter = 0; iter < iterations; iter++) {
     for (let i = 0; i < sim.length; i++) {
-      const a = sim[i]
+      const a = sim[i]!
       a.vx = 0
       a.vy = 0
       for (let j = 0; j < sim.length; j++) {
         if (i === j) continue
-        const b = sim[j]
+        const b = sim[j]!
         const dx = a.x - b.x
         const dy = a.y - b.y
         const distSq = dx * dx + dy * dy + 0.01

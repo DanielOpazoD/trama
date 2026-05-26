@@ -82,8 +82,9 @@ function buildBuckets(
     const t = new Date(iso).getTime()
     const offset = Math.floor((t - startMs) / MS_PER_DAY)
     if (offset >= 0 && offset < buckets.length) {
-      buckets[offset].total += 1
-      buckets[offset][key] += 1
+      const bucket = buckets[offset]!
+      bucket.total += 1
+      bucket[key] += 1
     }
   }
   for (const e of entities) bump(e.createdAt, 'entities')
@@ -154,7 +155,7 @@ export function CalendarHeatmap({
     const firstDay = week[0]
     if (!firstDay) return ''
     if (i === 0) return MONTH_SHORT[firstDay.date.getMonth()]
-    const prev = weeks[i - 1][0]
+    const prev = weeks[i - 1]?.[0]
     if (!prev) return ''
     return firstDay.date.getMonth() !== prev.date.getMonth()
       ? MONTH_SHORT[firstDay.date.getMonth()]

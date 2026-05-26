@@ -162,7 +162,7 @@ describe('<HomeView />', () => {
     const user = userEvent.setup()
     const btns = screen.queryAllByRole('button', { name: /ver grafo/i })
     if (btns.length > 0) {
-      await user.click(btns[0])
+      await user.click(btns[0]!)
       expect(onNavigate).toHaveBeenCalledWith('grafo')
     } else {
       // Si no hay timeline visible, el botón no aparece — el test sigue OK

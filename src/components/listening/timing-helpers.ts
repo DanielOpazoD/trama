@@ -75,15 +75,16 @@ export function buildTimingBuckets(
     // Heatmap (todo timestamp válido entra)
     const dow = dayOfWeekMondayBased(d)
     const hour = d.getHours()
-    heatmap[dow][hour] += 1
-    if (heatmap[dow][hour] > maxHeatmap) maxHeatmap = heatmap[dow][hour]
+    const row = heatmap[dow]!
+    row[hour] = (row[hour] ?? 0) + 1
+    if (row[hour]! > maxHeatmap) maxHeatmap = row[hour]!
 
     // Trend (solo últimos 30 días)
     const dayMs = startOfLocalDay(d)
     const offset = Math.floor((dayMs - trendStart) / MS_PER_DAY)
     if (offset >= 0 && offset < TREND_DAYS) {
-      trend[offset] += 1
-      if (trend[offset] > maxTrend) maxTrend = trend[offset]
+      trend[offset] = (trend[offset] ?? 0) + 1
+      if (trend[offset]! > maxTrend) maxTrend = trend[offset]!
     }
   }
 

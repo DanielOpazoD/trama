@@ -43,7 +43,7 @@ describe('storage.loadEntities', () => {
     localStorage.setItem('trama:entities:v1', JSON.stringify(stored))
     const result = storage.loadEntities()
     expect(result).toHaveLength(1)
-    expect(result[0].name).toBe('Camus')
+    expect(result[0]!.name).toBe('Camus')
   })
 
   it('normalizes legacy string origin to object', () => {
@@ -58,7 +58,7 @@ describe('storage.loadEntities', () => {
     ]
     localStorage.setItem('trama:entities:v1', JSON.stringify(stored))
     const [entity] = storage.loadEntities()
-    expect(entity.origin).toEqual({ kind: 'ai' })
+    expect(entity!.origin).toEqual({ kind: 'ai' })
   })
 
   it('treats unknown legacy origin strings as manual', () => {
@@ -73,7 +73,7 @@ describe('storage.loadEntities', () => {
     ]
     localStorage.setItem('trama:entities:v1', JSON.stringify(stored))
     const [entity] = storage.loadEntities()
-    expect(entity.origin).toEqual({ kind: 'manual' })
+    expect(entity!.origin).toEqual({ kind: 'manual' })
   })
 
   it('falls back to createdAt when updatedAt is missing', () => {
@@ -89,7 +89,7 @@ describe('storage.loadEntities', () => {
     ]
     localStorage.setItem('trama:entities:v1', JSON.stringify(stored))
     const [entity] = storage.loadEntities()
-    expect(entity.updatedAt).toBe('2026-01-01T00:00:00Z')
+    expect(entity!.updatedAt).toBe('2026-01-01T00:00:00Z')
   })
 
   it('returns empty array when JSON is corrupted', () => {
@@ -110,7 +110,7 @@ describe('storage.loadEntities', () => {
     ]
     localStorage.setItem('trama:entities:v1', JSON.stringify(stored))
     const [entity] = storage.loadEntities()
-    expect(entity.origin).toEqual({
+    expect(entity!.origin).toEqual({
       kind: 'ai',
       provider: 'deepseek',
       model: 'deepseek-chat',

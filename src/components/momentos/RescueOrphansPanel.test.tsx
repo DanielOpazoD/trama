@@ -50,8 +50,8 @@ describe('RescueOrphansPanel', () => {
     expect(screen.getAllByRole('img')).toHaveLength(2)
     // src apunta a /api/momentos-file/:key
     const imgs = screen.getAllByRole('img') as HTMLImageElement[]
-    expect(imgs[0].src).toContain('/api/momentos-file/abc.jpg')
-    expect(imgs[1].src).toContain('/api/momentos-file/def.png')
+    expect(imgs[0]!.src).toContain('/api/momentos-file/abc.jpg')
+    expect(imgs[1]!.src).toContain('/api/momentos-file/def.png')
   })
 
   it('al recuperar un blob, lo quita de la lista', async () => {

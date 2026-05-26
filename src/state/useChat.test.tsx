@@ -77,7 +77,7 @@ describe('useChatThreadsQuery', () => {
     })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toHaveLength(2)
-    expect(result.current.data?.[0].id).toBe('th-1')
+    expect(result.current.data?.[0]!.id).toBe('th-1')
   })
 
   it('no fetcha cuando offline', async () => {
@@ -136,8 +136,8 @@ describe('useCreateChatThread', () => {
 
     const cached = qc.getQueryData<typeof THREAD_A[]>(['chat', 'threads'])
     expect(cached).toHaveLength(2)
-    expect(cached![0].id).toBe('th-2') // prepended
-    expect(cached![1].id).toBe('th-1')
+    expect(cached![0]!.id).toBe('th-2') // prepended
+    expect(cached![1]!.id).toBe('th-1')
   })
 })
 
@@ -156,7 +156,7 @@ describe('useDeleteChatThread', () => {
 
     const cached = qc.getQueryData<typeof THREAD_A[]>(['chat', 'threads'])
     expect(cached).toHaveLength(1)
-    expect(cached![0].id).toBe('th-2')
+    expect(cached![0]!.id).toBe('th-2')
   })
 
   it('elimina la cache de mensajes del thread borrado', async () => {

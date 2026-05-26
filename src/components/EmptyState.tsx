@@ -36,7 +36,7 @@ const QUOTES: CuratedQuote[] = [
 ]
 
 function pickQuote(): CuratedQuote {
-  return QUOTES[Math.floor(Math.random() * QUOTES.length)]
+  return QUOTES[Math.floor(Math.random() * QUOTES.length)]!
 }
 
 // A small curated seed graph to help users see what Trama is meant to feel like.

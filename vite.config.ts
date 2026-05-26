@@ -1,9 +1,20 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { fileURLToPath, URL } from 'node:url'
 import pkg from './package.json'
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    // G1: alias `@/*` → `./src/*` para que el código frontend pueda usar
+    // imports absolutos en vez de `../../../`. Refleja el `paths` en
+    // tsconfig.app.json. Netlify Functions NO usan este alias (tienen
+    // resolución propia); para shared code entre client/server seguimos
+    // con relativos de ../../../src.
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   define: {
     // Exponemos la versión del package.json al bundle como
     // `import.meta.env.VITE_APP_VERSION`. Single source of truth — el

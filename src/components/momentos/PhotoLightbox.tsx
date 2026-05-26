@@ -54,6 +54,7 @@ export function PhotoLightbox({
 
   if (!open || photos.length === 0) return null
   const current = photos[active]
+  if (!current) return null
 
   return (
     <>

@@ -29,7 +29,7 @@ export function byDegreeLayout(
   if (sorted.length === 0) return out
 
   // First node sits at the origin.
-  out.set(sorted[0].id, { x: 0, y: 0 })
+  out.set(sorted[0]!.id, { x: 0, y: 0 })
   if (sorted.length === 1) return out
 
   // Subsequent nodes go on concentric rings. Each ring holds more nodes than

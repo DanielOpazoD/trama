@@ -63,8 +63,9 @@ function dailyTotals(
     const t = new Date(iso).getTime()
     const days = Math.floor((t - start.getTime()) / MS_PER_DAY)
     if (days >= 0 && days < 7) {
-      buckets[days].total += 1
-      buckets[days][key] += 1
+      const bucket = buckets[days]!
+      bucket.total += 1
+      bucket[key] += 1
     }
   }
   for (const e of entities) bump(e.createdAt, 'entities')

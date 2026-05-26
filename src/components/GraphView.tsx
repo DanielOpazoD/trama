@@ -291,7 +291,7 @@ export default function GraphView({
       } else if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault()
         if (focusedIndex >= 0 && focusedIndex < entities.length) {
-          const id = entities[focusedIndex].id
+          const id = entities[focusedIndex]!.id
           onSelect(id === selectedId ? null : id)
         }
       } else if (event.key === 'Escape') {

@@ -64,7 +64,7 @@ export function RelationshipsView({
 
   // Infinite scroll trigger.
   const virtualItems = virtualizer.getVirtualItems()
-  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1].index : 0
+  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1]!.index : 0
   useEffect(() => {
     if (!relsPaged.hasNextPage || relsPaged.isFetchingNextPage) return
     if (relationships.length === 0) return
@@ -102,10 +102,11 @@ export function RelationshipsView({
       const seen = new Set<string>()
       const deduped: typeof merged = []
       for (let i = merged.length - 1; i >= 0 && deduped.length < 50; i--) {
-        const key = `${merged[i].fromName}|${merged[i].type}|${merged[i].toName}`
+        const item = merged[i]!
+        const key = `${item.fromName}|${item.type}|${item.toName}`
         if (seen.has(key)) continue
         seen.add(key)
-        deduped.unshift(merged[i])
+        deduped.unshift(item)
       }
       avoidPreviousRef.current = deduped
       onProposal?.('Sugerencias entre entidades existentes', proposal)
@@ -314,6 +315,7 @@ export function RelationshipsView({
             >
               {virtualizer.getVirtualItems().map((virtualRow) => {
                 const rel = relationships[virtualRow.index]
+                if (!rel) return null
                 return (
                   <div
                     key={virtualRow.key}

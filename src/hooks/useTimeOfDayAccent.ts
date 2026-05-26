@@ -46,10 +46,10 @@ const SHIFTS: AccentShift[] = [
 function pickShift(hour: number): AccentShift {
   // Ordenamos por hourStart descendente y devolvemos el primero <= hour.
   // Wrap-around para 21:00–06:00 (la noche cruza medianoche).
-  if (hour >= 21 || hour < 6) return SHIFTS[0]
-  if (hour < 11) return SHIFTS[1]
-  if (hour < 17) return SHIFTS[2]
-  return SHIFTS[3]
+  if (hour >= 21 || hour < 6) return SHIFTS[0]!
+  if (hour < 11) return SHIFTS[1]!
+  if (hour < 17) return SHIFTS[2]!
+  return SHIFTS[3]!
 }
 
 export function useTimeOfDayAccent() {

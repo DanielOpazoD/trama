@@ -89,8 +89,8 @@ export function Sparkline({
           />
           {showLastDot && points.length > 0 && (
             <circle
-              cx={points[points.length - 1].x}
-              cy={points[points.length - 1].y}
+              cx={points[points.length - 1]!.x}
+              cy={points[points.length - 1]!.y}
               r={2.5}
               fill={color}
             />

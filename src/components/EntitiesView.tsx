@@ -19,6 +19,8 @@ import { typeAccent } from './graph/GraphNode'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import type { Entity } from '../types'
 import { EntityForm } from './entities/EntityForm'
+import { useEntitiesFilters } from './entities/useEntitiesFilters'
+import { EntitiesFiltersBar } from './entities/EntitiesFiltersBar'
 
 export function EntitiesView({
   onSelectEntity,
@@ -36,22 +38,10 @@ export function EntitiesView({
 
   // Filtro por tipo (chips arriba de la lista). null = todos.
   // Por ahora filtra client-side sobre las páginas ya cargadas; a 100k+
-  // por type habría que mover el filtro al server.
-  const [typeFilter, setTypeFilter] = useState<string | null>(null)
-  const availableTypes = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const e of allLoadedEntities) {
-      counts.set(e.type, (counts.get(e.type) ?? 0) + 1)
-    }
-    return Array.from(counts.entries())
-      .map(([type, count]) => ({ type, count }))
-      .sort((a, b) => b.count - a.count)
-  }, [allLoadedEntities])
-
-  const entities = useMemo(
-    () => (typeFilter ? allLoadedEntities.filter((e) => e.type === typeFilter) : allLoadedEntities),
-    [allLoadedEntities, typeFilter],
-  )
+  // por type habría que mover el filtro al server. State y derivaciones
+  // viven en `useEntitiesFilters` (FF3-b).
+  const { typeFilter, setTypeFilter, availableTypes, entities } =
+    useEntitiesFilters({ allLoadedEntities })
   // DD3: counts de citas + relaciones se traen pre-agregados desde el
   // server (un query con dos GROUP BY) en vez de descargar las listas
   // wholesome. A 100 entidades es invisible; a 10k+ ahorra MBs de payload.
@@ -93,7 +83,7 @@ export function EntitiesView({
 
   // Fetch next page when the virtualizer enters the last few items.
   const virtualItems = virtualizer.getVirtualItems()
-  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1].index : 0
+  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1]!.index : 0
   useEffect(() => {
     if (!entitiesPaged.hasNextPage || entitiesPaged.isFetchingNextPage) return
     if (entities.length === 0) return
@@ -218,68 +208,16 @@ export function EntitiesView({
 
 
       {/* Filtro por tipo. Solo aparece si hay más de un tipo en la trama.
-          Antes era sticky (β2/δ8/anterior commit), pero quedaba siempre
-          en pantalla durante el scroll y se sentía como chrome que no
-          se va. El usuario lo pidió no-sticky: una vez elegido el
-          filtro la barra desaparece al scrollear, como cualquier
-          sección normal. Si quieres cambiar filtro, scroll up. Es lo
-          mismo que hace un libro — la portada del capítulo no flota. */}
-      {availableTypes.length > 1 && (
-        <div className="py-2 mb-4 border-b border-ink-100/60 flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setTypeFilter(null)}
-            className={
-              typeFilter === null
-                ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors'
-                : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors'
-            }
-            style={
-              typeFilter === null
-                ? {
-                    backgroundColor: 'var(--accent-primary-soft)',
-                    color: 'var(--accent-primary)',
-                  }
-                : undefined
-            }
-          >
-            Todos
-            <span className="ml-1.5 text-micro tabular-nums opacity-70">
-              {allLoadedEntities.length}
-            </span>
-          </button>
-          {availableTypes.map(({ type, count }) => {
-            const active = typeFilter === type
-            const label = ENTITY_TYPES.find((t) => t.value === type)?.label ?? type
-            // λ3: typeAccent devuelve `var(--type-X)`. Para producir un wash
-            // con alfa controlada usamos color-mix con transparent — los
-            // browsers modernos lo soportan (>= 90% en caniuse). Si fallara
-            // por agente raro, la chip activa cae a color sólido sin
-            // background (sigue legible).
-            const accentColor = typeAccent(type)
-            const activeStyle: React.CSSProperties | undefined = active
-              ? {
-                  backgroundColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`,
-                  color: accentColor,
-                }
-              : undefined
-            return (
-              <button
-                key={type}
-                onClick={() => setTypeFilter(active ? null : type)}
-                className={
-                  active
-                    ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors'
-                    : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors'
-                }
-                style={activeStyle}
-              >
-                {label}
-                <span className="ml-1.5 text-micro tabular-nums opacity-70">{count}</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
+          La barra desaparece al scrollear como cualquier sección normal
+          (no-sticky por diseño). State y derivaciones viven en
+          `useEntitiesFilters`; el chrome presentacional en
+          `EntitiesFiltersBar` (FF3-b). */}
+      <EntitiesFiltersBar
+        availableTypes={availableTypes}
+        totalCount={allLoadedEntities.length}
+        typeFilter={typeFilter}
+        setTypeFilter={setTypeFilter}
+      />
 
       {entitiesPaged.isLoading ? (
         <div className="space-y-2">
@@ -305,6 +243,7 @@ export function EntitiesView({
         >
           {virtualizer.getVirtualItems().map((virtualRow) => {
             const entity = entities[virtualRow.index]
+            if (!entity) return null
             const quoteCount = quoteCountById.get(entity.id) ?? 0
             const relCount = relCountById.get(entity.id) ?? 0
             return (

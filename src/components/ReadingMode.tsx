@@ -148,7 +148,7 @@ export function ReadingMode({
       for (let i = 0; i < chunks.length; i++) {
         if (cancelRef.current) break
         setChunkIdx(i + 1)
-        const proposal = await api.extract(chunks[i])
+        const proposal = await api.extract(chunks[i]!)
         collected.push(proposal)
       }
       if (collected.length > 0) {

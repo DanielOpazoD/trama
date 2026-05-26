@@ -67,7 +67,7 @@ describe('QuoteForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /añadir/i }))
 
     await waitFor(() => expect(spy).toHaveBeenCalled())
-    expect(spy.mock.calls[0][0]).toMatchObject({
+    expect(spy.mock.calls[0]![0]).toMatchObject({
       entityId: 'ent-1',
       text: 'el mundo será Tlön',
       source: 'Ficciones',

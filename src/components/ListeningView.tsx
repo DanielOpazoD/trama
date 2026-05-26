@@ -137,8 +137,8 @@ export function ListeningView({
 
       // Si la IA no incluyó el spotifyUrl en la entidad principal, lo
       // inyectamos. No queremos perder ese dato.
-      if (spotifyUrl && proposal.entities.length > 0 && !proposal.entities[0].spotifyUrl) {
-        proposal.entities[0].spotifyUrl = spotifyUrl
+      if (spotifyUrl && proposal.entities.length > 0 && !proposal.entities[0]!.spotifyUrl) {
+        proposal.entities[0]!.spotifyUrl = spotifyUrl
       }
       onProposal?.(item.key, proposal)
     } catch {

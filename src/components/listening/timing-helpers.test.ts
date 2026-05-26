@@ -75,7 +75,7 @@ describe('buildTimingBuckets', () => {
       localTime(2026, 4, 4, 22, 45),
     ]
     const r = buildTimingBuckets(playedAts, NOW)
-    expect(r.heatmap[0][22]).toBe(3) // lunes (dow=0) × 22h
+    expect(r.heatmap[0]![22]).toBe(3) // lunes (dow=0) × 22h
     expect(r.maxHeatmap).toBe(3)
     expect(r.total).toBe(3)
   })
@@ -87,8 +87,8 @@ describe('buildTimingBuckets', () => {
       localTime(2026, 4, 4, 14, 0), // lunes
     ]
     const r = buildTimingBuckets(playedAts, NOW)
-    expect(r.heatmap[0][14]).toBe(1) // lunes
-    expect(r.heatmap[6][14]).toBe(1) // domingo
+    expect(r.heatmap[0]![14]).toBe(1) // lunes
+    expect(r.heatmap[6]![14]).toBe(1) // domingo
   })
 
   it('trend cuenta los últimos 30 días con hoy en el último slot', () => {
@@ -149,7 +149,7 @@ describe('buildTimingBuckets', () => {
       localTime(2026, 4, 4, 23, 0), // lunes 23h
     ]
     const r = buildTimingBuckets(playedAts, NOW)
-    expect(r.heatmap[0][0]).toBe(1)
-    expect(r.heatmap[0][23]).toBe(1)
+    expect(r.heatmap[0]![0]).toBe(1)
+    expect(r.heatmap[0]![23]).toBe(1)
   })
 })

@@ -121,7 +121,7 @@ export function QuotesView({
   // the currently rendered window. Reads the highest virtual index instead
   // of a sentinel element — keeps it tied to the virtualizer's own state.
   const virtualItems = virtualizer.getVirtualItems()
-  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1].index : 0
+  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1]!.index : 0
   useEffect(() => {
     if (!quotesPaged.hasNextPage || quotesPaged.isFetchingNextPage) return
     if (quotes.length === 0) return
@@ -243,6 +243,7 @@ export function QuotesView({
             >
               {virtualizer.getVirtualItems().map((virtualRow) => {
                 const quote = quotes[virtualRow.index]
+                if (!quote) return null
                 const entity = entities.find((e) => e.id === quote.entityId)
                 const author = entity && WORK_TYPES.has(entity.type) ? authorOf(entity.id) : undefined
                 const isFeature = virtualRow.index === 0
