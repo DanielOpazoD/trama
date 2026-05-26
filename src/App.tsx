@@ -28,6 +28,7 @@ import { HomeSkeleton } from './components/HomeSkeleton'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { RightPanel, type PendingProposal } from './components/RightPanel'
 import { ViewRouter } from './components/ViewRouter'
+import { AuthGate } from './components/AuthGate'
 
 /**
  * El shell de la app: monta sidebar + topbar + main + paneles flotantes
@@ -403,14 +404,16 @@ export default function App() {
   // viven dentro de Shell, aplicadas a Sidebar / TopBar / Main con delays
   // escalonados (Z6 — page-load choreography).
   return (
-    <Provider>
-      <Splash />
-      <ErrorBoundary>
-        <div className="h-full">
-          <Shell />
-        </div>
-      </ErrorBoundary>
-    </Provider>
+    <AuthGate>
+      <Provider>
+        <Splash />
+        <ErrorBoundary>
+          <div className="h-full">
+            <Shell />
+          </div>
+        </ErrorBoundary>
+      </Provider>
+    </AuthGate>
   )
 }
 

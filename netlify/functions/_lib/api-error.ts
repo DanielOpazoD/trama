@@ -23,6 +23,7 @@
  *
  * Códigos canónicos (extender con cuidado):
  *   - VALIDATION          (400) payload mal formado, campo faltante, tipo incorrecto
+ *   - UNAUTHENTICATED     (401) request sin token de Clerk válido (y sin legacy fallback)
  *   - NOT_FOUND           (404) recurso inexistente
  *   - CONFLICT            (409) estado actual incompatible (duplicate, version mismatch)
  *   - METHOD_NOT_ALLOWED  (405) HTTP method no soportado por la ruta
@@ -36,6 +37,7 @@
 
 export type ApiErrorCode =
   | 'VALIDATION'
+  | 'UNAUTHENTICATED'
   | 'NOT_FOUND'
   | 'CONFLICT'
   | 'METHOD_NOT_ALLOWED'
@@ -93,6 +95,9 @@ export function apiError(opts: {
 export const ApiErrors = {
   validation: (requestId: string, message: string, details?: unknown) =>
     apiError({ status: 400, code: 'VALIDATION', message, requestId, details }),
+
+  unauthenticated: (requestId: string, message = 'Authentication required') =>
+    apiError({ status: 401, code: 'UNAUTHENTICATED', message, requestId }),
 
   notFound: (requestId: string, message: string, details?: unknown) =>
     apiError({ status: 404, code: 'NOT_FOUND', message, requestId, details }),

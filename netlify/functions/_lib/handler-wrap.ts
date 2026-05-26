@@ -15,7 +15,9 @@
 
 import type { Context } from '@netlify/functions'
 import { persistError, safeSql } from './observability'
+import { ApiErrors } from './api-error'
 import type { ApiErrorBody } from './api-error'
+import { UnauthenticatedError } from './auth.js'
 
 type NetlifyHandler = (req: Request, context: Context) => Promise<Response>
 
@@ -62,6 +64,10 @@ export function withObservability(
       }
       return finalResponse
     } catch (err) {
+      if (err instanceof UnauthenticatedError) {
+        return ApiErrors.unauthenticated(requestId)
+      }
+
       const message = err instanceof Error ? err.message : String(err)
       const stack = err instanceof Error ? err.stack : undefined
       persistError(safeSql(), {
