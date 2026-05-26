@@ -4,6 +4,7 @@ import { askLLMForText } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildReflectPrompt } from './_lib/reflect-prompt.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
@@ -19,12 +20,12 @@ import { checkMonthlyBudget } from './_lib/cost-cap.js'
  */
 export default withObservability(
   'quote-reflect',
-  async (req: Request, context: Context) => {
+  async (req: Request, context: Context, { requestId }) => {
     if (req.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405 })
+      return ApiErrors.methodNotAllowed(requestId)
     }
     const id = context.params.id
-    if (!id) return new Response('id requerido', { status: 400 })
+    if (!id) return ApiErrors.validation(requestId, 'id requerido')
 
     const budgetExceeded = await checkMonthlyBudget()
     if (budgetExceeded) return budgetExceeded
@@ -50,7 +51,7 @@ export default withObservability(
       WHERE q.id = ${id} AND q.deleted_at IS NULL AND e.deleted_at IS NULL
     `) as Row[]
     if (rows.length === 0) {
-      return new Response('Cita no encontrada', { status: 404 })
+      return ApiErrors.notFound(requestId, 'Cita no encontrada')
     }
     const r = rows[0]
 
@@ -135,7 +136,7 @@ export default withObservability(
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      return new Response(`Error llamando al LLM: ${message}`, { status: 502 })
+      return ApiErrors.upstream(requestId, `Error llamando al LLM: ${message}`)
     }
   },
 )

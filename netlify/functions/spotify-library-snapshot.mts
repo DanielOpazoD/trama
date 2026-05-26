@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { askLLMForText } from './_lib/llm.js'
@@ -36,15 +37,15 @@ import {
  */
 export default withObservability(
   'spotify-library-snapshot',
-  async (req: Request) => {
+  async (req: Request, _ctx, { requestId }) => {
     if (req.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405 })
+      return ApiErrors.methodNotAllowed(requestId)
     }
 
     const sql = getSql()
     const accessToken = await getValidAccessToken(sql)
     if (!accessToken) {
-      return new Response('Spotify no está conectado', { status: 400 })
+      return ApiErrors.validation(requestId, 'Spotify no está conectado')
     }
 
     // Paralelizamos las tres llamadas a Spotify para que el endpoint no
@@ -62,7 +63,7 @@ export default withObservability(
       ])
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Spotify API error'
-      return new Response(msg, { status: 502 })
+      return ApiErrors.upstream(requestId, msg)
     }
 
     const topGenres = aggregateTopGenres(topArtists, 8)

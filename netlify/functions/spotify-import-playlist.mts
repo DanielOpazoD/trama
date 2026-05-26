@@ -6,6 +6,7 @@ import {
   parsePlaylistId,
 } from './_lib/spotify.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 
 /**
@@ -19,9 +20,9 @@ import { logEvent } from './_lib/observability.js'
  * the chat / suggest endpoints. The `spotifyUrl` field on each entity carries
  * the open.spotify.com link, ready for "open in Spotify" buttons.
  */
-export default withObservability('spotify-import-playlist', async (req) => {
+export default withObservability('spotify-import-playlist', async (req, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const body = (await req.json().catch(() => ({}))) as {
@@ -31,23 +32,23 @@ export default withObservability('spotify-import-playlist', async (req) => {
   }
   const input = (body.playlistId ?? body.url ?? '').trim()
   if (!input) {
-    return new Response('Falta el campo "url" o "playlistId"', { status: 400 })
+    return ApiErrors.validation(requestId, 'Falta el campo "url" o "playlistId"')
   }
 
   const playlistId = parsePlaylistId(input)
   if (!playlistId) {
-    return new Response(
+    return ApiErrors.validation(
+      requestId,
       'No reconozco eso como una playlist de Spotify. Pega el enlace https://open.spotify.com/playlist/… o el id.',
-      { status: 400 },
     )
   }
 
   const sql = getSql()
   const accessToken = await getValidAccessToken(sql)
   if (!accessToken) {
-    return new Response(
+    return ApiErrors.validation(
+      requestId,
       'Spotify no está conectado. Conecta primero desde Configuración → Spotify.',
-      { status: 400 },
     )
   }
 
@@ -60,7 +61,7 @@ export default withObservability('spotify-import-playlist', async (req) => {
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return new Response(`No pude leer la playlist: ${message}`, { status: 502 })
+    return ApiErrors.upstream(requestId, `No pude leer la playlist: ${message}`)
   }
 
   // Dedup artists by id.

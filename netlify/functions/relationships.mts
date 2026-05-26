@@ -1,6 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 type Origin = { kind: string; [key: string]: unknown }
 
@@ -14,7 +15,7 @@ function normalizeOrigin(value: unknown): Origin {
   return { kind: 'manual' }
 }
 
-export default withObservability('relationships', async (req: Request, context: Context) => {
+export default withObservability('relationships', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
   const id = context.params.id
 
@@ -125,7 +126,7 @@ export default withObservability('relationships', async (req: Request, context: 
       RETURNING id, from_id, to_id, type, notes, origin, created_at, updated_at
     `
     if (rows.length === 0) {
-      return new Response('Relación no encontrada', { status: 404 })
+      return ApiErrors.notFound(requestId, 'Relación no encontrada')
     }
     return Response.json(rows[0])
   }
@@ -141,13 +142,13 @@ export default withObservability('relationships', async (req: Request, context: 
   if (req.method === 'POST' && id && url.pathname.endsWith('/restore')) {
     const body = (await req.json().catch(() => ({}))) as { deletedAt?: string }
     if (!body.deletedAt) {
-      return new Response('deletedAt requerido', { status: 400 })
+      return ApiErrors.validation(requestId, 'deletedAt requerido')
     }
     await sql`UPDATE relationships SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt}`
     return Response.json({ restored: true })
   }
 
-  return new Response('Method not allowed', { status: 405 })
+  return ApiErrors.methodNotAllowed(requestId)
 })
 
 export const config: Config = {

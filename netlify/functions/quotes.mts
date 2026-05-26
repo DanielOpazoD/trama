@@ -1,6 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import {
   embedSafe,
   quoteEmbeddingText,
@@ -19,7 +20,7 @@ function normalizeOrigin(value: unknown): Origin {
   return { kind: 'manual' }
 }
 
-export default withObservability('quotes', async (req: Request, context: Context) => {
+export default withObservability('quotes', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
   const id = context.params.id
 
@@ -201,7 +202,7 @@ export default withObservability('quotes', async (req: Request, context: Context
                 origin, created_at, updated_at
     `
     if (rows.length === 0) {
-      return new Response('Cita no encontrada', { status: 404 })
+      return ApiErrors.notFound(requestId, 'Cita no encontrada')
     }
 
     // Re-embed when anything that goes into the embedding changed. Fire and
@@ -255,13 +256,13 @@ export default withObservability('quotes', async (req: Request, context: Context
   if (req.method === 'POST' && id && url.pathname.endsWith('/restore')) {
     const body = (await req.json().catch(() => ({}))) as { deletedAt?: string }
     if (!body.deletedAt) {
-      return new Response('deletedAt requerido', { status: 400 })
+      return ApiErrors.validation(requestId, 'deletedAt requerido')
     }
     await sql`UPDATE quotes SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt}`
     return Response.json({ restored: true })
   }
 
-  return new Response('Method not allowed', { status: 405 })
+  return ApiErrors.methodNotAllowed(requestId)
 })
 
 export const config: Config = {

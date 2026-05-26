@@ -9,6 +9,7 @@ import {
   type ExistingRelPair,
 } from './_lib/proactive-prompt.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
@@ -40,7 +41,7 @@ type Suggestion = {
 
 export default withObservability(
   'proactive-suggestions',
-  async (req: Request, context: Context) => {
+  async (req: Request, context: Context, { requestId }) => {
     const sql = getSql()
     const id = context.params.id
 
@@ -315,7 +316,7 @@ export default withObservability(
         return Response.json({ inserted: inserted.length, suggestions: inserted })
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        return new Response(`Error generando sugerencias: ${message}`, { status: 502 })
+        return ApiErrors.upstream(requestId, `Error generando sugerencias: ${message}`)
       }
     }
 
@@ -323,7 +324,7 @@ export default withObservability(
       const body = (await req.json().catch(() => ({}))) as { status?: string }
       const nextStatus = body.status
       if (nextStatus !== 'applied' && nextStatus !== 'dismissed') {
-        return new Response('status debe ser "applied" o "dismissed"', { status: 400 })
+        return ApiErrors.validation(requestId, 'status debe ser "applied" o "dismissed"')
       }
       await sql`
         UPDATE proactive_suggestions
@@ -333,7 +334,7 @@ export default withObservability(
       return new Response(null, { status: 204 })
     }
 
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   },
 )
 

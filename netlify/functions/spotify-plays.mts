@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * Returns aggregated views of Spotify plays — what you've actually been
@@ -17,9 +18,9 @@ import { withObservability } from './_lib/handler-wrap.js'
  *   - first and last played timestamps
  *   - whether an entity with the same name already exists in the trama
  */
-export default withObservability('spotify-plays', async (req) => {
+export default withObservability('spotify-plays', async (req, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const sql = getSql()

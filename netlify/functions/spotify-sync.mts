@@ -7,6 +7,7 @@ import {
   storePlays,
 } from './_lib/spotify.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * Fetches recent plays from Spotify and stores them. Idempotent: re-running
@@ -16,16 +17,16 @@ import { withObservability } from './_lib/handler-wrap.js'
  * once an hour or two, you may lose plays. (Future: a Netlify scheduled
  * function can run this every 30 min automatically.)
  */
-export default withObservability('spotify-sync', async (req) => {
+export default withObservability('spotify-sync', async (req, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const sql = getSql()
 
   const accessToken = await getValidAccessToken(sql)
   if (!accessToken) {
-    return new Response('Spotify no está conectado', { status: 400 })
+    return ApiErrors.validation(requestId, 'Spotify no está conectado')
   }
 
   const data = await fetchRecentlyPlayed(accessToken)

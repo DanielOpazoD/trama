@@ -44,6 +44,7 @@ function mockFetchJson(body: unknown, status = 200) {
   return vi.fn().mockResolvedValue({
     ok: status >= 200 && status < 300,
     status,
+    headers: new Headers({ 'content-type': 'application/json' }),
     text: async () => JSON.stringify(body),
     json: async () => body,
   })
@@ -188,16 +189,50 @@ describe('api.updateEntityPosition', () => {
 })
 
 describe('api error handling', () => {
-  it('throws on non-2xx response with status in message', async () => {
+  it('throws an ApiClientError with status + message on non-2xx response', async () => {
+    // FF1 — el formato canónico es `{ error: { code, message, requestId } }`.
+    // El cliente parsea eso y tira un ApiClientError tipado, no un Error
+    // genérico con el status pegado al string.
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
-        text: async () => 'database is on fire',
-        json: async () => ({}),
+        headers: new Headers({ 'x-request-id': 'req-test-abc' }),
+        text: async () =>
+          JSON.stringify({
+            error: {
+              code: 'INTERNAL',
+              message: 'database is on fire',
+              requestId: 'req-test-abc',
+            },
+          }),
       }),
     )
-    await expect(api.listEntities()).rejects.toThrow(/500/)
+    await expect(api.listEntities()).rejects.toMatchObject({
+      name: 'ApiClientError',
+      status: 500,
+      code: 'INTERNAL',
+      message: 'database is on fire',
+      requestId: 'req-test-abc',
+    })
+  })
+
+  it('falls back gracefully when body is plain text (legacy endpoint)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        headers: new Headers(),
+        text: async () => 'database is on fire',
+      }),
+    )
+    await expect(api.listEntities()).rejects.toMatchObject({
+      name: 'ApiClientError',
+      status: 500,
+      code: 'UNKNOWN',
+      message: 'database is on fire',
+    })
   })
 })

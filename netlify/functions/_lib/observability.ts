@@ -36,6 +36,8 @@ export type ErrorContext = {
   message: string
   stack?: string
   context?: Record<string, unknown>
+  /** FF1 — id que correlaciona esta fila con el header x-request-id que vio el cliente. */
+  requestId?: string
 }
 
 /**
@@ -51,13 +53,14 @@ export function persistError(sql: SqlClient | null, error: ErrorContext): void {
     path: error.httpPath,
     status: error.statusCode,
     message: error.message,
+    requestId: error.requestId,
   })
 
   if (!sql) return
 
   // Fire-and-forget INSERT. Don't await; don't surface errors.
   void sql`
-    INSERT INTO error_log (function_name, http_method, http_path, status_code, message, stack, context)
+    INSERT INTO error_log (function_name, http_method, http_path, status_code, message, stack, context, request_id)
     VALUES (
       ${error.functionName},
       ${error.httpMethod ?? null},
@@ -65,7 +68,8 @@ export function persistError(sql: SqlClient | null, error: ErrorContext): void {
       ${error.statusCode ?? null},
       ${error.message},
       ${error.stack ?? null},
-      ${error.context ? JSON.stringify(error.context) : null}::jsonb
+      ${error.context ? JSON.stringify(error.context) : null}::jsonb,
+      ${error.requestId ?? null}
     )
   `.catch(() => {
     // Logging the error logger's failure would be ironic. Just swallow.

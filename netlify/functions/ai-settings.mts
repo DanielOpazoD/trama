@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { ALL_TASKS, invalidateAITaskCache } from './_lib/ai-tasks.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * GET  /api/ai-settings  → returns the full task→provider map. Tasks without
@@ -13,7 +14,7 @@ import { withObservability } from './_lib/handler-wrap.js'
 
 const VALID_PROVIDERS = new Set(['deepseek', 'openai', 'anthropic', 'gemini'])
 
-export default withObservability('ai-settings', async (req) => {
+export default withObservability('ai-settings', async (req, _ctx, { requestId }) => {
   const sql = getSql()
 
   if (req.method === 'GET') {
@@ -55,7 +56,7 @@ export default withObservability('ai-settings', async (req) => {
     }
     const task = body.task?.trim()
     if (!task || !(ALL_TASKS as string[]).includes(task)) {
-      return new Response(`task "${task ?? ''}" no es válida`, { status: 400 })
+      return ApiErrors.validation(requestId, `task "${task ?? ''}" no es válida`)
     }
 
     const provider = (body.provider ?? '').trim().toLowerCase()
@@ -66,15 +67,15 @@ export default withObservability('ai-settings', async (req) => {
       return new Response(null, { status: 204 })
     }
     if (!VALID_PROVIDERS.has(provider)) {
-      return new Response(`provider "${provider}" no es válido`, { status: 400 })
+      return ApiErrors.validation(requestId, `provider "${provider}" no es válido`)
     }
 
     const verifyWith = (body.verifyWith ?? '').trim().toLowerCase() || null
     if (verifyWith && !VALID_PROVIDERS.has(verifyWith)) {
-      return new Response(`verifyWith "${verifyWith}" no es válido`, { status: 400 })
+      return ApiErrors.validation(requestId, `verifyWith "${verifyWith}" no es válido`)
     }
     if (verifyWith && verifyWith === provider) {
-      return new Response('verifyWith debe ser distinto del provider principal', { status: 400 })
+      return ApiErrors.validation(requestId, 'verifyWith debe ser distinto del provider principal')
     }
 
     const model = (body.model ?? '').trim() || null
@@ -91,7 +92,7 @@ export default withObservability('ai-settings', async (req) => {
     return new Response(null, { status: 204 })
   }
 
-  return new Response('Method not allowed', { status: 405 })
+  return ApiErrors.methodNotAllowed(requestId)
 })
 
 export const config: Config = {

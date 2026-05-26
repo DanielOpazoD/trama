@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { logEvent } from './_lib/observability.js'
@@ -28,9 +29,9 @@ import {
  * de ~1000 tokens.
  */
 
-export default withObservability('spotify-suggest-artists', async (req: Request) => {
+export default withObservability('spotify-suggest-artists', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const budgetExceeded = await checkMonthlyBudget()
@@ -39,7 +40,7 @@ export default withObservability('spotify-suggest-artists', async (req: Request)
   const sql = getSql()
   const accessToken = await getValidAccessToken(sql)
   if (!accessToken) {
-    return new Response('Spotify no está conectado', { status: 400 })
+    return ApiErrors.validation(requestId, 'Spotify no está conectado')
   }
 
   // Pegar Spotify: top artists (long_term para sesgo a estable, no fad
@@ -49,7 +50,7 @@ export default withObservability('spotify-suggest-artists', async (req: Request)
     topArtists = await fetchTopArtists(accessToken, 'long_term')
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Spotify API error'
-    return new Response(msg, { status: 502 })
+    return ApiErrors.upstream(requestId, msg)
   }
 
   if (topArtists.length === 0) {
@@ -167,7 +168,7 @@ DEVUELVE EXCLUSIVAMENTE este JSON, sin markdown:
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    return new Response(`Error llamando al LLM: ${msg}`, { status: 502 })
+    return ApiErrors.upstream(requestId, `Error llamando al LLM: ${msg}`)
   }
 })
 

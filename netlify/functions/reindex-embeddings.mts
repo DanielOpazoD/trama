@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import {
   embedSafe,
   entityEmbeddingText,
@@ -21,7 +22,7 @@ import {
  * Order of operations: entities first (so quotes inherit the up-to-date
  * entity name in their embedding text), then quotes.
  */
-export default withObservability('reindex-embeddings', async (req) => {
+export default withObservability('reindex-embeddings', async (req, _ctx, { requestId }) => {
   const sql = getSql()
 
   if (req.method === 'GET') {
@@ -36,7 +37,7 @@ export default withObservability('reindex-embeddings', async (req) => {
   }
 
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const url = new URL(req.url)

@@ -11,6 +11,7 @@ import {
 } from './_lib/chat-prompt.js'
 import { parseChatReply, hasAnyProposal } from './_lib/chat-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
@@ -33,9 +34,9 @@ const CONTEXT_QUOTE_LIMIT = 60
 
 export default withObservability(
   'chat-messages',
-  async (req: Request, context: Context) => {
+  async (req: Request, context: Context, { requestId }) => {
     const threadId = context.params.threadId
-    if (!threadId) return new Response('thread id required', { status: 400 })
+    if (!threadId) return ApiErrors.validation(requestId, 'thread id required')
 
     const sql = getSql()
 
@@ -70,13 +71,13 @@ export default withObservability(
     }
 
     if (req.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405 })
+      return ApiErrors.methodNotAllowed(requestId)
     }
 
     const body = (await req.json().catch(() => ({}))) as { content?: string }
     const userText = (body.content ?? '').trim()
     if (!userText) {
-      return new Response('Falta el campo "content"', { status: 400 })
+      return ApiErrors.validation(requestId, 'Falta el campo "content"')
     }
 
     const budgetExceeded = await checkMonthlyBudget()
@@ -91,7 +92,7 @@ export default withObservability(
       SELECT id, title, context FROM chat_threads WHERE id = ${threadId} AND deleted_at IS NULL
     `) as Array<{ id: string; title: string | null; context: string | null }>
     if (threadRows.length === 0) {
-      return new Response('Thread no encontrado', { status: 404 })
+      return ApiErrors.notFound(requestId, 'Thread no encontrado')
     }
     const thread = threadRows[0]
 

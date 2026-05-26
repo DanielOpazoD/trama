@@ -5,6 +5,7 @@ import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildImageExtractionPrompt } from './_lib/extract-image-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
@@ -26,9 +27,9 @@ const FALLBACK_RELATIONSHIP_TYPES = [
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024
 const ALLOWED_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 
-export default withObservability('extract-from-image', async (req) => {
+export default withObservability('extract-from-image', async (req, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const budgetExceeded = await checkMonthlyBudget()
@@ -42,18 +43,18 @@ export default withObservability('extract-from-image', async (req) => {
   const mimeType = (body.mimeType ?? '').trim()
 
   if (!imageBase64) {
-    return new Response('Falta el campo "imageBase64"', { status: 400 })
+    return ApiErrors.validation(requestId, 'Falta el campo "imageBase64"')
   }
   if (!ALLOWED_MIMES.has(mimeType)) {
-    return new Response(
+    return ApiErrors.unsupportedMediaType(
+      requestId,
       `mimeType "${mimeType}" no soportado. Usa image/jpeg, image/png, image/webp o image/gif.`,
-      { status: 400 },
     )
   }
   // Quick sanity-check on size — base64 inflates by ~4/3, so we accept up
   // to (MAX * 4 / 3) chars before the binary would exceed the limit.
   if (imageBase64.length > (MAX_IMAGE_BYTES * 4) / 3) {
-    return new Response('La imagen excede el máximo permitido (8 MB).', { status: 413 })
+    return ApiErrors.payloadTooLarge(requestId, 'La imagen excede el máximo permitido (8 MB).')
   }
 
   const sql = getSql()
@@ -129,7 +130,7 @@ export default withObservability('extract-from-image', async (req) => {
       INSERT INTO extraction_log (input_text, proposal, provider, model, error)
       VALUES (${`image:${mimeType}`}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message})
     `.catch(() => {})
-    return new Response(`Error llamando al LLM de visión: ${message}`, { status: 502 })
+    return ApiErrors.upstream(requestId, `Error llamando al LLM de visión: ${message}`)
   }
 })
 

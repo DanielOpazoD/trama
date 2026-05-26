@@ -1,6 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import {
   embedSafe,
   entityEmbeddingText,
@@ -19,7 +20,7 @@ function normalizeOrigin(value: unknown): Origin {
   return { kind: 'manual' }
 }
 
-export default withObservability('entities', async (req: Request, context: Context) => {
+export default withObservability('entities', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
   const id = context.params.id
 
@@ -162,6 +163,7 @@ export default withObservability('entities', async (req: Request, context: Conte
         LIMIT 3
       `) as DupRow[]
       if (dupRows.length > 0) {
+        // FF1: preserved — DuplicateEntityError parser depends on this exact shape
         return Response.json(
           {
             error: 'possible_duplicate',
@@ -229,7 +231,7 @@ export default withObservability('entities', async (req: Request, context: Conte
       RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
     `
     if (rows.length === 0) {
-      return new Response('Entidad no encontrada', { status: 404 })
+      return ApiErrors.notFound(requestId, 'Entidad no encontrada')
     }
 
     // Re-embed if anything that feeds the embedding changed. We don't await
@@ -289,7 +291,7 @@ export default withObservability('entities', async (req: Request, context: Conte
   if (req.method === 'POST' && id && url.pathname.endsWith('/restore')) {
     const body = (await req.json().catch(() => ({}))) as { deletedAt?: string }
     if (!body.deletedAt) {
-      return new Response('deletedAt requerido', { status: 400 })
+      return ApiErrors.validation(requestId, 'deletedAt requerido')
     }
     await sql`UPDATE entities SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt}`
     await sql`UPDATE relationships SET deleted_at = NULL WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at = ${body.deletedAt}`
@@ -297,7 +299,7 @@ export default withObservability('entities', async (req: Request, context: Conte
     return Response.json({ restored: true })
   }
 
-  return new Response('Method not allowed', { status: 405 })
+  return ApiErrors.methodNotAllowed(requestId)
 })
 
 export const config: Config = {

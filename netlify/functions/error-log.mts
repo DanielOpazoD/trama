@@ -1,8 +1,9 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
-export default withObservability('error-log', async (req) => {
+export default withObservability('error-log', async (req, _ctx, { requestId }) => {
   const sql = getSql()
 
   if (req.method === 'GET') {
@@ -58,7 +59,7 @@ export default withObservability('error-log', async (req) => {
     }
     const message = String(body.message ?? '').slice(0, 2000)
     if (!message) {
-      return new Response('message requerido', { status: 400 })
+      return ApiErrors.validation(requestId, 'message requerido')
     }
     const stack = body.stack ? String(body.stack).slice(0, 8000) : null
     const path = body.path ? String(body.path).slice(0, 500) : null
@@ -75,7 +76,7 @@ export default withObservability('error-log', async (req) => {
     return new Response(null, { status: 204 })
   }
 
-  return new Response('Method not allowed', { status: 405 })
+  return ApiErrors.methodNotAllowed(requestId)
 })
 
 export const config: Config = {

@@ -1,6 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
 import {
   momentoEmbedText,
@@ -42,7 +43,7 @@ function isValidKind(v: unknown): v is MomentoKind {
   return v === 'nota' || v === 'recorte' || v === 'foto'
 }
 
-export default withObservability('momentos', async (req: Request, context: Context) => {
+export default withObservability('momentos', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
   const id = context.params.id
 
@@ -55,7 +56,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
       WHERE id = ${id} AND deleted_at IS NULL
     `) as Array<Record<string, unknown>>
     if (rows.length === 0) {
-      return new Response('Momento no encontrado', { status: 404 })
+      return ApiErrors.notFound(requestId, 'Momento no encontrado')
     }
     // Traemos los entityIds linkeados también, para que el cliente no haga
     // un round-trip aparte.
@@ -194,11 +195,11 @@ export default withObservability('momentos', async (req: Request, context: Conte
     try {
       body = await req.json()
     } catch {
-      return new Response('Body inválido', { status: 400 })
+      return ApiErrors.validation(requestId, 'Body inválido')
     }
 
     if (!isValidKind(body.kind)) {
-      return new Response('kind inválido (nota|recorte|foto)', { status: 400 })
+      return ApiErrors.validation(requestId, 'kind inválido (nota|recorte|foto)')
     }
     const kind: MomentoKind = body.kind
     const payload =
@@ -210,7 +211,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
     // "nota vacía", etc. Validator puro extraído a _lib/momento-embed.ts.
     const payloadError = validatePayloadForKind(kind, payload)
     if (payloadError) {
-      return new Response(payloadError, { status: 400 })
+      return ApiErrors.validation(requestId, payloadError)
     }
 
     const note = typeof body.note === 'string' ? body.note.trim() || null : null
@@ -274,7 +275,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
     try {
       body = await req.json()
     } catch {
-      return new Response('Body inválido', { status: 400 })
+      return ApiErrors.validation(requestId, 'Body inválido')
     }
 
     // Lookup actual para conocer kind + valores actuales (no permitimos
@@ -284,7 +285,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
       WHERE id = ${id} AND deleted_at IS NULL
     `) as Array<{ kind: MomentoKind; payload: Record<string, unknown>; note: string | null }>
     if (current.length === 0) {
-      return new Response('Momento no encontrado', { status: 404 })
+      return ApiErrors.notFound(requestId, 'Momento no encontrado')
     }
     const kind = current[0].kind
 
@@ -314,7 +315,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
     // el payload inconsistente con el kind).
     if (payloadChanged) {
       const err = validatePayloadForKind(kind, newPayload)
-      if (err) return new Response(err, { status: 400 })
+      if (err) return ApiErrors.validation(requestId, err)
     }
 
     // Re-embed solo si cambió el texto fuente. Si no, conservamos el
@@ -399,12 +400,12 @@ export default withObservability('momentos', async (req: Request, context: Conte
       RETURNING id, deleted_at
     `) as Array<{ id: string; deleted_at: string }>
     if (result.length === 0) {
-      return new Response('Momento no encontrado', { status: 404 })
+      return ApiErrors.notFound(requestId, 'Momento no encontrado')
     }
     return Response.json({ deletedAt: result[0].deleted_at })
   }
 
-  return new Response('Method not allowed', { status: 405 })
+  return ApiErrors.methodNotAllowed(requestId)
 })
 
 export const config: Config = {

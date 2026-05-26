@@ -5,6 +5,7 @@ import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildAskPrompt, type AskContext } from './_lib/ask-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { buildRagContext } from './_lib/rag-context.js'
@@ -31,9 +32,9 @@ const VALID_VIEWS: ViewSlug[] = [
   'grafo', 'entidades', 'citas', 'relaciones', 'escuchas', 'chat', 'sugerencias',
 ]
 
-export default withObservability('ask', async (req) => {
+export default withObservability('ask', async (req, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const body = (await req.json().catch(() => ({}))) as {
@@ -44,7 +45,7 @@ export default withObservability('ask', async (req) => {
   }
   const userText = (body.text ?? '').trim()
   if (!userText) {
-    return new Response('Falta el campo "text"', { status: 400 })
+    return ApiErrors.validation(requestId, 'Falta el campo "text"')
   }
 
   const view: ViewSlug =
@@ -293,7 +294,7 @@ export default withObservability('ask', async (req) => {
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return new Response(`Error llamando al LLM: ${message}`, { status: 502 })
+    return ApiErrors.upstream(requestId, `Error llamando al LLM: ${message}`)
   }
 })
 

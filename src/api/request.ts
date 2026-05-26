@@ -5,6 +5,11 @@
  *
  * Antes vivía inline en src/api.ts (1247 LOC). Extraído en BB2 para que
  * cada módulo de dominio importe solo esto.
+ *
+ * FF1 — parsea el shape canónico `ApiError` del servidor:
+ *   { error: { code, message, details?, requestId } }
+ * Y surface el `requestId` en cada `ApiClientError` para que reportes de
+ * usuario sean trazables al `error_log` del servidor.
  */
 
 /**
@@ -17,6 +22,48 @@ export function aiModeHeader(): string {
   if (raw === 'off' || raw === 'auto') return raw
   if (raw.startsWith('forced-')) return `forced:${raw.slice('forced-'.length)}`
   return 'auto'
+}
+
+/**
+ * Códigos canónicos que el servidor puede devolver. Espejo de
+ * `netlify/functions/_lib/api-error.ts`. Si agregás uno allá, agregalo acá.
+ */
+export type ApiErrorCode =
+  | 'VALIDATION'
+  | 'NOT_FOUND'
+  | 'CONFLICT'
+  | 'METHOD_NOT_ALLOWED'
+  | 'RATE_LIMITED'
+  | 'AI_DISABLED'
+  | 'PAYLOAD_TOO_LARGE'
+  | 'UNSUPPORTED_MEDIA_TYPE'
+  | 'UPSTREAM'
+  | 'INTERNAL'
+
+/**
+ * Error tirado por `request()` cuando el servidor responde con non-2xx
+ * y el body matchea el shape canónico. Carga el code para switch-ear UI,
+ * el message para mostrar al usuario, y el requestId para troubleshooting.
+ */
+export class ApiClientError extends Error {
+  code: ApiErrorCode | 'UNKNOWN'
+  status: number
+  details: unknown
+  requestId: string | null
+  constructor(opts: {
+    code: ApiErrorCode | 'UNKNOWN'
+    status: number
+    message: string
+    details?: unknown
+    requestId: string | null
+  }) {
+    super(opts.message)
+    this.name = 'ApiClientError'
+    this.code = opts.code
+    this.status = opts.status
+    this.details = opts.details
+    this.requestId = opts.requestId
+  }
 }
 
 /**
@@ -39,6 +86,75 @@ export class DuplicateEntityError extends Error {
   }
 }
 
+type CanonicalErrorBody = {
+  error?: {
+    code?: string
+    message?: string
+    details?: unknown
+    requestId?: string
+  }
+}
+
+/**
+ * Parsea el body de un response non-2xx y devuelve un error tipado.
+ * Maneja tres formatos:
+ *   1. ApiError canónico — `{ error: { code, message, requestId, details? } }`
+ *   2. Legacy `{ error: 'string', ... }` (algunos endpoints viejos)
+ *   3. Text plano — usamos el texto como message, code = UNKNOWN
+ */
+async function parseErrorResponse(
+  response: Response,
+  url: string,
+  method: string,
+): Promise<ApiClientError | DuplicateEntityError> {
+  const text = await response.text().catch(() => '')
+  const requestId = response.headers.get('x-request-id')
+
+  // Caso especial preservado: dup detection en /api/entities 409.
+  // Estos endpoints todavía devuelven `{ error: 'possible_duplicate', suggestions }`.
+  if (response.status === 409 && url.startsWith('/api/entities')) {
+    try {
+      const body = JSON.parse(text) as {
+        error?: string
+        suggestions?: DuplicateEntityError['suggestions']
+      }
+      if (body.error === 'possible_duplicate' && Array.isArray(body.suggestions)) {
+        return new DuplicateEntityError(body.suggestions)
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+
+  // Intento parsear como ApiError canónico.
+  try {
+    const parsed = JSON.parse(text) as CanonicalErrorBody
+    if (parsed.error && typeof parsed.error === 'object') {
+      const code = (parsed.error.code as ApiErrorCode | undefined) ?? 'UNKNOWN'
+      const message =
+        parsed.error.message ??
+        `${method} ${url} → ${response.status}`
+      return new ApiClientError({
+        code,
+        status: response.status,
+        message,
+        details: parsed.error.details,
+        requestId: parsed.error.requestId ?? requestId,
+      })
+    }
+  } catch {
+    /* not JSON, fall through */
+  }
+
+  // Fallback: text plano o JSON con shape desconocido.
+  return new ApiClientError({
+    code: 'UNKNOWN',
+    status: response.status,
+    message: text || `${method} ${url} → ${response.status}`,
+    requestId,
+  })
+}
+
 export async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
@@ -49,28 +165,7 @@ export async function request<T>(url: string, init?: RequestInit): Promise<T> {
     },
   })
   if (!response.ok) {
-    const text = await response.text().catch(() => '')
-    // 423 = AI is disabled by the user. Surface the server's message verbatim
-    // so the UI can show something meaningful instead of "HTTP 423".
-    if (response.status === 423) {
-      throw new Error(text || 'IA deshabilitada por el usuario (modo Off).')
-    }
-    // 409 on /api/entities → dup detection. Parse and throw a typed error.
-    if (response.status === 409 && url.startsWith('/api/entities')) {
-      try {
-        const body = JSON.parse(text) as {
-          error?: string
-          suggestions?: DuplicateEntityError['suggestions']
-        }
-        if (body.error === 'possible_duplicate' && Array.isArray(body.suggestions)) {
-          throw new DuplicateEntityError(body.suggestions)
-        }
-      } catch (parseErr) {
-        if (parseErr instanceof DuplicateEntityError) throw parseErr
-        // fall through to generic error if body wasn't the expected shape
-      }
-    }
-    throw new Error(`${init?.method ?? 'GET'} ${url} → ${response.status} ${text}`.trim())
+    throw await parseErrorResponse(response, url, init?.method ?? 'GET')
   }
   if (response.status === 204) {
     return undefined as T

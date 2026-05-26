@@ -172,11 +172,14 @@ Cuando agregues un camino nuevo, sigue el patrón: prompt aislado, validator pur
 
 1. Crea `netlify/functions/<name>.mts` con default export y `config.path`.
 2. Importa `getSql` desde `./_lib/db.js`; instánciala dentro del handler.
-3. Wrap el handler con `withObservability('<name>', ...)` para que errores se logueen en `error_log`.
+3. Wrap el handler con `withObservability('<name>', async (req, _ctx, { requestId }) => {...})`. El tercer arg trae el `requestId` que tenés que pasar a cualquier respuesta de error (ver punto 5).
 4. Para GET/POST/PATCH/DELETE en el mismo path, branch por `req.method`.
-5. Agrega el cliente en `src/api.ts`.
-6. Si hay UI, hook en `src/state/` (con TanStack Query).
-7. Test al menos la lógica pura (prompts, validators, transforms) en `*.test.ts`.
+5. **Errores SIEMPRE via `ApiErrors`** (de `./_lib/api-error.js`). Nunca `new Response('texto', { status: 4xx })` directo. El shape canónico es `{ error: { code, message, requestId, details? } }` y se devuelve con header `x-request-id`. Helpers disponibles: `validation`, `notFound`, `conflict`, `methodNotAllowed`, `rateLimited`, `aiDisabled`, `payloadTooLarge`, `unsupportedMediaType`, `upstream`, `internal`. El cliente parsea esto y tira `ApiClientError` con `code`/`message`/`requestId` accesibles.
+6. Agrega el cliente en `src/api/`.
+7. Si hay UI, hook en `src/state/` (con TanStack Query).
+8. Test al menos la lógica pura (prompts, validators, transforms) en `*.test.ts`.
+
+> **Excepción al patrón canónico:** `/api/entities` POST con candidatos duplicados devuelve la shape legacy `{ error: 'possible_duplicate', suggestions: [...] }` con 409. El cliente tiene un parser dedicado (`DuplicateEntityError`) que rescata ese formato — no migrar.
 
 ## Patrón de añadir un nuevo tipo (entidad o relación)
 

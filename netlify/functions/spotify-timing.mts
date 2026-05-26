@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * GET /api/spotify/timing?since=ISO_DATE
@@ -20,9 +21,9 @@ import { withObservability } from './_lib/handler-wrap.js'
  */
 const MAX_TIMESTAMPS = 20000
 
-export default withObservability('spotify-timing', async (req) => {
+export default withObservability('spotify-timing', async (req, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const url = new URL(req.url)

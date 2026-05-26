@@ -1,6 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getStore } from '@netlify/blobs'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * GET /api/momentos/file/:key
@@ -14,17 +15,17 @@ import { withObservability } from './_lib/handler-wrap.js'
  */
 export default withObservability(
   'momentos-file',
-  async (req: Request, context: Context) => {
+  async (req: Request, context: Context, { requestId }) => {
     if (req.method !== 'GET') {
-      return new Response('Method not allowed', { status: 405 })
+      return ApiErrors.methodNotAllowed(requestId)
     }
     const key = context.params.key
-    if (!key) return new Response('key requerida', { status: 400 })
+    if (!key) return ApiErrors.validation(requestId, 'key requerida')
 
     const store = getStore('momentos-media')
     const blob = await store.getWithMetadata(key, { type: 'arrayBuffer' })
     if (!blob) {
-      return new Response('No encontrado', { status: 404 })
+      return ApiErrors.notFound(requestId, 'No encontrado')
     }
     const mime =
       typeof blob.metadata.mime === 'string' ? blob.metadata.mime : 'image/jpeg'

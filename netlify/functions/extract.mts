@@ -5,6 +5,7 @@ import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildExtractionPrompt } from './_lib/extract-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
@@ -21,9 +22,9 @@ const FALLBACK_RELATIONSHIP_TYPES = [
   'suena_como', 'inspira', 'contradice', 'asociado_con',
 ]
 
-export default withObservability('extract', async (req: Request, _context: Context) => {
+export default withObservability('extract', async (req: Request, _context: Context, { requestId }) => {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   // Monthly cost cap before incurring LLM cost.
@@ -34,12 +35,12 @@ export default withObservability('extract', async (req: Request, _context: Conte
   try {
     body = (await req.json()) as { text?: string }
   } catch {
-    return new Response('Invalid JSON', { status: 400 })
+    return ApiErrors.validation(requestId, 'Invalid JSON')
   }
 
   const text = (body.text ?? '').trim()
   if (!text) {
-    return new Response('Falta el campo "text"', { status: 400 })
+    return ApiErrors.validation(requestId, 'Falta el campo "text"')
   }
 
   const sql = getSql()
@@ -115,7 +116,7 @@ export default withObservability('extract', async (req: Request, _context: Conte
       INSERT INTO extraction_log (input_text, proposal, provider, model, error)
       VALUES (${text}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message})
     `.catch(() => {})
-    return new Response(`Error llamando al LLM: ${message}`, { status: 502 })
+    return ApiErrors.upstream(requestId, `Error llamando al LLM: ${message}`)
   }
 })
 

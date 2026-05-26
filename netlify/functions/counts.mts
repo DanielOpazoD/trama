@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * Lightweight aggregate counts. Returns { entities, quotes, relationships }.
@@ -10,9 +11,9 @@ import { withObservability } from './_lib/handler-wrap.js'
  * pagination at scale. Each count here is a cheap COUNT(*) over the soft-
  * delete predicate; Postgres handles 100k rows in milliseconds.
  */
-export default withObservability('counts', async (req: Request) => {
+export default withObservability('counts', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 })
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   const sql = getSql()
