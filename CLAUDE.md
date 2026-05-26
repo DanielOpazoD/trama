@@ -168,6 +168,16 @@ Endpoints que terminan en propuestas estructuradas que la UI muestra para aproba
 
 Cuando agregues un camino nuevo, sigue el patrón: prompt aislado, validator puro, endpoint que orquesta. Loguea el resultado en `extraction_log` para que el dashboard de costos lo capture.
 
+## Schemas compartidos (Zod, FF2)
+
+Las shapes que cruzan cliente↔servidor viven en `src/schemas/`:
+- `src/schemas/momento.ts` — payload por kind + `validateMomentoPayload(kind, payload)`
+- `src/schemas/proposal.ts` — propuestas IA (ProposedEntity, ProposedQuote, etc.)
+
+Tipos en `src/types.ts` que tenían copias duplicadas server-side ahora se infieren con `z.infer` desde estos schemas. Si necesitás validación en runtime (cliente pre-submit, server input check), importá la schema y usá `.safeParse()`. Si solo necesitás los types, importá desde `src/types.ts` como siempre — la fuente de verdad cambió por abajo, los call sites no.
+
+**Cuándo usar Zod**: para shapes que se reciben de fuera (input usuario, response LLM, body de request) y donde un fail-fast con mensaje claro vale más que rescatar parcialmente. **Cuándo NO**: para "cleaners" que filtran items malos de un array (ej. `_lib/extract-validate.ts`) — ahí Zod no ayuda, mantenelo manual.
+
 ## Patrón de añadir un nuevo endpoint
 
 1. Crea `netlify/functions/<name>.mts` con default export y `config.path`.
