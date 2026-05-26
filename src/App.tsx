@@ -69,7 +69,16 @@ function Shell() {
   // deep-links externos — el QR de Momentos por ejemplo abre la app
   // con `?view=momentos&compose=foto` para que el celular caiga directo
   // en el composer en modo Foto.
-  const [view, setView] = useState<ViewMode>(() => readInitialView())
+  const [view, _setView] = useState<ViewMode>(() => readInitialView())
+  // EE-brand #20: navegación entre secciones pasa por la View Transitions
+  // API. El browser hace un cross-dissolve sutil (280ms ease-out-quart,
+  // declarado en index.css en `::view-transition-old(root)`) entre la
+  // vista vieja y la nueva. En navegadores sin la API (Firefox por ahora)
+  // cae al setState plano — degrada silencioso. Mismo patrón que el
+  // setSelectedEntityId de abajo, pero a nivel de sección.
+  const setView = useCallback((next: ViewMode) => {
+    startViewTransition(() => _setView(next))
+  }, [])
   // En mobile arrancamos con el sidebar colapsado; el usuario lo expande
   // con el ícono del menú.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -116,7 +125,7 @@ function Shell() {
   // porque depende de setView (defined arriba) para el CTA.
   const navigateToProactive = useCallback(() => {
     setView('sugerencias')
-  }, [])
+  }, [setView])
   useWeeklyProactiveNudge({ onNavigate: navigateToProactive })
 
   // Atajos globales:

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CloseIcon } from './Icons'
+import { CloseIcon, TramaMark } from './Icons'
 import { AppearancePanel } from './settings/AppearancePanel'
 import { SpotifyPanel } from './settings/SpotifyPanel'
 import { AIPanel } from './settings/AIPanel'
@@ -141,9 +141,12 @@ export function Settings({
               {/* ι5: Colophon editorial — al pie de cada panel, como en
                   un libro impreso ("compuesto en…" al final). Italic
                   serif, ink-300 muted, ornament chico arriba. Gesto que
-                  hace que la app se sienta autorada, no generada. */}
-              <footer className="mt-16 pt-6 border-t border-ink-100/40 text-center">
-                <p className="font-serif italic text-xs text-ink-300 leading-relaxed">
+                  hace que la app se sienta autorada, no generada.
+                  EE-brand #21: con TramaMark muy chico arriba — el
+                  equivalente al sello/logo del impresor al cierre. */}
+              <footer className="mt-16 pt-6 border-t border-ink-100/40 flex flex-col items-center gap-3">
+                <TramaMark size={14} className="text-ink-200" />
+                <p className="font-serif italic text-xs text-ink-300 leading-relaxed text-center">
                   Trama — compuesto en Spectral e Inter,
                   <br />
                   primavera de {new Date().getFullYear()}

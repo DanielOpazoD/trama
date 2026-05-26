@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { TramaMark } from './Icons'
 
 /**
  * ErrorBoundary global. Captura errores no manejados en el render tree
@@ -115,6 +116,10 @@ function ErrorFallback({
       className="h-screen w-screen flex items-center justify-center p-6 bg-paper-50"
     >
       <div className="max-w-lg w-full bg-paper-50 border border-ink-100 rounded-xl shadow-xl shadow-ink-900/10 p-8">
+        {/* EE-brand #21: TramaMark sutil arriba del error — aún en
+            estado roto, el usuario sabe en qué app está. ink-200 muy
+            muted; no compite con el mensaje. */}
+        <TramaMark size={18} className="text-ink-200 mb-3" />
         <p className="text-micro uppercase tracking-shout text-ink-300 mb-2">
           Error
         </p>

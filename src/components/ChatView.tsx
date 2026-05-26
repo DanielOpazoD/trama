@@ -14,6 +14,7 @@ import {
   useOffline,
   useSendChatMessage,
 } from '../state'
+import { ArrowRightIcon } from './Icons'
 import { InlineProposal } from './chat/InlineProposal'
 import { SkeletonList, ThreadRowSkeleton } from './Skeleton'
 import { AISourceTag } from './AISourceTag'
@@ -348,9 +349,7 @@ export function ChatView({
             aria-label="Enviar"
             title="Enter para enviar · Shift+Enter para nueva línea"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M13 5l7 7-7 7" />
-            </svg>
+            <ArrowRightIcon size={14} />
           </button>
         </form>
       </section>

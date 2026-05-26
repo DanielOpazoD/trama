@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { OrnamentBreak } from './Icons'
+import { OrnamentBreak, TramaMark } from './Icons'
 import { readHiloOfTheDay } from '../hooks/useHiloOfTheDay'
 
 /**
@@ -75,29 +75,10 @@ export function Splash() {
           mapa cognitivo personal
         </p>
 
-        <svg width="72" height="72" viewBox="0 0 24 24" fill="none">
-          <path
-            className="mark-crossbar"
-            d="M5 6h14"
-            stroke="rgb(var(--ink-700))"
-            strokeWidth={1.8}
-            strokeLinecap="round"
-          />
-          <path
-            className="mark-vertical"
-            d="M12 6v13"
-            stroke="rgb(var(--ink-700))"
-            strokeWidth={1.8}
-            strokeLinecap="round"
-          />
-          <path
-            className="mark-thread"
-            d="M9 11l6 4M15 11l-6 4"
-            stroke="rgb(var(--ink-700))"
-            strokeWidth={1.2}
-            strokeLinecap="round"
-          />
-        </svg>
+        {/* EE-brand #21: usamos el componente canónico en vez del inline
+            SVG. Las clases mark-* las añade el prop `animate` y el
+            componente toma `currentColor` desde text-ink-700 abajo. */}
+        <TramaMark size={72} animate className="text-ink-700" />
 
         <p className="wordmark text-3xl text-ink-700 mark-thread leading-none">
           Trama

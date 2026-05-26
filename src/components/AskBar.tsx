@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useAsk, useExtractFromImage, useOffline } from '../state'
 import type { ExtractionProposal } from '../types'
 import { useThreadIdForView } from '../hooks/useThreadIdForView'
+import { ArrowRightIcon, CameraIcon, ReadingIcon } from './Icons'
 
 /** Convert a File to a base64 string (without the data URL prefix). */
 async function fileToBase64(file: File): Promise<string> {
@@ -235,10 +236,7 @@ export function AskBar({
             {imageBusy ? (
               <span className="size-3.5 border-2 border-ink-200 border-t-ink-500 rounded-full animate-spin" />
             ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                <circle cx="12" cy="13" r="4" />
-              </svg>
+              <CameraIcon size={14} />
             )}
           </button>
           {onOpenReading && (
@@ -250,9 +248,7 @@ export function AskBar({
               title="Modo lectura: pega un texto largo y se procesa por trozos"
               className="self-end mb-1 size-9 rounded-full text-ink-400 hover:text-ink-700 hover:bg-ink-50 disabled:text-ink-200 disabled:cursor-not-allowed transition-all duration-150 ease-out flex items-center justify-center"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 5h16M4 9h16M4 13h10M4 17h12" />
-              </svg>
+              <ReadingIcon size={14} />
             </button>
           )}
           <input
@@ -289,9 +285,7 @@ export function AskBar({
             {ask.isPending ? (
               <span className="size-3.5 border-2 border-paper-50/40 border-t-paper-50 rounded-full animate-spin" />
             ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M13 5l7 7-7 7" />
-              </svg>
+              <ArrowRightIcon size={14} />
             )}
           </button>
         </form>
