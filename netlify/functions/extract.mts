@@ -6,6 +6,7 @@ import { buildExtractionPrompt } from './_lib/extract-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
@@ -43,13 +44,14 @@ export default withObservability('extract', async (req: Request, _context: Conte
     return ApiErrors.validation(requestId, 'Falta el campo "text"')
   }
 
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
   // Fetch context: valid type slugs and existing entities.
   const [entityTypeRows, relTypeRows, existing] = await Promise.all([
     sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<Array<{ slug: string }>>,
     sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<Array<{ slug: string }>>,
-    sql`SELECT id, name, type FROM entities WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 500` as unknown as Promise<Array<{ id: string; name: string; type: string }>>,
+    sql`SELECT id, name, type FROM entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at DESC LIMIT 500` as unknown as Promise<Array<{ id: string; name: string; type: string }>>,
   ])
 
   const entityTypes = entityTypeRows.length > 0

@@ -10,6 +10,7 @@ import {
 } from './_lib/proactive-prompt.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
@@ -42,6 +43,7 @@ type Suggestion = {
 export default withObservability(
   'proactive-suggestions',
   async (req: Request, context: Context, { requestId }) => {
+    const { id: userId } = await getAuthedUser(req)
     const sql = getSql()
     const id = context.params.id
 
@@ -62,6 +64,7 @@ export default withObservability(
         SELECT id, kind, payload, status, provider, model, created_at, status_changed_at
         FROM proactive_suggestions
         WHERE status = ${status}
+          AND user_id = ${userId}
         ORDER BY created_at DESC
         LIMIT 200
       `) as Row[]
@@ -98,21 +101,21 @@ export default withObservability(
 
       const [entityRows, quoteRows, relRows, entityTypeRows, relTypeRows, dismissedRows] = await Promise.all([
         sql`SELECT id, name, type, year, description
-            FROM entities WHERE deleted_at IS NULL
+            FROM entities WHERE deleted_at IS NULL AND user_id = ${userId}
             ORDER BY created_at DESC LIMIT ${MAX_ENTITIES_IN_PROMPT}` as unknown as Promise<EntityRow[]>,
         sql`SELECT entity_id, text FROM quotes
-            WHERE deleted_at IS NULL ORDER BY created_at DESC` as unknown as Promise<QuoteRow[]>,
+            WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at DESC` as unknown as Promise<QuoteRow[]>,
         sql`SELECT ef.name AS from_name, et.name AS to_name, r.type
             FROM relationships r
             JOIN entities ef ON ef.id = r.from_id
             JOIN entities et ON et.id = r.to_id
-            WHERE r.deleted_at IS NULL` as unknown as Promise<RelRow[]>,
+            WHERE r.deleted_at IS NULL AND r.user_id = ${userId}` as unknown as Promise<RelRow[]>,
         sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
         sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
         // Sugerencias previamente descartadas — para que el LLM NO las
         // vuelva a proponer en esta ronda.
         sql`SELECT kind, payload FROM proactive_suggestions
-            WHERE status = 'dismissed'
+            WHERE status = 'dismissed' AND user_id = ${userId}
             ORDER BY status_changed_at DESC NULLS LAST, created_at DESC
             LIMIT 60` as unknown as Promise<DismissedRow[]>,
       ])
@@ -260,8 +263,8 @@ export default withObservability(
         const inserted: Suggestion[] = []
         for (const s of accepted) {
           const rows = (await sql`
-            INSERT INTO proactive_suggestions (kind, payload, provider, model)
-            VALUES (${s.kind}, ${JSON.stringify(s.payload)}::jsonb, ${usage.provider}, ${usage.model})
+            INSERT INTO proactive_suggestions (kind, payload, provider, model, user_id)
+            VALUES (${s.kind}, ${JSON.stringify(s.payload)}::jsonb, ${usage.provider}, ${usage.model}, ${userId})
             RETURNING id, kind, payload, status, provider, model, created_at, status_changed_at
           `) as Array<{
             id: string
@@ -329,7 +332,7 @@ export default withObservability(
       await sql`
         UPDATE proactive_suggestions
         SET status = ${nextStatus}, status_changed_at = NOW()
-        WHERE id = ${id}
+        WHERE id = ${id} AND user_id = ${userId}
       `
       return new Response(null, { status: 204 })
     }

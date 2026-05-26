@@ -8,6 +8,7 @@ import {
   validatePayloadForKind,
   type MomentoKind,
 } from './_lib/momento-embed.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * /api/momentos — la dimensión temporal de la trama.
@@ -45,6 +46,7 @@ function isValidKind(v: unknown): v is MomentoKind {
 
 export default withObservability('momentos', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
+  const { id: userId } = await getAuthedUser(req)
   const id = context.params.id
 
   // ---------------- GET one ----------------
@@ -53,7 +55,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
       SELECT id, kind, captured_at, payload, note, origin,
              created_at, updated_at
       FROM momentos
-      WHERE id = ${id} AND deleted_at IS NULL
+      WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
     `) as Array<Record<string, unknown>>
     if (rows.length === 0) {
       return ApiErrors.notFound(requestId, 'Momento no encontrado')
@@ -112,6 +114,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
                created_at, updated_at
         FROM momentos
         WHERE deleted_at IS NULL
+          AND user_id = ${userId}
           AND kind = ${validKind}
           AND (captured_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
         ORDER BY captured_at DESC, id DESC
@@ -123,6 +126,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
                created_at, updated_at
         FROM momentos
         WHERE deleted_at IS NULL
+          AND user_id = ${userId}
           AND (captured_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
         ORDER BY captured_at DESC, id DESC
         LIMIT ${limit + 1}
@@ -132,7 +136,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
         SELECT id, kind, captured_at, payload, note, origin,
                created_at, updated_at
         FROM momentos
-        WHERE deleted_at IS NULL AND kind = ${validKind}
+        WHERE deleted_at IS NULL AND user_id = ${userId} AND kind = ${validKind}
         ORDER BY captured_at DESC, id DESC
         LIMIT ${limit + 1}
       `) as Row[]
@@ -141,7 +145,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
         SELECT id, kind, captured_at, payload, note, origin,
                created_at, updated_at
         FROM momentos
-        WHERE deleted_at IS NULL
+        WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY captured_at DESC, id DESC
         LIMIT ${limit + 1}
       `) as Row[]
@@ -228,7 +232,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
     const inserted = (await sql`
       INSERT INTO momentos (
         kind, captured_at, payload, note, origin,
-        embedding, embedding_model, embedding_at
+        embedding, embedding_model, embedding_at, user_id
       ) VALUES (
         ${kind},
         ${capturedAt}::timestamptz,
@@ -237,7 +241,8 @@ export default withObservability('momentos', async (req: Request, context: Conte
         ${JSON.stringify(origin)}::jsonb,
         ${emb ? toPgVector(emb.vector) : null}::vector,
         ${emb?.model ?? null},
-        ${emb ? new Date().toISOString() : null}::timestamptz
+        ${emb ? new Date().toISOString() : null}::timestamptz,
+        ${userId}
       )
       RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
     `) as Array<Record<string, unknown>>
@@ -282,7 +287,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
     // cambiar kind via PATCH — eso requeriría re-encoding del payload).
     const current = (await sql`
       SELECT kind, payload, note FROM momentos
-      WHERE id = ${id} AND deleted_at IS NULL
+      WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
     `) as Array<{ kind: MomentoKind; payload: Record<string, unknown>; note: string | null }>
     if (current.length === 0) {
       return ApiErrors.notFound(requestId, 'Momento no encontrado')
@@ -339,7 +344,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
             embedding_model = ${emb?.model ?? null},
             embedding_at = ${emb ? new Date().toISOString() : null}::timestamptz,
             updated_at = NOW()
-        WHERE id = ${id}
+        WHERE id = ${id} AND user_id = ${userId}
       `
     } else if (newCapturedAt) {
       // Solo captured_at + posiblemente entityIds — sin re-embed.
@@ -347,7 +352,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
         UPDATE momentos
         SET captured_at = ${newCapturedAt}::timestamptz,
             updated_at = NOW()
-        WHERE id = ${id}
+        WHERE id = ${id} AND user_id = ${userId}
       `
     } else if (shouldReembed) {
       await sql`
@@ -358,7 +363,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
             embedding_model = ${emb?.model ?? null},
             embedding_at = ${emb ? new Date().toISOString() : null}::timestamptz,
             updated_at = NOW()
-        WHERE id = ${id}
+        WHERE id = ${id} AND user_id = ${userId}
       `
     }
 
@@ -396,7 +401,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
     const result = (await sql`
       UPDATE momentos
       SET deleted_at = NOW()
-      WHERE id = ${id} AND deleted_at IS NULL
+      WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       RETURNING id, deleted_at
     `) as Array<{ id: string; deleted_at: string }>
     if (result.length === 0) {

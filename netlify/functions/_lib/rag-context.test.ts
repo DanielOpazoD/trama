@@ -59,7 +59,7 @@ describe('buildRagContext — fallback to recency when embedding key is absent',
       return []
     })
 
-    const ctx = await buildRagContext(sql, 'qué hay de Borges?')
+    const ctx = await buildRagContext(sql, 'qué hay de Borges?', 'test-user')
     expect(ctx.entities.map((e) => e.id).sort()).toEqual(['e1', 'e2'])
     expect(ctx.quotes.map((q) => q.id)).toEqual(['q1'])
     expect(ctx.relationships.map((r) => r.id)).toEqual(['r1'])
@@ -68,7 +68,7 @@ describe('buildRagContext — fallback to recency when embedding key is absent',
 
   it('returns no relationships when there are no entities to anchor them to', async () => {
     const sql = makeSqlMock(() => [])
-    const ctx = await buildRagContext(sql, 'algo')
+    const ctx = await buildRagContext(sql, 'algo', 'test-user')
     expect(ctx.entities).toEqual([])
     expect(ctx.relationships).toEqual([])
     expect(ctx.quotes).toEqual([])
@@ -82,7 +82,7 @@ describe('buildRagContext — fallback to recency when embedding key is absent',
       if (j.includes('FROM entities')) return recentE
       return []
     })
-    const ctx = await buildRagContext(sql, '')
+    const ctx = await buildRagContext(sql, '', 'test-user')
     expect(ctx.entities).toHaveLength(1)
     expect(ctx.usedRag).toBe(false)
   })
@@ -91,7 +91,7 @@ describe('buildRagContext — fallback to recency when embedding key is absent',
     const sql = makeSqlMock(() => [])
     // Sin API key, HyDE intentaría llamar askLLMForText y fallaría.
     // Para queries ≤10 chars, el chequeo de longitud lo desactiva antes.
-    const ctx = await buildRagContext(sql, 'Bo', { hyde: true })
+    const ctx = await buildRagContext(sql, 'Bo', 'test-user', { hyde: true })
     expect(ctx.usedHyde).toBe(false)
   })
 
@@ -100,7 +100,7 @@ describe('buildRagContext — fallback to recency when embedding key is absent',
     // debe degradar a embebido directo (que tampoco funciona sin key,
     // así que termina en recency-only). El test verifica que NO throw.
     const sql = makeSqlMock(() => [])
-    const ctx = await buildRagContext(sql, 'qué tengo sobre el tiempo y la creación?', { hyde: true })
+    const ctx = await buildRagContext(sql, 'qué tengo sobre el tiempo y la creación?', 'test-user', { hyde: true })
     // usedHyde puede ser false (porque askLLMForText falló) — lo
     // importante es que la llamada no haya crashed.
     expect(ctx).toBeDefined()

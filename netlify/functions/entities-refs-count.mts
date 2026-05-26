@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * DD3 (audit #1): counts per-entity para EntitiesView.
@@ -22,6 +23,7 @@ export default withObservability('entities-refs-count', async (req: Request, _ct
   if (req.method !== 'GET') {
     return ApiErrors.methodNotAllowed(requestId)
   }
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
   // 2 queries paralelas, ambas con WHERE deleted_at IS NULL para
@@ -34,6 +36,7 @@ export default withObservability('entities-refs-count', async (req: Request, _ct
       SELECT entity_id, COUNT(*)::text AS n
       FROM quotes
       WHERE deleted_at IS NULL
+        AND user_id = ${userId}
       GROUP BY entity_id
     ` as unknown as Promise<QuoteCount[]>,
     // Relaciones cuentan por ambos extremos. Aviva: hacemos dos GROUP BY
@@ -43,12 +46,14 @@ export default withObservability('entities-refs-count', async (req: Request, _ct
       SELECT from_id AS id, COUNT(*)::text AS n
       FROM relationships
       WHERE deleted_at IS NULL
+        AND user_id = ${userId}
       GROUP BY from_id
     ` as unknown as Promise<RelCount[]>,
     sql`
       SELECT to_id AS id, COUNT(*)::text AS n
       FROM relationships
       WHERE deleted_at IS NULL AND from_id <> to_id
+        AND user_id = ${userId}
       GROUP BY to_id
     ` as unknown as Promise<RelCount[]>,
   ])

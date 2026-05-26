@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * Resolver liviano para entidades, pensado para los call sites que
@@ -34,6 +35,7 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
     return ApiErrors.validation(requestId, 'Falta uno de: name, prefix, ids')
   }
 
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
   const SELECT = `
     SELECT id, type, name, year, description, essay,
@@ -54,6 +56,7 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
              created_at, updated_at
       FROM entities
       WHERE deleted_at IS NULL
+        AND user_id = ${userId}
         AND lower(name) = lower(${name})
       LIMIT 5
     `) as unknown[]
@@ -69,6 +72,7 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
              similarity(name, ${trimmedPrefix}) AS sim
       FROM entities
       WHERE deleted_at IS NULL
+        AND user_id = ${userId}
         AND (name ILIKE ${trimmedPrefix + '%'} OR name % ${trimmedPrefix})
       ORDER BY sim DESC, name ASC
       LIMIT 10
@@ -86,6 +90,7 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
              created_at, updated_at
       FROM entities
       WHERE deleted_at IS NULL
+        AND user_id = ${userId}
         AND id = ANY(${ids}::uuid[])
     `) as unknown[]
   }

@@ -4,6 +4,7 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
 import { momentoEmbedText } from './_lib/momento-embed.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * EE: fusionar N momentos foto en uno solo ("eventos").
@@ -75,6 +76,7 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
     return ApiErrors.methodNotAllowed(requestId)
   }
   const sql = getSql()
+  const { id: userId } = await getAuthedUser(req)
 
   let body: {
     primaryId?: unknown
@@ -131,7 +133,7 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
   const rows = (await sql`
     SELECT id, kind, captured_at, payload, note
     FROM momentos
-    WHERE id = ANY(${allIds}::uuid[]) AND deleted_at IS NULL
+    WHERE id = ANY(${allIds}::uuid[]) AND deleted_at IS NULL AND user_id = ${userId}
   `) as Row[]
 
   // Verificar que todos existen + son foto.
@@ -246,7 +248,7 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
           embedding_model = ${embModel},
           embedding_at = ${embAt}::timestamptz,
           updated_at = NOW()
-      WHERE id = ${primaryId}
+      WHERE id = ${primaryId} AND user_id = ${userId}
       RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
     ),
     link_others AS (
@@ -260,7 +262,7 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
     soft_delete_others AS (
       UPDATE momentos
       SET deleted_at = NOW(), updated_at = NOW()
-      WHERE id = ANY(${otherIds}::uuid[]) AND deleted_at IS NULL
+      WHERE id = ANY(${otherIds}::uuid[]) AND deleted_at IS NULL AND user_id = ${userId}
       RETURNING id, deleted_at
     )
     SELECT
@@ -293,7 +295,7 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
     SELECT id, kind, captured_at, payload, note, origin,
            created_at, updated_at
     FROM momentos
-    WHERE id = ${primaryId}
+    WHERE id = ${primaryId} AND user_id = ${userId}
   `) as Array<Record<string, unknown>>
   const links = (await sql`
     SELECT entity_id FROM momento_entities WHERE momento_id = ${primaryId}

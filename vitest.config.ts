@@ -5,6 +5,9 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: false,
+    // Activa el fallback legacy para que los unit tests no necesiten token
+    // Clerk real. En producción esta var no está seteada (enforcement real).
+    env: { ALLOW_LEGACY_FALLBACK: 'true' },
     // happy-dom for component tests; node-only tests still work since DOM-less APIs
     // don't depend on the environment.
     environment: 'happy-dom',

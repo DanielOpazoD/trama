@@ -2,12 +2,13 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 export default withObservability('export', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
     return ApiErrors.methodNotAllowed(requestId)
   }
-
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
   type EntityRow = {
@@ -45,11 +46,11 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
 
   const [entities, relationships, quotes] = await Promise.all([
     sql`SELECT id, type, name, year, description, position_x, position_y, origin, created_at, updated_at
-        FROM entities WHERE deleted_at IS NULL ORDER BY created_at` as unknown as Promise<EntityRow[]>,
+        FROM entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at` as unknown as Promise<EntityRow[]>,
     sql`SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
-        FROM relationships WHERE deleted_at IS NULL ORDER BY created_at` as unknown as Promise<RelationshipRow[]>,
+        FROM relationships WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at` as unknown as Promise<RelationshipRow[]>,
     sql`SELECT id, entity_id, text, source, context, origin, created_at, updated_at
-        FROM quotes WHERE deleted_at IS NULL ORDER BY created_at` as unknown as Promise<QuoteRow[]>,
+        FROM quotes WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at` as unknown as Promise<QuoteRow[]>,
   ])
 
   const payload = {

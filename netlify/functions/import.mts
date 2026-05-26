@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 import { persistError, safeSql } from './_lib/observability.js'
 
 type IncomingEntity = {
@@ -63,6 +64,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
   if (req.method !== 'POST') {
     return ApiErrors.methodNotAllowed(requestId)
   }
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
   let payload: ImportPayload
@@ -107,7 +109,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     try {
       const origin = JSON.stringify(normalizeOrigin(e.origin))
       const result = await sql`
-        INSERT INTO entities (id, type, name, year, description, position_x, position_y, origin)
+        INSERT INTO entities (id, type, name, year, description, position_x, position_y, origin, user_id)
         VALUES (
           ${e.id},
           ${e.type},
@@ -116,7 +118,8 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
           ${e.description ?? null},
           ${e.positionX ?? null},
           ${e.positionY ?? null},
-          ${origin}::jsonb
+          ${origin}::jsonb,
+          ${userId}
         )
         ON CONFLICT (id) DO NOTHING
         RETURNING id
@@ -136,14 +139,15 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     try {
       const origin = JSON.stringify(normalizeOrigin(r.origin))
       const result = await sql`
-        INSERT INTO relationships (id, from_id, to_id, type, notes, origin)
+        INSERT INTO relationships (id, from_id, to_id, type, notes, origin, user_id)
         VALUES (
           ${r.id},
           ${r.fromId},
           ${r.toId},
           ${r.type},
           ${r.notes ?? null},
-          ${origin}::jsonb
+          ${origin}::jsonb,
+          ${userId}
         )
         ON CONFLICT (id) DO NOTHING
         RETURNING id
@@ -163,14 +167,15 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     try {
       const origin = JSON.stringify(normalizeOrigin(q.origin))
       const result = await sql`
-        INSERT INTO quotes (id, entity_id, text, source, context, origin)
+        INSERT INTO quotes (id, entity_id, text, source, context, origin, user_id)
         VALUES (
           ${q.id},
           ${q.entityId},
           ${q.text},
           ${q.source ?? null},
           ${q.context ?? null},
-          ${origin}::jsonb
+          ${origin}::jsonb,
+          ${userId}
         )
         ON CONFLICT (id) DO NOTHING
         RETURNING id

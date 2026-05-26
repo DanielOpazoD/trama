@@ -6,6 +6,7 @@ import { describeEntity, describeQuote, llmRerank } from './_lib/llm-rerank.js'
 import { resolveAIInvocation } from './_lib/ai-mode.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * Hybrid search across entities (name + description) and quotes (text +
@@ -29,6 +30,7 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   if (req.method !== 'GET') {
     return ApiErrors.methodNotAllowed(requestId)
   }
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
   const url = new URL(req.url)
@@ -72,6 +74,7 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
                  + similarity(e.name, ${q}) * 0.5 AS rank
         FROM entities e
         WHERE e.deleted_at IS NULL
+          AND e.user_id = ${userId}
           AND (e.search_vector @@ websearch_to_tsquery('simple', ${q})
                OR e.name % ${q})
         ORDER BY rank DESC
@@ -86,6 +89,7 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
         FROM quotes q
         JOIN entities e ON e.id = q.entity_id
         WHERE q.deleted_at IS NULL
+          AND q.user_id = ${userId}
           AND q.search_vector @@ websearch_to_tsquery('simple', ${q})
         ORDER BY rank DESC
         LIMIT ${limit * 2}
@@ -110,6 +114,7 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
                  (embedding <=> ${pgVec}::vector) AS distance
           FROM entities
           WHERE deleted_at IS NULL AND embedding IS NOT NULL
+            AND user_id = ${userId}
           ORDER BY embedding <=> ${pgVec}::vector
           LIMIT ${limit * 2}
         ` as unknown as Promise<SemanticEntity[]>,
@@ -121,6 +126,7 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
           FROM quotes q
           JOIN entities e ON e.id = q.entity_id
           WHERE q.deleted_at IS NULL AND q.embedding IS NOT NULL
+            AND q.user_id = ${userId}
           ORDER BY q.embedding <=> ${pgVec}::vector
           LIMIT ${limit * 2}
         ` as unknown as Promise<SemanticQuote[]>,

@@ -72,6 +72,7 @@ type SqlClient = (
 export async function buildRagContext(
   sql: SqlClient,
   userQuery: string,
+  userId: string,
   options?: {
     semanticEntityLimit?: number
     semanticQuoteLimit?: number
@@ -131,7 +132,7 @@ export async function buildRagContext(
       ? (sql`
           SELECT id, name, type, year, description
           FROM entities
-          WHERE deleted_at IS NULL AND embedding IS NOT NULL
+          WHERE deleted_at IS NULL AND embedding IS NOT NULL AND user_id = ${userId}
           ORDER BY embedding <=> ${queryVec}::vector
           LIMIT ${semE}
         ` as unknown as Promise<EntityCtxRow[]>)
@@ -139,7 +140,7 @@ export async function buildRagContext(
     sql`
       SELECT id, name, type, year, description
       FROM entities
-      WHERE deleted_at IS NULL
+      WHERE deleted_at IS NULL AND user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT ${recE}
     ` as unknown as Promise<EntityCtxRow[]>,
@@ -148,7 +149,7 @@ export async function buildRagContext(
           SELECT q.id, e.name AS entity_name, q.text, q.source
           FROM quotes q
           JOIN entities e ON e.id = q.entity_id
-          WHERE q.deleted_at IS NULL AND q.embedding IS NOT NULL
+          WHERE q.deleted_at IS NULL AND q.embedding IS NOT NULL AND q.user_id = ${userId}
           ORDER BY q.embedding <=> ${queryVec}::vector
           LIMIT ${semQ}
         ` as unknown as Promise<QuoteCtxRow[]>)
@@ -157,7 +158,7 @@ export async function buildRagContext(
       SELECT q.id, e.name AS entity_name, q.text, q.source
       FROM quotes q
       JOIN entities e ON e.id = q.entity_id
-      WHERE q.deleted_at IS NULL
+      WHERE q.deleted_at IS NULL AND q.user_id = ${userId}
       ORDER BY q.created_at DESC
       LIMIT ${recQ}
     ` as unknown as Promise<QuoteCtxRow[]>,
@@ -233,7 +234,7 @@ export async function buildRagContext(
       FROM relationships r
       JOIN entities ef ON ef.id = r.from_id
       JOIN entities et ON et.id = r.to_id
-      WHERE r.deleted_at IS NULL
+      WHERE r.deleted_at IS NULL AND r.user_id = ${userId}
         AND (r.from_id = ANY(${entityIds}::uuid[]) OR r.to_id = ANY(${entityIds}::uuid[]))
       ORDER BY r.created_at DESC
       LIMIT ${relCap}

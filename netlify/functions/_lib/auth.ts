@@ -51,7 +51,15 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
     }
   }
 
-  if (Netlify.env.get('ALLOW_LEGACY_FALLBACK') === 'true') {
+  // Netlify.env no existe en entornos de test — fallback a process.env.
+  const allowFallback = (() => {
+    try {
+      return Netlify.env.get('ALLOW_LEGACY_FALLBACK')
+    } catch {
+      return process.env['ALLOW_LEGACY_FALLBACK']
+    }
+  })()
+  if (allowFallback === 'true') {
     return { id: 'legacy-single-user' }
   }
 

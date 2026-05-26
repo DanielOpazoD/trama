@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { logEvent } from './_lib/observability.js'
@@ -37,6 +38,7 @@ export default withObservability('spotify-suggest-artists', async (req: Request,
   const budgetExceeded = await checkMonthlyBudget()
   if (budgetExceeded) return budgetExceeded
 
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
   const accessToken = await getValidAccessToken(sql)
   if (!accessToken) {
@@ -71,6 +73,7 @@ export default withObservability('spotify-suggest-artists', async (req: Request,
   const existingArtists = (await sql`
     SELECT name FROM entities
     WHERE deleted_at IS NULL
+      AND user_id = ${userId}
       AND type IN ('musico', 'banda', 'artista')
   `) as Array<{ name: string }>
   const existingNames = existingArtists.map((e) => e.name.toLowerCase())
