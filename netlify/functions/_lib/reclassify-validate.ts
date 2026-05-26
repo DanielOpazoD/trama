@@ -5,6 +5,8 @@
  * type the entity already has (no-op).
  */
 
+import { z } from 'zod'
+
 export type ReclassifyProposal = Array<{
   id: string
   oldType: string
@@ -15,22 +17,32 @@ export type ReclassifyProposal = Array<{
 
 export type EntityLookup = { id: string; name: string; type: string }
 
+const RawReclassifyItemSchema = z.object({
+  id:      z.string(),
+  newType: z.string(),
+  reason:  z.unknown().optional(),
+})
+
+const RawReclassifyProposalSchema = z.object({
+  reclassifications: z.array(z.unknown()).optional(),
+})
+
 export function validateReclassify(
   raw: unknown,
   existingEntities: EntityLookup[],
   validTypes: ReadonlySet<string>,
 ): ReclassifyProposal {
-  const proposal = (raw ?? {}) as { reclassifications?: unknown }
-  if (!Array.isArray(proposal.reclassifications)) return []
+  const proposalResult = RawReclassifyProposalSchema.safeParse(raw ?? {})
+  if (!proposalResult.success) return []
+  if (!Array.isArray(proposalResult.data.reclassifications)) return []
 
   const byId = new Map(existingEntities.map((e) => [e.id, e]))
 
   const out: ReclassifyProposal = []
-  for (const item of proposal.reclassifications as Array<Record<string, unknown>>) {
-    if (typeof item !== 'object' || item === null) continue
-    const id = typeof item.id === 'string' ? item.id : null
-    const newType = typeof item.newType === 'string' ? item.newType : null
-    if (!id || !newType) continue
+  for (const item of proposalResult.data.reclassifications) {
+    const parsed = RawReclassifyItemSchema.safeParse(item)
+    if (!parsed.success) continue
+    const { id, newType, reason: rawReason } = parsed.data
 
     const entity = byId.get(id)
     if (!entity) continue
@@ -38,8 +50,8 @@ export function validateReclassify(
     if (entity.type === newType) continue
 
     const reason =
-      typeof item.reason === 'string' && item.reason.trim()
-        ? (item.reason as string).trim()
+      typeof rawReason === 'string' && rawReason.trim()
+        ? rawReason.trim()
         : undefined
 
     out.push({

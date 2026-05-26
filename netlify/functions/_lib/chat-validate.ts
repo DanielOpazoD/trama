@@ -15,12 +15,21 @@
  * it to the UI as actionable items.
  */
 
+import { z } from 'zod'
+
 export type RawChatProposal = {
   entities?: unknown
   relationships?: unknown
   quotes?: unknown
   reclassifications?: unknown
 }
+
+const RawChatProposalSchema = z.object({
+  entities:          z.array(z.unknown()).optional(),
+  relationships:     z.array(z.unknown()).optional(),
+  quotes:            z.array(z.unknown()).optional(),
+  reclassifications: z.array(z.unknown()).optional(),
+})
 
 export type ChatReply = {
   prose: string
@@ -47,9 +56,9 @@ export function parseChatReply(raw: string): ChatReply {
 
   let parsed: RawChatProposal | null = null
   try {
-    const obj = JSON.parse(jsonSlice) as RawChatProposal
-    if (obj && typeof obj === 'object') {
-      parsed = obj
+    const parseResult = RawChatProposalSchema.safeParse(JSON.parse(jsonSlice))
+    if (parseResult.success) {
+      parsed = parseResult.data
     }
   } catch {
     // Malformed JSON: drop the proposal but keep the prose so the user sees
