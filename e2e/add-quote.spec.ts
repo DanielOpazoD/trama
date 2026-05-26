@@ -44,7 +44,7 @@ test('añadir cita manualmente desde QuotesView', async ({ page }) => {
   await page.selectOption('select', { label: 'Borges' })
 
   // Rellenar el texto de la cita.
-  await page.getByPlaceholder('La cita').fill('El tiempo es un río que me arrebata...')
+  await page.getByPlaceholder('La cita', { exact: true }).fill('El tiempo es un río que me arrebata...')
 
   // Enviar — el toggle es ahora "Cerrar", el único "Añadir" visible es el submit.
   await page.getByRole('button', { name: /^Añadir$/ }).click()
