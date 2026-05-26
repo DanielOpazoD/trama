@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { ClerkProvider } from '@clerk/react'
 import App from './App'
 import './index.css'
 import { installClientErrorTracking } from './lib/clientErrorTracking'
@@ -9,8 +10,22 @@ import { installClientErrorTracking } from './lib/clientErrorTracking'
 // Los enviamos al mismo /api/error-log → aparecen en Settings → Logs.
 installClientErrorTracking()
 
-createRoot(document.getElementById('root')!).render(
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+const root = createRoot(document.getElementById('root')!)
+
+// Durante desarrollo sin clave configurada, permite que la app cargue.
+// En producción con VITE_CLERK_PUBLISHABLE_KEY vacío, Clerk no inicializa
+// pero la app sigue funcionando (antes de enforcement).
+root.render(
   <StrictMode>
-    <App />
+    {PUBLISHABLE_KEY ? (
+      <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+        <App />
+      </ClerkProvider>
+    ) : (
+      // Sin key de Clerk configurada — modo legacy/desarrollo
+      <App />
+    )}
   </StrictMode>,
 )

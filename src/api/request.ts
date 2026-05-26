@@ -30,6 +30,7 @@ export function aiModeHeader(): string {
  */
 export type ApiErrorCode =
   | 'VALIDATION'
+  | 'UNAUTHENTICATED'
   | 'NOT_FOUND'
   | 'CONFLICT'
   | 'METHOD_NOT_ALLOWED'
@@ -155,12 +156,40 @@ async function parseErrorResponse(
   })
 }
 
+/**
+ * Clerk expone el objeto en window.__clerk en el frontend.
+ * Leemos el token de sesión actual si está disponible — sin importar
+ * @clerk/clerk-react directamente (que requeriría un hook y un componente).
+ *
+ * TODO Sprint 2: migrar a un hook useApiClient() que use useAuth() de Clerk
+ * para obtener el token de forma más tipada. Por ahora este approach de
+ * window.__clerk minimiza cambios en los hooks de estado existentes.
+ */
+type ClerkWindow = {
+  __clerk?: {
+    session?: {
+      getToken: () => Promise<string | null>
+    }
+  }
+}
+
+async function getAuthHeader(): Promise<HeadersInit> {
+  const clerk = (window as unknown as ClerkWindow).__clerk
+  if (clerk?.session) {
+    const token = await clerk.session.getToken()
+    if (token) return { Authorization: `Bearer ${token}` }
+  }
+  return {}
+}
+
 export async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  const authHeader = await getAuthHeader()
   const response = await fetch(url, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
       'X-AI-Mode': aiModeHeader(),
+      ...authHeader,
       ...init?.headers,
     },
   })
