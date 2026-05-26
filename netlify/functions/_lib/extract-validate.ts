@@ -8,6 +8,8 @@
  * No I/O, no globals — easy to test.
  */
 
+import { z } from 'zod'
+
 export type ExistingEntityLite = { id: string; name: string; type: string }
 
 export type CleanedEntityEdit = {
@@ -117,6 +119,55 @@ function nullableString(v: unknown): string | null | undefined {
   return trimmed.length > 0 ? trimmed : null
 }
 
+// ---------- Zod schemas for raw LLM output ----------
+
+// Outer proposal: each array field defaults to [] when absent or invalid.
+// The outer .catch handles non-object inputs (null, strings, arrays).
+const RawProposalSchema = z.object({
+  entities:      z.array(z.unknown()).default([]).catch([]),
+  relationships: z.array(z.unknown()).default([]).catch([]),
+  quotes:        z.array(z.unknown()).default([]).catch([]),
+  edits:         z.array(z.unknown()).default([]).catch([]),
+  deletes:       z.array(z.unknown()).default([]).catch([]),
+}).catch({ entities: [], relationships: [], quotes: [], edits: [], deletes: [] })
+
+// Required string fields strict; optional extras typed as unknown so a bad
+// year (e.g. year:"1919") doesn't drop an otherwise valid entity.
+const RawEntityItemSchema = z.object({
+  name:        z.string(),
+  type:        z.string(),
+  year:        z.unknown().optional(),
+  description: z.unknown().optional(),
+  spotifyUrl:  z.unknown().optional(),
+})
+
+const RawRelationshipItemSchema = z.object({
+  fromName: z.string(),
+  toName:   z.string(),
+  type:     z.string(),
+  notes:    z.unknown().optional(),
+})
+
+const RawQuoteItemSchema = z.object({
+  entityName: z.string(),
+  text:       z.string(),
+  source:     z.unknown().optional(),
+  context:    z.unknown().optional(),
+})
+
+const RawEditItemSchema = z.object({
+  kind:   z.string(),
+  id:     z.string(),
+  patch:  z.record(z.unknown()),
+  reason: z.unknown().optional(),
+})
+
+const RawDeleteItemSchema = z.object({
+  kind:   z.string(),
+  id:     z.string(),
+  reason: z.unknown().optional(),
+})
+
 /**
  * @param raw  Whatever the LLM returned.
  * @param existing  Existing entities, for dedup-by-name.
@@ -132,111 +183,88 @@ export function validateExtraction(
   validRelationshipTypes: ReadonlySet<string>,
   existingIds?: ExtractionExistingIds,
 ): CleanedProposal {
-  const proposal = (raw ?? {}) as {
-    entities?: unknown
-    relationships?: unknown
-    quotes?: unknown
-    edits?: unknown
-    deletes?: unknown
-  }
+  const proposal = RawProposalSchema.parse(raw ?? {})
 
   const existingByName = new Map<string, { id: string; type: string }>()
   for (const e of existing) {
     existingByName.set(normalizeName(e.name), { id: e.id, type: e.type })
   }
 
-  const entities = Array.isArray(proposal.entities)
-    ? (proposal.entities as Array<Record<string, unknown>>)
-        .filter(
-          (e): e is Record<string, unknown> =>
-            typeof e === 'object' &&
-            e !== null &&
-            typeof e.name === 'string' &&
-            typeof e.type === 'string' &&
-            validEntityTypes.has(e.type),
-        )
-        .map((e) => {
-          const name = (e.name as string).trim()
-          const match = existingByName.get(normalizeName(name))
-          return {
-            matchedId: match?.id,
-            type: e.type as string,
-            name,
-            year: typeof e.year === 'number' ? e.year : undefined,
-            description: stringOrUndef(e.description),
-            spotifyUrl: stringOrUndef(e.spotifyUrl),
-          }
-        })
-    : []
+  const entities = proposal.entities
+    .flatMap((e) => {
+      const r = RawEntityItemSchema.safeParse(e)
+      return r.success && validEntityTypes.has(r.data.type) ? [r.data] : []
+    })
+    .map((e) => {
+      const name = e.name.trim()
+      const match = existingByName.get(normalizeName(name))
+      return {
+        matchedId: match?.id,
+        type: e.type,
+        name,
+        year: typeof e.year === 'number' ? e.year : undefined,
+        description: stringOrUndef(e.description),
+        spotifyUrl:  stringOrUndef(e.spotifyUrl),
+      }
+    })
 
-  const relationships = Array.isArray(proposal.relationships)
-    ? (proposal.relationships as Array<Record<string, unknown>>)
-        .filter(
-          (r): r is Record<string, unknown> =>
-            typeof r === 'object' &&
-            r !== null &&
-            typeof r.fromName === 'string' &&
-            typeof r.toName === 'string' &&
-            typeof r.type === 'string' &&
-            validRelationshipTypes.has(r.type) &&
-            normalizeName(r.fromName as string) !== normalizeName(r.toName as string),
-        )
-        .map((r) => ({
-          fromName: (r.fromName as string).trim(),
-          toName: (r.toName as string).trim(),
-          type: r.type as string,
-          notes: stringOrUndef(r.notes),
-        }))
-    : []
+  const relationships = proposal.relationships
+    .flatMap((r) => {
+      const parsed = RawRelationshipItemSchema.safeParse(r)
+      if (!parsed.success) return []
+      const d = parsed.data
+      if (!validRelationshipTypes.has(d.type)) return []
+      if (normalizeName(d.fromName) === normalizeName(d.toName)) return []
+      return [d]
+    })
+    .map((r) => ({
+      fromName: r.fromName.trim(),
+      toName:   r.toName.trim(),
+      type:     r.type,
+      notes:    stringOrUndef(r.notes),
+    }))
 
-  const quotes = Array.isArray(proposal.quotes)
-    ? (proposal.quotes as Array<Record<string, unknown>>)
-        .filter(
-          (q): q is Record<string, unknown> =>
-            typeof q === 'object' &&
-            q !== null &&
-            typeof q.entityName === 'string' &&
-            typeof q.text === 'string' &&
-            (q.text as string).trim().length > 0,
-        )
-        .map((q) => ({
-          entityName: (q.entityName as string).trim(),
-          text: (q.text as string).trim(),
-          source: stringOrUndef(q.source),
-          context: stringOrUndef(q.context),
-        }))
-    : []
+  const quotes = proposal.quotes
+    .flatMap((q) => {
+      const r = RawQuoteItemSchema.safeParse(q)
+      if (!r.success) return []
+      if (r.data.text.trim().length === 0) return []
+      return [r.data]
+    })
+    .map((q) => ({
+      entityName: q.entityName.trim(),
+      text:       q.text.trim(),
+      source:     stringOrUndef(q.source),
+      context:    stringOrUndef(q.context),
+    }))
 
   // ---------- edits & deletes (opt-in via existingIds) ----------
 
   const edits: CleanedEdit[] = []
   const deletes: CleanedDelete[] = []
 
-  if (existingIds && Array.isArray(proposal.edits)) {
-    for (const item of proposal.edits as Array<Record<string, unknown>>) {
-      if (!item || typeof item !== 'object') continue
-      const kind = item.kind
-      const id = item.id
-      const patch = item.patch
-      if (typeof id !== 'string' || typeof patch !== 'object' || patch === null) continue
-      const reason = stringOrUndef(item.reason)
+  if (existingIds) {
+    for (const raw of proposal.edits) {
+      const r = RawEditItemSchema.safeParse(raw)
+      if (!r.success) continue
+      const { kind, id, patch, reason: rawReason } = r.data
+      const reason = stringOrUndef(rawReason)
 
       if (kind === 'entity') {
         const ref = existingIds.entities.get(id)
         if (!ref) continue
-        const p = patch as Record<string, unknown>
         const cleanPatch: CleanedEntityEdit['patch'] = {}
-        const newName = stringOrUndef(p.name)
+        const newName = stringOrUndef(patch.name)
         if (newName !== undefined) cleanPatch.name = newName
-        const newType = stringOrUndef(p.type)
+        const newType = stringOrUndef(patch.type)
         if (newType !== undefined && validEntityTypes.has(newType)) cleanPatch.type = newType
-        if (typeof p.year === 'number') cleanPatch.year = p.year
-        else if (p.year === null) cleanPatch.year = null
-        const desc = nullableString(p.description)
+        if (typeof patch.year === 'number') cleanPatch.year = patch.year
+        else if (patch.year === null) cleanPatch.year = null
+        const desc = nullableString(patch.description)
         if (desc !== undefined) cleanPatch.description = desc
-        const essay = nullableString(p.essay)
+        const essay = nullableString(patch.essay)
         if (essay !== undefined) cleanPatch.essay = essay
-        const url = nullableString(p.spotifyUrl)
+        const url = nullableString(patch.spotifyUrl)
         if (url !== undefined) cleanPatch.spotifyUrl = url
         // Drop the edit if patch ends up empty.
         if (Object.keys(cleanPatch).length === 0) continue
@@ -247,17 +275,16 @@ export function validateExtraction(
       if (kind === 'quote') {
         const ref = existingIds.quotes.get(id)
         if (!ref) continue
-        const p = patch as Record<string, unknown>
         const cleanPatch: CleanedQuoteEdit['patch'] = {}
-        const text = stringOrUndef(p.text)
+        const text = stringOrUndef(patch.text)
         if (text !== undefined) cleanPatch.text = text
-        const src = nullableString(p.source)
+        const src = nullableString(patch.source)
         if (src !== undefined) cleanPatch.source = src
-        const ctx = nullableString(p.context)
+        const ctx = nullableString(patch.context)
         if (ctx !== undefined) cleanPatch.context = ctx
-        const eid = stringOrUndef(p.entityId)
+        const eid = stringOrUndef(patch.entityId)
         if (eid !== undefined && existingIds.entities.has(eid)) cleanPatch.entityId = eid
-        const refl = nullableString(p.userReflection)
+        const refl = nullableString(patch.userReflection)
         if (refl !== undefined) cleanPatch.userReflection = refl
         if (Object.keys(cleanPatch).length === 0) continue
         edits.push({
@@ -274,11 +301,10 @@ export function validateExtraction(
       if (kind === 'relationship') {
         const ref = existingIds.relationships.get(id)
         if (!ref) continue
-        const p = patch as Record<string, unknown>
         const cleanPatch: CleanedRelationshipEdit['patch'] = {}
-        const t = stringOrUndef(p.type)
+        const t = stringOrUndef(patch.type)
         if (t !== undefined && validRelationshipTypes.has(t)) cleanPatch.type = t
-        const notes = nullableString(p.notes)
+        const notes = nullableString(patch.notes)
         if (notes !== undefined) cleanPatch.notes = notes
         if (Object.keys(cleanPatch).length === 0) continue
         edits.push({ kind: 'relationship', id, preview: ref.preview, patch: cleanPatch, reason })
@@ -286,13 +312,12 @@ export function validateExtraction(
     }
   }
 
-  if (existingIds && Array.isArray(proposal.deletes)) {
-    for (const item of proposal.deletes as Array<Record<string, unknown>>) {
-      if (!item || typeof item !== 'object') continue
-      const kind = item.kind
-      const id = item.id
-      if (typeof id !== 'string') continue
-      const reason = stringOrUndef(item.reason)
+  if (existingIds) {
+    for (const raw of proposal.deletes) {
+      const r = RawDeleteItemSchema.safeParse(raw)
+      if (!r.success) continue
+      const { kind, id, reason: rawReason } = r.data
+      const reason = stringOrUndef(rawReason)
       if (kind === 'entity') {
         const ref = existingIds.entities.get(id)
         if (!ref) continue
