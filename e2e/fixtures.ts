@@ -161,8 +161,29 @@ export async function mockBackend(page: Page, state: MockState) {
     return jsonResp(route, state.relationships)
   })
 
-  // GET /api/quotes (paginated when limit; wholesale otherwise)
+  // GET /api/quotes (paginated when limit; wholesale otherwise) + POST
   await page.route(apiPath('quotes', { prefix: true }), async (route) => {
+    if (route.request().method() === 'POST') {
+      const payload = JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>
+      const created = {
+        id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        entity_id: payload.entityId as string,
+        text: payload.text as string,
+        source: (payload.source as string | undefined) ?? null,
+        context: (payload.context as string | undefined) ?? null,
+        user_reflection: (payload.userReflection as string | undefined) ?? null,
+        ai_reflection: null,
+        ai_reflection_provider: null,
+        ai_reflection_model: null,
+        ai_reflection_at: null,
+        linked_quote_ids: [],
+        origin: (payload.origin as { kind: string } | undefined) ?? { kind: 'manual' },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      state.quotes.unshift(created)
+      return jsonResp(route, created, 201)
+    }
     const url = new URL(route.request().url())
     const limitParam = url.searchParams.get('limit')
     if (limitParam) {
