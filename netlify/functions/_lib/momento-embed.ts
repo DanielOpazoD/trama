@@ -18,7 +18,7 @@
 import {
   validateMomentoPayload as _validateMomentoPayload,
   type MomentoKind as _MomentoKind,
-} from '../../../src/schemas/momento.js'
+} from './momento-schemas.js'
 
 export type MomentoKind = _MomentoKind
 
