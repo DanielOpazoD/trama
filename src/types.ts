@@ -171,95 +171,31 @@ export type Momento = {
 
 // ---------- AI extraction proposal shapes (transient — not persisted until accepted) ----------
 
-export type ProposedEntity = {
-  matchedId?: string
-  type: EntityType
-  name: string
-  year?: number
-  description?: string
-  spotifyUrl?: string
-}
-
-export type ProposedRelationship = {
-  fromName: string
-  toName: string
-  type: RelationshipType
-  notes?: string
-  /** Optional second-model review attached when cross-verification ran. */
-  verification?: { agreed: boolean; note?: string; verifier: string }
-}
-
-export type ProposedQuote = {
-  entityName: string
-  text: string
-  source?: string
-  context?: string
-}
-
 /**
- * Edits proposed by the AI to existing rows. The id is the existing row's
- * UUID; the patch carries only the fields the AI wants to change. The UI
- * checkbox is opt-in per row.
+ * FF2: estos tipos se infieren desde `src/schemas/proposal.ts` (Zod). El
+ * shape canónico vive ahí; acá solo re-exportamos para que el resto del
+ * código no tenga que cambiar imports. Si necesitás validación en runtime,
+ * importá las schemas directamente desde `./schemas/proposal`.
  */
-export type ProposedEntityEdit = {
-  kind: 'entity'
-  id: string
-  /** Name shown to the user as context — not part of the patch. */
-  name: string
-  patch: {
-    name?: string
-    type?: string
-    year?: number | null
-    description?: string | null
-    essay?: string | null
-    spotifyUrl?: string | null
-  }
-  reason?: string
-}
-
-export type ProposedQuoteEdit = {
-  kind: 'quote'
-  id: string
-  /** Truncated text + entity name shown for context. */
-  preview: string
-  entityName?: string
-  patch: {
-    text?: string
-    source?: string | null
-    context?: string | null
-    entityId?: string
-    userReflection?: string | null
-  }
-  reason?: string
-}
-
-export type ProposedRelationshipEdit = {
-  kind: 'relationship'
-  id: string
-  /** "X → asociado_con → Y" shown for context. */
-  preview: string
-  patch: {
-    type?: string
-    notes?: string | null
-  }
-  reason?: string
-}
-
-export type ProposedEdit =
-  | ProposedEntityEdit
-  | ProposedQuoteEdit
-  | ProposedRelationshipEdit
-
-/**
- * Deletes proposed by the AI. The UI ALWAYS shows these unchecked by default
- * — the user has to opt in explicitly because the operation is destructive.
- */
-export type ProposedDelete = {
-  kind: 'entity' | 'quote' | 'relationship'
-  id: string
-  /** Label or "X → type → Y" for context. */
-  preview: string
-  reason?: string
+import type {
+  ProposedEntity,
+  ProposedRelationship,
+  ProposedQuote,
+  ProposedEntityEdit,
+  ProposedQuoteEdit,
+  ProposedRelationshipEdit,
+  ProposedEdit,
+  ProposedDelete,
+} from './schemas/proposal'
+export type {
+  ProposedEntity,
+  ProposedRelationship,
+  ProposedQuote,
+  ProposedEntityEdit,
+  ProposedQuoteEdit,
+  ProposedRelationshipEdit,
+  ProposedEdit,
+  ProposedDelete,
 }
 
 export type ExtractionProposal = {
