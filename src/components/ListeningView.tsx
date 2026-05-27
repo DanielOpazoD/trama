@@ -6,7 +6,8 @@ import { SparkleIcon } from './Icons'
 import { MusicPaletteCard } from './MusicPaletteCard'
 import { PlaysTiming } from './listening/PlaysTiming'
 import { SuggestArtists } from './listening/SuggestArtists'
-import { sectionWashStyle } from '../lib/sectionWash'
+import { ViewHeader } from './ViewHeader'
+import { LoadingHint } from './LoadingHint'
 import type { EntityType, ExtractionProposal, Origin } from '../types'
 
 type Group = 'artist' | 'album' | 'track'
@@ -172,25 +173,17 @@ export function ListeningView({
     <>
       {/* ι6: eyebrow editorial coherente con Sugerencias.
           ω-B: wash con accent del tipo musico — rojo-tierra. */}
-      <header
-        className="mb-10 flex items-baseline justify-between gap-6 px-3 -mx-3 py-2 -my-2 rounded-lg"
-        style={sectionWashStyle('var(--type-musico)')}
-      >
-        <div className="min-w-0">
-          <p className="section-eyebrow-serif mb-2" style={{ color: 'var(--accent-gold)' }}>
-            tu música reciente
-          </p>
-          <h2 className="font-serif text-4xl text-ink-700 leading-none">Escuchas</h2>
-          <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-2xl">
-            Lo que has reproducido en Spotify, agrupado y ordenado por frecuencia.
-            Nada de esto está en tu trama todavía — revisa y agrega lo que resuene.
-          </p>
-        </div>
-      </header>
+      <ViewHeader
+        title="Escuchas"
+        eyebrow="tu música reciente"
+        accent="var(--type-musico)"
+        eyebrowColor="var(--accent-gold)"
+        spacing="wide"
+        subtitle="Lo que has reproducido en Spotify, agrupado y ordenado por frecuencia. Nada de esto está en tu trama todavía — revisa y agrega lo que resuene."
+      />
 
       {!isStatusKnown ? (
-        <p className="text-ink-300 italic text-sm">Cargando…</p>
+        <LoadingHint text="cargando" size="sm" />
       ) : !isConnected ? (
         <div className="p-6 border border-ink-100/60 rounded-xl bg-paper-100/30">
           <p className="text-ink-500 italic leading-relaxed">
@@ -293,7 +286,7 @@ export function ListeningView({
           <SuggestArtists />
 
           {playsQuery.isLoading ? (
-            <p className="text-ink-300 italic">cargando…</p>
+            <LoadingHint text="cargando" />
           ) : !playsQuery.data || playsQuery.data.items.length === 0 ? (
             <p className="text-ink-400 italic leading-relaxed">
               Aún sin reproducciones registradas. Sincroniza desde Configuración para
@@ -560,7 +553,7 @@ function PlaylistImporter({
             <button
               type="submit"
               disabled={!value.trim() || isPending}
-              className="btn-ink text-xs"
+              className="btn-accent text-xs"
             >
               {isPending ? 'leyendo…' : 'importar'}
             </button>

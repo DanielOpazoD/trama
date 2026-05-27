@@ -75,7 +75,9 @@ export function ToastHost() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-up pointer-events-none"
+      // bottom-20 en mobile para no quedar tapado por la MobileBottomNav
+      // (que vive en flex-col root). Desktop mantiene bottom-6 estándar.
+      className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-up pointer-events-none"
     >
       <div
         className={`pointer-events-auto flex items-center gap-3 pl-4 pr-2 py-2.5 rounded-xl border shadow-lg shadow-ink-900/25 min-w-[260px] max-w-[480px] ${toneClass}`}

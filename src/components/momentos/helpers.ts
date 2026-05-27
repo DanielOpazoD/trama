@@ -43,6 +43,36 @@ export function formatTime(iso: string): string {
 }
 
 /**
+ * Convierte un ISO timestamp al formato que <input type="datetime-local">
+ * espera: "YYYY-MM-DDTHH:mm" en hora LOCAL del usuario (no UTC).
+ *
+ * Devuelve '' si el ISO es inválido — el input acepta string vacío.
+ */
+export function toDateTimeLocalInput(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  )
+}
+
+/**
+ * Inversa de toDateTimeLocalInput: lee el valor de un <input type="datetime-local">
+ * (formato "YYYY-MM-DDTHH:mm", hora local) y devuelve ISO UTC.
+ *
+ * Devuelve null si el valor es inválido o vacío — el caller decide si
+ * mantener el capturedAt original o rechazar el submit.
+ */
+export function fromDateTimeLocalInput(value: string): string | null {
+  if (!value) return null
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toISOString()
+}
+
+/**
  * Agrupa una lista de momentos por día calendario (year-month-day).
  *
  * Asume que `items` ya viene ordenado descendente por capturedAt (el

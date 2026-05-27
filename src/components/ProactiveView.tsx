@@ -13,6 +13,8 @@ import { ENTITY_TYPES, RELATIONSHIP_TYPES } from '../types'
 import { EndMark, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 import { AISourceTag } from './AISourceTag'
+import { ViewHeader } from './ViewHeader'
+import { ProactiveSuggestionSkeleton, SkeletonList } from './Skeleton'
 
 /**
  * Inbox of proactive AI suggestions. The AI does a sweep over the trama and
@@ -78,39 +80,34 @@ export function ProactiveView() {
 
   return (
     <>
-      {/* ι6: eyebrow editorial arriba del título para anclar la vista
-          en el sistema visual del resto de la app. */}
-      <header className="mb-10 flex items-baseline justify-between gap-6">
-        <div className="min-w-0">
-          <p className="section-eyebrow-serif mb-2" style={{ color: 'var(--accent-gold)' }}>
-            lecturas de la IA
-          </p>
-          <h2 className="font-serif text-4xl text-ink-700 leading-none">Sugerencias</h2>
-          <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-xl">
-            La IA recorre tu trama y deja aquí lo que cree que vale la pena
-            agregar. Acepta lo que te resuene, descarta el resto. Pídele otra
-            ronda cuando quieras.
-          </p>
-        </div>
-        <button
-          onClick={() => generate.mutate()}
-          disabled={generate.isPending || offline}
-          className="ai-cta"
-        >
-          {generate.isPending ? (
-            <>
-              <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: `var(--accent-primary-ring)`, borderTopColor: `var(--accent-primary)` }} />
-              pensando…
-            </>
-          ) : (
-            <>
-              <SparkleIcon size={12} />
-              {suggestions.length === 0 ? 'pedir ronda' : 'pedir otra ronda'}
-            </>
-          )}
-        </button>
-      </header>
+      <ViewHeader
+        title="Sugerencias"
+        eyebrow="lecturas de la IA"
+        accent="var(--accent-primary)"
+        eyebrowColor="var(--accent-gold)"
+        noWash
+        spacing="wide"
+        subtitle="La IA recorre tu trama y deja aquí lo que cree que vale la pena agregar. Acepta lo que te resuene, descarta el resto. Pídele otra ronda cuando quieras."
+        action={
+          <button
+            onClick={() => generate.mutate()}
+            disabled={generate.isPending || offline}
+            className="ai-cta"
+          >
+            {generate.isPending ? (
+              <>
+                <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: `var(--accent-primary-ring)`, borderTopColor: `var(--accent-primary)` }} />
+                pensando…
+              </>
+            ) : (
+              <>
+                <SparkleIcon size={12} />
+                {suggestions.length === 0 ? 'pedir ronda' : 'pedir otra ronda'}
+              </>
+            )}
+          </button>
+        }
+      />
 
       {generate.error && (
         <div className="alert-error mb-6 px-4 py-3 rounded-xl text-sm">
@@ -121,7 +118,9 @@ export function ProactiveView() {
       )}
 
       {list.isLoading ? (
-        <p className="text-ink-300 italic">cargando…</p>
+        <div className="space-y-3">
+          <SkeletonList count={4} Component={ProactiveSuggestionSkeleton} />
+        </div>
       ) : suggestions.length === 0 ? (
         <EmptyMessage
           icon={<SparkleIcon size={18} />}
@@ -186,7 +185,7 @@ export function ProactiveView() {
                 <button
                   onClick={() => handleAccept(s)}
                   disabled={resolve.isPending}
-                  className="btn-ink text-xs"
+                  className="btn-accent text-xs"
                 >
                   aceptar
                 </button>

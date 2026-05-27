@@ -235,7 +235,7 @@ export function EntityForm({
         >
           Cancelar
         </button>
-        <button type="submit" disabled={addEntity.isPending} className="btn-ink">
+        <button type="submit" disabled={addEntity.isPending} className="btn-accent">
           {addEntity.isPending ? 'Añadiendo…' : 'Añadir'}
         </button>
       </div>

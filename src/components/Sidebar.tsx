@@ -24,6 +24,7 @@ import {
 import { AIModeToggle } from './AIModeToggle'
 import { NavButton, type NavItem } from './sidebar/NavButton'
 import { Tooltip } from './Tooltip'
+import { SECTION_ACCENT } from '../lib/sectionAccent'
 
 // El símbolo del modificador de atajos depende de la plataforma. En Mac
 // es ⌘, en el resto es "Ctrl". El check vive en módulo para no recalcular
@@ -49,33 +50,9 @@ const NAV_ITEMS: NavItem[] = [
   { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
 ]
 
-/**
- * λ4: cada vista del sidebar tiene una "firma cromática" que se aplica
- * a la barra lateral del activo + al icono activo. Antes todas usaban
- * ink-700 (gris uniforme), lo que dejaba la nav sin pulso. Ahora:
- *
- *   Inicio       → gold        (saludo cálido, momento de entrada)
- *   Grafo        → primary     (azul prusia — el mapa)
- *   Entidades    → persona     (marrón cálido de la mayoría de tipos)
- *   Citas        → gold        (el lugar donde el lenguaje pesa)
- *   Relaciones   → sage        (vínculos vegetales, no técnicos)
- *   Escuchas     → musico      (el rojo-tierra del tipo "musico")
- *   Chat         → primary     (azul, conversación con la IA)
- *   Sugerencias  → primary     (mismo azul; la IA propone)
- *
- * El color se inyecta como CSS var inline para que NavButton lo aplique
- * sin saber qué sección renderiza.
- */
-const SECTION_ACCENT: Record<ViewMode, string> = {
-  inicio: 'var(--accent-gold)',
-  grafo: 'var(--accent-primary)',
-  entidades: 'var(--type-persona)',
-  citas: 'var(--accent-gold)',
-  momentos: 'var(--type-evento)',
-  escuchas: 'var(--type-musico)',
-  chat: 'var(--accent-primary)',
-  sugerencias: 'var(--accent-primary)',
-}
+// λ4: la firma cromática por vista vive en src/lib/sectionAccent.ts —
+// fuente de verdad compartida entre Sidebar, MobileBottomNav y
+// SectionAccentBand. Si querés ajustar un color, edita ahí.
 
 export function Sidebar({
   view,

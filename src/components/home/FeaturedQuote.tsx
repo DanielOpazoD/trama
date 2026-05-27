@@ -107,6 +107,15 @@ export function FeaturedQuote({
           </p>
         </div>
       )}
+      {/* Colofón editorial: tres asteriscos espaciados al final de la
+          cita, como en una página de libro. Marca el cierre del bloque
+          editorial sin pesar visualmente. */}
+      <div
+        className="mt-8 text-center text-ink-200 tracking-shout text-caption"
+        aria-hidden
+      >
+        ∗ &nbsp; ∗ &nbsp; ∗
+      </div>
     </section>
   )
 }

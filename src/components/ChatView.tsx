@@ -18,6 +18,7 @@ import { ArrowRightIcon } from './Icons'
 import { InlineProposal } from './chat/InlineProposal'
 import { SkeletonList, ThreadRowSkeleton } from './Skeleton'
 import { AISourceTag } from './AISourceTag'
+import { LoadingHint } from './LoadingHint'
 
 export function ChatView({
   initialThreadId,
@@ -295,7 +296,7 @@ export function ChatView({
           {!activeId ? (
             <EmptyChatHint />
           ) : messagesLoading ? (
-            <p className="text-ink-300 italic">cargando…</p>
+            <LoadingHint text="cargando" />
           ) : messages.length === 0 ? (
             <EmptyChatHint />
           ) : (

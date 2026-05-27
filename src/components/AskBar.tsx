@@ -3,6 +3,7 @@ import { useAsk, useExtractFromImage, useOffline } from '../state'
 import type { ExtractionProposal } from '../types'
 import { useThreadIdForView } from '../hooks/useThreadIdForView'
 import { ArrowRightIcon, CameraIcon, ReadingIcon } from './Icons'
+import { Tooltip } from './Tooltip'
 
 /** Convert a File to a base64 string (without the data URL prefix). */
 async function fileToBase64(file: File): Promise<string> {
@@ -188,7 +189,7 @@ export function AskBar({
                 {threadId && onOpenThread && (
                   <button
                     onClick={() => onOpenThread(threadId)}
-                    className="text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
+                    className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
                     title="Ver en chat"
                   >
                     Historial
@@ -197,7 +198,7 @@ export function AskBar({
                 {threadId && (
                   <button
                     onClick={handleNewThread}
-                    className="text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
+                    className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
                     title="Empezar hilo nuevo"
                   >
                     Nuevo
@@ -205,7 +206,7 @@ export function AskBar({
                 )}
                 <button
                   onClick={() => setReply(null)}
-                  className="text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
+                  className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
                 >
                   Cerrar
                 </button>
@@ -225,31 +226,33 @@ export function AskBar({
           onSubmit={handleSubmit}
           className="flex items-end gap-2 bg-paper-50/90 border border-ink-100/80 rounded-xl shadow-xl shadow-ink-900/10 p-2 backdrop-blur-md transition-shadow duration-300 focus-within:shadow-lg focus-within:shadow-ink-900/10 focus-within:border-ink-200"
         >
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={offline || imageBusy || busy}
-            aria-label="Extraer desde imagen"
-            title="Sube una foto de una página, captura o cartel"
-            className="self-end mb-1 ml-1 size-9 rounded-full text-ink-400 hover:text-ink-700 hover:bg-ink-50 disabled:text-ink-200 disabled:cursor-not-allowed transition-all duration-150 ease-out flex items-center justify-center"
-          >
-            {imageBusy ? (
-              <span className="size-3.5 border-2 border-ink-200 border-t-ink-500 rounded-full animate-spin" />
-            ) : (
-              <CameraIcon size={14} />
-            )}
-          </button>
-          {onOpenReading && (
+          <Tooltip content="Sube una foto y la IA extrae lo que contiene">
             <button
               type="button"
-              onClick={onOpenReading}
-              disabled={offline || busy}
-              aria-label="Modo lectura"
-              title="Modo lectura: pega un texto largo y se procesa por trozos"
-              className="self-end mb-1 size-9 rounded-full text-ink-400 hover:text-ink-700 hover:bg-ink-50 disabled:text-ink-200 disabled:cursor-not-allowed transition-all duration-150 ease-out flex items-center justify-center"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={offline || imageBusy || busy}
+              aria-label="Extraer desde imagen"
+              className="self-end mb-1 ml-1 size-9 rounded-full text-ink-400 hover:text-ink-700 hover:bg-ink-50 disabled:text-ink-200 disabled:cursor-not-allowed transition-all duration-150 ease-out flex items-center justify-center"
             >
-              <ReadingIcon size={14} />
+              {imageBusy ? (
+                <span className="size-3.5 border-2 border-ink-200 border-t-ink-500 rounded-full animate-spin" />
+              ) : (
+                <CameraIcon size={14} />
+              )}
             </button>
+          </Tooltip>
+          {onOpenReading && (
+            <Tooltip content="Modo lectura — pegá un texto largo y se procesa por trozos">
+              <button
+                type="button"
+                onClick={onOpenReading}
+                disabled={offline || busy}
+                aria-label="Modo lectura"
+                className="self-end mb-1 size-9 rounded-full text-ink-400 hover:text-ink-700 hover:bg-ink-50 disabled:text-ink-200 disabled:cursor-not-allowed transition-all duration-150 ease-out flex items-center justify-center"
+              >
+                <ReadingIcon size={14} />
+              </button>
+            </Tooltip>
           )}
           <input
             ref={fileInputRef}

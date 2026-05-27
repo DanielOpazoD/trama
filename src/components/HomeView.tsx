@@ -18,6 +18,7 @@ import { Greeting } from './home/Greeting'
 import { FeaturedQuote, pickFeaturedQuote } from './home/FeaturedQuote'
 import { ActivityHeatmap } from './home/ActivityHeatmap'
 import { RecentTimeline, buildTimeline } from './home/RecentTimeline'
+import { FirstMomentPreview } from './home/FirstMomentPreview'
 
 /**
  * Home is the first thing the user sees. It's not the graph (intimidating
@@ -118,18 +119,21 @@ export function HomeView({
       />
 
       {totalEntities === 0 ? (
-        <EmptyMessage
-          illustration="weave"
-          title="Una trama recién empieza así, en silencio."
-          body={
-            <>
-              Pega un párrafo abajo — algo que te llegó, una conversación que
-              quieres retener, un libro que estás leyendo. La IA propone qué
-              entidades, relaciones y citas extraer. Tú apruebas.
-            </>
-          }
-          hint="Si tienes Spotify conectado, también puedes pegar una playlist."
-        />
+        <>
+          <EmptyMessage
+            illustration="weave"
+            title="Una trama recién empieza así, en silencio."
+            body={
+              <>
+                Pega un párrafo abajo — algo que te llegó, una conversación que
+                quieres retener, un libro que estás leyendo. La IA propone qué
+                entidades, relaciones y citas extraer. Tú apruebas.
+              </>
+            }
+            hint="Si tienes Spotify conectado, también puedes pegar una playlist."
+          />
+          <FirstMomentPreview />
+        </>
       ) : (
         // Reorden δ2: la Cita primero, Weekly después.
         // Razón: Trama es un cuaderno de citas + entidades. La cita

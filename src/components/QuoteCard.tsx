@@ -195,7 +195,7 @@ export function QuoteCard({
           <button
             onClick={handleSaveFullEdit}
             disabled={updateQuote.isPending || !textDraft.trim()}
-            className="btn-ink text-xs"
+            className="btn-accent text-xs"
           >
             {updateQuote.isPending ? 'guardando…' : 'guardar'}
           </button>
@@ -278,7 +278,7 @@ export function QuoteCard({
               <button
                 onClick={handleSaveUserReflection}
                 disabled={updateQuote.isPending}
-                className="btn-ink text-xs"
+                className="btn-accent text-xs"
               >
                 {updateQuote.isPending ? 'guardando…' : 'guardar reflexión'}
               </button>
@@ -366,7 +366,7 @@ export function QuoteCard({
             <button
               onClick={handleAcceptAi}
               disabled={updateQuote.isPending}
-              className="btn-ink text-xs"
+              className="btn-accent text-xs"
             >
               {updateQuote.isPending ? 'guardando…' : 'guardar'}
             </button>

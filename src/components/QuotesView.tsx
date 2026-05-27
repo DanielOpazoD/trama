@@ -5,7 +5,7 @@ import {
   useRelationshipsQuery,
   useDeleteQuote,
 } from '../state'
-import { sectionWashStyle } from '../lib/sectionWash'
+import { ViewHeader } from './ViewHeader'
 import { EndMark } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 import { Folio } from './Folio'
@@ -98,36 +98,24 @@ export function QuotesView({
 
   return (
     <>
-      {/* ω-B: wash gold — el lugar donde el lenguaje pesa. */}
-      <header
-        className="mb-10 flex items-baseline justify-between gap-6 px-3 -mx-3 py-2 -my-2 rounded-lg"
-        style={sectionWashStyle('var(--accent-gold)')}
-      >
-        <div className="min-w-0">
-          {/* σ-followup: eyebrow editorial — coherente con Momentos,
-              Escuchas, Sugerencias, Entidades. */}
-          <p
-            className="section-eyebrow-serif mb-2"
-            style={{ color: 'var(--accent-gold)' }}
-          >
-            fragmentos que retuviste
-          </p>
-          <h2 className="font-serif text-4xl text-ink-700 leading-none">Citas</h2>
-          <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-2xl">
-            Fragmentos textuales que atribuyes a una entidad. Una frase de un libro,
-            algo que dijo una persona, un verso de una canción.
-          </p>
-        </div>
-        {entities.length > 0 && (
-          <button
-            onClick={() => setShowForm((s) => !s)}
-            className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
-          >
-            {showForm ? 'Cerrar' : 'Añadir'}
-          </button>
-        )}
-      </header>
+      <ViewHeader
+        title="Citas"
+        eyebrow="fragmentos que retuviste"
+        accent="var(--accent-gold)"
+        spacing="wide"
+        sticky
+        subtitle="Fragmentos textuales que atribuyes a una entidad. Una frase de un libro, algo que dijo una persona, un verso de una canción."
+        action={
+          entities.length > 0 ? (
+            <button
+              onClick={() => setShowForm((s) => !s)}
+              className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+            >
+              {showForm ? 'Cerrar' : 'Añadir'}
+            </button>
+          ) : null
+        }
+      />
 
       {entities.length === 0 ? (
         <EmptyMessage

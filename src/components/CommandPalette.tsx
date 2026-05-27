@@ -20,8 +20,16 @@ const IS_MAC =
   /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
 const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 
+export type CommandAction =
+  | 'open-settings'
+  | 'open-shortcuts'
+  | 'new-entity'
+  | 'new-quote'
+  | 'new-momento'
+
 type Item =
   | { kind: 'view'; view: ViewMode; label: string; hint?: string }
+  | { kind: 'action'; action: CommandAction; label: string; hint?: string }
   | { kind: 'entity'; id: string; name: string; type: string }
   | { kind: 'quote'; id: string; text: string; entityName: string }
 
@@ -34,6 +42,16 @@ const VIEWS: Array<{ view: ViewMode; label: string; hint: string }> = [
   { view: 'escuchas', label: 'Escuchas', hint: 'tu música reciente' },
   { view: 'chat', label: 'Chat', hint: 'conversación con la IA' },
   { view: 'sugerencias', label: 'Sugerencias', hint: 'la IA revisa la trama' },
+]
+
+// Acciones rápidas — el palette no las navega, las despacha como callbacks
+// al padre. Los hints son keywords que el filtro substring matchea.
+const ACTIONS: Array<{ action: CommandAction; label: string; hint: string }> = [
+  { action: 'new-entity', label: 'Nueva entidad', hint: 'crear persona, libro, canción, concepto' },
+  { action: 'new-quote', label: 'Nueva cita', hint: 'guardar un fragmento' },
+  { action: 'new-momento', label: 'Nuevo momento', hint: 'nota, recorte o foto del día' },
+  { action: 'open-settings', label: 'Configuración', hint: 'preferencias, tema, IA, datos' },
+  { action: 'open-shortcuts', label: 'Atajos de teclado', hint: 'lista de shortcuts' },
 ]
 
 /**
@@ -49,11 +67,15 @@ export function CommandPalette({
   onClose,
   onNavigate,
   onSelectEntity,
+  onAction,
 }: {
   open: boolean
   onClose: () => void
   onNavigate: (view: ViewMode) => void
   onSelectEntity: (id: string) => void
+  /** Acciones rápidas (Nueva entidad, Configuración, etc.). Si no se
+      pasa, el palette las oculta. */
+  onAction?: (action: CommandAction) => void
 }) {
   const { data: entities = [] } = useEntitiesQuery()
   const { data: quotes = [] } = useQuotesQuery()
@@ -76,6 +98,12 @@ export function CommandPalette({
     const matchesView = VIEWS.filter(
       (v) => !q || v.label.toLowerCase().includes(q) || v.hint.toLowerCase().includes(q),
     ).map<Item>((v) => ({ kind: 'view', view: v.view, label: v.label, hint: v.hint }))
+
+    const matchesAction = onAction
+      ? ACTIONS.filter(
+          (a) => !q || a.label.toLowerCase().includes(q) || a.hint.toLowerCase().includes(q),
+        ).map<Item>((a) => ({ kind: 'action', action: a.action, label: a.label, hint: a.hint }))
+      : []
 
     const matchesEntity = entities
       .filter((e) => {
@@ -101,8 +129,8 @@ export function CommandPalette({
           }))
       : []
 
-    return [...matchesView, ...matchesEntity, ...matchesQuote]
-  }, [query, entities, quotes])
+    return [...matchesView, ...matchesAction, ...matchesEntity, ...matchesQuote]
+  }, [query, entities, quotes, onAction])
 
   useEffect(() => {
     setFocusIdx(0)
@@ -134,6 +162,8 @@ export function CommandPalette({
   function selectItem(item: Item) {
     if (item.kind === 'view') {
       onNavigate(item.view)
+    } else if (item.kind === 'action') {
+      onAction?.(item.action)
     } else if (item.kind === 'entity') {
       onSelectEntity(item.id)
     } else {
@@ -216,6 +246,7 @@ export function CommandPalette({
 
 function itemKey(item: Item): string {
   if (item.kind === 'view') return item.view
+  if (item.kind === 'action') return item.action
   if (item.kind === 'entity') return item.id
   return item.id
 }
@@ -260,6 +291,28 @@ function ItemRow({ item, query }: { item: Item; query: string }) {
     return (
       <>
         <ViewIcon view={item.view} />
+        <span className="text-ink-700">
+          <HighlightedText text={item.label} query={query} />
+        </span>
+        {item.hint && (
+          <span className="text-ink-300 text-xs ml-2 truncate">— {item.hint}</span>
+        )}
+      </>
+    )
+  }
+  if (item.kind === 'action') {
+    // Glyph genérico para acciones — el "+" comunica "crear/abrir algo"
+    // sin requerir ícono dedicado por acción. Color accent-primary
+    // refuerza que es una acción IA-aware, no navegación.
+    return (
+      <>
+        <span
+          className="size-[14px] inline-flex items-center justify-center rounded text-[14px] leading-none font-medium shrink-0"
+          style={{ color: 'var(--accent-primary)' }}
+          aria-hidden
+        >
+          +
+        </span>
         <span className="text-ink-700">
           <HighlightedText text={item.label} query={query} />
         </span>

@@ -29,6 +29,9 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { RightPanel, type PendingProposal } from './components/RightPanel'
 import { ViewRouter } from './components/ViewRouter'
 import { AuthGate } from './components/AuthGate'
+import { GlobalProgressBar } from './components/GlobalProgressBar'
+import { MobileBottomNav } from './components/MobileBottomNav'
+import { SectionAccentBand } from './components/SectionAccentBand'
 
 /**
  * El shell de la app: monta sidebar + topbar + main + paneles flotantes
@@ -131,10 +134,11 @@ function Shell() {
 
   // Atajos globales:
   //   Cmd/Ctrl+K → CommandPalette
+  //   /          → CommandPalette (alias estilo Slack/GitHub — "buscar")
   //   ?          → ShortcutsModal (cheatsheet)
   //   \          → toggle focus mode (zen, como editores markdown)
   //
-  // Para los que no usan modifiers (? y \) ignoramos cuando el foco
+  // Para los que no usan modifiers (?, \, /) ignoramos cuando el foco
   // está en un input/textarea — no rompemos la escritura.
   useEffect(() => {
     function handler(e: KeyboardEvent) {
@@ -149,6 +153,11 @@ function Shell() {
         tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable
       if (inField) return
 
+      if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault()
+        setPaletteOpen(true)
+        return
+      }
       if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault()
         setShortcutsOpen((open) => !open)
@@ -179,15 +188,16 @@ function Shell() {
 
   return (
     <div
-      className="h-screen w-screen flex overflow-hidden"
+      className="h-screen w-screen flex flex-col md:flex-row overflow-hidden"
       data-focus-mode={focusMode || undefined}
     >
       {/* DD1: banner amarillo en deploy previews — la BD del preview es
           una rama ephemeral, los cambios no llegan a producción. */}
       <PreviewBanner />
       {/* Sidebar — se oculta en focus mode para liberar todo el viewport
-          al contenido. La animation se preserva al regresar de focus. */}
-      {!focusMode && (
+          al contenido. En mobile el sidebar también se oculta; en su
+          lugar montamos la MobileBottomNav abajo. */}
+      {!focusMode && !isMobile && (
         <div className="animate-shell-sidebar shrink-0 h-full flex">
           <Sidebar
             view={view}
@@ -240,6 +250,8 @@ function Shell() {
                   : null
               }
             />
+            {/* Section accent band — banda 2px del color de la vista activa. */}
+            <SectionAccentBand view={view} />
           </div>
         )}
         <div className="flex-1 relative overflow-hidden animate-shell-main">
@@ -352,6 +364,28 @@ function Shell() {
         onClose={() => setPaletteOpen(false)}
         onNavigate={(v) => setView(v)}
         onSelectEntity={(id) => setSelectedEntityId(id)}
+        onAction={(action) => {
+          // Las acciones rápidas del palette se traducen en navigations
+          // + modal openings. "Nueva X" navega a la vista correspondiente;
+          // el form se abrirá manualmente o vía un futuro hint.
+          switch (action) {
+            case 'open-settings':
+              setSettingsOpen(true)
+              break
+            case 'open-shortcuts':
+              setShortcutsOpen(true)
+              break
+            case 'new-entity':
+              setView('entidades')
+              break
+            case 'new-quote':
+              setView('citas')
+              break
+            case 'new-momento':
+              setView('momentos')
+              break
+          }
+        }}
       />
 
       <ShortcutsModal
@@ -374,7 +408,23 @@ function Shell() {
         }}
       />
 
+      <GlobalProgressBar />
       <ToastHost />
+
+      {/* Mobile bottom nav — solo aparece en viewports < md. En focus
+          mode también se oculta para no competir con el contenido.
+          Cuando el RightPanel está abierto en mobile (bottom-sheet),
+          el nav se oculta también — el sheet ya ocupa toda la atención
+          y el nav competiría con su borde inferior. */}
+      {!focusMode && isMobile && !rightPanelOpen && (
+        <MobileBottomNav
+          view={view}
+          onChangeView={(v) => {
+            setView(v)
+            if (v !== 'grafo') setSelectedEntityId(null)
+          }}
+        />
+      )}
 
       <RightPanel
         isMobile={isMobile}

@@ -86,6 +86,7 @@ export function AlbumGrid({
   if (photoItems.length === 0) {
     return (
       <EmptyMessage
+        illustration="pair"
         title="No hay fotos todavía"
         body={<>Sube una imagen desde el composer de arriba.</>}
       />
