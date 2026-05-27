@@ -3,6 +3,8 @@ import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { ChatThreadCreateBody } from './_lib/chat-body-schemas.js'
 
 /**
  * Chat threads CRUD.
@@ -50,10 +52,9 @@ export default withObservability(
     }
 
     if (req.method === 'POST') {
-      const body = (await req.json().catch(() => ({}))) as {
-        title?: string
-        context?: string
-      }
+      const parsed = await parseJsonBody(req, ChatThreadCreateBody, requestId)
+      if (!parsed.ok) return parsed.response
+      const body = parsed.data
       const title = body.title?.trim() || null
       const context = body.context?.trim() || null
       const rows = (await sql`

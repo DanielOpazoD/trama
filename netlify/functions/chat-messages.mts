@@ -4,6 +4,8 @@ import { askLLMForText, askLLMForTextStreaming } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildRagContext } from './_lib/rag-context.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { ChatMessageSendBody } from './_lib/chat-body-schemas.js'
 import {
   buildChatPrompt,
   buildChatTitlePrompt,
@@ -76,8 +78,9 @@ export default withObservability(
       return ApiErrors.methodNotAllowed(requestId)
     }
 
-    const body = (await req.json().catch(() => ({}))) as { content?: string }
-    const userText = (body.content ?? '').trim()
+    const parsed = await parseJsonBody(req, ChatMessageSendBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const userText = parsed.data.content.trim()
     if (!userText) {
       return ApiErrors.validation(requestId, 'Falta el campo "content"')
     }

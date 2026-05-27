@@ -3,6 +3,8 @@ import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { ImportBody } from './_lib/admin-schemas.js'
 import { persistError, safeSql } from './_lib/observability.js'
 
 type IncomingEntity = {
@@ -67,15 +69,11 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
   const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
-  let payload: ImportPayload
-  try {
-    payload = (await req.json()) as ImportPayload
-  } catch {
-    return ApiErrors.validation(requestId, 'JSON inválido')
-  }
-  if (!payload || payload.version !== 1) {
-    return ApiErrors.validation(requestId, 'Versión de export no soportada (esperado: 1)')
-  }
+  const parsed = await parseJsonBody(req, ImportBody, requestId)
+  if (!parsed.ok) return parsed.response
+  // Cast después de validación de Zod — el ImportBody pasa los items
+  // como unknown[], el handler los procesa con error recovery por item.
+  const payload = parsed.data as unknown as ImportPayload
 
   const entities = payload.entities ?? []
   const relationships = payload.relationships ?? []

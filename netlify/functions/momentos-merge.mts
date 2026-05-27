@@ -3,6 +3,8 @@ import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { MomentosMergeBody } from './_lib/momento-extra-schemas.js'
 import { momentoEmbedText } from './_lib/momento-embed.js'
 import { getAuthedUser } from './_lib/auth.js'
 
@@ -78,42 +80,13 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
   const sql = getSql()
   const { id: userId } = await getAuthedUser(req)
 
-  let body: {
-    primaryId?: unknown
-    otherIds?: unknown
-    note?: unknown
-    capturedAt?: unknown
-  }
-  try {
-    body = (await req.json()) as typeof body
-  } catch {
-    return ApiErrors.validation(requestId, 'JSON inválido')
-  }
-
-  const primaryId = typeof body.primaryId === 'string' ? body.primaryId : null
-  const otherIds = Array.isArray(body.otherIds)
-    ? body.otherIds.filter((x): x is string => typeof x === 'string' && x.length > 0)
-    : []
-  if (!primaryId) {
-    return ApiErrors.validation(requestId, 'primaryId requerido')
-  }
-  if (otherIds.length === 0) {
-    return ApiErrors.validation(requestId, 'otherIds debe tener al menos 1 elemento')
-  }
+  // Zod ya valida UUID format + primaryId/otherIds presence (FF#5).
+  const parsed = await parseJsonBody(req, MomentosMergeBody, requestId)
+  if (!parsed.ok) return parsed.response
+  const body = parsed.data
+  const { primaryId, otherIds } = body
   if (otherIds.includes(primaryId)) {
     return ApiErrors.validation(requestId, 'primaryId no puede estar en otherIds')
-  }
-  // EE-followup #5: validar UUID format en código en vez de dejar que
-  // Postgres reviente con 500 en el cast ::uuid. Devolvemos 400 más
-  // claro al cliente.
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-  if (!UUID_RE.test(primaryId)) {
-    return ApiErrors.validation(requestId, `primaryId no es un UUID válido: ${primaryId}`)
-  }
-  for (const id of otherIds) {
-    if (!UUID_RE.test(id)) {
-      return ApiErrors.validation(requestId, `otherIds contiene un UUID inválido: ${id}`)
-    }
   }
   // Defensa contra payloads enormes: 50 es más que cualquier evento
   // razonable que un humano agruparía como un solo "momento".

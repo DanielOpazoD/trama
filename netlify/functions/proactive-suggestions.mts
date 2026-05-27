@@ -11,6 +11,8 @@ import {
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { ProactiveStatusPatchBody } from './_lib/momento-extra-schemas.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
@@ -324,11 +326,9 @@ export default withObservability(
     }
 
     if (req.method === 'PATCH' && id) {
-      const body = (await req.json().catch(() => ({}))) as { status?: string }
-      const nextStatus = body.status
-      if (nextStatus !== 'applied' && nextStatus !== 'dismissed') {
-        return ApiErrors.validation(requestId, 'status debe ser "applied" o "dismissed"')
-      }
+      const parsed = await parseJsonBody(req, ProactiveStatusPatchBody, requestId)
+      if (!parsed.ok) return parsed.response
+      const { status: nextStatus } = parsed.data
       await sql`
         UPDATE proactive_suggestions
         SET status = ${nextStatus}, status_changed_at = NOW()

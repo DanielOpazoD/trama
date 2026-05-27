@@ -3,6 +3,8 @@ import { getSql } from './_lib/db.js'
 import { ALL_TASKS, invalidateAITaskCache } from './_lib/ai-tasks.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { AISettingsUpsertBody } from './_lib/admin-schemas.js'
 
 /**
  * GET  /api/ai-settings  → returns the full task→provider map. Tasks without
@@ -48,15 +50,12 @@ export default withObservability('ai-settings', async (req, _ctx, { requestId })
   }
 
   if (req.method === 'PUT') {
-    const body = (await req.json().catch(() => ({}))) as {
-      task?: string
-      provider?: string
-      model?: string | null
-      verifyWith?: string | null
-    }
-    const task = body.task?.trim()
-    if (!task || !(ALL_TASKS as string[]).includes(task)) {
-      return ApiErrors.validation(requestId, `task "${task ?? ''}" no es válida`)
+    const parsed = await parseJsonBody(req, AISettingsUpsertBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
+    const task = body.task.trim()
+    if (!(ALL_TASKS as string[]).includes(task)) {
+      return ApiErrors.validation(requestId, `task "${task}" no es válida`)
     }
 
     const provider = (body.provider ?? '').trim().toLowerCase()

@@ -7,6 +7,8 @@ import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { ExtractBody } from './_lib/admin-schemas.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
@@ -32,14 +34,9 @@ export default withObservability('extract', async (req: Request, _context: Conte
   const budgetExceeded = await checkMonthlyBudget()
   if (budgetExceeded) return budgetExceeded
 
-  let body: { text?: string }
-  try {
-    body = (await req.json()) as { text?: string }
-  } catch {
-    return ApiErrors.validation(requestId, 'Invalid JSON')
-  }
-
-  const text = (body.text ?? '').trim()
+  const parsed = await parseJsonBody(req, ExtractBody, requestId)
+  if (!parsed.ok) return parsed.response
+  const text = parsed.data.text.trim()
   if (!text) {
     return ApiErrors.validation(requestId, 'Falta el campo "text"')
   }
