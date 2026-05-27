@@ -107,19 +107,6 @@ function apiPath(path: string, opts?: { prefix?: boolean }) {
  * que la app no se cuelgue.
  */
 export async function mockBackend(page: Page, state: MockState) {
-  // El PIN gate de la sección Momentos persiste el unlock en
-  // sessionStorage. Lo seteamos antes de navegar para que los tests
-  // E2E que tocan Momentos no queden bloqueados detrás del PIN screen.
-  // Se inyecta como initScript para que aplique antes de cualquier
-  // render del componente.
-  await page.addInitScript(() => {
-    try {
-      window.sessionStorage.setItem('momentos-pin-ok', '1')
-    } catch {
-      /* sessionStorage no disponible — el gate lo va a tratar como locked */
-    }
-  })
-
   // IMPORTANTE: Playwright matchea routes en orden REVERSO de registro.
   // Por eso registramos primero el catch-all (último en matchear) y al
   // final los handlers específicos (primeros en matchear).
