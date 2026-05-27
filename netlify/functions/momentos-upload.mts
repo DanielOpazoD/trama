@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getStore } from '@netlify/blobs'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * POST /api/momentos/upload
@@ -40,6 +41,13 @@ export default withObservability('momentos-upload', async (req: Request, _ctx, {
     return ApiErrors.methodNotAllowed(requestId)
   }
 
+  // Multi-user prep: namespace cada blob bajo `${userId}/...`. Hoy con
+  // legacy fallback el userId será 'legacy-single-user'; cuando Clerk
+  // se active, los blobs de cada usuario quedan automáticamente
+  // separados sin migración. Sin esto, conocer una storageKey daría
+  // acceso a la foto sin importar quién la subió.
+  const { id: userId } = await getAuthedUser(req)
+
   // Esperamos multipart/form-data con field "file".
   const contentType = req.headers.get('content-type') ?? ''
   if (!contentType.includes('multipart/form-data')) {
@@ -77,7 +85,10 @@ export default withObservability('momentos-upload', async (req: Request, _ctx, {
         : file.type === 'image/webp'
           ? 'webp'
           : 'gif'
-  const key = `${randomKey()}.${ext}`
+  // Key con namespace por usuario: `${userId}/${random}.${ext}`. La
+  // storageKey completa se persiste tal cual en el payload del momento;
+  // momentos-file.mts re-deriva el userId del path al servir el blob.
+  const key = `${userId}/${randomKey()}.${ext}`
 
   // Netlify Blobs: store "momentos-media". Creado on-demand.
   const store = getStore('momentos-media')
