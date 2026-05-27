@@ -124,101 +124,171 @@ npm run test:coverage       # con reporte de cobertura
 npm run preview             # vite preview del build
 ```
 
+## Arquitectura
+
+Para la vista de pájaro del sistema (capas, flujos, modelo de datos),
+ver [`docs/arquitectura.md`](docs/arquitectura.md). Incluye diagramas
+del flujo de auth, embeddings, búsqueda semántica y cost-cap.
+
+Las **convenciones críticas** viven en:
+
+- [`CLAUDE.md`](CLAUDE.md) — reglas absolutas + índice
+- [`docs/conventions/`](docs/conventions/) — design tokens, data layer,
+  LLM, API, dominios
+
 ## Layout del repo
 
 ```
 trama/
-├── src/                              # frontend
-│   ├── App.tsx                       # shell con sidebar + canvas + paneles
-│   ├── api.ts                        # cliente HTTP con transforms snake↔camel
-│   ├── state.tsx                     # Provider TanStack Query (sin agregador)
-│   ├── state/                        # hooks por dominio
-│   │   ├── useEntities.ts            # query, add, update, updateType, delete
-│   │   ├── useRelationships.ts
-│   │   ├── useQuotes.ts
-│   │   ├── useExtract.ts
-│   │   ├── useSuggestRelationships.ts
-│   │   ├── useReclassifyEntities.ts
-│   │   ├── useChat.ts                # threads, messages, streaming send
-│   │   ├── useExportImport.ts
-│   │   └── offline.tsx
-│   ├── storage.ts                    # localStorage fallback
-│   ├── types.ts                      # tipos compartidos
-│   ├── hooks/
-│   │   ├── useGraphLayout.ts         # orquesta los 4 modos de layout
-│   │   ├── usePanZoom.ts
-│   │   ├── useFreshIds.ts
-│   │   └── layouts/
-│   │       ├── organic.ts            # Fruchterman-Reingold
-│   │       ├── byType.ts             # cluster por tipo de entidad
-│   │       ├── byYear.ts             # timeline horizontal
-│   │       └── byDegree.ts           # concéntrico por conexiones
-│   └── components/                   # vistas y paneles
-│       ├── GraphView.tsx
-│       ├── EntitiesView.tsx
-│       ├── QuotesView.tsx
-│       ├── RelationshipsView.tsx
-│       ├── ListeningView.tsx
-│       ├── ChatView.tsx
-│       ├── NodeDetailPanel.tsx       # edit description + spotify_url + add note
-│       ├── ProposalPanel.tsx
-│       ├── ReclassifyPanel.tsx
-│       ├── ExtractBar.tsx
-│       ├── Sidebar.tsx
-│       ├── Settings.tsx
-│       ├── chat/InlineProposal.tsx
-│       └── graph/{GraphNode,GraphEdge,GraphToolbar}.tsx
+├── src/                                  # frontend
+│   ├── App.tsx                           # shell + ClerkProvider + AuthGate + AppPinGate
+│   ├── main.tsx                          # entry point + ClerkProvider opcional
+│   ├── index.css                         # design tokens (3 temas) + componentes globales
+│   ├── api/                              # cliente HTTP con transforms snake↔camel
+│   │   ├── index.ts                      # facade `api.*`
+│   │   ├── request.ts                    # fetch + Bearer JWT injection
+│   │   ├── entities.ts · quotes.ts · momentos.ts · …
+│   │   └── transform.ts                  # camelCase ↔ snake_case
+│   ├── state/                            # hooks TanStack Query por dominio
+│   │   ├── index.ts                      # facade reexporta todo
+│   │   ├── queryClient.ts                # config global
+│   │   ├── useEntities.ts · useQuotes.ts · useRelationships.ts
+│   │   ├── useMomentos.ts · useChat.ts · useExtract.ts · useAsk.ts
+│   │   ├── useSuggestRelationships.ts · useReclassifyEntities.ts
+│   │   ├── useToast.ts · useGlobalStatus.ts · useCounts.ts
+│   │   └── useExportImport.ts
+│   ├── types/                            # tipos compartidos
+│   │   ├── entity.ts · quote.ts · relationship.ts · momento.ts · origin.ts
+│   │   └── index.ts                      # facade
+│   ├── schemas/                          # Zod schemas (lado cliente)
+│   │   └── momento.ts
+│   ├── lib/                              # utilidades sin React
+│   │   ├── sectionAccent.ts              # SECTION_ACCENT per ViewMode
+│   │   ├── sectionWash.ts                # radial wash inline style
+│   │   ├── viewTransition.ts             # wrapper de View Transitions API
+│   │   └── clientErrorTracking.ts
+│   ├── hooks/                            # hooks sin React Query
+│   │   ├── useGraphLayout.ts             # orquesta los 4 modos de layout
+│   │   ├── usePanZoom.ts · useFreshIds.ts · useFocusTrap.ts
+│   │   ├── useIsMobile.ts · usePullToRefresh.ts · useTheme.ts
+│   │   └── layouts/                      # organic · byType · byYear · byDegree
+│   └── components/                       # vistas + paneles
+│       ├── App-level
+│       │   ├── Sidebar.tsx · MobileBottomNav.tsx · TopBar.tsx
+│       │   ├── ViewRouter.tsx · ViewHeader.tsx · SectionAccentBand.tsx
+│       │   ├── AuthGate.tsx · AppPinGate.tsx
+│       │   ├── Splash.tsx · Onboarding.tsx · CommandPalette.tsx · ShortcutsModal.tsx
+│       │   ├── Settings.tsx + settings/ (8 paneles)
+│       │   └── ToastHost.tsx · ConfirmDestroy.tsx · LoadingHint.tsx · Paginator.tsx
+│       ├── Views
+│       │   ├── HomeView.tsx + home/{Greeting,FeaturedQuote,FirstMomentPreview,…}
+│       │   ├── GraphView.tsx + graph/{GraphNode,GraphEdge,GraphToolbar,HoverPreviewCard,…}
+│       │   ├── EntitiesView.tsx + entities/{EntityForm,EntityRow,AIMenu,…}
+│       │   ├── QuotesView.tsx + quotes/{QuoteForm,QuoteItem}
+│       │   ├── RelationshipsView.tsx
+│       │   ├── MomentosView.tsx + momentos/{MomentoEntry,MomentoComposer,MomentoEditModal,editModal/*,…}
+│       │   ├── ListeningView.tsx + listening/{PlaysSummary,PlaylistImporter,PlaysTiming,SuggestArtists}
+│       │   ├── ChatView.tsx + chat/{MessageBubble,EmptyChatHint,FilterChip,InlineProposal,threadLabels}
+│       │   └── ProactiveView.tsx
+│       └── RightPanel.tsx · NodeDetailPanel.tsx · QuoteCard.tsx · ProposalPanel.tsx
+├── e2e/                                  # Playwright specs
+│   ├── fixtures.ts                       # mockBackend compartido
+│   └── *.spec.ts                         # add-entity · add-quote · chat-send · momentos · …
 └── netlify/
-    ├── database/migrations/          # SQL versionado, aplicado por Netlify en deploy
-    └── functions/
-        ├── _lib/
-        │   ├── db.ts                 # getSql() — wrapper @netlify/database
-        │   ├── llm.ts                # askLLMForJson, askLLMForText, askLLMForTextStreaming
-        │   ├── extract-prompt.ts
-        │   ├── extract-validate.ts
-        │   ├── suggest-relationships-prompt.ts
-        │   ├── reclassify-prompt.ts
-        │   ├── reclassify-validate.ts
-        │   ├── chat-prompt.ts
-        │   ├── chat-validate.ts
-        │   ├── spotify.ts            # OAuth, sync, playlist fetch
-        │   ├── handler-wrap.ts
-        │   ├── observability.ts
-        │   └── cost-cap.ts
-        ├── entities.mts              # GET/POST/PATCH/DELETE /api/entities[/:id]
-        ├── relationships.mts
-        ├── quotes.mts
-        ├── entity-types.mts
-        ├── relationship-types.mts
-        ├── extract.mts               # POST /api/extract — IA estructura texto libre
-        ├── suggest-relationships.mts # POST /api/suggest-relationships
-        ├── reclassify-entities.mts   # POST /api/reclassify-entities
-        ├── chat-threads.mts          # CRUD /api/chat/threads
-        ├── chat-messages.mts         # SSE streaming /api/chat/threads/:id/messages
-        ├── spotify-callback.mts
-        ├── spotify-status.mts
-        ├── spotify-sync.mts
-        ├── spotify-scheduled-sync.mts # cron 0 */3 * * *
-        ├── spotify-plays.mts
-        ├── spotify-import-playlist.mts # extracts artists + tracks from URL
-        ├── search.mts
-        ├── export.mts
-        ├── import.mts
-        ├── extraction-log.mts
-        └── error-log.mts
+    ├── database/migrations/              # SQL versionado, aplicado en deploy
+    └── functions/                        # 44 endpoints `.mts`
+        ├── _lib/                         # lógica compartida
+        │   ├── db.ts                     # getSql() singleton
+        │   ├── auth.ts                   # Clerk verifyToken + ALLOW_LEGACY_FALLBACK
+        │   ├── handler-wrap.ts           # withObservability + ApiErrors catch
+        │   ├── api-error.ts              # ApiErrors.* — shape canónico
+        │   ├── zod-body.ts               # parseJsonBody helper
+        │   ├── observability.ts          # request-id + logs JSON
+        │   ├── db helpers …
+        │   ├── llm.ts + llm/             # provider abstraction (deepseek/openai/anthropic/gemini)
+        │   ├── embeddings.ts             # embedSafe(text) → vector
+        │   ├── cost-cap.ts               # AI_MONTHLY_BUDGET_CENTS enforcement
+        │   ├── rag-context.ts            # builder de contexto para chat/ask
+        │   ├── schemas: entity/quote/relationship/momento-schemas.ts
+        │   ├── prompts: extract/reclassify/reflect/chat/proactive/ask/suggest-relationships
+        │   ├── validators: extract/reclassify/chat-validate.ts
+        │   ├── spotify.ts                # OAuth + sync + playlist fetch
+        │   └── tests: isolation*.test.ts · *-endpoint.test.ts · *.test.ts
+        ├── CRUD core
+        │   ├── entities.mts · quotes.mts · relationships.mts · momentos.mts
+        │   └── *-restore (cascade soft-undelete)
+        ├── Búsqueda y agregaciones
+        │   ├── search.mts (lexical + semantic)
+        │   ├── counts.mts · entities-lookup.mts · entities-refs-count.mts
+        │   └── graph-neighbors.mts
+        ├── IA
+        │   ├── extract.mts · reclassify-entities.mts · suggest-relationships.mts
+        │   ├── ask.mts · chat-threads.mts · chat-messages.mts (SSE)
+        │   ├── proactive-suggestions.mts · quote-reflect.mts
+        │   ├── reindex-embeddings.mts · extract-from-image.mts
+        │   └── extraction-log.mts
+        ├── Momentos
+        │   ├── momentos-file.mts (sirve blobs) · momentos-upload.mts
+        │   ├── momentos-merge.mts · momentos-restore.mts
+        │   ├── momentos-orphaned-blobs.mts · momentos-url-preview.mts
+        ├── Spotify
+        │   ├── spotify-{login,callback,status,sync,scheduled-sync,plays,timing,
+        │   │            suggest-artists,import-playlist,library-snapshot}.mts
+        ├── Datos
+        │   ├── export.mts · import.mts
+        └── Sistema
+            ├── ai-settings.mts · entity-types.mts · relationship-types.mts
+            ├── error-log.mts · health.mts · cost-alert-check.mts (cron)
 ```
 
 ## Tests
 
-Vitest con archivos `*.test.ts` co-localizados. CI corre tipos + tests + build en cada push (`.github/workflows/test.yml`).
+Vitest co-localizado + Playwright para E2E. CI corre tipos + tests + build + bundle budget + E2E en cada push (`.github/workflows/test.yml`).
 
 ```bash
-npm test           # corre una vez
-npm run test:watch # modo watch
+npm test               # unit/integration (Vitest) — una corrida
+npm run test:watch     # modo watch
+npm run test:e2e       # Playwright — requiere build previo
 ```
 
-Cobertura focalizada en la lógica pura: validadores de propuestas (extract, reclassify, chat), prompts (extract, suggest-relationships, reclassify), dispatch del LLM por proveedor, layouts del grafo, transforms del cliente. Los componentes React de momento se prueban end-to-end con `npm run dev`.
+**Cobertura activa:**
+
+- **Lógica pura:** validadores de propuestas LLM (extract, reclassify, chat), prompts, dispatch por proveedor, layouts del grafo, transforms snake↔camel del cliente.
+- **Endpoints:** `*-endpoint.test.ts` mockea `getSql()` y verifica request → SQL → response.
+- **Multi-user isolation:** `isolation*.test.ts` confirman que cada endpoint CRUD incluye `user_id` en las queries y respeta el modo legacy.
+- **React components:** RTL para los más críticos (EntityForm, QuoteForm, EmptyMessage, AITaskSettings, etc.).
+- **E2E:** 9 flujos cubren añadir entidad/cita/momento, chat send, navegación entre vistas, búsqueda sidebar, a11y.
+
+## Multi-user
+
+La app fue diseñada inicialmente como single-user y migra incrementalmente a multi-user. Estado actual:
+
+| Pieza | Estado |
+|---|---|
+| Schema con `user_id` en 9 tablas | ✅ Migración aplicada |
+| Composite indexes `(user_id, …)` | ✅ |
+| `getAuthedUser()` en 25 endpoints CRUD/reads | ✅ |
+| Schemas Zod en CRUD core | ✅ |
+| Isolation tests | ✅ |
+| `AuthGate` + `ClerkProvider` opcional | ✅ scaffolding |
+| `AppPinGate` (PIN opcional desde Settings) | ✅ |
+| **Blobs con prefijo `userId/`** | ⚠️ Pendiente |
+| **Cost-cap per-user** | ⚠️ Hoy es env var global |
+| **Spotify OAuth per-user** | ⚠️ Hoy es single account |
+| **UI login / logout** | ⚠️ Pendiente |
+
+Sin `CLERK_SECRET_KEY` la app funciona en modo single-user (todos los datos contra `legacy-single-user`). Activar Clerk es agregar las 3 env vars (`VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `ALLOW_LEGACY_FALLBACK=true`) y desplegar.
 
 ## Contribuir
 
-Este es un proyecto personal de [Daniel Opazo](https://github.com/DanielOpazoD). No hay procesos formales — si tienes algo que sugerir, abre un issue.
+Este es un proyecto personal de [Daniel Opazo](https://github.com/DanielOpazoD).
+
+Si querés tirar un PR o reportar algo, los flujos esperados son:
+
+1. **Issues:** abrí uno antes de tirar PRs grandes. Si es un fix chico, podés ir directo al PR.
+2. **Convenciones:** leer [CLAUDE.md](CLAUDE.md) y los docs de [`docs/conventions/`](docs/conventions/). Las reglas en CLAUDE.md son inmutables (migraciones SQL no se editan, soft delete obligatorio, snake_case ↔ camelCase en la frontera, etc.).
+3. **Tests:** todo PR debe pasar `npm test` + `npm run typecheck` + `npm run build`. CI los corre automáticamente.
+4. **Bundle:** si el tamaño crece más allá del budget de `scripts/check-bundle-size.mjs`, entendé por qué antes de subir el budget. Es un termómetro, no un check de papel.
+5. **Estilo de commits:** breves en imperativo (`fix: …`, `chore: …`, `feat: …`). Si tu cambio explica el “por qué”, mejor.
+
+Para preguntas concretas sobre algún subsistema, los docs de [`docs/`](docs/) cubren operacionales (deploy, datos, incidentes, AI) y los de [`docs/conventions/`](docs/conventions/) cubren patrones de diseño y arquitectura.
