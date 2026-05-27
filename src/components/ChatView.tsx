@@ -5,7 +5,6 @@ import {
   useState,
   type FormEvent,
 } from 'react'
-import type { ChatMessage } from '../api'
 import {
   useChatMessagesQuery,
   useChatThreadsQuery,
@@ -15,10 +14,12 @@ import {
   useSendChatMessage,
 } from '../state'
 import { ArrowRightIcon } from './Icons'
-import { InlineProposal } from './chat/InlineProposal'
 import { SkeletonList, ThreadRowSkeleton } from './Skeleton'
-import { AISourceTag } from './AISourceTag'
 import { LoadingHint } from './LoadingHint'
+import { MessageBubble } from './chat/MessageBubble'
+import { EmptyChatHint } from './chat/EmptyChatHint'
+import { FilterChip } from './chat/FilterChip'
+import { defaultTitleFor, threadSubtitle } from './chat/threadLabels'
 
 export function ChatView({
   initialThreadId,
@@ -358,131 +359,3 @@ export function ChatView({
   )
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
-  const isUser = message.role === 'user'
-  // ζ9: timestamp humano para marginal. Solo mostramos hora:minuto en
-  // bubbles del día corriente; fecha si es de antes. Si no hay
-  // createdAt válido, dejamos vacío para no decir "Invalid Date".
-  const ts = (() => {
-    if (!message.createdAt) return ''
-    const d = new Date(message.createdAt)
-    if (isNaN(d.getTime())) return ''
-    const sameDay = d.toDateString() === new Date().toDateString()
-    return sameDay
-      ? d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
-      : d.toLocaleDateString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-  })()
-  return (
-    <li className={isUser ? 'flex flex-col items-end' : 'flex flex-col items-start'}>
-      <div
-        className={
-          isUser
-            ? // User: sans, ink-on-paper, mantiene voz "cotidiana".
-              'self-end max-w-[75%] px-3 py-2 bg-ink-700 text-paper-50 rounded-xl rounded-br-md text-sm leading-relaxed whitespace-pre-wrap'
-            : // ζ7+ζ8: Assistant en Spectral serif sobre fondo papel con
-              // textura sutil (.bubble-paper en index.css). El cambio de
-              // registro tipográfico señala que esto es una "respuesta de
-              // catálogo", no un mensaje cotidiano. font-size sube a 15
-              // porque Spectral a 14 se ve apretado; a 15 respira.
-              'max-w-[80%] px-4 py-3 bubble-paper border border-ink-100/50 text-ink-700 rounded-xl rounded-bl-md font-serif text-[15px] leading-relaxed'
-        }
-      >
-        <div className="whitespace-pre-wrap">{message.content}</div>
-        {!isUser && message.proposal && <InlineProposal proposal={message.proposal} />}
-      </div>
-      {/* ζ9 + κ-info: marginal con timestamp en italic serif (como nota al
-          margen de página). En assistant, ya no inlineamos el nombre del
-          modelo — esa info vive ahora detrás del icono AISourceTag, que
-          al hover muestra provider + modelo + hora completa. La página
-          queda más limpia y la metadata sigue accesible a un gesto. */}
-      {(ts || (!isUser && message.model)) && (
-        <span
-          className={`mt-1 inline-flex items-center gap-1.5 text-micro tracking-normal text-ink-300/80 font-serif italic ${
-            isUser ? 'self-end mr-1' : 'self-start ml-1'
-          }`}
-        >
-          {ts && <span>{ts}</span>}
-          {!isUser && (message.model || message.provider) && (
-            <AISourceTag
-              provider={message.provider}
-              model={message.model}
-              at={message.createdAt}
-            />
-          )}
-        </span>
-      )}
-    </li>
-  )
-}
-
-function EmptyChatHint() {
-  return (
-    <div className="max-w-md mx-auto text-center px-6 py-12">
-      <p className="font-serif text-xl text-ink-500 leading-relaxed">
-        Conversa con tu trama.
-      </p>
-      <p className="mt-3 text-sm text-ink-400 leading-relaxed">
-        Pregúntale qué cosas se conectan entre sí, qué autores se parecen, qué
-        leer después de un libro que está en la trama, qué clasificación podría
-        mejorar. La IA usa todo lo que has guardado como contexto.
-      </p>
-    </div>
-  )
-}
-
-/** Friendly title for a thread that doesn't have one yet — falls back to its
-    section context (e.g., "Hilo de Citas") instead of "(sin título)". */
-function defaultTitleFor(context: string | null | undefined): string {
-  if (!context) return '(sin título)'
-  if (context.startsWith('entity:')) return 'Conversación con una entidad'
-  const label = context.charAt(0).toUpperCase() + context.slice(1)
-  return `Hilo de ${label}`
-}
-
-/**
- * ρ-micro: subtitle contextual del hilo activo. Antes el subtitle era
- * la misma descripción de la app en todos los hilos (ruido). Ahora
- * cuenta de DÓNDE nació este hilo en particular — chat libre o
- * iniciado desde una sección concreta.
- */
-function threadSubtitle(context: string | null | undefined): string {
-  if (!context) {
-    return 'Conversación libre — la IA usa toda tu trama como contexto.'
-  }
-  if (context.startsWith('entity:')) {
-    return 'Hilo enfocado en una entidad de tu trama.'
-  }
-  const label = context.charAt(0).toUpperCase() + context.slice(1)
-  return `Iniciado desde ${label}.`
-}
-
-function FilterChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string
-  active: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={
-        active
-          ? 'px-2 py-0.5 rounded-full text-micro uppercase tracking-eyebrow font-medium transition-colors'
-          : 'px-2 py-0.5 rounded-full text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 hover:bg-ink-700/5 transition-colors'
-      }
-      style={
-        active
-          ? {
-              backgroundColor: 'var(--accent-primary-soft)',
-              color: 'var(--accent-primary)',
-            }
-          : undefined
-      }
-    >
-      {label}
-    </button>
-  )
-}

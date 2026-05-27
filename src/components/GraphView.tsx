@@ -31,6 +31,7 @@ import { GraphNode } from './graph/GraphNode'
 import { GraphEdge } from './graph/GraphEdge'
 import { GraphToolbar, type GraphMode } from './graph/GraphToolbar'
 import { GraphMinimap } from './graph/GraphMinimap'
+import { HoverPreviewCard } from './graph/HoverPreviewCard'
 import { LoadingHint } from './LoadingHint'
 
 // Lazy-load del renderer WebGL: sigma + graphology pesan ~165KB extra
@@ -635,81 +636,13 @@ export default function GraphView({
             const ent = entities.find((e) => e.id === hoveredEntityId)
             const pos = positions.get(hoveredEntityId)
             if (!ent || !pos) return null
-            const typeLabel = ENTITY_TYPES.find((t) => t.value === ent.type)?.label ?? ent.type
-            const conns = connectionCount.get(ent.id) ?? 0
-            const cardW = 200
-            const cardH = ent.year ? 76 : 60
-            // Mostrar a la derecha del nodo si hay espacio; si no a la izq.
-            // Ya que sabemos las coords del nodo, podemos offsetear.
-            const offsetX = 28
-            const offsetY = -cardH / 2
             return (
-              <g
-                transform={`translate(${pos.x + offsetX} ${pos.y + offsetY})`}
-                style={{ pointerEvents: 'none' }}
-                className="animate-fade-up"
-              >
-                <rect
-                  width={cardW}
-                  height={cardH}
-                  rx={8}
-                  ry={8}
-                  fill="var(--bg-card)"
-                  fillOpacity={0.98}
-                  stroke="var(--border-subtle)"
-                  strokeWidth={1}
-                />
-                {/* Eyebrow: tipo de entidad en small caps */}
-                <text
-                  x={12}
-                  y={18}
-                  fontSize={9}
-                  fill="var(--ink-dim)"
-                  fontFamily="Spectral, Iowan Old Style, Palatino, Georgia, serif"
-                  fontStyle="italic"
-                  style={{ userSelect: 'none' }}
-                >
-                  {typeLabel.toLowerCase()}
-                  {ent.year && <> · {ent.year}</>}
-                </text>
-                {/* Nombre en serif */}
-                <text
-                  x={12}
-                  y={38}
-                  fontSize={14}
-                  fontWeight={500}
-                  fill="var(--ink)"
-                  fontFamily="Spectral, Iowan Old Style, Palatino, Georgia, serif"
-                  style={{ userSelect: 'none' }}
-                >
-                  {ent.name.length > 28 ? ent.name.slice(0, 27) + '…' : ent.name}
-                </text>
-                {/* Stats inline */}
-                <text
-                  x={12}
-                  y={ent.year ? 60 : 54}
-                  fontSize={10}
-                  fill="var(--ink-dim)"
-                  style={{ userSelect: 'none', letterSpacing: '0.05em' }}
-                >
-                  {conns} {conns === 1 ? 'conexión' : 'conexiones'}
-                </text>
-                {ent.description && (
-                  <text
-                    x={12}
-                    y={ent.year ? 72 : 66}
-                    fontSize={9.5}
-                    fill="var(--ink-dim)"
-                    fontStyle="italic"
-                    fontFamily="Spectral, Iowan Old Style, Palatino, Georgia, serif"
-                    style={{ userSelect: 'none' }}
-                  >
-                    {ent.description.length > 40
-                      ? ent.description.slice(0, 39) + '…'
-                      : ent.description}
-                  </text>
-                )}
-              </g>
+              <HoverPreviewCard
+                entity={ent}
+                posX={pos.x}
+                posY={pos.y}
+                connectionCount={connectionCount.get(ent.id) ?? 0}
+              />
             )
           })()}
         </g>
