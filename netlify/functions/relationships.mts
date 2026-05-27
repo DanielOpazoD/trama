@@ -3,6 +3,12 @@ import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import {
+  RelationshipCreateBody,
+  RelationshipPatchBody,
+  RelationshipRestoreBody,
+} from './_lib/relationship-schemas.js'
 
 type Origin = { kind: string; [key: string]: unknown }
 
@@ -92,13 +98,9 @@ export default withObservability('relationships', async (req: Request, context: 
 
   // POST /api/relationships (crear) — pero NO /api/relationships/:id/restore.
   if (req.method === 'POST' && !new URL(req.url).pathname.endsWith('/restore')) {
-    const body = (await req.json()) as {
-      from_id: string
-      to_id: string
-      type: string
-      notes?: string | null
-      origin?: unknown
-    }
+    const parsed = await parseJsonBody(req, RelationshipCreateBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
     const origin = JSON.stringify(normalizeOrigin(body.origin))
     const rows = await sql`
       INSERT INTO relationships (from_id, to_id, type, notes, origin, user_id)
@@ -116,10 +118,9 @@ export default withObservability('relationships', async (req: Request, context: 
   }
 
   if (req.method === 'PATCH' && id) {
-    const body = (await req.json()) as {
-      type?: string
-      notes?: string | null
-    }
+    const parsed = await parseJsonBody(req, RelationshipPatchBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
     const rows = await sql`
       UPDATE relationships
       SET
@@ -143,11 +144,10 @@ export default withObservability('relationships', async (req: Request, context: 
 
   const url = new URL(req.url)
   if (req.method === 'POST' && id && url.pathname.endsWith('/restore')) {
-    const body = (await req.json().catch(() => ({}))) as { deletedAt?: string }
-    if (!body.deletedAt) {
-      return ApiErrors.validation(requestId, 'deletedAt requerido')
-    }
-    await sql`UPDATE relationships SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt} AND user_id = ${userId}`
+    const parsed = await parseJsonBody(req, RelationshipRestoreBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const { deletedAt } = parsed.data
+    await sql`UPDATE relationships SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
     return Response.json({ restored: true })
   }
 
