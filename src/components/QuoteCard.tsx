@@ -7,6 +7,7 @@ import {
 } from '../state'
 import type { Quote } from '../types'
 import { SparkleIcon } from './Icons'
+import { QuoteEditMode } from './quotes/QuoteEditMode'
 
 /**
  * One quote, expanded.
@@ -44,35 +45,22 @@ export function QuoteCard({
   const [userReflDraft, setUserReflDraft] = useState(quote.userReflection ?? '')
 
   // Full edit mode — text + source + context + which entity it belongs to.
+  // El UI vive en `quotes/QuoteEditMode.tsx`; acá sólo el toggle + el
+  // handler de save que hace patch sólo de los campos cambiados.
   const [editingFull, setEditingFull] = useState(false)
-  const [textDraft, setTextDraft] = useState(quote.text)
-  const [sourceDraft, setSourceDraft] = useState(quote.source ?? '')
-  const [contextDraft, setContextDraft] = useState(quote.context ?? '')
-  const [entityIdDraft, setEntityIdDraft] = useState(quote.entityId)
 
   function startFullEdit() {
-    setTextDraft(quote.text)
-    setSourceDraft(quote.source ?? '')
-    setContextDraft(quote.context ?? '')
-    setEntityIdDraft(quote.entityId)
     setEditingFull(true)
   }
 
-  async function handleSaveFullEdit() {
-    const text = textDraft.trim()
-    if (!text) return
+  async function handleSaveFullEdit(patch: {
+    text: string
+    source: string | null
+    context: string | null
+    entityId?: string
+  }) {
     try {
-      await updateQuote.mutateAsync({
-        id: quote.id,
-        patch: {
-          text,
-          source: sourceDraft.trim() || null,
-          context: contextDraft.trim() || null,
-          // entityId can move to another entity — useful when an AI extract
-          // attached the quote to the book and the user wants it on the author.
-          ...(entityIdDraft !== quote.entityId && { entityId: entityIdDraft }),
-        },
-      })
+      await updateQuote.mutateAsync({ id: quote.id, patch })
       setEditingFull(false)
     } catch {
       /* surfaces */
@@ -142,65 +130,13 @@ export function QuoteCard({
 
   if (editingFull) {
     return (
-      <li className="group border-l-2 border-ink-200/70 pl-3 space-y-2">
-        <div className="text-micro uppercase tracking-eyebrow text-ink-300">
-          editar cita
-        </div>
-        <textarea
-          value={textDraft}
-          onChange={(e) => setTextDraft(e.target.value)}
-          rows={3}
-          placeholder="texto de la cita"
-          className="input-paper w-full resize-none text-sm font-serif italic"
-        />
-        <input
-          type="text"
-          value={sourceDraft}
-          onChange={(e) => setSourceDraft(e.target.value)}
-          placeholder="fuente (libro, página, año — opcional)"
-          className="input-paper w-full text-sm"
-        />
-        <textarea
-          value={contextDraft}
-          onChange={(e) => setContextDraft(e.target.value)}
-          rows={2}
-          placeholder="contexto (qué pasaba alrededor — opcional)"
-          className="input-paper w-full resize-none text-sm"
-        />
-        <div>
-          <label className="text-micro uppercase tracking-eyebrow text-ink-400 block mb-1">
-            atribuida a
-          </label>
-          <select
-            value={entityIdDraft}
-            onChange={(e) => setEntityIdDraft(e.target.value)}
-            className="input-paper w-full text-sm"
-          >
-            {entities.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name}
-                {e.type ? ` · ${e.type}` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-center justify-end gap-2">
-          <button
-            onClick={() => setEditingFull(false)}
-            className="btn-ghost text-xs"
-            disabled={updateQuote.isPending}
-          >
-            cancelar
-          </button>
-          <button
-            onClick={handleSaveFullEdit}
-            disabled={updateQuote.isPending || !textDraft.trim()}
-            className="btn-accent text-xs"
-          >
-            {updateQuote.isPending ? 'guardando…' : 'guardar'}
-          </button>
-        </div>
-      </li>
+      <QuoteEditMode
+        quote={quote}
+        entities={entities}
+        pending={updateQuote.isPending}
+        onCancel={() => setEditingFull(false)}
+        onSave={handleSaveFullEdit}
+      />
     )
   }
 

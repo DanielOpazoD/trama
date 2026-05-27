@@ -5,14 +5,14 @@ import {
   useEntitiesQuery,
   useToast,
 } from '../state'
-import type { Entity, Momento, MomentoKind } from '../types'
+import type { Entity, MomentoKind } from '../types'
 import { Paginator } from './Paginator'
 import { EmptyMessage } from './EmptyMessage'
 import { AlbumGrid } from './momentos/AlbumGrid'
 import { MomentoComposer } from './momentos/MomentoComposer'
-import { MomentoEntry } from './momentos/MomentoEntry'
 import { MomentosFilters } from './momentos/MomentosFilters'
 import { MergeMomentosBar } from './momentos/MergeMomentosBar'
+import { SelectableMomento } from './momentos/SelectableMomento'
 import { ConfirmDestroy } from './ConfirmDestroy'
 import { MomentoSkeleton, SkeletonList } from './Skeleton'
 import { formatDateHeading, groupByDay } from './momentos/helpers'
@@ -319,94 +319,6 @@ export function MomentosView() {
   )
 }
 
-/**
- * EE: wrapper de MomentoEntry para el modo selección.
- *
- * En modo normal: render idéntico al original.
- * En modo selección: agrega overlay click-through que toggle el id +
- * indicador visual (ring + checkbox). Los handlers internos de
- * MomentoEntry (delete, lightbox, etc.) quedan inertes mientras
- * selectionMode=true porque el overlay intercepta el click.
- */
-function SelectableMomento({
-  momento,
-  entitiesById,
-  selectionMode,
-  selected,
-  onToggleSelect,
-  onDelete,
-}: {
-  momento: Momento
-  entitiesById: Map<string, Entity>
-  selectionMode: boolean
-  selected: boolean
-  onToggleSelect: () => void
-  onDelete: () => void
-}) {
-  if (!selectionMode) {
-    return (
-      <MomentoEntry
-        momento={momento}
-        entitiesById={entitiesById}
-        onDelete={onDelete}
-      />
-    )
-  }
-  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>): void {
-    // EE-followup #8: a11y — Space + Enter toggle el checkbox.
-    // Es la convención WAI-ARIA estándar para `role="checkbox"`.
-    if (e.key === ' ' || e.key === 'Enter') {
-      e.preventDefault()
-      onToggleSelect()
-    }
-  }
-
-  return (
-    <div
-      className={`relative rounded-xl transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-        selected
-          ? 'ring-2 ring-offset-2'
-          : 'ring-1 ring-transparent hover:ring-ink-100/80'
-      }`}
-      style={{
-        // El ring color via CSS var directa funciona; antes usábamos
-        // un --tw-ring-color como hack que requería @ts-expect-error.
-        // Ahora seteamos boxShadow directo cuando está seleccionado.
-        ...(selected
-          ? { boxShadow: '0 0 0 2px var(--accent-gold), 0 0 0 4px rgb(var(--paper-50))' }
-          : {}),
-      }}
-      onClick={onToggleSelect}
-      onKeyDown={handleKeyDown}
-      role="checkbox"
-      aria-checked={selected}
-      tabIndex={0}
-      aria-label={`Seleccionar momento del ${momento.capturedAt.slice(0, 10)}`}
-    >
-      {/* Checkbox visual arriba a la izquierda */}
-      <div
-        className="absolute top-2 left-2 z-10 size-5 rounded-md border-2 flex items-center justify-center pointer-events-none"
-        style={{
-          backgroundColor: selected ? 'var(--accent-gold)' : 'rgb(var(--paper-50))',
-          borderColor: selected ? 'var(--accent-gold)' : 'rgb(var(--ink-300) / 0.6)',
-        }}
-        aria-hidden
-      >
-        {selected && (
-          <span className="text-paper-50 text-xs leading-none font-bold">✓</span>
-        )}
-      </div>
-      {/* MomentoEntry deshabilitado interactuamente con pointer-events */}
-      <div className="pointer-events-none opacity-90">
-        <MomentoEntry
-          momento={momento}
-          entitiesById={entitiesById}
-          onDelete={onDelete}
-        />
-      </div>
-    </div>
-  )
-}
 
 /**
  * τ-mobile-bridge: lee `?compose=` de la URL. Whitelist a los kinds

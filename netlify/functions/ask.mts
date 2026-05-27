@@ -7,6 +7,8 @@ import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { AskBody } from './_lib/chat-body-schemas.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { buildRagContext } from './_lib/rag-context.js'
@@ -38,13 +40,10 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
     return ApiErrors.methodNotAllowed(requestId)
   }
 
-  const body = (await req.json().catch(() => ({}))) as {
-    text?: string
-    view?: string
-    selectedEntityId?: string
-    threadId?: string
-  }
-  const userText = (body.text ?? '').trim()
+  const parsed = await parseJsonBody(req, AskBody, requestId)
+  if (!parsed.ok) return parsed.response
+  const body = parsed.data
+  const userText = body.text.trim()
   if (!userText) {
     return ApiErrors.validation(requestId, 'Falta el campo "text"')
   }

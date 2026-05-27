@@ -2,6 +2,8 @@ import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { EntityTypeUpsertBody } from './_lib/admin-schemas.js'
 
 export default withObservability('entity-types', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
@@ -16,17 +18,9 @@ export default withObservability('entity-types', async (req: Request, context: C
   }
 
   if (req.method === 'POST') {
-    const body = (await req.json()) as {
-      slug: string
-      label: string
-      sort_order?: number
-    }
-    if (!body.slug || !body.label) {
-      return ApiErrors.validation(requestId, 'slug y label requeridos')
-    }
-    if (!/^[a-z0-9_]+$/.test(body.slug)) {
-      return ApiErrors.validation(requestId, 'slug debe ser lowercase, números o _')
-    }
+    const parsed = await parseJsonBody(req, EntityTypeUpsertBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
     const rows = await sql`
       INSERT INTO entity_types (slug, label, sort_order)
       VALUES (${body.slug}, ${body.label}, ${body.sort_order ?? 100})

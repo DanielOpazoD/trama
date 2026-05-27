@@ -6,6 +6,8 @@ import { buildImageExtractionPrompt } from './_lib/extract-image-prompt.js'
 import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { ExtractFromImageBody } from './_lib/admin-schemas.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
@@ -35,16 +37,11 @@ export default withObservability('extract-from-image', async (req, _ctx, { reque
   const budgetExceeded = await checkMonthlyBudget()
   if (budgetExceeded) return budgetExceeded
 
-  const body = (await req.json().catch(() => ({}))) as {
-    imageBase64?: string
-    mimeType?: string
-  }
-  const imageBase64 = (body.imageBase64 ?? '').trim()
-  const mimeType = (body.mimeType ?? '').trim()
+  const parsed = await parseJsonBody(req, ExtractFromImageBody, requestId)
+  if (!parsed.ok) return parsed.response
+  const imageBase64 = parsed.data.imageBase64.trim()
+  const mimeType = parsed.data.mimeType.trim()
 
-  if (!imageBase64) {
-    return ApiErrors.validation(requestId, 'Falta el campo "imageBase64"')
-  }
   if (!ALLOWED_MIMES.has(mimeType)) {
     return ApiErrors.unsupportedMediaType(
       requestId,

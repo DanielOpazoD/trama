@@ -2,6 +2,8 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { ErrorLogBody } from './_lib/admin-schemas.js'
 
 export default withObservability('error-log', async (req, _ctx, { requestId }) => {
   const sql = getSql()
@@ -50,24 +52,17 @@ export default withObservability('error-log', async (req, _ctx, { requestId }) =
   // de tamaño es defensivo (algunos browsers serializan stacks muy
   // largos en componentes async; no queremos un payload de 1MB).
   if (req.method === 'POST') {
-    const body = (await req.json().catch(() => ({}))) as {
-      message?: unknown
-      stack?: unknown
-      componentStack?: unknown
-      path?: unknown
-      userAgent?: unknown
-    }
-    const message = String(body.message ?? '').slice(0, 2000)
-    if (!message) {
-      return ApiErrors.validation(requestId, 'message requerido')
-    }
-    const stack = body.stack ? String(body.stack).slice(0, 8000) : null
-    const path = body.path ? String(body.path).slice(0, 500) : null
+    const parsed = await parseJsonBody(req, ErrorLogBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
+    const message = body.message.slice(0, 2000)
+    const stack = body.stack ? body.stack.slice(0, 8000) : null
+    const path = body.path ? body.path.slice(0, 500) : null
     const context = {
       componentStack: body.componentStack
-        ? String(body.componentStack).slice(0, 8000)
+        ? body.componentStack.slice(0, 8000)
         : null,
-      userAgent: body.userAgent ? String(body.userAgent).slice(0, 500) : null,
+      userAgent: body.userAgent ? body.userAgent.slice(0, 500) : null,
     }
     await sql`
       INSERT INTO error_log (function_name, http_method, http_path, message, stack, context)

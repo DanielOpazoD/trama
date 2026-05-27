@@ -6,6 +6,8 @@ import { ApiErrors } from './_lib/api-error.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
 import { momentoEmbedText } from './_lib/momento-embed.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { OrphanedBlobRescueBody } from './_lib/momento-extra-schemas.js'
 
 /**
  * DD1: recuperación de blobs huérfanos.
@@ -86,16 +88,10 @@ export default withObservability('momentos-orphaned-blobs', async (req: Request,
   // El servidor verifica que el blob exista en el store (no aceptamos keys
   // arbitrarias) y crea un Momento kind='foto' apuntando a esa key.
   if (req.method === 'POST') {
-    let body: { storageKey?: string; note?: string; capturedAt?: string }
-    try {
-      body = (await req.json()) as typeof body
-    } catch {
-      return ApiErrors.validation(requestId, 'JSON inválido')
-    }
-    const storageKey = body.storageKey?.trim()
-    if (!storageKey) {
-      return ApiErrors.validation(requestId, 'storageKey requerido')
-    }
+    const parsed = await parseJsonBody(req, OrphanedBlobRescueBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
+    const storageKey = body.storageKey.trim()
 
     // Verificar que el blob existe — evita crear Momentos apuntando a keys
     // inventadas. También recupera el mime original.

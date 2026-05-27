@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { RELATIONSHIP_TYPES, type Entity, type ExtractionProposal, type Relationship, type RelationshipType } from '../types'
+import { RELATIONSHIP_TYPES, type Entity, type ExtractionProposal, type RelationshipType } from '../types'
 import { ViewHeader } from './ViewHeader'
 import { RelationshipSkeleton, SkeletonList } from './Skeleton'
 import {
@@ -10,10 +10,11 @@ import {
   useSuggestRelationships,
   useOffline,
 } from '../state'
-import { CloseIcon, EndMark, SparkleIcon, TrashIcon } from './Icons'
+import { CloseIcon, EndMark, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import { EntityCombobox } from './EntityCombobox'
+import { RelationshipRow } from './relationships/RelationshipRow'
 
 export function RelationshipsView({
   onSelectEntity,
@@ -347,72 +348,3 @@ export function RelationshipsView({
   )
 }
 
-function RelationshipRow({
-  rel,
-  from,
-  to,
-  onSelectEntity,
-  onDelete,
-}: {
-  rel: Relationship
-  from: Entity | undefined
-  to: Entity | undefined
-  onSelectEntity?: (id: string) => void
-  onDelete: () => void
-}) {
-  const typeLabel =
-    RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ??
-    // ρ-consistency: fallback defensivo — si la fila tiene un type que
-    // no existe en el array fallback (e.g. tipos nuevos en la DB que el
-    // cliente todavía no conoce), al menos reemplazamos los underscores
-    // por espacios. Sin esto se renderea "ASOCIADO_CON" con guión bajo
-    // a la vista, que se siente DB-leaky.
-    rel.type.replace(/_/g, ' ')
-  return (
-    <div className="group card-paper-hover p-3 hover:shadow-ink-900/5">
-      <div className="flex justify-between items-baseline gap-4">
-        <div className="text-ink-600 leading-relaxed">
-          {from ? (
-            <button
-              onClick={() => onSelectEntity?.(from.id)}
-              className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
-            >
-              {from.name}
-            </button>
-          ) : (
-            <span className="text-ink-700">—</span>
-          )}
-          <span className="mx-2 text-micro uppercase tracking-eyebrow text-ink-300">
-            {typeLabel}
-          </span>
-          {to ? (
-            <button
-              onClick={() => onSelectEntity?.(to.id)}
-              className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
-            >
-              {to.name}
-            </button>
-          ) : (
-            <span className="text-ink-700">—</span>
-          )}
-          {rel.origin.kind === 'ai' && (
-            <span className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle" title="propuesta por IA">
-              <SparkleIcon size={10} />
-            </span>
-          )}
-        </div>
-        <button
-          onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
-          aria-label="Eliminar"
-          title="Eliminar"
-        >
-          <TrashIcon size={12} />
-        </button>
-      </div>
-      {rel.notes && (
-        <p className="mt-1 text-sm text-ink-400 leading-relaxed">{rel.notes}</p>
-      )}
-    </div>
-  )
-}

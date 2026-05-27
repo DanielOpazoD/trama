@@ -7,6 +7,8 @@ import {
 } from './_lib/spotify.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { SpotifyImportPlaylistBody } from './_lib/admin-schemas.js'
 import { logEvent } from './_lib/observability.js'
 
 /**
@@ -25,15 +27,10 @@ export default withObservability('spotify-import-playlist', async (req, _ctx, { 
     return ApiErrors.methodNotAllowed(requestId)
   }
 
-  const body = (await req.json().catch(() => ({}))) as {
-    url?: string
-    playlistId?: string
-    maxTracks?: number
-  }
+  const parsed = await parseJsonBody(req, SpotifyImportPlaylistBody, requestId)
+  if (!parsed.ok) return parsed.response
+  const body = parsed.data
   const input = (body.playlistId ?? body.url ?? '').trim()
-  if (!input) {
-    return ApiErrors.validation(requestId, 'Falta el campo "url" o "playlistId"')
-  }
 
   const playlistId = parsePlaylistId(input)
   if (!playlistId) {

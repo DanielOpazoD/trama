@@ -3,6 +3,8 @@ import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { MomentoRestoreBody } from './_lib/momento-extra-schemas.js'
 
 /**
  * EE-followup: restaurar un momento soft-deleted.
@@ -27,17 +29,9 @@ export default withObservability('momentos-restore', async (req: Request, _ctx, 
   const sql = getSql()
   const { id: userId } = await getAuthedUser(req)
 
-  let body: { id?: unknown; deletedAt?: unknown }
-  try {
-    body = (await req.json()) as typeof body
-  } catch {
-    return ApiErrors.validation(requestId, 'JSON inválido')
-  }
-  const id = typeof body.id === 'string' && body.id ? body.id : null
-  const deletedAt =
-    typeof body.deletedAt === 'string' && body.deletedAt ? body.deletedAt : null
-  if (!id) return ApiErrors.validation(requestId, 'id requerido')
-  if (!deletedAt) return ApiErrors.validation(requestId, 'deletedAt requerido')
+  const parsed = await parseJsonBody(req, MomentoRestoreBody, requestId)
+  if (!parsed.ok) return parsed.response
+  const { id, deletedAt } = parsed.data
 
   // UPDATE atómico — solo si deleted_at matchea exactamente. Si no
   // matchea (alguien lo restauró o re-borró), 0 rows afectadas → 409.
