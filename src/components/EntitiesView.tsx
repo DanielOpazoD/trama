@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { ENTITY_TYPES } from '../types'
+import { useEffect, useMemo, useState } from 'react'
 import { ViewHeader } from './ViewHeader'
 import { ConfirmDestroy } from './ConfirmDestroy'
 import {
@@ -11,17 +10,18 @@ import {
   useUpdateEntityType,
 } from '../state'
 import { type Reclassification } from '../api'
-import { ChevronRightIcon, EndMark, SparkleIcon, TrashIcon } from './Icons'
+import { EndMark } from './Icons'
 import { ReclassifyPanel } from './ReclassifyPanel'
 import { EmptyMessage } from './EmptyMessage'
 import { EntityCardSkeleton, SkeletonList } from './Skeleton'
 import { Folio } from './Folio'
-import { typeAccent } from './graph/GraphNode'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import type { Entity } from '../types'
 import { EntityForm } from './entities/EntityForm'
 import { useEntitiesFilters } from './entities/useEntitiesFilters'
 import { EntitiesFiltersBar } from './entities/EntitiesFiltersBar'
+import { EntityRow } from './entities/EntityRow'
+import { AIMenu } from './entities/AIMenu'
 
 export function EntitiesView({
   onSelectEntity,
@@ -293,249 +293,3 @@ export function EntitiesView({
   )
 }
 
-function EntityRow({
-  entity,
-  quoteCount,
-  relCount,
-  expanded,
-  onToggleExpand,
-  onSelectEntity,
-  onDelete,
-}: {
-  entity: Entity
-  quoteCount: number
-  relCount: number
-  expanded: boolean
-  onToggleExpand: () => void
-  onSelectEntity?: (id: string) => void
-  onDelete: () => void
-}) {
-  return (
-    <div
-      // viewTransitionName matchea con el EntityHeader del panel. Cuando
-      // el usuario abre el panel, el browser anima del card al header.
-      // Inline style porque viewTransitionName aún no está en CSSProperties.
-      style={{ viewTransitionName: `entity-card-${entity.id}` } as React.CSSProperties}
-      className="group relative"
-    >
-      <button
-        type="button"
-        onClick={onToggleExpand}
-        style={{ borderLeftColor: typeAccent(entity.type) }}
-        className={`card-paper-hover w-full text-left p-3 pl-4 border-l-[3px] hover:shadow-ink-900/5 active:scale-[0.995] ${
-          expanded ? 'ring-1 ring-ink-100' : ''
-        }`}
-        aria-label={`Ver ${entity.name}, ${quoteCount} ${
-          quoteCount === 1 ? 'cita' : 'citas'
-        }`}
-        aria-expanded={expanded}
-      >
-        <div className="flex justify-between items-baseline gap-4">
-          {/* μ2 reverted aquí: el sigilo de 2 letras se quitó del listado
-              porque agregaba ruido sin información (el nombre ya está al
-              lado). Sigue activo en el EntityHeader del panel detail,
-              donde tiene más justificación como ancla visual. */}
-          <div className="min-w-0">
-            <span className="text-ink-700">{entity.name}</span>
-            {entity.year !== undefined && (
-              <span className="ml-2 text-ink-300 text-sm">({entity.year})</span>
-            )}
-            <span
-              className="ml-3 text-micro uppercase tracking-eyebrow align-middle"
-              style={{ color: typeAccent(entity.type) }}
-            >
-              {ENTITY_TYPES.find((t) => t.value === entity.type)?.label}
-            </span>
-            {entity.origin.kind === 'ai' && (
-              <span className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle" title="añadido por IA">
-                <SparkleIcon size={10} />
-              </span>
-            )}
-          </div>
-          {/* Chevron que rota — indica si está expandida o no */}
-          <ChevronRightIcon
-            size={12}
-            className={`text-ink-200 group-hover:text-ink-400 transition-all shrink-0 ${
-              expanded ? 'rotate-90 text-ink-500' : ''
-            }`}
-          />
-        </div>
-        {entity.description && (
-          <p
-            className={`mt-1 text-ink-500 text-sm leading-relaxed ${
-              expanded ? '' : 'line-clamp-1'
-            }`}
-          >
-            {entity.description}
-          </p>
-        )}
-        {(quoteCount > 0 || relCount > 0) && (
-          <div className="mt-1.5 flex gap-3 text-micro uppercase tracking-eyebrow text-ink-300">
-            {quoteCount > 0 && (
-              <span>
-                {quoteCount} {quoteCount === 1 ? 'cita' : 'citas'}
-              </span>
-            )}
-            {relCount > 0 && (
-              <span>
-                {relCount} {relCount === 1 ? 'relación' : 'relaciones'}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Expansion inline — preview de meta + atajo a panel completo.
-            Solo se renderiza cuando expanded. El virtualizer mide la
-            altura dinámicamente via measureElement. */}
-        {expanded && (
-          <div className="mt-3 pt-3 border-t border-ink-100/60 space-y-2 animate-fade-up">
-            <div className="flex items-baseline gap-3 text-micro uppercase tracking-eyebrow text-ink-400">
-              <span className="font-mono normal-case tracking-normal text-ink-300">
-                {entity.id.slice(0, 8)}
-              </span>
-              {entity.spotifyUrl && (
-                <a
-                  href={entity.spotifyUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-emerald-700 hover:text-emerald-900 transition-colors"
-                >
-                  ↗ Spotify
-                </a>
-              )}
-              <span
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onSelectEntity?.(entity.id)
-                }}
-                className="ml-auto text-ink-400 hover:text-ink-700 transition-colors cursor-pointer"
-              >
-                abrir panel →
-              </span>
-            </div>
-          </div>
-        )}
-      </button>
-      {/* Toolbar flotante de acciones — solo aparece al hover. Como
-          Linear/Codex, en vez de tener botones permanentes. */}
-      <div className="hover-actions">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelectEntity?.(entity.id)
-          }}
-          aria-label={`Abrir ${entity.name}`}
-          title="Abrir panel"
-        >
-          <ChevronRightIcon size={12} />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
-          className="hover-action-destructive"
-          aria-label={`Eliminar ${entity.name}`}
-          title="Eliminar"
-        >
-          <TrashIcon size={12} />
-        </button>
-      </div>
-    </div>
-  )
-}
-
-/**
- * AA-B: menú IA en el header de Entidades. Por ahora una sola opción
- * (reclasificar). El patrón está pensado para crecer — agregar
- * "describir con IA" / "sugerir vínculos" / "limpiar tipos huérfanos"
- * sin tener que repensar el header. Cierra al click afuera o ESC.
- */
-function AIMenu({
-  onReclassify,
-  reclassifyPending,
-  disabled,
-}: {
-  onReclassify: () => void
-  reclassifyPending: boolean
-  disabled: boolean
-}) {
-  const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-    function onClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', onClick)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onClick)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-
-  return (
-    <div ref={containerRef} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        disabled={disabled || reclassifyPending}
-        className="ai-cta"
-        title="Acciones con IA"
-        aria-label="Acciones con IA"
-        aria-haspopup="menu"
-        aria-expanded={open}
-      >
-        {reclassifyPending ? (
-          <>
-            <span
-              className="size-3 border-2 rounded-full animate-spin"
-              style={{
-                borderColor: 'var(--accent-primary-ring)',
-                borderTopColor: 'var(--accent-primary)',
-              }}
-            />
-            revisando…
-          </>
-        ) : (
-          <>
-            <SparkleIcon size={12} />
-            IA
-            <span aria-hidden className="text-ink-400 ml-0.5">
-              ▾
-            </span>
-          </>
-        )}
-      </button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 top-full mt-1 min-w-[200px] bg-paper-50 border border-ink-100/80 rounded-md shadow-md shadow-ink-900/15 py-1 z-20 animate-fade-up"
-          style={{ backgroundColor: 'rgb(var(--paper-50))' }}
-        >
-          <button
-            role="menuitem"
-            onClick={() => {
-              setOpen(false)
-              onReclassify()
-            }}
-            className="w-full text-left px-3 py-2 text-sm text-ink-700 hover:bg-paper-100/70 transition-colors flex items-center gap-2"
-          >
-            <SparkleIcon size={12} className="text-ink-400" />
-            Reclasificar tipos
-          </button>
-          {/* Espacio futuro para más opciones IA. */}
-        </div>
-      )}
-    </div>
-  )
-}

@@ -1,0 +1,413 @@
+import { useEffect, useState } from 'react'
+import { api } from '../../../api'
+import type { Momento, MomentoPayload } from '../../../types'
+import { useUpdateMomento, useToast } from '../../../state'
+import {
+  compressImage,
+  fromDateTimeLocalInput,
+  readImageDimensions,
+  toDateTimeLocalInput,
+} from '../helpers'
+import { CapturedAtField, ModalFooter, ModalShell } from './shell'
+
+/**
+ * Sub-modal de edición para momentos kind=foto.
+ * Maneja la lógica más compleja de los 3: agregar/quitar fotos,
+ * reordenar (★ portada + flechas), compresión client-side, upload
+ * progresivo a Netlify Blobs.
+ *
+ * State local:
+ *   - items[]: lista unificada de fotos. Cada item es 'existing' (ya
+ *     subido al store) o 'new' (File local pendiente). Al guardar se
+ *     suben solo las 'new'.
+ *   - caption, note, capturedAt: campos editables.
+ *   - uploading + progress: feedback durante el upload paralelo.
+ */
+
+type ExistingItem = {
+  kind: 'existing'
+  storageKey: string
+  width?: number
+  height?: number
+}
+type NewItem = {
+  kind: 'new'
+  file: File
+  previewUrl: string
+}
+type EditItem = ExistingItem | NewItem
+
+function buildInitialItems(momento: Momento): EditItem[] {
+  const { items, storageKey, width, height } = momento.payload
+  if (items && items.length > 0) {
+    return items.map((it) => ({
+      kind: 'existing' as const,
+      storageKey: it.storageKey,
+      width: it.width,
+      height: it.height,
+    }))
+  }
+  if (storageKey) {
+    return [{ kind: 'existing', storageKey, width, height }]
+  }
+  return []
+}
+
+export function FotoEditModal({
+  momento,
+  onClose,
+}: {
+  momento: Momento
+  onClose: () => void
+}) {
+  const updateMomento = useUpdateMomento()
+  const toast = useToast()
+
+  const [items, setItems] = useState<EditItem[]>(() => buildInitialItems(momento))
+  const [caption, setCaption] = useState(momento.payload.caption ?? '')
+  const [note, setNote] = useState(momento.note ?? '')
+  const [capturedAt, setCapturedAt] = useState(
+    toDateTimeLocalInput(momento.capturedAt),
+  )
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+
+  // Cleanup blob URLs al desmontar — los `new` items tienen
+  // URL.createObjectURL que hay que revocar para no leakear memoria.
+  useEffect(() => {
+    return () => {
+      for (const it of items) {
+        if (it.kind === 'new') URL.revokeObjectURL(it.previewUrl)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function addFiles(files: File[]) {
+    const valid = files.filter((f) => f.type.startsWith('image/'))
+    if (valid.length === 0) return
+    setItems((prev) => [
+      ...prev,
+      ...valid.map((file) => ({
+        kind: 'new' as const,
+        file,
+        previewUrl: URL.createObjectURL(file),
+      })),
+    ])
+  }
+
+  function removeItem(idx: number) {
+    setItems((prev) => {
+      const next = [...prev]
+      const removed = next.splice(idx, 1)[0]
+      if (removed && removed.kind === 'new') URL.revokeObjectURL(removed.previewUrl)
+      return next
+    })
+  }
+
+  function setPrimary(idx: number) {
+    setItems((prev) => {
+      if (idx <= 0 || idx >= prev.length) return prev
+      const next = [...prev]
+      const [picked] = next.splice(idx, 1)
+      if (!picked) return prev
+      next.unshift(picked)
+      return next
+    })
+  }
+
+  function moveItem(idx: number, dir: -1 | 1) {
+    setItems((prev) => {
+      const target = idx + dir
+      if (target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      const tmp = next[idx]
+      const swap = next[target]
+      if (tmp === undefined || swap === undefined) return prev
+      next[idx] = swap
+      next[target] = tmp
+      return next
+    })
+  }
+
+  async function handleSave() {
+    if (uploading || updateMomento.isPending) return
+    if (items.length === 0) {
+      toast.show({ message: 'Necesitas al menos una foto', tone: 'default' })
+      return
+    }
+    const newCapturedAt = fromDateTimeLocalInput(capturedAt)
+    if (capturedAt && !newCapturedAt) {
+      toast.show({ message: 'Fecha inválida', tone: 'error' })
+      return
+    }
+    setUploading(true)
+    const newItems = items.filter((it): it is NewItem => it.kind === 'new')
+    setProgress(
+      newItems.length > 0 ? { done: 0, total: newItems.length } : null,
+    )
+    try {
+      const uploadedKeys = new Map<File, { storageKey: string; width?: number; height?: number }>()
+      await Promise.all(
+        newItems.map(async (it) => {
+          const compressed = await compressImage(it.file)
+          const dims = await readImageDimensions(compressed)
+          const uploaded = await api.momentoUpload(compressed)
+          uploadedKeys.set(it.file, {
+            storageKey: uploaded.storageKey,
+            width: dims.width || undefined,
+            height: dims.height || undefined,
+          })
+          setProgress((prev) =>
+            prev ? { done: prev.done + 1, total: prev.total } : prev,
+          )
+        }),
+      )
+      type FinalItem = { storageKey: string; width?: number; height?: number }
+      const finalItems: FinalItem[] = items.flatMap((it) => {
+        if (it.kind === 'existing') {
+          const out: FinalItem = { storageKey: it.storageKey }
+          if (it.width !== undefined) out.width = it.width
+          if (it.height !== undefined) out.height = it.height
+          return [out]
+        }
+        const data = uploadedKeys.get(it.file)
+        if (!data) return []
+        const out: FinalItem = { storageKey: data.storageKey }
+        if (data.width !== undefined) out.width = data.width
+        if (data.height !== undefined) out.height = data.height
+        return [out]
+      })
+
+      const [first] = finalItems
+      const payload: MomentoPayload = {
+        ...momento.payload,
+        items: finalItems,
+        storageKey: first?.storageKey,
+        width: first?.width,
+        height: first?.height,
+        caption: caption.trim() || undefined,
+      }
+      const patch: Parameters<typeof updateMomento.mutateAsync>[0]['patch'] = {
+        payload,
+        note: note.trim() || null,
+      }
+      if (newCapturedAt) patch.capturedAt = newCapturedAt
+      await updateMomento.mutateAsync({ id: momento.id, patch })
+      toast.show({ message: 'Momento actualizado', tone: 'success' })
+      onClose()
+    } catch (err) {
+      toast.show({
+        message: err instanceof Error ? err.message : 'No se pudo guardar',
+        tone: 'error',
+      })
+    } finally {
+      setUploading(false)
+      setProgress(null)
+    }
+  }
+
+  return (
+    <ModalShell
+      ariaLabel="Editar momento"
+      eyebrow="editar momento"
+      title="Fotos del episodio"
+      onClose={onClose}
+    >
+      <div className="px-5 py-4 space-y-3">
+        <label
+          className="block border-2 border-dashed border-ink-200/60 rounded-lg p-3 text-center cursor-pointer hover:border-ink-300 hover:bg-paper-50/50 transition-colors"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault()
+            const files = Array.from(e.dataTransfer.files ?? [])
+            if (files.length > 0) addFiles(files)
+          }}
+        >
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="sr-only"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? [])
+              if (files.length > 0) addFiles(files)
+              e.target.value = ''
+            }}
+            disabled={uploading || updateMomento.isPending}
+          />
+          <p className="text-sm text-ink-400">
+            Arrastra más imágenes o click para elegir
+          </p>
+        </label>
+
+        {items.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {items.map((it, idx) => (
+              <PhotoTile
+                key={it.kind === 'existing' ? it.storageKey : it.previewUrl}
+                item={it}
+                idx={idx}
+                total={items.length}
+                disabled={uploading || updateMomento.isPending}
+                onRemove={() => removeItem(idx)}
+                onSetPrimary={() => setPrimary(idx)}
+                onMove={(dir) => moveItem(idx, dir)}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-caption text-ink-400 italic text-center py-3">
+            Sin fotos. Agrega al menos una.
+          </p>
+        )}
+
+        {progress && progress.total > 0 && (
+          <p className="text-caption text-ink-400 italic tabular-nums">
+            Subiendo {progress.done} de {progress.total}…
+          </p>
+        )}
+
+        <input
+          type="text"
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          placeholder="Título del episodio (opcional)"
+          className="input-paper w-full font-serif text-base leading-relaxed placeholder:italic"
+          disabled={uploading || updateMomento.isPending}
+        />
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Tu nota sobre el momento (opcional)"
+          rows={3}
+          className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
+          disabled={uploading || updateMomento.isPending}
+        />
+        <CapturedAtField
+          value={capturedAt}
+          onChange={setCapturedAt}
+          disabled={uploading || updateMomento.isPending}
+        />
+      </div>
+      <ModalFooter
+        onClose={onClose}
+        onSave={handleSave}
+        saveLabel={uploading ? 'subiendo…' : 'guardar cambios'}
+        saving={uploading || updateMomento.isPending}
+        saveDisabled={items.length === 0}
+      />
+    </ModalShell>
+  )
+}
+
+/**
+ * Card por foto en la grilla — preview + acciones hover (quitar,
+ * portada, reordenar). Extraído del FotoEditModal porque el JSX de
+ * cada tile era ~80 LOC con condicionales anidados.
+ */
+function PhotoTile({
+  item,
+  idx,
+  total,
+  disabled,
+  onRemove,
+  onSetPrimary,
+  onMove,
+}: {
+  item: EditItem
+  idx: number
+  total: number
+  disabled: boolean
+  onRemove: () => void
+  onSetPrimary: () => void
+  onMove: (dir: -1 | 1) => void
+}) {
+  const isPrimary = idx === 0
+  const src =
+    item.kind === 'existing'
+      ? `/api/momentos-file/${encodeURIComponent(item.storageKey)}`
+      : item.previewUrl
+  return (
+    <div
+      className={`group relative aspect-square overflow-hidden rounded border ${
+        isPrimary ? 'border-2' : 'border-ink-100/60'
+      } bg-paper-100/40`}
+      style={isPrimary ? { borderColor: 'var(--accent-gold)' } : undefined}
+    >
+      <img
+        src={src}
+        alt={`foto ${idx + 1}`}
+        className="w-full h-full object-cover"
+        loading="lazy"
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute top-1 right-1 size-5 flex items-center justify-center rounded-full bg-ink-900/70 text-paper-50 text-xs hover:bg-ink-900 transition-colors"
+        aria-label={`Quitar foto ${idx + 1}`}
+        title="Quitar"
+        disabled={disabled}
+      >
+        ×
+      </button>
+      {isPrimary ? (
+        <span
+          className="absolute top-1 left-1 text-micro uppercase tracking-eyebrow px-1.5 py-0.5 rounded leading-none font-medium"
+          style={{ backgroundColor: 'var(--accent-gold)', color: '#fff' }}
+        >
+          ★ portada
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={onSetPrimary}
+          className="absolute top-1 left-1 text-micro uppercase tracking-eyebrow px-1.5 py-0.5 rounded leading-none bg-ink-900/55 text-paper-50 hover:bg-ink-900/80 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          title="Marcar como portada"
+          disabled={disabled}
+        >
+          ★ portada
+        </button>
+      )}
+      <span className="absolute bottom-1 left-1 text-micro tabular-nums bg-ink-900/60 text-paper-50 px-1 rounded leading-none py-0.5">
+        {idx + 1}
+      </span>
+      {item.kind === 'new' && (
+        <span
+          className="absolute top-1 right-7 text-micro uppercase tracking-eyebrow bg-emerald-700/80 text-paper-50 px-1 rounded leading-none py-0.5"
+          title="Foto nueva — se subirá al guardar"
+        >
+          nueva
+        </span>
+      )}
+      {total > 1 && (
+        <div className="absolute bottom-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {idx > 0 && (
+            <button
+              type="button"
+              onClick={() => onMove(-1)}
+              className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
+              aria-label={`Mover foto ${idx + 1} hacia atrás`}
+              title="Mover atrás"
+              disabled={disabled}
+            >
+              ‹
+            </button>
+          )}
+          {idx < total - 1 && (
+            <button
+              type="button"
+              onClick={() => onMove(1)}
+              className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
+              aria-label={`Mover foto ${idx + 1} hacia adelante`}
+              title="Mover adelante"
+              disabled={disabled}
+            >
+              ›
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

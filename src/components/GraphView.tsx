@@ -21,6 +21,11 @@ import type { Entity, ExtractionProposal, Relationship } from '../types'
 import { ENTITY_TYPES } from '../types'
 import { useGraphLayout } from '../hooks/useGraphLayout'
 import { usePanZoom } from '../hooks/usePanZoom'
+import {
+  useLocalStorageBoolean,
+  useLocalStorageNullable,
+  useLocalStorageState,
+} from '../hooks/useLocalStorageState'
 import { useFreshIds } from '../hooks/useFreshIds'
 import { GraphNode } from './graph/GraphNode'
 import { GraphEdge } from './graph/GraphEdge'
@@ -74,24 +79,13 @@ export default function GraphView({
   const svgRef = useRef<SVGSVGElement>(null)
   const [svgSize, setSvgSize] = useState({ width: 0, height: 0 })
   // Default 'by-degree' (por densidad) — los hubs caen al centro y el
-  // grafo se entiende a primer vistazo. Antes era 'organic' que es más
-  // bonito pero menos informativo en el primer load. La elección del
-  // usuario persiste en localStorage.
-  const [mode, setModeState] = useState<LayoutMode>(() => {
-    if (typeof window === 'undefined') return 'by-degree'
-    const raw = window.localStorage.getItem(GRAPH_LAYOUT_MODE_KEY)
-    return raw && VALID_LAYOUT_MODES.includes(raw as LayoutMode)
-      ? (raw as LayoutMode)
-      : 'by-degree'
-  })
-  const setMode = (next: LayoutMode) => {
-    setModeState(next)
-    try {
-      window.localStorage.setItem(GRAPH_LAYOUT_MODE_KEY, next)
-    } catch {
-      /* localStorage disabled */
-    }
-  }
+  // grafo se entiende a primer vistazo. La elección persiste en
+  // localStorage vía useLocalStorageState.
+  const [mode, setMode] = useLocalStorageState<LayoutMode>(
+    GRAPH_LAYOUT_MODE_KEY,
+    'by-degree',
+    (raw): raw is LayoutMode => VALID_LAYOUT_MODES.includes(raw as LayoutMode),
+  )
   const [suggestEmpty, setSuggestEmpty] = useState(false)
 
   // ζ5: hover preview — al hover prolongado sobre un nodo (~600ms) mostramos
@@ -113,40 +107,27 @@ export default function GraphView({
     setHoveredEntityId(null)
   }
 
-  // Graph mode + focus, both persisted so el modo + el nodo focal
-  // sobreviven recargas y navegación entre vistas.
-  const [graphMode, setGraphModeState] = useState<GraphMode>(() => {
-    if (typeof window === 'undefined') return 'completo'
-    const raw = window.localStorage.getItem(GRAPH_MODE_KEY)
-    return raw === 'exploratorio' ? 'exploratorio' : 'completo'
-  })
-  // Dismiss state for "considera modo explorar" — persistido, una vez
-  // descartado no vuelve a aparecer en esa instalación.
-  const [exploreHintDismissed, setExploreHintDismissed] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return window.localStorage.getItem(GRAPH_EXPLORE_HINT_DISMISSED) === '1'
-  })
-  const [focusId, setFocusIdState] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null
-    return window.localStorage.getItem(GRAPH_FOCUS_KEY)
-  })
+  // Graph mode + focus + explore-hint, todos persistidos. El modo y el
+  // nodo focal sobreviven recargas/navegación; el dismiss del hint se
+  // recuerda permanentemente.
+  const [graphMode, setGraphModeRaw] = useLocalStorageState<GraphMode>(
+    GRAPH_MODE_KEY,
+    'completo',
+    (raw): raw is GraphMode => raw === 'completo' || raw === 'exploratorio',
+  )
+  const [exploreHintDismissed, setExploreHintDismissed] = useLocalStorageBoolean(
+    GRAPH_EXPLORE_HINT_DISMISSED,
+    false,
+  )
+  const [focusId, setFocusId] = useLocalStorageNullable(GRAPH_FOCUS_KEY)
 
   function setGraphMode(m: GraphMode) {
-    setGraphModeState(m)
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(GRAPH_MODE_KEY, m)
-    }
+    setGraphModeRaw(m)
     // Auto-pick a focus on first switch to exploratory if none is set.
     if (m === 'exploratorio' && !focusId) {
       const candidate = selectedId ?? allEntities[0]?.id ?? null
       if (candidate) setFocusId(candidate)
     }
-  }
-  function setFocusId(id: string | null) {
-    setFocusIdState(id)
-    if (typeof window === 'undefined') return
-    if (id) window.localStorage.setItem(GRAPH_FOCUS_KEY, id)
-    else window.localStorage.removeItem(GRAPH_FOCUS_KEY)
   }
 
   const neighborsQuery = useNeighborsQuery(
