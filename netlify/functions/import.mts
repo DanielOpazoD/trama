@@ -40,15 +40,7 @@ type ImportPayload = {
   quotes?: IncomingQuote[]
 }
 
-function normalizeOrigin(value: unknown): { kind: string; [k: string]: unknown } {
-  if (value && typeof value === 'object' && 'kind' in (value as Record<string, unknown>)) {
-    return value as { kind: string; [k: string]: unknown }
-  }
-  if (typeof value === 'string') {
-    return { kind: value === 'ai' ? 'ai' : 'manual' }
-  }
-  return { kind: 'manual' }
-}
+import { normalizeOrigin } from './_lib/origin.js'
 
 /**
  * Item de falla en import. Antes los INSERT fallidos se silenciaban — un

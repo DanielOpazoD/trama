@@ -15,17 +15,7 @@ import {
   toPgVector,
 } from './_lib/embeddings.js'
 
-type Origin = { kind: string; [key: string]: unknown }
-
-function normalizeOrigin(value: unknown): Origin {
-  if (value && typeof value === 'object' && 'kind' in (value as Record<string, unknown>)) {
-    return value as Origin
-  }
-  if (typeof value === 'string') {
-    return { kind: value === 'ai' ? 'ai' : 'manual' }
-  }
-  return { kind: 'manual' }
-}
+import { normalizeOrigin } from './_lib/origin.js'
 
 export default withObservability('entities', async (req: Request, context: Context, { requestId }) => {
   const { id: userId } = await getAuthedUser(req)

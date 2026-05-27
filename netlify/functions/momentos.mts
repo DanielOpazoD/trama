@@ -36,14 +36,7 @@ import {
  * (sin key, error de red), el momento se guarda igual sin embedding.
  */
 
-type Origin = { kind: string; [key: string]: unknown }
-
-function normalizeOrigin(value: unknown): Origin {
-  if (value && typeof value === 'object' && 'kind' in (value as Record<string, unknown>)) {
-    return value as Origin
-  }
-  return { kind: 'manual' }
-}
+import { normalizeOrigin } from './_lib/origin.js'
 
 function isValidKind(v: unknown): v is MomentoKind {
   return v === 'nota' || v === 'recorte' || v === 'foto'
