@@ -4,6 +4,21 @@
  * Reads `AI_MONTHLY_BUDGET_CENTS` env var (default 500 = $5/month).
  * Queries extraction_log for accumulated cost in the current month.
  * Returns null if under budget, or a Response (429) if over.
+ *
+ * **Multi-user nota**: hoy el cap es global (env var compartida por
+ * todos los usuarios). Cuando la app pase a multi-user serio, mover
+ * a una columna `monthly_budget_cents` en la tabla `users` y filtrar
+ * la suma del extraction_log por `user_id`. La forma del check no
+ * cambia — solo el query.
+ *
+ * **Fail-open** intencional: si no hay DB (modo local sin Netlify),
+ * dejamos pasar. El cap es una contención de gasto, no security; un
+ * usuario dev no debería bloquearse por no tener Postgres provisionado.
+ *
+ * @example
+ *   const overBudget = await checkMonthlyBudget()
+ *   if (overBudget) return overBudget  // 429 al cliente
+ *   // ... continuar con llamada al LLM
  */
 
 import { safeSql } from './observability.js'

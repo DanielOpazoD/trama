@@ -85,6 +85,15 @@ export function clearEmbeddingCache(): void {
  *
  * Cachea por texto normalizado (lower + collapse whitespace) por 10 min.
  * Pasar `{ noCache: true }` para forzar refresh.
+ *
+ * Para escrituras (POST/PATCH) usar `embedSafe()` en lugar de éste —
+ * un fallo de embedding NO debe romper el flujo de guardado.
+ *
+ * @example
+ *   const { vector, model } = await embed('Borges, escritor argentino')
+ *   await sql`UPDATE entities SET embedding = ${toPgVector(vector)}::vector,
+ *                                  embedding_model = ${model}
+ *             WHERE id = ${id}`
  */
 export async function embed(
   text: string,
@@ -131,6 +140,20 @@ export async function embed(
  * Best-effort: returns the embedding result, or null if anything goes wrong.
  * Use this on create/update paths so a transient embedding failure doesn't
  * break the user's write.
+ *
+ * Errores comunes que silencia:
+ *   - Sin `OPENAI_API_KEY` configurada
+ *   - Rate limit del provider
+ *   - Network failure / DNS
+ *   - Texto vacío (después de trim)
+ *
+ * @example
+ *   const emb = await embedSafe(quoteEmbeddingText({ text, entityName }))
+ *   // emb puede ser null — el INSERT debe manejar ambos casos
+ *   await sql`INSERT INTO quotes (…, embedding, embedding_model)
+ *             VALUES (…,
+ *               ${emb ? toPgVector(emb.vector) : null}::vector,
+ *               ${emb?.model ?? null})`
  */
 export async function embedSafe(text: string): Promise<EmbedResult | null> {
   try {
@@ -145,6 +168,11 @@ export async function embedSafe(text: string): Promise<EmbedResult | null> {
  * Format a number[] into the literal Postgres vector input format,
  * "[0.01,0.02,...]". Used because postgres-js sends arrays as ARRAY[..]
  * by default, which pgvector doesn't accept directly.
+ *
+ * @example
+ *   sql`UPDATE entities SET embedding = ${toPgVector(emb.vector)}::vector
+ *       WHERE id = ${id}`
+ *   // ↑ "::vector" cast obligatorio
  */
 export function toPgVector(v: number[]): string {
   return '[' + v.join(',') + ']'

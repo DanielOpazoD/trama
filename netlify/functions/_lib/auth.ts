@@ -47,9 +47,26 @@ export class UnauthenticatedError extends Error {
 /**
  * Extrae y verifica el userId del Bearer token de Clerk.
  *
- * - Sin Clerk configurado → siempre devuelve legacy user (modo single-user).
- * - Con Clerk + token válido → devuelve el userId real.
- * - Con Clerk + sin token → 401 (a menos que ALLOW_LEGACY_FALLBACK=true).
+ * Tabla de decisión:
+ *
+ * | CLERK_SECRET_KEY | Bearer token | ALLOW_LEGACY_FALLBACK | Resultado                 |
+ * |------------------|--------------|------------------------|---------------------------|
+ * | sin configurar   | —            | —                      | legacy-single-user        |
+ * | configurado      | válido       | —                      | userId real (de payload)  |
+ * | configurado      | sin token    | true                   | legacy-single-user        |
+ * | configurado      | sin token    | false/unset            | UnauthenticatedError → 401|
+ * | configurado      | inválido     | true                   | legacy-single-user        |
+ * | configurado      | inválido     | false/unset            | UnauthenticatedError → 401|
+ *
+ * El error se atrapa en `handler-wrap.ts` y se convierte en 401 con el
+ * shape canónico de `ApiErrors.unauthenticated()`. El caller no necesita
+ * try/catch — solo invocar al inicio del handler.
+ *
+ * @example
+ *   export default withObservability(async (req, _ctx, { requestId }) => {
+ *     const { id: userId } = await getAuthedUser(req)
+ *     // ... usar userId en queries SQL: WHERE user_id = ${userId}
+ *   })
  */
 export async function getAuthedUser(request: Request): Promise<AuthedUser> {
   const clerkConfigured = Boolean(readEnv('CLERK_SECRET_KEY'))
