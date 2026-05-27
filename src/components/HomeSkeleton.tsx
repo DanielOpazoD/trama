@@ -14,10 +14,11 @@
  */
 export function HomeSkeleton() {
   return (
-    <div
-      id="main-scroll"
-      className="h-full overflow-y-auto px-8 py-10 pb-32 max-w-3xl mx-auto"
-    >
+    // Mismo patrón que ViewRouter: scroll en el contenedor exterior
+    // (full width) para que el trackpad capture en cualquier zona,
+    // wrapper interior con max-w para limitar el ancho de lectura.
+    <div id="main-scroll" className="h-full overflow-y-auto">
+      <div className="px-8 py-10 pb-32 max-w-3xl mx-auto">
       <header
         className="pad-block-5 flex items-baseline justify-between gap-6 stack-3 relative"
         style={{
@@ -70,6 +71,7 @@ export function HomeSkeleton() {
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   )

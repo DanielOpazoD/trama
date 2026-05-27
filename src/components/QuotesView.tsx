@@ -103,7 +103,6 @@ export function QuotesView({
         eyebrow="fragmentos que retuviste"
         accent="var(--accent-gold)"
         spacing="wide"
-        sticky
         subtitle="Fragmentos textuales que atribuyes a una entidad. Una frase de un libro, algo que dijo una persona, un verso de una canción."
         action={
           entities.length > 0 ? (

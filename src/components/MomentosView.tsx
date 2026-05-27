@@ -144,7 +144,6 @@ export function MomentosView() {
         eyebrow="✦ memoria fechada"
         accent="var(--accent-gold)"
         spacing="tight"
-        sticky
       />
 
       <MomentoComposer composer={composer} />
