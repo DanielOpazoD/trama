@@ -104,6 +104,75 @@ export function ThreadRowSkeleton({ animationDelay = 0 }: { animationDelay?: num
 }
 
 /**
+ * Entrada del timeline de Momentos. Hour gutter + bloque de texto serif
+ * o card visual; este skeleton imita el caso "nota corta" (más común).
+ */
+export function MomentoSkeleton({ animationDelay = 0 }: { animationDelay?: number }) {
+  return (
+    <li
+      className="relative pl-5 animate-fade-up"
+      style={{ animationDelay: `${animationDelay}ms` }}
+    >
+      {/* Hour gutter — silueta de la marca temporal italic. */}
+      <div
+        className="absolute left-0 top-1 w-12 -ml-1 pr-2 border-r border-ink-100/40"
+        aria-hidden
+      >
+        <Skeleton className="h-2 w-8 ml-auto" />
+      </div>
+      <div className="ml-12 space-y-2">
+        <Skeleton className="h-3 w-5/6" />
+        <Skeleton className="h-3 w-2/3" />
+      </div>
+    </li>
+  )
+}
+
+/**
+ * Fila de relación en RelationshipsView. Tres bloques: from-name → type
+ * → to-name, alineados al baseline. Las relaciones varían en ancho;
+ * usamos w-1/4 / w-1/5 / w-1/3 para variedad visual.
+ */
+export function RelationshipSkeleton({ animationDelay = 0 }: { animationDelay?: number }) {
+  return (
+    <div
+      className="card-paper p-3 animate-fade-up"
+      style={{ animationDelay: `${animationDelay}ms` }}
+    >
+      <div className="flex items-baseline gap-3 text-sm">
+        <Skeleton className="h-3 w-1/4" />
+        <Skeleton className="h-2.5 w-16" />
+        <Skeleton className="h-3 w-1/3" />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Sugerencia IA en ProactiveView. Header con eyebrow + título +
+ * dos líneas de contexto + 2 botones (descartar / aceptar).
+ */
+export function ProactiveSuggestionSkeleton({ animationDelay = 0 }: { animationDelay?: number }) {
+  return (
+    <div
+      className="card-paper p-4 space-y-3 animate-fade-up"
+      style={{ animationDelay: `${animationDelay}ms` }}
+    >
+      <div className="space-y-2">
+        <Skeleton className="h-2.5 w-20" />
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-4/5" />
+      </div>
+      <div className="flex justify-end gap-2">
+        <Skeleton className="h-7 w-16" shimmer={false} />
+        <Skeleton className="h-7 w-20" shimmer={false} />
+      </div>
+    </div>
+  )
+}
+
+/**
  * Helper para renderizar N skeletons con stagger sutil — cada uno entra
  * 30ms después del anterior, hasta un cap de 240ms para no quedar lento.
  */

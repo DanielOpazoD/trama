@@ -26,6 +26,7 @@ import { GraphNode } from './graph/GraphNode'
 import { GraphEdge } from './graph/GraphEdge'
 import { GraphToolbar, type GraphMode } from './graph/GraphToolbar'
 import { GraphMinimap } from './graph/GraphMinimap'
+import { LoadingHint } from './LoadingHint'
 
 // Lazy-load del renderer WebGL: sigma + graphology pesan ~165KB extra
 // y solo se usan cuando la trama cruza WEBGL_THRESHOLD. Para usuarios
@@ -534,7 +535,7 @@ export default function GraphView({
         <Suspense
           fallback={
             <div className="h-full flex items-center justify-center">
-              <p className="text-ink-300 italic text-sm">cargando renderer…</p>
+              <LoadingHint text="cargando renderer" size="sm" />
             </div>
           }
         >

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAISettingsQuery, useSetAITaskProvider } from '../state'
 import type { AITaskKey } from '../api'
+import { LoadingHint } from './LoadingHint'
 
 const PROVIDERS = [
   { value: 'deepseek', label: 'DeepSeek', notes: 'barato, rápido' },
@@ -66,7 +67,7 @@ export function AITaskSettings() {
   const [busyTask, setBusyTask] = useState<AITaskKey | null>(null)
 
   if (settings.isLoading) {
-    return <p className="text-xs text-ink-300 italic">cargando…</p>
+    return <LoadingHint text="cargando" />
   }
   if (settings.error || !settings.data) {
     return (

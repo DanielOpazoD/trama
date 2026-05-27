@@ -73,19 +73,19 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
 
       <MomentoQRModal open={qrOpen} onClose={() => setQrOpen(false)} />
 
-      {/* AA-A: botón Guardar más chico — antes era btn-ink (padding
-          medio). Ahora text-xs + padding mínimo para acompañar la
-          dimensión apretada del composer. */}
+      {/* Save primario del composer — usa btn-accent para distinguirlo
+          de "cancelar/cerrar" (text-only, ink-400). El text-xs + py-1.5
+          mantiene la silueta compacta original. */}
       <div className="flex justify-end pt-0">
         <button
           type="submit"
           disabled={composer.isPending}
-          className="px-3 py-1.5 text-xs font-medium bg-ink-900 text-paper-50 rounded-md hover:bg-ink-800 disabled:opacity-60 transition-colors"
+          className="btn-accent text-xs py-1.5"
         >
           {composer.photoUploading
-            ? 'Subiendo…'
+            ? 'subiendo…'
             : composer.isPending
-              ? 'Guardando…'
+              ? 'guardando…'
               : 'Guardar'}
         </button>
       </div>
@@ -169,7 +169,7 @@ function RecorteFields({ composer }: { composer: Composer }) {
         onChange={(e) => composer.setRecorteBody(e.target.value)}
         placeholder="Texto del recorte (el tweet, el párrafo, lo que pegues)"
         rows={3}
-        className="input-paper w-full resize-none font-serif text-sm leading-relaxed placeholder:italic"
+        className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
         disabled={composer.isPending}
       />
       <div className="flex gap-2">
@@ -195,11 +195,10 @@ function RecorteFields({ composer }: { composer: Composer }) {
         onChange={(e) => composer.setRecorteNote(e.target.value)}
         placeholder="Tu nota: por qué te llamó la atención"
         rows={2}
-        // φ-photo-polish: sin marginalia-script en el composer — los
-        // tres branches (nota, recorte, foto) ahora usan input-paper
-        // text-sm sans estándar para coherencia. La marginalia vive en
+        // Mismo tipo de fuente que usa la nota — coherencia tipográfica
+        // entre los 3 kinds de entrada. La marginalia decorativa vive en
         // el RENDER del momento, no en el input crudo.
-        className="input-paper w-full text-sm resize-none"
+        className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
         disabled={composer.isPending}
       />
     </div>
@@ -403,7 +402,7 @@ function FotoFields({ composer }: { composer: Composer }) {
         value={composer.photoCaption}
         onChange={(e) => composer.setPhotoCaption(e.target.value)}
         placeholder="Título del episodio (opcional)"
-        className="input-paper w-full text-sm"
+        className="input-paper w-full font-serif text-base leading-relaxed placeholder:italic"
         disabled={composer.isPending}
       />
       <textarea
@@ -411,7 +410,7 @@ function FotoFields({ composer }: { composer: Composer }) {
         onChange={(e) => composer.setPhotoNote(e.target.value)}
         placeholder="Tu nota sobre el momento (opcional)"
         rows={2}
-        className="input-paper w-full text-sm resize-none"
+        className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
         disabled={composer.isPending}
       />
     </div>

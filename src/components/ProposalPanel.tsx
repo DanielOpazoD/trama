@@ -300,7 +300,7 @@ export function ProposalPanel({
           <button onClick={onClose} disabled={submitting} className="btn-ghost">
             descartar
           </button>
-          <button onClick={handleConfirm} disabled={submitting} className="btn-ink">
+          <button onClick={handleConfirm} disabled={submitting} className="btn-accent">
             {submitting ? 'guardando…' : 'añadir a la trama'}
           </button>
         </footer>

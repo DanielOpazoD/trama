@@ -1,0 +1,100 @@
+import type { ReactNode } from 'react'
+import { sectionWashStyle } from '../lib/sectionWash'
+
+/**
+ * Header canónico de cada vista. Hasta este componente había 4 variantes
+ * distintas para el mismo gesto (text-4xl / text-2xl / text-[28px] /
+ * text-h1). Ahora todas las vistas (Inicio, Grafo, Entidades, Citas,
+ * Momentos, Escuchas, Sugerencias, Chat, Configuración) producen el
+ * mismo gesto: eyebrow editorial → h2 serif → accent-rule → subtitle.
+ *
+ * Props:
+ *   - title       string (ej "Citas")
+ *   - eyebrow     string corto que entra arriba en small-caps serif
+ *   - subtitle?   párrafo explicativo opcional (mt-2 text-sm text-ink-400)
+ *   - accent?     CSS var del color de la sección (controla wash + eyebrow).
+ *                 Default 'var(--accent-gold)'.
+ *   - eyebrowColor?  color del eyebrow si difiere del accent (algunas
+ *                    vistas usan section-color en el wash pero gold en
+ *                    el eyebrow — el patrón hereda esa flexibilidad).
+ *                    Default = accent.
+ *   - noWash?     si true, no aplica el radial wash de fondo.
+ *                 Default false.
+ *   - action?     slot para botones a la derecha (alineados al baseline).
+ *   - spacing?    margen inferior — 'tight' (mb-6), 'normal' (mb-8),
+ *                 'wide' (mb-10). Default 'normal'.
+ *   - sticky?     si true, el header se queda fijo al hacer scroll con
+ *                 backdrop-blur. Útil para vistas largas (Citas,
+ *                 Momentos, Entidades) donde el contexto se pierde al
+ *                 scrollear.
+ *                 Default false.
+ */
+export function ViewHeader({
+  title,
+  eyebrow,
+  subtitle,
+  accent = 'var(--accent-gold)',
+  eyebrowColor,
+  noWash = false,
+  action,
+  spacing = 'normal',
+  sticky = false,
+}: {
+  title: string
+  eyebrow: string
+  subtitle?: ReactNode
+  accent?: string
+  eyebrowColor?: string
+  noWash?: boolean
+  action?: ReactNode
+  spacing?: 'tight' | 'normal' | 'wide'
+  sticky?: boolean
+}) {
+  const spacingClass =
+    spacing === 'tight' ? 'mb-6' : spacing === 'wide' ? 'mb-10' : 'mb-8'
+
+  // Sticky compone: position sticky + backdrop blur + border-bottom
+  // sutil cuando scrollea. El paper-50/85 + backdrop-blur-md es el
+  // patrón Linear/Things. Cuando sticky=true dropeamos el wash y los
+  // márgenes negativos — la identidad cromática vive en el eyebrow
+  // color + accent-rule del título; el wash compite visualmente con
+  // el contenido borroso de atrás.
+  const stickyClass = sticky
+    ? 'sticky top-0 z-20 bg-paper-50/85 backdrop-blur-md border-b border-ink-100/40'
+    : ''
+
+  // Wash radial sutil del color del section accent. Da identidad
+  // cromática a la vista sin gritar. Se desactiva cuando sticky=true.
+  const useWash = !noWash && !sticky
+  const baseClass = useWash
+    ? 'flex items-baseline justify-between gap-6 px-3 -mx-3 py-2 -my-2 rounded-lg'
+    : 'flex items-baseline justify-between gap-6'
+
+  const finalEyebrowColor = eyebrowColor ?? accent
+
+  return (
+    <header
+      className={`${spacingClass} ${stickyClass} ${baseClass}`}
+      style={useWash ? sectionWashStyle(accent) : undefined}
+    >
+      <div className="min-w-0">
+        <p
+          className="section-eyebrow-serif mb-2"
+          style={{ color: finalEyebrowColor }}
+        >
+          {eyebrow}
+        </p>
+        <h2 className="font-serif text-4xl text-ink-700 leading-none">
+          {title}
+        </h2>
+        <div className="accent-rule mt-3 mb-2" />
+        {subtitle && (
+          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-2xl">
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </header>
+  )
+}

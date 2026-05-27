@@ -91,7 +91,7 @@ export function QuoteForm({
         rows={2}
         className="input-paper w-full resize-none"
       />
-      <button type="submit" disabled={addQuote.isPending} className="btn-ink">
+      <button type="submit" disabled={addQuote.isPending} className="btn-accent">
         {addQuote.isPending ? 'Añadiendo…' : 'Añadir'}
       </button>
     </form>

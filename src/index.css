@@ -1000,10 +1000,29 @@ html.dark .paper-grain::before {
            bg-paper-50/95 border border-ink-100/80 rounded-md
            shadow-sm backdrop-blur-sm;
   }
+  /* En touch devices el hover no existe — las hover-actions quedan
+     siempre visibles. Sin esto las acciones rápidas (editar, eliminar,
+     etc.) son imposibles de descubrir en mobile. */
+  @media (hover: none) and (pointer: coarse) {
+    .hover-actions {
+      opacity: 1;
+    }
+  }
   .hover-actions > button,
   .hover-actions > a {
     @apply p-1 rounded text-ink-400 hover:text-ink-700 hover:bg-ink-100
            transition-colors;
+    min-width: 32px;
+    min-height: 32px;
+    /* Touch target: 32px visible + extensión invisible vía ::before
+       cuando el dispositivo es de puntero coarse. */
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .hover-actions > button,
+    .hover-actions > a {
+      min-width: 44px;
+      min-height: 44px;
+    }
   }
   .hover-actions > .hover-action-destructive:hover {
     color: rgb(185 28 28);
@@ -1128,6 +1147,29 @@ html.dark .paper-grain::before {
     @apply text-micro uppercase tracking-eyebrow text-ink-400;
   }
 
+  /* Touch target compliance — WCAG 2.5.5 pide 44×44 mínimo para
+     elementos interactivos. Nuestros botones chicos (size-5, size-7)
+     se ven bien en desktop pero quedan diminutos en mobile.
+     Esta clase agrega un área de hit invisible (via ::before) que
+     extiende el target táctil sin afectar el chrome visual.
+     Aplicar a botones con tamaño visual <40px que sean clickables
+     en mobile (los hover-only no la necesitan porque el hover no
+     existe en touch). */
+  .touch-target {
+    position: relative;
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .touch-target::before {
+      content: '';
+      position: absolute;
+      inset: 50%;
+      min-width: 44px;
+      min-height: 44px;
+      transform: translate(-50%, -50%);
+      pointer-events: auto;
+    }
+  }
+
   /* AI proposal panel — used by ReclassifyPanel and the inline proposal that
      comes back in chat messages. Same look across the app: tinted card with
      primary-accent border. */
@@ -1221,4 +1263,89 @@ html.dark .paper-grain::before {
   .pad-block-4 { padding-block: var(--space-4); }
   .pad-block-5 { padding-block: var(--space-5); }
   .pad-block-8 { padding-block: var(--space-8); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Print styles — Trama es editorial; imprimida debe verse como una
+   página de libro, no como una captura de UI.
+
+   Ocultamos chrome (sidebar, topbar, nav, bottom-bar, askbar, modales)
+   y dejamos solo el contenido principal. Forzamos color black sobre
+   white para que las CSS vars no se traduzcan a sepia en el papel.
+   ───────────────────────────────────────────────────────────────────── */
+@media print {
+  /* Reset cromático: tinta negra sobre papel blanco. Las vars siguen
+     existiendo pero las pisamos para garantizar contraste de impresora. */
+  :root,
+  html.dark,
+  html.dark.theme-vela {
+    --paper-50:  255 255 255;
+    --paper-100: 250 250 250;
+    --ink-300:   100 100 100;
+    --ink-400:    80  80  80;
+    --ink-500:    60  60  60;
+    --ink-600:    40  40  40;
+    --ink-700:    20  20  20;
+    --ink-800:     0   0   0;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Ocultar todo lo que es chrome o interactivo. Los selectores cubren
+     componentes que el usuario no necesita ver en papel. */
+  nav[aria-label="Navegación principal"],
+  .surface-topbar,
+  .surface-sidebar,
+  [data-print-hide],
+  button,
+  [role="dialog"],
+  [role="alertdialog"] {
+    display: none !important;
+  }
+
+  /* Restaurar botones que son links semánticos dentro del contenido
+     editorial (autores, fuentes clickeables) — siguen siendo texto. */
+  blockquote button,
+  .quote-block button {
+    display: inline !important;
+    color: inherit !important;
+    background: none !important;
+    border: none !important;
+    text-decoration: none !important;
+  }
+
+  /* Tipografía de papel: más alta del default UI, line-height generoso,
+     line-breaks suaves. Evitamos romper headers de párrafo y citas. */
+  body {
+    font-size: 11pt;
+    line-height: 1.65;
+  }
+  h1, h2, h3, h4,
+  blockquote, .quote-block {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  h2, h3, h4 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Mostrar URLs después de los links así no se pierden al imprimir. */
+  a[href]:not([href^="#"]):after {
+    content: ' (' attr(href) ')';
+    font-size: 9pt;
+    color: #555;
+  }
+
+  /* Cancelar animaciones y backdrop-blur — innecesarios en papel. */
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
 }

@@ -245,7 +245,7 @@ export function Onboarding({
               )}
               <button
                 onClick={next}
-                className="btn-ink text-sm inline-flex items-center gap-1.5"
+                className="btn-accent text-sm inline-flex items-center gap-1.5"
               >
                 {isLast && <SparkleIcon size={12} />}
                 {step.primary}

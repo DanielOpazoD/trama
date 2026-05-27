@@ -178,7 +178,7 @@ export function MergeMomentosBar({
                 type="button"
                 onClick={handleMerge}
                 disabled={mergeMutation.isPending}
-                className="btn-ink"
+                className="btn-accent"
                 autoFocus
               >
                 {mergeMutation.isPending ? 'fusionando…' : 'confirmar fusión'}
@@ -224,7 +224,7 @@ export function MergeMomentosBar({
                     type="button"
                     onClick={() => setConfirming(true)}
                     disabled={mergeMutation.isPending || !effectivePrimaryId}
-                    className="btn-ink"
+                    className="btn-accent"
                   >
                     fusionar ({fotos.length})
                   </button>

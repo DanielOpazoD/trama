@@ -71,7 +71,7 @@ export function QuickNoteForm({ entity }: { entity: Entity }) {
           <button
             type="submit"
             disabled={!noteDraft.trim() || addQuote.isPending}
-            className="btn-ink text-xs"
+            className="btn-accent text-xs"
           >
             {addQuote.isPending ? 'añadiendo…' : 'añadir'}
           </button>

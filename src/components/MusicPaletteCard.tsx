@@ -116,7 +116,7 @@ export function MusicPaletteCard() {
           <button
             onClick={() => generate.mutate()}
             disabled={generate.isPending}
-            className="btn-ink text-xs shrink-0"
+            className="btn-accent text-xs shrink-0"
           >
             {generate.isPending ? 'leyendo…' : 'generar paleta'}
           </button>

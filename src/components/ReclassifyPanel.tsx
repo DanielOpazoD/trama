@@ -125,7 +125,7 @@ export function ReclassifyPanel({
         <button
           onClick={handleApply}
           disabled={submitting || selectedCount === 0}
-          className="btn-ink text-xs"
+          className="btn-accent text-xs"
         >
           {submitting
             ? 'aplicando…'

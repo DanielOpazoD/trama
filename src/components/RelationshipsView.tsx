@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { RELATIONSHIP_TYPES, type Entity, type ExtractionProposal, type Relationship, type RelationshipType } from '../types'
-import { sectionWashStyle } from '../lib/sectionWash'
+import { ViewHeader } from './ViewHeader'
+import { RelationshipSkeleton, SkeletonList } from './Skeleton'
 import {
   useEntitiesQuery,
   useInfiniteRelationshipsQuery,
@@ -148,66 +149,50 @@ export function RelationshipsView({
           descripción contextual ("Vínculos entre dos entidades…") vive
           abajo del h2, no en el TopBar — el TopBar lleva el nombre del
           workspace ("Entidades") + las tabs. */}
-      {/* ω-B: wash sage — las relaciones son vegetales, no técnicas. */}
-      <header
-        className="mb-8 flex items-baseline justify-between gap-6 px-3 -mx-3 py-2 -my-2 rounded-lg"
-        style={sectionWashStyle('var(--accent-sage)')}
-      >
-        <div className="min-w-0">
-          {/* σ-followup: eyebrow + h2 coherente con el patrón canónico.
-              El h2 dice "Vínculos" (no repite "Entidades") porque el
-              TopBar ya identifica el workspace; acá especificamos la
-              sub-vista. */}
-          <p
-            className="section-eyebrow-serif mb-2"
-            style={{ color: 'var(--accent-gold)' }}
-          >
-            las líneas del grafo
-          </p>
-          <h2 className="font-serif text-4xl text-ink-700 leading-none">
-            Vínculos
-          </h2>
-          <div className="accent-rule mt-3 mb-2" />
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-2xl">
-            Vínculos entre dos entidades — quién influye en quién, qué cita a
-            qué, qué te llegó por dónde.
-          </p>
-        </div>
-        {entities.length >= 2 && (
-          <div className="shrink-0 flex items-center gap-3 mt-1">
-            <button
-              onClick={handleSuggest}
-              disabled={suggest.isPending || offline}
-              className="ai-cta"
-              title="Sugerir relaciones nuevas entre entidades ya existentes"
-            >
-              {suggest.isPending ? (
-                <>
-                  <span
-                    className="size-3 border-2 rounded-full animate-spin"
-                    style={{
-                      borderColor: 'var(--accent-primary-ring)',
-                      borderTopColor: 'var(--accent-primary)',
-                    }}
-                  />
-                  pensando…
-                </>
-              ) : (
-                <>
-                  <SparkleIcon size={12} />
-                  descubrir con IA
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => setShowForm((s) => !s)}
-              className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
-            >
-              {showForm ? 'Cerrar' : 'Añadir'}
-            </button>
-          </div>
-        )}
-      </header>
+      <ViewHeader
+        title="Vínculos"
+        eyebrow="las líneas del grafo"
+        accent="var(--accent-sage)"
+        eyebrowColor="var(--accent-gold)"
+        spacing="normal"
+        subtitle="Vínculos entre dos entidades — quién influye en quién, qué cita a qué, qué te llegó por dónde."
+        action={
+          entities.length >= 2 ? (
+            <div className="flex items-center gap-3 mt-1">
+              <button
+                onClick={handleSuggest}
+                disabled={suggest.isPending || offline}
+                className="ai-cta"
+                title="Sugerir relaciones nuevas entre entidades ya existentes"
+              >
+                {suggest.isPending ? (
+                  <>
+                    <span
+                      className="size-3 border-2 rounded-full animate-spin"
+                      style={{
+                        borderColor: 'var(--accent-primary-ring)',
+                        borderTopColor: 'var(--accent-primary)',
+                      }}
+                    />
+                    pensando…
+                  </>
+                ) : (
+                  <>
+                    <SparkleIcon size={12} />
+                    descubrir con IA
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowForm((s) => !s)}
+                className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+              >
+                {showForm ? 'Cerrar' : 'Añadir'}
+              </button>
+            </div>
+          ) : null
+        }
+      />
 
       {suggest.error && (
         <div className="alert-error mb-6 flex items-start gap-2 pl-3 pr-1.5 py-2 text-xs">
@@ -287,14 +272,16 @@ export function RelationshipsView({
                 placeholder="Nota sobre la relación (opcional)"
                 className="input-paper w-full"
               />
-              <button type="submit" disabled={addRelationship.isPending} className="btn-ink">
+              <button type="submit" disabled={addRelationship.isPending} className="btn-accent">
                 {addRelationship.isPending ? 'Añadiendo…' : 'Añadir'}
               </button>
             </form>
           )}
 
           {relsPaged.isLoading ? (
-            <p className="text-ink-300 italic text-sm">cargando…</p>
+            <div className="space-y-2">
+              <SkeletonList count={5} Component={RelationshipSkeleton} />
+            </div>
           ) : relationships.length === 0 ? (
             <EmptyMessage
               illustration="pair"

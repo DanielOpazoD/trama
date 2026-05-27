@@ -6,21 +6,26 @@ import {
   useToast,
 } from '../state'
 import type { Entity, Momento, MomentoKind } from '../types'
-import { EndMark, OrnamentBreak } from './Icons'
+import { Paginator } from './Paginator'
 import { EmptyMessage } from './EmptyMessage'
 import { AlbumGrid } from './momentos/AlbumGrid'
 import { MomentoComposer } from './momentos/MomentoComposer'
 import { MomentoEntry } from './momentos/MomentoEntry'
 import { MomentosFilters } from './momentos/MomentosFilters'
 import { MergeMomentosBar } from './momentos/MergeMomentosBar'
+import { MomentosPinGate } from './momentos/MomentosPinGate'
+import { ConfirmDestroy } from './ConfirmDestroy'
+import { MomentoSkeleton, SkeletonList } from './Skeleton'
 import { formatDateHeading, groupByDay } from './momentos/helpers'
 import { useMomentoComposer } from './momentos/useMomentoComposer'
-import { sectionWashStyle } from '../lib/sectionWash'
+import { ViewHeader } from './ViewHeader'
 
 /**
  * Vista Momentos — orquestador.
  *
  * Estructura intencional:
+ *   - MomentosPinGate     → bloqueo por PIN antes de cargar nada (los
+ *                           hooks de abajo no corren hasta unlock)
  *   - useMomentoComposer  → state + submit del form de captura
  *   - useMomentoLinking   → state + IA del panel post-guardar
  *   - MomentosFilters     → barra de filtros (stateless)
@@ -31,6 +36,14 @@ import { sectionWashStyle } from '../lib/sectionWash'
  * entre sí. Toda la lógica vive en los sub-archivos.
  */
 export function MomentosView() {
+  return (
+    <MomentosPinGate>
+      <MomentosViewInner />
+    </MomentosPinGate>
+  )
+}
+
+function MomentosViewInner() {
   // Filtros y modo de vista. null = todos. La queryKey de useInfiniteMomentosQuery
   // cambia con `filterKind`, así cada filtro tiene su cache + paginación.
   const [filterKind, setFilterKind] = useState<MomentoKind | null>(null)
@@ -79,9 +92,20 @@ export function MomentosView() {
     return map
   }, [entities])
 
-  async function handleDelete(id: string) {
+  // Confirmación de borrado: el botón "eliminar" del MomentoEntry sólo
+  // marca el id como pendiente; la mutación corre cuando el usuario
+  // confirma en ConfirmDestroy.
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+
+  function handleDelete(id: string) {
+    setPendingDeleteId(id)
+  }
+
+  async function confirmDelete() {
+    if (!pendingDeleteId) return
     try {
-      await deleteMomento.mutateAsync(id)
+      await deleteMomento.mutateAsync(pendingDeleteId)
+      setPendingDeleteId(null)
     } catch (err) {
       toast.show({
         message: err instanceof Error ? err.message : 'No se pudo eliminar',
@@ -126,22 +150,13 @@ export function MomentosView() {
 
   return (
     <>
-      {/* χ-followup: mb-10 → mb-6 — el header pesaba mucho aire encima
-          del composer y obligaba a scrollear para arrancar a escribir.
-          ω-B: wash con accent-gold (la memoria también pesa en oro). */}
-      <header
-        className="mb-6 px-3 -mx-3 py-2 -my-2 rounded-lg"
-        style={sectionWashStyle('var(--accent-gold)')}
-      >
-        <p
-          className="section-eyebrow-serif mb-2"
-          style={{ color: 'var(--accent-gold)' }}
-        >
-          ✦ memoria fechada
-        </p>
-        <h2 className="font-serif text-4xl text-ink-700 leading-none">Momentos</h2>
-        <div className="accent-rule mt-3 mb-2" />
-      </header>
+      <ViewHeader
+        title="Momentos"
+        eyebrow="✦ memoria fechada"
+        accent="var(--accent-gold)"
+        spacing="tight"
+        sticky
+      />
 
       <MomentoComposer composer={composer} />
 
@@ -196,18 +211,54 @@ export function MomentosView() {
       </div>
 
       {momentosQuery.isLoading ? (
-        <p className="text-ink-300 italic text-sm">Cargando momentos…</p>
+        <ul className="space-y-4">
+          <SkeletonList count={6} Component={MomentoSkeleton} />
+        </ul>
       ) : items.length === 0 ? (
-        <EmptyMessage
-          title="Todavía no hay momentos"
-          body={
-            <>
-              Las entradas que crees acá quedan en una línea de tiempo. Pega
-              tweets, links, screenshots y fotos — o simplemente escribe una
-              nota del día.
-            </>
-          }
-        />
+        filterKind || dayFilter ? (
+          // Hay momentos en general, pero el filtro actual no devuelve nada.
+          <EmptyMessage
+            illustration="pair"
+            title={
+              dayFilter
+                ? 'Ese día está vacío.'
+                : `Ningún momento de tipo ${filterKind}.`
+            }
+            body={
+              dayFilter ? (
+                <>No registraste nada ese día. Probá otro o limpiá el filtro.</>
+              ) : (
+                <>
+                  Cambiá el tipo en la barra de arriba o creá una entrada
+                  nueva de este tipo.
+                </>
+              )
+            }
+            hint={
+              <button
+                onClick={() => {
+                  if (dayFilter) clearDayFilter()
+                  if (filterKind) setFilterKind(null)
+                }}
+                className="underline hover:text-ink-700 transition-colors"
+              >
+                Mostrar todos
+              </button>
+            }
+          />
+        ) : (
+          <EmptyMessage
+            illustration="thread"
+            title="Todavía no hay momentos"
+            body={
+              <>
+                Las entradas que crees acá quedan en una línea de tiempo. Pega
+                tweets, links, screenshots y fotos — o simplemente escribe una
+                nota del día.
+              </>
+            }
+          />
+        )
       ) : viewMode === 'album' && (filterKind === 'foto' || filterKind === null) ? (
         // AA-D: álbum visible también en "Todos" — AlbumGrid filtra
         // internamente a kind=foto, así que el usuario ve solo las
@@ -249,24 +300,12 @@ export function MomentosView() {
             </section>
           ))}
 
-          {momentosQuery.hasNextPage && (
-            <div className="flex justify-center pt-4">
-              <button
-                onClick={() => momentosQuery.fetchNextPage()}
-                disabled={momentosQuery.isFetchingNextPage}
-                className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
-              >
-                {momentosQuery.isFetchingNextPage ? 'cargando…' : 'más atrás ↓'}
-              </button>
-            </div>
-          )}
-
-          {!momentosQuery.hasNextPage && items.length >= 5 && (
-            <div className="flex flex-col items-center gap-2 pt-8 text-ink-300">
-              <OrnamentBreak />
-              <EndMark size={14} />
-            </div>
-          )}
+          <Paginator
+            hasNext={momentosQuery.hasNextPage ?? false}
+            loading={momentosQuery.isFetchingNextPage}
+            onLoadMore={() => momentosQuery.fetchNextPage()}
+            showEndMark={items.length >= 5}
+          />
         </div>
       )}
 
@@ -278,6 +317,16 @@ export function MomentosView() {
           onMerged={exitSelection}
         />
       )}
+
+      <ConfirmDestroy
+        open={pendingDeleteId !== null}
+        title="¿Eliminar este momento?"
+        body="La entrada se oculta del timeline. No se borra del todo — si te arrepientes, se puede restaurar."
+        confirmLabel="Eliminar"
+        pending={deleteMomento.isPending}
+        onCancel={() => setPendingDeleteId(null)}
+        onConfirm={confirmDelete}
+      />
     </>
   )
 }

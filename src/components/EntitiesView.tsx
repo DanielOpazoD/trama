@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ENTITY_TYPES } from '../types'
-import { sectionWashStyle } from '../lib/sectionWash'
+import { ViewHeader } from './ViewHeader'
+import { ConfirmDestroy } from './ConfirmDestroy'
 import {
   useInfiniteEntitiesQuery,
   useEntityRefsCountQuery,
@@ -50,6 +51,9 @@ export function EntitiesView({
   const reclassify = useReclassifyEntities()
   const updateType = useUpdateEntityType()
   const { offline } = useOffline()
+
+  // Confirmación de borrado — antes usaba confirm() nativo.
+  const [pendingDelete, setPendingDelete] = useState<Entity | null>(null)
 
   const [showForm, setShowForm] = useState(false)
   const [pending, setPending] = useState<Reclassification[] | null>(null)
@@ -115,59 +119,32 @@ export function EntitiesView({
           título, lo que pidió el usuario en el sprint ρ. La descripción
           de la sección bajó debajo del h2 (sigue siendo identidad
           editorial) y la accent-rule mantiene la firma cromática. */}
-      {/* ω-B: wash radial sutil del color del tipo "persona" — el
-          accent que comparte la mayoría de las entidades. */}
-      <header
-        className="mb-8 flex items-baseline justify-between gap-6 px-3 -mx-3 py-2 -my-2 rounded-lg"
-        style={sectionWashStyle('var(--type-persona)')}
-      >
-        <div className="min-w-0">
-          {/* σ-followup: eyebrow editorial coherente con Momentos /
-              Escuchas / Sugerencias. El patrón canónico de las vistas
-              de cuerpo es: eyebrow gold → h2 serif text-4xl → accent
-              rule → subtitle. */}
-          <p
-            className="section-eyebrow-serif mb-2"
-            style={{ color: 'var(--accent-gold)' }}
-          >
-            personas, obras, conceptos
-          </p>
-          <h2 className="font-serif text-4xl text-ink-700 leading-none">
-            Entidades
-          </h2>
-          <div className="accent-rule mt-3 mb-2" />
-          {/* χ + AA-A: max-w-2xl seguía quebrando en 3 líneas con
-              acciones a la derecha. Subimos a max-w-3xl + permitimos
-              que herede el max-w del contenedor (suficiente).
-              Mantenemos pr-4 para que no choque con los botones del
-              header al ser flex item. */}
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-3xl pr-4">
-            Las cosas que conectas: personas, libros, canciones, álbumes,
-            películas, obras, conceptos, ideas. Cada nodo del grafo es una
-            entidad.
-          </p>
-        </div>
-        <div className="shrink-0 flex items-center gap-3 mt-1">
-          {/* AA-B: dropdown IA — antes era un botón único "reclasificar
-              con IA". Lo convertimos en un menú "IA ▾" que despliega
-              opciones. Hoy solo reclasificar; el patrón está listo
-              para agregar más acciones IA en el futuro sin saturar
-              el header. */}
-          {entities.length > 0 && (
-            <AIMenu
-              onReclassify={handleReclassify}
-              reclassifyPending={reclassify.isPending}
-              disabled={offline}
-            />
-          )}
-          <button
-            onClick={() => setShowForm((s) => !s)}
-            className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
-          >
-            {showForm ? 'Cerrar' : 'Añadir'}
-          </button>
-        </div>
-      </header>
+      <ViewHeader
+        title="Entidades"
+        eyebrow="personas, obras, conceptos"
+        accent="var(--type-persona)"
+        eyebrowColor="var(--accent-gold)"
+        spacing="normal"
+        sticky
+        subtitle="Las cosas que conectas: personas, libros, canciones, álbumes, películas, obras, conceptos, ideas. Cada nodo del grafo es una entidad."
+        action={
+          <div className="flex items-center gap-3 mt-1">
+            {entities.length > 0 && (
+              <AIMenu
+                onReclassify={handleReclassify}
+                reclassifyPending={reclassify.isPending}
+                disabled={offline}
+              />
+            )}
+            <button
+              onClick={() => setShowForm((s) => !s)}
+              className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+            >
+              {showForm ? 'Cerrar' : 'Añadir'}
+            </button>
+          </div>
+        }
+      />
 
       {reclassify.error && (
         <div className="alert-error mb-6 px-4 py-3 rounded-xl text-sm">
@@ -269,15 +246,7 @@ export function EntitiesView({
                     setExpandedId((cur) => (cur === entity.id ? null : entity.id))
                   }}
                   onSelectEntity={onSelectEntity}
-                  onDelete={() => {
-                    if (
-                      confirm(
-                        `¿Eliminar "${entity.name}"? Sus citas y relaciones también se borrarán.`,
-                      )
-                    ) {
-                      deleteEntity.mutate(entity.id)
-                    }
-                  }}
+                  onDelete={() => setPendingDelete(entity)}
                 />
               </div>
             )
@@ -299,6 +268,28 @@ export function EntitiesView({
       {/* ι5: folio number flotante — fade-in al scrollear. Muestra el
           índice del último item visible vs el total. */}
       <Folio current={Math.min(lastVisibleIndex + 1, entities.length)} total={entities.length} />
+
+      <ConfirmDestroy
+        open={pendingDelete !== null}
+        title={
+          pendingDelete
+            ? `¿Eliminar “${pendingDelete.name}”?`
+            : '¿Eliminar entidad?'
+        }
+        body="Sus citas y relaciones también desaparecen del catálogo. No se borra del todo — si te arrepientes, se puede restaurar."
+        confirmLabel="Eliminar"
+        pending={deleteEntity.isPending}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={async () => {
+          if (!pendingDelete) return
+          try {
+            await deleteEntity.mutateAsync(pendingDelete.id)
+            setPendingDelete(null)
+          } catch {
+            /* mutation error queda en deleteEntity.error */
+          }
+        }}
+      />
     </>
   )
 }

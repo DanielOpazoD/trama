@@ -98,9 +98,18 @@ export function QuoteItem({
     }
   }
 
+  // Drop-cap selectivo: las citas largas (>= 120 caracteres) reciben
+  // tratamiento editorial con capital inicial — sin importar si es el
+  // feature del Home o una cita más en QuotesView. Las cortas se ven
+  // mejor como pull-quote con guillemets y border-left. La heurística
+  // del 120 corta justo donde el drop-cap empieza a justificar el peso
+  // visual que aporta.
+  const isLong = quote.text.length >= 120
+  const useDropCap = isFeature || isLong
+
   return (
     <div className="group">
-      {isFeature ? (
+      {useDropCap ? (
         <blockquote className="quote-block text-lg md:text-xl text-ink-700 leading-snug clear-both overflow-hidden">
           {withDropCap(quote.text)}
         </blockquote>
@@ -111,7 +120,7 @@ export function QuoteItem({
       )}
       <div
         className={`mt-3 flex justify-between items-baseline gap-4 ${
-          isFeature ? '' : 'pl-5'
+          useDropCap ? '' : 'pl-5'
         }`}
       >
         <div className="text-sm">

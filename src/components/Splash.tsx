@@ -4,6 +4,8 @@ import { readHiloOfTheDay } from '../hooks/useHiloOfTheDay'
 
 /**
  * First-render splash. Identidad editorial desde el primer pixel:
+ *   - saludo según la hora del día (madrugada → mañana → mediodía →
+ *     tarde → noche) — la app saluda como una persona
  *   - eyebrow uppercase pequeño (categoría del producto)
  *   - monograma woven Trama animado (thread-in)
  *   - wordmark Spectral
@@ -14,6 +16,18 @@ import { readHiloOfTheDay } from '../hooks/useHiloOfTheDay'
  * Solo se muestra una vez por sesión (sessionStorage). Primera
  * impresión importa; segunda visita no.
  */
+
+/** Saludo por hora del día — versión corta del que aparece en HomeView.
+    Mismas franjas (madrugada, mañana, mediodía, tarde, noche) con una
+    sola frase canónica por franja para que el splash sea predecible. */
+function greetingForSplash(): string {
+  const h = new Date().getHours()
+  if (h < 6) return 'Aún de noche'
+  if (h < 12) return 'Buenos días'
+  if (h < 15) return 'Buenas tardes'
+  if (h < 19) return 'Cae la tarde'
+  return 'Buenas noches'
+}
 const APHORISMS = [
   'hilo a hilo',
   'lo que retuviste',
@@ -71,6 +85,14 @@ export function Splash() {
       aria-hidden="true"
     >
       <div className="flex flex-col items-center gap-4">
+        {/* Saludo según hora — primera impresión personalizada. Color
+            gold para anclar con el wash radial del fondo. */}
+        <p
+          className="font-serif italic text-sm leading-none mark-thread"
+          style={{ color: 'var(--accent-gold)' }}
+        >
+          {greetingForSplash()}
+        </p>
         <p className="text-micro uppercase tracking-shout text-ink-300 mark-thread">
           mapa cognitivo personal
         </p>
