@@ -59,8 +59,11 @@ export function ViewHeader({
   // márgenes negativos — la identidad cromática vive en el eyebrow
   // color + accent-rule del título; el wash compite visualmente con
   // el contenido borroso de atrás.
+  // Cuando el header está sticky, lo dejamos casi opaco (paper-50/98) +
+  // backdrop-blur como salvaguarda. Antes con /85 el contenido scrolleado
+  // (fotos, imágenes) se filtraba detrás del título y se veía sucio.
   const stickyClass = sticky
-    ? 'sticky top-0 z-20 bg-paper-50/85 backdrop-blur-md border-b border-ink-100/40'
+    ? 'sticky top-0 z-20 bg-paper-50/98 backdrop-blur-md border-b border-ink-100/40'
     : ''
 
   // Wash radial sutil del color del section accent. Da identidad

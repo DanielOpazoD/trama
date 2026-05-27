@@ -143,7 +143,12 @@ function RecorteBody({ momento }: { momento: Momento }) {
         </p>
       )}
       {momento.note && (
-        <p className="marginalia-script whitespace-pre-wrap mt-2">{momento.note}</p>
+        // Mismo estilo que las notas de texto (NotaBody) — coherencia
+        // tipográfica entre los 3 kinds. La cursiva manuscrita queda
+        // reservada para userReflection en QuoteItem.
+        <p className="font-serif text-base text-ink-700 leading-relaxed whitespace-pre-wrap mt-2">
+          {momento.note}
+        </p>
       )}
     </article>
   )
@@ -218,7 +223,8 @@ function FotoBody({ momento }: { momento: Momento }) {
         </p>
       )}
       {momento.note && (
-        <p className="marginalia-script whitespace-pre-wrap max-w-md">
+        // Mismo estilo que las notas de texto — coherencia con NotaBody.
+        <p className="font-serif text-base text-ink-700 leading-relaxed whitespace-pre-wrap max-w-md">
           {momento.note}
         </p>
       )}

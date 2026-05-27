@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CloseIcon, TramaMark } from './Icons'
 import { AppearancePanel } from './settings/AppearancePanel'
+import { PrivacyPanel } from './settings/PrivacyPanel'
 import { SpotifyPanel } from './settings/SpotifyPanel'
 import { AIPanel } from './settings/AIPanel'
 import { SearchPanel } from './settings/SearchPanel'
@@ -26,12 +27,13 @@ import { LogsPanel } from './settings/LogsPanel'
  * a SECTIONS, branch en el switch del render.
  */
 
-type SectionId = 'health' | 'logs' | 'appearance' | 'spotify' | 'ai' | 'search' | 'data'
+type SectionId = 'health' | 'logs' | 'appearance' | 'privacy' | 'spotify' | 'ai' | 'search' | 'data'
 
 const SECTIONS: Array<{ id: SectionId; label: string; hint: string }> = [
   { id: 'health',     label: 'Estado',        hint: 'gasto, conteos, errores' },
   { id: 'logs',       label: 'Logs',          hint: 'historial detallado' },
   { id: 'appearance', label: 'Apariencia',    hint: 'papel / noche' },
+  { id: 'privacy',    label: 'Privacidad',    hint: 'bloqueo por PIN' },
   { id: 'spotify',    label: 'Spotify',       hint: 'sincronización' },
   { id: 'ai',         label: 'IA por tarea',  hint: 'modelo por flujo' },
   { id: 'search',     label: 'Búsqueda',      hint: 'embeddings + reindexado' },
@@ -133,6 +135,7 @@ export function Settings({
               {section === 'appearance' && (
                 <AppearancePanel theme={theme} onSetTheme={onSetTheme} />
               )}
+              {section === 'privacy' && <PrivacyPanel />}
               {section === 'spotify' && <SpotifyPanel />}
               {section === 'ai' && <AIPanel />}
               {section === 'search' && <SearchPanel />}

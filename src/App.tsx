@@ -29,9 +29,13 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { RightPanel, type PendingProposal } from './components/RightPanel'
 import { ViewRouter } from './components/ViewRouter'
 import { AuthGate } from './components/AuthGate'
-import { GlobalProgressBar } from './components/GlobalProgressBar'
+import { AppPinGate } from './components/AppPinGate'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { SectionAccentBand } from './components/SectionAccentBand'
+// GlobalProgressBar removido por feedback del usuario — la barra fina
+// que latía con cada query se percibía como molesta. Si en el futuro
+// queremos mostrar progreso global, considerar un patrón más sutil
+// (puntito en el TopBar, sin animación continua).
 
 /**
  * El shell de la app: monta sidebar + topbar + main + paneles flotantes
@@ -408,7 +412,6 @@ function Shell() {
         }}
       />
 
-      <GlobalProgressBar />
       <ToastHost />
 
       {/* Mobile bottom nav — solo aparece en viewports < md. En focus
@@ -455,14 +458,16 @@ export default function App() {
   // escalonados (Z6 — page-load choreography).
   return (
     <AuthGate>
-      <Provider>
-        <Splash />
-        <ErrorBoundary>
-          <div className="h-full">
-            <Shell />
-          </div>
-        </ErrorBoundary>
-      </Provider>
+      <AppPinGate>
+        <Provider>
+          <Splash />
+          <ErrorBoundary>
+            <div className="h-full">
+              <Shell />
+            </div>
+          </ErrorBoundary>
+        </Provider>
+      </AppPinGate>
     </AuthGate>
   )
 }

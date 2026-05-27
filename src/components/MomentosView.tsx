@@ -13,7 +13,6 @@ import { MomentoComposer } from './momentos/MomentoComposer'
 import { MomentoEntry } from './momentos/MomentoEntry'
 import { MomentosFilters } from './momentos/MomentosFilters'
 import { MergeMomentosBar } from './momentos/MergeMomentosBar'
-import { MomentosPinGate } from './momentos/MomentosPinGate'
 import { ConfirmDestroy } from './ConfirmDestroy'
 import { MomentoSkeleton, SkeletonList } from './Skeleton'
 import { formatDateHeading, groupByDay } from './momentos/helpers'
@@ -24,8 +23,6 @@ import { ViewHeader } from './ViewHeader'
  * Vista Momentos — orquestador.
  *
  * Estructura intencional:
- *   - MomentosPinGate     → bloqueo por PIN antes de cargar nada (los
- *                           hooks de abajo no corren hasta unlock)
  *   - useMomentoComposer  → state + submit del form de captura
  *   - useMomentoLinking   → state + IA del panel post-guardar
  *   - MomentosFilters     → barra de filtros (stateless)
@@ -36,14 +33,6 @@ import { ViewHeader } from './ViewHeader'
  * entre sí. Toda la lógica vive en los sub-archivos.
  */
 export function MomentosView() {
-  return (
-    <MomentosPinGate>
-      <MomentosViewInner />
-    </MomentosPinGate>
-  )
-}
-
-function MomentosViewInner() {
   // Filtros y modo de vista. null = todos. La queryKey de useInfiniteMomentosQuery
   // cambia con `filterKind`, así cada filtro tiene su cache + paginación.
   const [filterKind, setFilterKind] = useState<MomentoKind | null>(null)
