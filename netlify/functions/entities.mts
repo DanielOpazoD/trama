@@ -3,6 +3,12 @@ import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import {
+  EntityCreateBody,
+  EntityPatchBody,
+  EntityRestoreBody,
+} from './_lib/entity-schemas.js'
 import {
   embedSafe,
   entityEmbeddingText,
@@ -113,17 +119,9 @@ export default withObservability('entities', async (req: Request, context: Conte
   // intentaría parsear el body de restore como una nueva entidad y caería
   // en 500.
   if (req.method === 'POST' && !new URL(req.url).pathname.endsWith('/restore')) {
-    const body = (await req.json()) as {
-      type: string
-      name: string
-      year?: number | null
-      description?: string | null
-      essay?: string | null
-      position_x?: number | null
-      position_y?: number | null
-      origin?: unknown
-      spotify_url?: string | null
-    }
+    const parsed = await parseJsonBody(req, EntityCreateBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
     const origin = JSON.stringify(normalizeOrigin(body.origin))
 
     // Embed before inserting so the row lands with its vector populated.
@@ -208,16 +206,9 @@ export default withObservability('entities', async (req: Request, context: Conte
   }
 
   if (req.method === 'PATCH' && id) {
-    const body = (await req.json()) as {
-      name?: string
-      type?: string
-      year?: number | null
-      description?: string | null
-      essay?: string | null
-      position_x?: number | null
-      position_y?: number | null
-      spotify_url?: string | null
-    }
+    const parsed = await parseJsonBody(req, EntityPatchBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
     // Only update fields that were actually sent. Postgres COALESCE pattern.
     const rows = await sql`
       UPDATE entities
@@ -292,13 +283,12 @@ export default withObservability('entities', async (req: Request, context: Conte
   // restaurar la entidad + las filas cascadeadas en ese mismo acto.
   const url = new URL(req.url)
   if (req.method === 'POST' && id && url.pathname.endsWith('/restore')) {
-    const body = (await req.json().catch(() => ({}))) as { deletedAt?: string }
-    if (!body.deletedAt) {
-      return ApiErrors.validation(requestId, 'deletedAt requerido')
-    }
-    await sql`UPDATE entities SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt} AND user_id = ${userId}`
-    await sql`UPDATE relationships SET deleted_at = NULL WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at = ${body.deletedAt} AND user_id = ${userId}`
-    await sql`UPDATE quotes SET deleted_at = NULL WHERE entity_id = ${id} AND deleted_at = ${body.deletedAt} AND user_id = ${userId}`
+    const parsed = await parseJsonBody(req, EntityRestoreBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const { deletedAt } = parsed.data
+    await sql`UPDATE entities SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
+    await sql`UPDATE relationships SET deleted_at = NULL WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at = ${deletedAt} AND user_id = ${userId}`
+    await sql`UPDATE quotes SET deleted_at = NULL WHERE entity_id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
     return Response.json({ restored: true })
   }
 

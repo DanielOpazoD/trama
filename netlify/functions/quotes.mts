@@ -3,6 +3,12 @@ import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import {
+  QuoteCreateBody,
+  QuotePatchBody,
+  QuoteRestoreBody,
+} from './_lib/quote-schemas.js'
 import {
   embedSafe,
   quoteEmbeddingText,
@@ -106,15 +112,9 @@ export default withObservability('quotes', async (req: Request, context: Context
 
   // POST /api/quotes (crear) — pero NO /api/quotes/:id/restore.
   if (req.method === 'POST' && !new URL(req.url).pathname.endsWith('/restore')) {
-    const body = (await req.json()) as {
-      entity_id: string
-      text: string
-      source?: string | null
-      context?: string | null
-      user_reflection?: string | null
-      linked_quote_ids?: string[] | null
-      origin?: unknown
-    }
+    const parsed = await parseJsonBody(req, QuoteCreateBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
     const origin = JSON.stringify(normalizeOrigin(body.origin))
     const linked = Array.isArray(body.linked_quote_ids) ? body.linked_quote_ids : []
 
@@ -161,21 +161,12 @@ export default withObservability('quotes', async (req: Request, context: Context
   }
 
   if (req.method === 'PATCH' && id) {
-    const body = (await req.json()) as {
-      text?: string
-      source?: string | null
-      context?: string | null
-      entity_id?: string
-      user_reflection?: string | null
-      ai_reflection?: string | null
-      ai_reflection_provider?: string | null
-      ai_reflection_model?: string | null
-      linked_quote_ids?: string[] | null
-      // ω-E: pinned boolean — el cliente manda true/false. El server
-      // mapea a pinned_at = NOW() o NULL respectivamente. Si no se
-      // manda, no se toca el campo.
-      pinned?: boolean
-    }
+    const parsed = await parseJsonBody(req, QuotePatchBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
+    // ω-E: pinned boolean — el cliente manda true/false. El server
+    // mapea a pinned_at = NOW() o NULL respectivamente. Si no se
+    // manda, no se toca el campo.
     // Only update fields that were actually sent. ai_reflection has the
     // side effect of stamping ai_reflection_at when it changes. entity_id
     // can move the quote to a different entity (useful for fixing quotes
@@ -257,11 +248,10 @@ export default withObservability('quotes', async (req: Request, context: Context
 
   const url = new URL(req.url)
   if (req.method === 'POST' && id && url.pathname.endsWith('/restore')) {
-    const body = (await req.json().catch(() => ({}))) as { deletedAt?: string }
-    if (!body.deletedAt) {
-      return ApiErrors.validation(requestId, 'deletedAt requerido')
-    }
-    await sql`UPDATE quotes SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${body.deletedAt} AND user_id = ${userId}`
+    const parsed = await parseJsonBody(req, QuoteRestoreBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const { deletedAt } = parsed.data
+    await sql`UPDATE quotes SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
     return Response.json({ restored: true })
   }
 

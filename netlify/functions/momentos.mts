@@ -9,6 +9,11 @@ import {
   type MomentoKind,
 } from './_lib/momento-embed.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import {
+  MomentoCreateBody,
+  MomentoPatchBody,
+} from './_lib/momento-schemas.js'
 
 /**
  * /api/momentos — la dimensión temporal de la trama.
@@ -188,28 +193,12 @@ export default withObservability('momentos', async (req: Request, context: Conte
 
   // ---------------- POST create ----------------
   if (req.method === 'POST' && !id) {
-    let body: {
-      kind?: unknown
-      captured_at?: unknown
-      payload?: unknown
-      note?: unknown
-      origin?: unknown
-      entity_ids?: unknown
-    }
-    try {
-      body = await req.json()
-    } catch {
-      return ApiErrors.validation(requestId, 'Body inválido')
-    }
+    const parsed = await parseJsonBody(req, MomentoCreateBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
 
-    if (!isValidKind(body.kind)) {
-      return ApiErrors.validation(requestId, 'kind inválido (nota|recorte|foto)')
-    }
     const kind: MomentoKind = body.kind
-    const payload =
-      body.payload && typeof body.payload === 'object'
-        ? (body.payload as Record<string, unknown>)
-        : {}
+    const payload = body.payload
 
     // Validación shape por kind — defiende contra "foto sin storageKey",
     // "nota vacía", etc. Validator puro extraído a _lib/momento-embed.ts.
@@ -218,7 +207,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
       return ApiErrors.validation(requestId, payloadError)
     }
 
-    const note = typeof body.note === 'string' ? body.note.trim() || null : null
+    const note = body.note?.trim() || null
     const origin = normalizeOrigin(body.origin)
     const capturedAt =
       typeof body.captured_at === 'string' && body.captured_at
@@ -271,17 +260,9 @@ export default withObservability('momentos', async (req: Request, context: Conte
 
   // ---------------- PATCH update ----------------
   if (req.method === 'PATCH' && id) {
-    let body: {
-      payload?: unknown
-      note?: unknown
-      captured_at?: unknown
-      entity_ids?: unknown
-    }
-    try {
-      body = await req.json()
-    } catch {
-      return ApiErrors.validation(requestId, 'Body inválido')
-    }
+    const parsed = await parseJsonBody(req, MomentoPatchBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
 
     // Lookup actual para conocer kind + valores actuales (no permitimos
     // cambiar kind via PATCH — eso requeriría re-encoding del payload).
@@ -298,8 +279,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
     // Antes este PATCH gastaba una llamada a OpenAI en CADA update aunque
     // el cliente solo cambiara entity_ids o captured_at — caro y sin
     // sentido. Ahora solo re-embedeamos cuando cambia payload o note.
-    const payloadChanged =
-      body.payload !== undefined && typeof body.payload === 'object'
+    const payloadChanged = body.payload !== undefined
     const noteChanged = body.note !== undefined
 
     const newPayload = payloadChanged
