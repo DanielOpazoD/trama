@@ -58,31 +58,34 @@ export function ViewRouter({
     )
   }
 
-  // El resto de vistas viven dentro de un contenedor scrolleable con
-  // ancho acotado, para que la lectura no compita con el grafo a pantalla
-  // completa.
+  // El resto de vistas viven dentro de un contenedor scrolleable.
+  // IMPORTANTE: el overflow-y-auto va en el contenedor EXTERIOR (full
+  // width) para que el trackpad/scroll-wheel capture el evento en
+  // cualquier parte del viewport, no sólo sobre el texto centrado.
+  // El wrapper INTERIOR limita el ancho de lectura (max-w-3xl). Si
+  // ambos atributos viven en el mismo elemento, la periferia fuera del
+  // max-w-3xl no scrollea — bug reportado por el usuario.
   return (
-    <div
-      id="main-scroll"
-      className="h-full overflow-y-auto px-8 py-10 pb-32 max-w-3xl mx-auto"
-    >
-      {view === 'inicio' && (
-        <HomeView onNavigate={onChangeView} onSelectEntity={onSelectEntity} />
-      )}
-      {view === 'entidades' && (
-        <EntitiesWorkbench
-          onSelectEntity={onSelectEntity}
-          onProposal={onProposal}
-          tab={entitiesTab}
-          onTabChange={onEntitiesTabChange}
-        />
-      )}
-      {view === 'citas' && <QuotesView onSelectEntity={onSelectEntity} />}
-      {view === 'escuchas' && (
-        <ListeningView onSelectEntity={onSelectEntity} onProposal={onProposal} />
-      )}
-      {view === 'momentos' && <MomentosView />}
-      {view === 'sugerencias' && <ProactiveView />}
+    <div id="main-scroll" className="h-full overflow-y-auto">
+      <div className="px-8 py-10 pb-32 max-w-3xl mx-auto">
+        {view === 'inicio' && (
+          <HomeView onNavigate={onChangeView} onSelectEntity={onSelectEntity} />
+        )}
+        {view === 'entidades' && (
+          <EntitiesWorkbench
+            onSelectEntity={onSelectEntity}
+            onProposal={onProposal}
+            tab={entitiesTab}
+            onTabChange={onEntitiesTabChange}
+          />
+        )}
+        {view === 'citas' && <QuotesView onSelectEntity={onSelectEntity} />}
+        {view === 'escuchas' && (
+          <ListeningView onSelectEntity={onSelectEntity} onProposal={onProposal} />
+        )}
+        {view === 'momentos' && <MomentosView />}
+        {view === 'sugerencias' && <ProactiveView />}
+      </div>
     </div>
   )
 }
