@@ -92,7 +92,7 @@ export function ConfirmDestroy({
               type="button"
               onClick={onCancel}
               disabled={pending}
-              className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-60"
+              className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60"
             >
               cancelar
             </button>

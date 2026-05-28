@@ -21,7 +21,7 @@ export function FilterChip({
       className={
         active
           ? 'px-2 py-0.5 rounded-full text-micro uppercase tracking-eyebrow font-medium transition-colors'
-          : 'px-2 py-0.5 rounded-full text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 hover:bg-ink-700/5 transition-colors'
+          : 'px-2 py-0.5 rounded-full section-eyebrow hover:text-ink-700 hover:bg-ink-700/5 transition-colors'
       }
       style={
         active

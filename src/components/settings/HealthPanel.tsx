@@ -113,9 +113,7 @@ export function HealthPanel() {
       {/* Budget */}
       <div className="space-y-2">
         <div className="flex items-baseline justify-between gap-3">
-          <span className="text-micro uppercase tracking-eyebrow text-ink-400">
-            gasto IA este mes
-          </span>
+          <span className="section-eyebrow">gasto IA este mes</span>
           <span
             className="text-micro uppercase tracking-eyebrow font-medium px-2 py-0.5 rounded-full tabular-nums"
             style={{ backgroundColor: budgetTone.bg, color: budgetTone.fg }}
@@ -150,9 +148,7 @@ export function HealthPanel() {
       {data.dailyCost && data.dailyCost.length > 0 && (
         <div className="card-paper p-4 space-y-2">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-micro uppercase tracking-eyebrow text-ink-400">
-              consumo diario · últimos 30 días
-            </span>
+            <span className="section-eyebrow">consumo diario · últimos 30 días</span>
             <span className="text-micro text-ink-300 tabular-nums">
               {data.dailyCost.filter((d) => d.calls > 0).length} días activos
             </span>
@@ -174,9 +170,7 @@ export function HealthPanel() {
       {/* Provider breakdown */}
       {data.byProvider.length > 0 && (
         <div className="space-y-2">
-          <p className="text-micro uppercase tracking-eyebrow text-ink-400">
-            por provider / modelo (mes)
-          </p>
+          <p className="section-eyebrow">por provider / modelo (mes)</p>
           <ul className="space-y-1 card-paper p-3">
             {data.byProvider.map((row) => (
               <li
@@ -199,9 +193,7 @@ export function HealthPanel() {
       {/* Recent errors */}
       <div className="space-y-2">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="text-micro uppercase tracking-eyebrow text-ink-400">
-            errores recientes (7d)
-          </p>
+          <p className="section-eyebrow">errores recientes (7d)</p>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
@@ -308,9 +300,7 @@ function CountTile({ label, value }: { label: string; value: number }) {
       <div className="text-3xl font-serif text-ink-800 tabular-nums leading-none">
         {value.toLocaleString('es')}
       </div>
-      <div className="mt-1.5 text-micro uppercase tracking-eyebrow text-ink-400">
-        {label}
-      </div>
+      <div className="mt-1.5 section-eyebrow">{label}</div>
     </div>
   )
 }

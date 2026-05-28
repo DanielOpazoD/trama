@@ -151,7 +151,7 @@ export function SuggestArtists() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="font-serif text-base text-ink-700">{s.name}</span>
-                    <span className="text-micro uppercase tracking-eyebrow text-ink-400">
+                    <span className="section-eyebrow">
                       {s.type === 'banda' ? 'banda' : 'músico'}
                     </span>
                   </div>

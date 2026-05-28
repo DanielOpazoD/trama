@@ -11,7 +11,7 @@ import {
   aggregateTopGenres,
   fetchTopArtists,
   requireSpotifyConnection,
-} from './_lib/spotify.js'
+} from './_lib/spotify/index.js'
 
 /**
  * POST /api/spotify/suggest-artists

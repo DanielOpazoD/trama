@@ -233,9 +233,7 @@ export function QuoteCard({
         ) : quote.userReflection ? (
           <div className="group/refl">
             <div className="flex items-baseline gap-2">
-              <span className="text-micro uppercase tracking-eyebrow text-ink-400">
-                tu reflexión
-              </span>
+              <span className="section-eyebrow">tu reflexión</span>
               <button
                 onClick={() => setEditingUserRefl(true)}
                 className="opacity-0 group-hover/refl:opacity-100 transition-opacity text-micro text-ink-300 hover:text-ink-700"

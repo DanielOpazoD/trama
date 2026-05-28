@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { buildAuthUrl } from './_lib/spotify.js'
+import { buildAuthUrl } from './_lib/spotify/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
 
 /**

@@ -38,7 +38,7 @@ export function AudioPicker({
     return (
       <div className="flex items-center gap-3 flex-wrap">
         <AudioNote src={previewSrc} />
-        <label className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 cursor-pointer transition-colors">
+        <label className="section-eyebrow hover:text-ink-700 cursor-pointer transition-colors">
           <input
             type="file"
             accept={ACCEPT}
@@ -52,7 +52,7 @@ export function AudioPicker({
           type="button"
           onClick={onClear}
           disabled={disabled}
-          className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-red-700 transition-colors"
+          className="section-eyebrow hover:text-red-700 transition-colors"
         >
           quitar
         </button>

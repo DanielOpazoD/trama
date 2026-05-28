@@ -46,11 +46,7 @@ export function ResonanceDots({
 
   return (
     <div className="inline-flex items-center gap-2">
-      {showLabel && (
-        <span className="text-micro uppercase tracking-eyebrow text-ink-400 select-none">
-          resuena hoy
-        </span>
-      )}
+      {showLabel && <span className="section-eyebrow select-none">resuena hoy</span>}
       <div
         className="inline-flex items-center gap-1.5"
         role="radiogroup"

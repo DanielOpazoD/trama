@@ -86,9 +86,7 @@ export function CapturedAtField({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-micro uppercase tracking-eyebrow text-ink-400">
-        fecha y hora del momento
-      </span>
+      <span className="section-eyebrow">fecha y hora del momento</span>
       <input
         type="datetime-local"
         value={value}
@@ -120,7 +118,7 @@ export function ModalFooter({
         type="button"
         onClick={onClose}
         disabled={saving}
-        className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-60"
+        className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60"
       >
         cancelar
       </button>

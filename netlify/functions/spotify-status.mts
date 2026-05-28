@@ -1,6 +1,6 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
-import { disconnectSpotify, getStoredTokens } from './_lib/spotify.js'
+import { disconnectSpotify, getStoredTokens } from './_lib/spotify/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'

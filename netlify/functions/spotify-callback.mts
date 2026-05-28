@@ -5,7 +5,7 @@ import {
   getSpotifyProfile,
   saveTokens,
   SPOTIFY_SCOPES,
-} from './_lib/spotify.js'
+} from './_lib/spotify/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
 
 /**

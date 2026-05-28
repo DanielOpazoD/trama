@@ -191,7 +191,7 @@ export function MergeMomentosBar({
                 {selected.length === 1 ? 'seleccionado' : 'seleccionados'}
               </span>
               {totalPhotos > 0 && (
-                <span className="text-micro uppercase tracking-eyebrow text-ink-400">
+                <span className="section-eyebrow">
                   {totalPhotos} {totalPhotos === 1 ? 'foto en total' : 'fotos en total'}
                 </span>
               )}
@@ -205,7 +205,7 @@ export function MergeMomentosBar({
               <button
                 type="button"
                 onClick={onClear}
-                className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+                className="section-eyebrow hover:text-ink-700 transition-colors"
               >
                 cancelar
               </button>
@@ -214,7 +214,7 @@ export function MergeMomentosBar({
                   <button
                     type="button"
                     onClick={() => setShowOptions((s) => !s)}
-                    className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+                    className="section-eyebrow hover:text-ink-700 transition-colors"
                     aria-expanded={showOptions}
                   >
                     {showOptions ? 'menos' : 'opciones'}
@@ -239,7 +239,7 @@ export function MergeMomentosBar({
         {showOptions && !confirming && fotos.length >= 2 && (
           <div className="px-4 py-3 space-y-3 bg-paper-100/40">
             <div>
-              <label className="block text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
+              <label className="block section-eyebrow mb-1">
                 Cuál sobrevive (primary)
               </label>
               <select
@@ -269,7 +269,7 @@ export function MergeMomentosBar({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
+                <label className="block section-eyebrow mb-1">
                   Título / nota (opcional)
                 </label>
                 <input
@@ -281,7 +281,7 @@ export function MergeMomentosBar({
                 />
               </div>
               <div>
-                <label className="block text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
+                <label className="block section-eyebrow mb-1">
                   Fecha del evento (opcional)
                 </label>
                 <input

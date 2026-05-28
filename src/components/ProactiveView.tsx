@@ -249,7 +249,7 @@ function SuggestionBody({ suggestion }: { suggestion: ProactiveSuggestion }) {
     return (
       <p className="text-sm text-ink-700 leading-relaxed">
         <span>{p.name}</span>
-        <span className="ml-2 text-micro uppercase tracking-eyebrow text-ink-400 line-through decoration-ink-300/60">
+        <span className="ml-2 section-eyebrow line-through decoration-ink-300/60">
           {entityTypeLabel(p.oldType)}
         </span>
         <span className="mx-1.5 text-ink-300">→</span>

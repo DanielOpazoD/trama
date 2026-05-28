@@ -38,7 +38,7 @@ export function EntityHeader({
           sigilo refuerza el chip de tipo de abajo. */}
       <EntitySigil name={entity.name} type={entity.type} size="lg" className="mt-1" />
       <div className="min-w-0 flex-1 stack-2">
-        <p className="text-micro uppercase tracking-eyebrow text-ink-400 flex items-center gap-2 flex-wrap">
+        <p className="section-eyebrow flex items-center gap-2 flex-wrap">
           <span>{typeLabel ?? entity.type}</span>
           {entity.year !== undefined && (
             <>

@@ -162,7 +162,7 @@ export function MomentosView() {
         <button
           type="button"
           onClick={() => setHojaOpen(true)}
-          className="mb-6 inline-flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+          className="mb-6 inline-flex items-center gap-1.5 section-eyebrow hover:text-ink-700 transition-colors"
         >
           <QuoteIcon size={12} />
           escribir una hoja suelta
@@ -181,7 +181,7 @@ export function MomentosView() {
           <button
             type="button"
             onClick={clearDayFilter}
-            className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+            className="section-eyebrow hover:text-ink-700 transition-colors"
           >
             ver todos
           </button>

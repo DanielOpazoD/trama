@@ -37,7 +37,7 @@ export function Paginator({
           type="button"
           onClick={onLoadMore}
           disabled={loading}
-          className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {loading ? 'cargando más…' : 'más atrás ↓'}
         </button>

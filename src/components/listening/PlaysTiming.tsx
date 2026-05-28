@@ -71,9 +71,7 @@ export function PlaysTiming({ since, enabled }: { since: string; enabled: boolea
 function Heatmap({ heatmap, max }: { heatmap: number[][]; max: number }) {
   return (
     <div>
-      <h4 className="text-micro uppercase tracking-eyebrow text-ink-400 mb-2">
-        semana × hora
-      </h4>
+      <h4 className="section-eyebrow mb-2">semana × hora</h4>
       {/* Excepción documentada al sistema de type scale (filosofía §4.1):
           los ticks del heatmap usan text-[9px] mono — el `text-micro` (10px)
           rompe la altura de cada celda (10px) y desalinea labels con grid.
@@ -136,9 +134,7 @@ function Trend({ trend, max }: { trend: number[]; max: number }) {
   // Etiquetas: cada 5 días desde -30 hasta hoy.
   return (
     <div>
-      <h4 className="text-micro uppercase tracking-eyebrow text-ink-400 mb-2">
-        últimos 30 días
-      </h4>
+      <h4 className="section-eyebrow mb-2">últimos 30 días</h4>
       <div
         className="flex items-end gap-[3px] h-[60px]"
         role="img"

@@ -64,7 +64,7 @@ function MomentoEntryInternal({
       <div className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
         <button
           onClick={() => setEditOpen(true)}
-          className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 px-2 py-1.5 rounded transition-colors"
+          className="section-eyebrow hover:text-ink-700 px-2 py-1.5 rounded transition-colors"
           aria-label="Editar momento"
           title="Editar contenido y fecha"
         >

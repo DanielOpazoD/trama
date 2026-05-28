@@ -108,7 +108,7 @@ function ErrorList() {
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between">
-        <p className="text-micro uppercase tracking-eyebrow text-ink-400 tabular-nums">
+        <p className="section-eyebrow tabular-nums">
           {totalUnique} {totalUnique === 1 ? 'patrón' : 'patrones'}
           {totalRaw !== totalUnique && (
             <span className="text-ink-300"> · {totalRaw} eventos</span>
@@ -303,30 +303,24 @@ function ExtractionList() {
           <div className="text-xl font-serif text-ink-800 tabular-nums leading-none">
             {data.totals.totalCalls}
           </div>
-          <div className="mt-1 text-micro uppercase tracking-eyebrow text-ink-400">
-            llamadas
-          </div>
+          <div className="mt-1 section-eyebrow">llamadas</div>
         </div>
         <div>
           <div className="text-xl font-serif text-ink-800 tabular-nums leading-none">
             USD {totalCostEur}
           </div>
-          <div className="mt-1 text-micro uppercase tracking-eyebrow text-ink-400">
-            costo total
-          </div>
+          <div className="mt-1 section-eyebrow">costo total</div>
         </div>
         <div>
           <div className="text-xl font-serif text-ink-800 tabular-nums leading-none">
             {data.totals.totalTokens.toLocaleString('es')}
           </div>
-          <div className="mt-1 text-micro uppercase tracking-eyebrow text-ink-400">
-            tokens
-          </div>
+          <div className="mt-1 section-eyebrow">tokens</div>
         </div>
       </div>
 
       <div className="flex items-baseline justify-between">
-        <p className="text-micro uppercase tracking-eyebrow text-ink-400 tabular-nums">
+        <p className="section-eyebrow tabular-nums">
           {data.entries.length} últimas llamadas
         </p>
         <button
@@ -416,9 +410,7 @@ function ExtractionRow({
         <div className="border-t border-ink-100/60 px-3 py-2 space-y-3 bg-paper-100/30 animate-fade-up">
           {entry.error && (
             <div>
-              <p className="text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
-                error
-              </p>
+              <p className="section-eyebrow mb-1">error</p>
               <p className="text-xs text-red-700 whitespace-pre-wrap break-words font-mono leading-relaxed">
                 {entry.error}
               </p>
@@ -426,9 +418,7 @@ function ExtractionRow({
           )}
           {hasInput && (
             <div>
-              <p className="text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
-                input
-              </p>
+              <p className="section-eyebrow mb-1">input</p>
               <p className="text-xs text-ink-700 whitespace-pre-wrap break-words font-serif italic leading-relaxed bg-paper-50 border border-ink-100/60 rounded p-2 max-h-32 overflow-y-auto">
                 {entry.inputText}
               </p>
@@ -436,9 +426,7 @@ function ExtractionRow({
           )}
           {hasProposal && (
             <div>
-              <p className="text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
-                propuesta (json)
-              </p>
+              <p className="section-eyebrow mb-1">propuesta (json)</p>
               <pre className="text-micro text-ink-500 whitespace-pre-wrap break-words font-mono leading-relaxed bg-paper-50 border border-ink-100/60 rounded p-2 max-h-64 overflow-y-auto">
                 {JSON.stringify(entry.proposal, null, 2)}
               </pre>

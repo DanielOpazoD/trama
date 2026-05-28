@@ -5,7 +5,7 @@ import {
   markSynced,
   requireSpotifyConnection,
   storePlays,
-} from './_lib/spotify.js'
+} from './_lib/spotify/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'

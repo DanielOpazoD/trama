@@ -120,7 +120,7 @@ export function GraphToolbar({
             <button
               onClick={onFocusSelected}
               disabled={focusSelectedDisabled}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 section-eyebrow hover:text-ink-700 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Mover el foco del subgrafo a la entidad seleccionada"
             >
               hacer foco
@@ -152,7 +152,7 @@ export function GraphToolbar({
           </button>
           <button
             onClick={onReorganize}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm transition-colors"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 section-eyebrow hover:text-ink-700 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm transition-colors"
             title="Reacomodar los nodos con el modo actual desde cero"
           >
             <svg
@@ -194,7 +194,7 @@ export function GraphToolbar({
               <ZoomOutIcon size={12} />
             </button>
             <span
-              className="px-2 text-micro uppercase tracking-eyebrow text-ink-400 tabular-nums select-none min-w-[3rem] text-center"
+              className="px-2 section-eyebrow tabular-nums select-none min-w-[3rem] text-center"
               title="Zoom actual"
             >
               {zoomPercent}%

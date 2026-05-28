@@ -14,7 +14,7 @@ import {
   fetchTopArtists,
   fetchTopTracks,
   requireSpotifyConnection,
-} from './_lib/spotify.js'
+} from './_lib/spotify/index.js'
 
 /**
  * POST /api/spotify/library-snapshot

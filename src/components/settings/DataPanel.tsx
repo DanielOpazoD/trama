@@ -253,9 +253,7 @@ function ImportPreviewCard({
       aria-label="Vista previa de importación"
     >
       <header className="space-y-1">
-        <p className="text-micro uppercase tracking-eyebrow text-ink-400">
-          Vista previa · {fileName}
-        </p>
+        <p className="section-eyebrow">Vista previa · {fileName}</p>
         <p className="text-sm text-ink-700 leading-relaxed">
           Esta importación es <strong>aditiva</strong>: agrega lo nuevo a tu trama actual.{' '}
           <strong>No reemplaza</strong> ni borra nada de lo que ya tenés. Las filas con el
