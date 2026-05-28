@@ -58,6 +58,27 @@ export function useMomentoComposer({
     total: number
   } | null>(null)
 
+  // Nota de voz del episodio (opcional). Un solo archivo a nivel momento,
+  // igual que la nota de texto. Se sube junto con las fotos al guardar.
+  const [audioDraft, setAudioDraft] = useState<{
+    file: File
+    previewUrl: string
+  } | null>(null)
+
+  function setAudioFile(file: File) {
+    setAudioDraft((prev) => {
+      if (prev) URL.revokeObjectURL(prev.previewUrl)
+      return { file, previewUrl: URL.createObjectURL(file) }
+    })
+  }
+
+  function clearAudio() {
+    setAudioDraft((prev) => {
+      if (prev) URL.revokeObjectURL(prev.previewUrl)
+      return null
+    })
+  }
+
   function addPhotoFiles(files: File[]) {
     const valid = files.filter((f) => f.type.startsWith('image/'))
     if (valid.length === 0) return
@@ -160,6 +181,7 @@ export function useMomentoComposer({
 
   function resetFoto() {
     clearPhotoDrafts()
+    clearAudio()
     setPhotoCaption('')
     setPhotoNote('')
     setPhotoUploadProgress(null)
@@ -251,6 +273,13 @@ export function useMomentoComposer({
           }
         }),
       )
+      // Nota de voz: si hay una elegida, la subimos al mismo store y
+      // guardamos su storageKey en payload.audioKey.
+      let audioKey: string | undefined
+      if (audioDraft) {
+        const uploadedAudio = await api.momentoAudioUpload(audioDraft.file)
+        audioKey = uploadedAudio.storageKey
+      }
       // Para back-compat del render de single-foto: también guardamos
       // el primer storageKey en el campo legacy. Renders viejos siguen
       // mostrando la primera foto; renders nuevos prefieren `items[]`.
@@ -261,6 +290,7 @@ export function useMomentoComposer({
         width: first?.width,
         height: first?.height,
         caption: photoCaption.trim() || undefined,
+        audioKey,
       }
       const created = await addMomento.mutateAsync({
         kind: 'foto',
@@ -317,6 +347,10 @@ export function useMomentoComposer({
     setPhotoNote,
     photoUploading,
     photoUploadProgress,
+    // Nota de voz
+    audioDraft,
+    setAudioFile,
+    clearAudio,
 
     // Submit
     submit,

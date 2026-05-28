@@ -5,6 +5,7 @@ import { SparkleIcon, TrashIcon } from '../Icons'
 import { formatTime } from './helpers'
 import { MomentoEditModal } from './MomentoEditModal'
 import { PhotoLightbox } from './PhotoLightbox'
+import { AudioNote } from './AudioNote'
 import { Tooltip } from '../Tooltip'
 
 /**
@@ -171,7 +172,7 @@ function FotoBody({ momento }: { momento: Momento }) {
   //   y navegación.
   // El render del timeline mantiene altura visual baja sin importar
   // cuántas fotos tenga el episodio.
-  const { items, storageKey, width, height, caption } = momento.payload
+  const { items, storageKey, width, height, caption, audioKey } = momento.payload
   const photos: Array<{ storageKey: string; width?: number; height?: number }> =
     items && items.length > 0 ? items : storageKey ? [{ storageKey, width, height }] : []
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -226,6 +227,13 @@ function FotoBody({ momento }: { momento: Momento }) {
         <p className="font-serif text-base text-ink-700 leading-relaxed whitespace-pre-wrap max-w-md">
           {momento.note}
         </p>
+      )}
+      {audioKey && (
+        // Nota de voz del episodio. Se sirve por el mismo endpoint que las
+        // fotos (devuelve Content-Type desde la metadata del blob).
+        <div className="max-w-md">
+          <AudioNote src={`/api/momentos-file/${encodeURIComponent(audioKey)}`} />
+        </div>
       )}
       <PhotoLightbox
         photos={photos}
