@@ -163,7 +163,7 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   let entitiesReorderedIds: string[] | null = null
   let quotesReorderedIds: string[] | null = null
   if (wantsRerank) {
-    const invocation = await resolveAIInvocation(req, 'chat').catch(() => null)
+    const invocation = await resolveAIInvocation(req, 'chat', userId).catch(() => null)
     const override =
       invocation && invocation.kind === 'ready'
         ? { provider: invocation.provider, model: invocation.model }

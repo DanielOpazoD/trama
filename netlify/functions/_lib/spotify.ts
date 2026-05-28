@@ -12,6 +12,7 @@
  */
 
 import type { getSql } from './db.js'
+import { ApiErrors } from './api-error.js'
 
 type SqlClient = ReturnType<typeof getSql>
 
@@ -276,6 +277,48 @@ export async function getValidAccessToken(
     `
   }
   return refreshed.access_token
+}
+
+/**
+ * Helper que centraliza el patrón "endpoint Spotify que requiere conexión":
+ * obtiene un access token válido, y si no hay (Spotify no conectado o token
+ * sin refresh), devuelve un `{ ok: false, response }` con el 400 canónico
+ * de ApiErrors.
+ *
+ * Patrón discriminated union, igual que `parseJsonBody` — el caller hace:
+ *
+ *     const conn = await requireSpotifyConnection({ sql, userId, requestId })
+ *     if (!conn.ok) return conn.response
+ *     const accessToken = conn.token
+ *
+ * Antes el patrón estaba repetido en 4 endpoints (spotify-sync,
+ * spotify-suggest-artists, spotify-import-playlist, spotify-library-snapshot)
+ * con strings de mensaje ligeramente distintas. Centralizar acá significa
+ * que evolucionar el copy o el code path es un cambio de un solo file.
+ */
+export type SpotifyConnectionResult =
+  | { ok: true; token: string }
+  | { ok: false; response: Response }
+
+export async function requireSpotifyConnection(opts: {
+  sql: SqlClient
+  userId: string | undefined
+  requestId: string
+  /** Mensaje a mostrar si no hay conexión. Default suficiente para casi
+   *  todos los call sites. */
+  message?: string
+}): Promise<SpotifyConnectionResult> {
+  const token = await getValidAccessToken(opts.sql, opts.userId)
+  if (!token) {
+    return {
+      ok: false,
+      response: ApiErrors.validation(
+        opts.requestId,
+        opts.message ?? 'Spotify no está conectado',
+      ),
+    }
+  }
+  return { ok: true, token }
 }
 
 /**

@@ -28,10 +28,11 @@ export default withObservability(
       return ApiErrors.methodNotAllowed(requestId)
     }
 
-    const budgetExceeded = await checkMonthlyBudget()
+    const { id: userId } = await getAuthedUser(req)
+
+    const budgetExceeded = await checkMonthlyBudget(userId, requestId)
     if (budgetExceeded) return budgetExceeded
 
-    const { id: userId } = await getAuthedUser(req)
     const sql = getSql()
 
     type EntityRow = {
@@ -84,7 +85,7 @@ export default withObservability(
 
     const messages = buildReclassifyPrompt(entitiesForPrompt, typeOptions)
 
-    const invocation = await resolveAIInvocation(req, 'reclassify')
+    const invocation = await resolveAIInvocation(req, 'reclassify', userId)
     if (invocation.kind === 'off') return aiOffResponse()
 
     try {
@@ -156,7 +157,7 @@ export default withObservability(
 
       sql`
         INSERT INTO extraction_log (
-          input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
+          input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
         ) VALUES (
           ${'reclassify-entities'},
           ${JSON.stringify(responseBody)}::jsonb,
@@ -165,7 +166,8 @@ export default withObservability(
           ${usage.tokensIn + (verifierUsage?.tokensIn ?? 0)},
           ${usage.tokensOut + (verifierUsage?.tokensOut ?? 0)},
           ${usage.costCents + (verifierUsage?.costCents ?? 0)},
-          ${usage.durationMs + (verifierUsage?.durationMs ?? 0)}
+          ${usage.durationMs + (verifierUsage?.durationMs ?? 0)},
+          ${userId}
         )
       `.catch(() => {})
 
@@ -173,8 +175,8 @@ export default withObservability(
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       sql`
-        INSERT INTO extraction_log (input_text, proposal, provider, model, error)
-        VALUES (${'reclassify-entities'}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message})
+        INSERT INTO extraction_log (input_text, proposal, provider, model, error, user_id)
+        VALUES (${'reclassify-entities'}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message}, ${userId})
       `.catch(() => {})
       return ApiErrors.upstream(requestId, `Error llamando al LLM: ${message}`)
     }

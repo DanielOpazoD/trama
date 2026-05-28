@@ -2,8 +2,8 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import {
   fetchRecentlyPlayed,
-  getValidAccessToken,
   markSynced,
+  requireSpotifyConnection,
   storePlays,
 } from './_lib/spotify.js'
 import { withObservability } from './_lib/handler-wrap.js'
@@ -27,12 +27,10 @@ export default withObservability('spotify-sync', async (req, _ctx, { requestId }
   const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
-  const accessToken = await getValidAccessToken(sql, userId)
-  if (!accessToken) {
-    return ApiErrors.validation(requestId, 'Spotify no está conectado')
-  }
+  const conn = await requireSpotifyConnection({ sql, userId, requestId })
+  if (!conn.ok) return conn.response
 
-  const data = await fetchRecentlyPlayed(accessToken)
+  const data = await fetchRecentlyPlayed(conn.token)
   const inserted = await storePlays(sql, data.items, userId)
   await markSynced(sql, userId)
 

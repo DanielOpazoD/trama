@@ -86,7 +86,7 @@ export default withObservability(
 
     if (req.method === 'POST') {
       // Generate a fresh round of suggestions.
-      const budgetExceeded = await checkMonthlyBudget(userId)
+      const budgetExceeded = await checkMonthlyBudget(userId, requestId)
       if (budgetExceeded) return budgetExceeded
 
       type EntityRow = {
@@ -186,7 +186,7 @@ export default withObservability(
         ),
       )
 
-      const invocation = await resolveAIInvocation(req, 'suggest-relationships')
+      const invocation = await resolveAIInvocation(req, 'suggest-relationships', userId)
       if (invocation.kind === 'off') return aiOffResponse()
 
       try {
@@ -305,7 +305,7 @@ export default withObservability(
 
         sql`
           INSERT INTO extraction_log (
-            input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
+            input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
           ) VALUES (
             ${'proactive-suggestions'},
             ${JSON.stringify({ inserted: inserted.length })}::jsonb,
@@ -314,7 +314,8 @@ export default withObservability(
             ${usage.tokensIn},
             ${usage.tokensOut},
             ${usage.costCents},
-            ${usage.durationMs}
+            ${usage.durationMs},
+            ${userId}
           )
         `.catch(() => {})
 

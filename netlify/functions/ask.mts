@@ -58,7 +58,7 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
 
   const { id: userId } = await getAuthedUser(req)
 
-  const budgetExceeded = await checkMonthlyBudget(userId)
+  const budgetExceeded = await checkMonthlyBudget(userId, requestId)
   if (budgetExceeded) return budgetExceeded
 
   const sql = getSql()
@@ -84,7 +84,7 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
   // Resolvemos el AI mode upfront para poder honrarlo en TODAS las llamadas
   // LLM (incluido el rerank). Si está en Off, salimos antes de cualquier
   // trabajo LLM, ahorrando latencia y tokens.
-  const invocation = await resolveAIInvocation(req, 'chat')
+  const invocation = await resolveAIInvocation(req, 'chat', userId)
   if (invocation.kind === 'off') return aiOffResponse()
   const rerankOverride = {
     provider: invocation.provider,
@@ -232,7 +232,7 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
 
     sql`
       INSERT INTO extraction_log (
-        input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
+        input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
       ) VALUES (
         ${`ask:${view ?? 'none'}`},
         ${JSON.stringify({ reply, proposal: cleanedProposal })}::jsonb,
@@ -241,7 +241,8 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
         ${usage.tokensIn},
         ${usage.tokensOut},
         ${usage.costCents},
-        ${usage.durationMs}
+        ${usage.durationMs},
+        ${userId}
       )
     `.catch(() => {})
 

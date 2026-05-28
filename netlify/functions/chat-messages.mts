@@ -85,12 +85,12 @@ export default withObservability(
       return ApiErrors.validation(requestId, 'Falta el campo "content"')
     }
 
-    const budgetExceeded = await checkMonthlyBudget(userId)
+    const budgetExceeded = await checkMonthlyBudget(userId, requestId)
     if (budgetExceeded) return budgetExceeded
 
     // Resolve AI mode upfront so we don't persist a user message that the
     // assistant can never answer (Off blocks the whole exchange).
-    const invocation = await resolveAIInvocation(req, 'chat')
+    const invocation = await resolveAIInvocation(req, 'chat', userId)
     if (invocation.kind === 'off') return aiOffResponse()
 
     const threadRows = (await sql`
@@ -366,7 +366,7 @@ export default withObservability(
 
         sql`
           INSERT INTO extraction_log (
-            input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
+            input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
           ) VALUES (
             ${`chat:${threadId}`},
             ${JSON.stringify({ proposal: proposalToStore })}::jsonb,
@@ -375,7 +375,8 @@ export default withObservability(
             ${usage.tokensIn},
             ${usage.tokensOut},
             ${usage.costCents},
-            ${usage.durationMs}
+            ${usage.durationMs},
+            ${userId}
           )
         `.catch(() => {})
 

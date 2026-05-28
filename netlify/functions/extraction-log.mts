@@ -2,11 +2,22 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 
+/**
+ * GET /api/extraction-log — devuelve los logs LLM del usuario actual.
+ *
+ * Privacidad: filtra por `user_id = ${userId}`. Sin este filtro, en
+ * multi-user un usuario podría leer los `input_text` (queries de chat,
+ * texto pegado para extracción, etc.) de cualquier otro. El backfill
+ * 20260528 puso 'legacy-single-user' en rows huérfanos para que el
+ * filtro no tenga que tolerar NULLs.
+ */
 export default withObservability('extraction-log', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
     return ApiErrors.methodNotAllowed(requestId)
   }
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
   const url = new URL(req.url)
@@ -30,6 +41,7 @@ export default withObservability('extraction-log', async (req: Request, _ctx, { 
     SELECT id, input_text, proposal, provider, model, tokens_in, tokens_out,
            cost_cents, duration_ms, error, created_at
     FROM extraction_log
+    WHERE user_id = ${userId}
     ORDER BY created_at DESC
     LIMIT ${limit}
   `) as Row[]
@@ -40,6 +52,7 @@ export default withObservability('extraction-log', async (req: Request, _ctx, { 
       COALESCE(SUM(cost_cents), 0) AS total_cost_cents,
       COALESCE(SUM(tokens_in + tokens_out), 0) AS total_tokens
     FROM extraction_log
+    WHERE user_id = ${userId}
   `) as Array<{ total_calls: string; total_cost_cents: string; total_tokens: string }>
 
   return Response.json({

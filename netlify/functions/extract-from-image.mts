@@ -37,7 +37,7 @@ export default withObservability('extract-from-image', async (req, _ctx, { reque
 
   const { id: userId } = await getAuthedUser(req)
 
-  const budgetExceeded = await checkMonthlyBudget(userId)
+  const budgetExceeded = await checkMonthlyBudget(userId, requestId)
   if (budgetExceeded) return budgetExceeded
 
   const parsed = await parseJsonBody(req, ExtractFromImageBody, requestId)
@@ -72,7 +72,7 @@ export default withObservability('extract-from-image', async (req, _ctx, { reque
 
   const { system, user } = buildImageExtractionPrompt(entityTypes, relationshipTypes)
 
-  const invocation = await resolveAIInvocation(req, 'extract-image')
+  const invocation = await resolveAIInvocation(req, 'extract-image', userId)
   if (invocation.kind === 'off') return aiOffResponse()
 
   try {
@@ -106,7 +106,7 @@ export default withObservability('extract-from-image', async (req, _ctx, { reque
 
     sql`
       INSERT INTO extraction_log (
-        input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
+        input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
       ) VALUES (
         ${`image:${mimeType}`},
         ${JSON.stringify(cleaned)}::jsonb,
@@ -115,7 +115,8 @@ export default withObservability('extract-from-image', async (req, _ctx, { reque
         ${usage.tokensIn},
         ${usage.tokensOut},
         ${usage.costCents},
-        ${usage.durationMs}
+        ${usage.durationMs},
+        ${userId}
       )
     `.catch(() => {})
 
@@ -127,8 +128,8 @@ export default withObservability('extract-from-image', async (req, _ctx, { reque
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     sql`
-      INSERT INTO extraction_log (input_text, proposal, provider, model, error)
-      VALUES (${`image:${mimeType}`}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message})
+      INSERT INTO extraction_log (input_text, proposal, provider, model, error, user_id)
+      VALUES (${`image:${mimeType}`}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message}, ${userId})
     `.catch(() => {})
     return ApiErrors.upstream(requestId, `Error llamando al LLM de visión: ${message}`)
   }

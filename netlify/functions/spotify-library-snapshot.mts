@@ -13,7 +13,7 @@ import {
   fetchSavedTracksCount,
   fetchTopArtists,
   fetchTopTracks,
-  getValidAccessToken,
+  requireSpotifyConnection,
 } from './_lib/spotify.js'
 
 /**
@@ -46,10 +46,8 @@ export default withObservability(
     const { id: userId } = await getAuthedUser(req)
 
     const sql = getSql()
-    const accessToken = await getValidAccessToken(sql, userId)
-    if (!accessToken) {
-      return ApiErrors.validation(requestId, 'Spotify no está conectado')
-    }
+    const conn = await requireSpotifyConnection({ sql, userId, requestId })
+    if (!conn.ok) return conn.response
 
     // Paralelizamos las tres llamadas a Spotify para que el endpoint no
     // sume latencias. Cada fetch ya tiene fallback a [] en caso de 403
@@ -60,9 +58,9 @@ export default withObservability(
     let topTracks: Awaited<ReturnType<typeof fetchTopTracks>> = []
     try {
       ;[savedCount, topArtists, topTracks] = await Promise.all([
-        fetchSavedTracksCount(accessToken).catch(() => 0),
-        fetchTopArtists(accessToken, 'medium_term').catch(() => []),
-        fetchTopTracks(accessToken, 'medium_term').catch(() => []),
+        fetchSavedTracksCount(conn.token).catch(() => 0),
+        fetchTopArtists(conn.token, 'medium_term').catch(() => []),
+        fetchTopTracks(conn.token, 'medium_term').catch(() => []),
       ])
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Spotify API error'
@@ -102,7 +100,7 @@ export default withObservability(
       })
     }
 
-    const budgetExceeded = await checkMonthlyBudget(userId)
+    const budgetExceeded = await checkMonthlyBudget(userId, requestId)
     if (budgetExceeded) {
       // Devolvemos los datos pero sin párrafo (la UI ya sabe degradar).
       return Response.json({
@@ -113,7 +111,7 @@ export default withObservability(
       })
     }
 
-    const invocation = await resolveAIInvocation(req, 'reflect')
+    const invocation = await resolveAIInvocation(req, 'reflect', userId)
     if (invocation.kind === 'off') return aiOffResponse()
 
     const genresLine = topGenres
@@ -169,7 +167,7 @@ Devuelve SOLO el párrafo.`
 
       sql`
         INSERT INTO extraction_log (
-          input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
+          input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
         ) VALUES (
           'spotify:palette',
           ${JSON.stringify({ savedCount, topGenres, decades })}::jsonb,
@@ -178,7 +176,8 @@ Devuelve SOLO el párrafo.`
           ${usage.tokensIn},
           ${usage.tokensOut},
           ${usage.costCents},
-          ${usage.durationMs}
+          ${usage.durationMs},
+          ${userId}
         )
       `.catch(() => {})
 

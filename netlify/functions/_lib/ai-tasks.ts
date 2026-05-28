@@ -42,23 +42,34 @@ type Row = {
   verify_with: string | null
 }
 
-let cache: { at: number; map: Map<string, Row> } | null = null
+// Cache per-user. La migración 20260526 movió la PK de `(task)` a
+// `(user_id, task)` y queremos respetarlo: la configuración de uno no
+// se filtra al otro. Cache `Map<userId, { at, map }>`.
+type UserCache = { at: number; map: Map<string, Row> }
+const cache = new Map<string, UserCache>()
 const CACHE_TTL_MS = 30_000
 
-async function loadAll(): Promise<Map<string, Row>> {
-  if (cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.map
+async function loadAll(userId: string): Promise<Map<string, Row>> {
+  const cached = cache.get(userId)
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.map
   const sql = getSql()
   const rows = (await sql`
-    SELECT task, provider, model, verify_with FROM ai_task_providers
+    SELECT task, provider, model, verify_with
+    FROM ai_task_providers
+    WHERE user_id = ${userId}
   `.catch(() => [])) as Row[]
   const map = new Map(rows.map((r) => [r.task, r]))
-  cache = { at: Date.now(), map }
+  cache.set(userId, { at: Date.now(), map })
   return map
 }
 
-/** Drop the in-memory cache (used after a settings update so the next call sees it). */
-export function invalidateAITaskCache(): void {
-  cache = null
+/**
+ * Invalida el cache de un usuario (después de un PUT a /api/ai-settings).
+ * Si se omite, se borra el cache completo — útil para tests que
+ * mockean DB. */
+export function invalidateAITaskCache(userId?: string): void {
+  if (userId) cache.delete(userId)
+  else cache.clear()
 }
 
 /**
@@ -66,8 +77,11 @@ export function invalidateAITaskCache(): void {
  * this task. If no DB row exists, both default to "use the env-var
  * AI_PROVIDER" (returned as provider = '' so the caller knows to fall back).
  */
-export async function resolveTaskProvider(task: AITask): Promise<ResolvedTask> {
-  const map = await loadAll()
+export async function resolveTaskProvider(
+  task: AITask,
+  userId: string,
+): Promise<ResolvedTask> {
+  const map = await loadAll(userId)
   const row = map.get(task)
   if (!row) {
     return { task, provider: '', model: null, verifyWith: null }
