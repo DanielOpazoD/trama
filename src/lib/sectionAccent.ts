@@ -12,6 +12,8 @@ import type { ViewMode } from '../components/Sidebar'
  *   Citas         gold        — donde el lenguaje pesa
  *   Momentos      evento      — bronce, marca temporal
  *   Escuchas      musico      — rojo-tierra de "música"
+ *   Cronología    sage        — verde sereno, distancia temporal
+ *   Atlas         idea        — terracota cálida, el cielo de las constelaciones
  *   Chat          primary     — conversación con la IA
  *   Sugerencias   primary     — la IA propone
  *
@@ -25,6 +27,8 @@ export const SECTION_ACCENT: Record<ViewMode, string> = {
   citas: 'var(--accent-gold)',
   momentos: 'var(--type-evento)',
   escuchas: 'var(--type-musico)',
+  cronologia: 'var(--accent-sage)',
+  atlas: 'var(--type-idea)',
   chat: 'var(--accent-primary)',
   sugerencias: 'var(--accent-primary)',
 }

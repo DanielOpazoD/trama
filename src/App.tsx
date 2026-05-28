@@ -369,6 +369,10 @@ function Shell() {
         onClose={() => setPaletteOpen(false)}
         onNavigate={(v) => setView(v)}
         onSelectEntity={(id) => setSelectedEntityId(id)}
+        onOpenThread={(threadId) => {
+          setPendingChatThreadId(threadId)
+          setView('chat')
+        }}
         onAction={(action) => {
           // Las acciones rápidas del palette se traducen en navigations
           // + modal openings. "Nueva X" navega a la vista correspondiente;

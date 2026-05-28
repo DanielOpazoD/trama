@@ -18,5 +18,7 @@ export type ViewMode =
   | 'citas'
   | 'escuchas'
   | 'momentos'
+  | 'cronologia'
+  | 'atlas'
   | 'chat'
   | 'sugerencias'

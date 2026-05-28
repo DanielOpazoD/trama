@@ -43,6 +43,12 @@ const ListeningView = lazy(() =>
 const MomentosView = lazy(() =>
   import('./MomentosView').then((m) => ({ default: m.MomentosView })),
 )
+const CronologiaView = lazy(() =>
+  import('./CronologiaView').then((m) => ({ default: m.CronologiaView })),
+)
+const AtlasView = lazy(() =>
+  import('./AtlasView').then((m) => ({ default: m.AtlasView })),
+)
 const ProactiveView = lazy(() =>
   import('./ProactiveView').then((m) => ({ default: m.ProactiveView })),
 )
@@ -225,6 +231,16 @@ export function ViewRouter({
         {view === 'momentos' && (
           <ViewSlot scope="view:momentos">
             <MomentosView />
+          </ViewSlot>
+        )}
+        {view === 'cronologia' && (
+          <ViewSlot scope="view:cronologia">
+            <CronologiaView onSelectEntity={onSelectEntity} />
+          </ViewSlot>
+        )}
+        {view === 'atlas' && (
+          <ViewSlot scope="view:atlas">
+            <AtlasView onSelectEntity={onSelectEntity} />
           </ViewSlot>
         )}
         {view === 'sugerencias' && (
