@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import {
+  useDeferredValue,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react'
 import {
   useChatMessagesQuery,
   useChatThreadsQuery,
@@ -56,6 +63,13 @@ export function ChatView({
 
   const { data: messages = [], isLoading: messagesLoading } =
     useChatMessagesQuery(activeId)
+  // S2: useDeferredValue marca el render de la lista como low-priority.
+  // Durante streaming, cada chunk dispara una actualización del cache
+  // de TanStack Query → re-render de toda la lista. Sin deferred, ese
+  // trabajo bloquea el input mientras el user tipea (laggy textarea).
+  // Con deferred, React puede pausar el re-render de la lista si hay
+  // un keystroke pendiente, manteniendo el input snappy.
+  const deferredMessages = useDeferredValue(messages)
   const { send, pending: sendPending, error: sendError } = useSendChatMessage(activeId)
 
   const [draft, setDraft] = useState('')
@@ -295,34 +309,35 @@ export function ChatView({
             <EmptyChatHint />
           ) : messagesLoading ? (
             <LoadingHint text="cargando" />
-          ) : messages.length === 0 ? (
+          ) : deferredMessages.length === 0 ? (
             <EmptyChatHint />
           ) : (
             <ul className="space-y-5 max-w-2xl mx-auto">
-              {messages.map((m) => (
+              {deferredMessages.map((m) => (
                 <MessageBubble key={m.id} message={m} />
               ))}
-              {sendPending && messages[messages.length - 1]?.role !== 'assistant' && (
-                // ζ11: indicador "pensando" en lenguaje editorial. En vez
-                // del spinner técnico, una elipsis serif que late en
-                // sentido literal: cada punto fade-in escalonado. Más en
-                // sintonía con el resto de la app que se construye sobre
-                // typography más que sobre iconography.
-                <li className="text-ink-400 italic text-sm font-serif flex items-baseline gap-1.5">
-                  <span>pensando</span>
-                  <span aria-hidden className="inline-flex items-baseline gap-[2px]">
-                    <span className="dots-dot" style={{ animationDelay: '0ms' }}>
-                      ·
+              {sendPending &&
+                deferredMessages[deferredMessages.length - 1]?.role !== 'assistant' && (
+                  // ζ11: indicador "pensando" en lenguaje editorial. En vez
+                  // del spinner técnico, una elipsis serif que late en
+                  // sentido literal: cada punto fade-in escalonado. Más en
+                  // sintonía con el resto de la app que se construye sobre
+                  // typography más que sobre iconography.
+                  <li className="text-ink-400 italic text-sm font-serif flex items-baseline gap-1.5">
+                    <span>pensando</span>
+                    <span aria-hidden className="inline-flex items-baseline gap-[2px]">
+                      <span className="dots-dot" style={{ animationDelay: '0ms' }}>
+                        ·
+                      </span>
+                      <span className="dots-dot" style={{ animationDelay: '180ms' }}>
+                        ·
+                      </span>
+                      <span className="dots-dot" style={{ animationDelay: '360ms' }}>
+                        ·
+                      </span>
                     </span>
-                    <span className="dots-dot" style={{ animationDelay: '180ms' }}>
-                      ·
-                    </span>
-                    <span className="dots-dot" style={{ animationDelay: '360ms' }}>
-                      ·
-                    </span>
-                  </span>
-                </li>
-              )}
+                  </li>
+                )}
               {sendError && (
                 <li className="alert-error px-4 py-3 rounded-xl text-sm">{sendError}</li>
               )}

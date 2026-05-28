@@ -2,38 +2,26 @@ import type { Config, Context } from '@netlify/functions'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { askLLMForText, askLLMForTextStreaming } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
-import { buildRagContext } from './_lib/rag-context.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ChatMessageSendBody } from './_lib/chat-body-schemas.js'
 import {
   buildChatPrompt,
   buildChatTitlePrompt,
-  type ChatTramaContext,
   type ChatTurn,
 } from './_lib/chat-prompt.js'
+import {
+  loadChatContextForFocus,
+  loadChatContextWithRag,
+} from './_lib/chat-context.js'
 import { parseChatReply, hasAnyProposal } from './_lib/chat-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
-const FALLBACK_ENTITY_TYPES = [
-  'persona', 'escritor', 'filosofo', 'musico', 'banda', 'director', 'artista', 'cientifico',
-  'libro', 'ensayo', 'poema', 'articulo',
-  'cancion', 'podcast', 'album', 'disco',
-  'pelicula', 'serie', 'documental',
-  'obra', 'concepto', 'idea', 'lugar', 'evento',
-]
-const FALLBACK_RELATIONSHIP_TYPES = [
-  'influye_en', 'cita_a', 'responde_a', 'me_llego_por',
-  'suena_como', 'inspira', 'contradice', 'asociado_con',
-]
-
 const HISTORY_LIMIT = 30
-const CONTEXT_ENTITY_LIMIT = 80
 const CONTEXT_RELATIONSHIP_LIMIT = 150
-const CONTEXT_QUOTE_LIMIT = 60
 
 export default withObservability(
   'chat-messages',
@@ -134,122 +122,20 @@ export default withObservability(
     `) as HistoryRow[]
     const history: ChatTurn[] = historyRows.map((r) => ({ role: r.role, content: r.content }))
 
-    type EntityCtxRow = {
-      id: string
-      name: string
-      type: string
-      year: number | null
-      description: string | null
-    }
-    type RelCtxRow = { id: string; from_name: string; to_name: string; type: string; notes: string | null }
-    type QuoteCtxRow = { id: string; entity_name: string; text: string; source: string | null }
-    type TypeRow = { slug: string }
-
-    // Three branches for context loading, depending on the thread:
-    //   - focusEntity:  narrow to that entity + its direct neighbors + its citas
-    //   - general chat: RAG (semantic top-K + recency) keyed off the user's
-    //                   latest message → escala a 100k+ y trae lo topical
-    //                   aunque sea antiguo.
-    //   - (history-only call with no new message would skip both, but
-    //     /api/chat/threads/:id/messages always POSTs a userText.)
-    let entityRows: EntityCtxRow[]
-    let relRows: RelCtxRow[]
-    let quoteRows: QuoteCtxRow[]
-    let entityTypeRows: TypeRow[]
-    let relTypeRows: TypeRow[]
-    let usedRag = false
-    let usedHyde = false
-
-    if (focusEntityId) {
-      ;[entityRows, relRows, quoteRows, entityTypeRows, relTypeRows] = await Promise.all([
-        sqlTyped<EntityCtxRow>(sql`SELECT id, name, type, year, description
-            FROM entities
-            WHERE deleted_at IS NULL
-              AND (id = ${focusEntityId}
-                   OR id IN (
-                     SELECT CASE WHEN from_id = ${focusEntityId} THEN to_id ELSE from_id END
-                     FROM relationships
-                     WHERE deleted_at IS NULL
-                       AND (from_id = ${focusEntityId} OR to_id = ${focusEntityId})
-                   ))`),
-        sqlTyped<RelCtxRow>(sql`SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
-            FROM relationships r
-            JOIN entities ef ON ef.id = r.from_id
-            JOIN entities et ON et.id = r.to_id
-            WHERE r.deleted_at IS NULL
-              AND (r.from_id = ${focusEntityId} OR r.to_id = ${focusEntityId})
-            ORDER BY r.created_at DESC`),
-        sqlTyped<QuoteCtxRow>(sql`SELECT q.id, e.name AS entity_name, q.text, q.source
-            FROM quotes q
-            JOIN entities e ON e.id = q.entity_id
-            WHERE q.deleted_at IS NULL
-              AND q.entity_id = ${focusEntityId}
-            ORDER BY q.created_at DESC`),
-        sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
-        sqlTyped<TypeRow>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
-      ])
-    } else {
-      const [ragCtx, eTypes, rTypes] = await Promise.all([
-        buildRagContext(
-          sql as unknown as (
-            strings: TemplateStringsArray,
-            ...values: unknown[]
-          ) => Promise<unknown>,
-          userText,
-          userId,
-          {
-            relationshipLimit: CONTEXT_RELATIONSHIP_LIMIT,
-            // Activamos LLM-as-reranker en el chat — la calidad del
-            // contexto importa más que los ~1-2s de latencia extra.
-            rerank: true,
-            rerankOverride: {
-              provider: invocation.provider,
-              model: invocation.model,
-            },
-            // HyDE: el chat es donde más rinde, las queries suelen ser
-            // vagas y abstractas ("¿qué hay del tiempo en mis citas?").
-            hyde: true,
-          },
-        ),
-        sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
-        sqlTyped<TypeRow>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
-      ])
-      entityRows = ragCtx.entities
-      relRows = ragCtx.relationships
-      quoteRows = ragCtx.quotes
-      entityTypeRows = eTypes
-      relTypeRows = rTypes
-      usedRag = ragCtx.usedRag
-      usedHyde = ragCtx.usedHyde ?? false
-    }
-
-    const tramaContext: ChatTramaContext = {
-      entities: entityRows.map((e) => ({
-        id: e.id,
-        name: e.name,
-        type: e.type,
-        year: e.year,
-        description: e.description,
-      })),
-      relationships: relRows.map((r) => ({
-        id: r.id,
-        fromName: r.from_name,
-        toName: r.to_name,
-        type: r.type,
-        notes: r.notes,
-      })),
-      quotes: quoteRows.map((q) => ({
-        id: q.id,
-        entityName: q.entity_name,
-        text: q.text,
-        source: q.source,
-      })),
-    }
-
-    const entityTypes =
-      entityTypeRows.length > 0 ? entityTypeRows.map((r) => r.slug) : FALLBACK_ENTITY_TYPES
-    const relationshipTypes =
-      relTypeRows.length > 0 ? relTypeRows.map((r) => r.slug) : FALLBACK_RELATIONSHIP_TYPES
+    // S4: la lógica de carga de contexto vive en `_lib/chat-context.ts`.
+    // Dos branches según el thread:
+    //   - focusEntity:  carga la entidad + vecinos directos + citas (local).
+    //   - general chat: RAG (semantic top-K + recency + rerank LLM + HyDE).
+    const { tramaContext, entityTypes, relationshipTypes, usedRag, usedHyde } =
+      focusEntityId
+        ? await loadChatContextForFocus(sql, focusEntityId)
+        : await loadChatContextWithRag(
+            sql,
+            userText,
+            userId,
+            { provider: invocation.provider, model: invocation.model },
+            CONTEXT_RELATIONSHIP_LIMIT,
+          )
 
     // If this is an entity-focused thread, look up the focus entity's name+type
     // so the prompt can address it explicitly ("conversación sobre Borges").
