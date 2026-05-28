@@ -38,6 +38,12 @@ export type MomentoPayload = {
     width?: number
     height?: number
   }>
+  /** Nota de voz del episodio: storageKey de un blob de audio en el
+   *  mismo store `momentos-media`. Es a nivel momento (no por foto),
+   *  igual que `note` de texto. Se sirve por `/api/momentos-file/:key`
+   *  —el endpoint devuelve el Content-Type desde la metadata del blob,
+   *  así que sirve audio sin cambios—. Solo aplica a kind='foto'. */
+  audioKey?: string
 }
 
 export type Momento = {

@@ -9,6 +9,7 @@ import {
   toDateTimeLocalInput,
 } from '../helpers'
 import { CapturedAtField, ModalFooter, ModalShell } from './shell'
+import { AudioPicker } from '../AudioPicker'
 
 /**
  * Sub-modal de edición para momentos kind=foto.
@@ -36,6 +37,12 @@ type NewItem = {
   previewUrl: string
 }
 type EditItem = ExistingItem | NewItem
+
+/** Nota de voz en edición: la guardada (storageKey) o una nueva (File). */
+type AudioState =
+  | { kind: 'existing'; storageKey: string }
+  | { kind: 'new'; file: File; previewUrl: string }
+  | null
 
 function buildInitialItems(momento: Momento): EditItem[] {
   const { items, storageKey, width, height } = momento.payload
@@ -66,6 +73,12 @@ export function FotoEditModal({
   const [items, setItems] = useState<EditItem[]>(() => buildInitialItems(momento))
   const [caption, setCaption] = useState(momento.payload.caption ?? '')
   const [note, setNote] = useState(momento.note ?? '')
+  // Nota de voz: 'existing' (ya en el store) o 'new' (File pendiente).
+  const [audio, setAudio] = useState<AudioState>(() =>
+    momento.payload.audioKey
+      ? { kind: 'existing', storageKey: momento.payload.audioKey }
+      : null,
+  )
   const [capturedAt, setCapturedAt] = useState(toDateTimeLocalInput(momento.capturedAt))
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
@@ -128,6 +141,27 @@ export function FotoEditModal({
     })
   }
 
+  function setAudioFile(file: File) {
+    setAudio((prev) => {
+      if (prev && prev.kind === 'new') URL.revokeObjectURL(prev.previewUrl)
+      return { kind: 'new', file, previewUrl: URL.createObjectURL(file) }
+    })
+  }
+
+  function removeAudio() {
+    setAudio((prev) => {
+      if (prev && prev.kind === 'new') URL.revokeObjectURL(prev.previewUrl)
+      return null
+    })
+  }
+
+  const audioPreviewSrc =
+    audio?.kind === 'existing'
+      ? `/api/momentos-file/${encodeURIComponent(audio.storageKey)}`
+      : audio?.kind === 'new'
+        ? audio.previewUrl
+        : null
+
   async function handleSave() {
     if (uploading || updateMomento.isPending) return
     if (items.length === 0) {
@@ -178,6 +212,17 @@ export function FotoEditModal({
         return [out]
       })
 
+      // Nota de voz: subir la nueva si la hay; conservar la existente;
+      // o quitarla del payload si se removió.
+      let audioKey: string | undefined
+      if (audio?.kind === 'existing') {
+        audioKey = audio.storageKey
+      } else if (audio?.kind === 'new') {
+        const uploadedAudio = await api.momentoAudioUpload(audio.file)
+        audioKey = uploadedAudio.storageKey
+        URL.revokeObjectURL(audio.previewUrl)
+      }
+
       const [first] = finalItems
       const payload: MomentoPayload = {
         ...momento.payload,
@@ -186,6 +231,11 @@ export function FotoEditModal({
         width: first?.width,
         height: first?.height,
         caption: caption.trim() || undefined,
+      }
+      if (audioKey) {
+        payload.audioKey = audioKey
+      } else {
+        delete payload.audioKey
       }
       const patch: Parameters<typeof updateMomento.mutateAsync>[0]['patch'] = {
         payload,
@@ -281,6 +331,12 @@ export function FotoEditModal({
           placeholder="Tu nota sobre el momento (opcional)"
           rows={3}
           className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
+          disabled={uploading || updateMomento.isPending}
+        />
+        <AudioPicker
+          previewSrc={audioPreviewSrc}
+          onPick={setAudioFile}
+          onClear={removeAudio}
           disabled={uploading || updateMomento.isPending}
         />
         <CapturedAtField

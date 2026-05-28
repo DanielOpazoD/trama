@@ -17,6 +17,7 @@ export type AITask =
   | 'reflect'
   | 'chat'
   | 'panel'
+  | 'voz'
 
 export const ALL_TASKS: AITask[] = [
   'extract',
@@ -26,6 +27,7 @@ export const ALL_TASKS: AITask[] = [
   'reflect',
   'chat',
   'panel',
+  'voz',
 ]
 
 export type ResolvedTask = {

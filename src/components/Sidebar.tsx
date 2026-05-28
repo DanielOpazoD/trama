@@ -9,6 +9,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ChatIcon,
+  AtlasIcon,
+  CronologiaIcon,
   EntitiesIcon,
   GraphIcon,
   HomeIcon,
@@ -49,6 +51,8 @@ const NAV_ITEMS: NavItem[] = [
   { value: 'citas', label: 'Citas', icon: QuoteIcon },
   { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
   { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
+  { value: 'cronologia', label: 'Cronología', icon: CronologiaIcon },
+  { value: 'atlas', label: 'Atlas', icon: AtlasIcon },
   { value: 'chat', label: 'Chat', icon: ChatIcon },
   { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
 ]
@@ -110,6 +114,12 @@ export function Sidebar({
     // número. Coherencia con las demás secciones.
     momentos: totals?.momentos ?? null,
     escuchas: null,
+    // Cronología es una superficie de lectura que teje varias corrientes —
+    // un único "count" no tendría sentido (¿citas? ¿momentos? ¿la suma?).
+    cronologia: null,
+    // El Atlas es un snapshot de constelaciones; tampoco hay un único
+    // count que tenga sentido como badge.
+    atlas: null,
     chat: null,
     sugerencias: pendingSuggestions.length > 0 ? pendingSuggestions.length : null,
   }

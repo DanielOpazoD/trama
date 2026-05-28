@@ -13,8 +13,10 @@
 
 import { aiApi } from './ai'
 import { aiSettingsApi } from './ai-settings'
+import { atlasApi } from './atlas'
 import { chatApi } from './chat'
 import { cronicasApi } from './cronicas'
+import { cronologiaApi } from './cronologia'
 import { entitiesApi } from './entities'
 import { exportImportApi } from './export-import'
 import { graphApi } from './graph'
@@ -33,6 +35,8 @@ export const api = {
   ...momentosApi,
   ...chatApi,
   cronicas: cronicasApi,
+  atlas: atlasApi,
+  ...cronologiaApi,
   ...aiApi,
   ...aiSettingsApi,
   ...spotifyApi,
@@ -54,6 +58,17 @@ export { DuplicateEntityError } from './request'
 export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
 
 export type { Cronica, GeneratedCronica } from './cronicas'
+
+export type { AtlasMember, AtlasConstellation, AtlasResponse } from './atlas'
+
+export type {
+  CronologiaCita,
+  CronologiaMomento,
+  CronologiaCronica,
+  CronologiaEscucha,
+  CronologiaEntrada,
+  CronologiaResponse,
+} from './cronologia'
 
 export type { ProactiveSuggestion, Reclassification, ReclassifyResponse } from './ai'
 
@@ -79,7 +94,14 @@ export type {
   HealthResponse,
 } from './health'
 
-export type { SearchEntityHit, SearchQuoteHit, SearchResponse } from './search'
+export type {
+  SearchEntityHit,
+  SearchQuoteHit,
+  SearchMomentoHit,
+  SearchCronicaHit,
+  SearchChatHit,
+  SearchResponse,
+} from './search'
 
 export type { NeighborsResponse, NeighborWithHop } from './graph'
 

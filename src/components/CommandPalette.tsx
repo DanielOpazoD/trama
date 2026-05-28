@@ -1,9 +1,13 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useEntitiesQuery, useQuotesQuery } from '../state'
+import { api } from '../api'
+import type { SearchResponse } from '../api'
 import { ENTITY_TYPES } from '../types'
 import type { ViewMode } from './Sidebar'
 import {
   ChatIcon,
+  AtlasIcon,
+  CronologiaIcon,
   EntitiesIcon,
   GraphIcon,
   HomeIcon,
@@ -22,6 +26,8 @@ const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 export type CommandAction =
   | 'open-settings'
   | 'open-shortcuts'
+  | 'open-sortes'
+  | 'open-espejo'
   | 'new-entity'
   | 'new-quote'
   | 'new-momento'
@@ -30,7 +36,32 @@ type Item =
   | { kind: 'view'; view: ViewMode; label: string; hint?: string }
   | { kind: 'action'; action: CommandAction; label: string; hint?: string }
   | { kind: 'entity'; id: string; name: string; type: string }
-  | { kind: 'quote'; id: string; text: string; entityName: string }
+  | { kind: 'quote'; id: string; entityId: string; text: string; entityName: string }
+  | { kind: 'momento'; id: string; momentoKind: string; text: string }
+  | { kind: 'cronica'; id: string; year: number; month: number; text: string }
+  | {
+      kind: 'chat'
+      id: string
+      threadId: string
+      threadTitle: string | null
+      text: string
+    }
+
+// Mínimo para construir el sublabel de una crónica ("crónica · marzo 2026").
+const MONTH_NAMES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+]
 
 const VIEWS: Array<{ view: ViewMode; label: string; hint: string }> = [
   { view: 'inicio', label: 'Inicio', hint: 'la página principal' },
@@ -39,6 +70,8 @@ const VIEWS: Array<{ view: ViewMode; label: string; hint: string }> = [
   { view: 'citas', label: 'Citas', hint: 'fragmentos guardados' },
   { view: 'momentos', label: 'Momentos', hint: 'la dimensión temporal de la trama' },
   { view: 'escuchas', label: 'Escuchas', hint: 'tu música reciente' },
+  { view: 'cronologia', label: 'Cronología', hint: 'hojear el tiempo, por estaciones' },
+  { view: 'atlas', label: 'Atlas', hint: 'constelaciones semánticas de tu trama' },
   { view: 'chat', label: 'Chat', hint: 'conversación con la IA' },
   { view: 'sugerencias', label: 'Sugerencias', hint: 'la IA revisa la trama' },
 ]
@@ -54,6 +87,16 @@ const ACTIONS: Array<{ action: CommandAction; label: string; hint: string }> = [
   { action: 'new-quote', label: 'Nueva cita', hint: 'guardar un fragmento' },
   { action: 'new-momento', label: 'Nuevo momento', hint: 'nota, recorte o foto del día' },
   {
+    action: 'open-sortes',
+    label: 'Sortes',
+    hint: 'una cita al azar para releer · suerte del día',
+  },
+  {
+    action: 'open-espejo',
+    label: 'Espejo',
+    hint: 'la composición de tu trama · tipos, épocas, lo más cruzado',
+  },
+  {
     action: 'open-settings',
     label: 'Configuración',
     hint: 'preferencias, tema, IA, datos',
@@ -65,9 +108,14 @@ const ACTIONS: Array<{ action: CommandAction; label: string; hint: string }> = [
  * Cmd+K palette. Search-as-you-type across views + entities + quotes.
  * Arrows navigate, Enter selects, Escape closes.
  *
- * Kept simple: no fuzzy matching beyond a substring filter on lowercased
- * normalized strings; results are capped at 20 of each kind. For 500
- * entities this is fast.
+ * Dos fuentes que se complementan:
+ *   - Local (instantáneo, cada tecla): vistas + acciones + entidades
+ *     (nombre/descripción/tipo) + citas (texto). Substring filter, sin
+ *     red — mantiene el palette snappy para el caso común.
+ *   - Servidor (debounced, q≥2, modo lexical = gratis): api.search trae lo
+ *     que el filtro local no ve — momentos, crónicas, chat, y matches en el
+ *     `essay`/contexto de entidades y citas. Se mergea sin pisar lo local
+ *     (dedup por id), así no hay flicker ni regresión de velocidad.
  */
 export function CommandPalette({
   open,
@@ -75,6 +123,7 @@ export function CommandPalette({
   onNavigate,
   onSelectEntity,
   onAction,
+  onOpenThread,
 }: {
   open: boolean
   onClose: () => void
@@ -83,6 +132,9 @@ export function CommandPalette({
   /** Acciones rápidas (Nueva entidad, Configuración, etc.). Si no se
       pasa, el palette las oculta. */
   onAction?: (action: CommandAction) => void
+  /** Abrir un hilo de chat por id (para resultados de tipo chat). Si no se
+      pasa, los resultados de chat navegan a la vista Chat sin hilo. */
+  onOpenThread?: (threadId: string) => void
 }) {
   const { data: entities = [] } = useEntitiesQuery()
   const { data: quotes = [] } = useQuotesQuery()
@@ -95,16 +147,53 @@ export function CommandPalette({
   const deferredQuery = useDeferredValue(query)
   const [focusIdx, setFocusIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  // Resultados del servidor (momentos/crónicas/chat + matches extra en
+  // essay/contexto). Null mientras no haya query ≥2 o la respuesta no llegó.
+  const [serverResults, setServerResults] = useState<SearchResponse | null>(null)
+  const [searching, setSearching] = useState(false)
 
   useEffect(() => {
     if (open) {
       setQuery('')
       setFocusIdx(0)
+      setServerResults(null)
+      setSearching(false)
       // Focus the input on the next tick so it lands after the dialog mounts.
       const t = window.setTimeout(() => inputRef.current?.focus(), 0)
       return () => window.clearTimeout(t)
     }
   }, [open])
+
+  // Búsqueda en servidor: debounced, modo lexical (sin costo de embedding),
+  // solo con query ≥2. Race-guarded — una respuesta vieja nunca pisa una
+  // nueva. Si falla (offline, sin red en tests) degradamos a solo-local.
+  useEffect(() => {
+    const q = deferredQuery.trim()
+    if (!open || q.length < 2) {
+      setServerResults(null)
+      setSearching(false)
+      return
+    }
+    let cancelled = false
+    setSearching(true)
+    const t = window.setTimeout(() => {
+      api
+        .search(q, { limit: 8, mode: 'lexical' })
+        .then((res) => {
+          if (!cancelled) setServerResults(res)
+        })
+        .catch(() => {
+          if (!cancelled) setServerResults(null)
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false)
+        })
+    }, 180)
+    return () => {
+      cancelled = true
+      window.clearTimeout(t)
+    }
+  }, [deferredQuery, open])
 
   const items: Item[] = useMemo(() => {
     const q = deferredQuery.trim().toLowerCase()
@@ -124,7 +213,8 @@ export function CommandPalette({
         }))
       : []
 
-    const matchesEntity = entities
+    // Local: filtro substring sobre lo ya cargado en memoria (instantáneo).
+    const localEntities = entities
       .filter((e) => {
         if (!q) return true
         return (
@@ -134,22 +224,86 @@ export function CommandPalette({
         )
       })
       .slice(0, 20)
-      .map<Item>((e) => ({ kind: 'entity', id: e.id, name: e.name, type: e.type }))
-
-    const matchesQuote = q
-      ? quotes
-          .filter((qt) => qt.text.toLowerCase().includes(q))
-          .slice(0, 12)
-          .map<Item>((qt) => ({
-            kind: 'quote',
-            id: qt.id,
-            text: qt.text,
-            entityName: entities.find((e) => e.id === qt.entityId)?.name ?? '?',
-          }))
+    const localQuotes = q
+      ? quotes.filter((qt) => qt.text.toLowerCase().includes(q)).slice(0, 12)
       : []
 
-    return [...matchesView, ...matchesAction, ...matchesEntity, ...matchesQuote]
-  }, [deferredQuery, entities, quotes, onAction])
+    const entityItems = localEntities.map<Item>((e) => ({
+      kind: 'entity',
+      id: e.id,
+      name: e.name,
+      type: e.type,
+    }))
+    const quoteItems = localQuotes.map<Item>((qt) => ({
+      kind: 'quote',
+      id: qt.id,
+      entityId: qt.entityId,
+      text: qt.text,
+      entityName: entities.find((e) => e.id === qt.entityId)?.name ?? '?',
+    }))
+
+    // Servidor: agrega lo que el filtro local no alcanza. Entidades/citas se
+    // dedupean contra lo local; momentos/crónicas/chat son exclusivos del
+    // servidor (el cliente no los tiene cargados).
+    const sr = serverResults
+    const localEntityIds = new Set(localEntities.map((e) => e.id))
+    const localQuoteIds = new Set(localQuotes.map((qt) => qt.id))
+
+    const serverEntityItems: Item[] = sr
+      ? sr.entities
+          .filter((e) => !localEntityIds.has(e.id))
+          .map((e) => ({ kind: 'entity', id: e.id, name: e.name, type: e.type }))
+      : []
+    const serverQuoteItems: Item[] = sr
+      ? sr.quotes
+          .filter((qt) => !localQuoteIds.has(qt.id))
+          .map((qt) => ({
+            kind: 'quote',
+            id: qt.id,
+            entityId: qt.entityId,
+            text: qt.text,
+            entityName: qt.entityName,
+          }))
+      : []
+    const momentoItems: Item[] = sr
+      ? sr.momentos.map((m) => ({
+          kind: 'momento',
+          id: m.id,
+          momentoKind: m.kind,
+          text: m.text,
+        }))
+      : []
+    const cronicaItems: Item[] = sr
+      ? sr.cronicas.map((c) => ({
+          kind: 'cronica',
+          id: c.id,
+          year: c.year,
+          month: c.month,
+          text: c.text,
+        }))
+      : []
+    const chatItems: Item[] = sr
+      ? sr.chat.map((c) => ({
+          kind: 'chat',
+          id: c.id,
+          threadId: c.threadId,
+          threadTitle: c.threadTitle,
+          text: c.text,
+        }))
+      : []
+
+    return [
+      ...matchesView,
+      ...matchesAction,
+      ...entityItems,
+      ...serverEntityItems,
+      ...quoteItems,
+      ...serverQuoteItems,
+      ...momentoItems,
+      ...cronicaItems,
+      ...chatItems,
+    ]
+  }, [deferredQuery, entities, quotes, onAction, serverResults])
 
   useEffect(() => {
     setFocusIdx(0)
@@ -179,18 +333,33 @@ export function CommandPalette({
   }, [open, items, focusIdx])
 
   function selectItem(item: Item) {
-    if (item.kind === 'view') {
-      onNavigate(item.view)
-    } else if (item.kind === 'action') {
-      onAction?.(item.action)
-    } else if (item.kind === 'entity') {
-      onSelectEntity(item.id)
-    } else {
-      // Quote → jump to its entity panel.
-      const ent = entities.find(
-        (e) => e.id === quotes.find((q) => q.id === item.id)?.entityId,
-      )
-      if (ent) onSelectEntity(ent.id)
+    switch (item.kind) {
+      case 'view':
+        onNavigate(item.view)
+        break
+      case 'action':
+        onAction?.(item.action)
+        break
+      case 'entity':
+        onSelectEntity(item.id)
+        break
+      case 'quote':
+        // Cita → abrir el panel de su entidad.
+        onSelectEntity(item.entityId)
+        break
+      case 'momento':
+        // No hay deep-link a un momento puntual (lista infinita); llevamos
+        // a la vista Momentos.
+        onNavigate('momentos')
+        break
+      case 'cronica':
+        // Las crónicas viven en Inicio.
+        onNavigate('inicio')
+        break
+      case 'chat':
+        if (onOpenThread) onOpenThread(item.threadId)
+        else onNavigate('chat')
+        break
     }
     onClose()
   }
@@ -238,7 +407,7 @@ export function CommandPalette({
           <ul className="max-h-[50vh] overflow-y-auto">
             {items.length === 0 && (
               <li className="px-5 py-6 text-ink-400 italic text-sm text-center">
-                nada coincide
+                {searching ? 'buscando…' : 'nada coincide'}
               </li>
             )}
             {items.map((item, idx) => (
@@ -310,6 +479,10 @@ function ViewIcon({ view }: { view: ViewMode }) {
       return <MomentosIcon {...props} />
     case 'escuchas':
       return <MusicIcon {...props} />
+    case 'cronologia':
+      return <CronologiaIcon {...props} />
+    case 'atlas':
+      return <AtlasIcon {...props} />
     case 'chat':
       return <ChatIcon {...props} />
     case 'sugerencias':
@@ -367,18 +540,67 @@ function ItemRow({ item, query }: { item: Item; query: string }) {
       </>
     )
   }
+  if (item.kind === 'quote') {
+    return (
+      <>
+        <QuoteIcon size={14} className="text-ink-400 shrink-0" />
+        <span className="text-ink-600 italic font-serif truncate flex-1">
+          «
+          <HighlightedText
+            text={item.text.slice(0, 80) + (item.text.length > 80 ? '…' : '')}
+            query={query}
+          />
+          »
+        </span>
+        <span className="text-ink-300 text-xs ml-2 shrink-0">— {item.entityName}</span>
+      </>
+    )
+  }
+  if (item.kind === 'momento') {
+    return (
+      <>
+        <MomentosIcon size={14} className="text-ink-400 shrink-0" />
+        <span className="text-ink-600 truncate flex-1">
+          <HighlightedText
+            text={item.text.slice(0, 80) + (item.text.length > 80 ? '…' : '')}
+            query={query}
+          />
+        </span>
+        <span className="text-micro uppercase tracking-eyebrow text-ink-300 ml-2 shrink-0">
+          {item.momentoKind}
+        </span>
+      </>
+    )
+  }
+  if (item.kind === 'cronica') {
+    return (
+      <>
+        <SparkleIcon size={14} className="text-ink-400 shrink-0" />
+        <span className="text-ink-600 italic font-serif truncate flex-1">
+          <HighlightedText
+            text={item.text.slice(0, 80) + (item.text.length > 80 ? '…' : '')}
+            query={query}
+          />
+        </span>
+        <span className="text-micro uppercase tracking-eyebrow text-ink-300 ml-2 shrink-0">
+          crónica · {MONTH_NAMES[item.month - 1]} {item.year}
+        </span>
+      </>
+    )
+  }
+  // chat
   return (
     <>
-      <QuoteIcon size={14} className="text-ink-400 shrink-0" />
-      <span className="text-ink-600 italic font-serif truncate flex-1">
-        «
+      <ChatIcon size={14} className="text-ink-400 shrink-0" />
+      <span className="text-ink-600 truncate flex-1">
         <HighlightedText
           text={item.text.slice(0, 80) + (item.text.length > 80 ? '…' : '')}
           query={query}
         />
-        »
       </span>
-      <span className="text-ink-300 text-xs ml-2 shrink-0">— {item.entityName}</span>
+      <span className="text-ink-300 text-xs ml-2 shrink-0 truncate max-w-[40%]">
+        — {item.threadTitle ?? 'chat'}
+      </span>
     </>
   )
 }

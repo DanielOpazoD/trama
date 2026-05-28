@@ -27,9 +27,37 @@ export type SearchQuoteHit = {
   semantic: number
 }
 
+export type SearchMomentoHit = {
+  id: string
+  kind: string
+  text: string
+  capturedAt: string
+  score: number
+}
+
+export type SearchCronicaHit = {
+  id: string
+  year: number
+  month: number
+  text: string
+  score: number
+}
+
+export type SearchChatHit = {
+  id: string
+  threadId: string
+  threadTitle: string | null
+  role: string
+  text: string
+  score: number
+}
+
 export type SearchResponse = {
   entities: SearchEntityHit[]
   quotes: SearchQuoteHit[]
+  momentos: SearchMomentoHit[]
+  cronicas: SearchCronicaHit[]
+  chat: SearchChatHit[]
   mode: 'hybrid' | 'lexical' | 'semantic'
 }
 

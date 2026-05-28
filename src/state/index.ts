@@ -26,6 +26,7 @@ export {
   useUpdateEntityType,
   useUpdateEntity,
   useDeleteEntity,
+  useVoiceOfEntity,
 } from './useEntities'
 export { useReclassifyEntities } from './useReclassifyEntities'
 export { useAISettingsQuery, useSetAITaskProvider } from './useAISettings'
@@ -67,5 +68,7 @@ export {
 } from './useQuotes'
 export { useExtract, useExtractFromImage, useAsk } from './useExtract'
 export { useCronicasQuery, useGenerateCronica } from './useCronicas'
+export { useInfiniteCronologiaQuery } from './useCronologia'
+export { useAtlasQuery, useGenerateAtlas } from './useAtlas'
 export { useSuggestRelationships } from './useSuggestRelationships'
 export { useExport, useImport } from './useExportImport'

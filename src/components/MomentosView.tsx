@@ -9,11 +9,13 @@ import type { Entity, MomentoKind } from '../types'
 import { Paginator } from './Paginator'
 import { EmptyMessage } from './EmptyMessage'
 import { AlbumGrid } from './momentos/AlbumGrid'
+import { HojaEditor } from './momentos/HojaEditor'
 import { MomentoComposer } from './momentos/MomentoComposer'
 import { MomentosFilters } from './momentos/MomentosFilters'
 import { MergeMomentosBar } from './momentos/MergeMomentosBar'
 import { SelectableMomento } from './momentos/SelectableMomento'
 import { ConfirmDestroy } from './ConfirmDestroy'
+import { QuoteIcon } from './Icons'
 import { MomentoSkeleton, SkeletonList } from './Skeleton'
 import { formatDateHeading, groupByDay } from './momentos/helpers'
 import { useMomentoComposer } from './momentos/useMomentoComposer'
@@ -37,6 +39,10 @@ export function MomentosView() {
   // cambia con `filterKind`, así cada filtro tiene su cache + paginación.
   const [filterKind, setFilterKind] = useState<MomentoKind | null>(null)
   const [viewMode, setViewMode] = useState<'timeline' | 'album'>('timeline')
+  // V-4: la "hoja suelta" es una superficie de escritura aparte del composer
+  // rápido. Toggle en vez de siempre-visible para no cargar la vista — quien
+  // sólo quiere pegar una foto no la ve.
+  const [hojaOpen, setHojaOpen] = useState(false)
 
   const momentosQuery = useInfiniteMomentosQuery(
     filterKind ? { kind: filterKind } : undefined,
@@ -147,6 +153,21 @@ export function MomentosView() {
       />
 
       <MomentoComposer composer={composer} />
+
+      {/* V-4 Hojas sueltas: superficie de escritura que enlaza el archivo
+          (@ entidad, > cita). Guarda como nota. Colapsada por default. */}
+      {hojaOpen ? (
+        <HojaEditor onClose={() => setHojaOpen(false)} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setHojaOpen(true)}
+          className="mb-6 inline-flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+        >
+          <QuoteIcon size={12} />
+          escribir una hoja suelta
+        </button>
+      )}
 
       {/* ω-D: banner del filtro por día cuando viene del heatmap. */}
       {dayFilter && (

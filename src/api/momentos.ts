@@ -185,4 +185,26 @@ export const momentosApi = {
     }
     return response.json()
   },
+
+  /** Sube un archivo de audio (nota de voz) a Netlify Blobs. Devuelve la
+      storageKey que el cliente inserta en `payload.audioKey` del momento
+      foto. Mismo store que las fotos; se sirve por `/api/momentos-file`. */
+  async momentoAudioUpload(file: File): Promise<{
+    storageKey: string
+    mime: string
+    size: number
+  }> {
+    const form = new FormData()
+    form.append('file', file)
+    const response = await fetch('/api/momentos-audio-upload', {
+      method: 'POST',
+      body: form,
+      headers: { 'X-AI-Mode': aiModeHeader() },
+    })
+    if (!response.ok) {
+      const text = await response.text().catch(() => '')
+      throw new Error(`audio upload → ${response.status} ${text}`.trim())
+    }
+    return response.json()
+  },
 }

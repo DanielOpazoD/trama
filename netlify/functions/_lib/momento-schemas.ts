@@ -64,6 +64,9 @@ export const MomentoFotoPayloadSchema = z
     height: z.number().optional(),
     caption: z.string().optional(),
     exifDate: z.string().optional(),
+    // Nota de voz del episodio (storageKey de un blob de audio). Opcional;
+    // no afecta el refine de abajo (que exige items[] o storageKey de foto).
+    audioKey: z.string().trim().min(1).optional(),
   })
   .refine(
     (data) => {

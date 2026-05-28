@@ -1,12 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { screen, fireEvent } from '@testing-library/react'
+import { screen, fireEvent, waitFor } from '@testing-library/react'
 import { CommandPalette } from './CommandPalette'
 import { renderWithProviders } from '../test-utils'
+import type { SearchResponse } from '../api'
 
 /**
  * Smoke tests para CommandPalette: verifica navegación + filtrado +
  * acciones quick. Mockeamos /api/entities y /api/quotes con respuestas
  * pequeñas; el componente usa useEntitiesQuery + useQuotesQuery.
+ *
+ * El buscador global también consulta /api/search (debounced, q≥2). Por
+ * defecto devolvemos shape vacío; los tests de server-merge re-stubean con
+ * datos para verificar que momentos/crónicas/chat aparecen y se navegan.
  */
 
 function jsonResp(body: unknown) {
@@ -16,11 +21,24 @@ function jsonResp(body: unknown) {
   })
 }
 
-beforeEach(() => {
+const EMPTY_SEARCH: SearchResponse = {
+  entities: [],
+  quotes: [],
+  momentos: [],
+  cronicas: [],
+  chat: [],
+  mode: 'lexical',
+}
+
+/** Mock de fetch con una entidad local y una respuesta de /api/search dada. */
+function stubFetch(search: SearchResponse = EMPTY_SEARCH) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: string | Request | URL) => {
       const url = String(input)
+      if (url.includes('/api/search')) {
+        return jsonResp(search)
+      }
       if (url.includes('/api/entities')) {
         return jsonResp([
           {
@@ -39,6 +57,10 @@ beforeEach(() => {
       return jsonResp([])
     }),
   )
+}
+
+beforeEach(() => {
+  stubFetch()
 })
 
 afterEach(() => {
@@ -132,6 +154,89 @@ describe('<CommandPalette />', () => {
       />,
     )
     fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('merges server results (momento + crónica + chat) for queries ≥2', async () => {
+    stubFetch({
+      ...EMPTY_SEARCH,
+      momentos: [
+        {
+          id: 'm-1',
+          kind: 'nota',
+          text: 'una nota sobre el mar',
+          capturedAt: '2026-05-01',
+          score: 1,
+        },
+      ],
+      cronicas: [{ id: 'c-1', year: 2026, month: 3, text: 'el mes del mar', score: 1 }],
+      chat: [
+        {
+          id: 'cm-1',
+          threadId: 't-9',
+          threadTitle: 'sobre el mar',
+          role: 'user',
+          text: 'hablemos del mar',
+          score: 1,
+        },
+      ],
+    })
+    const { container } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+    const input = screen.getByPlaceholderText(/buscar/i)
+    fireEvent.change(input, { target: { value: 'mar' } })
+    // El fetch es debounced (180ms) y HighlightedText parte el texto en
+    // varios nodos (<strong>); chequeamos por textContent del list, que los
+    // concatena. waitFor cubre el debounce.
+    const list = container.querySelector('ul')!
+    await waitFor(() => expect(list.textContent).toMatch(/una nota sobre el mar/))
+    expect(list.textContent).toMatch(/el mes del mar/)
+    expect(list.textContent).toMatch(/hablemos del mar/)
+    // El sublabel de la crónica usa el nombre del mes.
+    expect(list.textContent).toMatch(/crónica · marzo 2026/)
+  })
+
+  it('opens a chat thread via onOpenThread when a chat result is clicked', async () => {
+    const onOpenThread = vi.fn()
+    const onClose = vi.fn()
+    stubFetch({
+      ...EMPTY_SEARCH,
+      chat: [
+        {
+          id: 'cm-1',
+          threadId: 't-9',
+          threadTitle: 'sobre el mar',
+          role: 'user',
+          text: 'hablemos del mar',
+          score: 1,
+        },
+      ],
+    })
+    const { container } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={onClose}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+        onOpenThread={onOpenThread}
+      />,
+    )
+    const input = screen.getByPlaceholderText(/buscar/i)
+    fireEvent.change(input, { target: { value: 'mar' } })
+    await waitFor(() =>
+      expect(container.querySelector('ul')!.textContent).toMatch(/hablemos del mar/),
+    )
+    const chatButton = [...container.querySelectorAll('button')].find((b) =>
+      b.textContent?.includes('hablemos del mar'),
+    )!
+    fireEvent.click(chatButton)
+    expect(onOpenThread).toHaveBeenCalledWith('t-9')
     expect(onClose).toHaveBeenCalledOnce()
   })
 })

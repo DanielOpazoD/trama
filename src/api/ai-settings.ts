@@ -15,6 +15,7 @@ export type AITaskKey =
   | 'reflect'
   | 'chat'
   | 'panel'
+  | 'voz'
 
 export type AITaskConfig = {
   task: AITaskKey

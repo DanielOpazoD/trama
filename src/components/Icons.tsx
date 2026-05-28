@@ -176,6 +176,33 @@ export const MomentosIcon = ({ size = 16, className }: Props) => (
   </svg>
 )
 
+/* Cronología — un riel temporal: la línea vertical del tiempo con tres
+   nodos (estaciones que se suceden) y sus entradas a la derecha. Lee como
+   "hojear el tiempo": estratos que bajan por la página. */
+export const CronologiaIcon = ({ size = 16, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M7 4v16" />
+    <circle cx="7" cy="7" r="1.4" />
+    <circle cx="7" cy="12" r="1.4" />
+    <circle cx="7" cy="17" r="1.4" />
+    <path d="M11 7h8M11 12h6M11 17h8" />
+  </svg>
+)
+
+/* Atlas — constelación: nodos dispersos unidos por líneas finas, un mapa
+   de cercanías semánticas. Lee como "el cielo de tu trama": grupos que se
+   reconocen por su figura, no por su posición exacta. */
+export const AtlasIcon = ({ size = 16, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M5 8l6 3 4-5M11 11l5 6M11 11l-4 6" />
+    <circle cx="5" cy="8" r="1.3" />
+    <circle cx="15" cy="6" r="1.3" />
+    <circle cx="11" cy="11" r="1.3" />
+    <circle cx="16" cy="17" r="1.3" />
+    <circle cx="7" cy="17" r="1.3" />
+  </svg>
+)
+
 /* Info — círculo con "i" delicado. Tamaño default 12 (chip-friendly). */
 export const InfoIcon = ({ size = 12, className }: Props) => (
   <svg

@@ -1,6 +1,8 @@
 import { useProactiveQuery, useCountsQuery } from '../state'
 import {
+  AtlasIcon,
   ChatIcon,
+  CronologiaIcon,
   EntitiesIcon,
   GraphIcon,
   HomeIcon,
@@ -42,6 +44,8 @@ const NAV_ITEMS: Array<{
   { value: 'citas', label: 'Citas', icon: QuoteIcon },
   { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
   { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
+  { value: 'cronologia', label: 'Cronología', icon: CronologiaIcon },
+  { value: 'atlas', label: 'Atlas', icon: AtlasIcon },
   { value: 'chat', label: 'Chat', icon: ChatIcon },
   { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
 ]

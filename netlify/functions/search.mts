@@ -43,7 +43,13 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   const wantsRerank = url.searchParams.get('rerank') === 'true'
 
   if (!q) {
-    return Response.json({ entities: [], quotes: [] })
+    return Response.json({
+      entities: [],
+      quotes: [],
+      momentos: [],
+      cronicas: [],
+      chat: [],
+    })
   }
 
   const wantsLexical = mode !== 'semantic'
@@ -66,6 +72,34 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
     source: string | null
     rank: number
   }
+  type MomentoLex = {
+    id: string
+    kind: string
+    captured_at: string
+    text: string
+    rank: number
+  }
+  type CronicaLex = {
+    id: string
+    year: number
+    month: number
+    text: string
+    rank: number
+  }
+  type ChatLex = {
+    id: string
+    thread_id: string
+    thread_title: string | null
+    role: string
+    text: string
+    rank: number
+  }
+
+  // Texto representativo de un momento: el cuerpo si lo hay, si no el
+  // caption/título/fuente, si no la nota. NULLIF descarta strings vacías del
+  // payload para que el COALESCE caiga al siguiente campo con texto. Se
+  // inlinea en cada query (en vez de un fragmento sql compartido) porque el
+  // tagged template de Neon HTTP no compone fragmentos anidados.
 
   const lexicalEntities = wantsLexical
     ? await sqlTyped<EntityLex>(sql`
@@ -96,18 +130,65 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
       `)
     : ([] as QuoteLex[])
 
+  const lexicalMomentos = wantsLexical
+    ? await sqlTyped<MomentoLex>(sql`
+        SELECT m.id, m.kind, m.captured_at,
+               COALESCE(NULLIF(m.payload->>'bodyText', ''), NULLIF(m.payload->>'caption', ''),
+                        NULLIF(m.payload->>'title', ''), NULLIF(m.payload->>'source', ''),
+                        m.note, '') AS text,
+               ts_rank(m.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
+        FROM momentos m
+        WHERE m.deleted_at IS NULL
+          AND m.user_id = ${userId}
+          AND m.search_vector @@ websearch_to_tsquery('simple', ${q})
+        ORDER BY rank DESC
+        LIMIT ${limit * 2}
+      `)
+    : ([] as MomentoLex[])
+
+  // Crónicas y chat: lexical-only (no tienen embedding). En modo 'semantic'
+  // puro no aparecen; en 'hybrid' fluyen por la rama léxica.
+  const lexicalCronicas = wantsLexical
+    ? await sqlTyped<CronicaLex>(sql`
+        SELECT c.id, c.year, c.month, left(c.text, 220) AS text,
+               ts_rank(c.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
+        FROM cronicas c
+        WHERE c.user_id = ${userId}
+          AND c.search_vector @@ websearch_to_tsquery('simple', ${q})
+        ORDER BY rank DESC
+        LIMIT ${limit * 2}
+      `)
+    : ([] as CronicaLex[])
+
+  const lexicalChat = wantsLexical
+    ? await sqlTyped<ChatLex>(sql`
+        SELECT cm.id, cm.thread_id, t.title AS thread_title, cm.role,
+               left(cm.content, 200) AS text,
+               ts_rank(cm.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
+        FROM chat_messages cm
+        JOIN chat_threads t ON t.id = cm.thread_id
+        WHERE t.deleted_at IS NULL
+          AND cm.user_id = ${userId}
+          AND cm.search_vector @@ websearch_to_tsquery('simple', ${q})
+        ORDER BY rank DESC
+        LIMIT ${limit * 2}
+      `)
+    : ([] as ChatLex[])
+
   // Semantic: embed the query, rank by cosine distance. embedSafe returns
   // null on any failure so we degrade to lexical instead of erroring.
   type SemanticEntity = EntityLex & { distance: number }
   type SemanticQuote = QuoteLex & { distance: number }
+  type SemanticMomento = MomentoLex & { distance: number }
 
   let semanticEntities: SemanticEntity[] = []
   let semanticQuotes: SemanticQuote[] = []
+  let semanticMomentos: SemanticMomento[] = []
   if (wantsSemantic) {
     const emb = await embedSafe(q)
     if (emb) {
       const pgVec = toPgVector(emb.vector)
-      const [er, qr] = await Promise.all([
+      const [er, qr, mr] = await Promise.all([
         sqlTyped<SemanticEntity>(sql`
           SELECT id, name, type, description, year,
                  0 AS rank,
@@ -130,14 +211,31 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
           ORDER BY q.embedding <=> ${pgVec}::vector
           LIMIT ${limit * 2}
         `),
+        sqlTyped<SemanticMomento>(sql`
+          SELECT m.id, m.kind, m.captured_at,
+                 COALESCE(NULLIF(m.payload->>'bodyText', ''), NULLIF(m.payload->>'caption', ''),
+                          NULLIF(m.payload->>'title', ''), NULLIF(m.payload->>'source', ''),
+                          m.note, '') AS text,
+                 0 AS rank,
+                 (m.embedding <=> ${pgVec}::vector) AS distance
+          FROM momentos m
+          WHERE m.deleted_at IS NULL AND m.embedding IS NOT NULL
+            AND m.user_id = ${userId}
+          ORDER BY m.embedding <=> ${pgVec}::vector
+          LIMIT ${limit * 2}
+        `),
       ])
       semanticEntities = er
       semanticQuotes = qr
+      semanticMomentos = mr
     }
   }
 
   const lex = await lexicalEntities
   const lexQ = await lexicalQuotes
+  const lexM = await lexicalMomentos
+  const lexC = await lexicalCronicas
+  const lexChat = await lexicalChat
 
   // ---------- Merge via Reciprocal Rank Fusion ----------
   // Antes sumábamos scores de escalas distintas (ts_rank vs cosine sim).
@@ -153,8 +251,22 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   // ancho (limit × 2) así el reranker tiene margen real para subir cosas.
   const fusedWidth = wantsRerank ? Math.min(limit * 2, 30) : limit
 
-  const entitiesFusedFull = fuseRanked([toRanked(lex), toRanked(semanticEntities)]).slice(0, fusedWidth)
-  const quotesFusedFull = fuseRanked([toRanked(lexQ), toRanked(semanticQuotes)]).slice(0, fusedWidth)
+  const entitiesFusedFull = fuseRanked([toRanked(lex), toRanked(semanticEntities)]).slice(
+    0,
+    fusedWidth,
+  )
+  const quotesFusedFull = fuseRanked([toRanked(lexQ), toRanked(semanticQuotes)]).slice(
+    0,
+    fusedWidth,
+  )
+  // Momentos: léxico + semántico. Crónicas y chat: una sola rama léxica
+  // (fuseRanked de una lista = ranking por esa lista, mismo shape de salida).
+  const momentosFused = fuseRanked([toRanked(lexM), toRanked(semanticMomentos)]).slice(
+    0,
+    limit,
+  )
+  const cronicasFused = fuseRanked([toRanked(lexC)]).slice(0, limit)
+  const chatFused = fuseRanked([toRanked(lexChat)]).slice(0, limit)
 
   // ---------- Rerank opcional vía LLM ----------
   // Solo si el caller lo pidió (?rerank=true). El LLM-as-reranker reordena
@@ -245,9 +357,37 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
       semantic: 0,
     }))
 
+  const momentosFinal = momentosFused.map((entry) => ({
+    id: entry.item.id,
+    kind: entry.item.kind,
+    text: entry.item.text,
+    capturedAt: entry.item.captured_at,
+    score: entry.score,
+  }))
+
+  const cronicasFinal = cronicasFused.map((entry) => ({
+    id: entry.item.id,
+    year: entry.item.year,
+    month: entry.item.month,
+    text: entry.item.text,
+    score: entry.score,
+  }))
+
+  const chatFinal = chatFused.map((entry) => ({
+    id: entry.item.id,
+    threadId: entry.item.thread_id,
+    threadTitle: entry.item.thread_title,
+    role: entry.item.role,
+    text: entry.item.text,
+    score: entry.score,
+  }))
+
   return Response.json({
     entities: entitiesFinal,
     quotes: quotesFinal,
+    momentos: momentosFinal,
+    cronicas: cronicasFinal,
+    chat: chatFinal,
     mode,
     reranked: wantsRerank && (!!entitiesReorderedIds || !!quotesReorderedIds),
   })

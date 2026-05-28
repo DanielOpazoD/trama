@@ -1,5 +1,6 @@
 import { useGlobalStatus, type GlobalStatus } from '../state'
 import type { ViewMode } from './Sidebar'
+import { ReadingIcon } from './Icons'
 
 /**
  * Barra superior estilo ChatGPT/OpenAI Platform.
@@ -24,6 +25,8 @@ const TITLES: Record<ViewMode, { title: string; subtitle?: string }> = {
   citas: { title: 'Citas', subtitle: 'fragmentos que retuviste' },
   escuchas: { title: 'Escuchas', subtitle: 'tu música reciente' },
   momentos: { title: 'Momentos', subtitle: 'la dimensión temporal de tu trama' },
+  cronologia: { title: 'Cronología', subtitle: 'hojear el tiempo, por estaciones' },
+  atlas: { title: 'Atlas', subtitle: 'constelaciones de tu trama' },
   chat: { title: 'Chat', subtitle: 'conversa con tu trama' },
   sugerencias: { title: 'Sugerencias', subtitle: 'propuestas de la IA' },
 }
@@ -35,9 +38,13 @@ export function TopBar({
   actions,
   breadcrumb,
   tabs,
+  onSortes,
 }: {
   view: ViewMode
   actions?: React.ReactNode
+  /** Abre Sortes (segunda lectura — una cita al azar). Si se omite, el
+      botón no se muestra. */
+  onSortes?: () => void
   /** Segundo nivel del breadcrumb — se muestra como "View › crumb"
       cuando hay un detalle abierto. Si está, reemplaza el subtitle. */
   breadcrumb?: { label: string; onClickRoot?: () => void } | null
@@ -92,6 +99,16 @@ export function TopBar({
       </div>
       <div className="shrink-0 flex items-center gap-3">
         <StatusPill status={status} />
+        {onSortes && (
+          <button
+            onClick={onSortes}
+            aria-label="Sortes — una cita al azar para releer"
+            title="Sortes — una cita al azar para releer"
+            className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
+          >
+            <ReadingIcon size={16} />
+          </button>
+        )}
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
     </div>

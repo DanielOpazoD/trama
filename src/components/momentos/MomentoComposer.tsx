@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import type { MomentoKind } from '../../types'
 import type { useMomentoComposer } from './useMomentoComposer'
 import { MomentoQRModal } from './MomentoQRModal'
+import { AudioPicker } from './AudioPicker'
 
 type Composer = ReturnType<typeof useMomentoComposer>
 
@@ -402,6 +403,12 @@ function FotoFields({ composer }: { composer: Composer }) {
         placeholder="Tu nota sobre el momento (opcional)"
         rows={2}
         className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
+        disabled={composer.isPending}
+      />
+      <AudioPicker
+        previewSrc={composer.audioDraft?.previewUrl ?? null}
+        onPick={composer.setAudioFile}
+        onClear={composer.clearAudio}
         disabled={composer.isPending}
       />
     </div>
