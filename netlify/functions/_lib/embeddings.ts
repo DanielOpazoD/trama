@@ -10,6 +10,8 @@
  * a future re-index). That keeps create/update flows resilient.
  */
 
+import { getEnv } from './env.js'
+
 const OPENAI_EMBED_MODEL = 'text-embedding-3-small'
 const OPENAI_EMBED_URL = 'https://api.openai.com/v1/embeddings'
 export const EMBED_DIMS = 1536
@@ -20,12 +22,13 @@ export type EmbedResult = {
 }
 
 function readEmbeddingsKey(): string {
-  // Reuse the same key the main OpenAI provider uses (OPENAI_API_KEY first,
-  // AI_API_KEY as a legacy fallback). No separate config — embeddings are
-  // cheap and tied to the same account anyway.
-  const explicit = Netlify.env.get('OPENAI_API_KEY')
+  // O1: via getEnv() (tipado). Reusa la key del provider OpenAI principal
+  // (OPENAI_API_KEY primero, AI_API_KEY como fallback legacy). No hay
+  // config separada — los embeddings son baratos y comparten la cuenta.
+  const env = getEnv()
+  const explicit = env.OPENAI_API_KEY
   if (explicit) return explicit
-  const fallback = Netlify.env.get('AI_API_KEY')
+  const fallback = env.AI_API_KEY
   if (fallback) return fallback
   throw new Error('Embeddings requieren OPENAI_API_KEY (o AI_API_KEY como fallback).')
 }

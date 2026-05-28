@@ -6,6 +6,7 @@ import { ApiErrors } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { AISettingsUpsertBody } from './_lib/admin-schemas.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { getEnv } from './_lib/env.js'
 
 /**
  * GET  /api/ai-settings  → returns the full task→provider map para el
@@ -42,9 +43,10 @@ export default withObservability('ai-settings', async (req, _ctx, { requestId })
     `) as Row[]
     const byTask = new Map(rows.map((r) => [r.task, r]))
 
+    const env = getEnv()
     return Response.json({
-      defaultProvider: Netlify.env.get('AI_PROVIDER') ?? 'deepseek',
-      visionDefaultProvider: Netlify.env.get('AI_VISION_PROVIDER') ?? null,
+      defaultProvider: env.AI_PROVIDER,
+      visionDefaultProvider: env.AI_VISION_PROVIDER ?? null,
       tasks: ALL_TASKS.map((task) => {
         const r = byTask.get(task)
         return {

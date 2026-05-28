@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
+import { getEnv } from './_lib/env.js'
 
 /**
  * DD7 (audit #6): scheduled function que avisa cuando el gasto IA mensual
@@ -28,15 +29,16 @@ import { logEvent, logErrorEvent } from './_lib/observability.js'
  */
 
 function readBudgetCents(): number {
-  const raw = Netlify.env.get('AI_MONTHLY_BUDGET_CENTS')
-  const n = raw ? parseInt(raw, 10) : NaN
-  return Number.isFinite(n) && n > 0 ? n : 500
+  // O1: getEnv() ya coerce y valida.
+  const v = getEnv().AI_MONTHLY_BUDGET_CENTS
+  return typeof v === 'number' && v > 0 ? v : 500
 }
 
 function readThreshold(): number {
-  const raw = Netlify.env.get('COST_ALERT_THRESHOLD_PCT')
-  const n = raw ? parseFloat(raw) : NaN
-  return Number.isFinite(n) && n > 0 && n <= 1 ? n : 0.8
+  // O1: el schema declara COST_ALERT_THRESHOLD_PCT como number coerced.
+  // Validamos 0 < n <= 1 (porcentaje); fuera de rango → default 0.8.
+  const v = getEnv().COST_ALERT_THRESHOLD_PCT
+  return typeof v === 'number' && v > 0 && v <= 1 ? v : 0.8
 }
 
 const ALERT_CODE = 'cost-cap-warning'
@@ -100,7 +102,7 @@ export default async (_req: Request) => {
 
   // Disparar la alerta. Webhook payload compatible con Slack/Discord/ntfy:
   // todos aceptan { text }; Slack además acepta blocks, los obviamos.
-  const webhookUrl = Netlify.env.get('COST_ALERT_WEBHOOK_URL')
+  const webhookUrl = getEnv().COST_ALERT_WEBHOOK_URL
   const usdSpent = (spentCents / 100).toFixed(2)
   const usdBudget = (budget / 100).toFixed(2)
   const pctDisplay = Math.round(pct * 100)

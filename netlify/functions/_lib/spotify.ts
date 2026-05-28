@@ -13,6 +13,7 @@
 
 import type { getSql } from './db.js'
 import { ApiErrors } from './api-error.js'
+import { getEnv } from './env.js'
 
 type SqlClient = ReturnType<typeof getSql>
 
@@ -51,8 +52,18 @@ export type StoredTokens = {
   updated_at: string
 }
 
-function readEnv(key: string): string {
-  const v = Netlify.env.get(key)
+/**
+ * O1: lee la env por nombre desde el schema tipado de `_lib/env.ts`.
+ * Antes era `Netlify.env.get(key)` directo; ahora pasa por getEnv()
+ * — el typo de un nombre se detecta en compile-time.
+ *
+ * Si la var requerida no está, falla con un mensaje claro. El callsite
+ * decide si propagar (en flujos OAuth) o degradar (rare acá).
+ */
+function readEnv(
+  key: 'SPOTIFY_CLIENT_ID' | 'SPOTIFY_CLIENT_SECRET' | 'SPOTIFY_REDIRECT_URI',
+): string {
+  const v = getEnv()[key]
   if (!v) throw new Error(`${key} no está configurada en el entorno`)
   return v
 }

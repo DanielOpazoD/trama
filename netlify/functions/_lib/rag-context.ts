@@ -15,6 +15,7 @@
  * funciona la rama de recencia. Degradación graceful.
  */
 
+import { sqlTyped } from './db.js'
 import { embedSafe, toPgVector } from './embeddings.js'
 import { describeEntity, describeQuote, llmRerank } from './llm-rerank.js'
 import { askLLMForText, type LLMOverride } from './llm.js'
@@ -126,39 +127,39 @@ export async function buildRagContext(
   const [semanticEntities, recentEntities, semanticQuotes, recentQuotes] =
     await Promise.all([
       queryVec
-        ? (sql`
+        ? sqlTyped<EntityCtxRow>(sql`
           SELECT id, name, type, year, description
           FROM entities
           WHERE deleted_at IS NULL AND embedding IS NOT NULL AND user_id = ${userId}
           ORDER BY embedding <=> ${queryVec}::vector
           LIMIT ${semE}
-        ` as unknown as Promise<EntityCtxRow[]>)
+        `)
         : Promise.resolve<EntityCtxRow[]>([]),
-      sql`
+      sqlTyped<EntityCtxRow>(sql`
       SELECT id, name, type, year, description
       FROM entities
       WHERE deleted_at IS NULL AND user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT ${recE}
-    ` as unknown as Promise<EntityCtxRow[]>,
+    `),
       queryVec
-        ? (sql`
+        ? sqlTyped<QuoteCtxRow>(sql`
           SELECT q.id, e.name AS entity_name, q.text, q.source
           FROM quotes q
           JOIN entities e ON e.id = q.entity_id
           WHERE q.deleted_at IS NULL AND q.embedding IS NOT NULL AND q.user_id = ${userId}
           ORDER BY q.embedding <=> ${queryVec}::vector
           LIMIT ${semQ}
-        ` as unknown as Promise<QuoteCtxRow[]>)
+        `)
         : Promise.resolve<QuoteCtxRow[]>([]),
-      sql`
+      sqlTyped<QuoteCtxRow>(sql`
       SELECT q.id, e.name AS entity_name, q.text, q.source
       FROM quotes q
       JOIN entities e ON e.id = q.entity_id
       WHERE q.deleted_at IS NULL AND q.user_id = ${userId}
       ORDER BY q.created_at DESC
       LIMIT ${recQ}
-    ` as unknown as Promise<QuoteCtxRow[]>,
+    `),
     ])
 
   // 3) Merge with dedupe (semantic first so its order is preserved).

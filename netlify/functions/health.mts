@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getEnv } from './_lib/env.js'
 
 /**
  * Endpoint de "salud" para el panel de Settings → Health.
@@ -121,9 +122,9 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
     `),
   ])
 
-  // Read the configured monthly budget; default 5000 cents if unset.
-  const budgetCentsRaw = Netlify.env.get('AI_MONTHLY_BUDGET_CENTS')
-  const budgetCents = budgetCentsRaw ? Number.parseFloat(budgetCentsRaw) : 5000
+  // O1: lee via getEnv() para evitar Netlify.env.get directo.
+  // Default 5000 si la env var no está seteada o es inválida.
+  const budgetCents = getEnv().AI_MONTHLY_BUDGET_CENTS ?? 5000
   const monthCostCents = Number(monthTotalsRows[0]?.cost_cents ?? 0)
   const budgetPct = budgetCents > 0 ? Math.min(1, monthCostCents / budgetCents) : 0
 

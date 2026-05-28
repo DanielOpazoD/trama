@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -29,8 +29,8 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
 
   if (req.method === 'GET') {
     const [eRows, qRows] = await Promise.all([
-      sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}` as unknown as Promise<Array<{ c: string }>>,
-      sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}` as unknown as Promise<Array<{ c: string }>>,
+      sqlTyped<{ c: string }>(sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}`),
+      sqlTyped<{ c: string }>(sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}`),
     ])
     return Response.json({
       entities: Number(eRows[0]?.c ?? 0),
@@ -134,8 +134,8 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
   }
 
   const [eLeft, qLeft] = await Promise.all([
-    sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}` as unknown as Promise<Array<{ c: string }>>,
-    sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}` as unknown as Promise<Array<{ c: string }>>,
+    sqlTyped<{ c: string }>(sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}`),
+    sqlTyped<{ c: string }>(sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}`),
   ])
 
   return Response.json({

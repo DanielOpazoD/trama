@@ -15,7 +15,8 @@ describe('getEnv', () => {
     const env = getEnv()
     expect(env.AI_PROVIDER).toBe('deepseek')
     expect(env.AI_API_KEY).toBeUndefined()
-    expect(env.AI_DB_CACHE_ENABLED).toBe(false)
+    // O1: AI_DB_CACHE_ENABLED default ON (opt-out semantics).
+    expect(env.AI_DB_CACHE_ENABLED).toBe(true)
     expect(env.ALLOW_LEGACY_FALLBACK).toBe(false)
   })
 
@@ -51,19 +52,32 @@ describe('getEnv', () => {
     expect(env.AI_DB_CACHE_ENABLED).toBe(true)
   })
 
-  it('valores no-bool (e.g. "false", "no", "") quedan en false', () => {
+  it('ALLOW_LEGACY_FALLBACK (boolFlag) cae a false con "false"', () => {
     vi.stubGlobal('Netlify', {
       env: {
-        get: (k: string) => {
-          if (k === 'ALLOW_LEGACY_FALLBACK') return 'false'
-          if (k === 'AI_DB_CACHE_ENABLED') return ''
-          return undefined
-        },
+        get: (k: string) => (k === 'ALLOW_LEGACY_FALLBACK' ? 'false' : undefined),
       },
     })
-    const env = getEnv()
-    expect(env.ALLOW_LEGACY_FALLBACK).toBe(false)
-    expect(env.AI_DB_CACHE_ENABLED).toBe(false)
+    expect(getEnv().ALLOW_LEGACY_FALLBACK).toBe(false)
+  })
+
+  it('AI_DB_CACHE_ENABLED (boolFlagDefaultOn) cae a false solo con "false"/"0"/"off"', () => {
+    // Empty string mantiene default ON.
+    vi.stubGlobal('Netlify', {
+      env: {
+        get: (k: string) => (k === 'AI_DB_CACHE_ENABLED' ? '' : undefined),
+      },
+    })
+    expect(getEnv().AI_DB_CACHE_ENABLED).toBe(true)
+
+    // Explicit false → off.
+    resetEnvCache()
+    vi.stubGlobal('Netlify', {
+      env: {
+        get: (k: string) => (k === 'AI_DB_CACHE_ENABLED' ? 'false' : undefined),
+      },
+    })
+    expect(getEnv().AI_DB_CACHE_ENABLED).toBe(false)
   })
 
   it('lee strings sin coerce', () => {
