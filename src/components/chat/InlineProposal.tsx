@@ -377,10 +377,7 @@ function ProposalRow({
     <li className="flex items-start gap-2 text-sm">
       <div className="min-w-0 flex-1 leading-relaxed">
         <span className="text-ink-700">{primary}</span>
-        <span
-          className="ml-2 text-micro uppercase tracking-eyebrow text-ink-400"
-          style={secondaryStyle}
-        >
+        <span className="ml-2 section-eyebrow" style={secondaryStyle}>
           {secondary}
         </span>
         {spotifyUrl && (

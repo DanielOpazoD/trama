@@ -7,7 +7,7 @@ import {
   getValidAccessToken,
   markSynced,
   storePlays,
-} from './_lib/spotify.js'
+} from './_lib/spotify/index.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
 
 /**

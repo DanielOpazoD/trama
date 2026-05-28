@@ -156,7 +156,7 @@ export function AlbumGrid({
               <div className="space-y-6">
                 {months.map(({ monthKey, entries }) => (
                   <div key={monthKey}>
-                    <p className="text-micro uppercase tracking-eyebrow text-ink-400 mb-2">
+                    <p className="section-eyebrow mb-2">
                       {formatMonthLabel(monthKey).replace(/\s+\d{4}$/, '')}{' '}
                       <span className="text-ink-300 tabular-nums ml-1">
                         · {entries.length}

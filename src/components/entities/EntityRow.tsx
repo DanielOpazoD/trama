@@ -104,7 +104,7 @@ function EntityRowInternal({
 
         {expanded && (
           <div className="mt-3 pt-3 border-t border-ink-100/60 space-y-2 animate-fade-up">
-            <div className="flex items-baseline gap-3 text-micro uppercase tracking-eyebrow text-ink-400">
+            <div className="flex items-baseline gap-3 section-eyebrow">
               <span className="font-mono normal-case tracking-normal text-ink-300">
                 {entity.id.slice(0, 8)}
               </span>

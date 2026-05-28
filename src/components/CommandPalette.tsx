@@ -1,9 +1,11 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
-import { useEntitiesQuery, useQuotesQuery } from '../state'
-import { api } from '../api'
-import type { SearchResponse } from '../api'
+import { useEffect, useRef, useState } from 'react'
 import { ENTITY_TYPES } from '../types'
 import type { ViewMode } from './Sidebar'
+import {
+  useCommandSearch,
+  type CommandAction,
+  type Item,
+} from '../hooks/useCommandSearch'
 import {
   ChatIcon,
   AtlasIcon,
@@ -17,35 +19,15 @@ import {
   SparkleIcon,
 } from './Icons'
 
+// `CommandAction` se define en useCommandSearch; lo re-exportamos acá para no
+// romper imports existentes que lo toman desde este módulo.
+export type { CommandAction }
+
 // σ-followup: símbolo del modificador. Antes vivía en TopBar — al
 // mover el atajo visual al palette, este módulo lo necesita propio.
 const IS_MAC =
   typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
 const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
-
-export type CommandAction =
-  | 'open-settings'
-  | 'open-shortcuts'
-  | 'open-sortes'
-  | 'open-espejo'
-  | 'new-entity'
-  | 'new-quote'
-  | 'new-momento'
-
-type Item =
-  | { kind: 'view'; view: ViewMode; label: string; hint?: string }
-  | { kind: 'action'; action: CommandAction; label: string; hint?: string }
-  | { kind: 'entity'; id: string; name: string; type: string }
-  | { kind: 'quote'; id: string; entityId: string; text: string; entityName: string }
-  | { kind: 'momento'; id: string; momentoKind: string; text: string }
-  | { kind: 'cronica'; id: string; year: number; month: number; text: string }
-  | {
-      kind: 'chat'
-      id: string
-      threadId: string
-      threadTitle: string | null
-      text: string
-    }
 
 // Mínimo para construir el sublabel de una crónica ("crónica · marzo 2026").
 const MONTH_NAMES = [
@@ -63,59 +45,14 @@ const MONTH_NAMES = [
   'diciembre',
 ]
 
-const VIEWS: Array<{ view: ViewMode; label: string; hint: string }> = [
-  { view: 'inicio', label: 'Inicio', hint: 'la página principal' },
-  { view: 'grafo', label: 'Grafo', hint: 'el mapa visual' },
-  { view: 'entidades', label: 'Entidades', hint: 'personas, libros, vínculos' },
-  { view: 'citas', label: 'Citas', hint: 'fragmentos guardados' },
-  { view: 'momentos', label: 'Momentos', hint: 'la dimensión temporal de la trama' },
-  { view: 'escuchas', label: 'Escuchas', hint: 'tu música reciente' },
-  { view: 'cronologia', label: 'Cronología', hint: 'hojear el tiempo, por estaciones' },
-  { view: 'atlas', label: 'Atlas', hint: 'constelaciones semánticas de tu trama' },
-  { view: 'chat', label: 'Chat', hint: 'conversación con la IA' },
-  { view: 'sugerencias', label: 'Sugerencias', hint: 'la IA revisa la trama' },
-]
-
-// Acciones rápidas — el palette no las navega, las despacha como callbacks
-// al padre. Los hints son keywords que el filtro substring matchea.
-const ACTIONS: Array<{ action: CommandAction; label: string; hint: string }> = [
-  {
-    action: 'new-entity',
-    label: 'Nueva entidad',
-    hint: 'crear persona, libro, canción, concepto',
-  },
-  { action: 'new-quote', label: 'Nueva cita', hint: 'guardar un fragmento' },
-  { action: 'new-momento', label: 'Nuevo momento', hint: 'nota, recorte o foto del día' },
-  {
-    action: 'open-sortes',
-    label: 'Sortes',
-    hint: 'una cita al azar para releer · suerte del día',
-  },
-  {
-    action: 'open-espejo',
-    label: 'Espejo',
-    hint: 'la composición de tu trama · tipos, épocas, lo más cruzado',
-  },
-  {
-    action: 'open-settings',
-    label: 'Configuración',
-    hint: 'preferencias, tema, IA, datos',
-  },
-  { action: 'open-shortcuts', label: 'Atajos de teclado', hint: 'lista de shortcuts' },
-]
-
 /**
  * Cmd+K palette. Search-as-you-type across views + entities + quotes.
  * Arrows navigate, Enter selects, Escape closes.
  *
- * Dos fuentes que se complementan:
- *   - Local (instantáneo, cada tecla): vistas + acciones + entidades
- *     (nombre/descripción/tipo) + citas (texto). Substring filter, sin
- *     red — mantiene el palette snappy para el caso común.
- *   - Servidor (debounced, q≥2, modo lexical = gratis): api.search trae lo
- *     que el filtro local no ve — momentos, crónicas, chat, y matches en el
- *     `essay`/contexto de entidades y citas. Se mergea sin pisar lo local
- *     (dedup por id), así no hay flicker ni regresión de velocidad.
+ * La búsqueda (query, filtro local + servidor, items) vive en
+ * `useCommandSearch`. Este componente se queda con la presentación y la
+ * interacción: foco del input, navegación por teclado y despacho de la
+ * selección a los callbacks del padre.
  */
 export function CommandPalette({
   open,
@@ -136,174 +73,23 @@ export function CommandPalette({
       pasa, los resultados de chat navegan a la vista Chat sin hilo. */
   onOpenThread?: (threadId: string) => void
 }) {
-  const { data: entities = [] } = useEntitiesQuery()
-  const { data: quotes = [] } = useQuotesQuery()
-  const [query, setQuery] = useState('')
-  // N5: useDeferredValue mantiene el input snappy mientras la lista
-  // filtrada se re-computa con un tick de retraso. Crítico con tramas
-  // grandes (300+ entidades + 300+ citas): tipear rápido sin esto
-  // siente "pegajoso" porque cada keystroke recomputaría el filter
-  // sincrónicamente y bloquearía el render del input.
-  const deferredQuery = useDeferredValue(query)
+  const { query, setQuery, items, searching } = useCommandSearch({
+    open,
+    actionsEnabled: Boolean(onAction),
+  })
   const [focusIdx, setFocusIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
-  // Resultados del servidor (momentos/crónicas/chat + matches extra en
-  // essay/contexto). Null mientras no haya query ≥2 o la respuesta no llegó.
-  const [serverResults, setServerResults] = useState<SearchResponse | null>(null)
-  const [searching, setSearching] = useState(false)
 
+  // Foco del input + reset del índice resaltado al abrir. La query y los
+  // resultados de servidor los resetea useCommandSearch.
   useEffect(() => {
     if (open) {
-      setQuery('')
       setFocusIdx(0)
-      setServerResults(null)
-      setSearching(false)
       // Focus the input on the next tick so it lands after the dialog mounts.
       const t = window.setTimeout(() => inputRef.current?.focus(), 0)
       return () => window.clearTimeout(t)
     }
   }, [open])
-
-  // Búsqueda en servidor: debounced, modo lexical (sin costo de embedding),
-  // solo con query ≥2. Race-guarded — una respuesta vieja nunca pisa una
-  // nueva. Si falla (offline, sin red en tests) degradamos a solo-local.
-  useEffect(() => {
-    const q = deferredQuery.trim()
-    if (!open || q.length < 2) {
-      setServerResults(null)
-      setSearching(false)
-      return
-    }
-    let cancelled = false
-    setSearching(true)
-    const t = window.setTimeout(() => {
-      api
-        .search(q, { limit: 8, mode: 'lexical' })
-        .then((res) => {
-          if (!cancelled) setServerResults(res)
-        })
-        .catch(() => {
-          if (!cancelled) setServerResults(null)
-        })
-        .finally(() => {
-          if (!cancelled) setSearching(false)
-        })
-    }, 180)
-    return () => {
-      cancelled = true
-      window.clearTimeout(t)
-    }
-  }, [deferredQuery, open])
-
-  const items: Item[] = useMemo(() => {
-    const q = deferredQuery.trim().toLowerCase()
-    const matchesView = VIEWS.filter(
-      (v) => !q || v.label.toLowerCase().includes(q) || v.hint.toLowerCase().includes(q),
-    ).map<Item>((v) => ({ kind: 'view', view: v.view, label: v.label, hint: v.hint }))
-
-    const matchesAction = onAction
-      ? ACTIONS.filter(
-          (a) =>
-            !q || a.label.toLowerCase().includes(q) || a.hint.toLowerCase().includes(q),
-        ).map<Item>((a) => ({
-          kind: 'action',
-          action: a.action,
-          label: a.label,
-          hint: a.hint,
-        }))
-      : []
-
-    // Local: filtro substring sobre lo ya cargado en memoria (instantáneo).
-    const localEntities = entities
-      .filter((e) => {
-        if (!q) return true
-        return (
-          e.name.toLowerCase().includes(q) ||
-          (e.description ?? '').toLowerCase().includes(q) ||
-          e.type.toLowerCase().includes(q)
-        )
-      })
-      .slice(0, 20)
-    const localQuotes = q
-      ? quotes.filter((qt) => qt.text.toLowerCase().includes(q)).slice(0, 12)
-      : []
-
-    const entityItems = localEntities.map<Item>((e) => ({
-      kind: 'entity',
-      id: e.id,
-      name: e.name,
-      type: e.type,
-    }))
-    const quoteItems = localQuotes.map<Item>((qt) => ({
-      kind: 'quote',
-      id: qt.id,
-      entityId: qt.entityId,
-      text: qt.text,
-      entityName: entities.find((e) => e.id === qt.entityId)?.name ?? '?',
-    }))
-
-    // Servidor: agrega lo que el filtro local no alcanza. Entidades/citas se
-    // dedupean contra lo local; momentos/crónicas/chat son exclusivos del
-    // servidor (el cliente no los tiene cargados).
-    const sr = serverResults
-    const localEntityIds = new Set(localEntities.map((e) => e.id))
-    const localQuoteIds = new Set(localQuotes.map((qt) => qt.id))
-
-    const serverEntityItems: Item[] = sr
-      ? sr.entities
-          .filter((e) => !localEntityIds.has(e.id))
-          .map((e) => ({ kind: 'entity', id: e.id, name: e.name, type: e.type }))
-      : []
-    const serverQuoteItems: Item[] = sr
-      ? sr.quotes
-          .filter((qt) => !localQuoteIds.has(qt.id))
-          .map((qt) => ({
-            kind: 'quote',
-            id: qt.id,
-            entityId: qt.entityId,
-            text: qt.text,
-            entityName: qt.entityName,
-          }))
-      : []
-    const momentoItems: Item[] = sr
-      ? sr.momentos.map((m) => ({
-          kind: 'momento',
-          id: m.id,
-          momentoKind: m.kind,
-          text: m.text,
-        }))
-      : []
-    const cronicaItems: Item[] = sr
-      ? sr.cronicas.map((c) => ({
-          kind: 'cronica',
-          id: c.id,
-          year: c.year,
-          month: c.month,
-          text: c.text,
-        }))
-      : []
-    const chatItems: Item[] = sr
-      ? sr.chat.map((c) => ({
-          kind: 'chat',
-          id: c.id,
-          threadId: c.threadId,
-          threadTitle: c.threadTitle,
-          text: c.text,
-        }))
-      : []
-
-    return [
-      ...matchesView,
-      ...matchesAction,
-      ...entityItems,
-      ...serverEntityItems,
-      ...quoteItems,
-      ...serverQuoteItems,
-      ...momentoItems,
-      ...cronicaItems,
-      ...chatItems,
-    ]
-  }, [deferredQuery, entities, quotes, onAction, serverResults])
 
   useEffect(() => {
     setFocusIdx(0)
@@ -329,6 +115,9 @@ export function CommandPalette({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
+    // Re-suscribimos el listener global solo al abrir o cambiar items/foco.
+    // onClose y selectItem se omiten a propósito: re-bindear en cada render
+    // no aporta y el handler ya lee el estado vigente vía estas deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, items, focusIdx])
 

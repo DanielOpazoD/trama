@@ -81,9 +81,7 @@ export function QuoteEditMode({
         className="input-paper w-full resize-none text-sm"
       />
       <div>
-        <label className="text-micro uppercase tracking-eyebrow text-ink-400 block mb-1">
-          atribuida a
-        </label>
+        <label className="section-eyebrow block mb-1">atribuida a</label>
         <select
           value={entityIdDraft}
           onChange={(e) => setEntityIdDraft(e.target.value)}

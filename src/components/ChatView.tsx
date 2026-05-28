@@ -50,6 +50,9 @@ export function ChatView({
       setActiveId(initialThreadId)
       onConsumedInitialThread?.()
     }
+    // Solo reacciona a un nuevo initialThreadId (consumo del deep-link).
+    // setActiveId/onConsumedInitialThread se omiten para no re-consumir el
+    // thread inicial cuando cambia su identidad entre renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialThreadId])
 
@@ -179,9 +182,7 @@ export function ChatView({
       {/* Left rail: thread list */}
       <aside className="w-64 shrink-0 border-r border-ink-100/50 flex flex-col">
         <div className="px-4 py-3 border-b border-ink-100/50 flex items-baseline justify-between">
-          <h3 className="text-micro uppercase tracking-eyebrow text-ink-400">
-            conversaciones
-          </h3>
+          <h3 className="section-eyebrow">conversaciones</h3>
           <button
             onClick={handleNewThread}
             disabled={createThread.isPending}

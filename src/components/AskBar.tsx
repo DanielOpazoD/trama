@@ -196,7 +196,7 @@ export function AskBar({
                 {threadId && onOpenThread && (
                   <button
                     onClick={() => onOpenThread(threadId)}
-                    className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+                    className="section-eyebrow hover:text-ink-700 transition-colors"
                     title="Ver en chat"
                   >
                     Historial
@@ -205,7 +205,7 @@ export function AskBar({
                 {threadId && (
                   <button
                     onClick={handleNewThread}
-                    className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+                    className="section-eyebrow hover:text-ink-700 transition-colors"
                     title="Empezar hilo nuevo"
                   >
                     Nuevo
@@ -213,7 +213,7 @@ export function AskBar({
                 )}
                 <button
                   onClick={() => setReply(null)}
-                  className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+                  className="section-eyebrow hover:text-ink-700 transition-colors"
                 >
                   Cerrar
                 </button>

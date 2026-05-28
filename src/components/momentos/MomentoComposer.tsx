@@ -53,7 +53,7 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
           <button
             type="button"
             onClick={() => setQrOpen(true)}
-            className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors shrink-0 flex items-center gap-1.5"
+            className="section-eyebrow hover:text-ink-700 transition-colors shrink-0 flex items-center gap-1.5"
             title="Escanear QR para abrir el composer en el celular"
             aria-label="Abrir en el celular vía QR"
           >

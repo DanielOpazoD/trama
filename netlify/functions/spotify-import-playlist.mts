@@ -4,7 +4,7 @@ import {
   fetchPlaylist,
   parsePlaylistId,
   requireSpotifyConnection,
-} from './_lib/spotify.js'
+} from './_lib/spotify/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'

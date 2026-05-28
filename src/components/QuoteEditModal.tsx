@@ -109,9 +109,7 @@ export function QuoteEditModal({
 
           <div className="px-5 py-4 space-y-3">
             <div>
-              <label className="block text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
-                Cita
-              </label>
+              <label className="block section-eyebrow mb-1">Cita</label>
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -122,7 +120,7 @@ export function QuoteEditModal({
               />
             </div>
             <div>
-              <label className="block text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
+              <label className="block section-eyebrow mb-1">
                 Fuente (libro, artículo, álbum…)
               </label>
               <input
@@ -135,9 +133,7 @@ export function QuoteEditModal({
               />
             </div>
             <div>
-              <label className="block text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
-                Contexto
-              </label>
+              <label className="block section-eyebrow mb-1">Contexto</label>
               <input
                 type="text"
                 value={context}
@@ -148,9 +144,7 @@ export function QuoteEditModal({
               />
             </div>
             <div>
-              <label className="block text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
-                Tu reflexión
-              </label>
+              <label className="block section-eyebrow mb-1">Tu reflexión</label>
               <textarea
                 value={reflection}
                 onChange={(e) => setReflection(e.target.value)}
@@ -167,7 +161,7 @@ export function QuoteEditModal({
               type="button"
               onClick={onClose}
               disabled={updateQuote.isPending}
-              className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-60"
+              className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60"
             >
               cancelar
             </button>

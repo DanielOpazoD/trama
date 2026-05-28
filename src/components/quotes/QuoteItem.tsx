@@ -219,7 +219,7 @@ function QuoteItemInternal({
           </button>
           <button
             onClick={() => setEditOpen(true)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 px-2 py-1.5 rounded"
+            className="opacity-0 group-hover:opacity-100 transition-opacity section-eyebrow hover:text-ink-700 px-2 py-1.5 rounded"
             aria-label="Editar cita"
             title="Editar texto, fuente, contexto o reflexión"
           >
@@ -242,7 +242,7 @@ function QuoteItemInternal({
                 })
               }
             }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 px-2 py-1.5 rounded"
+            className="opacity-0 group-hover:opacity-100 transition-opacity section-eyebrow hover:text-ink-700 px-2 py-1.5 rounded"
             aria-label="Exportar como postal PNG"
             title="Generar imagen 1080×1080 para compartir"
           >
@@ -270,9 +270,7 @@ function QuoteItemInternal({
       )}
       {quote.userReflection && (
         <div className={`mt-3 ${isFeature ? '' : 'pl-5'}`}>
-          <div className="text-micro uppercase tracking-eyebrow text-ink-400 mb-1">
-            tu reflexión
-          </div>
+          <div className="section-eyebrow mb-1">tu reflexión</div>
           {/* μ1: marginalia manuscrita — Caveat 17px / ink-500. Distingue
               la voz tuya de la voz del catálogo (serif) y de la IA (sky). */}
           <p className="marginalia-script whitespace-pre-wrap">{quote.userReflection}</p>
@@ -348,7 +346,7 @@ function QuoteItemInternal({
             <button
               onClick={handleReflect}
               disabled={reflect.isPending}
-              className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-60"
+              className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60"
             >
               {reflect.isPending ? 'releyendo…' : 'otra lectura'}
             </button>

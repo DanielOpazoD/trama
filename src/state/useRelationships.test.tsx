@@ -10,9 +10,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OfflineContext } from './offline'
-import { ToastProvider } from './toast'
+import { ToastProvider, useToast } from './toast'
 import { queryKeys } from './queryClient'
-import { useAddRelationship, useUpdateRelationship } from './useRelationships'
+import {
+  useAddRelationship,
+  useUpdateRelationship,
+  useDeleteRelationship,
+} from './useRelationships'
 import * as apiModule from '../api'
 import type { Relationship } from '../types'
 
@@ -185,5 +189,83 @@ describe('useUpdateRelationship — optimistic', () => {
 
     const after = qc.getQueryData<Relationship[]>(queryKeys.relationships)
     expect(after![0]!.notes).toBe('original')
+  })
+
+  it('rechaza pidiendo conexión cuando offline (no llama al server)', async () => {
+    const updateSpy = vi.spyOn(apiModule.api, 'updateRelationship')
+    const qc = makeQueryClient()
+    qc.setQueryData<Relationship[]>(queryKeys.relationships, [REAL_RELATIONSHIP])
+
+    const { result } = renderHook(() => useUpdateRelationship(), {
+      wrapper: wrapWith(qc, true),
+    })
+    act(() => {
+      result.current.mutate({ id: 'rel-real', patch: { notes: 'x' } })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(result.current.error?.message).toMatch(/conexión/i)
+    expect(updateSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('useDeleteRelationship', () => {
+  it('borra la relación del cache + invalida counts y la query infinite', async () => {
+    vi.spyOn(apiModule.api, 'deleteRelationship').mockResolvedValue({
+      deletedAt: '2026-05-28T00:00:00Z',
+    } as unknown as Awaited<ReturnType<typeof apiModule.api.deleteRelationship>>)
+
+    const qc = makeQueryClient()
+    qc.setQueryData<Relationship[]>(queryKeys.relationships, [
+      REAL_RELATIONSHIP,
+      { ...REAL_RELATIONSHIP, id: 'rel-other' },
+    ])
+    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
+
+    const { result } = renderHook(() => useDeleteRelationship(), {
+      wrapper: wrapWith(qc),
+    })
+    act(() => {
+      result.current.mutate({ id: 'rel-real', silent: true })
+    })
+
+    await waitFor(() => {
+      const list = qc.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
+      expect(list).toHaveLength(1)
+      expect(list[0]!.id).toBe('rel-other')
+    })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.counts })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.entityRefsCount })
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.relationshipsInfinite,
+    })
+  })
+
+  it('muestra el toast "Deshacer" y al accionarlo restaura la relación', async () => {
+    vi.spyOn(apiModule.api, 'deleteRelationship').mockResolvedValue({
+      deletedAt: '2026-05-28T00:00:00Z',
+    } as unknown as Awaited<ReturnType<typeof apiModule.api.deleteRelationship>>)
+    const restoreSpy = vi
+      .spyOn(apiModule.api, 'restoreRelationship')
+      .mockResolvedValue(undefined)
+
+    const qc = makeQueryClient()
+    qc.setQueryData<Relationship[]>(queryKeys.relationships, [REAL_RELATIONSHIP])
+
+    const { result } = renderHook(
+      () => ({ del: useDeleteRelationship(), toast: useToast() }),
+      { wrapper: wrapWith(qc) },
+    )
+    act(() => {
+      result.current.del.mutate('rel-real')
+    })
+
+    await waitFor(() => expect(result.current.toast.current).not.toBeNull())
+    expect(result.current.toast.current!.action?.label).toBe('Deshacer')
+
+    await act(async () => {
+      await result.current.toast.current!.action!.onAction()
+    })
+    expect(restoreSpy).toHaveBeenCalledWith('rel-real', '2026-05-28T00:00:00Z')
   })
 })

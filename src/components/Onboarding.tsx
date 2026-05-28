@@ -133,6 +133,8 @@ export function Onboarding({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+    // Re-suscribe solo al abrir o cambiar de paso; onKey cierra sobre el
+    // estado vigente vía [open, stepIdx]. Evita re-bindear en cada render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, stepIdx])
 
@@ -243,7 +245,7 @@ export function Onboarding({
               {stepIdx > 0 && (
                 <button
                   onClick={back}
-                  className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+                  className="section-eyebrow hover:text-ink-700 transition-colors"
                 >
                   ← Atrás
                 </button>

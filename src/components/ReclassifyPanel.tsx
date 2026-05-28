@@ -93,7 +93,7 @@ export function ReclassifyPanel({
             <div className="min-w-0 flex-1 text-sm leading-relaxed">
               <div>
                 <span className="text-ink-700">{p.name}</span>
-                <span className="ml-2 text-micro uppercase tracking-eyebrow text-ink-400 line-through decoration-ink-300/60">
+                <span className="ml-2 section-eyebrow line-through decoration-ink-300/60">
                   {label(p.oldType)}
                 </span>
                 <span className="mx-1.5 text-ink-300">→</span>

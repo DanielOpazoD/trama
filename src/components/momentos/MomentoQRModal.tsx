@@ -177,7 +177,7 @@ export function MomentoQRModal({
               </code>
               <button
                 onClick={handleCopy}
-                className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors shrink-0"
+                className="section-eyebrow hover:text-ink-700 transition-colors shrink-0"
                 title="Copiar URL"
               >
                 copiar
@@ -188,7 +188,7 @@ export function MomentoQRModal({
           <div className="px-5 py-2 border-t border-ink-100/60 flex justify-end">
             <button
               onClick={onClose}
-              className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+              className="section-eyebrow hover:text-ink-700 transition-colors"
             >
               cerrar
             </button>

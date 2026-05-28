@@ -172,7 +172,7 @@ export function Sortes({ open, onClose }: { open: boolean; onClose: () => void }
         <div className="pb-10 flex items-center justify-center">
           <button
             onClick={drawAnother}
-            className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+            className="section-eyebrow hover:text-ink-700 transition-colors"
           >
             otra
           </button>

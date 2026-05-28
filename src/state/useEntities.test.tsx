@@ -13,9 +13,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OfflineContext } from './offline'
-import { ToastProvider } from './toast'
+import { ToastProvider, useToast } from './toast'
 import { queryKeys } from './queryClient'
-import { useAddEntity, useUpdateEntity, useDeleteEntity } from './useEntities'
+import {
+  useAddEntity,
+  useUpdateEntity,
+  useUpdateEntityType,
+  useDeleteEntity,
+  useVoiceOfEntity,
+} from './useEntities'
 import * as apiModule from '../api'
 import type { Entity, Relationship, Quote } from '../types'
 
@@ -150,6 +156,26 @@ describe('useUpdateEntity — optimistic patch', () => {
   })
 })
 
+describe('useUpdateEntityType — optimistic', () => {
+  it('actualiza el type en cache tras el éxito del server', async () => {
+    vi.spyOn(apiModule.api, 'updateEntityType').mockResolvedValue(undefined)
+
+    const qc = makeQueryClient()
+    qc.setQueryData<Entity[]>(queryKeys.entities, [REAL_ENTITY])
+
+    const { result } = renderHook(() => useUpdateEntityType(), { wrapper: wrapWith(qc) })
+    act(() => {
+      result.current.mutate({ id: 'ent-real', type: 'poeta' })
+    })
+
+    await waitFor(() => {
+      const list = qc.getQueryData<Entity[]>(queryKeys.entities) ?? []
+      expect(list[0]!.type).toBe('poeta')
+    })
+    expect(apiModule.api.updateEntityType).toHaveBeenCalledWith('ent-real', 'poeta')
+  })
+})
+
 describe('useDeleteEntity — cascade', () => {
   it('borra de cache de entities + cascadea filter a relationships y quotes', async () => {
     vi.spyOn(apiModule.api, 'deleteEntity').mockResolvedValue({
@@ -189,5 +215,130 @@ describe('useDeleteEntity — cascade', () => {
       expect(qc.getQueryData<Quote[]>(queryKeys.quotes)).toHaveLength(1)
       expect(qc.getQueryData<Quote[]>(queryKeys.quotes)![0]!.id).toBe('q2')
     })
+  })
+})
+
+describe('invalidación de queries', () => {
+  it('useAddEntity invalida counts, entityRefsCount y entitiesInfinite en éxito', async () => {
+    vi.spyOn(apiModule.api, 'createEntity').mockResolvedValue(REAL_ENTITY)
+    const qc = makeQueryClient()
+    qc.setQueryData<Entity[]>(queryKeys.entities, [])
+    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
+
+    const { result } = renderHook(() => useAddEntity(), { wrapper: wrapWith(qc) })
+    act(() => {
+      result.current.mutate({ name: 'Borges', type: 'escritor' })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.counts })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.entityRefsCount })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.entitiesInfinite })
+  })
+
+  it('useDeleteEntity invalida los counts + las queries infinitas cascadeadas', async () => {
+    vi.spyOn(apiModule.api, 'deleteEntity').mockResolvedValue({
+      deletedAt: '2026-05-28T00:00:00Z',
+    } as unknown as Awaited<ReturnType<typeof apiModule.api.deleteEntity>>)
+    const qc = makeQueryClient()
+    qc.setQueryData<Entity[]>(queryKeys.entities, [REAL_ENTITY])
+    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
+
+    const { result } = renderHook(() => useDeleteEntity(), { wrapper: wrapWith(qc) })
+    act(() => {
+      result.current.mutate({ id: 'ent-real', silent: true })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.counts })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.entityRefsCount })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.entitiesInfinite })
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.quotesInfinite })
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.relationshipsInfinite,
+    })
+  })
+})
+
+describe('useDeleteEntity — undo toast', () => {
+  it('muestra el toast "Deshacer" y al accionarlo restaura la entidad', async () => {
+    vi.spyOn(apiModule.api, 'deleteEntity').mockResolvedValue({
+      deletedAt: '2026-05-28T00:00:00Z',
+    } as unknown as Awaited<ReturnType<typeof apiModule.api.deleteEntity>>)
+    const restoreSpy = vi
+      .spyOn(apiModule.api, 'restoreEntity')
+      .mockResolvedValue(undefined)
+
+    const qc = makeQueryClient()
+    qc.setQueryData<Entity[]>(queryKeys.entities, [REAL_ENTITY])
+
+    const { result } = renderHook(() => ({ del: useDeleteEntity(), toast: useToast() }), {
+      wrapper: wrapWith(qc),
+    })
+    act(() => {
+      result.current.del.mutate('ent-real')
+    })
+
+    await waitFor(() => expect(result.current.toast.current).not.toBeNull())
+    expect(result.current.toast.current!.action?.label).toBe('Deshacer')
+
+    await act(async () => {
+      await result.current.toast.current!.action!.onAction()
+    })
+    expect(restoreSpy).toHaveBeenCalledWith('ent-real', '2026-05-28T00:00:00Z')
+  })
+
+  it('no muestra toast cuando el delete es silent', async () => {
+    vi.spyOn(apiModule.api, 'deleteEntity').mockResolvedValue({
+      deletedAt: '2026-05-28T00:00:00Z',
+    } as unknown as Awaited<ReturnType<typeof apiModule.api.deleteEntity>>)
+
+    const qc = makeQueryClient()
+    qc.setQueryData<Entity[]>(queryKeys.entities, [REAL_ENTITY])
+
+    const { result } = renderHook(() => ({ del: useDeleteEntity(), toast: useToast() }), {
+      wrapper: wrapWith(qc),
+    })
+    act(() => {
+      result.current.del.mutate({ id: 'ent-real', silent: true })
+    })
+
+    await waitFor(() => expect(result.current.del.isSuccess).toBe(true))
+    expect(result.current.toast.current).toBeNull()
+  })
+})
+
+describe('manejo de errores — offline', () => {
+  it('useUpdateEntity rechaza pidiendo conexión y revierte el optimistic patch', async () => {
+    const qc = makeQueryClient()
+    qc.setQueryData<Entity[]>(queryKeys.entities, [REAL_ENTITY])
+
+    const { result } = renderHook(() => useUpdateEntity(), {
+      wrapper: wrapWith(qc, true),
+    })
+    act(() => {
+      result.current.mutate({ id: 'ent-real', patch: { name: 'X' } })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(result.current.error?.message).toMatch(/conexión/i)
+    // El onError revierte: la lista vuelve al nombre original.
+    expect(qc.getQueryData<Entity[]>(queryKeys.entities)![0]!.name).toBe('Borges')
+  })
+
+  it('useVoiceOfEntity rechaza cuando offline (no llama al server)', async () => {
+    const voiceSpy = vi.spyOn(apiModule.api, 'voiceOfEntity')
+    const qc = makeQueryClient()
+
+    const { result } = renderHook(() => useVoiceOfEntity(), {
+      wrapper: wrapWith(qc, true),
+    })
+    act(() => {
+      result.current.mutate({ id: 'ent-real', question: '¿qué dirías?' })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(result.current.error?.message).toMatch(/conexión/i)
+    expect(voiceSpy).not.toHaveBeenCalled()
   })
 })

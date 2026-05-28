@@ -32,7 +32,7 @@ export function PlaylistImporter({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors inline-flex items-center gap-1.5"
+          className="section-eyebrow hover:text-ink-700 transition-colors inline-flex items-center gap-1.5"
           title="Importar artistas + canciones desde una playlist de Spotify"
         >
           <SparkleIcon size={12} />
@@ -45,9 +45,7 @@ export function PlaylistImporter({
           className="p-4 bg-paper-100/40 border border-ink-100/50 rounded-xl animate-fade-up"
         >
           <div className="flex items-baseline justify-between gap-3 mb-2">
-            <h3 className="text-micro uppercase tracking-eyebrow text-ink-400">
-              importar playlist
-            </h3>
+            <h3 className="section-eyebrow">importar playlist</h3>
             <button
               type="button"
               onClick={() => setOpen(false)}

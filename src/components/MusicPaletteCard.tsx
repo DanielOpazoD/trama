@@ -162,7 +162,7 @@ export function MusicPaletteCard() {
           <button
             onClick={() => generate.mutate()}
             disabled={generate.isPending}
-            className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-60"
+            className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60"
           >
             {generate.isPending ? 'releyendo…' : 'actualizar'}
           </button>
@@ -209,9 +209,7 @@ export function MusicPaletteCard() {
         {/* Top géneros */}
         {data.topGenres.length > 0 && (
           <div>
-            <h3 className="text-micro uppercase tracking-eyebrow text-ink-400 mb-2">
-              géneros que más pesan
-            </h3>
+            <h3 className="section-eyebrow mb-2">géneros que más pesan</h3>
             <ul className="flex flex-wrap gap-1.5">
               {data.topGenres.slice(0, 8).map((g) => (
                 <li
@@ -228,9 +226,7 @@ export function MusicPaletteCard() {
         {/* Distribución por décadas */}
         {data.decades.length > 0 && (
           <div>
-            <h3 className="text-micro uppercase tracking-eyebrow text-ink-400 mb-2">
-              décadas (top tracks)
-            </h3>
+            <h3 className="section-eyebrow mb-2">décadas (top tracks)</h3>
             <ul className="space-y-1">
               {data.decades.map((d) => (
                 <li key={d.decade} className="flex items-center gap-2 text-caption">

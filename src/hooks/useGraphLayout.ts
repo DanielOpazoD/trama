@@ -84,6 +84,9 @@ export function useGraphLayout({ mode, nodes, edges }: Options) {
       for (const [id, p] of result) cacheRef.current.set(id, p)
     }
     setPositions(result)
+    // Recalculamos el layout solo cuando cambia `key` (la firma de las
+    // entradas relevantes); las otras referencias leídas (cacheRef, setters)
+    // son estables y no deben disparar un recálculo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key])
 

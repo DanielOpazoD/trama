@@ -31,19 +31,25 @@ export default defineConfig({
         'src/state/index.ts',
         'src/types/index.ts',
       ],
-      // N8: thresholds calibrados al baseline medido en main (lines 40%,
-      // functions 54%, branches 70%, statements 40%). El objetivo NO es
+      // N8: thresholds calibrados al baseline medido. El objetivo NO es
       // alcanzar 100% — es detectar REGRESIONES: si alguien mergea código
       // sin cubrir y el % global baja, el CI grita.
+      //
+      // BB6 (#283): recalibrados tras sumar tests de hooks de estado (#281)
+      // y de contrato de endpoints extract/chat (#282). Medido global:
+      // lines/statements ~47.8%, functions 58.5%, branches ~74.3%. Dejamos
+      // ~1 punto de colchón bajo el piso medido para absorber la varianza
+      // run-to-run (los conteos de statements/branches bailan ±0.05) sin
+      // que el CI se vuelva flaky. Subir desde 40/54/70/40 anterior.
       //
       // Si subiste el piso porque agregaste tests, actualizá estos
       // números acá explícitamente — el threshold es una decisión
       // consciente, no un "que pase CI".
       thresholds: {
-        lines: 40,
-        functions: 54,
-        branches: 70,
-        statements: 40,
+        lines: 47,
+        functions: 58,
+        branches: 73,
+        statements: 47,
       },
     },
   },

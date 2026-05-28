@@ -8,9 +8,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OfflineContext } from './offline'
-import { ToastProvider } from './toast'
+import { ToastProvider, useToast } from './toast'
 import { queryKeys } from './queryClient'
-import { useAddQuote, useDeleteQuote } from './useQuotes'
+import { useAddQuote, useUpdateQuote, useDeleteQuote } from './useQuotes'
 import * as apiModule from '../api'
 import type { Quote } from '../types'
 
@@ -120,5 +120,109 @@ describe('useDeleteQuote', () => {
       expect(list).toHaveLength(1)
       expect(list[0]!.id).toBe('q-other')
     })
+  })
+
+  it('muestra el toast "Deshacer" y al accionarlo restaura la cita', async () => {
+    vi.spyOn(apiModule.api, 'deleteQuote').mockResolvedValue({
+      deletedAt: '2026-05-28T00:00:00Z',
+    } as unknown as Awaited<ReturnType<typeof apiModule.api.deleteQuote>>)
+    const restoreSpy = vi
+      .spyOn(apiModule.api, 'restoreQuote')
+      .mockResolvedValue(undefined)
+
+    const qc = makeQueryClient()
+    qc.setQueryData<Quote[]>(queryKeys.quotes, [REAL_QUOTE])
+
+    const { result } = renderHook(() => ({ del: useDeleteQuote(), toast: useToast() }), {
+      wrapper: wrapWith(qc),
+    })
+    act(() => {
+      result.current.del.mutate('q-real')
+    })
+
+    await waitFor(() => expect(result.current.toast.current).not.toBeNull())
+    expect(result.current.toast.current!.action?.label).toBe('Deshacer')
+
+    await act(async () => {
+      await result.current.toast.current!.action!.onAction()
+    })
+    expect(restoreSpy).toHaveBeenCalledWith('q-real', '2026-05-28T00:00:00Z')
+  })
+
+  it('no muestra toast cuando el delete es silent', async () => {
+    vi.spyOn(apiModule.api, 'deleteQuote').mockResolvedValue({
+      deletedAt: '2026-05-28T00:00:00Z',
+    } as unknown as Awaited<ReturnType<typeof apiModule.api.deleteQuote>>)
+
+    const qc = makeQueryClient()
+    qc.setQueryData<Quote[]>(queryKeys.quotes, [REAL_QUOTE])
+
+    const { result } = renderHook(() => ({ del: useDeleteQuote(), toast: useToast() }), {
+      wrapper: wrapWith(qc),
+    })
+    act(() => {
+      result.current.del.mutate({ id: 'q-real', silent: true })
+    })
+
+    await waitFor(() => expect(result.current.del.isSuccess).toBe(true))
+    expect(result.current.toast.current).toBeNull()
+  })
+})
+
+describe('useUpdateQuote — optimistic patch', () => {
+  it('aplica el patch en cache al instante; reemplaza por el real en éxito', async () => {
+    let resolveServer: (q: Quote) => void = () => {}
+    const serverPromise = new Promise<Quote>((r) => (resolveServer = r))
+    vi.spyOn(apiModule.api, 'updateQuote').mockReturnValue(serverPromise)
+
+    const qc = makeQueryClient()
+    qc.setQueryData<Quote[]>(queryKeys.quotes, [REAL_QUOTE])
+
+    const { result } = renderHook(() => useUpdateQuote(), { wrapper: wrapWith(qc) })
+    act(() => {
+      result.current.mutate({ id: 'q-real', patch: { text: 'cita editada' } })
+    })
+
+    await waitFor(() => {
+      const list = qc.getQueryData<Quote[]>(queryKeys.quotes) ?? []
+      expect(list[0]!.text).toBe('cita editada')
+    })
+
+    act(() => resolveServer({ ...REAL_QUOTE, text: 'cita editada' } as Quote))
+    await waitFor(() => {
+      const list = qc.getQueryData<Quote[]>(queryKeys.quotes) ?? []
+      expect(list[0]!.text).toBe('cita editada')
+    })
+  })
+
+  it('rollback si el server rechaza el update', async () => {
+    vi.spyOn(apiModule.api, 'updateQuote').mockRejectedValue(new Error('fail'))
+    const qc = makeQueryClient()
+    qc.setQueryData<Quote[]>(queryKeys.quotes, [REAL_QUOTE])
+
+    const { result } = renderHook(() => useUpdateQuote(), { wrapper: wrapWith(qc) })
+    act(() => {
+      result.current.mutate({ id: 'q-real', patch: { text: 'X' } })
+    })
+
+    await waitFor(() => {
+      const list = qc.getQueryData<Quote[]>(queryKeys.quotes) ?? []
+      expect(list[0]!.text).toBe('una cita') // rollback al original
+    })
+  })
+
+  it('rechaza pidiendo conexión cuando offline (no llama al server)', async () => {
+    const updateSpy = vi.spyOn(apiModule.api, 'updateQuote')
+    const qc = makeQueryClient()
+    qc.setQueryData<Quote[]>(queryKeys.quotes, [REAL_QUOTE])
+
+    const { result } = renderHook(() => useUpdateQuote(), { wrapper: wrapWith(qc, true) })
+    act(() => {
+      result.current.mutate({ id: 'q-real', patch: { text: 'X' } })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(result.current.error?.message).toMatch(/conexión/i)
+    expect(updateSpy).not.toHaveBeenCalled()
   })
 })
