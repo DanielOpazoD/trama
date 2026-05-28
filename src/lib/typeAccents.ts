@@ -1,47 +1,36 @@
 /**
- * Mapa de "color de acento" por tipo de entidad — resolved vía CSS
- * variables para que dark mode pueda shiftearlos sin duplicar lógica
- * en JS.
+ * "Color de acento" por tipo de entidad — resolved vía CSS variables
+ * con fallback nativo.
  *
- * Conocidos → `var(--type-<slug>)` (definidos en `src/index.css` bajo
- * `:root` y `html.dark`). Cualquier slug nuevo cae al default —
- * agregarlo solo requiere agregar la CSS variable, no tocar este
- * archivo (que existe únicamente para no romper el estilo de pares
- * conocidos a la primera carga).
+ * S1: antes había un `Set<KNOWN_TYPES>` hardcoded con 24 slugs y la
+ * función elegía entre `var(--type-<slug>)` y `var(--type-default)`.
+ * Eso contradice la regla de `CLAUDE.md`:
  *
- * Vive en `src/lib/` porque lo usan GraphNode + EntitySigil + MomentoEntry
- * + EntityHeader + GraphMinimap. Antes vivía en `GraphNode.tsx` y los
- * otros lo importaban transitive desde ahí — smell de "logic in
- * component file".
+ *   > "`EntityType` es `string`, no unions cerradas. La fuente de
+ *   > verdad son las tablas `entity_types`."
+ *
+ * Agregar un tipo nuevo en DB requería tocar este archivo Y la CSS
+ * variable. Smell.
+ *
+ * Ahora usamos la sintaxis nativa de CSS variables con fallback:
+ * `var(--type-<slug>, var(--type-default))`. Si `--type-<slug>`
+ * existe en `:root` / `html.dark`, se usa; sino el browser cae al
+ * `--type-default` automáticamente — sin que TS ni JS necesiten
+ * conocer la lista.
+ *
+ * Agregar un tipo nuevo desde la app (Admin → tipos) ahora funciona
+ * out-of-the-box: el nodo se pinta con el accent default hasta que
+ * (opcionalmente) alguien agregue un override en `src/index.css`.
  */
 
-const KNOWN_TYPES = new Set([
-  'persona',
-  'escritor',
-  'filosofo',
-  'musico',
-  'banda',
-  'director',
-  'artista',
-  'cientifico',
-  'libro',
-  'ensayo',
-  'poema',
-  'articulo',
-  'cancion',
-  'podcast',
-  'album',
-  'disco',
-  'pelicula',
-  'serie',
-  'documental',
-  'obra',
-  'concepto',
-  'idea',
-  'lugar',
-  'evento',
-])
-
 export function typeAccent(type: string): string {
-  return KNOWN_TYPES.has(type) ? `var(--type-${type})` : 'var(--type-default)'
+  // Sanitización mínima: solo permitimos chars slug-safe en el nombre
+  // de la variable (a-z, 0-9, hyphen, underscore). Sin esto un type
+  // malicioso del tipo "x); foo:expression(...)" podría romper el CSS.
+  // Los slugs de entity_types ya pasan por validación en la migration
+  // (snake_case-ish), pero esto es defense-in-depth para imports
+  // legacy o data inconsistente.
+  const safe = type.replace(/[^a-z0-9_-]/gi, '')
+  if (!safe) return 'var(--type-default)'
+  return `var(--type-${safe}, var(--type-default))`
 }
