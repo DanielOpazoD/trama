@@ -231,7 +231,7 @@ export function ListeningView({
               servidor (entra a la queryKey). */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div
-              className="flex gap-1 p-1 bg-paper-100/60 rounded-lg border border-ink-100/50 w-fit"
+              className="card-segment flex gap-1"
               role="tablist"
               aria-label="Ventana temporal"
             >
@@ -255,7 +255,7 @@ export function ListeningView({
               ))}
             </div>
 
-            <div className="flex gap-1 p-1 bg-paper-100/60 rounded-lg border border-ink-100/50 w-fit">
+            <div className="card-segment flex gap-1">
               {(['artist', 'album', 'track'] as Group[]).map((g) => (
                 <button
                   key={g}

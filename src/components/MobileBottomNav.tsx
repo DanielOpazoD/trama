@@ -103,7 +103,7 @@ export function MobileBottomNav({
                   )}
                 </span>
                 <span
-                  className="text-[10px] leading-tight tracking-tight font-medium truncate max-w-full px-1"
+                  className="text-micro leading-tight tracking-tight font-medium truncate max-w-full px-1"
                   style={{
                     fontVariantNumeric: 'tabular-nums',
                     opacity: active ? 1 : 0.7,

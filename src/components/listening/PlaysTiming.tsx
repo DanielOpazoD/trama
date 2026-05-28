@@ -74,6 +74,11 @@ function Heatmap({ heatmap, max }: { heatmap: number[][]; max: number }) {
       <h4 className="text-micro uppercase tracking-eyebrow text-ink-400 mb-2">
         semana × hora
       </h4>
+      {/* Excepción documentada al sistema de type scale (filosofía §4.1):
+          los ticks del heatmap usan text-[9px] mono — el `text-micro` (10px)
+          rompe la altura de cada celda (10px) y desalinea labels con grid.
+          Es metadata técnica densa, no UI textual. Acotado a PlaysTiming +
+          CalendarHeatmap. NO replicar este patrón en cards o forms. */}
       <div className="flex gap-1.5">
         {/* Etiquetas de día */}
         <div className="flex flex-col gap-[2px] pt-[14px] shrink-0">

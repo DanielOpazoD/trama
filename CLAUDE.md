@@ -33,14 +33,15 @@ Este archivo lo lee Claude automáticamente al entrar al proyecto. Acá viven so
 
 ## Índice de convenciones (docs/conventions/)
 
-| Doc                                             | Cubre                                                                                               |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [**design.md**](docs/conventions/design.md)     | Type scale, icon sizes, tracking, animaciones, vertical rhythm, accesibilidad, patterns canónicos δ |
-| [**data.md**](docs/conventions/data.md)         | `getSql()`, hooks de estado `src/state/`, Netlify Blobs, costos + observabilidad + request-id       |
-| [**llm.md**](docs/conventions/llm.md)           | Abstracción `_lib/llm/`, providers, caminos de propuesta IA                                         |
-| [**api.md**](docs/conventions/api.md)           | Schemas Zod, patrón de añadir endpoint, ApiErrors canónicos, tipos                                  |
-| [**dominios.md**](docs/conventions/dominios.md) | Grafo, Chat, Momentos (ξ) — patrones específicos de cada vista                                      |
-| [**roadmap.md**](docs/conventions/roadmap.md)   | Decisiones aplazadas (multi-user, CRDTs, xyflow, etc.)                                              |
+| Doc                                                                 | Cubre                                                                                               |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| [**filosofia-estetica.md**](docs/conventions/filosofia-estetica.md) | Norte estético: 4 principios rectores, vocabulario visual, anti-patrones, excepciones deliberadas   |
+| [**design.md**](docs/conventions/design.md)                         | Type scale, icon sizes, tracking, animaciones, vertical rhythm, accesibilidad, patterns canónicos δ |
+| [**data.md**](docs/conventions/data.md)                             | `getSql()`, hooks de estado `src/state/`, Netlify Blobs, costos + observabilidad + request-id       |
+| [**llm.md**](docs/conventions/llm.md)                               | Abstracción `_lib/llm/`, providers, caminos de propuesta IA                                         |
+| [**api.md**](docs/conventions/api.md)                               | Schemas Zod, patrón de añadir endpoint, ApiErrors canónicos, tipos                                  |
+| [**dominios.md**](docs/conventions/dominios.md)                     | Grafo, Chat, Momentos (ξ) — patrones específicos de cada vista                                      |
+| [**roadmap.md**](docs/conventions/roadmap.md)                       | Decisiones aplazadas (multi-user, CRDTs, xyflow, etc.)                                              |
 
 ## Runbooks operacionales (docs/)
 

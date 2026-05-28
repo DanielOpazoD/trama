@@ -260,7 +260,7 @@ export function ChatView({
                         // px-1/py-0 + tracking-wider — sigue legible pero
                         // se siente "marginalia".
                         <span
-                          className="px-1 py-0 rounded text-[9px] uppercase tracking-wider font-medium leading-none"
+                          className="px-1 py-0 rounded text-micro uppercase tracking-wider font-medium leading-none"
                           style={{
                             backgroundColor: 'var(--accent-primary-soft)',
                             color: 'var(--accent-primary)',

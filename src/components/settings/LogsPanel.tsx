@@ -25,7 +25,7 @@ export function LogsPanel() {
       />
 
       {/* Sub-tabs internas */}
-      <div className="flex gap-2 p-1 bg-paper-100/60 rounded-lg border border-ink-100/50 w-fit">
+      <div className="card-segment flex gap-2">
         <button
           onClick={() => setView('errors')}
           className={`px-3 py-1.5 rounded text-sm transition-all duration-150 ${

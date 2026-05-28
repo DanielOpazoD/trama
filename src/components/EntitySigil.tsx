@@ -79,9 +79,9 @@ export function monogramOf(name: string): string {
 type Size = 'sm' | 'md' | 'lg'
 
 const SIZE_TOKENS: Record<Size, { box: string; text: string; border: string }> = {
-  sm: { box: 'w-7 h-7', text: 'text-[11px]', border: 'border-l-2' },
+  sm: { box: 'w-7 h-7', text: 'text-micro', border: 'border-l-2' },
   md: { box: 'w-10 h-10', text: 'text-sm', border: 'border-l-[3px]' },
-  lg: { box: 'w-16 h-16', text: 'text-[22px]', border: 'border-l-[4px]' },
+  lg: { box: 'w-16 h-16', text: 'text-h2', border: 'border-l-[4px]' },
 }
 
 export function EntitySigil({
