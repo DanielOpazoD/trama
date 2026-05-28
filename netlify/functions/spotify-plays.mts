@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -45,7 +45,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
   let rows: Group[] = []
 
   if (group === 'artist') {
-    rows = (await sql`
+    rows = await sqlTyped<Group>(sql`
       WITH plays AS (
         SELECT UNNEST(artist_names) AS artist_name, UNNEST(artist_ids) AS artist_id, played_at
         FROM spotify_plays
@@ -67,7 +67,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
         ON LOWER(e.name) = LOWER(g.key) AND e.deleted_at IS NULL AND e.user_id = ${userId}
       ORDER BY g.plays DESC
       LIMIT ${limit}
-    `) as unknown as Group[]
+    `)
   } else if (group === 'album') {
     // π3-fix: para llevar artist_names al cliente, usamos DISTINCT ON
     // sobre el play más reciente. ARRAY_AGG(text[]) era frágil — si dos
@@ -75,7 +75,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
     // vs un feat con 2), PG podía tirar "cannot accumulate arrays of
     // different sizes" o devolver text[][] mal serializado por el
     // driver. DISTINCT ON garantiza UNA fila → UN array.
-    rows = (await sql`
+    rows = await sqlTyped<Group>(sql`
       WITH per_album AS (
         SELECT DISTINCT ON (album_name)
           album_name, artist_names, album_id, played_at
@@ -105,11 +105,11 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
         ON LOWER(e.name) = LOWER(c.album_name) AND e.deleted_at IS NULL AND e.user_id = ${userId}
       ORDER BY c.plays DESC
       LIMIT ${limit}
-    `) as unknown as Group[]
+    `)
   } else {
     // π3-fix: idem tracks. DISTINCT ON sobre played_at DESC nos da la
     // versión más reciente del track con SU artist_names intacto.
-    rows = (await sql`
+    rows = await sqlTyped<Group>(sql`
       WITH per_track AS (
         SELECT DISTINCT ON (track_name)
           track_name, artist_names, track_id, played_at
@@ -139,7 +139,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
         ON LOWER(e.name) = LOWER(c.track_name) AND e.deleted_at IS NULL AND e.user_id = ${userId}
       ORDER BY c.plays DESC
       LIMIT ${limit}
-    `) as unknown as Group[]
+    `)
   }
 
   // π3 + ρ-fix-bug: summary aggregado del mismo período.
@@ -161,7 +161,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
     unique_albums: number
     total_minutes: number
   }
-  const coreRows = (await sql`
+  const coreRows = await sqlTyped<CoreRow>(sql`
     SELECT
       COUNT(*)::int AS total_plays,
       COUNT(DISTINCT track_id)::int AS unique_tracks,
@@ -169,7 +169,7 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
       ROUND(COALESCE(SUM(duration_ms), 0) / 60000.0)::int AS total_minutes
     FROM spotify_plays
     WHERE played_at >= ${since} AND user_id = ${userId}
-  `) as unknown as CoreRow[]
+  `)
   const core = coreRows[0] ?? {
     total_plays: 0,
     unique_tracks: 0,
@@ -178,11 +178,11 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
   }
 
   type ArtistRow = { unique_artists: number }
-  const artistRows = (await sql`
+  const artistRows = await sqlTyped<ArtistRow>(sql`
     SELECT COUNT(DISTINCT artist_name)::int AS unique_artists
     FROM spotify_plays, UNNEST(artist_names) AS artist_name
     WHERE played_at >= ${since} AND user_id = ${userId}
-  `) as unknown as ArtistRow[]
+  `)
   const uniqueArtists = artistRows[0]?.unique_artists ?? 0
 
   const summary = {

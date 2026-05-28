@@ -39,8 +39,30 @@ jobs:
       - name: Run tests
         run: npm test
 
+      # N8: corre coverage en CI para verificar thresholds (definidos en
+      # vitest.config.ts). Sube el reporte HTML como artifact para que el
+      # PR pueda descargarlo y mirar archivos sin cobertura.
+      - name: Coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
       - name: Build
         run: npm run build
+
+      # N8: npm audit en CI (warn-only). Falla solo si hay CRITICAL CVEs;
+      # high/moderate se reportan pero no bloquean. Esto da visibilidad
+      # sin romper PRs por advisories transitivos que no podemos arreglar
+      # nosotros.
+      - name: Security audit (production deps)
+        run: npm audit --omit=dev --audit-level=critical
+        continue-on-error: true
 
       # G4: bundle-size budget. Falla si un chunk crece más de su tope (gzip).
       # Los budgets viven en scripts/check-bundle-size.mjs — subirlos requiere

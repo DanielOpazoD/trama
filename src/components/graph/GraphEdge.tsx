@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { RELATIONSHIP_TYPES, type Relationship } from '../../types'
 import type { LayoutMode } from '../../hooks/layouts/types'
 
@@ -97,7 +97,7 @@ function trimEndpoints(
   }
 }
 
-export function GraphEdge({
+function GraphEdgeInternal({
   rel,
   from,
   to,
@@ -212,3 +212,21 @@ export function GraphEdge({
     </g>
   )
 }
+
+/**
+ * N5: memoizamos para evitar re-renders en listas grandes de edges.
+ * Comparamos referencia de `rel`, `from`, `to` (TanStack Query devuelve
+ * objetos estables entre renders cuando los datos no cambiaron), más
+ * los flags visuales. layoutMode también es prop estable (string).
+ */
+export const GraphEdge = memo(GraphEdgeInternal, (prev, next) => {
+  return (
+    prev.rel === next.rel &&
+    prev.from === next.from &&
+    prev.to === next.to &&
+    prev.highlighted === next.highlighted &&
+    prev.dimmed === next.dimmed &&
+    prev.fresh === next.fresh &&
+    prev.layoutMode === next.layoutMode
+  )
+})

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { ENTITY_TYPES, type Entity } from '../../types'
 import { ChevronRightIcon, SparkleIcon, TrashIcon } from '../Icons'
 import { typeAccent } from '../graph/GraphNode'
@@ -15,7 +16,7 @@ import { typeAccent } from '../graph/GraphNode'
  * La hover toolbar (abrir + eliminar) sigue el patrón .hover-actions:
  * visible solo on hover en desktop, siempre visible en touch.
  */
-export function EntityRow({
+function EntityRowInternal({
   entity,
   quoteCount,
   relCount,
@@ -159,3 +160,22 @@ export function EntityRow({
     </div>
   )
 }
+
+/**
+ * N5: memoizamos para que el scroll de una lista de 100+ entidades no
+ * re-renderice cada row cuando cambia el state global (sidebar
+ * collapse, theme toggle, etc.). Comparamos referencia de entity
+ * (TanStack Query la mantiene estable) + counts + flag expanded.
+ *
+ * Las callbacks (onToggleExpand, onSelectEntity, onDelete) las
+ * ignoramos: el padre las re-crea cada render pero su semántica es
+ * estable (depende del `entity.id` solamente).
+ */
+export const EntityRow = memo(EntityRowInternal, (prev, next) => {
+  return (
+    prev.entity === next.entity &&
+    prev.quoteCount === next.quoteCount &&
+    prev.relCount === next.relCount &&
+    prev.expanded === next.expanded
+  )
+})

@@ -8,9 +8,19 @@ import type { Entity, Quote, Relationship } from '../types'
  * sin queries), así que no necesita providers.
  */
 
-const today = new Date().toISOString()
+// La ventana del heatmap son las últimas 24 semanas. Para evitar flake
+// por timezone cerca de medianoche, usamos un timestamp 30 días en el
+// pasado a mediodía UTC. Cae con margen dentro de la ventana en
+// cualquier timezone y a cualquier hora del día.
+function freshToday(): string {
+  const d = new Date()
+  d.setUTCHours(12, 0, 0, 0)
+  d.setUTCDate(d.getUTCDate() - 30)
+  return d.toISOString()
+}
 
 function makeEntity(id: string): Entity {
+  const today = freshToday()
   return {
     id,
     type: 'persona',
@@ -22,6 +32,7 @@ function makeEntity(id: string): Entity {
 }
 
 function makeQuote(id: string): Quote {
+  const today = freshToday()
   return {
     id,
     entityId: 'e-1',
@@ -34,6 +45,7 @@ function makeQuote(id: string): Quote {
 }
 
 function makeRel(id: string): Relationship {
+  const today = freshToday()
   return {
     id,
     fromId: 'e-1',

@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
 import { fuseRanked, type Ranked } from './_lib/rrf.js'
 import { describeEntity, describeQuote, llmRerank } from './_lib/llm-rerank.js'
@@ -68,7 +68,7 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   }
 
   const lexicalEntities = wantsLexical
-    ? (await sql`
+    ? await sqlTyped<EntityLex>(sql`
         SELECT e.id, e.name, e.type, e.description, e.year,
                ts_rank(e.search_vector, websearch_to_tsquery('simple', ${q}))
                  + similarity(e.name, ${q}) * 0.5 AS rank
@@ -79,11 +79,11 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
                OR e.name % ${q})
         ORDER BY rank DESC
         LIMIT ${limit * 2}
-      ` as unknown as Promise<EntityLex[]>)
-    : Promise.resolve([] as EntityLex[])
+      `)
+    : ([] as EntityLex[])
 
   const lexicalQuotes = wantsLexical
-    ? (await sql`
+    ? await sqlTyped<QuoteLex>(sql`
         SELECT q.id, q.entity_id, e.name AS entity_name, q.text, q.source,
                ts_rank(q.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
         FROM quotes q
@@ -93,8 +93,8 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
           AND q.search_vector @@ websearch_to_tsquery('simple', ${q})
         ORDER BY rank DESC
         LIMIT ${limit * 2}
-      ` as unknown as Promise<QuoteLex[]>)
-    : Promise.resolve([] as QuoteLex[])
+      `)
+    : ([] as QuoteLex[])
 
   // Semantic: embed the query, rank by cosine distance. embedSafe returns
   // null on any failure so we degrade to lexical instead of erroring.
@@ -108,7 +108,7 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
     if (emb) {
       const pgVec = toPgVector(emb.vector)
       const [er, qr] = await Promise.all([
-        sql`
+        sqlTyped<SemanticEntity>(sql`
           SELECT id, name, type, description, year,
                  0 AS rank,
                  (embedding <=> ${pgVec}::vector) AS distance
@@ -117,8 +117,8 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
             AND user_id = ${userId}
           ORDER BY embedding <=> ${pgVec}::vector
           LIMIT ${limit * 2}
-        ` as unknown as Promise<SemanticEntity[]>,
-        sql`
+        `),
+        sqlTyped<SemanticQuote>(sql`
           SELECT q.id, q.entity_id, e.name AS entity_name,
                  q.text, q.source,
                  0 AS rank,
@@ -129,7 +129,7 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
             AND q.user_id = ${userId}
           ORDER BY q.embedding <=> ${pgVec}::vector
           LIMIT ${limit * 2}
-        ` as unknown as Promise<SemanticQuote[]>,
+        `),
       ])
       semanticEntities = er
       semanticQuotes = qr
