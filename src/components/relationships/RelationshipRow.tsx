@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { RELATIONSHIP_TYPES, type Entity, type Relationship } from '../../types'
 import { SparkleIcon, TrashIcon } from '../Icons'
 
@@ -12,7 +13,7 @@ import { SparkleIcon, TrashIcon } from '../Icons'
  * espacios. Sin esto se ve "ASOCIADO_CON" con guión bajo y se siente
  * DB-leaky.
  */
-export function RelationshipRow({
+function RelationshipRowInternal({
   rel,
   from,
   to,
@@ -79,3 +80,14 @@ export function RelationshipRow({
     </div>
   )
 }
+
+/**
+ * Q3: memoizamos para que scroll de RelationshipsView con N filas no
+ * re-renderice cada row al cambiar state global. TanStack Query mantiene
+ * referencias estables; from/to cambian solo si su row cambia.
+ * Ignoramos las callbacks (onSelectEntity/onDelete) — el padre las
+ * re-crea inline pero la semántica es estable per-row.
+ */
+export const RelationshipRow = memo(RelationshipRowInternal, (prev, next) => {
+  return prev.rel === next.rel && prev.from === next.from && prev.to === next.to
+})

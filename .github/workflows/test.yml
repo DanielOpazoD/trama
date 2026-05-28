@@ -6,16 +6,24 @@ on:
   pull_request:
     branches: [main]
 
+# R1: el workflow se dividió en 3 jobs paralelos:
+#
+#   lint    → eslint + prettier check
+#   unit    → typecheck + vitest + coverage + build + bundle-size + audit
+#   e2e     → Playwright + axe-core a11y
+#
+# Comparten install + cache de npm pero corren en runners distintos en
+# simultáneo. Antes el workflow era un solo job secuencial de ~5min;
+# ahora el critical path está cerca de los ~3min (limitado por el e2e
+# que es el más lento).
+
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
@@ -23,15 +31,25 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      # N1: lint + format check. Fallan si cualquier archivo no pasa
-      # eslint.config.js o si Prettier propondría cambios. El pre-commit
-      # de Husky corre los mismos checks localmente para que CI no
-      # encuentre sorpresas.
+      # N1: lint + format check.
       - name: Lint
         run: npm run lint
 
       - name: Format check
         run: npm run format:check
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
 
       - name: Type check
         run: npm run typecheck
@@ -39,9 +57,8 @@ jobs:
       - name: Run tests
         run: npm test
 
-      # N8: corre coverage en CI para verificar thresholds (definidos en
-      # vitest.config.ts). Sube el reporte HTML como artifact para que el
-      # PR pueda descargarlo y mirar archivos sin cobertura.
+      # N8: coverage con thresholds calibrados al baseline. Falla si
+      # baja del piso (ver vitest.config.ts).
       - name: Coverage
         run: npm run test:coverage
 
@@ -56,23 +73,30 @@ jobs:
       - name: Build
         run: npm run build
 
-      # N8: npm audit en CI (warn-only). Falla solo si hay CRITICAL CVEs;
-      # high/moderate se reportan pero no bloquean. Esto da visibilidad
-      # sin romper PRs por advisories transitivos que no podemos arreglar
-      # nosotros.
+      # N8: npm audit (warn-only). Falla solo en CRITICAL.
       - name: Security audit (production deps)
         run: npm audit --omit=dev --audit-level=critical
         continue-on-error: true
 
-      # G4: bundle-size budget. Falla si un chunk crece más de su tope (gzip).
-      # Los budgets viven en scripts/check-bundle-size.mjs — subirlos requiere
-      # justificación, no es un "que pase CI".
+      # G4: bundle-size budget. Falla si un chunk crece más de su tope.
       - name: Bundle size budget
         run: node scripts/check-bundle-size.mjs
 
-      # E2E: Playwright + chromium. Browser binaries no van en npm ci
-      # (cuesta ~100MB), se instalan acá. Los tests usan mock fixtures;
-      # no requieren backend real ni Neon.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      # Playwright browsers no van en npm ci (~100MB). Los instalamos
+      # solo en este job, no en lint/unit.
       - name: Install Playwright browsers
         run: npm run e2e:install
 

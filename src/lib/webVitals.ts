@@ -23,6 +23,38 @@ import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from 'web-vitals'
 
 type Reporter = (metric: Metric) => void
 
+/**
+ * R3: normaliza el `pathname` antes de enviarlo al backend para evitar
+ * exfiltrar IDs sensibles a los logs de Web Vitals.
+ *
+ * Trama hoy usa hash-routing-less SPA (todo vive en `/`), pero el
+ * `?entity=<uuid>` queda en `window.location.search`. El pathname suele
+ * ser solo `/`, pero si en el futuro adoptamos URLs tipo
+ * `/entities/:id`, los UUIDs colmarían `web_vitals_samples` con IDs
+ * únicos sin valor analítico — y peor, leakean qué entidades visita
+ * el usuario.
+ *
+ * Reglas:
+ *  - UUIDs → `:id`
+ *  - Sufijo numérico largo → `:n`
+ *  - Search params eliminados (un pathname puro)
+ *
+ * Si el path es vacío o no es string, devuelve '/' para no romper el
+ * INSERT con `null`.
+ */
+export function normalizePath(pathname: string | undefined): string {
+  if (!pathname || typeof pathname !== 'string') return '/'
+  // Quitar query string si por alguna razón viene incluida.
+  const cleanPath = pathname.split('?')[0] ?? '/'
+  return (
+    cleanPath
+      // UUIDs (cualquier versión) → ":id"
+      .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, ':id')
+      // Tramos numéricos largos (≥6 dígitos) — fechas en path, timestamps.
+      .replace(/\/\d{6,}/g, '/:n')
+  )
+}
+
 const defaultReporter: Reporter = (metric) => {
   // Best-effort send. `sendBeacon` no bloquea y respeta unload events;
   // el browser garantiza entrega aún si el user navega antes.
@@ -33,7 +65,7 @@ const defaultReporter: Reporter = (metric) => {
     delta: metric.delta,
     id: metric.id,
     navigationType: metric.navigationType,
-    path: window.location.pathname,
+    path: normalizePath(window.location.pathname),
   })
   try {
     const blob = new Blob([payload], { type: 'application/json' })

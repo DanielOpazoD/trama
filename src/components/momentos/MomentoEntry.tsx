@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { typeAccent } from '../graph/GraphNode'
+import { memo, useState } from 'react'
+import { typeAccent } from '../../lib/typeAccents'
 import type { Entity, Momento } from '../../types'
 import { SparkleIcon, TrashIcon } from '../Icons'
 import { formatTime } from './helpers'
@@ -16,7 +16,7 @@ import { Tooltip } from '../Tooltip'
  * cortos y dependen del mismo Momento, así que vivir en el mismo
  * archivo es razonable. Si alguno crece, se va a su propio archivo.
  */
-export function MomentoEntry({
+function MomentoEntryInternal({
   momento,
   entitiesById,
   onDelete,
@@ -87,6 +87,17 @@ export function MomentoEntry({
     </li>
   )
 }
+
+/**
+ * Q3: memoizamos para que scroll del timeline de Momentos no re-renderice
+ * cada entry al cambiar state global. `entitiesById` es un Map — su
+ * referencia cambia cuando se mutan entidades, pero NO en navegación
+ * normal entre vistas (TanStack Query mantiene la lista estable).
+ * Ignoramos onDelete (el padre la re-crea inline).
+ */
+export const MomentoEntry = memo(MomentoEntryInternal, (prev, next) => {
+  return prev.momento === next.momento && prev.entitiesById === next.entitiesById
+})
 
 function NotaBody({ momento }: { momento: Momento }) {
   if (!momento.payload.bodyText) return null
