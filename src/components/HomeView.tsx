@@ -15,6 +15,7 @@ import { FeaturedQuote, pickFeaturedQuote } from './home/FeaturedQuote'
 import { ActivityHeatmap } from './home/ActivityHeatmap'
 import { RecentTimeline, buildTimeline } from './home/RecentTimeline'
 import { FirstMomentPreview } from './home/FirstMomentPreview'
+import { CronicasSection } from './home/CronicasSection'
 
 /**
  * Home is the first thing the user sees. It's not the graph (intimidating
@@ -183,6 +184,11 @@ export function HomeView({
             onSelectEntity={onSelectEntity}
             onNavigateToGraph={() => onNavigate('grafo')}
           />
+
+          {/* U-4: Crónicas del mes — sección editorial al final. Aparece
+              cuando hay material o crónicas generadas; degrada a nada en
+              tramas muy nuevas. */}
+          <CronicasSection />
 
           {(featuredQuote || timeline.length > 0) && (
             <div className="flex justify-center pt-2 pb-1">

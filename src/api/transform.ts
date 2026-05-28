@@ -60,6 +60,8 @@ export type QuoteRow = {
   linked_quote_ids?: string[] | null
   /** ω-E: pinned (favorita) — timestamp ISO o null. */
   pinned_at?: string | null
+  /** U-1: resonancia 1-5 o null. */
+  resonance?: number | null
   context: string | null
   origin: Origin | string
   created_at: string
@@ -130,6 +132,7 @@ export function quoteFromRow(row: QuoteRow): Quote {
     aiReflectionAt: row.ai_reflection_at ?? undefined,
     linkedQuoteIds: Array.isArray(row.linked_quote_ids) ? row.linked_quote_ids : [],
     pinnedAt: row.pinned_at ?? undefined,
+    resonance: row.resonance ?? undefined,
     origin: asOrigin(row.origin),
     createdAt: row.created_at,
     updatedAt: row.updated_at,

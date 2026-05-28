@@ -64,6 +64,8 @@ export const quotesApi = {
       /** ω-E: marcar/desmarcar como favorita. true → set pinned_at = NOW().
           false → null. undefined → no se toca. */
       pinned: boolean
+      /** U-1: resonancia 1-5. null = destildar. undefined → no se toca. */
+      resonance: number | null
     }>,
   ): Promise<Quote> {
     const body: Record<string, unknown> = {}
@@ -79,6 +81,7 @@ export const quotesApi = {
       body.ai_reflection_model = patch.aiReflectionModel
     if (patch.linkedQuoteIds !== undefined) body.linked_quote_ids = patch.linkedQuoteIds
     if (patch.pinned !== undefined) body.pinned = patch.pinned
+    if (patch.resonance !== undefined) body.resonance = patch.resonance
     const row = await request<QuoteRow>(`/api/quotes/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
@@ -89,6 +92,17 @@ export const quotesApi = {
     id: string,
   ): Promise<{ reflection: string; provider: string; model: string }> {
     return request(`/api/quotes/${id}/reflect`, { method: 'POST', body: '{}' })
+  },
+  /**
+   * U-2: Eco. Top-3 citas más similares a la dada (excluyendo la propia),
+   * vía embedding. Es lectura solamente — no muta la cita base.
+   */
+  async getQuoteEchoes(
+    id: string,
+  ): Promise<
+    Array<{ id: string; entityName: string; text: string; source: string | null }>
+  > {
+    return request(`/api/quotes/${id}/echoes`)
   },
   async deleteQuote(id: string): Promise<{ deletedAt: string }> {
     return request<{ deletedAt: string }>(`/api/quotes/${id}`, { method: 'DELETE' })

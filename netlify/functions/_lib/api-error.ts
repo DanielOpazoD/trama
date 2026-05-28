@@ -45,6 +45,7 @@ export type ApiErrorCode =
   | 'AI_DISABLED'
   | 'PAYLOAD_TOO_LARGE'
   | 'UNSUPPORTED_MEDIA_TYPE'
+  | 'UNPROCESSABLE'
   | 'UPSTREAM'
   | 'INTERNAL'
 
@@ -125,6 +126,11 @@ export const ApiErrors = {
       requestId,
       details,
     }),
+
+  /** 422: payload bien formado, pero las reglas de negocio rechazan
+      la operación (ej. no hay material suficiente para una crónica). */
+  unprocessable: (requestId: string, message: string, details?: unknown) =>
+    apiError({ status: 422, code: 'UNPROCESSABLE', message, requestId, details }),
 
   upstream: (requestId: string, message: string, details?: unknown) =>
     apiError({ status: 502, code: 'UPSTREAM', message, requestId, details }),

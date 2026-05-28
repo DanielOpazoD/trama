@@ -35,6 +35,9 @@ export const QuotePatchBody = z.object({
   ai_reflection_model: z.string().nullable().optional(),
   linked_quote_ids: z.array(z.string()).nullable().optional(),
   pinned: z.boolean().optional(),
+  // U-1: Resonancia. 1-5 = el usuario marcó. null = el usuario destildó
+  // (volver a sin marcar). undefined (omitido) = no tocar.
+  resonance: z.number().int().min(1).max(5).nullable().optional(),
 })
 export type QuotePatchBodyT = z.infer<typeof QuotePatchBody>
 

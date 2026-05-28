@@ -25,6 +25,8 @@ export type Quote = {
   linkedQuoteIds: string[]
   /** ω-E: timestamp de pin como favorita. undefined = no es favorita. */
   pinnedAt?: string
+  /** U-1: Resonancia 1-5 (cuánto resuena hoy). undefined = sin marcar. */
+  resonance?: number
   origin: Origin
   createdAt: string
   updatedAt: string

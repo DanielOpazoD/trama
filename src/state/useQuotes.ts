@@ -79,6 +79,32 @@ export function useInfiniteQuotesQuery() {
  * y reemplazar con el real al volver. Si el server rechaza, rollback al
  * snapshot.
  */
+/**
+ * U-2: Eco. Top-3 citas más similares a la dada (por embedding). Es
+ * lectura pura, no muta nada. `enabled` controla cuándo se dispara —
+ * típicamente tras crear una cita o al expandir el panel de ecos en
+ * QuoteItem.
+ */
+export type QuoteEcho = {
+  id: string
+  entityName: string
+  text: string
+  source: string | null
+}
+export function useQuoteEchoes(quoteId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: quoteId
+      ? queryKeys.quoteEchoes(quoteId)
+      : ['quotes', 'echoes', '__disabled__'],
+    queryFn: () => api.getQuoteEchoes(quoteId!),
+    enabled: enabled && !!quoteId,
+    // staleTime largo: los ecos cambian solo si agregás citas nuevas
+    // o cambia el embedding de la base. No vale la pena re-fetch en
+    // cada montaje.
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 export function useAddQuote() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
@@ -149,6 +175,8 @@ type QuotePatch = Partial<{
   aiReflectionModel: string | null
   linkedQuoteIds: string[]
   pinned: boolean
+  /** U-1: resonancia 1-5. null = destildar (volver a sin marcar). */
+  resonance: number | null
 }>
 
 export function useUpdateQuote() {
@@ -188,6 +216,9 @@ export function useUpdateQuote() {
                   : {}),
                 ...(patch.pinned !== undefined
                   ? { pinnedAt: patch.pinned ? nowIso() : undefined }
+                  : {}),
+                ...(patch.resonance !== undefined
+                  ? { resonance: patch.resonance ?? undefined }
                   : {}),
                 updatedAt: nowIso(),
               }
