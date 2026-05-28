@@ -35,9 +35,14 @@ const reportOnly = process.argv.includes('--report')
 
 function chunkBaseName(file) {
   // index-AB12cd.js → index, vendor-react-XY.js → vendor-react
-  // Hash es lo último antes de .js, sin '-' adentro. Greedy `.+` matchea
-  // todo hasta el último '-'.
-  const m = file.match(/^(.+)-[^-]+\.js$/)
+  //
+  // Vite emite el hash con caracteres base64-url-safe que pueden incluir
+  // dashes internos y trailing dash (e.g. `index-DZkgaF-k.js`,
+  // `MomentosView-D9Z41wa-.js`). El truco es fijar el LARGO del hash:
+  // Vite default es 8 chars, configurable [6..12]. Usamos greedy `.+`
+  // que backtrackea hasta encontrar exactamente N chars hash al final.
+  // Sin esto, hashes con dashes internos contaminaban el match.
+  const m = file.match(/^(.+)-[A-Za-z0-9_-]{6,12}\.js$/)
   return m ? m[1] : file.replace(/\.js$/, '')
 }
 
