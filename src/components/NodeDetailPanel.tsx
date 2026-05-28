@@ -8,6 +8,7 @@ import { EssayEditor } from './nodeDetail/EssayEditor'
 import { QuickNoteForm } from './nodeDetail/QuickNoteForm'
 import { QuotesList } from './nodeDetail/QuotesList'
 import { TalkButton } from './nodeDetail/TalkButton'
+import { VozDe } from './nodeDetail/VozDe'
 
 /**
  * Panel lateral con el detalle de UNA entidad.
@@ -77,6 +78,7 @@ export function NodeDetailPanel({
         <EssayEditor entity={entity} />
         <QuickNoteForm entity={entity} />
         <QuotesList entity={entity} />
+        <VozDe entity={entity} />
         <ConnectionsList entity={entity} />
       </div>
 

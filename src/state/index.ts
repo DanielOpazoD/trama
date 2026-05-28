@@ -26,6 +26,7 @@ export {
   useUpdateEntityType,
   useUpdateEntity,
   useDeleteEntity,
+  useVoiceOfEntity,
 } from './useEntities'
 export { useReclassifyEntities } from './useReclassifyEntities'
 export { useAISettingsQuery, useSetAITaskProvider } from './useAISettings'

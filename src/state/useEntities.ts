@@ -347,3 +347,20 @@ export function useDeleteEntity() {
     },
   })
 }
+
+/**
+ * V-3 Voz de…: genera una lectura activa en primera persona a partir de las
+ * citas reunidas de una entidad. No persiste — el resultado es lectura, no
+ * dato. Silent: la UI muestra "pensando…" en el botón inline; el indicador
+ * global "guardando" sería ruido.
+ */
+export function useVoiceOfEntity() {
+  const { offline } = useOffline()
+  return useMutation({
+    meta: { silent: true },
+    mutationFn: async ({ id, question }: { id: string; question: string }) => {
+      if (offline) throw new Error('La voz IA requiere conexión al backend.')
+      return api.voiceOfEntity(id, question)
+    },
+  })
+}

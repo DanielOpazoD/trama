@@ -131,4 +131,19 @@ export const entitiesApi = {
   }> {
     return request('/api/entities-refs-count')
   },
+
+  /**
+   * V-3 Voz de…: lectura activa en primera persona a partir de las citas
+   * reunidas de la entidad. No persiste — la respuesta es lectura, no dato.
+   * El server exige ≥5 citas (422 si no las hay).
+   */
+  async voiceOfEntity(
+    id: string,
+    question: string,
+  ): Promise<{ voice: string; provider: string; model: string }> {
+    return request(`/api/entities/${id}/voz`, {
+      method: 'POST',
+      body: JSON.stringify({ question }),
+    })
+  },
 }

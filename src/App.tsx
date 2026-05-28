@@ -23,6 +23,8 @@ import { ToastHost } from './components/ToastHost'
 import { PreviewBanner } from './components/PreviewBanner'
 import { AskBar } from './components/AskBar'
 import { ReadingMode } from './components/ReadingMode'
+import { Sortes } from './components/Sortes'
+import { Espejo } from './components/Espejo'
 import { Settings } from './components/Settings'
 import { Splash } from './components/Splash'
 import { HomeSkeleton } from './components/HomeSkeleton'
@@ -109,6 +111,8 @@ function Shell() {
   const [entitiesTab, setEntitiesTab] = useState<'listado' | 'vinculos'>('listado')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [readingOpen, setReadingOpen] = useState(false)
+  const [sortesOpen, setSortesOpen] = useState(false)
+  const [espejoOpen, setEspejoOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   // Focus mode — esconde sidebar, topbar y askbar. Solo queda el
@@ -213,6 +217,7 @@ function Shell() {
           <div className="animate-shell-topbar">
             <TopBar
               view={view}
+              onSortes={() => setSortesOpen(true)}
               breadcrumb={
                 // Si hay una entidad seleccionada y existe en cache,
                 // muestra "View › Nombre" — orientación visual estilo
@@ -375,6 +380,12 @@ function Shell() {
             case 'open-shortcuts':
               setShortcutsOpen(true)
               break
+            case 'open-sortes':
+              setSortesOpen(true)
+              break
+            case 'open-espejo':
+              setEspejoOpen(true)
+              break
             case 'new-entity':
               setView('entidades')
               break
@@ -389,6 +400,13 @@ function Shell() {
       />
 
       <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+      {/* Sortes — segunda lectura: una cita al azar del propio archivo, a
+          pantalla completa. Se abre desde el TopBar o el command palette. */}
+      <Sortes open={sortesOpen} onClose={() => setSortesOpen(false)} />
+
+      {/* Espejo — la composición de la trama como un retrato, no un panel. */}
+      <Espejo open={espejoOpen} onClose={() => setEspejoOpen(false)} />
 
       {/* Onboarding — solo aparece la primera vez, cuando la trama
           está literalmente vacía. El propio componente checa

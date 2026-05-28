@@ -22,6 +22,8 @@ const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 export type CommandAction =
   | 'open-settings'
   | 'open-shortcuts'
+  | 'open-sortes'
+  | 'open-espejo'
   | 'new-entity'
   | 'new-quote'
   | 'new-momento'
@@ -53,6 +55,16 @@ const ACTIONS: Array<{ action: CommandAction; label: string; hint: string }> = [
   },
   { action: 'new-quote', label: 'Nueva cita', hint: 'guardar un fragmento' },
   { action: 'new-momento', label: 'Nuevo momento', hint: 'nota, recorte o foto del día' },
+  {
+    action: 'open-sortes',
+    label: 'Sortes',
+    hint: 'una cita al azar para releer · suerte del día',
+  },
+  {
+    action: 'open-espejo',
+    label: 'Espejo',
+    hint: 'la composición de tu trama · tipos, épocas, lo más cruzado',
+  },
   {
     action: 'open-settings',
     label: 'Configuración',

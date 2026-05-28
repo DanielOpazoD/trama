@@ -81,6 +81,11 @@ const TASKS: Array<{ key: AITaskKey; label: string; hint: string }> = [
     hint: 'IA escribe una lectura de la cita',
   },
   { key: 'chat', label: 'Chat', hint: 'conversación con tu trama como contexto' },
+  {
+    key: 'voz',
+    label: 'Voz de…',
+    hint: 'lectura activa: qué diría una entidad según sus citas',
+  },
 ]
 
 const VISION_REQUIRED: Array<AITaskKey> = ['extract-image']

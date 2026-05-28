@@ -1,5 +1,6 @@
 import { useGlobalStatus, type GlobalStatus } from '../state'
 import type { ViewMode } from './Sidebar'
+import { ReadingIcon } from './Icons'
 
 /**
  * Barra superior estilo ChatGPT/OpenAI Platform.
@@ -35,9 +36,13 @@ export function TopBar({
   actions,
   breadcrumb,
   tabs,
+  onSortes,
 }: {
   view: ViewMode
   actions?: React.ReactNode
+  /** Abre Sortes (segunda lectura — una cita al azar). Si se omite, el
+      botón no se muestra. */
+  onSortes?: () => void
   /** Segundo nivel del breadcrumb — se muestra como "View › crumb"
       cuando hay un detalle abierto. Si está, reemplaza el subtitle. */
   breadcrumb?: { label: string; onClickRoot?: () => void } | null
@@ -92,6 +97,16 @@ export function TopBar({
       </div>
       <div className="shrink-0 flex items-center gap-3">
         <StatusPill status={status} />
+        {onSortes && (
+          <button
+            onClick={onSortes}
+            aria-label="Sortes — una cita al azar para releer"
+            title="Sortes — una cita al azar para releer"
+            className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
+          >
+            <ReadingIcon size={16} />
+          </button>
+        )}
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
     </div>
