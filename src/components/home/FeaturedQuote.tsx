@@ -52,10 +52,7 @@ export function FeaturedQuote({
             Se ve más calmado y refinado que el uppercase + tracking
             shouty del resto de los eyebrows. Reservado para momentos
             de carga visual editorial alta. */}
-        <p
-          className="section-eyebrow-serif"
-          style={{ color: 'var(--accent-gold)' }}
-        >
+        <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
           ◆ una cita de tu trama
         </p>
         {onReroll && (
@@ -102,9 +99,7 @@ export function FeaturedQuote({
           </p>
           {/* μ1: marginalia manuscrita — el corazón del featured quote
               merece la voz manuscrita. */}
-          <p className="marginalia-script whitespace-pre-wrap">
-            {quote.userReflection}
-          </p>
+          <p className="marginalia-script whitespace-pre-wrap">{quote.userReflection}</p>
         </div>
       )}
       {/* Colofón editorial: tres asteriscos espaciados al final de la

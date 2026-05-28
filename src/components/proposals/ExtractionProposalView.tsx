@@ -152,9 +152,7 @@ function ProposedRelationshipRow({
           {typeLabel ?? rel.type}
         </span>
         <span className="text-ink-700">{rel.toName}</span>
-        {rel.notes && (
-          <p className="mt-1 text-ink-400 leading-relaxed">{rel.notes}</p>
-        )}
+        {rel.notes && <p className="mt-1 text-ink-400 leading-relaxed">{rel.notes}</p>}
         {rel.verification && (
           <div className="mt-2">
             {/* θ6: verdict badges con backplate de chip — antes era solo
@@ -221,9 +219,7 @@ function ProposedQuoteRow({
         </blockquote>
         <div className="mt-1 pl-3 text-xs">
           <span className="text-ink-500">— {quote.entityName}</span>
-          {quote.source && (
-            <span className="text-ink-300 ml-2">· {quote.source}</span>
-          )}
+          {quote.source && <span className="text-ink-300 ml-2">· {quote.source}</span>}
         </div>
       </div>
     </li>

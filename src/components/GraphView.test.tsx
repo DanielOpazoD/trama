@@ -23,7 +23,8 @@ beforeEach(() => {
     vi.fn(async (input: string | Request | URL) => {
       const url = String(input)
       if (url.includes('/api/entities')) return jsonResp([])
-      if (url.includes('/api/relationships')) return jsonResp({ items: [], nextCursor: null })
+      if (url.includes('/api/relationships'))
+        return jsonResp({ items: [], nextCursor: null })
       return jsonResp([])
     }),
   )
@@ -36,11 +37,7 @@ afterEach(() => {
 describe('<GraphView />', () => {
   it('renders empty state when there are no entities', async () => {
     const { container } = renderWithProviders(
-      <GraphView
-        selectedId={null}
-        onSelect={() => {}}
-        onProposal={() => {}}
-      />,
+      <GraphView selectedId={null} onSelect={() => {}} onProposal={() => {}} />,
     )
     await waitFor(() => {
       // EmptyState aparece. No tiene heading semántico — es un quote

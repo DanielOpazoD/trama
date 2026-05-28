@@ -60,27 +60,23 @@ describe('RescueOrphansPanel', () => {
       totalInStore: 2,
       referenced: 0,
     })
-    const rescueSpy = vi
-      .spyOn(apiModule.api, 'rescueOrphanedBlob')
-      .mockResolvedValue({
-        id: 'm1',
-        kind: 'foto',
-        capturedAt: '2026-05-25T10:00:00Z',
-        payload: { storageKey: 'abc.jpg' },
-        origin: { kind: 'imported' },
-        entityIds: [],
-        createdAt: '2026-05-25T10:00:00Z',
-        updatedAt: '2026-05-25T10:00:00Z',
-      })
+    const rescueSpy = vi.spyOn(apiModule.api, 'rescueOrphanedBlob').mockResolvedValue({
+      id: 'm1',
+      kind: 'foto',
+      capturedAt: '2026-05-25T10:00:00Z',
+      payload: { storageKey: 'abc.jpg' },
+      origin: { kind: 'imported' },
+      entityIds: [],
+      createdAt: '2026-05-25T10:00:00Z',
+      updatedAt: '2026-05-25T10:00:00Z',
+    })
     renderWithProviders(<RescueOrphansPanel />)
 
     await waitFor(() => {
       expect(screen.getAllByRole('img')).toHaveLength(2)
     })
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /recuperar foto abc.jpg/i }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: /recuperar foto abc.jpg/i }))
 
     await waitFor(() => {
       expect(rescueSpy).toHaveBeenCalledWith({ storageKey: 'abc.jpg' })
@@ -90,9 +86,7 @@ describe('RescueOrphansPanel', () => {
   })
 
   it('si la API falla, muestra reintentar', async () => {
-    vi.spyOn(apiModule.api, 'listOrphanedBlobs').mockRejectedValue(
-      new Error('boom'),
-    )
+    vi.spyOn(apiModule.api, 'listOrphanedBlobs').mockRejectedValue(new Error('boom'))
     renderWithProviders(<RescueOrphansPanel />)
     await waitFor(() => {
       expect(screen.getByText('boom')).toBeInTheDocument()

@@ -56,5 +56,8 @@ export function momentoEmbedText(
     if (typeof payload.caption === 'string') parts.push(payload.caption)
   }
 
-  return parts.filter((s) => s && s.length > 0).join('\n').trim()
+  return parts
+    .filter((s) => s && s.length > 0)
+    .join('\n')
+    .trim()
 }

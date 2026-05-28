@@ -123,10 +123,7 @@ function PinScreen({ onUnlock }: { onUnlock: () => void }) {
         className="w-full max-w-sm p-7 bg-paper-100/60 border border-ink-100/60 rounded-xl space-y-5"
       >
         <div className="text-center space-y-2">
-          <p
-            className="section-eyebrow-serif"
-            style={{ color: 'var(--accent-gold)' }}
-          >
+          <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
             trama protegida
           </p>
           <h2 className="font-serif text-3xl text-ink-700 leading-tight">

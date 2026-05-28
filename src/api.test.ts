@@ -125,19 +125,13 @@ describe('api.listQuotes', () => {
   })
 
   it('normalizes legacy "ai" string to ai object', async () => {
-    vi.stubGlobal(
-      'fetch',
-      mockFetchJson([{ ...QUOTE_ROW, origin: 'ai' }]),
-    )
+    vi.stubGlobal('fetch', mockFetchJson([{ ...QUOTE_ROW, origin: 'ai' }]))
     const [quote] = await api.listQuotes()
     expect(quote!.origin).toEqual({ kind: 'ai' })
   })
 
   it('falls back to manual when origin is missing', async () => {
-    vi.stubGlobal(
-      'fetch',
-      mockFetchJson([{ ...QUOTE_ROW, origin: null }]),
-    )
+    vi.stubGlobal('fetch', mockFetchJson([{ ...QUOTE_ROW, origin: null }]))
     const [quote] = await api.listQuotes()
     expect(quote!.origin).toEqual({ kind: 'manual' })
   })

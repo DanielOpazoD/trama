@@ -122,10 +122,7 @@ export function MomentoQRModal({
           }}
         >
           <header className="px-5 py-3 border-b border-ink-100/60">
-            <p
-              className="section-eyebrow-serif"
-              style={{ color: 'var(--accent-gold)' }}
-            >
+            <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
               desde el celular
             </p>
             <h3 className="font-serif text-xl text-ink-800 leading-tight mt-1">
@@ -141,9 +138,23 @@ export function MomentoQRModal({
               {svgMarkup ? (
                 <div
                   className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
-                  // qrcode devuelve un SVG sanitizado — sin user input
-                  // directo (solo nuestra URL construida). Render directo
-                  // del markup es seguro acá.
+                  // N2 — threat model justificando dangerouslySetInnerHTML:
+                  //
+                  // Input al QR: una URL que construimos nosotros con
+                  // `window.location.origin + '/?view=momentos&compose=...'`.
+                  // El usuario NO puede meter contenido arbitrario que
+                  // termine en el QR — el origin viene del browser, y los
+                  // params son literales hardcoded acá. No hay path donde
+                  // un user agregue caracteres a `svgMarkup`.
+                  //
+                  // Salida del qrcode lib: SVG con `<svg>` + `<path>` puros,
+                  // sin scripts ni handlers (la lib no acepta opciones que
+                  // generen markup ejecutable). Auditado en la versión
+                  // pinned a `^1.5.4`.
+                  //
+                  // Si en el futuro el QR encodea contenido del user
+                  // (ej. un texto que pegan), hay que sanear antes de
+                  // generar el SVG. Por ahora: safe.
                   dangerouslySetInnerHTML={{ __html: svgMarkup }}
                 />
               ) : error ? (
@@ -156,8 +167,8 @@ export function MomentoQRModal({
             </div>
 
             <p className="text-caption text-ink-400 leading-relaxed text-center max-w-xs">
-              Abre la cámara del celular y apunta. Se abrirá Momentos
-              listo para tomar o adjuntar una foto.
+              Abre la cámara del celular y apunta. Se abrirá Momentos listo para tomar o
+              adjuntar una foto.
             </p>
 
             <div className="w-full flex items-center gap-2 px-3 py-2 bg-paper-100/60 border border-ink-100/60 rounded-md">

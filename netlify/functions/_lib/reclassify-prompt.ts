@@ -27,9 +27,7 @@ export function buildReclassifyPrompt(
   entities: EntityForReclassify[],
   types: ReclassifyTypeOption[],
 ): LLMMessage[] {
-  const typesBlock = types
-    .map((t) => `- ${t.slug} (${t.label})`)
-    .join('\n')
+  const typesBlock = types.map((t) => `- ${t.slug} (${t.label})`).join('\n')
 
   const entitiesBlock = entities
     .map((e) => {
@@ -38,9 +36,7 @@ export function buildReclassifyPrompt(
       const desc = e.description ? `\n  ${e.description}` : ''
       const qs = (e.quotes ?? []).slice(0, 3)
       const quotes =
-        qs.length === 0
-          ? ''
-          : '\n  Citas:\n' + qs.map((q) => `   - «${q}»`).join('\n')
+        qs.length === 0 ? '' : '\n  Citas:\n' + qs.map((q) => `   - «${q}»`).join('\n')
       return `${head}${desc}${quotes}`
     })
     .join('\n')

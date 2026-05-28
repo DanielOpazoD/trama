@@ -73,19 +73,13 @@ export function RescueOrphansPanel() {
     setRescuing(null)
     toast.show({
       message:
-        fail === 0
-          ? `${ok} fotos recuperadas`
-          : `${ok} recuperadas, ${fail} con error`,
+        fail === 0 ? `${ok} fotos recuperadas` : `${ok} recuperadas, ${fail} con error`,
       tone: fail === 0 ? 'success' : 'default',
     })
   }
 
   if (loading) {
-    return (
-      <p className="text-xs text-ink-300 italic">
-        buscando fotos huérfanas…
-      </p>
-    )
+    return <p className="text-xs text-ink-300 italic">buscando fotos huérfanas…</p>
   }
 
   if (error) {
@@ -115,8 +109,8 @@ export function RescueOrphansPanel() {
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-sm text-ink-500 leading-relaxed">
           Estas fotos viven en el storage pero ningún Momento las referencia
-          (probablemente subidas desde un deploy preview que tenía su propia
-          BD). Recupéralas para que vuelvan a aparecer en tu timeline.
+          (probablemente subidas desde un deploy preview que tenía su propia BD).
+          Recupéralas para que vuelvan a aparecer en tu timeline.
         </p>
         <button
           onClick={handleRescueAll}

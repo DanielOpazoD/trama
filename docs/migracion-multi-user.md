@@ -94,6 +94,7 @@ es backward-compatible.
 
 **Opción recomendada**: **Netlify Identity** (también llamado "Netlify
 Auth"). Ventajas:
+
 - Ya estás en Netlify, no agrega un vendor nuevo.
 - Free tier hasta 1k usuarios MAU.
 - Magic links + email/password + Google/GitHub OAuth de fábrica.
@@ -101,6 +102,7 @@ Auth"). Ventajas:
   Functions. Cero parsing manual.
 
 Alternativas si Netlify Identity te molesta:
+
 - **Clerk** (más polish, free tier 10k MAU, pero vendor extra).
 - **Magic.link** (passwordless via email, sin UI propia).
 - **Auth.js + GitHub OAuth** (full DIY, máximo control, máximo trabajo).
@@ -224,6 +226,7 @@ Y en código: quitar el `ALLOW_LEGACY_FALLBACK` y borrar la env var.
 ## Coste estimado de la migración
 
 Aproximadamente:
+
 - Schema (commit 1): 2 horas.
 - Auth setup (commit 2): 2 horas.
 - Functions filtering (commit 4): 4-6 horas, el más largo.

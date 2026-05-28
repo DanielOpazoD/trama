@@ -37,9 +37,7 @@ export function Greeting({
       }}
     >
       <div className="min-w-0 stack-2">
-        <p className="text-micro uppercase tracking-shout text-ink-300">
-          {greeting}
-        </p>
+        <p className="text-micro uppercase tracking-shout text-ink-300">{greeting}</p>
         {/* ρ-canvas: el h2 antes decía "Inicio" — redundante con el
             sidebar y el TopBar. Lo reemplaza la fecha de hoy en
             serif, un gesto editorial que da contexto temporal real
@@ -53,8 +51,7 @@ export function Greeting({
       {pendingCount > 0 && (
         <button onClick={onNavigateToSuggestions} className="ai-cta">
           <SparkleIcon size={12} />
-          {pendingCount}{' '}
-          {pendingCount === 1 ? 'sugerencia' : 'sugerencias'} pendiente
+          {pendingCount} {pendingCount === 1 ? 'sugerencia' : 'sugerencias'} pendiente
           {pendingCount === 1 ? '' : 's'}
         </button>
       )}
@@ -84,12 +81,7 @@ const GREETINGS = {
   // 15-19: tarde
   tarde: ['Buenas tardes', 'Tarde tardía', 'Luz que baja', 'Cae la luz'],
   // 19-24: noche
-  noche: [
-    'Buenas noches',
-    'Cae la noche',
-    'Hora de cerrar el día',
-    'Penumbra cómoda',
-  ],
+  noche: ['Buenas noches', 'Cae la noche', 'Hora de cerrar el día', 'Penumbra cómoda'],
 }
 
 type GreetingBand = keyof typeof GREETINGS

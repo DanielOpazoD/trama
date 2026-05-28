@@ -1,0 +1,40 @@
+# N2: Dependabot config para mantener deps al día sin esfuerzo manual.
+#
+# Frecuencia: semanal. Diario sería ruido — pocas deps cambian.
+# Agrupamos: minor + patch updates en un solo PR por week (típicamente
+# 5-15 deps); major updates van en PR separados porque suelen requerir
+# atención manual (breaking changes en migración React/Vite, etc.).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: 'America/Argentina/Buenos_Aires'
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    groups:
+      # Minor + patch en un solo PR para evitar inbox flood.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+        # Excluir majors críticos que merecen PR aparte aunque sean minor.
+        exclude-patterns:
+          - 'react'
+          - 'react-dom'
+          - 'vite'
+          - '@netlify/*'
+          - '@clerk/*'
+
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    labels:
+      - dependencies
+      - ci

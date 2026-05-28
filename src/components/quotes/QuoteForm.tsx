@@ -12,11 +12,7 @@ import { useAddQuote } from '../../state'
  * El padre solo pasa la lista de entidades para llenar el select.
  * El form maneja su propio state + submit, sin filtrar nada arriba.
  */
-export function QuoteForm({
-  entities,
-}: {
-  entities: Entity[]
-}) {
+export function QuoteForm({ entities }: { entities: Entity[] }) {
   const addQuote = useAddQuote()
 
   const [entityId, setEntityId] = useState('')

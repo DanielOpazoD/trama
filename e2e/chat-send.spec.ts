@@ -31,7 +31,7 @@ test('chat: enviar mensaje y ver respuesta del asistente', async ({ page }) => {
   await page.getByRole('button', { name: 'Enviar' }).click()
 
   // La respuesta mock debe aparecer en el chat.
-  await expect(
-    page.getByText('Hola, te leo. (respuesta mock)'),
-  ).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Hola, te leo. (respuesta mock)')).toBeVisible({
+    timeout: 15_000,
+  })
 })

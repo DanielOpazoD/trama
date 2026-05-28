@@ -53,10 +53,7 @@ export type RagContext = {
   usedHyde?: boolean
 }
 
-type SqlClient = (
-  strings: TemplateStringsArray,
-  ...values: unknown[]
-) => Promise<unknown>
+type SqlClient = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<unknown>
 
 /**
  * Build trama context for a user query, blending semantic retrieval +
@@ -107,8 +104,7 @@ export async function buildRagContext(
   // Solo se activa para queries con substancia (>10 chars); para "Bo" o
   // "?" no tiene sentido y agregaría latencia injustificada.
   const trimmedQuery = userQuery.trim()
-  const useHyde =
-    options?.hyde && trimmedQuery.length > 10 && trimmedQuery.length < 500
+  const useHyde = options?.hyde && trimmedQuery.length > 10 && trimmedQuery.length < 500
   let textToEmbed = trimmedQuery
   let hydeUsed = false
   if (useHyde) {
@@ -127,25 +123,26 @@ export async function buildRagContext(
   const queryVec = emb ? toPgVector(emb.vector) : null
 
   // 2) Two parallel queries per table: semantic + recent.
-  const [semanticEntities, recentEntities, semanticQuotes, recentQuotes] = await Promise.all([
-    queryVec
-      ? (sql`
+  const [semanticEntities, recentEntities, semanticQuotes, recentQuotes] =
+    await Promise.all([
+      queryVec
+        ? (sql`
           SELECT id, name, type, year, description
           FROM entities
           WHERE deleted_at IS NULL AND embedding IS NOT NULL AND user_id = ${userId}
           ORDER BY embedding <=> ${queryVec}::vector
           LIMIT ${semE}
         ` as unknown as Promise<EntityCtxRow[]>)
-      : Promise.resolve<EntityCtxRow[]>([]),
-    sql`
+        : Promise.resolve<EntityCtxRow[]>([]),
+      sql`
       SELECT id, name, type, year, description
       FROM entities
       WHERE deleted_at IS NULL AND user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT ${recE}
     ` as unknown as Promise<EntityCtxRow[]>,
-    queryVec
-      ? (sql`
+      queryVec
+        ? (sql`
           SELECT q.id, e.name AS entity_name, q.text, q.source
           FROM quotes q
           JOIN entities e ON e.id = q.entity_id
@@ -153,8 +150,8 @@ export async function buildRagContext(
           ORDER BY q.embedding <=> ${queryVec}::vector
           LIMIT ${semQ}
         ` as unknown as Promise<QuoteCtxRow[]>)
-      : Promise.resolve<QuoteCtxRow[]>([]),
-    sql`
+        : Promise.resolve<QuoteCtxRow[]>([]),
+      sql`
       SELECT q.id, e.name AS entity_name, q.text, q.source
       FROM quotes q
       JOIN entities e ON e.id = q.entity_id
@@ -162,7 +159,7 @@ export async function buildRagContext(
       ORDER BY q.created_at DESC
       LIMIT ${recQ}
     ` as unknown as Promise<QuoteCtxRow[]>,
-  ])
+    ])
 
   // 3) Merge with dedupe (semantic first so its order is preserved).
   const entitiesById = new Map<string, EntityCtxRow>()
@@ -280,10 +277,7 @@ CONSULTA DEL USUARIO:
 DEVUELVE SOLO EL PÁRRAFO. Sin comillas, sin introducción, sin advertencias.`
 
   try {
-    const { content } = await askLLMForText(
-      [{ role: 'user', content: prompt }],
-      override,
-    )
+    const { content } = await askLLMForText([{ role: 'user', content: prompt }], override)
     const text = typeof content === 'string' ? content.trim() : String(content).trim()
     // Saneo: descartar respuestas muy cortas (probable falla del modelo)
     // o que claramente NO sean un párrafo (e.g., comienzan con "No puedo").

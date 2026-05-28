@@ -152,7 +152,11 @@ export function GraphSvgCanvas({
               fontWeight={300}
               fill="var(--ink)"
               fillOpacity={0.06}
-              style={{ userSelect: 'none', pointerEvents: 'none', textTransform: 'lowercase' }}
+              style={{
+                userSelect: 'none',
+                pointerEvents: 'none',
+                textTransform: 'lowercase',
+              }}
             >
               {label}
             </text>
@@ -165,9 +169,7 @@ export function GraphSvgCanvas({
             to={positions.get(rel.toId)}
             highlighted={selectedId === rel.fromId || selectedId === rel.toId}
             dimmed={
-              selectedId !== null &&
-              selectedId !== rel.fromId &&
-              selectedId !== rel.toId
+              selectedId !== null && selectedId !== rel.fromId && selectedId !== rel.toId
             }
             fresh={freshRels.has(rel.id)}
             layoutMode={mode}

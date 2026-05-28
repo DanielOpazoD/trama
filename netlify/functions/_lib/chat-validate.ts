@@ -25,9 +25,9 @@ export type RawChatProposal = {
 }
 
 const RawChatProposalSchema = z.object({
-  entities:          z.array(z.unknown()).optional(),
-  relationships:     z.array(z.unknown()).optional(),
-  quotes:            z.array(z.unknown()).optional(),
+  entities: z.array(z.unknown()).optional(),
+  relationships: z.array(z.unknown()).optional(),
+  quotes: z.array(z.unknown()).optional(),
   reclassifications: z.array(z.unknown()).optional(),
 })
 

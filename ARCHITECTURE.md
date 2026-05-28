@@ -7,24 +7,25 @@ Documento vivo de decisiones. Cada bloque de mejoras lo actualiza.
 Mapa cognitivo personal de afinidades intelectuales y estéticas. La cara visible es **un grafo**; el motor es una **IA que estructura texto desordenado** en nodos y relaciones que el usuario revisa y confirma. Una pestaña paralela de chat permite conversar con la trama y recibir sugerencias inline.
 
 Tres pilares:
+
 1. **Visualización primero.** El producto es el grafo, no los formularios.
 2. **IA como escribano, humano como curador.** El usuario aporta texto bruto o un input ambiguo; la IA propone estructura; el usuario decide qué entra. Nunca nada automático.
 3. **Persistencia en la nube, durabilidad en décadas.** Diseñado para ser usable a lo largo de 10+ años, con respaldo exportable en cualquier momento.
 
 ## Stack técnico
 
-| Capa | Elección | Por qué |
-|---|---|---|
-| Frontend | React 18 + Vite + TypeScript + Tailwind | Vite rápido, TS para seguridad de tipos, Tailwind para iterar estética sin CSS suelto |
-| Hosting | Netlify | El usuario ya tiene cuenta Pro, despliegues automáticos en push a `main`, scheduled functions incluidas |
-| Backend | Netlify Functions (Node 22, ESM) | Cero servidor que mantener, escala automática, idéntico stack TS que el frontend |
-| Base de datos | Netlify Database (Postgres serverless via Neon) | Provisionado por Netlify, plan Pro incluye uso gratuito hasta cierto volumen |
-| Driver Postgres | `@netlify/database` → `getSql()` | Resuelve la conexión vía la extensión Netlify Database. Bajo el capó usa `@neondatabase/serverless` (HTTP), tagged template literals con parametrización segura |
-| Streaming | SSE para chat con DeepSeek/OpenAI; fallback de un chunk para Anthropic/Gemini | Token-by-token donde el provider lo soporta; API consumer-side uniforme |
-| Grafo | SVG con cuatro modos de layout caseros | Cero dependencias, suficiente hasta ~100 nodos. A migrar a `xyflow` o `sigma.js` si crece |
-| LLM | Abstracción multi-proveedor: DeepSeek por defecto, OpenAI/Anthropic/Gemini swappables vía env var | El modelo cambia cada 6 meses; la capa de invocación no debería |
-| Spotify | OAuth client + scheduled function de sync | Importa playlists y registra escuchas, sin escribir nada a la trama sin aprobación |
-| Sync local | localStorage como fallback offline (unidireccional) | Temporal; migrar a CRDTs (Yjs) cuando se use en múltiples dispositivos |
+| Capa            | Elección                                                                                          | Por qué                                                                                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend        | React 18 + Vite + TypeScript + Tailwind                                                           | Vite rápido, TS para seguridad de tipos, Tailwind para iterar estética sin CSS suelto                                                                           |
+| Hosting         | Netlify                                                                                           | El usuario ya tiene cuenta Pro, despliegues automáticos en push a `main`, scheduled functions incluidas                                                         |
+| Backend         | Netlify Functions (Node 22, ESM)                                                                  | Cero servidor que mantener, escala automática, idéntico stack TS que el frontend                                                                                |
+| Base de datos   | Netlify Database (Postgres serverless via Neon)                                                   | Provisionado por Netlify, plan Pro incluye uso gratuito hasta cierto volumen                                                                                    |
+| Driver Postgres | `@netlify/database` → `getSql()`                                                                  | Resuelve la conexión vía la extensión Netlify Database. Bajo el capó usa `@neondatabase/serverless` (HTTP), tagged template literals con parametrización segura |
+| Streaming       | SSE para chat con DeepSeek/OpenAI; fallback de un chunk para Anthropic/Gemini                     | Token-by-token donde el provider lo soporta; API consumer-side uniforme                                                                                         |
+| Grafo           | SVG con cuatro modos de layout caseros                                                            | Cero dependencias, suficiente hasta ~100 nodos. A migrar a `xyflow` o `sigma.js` si crece                                                                       |
+| LLM             | Abstracción multi-proveedor: DeepSeek por defecto, OpenAI/Anthropic/Gemini swappables vía env var | El modelo cambia cada 6 meses; la capa de invocación no debería                                                                                                 |
+| Spotify         | OAuth client + scheduled function de sync                                                         | Importa playlists y registra escuchas, sin escribir nada a la trama sin aprobación                                                                              |
+| Sync local      | localStorage como fallback offline (unidireccional)                                               | Temporal; migrar a CRDTs (Yjs) cuando se use en múltiples dispositivos                                                                                          |
 
 ## Estructura del repositorio
 
@@ -59,6 +60,7 @@ extraction_log, error_log               ← observabilidad
 ### Convenciones de columnas
 
 Las tablas de dominio incluyen:
+
 - `id UUID PRIMARY KEY` — generado por DB (`gen_random_uuid()`)
 - `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()` — inmutable
 - `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()` — actualizado por trigger en cada UPDATE
@@ -70,6 +72,7 @@ Excepciones: `chat_messages` no tiene `updated_at`/`deleted_at` (es append-only 
 ### Tabla `entities`
 
 Además de las columnas estándar:
+
 - `type TEXT NOT NULL` — slug del tipo (referencia lógica a `entity_types.slug`, no FK estricta)
 - `name TEXT NOT NULL`
 - `year INTEGER NULL` — año asociado (nacimiento, publicación, lanzamiento)
@@ -112,11 +115,13 @@ Las notas rápidas que el usuario añade desde `NodeDetailPanel` son quotes sin 
 ### El campo `origin`
 
 JSONB con esta forma mínima:
+
 ```json
 { "kind": "manual" }
 ```
 
 O cuando viene de la IA:
+
 ```json
 {
   "kind": "ai",
@@ -127,6 +132,7 @@ O cuando viene de la IA:
 ```
 
 O cuando viene de un import (Spotify, archivo JSON):
+
 ```json
 {
   "kind": "imported",
@@ -155,11 +161,13 @@ Todos los caminos terminan en el mismo flujo: la UI muestra una propuesta y el u
 ### `_lib/llm.ts`
 
 Punto único de entrada al LLM. Tres funciones:
+
 - `askLLMForJson(messages)` — fuerza `response_format: json_object`. Para extract/suggest/reclassify.
 - `askLLMForText(messages)` — texto plano. Para chat (no-streaming) y para auto-título de threads.
 - `askLLMForTextStreaming(messages)` — async generator de `{chunk|done|error}` frames. SSE en DeepSeek/OpenAI; fallback de un solo chunk en Anthropic/Gemini.
 
 Cada función:
+
 - Lee provider y key de env vars
 - Cachea por hash del input (TTL configurable, default 600s)
 - Hace retry con backoff en 5xx/429, no en 4xx
@@ -178,6 +186,7 @@ La fuente de verdad real son las tablas `entity_types` y `relationship_types`. L
 ### Por qué los layouts del grafo son funciones puras separadas
 
 `useGraphLayout(mode, nodes, edges)` despacha a una de cuatro funciones puras en `src/hooks/layouts/`. Cada una recibe `LayoutNode[]` + `LayoutEdge[]` y devuelve `Map<id, {x,y}>`. Esto:
+
 - hace cada modo testeable sin React,
 - permite agregar un modo nuevo (radial, jerárquico, por color, etc.) sin tocar el resto,
 - evita persistir posiciones cuando el modo no es orgánico (las otras vistas se recalculan determinísticamente).
@@ -233,23 +242,24 @@ Vitest corre tests con `npm test`. Configuración en `vitest.config.ts`.
 
 ### Qué se testea
 
-| Archivo | Qué cubre |
-|---|---|
-| `netlify/functions/_lib/llm.ts` | Dispatch correcto por proveedor (DeepSeek/OpenAI/Anthropic/Gemini), headers y body shape por API, parsing de respuestas, manejo de errores y env vars faltantes |
-| `netlify/functions/_lib/extract-validate.ts` | Validación de tipo, dedup case-insensitive contra existentes, rechazo de self-loops, input malformado |
-| `netlify/functions/_lib/reclassify-prompt.ts` | El prompt menciona todos los tipos, todas las entidades, exige catálogo y conservadurismo |
-| `netlify/functions/_lib/reclassify-validate.ts` | Drop de items sin entity match, type no válido, no-op (mismo tipo), reason opcional |
-| `netlify/functions/_lib/suggest-relationships-prompt.ts` | Prompt lista entidades + citas + relaciones existentes; demanda justificación |
-| `netlify/functions/_lib/chat-validate.ts` | Parse del marker `<<<TRAMA-PROPOSAL ... TRAMA-PROPOSAL>>>`, tolerancia a JSON malformado, detección de propuestas vacías |
-| `src/api.ts` | Transforms snake↔camel, normalización de `origin` legacy |
-| `src/storage.ts` | LocalStorage round-trip, tolerancia a JSON corrupto |
-| `src/hooks/layouts/byType.ts`, `byYear.ts`, `byDegree.ts` | Cada layout: nodos posicionados, clustering correcto, edge cases |
+| Archivo                                                   | Qué cubre                                                                                                                                                       |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `netlify/functions/_lib/llm.ts`                           | Dispatch correcto por proveedor (DeepSeek/OpenAI/Anthropic/Gemini), headers y body shape por API, parsing de respuestas, manejo de errores y env vars faltantes |
+| `netlify/functions/_lib/extract-validate.ts`              | Validación de tipo, dedup case-insensitive contra existentes, rechazo de self-loops, input malformado                                                           |
+| `netlify/functions/_lib/reclassify-prompt.ts`             | El prompt menciona todos los tipos, todas las entidades, exige catálogo y conservadurismo                                                                       |
+| `netlify/functions/_lib/reclassify-validate.ts`           | Drop de items sin entity match, type no válido, no-op (mismo tipo), reason opcional                                                                             |
+| `netlify/functions/_lib/suggest-relationships-prompt.ts`  | Prompt lista entidades + citas + relaciones existentes; demanda justificación                                                                                   |
+| `netlify/functions/_lib/chat-validate.ts`                 | Parse del marker `<<<TRAMA-PROPOSAL ... TRAMA-PROPOSAL>>>`, tolerancia a JSON malformado, detección de propuestas vacías                                        |
+| `src/api.ts`                                              | Transforms snake↔camel, normalización de `origin` legacy                                                                                                        |
+| `src/storage.ts`                                          | LocalStorage round-trip, tolerancia a JSON corrupto                                                                                                             |
+| `src/hooks/layouts/byType.ts`, `byYear.ts`, `byDegree.ts` | Cada layout: nodos posicionados, clustering correcto, edge cases                                                                                                |
 
 Componentes React de momento se prueban end-to-end con `npm run dev`.
 
 ### CI
 
 `.github/workflows/test.yml` corre en cada push y PR a `main`:
+
 1. `npm ci`
 2. `npm run typecheck` (tsc -b)
 3. `npm test`

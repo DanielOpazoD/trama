@@ -20,16 +20,11 @@ describe('<EmptyMessage />', () => {
   })
 
   it('renders an action when provided', () => {
-    render(
-      <EmptyMessage
-        title="Vacío"
-        action={<button type="button">empezar</button>}
-      />,
-    )
+    render(<EmptyMessage title="Vacío" action={<button type="button">empezar</button>} />)
     expect(screen.getByRole('button', { name: /empezar/i })).toBeInTheDocument()
   })
 
-  it("uses the soft variant by default", () => {
+  it('uses the soft variant by default', () => {
     const { container } = render(<EmptyMessage title="x" />)
     expect(container.querySelector('.border-dashed')).not.toBeNull()
   })

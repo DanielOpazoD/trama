@@ -66,9 +66,7 @@ export function FotoEditModal({
   const [items, setItems] = useState<EditItem[]>(() => buildInitialItems(momento))
   const [caption, setCaption] = useState(momento.payload.caption ?? '')
   const [note, setNote] = useState(momento.note ?? '')
-  const [capturedAt, setCapturedAt] = useState(
-    toDateTimeLocalInput(momento.capturedAt),
-  )
+  const [capturedAt, setCapturedAt] = useState(toDateTimeLocalInput(momento.capturedAt))
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
 
@@ -143,11 +141,12 @@ export function FotoEditModal({
     }
     setUploading(true)
     const newItems = items.filter((it): it is NewItem => it.kind === 'new')
-    setProgress(
-      newItems.length > 0 ? { done: 0, total: newItems.length } : null,
-    )
+    setProgress(newItems.length > 0 ? { done: 0, total: newItems.length } : null)
     try {
-      const uploadedKeys = new Map<File, { storageKey: string; width?: number; height?: number }>()
+      const uploadedKeys = new Map<
+        File,
+        { storageKey: string; width?: number; height?: number }
+      >()
       await Promise.all(
         newItems.map(async (it) => {
           const compressed = await compressImage(it.file)

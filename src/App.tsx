@@ -144,8 +144,7 @@ function Shell() {
       }
       const target = e.target as HTMLElement | null
       const tag = target?.tagName
-      const inField =
-        tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable
+      const inField = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable
       if (inField) return
 
       if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
@@ -221,8 +220,8 @@ function Shell() {
                 showDetail && selectedEntityId
                   ? {
                       label:
-                        entitiesQuery.data?.find((e) => e.id === selectedEntityId)?.name ??
-                        'entidad',
+                        entitiesQuery.data?.find((e) => e.id === selectedEntityId)
+                          ?.name ?? 'entidad',
                       onClickRoot: () => setSelectedEntityId(null),
                     }
                   : null
@@ -290,30 +289,36 @@ function Shell() {
               cae al final se ve filtrarse detrás de la barra (que es
               semitransparente con backdrop-blur). Solo aparece donde
               hay AskBar visible. */}
-          {!focusMode && view !== 'chat' && view !== 'grafo' && !(isMobile && rightPanelOpen) && (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-gradient-to-b from-transparent via-paper-50/75 to-paper-50"
-            />
-          )}
+          {!focusMode &&
+            view !== 'chat' &&
+            view !== 'grafo' &&
+            !(isMobile && rightPanelOpen) && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-gradient-to-b from-transparent via-paper-50/75 to-paper-50"
+              />
+            )}
 
           {/* ρ-consistency: AskBar oculto en Grafo (tapa nodos) y Chat
               (la conversación tiene su propio input). Antes solo se
               ocultaba en Chat — en Grafo competía con los nodos centrales
               y forzaba a scrollear o esconder lo más interesante. */}
-          {!focusMode && view !== 'chat' && view !== 'grafo' && !(isMobile && rightPanelOpen) && (
-            <AskBar
-              view={view}
-              selectedEntityId={selectedEntityId}
-              busy={showProposal}
-              onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
-              onOpenThread={(threadId) => {
-                setPendingChatThreadId(threadId)
-                setView('chat')
-              }}
-              onOpenReading={() => setReadingOpen(true)}
-            />
-          )}
+          {!focusMode &&
+            view !== 'chat' &&
+            view !== 'grafo' &&
+            !(isMobile && rightPanelOpen) && (
+              <AskBar
+                view={view}
+                selectedEntityId={selectedEntityId}
+                busy={showProposal}
+                onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
+                onOpenThread={(threadId) => {
+                  setPendingChatThreadId(threadId)
+                  setView('chat')
+                }}
+                onOpenReading={() => setReadingOpen(true)}
+              />
+            )}
 
           <ReadingMode
             open={readingOpen}
@@ -383,10 +388,7 @@ function Shell() {
         }}
       />
 
-      <ShortcutsModal
-        open={shortcutsOpen}
-        onClose={() => setShortcutsOpen(false)}
-      />
+      <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       {/* Onboarding — solo aparece la primera vez, cuando la trama
           está literalmente vacía. El propio componente checa
@@ -462,4 +464,3 @@ export default function App() {
     </AuthGate>
   )
 }
-

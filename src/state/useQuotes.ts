@@ -19,7 +19,10 @@ function normalizeDeleteInput(input: DeleteInput): { id: string; silent: boolean
 
 const DEFAULT_ORIGIN: Origin = { kind: 'manual' }
 
-type QuoteInput = Omit<Quote, 'id' | 'createdAt' | 'updatedAt' | 'origin' | 'linkedQuoteIds'> & {
+type QuoteInput = Omit<
+  Quote,
+  'id' | 'createdAt' | 'updatedAt' | 'origin' | 'linkedQuoteIds'
+> & {
   origin?: Origin
   linkedQuoteIds?: string[]
 }
@@ -66,8 +69,7 @@ export function useInfiniteQuotesQuery() {
   return useInfiniteQuery({
     queryKey: queryKeys.quotesInfinite,
     initialPageParam: null as string | null,
-    queryFn: ({ pageParam }) =>
-      api.listQuotesPage(QUOTES_PAGE_SIZE, pageParam ?? null),
+    queryFn: ({ pageParam }) => api.listQuotesPage(QUOTES_PAGE_SIZE, pageParam ?? null),
     getNextPageParam: (lastPage) => lastPage.nextCursor,
   })
 }
@@ -168,8 +170,12 @@ export function useUpdateQuote() {
             ? {
                 ...q,
                 ...(patch.text !== undefined ? { text: patch.text } : {}),
-                ...(patch.source !== undefined ? { source: patch.source ?? undefined } : {}),
-                ...(patch.context !== undefined ? { context: patch.context ?? undefined } : {}),
+                ...(patch.source !== undefined
+                  ? { source: patch.source ?? undefined }
+                  : {}),
+                ...(patch.context !== undefined
+                  ? { context: patch.context ?? undefined }
+                  : {}),
                 ...(patch.entityId !== undefined ? { entityId: patch.entityId } : {}),
                 ...(patch.userReflection !== undefined
                   ? { userReflection: patch.userReflection ?? undefined }
@@ -259,7 +265,7 @@ export function useDeleteQuote() {
               queryClient.invalidateQueries({ queryKey: queryKeys.quotes })
               queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
               queryClient.invalidateQueries({ queryKey: queryKeys.counts })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
+              queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
             },
           },
         })

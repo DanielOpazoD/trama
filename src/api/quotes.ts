@@ -73,8 +73,10 @@ export const quotesApi = {
     if (patch.entityId !== undefined) body.entity_id = patch.entityId
     if (patch.userReflection !== undefined) body.user_reflection = patch.userReflection
     if (patch.aiReflection !== undefined) body.ai_reflection = patch.aiReflection
-    if (patch.aiReflectionProvider !== undefined) body.ai_reflection_provider = patch.aiReflectionProvider
-    if (patch.aiReflectionModel !== undefined) body.ai_reflection_model = patch.aiReflectionModel
+    if (patch.aiReflectionProvider !== undefined)
+      body.ai_reflection_provider = patch.aiReflectionProvider
+    if (patch.aiReflectionModel !== undefined)
+      body.ai_reflection_model = patch.aiReflectionModel
     if (patch.linkedQuoteIds !== undefined) body.linked_quote_ids = patch.linkedQuoteIds
     if (patch.pinned !== undefined) body.pinned = patch.pinned
     const row = await request<QuoteRow>(`/api/quotes/${id}`, {
@@ -83,7 +85,9 @@ export const quotesApi = {
     })
     return quoteFromRow(row)
   },
-  async reflectQuote(id: string): Promise<{ reflection: string; provider: string; model: string }> {
+  async reflectQuote(
+    id: string,
+  ): Promise<{ reflection: string; provider: string; model: string }> {
     return request(`/api/quotes/${id}/reflect`, { method: 'POST', body: '{}' })
   },
   async deleteQuote(id: string): Promise<{ deletedAt: string }> {

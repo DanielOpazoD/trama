@@ -33,7 +33,9 @@ export function PanelHeader({
           {eyebrow}
         </p>
       )}
-      <h3 className="font-serif text-2xl text-ink-800 leading-tight tracking-tight">{title}</h3>
+      <h3 className="font-serif text-2xl text-ink-800 leading-tight tracking-tight">
+        {title}
+      </h3>
       <p className="text-sm text-ink-400 leading-relaxed max-w-prose">{hint}</p>
       {/* Accent-rule sutil debajo — el header termina como una entrada
           de índice subrayada en un libro. */}
@@ -59,5 +61,9 @@ export function formatRelative(iso: string | null): string {
   if (hours < 24) return `hace ${hours} h`
   const days = Math.floor(hours / 24)
   if (days < 7) return `hace ${days} d`
-  return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('es', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 }

@@ -13,7 +13,10 @@ const SINGLE_CALL_THRESHOLD = 4500
 function chunkText(text: string, target = CHUNK_TARGET_CHARS): string[] {
   const trimmed = text.trim()
   if (trimmed.length <= SINGLE_CALL_THRESHOLD) return [trimmed]
-  const paragraphs = trimmed.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)
+  const paragraphs = trimmed
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
   const chunks: string[] = []
   let buf = ''
   for (const p of paragraphs) {

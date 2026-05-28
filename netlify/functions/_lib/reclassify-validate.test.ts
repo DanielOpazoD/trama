@@ -6,9 +6,7 @@ const ENTITIES = [
   { id: 'e2', name: 'Camus', type: 'persona' },
   { id: 'e3', name: 'absurdo', type: 'concepto' },
 ]
-const VALID_TYPES = new Set([
-  'persona', 'banda', 'escritor', 'concepto', 'libro',
-])
+const VALID_TYPES = new Set(['persona', 'banda', 'escritor', 'concepto', 'libro'])
 
 describe('validateReclassify', () => {
   it('keeps valid reclassifications and attaches entity name + oldType', () => {

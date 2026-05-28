@@ -17,9 +17,7 @@ test('crear entidad manualmente desde EntitiesView', async ({ page }) => {
   // El TopBar ahora pone también un <h1> con el nombre de la sección (commit β4),
   // así que hay dos headings "Entidades": el h1 del TopBar y el h2 del page header.
   // Apuntamos explícitamente al h2 del page header para evitar strict-mode violation.
-  await expect(
-    page.getByRole('heading', { name: 'Entidades', level: 2 }),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Entidades', level: 2 })).toBeVisible()
 
   // Abrir el formulario — el botón del header toggle se llama "Añadir" (era
   // "añadir manualmente" antes de T4: UX copy minimal). Al click, ese botón

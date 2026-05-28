@@ -44,17 +44,17 @@ describe('<EntitiesView />', () => {
   })
 
   it('NO muestra chips de filtro cuando solo hay un tipo', () => {
-    const ents = [mkEntity('e1', 'persona', 'Borges'), mkEntity('e2', 'persona', 'Cortázar')]
+    const ents = [
+      mkEntity('e1', 'persona', 'Borges'),
+      mkEntity('e2', 'persona', 'Cortázar'),
+    ]
     const qc = seedEntities(ents)
     renderWithProviders(<EntitiesView />, { queryClient: qc })
     expect(screen.queryByRole('button', { name: /^Todos/i })).toBeNull()
   })
 
   it('muestra chips de filtro cuando hay 2+ tipos', () => {
-    const ents = [
-      mkEntity('e1', 'persona', 'Borges'),
-      mkEntity('e2', 'libro', 'Rayuela'),
-    ]
+    const ents = [mkEntity('e1', 'persona', 'Borges'), mkEntity('e2', 'libro', 'Rayuela')]
     const qc = seedEntities(ents)
     renderWithProviders(<EntitiesView />, { queryClient: qc })
     expect(screen.getByRole('button', { name: /^Todos/i })).toBeInTheDocument()
@@ -92,10 +92,7 @@ describe('<EntitiesView />', () => {
   })
 
   it('click en chip de tipo y luego en "Todos" — el chip activo cambia', async () => {
-    const ents = [
-      mkEntity('e1', 'persona', 'Borges'),
-      mkEntity('e2', 'libro', 'Rayuela'),
-    ]
+    const ents = [mkEntity('e1', 'persona', 'Borges'), mkEntity('e2', 'libro', 'Rayuela')]
     const qc = seedEntities(ents)
     renderWithProviders(<EntitiesView />, { queryClient: qc })
     const user = userEvent.setup()
@@ -117,15 +114,10 @@ describe('<EntitiesView />', () => {
     // AA-B: el botón "reclasificar con IA" se convirtió en un menú
     // "IA ▾" que despliega opciones. Ahora chequeamos el trigger del
     // menú; la opción "Reclasificar tipos" vive dentro al abrir.
-    const ents = [
-      mkEntity('e1', 'persona', 'Borges'),
-      mkEntity('e2', 'libro', 'Rayuela'),
-    ]
+    const ents = [mkEntity('e1', 'persona', 'Borges'), mkEntity('e2', 'libro', 'Rayuela')]
     const qc = seedEntities(ents)
     renderWithProviders(<EntitiesView />, { queryClient: qc })
     // Botón con texto IA y aria-haspopup="menu" — usamos title.
-    expect(
-      screen.getByRole('button', { name: /acciones con ia/i }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /acciones con ia/i })).toBeInTheDocument()
   })
 })

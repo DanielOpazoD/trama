@@ -15,10 +15,26 @@ import { useAIMode, type AIMode } from '../hooks/useAIMode'
 const OPTIONS: ReadonlyArray<{ value: AIMode; label: string; hint?: string }> = [
   { value: 'auto', label: 'Auto', hint: 'cada tarea usa su provider configurado' },
   { value: 'off', label: 'Off', hint: 'bloquea todas las llamadas IA' },
-  { value: 'forced-deepseek', label: 'Forzar DeepSeek', hint: 'todas las acciones via DeepSeek' },
-  { value: 'forced-openai', label: 'Forzar OpenAI', hint: 'todas las acciones via OpenAI' },
-  { value: 'forced-anthropic', label: 'Forzar Anthropic', hint: 'todas las acciones via Anthropic' },
-  { value: 'forced-gemini', label: 'Forzar Gemini', hint: 'todas las acciones via Gemini' },
+  {
+    value: 'forced-deepseek',
+    label: 'Forzar DeepSeek',
+    hint: 'todas las acciones via DeepSeek',
+  },
+  {
+    value: 'forced-openai',
+    label: 'Forzar OpenAI',
+    hint: 'todas las acciones via OpenAI',
+  },
+  {
+    value: 'forced-anthropic',
+    label: 'Forzar Anthropic',
+    hint: 'todas las acciones via Anthropic',
+  },
+  {
+    value: 'forced-gemini',
+    label: 'Forzar Gemini',
+    hint: 'todas las acciones via Gemini',
+  },
 ]
 
 function labelFor(mode: AIMode): string {
@@ -122,7 +138,14 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
                         ? 'w-full flex items-baseline justify-between gap-3 px-2.5 py-1.5 rounded-md text-sm transition-colors'
                         : 'w-full flex items-baseline justify-between gap-3 px-2.5 py-1.5 rounded-md text-sm text-ink-500 hover:text-ink-700 hover:bg-ink-700/5 transition-colors'
                     }
-                    style={active ? { backgroundColor: 'var(--accent-primary-soft)', color: 'var(--accent-primary)' } : undefined}
+                    style={
+                      active
+                        ? {
+                            backgroundColor: 'var(--accent-primary-soft)',
+                            color: 'var(--accent-primary)',
+                          }
+                        : undefined
+                    }
                   >
                     <span>{opt.label}</span>
                     {active && (
@@ -180,15 +203,7 @@ function ModeIcon({ mode }: { mode: AIMode }) {
         opacity={off ? 0.55 : 1}
       />
       {off && <path d="M5 19L19 5" strokeWidth={1.7} />}
-      {forced && (
-        <circle
-          cx="18.5"
-          cy="5.5"
-          r="2.4"
-          fill="currentColor"
-          stroke="none"
-        />
-      )}
+      {forced && <circle cx="18.5" cy="5.5" r="2.4" fill="currentColor" stroke="none" />}
     </svg>
   )
 }

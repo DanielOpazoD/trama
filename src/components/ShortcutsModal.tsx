@@ -22,8 +22,7 @@ type Group = {
 }
 
 const IS_MAC =
-  typeof navigator !== 'undefined' &&
-  /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
 const CMD = IS_MAC ? '⌘' : 'Ctrl'
 
 const GROUPS: Group[] = [
@@ -161,7 +160,10 @@ export function ShortcutsModal({
         </div>
 
         <footer className="px-6 py-3 border-t border-ink-100/60 text-micro text-ink-300 tabular-nums shrink-0">
-          presiona <kbd className="font-sans px-1 mx-1 bg-paper-100 border border-ink-200/70 rounded">?</kbd>
+          presiona{' '}
+          <kbd className="font-sans px-1 mx-1 bg-paper-100 border border-ink-200/70 rounded">
+            ?
+          </kbd>
           en cualquier momento para abrir esta lista
         </footer>
       </div>

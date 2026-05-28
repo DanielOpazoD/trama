@@ -261,9 +261,7 @@ function TimelineRow({
             </span>
           )}
         </div>
-        <span className="text-micro text-ink-300 tabular-nums shrink-0">
-          {date}
-        </span>
+        <span className="text-micro text-ink-300 tabular-nums shrink-0">{date}</span>
       </div>
     </div>
   )

@@ -53,7 +53,9 @@ export function TalkButton({
         title="Abre un hilo de chat focalizado en esta entidad: su contexto, sus citas y sus relaciones."
       >
         <SparkleIcon size={14} />
-        {createChatThread.isPending ? 'Abriendo…' : `Hablar con ${entity.name.length < 18 ? entity.name : 'esta entidad'}`}
+        {createChatThread.isPending
+          ? 'Abriendo…'
+          : `Hablar con ${entity.name.length < 18 ? entity.name : 'esta entidad'}`}
       </button>
     </div>
   )

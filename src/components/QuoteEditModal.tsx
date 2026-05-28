@@ -99,10 +99,7 @@ export function QuoteEditModal({
           style={{ backgroundColor: 'rgb(var(--paper-50))' }}
         >
           <header className="px-5 py-3 border-b border-ink-100/60">
-            <p
-              className="section-eyebrow-serif"
-              style={{ color: 'var(--accent-gold)' }}
-            >
+            <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
               editar cita
             </p>
             <h3 className="font-serif text-xl text-ink-800 leading-tight mt-1">

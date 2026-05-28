@@ -10,9 +10,9 @@ export function EmptyChatHint() {
         Conversa con tu trama.
       </p>
       <p className="mt-3 text-sm text-ink-400 leading-relaxed">
-        Pregúntale qué cosas se conectan entre sí, qué autores se parecen, qué
-        leer después de un libro que está en la trama, qué clasificación podría
-        mejorar. La IA usa todo lo que has guardado como contexto.
+        Pregúntale qué cosas se conectan entre sí, qué autores se parecen, qué leer
+        después de un libro que está en la trama, qué clasificación podría mejorar. La IA
+        usa todo lo que has guardado como contexto.
       </p>
     </div>
   )

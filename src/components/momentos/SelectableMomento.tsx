@@ -32,11 +32,7 @@ export function SelectableMomento({
 }) {
   if (!selectionMode) {
     return (
-      <MomentoEntry
-        momento={momento}
-        entitiesById={entitiesById}
-        onDelete={onDelete}
-      />
+      <MomentoEntry momento={momento} entitiesById={entitiesById} onDelete={onDelete} />
     )
   }
 
@@ -79,11 +75,7 @@ export function SelectableMomento({
         )}
       </div>
       <div className="pointer-events-none opacity-90">
-        <MomentoEntry
-          momento={momento}
-          entitiesById={entitiesById}
-          onDelete={onDelete}
-        />
+        <MomentoEntry momento={momento} entitiesById={entitiesById} onDelete={onDelete} />
       </div>
     </div>
   )

@@ -14,10 +14,7 @@ import {
 import type { ExtractionProposal } from '../types'
 import { CloseIcon } from './Icons'
 import { AISourceTag } from './AISourceTag'
-import {
-  initialChecked,
-  type CheckedState,
-} from './proposals/utils'
+import { initialChecked, type CheckedState } from './proposals/utils'
 import { ExtractionProposalView } from './proposals/ExtractionProposalView'
 import { EditsProposalView } from './proposals/EditsProposalView'
 
@@ -216,11 +213,7 @@ export function ProposalPanel({
   }
 
   return (
-    <div
-      className="h-full flex flex-col"
-      role="region"
-      aria-label="Propuesta de la IA"
-    >
+    <div className="h-full flex flex-col" role="region" aria-label="Propuesta de la IA">
       {/* θ6: header rediseñado — eyebrow serif para "propuesta IA"
           (en vez de uppercase plano), modelo como chip más prominente,
           source-text en serif más grande. El panel ahora se siente
@@ -288,11 +281,7 @@ export function ProposalPanel({
           onToggleDelete={(index) => toggle('deletes', index)}
         />
 
-        {error && (
-          <div className="alert-error px-3 py-2 text-sm">
-            {error}
-          </div>
-        )}
+        {error && <div className="alert-error px-3 py-2 text-sm">{error}</div>}
       </div>
 
       {total > 0 && (

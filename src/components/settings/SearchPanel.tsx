@@ -23,7 +23,9 @@ export function SearchPanel() {
  * _shared.
  */
 function ReindexEmbeddingsSection() {
-  const [pending, setPending] = useState<{ entities: number; quotes: number } | null>(null)
+  const [pending, setPending] = useState<{ entities: number; quotes: number } | null>(
+    null,
+  )
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // Total al inicio del run — para calcular progreso real (processed/total)

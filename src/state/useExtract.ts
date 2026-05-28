@@ -26,7 +26,13 @@ export function useExtractFromImage() {
   const { offline } = useOffline()
   return useMutation({
     meta: { silent: true },
-    mutationFn: async ({ imageBase64, mimeType }: { imageBase64: string; mimeType: string }) => {
+    mutationFn: async ({
+      imageBase64,
+      mimeType,
+    }: {
+      imageBase64: string
+      mimeType: string
+    }) => {
       if (offline) {
         throw new Error(
           'La extracción desde imagen requiere conexión al backend. Estás en modo local.',

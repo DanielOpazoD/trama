@@ -44,8 +44,7 @@ DEVUELVE EXCLUSIVAMENTE un objeto JSON con esta forma exacta:
 
 Sin comentarios, sin markdown, solo el JSON. Si la imagen no contiene nada extraíble, devuelve arrays vacíos.`
 
-  const user =
-    'Esta es la imagen. Extrae las entidades, relaciones y citas visibles.'
+  const user = 'Esta es la imagen. Extrae las entidades, relaciones y citas visibles.'
 
   return { system, user }
 }

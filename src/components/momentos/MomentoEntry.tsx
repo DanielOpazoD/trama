@@ -57,9 +57,7 @@ export function MomentoEntry({
           </span>
         )}
 
-        {linkedEntities.length > 0 && (
-          <LinkedEntities entities={linkedEntities} />
-        )}
+        {linkedEntities.length > 0 && <LinkedEntities entities={linkedEntities} />}
       </div>
       {/* Toolbar contextual al hover — editar (todos los kinds) + eliminar. */}
       <div className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
@@ -164,17 +162,11 @@ function FotoBody({ momento }: { momento: Momento }) {
   // cuántas fotos tenga el episodio.
   const { items, storageKey, width, height, caption } = momento.payload
   const photos: Array<{ storageKey: string; width?: number; height?: number }> =
-    items && items.length > 0
-      ? items
-      : storageKey
-        ? [{ storageKey, width, height }]
-        : []
+    items && items.length > 0 ? items : storageKey ? [{ storageKey, width, height }] : []
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
   if (photos.length === 0) {
-    return (
-      <p className="text-caption italic text-ink-400">(imagen no encontrada)</p>
-    )
+    return <p className="text-caption italic text-ink-400">(imagen no encontrada)</p>
   }
 
   const cover = photos[0]!
@@ -191,9 +183,7 @@ function FotoBody({ momento }: { momento: Momento }) {
           type="button"
           onClick={() => setLightboxOpen(true)}
           aria-label={
-            photos.length === 1
-              ? 'Abrir foto'
-              : `Abrir visor — ${photos.length} fotos`
+            photos.length === 1 ? 'Abrir foto' : `Abrir visor — ${photos.length} fotos`
           }
           className="block w-full rounded-md overflow-hidden border border-ink-100/60 cursor-zoom-in hover:opacity-95 transition-opacity"
         >
@@ -218,9 +208,7 @@ function FotoBody({ momento }: { momento: Momento }) {
         )}
       </div>
       {caption && (
-        <p className="font-serif text-sm italic text-ink-500 max-w-md">
-          {caption}
-        </p>
+        <p className="font-serif text-sm italic text-ink-500 max-w-md">{caption}</p>
       )}
       {momento.note && (
         // Mismo estilo que las notas de texto — coherencia con NotaBody.

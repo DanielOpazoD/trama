@@ -23,10 +23,7 @@ import { useEffect, type RefObject } from 'react'
  * tabindex, etc.) — eso lo siguen haciendo los modales individualmente.
  * Esto solo cubre el trap + restore, que era el gap concreto del audit.
  */
-export function useFocusTrap(
-  ref: RefObject<HTMLElement | null>,
-  active: boolean,
-): void {
+export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean): void {
   useEffect(() => {
     if (!active) return
     const root = ref.current
@@ -110,9 +107,7 @@ const FOCUSABLE_SELECTOR = [
 ].join(',')
 
 function getFocusableElements(root: HTMLElement): HTMLElement[] {
-  const all = Array.from(
-    root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
-  )
+  const all = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
   // Filtrar los que están display:none o aria-hidden (no son
   // focuseables realmente). Conservadores: si el browser puede enfocarlos,
   // los aceptamos.

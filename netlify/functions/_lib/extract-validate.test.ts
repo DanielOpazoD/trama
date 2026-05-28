@@ -7,11 +7,24 @@ const EXISTING = [
 ]
 
 const ENTITY_TYPES = new Set([
-  'persona', 'libro', 'cancion', 'album', 'pelicula', 'obra', 'concepto', 'idea',
+  'persona',
+  'libro',
+  'cancion',
+  'album',
+  'pelicula',
+  'obra',
+  'concepto',
+  'idea',
 ])
 const RELATIONSHIP_TYPES = new Set([
-  'influye_en', 'cita_a', 'responde_a', 'me_llego_por',
-  'suena_como', 'inspira', 'contradice', 'asociado_con',
+  'influye_en',
+  'cita_a',
+  'responde_a',
+  'me_llego_por',
+  'suena_como',
+  'inspira',
+  'contradice',
+  'asociado_con',
 ])
 
 function v(raw: unknown, existing = EXISTING) {
@@ -29,7 +42,10 @@ describe('validateExtraction — happy path', () => {
         { fromName: 'Iris Murdoch', toName: 'atención', type: 'asociado_con' },
       ],
       quotes: [
-        { entityName: 'Iris Murdoch', text: 'love is the difficult realization that something other than oneself is real' },
+        {
+          entityName: 'Iris Murdoch',
+          text: 'love is the difficult realization that something other than oneself is real',
+        },
       ],
     }
 
@@ -141,7 +157,13 @@ describe('validateExtraction — invalid quote', () => {
 describe('validateExtraction — garbage in, structured out', () => {
   it('returns empty arrays when input is null', () => {
     const result = v(null)
-    expect(result).toEqual({ entities: [], relationships: [], quotes: [], edits: [], deletes: [] })
+    expect(result).toEqual({
+      entities: [],
+      relationships: [],
+      quotes: [],
+      edits: [],
+      deletes: [],
+    })
   })
 
   it('returns empty arrays when input is wrong shape', () => {
@@ -151,17 +173,35 @@ describe('validateExtraction — garbage in, structured out', () => {
 
   it('returns empty arrays when input is a string', () => {
     const result = v('garbage')
-    expect(result).toEqual({ entities: [], relationships: [], quotes: [], edits: [], deletes: [] })
+    expect(result).toEqual({
+      entities: [],
+      relationships: [],
+      quotes: [],
+      edits: [],
+      deletes: [],
+    })
   })
 
   it('returns empty arrays when input is an array directly', () => {
     const result = v([1, 2, 3])
-    expect(result).toEqual({ entities: [], relationships: [], quotes: [], edits: [], deletes: [] })
+    expect(result).toEqual({
+      entities: [],
+      relationships: [],
+      quotes: [],
+      edits: [],
+      deletes: [],
+    })
   })
 
   it('handles empty input gracefully', () => {
     const result = v({})
-    expect(result).toEqual({ entities: [], relationships: [], quotes: [], edits: [], deletes: [] })
+    expect(result).toEqual({
+      entities: [],
+      relationships: [],
+      quotes: [],
+      edits: [],
+      deletes: [],
+    })
   })
 })
 

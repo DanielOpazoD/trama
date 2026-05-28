@@ -8,9 +8,7 @@ vi.mock('./db.js', () => setupMockSql())
 // usuario legacy en vez de lanzar UnauthenticatedError.
 vi.stubGlobal('Netlify', {
   env: {
-    get: vi.fn((key: string) =>
-      key === 'ALLOW_LEGACY_FALLBACK' ? 'true' : undefined,
-    ),
+    get: vi.fn((key: string) => (key === 'ALLOW_LEGACY_FALLBACK' ? 'true' : undefined)),
   },
 })
 // LLM nunca se llega a invocar en estos tests (mock fetch a fail).

@@ -123,10 +123,7 @@ export function WeeklyActivity({
         <div className="flex items-baseline gap-x-4 gap-y-1 flex-wrap text-sm text-ink-600">
           {stats.entities > 0 && (
             <span>
-              <strong
-                className="tabular-nums"
-                style={{ color: 'var(--type-persona)' }}
-              >
+              <strong className="tabular-nums" style={{ color: 'var(--type-persona)' }}>
                 +{stats.entities}
               </strong>{' '}
               <span className="text-ink-400">
@@ -136,10 +133,7 @@ export function WeeklyActivity({
           )}
           {stats.quotes > 0 && (
             <span>
-              <strong
-                className="tabular-nums"
-                style={{ color: 'var(--accent-gold)' }}
-              >
+              <strong className="tabular-nums" style={{ color: 'var(--accent-gold)' }}>
                 +{stats.quotes}
               </strong>{' '}
               <span className="text-ink-400">
@@ -149,10 +143,7 @@ export function WeeklyActivity({
           )}
           {stats.relationships > 0 && (
             <span>
-              <strong
-                className="tabular-nums"
-                style={{ color: 'var(--accent-sage)' }}
-              >
+              <strong className="tabular-nums" style={{ color: 'var(--accent-sage)' }}>
                 +{stats.relationships}
               </strong>{' '}
               <span className="text-ink-400">
@@ -177,9 +168,7 @@ export function WeeklyActivity({
           // ese día. Hoy mantiene un anillo más vivo (opacidad 1, color
           // pleno); días pasados con actividad usan el mismo color pero
           // con opacity 0.7 para que el "hoy" siga teniendo peso.
-          const color = bucket.total > 0
-            ? dominantColor(bucket)
-            : 'rgb(var(--ink-100))'
+          const color = bucket.total > 0 ? dominantColor(bucket) : 'rgb(var(--ink-100))'
           return (
             <div
               key={i}

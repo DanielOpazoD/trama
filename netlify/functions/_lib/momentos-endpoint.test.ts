@@ -48,10 +48,7 @@ describe('momentos endpoint — integration (mock SQL)', () => {
     // Bulk-fetch de links: array vacío (no hay vínculos).
     mockSqlResponses.push([])
 
-    const res = await handler(
-      new Request('http://localhost/api/momentos'),
-      mockContext(),
-    )
+    const res = await handler(new Request('http://localhost/api/momentos'), mockContext())
     expect(res.status).toBe(200)
     const body = (await res.json()) as { items: unknown[]; nextCursor: unknown }
     expect(body.items).toHaveLength(1)
@@ -75,10 +72,7 @@ describe('momentos endpoint — integration (mock SQL)', () => {
       { momento_id: 'm1', entity_id: 'e1' },
       { momento_id: 'm1', entity_id: 'e2' },
     ])
-    const res = await handler(
-      new Request('http://localhost/api/momentos'),
-      mockContext(),
-    )
+    const res = await handler(new Request('http://localhost/api/momentos'), mockContext())
     const body = (await res.json()) as {
       items: Array<{ entity_ids: string[] }>
     }
@@ -211,9 +205,7 @@ describe('momentos endpoint — integration (mock SQL)', () => {
   })
 
   it('DELETE devuelve { deletedAt } si existe', async () => {
-    mockSqlResponses.push([
-      { id: 'm1', deleted_at: '2026-05-24T13:00:00Z' },
-    ])
+    mockSqlResponses.push([{ id: 'm1', deleted_at: '2026-05-24T13:00:00Z' }])
     const res = await handler(
       new Request('http://localhost/api/momentos/m1', { method: 'DELETE' }),
       mockContext({ id: 'm1' }),

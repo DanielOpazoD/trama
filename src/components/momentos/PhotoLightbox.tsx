@@ -99,18 +99,14 @@ export function PhotoLightbox({
         {photos.length > 1 && (
           <>
             <button
-              onClick={() =>
-                setActive((i) => (i === 0 ? photos.length - 1 : i - 1))
-              }
+              onClick={() => setActive((i) => (i === 0 ? photos.length - 1 : i - 1))}
               aria-label="Foto anterior"
               className="pointer-events-auto absolute left-3 top-1/2 -translate-y-1/2 size-11 flex items-center justify-center rounded-full bg-ink-900/40 text-paper-50 hover:bg-ink-900/60 transition-colors text-2xl leading-none"
             >
               ‹
             </button>
             <button
-              onClick={() =>
-                setActive((i) => (i === photos.length - 1 ? 0 : i + 1))
-              }
+              onClick={() => setActive((i) => (i === photos.length - 1 ? 0 : i + 1))}
               aria-label="Foto siguiente"
               className="pointer-events-auto absolute right-3 top-1/2 -translate-y-1/2 size-11 flex items-center justify-center rounded-full bg-ink-900/40 text-paper-50 hover:bg-ink-900/60 transition-colors text-2xl leading-none"
             >

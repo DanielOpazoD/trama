@@ -123,9 +123,13 @@ describe('buildTimingBuckets', () => {
   it('maxHeatmap refleja la celda más densa', () => {
     const playedAts = [
       // 5 plays el lunes 4 mayo 22h
-      ...Array(5).fill(null).map(() => localTime(2026, 4, 4, 22, 0)),
+      ...Array(5)
+        .fill(null)
+        .map(() => localTime(2026, 4, 4, 22, 0)),
       // 2 plays el martes 5 mayo 22h
-      ...Array(2).fill(null).map(() => localTime(2026, 4, 5, 22, 0)),
+      ...Array(2)
+        .fill(null)
+        .map(() => localTime(2026, 4, 5, 22, 0)),
     ]
     const r = buildTimingBuckets(playedAts, NOW)
     expect(r.maxHeatmap).toBe(5)

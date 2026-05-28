@@ -2,7 +2,15 @@ import type { LLMMessage } from './llm'
 
 export type AskContext = {
   /** Which view the user is looking at right now. */
-  view: 'grafo' | 'entidades' | 'citas' | 'relaciones' | 'escuchas' | 'chat' | 'sugerencias' | null
+  view:
+    | 'grafo'
+    | 'entidades'
+    | 'citas'
+    | 'relaciones'
+    | 'escuchas'
+    | 'chat'
+    | 'sugerencias'
+    | null
   /** Lightweight trama snapshot for the model to use as context. */
   entities: Array<{
     id: string
@@ -82,20 +90,29 @@ export function buildAskPrompt(userText: string, ctx: AskContext): LLMMessage[] 
       ? '(sin citas)'
       : ctx.recentQuotes
           .slice(0, 20)
-          .map((q) => `- [id=${q.id}] ${q.entityName}: «${q.text}»${q.source ? ` [${q.source}]` : ''}`)
+          .map(
+            (q) =>
+              `- [id=${q.id}] ${q.entityName}: «${q.text}»${q.source ? ` [${q.source}]` : ''}`,
+          )
           .join('\n')
 
   const viewHints: Record<string, string> = {
-    grafo: 'Está viendo el grafo de su trama. Puede preguntar por conexiones, hubs, regiones temáticas, o pedir agregar nuevos nodos.',
-    entidades: 'Está viendo la lista de entidades. Si pregunta algo general, puede invitarle a profundizar en una; si menciona un nombre, puede ofrecer contar más o proponer agregarlo si no existe.',
-    citas: 'Está leyendo sus citas. Si pregunta por una en general, medita sobre ella, busca autores afines, propone interpretaciones. Si pega una cita nueva, extráela como tal.',
-    relaciones: 'Está viendo las relaciones registradas. Puede ofrecer descubrir nuevas conexiones, explicar las existentes, sugerir tipos de relación nuevos.',
-    escuchas: 'Está revisando su música reciente. Puede recomendar artistas afines, sugerir entrar a la trama lo que escuchó, conectar música con otros temas de la trama.',
+    grafo:
+      'Está viendo el grafo de su trama. Puede preguntar por conexiones, hubs, regiones temáticas, o pedir agregar nuevos nodos.',
+    entidades:
+      'Está viendo la lista de entidades. Si pregunta algo general, puede invitarle a profundizar en una; si menciona un nombre, puede ofrecer contar más o proponer agregarlo si no existe.',
+    citas:
+      'Está leyendo sus citas. Si pregunta por una en general, medita sobre ella, busca autores afines, propone interpretaciones. Si pega una cita nueva, extráela como tal.',
+    relaciones:
+      'Está viendo las relaciones registradas. Puede ofrecer descubrir nuevas conexiones, explicar las existentes, sugerir tipos de relación nuevos.',
+    escuchas:
+      'Está revisando su música reciente. Puede recomendar artistas afines, sugerir entrar a la trama lo que escuchó, conectar música con otros temas de la trama.',
     chat: 'Está en el chat dedicado — pero esta llamada vino de la barra general, no del hilo. Trátalo como pregunta única, sin historial.',
-    sugerencias: 'Está revisando sugerencias proactivas. Puede pedir más, pedir que profundices en una, o explicar por qué algo se propuso.',
+    sugerencias:
+      'Está revisando sugerencias proactivas. Puede pedir más, pedir que profundices en una, o explicar por qué algo se propuso.',
   }
 
-  const viewHint = ctx.view ? viewHints[ctx.view] ?? '' : ''
+  const viewHint = ctx.view ? (viewHints[ctx.view] ?? '') : ''
   const selectedHint = ctx.selectedEntity
     ? `El usuario tiene seleccionada actualmente la entidad: "${ctx.selectedEntity.name}" [${ctx.selectedEntity.type}]${ctx.selectedEntity.description ? ` — ${ctx.selectedEntity.description}` : ''}.`
     : ''
@@ -181,7 +198,5 @@ ${quotesBlock}`
     AskBar's JSON shape doesn't. Either way, when replaying past assistant
     turns we want just the prose, not stale proposal JSON. */
 function stripProposalBlock(text: string): string {
-  return text
-    .replace(/<<<TRAMA-PROPOSAL[\s\S]*?TRAMA-PROPOSAL>>>/g, '')
-    .trim()
+  return text.replace(/<<<TRAMA-PROPOSAL[\s\S]*?TRAMA-PROPOSAL>>>/g, '').trim()
 }

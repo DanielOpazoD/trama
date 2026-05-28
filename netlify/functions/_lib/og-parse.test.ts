@@ -6,8 +6,8 @@ describe('decodeEntities', () => {
     expect(decodeEntities('A &amp; B')).toBe('A & B')
     expect(decodeEntities('&lt;div&gt;')).toBe('<div>')
     expect(decodeEntities('&quot;hola&quot;')).toBe('"hola"')
-    expect(decodeEntities("It&apos;s")).toBe("It's")
-    expect(decodeEntities("It&#39;s")).toBe("It's")
+    expect(decodeEntities('It&apos;s')).toBe("It's")
+    expect(decodeEntities('It&#39;s')).toBe("It's")
   })
 
   it('decodifica entidades castellanas (ñ, á, é, í, ó, ú, ¿, ¡)', () => {

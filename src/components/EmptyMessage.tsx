@@ -50,23 +50,17 @@ export function EmptyMessage({
       ) : (
         icon && <div className="text-ink-300 flex justify-center mb-3">{icon}</div>
       )}
-      <h3 className="font-serif text-2xl text-ink-600 italic leading-tight">
-        {title}
-      </h3>
-      {body && (
-        <p className="mt-3 text-sm text-ink-400 leading-relaxed">{body}</p>
-      )}
-      {hint && (
-        <p className="mt-2 text-xs text-ink-300 leading-relaxed italic">
-          {hint}
-        </p>
-      )}
+      <h3 className="font-serif text-2xl text-ink-600 italic leading-tight">{title}</h3>
+      {body && <p className="mt-3 text-sm text-ink-400 leading-relaxed">{body}</p>}
+      {hint && <p className="mt-2 text-xs text-ink-300 leading-relaxed italic">{hint}</p>}
       {action && <div className="mt-5 flex justify-center gap-2">{action}</div>}
     </div>
   )
 }
 
 /** Pre-baked variant with the AI sparkle, for views where the next step is the IA. */
-export function EmptyMessageWithSparkle(props: Omit<Parameters<typeof EmptyMessage>[0], 'icon'>) {
+export function EmptyMessageWithSparkle(
+  props: Omit<Parameters<typeof EmptyMessage>[0], 'icon'>,
+) {
   return <EmptyMessage icon={<SparkleIcon size={18} />} {...props} />
 }

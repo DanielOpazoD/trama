@@ -121,9 +121,7 @@ export function GraphCanvasSigma({
     })
 
     sigmaRef.current = sigma
-    console.info(
-      `[GraphCanvasSigma] WebGL: ${entities.length} nodes, ${edgeCount} edges`,
-    )
+    console.info(`[GraphCanvasSigma] WebGL: ${entities.length} nodes, ${edgeCount} edges`)
 
     return () => {
       sigma.kill()

@@ -30,10 +30,11 @@ test('añadir cita manualmente desde QuotesView', async ({ page }) => {
   await page.goto('/')
 
   // Navegar a Citas desde la sidebar.
-  await page.getByRole('button', { name: /^Citas/ }).first().click()
-  await expect(
-    page.getByRole('heading', { name: 'Citas', level: 2 }),
-  ).toBeVisible()
+  await page
+    .getByRole('button', { name: /^Citas/ })
+    .first()
+    .click()
+  await expect(page.getByRole('heading', { name: 'Citas', level: 2 })).toBeVisible()
 
   // Abrir el formulario — el botón "Añadir" en el header toggle.
   // Al click, ese botón pasa a "Cerrar" y aparece un segundo "Añadir" como
@@ -44,7 +45,9 @@ test('añadir cita manualmente desde QuotesView', async ({ page }) => {
   await page.selectOption('select', { label: 'Borges' })
 
   // Rellenar el texto de la cita.
-  await page.getByPlaceholder('La cita', { exact: true }).fill('El tiempo es un río que me arrebata...')
+  await page
+    .getByPlaceholder('La cita', { exact: true })
+    .fill('El tiempo es un río que me arrebata...')
 
   // Enviar — el toggle es ahora "Cerrar", el único "Añadir" visible es el submit.
   await page.getByRole('button', { name: /^Añadir$/ }).click()

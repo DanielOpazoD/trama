@@ -90,7 +90,12 @@ export type ErrorLogEntry = {
 }
 
 export const healthApi = {
-  async getCounts(): Promise<{ entities: number; quotes: number; relationships: number; momentos: number }> {
+  async getCounts(): Promise<{
+    entities: number
+    quotes: number
+    relationships: number
+    momentos: number
+  }> {
     return request('/api/counts')
   },
   async getHealth(): Promise<HealthResponse> {

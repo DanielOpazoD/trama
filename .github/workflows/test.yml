@@ -21,7 +21,17 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
+
+      # N1: lint + format check. Fallan si cualquier archivo no pasa
+      # eslint.config.js o si Prettier propondría cambios. El pre-commit
+      # de Husky corre los mismos checks localmente para que CI no
+      # encuentre sorpresas.
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
 
       - name: Type check
         run: npm run typecheck

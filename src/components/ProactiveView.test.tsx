@@ -28,14 +28,22 @@ const ENTITIES: Entity[] = [
   } as Entity,
 ]
 
-function seedProactiveCache(qc: ReturnType<typeof makeQueryClient>, items: ProactiveSuggestion[]) {
+function seedProactiveCache(
+  qc: ReturnType<typeof makeQueryClient>,
+  items: ProactiveSuggestion[],
+) {
   qc.setQueryData(['proactive', 'pending'], items)
   qc.setQueryData(queryKeys.entities, ENTITIES)
 }
 
 function fakeFetch(handlers: Record<string, () => Response>) {
   return vi.fn((input: RequestInfo) => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url
+    const url =
+      typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : (input as Request).url
     for (const [pattern, h] of Object.entries(handlers)) {
       if (url.includes(pattern)) {
         return Promise.resolve(h())
@@ -61,9 +69,12 @@ afterEach(() => {
 
 describe('<ProactiveView />', () => {
   it('shows the empty state when there are no pending suggestions', () => {
-    vi.stubGlobal('fetch', fakeFetch({
-      '/api/proactive-suggestions': () => jsonResponse([]),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      fakeFetch({
+        '/api/proactive-suggestions': () => jsonResponse([]),
+      }),
+    )
     const qc = makeQueryClient()
     qc.setQueryData(['proactive', 'pending'], [])
     qc.setQueryData(queryKeys.entities, ENTITIES)
@@ -89,9 +100,12 @@ describe('<ProactiveView />', () => {
         statusChangedAt: null,
       },
     ]
-    vi.stubGlobal('fetch', fakeFetch({
-      '/api/proactive-suggestions': () => jsonResponse(items),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      fakeFetch({
+        '/api/proactive-suggestions': () => jsonResponse(items),
+      }),
+    )
     const qc = makeQueryClient()
     seedProactiveCache(qc, items)
     renderWithProviders(<ProactiveView />, { queryClient: qc })

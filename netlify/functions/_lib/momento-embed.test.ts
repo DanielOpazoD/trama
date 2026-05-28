@@ -33,12 +33,12 @@ describe('momentoEmbedText', () => {
   })
 
   it('foto: usa solo caption (más note)', () => {
-    expect(
-      momentoEmbedText('foto', { caption: 'atardecer en la playa' }, null),
-    ).toBe('atardecer en la playa')
-    expect(
-      momentoEmbedText('foto', { caption: 'playa' }, 'con Lola'),
-    ).toBe('con Lola\nplaya')
+    expect(momentoEmbedText('foto', { caption: 'atardecer en la playa' }, null)).toBe(
+      'atardecer en la playa',
+    )
+    expect(momentoEmbedText('foto', { caption: 'playa' }, 'con Lola')).toBe(
+      'con Lola\nplaya',
+    )
   })
 
   it('foto: ignora storageKey/width/height/exifDate (no son texto)', () => {
@@ -60,11 +60,7 @@ describe('momentoEmbedText', () => {
   })
 
   it('payload con campos no-string se ignoran (defensa contra JSONB raro)', () => {
-    const text = momentoEmbedText(
-      'nota',
-      { bodyText: 42 as unknown as string },
-      null,
-    )
+    const text = momentoEmbedText('nota', { bodyText: 42 as unknown as string }, null)
     expect(text).toBe('')
   })
 
@@ -127,9 +123,9 @@ describe('validatePayloadForKind', () => {
     })
     it('rechaza foto sin storageKey', () => {
       expect(validatePayloadForKind('foto', {})).toMatch(/storageKey/)
-      expect(
-        validatePayloadForKind('foto', { caption: 'algo', width: 100 }),
-      ).toMatch(/storageKey/)
+      expect(validatePayloadForKind('foto', { caption: 'algo', width: 100 })).toMatch(
+        /storageKey/,
+      )
     })
     it('rechaza storageKey con valor no-string', () => {
       expect(validatePayloadForKind('foto', { storageKey: 42 as never })).toMatch(

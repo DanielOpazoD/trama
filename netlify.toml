@@ -2,6 +2,14 @@
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  # N1: eslint-plugin-jsx-a11y aún declara peers `eslint@^6 || ^7 || ^8`
+  # pero nosotros usamos eslint@^9. El flag --legacy-peer-deps deja que
+  # npm ci no falle en ese peer constraint. Sin esto el build de Netlify
+  # rompe en "Install dependencies". Removerlo cuando jsx-a11y publique
+  # una versión con peer eslint@^9 (hay PR upstream pendiente).
+  NPM_FLAGS = "--legacy-peer-deps"
+
 [functions]
   node_bundler = "esbuild"
 
@@ -9,3 +17,35 @@
   framework = "vite"
   command = "npm run dev"
   targetPort = 5173
+
+# N2: Security headers a nivel CDN para TODOS los assets/HTML servidos.
+# Las APIs (/.netlify/functions/*) se ven afectadas por estos headers
+# salvo que el handler los pise.
+#
+# CSP:
+#   - default-src 'self' — solo nuestros propios assets cargan por default.
+#   - script-src 'self' — JS solo del propio dominio (Vite hashea con
+#     subresource integrity en el bundle; no usamos inline scripts).
+#   - style-src 'self' 'unsafe-inline' — Tailwind genera inline styles
+#     en algunos casos; 'unsafe-inline' es el mínimo necesario.
+#   - img-src 'self' data: https://i.scdn.co — data: para QR codes
+#     en MomentoQRModal; i.scdn.co para covers de Spotify.
+#   - connect-src 'self' https://api.spotify.com https://*.clerk.com
+#     https://*.clerk.accounts.dev — el frontend habla con su propio
+#     /api/*, con Spotify (token-refresh OAuth si se mueve a client-side
+#     algún día), y con Clerk.
+#   - frame-ancestors 'none' — bloquea iframing por terceros (anti-clickjacking).
+#   - base-uri 'self' — no permite <base href="..."> a otra origin.
+#   - form-action 'self' — los <form> solo posteam a este dominio.
+#
+# Si en el futuro agregamos un CDN para imágenes o un script analytics,
+# se whitelistea aquí. Empezamos restrictivo y abrimos solo lo necesario.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.scdn.co https://mosaic.scdn.co; font-src 'self' data:; connect-src 'self' https://api.spotify.com https://accounts.spotify.com https://*.clerk.com https://*.clerk.accounts.dev https://clerk.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"

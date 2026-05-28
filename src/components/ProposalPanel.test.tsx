@@ -92,7 +92,12 @@ describe('<ProposalPanel />', () => {
 
   it('shows "ya existe" badge for matched entities', () => {
     renderWithProviders(
-      <ProposalPanel proposal={PROPOSAL} sourceText="test" onClose={vi.fn()} onConfirmed={vi.fn()} />,
+      <ProposalPanel
+        proposal={PROPOSAL}
+        sourceText="test"
+        onClose={vi.fn()}
+        onConfirmed={vi.fn()}
+      />,
     )
     expect(screen.getByText('ya existe')).toBeInTheDocument()
   })
@@ -100,7 +105,12 @@ describe('<ProposalPanel />', () => {
   it('shows empty state when proposal has nothing', () => {
     const empty: ExtractionProposal = { entities: [], relationships: [], quotes: [] }
     renderWithProviders(
-      <ProposalPanel proposal={empty} sourceText="test" onClose={vi.fn()} onConfirmed={vi.fn()} />,
+      <ProposalPanel
+        proposal={empty}
+        sourceText="test"
+        onClose={vi.fn()}
+        onConfirmed={vi.fn()}
+      />,
     )
     expect(screen.getByText(/La IA no detectó nada concreto/)).toBeInTheDocument()
   })
@@ -109,7 +119,12 @@ describe('<ProposalPanel />', () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
     renderWithProviders(
-      <ProposalPanel proposal={PROPOSAL} sourceText="test" onClose={onClose} onConfirmed={vi.fn()} />,
+      <ProposalPanel
+        proposal={PROPOSAL}
+        sourceText="test"
+        onClose={onClose}
+        onConfirmed={vi.fn()}
+      />,
     )
     await user.click(screen.getByText('descartar'))
     expect(onClose).toHaveBeenCalled()
@@ -119,7 +134,12 @@ describe('<ProposalPanel />', () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
     renderWithProviders(
-      <ProposalPanel proposal={PROPOSAL} sourceText="test" onClose={onClose} onConfirmed={vi.fn()} />,
+      <ProposalPanel
+        proposal={PROPOSAL}
+        sourceText="test"
+        onClose={onClose}
+        onConfirmed={vi.fn()}
+      />,
     )
     await user.keyboard('{Escape}')
     expect(onClose).toHaveBeenCalled()
@@ -128,7 +148,12 @@ describe('<ProposalPanel />', () => {
   it('uncheckes items via checkboxes', async () => {
     const user = userEvent.setup()
     renderWithProviders(
-      <ProposalPanel proposal={PROPOSAL} sourceText="test" onClose={vi.fn()} onConfirmed={vi.fn()} />,
+      <ProposalPanel
+        proposal={PROPOSAL}
+        sourceText="test"
+        onClose={vi.fn()}
+        onConfirmed={vi.fn()}
+      />,
     )
     const checkboxes = screen.getAllByRole('checkbox')
     const firstChecked = checkboxes[0] as HTMLInputElement

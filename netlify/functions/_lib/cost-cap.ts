@@ -27,11 +27,13 @@
 
 import { safeSql } from './observability.js'
 import { ApiErrors } from './api-error.js'
+import { getEnv } from './env.js'
 
 function readEnvBudgetCents(): number {
-  const raw = Netlify.env.get('AI_MONTHLY_BUDGET_CENTS')
-  const n = raw ? parseInt(raw, 10) : NaN
-  return Number.isFinite(n) && n > 0 ? n : 500 // default $5/month
+  // N4: vía getEnv() en lugar de Netlify.env.get directo. El parsing
+  // numérico está centralizado en env.ts; acá solo aplicamos el default.
+  const value = getEnv().AI_MONTHLY_BUDGET_CENTS
+  return typeof value === 'number' && value > 0 ? value : 500 // default $5/month
 }
 
 export async function checkMonthlyBudget(

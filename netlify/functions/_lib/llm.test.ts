@@ -362,10 +362,7 @@ describe('askLLMForJson — error propagation', () => {
   })
 
   it('throws when response has no content', async () => {
-    vi.stubGlobal(
-      'fetch',
-      mockFetch({ choices: [{ message: {} }] }),
-    )
+    vi.stubGlobal('fetch', mockFetch({ choices: [{ message: {} }] }))
     await expect(askLLMForJson([{ role: 'user', content: 'x' }])).rejects.toThrow()
   })
 })

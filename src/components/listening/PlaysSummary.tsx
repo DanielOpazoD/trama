@@ -31,10 +31,13 @@ export function PlaysSummary({
   }, [summary, loading])
 
   const periodLabel =
-    periodDays === 7 ? 'última semana'
-    : periodDays === 30 ? 'último mes'
-    : periodDays === 90 ? 'últimos 90 días'
-    : 'último año'
+    periodDays === 7
+      ? 'última semana'
+      : periodDays === 30
+        ? 'último mes'
+        : periodDays === 90
+          ? 'últimos 90 días'
+          : 'último año'
 
   return (
     <section
@@ -86,10 +89,7 @@ function SummaryStat({
 }) {
   return (
     <div>
-      <p
-        className="font-serif text-2xl leading-none tabular-nums"
-        style={{ color }}
-      >
+      <p className="font-serif text-2xl leading-none tabular-nums" style={{ color }}>
         {value}
       </p>
       <p className="text-caption text-ink-400 mt-1">{label}</p>

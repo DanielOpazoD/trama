@@ -39,9 +39,7 @@ export function QuickNoteForm({ entity }: { entity: Entity }) {
       {/* θ1: header en section-eyebrow-serif (small caps + Spectral) en
           vez del uppercase tracking-wider plano. Más refinado, hace
           que la sección se sienta como un epígrafe de capítulo. */}
-      <h3 className="section-eyebrow-serif mb-2">
-        Cita o nota
-      </h3>
+      <h3 className="section-eyebrow-serif mb-2">Cita o nota</h3>
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
         <textarea
           value={noteDraft}

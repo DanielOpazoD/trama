@@ -30,14 +30,21 @@ import { SECTION_ACCENT } from '../lib/sectionAccent'
 // es ⌘, en el resto es "Ctrl". El check vive en módulo para no recalcular
 // en cada render. SSR-safe (devuelve false si no hay navigator).
 const IS_MAC =
-  typeof navigator !== 'undefined' &&
-  /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
 const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 
 // ο1: 'relaciones' se eliminó del top-level. Ahora vive como tab interna
 // "Vínculos" dentro de Entidades — refleja la dependencia conceptual real
 // (una relación nunca existe sola, siempre conecta entidades).
-export type ViewMode = 'inicio' | 'grafo' | 'entidades' | 'citas' | 'escuchas' | 'momentos' | 'chat' | 'sugerencias'
+export type ViewMode =
+  | 'inicio'
+  | 'grafo'
+  | 'entidades'
+  | 'citas'
+  | 'escuchas'
+  | 'momentos'
+  | 'chat'
+  | 'sugerencias'
 
 const NAV_ITEMS: NavItem[] = [
   { value: 'inicio', label: 'Inicio', icon: HomeIcon },
@@ -123,7 +130,11 @@ export function Sidebar({
   if (collapsed) {
     return (
       <aside className="surface-sidebar w-14 shrink-0 border-r border-ink-100 flex flex-col items-center py-4 gap-1">
-        <div className="text-ink-700 mb-2 trama-mark-interactive" aria-label="Trama" title="Trama">
+        <div
+          className="text-ink-700 mb-2 trama-mark-interactive"
+          aria-label="Trama"
+          title="Trama"
+        >
           <TramaMark size={22} />
         </div>
 
@@ -219,102 +230,105 @@ export function Sidebar({
           tabIndex={-1}
         />
       )}
-    <aside
-      className={
-        isMobile
-          ? 'surface-sidebar fixed inset-y-0 left-0 w-64 z-40 border-r border-ink-100 flex flex-col shadow-lg'
-          : 'surface-sidebar w-64 shrink-0 border-r border-ink-100 flex flex-col'
-      }
-    >
-      <header className="px-3 py-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 trama-mark-interactive min-w-0" title="Trama">
-          {/* EE-brand #21: lockup canónico (mark + wordmark) en vez del
+      <aside
+        className={
+          isMobile
+            ? 'surface-sidebar fixed inset-y-0 left-0 w-64 z-40 border-r border-ink-100 flex flex-col shadow-lg'
+            : 'surface-sidebar w-64 shrink-0 border-r border-ink-100 flex flex-col'
+        }
+      >
+        <header className="px-3 py-3 flex items-center justify-between gap-2">
+          <div
+            className="flex items-center gap-2 trama-mark-interactive min-w-0"
+            title="Trama"
+          >
+            {/* EE-brand #21: lockup canónico (mark + wordmark) en vez del
               ensamble manual. El componente fija peso, gap y leading. */}
-          <TramaLockup size={22} className="text-ink-700 min-w-0" />
-          {offline && (
-            <span
-              title="Sin conexión al backend"
-              className="text-micro uppercase tracking-wider text-amber-700 leading-none shrink-0"
-            >
-              local
-            </span>
-          )}
-        </div>
-        <button
-          onClick={onToggleCollapsed}
-          aria-label="Contraer sidebar"
-          className="p-1 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors shrink-0"
-        >
-          <ChevronLeftIcon size={14} />
-        </button>
-      </header>
+            <TramaLockup size={22} className="text-ink-700 min-w-0" />
+            {offline && (
+              <span
+                title="Sin conexión al backend"
+                className="text-micro uppercase tracking-wider text-amber-700 leading-none shrink-0"
+              >
+                local
+              </span>
+            )}
+          </div>
+          <button
+            onClick={onToggleCollapsed}
+            aria-label="Contraer sidebar"
+            className="p-1 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors shrink-0"
+          >
+            <ChevronLeftIcon size={14} />
+          </button>
+        </header>
 
-      {/* σ-followup: buscador del sidebar con fondo blanco (paper-50)
+        {/* σ-followup: buscador del sidebar con fondo blanco (paper-50)
           y sin el kbd "⌘ K" — el atajo ahora vive visible en el header
           del CommandPalette modal cuando se abre. Esto deja el botón
           más limpio y reserva el kbd para el contexto donde aporta
           (la herramienta abierta), no en el trigger. */}
-      <div className="px-2 mb-1.5">
-        <button
-          onClick={onOpenPalette}
-          aria-label={`Buscar (${SHORTCUT_KEY} K)`}
-          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-caption text-ink-400 hover:text-ink-700 bg-paper-50 hover:bg-paper-100 border border-ink-100/60 hover:border-ink-200 rounded-md transition-colors"
-        >
-          <SearchIcon size={12} />
-          <span className="flex-1 text-left leading-none">Buscar</span>
-        </button>
-      </div>
+        <div className="px-2 mb-1.5">
+          <button
+            onClick={onOpenPalette}
+            aria-label={`Buscar (${SHORTCUT_KEY} K)`}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-caption text-ink-400 hover:text-ink-700 bg-paper-50 hover:bg-paper-100 border border-ink-100/60 hover:border-ink-200 rounded-md transition-colors"
+          >
+            <SearchIcon size={12} />
+            <span className="flex-1 text-left leading-none">Buscar</span>
+          </button>
+        </div>
 
-      <nav className="flex flex-col px-2 gap-px">
-        {visibleNavItems.map((item) => (
-          <NavButton
-            key={item.value}
-            item={item}
-            active={view === item.value}
-            count={counts[item.value]}
-            mode="expanded"
-            badgeTone={item.value === 'sugerencias' ? 'accent' : 'default'}
-            accentColor={SECTION_ACCENT[item.value]}
-            onClick={() => onChangeView(item.value)}
-          />
-        ))}
-      </nav>
+        <nav className="flex flex-col px-2 gap-px">
+          {visibleNavItems.map((item) => (
+            <NavButton
+              key={item.value}
+              item={item}
+              active={view === item.value}
+              count={counts[item.value]}
+              mode="expanded"
+              badgeTone={item.value === 'sugerencias' ? 'accent' : 'default'}
+              accentColor={SECTION_ACCENT[item.value]}
+              onClick={() => onChangeView(item.value)}
+            />
+          ))}
+        </nav>
 
-      <div className="flex-1" />
+        <div className="flex-1" />
 
-      <div className="px-2 pt-2 pb-2 mt-2 border-t border-ink-100 space-y-px">
-        <AIModeToggle />
-        <button
-          onClick={handleOpenSettings}
-          className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-body text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
-        >
-          <SettingsIcon size={14} className="text-ink-400" />
-          <span className="flex-1 text-left">Configuración</span>
-          {healthAlerts.maxSeverity && (
-            <span
-              className={`text-micro uppercase tracking-eyebrow tabular-nums px-1.5 py-0.5 rounded-full font-medium ${
-                healthAlerts.maxSeverity === 'error'
-                  ? 'bg-red-100 text-red-700'
-                  : healthAlerts.maxSeverity === 'warn'
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-sky-100 text-sky-700'
-              }`}
-              aria-label={`${healthAlerts.count} ${
-                healthAlerts.count === 1 ? 'alerta' : 'alertas'
-              }`}
-            >
-              {healthAlerts.count}
-            </span>
-          )}
-        </button>
-        {/* Versión leída del package.json en build-time (vite.config.ts
+        <div className="px-2 pt-2 pb-2 mt-2 border-t border-ink-100 space-y-px">
+          <AIModeToggle />
+          <button
+            onClick={handleOpenSettings}
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-body text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
+          >
+            <SettingsIcon size={14} className="text-ink-400" />
+            <span className="flex-1 text-left">Configuración</span>
+            {healthAlerts.maxSeverity && (
+              <span
+                className={`text-micro uppercase tracking-eyebrow tabular-nums px-1.5 py-0.5 rounded-full font-medium ${
+                  healthAlerts.maxSeverity === 'error'
+                    ? 'bg-red-100 text-red-700'
+                    : healthAlerts.maxSeverity === 'warn'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-sky-100 text-sky-700'
+                }`}
+                aria-label={`${healthAlerts.count} ${
+                  healthAlerts.count === 1 ? 'alerta' : 'alertas'
+                }`}
+              >
+                {healthAlerts.count}
+              </span>
+            )}
+          </button>
+          {/* Versión leída del package.json en build-time (vite.config.ts
             inyecta VITE_APP_VERSION). Single source of truth — no hay
             que recordar actualizar este string a mano. */}
-        <p className="text-micro uppercase tracking-wider text-ink-300 text-center pt-2 pb-0.5">
-          trama · v{import.meta.env.VITE_APP_VERSION}
-        </p>
-      </div>
-    </aside>
+          <p className="text-micro uppercase tracking-wider text-ink-300 text-center pt-2 pb-0.5">
+            trama · v{import.meta.env.VITE_APP_VERSION}
+          </p>
+        </div>
+      </aside>
     </>
   )
 }

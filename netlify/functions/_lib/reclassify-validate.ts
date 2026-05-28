@@ -18,9 +18,9 @@ export type ReclassifyProposal = Array<{
 export type EntityLookup = { id: string; name: string; type: string }
 
 const RawReclassifyItemSchema = z.object({
-  id:      z.string(),
+  id: z.string(),
   newType: z.string(),
-  reason:  z.unknown().optional(),
+  reason: z.unknown().optional(),
 })
 
 const RawReclassifyProposalSchema = z.object({
@@ -50,9 +50,7 @@ export function validateReclassify(
     if (entity.type === newType) continue
 
     const reason =
-      typeof rawReason === 'string' && rawReason.trim()
-        ? rawReason.trim()
-        : undefined
+      typeof rawReason === 'string' && rawReason.trim() ? rawReason.trim() : undefined
 
     out.push({
       id,

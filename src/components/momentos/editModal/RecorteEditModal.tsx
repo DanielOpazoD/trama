@@ -26,9 +26,7 @@ export function RecorteEditModal({
   const [source, setSource] = useState(momento.payload.source ?? '')
   const [author, setAuthor] = useState(momento.payload.author ?? '')
   const [note, setNote] = useState(momento.note ?? '')
-  const [capturedAt, setCapturedAt] = useState(
-    toDateTimeLocalInput(momento.capturedAt),
-  )
+  const [capturedAt, setCapturedAt] = useState(toDateTimeLocalInput(momento.capturedAt))
 
   async function handleSave() {
     if (updateMomento.isPending) return

@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type FormEvent,
-} from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import {
   useChatMessagesQuery,
   useChatThreadsQuery,
@@ -60,7 +54,8 @@ export function ChatView({
     }
   }, [threads, activeId])
 
-  const { data: messages = [], isLoading: messagesLoading } = useChatMessagesQuery(activeId)
+  const { data: messages = [], isLoading: messagesLoading } =
+    useChatMessagesQuery(activeId)
   const { send, pending: sendPending, error: sendError } = useSendChatMessage(activeId)
 
   const [draft, setDraft] = useState('')
@@ -129,8 +124,8 @@ export function ChatView({
     return (
       <div className="h-full flex items-center justify-center px-8">
         <p className="text-ink-400 italic max-w-md text-center leading-relaxed">
-          El chat con la IA requiere conexión al backend. Estás en modo local —
-          conecta a la red y recarga.
+          El chat con la IA requiere conexión al backend. Estás en modo local — conecta a
+          la red y recarga.
         </p>
       </div>
     )
@@ -170,7 +165,9 @@ export function ChatView({
       {/* Left rail: thread list */}
       <aside className="w-64 shrink-0 border-r border-ink-100/50 flex flex-col">
         <div className="px-4 py-3 border-b border-ink-100/50 flex items-baseline justify-between">
-          <h3 className="text-micro uppercase tracking-eyebrow text-ink-400">conversaciones</h3>
+          <h3 className="text-micro uppercase tracking-eyebrow text-ink-400">
+            conversaciones
+          </h3>
           <button
             onClick={handleNewThread}
             disabled={createThread.isPending}
@@ -212,8 +209,8 @@ export function ChatView({
             </div>
           ) : threads.length === 0 ? (
             <p className="px-4 py-6 text-ink-400 italic text-sm leading-relaxed">
-              Aún sin conversaciones. Empieza una arriba o pregunta algo abajo y la
-              IA usará tu trama como contexto.
+              Aún sin conversaciones. Empieza una arriba o pregunta algo abajo y la IA
+              usará tu trama como contexto.
             </p>
           ) : visibleThreads.length === 0 ? (
             <p className="px-4 py-6 text-ink-300 italic text-sm leading-relaxed">
@@ -314,16 +311,20 @@ export function ChatView({
                 <li className="text-ink-400 italic text-sm font-serif flex items-baseline gap-1.5">
                   <span>pensando</span>
                   <span aria-hidden className="inline-flex items-baseline gap-[2px]">
-                    <span className="dots-dot" style={{ animationDelay: '0ms' }}>·</span>
-                    <span className="dots-dot" style={{ animationDelay: '180ms' }}>·</span>
-                    <span className="dots-dot" style={{ animationDelay: '360ms' }}>·</span>
+                    <span className="dots-dot" style={{ animationDelay: '0ms' }}>
+                      ·
+                    </span>
+                    <span className="dots-dot" style={{ animationDelay: '180ms' }}>
+                      ·
+                    </span>
+                    <span className="dots-dot" style={{ animationDelay: '360ms' }}>
+                      ·
+                    </span>
                   </span>
                 </li>
               )}
               {sendError && (
-                <li className="alert-error px-4 py-3 rounded-xl text-sm">
-                  {sendError}
-                </li>
+                <li className="alert-error px-4 py-3 rounded-xl text-sm">{sendError}</li>
               )}
               <div ref={messagesEndRef} />
             </ul>
@@ -358,4 +359,3 @@ export function ChatView({
     </div>
   )
 }
-

@@ -98,15 +98,11 @@ function ProposedEditRow({
           {Object.entries(edit.patch).map(([k, v]) => (
             <div key={k}>
               <span className="text-ink-300">{k}:</span>{' '}
-              <span className="text-ink-600">
-                {v === null ? '—' : String(v)}
-              </span>
+              <span className="text-ink-600">{v === null ? '—' : String(v)}</span>
             </div>
           ))}
         </div>
-        {edit.reason && (
-          <p className="mt-1 text-xs text-ink-400 italic">{edit.reason}</p>
-        )}
+        {edit.reason && <p className="mt-1 text-xs text-ink-400 italic">{edit.reason}</p>}
       </div>
     </li>
   )
@@ -151,9 +147,7 @@ function ProposedDeleteRow({
           </span>
           <span className="text-ink-700">{del.preview}</span>
         </div>
-        {del.reason && (
-          <p className="mt-1 text-xs text-ink-400 italic">{del.reason}</p>
-        )}
+        {del.reason && <p className="mt-1 text-xs text-ink-400 italic">{del.reason}</p>}
       </div>
     </li>
   )

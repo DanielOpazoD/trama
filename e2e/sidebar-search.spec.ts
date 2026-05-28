@@ -60,14 +60,10 @@ test('palette ⌘K muestra resultados y permite abrir una entidad', async ({ pag
   await palette.getByPlaceholder('Buscar…').fill('borges')
 
   // El resultado de Borges aparece como botón en la lista.
-  await expect(
-    palette.getByRole('button', { name: /Jorge Luis Borges/ }),
-  ).toBeVisible()
+  await expect(palette.getByRole('button', { name: /Jorge Luis Borges/ })).toBeVisible()
 
   // El otro escritor NO debe estar en los resultados filtrados.
-  await expect(
-    palette.getByRole('button', { name: /Julio Cortázar/ }),
-  ).not.toBeVisible()
+  await expect(palette.getByRole('button', { name: /Julio Cortázar/ })).not.toBeVisible()
 })
 
 test('palette ⌘K se cierra con Escape', async ({ page }) => {

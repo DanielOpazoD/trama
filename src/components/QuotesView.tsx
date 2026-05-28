@@ -18,13 +18,28 @@ import { useQuotesFilters } from './quotes/useQuotesFilters'
 import { QuotesFiltersBar } from './quotes/QuotesFiltersBar'
 
 const WORK_TYPES = new Set([
-  'libro', 'ensayo', 'poema', 'articulo',
-  'cancion', 'podcast', 'album', 'disco',
-  'pelicula', 'serie', 'documental', 'obra',
+  'libro',
+  'ensayo',
+  'poema',
+  'articulo',
+  'cancion',
+  'podcast',
+  'album',
+  'disco',
+  'pelicula',
+  'serie',
+  'documental',
+  'obra',
 ])
 const PERSON_TYPES = new Set([
-  'persona', 'escritor', 'filosofo', 'musico', 'banda',
-  'director', 'artista', 'cientifico',
+  'persona',
+  'escritor',
+  'filosofo',
+  'musico',
+  'banda',
+  'director',
+  'artista',
+  'cientifico',
 ])
 
 export function QuotesView({
@@ -87,7 +102,8 @@ export function QuotesView({
   // the currently rendered window. Reads the highest virtual index instead
   // of a sentinel element — keeps it tied to the virtualizer's own state.
   const virtualItems = virtualizer.getVirtualItems()
-  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1]!.index : 0
+  const lastVisibleIndex =
+    virtualItems.length > 0 ? virtualItems[virtualItems.length - 1]!.index : 0
   useEffect(() => {
     if (!quotesPaged.hasNextPage || quotesPaged.isFetchingNextPage) return
     if (quotes.length === 0) return
@@ -122,8 +138,8 @@ export function QuotesView({
           title="No hay todavía a quién atribuir nada."
           body={
             <>
-              Las citas viven pegadas a una entidad: una persona, un libro,
-              una canción. Crea la primera entidad y vuelve.
+              Las citas viven pegadas a una entidad: una persona, un libro, una canción.
+              Crea la primera entidad y vuelve.
             </>
           }
           hint="Pega un texto en la barra de abajo o entra a Entidades para empezar."
@@ -159,11 +175,11 @@ export function QuotesView({
                   <>
                     Filtrando por{' '}
                     <strong>
-                      {ENTITY_TYPES.find((t) => t.value === typeFilter)?.label ?? typeFilter}
+                      {ENTITY_TYPES.find((t) => t.value === typeFilter)?.label ??
+                        typeFilter}
                     </strong>{' '}
-                    no aparece nada. Las citas se atribuyen al crearlas — si
-                    quieres alguna de este tipo, atribúyela a una entidad de
-                    ese tipo.
+                    no aparece nada. Las citas se atribuyen al crearlas — si quieres
+                    alguna de este tipo, atribúyela a una entidad de ese tipo.
                   </>
                 }
                 hint={
@@ -181,9 +197,9 @@ export function QuotesView({
                 title="Una página todavía en blanco."
                 body={
                   <>
-                    Las citas son piezas que se quedan: una frase que te detuvo,
-                    un verso que volvió. Cuando guardes la primera, su tipografía
-                    va a verse mejor que esto.
+                    Las citas son piezas que se quedan: una frase que te detuvo, un verso
+                    que volvió. Cuando guardes la primera, su tipografía va a verse mejor
+                    que esto.
                   </>
                 }
                 hint="Pega texto abajo o usa el botón de cámara para empezar."
@@ -198,7 +214,8 @@ export function QuotesView({
                 const quote = quotes[virtualRow.index]
                 if (!quote) return null
                 const entity = entities.find((e) => e.id === quote.entityId)
-                const author = entity && WORK_TYPES.has(entity.type) ? authorOf(entity.id) : undefined
+                const author =
+                  entity && WORK_TYPES.has(entity.type) ? authorOf(entity.id) : undefined
                 const isFeature = virtualRow.index === 0
                 return (
                   <div
@@ -236,15 +253,16 @@ export function QuotesView({
               cargando más…
             </p>
           )}
-          {!quotesPaged.hasNextPage &&
-            !quotesPaged.isLoading &&
-            quotes.length >= 5 && (
-              <div className="flex justify-center mt-8 mb-2 text-ink-300">
-                <EndMark size={14} />
-              </div>
-            )}
+          {!quotesPaged.hasNextPage && !quotesPaged.isLoading && quotes.length >= 5 && (
+            <div className="flex justify-center mt-8 mb-2 text-ink-300">
+              <EndMark size={14} />
+            </div>
+          )}
           {/* ι5: folio number — número de página de libro impreso. */}
-          <Folio current={Math.min(lastVisibleIndex + 1, quotes.length)} total={quotes.length} />
+          <Folio
+            current={Math.min(lastVisibleIndex + 1, quotes.length)}
+            total={quotes.length}
+          />
         </>
       )}
     </>

@@ -35,12 +35,10 @@ export function PrivacyPanel() {
       <div className="space-y-4 max-w-prose">
         <div className="flex items-start justify-between gap-4 p-4 card-paper">
           <div className="min-w-0">
-            <p className="text-ink-700 leading-snug">
-              Bloqueo por PIN al abrir
-            </p>
+            <p className="text-ink-700 leading-snug">Bloqueo por PIN al abrir</p>
             <p className="mt-1 text-sm text-ink-400 leading-relaxed">
-              Cuando esté activado, la app pedirá un PIN cada vez que abras
-              una pestaña nueva. El PIN es <span className="font-mono text-ink-600">151219</span>.
+              Cuando esté activado, la app pedirá un PIN cada vez que abras una pestaña
+              nueva. El PIN es <span className="font-mono text-ink-600">151219</span>.
             </p>
           </div>
           <button
@@ -50,9 +48,7 @@ export function PrivacyPanel() {
             onClick={() => handleToggle(!enabled)}
             className="relative inline-flex shrink-0 mt-1 h-6 w-11 rounded-full transition-colors"
             style={{
-              backgroundColor: enabled
-                ? 'var(--accent-primary)'
-                : 'rgb(var(--ink-200))',
+              backgroundColor: enabled ? 'var(--accent-primary)' : 'rgb(var(--ink-200))',
             }}
           >
             <span
@@ -68,8 +64,8 @@ export function PrivacyPanel() {
 
         {enabled && (
           <p className="text-caption italic text-ink-400 leading-relaxed">
-            Al recargar o abrir una pestaña nueva la app te pedirá el PIN.
-            El desbloqueo dura mientras la pestaña esté abierta.
+            Al recargar o abrir una pestaña nueva la app te pedirá el PIN. El desbloqueo
+            dura mientras la pestaña esté abierta.
           </p>
         )}
       </div>

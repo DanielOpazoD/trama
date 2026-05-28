@@ -53,10 +53,7 @@ export type CleanedRelationshipEdit = {
   reason?: string
 }
 
-export type CleanedEdit =
-  | CleanedEntityEdit
-  | CleanedQuoteEdit
-  | CleanedRelationshipEdit
+export type CleanedEdit = CleanedEntityEdit | CleanedQuoteEdit | CleanedRelationshipEdit
 
 export type CleanedDelete = {
   kind: 'entity' | 'quote' | 'relationship'
@@ -123,48 +120,50 @@ function nullableString(v: unknown): string | null | undefined {
 
 // Outer proposal: each array field defaults to [] when absent or invalid.
 // The outer .catch handles non-object inputs (null, strings, arrays).
-const RawProposalSchema = z.object({
-  entities:      z.array(z.unknown()).default([]).catch([]),
-  relationships: z.array(z.unknown()).default([]).catch([]),
-  quotes:        z.array(z.unknown()).default([]).catch([]),
-  edits:         z.array(z.unknown()).default([]).catch([]),
-  deletes:       z.array(z.unknown()).default([]).catch([]),
-}).catch({ entities: [], relationships: [], quotes: [], edits: [], deletes: [] })
+const RawProposalSchema = z
+  .object({
+    entities: z.array(z.unknown()).default([]).catch([]),
+    relationships: z.array(z.unknown()).default([]).catch([]),
+    quotes: z.array(z.unknown()).default([]).catch([]),
+    edits: z.array(z.unknown()).default([]).catch([]),
+    deletes: z.array(z.unknown()).default([]).catch([]),
+  })
+  .catch({ entities: [], relationships: [], quotes: [], edits: [], deletes: [] })
 
 // Required string fields strict; optional extras typed as unknown so a bad
 // year (e.g. year:"1919") doesn't drop an otherwise valid entity.
 const RawEntityItemSchema = z.object({
-  name:        z.string(),
-  type:        z.string(),
-  year:        z.unknown().optional(),
+  name: z.string(),
+  type: z.string(),
+  year: z.unknown().optional(),
   description: z.unknown().optional(),
-  spotifyUrl:  z.unknown().optional(),
+  spotifyUrl: z.unknown().optional(),
 })
 
 const RawRelationshipItemSchema = z.object({
   fromName: z.string(),
-  toName:   z.string(),
-  type:     z.string(),
-  notes:    z.unknown().optional(),
+  toName: z.string(),
+  type: z.string(),
+  notes: z.unknown().optional(),
 })
 
 const RawQuoteItemSchema = z.object({
   entityName: z.string(),
-  text:       z.string(),
-  source:     z.unknown().optional(),
-  context:    z.unknown().optional(),
+  text: z.string(),
+  source: z.unknown().optional(),
+  context: z.unknown().optional(),
 })
 
 const RawEditItemSchema = z.object({
-  kind:   z.string(),
-  id:     z.string(),
-  patch:  z.record(z.unknown()),
+  kind: z.string(),
+  id: z.string(),
+  patch: z.record(z.unknown()),
   reason: z.unknown().optional(),
 })
 
 const RawDeleteItemSchema = z.object({
-  kind:   z.string(),
-  id:     z.string(),
+  kind: z.string(),
+  id: z.string(),
   reason: z.unknown().optional(),
 })
 
@@ -204,7 +203,7 @@ export function validateExtraction(
         name,
         year: typeof e.year === 'number' ? e.year : undefined,
         description: stringOrUndef(e.description),
-        spotifyUrl:  stringOrUndef(e.spotifyUrl),
+        spotifyUrl: stringOrUndef(e.spotifyUrl),
       }
     })
 
@@ -219,9 +218,9 @@ export function validateExtraction(
     })
     .map((r) => ({
       fromName: r.fromName.trim(),
-      toName:   r.toName.trim(),
-      type:     r.type,
-      notes:    stringOrUndef(r.notes),
+      toName: r.toName.trim(),
+      type: r.type,
+      notes: stringOrUndef(r.notes),
     }))
 
   const quotes = proposal.quotes
@@ -233,9 +232,9 @@ export function validateExtraction(
     })
     .map((q) => ({
       entityName: q.entityName.trim(),
-      text:       q.text.trim(),
-      source:     stringOrUndef(q.source),
-      context:    stringOrUndef(q.context),
+      text: q.text.trim(),
+      source: stringOrUndef(q.source),
+      context: stringOrUndef(q.context),
     }))
 
   // ---------- edits & deletes (opt-in via existingIds) ----------
@@ -257,7 +256,8 @@ export function validateExtraction(
         const newName = stringOrUndef(patch.name)
         if (newName !== undefined) cleanPatch.name = newName
         const newType = stringOrUndef(patch.type)
-        if (newType !== undefined && validEntityTypes.has(newType)) cleanPatch.type = newType
+        if (newType !== undefined && validEntityTypes.has(newType))
+          cleanPatch.type = newType
         if (typeof patch.year === 'number') cleanPatch.year = patch.year
         else if (patch.year === null) cleanPatch.year = null
         const desc = nullableString(patch.description)
@@ -307,7 +307,13 @@ export function validateExtraction(
         const notes = nullableString(patch.notes)
         if (notes !== undefined) cleanPatch.notes = notes
         if (Object.keys(cleanPatch).length === 0) continue
-        edits.push({ kind: 'relationship', id, preview: ref.preview, patch: cleanPatch, reason })
+        edits.push({
+          kind: 'relationship',
+          id,
+          preview: ref.preview,
+          patch: cleanPatch,
+          reason,
+        })
       }
     }
   }

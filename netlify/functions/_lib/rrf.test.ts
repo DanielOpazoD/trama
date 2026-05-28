@@ -20,9 +20,7 @@ describe('fuseRanked (RRF)', () => {
       { id: 'x', item: 'x' },
       { id: 'y', item: 'y' },
     ]
-    const sem = [
-      { id: 'z', item: 'z' },
-    ]
+    const sem = [{ id: 'z', item: 'z' }]
     const fused = fuseRanked([lex, sem])
     const ids = fused.map((f) => f.id)
     expect(ids).toContain('x')

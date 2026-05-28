@@ -13,7 +13,10 @@ import { useOffline } from './offline'
  * en el indicador global aunque nada se hubiera guardado todavía —
  * confundía al usuario sobre qué acciones persisten.
  */
-function isPersistMutation(mutation: { state?: unknown; options?: { meta?: { silent?: boolean } } }): boolean {
+function isPersistMutation(mutation: {
+  state?: unknown
+  options?: { meta?: { silent?: boolean } }
+}): boolean {
   return mutation.options?.meta?.silent !== true
 }
 
@@ -45,7 +48,8 @@ export function useGlobalStatus(): GlobalStatus {
   // useIsMutating con predicate — solo cuenta mutations no-silent.
   // Las AI propose mutations llevan meta.silent=true y son ignoradas.
   const isMutating = useIsMutating({
-    predicate: (m) => isPersistMutation(m as { options?: { meta?: { silent?: boolean } } }),
+    predicate: (m) =>
+      isPersistMutation(m as { options?: { meta?: { silent?: boolean } } }),
   })
   const { offline } = useOffline()
   const [showSaved, setShowSaved] = useState(false)

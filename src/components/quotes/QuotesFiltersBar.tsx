@@ -64,9 +64,7 @@ export function QuotesFiltersBar({
         >
           <span aria-hidden>★</span>
           favoritas
-          <span className="ml-0.5 text-micro tabular-nums opacity-70">
-            {pinnedCount}
-          </span>
+          <span className="ml-0.5 text-micro tabular-nums opacity-70">{pinnedCount}</span>
         </button>
       )}
       <button

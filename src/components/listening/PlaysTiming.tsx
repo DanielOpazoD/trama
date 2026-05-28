@@ -26,13 +26,7 @@ import { buildTimingBuckets } from './timing-helpers'
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'] // lun..dom
 const HOUR_TICKS = [0, 6, 12, 18] // labels en el eje horizontal
 
-export function PlaysTiming({
-  since,
-  enabled,
-}: {
-  since: string
-  enabled: boolean
-}) {
+export function PlaysTiming({ since, enabled }: { since: string; enabled: boolean }) {
   const timingQuery = useQuery({
     queryKey: ['spotify', 'timing', since],
     queryFn: () => api.spotifyTiming(since),
@@ -49,9 +43,7 @@ export function PlaysTiming({
 
   if (timingQuery.isLoading) {
     return (
-      <p className="text-caption text-ink-300 italic mb-6">
-        cargando patrón temporal…
-      </p>
+      <p className="text-caption text-ink-300 italic mb-6">cargando patrón temporal…</p>
     )
   }
   if (!data) return null
@@ -156,8 +148,7 @@ function Trend({ trend, max }: { trend: number[]; max: number }) {
               className="flex-1 rounded-sm transition-all duration-300"
               style={{
                 height: count > 0 ? `${Math.max(8, pct)}%` : '4px',
-                backgroundColor:
-                  count > 0 ? 'var(--type-musico)' : 'rgb(var(--ink-100))',
+                backgroundColor: count > 0 ? 'var(--type-musico)' : 'rgb(var(--ink-100))',
                 opacity: isToday ? 1 : count > 0 ? 0.7 : 0.4,
               }}
               title={`hace ${trend.length - 1 - i} días: ${count} ${count === 1 ? 'play' : 'plays'}`}

@@ -30,24 +30,16 @@ afterEach(() => {
 
 describe('EntityForm', () => {
   it('renderiza inputs (nombre, año, descripción) y select de tipo', () => {
-    renderWithProviders(
-      <EntityForm onClose={() => {}} allLoadedEntities={[]} />,
-    )
+    renderWithProviders(<EntityForm onClose={() => {}} allLoadedEntities={[]} />)
     expect(screen.getByPlaceholderText('Nombre')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Año')).toBeInTheDocument()
-    expect(
-      screen.getByPlaceholderText(/Nota o descripción/),
-    ).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/Nota o descripción/)).toBeInTheDocument()
     expect(screen.getByRole('combobox')).toBeInTheDocument()
   })
 
   it('no llama api.createEntity si name está vacío', () => {
-    const spy = vi
-      .spyOn(apiModule.api, 'createEntity')
-      .mockResolvedValue({} as never)
-    renderWithProviders(
-      <EntityForm onClose={() => {}} allLoadedEntities={[]} />,
-    )
+    const spy = vi.spyOn(apiModule.api, 'createEntity').mockResolvedValue({} as never)
+    renderWithProviders(<EntityForm onClose={() => {}} allLoadedEntities={[]} />)
     fireEvent.click(screen.getByRole('button', { name: /^Añadir$/ }))
     expect(spy).not.toHaveBeenCalled()
   })
@@ -62,9 +54,7 @@ describe('EntityForm', () => {
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T00:00:00Z',
     })
-    renderWithProviders(
-      <EntityForm onClose={() => {}} allLoadedEntities={[]} />,
-    )
+    renderWithProviders(<EntityForm onClose={() => {}} allLoadedEntities={[]} />)
 
     await user.type(screen.getByPlaceholderText('Nombre'), 'Camus')
     await user.type(screen.getByPlaceholderText('Año'), '1913')
@@ -91,9 +81,7 @@ describe('EntityForm', () => {
         },
       ]),
     )
-    renderWithProviders(
-      <EntityForm onClose={() => {}} allLoadedEntities={[]} />,
-    )
+    renderWithProviders(<EntityForm onClose={() => {}} allLoadedEntities={[]} />)
 
     await user.type(screen.getByPlaceholderText('Nombre'), 'Camus')
     fireEvent.click(screen.getByRole('button', { name: /^Añadir$/ }))
@@ -106,9 +94,7 @@ describe('EntityForm', () => {
 
   it('botón Cancelar invoca onClose', () => {
     const onClose = vi.fn()
-    renderWithProviders(
-      <EntityForm onClose={onClose} allLoadedEntities={[]} />,
-    )
+    renderWithProviders(<EntityForm onClose={onClose} allLoadedEntities={[]} />)
     fireEvent.click(screen.getByRole('button', { name: /cancelar/i }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })

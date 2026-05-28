@@ -48,6 +48,7 @@ El sistema visual usa tokens semánticos definidos en `tailwind.config.js`. **NO
 | `--space-12` | 99px | espacio de ornament / pull-quote breathing |
 
 Utilities Tailwind que consumen estos tokens:
+
 - `.stack-N` → margin-top entre hijos directos (= space-y-N en el sistema)
 - `.pad-block-N` → padding-block
 

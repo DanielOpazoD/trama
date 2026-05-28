@@ -24,7 +24,9 @@ type Tag<S extends TemplateStringsArray> = S
  * fragment of the template literal we recognize. The signature matches
  * what buildRagContext expects.
  */
-function makeSqlMock(responder: (strings: TemplateStringsArray, values: unknown[]) => unknown) {
+function makeSqlMock(
+  responder: (strings: TemplateStringsArray, values: unknown[]) => unknown,
+) {
   return ((strings: TemplateStringsArray, ...values: unknown[]) =>
     Promise.resolve(responder(strings, values))) as unknown as (
     strings: TemplateStringsArray,
@@ -38,19 +40,29 @@ describe('buildRagContext — fallback to recency when embedding key is absent',
       { id: 'e1', name: 'Borges', type: 'escritor', year: 1899, description: null },
       { id: 'e2', name: 'Calvino', type: 'escritor', year: 1923, description: null },
     ]
-    const recentQuotes = [
-      { id: 'q1', entity_name: 'Borges', text: '...', source: null },
-    ]
+    const recentQuotes = [{ id: 'q1', entity_name: 'Borges', text: '...', source: null }]
     const rels = [
-      { id: 'r1', from_name: 'Borges', to_name: 'Calvino', type: 'influye_en', notes: null },
+      {
+        id: 'r1',
+        from_name: 'Borges',
+        to_name: 'Calvino',
+        type: 'influye_en',
+        notes: null,
+      },
     ]
 
     const sql = makeSqlMock((strings) => {
       const joined = strings.join(' ')
-      if (joined.includes('FROM entities') && joined.includes('ORDER BY created_at DESC')) {
+      if (
+        joined.includes('FROM entities') &&
+        joined.includes('ORDER BY created_at DESC')
+      ) {
         return recentEntities
       }
-      if (joined.includes('FROM quotes') && joined.includes('ORDER BY q.created_at DESC')) {
+      if (
+        joined.includes('FROM quotes') &&
+        joined.includes('ORDER BY q.created_at DESC')
+      ) {
         return recentQuotes
       }
       if (joined.includes('FROM relationships') && joined.includes('= ANY')) {
@@ -76,7 +88,9 @@ describe('buildRagContext — fallback to recency when embedding key is absent',
   })
 
   it('handles empty query gracefully (no embedding, only recency)', async () => {
-    const recentE = [{ id: 'e1', name: 'X', type: 'concepto', year: null, description: null }]
+    const recentE = [
+      { id: 'e1', name: 'X', type: 'concepto', year: null, description: null },
+    ]
     const sql = makeSqlMock((strings) => {
       const j = strings.join(' ')
       if (j.includes('FROM entities')) return recentE
@@ -100,7 +114,12 @@ describe('buildRagContext — fallback to recency when embedding key is absent',
     // debe degradar a embebido directo (que tampoco funciona sin key,
     // así que termina en recency-only). El test verifica que NO throw.
     const sql = makeSqlMock(() => [])
-    const ctx = await buildRagContext(sql, 'qué tengo sobre el tiempo y la creación?', 'test-user', { hyde: true })
+    const ctx = await buildRagContext(
+      sql,
+      'qué tengo sobre el tiempo y la creación?',
+      'test-user',
+      { hyde: true },
+    )
     // usedHyde puede ser false (porque askLLMForText falló) — lo
     // importante es que la llamada no haya crashed.
     expect(ctx).toBeDefined()

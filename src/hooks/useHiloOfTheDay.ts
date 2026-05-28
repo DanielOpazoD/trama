@@ -45,10 +45,7 @@ function describeYears(n: number): string {
   return `hace ${n} años`
 }
 
-function pickAnniversaryText(
-  entities: Entity[],
-  quotes: Quote[],
-): string | null {
+function pickAnniversaryText(entities: Entity[], quotes: Quote[]): string | null {
   const today = new Date()
 
   // Buscamos en quotes primero — son los aniversarios más emotivos
@@ -75,10 +72,7 @@ function pickAnniversaryText(
   return null
 }
 
-export function useHiloOfTheDay(
-  entities: Entity[],
-  quotes: Quote[],
-): void {
+export function useHiloOfTheDay(entities: Entity[], quotes: Quote[]): void {
   useEffect(() => {
     // Skip si data no cargó.
     if (entities.length === 0 && quotes.length === 0) return

@@ -43,9 +43,7 @@ export function MergeMomentosBar({
 
   // Default primary: el más viejo (orden cronológico ascendente). Si el
   // usuario no eligió otro, ese será el que sobrevive.
-  const sortedByDate = [...fotos].sort((a, b) =>
-    a.capturedAt < b.capturedAt ? -1 : 1,
-  )
+  const sortedByDate = [...fotos].sort((a, b) => (a.capturedAt < b.capturedAt ? -1 : 1))
   const defaultPrimaryId = sortedByDate[0]?.id ?? null
   const effectivePrimaryId = primaryId ?? defaultPrimaryId
   const primary = fotos.find((m) => m.id === effectivePrimaryId) ?? null
@@ -162,8 +160,8 @@ export function MergeMomentosBar({
             <p className="text-sm text-ink-700 min-w-0">
               Vas a fusionar <strong className="tabular-nums">{fotos.length}</strong>{' '}
               momentos en uno. Los otros{' '}
-              <strong className="tabular-nums">{fotos.length - 1}</strong>{' '}
-              quedarán archivados (podés deshacer desde el toast).
+              <strong className="tabular-nums">{fotos.length - 1}</strong> quedarán
+              archivados (podés deshacer desde el toast).
             </p>
             <div className="flex items-center gap-2 shrink-0">
               <button
@@ -189,7 +187,8 @@ export function MergeMomentosBar({
           <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-3 border-b border-ink-100/40">
             <div className="flex items-baseline flex-wrap gap-x-3 gap-y-1 min-w-0">
               <span className="text-sm text-ink-700 font-medium tabular-nums">
-                {selected.length} {selected.length === 1 ? 'seleccionado' : 'seleccionados'}
+                {selected.length}{' '}
+                {selected.length === 1 ? 'seleccionado' : 'seleccionados'}
               </span>
               {totalPhotos > 0 && (
                 <span className="text-micro uppercase tracking-eyebrow text-ink-400">
@@ -260,7 +259,8 @@ export function MergeMomentosBar({
                     : ''
                   return (
                     <option key={m.id} value={m.id}>
-                      {dateShort} · {itemCount} {itemCount === 1 ? 'foto' : 'fotos'}{noteShort}
+                      {dateShort} · {itemCount} {itemCount === 1 ? 'foto' : 'fotos'}
+                      {noteShort}
                       {idx === 0 ? ' (más viejo)' : ''}
                     </option>
                   )

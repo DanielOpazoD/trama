@@ -5,6 +5,7 @@ import { mockSqlResponses, setupMockSql } from './test-utils'
 vi.mock('./db.js', () => setupMockSql())
 
 import { checkMonthlyBudget } from './cost-cap'
+import { resetEnvCache } from './env'
 
 // Netlify.env no existe en el test runtime. Lo stubeamos con un budget
 // alto (1000 cents = $10) para que el cap del env no dispare por
@@ -22,9 +23,13 @@ function stubNetlifyEnv(envBudget = '1000') {
 describe('checkMonthlyBudget', () => {
   beforeEach(() => {
     mockSqlResponses.reset()
+    resetEnvCache() // el budget se cachea entre tests; invalidamos.
     stubNetlifyEnv('1000')
   })
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    resetEnvCache()
+  })
 
   it('con gasto debajo del cap, devuelve null (deja pasar)', async () => {
     mockSqlResponses.push([]) // users lookup → no row
@@ -86,6 +91,7 @@ describe('checkMonthlyBudget', () => {
 
   it('env vacío/0/invalid → default 500 cents', async () => {
     vi.unstubAllGlobals()
+    resetEnvCache()
     vi.stubGlobal('Netlify', {
       env: { get: vi.fn(() => undefined) },
     })

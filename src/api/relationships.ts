@@ -54,7 +54,9 @@ export const relationshipsApi = {
     return relationshipFromRow(row)
   },
   async deleteRelationship(id: string): Promise<{ deletedAt: string }> {
-    return request<{ deletedAt: string }>(`/api/relationships/${id}`, { method: 'DELETE' })
+    return request<{ deletedAt: string }>(`/api/relationships/${id}`, {
+      method: 'DELETE',
+    })
   },
   async restoreRelationship(id: string, deletedAt: string): Promise<void> {
     await request<{ restored: boolean }>(`/api/relationships/${id}/restore`, {

@@ -54,7 +54,10 @@ export function GraphMinimap({
     if (positions.size === 0) {
       return { minX: -500, minY: -500, scale: (SIZE_W - 2 * PADDING) / 1000 }
     }
-    let mnX = Infinity, mnY = Infinity, mxX = -Infinity, mxY = -Infinity
+    let mnX = Infinity,
+      mnY = Infinity,
+      mxX = -Infinity,
+      mxY = -Infinity
     for (const p of positions.values()) {
       if (p.x < mnX) mnX = p.x
       if (p.y < mnY) mnY = p.y

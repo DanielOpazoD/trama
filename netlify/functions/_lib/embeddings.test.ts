@@ -13,7 +13,8 @@ function mockEmbedResponse(vector: number[]) {
   return vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
-    text: async () => JSON.stringify({ data: [{ embedding: vector }], model: 'text-embedding-3-small' }),
+    text: async () =>
+      JSON.stringify({ data: [{ embedding: vector }], model: 'text-embedding-3-small' }),
     json: async () => ({
       data: [{ embedding: vector }],
       model: 'text-embedding-3-small',

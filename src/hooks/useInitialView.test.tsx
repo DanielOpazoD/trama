@@ -55,7 +55,14 @@ describe('useInitialView', () => {
 
   it('acepta cada uno de los 8 valores válidos', () => {
     const valid = [
-      'inicio', 'grafo', 'entidades', 'citas', 'escuchas', 'momentos', 'chat', 'sugerencias',
+      'inicio',
+      'grafo',
+      'entidades',
+      'citas',
+      'escuchas',
+      'momentos',
+      'chat',
+      'sugerencias',
     ]
     for (const v of valid) {
       window.location.search = `?view=${v}`

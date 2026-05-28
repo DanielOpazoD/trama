@@ -174,7 +174,10 @@ export async function* askLLMForTextStreaming(
     response = await fetchWithRetry(() =>
       fetch(`${config.baseUrl}/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
         body: JSON.stringify({
           model: config.model,
           messages,
@@ -304,9 +307,25 @@ export async function askLLMForVision(
   const start = Date.now()
   let raw: RawResult
   if (provider === 'openai') {
-    raw = await askOpenAIVision(apiKey, config, systemPrompt, userText, imageBase64, mimeType, maxTokens)
+    raw = await askOpenAIVision(
+      apiKey,
+      config,
+      systemPrompt,
+      userText,
+      imageBase64,
+      mimeType,
+      maxTokens,
+    )
   } else {
-    raw = await askGeminiVision(apiKey, config, systemPrompt, userText, imageBase64, mimeType, maxTokens)
+    raw = await askGeminiVision(
+      apiKey,
+      config,
+      systemPrompt,
+      userText,
+      imageBase64,
+      mimeType,
+      maxTokens,
+    )
   }
 
   const result: LLMResult = {

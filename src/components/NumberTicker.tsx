@@ -35,8 +35,10 @@ export function NumberTicker({
 
   useEffect(() => {
     // Reduce motion: salto directo, sin animación.
-    if (typeof window !== 'undefined' &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
       setDisplay(value)
       return
     }

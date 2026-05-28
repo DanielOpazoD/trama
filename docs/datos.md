@@ -38,6 +38,7 @@ Cinco minutos al mes te garantizan que aunque Netlify y Neon desaparezcan mañan
 ## Backup de la DB (más completo que el JSON)
 
 El export JSON cubre entities, relationships y quotes pero **no incluye**:
+
 - chat_threads + chat_messages
 - spotify_plays
 - proactive_suggestions

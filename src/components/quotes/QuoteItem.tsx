@@ -9,11 +9,13 @@ import { QuoteEditModal } from '../QuoteEditModal'
 function formatDate(iso: string): string {
   try {
     const d = new Date(iso)
-    return d.toLocaleDateString('es', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }).replace(/\./g, '')
+    return d
+      .toLocaleDateString('es', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+      .replace(/\./g, '')
   } catch {
     return ''
   }
@@ -156,12 +158,14 @@ export function QuoteItem({
             // mismo nombre, evitamos imprimirlo dos veces. Ej.: Lao Tse →
             // "Tao Te Ching" (entity link) ·  Tao Te Ching (source italic).
             // El match es case-insensitive con trim para tolerar minucias.
-            quote.source.trim().toLowerCase() !==
-              entity?.name.trim().toLowerCase() && (
+            quote.source.trim().toLowerCase() !== entity?.name.trim().toLowerCase() && (
               <span className="text-ink-300 ml-2 italic">· {quote.source}</span>
             )}
           {quote.origin.kind === 'ai' && (
-            <span className="ml-1.5 inline-flex items-center text-sky-700/70" title="propuesta por IA">
+            <span
+              className="ml-1.5 inline-flex items-center text-sky-700/70"
+              title="propuesta por IA"
+            >
               <SparkleIcon size={10} />
             </span>
           )}
@@ -203,12 +207,8 @@ export function QuoteItem({
             style={{
               color: quote.pinnedAt ? 'var(--accent-gold)' : undefined,
             }}
-            aria-label={
-              quote.pinnedAt ? 'Quitar de favoritas' : 'Marcar como favorita'
-            }
-            title={
-              quote.pinnedAt ? 'Quitar de favoritas' : 'Marcar como favorita'
-            }
+            aria-label={quote.pinnedAt ? 'Quitar de favoritas' : 'Marcar como favorita'}
+            title={quote.pinnedAt ? 'Quitar de favoritas' : 'Marcar como favorita'}
             aria-pressed={!!quote.pinnedAt}
           >
             <span className="text-sm leading-none" aria-hidden>
@@ -233,11 +233,7 @@ export function QuoteItem({
           </button>
         </div>
       </div>
-      <QuoteEditModal
-        quote={quote}
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-      />
+      <QuoteEditModal quote={quote} open={editOpen} onClose={() => setEditOpen(false)} />
       {quote.context && (
         <p
           className={`mt-2 text-ink-400 text-sm leading-relaxed italic ${
@@ -254,9 +250,7 @@ export function QuoteItem({
           </div>
           {/* μ1: marginalia manuscrita — Caveat 17px / ink-500. Distingue
               la voz tuya de la voz del catálogo (serif) y de la IA (sky). */}
-          <p className="marginalia-script whitespace-pre-wrap">
-            {quote.userReflection}
-          </p>
+          <p className="marginalia-script whitespace-pre-wrap">{quote.userReflection}</p>
         </div>
       )}
       {quote.aiReflection && (

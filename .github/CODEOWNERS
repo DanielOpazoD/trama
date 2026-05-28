@@ -1,0 +1,11 @@
+# CODEOWNERS: el owner se auto-asigna como reviewer en cada PR.
+#
+# Sintaxis: <path-pattern> <owner1> [owner2] ...
+# Ver: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-security/customizing-your-repository/about-code-owners
+#
+# Default: el creador del proyecto es owner de todo. Cuando sumemos
+# colaboradores, agregamos paths más específicos por área (ej.
+# /netlify/database/migrations/ debería tener un reviewer con sign-off
+# explícito porque las migrations son inmutables).
+
+* @DanielOpazoD

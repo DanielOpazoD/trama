@@ -35,9 +35,7 @@ test('momentos: navegar a Momentos y ver el heading', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Momentos' }).click()
 
-  await expect(
-    page.getByRole('heading', { name: 'Momentos', level: 2 }),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Momentos', level: 2 })).toBeVisible()
 })
 
 test('momentos: estado vacío muestra mensaje "Todavía no hay momentos"', async ({
@@ -48,11 +46,7 @@ test('momentos: estado vacío muestra mensaje "Todavía no hay momentos"', async
 
   await page.getByRole('button', { name: 'Momentos' }).click()
 
-  await expect(
-    page.getByRole('heading', { name: 'Momentos', level: 2 }),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Momentos', level: 2 })).toBeVisible()
 
-  await expect(
-    page.getByText('Todavía no hay momentos'),
-  ).toBeVisible()
+  await expect(page.getByText('Todavía no hay momentos')).toBeVisible()
 })

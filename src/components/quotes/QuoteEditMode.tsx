@@ -98,11 +98,7 @@ export function QuoteEditMode({
         </select>
       </div>
       <div className="flex items-center justify-end gap-2">
-        <button
-          onClick={onCancel}
-          className="btn-ghost text-xs"
-          disabled={pending}
-        >
+        <button onClick={onCancel} className="btn-ghost text-xs" disabled={pending}>
           cancelar
         </button>
         <button

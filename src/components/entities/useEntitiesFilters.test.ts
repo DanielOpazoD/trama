@@ -66,10 +66,7 @@ describe('useEntitiesFilters', () => {
   })
 
   it('typeFilter null vuelve a mostrar todas', () => {
-    const entities = [
-      entity('e1', 'libro'),
-      entity('e2', 'persona'),
-    ]
+    const entities = [entity('e1', 'libro'), entity('e2', 'persona')]
     const { result } = renderHook(() =>
       useEntitiesFilters({ allLoadedEntities: entities }),
     )

@@ -27,7 +27,12 @@ export function renderWithProviders(
     setOffline?: (offline: boolean) => void
   } & Omit<RenderOptions, 'wrapper'> = {},
 ) {
-  const { queryClient = makeQueryClient(), offline = false, setOffline = () => {}, ...rest } = options
+  const {
+    queryClient = makeQueryClient(),
+    offline = false,
+    setOffline = () => {},
+    ...rest
+  } = options
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>

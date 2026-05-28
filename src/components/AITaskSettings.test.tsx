@@ -31,7 +31,13 @@ const SETTINGS_FIXTURE: AISettingsResponse = {
       verifyWith: null,
       updatedAt: null,
     },
-    { task: 'extract-image', provider: null, model: null, verifyWith: null, updatedAt: null },
+    {
+      task: 'extract-image',
+      provider: null,
+      model: null,
+      verifyWith: null,
+      updatedAt: null,
+    },
     { task: 'reflect', provider: null, model: null, verifyWith: null, updatedAt: null },
     { task: 'chat', provider: null, model: null, verifyWith: null, updatedAt: null },
     { task: 'panel', provider: null, model: null, verifyWith: null, updatedAt: null },
@@ -112,7 +118,10 @@ describe('<AITaskSettings />', () => {
 
   it('shows a loading state before the settings query resolves', () => {
     // Never-resolves fetch so the query stays pending.
-    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
     renderWithProviders(<AITaskSettings />)
     expect(screen.getByText(/cargando/i)).toBeInTheDocument()
   })

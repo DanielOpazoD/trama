@@ -2,7 +2,7 @@
 
 ## Qué es
 
-Un lugar para guardar las ideas que han pasado por la cabeza. Propias y prestadas. No necesariamente las que comparto — también las que me parece necesario *conocer*, *releer*, *entender*. Trama es el mapa de eso: **no de lo que sé, sino de lo que me ha interesado saber**.
+Un lugar para guardar las ideas que han pasado por la cabeza. Propias y prestadas. No necesariamente las que comparto — también las que me parece necesario _conocer_, _releer_, _entender_. Trama es el mapa de eso: **no de lo que sé, sino de lo que me ha interesado saber**.
 
 ## Lo que la hace distinta de tomar notas
 
@@ -18,7 +18,7 @@ Cuatro gestos:
 
 **Capturar.** Una frase desordenada, una cita, una idea suelta. La IA estructura: identifica las entidades mencionadas (personas, escritores, bandas, canciones, libros, conceptos), las conexiones implícitas, y propone qué agregar al mapa. Pero nada entra a la trama hasta que yo lo apruebo. Rechazo lo que no encaja, edito lo que necesita matiz, acepto solo lo que resuena. La IA es escribano, no autor — el contenido lo trae ella, el criterio es mío.
 
-**Conectar.** Cada entidad puede vincularse a otras — *influye en*, *cita a*, *responde a*, *me llegó por*, *suena como*. Los tipos de relación no son un esquema rígido; son etiquetas que sirven para reconocer parentescos. Cuando dos entidades llevan tiempo en la trama sin estar conectadas, basta pedírselo a la IA: revisa lo que sabe de cada una y propone vínculos plausibles. Aprobás los que tengan sentido.
+**Conectar.** Cada entidad puede vincularse a otras — _influye en_, _cita a_, _responde a_, _me llegó por_, _suena como_. Los tipos de relación no son un esquema rígido; son etiquetas que sirven para reconocer parentescos. Cuando dos entidades llevan tiempo en la trama sin estar conectadas, basta pedírselo a la IA: revisa lo que sabe de cada una y propone vínculos plausibles. Aprobás los que tengan sentido.
 
 **Conversar.** La trama no es una cosa que se mira en silencio. Hay un chat: le hablas a la IA y ella te responde con todo el mapa cargado como contexto — qué autores te interesan, qué citas guardaste, qué se relaciona con qué. Le preguntas qué leer después de un libro, qué bandas se parecen a otra que ya está adentro, qué une dos ideas que tenías sueltas. Cuando la conversación deriva en algo concreto que valga la pena retener, ella misma te propone agregarlo — y vuelve a ser tu decisión.
 
@@ -28,17 +28,17 @@ Trama no es un archivo pasivo. Es generativa. La red ya construida sirve para in
 
 ## Música
 
-Lo que escucho también es parte de cómo pienso. Trama se conecta a Spotify y registra las reproducciones — pero nada entra al mapa sin que yo lo decida. La vista *Escuchas* muestra lo que sonó, agrupado, y desde ahí puedo promover a la trama lo que valió la pena. Si tengo una playlist con algo que quiero guardar entero, la pego: la IA saca los artistas y las canciones y me los propone con sus links de Spotify ya listos.
+Lo que escucho también es parte de cómo pienso. Trama se conecta a Spotify y registra las reproducciones — pero nada entra al mapa sin que yo lo decida. La vista _Escuchas_ muestra lo que sonó, agrupado, y desde ahí puedo promover a la trama lo que valió la pena. Si tengo una playlist con algo que quiero guardar entero, la pego: la IA saca los artistas y las canciones y me los propone con sus links de Spotify ya listos.
 
-Esto es importante: el flujo es siempre *hacia* la trama, nunca automático. Spotify es un afluente; el filtro lo sigo poniendo yo.
+Esto es importante: el flujo es siempre _hacia_ la trama, nunca automático. Spotify es un afluente; el filtro lo sigo poniendo yo.
 
 ## Linaje
 
 Esto no es una idea nueva. Es una idea con quinientos años:
 
-En la Edad Media tardía y el Renacimiento, los lectores armaban **florilegia** y *commonplace books*: cuadernos donde copiaban fragmentos memorables y los organizaban por tema. Erasmo escribió uno durante cuarenta años, las *Adagia*. Locke describió el método con minuciosidad. La idea era simple: lo que pasa por tu mente vale la pena retenerlo, ordenadamente.
+En la Edad Media tardía y el Renacimiento, los lectores armaban **florilegia** y _commonplace books_: cuadernos donde copiaban fragmentos memorables y los organizaban por tema. Erasmo escribió uno durante cuarenta años, las _Adagia_. Locke describió el método con minuciosidad. La idea era simple: lo que pasa por tu mente vale la pena retenerlo, ordenadamente.
 
-En los años veinte del siglo XX, Aby Warburg ensambló su *Bilderatlas Mnemosyne*: paneles negros llenos de fotografías, recortes, reproducciones de arte, dispuestos para mostrar cómo las imágenes y los gestos migran a través de los siglos. Era, literalmente, un mapa cognitivo de la influencia cultural.
+En los años veinte del siglo XX, Aby Warburg ensambló su _Bilderatlas Mnemosyne_: paneles negros llenos de fotografías, recortes, reproducciones de arte, dispuestos para mostrar cómo las imágenes y los gestos migran a través de los siglos. Era, literalmente, un mapa cognitivo de la influencia cultural.
 
 Borges entendió la biblioteca como universo y la memoria como construcción. Cada lector arma su propio canon, su propio panteón.
 
@@ -70,7 +70,7 @@ Trama responde cuatro tipos de preguntas que ninguna otra herramienta responde:
 
 Trama está pensada para durar décadas. No semanas, no meses. Décadas.
 
-Eso obliga a decisiones técnicas que no se ven pero importan: la trama puede exportarse en cualquier momento como JSON, en un formato que cualquiera puede leer dentro de veinte años. El sistema nunca borra de verdad — marca como eliminado, deja recuperación posible. Cada agregado queda con su fecha. Cada cosa propuesta por una IA queda con su procedencia (qué modelo, cuándo, con qué texto fuente). Si Netlify desaparece, si DeepSeek se vuelve impagable, si la web entera se rehace alrededor de otro estándar, tu trama sigue siendo *tuya*, en un archivo que puedes mover.
+Eso obliga a decisiones técnicas que no se ven pero importan: la trama puede exportarse en cualquier momento como JSON, en un formato que cualquiera puede leer dentro de veinte años. El sistema nunca borra de verdad — marca como eliminado, deja recuperación posible. Cada agregado queda con su fecha. Cada cosa propuesta por una IA queda con su procedencia (qué modelo, cuándo, con qué texto fuente). Si Netlify desaparece, si DeepSeek se vuelve impagable, si la web entera se rehace alrededor de otro estándar, tu trama sigue siendo _tuya_, en un archivo que puedes mover.
 
 El otro lado del largo plazo es lento. Trama no premia la productividad. No te empuja a agregar cosas. No mide tu progreso. Crece a su ritmo. Y de pronto, cuando vuelves después de un tiempo, ves el contorno completo de lo que has leído, escuchado, pensado — y reconoces algo que no podías haber visto desde adentro.
 
@@ -78,4 +78,4 @@ Es eso. Un mapa, no un archivo.
 
 ---
 
-*Última revisión: 2026-05-21*
+_Última revisión: 2026-05-21_

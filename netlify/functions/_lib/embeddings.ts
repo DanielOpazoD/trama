@@ -27,9 +27,7 @@ function readEmbeddingsKey(): string {
   if (explicit) return explicit
   const fallback = Netlify.env.get('AI_API_KEY')
   if (fallback) return fallback
-  throw new Error(
-    'Embeddings requieren OPENAI_API_KEY (o AI_API_KEY como fallback).',
-  )
+  throw new Error('Embeddings requieren OPENAI_API_KEY (o AI_API_KEY como fallback).')
 }
 
 // ---------- Query embedding cache ----------
@@ -121,9 +119,7 @@ export async function embed(
   })
   if (!res.ok) {
     const body = await res.text().catch(() => '')
-    throw new Error(
-      `Embeddings API error ${res.status}: ${body.slice(0, 200)}`,
-    )
+    throw new Error(`Embeddings API error ${res.status}: ${body.slice(0, 200)}`)
   }
   type EmbedRes = { data: Array<{ embedding: number[] }>; model: string }
   const json = (await res.json()) as EmbedRes

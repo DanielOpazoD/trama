@@ -16,16 +16,16 @@ Documentación pensada para Daniel — usuario único, no programador — cuando
 
 ## Cuándo abrir cada uno
 
-| Síntoma | Runbook |
-|---|---|
-| Hice `git push` y quiero ver si subió | [deploy.md](deploy.md) |
-| Cambié algo en el schema y el deploy falló | [migraciones.md](migraciones.md) |
-| Necesito hacer una copia de seguridad ya | [datos.md](datos.md) |
-| La IA está respondiendo raro o lento | [ai.md](ai.md) |
-| Quiero saber cuánto he gastado en IA este mes | [ai.md](ai.md) |
-| La app no abre / muestra error genérico | [incidentes.md](incidentes.md) |
-| Tengo 5000+ entidades y va lento | [escala.md](escala.md) |
-| Quiero compartir Trama con alguien más | [migracion-multi-user.md](migracion-multi-user.md) |
+| Síntoma                                       | Runbook                                            |
+| --------------------------------------------- | -------------------------------------------------- |
+| Hice `git push` y quiero ver si subió         | [deploy.md](deploy.md)                             |
+| Cambié algo en el schema y el deploy falló    | [migraciones.md](migraciones.md)                   |
+| Necesito hacer una copia de seguridad ya      | [datos.md](datos.md)                               |
+| La IA está respondiendo raro o lento          | [ai.md](ai.md)                                     |
+| Quiero saber cuánto he gastado en IA este mes | [ai.md](ai.md)                                     |
+| La app no abre / muestra error genérico       | [incidentes.md](incidentes.md)                     |
+| Tengo 5000+ entidades y va lento              | [escala.md](escala.md)                             |
+| Quiero compartir Trama con alguien más        | [migracion-multi-user.md](migracion-multi-user.md) |
 
 ## Convención de los runbooks
 

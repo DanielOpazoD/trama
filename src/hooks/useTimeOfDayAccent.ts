@@ -36,7 +36,7 @@ const SHIFTS: AccentShift[] = [
   // 21:00 – 06:00 — noche, accent frío azulado-lavanda
   { hourStart: 21, gold: '#7a6b94', goldSoft: 'rgb(122 107 148 / 0.10)' },
   // 06:00 – 11:00 — mañana, cobre cálido
-  { hourStart: 6,  gold: '#a86f3c', goldSoft: 'rgb(168 111 60 / 0.10)' },
+  { hourStart: 6, gold: '#a86f3c', goldSoft: 'rgb(168 111 60 / 0.10)' },
   // 11:00 – 17:00 — mediodía, el dorado base (mismo que CSS default)
   { hourStart: 11, gold: '#a07900', goldSoft: 'rgb(160 121 0 / 0.10)' },
   // 17:00 – 21:00 — atardecer, ámbar más oscuro

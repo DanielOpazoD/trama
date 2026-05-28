@@ -5,9 +5,15 @@ import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
 // (no acepta `.test.ts` en /netlify/functions/). Por eso el handler es `../`
 // y el mock del db es `./db.js` (path como lo resuelve vitest desde _lib/).
 vi.mock('./db.js', () => setupMockSql())
-vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-  ok: false, status: 500, text: async () => '', json: async () => ({}),
-}))
+vi.stubGlobal(
+  'fetch',
+  vi.fn().mockResolvedValue({
+    ok: false,
+    status: 500,
+    text: async () => '',
+    json: async () => ({}),
+  }),
+)
 
 import handler from '../relationships'
 
@@ -17,9 +23,15 @@ describe('relationships endpoint — integration', () => {
   })
   afterEach(() => {
     vi.unstubAllGlobals()
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false, status: 500, text: async () => '', json: async () => ({}),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => '',
+        json: async () => ({}),
+      }),
+    )
   })
 
   it('GET devuelve lista — el servidor pasa rows tal cual (cliente transforma a camelCase)', async () => {

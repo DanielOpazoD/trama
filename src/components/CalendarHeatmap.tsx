@@ -101,7 +101,20 @@ function dominantColor(b: DayBucket): string {
   return 'var(--accent-sage)'
 }
 
-const MONTH_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+const MONTH_SHORT = [
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic',
+]
 const DAY_LETTER = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 
 export function CalendarHeatmap({
@@ -212,11 +225,7 @@ export function CalendarHeatmap({
                       // Reservar espacio sin renderizar celda (días después de hoy
                       // dentro de la semana actual).
                       return (
-                        <div
-                          key={di}
-                          className="w-[11px] h-[11px]"
-                          aria-hidden="true"
-                        />
+                        <div key={di} className="w-[11px] h-[11px]" aria-hidden="true" />
                       )
                     }
                     const intensity =

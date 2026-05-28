@@ -8,13 +8,13 @@ Un lugar donde guardar las ideas que han pasado por la cabeza —propias o prest
 
 ## Funciones
 
-**Grafo.** Vista principal. Cuatro modos de layout: orgánico (fuerzas), por tipo (cluster por persona/libro/canción/etc.), por año (timeline horizontal), por densidad (los hubs al centro). Drag para reacomodar nodos; el botón *Reorganizar* recalcula desde cero. *Descubrir con IA* propone relaciones nuevas entre entidades existentes.
+**Grafo.** Vista principal. Cuatro modos de layout: orgánico (fuerzas), por tipo (cluster por persona/libro/canción/etc.), por año (timeline horizontal), por densidad (los hubs al centro). Drag para reacomodar nodos; el botón _Reorganizar_ recalcula desde cero. _Descubrir con IA_ propone relaciones nuevas entre entidades existentes.
 
-**Entidades.** 24 tipos: persona, escritor, filósofo, músico, banda, director, artista, científico, libro, ensayo, poema, artículo, canción, podcast, álbum, disco, película, serie, documental, obra, concepto, idea, lugar, evento. Los tipos viven en la DB; agregar uno nuevo es un INSERT. *Reclasificar con IA* revisa toda la lista y propone tipos mejores (ej. "Pink Floyd" como `persona` → `banda`).
+**Entidades.** 24 tipos: persona, escritor, filósofo, músico, banda, director, artista, científico, libro, ensayo, poema, artículo, canción, podcast, álbum, disco, película, serie, documental, obra, concepto, idea, lugar, evento. Los tipos viven en la DB; agregar uno nuevo es un INSERT. _Reclasificar con IA_ revisa toda la lista y propone tipos mejores (ej. "Pink Floyd" como `persona` → `banda`).
 
 **Citas.** Texto literal asociado a una entidad, con fuente y contexto opcionales. Las notas rápidas que añades desde el detalle de una entidad son citas sin fuente.
 
-**Relaciones.** Vínculos dirigidos tipados entre entidades (*influye en*, *cita a*, *responde a*, *me llegó por*, *suena como*, *inspira*, *contradice*, *asociado con*). Crear manualmente o pedirle a la IA que las descubra.
+**Relaciones.** Vínculos dirigidos tipados entre entidades (_influye en_, _cita a_, _responde a_, _me llegó por_, _suena como_, _inspira_, _contradice_, _asociado con_). Crear manualmente o pedirle a la IA que las descubra.
 
 **Escuchas.** Lo que has reproducido en Spotify, agrupado por artista / álbum / canción, con sync automático cada 3 horas. Importar playlist por URL: la IA extrae artistas y canciones con sus links de Spotify y te los propone como entidades + relaciones.
 
@@ -24,7 +24,7 @@ Un lugar donde guardar las ideas que han pasado por la cabeza —propias o prest
 
 **Búsqueda.** Full-text (tsvector) + trigrams para tolerancia a typos. Caja en el sidebar.
 
-**Detalle de entidad.** Click en cualquier nodo abre un panel lateral con descripción editable, citas asociadas, conexiones, y para entidades musicales un campo `spotify_url` con botón *Abrir en Spotify*.
+**Detalle de entidad.** Click en cualquier nodo abre un panel lateral con descripción editable, citas asociadas, conexiones, y para entidades musicales un campo `spotify_url` con botón _Abrir en Spotify_.
 
 ## Stack
 
@@ -67,25 +67,26 @@ netlify dev                # arranca functions con .env vars
 ```
 
 Comandos útiles:
+
 - `npm run db:reset` — borra y recrea la base (datos perdidos, schema fresco).
 - `npm run db:psql` — abre `psql` interactivo dentro del contenedor.
 - `npm run db:down` — apaga el contenedor.
 
 ## Variables de entorno (en Netlify dashboard)
 
-| Variable | Valores | Descripción |
-|---|---|---|
-| `AI_PROVIDER` | `deepseek` (default), `openai`, `anthropic`, `gemini` | Proveedor del LLM |
-| `AI_API_KEY` | string | Key del proveedor elegido |
-| `AI_MAX_TOKENS` | int (default `4096`) | Cap de tokens de respuesta del LLM |
-| `AI_CACHE_TTL_SECONDS` | int (default `600`) | TTL del cache in-memory del LLM. `0` desactiva. |
-| `AI_MONTHLY_BUDGET_CENTS` | int (default `500`) | Cap mensual de gasto del LLM en centavos USD. Las llamadas se cortan al cap. |
-| `AI_VISION_PROVIDER` | `openai` o `gemini` (opcional) | Provider separado para llamadas con imagen. Necesario si `AI_PROVIDER` es DeepSeek o Anthropic (que no soportan visión). Si `AI_PROVIDER=openai` o `gemini`, esta var no es necesaria. |
-| `AI_VISION_API_KEY` | string (opcional) | Key del provider de visión. Necesaria si `AI_VISION_PROVIDER` está definida. |
-| `NETLIFY_DB_URL` | string | Auto-provisionada por la extensión Netlify Database. `getSql()` la resuelve internamente; el código no la lee directo. |
-| `SPOTIFY_CLIENT_ID` | string | OAuth client id de tu app en Spotify Developer |
-| `SPOTIFY_CLIENT_SECRET` | string | OAuth client secret. **NUNCA al frontend.** |
-| `SPOTIFY_REDIRECT_URI` | url | Debe coincidir exacta con la registrada en Spotify Developer |
+| Variable                  | Valores                                               | Descripción                                                                                                                                                                            |
+| ------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AI_PROVIDER`             | `deepseek` (default), `openai`, `anthropic`, `gemini` | Proveedor del LLM                                                                                                                                                                      |
+| `AI_API_KEY`              | string                                                | Key del proveedor elegido                                                                                                                                                              |
+| `AI_MAX_TOKENS`           | int (default `4096`)                                  | Cap de tokens de respuesta del LLM                                                                                                                                                     |
+| `AI_CACHE_TTL_SECONDS`    | int (default `600`)                                   | TTL del cache in-memory del LLM. `0` desactiva.                                                                                                                                        |
+| `AI_MONTHLY_BUDGET_CENTS` | int (default `500`)                                   | Cap mensual de gasto del LLM en centavos USD. Las llamadas se cortan al cap.                                                                                                           |
+| `AI_VISION_PROVIDER`      | `openai` o `gemini` (opcional)                        | Provider separado para llamadas con imagen. Necesario si `AI_PROVIDER` es DeepSeek o Anthropic (que no soportan visión). Si `AI_PROVIDER=openai` o `gemini`, esta var no es necesaria. |
+| `AI_VISION_API_KEY`       | string (opcional)                                     | Key del provider de visión. Necesaria si `AI_VISION_PROVIDER` está definida.                                                                                                           |
+| `NETLIFY_DB_URL`          | string                                                | Auto-provisionada por la extensión Netlify Database. `getSql()` la resuelve internamente; el código no la lee directo.                                                                 |
+| `SPOTIFY_CLIENT_ID`       | string                                                | OAuth client id de tu app en Spotify Developer                                                                                                                                         |
+| `SPOTIFY_CLIENT_SECRET`   | string                                                | OAuth client secret. **NUNCA al frontend.**                                                                                                                                            |
+| `SPOTIFY_REDIRECT_URI`    | url                                                   | Debe coincidir exacta con la registrada en Spotify Developer                                                                                                                           |
 
 ## Configurar Spotify
 
@@ -95,8 +96,8 @@ Comandos útiles:
    - `https://tramadaod.netlify.app/api/spotify/callback` (producción)
 3. Copia el **Client ID** y el **Client Secret** a las env vars de Netlify (o tu `.env` local).
 4. En `SPOTIFY_REDIRECT_URI`, pon la URL que corresponde al entorno (la de localhost para `.env` local; la de producción para Netlify).
-5. Abre Trama → *Configuración* → *Spotify* → *Conectar con Spotify*. Te llevará a la pantalla de consentimiento de Spotify, autoriza, y volverás a Trama conectado.
-6. Después: clic en *Sincronizar ahora* para traer tus últimas 50 reproducciones. Las verás en la pestaña **Escuchas** del sidebar, agrupadas por artista, álbum o canción.
+5. Abre Trama → _Configuración_ → _Spotify_ → _Conectar con Spotify_. Te llevará a la pantalla de consentimiento de Spotify, autoriza, y volverás a Trama conectado.
+6. Después: clic en _Sincronizar ahora_ para traer tus últimas 50 reproducciones. Las verás en la pestaña **Escuchas** del sidebar, agrupadas por artista, álbum o canción.
 
 Spotify solo retiene las 50 reproducciones más recientes — un sync regular es lo que mantiene el log completo.
 
@@ -104,17 +105,18 @@ Spotify solo retiene las 50 reproducciones más recientes — un sync regular es
 
 **Scopes pedidos:** `user-read-recently-played`, `user-read-currently-playing`, `user-top-read`, `user-read-private`, `playlist-read-private`, `playlist-read-collaborative`. Si actualizas el listado, los usuarios existentes deben desconectar y reconectar Spotify.
 
-**Importar playlist:** en la pestaña *Escuchas*, pega un enlace `https://open.spotify.com/playlist/...` y la IA te devuelve una propuesta con todos los artistas y canciones (cada uno con su link de Spotify ya enlazado) lista para revisar.
+**Importar playlist:** en la pestaña _Escuchas_, pega un enlace `https://open.spotify.com/playlist/...` y la IA te devuelve una propuesta con todos los artistas y canciones (cada uno con su link de Spotify ya enlazado) lista para revisar.
 
 ## Deploy
 
 Push a `main` → Netlify build automático → migraciones aplicadas → sitio live.
 
 Primera vez: en el dashboard de Netlify hay que:
+
 1. Vincular el repo de GitHub (si no está vinculado).
-2. Activar Netlify Database desde la pestaña *Integrations* o esperar a que la dependencia `@netlify/database` la provisione.
+2. Activar Netlify Database desde la pestaña _Integrations_ o esperar a que la dependencia `@netlify/database` la provisione.
 3. Setear `AI_PROVIDER` y `AI_API_KEY`.
-4. (Recomendado) Activar password protection en *Site settings → Visitor access*.
+4. (Recomendado) Activar password protection en _Site settings → Visitor access_.
 
 ## Comandos comunes
 
@@ -263,19 +265,19 @@ npm run test:e2e       # Playwright — requiere build previo
 
 La app fue diseñada inicialmente como single-user y migra incrementalmente a multi-user. Estado actual:
 
-| Pieza | Estado |
-|---|---|
-| Schema con `user_id` en 9 tablas | ✅ Migración aplicada |
-| Composite indexes `(user_id, …)` | ✅ |
-| `getAuthedUser()` en 25 endpoints CRUD/reads | ✅ |
-| Schemas Zod en CRUD core | ✅ |
-| Isolation tests | ✅ |
-| `AuthGate` + `ClerkProvider` opcional | ✅ scaffolding |
-| `AppPinGate` (PIN opcional desde Settings) | ✅ |
-| **Blobs con prefijo `userId/`** | ⚠️ Pendiente |
-| **Cost-cap per-user** | ⚠️ Hoy es env var global |
-| **Spotify OAuth per-user** | ⚠️ Hoy es single account |
-| **UI login / logout** | ⚠️ Pendiente |
+| Pieza                                        | Estado                   |
+| -------------------------------------------- | ------------------------ |
+| Schema con `user_id` en 9 tablas             | ✅ Migración aplicada    |
+| Composite indexes `(user_id, …)`             | ✅                       |
+| `getAuthedUser()` en 25 endpoints CRUD/reads | ✅                       |
+| Schemas Zod en CRUD core                     | ✅                       |
+| Isolation tests                              | ✅                       |
+| `AuthGate` + `ClerkProvider` opcional        | ✅ scaffolding           |
+| `AppPinGate` (PIN opcional desde Settings)   | ✅                       |
+| **Blobs con prefijo `userId/`**              | ⚠️ Pendiente             |
+| **Cost-cap per-user**                        | ⚠️ Hoy es env var global |
+| **Spotify OAuth per-user**                   | ⚠️ Hoy es single account |
+| **UI login / logout**                        | ⚠️ Pendiente             |
 
 Sin `CLERK_SECRET_KEY` la app funciona en modo single-user (todos los datos contra `legacy-single-user`). Activar Clerk es agregar las 3 env vars (`VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `ALLOW_LEGACY_FALLBACK=true`) y desplegar.
 

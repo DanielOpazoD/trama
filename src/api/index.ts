@@ -49,24 +49,11 @@ export const api = {
 
 export { DuplicateEntityError } from './request'
 
-export type {
-  AskResponse,
-  ChatMessage,
-  ChatProposal,
-  ChatThread,
-} from './chat'
+export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
 
-export type {
-  ProactiveSuggestion,
-  Reclassification,
-  ReclassifyResponse,
-} from './ai'
+export type { ProactiveSuggestion, Reclassification, ReclassifyResponse } from './ai'
 
-export type {
-  AISettingsResponse,
-  AITaskConfig,
-  AITaskKey,
-} from './ai-settings'
+export type { AISettingsResponse, AITaskConfig, AITaskKey } from './ai-settings'
 
 export type {
   SpotifyArtistSuggestion,
@@ -88,15 +75,8 @@ export type {
   HealthResponse,
 } from './health'
 
-export type {
-  SearchEntityHit,
-  SearchQuoteHit,
-  SearchResponse,
-} from './search'
+export type { SearchEntityHit, SearchQuoteHit, SearchResponse } from './search'
 
-export type {
-  NeighborsResponse,
-  NeighborWithHop,
-} from './graph'
+export type { NeighborsResponse, NeighborWithHop } from './graph'
 
 export type { MomentoUrlPreview } from './momentos'

@@ -67,10 +67,7 @@ afterEach(() => {
 
 describe('useChatThreadsQuery', () => {
   it('lista hilos cuando online', async () => {
-    vi.spyOn(apiModule.api, 'listChatThreads').mockResolvedValue([
-      THREAD_A,
-      THREAD_B,
-    ])
+    vi.spyOn(apiModule.api, 'listChatThreads').mockResolvedValue([THREAD_A, THREAD_B])
     const qc = makeQueryClient()
     const { result } = renderHook(() => useChatThreadsQuery(), {
       wrapper: wrapWith(qc),
@@ -93,9 +90,7 @@ describe('useChatThreadsQuery', () => {
 
 describe('useCreateChatThread', () => {
   it('llama api.createChatThread con string title', async () => {
-    const spy = vi
-      .spyOn(apiModule.api, 'createChatThread')
-      .mockResolvedValue(THREAD_A)
+    const spy = vi.spyOn(apiModule.api, 'createChatThread').mockResolvedValue(THREAD_A)
     const qc = makeQueryClient()
     const { result } = renderHook(() => useCreateChatThread(), {
       wrapper: wrapWith(qc),
@@ -108,9 +103,7 @@ describe('useCreateChatThread', () => {
   })
 
   it('llama api.createChatThread con opts { context }', async () => {
-    const spy = vi
-      .spyOn(apiModule.api, 'createChatThread')
-      .mockResolvedValue(THREAD_A)
+    const spy = vi.spyOn(apiModule.api, 'createChatThread').mockResolvedValue(THREAD_A)
     const qc = makeQueryClient()
     const { result } = renderHook(() => useCreateChatThread(), {
       wrapper: wrapWith(qc),
@@ -134,7 +127,7 @@ describe('useCreateChatThread', () => {
       await result.current.mutateAsync(undefined)
     })
 
-    const cached = qc.getQueryData<typeof THREAD_A[]>(['chat', 'threads'])
+    const cached = qc.getQueryData<(typeof THREAD_A)[]>(['chat', 'threads'])
     expect(cached).toHaveLength(2)
     expect(cached![0]!.id).toBe('th-2') // prepended
     expect(cached![1]!.id).toBe('th-1')
@@ -154,7 +147,7 @@ describe('useDeleteChatThread', () => {
       await result.current.mutateAsync('th-1')
     })
 
-    const cached = qc.getQueryData<typeof THREAD_A[]>(['chat', 'threads'])
+    const cached = qc.getQueryData<(typeof THREAD_A)[]>(['chat', 'threads'])
     expect(cached).toHaveLength(1)
     expect(cached![0]!.id).toBe('th-2')
   })
@@ -163,9 +156,10 @@ describe('useDeleteChatThread', () => {
     vi.spyOn(apiModule.api, 'deleteChatThread').mockResolvedValue(undefined)
     const qc = makeQueryClient()
     qc.setQueryData(['chat', 'threads'], [THREAD_A])
-    qc.setQueryData(['chat', 'messages', 'th-1'], [
-      { id: 'm1', role: 'user', content: 'hola', proposal: null, createdAt: '' },
-    ])
+    qc.setQueryData(
+      ['chat', 'messages', 'th-1'],
+      [{ id: 'm1', role: 'user', content: 'hola', proposal: null, createdAt: '' }],
+    )
     const removeSpy = vi.spyOn(qc, 'removeQueries')
 
     const { result } = renderHook(() => useDeleteChatThread(), {
@@ -210,9 +204,7 @@ describe('useChatMessagesQuery', () => {
   })
 
   it('está deshabilitada cuando threadId es null', async () => {
-    const spy = vi
-      .spyOn(apiModule.api, 'listChatMessages')
-      .mockResolvedValue([])
+    const spy = vi.spyOn(apiModule.api, 'listChatMessages').mockResolvedValue([])
     const qc = makeQueryClient()
     renderHook(() => useChatMessagesQuery(null), {
       wrapper: wrapWith(qc),

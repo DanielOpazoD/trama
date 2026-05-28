@@ -34,10 +34,7 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
     >
       <header className="pb-1.5 border-b border-ink-100/60 flex items-baseline justify-between gap-4">
         <div className="min-w-0">
-          <p
-            className="section-eyebrow-serif"
-            style={{ color: 'var(--accent-gold)' }}
-          >
+          <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
             nueva entrada
           </p>
           <h3 className="font-serif text-xl text-ink-800 leading-tight">
@@ -253,15 +250,9 @@ function FotoFields({ composer }: { composer: Composer }) {
                   <div
                     key={draft.previewUrl}
                     className={`group relative aspect-square overflow-hidden rounded border ${
-                      isPrimary
-                        ? 'border-2'
-                        : 'border-ink-100/60'
+                      isPrimary ? 'border-2' : 'border-ink-100/60'
                     } bg-paper-100/40`}
-                    style={
-                      isPrimary
-                        ? { borderColor: 'var(--accent-gold)' }
-                        : undefined
-                    }
+                    style={isPrimary ? { borderColor: 'var(--accent-gold)' } : undefined}
                   >
                     <img
                       src={draft.previewUrl}

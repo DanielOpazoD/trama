@@ -554,13 +554,19 @@ export async function fetchPlaylist(
   }
 
   const tracks: SpotifyTrackLite[] = items
-    .map((it) => it.track && it.track.id ? { it, track: it.track } : null)
-    .filter((x): x is { it: PlaylistTrackItem; track: NonNullable<PlaylistTrackItem['track']> } => x !== null)
+    .map((it) => (it.track && it.track.id ? { it, track: it.track } : null))
+    .filter(
+      (
+        x,
+      ): x is { it: PlaylistTrackItem; track: NonNullable<PlaylistTrackItem['track']> } =>
+        x !== null,
+    )
     .slice(0, maxTracks)
     .map(({ it, track }) => ({
       trackId: track.id ?? '',
       trackName: track.name,
-      trackUrl: track.external_urls.spotify ?? `https://open.spotify.com/track/${track.id}`,
+      trackUrl:
+        track.external_urls.spotify ?? `https://open.spotify.com/track/${track.id}`,
       artists: track.artists.map((a) => ({
         id: a.id,
         name: a.name,
@@ -569,7 +575,9 @@ export async function fetchPlaylist(
       album: {
         id: track.album.id,
         name: track.album.name,
-        url: track.album.external_urls.spotify ?? `https://open.spotify.com/album/${track.album.id}`,
+        url:
+          track.album.external_urls.spotify ??
+          `https://open.spotify.com/album/${track.album.id}`,
         year: track.album.release_date
           ? Number.parseInt(track.album.release_date.slice(0, 4), 10) || null
           : null,

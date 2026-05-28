@@ -7,11 +7,7 @@ import {
 } from '../state'
 import { EmptyMessage } from './EmptyMessage'
 import { EndMark, OrnamentBreak } from './Icons'
-import {
-  QuoteSkeleton,
-  SkeletonList,
-  TimelineRowSkeleton,
-} from './Skeleton'
+import { QuoteSkeleton, SkeletonList, TimelineRowSkeleton } from './Skeleton'
 import { WeeklyActivity } from './WeeklyActivity'
 import { useHiloOfTheDay } from '../hooks/useHiloOfTheDay'
 import { Greeting } from './home/Greeting'
@@ -125,9 +121,9 @@ export function HomeView({
             title="Una trama recién empieza así, en silencio."
             body={
               <>
-                Pega un párrafo abajo — algo que te llegó, una conversación que
-                quieres retener, un libro que estás leyendo. La IA propone qué
-                entidades, relaciones y citas extraer. Tú apruebas.
+                Pega un párrafo abajo — algo que te llegó, una conversación que quieres
+                retener, un libro que estás leyendo. La IA propone qué entidades,
+                relaciones y citas extraer. Tú apruebas.
               </>
             }
             hint="Si tienes Spotify conectado, también puedes pegar una playlist."

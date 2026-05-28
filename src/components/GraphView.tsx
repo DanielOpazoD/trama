@@ -50,7 +50,12 @@ const GRAPH_LAYOUT_MODE_KEY = 'trama.graphLayoutMode'
 const GRAPH_FOCUS_KEY = 'trama.graphFocus'
 const GRAPH_EXPLORE_HINT_DISMISSED = 'trama.graphExploreHint.dismissed'
 
-const VALID_LAYOUT_MODES: ReadonlyArray<LayoutMode> = ['organic', 'by-type', 'by-year', 'by-degree']
+const VALID_LAYOUT_MODES: ReadonlyArray<LayoutMode> = [
+  'organic',
+  'by-type',
+  'by-year',
+  'by-degree',
+]
 // Sobre este número de entidades en modo "completo", sugerimos cambiar
 // a "exploratorio". Es la zona donde el render SVG empieza a notarse.
 const EXPLORE_HINT_THRESHOLD = 2000
@@ -140,14 +145,14 @@ export default function GraphView({
   // the wholesale arrays. In exploratorio we use the subgraph from /neighbors.
   const entities: Entity[] =
     graphMode === 'exploratorio'
-      ? (neighborsQuery.data
-          ? [
-              neighborsQuery.data.from,
-              ...neighborsQuery.data.entities.filter(
-                (e) => e.id !== neighborsQuery.data!.from.id,
-              ),
-            ]
-          : [])
+      ? neighborsQuery.data
+        ? [
+            neighborsQuery.data.from,
+            ...neighborsQuery.data.entities.filter(
+              (e) => e.id !== neighborsQuery.data!.from.id,
+            ),
+          ]
+        : []
       : allEntities
   const relationships: Relationship[] =
     graphMode === 'exploratorio'
@@ -155,11 +160,9 @@ export default function GraphView({
       : allRelationships
 
   const focusName =
-    graphMode === 'exploratorio'
-      ? neighborsQuery.data?.from.name ?? null
-      : null
+    graphMode === 'exploratorio' ? (neighborsQuery.data?.from.name ?? null) : null
   const truncated =
-    graphMode === 'exploratorio' ? neighborsQuery.data?.truncated ?? false : false
+    graphMode === 'exploratorio' ? (neighborsQuery.data?.truncated ?? false) : false
 
   // Measure the SVG so we can center the world group using numeric translate.
   // (SVG transform attribute does not accept percentage values.)
@@ -199,7 +202,10 @@ export default function GraphView({
     if (positions.size === 0) return
     // Solo refit cuando ENTRAMOS al mode (no en cada re-render del mismo).
     if (lastFittedModeRef.current === mode) return
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity
     for (const p of positions.values()) {
       if (p.x < minX) minX = p.x
       if (p.y < minY) minY = p.y
@@ -239,7 +245,13 @@ export default function GraphView({
       acc.count += 1
       byType.set(ent.type, acc)
     }
-    const result: Array<{ type: string; label: string; cx: number; cy: number; count: number }> = []
+    const result: Array<{
+      type: string
+      label: string
+      cx: number
+      cy: number
+      count: number
+    }> = []
     for (const [type, { sumX, sumY, count }] of byType) {
       // Skip clusters de 1 — un solo nodo no necesita label decorativa.
       if (count < 2) continue
@@ -255,7 +267,11 @@ export default function GraphView({
     return result
   }, [mode, entities, positions])
 
-  const { focusedIndex, setFocusedIndex, onKeyDown: handleKeyDown } = useGraphKeyboardNav({
+  const {
+    focusedIndex,
+    setFocusedIndex,
+    onKeyDown: handleKeyDown,
+  } = useGraphKeyboardNav({
     entities,
     selectedId,
     onSelect,
@@ -378,8 +394,7 @@ export default function GraphView({
     graphMode === 'completo' &&
     !exploreHintDismissed &&
     allEntities.length > EXPLORE_HINT_THRESHOLD
-  const useWebGl =
-    graphMode === 'completo' && entities.length >= WEBGL_THRESHOLD
+  const useWebGl = graphMode === 'completo' && entities.length >= WEBGL_THRESHOLD
 
   function dismissExploreHint() {
     if (typeof window !== 'undefined') {

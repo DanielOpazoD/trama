@@ -15,12 +15,16 @@ describe('ToastProvider + useToast', () => {
   }
 
   it('arranca con current === null', () => {
-    const { result } = renderHook(() => useToast(), { wrapper: ({ children }) => wrap(children) })
+    const { result } = renderHook(() => useToast(), {
+      wrapper: ({ children }) => wrap(children),
+    })
     expect(result.current.current).toBeNull()
   })
 
   it('show() activa el toast y dismiss() lo cierra', () => {
-    const { result } = renderHook(() => useToast(), { wrapper: ({ children }) => wrap(children) })
+    const { result } = renderHook(() => useToast(), {
+      wrapper: ({ children }) => wrap(children),
+    })
     act(() => {
       result.current.show({ message: 'Hola' })
     })
@@ -32,7 +36,9 @@ describe('ToastProvider + useToast', () => {
   })
 
   it('auto-dismiss tras durationMs', () => {
-    const { result } = renderHook(() => useToast(), { wrapper: ({ children }) => wrap(children) })
+    const { result } = renderHook(() => useToast(), {
+      wrapper: ({ children }) => wrap(children),
+    })
     act(() => {
       result.current.show({ message: 'Efímero', durationMs: 1000 })
     })
@@ -44,7 +50,9 @@ describe('ToastProvider + useToast', () => {
   })
 
   it('durationMs: 0 es persistente — no auto-dismiss', () => {
-    const { result } = renderHook(() => useToast(), { wrapper: ({ children }) => wrap(children) })
+    const { result } = renderHook(() => useToast(), {
+      wrapper: ({ children }) => wrap(children),
+    })
     act(() => {
       result.current.show({ message: 'Sticky', durationMs: 0 })
     })
@@ -55,7 +63,9 @@ describe('ToastProvider + useToast', () => {
   })
 
   it('show() reemplaza el toast anterior y reinicia el timer', () => {
-    const { result } = renderHook(() => useToast(), { wrapper: ({ children }) => wrap(children) })
+    const { result } = renderHook(() => useToast(), {
+      wrapper: ({ children }) => wrap(children),
+    })
     act(() => {
       result.current.show({ message: 'Primero', durationMs: 1000 })
     })
@@ -78,7 +88,9 @@ describe('ToastProvider + useToast', () => {
   })
 
   it('action.onAction se llama al gatillarla manualmente', async () => {
-    const { result } = renderHook(() => useToast(), { wrapper: ({ children }) => wrap(children) })
+    const { result } = renderHook(() => useToast(), {
+      wrapper: ({ children }) => wrap(children),
+    })
     const onAction = vi.fn()
     act(() => {
       result.current.show({

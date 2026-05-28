@@ -90,11 +90,7 @@ describe('<CalendarHeatmap />', () => {
 
   it('renders no buttons when onSelectDay is omitted (cells are not interactive)', () => {
     const { container } = render(
-      <CalendarHeatmap
-        entities={[makeEntity('e-1')]}
-        quotes={[]}
-        relationships={[]}
-      />,
+      <CalendarHeatmap entities={[makeEntity('e-1')]} quotes={[]} relationships={[]} />,
     )
     expect(container.querySelectorAll('button').length).toBe(0)
   })

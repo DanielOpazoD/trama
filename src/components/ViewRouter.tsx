@@ -68,7 +68,12 @@ function ViewFallback() {
  * detalles) que el fallback global, pero más chico y sin ocupar la
  * pantalla entera.
  */
-function ViewErrorFallback({ error, componentStack, onReset, onReload }: ErrorFallbackProps) {
+function ViewErrorFallback({
+  error,
+  componentStack,
+  onReset,
+  onReload,
+}: ErrorFallbackProps) {
   const details =
     `${error.name}: ${error.message}\n\n` +
     (error.stack ? `Stack:\n${error.stack}\n\n` : '') +
@@ -93,8 +98,8 @@ function ViewErrorFallback({ error, componentStack, onReset, onReload }: ErrorFa
           Esta vista se rompió.
         </h2>
         <p className="text-ink-500 text-sm leading-relaxed mb-3">
-          El resto de la app sigue andando — podés cambiar de vista desde el
-          lateral. Si querés intentar de nuevo:
+          El resto de la app sigue andando — podés cambiar de vista desde el lateral. Si
+          querés intentar de nuevo:
         </p>
         <details className="mb-4 group">
           <summary className="text-xs uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 cursor-pointer transition-colors">
@@ -214,10 +219,7 @@ export function ViewRouter({
         )}
         {view === 'escuchas' && (
           <ViewSlot scope="view:escuchas">
-            <ListeningView
-              onSelectEntity={onSelectEntity}
-              onProposal={onProposal}
-            />
+            <ListeningView onSelectEntity={onSelectEntity} onProposal={onProposal} />
           </ViewSlot>
         )}
         {view === 'momentos' && (

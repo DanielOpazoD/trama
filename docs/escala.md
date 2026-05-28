@@ -11,14 +11,14 @@
 
 Trama tiene escalones de escalabilidad que se activan a distintos tamaños:
 
-| Tamaño | Qué tienes | Qué se activa solo | Qué tienes que decidir tú |
-|---|---|---|---|
-| 0-500 | Modo "completo" del grafo va sobrado, sin pensar | — | — |
-| 500-2000 | Listas (Citas/Entidades/Relaciones) virtualizadas | Cursor pagination activa cuando llegues a las 60 primeras | — |
-| 2000-5000 | Grafo completo empieza a notarse | Banner sugiere modo explorar | Decidir si pasar al modo explorar |
-| 5000-15000 | Necesitás explorar obligatorio | Hard caps en /api/entities y /api/relationships | Migrar al modo explorar del grafo si no lo hiciste |
-| 15000-50000 | HNSW empieza a ser indispensable | (Ya está activo) | Refactor WebGL del grafo cuando llegues |
-| 50000+ | Particionar logs | Indices BRIN siguen ágiles | Implementar el plan de partition de F |
+| Tamaño      | Qué tienes                                        | Qué se activa solo                                        | Qué tienes que decidir tú                          |
+| ----------- | ------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------- |
+| 0-500       | Modo "completo" del grafo va sobrado, sin pensar  | —                                                         | —                                                  |
+| 500-2000    | Listas (Citas/Entidades/Relaciones) virtualizadas | Cursor pagination activa cuando llegues a las 60 primeras | —                                                  |
+| 2000-5000   | Grafo completo empieza a notarse                  | Banner sugiere modo explorar                              | Decidir si pasar al modo explorar                  |
+| 5000-15000  | Necesitás explorar obligatorio                    | Hard caps en /api/entities y /api/relationships           | Migrar al modo explorar del grafo si no lo hiciste |
+| 15000-50000 | HNSW empieza a ser indispensable                  | (Ya está activo)                                          | Refactor WebGL del grafo cuando llegues            |
+| 50000+      | Particionar logs                                  | Indices BRIN siguen ágiles                                | Implementar el plan de partition de F              |
 
 ## GraphView va lento
 
@@ -57,6 +57,7 @@ Ya paginadas e virtualizadas (commit D). Sin acciones.
 Ya server-only (commit J). A cualquier escala, una búsqueda son ~2 queries SQL con índices. Sub-segundo.
 
 Si va lento:
+
 1. ¿Tenés muchas entidades sin embedding? Settings → "Indexar lo pendiente".
 2. ¿La query es muy específica + cero matches lexicales? Debería degradar limpio. Ver consola del browser por errores.
 
@@ -64,15 +65,16 @@ Si va lento:
 
 Plan free de Neon: 0.5 GB de storage + 191 horas de compute al mes.
 
-| Tamaño | Storage estimado | ¿Plan free aguanta? |
-|---|---|---|
-| 1k entidades + 5k quotes + embeddings | ~50 MB | sí |
-| 10k + 50k + embeddings | ~500 MB | al límite |
-| 100k + 500k + embeddings | ~5 GB | no, necesitás plan Launch ($19/mes) |
+| Tamaño                                | Storage estimado | ¿Plan free aguanta?                 |
+| ------------------------------------- | ---------------- | ----------------------------------- |
+| 1k entidades + 5k quotes + embeddings | ~50 MB           | sí                                  |
+| 10k + 50k + embeddings                | ~500 MB          | al límite                           |
+| 100k + 500k + embeddings              | ~5 GB            | no, necesitás plan Launch ($19/mes) |
 
 Embeddings 1536d × 8 bytes = 12 KB por entidad o quote. Es lo que más pesa.
 
 Cuando se acerque el límite del plan free, considerá:
+
 - Plan Launch de Neon ($19/mes, 10 GB).
 - O archivar embeddings de quotes muy antiguas (las que no sea probable buscar).
 

@@ -60,10 +60,7 @@ export const mockSqlResponses = {
  * Eso modela el caso "esta query no afecta al test bajo prueba".
  */
 export function setupMockSql() {
-  function sql(
-    strings: TemplateStringsArray,
-    ...values: unknown[]
-  ): Promise<unknown[]> {
+  function sql(strings: TemplateStringsArray, ...values: unknown[]): Promise<unknown[]> {
     mockSqlState.calls.push({
       template: strings.join('?'),
       values,

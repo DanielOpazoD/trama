@@ -51,7 +51,9 @@ describe('useExtract', () => {
     }
     const spy = vi
       .spyOn(apiModule.api, 'extract')
-      .mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof apiModule.api.extract>>)
+      .mockResolvedValue(
+        fake as unknown as Awaited<ReturnType<typeof apiModule.api.extract>>,
+      )
 
     const qc = makeQueryClient()
     const { result } = renderHook(() => useExtract(), { wrapper: wrap(qc) })
@@ -67,7 +69,9 @@ describe('useExtract', () => {
   it('en offline lanza un error legible (no llama API)', async () => {
     const spy = vi.spyOn(apiModule.api, 'extract')
     const qc = makeQueryClient()
-    const { result } = renderHook(() => useExtract(), { wrapper: wrap(qc, /*offline*/ true) })
+    const { result } = renderHook(() => useExtract(), {
+      wrapper: wrap(qc, /*offline*/ true),
+    })
 
     act(() => {
       result.current.mutate('texto')
@@ -139,9 +143,11 @@ describe('useAISettingsQuery + useSetAITaskProvider', () => {
     )
     const setSpy = vi
       .spyOn(apiModule.api, 'setAITaskProvider')
-      .mockResolvedValue(undefined as unknown as Awaited<
-        ReturnType<typeof apiModule.api.setAITaskProvider>
-      >)
+      .mockResolvedValue(
+        undefined as unknown as Awaited<
+          ReturnType<typeof apiModule.api.setAITaskProvider>
+        >,
+      )
 
     const qc = makeQueryClient()
     const querySpy = vi.spyOn(qc, 'invalidateQueries')

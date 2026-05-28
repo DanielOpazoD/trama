@@ -51,9 +51,7 @@ export function NavButton({
   // "Entidades 63" (label + badge), en collapsed solo el icono. Para
   // ambos casos generamos un aria-label que matcheé el texto visible
   // sin agregar parens ni comas.
-  const ariaLabel = count !== null && count > 0
-    ? `${item.label} ${count}`
-    : item.label
+  const ariaLabel = count !== null && count > 0 ? `${item.label} ${count}` : item.label
   const showCount = count !== null && count > 0
 
   if (mode === 'collapsed') {
@@ -117,11 +115,7 @@ export function NavButton({
             Wrapper span con currentColor para que el stroke del SVG hereda. */}
         <span
           className="inline-flex shrink-0"
-          style={
-            active && accentColor
-              ? { color: accentColor }
-              : undefined
-          }
+          style={active && accentColor ? { color: accentColor } : undefined}
         >
           <Icon
             size={14}

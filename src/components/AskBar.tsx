@@ -134,7 +134,9 @@ export function AskBar({
   async function handleImageSelected(file: File) {
     setImageError(null)
     if (file.size > 8 * 1024 * 1024) {
-      setImageError('La imagen excede los 8 MB. Toma una foto más pequeña o redimensiona.')
+      setImageError(
+        'La imagen excede los 8 MB. Toma una foto más pequeña o redimensiona.',
+      )
       return
     }
     if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
@@ -183,7 +185,12 @@ export function AskBar({
                   className="inline-block size-1.5 rounded-full"
                   style={{ backgroundColor: 'var(--accent-primary)' }}
                 />
-                respuesta{reply.model ? ` · ${reply.model}` : reply.provider ? ` · ${reply.provider}` : ''}
+                respuesta
+                {reply.model
+                  ? ` · ${reply.model}`
+                  : reply.provider
+                    ? ` · ${reply.provider}`
+                    : ''}
               </span>
               <div className="flex items-baseline gap-3">
                 {threadId && onOpenThread && (

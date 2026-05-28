@@ -63,10 +63,7 @@ export function TopBar({
         {breadcrumb ? (
           // Path-style — clickeable la raíz para volver a la vista
           // sin abrir entidad. Lo que hace Codex con `repo › file.tsx`.
-          <nav
-            aria-label="Breadcrumb"
-            className="min-w-0 flex items-baseline gap-2"
-          >
+          <nav aria-label="Breadcrumb" className="min-w-0 flex items-baseline gap-2">
             <button
               onClick={breadcrumb.onClickRoot}
               className="font-serif text-xl text-ink-400 hover:text-ink-700 leading-none tracking-tight transition-colors shrink-0"
@@ -107,11 +104,7 @@ export function TopBar({
  * en ink-400. Indicador es absoluto al borde inferior del TopBar para
  * que se sienta como continuación natural del workspace.
  */
-function TabsStrip({
-  tabs,
-}: {
-  tabs: NonNullable<TopBarTabsProp>
-}) {
+function TabsStrip({ tabs }: { tabs: NonNullable<TopBarTabsProp> }) {
   return (
     <nav
       role="tablist"
@@ -127,9 +120,7 @@ function TabsStrip({
             aria-selected={active}
             onClick={() => tabs.onChange(item.value)}
             className={`relative text-sm leading-none transition-colors ${
-              active
-                ? 'text-ink-800 font-medium'
-                : 'text-ink-400 hover:text-ink-700'
+              active ? 'text-ink-800 font-medium' : 'text-ink-400 hover:text-ink-700'
             }`}
           >
             {item.label}

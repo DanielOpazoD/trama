@@ -52,7 +52,10 @@ export function withObservability(
 
       // Log non-2xx responses too (warn level, sin stack).
       if (finalResponse.status >= 400) {
-        const body = await finalResponse.clone().text().catch(() => '')
+        const body = await finalResponse
+          .clone()
+          .text()
+          .catch(() => '')
         persistError(safeSql(), {
           functionName,
           httpMethod: req.method,
