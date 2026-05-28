@@ -81,10 +81,7 @@ export async function askGeminiVision(
         contents: [
           {
             role: 'user',
-            parts: [
-              { text: userText },
-              { inlineData: { mimeType, data: imageBase64 } },
-            ],
+            parts: [{ text: userText }, { inlineData: { mimeType, data: imageBase64 } }],
           },
         ],
         generationConfig: {

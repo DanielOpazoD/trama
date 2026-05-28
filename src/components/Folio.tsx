@@ -15,13 +15,7 @@ import { useEffect, useState } from 'react'
  * item visible en un virtualizer, o el scrollTop / itemHeight, según
  * lo que el caller tenga a mano.
  */
-export function Folio({
-  current,
-  total,
-}: {
-  current: number
-  total: number
-}) {
+export function Folio({ current, total }: { current: number; total: number }) {
   // Solo mostrar cuando hayas scrolleado un poco. Sin este gate, el
   // folio aparece desde el primer pixel y compite con el header de
   // la vista por atención.
@@ -31,7 +25,9 @@ export function Folio({
       // Buscar el scrollable principal (el div con overflow-y-auto que
       // contiene la vista). Heurística: el ancestro scrolleable más
       // cercano al body.
-      const main = document.querySelector('main [class*="overflow-y-auto"]') as HTMLElement | null
+      const main = document.querySelector(
+        'main [class*="overflow-y-auto"]',
+      ) as HTMLElement | null
       const scrollTop = main?.scrollTop ?? window.scrollY
       setVisible(scrollTop > 200)
     }

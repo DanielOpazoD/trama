@@ -25,7 +25,11 @@ function save<T>(key: string, items: T[]): void {
  * - `updatedAt` may be missing on old rows — fall back to `createdAt`.
  */
 function normalizeOrigin(value: unknown): Origin {
-  if (value && typeof value === 'object' && 'kind' in (value as Record<string, unknown>)) {
+  if (
+    value &&
+    typeof value === 'object' &&
+    'kind' in (value as Record<string, unknown>)
+  ) {
     return value as Origin
   }
   if (typeof value === 'string') {
@@ -34,9 +38,9 @@ function normalizeOrigin(value: unknown): Origin {
   return { kind: 'manual' }
 }
 
-function normalizeBase<T extends { createdAt: string; updatedAt?: string; origin?: unknown }>(
-  item: T,
-): T & { origin: Origin; updatedAt: string } {
+function normalizeBase<
+  T extends { createdAt: string; updatedAt?: string; origin?: unknown },
+>(item: T): T & { origin: Origin; updatedAt: string } {
   return {
     ...item,
     origin: normalizeOrigin(item.origin),
@@ -44,7 +48,14 @@ function normalizeBase<T extends { createdAt: string; updatedAt?: string; origin
   }
 }
 
-function normalizeQuote(item: Partial<Quote> & { id: string; entityId: string; text: string; createdAt: string }): Quote {
+function normalizeQuote(
+  item: Partial<Quote> & {
+    id: string
+    entityId: string
+    text: string
+    createdAt: string
+  },
+): Quote {
   return {
     ...normalizeBase(item as Quote),
     linkedQuoteIds: Array.isArray(item.linkedQuoteIds) ? item.linkedQuoteIds : [],

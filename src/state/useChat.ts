@@ -117,9 +117,7 @@ export function useSendChatMessage(threadId: string | null) {
           onChunk: (text) => {
             queryClient.setQueryData<ChatMessage[]>(messagesKey(threadId), (prev) =>
               (prev ?? []).map((m) =>
-                m.id === assistantIdRef.current
-                  ? { ...m, content: m.content + text }
-                  : m,
+                m.id === assistantIdRef.current ? { ...m, content: m.content + text } : m,
               ),
             )
           },

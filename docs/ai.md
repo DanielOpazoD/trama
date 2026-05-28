@@ -10,22 +10,22 @@
 
 ## Verificación rápida
 
-| Qué | Dónde |
-|---|---|
-| ¿Cuánto gasté en IA este mes? | Settings → Health (ver gráfico) |
-| ¿Qué provider está usando cada tarea? | Settings → "IA por tarea" |
-| ¿Hay errores recientes de IA? | Settings → Health |
-| Estado actual del toggle IA | Sidebar → icono de chispa (chip muestra estado) |
+| Qué                                   | Dónde                                           |
+| ------------------------------------- | ----------------------------------------------- |
+| ¿Cuánto gasté en IA este mes?         | Settings → Health (ver gráfico)                 |
+| ¿Qué provider está usando cada tarea? | Settings → "IA por tarea"                       |
+| ¿Hay errores recientes de IA?         | Settings → Health                               |
+| Estado actual del toggle IA           | Sidebar → icono de chispa (chip muestra estado) |
 
 ## El toggle global de IA
 
 En la sidebar (arriba de Configuración) hay un icono con tres estados:
 
-| Estado | Qué hace | Cuándo usarlo |
-|---|---|---|
-| **Auto** (default) | Cada tarea usa su provider configurado | Uso normal |
-| **Off** | Bloquea TODAS las llamadas IA (servidor devuelve 423) | "No quiero gastar hoy", trabajo manual puro |
-| **Forzar `<provider>`** | Override: TODAS las llamadas por ese provider | Una key se cayó / comparar providers / debugging |
+| Estado                  | Qué hace                                              | Cuándo usarlo                                    |
+| ----------------------- | ----------------------------------------------------- | ------------------------------------------------ |
+| **Auto** (default)      | Cada tarea usa su provider configurado                | Uso normal                                       |
+| **Off**                 | Bloquea TODAS las llamadas IA (servidor devuelve 423) | "No quiero gastar hoy", trabajo manual puro      |
+| **Forzar `<provider>`** | Override: TODAS las llamadas por ese provider         | Una key se cayó / comparar providers / debugging |
 
 Click en el icono abre las opciones. La elección persiste en localStorage. Aplica de inmediato sin recargar.
 
@@ -50,12 +50,12 @@ Trama tiene 7 tareas IA con su provider configurable independiente:
 
 Para que un provider funcione, necesita su API key en Netlify:
 
-| Provider | Env var |
-|---|---|
-| DeepSeek | `AI_API_KEY` (legacy, sigue funcionando) |
-| OpenAI | `OPENAI_API_KEY` |
-| Anthropic | `ANTHROPIC_API_KEY` |
-| Gemini | `GEMINI_API_KEY` |
+| Provider  | Env var                                  |
+| --------- | ---------------------------------------- |
+| DeepSeek  | `AI_API_KEY` (legacy, sigue funcionando) |
+| OpenAI    | `OPENAI_API_KEY`                         |
+| Anthropic | `ANTHROPIC_API_KEY`                      |
+| Gemini    | `GEMINI_API_KEY`                         |
 
 Para añadir una key nueva:
 
@@ -81,6 +81,7 @@ Settings → Health muestra el gasto acumulado del mes en vivo.
 ### Síntoma A: el chat tarda 5-10 segundos en empezar a responder
 
 Normal cuando se cumple TODO esto:
+
 - Es el primer mensaje del thread (no hay context cacheado).
 - HyDE está activo (genera un párrafo hipotético antes de embeber).
 - Reranker está activo (LLM lee 30 candidatos antes de responder).
@@ -115,13 +116,13 @@ Trama tiene defensas en los prompts contra alucinación pero no es infalible. Si
 
 ## Costos: cómo se forman
 
-| Operación | Tokens aprox | Costo aprox (DeepSeek) | Costo aprox (GPT-4o-mini) |
-|---|---|---|---|
-| Extract entity de un párrafo | 500 in + 300 out | $0.0002 | $0.00026 |
-| Chat turn (sin RAG complejo) | 2000 in + 500 out | $0.0008 | $0.0006 |
-| Chat turn (con HyDE + rerank) | 4000 in + 1000 out | $0.0014 | $0.0013 |
-| Embedding (siempre OpenAI) | 200 tokens | $0.000004 | — |
-| Reflect quote | 300 in + 400 out | $0.0005 | $0.00056 |
+| Operación                     | Tokens aprox       | Costo aprox (DeepSeek) | Costo aprox (GPT-4o-mini) |
+| ----------------------------- | ------------------ | ---------------------- | ------------------------- |
+| Extract entity de un párrafo  | 500 in + 300 out   | $0.0002                | $0.00026                  |
+| Chat turn (sin RAG complejo)  | 2000 in + 500 out  | $0.0008                | $0.0006                   |
+| Chat turn (con HyDE + rerank) | 4000 in + 1000 out | $0.0014                | $0.0013                   |
+| Embedding (siempre OpenAI)    | 200 tokens         | $0.000004              | —                         |
+| Reflect quote                 | 300 in + 400 out   | $0.0005                | $0.00056                  |
 
 Para uso típico personal: 30 chat turns + 50 extractions + 10 reflexiones por día = ~$0.07/día = **~$2/mes**.
 

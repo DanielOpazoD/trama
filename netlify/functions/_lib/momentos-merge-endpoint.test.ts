@@ -102,8 +102,9 @@ describe('momentos-merge endpoint', () => {
   })
 
   it('400 si otherIds > 50 elementos', async () => {
-    const tooMany = Array.from({ length: 51 }, (_, i) =>
-      `${String(i).padStart(8, '0')}-1111-1111-1111-111111111111`
+    const tooMany = Array.from(
+      { length: 51 },
+      (_, i) => `${String(i).padStart(8, '0')}-1111-1111-1111-111111111111`,
     )
     const res = await handler(
       new Request('http://localhost/api/momentos-merge', {
@@ -216,8 +217,14 @@ describe('momentos-merge endpoint', () => {
           note: 'Cumpleaños de Ana',
         },
         deleted_others: [
-          { id: '22222222-2222-2222-2222-222222222222', deletedAt: '2026-05-25T13:00:00Z' },
-          { id: '33333333-3333-3333-3333-333333333333', deletedAt: '2026-05-25T13:00:00Z' },
+          {
+            id: '22222222-2222-2222-2222-222222222222',
+            deletedAt: '2026-05-25T13:00:00Z',
+          },
+          {
+            id: '33333333-3333-3333-3333-333333333333',
+            deletedAt: '2026-05-25T13:00:00Z',
+          },
         ],
         links_inserted: 0,
       },
@@ -274,9 +281,10 @@ describe('momentos-merge endpoint', () => {
 
     // Verificar que el CTE atómico se hizo (un solo query con todas las
     // operaciones de escritura).
-    const cte = mockSqlState.calls.find((c) =>
-      c.template.includes('WITH update_primary') &&
-      c.template.includes('soft_delete_others'),
+    const cte = mockSqlState.calls.find(
+      (c) =>
+        c.template.includes('WITH update_primary') &&
+        c.template.includes('soft_delete_others'),
     )
     expect(cte).toBeDefined()
   })
@@ -311,7 +319,10 @@ describe('momentos-merge endpoint', () => {
           note: null,
         },
         deleted_others: [
-          { id: '22222222-2222-2222-2222-222222222222', deletedAt: '2026-05-25T13:00:00Z' },
+          {
+            id: '22222222-2222-2222-2222-222222222222',
+            deletedAt: '2026-05-25T13:00:00Z',
+          },
         ],
         links_inserted: 0,
       },

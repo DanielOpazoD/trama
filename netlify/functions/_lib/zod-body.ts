@@ -25,9 +25,7 @@ import { ApiErrors } from './api-error.js'
  *   - `details.issues` consistente en el log y para el cliente
  *   - Sin "as Record<string, unknown>" perdido en cada handler
  */
-export type ParseResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; response: Response }
+export type ParseResult<T> = { ok: true; data: T } | { ok: false; response: Response }
 
 export async function parseJsonBody<T>(
   req: Request,

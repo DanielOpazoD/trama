@@ -133,7 +133,11 @@ export function MomentoSkeleton({ animationDelay = 0 }: { animationDelay?: numbe
  * → to-name, alineados al baseline. Las relaciones varían en ancho;
  * usamos w-1/4 / w-1/5 / w-1/3 para variedad visual.
  */
-export function RelationshipSkeleton({ animationDelay = 0 }: { animationDelay?: number }) {
+export function RelationshipSkeleton({
+  animationDelay = 0,
+}: {
+  animationDelay?: number
+}) {
   return (
     <div
       className="card-paper p-3 animate-fade-up"
@@ -152,7 +156,11 @@ export function RelationshipSkeleton({ animationDelay = 0 }: { animationDelay?: 
  * Sugerencia IA en ProactiveView. Header con eyebrow + título +
  * dos líneas de contexto + 2 botones (descartar / aceptar).
  */
-export function ProactiveSuggestionSkeleton({ animationDelay = 0 }: { animationDelay?: number }) {
+export function ProactiveSuggestionSkeleton({
+  animationDelay = 0,
+}: {
+  animationDelay?: number
+}) {
   return (
     <div
       className="card-paper p-4 space-y-3 animate-fade-up"

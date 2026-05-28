@@ -12,11 +12,7 @@ export default defineConfig({
     // don't depend on the environment.
     environment: 'happy-dom',
     setupFiles: ['./src/test-setup.ts'],
-    include: [
-      'src/**/*.test.ts',
-      'src/**/*.test.tsx',
-      'netlify/**/*.test.ts',
-    ],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'netlify/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

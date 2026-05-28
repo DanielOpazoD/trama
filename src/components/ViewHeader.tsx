@@ -81,15 +81,10 @@ export function ViewHeader({
       style={useWash ? sectionWashStyle(accent) : undefined}
     >
       <div className="min-w-0">
-        <p
-          className="section-eyebrow-serif mb-2"
-          style={{ color: finalEyebrowColor }}
-        >
+        <p className="section-eyebrow-serif mb-2" style={{ color: finalEyebrowColor }}>
           {eyebrow}
         </p>
-        <h2 className="font-serif text-4xl text-ink-700 leading-none">
-          {title}
-        </h2>
+        <h2 className="font-serif text-4xl text-ink-700 leading-none">{title}</h2>
         <div className="accent-rule mt-3 mb-2" />
         {subtitle && (
           <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-2xl">

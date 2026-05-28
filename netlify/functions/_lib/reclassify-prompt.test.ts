@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  buildReclassifyPrompt,
-  type EntityForReclassify,
-} from './reclassify-prompt'
+import { buildReclassifyPrompt, type EntityForReclassify } from './reclassify-prompt'
 
 const TYPES = [
   { slug: 'persona', label: 'persona' },

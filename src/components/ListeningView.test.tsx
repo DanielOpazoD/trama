@@ -43,9 +43,7 @@ describe('<ListeningView />', () => {
   it('shows "Spotify aún no está conectado" hint when not connected', async () => {
     renderWithProviders(<ListeningView />)
     await waitFor(() => {
-      expect(
-        screen.getByText(/Spotify aún no está conectado/i),
-      ).toBeInTheDocument()
+      expect(screen.getByText(/Spotify aún no está conectado/i)).toBeInTheDocument()
     })
   })
 })

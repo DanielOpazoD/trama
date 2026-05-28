@@ -10,11 +10,12 @@ test('citas: navegar a Citas y ver el heading', async ({ page }) => {
   await mockBackend(page, state)
   await page.goto('/')
 
-  await page.getByRole('button', { name: /^Citas/ }).first().click()
+  await page
+    .getByRole('button', { name: /^Citas/ })
+    .first()
+    .click()
 
-  await expect(
-    page.getByRole('heading', { name: 'Citas', level: 2 }),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Citas', level: 2 })).toBeVisible()
 })
 
 test('citas: chips de filtro por tipo aparecen con entidades de distintos tipos', async ({
@@ -91,10 +92,11 @@ test('citas: chips de filtro por tipo aparecen con entidades de distintos tipos'
   await mockBackend(page, state)
   await page.goto('/')
 
-  await page.getByRole('button', { name: /^Citas/ }).first().click()
-  await expect(
-    page.getByRole('heading', { name: 'Citas', level: 2 }),
-  ).toBeVisible()
+  await page
+    .getByRole('button', { name: /^Citas/ })
+    .first()
+    .click()
+  await expect(page.getByRole('heading', { name: 'Citas', level: 2 })).toBeVisible()
 
   // Los chips de filtro deben aparecer: "Todas", "escritor", "filósofo"
   const todaChip = page.getByRole('button', { name: /Todas/ })

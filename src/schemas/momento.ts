@@ -33,11 +33,12 @@ export type MomentoKind = z.infer<typeof MomentoKindSchema>
 export const MomentoNotaPayloadSchema = z.object({
   // Mismo mensaje para "no es string" y "es string vacía" — el cliente
   // solo sabe que falta bodyText, no le interesa el tipo exacto.
-  bodyText: z
-    .preprocess(
-      (v) => (typeof v === 'string' ? v.trim() : v),
-      z.string({ message: 'kind=nota requiere payload.bodyText no vacío' }).min(1, 'kind=nota requiere payload.bodyText no vacío'),
-    ),
+  bodyText: z.preprocess(
+    (v) => (typeof v === 'string' ? v.trim() : v),
+    z
+      .string({ message: 'kind=nota requiere payload.bodyText no vacío' })
+      .min(1, 'kind=nota requiere payload.bodyText no vacío'),
+  ),
 })
 
 /** Recorte: al menos uno de url/title/bodyText, los demás opcionales. */

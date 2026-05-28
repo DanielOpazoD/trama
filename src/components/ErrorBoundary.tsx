@@ -60,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ componentStack: info.componentStack ?? null })
     void reportError(error, info, this.props.scope ?? 'root')
     // También a la consola — el dev puede ver el stack completo ahí.
-    // eslint-disable-next-line no-console
+
     console.error(`[ErrorBoundary:${this.props.scope ?? 'root'}]`, error, info)
   }
 
@@ -141,16 +141,14 @@ function ErrorFallback({
             estado roto, el usuario sabe en qué app está. ink-200 muy
             muted; no compite con el mensaje. */}
         <TramaMark size={18} className="text-ink-200 mb-3" />
-        <p className="text-micro uppercase tracking-shout text-ink-300 mb-2">
-          Error
-        </p>
+        <p className="text-micro uppercase tracking-shout text-ink-300 mb-2">Error</p>
         <h1 className="font-serif text-2xl text-ink-800 leading-tight mb-3">
           La trama se rompió.
         </h1>
         <p className="text-ink-500 text-sm leading-relaxed mb-4">
-          Algo falló mientras renderizaba la app. Tus datos están a salvo en el
-          servidor — esto es un problema del cliente. Probá recargar; si vuelve
-          a pasar, copia los detalles para que veamos qué pasó.
+          Algo falló mientras renderizaba la app. Tus datos están a salvo en el servidor —
+          esto es un problema del cliente. Probá recargar; si vuelve a pasar, copia los
+          detalles para que veamos qué pasó.
         </p>
 
         <details className="mb-5 group">

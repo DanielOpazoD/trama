@@ -38,8 +38,10 @@ export const searchApi = {
    * Hybrid (lexical + semantic) search. Returns top entities and quotes
    * matching the query, ranked by combined score.
    */
-  async search(q: string, options?: { limit?: number; mode?: 'hybrid' | 'lexical' | 'semantic' }):
-    Promise<SearchResponse> {
+  async search(
+    q: string,
+    options?: { limit?: number; mode?: 'hybrid' | 'lexical' | 'semantic' },
+  ): Promise<SearchResponse> {
     const params = new URLSearchParams({ q })
     if (options?.limit) params.set('limit', String(options.limit))
     if (options?.mode) params.set('mode', options.mode)

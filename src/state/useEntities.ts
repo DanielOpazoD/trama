@@ -201,9 +201,7 @@ export function useUpdateEntityType() {
     },
     onSuccess: ({ id, type }) => {
       queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) =>
-        (prev ?? []).map((entity) =>
-          entity.id === id ? { ...entity, type } : entity,
-        ),
+        (prev ?? []).map((entity) => (entity.id === id ? { ...entity, type } : entity)),
       )
       queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
       if (offline) {
@@ -338,7 +336,7 @@ export function useDeleteEntity() {
               queryClient.invalidateQueries({ queryKey: queryKeys.relationships })
               queryClient.invalidateQueries({ queryKey: queryKeys.quotes })
               queryClient.invalidateQueries({ queryKey: queryKeys.counts })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
+              queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
               queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
               queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
               queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })

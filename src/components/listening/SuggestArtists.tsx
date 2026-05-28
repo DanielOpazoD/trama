@@ -88,9 +88,7 @@ export function SuggestArtists() {
             style={{ color: 'var(--accent-gold)' }}
           >
             <span>✦ podrían resonarte</span>
-            {provider && (
-              <AISourceTag provider={provider} model={model} />
-            )}
+            {provider && <AISourceTag provider={provider} model={model} />}
           </p>
           {/* ρ-micro: bajamos el subtitle del header — duplicaba la
               explicación que ya está en el empty state ("Click en
@@ -131,8 +129,8 @@ export function SuggestArtists() {
       {/* Estado vacío inicial */}
       {suggestions.length === 0 && !suggest.isPending && !reason && (
         <p className="text-sm text-ink-500 italic leading-relaxed">
-          Click en <em>descubrir</em> y la IA te propone artistas afines a tu
-          perfil de Spotify, que no están todavía en tu trama.
+          Click en <em>descubrir</em> y la IA te propone artistas afines a tu perfil de
+          Spotify, que no están todavía en tu trama.
         </p>
       )}
 
@@ -152,9 +150,7 @@ export function SuggestArtists() {
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="font-serif text-base text-ink-700">
-                      {s.name}
-                    </span>
+                    <span className="font-serif text-base text-ink-700">{s.name}</span>
                     <span className="text-micro uppercase tracking-eyebrow text-ink-400">
                       {s.type === 'banda' ? 'banda' : 'músico'}
                     </span>
@@ -165,16 +161,12 @@ export function SuggestArtists() {
                     </p>
                   )}
                   {s.reason && (
-                    <p className="text-caption text-ink-400 italic mt-1">
-                      {s.reason}
-                    </p>
+                    <p className="text-caption text-ink-400 italic mt-1">{s.reason}</p>
                   )}
                 </div>
                 <div className="shrink-0 flex items-center gap-2 mt-1">
                   <a
-                    href={`https://open.spotify.com/search/${encodeURIComponent(
-                      s.name,
-                    )}`}
+                    href={`https://open.spotify.com/search/${encodeURIComponent(s.name)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-emerald-700 transition-colors"

@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { RELATIONSHIP_TYPES, type Entity, type ExtractionProposal, type RelationshipType } from '../types'
+import {
+  RELATIONSHIP_TYPES,
+  type Entity,
+  type ExtractionProposal,
+  type RelationshipType,
+} from '../types'
 import { ViewHeader } from './ViewHeader'
 import { RelationshipSkeleton, SkeletonList } from './Skeleton'
 import {
@@ -48,7 +53,9 @@ export function RelationshipsView({
   // proposals que la IA ha sugerido y el usuario NO aceptó. La pasamos
   // al server en el próximo "descubrir IA" para que evite repetirlas.
   // Cap de 50 para no crecer infinitamente. Reset al mount.
-  const avoidPreviousRef = useRef<Array<{ fromName: string; toName: string; type: string }>>([])
+  const avoidPreviousRef = useRef<
+    Array<{ fromName: string; toName: string; type: string }>
+  >([])
 
   // O(1) entity lookup so the virtualized rows aren't O(rel × entities) each frame.
   const entitiesById = useMemo(() => {
@@ -66,7 +73,8 @@ export function RelationshipsView({
 
   // Infinite scroll trigger.
   const virtualItems = virtualizer.getVirtualItems()
-  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1]!.index : 0
+  const lastVisibleIndex =
+    virtualItems.length > 0 ? virtualItems[virtualItems.length - 1]!.index : 0
   useEffect(() => {
     if (!relsPaged.hasNextPage || relsPaged.isFetchingNextPage) return
     if (relationships.length === 0) return
@@ -226,8 +234,8 @@ export function RelationshipsView({
           title="Una relación necesita dos."
           body={
             <>
-              Una relación es una línea entre dos entidades — sin segundo
-              extremo no hay línea. Volvé cuando tengas al menos dos.
+              Una relación es una línea entre dos entidades — sin segundo extremo no hay
+              línea. Volvé cuando tengas al menos dos.
             </>
           }
         />
@@ -243,7 +251,9 @@ export function RelationshipsView({
                   <EntityCombobox
                     value={fromId || null}
                     onChange={(entity) => setFromId(entity?.id ?? '')}
-                    selectedName={fromId ? entitiesById.get(fromId)?.name ?? null : null}
+                    selectedName={
+                      fromId ? (entitiesById.get(fromId)?.name ?? null) : null
+                    }
                     placeholder="— origen —"
                   />
                 </div>
@@ -253,14 +263,16 @@ export function RelationshipsView({
                   className="input-paper"
                 >
                   {RELATIONSHIP_TYPES.map((relType) => (
-                    <option key={relType.value} value={relType.value}>{relType.label}</option>
+                    <option key={relType.value} value={relType.value}>
+                      {relType.label}
+                    </option>
                   ))}
                 </select>
                 <div className="flex-1">
                   <EntityCombobox
                     value={toId || null}
                     onChange={(entity) => setToId(entity?.id ?? '')}
-                    selectedName={toId ? entitiesById.get(toId)?.name ?? null : null}
+                    selectedName={toId ? (entitiesById.get(toId)?.name ?? null) : null}
                     excludeId={fromId || null}
                     placeholder="— destino —"
                   />
@@ -273,7 +285,11 @@ export function RelationshipsView({
                 placeholder="Nota sobre la relación (opcional)"
                 className="input-paper w-full"
               />
-              <button type="submit" disabled={addRelationship.isPending} className="btn-accent">
+              <button
+                type="submit"
+                disabled={addRelationship.isPending}
+                className="btn-accent"
+              >
                 {addRelationship.isPending ? 'Añadiendo…' : 'Añadir'}
               </button>
             </form>
@@ -289,9 +305,9 @@ export function RelationshipsView({
               title="Las entidades están sueltas."
               body={
                 <>
-                  Las relaciones son lo que vuelve constelación a una colección
-                  de nombres. Conecta dos cosas que ya tienes y la trama
-                  empieza a tener forma.
+                  Las relaciones son lo que vuelve constelación a una colección de
+                  nombres. Conecta dos cosas que ya tienes y la trama empieza a tener
+                  forma.
                 </>
               }
               hint="Pulsa “descubrir con IA” arriba para que te sugiera las primeras."
@@ -347,4 +363,3 @@ export function RelationshipsView({
     </>
   )
 }
-

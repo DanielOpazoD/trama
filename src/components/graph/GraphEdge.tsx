@@ -49,7 +49,11 @@ export function relTypeAccent(type: string): string {
  * line, by `curvature * length`. Same-direction siblings between two nodes
  * naturally fan out instead of overlapping.
  */
-function curvedPath(from: Point, to: Point, curvature = 0.18): {
+function curvedPath(
+  from: Point,
+  to: Point,
+  curvature = 0.18,
+): {
   d: string
   midX: number
   midY: number
@@ -75,7 +79,12 @@ function curvedPath(from: Point, to: Point, curvature = 0.18): {
  * Shrink the endpoints so the line stops at the node circumference instead of
  * the center. Uses a fixed `nodePad` since true radius isn't known here.
  */
-function trimEndpoints(from: Point, to: Point, fromPad = 12, toPad = 14): {
+function trimEndpoints(
+  from: Point,
+  to: Point,
+  fromPad = 12,
+  toPad = 14,
+): {
   from: Point
   to: Point
 } {
@@ -138,7 +147,10 @@ export function GraphEdge({
   const showLabel = highlighted || hovered
 
   return (
-    <g style={{ ['--final-opacity' as never]: opacity }} className={fresh ? 'animate-edge-in' : undefined}>
+    <g
+      style={{ ['--final-opacity' as never]: opacity }}
+      className={fresh ? 'animate-edge-in' : undefined}
+    >
       {/* Visible stroke — sin pointer events para que no robe focus al
           hit area transparente de abajo. */}
       <path
@@ -150,7 +162,10 @@ export function GraphEdge({
         strokeLinecap="round"
         markerEnd={`url(#${markerId})`}
         className={highlighted ? 'animate-dash-flow' : undefined}
-        style={{ pointerEvents: 'none', transition: 'stroke-width 200ms ease, stroke-opacity 200ms ease' }}
+        style={{
+          pointerEvents: 'none',
+          transition: 'stroke-width 200ms ease, stroke-opacity 200ms ease',
+        }}
       />
       {/* ζ2: hit area transparente más gruesa (8x) para que el hover sea
           cazable aún en edges finos. pointer-events=stroke = solo activa

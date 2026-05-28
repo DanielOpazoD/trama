@@ -54,9 +54,7 @@ export function EntitiesFiltersBar({
         }
       >
         Todos
-        <span className="ml-1.5 text-micro tabular-nums opacity-70">
-          {totalCount}
-        </span>
+        <span className="ml-1.5 text-micro tabular-nums opacity-70">{totalCount}</span>
       </button>
       {availableTypes.map(({ type, count }) => {
         const active = typeFilter === type
@@ -85,9 +83,7 @@ export function EntitiesFiltersBar({
             style={activeStyle}
           >
             {label}
-            <span className="ml-1.5 text-micro tabular-nums opacity-70">
-              {count}
-            </span>
+            <span className="ml-1.5 text-micro tabular-nums opacity-70">{count}</span>
           </button>
         )
       })}

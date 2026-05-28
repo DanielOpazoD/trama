@@ -19,7 +19,8 @@ export function DataPanel() {
   }, [message])
 
   async function handleExport() {
-    setBusy(true); setMessage(null)
+    setBusy(true)
+    setMessage(null)
     try {
       const payload = await doExport()
       const json = JSON.stringify(payload, null, 2)
@@ -41,11 +42,13 @@ export function DataPanel() {
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file) return
-    setBusy(true); setMessage(null)
+    setBusy(true)
+    setMessage(null)
     try {
       const text = await file.text()
       const payload = JSON.parse(text) as ExportPayload
-      if (payload.version !== 1) throw new Error(`versión ${payload.version} no soportada`)
+      if (payload.version !== 1)
+        throw new Error(`versión ${payload.version} no soportada`)
       const result = await doImport(payload)
       // El endpoint nuevo devuelve {imported, skipped, failed}. Si hay
       // fallas reales (no solo skipped por duplicado), las contamos

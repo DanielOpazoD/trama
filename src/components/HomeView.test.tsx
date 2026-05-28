@@ -155,10 +155,9 @@ describe('<HomeView />', () => {
     qc.setQueryData(queryKeys.entities, [ENTITY])
     qc.setQueryData(queryKeys.quotes, [])
     qc.setQueryData(queryKeys.relationships, [])
-    renderWithProviders(
-      <HomeView onNavigate={onNavigate} onSelectEntity={vi.fn()} />,
-      { queryClient: qc },
-    )
+    renderWithProviders(<HomeView onNavigate={onNavigate} onSelectEntity={vi.fn()} />, {
+      queryClient: qc,
+    })
     const user = userEvent.setup()
     const btns = screen.queryAllByRole('button', { name: /ver grafo/i })
     if (btns.length > 0) {

@@ -79,9 +79,7 @@ describe('<TopBar />', () => {
   })
 
   it('renderiza children opcionales en el slot actions', () => {
-    renderWithProviders(
-      <TopBar view="inicio" actions={<button>Acción custom</button>} />,
-    )
+    renderWithProviders(<TopBar view="inicio" actions={<button>Acción custom</button>} />)
     expect(screen.getByRole('button', { name: 'Acción custom' })).toBeInTheDocument()
   })
 

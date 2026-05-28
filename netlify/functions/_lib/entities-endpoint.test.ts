@@ -11,12 +11,15 @@ vi.mock('./db.js', () => setupMockSql())
 // mock de db.js arriba ya retorna sql, así que persistError intenta hacer
 // INSERT INTO error_log... pero como el mock devuelve [] sin error, está OK.
 // Adicionalmente neutralizamos cualquier llamada a fetch (embeddings).
-vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-  ok: false,
-  status: 500,
-  text: async () => '',
-  json: async () => ({}),
-}))
+vi.stubGlobal(
+  'fetch',
+  vi.fn().mockResolvedValue({
+    ok: false,
+    status: 500,
+    text: async () => '',
+    json: async () => ({}),
+  }),
+)
 
 import handler from '../entities'
 
@@ -26,12 +29,15 @@ describe('entities endpoint — integration', () => {
   })
   afterEach(() => {
     vi.unstubAllGlobals()
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      text: async () => '',
-      json: async () => ({}),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => '',
+        json: async () => ({}),
+      }),
+    )
   })
 
   describe('GET /api/entities', () => {
@@ -119,11 +125,7 @@ describe('entities endpoint — integration', () => {
         created_at: rowDate, // ← clave: pasamos Date, no string
         updated_at: rowDate,
       })
-      mockSqlResponses.push([
-        makeRow('a'),
-        makeRow('b'),
-        makeRow('c'),
-      ])
+      mockSqlResponses.push([makeRow('a'), makeRow('b'), makeRow('c')])
 
       const req = new Request('http://localhost/api/entities?limit=2')
       const res = await handler(req, mockContext())

@@ -4,9 +4,15 @@ import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
 // Test vive en _lib/ por restricciones de naming de Netlify Functions.
 // Handler en `../`, mock del db en `./db.js`.
 vi.mock('./db.js', () => setupMockSql())
-vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-  ok: false, status: 500, text: async () => '', json: async () => ({}),
-}))
+vi.stubGlobal(
+  'fetch',
+  vi.fn().mockResolvedValue({
+    ok: false,
+    status: 500,
+    text: async () => '',
+    json: async () => ({}),
+  }),
+)
 
 import handler from '../quotes'
 
@@ -16,9 +22,15 @@ describe('quotes endpoint — integration', () => {
   })
   afterEach(() => {
     vi.unstubAllGlobals()
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false, status: 500, text: async () => '', json: async () => ({}),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => '',
+        json: async () => ({}),
+      }),
+    )
   })
 
   it('GET devuelve lista en camelCase', async () => {
@@ -40,10 +52,7 @@ describe('quotes endpoint — integration', () => {
         updated_at: '2026-01-01T00:00:00Z',
       },
     ])
-    const res = await handler(
-      new Request('http://localhost/api/quotes'),
-      mockContext(),
-    )
+    const res = await handler(new Request('http://localhost/api/quotes'), mockContext())
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body[0]).toEqual(

@@ -68,7 +68,11 @@ export function QuoteCard({
   }
 
   // Pending AI reflection — generated but not yet saved.
-  const [pendingAi, setPendingAi] = useState<{ text: string; provider: string; model: string } | null>(null)
+  const [pendingAi, setPendingAi] = useState<{
+    text: string
+    provider: string
+    model: string
+  } | null>(null)
   const [reflectError, setReflectError] = useState<string | null>(null)
 
   async function handleSaveUserReflection() {
@@ -92,7 +96,9 @@ export function QuoteCard({
       const res = await reflectQuote.mutateAsync(quote.id)
       setPendingAi({ text: res.reflection, provider: res.provider, model: res.model })
     } catch (err) {
-      setReflectError(err instanceof Error ? err.message : 'Error pidiendo interpretación')
+      setReflectError(
+        err instanceof Error ? err.message : 'Error pidiendo interpretación',
+      )
     }
   }
 
@@ -155,7 +161,11 @@ export function QuoteCard({
       <div className="mt-1 flex items-baseline gap-3 text-xs">
         {quote.source && <span className="text-ink-400">{quote.source}</span>}
         {quote.origin.kind === 'ai' && (
-          <span className="inline-flex items-center" style={{ color: 'var(--accent-primary)' }} title="propuesta por IA">
+          <span
+            className="inline-flex items-center"
+            style={{ color: 'var(--accent-primary)' }}
+            title="propuesta por IA"
+          >
             <SparkleIcon size={10} />
           </span>
         )}
@@ -256,7 +266,10 @@ export function QuoteCard({
             <span style={{ color: 'var(--accent-primary)' }} className="inline-flex">
               <SparkleIcon size={10} />
             </span>
-            <span className="text-micro uppercase tracking-eyebrow" style={{ color: 'var(--accent-primary)' }}>
+            <span
+              className="text-micro uppercase tracking-eyebrow"
+              style={{ color: 'var(--accent-primary)' }}
+            >
               interpretación de la IA
             </span>
             {quote.aiReflectionAt && (
@@ -288,7 +301,10 @@ export function QuoteCard({
             <span style={{ color: 'var(--accent-primary)' }} className="inline-flex">
               <SparkleIcon size={10} />
             </span>
-            <span className="text-micro uppercase tracking-eyebrow" style={{ color: 'var(--accent-primary)' }}>
+            <span
+              className="text-micro uppercase tracking-eyebrow"
+              style={{ color: 'var(--accent-primary)' }}
+            >
               propuesta de la IA
             </span>
           </div>
@@ -324,14 +340,18 @@ export function QuoteCard({
             style={{ color: 'var(--accent-primary)' }}
           >
             {reflectQuote.isPending ? (
-              <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--accent-primary-ring)', borderTopColor: 'var(--accent-primary)' }} />
+              <span
+                className="size-3 border-2 rounded-full animate-spin"
+                style={{
+                  borderColor: 'var(--accent-primary-ring)',
+                  borderTopColor: 'var(--accent-primary)',
+                }}
+              />
             ) : (
               <SparkleIcon size={14} />
             )}
           </button>
-          {reflectError && (
-            <p className="mt-1 text-xs text-red-700">{reflectError}</p>
-          )}
+          {reflectError && <p className="mt-1 text-xs text-red-700">{reflectError}</p>}
         </div>
       )}
 
@@ -357,9 +377,7 @@ export function QuoteCard({
         </div>
       )}
 
-      {onSelectEntity && (
-        <span className="sr-only" data-entity-link={quote.entityId} />
-      )}
+      {onSelectEntity && <span className="sr-only" data-entity-link={quote.entityId} />}
     </li>
   )
 }

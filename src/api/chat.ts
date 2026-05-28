@@ -93,9 +93,7 @@ export const chatApi = {
     titleOrOpts?: string | { title?: string; context?: string },
   ): Promise<ChatThread> {
     const body =
-      typeof titleOrOpts === 'string'
-        ? { title: titleOrOpts }
-        : titleOrOpts ?? {}
+      typeof titleOrOpts === 'string' ? { title: titleOrOpts } : (titleOrOpts ?? {})
     return request<ChatThread>('/api/chat/threads', {
       method: 'POST',
       body: JSON.stringify(body),

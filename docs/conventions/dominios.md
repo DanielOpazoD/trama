@@ -3,6 +3,7 @@
 ## Cuando edites el grafo
 
 `src/components/GraphView.tsx` es solo composición. La lógica está en:
+
 - `src/hooks/useGraphLayout.ts` — orquesta los cuatro modos y persiste solo en `organic`
 - `src/hooks/layouts/{organic,byType,byYear,byDegree}.ts` — funciones puras
 - `src/hooks/usePanZoom.ts` — drag, pan, zoom, screenToWorld
@@ -17,6 +18,7 @@ Para agregar un layout nuevo (radial, jerárquico, etc.): crear `src/hooks/layou
 `src/components/ChatView.tsx` es la vista entera (rail de hilos + conversación + input). Las propuestas inline las renderiza `src/components/chat/InlineProposal.tsx`.
 
 El streaming funciona así:
+
 1. `useSendChatMessage(threadId)` expone `{ send, pending, error }`.
 2. `send(content)` agrega bubbles optimistas (user real + assistant vacío), llama `api.streamChatMessage` con callbacks, y mientras llegan chunks muta el content del bubble assistant.
 3. Al `done` recibe el message persistido (con id real y `proposal`), y lo swappea por el bubble optimista.
@@ -31,11 +33,13 @@ Momentos es el dominio donde vive la **memoria fechada** de la trama: notas suel
 **Tabla:** `momentos` con `kind ∈ {nota, recorte, foto}` + `payload jsonb` variante por kind + `captured_at` separado de `created_at` (importante: una foto subida hoy puede tener captured_at de hace 5 años). Junction `momento_entities` N:M con entidades.
 
 **Shape de `payload` por kind** (validación en `src/schemas/momento.ts` — Zod):
+
 - `nota`: `{ bodyText: string }` (requerido)
 - `recorte`: `{ url?, title?, bodyText?, source?, author? }` — al menos uno de url/title/bodyText
 - `foto`: `{ storageKey, width, height, caption?, exifDate? }` o `{ items: [{storageKey, ...}] }` (υ-multi)
 
 **Backend** (un endpoint por path, con multi-method handler):
+
 - `/api/momentos` GET/POST y `/api/momentos/:id` GET/PATCH/DELETE — CRUD principal
 - `/api/momentos-url-preview?url=` — server-side fetch de og:title/description/source/author
 - `/api/momentos-upload` — multipart/form-data → Netlify Blobs store `momentos-media`
@@ -47,6 +51,7 @@ Momentos es el dominio donde vive la **memoria fechada** de la trama: notas suel
 > **Patrón de paths Momentos:** todos los sub-endpoints usan `momentos-X` (hyphen) en vez de `/api/momentos/X` porque el handler de `momentos.mts` matchea `/api/momentos/:id` y trataría "X" como un id. El bug de upload 405 (υ-bugfix) es la razón histórica.
 
 **Frontend** vive en `src/components/momentos/`:
+
 - `MomentosView.tsx` — orquestador delgado (<200 líneas)
 - `MomentoComposer.tsx` + `useMomentoComposer.ts` — form con 3 branches por kind
 - `MomentoLinkingPanel.tsx` + `useMomentoLinking.ts` — panel post-guardar con AI suggest
@@ -56,6 +61,7 @@ Momentos es el dominio donde vive la **memoria fechada** de la trama: notas suel
 - `helpers.ts` — `groupByDay`, `groupByMonth`, `formatDateHeading`, `readImageDimensions`
 
 **Reglas específicas:**
+
 - **NO cambies `kind` via PATCH** — requeriría re-encoding del payload entero. Si necesitás eso, borrá y recreá.
 - **PATCH solo re-embedea si cambió `payload` o `note`** (no en cada link de entityIds). El handler decide con `shouldReembed`.
 - **Validá el payload con `validateMomentoPayload` en POST y PATCH** — protege contra `foto` sin storageKey, `nota` vacía, etc.

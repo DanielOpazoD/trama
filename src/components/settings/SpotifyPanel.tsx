@@ -21,7 +21,8 @@ export function SpotifyPanel() {
   }, [message])
 
   async function handleSync() {
-    setBusy(true); setMessage(null)
+    setBusy(true)
+    setMessage(null)
     try {
       const r = await api.spotifySync()
       setMessage(`Sincronizado: ${r.inserted} reproducciones nuevas`)
@@ -34,10 +35,15 @@ export function SpotifyPanel() {
   }
 
   async function handleDisconnect() {
-    if (!confirm('¿Desconectar Spotify? Las reproducciones guardadas se mantienen, solo se cierra la sesión.')) {
+    if (
+      !confirm(
+        '¿Desconectar Spotify? Las reproducciones guardadas se mantienen, solo se cierra la sesión.',
+      )
+    ) {
       return
     }
-    setBusy(true); setMessage(null)
+    setBusy(true)
+    setMessage(null)
     try {
       await api.spotifyDisconnect()
       setMessage('Spotify desconectado')

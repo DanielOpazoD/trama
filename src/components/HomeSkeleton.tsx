@@ -19,59 +19,59 @@ export function HomeSkeleton() {
     // wrapper interior con max-w para limitar el ancho de lectura.
     <div id="main-scroll" className="h-full overflow-y-auto">
       <div className="px-8 py-10 pb-32 max-w-3xl mx-auto">
-      <header
-        className="pad-block-5 flex items-baseline justify-between gap-6 stack-3 relative"
-        style={{
-          backgroundImage:
-            'radial-gradient(ellipse 60% 80% at 15% 20%, var(--accent-gold-soft) 0%, transparent 70%)',
-        }}
-      >
-        <div className="min-w-0 stack-2">
-          {/* greeting eyebrow */}
-          <Line width="120px" tall="9px" tone="dim" />
-          {/* h2 fecha en serif (silueta más alta + más ancha) */}
-          <div className="mt-2 mb-2">
-            <Line width="280px" tall="32px" tone="strong" />
-          </div>
-          <div className="accent-rule" />
-        </div>
-      </header>
-
-      <div className="mt-8 space-y-5">
-        {/* Featured quote — bloque ancho + atribución */}
-        <div className="space-y-2">
-          <Line width="92%" tall="18px" tone="medium" />
-          <Line width="78%" tall="18px" tone="medium" />
-          <div className="flex justify-end gap-2 pt-1">
-            <Line width="160px" tall="11px" tone="dim" />
-          </div>
-        </div>
-
-        {/* Esta semana — bloque elevado */}
-        <div className="mt-10 p-4 rounded-xl border border-ink-100/40 bg-paper-50/30 space-y-2">
-          <Line width="100px" tall="9px" tone="dim" />
-          <div className="flex gap-4 mt-2">
-            <Line width="80px" tall="16px" tone="medium" />
-            <Line width="80px" tall="16px" tone="medium" />
-            <Line width="80px" tall="16px" tone="medium" />
-          </div>
-        </div>
-
-        {/* Recent timeline — 3 entradas */}
-        <div className="mt-10 space-y-3">
-          <Line width="120px" tall="9px" tone="dim" />
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="p-3 rounded-xl border border-ink-100/30 bg-paper-50/20 space-y-2"
-              style={{ animationDelay: `${i * 60}ms` }}
-            >
-              <Line width={`${65 + i * 7}%`} tall="14px" tone="medium" />
-              <Line width="40%" tall="11px" tone="dim" />
+        <header
+          className="pad-block-5 flex items-baseline justify-between gap-6 stack-3 relative"
+          style={{
+            backgroundImage:
+              'radial-gradient(ellipse 60% 80% at 15% 20%, var(--accent-gold-soft) 0%, transparent 70%)',
+          }}
+        >
+          <div className="min-w-0 stack-2">
+            {/* greeting eyebrow */}
+            <Line width="120px" tall="9px" tone="dim" />
+            {/* h2 fecha en serif (silueta más alta + más ancha) */}
+            <div className="mt-2 mb-2">
+              <Line width="280px" tall="32px" tone="strong" />
             </div>
-          ))}
+            <div className="accent-rule" />
+          </div>
+        </header>
+
+        <div className="mt-8 space-y-5">
+          {/* Featured quote — bloque ancho + atribución */}
+          <div className="space-y-2">
+            <Line width="92%" tall="18px" tone="medium" />
+            <Line width="78%" tall="18px" tone="medium" />
+            <div className="flex justify-end gap-2 pt-1">
+              <Line width="160px" tall="11px" tone="dim" />
+            </div>
+          </div>
+
+          {/* Esta semana — bloque elevado */}
+          <div className="mt-10 p-4 rounded-xl border border-ink-100/40 bg-paper-50/30 space-y-2">
+            <Line width="100px" tall="9px" tone="dim" />
+            <div className="flex gap-4 mt-2">
+              <Line width="80px" tall="16px" tone="medium" />
+              <Line width="80px" tall="16px" tone="medium" />
+              <Line width="80px" tall="16px" tone="medium" />
+            </div>
+          </div>
+
+          {/* Recent timeline — 3 entradas */}
+          <div className="mt-10 space-y-3">
+            <Line width="120px" tall="9px" tone="dim" />
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="p-3 rounded-xl border border-ink-100/30 bg-paper-50/20 space-y-2"
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
+                <Line width={`${65 + i * 7}%`} tall="14px" tone="medium" />
+                <Line width="40%" tall="11px" tone="dim" />
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
       </div>
     </div>
   )

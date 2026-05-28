@@ -34,8 +34,7 @@ export function byTypeLayout(
   const rotationOffset = (seed % typeCount) * ((Math.PI * 2) / typeCount) * 0.5
 
   types.forEach((type, typeIdx) => {
-    const angle =
-      (typeIdx / typeCount) * Math.PI * 2 - Math.PI / 2 + rotationOffset
+    const angle = (typeIdx / typeCount) * Math.PI * 2 - Math.PI / 2 + rotationOffset
     const cx = Math.cos(angle) * ringRadius
     const cy = Math.sin(angle) * ringRadius
 

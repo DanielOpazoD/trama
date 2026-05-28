@@ -44,12 +44,13 @@ export type PanZoomControls = {
 export function usePanZoom(
   svgRef: React.RefObject<SVGSVGElement | null>,
   options?: { minZoom?: number; maxZoom?: number; defaultZoom?: number },
-): PanZoomState & PanZoomControls & {
-  isDragging: () => boolean
-  startDrag: (id: string, offset: { x: number; y: number }) => void
-  cancelDrag: () => void
-  draggingId: () => string | null
-} {
+): PanZoomState &
+  PanZoomControls & {
+    isDragging: () => boolean
+    startDrag: (id: string, offset: { x: number; y: number }) => void
+    cancelDrag: () => void
+    draggingId: () => string | null
+  } {
   // Default zoom = 0.7 (ρ-struct): el grafo se siente menos apretado al
   // entrar; el usuario puede subir con wheel o con el botón [+] cuando
   // quiera detalle.
@@ -57,7 +58,9 @@ export function usePanZoom(
   const [pan, setPan] = useState<Pan>({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(defaultZoom)
   const [isPanning, setIsPanning] = useState(false)
-  const panStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null)
+  const panStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(
+    null,
+  )
   const dragging = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null)
 
   const minZoom = options?.minZoom ?? 0.25
@@ -140,10 +143,7 @@ export function usePanZoom(
   // del viewport, dejando solo edges visibles. Ahora calculamos el zoom
   // óptimo para que el bbox entre con `padding` px de margen.
   const fitToView = useCallback(
-    (
-      bbox: { minX: number; minY: number; maxX: number; maxY: number },
-      padding = 80,
-    ) => {
+    (bbox: { minX: number; minY: number; maxX: number; maxY: number }, padding = 80) => {
       const svg = svgRef.current
       if (!svg) return
       const rect = svg.getBoundingClientRect()

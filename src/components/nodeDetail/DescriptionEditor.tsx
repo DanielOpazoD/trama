@@ -5,9 +5,7 @@ import { SparkleIcon } from '../Icons'
 
 // Tipos donde un link de Spotify tiene sentido (banda, músico, álbum, etc.).
 // Si la entidad no es de estos tipos, el input de URL se oculta.
-const SPOTIFY_TYPES = new Set([
-  'banda', 'musico', 'cancion', 'album', 'disco', 'artista',
-])
+const SPOTIFY_TYPES = new Set(['banda', 'musico', 'cancion', 'album', 'disco', 'artista'])
 
 /**
  * Editor del bloque "descripción + Spotify URL" del panel de detalle.
@@ -39,10 +37,7 @@ export function DescriptionEditor({ entity }: { entity: Entity }) {
 
   async function handleSuggestDescription() {
     if (askLLM.isPending) return
-    const meta = [
-      entity.type,
-      entity.year !== undefined ? `año ${entity.year}` : '',
-    ]
+    const meta = [entity.type, entity.year !== undefined ? `año ${entity.year}` : '']
       .filter(Boolean)
       .join(', ')
     const prompt = `Genera UNA descripción breve para "${entity.name}" (${meta}). Máximo 15 palabras. Sin comillas, sin punto final, sin "es un/una". Solo la frase descriptiva.`

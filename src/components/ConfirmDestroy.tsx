@@ -76,10 +76,7 @@ export function ConfirmDestroy({
           style={{ backgroundColor: 'rgb(var(--paper-50))' }}
         >
           <div className="px-5 py-4 space-y-2">
-            <p
-              className="section-eyebrow-serif"
-              style={{ color: 'var(--accent-clay)' }}
-            >
+            <p className="section-eyebrow-serif" style={{ color: 'var(--accent-clay)' }}>
               acción irreversible
             </p>
             <h3
@@ -88,9 +85,7 @@ export function ConfirmDestroy({
             >
               {title}
             </h3>
-            {body && (
-              <p className="text-sm text-ink-400 leading-relaxed">{body}</p>
-            )}
+            {body && <p className="text-sm text-ink-400 leading-relaxed">{body}</p>}
           </div>
           <div className="px-5 py-3 border-t border-ink-100/60 flex justify-end gap-3">
             <button

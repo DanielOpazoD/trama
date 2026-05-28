@@ -187,9 +187,7 @@ export function MomentosView() {
               else setSelectionMode(true)
             }}
             className={`text-micro uppercase tracking-eyebrow transition-colors shrink-0 ${
-              selectionMode
-                ? 'text-ink-700'
-                : 'text-ink-400 hover:text-ink-700'
+              selectionMode ? 'text-ink-700' : 'text-ink-400 hover:text-ink-700'
             }`}
             aria-pressed={selectionMode}
           >
@@ -208,17 +206,15 @@ export function MomentosView() {
           <EmptyMessage
             illustration="pair"
             title={
-              dayFilter
-                ? 'Ese día está vacío.'
-                : `Ningún momento de tipo ${filterKind}.`
+              dayFilter ? 'Ese día está vacío.' : `Ningún momento de tipo ${filterKind}.`
             }
             body={
               dayFilter ? (
                 <>No registraste nada ese día. Probá otro o limpiá el filtro.</>
               ) : (
                 <>
-                  Cambiá el tipo en la barra de arriba o creá una entrada
-                  nueva de este tipo.
+                  Cambiá el tipo en la barra de arriba o creá una entrada nueva de este
+                  tipo.
                 </>
               )
             }
@@ -240,9 +236,8 @@ export function MomentosView() {
             title="Todavía no hay momentos"
             body={
               <>
-                Las entradas que crees acá quedan en una línea de tiempo. Pega
-                tweets, links, screenshots y fotos — o simplemente escribe una
-                nota del día.
+                Las entradas que crees acá quedan en una línea de tiempo. Pega tweets,
+                links, screenshots y fotos — o simplemente escribe una nota del día.
               </>
             }
           />
@@ -251,11 +246,7 @@ export function MomentosView() {
         // AA-D: álbum visible también en "Todos" — AlbumGrid filtra
         // internamente a kind=foto, así que el usuario ve solo las
         // fotos en grid sin tener que cambiar de pestaña antes.
-        <AlbumGrid
-          items={items}
-          entitiesById={entitiesById}
-          onDelete={handleDelete}
-        />
+        <AlbumGrid items={items} entitiesById={entitiesById} onDelete={handleDelete} />
       ) : (
         <div className="space-y-10">
           {groups.map(({ dayKey, entries }) => (
@@ -319,7 +310,6 @@ export function MomentosView() {
   )
 }
 
-
 /**
  * τ-mobile-bridge: lee `?compose=` de la URL. Whitelist a los kinds
  * válidos de Momento. Si no hay param o es inválido, devuelve undefined
@@ -367,8 +357,12 @@ function formatDayLabel(iso: string): string {
   // YYYY-MM-DD → "viernes 23 de mayo 2026" en español, capitalizado.
   const [y, m, d] = iso.split('-').map(Number)
   if (
-    y === undefined || m === undefined || d === undefined ||
-    !Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)
+    y === undefined ||
+    m === undefined ||
+    d === undefined ||
+    !Number.isFinite(y) ||
+    !Number.isFinite(m) ||
+    !Number.isFinite(d)
   )
     return iso
   const date = new Date(y, m - 1, d)

@@ -7,9 +7,7 @@ describe('<ViewHeader />', () => {
     const { container } = render(
       <ViewHeader title="Citas" eyebrow="fragmentos que retuviste" />,
     )
-    expect(
-      screen.getByRole('heading', { level: 2, name: 'Citas' }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Citas' })).toBeInTheDocument()
     expect(screen.getByText('fragmentos que retuviste')).toBeInTheDocument()
     // accent-rule sits visible as the small line below the title
     expect(container.querySelector('.accent-rule')).not.toBeNull()
@@ -23,9 +21,7 @@ describe('<ViewHeader />', () => {
         subtitle="Fragmentos textuales atribuidos."
       />,
     )
-    expect(
-      screen.getByText(/Fragmentos textuales atribuidos/),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/Fragmentos textuales atribuidos/)).toBeInTheDocument()
   })
 
   it('omits subtitle when not provided', () => {
@@ -36,22 +32,12 @@ describe('<ViewHeader />', () => {
   })
 
   it('renders an action slot when provided', () => {
-    render(
-      <ViewHeader
-        title="Citas"
-        eyebrow="x"
-        action={<button>Añadir</button>}
-      />,
-    )
-    expect(
-      screen.getByRole('button', { name: 'Añadir' }),
-    ).toBeInTheDocument()
+    render(<ViewHeader title="Citas" eyebrow="x" action={<button>Añadir</button>} />)
+    expect(screen.getByRole('button', { name: 'Añadir' })).toBeInTheDocument()
   })
 
   it('applies sticky classes when sticky=true', () => {
-    const { container } = render(
-      <ViewHeader title="x" eyebrow="x" sticky />,
-    )
+    const { container } = render(<ViewHeader title="x" eyebrow="x" sticky />)
     const header = container.querySelector('header')!
     expect(header.className).toContain('sticky')
     expect(header.className).toContain('backdrop-blur')
@@ -62,9 +48,7 @@ describe('<ViewHeader />', () => {
     // del wash y no podemos asertear por backgroundImage. En su lugar
     // verificamos las clases de layout: el modo wash usa `-mx-3 -my-2
     // rounded-lg`; el modo sticky omite eso (solo flex + gap).
-    const { container } = render(
-      <ViewHeader title="x" eyebrow="x" sticky />,
-    )
+    const { container } = render(<ViewHeader title="x" eyebrow="x" sticky />)
     const cls = container.querySelector('header')!.className
     expect(cls).not.toContain('-mx-3')
     expect(cls).not.toContain('rounded-lg')
@@ -78,9 +62,7 @@ describe('<ViewHeader />', () => {
   })
 
   it('skips wash layout when noWash=true', () => {
-    const { container } = render(
-      <ViewHeader title="x" eyebrow="x" noWash />,
-    )
+    const { container } = render(<ViewHeader title="x" eyebrow="x" noWash />)
     const cls = container.querySelector('header')!.className
     expect(cls).not.toContain('-mx-3')
     expect(cls).not.toContain('rounded-lg')

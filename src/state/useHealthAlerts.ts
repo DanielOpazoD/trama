@@ -30,7 +30,9 @@ function readAcknowledged(): Set<string> {
     const raw = window.localStorage.getItem(ACK_STORAGE_KEY)
     if (!raw) return new Set()
     const arr = JSON.parse(raw)
-    return Array.isArray(arr) ? new Set(arr.filter((x) => typeof x === 'string')) : new Set()
+    return Array.isArray(arr)
+      ? new Set(arr.filter((x) => typeof x === 'string'))
+      : new Set()
   } catch {
     return new Set()
   }

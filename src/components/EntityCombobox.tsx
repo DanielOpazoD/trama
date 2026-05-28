@@ -150,13 +150,9 @@ export function EntityCombobox({
           {loading && input.trim() ? (
             <p className="px-3 py-2 text-xs text-ink-300 italic">buscando…</p>
           ) : input.trim() === '' ? (
-            <p className="px-3 py-2 text-xs text-ink-300 italic">
-              escribe para buscar…
-            </p>
+            <p className="px-3 py-2 text-xs text-ink-300 italic">escribe para buscar…</p>
           ) : results.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-ink-300 italic">
-              ninguna coincidencia
-            </p>
+            <p className="px-3 py-2 text-xs text-ink-300 italic">ninguna coincidencia</p>
           ) : (
             <ul className="py-1">
               {results.map((entity, idx) => (
@@ -175,7 +171,8 @@ export function EntityCombobox({
                   >
                     <span className="text-ink-700">{entity.name}</span>
                     <span className="ml-2 text-micro uppercase tracking-eyebrow text-ink-300">
-                      {ENTITY_TYPES.find((t) => t.value === entity.type)?.label ?? entity.type}
+                      {ENTITY_TYPES.find((t) => t.value === entity.type)?.label ??
+                        entity.type}
                     </span>
                   </button>
                 </li>

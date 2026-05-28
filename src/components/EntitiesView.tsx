@@ -41,8 +41,9 @@ export function EntitiesView({
   // Por ahora filtra client-side sobre las páginas ya cargadas; a 100k+
   // por type habría que mover el filtro al server. State y derivaciones
   // viven en `useEntitiesFilters` (FF3-b).
-  const { typeFilter, setTypeFilter, availableTypes, entities } =
-    useEntitiesFilters({ allLoadedEntities })
+  const { typeFilter, setTypeFilter, availableTypes, entities } = useEntitiesFilters({
+    allLoadedEntities,
+  })
   // DD3: counts de citas + relaciones se traen pre-agregados desde el
   // server (un query con dos GROUP BY) en vez de descargar las listas
   // wholesome. A 100 entidades es invisible; a 10k+ ahorra MBs de payload.
@@ -87,7 +88,8 @@ export function EntitiesView({
 
   // Fetch next page when the virtualizer enters the last few items.
   const virtualItems = virtualizer.getVirtualItems()
-  const lastVisibleIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1]!.index : 0
+  const lastVisibleIndex =
+    virtualItems.length > 0 ? virtualItems[virtualItems.length - 1]!.index : 0
   useEffect(() => {
     if (!entitiesPaged.hasNextPage || entitiesPaged.isFetchingNextPage) return
     if (entities.length === 0) return
@@ -152,8 +154,8 @@ export function EntitiesView({
       )}
       {emptyHint && !reclassify.isPending && (
         <div className="mb-6 px-4 py-3 bg-paper-100/60 border border-ink-100/60 rounded-xl text-sm text-ink-500 leading-relaxed">
-          La IA no encontró mejores clasificaciones. Si hay alguna entidad obviamente mal tipada,
-          puedes corregirla a mano (próximamente desde el detalle).
+          La IA no encontró mejores clasificaciones. Si hay alguna entidad obviamente mal
+          tipada, puedes corregirla a mano (próximamente desde el detalle).
         </div>
       )}
       {pending && (
@@ -182,7 +184,6 @@ export function EntitiesView({
         />
       )}
 
-
       {/* Filtro por tipo. Solo aparece si hay más de un tipo en la trama.
           La barra desaparece al scrollear como cualquier sección normal
           (no-sticky por diseño). State y derivaciones viven en
@@ -205,9 +206,8 @@ export function EntitiesView({
           title="Todavía nadie habita la trama."
           body={
             <>
-              Las entidades son los nudos: las personas, los libros, las
-              canciones, los conceptos que vale la pena retener. La trama crece
-              alrededor de ellos.
+              Las entidades son los nudos: las personas, los libros, las canciones, los
+              conceptos que vale la pena retener. La trama crece alrededor de ellos.
             </>
           }
           hint="Pega un párrafo en la barra de abajo y la IA propone las primeras."
@@ -257,23 +257,22 @@ export function EntitiesView({
           cargando más…
         </p>
       )}
-      {!entitiesPaged.hasNextPage &&
-        !entitiesPaged.isLoading &&
-        entities.length >= 5 && (
-          <div className="flex justify-center mt-8 mb-2 text-ink-300">
-            <EndMark size={14} />
-          </div>
-        )}
+      {!entitiesPaged.hasNextPage && !entitiesPaged.isLoading && entities.length >= 5 && (
+        <div className="flex justify-center mt-8 mb-2 text-ink-300">
+          <EndMark size={14} />
+        </div>
+      )}
       {/* ι5: folio number flotante — fade-in al scrollear. Muestra el
           índice del último item visible vs el total. */}
-      <Folio current={Math.min(lastVisibleIndex + 1, entities.length)} total={entities.length} />
+      <Folio
+        current={Math.min(lastVisibleIndex + 1, entities.length)}
+        total={entities.length}
+      />
 
       <ConfirmDestroy
         open={pendingDelete !== null}
         title={
-          pendingDelete
-            ? `¿Eliminar “${pendingDelete.name}”?`
-            : '¿Eliminar entidad?'
+          pendingDelete ? `¿Eliminar “${pendingDelete.name}”?` : '¿Eliminar entidad?'
         }
         body="Sus citas y relaciones también desaparecen del catálogo. No se borra del todo — si te arrepientes, se puede restaurar."
         confirmLabel="Eliminar"
@@ -292,4 +291,3 @@ export function EntitiesView({
     </>
   )
 }
-

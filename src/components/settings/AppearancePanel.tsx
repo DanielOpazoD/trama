@@ -62,7 +62,11 @@ export function AppearancePanel({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M12 4c-0.8 1.4-1.5 2.2-1.5 3.2 0 1 0.7 1.8 1.5 1.8s1.5-0.8 1.5-1.8c0-1-0.7-1.8-1.5-3.2z" fill="currentColor" fillOpacity="0.4" />
+            <path
+              d="M12 4c-0.8 1.4-1.5 2.2-1.5 3.2 0 1 0.7 1.8 1.5 1.8s1.5-0.8 1.5-1.8c0-1-0.7-1.8-1.5-3.2z"
+              fill="currentColor"
+              fillOpacity="0.4"
+            />
             <rect x="9.5" y="9" width="5" height="11" rx="0.6" />
             <path d="M10 13h4M10 17h4" strokeOpacity="0.4" />
           </svg>

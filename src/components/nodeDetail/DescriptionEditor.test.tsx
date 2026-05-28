@@ -89,8 +89,7 @@ describe('<DescriptionEditor />', () => {
     const patchFetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      text: async () =>
-        JSON.stringify({ ...ENTITY, description: 'nueva descripción' }),
+      text: async () => JSON.stringify({ ...ENTITY, description: 'nueva descripción' }),
       json: async () => ({ ...ENTITY, description: 'nueva descripción' }),
     })
     vi.stubGlobal('fetch', patchFetch)

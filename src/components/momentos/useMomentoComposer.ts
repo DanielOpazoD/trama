@@ -129,12 +129,9 @@ export function useMomentoComposer({
     try {
       const preview = await api.momentoUrlPreview(url)
       if (preview.title && !recorteTitle.trim()) setRecorteTitle(preview.title)
-      if (preview.description && !recorteBody.trim())
-        setRecorteBody(preview.description)
-      if (preview.source && !recorteSource.trim())
-        setRecorteSource(preview.source)
-      if (preview.author && !recorteAuthor.trim())
-        setRecorteAuthor(preview.author)
+      if (preview.description && !recorteBody.trim()) setRecorteBody(preview.description)
+      if (preview.source && !recorteSource.trim()) setRecorteSource(preview.source)
+      if (preview.author && !recorteAuthor.trim()) setRecorteAuthor(preview.author)
       if (!preview.fetched) {
         toast.show({
           message: 'No se pudo extraer info de la URL. Completa los campos a mano.',

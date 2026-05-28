@@ -73,9 +73,7 @@ function setupCache(
 describe('<QuotesView />', () => {
   it('muestra empty state cuando no hay entidades', () => {
     setupCache([], [])
-    expect(
-      screen.getByText(/No hay todavía a quién atribuir nada/i),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/No hay todavía a quién atribuir nada/i)).toBeInTheDocument()
   })
 
   it('renderiza el heading "Citas"', () => {

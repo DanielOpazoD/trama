@@ -18,10 +18,7 @@ import type { Entity, Quote } from '../../types'
  * coherente con la paginación cursor. Si más adelante se quiere filtro
  * server-side, este hook se reemplaza sin tocar UI.
  */
-export function useQuotesFilters(opts: {
-  allLoadedQuotes: Quote[]
-  entities: Entity[]
-}) {
+export function useQuotesFilters(opts: { allLoadedQuotes: Quote[]; entities: Entity[] }) {
   const { allLoadedQuotes, entities } = opts
 
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
@@ -57,8 +54,7 @@ export function useQuotesFilters(opts: {
   const quotes = useMemo(() => {
     let arr = allLoadedQuotes
     if (favoritesOnly) arr = arr.filter((q) => q.pinnedAt)
-    if (typeFilter)
-      arr = arr.filter((q) => entityTypeById.get(q.entityId) === typeFilter)
+    if (typeFilter) arr = arr.filter((q) => entityTypeById.get(q.entityId) === typeFilter)
     return arr
   }, [allLoadedQuotes, typeFilter, favoritesOnly, entityTypeById])
 

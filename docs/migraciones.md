@@ -58,6 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_entities_nueva_col
 ```
 
 **Patrones**:
+
 - Siempre `IF NOT EXISTS` en CREATE.
 - Siempre `IF EXISTS` en DROP.
 - `ADD COLUMN ... DEFAULT ...` para columnas NOT NULL (la migración popula filas existentes).
@@ -86,6 +87,7 @@ Netlify aplica la migración al deploy siguiente.
 3. Ver el log. Buscar líneas con `migration` o `ERROR`.
 
 Causas típicas:
+
 - **Sintaxis SQL inválida**: el log dice qué línea.
 - **Columna que se intenta crear ya existe**: olvidaste `IF NOT EXISTS`. Edita el archivo, push de nuevo.
 - **Conflicto con datos existentes**: ej. añadiste un UNIQUE pero hay duplicados, o un NOT NULL pero hay NULLs. Hay que limpiar los datos primero o cambiar el constraint.

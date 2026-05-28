@@ -47,7 +47,7 @@ export function ProgressBar({
       <div
         className="h-1.5 rounded-full bg-ink-100/60 overflow-hidden"
         role="progressbar"
-        aria-valuenow={indeterminate ? undefined : current ?? undefined}
+        aria-valuenow={indeterminate ? undefined : (current ?? undefined)}
         aria-valuemin={0}
         aria-valuemax={total}
         aria-label={label}
@@ -69,9 +69,7 @@ export function ProgressBar({
           />
         )}
       </div>
-      {hint && (
-        <p className="text-micro text-ink-300 italic leading-relaxed">{hint}</p>
-      )}
+      {hint && <p className="text-micro text-ink-300 italic leading-relaxed">{hint}</p>}
     </div>
   )
 }

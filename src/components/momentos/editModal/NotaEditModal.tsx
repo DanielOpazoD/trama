@@ -18,9 +18,7 @@ export function NotaEditModal({
   const updateMomento = useUpdateMomento()
   const toast = useToast()
   const [bodyText, setBodyText] = useState(momento.payload.bodyText ?? '')
-  const [capturedAt, setCapturedAt] = useState(
-    toDateTimeLocalInput(momento.capturedAt),
-  )
+  const [capturedAt, setCapturedAt] = useState(toDateTimeLocalInput(momento.capturedAt))
 
   async function handleSave() {
     if (updateMomento.isPending) return

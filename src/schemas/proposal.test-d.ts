@@ -62,7 +62,9 @@ describe('proposal schema types', () => {
     expectTypeOf<ProposedEntity>().toHaveProperty('type').toBeString()
     expectTypeOf<ProposedEntity>().toHaveProperty('name').toBeString()
     // matchedId, year, description, spotifyUrl son optional
-    expectTypeOf<ProposedEntity>().toHaveProperty('matchedId').toEqualTypeOf<string | undefined>()
+    expectTypeOf<ProposedEntity>()
+      .toHaveProperty('matchedId')
+      .toEqualTypeOf<string | undefined>()
   })
 
   it('ProposedRelationship.verification es optional', () => {

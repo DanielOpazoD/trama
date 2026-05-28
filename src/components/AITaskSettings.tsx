@@ -19,19 +19,34 @@ const PROVIDERS = [
  * pero genera relaciones más sutiles. Es el modelo "pensador" que el
  * usuario pidió para "descubrir IA" con propuestas menos básicas.
  */
-const MODELS_BY_PROVIDER: Record<string, Array<{ value: string; label: string; notes: string }>> = {
+const MODELS_BY_PROVIDER: Record<
+  string,
+  Array<{ value: string; label: string; notes: string }>
+> = {
   deepseek: [
     { value: '', label: 'V3 (chat) — default', notes: 'rápido, barato' },
-    { value: 'deepseek-reasoner', label: 'R1 (reasoner)', notes: 'pensador, mejor para sugerencias sutiles' },
+    {
+      value: 'deepseek-reasoner',
+      label: 'R1 (reasoner)',
+      notes: 'pensador, mejor para sugerencias sutiles',
+    },
   ],
   openai: [
     { value: '', label: 'gpt-4o-mini — default', notes: 'barato, visión' },
     { value: 'gpt-4o', label: 'gpt-4o', notes: 'más preciso, más caro' },
-    { value: 'gpt-4.1-mini', label: 'gpt-4.1-mini', notes: 'la generación nueva, similar costo' },
+    {
+      value: 'gpt-4.1-mini',
+      label: 'gpt-4.1-mini',
+      notes: 'la generación nueva, similar costo',
+    },
   ],
   anthropic: [
     { value: '', label: 'haiku — default', notes: 'rápido' },
-    { value: 'claude-sonnet-4-5-20251001', label: 'sonnet 4.5', notes: 'más reflexivo, más caro' },
+    {
+      value: 'claude-sonnet-4-5-20251001',
+      label: 'sonnet 4.5',
+      notes: 'más reflexivo, más caro',
+    },
   ],
   gemini: [
     { value: '', label: 'flash — default', notes: 'gratis hasta cap' },
@@ -40,11 +55,31 @@ const MODELS_BY_PROVIDER: Record<string, Array<{ value: string; label: string; n
 }
 
 const TASKS: Array<{ key: AITaskKey; label: string; hint: string }> = [
-  { key: 'extract', label: 'Extracción de texto', hint: 'pegas un párrafo y la IA propone entidades' },
-  { key: 'extract-image', label: 'Extracción desde imagen', hint: 'OCR + estructura desde foto (requiere visión)' },
-  { key: 'suggest-relationships', label: 'Descubrir relaciones', hint: 'IA propone vínculos entre entidades existentes' },
-  { key: 'reclassify', label: 'Reclasificar', hint: 'IA revisa tipos actuales y propone mejores' },
-  { key: 'reflect', label: 'Interpretación de cita', hint: 'IA escribe una lectura de la cita' },
+  {
+    key: 'extract',
+    label: 'Extracción de texto',
+    hint: 'pegas un párrafo y la IA propone entidades',
+  },
+  {
+    key: 'extract-image',
+    label: 'Extracción desde imagen',
+    hint: 'OCR + estructura desde foto (requiere visión)',
+  },
+  {
+    key: 'suggest-relationships',
+    label: 'Descubrir relaciones',
+    hint: 'IA propone vínculos entre entidades existentes',
+  },
+  {
+    key: 'reclassify',
+    label: 'Reclasificar',
+    hint: 'IA revisa tipos actuales y propone mejores',
+  },
+  {
+    key: 'reflect',
+    label: 'Interpretación de cita',
+    hint: 'IA escribe una lectura de la cita',
+  },
   { key: 'chat', label: 'Chat', hint: 'conversación con tu trama como contexto' },
 ]
 
@@ -71,9 +106,7 @@ export function AITaskSettings() {
   }
   if (settings.error || !settings.data) {
     return (
-      <p className="text-xs text-red-700">
-        No se pudo cargar la configuración de IA.
-      </p>
+      <p className="text-xs text-red-700">No se pudo cargar la configuración de IA.</p>
     )
   }
 
@@ -140,9 +173,9 @@ export function AITaskSettings() {
   return (
     <div className="space-y-3">
       <p className="text-xs text-ink-500 leading-relaxed">
-        Distintos modelos son buenos en cosas distintas. Aquí eliges qué provider
-        usa cada tarea. <em>Default</em> usa el provider general configurado en
-        Netlify (<code className="text-micro bg-paper-100 px-1 rounded">{defaultProvider}</code>).
+        Distintos modelos son buenos en cosas distintas. Aquí eliges qué provider usa cada
+        tarea. <em>Default</em> usa el provider general configurado en Netlify (
+        <code className="text-micro bg-paper-100 px-1 rounded">{defaultProvider}</code>).
       </p>
 
       <ul className="divide-y divide-ink-100/60">
@@ -157,7 +190,7 @@ export function AITaskSettings() {
           // provider de Netlify env.
           const activeProvOverride = current?.provider ?? ''
           const modelChoices = activeProvOverride
-            ? MODELS_BY_PROVIDER[activeProvOverride] ?? []
+            ? (MODELS_BY_PROVIDER[activeProvOverride] ?? [])
             : []
           return (
             <li key={task.key} className="py-3 space-y-1.5">
@@ -176,8 +209,9 @@ export function AITaskSettings() {
                   style={{ minWidth: '11rem' }}
                 >
                   <option value="">default ({defaultProvider})</option>
-                  {PROVIDERS.filter((p) =>
-                    !requiresVision || p.value === 'openai' || p.value === 'gemini',
+                  {PROVIDERS.filter(
+                    (p) =>
+                      !requiresVision || p.value === 'openai' || p.value === 'gemini',
                   ).map((p) => (
                     <option key={p.value} value={p.value}>
                       {p.label} — {p.notes}
@@ -190,7 +224,8 @@ export function AITaskSettings() {
               {modelChoices.length > 1 && (
                 <div className="flex items-baseline gap-3 pl-4 border-l-2 border-ink-100/60">
                   <div className="flex-1 text-caption text-ink-400 leading-snug">
-                    Modelo dentro de {PROVIDERS.find((p) => p.value === activeProvOverride)?.label}
+                    Modelo dentro de{' '}
+                    {PROVIDERS.find((p) => p.value === activeProvOverride)?.label}
                   </div>
                   <select
                     value={current?.model ?? ''}
@@ -210,8 +245,8 @@ export function AITaskSettings() {
               {verifiable && (
                 <div className="flex items-baseline gap-3 pl-4 border-l-2 border-ink-100/60">
                   <div className="flex-1 text-caption text-ink-400 leading-snug">
-                    Verificar con un segundo modelo (otro provider revisa
-                    cada propuesta y marca dudas)
+                    Verificar con un segundo modelo (otro provider revisa cada propuesta y
+                    marca dudas)
                   </div>
                   <select
                     value={current?.verifyWith ?? ''}

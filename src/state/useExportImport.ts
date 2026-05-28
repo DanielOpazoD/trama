@@ -1,13 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { storage } from '../storage'
-import type {
-  Entity,
-  ExportPayload,
-  ImportResult,
-  Quote,
-  Relationship,
-} from '../types'
+import type { Entity, ExportPayload, ImportResult, Quote, Relationship } from '../types'
 import { queryKeys } from './queryClient'
 import { useOffline } from './offline'
 

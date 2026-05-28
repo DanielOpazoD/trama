@@ -46,8 +46,7 @@ export function byDegreeLayout(
     const rotationOffset =
       direction * (seed % ringNodes.length) * ((Math.PI * 2) / ringNodes.length) * 0.4
     ringNodes.forEach((node, i) => {
-      const angle =
-        (i / ringNodes.length) * Math.PI * 2 - Math.PI / 2 + rotationOffset
+      const angle = (i / ringNodes.length) * Math.PI * 2 - Math.PI / 2 + rotationOffset
       out.set(node.id, {
         x: Math.cos(angle) * ringRadius,
         y: Math.sin(angle) * ringRadius,

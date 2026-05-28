@@ -57,7 +57,14 @@ export const ArrowRightIcon = ({ size = 14, className }: Props) => (
 )
 
 export const SparkleIcon = ({ size = 12, className }: Props) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base} strokeWidth={1.4}>
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    className={className}
+    {...base}
+    strokeWidth={1.4}
+  >
     <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
   </svg>
 )
@@ -171,7 +178,14 @@ export const MomentosIcon = ({ size = 16, className }: Props) => (
 
 /* Info — círculo con "i" delicado. Tamaño default 12 (chip-friendly). */
 export const InfoIcon = ({ size = 12, className }: Props) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base} strokeWidth={1.4}>
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    className={className}
+    {...base}
+    strokeWidth={1.4}
+  >
     <circle cx="12" cy="12" r="9" />
     <path d="M12 11v5" />
     <circle cx="12" cy="8" r="0.6" fill="currentColor" stroke="none" />
@@ -303,7 +317,11 @@ export const EmptyIllustration = ({
   kind = 'weave',
   size = 96,
   className,
-}: { kind?: IllustrationKind; size?: number; className?: string }) => {
+}: {
+  kind?: IllustrationKind
+  size?: number
+  className?: string
+}) => {
   if (kind === 'thread') {
     return (
       <svg

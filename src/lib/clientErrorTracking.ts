@@ -103,7 +103,8 @@ export function installClientErrorTracking(): void {
     // y del estado de la red, no problemas de código.
     if (event.target && event.target !== window) return
     const err = event.error
-    const message = err instanceof Error ? err.message : String(event.message ?? 'unknown')
+    const message =
+      err instanceof Error ? err.message : String(event.message ?? 'unknown')
     const stack = err instanceof Error ? err.stack : null
     postError({ message, stack, source: 'window.error' })
   })
@@ -111,7 +112,11 @@ export function installClientErrorTracking(): void {
   window.addEventListener('unhandledrejection', (event) => {
     const reason = event.reason
     const message =
-      reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : safeStringify(reason)
+      reason instanceof Error
+        ? reason.message
+        : typeof reason === 'string'
+          ? reason
+          : safeStringify(reason)
     const stack = reason instanceof Error ? reason.stack : null
     postError({
       message: message || 'unhandledrejection sin reason',

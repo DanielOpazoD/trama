@@ -254,22 +254,22 @@ askLLMForJson / askLLMForText
 
 ## Stack en tabla
 
-| Capa | Tech | Por qué |
-|---|---|---|
-| Build | Vite | rápido; ESM nativo |
-| UI | React 18 | concurrent rendering |
-| Types | TypeScript strict | `noUncheckedIndexedAccess` activado |
-| Estilos | Tailwind CSS | tokens via CSS vars, 3 temas |
-| Data | TanStack Query v5 | cache + invalidación declarativa |
-| Validación | Zod | server-side defense in depth |
-| Backend | Netlify Functions (Node 22 ESM) | edge-deployed, sin servidor |
-| DB | Neon Postgres + pgvector | serverless; embeddings nativos |
-| Storage | Netlify Blobs | fotos de momentos |
-| Auth | Clerk (opt-in) | JWT + UI prefab |
-| LLM | DeepSeek / OpenAI / Anthropic / Gemini | abstracción por provider |
-| Spotify | OAuth + Web API | escuchas + playlists |
-| Test | Vitest + Playwright | unit + integration + E2E |
-| Deploy | Netlify Git-based | preview por PR |
+| Capa       | Tech                                   | Por qué                             |
+| ---------- | -------------------------------------- | ----------------------------------- |
+| Build      | Vite                                   | rápido; ESM nativo                  |
+| UI         | React 18                               | concurrent rendering                |
+| Types      | TypeScript strict                      | `noUncheckedIndexedAccess` activado |
+| Estilos    | Tailwind CSS                           | tokens via CSS vars, 3 temas        |
+| Data       | TanStack Query v5                      | cache + invalidación declarativa    |
+| Validación | Zod                                    | server-side defense in depth        |
+| Backend    | Netlify Functions (Node 22 ESM)        | edge-deployed, sin servidor         |
+| DB         | Neon Postgres + pgvector               | serverless; embeddings nativos      |
+| Storage    | Netlify Blobs                          | fotos de momentos                   |
+| Auth       | Clerk (opt-in)                         | JWT + UI prefab                     |
+| LLM        | DeepSeek / OpenAI / Anthropic / Gemini | abstracción por provider            |
+| Spotify    | OAuth + Web API                        | escuchas + playlists                |
+| Test       | Vitest + Playwright                    | unit + integration + E2E            |
+| Deploy     | Netlify Git-based                      | preview por PR                      |
 
 ---
 

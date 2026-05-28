@@ -21,7 +21,11 @@ function formatRelative(iso: string): string {
   if (days === 1) return 'ayer'
   if (days < 7) return `hace ${days} días`
   if (days < 30) return `hace ${Math.floor(days / 7)} sem`
-  return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('es', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
 const GROUP_LABEL: Record<Group, string> = {
@@ -140,7 +144,11 @@ export function ListeningView({
 
       // Si la IA no incluyó el spotifyUrl en la entidad principal, lo
       // inyectamos. No queremos perder ese dato.
-      if (spotifyUrl && proposal.entities.length > 0 && !proposal.entities[0]!.spotifyUrl) {
+      if (
+        spotifyUrl &&
+        proposal.entities.length > 0 &&
+        !proposal.entities[0]!.spotifyUrl
+      ) {
         proposal.entities[0]!.spotifyUrl = spotifyUrl
       }
       onProposal?.(item.key, proposal)
@@ -193,8 +201,7 @@ export function ListeningView({
           </p>
           <p className="text-ink-400 text-sm mt-2">
             Abre <strong>Configuración</strong> en el sidebar y vincula tu cuenta de
-            Spotify. Después podrás sincronizar tus reproducciones y revisarlas
-            acá.
+            Spotify. Después podrás sincronizar tus reproducciones y revisarlas acá.
           </p>
         </div>
       ) : (
@@ -228,14 +235,12 @@ export function ListeningView({
               role="tablist"
               aria-label="Ventana temporal"
             >
-              {(
-                [
-                  { days: 7 as const, label: '7d' },
-                  { days: 30 as const, label: '30d' },
-                  { days: 90 as const, label: '90d' },
-                  { days: 365 as const, label: '1a' },
-                ]
-              ).map(({ days, label }) => (
+              {[
+                { days: 7 as const, label: '7d' },
+                { days: 30 as const, label: '30d' },
+                { days: 90 as const, label: '90d' },
+                { days: 365 as const, label: '1a' },
+              ].map(({ days, label }) => (
                 <button
                   key={days}
                   onClick={() => setPeriodDays(days)}
@@ -331,7 +336,8 @@ export function ListeningView({
                           </span>
                         )}
                         <span className="text-xs text-ink-400 tabular-nums">
-                          {item.plays} {item.plays === 1 ? 'reproducción' : 'reproducciones'}
+                          {item.plays}{' '}
+                          {item.plays === 1 ? 'reproducción' : 'reproducciones'}
                         </span>
                         <span className="text-xs text-ink-300">
                           última {formatRelative(item.lastPlayed)}
@@ -350,9 +356,7 @@ export function ListeningView({
                     ) : (
                       <button
                         onClick={() => handleAccept(item)}
-                        disabled={
-                          addEntity.isPending || enrichingKey !== null
-                        }
+                        disabled={addEntity.isPending || enrichingKey !== null}
                         className="text-xs px-3 py-1.5 border border-ink-100/60 rounded-md hover:bg-ink-50 active:scale-[0.95] transition-all opacity-0 group-hover:opacity-100 disabled:opacity-30 flex items-center gap-1.5"
                         title="La IA propondrá descripción, año y posibles conexiones"
                       >

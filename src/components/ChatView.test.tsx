@@ -44,9 +44,7 @@ describe('<ChatView />', () => {
       <ChatView initialThreadId={null} onConsumedInitialThread={() => {}} />,
     )
     await waitFor(() => {
-      expect(
-        screen.getByText(/Aún sin conversaciones/i),
-      ).toBeInTheDocument()
+      expect(screen.getByText(/Aún sin conversaciones/i)).toBeInTheDocument()
     })
   })
 
@@ -55,9 +53,7 @@ describe('<ChatView />', () => {
       <ChatView initialThreadId={null} onConsumedInitialThread={() => {}} />,
     )
     await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: /\+ nueva/i }),
-      ).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /\+ nueva/i })).toBeInTheDocument()
     })
   })
 })

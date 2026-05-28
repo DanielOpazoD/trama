@@ -102,9 +102,7 @@ export function Splash() {
             componente toma `currentColor` desde text-ink-700 abajo. */}
         <TramaMark size={72} animate className="text-ink-700" />
 
-        <p className="wordmark text-3xl text-ink-700 mark-thread leading-none">
-          Trama
-        </p>
+        <p className="wordmark text-3xl text-ink-700 mark-thread leading-none">Trama</p>
 
         <div className="mark-thread text-ink-200">
           <OrnamentBreak size={56} />

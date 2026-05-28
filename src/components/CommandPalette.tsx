@@ -16,8 +16,7 @@ import {
 // σ-followup: símbolo del modificador. Antes vivía en TopBar — al
 // mover el atajo visual al palette, este módulo lo necesita propio.
 const IS_MAC =
-  typeof navigator !== 'undefined' &&
-  /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
 const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 
 export type CommandAction =
@@ -47,10 +46,18 @@ const VIEWS: Array<{ view: ViewMode; label: string; hint: string }> = [
 // Acciones rápidas — el palette no las navega, las despacha como callbacks
 // al padre. Los hints son keywords que el filtro substring matchea.
 const ACTIONS: Array<{ action: CommandAction; label: string; hint: string }> = [
-  { action: 'new-entity', label: 'Nueva entidad', hint: 'crear persona, libro, canción, concepto' },
+  {
+    action: 'new-entity',
+    label: 'Nueva entidad',
+    hint: 'crear persona, libro, canción, concepto',
+  },
   { action: 'new-quote', label: 'Nueva cita', hint: 'guardar un fragmento' },
   { action: 'new-momento', label: 'Nuevo momento', hint: 'nota, recorte o foto del día' },
-  { action: 'open-settings', label: 'Configuración', hint: 'preferencias, tema, IA, datos' },
+  {
+    action: 'open-settings',
+    label: 'Configuración',
+    hint: 'preferencias, tema, IA, datos',
+  },
   { action: 'open-shortcuts', label: 'Atajos de teclado', hint: 'lista de shortcuts' },
 ]
 
@@ -101,8 +108,14 @@ export function CommandPalette({
 
     const matchesAction = onAction
       ? ACTIONS.filter(
-          (a) => !q || a.label.toLowerCase().includes(q) || a.hint.toLowerCase().includes(q),
-        ).map<Item>((a) => ({ kind: 'action', action: a.action, label: a.label, hint: a.hint }))
+          (a) =>
+            !q || a.label.toLowerCase().includes(q) || a.hint.toLowerCase().includes(q),
+        ).map<Item>((a) => ({
+          kind: 'action',
+          action: a.action,
+          label: a.label,
+          hint: a.hint,
+        }))
       : []
 
     const matchesEntity = entities
@@ -168,7 +181,9 @@ export function CommandPalette({
       onSelectEntity(item.id)
     } else {
       // Quote → jump to its entity panel.
-      const ent = entities.find((e) => e.id === quotes.find((q) => q.id === item.id)?.entityId)
+      const ent = entities.find(
+        (e) => e.id === quotes.find((q) => q.id === item.id)?.entityId,
+      )
       if (ent) onSelectEntity(ent.id)
     }
     onClose()
@@ -265,7 +280,9 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, idx)}
-      <strong className="text-ink-800 font-semibold">{text.slice(idx, idx + q.length)}</strong>
+      <strong className="text-ink-800 font-semibold">
+        {text.slice(idx, idx + q.length)}
+      </strong>
       {text.slice(idx + q.length)}
     </>
   )
@@ -275,14 +292,22 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 function ViewIcon({ view }: { view: ViewMode }) {
   const props = { size: 14, className: 'text-ink-400 shrink-0' }
   switch (view) {
-    case 'inicio': return <HomeIcon {...props} />
-    case 'grafo': return <GraphIcon {...props} />
-    case 'entidades': return <EntitiesIcon {...props} />
-    case 'citas': return <QuoteIcon {...props} />
-    case 'momentos': return <MomentosIcon {...props} />
-    case 'escuchas': return <MusicIcon {...props} />
-    case 'chat': return <ChatIcon {...props} />
-    case 'sugerencias': return <SparkleIcon {...props} />
+    case 'inicio':
+      return <HomeIcon {...props} />
+    case 'grafo':
+      return <GraphIcon {...props} />
+    case 'entidades':
+      return <EntitiesIcon {...props} />
+    case 'citas':
+      return <QuoteIcon {...props} />
+    case 'momentos':
+      return <MomentosIcon {...props} />
+    case 'escuchas':
+      return <MusicIcon {...props} />
+    case 'chat':
+      return <ChatIcon {...props} />
+    case 'sugerencias':
+      return <SparkleIcon {...props} />
   }
 }
 
@@ -340,7 +365,12 @@ function ItemRow({ item, query }: { item: Item; query: string }) {
     <>
       <QuoteIcon size={14} className="text-ink-400 shrink-0" />
       <span className="text-ink-600 italic font-serif truncate flex-1">
-        «<HighlightedText text={item.text.slice(0, 80) + (item.text.length > 80 ? '…' : '')} query={query} />»
+        «
+        <HighlightedText
+          text={item.text.slice(0, 80) + (item.text.length > 80 ? '…' : '')}
+          query={query}
+        />
+        »
       </span>
       <span className="text-ink-300 text-xs ml-2 shrink-0">— {item.entityName}</span>
     </>

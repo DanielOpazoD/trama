@@ -48,14 +48,7 @@ describe('<ConfirmDestroy />', () => {
 
   it('calls onCancel when cancel button is clicked', () => {
     const onCancel = vi.fn()
-    render(
-      <ConfirmDestroy
-        open
-        title="x"
-        onConfirm={() => {}}
-        onCancel={onCancel}
-      />,
-    )
+    render(<ConfirmDestroy open title="x" onConfirm={() => {}} onCancel={onCancel} />)
     // Hay 2 botones con aria-label "cancelar": el backdrop invisible y el
     // botón footer. Queremos el footer (texto visible "cancelar").
     const buttons = screen.getAllByRole('button', { name: /cancelar/i })
@@ -66,32 +59,17 @@ describe('<ConfirmDestroy />', () => {
 
   it('calls onCancel when ESC is pressed', () => {
     const onCancel = vi.fn()
-    render(
-      <ConfirmDestroy
-        open
-        title="x"
-        onConfirm={() => {}}
-        onCancel={onCancel}
-      />,
-    )
+    render(<ConfirmDestroy open title="x" onConfirm={() => {}} onCancel={onCancel} />)
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(onCancel).toHaveBeenCalledOnce()
   })
 
   it('disables buttons while pending=true and shows "eliminando…"', () => {
     render(
-      <ConfirmDestroy
-        open
-        title="x"
-        pending
-        onConfirm={() => {}}
-        onCancel={() => {}}
-      />,
+      <ConfirmDestroy open title="x" pending onConfirm={() => {}} onCancel={() => {}} />,
     )
     const cancelButtons = screen.getAllByRole('button', { name: /cancelar/i })
-    const footerCancel = cancelButtons.find(
-      (b) => b.textContent?.trim() === 'cancelar',
-    )
+    const footerCancel = cancelButtons.find((b) => b.textContent?.trim() === 'cancelar')
     const confirm = screen.getByRole('button', { name: /eliminando…/i })
     expect(footerCancel).toBeDisabled()
     expect(confirm).toBeDisabled()

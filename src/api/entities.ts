@@ -49,7 +49,11 @@ export const entitiesApi = {
     })
     return entityFromRow(row)
   },
-  async updateEntityPosition(id: string, positionX: number, positionY: number): Promise<void> {
+  async updateEntityPosition(
+    id: string,
+    positionX: number,
+    positionY: number,
+  ): Promise<void> {
     await request<void>(`/api/entities/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ position_x: positionX, position_y: positionY }),

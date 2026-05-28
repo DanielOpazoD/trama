@@ -47,10 +47,7 @@ const ENTITIES: Entity[] = [
 
 describe('useQuotesFilters', () => {
   it('sin filtros activos devuelve todas las quotes', () => {
-    const quotes = [
-      quote('q1', 'e-libro-1'),
-      quote('q2', 'e-persona-1'),
-    ]
+    const quotes = [quote('q1', 'e-libro-1'), quote('q2', 'e-persona-1')]
     const { result } = renderHook(() =>
       useQuotesFilters({ allLoadedQuotes: quotes, entities: ENTITIES }),
     )
@@ -106,9 +103,9 @@ describe('useQuotesFilters', () => {
 
   it('typeFilter + favoritesOnly se acumulan (AND)', () => {
     const quotes = [
-      quote('q1', 'e-libro-1', { pinnedAt: NOW }),  // libro + favorita
-      quote('q2', 'e-libro-2'),                       // libro, no favorita
-      quote('q3', 'e-persona-1', { pinnedAt: NOW }),  // persona + favorita
+      quote('q1', 'e-libro-1', { pinnedAt: NOW }), // libro + favorita
+      quote('q2', 'e-libro-2'), // libro, no favorita
+      quote('q3', 'e-persona-1', { pinnedAt: NOW }), // persona + favorita
     ]
     const { result } = renderHook(() =>
       useQuotesFilters({ allLoadedQuotes: quotes, entities: ENTITIES }),

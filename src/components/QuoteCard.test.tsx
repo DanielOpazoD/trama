@@ -35,7 +35,12 @@ beforeEach(() => {
       const url = String(input)
       if (url.includes('/api/entities')) {
         return entitiesResponse([
-          { id: 'e-borges', name: 'Borges', type: 'escritor', origin: { kind: 'manual' } },
+          {
+            id: 'e-borges',
+            name: 'Borges',
+            type: 'escritor',
+            origin: { kind: 'manual' },
+          },
         ])
       }
       return entitiesResponse({})
@@ -50,9 +55,7 @@ afterEach(() => {
 describe('<QuoteCard />', () => {
   it('renders the quote text + source', () => {
     renderWithProviders(<QuoteCard quote={QUOTE} />)
-    expect(
-      screen.getByText(/El tiempo es la sustancia/),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/El tiempo es la sustancia/)).toBeInTheDocument()
     expect(screen.getByText(/Otras inquisiciones/)).toBeInTheDocument()
   })
 
@@ -84,9 +87,7 @@ describe('<QuoteCard />', () => {
       aiReflectionAt: '2024-01-02T00:00:00Z',
     } as Quote
     renderWithProviders(<QuoteCard quote={withAiRefl} />)
-    expect(
-      screen.getByText(/interpretación de la IA/i),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/interpretación de la IA/i)).toBeInTheDocument()
     expect(
       screen.getByText(/una interpretación literaria del tiempo/),
     ).toBeInTheDocument()
@@ -111,11 +112,11 @@ describe('<QuoteCard />', () => {
 
   it('clicking "tu reflexión" toggles the user reflection editor', () => {
     renderWithProviders(<QuoteCard quote={QUOTE} />)
-    const toggleButton = screen.getByRole('button', { name: /\+ reflexión|tu reflexión/i })
+    const toggleButton = screen.getByRole('button', {
+      name: /\+ reflexión|tu reflexión/i,
+    })
     fireEvent.click(toggleButton)
     // Después del click debe aparecer un textarea
-    expect(
-      screen.getByRole('textbox'),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
 })

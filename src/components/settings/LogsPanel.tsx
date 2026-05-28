@@ -65,6 +65,16 @@ function ErrorList() {
   })
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
+  // ρ-micro: agrupamos errores idénticos para que un bug recurrente no
+  // contamine la lista. El "representante" del grupo es el entry más
+  // reciente (su stack es el que se ve al expandir). El conteo aparece
+  // como badge.
+  //
+  // Importante: el useMemo va ANTES de los early returns por rules-of-hooks.
+  // Si data aún no llegó usamos []; el resultado solo se consume después
+  // de pasar los checks de loading/error/empty.
+  const grouped = useMemo(() => dedupErrorEntries(data ?? []), [data])
+
   if (isLoading) {
     return <p className="text-xs text-ink-300 italic">cargando…</p>
   }
@@ -92,11 +102,6 @@ function ErrorList() {
     )
   }
 
-  // ρ-micro: agrupamos errores idénticos para que un bug recurrente no
-  // contamine la lista. El "representante" del grupo es el entry más
-  // reciente (su stack es el que se ve al expandir). El conteo aparece
-  // como badge.
-  const grouped = useMemo(() => dedupErrorEntries(data), [data])
   const totalUnique = grouped.length
   const totalRaw = data.length
 
@@ -125,7 +130,9 @@ function ErrorList() {
             count={g.count}
             expanded={expandedId === g.representative.id}
             onToggle={() =>
-              setExpandedId(expandedId === g.representative.id ? null : g.representative.id)
+              setExpandedId(
+                expandedId === g.representative.id ? null : g.representative.id,
+              )
             }
           />
         ))}
@@ -210,9 +217,7 @@ function ErrorRow({
         </div>
 
         {/* message preview — truncado en una línea */}
-        <span className="flex-1 text-xs text-ink-500 truncate">
-          {entry.message}
-        </span>
+        <span className="flex-1 text-xs text-ink-500 truncate">{entry.message}</span>
 
         {/* timestamp y caret */}
         <span className="text-micro text-ink-400 tabular-nums shrink-0">
@@ -373,9 +378,7 @@ function ExtractionRow({
             {entry.provider}
           </span>
           <span className="text-ink-300 text-xs">·</span>
-          <span className="text-xs text-ink-400 font-mono truncate">
-            {entry.model}
-          </span>
+          <span className="text-xs text-ink-400 font-mono truncate">{entry.model}</span>
         </div>
 
         {/* metrics */}

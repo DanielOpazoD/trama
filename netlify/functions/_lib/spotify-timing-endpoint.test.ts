@@ -38,9 +38,7 @@ describe('spotify-timing endpoint', () => {
   })
 
   it('normaliza played_at de Date a ISO string si Neon devuelve Date', async () => {
-    mockSqlResponses.push([
-      { played_at: new Date('2026-05-20T10:00:00Z') },
-    ])
+    mockSqlResponses.push([{ played_at: new Date('2026-05-20T10:00:00Z') }])
     const res = await handler(
       new Request('http://localhost/api/spotify/timing'),
       mockContext(),

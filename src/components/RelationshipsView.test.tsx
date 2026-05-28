@@ -44,9 +44,7 @@ describe('<RelationshipsView />', () => {
     renderWithProviders(<RelationshipsView />)
     await waitFor(() => {
       // Con 0 entidades el empty state es "Una relación necesita dos."
-      expect(
-        screen.getByText(/Una relación necesita dos/i),
-      ).toBeInTheDocument()
+      expect(screen.getByText(/Una relación necesita dos/i)).toBeInTheDocument()
     })
   })
 })

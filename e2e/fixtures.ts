@@ -88,9 +88,10 @@ function jsonResp(route: Route, body: unknown, status = 200) {
 
 /**
  * Helper: matchea sólo URLs cuyo `pathname` corresponde a `/api/<path>`. Sin
- * esto el glob `**​/api/**` matchea también `/src/api/index.ts` (los assets
- * que Vite sirve después de BB2 split de src/api.ts → src/api/), y devuelve
- * JSON cuando el browser pidió un módulo JS. La app queda en blanco.
+ * esto el glob `<doble-asterisco>/api/<doble-asterisco>` matchea también
+ * `/src/api/index.ts` (los assets que Vite sirve después de BB2 split de
+ * src/api.ts → src/api/), y devuelve JSON cuando el browser pidió un módulo
+ * JS. La app queda en blanco.
  *
  * - apiPath('entities')                 → exact match /api/entities
  * - apiPath('quotes', { prefix: true }) → /api/quotes, /api/quotes/foo, etc.
@@ -164,11 +165,15 @@ export async function mockBackend(page: Page, state: MockState) {
   // GET /api/quotes (paginated when limit; wholesale otherwise) + POST
   await page.route(apiPath('quotes', { prefix: true }), async (route) => {
     if (route.request().method() === 'POST') {
-      const payload = JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>
+      const payload = JSON.parse(route.request().postData() ?? '{}') as Record<
+        string,
+        unknown
+      >
       const created = {
         id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         // La API manda snake_case en el body POST (entity_id).
-        entity_id: ((payload['entity_id'] ?? payload['entityId']) as string | undefined) ?? '',
+        entity_id:
+          ((payload['entity_id'] ?? payload['entityId']) as string | undefined) ?? '',
         text: payload['text'] as string,
         source: (payload['source'] as string | undefined) ?? null,
         context: (payload['context'] as string | undefined) ?? null,
@@ -244,13 +249,14 @@ export async function mockBackend(page: Page, state: MockState) {
   )
 
   // /api/ai-settings (sin overrides)
-  await page.route(apiPath('ai-settings'), (route) =>
-    jsonResp(route, { providers: [] }),
-  )
+  await page.route(apiPath('ai-settings'), (route) => jsonResp(route, { providers: [] }))
 
   // /api/extraction-log (vacío)
   await page.route(apiPath('extraction-log', { prefix: true }), (route) =>
-    jsonResp(route, { entries: [], totals: { totalCalls: 0, totalCostCents: 0, totalTokens: 0 } }),
+    jsonResp(route, {
+      entries: [],
+      totals: { totalCalls: 0, totalCostCents: 0, totalTokens: 0 },
+    }),
   )
 
   // /api/error-log y /api/health (vacíos)
@@ -299,44 +305,54 @@ export async function mockBackend(page: Page, state: MockState) {
   await page.route(
     (url) => /^\/api\/chat\/threads\/[^/]+\/messages$/.test(url.pathname),
     (route) => {
-    if (route.request().method() === 'GET') {
-      const match = route.request().url().match(/threads\/([^/]+)\/messages/)
+      if (route.request().method() === 'GET') {
+        const match = route
+          .request()
+          .url()
+          .match(/threads\/([^/]+)\/messages/)
+        const threadId = match?.[1] ?? ''
+        return jsonResp(route, state.chatMessages[threadId] ?? [])
+      }
+      // POST con SSE: simulamos el stream con un cuerpo SSE válido.
+      const body = JSON.parse(route.request().postData() ?? '{}')
+      const match = route
+        .request()
+        .url()
+        .match(/threads\/([^/]+)\/messages/)
       const threadId = match?.[1] ?? ''
-      return jsonResp(route, state.chatMessages[threadId] ?? [])
-    }
-    // POST con SSE: simulamos el stream con un cuerpo SSE válido.
-    const body = JSON.parse(route.request().postData() ?? '{}')
-    const match = route.request().url().match(/threads\/([^/]+)\/messages/)
-    const threadId = match?.[1] ?? ''
-    const userId = `u-${Date.now()}`
-    const assistantId = `a-${Date.now()}`
-    const userMsg = {
-      id: userId,
-      role: 'user' as const,
-      content: body.content,
-      proposal: null,
-      createdAt: new Date().toISOString(),
-    }
-    const assistantMsg = {
-      id: assistantId,
-      role: 'assistant' as const,
-      content: 'Hola, te leo. (respuesta mock)',
-      proposal: null,
-      createdAt: new Date().toISOString(),
-      provider: 'mock',
-      model: 'mock-1',
-    }
-    state.chatMessages[threadId] = [...(state.chatMessages[threadId] ?? []), userMsg, assistantMsg]
-    const sseBody = [
-      `event: user\ndata: ${JSON.stringify(userMsg)}\n\n`,
-      `event: chunk\ndata: ${JSON.stringify({ content: assistantMsg.content })}\n\n`,
-      `event: done\ndata: ${JSON.stringify({ assistantMessage: assistantMsg })}\n\n`,
-    ].join('')
-    return route.fulfill({
-      status: 200,
-      contentType: 'text/event-stream',
-      body: sseBody,
-    })
-  })
-
+      const userId = `u-${Date.now()}`
+      const assistantId = `a-${Date.now()}`
+      const userMsg = {
+        id: userId,
+        role: 'user' as const,
+        content: body.content,
+        proposal: null,
+        createdAt: new Date().toISOString(),
+      }
+      const assistantMsg = {
+        id: assistantId,
+        role: 'assistant' as const,
+        content: 'Hola, te leo. (respuesta mock)',
+        proposal: null,
+        createdAt: new Date().toISOString(),
+        provider: 'mock',
+        model: 'mock-1',
+      }
+      state.chatMessages[threadId] = [
+        ...(state.chatMessages[threadId] ?? []),
+        userMsg,
+        assistantMsg,
+      ]
+      const sseBody = [
+        `event: user\ndata: ${JSON.stringify(userMsg)}\n\n`,
+        `event: chunk\ndata: ${JSON.stringify({ content: assistantMsg.content })}\n\n`,
+        `event: done\ndata: ${JSON.stringify({ assistantMessage: assistantMsg })}\n\n`,
+      ].join('')
+      return route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream',
+        body: sseBody,
+      })
+    },
+  )
 }

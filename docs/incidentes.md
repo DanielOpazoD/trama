@@ -70,20 +70,20 @@ https://app.netlify.com/sites/trama/configuration/env
 
 Lista de las que importan:
 
-| Env var | Default | Notas |
-|---|---|---|
-| `NETLIFY_DB_URL` | — | Auto-generado por Netlify. No tocar. |
-| `AI_PROVIDER` | `deepseek` | Provider global default. |
-| `AI_API_KEY` | — | Key de DeepSeek (legacy name). |
-| `OPENAI_API_KEY` | — | Key de OpenAI. Necesaria para embeddings. |
-| `ANTHROPIC_API_KEY` | — | Key de Anthropic. Opcional. |
-| `GEMINI_API_KEY` | — | Key de Gemini. Opcional. |
-| `AI_VISION_PROVIDER` | `(fallback al main)` | Override para extracción desde imagen. |
-| `AI_VISION_API_KEY` | — | Key para vision. |
-| `AI_MAX_TOKENS` | `4096` | Tope de tokens por respuesta. |
-| `AI_CACHE_TTL_SECONDS` | `600` | Cache de respuestas LLM. |
-| `AI_MONTHLY_BUDGET_CENTS` | `5000` | Cap mensual en centavos. |
-| `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | — | Para integración Spotify. |
+| Env var                                      | Default              | Notas                                     |
+| -------------------------------------------- | -------------------- | ----------------------------------------- |
+| `NETLIFY_DB_URL`                             | —                    | Auto-generado por Netlify. No tocar.      |
+| `AI_PROVIDER`                                | `deepseek`           | Provider global default.                  |
+| `AI_API_KEY`                                 | —                    | Key de DeepSeek (legacy name).            |
+| `OPENAI_API_KEY`                             | —                    | Key de OpenAI. Necesaria para embeddings. |
+| `ANTHROPIC_API_KEY`                          | —                    | Key de Anthropic. Opcional.               |
+| `GEMINI_API_KEY`                             | —                    | Key de Gemini. Opcional.                  |
+| `AI_VISION_PROVIDER`                         | `(fallback al main)` | Override para extracción desde imagen.    |
+| `AI_VISION_API_KEY`                          | —                    | Key para vision.                          |
+| `AI_MAX_TOKENS`                              | `4096`               | Tope de tokens por respuesta.             |
+| `AI_CACHE_TTL_SECONDS`                       | `600`                | Cache de respuestas LLM.                  |
+| `AI_MONTHLY_BUDGET_CENTS`                    | `5000`               | Cap mensual en centavos.                  |
+| `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | —                    | Para integración Spotify.                 |
 
 ## Si nada de lo anterior aplica
 

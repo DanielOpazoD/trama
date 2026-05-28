@@ -34,9 +34,7 @@ describe('QuoteForm', () => {
   })
 
   it('no llama api.createQuote si falta entityId', async () => {
-    const spy = vi
-      .spyOn(apiModule.api, 'createQuote')
-      .mockResolvedValue({} as never)
+    const spy = vi.spyOn(apiModule.api, 'createQuote').mockResolvedValue({} as never)
     renderWithProviders(<QuoteForm entities={[ENTITY_A]} />)
     const textarea = screen.getByPlaceholderText('La cita')
     fireEvent.change(textarea, { target: { value: 'el mundo será Tlön' } })
@@ -60,10 +58,7 @@ describe('QuoteForm', () => {
 
     await user.selectOptions(screen.getByRole('combobox'), 'ent-1')
     await user.type(screen.getByPlaceholderText('La cita'), 'el mundo será Tlön')
-    await user.type(
-      screen.getByPlaceholderText(/Fuente.*libro/i),
-      'Ficciones',
-    )
+    await user.type(screen.getByPlaceholderText(/Fuente.*libro/i), 'Ficciones')
     fireEvent.click(screen.getByRole('button', { name: /añadir/i }))
 
     await waitFor(() => expect(spy).toHaveBeenCalled())

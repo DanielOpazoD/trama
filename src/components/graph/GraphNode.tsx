@@ -8,11 +8,30 @@ import { ENTITY_TYPES, type Entity } from '../../types'
 // var(--type-default). This means adding a new type doesn't require a code
 // change — only the SQL insert and (optionally) a new CSS variable.
 const KNOWN_TYPES = new Set([
-  'persona', 'escritor', 'filosofo', 'musico', 'banda', 'director', 'artista', 'cientifico',
-  'libro', 'ensayo', 'poema', 'articulo',
-  'cancion', 'podcast', 'album', 'disco',
-  'pelicula', 'serie', 'documental',
-  'obra', 'concepto', 'idea', 'lugar', 'evento',
+  'persona',
+  'escritor',
+  'filosofo',
+  'musico',
+  'banda',
+  'director',
+  'artista',
+  'cientifico',
+  'libro',
+  'ensayo',
+  'poema',
+  'articulo',
+  'cancion',
+  'podcast',
+  'album',
+  'disco',
+  'pelicula',
+  'serie',
+  'documental',
+  'obra',
+  'concepto',
+  'idea',
+  'lugar',
+  'evento',
 ])
 export function typeAccent(type: string): string {
   return KNOWN_TYPES.has(type) ? `var(--type-${type})` : 'var(--type-default)'
@@ -109,106 +128,112 @@ export function GraphNode({
         className={isSelected ? undefined : 'animate-node-drift'}
         style={{ animationDelay: driftDelay }}
       >
-       <g
-         className={isSelected ? undefined : 'animate-node-breathe'}
-         style={{ '--breathe-offset': breatheOffset } as React.CSSProperties}
-       >
-        {/* ζ4: Selection halo refinado — antes era un círculo grueso
+        <g
+          className={isSelected ? undefined : 'animate-node-breathe'}
+          style={{ '--breathe-offset': breatheOffset } as React.CSSProperties}
+        >
+          {/* ζ4: Selection halo refinado — antes era un círculo grueso
             (strokeWidth 6) que se sentía pesado. Ahora un anillo fino
             con ticks radiales tipo marca de hora de un reloj. Sutil
             pero claramente "esto está seleccionado". */}
-        {isSelected && (
-          <g className="animate-halo-pulse">
-            {/* Anillo interior fino */}
-            <circle
-              cx={0}
-              cy={0}
-              r={radius + 4}
-              fill="none"
-              stroke="var(--ink)"
-              strokeWidth={1.2}
-              strokeOpacity={0.7}
-            />
-            {/* Ticks radiales — 8 marcas a 45° de separación, como las
+          {isSelected && (
+            <g className="animate-halo-pulse">
+              {/* Anillo interior fino */}
+              <circle
+                cx={0}
+                cy={0}
+                r={radius + 4}
+                fill="none"
+                stroke="var(--ink)"
+                strokeWidth={1.2}
+                strokeOpacity={0.7}
+              />
+              {/* Ticks radiales — 8 marcas a 45° de separación, como las
                 horas de un reloj. Cada tick es una línea corta del
                 radius+6 al radius+10. Las cardinales (0, 90, 180, 270)
                 son ligeramente más largas para sugerir "norte". */}
-            {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => {
-              const rad = (angle * Math.PI) / 180
-              const isCardinal = angle % 90 === 0
-              const inner = radius + 6
-              const outer = radius + (isCardinal ? 12 : 9)
-              return (
-                <line
-                  key={angle}
-                  x1={Math.cos(rad) * inner}
-                  y1={Math.sin(rad) * inner}
-                  x2={Math.cos(rad) * outer}
-                  y2={Math.sin(rad) * outer}
-                  stroke="var(--ink)"
-                  strokeWidth={1.2}
-                  strokeOpacity={isCardinal ? 0.8 : 0.5}
-                  strokeLinecap="round"
-                />
-              )
-            })}
-          </g>
-        )}
-        {/* Node body */}
-        <circle
-          cx={0}
-          cy={0}
-          r={radius}
-          fill="var(--bg-card)"
-          stroke={ringStroke}
-          strokeOpacity={ringOpacity}
-          strokeWidth={ringWidth}
-          strokeDasharray={ringDash}
-        />
-        {/* Inner accent dot */}
-        <circle cx={0} cy={0} r={Math.max(radius - 7, 2)} fill={accent} fillOpacity={0.14} />
-        {/* AI provenance pip */}
-        {entity.origin.kind === 'ai' && (
+              {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => {
+                const rad = (angle * Math.PI) / 180
+                const isCardinal = angle % 90 === 0
+                const inner = radius + 6
+                const outer = radius + (isCardinal ? 12 : 9)
+                return (
+                  <line
+                    key={angle}
+                    x1={Math.cos(rad) * inner}
+                    y1={Math.sin(rad) * inner}
+                    x2={Math.cos(rad) * outer}
+                    y2={Math.sin(rad) * outer}
+                    stroke="var(--ink)"
+                    strokeWidth={1.2}
+                    strokeOpacity={isCardinal ? 0.8 : 0.5}
+                    strokeLinecap="round"
+                  />
+                )
+              })}
+            </g>
+          )}
+          {/* Node body */}
           <circle
-            cx={radius * 0.7}
-            cy={-radius * 0.7}
-            r={2.5}
-            fill="#7AA7C7"
-            stroke="var(--bg-card)"
-            strokeWidth={1.5}
+            cx={0}
+            cy={0}
+            r={radius}
+            fill="var(--bg-card)"
+            stroke={ringStroke}
+            strokeOpacity={ringOpacity}
+            strokeWidth={ringWidth}
+            strokeDasharray={ringDash}
           />
-        )}
-        {/* ζ3: Name en Spectral serif (era sans). Los nodos del grafo
+          {/* Inner accent dot */}
+          <circle
+            cx={0}
+            cy={0}
+            r={Math.max(radius - 7, 2)}
+            fill={accent}
+            fillOpacity={0.14}
+          />
+          {/* AI provenance pip */}
+          {entity.origin.kind === 'ai' && (
+            <circle
+              cx={radius * 0.7}
+              cy={-radius * 0.7}
+              r={2.5}
+              fill="#7AA7C7"
+              stroke="var(--bg-card)"
+              strokeWidth={1.5}
+            />
+          )}
+          {/* ζ3: Name en Spectral serif (era sans). Los nodos del grafo
             ahora se ven como entradas de un índice impreso, no como
             tags de un dashboard. fontWeight 400 (regular) porque el
             serif a 12px con 500 se ve apretado; en regular respira. */}
-        <text
-          y={labelY}
-          textAnchor="middle"
-          fontSize={12.5}
-          fontWeight={400}
-          fill="var(--ink)"
-          fontFamily="Spectral, Iowan Old Style, Palatino, Georgia, serif"
-          style={{ userSelect: 'none', pointerEvents: 'none' }}
-        >
-          {truncate(entity.name, NODE_TRUNCATE)}
-        </text>
-        {/* Type */}
-        <text
-          y={typeLabelY}
-          textAnchor="middle"
-          fontSize={8.5}
-          fill="var(--ink-dim)"
-          letterSpacing="1.4"
-          style={{
-            userSelect: 'none',
-            pointerEvents: 'none',
-            textTransform: 'uppercase',
-          }}
-        >
-          {typeLabel}
-        </text>
-       </g>
+          <text
+            y={labelY}
+            textAnchor="middle"
+            fontSize={12.5}
+            fontWeight={400}
+            fill="var(--ink)"
+            fontFamily="Spectral, Iowan Old Style, Palatino, Georgia, serif"
+            style={{ userSelect: 'none', pointerEvents: 'none' }}
+          >
+            {truncate(entity.name, NODE_TRUNCATE)}
+          </text>
+          {/* Type */}
+          <text
+            y={typeLabelY}
+            textAnchor="middle"
+            fontSize={8.5}
+            fill="var(--ink-dim)"
+            letterSpacing="1.4"
+            style={{
+              userSelect: 'none',
+              pointerEvents: 'none',
+              textTransform: 'uppercase',
+            }}
+          >
+            {typeLabel}
+          </text>
+        </g>
       </g>
     </g>
   )

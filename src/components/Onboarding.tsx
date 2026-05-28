@@ -24,7 +24,14 @@ const STORAGE_KEY = 'trama:onboarded'
  */
 function romanNumeral(n: number): string {
   const map: Record<number, string> = {
-    1: 'i', 2: 'ii', 3: 'iii', 4: 'iv', 5: 'v', 6: 'vi', 7: 'vii', 8: 'viii',
+    1: 'i',
+    2: 'ii',
+    3: 'iii',
+    4: 'iv',
+    5: 'v',
+    6: 'vi',
+    7: 'vii',
+    8: 'viii',
   }
   return map[n] ?? String(n)
 }
@@ -42,10 +49,9 @@ const STEPS: Step[] = [
     title: 'Trama es un mapa de tus afinidades.',
     body: (
       <>
-        Aquí guardas <strong>entidades</strong> (personas, libros, canciones,
-        ideas), las <strong>citas</strong> que te llegaron de ellas, y las{' '}
-        <strong>relaciones</strong> entre todo eso. Crece despacio, con
-        intención — no es un dump.
+        Aquí guardas <strong>entidades</strong> (personas, libros, canciones, ideas), las{' '}
+        <strong>citas</strong> que te llegaron de ellas, y las <strong>relaciones</strong>{' '}
+        entre todo eso. Crece despacio, con intención — no es un dump.
       </>
     ),
     primary: 'Sigue',
@@ -55,9 +61,9 @@ const STEPS: Step[] = [
     title: 'Pega un párrafo.',
     body: (
       <>
-        En la barra de abajo escribes — o pegas — algo que te llegó. Una
-        frase de un libro, un fragmento de conversación, lo que sea. La IA
-        lee y propone qué entidades, citas y relaciones extraer.
+        En la barra de abajo escribes — o pegas — algo que te llegó. Una frase de un
+        libro, un fragmento de conversación, lo que sea. La IA lee y propone qué
+        entidades, citas y relaciones extraer.
       </>
     ),
     primary: 'Sigue',
@@ -67,8 +73,8 @@ const STEPS: Step[] = [
     title: 'Tú apruebas todo.',
     body: (
       <>
-        Nada entra a la trama sin tu confirmación. La IA propone, tú eliges
-        qué resuena. Lo que no, se descarta. Tu mapa es tuyo —{' '}
+        Nada entra a la trama sin tu confirmación. La IA propone, tú eliges qué resuena.
+        Lo que no, se descarta. Tu mapa es tuyo —{' '}
         <em>la IA es solo un copiloto silencioso</em>.
       </>
     ),
@@ -87,8 +93,7 @@ const STEPS: Step[] = [
         <kbd className="font-mono text-micro leading-none px-1.5 py-1 mx-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-600 shadow-sm">
           ?
         </kbd>{' '}
-        para ver todos los atajos. El sidebar de la izquierda te lleva a
-        cada sección.
+        para ver todos los atajos. El sidebar de la izquierda te lleva a cada sección.
       </>
     ),
     primary: 'Empezar',

@@ -49,10 +49,16 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
     entityList.map(() => 'pending'),
   )
   const [statusRels, setStatusRels] = useState<Status[]>(relList.map(() => 'pending'))
-  const [statusQuotes, setStatusQuotes] = useState<Status[]>(quoteList.map(() => 'pending'))
-  const [statusReclass, setStatusReclass] = useState<Status[]>(reclassList.map(() => 'pending'))
+  const [statusQuotes, setStatusQuotes] = useState<Status[]>(
+    quoteList.map(() => 'pending'),
+  )
+  const [statusReclass, setStatusReclass] = useState<Status[]>(
+    reclassList.map(() => 'pending'),
+  )
   const [statusEdits, setStatusEdits] = useState<Status[]>(editList.map(() => 'pending'))
-  const [statusDeletes, setStatusDeletes] = useState<Status[]>(deleteList.map(() => 'pending'))
+  const [statusDeletes, setStatusDeletes] = useState<Status[]>(
+    deleteList.map(() => 'pending'),
+  )
 
   // Map local de ids recién creados durante la ronda de "aceptar todo".
   // Se usa como overlay encima del cache `entities` porque el cache no se
@@ -158,11 +164,20 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
     if (!e) return
     try {
       if (e.kind === 'entity') {
-        await updateEntity.mutateAsync({ id: e.id, patch: e.patch as Parameters<typeof updateEntity.mutateAsync>[0]['patch'] })
+        await updateEntity.mutateAsync({
+          id: e.id,
+          patch: e.patch as Parameters<typeof updateEntity.mutateAsync>[0]['patch'],
+        })
       } else if (e.kind === 'quote') {
-        await updateQuote.mutateAsync({ id: e.id, patch: e.patch as Parameters<typeof updateQuote.mutateAsync>[0]['patch'] })
+        await updateQuote.mutateAsync({
+          id: e.id,
+          patch: e.patch as Parameters<typeof updateQuote.mutateAsync>[0]['patch'],
+        })
       } else if (e.kind === 'relationship') {
-        await updateRelationship.mutateAsync({ id: e.id, patch: e.patch as Parameters<typeof updateRelationship.mutateAsync>[0]['patch'] })
+        await updateRelationship.mutateAsync({
+          id: e.id,
+          patch: e.patch as Parameters<typeof updateRelationship.mutateAsync>[0]['patch'],
+        })
       }
       setStatusEdits((s) => s.map((v, idx) => (idx === i ? 'applied' : v)))
     } catch {
@@ -177,7 +192,8 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
       // silent: el usuario ya está revisando esta propuesta inline,
       // no necesita un toast "Deshacer" superpuesto.
       if (d.kind === 'entity') await deleteEntity.mutateAsync({ id: d.id, silent: true })
-      else if (d.kind === 'quote') await deleteQuote.mutateAsync({ id: d.id, silent: true })
+      else if (d.kind === 'quote')
+        await deleteQuote.mutateAsync({ id: d.id, silent: true })
       else if (d.kind === 'relationship')
         await deleteRelationship.mutateAsync({ id: d.id, silent: true })
       setStatusDeletes((s) => s.map((v, idx) => (idx === i ? 'applied' : v)))
@@ -223,8 +239,13 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
     statusEdits.filter((s) => s === 'pending').length
 
   const hasItems =
-    entityList.length + relList.length + quoteList.length + reclassList.length +
-    editList.length + deleteList.length > 0
+    entityList.length +
+      relList.length +
+      quoteList.length +
+      reclassList.length +
+      editList.length +
+      deleteList.length >
+    0
   if (!hasItems) return null
 
   return (
@@ -238,7 +259,10 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
         className="px-3 py-2 flex items-baseline justify-between"
         style={{ borderBottom: '1px solid var(--accent-primary-ring)' }}
       >
-        <div className="flex items-baseline gap-2 text-micro uppercase tracking-eyebrow" style={{ color: 'var(--accent-primary)' }}>
+        <div
+          className="flex items-baseline gap-2 text-micro uppercase tracking-eyebrow"
+          style={{ color: 'var(--accent-primary)' }}
+        >
           <SparkleIcon size={12} />
           propuestas
         </div>
@@ -296,7 +320,11 @@ export function InlineProposal({ proposal }: { proposal: ChatProposal }) {
         ))}
         {editList.map((e, i) => {
           const kindLabel =
-            e.kind === 'entity' ? 'edit entidad' : e.kind === 'quote' ? 'edit cita' : 'edit relación'
+            e.kind === 'entity'
+              ? 'edit entidad'
+              : e.kind === 'quote'
+                ? 'edit cita'
+                : 'edit relación'
           const patchSummary = Object.entries(e.patch)
             .map(([k, v]) => `${k}: ${v === null ? '—' : String(v).slice(0, 40)}`)
             .join(' · ')
@@ -344,8 +372,7 @@ function ProposalRow({
   spotifyUrl?: string
   tone?: 'warn'
 }) {
-  const secondaryStyle =
-    tone === 'warn' ? { color: 'var(--accent-clay)' } : undefined
+  const secondaryStyle = tone === 'warn' ? { color: 'var(--accent-clay)' } : undefined
   return (
     <li className="flex items-start gap-2 text-sm">
       <div className="min-w-0 flex-1 leading-relaxed">
@@ -366,9 +393,7 @@ function ProposalRow({
             ↗ Spotify
           </a>
         )}
-        {extra && (
-          <p className="text-ink-400 text-xs leading-relaxed mt-0.5">{extra}</p>
-        )}
+        {extra && <p className="text-ink-400 text-xs leading-relaxed mt-0.5">{extra}</p>}
       </div>
       {status === 'pending' && (
         <button

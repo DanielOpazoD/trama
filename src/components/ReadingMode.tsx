@@ -31,7 +31,10 @@ function chunkText(text: string, target = CHUNK_TARGET_CHARS): string[] {
   if (trimmed.length <= SINGLE_CALL_THRESHOLD) return [trimmed]
 
   // Split into paragraphs first, then greedily concatenate up to target.
-  const paragraphs = trimmed.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)
+  const paragraphs = trimmed
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
   const chunks: string[] = []
   let buf = ''
   for (const p of paragraphs) {
@@ -191,9 +194,7 @@ export function ReadingMode({
         className="fixed inset-0 z-30 bg-ink-900/30 backdrop-blur-sm cursor-default"
         tabIndex={-1}
       />
-      <div
-        className="fixed inset-x-4 top-12 bottom-12 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[680px] md:max-w-[calc(100vw-2rem)] z-40 flex flex-col rounded-xl border border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 overflow-hidden animate-slide-up"
-      >
+      <div className="fixed inset-x-4 top-12 bottom-12 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[680px] md:max-w-[calc(100vw-2rem)] z-40 flex flex-col rounded-xl border border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 overflow-hidden animate-slide-up">
         <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
           <div className="min-w-0">
             <p className="text-micro uppercase tracking-eyebrow text-ink-300 flex items-center gap-1.5">
@@ -204,9 +205,8 @@ export function ReadingMode({
               Pega un texto largo
             </h2>
             <p className="mt-1 text-xs text-ink-400 leading-relaxed">
-              Lo dividiré en partes y propondré una sola extracción al final
-              con todo lo que valga la pena guardar. Sirve para capítulos,
-              entrevistas, ensayos.
+              Lo dividiré en partes y propondré una sola extracción al final con todo lo
+              que valga la pena guardar. Sirve para capítulos, entrevistas, ensayos.
             </p>
           </div>
           <button
@@ -248,9 +248,7 @@ export function ReadingMode({
               }
             />
           )}
-          {error && (
-            <p className="text-xs text-red-700 leading-relaxed">{error}</p>
-          )}
+          {error && <p className="text-xs text-red-700 leading-relaxed">{error}</p>}
         </div>
 
         <footer className="px-5 py-4 border-t border-ink-100/60 flex items-baseline justify-between gap-3">

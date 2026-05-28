@@ -19,7 +19,10 @@ function normalizeDeleteInput(input: DeleteInput): { id: string; silent: boolean
 
 const DEFAULT_ORIGIN: Origin = { kind: 'manual' }
 
-type RelationshipInput = Omit<Relationship, 'id' | 'createdAt' | 'updatedAt' | 'origin'> & {
+type RelationshipInput = Omit<
+  Relationship,
+  'id' | 'createdAt' | 'updatedAt' | 'origin'
+> & {
   origin?: Origin
 }
 
@@ -85,7 +88,8 @@ export function useAddRelationship() {
           createdAt: nowIso(),
           updatedAt: nowIso(),
         }
-        const current = queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
+        const current =
+          queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
         storage.saveRelationships([created, ...current])
         return created
       }
@@ -196,7 +200,8 @@ export function useDeleteRelationship() {
       queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
       queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
       if (offline) {
-        const current = queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
+        const current =
+          queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
         storage.saveRelationships(current)
       }
 
@@ -209,7 +214,7 @@ export function useDeleteRelationship() {
               await api.restoreRelationship(id, deletedAt)
               queryClient.invalidateQueries({ queryKey: queryKeys.relationships })
               queryClient.invalidateQueries({ queryKey: queryKeys.counts })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
+              queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
               queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
             },
           },

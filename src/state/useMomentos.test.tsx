@@ -58,9 +58,7 @@ afterEach(() => {
 
 describe('useAddMomento', () => {
   it('llama api.createMomento con los datos pasados', async () => {
-    const spy = vi
-      .spyOn(apiModule.api, 'createMomento')
-      .mockResolvedValue(FAKE_MOMENTO)
+    const spy = vi.spyOn(apiModule.api, 'createMomento').mockResolvedValue(FAKE_MOMENTO)
     const qc = makeQueryClient()
     const { result } = renderHook(() => useAddMomento(), {
       wrapper: wrapWith(qc),
@@ -116,9 +114,7 @@ describe('useUpdateMomento', () => {
   })
 
   it('propaga errores como rejected mutation', async () => {
-    vi.spyOn(apiModule.api, 'updateMomento').mockRejectedValue(
-      new Error('boom'),
-    )
+    vi.spyOn(apiModule.api, 'updateMomento').mockRejectedValue(new Error('boom'))
     const qc = makeQueryClient()
     const { result } = renderHook(() => useUpdateMomento(), {
       wrapper: wrapWith(qc),

@@ -58,7 +58,10 @@ export function ReclassifyPanel({
         className="px-4 py-3 flex items-baseline justify-between"
         style={{ borderBottom: '1px solid var(--accent-primary-ring)' }}
       >
-        <div className="flex items-baseline gap-2" style={{ color: 'var(--accent-primary)' }}>
+        <div
+          className="flex items-baseline gap-2"
+          style={{ color: 'var(--accent-primary)' }}
+        >
           <SparkleIcon size={12} />
           <h3 className="text-caption uppercase tracking-eyebrow">
             reclasificación sugerida
@@ -94,18 +97,17 @@ export function ReclassifyPanel({
                   {label(p.oldType)}
                 </span>
                 <span className="mx-1.5 text-ink-300">→</span>
-                <span className="text-micro uppercase tracking-eyebrow" style={{ color: 'var(--accent-primary)' }}>
+                <span
+                  className="text-micro uppercase tracking-eyebrow"
+                  style={{ color: 'var(--accent-primary)' }}
+                >
                   {label(p.newType)}
                 </span>
               </div>
               {p.reason && (
-                <p className="text-ink-400 text-xs leading-relaxed mt-0.5">
-                  {p.reason}
-                </p>
+                <p className="text-ink-400 text-xs leading-relaxed mt-0.5">{p.reason}</p>
               )}
-              {p.verification && (
-                <VerificationChip verification={p.verification} />
-              )}
+              {p.verification && <VerificationChip verification={p.verification} />}
             </div>
           </li>
         ))}
@@ -115,11 +117,7 @@ export function ReclassifyPanel({
         className="px-4 py-3 flex items-center justify-end gap-2"
         style={{ borderTop: '1px solid var(--accent-primary-ring)' }}
       >
-        <button
-          onClick={onClose}
-          disabled={submitting}
-          className="btn-ghost text-xs"
-        >
+        <button onClick={onClose} disabled={submitting} className="btn-ghost text-xs">
           descartar
         </button>
         <button

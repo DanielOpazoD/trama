@@ -119,7 +119,9 @@ test('a11y: EntitiesView sin violaciones', async ({ page }) => {
   await mockBackend(page, state)
   await page.goto('/')
   await page.getByRole('button', { name: /^Entidades/ }).click()
-  await page.getByRole('heading', { name: 'Entidades', level: 2 }).waitFor({ timeout: 10_000 })
+  await page
+    .getByRole('heading', { name: 'Entidades', level: 2 })
+    .waitFor({ timeout: 10_000 })
   await page.waitForTimeout(400)
 
   const results = await new AxeBuilder({ page })

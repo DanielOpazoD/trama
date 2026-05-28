@@ -42,9 +42,7 @@ export async function llmRerank(
   if (candidates.length === 0) return []
   if (candidates.length === 1) return [candidates[0].id]
 
-  const slice = options?.consider
-    ? candidates.slice(0, options.consider)
-    : candidates
+  const slice = options?.consider ? candidates.slice(0, options.consider) : candidates
 
   // Etiquetamos cada candidato con un índice numérico además del UUID, para
   // que el LLM tenga una etiqueta corta a la cual referirse. Vuelve más

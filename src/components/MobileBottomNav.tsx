@@ -1,7 +1,4 @@
-import {
-  useProactiveQuery,
-  useCountsQuery,
-} from '../state'
+import { useProactiveQuery, useCountsQuery } from '../state'
 import {
   ChatIcon,
   EntitiesIcon,
@@ -39,13 +36,13 @@ const NAV_ITEMS: Array<{
   label: string
   icon: React.ComponentType<{ size?: number; className?: string }>
 }> = [
-  { value: 'inicio',      label: 'Inicio',      icon: HomeIcon },
-  { value: 'grafo',       label: 'Grafo',       icon: GraphIcon },
-  { value: 'entidades',   label: 'Entidades',   icon: EntitiesIcon },
-  { value: 'citas',       label: 'Citas',       icon: QuoteIcon },
-  { value: 'momentos',    label: 'Momentos',    icon: MomentosIcon },
-  { value: 'escuchas',    label: 'Escuchas',    icon: MusicIcon },
-  { value: 'chat',        label: 'Chat',        icon: ChatIcon },
+  { value: 'inicio', label: 'Inicio', icon: HomeIcon },
+  { value: 'grafo', label: 'Grafo', icon: GraphIcon },
+  { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
+  { value: 'citas', label: 'Citas', icon: QuoteIcon },
+  { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
+  { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
+  { value: 'chat', label: 'Chat', icon: ChatIcon },
   { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
 ]
 
@@ -74,13 +71,15 @@ export function MobileBottomNav({
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon
           const active = view === item.value
-          const showBadge =
-            item.value === 'sugerencias' && pendingCount > 0
+          const showBadge = item.value === 'sugerencias' && pendingCount > 0
           const count =
-            item.value === 'entidades' ? totals?.entities :
-            item.value === 'citas' ? totals?.quotes :
-            item.value === 'momentos' ? totals?.momentos :
-            undefined
+            item.value === 'entidades'
+              ? totals?.entities
+              : item.value === 'citas'
+                ? totals?.quotes
+                : item.value === 'momentos'
+                  ? totals?.momentos
+                  : undefined
 
           return (
             <li key={item.value} className="flex-1 min-w-0">

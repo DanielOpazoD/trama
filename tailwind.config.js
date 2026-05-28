@@ -25,13 +25,13 @@ export default {
       // adapts without a single `dark:` class needed in components.
       colors: {
         paper: {
-          50:  'rgb(var(--paper-50) / <alpha-value>)',
+          50: 'rgb(var(--paper-50) / <alpha-value>)',
           100: 'rgb(var(--paper-100) / <alpha-value>)',
           200: 'rgb(var(--paper-200) / <alpha-value>)',
           300: 'rgb(var(--paper-300) / <alpha-value>)',
         },
         ink: {
-          50:  'rgb(var(--ink-50) / <alpha-value>)',
+          50: 'rgb(var(--ink-50) / <alpha-value>)',
           100: 'rgb(var(--ink-100) / <alpha-value>)',
           200: 'rgb(var(--ink-200) / <alpha-value>)',
           300: 'rgb(var(--ink-300) / <alpha-value>)',
@@ -55,20 +55,20 @@ export default {
       // Tailwind por default; pero el nuevo código debería usar los
       // nombres semánticos.
       fontSize: {
-        micro:   ['10px', { lineHeight: '1.4', letterSpacing: '0.02em' }],
+        micro: ['10px', { lineHeight: '1.4', letterSpacing: '0.02em' }],
         caption: ['12px', { lineHeight: '1.5' }],
-        body:    ['14px', { lineHeight: '1.55' }],
-        lead:    ['16px', { lineHeight: '1.65' }],
-        h2:      ['20px', { lineHeight: '1.3', letterSpacing: '-0.01em' }],
-        h1:      ['32px', { lineHeight: '1.15', letterSpacing: '-0.02em' }],
+        body: ['14px', { lineHeight: '1.55' }],
+        lead: ['16px', { lineHeight: '1.65' }],
+        h2: ['20px', { lineHeight: '1.3', letterSpacing: '-0.01em' }],
+        h1: ['32px', { lineHeight: '1.15', letterSpacing: '-0.02em' }],
       },
       // Tracking canónico — 4 valores semánticos. Antes había 9 (incluyendo
       // tracking-[0.18em] y tracking-wider que son casi idénticos).
       letterSpacing: {
-        tight:   '-0.02em',  // serif headings que se ven mejor compactos
-        normal:  '0',
-        eyebrow: '0.18em',   // uppercase labels, badges, breadcrumbs
-        shout:   '0.3em',    // greetings, ornaments separators
+        tight: '-0.02em', // serif headings que se ven mejor compactos
+        normal: '0',
+        eyebrow: '0.18em', // uppercase labels, badges, breadcrumbs
+        shout: '0.3em', // greetings, ornaments separators
       },
       // Animaciones nuevas (skeleton shimmer + pulse-subtle). Las otras
       // (fade-up, slide-in-right, slide-up, ai-arrive, halo-pulse,
@@ -82,11 +82,11 @@ export default {
       keyframes: {
         'pulse-subtle': {
           '0%, 100%': { opacity: '1' },
-          '50%':      { opacity: '0.55' },
+          '50%': { opacity: '0.55' },
         },
       },
       animation: {
-        'pulse-subtle':   'pulse-subtle 2s ease-in-out infinite',
+        'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
       },
       transitionTimingFunction: {
         // Curva "expo-out" estilo Apple — empieza rápido, decelera suave.

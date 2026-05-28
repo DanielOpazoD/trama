@@ -132,9 +132,7 @@ async function parseErrorResponse(
     const parsed = JSON.parse(text) as CanonicalErrorBody
     if (parsed.error && typeof parsed.error === 'object') {
       const code = (parsed.error.code as ApiErrorCode | undefined) ?? 'UNKNOWN'
-      const message =
-        parsed.error.message ??
-        `${method} ${url} → ${response.status}`
+      const message = parsed.error.message ?? `${method} ${url} → ${response.status}`
       return new ApiClientError({
         code,
         status: response.status,

@@ -27,17 +27,25 @@ import { LogsPanel } from './settings/LogsPanel'
  * a SECTIONS, branch en el switch del render.
  */
 
-type SectionId = 'health' | 'logs' | 'appearance' | 'privacy' | 'spotify' | 'ai' | 'search' | 'data'
+type SectionId =
+  | 'health'
+  | 'logs'
+  | 'appearance'
+  | 'privacy'
+  | 'spotify'
+  | 'ai'
+  | 'search'
+  | 'data'
 
 const SECTIONS: Array<{ id: SectionId; label: string; hint: string }> = [
-  { id: 'health',     label: 'Estado',        hint: 'gasto, conteos, errores' },
-  { id: 'logs',       label: 'Logs',          hint: 'historial detallado' },
-  { id: 'appearance', label: 'Apariencia',    hint: 'papel / noche' },
-  { id: 'privacy',    label: 'Privacidad',    hint: 'bloqueo por PIN' },
-  { id: 'spotify',    label: 'Spotify',       hint: 'sincronización' },
-  { id: 'ai',         label: 'IA por tarea',  hint: 'modelo por flujo' },
-  { id: 'search',     label: 'Búsqueda',      hint: 'embeddings + reindexado' },
-  { id: 'data',       label: 'Datos',         hint: 'export / import' },
+  { id: 'health', label: 'Estado', hint: 'gasto, conteos, errores' },
+  { id: 'logs', label: 'Logs', hint: 'historial detallado' },
+  { id: 'appearance', label: 'Apariencia', hint: 'papel / noche' },
+  { id: 'privacy', label: 'Privacidad', hint: 'bloqueo por PIN' },
+  { id: 'spotify', label: 'Spotify', hint: 'sincronización' },
+  { id: 'ai', label: 'IA por tarea', hint: 'modelo por flujo' },
+  { id: 'search', label: 'Búsqueda', hint: 'embeddings + reindexado' },
+  { id: 'data', label: 'Datos', hint: 'export / import' },
 ]
 
 export function Settings({
@@ -84,8 +92,12 @@ export function Settings({
       >
         <header className="px-6 py-4 border-b border-ink-100/60 flex items-baseline justify-between shrink-0">
           <div>
-            <p className="text-micro uppercase tracking-eyebrow text-ink-300 mb-1">ajustes</p>
-            <h2 className="font-serif text-2xl text-ink-700 leading-none">Configuración</h2>
+            <p className="text-micro uppercase tracking-eyebrow text-ink-300 mb-1">
+              ajustes
+            </p>
+            <h2 className="font-serif text-2xl text-ink-700 leading-none">
+              Configuración
+            </h2>
           </div>
           <button
             onClick={onClose}

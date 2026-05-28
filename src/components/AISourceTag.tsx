@@ -81,9 +81,7 @@ export function AISourceTag({
       <div className="text-micro tracking-eyebrow uppercase text-paper-200/80 mb-0.5">
         respondió
       </div>
-      <div className="font-mono text-caption text-paper-50 break-all">
-        {model ?? '—'}
-      </div>
+      <div className="font-mono text-caption text-paper-50 break-all">{model ?? '—'}</div>
       {providerLabel && (
         <div className="text-micro text-paper-200/80 mt-0.5">{providerLabel}</div>
       )}

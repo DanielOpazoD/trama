@@ -29,7 +29,13 @@ export function useGenerateProactive() {
 export function useResolveProactive() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: 'applied' | 'dismissed' }) => {
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: string
+      status: 'applied' | 'dismissed'
+    }) => {
       await api.resolveProactiveSuggestion(id, status)
       return { id, status }
     },

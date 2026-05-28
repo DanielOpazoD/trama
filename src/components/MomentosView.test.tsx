@@ -61,9 +61,7 @@ describe('<MomentosView />', () => {
   it('shows the editorial empty message when no momentos exist', async () => {
     renderWithProviders(<MomentosView />)
     await waitFor(() => {
-      expect(
-        screen.getByText(/Todavía no hay momentos/i),
-      ).toBeInTheDocument()
+      expect(screen.getByText(/Todavía no hay momentos/i)).toBeInTheDocument()
     })
   })
 })

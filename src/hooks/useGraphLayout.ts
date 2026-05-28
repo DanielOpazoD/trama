@@ -4,12 +4,7 @@ import { byDegreeLayout } from './layouts/byDegree'
 import { byTypeLayout } from './layouts/byType'
 import { byYearLayout } from './layouts/byYear'
 import { organicLayout } from './layouts/organic'
-import type {
-  LayoutEdge,
-  LayoutMode,
-  LayoutNode,
-  Position,
-} from './layouts/types'
+import type { LayoutEdge, LayoutMode, LayoutNode, Position } from './layouts/types'
 
 type Options = {
   mode: LayoutMode

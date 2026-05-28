@@ -22,20 +22,16 @@ export function QuotesList({ entity }: { entity: Entity }) {
       {/* θ1: header editorial en small-caps serif. Count + label como
           epígrafe de capítulo. */}
       <h3 className="section-eyebrow-serif mb-3">
-        {entityQuotes.length === 1 ? 'Cita / nota' : `${entityQuotes.length} citas / notas`}
+        {entityQuotes.length === 1
+          ? 'Cita / nota'
+          : `${entityQuotes.length} citas / notas`}
       </h3>
       <ul className="space-y-5">
         {entityQuotes.map((quote) => {
           const linkedQuotes = quote.linkedQuoteIds
             .map((id) => quotes.find((q) => q.id === id))
             .filter((q): q is NonNullable<typeof q> => q !== undefined)
-          return (
-            <QuoteCard
-              key={quote.id}
-              quote={quote}
-              linkedQuotes={linkedQuotes}
-            />
-          )
+          return <QuoteCard key={quote.id} quote={quote} linkedQuotes={linkedQuotes} />
         })}
       </ul>
     </section>

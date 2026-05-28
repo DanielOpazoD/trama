@@ -94,7 +94,9 @@ for (const p of passes) {
   console.log(`  ${p.file.padEnd(20)} ${String(p.gzKb).padStart(4)} KB${tag}`)
 }
 for (const f of failures) {
-  console.log(`  ${f.file.padEnd(20)} ${String(f.gzKb).padStart(4)} KB   ❌ EXCEDE budget ${f.budget} KB`)
+  console.log(
+    `  ${f.file.padEnd(20)} ${String(f.gzKb).padStart(4)} KB   ❌ EXCEDE budget ${f.budget} KB`,
+  )
 }
 console.log('─'.repeat(50))
 

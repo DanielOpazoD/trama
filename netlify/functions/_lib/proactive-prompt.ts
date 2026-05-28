@@ -88,7 +88,10 @@ ${relsBlock}
 ${
   dismissed.length > 0
     ? `Sugerencias que el usuario YA DESCARTÓ — NO las vuelvas a proponer:
-${dismissed.slice(0, 60).map((d) => `- (${d.kind}) ${d.summary}`).join('\n')}`
+${dismissed
+  .slice(0, 60)
+  .map((d) => `- (${d.kind}) ${d.summary}`)
+  .join('\n')}`
     : ''
 }
 

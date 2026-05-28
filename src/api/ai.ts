@@ -54,7 +54,10 @@ export const aiApi = {
     })
   },
 
-  async extractFromImage(imageBase64: string, mimeType: string): Promise<ExtractionProposal> {
+  async extractFromImage(
+    imageBase64: string,
+    mimeType: string,
+  ): Promise<ExtractionProposal> {
     return request<ExtractionProposal>('/api/extract-from-image', {
       method: 'POST',
       body: JSON.stringify({ imageBase64, mimeType }),
@@ -106,10 +109,16 @@ export const aiApi = {
   ): Promise<ProactiveSuggestion[]> {
     return request<ProactiveSuggestion[]>(`/api/proactive-suggestions?status=${status}`)
   },
-  async generateProactiveSuggestions(): Promise<{ inserted: number; suggestions: ProactiveSuggestion[] }> {
+  async generateProactiveSuggestions(): Promise<{
+    inserted: number
+    suggestions: ProactiveSuggestion[]
+  }> {
     return request('/api/proactive-suggestions', { method: 'POST', body: '{}' })
   },
-  async resolveProactiveSuggestion(id: string, status: 'applied' | 'dismissed'): Promise<void> {
+  async resolveProactiveSuggestion(
+    id: string,
+    status: 'applied' | 'dismissed',
+  ): Promise<void> {
     await request<void>(`/api/proactive-suggestions/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),

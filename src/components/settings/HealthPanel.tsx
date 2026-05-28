@@ -37,9 +37,7 @@ export function HealthPanel() {
           hint="Gasto IA del mes, conteos, errores recientes."
         />
         <div className="space-y-2">
-          <p className="text-xs text-red-700">
-            No se pudo cargar el estado del sistema.
-          </p>
+          <p className="text-xs text-red-700">No se pudo cargar el estado del sistema.</p>
           <button
             onClick={() => refetch()}
             className="text-xs px-3 py-1.5 border border-ink-100/60 rounded-md hover:bg-ink-50 transition-all"
@@ -142,8 +140,8 @@ export function HealthPanel() {
           <span className="text-ink-300">USD {remainingEur} restantes</span>
         </div>
         <p className="text-micro text-ink-300 tabular-nums">
-          {data.month.calls} llamadas · {data.month.tokensIn.toLocaleString('es')} tokens in ·{' '}
-          {data.month.tokensOut.toLocaleString('es')} tokens out
+          {data.month.calls} llamadas · {data.month.tokensIn.toLocaleString('es')} tokens
+          in · {data.month.tokensOut.toLocaleString('es')} tokens out
         </p>
       </div>
 
@@ -167,9 +165,7 @@ export function HealthPanel() {
             ariaLabel="Consumo de IA por día, últimos 30 días"
           />
           <div className="flex items-baseline justify-between text-micro text-ink-400 tabular-nums">
-            <span>
-              hace 30d
-            </span>
+            <span>hace 30d</span>
             <span>hoy</span>
           </div>
         </div>
@@ -227,7 +223,9 @@ export function HealthPanel() {
                   <span className="font-medium">
                     {g.functionName}
                     {g.statusCode && (
-                      <span className="ml-1.5 text-micro opacity-80">[{g.statusCode}]</span>
+                      <span className="ml-1.5 text-micro opacity-80">
+                        [{g.statusCode}]
+                      </span>
                     )}
                     {/* ρ-micro: cuando el mismo error repite N veces,
                         mostramos "N×" en vez de N filas idénticas. La
@@ -301,9 +299,7 @@ function dedupErrors(
       })
     }
   }
-  return Array.from(groups.values()).sort((a, b) =>
-    a.latestAt < b.latestAt ? 1 : -1,
-  )
+  return Array.from(groups.values()).sort((a, b) => (a.latestAt < b.latestAt ? 1 : -1))
 }
 
 function CountTile({ label, value }: { label: string; value: number }) {

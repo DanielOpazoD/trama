@@ -109,8 +109,8 @@ export function MusicPaletteCard() {
               tu paleta musical
             </p>
             <p className="text-sm text-ink-500 italic leading-relaxed">
-              La IA puede mirar tus me-gusta y top artistas y describirte el
-              tono de lo que escuchas — géneros, décadas, afinidades.
+              La IA puede mirar tus me-gusta y top artistas y describirte el tono de lo
+              que escuchas — géneros, décadas, afinidades.
             </p>
           </div>
           <button
@@ -147,7 +147,11 @@ export function MusicPaletteCard() {
             style={{ color: 'var(--accent-gold)' }}
           >
             <span>tu paleta musical</span>
-            <AISourceTag provider={data.provider} model={data.model} at={cached.generatedAt} />
+            <AISourceTag
+              provider={data.provider}
+              model={data.model}
+              at={cached.generatedAt}
+            />
           </p>
           <p className="text-caption text-ink-300 italic">
             Retrato compuesto el {generatedLabel}
@@ -230,9 +234,7 @@ export function MusicPaletteCard() {
             <ul className="space-y-1">
               {data.decades.map((d) => (
                 <li key={d.decade} className="flex items-center gap-2 text-caption">
-                  <span className="font-mono text-ink-500 w-12 shrink-0">
-                    {d.decade}
-                  </span>
+                  <span className="font-mono text-ink-500 w-12 shrink-0">{d.decade}</span>
                   <span
                     className="h-1.5 rounded-full bg-sky-700/40"
                     style={{
@@ -240,9 +242,7 @@ export function MusicPaletteCard() {
                       minWidth: '8px',
                     }}
                   />
-                  <span className="font-mono text-ink-400 tabular-nums">
-                    {d.count}
-                  </span>
+                  <span className="font-mono text-ink-400 tabular-nums">{d.count}</span>
                 </li>
               ))}
             </ul>
@@ -264,7 +264,10 @@ export function MusicPaletteCard() {
           <span>
             {data.savedCount > 0 && '· '}top artistas:{' '}
             <span className="text-ink-600">
-              {data.topArtists.slice(0, 5).map((a) => a.name).join(' · ')}
+              {data.topArtists
+                .slice(0, 5)
+                .map((a) => a.name)
+                .join(' · ')}
             </span>
           </span>
         )}

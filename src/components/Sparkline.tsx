@@ -40,9 +40,7 @@ export function Sparkline({
   const points = data.map((v, i) => {
     const x = i * stepX
     const y =
-      range === 0
-        ? height / 2
-        : padY + (height - padY * 2) * (1 - (v - minVal) / range)
+      range === 0 ? height / 2 : padY + (height - padY * 2) * (1 - (v - minVal) / range)
     return { x, y }
   })
 

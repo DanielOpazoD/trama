@@ -118,7 +118,13 @@ export const ApiErrors = {
     apiError({ status: 413, code: 'PAYLOAD_TOO_LARGE', message, requestId, details }),
 
   unsupportedMediaType: (requestId: string, message: string, details?: unknown) =>
-    apiError({ status: 415, code: 'UNSUPPORTED_MEDIA_TYPE', message, requestId, details }),
+    apiError({
+      status: 415,
+      code: 'UNSUPPORTED_MEDIA_TYPE',
+      message,
+      requestId,
+      details,
+    }),
 
   upstream: (requestId: string, message: string, details?: unknown) =>
     apiError({ status: 502, code: 'UPSTREAM', message, requestId, details }),

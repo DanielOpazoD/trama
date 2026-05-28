@@ -36,12 +36,13 @@ Trama agregó Netlify Blobs en ξ3 como capa de blob storage para fotos. Antes d
 
 ```ts
 import { getStore } from '@netlify/blobs'
-const store = getStore('momentos-media')  // store name = namespace
+const store = getStore('momentos-media') // store name = namespace
 await store.set(key, arrayBuffer, { metadata: { mime: '...' } })
 const blob = await store.getWithMetadata(key, { type: 'arrayBuffer' })
 ```
 
 **Convenciones:**
+
 - Una store por dominio (`momentos-media` hoy; si surge otro caso, store nueva).
 - Keys son hash random hex + extension (`abc123…def.jpg`). Inmutables.
 - Mime y tamaño en `metadata`. Strip EXIF NO se hace (defer hasta que importe — el endpoint que sirve no expone metadata extra).

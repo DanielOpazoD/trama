@@ -14,7 +14,10 @@ export function clearLLMCache(): void {
   cache.clear()
 }
 
-export async function hashMessages(messages: LLMMessage[], provider: string): Promise<string> {
+export async function hashMessages(
+  messages: LLMMessage[],
+  provider: string,
+): Promise<string> {
   const json = JSON.stringify({ provider, messages })
   const buf = new TextEncoder().encode(json)
   const digest = await crypto.subtle.digest('SHA-256', buf)

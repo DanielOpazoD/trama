@@ -54,10 +54,7 @@ export function AlbumGrid({
   entitiesById: Map<string, Entity>
   onDelete: (id: string) => void
 }) {
-  const photoItems = useMemo(
-    () => items.filter((m) => m.kind === 'foto'),
-    [items],
-  )
+  const photoItems = useMemo(() => items.filter((m) => m.kind === 'foto'), [items])
 
   const [size, setSize] = useState<TileSize>(() =>
     readPersisted<TileSize>(SIZE_STORAGE_KEY, 'medium', ['small', 'medium', 'large']),
@@ -79,9 +76,7 @@ export function AlbumGrid({
   // cada grupo es un AÑO, y dentro sub-agrupamos por mes — el ojo
   // recorre años primero, mes secundario.
   const monthlyGroups = useMemo(() => groupByMonth(photoItems), [photoItems])
-  const yearlyGroups = useMemo(() => groupByYearThenMonth(photoItems), [
-    photoItems,
-  ])
+  const yearlyGroups = useMemo(() => groupByYearThenMonth(photoItems), [photoItems])
 
   if (photoItems.length === 0) {
     return (
@@ -124,10 +119,7 @@ export function AlbumGrid({
         <div className="space-y-10">
           {monthlyGroups.map(({ monthKey, entries }) => (
             <section key={monthKey} className="animate-fade-up">
-              <GroupHeader
-                title={formatMonthLabel(monthKey)}
-                count={entries.length}
-              />
+              <GroupHeader title={formatMonthLabel(monthKey)} count={entries.length} />
               <ul className={SIZE_GRID_CLASS[size]}>
                 {entries.map((p) => (
                   <AlbumTile
@@ -195,10 +187,7 @@ export function AlbumGrid({
 function GroupHeader({ title, count }: { title: string; count: number }) {
   return (
     <div className="mb-3 flex items-baseline gap-3">
-      <h3
-        className="section-eyebrow-serif"
-        style={{ color: 'var(--accent-gold)' }}
-      >
+      <h3 className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
         {title}
       </h3>
       <span className="flex-1 h-px bg-ink-100/40" />
@@ -222,9 +211,7 @@ function SegmentedToggle({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-micro uppercase tracking-eyebrow text-ink-300">
-        {label}
-      </span>
+      <span className="text-micro uppercase tracking-eyebrow text-ink-300">{label}</span>
       <div
         className="flex gap-0.5 p-0.5 bg-paper-100/60 rounded-md border border-ink-100/50"
         role="tablist"
@@ -267,9 +254,7 @@ function AlbumTile({
 }) {
   const { items, caption } = momento.payload
   const storageKey =
-    items && items.length > 0
-      ? items[0]!.storageKey
-      : momento.payload.storageKey
+    items && items.length > 0 ? items[0]!.storageKey : momento.payload.storageKey
   const extraCount = items && items.length > 1 ? items.length - 1 : 0
   const linkedEntities = momento.entityIds
     .map((id) => entitiesById.get(id))
@@ -339,9 +324,7 @@ function AlbumTile({
  * Devuelve estructura anidada para que el render pueda mostrar
  * "2026 · 36 fotos" como header de sección con sub-meses adentro.
  */
-function groupByYearThenMonth(
-  items: Momento[],
-): Array<{
+function groupByYearThenMonth(items: Momento[]): Array<{
   year: string
   months: Array<{ monthKey: string; entries: Momento[] }>
 }> {

@@ -3,6 +3,7 @@
 ## Schemas compartidos (Zod, FF2)
 
 Las shapes que cruzan cliente↔servidor viven en `src/schemas/`:
+
 - `src/schemas/momento.ts` — payload por kind + `validateMomentoPayload(kind, payload)`
 - `src/schemas/proposal.ts` — propuestas IA (ProposedEntity, ProposedQuote, etc.)
 

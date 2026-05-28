@@ -106,7 +106,8 @@ export function EntityForm({
   async function handleMergeIntoExisting(target: { id: string; name: string }) {
     const newDescription = description.trim()
     const newYear = year ? Number(year) : null
-    const hasNewData = newDescription.length > 0 || (newYear !== null && !Number.isNaN(newYear))
+    const hasNewData =
+      newDescription.length > 0 || (newYear !== null && !Number.isNaN(newYear))
     if (!hasNewData) {
       onSelectEntity?.(target.id)
       setDupCandidates(null)
@@ -123,7 +124,9 @@ export function EntityForm({
         id: target.id,
         patch: {
           description: composedDescription,
-          year: existing?.year ?? (newYear !== null && !Number.isNaN(newYear) ? newYear : null),
+          year:
+            existing?.year ??
+            (newYear !== null && !Number.isNaN(newYear) ? newYear : null),
         },
       })
       toast.show({
@@ -198,9 +201,7 @@ export function EntityForm({
           className="text-caption text-ink-400 leading-relaxed -mt-1"
           role="status"
         >
-          <span className="italic">
-            ya escribiste sobre algo parecido:
-          </span>{' '}
+          <span className="italic">ya escribiste sobre algo parecido:</span>{' '}
           {proactiveMatches.map((m, i) => (
             <span key={m.id}>
               <button
@@ -254,13 +255,12 @@ export function EntityForm({
             ¿es la misma entidad?
           </p>
           <p className="text-xs text-ink-500 mb-2 leading-relaxed">
-            Ya tienes una entidad muy parecida. Si es la misma, mejor
-            quédate con la existente:
+            Ya tienes una entidad muy parecida. Si es la misma, mejor quédate con la
+            existente:
           </p>
           <ul className="space-y-1 mb-2">
             {dupCandidates.map((c) => {
-              const hasNewData =
-                description.trim().length > 0 || year.trim().length > 0
+              const hasNewData = description.trim().length > 0 || year.trim().length > 0
               return (
                 <li key={c.id} className="flex items-baseline gap-2">
                   <button
@@ -288,9 +288,7 @@ export function EntityForm({
                   {hasNewData && (
                     <button
                       type="button"
-                      onClick={() =>
-                        handleMergeIntoExisting({ id: c.id, name: c.name })
-                      }
+                      onClick={() => handleMergeIntoExisting({ id: c.id, name: c.name })}
                       disabled={updateEntity.isPending}
                       className="text-micro uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 transition-colors disabled:opacity-60 shrink-0"
                       title="Fusionar tu descripción/año en la entidad existente"

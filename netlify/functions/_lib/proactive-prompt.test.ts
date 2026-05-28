@@ -27,7 +27,13 @@ describe('buildProactivePrompt', () => {
       { kind: 'reclassification', summary: 'Soda Stereo: musico → banda' },
       { kind: 'description', summary: 'descripción para "Cortázar"' },
     ]
-    const [system] = buildProactivePrompt(entities, rels, entityTypes, relTypes, dismissed)
+    const [system] = buildProactivePrompt(
+      entities,
+      rels,
+      entityTypes,
+      relTypes,
+      dismissed,
+    )
     expect(system.content).toMatch(/YA DESCARTÓ/)
     expect(system.content).toMatch(/Borges → cita_a → Bioy/)
     expect(system.content).toMatch(/Soda Stereo: musico → banda/)
@@ -39,7 +45,13 @@ describe('buildProactivePrompt', () => {
       kind: 'relationship',
       summary: `sug-${i}`,
     }))
-    const [system] = buildProactivePrompt(entities, rels, entityTypes, relTypes, dismissed)
+    const [system] = buildProactivePrompt(
+      entities,
+      rels,
+      entityTypes,
+      relTypes,
+      dismissed,
+    )
     const content = String(system.content)
     expect(content).toMatch(/sug-0\b/)
     expect(content).toMatch(/sug-59\b/)

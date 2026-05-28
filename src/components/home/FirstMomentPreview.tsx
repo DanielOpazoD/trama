@@ -25,10 +25,7 @@ export function FirstMomentPreview() {
     >
       {/* Etiqueta "ejemplo" — chip serif italic arriba a la derecha. */}
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <p
-          className="section-eyebrow-serif"
-          style={{ color: 'var(--accent-gold)' }}
-        >
+        <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
           así se verá tu primera cita
         </p>
         <span
@@ -58,15 +55,16 @@ export function FirstMomentPreview() {
           >
             E
           </span>
-          l tiempo es la sustancia de que estoy hecho. El tiempo es un río
-          que me arrebata, pero yo soy el río.
+          l tiempo es la sustancia de que estoy hecho. El tiempo es un río que me
+          arrebata, pero yo soy el río.
         </blockquote>
         <div className="mt-3 flex justify-between items-baseline gap-4 text-sm">
           <span className="text-ink-500">— Jorge Luis Borges</span>
           <span
             className="inline-flex items-center px-2 py-0.5 rounded-full text-micro tracking-eyebrow"
             style={{
-              backgroundColor: 'color-mix(in srgb, var(--type-escritor) 11%, transparent)',
+              backgroundColor:
+                'color-mix(in srgb, var(--type-escritor) 11%, transparent)',
               color: 'var(--type-escritor)',
             }}
           >

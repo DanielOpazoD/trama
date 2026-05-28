@@ -9,11 +9,11 @@
 
 ## Verificación rápida
 
-| Qué | Dónde |
-|---|---|
+| Qué                               | Dónde                                       |
+| --------------------------------- | ------------------------------------------- |
 | ¿Está corriendo el deploy actual? | https://app.netlify.com/sites/trama/deploys |
-| ¿El sitio responde? | tu URL de Trama |
-| ¿Hay errores recientes? | Settings → Health (en la app) |
+| ¿El sitio responde?               | tu URL de Trama                             |
+| ¿Hay errores recientes?           | Settings → Health (en la app)               |
 
 ## Cómo deploya Trama
 

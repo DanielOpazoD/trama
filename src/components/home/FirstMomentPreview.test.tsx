@@ -10,18 +10,14 @@ describe('<FirstMomentPreview />', () => {
     // que el bloque entero contiene la frase usando textContent del
     // blockquote.
     const blockquote = document.querySelector('blockquote')!
-    expect(blockquote.textContent).toMatch(
-      /El tiempo es la sustancia de que estoy hecho/,
-    )
+    expect(blockquote.textContent).toMatch(/El tiempo es la sustancia de que estoy hecho/)
     expect(screen.getByText(/Jorge Luis Borges/)).toBeInTheDocument()
   })
 
   it('marks the preview as "ejemplo" + has accent eyebrow', () => {
     render(<FirstMomentPreview />)
     expect(screen.getByText('ejemplo')).toBeInTheDocument()
-    expect(
-      screen.getByText(/así se verá tu primera cita/i),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/así se verá tu primera cita/i)).toBeInTheDocument()
   })
 
   it('has an aria-label so screen readers understand its role', () => {
@@ -32,8 +28,6 @@ describe('<FirstMomentPreview />', () => {
 
   it('shows the "empieza pegando algo abajo ↓" hint on desktop', () => {
     render(<FirstMomentPreview />)
-    expect(
-      screen.getByText(/empieza pegando algo abajo/i),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/empieza pegando algo abajo/i)).toBeInTheDocument()
   })
 })

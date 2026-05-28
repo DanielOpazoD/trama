@@ -38,7 +38,9 @@ export type CrossVerifyInput<T> = {
  * Generic cross-verification. The describe() function turns each item into a
  * single-line description ready to drop into a numbered list — keep it short.
  */
-export async function crossVerify<T>(input: CrossVerifyInput<T>): Promise<VerificationResult> {
+export async function crossVerify<T>(
+  input: CrossVerifyInput<T>,
+): Promise<VerificationResult> {
   if (input.items.length === 0) {
     return { verdictsByIndex: new Map(), usage: null }
   }

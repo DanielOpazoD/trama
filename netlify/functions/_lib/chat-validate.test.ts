@@ -53,7 +53,12 @@ describe('hasAnyProposal', () => {
 
   it('is false when all arrays are empty', () => {
     expect(
-      hasAnyProposal({ entities: [], relationships: [], quotes: [], reclassifications: [] }),
+      hasAnyProposal({
+        entities: [],
+        relationships: [],
+        quotes: [],
+        reclassifications: [],
+      }),
     ).toBe(false)
   })
 
@@ -61,7 +66,9 @@ describe('hasAnyProposal', () => {
     expect(hasAnyProposal({ entities: [{ name: 'X' }] })).toBe(true)
     expect(hasAnyProposal({ relationships: [{ fromName: 'a', toName: 'b' }] })).toBe(true)
     expect(hasAnyProposal({ quotes: [{ entityName: 'x', text: 'y' }] })).toBe(true)
-    expect(hasAnyProposal({ reclassifications: [{ name: 'x', newType: 'y' }] })).toBe(true)
+    expect(hasAnyProposal({ reclassifications: [{ name: 'x', newType: 'y' }] })).toBe(
+      true,
+    )
   })
 
   it('ignores non-array values in those keys', () => {

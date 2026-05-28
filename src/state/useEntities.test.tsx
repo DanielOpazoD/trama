@@ -15,11 +15,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OfflineContext } from './offline'
 import { ToastProvider } from './toast'
 import { queryKeys } from './queryClient'
-import {
-  useAddEntity,
-  useUpdateEntity,
-  useDeleteEntity,
-} from './useEntities'
+import { useAddEntity, useUpdateEntity, useDeleteEntity } from './useEntities'
 import * as apiModule from '../api'
 import type { Entity, Relationship, Quote } from '../types'
 
@@ -94,9 +90,7 @@ describe('useAddEntity — optimistic', () => {
 
   it('rollback al snapshot anterior si el server rechaza', async () => {
     const previous: Entity[] = [REAL_ENTITY]
-    vi.spyOn(apiModule.api, 'createEntity').mockRejectedValue(
-      new Error('Server 500'),
-    )
+    vi.spyOn(apiModule.api, 'createEntity').mockRejectedValue(new Error('Server 500'))
 
     const qc = makeQueryClient()
     qc.setQueryData<Entity[]>(queryKeys.entities, previous)
@@ -165,8 +159,18 @@ describe('useDeleteEntity — cascade', () => {
     const qc = makeQueryClient()
     qc.setQueryData<Entity[]>(queryKeys.entities, [REAL_ENTITY])
     qc.setQueryData<Relationship[]>(queryKeys.relationships, [
-      { id: 'r1', fromId: 'ent-real', toId: 'ent-other', type: 'asociado_con' } as Relationship,
-      { id: 'r2', fromId: 'ent-other', toId: 'ent-foo', type: 'asociado_con' } as Relationship,
+      {
+        id: 'r1',
+        fromId: 'ent-real',
+        toId: 'ent-other',
+        type: 'asociado_con',
+      } as Relationship,
+      {
+        id: 'r2',
+        fromId: 'ent-other',
+        toId: 'ent-foo',
+        type: 'asociado_con',
+      } as Relationship,
     ])
     qc.setQueryData<Quote[]>(queryKeys.quotes, [
       { id: 'q1', entityId: 'ent-real', text: 'cita 1' } as Quote,

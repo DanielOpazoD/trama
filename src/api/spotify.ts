@@ -121,7 +121,11 @@ export const spotifyApi = {
   async spotifyStatus(): Promise<SpotifyStatus> {
     return request<SpotifyStatus>('/api/spotify/status')
   },
-  async spotifySync(): Promise<{ fetched: number; inserted: number; mostRecentPlay: string | null }> {
+  async spotifySync(): Promise<{
+    fetched: number
+    inserted: number
+    mostRecentPlay: string | null
+  }> {
     return request('/api/spotify/sync', { method: 'POST' })
   },
   async spotifyDisconnect(): Promise<void> {
@@ -141,10 +145,10 @@ export const spotifyApi = {
       musical (top artists + géneros). Excluye los que ya tenés en tu
       trama o son tus top. */
   async spotifySuggestArtists(): Promise<SpotifyArtistSuggestionsResponse> {
-    return request<SpotifyArtistSuggestionsResponse>(
-      '/api/spotify/suggest-artists',
-      { method: 'POST', body: '{}' },
-    )
+    return request<SpotifyArtistSuggestionsResponse>('/api/spotify/suggest-artists', {
+      method: 'POST',
+      body: '{}',
+    })
   },
   /** π4: timestamps crudos para construir heatmap hora/día y trend
       diario en TZ LOCAL del cliente. */
@@ -152,9 +156,7 @@ export const spotifyApi = {
     const params = new URLSearchParams()
     if (since) params.set('since', since)
     const q = params.toString()
-    return request<SpotifyTimingResponse>(
-      `/api/spotify/timing${q ? `?${q}` : ''}`,
-    )
+    return request<SpotifyTimingResponse>(`/api/spotify/timing${q ? `?${q}` : ''}`)
   },
   /** κ-spotify: snapshot agregado de la paleta musical (top géneros, décadas,
       saved count, párrafo IA). El servidor lo devuelve fresco; el cliente lo

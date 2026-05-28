@@ -43,7 +43,8 @@ export function ProactiveView() {
       if (s.kind === 'relationship') {
         const fromId = lookupEntityId(s.payload.fromName ?? '')
         const toId = lookupEntityId(s.payload.toName ?? '')
-        if (!fromId || !toId || !s.payload.type) throw new Error('entidades no encontradas')
+        if (!fromId || !toId || !s.payload.type)
+          throw new Error('entidades no encontradas')
         await addRelationship.mutateAsync({
           fromId,
           toId,
@@ -52,13 +53,15 @@ export function ProactiveView() {
           origin: { kind: 'ai' },
         })
       } else if (s.kind === 'reclassification') {
-        if (!s.payload.entityId || !s.payload.newType) throw new Error('payload incompleto')
+        if (!s.payload.entityId || !s.payload.newType)
+          throw new Error('payload incompleto')
         await updateEntityType.mutateAsync({
           id: s.payload.entityId,
           type: s.payload.newType,
         })
       } else if (s.kind === 'description') {
-        if (!s.payload.entityId || !s.payload.description) throw new Error('payload incompleto')
+        if (!s.payload.entityId || !s.payload.description)
+          throw new Error('payload incompleto')
         await updateEntity.mutateAsync({
           id: s.payload.entityId,
           patch: { description: s.payload.description },
@@ -96,7 +99,13 @@ export function ProactiveView() {
           >
             {generate.isPending ? (
               <>
-                <span className="size-3 border-2 rounded-full animate-spin" style={{ borderColor: `var(--accent-primary-ring)`, borderTopColor: `var(--accent-primary)` }} />
+                <span
+                  className="size-3 border-2 rounded-full animate-spin"
+                  style={{
+                    borderColor: `var(--accent-primary-ring)`,
+                    borderTopColor: `var(--accent-primary)`,
+                  }}
+                />
                 pensando…
               </>
             ) : (
@@ -127,77 +136,73 @@ export function ProactiveView() {
           title="Nada pendiente. La trama por ahora se ve serena."
           body={
             <>
-              Cuando pulses <em>pedir ronda</em>, la IA revisa lo que has
-              guardado y deja aquí relaciones nuevas, tipos que podrían
-              afinarse, descripciones que faltan.
+              Cuando pulses <em>pedir ronda</em>, la IA revisa lo que has guardado y deja
+              aquí relaciones nuevas, tipos que podrían afinarse, descripciones que
+              faltan.
             </>
           }
         />
       ) : (
         <>
-        <ul className="space-y-3">
-          {suggestions.map((s, idx) => (
-            <li
-              key={s.id}
-              className="group p-4 bg-paper-50/50 border border-ink-100/60 rounded-xl animate-fade-up"
-              style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
-            >
-              <div className="flex items-baseline gap-2 mb-1.5">
-                <SparkleIcon size={10} className="text-sky-700/70" />
-                <span className="text-micro uppercase tracking-eyebrow text-sky-700/80">
-                  {kindLabel(s.kind)}
-                </span>
-                {/* κ-info: provider antes era texto plano "· deepseek". Ahora
+          <ul className="space-y-3">
+            {suggestions.map((s, idx) => (
+              <li
+                key={s.id}
+                className="group p-4 bg-paper-50/50 border border-ink-100/60 rounded-xl animate-fade-up"
+                style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
+              >
+                <div className="flex items-baseline gap-2 mb-1.5">
+                  <SparkleIcon size={10} className="text-sky-700/70" />
+                  <span className="text-micro uppercase tracking-eyebrow text-sky-700/80">
+                    {kindLabel(s.kind)}
+                  </span>
+                  {/* κ-info: provider antes era texto plano "· deepseek". Ahora
                     se condensa en el icono "i" con tooltip rico (provider +
                     modelo + timestamp). Más limpio, mismo contenido. */}
-                <AISourceTag
-                  provider={s.provider}
-                  model={s.model}
-                  at={s.createdAt}
-                />
-                <span
-                  className="ml-auto text-micro uppercase tracking-eyebrow text-ink-300 tabular-nums"
-                  title={new Date(s.createdAt).toLocaleString('es')}
-                >
-                  {new Date(s.createdAt).toLocaleDateString('es', {
-                    day: 'numeric',
-                    month: 'short',
-                  })}
-                </span>
-              </div>
+                  <AISourceTag provider={s.provider} model={s.model} at={s.createdAt} />
+                  <span
+                    className="ml-auto text-micro uppercase tracking-eyebrow text-ink-300 tabular-nums"
+                    title={new Date(s.createdAt).toLocaleString('es')}
+                  >
+                    {new Date(s.createdAt).toLocaleDateString('es', {
+                      day: 'numeric',
+                      month: 'short',
+                    })}
+                  </span>
+                </div>
 
-              <SuggestionBody suggestion={s} />
+                <SuggestionBody suggestion={s} />
 
-              {s.payload.reason && (
-                <p className="mt-2 text-xs text-ink-400 leading-relaxed italic">
-                  {s.payload.reason}
-                </p>
-              )}
+                {s.payload.reason && (
+                  <p className="mt-2 text-xs text-ink-400 leading-relaxed italic">
+                    {s.payload.reason}
+                  </p>
+                )}
 
-              <div className="mt-3 flex items-center justify-end gap-2">
-                <button
-                  onClick={() => handleDismiss(s)}
-                  disabled={resolve.isPending}
-                  className="btn-ghost text-xs"
-                >
-                  descartar
-                </button>
-                <button
-                  onClick={() => handleAccept(s)}
-                  disabled={resolve.isPending}
-                  className="btn-accent text-xs"
-                >
-                  aceptar
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-        {suggestions.length >= 3 && (
-          <div className="flex justify-center mt-8 mb-2 text-ink-300">
-            <EndMark size={14} />
-          </div>
-        )}
+                <div className="mt-3 flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => handleDismiss(s)}
+                    disabled={resolve.isPending}
+                    className="btn-ghost text-xs"
+                  >
+                    descartar
+                  </button>
+                  <button
+                    onClick={() => handleAccept(s)}
+                    disabled={resolve.isPending}
+                    className="btn-accent text-xs"
+                  >
+                    aceptar
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {suggestions.length >= 3 && (
+            <div className="flex justify-center mt-8 mb-2 text-ink-300">
+              <EndMark size={14} />
+            </div>
+          )}
         </>
       )}
     </>

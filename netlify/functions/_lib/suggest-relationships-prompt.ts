@@ -41,9 +41,7 @@ export function buildSuggestRelationshipsPrompt(
       const desc = e.description ? `\n  ${e.description}` : ''
       const qs = (e.quotes ?? []).slice(0, 5)
       const quotes =
-        qs.length === 0
-          ? ''
-          : '\n  Citas:\n' + qs.map((q) => `   - «${q}»`).join('\n')
+        qs.length === 0 ? '' : '\n  Citas:\n' + qs.map((q) => `   - «${q}»`).join('\n')
       return `${head}${desc}${quotes}`
     })
     .join('\n')
@@ -51,17 +49,13 @@ export function buildSuggestRelationshipsPrompt(
   const existingBlock =
     existing.length === 0
       ? '(ninguna aún)'
-      : existing
-          .map((r) => `- ${r.fromName} → ${r.type} → ${r.toName}`)
-          .join('\n')
+      : existing.map((r) => `- ${r.fromName} → ${r.type} → ${r.toName}`).join('\n')
 
   const avoidBlock =
     avoidPrevious.length === 0
       ? ''
       : '\n\nDESCARTADAS por el usuario en intentos anteriores — NO las propongas de nuevo (busca relaciones genuinamente distintas):\n' +
-        avoidPrevious
-          .map((r) => `- ${r.fromName} → ${r.type} → ${r.toName}`)
-          .join('\n')
+        avoidPrevious.map((r) => `- ${r.fromName} → ${r.type} → ${r.toName}`).join('\n')
 
   const system = `Eres un asistente que enriquece la "Trama" del usuario: un mapa cognitivo personal de afinidades intelectuales y estéticas.
 

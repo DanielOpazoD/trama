@@ -30,12 +30,27 @@ import { typeAccent } from './graph/GraphNode'
  */
 
 const STOP_WORDS = new Set([
-  'el', 'la', 'los', 'las',
-  'de', 'del', 'di', 'da',
-  'y', 'e', 'o', 'u',
-  'a', 'al',
-  'un', 'una', 'unos', 'unas',
-  'the', 'of', 'and',
+  'el',
+  'la',
+  'los',
+  'las',
+  'de',
+  'del',
+  'di',
+  'da',
+  'y',
+  'e',
+  'o',
+  'u',
+  'a',
+  'al',
+  'un',
+  'una',
+  'unos',
+  'unas',
+  'the',
+  'of',
+  'and',
 ])
 
 /**

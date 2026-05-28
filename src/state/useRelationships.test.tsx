@@ -12,10 +12,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OfflineContext } from './offline'
 import { ToastProvider } from './toast'
 import { queryKeys } from './queryClient'
-import {
-  useAddRelationship,
-  useUpdateRelationship,
-} from './useRelationships'
+import { useAddRelationship, useUpdateRelationship } from './useRelationships'
 import * as apiModule from '../api'
 import type { Relationship } from '../types'
 
@@ -172,9 +169,7 @@ describe('useUpdateRelationship — optimistic', () => {
       id: 'rel-1',
       notes: 'original',
     }
-    vi.spyOn(apiModule.api, 'updateRelationship').mockRejectedValue(
-      new Error('500'),
-    )
+    vi.spyOn(apiModule.api, 'updateRelationship').mockRejectedValue(new Error('500'))
     const qc = makeQueryClient()
     qc.setQueryData<Relationship[]>(queryKeys.relationships, [original])
 
