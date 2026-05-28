@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -32,30 +32,30 @@ export default withObservability('entities-refs-count', async (req: Request, _ct
   type RelCount = { id: string; n: string }
 
   const [quoteRows, relFromRows, relToRows] = await Promise.all([
-    sql`
+    sqlTyped<QuoteCount>(sql`
       SELECT entity_id, COUNT(*)::text AS n
       FROM quotes
       WHERE deleted_at IS NULL
         AND user_id = ${userId}
       GROUP BY entity_id
-    ` as unknown as Promise<QuoteCount[]>,
+    `),
     // Relaciones cuentan por ambos extremos. Aviva: hacemos dos GROUP BY
     // para luego sumar en el cliente del endpoint. Una sola query con
     // UNION/CASE también funciona pero es más críptica.
-    sql`
+    sqlTyped<RelCount>(sql`
       SELECT from_id AS id, COUNT(*)::text AS n
       FROM relationships
       WHERE deleted_at IS NULL
         AND user_id = ${userId}
       GROUP BY from_id
-    ` as unknown as Promise<RelCount[]>,
-    sql`
+    `),
+    sqlTyped<RelCount>(sql`
       SELECT to_id AS id, COUNT(*)::text AS n
       FROM relationships
       WHERE deleted_at IS NULL AND from_id <> to_id
         AND user_id = ${userId}
       GROUP BY to_id
-    ` as unknown as Promise<RelCount[]>,
+    `),
   ])
 
   const quoteCounts = new Map<string, number>()

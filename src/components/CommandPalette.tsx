@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useEntitiesQuery, useQuotesQuery } from '../state'
 import { ENTITY_TYPES } from '../types'
 import type { ViewMode } from './Sidebar'
@@ -87,6 +87,12 @@ export function CommandPalette({
   const { data: entities = [] } = useEntitiesQuery()
   const { data: quotes = [] } = useQuotesQuery()
   const [query, setQuery] = useState('')
+  // N5: useDeferredValue mantiene el input snappy mientras la lista
+  // filtrada se re-computa con un tick de retraso. Crítico con tramas
+  // grandes (300+ entidades + 300+ citas): tipear rápido sin esto
+  // siente "pegajoso" porque cada keystroke recomputaría el filter
+  // sincrónicamente y bloquearía el render del input.
+  const deferredQuery = useDeferredValue(query)
   const [focusIdx, setFocusIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -101,7 +107,7 @@ export function CommandPalette({
   }, [open])
 
   const items: Item[] = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = deferredQuery.trim().toLowerCase()
     const matchesView = VIEWS.filter(
       (v) => !q || v.label.toLowerCase().includes(q) || v.hint.toLowerCase().includes(q),
     ).map<Item>((v) => ({ kind: 'view', view: v.view, label: v.label, hint: v.hint }))
@@ -143,7 +149,7 @@ export function CommandPalette({
       : []
 
     return [...matchesView, ...matchesAction, ...matchesEntity, ...matchesQuote]
-  }, [query, entities, quotes, onAction])
+  }, [deferredQuery, entities, quotes, onAction])
 
   useEffect(() => {
     setFocusIdx(0)

@@ -69,6 +69,11 @@ export function setupMockSql() {
   }
   return {
     getSql: () => sql,
+    // N9: sqlTyped<Row> es un helper tipado en el módulo real.
+    // En tests no validamos el tipo (es un cast); solo pasamos la
+    // promise al pipeline para que devuelva las rows pre-cargadas
+    // en `mockSqlResponses`.
+    sqlTyped: <Row>(query: Promise<unknown>) => query as Promise<Row[]>,
   }
 }
 

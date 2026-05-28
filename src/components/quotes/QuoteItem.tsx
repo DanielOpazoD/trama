@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { useReflectQuote, useUpdateQuote, useToast } from '../../state'
 import type { Entity, Quote } from '../../types'
 import { SparkleIcon, TrashIcon } from '../Icons'
@@ -37,7 +37,7 @@ function withDropCap(text: string) {
   )
 }
 
-export function QuoteItem({
+function QuoteItemInternal({
   quote,
   entity,
   author,
@@ -339,3 +339,17 @@ export function QuoteItem({
     </div>
   )
 }
+
+/**
+ * N5: memoizamos para que scroll de QuotesView con 100+ citas no
+ * re-renderice cada item al cambiar state global. Tanstack Query mantiene
+ * referencias estables; entity/author cambian solo si su row cambia.
+ */
+export const QuoteItem = memo(QuoteItemInternal, (prev, next) => {
+  return (
+    prev.quote === next.quote &&
+    prev.entity === next.entity &&
+    prev.author === next.author &&
+    prev.isFeature === next.isFeature
+  )
+})

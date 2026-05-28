@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 
@@ -61,10 +61,10 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
     embeddingPendingRows,
     dailyCostRows,
   ] = await Promise.all([
-    sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL` as unknown as Promise<CountRow[]>,
-    sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL` as unknown as Promise<CountRow[]>,
-    sql`SELECT COUNT(*)::text AS c FROM relationships WHERE deleted_at IS NULL` as unknown as Promise<CountRow[]>,
-    sql`
+    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL`),
+    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL`),
+    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM relationships WHERE deleted_at IS NULL`),
+    sqlTyped<MonthTotalsRow>(sql`
       SELECT
         COUNT(*)::text AS calls,
         COALESCE(SUM(tokens_in), 0)::text AS tokens_in,
@@ -72,8 +72,8 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
         COALESCE(SUM(cost_cents), 0)::text AS cost_cents
       FROM extraction_log
       WHERE created_at >= date_trunc('month', NOW())
-    ` as unknown as Promise<MonthTotalsRow[]>,
-    sql`
+    `),
+    sqlTyped<ProviderRow>(sql`
       SELECT
         provider,
         model,
@@ -85,31 +85,31 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       GROUP BY provider, model
       ORDER BY cost_cents DESC
       LIMIT 10
-    ` as unknown as Promise<ProviderRow[]>,
-    sql`
+    `),
+    sqlTyped<ErrorRow>(sql`
       SELECT id, function_name, http_method, http_path, status_code, message, created_at
       FROM error_log
       WHERE created_at >= NOW() - INTERVAL '7 days'
       ORDER BY created_at DESC
       LIMIT 10
-    ` as unknown as Promise<ErrorRow[]>,
+    `),
     // Errores en las últimas 24h — para alertar de "algo está pasando ahora"
     // vs el histórico de 7 días.
-    sql`
+    sqlTyped<ErrorCountRow>(sql`
       SELECT COUNT(*)::text AS c
       FROM error_log
       WHERE created_at >= NOW() - INTERVAL '24 hours'
-    ` as unknown as Promise<ErrorCountRow[]>,
+    `),
     // Filas sin embedding — alertar cuando vale la pena reindexar.
-    sql`
+    sqlTyped<EmbeddingPendingRow>(sql`
       SELECT
         (SELECT COUNT(*) FROM entities WHERE deleted_at IS NULL AND embedding IS NULL)::text AS entities,
         (SELECT COUNT(*) FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL)::text AS quotes
-    ` as unknown as Promise<EmbeddingPendingRow[]>,
+    `),
     // Serie diaria de costo IA — para sparklines en Health.
     // Últimos 30 días, agrupados por día. Días sin actividad no aparecen
     // en el resultado (se rellenan a 0 en el cliente).
-    sql`
+    sqlTyped<DailyCostRow>(sql`
       SELECT
         date_trunc('day', created_at)::date::text AS day,
         COALESCE(SUM(cost_cents), 0)::text AS cost_cents,
@@ -118,7 +118,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       WHERE created_at >= NOW() - INTERVAL '30 days'
       GROUP BY day
       ORDER BY day ASC
-    ` as unknown as Promise<DailyCostRow[]>,
+    `),
   ])
 
   // Read the configured monthly budget; default 5000 cents if unset.

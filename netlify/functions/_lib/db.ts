@@ -18,3 +18,38 @@ export function getSql(): ServerlessDatabaseConnection['httpClient'] {
   }
   return conn.httpClient
 }
+
+/**
+ * N9: helper tipado para queries SELECT. Elimina el patrón
+ * `as unknown as Row[]` que se repetía en ~50 call sites.
+ *
+ * El cliente Neon HTTP devuelve `Promise<Record<string, any>[]>` —
+ * TypeScript no infiere el tipo del SELECT. `sqlTyped<Row>(template)`
+ * envuelve esa promise y la tipa como `Promise<Row[]>`, dándote
+ * autocomplete y type-check en el resultado.
+ *
+ * @example
+ *   type Row = { id: string; name: string }
+ *   const rows = await sqlTyped<Row>(sql`
+ *     SELECT id, name FROM entities WHERE deleted_at IS NULL
+ *   `)
+ *   rows[0].name  // string, autocompleted
+ *
+ * Patrón vs el anterior:
+ *
+ *   // ❌ Antes
+ *   const rows = (await sql`SELECT id FROM entities`) as unknown as Array<{ id: string }>
+ *
+ *   // ✅ Ahora
+ *   const rows = await sqlTyped<{ id: string }>(sql`SELECT id FROM entities`)
+ *
+ * Limitaciones:
+ * - No valida el shape en runtime — `Row` es promesa del programador.
+ *   Si SELECTeas `name` pero lo tipas como `nombre`, TS no avisa.
+ *   Para defensive parsing usá Zod sobre el resultado.
+ * - No detecta SELECTs sin las columnas declaradas. Para eso habría que
+ *   integrar un AST parser de SQL — fuera de alcance.
+ */
+export function sqlTyped<Row>(query: Promise<unknown>): Promise<Row[]> {
+  return query as Promise<Row[]>
+}
