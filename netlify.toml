@@ -2,6 +2,14 @@
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  # N1: eslint-plugin-jsx-a11y aún declara peers `eslint@^6 || ^7 || ^8`
+  # pero nosotros usamos eslint@^9. El flag --legacy-peer-deps deja que
+  # npm ci no falle en ese peer constraint. Sin esto el build de Netlify
+  # rompe en "Install dependencies". Removerlo cuando jsx-a11y publique
+  # una versión con peer eslint@^9 (hay PR upstream pendiente).
+  NPM_FLAGS = "--legacy-peer-deps"
+
 [functions]
   node_bundler = "esbuild"
 
