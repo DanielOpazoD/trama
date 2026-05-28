@@ -35,7 +35,7 @@ export default withObservability('extract', async (req: Request, _context: Conte
   // Monthly cost cap before incurring LLM cost. Pasamos userId para que
   // el check use el cap individual del usuario y filtre extraction_log
   // solo por su gasto.
-  const budgetExceeded = await checkMonthlyBudget(userId)
+  const budgetExceeded = await checkMonthlyBudget(userId, requestId)
   if (budgetExceeded) return budgetExceeded
 
   const parsed = await parseJsonBody(req, ExtractBody, requestId)
@@ -63,7 +63,7 @@ export default withObservability('extract', async (req: Request, _context: Conte
 
   const messages = buildExtractionPrompt(text, existing, entityTypes, relationshipTypes)
 
-  const invocation = await resolveAIInvocation(req, 'extract')
+  const invocation = await resolveAIInvocation(req, 'extract', userId)
   if (invocation.kind === 'off') return aiOffResponse()
 
   try {
@@ -94,7 +94,7 @@ export default withObservability('extract', async (req: Request, _context: Conte
 
     sql`
       INSERT INTO extraction_log (
-        input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
+        input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
       ) VALUES (
         ${text},
         ${JSON.stringify(cleaned)}::jsonb,
@@ -103,7 +103,8 @@ export default withObservability('extract', async (req: Request, _context: Conte
         ${usage.tokensIn},
         ${usage.tokensOut},
         ${usage.costCents},
-        ${usage.durationMs}
+        ${usage.durationMs},
+        ${userId}
       )
     `.catch(() => {})
 
@@ -115,8 +116,8 @@ export default withObservability('extract', async (req: Request, _context: Conte
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     sql`
-      INSERT INTO extraction_log (input_text, proposal, provider, model, error)
-      VALUES (${text}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message})
+      INSERT INTO extraction_log (input_text, proposal, provider, model, error, user_id)
+      VALUES (${text}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message}, ${userId})
     `.catch(() => {})
     return ApiErrors.upstream(requestId, `Error llamando al LLM: ${message}`)
   }

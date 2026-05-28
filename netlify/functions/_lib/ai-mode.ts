@@ -63,17 +63,22 @@ export type Invocation = { kind: 'off' } | ReadyInvocation
  * Resolve provider + model + verifier for a task, honoring the X-AI-Mode header.
  * Returns { kind: 'off' } if the user has globally disabled AI; the endpoint
  * should bail out with aiOffResponse().
+ *
+ * `userId` busca la config del usuario en `ai_task_providers (user_id, task)`.
+ * Si la firma no la pasa (legacy call sites), usa 'legacy-single-user' como
+ * fallback — ese row es el que existía antes de la migración multi-user.
  */
 export async function resolveAIInvocation(
   req: Request,
   task: AITask,
+  userId: string = 'legacy-single-user',
 ): Promise<Invocation> {
   const mode = readAIMode(req)
   if (mode.kind === 'off') return { kind: 'off' }
   if (mode.kind === 'forced') {
     return { kind: 'ready', provider: mode.provider, model: null, verifyWith: null }
   }
-  const cfg = await resolveTaskProvider(task)
+  const cfg = await resolveTaskProvider(task, userId)
   return {
     kind: 'ready',
     provider: cfg.provider || undefined,

@@ -5,18 +5,26 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { AISettingsUpsertBody } from './_lib/admin-schemas.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
- * GET  /api/ai-settings  → returns the full task→provider map. Tasks without
- *                          a row appear with provider=null (= use env default).
- * PUT  /api/ai-settings  → upsert a single task's config.
+ * GET  /api/ai-settings  → returns the full task→provider map para el
+ *                          usuario actual. Tasks sin row aparecen con
+ *                          provider=null (= usar env default).
+ * PUT  /api/ai-settings  → upsert per-user de la config de una task.
  *                          body: { task, provider, model?, verifyWith? }.
- *                          provider='' clears the row (reverts to default).
+ *                          provider='' borra la row (revierte a env default).
+ *
+ * Multi-user: cada usuario tiene su propia config en `ai_task_providers`
+ * con PK compuesto `(user_id, task)` desde la migración 20260526. Si un
+ * usuario nuevo no tiene rows, recibe el listado con provider=null y la
+ * app cae al `AI_PROVIDER` global del entorno.
  */
 
 const VALID_PROVIDERS = new Set(['deepseek', 'openai', 'anthropic', 'gemini'])
 
 export default withObservability('ai-settings', async (req, _ctx, { requestId }) => {
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
   if (req.method === 'GET') {
@@ -30,6 +38,7 @@ export default withObservability('ai-settings', async (req, _ctx, { requestId })
     const rows = (await sql`
       SELECT task, provider, model, verify_with, updated_at
       FROM ai_task_providers
+      WHERE user_id = ${userId}
     `) as Row[]
     const byTask = new Map(rows.map((r) => [r.task, r]))
 
@@ -61,8 +70,8 @@ export default withObservability('ai-settings', async (req, _ctx, { requestId })
     const provider = (body.provider ?? '').trim().toLowerCase()
     // Empty provider → delete the row, reverting to env default.
     if (provider === '') {
-      await sql`DELETE FROM ai_task_providers WHERE task = ${task}`
-      invalidateAITaskCache()
+      await sql`DELETE FROM ai_task_providers WHERE user_id = ${userId} AND task = ${task}`
+      invalidateAITaskCache(userId)
       return new Response(null, { status: 204 })
     }
     if (!VALID_PROVIDERS.has(provider)) {
@@ -80,14 +89,14 @@ export default withObservability('ai-settings', async (req, _ctx, { requestId })
     const model = (body.model ?? '').trim() || null
 
     await sql`
-      INSERT INTO ai_task_providers (task, provider, model, verify_with)
-      VALUES (${task}, ${provider}, ${model}, ${verifyWith})
-      ON CONFLICT (task) DO UPDATE SET
+      INSERT INTO ai_task_providers (user_id, task, provider, model, verify_with)
+      VALUES (${userId}, ${task}, ${provider}, ${model}, ${verifyWith})
+      ON CONFLICT (user_id, task) DO UPDATE SET
         provider    = EXCLUDED.provider,
         model       = EXCLUDED.model,
         verify_with = EXCLUDED.verify_with
     `
-    invalidateAITaskCache()
+    invalidateAITaskCache(userId)
     return new Response(null, { status: 204 })
   }
 

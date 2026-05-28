@@ -38,6 +38,10 @@ export type ErrorContext = {
   context?: Record<string, unknown>
   /** FF1 — id que correlaciona esta fila con el header x-request-id que vio el cliente. */
   requestId?: string
+  /** Opcional: si el handler ya autenticó, asocia el error al user. Si
+   *  no se pasa, persistimos 'legacy-single-user' para que el GET
+   *  filtrado por user_id no oculte el row en modo single-user. */
+  userId?: string
 }
 
 /**
@@ -58,9 +62,11 @@ export function persistError(sql: SqlClient | null, error: ErrorContext): void {
 
   if (!sql) return
 
+  const userId = error.userId ?? 'legacy-single-user'
+
   // Fire-and-forget INSERT. Don't await; don't surface errors.
   void sql`
-    INSERT INTO error_log (function_name, http_method, http_path, status_code, message, stack, context, request_id)
+    INSERT INTO error_log (function_name, http_method, http_path, status_code, message, stack, context, request_id, user_id)
     VALUES (
       ${error.functionName},
       ${error.httpMethod ?? null},
@@ -69,7 +75,8 @@ export function persistError(sql: SqlClient | null, error: ErrorContext): void {
       ${error.message},
       ${error.stack ?? null},
       ${error.context ? JSON.stringify(error.context) : null}::jsonb,
-      ${error.requestId ?? null}
+      ${error.requestId ?? null},
+      ${userId}
     )
   `.catch(() => {
     // Logging the error logger's failure would be ironic. Just swallow.

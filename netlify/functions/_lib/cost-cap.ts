@@ -18,14 +18,15 @@
  * @example
  *   // multi-user (recomendado): cap del usuario + gasto solo suyo
  *   const { id: userId } = await getAuthedUser(req)
- *   const overBudget = await checkMonthlyBudget(userId)
+ *   const overBudget = await checkMonthlyBudget(userId, requestId)
  *   if (overBudget) return overBudget
  *
  *   // legacy (sin userId): cap global + gasto total
- *   const overBudget = await checkMonthlyBudget()
+ *   const overBudget = await checkMonthlyBudget(undefined, requestId)
  */
 
 import { safeSql } from './observability.js'
+import { ApiErrors } from './api-error.js'
 
 function readEnvBudgetCents(): number {
   const raw = Netlify.env.get('AI_MONTHLY_BUDGET_CENTS')
@@ -35,6 +36,7 @@ function readEnvBudgetCents(): number {
 
 export async function checkMonthlyBudget(
   userId?: string,
+  requestId?: string,
 ): Promise<Response | null> {
   const sql = safeSql()
   if (!sql) return null // No DB → can't check, fail open.
@@ -77,15 +79,14 @@ export async function checkMonthlyBudget(
 
   const spentCents = Number(rows[0]?.total ?? 0)
   if (spentCents >= budget) {
-    return new Response(
+    // FF3: shape canónico {error: {code, message, requestId, details}}
+    // — antes devolvíamos `new Response(text, 429)` con cuerpo plano y
+    // el cliente tenía que parsear distinto. Ahora el detalle viaja
+    // estructurado en `details` (budgetCents + spentCents).
+    return ApiErrors.rateLimited(
+      requestId ?? crypto.randomUUID(),
       `Presupuesto mensual del LLM agotado (gastado ${spentCents.toFixed(2)} centavos de un cap de ${budget}). Aumenta AI_MONTHLY_BUDGET_CENTS o espera al próximo mes.`,
-      {
-        status: 429,
-        headers: {
-          'X-Budget-Limit': String(budget),
-          'X-Budget-Spent': spentCents.toFixed(4),
-        },
-      },
+      { budgetCents: budget, spentCents },
     )
   }
   return null

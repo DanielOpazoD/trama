@@ -10,7 +10,7 @@ import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import {
   aggregateTopGenres,
   fetchTopArtists,
-  getValidAccessToken,
+  requireSpotifyConnection,
 } from './_lib/spotify.js'
 
 /**
@@ -37,20 +37,18 @@ export default withObservability('spotify-suggest-artists', async (req: Request,
 
   const { id: userId } = await getAuthedUser(req)
 
-  const budgetExceeded = await checkMonthlyBudget(userId)
+  const budgetExceeded = await checkMonthlyBudget(userId, requestId)
   if (budgetExceeded) return budgetExceeded
 
   const sql = getSql()
-  const accessToken = await getValidAccessToken(sql, userId)
-  if (!accessToken) {
-    return ApiErrors.validation(requestId, 'Spotify no está conectado')
-  }
+  const conn = await requireSpotifyConnection({ sql, userId, requestId })
+  if (!conn.ok) return conn.response
 
   // Pegar Spotify: top artists (long_term para sesgo a estable, no fad
   // de la semana). Genre aggregation con el mismo helper de κ-spotify.
   let topArtists: Awaited<ReturnType<typeof fetchTopArtists>> = []
   try {
-    topArtists = await fetchTopArtists(accessToken, 'long_term')
+    topArtists = await fetchTopArtists(conn.token, 'long_term')
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Spotify API error'
     return ApiErrors.upstream(requestId, msg)
@@ -79,7 +77,7 @@ export default withObservability('spotify-suggest-artists', async (req: Request,
   `) as Array<{ name: string }>
   const existingNames = existingArtists.map((e) => e.name.toLowerCase())
 
-  const invocation = await resolveAIInvocation(req, 'suggest')
+  const invocation = await resolveAIInvocation(req, 'suggest-relationships', userId)
   if (invocation.kind === 'off') return aiOffResponse()
 
   const excludeList = [

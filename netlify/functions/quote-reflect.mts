@@ -30,7 +30,7 @@ export default withObservability(
 
     const { id: userId } = await getAuthedUser(req)
 
-    const budgetExceeded = await checkMonthlyBudget(userId)
+    const budgetExceeded = await checkMonthlyBudget(userId, requestId)
     if (budgetExceeded) return budgetExceeded
 
     const sql = getSql()
@@ -96,7 +96,7 @@ export default withObservability(
       })),
     })
 
-    const invocation = await resolveAIInvocation(req, 'reflect')
+    const invocation = await resolveAIInvocation(req, 'reflect', userId)
     if (invocation.kind === 'off') return aiOffResponse()
 
     try {
@@ -120,7 +120,7 @@ export default withObservability(
 
       sql`
         INSERT INTO extraction_log (
-          input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
+          input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
         ) VALUES (
           ${`reflect:${id}`},
           ${JSON.stringify({ reflection })}::jsonb,
@@ -129,7 +129,8 @@ export default withObservability(
           ${usage.tokensIn},
           ${usage.tokensOut},
           ${usage.costCents},
-          ${usage.durationMs}
+          ${usage.durationMs},
+          ${userId}
         )
       `.catch(() => {})
 

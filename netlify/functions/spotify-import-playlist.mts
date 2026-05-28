@@ -2,8 +2,8 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import {
   fetchPlaylist,
-  getValidAccessToken,
   parsePlaylistId,
+  requireSpotifyConnection,
 } from './_lib/spotify.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
@@ -44,18 +44,19 @@ export default withObservability('spotify-import-playlist', async (req, _ctx, { 
   }
 
   const sql = getSql()
-  const accessToken = await getValidAccessToken(sql, userId)
-  if (!accessToken) {
-    return ApiErrors.validation(
-      requestId,
+  const conn = await requireSpotifyConnection({
+    sql,
+    userId,
+    requestId,
+    message:
       'Spotify no está conectado. Conecta primero desde Configuración → Spotify.',
-    )
-  }
+  })
+  if (!conn.ok) return conn.response
 
   let playlist
   try {
     playlist = await fetchPlaylist(
-      accessToken,
+      conn.token,
       playlistId,
       Math.min(body.maxTracks ?? 200, 500),
     )

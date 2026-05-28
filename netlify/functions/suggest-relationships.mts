@@ -34,7 +34,9 @@ export default withObservability(
       return ApiErrors.methodNotAllowed(requestId)
     }
 
-    const budgetExceeded = await checkMonthlyBudget()
+    const { id: userId } = await getAuthedUser(req)
+
+    const budgetExceeded = await checkMonthlyBudget(userId, requestId)
     if (budgetExceeded) return budgetExceeded
 
     // η2: body opcional. Si el usuario clickeó "descubrir IA" tras
@@ -48,7 +50,6 @@ export default withObservability(
       .catch(() => ({} as Body))
     const avoidPrevious = Array.isArray(body.avoidPrevious) ? body.avoidPrevious : []
 
-    const { id: userId } = await getAuthedUser(req)
     const sql = getSql()
 
     type EntityRow = {
@@ -117,7 +118,7 @@ export default withObservability(
       avoidPrevious,
     )
 
-    const invocation = await resolveAIInvocation(req, 'suggest-relationships')
+    const invocation = await resolveAIInvocation(req, 'suggest-relationships', userId)
     if (invocation.kind === 'off') return aiOffResponse()
 
     try {
@@ -226,7 +227,7 @@ export default withObservability(
 
       sql`
         INSERT INTO extraction_log (
-          input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms
+          input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
         ) VALUES (
           ${'suggest-relationships'},
           ${JSON.stringify(result)}::jsonb,
@@ -235,7 +236,8 @@ export default withObservability(
           ${usage.tokensIn},
           ${usage.tokensOut},
           ${usage.costCents},
-          ${usage.durationMs}
+          ${usage.durationMs},
+          ${userId}
         )
       `.catch(() => {})
 
@@ -243,8 +245,8 @@ export default withObservability(
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       sql`
-        INSERT INTO extraction_log (input_text, proposal, provider, model, error)
-        VALUES (${'suggest-relationships'}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message})
+        INSERT INTO extraction_log (input_text, proposal, provider, model, error, user_id)
+        VALUES (${'suggest-relationships'}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message}, ${userId})
       `.catch(() => {})
       return ApiErrors.upstream(requestId, `Error llamando al LLM: ${message}`)
     }

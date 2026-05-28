@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useSearchParamState } from './hooks/useSearchParamState'
+import { useInitialView } from './hooks/useInitialView'
 import { startViewTransition } from './lib/viewTransition'
 import {
   Provider,
@@ -13,7 +14,7 @@ import { useTheme } from './hooks/useTheme'
 import { useTimeOfDayAccent } from './hooks/useTimeOfDayAccent'
 import { useAchievements } from './hooks/useAchievements'
 import { useWeeklyProactiveNudge } from './hooks/useWeeklyProactiveNudge'
-import { Sidebar, type ViewMode } from './components/Sidebar'
+import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { CommandPalette } from './components/CommandPalette'
 import { ShortcutsModal } from './components/ShortcutsModal'
@@ -73,20 +74,10 @@ function Shell() {
     null
 
   const isMobile = useIsMobile()
-  // τ-mobile-bridge: lee `?view=` al mount inicial. Útil para
-  // deep-links externos — el QR de Momentos por ejemplo abre la app
-  // con `?view=momentos&compose=foto` para que el celular caiga directo
-  // en el composer en modo Foto.
-  const [view, _setView] = useState<ViewMode>(() => readInitialView())
-  // EE-brand #20: navegación entre secciones pasa por la View Transitions
-  // API. El browser hace un cross-dissolve sutil (280ms ease-out-quart,
-  // declarado en index.css en `::view-transition-old(root)`) entre la
-  // vista vieja y la nueva. En navegadores sin la API (Firefox por ahora)
-  // cae al setState plano — degrada silencioso. Mismo patrón que el
-  // setSelectedEntityId de abajo, pero a nivel de sección.
-  const setView = useCallback((next: ViewMode) => {
-    startViewTransition(() => _setView(next))
-  }, [])
+  // τ-mobile-bridge: vive en useInitialView — lee `?view=` al primer
+  // render (deep-links externos como el QR de Momentos) y envuelve el
+  // setter con la View Transitions API. Ver el hook para detalles.
+  const [view, setView] = useInitialView()
   // En mobile arrancamos con el sidebar colapsado; el usuario lo expande
   // con el ícono del menú.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -472,32 +463,3 @@ export default function App() {
   )
 }
 
-/**
- * τ-mobile-bridge: lee `?view=` de la URL al primer render del App
- * para honrar deep-links externos (típicamente: el QR de Momentos
- * abre la app con `?view=momentos&compose=foto`). Whitelist explícita
- * de valores válidos — un query param malicioso/typeado no debe poder
- * setear cualquier string en el state. SSR-safe.
- */
-const VALID_VIEWS: ReadonlyArray<ViewMode> = [
-  'inicio',
-  'grafo',
-  'entidades',
-  'citas',
-  'escuchas',
-  'momentos',
-  'chat',
-  'sugerencias',
-]
-function readInitialView(): ViewMode {
-  if (typeof window === 'undefined') return 'inicio'
-  try {
-    const param = new URLSearchParams(window.location.search).get('view')
-    if (param && VALID_VIEWS.includes(param as ViewMode)) {
-      return param as ViewMode
-    }
-  } catch {
-    /* malformed URL — fallback al default */
-  }
-  return 'inicio'
-}
