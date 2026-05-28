@@ -86,7 +86,7 @@ export default withObservability(
 
     if (req.method === 'POST') {
       // Generate a fresh round of suggestions.
-      const budgetExceeded = await checkMonthlyBudget()
+      const budgetExceeded = await checkMonthlyBudget(userId)
       if (budgetExceeded) return budgetExceeded
 
       type EntityRow = {

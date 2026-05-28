@@ -85,7 +85,7 @@ export default withObservability(
       return ApiErrors.validation(requestId, 'Falta el campo "content"')
     }
 
-    const budgetExceeded = await checkMonthlyBudget()
+    const budgetExceeded = await checkMonthlyBudget(userId)
     if (budgetExceeded) return budgetExceeded
 
     // Resolve AI mode upfront so we don't persist a user message that the

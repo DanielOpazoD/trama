@@ -10,6 +10,7 @@ import { ApiErrors } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { SpotifyImportPlaylistBody } from './_lib/admin-schemas.js'
 import { logEvent } from './_lib/observability.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * Given a Spotify playlist URL/URI/id, returns a structured proposal the user
@@ -27,6 +28,8 @@ export default withObservability('spotify-import-playlist', async (req, _ctx, { 
     return ApiErrors.methodNotAllowed(requestId)
   }
 
+  const { id: userId } = await getAuthedUser(req)
+
   const parsed = await parseJsonBody(req, SpotifyImportPlaylistBody, requestId)
   if (!parsed.ok) return parsed.response
   const body = parsed.data
@@ -41,7 +44,7 @@ export default withObservability('spotify-import-playlist', async (req, _ctx, { 
   }
 
   const sql = getSql()
-  const accessToken = await getValidAccessToken(sql)
+  const accessToken = await getValidAccessToken(sql, userId)
   if (!accessToken) {
     return ApiErrors.validation(
       requestId,

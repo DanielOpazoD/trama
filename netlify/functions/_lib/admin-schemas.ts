@@ -52,6 +52,9 @@ export const ErrorLogBody = z.object({
   componentStack: z.string().optional(),
   path: z.string().optional(),
   userAgent: z.string().optional(),
+  /** ErrorBoundary scope: 'root' (boundary global de la app) o
+   *  'view:<viewSlug>' (boundary per-vista del ViewRouter). */
+  scope: z.string().optional(),
 })
 export type ErrorLogBodyT = z.infer<typeof ErrorLogBody>
 

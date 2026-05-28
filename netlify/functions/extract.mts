@@ -30,8 +30,12 @@ export default withObservability('extract', async (req: Request, _context: Conte
     return ApiErrors.methodNotAllowed(requestId)
   }
 
-  // Monthly cost cap before incurring LLM cost.
-  const budgetExceeded = await checkMonthlyBudget()
+  const { id: userId } = await getAuthedUser(req)
+
+  // Monthly cost cap before incurring LLM cost. Pasamos userId para que
+  // el check use el cap individual del usuario y filtre extraction_log
+  // solo por su gasto.
+  const budgetExceeded = await checkMonthlyBudget(userId)
   if (budgetExceeded) return budgetExceeded
 
   const parsed = await parseJsonBody(req, ExtractBody, requestId)
@@ -41,7 +45,6 @@ export default withObservability('extract', async (req: Request, _context: Conte
     return ApiErrors.validation(requestId, 'Falta el campo "text"')
   }
 
-  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
   // Fetch context: valid type slugs and existing entities.

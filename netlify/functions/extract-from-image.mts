@@ -10,6 +10,7 @@ import { parseJsonBody } from './_lib/zod-body.js'
 import { ExtractFromImageBody } from './_lib/admin-schemas.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 const FALLBACK_ENTITY_TYPES = [
   'persona', 'escritor', 'filosofo', 'musico', 'banda', 'director', 'artista', 'cientifico',
@@ -34,7 +35,9 @@ export default withObservability('extract-from-image', async (req, _ctx, { reque
     return ApiErrors.methodNotAllowed(requestId)
   }
 
-  const budgetExceeded = await checkMonthlyBudget()
+  const { id: userId } = await getAuthedUser(req)
+
+  const budgetExceeded = await checkMonthlyBudget(userId)
   if (budgetExceeded) return budgetExceeded
 
   const parsed = await parseJsonBody(req, ExtractFromImageBody, requestId)
