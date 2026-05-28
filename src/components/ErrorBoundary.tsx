@@ -2,8 +2,15 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { TramaMark } from './Icons'
 
 /**
- * ErrorBoundary global. Captura errores no manejados en el render tree
- * y muestra una pantalla de fallback en vez de dejar la app en blanco.
+ * ErrorBoundary. Captura errores no manejados en el render tree y muestra
+ * un fallback en vez de dejar el subárbol en blanco.
+ *
+ * - Por defecto (sin `fallback` prop): pantalla completa "la trama se rompió"
+ *   — usado a nivel raíz en App.tsx para crashes catastróficos.
+ * - Con `fallback` prop (render prop): permite un fallback compacto y
+ *   contextual. Usado en ViewRouter para que un crash en una vista NO
+ *   tire abajo Sidebar/TopBar; el usuario puede cambiar de vista o
+ *   reintentar sin perder navegación.
  *
  * Reporta a /api/error-log (POST) en best-effort — si el backend está
  * caído también, el reporte falla silencioso. La idea es que un crash
@@ -15,8 +22,21 @@ import { TramaMark } from './Icons'
  * render: type errors, null derefs, throws en componentes, etc.
  */
 
+export type ErrorFallbackProps = {
+  error: Error
+  componentStack: string | null
+  onReset: () => void
+  onReload: () => void
+}
+
 type Props = {
   children: ReactNode
+  /** Opcional: si se pasa, reemplaza el fallback fullscreen por uno
+   *  contextual. Útil para boundaries granulares (ej. per-view). */
+  fallback?: (props: ErrorFallbackProps) => ReactNode
+  /** Etiqueta para logs/observability — distingue un crash root de uno
+   *  per-view en `/api/error-log`. Default: 'root'. */
+  scope?: string
 }
 
 type State = {
@@ -38,10 +58,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     this.setState({ componentStack: info.componentStack ?? null })
-    void reportError(error, info)
+    void reportError(error, info, this.props.scope ?? 'root')
     // También a la consola — el dev puede ver el stack completo ahí.
     // eslint-disable-next-line no-console
-    console.error('[ErrorBoundary]', error, info)
+    console.error(`[ErrorBoundary:${this.props.scope ?? 'root'}]`, error, info)
   }
 
   handleReset = () => {
@@ -54,20 +74,20 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.error) {
-      return (
-        <ErrorFallback
-          error={this.state.error}
-          componentStack={this.state.componentStack}
-          onReset={this.handleReset}
-          onReload={this.handleReload}
-        />
-      )
+      const fallbackProps: ErrorFallbackProps = {
+        error: this.state.error,
+        componentStack: this.state.componentStack,
+        onReset: this.handleReset,
+        onReload: this.handleReload,
+      }
+      if (this.props.fallback) return this.props.fallback(fallbackProps)
+      return <ErrorFallback {...fallbackProps} />
     }
     return this.props.children
   }
 }
 
-async function reportError(error: Error, info: ErrorInfo) {
+async function reportError(error: Error, info: ErrorInfo, scope: string) {
   if (typeof window === 'undefined') return
   try {
     await fetch('/api/error-log', {
@@ -79,6 +99,7 @@ async function reportError(error: Error, info: ErrorInfo) {
         componentStack: info.componentStack ?? null,
         path: window.location.pathname,
         userAgent: window.navigator.userAgent,
+        scope,
       }),
     })
   } catch {

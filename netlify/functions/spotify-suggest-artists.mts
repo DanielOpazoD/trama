@@ -35,12 +35,13 @@ export default withObservability('spotify-suggest-artists', async (req: Request,
     return ApiErrors.methodNotAllowed(requestId)
   }
 
-  const budgetExceeded = await checkMonthlyBudget()
+  const { id: userId } = await getAuthedUser(req)
+
+  const budgetExceeded = await checkMonthlyBudget(userId)
   if (budgetExceeded) return budgetExceeded
 
-  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
-  const accessToken = await getValidAccessToken(sql)
+  const accessToken = await getValidAccessToken(sql, userId)
   if (!accessToken) {
     return ApiErrors.validation(requestId, 'Spotify no está conectado')
   }

@@ -145,4 +145,55 @@ describe('<ErrorBoundary />', () => {
     // El fallback sigue ahí — el fail del reporte no rompe nada.
     expect(screen.getByText(/La trama se rompió/i)).toBeInTheDocument()
   })
+
+  it('usa el `fallback` custom cuando se pasa por prop', () => {
+    const fallback = vi.fn((p: { error: Error; onReset: () => void }) => (
+      <div role="alert">
+        <p>custom fallback: {p.error.message}</p>
+        <button onClick={p.onReset}>reset custom</button>
+      </div>
+    ))
+
+    render(
+      <ErrorBoundary fallback={fallback}>
+        <Bomb trigger={true} />
+      </ErrorBoundary>,
+    )
+
+    // El default ("La trama se rompió") NO aparece — usa el custom.
+    expect(screen.queryByText(/La trama se rompió/i)).toBeNull()
+    expect(screen.getByText(/custom fallback: algo explotó/)).toBeInTheDocument()
+    expect(fallback).toHaveBeenCalled()
+  })
+
+  it('incluye `scope` en el body del POST a /api/error-log', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    render(
+      <ErrorBoundary scope="view:chat">
+        <Bomb trigger={true} />
+      </ErrorBoundary>,
+    )
+    await new Promise((r) => setTimeout(r, 0))
+
+    expect(fetchSpy).toHaveBeenCalled()
+    const body = JSON.parse(fetchSpy.mock.calls[0]![1]!.body as string)
+    expect(body.scope).toBe('view:chat')
+  })
+
+  it('usa scope="root" por default si no se pasa', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    render(
+      <ErrorBoundary>
+        <Bomb trigger={true} />
+      </ErrorBoundary>,
+    )
+    await new Promise((r) => setTimeout(r, 0))
+
+    const body = JSON.parse(fetchSpy.mock.calls[0]![1]!.body as string)
+    expect(body.scope).toBe('root')
+  })
 })

@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * GET /api/spotify/timing?since=ISO_DATE
@@ -26,6 +27,8 @@ export default withObservability('spotify-timing', async (req, _ctx, { requestId
     return ApiErrors.methodNotAllowed(requestId)
   }
 
+  const { id: userId } = await getAuthedUser(req)
+
   const url = new URL(req.url)
   const sinceParam = url.searchParams.get('since')
   const since =
@@ -37,7 +40,7 @@ export default withObservability('spotify-timing', async (req, _ctx, { requestId
   const rows = (await sql`
     SELECT played_at
     FROM spotify_plays
-    WHERE played_at >= ${since}
+    WHERE played_at >= ${since} AND user_id = ${userId}
     ORDER BY played_at ASC
     LIMIT ${MAX_TIMESTAMPS}
   `) as Row[]

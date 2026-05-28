@@ -65,9 +65,11 @@ describe('spotify-suggest-artists endpoint', () => {
   })
 
   it('devuelve 400 si Spotify no está conectado (sin token en DB)', async () => {
-    // Query 1: checkMonthlyBudget — devuelve [] (sin cost-cap excedido)
+    // Query 1: checkMonthlyBudget — SELECT users.monthly_budget_cents (cap)
     mockSqlResponses.push([])
-    // Query 2: getStoredTokens — vacío
+    // Query 2: checkMonthlyBudget — SELECT SUM(cost_cents) FROM extraction_log
+    mockSqlResponses.push([])
+    // Query 3: getStoredTokens — vacío
     mockSqlResponses.push([])
 
     const res = await handler(
@@ -83,7 +85,9 @@ describe('spotify-suggest-artists endpoint', () => {
   })
 
   it('devuelve {suggestions:[],reason} si fetch a Spotify top-artists falla', async () => {
-    // checkMonthlyBudget query
+    // checkMonthlyBudget — user cap lookup
+    mockSqlResponses.push([])
+    // checkMonthlyBudget — SUM(cost_cents)
     mockSqlResponses.push([])
     // getStoredTokens query — devolvemos un token "válido"
     mockSqlResponses.push([

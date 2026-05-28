@@ -63,6 +63,7 @@ export default withObservability('error-log', async (req, _ctx, { requestId }) =
         ? body.componentStack.slice(0, 8000)
         : null,
       userAgent: body.userAgent ? body.userAgent.slice(0, 500) : null,
+      scope: body.scope ? body.scope.slice(0, 100) : null,
     }
     await sql`
       INSERT INTO error_log (function_name, http_method, http_path, message, stack, context)

@@ -6,6 +6,7 @@ import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { askLLMForText } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
+import { getAuthedUser } from './_lib/auth.js'
 import {
   aggregateDecades,
   aggregateTopGenres,
@@ -42,8 +43,10 @@ export default withObservability(
       return ApiErrors.methodNotAllowed(requestId)
     }
 
+    const { id: userId } = await getAuthedUser(req)
+
     const sql = getSql()
-    const accessToken = await getValidAccessToken(sql)
+    const accessToken = await getValidAccessToken(sql, userId)
     if (!accessToken) {
       return ApiErrors.validation(requestId, 'Spotify no está conectado')
     }
@@ -99,7 +102,7 @@ export default withObservability(
       })
     }
 
-    const budgetExceeded = await checkMonthlyBudget()
+    const budgetExceeded = await checkMonthlyBudget(userId)
     if (budgetExceeded) {
       // Devolvemos los datos pero sin párrafo (la UI ya sabe degradar).
       return Response.json({

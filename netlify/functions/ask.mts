@@ -58,7 +58,7 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
 
   const { id: userId } = await getAuthedUser(req)
 
-  const budgetExceeded = await checkMonthlyBudget()
+  const budgetExceeded = await checkMonthlyBudget(userId)
   if (budgetExceeded) return budgetExceeded
 
   const sql = getSql()

@@ -136,17 +136,45 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenResponse> 
   return (await response.json()) as TokenResponse
 }
 
-export async function getStoredTokens(sql: SqlClient): Promise<StoredTokens | null> {
-  const rows = (await sql`
-    SELECT id, spotify_user_id, display_name, access_token, refresh_token,
-           expires_at, scopes, connected_at, last_synced_at, updated_at
-    FROM spotify_tokens
-    WHERE id = 'default'
-    LIMIT 1
-  `) as StoredTokens[]
+/**
+ * Lee el token Spotify almacenado para un usuario.
+ *
+ * Multi-user: la PK de `spotify_tokens` migró de `id` a `user_id` en la
+ * migración 20260526. Sin userId (legacy), usa `id = 'default'`. Con
+ * userId, filtra por `user_id = ${userId}` — cada usuario su token.
+ *
+ * Eventualmente todos los call sites deberían pasar userId; los que
+ * no lo hagan caen al legacy row.
+ */
+export async function getStoredTokens(
+  sql: SqlClient,
+  userId?: string,
+): Promise<StoredTokens | null> {
+  const rows = userId
+    ? ((await sql`
+        SELECT id, spotify_user_id, display_name, access_token, refresh_token,
+               expires_at, scopes, connected_at, last_synced_at, updated_at
+        FROM spotify_tokens
+        WHERE user_id = ${userId}
+        LIMIT 1
+      `) as StoredTokens[])
+    : ((await sql`
+        SELECT id, spotify_user_id, display_name, access_token, refresh_token,
+               expires_at, scopes, connected_at, last_synced_at, updated_at
+        FROM spotify_tokens
+        WHERE id = 'default'
+        LIMIT 1
+      `) as StoredTokens[])
   return rows[0] ?? null
 }
 
+/**
+ * Persiste tokens Spotify para el usuario actual.
+ *
+ * Multi-user: si pasás userId, el row se asocia a ese usuario (ON
+ * CONFLICT user_id). Sin userId, usa id='default' / legacy-single-user
+ * para retro-compat con la versión single-user.
+ */
 export async function saveTokens(
   sql: SqlClient,
   data: {
@@ -157,7 +185,35 @@ export async function saveTokens(
     expiresAt: Date
     scopes: string | null
   },
+  userId?: string,
 ): Promise<void> {
+  if (userId) {
+    await sql`
+      INSERT INTO spotify_tokens (
+        id, spotify_user_id, display_name, access_token, refresh_token,
+        expires_at, scopes, connected_at, updated_at, user_id
+      ) VALUES (
+        'default',
+        ${data.spotifyUserId},
+        ${data.displayName},
+        ${data.accessToken},
+        ${data.refreshToken},
+        ${data.expiresAt.toISOString()},
+        ${data.scopes},
+        NOW(),
+        NOW(),
+        ${userId}
+      )
+      ON CONFLICT (user_id) DO UPDATE SET
+        spotify_user_id = EXCLUDED.spotify_user_id,
+        display_name    = EXCLUDED.display_name,
+        access_token    = EXCLUDED.access_token,
+        refresh_token   = EXCLUDED.refresh_token,
+        expires_at      = EXCLUDED.expires_at,
+        scopes          = COALESCE(EXCLUDED.scopes, spotify_tokens.scopes)
+    `
+    return
+  }
   await sql`
     INSERT INTO spotify_tokens (
       id, spotify_user_id, display_name, access_token, refresh_token,
@@ -173,7 +229,7 @@ export async function saveTokens(
       NOW(),
       NOW()
     )
-    ON CONFLICT (id) DO UPDATE SET
+    ON CONFLICT (user_id) DO UPDATE SET
       spotify_user_id = EXCLUDED.spotify_user_id,
       display_name    = EXCLUDED.display_name,
       access_token    = EXCLUDED.access_token,
@@ -187,8 +243,11 @@ export async function saveTokens(
  * Get a valid access token, refreshing it if necessary. Updates the stored
  * tokens in the DB on refresh.
  */
-export async function getValidAccessToken(sql: SqlClient): Promise<string | null> {
-  const stored = await getStoredTokens(sql)
+export async function getValidAccessToken(
+  sql: SqlClient,
+  userId?: string,
+): Promise<string | null> {
+  const stored = await getStoredTokens(sql, userId)
   if (!stored) return null
 
   const expiresAt = new Date(stored.expires_at).getTime()
@@ -198,13 +257,24 @@ export async function getValidAccessToken(sql: SqlClient): Promise<string | null
 
   const refreshed = await refreshAccessToken(stored.refresh_token)
   const newExpiresAt = new Date(now + refreshed.expires_in * 1000)
-  await sql`
-    UPDATE spotify_tokens
-    SET access_token  = ${refreshed.access_token},
-        refresh_token = ${refreshed.refresh_token ?? stored.refresh_token},
-        expires_at    = ${newExpiresAt.toISOString()}
-    WHERE id = 'default'
-  `
+  // UPDATE filtra por user_id si vino el param; fallback a id='default'.
+  if (userId) {
+    await sql`
+      UPDATE spotify_tokens
+      SET access_token  = ${refreshed.access_token},
+          refresh_token = ${refreshed.refresh_token ?? stored.refresh_token},
+          expires_at    = ${newExpiresAt.toISOString()}
+      WHERE user_id = ${userId}
+    `
+  } else {
+    await sql`
+      UPDATE spotify_tokens
+      SET access_token  = ${refreshed.access_token},
+          refresh_token = ${refreshed.refresh_token ?? stored.refresh_token},
+          expires_at    = ${newExpiresAt.toISOString()}
+      WHERE id = 'default'
+    `
+  }
   return refreshed.access_token
 }
 
@@ -263,39 +333,70 @@ export async function fetchRecentlyPlayed(
 export async function storePlays(
   sql: SqlClient,
   items: RecentlyPlayedResponse['items'],
+  userId?: string,
 ): Promise<number> {
   let inserted = 0
   for (const item of items) {
     const artistIds = item.track.artists.map((a) => a.id)
     const artistNames = item.track.artists.map((a) => a.name)
-    const result = await sql`
-      INSERT INTO spotify_plays (
-        track_id, track_name, artist_ids, artist_names,
-        album_id, album_name, duration_ms, played_at
-      ) VALUES (
-        ${item.track.id},
-        ${item.track.name},
-        ${artistIds},
-        ${artistNames},
-        ${item.track.album.id},
-        ${item.track.album.name},
-        ${item.track.duration_ms},
-        ${item.played_at}
-      )
-      ON CONFLICT (track_id, played_at) DO NOTHING
-      RETURNING id
-    ` as Array<{ id: string }>
+    // user_id se completa con DEFAULT 'legacy-single-user' si no se pasa
+    // (schema migración). En multi-user, cada play se attribuye al user
+    // que disparó el sync.
+    const result = userId
+      ? ((await sql`
+          INSERT INTO spotify_plays (
+            track_id, track_name, artist_ids, artist_names,
+            album_id, album_name, duration_ms, played_at, user_id
+          ) VALUES (
+            ${item.track.id},
+            ${item.track.name},
+            ${artistIds},
+            ${artistNames},
+            ${item.track.album.id},
+            ${item.track.album.name},
+            ${item.track.duration_ms},
+            ${item.played_at},
+            ${userId}
+          )
+          ON CONFLICT (track_id, played_at) DO NOTHING
+          RETURNING id
+        `) as Array<{ id: string }>)
+      : ((await sql`
+          INSERT INTO spotify_plays (
+            track_id, track_name, artist_ids, artist_names,
+            album_id, album_name, duration_ms, played_at
+          ) VALUES (
+            ${item.track.id},
+            ${item.track.name},
+            ${artistIds},
+            ${artistNames},
+            ${item.track.album.id},
+            ${item.track.album.name},
+            ${item.track.duration_ms},
+            ${item.played_at}
+          )
+          ON CONFLICT (track_id, played_at) DO NOTHING
+          RETURNING id
+        `) as Array<{ id: string }>)
     if (result.length > 0) inserted++
   }
   return inserted
 }
 
-export async function markSynced(sql: SqlClient): Promise<void> {
-  await sql`UPDATE spotify_tokens SET last_synced_at = NOW() WHERE id = 'default'`
+export async function markSynced(sql: SqlClient, userId?: string): Promise<void> {
+  if (userId) {
+    await sql`UPDATE spotify_tokens SET last_synced_at = NOW() WHERE user_id = ${userId}`
+  } else {
+    await sql`UPDATE spotify_tokens SET last_synced_at = NOW() WHERE id = 'default'`
+  }
 }
 
-export async function disconnectSpotify(sql: SqlClient): Promise<void> {
-  await sql`DELETE FROM spotify_tokens WHERE id = 'default'`
+export async function disconnectSpotify(sql: SqlClient, userId?: string): Promise<void> {
+  if (userId) {
+    await sql`DELETE FROM spotify_tokens WHERE user_id = ${userId}`
+  } else {
+    await sql`DELETE FROM spotify_tokens WHERE id = 'default'`
+  }
 }
 
 // ---------- Playlist import ----------

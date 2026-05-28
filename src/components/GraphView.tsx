@@ -21,17 +21,18 @@ import type { Entity, ExtractionProposal, Relationship } from '../types'
 import { ENTITY_TYPES } from '../types'
 import { useGraphLayout } from '../hooks/useGraphLayout'
 import { usePanZoom } from '../hooks/usePanZoom'
+import { useGraphKeyboardNav } from '../hooks/useGraphKeyboardNav'
 import {
   useLocalStorageBoolean,
   useLocalStorageNullable,
   useLocalStorageState,
 } from '../hooks/useLocalStorageState'
 import { useFreshIds } from '../hooks/useFreshIds'
-import { GraphNode } from './graph/GraphNode'
-import { GraphEdge } from './graph/GraphEdge'
 import { GraphToolbar, type GraphMode } from './graph/GraphToolbar'
 import { GraphMinimap } from './graph/GraphMinimap'
-import { HoverPreviewCard } from './graph/HoverPreviewCard'
+import { GraphExploreHint } from './graph/GraphExploreHint'
+import { GraphSuggestStatusBanner } from './graph/GraphSuggestStatusBanner'
+import { GraphSvgCanvas } from './graph/GraphSvgCanvas'
 import { LoadingHint } from './LoadingHint'
 
 // Lazy-load del renderer WebGL: sigma + graphology pesan ~165KB extra
@@ -41,7 +42,6 @@ const GraphCanvasSigma = lazy(() =>
   import('./graph/GraphCanvasSigma').then((m) => ({ default: m.GraphCanvasSigma })),
 )
 import { EmptyState } from './EmptyState'
-import { CloseIcon } from './Icons'
 import type { LayoutMode } from '../hooks/layouts/types'
 
 // Persisted in localStorage so reloads keep the user's mode + focus.
@@ -255,36 +255,11 @@ export default function GraphView({
     return result
   }, [mode, entities, positions])
 
-  const [focusedIndex, setFocusedIndex] = useState<number>(-1)
-
-  useEffect(() => {
-    if (focusedIndex >= entities.length) setFocusedIndex(-1)
-  }, [entities.length, focusedIndex])
-
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (entities.length === 0) return
-      if (event.key === 'ArrowRight' || event.key === 'ArrowDown' || event.key === 'Tab') {
-        if (event.key === 'Tab' && event.shiftKey) return
-        event.preventDefault()
-        setFocusedIndex((prev) => (prev + 1) % entities.length)
-      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-        event.preventDefault()
-        setFocusedIndex((prev) => (prev <= 0 ? entities.length - 1 : prev - 1))
-      } else if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault()
-        if (focusedIndex >= 0 && focusedIndex < entities.length) {
-          const id = entities[focusedIndex]!.id
-          onSelect(id === selectedId ? null : id)
-        }
-      } else if (event.key === 'Escape') {
-        event.preventDefault()
-        onSelect(null)
-        setFocusedIndex(-1)
-      }
-    },
-    [entities, focusedIndex, onSelect, selectedId],
-  )
+  const { focusedIndex, setFocusedIndex, onKeyDown: handleKeyDown } = useGraphKeyboardNav({
+    entities,
+    selectedId,
+    onSelect,
+  })
 
   const handleNodeMouseDown = useCallback(
     (event: React.MouseEvent, entity: Entity) => {
@@ -329,7 +304,7 @@ export default function GraphView({
       setFocusedIndex(index)
       onSelect(entity.id === selectedId ? null : entity.id)
     },
-    [onSelect, selectedId],
+    [onSelect, selectedId, setFocusedIndex],
   )
 
   const handleBackgroundClick = useCallback(() => {
@@ -387,29 +362,31 @@ export default function GraphView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphMode, neighborsQuery.isError])
 
-  // In completo mode, the empty state means "there are no entities at all".
-  // In exploratorio mode there are several "empty" possibilities:
-  //   - the trama is genuinely empty → show EmptyState (no neighbors anyway)
-  //   - the focus id is stale (entity was deleted) → reset focus
-  //   - the neighbors query is still loading → silent (the SVG renders nothing
-  //     for a moment, harmless)
+  // Empty state: en modo "completo" sin entidades, mostramos el EmptyState
+  // global. En "exploratorio" sin entidades pasa lo mismo (no hay focus
+  // candidato). Los otros casos (focus null, focus stale) se manejan con
+  // los effects de auto-pick / clear de arriba.
   if (graphMode === 'completo' && allEntities.length === 0) {
     return <EmptyState />
   }
-  if (graphMode === 'exploratorio') {
-    if (allEntities.length === 0) return <EmptyState />
-    if (!focusId) {
-      // Auto-pick once we have data.
-      // The setFocusId is safe to call inside render? No — defer.
-      // Show a tiny "choose a starting point" hint.
-    } else if (neighborsQuery.isError) {
-      // Probably the focus was deleted. Try to recover by clearing focus.
-      // Keep the toolbar visible so the user can switch modes.
-    }
+  if (graphMode === 'exploratorio' && allEntities.length === 0) {
+    return <EmptyState />
   }
 
   const cursorStyle: CSSProperties = { cursor: pz.isPanning ? 'grabbing' : 'grab' }
-  const focusedEntity = focusedIndex >= 0 ? entities[focusedIndex] : null
+  const showExploreHint =
+    graphMode === 'completo' &&
+    !exploreHintDismissed &&
+    allEntities.length > EXPLORE_HINT_THRESHOLD
+  const useWebGl =
+    graphMode === 'completo' && entities.length >= WEBGL_THRESHOLD
+
+  function dismissExploreHint() {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(GRAPH_EXPLORE_HINT_DISMISSED, '1')
+    }
+    setExploreHintDismissed(true)
+  }
 
   return (
     <div className="relative h-full w-full">
@@ -436,84 +413,30 @@ export default function GraphView({
         focusSelectedDisabled={!selectedId || selectedId === focusId}
       />
 
-      {graphMode === 'completo' &&
-        !exploreHintDismissed &&
-        allEntities.length > EXPLORE_HINT_THRESHOLD && (
-          <div className="pointer-events-none absolute top-16 inset-x-0 z-10 flex justify-center px-3">
-            <div
-              className="pointer-events-auto flex items-start gap-3 pl-3 pr-1.5 py-2 bg-paper-50/95 border border-ink-100/70 rounded-lg text-xs text-ink-600 shadow-md max-w-md leading-snug"
-              role="status"
-            >
-              <span className="flex-1">
-                Tu trama ya pesa {allEntities.length.toLocaleString('es')} entidades.
-                Probá <strong className="text-ink-700">explorar</strong> en la
-                toolbar — pinta solo el vecindario del nodo focal y se siente
-                más liviano.
-              </span>
-              <button
-                onClick={() => {
-                  setGraphMode('exploratorio')
-                  if (typeof window !== 'undefined') {
-                    window.localStorage.setItem(GRAPH_EXPLORE_HINT_DISMISSED, '1')
-                  }
-                  setExploreHintDismissed(true)
-                }}
-                className="shrink-0 px-2 py-0.5 rounded text-micro uppercase tracking-eyebrow text-ink-700 hover:bg-ink-50 transition-colors"
-              >
-                cambiar
-              </button>
-              <button
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.localStorage.setItem(GRAPH_EXPLORE_HINT_DISMISSED, '1')
-                  }
-                  setExploreHintDismissed(true)
-                }}
-                aria-label="No recordar"
-                className="shrink-0 p-1 -m-0.5 text-ink-300 hover:text-ink-700 rounded transition-colors"
-              >
-                <CloseIcon size={12} />
-              </button>
-            </div>
-          </div>
-        )}
+      {showExploreHint && (
+        <GraphExploreHint
+          entityCount={allEntities.length}
+          onSwitch={() => {
+            setGraphMode('exploratorio')
+            dismissExploreHint()
+          }}
+          onDismiss={dismissExploreHint}
+        />
+      )}
 
       {(suggest.error || suggestEmpty) && (
-        <div className="pointer-events-none absolute top-16 inset-x-0 z-10 flex justify-center px-3">
-          <div
-            className={
-              suggest.error
-                ? 'alert-error pointer-events-auto flex items-start gap-2 pl-3 pr-1.5 py-1.5 text-xs shadow-md max-w-xs'
-                : 'pointer-events-auto flex items-start gap-2 pl-3 pr-1.5 py-1.5 bg-paper-50/95 border border-ink-100/70 rounded-lg text-xs text-ink-500 shadow-md max-w-xs leading-snug'
-            }
-            role="status"
-          >
-            <span className="flex-1">
-              {suggest.error
-                ? suggest.error.message
-                : 'Sin relaciones nuevas obvias. Añade citas o descripciones para darle más contexto.'}
-            </span>
-            <button
-              onClick={() => {
-                setSuggestEmpty(false)
-                if (suggest.error) suggest.reset()
-              }}
-              aria-label="Cerrar aviso"
-              className={
-                suggest.error
-                  ? 'shrink-0 p-1 -m-0.5 text-red-600 hover:text-red-900 rounded transition-colors'
-                  : 'shrink-0 p-1 -m-0.5 text-ink-300 hover:text-ink-700 rounded transition-colors'
-              }
-            >
-              <CloseIcon size={12} />
-            </button>
-          </div>
-        </div>
+        <GraphSuggestStatusBanner
+          error={suggest.error ?? null}
+          onClose={() => {
+            setSuggestEmpty(false)
+            if (suggest.error) suggest.reset()
+          }}
+        />
       )}
 
       {/* Renderer switch: WebGL via sigma cuando entidades ≥ 1000 en modo
           completo. Para subgrafos (exploratorio) y trama chica, SVG. */}
-      {graphMode === 'completo' && entities.length >= WEBGL_THRESHOLD ? (
+      {useWebGl ? (
         <Suspense
           fallback={
             <div className="h-full flex items-center justify-center">
@@ -530,132 +453,41 @@ export default function GraphView({
           />
         </Suspense>
       ) : (
-      <svg
-        ref={svgRef}
-        className="w-full h-full"
-        style={cursorStyle}
-        tabIndex={0}
-        role="application"
-        aria-label={`Grafo de afinidades. ${entities.length} entidades, ${relationships.length} relaciones. Modo ${mode}. Usa las flechas para navegar, Enter para seleccionar, Escape para deseleccionar.`}
-        aria-activedescendant={focusedEntity ? `graph-node-${focusedEntity.id}` : undefined}
-        onMouseDown={pz.onMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onClick={handleBackgroundClick}
-        onWheel={pz.onWheel}
-        onKeyDown={handleKeyDown}
-      >
-        <defs>
-          <pattern id="paperDots" width="28" height="28" patternUnits="userSpaceOnUse">
-            <circle cx="14" cy="14" r="0.7" fill="var(--dot)" opacity="0.55" />
-          </pattern>
-          <marker id="edgeArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-2)" opacity="0.5" />
-          </marker>
-          <marker id="edgeArrowAi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="#7AA7C7" opacity="0.6" />
-          </marker>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#paperDots)" />
-        <g
-          transform={`translate(${svgSize.width / 2} ${svgSize.height / 2}) scale(${pz.zoom}) translate(${pz.pan.x} ${pz.pan.y})`}
-        >
-          {/* ζ6: cluster annotations. Labels gigantes traslúcidos en serif
-              italic atrás de cada grupo en modo by-type. El grafo se
-              autocomenta: "estos son tus libros", "estos tus filósofos".
-              Renderizado ANTES de los edges para que quede debajo. */}
-          {clusterCentroids && clusterCentroids.map(({ type, label, cx, cy }) => (
-            <text
-              key={`cluster-${type}`}
-              x={cx}
-              y={cy}
-              textAnchor="middle"
-              fontSize={64}
-              fontFamily="Spectral, Iowan Old Style, Palatino, Georgia, serif"
-              fontStyle="italic"
-              fontWeight={300}
-              fill="var(--ink)"
-              fillOpacity={0.06}
-              style={{ userSelect: 'none', pointerEvents: 'none', textTransform: 'lowercase' }}
-            >
-              {label}
-            </text>
-          ))}
-          {relationships.map((rel) => (
-            <GraphEdge
-              key={rel.id}
-              rel={rel}
-              from={positions.get(rel.fromId)}
-              to={positions.get(rel.toId)}
-              highlighted={selectedId === rel.fromId || selectedId === rel.toId}
-              dimmed={
-                selectedId !== null &&
-                selectedId !== rel.fromId &&
-                selectedId !== rel.toId
-              }
-              fresh={freshRels.has(rel.id)}
-              layoutMode={mode}
-            />
-          ))}
-          {entities.map((entity, index) => {
-            const pos = positions.get(entity.id)
-            if (!pos) return null
-            const isSelected = entity.id === selectedId
-            const isFocused = index === focusedIndex
-            const isDimmed =
-              selectedId !== null &&
-              !isSelected &&
-              !relationships.some(
-                (r) =>
-                  (r.fromId === selectedId && r.toId === entity.id) ||
-                  (r.toId === selectedId && r.fromId === entity.id),
-              )
-            return (
-              <GraphNode
-                key={entity.id}
-                entity={entity}
-                x={pos.x}
-                y={pos.y}
-                isSelected={isSelected}
-                isFocused={isFocused}
-                isDimmed={isDimmed}
-                isFresh={freshEntities.has(entity.id)}
-                connectionCount={connectionCount.get(entity.id) ?? 0}
-                onMouseDown={(event) => handleNodeMouseDown(event, entity)}
-                onClick={(event) => handleNodeClick(event, entity, index)}
-                onHoverStart={() => scheduleHover(entity.id)}
-                onHoverEnd={cancelHover}
-              />
-            )
-          })}
-          {/* ζ5: hover preview card — al final del grupo así queda encima
-              de todos los nodos. Solo render si hay hover Y la entidad
-              existe en positions. */}
-          {hoveredEntityId && (() => {
-            const ent = entities.find((e) => e.id === hoveredEntityId)
-            const pos = positions.get(hoveredEntityId)
-            if (!ent || !pos) return null
-            return (
-              <HoverPreviewCard
-                entity={ent}
-                posX={pos.x}
-                posY={pos.y}
-                connectionCount={connectionCount.get(ent.id) ?? 0}
-              />
-            )
-          })()}
-        </g>
-      </svg>
+        <GraphSvgCanvas
+          svgRef={svgRef}
+          svgSize={svgSize}
+          cursorStyle={cursorStyle}
+          pan={pz.pan}
+          zoom={pz.zoom}
+          mode={mode}
+          entities={entities}
+          relationships={relationships}
+          positions={positions}
+          selectedId={selectedId}
+          focusedIndex={focusedIndex}
+          freshEntities={freshEntities}
+          freshRels={freshRels}
+          connectionCount={connectionCount}
+          clusterCentroids={clusterCentroids}
+          hoveredEntityId={hoveredEntityId}
+          onSvgMouseDown={pz.onMouseDown}
+          onSvgMouseMove={handleMouseMove}
+          onSvgMouseUp={handleMouseUp}
+          onSvgWheel={pz.onWheel}
+          onBackgroundClick={handleBackgroundClick}
+          onKeyDown={handleKeyDown}
+          onNodeMouseDown={handleNodeMouseDown}
+          onNodeClick={handleNodeClick}
+          onNodeHoverStart={scheduleHover}
+          onNodeHoverEnd={cancelHover}
+        />
       )}
 
       {/* π2: minimap. Solo visible con >100 nodos — con pocas entidades el
           grafo entra entero en pantalla y el minimap es chrome. Se oculta
           en modo Sigma (WebGL) porque el pan/zoom no pasa por usePanZoom
           ahí; añadir un minimap-Sigma es scope aparte. */}
-      {!(graphMode === 'completo' && entities.length >= WEBGL_THRESHOLD) &&
-        entities.length > 100 &&
-        svgSize.width > 0 && (
+      {!useWebGl && entities.length > 100 && svgSize.width > 0 && (
         <div className="absolute bottom-3 left-3 z-10 animate-fade-up">
           <GraphMinimap
             entities={entities}

@@ -28,10 +28,11 @@ export default withObservability(
     const id = context.params.id
     if (!id) return ApiErrors.validation(requestId, 'id requerido')
 
-    const budgetExceeded = await checkMonthlyBudget()
+    const { id: userId } = await getAuthedUser(req)
+
+    const budgetExceeded = await checkMonthlyBudget(userId)
     if (budgetExceeded) return budgetExceeded
 
-    const { id: userId } = await getAuthedUser(req)
     const sql = getSql()
 
     type Row = {
