@@ -21,13 +21,12 @@
  */
 
 import { getSql } from '../db.js'
+import { getEnv } from '../env.js'
 import type { LLMResult } from './types.js'
 
 function dbCacheEnabled(): boolean {
-  // Default ON. Para deshabilitar setear AI_DB_CACHE_ENABLED=false.
-  const raw = Netlify.env.get('AI_DB_CACHE_ENABLED')
-  if (!raw) return true
-  return raw.toLowerCase() !== 'false' && raw !== '0'
+  // O1: getEnv() ya aplica la semántica "default ON, opt-out con false/0/off".
+  return getEnv().AI_DB_CACHE_ENABLED
 }
 
 type DbRow = {

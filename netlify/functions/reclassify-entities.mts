@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import {
@@ -46,16 +46,16 @@ export default withObservability(
     type TypeRow = { slug: string; label: string }
 
     const [entityRows, quoteRows, typeRows] = await Promise.all([
-      sql`SELECT id, name, type, year, description
+      sqlTyped<EntityRow>(sql`SELECT id, name, type, year, description
           FROM entities
           WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY created_at DESC
-          LIMIT ${MAX_ENTITIES}` as unknown as Promise<EntityRow[]>,
-      sql`SELECT entity_id, text
+          LIMIT ${MAX_ENTITIES}`),
+      sqlTyped<QuoteRow>(sql`SELECT entity_id, text
           FROM quotes
           WHERE deleted_at IS NULL AND user_id = ${userId}
-          ORDER BY created_at DESC` as unknown as Promise<QuoteRow[]>,
-      sql`SELECT slug, label FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
+          ORDER BY created_at DESC`),
+      sqlTyped<TypeRow>(sql`SELECT slug, label FROM entity_types ORDER BY sort_order, slug`),
     ])
 
     if (entityRows.length === 0 || typeRows.length === 0) {

@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildExtractionPrompt } from './_lib/extract-prompt.js'
@@ -49,9 +49,9 @@ export default withObservability('extract', async (req: Request, _context: Conte
 
   // Fetch context: valid type slugs and existing entities.
   const [entityTypeRows, relTypeRows, existing] = await Promise.all([
-    sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<Array<{ slug: string }>>,
-    sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<Array<{ slug: string }>>,
-    sql`SELECT id, name, type FROM entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at DESC LIMIT 500` as unknown as Promise<Array<{ id: string; name: string; type: string }>>,
+    sqlTyped<{ slug: string }>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
+    sqlTyped<{ slug: string }>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
+    sqlTyped<{ id: string; name: string; type: string }>(sql`SELECT id, name, type FROM entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at DESC LIMIT 500`),
   ])
 
   const entityTypes = entityTypeRows.length > 0

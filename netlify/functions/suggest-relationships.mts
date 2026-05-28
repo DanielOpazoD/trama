@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import {
@@ -63,21 +63,21 @@ export default withObservability(
     type RelRow = { from_name: string; to_name: string; type: string }
 
     const [entityRows, quoteRows, relRows, relTypeRows] = await Promise.all([
-      sql`SELECT id, name, type, year, description
+      sqlTyped<EntityRow>(sql`SELECT id, name, type, year, description
           FROM entities
           WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY created_at DESC
-          LIMIT ${MAX_ENTITIES}` as unknown as Promise<EntityRow[]>,
-      sql`SELECT entity_id, text
+          LIMIT ${MAX_ENTITIES}`),
+      sqlTyped<QuoteRow>(sql`SELECT entity_id, text
           FROM quotes
           WHERE deleted_at IS NULL AND user_id = ${userId}
-          ORDER BY created_at DESC` as unknown as Promise<QuoteRow[]>,
-      sql`SELECT ef.name AS from_name, et.name AS to_name, r.type
+          ORDER BY created_at DESC`),
+      sqlTyped<RelRow>(sql`SELECT ef.name AS from_name, et.name AS to_name, r.type
           FROM relationships r
           JOIN entities ef ON ef.id = r.from_id
           JOIN entities et ON et.id = r.to_id
-          WHERE r.deleted_at IS NULL AND r.user_id = ${userId}` as unknown as Promise<RelRow[]>,
-      sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<Array<{ slug: string }>>,
+          WHERE r.deleted_at IS NULL AND r.user_id = ${userId}`),
+      sqlTyped<{ slug: string }>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
     ])
 
     if (entityRows.length < 2) {

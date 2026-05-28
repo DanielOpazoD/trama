@@ -13,6 +13,7 @@
  */
 
 import type { LLMProvider, ProviderConfig } from './types.js'
+import { getEnv } from '../env.js'
 
 export const PROVIDER_DEFAULTS: Record<LLMProvider, ProviderConfig> = {
   deepseek: {
@@ -54,7 +55,8 @@ const PROVIDER_KEY_ENV: Record<LLMProvider, string> = {
 }
 
 export function readProvider(): LLMProvider {
-  const raw = (Netlify.env.get('AI_PROVIDER') ?? 'deepseek').toLowerCase()
+  // O1: via getEnv() (default 'deepseek' lo da el schema).
+  const raw = getEnv().AI_PROVIDER.toLowerCase()
   if (raw === 'openai' || raw === 'gemini' || raw === 'anthropic' || raw === 'deepseek') {
     return raw
   }
@@ -65,13 +67,28 @@ export function readProvider(): LLMProvider {
  * Resolve the API key for a given provider. El canonical env var se
  * intenta primero; AI_API_KEY actúa de fallback para non-deepseek
  * providers (DeepSeek YA usa AI_API_KEY como canonical).
+ *
+ * Nota O1: las provider keys (ANTHROPIC_API_KEY / GEMINI_API_KEY) son
+ * "dinámicas" desde la perspectiva del schema env.ts (construidas en
+ * runtime a partir de PROVIDER_KEY_ENV). Por eso seguimos leyendo con
+ * Netlify.env.get directo para ESAS dos; el resto (AI_API_KEY,
+ * OPENAI_API_KEY, AI_PROVIDER) sí pasan por el schema tipado.
  */
 export function readApiKeyFor(provider: LLMProvider): string {
   const canonical = PROVIDER_KEY_ENV[provider]
-  const specific = Netlify.env.get(canonical)
+  const env = getEnv()
+  // AI_API_KEY y OPENAI_API_KEY están en el schema; las leemos tipadas.
+  // ANTHROPIC_API_KEY / GEMINI_API_KEY son "dinámicas" — caen al
+  // Netlify.env.get directo.
+  const specific =
+    canonical === 'AI_API_KEY'
+      ? env.AI_API_KEY
+      : canonical === 'OPENAI_API_KEY'
+        ? env.OPENAI_API_KEY
+        : Netlify.env.get(canonical)
   if (specific) return specific
   if (provider !== 'deepseek') {
-    const fallback = Netlify.env.get('AI_API_KEY')
+    const fallback = env.AI_API_KEY
     if (fallback) return fallback
   }
   throw new Error(
@@ -92,12 +109,16 @@ export function readApiKeyFor(provider: LLMProvider): string {
  * vision.
  */
 export function readVisionProvider(): { provider: 'openai' | 'gemini'; apiKey: string } {
-  const visionOverride = Netlify.env.get('AI_VISION_PROVIDER')?.toLowerCase()
+  const env = getEnv()
+  const visionOverride = env.AI_VISION_PROVIDER?.toLowerCase()
   if (visionOverride === 'openai' || visionOverride === 'gemini') {
-    const key =
-      Netlify.env.get('AI_VISION_API_KEY') ??
-      Netlify.env.get(PROVIDER_KEY_ENV[visionOverride]) ??
-      Netlify.env.get('AI_API_KEY')
+    // AI_VISION_API_KEY y OPENAI_API_KEY del schema; GEMINI_API_KEY queda
+    // como dinámica (Netlify.env.get directo) — ver readApiKeyFor.
+    const visionProviderKey =
+      visionOverride === 'openai'
+        ? env.OPENAI_API_KEY
+        : Netlify.env.get(PROVIDER_KEY_ENV[visionOverride])
+    const key = env.AI_VISION_API_KEY ?? visionProviderKey ?? env.AI_API_KEY
     if (!key) {
       throw new Error(
         `AI_VISION_PROVIDER=${visionOverride} pero no hay key disponible ` +
@@ -122,15 +143,14 @@ export function readVisionProvider(): { provider: 'openai' | 'gemini'; apiKey: s
 }
 
 export function readMaxTokens(): number {
-  const raw = Netlify.env.get('AI_MAX_TOKENS')
-  const n = raw ? parseInt(raw, 10) : NaN
-  return Number.isFinite(n) && n > 0 ? n : 4096
+  // O1: getEnv() ya parsea string → number con validación.
+  const v = getEnv().AI_MAX_TOKENS
+  return typeof v === 'number' && v > 0 ? v : 4096
 }
 
 export function readCacheTtlSeconds(): number {
-  const raw = Netlify.env.get('AI_CACHE_TTL_SECONDS')
-  const n = raw ? parseInt(raw, 10) : NaN
-  return Number.isFinite(n) && n >= 0 ? n : 600
+  const v = getEnv().AI_CACHE_TTL_SECONDS
+  return typeof v === 'number' && v >= 0 ? v : 600
 }
 
 export function computeCostCents(
