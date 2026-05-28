@@ -338,7 +338,7 @@ function ItemRow({ item, query }: { item: Item; query: string }) {
     return (
       <>
         <span
-          className="size-[14px] inline-flex items-center justify-center rounded text-[14px] leading-none font-medium shrink-0"
+          className="size-3.5 inline-flex items-center justify-center rounded text-body leading-none font-medium shrink-0"
           style={{ color: 'var(--accent-primary)' }}
           aria-hidden
         >

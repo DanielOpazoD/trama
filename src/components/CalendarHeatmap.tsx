@@ -187,6 +187,11 @@ export function CalendarHeatmap({
         </p>
       </header>
 
+      {/* Excepción documentada al sistema de type scale (filosofía §4.1):
+          los ticks del heatmap usan text-[9px] mono — el `text-micro` (10px)
+          rompe la altura de cada celda (11px) y desalinea labels con grid.
+          Es metadata técnica densa, no UI textual. Acotado a CalendarHeatmap +
+          PlaysTiming. NO replicar este patrón en cards o forms. */}
       <div className="flex gap-3">
         {/* Columna de etiquetas de día — solo cada otro para ahorrar espacio */}
         <div className="flex flex-col gap-[3px] pt-[18px] shrink-0">
@@ -203,7 +208,7 @@ export function CalendarHeatmap({
         {/* Grid */}
         <div className="flex-1 overflow-x-auto">
           <div className="inline-flex flex-col gap-1">
-            {/* Labels de mes */}
+            {/* Labels de mes — mismo text-[9px] que día (ver nota arriba). */}
             <div className="flex gap-[3px] h-[15px]">
               {monthLabels.map((label, i) => (
                 <span

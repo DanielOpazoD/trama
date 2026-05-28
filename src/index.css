@@ -1072,6 +1072,31 @@ html.dark .paper-grain::before {
     box-shadow: var(--card-shadow-hover);
   }
 
+  /* τ1: card-paper-soft — panel inline sin elevación. El paper-100/60
+     le da textura cromática sutil sobre el background sin necesitar
+     shadow. Para info-banners, formularios pequeños, paneles que viven
+     dentro de una vista (no flotan). Es la variante "vive en el flujo"
+     de la card.
+
+     Diferencia clave:
+       - .card-paper        → row de lista (bg-paper-50/40, opacidad MUY baja)
+       - .card-paper-hover  → row clickeable (con tilt + shadow al hover)
+       - .card-paper-elevated → flota sobre el flujo con shadow tintada
+       - .card-paper-soft   → panel inline, ni row ni elevado (bg-paper-100/60)
+   */
+  .card-paper-soft {
+    @apply bg-paper-100/60 border border-ink-100/60 rounded-xl;
+  }
+
+  /* τ1: card-segment — contenedor de tab strip / segmented control.
+     Padding chico (p-1), border más sutil (ink-100/50), radius lg en
+     vez de xl, w-fit por default (los tabs adentro tienen su propio
+     ancho). Usar para grupos de 2-4 botones que actúan como una sola
+     unidad de elección. */
+  .card-segment {
+    @apply bg-paper-100/60 rounded-lg border border-ink-100/50 p-1 w-fit;
+  }
+
   /* ζ8: .bubble-paper — fondo de bubble del assistant. Combina:
        1. background-color paper-100/55 (tone cálido sutil)
        2. textura noise SVG inline via data-URI — un patrón de fibra

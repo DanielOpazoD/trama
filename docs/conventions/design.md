@@ -88,4 +88,16 @@ Después del sprint δ varias técnicas pasaron a ser el patrón estándar para 
 
 **`.section-eyebrow-serif`** (`src/index.css`) — para eyebrows editoriales de alta carga visual (cita destacada, ornaments). Spectral con `font-variant-caps: small-caps` + `text-transform: lowercase`, tracking 0.08em. Reemplaza el patrón `text-micro uppercase tracking-eyebrow` cuando querés algo MÁS refinado y MENOS shouty. Nota: Spectral en Google Fonts NO trae glyphs smcp reales; el browser los sintetiza (decente, no perfecto). Si fuera crítico, importar Spectral con `&display=swap&text=…` específico — pero no vale la pena hoy.
 
+**Card variants (τ1)** — el sistema tiene 4 sabores de card, no inventés otros:
+
+| Utility                | Cuándo                                                                                                                      |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `.card-paper`          | Row de lista plana, sin interactividad. `bg-paper-50/40 + border-ink-100/50 + rounded-xl`.                                  |
+| `.card-paper-hover`    | Row clickeable. Suma micro-tilt 0.4° + shadow tintada al hover. Respeta `prefers-reduced-motion`.                           |
+| `.card-paper-elevated` | Card que "flota" (hero, panel prominente). Shadow estática + bg-paper-50/70.                                                |
+| `.card-paper-soft`     | Panel inline sin elevación (info-banners, formularios pequeños, gates). `bg-paper-100/60 + border-ink-100/60 + rounded-xl`. |
+| `.card-segment`        | Tab strip / segmented control. `bg-paper-100/60 + p-1 + rounded-lg + border-ink-100/50 + w-fit`.                            |
+
+Si encontrás `bg-paper-100/60 border border-ink-100/60 rounded-xl` escrito a mano, es `.card-paper-soft`. Si encontrás `flex p-1 bg-paper-100/60 rounded-lg border border-ink-100/50 w-fit`, es `.card-segment`.
+
 **Acknowledged-but-active pattern (γ3)** — para indicadores que avisan de algo (dot rojo de health alerts) Y que el usuario puede "reconocer" sin resolver. La función `acknowledgeHealthAlerts(codes)` se llama al abrir Settings; persiste los códigos vistos en localStorage. Si un código NUEVO aparece después, vuelve a iluminar. Si una alerta se va y vuelve (mismo código), también re-aparece — el set se REEMPLAZA por completo, no se acumula. Replicable para cualquier sistema de "notificación que el usuario puede silenciar hasta que cambie".

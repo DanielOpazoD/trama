@@ -153,7 +153,7 @@ export function EntitiesView({
         </div>
       )}
       {emptyHint && !reclassify.isPending && (
-        <div className="mb-6 px-4 py-3 bg-paper-100/60 border border-ink-100/60 rounded-xl text-sm text-ink-500 leading-relaxed">
+        <div className="card-paper-soft mb-6 px-4 py-3 text-sm text-ink-500 leading-relaxed">
           La IA no encontró mejores clasificaciones. Si hay alguna entidad obviamente mal
           tipada, puedes corregirla a mano (próximamente desde el detalle).
         </div>

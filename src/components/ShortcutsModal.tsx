@@ -103,7 +103,7 @@ export function ShortcutsModal({
             <div className="text-ink-300">
               <OrnamentBreak size={40} />
             </div>
-            <h2 className="font-serif text-[28px] text-ink-800 leading-tight tracking-tight">
+            <h2 className="font-serif text-h1 text-ink-800 leading-tight tracking-tight">
               Atajos de teclado
             </h2>
             <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>

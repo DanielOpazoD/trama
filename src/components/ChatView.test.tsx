@@ -56,4 +56,81 @@ describe('<ChatView />', () => {
       expect(screen.getByRole('button', { name: /\+ nueva/i })).toBeInTheDocument()
     })
   })
+
+  /**
+   * Regresión: el header del pane de conversación es una excepción
+   * deliberada al patrón `<ViewHeader />` (ver
+   * docs/conventions/filosofia-estetica.md §6.2). Su título cambia con
+   * `activeThread.title` y el subtítulo con
+   * `threadSubtitle(activeThread.context)`. Estos dos tests blindan esa
+   * propiedad — si alguien lo normaliza a un ViewHeader con título
+   * fijo "Chat", fallan.
+   */
+  describe('header de conversación (excepción a ViewHeader, filosofía §6.2)', () => {
+    it('h2 del pane muestra el título del hilo activo (no un título fijo)', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: string | Request | URL) => {
+          const url = String(input)
+          if (url.includes('/api/chat/threads')) {
+            return jsonResp([
+              {
+                id: 'thread-1',
+                title: 'Mi conversación específica',
+                context: null,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              },
+            ])
+          }
+          if (url.includes('/api/chat/messages')) {
+            return jsonResp([])
+          }
+          return jsonResp([])
+        }),
+      )
+      renderWithProviders(
+        <ChatView initialThreadId="thread-1" onConsumedInitialThread={() => {}} />,
+      )
+      await waitFor(() => {
+        expect(
+          screen.getByRole('heading', {
+            level: 2,
+            name: /mi conversación específica/i,
+          }),
+        ).toBeInTheDocument()
+      })
+    })
+
+    it('subtítulo se deriva de threadSubtitle(activeThread.context)', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: string | Request | URL) => {
+          const url = String(input)
+          if (url.includes('/api/chat/threads')) {
+            return jsonResp([
+              {
+                id: 'thread-2',
+                title: 'Sobre citas',
+                context: 'citas',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              },
+            ])
+          }
+          if (url.includes('/api/chat/messages')) {
+            return jsonResp([])
+          }
+          return jsonResp([])
+        }),
+      )
+      renderWithProviders(
+        <ChatView initialThreadId="thread-2" onConsumedInitialThread={() => {}} />,
+      )
+      // threadSubtitle('citas') → "Iniciado desde Citas."
+      await waitFor(() => {
+        expect(screen.getByText(/iniciado desde citas/i)).toBeInTheDocument()
+      })
+    })
+  })
 })

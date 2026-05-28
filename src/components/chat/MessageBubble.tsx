@@ -25,7 +25,7 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
         className={
           isUser
             ? 'self-end max-w-[75%] px-3 py-2 bg-ink-700 text-paper-50 rounded-xl rounded-br-md text-sm leading-relaxed whitespace-pre-wrap'
-            : 'max-w-[80%] px-4 py-3 bubble-paper border border-ink-100/50 text-ink-700 rounded-xl rounded-bl-md font-serif text-[15px] leading-relaxed'
+            : 'max-w-[80%] px-4 py-3 bubble-paper border border-ink-100/50 text-ink-700 rounded-xl rounded-bl-md font-serif text-lead leading-relaxed'
         }
       >
         <div className="whitespace-pre-wrap">{message.content}</div>

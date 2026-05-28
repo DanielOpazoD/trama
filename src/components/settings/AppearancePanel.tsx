@@ -18,7 +18,7 @@ export function AppearancePanel({
         title="Apariencia"
         hint="Papel para el día. Noche para luz baja. Vela para lectura nocturna con tinte cálido. La elección se recuerda en este navegador."
       />
-      <div className="flex gap-2 p-1 bg-paper-100/60 rounded-lg border border-ink-100/50 w-fit">
+      <div className="card-segment flex gap-2">
         <button
           onClick={() => onSetTheme('paper')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-all duration-150 ${

@@ -59,10 +59,9 @@ export function EntityHeader({
             </span>
           )}
         </p>
-        {/* Nombre serif más grande ahora que el panel es más ancho. 28px
-            con leading apretado para que un nombre largo entre en una o
-            dos líneas elegantes. */}
-        <h2 className="font-serif text-[28px] text-ink-800 leading-[1.15] tracking-tight break-words">
+        {/* Nombre serif text-h1 (32px) con leading apretado para que un
+            nombre largo entre en una o dos líneas elegantes. */}
+        <h2 className="font-serif text-h1 text-ink-800 leading-[1.15] tracking-tight break-words">
           {entity.name}
         </h2>
         {entity.spotifyUrl && (

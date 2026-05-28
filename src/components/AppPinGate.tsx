@@ -120,7 +120,7 @@ function PinScreen({ onUnlock }: { onUnlock: () => void }) {
     >
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm p-7 bg-paper-100/60 border border-ink-100/60 rounded-xl space-y-5"
+        className="card-paper-soft w-full max-w-sm p-7 space-y-5"
       >
         <div className="text-center space-y-2">
           <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
