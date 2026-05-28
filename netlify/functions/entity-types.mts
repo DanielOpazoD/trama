@@ -4,7 +4,18 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { EntityTypeUpsertBody } from './_lib/admin-schemas.js'
+import { getAuthedUser } from './_lib/auth.js'
 
+/**
+ * Catálogo global de tipos de entidad. GET es público (la lista de slugs
+ * no es información sensible — la usa cualquier select del frontend).
+ * POST y DELETE requieren auth: cualquier usuario autenticado puede
+ * mantener el catálogo, pero un request anónimo no debe poder editarlo.
+ *
+ * Multi-user nota: hoy el catálogo es global compartido — un user no
+ * "tiene su catálogo". Si en el futuro se quiere per-user, hay que
+ * migrar a (user_id, slug) y filtrar por user_id en el check de uso.
+ */
 export default withObservability('entity-types', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
   const slug = context.params.slug
@@ -18,6 +29,7 @@ export default withObservability('entity-types', async (req: Request, context: C
   }
 
   if (req.method === 'POST') {
+    await getAuthedUser(req)
     const parsed = await parseJsonBody(req, EntityTypeUpsertBody, requestId)
     if (!parsed.ok) return parsed.response
     const body = parsed.data
@@ -33,6 +45,7 @@ export default withObservability('entity-types', async (req: Request, context: C
   }
 
   if (req.method === 'DELETE' && slug) {
+    await getAuthedUser(req)
     // Check if any entity uses this type before allowing delete.
     const usage = (await sql`
       SELECT COUNT(*) AS n FROM entities WHERE type = ${slug} AND deleted_at IS NULL

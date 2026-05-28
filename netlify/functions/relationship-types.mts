@@ -4,7 +4,13 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { RelationshipTypeUpsertBody } from './_lib/admin-schemas.js'
+import { getAuthedUser } from './_lib/auth.js'
 
+/**
+ * Catálogo global de tipos de relación. Mismo patrón que entity-types:
+ * GET público, POST/DELETE con auth. Ver entity-types.mts para la
+ * justificación del modelo global.
+ */
 export default withObservability('relationship-types', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
   const slug = context.params.slug
@@ -18,6 +24,7 @@ export default withObservability('relationship-types', async (req: Request, cont
   }
 
   if (req.method === 'POST') {
+    await getAuthedUser(req)
     const parsed = await parseJsonBody(req, RelationshipTypeUpsertBody, requestId)
     if (!parsed.ok) return parsed.response
     const body = parsed.data
@@ -34,6 +41,7 @@ export default withObservability('relationship-types', async (req: Request, cont
   }
 
   if (req.method === 'DELETE' && slug) {
+    await getAuthedUser(req)
     const usage = (await sql`
       SELECT COUNT(*) AS n FROM relationships WHERE type = ${slug} AND deleted_at IS NULL
     `) as Array<{ n: string }>
