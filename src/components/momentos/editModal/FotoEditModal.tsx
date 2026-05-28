@@ -91,6 +91,8 @@ export function FotoEditModal({
         if (it.kind === 'new') URL.revokeObjectURL(it.previewUrl)
       }
     }
+    // Deps vacías a propósito: el teardown se registra una vez y corre al
+    // desmontar el modal (no es reactivo a cambios de `items`).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

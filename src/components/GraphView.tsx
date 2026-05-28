@@ -366,6 +366,8 @@ export default function GraphView({
     if (allEntities.length === 0) return
     const candidate = selectedId ?? allEntities[0]?.id
     if (candidate) setFocusId(candidate)
+    // selectedId se omite a propósito: solo auto-elegimos foco al entrar al
+    // modo / quedar sin foco / cargar entidades, no en cada cambio de selección.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphMode, focusId, allEntities])
 
@@ -375,6 +377,7 @@ export default function GraphView({
     if (graphMode !== 'exploratorio') return
     if (!neighborsQuery.isError) return
     setFocusId(null)
+    // setFocusId es un setter estable de useState; se omite de las deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphMode, neighborsQuery.isError])
 

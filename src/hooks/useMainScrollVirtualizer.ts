@@ -66,6 +66,9 @@ export function useMainScrollVirtualizer<TElement extends HTMLElement = HTMLDivE
     const scrollRect = scrollEl.getBoundingClientRect()
     const margin = listRect.top - scrollRect.top + scrollEl.scrollTop
     setScrollMargin(margin)
+    // `deps` las provee el caller (re-mide el margen cuando el contenido que
+    // importa cambió). El efecto refleja esas deps en vez de los valores que
+    // lee (listRef es una ref; setScrollMargin es estable).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 
