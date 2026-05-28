@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildAskPrompt, type AskContext } from './_lib/ask-prompt.js'
@@ -112,13 +112,11 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
         hyde: true,
       },
     ),
-    sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
-    sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
+    sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
+    sqlTyped<TypeRow>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
     body.selectedEntityId
-      ? (sql`SELECT id, name, type, description FROM entities
-              WHERE id = ${body.selectedEntityId} AND deleted_at IS NULL` as unknown as Promise<
-          Array<{ id: string; name: string; type: string; description: string | null }>
-        >)
+      ? sqlTyped<{ id: string; name: string; type: string; description: string | null }>(sql`SELECT id, name, type, description FROM entities
+              WHERE id = ${body.selectedEntityId} AND deleted_at IS NULL`)
       : Promise.resolve([] as Array<{ id: string; name: string; type: string; description: string | null }>),
   ])
 

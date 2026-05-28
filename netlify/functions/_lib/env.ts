@@ -52,6 +52,17 @@ const boolFlag = z
   .optional()
   .transform((v) => v === 'true' || v === '1' || v === 'on')
 
+// Helper: 'false' / '0' → false; cualquier otra cosa (incluido undefined) → true.
+// Usar para flags que están ON por default (opt-out semantics).
+const boolFlagDefaultOn = z
+  .string()
+  .optional()
+  .transform((v) => {
+    if (v === undefined || v === '') return true
+    const lower = v.toLowerCase()
+    return lower !== 'false' && lower !== '0' && lower !== 'off'
+  })
+
 const EnvSchema = z.object({
   // ─── LLM ────────────────────────────────────────────────────────────
   /** Proveedor LLM por default (cuando ai_task_providers no tiene row). */
@@ -66,8 +77,9 @@ const EnvSchema = z.object({
   AI_MAX_TOKENS: optionalNumber,
   /** TTL del cache de respuestas LLM, en segundos. Default 600 (10 min). */
   AI_CACHE_TTL_SECONDS: optionalNumber,
-  /** Si true, además del cache en memoria, persistir en DB (ai_response_cache). */
-  AI_DB_CACHE_ENABLED: boolFlag,
+  /** Si true (default), además del cache en memoria, persistir en DB
+   *  (ai_response_cache). Opt-out con 'false' / '0' / 'off'. */
+  AI_DB_CACHE_ENABLED: boolFlagDefaultOn,
   /** Cap mensual de gasto LLM en centavos USD. Default 500 (=$5). */
   AI_MONTHLY_BUDGET_CENTS: optionalNumber,
 
@@ -91,6 +103,16 @@ const EnvSchema = z.object({
   // ─── Database ───────────────────────────────────────────────────────
   /** Nombre actual de la conexión Neon HTTP (post 20260518). */
   NETLIFY_DB_URL: z.string().optional(),
+
+  // ─── Spotify OAuth ──────────────────────────────────────────────────
+  /** Client ID de la app Spotify. Sin él, OAuth no inicia. */
+  SPOTIFY_CLIENT_ID: z.string().optional(),
+  /** Client secret de la app Spotify. Sin él, no podemos intercambiar
+   *  el code por tokens. */
+  SPOTIFY_CLIENT_SECRET: z.string().optional(),
+  /** URL absoluta a la que Spotify redirige tras el OAuth (debe
+   *  matchear lo registrado en la app de Spotify). */
+  SPOTIFY_REDIRECT_URI: z.string().url().optional(),
 })
 
 export type Env = z.infer<typeof EnvSchema>

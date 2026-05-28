@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { askLLMForText, askLLMForTextStreaming } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildRagContext } from './_lib/rag-context.js'
@@ -162,7 +162,7 @@ export default withObservability(
 
     if (focusEntityId) {
       ;[entityRows, relRows, quoteRows, entityTypeRows, relTypeRows] = await Promise.all([
-        sql`SELECT id, name, type, year, description
+        sqlTyped<EntityCtxRow>(sql`SELECT id, name, type, year, description
             FROM entities
             WHERE deleted_at IS NULL
               AND (id = ${focusEntityId}
@@ -171,22 +171,22 @@ export default withObservability(
                      FROM relationships
                      WHERE deleted_at IS NULL
                        AND (from_id = ${focusEntityId} OR to_id = ${focusEntityId})
-                   ))` as unknown as Promise<EntityCtxRow[]>,
-        sql`SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
+                   ))`),
+        sqlTyped<RelCtxRow>(sql`SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
             FROM relationships r
             JOIN entities ef ON ef.id = r.from_id
             JOIN entities et ON et.id = r.to_id
             WHERE r.deleted_at IS NULL
               AND (r.from_id = ${focusEntityId} OR r.to_id = ${focusEntityId})
-            ORDER BY r.created_at DESC` as unknown as Promise<RelCtxRow[]>,
-        sql`SELECT q.id, e.name AS entity_name, q.text, q.source
+            ORDER BY r.created_at DESC`),
+        sqlTyped<QuoteCtxRow>(sql`SELECT q.id, e.name AS entity_name, q.text, q.source
             FROM quotes q
             JOIN entities e ON e.id = q.entity_id
             WHERE q.deleted_at IS NULL
               AND q.entity_id = ${focusEntityId}
-            ORDER BY q.created_at DESC` as unknown as Promise<QuoteCtxRow[]>,
-        sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
-        sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
+            ORDER BY q.created_at DESC`),
+        sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
+        sqlTyped<TypeRow>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
       ])
     } else {
       const [ragCtx, eTypes, rTypes] = await Promise.all([
@@ -211,8 +211,8 @@ export default withObservability(
             hyde: true,
           },
         ),
-        sql`SELECT slug FROM entity_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
-        sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug` as unknown as Promise<TypeRow[]>,
+        sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
+        sqlTyped<TypeRow>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
       ])
       entityRows = ragCtx.entities
       relRows = ragCtx.relationships

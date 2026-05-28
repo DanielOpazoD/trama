@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -25,10 +25,10 @@ export default withObservability('counts', async (req: Request, _ctx, { requestI
   // sin badge). Cuenta sólo no-borrados — los `deleted_at IS NULL`
   // garantizan el patrón soft-delete del proyecto.
   const [eRows, qRows, rRows, mRows] = await Promise.all([
-    sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND user_id = ${userId}` as unknown as Promise<CountRow[]>,
-    sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND user_id = ${userId}` as unknown as Promise<CountRow[]>,
-    sql`SELECT COUNT(*)::text AS c FROM relationships WHERE deleted_at IS NULL AND user_id = ${userId}` as unknown as Promise<CountRow[]>,
-    sql`SELECT COUNT(*)::text AS c FROM momentos WHERE deleted_at IS NULL AND user_id = ${userId}` as unknown as Promise<CountRow[]>,
+    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND user_id = ${userId}`),
+    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND user_id = ${userId}`),
+    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM relationships WHERE deleted_at IS NULL AND user_id = ${userId}`),
+    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM momentos WHERE deleted_at IS NULL AND user_id = ${userId}`),
   ])
 
   return Response.json({

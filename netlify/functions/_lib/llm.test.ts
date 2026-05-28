@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { askLLMForJson, clearLLMCache } from './llm'
+import { resetEnvCache } from './env'
 
 function stubEnv(provider: string | undefined, apiKey: string | undefined) {
   vi.stubGlobal('Netlify', {
@@ -23,12 +24,18 @@ function mockFetch(response: Record<string, unknown>) {
 }
 
 beforeEach(() => {
+  // O1: invalidar el cache de getEnv() entre tests; sin esto, el
+  // primer stubEnv quedaría cached y los siguientes no tendrían
+  // efecto sobre AI_PROVIDER/AI_API_KEY que ahora lee llm/config.ts
+  // vía getEnv().
+  resetEnvCache()
   stubEnv('deepseek', 'test-key')
   clearLLMCache()
 })
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  resetEnvCache()
 })
 
 const SIMPLE_RESPONSE_OPENAI = {
