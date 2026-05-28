@@ -36,15 +36,11 @@ const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 // ο1: 'relaciones' se eliminó del top-level. Ahora vive como tab interna
 // "Vínculos" dentro de Entidades — refleja la dependencia conceptual real
 // (una relación nunca existe sola, siempre conecta entidades).
-export type ViewMode =
-  | 'inicio'
-  | 'grafo'
-  | 'entidades'
-  | 'citas'
-  | 'escuchas'
-  | 'momentos'
-  | 'chat'
-  | 'sugerencias'
+//
+// Q1: el tipo en sí vive en `src/types/view.ts`. Re-exportado acá por
+// compat con call sites históricos.
+import type { ViewMode } from '../types/view'
+export type { ViewMode }
 
 const NAV_ITEMS: NavItem[] = [
   { value: 'inicio', label: 'Inicio', icon: HomeIcon },

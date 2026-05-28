@@ -11,6 +11,7 @@
  */
 
 import { getEnv } from './env.js'
+import { logErrorEvent } from './observability.js'
 
 const OPENAI_EMBED_MODEL = 'text-embedding-3-small'
 const OPENAI_EMBED_URL = 'https://api.openai.com/v1/embeddings'
@@ -158,7 +159,13 @@ export async function embedSafe(text: string): Promise<EmbedResult | null> {
   try {
     return await embed(text)
   } catch (err) {
-    console.warn('embedSafe failed:', err instanceof Error ? err.message : err)
+    // Q2: canónico via logErrorEvent (estructurado, queryable) en
+    // lugar de console.warn. embedSafe es no-fatal por diseño — el
+    // caller continúa sin embedding, por eso solo logueamos.
+    logErrorEvent({
+      event: 'embed_failed',
+      message: err instanceof Error ? err.message : String(err),
+    })
     return null
   }
 }

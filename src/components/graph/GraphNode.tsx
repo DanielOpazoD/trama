@@ -1,42 +1,10 @@
 import { memo } from 'react'
 import { ENTITY_TYPES, type Entity } from '../../types'
+// Q1: typeAccent vive en `src/lib/typeAccents.ts`. Re-exportado acá por
+// compat (varios call sites lo importaban desde este archivo).
+import { typeAccent } from '../../lib/typeAccents'
 
-// Accent color per entity type. Resolved through CSS variables so dark mode
-// can shift each accent toward a higher-lightness counterpart automatically
-// (definitions live in src/index.css under :root and html.dark).
-//
-// Known types map to var(--type-<slug>); unknown types fall through to
-// var(--type-default). This means adding a new type doesn't require a code
-// change — only the SQL insert and (optionally) a new CSS variable.
-const KNOWN_TYPES = new Set([
-  'persona',
-  'escritor',
-  'filosofo',
-  'musico',
-  'banda',
-  'director',
-  'artista',
-  'cientifico',
-  'libro',
-  'ensayo',
-  'poema',
-  'articulo',
-  'cancion',
-  'podcast',
-  'album',
-  'disco',
-  'pelicula',
-  'serie',
-  'documental',
-  'obra',
-  'concepto',
-  'idea',
-  'lugar',
-  'evento',
-])
-export function typeAccent(type: string): string {
-  return KNOWN_TYPES.has(type) ? `var(--type-${type})` : 'var(--type-default)'
-}
+export { typeAccent }
 
 const NODE_TRUNCATE = 24
 
