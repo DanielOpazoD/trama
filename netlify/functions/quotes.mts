@@ -33,7 +33,7 @@ export default withObservability('quotes', async (req: Request, context: Context
       const rows = await sql`
         SELECT id, entity_id, text, source, context,
                user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
-               linked_quote_ids,
+               linked_quote_ids, resonance,
                origin, created_at, updated_at
         FROM quotes
         WHERE deleted_at IS NULL AND user_id = ${userId}
@@ -68,7 +68,7 @@ export default withObservability('quotes', async (req: Request, context: Context
       ? (await sql`
           SELECT id, entity_id, text, source, context,
                  user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
-                 linked_quote_ids, pinned_at,
+                 linked_quote_ids, pinned_at, resonance,
                  origin, created_at, updated_at
           FROM quotes
           WHERE deleted_at IS NULL AND user_id = ${userId}
@@ -79,7 +79,7 @@ export default withObservability('quotes', async (req: Request, context: Context
       : (await sql`
           SELECT id, entity_id, text, source, context,
                  user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
-                 linked_quote_ids, pinned_at,
+                 linked_quote_ids, pinned_at, resonance,
                  origin, created_at, updated_at
           FROM quotes
           WHERE deleted_at IS NULL AND user_id = ${userId}
@@ -144,7 +144,7 @@ export default withObservability('quotes', async (req: Request, context: Context
       )
       RETURNING id, entity_id, text, source, context,
                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
-                linked_quote_ids,
+                linked_quote_ids, pinned_at, resonance,
                 origin, created_at, updated_at
     `
     return Response.json(rows[0], { status: 201 })
@@ -178,11 +178,16 @@ export default withObservability('quotes', async (req: Request, context: Context
                                    WHEN ${body.pinned === true} THEN NOW()
                                    WHEN ${body.pinned === false} THEN NULL
                                    ELSE pinned_at
+                                 END,
+        -- U-1: resonancia 1-5 o null (destildar). undefined → no tocar.
+        resonance              = CASE
+                                   WHEN ${body.resonance !== undefined} THEN ${body.resonance ?? null}::smallint
+                                   ELSE resonance
                                  END
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       RETURNING id, entity_id, text, source, context,
                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
-                linked_quote_ids, pinned_at,
+                linked_quote_ids, pinned_at, resonance,
                 origin, created_at, updated_at
     `
     if (rows.length === 0) {

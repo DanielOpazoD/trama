@@ -22,4 +22,6 @@ export const queryKeys = {
   quotesInfinite: ['quotes', 'infinite'] as const,
   counts: ['counts'] as const,
   entityRefsCount: ['entities', 'refs-count'] as const,
+  /** U-2: ecos por cita — top-3 similares vía embedding. */
+  quoteEchoes: (quoteId: string) => ['quotes', 'echoes', quoteId] as const,
 }

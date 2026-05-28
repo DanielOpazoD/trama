@@ -14,6 +14,7 @@
 import { aiApi } from './ai'
 import { aiSettingsApi } from './ai-settings'
 import { chatApi } from './chat'
+import { cronicasApi } from './cronicas'
 import { entitiesApi } from './entities'
 import { exportImportApi } from './export-import'
 import { graphApi } from './graph'
@@ -31,6 +32,7 @@ export const api = {
   ...quotesApi,
   ...momentosApi,
   ...chatApi,
+  cronicas: cronicasApi,
   ...aiApi,
   ...aiSettingsApi,
   ...spotifyApi,
@@ -50,6 +52,8 @@ export const api = {
 export { DuplicateEntityError } from './request'
 
 export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
+
+export type { Cronica, GeneratedCronica } from './cronicas'
 
 export type { ProactiveSuggestion, Reclassification, ReclassifyResponse } from './ai'
 

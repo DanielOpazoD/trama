@@ -4,6 +4,8 @@ import type { Entity, Quote } from '../../types'
 import { SparkleIcon, TrashIcon } from '../Icons'
 import { AISourceTag } from '../AISourceTag'
 import { QuoteEditModal } from '../QuoteEditModal'
+import { ResonanceDots } from './ResonanceDots'
+import { downloadPostal } from '../../lib/postal'
 
 /** Format an ISO date as "20 may 2026" — short, ink-on-paper style. */
 function formatDate(iso: string): string {
@@ -223,6 +225,29 @@ function QuoteItemInternal({
           >
             editar
           </button>
+          {/* U-3: Postal — exporta la cita como PNG 1080×1080. */}
+          <button
+            onClick={async () => {
+              try {
+                await downloadPostal({
+                  text: quote.text,
+                  attribution: entity?.name ?? 'Anónimo',
+                  source: quote.source ?? null,
+                })
+              } catch (err) {
+                toast.show({
+                  message:
+                    err instanceof Error ? err.message : 'No se pudo generar la postal',
+                  tone: 'error',
+                })
+              }
+            }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 px-2 py-1.5 rounded"
+            aria-label="Exportar como postal PNG"
+            title="Generar imagen 1080×1080 para compartir"
+          >
+            postal
+          </button>
           <button
             onClick={onDelete}
             className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
@@ -336,6 +361,32 @@ function QuoteItemInternal({
           </div>
         </div>
       )}
+
+      {/* U-1: Resonancia. Al pie de cada cita, discreto. No es "rating" —
+          es registro tuyo en el tiempo: qué resuena HOY. Visible para
+          el usuario pero sin protagonismo (text-micro + accent-gold). */}
+      <div
+        className={`mt-4 ${isFeature ? '' : 'pl-5'} flex items-center justify-between gap-3`}
+      >
+        <ResonanceDots
+          value={quote.resonance}
+          onChange={async (next) => {
+            try {
+              await updateQuote.mutateAsync({
+                id: quote.id,
+                patch: { resonance: next },
+              })
+            } catch (err) {
+              toast.show({
+                message:
+                  err instanceof Error ? err.message : 'No se pudo guardar la resonancia',
+                tone: 'error',
+              })
+            }
+          }}
+          disabled={updateQuote.isPending}
+        />
+      </div>
     </div>
   )
 }

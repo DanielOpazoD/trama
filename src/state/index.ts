@@ -62,7 +62,10 @@ export {
   useUpdateQuote,
   useReflectQuote,
   useDeleteQuote,
+  useQuoteEchoes,
+  type QuoteEcho,
 } from './useQuotes'
 export { useExtract, useExtractFromImage, useAsk } from './useExtract'
+export { useCronicasQuery, useGenerateCronica } from './useCronicas'
 export { useSuggestRelationships } from './useSuggestRelationships'
 export { useExport, useImport } from './useExportImport'
