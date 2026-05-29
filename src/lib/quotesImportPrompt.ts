@@ -45,7 +45,7 @@ REGLAS
 - "version" es siempre el número 1.
 - Cada autor va una vez en "entities". Cada cita va en "quotes".
 - VINCULACIÓN (lo más importante): el "entityId" de cada cita debe ser EXACTAMENTE igual al "id" del autor correspondiente.
-- Todos los "id" deben ser únicos. Usá slugs legibles: el autor "borges", sus citas "borges-1", "borges-2", etc.
+- Todos los "id" deben ser únicos. Usá slugs legibles: el autor "borges", sus citas "borges-1", "borges-2", etc. (Trama los convierte a sus identificadores internos al importar; lo único que importa es que sean únicos y que los "entityId" coincidan.)
 - "type" debe ser uno de estos valores EXACTOS (sin acentos): persona, escritor, filosofo, musico, banda, director, artista, cientifico, libro, ensayo, poema, articulo, cancion, podcast, album, disco, pelicula, serie, documental, obra, concepto, idea, lugar, evento. Para un autor literario usá "escritor"; para un filósofo "filosofo"; para un músico "musico".
 - "text" es la cita textual exacta, sin las comillas «» o "" alrededor.
 - Campos opcionales: si no aplican, poné null (no los borres). Son "year", "description", "source" y "context".
