@@ -5,6 +5,7 @@ import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
 import { SearchIcon } from '../Icons'
 import { NoteCard } from './NoteCard'
+import { ActivityCalendar, localDayKey } from './ActivityCalendar'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -23,27 +24,36 @@ export function NotasView() {
   const [draft, setDraft] = useState('')
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState<string | null>(null)
+  // Día seleccionado en el calendario de actividad ('YYYY-MM-DD'), o null.
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   // Estable entre renders (el `?? []` por sí solo crearía un array nuevo cada
   // vez y dispararía los useMemo de abajo).
   const notes = useMemo(() => notesQuery.data ?? [], [notesQuery.data])
 
-  // Universo de tags (únicos), ordenados alfabéticamente.
-  const allTags = useMemo(() => {
-    const set = new Set<string>()
-    for (const n of notes) for (const t of n.tags) set.add(t)
-    return [...set].sort((a, b) => a.localeCompare(b))
+  // Universo de tags con su conteo, ordenados alfabéticamente.
+  const tagCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const n of notes) for (const t of n.tags) m.set(t, (m.get(t) ?? 0) + 1)
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]))
   }, [notes])
 
-  // Filtro client-side: texto + etiqueta activa.
+  // Filtro client-side: texto + etiqueta activa + día del calendario.
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return notes.filter((n) => {
       if (activeTag && !n.tags.includes(activeTag)) return false
+      if (selectedDay && localDayKey(n.createdAt) !== selectedDay) return false
       if (q && !n.content.toLowerCase().includes(q)) return false
       return true
     })
-  }, [notes, search, activeTag])
+  }, [notes, search, activeTag, selectedDay])
+
+  function clearFilters() {
+    setSearch('')
+    setActiveTag(null)
+    setSelectedDay(null)
+  }
 
   function save() {
     const content = draft.trim()
@@ -93,6 +103,15 @@ export function NotasView() {
         </div>
       </div>
 
+      {/* Calendario de actividad (heatmap) + estadísticas — sólo si hay notas */}
+      {notes.length > 0 && (
+        <ActivityCalendar
+          notes={notes}
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
+        />
+      )}
+
       {/* Buscador + chips de etiqueta — sólo si ya hay notas */}
       {notes.length > 0 && (
         <div className="mb-5 space-y-2.5">
@@ -114,7 +133,7 @@ export function NotasView() {
               </button>
             )}
           </div>
-          {allTags.length > 0 && (
+          {tagCounts.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               <button
                 onClick={() => setActiveTag(null)}
@@ -126,7 +145,7 @@ export function NotasView() {
               >
                 todas
               </button>
-              {allTags.map((t) => {
+              {tagCounts.map(([t, count]) => {
                 const on = activeTag === t
                 return (
                   <button
@@ -143,7 +162,7 @@ export function NotasView() {
                         : undefined
                     }
                   >
-                    #{t}
+                    #{t} <span className="tabular-nums opacity-60">{count}</span>
                   </button>
                 )
               })}
@@ -173,13 +192,10 @@ export function NotasView() {
         <EmptyMessage
           illustration="thread"
           title="Nada coincide con eso."
-          body={<>Prueba con otra palabra o quita el filtro de etiqueta.</>}
+          body={<>Prueba con otra palabra, otra etiqueta u otro día.</>}
           hint={
             <button
-              onClick={() => {
-                setSearch('')
-                setActiveTag(null)
-              }}
+              onClick={clearFilters}
               className="underline hover:text-ink-700 transition-colors"
             >
               Ver todas
