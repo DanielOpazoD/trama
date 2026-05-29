@@ -20,7 +20,12 @@ export function aiModeHeader(): string {
   if (typeof window === 'undefined') return 'auto'
   const raw = window.localStorage.getItem('trama.aiMode') ?? 'auto'
   if (raw === 'off' || raw === 'auto') return raw
-  if (raw.startsWith('forced-')) return `forced:${raw.slice('forced-'.length)}`
+  if (raw.startsWith('forced-')) {
+    const provider = raw.slice('forced-'.length)
+    // Modelo forzado opcional (trama.aiModel). '' = default del provider.
+    const model = (window.localStorage.getItem('trama.aiModel') ?? '').trim()
+    return model ? `forced:${provider}:${model}` : `forced:${provider}`
+  }
   return 'auto'
 }
 
