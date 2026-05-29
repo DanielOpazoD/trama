@@ -8,15 +8,17 @@ on:
 
 # R1: el workflow se dividió en jobs paralelos:
 #
-#   lint    → eslint + prettier check
-#   unit    → typecheck + vitest + coverage + build + bundle-size + audit
-#   e2e     → Playwright + axe-core a11y
-#   secrets → gitleaks (D4): escaneo de secretos sobre todo el historial
+#   lint       → eslint + prettier check
+#   unit       → typecheck + vitest + coverage + build + bundle-size + audit
+#   e2e        → Playwright + axe-core a11y
+#   secrets    → gitleaks (D4): escaneo de secretos sobre todo el historial
+#   migrations → G1/K3: aplica las 30 migraciones sobre un Postgres pgvector
+#                efímero — gate de drift/SQL antes del deploy a Neon
 #
-# Comparten install + cache de npm pero corren en runners distintos en
-# simultáneo. Antes el workflow era un solo job secuencial de ~5min;
-# ahora el critical path está cerca de los ~3min (limitado por el e2e
-# que es el más lento).
+# Los jobs node (lint/unit/e2e) comparten install + cache de npm; secrets y
+# migrations no usan node. Todos corren en runners distintos en simultáneo.
+# Antes el workflow era un solo job secuencial de ~5min; ahora el critical
+# path está cerca de los ~3min (limitado por el e2e que es el más lento).
 
 jobs:
   lint:
@@ -135,3 +137,56 @@ jobs:
 
       - name: Scan for secrets
         run: gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --verbose
+
+  # G1/K3: gate de migraciones. Levanta un Postgres efímero con pgvector y
+  # corre scripts/apply-migrations.sh sobre una DB limpia. Hasta ahora el
+  # drift de schema y los errores de SQL (orden, dependencias, extensiones)
+  # sólo aparecían durante el deploy a Neon; este job los detecta en el PR.
+  # Usa la MISMA imagen que docker-compose.yml (pgvector/pgvector:pg16) para
+  # que "pasa en CI" implique "anda con db:up local".
+  migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: trama
+          POSTGRES_PASSWORD: trama_local_dev
+          POSTGRES_DB: trama
+        # Mapeo igual al de docker-compose: host 5433 → contenedor 5432, así
+        # el DATABASE_URL por defecto del script (localhost:5433) matchea.
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U trama -d trama"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # ubuntu-latest ya trae el cliente psql; lo verificamos explícito para
+      # que un eventual "command not found" sea legible en el log.
+      - name: Check psql client
+        run: psql --version
+
+      # Fresh apply = el gate. Si una migración no aplica sobre una DB limpia
+      # (sintaxis, orden, extensión faltante), el job falla acá.
+      - name: Apply migrations
+        env:
+          DATABASE_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
+        run: scripts/apply-migrations.sh
+
+      # Idempotencia: re-correr no debe aplicar ninguna migración nueva
+      # (todas quedaron registradas en _migrations). Esto valida que el
+      # tracking incremental — el mismo modelo que usa Netlify — funciona.
+      - name: Re-apply is a no-op (idempotency)
+        env:
+          DATABASE_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
+        run: |
+          out=$(scripts/apply-migrations.sh)
+          echo "$out"
+          echo "$out" | grep -q "Applied 0 new migration(s)." || {
+            echo "::error::Re-run aplicó migraciones de nuevo — el tracking en _migrations está roto"
+            exit 1
+          }

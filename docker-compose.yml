@@ -1,6 +1,11 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    # pgvector/pgvector:pg16 = postgres:16 + la extensión `vector` precompilada
+    # (más pg_trgm y pgcrypto en contrib). La migración `embeddings` hace
+    # `CREATE EXTENSION IF NOT EXISTS vector`, que `postgres:16-alpine` no puede
+    # satisfacer — con alpine, `db:up` abortaba al llegar a esa migración.
+    # Misma imagen que usa el job `migrations` de CI, así local == CI.
+    image: pgvector/pgvector:pg16
     container_name: trama-postgres
     environment:
       POSTGRES_USER: trama
