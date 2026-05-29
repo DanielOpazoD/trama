@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trama — Re-evaluación v2 + rediseño de navegación</title>
+    <style>
+      :root {
+        --ink: #2b2723;
+        --ink-soft: #5c544b;
+        --ink-faint: #8b8175;
+        --paper: #f6f1e7;
+        --paper-card: #fbf8f1;
+        --paper-deep: #efe7d6;
+        --line: #e0d7c6;
+        --accent: #7a5c3e;
+        --g-exc: #3f7d52; /* 6.5–7  */
+        --g-good: #4a7a86; /* 5.5–6.4 */
+        --g-mid: #b07f2e; /* 4.5–5.4 */
+        --g-low: #b04a3a; /* < 4.5  */
+        --lens: #5b6e8c; /* miradas */
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+        line-height: 1.62;
+        font-size: 17px;
+      }
+      .wrap { max-width: 940px; margin: 0 auto; padding: 56px 28px 96px; }
+      header.doc { border-bottom: 2px solid var(--ink); padding-bottom: 28px; margin-bottom: 40px; }
+      .eyebrow {
+        text-transform: uppercase; letter-spacing: 0.22em; font-size: 12px;
+        color: var(--accent); font-family: ui-sans-serif, system-ui, sans-serif; margin: 0 0 14px;
+      }
+      h1 { font-size: 40px; line-height: 1.1; margin: 0 0 10px; font-weight: 600; }
+      .sub { color: var(--ink-soft); font-size: 18px; margin: 0; font-style: italic; }
+      .meta {
+        margin-top: 22px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px;
+        color: var(--ink-soft); display: flex; gap: 22px; flex-wrap: wrap;
+      }
+      .meta b { color: var(--ink); font-weight: 600; }
+      .part-label {
+        font-family: ui-sans-serif, system-ui, sans-serif; text-transform: uppercase;
+        letter-spacing: 0.18em; font-size: 12px; color: var(--accent); font-weight: 700;
+        margin: 72px 0 0; padding-top: 10px;
+      }
+      h2 {
+        font-size: 27px; margin: 52px 0 6px; padding-top: 18px; border-top: 1px solid var(--line);
+        font-weight: 600; scroll-margin-top: 16px;
+      }
+      h2.part { border-top: 3px double var(--ink); margin-top: 14px; font-size: 30px; }
+      h2 .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 17px; color: var(--accent); margin-right: 10px; }
+      h3 { font-size: 19px; margin: 30px 0 8px; font-weight: 600; }
+      h4 { font-size: 16px; margin: 22px 0 6px; font-weight: 600; font-family: ui-sans-serif, system-ui, sans-serif; }
+      p { margin: 10px 0; }
+      a { color: var(--accent); }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; background: var(--paper-deep); padding: 1px 5px; border-radius: 4px; }
+      .lead { font-size: 18px; color: var(--ink-soft); }
+      .callout {
+        background: var(--paper-card); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+        border-radius: 8px; padding: 18px 22px; margin: 24px 0; font-size: 15px;
+      }
+      .callout.win { border-left-color: var(--g-exc); }
+      .callout.lens { border-left-color: var(--lens); }
+      .callout p { margin: 6px 0; }
+      .chip {
+        display: inline-flex; align-items: baseline; gap: 4px; font-family: ui-sans-serif, system-ui, sans-serif;
+        font-weight: 700; color: #fff; border-radius: 999px; padding: 3px 12px; font-size: 15px; line-height: 1.3; white-space: nowrap;
+      }
+      .chip .of { font-weight: 500; opacity: 0.85; font-size: 12px; }
+      .chip .delta { font-size: 11px; font-weight: 600; margin-left: 6px; opacity: 0.95; }
+      .g-exc { background: var(--g-exc); }
+      .g-good { background: var(--g-good); }
+      .g-mid { background: var(--g-mid); }
+      .g-low { background: var(--g-low); }
+      .param-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+      .new-badge {
+        font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; text-transform: uppercase;
+        letter-spacing: 0.08em; background: var(--lens); color: #fff; border-radius: 4px; padding: 2px 8px; font-weight: 700;
+      }
+      table { border-collapse: collapse; width: 100%; margin: 26px 0; font-size: 15px; }
+      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+      th { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); }
+      td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      td.up { color: var(--g-exc); font-weight: 700; }
+      td.flat { color: var(--ink-faint); }
+      .bar { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--accent) var(--w), #e7ddcb var(--w)); min-width: 120px; }
+      tr.tot td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: none; }
+      .imp { margin: 14px 0; padding: 14px 16px 14px 0; border-bottom: 1px dotted var(--line); }
+      .imp:last-child { border-bottom: none; }
+      .imp .tag {
+        display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; font-size: 13px;
+        background: #efe7d6; color: var(--accent); border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; margin-right: 10px; vertical-align: 2px;
+      }
+      .imp .imp-title { font-weight: 600; }
+      .imp .why { display: block; color: var(--ink-soft); font-size: 15px; margin-top: 4px; }
+      .prio {
+        font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+        border-radius: 4px; padding: 1px 7px; margin-left: 8px; vertical-align: 2px; white-space: nowrap;
+      }
+      .p-alta { background: #f3dcd6; color: var(--g-low); }
+      .p-media { background: #f3e6cd; color: var(--g-mid); }
+      .p-baja { background: #d9e6dd; color: var(--g-exc); }
+      .toc { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 14px; columns: 2; column-gap: 32px; margin: 18px 0 0; padding: 0; list-style: none; }
+      .toc li { margin: 4px 0; break-inside: avoid; }
+      .toc a { text-decoration: none; }
+      .toc .c { font-family: ui-monospace, monospace; color: var(--accent); margin-right: 8px; }
+      /* sidebar mockups */
+      .navcompare { display: flex; gap: 20px; flex-wrap: wrap; margin: 26px 0; }
+      .navcol { flex: 1; min-width: 240px; }
+      .navcol h4 { margin-top: 0; }
+      .navbox {
+        background: var(--paper-card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 10px;
+        font-family: ui-sans-serif, system-ui, sans-serif; font-size: 14px;
+      }
+      .navbox .grp { text-transform: uppercase; letter-spacing: 0.1em; font-size: 10.5px; color: var(--ink-faint); margin: 12px 8px 4px; font-weight: 700; }
+      .navbox .grp:first-child { margin-top: 4px; }
+      .navitem { display: flex; align-items: center; gap: 9px; padding: 5px 9px; border-radius: 7px; color: var(--ink-soft); }
+      .navitem .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--ink-faint); }
+      .navitem.active { background: var(--paper-deep); color: var(--ink); font-weight: 600; }
+      .navitem .ct { margin-left: auto; font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+      .navbox .rule { height: 1px; background: var(--line); margin: 10px 4px; }
+      .navbox.flat .navitem { color: var(--ink-soft); }
+      .lensbar {
+        display: inline-flex; gap: 2px; background: var(--paper-deep); border: 1px solid var(--line);
+        border-radius: 999px; padding: 3px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; margin: 8px 0;
+      }
+      .lensbar span { padding: 4px 14px; border-radius: 999px; color: var(--ink-soft); }
+      .lensbar span.on { background: var(--paper-card); color: var(--lens); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+      /* feature cards */
+      .feat { background: var(--paper-card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin: 14px 0; }
+      .feat .ft-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+      .feat .nf { font-family: ui-monospace, monospace; font-weight: 700; font-size: 13px; color: #fff; background: var(--accent); border-radius: 6px; padding: 1px 8px; }
+      .feat .ft-name { font-weight: 600; font-size: 17px; }
+      .feat .ft-kicker { color: var(--ink-faint); font-style: italic; font-size: 14px; }
+      .feat p { margin: 8px 0 0; font-size: 15.5px; }
+      .feat .fit { display: block; margin-top: 8px; font-size: 13.5px; color: var(--ink-soft); font-family: ui-sans-serif, system-ui, sans-serif; }
+      .feat .fit b { color: var(--accent); }
+      .wave { margin: 18px 0; }
+      .wave .wh { font-family: ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); border-bottom: 1px solid var(--line); padding-bottom: 5px; margin-bottom: 6px; }
+      footer.doc {
+        margin-top: 64px; padding-top: 20px; border-top: 2px solid var(--ink);
+        font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; color: var(--ink-soft);
+      }
+      @media (max-width: 620px) { .toc { columns: 1; } h1 { font-size: 32px; } .navcompare { flex-direction: column; } }
+      @media print {
+        body { background: #fff; font-size: 12px; }
+        .wrap { padding: 0; max-width: none; }
+        h2 { page-break-after: avoid; }
+        .imp, tr, .feat, .navcompare { page-break-inside: avoid; }
+        a { color: inherit; text-decoration: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="doc">
+        <p class="eyebrow">Auditoría interna · Claude · Re-evaluación</p>
+        <h1>Trama — Estado del programa, v2</h1>
+        <p class="sub">Re-evaluación de 1 a 7 sobre quince variables, más un rediseño de la navegación y un catálogo de funciones nuevas.</p>
+        <div class="meta">
+          <span><b>Versión</b> 0.11.0</span>
+          <span><b>Tests</b> 849 · 128 archivos (87 src + 41 .mts)</span>
+          <span><b>Cobertura</b> ~40% líneas (ahora con los <code>.mts</code> incluidos)</span>
+          <span><b>Nota global</b> 6.0</span>
+          <span><b>Auth</b> Clerk en vivo</span>
+        </div>
+      </header>
+
+      <p class="lead">
+        Esta es la segunda lectura del proyecto. La primera (de hoy mismo, más
+        temprano) era puramente de ingeniería; esta la actualiza tras cerrar la
+        deuda de prioridad alta, suma dos variables nuevas —arquitectura de
+        información y multi-usuario— y agrega una segunda parte de producto:
+        cómo descongestionar la barra lateral, dónde reubicar las miradas de
+        conjunto (Grafo, Cronología, Atlas) y qué funciones nuevas valdría la
+        pena tejer.
+      </p>
+
+      <div class="callout win">
+        <p><b>Qué se cerró desde la evaluación de esta mañana.</b> Las cinco
+        mejoras de prioridad alta que ahí se proponían ya están implementadas, y
+        además la autenticación pasó de andamiaje a producción:</p>
+        <p>· <b>A1 / K1</b> — los 51 handlers <code>.mts</code> ahora se
+        type-chequean (<code>tsconfig.functions.json</code>) y el CI lo verifica.<br />
+        · <b>C1</b> — la cobertura ya incluye los <code>.mts</code>: el número honesto
+        bajó a ~40%, pero por fin mide la lógica de servidor real.<br />
+        · <b>D4</b> — <code>gitleaks</code> corre como job de CI sobre todo el historial.<br />
+        · <b>G1 / K3</b> — las 30 migraciones se aplican sobre un Postgres pgvector
+        efímero en cada PR.<br />
+        · <b>Clerk</b> — login real, <code>UserButton</code>, alias del dueño a la data
+        legacy, y CSP corregida (la pantalla en blanco quedó resuelta).</p>
+      </div>
+
+      <div class="callout">
+        <p><b>Sobre las notas.</b> Escala chilena 1–7 (7 = sobresaliente, 4 =
+        aprobación). Cada una está anclada a evidencia del repositorio. Para un
+        proyecto personal de un solo autor, la ingeniería es inusualmente madura;
+        las notas medias no señalan descuido sino el frente donde queda terreno.
+        La media bajó de 6.1 a 6.0 <em>no porque algo empeorara</em> —al
+        contrario— sino porque entran dos variables nuevas (navegación 5.0,
+        multi-usuario 5.5) que miran honestamente lo que todavía está a medio
+        habitar.</p>
+      </div>
+
+      <h3>Índice de variables</h3>
+      <ul class="toc">
+        <li><a href="#A"><span class="c">A</span>Arquitectura y estructura</a></li>
+        <li><a href="#B"><span class="c">B</span>Calidad de código y tipado</a></li>
+        <li><a href="#C"><span class="c">C</span>Testing y cobertura</a></li>
+        <li><a href="#D"><span class="c">D</span>Seguridad</a></li>
+        <li><a href="#E"><span class="c">E</span>Rendimiento</a></li>
+        <li><a href="#F"><span class="c">F</span>Accesibilidad</a></li>
+        <li><a href="#G"><span class="c">G</span>Capa de datos y persistencia</a></li>
+        <li><a href="#H"><span class="c">H</span>Manejo de errores y resiliencia</a></li>
+        <li><a href="#I"><span class="c">I</span>Observabilidad y monitoreo</a></li>
+        <li><a href="#J"><span class="c">J</span>Integración LLM / IA</a></li>
+        <li><a href="#K"><span class="c">K</span>CI/CD y tooling</a></li>
+        <li><a href="#L"><span class="c">L</span>Documentación</a></li>
+        <li><a href="#M"><span class="c">M</span>UX, diseño y coherencia estética</a></li>
+        <li><a href="#N"><span class="c">N</span>Arquitectura de información y navegación ✦</a></li>
+        <li><a href="#O"><span class="c">O</span>Multi-usuario y autenticación ✦</a></li>
+      </ul>
+
+      <h2 style="border-top:none;margin-top:40px">Cuadro de notas</h2>
+      <table>
+        <thead>
+          <tr><th>Variable</th><th>Nota</th><th>Δ vs. v1</th><th style="width:34%">Nivel</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><a href="#A">A · Arquitectura y estructura</a></td><td class="num">6.5</td><td class="num up">+0.2</td><td><div class="bar" style="--w:93%"></div></td></tr>
+          <tr><td><a href="#B">B · Calidad de código y tipado</a></td><td class="num">6.5</td><td class="num flat">=</td><td><div class="bar" style="--w:93%"></div></td></tr>
+          <tr><td><a href="#C">C · Testing y cobertura</a></td><td class="num">5.4</td><td class="num up">+0.2</td><td><div class="bar" style="--w:77%"></div></td></tr>
+          <tr><td><a href="#D">D · Seguridad</a></td><td class="num">6.4</td><td class="num up">+0.2</td><td><div class="bar" style="--w:91%"></div></td></tr>
+          <tr><td><a href="#E">E · Rendimiento</a></td><td class="num">6.2</td><td class="num flat">=</td><td><div class="bar" style="--w:89%"></div></td></tr>
+          <tr><td><a href="#F">F · Accesibilidad</a></td><td class="num">5.3</td><td class="num flat">=</td><td><div class="bar" style="--w:76%"></div></td></tr>
+          <tr><td><a href="#G">G · Capa de datos y persistencia</a></td><td class="num">6.6</td><td class="num up">+0.2</td><td><div class="bar" style="--w:94%"></div></td></tr>
+          <tr><td><a href="#H">H · Manejo de errores y resiliencia</a></td><td class="num">6.2</td><td class="num flat">=</td><td><div class="bar" style="--w:89%"></div></td></tr>
+          <tr><td><a href="#I">I · Observabilidad y monitoreo</a></td><td class="num">5.0</td><td class="num flat">=</td><td><div class="bar" style="--w:71%"></div></td></tr>
+          <tr><td><a href="#J">J · Integración LLM / IA</a></td><td class="num">6.2</td><td class="num flat">=</td><td><div class="bar" style="--w:89%"></div></td></tr>
+          <tr><td><a href="#K">K · CI/CD y tooling</a></td><td class="num">6.7</td><td class="num up">+0.3</td><td><div class="bar" style="--w:96%"></div></td></tr>
+          <tr><td><a href="#L">L · Documentación</a></td><td class="num">6.5</td><td class="num flat">−0.1</td><td><div class="bar" style="--w:93%"></div></td></tr>
+          <tr><td><a href="#M">M · UX, diseño y coherencia estética</a></td><td class="num">6.2</td><td class="num flat">−0.1</td><td><div class="bar" style="--w:89%"></div></td></tr>
+          <tr><td><a href="#N">N · Arquitectura de información y navegación ✦</a></td><td class="num">5.0</td><td class="num flat">nueva</td><td><div class="bar" style="--w:71%"></div></td></tr>
+          <tr><td><a href="#O">O · Multi-usuario y autenticación ✦</a></td><td class="num">5.5</td><td class="num flat">nueva</td><td><div class="bar" style="--w:79%"></div></td></tr>
+          <tr class="tot"><td>Promedio global</td><td class="num">6.0</td><td class="num flat">−0.1</td><td><div class="bar" style="--w:86%"></div></td></tr>
+        </tbody>
+      </table>
+
+      <p class="part-label">Parte I — Variables evaluadas</p>
+
+      <h2 id="A"><span class="code">A</span>Arquitectura y estructura</h2>
+      <div class="param-head"><span class="chip g-exc">6.5<span class="of">/7</span><span class="delta">▲ desde 6.3</span></span></div>
+      <p>El punto ciego que la v1 marcaba como prioridad alta está cerrado: existe
+      <code>tsconfig.functions.json</code> y los 51 handlers <code>.mts</code> ya
+      participan del grafo de tipos, tanto local como en CI. Sigue en pie todo lo
+      bueno: capas nítidas (<code>src/api/</code> transforms, <code>src/state/</code>
+      hooks, <code>src/components/</code> presentación, <code>netlify/functions/_lib/</code>
+      servidor), 9 ADRs, alias <code>@/*</code>. Lo que resta es tamaño de archivos:
+      <code>GraphView.tsx</code> (523 LOC), <code>App.tsx</code> (488),
+      <code>FotoEditModal.tsx</code> (470), <code>MomentoComposer.tsx</code> (443).</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">A1</span><span class="imp-title">Descomponer <code>App.tsx</code> en shell + providers<span class="prio p-media">media</span></span><span class="why">Extraer el cableado de routing y el árbol de providers a <code>AppShell</code> y <code>AppProviders</code>, dejando <code>App</code> como composición delgada (&lt;120 LOC).</span></div>
+      <div class="imp"><span class="tag">A2</span><span class="imp-title">Seguir el split de <code>GraphView.tsx</code><span class="prio p-media">media</span></span><span class="why">Separar el render de sigma de la lógica de selección/interacción en hooks (<code>useGraphSelection</code>, <code>useSigmaRenderer</code>). Conecta con el rediseño de Miradas (Parte II).</span></div>
+      <div class="imp"><span class="tag">A3</span><span class="imp-title">Agrupar <code>_lib/</code> por dominio<span class="prio p-baja">baja</span></span><span class="why">Tras <code>llm/</code> y <code>spotify/</code>, consolidar <code>extract/</code> y <code>momentos/</code> en subcarpetas para bajar el ruido de imports en 59 módulos.</span></div>
+      <div class="imp"><span class="tag">A4</span><span class="imp-title">Guardrail de <code>max-lines</code> en ESLint<span class="prio p-baja">baja</span></span><span class="why">Una regla con tope (~400 LOC, warn) evita reincidir en los archivos de 600+ que costó desarmar en FF3/G2.</span></div>
+
+      <h2 id="B"><span class="code">B</span>Calidad de código y tipado</h2>
+      <div class="param-head"><span class="chip g-exc">6.5<span class="of">/7</span><span class="delta">= 6.5</span></span></div>
+      <p>El frente más fuerte. TypeScript <code>strict</code> con
+      <code>noUncheckedIndexedAccess</code>, <code>noUnusedLocals/Params</code> y
+      <code>noFallthroughCasesInSwitch</code>. Sigue habiendo <b>un solo</b>
+      <code>any</code> en código de producción y los <code>eslint-disable</code> están
+      justificados con comentario. ESLint + Prettier + Husky + lint-staged sostienen
+      el estándar en cada commit; <code>sqlTyped&lt;Row&gt;()</code> erradicó los casts.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">B1</span><span class="imp-title">Linting type-aware de promesas<span class="prio p-alta">alta</span></span><span class="why">Ahora que los <code>.mts</code> tienen <code>tsconfig</code> propio, activar <code>no-floating-promises</code> y <code>no-misused-promises</code> es barato y atrapa <code>await</code> olvidados — el bug más común en código async de red/LLM.</span></div>
+      <div class="imp"><span class="tag">B2</span><span class="imp-title">Prohibir <code>any</code> por regla<span class="prio p-media">media</span></span><span class="why">Eliminar el último <code>any</code> y activar <code>no-explicit-any: error</code> para que no reaparezca.</span></div>
+      <div class="imp"><span class="tag">B3</span><span class="imp-title">Convertir los <code>TODO/FIXME</code> en issues<span class="prio p-baja">baja</span></span><span class="why">Cada marca de deuda debería ser un issue rastreable, no un comentario que se pierde.</span></div>
+      <div class="imp"><span class="tag">B4</span><span class="imp-title">Reglas de complejidad<span class="prio p-baja">baja</span></span><span class="why"><code>complexity</code> y <code>max-depth</code> (warn) señalan funciones que crecen antes de que duelan.</span></div>
+
+      <h2 id="C"><span class="code">C</span>Testing y cobertura</h2>
+      <div class="param-head"><span class="chip g-mid">5.4<span class="of">/7</span><span class="delta">▲ desde 5.2</span></span></div>
+      <p>El volumen sigue siendo notable: <b>849 tests</b> en 128 archivos (87 de
+      <code>src</code> + 41 de <code>.mts</code>), más 8 specs e2e de Playwright + axe.
+      El cambio cualitativo es la honestidad: al sumar los <code>.mts</code> al
+      <code>coverage.include</code> (C1), el número global cayó a ~40% líneas — ya no
+      esconde la lógica de servidor. Eso sube la nota porque ahora <em>mide lo que
+      importa</em>, aunque revele que hay handlers poco cubiertos. La media baja real
+      es el techo de esta variable hasta que se cubran caminos felices contra DB.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">C1</span><span class="imp-title">Tests de integración endpoint→DB<span class="prio p-alta">alta</span></span><span class="why">El job de migraciones ya levanta Postgres pgvector en CI (G1). Reusar esa DB efímera para probar happy-paths reales de extract/chat/momentos —no sólo branches de error— es lo que más subiría la cobertura honesta de los <code>.mts</code>.</span></div>
+      <div class="imp"><span class="tag">C2</span><span class="imp-title">Cerrar los módulos en 0%<span class="prio p-media">media</span></span><span class="why">Tests dirigidos a <code>usePullToRefresh</code>, <code>useProactiveNudge</code>, <code>clientErrorTracking</code> y los <code>schemas/</code>. Piezas pequeñas y testeables.</span></div>
+      <div class="imp"><span class="tag">C3</span><span class="imp-title">Ratchet de cobertura<span class="prio p-media">media</span></span><span class="why">Subir el umbral automáticamente cuando un PR mejora la cobertura: impide regresión sin frenar el desarrollo.</span></div>
+      <div class="imp"><span class="tag">C4</span><span class="imp-title">e2e para las vistas nuevas<span class="prio p-media">media</span></span><span class="why">Grafo, Cronología, Atlas, Espejo, Sortes y Voz no tienen specs. Un flujo feliz por vista, sobre todo si se reubican (Parte II).</span></div>
+
+      <h2 id="D"><span class="code">D</span>Seguridad</h2>
+      <div class="param-head"><span class="chip g-good">6.4<span class="of">/7</span><span class="delta">▲ desde 6.2</span></span></div>
+      <p>Dos saltos reales: <code>gitleaks</code> en CI (D4) cierra el peor incidente
+      posible —una clave commiteada— y la autenticación dejó de ser hipotética
+      (Clerk en vivo, tokens verificados con <code>verifyToken</code>). Sigue la postura
+      sólida: CSP a nivel CDN con allowlist explícita (ahora corregida para Clerk +
+      Google Fonts), HSTS preload, <code>X-Content-Type-Options</code>,
+      <code>X-Frame-Options: DENY</code>, validación Zod, <code>ApiErrors</code> canónicos.
+      Lo que frena la nota: la CSP conserva <code>'unsafe-inline'</code> en estilos, el
+      <code>npm audit</code> es warn-only, y <code>ALLOW_LEGACY_FALLBACK=true</code> +
+      el alias de dueño son una puerta transitoria que conviene datar (ver O).</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">D1</span><span class="imp-title">Plan de cierre del legacy fallback<span class="prio p-alta">alta</span></span><span class="why">Con Clerk vivo, <code>ALLOW_LEGACY_FALLBACK</code> deja una autenticación implícita en producción. Datar su retiro (y el del alias de dueño) y documentarlo evita que quede como puerta abierta indefinida. Conecta con O2.</span></div>
+      <div class="imp"><span class="tag">D2</span><span class="imp-title">Endurecer el <code>npm audit</code><span class="prio p-media">media</span></span><span class="why">Subir <code>--audit-level</code> a <code>high</code> y quitar <code>continue-on-error</code> para dependencias de producción.</span></div>
+      <div class="imp"><span class="tag">D3</span><span class="imp-title">Eliminar <code>'unsafe-inline'</code> de la CSP<span class="prio p-media">media</span></span><span class="why">Migrar estilos inline a clases/nonces para cerrar el vector XSS que esa directiva deja abierto.</span></div>
+      <div class="imp"><span class="tag">D4</span><span class="imp-title">Rate-limit por usuario en endpoints LLM<span class="prio p-media">media</span></span><span class="why">Un límite por minuto y por usuario (no por IP) complementa el cost-cap mensual contra bucles accidentales — más relevante ahora que hay varias cuentas posibles.</span></div>
+
+      <h2 id="E"><span class="code">E</span>Rendimiento</h2>
+      <div class="param-head"><span class="chip g-good">6.2<span class="of">/7</span><span class="delta">= 6.2</span></span></div>
+      <p>Se cuida activamente: lazy-loading por vista (ADR-0007 — confirmado en
+      <code>ViewRouter</code>, sólo Home eager), <code>memo</code> + <code>useTransition</code>
+      donde importa (streaming de chat, RelationshipRow, MomentoEntry), virtualización con
+      <code>@tanstack/react-virtual</code>, umbral WebGL para sigma (ADR-0008), y
+      <code>check-bundle-size.mjs</code> que falla el CI si un chunk crece. Resta convertir
+      reporte en gate y auditar la virtualización en todas las listas largas.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">E1</span><span class="imp-title">Auditar virtualización de listas largas<span class="prio p-media">media</span></span><span class="why">Confirmar que Citas y Vínculos usan <code>react-virtual</code> como MomentosView; con catálogos grandes, una lista no virtualizada es el primer jank perceptible.</span></div>
+      <div class="imp"><span class="tag">E2</span><span class="imp-title">Lighthouse como gate, no sólo reporte<span class="prio p-media">media</span></span><span class="why">Asserts sobre LCP/TBT/CLS que fallen el CI al exceder umbral.</span></div>
+      <div class="imp"><span class="tag">E3</span><span class="imp-title">Prefetch en navegación probable<span class="prio p-baja">baja</span></span><span class="why"><code>queryClient.prefetchQuery</code> al hacer hover sobre un nodo/enlace para que el detalle se sienta instantáneo.</span></div>
+      <div class="imp"><span class="tag">E4</span><span class="imp-title">Cache de layouts del grafo por snapshot<span class="prio p-baja">baja</span></span><span class="why">Memoizar <code>byDegree/byType/byYear</code> por hash del grafo evita recalcular posiciones en cada re-render.</span></div>
+
+      <h2 id="F"><span class="code">F</span>Accesibilidad</h2>
+      <div class="param-head"><span class="chip g-mid">5.3<span class="of">/7</span><span class="delta">= 5.3</span></span></div>
+      <p>Hay base real: <code>eslint-plugin-jsx-a11y</code> activo y un spec e2e con
+      <code>@axe-core/playwright</code>. Pero la cobertura a11y es delgada frente a la
+      riqueza de la UI: pocas vistas auditadas automáticamente, sin verificación
+      sistemática de teclado, focus-trap en modales, contraste de los múltiples acentos
+      de sección, ni alternativa accesible al canvas del grafo.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">F1</span><span class="imp-title">axe-core en todas las rutas<span class="prio p-alta">alta</span></span><span class="why">Un test parametrizado que recorra cada vista y corra axe. Hoy unas pocas de ~12 están cubiertas; el resto puede regresar sin que nadie note.</span></div>
+      <div class="imp"><span class="tag">F2</span><span class="imp-title">Focus-trap y teclado en modales<span class="prio p-media">media</span></span><span class="why">Auditar <code>FotoEditModal</code>, <code>CommandPalette</code>, <code>QuoteEditModal</code> y <code>MomentoQRModal</code>: trampa de foco, cierre con Esc, retorno de foco al disparador.</span></div>
+      <div class="imp"><span class="tag">F3</span><span class="imp-title">Respetar <code>prefers-reduced-motion</code><span class="prio p-media">media</span></span><span class="why">Las animaciones cross-section y <code>viewTransition</code> deberían atenuarse cuando el sistema lo pide. Importante para sensibilidad vestibular.</span></div>
+      <div class="imp"><span class="tag">F4</span><span class="imp-title">Alternativa accesible al grafo<span class="prio p-baja">baja</span></span><span class="why">El canvas de sigma es opaco para lectores de pantalla. Una lista navegable de nodos/relaciones como vista equivalente (encaja con N).</span></div>
+
+      <h2 id="G"><span class="code">G</span>Capa de datos y persistencia</h2>
+      <div class="param-head"><span class="chip g-exc">6.6<span class="of">/7</span><span class="delta">▲ desde 6.4</span></span></div>
+      <p>El otro gran cierre de hoy: las 30 migraciones se aplican sobre un Postgres
+      pgvector efímero en cada PR (G1), y el job verifica que un re-run aplique "0 new
+      migrations" —es decir, que el tracking en <code>_migrations</code> no esté roto—.
+      El drift ahora se ve en CI, no en deploy. Sigue la disciplina ejemplar:
+      <code>getSql()</code> único, <code>sqlTyped&lt;Row&gt;()</code>, soft-delete con
+      cascada (ADR-0003), <code>origin</code> como JSONB tipado, frontera snake/camel.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">G1</span><span class="imp-title">Test estático del soft-delete<span class="prio p-media">media</span></span><span class="why">Un check en CI (grep/AST) que falle si un <code>SELECT</code> sobre tablas con soft-delete no incluye <code>deleted_at IS NULL</code>. Convierte la convención de CLAUDE.md en garantía.</span></div>
+      <div class="imp"><span class="tag">G2</span><span class="imp-title">Índice por <code>user_id</code> y revisión con EXPLAIN<span class="prio p-media">media</span></span><span class="why">Con multi-usuario activo, casi toda query filtra por <code>user_id</code> + <code>deleted_at IS NULL</code>. Índices parciales/compuestos sobre ese par, medidos antes de que crezca el catálogo familiar.</span></div>
+      <div class="imp"><span class="tag">G3</span><span class="imp-title">Generar tipos desde el esquema<span class="prio p-baja">baja</span></span><span class="why">Con kysely-codegen o similar, los tipos de <code>sqlTyped&lt;Row&gt;</code> se derivan del SQL y no se desincronizan al cambiar una columna.</span></div>
+      <div class="imp"><span class="tag">G4</span><span class="imp-title">Política de purga de soft-deleted<span class="prio p-baja">baja</span></span><span class="why">Un job que hard-deletea filas con <code>deleted_at</code> más antiguo que N meses evita el crecimiento indefinido de basura lógica.</span></div>
+
+      <h2 id="H"><span class="code">H</span>Manejo de errores y resiliencia</h2>
+      <div class="param-head"><span class="chip g-good">6.2<span class="of">/7</span><span class="delta">= 6.2</span></span></div>
+      <p>Forma de error canónica <code>{ error: { code, message, requestId } }</code> en
+      todo el backend, request-id propagado, y <code>ErrorBoundary</code> granular por
+      vista (ADR-0006, confirmado en <code>ViewRouter</code> con fallback inline que deja
+      Sidebar/TopBar vivos). Mutaciones optimistas con rollback y manejo de offline.
+      Resta cerrar el ciclo: que los boundaries reporten a observabilidad.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">H1</span><span class="imp-title">Telemetría desde los ErrorBoundary<span class="prio p-alta">alta</span></span><span class="why">Cuando un boundary captura, reportar a observabilidad con vista + request-id. Hoy el error se contiene visualmente pero se pierde en silencio. Conecta con I1.</span></div>
+      <div class="imp"><span class="tag">H2</span><span class="imp-title">Reintentos con backoff en red transitoria<span class="prio p-media">media</span></span><span class="why">Las mutaciones deberían reintentar con backoff exponencial ante 5xx/timeout antes del rollback definitivo.</span></div>
+      <div class="imp"><span class="tag">H3</span><span class="imp-title">Circuit-breaker en el dispatch LLM<span class="prio p-media">media</span></span><span class="why">Si un proveedor falla repetido, abrir el circuito y saltar al fallback en vez de pagar el timeout cada vez.</span></div>
+      <div class="imp"><span class="tag">H4</span><span class="imp-title">e2e de los caminos offline<span class="prio p-baja">baja</span></span><span class="why">Playwright puede simular <code>offline</code>; probar rollback y mensajes "sin conexión" de punta a punta.</span></div>
+
+      <h2 id="I"><span class="code">I</span>Observabilidad y monitoreo</h2>
+      <div class="param-head"><span class="chip g-mid">5.0<span class="of">/7</span><span class="delta">= 5.0</span></span></div>
+      <p>La nota más baja, sin cambios desde la v1. El andamiaje está: tabla
+      <code>web_vitals_samples</code> con INSERT y path normalizado, error-log y
+      extraction-log por usuario, SLOs en <code>docs/observability.md</code>. Pero Sentry
+      sigue como scaffold (sin init real), <code>webVitals.ts</code> y
+      <code>clientErrorTracking.ts</code> están poco cubiertos, y las SLOs viven en un
+      <code>.md</code>, no en un dashboard. Justo las piezas que deberían vigilar todo lo
+      demás son las menos habitadas.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">I1</span><span class="imp-title">Completar Sentry (init real)<span class="prio p-alta">alta</span></span><span class="why">DSN por env, source maps en deploy, filtrado de PII. Sin esto, un error en producción es invisible hasta que el usuario lo reporta — más grave ahora que lo usará la familia.</span></div>
+      <div class="imp"><span class="tag">I2</span><span class="imp-title">Dashboard de SLOs<span class="prio p-media">media</span></span><span class="why">Materializar las SLOs en una vista o endpoint que lea <code>web_vitals_samples</code> + error-log. Podría ser una pestaña dentro de Configuración → Estado del sistema (que ya existe con health alerts).</span></div>
+      <div class="imp"><span class="tag">I3</span><span class="imp-title">Alertas sobre umbrales<span class="prio p-media">media</span></span><span class="why">Disparadores sobre cost-cap acercándose, tasa de error de extracción, p95 de latencia LLM. Observabilidad sin alertas es arqueología.</span></div>
+      <div class="imp"><span class="tag">I4</span><span class="imp-title">Tests de la capa de observabilidad<span class="prio p-baja">baja</span></span><span class="why">Cubrir <code>webVitals.ts</code> y <code>clientErrorTracking.ts</code>. Una telemetría que falla en silencio es peor que no tenerla.</span></div>
+
+      <h2 id="J"><span class="code">J</span>Integración LLM / IA</h2>
+      <div class="param-head"><span class="chip g-good">6.2<span class="of">/7</span><span class="delta">= 6.2</span></span></div>
+      <p>Arquitectura bien encapsulada en <code>_lib/llm/</code>: dispatch entre
+      proveedores, caching, fallbacks, retry, routing por usuario (ADR-0005) y cost-cap
+      mensual. La regla "nunca fetch directo a una API de LLM" está escrita y respetada.
+      Resta lo específico de IA: evaluar la <em>calidad</em> de las respuestas, no sólo el
+      contrato, y probar fallback + streaming con proveedores simulados.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">J1</span><span class="imp-title">Tests del dispatch y fallback<span class="prio p-alta">alta</span></span><span class="why">Proveedores simulados que fallan en distintos puntos, para verificar que el routing per-user y la cadena de fallback se comportan como dicen los ADRs.</span></div>
+      <div class="imp"><span class="tag">J2</span><span class="imp-title">Eval harness de extracción<span class="prio p-media">media</span></span><span class="why">Un set de casos dorados (texto → entidades/relaciones esperadas) con score automatizado detecta regresiones de calidad del prompt que ningún test de contrato ve.</span></div>
+      <div class="imp"><span class="tag">J3</span><span class="imp-title">Versionado de prompts<span class="prio p-media">media</span></span><span class="why">Registrar qué versión de prompt generó cada extracción (vía el <code>extractionLogId</code> que ya existe) permite explicar y revertir cambios de comportamiento.</span></div>
+      <div class="imp"><span class="tag">J4</span><span class="imp-title">Tests del streaming SSE de chat<span class="prio p-baja">baja</span></span><span class="why">Un stream simulado permite probar el parsing de chunks y el manejo de cortes sin LLM real.</span></div>
+
+      <h2 id="K"><span class="code">K</span>CI/CD y tooling</h2>
+      <div class="param-head"><span class="chip g-exc">6.7<span class="of">/7</span><span class="delta">▲ desde 6.4</span></span></div>
+      <p>El que más subió. Los dos huecos que la v1 marcaba están tapados: los
+      <code>.mts</code> se type-chequean (K1) y las migraciones corren en CI (K3). El
+      workflow tiene cuatro jobs paralelos —<code>lint</code>, <code>unit</code>,
+      <code>secrets</code> (gitleaks), <code>migrations</code> (pgvector)— más type-check,
+      gate de cobertura, presupuesto de bundle y e2e + axe. Husky + lint-staged +
+      dependabot completan el cuadro. Resta sumar preview deploys por PR.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">K1</span><span class="imp-title">Preview deploys por PR<span class="prio p-media">media</span></span><span class="why">El deploy preview de Netlify con comentario automático del link permite revisar visualmente cada cambio antes de mergear — clave para los cambios de navegación de la Parte II.</span></div>
+      <div class="imp"><span class="tag">K2</span><span class="imp-title">Marcar <code>migrations</code> como check requerido<span class="prio p-media">media</span></span><span class="why">El job existe; hacerlo "required" en la rama protegida cierra el círculo para que ningún merge lo saltee.</span></div>
+      <div class="imp"><span class="tag">K3</span><span class="imp-title">Cachear navegadores de Playwright<span class="prio p-baja">baja</span></span><span class="why">El job e2e reinstala ~100MB de Chromium en cada run. Cachearlos por versión recorta minutos.</span></div>
+      <div class="imp"><span class="tag">K4</span><span class="imp-title">Gate de cobertura por diff<span class="prio p-baja">baja</span></span><span class="why">Exigir cobertura sobre las líneas nuevas (codecov patch) asegura que lo que entra venga con tests.</span></div>
+
+      <h2 id="L"><span class="code">L</span>Documentación</h2>
+      <div class="param-head"><span class="chip g-exc">6.5<span class="of">/7</span><span class="delta">▽ desde 6.6</span></span></div>
+      <p>Sigue siendo de las más altas y merecidas: <code>ARCHITECTURE.md</code>,
+      <code>README</code>, <code>FILOSOFIA.md</code>, 7 docs de convenciones, 9 ADRs con
+      plantilla, runbooks operativos. El leve descenso es por drift: con Clerk en vivo,
+      <code>docs/conventions/roadmap.md</code> todavía dice que la auth multi-user está
+      "deferida por diseño… single-user implícito sin <code>user_id</code>", lo cual ya no
+      es cierto. La doc empezó a divergir del código justo en el cambio más grande.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">L1</span><span class="imp-title">Actualizar la doc de auth/multi-user<span class="prio p-alta">alta</span></span><span class="why">Reescribir <code>roadmap.md</code> y <code>docs/migracion-multi-user.md</code> para reflejar que Clerk está vivo, qué falta (provisioning, cierre del fallback) y el rol del alias de dueño. Un ADR-0010 "activación de Clerk" dejaría registrada la decisión.</span></div>
+      <div class="imp"><span class="tag">L2</span><span class="imp-title">Diagramas de arquitectura<span class="prio p-media">media</span></span><span class="why">Un diagrama C4 o mermaid comunica el sistema de un vistazo mejor que prosa.</span></div>
+      <div class="imp"><span class="tag">L3</span><span class="imp-title">Contrato de API explícito<span class="prio p-baja">baja</span></span><span class="why">Generar una tabla/OpenAPI desde los schemas Zod documenta cada endpoint sin duplicar la fuente de verdad.</span></div>
+      <div class="imp"><span class="tag">L4</span><span class="imp-title">Anclar docs al código fuente<span class="prio p-baja">baja</span></span><span class="why">Que cada doc de convención cite el archivo/commit que la implementa, para detectar divergencias como la de L1 antes.</span></div>
+
+      <h2 id="M"><span class="code">M</span>UX, diseño y coherencia estética</h2>
+      <div class="param-head"><span class="chip g-good">6.2<span class="of">/7</span><span class="delta">▽ desde 6.3</span></span></div>
+      <p>Trama tiene algo raro en software personal: una <em>filosofía estética</em>
+      escrita, design tokens semánticos, acentos de sección y tests de regresión visual.
+      Las features literarias (Sortes, Espejo, Voz, Hojas, Crónicas, Postales, Resonancia,
+      Eco) dan identidad. El leve descenso es deliberado: separo de M la dimensión de
+      navegación/descubribilidad y la llevo a la nueva variable N, donde está el problema
+      que tú mismo notaste. Lo estrictamente visual sigue alto; lo que falla es <em>cómo
+      se llega</em> a todo eso.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">M1</span><span class="imp-title">Estados vacíos / carga / error consistentes<span class="prio p-media">media</span></span><span class="why">Asegurar que Atlas, Cronología y Espejo tengan los tres estados con el mismo lenguaje visual que las vistas maduras.</span></div>
+      <div class="imp"><span class="tag">M2</span><span class="imp-title">Microcopy con voz literaria<span class="prio p-baja">baja</span></span><span class="why">Revisar mensajes de sistema/error para que no rompan el tono cuidado del resto. Un módulo único de textos (i18n-ready) ayuda.</span></div>
+      <div class="imp"><span class="tag">M3</span><span class="imp-title">Decisión explícita sobre modo oscuro<span class="prio p-baja">baja</span></span><span class="why">Definir si el norte "papel" admite un modo oscuro coherente o se descarta a propósito, para no dejarlo a medias.</span></div>
+      <div class="imp"><span class="tag">M4</span><span class="imp-title">Galería de design tokens<span class="prio p-baja">baja</span></span><span class="why">Un showcase de tokens, acentos y componentes (Storybook ligero) facilita mantener coherencia al crecer.</span></div>
+
+      <h2 id="N"><span class="code">N</span>Arquitectura de información y navegación <span class="new-badge">nueva</span></h2>
+      <div class="param-head"><span class="chip g-mid">5.0<span class="of">/7</span></span></div>
+      <p>Es la variable que motiva la Parte II. La barra lateral lista <b>diez ítems
+      planos</b> —Inicio, Grafo, Entidades, Citas, Momentos, Escuchas, Cronología, Atlas,
+      Chat, Sugerencias— sin jerarquía visual entre ellos, aunque pertenecen a
+      <em>tres categorías conceptuales distintas</em>: colecciones que acumulás, miradas de
+      conjunto, y superficies de IA. Encima, un tesoro de funciones literarias (Sortes,
+      Espejo, Voz de…, Hojas, Postales, Crónicas) vive disperso en botones de TopBar,
+      paneles de detalle y secciones internas, sin un lugar central. El resultado: una
+      barra que se siente superpoblada y, a la vez, features valiosas que casi nadie
+      encuentra. La estructura no está rota —funciona— pero ya no escala a la riqueza
+      que el producto alcanzó.</p>
+      <h3>Mejoras propuestas <span style="font-weight:400;font-size:14px;color:var(--ink-faint)">(desarrolladas en la Parte II)</span></h3>
+      <div class="imp"><span class="tag">N1</span><span class="imp-title">Agrupar la barra en secciones rotuladas<span class="prio p-alta">alta</span></span><span class="why">Tres grupos —"Mi trama", "Miradas", "Diálogo"— con micro-rótulos. Mismo número de destinos, una fracción del ruido. Ver §II.1.</span></div>
+      <div class="imp"><span class="tag">N2</span><span class="imp-title">Reubicar Grafo / Cronología / Atlas como Miradas<span class="prio p-alta">alta</span></span><span class="why">No son destinos sueltos: son tres lentes sobre el mismo conjunto. Tratarlas como un grupo (o un conmutador de lente in-situ). Ver §II.2.</span></div>
+      <div class="imp"><span class="tag">N3</span><span class="imp-title">Rescatar las funciones literarias en un Gabinete<span class="prio p-media">media</span></span><span class="why">Una entrada que reúna Sortes, Espejo, Voz, Hojas, Postales — hoy escondidas. Ver §II.3.</span></div>
+      <div class="imp"><span class="tag">N4</span><span class="imp-title">Breadcrumb y "volver" consistentes<span class="prio p-baja">baja</span></span><span class="why">El TopBar ya tiene breadcrumb para detalle de entidad; extenderlo a todo flujo de detalle (cita, momento) para una vuelta predecible.</span></div>
+
+      <h2 id="O"><span class="code">O</span>Multi-usuario y autenticación <span class="new-badge">nueva</span></h2>
+      <div class="param-head"><span class="chip g-good">5.5<span class="of">/7</span></span></div>
+      <p>Variable nueva porque hoy dejó de ser hipotética. Clerk verifica tokens
+      (<code>auth.ts</code> con tabla de decisión clara y 9 tests), el frontend tiene
+      <code>UserButton</code>, y un alias mapea el sub del dueño a
+      <code>legacy-single-user</code> para que toda la data pre-Clerk aparezca sin migrar
+      tablas ni blobs. Es una solución elegante para una persona. Lo que baja la nota es
+      que el camino a la familia todavía no está pavimentado: no hay <em>provisioning</em>
+      (no se crea fila en <code>users</code> al primer login, ni webhook de Clerk),
+      <code>ALLOW_LEGACY_FALLBACK=true</code> deja una puerta implícita, y el aislamiento
+      por <code>user_id</code> aún no tiene pruebas de extremo a extremo que garanticen
+      que un familiar nunca vea data de otro.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">O1</span><span class="imp-title">Provisioning de usuario al primer login<span class="prio p-alta">alta</span></span><span class="why">Webhook de Clerk (o upsert lazy en el primer request autenticado) que cree la fila en <code>users</code> con su presupuesto. Sin esto, un familiar entra pero no tiene "espacio" propio bien formado.</span></div>
+      <div class="imp"><span class="tag">O2</span><span class="imp-title">Cerrar el fallback con fecha<span class="prio p-alta">alta</span></span><span class="why">Una vez que el dueño y la familia entran siempre con Clerk, poner <code>ALLOW_LEGACY_FALLBACK=false</code>. Documentar el corte (conecta D1).</span></div>
+      <div class="imp"><span class="tag">O3</span><span class="imp-title">Tests de aislamiento por usuario<span class="prio p-media">media</span></span><span class="why">Suite que verifique que el usuario A nunca recibe filas de B en cada endpoint con <code>user_id</code>. Es la garantía de privacidad familiar; hoy descansa en la convención.</span></div>
+      <div class="imp"><span class="tag">O4</span><span class="imp-title">Migración final de la data del dueño<span class="prio p-baja">baja</span></span><span class="why">Cuando se fijen las llaves de producción (live), decidir si el dueño sigue como <code>legacy-single-user</code> para siempre o se reasigna a su sub real (reescribiendo tablas + claves de blobs). El alias es un puente, no un destino.</span></div>
+      <div class="imp"><span class="tag">O5</span><span class="imp-title">Spotify y cost-cap por persona<span class="prio p-baja">baja</span></span><span class="why">Verificar que tokens de Spotify y presupuesto mensual queden namespaceados por usuario antes de invitar a alguien.</span></div>
+
+      <p class="part-label">Parte II — Rediseño de navegación y funciones nuevas</p>
+      <h2 class="part">Repensar cómo se entra a Trama</h2>
+      <p>Trama creció de un cuaderno de citas a un instrumento con tres naturalezas:
+      cosas que <b>acumulás</b>, formas de <b>ver el conjunto</b>, y maneras de
+      <b>conversar</b> con tu propia trama. La barra lateral todavía las trata a todas
+      igual. Esta parte propone una jerarquía que respete esas naturalezas, reubique las
+      miradas de conjunto, y rescate las funciones literarias del olvido — más un catálogo
+      de funciones nuevas pensadas para el carácter del proyecto.</p>
+
+      <h3>§II.1 · El problema: una barra plana de diez ítems</h3>
+      <p>Hoy <code>NAV_ITEMS</code> mezcla, sin separación, colecciones de datos
+      (Entidades, Citas, Momentos, Escuchas) con lentes de conjunto (Grafo, Cronología,
+      Atlas) y con superficies de IA (Chat, Sugerencias). El ojo no tiene anclas: los diez
+      pesan lo mismo. La propuesta no quita destinos —los agrupa.</p>
+
+      <div class="navcompare">
+        <div class="navcol">
+          <h4>Ahora · diez ítems planos</h4>
+          <div class="navbox flat">
+            <div class="navitem"><span class="dot" style="background:#7a5c3e"></span>Inicio</div>
+            <div class="navitem"><span class="dot" style="background:#5b6e8c"></span>Grafo</div>
+            <div class="navitem active"><span class="dot" style="background:#3f7d52"></span>Entidades<span class="ct">63</span></div>
+            <div class="navitem"><span class="dot" style="background:#b07f2e"></span>Citas<span class="ct">77</span></div>
+            <div class="navitem"><span class="dot" style="background:#a05a7a"></span>Momentos<span class="ct">24</span></div>
+            <div class="navitem"><span class="dot" style="background:#4a7a86"></span>Escuchas</div>
+            <div class="navitem"><span class="dot" style="background:#8a6db0"></span>Cronología</div>
+            <div class="navitem"><span class="dot" style="background:#b04a3a"></span>Atlas</div>
+            <div class="navitem"><span class="dot" style="background:#5c8a6d"></span>Chat</div>
+            <div class="navitem"><span class="dot" style="background:#b07f2e"></span>Sugerencias<span class="ct">3</span></div>
+          </div>
+        </div>
+        <div class="navcol">
+          <h4>Propuesta · tres grupos rotulados</h4>
+          <div class="navbox">
+            <div class="navitem"><span class="dot" style="background:#7a5c3e"></span>Inicio</div>
+            <div class="grp">Mi trama</div>
+            <div class="navitem active"><span class="dot" style="background:#3f7d52"></span>Entidades<span class="ct">63</span></div>
+            <div class="navitem"><span class="dot" style="background:#b07f2e"></span>Citas<span class="ct">77</span></div>
+            <div class="navitem"><span class="dot" style="background:#a05a7a"></span>Momentos<span class="ct">24</span></div>
+            <div class="navitem"><span class="dot" style="background:#4a7a86"></span>Escuchas</div>
+            <div class="grp">Miradas</div>
+            <div class="navitem"><span class="dot" style="background:#5b6e8c"></span>Grafo</div>
+            <div class="navitem"><span class="dot" style="background:#8a6db0"></span>Cronología</div>
+            <div class="navitem"><span class="dot" style="background:#b04a3a"></span>Atlas</div>
+            <div class="grp">Diálogo</div>
+            <div class="navitem"><span class="dot" style="background:#5c8a6d"></span>Chat</div>
+            <div class="navitem"><span class="dot" style="background:#b07f2e"></span>Sugerencias<span class="ct">3</span></div>
+            <div class="rule"></div>
+            <div class="navitem"><span class="dot" style="background:#7a5c3e"></span>Gabinete <span class="ct">✦</span></div>
+          </div>
+        </div>
+      </div>
+      <p>El cambio es barato —<code>NAV_ITEMS</code> pasa de un arreglo plano a grupos con
+      rótulo, y <code>Sidebar</code>/<code>MobileBottomNav</code> los renderizan con un
+      micro-encabezado—. El beneficio es desproporcionado: la barra deja de leerse como
+      una lista de la compra y empieza a contar qué <em>es</em> Trama. Conserva el
+      <code>SECTION_ACCENT</code> ya existente como código de color por sección.</p>
+
+      <h3>§II.2 · Las Miradas: Grafo, Cronología y Atlas no son destinos, son lentes</h3>
+      <p>Tu intuición es exacta. Grafo, Cronología y Atlas no muestran <em>cosas
+      distintas</em>: muestran <em>lo mismo</em> —tu trama entera— mirado de tres maneras
+      (por conexión, por tiempo, por tema). Tratarlas como tres ítems sueltos en la lista
+      esconde que son hermanas. Dos formas de arreglarlo, de menor a mayor ambición:</p>
+
+      <div class="callout lens">
+        <p><b>Opción conservadora (incluida arriba).</b> Agruparlas bajo el rótulo
+        "Miradas" en la barra. Cero cambio de comportamiento, sólo jerarquía visual. Es el
+        primer paso seguro.</p>
+        <p><b>Opción audaz — un conmutador de lente in-situ.</b> Que "Miradas" sea
+        <em>un solo destino</em> que abre el conjunto, con un selector arriba para cambiar
+        de lente sin volver a la barra:</p>
+      </div>
+      <p style="text-align:center">
+        <span class="lensbar">
+          <span class="on">◍ Grafo</span><span>↡ Cronología</span><span>✦ Atlas</span>
+        </span>
+      </p>
+      <p>Bajo este modelo, cuando estás "viendo el conjunto", cambiar de Grafo a
+      Cronología es un gesto (no una re-navegación), y la selección (qué entidad,
+      qué filtro temático, qué rango de fechas) <em>se mantiene</em> entre lentes: clicás
+      una entidad en el Grafo, pasás a Cronología y ves su línea de tiempo, pasás a Atlas
+      y ves su constelación temática. Eso convierte tres vistas paralelas en una sola
+      experiencia de exploración coherente — y, de paso, da una razón natural para
+      continuar el split de <code>GraphView.tsx</code> (A2) extrayendo el estado de
+      selección compartido. Recomiendo empezar por la conservadora y evolucionar a la
+      audaz si la exploración cruzada se siente natural.</p>
+
+      <h3>§II.3 · El Gabinete: rescatar las funciones literarias escondidas</h3>
+      <p>Trama acumuló un repertorio de gestos literarios que son, en buena medida, su
+      alma — y casi ninguno tiene un lugar propio:</p>
+      <table>
+        <thead><tr><th>Función</th><th>Qué hace</th><th>Hoy se llega por…</th></tr></thead>
+        <tbody>
+          <tr><td><b>Sortes</b></td><td>Una cita al azar para releer</td><td>iconito en el TopBar</td></tr>
+          <tr><td><b>Espejo</b></td><td>La IA compone una lectura de tu trama</td><td>disperso</td></tr>
+          <tr><td><b>Voz de…</b></td><td>Qué diría una entidad</td><td>panel de detalle de entidad</td></tr>
+          <tr><td><b>Hojas sueltas</b></td><td>Superficie de escritura libre</td><td>dentro de Momentos</td></tr>
+          <tr><td><b>Postales</b></td><td>Exportar una cita como imagen 1080²</td><td>acción contextual de cita</td></tr>
+          <tr><td><b>Crónicas</b></td><td>Resumen editorial del mes</td><td>sección al pie de Inicio</td></tr>
+          <tr><td><b>Resonancia / Eco</b></td><td>Marcar cuánto te tocó · marginalia IA</td><td>dentro de cada cita</td></tr>
+        </tbody>
+      </table>
+      <p>La propuesta: una entrada <b>Gabinete</b> (o "Taller", o "Juegos de la trama")
+      que reúna estos gestos generativos y lúdicos en un solo lugar descubrible —una sala
+      a la que entrás a jugar con tu material— sin quitar los accesos contextuales que ya
+      funcionan (Resonancia seguirá viviendo en la cita; Voz de… en la entidad). El
+      Gabinete es el <em>índice</em> que hoy no existe. Para un usuario nuevo (la familia
+      que viene), es la diferencia entre descubrir estas joyas y no saber nunca que están.</p>
+
+      <h3>§II.4 · Funciones nuevas propuestas</h3>
+      <p>Pensadas para el carácter de Trama —el linaje del florilegio, la sensibilidad
+      literaria, la metáfora del tejido— y apoyadas, donde es posible, en infraestructura
+      que ya existe (búsqueda pgvector, Resonancia, Crónicas, aniversarios).</p>
+
+      <div class="feat">
+        <div class="ft-head"><span class="nf">NF1</span><span class="ft-name">Telar</span><span class="ft-kicker">escribir dentro de tu propia trama</span></div>
+        <p>Una superficie de escritura que, mientras redactás, trae al margen citas y
+        entidades semánticamente cercanas a lo que vas diciendo (usando el endpoint de
+        búsqueda vectorial que ya existe). Evolución natural de Hojas sueltas: no escribís
+        en una página en blanco, escribís rodeado de tu propio archivo.</p>
+        <span class="fit"><b>Encaja con:</b> <code>search.mts</code> (pgvector) ya existe · Hojas sueltas · <span class="prio p-media" style="margin:0">media</span></span>
+      </div>
+
+      <div class="feat">
+        <div class="ft-head"><span class="nf">NF2</span><span class="ft-name">Hilos</span><span class="ft-kicker">recorridos curados por tu trama</span></div>
+        <p>Secuencias que vos componés: un orden deliberado de citas, entidades y momentos
+        que cuenta algo —como una playlist, pero de sentido—. "El hilo de mi duelo", "lo
+        que leí sobre el tiempo". Una colección nueva, de primera clase, que da agencia
+        narrativa sobre un material que hoy sólo se ordena por fecha o por tipo.</p>
+        <span class="fit"><b>Encaja con:</b> tabla nueva + relación N:M a entidades/citas/momentos · grupo "Mi trama" · <span class="prio p-alta" style="margin:0">alta</span></span>
+      </div>
+
+      <div class="feat">
+        <div class="ft-head"><span class="nf">NF3</span><span class="ft-name">Tal día como hoy</span><span class="ft-kicker">el ritual del regreso</span></div>
+        <p>Ya existe <code>useHiloOfTheDay</code> detectando aniversarios; hoy sólo cambia
+        la cita destacada. Convertirlo en una superficie propia: "hace un año guardaste
+        esto", "tal día conociste a…". Un pequeño rito diario que premia la constancia y
+        hace que la trama vieja siga viva.</p>
+        <span class="fit"><b>Encaja con:</b> <code>useHiloOfTheDay</code> ya detecta efemérides · Inicio / Gabinete · <span class="prio p-media" style="margin:0">media</span></span>
+      </div>
+
+      <div class="feat">
+        <div class="ft-head"><span class="nf">NF4</span><span class="ft-name">Florilegio</span><span class="ft-kicker">el libro del año</span></div>
+        <p>Exportar una antología encuadernable (PDF tipográfico) con lo más resonante de
+        un período: las citas con Resonancia alta, las Crónicas del mes, las Postales. Cierra
+        el linaje del proyecto —de florilegio digital a florilegio impreso— y le da a la
+        trama un destino físico, regalable. Muy en la voz de Trama.</p>
+        <span class="fit"><b>Encaja con:</b> Resonancia + Crónicas + Postales ya existen · export server-side · <span class="prio p-media" style="margin:0">media</span></span>
+      </div>
+
+      <div class="feat">
+        <div class="ft-head"><span class="nf">NF5</span><span class="ft-name">Temas como capa</span><span class="ft-kicker">el Atlas hecho navegable</span></div>
+        <p>El Atlas ya detecta constelaciones temáticas; hoy son sólo para mirar. Exponer
+        esos temas como chips/filtros transversales en Citas, Entidades y Cronología:
+        clicás "memoria" en el Atlas y filtrás toda tu trama por ese hilo. Conecta vistas
+        que hoy viven aisladas y le da al Atlas una salida activa.</p>
+        <span class="fit"><b>Encaja con:</b> <code>atlas.mts</code> ya computa temas · refuerza Miradas (§II.2) · <span class="prio p-media" style="margin:0">media</span></span>
+      </div>
+
+      <div class="feat">
+        <div class="ft-head"><span class="nf">NF6</span><span class="ft-name">Brújula de Resonancia</span><span class="ft-kicker">lo que más te marcó</span></div>
+        <p>El campo Resonancia (1–5) ya se captura por cita pero no tiene una vista que lo
+        aproveche. Una superficie ordenada por intensidad afectiva —no por fecha— : "lo que
+        más te tocó este año". Un eje de lectura completamente distinto al cronológico,
+        gratis sobre datos que ya tenés.</p>
+        <span class="fit"><b>Encaja con:</b> campo Resonancia ya existe · Gabinete o filtro en Citas · <span class="prio p-baja" style="margin:0">baja</span></span>
+      </div>
+
+      <div class="feat">
+        <div class="ft-head"><span class="nf">NF7</span><span class="ft-name">Cartas</span><span class="ft-kicker">epistolario con tus entidades</span></div>
+        <p>Extensión de "Voz de…": en vez de una réplica suelta, una correspondencia.
+        Escribís una carta a una entidad (un autor, una persona, un concepto) y la IA
+        responde en su voz, con tu propia trama como contexto. Un gesto íntimo y muy
+        literario que profundiza algo que ya funciona.</p>
+        <span class="fit"><b>Encaja con:</b> "Voz de…" ya existe · <code>chat_threads</code> reutilizable · Gabinete · <span class="prio p-baja" style="margin:0">baja</span></span>
+      </div>
+
+      <div class="feat">
+        <div class="ft-head"><span class="nf">NF8</span><span class="ft-name">Captura por voz</span><span class="ft-kicker">bajar la fricción de guardar</span></div>
+        <p>En el móvil, dictar una cita o un momento hablando: se transcribe y pasa por el
+        mismo pipeline de extracción. La fricción de capturar es el límite real de cuánto
+        crece una trama; el habla es la vía de menor resistencia cuando estás leyendo en
+        un sillón y no querés tipear.</p>
+        <span class="fit"><b>Encaja con:</b> infra de audio en Momentos ya existe · pipeline de extracción · <span class="prio p-baja" style="margin:0">baja</span></span>
+      </div>
+
+      <h2 class="part">Orden de implementación recomendado</h2>
+      <p>Combina la deuda de ingeniería de la Parte I con el producto de la Parte II,
+      en olas. Cada ola es coherente en sí misma y deja el producto en un estado
+      mejor que el anterior.</p>
+
+      <div class="wave">
+        <div class="wh">Ola 0 — Ya hecho hoy ✓</div>
+        <p style="margin:6px 0">Type-check de <code>.mts</code> (A1/K1) · cobertura de <code>.mts</code> (C1) · gitleaks en CI (D4) · migraciones en CI (G1/K3) · Clerk en vivo + CSP corregida. Cierra la prioridad alta de la v1.</p>
+      </div>
+
+      <div class="wave">
+        <div class="wh">Ola 1 — Higiene post-Clerk (1–2 sesiones)</div>
+        <table style="margin:6px 0">
+          <tbody>
+            <tr><td class="num"><b>L1</b></td><td>Actualizar la doc de auth/multi-user (drift) + ADR-0010</td><td>Documentación</td></tr>
+            <tr><td class="num"><b>O1</b></td><td>Provisioning de usuario al primer login</td><td>Multi-usuario</td></tr>
+            <tr><td class="num"><b>O3</b></td><td>Tests de aislamiento por <code>user_id</code></td><td>Multi-usuario</td></tr>
+            <tr><td class="num"><b>O2 / D1</b></td><td>Plan datado para cerrar el legacy fallback</td><td>Seguridad</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="wave">
+        <div class="wh">Ola 2 — Rediseño de navegación (el corazón de tu pedido)</div>
+        <table style="margin:6px 0">
+          <tbody>
+            <tr><td class="num"><b>N1</b></td><td>Agrupar la barra en "Mi trama / Miradas / Diálogo"</td><td>Navegación</td></tr>
+            <tr><td class="num"><b>N2a</b></td><td>Miradas como grupo (opción conservadora)</td><td>Navegación</td></tr>
+            <tr><td class="num"><b>N3</b></td><td>Crear el Gabinete que reúne las funciones literarias</td><td>Navegación</td></tr>
+            <tr><td class="num"><b>M1</b></td><td>Estados vacíos/carga/error consistentes en las vistas reubicadas</td><td>UX</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="wave">
+        <div class="wh">Ola 3 — Habitar el andamiaje (las notas más bajas)</div>
+        <table style="margin:6px 0">
+          <tbody>
+            <tr><td class="num"><b>I1</b></td><td>Completar Sentry (init real) — invisible hoy en producción</td><td>Observabilidad</td></tr>
+            <tr><td class="num"><b>H1</b></td><td>Telemetría desde los ErrorBoundary</td><td>Errores</td></tr>
+            <tr><td class="num"><b>F1</b></td><td>axe-core en todas las rutas</td><td>Accesibilidad</td></tr>
+            <tr><td class="num"><b>C1</b></td><td>Tests de integración endpoint→DB (sube cobertura honesta)</td><td>Testing</td></tr>
+            <tr><td class="num"><b>B1</b></td><td>Linting type-aware de promesas</td><td>Calidad</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="wave">
+        <div class="wh">Ola 4 — Funciones nuevas (cuando la base esté firme)</div>
+        <table style="margin:6px 0">
+          <tbody>
+            <tr><td class="num"><b>NF2</b></td><td>Hilos — recorridos curados (mayor impacto de producto)</td><td>Función nueva</td></tr>
+            <tr><td class="num"><b>NF5</b></td><td>Temas como capa navegable (activa el Atlas)</td><td>Función nueva</td></tr>
+            <tr><td class="num"><b>NF1</b></td><td>Telar — escritura con contexto</td><td>Función nueva</td></tr>
+            <tr><td class="num"><b>N2b</b></td><td>Miradas como conmutador de lente in-situ (opción audaz)</td><td>Navegación</td></tr>
+            <tr><td class="num"><b>NF3 · NF4</b></td><td>Tal día como hoy · Florilegio anual</td><td>Función nueva</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <p><b>Lectura de conjunto.</b> En medio día, Trama cerró la deuda de
+        ingeniería de prioridad alta y activó autenticación real: la ingeniería pura
+        está, francamente, muy bien. El frente que ahora pide atención se movió de la
+        <em>plomería</em> al <em>producto</em>. Las dos notas nuevas lo dicen sin rodeos:
+        la navegación (N, 5.0) no escaló a la riqueza que el proyecto alcanzó, y el
+        multi-usuario (O, 5.5) está vivo pero no pavimentado para la familia. La buena
+        noticia es que ninguno es rediseño de fondo: agrupar una barra, rescatar funciones
+        que ya escribiste, y pavimentar un camino de auth que ya funciona. Trama no
+        necesita más motor — necesita mejores puertas.</p>
+      </div>
+
+      <footer class="doc">
+        <p>Trama v0.11.0 · Re-evaluación generada el 28 de mayo de 2026 · Escala 1–7.
+        Notas ancladas a métricas del repositorio observadas al momento (conteo de
+        archivos y tests, configuración de CI, headers de seguridad, estructura de
+        navegación en <code>Sidebar.tsx</code> / <code>ViewRouter.tsx</code> / <code>view.ts</code>).
+        Documento autocontenido — abrir en cualquier navegador o imprimir a PDF.</p>
+      </footer>
+    </div>
+  </body>
+</html>
