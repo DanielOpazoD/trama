@@ -475,6 +475,13 @@ export const TasksIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Chevron hacia abajo — disclosure del conmutador de mundos. */
+export const ChevronDownIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+)
+
 /** Checkmark — usado en chips pequeños "verificado por X" en ProposalPanel.
     Stroke 2.2 (override automático para size <= 12) porque a 10px el 1.6
     desaparece. A size >= 14 vuelve a 1.6 — el sistema sigue. */

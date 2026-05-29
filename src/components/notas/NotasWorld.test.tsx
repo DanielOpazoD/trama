@@ -5,7 +5,7 @@ import { NotasWorld } from './NotasWorld'
 
 describe('<NotasWorld />', () => {
   it('arranca en Notas y cambia a Tareas', () => {
-    renderWithProviders(<NotasWorld />)
+    renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
     // Eyebrow de la sección Notas (único en el header).
     expect(screen.getByText('apuntes rápidos')).toBeInTheDocument()
 
