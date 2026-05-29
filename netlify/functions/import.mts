@@ -3,6 +3,7 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { resolveImportId } from './_lib/import-ids.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ImportBody } from './_lib/admin-schemas.js'
 import { persistError, safeSql } from './_lib/observability.js'
@@ -101,7 +102,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
       const result = await sqlTyped<{ id: string }>(sql`
         INSERT INTO entities (id, type, name, year, description, position_x, position_y, origin, user_id)
         VALUES (
-          ${e.id},
+          ${resolveImportId(e.id, userId)},
           ${e.type},
           ${e.name},
           ${e.year ?? null},
@@ -131,9 +132,9 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
       const result = await sqlTyped<{ id: string }>(sql`
         INSERT INTO relationships (id, from_id, to_id, type, notes, origin, user_id)
         VALUES (
-          ${r.id},
-          ${r.fromId},
-          ${r.toId},
+          ${resolveImportId(r.id, userId)},
+          ${resolveImportId(r.fromId, userId)},
+          ${resolveImportId(r.toId, userId)},
           ${r.type},
           ${r.notes ?? null},
           ${origin}::jsonb,
@@ -159,8 +160,8 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
       const result = await sqlTyped<{ id: string }>(sql`
         INSERT INTO quotes (id, entity_id, text, source, context, origin, user_id)
         VALUES (
-          ${q.id},
-          ${q.entityId},
+          ${resolveImportId(q.id, userId)},
+          ${resolveImportId(q.entityId, userId)},
           ${q.text},
           ${q.source ?? null},
           ${q.context ?? null},
