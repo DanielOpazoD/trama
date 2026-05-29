@@ -9,6 +9,20 @@
 import type { LLMMessage, ProviderConfig, RawResult } from '../types.js'
 import { fetchWithRetry } from '../retry.js'
 
+/**
+ * Los modelos nuevos de OpenAI (familia gpt-5* y la serie o1/o3/o4) cambiaron
+ * la API de /chat/completions: exigen `max_completion_tokens` en vez de
+ * `max_tokens` (manda 400 `unsupported_parameter` si usás el viejo) y sólo
+ * aceptan la temperatura por defecto. DeepSeek y los gpt-4* siguen con
+ * `max_tokens` + temperatura libre, así que el switch es por nombre de modelo.
+ */
+export function isNewOpenAIModel(model: string): boolean {
+  return /^(gpt-5|o[1-9])/i.test(model)
+}
+function tokenParamFor(model: string): 'max_tokens' | 'max_completion_tokens' {
+  return isNewOpenAIModel(model) ? 'max_completion_tokens' : 'max_tokens'
+}
+
 export async function askOpenAICompatible(
   apiKey: string,
   config: ProviderConfig,
@@ -19,8 +33,12 @@ export async function askOpenAICompatible(
   const body: Record<string, unknown> = {
     model: config.model,
     messages,
-    temperature: mode === 'json' ? 0.2 : 0.6,
-    max_tokens: maxTokens,
+    [tokenParamFor(config.model)]: maxTokens,
+  }
+  // Los modelos nuevos sólo aceptan la temperatura por defecto; al resto les
+  // fijamos una baja para JSON/extracción y una media para texto.
+  if (!isNewOpenAIModel(config.model)) {
+    body.temperature = mode === 'json' ? 0.2 : 0.6
   }
   if (mode === 'json') body.response_format = { type: 'json_object' }
 
@@ -60,26 +78,27 @@ export async function askOpenAIVision(
   maxTokens: number,
 ): Promise<RawResult> {
   const dataUrl = `data:${mimeType};base64,${imageBase64}`
+  const visionBody: Record<string, unknown> = {
+    model: config.model,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: userText },
+          { type: 'image_url', image_url: { url: dataUrl } },
+        ],
+      },
+    ],
+    response_format: { type: 'json_object' },
+    [tokenParamFor(config.model)]: maxTokens,
+  }
+  if (!isNewOpenAIModel(config.model)) visionBody.temperature = 0.2
   const response = await fetchWithRetry(() =>
     fetch(`${config.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: userText },
-              { type: 'image_url', image_url: { url: dataUrl } },
-            ],
-          },
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.2,
-        max_tokens: maxTokens,
-      }),
+      body: JSON.stringify(visionBody),
     }),
   )
   if (!response.ok) {
