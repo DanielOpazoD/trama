@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import type { Note } from '../../api'
 import { ChevronLeftIcon, ChevronRightIcon } from '../Icons'
 
 const ACCENT = 'var(--accent-sage)'
@@ -20,7 +19,7 @@ const MONTHS = [
 ]
 
 /** ISO → 'YYYY-MM-DD' en hora LOCAL (sin desfase de zona). Exportado para que
- *  la vista filtre por el mismo criterio de "día" que usa el calendario. */
+ *  las vistas filtren con el mismo criterio de "día" que usa el calendario. */
 export function localDayKey(iso: string): string {
   const d = new Date(iso)
   const mm = String(d.getMonth() + 1).padStart(2, '0')
@@ -32,7 +31,7 @@ function dayKey(y: number, m0: number, day: number): string {
   return `${y}-${String(m0 + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
-/** Nivel de intensidad 0–4 según cuántas notas tiene el día. */
+/** Nivel de intensidad 0–4 según cuántos ítems tiene el día. */
 function levelFor(count: number): number {
   if (count <= 0) return 0
   if (count === 1) return 1
@@ -50,29 +49,36 @@ function formatDayLabel(key: string): string {
   return `${d} de ${MONTHS[m - 1]}`
 }
 
+export type CalendarStat = { n: number; label: string }
+
 /**
- * Calendario de actividad de las notas — un heatmap mensual al estilo de los
- * "contribution graphs": cada día se tiñe (sage) según cuántas notas escribiste.
- * Clic en un día con actividad filtra la lista a esa fecha; volver a hacer clic
- * lo deselecciona. Todo se deriva client-side de las notas ya cargadas.
+ * Calendario de actividad reutilizable — un heatmap mensual al estilo de los
+ * "contribution graphs": cada día se tiñe (sage) según cuántos ítems tiene.
+ * Clic en un día con actividad lo selecciona (filtro); volver a hacer clic lo
+ * deselecciona.
+ *
+ * Es agnóstico al dominio: el caller le pasa `dayKeys` (un 'YYYY-MM-DD' por
+ * ítem fechado — notas por creación, tareas por vencimiento, etc.), la `unit`
+ * para los textos y las `stats` a mostrar al costado.
  */
 export function ActivityCalendar({
-  notes,
+  dayKeys,
   selectedDay,
   onSelectDay,
+  unit = { one: 'nota', many: 'notas' },
+  stats,
 }: {
-  notes: Note[]
+  dayKeys: string[]
   selectedDay: string | null
   onSelectDay: (day: string | null) => void
+  unit?: { one: string; many: string }
+  stats: CalendarStat[]
 }) {
   const counts = useMemo(() => {
     const m = new Map<string, number>()
-    for (const n of notes) {
-      const k = localDayKey(n.createdAt)
-      m.set(k, (m.get(k) ?? 0) + 1)
-    }
+    for (const k of dayKeys) m.set(k, (m.get(k) ?? 0) + 1)
     return m
-  }, [notes])
+  }, [dayKeys])
 
   const now = new Date()
   const [view, setView] = useState<{ y: number; m: number }>({
@@ -81,12 +87,6 @@ export function ActivityCalendar({
   })
 
   const todayKey = dayKey(now.getFullYear(), now.getMonth(), now.getDate())
-
-  const stats = useMemo(() => {
-    const tags = new Set<string>()
-    for (const n of notes) for (const t of n.tags) tags.add(t)
-    return { total: notes.length, days: counts.size, tags: tags.size }
-  }, [notes, counts])
 
   const cells = useMemo(() => {
     const first = new Date(view.y, view.m, 1)
@@ -157,13 +157,14 @@ export function ActivityCalendar({
               : isToday
                 ? '0 0 0 1px rgb(var(--ink-300) / 0.7)'
                 : undefined
+            const word = c.count === 1 ? unit.one : unit.many
             return (
               <button
                 key={i}
                 disabled={!clickable}
                 onClick={() => onSelectDay(isSelected ? null : c.key)}
-                title={`${c.count} ${c.count === 1 ? 'nota' : 'notas'} · ${c.day} ${MONTHS[view.m]}`}
-                aria-label={`${c.day} de ${MONTHS[view.m]}: ${c.count} ${c.count === 1 ? 'nota' : 'notas'}`}
+                title={`${c.count} ${word} · ${c.day} ${MONTHS[view.m]}`}
+                aria-label={`${c.day} de ${MONTHS[view.m]}: ${c.count} ${word}`}
                 className={`aspect-square rounded-md text-micro tabular-nums flex items-center justify-center transition-opacity ${
                   clickable ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
                 } ${level === 0 ? 'text-ink-300' : 'text-ink-800'}`}
@@ -184,12 +185,9 @@ export function ActivityCalendar({
 
       {/* Estadísticas + estado del filtro por día */}
       <div className="flex-1 flex flex-row sm:flex-col flex-wrap gap-x-6 gap-y-3 sm:gap-y-4 sm:border-l sm:border-ink-100/70 sm:pl-5">
-        <Stat n={stats.total} label={stats.total === 1 ? 'nota' : 'notas'} />
-        <Stat
-          n={stats.days}
-          label={stats.days === 1 ? 'día con notas' : 'días con notas'}
-        />
-        <Stat n={stats.tags} label={stats.tags === 1 ? 'etiqueta' : 'etiquetas'} />
+        {stats.map((s) => (
+          <Stat key={s.label} n={s.n} label={s.label} />
+        ))}
         {selectedDay && (
           <div className="basis-full sm:mt-auto">
             <p className="text-micro text-ink-400 leading-snug">
