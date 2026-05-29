@@ -27,6 +27,7 @@ import { quotesApi } from './quotes'
 import { relationshipsApi } from './relationships'
 import { searchApi } from './search'
 import { spotifyApi } from './spotify'
+import { tasksApi } from './tasks'
 import { typeTablesApi } from './type-tables'
 
 export const api = {
@@ -37,6 +38,7 @@ export const api = {
   ...chatApi,
   cronicas: cronicasApi,
   notes: notesApi,
+  tasks: tasksApi,
   atlas: atlasApi,
   ...cronologiaApi,
   ...aiApi,
@@ -62,6 +64,8 @@ export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
 export type { Cronica, GeneratedCronica } from './cronicas'
 
 export type { Note } from './notes'
+
+export type { Task, TaskCreate, TaskPatch } from './tasks'
 
 export type { AtlasMember, AtlasConstellation, AtlasResponse } from './atlas'
 

@@ -1,20 +1,17 @@
 import { useState } from 'react'
-import { ViewHeader } from '../ViewHeader'
-import { EmptyMessage } from '../EmptyMessage'
 import { NotesIcon, TasksIcon } from '../Icons'
 import { WorldSwitcher } from '../WorldSwitcher'
 import { NotasView } from './NotasView'
+import { TareasView } from './TareasView'
 import type { World } from '../../types/world'
 
 /**
- * τ-worlds (Fase 1): el mundo "Trama Notas" — un workspace de productividad
- * liviana (apuntes rápidos + tareas), independiente del mapa pero con puentes
- * (p. ej. promover una nota a Momento, en una fase posterior).
+ * τ-worlds: el mundo "Trama Notas" — un workspace de productividad liviana
+ * (apuntes rápidos + tareas), independiente del mapa pero con puentes (p. ej.
+ * promover una nota a Momento, en una fase posterior).
  *
- * Esta primera entrega arma el FRAME: la sub-barra del mundo y sus secciones,
- * con estados de bienvenida pulidos. La captura/listado real (tabla `notes`,
- * `tasks`, endpoints, buscador) llega en la fase siguiente — acá validamos la
- * navegación y que el mundo se sienta nativo a Trama.
+ * Arma la sub-barra del mundo y sus dos secciones funcionales: Notas (memos
+ * con #etiquetas, Fase 2) y Tareas (pendientes con fecha, Fase 3).
  */
 type NotasSection = 'notas' | 'tareas'
 
@@ -112,30 +109,7 @@ export function NotasWorld({
       <main className="flex-1 relative overflow-hidden flex flex-col">
         <div className="h-full overflow-y-auto">
           <div className="px-8 py-10 pb-24 max-w-3xl mx-auto">
-            {section === 'notas' ? (
-              <NotasView />
-            ) : (
-              <>
-                <ViewHeader
-                  title="Tareas"
-                  eyebrow="por realizar"
-                  accent={ACCENT}
-                  spacing="wide"
-                  subtitle="Lo que tienes que hacer, simple y a la vista: título, detalle, fecha y etiquetas."
-                />
-                <EmptyMessage
-                  illustration="thread"
-                  title="Nada pendiente… por ahora."
-                  body={
-                    <>
-                      Acá vivirán tus tareas, con estado, fecha opcional y las mismas
-                      etiquetas que tus notas. Un módulo liviano, sin ceremonia.
-                    </>
-                  }
-                  hint="El módulo de tareas llega junto con la captura de notas."
-                />
-              </>
-            )}
+            {section === 'notas' ? <NotasView /> : <TareasView />}
           </div>
         </div>
       </main>
