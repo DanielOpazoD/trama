@@ -57,10 +57,10 @@ export default withObservability(
       FROM entities
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
     `) as EntityRow[]
-    if (entityRows.length === 0) {
+    const entity = entityRows[0]
+    if (!entity) {
       return ApiErrors.notFound(requestId, 'Entidad no encontrada')
     }
-    const entity = entityRows[0]
 
     type QuoteRow = { text: string; source: string | null }
     const quoteRows = (await sql`

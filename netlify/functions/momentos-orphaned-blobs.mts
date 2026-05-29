@@ -135,11 +135,7 @@ export default withObservability('momentos-orphaned-blobs', async (req: Request,
 
     // Embedding best-effort, igual que en POST normal de momentos.
     if (created?.id) {
-      const text = momentoEmbedText({
-        kind: 'foto',
-        payload: payload as Record<string, unknown>,
-        note,
-      })
+      const text = momentoEmbedText('foto', payload as Record<string, unknown>, note)
       if (text) {
         const emb = await embedSafe(text)
         if (emb) {

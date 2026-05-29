@@ -152,8 +152,8 @@ export default withObservability('momentos', async (req: Request, context: Conte
     const hasNext = rows.length > limit
     const items = hasNext ? rows.slice(0, limit) : rows
     let nextCursor: string | null = null
-    if (hasNext && items.length > 0) {
-      const last = items[items.length - 1]
+    const last = hasNext ? items[items.length - 1] : null
+    if (last) {
       // γ1: Neon devuelve Date — convertir a ISO antes de meter en cursor.
       const ts = new Date(last.captured_at).toISOString()
       nextCursor = `${ts}:${last.id}`
@@ -229,6 +229,9 @@ export default withObservability('momentos', async (req: Request, context: Conte
       RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
     `) as Array<Record<string, unknown>>
     const row = inserted[0]
+    if (!row) {
+      return ApiErrors.internal(requestId, 'No se pudo crear el momento')
+    }
 
     // Link a entidades si vienen en el body. Validamos que sean UUIDs en
     // teoría — la FK constraint los rechaza si no existen, así que el
@@ -263,10 +266,11 @@ export default withObservability('momentos', async (req: Request, context: Conte
       SELECT kind, payload, note FROM momentos
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
     `) as Array<{ kind: MomentoKind; payload: Record<string, unknown>; note: string | null }>
-    if (current.length === 0) {
+    const currentRow = current[0]
+    if (!currentRow) {
       return ApiErrors.notFound(requestId, 'Momento no encontrado')
     }
-    const kind = current[0].kind
+    const kind = currentRow.kind
 
     // ξ-fix-3: detectamos qué cambia realmente para decidir si re-embedear.
     // Antes este PATCH gastaba una llamada a OpenAI en CADA update aunque
@@ -277,13 +281,13 @@ export default withObservability('momentos', async (req: Request, context: Conte
 
     const newPayload = payloadChanged
       ? (body.payload as Record<string, unknown>)
-      : current[0].payload
+      : currentRow.payload
     const newNote =
       body.note === null
         ? null
         : typeof body.note === 'string'
           ? body.note.trim() || null
-          : current[0].note
+          : currentRow.note
     const newCapturedAt =
       typeof body.captured_at === 'string' && body.captured_at
         ? body.captured_at
@@ -377,10 +381,11 @@ export default withObservability('momentos', async (req: Request, context: Conte
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       RETURNING id, deleted_at
     `) as Array<{ id: string; deleted_at: string }>
-    if (result.length === 0) {
+    const deletedRow = result[0]
+    if (!deletedRow) {
       return ApiErrors.notFound(requestId, 'Momento no encontrado')
     }
-    return Response.json({ deletedAt: result[0].deleted_at })
+    return Response.json({ deletedAt: deletedRow.deleted_at })
   }
 
   return ApiErrors.methodNotAllowed(requestId)

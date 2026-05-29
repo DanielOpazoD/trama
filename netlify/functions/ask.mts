@@ -125,6 +125,8 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
   const relationshipTypes =
     relTypeRows.length > 0 ? relTypeRows.map((r) => r.slug) : FALLBACK_RELATIONSHIP_TYPES
 
+  const selected = selectedRows[0] ?? null
+
   const ctx: AskContext = {
     view,
     entities: ragCtx.entities.map((e) => ({
@@ -148,15 +150,14 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
     })),
     entityTypes,
     relationshipTypes,
-    selectedEntity:
-      selectedRows.length > 0
-        ? {
-            id: selectedRows[0].id,
-            name: selectedRows[0].name,
-            type: selectedRows[0].type,
-            description: selectedRows[0].description,
-          }
-        : null,
+    selectedEntity: selected
+      ? {
+          id: selected.id,
+          name: selected.name,
+          type: selected.type,
+          description: selected.description,
+        }
+      : null,
     history,
   }
 

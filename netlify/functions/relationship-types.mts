@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
@@ -28,7 +28,12 @@ export default withObservability('relationship-types', async (req: Request, cont
     const parsed = await parseJsonBody(req, RelationshipTypeUpsertBody, requestId)
     if (!parsed.ok) return parsed.response
     const body = parsed.data
-    const rows = await sql`
+    const rows = await sqlTyped<{
+      slug: string
+      label: string
+      reverse_label: string | null
+      sort_order: number
+    }>(sql`
       INSERT INTO relationship_types (slug, label, reverse_label, sort_order)
       VALUES (${body.slug}, ${body.label}, ${body.reverse_label}, ${body.sort_order ?? 100})
       ON CONFLICT (slug) DO UPDATE SET
@@ -36,7 +41,7 @@ export default withObservability('relationship-types', async (req: Request, cont
         reverse_label = EXCLUDED.reverse_label,
         sort_order = EXCLUDED.sort_order
       RETURNING slug, label, reverse_label, sort_order
-    `
+    `)
     return Response.json(rows[0], { status: 201 })
   }
 
@@ -48,7 +53,7 @@ export default withObservability('relationship-types', async (req: Request, cont
     if (Number(usage[0]?.n ?? 0) > 0) {
       return ApiErrors.conflict(
         requestId,
-        `Tipo en uso por ${usage[0].n} relación(es). Reasigna antes de borrar.`,
+        `Tipo en uso por ${usage[0]?.n ?? 0} relación(es). Reasigna antes de borrar.`,
       )
     }
     await sql`DELETE FROM relationship_types WHERE slug = ${slug}`

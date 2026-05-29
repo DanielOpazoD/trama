@@ -37,13 +37,6 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
 
   const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
-  const SELECT = `
-    SELECT id, type, name, year, description, essay,
-           position_x, position_y, origin, spotify_url,
-           created_at, updated_at
-    FROM entities
-    WHERE deleted_at IS NULL
-  `
 
   let rows: unknown[] = []
   if (name) {

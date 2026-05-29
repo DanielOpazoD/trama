@@ -14,9 +14,7 @@ import { mockContext, mockSqlResponses, mockSqlState, setupMockSql } from './tes
 vi.mock('./db.js', () => setupMockSql())
 
 vi.mock('@clerk/backend', () => ({
-  createClerkClient: vi.fn(() => ({
-    verifyToken: vi.fn().mockResolvedValue({ sub: 'user_quotes_xyz' }),
-  })),
+  verifyToken: vi.fn().mockResolvedValue({ sub: 'user_quotes_xyz' }),
 }))
 
 vi.stubGlobal(

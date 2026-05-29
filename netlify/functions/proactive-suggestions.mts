@@ -279,6 +279,7 @@ export default withObservability(
             status_changed_at: string | null
           }>
           const r = rows[0]
+          if (!r) continue
           inserted.push({
             id: r.id,
             kind: r.kind,

@@ -53,10 +53,10 @@ export default withObservability(
       JOIN entities e ON e.id = q.entity_id
       WHERE q.id = ${id} AND q.deleted_at IS NULL AND q.user_id = ${userId} AND e.deleted_at IS NULL
     `) as Row[]
-    if (rows.length === 0) {
+    const r = rows[0]
+    if (!r) {
       return ApiErrors.notFound(requestId, 'Cita no encontrada')
     }
-    const r = rows[0]
 
     // κ6: traer citas semánticamente vecinas si esta cita tiene embedding.
     // Excluimos la propia (self) y citas de la misma entidad de menor

@@ -45,9 +45,7 @@ export default withObservability(
     type Body = {
       avoidPrevious?: Array<{ fromName: string; toName: string; type: string }>
     }
-    const body: Body = await req
-      .json()
-      .catch(() => ({} as Body))
+    const body = (await req.json().catch(() => ({}))) as Body
     const avoidPrevious = Array.isArray(body.avoidPrevious) ? body.avoidPrevious : []
 
     const sql = getSql()

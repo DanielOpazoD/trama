@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -13,6 +13,23 @@ import {
 import { embedSafe, entityEmbeddingText, toPgVector } from './_lib/embeddings.js'
 
 import { normalizeOrigin } from './_lib/origin.js'
+
+// Shape devuelto por los SELECT/RETURNING de entidades (snake_case, raw).
+// El cliente lo transforma vía entityFromRow.
+type EntityRow = {
+  id: string
+  type: string
+  name: string
+  year: number | null
+  description: string | null
+  essay: string | null
+  position_x: number | null
+  position_y: number | null
+  origin: unknown
+  spotify_url: string | null
+  created_at: string
+  updated_at: string
+}
 
 export default withObservability(
   'entities',
@@ -30,13 +47,13 @@ export default withObservability(
       // Con ?limit pasamos a paginación por cursor, igual que /api/quotes.
       if (!limitParam) {
         const ENTITY_HARD_CAP = 5000
-        const rows = await sql`
+        const rows = await sqlTyped<EntityRow>(sql`
         SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
         FROM entities
         WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY created_at DESC, id DESC
         LIMIT ${ENTITY_HARD_CAP}
-      `
+      `)
         if (rows.length >= ENTITY_HARD_CAP) {
           // Q2: canónico vía logEvent en lugar de console.warn — queda
           // en los Netlify Functions logs estructurado y queryable.
@@ -71,7 +88,7 @@ export default withObservability(
 
       const rows =
         cursorTs && cursorId
-          ? await sql`
+          ? await sqlTyped<EntityRow>(sql`
           SELECT id, type, name, year, description, essay,
                  position_x, position_y, origin, spotify_url,
                  created_at, updated_at
@@ -80,8 +97,8 @@ export default withObservability(
             AND (created_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
           ORDER BY created_at DESC, id DESC
           LIMIT ${limit + 1}
-        `
-          : await sql`
+        `)
+          : await sqlTyped<EntityRow>(sql`
           SELECT id, type, name, year, description, essay,
                  position_x, position_y, origin, spotify_url,
                  created_at, updated_at
@@ -89,7 +106,7 @@ export default withObservability(
           WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY created_at DESC, id DESC
           LIMIT ${limit + 1}
-        `
+        `)
 
       // OJO con el tipo de created_at: el driver Neon HTTP lo deserializa como
       // Date, no como string ISO. Si lo dejamos pasar a una template literal
@@ -176,7 +193,7 @@ export default withObservability(
         }
       }
 
-      const rows = await sql`
+      const rows = await sqlTyped<EntityRow>(sql`
       INSERT INTO entities (
         type, name, year, description, essay, position_x, position_y, origin, spotify_url,
         embedding, embedding_model, embedding_at, user_id
@@ -197,7 +214,7 @@ export default withObservability(
         ${userId}
       )
       RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
-    `
+    `)
       return Response.json(rows[0], { status: 201 })
     }
 
@@ -206,7 +223,7 @@ export default withObservability(
       if (!parsed.ok) return parsed.response
       const body = parsed.data
       // Only update fields that were actually sent. Postgres COALESCE pattern.
-      const rows = await sql`
+      const rows = await sqlTyped<EntityRow>(sql`
       UPDATE entities
       SET
         name        = COALESCE(${body.name ?? null}, name),
@@ -219,7 +236,7 @@ export default withObservability(
         spotify_url = CASE WHEN ${body.spotify_url !== undefined} THEN ${body.spotify_url ?? null} ELSE spotify_url END
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, created_at, updated_at
-    `
+    `)
       if (rows.length === 0) {
         return ApiErrors.notFound(requestId, 'Entidad no encontrada')
       }
@@ -268,7 +285,7 @@ export default withObservability(
       // El restore lo usa para identificar exactamente qué se borró en este
       // acto y revertir solo eso (no relaciones borradas en otro momento).
       const tsRows = (await sql`SELECT NOW() AS now`) as Array<{ now: string }>
-      const deletedAt = tsRows[0].now
+      const deletedAt = tsRows[0]?.now ?? new Date().toISOString()
       await sql`UPDATE entities SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
       await sql`UPDATE relationships SET deleted_at = ${deletedAt} WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at IS NULL AND user_id = ${userId}`
       await sql`UPDATE quotes SET deleted_at = ${deletedAt} WHERE entity_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`

@@ -55,8 +55,8 @@ export async function getCachedFromDB(hash: string): Promise<LLMResult | null> {
       WHERE hash = ${hash} AND expires_at > NOW()
       LIMIT 1
     `) as DbRow[]
-    if (rows.length === 0) return null
     const row = rows[0]
+    if (!row) return null
     return {
       content: row.content,
       usage: {

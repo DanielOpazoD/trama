@@ -45,13 +45,14 @@ export function parsePlaylistId(input: string): string | null {
   if (/^[A-Za-z0-9]{16,}$/.test(trimmed)) return trimmed
 
   const uriMatch = trimmed.match(/^spotify:playlist:([A-Za-z0-9]+)$/)
-  if (uriMatch) return uriMatch[1]
+  if (uriMatch) return uriMatch[1] ?? null
 
   try {
     const url = new URL(trimmed)
     const parts = url.pathname.split('/').filter(Boolean)
     const idx = parts.indexOf('playlist')
-    if (idx !== -1 && parts[idx + 1]) return parts[idx + 1]
+    const id = parts[idx + 1]
+    if (idx !== -1 && id) return id
   } catch {
     // not a URL — fall through
   }

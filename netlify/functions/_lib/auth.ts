@@ -10,7 +10,7 @@
  *     ALLOW_LEGACY_FALLBACK=true para que requests sin token caigan a
  *     `legacy-single-user` en lugar de 401 (cutover gradual).
  */
-import { createClerkClient } from '@clerk/backend'
+import { verifyToken } from '@clerk/backend'
 
 /** Lee una env var de forma segura tanto en Netlify runtime como en tests. */
 function readEnv(key: string): string | undefined {
@@ -19,17 +19,6 @@ function readEnv(key: string): string | undefined {
   } catch {
     return process.env[key]
   }
-}
-
-// Lazy singleton — no se crea hasta la primera llamada a getAuthedUser.
-let _clerkClient: ReturnType<typeof createClerkClient> | null = null
-function getClerkClient() {
-  if (!_clerkClient) {
-    _clerkClient = createClerkClient({
-      secretKey: readEnv('CLERK_SECRET_KEY') ?? '',
-    })
-  }
-  return _clerkClient
 }
 
 export type AuthedUser = {
@@ -80,7 +69,9 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
 
   if (token) {
     try {
-      const payload = await getClerkClient().verifyToken(token)
+      const payload = await verifyToken(token, {
+        secretKey: readEnv('CLERK_SECRET_KEY') ?? '',
+      })
       return { id: payload.sub }
     } catch {
       // Token inválido — caer al fallback si está habilitado

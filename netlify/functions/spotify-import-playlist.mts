@@ -112,14 +112,18 @@ export default withObservability('spotify-import-playlist', async (req, _ctx, { 
   // Each track → primary artist (the first listed) becomes an
   // 'asociado_con' edge. We avoid creating an edge per artist on a track to
   // keep the proposal compact; users can add more from the chat later.
-  const relationships: ProposedRelationship[] = playlist.tracks
-    .filter((t) => t.artists.length > 0)
-    .map((t) => ({
-      fromName: t.artists[0].name,
-      toName: t.trackName,
-      type: 'asociado_con',
-      notes: 'desde playlist de Spotify',
-    }))
+  const relationships: ProposedRelationship[] = playlist.tracks.flatMap((t) => {
+    const primary = t.artists[0]
+    if (!primary) return []
+    return [
+      {
+        fromName: primary.name,
+        toName: t.trackName,
+        type: 'asociado_con',
+        notes: 'desde playlist de Spotify',
+      },
+    ]
+  })
 
   logEvent({
     event: 'spotify_import_playlist_ok',

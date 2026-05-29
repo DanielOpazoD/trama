@@ -157,7 +157,7 @@ const RawQuoteItemSchema = z.object({
 const RawEditItemSchema = z.object({
   kind: z.string(),
   id: z.string(),
-  patch: z.record(z.unknown()),
+  patch: z.record(z.string(), z.unknown()),
   reason: z.unknown().optional(),
 })
 

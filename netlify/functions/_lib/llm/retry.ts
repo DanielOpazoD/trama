@@ -19,7 +19,8 @@ export async function fetchWithRetry(
   const delays = [0, 1000, 4000]
   let lastError: unknown = null
   for (let attempt = 0; attempt <= retries; attempt++) {
-    if (delays[attempt] > 0) await sleep(delays[attempt])
+    const delay = delays[attempt] ?? 0
+    if (delay > 0) await sleep(delay)
     try {
       const response = await makeRequest()
       if (response.ok) return response

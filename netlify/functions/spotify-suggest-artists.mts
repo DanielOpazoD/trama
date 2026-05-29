@@ -137,7 +137,7 @@ DEVUELVE EXCLUSIVAMENTE este JSON, sin markdown:
       const topSet = new Set(topArtistNames.map((n) => n.toLowerCase()))
       suggestions = raw
         .filter((s): s is Record<string, unknown> => Boolean(s) && typeof s === 'object')
-        .map((s) => ({
+        .map((s): Suggestion => ({
           name: typeof s.name === 'string' ? s.name.trim() : '',
           type: s.type === 'banda' ? 'banda' : 'musico',
           description: typeof s.description === 'string' ? s.description.trim() : '',

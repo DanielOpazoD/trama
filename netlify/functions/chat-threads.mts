@@ -69,6 +69,9 @@ export default withObservability(
         updated_at: string
       }>
       const row = rows[0]
+      if (!row) {
+        return ApiErrors.internal(requestId, 'No se pudo crear el thread')
+      }
       return Response.json(
         {
           id: row.id,

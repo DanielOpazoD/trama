@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -98,7 +98,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     }
     try {
       const origin = JSON.stringify(normalizeOrigin(e.origin))
-      const result = await sql`
+      const result = await sqlTyped<{ id: string }>(sql`
         INSERT INTO entities (id, type, name, year, description, position_x, position_y, origin, user_id)
         VALUES (
           ${e.id},
@@ -113,7 +113,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
         )
         ON CONFLICT (id) DO NOTHING
         RETURNING id
-      `
+      `)
       if (result.length > 0) imported++
       else skipped++ // duplicate id
     } catch (err) {
@@ -128,7 +128,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     }
     try {
       const origin = JSON.stringify(normalizeOrigin(r.origin))
-      const result = await sql`
+      const result = await sqlTyped<{ id: string }>(sql`
         INSERT INTO relationships (id, from_id, to_id, type, notes, origin, user_id)
         VALUES (
           ${r.id},
@@ -141,7 +141,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
         )
         ON CONFLICT (id) DO NOTHING
         RETURNING id
-      `
+      `)
       if (result.length > 0) imported++
       else skipped++
     } catch (err) {
@@ -156,7 +156,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     }
     try {
       const origin = JSON.stringify(normalizeOrigin(q.origin))
-      const result = await sql`
+      const result = await sqlTyped<{ id: string }>(sql`
         INSERT INTO quotes (id, entity_id, text, source, context, origin, user_id)
         VALUES (
           ${q.id},
@@ -169,7 +169,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
         )
         ON CONFLICT (id) DO NOTHING
         RETURNING id
-      `
+      `)
       if (result.length > 0) imported++
       else skipped++
     } catch (err) {

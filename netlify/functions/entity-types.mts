@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
@@ -33,14 +33,14 @@ export default withObservability('entity-types', async (req: Request, context: C
     const parsed = await parseJsonBody(req, EntityTypeUpsertBody, requestId)
     if (!parsed.ok) return parsed.response
     const body = parsed.data
-    const rows = await sql`
+    const rows = await sqlTyped<{ slug: string; label: string; sort_order: number }>(sql`
       INSERT INTO entity_types (slug, label, sort_order)
       VALUES (${body.slug}, ${body.label}, ${body.sort_order ?? 100})
       ON CONFLICT (slug) DO UPDATE SET
         label = EXCLUDED.label,
         sort_order = EXCLUDED.sort_order
       RETURNING slug, label, sort_order
-    `
+    `)
     return Response.json(rows[0], { status: 201 })
   }
 
@@ -53,7 +53,7 @@ export default withObservability('entity-types', async (req: Request, context: C
     if (Number(usage[0]?.n ?? 0) > 0) {
       return ApiErrors.conflict(
         requestId,
-        `Tipo en uso por ${usage[0].n} entidad(es). Reasigna antes de borrar.`,
+        `Tipo en uso por ${usage[0]?.n ?? 0} entidad(es). Reasigna antes de borrar.`,
       )
     }
     await sql`DELETE FROM entity_types WHERE slug = ${slug}`

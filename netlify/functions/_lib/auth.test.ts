@@ -15,11 +15,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
  */
 
 // Mock Clerk antes de importar auth — verifyToken se controla por test.
+// `verifyToken` es un export standalone de @clerk/backend (no un método
+// de ClerkClient), así que lo mockeamos directamente.
 const verifyTokenMock = vi.fn()
 vi.mock('@clerk/backend', () => ({
-  createClerkClient: vi.fn(() => ({
-    verifyToken: verifyTokenMock,
-  })),
+  verifyToken: verifyTokenMock,
 }))
 
 // Helper para construir un Request con o sin Authorization header.
@@ -32,8 +32,7 @@ function makeRequest(authHeader?: string): Request {
 describe('getAuthedUser', () => {
   beforeEach(() => {
     verifyTokenMock.mockReset()
-    // Reset módulo para que el lazy singleton del clerkClient se
-    // re-instancie por test.
+    // Reset módulo para reimportar auth.js limpio en cada test.
     vi.resetModules()
     // Limpiamos env vars que afectan el flujo. cada test setea las
     // que necesita explícitamente.
@@ -68,7 +67,9 @@ describe('getAuthedUser', () => {
     const { getAuthedUser } = await import('./auth.js')
     const user = await getAuthedUser(makeRequest('Bearer goodtoken'))
     expect(user.id).toBe('user_real_clerk_id_123')
-    expect(verifyTokenMock).toHaveBeenCalledWith('goodtoken')
+    expect(verifyTokenMock).toHaveBeenCalledWith('goodtoken', {
+      secretKey: 'sk_test_xxxx',
+    })
   })
 
   it('con Clerk + token inválido + ALLOW_LEGACY_FALLBACK=true → legacy', async () => {

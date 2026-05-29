@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -16,6 +16,27 @@ import {
 } from './_lib/embeddings.js'
 
 import { normalizeOrigin } from './_lib/origin.js'
+
+// Shape devuelto por los SELECT/RETURNING de citas (snake_case, raw).
+// El cliente lo transforma vía quoteFromRow.
+type QuoteRow = {
+  id: string
+  entity_id: string
+  text: string
+  source: string | null
+  context: string | null
+  user_reflection: string | null
+  ai_reflection: string | null
+  ai_reflection_provider: string | null
+  ai_reflection_model: string | null
+  ai_reflection_at: string | null
+  linked_quote_ids: string[]
+  pinned_at: string | null
+  resonance: number | null
+  origin: unknown
+  created_at: string
+  updated_at: string
+}
 
 export default withObservability('quotes', async (req: Request, context: Context, { requestId }) => {
   const { id: userId } = await getAuthedUser(req)
@@ -65,7 +86,7 @@ export default withObservability('quotes', async (req: Request, context: Context
     // pinned_at primero (DESC, nulls al final), después created_at DESC,
     // después id DESC para tie-break. Las favoritas suben al tope.
     const rows = cursorTs && cursorId
-      ? (await sql`
+      ? await sqlTyped<QuoteRow>(sql`
           SELECT id, entity_id, text, source, context,
                  user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                  linked_quote_ids, pinned_at, resonance,
@@ -76,7 +97,7 @@ export default withObservability('quotes', async (req: Request, context: Context
           ORDER BY pinned_at DESC NULLS LAST, created_at DESC, id DESC
           LIMIT ${limit + 1}
         `)
-      : (await sql`
+      : await sqlTyped<QuoteRow>(sql`
           SELECT id, entity_id, text, source, context,
                  user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                  linked_quote_ids, pinned_at, resonance,
@@ -125,7 +146,7 @@ export default withObservability('quotes', async (req: Request, context: Context
       }),
     )
 
-    const rows = await sql`
+    const rows = await sqlTyped<QuoteRow>(sql`
       INSERT INTO quotes (
         entity_id, text, source, context, user_reflection, linked_quote_ids, origin,
         embedding, embedding_model, embedding_at, user_id
@@ -146,7 +167,7 @@ export default withObservability('quotes', async (req: Request, context: Context
                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                 linked_quote_ids, pinned_at, resonance,
                 origin, created_at, updated_at
-    `
+    `)
     return Response.json(rows[0], { status: 201 })
   }
 
@@ -161,7 +182,7 @@ export default withObservability('quotes', async (req: Request, context: Context
     // side effect of stamping ai_reflection_at when it changes. entity_id
     // can move the quote to a different entity (useful for fixing quotes
     // that ended up attached to a book instead of its author).
-    const rows = await sql`
+    const rows = await sqlTyped<QuoteRow>(sql`
       UPDATE quotes
       SET
         text                   = COALESCE(${body.text ?? null}, text),
@@ -189,7 +210,7 @@ export default withObservability('quotes', async (req: Request, context: Context
                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                 linked_quote_ids, pinned_at, resonance,
                 origin, created_at, updated_at
-    `
+    `)
     if (rows.length === 0) {
       return ApiErrors.notFound(requestId, 'Cita no encontrada')
     }
@@ -236,7 +257,7 @@ export default withObservability('quotes', async (req: Request, context: Context
 
   if (req.method === 'DELETE' && id) {
     const tsRows = (await sql`SELECT NOW() AS now`) as Array<{ now: string }>
-    const deletedAt = tsRows[0].now
+    const deletedAt = tsRows[0]?.now ?? new Date().toISOString()
     await sql`UPDATE quotes SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
     return Response.json({ deletedAt })
   }

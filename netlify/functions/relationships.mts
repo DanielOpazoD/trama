@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -12,6 +12,18 @@ import {
 } from './_lib/relationship-schemas.js'
 
 import { normalizeOrigin } from './_lib/origin.js'
+
+// Shape devuelto por los SELECT/RETURNING de relaciones (snake_case, raw).
+type RelationshipRow = {
+  id: string
+  from_id: string
+  to_id: string
+  type: string
+  notes: string | null
+  origin: unknown
+  created_at: string
+  updated_at: string
+}
 
 export default withObservability(
   'relationships',
@@ -27,13 +39,13 @@ export default withObservability(
       // Backwards-compatible: sin ?limit → wholesale (GraphView lo consume así).
       if (!limitParam) {
         const REL_HARD_CAP = 10000
-        const rows = await sql`
+        const rows = await sqlTyped<RelationshipRow>(sql`
         SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
         FROM relationships
         WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY created_at DESC, id DESC
         LIMIT ${REL_HARD_CAP}
-      `
+      `)
         if (rows.length >= REL_HARD_CAP) {
           // Q2: canónico vía logEvent en lugar de console.warn.
           logEvent({
@@ -64,21 +76,21 @@ export default withObservability(
 
       const rows =
         cursorTs && cursorId
-          ? await sql`
+          ? await sqlTyped<RelationshipRow>(sql`
           SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
           FROM relationships
           WHERE deleted_at IS NULL AND user_id = ${userId}
             AND (created_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
           ORDER BY created_at DESC, id DESC
           LIMIT ${limit + 1}
-        `
-          : await sql`
+        `)
+          : await sqlTyped<RelationshipRow>(sql`
           SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
           FROM relationships
           WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY created_at DESC, id DESC
           LIMIT ${limit + 1}
-        `
+        `)
 
       // Ver entities.mts para el contexto: Neon HTTP devuelve created_at como
       // Date, y la stringificación default es ilegible para Postgres. Forzamos
@@ -101,7 +113,7 @@ export default withObservability(
       if (!parsed.ok) return parsed.response
       const body = parsed.data
       const origin = JSON.stringify(normalizeOrigin(body.origin))
-      const rows = await sql`
+      const rows = await sqlTyped<RelationshipRow>(sql`
       INSERT INTO relationships (from_id, to_id, type, notes, origin, user_id)
       VALUES (
         ${body.from_id},
@@ -112,7 +124,7 @@ export default withObservability(
         ${userId}
       )
       RETURNING id, from_id, to_id, type, notes, origin, created_at, updated_at
-    `
+    `)
       return Response.json(rows[0], { status: 201 })
     }
 
@@ -120,14 +132,14 @@ export default withObservability(
       const parsed = await parseJsonBody(req, RelationshipPatchBody, requestId)
       if (!parsed.ok) return parsed.response
       const body = parsed.data
-      const rows = await sql`
+      const rows = await sqlTyped<RelationshipRow>(sql`
       UPDATE relationships
       SET
         type  = COALESCE(${body.type ?? null}, type),
         notes = CASE WHEN ${body.notes !== undefined} THEN ${body.notes ?? null} ELSE notes END
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       RETURNING id, from_id, to_id, type, notes, origin, created_at, updated_at
-    `
+    `)
       if (rows.length === 0) {
         return ApiErrors.notFound(requestId, 'Relación no encontrada')
       }
@@ -136,7 +148,7 @@ export default withObservability(
 
     if (req.method === 'DELETE' && id) {
       const tsRows = (await sql`SELECT NOW() AS now`) as Array<{ now: string }>
-      const deletedAt = tsRows[0].now
+      const deletedAt = tsRows[0]?.now ?? new Date().toISOString()
       await sql`UPDATE relationships SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
       return Response.json({ deletedAt })
     }

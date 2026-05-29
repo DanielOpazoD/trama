@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql, sqlTyped } from './_lib/db.js'
+import { getSql } from './_lib/db.js'
 import { askLLMForText, askLLMForTextStreaming } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -84,10 +84,10 @@ export default withObservability(
     const threadRows = (await sql`
       SELECT id, title, context FROM chat_threads WHERE id = ${threadId} AND deleted_at IS NULL
     `) as Array<{ id: string; title: string | null; context: string | null }>
-    if (threadRows.length === 0) {
+    const thread = threadRows[0]
+    if (!thread) {
       return ApiErrors.notFound(requestId, 'Thread no encontrado')
     }
-    const thread = threadRows[0]
 
     // Entity-focused threads have context = "entity:<uuid>". When present we
     // narrow the trama context fed to the model to that one entity + its
@@ -103,11 +103,15 @@ export default withObservability(
       VALUES (${threadId}, 'user', ${userText})
       RETURNING id, created_at
     `) as UserInsertRow[]
+    const userRow = userRows[0]
+    if (!userRow) {
+      return ApiErrors.internal(requestId, 'No se pudo persistir el mensaje del usuario')
+    }
     const userMessage = {
-      id: userRows[0].id,
+      id: userRow.id,
       role: 'user' as const,
       content: userText,
-      createdAt: userRows[0].created_at,
+      createdAt: userRow.created_at,
       proposal: null,
     }
 
@@ -217,6 +221,12 @@ export default withObservability(
           )
           RETURNING id, created_at
         `) as AssistantInsertRow[]
+        const assistantRow = assistantRows[0]
+        if (!assistantRow) {
+          send('error', { message: 'No se pudo persistir la respuesta' })
+          controller.close()
+          return
+        }
 
         await sql`UPDATE chat_threads SET updated_at = NOW() WHERE id = ${threadId}`
 
@@ -268,11 +278,11 @@ export default withObservability(
 
         send('done', {
           assistantMessage: {
-            id: assistantRows[0].id,
+            id: assistantRow.id,
             role: 'assistant' as const,
             content: prose,
             proposal: proposalToStore,
-            createdAt: assistantRows[0].created_at,
+            createdAt: assistantRow.created_at,
             provider: usage.provider,
             model: usage.model,
           },
