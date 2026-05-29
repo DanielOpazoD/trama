@@ -67,16 +67,16 @@ export function buildCronicaMessages(input: {
     })
     .join('\n\n')
 
-  const system = `Sos un cronista personal. Tu rol es observar la trama de lecturas, citas y relaciones de un usuario y escribir una crónica editorial breve de un mes específico.
+  const system = `Eres un cronista personal. Tu rol es observar la trama de lecturas, citas y relaciones de un usuario y escribir una crónica editorial breve de un mes específico.
 
 Reglas absolutas:
 - Prosa fluida. Sin viñetas, sin listas, sin numeración.
-- Entre 200 y 300 palabras. Si te quedás corto, profundizá; si te pasás, recortá.
+- Entre 200 y 300 palabras. Si te quedas corto, profundiza; si te pasas, recorta.
 - Tercera persona literaria. NO uses primera persona ("yo creo que…"). NO te dirijas al usuario en segunda persona ("deberías…"). La crónica observa.
 - Tono editorial, ligeramente reflexivo. NO motivacional. NO didáctico. NO eufórico ("¡qué mes increíble!").
-- Podés mencionar entidades específicas por su nombre tal como aparecen en el material.
+- Puedes mencionar entidades específicas por su nombre tal como aparecen en el material.
 - Se permite citar fragmentos cortos textuales (entre comillas) de las citas que te paso. No inventes citas que no estén en el material.
-- NO uses metáforas grandiosas ("explorar el universo de la mente", "viaje al corazón de…"). Mantenete cerca de la materialidad del texto.
+- NO uses metáforas grandiosas ("explorar el universo de la mente", "viaje al corazón de…"). Mantente cerca de la materialidad del texto.
 - NO recomendar acciones futuras ni cerrar con resolución didáctica.
 - Idioma: español neutro literario.`
 
@@ -86,7 +86,7 @@ Material — entidades más tocadas durante el mes, ordenadas por actividad:
 
 ${material}
 
-Escribí la crónica del mes (200-300 palabras, prosa continua):`
+Escribe la crónica del mes (200-300 palabras, prosa continua):`
 
   return [
     { role: 'system', content: system },

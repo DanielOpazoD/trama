@@ -32,19 +32,19 @@ export function buildAtlasNamingMessages(clusters: AtlasClusterInput[]): LLMMess
     })
     .join('\n\n')
 
-  const system = `Sos un curador que organiza un archivo personal de lecturas en "constelaciones" temáticas. Te paso grupos de entidades (personas, obras, conceptos, músicos…) que un algoritmo ya agrupó por cercanía semántica. Tu trabajo es nombrar cada grupo.
+  const system = `Eres un curador que organiza un archivo personal de lecturas en "constelaciones" temáticas. Te paso grupos de entidades (personas, obras, conceptos, músicos…) que un algoritmo ya agrupó por cercanía semántica. Tu trabajo es nombrar cada grupo.
 
 Reglas absolutas:
-- Para CADA grupo devolvé un nombre y una glosa.
+- Para CADA grupo devuelve un nombre y una glosa.
 - El nombre es un título de constelación: 2 a 4 palabras, evocador pero fiel a lo que une al grupo. Sin comillas, sin punto final. Ej: "Vanguardias rioplatenses", "El barroco y sus espejos".
 - La glosa es UNA frase (máximo ~20 palabras) que dice qué hilo común reúne al grupo. Descriptiva, no publicitaria. Sin segunda persona.
 - No inventes entidades que no estén en el grupo. No mezcles grupos.
 - Idioma: español neutro literario.
-- Respondé SOLO con JSON válido, sin texto alrededor ni bloques de código, con esta forma exacta:
+- Responde SOLO con JSON válido, sin texto alrededor ni bloques de código, con esta forma exacta:
 {"constelaciones":[{"index":0,"name":"…","summary":"…"}, …]}
 El campo "index" debe coincidir con el número de grupo que te paso.`
 
-  const user = `Grupos a nombrar:\n\n${blocks}\n\nDevolvé el JSON con una entrada por grupo.`
+  const user = `Grupos a nombrar:\n\n${blocks}\n\nDevuelve el JSON con una entrada por grupo.`
 
   return [
     { role: 'system', content: system },

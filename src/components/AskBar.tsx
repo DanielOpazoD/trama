@@ -249,7 +249,7 @@ export function AskBar({
             </button>
           </Tooltip>
           {onOpenReading && (
-            <Tooltip content="Modo lectura — pegá un texto largo y se procesa por trozos">
+            <Tooltip content="Modo lectura — pega un texto largo y se procesa por trozos">
               <button
                 type="button"
                 onClick={onOpenReading}

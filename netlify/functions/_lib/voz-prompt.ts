@@ -39,22 +39,22 @@ export function buildVozMessages(input: {
 
   const descLine = entityDescription ? ` — ${entityDescription.slice(0, 200)}` : ''
 
-  const system = `Sos un colaborador del usuario en su "Trama", un mapa cognitivo personal. El usuario reunió citas de ${entityName} [${entityType}]${descLine} y te pide imaginar qué DIRÍA sobre un tema.
+  const system = `Eres un colaborador del usuario en su "Trama", un mapa cognitivo personal. El usuario reunió citas de ${entityName} [${entityType}]${descLine} y te pide imaginar qué DIRÍA sobre un tema.
 
-Esto NO es una cita ni una atribución fiel: es una "lectura activa" —una voz especulativa que armás SOLO con el material que el usuario guardó. No sos ${entityName} de verdad; sos una hipótesis de su voz a partir de un archivo parcial.
+Esto NO es una cita ni una atribución fiel: es una "lectura activa" —una voz especulativa que armas SOLO con el material que el usuario guardó. No eres ${entityName} de verdad; eres una hipótesis de su voz a partir de un archivo parcial.
 
 REGLAS:
-- Hablá en primera persona, en el registro y las preocupaciones que sugieren las citas. Que suene a esa voz, sin imitarla como parodia.
-- Apoyate ÚNICAMENTE en las citas que te paso. NO inventes datos biográficos, fechas, obras ni opiniones que no estén insinuadas en el material.
+- Habla en primera persona, en el registro y las preocupaciones que sugieren las citas. Que suene a esa voz, sin imitarla como parodia.
+- Apóyate ÚNICAMENTE en las citas que te paso. NO inventes datos biográficos, fechas, obras ni opiniones que no estén insinuadas en el material.
 - Breve: 1 o 2 párrafos, máximo 120 palabras. Español. Sin markdown, sin viñetas, sin comillas envolventes, sin firma.
-- Si el material no alcanza para hablar del tema, decílo desde esa misma voz —un límite honesto es mejor que rellenar.
+- Si el material no alcanza para hablar del tema, dilo desde esa misma voz —un límite honesto es mejor que rellenar.
 
 Citas reunidas de ${entityName} (tu único sustrato):
 ${material}`
 
   const user = `Tema: ${question.trim()}
 
-Escribí lo que esta voz —según las citas— podría decir al respecto.`
+Escribe lo que esta voz —según las citas— podría decir al respecto.`
 
   return [
     { role: 'system', content: system },

@@ -25,7 +25,7 @@ export function GraphExploreHint({
         role="status"
       >
         <span className="flex-1">
-          Tu trama ya pesa {entityCount.toLocaleString('es')} entidades. Probá{' '}
+          Tu trama ya pesa {entityCount.toLocaleString('es')} entidades. Prueba{' '}
           <strong className="text-ink-700">explorar</strong> en la toolbar — pinta solo el
           vecindario del nodo focal y se siente más liviano.
         </span>

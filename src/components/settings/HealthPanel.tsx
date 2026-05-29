@@ -65,7 +65,7 @@ export function HealthPanel() {
     <section className="space-y-6">
       <PanelHeader
         title="Estado del sistema"
-        hint="Gasto IA del mes, conteos, errores recientes. Si algo va raro, mirá acá antes que en cualquier otro lado."
+        hint="Gasto IA del mes, conteos, errores recientes. Si algo va raro, mira aquí antes que en cualquier otro lado."
       />
 
       {/* Alertas activas — banners arriba para que sean lo primero que

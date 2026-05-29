@@ -161,7 +161,7 @@ export function MergeMomentosBar({
               Vas a fusionar <strong className="tabular-nums">{fotos.length}</strong>{' '}
               momentos en uno. Los otros{' '}
               <strong className="tabular-nums">{fotos.length - 1}</strong> quedarán
-              archivados (podés deshacer desde el toast).
+              archivados (puedes deshacer desde el toast).
             </p>
             <div className="flex items-center gap-2 shrink-0">
               <button

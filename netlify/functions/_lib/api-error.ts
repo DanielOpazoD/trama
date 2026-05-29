@@ -63,7 +63,7 @@ export type ApiErrorBody = {
  * nunca `new Response('texto', { status: 4xx })` directo.
  *
  * El `requestId` viene del contexto del handler (withObservability lo inyecta).
- * Si por alguna razón estás fuera del wrap, pasá uno vos via `crypto.randomUUID()`.
+ * Si por alguna razón estás fuera del wrap, pasa uno tú via `crypto.randomUUID()`.
  */
 export function apiError(opts: {
   status: number

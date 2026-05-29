@@ -174,7 +174,7 @@ export function MusicPaletteCard() {
               if (
                 typeof window !== 'undefined' &&
                 window.confirm(
-                  '¿Eliminar tu paleta musical? Podés generarla de nuevo cuando quieras.',
+                  '¿Eliminar tu paleta musical? Puedes generarla de nuevo cuando quieras.',
                 )
               ) {
                 try {

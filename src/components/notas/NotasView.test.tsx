@@ -23,7 +23,7 @@ afterEach(() => {
 describe('<NotasView />', () => {
   it('muestra el composer y el estado vacío cuando no hay notas', async () => {
     renderWithProviders(<NotasView />)
-    expect(screen.getByPlaceholderText(/Escribí una nota/)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/Escribe una nota/)).toBeInTheDocument()
     expect(await screen.findByText(/Tu primer apunte/)).toBeInTheDocument()
   })
 })

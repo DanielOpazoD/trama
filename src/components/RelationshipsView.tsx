@@ -235,7 +235,7 @@ export function RelationshipsView({
           body={
             <>
               Una relación es una línea entre dos entidades — sin segundo extremo no hay
-              línea. Volvé cuando tengas al menos dos.
+              línea. Vuelve cuando tengas al menos dos.
             </>
           }
         />

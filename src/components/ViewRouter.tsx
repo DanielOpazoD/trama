@@ -107,8 +107,8 @@ function ViewErrorFallback({
           Esta vista se rompió.
         </h2>
         <p className="text-ink-500 text-sm leading-relaxed mb-3">
-          El resto de la app sigue andando — podés cambiar de vista desde el lateral. Si
-          querés intentar de nuevo:
+          El resto de la app sigue andando — puedes cambiar de vista desde el lateral. Si
+          quieres intentar de nuevo:
         </p>
         <details className="mb-4 group">
           <summary className="text-xs uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 cursor-pointer transition-colors">

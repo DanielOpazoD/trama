@@ -191,7 +191,7 @@ export default withObservability(
       if (points.length < MIN_ENTITIES) {
         return ApiErrors.unprocessable(
           requestId,
-          `El atlas necesita al menos ${MIN_ENTITIES} entidades con embedding; hay ${points.length}. Agregá más entidades (o esperá a que se generen sus embeddings) y volvé a intentar.`,
+          `El atlas necesita al menos ${MIN_ENTITIES} entidades con embedding; hay ${points.length}. Agrega más entidades (o espera a que se generen sus embeddings) y vuelve a intentar.`,
         )
       }
 

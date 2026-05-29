@@ -121,7 +121,7 @@ export function NotasWorld({
                   eyebrow="por realizar"
                   accent={ACCENT}
                   spacing="wide"
-                  subtitle="Lo que tenés que hacer, simple y a la vista: título, detalle, fecha y etiquetas."
+                  subtitle="Lo que tienes que hacer, simple y a la vista: título, detalle, fecha y etiquetas."
                 />
                 <EmptyMessage
                   illustration="thread"

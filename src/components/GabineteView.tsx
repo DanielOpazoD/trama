@@ -80,7 +80,7 @@ export function GabineteView({
         </h1>
         <p className="text-ink-500 mt-2 max-w-prose">
           Gestos para jugar con tu propio material — releer al azar, verte reflejado,
-          prestarle la voz a una entidad. Entrá y probá.
+          prestarle la voz a una entidad. Entra y prueba.
         </p>
       </header>
 
@@ -108,7 +108,7 @@ export function GabineteView({
 
       <p className="text-ink-300 text-sm italic mt-8 max-w-prose">
         Resonancia y Eco también son parte del gabinete, pero viven dentro de cada cita —
-        marcá cuánto te tocó y dejá que la IA escriba al margen.
+        marca cuánto te tocó y deja que la IA escriba al margen.
       </p>
     </div>
   )
