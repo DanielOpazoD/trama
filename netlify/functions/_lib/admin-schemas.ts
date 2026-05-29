@@ -48,13 +48,16 @@ export type RelationshipTypeUpsertBodyT = z.infer<typeof RelationshipTypeUpsertB
  *  campos vienen como any del catch del navegador. */
 export const ErrorLogBody = z.object({
   message: z.string().min(1, 'message requerido'),
-  stack: z.string().optional(),
-  componentStack: z.string().optional(),
-  path: z.string().optional(),
-  userAgent: z.string().optional(),
+  // El tracker del cliente manda `null` (no `undefined`) cuando un campo no
+  // aplica — p.ej. un error sin stack. `.nullish()` acepta string|null|undefined
+  // para que el propio logueo de errores no falle con VALIDATION.
+  stack: z.string().nullish(),
+  componentStack: z.string().nullish(),
+  path: z.string().nullish(),
+  userAgent: z.string().nullish(),
   /** ErrorBoundary scope: 'root' (boundary global de la app) o
    *  'view:<viewSlug>' (boundary per-vista del ViewRouter). */
-  scope: z.string().optional(),
+  scope: z.string().nullish(),
 })
 export type ErrorLogBodyT = z.infer<typeof ErrorLogBody>
 
