@@ -72,6 +72,17 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
       const payload = await verifyToken(token, {
         secretKey: readEnv('CLERK_SECRET_KEY') ?? '',
       })
+      // Owner alias: el dueño histórico de la app entró con Clerk. Toda la
+      // data pre-Clerk vive bajo 'legacy-single-user' (incluidos los blobs,
+      // que están namespaceados por ese id). En vez de reasignar 16 tablas
+      // + mover archivos, mapeamos SU sub a ese dueño — así ve todo lo suyo
+      // al instante. Los demás usuarios (futura familia) usan su sub real y
+      // arrancan con su propio espacio. Se quita en la migración multi-user
+      // definitiva, sobre las llaves de producción finales.
+      const ownerSub = readEnv('LEGACY_OWNER_CLERK_ID')
+      if (ownerSub && payload.sub === ownerSub) {
+        return { id: 'legacy-single-user' }
+      }
       return { id: payload.sub }
     } catch {
       // Token inválido — caer al fallback si está habilitado

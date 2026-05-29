@@ -1,6 +1,7 @@
 import { useGlobalStatus, type GlobalStatus } from '../state'
 import type { ViewMode } from './Sidebar'
 import { ReadingIcon } from './Icons'
+import { UserMenu } from './UserMenu'
 
 /**
  * Barra superior estilo ChatGPT/OpenAI Platform.
@@ -110,6 +111,7 @@ export function TopBar({
           </button>
         )}
         {actions && <div className="flex items-center gap-2">{actions}</div>}
+        <UserMenu />
       </div>
     </div>
   )

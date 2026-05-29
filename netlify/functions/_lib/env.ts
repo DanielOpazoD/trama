@@ -99,6 +99,11 @@ const EnvSchema = z.object({
   CLERK_SECRET_KEY: z.string().optional(),
   /** Durante migración: permite requests sin token caigan a legacy-single-user. */
   ALLOW_LEGACY_FALLBACK: boolFlag,
+  /** Sub de Clerk del dueño histórico. Si un token verificado trae este
+   *  sub, se mapea al dueño `legacy-single-user` (toda la data pre-Clerk),
+   *  evitando migrar tablas + blobs. El resto de usuarios usan su sub real.
+   *  Quitar el día de la migración multi-user definitiva. */
+  LEGACY_OWNER_CLERK_ID: z.string().optional(),
 
   // ─── Database ───────────────────────────────────────────────────────
   /** Nombre actual de la conexión Neon HTTP (post 20260518). */

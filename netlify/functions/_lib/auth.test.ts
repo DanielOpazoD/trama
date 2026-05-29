@@ -38,6 +38,7 @@ describe('getAuthedUser', () => {
     // que necesita explícitamente.
     delete process.env['CLERK_SECRET_KEY']
     delete process.env['ALLOW_LEGACY_FALLBACK']
+    delete process.env['LEGACY_OWNER_CLERK_ID']
     vi.unstubAllGlobals()
     // Netlify.env no existe en este runtime — el módulo cae a process.env.
   })
@@ -99,6 +100,28 @@ describe('getAuthedUser', () => {
     await expect(getAuthedUser(makeRequest())).rejects.toBeInstanceOf(
       UnauthenticatedError,
     )
+  })
+
+  it('con Clerk + token del dueño (LEGACY_OWNER_CLERK_ID) → mapea a legacy-single-user', async () => {
+    process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
+    process.env['LEGACY_OWNER_CLERK_ID'] = 'user_owner_sub'
+    verifyTokenMock.mockResolvedValue({ sub: 'user_owner_sub' })
+
+    const { getAuthedUser } = await import('./auth.js')
+    const user = await getAuthedUser(makeRequest('Bearer ownertoken'))
+    // El dueño histórico ve toda la data pre-Clerk sin migrar tablas/blobs.
+    expect(user.id).toBe('legacy-single-user')
+  })
+
+  it('con Clerk + LEGACY_OWNER_CLERK_ID seteado pero otro usuario → su sub real', async () => {
+    process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
+    process.env['LEGACY_OWNER_CLERK_ID'] = 'user_owner_sub'
+    verifyTokenMock.mockResolvedValue({ sub: 'user_familiar' })
+
+    const { getAuthedUser } = await import('./auth.js')
+    const user = await getAuthedUser(makeRequest('Bearer familiartoken'))
+    // Un usuario distinto del dueño arranca con su propio espacio.
+    expect(user.id).toBe('user_familiar')
   })
 
   it('dos usuarios reales (Clerk) reciben IDs distintos — base del isolation', async () => {
