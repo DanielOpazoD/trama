@@ -177,6 +177,8 @@ type QuotePatch = Partial<{
   pinned: boolean
   /** U-1: resonancia 1-5. null = destildar (volver a sin marcar). */
   resonance: number | null
+  /** ρ-citas: hipervínculo a la fuente. null = quitar. */
+  link: string | null
 }>
 
 export function useUpdateQuote() {
@@ -220,6 +222,7 @@ export function useUpdateQuote() {
                 ...(patch.resonance !== undefined
                   ? { resonance: patch.resonance ?? undefined }
                   : {}),
+                ...(patch.link !== undefined ? { link: patch.link ?? undefined } : {}),
                 updatedAt: nowIso(),
               }
             : q,

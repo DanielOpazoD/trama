@@ -482,6 +482,14 @@ export const ChevronDownIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Portapapeles — para el botón "copiar prompt de importación" de Citas. */
+export const ClipboardIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <rect x="6" y="4" width="12" height="17" rx="2" />
+    <path d="M9 4V3a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 3v1z" />
+  </svg>
+)
+
 /** Checkmark — usado en chips pequeños "verificado por X" en ProposalPanel.
     Stroke 2.2 (override automático para size <= 12) porque a 10px el 1.6
     desaparece. A size >= 14 vuelve a 1.6 — el sistema sigue. */
