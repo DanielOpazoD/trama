@@ -35,6 +35,9 @@ import { AuthGate } from './components/AuthGate'
 import { AppPinGate } from './components/AppPinGate'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { SectionAccentBand } from './components/SectionAccentBand'
+import { WorldRail } from './components/WorldRail'
+import { NotasWorld } from './components/notas/NotasWorld'
+import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
 // GlobalProgressBar removido por feedback del usuario — la barra fina
 // que latía con cada query se percibía como molesta. Si en el futuro
 // queremos mostrar progreso global, considerar un patrón más sutil
@@ -185,8 +188,11 @@ function Shell() {
   const rightPanelOpen = showProposal || showDetail
 
   return (
+    // τ-worlds: el Shell del mundo Trama llena su columna dentro de WorldShell
+    // (antes era h-screen/w-screen porque era la raíz; ahora el riel de mundos
+    // vive a su izquierda).
     <div
-      className="h-screen w-screen flex flex-col md:flex-row overflow-hidden"
+      className="h-full w-full flex flex-col md:flex-row overflow-hidden"
       data-focus-mode={focusMode || undefined}
     >
       {/* DD1: banner amarillo en deploy previews — la BD del preview es
@@ -466,6 +472,38 @@ function Shell() {
   )
 }
 
+/**
+ * τ-worlds: envuelve los mundos de Trama. El WorldRail (riel fijo a la
+ * izquierda) conmuta entre workspaces; cada mundo monta su propio shell.
+ * 'trama' = el mundo histórico (Shell, el mapa cognitivo); 'notas' = Trama
+ * Notas. El mundo activo persiste en localStorage. Es el único nivel por
+ * encima del Shell — todo lo de la Trama sigue intacto adentro de Shell.
+ */
+function WorldShell() {
+  const [world, setWorld] = useState<World>(() => {
+    if (typeof window === 'undefined') return DEFAULT_WORLD
+    const saved = window.localStorage.getItem(WORLD_STORAGE_KEY)
+    return saved === 'notas' || saved === 'trama' ? (saved as World) : DEFAULT_WORLD
+  })
+  const changeWorld = useCallback((w: World) => {
+    setWorld(w)
+    try {
+      window.localStorage.setItem(WORLD_STORAGE_KEY, w)
+    } catch {
+      /* storage deshabilitado */
+    }
+  }, [])
+
+  return (
+    <div className="h-screen w-screen flex overflow-hidden">
+      <WorldRail world={world} onChangeWorld={changeWorld} />
+      <div className="flex-1 min-w-0 h-full relative">
+        {world === 'trama' ? <Shell /> : <NotasWorld />}
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   // ErrorBoundary envuelve Shell pero queda DENTRO del Provider para que
   // el fallback tenga acceso al toast y al QueryClient si los necesita
@@ -480,7 +518,7 @@ export default function App() {
           <Splash />
           <ErrorBoundary>
             <div className="h-full">
-              <Shell />
+              <WorldShell />
             </div>
           </ErrorBoundary>
         </Provider>

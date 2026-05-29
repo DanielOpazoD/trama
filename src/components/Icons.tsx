@@ -460,6 +460,21 @@ export const GabineteIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Notes — hoja con esquina doblada y renglones. Mundo / sección Trama Notas. */
+export const NotesIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+    <path d="M14 3v4h4M9 12.5h6M9 16h4" />
+  </svg>
+)
+
+/** Tasks — checklist (dos ítems con tilde). Sección Tareas de Trama Notas. */
+export const TasksIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M4 7l1.6 1.6L8.5 5.5M12 7.5h8M4 16l1.6 1.6L8.5 14M12 16.5h8" />
+  </svg>
+)
+
 /** Checkmark — usado en chips pequeños "verificado por X" en ProposalPanel.
     Stroke 2.2 (override automático para size <= 12) porque a 10px el 1.6
     desaparece. A size >= 14 vuelve a 1.6 — el sistema sigue. */
