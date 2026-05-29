@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trama — Evaluación multiparamétrica</title>
+    <style>
+      :root {
+        --ink: #2b2723;
+        --ink-soft: #5c544b;
+        --paper: #f6f1e7;
+        --paper-card: #fbf8f1;
+        --line: #e0d7c6;
+        --accent: #7a5c3e;
+        --g-exc: #3f7d52; /* 6.5–7  */
+        --g-good: #4a7a86; /* 5.5–6.4 */
+        --g-mid: #b07f2e; /* 4.5–5.4 */
+        --g-low: #b04a3a; /* < 4.5  */
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+        line-height: 1.62;
+        font-size: 17px;
+      }
+      .wrap { max-width: 920px; margin: 0 auto; padding: 56px 28px 96px; }
+      header.doc {
+        border-bottom: 2px solid var(--ink);
+        padding-bottom: 28px;
+        margin-bottom: 40px;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        font-size: 12px;
+        color: var(--accent);
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        margin: 0 0 14px;
+      }
+      h1 { font-size: 40px; line-height: 1.1; margin: 0 0 10px; font-weight: 600; }
+      .sub { color: var(--ink-soft); font-size: 18px; margin: 0; font-style: italic; }
+      .meta {
+        margin-top: 22px;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-size: 13px;
+        color: var(--ink-soft);
+        display: flex;
+        gap: 22px;
+        flex-wrap: wrap;
+      }
+      .meta b { color: var(--ink); font-weight: 600; }
+      h2 {
+        font-size: 27px;
+        margin: 52px 0 6px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        font-weight: 600;
+        scroll-margin-top: 16px;
+      }
+      h2 .code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 17px;
+        color: var(--accent);
+        margin-right: 10px;
+      }
+      h3 { font-size: 19px; margin: 30px 0 8px; font-weight: 600; }
+      p { margin: 10px 0; }
+      a { color: var(--accent); }
+      .lead { font-size: 18px; color: var(--ink-soft); }
+      .callout {
+        background: var(--paper-card);
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--accent);
+        border-radius: 8px;
+        padding: 18px 22px;
+        margin: 24px 0;
+        font-size: 15px;
+      }
+      .callout p { margin: 6px 0; }
+      /* grade chip */
+      .chip {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 4px;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-weight: 700;
+        color: #fff;
+        border-radius: 999px;
+        padding: 3px 12px;
+        font-size: 15px;
+        line-height: 1.3;
+        white-space: nowrap;
+      }
+      .chip .of { font-weight: 500; opacity: 0.85; font-size: 12px; }
+      .g-exc { background: var(--g-exc); }
+      .g-good { background: var(--g-good); }
+      .g-mid { background: var(--g-mid); }
+      .g-low { background: var(--g-low); }
+      .param-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+      /* summary table */
+      table { border-collapse: collapse; width: 100%; margin: 26px 0; font-size: 15px; }
+      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+      th {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ink-soft);
+      }
+      td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .bar {
+        height: 8px;
+        border-radius: 4px;
+        background: linear-gradient(90deg, var(--accent) var(--w), #e7ddcb var(--w));
+        min-width: 120px;
+      }
+      tr.tot td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: none; }
+      /* improvement cards */
+      .imp { margin: 14px 0; padding: 14px 16px 14px 0; border-bottom: 1px dotted var(--line); }
+      .imp:last-child { border-bottom: none; }
+      .imp .tag {
+        display: inline-block;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 700;
+        font-size: 13px;
+        background: #efe7d6;
+        color: var(--accent);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 1px 8px;
+        margin-right: 10px;
+        vertical-align: 2px;
+      }
+      .imp .imp-title { font-weight: 600; }
+      .imp .why { display: block; color: var(--ink-soft); font-size: 15px; margin-top: 4px; }
+      .prio {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border-radius: 4px;
+        padding: 1px 7px;
+        margin-left: 8px;
+        vertical-align: 2px;
+        white-space: nowrap;
+      }
+      .p-alta { background: #f3dcd6; color: var(--g-low); }
+      .p-media { background: #f3e6cd; color: var(--g-mid); }
+      .p-baja { background: #d9e6dd; color: var(--g-exc); }
+      .toc {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-size: 14px;
+        columns: 2;
+        column-gap: 32px;
+        margin: 18px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .toc li { margin: 4px 0; break-inside: avoid; }
+      .toc a { text-decoration: none; }
+      .toc .c { font-family: ui-monospace, monospace; color: var(--accent); margin-right: 8px; }
+      footer.doc {
+        margin-top: 64px;
+        padding-top: 20px;
+        border-top: 2px solid var(--ink);
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-size: 13px;
+        color: var(--ink-soft);
+      }
+      @media (max-width: 620px) {
+        .toc { columns: 1; }
+        h1 { font-size: 32px; }
+      }
+      @media print {
+        body { background: #fff; font-size: 12px; }
+        .wrap { padding: 0; max-width: none; }
+        h2 { page-break-after: avoid; }
+        .imp, tr { page-break-inside: avoid; }
+        a { color: inherit; text-decoration: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="doc">
+        <p class="eyebrow">Auditoría interna · Claude</p>
+        <h1>Trama — Evaluación multiparamétrica</h1>
+        <p class="sub">Estado del programa al 28 de mayo de 2026, nota de 1 a 7 por parámetro y propuesta de mejoras codificadas.</p>
+        <div class="meta">
+          <span><b>Versión</b> 0.11.0</span>
+          <span><b>Tests</b> 860 ✓ / 128 archivos</span>
+          <span><b>Cobertura</b> ~47.8% líneas · 58.5% func · 74.3% ramas</span>
+          <span><b>Nota global</b> 6.1</span>
+        </div>
+      </header>
+
+      <p class="lead">
+        Esta evaluación califica trece parámetros con la escala chilena de 1 a 7
+        (7 = sobresaliente, 4 = aprobación mínima). Cada nota está anclada a
+        evidencia concreta del repositorio — conteos de archivos, cobertura medida,
+        configuración de CI, headers de seguridad — y no a impresiones generales.
+      </p>
+
+      <div class="callout">
+        <p><b>Sobre la honestidad de las notas.</b> Son la lectura fundamentada de
+        un asistente sobre el código, no un veredicto absoluto. Trama es un proyecto
+        personal de un solo autor: medido contra ese contexto, su ingeniería es
+        inusualmente madura. Las notas más bajas (cobertura, observabilidad,
+        accesibilidad) no señalan descuido sino los frentes donde aún hay terreno
+        por ganar. Una nota de 5 sigue siendo "bueno".</p>
+      </div>
+
+      <h3>Índice de parámetros</h3>
+      <ul class="toc">
+        <li><a href="#A"><span class="c">A</span>Arquitectura y estructura</a></li>
+        <li><a href="#B"><span class="c">B</span>Calidad de código y tipado</a></li>
+        <li><a href="#C"><span class="c">C</span>Testing y cobertura</a></li>
+        <li><a href="#D"><span class="c">D</span>Seguridad</a></li>
+        <li><a href="#E"><span class="c">E</span>Rendimiento</a></li>
+        <li><a href="#F"><span class="c">F</span>Accesibilidad</a></li>
+        <li><a href="#G"><span class="c">G</span>Capa de datos y persistencia</a></li>
+        <li><a href="#H"><span class="c">H</span>Manejo de errores y resiliencia</a></li>
+        <li><a href="#I"><span class="c">I</span>Observabilidad y monitoreo</a></li>
+        <li><a href="#J"><span class="c">J</span>Integración LLM / IA</a></li>
+        <li><a href="#K"><span class="c">K</span>CI/CD y tooling</a></li>
+        <li><a href="#L"><span class="c">L</span>Documentación</a></li>
+        <li><a href="#M"><span class="c">M</span>UX, diseño y coherencia estética</a></li>
+      </ul>
+
+      <h2 style="border-top:none;margin-top:40px">Cuadro de notas</h2>
+      <table>
+        <thead>
+          <tr><th>Parámetro</th><th>Nota</th><th style="width:42%">Nivel</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><a href="#A">A · Arquitectura y estructura</a></td><td class="num">6.3</td><td><div class="bar" style="--w:90%"></div></td></tr>
+          <tr><td><a href="#B">B · Calidad de código y tipado</a></td><td class="num">6.5</td><td><div class="bar" style="--w:93%"></div></td></tr>
+          <tr><td><a href="#C">C · Testing y cobertura</a></td><td class="num">5.2</td><td><div class="bar" style="--w:74%"></div></td></tr>
+          <tr><td><a href="#D">D · Seguridad</a></td><td class="num">6.2</td><td><div class="bar" style="--w:89%"></div></td></tr>
+          <tr><td><a href="#E">E · Rendimiento</a></td><td class="num">6.2</td><td><div class="bar" style="--w:89%"></div></td></tr>
+          <tr><td><a href="#F">F · Accesibilidad</a></td><td class="num">5.3</td><td><div class="bar" style="--w:76%"></div></td></tr>
+          <tr><td><a href="#G">G · Capa de datos y persistencia</a></td><td class="num">6.4</td><td><div class="bar" style="--w:91%"></div></td></tr>
+          <tr><td><a href="#H">H · Manejo de errores y resiliencia</a></td><td class="num">6.2</td><td><div class="bar" style="--w:89%"></div></td></tr>
+          <tr><td><a href="#I">I · Observabilidad y monitoreo</a></td><td class="num">5.0</td><td><div class="bar" style="--w:71%"></div></td></tr>
+          <tr><td><a href="#J">J · Integración LLM / IA</a></td><td class="num">6.2</td><td><div class="bar" style="--w:89%"></div></td></tr>
+          <tr><td><a href="#K">K · CI/CD y tooling</a></td><td class="num">6.4</td><td><div class="bar" style="--w:91%"></div></td></tr>
+          <tr><td><a href="#L">L · Documentación</a></td><td class="num">6.6</td><td><div class="bar" style="--w:94%"></div></td></tr>
+          <tr><td><a href="#M">M · UX, diseño y coherencia estética</a></td><td class="num">6.3</td><td><div class="bar" style="--w:90%"></div></td></tr>
+          <tr class="tot"><td>Promedio global</td><td class="num">6.1</td><td><div class="bar" style="--w:87%"></div></td></tr>
+        </tbody>
+      </table>
+      <h2 id="A"><span class="code">A</span>Arquitectura y estructura</h2>
+      <div class="param-head"><span class="chip g-good">6.3<span class="of">/7</span></span></div>
+      <p>Separación de capas nítida y deliberada: <code>src/api/</code> concentra los
+      transforms snake↔camel, <code>src/state/</code> los hooks de TanStack Query,
+      <code>src/components/</code> la presentación y <code>netlify/functions/_lib/</code>
+      la lógica de servidor. Hay 9 ADRs que dejan registrada la razón de cada
+      decisión estructural, alias de path <code>@/*</code>, y el reciente split de
+      <code>spotify.ts</code> (764 LOC) en seis módulos demuestra que la
+      modularización es una práctica viva, no un ideal. Resta: <code>App.tsx</code>
+      (488 LOC) y <code>GraphView.tsx</code> (523 LOC) siguen siendo archivos grandes,
+      y los 51 handlers <code>.mts</code> no participan del grafo de tipos local.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">A1</span><span class="imp-title">Incluir los <code>.mts</code> en el type-check<span class="prio p-alta">prioridad alta</span></span><span class="why">Hoy <code>tsc -b</code> sólo cubre <code>src/</code>; los 51 handlers de Netlify se compilan con esbuild en deploy y nunca se typechequean local ni en CI. Un <code>tsconfig.functions.json</code> que los incluya cierra el mayor punto ciego de la arquitectura.</span></div>
+      <div class="imp"><span class="tag">A2</span><span class="imp-title">Descomponer <code>App.tsx</code> en shell + providers<span class="prio p-media">media</span></span><span class="why">Extraer el cableado de routing y el árbol de providers a <code>AppShell</code> y <code>AppProviders</code>, dejando <code>App</code> como composición delgada (&lt;120 LOC).</span></div>
+      <div class="imp"><span class="tag">A3</span><span class="imp-title">Seguir el split de <code>GraphView.tsx</code><span class="prio p-media">media</span></span><span class="why">Separar la capa de render de sigma de la lógica de selección/interacción en hooks dedicados (<code>useGraphSelection</code>, <code>useSigmaRenderer</code>), continuando la línea del Tier E.</span></div>
+      <div class="imp"><span class="tag">A4</span><span class="imp-title">Agrupar <code>_lib/</code> por dominio<span class="prio p-baja">baja</span></span><span class="why">Son 59 módulos en una carpeta. Tras agrupar <code>llm/</code> y <code>spotify/</code>, falta consolidar <code>extract/</code> y <code>momentos/</code> en subcarpetas para reducir el ruido de imports.</span></div>
+      <div class="imp"><span class="tag">A5</span><span class="imp-title">Guardrail de <code>max-lines</code> en ESLint<span class="prio p-baja">baja</span></span><span class="why">Una regla con tope (p. ej. 400 LOC, warn) evita regresar a los archivos de 600+ que costó desarmar en FF3/G2.</span></div>
+
+      <h2 id="B"><span class="code">B</span>Calidad de código y tipado</h2>
+      <div class="param-head"><span class="chip g-exc">6.5<span class="of">/7</span></span></div>
+      <p>El frente más fuerte del proyecto. TypeScript en modo <code>strict</code> con
+      <code>noUncheckedIndexedAccess</code>, <code>noUnusedLocals/Params</code> y
+      <code>noFallthroughCasesInSwitch</code>. En todo el código de producción hay
+      <b>un solo</b> <code>any</code> y <b>11</b> <code>eslint-disable</code>, todos
+      ahora justificados con comentario. ESLint + Prettier + Husky + lint-staged
+      garantizan formato y reglas en cada commit. Los casts inseguros se erradicaron
+      vía <code>sqlTyped&lt;Row&gt;()</code> (N9/O2). Resta endurecer aún más con
+      linting type-aware y cerrar el último <code>any</code>.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">B1</span><span class="imp-title">Prohibir <code>any</code> por regla<span class="prio p-media">media</span></span><span class="why">Eliminar el único <code>any</code> restante y activar <code>@typescript-eslint/no-explicit-any: error</code> para que no reaparezca.</span></div>
+      <div class="imp"><span class="tag">B2</span><span class="imp-title">Linting type-aware de promesas<span class="prio p-alta">alta</span></span><span class="why">Activar <code>no-floating-promises</code> y <code>no-misused-promises</code> (requieren <code>parserOptions.project</code>). Atrapan <code>await</code> olvidados, la clase de bug más común en código async de red/LLM.</span></div>
+      <div class="imp"><span class="tag">B3</span><span class="imp-title">Evaluar <code>exactOptionalPropertyTypes</code><span class="prio p-baja">baja</span></span><span class="why">Hoy está OFF. Encenderlo gradualmente distingue "propiedad ausente" de "propiedad = undefined", relevante para los <code>patch</code> de los hooks optimistas.</span></div>
+      <div class="imp"><span class="tag">B4</span><span class="imp-title">Convertir los 8 <code>TODO/FIXME</code> en issues<span class="prio p-baja">baja</span></span><span class="why">Cada marca de deuda debería ser un issue rastreable enlazado por código, no un comentario que se pierde.</span></div>
+      <div class="imp"><span class="tag">B5</span><span class="imp-title">Reglas de complejidad<span class="prio p-baja">baja</span></span><span class="why">Añadir <code>complexity</code> y <code>max-depth</code> (warn) para señalar funciones que crecen demasiado antes de que duelan.</span></div>
+
+      <h2 id="C"><span class="code">C</span>Testing y cobertura</h2>
+      <div class="param-head"><span class="chip g-mid">5.2<span class="of">/7</span></span></div>
+      <p>En volumen es notable: <b>860 tests</b> en 128 archivos, todos verdes, más
+      ~13 specs e2e de Playwright y axe-core. La disciplina de tests-antes-de-commit
+      está internalizada. Pero la cobertura medida es modesta —~47.8% líneas
+      globales— y, sobre todo, los 51 handlers <code>.mts</code> quedan <b>fuera</b>
+      del cómputo (<code>coverage.include</code> sólo mira <code>.ts</code>). Varios
+      módulos están en 0%: <code>usePullToRefresh</code>, <code>useProactiveNudge</code>,
+      <code>clientErrorTracking</code>, <code>schemas/momento</code>,
+      <code>schemas/proposal</code>. El umbral se calibró deliberadamente bajo para
+      detectar regresiones, no excelencia — correcto como política, pero deja margen.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">C1</span><span class="imp-title">Medir cobertura de los <code>.mts</code><span class="prio p-alta">alta</span></span><span class="why">El grueso de la lógica de servidor (51 handlers) no aparece en el reporte. Incluirlos —aunque baje el % nominal— da una foto honesta y crea presión sana para cubrirlos.</span></div>
+      <div class="imp"><span class="tag">C2</span><span class="imp-title">Cerrar los módulos en 0%<span class="prio p-media">media</span></span><span class="why">Tests unitarios dirigidos a <code>usePullToRefresh</code>, <code>useProactiveNudge</code>, <code>timeOfDayAccent</code>, <code>clientErrorTracking</code> y los <code>schemas/</code>. Son piezas pequeñas y testeables.</span></div>
+      <div class="imp"><span class="tag">C3</span><span class="imp-title">Ratchet de cobertura<span class="prio p-media">media</span></span><span class="why">En vez de un piso fijo, subir el umbral automáticamente cuando un PR mejora la cobertura. Impide regresión sin frenar el desarrollo.</span></div>
+      <div class="imp"><span class="tag">C4</span><span class="imp-title">Tests de integración endpoint→DB<span class="prio p-media">media</span></span><span class="why">El <code>docker-compose</code> con Postgres ya existe. Usarlo para probar los happy-paths reales (no sólo branches de error) de extract/chat/momentos contra una DB efímera.</span></div>
+      <div class="imp"><span class="tag">C5</span><span class="imp-title">e2e para las vistas nuevas<span class="prio p-media">media</span></span><span class="why">Grafo, Cronología, Atlas, Espejo, Sortes y Voz no tienen specs. Agregar al menos un flujo feliz por vista.</span></div>
+      <div class="imp"><span class="tag">C6</span><span class="imp-title">Mutation testing en lo crítico<span class="prio p-baja">baja</span></span><span class="why">Stryker sobre validators y dispatch de LLM verifica que los tests realmente atrapan mutaciones, no sólo que ejecutan líneas.</span></div>
+
+      <h2 id="D"><span class="code">D</span>Seguridad</h2>
+      <div class="param-head"><span class="chip g-good">6.2<span class="of">/7</span></span></div>
+      <p>Postura defensiva sólida para un proyecto de este tamaño. CSP restrictiva a
+      nivel CDN (<code>default-src 'self'</code>, allowlist explícita de Spotify y
+      Clerk), más HSTS con preload, <code>X-Content-Type-Options</code>,
+      <code>X-Frame-Options: DENY</code>, <code>Referrer-Policy</code> y
+      <code>Permissions-Policy</code> que apaga cámara/micrófono/geo. Validación Zod
+      en los endpoints, errores canónicos vía <code>ApiErrors</code>, sin secretos en
+      el cliente, cost-cap mensual, <code>dependabot</code> y <code>SECURITY.md</code>.
+      Resta: el <code>npm audit</code> es warn-only y sólo falla en CRITICAL, la CSP
+      conserva <code>'unsafe-inline'</code> en estilos, y el fallback legacy
+      single-user es una puerta que conviene cerrar con plan.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">D1</span><span class="imp-title">Endurecer el <code>npm audit</code><span class="prio p-media">media</span></span><span class="why">Subir <code>--audit-level</code> a <code>high</code> y quitar <code>continue-on-error</code> para dependencias de producción, de modo que una vulnerabilidad seria detenga el merge.</span></div>
+      <div class="imp"><span class="tag">D2</span><span class="imp-title">Eliminar <code>'unsafe-inline'</code> de la CSP<span class="prio p-media">media</span></span><span class="why">Migrar los estilos inline de Tailwind a clases o nonces para cerrar el vector XSS que esa directiva deja abierto.</span></div>
+      <div class="imp"><span class="tag">D3</span><span class="imp-title">Rate-limit por usuario en endpoints LLM<span class="prio p-media">media</span></span><span class="why">El límite por IP se descartó a propósito; un límite por minuto y por usuario (no por IP) complementa el cost-cap mensual contra abuso o bucles accidentales.</span></div>
+      <div class="imp"><span class="tag">D4</span><span class="imp-title">Secret scanning en CI<span class="prio p-alta">alta</span></span><span class="why">Añadir gitleaks (o activar GitHub secret scanning) + un hook de pre-commit. Barato y evita el peor incidente posible: una clave commiteada.</span></div>
+      <div class="imp"><span class="tag">D5</span><span class="imp-title">Plan de cierre del legacy fallback<span class="prio p-baja">baja</span></span><span class="why">Documentar y datar el retiro de <code>ALLOW_LEGACY_FALLBACK</code> para que el modo single-user no quede como autenticación implícita en producción.</span></div>
+
+      <h2 id="E"><span class="code">E</span>Rendimiento</h2>
+      <div class="param-head"><span class="chip g-good">6.2<span class="of">/7</span></span></div>
+      <p>El rendimiento se cuida activamente, no por accidente: lazy-loading por vista
+      (ADR-0007), <code>memo</code> y <code>useTransition</code> donde importa
+      (RelationshipRow, MomentoEntry, streaming de chat), virtualización con
+      <code>@tanstack/react-virtual</code>, y un umbral WebGL para el grafo vía sigma
+      (ADR-0008) cuando supera ~1k nodos. El <code>check-bundle-size.mjs</code>
+      falla el CI si un chunk crece de más. Resta convertir lo que hoy es
+      <em>reporte</em> en <em>gate</em> y verificar virtualización en todas las listas
+      largas.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">E1</span><span class="imp-title">Lighthouse como gate, no sólo reporte<span class="prio p-media">media</span></span><span class="why">Asserts sobre LCP/TBT/CLS que fallen el CI al exceder umbral, en vez de generar un informe que nadie mira.</span></div>
+      <div class="imp"><span class="tag">E2</span><span class="imp-title">Reporte de peso por chunk en el PR<span class="prio p-baja">baja</span></span><span class="why">Comentar automáticamente el delta de bundle por chunk en cada PR, para ver el costo de cada feature al revisar.</span></div>
+      <div class="imp"><span class="tag">E3</span><span class="imp-title">Auditar virtualización de listas largas<span class="prio p-media">media</span></span><span class="why">Confirmar que Citas y Relaciones usan <code>react-virtual</code> como MomentosView; con catálogos grandes, una lista no virtualizada es el primer jank perceptible.</span></div>
+      <div class="imp"><span class="tag">E4</span><span class="imp-title">Prefetch en navegación probable<span class="prio p-baja">baja</span></span><span class="why">Usar <code>queryClient.prefetchQuery</code> al hacer hover sobre un nodo/enlace para que la vista de detalle se sienta instantánea.</span></div>
+      <div class="imp"><span class="tag">E5</span><span class="imp-title">Cache de layouts del grafo por snapshot<span class="prio p-baja">baja</span></span><span class="why">Memoizar los layouts <code>byDegree/byType/byYear</code> por hash del grafo evita recalcular posiciones en cada re-render de GraphView.</span></div>
+
+      <h2 id="F"><span class="code">F</span>Accesibilidad</h2>
+      <div class="param-head"><span class="chip g-mid">5.3<span class="of">/7</span></span></div>
+      <p>Hay base real, no checkbox: <code>eslint-plugin-jsx-a11y</code> activo y un
+      spec e2e con <code>@axe-core/playwright</code> (3 escenarios). Eso atrapa los
+      errores estructurales más comunes. Pero la cobertura a11y es delgada frente a
+      la riqueza de la UI: sólo 3 vistas auditadas automáticamente, sin verificación
+      sistemática de navegación por teclado, focus-trap en modales, contraste de los
+      múltiples acentos de sección, ni alternativa accesible al grafo en canvas.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">F1</span><span class="imp-title">axe-core en todas las rutas<span class="prio p-alta">alta</span></span><span class="why">Un test parametrizado que recorra cada vista y corra axe. Hoy 3 de ~12 vistas están cubiertas; el resto puede regresar sin que nadie note.</span></div>
+      <div class="imp"><span class="tag">F2</span><span class="imp-title">Focus-trap y teclado en modales<span class="prio p-media">media</span></span><span class="why">Auditar <code>FotoEditModal</code>, <code>CommandPalette</code> y <code>MomentoQRModal</code>: trampa de foco, cierre con Esc, retorno de foco al disparador.</span></div>
+      <div class="imp"><span class="tag">F3</span><span class="imp-title">Contraste de acentos de sección<span class="prio p-media">media</span></span><span class="why">Con tantos tonos sobre fondo papel, testear cada acento contra WCAG AA. Un test que calcule el ratio de contraste evita que un tono nuevo rompa el mínimo.</span></div>
+      <div class="imp"><span class="tag">F4</span><span class="imp-title">Respetar <code>prefers-reduced-motion</code><span class="prio p-media">media</span></span><span class="why">Las animaciones cross-section y <code>viewTransition</code> deberían atenuarse cuando el sistema lo pide. Importante para usuarios con sensibilidad vestibular.</span></div>
+      <div class="imp"><span class="tag">F5</span><span class="imp-title">Alternativa accesible al grafo<span class="prio p-baja">baja</span></span><span class="why">El canvas de sigma es opaco para lectores de pantalla. Ofrecer una lista navegable de nodos/relaciones como vista equivalente.</span></div>
+
+      <h2 id="G"><span class="code">G</span>Capa de datos y persistencia</h2>
+      <div class="param-head"><span class="chip g-good">6.4<span class="of">/7</span></span></div>
+      <p>Disciplina ejemplar. Patrón <code>getSql()</code> único, <code>sqlTyped&lt;Row&gt;()</code>
+      para erradicar casts, soft-delete en todas partes con cascada en el handler
+      (ADR-0003), <code>origin</code> como JSONB tipado, frontera snake/camel marcada
+      en los transforms, y 30 migraciones inmutables que Netlify rechaza si cambian
+      de hash. Las reglas están escritas en <code>CLAUDE.md</code> y se respetan.
+      Resta: las migraciones no se aplican en CI (drift sólo se ve en deploy), no hay
+      verificación automática de que ningún query olvide <code>deleted_at IS NULL</code>,
+      y los tipos de fila se mantienen a mano.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">G1</span><span class="imp-title">Aplicar migraciones en CI<span class="prio p-alta">alta</span></span><span class="why">Correr las 30 migraciones sobre un Postgres efímero en cada PR detecta drift y errores de SQL antes del deploy, no durante.</span></div>
+      <div class="imp"><span class="tag">G2</span><span class="imp-title">Revisar índices con EXPLAIN<span class="prio p-media">media</span></span><span class="why">Las queries con <code>WHERE deleted_at IS NULL</code> + filtros frecuentes se benefician de índices parciales. Medir antes de que el catálogo crezca.</span></div>
+      <div class="imp"><span class="tag">G3</span><span class="imp-title">Test estático del soft-delete<span class="prio p-media">media</span></span><span class="why">Un check en CI (grep/AST) que falle si un <code>SELECT</code> sobre tablas con soft-delete no incluye <code>deleted_at IS NULL</code>. Convierte una convención en garantía.</span></div>
+      <div class="imp"><span class="tag">G4</span><span class="imp-title">Generar tipos desde el esquema<span class="prio p-baja">baja</span></span><span class="why">Con kysely-codegen o similar, los tipos de <code>sqlTyped&lt;Row&gt;</code> se derivan del SQL y no se desincronizan al cambiar una columna.</span></div>
+      <div class="imp"><span class="tag">G5</span><span class="imp-title">Política de purga de soft-deleted<span class="prio p-baja">baja</span></span><span class="why">Un job que hard-deletea filas con <code>deleted_at</code> más antiguo que N meses (respetando las reglas) evita el crecimiento indefinido de basura lógica.</span></div>
+
+      <h2 id="H"><span class="code">H</span>Manejo de errores y resiliencia</h2>
+      <div class="param-head"><span class="chip g-good">6.2<span class="of">/7</span></span></div>
+      <p>Forma de error canónica <code>{ error: { code, message, requestId } }</code> en
+      todo el backend vía <code>ApiErrors</code>, con request-id propagado.
+      <code>ErrorBoundary</code> granular por vista (ADR-0006) para que el fallo de una
+      sección no tumbe la app. En el cliente, mutaciones optimistas con rollback
+      verificado por tests y manejo explícito del estado offline. Resta cerrar el
+      ciclo: que los boundaries reporten a observabilidad, y resiliencia frente a
+      fallos transitorios de red/proveedor.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">H1</span><span class="imp-title">Telemetría desde los ErrorBoundary<span class="prio p-alta">alta</span></span><span class="why">Cuando un boundary captura, reportar a observabilidad con la vista y el request-id. Hoy el error se contiene visualmente pero se pierde silenciosamente.</span></div>
+      <div class="imp"><span class="tag">H2</span><span class="imp-title">Reintentos con backoff en red transitoria<span class="prio p-media">media</span></span><span class="why">Las mutaciones de red deberían reintentar con backoff exponencial ante 5xx/timeout antes de hacer rollback definitivo.</span></div>
+      <div class="imp"><span class="tag">H3</span><span class="imp-title">Circuit-breaker en el dispatch LLM<span class="prio p-media">media</span></span><span class="why">Si un proveedor falla repetidamente, abrir el circuito y saltar directo al fallback en vez de pagar el timeout cada vez.</span></div>
+      <div class="imp"><span class="tag">H4</span><span class="imp-title">e2e de los caminos offline<span class="prio p-baja">baja</span></span><span class="why">Playwright puede simular <code>offline</code>; probar que el rollback y los mensajes de "sin conexión" funcionan de punta a punta.</span></div>
+      <div class="imp"><span class="tag">H5</span><span class="imp-title">Centralizar los textos de error<span class="prio p-baja">baja</span></span><span class="why">Un único módulo de mensajes de usuario (i18n-ready) mantiene el tono consistente y facilita revisarlos de una vez.</span></div>
+
+      <h2 id="I"><span class="code">I</span>Observabilidad y monitoreo</h2>
+      <div class="param-head"><span class="chip g-mid">5.0<span class="of">/7</span></span></div>
+      <p>El andamiaje está puesto: tabla <code>web_vitals_samples</code> con INSERT y
+      path normalizado, error-log y extraction-log por usuario, y SLOs documentados
+      en <code>docs/observability.md</code>. Es la nota más baja porque el andamiaje
+      aún no es casa habitada: Sentry está como <em>scaffold</em> (sin init real),
+      <code>webVitals.ts</code> tiene 25% de cobertura y <code>clientErrorTracking.ts</code>
+      0% —es decir, justo las piezas que deberían vigilar todo lo demás son las menos
+      probadas— y las SLOs viven en un .md, no en un dashboard que alguien mire.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">I1</span><span class="imp-title">Completar Sentry (init real)<span class="prio p-alta">alta</span></span><span class="why">DSN por env, subida de source maps en deploy y filtrado de PII. Sin esto, un error en producción es invisible hasta que el usuario lo reporta.</span></div>
+      <div class="imp"><span class="tag">I2</span><span class="imp-title">Tests de la capa de observabilidad<span class="prio p-media">media</span></span><span class="why">Cubrir <code>webVitals.ts</code> (25%) y <code>clientErrorTracking.ts</code> (0%). Una telemetría rota que falla en silencio es peor que no tenerla.</span></div>
+      <div class="imp"><span class="tag">I3</span><span class="imp-title">Dashboard de SLOs<span class="prio p-media">media</span></span><span class="why">Materializar las SLOs documentadas en una vista o endpoint que lea <code>web_vitals_samples</code> + error-log, para verlas sin abrir SQL.</span></div>
+      <div class="imp"><span class="tag">I4</span><span class="imp-title">Alertas sobre umbrales<span class="prio p-media">media</span></span><span class="why">Disparadores sobre el cost-cap acercándose, la tasa de error de extracción y el p95 de latencia LLM. La observabilidad sin alertas es arqueología, no monitoreo.</span></div>
+      <div class="imp"><span class="tag">I5</span><span class="imp-title">Request-id end-to-end visible<span class="prio p-baja">baja</span></span><span class="why">Propagar el request-id al cliente y mostrarlo en los mensajes de error, para que cualquier reporte sea rastreable hasta el log exacto.</span></div>
+
+      <h2 id="J"><span class="code">J</span>Integración LLM / IA</h2>
+      <div class="param-head"><span class="chip g-good">6.2<span class="of">/7</span></span></div>
+      <p>Arquitectura de IA bien encapsulada en <code>_lib/llm/</code>: dispatch entre
+      proveedores, caching, fallbacks, retry, routing de tareas por usuario
+      (ADR-0005) y un cost-cap mensual que actúa como cortafuegos económico. La regla
+      "nunca fetch directo a una API de LLM" está escrita y respetada. Los tests de
+      contrato recién añadidos blindan los endpoints <code>extract</code> y
+      <code>chat-messages</code> en sus branches de error. Resta lo específico de IA:
+      evaluar la <em>calidad</em> de las respuestas, no sólo el contrato, y probar el
+      fallback y el streaming con proveedores simulados.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">J1</span><span class="imp-title">Tests del dispatch y fallback<span class="prio p-alta">alta</span></span><span class="why">Proveedores simulados que fallan en distintos puntos, para verificar que el routing per-user y la cadena de fallback se comportan como dicen los ADRs.</span></div>
+      <div class="imp"><span class="tag">J2</span><span class="imp-title">Eval harness de extracción<span class="prio p-media">media</span></span><span class="why">Un set de casos dorados (texto → entidades/relaciones esperadas) con score automatizado detecta regresiones de calidad del prompt que ningún test de contrato ve.</span></div>
+      <div class="imp"><span class="tag">J3</span><span class="imp-title">Versionado de prompts<span class="prio p-media">media</span></span><span class="why">Registrar qué versión de prompt generó cada extracción (enlazando al <code>extractionLogId</code> que ya existe) permite explicar y revertir cambios de comportamiento.</span></div>
+      <div class="imp"><span class="tag">J4</span><span class="imp-title">Tests del streaming SSE de chat<span class="prio p-media">media</span></span><span class="why">Hoy el stream se excluye por requerir LLM real. Un stream simulado permite probar el parsing de chunks y el manejo de cortes.</span></div>
+      <div class="imp"><span class="tag">J5</span><span class="imp-title">Presupuesto por operación<span class="prio p-baja">baja</span></span><span class="why">Estimar tokens antes de llamar y rechazar si una sola operación excede un tope, además del cap mensual agregado.</span></div>
+
+      <h2 id="K"><span class="code">K</span>CI/CD y tooling</h2>
+      <div class="param-head"><span class="chip g-good">6.4<span class="of">/7</span></span></div>
+      <p>Pipeline maduro: tres jobs paralelos (lint, unit, e2e) que recortan el
+      critical path a ~3 min, con type-check, tests, gate de cobertura, presupuesto de
+      bundle, <code>npm audit</code> y e2e + axe. Husky + lint-staged formatean y
+      lintean en cada commit; dependabot vigila dependencias; <code>docker-compose</code>
+      levanta Postgres local. Resta cerrar dos huecos concretos —los <code>.mts</code>
+      sin type-check (ver A1) y las migraciones sin aplicar en CI (ver G1)— y sumar
+      preview deploys.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">K1</span><span class="imp-title">Type-check de <code>.mts</code> en el job unit<span class="prio p-alta">alta</span></span><span class="why">Es el mismo hueco que A1, visto desde el pipeline: el CI da verde sin haber compilado nunca el 100% de los handlers de servidor.</span></div>
+      <div class="imp"><span class="tag">K2</span><span class="imp-title">Cachear los navegadores de Playwright<span class="prio p-baja">baja</span></span><span class="why">El job e2e reinstala ~100MB de Chromium en cada run. Cachearlos por versión recorta minutos de CI.</span></div>
+      <div class="imp"><span class="tag">K3</span><span class="imp-title">Job de migraciones en CI<span class="prio p-media">media</span></span><span class="why">Aplicar las migraciones sobre Postgres efímero (ver G1) como gate de PR.</span></div>
+      <div class="imp"><span class="tag">K4</span><span class="imp-title">Preview deploys por PR<span class="prio p-media">media</span></span><span class="why">El deploy preview de Netlify con comentario automático del link permite revisar visualmente cada cambio antes de mergear.</span></div>
+      <div class="imp"><span class="tag">K5</span><span class="imp-title">Gate de cobertura por diff<span class="prio p-baja">baja</span></span><span class="why">Además del piso global, exigir cobertura sobre las líneas <em>nuevas</em> (codecov patch) asegura que lo que entra venga con tests.</span></div>
+
+      <h2 id="L"><span class="code">L</span>Documentación</h2>
+      <div class="param-head"><span class="chip g-exc">6.6<span class="of">/7</span></span></div>
+      <p>La nota más alta, y merecida. Para un proyecto personal el corpus es
+      excepcional: <code>ARCHITECTURE.md</code> (19 KB), <code>README</code> (21 KB),
+      <code>FILOSOFIA.md</code>, <code>CONTRIBUTING</code>, <code>SECURITY</code>,
+      <code>CODE_OF_CONDUCT</code>, <code>CHANGELOG</code>, siete documentos de
+      convenciones, nueve ADRs con plantilla, y runbooks operativos (deploy, datos,
+      incidentes, escala, migraciones). El <code>CLAUDE.md</code> mantiene las reglas
+      duras cortas y enlaza al detalle. Resta sobre todo lo visual y el contrato de
+      API explícito.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">L1</span><span class="imp-title">Diagramas de arquitectura<span class="prio p-media">media</span></span><span class="why">Un diagrama C4 o mermaid en <code>ARCHITECTURE.md</code> comunica el sistema de un vistazo mejor que 19 KB de prosa.</span></div>
+      <div class="imp"><span class="tag">L2</span><span class="imp-title">Contrato de API explícito<span class="prio p-media">media</span></span><span class="why">Hoy el contrato vive implícito en los schemas Zod. Generar una tabla/OpenAPI desde ellos documenta cada endpoint sin duplicar la fuente de verdad.</span></div>
+      <div class="imp"><span class="tag">L3</span><span class="imp-title">Guía de onboarding "primeros 30 min"<span class="prio p-baja">baja</span></span><span class="why">Un recorrido corto —correr local, levantar la DB, pasar los tests— para un colaborador futuro (o tú dentro de un año).</span></div>
+      <div class="imp"><span class="tag">L4</span><span class="imp-title">CHANGELOG automatizado<span class="prio p-baja">baja</span></span><span class="why">Derivar el <code>CHANGELOG</code> de los conventional commits evita el mantenimiento manual y el olvido.</span></div>
+      <div class="imp"><span class="tag">L5</span><span class="imp-title">Anclar docs al código fuente<span class="prio p-baja">baja</span></span><span class="why">Que cada doc de convención cite el archivo/commit que la implementa, para detectar cuándo la doc y el código divergen.</span></div>
+
+      <h2 id="M"><span class="code">M</span>UX, diseño y coherencia estética</h2>
+      <div class="param-head"><span class="chip g-good">6.3<span class="of">/7</span></span></div>
+      <p>Trama tiene algo raro en software personal: una <em>filosofía estética</em>
+      escrita (<code>filosofia-estetica.md</code>) con principios rectores, vocabulario
+      visual y anti-patrones, respaldada por design tokens semánticos, acentos de
+      sección y tests de regresión visual para los headers de excepción. Las features
+      literarias (Sortes, Espejo, Voz, Hojas, Cronología, Atlas) dan una identidad
+      coherente y deliberada. Resta sobre todo descubribilidad y consistencia de los
+      estados secundarios en las vistas nuevas.</p>
+      <h3>Mejoras propuestas</h3>
+      <div class="imp"><span class="tag">M1</span><span class="imp-title">Estados vacíos y de carga consistentes<span class="prio p-media">media</span></span><span class="why">Asegurar que Atlas, Cronología y Espejo tengan estados vacíos, de carga y de error con el mismo lenguaje visual que las vistas maduras.</span></div>
+      <div class="imp"><span class="tag">M2</span><span class="imp-title">Descubribilidad de las features literarias<span class="prio p-media">media</span></span><span class="why">Sortes, Voz y Espejo son joyas escondidas. Un onboarding progresivo o pistas contextuales evitan que pasen desapercibidas.</span></div>
+      <div class="imp"><span class="tag">M3</span><span class="imp-title">Microcopy con voz literaria<span class="prio p-baja">baja</span></span><span class="why">Revisar los mensajes de sistema y error para que no rompan el tono cuidado del resto (conecta con H5).</span></div>
+      <div class="imp"><span class="tag">M4</span><span class="imp-title">Decisión explícita sobre modo oscuro<span class="prio p-baja">baja</span></span><span class="why">Definir y documentar si el norte "papel" admite un modo oscuro coherente o se descarta a propósito, para no dejarlo a medias.</span></div>
+      <div class="imp"><span class="tag">M5</span><span class="imp-title">Galería de design tokens<span class="prio p-baja">baja</span></span><span class="why">Una página de showcase de tokens, acentos y componentes (estilo Storybook ligero) facilita mantener la coherencia al crecer.</span></div>
+
+      <h2>Hoja de ruta sugerida</h2>
+      <p>Si hubiera que priorizar, estas son las mejoras de prioridad <b>alta</b>
+      —las que más mueven la aguja por esfuerzo invertido—, ordenadas por impacto:</p>
+      <table>
+        <thead><tr><th>Código</th><th>Mejora</th><th>Parámetro</th></tr></thead>
+        <tbody>
+          <tr><td class="num"><b>A1 / K1</b></td><td>Type-check de los <code>.mts</code> en CI</td><td>Arquitectura · CI/CD</td></tr>
+          <tr><td class="num"><b>D4</b></td><td>Secret scanning en CI</td><td>Seguridad</td></tr>
+          <tr><td class="num"><b>C1</b></td><td>Medir cobertura de los handlers <code>.mts</code></td><td>Testing</td></tr>
+          <tr><td class="num"><b>I1</b></td><td>Completar Sentry (init real)</td><td>Observabilidad</td></tr>
+          <tr><td class="num"><b>H1</b></td><td>Telemetría desde los ErrorBoundary</td><td>Errores</td></tr>
+          <tr><td class="num"><b>G1</b></td><td>Aplicar migraciones en CI</td><td>Datos</td></tr>
+          <tr><td class="num"><b>B2</b></td><td>Linting type-aware de promesas</td><td>Calidad</td></tr>
+          <tr><td class="num"><b>F1</b></td><td>axe-core en todas las rutas</td><td>Accesibilidad</td></tr>
+          <tr><td class="num"><b>J1</b></td><td>Tests del dispatch y fallback LLM</td><td>IA</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <p><b>Lectura de conjunto.</b> Trama es, en términos de ingeniería, un proyecto
+        maduro: tipado estricto casi sin escapes, una capa de datos disciplinada,
+        seguridad y documentación por encima de lo esperable. Las tres notas más bajas
+        —cobertura (C), accesibilidad (F) y observabilidad (I)— comparten una raíz: el
+        <em>andamiaje existe pero no está del todo habitado</em>. Hay tabla de web
+        vitals pero el dashboard no; hay axe pero en 3 vistas; hay 860 tests pero los
+        <code>.mts</code> ni se miden. La buena noticia es que cerrar esos huecos es
+        trabajo conocido y acotado, no rediseño.</p>
+      </div>
+
+      <footer class="doc">
+        <p>Trama v0.11.0 · Evaluación generada el 28 de mayo de 2026 · Escala 1–7.
+        Notas ancladas a métricas del repositorio (conteo de archivos, cobertura
+        medida, configuración de CI y headers de seguridad observados al momento de la
+        auditoría). Documento autocontenido — abrir en cualquier navegador o imprimir a PDF.</p>
+      </footer>
+    </div>
+  </body>
+</html>
