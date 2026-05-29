@@ -27,6 +27,8 @@ export type Quote = {
   pinnedAt?: string
   /** U-1: Resonancia 1-5 (cuánto resuena hoy). undefined = sin marcar. */
   resonance?: number
+  /** Hipervínculo opcional a la fuente en línea (artículo, video, etc.). */
+  link?: string
   origin: Origin
   createdAt: string
   updatedAt: string

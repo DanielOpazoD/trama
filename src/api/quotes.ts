@@ -42,6 +42,7 @@ export const quotesApi = {
         text: data.text,
         source: data.source ?? null,
         context: data.context ?? null,
+        link: data.link ?? null,
         user_reflection: data.userReflection ?? null,
         linked_quote_ids: data.linkedQuoteIds ?? [],
         origin: data.origin,
@@ -66,6 +67,8 @@ export const quotesApi = {
       pinned: boolean
       /** U-1: resonancia 1-5. null = destildar. undefined → no se toca. */
       resonance: number | null
+      /** ρ-citas: hipervínculo. null = quitar. undefined → no se toca. */
+      link: string | null
     }>,
   ): Promise<Quote> {
     const body: Record<string, unknown> = {}
@@ -82,6 +85,7 @@ export const quotesApi = {
     if (patch.linkedQuoteIds !== undefined) body.linked_quote_ids = patch.linkedQuoteIds
     if (patch.pinned !== undefined) body.pinned = patch.pinned
     if (patch.resonance !== undefined) body.resonance = patch.resonance
+    if (patch.link !== undefined) body.link = patch.link
     const row = await request<QuoteRow>(`/api/quotes/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(body),

@@ -25,6 +25,7 @@ type QuoteRow = {
   text: string
   source: string | null
   context: string | null
+  link: string | null
   user_reflection: string | null
   ai_reflection: string | null
   ai_reflection_provider: string | null
@@ -87,7 +88,7 @@ export default withObservability('quotes', async (req: Request, context: Context
     // después id DESC para tie-break. Las favoritas suben al tope.
     const rows = cursorTs && cursorId
       ? await sqlTyped<QuoteRow>(sql`
-          SELECT id, entity_id, text, source, context,
+          SELECT id, entity_id, text, source, context, link,
                  user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                  linked_quote_ids, pinned_at, resonance,
                  origin, created_at, updated_at
@@ -98,7 +99,7 @@ export default withObservability('quotes', async (req: Request, context: Context
           LIMIT ${limit + 1}
         `)
       : await sqlTyped<QuoteRow>(sql`
-          SELECT id, entity_id, text, source, context,
+          SELECT id, entity_id, text, source, context, link,
                  user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                  linked_quote_ids, pinned_at, resonance,
                  origin, created_at, updated_at
@@ -148,13 +149,14 @@ export default withObservability('quotes', async (req: Request, context: Context
 
     const rows = await sqlTyped<QuoteRow>(sql`
       INSERT INTO quotes (
-        entity_id, text, source, context, user_reflection, linked_quote_ids, origin,
+        entity_id, text, source, context, link, user_reflection, linked_quote_ids, origin,
         embedding, embedding_model, embedding_at, user_id
       ) VALUES (
         ${body.entity_id},
         ${body.text},
         ${body.source ?? null},
         ${body.context ?? null},
+        ${body.link ?? null},
         ${body.user_reflection ?? null},
         ${linked}::uuid[],
         ${origin}::jsonb,
@@ -163,7 +165,7 @@ export default withObservability('quotes', async (req: Request, context: Context
         ${emb ? new Date().toISOString() : null},
         ${userId}
       )
-      RETURNING id, entity_id, text, source, context,
+      RETURNING id, entity_id, text, source, context, link,
                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                 linked_quote_ids, pinned_at, resonance,
                 origin, created_at, updated_at
@@ -188,6 +190,7 @@ export default withObservability('quotes', async (req: Request, context: Context
         text                   = COALESCE(${body.text ?? null}, text),
         source                 = CASE WHEN ${body.source !== undefined} THEN ${body.source ?? null} ELSE source END,
         context                = CASE WHEN ${body.context !== undefined} THEN ${body.context ?? null} ELSE context END,
+        link                   = CASE WHEN ${body.link !== undefined} THEN ${body.link ?? null} ELSE link END,
         entity_id              = COALESCE(${body.entity_id ?? null}, entity_id),
         user_reflection        = CASE WHEN ${body.user_reflection !== undefined} THEN ${body.user_reflection ?? null} ELSE user_reflection END,
         ai_reflection          = CASE WHEN ${body.ai_reflection !== undefined} THEN ${body.ai_reflection ?? null} ELSE ai_reflection END,
@@ -206,7 +209,7 @@ export default withObservability('quotes', async (req: Request, context: Context
                                    ELSE resonance
                                  END
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      RETURNING id, entity_id, text, source, context,
+      RETURNING id, entity_id, text, source, context, link,
                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                 linked_quote_ids, pinned_at, resonance,
                 origin, created_at, updated_at

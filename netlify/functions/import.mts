@@ -32,6 +32,7 @@ type IncomingQuote = {
   text: string
   source?: string | null
   context?: string | null
+  link?: string | null
   origin?: unknown
 }
 type ImportPayload = {
@@ -158,13 +159,14 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     try {
       const origin = JSON.stringify(normalizeOrigin(q.origin))
       const result = await sqlTyped<{ id: string }>(sql`
-        INSERT INTO quotes (id, entity_id, text, source, context, origin, user_id)
+        INSERT INTO quotes (id, entity_id, text, source, context, link, origin, user_id)
         VALUES (
           ${resolveImportId(q.id, userId)},
           ${resolveImportId(q.entityId, userId)},
           ${q.text},
           ${q.source ?? null},
           ${q.context ?? null},
+          ${q.link ?? null},
           ${origin}::jsonb,
           ${userId}
         )

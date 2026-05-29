@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { Quote } from '../types'
 import { useUpdateQuote, useToast } from '../state'
 import { useFocusTrap } from '../hooks/useFocusTrap'
@@ -31,6 +32,7 @@ export function QuoteEditModal({
   const [text, setText] = useState(quote.text)
   const [source, setSource] = useState(quote.source ?? '')
   const [context, setContext] = useState(quote.context ?? '')
+  const [link, setLink] = useState(quote.link ?? '')
   const [reflection, setReflection] = useState(quote.userReflection ?? '')
   const dialogRef = useRef<HTMLDivElement>(null)
   useFocusTrap(dialogRef, open)
@@ -40,6 +42,7 @@ export function QuoteEditModal({
     setText(quote.text)
     setSource(quote.source ?? '')
     setContext(quote.context ?? '')
+    setLink(quote.link ?? '')
     setReflection(quote.userReflection ?? '')
   }, [open, quote])
 
@@ -66,6 +69,7 @@ export function QuoteEditModal({
           text: trimmed,
           source: source.trim() || null,
           context: context.trim() || null,
+          link: link.trim() || null,
           userReflection: reflection.trim() || null,
         },
       })
@@ -81,12 +85,16 @@ export function QuoteEditModal({
 
   if (!open) return null
 
-  return (
+  // Se monta vía portal en document.body: el modal vive dentro de QuoteItem
+  // (profundo en el árbol de la vista), y portarlo garantiza que su backdrop
+  // cubra TODO el viewport y que la tarjeta quede sobre el resto, sin que
+  // ningún contenedor con animación/overflow lo afecte.
+  return createPortal(
     <>
       <button
         onClick={onClose}
         aria-label="Cerrar"
-        className="fixed inset-0 z-40 bg-ink-900/40 backdrop-blur-sm cursor-default animate-fade-up"
+        className="fixed inset-0 z-50 bg-ink-900/60 backdrop-blur-sm cursor-default animate-fade-up"
         tabIndex={-1}
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none animate-fade-up">
@@ -95,8 +103,7 @@ export function QuoteEditModal({
           role="dialog"
           aria-label="Editar cita"
           aria-modal="true"
-          className="pointer-events-auto w-full max-w-xl max-h-[90vh] overflow-y-auto border border-ink-100/80 rounded-xl shadow-xl shadow-ink-900/25"
-          style={{ backgroundColor: 'rgb(var(--paper-50))' }}
+          className="pointer-events-auto w-full max-w-xl max-h-[90vh] overflow-y-auto bg-paper-50 border border-ink-100/80 rounded-xl shadow-xl shadow-ink-900/25"
         >
           <header className="px-5 py-3 border-b border-ink-100/60">
             <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
@@ -129,6 +136,17 @@ export function QuoteEditModal({
                 onChange={(e) => setSource(e.target.value)}
                 className="input-paper w-full text-sm"
                 placeholder="Opcional"
+                disabled={updateQuote.isPending}
+              />
+            </div>
+            <div>
+              <label className="block section-eyebrow mb-1">Hipervínculo</label>
+              <input
+                type="url"
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                className="input-paper w-full text-sm"
+                placeholder="https://… (opcional)"
                 disabled={updateQuote.isPending}
               />
             </div>
@@ -176,6 +194,7 @@ export function QuoteEditModal({
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   )
 }

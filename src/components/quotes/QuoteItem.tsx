@@ -161,6 +161,18 @@ function QuoteItemInternal({
           >
             {formatDate(quote.createdAt)}
           </span>
+          {quote.link && (
+            <a
+              href={quote.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="ml-2 text-caption text-ink-300 hover:text-ink-700 transition-colors border-b border-transparent hover:border-ink-300"
+              title={quote.link}
+            >
+              ↗ enlace
+            </a>
+          )}
         </div>
 
         {/* ρ-citas: cluster compacto — resonancia (sin rótulo, aparece al

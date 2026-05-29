@@ -63,6 +63,8 @@ export type QuoteRow = {
   /** U-1: resonancia 1-5 o null. */
   resonance?: number | null
   context: string | null
+  /** ρ-citas: hipervínculo opcional a la fuente. */
+  link?: string | null
   origin: Origin | string
   created_at: string
   updated_at: string
@@ -133,6 +135,7 @@ export function quoteFromRow(row: QuoteRow): Quote {
     linkedQuoteIds: Array.isArray(row.linked_quote_ids) ? row.linked_quote_ids : [],
     pinnedAt: row.pinned_at ?? undefined,
     resonance: row.resonance ?? undefined,
+    link: row.link ?? undefined,
     origin: asOrigin(row.origin),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
