@@ -22,28 +22,25 @@
 # Las APIs (/.netlify/functions/*) se ven afectadas por estos headers
 # salvo que el handler los pise.
 #
-# CSP:
-#   - default-src 'self' — solo nuestros propios assets cargan por default.
-#   - script-src 'self' — JS solo del propio dominio (Vite hashea con
-#     subresource integrity en el bundle; no usamos inline scripts).
-#   - style-src 'self' 'unsafe-inline' — Tailwind genera inline styles
-#     en algunos casos; 'unsafe-inline' es el mínimo necesario.
-#   - img-src 'self' data: https://i.scdn.co — data: para QR codes
-#     en MomentoQRModal; i.scdn.co para covers de Spotify.
-#   - connect-src 'self' https://api.spotify.com https://*.clerk.com
-#     https://*.clerk.accounts.dev — el frontend habla con su propio
-#     /api/*, con Spotify (token-refresh OAuth si se mueve a client-side
-#     algún día), y con Clerk.
-#   - frame-ancestors 'none' — bloquea iframing por terceros (anti-clickjacking).
-#   - base-uri 'self' — no permite <base href="..."> a otra origin.
-#   - form-action 'self' — los <form> solo posteam a este dominio.
-#
-# Si en el futuro agregamos un CDN para imágenes o un script analytics,
-# se whitelistea aquí. Empezamos restrictivo y abrimos solo lo necesario.
+# CSP: empezamos restrictivo y abrimos solo lo necesario. Por directiva:
+#   - script-src: 'self' + Clerk FAPI (*.clerk.accounts.dev, de donde se
+#     carga clerk.browser.js) + challenges.cloudflare.com (Turnstile/anti-bot
+#     de Clerk en sign-in/up). OJO: con llaves LIVE, el script de Clerk se
+#     sirve desde https://clerk.<tu-dominio> — agregar ESE host acá al migrar.
+#   - style-src: 'self' 'unsafe-inline' (Tailwind/Clerk inyectan inline) +
+#     fonts.googleapis.com (las 3 familias se importan vía @import en index.css).
+#   - font-src: 'self' data: + fonts.gstatic.com (binarios de Google Fonts).
+#   - img-src: 'self' data: blob: + covers de Spotify (i/mosaic.scdn.co) +
+#     img.clerk.com (avatares del UserButton).
+#   - connect-src: /api propio + Spotify + Clerk (*.clerk.com,
+#     *.clerk.accounts.dev) + clerk-telemetry.com.
+#   - worker-src: 'self' blob: — Clerk usa web workers.
+#   - frame-src: 'self' + challenges.cloudflare.com + *.clerk.accounts.dev.
+#   - frame-ancestors 'none' / base-uri 'self' / form-action 'self' — hardening.
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.scdn.co https://mosaic.scdn.co; font-src 'self' data:; connect-src 'self' https://api.spotify.com https://accounts.spotify.com https://*.clerk.com https://*.clerk.accounts.dev https://clerk.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://i.scdn.co https://mosaic.scdn.co https://img.clerk.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.spotify.com https://accounts.spotify.com https://*.clerk.com https://*.clerk.accounts.dev https://clerk.com https://clerk-telemetry.com; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
