@@ -14,6 +14,7 @@ import { ENTITY_TYPES } from '../types'
 import type { Entity } from '../types'
 import { QuoteForm } from './quotes/QuoteForm'
 import { QuoteItem } from './quotes/QuoteItem'
+import { CopyImportPromptButton } from './quotes/CopyImportPromptButton'
 import { useQuotesFilters } from './quotes/useQuotesFilters'
 import { QuotesFiltersBar } from './quotes/QuotesFiltersBar'
 
@@ -121,14 +122,17 @@ export function QuotesView({
         spacing="wide"
         subtitle="Fragmentos textuales que atribuyes a una entidad. Una frase de un libro, algo que dijo una persona, un verso de una canción."
         action={
-          entities.length > 0 ? (
-            <button
-              onClick={() => setShowForm((s) => !s)}
-              className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
-            >
-              {showForm ? 'Cerrar' : 'Añadir'}
-            </button>
-          ) : null
+          <div className="flex items-center gap-4">
+            <CopyImportPromptButton />
+            {entities.length > 0 && (
+              <button
+                onClick={() => setShowForm((s) => !s)}
+                className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+              >
+                {showForm ? 'Cerrar' : 'Añadir'}
+              </button>
+            )}
+          </div>
         }
       />
 
