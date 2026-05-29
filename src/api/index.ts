@@ -22,6 +22,7 @@ import { exportImportApi } from './export-import'
 import { graphApi } from './graph'
 import { healthApi } from './health'
 import { momentosApi } from './momentos'
+import { notesApi } from './notes'
 import { quotesApi } from './quotes'
 import { relationshipsApi } from './relationships'
 import { searchApi } from './search'
@@ -35,6 +36,7 @@ export const api = {
   ...momentosApi,
   ...chatApi,
   cronicas: cronicasApi,
+  notes: notesApi,
   atlas: atlasApi,
   ...cronologiaApi,
   ...aiApi,
@@ -58,6 +60,8 @@ export { DuplicateEntityError } from './request'
 export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
 
 export type { Cronica, GeneratedCronica } from './cronicas'
+
+export type { Note } from './notes'
 
 export type { AtlasMember, AtlasConstellation, AtlasResponse } from './atlas'
 

@@ -3,6 +3,7 @@ import { ViewHeader } from '../ViewHeader'
 import { EmptyMessage } from '../EmptyMessage'
 import { NotesIcon, TasksIcon } from '../Icons'
 import { WorldSwitcher } from '../WorldSwitcher'
+import { NotasView } from './NotasView'
 import type { World } from '../../types/world'
 
 /**
@@ -112,28 +113,7 @@ export function NotasWorld({
         <div className="h-full overflow-y-auto">
           <div className="px-8 py-10 pb-24 max-w-3xl mx-auto">
             {section === 'notas' ? (
-              <>
-                <ViewHeader
-                  title="Notas"
-                  eyebrow="apuntes rápidos"
-                  accent={ACCENT}
-                  spacing="wide"
-                  subtitle="Un lugar para pensamientos a medio cocinar, citas sueltas e ideas — en markdown, con #etiquetas y un buscador propio."
-                />
-                <EmptyMessage
-                  illustration="thread"
-                  title="Tu primer apunte, todavía sin escribir."
-                  body={
-                    <>
-                      Este es tu cuaderno rápido dentro de Trama: notas cortas que se
-                      apilan en una línea de tiempo, etiquetables y buscables. Más
-                      adelante vas a poder <strong>promover</strong> una nota a Momento
-                      del mapa.
-                    </>
-                  }
-                  hint="La captura de notas llega en la próxima entrega de Trama Notas."
-                />
-              </>
+              <NotasView />
             ) : (
               <>
                 <ViewHeader
