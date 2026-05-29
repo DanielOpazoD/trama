@@ -44,17 +44,43 @@ const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 import type { ViewMode } from '../types/view'
 export type { ViewMode }
 
-const NAV_ITEMS: NavItem[] = [
-  { value: 'inicio', label: 'Inicio', icon: HomeIcon },
-  { value: 'grafo', label: 'Grafo', icon: GraphIcon },
-  { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
-  { value: 'citas', label: 'Citas', icon: QuoteIcon },
-  { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
-  { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
-  { value: 'cronologia', label: 'Cronología', icon: CronologiaIcon },
-  { value: 'atlas', label: 'Atlas', icon: AtlasIcon },
-  { value: 'chat', label: 'Chat', icon: ChatIcon },
-  { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
+// τ-IA: las 10 vistas top-level ya no son una lista plana — se agrupan por
+// su naturaleza para descomprimir la barra (antes 10 ítems sin jerarquía):
+//   · Mi trama — lo que acumulás (colecciones)
+//   · Miradas  — lentes sobre el conjunto entero (Grafo/Cronología/Atlas no
+//                son destinos sueltos, son tres formas de ver lo mismo)
+//   · Diálogo  — superficies de IA
+// 'Inicio' queda suelto arriba como punto de entrada. El orden de los grupos
+// es el orden de lectura: primero tu material, después las miradas, al final
+// la conversación.
+type NavGroup = { label: string | null; items: NavItem[] }
+
+const NAV_GROUPS: NavGroup[] = [
+  { label: null, items: [{ value: 'inicio', label: 'Inicio', icon: HomeIcon }] },
+  {
+    label: 'Mi trama',
+    items: [
+      { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
+      { value: 'citas', label: 'Citas', icon: QuoteIcon },
+      { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
+      { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
+    ],
+  },
+  {
+    label: 'Miradas',
+    items: [
+      { value: 'grafo', label: 'Grafo', icon: GraphIcon },
+      { value: 'cronologia', label: 'Cronología', icon: CronologiaIcon },
+      { value: 'atlas', label: 'Atlas', icon: AtlasIcon },
+    ],
+  },
+  {
+    label: 'Diálogo',
+    items: [
+      { value: 'chat', label: 'Chat', icon: ChatIcon },
+      { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
+    ],
+  },
 ]
 
 // λ4: la firma cromática por vista vive en src/lib/sectionAccent.ts —
@@ -127,10 +153,14 @@ export function Sidebar({
   // ο2: Sugerencias auto-hide del nav cuando no hay propuestas pendientes.
   // El CommandPalette mantiene la entrada accesible siempre (para forzar
   // "pedir ronda"); el toast semanal κ2 sigue siendo el wake-up natural.
-  // Si vacío, evitamos el badge muerto en la nav y bajamos a 7 items.
-  const visibleNavItems = NAV_ITEMS.filter(
-    (item) => item.value !== 'sugerencias' || pendingSuggestions.length > 0,
-  )
+  // τ-IA: el filtro se aplica dentro de cada grupo y se descartan los grupos
+  // que queden vacíos (hoy sólo afecta a "Diálogo", que conserva Chat).
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter(
+      (item) => item.value !== 'sugerencias' || pendingSuggestions.length > 0,
+    ),
+  })).filter((group) => group.items.length > 0)
 
   // ---------- collapsed sidebar ----------
   if (collapsed) {
@@ -164,17 +194,24 @@ export function Sidebar({
 
         <div className="w-7 h-px bg-ink-100/70 my-2" />
 
-        <nav className="flex flex-col gap-1">
-          {visibleNavItems.map((item) => (
-            <NavButton
-              key={item.value}
-              item={item}
-              active={view === item.value}
-              count={counts[item.value]}
-              mode="collapsed"
-              accentColor={SECTION_ACCENT[item.value]}
-              onClick={() => onChangeView(item.value)}
-            />
+        <nav className="flex flex-col items-center gap-1">
+          {visibleGroups.map((group, gi) => (
+            <div key={group.label ?? 'top'} className="flex flex-col items-center gap-1">
+              {/* Sin rótulo de grupo (no cabe en 56px): un filete separa
+                  los grupos para preservar la jerarquía aun colapsado. */}
+              {gi > 0 && <div className="w-7 h-px bg-ink-100/70 my-1" />}
+              {group.items.map((item) => (
+                <NavButton
+                  key={item.value}
+                  item={item}
+                  active={view === item.value}
+                  count={counts[item.value]}
+                  mode="collapsed"
+                  accentColor={SECTION_ACCENT[item.value]}
+                  onClick={() => onChangeView(item.value)}
+                />
+              ))}
+            </div>
           ))}
         </nav>
 
@@ -285,22 +322,36 @@ export function Sidebar({
           </button>
         </div>
 
-        <nav className="flex flex-col px-2 gap-px">
-          {visibleNavItems.map((item) => (
-            <NavButton
-              key={item.value}
-              item={item}
-              active={view === item.value}
-              count={counts[item.value]}
-              mode="expanded"
-              badgeTone={item.value === 'sugerencias' ? 'accent' : 'default'}
-              accentColor={SECTION_ACCENT[item.value]}
-              onClick={() => onChangeView(item.value)}
-            />
+        {/* τ-IA: la nav es la zona flexible con scroll propio. Antes un
+            spacer flex-1 empujaba el pie al fondo, pero si la nav crecía
+            (los grupos suman alto) el pie se iba por debajo del viewport y
+            recortaba el popover del toggle IA. Con flex-1 + overflow acá, el
+            pie queda anclado y la nav scrollea si hace falta. */}
+        <nav className="flex flex-col px-2 flex-1 min-h-0 overflow-y-auto">
+          {visibleGroups.map((group) => (
+            <div key={group.label ?? 'top'} className={group.label ? 'mt-3' : ''}>
+              {group.label && (
+                <p className="px-3 pb-1 text-micro uppercase tracking-eyebrow text-ink-300/90 select-none">
+                  {group.label}
+                </p>
+              )}
+              <div className="flex flex-col gap-px">
+                {group.items.map((item) => (
+                  <NavButton
+                    key={item.value}
+                    item={item}
+                    active={view === item.value}
+                    count={counts[item.value]}
+                    mode="expanded"
+                    badgeTone={item.value === 'sugerencias' ? 'accent' : 'default'}
+                    accentColor={SECTION_ACCENT[item.value]}
+                    onClick={() => onChangeView(item.value)}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
-
-        <div className="flex-1" />
 
         <div className="px-2 pt-2 pb-2 mt-2 border-t border-ink-100 space-y-px">
           <AIModeToggle />

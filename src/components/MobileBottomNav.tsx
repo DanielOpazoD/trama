@@ -33,17 +33,21 @@ import { SECTION_ACCENT } from '../lib/sectionAccent'
  * que en iPhones con notch + home indicator no se corte el contenido.
  */
 
+// τ-IA: el orden replica los grupos del Sidebar (Mi trama → Miradas →
+// Diálogo). En la barra inferior no caben rótulos de grupo, pero mantener
+// el mismo orden que el desktop preserva el modelo mental: el material
+// primero, las tres miradas de conjunto juntas, la conversación al final.
 const NAV_ITEMS: Array<{
   value: ViewMode
   label: string
   icon: React.ComponentType<{ size?: number; className?: string }>
 }> = [
   { value: 'inicio', label: 'Inicio', icon: HomeIcon },
-  { value: 'grafo', label: 'Grafo', icon: GraphIcon },
   { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
   { value: 'citas', label: 'Citas', icon: QuoteIcon },
   { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
   { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
+  { value: 'grafo', label: 'Grafo', icon: GraphIcon },
   { value: 'cronologia', label: 'Cronología', icon: CronologiaIcon },
   { value: 'atlas', label: 'Atlas', icon: AtlasIcon },
   { value: 'chat', label: 'Chat', icon: ChatIcon },

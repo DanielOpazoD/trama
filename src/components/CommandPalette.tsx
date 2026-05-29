@@ -163,59 +163,65 @@ export function CommandPalette({
         className="fixed inset-0 z-30 bg-ink-900/30 backdrop-blur-sm cursor-default animate-fade-up"
         tabIndex={-1}
       />
-      <div
-        role="dialog"
-        aria-label="Buscar"
-        // σ-followup: centrado vertical real (top-1/2 + -translate-y-1/2)
-        // en vez de top-[15vh]. Antes el modal vivía pegado al tercio
-        // superior; ahora cae justo en el centro óptico de la pantalla.
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-xl z-40 animate-fade-up"
-      >
-        <div className="bg-paper-50 border border-ink-100/80 rounded-xl shadow-lg shadow-ink-900/15 overflow-hidden">
-          {/* σ-followup: kbd visible del atajo arriba derecha del input —
+      {/* ω: contenedor full-screen que centra el diálogo con flexbox. El
+          centrado va acá y NO en un transform del propio diálogo: la animación
+          animate-fade-up del card también usa transform y pisaba el translate
+          de centrado (-translate-x/y-1/2), corriendo el modal hacia abajo y a
+          la derecha y cortándole el borde inferior. pointer-events-none deja
+          pasar el clic al backdrop; el card lo recaptura con
+          pointer-events-auto. */}
+      <div className="fixed inset-0 z-40 flex items-center justify-center p-4 pointer-events-none">
+        <div
+          role="dialog"
+          aria-label="Buscar"
+          className="w-full max-w-xl pointer-events-auto animate-fade-up"
+        >
+          <div className="bg-paper-50 border border-ink-100/80 rounded-xl shadow-lg shadow-ink-900/15 overflow-hidden">
+            {/* σ-followup: kbd visible del atajo arriba derecha del input —
               se movió desde el sidebar trigger. Da sentido ver "⌘ K"
               cuando el modal está abierto: refuerza el atajo en el
               contexto donde aporta. */}
-          <div className="relative">
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar…"
-              className="w-full px-5 py-4 pr-16 bg-transparent text-ink-700 placeholder:text-ink-300 focus:outline-none font-serif text-lg leading-none border-b border-ink-100/60"
-              autoComplete="off"
-            />
-            <kbd
-              aria-hidden
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-micro px-1.5 py-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-400 leading-none font-mono"
-            >
-              {SHORTCUT_KEY} K
-            </kbd>
-          </div>
-          <ul className="max-h-[50vh] overflow-y-auto">
-            {items.length === 0 && (
-              <li className="px-5 py-6 text-ink-400 italic text-sm text-center">
-                {searching ? 'buscando…' : 'nada coincide'}
-              </li>
-            )}
-            {items.map((item, idx) => (
-              <li key={`${item.kind}-${itemKey(item)}`}>
-                <button
-                  onClick={() => selectItem(item)}
-                  onMouseEnter={() => setFocusIdx(idx)}
-                  className={`w-full text-left px-5 py-2.5 flex items-baseline gap-3 transition-colors ${
-                    idx === focusIdx ? 'bg-paper-100/70' : 'hover:bg-paper-100/40'
-                  }`}
-                >
-                  <ItemRow item={item} query={query} />
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div className="px-5 py-2 border-t border-ink-100/60 text-micro uppercase tracking-eyebrow text-ink-300 flex justify-between">
-            <span>↑↓ navegar · enter abrir · esc cerrar</span>
-            <span>{items.length} resultados</span>
+            <div className="relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar…"
+                className="w-full px-5 py-4 pr-16 bg-transparent text-ink-700 placeholder:text-ink-300 focus:outline-none font-serif text-lg leading-none border-b border-ink-100/60"
+                autoComplete="off"
+              />
+              <kbd
+                aria-hidden
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-micro px-1.5 py-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-400 leading-none font-mono"
+              >
+                {SHORTCUT_KEY} K
+              </kbd>
+            </div>
+            <ul className="max-h-[50vh] overflow-y-auto">
+              {items.length === 0 && (
+                <li className="px-5 py-6 text-ink-400 italic text-sm text-center">
+                  {searching ? 'buscando…' : 'nada coincide'}
+                </li>
+              )}
+              {items.map((item, idx) => (
+                <li key={`${item.kind}-${itemKey(item)}`}>
+                  <button
+                    onClick={() => selectItem(item)}
+                    onMouseEnter={() => setFocusIdx(idx)}
+                    className={`w-full text-left px-5 py-2.5 flex items-baseline gap-3 transition-colors ${
+                      idx === focusIdx ? 'bg-paper-100/70' : 'hover:bg-paper-100/40'
+                    }`}
+                  >
+                    <ItemRow item={item} query={query} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="px-5 py-2 border-t border-ink-100/60 text-micro uppercase tracking-eyebrow text-ink-300 flex justify-between">
+              <span>↑↓ navegar · enter abrir · esc cerrar</span>
+              <span>{items.length} resultados</span>
+            </div>
           </div>
         </div>
       </div>
