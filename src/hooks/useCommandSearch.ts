@@ -54,6 +54,7 @@ const VIEWS: Array<{ view: ViewMode; label: string; hint: string }> = [
   { view: 'atlas', label: 'Atlas', hint: 'constelaciones semánticas de tu trama' },
   { view: 'chat', label: 'Chat', hint: 'conversación con la IA' },
   { view: 'sugerencias', label: 'Sugerencias', hint: 'la IA revisa la trama' },
+  { view: 'gabinete', label: 'Gabinete', hint: 'sortes, espejo, voz, hojas, postales' },
 ]
 
 // Acciones rápidas — el palette no las navega, las despacha como callbacks

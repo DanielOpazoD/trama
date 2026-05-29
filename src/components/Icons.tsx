@@ -451,6 +451,15 @@ export const ReadingIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Gabinete — una cómoda de dos cajones con tiradores. Glyph del índice de
+    los gestos literarios (Sortes, Espejo, Voz, Hojas, Postales). */
+export const GabineteIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <rect x="4" y="3" width="16" height="18" rx="1.5" />
+    <path d="M4 12h16M10 7.5h4M10 16.5h4" />
+  </svg>
+)
+
 /** Checkmark — usado en chips pequeños "verificado por X" en ProposalPanel.
     Stroke 2.2 (override automático para size <= 12) porque a 10px el 1.6
     desaparece. A size >= 14 vuelve a 1.6 — el sistema sigue. */

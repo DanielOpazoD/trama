@@ -4,6 +4,7 @@ import {
   ChatIcon,
   CronologiaIcon,
   EntitiesIcon,
+  GabineteIcon,
   GraphIcon,
   HomeIcon,
   MomentosIcon,
@@ -52,6 +53,7 @@ const NAV_ITEMS: Array<{
   { value: 'atlas', label: 'Atlas', icon: AtlasIcon },
   { value: 'chat', label: 'Chat', icon: ChatIcon },
   { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
+  { value: 'gabinete', label: 'Gabinete', icon: GabineteIcon },
 ]
 
 export function MobileBottomNav({
