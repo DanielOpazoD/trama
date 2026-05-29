@@ -6,11 +6,12 @@ on:
   pull_request:
     branches: [main]
 
-# R1: el workflow se dividió en 3 jobs paralelos:
+# R1: el workflow se dividió en jobs paralelos:
 #
 #   lint    → eslint + prettier check
 #   unit    → typecheck + vitest + coverage + build + bundle-size + audit
 #   e2e     → Playwright + axe-core a11y
+#   secrets → gitleaks (D4): escaneo de secretos sobre todo el historial
 #
 # Comparten install + cache de npm pero corren en runners distintos en
 # simultáneo. Antes el workflow era un solo job secuencial de ~5min;
@@ -110,3 +111,27 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # D4: secret scanning. gitleaks escanea TODO el historial de git
+  # (fetch-depth: 0) contra el ruleset por defecto + la allowlist de
+  # .gitleaks.toml. Si encuentra una clave commiteada, falla el merge.
+  # Bajamos un binario pinneado en vez de la action oficial para evitar
+  # el chequeo de licencia de org y mantener el job determinístico.
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.18.4
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Scan for secrets
+        run: gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --verbose

@@ -1,0 +1,18 @@
+# Configuración de gitleaks para Trama (D4 — secret scanning).
+#
+# Extiende el ruleset por defecto de gitleaks (useDefault = true) y sólo
+# agrega una allowlist para las plantillas de entorno: archivos *.example
+# que contienen placeholders ("sk_test_REEMPLAZAR", etc.), no secretos
+# reales. El allowlist es por path, no por valor, porque estos archivos son
+# plantillas por definición — nunca deben contener una clave real.
+
+title = "Trama — gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Plantillas de entorno con placeholders (no son secretos reales)"
+paths = [
+  '''\.env(\..+)?\.example$''',
+]

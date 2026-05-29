@@ -1,1 +1,11 @@
 node_modules/.bin/lint-staged
+
+# D4: secret scanning local. Si gitleaks está instalado, escanea los
+# cambios staged y aborta el commit si encuentra un secreto. Si no está
+# instalado, avisa y sigue — no queremos bloquear a quien no lo tenga
+# (el job `secrets` de CI es la red de seguridad obligatoria).
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --config .gitleaks.toml --redact --no-banner
+else
+  echo "gitleaks no instalado — se omite el escaneo local (CI igual lo corre). brew install gitleaks"
+fi

@@ -50,5 +50,6 @@ Lo que ya está cableado al cierre del Tier N (este commit):
 - Validación Zod en todos los request bodies.
 - Dependabot weekly + `npm audit` en CI (production deps).
 - ErrorBoundary granular + persistError filtrado por user.
+- Secret scanning con [gitleaks](https://github.com/gitleaks/gitleaks): job `secrets` en CI que escanea todo el historial de git, más un hook de pre-commit que escanea los cambios staged. Config y allowlist en `.gitleaks.toml`. Para correrlo local: `brew install gitleaks`.
 
 Si encontrás algo que escape de esto, escribime.
