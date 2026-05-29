@@ -31,4 +31,7 @@ export const SECTION_ACCENT: Record<ViewMode, string> = {
   atlas: 'var(--type-idea)',
   chat: 'var(--accent-primary)',
   sugerencias: 'var(--accent-primary)',
+  // Gabinete — clay (terracota cálida, libre: ninguna otra sección la usa),
+  // el tono lúdico del rincón de los gestos literarios.
+  gabinete: 'var(--accent-clay)',
 }

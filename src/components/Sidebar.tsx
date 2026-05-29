@@ -12,6 +12,7 @@ import {
   AtlasIcon,
   CronologiaIcon,
   EntitiesIcon,
+  GabineteIcon,
   GraphIcon,
   HomeIcon,
   MomentosIcon,
@@ -81,6 +82,9 @@ const NAV_GROUPS: NavGroup[] = [
       { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
     ],
   },
+  // El Gabinete cierra la barra como un rincón aparte (bookend del 'Inicio'
+  // de arriba): grupo sin rótulo, separado por el margen/filete de grupo.
+  { label: null, items: [{ value: 'gabinete', label: 'Gabinete', icon: GabineteIcon }] },
 ]
 
 // λ4: la firma cromática por vista vive en src/lib/sectionAccent.ts —
@@ -148,6 +152,8 @@ export function Sidebar({
     atlas: null,
     chat: null,
     sugerencias: pendingSuggestions.length > 0 ? pendingSuggestions.length : null,
+    // El Gabinete es un índice de gestos, no una colección contable.
+    gabinete: null,
   }
 
   // ο2: Sugerencias auto-hide del nav cuando no hay propuestas pendientes.
@@ -196,10 +202,11 @@ export function Sidebar({
 
         <nav className="flex flex-col items-center gap-1">
           {visibleGroups.map((group, gi) => (
-            <div key={group.label ?? 'top'} className="flex flex-col items-center gap-1">
-              {/* Sin rótulo de grupo (no cabe en 56px): un filete separa
-                  los grupos para preservar la jerarquía aun colapsado. */}
-              {gi > 0 && <div className="w-7 h-px bg-ink-100/70 my-1" />}
+            <div key={gi} className="flex flex-col items-center gap-1">
+              {/* Filete sólo antes de los grupos rotulados (el rótulo no cabe
+                  en 56px). Los grupos sin rótulo (Inicio, Gabinete) fluyen sin
+                  filete, con la misma separación que el resto de los iconos. */}
+              {group.label && <div className="w-7 h-px bg-ink-100/70 my-1" />}
               {group.items.map((item) => (
                 <NavButton
                   key={item.value}
@@ -328,8 +335,11 @@ export function Sidebar({
             recortaba el popover del toggle IA. Con flex-1 + overflow acá, el
             pie queda anclado y la nav scrollea si hace falta. */}
         <nav className="flex flex-col px-2 flex-1 min-h-0 overflow-y-auto">
-          {visibleGroups.map((group) => (
-            <div key={group.label ?? 'top'} className={group.label ? 'mt-3' : ''}>
+          {visibleGroups.map((group, gi) => (
+            // Sólo los grupos rotulados llevan margen superior. Los grupos sin
+            // rótulo (Inicio arriba, Gabinete al final) fluyen pegados al
+            // anterior con la misma separación que los ítems entre sí.
+            <div key={gi} className={group.label ? 'mt-3' : ''}>
               {group.label && (
                 <p className="px-3 pb-1 text-micro uppercase tracking-eyebrow text-ink-300/90 select-none">
                   {group.label}

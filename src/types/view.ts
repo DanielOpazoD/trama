@@ -22,3 +22,6 @@ export type ViewMode =
   | 'atlas'
   | 'chat'
   | 'sugerencias'
+  // El Gabinete reúne los gestos literarios (Sortes, Espejo, Voz, Hojas,
+  // Postales) en un índice descubrible. Ver src/components/GabineteView.tsx.
+  | 'gabinete'
