@@ -35,7 +35,6 @@ import { AuthGate } from './components/AuthGate'
 import { AppPinGate } from './components/AppPinGate'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { SectionAccentBand } from './components/SectionAccentBand'
-import { WorldRail } from './components/WorldRail'
 import { NotasWorld } from './components/notas/NotasWorld'
 import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
 // GlobalProgressBar removido por feedback del usuario — la barra fina
@@ -52,7 +51,13 @@ import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
  * state global (vista activa, entidad seleccionada, propuesta pendiente,
  * apertura de settings/palette/reading) y atajos de teclado.
  */
-function Shell() {
+function Shell({
+  world,
+  onChangeWorld,
+}: {
+  world: World
+  onChangeWorld: (w: World) => void
+}) {
   const entitiesQuery = useEntitiesQuery()
   const relationshipsQuery = useRelationshipsQuery()
   const quotesQuery = useQuotesQuery()
@@ -209,6 +214,8 @@ function Shell() {
               setView(v)
               if (v !== 'grafo') setSelectedEntityId(null)
             }}
+            world={world}
+            onChangeWorld={onChangeWorld}
             collapsed={sidebarCollapsed}
             onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
             offline={offline}
@@ -494,12 +501,16 @@ function WorldShell() {
     }
   }, [])
 
+  // El conmutador de mundos vive en el logo (WorldSwitcher), dentro del header
+  // de cada mundo — por eso acá no hay riel: se monta el mundo activo a pantalla
+  // completa y se le pasa el control de cambio de mundo.
   return (
-    <div className="h-screen w-screen flex overflow-hidden">
-      <WorldRail world={world} onChangeWorld={changeWorld} />
-      <div className="flex-1 min-w-0 h-full relative">
-        {world === 'trama' ? <Shell /> : <NotasWorld />}
-      </div>
+    <div className="h-screen w-screen overflow-hidden">
+      {world === 'trama' ? (
+        <Shell world={world} onChangeWorld={changeWorld} />
+      ) : (
+        <NotasWorld world={world} onChangeWorld={changeWorld} />
+      )}
     </div>
   )
 }

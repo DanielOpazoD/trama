@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { ViewHeader } from '../ViewHeader'
 import { EmptyMessage } from '../EmptyMessage'
 import { NotesIcon, TasksIcon } from '../Icons'
+import { WorldSwitcher } from '../WorldSwitcher'
+import type { World } from '../../types/world'
 
 /**
  * τ-worlds (Fase 1): el mundo "Trama Notas" — un workspace de productividad
@@ -26,18 +28,22 @@ const SECTIONS: Array<{
 
 const ACCENT = 'var(--accent-sage)'
 
-export function NotasWorld() {
+export function NotasWorld({
+  world,
+  onChangeWorld,
+}: {
+  world: World
+  onChangeWorld: (w: World) => void
+}) {
   const [section, setSection] = useState<NotasSection>('notas')
 
   return (
     <div className="h-full w-full flex flex-col md:flex-row overflow-hidden">
       {/* Sub-barra del mundo Notas */}
       <aside className="surface-sidebar w-60 shrink-0 border-r border-ink-100 hidden md:flex flex-col">
-        <header className="px-4 py-3.5">
-          <p className="section-eyebrow mb-0.5">Trama</p>
-          <h2 className="font-serif text-xl text-ink-800 leading-none tracking-tight">
-            Notas
-          </h2>
+        {/* τ-worlds: el logo conmuta de mundo (acá muestra "Notas"). */}
+        <header className="px-3 py-3">
+          <WorldSwitcher world={world} onChangeWorld={onChangeWorld} />
         </header>
         <nav className="flex flex-col px-2 gap-px">
           {SECTIONS.map((s) => {
@@ -78,8 +84,10 @@ export function NotasWorld() {
         </p>
       </aside>
 
-      {/* Tabs en mobile (la sub-barra se oculta < md) */}
-      <div className="md:hidden border-b border-ink-100 flex gap-1 px-3 py-2 surface-sidebar">
+      {/* Mobile: el conmutador de mundos + tabs (la sub-barra se oculta < md) */}
+      <div className="md:hidden border-b border-ink-100 flex items-center gap-2 px-3 py-2 surface-sidebar">
+        <WorldSwitcher world={world} onChangeWorld={onChangeWorld} collapsed />
+        <div className="w-px h-5 bg-ink-100 shrink-0" />
         {SECTIONS.map((s) => {
           const active = section === s.id
           return (

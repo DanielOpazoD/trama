@@ -21,13 +21,13 @@ import {
   SearchIcon,
   SettingsIcon,
   SparkleIcon,
-  TramaLockup,
-  TramaMark,
 } from './Icons'
 import { AIModeToggle } from './AIModeToggle'
 import { NavButton, type NavItem } from './sidebar/NavButton'
 import { Tooltip } from './Tooltip'
 import { SECTION_ACCENT } from '../lib/sectionAccent'
+import { WorldSwitcher } from './WorldSwitcher'
+import type { World } from '../types/world'
 
 // El símbolo del modificador de atajos depende de la plataforma. En Mac
 // es ⌘, en el resto es "Ctrl". El check vive en módulo para no recalcular
@@ -94,6 +94,8 @@ const NAV_GROUPS: NavGroup[] = [
 export function Sidebar({
   view,
   onChangeView,
+  world,
+  onChangeWorld,
   collapsed,
   onToggleCollapsed,
   offline,
@@ -102,6 +104,9 @@ export function Sidebar({
 }: {
   view: ViewMode
   onChangeView: (v: ViewMode) => void
+  /** Mundo activo + conmutador — el logo del header abre el menú de mundos. */
+  world: World
+  onChangeWorld: (w: World) => void
   collapsed: boolean
   onToggleCollapsed: () => void
   offline: boolean
@@ -172,12 +177,8 @@ export function Sidebar({
   if (collapsed) {
     return (
       <aside className="surface-sidebar w-14 shrink-0 border-r border-ink-100 flex flex-col items-center py-4 gap-1">
-        <div
-          className="text-ink-700 mb-2 trama-mark-interactive"
-          aria-label="Trama"
-          title="Trama"
-        >
-          <TramaMark size={22} />
+        <div className="mb-2">
+          <WorldSwitcher world={world} onChangeWorld={onChangeWorld} collapsed />
         </div>
 
         <button
@@ -288,13 +289,9 @@ export function Sidebar({
         }
       >
         <header className="px-3 py-3 flex items-center justify-between gap-2">
-          <div
-            className="flex items-center gap-2 trama-mark-interactive min-w-0"
-            title="Trama"
-          >
-            {/* EE-brand #21: lockup canónico (mark + wordmark) en vez del
-              ensamble manual. El componente fija peso, gap y leading. */}
-            <TramaLockup size={22} className="text-ink-700 min-w-0" />
+          <div className="flex items-center gap-2 min-w-0">
+            {/* τ-worlds: el logo es el conmutador de mundos (abre el menú). */}
+            <WorldSwitcher world={world} onChangeWorld={onChangeWorld} />
             {offline && (
               <span
                 title="Sin conexión al backend"
