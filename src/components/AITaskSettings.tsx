@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { useAISettingsQuery, useSetAITaskProvider } from '../state'
 import type { AITaskKey } from '../api'
 import { LoadingHint } from './LoadingHint'
+// η3 / τ-IA: la lista de modelos por provider vive en src/lib/aiModels.ts —
+// fuente de verdad compartida con AIModeToggle (modelo a forzar).
+import { MODELS_BY_PROVIDER } from '../lib/aiModels'
 
 const PROVIDERS = [
   { value: 'deepseek', label: 'DeepSeek', notes: 'barato, rápido' },
@@ -9,50 +12,6 @@ const PROVIDERS = [
   { value: 'anthropic', label: 'Anthropic', notes: 'reflexivo, buena prosa' },
   { value: 'gemini', label: 'Gemini', notes: 'gratis hasta cap, visión' },
 ] as const
-
-/**
- * η3: modelos disponibles por provider. La lista no es exhaustiva — son
- * los que vale la pena exponer en UI. La columna "" (string vacío) =
- * default del provider (lo que dice PROVIDER_DEFAULTS en llm.ts).
- *
- * Para DeepSeek incluimos `deepseek-reasoner` (R1) — más caro y lento
- * pero genera relaciones más sutiles. Es el modelo "pensador" que el
- * usuario pidió para "descubrir IA" con propuestas menos básicas.
- */
-const MODELS_BY_PROVIDER: Record<
-  string,
-  Array<{ value: string; label: string; notes: string }>
-> = {
-  deepseek: [
-    { value: '', label: 'V3 (chat) — default', notes: 'rápido, barato' },
-    {
-      value: 'deepseek-reasoner',
-      label: 'R1 (reasoner)',
-      notes: 'pensador, mejor para sugerencias sutiles',
-    },
-  ],
-  openai: [
-    { value: '', label: 'gpt-4o-mini — default', notes: 'barato, visión' },
-    { value: 'gpt-4o', label: 'gpt-4o', notes: 'más preciso, más caro' },
-    {
-      value: 'gpt-4.1-mini',
-      label: 'gpt-4.1-mini',
-      notes: 'la generación nueva, similar costo',
-    },
-  ],
-  anthropic: [
-    { value: '', label: 'haiku — default', notes: 'rápido' },
-    {
-      value: 'claude-sonnet-4-5-20251001',
-      label: 'sonnet 4.5',
-      notes: 'más reflexivo, más caro',
-    },
-  ],
-  gemini: [
-    { value: '', label: 'flash — default', notes: 'gratis hasta cap' },
-    { value: 'gemini-2.5-pro', label: 'pro 2.5', notes: 'más capaz, más caro' },
-  ],
-}
 
 const TASKS: Array<{ key: AITaskKey; label: string; hint: string }> = [
   {

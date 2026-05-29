@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAIMode, type AIMode } from '../hooks/useAIMode'
+import { CheckIcon } from './Icons'
+import { MODELS_BY_PROVIDER } from '../lib/aiModels'
 
 /**
  * Global AI activation toggle. Three semantic states:
@@ -42,7 +44,7 @@ function labelFor(mode: AIMode): string {
 }
 
 export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
-  const { mode, setMode } = useAIMode()
+  const { mode, setMode, model, setModel } = useAIMode()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -113,7 +115,7 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
           role="menu"
           className={
             collapsed
-              ? 'absolute left-full ml-2 bottom-0 w-56 z-40 paper-grain relative rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 p-1.5'
+              ? 'absolute left-full ml-2 bottom-0 w-56 z-40 max-h-[70vh] overflow-y-auto paper-grain rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 p-1.5'
               : 'absolute left-0 right-0 bottom-full mb-2 z-40 max-h-[60vh] overflow-y-auto paper-grain rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 p-1.5'
           }
         >
@@ -123,42 +125,75 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
           <ul className="space-y-0.5">
             {OPTIONS.map((opt) => {
               const active = mode === opt.value
+              const isForcedProvider = opt.value.startsWith('forced-')
+              const providerKey = isForcedProvider
+                ? opt.value.slice('forced-'.length)
+                : null
+              const modelChoices = providerKey
+                ? (MODELS_BY_PROVIDER[providerKey] ?? [])
+                : []
               return (
                 <li key={opt.value}>
+                  {/* δ-fix: destacado neutral (ink suave + check), no el relleno
+                      azul accent-primary que chocaba con el papel. */}
                   <button
                     type="button"
                     role="menuitemradio"
                     aria-checked={active}
                     onClick={() => {
                       setMode(opt.value)
-                      setOpen(false)
+                      // Al forzar un provider dejamos el popover abierto para
+                      // elegir el modelo; en auto/off cerramos.
+                      if (!opt.value.startsWith('forced-')) setOpen(false)
                     }}
-                    className={
+                    className={`w-full flex items-center justify-between gap-3 px-2.5 py-1.5 rounded-md text-sm transition-colors ${
                       active
-                        ? 'w-full flex items-baseline justify-between gap-3 px-2.5 py-1.5 rounded-md text-sm transition-colors'
-                        : 'w-full flex items-baseline justify-between gap-3 px-2.5 py-1.5 rounded-md text-sm text-ink-500 hover:text-ink-700 hover:bg-ink-700/5 transition-colors'
-                    }
-                    style={
-                      active
-                        ? {
-                            backgroundColor: 'var(--accent-primary-soft)',
-                            color: 'var(--accent-primary)',
-                          }
-                        : undefined
-                    }
+                        ? 'bg-ink-100/70 text-ink-800 font-medium'
+                        : 'text-ink-600 hover:text-ink-800 hover:bg-ink-100/50'
+                    }`}
                   >
                     <span>{opt.label}</span>
-                    {active && (
-                      <span
-                        className="size-1.5 rounded-full"
-                        style={{ backgroundColor: 'var(--accent-primary)' }}
-                      />
-                    )}
+                    {active && <CheckIcon size={13} className="text-ink-500 shrink-0" />}
                   </button>
-                  {opt.hint && (
-                    <p className="px-2 -mt-0.5 mb-0.5 text-micro text-ink-300 leading-tight">
+                  {opt.hint && !active && (
+                    <p className="px-2.5 pb-0.5 text-micro text-ink-300 leading-tight">
                       {opt.hint}
                     </p>
+                  )}
+                  {/* Sub-selector de modelo: aparece bajo el provider forzado
+                      activo. Reusa la lista compartida de aiModels.ts. */}
+                  {active && isForcedProvider && modelChoices.length > 0 && (
+                    <div className="mt-1 mb-1 ml-3 pl-2.5 border-l border-ink-100 space-y-px">
+                      <p className="px-1.5 pt-0.5 pb-0.5 text-micro uppercase tracking-eyebrow text-ink-300/90">
+                        Modelo
+                      </p>
+                      {modelChoices.map((m) => {
+                        const on = model === m.value
+                        return (
+                          <button
+                            key={m.value || 'default'}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={on}
+                            title={m.notes}
+                            onClick={() => {
+                              setModel(m.value)
+                              setOpen(false)
+                            }}
+                            className={`w-full flex items-center justify-between gap-2 px-1.5 py-1 rounded text-caption transition-colors ${
+                              on
+                                ? 'text-ink-800 font-medium'
+                                : 'text-ink-500 hover:text-ink-800 hover:bg-ink-100/50'
+                            }`}
+                          >
+                            <span className="truncate">{m.label}</span>
+                            {on && (
+                              <CheckIcon size={12} className="text-ink-500 shrink-0" />
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
                   )}
                 </li>
               )
