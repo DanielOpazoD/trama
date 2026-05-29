@@ -150,14 +150,14 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       severity: 'error',
       code: 'budget_critical',
       label: 'Gasto IA al 90% del cap',
-      hint: 'Próximamente las llamadas LLM van a bloquearse hasta el próximo mes. Subí AI_MONTHLY_BUDGET_CENTS o pausá flujos.',
+      hint: 'Próximamente las llamadas LLM van a bloquearse hasta el próximo mes. Sube AI_MONTHLY_BUDGET_CENTS o pausa flujos.',
     })
   } else if (budgetPct >= 0.7) {
     alerts.push({
       severity: 'warn',
       code: 'budget_high',
       label: `Gasto IA al ${Math.round(budgetPct * 100)}% del cap`,
-      hint: 'Vas por encima del 70% del presupuesto mensual. Mirá el breakdown por provider abajo.',
+      hint: 'Vas por encima del 70% del presupuesto mensual. Mira el breakdown por provider abajo.',
     })
   }
 
@@ -168,7 +168,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       severity: 'error',
       code: 'errors_burst',
       label: `${errors24h} errores en 24h`,
-      hint: 'Algo está fallando recurrente. Mirá la lista de abajo y los stacks.',
+      hint: 'Algo está fallando recurrente. Mira la lista de abajo y los stacks.',
     })
   } else if (errors24h >= 3) {
     alerts.push({
@@ -189,7 +189,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       severity: 'info',
       code: 'embeddings_pending',
       label: `${pendingTotal} sin indexar`,
-      hint: 'Búsqueda semántica no las cubre todavía. Reindexá desde la sección Búsqueda.',
+      hint: 'Búsqueda semántica no las cubre todavía. Reindexa desde la sección Búsqueda.',
     })
   }
 

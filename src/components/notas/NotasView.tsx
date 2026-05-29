@@ -76,7 +76,7 @@ export function NotasView() {
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onComposerKey}
           rows={3}
-          placeholder="Escribí una nota… usá #etiquetas para clasificarla"
+          placeholder="Escribe una nota… usa #etiquetas para clasificarla"
           className="w-full resize-y bg-transparent text-ink-700 placeholder:text-ink-300 focus:outline-none leading-relaxed"
         />
         <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60">
@@ -163,7 +163,7 @@ export function NotasView() {
           title="Tu primer apunte, todavía sin escribir."
           body={
             <>
-              Escribí arriba una nota corta — una idea, una frase, un pendiente mental.
+              Escribe arriba una nota corta — una idea, una frase, un pendiente mental.
               Con <strong>#etiquetas</strong> las vas a poder filtrar y buscar acá mismo.
             </>
           }
@@ -173,7 +173,7 @@ export function NotasView() {
         <EmptyMessage
           illustration="thread"
           title="Nada coincide con eso."
-          body={<>Probá con otra palabra o quitá el filtro de etiqueta.</>}
+          body={<>Prueba con otra palabra o quita el filtro de etiqueta.</>}
           hint={
             <button
               onClick={() => {

@@ -147,7 +147,7 @@ function ErrorFallback({
         </h1>
         <p className="text-ink-500 text-sm leading-relaxed mb-4">
           Algo falló mientras renderizaba la app. Tus datos están a salvo en el servidor —
-          esto es un problema del cliente. Probá recargar; si vuelve a pasar, copia los
+          esto es un problema del cliente. Prueba recargar; si vuelve a pasar, copia los
           detalles para que veamos qué pasó.
         </p>
 

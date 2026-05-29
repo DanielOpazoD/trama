@@ -73,7 +73,7 @@ export function AtlasView({ onSelectEntity }: { onSelectEntity: (id: string) => 
             <>
               Cuando tu trama tenga suficientes entidades, la IA puede agruparlas por
               afinidad semántica y nombrar las constelaciones que emergen. Es una sola
-              lectura del estado actual —podés volver a trazarla cuando crezca—.
+              lectura del estado actual —puedes volver a trazarla cuando crezca—.
             </>
           }
           action={

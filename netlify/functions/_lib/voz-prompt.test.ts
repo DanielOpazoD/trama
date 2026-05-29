@@ -35,8 +35,8 @@ describe('buildVozMessages', () => {
     expect(sys).toContain('Borges')
     expect(sys).toContain('escritor')
     expect(sys).toMatch(/lectura activa/i)
-    // NO sos la persona real
-    expect(sys).toMatch(/No sos Borges de verdad/i)
+    // NO es la persona real
+    expect(sys).toMatch(/No eres Borges de verdad/i)
     // sólo el material de las citas
     expect(sys).toMatch(/ÚNICAMENTE/i)
     expect(sys).toMatch(/NO inventes/i)

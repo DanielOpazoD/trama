@@ -243,7 +243,7 @@ export function Espejo({ open, onClose }: { open: boolean; onClose: () => void }
               <p>
                 De esas entidades, {data.aiEntities}{' '}
                 {data.aiEntities === 1 ? 'la propuso' : 'las propuso'} la IA; el resto las
-                pusiste vos.
+                pusiste tú.
               </p>
             )}
 

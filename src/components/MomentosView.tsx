@@ -231,10 +231,10 @@ export function MomentosView() {
             }
             body={
               dayFilter ? (
-                <>No registraste nada ese día. Probá otro o limpiá el filtro.</>
+                <>No registraste nada ese día. Prueba con otro o limpia el filtro.</>
               ) : (
                 <>
-                  Cambiá el tipo en la barra de arriba o creá una entrada nueva de este
+                  Cambia el tipo en la barra de arriba o crea una entrada nueva de este
                   tipo.
                 </>
               )
