@@ -9,14 +9,12 @@ vi.stubGlobal('Netlify', {
 })
 vi.stubGlobal(
   'fetch',
-  vi
-    .fn()
-    .mockResolvedValue({
-      ok: false,
-      status: 500,
-      text: async () => '',
-      json: async () => ({}),
-    }),
+  vi.fn().mockResolvedValue({
+    ok: false,
+    status: 500,
+    text: async () => '',
+    json: async () => ({}),
+  }),
 )
 
 import handler from '../chat-messages'

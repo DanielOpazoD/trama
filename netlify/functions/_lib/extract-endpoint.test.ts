@@ -13,14 +13,12 @@ vi.stubGlobal('Netlify', {
 // solo method/validation branches). Si llegara, fetch falla y no rompe.
 vi.stubGlobal(
   'fetch',
-  vi
-    .fn()
-    .mockResolvedValue({
-      ok: false,
-      status: 500,
-      text: async () => '',
-      json: async () => ({}),
-    }),
+  vi.fn().mockResolvedValue({
+    ok: false,
+    status: 500,
+    text: async () => '',
+    json: async () => ({}),
+  }),
 )
 
 import handler from '../extract'
