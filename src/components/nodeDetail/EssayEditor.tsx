@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useUpdateEntity } from '../../state'
 import type { Entity } from '../../types'
 import { ReadingModeEssay } from '../ReadingModeEssay'
+import { PencilIcon, ReadingIcon } from '../Icons'
 
 /**
  * Editor del "ensayo" — una nota larga en formato libre que vive en
@@ -85,16 +86,19 @@ export function EssayEditor({ entity }: { entity: Entity }) {
                 yendo a editar (era el atajo de B1). */}
             <button
               onClick={() => setReadingOpen(true)}
-              className="opacity-0 group-hover/essay:opacity-100 transition-opacity text-xs text-ink-400 hover:text-ink-700"
+              className="opacity-0 group-hover/essay:opacity-100 transition-opacity text-ink-400 hover:text-ink-700 inline-flex"
+              aria-label="Leer"
               title="Abrir en modo lectura (serif, columna ancha)"
             >
-              leer
+              <ReadingIcon size={13} />
             </button>
             <button
               onClick={() => setEditing(true)}
-              className="opacity-0 group-hover/essay:opacity-100 transition-opacity text-xs text-ink-400 hover:text-ink-700"
+              className="opacity-0 group-hover/essay:opacity-100 transition-opacity text-ink-400 hover:text-ink-700 inline-flex"
+              aria-label="Editar"
+              title="Editar ensayo"
             >
-              editar
+              <PencilIcon size={13} />
             </button>
           </div>
           {/* Doble-click sobre el ensayo entra a edit. */}

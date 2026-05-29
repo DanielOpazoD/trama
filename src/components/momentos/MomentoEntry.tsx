@@ -1,7 +1,7 @@
 import { memo, useState } from 'react'
 import { typeAccent } from '../../lib/typeAccents'
 import type { Entity, Momento } from '../../types'
-import { SparkleIcon, TrashIcon } from '../Icons'
+import { PencilIcon, SparkleIcon, TrashIcon } from '../Icons'
 import { formatTime } from './helpers'
 import { MomentoEditModal } from './MomentoEditModal'
 import { PhotoLightbox } from './PhotoLightbox'
@@ -62,14 +62,15 @@ function MomentoEntryInternal({
       </div>
       {/* Toolbar contextual al hover — editar (todos los kinds) + eliminar. */}
       <div className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-        <button
-          onClick={() => setEditOpen(true)}
-          className="section-eyebrow hover:text-ink-700 px-2 py-1.5 rounded transition-colors"
-          aria-label="Editar momento"
-          title="Editar contenido y fecha"
-        >
-          editar
-        </button>
+        <Tooltip content="Editar contenido y fecha">
+          <button
+            onClick={() => setEditOpen(true)}
+            className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors"
+            aria-label="Editar momento"
+          >
+            <PencilIcon size={12} />
+          </button>
+        </Tooltip>
         <Tooltip content="Eliminar momento">
           <button
             onClick={onDelete}

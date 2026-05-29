@@ -58,6 +58,10 @@ export function EntitiesView({
 
   const [showForm, setShowForm] = useState(false)
   const [pending, setPending] = useState<Reclassification[] | null>(null)
+  const [pendingMeta, setPendingMeta] = useState<{
+    provider: string | null
+    model: string | null
+  }>({ provider: null, model: null })
   const [emptyHint, setEmptyHint] = useState(false)
   // Inline expansion — solo una entidad expandida a la vez. Si el
   // usuario expande otra, la actual colapsa. El virtualizer mide la
@@ -107,6 +111,7 @@ export function EntitiesView({
         return
       }
       setPending(res.reclassifications)
+      setPendingMeta({ provider: res.provider ?? null, model: res.model ?? null })
     } catch {
       // surfaces via reclassify.error
     }
@@ -161,6 +166,8 @@ export function EntitiesView({
       {pending && (
         <ReclassifyPanel
           proposals={pending}
+          provider={pendingMeta.provider}
+          model={pendingMeta.model}
           onClose={() => setPending(null)}
           onApply={async (selected) => {
             // Fire updates sequentially to avoid hitting the same row twice.

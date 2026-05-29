@@ -4,6 +4,7 @@ import type { ExtractionProposal } from '../types'
 import { useThreadIdForView } from '../hooks/useThreadIdForView'
 import { ArrowRightIcon, CameraIcon, ReadingIcon } from './Icons'
 import { Tooltip } from './Tooltip'
+import { AISourceTag } from './AISourceTag'
 
 /** Convert a File to a base64 string (without the data URL prefix). */
 async function fileToBase64(file: File): Promise<string> {
@@ -186,11 +187,7 @@ export function AskBar({
                   style={{ backgroundColor: 'var(--accent-primary)' }}
                 />
                 respuesta
-                {reply.model
-                  ? ` · ${reply.model}`
-                  : reply.provider
-                    ? ` · ${reply.provider}`
-                    : ''}
+                <AISourceTag provider={reply.provider} model={reply.model} size={11} />
               </span>
               <div className="flex items-baseline gap-3">
                 {threadId && onOpenThread && (

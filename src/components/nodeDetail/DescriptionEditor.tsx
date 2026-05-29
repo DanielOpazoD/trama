@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAsk, useUpdateEntity } from '../../state'
 import type { Entity } from '../../types'
-import { SparkleIcon } from '../Icons'
+import { PencilIcon, SparkleIcon } from '../Icons'
 
 // Tipos donde un link de Spotify tiene sentido (banda, músico, álbum, etc.).
 // Si la entidad no es de estos tipos, el input de URL se oculta.
@@ -96,26 +96,21 @@ export function DescriptionEditor({ entity }: { entity: Entity }) {
             <button
               onClick={handleSuggestDescription}
               disabled={askLLM.isPending}
-              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-ink-100 hover:bg-ink-100 transition-colors disabled:opacity-50"
+              className="inline-flex items-center justify-center size-7 rounded-md border border-ink-100 hover:bg-ink-100 transition-colors disabled:opacity-50"
               style={{ color: 'var(--accent-primary)' }}
+              aria-label="Generar descripción con IA"
               title="Generar descripción con IA"
             >
               {askLLM.isPending ? (
-                <>
-                  <span
-                    className="size-3 border-2 rounded-full animate-spin"
-                    style={{
-                      borderColor: 'var(--accent-primary-ring)',
-                      borderTopColor: 'var(--accent-primary)',
-                    }}
-                  />
-                  Pensando…
-                </>
+                <span
+                  className="size-3.5 border-2 rounded-full animate-spin"
+                  style={{
+                    borderColor: 'var(--accent-primary-ring)',
+                    borderTopColor: 'var(--accent-primary)',
+                  }}
+                />
               ) : (
-                <>
-                  <SparkleIcon size={12} />
-                  IA
-                </>
+                <SparkleIcon size={14} />
               )}
             </button>
             <div className="flex items-center gap-2">
@@ -168,9 +163,11 @@ export function DescriptionEditor({ entity }: { entity: Entity }) {
       )}
       <button
         onClick={() => setEditing(true)}
-        className="mt-2 text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
+        aria-label="Editar"
+        title="Editar descripción"
+        className="mt-2 inline-flex text-ink-300 hover:text-ink-700 transition-colors"
       >
-        editar
+        <PencilIcon size={13} />
       </button>
     </section>
   )

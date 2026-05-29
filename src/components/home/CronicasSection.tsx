@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useCronicasQuery, useGenerateCronica, useToast } from '../../state'
 import { OrnamentBreak } from '../Icons'
+import { AISourceTag } from '../AISourceTag'
 
 /**
  * U-4: sección de Crónicas en el HomeView. Aparece al final de Inicio,
@@ -98,19 +99,20 @@ export function CronicasSection() {
       {prevMonthCronica ? (
         <article className="font-serif text-lead text-ink-700 leading-relaxed max-w-prose whitespace-pre-wrap quote-block">
           {prevMonthCronica.text}
-          <footer className="mt-6 not-italic text-caption text-ink-400 font-sans">
-            Generada el{' '}
-            {new Date(prevMonthCronica.generatedAt).toLocaleDateString('es', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-            {prevMonthCronica.provider && (
-              <span className="ml-2 opacity-70">
-                · {prevMonthCronica.provider}
-                {prevMonthCronica.model ? ` / ${prevMonthCronica.model}` : ''}
-              </span>
-            )}
+          <footer className="mt-6 not-italic text-caption text-ink-400 font-sans flex items-center gap-1.5">
+            <span>
+              Generada el{' '}
+              {new Date(prevMonthCronica.generatedAt).toLocaleDateString('es', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </span>
+            <AISourceTag
+              provider={prevMonthCronica.provider}
+              model={prevMonthCronica.model}
+              size={11}
+            />
           </footer>
         </article>
       ) : (
