@@ -38,6 +38,17 @@ export function NotasView() {
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]))
   }, [notes])
 
+  // Datos para el calendario de actividad: un día (local) por nota + estadísticas.
+  const calendarDays = useMemo(() => notes.map((n) => localDayKey(n.createdAt)), [notes])
+  const calendarStats = useMemo(() => {
+    const days = new Set(calendarDays).size
+    return [
+      { n: notes.length, label: notes.length === 1 ? 'nota' : 'notas' },
+      { n: days, label: days === 1 ? 'día con notas' : 'días con notas' },
+      { n: tagCounts.length, label: tagCounts.length === 1 ? 'etiqueta' : 'etiquetas' },
+    ]
+  }, [notes.length, calendarDays, tagCounts.length])
+
   // Filtro client-side: texto + etiqueta activa + día del calendario.
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -106,7 +117,8 @@ export function NotasView() {
       {/* Calendario de actividad (heatmap) + estadísticas — sólo si hay notas */}
       {notes.length > 0 && (
         <ActivityCalendar
-          notes={notes}
+          dayKeys={calendarDays}
+          stats={calendarStats}
           selectedDay={selectedDay}
           onSelectDay={setSelectedDay}
         />

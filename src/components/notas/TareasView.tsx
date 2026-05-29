@@ -5,6 +5,14 @@ import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
 import { SearchIcon } from '../Icons'
 import { TaskItem } from './TaskItem'
+import { ActivityCalendar } from './ActivityCalendar'
+
+function todayLocal(): string {
+  const d = new Date()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${dd}`
+}
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -25,6 +33,8 @@ export function TareasView() {
   const [due, setDue] = useState('')
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState<string | null>(null)
+  // Día seleccionado en el calendario (filtra por fecha de vencimiento), o null.
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
 
@@ -34,14 +44,39 @@ export function TareasView() {
     return [...set].sort((a, b) => a.localeCompare(b))
   }, [tasks])
 
+  // Calendario de Tareas: por fecha de VENCIMIENTO (las sin fecha no aparecen).
+  const calendarDays = useMemo(
+    () => tasks.filter((t) => t.dueDate).map((t) => t.dueDate as string),
+    [tasks],
+  )
+  const calendarStats = useMemo(() => {
+    const today = todayLocal()
+    const pendientes = tasks.filter((t) => !t.done).length
+    const vencidas = tasks.filter(
+      (t) => !t.done && t.dueDate !== null && t.dueDate < today,
+    ).length
+    return [
+      { n: tasks.length, label: tasks.length === 1 ? 'tarea' : 'tareas' },
+      { n: pendientes, label: 'pendientes' },
+      { n: vencidas, label: vencidas === 1 ? 'vencida' : 'vencidas' },
+    ]
+  }, [tasks])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return tasks.filter((t) => {
       if (activeTag && !t.tags.includes(activeTag)) return false
+      if (selectedDay && t.dueDate !== selectedDay) return false
       if (q && !`${t.title}\n${t.detail ?? ''}`.toLowerCase().includes(q)) return false
       return true
     })
-  }, [tasks, search, activeTag])
+  }, [tasks, search, activeTag, selectedDay])
+
+  function clearFilters() {
+    setSearch('')
+    setActiveTag(null)
+    setSelectedDay(null)
+  }
 
   const pending = filtered.filter((t) => !t.done)
   const done = filtered.filter((t) => t.done)
@@ -116,6 +151,17 @@ export function TareasView() {
           </button>
         </div>
       </div>
+
+      {/* Calendario por vencimiento — solo si hay tareas con fecha */}
+      {calendarDays.length > 0 && (
+        <ActivityCalendar
+          dayKeys={calendarDays}
+          stats={calendarStats}
+          unit={{ one: 'tarea', many: 'tareas' }}
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
+        />
+      )}
 
       {/* Buscador + chips — solo si ya hay tareas */}
       {tasks.length > 0 && (
@@ -198,13 +244,10 @@ export function TareasView() {
         <EmptyMessage
           illustration="thread"
           title="Nada coincide con eso."
-          body={<>Prueba con otra palabra o quita el filtro de etiqueta.</>}
+          body={<>Prueba con otra palabra, otra etiqueta u otro día.</>}
           hint={
             <button
-              onClick={() => {
-                setSearch('')
-                setActiveTag(null)
-              }}
+              onClick={clearFilters}
               className="underline hover:text-ink-700 transition-colors"
             >
               Ver todas

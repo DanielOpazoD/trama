@@ -1,28 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import type { Note } from '../../api'
+import { renderMarkdown } from './markdown'
 
 const ACCENT = 'var(--accent-sage)'
-
-/** Renderiza el contenido resaltando los #tags, conservando saltos de línea. */
-function renderContent(content: string): ReactNode[] {
-  const nodes: ReactNode[] = []
-  const re = /(^|\s)#([\p{L}\p{N}_-]{1,40})/gu
-  let last = 0
-  let key = 0
-  let m: RegExpExecArray | null
-  while ((m = re.exec(content)) !== null) {
-    const hashAt = m.index + m[1]!.length
-    if (hashAt > last) nodes.push(<span key={key++}>{content.slice(last, hashAt)}</span>)
-    nodes.push(
-      <span key={key++} className="font-medium" style={{ color: ACCENT }}>
-        {'#' + m[2]}
-      </span>,
-    )
-    last = hashAt + 1 + m[2]!.length
-  }
-  if (last < content.length) nodes.push(<span key={key++}>{content.slice(last)}</span>)
-  return nodes
-}
 
 function formatDate(iso: string): string {
   try {
@@ -52,9 +32,9 @@ export function NoteCard({
 
   return (
     <article className="card-paper-soft group rounded-xl border border-ink-100/70 p-4 transition-colors">
-      <p className="whitespace-pre-wrap break-words text-ink-700 leading-relaxed">
-        {renderContent(note.content)}
-      </p>
+      <div className="break-words text-ink-700 leading-relaxed space-y-2">
+        {renderMarkdown(note.content)}
+      </div>
       <footer className="mt-3 flex items-center gap-3 text-micro">
         {note.pinned && (
           <span className="uppercase tracking-eyebrow" style={{ color: ACCENT }}>
