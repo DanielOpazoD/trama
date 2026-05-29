@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Reclassification } from '../api'
 import { ENTITY_TYPES } from '../types'
 import { CloseIcon, SparkleIcon } from './Icons'
+import { AISourceTag } from './AISourceTag'
 
 /**
  * Inline panel rendered above the entity list when the AI returns
@@ -12,10 +13,14 @@ export function ReclassifyPanel({
   proposals,
   onClose,
   onApply,
+  provider,
+  model,
 }: {
   proposals: Reclassification[]
   onClose: () => void
   onApply: (selected: Reclassification[]) => Promise<void>
+  provider?: string | null
+  model?: string | null
 }) {
   const [checked, setChecked] = useState<boolean[]>(() => proposals.map(() => true))
   const [submitting, setSubmitting] = useState(false)
@@ -69,6 +74,7 @@ export function ReclassifyPanel({
           <span className="text-xs text-ink-400">
             {proposals.length} {proposals.length === 1 ? 'cambio' : 'cambios'}
           </span>
+          <AISourceTag provider={provider} model={model} size={11} />
         </div>
         <button
           onClick={onClose}

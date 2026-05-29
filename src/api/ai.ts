@@ -44,6 +44,9 @@ export type Reclassification = {
 
 export type ReclassifyResponse = {
   reclassifications: Reclassification[]
+  /** Provider + modelo que propuso las reclasificaciones. */
+  provider?: string | null
+  model?: string | null
 }
 
 export const aiApi = {

@@ -14,6 +14,8 @@ import type { AtlasResponse } from '../api'
 const RESPONSE: AtlasResponse = {
   generatedAt: '2026-05-20T12:00:00.000Z',
   entityCount: 3,
+  provider: 'deepseek',
+  model: 'deepseek-chat',
   clusters: [
     {
       id: 'c-0',
@@ -75,7 +77,13 @@ describe('<AtlasView />', () => {
   })
 
   it('shows an empty state when there is no snapshot', async () => {
-    stubFetch({ generatedAt: null, entityCount: 0, clusters: [] })
+    stubFetch({
+      generatedAt: null,
+      entityCount: 0,
+      provider: null,
+      model: null,
+      clusters: [],
+    })
     renderWithProviders(<AtlasView onSelectEntity={() => {}} />)
     await waitFor(() =>
       expect(screen.getByText(/el cielo todavía no está trazado/i)).toBeInTheDocument(),

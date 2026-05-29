@@ -3,6 +3,9 @@ import { typeAccent } from '../lib/typeAccents'
 import { ViewHeader } from './ViewHeader'
 import { EmptyMessage } from './EmptyMessage'
 import { SkeletonList, TimelineRowSkeleton } from './Skeleton'
+import { RefreshIcon } from './Icons'
+import { AISourceTag } from './AISourceTag'
+import { Tooltip } from './Tooltip'
 import type { AtlasConstellation } from '../api'
 
 /**
@@ -50,13 +53,19 @@ export function AtlasView({ onSelectEntity }: { onSelectEntity: (id: string) => 
         spacing="tight"
         action={
           hasAtlas ? (
-            <button
-              onClick={trazar}
-              disabled={generate.isPending}
-              className="btn-ghost text-sm"
-            >
-              {generate.isPending ? 'Trazando…' : 'Regenerar'}
-            </button>
+            <Tooltip content={generate.isPending ? 'Trazando…' : 'Regenerar atlas'}>
+              <button
+                onClick={trazar}
+                disabled={generate.isPending}
+                aria-label="Regenerar atlas"
+                className="p-1.5 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors disabled:opacity-50"
+              >
+                <RefreshIcon
+                  size={15}
+                  className={generate.isPending ? 'animate-spin' : undefined}
+                />
+              </button>
+            </Tooltip>
           ) : undefined
         }
       />
@@ -89,14 +98,17 @@ export function AtlasView({ onSelectEntity }: { onSelectEntity: (id: string) => 
           ))}
 
           {data?.generatedAt && (
-            <footer className="text-caption text-ink-300 italic pt-2">
-              Atlas de {data.entityCount}{' '}
-              {data.entityCount === 1 ? 'entidad' : 'entidades'} · trazado el{' '}
-              {new Date(data.generatedAt).toLocaleDateString('es', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
+            <footer className="text-caption text-ink-300 italic pt-2 flex items-center gap-1.5">
+              <span>
+                Atlas de {data.entityCount}{' '}
+                {data.entityCount === 1 ? 'entidad' : 'entidades'} · trazado el{' '}
+                {new Date(data.generatedAt).toLocaleDateString('es', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </span>
+              <AISourceTag provider={data.provider} model={data.model} size={11} />
             </footer>
           )}
         </div>

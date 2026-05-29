@@ -26,6 +26,9 @@ export type AtlasResponse = {
   /** ISO del último snapshot, o null si nunca se generó. */
   generatedAt: string | null
   entityCount: number
+  /** Provider + modelo que nombró las constelaciones (null si nunca se generó). */
+  provider: string | null
+  model: string | null
   clusters: AtlasConstellation[]
 }
 

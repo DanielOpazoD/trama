@@ -106,6 +106,8 @@ async function buildResponse(
 ): Promise<{
   generatedAt: string | null
   entityCount: number
+  provider: string | null
+  model: string | null
   clusters: Array<{
     id: string
     name: string
@@ -120,7 +122,7 @@ async function buildResponse(
     LIMIT 1
   `)
   if (rows.length === 0) {
-    return { generatedAt: null, entityCount: 0, clusters: [] }
+    return { generatedAt: null, entityCount: 0, provider: null, model: null, clusters: [] }
   }
   const snap = rows[0]!
   const stored: StoredCluster[] = Array.isArray(snap.clusters) ? snap.clusters : []
@@ -148,7 +150,13 @@ async function buildResponse(
     }))
     .filter((c) => c.members.length > 0)
 
-  return { generatedAt: snap.generated_at, entityCount: snap.entity_count, clusters }
+  return {
+    generatedAt: snap.generated_at,
+    entityCount: snap.entity_count,
+    provider: snap.provider,
+    model: snap.model,
+    clusters,
+  }
 }
 
 export default withObservability(
