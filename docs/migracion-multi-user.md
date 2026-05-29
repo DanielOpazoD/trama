@@ -1,5 +1,16 @@
 # Migración a multi-user
 
+> **Estado (mayo 2026): parcialmente implementado.** La autenticación con
+> Clerk ya está en producción (`netlify/functions/_lib/auth.ts` verifica el
+> Bearer token con `@clerk/backend`) y todas las tablas tienen `user_id`. El
+> dueño entra con Clerk y un alias (`LEGACY_OWNER_CLERK_ID`) mapea su sub a
+> `legacy-single-user` para ver toda la data pre-Clerk sin migrar nada.
+> **Pendiente antes de abrir a la familia:** provisioning de usuarios al
+> primer login, cerrar `ALLOW_LEGACY_FALLBACK`, tests de aislamiento por
+> `user_id`, y namespacear Spotify + cost-cap por persona. Los "Commit 1–N"
+> de abajo se conservan como referencia: varios ya están hechos. El resumen
+> vivo está en [`docs/conventions/roadmap.md`](conventions/roadmap.md).
+
 ## Cuándo abrir esto
 
 Solo si decides compartir Trama con otra(s) persona(s). Mientras sea
