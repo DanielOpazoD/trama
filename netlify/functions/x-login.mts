@@ -1,6 +1,7 @@
-import type { Config } from '@netlify/functions'
-import { buildAuthUrl, generatePkce } from './_lib/x/index.js'
+import type { Config, Context } from '@netlify/functions'
+import { buildAuthUrl, generatePkce, isXConfigured } from './_lib/x/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 
 /**
@@ -10,9 +11,18 @@ import { getAuthedUser } from './_lib/auth.js'
  *   - x_verifier (PKCE code_verifier — secreto, NUNCA va a X)
  *   - x_uid      (el userId autenticado, para asociar el token al usuario)
  */
-export default withObservability('x-login', async (req) => {
-  const { id: userId } = await getAuthedUser(req)
-  const state = crypto.randomUUID()
+export default withObservability(
+  'x-login',
+  async (req: Request, _ctx: Context, { requestId }) => {
+    // Si faltan las claves (feature inerte), error claro en vez de un 500.
+    if (!isXConfigured()) {
+      return ApiErrors.validation(
+        requestId,
+        'X no está configurado en el servidor. Falta definir X_CLIENT_ID, X_CLIENT_SECRET y X_REDIRECT_URI.',
+      )
+    }
+    const { id: userId } = await getAuthedUser(req)
+    const state = crypto.randomUUID()
   const { verifier, challenge } = await generatePkce()
   const url = buildAuthUrl(state, challenge)
 

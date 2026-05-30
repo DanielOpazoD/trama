@@ -24,3 +24,13 @@ export function readEnv(
   if (!v) throw new Error(`${key} no está configurada en el entorno`)
   return v
 }
+
+/**
+ * ¿Está la integración de X configurada? Permite a los endpoints devolver un
+ * error claro (en vez de un 500 por `readEnv` lanzando) cuando faltan las
+ * claves — la feature es inerte hasta que el operador las ponga en Netlify.
+ */
+export function isXConfigured(): boolean {
+  const env = getEnv()
+  return Boolean(env.X_CLIENT_ID && env.X_CLIENT_SECRET && env.X_REDIRECT_URI)
+}
