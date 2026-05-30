@@ -253,3 +253,42 @@ que los endpoints sigan respondiendo a usuarios no autenticados como
 el `legacy-single-user`, así Daniel puede seguir usando la app
 mientras se va construyendo el otro lado. Quitarlo solo cuando todo
 esté completo y verificado.
+
+## Estado real + checklist de go-live (auditoría 2026-05)
+
+El schema y el aislamiento por `user_id` ya están en casi todo. Auditoría de
+los 53 handlers:
+
+**🟢 Aislado correctamente:** entities, quotes, relationships, momentos (+merge
+/restore/upload/audio-upload/orphaned-blobs/file — los blobs van namespaced
+`${userId}/…`), notes, tasks, chat, search, cronologia, atlas, cronicas,
+extraction-log, error-log, ai-settings, spotify-sync, spotify-plays/timing/
+status, proactive-suggestions, reindex, voz, quote-reflect/echoes. entity-types
+y relationship-types son **taxonomía global por diseño** (no per-user) — OK.
+
+**🟢 Arreglado:** `health.mts` — antes agregaba counts/costos/errores GLOBALES;
+ahora filtra todo por `user_id` (con su contract test `health-endpoint.test`).
+
+**🔴 Bloqueantes que faltan antes de encender (código):**
+
+1. **Spotify OAuth per-user** (callback/login/scheduled-sync). Hoy el callback
+   guarda el token en la fila `'default'` sin saber qué usuario autorizó.
+   Arreglo: codificar `userId` en el `state` del OAuth (login) y leerlo en el
+   callback; el cron `spotify-scheduled-sync` debe iterar por usuario. Es el
+   ítem "Spotify per-user" del roadmap — una feature aparte.
+2. **`cost-alert-check.mts`** (cron): suma el costo GLOBAL. Debe iterar por
+   usuario y alertar por usuario.
+
+**Operativo (lo hace Daniel en Netlify, no se puede automatizar):**
+
+3. Setear en Netlify env: `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`,
+   `LEGACY_OWNER_CLERK_ID` (mapea tu cuenta Clerk al `legacy-single-user`
+   existente, para no perder tus datos).
+4. Provisionar `users.monthly_budget_cents` por usuario (o dejar que caiga al
+   `AI_MONTHLY_BUDGET_CENTS` global).
+5. **Recién entonces** quitar `ALLOW_LEGACY_FALLBACK` → modo estricto (401 sin
+   token). Verificar login end-to-end ANTES de quitarlo (si no, te bloqueás).
+
+**Guardrail recomendado (siguiente iteración):** un test que recorra los
+handlers y falle si una query sobre tabla per-user no menciona `user_id` — para
+que un `WHERE user_id` olvidado lo cace el CI, no un usuario en producción.

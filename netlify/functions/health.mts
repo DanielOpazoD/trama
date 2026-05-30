@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { getAuthedUser } from './_lib/auth.js'
 import { getEnv } from './_lib/env.js'
 
 /**
@@ -22,6 +23,9 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
     return ApiErrors.methodNotAllowed(requestId)
   }
+  // Multi-user: Health es per-usuario. TODO conteo/costo/error se filtra por
+  // user_id — sin esto, un usuario vería los agregados globales de la trama.
+  const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
   type CountRow = { c: string }
@@ -62,9 +66,9 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
     embeddingPendingRows,
     dailyCostRows,
   ] = await Promise.all([
-    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL`),
-    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL`),
-    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM relationships WHERE deleted_at IS NULL`),
+    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND user_id = ${userId}`),
+    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND user_id = ${userId}`),
+    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM relationships WHERE deleted_at IS NULL AND user_id = ${userId}`),
     sqlTyped<MonthTotalsRow>(sql`
       SELECT
         COUNT(*)::text AS calls,
@@ -73,6 +77,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
         COALESCE(SUM(cost_cents), 0)::text AS cost_cents
       FROM extraction_log
       WHERE created_at >= date_trunc('month', NOW())
+        AND user_id = ${userId}
     `),
     sqlTyped<ProviderRow>(sql`
       SELECT
@@ -83,6 +88,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       FROM extraction_log
       WHERE created_at >= date_trunc('month', NOW())
         AND provider IS NOT NULL
+        AND user_id = ${userId}
       GROUP BY provider, model
       ORDER BY cost_cents DESC
       LIMIT 10
@@ -91,6 +97,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       SELECT id, function_name, http_method, http_path, status_code, message, created_at
       FROM error_log
       WHERE created_at >= NOW() - INTERVAL '7 days'
+        AND user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT 10
     `),
@@ -100,12 +107,13 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       SELECT COUNT(*)::text AS c
       FROM error_log
       WHERE created_at >= NOW() - INTERVAL '24 hours'
+        AND user_id = ${userId}
     `),
     // Filas sin embedding — alertar cuando vale la pena reindexar.
     sqlTyped<EmbeddingPendingRow>(sql`
       SELECT
-        (SELECT COUNT(*) FROM entities WHERE deleted_at IS NULL AND embedding IS NULL)::text AS entities,
-        (SELECT COUNT(*) FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL)::text AS quotes
+        (SELECT COUNT(*) FROM entities WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId})::text AS entities,
+        (SELECT COUNT(*) FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId})::text AS quotes
     `),
     // Serie diaria de costo IA — para sparklines en Health.
     // Últimos 30 días, agrupados por día. Días sin actividad no aparecen
@@ -117,6 +125,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
         COUNT(*)::text AS calls
       FROM extraction_log
       WHERE created_at >= NOW() - INTERVAL '30 days'
+        AND user_id = ${userId}
       GROUP BY day
       ORDER BY day ASC
     `),
