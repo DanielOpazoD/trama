@@ -54,6 +54,13 @@ const PROVIDER_KEY_ENV: Record<LLMProvider, string> = {
   gemini: 'GEMINI_API_KEY',
 }
 
+const ALL_PROVIDERS: readonly LLMProvider[] = [
+  'deepseek',
+  'openai',
+  'gemini',
+  'anthropic',
+]
+
 export function readProvider(): LLMProvider {
   // O1: via getEnv() (default 'deepseek' lo da el schema).
   const raw = getEnv().AI_PROVIDER.toLowerCase()
@@ -61,6 +68,44 @@ export function readProvider(): LLMProvider {
     return raw
   }
   throw new Error(`AI_PROVIDER no reconocido: ${raw}`)
+}
+
+/**
+ * Cadena de fallback cross-provider. Si el provider primario tiene una caída
+ * transitoria (5xx/timeout/red), el despachador intenta estos en orden.
+ *
+ * Se lee de `AI_FALLBACK_PROVIDERS` (lista separada por comas, p.ej.
+ * "openai,gemini"). Vacío/ausente → SIN fallback (comportamiento histórico:
+ * cero sorpresas de costo). Es opt-in deliberado: caer a otro provider puede
+ * costar 5-7× más (ver PROVIDER_DEFAULTS), así que solo se activa si el
+ * operador lo configura explícitamente. Tokens basura/duplicados se ignoran.
+ */
+export function readFallbackProviders(): LLMProvider[] {
+  const raw = (getEnv().AI_FALLBACK_PROVIDERS ?? '').trim()
+  if (!raw) return []
+  const out: LLMProvider[] = []
+  for (const token of raw.split(',')) {
+    const p = token.trim().toLowerCase()
+    if (ALL_PROVIDERS.includes(p as LLMProvider) && !out.includes(p as LLMProvider)) {
+      out.push(p as LLMProvider)
+    }
+  }
+  return out
+}
+
+/**
+ * Key DEDICADA de un provider (su env var canónica), sin caer a la
+ * AI_API_KEY compartida. Para providers de fallback exigimos key propia: usar
+ * la key de DeepSeek contra OpenAI daría un 401 garantizado (permanente), que
+ * cortaría la cadena. Devuelve null si no hay key propia → el provider se
+ * omite de la cadena. Nota: para deepseek su key canónica ES AI_API_KEY.
+ */
+export function readDedicatedKey(provider: LLMProvider): string | null {
+  const env = getEnv()
+  if (provider === 'deepseek') return env.AI_API_KEY ?? null
+  if (provider === 'openai') return env.OPENAI_API_KEY ?? null
+  // anthropic / gemini son "dinámicas" — Netlify.env.get directo.
+  return Netlify.env.get(PROVIDER_KEY_ENV[provider]) ?? null
 }
 
 /**

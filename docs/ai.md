@@ -66,6 +66,23 @@ Para añadir una key nueva:
 
 **No hace falta una key por cada provider**. Si solo tenés `OPENAI_API_KEY` y `AI_API_KEY`, podés usar OpenAI y DeepSeek. Anthropic y Gemini quedan deshabilitados (y la UI no los va a poder seleccionar — bueno, sí los va a mostrar pero al llamar va a dar error).
 
+## Fallback cross-provider (resiliencia)
+
+Si el provider primario tiene una **caída transitoria** (5xx, timeout o red), el despachador puede caer automáticamente a otro provider y reintentar, en vez de devolver error. Es **opt-in** vía env var:
+
+| Env var                 | Ejemplo         | Qué hace                                                    |
+| ----------------------- | --------------- | ----------------------------------------------------------- |
+| `AI_FALLBACK_PROVIDERS` | `openai,gemini` | Lista ordenada de providers a intentar si el primario falla |
+
+Reglas:
+
+- **Solo fallas transitorias** disparan el fallback. Un 4xx (auth/bad-request) o un JSON inválido NO cae a otro provider — sería enmascarar un bug real.
+- Un provider de la cadena **solo se usa si tiene su key DEDICADA** (`OPENAI_API_KEY`, etc.). La `AI_API_KEY` compartida NO sirve de fallback acá: usarla contra OpenAI daría un 401 garantizado. Sin key propia, el provider se omite de la cadena.
+- **Cuidado con el costo**: caer a Anthropic puede costar ~7× más que DeepSeek (ver tabla de costos abajo). Por eso es opt-in explícito.
+- Sin la env var (default), no hay fallback — comportamiento histórico, cero sorpresas.
+- También cubre **streaming** (el chat cae a respuesta no-streaming en un solo bloque) y **vision** (openai↔gemini).
+- Cada fallback se loguea (`llm_fallback_succeeded` / `llm_provider_failed`) en los logs de Netlify Functions para diagnóstico.
+
 ## Cost cap mensual
 
 La env var `AI_MONTHLY_BUDGET_CENTS` corta TODAS las llamadas IA cuando se alcanza el límite. Es la única protección de gasto que tenés (el rate limiting por IP se removió a propósito).

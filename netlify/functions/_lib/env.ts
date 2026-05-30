@@ -69,6 +69,10 @@ const EnvSchema = z.object({
   AI_PROVIDER: z.string().optional().default('deepseek'),
   /** Fallback genérico de API key si no hay PROVIDER-specific key. */
   AI_API_KEY: z.string().optional(),
+  /** Cadena de fallback cross-provider, separada por comas (p.ej.
+   *  "openai,gemini"). Ante caída transitoria del primario, el despachador
+   *  intenta estos EN ORDEN si tienen key dedicada. Vacío → sin fallback. */
+  AI_FALLBACK_PROVIDERS: z.string().optional(),
   /** Proveedor para tareas de visión (extract-image). */
   AI_VISION_PROVIDER: z.string().optional(),
   /** API key específica de vision si difiere del provider principal. */
