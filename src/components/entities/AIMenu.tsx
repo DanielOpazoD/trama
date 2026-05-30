@@ -14,15 +14,19 @@ export function AIMenu({
   reclassifyPending,
   onFindDuplicates,
   duplicatesPending,
+  onSuggestWikipedia,
+  wikipediaPending,
   disabled,
 }: {
   onReclassify: () => void
   reclassifyPending: boolean
   onFindDuplicates: () => void
   duplicatesPending: boolean
+  onSuggestWikipedia: () => void
+  wikipediaPending: boolean
   disabled: boolean
 }) {
-  const pending = reclassifyPending || duplicatesPending
+  const pending = reclassifyPending || duplicatesPending || wikipediaPending
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -103,6 +107,17 @@ export function AIMenu({
           >
             <SparkleIcon size={12} className="text-ink-400" />
             Buscar duplicados
+          </button>
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false)
+              onSuggestWikipedia()
+            }}
+            className="w-full text-left px-3 py-2 text-sm text-ink-700 hover:bg-paper-100/70 transition-colors flex items-center gap-2"
+          >
+            <SparkleIcon size={12} className="text-ink-400" />
+            Sugerir Wikipedia
           </button>
         </div>
       )}

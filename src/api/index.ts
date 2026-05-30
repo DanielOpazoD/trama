@@ -63,6 +63,7 @@ export { DuplicateEntityError } from './request'
 
 export type {
   WikipediaSearchResult,
+  WikipediaSuggestion,
   DuplicateGroup,
   DuplicateCandidate,
 } from './entities'

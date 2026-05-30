@@ -17,6 +17,14 @@ export type WikipediaSearchResult = {
   description: string | null
 }
 
+/** Sugerencia de artículo de Wikipedia para una entidad que no lo tiene. */
+export type WikipediaSuggestion = {
+  entityId: string
+  entityName: string
+  entityType: string
+  match: WikipediaSearchResult | null
+}
+
 /** Una entidad candidata dentro de un grupo de duplicados. */
 export type DuplicateCandidate = { id: string; name: string; type: string }
 /** Un grupo de posibles duplicados (por nombre idéntico o embedding cercano). */
@@ -115,6 +123,19 @@ export const entitiesApi = {
   }> {
     return request<{ groups: DuplicateGroup[]; embeddingSkipped: boolean }>(
       '/api/entities-duplicates',
+    )
+  },
+  /**
+   * Para las entidades sin wikipedia_url, propone el mejor artículo de Wikipedia.
+   * Sugerencias REVISABLES — el usuario acepta/rechaza cada una. `remaining`
+   * avisa si quedan entidades fuera del lote.
+   */
+  async suggestWikipedia(): Promise<{
+    suggestions: WikipediaSuggestion[]
+    remaining: boolean
+  }> {
+    return request<{ suggestions: WikipediaSuggestion[]; remaining: boolean }>(
+      '/api/wikipedia-suggest',
     )
   },
   /** Combina `mergeIds` en `keepId` (reasigna citas/relaciones/momentos). */
