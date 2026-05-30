@@ -17,24 +17,40 @@ const {
   markSynced,
   disconnectX,
   isXConfigured,
-} = vi.hoisted(() => ({
-  exchangeCodeForTokens: vi.fn(async () => ({
-    access_token: 'at',
-    refresh_token: 'rt',
-    expires_in: 7200,
-    scope: 'bookmark.read',
-    token_type: 'bearer',
-  })),
-  getXProfile: vi.fn(async () => ({ id: 'x-1', username: 'daniel', name: 'Daniel' })),
-  saveTokens: vi.fn(async () => {}),
-  getStoredTokens: vi.fn(async () => null as unknown),
-  getValidAccessToken: vi.fn(async () => 'access-token'),
-  fetchBookmarks: vi.fn(async () => [{ tweetId: 't1' }, { tweetId: 't2' }]),
-  storeBookmarks: vi.fn(async () => 2),
-  markSynced: vi.fn(async () => {}),
-  disconnectX: vi.fn(async () => {}),
-  isXConfigured: vi.fn(() => true),
-}))
+  XApiError,
+} = vi.hoisted(() => {
+  // x-sync hace `err instanceof XApiError`: el mock debe exponer una clase con
+  // la misma forma (status + body). Va en hoisted para estar inicializada
+  // cuando corre el factory de vi.mock (que se eleva sobre las const).
+  class XApiError extends Error {
+    constructor(
+      readonly status: number,
+      readonly body: string,
+    ) {
+      super(`X API ${status}`)
+      this.name = 'XApiError'
+    }
+  }
+  return {
+    exchangeCodeForTokens: vi.fn(async () => ({
+      access_token: 'at',
+      refresh_token: 'rt',
+      expires_in: 7200,
+      scope: 'bookmark.read',
+      token_type: 'bearer',
+    })),
+    getXProfile: vi.fn(async () => ({ id: 'x-1', username: 'daniel', name: 'Daniel' })),
+    saveTokens: vi.fn(async () => {}),
+    getStoredTokens: vi.fn(async () => null as unknown),
+    getValidAccessToken: vi.fn(async () => 'access-token'),
+    fetchBookmarks: vi.fn(async () => [{ tweetId: 't1' }, { tweetId: 't2' }]),
+    storeBookmarks: vi.fn(async () => 2),
+    markSynced: vi.fn(async () => {}),
+    disconnectX: vi.fn(async () => {}),
+    isXConfigured: vi.fn(() => true),
+    XApiError,
+  }
+})
 vi.mock('./x/index.js', () => ({
   X_SCOPES: 'tweet.read users.read bookmark.read offline.access',
   buildAuthUrl: (state: string, challenge: string) =>
@@ -50,6 +66,7 @@ vi.mock('./x/index.js', () => ({
   storeBookmarks,
   markSynced,
   disconnectX,
+  XApiError,
 }))
 
 import loginHandler from '../x-login'
@@ -157,6 +174,24 @@ describe('x-sync', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ fetched: 2, inserted: 2 })
     expect(markSynced).toHaveBeenCalledOnce()
+  })
+
+  it('403 de X (sin permiso/tier) → 422 con la razón que devuelve X', async () => {
+    getStoredTokens.mockResolvedValue({ x_user_id: 'x-1' } as unknown)
+    fetchBookmarks.mockRejectedValueOnce(
+      new XApiError(
+        403,
+        JSON.stringify({ title: 'Client Forbidden', reason: 'client-not-enrolled' }),
+      ),
+    )
+    const res = await syncHandler(
+      new Request('http://localhost/api/x/sync', { method: 'POST' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(422)
+    const body = await res.json()
+    expect(body.error.message).toContain('Client Forbidden')
+    expect(body.error.message).toContain('client-not-enrolled')
   })
 })
 

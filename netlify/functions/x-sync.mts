@@ -49,13 +49,28 @@ export default withObservability(
       logEvent({ event: 'x_sync_ok', fetched: items.length, inserted })
       return Response.json({ fetched: items.length, inserted })
     } catch (err) {
-      // 403/401 de X = permiso o plan. Mensaje claro en vez de un 502 opaco.
+      // 403/401 de X = permiso o plan. Mensaje claro en vez de un 502 opaco,
+      // incluyendo la razón exacta que devuelve X (title/reason) para
+      // distinguir "falta el scope" (reconectar) de "el plan no incluye la API".
       if (err instanceof XApiError && (err.status === 403 || err.status === 401)) {
+        let reason = ''
+        try {
+          const j = JSON.parse(err.body) as {
+            title?: string
+            reason?: string
+            detail?: string
+          }
+          reason = [j.title, j.reason].filter(Boolean).join(' · ')
+        } catch {
+          reason = err.body.slice(0, 120)
+        }
+        const suffix = reason ? ` (X: ${reason})` : ''
+        logEvent({ event: 'x_sync_forbidden', status: err.status, reason })
         return ApiErrors.unprocessable(
           requestId,
-          'X no autorizó la lectura de bookmarks. Si recién agregaste el permiso, ' +
-            'desconectá y volvé a conectar X. Si persiste, tu plan de desarrollador de X ' +
-            '(Free) podría no incluir la API de Bookmarks.',
+          `X no autorizó la lectura de bookmarks${suffix}. Si recién agregaste el ` +
+            'permiso, desconectá y volvé a conectar X. Si persiste, tu plan de ' +
+            'desarrollador de X (Free) podría no incluir la API de Bookmarks.',
         )
       }
       const message = err instanceof Error ? err.message : String(err)
