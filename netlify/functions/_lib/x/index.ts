@@ -15,3 +15,4 @@ export {
   type StoredXTokens,
 } from './auth.js'
 export { fetchBookmarks, storeBookmarks, type NormalizedBookmark } from './sync.js'
+export { isXConfigured } from './client.js'

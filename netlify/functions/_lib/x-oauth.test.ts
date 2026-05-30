@@ -16,6 +16,7 @@ const {
   storeBookmarks,
   markSynced,
   disconnectX,
+  isXConfigured,
 } = vi.hoisted(() => ({
   exchangeCodeForTokens: vi.fn(async () => ({
     access_token: 'at',
@@ -32,12 +33,14 @@ const {
   storeBookmarks: vi.fn(async () => 2),
   markSynced: vi.fn(async () => {}),
   disconnectX: vi.fn(async () => {}),
+  isXConfigured: vi.fn(() => true),
 }))
 vi.mock('./x/index.js', () => ({
   X_SCOPES: 'tweet.read users.read bookmark.read offline.access',
   buildAuthUrl: (state: string, challenge: string) =>
     `https://twitter.com/i/oauth2/authorize?state=${state}&code_challenge=${challenge}`,
   generatePkce: async () => ({ verifier: 'VERIFIER', challenge: 'CHALLENGE' }),
+  isXConfigured,
   exchangeCodeForTokens,
   getXProfile,
   saveTokens,
@@ -75,6 +78,7 @@ beforeEach(() => {
     m.mockClear()
   }
   getStoredTokens.mockResolvedValue(null as unknown)
+  isXConfigured.mockReturnValue(true)
 })
 afterEach(() => vi.unstubAllGlobals())
 
@@ -91,6 +95,17 @@ describe('x-login', () => {
     expect(setCookie).toContain('x_verifier=VERIFIER')
     expect(setCookie).toContain('x_uid=legacy-single-user')
     expect(setCookie).toMatch(/HttpOnly/i)
+  })
+
+  it('400 (no 500) cuando X no está configurado', async () => {
+    isXConfigured.mockReturnValue(false)
+    const res = await loginHandler(
+      new Request('http://localhost/api/x/login'),
+      mockContext(),
+    )
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error?.message).toMatch(/no está configurado/i)
   })
 })
 
