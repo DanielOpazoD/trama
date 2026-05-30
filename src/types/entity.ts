@@ -52,6 +52,8 @@ export type Entity = {
   spotifyUrl?: string
   /** Wikipedia URL — opcional, para cualquier tipo. Hipervínculo de referencia. */
   wikipediaUrl?: string
+  /** Grokipedia URL — entrada automática en Grokipedia (grokipedia.com). */
+  grokipediaUrl?: string
   createdAt: string
   updatedAt: string
 }

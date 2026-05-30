@@ -69,6 +69,8 @@ export const entitiesApi = {
         position_y: data.positionY ?? null,
         origin: data.origin,
         spotify_url: data.spotifyUrl ?? null,
+        wikipedia_url: data.wikipediaUrl ?? null,
+        grokipedia_url: data.grokipediaUrl ?? null,
       }),
     })
     return entityFromRow(row)
@@ -92,6 +94,7 @@ export const entitiesApi = {
       description: string | null
       spotifyUrl: string | null
       wikipediaUrl: string | null
+      grokipediaUrl: string | null
     }>,
   ): Promise<Entity> {
     const body: Record<string, unknown> = {}
@@ -101,6 +104,7 @@ export const entitiesApi = {
     if (patch.description !== undefined) body.description = patch.description
     if (patch.spotifyUrl !== undefined) body.spotify_url = patch.spotifyUrl
     if (patch.wikipediaUrl !== undefined) body.wikipedia_url = patch.wikipediaUrl
+    if (patch.grokipediaUrl !== undefined) body.grokipedia_url = patch.grokipediaUrl
     const row = await request<EntityRow>(`/api/entities/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(body),

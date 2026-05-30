@@ -26,6 +26,7 @@ export const EntityCreateBody = z.object({
   origin: z.unknown().optional(),
   spotify_url: z.string().nullable().optional(),
   wikipedia_url: z.string().nullable().optional(),
+  grokipedia_url: z.string().nullable().optional(),
 })
 export type EntityCreateBodyT = z.infer<typeof EntityCreateBody>
 
@@ -43,6 +44,7 @@ export const EntityPatchBody = z.object({
   position_y: z.number().nullable().optional(),
   spotify_url: z.string().nullable().optional(),
   wikipedia_url: z.string().nullable().optional(),
+  grokipedia_url: z.string().nullable().optional(),
 })
 export type EntityPatchBodyT = z.infer<typeof EntityPatchBody>
 
