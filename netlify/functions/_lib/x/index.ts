@@ -24,3 +24,11 @@ export {
   type StoredBookmark,
 } from './sync.js'
 export { isXConfigured } from './client.js'
+export {
+  runClassify,
+  buildClassifyMessages,
+  parseClassifications,
+  TOPIC_CATEGORIES,
+  type Topic,
+  type ClassifyInvocation,
+} from './classify.js'

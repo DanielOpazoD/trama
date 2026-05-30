@@ -4,12 +4,15 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { logEvent } from './_lib/observability.js'
+import { checkMonthlyBudget } from './_lib/cost-cap.js'
+import { resolveAIInvocation } from './_lib/ai-mode.js'
 import {
   fetchBookmarks,
   getStoredTokens,
   getValidAccessToken,
   getXProfile,
   markSynced,
+  runClassify,
   storeBookmarks,
   XApiError,
 } from './_lib/x/index.js'
@@ -46,8 +49,30 @@ export default withObservability(
       const items = await fetchBookmarks(accessToken, xUserId)
       const inserted = await storeBookmarks(sql, items, userId)
       await markSynced(sql, userId)
-      logEvent({ event: 'x_sync_ok', fetched: items.length, inserted })
-      return Response.json({ fetched: items.length, inserted })
+
+      // Auto-clasificar lo nuevo por tema (best-effort: si la IA está off, sin
+      // presupuesto, o falla, NO rompe el sync — el botón on-demand lo retoma).
+      let classified = 0
+      if (inserted > 0) {
+        try {
+          const overBudget = await checkMonthlyBudget(userId, requestId)
+          const invocation = await resolveAIInvocation(req, 'classify', userId)
+          if (!overBudget && invocation.kind === 'ready') {
+            const r = await runClassify(
+              sql,
+              userId,
+              { provider: invocation.provider, model: invocation.model },
+              3,
+            )
+            classified = r.classified
+          }
+        } catch {
+          /* clasificación best-effort — el sync ya guardó los bookmarks */
+        }
+      }
+
+      logEvent({ event: 'x_sync_ok', fetched: items.length, inserted, classified })
+      return Response.json({ fetched: items.length, inserted, classified })
     } catch (err) {
       // 403/401 de X = permiso o plan. Mensaje claro en vez de un 502 opaco,
       // incluyendo la razón exacta que devuelve X (title/reason) para

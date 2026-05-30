@@ -26,6 +26,7 @@ function toCamel(b: StoredBookmark) {
     tweetCreatedAt: b.tweet_created_at,
     url: b.url,
     capturedAt: b.captured_at,
+    topic: b.topic,
   }
 }
 
