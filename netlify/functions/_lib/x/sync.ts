@@ -28,13 +28,14 @@ export type NormalizedBookmark = {
   url: string
 }
 
-/** Error de la API de X con el status HTTP, para mapear a un mensaje claro. */
+/** Error de la API de X con el status HTTP + body crudo, para mapear a un
+ * mensaje claro (X devuelve `title`/`reason`/`detail` en el JSON del error). */
 export class XApiError extends Error {
   constructor(
     readonly status: number,
-    message: string,
+    readonly body: string,
   ) {
-    super(message)
+    super(`X API ${status}: ${body.slice(0, 200)}`)
     this.name = 'XApiError'
   }
 }
@@ -54,10 +55,7 @@ export async function fetchBookmarks(
     headers: { Authorization: `Bearer ${accessToken}` },
   })
   if (!r.ok) {
-    throw new XApiError(
-      r.status,
-      `X bookmarks fetch failed (${r.status}): ${await r.text()}`,
-    )
+    throw new XApiError(r.status, await r.text())
   }
   const data = (await r.json()) as BookmarksResponse
   const usersById = new Map((data.includes?.users ?? []).map((u) => [u.id, u] as const))
