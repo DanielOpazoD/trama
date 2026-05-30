@@ -77,18 +77,23 @@ export function NodeDetailPanel({
         editingDescription={editingDescription}
       />
 
-      {/* Secciones del panel. space-y-6 entre bloques para que respiren
-          sin desperdiciar alto — el panel busca ser compacto. */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-        {editingDescription && (
-          <DescriptionEditor
-            entity={entity}
-            onDone={() => setEditingDescription(false)}
-          />
-        )}
-        <QuotesList entity={entity} />
-        <VozDe entity={entity} />
-        <ConnectionsList entity={entity} />
+      {/* Secciones del panel. Columna flex: el bloque principal arriba y
+          Conexiones anclada al fondo (mt-auto) para que quede al final del
+          panel aunque haya poco contenido. Con scroll, fluye normalmente. */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col">
+        <div className="space-y-6">
+          {editingDescription && (
+            <DescriptionEditor
+              entity={entity}
+              onDone={() => setEditingDescription(false)}
+            />
+          )}
+          <QuotesList entity={entity} />
+          <VozDe entity={entity} />
+        </div>
+        <div className="mt-auto pt-6">
+          <ConnectionsList entity={entity} />
+        </div>
       </div>
     </div>
   )
