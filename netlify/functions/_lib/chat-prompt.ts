@@ -1,4 +1,9 @@
 import type { LLMMessage } from './llm'
+import {
+  budgetItems,
+  logContextTruncation,
+  DEFAULT_CONTEXT_TOKEN_BUDGET,
+} from './token-budget.js'
 
 export type ChatTramaContext = {
   entities: Array<{
@@ -49,10 +54,36 @@ export function buildChatPrompt(
 ): LLMMessage[] {
   // Each row includes its UUID so the model can reference it in edits and
   // deletes. IDs are noisy but unavoidable — name alone is ambiguous.
+  //
+  // El contexto ya viene acotado por RAG aguas arriba, pero igual lo pasamos por
+  // un presupuesto de tokens como red de seguridad: evita que un hilo con mucho
+  // contexto trunque en silencio del lado del provider. Reparto: 50/30/20.
+  const budget = DEFAULT_CONTEXT_TOKEN_BUDGET
+  const ents = budgetItems(
+    context.entities,
+    (e) => `${e.id}${e.name}${e.type}${e.year ?? ''}${e.description ?? ''}`,
+    Math.floor(budget * 0.5),
+  )
+  const rels = budgetItems(
+    context.relationships,
+    (r) => `${r.id}${r.fromName}${r.type}${r.toName}${r.notes ?? ''}`,
+    Math.floor(budget * 0.3),
+  )
+  const quos = budgetItems(
+    context.quotes,
+    (q) => `${q.id}${q.entityName}${q.text}${q.source ?? ''}`,
+    Math.floor(budget * 0.2),
+  )
+  logContextTruncation(
+    'chat',
+    { entities: ents.dropped, relationships: rels.dropped, quotes: quos.dropped },
+    budget,
+  )
+
   const entityBlock =
     context.entities.length === 0
       ? '(la trama todavía está vacía)'
-      : context.entities
+      : ents.items
           .map((e) => {
             const meta = [e.type, e.year ?? null].filter(Boolean).join(', ')
             const desc = e.description ? ` — ${e.description}` : ''
@@ -63,7 +94,7 @@ export function buildChatPrompt(
   const relsBlock =
     context.relationships.length === 0
       ? '(sin relaciones todavía)'
-      : context.relationships
+      : rels.items
           .map((r) => {
             const note = r.notes ? ` — ${r.notes}` : ''
             return `- [id=${r.id}] ${r.fromName} → ${r.type} → ${r.toName}${note}`
@@ -73,7 +104,7 @@ export function buildChatPrompt(
   const quotesBlock =
     context.quotes.length === 0
       ? '(sin citas)'
-      : context.quotes
+      : quos.items
           .map((q) => {
             const src = q.source ? ` [${q.source}]` : ''
             return `- [id=${q.id}] ${q.entityName}: «${q.text}»${src}`

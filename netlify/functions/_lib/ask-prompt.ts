@@ -1,4 +1,9 @@
 import type { LLMMessage } from './llm'
+import {
+  budgetItems,
+  logContextTruncation,
+  DEFAULT_CONTEXT_TOKEN_BUDGET,
+} from './token-budget.js'
 
 export type AskContext = {
   /** Which view the user is looking at right now. */
@@ -65,11 +70,36 @@ export type AskContext = {
  *     the chat — keeps the UI consistent).
  */
 export function buildAskPrompt(userText: string, ctx: AskContext): LLMMessage[] {
+  // Acotamos el contexto por TOKENS (no por un slice ciego): a escala, esto
+  // evita que el prompt exceda la ventana del modelo y el provider trunque en
+  // silencio. Repartimos el presupuesto: 50% entidades, 30% relaciones, 20%
+  // citas. Si se omite algo, logContextTruncation lo deja en los logs.
+  const budget = DEFAULT_CONTEXT_TOKEN_BUDGET
+  const ents = budgetItems(
+    ctx.entities,
+    (e) => `${e.id}${e.name}${e.type}${e.year ?? ''}${e.description ?? ''}`,
+    Math.floor(budget * 0.5),
+  )
+  const rels = budgetItems(
+    ctx.relationships,
+    (r) => `${r.id}${r.fromName}${r.type}${r.toName}`,
+    Math.floor(budget * 0.3),
+  )
+  const quos = budgetItems(
+    ctx.recentQuotes,
+    (q) => `${q.id}${q.entityName}${q.text}${q.source ?? ''}`,
+    Math.floor(budget * 0.2),
+  )
+  logContextTruncation(
+    'ask',
+    { entities: ents.dropped, relationships: rels.dropped, quotes: quos.dropped },
+    budget,
+  )
+
   const entityBlock =
     ctx.entities.length === 0
       ? '(la trama todavía está vacía)'
-      : ctx.entities
-          .slice(0, 80)
+      : ents.items
           .map((e) => {
             const meta = [e.type, e.year ?? null].filter(Boolean).join(', ')
             const desc = e.description ? ` — ${e.description}` : ''
@@ -80,16 +110,14 @@ export function buildAskPrompt(userText: string, ctx: AskContext): LLMMessage[] 
   const relsBlock =
     ctx.relationships.length === 0
       ? '(sin relaciones todavía)'
-      : ctx.relationships
-          .slice(0, 80)
+      : rels.items
           .map((r) => `- [id=${r.id}] ${r.fromName} → ${r.type} → ${r.toName}`)
           .join('\n')
 
   const quotesBlock =
     ctx.recentQuotes.length === 0
       ? '(sin citas)'
-      : ctx.recentQuotes
-          .slice(0, 20)
+      : quos.items
           .map(
             (q) =>
               `- [id=${q.id}] ${q.entityName}: «${q.text}»${q.source ? ` [${q.source}]` : ''}`,
