@@ -31,6 +31,8 @@ export function TareasView() {
   const [title, setTitle] = useState('')
   const [detail, setDetail] = useState('')
   const [due, setDue] = useState('')
+  // El vencimiento es opcional: el campo aparece solo si el usuario lo pide.
+  const [showDue, setShowDue] = useState(false)
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState<string | null>(null)
   // Día seleccionado en el calendario (filtra por fecha de vencimiento), o null.
@@ -44,9 +46,10 @@ export function TareasView() {
     return [...set].sort((a, b) => a.localeCompare(b))
   }, [tasks])
 
-  // Calendario de Tareas: por fecha de VENCIMIENTO (las sin fecha no aparecen).
+  // Calendario de Tareas: por fecha de VENCIMIENTO, solo PENDIENTES (las hechas
+  // y las sin fecha no aparecen). El número en cada día = tareas por vencer.
   const calendarDays = useMemo(
-    () => tasks.filter((t) => t.dueDate).map((t) => t.dueDate as string),
+    () => tasks.filter((t) => t.dueDate && !t.done).map((t) => t.dueDate as string),
     [tasks],
   )
   const calendarStats = useMemo(() => {
@@ -91,6 +94,7 @@ export function TareasView() {
           setTitle('')
           setDetail('')
           setDue('')
+          setShowDue(false)
         },
       },
     )
@@ -133,15 +137,39 @@ export function TareasView() {
           className="w-full resize-y bg-transparent text-sm text-ink-600 placeholder:text-ink-300 focus:outline-none leading-relaxed mt-1"
         />
         <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60">
-          <label className="text-micro uppercase tracking-eyebrow text-ink-400 flex items-center gap-2">
-            vence
-            <input
-              type="date"
-              value={due}
-              onChange={(e) => setDue(e.target.value)}
-              className="input-paper text-sm normal-case tracking-normal"
-            />
-          </label>
+          {/* Vencimiento opcional: por defecto solo un enlace discreto; el
+              campo de fecha aparece si el usuario decide ponerle plazo. */}
+          {showDue || due ? (
+            <label className="text-micro uppercase tracking-eyebrow text-ink-400 flex items-center gap-2">
+              vence
+              <input
+                type="date"
+                value={due}
+                onChange={(e) => setDue(e.target.value)}
+                className="input-paper text-sm normal-case tracking-normal"
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setDue('')
+                  setShowDue(false)
+                }}
+                aria-label="Quitar vencimiento"
+                className="text-ink-300 hover:text-ink-700 transition-colors"
+              >
+                ✕
+              </button>
+            </label>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowDue(true)}
+              className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+            >
+              + fecha de vencimiento
+            </button>
+          )}
           <button
             onClick={save}
             disabled={!title.trim() || createTask.isPending}

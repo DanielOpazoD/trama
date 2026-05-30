@@ -234,6 +234,7 @@ export function NotasView() {
               onTogglePin={() =>
                 updateNote.mutate({ id: note.id, patch: { pinned: !note.pinned } })
               }
+              onEdit={(content) => updateNote.mutate({ id: note.id, patch: { content } })}
               onDelete={() => deleteNote.mutate(note.id)}
               onPromote={() =>
                 promoteNote.mutate(note.id, {

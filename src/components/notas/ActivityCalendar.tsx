@@ -165,7 +165,7 @@ export function ActivityCalendar({
                 onClick={() => onSelectDay(isSelected ? null : c.key)}
                 title={`${c.count} ${word} · ${c.day} ${MONTHS[view.m]}`}
                 aria-label={`${c.day} de ${MONTHS[view.m]}: ${c.count} ${word}`}
-                className={`aspect-square rounded-md text-micro tabular-nums flex items-center justify-center transition-opacity ${
+                className={`relative aspect-square rounded-md text-micro tabular-nums flex items-center justify-center transition-opacity ${
                   clickable ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
                 } ${level === 0 ? 'text-ink-300' : 'text-ink-800'}`}
                 style={{
@@ -177,6 +177,16 @@ export function ActivityCalendar({
                 }}
               >
                 {c.day}
+                {/* Contador en la esquina: cuántas notas/tareas hay ese día. */}
+                {c.count > 0 && (
+                  <span
+                    aria-hidden
+                    className="absolute -top-0.5 -right-0.5 min-w-[13px] h-[13px] px-0.5 inline-flex items-center justify-center rounded-full text-[8px] font-semibold leading-none text-paper-50"
+                    style={{ backgroundColor: ACCENT }}
+                  >
+                    {c.count}
+                  </span>
+                )}
               </button>
             )
           })}

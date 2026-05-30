@@ -23,6 +23,7 @@ export function NoteCard({
   onTogglePin,
   onDelete,
   onPromote,
+  onEdit,
   busy = false,
   promoting = false,
 }: {
@@ -30,11 +31,54 @@ export function NoteCard({
   onTogglePin: () => void
   onDelete: () => void
   onPromote: () => void
+  onEdit: (content: string) => void
   busy?: boolean
   promoting?: boolean
 }) {
   const [confirming, setConfirming] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(note.content)
   const promoted = note.promotedMomentoId !== null
+
+  function saveEdit() {
+    const next = draft.trim()
+    if (!next) return
+    if (next !== note.content) onEdit(next)
+    setEditing(false)
+  }
+
+  // Modo edición — textarea con el contenido en crudo (markdown), ⌘↵ guarda.
+  if (editing) {
+    return (
+      <article className="card-paper-soft rounded-xl border border-ink-100/70 p-4">
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+              e.preventDefault()
+              saveEdit()
+            }
+          }}
+          rows={4}
+          autoFocus
+          className="w-full resize-y bg-transparent text-ink-700 placeholder:text-ink-300 focus:outline-none leading-relaxed"
+        />
+        <div className="mt-2 flex items-center justify-end gap-2">
+          <button onClick={() => setEditing(false)} className="btn-ghost text-xs">
+            cancelar
+          </button>
+          <button
+            onClick={saveEdit}
+            disabled={!draft.trim() || busy}
+            className="btn-ink text-xs disabled:opacity-50"
+          >
+            guardar
+          </button>
+        </div>
+      </article>
+    )
+  }
 
   return (
     <article className="card-paper-soft group rounded-xl border border-ink-100/70 p-4 transition-colors">
@@ -71,6 +115,16 @@ export function NoteCard({
               {promoting ? 'promoviendo…' : '→ momento'}
             </button>
           )}
+          <button
+            onClick={() => {
+              setDraft(note.content)
+              setEditing(true)
+            }}
+            disabled={busy}
+            className="uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
+          >
+            editar
+          </button>
           <button
             onClick={onTogglePin}
             disabled={busy}
