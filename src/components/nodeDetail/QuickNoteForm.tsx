@@ -3,17 +3,26 @@ import { useAddQuote } from '../../state'
 import type { Entity } from '../../types'
 
 /**
- * Form rápido para añadir una cita o nota atribuida a esta entidad.
+ * Captura rápida de una cita o nota atribuida a esta entidad.
  *
- * KISS: solo texto + reflexión opcional (oculta detrás de un "+ Reflexión").
- * No pide source/context (se editan después en QuoteCard si hace falta).
- * El objetivo es bajar la fricción al mínimo para capturar un pensamiento.
+ * Colapsada por defecto a un solo "+ cita o nota" — para no ocupar espacio
+ * cuando no se está escribiendo. Al expandir: texto + reflexión opcional
+ * (oculta tras "+ reflexión") + añadir. KISS: no pide source/context (se
+ * editan luego en la cita si hace falta).
  */
 export function QuickNoteForm({ entity }: { entity: Entity }) {
   const addQuote = useAddQuote()
+  const [open, setOpen] = useState(false)
   const [noteDraft, setNoteDraft] = useState('')
   const [reflectionDraft, setReflectionDraft] = useState('')
   const [showReflection, setShowReflection] = useState(false)
+
+  function reset() {
+    setNoteDraft('')
+    setReflectionDraft('')
+    setShowReflection(false)
+    setOpen(false)
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -26,55 +35,63 @@ export function QuickNoteForm({ entity }: { entity: Entity }) {
         userReflection: reflectionDraft.trim() || undefined,
         origin: { kind: 'manual' },
       })
-      setNoteDraft('')
-      setReflectionDraft('')
-      setShowReflection(false)
+      reset()
     } catch {
       /* surfaces via addQuote.error */
     }
   }
 
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full rounded-lg border border-dashed border-ink-100 px-3 py-2 text-sm text-ink-400 hover:text-ink-700 hover:border-ink-200 transition-colors text-left"
+      >
+        + cita o nota
+      </button>
+    )
+  }
+
   return (
-    <section>
-      {/* θ1: header en section-eyebrow-serif (small caps + Spectral) en
-          vez del uppercase tracking-wider plano. Más refinado, hace
-          que la sección se sienta como un epígrafe de capítulo. */}
-      <h3 className="section-eyebrow-serif mb-2">Cita o nota</h3>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+      <textarea
+        value={noteDraft}
+        onChange={(e) => setNoteDraft(e.target.value)}
+        placeholder="Una cita, una nota…"
+        rows={2}
+        className="input-paper w-full resize-none text-sm"
+        autoFocus
+      />
+      {showReflection ? (
         <textarea
-          value={noteDraft}
-          onChange={(e) => setNoteDraft(e.target.value)}
-          placeholder="Una cita, una nota…"
+          value={reflectionDraft}
+          onChange={(e) => setReflectionDraft(e.target.value)}
+          placeholder="Tu reflexión…"
           rows={2}
           className="input-paper w-full resize-none text-sm"
         />
-        {showReflection ? (
-          <textarea
-            value={reflectionDraft}
-            onChange={(e) => setReflectionDraft(e.target.value)}
-            placeholder="Tu reflexión…"
-            rows={2}
-            className="input-paper w-full resize-none text-sm"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowReflection(true)}
-            className="self-start text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
-          >
-            + Reflexión
-          </button>
-        )}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={!noteDraft.trim() || addQuote.isPending}
-            className="btn-accent text-xs"
-          >
-            {addQuote.isPending ? 'añadiendo…' : 'añadir'}
-          </button>
-        </div>
-      </form>
-    </section>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowReflection(true)}
+          className="self-start text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+        >
+          + reflexión
+        </button>
+      )}
+      <div className="flex items-center justify-end gap-2">
+        <button type="button" onClick={reset} className="btn-ghost text-xs">
+          cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={!noteDraft.trim() || addQuote.isPending}
+          className="btn-accent text-xs"
+        >
+          {addQuote.isPending ? 'añadiendo…' : 'añadir'}
+        </button>
+      </div>
+    </form>
   )
 }

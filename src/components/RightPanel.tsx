@@ -48,7 +48,7 @@ export function RightPanel({
       <button
         onClick={onBackdropClose}
         aria-label="Cerrar panel"
-        className="fixed inset-0 z-10 cursor-default"
+        className="fixed inset-0 z-10 cursor-default bg-ink-900/20"
         tabIndex={-1}
       />
       {/* Desktop: glass card anchored to the right. Mobile: bottom sheet
@@ -57,14 +57,14 @@ export function RightPanel({
         className={
           isMobile
             ? 'fixed inset-x-0 bottom-0 top-12 z-20 animate-slide-up pointer-events-none'
-            : 'fixed top-4 right-4 bottom-4 w-[32rem] max-w-[calc(100vw-2rem)] z-20 animate-slide-in-right pointer-events-none'
+            : 'fixed top-4 right-4 bottom-4 w-[40rem] max-w-[calc(100vw-2rem)] z-20 animate-slide-in-right pointer-events-none'
         }
       >
         <div
           className={
             isMobile
-              ? 'relative paper-grain h-full pointer-events-auto rounded-t-2xl border-t border-x border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/12 overflow-hidden'
-              : 'relative paper-grain h-full pointer-events-auto rounded-xl border border-ink-100/50 bg-paper-50/85 backdrop-blur-md shadow-lg shadow-ink-900/10 overflow-hidden'
+              ? 'relative paper-grain h-full pointer-events-auto rounded-t-2xl border-t border-x border-ink-100 bg-paper-50 shadow-2xl shadow-ink-900/20 overflow-hidden'
+              : 'relative paper-grain h-full pointer-events-auto rounded-xl border border-ink-100 bg-paper-50 shadow-2xl shadow-ink-900/15 overflow-hidden'
           }
         >
           {/* Drag handle on mobile — visual cue de que es un sheet. */}

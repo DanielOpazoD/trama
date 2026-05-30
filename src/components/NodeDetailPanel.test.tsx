@@ -132,12 +132,12 @@ describe('<NodeDetailPanel />', () => {
     })
 
     const user = userEvent.setup()
-    // Delete trigger is now icon-only; locate by aria-label.
-    await user.click(screen.getByLabelText('Eliminar'))
-    // Confirmation appears
-    expect(screen.getByText(/¿Borrar\?/)).toBeInTheDocument()
-    // Click sí
-    await user.click(screen.getByRole('button', { name: /^Sí$/ }))
+    // El borrado vive ahora en el menú ⋯ del header (dos pasos: confirmar).
+    await user.click(screen.getByLabelText('Más acciones'))
+    await user.click(screen.getByRole('menuitem', { name: /Eliminar/ }))
+    // Confirmación inline
+    expect(screen.getByText(/¿Eliminar esta entidad\?/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Eliminar$/ }))
 
     await waitFor(() => {
       expect(deleteFetch).toHaveBeenCalledWith(

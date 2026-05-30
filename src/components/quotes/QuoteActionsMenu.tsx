@@ -1,11 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { SparkleIcon, TrashIcon } from '../Icons'
 
 /**
  * ρ-citas: menú "⋯" que agrupa las acciones secundarias de una cita
- * (Editar, Postal, Reflexionar con IA, Eliminar) en un solo control. Antes
- * vivían como 3-4 botones sueltos por cita — mucho ruido visual. Acá quedan
- * a un gesto, dejando el footer limpio (atribución + resonancia + favorita).
+ * (Editar, Postal, Reflexionar con IA, Eliminar) en un solo control.
+ *
+ * El popover se renderiza con `createPortal` a `document.body` y se posiciona
+ * con coordenadas `fixed` calculadas desde el botón — así flota libre y NO se
+ * recorta dentro de la columna de lectura (`max-w-3xl`). Se cierra al hacer
+ * clic afuera, con Escape, y al scrollear/redimensionar (la posición fija
+ * quedaría desfasada).
  */
 const ROW =
   'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-left transition-colors disabled:opacity-50'
@@ -27,21 +32,39 @@ export function QuoteActionsMenu({
   canReflect?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement | null>(null)
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const r = triggerRef.current?.getBoundingClientRect()
+    if (r) setPos({ top: r.bottom + 6, right: window.innerWidth - r.right })
+  }, [open])
 
   useEffect(() => {
     if (!open) return
     function onDown(e: MouseEvent) {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      if (!triggerRef.current?.contains(t) && !menuRef.current?.contains(t)) {
+        setOpen(false)
+      }
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false)
     }
+    function onReflow() {
+      setOpen(false)
+    }
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
+    window.addEventListener('scroll', onReflow, true)
+    window.addEventListener('resize', onReflow)
     return () => {
       document.removeEventListener('mousedown', onDown)
       document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', onReflow, true)
+      window.removeEventListener('resize', onReflow)
     }
   }, [open])
 
@@ -51,8 +74,9 @@ export function QuoteActionsMenu({
   }
 
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
@@ -65,47 +89,52 @@ export function QuoteActionsMenu({
           ⋯
         </span>
       </button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 top-full mt-1 z-40 w-44 paper-grain rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 p-1.5"
-        >
-          <button
-            role="menuitem"
-            onClick={() => run(onEdit)}
-            className={`${ROW} text-ink-600 hover:text-ink-800 hover:bg-ink-100/60`}
+      {open &&
+        pos &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            style={{ position: 'fixed', top: pos.top, right: pos.right }}
+            className="z-50 w-44 paper-grain rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/15 p-1.5 animate-fade-up"
           >
-            Editar
-          </button>
-          <button
-            role="menuitem"
-            onClick={() => run(onPostal)}
-            className={`${ROW} text-ink-600 hover:text-ink-800 hover:bg-ink-100/60`}
-          >
-            Postal
-          </button>
-          {canReflect && (
             <button
               role="menuitem"
-              onClick={() => run(onReflect)}
-              disabled={reflectPending}
-              className={`${ROW} text-sky-700/80 hover:text-sky-800 hover:bg-sky-50`}
+              onClick={() => run(onEdit)}
+              className={`${ROW} text-ink-600 hover:text-ink-800 hover:bg-ink-100/60`}
             >
-              <SparkleIcon size={12} />
-              {reflectPending ? 'Leyendo…' : 'Reflexionar con IA'}
+              Editar
             </button>
-          )}
-          <div className="h-px bg-ink-100 my-1" />
-          <button
-            role="menuitem"
-            onClick={() => run(onDelete)}
-            className={`${ROW} text-red-700 hover:text-red-800 hover:bg-red-50`}
-          >
-            <TrashIcon size={12} />
-            Eliminar
-          </button>
-        </div>
-      )}
-    </div>
+            <button
+              role="menuitem"
+              onClick={() => run(onPostal)}
+              className={`${ROW} text-ink-600 hover:text-ink-800 hover:bg-ink-100/60`}
+            >
+              Postal
+            </button>
+            {canReflect && (
+              <button
+                role="menuitem"
+                onClick={() => run(onReflect)}
+                disabled={reflectPending}
+                className={`${ROW} text-sky-700/80 hover:text-sky-800 hover:bg-sky-50`}
+              >
+                <SparkleIcon size={12} />
+                {reflectPending ? 'Leyendo…' : 'Reflexionar con IA'}
+              </button>
+            )}
+            <div className="h-px bg-ink-100 my-1" />
+            <button
+              role="menuitem"
+              onClick={() => run(onDelete)}
+              className={`${ROW} text-red-700 hover:text-red-800 hover:bg-red-50`}
+            >
+              <TrashIcon size={12} />
+              Eliminar
+            </button>
+          </div>,
+          document.body,
+        )}
+    </>
   )
 }

@@ -2,19 +2,23 @@ import { ENTITY_TYPES, type Entity } from '../../types'
 import { CloseIcon, SparkleIcon } from '../Icons'
 import { Tooltip } from '../Tooltip'
 import { EntitySigil } from '../EntitySigil'
+import { EntityActionsMenu } from './EntityActionsMenu'
 
 /**
  * Header del panel de detalle: tipo + año + badge IA + nombre + link
- * a Spotify (si aplica) + botón de cerrar.
+ * a Spotify (si aplica), un menú ⋯ con las acciones secundarias (hablar /
+ * eliminar) y el botón de cerrar.
  *
- * Solo presentación — no toca estado.
+ * Solo presentación — delega las mutaciones al menú de acciones.
  */
 export function EntityHeader({
   entity,
   onClose,
+  onOpenThread,
 }: {
   entity: Entity
   onClose: () => void
+  onOpenThread?: (threadId: string) => void
 }) {
   const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label
   return (
@@ -61,7 +65,7 @@ export function EntityHeader({
         </p>
         {/* Nombre serif text-h1 (32px) con leading apretado para que un
             nombre largo entre en una o dos líneas elegantes. */}
-        <h2 className="font-serif text-h1 text-ink-800 leading-[1.15] tracking-tight break-words">
+        <h2 className="font-serif text-2xl text-ink-800 leading-[1.15] tracking-tight break-words">
           {entity.name}
         </h2>
         {entity.spotifyUrl && (
@@ -75,15 +79,22 @@ export function EntityHeader({
           </a>
         )}
       </div>
-      <Tooltip content="Cerrar panel">
-        <button
-          onClick={onClose}
-          className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors shrink-0"
-          aria-label="Cerrar"
-        >
-          <CloseIcon size={14} />
-        </button>
-      </Tooltip>
+      <div className="flex items-center gap-0.5 shrink-0">
+        <EntityActionsMenu
+          entity={entity}
+          onOpenThread={onOpenThread}
+          onClose={onClose}
+        />
+        <Tooltip content="Cerrar panel">
+          <button
+            onClick={onClose}
+            className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
+            aria-label="Cerrar"
+          >
+            <CloseIcon size={14} />
+          </button>
+        </Tooltip>
+      </div>
     </header>
   )
 }

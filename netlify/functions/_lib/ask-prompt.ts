@@ -147,7 +147,7 @@ FORMATO DE RESPUESTA — SIEMPRE JSON con esta forma exacta:
     "relationships": [{ "fromName": "string", "toName": "string", "type": "uno válido", "notes": "string opcional" }],
     "quotes":        [{ "entityName": "string", "text": "la cita", "source": "fuente opcional" }],
     "edits": [
-      { "kind": "entity",       "id": "uuid", "patch": { "name": "...", "type": "...", "year": 1234, "description": "...", "essay": "...", "spotifyUrl": "..." }, "reason": "..." },
+      { "kind": "entity",       "id": "uuid", "patch": { "name": "...", "type": "...", "year": 1234, "description": "...", "spotifyUrl": "..." }, "reason": "..." },
       { "kind": "quote",        "id": "uuid", "patch": { "text": "...", "source": "...", "context": "...", "entityId": "uuid-otra", "userReflection": "..." }, "reason": "..." },
       { "kind": "relationship", "id": "uuid", "patch": { "type": "...", "notes": "..." }, "reason": "..." }
     ],

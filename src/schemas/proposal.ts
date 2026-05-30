@@ -69,7 +69,6 @@ export const ProposedEntityEditSchema = z.object({
     type: z.string().optional(),
     year: z.number().nullable().optional(),
     description: z.string().nullable().optional(),
-    essay: z.string().nullable().optional(),
     spotifyUrl: z.string().nullable().optional(),
   }),
   reason: z.string().optional(),

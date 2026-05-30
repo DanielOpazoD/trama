@@ -102,33 +102,17 @@ function EntityRowInternal({
           </div>
         )}
 
-        {expanded && (
-          <div className="mt-3 pt-3 border-t border-ink-100/60 space-y-2 animate-fade-up">
-            <div className="flex items-baseline gap-3 section-eyebrow">
-              <span className="font-mono normal-case tracking-normal text-ink-300">
-                {entity.id.slice(0, 8)}
-              </span>
-              {entity.spotifyUrl && (
-                <a
-                  href={entity.spotifyUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-emerald-700 hover:text-emerald-900 transition-colors"
-                >
-                  ↗ Spotify
-                </a>
-              )}
-              <span
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onSelectEntity?.(entity.id)
-                }}
-                className="ml-auto text-ink-400 hover:text-ink-700 transition-colors cursor-pointer"
-              >
-                abrir panel →
-              </span>
-            </div>
+        {expanded && entity.spotifyUrl && (
+          <div className="mt-3 pt-3 border-t border-ink-100/60 animate-fade-up">
+            <a
+              href={entity.spotifyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="section-eyebrow normal-case tracking-normal text-emerald-700 hover:text-emerald-900 transition-colors"
+            >
+              ↗ Spotify
+            </a>
           </div>
         )}
       </button>

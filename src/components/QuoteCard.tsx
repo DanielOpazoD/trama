@@ -6,7 +6,7 @@ import {
   useUpdateQuote,
 } from '../state'
 import type { Quote } from '../types'
-import { SparkleIcon } from './Icons'
+import { PencilIcon, SparkleIcon, TrashIcon } from './Icons'
 import { QuoteEditMode } from './quotes/QuoteEditMode'
 
 /**
@@ -179,18 +179,22 @@ export function QuoteCard({
             year: 'numeric',
           })}
         </span>
-        <span className="ml-auto flex items-baseline gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={startFullEdit}
-            className="text-ink-300 hover:text-ink-700 text-micro uppercase tracking-eyebrow"
+            aria-label="Editar cita"
+            title="Editar"
+            className="p-1 rounded text-ink-300 hover:text-ink-700 transition-colors"
           >
-            editar
+            <PencilIcon size={13} />
           </button>
           <button
             onClick={() => deleteQuote.mutate(quote.id)}
-            className="text-ink-300 hover:text-red-700 text-micro uppercase tracking-eyebrow"
+            aria-label="Eliminar cita"
+            title="Eliminar"
+            className="p-1 rounded text-ink-300 hover:text-red-700 transition-colors"
           >
-            eliminar
+            <TrashIcon size={13} />
           </button>
         </span>
       </div>
@@ -236,9 +240,11 @@ export function QuoteCard({
               <span className="section-eyebrow">tu reflexión</span>
               <button
                 onClick={() => setEditingUserRefl(true)}
-                className="opacity-0 group-hover/refl:opacity-100 transition-opacity text-micro text-ink-300 hover:text-ink-700"
+                aria-label="Editar reflexión"
+                title="Editar"
+                className="opacity-0 group-hover/refl:opacity-100 transition-opacity inline-flex text-ink-300 hover:text-ink-700"
               >
-                editar
+                <PencilIcon size={12} />
               </button>
             </div>
             {/* μ1: marginalia manuscrita — la reflexión propia se lee
@@ -280,10 +286,11 @@ export function QuoteCard({
             )}
             <button
               onClick={handleDiscardAiSaved}
-              className="opacity-0 group-hover/airefl:opacity-100 transition-opacity text-micro text-ink-300 hover:text-red-700"
+              aria-label="Eliminar interpretación"
               title="Eliminar esta interpretación"
+              className="opacity-0 group-hover/airefl:opacity-100 transition-opacity inline-flex text-ink-300 hover:text-red-700"
             >
-              eliminar
+              <TrashIcon size={12} />
             </button>
           </div>
           <p className="text-ink-500 text-sm leading-relaxed mt-0.5 whitespace-pre-wrap">

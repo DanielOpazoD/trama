@@ -1,13 +1,10 @@
 import { useEffect } from 'react'
 import { useEntitiesQuery } from '../state'
 import { ConnectionsList } from './nodeDetail/ConnectionsList'
-import { DeleteFooter } from './nodeDetail/DeleteFooter'
 import { DescriptionEditor } from './nodeDetail/DescriptionEditor'
 import { EntityHeader } from './nodeDetail/EntityHeader'
-import { EssayEditor } from './nodeDetail/EssayEditor'
 import { QuickNoteForm } from './nodeDetail/QuickNoteForm'
 import { QuotesList } from './nodeDetail/QuotesList'
-import { TalkButton } from './nodeDetail/TalkButton'
 import { VozDe } from './nodeDetail/VozDe'
 
 /**
@@ -64,25 +61,17 @@ export function NodeDetailPanel({
       role="region"
       aria-label={`Detalle de ${entity.name}`}
     >
-      <EntityHeader entity={entity} onClose={onClose} />
+      <EntityHeader entity={entity} onClose={onClose} onOpenThread={onOpenThread} />
 
-      {/* Acción IA primaria fuera del header para que tenga su espacio
-          y el título no compita con ella por ancho. */}
-      {onOpenThread && <TalkButton entity={entity} onOpenThread={onOpenThread} />}
-
-      {/* θ1: padding horizontal px-6 (era p-5=20px) para acompañar el
-          ancho 520px del panel. space-y-8 entre secciones grandes para
-          que respiren como capítulos de un libro. */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-8">
+      {/* Secciones del panel. space-y-6 entre bloques para que respiren
+          sin desperdiciar alto — el panel busca ser compacto. */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
         <DescriptionEditor entity={entity} />
-        <EssayEditor entity={entity} />
         <QuickNoteForm entity={entity} />
         <QuotesList entity={entity} />
         <VozDe entity={entity} />
         <ConnectionsList entity={entity} />
       </div>
-
-      <DeleteFooter entity={entity} onClose={onClose} />
     </div>
   )
 }
