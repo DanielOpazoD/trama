@@ -34,6 +34,25 @@ export function SpotifyPanel() {
     }
   }
 
+  async function handleConnect() {
+    setBusy(true)
+    setMessage(null)
+    try {
+      // Pedimos la authorize URL autenticados (el server setea una cookie con
+      // el userId para el callback). Luego navegamos a Spotify.
+      const { url } = await api.spotifyLogin()
+      if (url) {
+        window.location.href = url
+        return
+      }
+      setMessage('Spotify no está disponible en este modo.')
+    } catch (err) {
+      setMessage(err instanceof Error ? `Error: ${err.message}` : 'Error al conectar')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handleDisconnect() {
     if (
       !confirm(
@@ -101,12 +120,13 @@ export function SpotifyPanel() {
           </div>
         </div>
       ) : (
-        <a
-          href="/api/spotify/login"
-          className="inline-block text-sm px-3 py-2 border border-ink-100/60 rounded-lg hover:bg-ink-50 transition-all"
+        <button
+          onClick={handleConnect}
+          disabled={busy}
+          className="inline-block text-sm px-3 py-2 border border-ink-100/60 rounded-lg hover:bg-ink-50 transition-all disabled:opacity-50"
         >
           Conectar con Spotify
-        </a>
+        </button>
       )}
       {message && (
         <p className="mt-3 text-xs text-ink-500 italic animate-fade-up">{message}</p>

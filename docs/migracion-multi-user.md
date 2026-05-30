@@ -269,15 +269,18 @@ y relationship-types son **taxonomía global por diseño** (no per-user) — OK.
 **🟢 Arreglado:** `health.mts` — antes agregaba counts/costos/errores GLOBALES;
 ahora filtra todo por `user_id` (con su contract test `health-endpoint.test`).
 
-**🔴 Bloqueantes que faltan antes de encender (código):**
+**🟢 Arreglado:** **Spotify OAuth per-user**. El `/login` ahora autentica al
+usuario y setea una cookie HttpOnly `spotify_uid` (el userId NUNCA pasa por
+Spotify → no se puede forjar); el callback lee esa cookie y asocia el token al
+usuario; el cron `spotify-scheduled-sync` itera por cada usuario con token. El
+front pide la authorize URL por fetch autenticado y navega. (De paso:
+`handler-wrap` ahora preserva los Set-Cookie al inyectar el `x-request-id`.)
 
-1. **Spotify OAuth per-user** (callback/login/scheduled-sync). Hoy el callback
-   guarda el token en la fila `'default'` sin saber qué usuario autorizó.
-   Arreglo: codificar `userId` en el `state` del OAuth (login) y leerlo en el
-   callback; el cron `spotify-scheduled-sync` debe iterar por usuario. Es el
-   ítem "Spotify per-user" del roadmap — una feature aparte.
-2. **`cost-alert-check.mts`** (cron): suma el costo GLOBAL. Debe iterar por
-   usuario y alertar por usuario.
+**🔴 Bloqueante que falta antes de encender (código):**
+
+1. **`cost-alert-check.mts`** (cron): suma el costo GLOBAL. Debe iterar por
+   usuario y alertar por usuario. (Único gap de código que queda; es un cron de
+   alertas, no expone datos a usuarios.)
 
 **Operativo (lo hace Daniel en Netlify, no se puede automatizar):**
 
