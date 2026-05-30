@@ -1,0 +1,571 @@
+/**
+ * Modo prueba (demo) — un backend liviano en el navegador.
+ *
+ * Cuando está activo, `request()` (src/api/request.ts) NO pega a `/api/*`:
+ * delega acá, que sirve desde un store en `localStorage` sembrado con datos
+ * de ejemplo. Permite recorrer y EDITAR la app (entidades, relaciones, citas,
+ * momentos, notas, tareas) sin cuenta ni base de datos — todo queda en este
+ * navegador, con el banner "modo prueba". Las funciones de IA quedan
+ * desactivadas (no gastan API).
+ *
+ * Las formas que devuelve son las del SERVIDOR (snake_case): los transforms de
+ * `src/api/` corren después, igual que con el backend real.
+ */
+
+const FLAG_KEY = 'trama-demo'
+const STORE_KEY = 'trama-demo-store'
+
+export function isDemoMode(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.localStorage.getItem(FLAG_KEY) === '1'
+}
+export function enterDemoMode(): void {
+  window.localStorage.setItem(FLAG_KEY, '1')
+}
+export function exitDemoMode(): void {
+  window.localStorage.removeItem(FLAG_KEY)
+  window.localStorage.removeItem(STORE_KEY)
+}
+
+// ---------- Store ----------
+
+type Row = {
+  id: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string | null
+  [k: string]: unknown
+}
+type Store = {
+  entities: Row[]
+  relationships: Row[]
+  quotes: Row[]
+  momentos: Row[]
+  notes: Row[]
+  tasks: Row[]
+}
+
+function uid(): string {
+  return crypto.randomUUID()
+}
+function nowIso(): string {
+  return new Date().toISOString()
+}
+function daysAgo(n: number): string {
+  return new Date(Date.now() - n * 86_400_000).toISOString()
+}
+function dateAgo(n: number): string {
+  return daysAgo(n).slice(0, 10)
+}
+
+/** Deriva #etiquetas (igual criterio que el servidor). */
+function parseTags(text: string): string[] {
+  const out = new Set<string>()
+  const re = /(?:^|\s)#([\p{L}\p{N}_-]{1,40})/gu
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) out.add(m[1]!.toLowerCase())
+  return [...out]
+}
+
+function buildSeed(): Store {
+  const ts = (d: number) => ({ created_at: daysAgo(d), updated_at: daysAgo(d) })
+  type DemoOrigin = { kind: string; provider?: string }
+  const manual: DemoOrigin = { kind: 'manual' }
+  const ai: DemoOrigin = { kind: 'ai', provider: 'deepseek' }
+
+  const eBorges = {
+    id: 'e-borges',
+    type: 'escritor',
+    name: 'Jorge Luis Borges',
+    year: 1899,
+    description: 'El bibliotecario ciego del infinito.',
+    essay: null,
+    position_x: -120,
+    position_y: -40,
+    spotify_url: null,
+    origin: manual,
+    ...ts(20),
+  }
+  const eCortazar = {
+    id: 'e-cortazar',
+    type: 'escritor',
+    name: 'Julio Cortázar',
+    year: 1914,
+    description: 'Cronopio mayor; la rayuela como método.',
+    essay: null,
+    position_x: 90,
+    position_y: -70,
+    spotify_url: null,
+    origin: manual,
+    ...ts(16),
+  }
+  const eFicciones = {
+    id: 'e-ficciones',
+    type: 'libro',
+    name: 'Ficciones',
+    year: 1944,
+    description: null,
+    essay: null,
+    position_x: -180,
+    position_y: 60,
+    spotify_url: null,
+    origin: manual,
+    ...ts(14),
+  }
+  const eRayuela = {
+    id: 'e-rayuela',
+    type: 'libro',
+    name: 'Rayuela',
+    year: 1963,
+    description: null,
+    essay: null,
+    position_x: 160,
+    position_y: 40,
+    spotify_url: null,
+    origin: ai,
+    ...ts(12),
+  }
+  const eLaberinto = {
+    id: 'e-laberinto',
+    type: 'concepto',
+    name: 'El laberinto',
+    year: null,
+    description: 'Lo que se recorre sin centro.',
+    essay: null,
+    position_x: 0,
+    position_y: 120,
+    spotify_url: null,
+    origin: manual,
+    ...ts(9),
+  }
+  const eRadiohead = {
+    id: 'e-radiohead',
+    type: 'banda',
+    name: 'Radiohead',
+    year: 1985,
+    description: null,
+    essay: null,
+    position_x: 40,
+    position_y: -150,
+    spotify_url: null,
+    origin: manual,
+    ...ts(6),
+  }
+
+  const entities: Row[] = [
+    eBorges,
+    eCortazar,
+    eFicciones,
+    eRayuela,
+    eLaberinto,
+    eRadiohead,
+  ]
+
+  const rel = (
+    from: string,
+    to: string,
+    type: string,
+    d: number,
+    origin = manual,
+  ): Row => ({
+    id: uid(),
+    from_id: from,
+    to_id: to,
+    type,
+    notes: null,
+    origin,
+    ...ts(d),
+  })
+  const relationships: Row[] = [
+    rel('e-borges', 'e-ficciones', 'escribio', 14),
+    rel('e-cortazar', 'e-rayuela', 'escribio', 12),
+    rel('e-borges', 'e-cortazar', 'influyo', 11, ai),
+    rel('e-ficciones', 'e-laberinto', 'menciona', 9),
+    rel('e-rayuela', 'e-laberinto', 'menciona', 8),
+  ]
+
+  const quote = (
+    entity: string,
+    text: string,
+    source: string,
+    d: number,
+    extra: Partial<Row> = {},
+  ): Row => ({
+    id: uid(),
+    entity_id: entity,
+    text,
+    source,
+    context: null,
+    link: null,
+    user_reflection: null,
+    linked_quote_ids: [],
+    pinned_at: null,
+    resonance: null,
+    origin: manual,
+    ...ts(d),
+    ...extra,
+  })
+  const quotes: Row[] = [
+    quote(
+      'e-borges',
+      'Siempre imaginé que el Paraíso sería algún tipo de biblioteca.',
+      'El libro de arena',
+      18,
+      { pinned_at: daysAgo(2), resonance: 5 },
+    ),
+    quote(
+      'e-borges',
+      'Uno no es lo que es por lo que escribe, sino por lo que ha leído.',
+      'Entrevistas',
+      13,
+      { resonance: 4 },
+    ),
+    quote(
+      'e-cortazar',
+      'Andábamos sin buscarnos pero sabiendo que andábamos para encontrarnos.',
+      'Rayuela',
+      10,
+      { resonance: 4, user_reflection: 'La amistad como deriva.' },
+    ),
+    quote(
+      'e-cortazar',
+      'Nada está perdido si se tiene el valor de proclamar que todo está perdido.',
+      'Rayuela',
+      7,
+    ),
+  ]
+
+  const momentos: Row[] = [
+    {
+      id: uid(),
+      kind: 'nota',
+      captured_at: daysAgo(5),
+      payload: {
+        bodyText:
+          'Releer Ficciones con calma este invierno. El jardín de senderos que se bifurcan sigue abriendo puertas.',
+      },
+      note: null,
+      origin: manual,
+      entity_ids: ['e-borges', 'e-ficciones'],
+      ...ts(5),
+    },
+    {
+      id: uid(),
+      kind: 'recorte',
+      captured_at: daysAgo(3),
+      payload: {
+        title: 'Sobre la relectura',
+        url: 'https://example.com/relectura',
+        bodyText: 'Un texto nunca se lee dos veces igual.',
+      },
+      note: 'guardar para el ensayo',
+      origin: manual,
+      entity_ids: ['e-laberinto'],
+      ...ts(3),
+    },
+  ]
+
+  const note = (content: string, d: number, pinned = false): Row => ({
+    id: uid(),
+    content,
+    tags: parseTags(content),
+    pinned,
+    promoted_momento_id: null,
+    origin: manual,
+    ...ts(d),
+  })
+  const notes: Row[] = [
+    note('Idea para el ensayo sobre #memoria y olvido en Borges.', 1, true),
+    note('Releer el final de #Rayuela — el tablero y los puentes.', 2),
+    note('Comprar la edición anotada de #Ficciones.', 4),
+    note('Cita pendiente de verificar sobre el #laberinto.', 7),
+  ]
+
+  const task = (title: string, d: number, extra: Partial<Row> = {}): Row => ({
+    id: uid(),
+    title,
+    detail: null,
+    done: false,
+    due_date: null,
+    completed_at: null,
+    tags: parseTags(title),
+    origin: manual,
+    ...ts(d),
+    ...extra,
+  })
+  const tasks: Row[] = [
+    task('Terminar el ensayo sobre #memoria', 1, {
+      detail: 'Revisar las citas marcadas como resonantes.',
+      due_date: dateAgo(-3),
+    }),
+    task('Responder el correo de la editorial', 2, { due_date: dateAgo(1) }),
+    task('Ordenar las #notas de la semana', 3),
+    task('Leer un capítulo de Rayuela', 6, { done: true, completed_at: daysAgo(1) }),
+  ]
+
+  return { entities, relationships, quotes, momentos, notes, tasks }
+}
+
+function load(): Store {
+  try {
+    const raw = window.localStorage.getItem(STORE_KEY)
+    if (raw) return JSON.parse(raw) as Store
+  } catch {
+    /* corrupto → re-sembramos */
+  }
+  const seed = buildSeed()
+  save(seed)
+  return seed
+}
+function save(store: Store): void {
+  window.localStorage.setItem(STORE_KEY, JSON.stringify(store))
+}
+
+// ---------- Router ----------
+
+const live = (rows: Row[]): Row[] => rows.filter((r) => !r.deleted_at)
+
+/** GET de colección: array plano, o `{items,nextCursor}` si hay paginación. */
+function listOrPage(rows: Row[], params: URLSearchParams): unknown {
+  const items = live(rows)
+  if (params.has('limit') || params.has('cursor')) {
+    return { items, nextCursor: null }
+  }
+  return items
+}
+
+function findLive(rows: Row[], id: string): Row | undefined {
+  return rows.find((r) => r.id === id && !r.deleted_at)
+}
+
+function aiOff(): never {
+  throw new Error('La IA está desactivada en el modo prueba.')
+}
+
+/** Maneja una "request" contra el store. Devuelve el shape del servidor. */
+function route(
+  method: string,
+  path: string,
+  params: URLSearchParams,
+  body: Record<string, unknown>,
+  store: Store,
+): unknown {
+  const seg = path.replace(/^\/api\//, '').split('/')
+  const resource = seg[0] ?? ''
+  const id = seg[1]
+  const action = seg[2]
+
+  // ---- recursos manuales con CRUD ----
+  const collections: Record<string, Row[] | undefined> = {
+    entities: store.entities,
+    relationships: store.relationships,
+    quotes: store.quotes,
+    momentos: store.momentos,
+    notes: store.notes,
+    tasks: store.tasks,
+  }
+  const rows = collections[resource]
+
+  if (rows) {
+    // Sub-acciones especiales
+    if (resource === 'notes' && id && action === 'promote' && method === 'POST') {
+      const n = findLive(store.notes, id)
+      if (!n) throw new Error('Nota no encontrada')
+      const momentoId = uid()
+      store.momentos.push({
+        id: momentoId,
+        kind: 'nota',
+        captured_at: (n.created_at as string) ?? nowIso(),
+        payload: { bodyText: n.content as string },
+        note: null,
+        origin: { kind: 'manual' },
+        entity_ids: [],
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      })
+      n.promoted_momento_id = momentoId
+      n.updated_at = nowIso()
+      save(store)
+      return { momentoId }
+    }
+    if (resource === 'quotes' && id && action === 'reflect') aiOff()
+    if (resource === 'quotes' && id && action === 'echoes') return []
+    if (id && action === 'restore' && method === 'POST') {
+      const r = store[resource as keyof Store].find((x) => x.id === id)
+      if (r) {
+        delete r.deleted_at
+        r.updated_at = nowIso()
+        save(store)
+      }
+      return { restored: true }
+    }
+
+    // CRUD estándar
+    if (method === 'GET' && !id) return listOrPage(rows, params)
+    if (method === 'GET' && id) {
+      const r = findLive(rows, id)
+      if (!r) throw new Error('No encontrado')
+      return r
+    }
+    if (method === 'POST' && !id) {
+      const tagsSource =
+        resource === 'notes'
+          ? ((body.content as string) ?? '')
+          : resource === 'tasks'
+            ? `${(body.title as string) ?? ''}\n${(body.detail as string) ?? ''}`
+            : ''
+      const row: Row = {
+        id: uid(),
+        created_at: nowIso(),
+        updated_at: nowIso(),
+        deleted_at: null,
+        ...body,
+        ...(resource === 'notes' || resource === 'tasks'
+          ? { tags: parseTags(tagsSource) }
+          : {}),
+        ...(resource === 'momentos'
+          ? { captured_at: (body.captured_at as string) || nowIso() }
+          : {}),
+        ...(resource === 'notes' ? { promoted_momento_id: null } : {}),
+        ...(resource === 'tasks' ? { done: false, completed_at: null } : {}),
+      }
+      rows.push(row)
+      save(store)
+      return row
+    }
+    if (method === 'PATCH' && id) {
+      const r = findLive(rows, id)
+      if (!r) throw new Error('No encontrado')
+      Object.assign(r, body)
+      // Re-derivar tags y completed_at como el servidor.
+      if (resource === 'notes' && typeof body.content === 'string') {
+        r.tags = parseTags(body.content)
+      }
+      if (resource === 'tasks') {
+        if (typeof body.title === 'string' || typeof body.detail === 'string') {
+          r.tags = parseTags(`${r.title as string}\n${(r.detail as string) ?? ''}`)
+        }
+        if (body.done === true) r.completed_at = nowIso()
+        if (body.done === false) r.completed_at = null
+      }
+      r.updated_at = nowIso()
+      save(store)
+      return r
+    }
+    if (method === 'DELETE' && id) {
+      const r = rows.find((x) => x.id === id)
+      if (r) {
+        r.deleted_at = nowIso()
+        save(store)
+      }
+      // notes/tasks devuelven {ok:true}; el resto {deletedAt}.
+      return resource === 'notes' || resource === 'tasks'
+        ? { ok: true }
+        : { deletedAt: nowIso() }
+    }
+  }
+
+  // ---- IA desactivada en demo ----
+  if (
+    [
+      'extract',
+      'extract-from-image',
+      'ask',
+      'suggest-relationships',
+      'reclassify-entities',
+    ].includes(resource) ||
+    (resource === 'atlas' && action === 'generate') ||
+    (resource === 'cronicas' && method === 'POST')
+  ) {
+    aiOff()
+  }
+
+  // ---- lecturas auxiliares (canned, para que las vistas rendericen) ----
+  switch (resource) {
+    case 'cronologia':
+      return { entradas: [], nextCursor: null }
+    case 'atlas':
+      return {
+        generatedAt: null,
+        entityCount: 0,
+        provider: null,
+        model: null,
+        clusters: [],
+      }
+    case 'cronicas':
+      return []
+    case 'ai-settings':
+      return { defaultProvider: 'demo', visionDefaultProvider: null, tasks: [] }
+    case 'proactive-suggestions':
+      return []
+    case 'search':
+      return {
+        entities: [],
+        quotes: [],
+        momentos: [],
+        cronicas: [],
+        chat: [],
+        mode: 'lexical',
+      }
+    case 'health':
+      return {
+        counts: {
+          entities: live(store.entities).length,
+          quotes: live(store.quotes).length,
+          relationships: live(store.relationships).length,
+        },
+        month: { calls: 0, tokensIn: 0, tokensOut: 0, costCents: 0 },
+        budget: { limitCents: 0, remainingCents: 0, pct: 0 },
+        byProvider: [],
+        recentErrors: [],
+        alerts: [],
+        embeddings: { pendingEntities: 0, pendingQuotes: 0 },
+        dailyCost: [],
+      }
+    case 'extraction-log':
+      return { items: [] }
+    case 'error-log':
+      return []
+    case 'chat':
+      // /api/chat/threads  |  /api/chat/threads/:id/messages
+      return []
+    case 'graph':
+      return {
+        from: null,
+        entities: [],
+        relationships: [],
+        hops: 1,
+        limit: 0,
+        truncated: false,
+      }
+    case 'spotify':
+      if (id === 'status') return { connected: false }
+      if (id === 'plays') return { groups: [], total: 0 }
+      if (id === 'timing') return { byHour: [], byWeekday: [] }
+      return { connected: false }
+    case 'export':
+      return {
+        entities: live(store.entities),
+        relationships: live(store.relationships),
+        quotes: live(store.quotes),
+        momentos: live(store.momentos),
+      }
+    default:
+      // Mutaciones desconocidas → ok; lecturas desconocidas → lista vacía.
+      return method === 'GET' ? [] : { ok: true }
+  }
+}
+
+export async function demoRequest<T>(url: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? 'GET').toUpperCase()
+  const body =
+    init?.body && typeof init.body === 'string'
+      ? (JSON.parse(init.body) as Record<string, unknown>)
+      : {}
+  const [rawPath, qs] = url.split('?')
+  const params = new URLSearchParams(qs ?? '')
+  const store = load()
+  // Pequeña latencia para que las transiciones/skeletons se sientan reales.
+  await new Promise((r) => setTimeout(r, 80))
+  return route(method, rawPath ?? url, params, body, store) as T
+}

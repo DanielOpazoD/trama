@@ -12,6 +12,8 @@
  * usuario sean trazables al `error_log` del servidor.
  */
 
+import { isDemoMode, demoRequest } from '../lib/demo'
+
 /**
  * Read the current AI mode synchronously and convert to its header form.
  * Kept inline (no import of useAIMode) so this module stays React-free.
@@ -186,6 +188,8 @@ async function getAuthHeader(): Promise<HeadersInit> {
 }
 
 export async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  // Modo prueba: servimos desde el store local en vez de pegar a /api/*.
+  if (isDemoMode()) return demoRequest<T>(url, init)
   const authHeader = await getAuthHeader()
   const response = await fetch(url, {
     ...init,
