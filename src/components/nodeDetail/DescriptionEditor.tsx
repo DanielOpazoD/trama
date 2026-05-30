@@ -147,7 +147,7 @@ export function DescriptionEditor({ entity }: { entity: Entity }) {
       {entity.description ? (
         <p
           onDoubleClick={() => setEditing(true)}
-          className="text-ink-700 leading-relaxed cursor-text select-text"
+          className="text-sm text-ink-600 leading-relaxed cursor-text select-text"
           title="Doble click para editar"
         >
           {entity.description}

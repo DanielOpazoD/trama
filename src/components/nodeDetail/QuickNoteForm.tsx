@@ -48,7 +48,7 @@ export function QuickNoteForm({ entity }: { entity: Entity }) {
         onClick={() => setOpen(true)}
         className="w-full rounded-lg border border-dashed border-ink-100 px-3 py-2 text-sm text-ink-400 hover:text-ink-700 hover:border-ink-200 transition-colors text-left"
       >
-        + cita o nota
+        + cita
       </button>
     )
   }
@@ -58,7 +58,7 @@ export function QuickNoteForm({ entity }: { entity: Entity }) {
       <textarea
         value={noteDraft}
         onChange={(e) => setNoteDraft(e.target.value)}
-        placeholder="Una cita, una nota…"
+        placeholder="Una cita…"
         rows={2}
         className="input-paper w-full resize-none text-sm"
         autoFocus

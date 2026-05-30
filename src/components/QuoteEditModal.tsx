@@ -31,7 +31,6 @@ export function QuoteEditModal({
 
   const [text, setText] = useState(quote.text)
   const [source, setSource] = useState(quote.source ?? '')
-  const [context, setContext] = useState(quote.context ?? '')
   const [link, setLink] = useState(quote.link ?? '')
   const [reflection, setReflection] = useState(quote.userReflection ?? '')
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -41,7 +40,6 @@ export function QuoteEditModal({
     if (!open) return
     setText(quote.text)
     setSource(quote.source ?? '')
-    setContext(quote.context ?? '')
     setLink(quote.link ?? '')
     setReflection(quote.userReflection ?? '')
   }, [open, quote])
@@ -68,7 +66,6 @@ export function QuoteEditModal({
         patch: {
           text: trimmed,
           source: source.trim() || null,
-          context: context.trim() || null,
           link: link.trim() || null,
           userReflection: reflection.trim() || null,
         },
@@ -147,17 +144,6 @@ export function QuoteEditModal({
                 onChange={(e) => setLink(e.target.value)}
                 className="input-paper w-full text-sm"
                 placeholder="https://… (opcional)"
-                disabled={updateQuote.isPending}
-              />
-            </div>
-            <div>
-              <label className="block section-eyebrow mb-1">Contexto</label>
-              <input
-                type="text"
-                value={context}
-                onChange={(e) => setContext(e.target.value)}
-                className="input-paper w-full text-sm"
-                placeholder="Capítulo, página, año…"
                 disabled={updateQuote.isPending}
               />
             </div>
