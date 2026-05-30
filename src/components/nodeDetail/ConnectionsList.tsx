@@ -25,8 +25,10 @@ export function ConnectionsList({ entity }: { entity: Entity }) {
 
   return (
     <section>
-      <h3 className="section-eyebrow-serif mb-3">Conexiones</h3>
-      <ul className="space-y-1.5">
+      {/* Sección secundaria al final del panel: header y filas en escala
+          reducida para que ceda jerarquía frente a citas. */}
+      <h3 className="section-eyebrow mb-2">Conexiones</h3>
+      <ul className="space-y-1">
         {outgoing.map((rel) => (
           <RelationshipLine
             key={rel.id}

@@ -1,29 +1,26 @@
 import { useState, type FormEvent } from 'react'
 import { useAddQuote } from '../../state'
 import type { Entity } from '../../types'
-import { PlusIcon } from '../Icons'
 
 /**
- * Captura rápida de una cita atribuida a esta entidad.
+ * Formulario de captura rápida de una cita atribuida a esta entidad.
  *
- * Colapsada por defecto a un icono "+" sutil — para no ocupar espacio
- * cuando no se está escribiendo. Al expandir: texto + reflexión opcional
- * (oculta tras "+ reflexión") + añadir. KISS: no pide source/context (se
- * editan luego en la cita si hace falta).
+ * Se monta cuando el usuario toca el "+" del encabezado de Citas y avisa con
+ * `onDone` al añadir o cancelar. Texto + reflexión opcional (oculta tras
+ * "+ reflexión"). KISS: no pide source/context (se editan luego en la cita
+ * si hace falta).
  */
-export function QuickNoteForm({ entity }: { entity: Entity }) {
+export function QuickNoteForm({
+  entity,
+  onDone,
+}: {
+  entity: Entity
+  onDone: () => void
+}) {
   const addQuote = useAddQuote()
-  const [open, setOpen] = useState(false)
   const [noteDraft, setNoteDraft] = useState('')
   const [reflectionDraft, setReflectionDraft] = useState('')
   const [showReflection, setShowReflection] = useState(false)
-
-  function reset() {
-    setNoteDraft('')
-    setReflectionDraft('')
-    setShowReflection(false)
-    setOpen(false)
-  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -36,28 +33,14 @@ export function QuickNoteForm({ entity }: { entity: Entity }) {
         userReflection: reflectionDraft.trim() || undefined,
         origin: { kind: 'manual' },
       })
-      reset()
+      onDone()
     } catch {
       /* surfaces via addQuote.error */
     }
   }
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Añadir cita"
-        title="Añadir cita"
-        className="inline-flex items-center justify-center size-8 rounded-full border border-ink-100 text-ink-400 hover:text-ink-700 hover:border-ink-200 hover:bg-ink-50 transition-colors"
-      >
-        <PlusIcon size={15} />
-      </button>
-    )
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+    <form onSubmit={handleSubmit} className="mb-3 flex flex-col gap-2">
       <textarea
         value={noteDraft}
         onChange={(e) => setNoteDraft(e.target.value)}
@@ -84,7 +67,7 @@ export function QuickNoteForm({ entity }: { entity: Entity }) {
         </button>
       )}
       <div className="flex items-center justify-end gap-2">
-        <button type="button" onClick={reset} className="btn-ghost text-xs">
+        <button type="button" onClick={onDone} className="btn-ghost text-xs">
           cancelar
         </button>
         <button

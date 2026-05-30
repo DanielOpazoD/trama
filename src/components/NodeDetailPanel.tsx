@@ -3,7 +3,6 @@ import { useEntitiesQuery } from '../state'
 import { ConnectionsList } from './nodeDetail/ConnectionsList'
 import { DescriptionEditor } from './nodeDetail/DescriptionEditor'
 import { EntityHeader } from './nodeDetail/EntityHeader'
-import { QuickNoteForm } from './nodeDetail/QuickNoteForm'
 import { QuotesList } from './nodeDetail/QuotesList'
 import { VozDe } from './nodeDetail/VozDe'
 
@@ -87,7 +86,6 @@ export function NodeDetailPanel({
             onDone={() => setEditingDescription(false)}
           />
         )}
-        <QuickNoteForm entity={entity} />
         <QuotesList entity={entity} />
         <VozDe entity={entity} />
         <ConnectionsList entity={entity} />
