@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { api } from '../../api'
 import { useAsk, useUpdateEntity } from '../../state'
 import type { Entity } from '../../types'
 import { SparkleIcon } from '../Icons'
@@ -30,6 +31,9 @@ export function DescriptionEditor({
 
   const [descDraft, setDescDraft] = useState(entity.description ?? '')
   const [urlDraft, setUrlDraft] = useState(entity.spotifyUrl ?? '')
+  const [wikiDraft, setWikiDraft] = useState(entity.wikipediaUrl ?? '')
+  const [wikiSearching, setWikiSearching] = useState(false)
+  const [wikiMatch, setWikiMatch] = useState<string | null>(null)
 
   // Sincronizar drafts cuando cambia la entidad (p.ej. el usuario abre otro
   // panel sin desmontar este — pasa cuando se navega entre entidades vía
@@ -37,9 +41,33 @@ export function DescriptionEditor({
   useEffect(() => {
     setDescDraft(entity.description ?? '')
     setUrlDraft(entity.spotifyUrl ?? '')
-  }, [entity.id, entity.description, entity.spotifyUrl])
+    setWikiDraft(entity.wikipediaUrl ?? '')
+    setWikiMatch(null)
+  }, [entity.id, entity.description, entity.spotifyUrl, entity.wikipediaUrl])
 
   const allowsSpotify = SPOTIFY_TYPES.has(entity.type)
+
+  // Busca en Wikipedia el artículo del nombre de la entidad y llena el campo
+  // con el mejor match (el usuario lo revisa/edita antes de guardar).
+  async function handleSearchWikipedia() {
+    if (wikiSearching) return
+    setWikiSearching(true)
+    setWikiMatch(null)
+    try {
+      const { results } = await api.searchWikipedia(entity.name)
+      const top = results[0]
+      if (top) {
+        setWikiDraft(top.url)
+        setWikiMatch(top.title)
+      } else {
+        setWikiMatch('(sin resultados)')
+      }
+    } catch {
+      setWikiMatch('(no se pudo buscar)')
+    } finally {
+      setWikiSearching(false)
+    }
+  }
 
   async function handleSuggestDescription() {
     if (askLLM.isPending) return
@@ -59,12 +87,16 @@ export function DescriptionEditor({
   async function handleSave() {
     const desc = descDraft.trim()
     const url = urlDraft.trim()
+    const wiki = wikiDraft.trim()
     const patch: Parameters<typeof updateEntity.mutate>[0]['patch'] = {}
     if ((entity.description ?? '') !== desc) {
       patch.description = desc ? desc : null
     }
     if ((entity.spotifyUrl ?? '') !== url) {
       patch.spotifyUrl = url ? url : null
+    }
+    if ((entity.wikipediaUrl ?? '') !== wiki) {
+      patch.wikipediaUrl = wiki ? wiki : null
     }
     if (Object.keys(patch).length === 0) {
       onDone()
@@ -97,6 +129,29 @@ export function DescriptionEditor({
           className="input-paper w-full text-sm"
         />
       )}
+      {/* Wikipedia — para cualquier tipo. El botón propone el artículo; el
+          usuario lo revisa antes de guardar (el match por nombre es ambiguo). */}
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <input
+            type="url"
+            value={wikiDraft}
+            onChange={(e) => setWikiDraft(e.target.value)}
+            placeholder="https://es.wikipedia.org/wiki/…"
+            className="input-paper w-full text-sm"
+          />
+          <button
+            type="button"
+            onClick={handleSearchWikipedia}
+            disabled={wikiSearching}
+            className="btn-ghost shrink-0 whitespace-nowrap text-xs disabled:opacity-50"
+            title="Buscar el artículo de Wikipedia para esta entidad"
+          >
+            {wikiSearching ? 'buscando…' : 'buscar en Wikipedia'}
+          </button>
+        </div>
+        {wikiMatch && <p className="text-micro text-ink-400">→ {wikiMatch}</p>}
+      </div>
       <div className="flex items-center justify-between gap-2">
         <button
           onClick={handleSuggestDescription}

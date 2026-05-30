@@ -10,6 +10,13 @@ import type { Entity } from '../types'
 import { request } from './request'
 import { entityFromRow, type EntityRow } from './transform'
 
+/** Un candidato de artículo de Wikipedia para una entidad. */
+export type WikipediaSearchResult = {
+  title: string
+  url: string
+  description: string | null
+}
+
 export const entitiesApi = {
   async listEntitiesPage(
     limit: number,
@@ -67,6 +74,7 @@ export const entitiesApi = {
       year: number | null
       description: string | null
       spotifyUrl: string | null
+      wikipediaUrl: string | null
     }>,
   ): Promise<Entity> {
     const body: Record<string, unknown> = {}
@@ -75,11 +83,21 @@ export const entitiesApi = {
     if (patch.year !== undefined) body.year = patch.year
     if (patch.description !== undefined) body.description = patch.description
     if (patch.spotifyUrl !== undefined) body.spotify_url = patch.spotifyUrl
+    if (patch.wikipediaUrl !== undefined) body.wikipedia_url = patch.wikipediaUrl
     const row = await request<EntityRow>(`/api/entities/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
     })
     return entityFromRow(row)
+  },
+  /**
+   * Busca en Wikipedia el artículo que mejor matchea un texto (típicamente el
+   * nombre de una entidad). Devuelve candidatos; el usuario elige/confirma.
+   */
+  async searchWikipedia(q: string): Promise<{ results: WikipediaSearchResult[] }> {
+    return request<{ results: WikipediaSearchResult[] }>(
+      `/api/wikipedia/search?q=${encodeURIComponent(q)}`,
+    )
   },
   async updateEntityType(id: string, type: string): Promise<void> {
     await request<void>(`/api/entities/${id}`, {

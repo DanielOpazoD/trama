@@ -507,6 +507,9 @@ function route(
         chat: [],
         mode: 'lexical',
       }
+    case 'wikipedia':
+      // El buscador de Wikipedia necesita red real; en demo devuelve vacío.
+      return { results: [] }
     case 'health':
       return {
         counts: {

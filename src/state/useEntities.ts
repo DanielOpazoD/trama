@@ -218,6 +218,7 @@ type EntityPatch = Partial<{
   year: number | null
   description: string | null
   spotifyUrl: string | null
+  wikipediaUrl: string | null
 }>
 
 export function useUpdateEntity() {
@@ -248,6 +249,9 @@ export function useUpdateEntity() {
                   : {}),
                 ...(patch.spotifyUrl !== undefined
                   ? { spotifyUrl: patch.spotifyUrl ?? undefined }
+                  : {}),
+                ...(patch.wikipediaUrl !== undefined
+                  ? { wikipediaUrl: patch.wikipediaUrl ?? undefined }
                   : {}),
                 updatedAt: nowIso(),
               }

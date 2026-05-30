@@ -50,6 +50,8 @@ export type Entity = {
   origin: Origin
   /** Spotify URL — populated para entidades musicales (banda, musico, cancion, album, disco). */
   spotifyUrl?: string
+  /** Wikipedia URL — opcional, para cualquier tipo. Hipervínculo de referencia. */
+  wikipediaUrl?: string
   createdAt: string
   updatedAt: string
 }
