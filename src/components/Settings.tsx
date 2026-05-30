@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { OAuthReturn } from '../lib/oauthReturn'
 import { CloseIcon, TramaMark } from './Icons'
 import { AppearancePanel } from './settings/AppearancePanel'
 import { PrivacyPanel } from './settings/PrivacyPanel'
@@ -56,6 +57,8 @@ export function Settings({
   onClose,
   theme,
   onSetTheme,
+  initialSection,
+  oauthReturn,
 }: {
   open: boolean
   onClose: () => void
@@ -63,8 +66,12 @@ export function Settings({
   // toggle binario.
   theme: 'paper' | 'night' | 'vela'
   onSetTheme: (t: 'paper' | 'night' | 'vela') => void
+  // Sección inicial al abrir (p.ej. el retorno de un OAuth abre 'x'/'spotify').
+  initialSection?: SectionId
+  // Resultado de un callback OAuth, para que el panel lo muestre.
+  oauthReturn?: OAuthReturn | null
 }) {
-  const [section, setSection] = useState<SectionId>('health')
+  const [section, setSection] = useState<SectionId>(initialSection ?? 'health')
 
   useEffect(() => {
     if (!open) return
@@ -151,8 +158,16 @@ export function Settings({
                 <AppearancePanel theme={theme} onSetTheme={onSetTheme} />
               )}
               {section === 'privacy' && <PrivacyPanel />}
-              {section === 'spotify' && <SpotifyPanel />}
-              {section === 'x' && <XPanel />}
+              {section === 'spotify' && (
+                <SpotifyPanel
+                  oauthReturn={oauthReturn?.provider === 'spotify' ? oauthReturn : null}
+                />
+              )}
+              {section === 'x' && (
+                <XPanel
+                  oauthReturn={oauthReturn?.provider === 'x' ? oauthReturn : null}
+                />
+              )}
               {section === 'ai' && <AIPanel />}
               {section === 'search' && <SearchPanel />}
               {section === 'data' && <DataPanel />}

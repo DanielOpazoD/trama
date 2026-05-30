@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
+import { describeOAuthReturn, type OAuthReturn } from '../../lib/oauthReturn'
 import { PanelHeader, formatRelative } from './_shared'
 
-export function SpotifyPanel() {
+export function SpotifyPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null }) {
   const queryClient = useQueryClient()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
 
   const spotifyStatus = useQuery({
     queryKey: ['spotify', 'status'],
@@ -19,6 +21,13 @@ export function SpotifyPanel() {
     const t = window.setTimeout(() => setMessage(null), 4000)
     return () => window.clearTimeout(t)
   }, [message])
+
+  // Al volver del OAuth: mostrar resultado y, si conectó, refrescar el estado.
+  useEffect(() => {
+    if (!oauthReturn) return
+    setNotice(describeOAuthReturn(oauthReturn))
+    if (oauthReturn.ok) queryClient.invalidateQueries({ queryKey: ['spotify'] })
+  }, [oauthReturn, queryClient])
 
   async function handleSync() {
     setBusy(true)
@@ -82,6 +91,15 @@ export function SpotifyPanel() {
         title="Spotify"
         hint="Trama puede registrar lo que escuchás en Spotify para que luego decidas qué entra al mapa. Lo registrado vive aparte — nada entra a la trama sin que tú lo apruebes."
       />
+      {notice && (
+        <p
+          className={`mb-4 rounded-lg px-3 py-2 text-sm ${
+            notice.ok ? 'bg-paper-100/60 text-ink-600' : 'alert-error'
+          }`}
+        >
+          {notice.text}
+        </p>
+      )}
       {spotifyStatus.isLoading ? (
         <p className="text-xs text-ink-300 italic">cargando…</p>
       ) : spotify && spotify.connected ? (
