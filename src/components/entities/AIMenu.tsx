@@ -12,12 +12,17 @@ import { SparkleIcon } from '../Icons'
 export function AIMenu({
   onReclassify,
   reclassifyPending,
+  onFindDuplicates,
+  duplicatesPending,
   disabled,
 }: {
   onReclassify: () => void
   reclassifyPending: boolean
+  onFindDuplicates: () => void
+  duplicatesPending: boolean
   disabled: boolean
 }) {
+  const pending = reclassifyPending || duplicatesPending
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -43,14 +48,14 @@ export function AIMenu({
     <div ref={containerRef} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        disabled={disabled || reclassifyPending}
+        disabled={disabled || pending}
         className="ai-cta"
         title="Acciones con IA"
         aria-label="Acciones con IA"
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        {reclassifyPending ? (
+        {pending ? (
           <>
             <span
               className="size-3 border-2 rounded-full animate-spin"
@@ -87,6 +92,17 @@ export function AIMenu({
           >
             <SparkleIcon size={12} className="text-ink-400" />
             Reclasificar tipos
+          </button>
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false)
+              onFindDuplicates()
+            }}
+            className="w-full text-left px-3 py-2 text-sm text-ink-700 hover:bg-paper-100/70 transition-colors flex items-center gap-2"
+          >
+            <SparkleIcon size={12} className="text-ink-400" />
+            Buscar duplicados
           </button>
         </div>
       )}

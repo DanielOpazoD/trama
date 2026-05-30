@@ -510,6 +510,14 @@ function route(
     case 'wikipedia':
       // El buscador de Wikipedia necesita red real; en demo devuelve vacío.
       return { results: [] }
+    case 'entities-duplicates':
+      // El seed no tiene duplicados; sin similitud real en demo.
+      return { groups: [], embeddingSkipped: false }
+    case 'entities-merge': {
+      // Inalcanzable en demo (sin grupos), pero devolvemos algo coherente.
+      const keep = findLive(store.entities, (body.keepId as string) ?? '')
+      return keep ?? { ok: true }
+    }
     case 'health':
       return {
         counts: {

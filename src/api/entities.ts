@@ -17,6 +17,15 @@ export type WikipediaSearchResult = {
   description: string | null
 }
 
+/** Una entidad candidata dentro de un grupo de duplicados. */
+export type DuplicateCandidate = { id: string; name: string; type: string }
+/** Un grupo de posibles duplicados (por nombre idéntico o embedding cercano). */
+export type DuplicateGroup = {
+  reason: 'name' | 'similar'
+  similarity?: number
+  entities: DuplicateCandidate[]
+}
+
 export const entitiesApi = {
   async listEntitiesPage(
     limit: number,
@@ -98,6 +107,23 @@ export const entitiesApi = {
     return request<{ results: WikipediaSearchResult[] }>(
       `/api/wikipedia/search?q=${encodeURIComponent(q)}`,
     )
+  },
+  /** Busca grupos de entidades posiblemente repetidas (nombre + embeddings). */
+  async findDuplicates(): Promise<{
+    groups: DuplicateGroup[]
+    embeddingSkipped: boolean
+  }> {
+    return request<{ groups: DuplicateGroup[]; embeddingSkipped: boolean }>(
+      '/api/entities-duplicates',
+    )
+  },
+  /** Combina `mergeIds` en `keepId` (reasigna citas/relaciones/momentos). */
+  async mergeEntities(keepId: string, mergeIds: string[]): Promise<Entity> {
+    const row = await request<EntityRow>('/api/entities-merge', {
+      method: 'POST',
+      body: JSON.stringify({ keepId, mergeIds }),
+    })
+    return entityFromRow(row)
   },
   async updateEntityType(id: string, type: string): Promise<void> {
     await request<void>(`/api/entities/${id}`, {

@@ -61,7 +61,11 @@ export const api = {
 
 export { DuplicateEntityError } from './request'
 
-export type { WikipediaSearchResult } from './entities'
+export type {
+  WikipediaSearchResult,
+  DuplicateGroup,
+  DuplicateCandidate,
+} from './entities'
 
 export type { XStatus } from './x'
 
