@@ -68,7 +68,7 @@ export type {
   DuplicateCandidate,
 } from './entities'
 
-export type { XStatus } from './x'
+export type { XStatus, XBookmark } from './x'
 
 export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
 

@@ -12,12 +12,8 @@
 import { API_BASE, AUTH_URL, TOKEN_URL, readEnv, type SqlClient } from './client.js'
 
 // Scopes: leer tweets + perfil + bookmarks, y offline.access para refresh.
-//
-// DIAGNÓSTICO TEMPORAL (2026-05): quitamos `bookmark.read` para aislar si el
-// 400 de X en /oauth2/authorize viene de ese scope (la API de Bookmarks exige
-// tier de pago). Si la conexión funciona sin él, confirmamos la causa.
-// → RESTAURAR a 'tweet.read users.read bookmark.read offline.access' después.
-export const X_SCOPES = 'tweet.read users.read offline.access'
+// (El 400 del authorize era el dominio twitter.com → x.com, no este scope.)
+export const X_SCOPES = 'tweet.read users.read bookmark.read offline.access'
 
 export type StoredXTokens = {
   user_id: string

@@ -40,6 +40,9 @@ const QuotesView = lazy(() =>
 const ListeningView = lazy(() =>
   import('./ListeningView').then((m) => ({ default: m.ListeningView })),
 )
+const TwitterView = lazy(() =>
+  import('./TwitterView').then((m) => ({ default: m.TwitterView })),
+)
 const MomentosView = lazy(() =>
   import('./MomentosView').then((m) => ({ default: m.MomentosView })),
 )
@@ -234,6 +237,11 @@ export function ViewRouter({
         {view === 'escuchas' && (
           <ViewSlot scope="view:escuchas">
             <ListeningView onSelectEntity={onSelectEntity} onProposal={onProposal} />
+          </ViewSlot>
+        )}
+        {view === 'twitter' && (
+          <ViewSlot scope="view:twitter">
+            <TwitterView />
           </ViewSlot>
         )}
         {view === 'momentos' && (

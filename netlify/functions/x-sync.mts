@@ -11,6 +11,7 @@ import {
   getXProfile,
   markSynced,
   storeBookmarks,
+  XApiError,
 } from './_lib/x/index.js'
 
 /**
@@ -48,6 +49,15 @@ export default withObservability(
       logEvent({ event: 'x_sync_ok', fetched: items.length, inserted })
       return Response.json({ fetched: items.length, inserted })
     } catch (err) {
+      // 403/401 de X = permiso o plan. Mensaje claro en vez de un 502 opaco.
+      if (err instanceof XApiError && (err.status === 403 || err.status === 401)) {
+        return ApiErrors.unprocessable(
+          requestId,
+          'X no autorizó la lectura de bookmarks. Si recién agregaste el permiso, ' +
+            'desconectá y volvé a conectar X. Si persiste, tu plan de desarrollador de X ' +
+            '(Free) podría no incluir la API de Bookmarks.',
+        )
+      }
       const message = err instanceof Error ? err.message : String(err)
       return ApiErrors.upstream(requestId, `Error sincronizando X: ${message}`)
     }

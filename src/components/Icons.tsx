@@ -186,6 +186,15 @@ export const MusicIcon = ({ size = 16, className }: Props) => (
   </svg>
 )
 
+/* X (Twitter): el glifo "X" actual de la marca — dos trazos cruzados.
+   Lo dibujamos a mano (sin dependencia de icon lib) con la house weight. */
+export const TwitterIcon = ({ size = 16, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M4 4l16 16" />
+    <path d="M20 4L4 20" />
+  </svg>
+)
+
 /* ξ — Momentos: reloj de arena estilizado / clepsidra editorial. La idea
    es "tiempo que se acumula", no "tiempo que pasa de un lado al otro".
    Dos triángulos espejados con un punto central que es el ahora. */

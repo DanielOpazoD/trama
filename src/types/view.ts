@@ -17,6 +17,7 @@ export type ViewMode =
   | 'entidades'
   | 'citas'
   | 'escuchas'
+  | 'twitter'
   | 'momentos'
   | 'cronologia'
   | 'atlas'
