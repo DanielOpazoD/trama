@@ -61,6 +61,26 @@ Si va lento:
 1. ¿Tenés muchas entidades sin embedding? Settings → "Indexar lo pendiente".
 2. ¿La query es muy específica + cero matches lexicales? Debería degradar limpio. Ver consola del browser por errores.
 
+## Chat / ask: ventana de contexto
+
+Los prompts de `ask` (barra universal) y `chat` inyectan un volcado de la trama
+(entidades + relaciones + citas) como contexto. Antes se cortaba con un
+`.slice(0, 80)` ciego — a escala, una entidad con descripción larga podía hacer
+que el prompt excediera la ventana del modelo y el provider **truncara en
+silencio**.
+
+Ahora el contexto se acota por **tokens estimados** (`_lib/token-budget.ts`):
+
+- Presupuesto total `DEFAULT_CONTEXT_TOKEN_BUDGET = 6000` tokens, repartido
+  50% entidades / 30% relaciones / 20% citas.
+- Estimación barata (~4 chars/token). No exacta, pero suficiente para acotar.
+- Si se omite algo, se loguea `context_truncated` en los logs de Netlify
+  Functions (visible, no silencioso).
+- 6000 tokens deja amplio margen en modelos de 32k-128k de contexto. Si subís a
+  decenas de miles de entidades y querés más/menos contexto, ajustá la constante
+  (o promovela a env var). El chat ya viene acotado por RAG aguas arriba; este
+  presupuesto es la red de seguridad.
+
 ## Costo de Neon (DB)
 
 Plan free de Neon: 0.5 GB de storage + 191 horas de compute al mes.
