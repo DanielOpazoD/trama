@@ -1,13 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useEntitiesQuery } from '../state'
 import { ConnectionsList } from './nodeDetail/ConnectionsList'
-import { DeleteFooter } from './nodeDetail/DeleteFooter'
 import { DescriptionEditor } from './nodeDetail/DescriptionEditor'
 import { EntityHeader } from './nodeDetail/EntityHeader'
-import { EssayEditor } from './nodeDetail/EssayEditor'
-import { QuickNoteForm } from './nodeDetail/QuickNoteForm'
 import { QuotesList } from './nodeDetail/QuotesList'
-import { TalkButton } from './nodeDetail/TalkButton'
 import { VozDe } from './nodeDetail/VozDe'
 
 /**
@@ -35,6 +31,15 @@ export function NodeDetailPanel({
 }) {
   const { data: entities = [] } = useEntitiesQuery()
   const entity = entities.find((e) => e.id === entityId)
+
+  // Edición de la descripción: el display vive en el header, el form se monta
+  // como primera sección del body cuando esto es true. Se dispara desde el
+  // menú ⋯ o con doble-clic sobre la descripción. Se resetea al cambiar de
+  // entidad (navegar entre conexiones sin desmontar el panel).
+  const [editingDescription, setEditingDescription] = useState(false)
+  useEffect(() => {
+    setEditingDescription(false)
+  }, [entityId])
 
   // Escape cierra el panel. Los subcomponentes manejan sus propios escapes
   // (e.g. salir de editing) sin propagar hasta acá, así que es seguro
@@ -64,25 +69,32 @@ export function NodeDetailPanel({
       role="region"
       aria-label={`Detalle de ${entity.name}`}
     >
-      <EntityHeader entity={entity} onClose={onClose} />
+      <EntityHeader
+        entity={entity}
+        onClose={onClose}
+        onOpenThread={onOpenThread}
+        onEditDescription={() => setEditingDescription(true)}
+        editingDescription={editingDescription}
+      />
 
-      {/* Acción IA primaria fuera del header para que tenga su espacio
-          y el título no compita con ella por ancho. */}
-      {onOpenThread && <TalkButton entity={entity} onOpenThread={onOpenThread} />}
-
-      {/* θ1: padding horizontal px-6 (era p-5=20px) para acompañar el
-          ancho 520px del panel. space-y-8 entre secciones grandes para
-          que respiren como capítulos de un libro. */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-8">
-        <DescriptionEditor entity={entity} />
-        <EssayEditor entity={entity} />
-        <QuickNoteForm entity={entity} />
-        <QuotesList entity={entity} />
-        <VozDe entity={entity} />
-        <ConnectionsList entity={entity} />
+      {/* Secciones del panel. Columna flex: el bloque principal arriba y
+          Conexiones anclada al fondo (mt-auto) para que quede al final del
+          panel aunque haya poco contenido. Con scroll, fluye normalmente. */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col">
+        <div className="space-y-6">
+          {editingDescription && (
+            <DescriptionEditor
+              entity={entity}
+              onDone={() => setEditingDescription(false)}
+            />
+          )}
+          <QuotesList entity={entity} />
+          <VozDe entity={entity} />
+        </div>
+        <div className="mt-auto pt-6">
+          <ConnectionsList entity={entity} />
+        </div>
       </div>
-
-      <DeleteFooter entity={entity} onClose={onClose} />
     </div>
   )
 }

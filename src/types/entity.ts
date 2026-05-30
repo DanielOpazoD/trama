@@ -45,8 +45,6 @@ export type Entity = {
   year?: number
   /** One-liner. Convención: max ~15 palabras, escrito como label de la entidad. */
   description?: string
-  /** Long-form personal note about the entity. Markdown allowed. */
-  essay?: string
   positionX?: number
   positionY?: number
   origin: Origin

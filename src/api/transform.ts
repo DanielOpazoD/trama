@@ -27,7 +27,6 @@ export type EntityRow = {
   name: string
   year: number | null
   description: string | null
-  essay: string | null
   position_x: number | null
   position_y: number | null
   origin: Origin | string
@@ -97,7 +96,6 @@ export function entityFromRow(row: EntityRow): Entity {
     name: row.name,
     year: row.year ?? undefined,
     description: row.description ?? undefined,
-    essay: row.essay ?? undefined,
     positionX: row.position_x ?? undefined,
     positionY: row.position_y ?? undefined,
     origin: asOrigin(row.origin),

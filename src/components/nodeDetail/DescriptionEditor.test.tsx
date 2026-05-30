@@ -16,14 +16,6 @@ const ENTITY: Entity = {
   updatedAt: '2026-01-01T00:00:00Z',
 }
 
-const ENTITY_NO_DESC: Entity = {
-  ...ENTITY,
-  id: 'e2',
-  name: 'X',
-  description: undefined,
-  spotifyUrl: undefined,
-}
-
 const ENTITY_BOOK: Entity = {
   ...ENTITY,
   id: 'e3',
@@ -39,53 +31,37 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+/**
+ * DescriptionEditor es ahora un formulario controlado: el display de la
+ * descripción vive en el header, la edición se monta sólo mientras dura y
+ * avisa con `onDone` al guardar/cancelar.
+ */
 describe('<DescriptionEditor />', () => {
-  it('muestra la descripción en modo vista', () => {
-    renderWithProviders(<DescriptionEditor entity={ENTITY} />)
-    expect(screen.getByText('banda argentina de rock')).toBeInTheDocument()
-  })
-
-  it('muestra "sin descripción" cuando no hay description', () => {
-    renderWithProviders(<DescriptionEditor entity={ENTITY_NO_DESC} />)
-    expect(screen.getByText(/sin descripción/i)).toBeInTheDocument()
-  })
-
-  it('click en "editar" pasa al modo edición', async () => {
-    renderWithProviders(<DescriptionEditor entity={ENTITY} />)
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /editar/i }))
-    // Textarea aparece con la descripción actual
+  it('renderiza el textarea con la descripción actual', () => {
+    renderWithProviders(<DescriptionEditor entity={ENTITY} onDone={vi.fn()} />)
     const textarea = screen.getByPlaceholderText('descripción') as HTMLTextAreaElement
     expect(textarea.value).toBe('banda argentina de rock')
   })
 
-  it('en modo edición de tipo musical aparece el input de Spotify URL', async () => {
-    renderWithProviders(<DescriptionEditor entity={ENTITY} />)
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /editar/i }))
+  it('para tipo musical aparece el input de Spotify URL', () => {
+    renderWithProviders(<DescriptionEditor entity={ENTITY} onDone={vi.fn()} />)
     expect(screen.getByPlaceholderText(/open\.spotify\.com/)).toBeInTheDocument()
   })
 
-  it('en modo edición de un libro NO aparece el input de Spotify URL', async () => {
-    renderWithProviders(<DescriptionEditor entity={ENTITY_BOOK} />)
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /editar/i }))
+  it('para un libro NO aparece el input de Spotify URL', () => {
+    renderWithProviders(<DescriptionEditor entity={ENTITY_BOOK} onDone={vi.fn()} />)
     expect(screen.queryByPlaceholderText(/open\.spotify\.com/)).toBeNull()
   })
 
-  it('click en "Cancelar" vuelve al modo vista y restaura el draft', async () => {
-    renderWithProviders(<DescriptionEditor entity={ENTITY} />)
+  it('click en "Cancelar" llama onDone', async () => {
+    const onDone = vi.fn()
+    renderWithProviders(<DescriptionEditor entity={ENTITY} onDone={onDone} />)
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /editar/i }))
-    const textarea = screen.getByPlaceholderText('descripción') as HTMLTextAreaElement
-    await user.clear(textarea)
-    await user.type(textarea, 'otro texto')
     await user.click(screen.getByRole('button', { name: /Cancelar/i }))
-    // El texto original sigue ahí
-    expect(screen.getByText('banda argentina de rock')).toBeInTheDocument()
+    expect(onDone).toHaveBeenCalled()
   })
 
-  it('PATCH se dispara al guardar cambios', async () => {
+  it('PATCH se dispara al guardar cambios y luego llama onDone', async () => {
     const patchFetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -94,14 +70,13 @@ describe('<DescriptionEditor />', () => {
     })
     vi.stubGlobal('fetch', patchFetch)
 
-    renderWithProviders(<DescriptionEditor entity={ENTITY} />)
+    const onDone = vi.fn()
+    renderWithProviders(<DescriptionEditor entity={ENTITY} onDone={onDone} />)
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /editar/i }))
 
     const textarea = screen.getByPlaceholderText('descripción') as HTMLTextAreaElement
     await user.clear(textarea)
     await user.type(textarea, 'nueva descripción')
-
     await user.click(screen.getByRole('button', { name: /^Guardar/i }))
 
     await waitFor(() =>
@@ -110,9 +85,10 @@ describe('<DescriptionEditor />', () => {
         expect.objectContaining({ method: 'PATCH' }),
       ),
     )
+    await waitFor(() => expect(onDone).toHaveBeenCalled())
   })
 
-  it('si el textarea no cambió, el guardado no dispara PATCH', async () => {
+  it('si nada cambió, el guardado no dispara PATCH pero igual llama onDone', async () => {
     const patchFetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -121,16 +97,13 @@ describe('<DescriptionEditor />', () => {
     })
     vi.stubGlobal('fetch', patchFetch)
 
-    renderWithProviders(<DescriptionEditor entity={ENTITY} />)
+    const onDone = vi.fn()
+    renderWithProviders(<DescriptionEditor entity={ENTITY} onDone={onDone} />)
     const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /editar/i }))
     // No tocamos el textarea — click directo a Guardar
     await user.click(screen.getByRole('button', { name: /^Guardar/i }))
 
-    // El componente vuelve a modo vista sin hacer fetch
-    await waitFor(() => {
-      expect(screen.getByText('banda argentina de rock')).toBeInTheDocument()
-    })
+    await waitFor(() => expect(onDone).toHaveBeenCalled())
     expect(patchFetch).not.toHaveBeenCalled()
   })
 })

@@ -108,7 +108,7 @@ Si tienes propuestas concretas que el usuario podría querer agregar, AL FINAL d
   "quotes":        [{ "entityName": "string", "text": "la cita", "source": "fuente opcional" }],
   "reclassifications": [{ "name": "string", "newType": "uno de los tipos válidos", "reason": "por qué" }],
   "edits": [
-    { "kind": "entity",       "id": "uuid", "patch": { "name": "...", "type": "...", "year": 1234, "description": "...", "essay": "...", "spotifyUrl": "..." }, "reason": "por qué" },
+    { "kind": "entity",       "id": "uuid", "patch": { "name": "...", "type": "...", "year": 1234, "description": "...", "spotifyUrl": "..." }, "reason": "por qué" },
     { "kind": "quote",        "id": "uuid", "patch": { "text": "...", "source": "...", "context": "...", "entityId": "uuid-de-otra-entidad", "userReflection": "..." }, "reason": "..." },
     { "kind": "relationship", "id": "uuid", "patch": { "type": "...", "notes": "..." }, "reason": "..." }
   ],

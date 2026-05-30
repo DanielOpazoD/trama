@@ -3,13 +3,20 @@ import { useAddQuote } from '../../state'
 import type { Entity } from '../../types'
 
 /**
- * Form rápido para añadir una cita o nota atribuida a esta entidad.
+ * Formulario de captura rápida de una cita atribuida a esta entidad.
  *
- * KISS: solo texto + reflexión opcional (oculta detrás de un "+ Reflexión").
- * No pide source/context (se editan después en QuoteCard si hace falta).
- * El objetivo es bajar la fricción al mínimo para capturar un pensamiento.
+ * Se monta cuando el usuario toca el "+" del encabezado de Citas y avisa con
+ * `onDone` al añadir o cancelar. Texto + reflexión opcional (oculta tras
+ * "+ reflexión"). KISS: no pide source/context (se editan luego en la cita
+ * si hace falta).
  */
-export function QuickNoteForm({ entity }: { entity: Entity }) {
+export function QuickNoteForm({
+  entity,
+  onDone,
+}: {
+  entity: Entity
+  onDone: () => void
+}) {
   const addQuote = useAddQuote()
   const [noteDraft, setNoteDraft] = useState('')
   const [reflectionDraft, setReflectionDraft] = useState('')
@@ -26,55 +33,51 @@ export function QuickNoteForm({ entity }: { entity: Entity }) {
         userReflection: reflectionDraft.trim() || undefined,
         origin: { kind: 'manual' },
       })
-      setNoteDraft('')
-      setReflectionDraft('')
-      setShowReflection(false)
+      onDone()
     } catch {
       /* surfaces via addQuote.error */
     }
   }
 
   return (
-    <section>
-      {/* θ1: header en section-eyebrow-serif (small caps + Spectral) en
-          vez del uppercase tracking-wider plano. Más refinado, hace
-          que la sección se sienta como un epígrafe de capítulo. */}
-      <h3 className="section-eyebrow-serif mb-2">Cita o nota</h3>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+    <form onSubmit={handleSubmit} className="mb-3 flex flex-col gap-2">
+      <textarea
+        value={noteDraft}
+        onChange={(e) => setNoteDraft(e.target.value)}
+        placeholder="Una cita…"
+        rows={2}
+        className="input-paper w-full resize-none text-sm"
+        autoFocus
+      />
+      {showReflection ? (
         <textarea
-          value={noteDraft}
-          onChange={(e) => setNoteDraft(e.target.value)}
-          placeholder="Una cita, una nota…"
+          value={reflectionDraft}
+          onChange={(e) => setReflectionDraft(e.target.value)}
+          placeholder="Tu reflexión…"
           rows={2}
           className="input-paper w-full resize-none text-sm"
         />
-        {showReflection ? (
-          <textarea
-            value={reflectionDraft}
-            onChange={(e) => setReflectionDraft(e.target.value)}
-            placeholder="Tu reflexión…"
-            rows={2}
-            className="input-paper w-full resize-none text-sm"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowReflection(true)}
-            className="self-start text-xs uppercase tracking-wider text-ink-400 hover:text-ink-700 transition-colors"
-          >
-            + Reflexión
-          </button>
-        )}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={!noteDraft.trim() || addQuote.isPending}
-            className="btn-accent text-xs"
-          >
-            {addQuote.isPending ? 'añadiendo…' : 'añadir'}
-          </button>
-        </div>
-      </form>
-    </section>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowReflection(true)}
+          className="self-start text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+        >
+          + reflexión
+        </button>
+      )}
+      <div className="flex items-center justify-end gap-2">
+        <button type="button" onClick={onDone} className="btn-ghost text-xs">
+          cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={!noteDraft.trim() || addQuote.isPending}
+          className="btn-accent text-xs"
+        >
+          {addQuote.isPending ? 'añadiendo…' : 'añadir'}
+        </button>
+      </div>
+    </form>
   )
 }

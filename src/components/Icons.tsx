@@ -107,6 +107,13 @@ export const PencilIcon = ({ size = 12, className }: Props) => (
   </svg>
 )
 
+/* Cruz fina — acción "añadir". */
+export const PlusIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+)
+
 /* Flecha circular — acción "regenerar / actualizar". */
 export const RefreshIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

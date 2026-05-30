@@ -66,7 +66,6 @@ export const entitiesApi = {
       type: string
       year: number | null
       description: string | null
-      essay: string | null
       spotifyUrl: string | null
     }>,
   ): Promise<Entity> {
@@ -75,7 +74,6 @@ export const entitiesApi = {
     if (patch.type !== undefined) body.type = patch.type
     if (patch.year !== undefined) body.year = patch.year
     if (patch.description !== undefined) body.description = patch.description
-    if (patch.essay !== undefined) body.essay = patch.essay
     if (patch.spotifyUrl !== undefined) body.spotify_url = patch.spotifyUrl
     const row = await request<EntityRow>(`/api/entities/${id}`, {
       method: 'PATCH',

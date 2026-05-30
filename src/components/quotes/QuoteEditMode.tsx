@@ -31,13 +31,11 @@ export function QuoteEditMode({
   onSave: (patch: {
     text: string
     source: string | null
-    context: string | null
     entityId?: string
   }) => Promise<void> | void
 }) {
   const [textDraft, setTextDraft] = useState(quote.text)
   const [sourceDraft, setSourceDraft] = useState(quote.source ?? '')
-  const [contextDraft, setContextDraft] = useState(quote.context ?? '')
   const [entityIdDraft, setEntityIdDraft] = useState(quote.entityId)
 
   async function handleSave() {
@@ -46,7 +44,6 @@ export function QuoteEditMode({
     const patch: Parameters<typeof onSave>[0] = {
       text,
       source: sourceDraft.trim() || null,
-      context: contextDraft.trim() || null,
     }
     if (entityIdDraft !== quote.entityId) {
       patch.entityId = entityIdDraft
@@ -72,13 +69,6 @@ export function QuoteEditMode({
         onChange={(e) => setSourceDraft(e.target.value)}
         placeholder="fuente (libro, página, año — opcional)"
         className="input-paper w-full text-sm"
-      />
-      <textarea
-        value={contextDraft}
-        onChange={(e) => setContextDraft(e.target.value)}
-        rows={2}
-        placeholder="contexto (qué pasaba alrededor — opcional)"
-        className="input-paper w-full resize-none text-sm"
       />
       <div>
         <label className="section-eyebrow block mb-1">atribuida a</label>

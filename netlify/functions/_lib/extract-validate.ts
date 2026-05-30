@@ -21,7 +21,6 @@ export type CleanedEntityEdit = {
     type?: string
     year?: number | null
     description?: string | null
-    essay?: string | null
     spotifyUrl?: string | null
   }
   reason?: string
@@ -262,8 +261,6 @@ export function validateExtraction(
         else if (patch.year === null) cleanPatch.year = null
         const desc = nullableString(patch.description)
         if (desc !== undefined) cleanPatch.description = desc
-        const essay = nullableString(patch.essay)
-        if (essay !== undefined) cleanPatch.essay = essay
         const url = nullableString(patch.spotifyUrl)
         if (url !== undefined) cleanPatch.spotifyUrl = url
         // Drop the edit if patch ends up empty.

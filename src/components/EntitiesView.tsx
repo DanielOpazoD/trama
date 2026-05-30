@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ViewHeader } from './ViewHeader'
-import { ConfirmDestroy } from './ConfirmDestroy'
 import {
   useInfiniteEntitiesQuery,
   useEntityRefsCountQuery,
-  useDeleteEntity,
   useOffline,
   useReclassifyEntities,
   useUpdateEntityType,
@@ -16,7 +14,6 @@ import { EmptyMessage } from './EmptyMessage'
 import { EntityCardSkeleton, SkeletonList } from './Skeleton'
 import { Folio } from './Folio'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
-import type { Entity } from '../types'
 import { EntityForm } from './entities/EntityForm'
 import { useEntitiesFilters } from './entities/useEntitiesFilters'
 import { EntitiesFiltersBar } from './entities/EntitiesFiltersBar'
@@ -48,13 +45,9 @@ export function EntitiesView({
   // server (un query con dos GROUP BY) en vez de descargar las listas
   // wholesome. A 100 entidades es invisible; a 10k+ ahorra MBs de payload.
   const { data: refsCount } = useEntityRefsCountQuery()
-  const deleteEntity = useDeleteEntity()
   const reclassify = useReclassifyEntities()
   const updateType = useUpdateEntityType()
   const { offline } = useOffline()
-
-  // Confirmación de borrado — antes usaba confirm() nativo.
-  const [pendingDelete, setPendingDelete] = useState<Entity | null>(null)
 
   const [showForm, setShowForm] = useState(false)
   const [pending, setPending] = useState<Reclassification[] | null>(null)
@@ -63,10 +56,6 @@ export function EntitiesView({
     model: string | null
   }>({ provider: null, model: null })
   const [emptyHint, setEmptyHint] = useState(false)
-  // Inline expansion — solo una entidad expandida a la vez. Si el
-  // usuario expande otra, la actual colapsa. El virtualizer mide la
-  // altura dinámicamente via measureElement.
-  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const quoteCountById = useMemo(() => {
     const map = new Map<string, number>()
@@ -247,12 +236,7 @@ export function EntitiesView({
                   entity={entity}
                   quoteCount={quoteCount}
                   relCount={relCount}
-                  expanded={expandedId === entity.id}
-                  onToggleExpand={() => {
-                    setExpandedId((cur) => (cur === entity.id ? null : entity.id))
-                  }}
                   onSelectEntity={onSelectEntity}
-                  onDelete={() => setPendingDelete(entity)}
                 />
               </div>
             )
@@ -274,26 +258,6 @@ export function EntitiesView({
       <Folio
         current={Math.min(lastVisibleIndex + 1, entities.length)}
         total={entities.length}
-      />
-
-      <ConfirmDestroy
-        open={pendingDelete !== null}
-        title={
-          pendingDelete ? `¿Eliminar “${pendingDelete.name}”?` : '¿Eliminar entidad?'
-        }
-        body="Sus citas y relaciones también desaparecen del catálogo. No se borra del todo — si te arrepientes, se puede restaurar."
-        confirmLabel="Eliminar"
-        pending={deleteEntity.isPending}
-        onCancel={() => setPendingDelete(null)}
-        onConfirm={async () => {
-          if (!pendingDelete) return
-          try {
-            await deleteEntity.mutateAsync(pendingDelete.id)
-            setPendingDelete(null)
-          } catch {
-            /* mutation error queda en deleteEntity.error */
-          }
-        }}
       />
     </>
   )

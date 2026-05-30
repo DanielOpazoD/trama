@@ -233,12 +233,6 @@ function QuoteItemInternal({
 
       <QuoteEditModal quote={quote} open={editOpen} onClose={() => setEditOpen(false)} />
 
-      {quote.context && (
-        <p className="mt-2 pl-5 text-ink-400 text-sm leading-relaxed italic">
-          {quote.context}
-        </p>
-      )}
-
       {quote.userReflection && (
         <div className="mt-3 pl-5">
           <div className="section-eyebrow mb-1">tu reflexión</div>

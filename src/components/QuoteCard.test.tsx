@@ -93,10 +93,11 @@ describe('<QuoteCard />', () => {
     ).toBeInTheDocument()
   })
 
-  it('opens the AI reflection request button when no reflection saved', () => {
+  it('ofrece pedir interpretación a la IA desde el menú cuando no hay reflexión', () => {
     renderWithProviders(<QuoteCard quote={QUOTE} />)
+    fireEvent.click(screen.getByRole('button', { name: /más acciones/i }))
     expect(
-      screen.getByRole('button', { name: /pedir interpretación/i }),
+      screen.getByRole('menuitem', { name: /pedir interpretación/i }),
     ).toBeInTheDocument()
   })
 
@@ -110,13 +111,11 @@ describe('<QuoteCard />', () => {
     expect(screen.getByText(/cita relacionada/)).toBeInTheDocument()
   })
 
-  it('clicking "tu reflexión" toggles the user reflection editor', () => {
+  it('"añadir tu reflexión" desde el menú muestra el editor', () => {
     renderWithProviders(<QuoteCard quote={QUOTE} />)
-    const toggleButton = screen.getByRole('button', {
-      name: /\+ reflexión|tu reflexión/i,
-    })
-    fireEvent.click(toggleButton)
-    // Después del click debe aparecer un textarea
+    fireEvent.click(screen.getByRole('button', { name: /más acciones/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /añadir tu reflexión/i }))
+    // Tras el click debe aparecer un textarea
     expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
 })

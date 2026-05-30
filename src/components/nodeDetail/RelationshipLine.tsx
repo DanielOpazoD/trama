@@ -22,12 +22,12 @@ export function RelationshipLine({
   const typeDef = RELATIONSHIP_TYPES.find((t) => t.value === rel.type)
   const label = direction === 'out' ? typeDef?.label : typeDef?.reverseLabel
   return (
-    <li className="group flex items-baseline justify-between gap-2 text-sm">
+    <li className="group flex items-baseline justify-between gap-2 text-xs">
       <span className="leading-relaxed">
-        <span className="text-xs uppercase tracking-wider text-ink-400 mr-2">
+        <span className="text-micro uppercase tracking-eyebrow text-ink-400 mr-2">
           {label ?? rel.type}
         </span>
-        <span className="text-ink-700">{otherEntity?.name ?? '—'}</span>
+        <span className="text-ink-600">{otherEntity?.name ?? '—'}</span>
         {rel.origin.kind === 'ai' && (
           <span
             className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle"

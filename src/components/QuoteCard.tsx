@@ -6,34 +6,25 @@ import {
   useUpdateQuote,
 } from '../state'
 import type { Quote } from '../types'
-import { SparkleIcon } from './Icons'
+import { SparkleIcon, TrashIcon } from './Icons'
+import { OverflowMenu, OverflowMenuItem } from './OverflowMenu'
 import { QuoteEditMode } from './quotes/QuoteEditMode'
 
 /**
- * One quote, expanded.
+ * Una cita, expandida — versión del panel de entidad.
  *
- * Shows the literal text, the source/context (if any), the user's own
- * reflection (if any), and the AI reflection (if generated and saved).
- *
- * Affordances:
- *   - "tu reflexión" → toggle to add/edit a user_reflection
- *   - "pedir interpretación" → calls /api/quotes/:id/reflect, shows the
- *     result inline with [guardar / descartar] buttons. Only persists if the
- *     user confirms (same AI-scribe-human-curates contract).
- *   - "eliminar" → soft-delete the quote.
- *
- * Linked quotes are rendered as small chips at the bottom — clicking one
- * fires onSelectLinked(id) so the parent can scroll/highlight.
+ * Muestra el texto, la fuente, la reflexión del usuario (si la hay) y la
+ * interpretación de la IA (si está guardada). TODAS las acciones (editar,
+ * reflexión, pedir/quitar interpretación, eliminar) viven en un solo menú ⋯
+ * para mantener la tarjeta limpia y minimalista.
  */
 export function QuoteCard({
   quote,
   linkedQuotes,
-  onSelectEntity,
   onSelectLinked,
 }: {
   quote: Quote
   linkedQuotes?: Quote[]
-  onSelectEntity?: (id: string) => void
   onSelectLinked?: (quoteId: string) => void
 }) {
   const updateQuote = useUpdateQuote()
@@ -43,10 +34,6 @@ export function QuoteCard({
 
   const [editingUserRefl, setEditingUserRefl] = useState(false)
   const [userReflDraft, setUserReflDraft] = useState(quote.userReflection ?? '')
-
-  // Full edit mode — text + source + context + which entity it belongs to.
-  // El UI vive en `quotes/QuoteEditMode.tsx`; acá sólo el toggle + el
-  // handler de save que hace patch sólo de los campos cambiados.
   const [editingFull, setEditingFull] = useState(false)
 
   function startFullEdit() {
@@ -56,7 +43,6 @@ export function QuoteCard({
   async function handleSaveFullEdit(patch: {
     text: string
     source: string | null
-    context: string | null
     entityId?: string
   }) {
     try {
@@ -67,13 +53,18 @@ export function QuoteCard({
     }
   }
 
-  // Pending AI reflection — generated but not yet saved.
+  // Reflexión IA generada pero aún sin guardar.
   const [pendingAi, setPendingAi] = useState<{
     text: string
     provider: string
     model: string
   } | null>(null)
   const [reflectError, setReflectError] = useState<string | null>(null)
+
+  function startReflection() {
+    setUserReflDraft(quote.userReflection ?? '')
+    setEditingUserRefl(true)
+  }
 
   async function handleSaveUserReflection() {
     const next = userReflDraft.trim() || null
@@ -85,7 +76,7 @@ export function QuoteCard({
       await updateQuote.mutateAsync({ id: quote.id, patch: { userReflection: next } })
       setEditingUserRefl(false)
     } catch {
-      // surfaces via updateQuote.error
+      /* surfaces via updateQuote.error */
     }
   }
 
@@ -148,8 +139,6 @@ export function QuoteCard({
 
   return (
     <li className="group border-l-2 border-ink-200/70 pl-3">
-      {/* Doble-click sobre la cita entra a edit full directo —
-          patrón estándar Linear/Notion. */}
       <blockquote
         onDoubleClick={startFullEdit}
         className="font-serif text-ink-600 italic leading-relaxed text-sm cursor-text select-text"
@@ -158,7 +147,7 @@ export function QuoteCard({
         «{quote.text}»
       </blockquote>
 
-      <div className="mt-1 flex items-baseline gap-3 text-xs">
+      <div className="mt-1 flex items-center gap-3 text-xs">
         {quote.source && <span className="text-ink-400">{quote.source}</span>}
         {quote.origin.kind === 'ai' && (
           <span
@@ -179,87 +168,112 @@ export function QuoteCard({
             year: 'numeric',
           })}
         </span>
-        <span className="ml-auto flex items-baseline gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={startFullEdit}
-            className="text-ink-300 hover:text-ink-700 text-micro uppercase tracking-eyebrow"
-          >
-            editar
-          </button>
-          <button
-            onClick={() => deleteQuote.mutate(quote.id)}
-            className="text-ink-300 hover:text-red-700 text-micro uppercase tracking-eyebrow"
-          >
-            eliminar
-          </button>
+        <span className="ml-auto">
+          <OverflowMenu width="w-52">
+            {(close) => (
+              <>
+                <OverflowMenuItem
+                  onClick={() => {
+                    close()
+                    startFullEdit()
+                  }}
+                >
+                  Editar
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  onClick={() => {
+                    close()
+                    startReflection()
+                  }}
+                >
+                  {quote.userReflection ? 'Editar tu reflexión' : 'Añadir tu reflexión'}
+                </OverflowMenuItem>
+                {!quote.aiReflection ? (
+                  <OverflowMenuItem
+                    disabled={reflectQuote.isPending}
+                    onClick={() => {
+                      close()
+                      handleAskReflection()
+                    }}
+                  >
+                    <SparkleIcon size={12} />
+                    {reflectQuote.isPending
+                      ? 'Pidiendo…'
+                      : 'Pedir interpretación a la IA'}
+                  </OverflowMenuItem>
+                ) : (
+                  <OverflowMenuItem
+                    onClick={() => {
+                      close()
+                      handleDiscardAiSaved()
+                    }}
+                  >
+                    <SparkleIcon size={12} />
+                    Quitar interpretación
+                  </OverflowMenuItem>
+                )}
+                <div className="h-px bg-ink-100 my-1" />
+                <OverflowMenuItem
+                  danger
+                  onClick={() => {
+                    close()
+                    deleteQuote.mutate(quote.id)
+                  }}
+                >
+                  <TrashIcon size={12} />
+                  Eliminar
+                </OverflowMenuItem>
+              </>
+            )}
+          </OverflowMenu>
         </span>
       </div>
 
-      {quote.context && (
-        <p className="mt-1 text-ink-400 text-xs leading-relaxed">{quote.context}</p>
-      )}
-
-      {/* User reflection */}
-      <div className="mt-3">
-        {editingUserRefl ? (
-          <div className="space-y-2">
-            <textarea
-              value={userReflDraft}
-              onChange={(e) => setUserReflDraft(e.target.value)}
-              placeholder="tu reflexión sobre esta cita…"
-              rows={3}
-              className="input-paper w-full resize-none text-sm"
-              autoFocus
-            />
-            <div className="flex items-center justify-end gap-2">
-              <button
-                onClick={() => {
-                  setEditingUserRefl(false)
-                  setUserReflDraft(quote.userReflection ?? '')
-                }}
-                className="btn-ghost text-xs"
-              >
-                cancelar
-              </button>
-              <button
-                onClick={handleSaveUserReflection}
-                disabled={updateQuote.isPending}
-                className="btn-accent text-xs"
-              >
-                {updateQuote.isPending ? 'guardando…' : 'guardar reflexión'}
-              </button>
-            </div>
+      {/* Reflexión del usuario — edición inline (disparada desde el menú). */}
+      {editingUserRefl ? (
+        <div className="mt-3 space-y-2">
+          <textarea
+            value={userReflDraft}
+            onChange={(e) => setUserReflDraft(e.target.value)}
+            placeholder="tu reflexión sobre esta cita…"
+            rows={3}
+            className="input-paper w-full resize-none text-sm"
+            autoFocus
+          />
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={() => {
+                setEditingUserRefl(false)
+                setUserReflDraft(quote.userReflection ?? '')
+              }}
+              className="btn-ghost text-xs"
+            >
+              cancelar
+            </button>
+            <button
+              onClick={handleSaveUserReflection}
+              disabled={updateQuote.isPending}
+              className="btn-accent text-xs"
+            >
+              {updateQuote.isPending ? 'guardando…' : 'guardar reflexión'}
+            </button>
           </div>
-        ) : quote.userReflection ? (
-          <div className="group/refl">
-            <div className="flex items-baseline gap-2">
-              <span className="section-eyebrow">tu reflexión</span>
-              <button
-                onClick={() => setEditingUserRefl(true)}
-                className="opacity-0 group-hover/refl:opacity-100 transition-opacity text-micro text-ink-300 hover:text-ink-700"
-              >
-                editar
-              </button>
-            </div>
-            {/* μ1: marginalia manuscrita — la reflexión propia se lee
-                como anotación tuya, no como prosa del catálogo. */}
+        </div>
+      ) : (
+        quote.userReflection && (
+          <div className="mt-3">
+            <span className="section-eyebrow">tu reflexión</span>
+            {/* μ1: marginalia manuscrita — se lee como anotación tuya. */}
             <p className="marginalia-script mt-0.5 whitespace-pre-wrap">
               {quote.userReflection}
             </p>
           </div>
-        ) : (
-          <button
-            onClick={() => setEditingUserRefl(true)}
-            className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
-          >
-            + añadir tu reflexión
-          </button>
-        )}
-      </div>
+        )
+      )}
 
-      {/* AI reflection — saved */}
+      {/* Interpretación IA guardada (solo lectura; se quita desde el menú). */}
       {quote.aiReflection && !pendingAi && (
-        <div className="mt-3 group/airefl">
+        <div className="mt-3">
           <div className="flex items-baseline gap-2">
             <span style={{ color: 'var(--accent-primary)' }} className="inline-flex">
               <SparkleIcon size={10} />
@@ -278,13 +292,6 @@ export function QuoteCard({
                 })}
               </span>
             )}
-            <button
-              onClick={handleDiscardAiSaved}
-              className="opacity-0 group-hover/airefl:opacity-100 transition-opacity text-micro text-ink-300 hover:text-red-700"
-              title="Eliminar esta interpretación"
-            >
-              eliminar
-            </button>
           </div>
           <p className="text-ink-500 text-sm leading-relaxed mt-0.5 whitespace-pre-wrap">
             {quote.aiReflection}
@@ -292,7 +299,7 @@ export function QuoteCard({
         </div>
       )}
 
-      {/* AI reflection — pending review */}
+      {/* Interpretación IA recién pedida — pendiente de revisar. */}
       {pendingAi && (
         <div className="mt-3 ai-panel p-3">
           <div className="flex items-baseline gap-2 mb-1">
@@ -324,36 +331,9 @@ export function QuoteCard({
         </div>
       )}
 
-      {/* No AI reflection yet — a discrete icon button (with tooltip) sits in
-          the meta row below the quote, alongside Spotify / source. Keeps the
-          card visually quiet until the user actually wants AI help. */}
-      {!quote.aiReflection && !pendingAi && (
-        <div className="mt-2">
-          <button
-            onClick={handleAskReflection}
-            disabled={reflectQuote.isPending}
-            aria-label="Pedir interpretación a la IA"
-            title="Pedir interpretación a la IA"
-            className="inline-flex items-center justify-center size-7 rounded-full transition-colors hover:bg-[color:var(--accent-primary-soft)] disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ color: 'var(--accent-primary)' }}
-          >
-            {reflectQuote.isPending ? (
-              <span
-                className="size-3 border-2 rounded-full animate-spin"
-                style={{
-                  borderColor: 'var(--accent-primary-ring)',
-                  borderTopColor: 'var(--accent-primary)',
-                }}
-              />
-            ) : (
-              <SparkleIcon size={14} />
-            )}
-          </button>
-          {reflectError && <p className="mt-1 text-xs text-red-700">{reflectError}</p>}
-        </div>
-      )}
+      {reflectError && <p className="mt-1 text-xs text-red-700">{reflectError}</p>}
 
-      {/* Linked quotes — chips */}
+      {/* Citas vinculadas — chips */}
       {linkedQuotes && linkedQuotes.length > 0 && (
         <div className="mt-3">
           <span className="text-micro uppercase tracking-eyebrow text-ink-300">
@@ -374,8 +354,6 @@ export function QuoteCard({
           </ul>
         </div>
       )}
-
-      {onSelectEntity && <span className="sr-only" data-entity-link={quote.entityId} />}
     </li>
   )
 }
