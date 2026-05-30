@@ -68,7 +68,13 @@ export {
 } from './useQuotes'
 export { useExtract, useExtractFromImage, useAsk } from './useExtract'
 export { useCronicasQuery, useGenerateCronica } from './useCronicas'
-export { useNotesQuery, useCreateNote, useUpdateNote, useDeleteNote } from './useNotes'
+export {
+  useNotesQuery,
+  useCreateNote,
+  useUpdateNote,
+  useDeleteNote,
+  usePromoteNote,
+} from './useNotes'
 export { useTasksQuery, useCreateTask, useUpdateTask, useDeleteTask } from './useTasks'
 export { useInfiniteCronologiaQuery } from './useCronologia'
 export { useAtlasQuery, useGenerateAtlas } from './useAtlas'

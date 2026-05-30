@@ -46,3 +46,19 @@ export function useDeleteNote() {
     onSuccess: () => qc.invalidateQueries({ queryKey: NOTES_KEY }),
   })
 }
+
+/**
+ * Fase 4: promueve una nota a Momento. Al terminar invalida las notas (para
+ * que la nota muestre su insignia "→ Momento") y los momentos (para que el
+ * nuevo aparezca en la línea de tiempo).
+ */
+export function usePromoteNote() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.notes.promote(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: NOTES_KEY })
+      qc.invalidateQueries({ queryKey: ['momentos'] })
+    },
+  })
+}
