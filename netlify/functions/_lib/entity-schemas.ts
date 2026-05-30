@@ -53,3 +53,14 @@ export const EntityRestoreBody = z.object({
   deletedAt: z.string().min(1, 'deletedAt requerido'),
 })
 export type EntityRestoreBodyT = z.infer<typeof EntityRestoreBody>
+
+/**
+ * Body del POST /api/entities-merge. `keepId` es la entidad que se conserva;
+ * `mergeIds` las que se absorben (sus citas/relaciones/momentos se reasignan y
+ * luego se soft-deletean). El handler valida que todas sean del usuario.
+ */
+export const EntityMergeBody = z.object({
+  keepId: z.string().uuid('keepId inválido'),
+  mergeIds: z.array(z.string().uuid()).min(1, 'mergeIds requiere al menos una'),
+})
+export type EntityMergeBodyT = z.infer<typeof EntityMergeBody>

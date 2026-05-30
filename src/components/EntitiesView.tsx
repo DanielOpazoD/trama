@@ -7,7 +7,8 @@ import {
   useReclassifyEntities,
   useUpdateEntityType,
 } from '../state'
-import { type Reclassification } from '../api'
+import { api, type Reclassification, type DuplicateGroup } from '../api'
+import { DuplicatesPanel } from './DuplicatesPanel'
 import { EndMark } from './Icons'
 import { ReclassifyPanel } from './ReclassifyPanel'
 import { EmptyMessage } from './EmptyMessage'
@@ -56,6 +57,15 @@ export function EntitiesView({
     model: string | null
   }>({ provider: null, model: null })
   const [emptyHint, setEmptyHint] = useState(false)
+
+  // Duplicados: resultado de la búsqueda + estado de carga/error. El panel se
+  // monta cuando `duplicates` deja de ser null.
+  const [duplicates, setDuplicates] = useState<{
+    groups: DuplicateGroup[]
+    embeddingSkipped: boolean
+  } | null>(null)
+  const [dupLoading, setDupLoading] = useState(false)
+  const [dupError, setDupError] = useState<string | null>(null)
 
   const quoteCountById = useMemo(() => {
     const map = new Map<string, number>()
@@ -106,6 +116,19 @@ export function EntitiesView({
     }
   }
 
+  async function handleFindDuplicates() {
+    setDupLoading(true)
+    setDupError(null)
+    try {
+      const res = await api.findDuplicates()
+      setDuplicates(res)
+    } catch (err) {
+      setDupError(err instanceof Error ? err.message : 'No se pudieron buscar duplicados')
+    } finally {
+      setDupLoading(false)
+    }
+  }
+
   return (
     <>
       {/* ρ-struct: header con h2 + acciones EN LA MISMA FILA. Antes el
@@ -128,6 +151,8 @@ export function EntitiesView({
               <AIMenu
                 onReclassify={handleReclassify}
                 reclassifyPending={reclassify.isPending}
+                onFindDuplicates={handleFindDuplicates}
+                duplicatesPending={dupLoading}
                 disabled={offline}
               />
             )}
@@ -169,6 +194,17 @@ export function EntitiesView({
             }
             setPending(null)
           }}
+        />
+      )}
+
+      {dupError && (
+        <div className="alert-error mb-6 px-4 py-3 rounded-xl text-sm">{dupError}</div>
+      )}
+      {duplicates && (
+        <DuplicatesPanel
+          groups={duplicates.groups}
+          embeddingSkipped={duplicates.embeddingSkipped}
+          onClose={() => setDuplicates(null)}
         />
       )}
 
