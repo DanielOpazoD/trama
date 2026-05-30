@@ -21,6 +21,7 @@ import {
   SearchIcon,
   SettingsIcon,
   SparkleIcon,
+  TwitterIcon,
 } from './Icons'
 import { AIModeToggle } from './AIModeToggle'
 import { NavButton, type NavItem } from './sidebar/NavButton'
@@ -65,6 +66,7 @@ const NAV_GROUPS: NavGroup[] = [
       { value: 'citas', label: 'Citas', icon: QuoteIcon },
       { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
       { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
+      { value: 'twitter', label: 'Twitter', icon: TwitterIcon },
     ],
   },
   {
@@ -149,6 +151,8 @@ export function Sidebar({
     // número. Coherencia con las demás secciones.
     momentos: totals?.momentos ?? null,
     escuchas: null,
+    // Los bookmarks guardados no vienen en el endpoint de counts; sin badge.
+    twitter: null,
     // Cronología es una superficie de lectura que teje varias corrientes —
     // un único "count" no tendría sentido (¿citas? ¿momentos? ¿la suma?).
     cronologia: null,

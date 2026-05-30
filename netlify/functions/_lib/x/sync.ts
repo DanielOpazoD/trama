@@ -28,6 +28,17 @@ export type NormalizedBookmark = {
   url: string
 }
 
+/** Error de la API de X con el status HTTP, para mapear a un mensaje claro. */
+export class XApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'XApiError'
+  }
+}
+
 /** Trae una página de bookmarks (hasta 100) y los normaliza. */
 export async function fetchBookmarks(
   accessToken: string,
@@ -43,7 +54,10 @@ export async function fetchBookmarks(
     headers: { Authorization: `Bearer ${accessToken}` },
   })
   if (!r.ok) {
-    throw new Error(`X bookmarks fetch failed (${r.status}): ${await r.text()}`)
+    throw new XApiError(
+      r.status,
+      `X bookmarks fetch failed (${r.status}): ${await r.text()}`,
+    )
   }
   const data = (await r.json()) as BookmarksResponse
   const usersById = new Map((data.includes?.users ?? []).map((u) => [u.id, u] as const))
@@ -60,6 +74,48 @@ export async function fetchBookmarks(
       url: `https://x.com/${username ?? 'i'}/status/${t.id}`,
     }
   })
+}
+
+export type StoredBookmark = {
+  id: string
+  tweet_id: string
+  text: string
+  author_id: string | null
+  author_name: string | null
+  author_username: string | null
+  tweet_created_at: string | null
+  url: string | null
+  captured_at: string
+}
+
+/**
+ * Lista los bookmarks guardados del usuario, más recientes primero. Paginación
+ * por cursor sobre `captured_at` (append-only, el orden es estable).
+ */
+export async function listBookmarks(
+  sql: SqlClient,
+  userId: string,
+  limit: number,
+  cursor: string | null,
+): Promise<StoredBookmark[]> {
+  const rows = cursor
+    ? await sql`
+        SELECT id, tweet_id, text, author_id, author_name, author_username,
+               tweet_created_at, url, captured_at
+        FROM x_bookmarks
+        WHERE user_id = ${userId} AND captured_at < ${cursor}
+        ORDER BY captured_at DESC
+        LIMIT ${limit}
+      `
+    : await sql`
+        SELECT id, tweet_id, text, author_id, author_name, author_username,
+               tweet_created_at, url, captured_at
+        FROM x_bookmarks
+        WHERE user_id = ${userId}
+        ORDER BY captured_at DESC
+        LIMIT ${limit}
+      `
+  return rows as StoredBookmark[]
 }
 
 /** Guarda bookmarks nuevos. Devuelve cuántos se insertaron (dedup por tweet). */

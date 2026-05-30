@@ -25,6 +25,7 @@ const TITLES: Record<ViewMode, { title: string; subtitle?: string }> = {
   entidades: { title: 'Entidades', subtitle: 'personas, obras, conceptos' },
   citas: { title: 'Citas', subtitle: 'fragmentos que retuviste' },
   escuchas: { title: 'Escuchas', subtitle: 'tu música reciente' },
+  twitter: { title: 'Twitter', subtitle: 'tus tweets marcados' },
   momentos: { title: 'Momentos', subtitle: 'la dimensión temporal de tu trama' },
   cronologia: { title: 'Cronología', subtitle: 'hojear el tiempo, por estaciones' },
   atlas: { title: 'Atlas', subtitle: 'constelaciones de tu trama' },

@@ -14,5 +14,12 @@ export {
   getXProfile,
   type StoredXTokens,
 } from './auth.js'
-export { fetchBookmarks, storeBookmarks, type NormalizedBookmark } from './sync.js'
+export {
+  fetchBookmarks,
+  storeBookmarks,
+  listBookmarks,
+  XApiError,
+  type NormalizedBookmark,
+  type StoredBookmark,
+} from './sync.js'
 export { isXConfigured } from './client.js'

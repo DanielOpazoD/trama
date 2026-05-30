@@ -11,6 +11,7 @@ import {
   MusicIcon,
   QuoteIcon,
   SparkleIcon,
+  TwitterIcon,
 } from './Icons'
 import type { ViewMode } from './Sidebar'
 import { SECTION_ACCENT } from '../lib/sectionAccent'
@@ -48,6 +49,7 @@ const NAV_ITEMS: Array<{
   { value: 'citas', label: 'Citas', icon: QuoteIcon },
   { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
   { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
+  { value: 'twitter', label: 'Twitter', icon: TwitterIcon },
   { value: 'grafo', label: 'Grafo', icon: GraphIcon },
   { value: 'cronologia', label: 'Cronología', icon: CronologiaIcon },
   { value: 'atlas', label: 'Atlas', icon: AtlasIcon },
