@@ -40,6 +40,15 @@ function formatDue(due: string): string {
   return date.toLocaleDateString('es', { day: 'numeric', month: 'short' })
 }
 
+/** ISO de creación → "12 jun" (fecha local, sin hora). */
+function formatCreated(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short' })
+  } catch {
+    return ''
+  }
+}
+
 export function TaskItem({
   task,
   onToggle,
@@ -161,10 +170,15 @@ export function TaskItem({
             </p>
           )}
           <footer className="mt-2 flex items-center gap-3 text-micro">
+            {/* Fecha de creación — siempre visible, clara. */}
+            <span className="text-ink-300 tabular-nums" title="Fecha de creación">
+              {formatCreated(task.createdAt)}
+            </span>
+            {/* Vencimiento — opcional; se resalta en rojo si está vencido. */}
             {task.dueDate && (
               <span
                 className={`uppercase tracking-eyebrow tabular-nums ${
-                  overdue ? 'text-red-700' : 'text-ink-300'
+                  overdue ? 'text-red-700' : 'text-ink-400'
                 }`}
               >
                 {overdue ? 'venció' : 'vence'} {formatDue(task.dueDate)}

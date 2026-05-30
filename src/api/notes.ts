@@ -64,4 +64,8 @@ export const notesApi = {
   async remove(id: string): Promise<void> {
     await request(`/api/notes/${id}`, { method: 'DELETE' })
   },
+  /** Fase 4: promueve la nota a un Momento (kind=nota). Devuelve su id. */
+  async promote(id: string): Promise<{ momentoId: string }> {
+    return request(`/api/notes/${id}/promote`, { method: 'POST' })
+  },
 }

@@ -1,5 +1,12 @@
 import { useMemo, useState } from 'react'
-import { useNotesQuery, useCreateNote, useUpdateNote, useDeleteNote } from '../../state'
+import {
+  useNotesQuery,
+  useCreateNote,
+  useUpdateNote,
+  useDeleteNote,
+  usePromoteNote,
+  useToast,
+} from '../../state'
 import { ViewHeader } from '../ViewHeader'
 import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
@@ -20,6 +27,8 @@ export function NotasView() {
   const createNote = useCreateNote()
   const updateNote = useUpdateNote()
   const deleteNote = useDeleteNote()
+  const promoteNote = usePromoteNote()
+  const toast = useToast()
 
   const [draft, setDraft] = useState('')
   const [search, setSearch] = useState('')
@@ -221,10 +230,26 @@ export function NotasView() {
               key={note.id}
               note={note}
               busy={updateNote.isPending || deleteNote.isPending}
+              promoting={promoteNote.isPending && promoteNote.variables === note.id}
               onTogglePin={() =>
                 updateNote.mutate({ id: note.id, patch: { pinned: !note.pinned } })
               }
+              onEdit={(content) => updateNote.mutate({ id: note.id, patch: { content } })}
               onDelete={() => deleteNote.mutate(note.id)}
+              onPromote={() =>
+                promoteNote.mutate(note.id, {
+                  onSuccess: () =>
+                    toast.show({
+                      message: 'Nota promovida a Momento.',
+                      tone: 'success',
+                    }),
+                  onError: (e) =>
+                    toast.show({
+                      message: e instanceof Error ? e.message : 'No se pudo promover',
+                      tone: 'error',
+                    }),
+                })
+              }
             />
           ))}
         </div>

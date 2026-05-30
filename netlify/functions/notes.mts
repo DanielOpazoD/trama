@@ -6,6 +6,8 @@ import { getAuthedUser } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { NoteCreateBody, NotePatchBody } from './_lib/note-schemas.js'
 import { parseTags } from './_lib/note-tags.js'
+import { embedSafe, toPgVector } from './_lib/embeddings.js'
+import { momentoEmbedText } from './_lib/momento-embed.js'
 
 /**
  * Trama Notas — CRUD de apuntes rápidos (memos). Scope por usuario,
@@ -29,6 +31,60 @@ export default withObservability(
     const { id: userId } = await getAuthedUser(req)
     const sql = getSql()
     const id = context.params.id
+
+    // τ-worlds Fase 4: promover una nota → Momento (kind=nota). Crea el
+    // Momento con el contenido de la nota (embedding best-effort, en la fecha
+    // de la nota) y marca `promoted_momento_id` para no duplicar. Es el puente
+    // entre el mundo Notas y el mapa.
+    if (req.method === 'POST' && id && new URL(req.url).pathname.endsWith('/promote')) {
+      const rows = await sqlTyped<{
+        content: string
+        promoted: string | null
+        created_at: string
+      }>(sql`
+        SELECT content, promoted_momento_id AS promoted, created_at
+        FROM notes
+        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+      `)
+      if (rows.length === 0) return ApiErrors.notFound(requestId, 'Nota no encontrada')
+      const note = rows[0]!
+      if (note.promoted) {
+        return ApiErrors.validation(
+          requestId,
+          'Esta nota ya fue promovida a un Momento',
+        )
+      }
+
+      const payload = { bodyText: note.content }
+      const embedSource = momentoEmbedText('nota', payload, null)
+      const emb = embedSource.length > 0 ? await embedSafe(embedSource) : null
+      const inserted = await sqlTyped<{ id: string }>(sql`
+        INSERT INTO momentos (
+          kind, captured_at, payload, note, origin,
+          embedding, embedding_model, embedding_at, user_id
+        ) VALUES (
+          'nota',
+          ${note.created_at}::timestamptz,
+          ${JSON.stringify(payload)}::jsonb,
+          ${null},
+          ${JSON.stringify({ kind: 'manual' })}::jsonb,
+          ${emb ? toPgVector(emb.vector) : null}::vector,
+          ${emb?.model ?? null},
+          ${emb ? new Date().toISOString() : null}::timestamptz,
+          ${userId}
+        )
+        RETURNING id
+      `)
+      const momentoId = inserted[0]?.id
+      if (!momentoId) return ApiErrors.internal(requestId, 'No se pudo crear el Momento')
+
+      await sql`
+        UPDATE notes
+        SET promoted_momento_id = ${momentoId}, updated_at = NOW()
+        WHERE id = ${id} AND user_id = ${userId}
+      `
+      return Response.json({ momentoId }, { status: 201 })
+    }
 
     if (req.method === 'GET') {
       const url = new URL(req.url)
@@ -113,5 +169,5 @@ export default withObservability(
 )
 
 export const config: Config = {
-  path: ['/api/notes', '/api/notes/:id'],
+  path: ['/api/notes', '/api/notes/:id', '/api/notes/:id/promote'],
 }
