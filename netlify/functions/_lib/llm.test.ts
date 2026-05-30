@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { askLLMForJson, clearLLMCache } from './llm'
+import { readDedicatedKey, readFallbackProviders } from './llm/config'
 import { resetEnvCache } from './env'
 
 function stubEnv(provider: string | undefined, apiKey: string | undefined) {
@@ -371,5 +372,115 @@ describe('askLLMForJson — error propagation', () => {
   it('throws when response has no content', async () => {
     vi.stubGlobal('fetch', mockFetch({ choices: [{ message: {} }] }))
     await expect(askLLMForJson([{ role: 'user', content: 'x' }])).rejects.toThrow()
+  })
+})
+
+/** Stub de env con cadena de fallback + key dedicada para el secundario. */
+function stubEnvWithFallback(extra: Record<string, string | undefined>) {
+  vi.stubGlobal('Netlify', {
+    env: {
+      get: vi.fn((key: string) => extra[key]),
+    },
+  })
+}
+
+describe('readFallbackProviders — parsing', () => {
+  it('devuelve [] cuando AI_FALLBACK_PROVIDERS no está', () => {
+    stubEnvWithFallback({ AI_PROVIDER: 'deepseek', AI_API_KEY: 'k' })
+    resetEnvCache()
+    expect(readFallbackProviders()).toEqual([])
+  })
+
+  it('parsea lista separada por comas, dedup e ignora tokens inválidos', () => {
+    stubEnvWithFallback({
+      AI_FALLBACK_PROVIDERS: 'openai, gemini ,openai,foo,ANTHROPIC',
+    })
+    resetEnvCache()
+    expect(readFallbackProviders()).toEqual(['openai', 'gemini', 'anthropic'])
+  })
+})
+
+describe('readDedicatedKey — gate de la cadena de fallback', () => {
+  it('exige key DEDICADA: no cae a AI_API_KEY compartida para non-deepseek', () => {
+    // Solo AI_API_KEY presente: deepseek la tiene, openai/anthropic/gemini NO.
+    stubEnvWithFallback({ AI_API_KEY: 'shared-key' })
+    resetEnvCache()
+    expect(readDedicatedKey('deepseek')).toBe('shared-key')
+    expect(readDedicatedKey('openai')).toBeNull()
+    expect(readDedicatedKey('anthropic')).toBeNull()
+    expect(readDedicatedKey('gemini')).toBeNull()
+  })
+
+  it('devuelve la key propia cuando está configurada', () => {
+    stubEnvWithFallback({ OPENAI_API_KEY: 'openai-key', GEMINI_API_KEY: 'gemini-key' })
+    resetEnvCache()
+    expect(readDedicatedKey('openai')).toBe('openai-key')
+    expect(readDedicatedKey('gemini')).toBe('gemini-key')
+  })
+})
+
+describe('askLLMForJson — fallback cross-provider', () => {
+  it('cae a un provider de fallback ante falla transitoria (5xx) del primario', async () => {
+    stubEnvWithFallback({
+      AI_PROVIDER: 'deepseek',
+      AI_API_KEY: 'deepseek-key',
+      OPENAI_API_KEY: 'openai-key',
+      AI_FALLBACK_PROVIDERS: 'openai',
+    })
+    resetEnvCache()
+    clearLLMCache()
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('deepseek')) {
+        return { ok: false, status: 503, text: async () => 'unavailable' }
+      }
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify(SIMPLE_RESPONSE_OPENAI),
+        json: async () => SIMPLE_RESPONSE_OPENAI,
+      }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    // Timers reales: el primario agota su backoff (~5s) antes de caer al
+    // fallback. Por eso el timeout extendido — es el único test "lento".
+    const result = await askLLMForJson([
+      { role: 'user', content: 'fallback-' + Math.random() },
+    ])
+
+    expect(result.usage.provider).toBe('openai')
+    const urls = fetchMock.mock.calls.map((c) => String(c[0]))
+    // deepseek: 3 intentos (2 retries); openai: 1.
+    expect(urls.filter((u) => u.includes('deepseek')).length).toBe(3)
+    expect(urls.filter((u) => u.includes('openai.com')).length).toBe(1)
+  }, 15000)
+
+  it('NO cae a fallback ante un 4xx permanente del primario', async () => {
+    stubEnvWithFallback({
+      AI_PROVIDER: 'deepseek',
+      AI_API_KEY: 'deepseek-key',
+      OPENAI_API_KEY: 'openai-key',
+      AI_FALLBACK_PROVIDERS: 'openai',
+    })
+    resetEnvCache()
+    clearLLMCache()
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('deepseek')) {
+        return { ok: false, status: 401, text: async () => 'invalid key' }
+      }
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify(SIMPLE_RESPONSE_OPENAI),
+        json: async () => SIMPLE_RESPONSE_OPENAI,
+      }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      askLLMForJson([{ role: 'user', content: 'perm-' + Math.random() }]),
+    ).rejects.toThrow(/401/)
+    const urls = fetchMock.mock.calls.map((c) => String(c[0]))
+    expect(urls.some((u) => u.includes('openai.com'))).toBe(false)
   })
 })

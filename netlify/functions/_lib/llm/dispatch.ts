@@ -15,13 +15,16 @@ import {
   computeCostCents,
   readApiKeyFor,
   readCacheTtlSeconds,
+  readDedicatedKey,
+  readFallbackProviders,
   readMaxTokens,
   readProvider,
   readVisionProvider,
 } from './config.js'
 import { getCached, hashMessages, putCached } from './cache.js'
 import { getCachedFromDB, putCachedToDB } from './db-cache.js'
-import { fetchWithRetry } from './retry.js'
+import { fetchWithRetry, LLMTransientError } from './retry.js'
+import { logEvent } from '../observability.js'
 import { askOpenAICompatible, askOpenAIVision } from './providers/openai-compatible.js'
 import { askAnthropic } from './providers/anthropic.js'
 import { askGemini, askGeminiVision } from './providers/gemini.js'
@@ -60,21 +63,77 @@ function resolveProvider(override?: LLMOverride): {
   return { provider, apiKey, config }
 }
 
+type ChainLink = { provider: LLMProvider; apiKey: string; config: ProviderConfig }
+
+/**
+ * Cadena ordenada [primario, ...fallbacks]. El primario sale de resolveProvider
+ * (honra override + key compartida, y lanza si no hay key — comportamiento
+ * histórico). Los fallbacks vienen de AI_FALLBACK_PROVIDERS y SOLO entran si
+ * tienen key dedicada (override.model NO se aplica a ellos: un modelo es
+ * específico del provider primario).
+ */
+function buildProviderChain(override?: LLMOverride): ChainLink[] {
+  const primary = resolveProvider(override)
+  const chain: ChainLink[] = [primary]
+  for (const fb of readFallbackProviders()) {
+    if (fb === primary.provider) continue
+    const apiKey = readDedicatedKey(fb)
+    if (!apiKey) continue
+    chain.push({ provider: fb, apiKey, config: PROVIDER_DEFAULTS[fb] })
+  }
+  return chain
+}
+
+/** Una sola llamada a un provider concreto. Envuelve el RawResult en LLMResult. */
+async function callOneProvider(
+  link: ChainLink,
+  messages: LLMMessage[],
+  mode: 'json' | 'text',
+  maxTokens: number,
+): Promise<LLMResult> {
+  const { provider, apiKey, config } = link
+  const start = Date.now()
+  let raw: RawResult
+  if (provider === 'gemini') {
+    raw = await askGemini(apiKey, config, messages, maxTokens, mode)
+  } else if (provider === 'anthropic') {
+    raw = await askAnthropic(apiKey, config, messages, maxTokens, mode)
+  } else {
+    raw = await askOpenAICompatible(apiKey, config, messages, maxTokens, mode)
+  }
+  return {
+    content: raw.content,
+    usage: {
+      provider,
+      model: config.model,
+      tokensIn: raw.tokensIn,
+      tokensOut: raw.tokensOut,
+      costCents: computeCostCents(raw, config),
+      durationMs: Date.now() - start,
+    },
+    fromCache: false,
+  }
+}
+
 async function callLLM(
   messages: LLMMessage[],
   mode: 'json' | 'text',
   override?: LLMOverride,
 ): Promise<LLMResult> {
-  const { provider, apiKey, config } = resolveProvider(override)
   const maxTokens = readMaxTokens()
   const cacheTtl = readCacheTtlSeconds()
+  const chain = buildProviderChain(override)
+  const primary = chain[0]
+  if (!primary) throw new Error('No se pudo resolver ningún provider LLM.')
 
   // η2: freshNonce participa del cache key — si el caller lo pasa, cada
   // call con nonce distinto evita el cache. Útil para "descubrir IA" donde
-  // el usuario espera variedad entre clicks.
+  // el usuario espera variedad entre clicks. El key se ancla al provider
+  // primario; si un fallback responde, su resultado se cachea bajo ese mismo
+  // key — así el próximo request idéntico no vuelve a fallar contra el primario.
   const cacheKey = await hashMessages(
     messages,
-    `${provider}|${config.model}|${mode}|${override?.freshNonce ?? ''}`,
+    `${primary.provider}|${primary.config.model}|${mode}|${override?.freshNonce ?? ''}`,
   )
   // DD6: dos niveles. 1) Memoria (sub-ms, mismo Lambda warm). 2) Postgres
   // (~15-30ms, sobrevive cold starts y deploys). Solo llamamos al provider
@@ -89,33 +148,45 @@ async function callLLM(
     return dbCached
   }
 
-  const start = Date.now()
-  let raw: RawResult
-  if (provider === 'gemini') {
-    raw = await askGemini(apiKey, config, messages, maxTokens, mode)
-  } else if (provider === 'anthropic') {
-    raw = await askAnthropic(apiKey, config, messages, maxTokens, mode)
-  } else {
-    raw = await askOpenAICompatible(apiKey, config, messages, maxTokens, mode)
+  // Recorre la cadena: ante una falla TRANSITORIA (5xx/timeout/red) cae al
+  // siguiente provider; ante una permanente (4xx auth/bad-request, o JSON
+  // inválido) re-lanza sin enmascarar.
+  let lastError: unknown
+  for (const [i, link] of chain.entries()) {
+    try {
+      const result = await callOneProvider(link, messages, mode, maxTokens)
+      if (i > 0) {
+        logEvent({
+          event: 'llm_fallback_succeeded',
+          primary: primary.provider,
+          used: link.provider,
+          mode,
+        })
+      }
+      putCached(cacheKey, result, cacheTtl)
+      // Persistir a DB best-effort (no await; no debe bloquear el response).
+      void putCachedToDB(cacheKey, result, cacheTtl)
+      return result
+    } catch (err) {
+      lastError = err
+      const transient = err instanceof LLMTransientError
+      const hasNext = i < chain.length - 1
+      if (transient && hasNext) {
+        logEvent({
+          event: 'llm_provider_failed',
+          provider: link.provider,
+          willFallback: true,
+          message: err instanceof Error ? err.message : String(err),
+        })
+        continue
+      }
+      throw err
+    }
   }
-
-  const result: LLMResult = {
-    content: raw.content,
-    usage: {
-      provider,
-      model: config.model,
-      tokensIn: raw.tokensIn,
-      tokensOut: raw.tokensOut,
-      costCents: computeCostCents(raw, config),
-      durationMs: Date.now() - start,
-    },
-    fromCache: false,
-  }
-
-  putCached(cacheKey, result, cacheTtl)
-  // Persistir a DB best-effort (no await; no debe bloquear el response).
-  void putCachedToDB(cacheKey, result, cacheTtl)
-  return result
+  // Inalcanzable (el loop siempre retorna o lanza), pero satisface a TS.
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('LLM falló sin error capturado')
 }
 
 export async function askLLMForJson(
@@ -189,6 +260,22 @@ export async function* askLLMForTextStreaming(
       }),
     )
   } catch (err) {
+    // Falla transitoria al abrir el stream: si hay fallback configurado, cae
+    // a la cadena no-streaming (callLLM) y emite la respuesta en un solo chunk
+    // para no romper el chat. Un solo extra-intento contra el primario es
+    // aceptable en este camino raro.
+    if (err instanceof LLMTransientError && readFallbackProviders().length > 0) {
+      try {
+        const result = await callLLM(messages, 'text', override)
+        const content =
+          typeof result.content === 'string' ? result.content : String(result.content)
+        yield { type: 'chunk', content }
+        yield { type: 'done', content, usage: result.usage }
+        return
+      } catch {
+        /* cae al frame de error de abajo */
+      }
+    }
     yield { type: 'error', message: err instanceof Error ? err.message : String(err) }
     return
   }
@@ -304,43 +391,92 @@ export async function askLLMForVision(
     return dbCached
   }
 
-  const start = Date.now()
-  let raw: RawResult
-  if (provider === 'openai') {
-    raw = await askOpenAIVision(
-      apiKey,
-      config,
-      systemPrompt,
-      userText,
-      imageBase64,
-      mimeType,
-      maxTokens,
-    )
-  } else {
-    raw = await askGeminiVision(
-      apiKey,
-      config,
-      systemPrompt,
-      userText,
-      imageBase64,
-      mimeType,
-      maxTokens,
-    )
+  // Cadena de visión: primario + el otro provider vision-capable (openai↔gemini)
+  // si está en AI_FALLBACK_PROVIDERS y tiene key dedicada. Vision solo soporta
+  // estos dos, así que la cadena tiene a lo sumo dos eslabones.
+  type VisionLink = {
+    provider: 'openai' | 'gemini'
+    apiKey: string
+    config: ProviderConfig
+  }
+  const visionChain: VisionLink[] = [{ provider, apiKey, config }]
+  const other: 'openai' | 'gemini' = provider === 'openai' ? 'gemini' : 'openai'
+  if (readFallbackProviders().includes(other)) {
+    const otherKey = readDedicatedKey(other)
+    if (otherKey) {
+      visionChain.push({
+        provider: other,
+        apiKey: otherKey,
+        config: PROVIDER_DEFAULTS[other],
+      })
+    }
   }
 
-  const result: LLMResult = {
-    content: raw.content,
-    usage: {
-      provider,
-      model: config.model,
-      tokensIn: raw.tokensIn,
-      tokensOut: raw.tokensOut,
-      costCents: computeCostCents(raw, config),
-      durationMs: Date.now() - start,
-    },
-    fromCache: false,
+  const callOneVision = async (link: VisionLink): Promise<LLMResult> => {
+    const start = Date.now()
+    const raw: RawResult =
+      link.provider === 'openai'
+        ? await askOpenAIVision(
+            link.apiKey,
+            link.config,
+            systemPrompt,
+            userText,
+            imageBase64,
+            mimeType,
+            maxTokens,
+          )
+        : await askGeminiVision(
+            link.apiKey,
+            link.config,
+            systemPrompt,
+            userText,
+            imageBase64,
+            mimeType,
+            maxTokens,
+          )
+    return {
+      content: raw.content,
+      usage: {
+        provider: link.provider,
+        model: link.config.model,
+        tokensIn: raw.tokensIn,
+        tokensOut: raw.tokensOut,
+        costCents: computeCostCents(raw, link.config),
+        durationMs: Date.now() - start,
+      },
+      fromCache: false,
+    }
   }
-  putCached(cacheKey, result, cacheTtl)
-  void putCachedToDB(cacheKey, result, cacheTtl)
-  return result
+
+  let lastError: unknown
+  for (const [i, link] of visionChain.entries()) {
+    try {
+      const result = await callOneVision(link)
+      if (i > 0) {
+        logEvent({
+          event: 'llm_vision_fallback_succeeded',
+          primary: provider,
+          used: link.provider,
+        })
+      }
+      putCached(cacheKey, result, cacheTtl)
+      void putCachedToDB(cacheKey, result, cacheTtl)
+      return result
+    } catch (err) {
+      lastError = err
+      if (err instanceof LLMTransientError && i < visionChain.length - 1) {
+        logEvent({
+          event: 'llm_vision_provider_failed',
+          provider: link.provider,
+          willFallback: true,
+          message: err instanceof Error ? err.message : String(err),
+        })
+        continue
+      }
+      throw err
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('Vision falló sin error capturado')
 }

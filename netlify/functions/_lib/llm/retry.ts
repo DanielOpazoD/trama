@@ -3,6 +3,22 @@
  * Bail inmediato en 4xx (likely code/auth bug — retry no ayuda).
  */
 
+/**
+ * Falla transitoria de un provider LLM: 5xx/429 tras agotar reintentos, o
+ * error de red (provider inalcanzable / timeout). El despachador usa este
+ * tipo para decidir si vale la pena caer a OTRO provider (fallback). Los 4xx
+ * (auth/bad-request) NO se envuelven acá — son permanentes y el caller los
+ * propaga tal cual (caer a otro provider no los arregla y enmascararía bugs).
+ */
+export class LLMTransientError extends Error {
+  override readonly cause?: unknown
+  constructor(message: string, cause?: unknown) {
+    super(message)
+    this.name = 'LLMTransientError'
+    this.cause = cause
+  }
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -34,6 +50,9 @@ export async function fetchWithRetry(
       // Network error — keep trying.
     }
   }
-  if (lastError instanceof Error) throw lastError
-  throw new Error('LLM fetch failed after retries')
+  // Reintentos agotados sobre una causa transitoria (5xx/429/red): la
+  // marcamos como tal para que el despachador pueda caer a otro provider.
+  const message =
+    lastError instanceof Error ? lastError.message : 'LLM fetch failed after retries'
+  throw new LLMTransientError(message, lastError)
 }
