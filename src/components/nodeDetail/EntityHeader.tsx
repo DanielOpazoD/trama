@@ -95,16 +95,28 @@ export function EntityHeader({
               sin descripción.
             </p>
           ))}
-        {entity.spotifyUrl && (
-          <a
-            href={entity.spotifyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 transition-colors"
-          >
-            ↗ abrir en Spotify
-          </a>
-        )}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {entity.spotifyUrl && (
+            <a
+              href={entity.spotifyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 transition-colors"
+            >
+              ↗ abrir en Spotify
+            </a>
+          )}
+          {entity.wikipediaUrl && (
+            <a
+              href={entity.wikipediaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-ink-400 hover:text-ink-700 transition-colors"
+            >
+              ↗ Wikipedia
+            </a>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-0.5 shrink-0">
         <EntityActionsMenu

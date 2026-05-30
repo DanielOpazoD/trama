@@ -31,6 +31,7 @@ export type EntityRow = {
   position_y: number | null
   origin: Origin | string
   spotify_url: string | null
+  wikipedia_url: string | null
   created_at: string
   updated_at: string
 }
@@ -100,6 +101,7 @@ export function entityFromRow(row: EntityRow): Entity {
     positionY: row.position_y ?? undefined,
     origin: asOrigin(row.origin),
     spotifyUrl: row.spotify_url ?? undefined,
+    wikipediaUrl: row.wikipedia_url ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

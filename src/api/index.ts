@@ -59,6 +59,8 @@ export const api = {
 
 export { DuplicateEntityError } from './request'
 
+export type { WikipediaSearchResult } from './entities'
+
 export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
 
 export type { Cronica, GeneratedCronica } from './cronicas'
