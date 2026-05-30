@@ -122,6 +122,14 @@ const EnvSchema = z.object({
   /** URL absoluta a la que Spotify redirige tras el OAuth (debe
    *  matchear lo registrado en la app de Spotify). */
   SPOTIFY_REDIRECT_URI: z.string().url().optional(),
+
+  // ─── X (Twitter) OAuth2 + PKCE ──────────────────────────────────────
+  /** Client ID de la app de X. Sin él, OAuth no inicia (feature inerte). */
+  X_CLIENT_ID: z.string().optional(),
+  /** Client secret de la app de X (cliente confidencial, Basic auth). */
+  X_CLIENT_SECRET: z.string().optional(),
+  /** URL absoluta de callback registrada en la app de X. */
+  X_REDIRECT_URI: z.string().url().optional(),
 })
 
 export type Env = z.infer<typeof EnvSchema>

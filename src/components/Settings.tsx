@@ -3,6 +3,7 @@ import { CloseIcon, TramaMark } from './Icons'
 import { AppearancePanel } from './settings/AppearancePanel'
 import { PrivacyPanel } from './settings/PrivacyPanel'
 import { SpotifyPanel } from './settings/SpotifyPanel'
+import { XPanel } from './settings/XPanel'
 import { AIPanel } from './settings/AIPanel'
 import { SearchPanel } from './settings/SearchPanel'
 import { DataPanel } from './settings/DataPanel'
@@ -33,6 +34,7 @@ type SectionId =
   | 'appearance'
   | 'privacy'
   | 'spotify'
+  | 'x'
   | 'ai'
   | 'search'
   | 'data'
@@ -43,6 +45,7 @@ const SECTIONS: Array<{ id: SectionId; label: string; hint: string }> = [
   { id: 'appearance', label: 'Apariencia', hint: 'papel / noche' },
   { id: 'privacy', label: 'Privacidad', hint: 'bloqueo por PIN' },
   { id: 'spotify', label: 'Spotify', hint: 'sincronización' },
+  { id: 'x', label: 'X (Twitter)', hint: 'bookmarks' },
   { id: 'ai', label: 'IA por tarea', hint: 'modelo por flujo' },
   { id: 'search', label: 'Búsqueda', hint: 'embeddings + reindexado' },
   { id: 'data', label: 'Datos', hint: 'export / import' },
@@ -149,6 +152,7 @@ export function Settings({
               )}
               {section === 'privacy' && <PrivacyPanel />}
               {section === 'spotify' && <SpotifyPanel />}
+              {section === 'x' && <XPanel />}
               {section === 'ai' && <AIPanel />}
               {section === 'search' && <SearchPanel />}
               {section === 'data' && <DataPanel />}

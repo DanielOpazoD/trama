@@ -546,6 +546,10 @@ function route(
       if (id === 'plays') return { groups: [], total: 0 }
       if (id === 'timing') return { byHour: [], byWeekday: [] }
       return { connected: false }
+    case 'x':
+      // Integración con X — inerte en demo (necesita app de X + red real).
+      if (id === 'sync') return { fetched: 0, inserted: 0 }
+      return { connected: false }
     case 'export':
       return {
         entities: live(store.entities),
