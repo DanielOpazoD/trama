@@ -1,22 +1,20 @@
 /**
  * AuthGate — muestra la app solo a usuarios autenticados.
  *
- * Con Clerk no configurado (sin VITE_CLERK_PUBLISHABLE_KEY), o con
- * ALLOW_LEGACY_FALLBACK activo, deja pasar sin autenticación.
+ * Tres caminos:
+ *   1. Modo prueba activo → entra directo con el banner "modo prueba" (los
+ *      datos viven en localStorage, no en una cuenta). Sirve para recorrer y
+ *      probar la app sin login.
+ *   2. Clerk no configurado (sin VITE_CLERK_PUBLISHABLE_KEY) → pasa sin login.
+ *   3. Clerk configurado → pantalla de inicio de sesión editorial, con la
+ *      opción de "explorar en modo prueba".
  *
- * Cuando Clerk esté configurado y el usuario no esté logueado, muestra la
- * pantalla de sign-in con la identidad editorial de Trama: portada serif sobre
- * papel con luz cálida, y el widget de Clerk temado con los tokens del sistema
- * (funciona en los tres temas, porque referencia las CSS vars).
+ * El widget de Clerk se tema con los tokens del sistema (CSS vars) para que
+ * respete día / noche / vela sin hardcodear colores.
  */
 import { Show, SignIn } from '@clerk/react'
+import { enterDemoMode, exitDemoMode, isDemoMode } from '../lib/demo'
 
-/**
- * Tematización del widget de Clerk con los tokens de Trama. Usamos `var(--…)`
- * para que respete día / noche / vela sin hardcodear colores. Ocultamos el
- * header propio de Clerk ("Sign in to Trama") porque la portada editorial de
- * arriba ya cumple ese rol.
- */
 const clerkAppearance = {
   variables: {
     colorPrimary: 'var(--accent-primary)',
@@ -35,7 +33,6 @@ const clerkAppearance = {
       border: '1px solid rgb(var(--ink-100))',
       backgroundColor: 'rgb(var(--paper-50))',
     },
-    // La portada editorial de arriba ya saluda; evitamos el doble título.
     header: { display: 'none' },
     socialButtonsBlockButton: { borderColor: 'rgb(var(--ink-100))' },
     dividerLine: { backgroundColor: 'rgb(var(--ink-100))' },
@@ -43,10 +40,50 @@ const clerkAppearance = {
   },
 }
 
+/** Banner discreto que recuerda que se está en modo prueba + salida. */
+function DemoBanner() {
+  return (
+    <div className="fixed bottom-3 left-3 z-50 flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-paper-50/95 backdrop-blur border border-ink-100 shadow-lg shadow-ink-900/10">
+      <span
+        className="size-1.5 rounded-full"
+        style={{ backgroundColor: 'var(--accent-gold)' }}
+        aria-hidden
+      />
+      <span className="text-micro uppercase tracking-eyebrow text-ink-500">
+        modo prueba
+      </span>
+      <span className="text-micro text-ink-300 hidden sm:inline">
+        · datos solo en este navegador
+      </span>
+      <button
+        onClick={() => {
+          exitDemoMode()
+          window.location.reload()
+        }}
+        className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+      >
+        salir
+      </button>
+    </div>
+  )
+}
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
+  // (1) Modo prueba: entra directo, sin Clerk, con banner.
+  if (isDemoMode()) {
+    return (
+      <>
+        {children}
+        <DemoBanner />
+      </>
+    )
+  }
+
   const hasClerk = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
+  // (2) Sin Clerk configurado.
   if (!hasClerk) return <>{children}</>
 
+  // (3) Pantalla de inicio de sesión editorial.
   return (
     <Show
       when="signed-in"
@@ -59,7 +96,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           }}
         >
           <div className="w-full max-w-sm animate-fade-up">
-            {/* Portada editorial */}
             <header className="text-center mb-8">
               <p
                 className="section-eyebrow-serif mb-1.5"
@@ -76,6 +112,20 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               </p>
             </header>
             <SignIn routing="hash" appearance={clerkAppearance} />
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => {
+                  enterDemoMode()
+                  window.location.reload()
+                }}
+                className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+              >
+                explorar en modo prueba
+              </button>
+              <p className="mt-1.5 text-micro text-ink-300/80">
+                sin cuenta · datos solo en este navegador
+              </p>
+            </div>
           </div>
         </div>
       }
