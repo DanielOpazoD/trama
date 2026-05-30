@@ -17,6 +17,7 @@ const {
   markSynced,
   disconnectX,
   isXConfigured,
+  runClassify,
   XApiError,
 } = vi.hoisted(() => {
   // x-sync hace `err instanceof XApiError`: el mock debe exponer una clase con
@@ -48,6 +49,7 @@ const {
     markSynced: vi.fn(async () => {}),
     disconnectX: vi.fn(async () => {}),
     isXConfigured: vi.fn(() => true),
+    runClassify: vi.fn(async () => ({ classified: 2, remaining: false })),
     XApiError,
   }
 })
@@ -66,7 +68,18 @@ vi.mock('./x/index.js', () => ({
   storeBookmarks,
   markSynced,
   disconnectX,
+  runClassify,
   XApiError,
+}))
+vi.mock('./cost-cap.js', () => ({ checkMonthlyBudget: vi.fn(async () => null) }))
+vi.mock('./ai-mode.js', () => ({
+  resolveAIInvocation: vi.fn(async () => ({
+    kind: 'ready',
+    provider: 'openai',
+    model: null,
+    verifyWith: null,
+  })),
+  aiOffResponse: () => new Response('IA off', { status: 423 }),
 }))
 
 import loginHandler from '../x-login'
@@ -172,8 +185,9 @@ describe('x-sync', () => {
       mockContext(),
     )
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ fetched: 2, inserted: 2 })
+    expect(await res.json()).toEqual({ fetched: 2, inserted: 2, classified: 2 })
     expect(markSynced).toHaveBeenCalledOnce()
+    expect(runClassify).toHaveBeenCalledOnce()
   })
 
   it('403 de X (sin permiso/tier) → 422 con la razón que devuelve X', async () => {

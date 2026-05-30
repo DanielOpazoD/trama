@@ -36,3 +36,14 @@ export function useDeleteBookmark() {
     },
   })
 }
+
+/** Clasifica por tema (IA) los bookmarks sin tema; invalida la lista al terminar. */
+export function useClassifyBookmarks() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.xClassify(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['x'] })
+    },
+  })
+}

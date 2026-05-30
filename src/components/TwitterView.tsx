@@ -1,20 +1,26 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ViewHeader } from './ViewHeader'
-import { CloseIcon, EndMark } from './Icons'
+import { CloseIcon, EndMark, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
-import { useDeleteBookmark, useTwitterBookmarksQuery, useXStatusQuery } from '../state'
+import {
+  useClassifyBookmarks,
+  useDeleteBookmark,
+  useTwitterBookmarksQuery,
+  useXStatusQuery,
+} from '../state'
 import { api, type XBookmark } from '../api'
 import { formatRelative } from './settings/_shared'
 
 /**
  * Vista Twitter — los tweets que marcaste como bookmark en X. Espejo de
  * Escuchas: superficie de lectura, NO de trama. Navegación por año/mes (sobre
- * la fecha del tweet) y borrado (soft-delete, no toca X). El agrupado por fecha
- * se hace client-side: a escala personal traer todo es lo más simple.
- *
- * La clasificación por tema (chips) la suma una PR posterior sobre esta base.
+ * la fecha del tweet), filtro por tema (clasificado con IA) y borrado
+ * (soft-delete, no toca X). El agrupado/filtro se hace client-side: a escala
+ * personal traer todo es lo más simple.
  */
+const UNCLASSIFIED = '__none__'
+
 function monthName(m: number): string {
   return new Date(2000, m, 1).toLocaleDateString('es', { month: 'long' })
 }
@@ -24,10 +30,12 @@ export function TwitterView() {
   const status = useXStatusQuery()
   const bookmarks = useTwitterBookmarksQuery()
   const del = useDeleteBookmark()
+  const classify = useClassifyBookmarks()
   const [syncing, setSyncing] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [year, setYear] = useState<number | null>(null)
   const [month, setMonth] = useState<number | null>(null)
+  const [topic, setTopic] = useState<string | null>(null)
 
   const items = useMemo(() => bookmarks.data?.items ?? [], [bookmarks.data])
   const data = status.data
@@ -57,16 +65,31 @@ export function TwitterView() {
     return [...ms.keys()].sort((a, b) => b - a)
   }, [byYear, year])
 
+  // Facetas por tema + cuántos quedan sin clasificar.
+  const topicCounts = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const b of items) {
+      if (b.topic) map.set(b.topic, (map.get(b.topic) ?? 0) + 1)
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1])
+  }, [items])
+  const unclassified = useMemo(() => items.filter((b) => !b.topic).length, [items])
+
   const filtered = useMemo(() => {
-    if (year == null) return items
     return items.filter((b) => {
-      if (!b.tweetCreatedAt) return false
-      const d = new Date(b.tweetCreatedAt)
-      if (d.getFullYear() !== year) return false
-      if (month != null && d.getMonth() !== month) return false
+      if (year != null) {
+        if (!b.tweetCreatedAt) return false
+        const d = new Date(b.tweetCreatedAt)
+        if (d.getFullYear() !== year) return false
+        if (month != null && d.getMonth() !== month) return false
+      }
+      if (topic != null) {
+        if (topic === UNCLASSIFIED) return !b.topic
+        if (b.topic !== topic) return false
+      }
       return true
     })
-  }, [items, year, month])
+  }, [items, year, month, topic])
 
   function selectYear(y: number | null) {
     setYear((prev) => (prev === y ? null : y))
@@ -78,14 +101,29 @@ export function TwitterView() {
     setMessage(null)
     try {
       const r = await api.xSync()
+      const cls = r.classified ? ` · ${r.classified} clasificados` : ''
       setMessage(
-        r.inserted > 0 ? `${r.inserted} bookmarks nuevos` : 'Sin bookmarks nuevos',
+        r.inserted > 0 ? `${r.inserted} bookmarks nuevos${cls}` : 'Sin bookmarks nuevos',
       )
       queryClient.invalidateQueries({ queryKey: ['x'] })
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'No se pudo sincronizar')
     } finally {
       setSyncing(false)
+    }
+  }
+
+  async function handleClassify() {
+    setMessage(null)
+    try {
+      const r = await classify.mutateAsync()
+      setMessage(
+        r.classified > 0
+          ? `Clasificados ${r.classified}${r.remaining ? ' · quedan más, clasificá de nuevo' : ''}`
+          : 'Nada para clasificar',
+      )
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'No se pudo clasificar')
     }
   }
 
@@ -161,11 +199,54 @@ export function TwitterView() {
         />
       ) : (
         <>
+          {/* Temas (clasificación IA) + botón clasificar. */}
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            <button onClick={() => setTopic(null)} className={chip(topic == null)}>
+              Todos los temas
+            </button>
+            {topicCounts.map(([t, n]) => (
+              <button
+                key={t}
+                onClick={() => setTopic((prev) => (prev === t ? null : t))}
+                className={chip(topic === t)}
+              >
+                {t}
+                <span className="ml-1 text-micro text-ink-300 tabular-nums">{n}</span>
+              </button>
+            ))}
+            {unclassified > 0 && (
+              <button
+                onClick={() =>
+                  setTopic((prev) => (prev === UNCLASSIFIED ? null : UNCLASSIFIED))
+                }
+                className={chip(topic === UNCLASSIFIED)}
+              >
+                sin clasificar
+                <span className="ml-1 text-micro text-ink-300 tabular-nums">
+                  {unclassified}
+                </span>
+              </button>
+            )}
+            <button
+              onClick={handleClassify}
+              disabled={classify.isPending || unclassified === 0}
+              title={
+                unclassified === 0
+                  ? 'Todo clasificado'
+                  : `Clasificar ${unclassified} sin tema con IA`
+              }
+              className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-700 disabled:opacity-40"
+            >
+              <SparkleIcon size={12} className="text-ink-400" />
+              {classify.isPending ? 'clasificando…' : 'Clasificar temas'}
+            </button>
+          </div>
+
           {/* Navegación por año (y mes al elegir un año) — sobre la fecha del tweet. */}
           {years.length > 0 && (
             <div className="mb-3 flex flex-wrap items-center gap-1.5">
               <button onClick={() => selectYear(null)} className={chip(year == null)}>
-                Todos
+                Todos los años
               </button>
               {years.map((y) => (
                 <button
@@ -230,17 +311,24 @@ export function TwitterView() {
                 <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink-600">
                   {b.text}
                 </p>
-                {b.url && (
-                  <a
-                    href={b.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-block text-micro hover:underline"
-                    style={{ color: 'var(--accent-primary)' }}
-                  >
-                    ver en X ↗
-                  </a>
-                )}
+                <div className="mt-2 flex items-center gap-3">
+                  {b.url && (
+                    <a
+                      href={b.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-micro hover:underline"
+                      style={{ color: 'var(--accent-primary)' }}
+                    >
+                      ver en X ↗
+                    </a>
+                  )}
+                  {b.topic && (
+                    <span className="text-micro uppercase tracking-eyebrow text-ink-300">
+                      {b.topic}
+                    </span>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

@@ -18,6 +18,7 @@ export type AITask =
   | 'chat'
   | 'panel'
   | 'voz'
+  | 'classify'
 
 export const ALL_TASKS: AITask[] = [
   'extract',
@@ -28,6 +29,7 @@ export const ALL_TASKS: AITask[] = [
   'chat',
   'panel',
   'voz',
+  'classify',
 ]
 
 export type ResolvedTask = {

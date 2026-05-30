@@ -84,6 +84,7 @@ export type StoredBookmark = {
   tweet_created_at: string | null
   url: string | null
   captured_at: string
+  topic: string | null
 }
 
 /**
@@ -99,7 +100,7 @@ export async function listBookmarks(
 ): Promise<StoredBookmark[]> {
   const rows = await sql`
     SELECT id, tweet_id, text, author_id, author_name, author_username,
-           tweet_created_at, url, captured_at
+           tweet_created_at, url, captured_at, topic
     FROM x_bookmarks
     WHERE user_id = ${userId} AND deleted_at IS NULL
     ORDER BY tweet_created_at DESC NULLS LAST, captured_at DESC

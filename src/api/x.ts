@@ -10,6 +10,8 @@ export type XBookmark = {
   tweetCreatedAt: string | null
   url: string | null
   capturedAt: string
+  /** Tema asignado por la IA (null = sin clasificar todavía). */
+  topic: string | null
 }
 
 /** Estado de conexión con X (Twitter). */
@@ -34,8 +36,12 @@ export const xApi = {
   async xLogin(): Promise<{ url?: string }> {
     return request<{ url?: string }>('/api/x/login')
   },
-  async xSync(): Promise<{ fetched: number; inserted: number }> {
+  async xSync(): Promise<{ fetched: number; inserted: number; classified?: number }> {
     return request('/api/x/sync', { method: 'POST' })
+  },
+  /** Clasifica por tema (IA) los bookmarks sin tema. `remaining` = quedan más. */
+  async xClassify(): Promise<{ classified: number; remaining: boolean }> {
+    return request('/api/x/classify', { method: 'POST' })
   },
   /** Lista los bookmarks vivos (ordenados por fecha del tweet). La vista agrupa
    * por año/mes y filtra por tema client-side. */

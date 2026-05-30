@@ -84,4 +84,5 @@ export {
   useTwitterBookmarksQuery,
   useXStatusQuery,
   useDeleteBookmark,
+  useClassifyBookmarks,
 } from './useTwitter'
