@@ -7,8 +7,14 @@ import {
   useReclassifyEntities,
   useUpdateEntityType,
 } from '../state'
-import { api, type Reclassification, type DuplicateGroup } from '../api'
+import {
+  api,
+  type Reclassification,
+  type DuplicateGroup,
+  type WikipediaSuggestion,
+} from '../api'
 import { DuplicatesPanel } from './DuplicatesPanel'
+import { WikipediaSuggestPanel } from './WikipediaSuggestPanel'
 import { EndMark } from './Icons'
 import { ReclassifyPanel } from './ReclassifyPanel'
 import { EmptyMessage } from './EmptyMessage'
@@ -66,6 +72,15 @@ export function EntitiesView({
   } | null>(null)
   const [dupLoading, setDupLoading] = useState(false)
   const [dupError, setDupError] = useState<string | null>(null)
+
+  // Sugerencias de Wikipedia: igual patrón que duplicados. El panel se monta
+  // cuando `wikiSuggest` deja de ser null.
+  const [wikiSuggest, setWikiSuggest] = useState<{
+    suggestions: WikipediaSuggestion[]
+    remaining: boolean
+  } | null>(null)
+  const [wikiLoading, setWikiLoading] = useState(false)
+  const [wikiError, setWikiError] = useState<string | null>(null)
 
   const quoteCountById = useMemo(() => {
     const map = new Map<string, number>()
@@ -129,6 +144,23 @@ export function EntitiesView({
     }
   }
 
+  async function handleSuggestWikipedia() {
+    setWikiLoading(true)
+    setWikiError(null)
+    try {
+      const res = await api.suggestWikipedia()
+      setWikiSuggest(res)
+    } catch (err) {
+      setWikiError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudieron sugerir enlaces de Wikipedia',
+      )
+    } finally {
+      setWikiLoading(false)
+    }
+  }
+
   return (
     <>
       {/* ρ-struct: header con h2 + acciones EN LA MISMA FILA. Antes el
@@ -153,6 +185,8 @@ export function EntitiesView({
                 reclassifyPending={reclassify.isPending}
                 onFindDuplicates={handleFindDuplicates}
                 duplicatesPending={dupLoading}
+                onSuggestWikipedia={handleSuggestWikipedia}
+                wikipediaPending={wikiLoading}
                 disabled={offline}
               />
             )}
@@ -205,6 +239,17 @@ export function EntitiesView({
           groups={duplicates.groups}
           embeddingSkipped={duplicates.embeddingSkipped}
           onClose={() => setDuplicates(null)}
+        />
+      )}
+
+      {wikiError && (
+        <div className="alert-error mb-6 px-4 py-3 rounded-xl text-sm">{wikiError}</div>
+      )}
+      {wikiSuggest && (
+        <WikipediaSuggestPanel
+          suggestions={wikiSuggest.suggestions}
+          remaining={wikiSuggest.remaining}
+          onClose={() => setWikiSuggest(null)}
         />
       )}
 

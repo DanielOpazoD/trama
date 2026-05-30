@@ -510,6 +510,9 @@ function route(
     case 'wikipedia':
       // El buscador de Wikipedia necesita red real; en demo devuelve vacío.
       return { results: [] }
+    case 'wikipedia-suggest':
+      // Las sugerencias en lote también necesitan red real; demo no propone.
+      return { suggestions: [], remaining: false }
     case 'entities-duplicates':
       // El seed no tiene duplicados; sin similitud real en demo.
       return { groups: [], embeddingSkipped: false }
