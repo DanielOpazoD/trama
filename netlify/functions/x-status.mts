@@ -25,7 +25,8 @@ export default withObservability(
     if (!tokens) return Response.json({ connected: false })
 
     const countRows = (await sql`
-      SELECT COUNT(*)::int AS c FROM x_bookmarks WHERE user_id = ${userId}
+      SELECT COUNT(*)::int AS c FROM x_bookmarks
+      WHERE user_id = ${userId} AND deleted_at IS NULL
     `) as Array<{ c: number }>
 
     return Response.json({

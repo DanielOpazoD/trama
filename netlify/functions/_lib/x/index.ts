@@ -18,6 +18,7 @@ export {
   fetchBookmarks,
   storeBookmarks,
   listBookmarks,
+  deleteBookmark,
   XApiError,
   type NormalizedBookmark,
   type StoredBookmark,

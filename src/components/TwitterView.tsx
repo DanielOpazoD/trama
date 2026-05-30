@@ -1,31 +1,77 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ViewHeader } from './ViewHeader'
+import { CloseIcon, EndMark } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
-import { EndMark } from './Icons'
-import { useTwitterBookmarksQuery, useXStatusQuery } from '../state'
-import { api } from '../api'
+import { useDeleteBookmark, useTwitterBookmarksQuery, useXStatusQuery } from '../state'
+import { api, type XBookmark } from '../api'
 import { formatRelative } from './settings/_shared'
 
 /**
- * Vista Twitter — los tweets que marcaste como bookmark en X, traídos por el
- * sync. Espejo de Escuchas: superficie de lectura, NO de trama. Nada entra al
- * mapa hasta que el usuario lo decida (igual criterio que Spotify).
+ * Vista Twitter — los tweets que marcaste como bookmark en X. Espejo de
+ * Escuchas: superficie de lectura, NO de trama. Navegación por año/mes (sobre
+ * la fecha del tweet) y borrado (soft-delete, no toca X). El agrupado por fecha
+ * se hace client-side: a escala personal traer todo es lo más simple.
  *
- * La conexión y la app de X se gestionan en Configuración → X; acá solo se
- * muestran los bookmarks guardados y se puede disparar un sync manual.
+ * La clasificación por tema (chips) la suma una PR posterior sobre esta base.
  */
+function monthName(m: number): string {
+  return new Date(2000, m, 1).toLocaleDateString('es', { month: 'long' })
+}
+
 export function TwitterView() {
   const queryClient = useQueryClient()
   const status = useXStatusQuery()
   const bookmarks = useTwitterBookmarksQuery()
+  const del = useDeleteBookmark()
   const [syncing, setSyncing] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [year, setYear] = useState<number | null>(null)
+  const [month, setMonth] = useState<number | null>(null)
 
-  const items = bookmarks.data?.pages.flatMap((p) => p.items) ?? []
+  const items = useMemo(() => bookmarks.data?.items ?? [], [bookmarks.data])
   const data = status.data
   const connected = data?.connected === true
   const lastSyncedAt = data && data.connected ? data.lastSyncedAt : null
+
+  // Facetas año → meses (con conteo), derivadas de la fecha del tweet.
+  const byYear = useMemo(() => {
+    const map = new Map<number, { count: number; months: Map<number, number> }>()
+    for (const b of items) {
+      if (!b.tweetCreatedAt) continue
+      const d = new Date(b.tweetCreatedAt)
+      const y = d.getFullYear()
+      const m = d.getMonth()
+      const entry = map.get(y) ?? { count: 0, months: new Map<number, number>() }
+      entry.count += 1
+      entry.months.set(m, (entry.months.get(m) ?? 0) + 1)
+      map.set(y, entry)
+    }
+    return map
+  }, [items])
+  const years = useMemo(() => [...byYear.keys()].sort((a, b) => b - a), [byYear])
+  const months = useMemo(() => {
+    if (year == null) return []
+    const ms = byYear.get(year)?.months
+    if (!ms) return []
+    return [...ms.keys()].sort((a, b) => b - a)
+  }, [byYear, year])
+
+  const filtered = useMemo(() => {
+    if (year == null) return items
+    return items.filter((b) => {
+      if (!b.tweetCreatedAt) return false
+      const d = new Date(b.tweetCreatedAt)
+      if (d.getFullYear() !== year) return false
+      if (month != null && d.getMonth() !== month) return false
+      return true
+    })
+  }, [items, year, month])
+
+  function selectYear(y: number | null) {
+    setYear((prev) => (prev === y ? null : y))
+    setMonth(null)
+  }
 
   async function handleSync() {
     setSyncing(true)
@@ -42,6 +88,20 @@ export function TwitterView() {
       setSyncing(false)
     }
   }
+
+  function handleDelete(b: XBookmark) {
+    if (!confirm('¿Quitar este bookmark de Trama? No se borra de tu cuenta de X.')) {
+      return
+    }
+    del.mutate(b.id)
+  }
+
+  const chip = (active: boolean) =>
+    `shrink-0 rounded-full px-2.5 py-1 text-xs transition-colors ${
+      active
+        ? 'bg-ink-100 text-ink-800'
+        : 'text-ink-400 hover:bg-ink-100/60 hover:text-ink-700'
+    }`
 
   return (
     <>
@@ -101,10 +161,56 @@ export function TwitterView() {
         />
       ) : (
         <>
+          {/* Navegación por año (y mes al elegir un año) — sobre la fecha del tweet. */}
+          {years.length > 0 && (
+            <div className="mb-3 flex flex-wrap items-center gap-1.5">
+              <button onClick={() => selectYear(null)} className={chip(year == null)}>
+                Todos
+              </button>
+              {years.map((y) => (
+                <button
+                  key={y}
+                  onClick={() => selectYear(y)}
+                  className={chip(year === y)}
+                >
+                  {y}
+                  <span className="ml-1 text-micro text-ink-300 tabular-nums">
+                    {byYear.get(y)?.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          {year != null && months.length > 0 && (
+            <div className="mb-6 flex flex-wrap items-center gap-1.5 border-l-2 border-ink-100 pl-3">
+              <button onClick={() => setMonth(null)} className={chip(month == null)}>
+                Todo {year}
+              </button>
+              {months.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMonth((prev) => (prev === m ? null : m))}
+                  className={chip(month === m)}
+                >
+                  {monthName(m)}
+                </button>
+              ))}
+            </div>
+          )}
+
           <ul className="space-y-4">
-            {items.map((b) => (
-              <li key={b.id} className="card-paper-soft p-4">
-                <div className="flex items-baseline justify-between gap-3">
+            {filtered.map((b) => (
+              <li key={b.id} className="group relative card-paper-soft p-4">
+                <button
+                  onClick={() => handleDelete(b)}
+                  disabled={del.isPending}
+                  aria-label="Quitar bookmark"
+                  title="Quitar de Trama (no borra de X)"
+                  className="absolute right-2 top-2 rounded p-1 text-ink-300 opacity-0 transition-opacity hover:bg-ink-50 hover:text-red-700 group-hover:opacity-100 disabled:opacity-50"
+                >
+                  <CloseIcon size={12} />
+                </button>
+                <div className="flex items-baseline justify-between gap-3 pr-6">
                   <span className="min-w-0 truncate text-sm text-ink-700">
                     {b.authorName ?? 'desconocido'}
                     {b.authorUsername && (
@@ -138,21 +244,9 @@ export function TwitterView() {
               </li>
             ))}
           </ul>
-          {bookmarks.hasNextPage ? (
-            <div className="mt-6 flex justify-center">
-              <button
-                onClick={() => bookmarks.fetchNextPage()}
-                disabled={bookmarks.isFetchingNextPage}
-                className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
-              >
-                {bookmarks.isFetchingNextPage ? 'cargando…' : 'cargar más'}
-              </button>
-            </div>
-          ) : (
-            <div className="mt-8 flex justify-center">
-              <EndMark />
-            </div>
-          )}
+          <div className="mt-8 flex justify-center">
+            <EndMark />
+          </div>
         </>
       )}
     </>

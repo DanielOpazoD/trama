@@ -37,16 +37,16 @@ export const xApi = {
   async xSync(): Promise<{ fetched: number; inserted: number }> {
     return request('/api/x/sync', { method: 'POST' })
   },
-  /** Lista los bookmarks guardados (más recientes primero, paginado por cursor). */
-  async xBookmarks(
-    limit = 50,
-    cursor: string | null = null,
-  ): Promise<{ items: XBookmark[]; nextCursor: string | null }> {
-    const params = new URLSearchParams({ limit: String(limit) })
-    if (cursor) params.set('cursor', cursor)
-    return request<{ items: XBookmark[]; nextCursor: string | null }>(
-      `/api/x/bookmarks?${params.toString()}`,
-    )
+  /** Lista los bookmarks vivos (ordenados por fecha del tweet). La vista agrupa
+   * por año/mes y filtra por tema client-side. */
+  async xBookmarks(): Promise<{ items: XBookmark[] }> {
+    return request<{ items: XBookmark[] }>('/api/x/bookmarks')
+  },
+  /** Quita un bookmark de Trama (soft-delete; no toca X). */
+  async xDeleteBookmark(id: string): Promise<void> {
+    await request<{ ok: boolean }>(`/api/x/bookmarks?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
   },
   async xDisconnect(): Promise<void> {
     await request<void>('/api/x/status', { method: 'DELETE' })

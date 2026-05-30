@@ -560,7 +560,10 @@ function route(
     case 'x':
       // Integración con X — inerte en demo (necesita app de X + red real).
       if (id === 'sync') return { fetched: 0, inserted: 0 }
-      if (id === 'bookmarks') return { items: [], nextCursor: null }
+      if (id === 'bookmarks') {
+        if (method === 'DELETE') return { ok: true }
+        return { items: [] }
+      }
       return { connected: false }
     case 'export':
       return {
