@@ -1,55 +1,69 @@
-import { askLLMForText } from './llm'
+import { askLLMForText } from './llm.js'
 
 /**
- * Busca una entrada de Grokipedia para una entidad.
- * Opción C (híbrida):
- * 1. Intento simple: construye URL probable y verifica con HEAD.
- * 2. Si falla o no es confiable → fallback a LLM (Grok preferentemente).
+ * Busca si existe una entrada relevante en Grokipedia (grokipedia.com)
+ * para una entidad que el usuario acaba de crear.
+ *
+ * Implementa "Opción C" (híbrida, barata y confiable):
+ *  1. Intento directo: slugifica el nombre y hace HEAD a https://grokipedia.com/<slug>
+ *  2. Si el HEAD no confirma existencia → fallback a LLM (el modelo usa su
+ *     conocimiento para sugerir URL existente si la hay; nunca inventa).
+ *
+ * Nunca genera contenido nuevo. Solo devuelve URL o null.
+ * Se llama de forma no bloqueante (fire-and-forget) tras crear la entidad.
  */
 export async function findGrokipediaUrl(
   name: string,
-  type: string
+  type: string,
 ): Promise<string | null> {
+  // Slugificación simple y robusta (sin acentos, solo caracteres URL-safe)
   const slug = name
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
+    .replace(/^-+|-+$/g, '')
 
-  // Paso 1: Intento simple y barato
+  if (!slug) return null
+
   const candidate = `https://grokipedia.com/${slug}`
+
+  // Paso 1: HEAD request (rápido, sin costo de LLM)
   try {
     const res = await fetch(candidate, { method: 'HEAD' })
-    if (res.ok) {
+    // 2xx OK o redirect 3xx (a veces el sitio redirige a la forma canónica)
+    if (res.ok || (res.status >= 300 && res.status < 400)) {
       return candidate
     }
   } catch {
-    // ignorar errores de red
+    // Error de red/timeout/CORS/etc. → continuamos al fallback LLM
   }
 
-  // Paso 2: Fallback a LLM
-  const prompt = `El usuario acaba de crear una entidad en su mapa cognitivo personal "Trama".
+  // Paso 2: Fallback LLM (solo conocimiento, sin invención)
+  const system = `Eres un buscador preciso de entradas de Grokipedia.
+Responde únicamente con:
+- La URL completa https://grokipedia.com/... de la mejor entrada existente, si estás bastante seguro de que existe y es relevante, o
+- La palabra exacta "null" (sin comillas ni nada más) si no hay entrada de calidad.
 
-Nombre: "${name}"
-Tipo: "${type}"
+Nunca inventes URLs. Si no estás seguro, responde "null".`
 
-Busca si existe una entrada de alta calidad en Grokipedia (grokipedia.com) para este tema.
+  const user = `Entidad recién creada en un mapa cognitivo personal:
+Nombre: ${name}
+Tipo: ${type}
 
-Devuelve SOLO la URL completa de la mejor entrada si estás razonablemente seguro de que existe y es relevante.
-Si no hay una buena coincidencia, responde exactamente: null
-
-No inventes URLs.`
+¿Existe una entrada de Grokipedia para esto? Devuelve solo la URL o "null".`
 
   try {
-    const result = await askLLMForText(
-      [{ role: 'user', content: prompt }],
-      { provider: 'grok' } // intenta usar Grok si está disponible
-    )
+    const result = await askLLMForText([
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ])
 
-    const url = result.trim()
-    if (url.startsWith('https://grokipedia.com/') && url.length < 250) {
-      return url
+    const text = typeof result.content === 'string' ? result.content.trim() : ''
+    if (!text || text.toLowerCase() === 'null') return null
+
+    if (text.startsWith('https://grokipedia.com/') && text.length < 300) {
+      return text
     }
     return null
   } catch {
