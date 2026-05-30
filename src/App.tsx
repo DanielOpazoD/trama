@@ -3,6 +3,7 @@ import { useIsMobile } from './hooks/useIsMobile'
 import { useSearchParamState } from './hooks/useSearchParamState'
 import { useInitialView } from './hooks/useInitialView'
 import { startViewTransition } from './lib/viewTransition'
+import { readOAuthReturn, clearOAuthReturn, type OAuthReturn } from './lib/oauthReturn'
 import {
   Provider,
   useEntitiesQuery,
@@ -118,6 +119,12 @@ function Shell({
   // EntitiesWorkbench; ahora controlado desde acá.
   const [entitiesTab, setEntitiesTab] = useState<'listado' | 'vinculos'>('listado')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Retorno de un OAuth (X / Spotify): el callback redirige acá con
+  // `?x=connected` o `?x_error=...`. Lo leemos una vez al montar, abrimos
+  // Settings en el panel correcto y limpiamos la URL. Antes esto era invisible.
+  const [oauthReturn, setOauthReturn] = useState<OAuthReturn | null>(() =>
+    readOAuthReturn(),
+  )
   const [readingOpen, setReadingOpen] = useState(false)
   const [sortesOpen, setSortesOpen] = useState(false)
   const [espejoOpen, setEspejoOpen] = useState(false)
@@ -138,6 +145,17 @@ function Shell({
     setView('sugerencias')
   }, [setView])
   useWeeklyProactiveNudge({ onNavigate: navigateToProactive })
+
+  // Si volvimos de un OAuth (X / Spotify), abrir Settings para que el usuario
+  // vea el resultado en el panel correspondiente, y limpiar la URL. El panel
+  // muestra el detalle (y el código de error si falló). Corre una sola vez.
+  useEffect(() => {
+    if (oauthReturn) {
+      setSettingsOpen(true)
+      clearOAuthReturn()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot al montar
+  }, [])
 
   // Atajos globales:
   //   Cmd/Ctrl+K → CommandPalette
@@ -374,9 +392,14 @@ function Shell({
 
       <Settings
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={() => {
+          setSettingsOpen(false)
+          setOauthReturn(null)
+        }}
         theme={theme}
         onSetTheme={setTheme}
+        initialSection={oauthReturn?.provider}
+        oauthReturn={oauthReturn}
       />
 
       <CommandPalette

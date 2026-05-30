@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
+import { describeOAuthReturn, type OAuthReturn } from '../../lib/oauthReturn'
 import { PanelHeader, formatRelative } from './_shared'
 
 /**
@@ -8,10 +9,13 @@ import { PanelHeader, formatRelative } from './_shared'
  * panel de Spotify. Inerte hasta configurar X_CLIENT_ID/SECRET/REDIRECT_URI
  * (en modo prueba o sin claves, "Conectar" no hace nada).
  */
-export function XPanel() {
+export function XPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null }) {
   const queryClient = useQueryClient()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  // Resultado del callback OAuth (persistente, no auto-desaparece: el código
+  // de error sirve para reportar/diagnosticar).
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
 
   const xStatus = useQuery({
     queryKey: ['x', 'status'],
@@ -24,6 +28,13 @@ export function XPanel() {
     const t = window.setTimeout(() => setMessage(null), 4000)
     return () => window.clearTimeout(t)
   }, [message])
+
+  // Al volver del OAuth: mostrar resultado y, si conectó, refrescar el estado.
+  useEffect(() => {
+    if (!oauthReturn) return
+    setNotice(describeOAuthReturn(oauthReturn))
+    if (oauthReturn.ok) queryClient.invalidateQueries({ queryKey: ['x'] })
+  }, [oauthReturn, queryClient])
 
   async function handleConnect() {
     setBusy(true)
@@ -79,6 +90,15 @@ export function XPanel() {
         title="X (Twitter)"
         hint="Trama puede traer tus tweets marcados (bookmarks) para que luego decidas qué entra al mapa. Lo guardado vive aparte — nada entra a la trama sin que lo apruebes. Requiere una app de desarrollador de X."
       />
+      {notice && (
+        <p
+          className={`mb-4 rounded-lg px-3 py-2 text-sm ${
+            notice.ok ? 'bg-paper-100/60 text-ink-600' : 'alert-error'
+          }`}
+        >
+          {notice.text}
+        </p>
+      )}
       {xStatus.isLoading ? (
         <p className="text-xs text-ink-300 italic">cargando…</p>
       ) : x && x.connected ? (
