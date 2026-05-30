@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { useAddQuote } from '../../state'
 import type { Entity } from '../../types'
+import { PlusIcon } from '../Icons'
 
 /**
- * Captura rápida de una cita o nota atribuida a esta entidad.
+ * Captura rápida de una cita atribuida a esta entidad.
  *
- * Colapsada por defecto a un solo "+ cita o nota" — para no ocupar espacio
+ * Colapsada por defecto a un icono "+" sutil — para no ocupar espacio
  * cuando no se está escribiendo. Al expandir: texto + reflexión opcional
  * (oculta tras "+ reflexión") + añadir. KISS: no pide source/context (se
  * editan luego en la cita si hace falta).
@@ -46,9 +47,11 @@ export function QuickNoteForm({ entity }: { entity: Entity }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-lg border border-dashed border-ink-100 px-3 py-2 text-sm text-ink-400 hover:text-ink-700 hover:border-ink-200 transition-colors text-left"
+        aria-label="Añadir cita"
+        title="Añadir cita"
+        className="inline-flex items-center justify-center size-8 rounded-full border border-ink-100 text-ink-400 hover:text-ink-700 hover:border-ink-200 hover:bg-ink-50 transition-colors"
       >
-        + cita
+        <PlusIcon size={15} />
       </button>
     )
   }

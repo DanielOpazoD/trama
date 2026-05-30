@@ -3,21 +3,24 @@ import { createPortal } from 'react-dom'
 import { useDeleteEntity } from '../../state'
 import { useChatThreadsQuery, useCreateChatThread } from '../../state/useChat'
 import type { Entity } from '../../types'
-import { ChatIcon, TrashIcon } from '../Icons'
+import { ChatIcon, PencilIcon, TrashIcon } from '../Icons'
 
 /**
  * Menú "⋯" del header del panel de entidad. Agrupa las acciones secundarias
- * que antes ocupaban espacio propio: "Hablar con la entidad" (hilo de chat) y
- * "Eliminar". Mantiene el panel limpio — solo el ⋯ y el cerrar quedan a la
- * vista. Se porta a document.body (no se recorta) y maneja clic-afuera/Escape.
+ * que antes ocupaban espacio propio: "Editar descripción", "Hablar con la
+ * entidad" (hilo de chat) y "Eliminar". Mantiene el panel limpio — solo el ⋯
+ * y el cerrar quedan a la vista. Se porta a document.body (no se recorta) y
+ * maneja clic-afuera/Escape.
  */
 export function EntityActionsMenu({
   entity,
   onOpenThread,
+  onEditDescription,
   onClose,
 }: {
   entity: Entity
   onOpenThread?: (threadId: string) => void
+  onEditDescription?: () => void
   onClose: () => void
 }) {
   const { data: chatThreads = [] } = useChatThreadsQuery()
@@ -145,6 +148,19 @@ export function EntityActionsMenu({
               </div>
             ) : (
               <>
+                {onEditDescription && (
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      setOpen(false)
+                      onEditDescription()
+                    }}
+                    className={`${ROW} text-ink-600 hover:text-ink-800 hover:bg-ink-100/60`}
+                  >
+                    <PencilIcon size={13} />
+                    Editar descripción
+                  </button>
+                )}
                 {onOpenThread && (
                   <button
                     role="menuitem"

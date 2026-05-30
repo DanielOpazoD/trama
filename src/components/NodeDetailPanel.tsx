@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useEntitiesQuery } from '../state'
 import { ConnectionsList } from './nodeDetail/ConnectionsList'
 import { DescriptionEditor } from './nodeDetail/DescriptionEditor'
@@ -33,6 +33,15 @@ export function NodeDetailPanel({
   const { data: entities = [] } = useEntitiesQuery()
   const entity = entities.find((e) => e.id === entityId)
 
+  // Edición de la descripción: el display vive en el header, el form se monta
+  // como primera sección del body cuando esto es true. Se dispara desde el
+  // menú ⋯ o con doble-clic sobre la descripción. Se resetea al cambiar de
+  // entidad (navegar entre conexiones sin desmontar el panel).
+  const [editingDescription, setEditingDescription] = useState(false)
+  useEffect(() => {
+    setEditingDescription(false)
+  }, [entityId])
+
   // Escape cierra el panel. Los subcomponentes manejan sus propios escapes
   // (e.g. salir de editing) sin propagar hasta acá, así que es seguro
   // siempre cerrar acá.
@@ -61,12 +70,23 @@ export function NodeDetailPanel({
       role="region"
       aria-label={`Detalle de ${entity.name}`}
     >
-      <EntityHeader entity={entity} onClose={onClose} onOpenThread={onOpenThread} />
+      <EntityHeader
+        entity={entity}
+        onClose={onClose}
+        onOpenThread={onOpenThread}
+        onEditDescription={() => setEditingDescription(true)}
+        editingDescription={editingDescription}
+      />
 
       {/* Secciones del panel. space-y-6 entre bloques para que respiren
           sin desperdiciar alto — el panel busca ser compacto. */}
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-        <DescriptionEditor entity={entity} />
+        {editingDescription && (
+          <DescriptionEditor
+            entity={entity}
+            onDone={() => setEditingDescription(false)}
+          />
+        )}
         <QuickNoteForm entity={entity} />
         <QuotesList entity={entity} />
         <VozDe entity={entity} />

@@ -15,10 +15,16 @@ export function EntityHeader({
   entity,
   onClose,
   onOpenThread,
+  onEditDescription,
+  editingDescription = false,
 }: {
   entity: Entity
   onClose: () => void
   onOpenThread?: (threadId: string) => void
+  /** Abre el editor de descripción (vive en el body del panel). */
+  onEditDescription?: () => void
+  /** Mientras se edita, ocultamos el display para no duplicar el texto. */
+  editingDescription?: boolean
 }) {
   const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label
   return (
@@ -68,6 +74,27 @@ export function EntityHeader({
         <h2 className="font-serif text-xl text-ink-800 leading-[1.2] tracking-tight break-words">
           {entity.name}
         </h2>
+        {/* Descripción inmediatamente debajo del título — el editor se
+            dispara desde el menú ⋯ o con doble-clic. Mientras se edita, el
+            form vive en el body, así que acá ocultamos el display. */}
+        {!editingDescription &&
+          (entity.description ? (
+            <p
+              onDoubleClick={onEditDescription}
+              className="text-sm text-ink-600 leading-relaxed cursor-text select-text"
+              title="Doble clic para editar"
+            >
+              {entity.description}
+            </p>
+          ) : (
+            <p
+              onDoubleClick={onEditDescription}
+              className="text-ink-300 italic text-sm cursor-text"
+              title="Doble clic para añadir descripción"
+            >
+              sin descripción.
+            </p>
+          ))}
         {entity.spotifyUrl && (
           <a
             href={entity.spotifyUrl}
@@ -83,6 +110,7 @@ export function EntityHeader({
         <EntityActionsMenu
           entity={entity}
           onOpenThread={onOpenThread}
+          onEditDescription={onEditDescription}
           onClose={onClose}
         />
         <Tooltip content="Cerrar panel">
