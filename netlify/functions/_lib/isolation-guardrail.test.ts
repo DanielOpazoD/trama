@@ -47,9 +47,6 @@ const PER_USER_TABLES = [
 const EXEMPT: Record<string, string> = {
   'cost-alert-check.mts':
     'cron de alertas: costo global (gap conocido, pendiente per-user)',
-  'spotify-scheduled-sync.mts': 'cron: per-user pendiente (ver runbook)',
-  'spotify-callback.mts':
-    'OAuth callback: ownership por state (Spotify per-user pendiente)',
   'relationship-types.mts':
     'taxonomía GLOBAL por diseño: chequea uso del tipo en relationships sin scope per-user (conservador: no borra un tipo que cualquier usuario use)',
 }

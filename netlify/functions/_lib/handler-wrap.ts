@@ -106,6 +106,15 @@ export function withObservability(
 function withRequestIdHeader(response: Response, requestId: string): Response {
   const headers = new Headers(response.headers)
   headers.set('x-request-id', requestId)
+  // `new Headers(response.headers)` puede PERDER los Set-Cookie (no se
+  // representan como un header combinable normal). Los re-aplicamos desde el
+  // original para no romper flujos que dependen de cookies (p.ej. el OAuth de
+  // Spotify setea spotify_state + spotify_uid en /login).
+  const cookies = response.headers.getSetCookie?.() ?? []
+  if (cookies.length > 0) {
+    headers.delete('set-cookie')
+    for (const cookie of cookies) headers.append('set-cookie', cookie)
+  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

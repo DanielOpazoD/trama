@@ -33,33 +33,42 @@ export default withObservability('spotify-callback', async (req) => {
     return redirectWith('/?spotify_error=state_mismatch')
   }
 
+  // Multi-user: el userId viene de la cookie HttpOnly que seteó /login (con el
+  // usuario autenticado), NO del state que pasó por Spotify — así no se puede
+  // forjar. Sin cookie (flujo legacy) → undefined → saveTokens usa el row
+  // 'legacy-single-user'.
+  const userId = cookies.spotify_uid
+    ? decodeURIComponent(cookies.spotify_uid)
+    : undefined
+
   const sql = getSql()
 
   const tokens = await exchangeCodeForTokens(code)
   const profile = await getSpotifyProfile(tokens.access_token)
 
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000)
-  await saveTokens(sql, {
-    spotifyUserId: profile?.id ?? null,
-    displayName: profile?.display_name ?? null,
-    accessToken: tokens.access_token,
-    refreshToken: tokens.refresh_token ?? '',
-    expiresAt,
-    scopes: tokens.scope ?? SPOTIFY_SCOPES,
-  })
+  await saveTokens(
+    sql,
+    {
+      spotifyUserId: profile?.id ?? null,
+      displayName: profile?.display_name ?? null,
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token ?? '',
+      expiresAt,
+      scopes: tokens.scope ?? SPOTIFY_SCOPES,
+    },
+    userId,
+  )
 
   return redirectWith('/?spotify=connected')
 })
 
 function redirectWith(location: string): Response {
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: location,
-      // Clear the CSRF cookie.
-      'Set-Cookie': 'spotify_state=; Path=/; Max-Age=0',
-    },
-  })
+  const headers = new Headers({ Location: location })
+  // Limpia las cookies del flujo (CSRF + userId).
+  headers.append('Set-Cookie', 'spotify_state=; Path=/; Max-Age=0')
+  headers.append('Set-Cookie', 'spotify_uid=; Path=/; Max-Age=0')
+  return new Response(null, { status: 302, headers })
 }
 
 function parseCookies(header: string): Record<string, string> {

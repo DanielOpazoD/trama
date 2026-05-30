@@ -121,6 +121,14 @@ export const spotifyApi = {
   async spotifyStatus(): Promise<SpotifyStatus> {
     return request<SpotifyStatus>('/api/spotify/status')
   },
+  /**
+   * Arranca el OAuth: pide la authorize URL con la sesión autenticada (así el
+   * server asocia la futura conexión a ESTE usuario vía cookie). El caller
+   * navega a `url`. En modo prueba devuelve algo sin `url` y no se navega.
+   */
+  async spotifyLogin(): Promise<{ url?: string }> {
+    return request<{ url?: string }>('/api/spotify/login')
+  },
   async spotifySync(): Promise<{
     fetched: number
     inserted: number
