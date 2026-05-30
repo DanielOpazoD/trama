@@ -87,33 +87,40 @@ export type StoredBookmark = {
 }
 
 /**
- * Lista los bookmarks guardados del usuario, más recientes primero. Paginación
- * por cursor sobre `captured_at` (append-only, el orden es estable).
+ * Lista los bookmarks vivos del usuario, ordenados por fecha del tweet (para la
+ * navegación por año/mes de la vista). El agrupado por fecha y el filtro por
+ * tema se hacen client-side; a escala personal traer todo (capado) es lo más
+ * simple y correcto.
  */
 export async function listBookmarks(
   sql: SqlClient,
   userId: string,
   limit: number,
-  cursor: string | null,
 ): Promise<StoredBookmark[]> {
-  const rows = cursor
-    ? await sql`
-        SELECT id, tweet_id, text, author_id, author_name, author_username,
-               tweet_created_at, url, captured_at
-        FROM x_bookmarks
-        WHERE user_id = ${userId} AND captured_at < ${cursor}
-        ORDER BY captured_at DESC
-        LIMIT ${limit}
-      `
-    : await sql`
-        SELECT id, tweet_id, text, author_id, author_name, author_username,
-               tweet_created_at, url, captured_at
-        FROM x_bookmarks
-        WHERE user_id = ${userId}
-        ORDER BY captured_at DESC
-        LIMIT ${limit}
-      `
+  const rows = await sql`
+    SELECT id, tweet_id, text, author_id, author_name, author_username,
+           tweet_created_at, url, captured_at
+    FROM x_bookmarks
+    WHERE user_id = ${userId} AND deleted_at IS NULL
+    ORDER BY tweet_created_at DESC NULLS LAST, captured_at DESC
+    LIMIT ${limit}
+  `
   return rows as StoredBookmark[]
+}
+
+/** Soft-delete de un bookmark (lo quita de Trama; no toca X). */
+export async function deleteBookmark(
+  sql: SqlClient,
+  userId: string,
+  id: string,
+): Promise<boolean> {
+  const rows = (await sql`
+    UPDATE x_bookmarks
+    SET deleted_at = NOW()
+    WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL
+    RETURNING id
+  `) as Array<{ id: string }>
+  return rows.length > 0
 }
 
 /** Guarda bookmarks nuevos. Devuelve cuántos se insertaron (dedup por tweet). */

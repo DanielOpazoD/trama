@@ -80,4 +80,8 @@ export { useInfiniteCronologiaQuery } from './useCronologia'
 export { useAtlasQuery, useGenerateAtlas } from './useAtlas'
 export { useSuggestRelationships } from './useSuggestRelationships'
 export { useExport, useImport } from './useExportImport'
-export { useTwitterBookmarksQuery, useXStatusQuery } from './useTwitter'
+export {
+  useTwitterBookmarksQuery,
+  useXStatusQuery,
+  useDeleteBookmark,
+} from './useTwitter'
