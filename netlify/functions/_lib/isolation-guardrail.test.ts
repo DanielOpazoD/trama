@@ -34,6 +34,8 @@ const PER_USER_TABLES = [
   'chat_messages',
   'spotify_plays',
   'spotify_tokens',
+  'x_tokens',
+  'x_bookmarks',
   'extraction_log',
   'error_log',
   'ai_task_providers',

@@ -29,6 +29,7 @@ import { searchApi } from './search'
 import { spotifyApi } from './spotify'
 import { tasksApi } from './tasks'
 import { typeTablesApi } from './type-tables'
+import { xApi } from './x'
 
 export const api = {
   ...entitiesApi,
@@ -44,6 +45,7 @@ export const api = {
   ...aiApi,
   ...aiSettingsApi,
   ...spotifyApi,
+  ...xApi,
   ...healthApi,
   ...searchApi,
   ...graphApi,
@@ -60,6 +62,8 @@ export const api = {
 export { DuplicateEntityError } from './request'
 
 export type { WikipediaSearchResult } from './entities'
+
+export type { XStatus } from './x'
 
 export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
 
