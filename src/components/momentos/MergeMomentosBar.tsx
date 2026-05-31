@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { Momento, MomentoPayload } from '../../types'
 import { api } from '../../api'
 import { useMergeMomentos, useToast } from '../../state'
+import { queryKeys } from '../../state/queryClient'
 
 /**
  * EE: barra flotante de acción para fusionar momentos seleccionados.
@@ -105,7 +106,7 @@ export function MergeMomentosBar({
                 }
               }
               await queryClient.invalidateQueries({
-                queryKey: ['momentos', 'infinite'],
+                queryKey: queryKeys.momentosInfinite,
               })
               toast.show({ message: 'Fusión deshecha', tone: 'success' })
             } catch (err) {

@@ -69,7 +69,7 @@ export function ResonanceDots({
               role="radio"
               aria-checked={value === n}
               aria-label={`Resonancia ${n} de 5${value === n ? ' (marcado)' : ''}`}
-              className="w-2 h-2 rounded-full transition-all duration-150 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+              className="w-2 h-2 rounded-full transition-all duration-150 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-offset-1"
               style={{
                 backgroundColor: filled ? 'var(--accent-gold)' : 'transparent',
                 borderWidth: '1px',

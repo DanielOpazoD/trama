@@ -62,7 +62,7 @@ export function NoteCard({
           }}
           rows={4}
           autoFocus
-          className="w-full resize-y bg-transparent text-ink-700 placeholder:text-ink-300 focus:outline-none leading-relaxed"
+          className="w-full resize-y bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
         />
         <div className="mt-2 flex items-center justify-end gap-2">
           <button onClick={() => setEditing(false)} className="btn-ghost text-xs">
