@@ -9,8 +9,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import type { Task, TaskCreate, TaskPatch } from '../api'
+import { queryKeys } from './queryClient'
 
-const TASKS_KEY = ['tasks'] as const
+const TASKS_KEY = queryKeys.tasks
 
 export function useTasksQuery() {
   return useQuery({
@@ -23,7 +24,11 @@ export function useCreateTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (input: TaskCreate) => api.tasks.create(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: TASKS_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: TASKS_KEY })
+      qc.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      qc.invalidateQueries({ queryKey: queryKeys.home })
+    },
   })
 }
 
@@ -53,7 +58,11 @@ export function useUpdateTask() {
     onError: (_err, _vars, context) => {
       if (context?.previous) qc.setQueryData(TASKS_KEY, context.previous)
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: TASKS_KEY }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: TASKS_KEY })
+      qc.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      qc.invalidateQueries({ queryKey: queryKeys.home })
+    },
   })
 }
 
@@ -61,6 +70,10 @@ export function useDeleteTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.tasks.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: TASKS_KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: TASKS_KEY })
+      qc.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      qc.invalidateQueries({ queryKey: queryKeys.home })
+    },
   })
 }

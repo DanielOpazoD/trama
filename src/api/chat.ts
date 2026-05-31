@@ -7,7 +7,7 @@
  * por el servidor; el cliente recibe prose limpio + `proposal`.
  */
 
-import { aiModeHeader, request } from './request'
+import { apiFetch, request } from './request'
 import type { ExtractionProposal } from '../types'
 
 export type ChatThread = {
@@ -116,12 +116,8 @@ export const chatApi = {
     },
     signal?: AbortSignal,
   ): Promise<void> {
-    const response = await fetch(`/api/chat/threads/${threadId}/messages`, {
+    const response = await apiFetch(`/api/chat/threads/${threadId}/messages`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-AI-Mode': aiModeHeader(),
-      },
       body: JSON.stringify({ content }),
       signal,
     })

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
+import { queryKeys } from './queryClient'
 
 /**
  * Bookmarks de X guardados. Se traen todos los vivos de una (a escala personal
@@ -7,11 +8,9 @@ import { api } from '../api'
  * Comparten el prefijo `['x', ...]` con el estado de conexión, así un sync o un
  * borrado invalidan todo con `['x']`.
  */
-const X_BOOKMARKS_KEY = ['x', 'bookmarks'] as const
-
 export function useTwitterBookmarksQuery() {
   return useQuery({
-    queryKey: X_BOOKMARKS_KEY,
+    queryKey: queryKeys.xBookmarks,
     queryFn: () => api.xBookmarks(),
     retry: false,
   })
@@ -20,7 +19,7 @@ export function useTwitterBookmarksQuery() {
 /** Estado de conexión con X (compartido con el panel de Settings). */
 export function useXStatusQuery() {
   return useQuery({
-    queryKey: ['x', 'status'],
+    queryKey: queryKeys.xStatus,
     queryFn: () => api.xStatus(),
     retry: false,
   })
@@ -32,7 +31,9 @@ export function useDeleteBookmark() {
   return useMutation({
     mutationFn: (id: string) => api.xDeleteBookmark(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['x'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.x })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
     },
   })
 }
@@ -43,7 +44,7 @@ export function useClassifyBookmarks() {
   return useMutation({
     mutationFn: () => api.xClassify(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['x'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.x })
     },
   })
 }
@@ -51,7 +52,7 @@ export function useClassifyBookmarks() {
 /** La crónica de bookmarks más reciente (se muestra en Twitter e Inicio). */
 export function useXCronicaQuery() {
   return useQuery({
-    queryKey: ['x', 'cronica'],
+    queryKey: queryKeys.xCronica,
     queryFn: () => api.xCronica(),
     retry: false,
   })
@@ -63,7 +64,9 @@ export function useGenerateXCronica() {
   return useMutation({
     mutationFn: () => api.xGenerateCronica(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['x', 'cronica'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.xCronica })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
     },
   })
 }

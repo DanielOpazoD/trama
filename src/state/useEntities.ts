@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import {
   useInfiniteQuery,
   useMutation,
@@ -159,6 +160,9 @@ export function useAddEntity() {
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
       queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
       queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
     },
   })
 }
@@ -166,10 +170,10 @@ export function useAddEntity() {
 export function useUpdateEntityPosition() {
   const queryClient = useQueryClient()
   const { offline } = useOffline()
+  const debounceTimerRef = useRef<number | null>(null)
 
   // We don't useMutation here because position updates are high-frequency.
   // Instead expose a function that does an optimistic local update + debounced API call.
-  let debounceTimer: number | null = null
   return (id: string, x: number, y: number) => {
     queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) =>
       (prev ?? []).map((entity) =>
@@ -181,8 +185,8 @@ export function useUpdateEntityPosition() {
       storage.saveEntities(current)
       return
     }
-    if (debounceTimer !== null) window.clearTimeout(debounceTimer)
-    debounceTimer = window.setTimeout(() => {
+    if (debounceTimerRef.current !== null) window.clearTimeout(debounceTimerRef.current)
+    debounceTimerRef.current = window.setTimeout(() => {
       api.updateEntityPosition(id, x, y).catch(() => {
         // Best-effort; if it fails the local state still reflects the user's drag.
       })
@@ -204,6 +208,8 @@ export function useUpdateEntityType() {
         (prev ?? []).map((entity) => (entity.id === id ? { ...entity, type } : entity)),
       )
       queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
       if (offline) {
         const e = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
         storage.saveEntities(e)
@@ -274,6 +280,9 @@ export function useUpdateEntity() {
         (prev ?? []).map((e) => (e.id === updated.id ? updated : e)),
       )
       queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
     },
   })
 }
@@ -324,6 +333,10 @@ export function useDeleteEntity() {
       queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
       queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
       queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.momentosInfinite })
       if (offline) {
         const e = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
         storage.saveEntities(e)
@@ -346,6 +359,10 @@ export function useDeleteEntity() {
               queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
               queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
               queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
+              queryClient.invalidateQueries({ queryKey: queryKeys.home })
+              queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
+              queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+              queryClient.invalidateQueries({ queryKey: queryKeys.momentosInfinite })
             },
           },
         })

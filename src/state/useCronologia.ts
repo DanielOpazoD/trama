@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { api } from '../api'
 import type { CronologiaResponse } from '../api'
+import { queryKeys } from './queryClient'
 
 /**
  * Cronología — timeline paginado por cursor de tiempo (`before`). Cada
@@ -9,11 +10,9 @@ import type { CronologiaResponse } from '../api'
  * `netlify/functions/cronologia.mts` y `src/api/cronologia.ts`.
  */
 
-const CRONOLOGIA_INFINITE = ['cronologia', 'infinite'] as const
-
 export function useInfiniteCronologiaQuery() {
   return useInfiniteQuery<CronologiaResponse>({
-    queryKey: CRONOLOGIA_INFINITE,
+    queryKey: queryKeys.cronologiaInfinite,
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
       api.cronologia({ before: pageParam as string | null, limit: 40 }),

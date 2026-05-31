@@ -7,7 +7,7 @@
  */
 
 import type { Momento, MomentoKind, MomentoPayload, Origin } from '../types'
-import { aiModeHeader, request } from './request'
+import { request } from './request'
 import { momentoFromRow, type MomentoRow } from './transform'
 
 export type MomentoUrlPreview = {
@@ -174,16 +174,14 @@ export const momentosApi = {
     // υ-bugfix: path movido de `/api/momentos/upload` a
     // `/api/momentos-upload` por el mismo conflicto con :id que causaba
     // 405 Method not allowed.
-    const response = await fetch('/api/momentos-upload', {
+    return request<{
+      storageKey: string
+      mime: string
+      size: number
+    }>('/api/momentos-upload', {
       method: 'POST',
       body: form,
-      headers: { 'X-AI-Mode': aiModeHeader() },
     })
-    if (!response.ok) {
-      const text = await response.text().catch(() => '')
-      throw new Error(`upload → ${response.status} ${text}`.trim())
-    }
-    return response.json()
   },
 
   /** Sube un archivo de audio (nota de voz) a Netlify Blobs. Devuelve la
@@ -196,15 +194,13 @@ export const momentosApi = {
   }> {
     const form = new FormData()
     form.append('file', file)
-    const response = await fetch('/api/momentos-audio-upload', {
+    return request<{
+      storageKey: string
+      mime: string
+      size: number
+    }>('/api/momentos-audio-upload', {
       method: 'POST',
       body: form,
-      headers: { 'X-AI-Mode': aiModeHeader() },
     })
-    if (!response.ok) {
-      const text = await response.text().catch(() => '')
-      throw new Error(`audio upload → ${response.status} ${text}`.trim())
-    }
-    return response.json()
   },
 }

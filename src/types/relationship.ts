@@ -27,7 +27,9 @@ export const RELATIONSHIP_TYPES: {
 export type Relationship = {
   id: string
   fromId: string
+  fromName?: string
   toId: string
+  toName?: string
   type: RelationshipType
   notes?: string
   origin: Origin

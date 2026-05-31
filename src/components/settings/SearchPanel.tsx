@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { request } from '../../api/request'
 import { ProgressBar } from '../ProgressBar'
 import { PanelHeader } from './_shared'
 
@@ -35,8 +36,7 @@ function ReindexEmbeddingsSection() {
 
   useEffect(() => {
     let mounted = true
-    fetch('/api/reindex-embeddings')
-      .then((r) => (r.ok ? r.json() : null))
+    request<{ entities: number; quotes: number }>('/api/reindex-embeddings')
       .then((data) => {
         if (mounted && data) setPending(data)
       })
@@ -55,15 +55,10 @@ function ReindexEmbeddingsSection() {
     try {
       let total = 0
       for (let i = 0; i < 200; i++) {
-        const res = await fetch('/api/reindex-embeddings', { method: 'POST' })
-        if (!res.ok) {
-          const text = await res.text().catch(() => '')
-          throw new Error(text || `HTTP ${res.status}`)
-        }
-        const data = (await res.json()) as {
+        const data = await request<{
           processed: number
           remaining: { entities: number; quotes: number }
-        }
+        }>('/api/reindex-embeddings', { method: 'POST' })
         total += data.processed
         setPending(data.remaining)
         setRunProcessed(total)

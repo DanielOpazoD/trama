@@ -18,6 +18,7 @@ describe('<ErrorBoundary />', () => {
   beforeEach(() => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.unstubAllGlobals()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 204 }))
   })
   afterEach(() => {
     consoleErrorSpy.mockRestore()

@@ -13,7 +13,7 @@
  * mutations. Los hooks ya tienen sus propios tests.
  */
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
@@ -22,8 +22,12 @@ import { OfflineContext } from '../../state/offline'
 import { ToastProvider } from '../../state/toast'
 import { queryKeys } from '../../state/queryClient'
 import { InlineProposal } from './InlineProposal'
-import type { ChatProposal } from '../../api'
+import { api, type ChatProposal } from '../../api'
 import type { Entity } from '../../types'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 function makeQueryClient() {
   return new QueryClient({
@@ -123,6 +127,14 @@ describe('<InlineProposal />', () => {
   })
 
   it('después de clickear "aceptar", ese row deja de mostrar el botón', async () => {
+    vi.spyOn(api, 'createEntity').mockResolvedValue({
+      id: 'created-a',
+      type: 'persona',
+      name: 'A',
+      origin: { kind: 'ai' },
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+    })
     const proposal: ChatProposal = {
       entities: [
         { name: 'A', type: 'persona' },

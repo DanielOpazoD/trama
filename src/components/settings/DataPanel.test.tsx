@@ -62,7 +62,17 @@ const EMPTY_PAYLOAD: ExportPayload = {
   quotes: [],
 }
 
-beforeEach(() => vi.restoreAllMocks())
+beforeEach(() => {
+  vi.restoreAllMocks()
+  vi.spyOn(apiModule.api, 'listOrphanedBlobs').mockResolvedValue({
+    orphans: [],
+    totalInStore: 0,
+    referenced: 0,
+  })
+  vi.spyOn(apiModule.api, 'listEntities').mockResolvedValue([])
+  vi.spyOn(apiModule.api, 'listQuotes').mockResolvedValue([])
+  vi.spyOn(apiModule.api, 'listRelationships').mockResolvedValue([])
+})
 afterEach(() => vi.restoreAllMocks())
 
 describe('buildPreview (pure)', () => {

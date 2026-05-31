@@ -7,12 +7,11 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
-
-const NOTES_KEY = ['notes'] as const
+import { queryKeys } from './queryClient'
 
 export function useNotesQuery() {
   return useQuery({
-    queryKey: NOTES_KEY,
+    queryKey: queryKeys.notes,
     queryFn: () => api.notes.list(),
   })
 }
@@ -21,7 +20,7 @@ export function useCreateNote() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (content: string) => api.notes.create(content),
-    onSuccess: () => qc.invalidateQueries({ queryKey: NOTES_KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notes }),
   })
 }
 
@@ -35,7 +34,7 @@ export function useUpdateNote() {
       id: string
       patch: { content?: string; pinned?: boolean }
     }) => api.notes.update(id, patch),
-    onSuccess: () => qc.invalidateQueries({ queryKey: NOTES_KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notes }),
   })
 }
 
@@ -43,7 +42,7 @@ export function useDeleteNote() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.notes.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: NOTES_KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notes }),
   })
 }
 
@@ -57,8 +56,10 @@ export function usePromoteNote() {
   return useMutation({
     mutationFn: (id: string) => api.notes.promote(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: NOTES_KEY })
-      qc.invalidateQueries({ queryKey: ['momentos'] })
+      qc.invalidateQueries({ queryKey: queryKeys.notes })
+      qc.invalidateQueries({ queryKey: queryKeys.momentosInfinite })
+      qc.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      qc.invalidateQueries({ queryKey: queryKeys.home })
     },
   })
 }

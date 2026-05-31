@@ -160,6 +160,7 @@ export function useAddQuote() {
       queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
       queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
     },
   })
 }
@@ -240,6 +241,7 @@ export function useUpdateQuote() {
         (prev ?? []).map((q) => (q.id === updated.id ? updated : q)),
       )
       queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
     },
   })
 }
@@ -284,6 +286,7 @@ export function useDeleteQuote() {
       queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
       queryClient.invalidateQueries({ queryKey: queryKeys.counts })
       queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
       if (offline) {
         const current = queryClient.getQueryData<Quote[]>(queryKeys.quotes) ?? []
         storage.saveQuotes(current)
@@ -300,6 +303,7 @@ export function useDeleteQuote() {
               queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
               queryClient.invalidateQueries({ queryKey: queryKeys.counts })
               queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
+              queryClient.invalidateQueries({ queryKey: queryKeys.home })
             },
           },
         })

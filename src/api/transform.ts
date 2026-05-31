@@ -40,7 +40,9 @@ export type EntityRow = {
 export type RelationshipRow = {
   id: string
   from_id: string
+  from_name?: string | null
   to_id: string
+  to_name?: string | null
   type: string
   notes: string | null
   origin: Origin | string
@@ -113,7 +115,9 @@ export function relationshipFromRow(row: RelationshipRow): Relationship {
   return {
     id: row.id,
     fromId: row.from_id,
+    fromName: row.from_name ?? undefined,
     toId: row.to_id,
+    toName: row.to_name ?? undefined,
     type: row.type as RelationshipType,
     notes: row.notes ?? undefined,
     origin: asOrigin(row.origin),
