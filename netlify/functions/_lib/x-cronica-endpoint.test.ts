@@ -44,7 +44,17 @@ const {
 vi.mock('./cost-cap.js', () => ({ checkMonthlyBudget }))
 vi.mock('./ai-mode.js', () => ({
   resolveAIInvocation,
-  aiOffResponse: () => new Response('IA off', { status: 423 }),
+  aiOffResponse: () =>
+    Response.json(
+      {
+        error: {
+          code: 'AI_DISABLED',
+          message: 'IA deshabilitada por el usuario (modo Off).',
+          requestId: 'rid-test',
+        },
+      },
+      { status: 423 },
+    ),
 }))
 vi.mock('./llm.js', () => ({ askLLMForText }))
 vi.mock('./x/index.js', () => ({
@@ -146,6 +156,7 @@ describe('x-cronica endpoint', () => {
       mockContext(),
     )
     expect(res.status).toBe(423)
+    expect(await res.json()).toMatchObject({ error: { code: 'AI_DISABLED' } })
     expect(insertXCronica).not.toHaveBeenCalled()
   })
 })

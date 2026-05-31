@@ -11,6 +11,7 @@ import { ExtractFromImageBody } from './_lib/admin-schemas.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 const FALLBACK_ENTITY_TYPES = [
   'persona', 'escritor', 'filosofo', 'musico', 'banda', 'director', 'artista', 'cientifico',
@@ -35,7 +36,10 @@ export default withObservability('extract-from-image', async (req, _ctx, { reque
     return ApiErrors.methodNotAllowed(requestId)
   }
 
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const userId = authedUser.id
+  const sql = getSql()
+  await ensureUserRow(sql, authedUser)
 
   const budgetExceeded = await checkMonthlyBudget(userId, requestId)
   if (budgetExceeded) return budgetExceeded
@@ -57,8 +61,6 @@ export default withObservability('extract-from-image', async (req, _ctx, { reque
     return ApiErrors.payloadTooLarge(requestId, 'La imagen excede el máximo permitido (8 MB).')
   }
 
-  const sql = getSql()
-
   type TypeRow = { slug: string }
   const [entityTypeRows, relTypeRows] = await Promise.all([
     sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
@@ -73,7 +75,7 @@ export default withObservability('extract-from-image', async (req, _ctx, { reque
   const { system, user } = buildImageExtractionPrompt(entityTypes, relationshipTypes)
 
   const invocation = await resolveAIInvocation(req, 'extract-image', userId)
-  if (invocation.kind === 'off') return aiOffResponse()
+  if (invocation.kind === 'off') return aiOffResponse(requestId)
 
   try {
     const { content, usage, fromCache } = await askLLMForVision(

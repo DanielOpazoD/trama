@@ -4,7 +4,7 @@
  * Antes cada caller hacía `Netlify.env.get('XYZ')` y parseaba ad-hoc.
  * El problema: typear mal el nombre no producía error de compile (TS no
  * sabe qué env vars existen). Y los defaults vivían dispersos en cada
- * site (ej. cost-cap parseaba AI_MONTHLY_BUDGET_CENTS con fallback 500;
+ * site (ej. cost-cap parseaba AI_MONTHLY_BUDGET_CENTS con fallback 5000;
  * llm/config parseaba AI_MAX_TOKENS con fallback distinto en cada lugar).
  *
  * Este módulo:
@@ -84,7 +84,7 @@ const EnvSchema = z.object({
   /** Si true (default), además del cache en memoria, persistir en DB
    *  (ai_response_cache). Opt-out con 'false' / '0' / 'off'. */
   AI_DB_CACHE_ENABLED: boolFlagDefaultOn,
-  /** Cap mensual de gasto LLM en centavos USD. Default 500 (=$5). */
+  /** Cap mensual de gasto LLM en centavos USD. Default 5000 (=$50). */
   AI_MONTHLY_BUDGET_CENTS: optionalNumber,
 
   // ─── Cost alerting ──────────────────────────────────────────────────
@@ -149,7 +149,7 @@ let cached: Env | null = null
  *   if (!env.OPENAI_API_KEY) {
  *     // fall back to lexical-only search
  *   }
- *   const budget = env.AI_MONTHLY_BUDGET_CENTS ?? 500
+ *   const budget = env.AI_MONTHLY_BUDGET_CENTS ?? 5000
  */
 export function getEnv(): Env {
   if (cached) return cached

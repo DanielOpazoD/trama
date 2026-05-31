@@ -6,6 +6,7 @@ import { ApiErrors } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { AISettingsUpsertBody } from './_lib/admin-schemas.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { getEnv } from './_lib/env.js'
 
 /**
@@ -25,7 +26,8 @@ import { getEnv } from './_lib/env.js'
 const VALID_PROVIDERS = new Set(['deepseek', 'openai', 'anthropic', 'gemini'])
 
 export default withObservability('ai-settings', async (req, _ctx, { requestId }) => {
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const userId = authedUser.id
   const sql = getSql()
 
   if (req.method === 'GET') {
@@ -61,6 +63,7 @@ export default withObservability('ai-settings', async (req, _ctx, { requestId })
   }
 
   if (req.method === 'PUT') {
+    await ensureUserRow(sql, authedUser)
     const parsed = await parseJsonBody(req, AISettingsUpsertBody, requestId)
     if (!parsed.ok) return parsed.response
     const body = parsed.data

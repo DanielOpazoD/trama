@@ -38,10 +38,24 @@ export type ErrorContext = {
   context?: Record<string, unknown>
   /** FF1 — id que correlaciona esta fila con el header x-request-id que vio el cliente. */
   requestId?: string
-  /** Opcional: si el handler ya autenticó, asocia el error al user. Si
-   *  no se pasa, persistimos 'legacy-single-user' para que el GET
-   *  filtrado por user_id no oculte el row en modo single-user. */
+  /** Opcional: si el handler ya autenticó, asocia el error al user. Si no se
+   *  pasa, solo persistimos bajo legacy cuando Clerk no está en modo estricto. */
   userId?: string
+}
+
+function readEnv(key: string): string | undefined {
+  try {
+    return Netlify.env.get(key)
+  } catch {
+    return process.env[key]
+  }
+}
+
+function anonymousErrorUserId(): string | null {
+  const clerkConfigured = Boolean(readEnv('CLERK_SECRET_KEY'))
+  const legacyFallback = readEnv('ALLOW_LEGACY_FALLBACK') === 'true'
+  if (!clerkConfigured || legacyFallback) return 'legacy-single-user'
+  return null
 }
 
 /**
@@ -62,7 +76,8 @@ export function persistError(sql: SqlClient | null, error: ErrorContext): void {
 
   if (!sql) return
 
-  const userId = error.userId ?? 'legacy-single-user'
+  const userId = error.userId ?? anonymousErrorUserId()
+  if (!userId) return
 
   // Fire-and-forget INSERT. Don't await; don't surface errors.
   void sql`

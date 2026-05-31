@@ -29,6 +29,8 @@ import { askLLMForJson } from './_lib/llm.js'
 import { logEvent } from './_lib/observability.js'
 import { chooseK, kmeans, normalize, type Vec } from './_lib/cluster.js'
 import { buildAtlasNamingMessages } from './_lib/atlas-prompt.js'
+import { checkMonthlyBudget } from './_lib/cost-cap.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 /** Mínimo de entidades-con-embedding para que un atlas tenga sentido. */
 const MIN_ENTITIES = 6
@@ -162,7 +164,8 @@ async function buildResponse(
 export default withObservability(
   'atlas',
   async (req: Request, _context: Context, { requestId }) => {
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
     const sql = getSql()
     const url = new URL(req.url)
 
@@ -171,6 +174,10 @@ export default withObservability(
     }
 
     if (req.method === 'POST' && url.pathname === '/api/atlas/generate') {
+      await ensureUserRow(sql, authedUser)
+      const budgetExceeded = await checkMonthlyBudget(userId, requestId)
+      if (budgetExceeded) return budgetExceeded
+
       type EntityRow = {
         id: string
         name: string
@@ -217,7 +224,7 @@ export default withObservability(
       const messages = buildAtlasNamingMessages(namingInput)
 
       const invocation = await resolveAIInvocation(req, 'reflect', userId)
-      if (invocation.kind === 'off') return aiOffResponse()
+      if (invocation.kind === 'off') return aiOffResponse(requestId)
 
       const { content, usage, fromCache } = await askLLMForJson(messages, {
         provider: invocation.provider,
@@ -256,6 +263,22 @@ export default withObservability(
         durationMs: usage.durationMs,
         fromCache,
       })
+
+      sql`
+        INSERT INTO extraction_log (
+          input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
+        ) VALUES (
+          ${'atlas:generate'},
+          ${JSON.stringify({ clusters, entityCount: points.length })}::jsonb,
+          ${usage.provider},
+          ${usage.model},
+          ${usage.tokensIn},
+          ${usage.tokensOut},
+          ${usage.costCents},
+          ${usage.durationMs},
+          ${userId}
+        )
+      `.catch(() => {})
 
       await sql`
         INSERT INTO atlas_snapshots (user_id, entity_count, clusters, provider, model)

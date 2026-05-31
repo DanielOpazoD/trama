@@ -3,12 +3,20 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { logEvent } from './_lib/observability.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import {
   embedSafe,
   entityEmbeddingText,
   quoteEmbeddingText,
   toPgVector,
 } from './_lib/embeddings.js'
+
+const EMBEDDING_COST_CENTS_PER_TOKEN = 2 / 1_000_000 // $0.02 / 1M tokens
+
+function estimateEmbeddingTokens(text: string): number {
+  return Math.ceil(text.trim().length / 4)
+}
 
 /**
  * Backfill embeddings for entities and quotes that don't have one yet.
@@ -24,7 +32,8 @@ import {
  * entity name in their embedding text), then quotes.
  */
 export default withObservability('reindex-embeddings', async (req, _ctx, { requestId }) => {
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const { id: userId } = authedUser
   const sql = getSql()
 
   if (req.method === 'GET') {
@@ -41,6 +50,7 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
   if (req.method !== 'POST') {
     return ApiErrors.methodNotAllowed(requestId)
   }
+  await ensureUserRow(sql, authedUser)
 
   const url = new URL(req.url)
   const batchSize = Math.min(
@@ -49,6 +59,8 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
   )
 
   let processed = 0
+  let attempted = 0
+  let estimatedTokens = 0
   const errors: Array<{ kind: 'entity' | 'quote'; id: string; reason: string }> = []
 
   // ---------- entities ----------
@@ -68,14 +80,15 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
   `) as EntityRow[]
 
   for (const e of entityRows) {
-    const emb = await embedSafe(
-      entityEmbeddingText({
-        name: e.name,
-        type: e.type,
-        year: e.year,
-        description: e.description,
-      }),
-    )
+    const text = entityEmbeddingText({
+      name: e.name,
+      type: e.type,
+      year: e.year,
+      description: e.description,
+    })
+    attempted += 1
+    estimatedTokens += estimateEmbeddingTokens(text)
+    const emb = await embedSafe(text)
     if (!emb) {
       errors.push({ kind: 'entity', id: e.id, reason: 'embedding falló' })
       continue
@@ -85,7 +98,7 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
       SET embedding = ${toPgVector(emb.vector)}::vector,
           embedding_model = ${emb.model},
           embedding_at = NOW()
-      WHERE id = ${e.id} AND user_id = ${userId}
+      WHERE id = ${e.id} AND deleted_at IS NULL AND user_id = ${userId}
     `
     processed += 1
   }
@@ -103,21 +116,24 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
     const quoteRows = (await sql`
       SELECT q.id, q.text, q.source, q.context, e.name AS entity_name
       FROM quotes q
-      LEFT JOIN entities e ON e.id = q.entity_id AND e.deleted_at IS NULL
+      LEFT JOIN entities e ON e.id = q.entity_id
+        AND e.deleted_at IS NULL
+        AND e.user_id = ${userId}
       WHERE q.deleted_at IS NULL AND q.embedding IS NULL AND q.user_id = ${userId}
       ORDER BY q.created_at DESC
       LIMIT ${remainingCapacity}
     `) as QuoteRow[]
 
     for (const q of quoteRows) {
-      const emb = await embedSafe(
-        quoteEmbeddingText({
-          text: q.text,
-          entityName: q.entity_name,
-          source: q.source,
-          context: q.context,
-        }),
-      )
+      const text = quoteEmbeddingText({
+        text: q.text,
+        entityName: q.entity_name,
+        source: q.source,
+        context: q.context,
+      })
+      attempted += 1
+      estimatedTokens += estimateEmbeddingTokens(text)
+      const emb = await embedSafe(text)
       if (!emb) {
         errors.push({ kind: 'quote', id: q.id, reason: 'embedding falló' })
         continue
@@ -127,7 +143,7 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
         SET embedding = ${toPgVector(emb.vector)}::vector,
             embedding_model = ${emb.model},
             embedding_at = NOW()
-        WHERE id = ${q.id} AND user_id = ${userId}
+        WHERE id = ${q.id} AND deleted_at IS NULL AND user_id = ${userId}
       `
       processed += 1
     }
@@ -137,6 +153,20 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
     sqlTyped<{ c: string }>(sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}`),
     sqlTyped<{ c: string }>(sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}`),
   ])
+
+  logEvent({
+    event: 'reindex_embeddings_batch',
+    userId,
+    attempted,
+    processed,
+    errors: errors.length,
+    estimatedTokens,
+    estimatedCostCents: Number(
+      (estimatedTokens * EMBEDDING_COST_CENTS_PER_TOKEN).toFixed(6),
+    ),
+    remainingEntities: Number(eLeft[0]?.c ?? 0),
+    remainingQuotes: Number(qLeft[0]?.c ?? 0),
+  })
 
   return Response.json({
     processed,

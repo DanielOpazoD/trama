@@ -11,6 +11,7 @@ import {
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ProactiveStatusPatchBody } from './_lib/momento-extra-schemas.js'
 import { logEvent } from './_lib/observability.js'
@@ -45,7 +46,8 @@ type Suggestion = {
 export default withObservability(
   'proactive-suggestions',
   async (req: Request, context: Context, { requestId }) => {
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
     const sql = getSql()
     const id = context.params.id
 
@@ -85,6 +87,7 @@ export default withObservability(
     }
 
     if (req.method === 'POST') {
+      await ensureUserRow(sql, authedUser)
       // Generate a fresh round of suggestions.
       const budgetExceeded = await checkMonthlyBudget(userId, requestId)
       if (budgetExceeded) return budgetExceeded
@@ -110,7 +113,11 @@ export default withObservability(
         sqlTyped<RelRow>(sql`SELECT ef.name AS from_name, et.name AS to_name, r.type
             FROM relationships r
             JOIN entities ef ON ef.id = r.from_id
+              AND ef.deleted_at IS NULL
+              AND ef.user_id = ${userId}
             JOIN entities et ON et.id = r.to_id
+              AND et.deleted_at IS NULL
+              AND et.user_id = ${userId}
             WHERE r.deleted_at IS NULL AND r.user_id = ${userId}`),
         sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
         sqlTyped<TypeRow>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
@@ -187,7 +194,7 @@ export default withObservability(
       )
 
       const invocation = await resolveAIInvocation(req, 'suggest-relationships', userId)
-      if (invocation.kind === 'off') return aiOffResponse()
+      if (invocation.kind === 'off') return aiOffResponse(requestId)
 
       try {
         const { content, usage } = await askLLMForJson(messages, {

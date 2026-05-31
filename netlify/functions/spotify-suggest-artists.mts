@@ -3,6 +3,7 @@ import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { logEvent } from './_lib/observability.js'
@@ -35,7 +36,8 @@ export default withObservability('spotify-suggest-artists', async (req: Request,
     return ApiErrors.methodNotAllowed(requestId)
   }
 
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const userId = authedUser.id
 
   const budgetExceeded = await checkMonthlyBudget(userId, requestId)
   if (budgetExceeded) return budgetExceeded
@@ -63,6 +65,8 @@ export default withObservability('spotify-suggest-artists', async (req: Request,
     })
   }
 
+  await ensureUserRow(sql, authedUser)
+
   const topGenres = aggregateTopGenres(topArtists, 8)
   const topArtistNames = topArtists.slice(0, 20).map((a) => a.name)
 
@@ -78,7 +82,7 @@ export default withObservability('spotify-suggest-artists', async (req: Request,
   const existingNames = existingArtists.map((e) => e.name.toLowerCase())
 
   const invocation = await resolveAIInvocation(req, 'suggest-relationships', userId)
-  if (invocation.kind === 'off') return aiOffResponse()
+  if (invocation.kind === 'off') return aiOffResponse(requestId)
 
   const excludeList = [
     ...new Set([...topArtistNames.map((n) => n.toLowerCase()), ...existingNames]),
@@ -162,6 +166,22 @@ DEVUELVE EXCLUSIVAMENTE este JSON, sin markdown:
       fromCache,
       count: suggestions.length,
     })
+
+    sql`
+      INSERT INTO extraction_log (
+        input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
+      ) VALUES (
+        ${'spotify-suggest-artists'},
+        ${JSON.stringify({ suggestions: suggestions.length, topGenres })}::jsonb,
+        ${usage.provider},
+        ${usage.model},
+        ${usage.tokensIn},
+        ${usage.tokensOut},
+        ${usage.costCents},
+        ${usage.durationMs},
+        ${userId}
+      )
+    `.catch(() => {})
 
     return Response.json({
       suggestions,

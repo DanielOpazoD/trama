@@ -73,13 +73,6 @@ describe('checkMonthlyBudget', () => {
     expect(sumCall.values).toContain('user_specific')
   })
 
-  it('sin userId, hace la query global (no filtra por user_id)', async () => {
-    mockSqlResponses.push([{ total: '0' }]) // solo 1 call: el SUM global
-    await checkMonthlyBudget(undefined, 'rid-5')
-    expect(mockSqlResponses.calls).toHaveLength(1)
-    expect(mockSqlResponses.calls[0]!.template).not.toMatch(/user_id/)
-  })
-
   it('si users.monthly_budget_cents es NULL, cae al env budget', async () => {
     // user existe pero cap NULL → usa env.
     mockSqlResponses.push([{ cap: null }])
@@ -89,16 +82,22 @@ describe('checkMonthlyBudget', () => {
     expect(body.error.details.budgetCents).toBe(1000) // del env
   })
 
-  it('env vacío/0/invalid → default 500 cents', async () => {
+  it('env vacío/0/invalid → default 5000 cents', async () => {
     vi.unstubAllGlobals()
     resetEnvCache()
     vi.stubGlobal('Netlify', {
       env: { get: vi.fn(() => undefined) },
     })
     mockSqlResponses.push([])
-    mockSqlResponses.push([{ total: '600' }])
+    mockSqlResponses.push([{ total: '6000' }])
     const result = await checkMonthlyBudget('user_a', 'rid-7')
     const body = await result!.json()
-    expect(body.error.details.budgetCents).toBe(500)
+    expect(body.error.details.budgetCents).toBe(5000)
+  })
+
+  it('requiere userId explícito en la firma', () => {
+    const fn: (userId: string, requestId?: string) => Promise<Response | null> =
+      checkMonthlyBudget
+    expect(fn).toBe(checkMonthlyBudget)
   })
 })
