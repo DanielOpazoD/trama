@@ -1,6 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
-import { MissingDatabaseConnectionError } from '@netlify/database'
+import { getSql, isMissingDatabaseConnectionError } from './_lib/db.js'
 import {
   fetchRecentlyPlayed,
   getValidAccessToken,
@@ -39,7 +38,7 @@ export default async (req: Request) => {
   try {
     sql = getSql()
   } catch (err) {
-    if (err instanceof MissingDatabaseConnectionError) {
+    if (isMissingDatabaseConnectionError(err)) {
       logErrorEvent({
         event: 'spotify_scheduled_sync_skipped',
         reason: 'no_db_url',

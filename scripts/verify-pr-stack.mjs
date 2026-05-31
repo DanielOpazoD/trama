@@ -125,6 +125,7 @@ const prStack = [
     title: 'Seguridad y superficie externa',
     patterns: [
       /^netlify\.toml$/,
+      /^netlify\/functions\/_lib\/db\.ts$/,
       /^netlify\/functions\/_lib\/deployment-guard\.test\.ts$/,
       /^netlify\/functions\/_lib\/momentos-file-endpoint\.test\.ts$/,
       /^netlify\/functions\/_lib\/momentos-url-preview-ssrf\.test\.ts$/,

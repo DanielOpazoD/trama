@@ -1,6 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { MissingDatabaseConnectionError } from '@netlify/database'
-import { getSql } from './_lib/db.js'
+import { getSql, isMissingDatabaseConnectionError } from './_lib/db.js'
 import {
   fetchBookmarks,
   getValidAccessToken,
@@ -43,7 +42,7 @@ export default async (req: Request) => {
   try {
     sql = getSql()
   } catch (err) {
-    if (err instanceof MissingDatabaseConnectionError) {
+    if (isMissingDatabaseConnectionError(err)) {
       logErrorEvent({
         event: 'x_scheduled_sync_skipped',
         reason: 'no_db_url',

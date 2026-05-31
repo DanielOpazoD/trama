@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 
 /**
  * Guardrail de aislamiento multi-usuario.
@@ -22,6 +22,9 @@ const FUNCTIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..')
 const LIB_DIR = dirname(fileURLToPath(import.meta.url))
 const LIB_X_DIR = join(LIB_DIR, 'x')
 const MIGRATIONS_DIR = join(LIB_DIR, '..', '..', 'database', 'migrations')
+const REPO_ROOT = join(LIB_DIR, '..', '..', '..')
+const SRC_DIR = join(REPO_ROOT, 'src')
+const SCRIPTS_DIR = join(REPO_ROOT, 'scripts')
 
 // Tablas con columna user_id (scope por usuario). entity_types y
 // relationship_types NO están: son taxonomía GLOBAL compartida por diseño.
@@ -91,6 +94,26 @@ function allMigrationSql(): string {
     .map((dir) => readFileSync(join(MIGRATIONS_DIR, dir, 'migration.sql'), 'utf8'))
     .join('\n')
     .replace(/--.*$/gm, ' ')
+}
+
+function productionCodeFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const file = join(dir, entry.name)
+    if (entry.isDirectory()) return productionCodeFiles(file)
+    if (!/\.(ts|tsx|mts|mjs|js)$/.test(file)) return []
+    if (/\.test\.(ts|tsx|mts|mjs|js)$/.test(file)) return []
+    return [file]
+  })
+}
+
+function uncommentedSource(file: string): string {
+  return readFileSync(file, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '')
+}
+
+function repoPath(file: string): string {
+  return relative(REPO_ROOT, file)
 }
 
 function migrationUserTables(sql: string): {
@@ -351,4 +374,56 @@ describe('guardrail: backfills de embeddings no escriben filas borradas ni ajena
       expect(src).toMatch(re)
     })
   }
+})
+
+describe('guardrail: convenciones arquitectónicas absolutas', () => {
+  const productionFiles = [
+    ...productionCodeFiles(FUNCTIONS_DIR),
+    ...productionCodeFiles(SRC_DIR),
+    ...productionCodeFiles(SCRIPTS_DIR),
+  ]
+
+  it('origin se trata como objeto JSONB, no como string legacy', () => {
+    const offenders = productionFiles
+      .filter((file) => {
+        const src = uncommentedSource(file)
+        return (
+          /(?:\b\w+\.origin\b|\borigin\b)\s*(?:={2,3}|!={1,2})\s*['"](?:ai|manual)['"]/.test(
+            src,
+          ) ||
+          /['"](?:ai|manual)['"]\s*(?:={2,3}|!={1,2})\s*(?:\b\w+\.origin\b|\borigin\b)/.test(
+            src,
+          )
+        )
+      })
+      .map(repoPath)
+
+    expect(offenders).toEqual([])
+  })
+
+  it('acceso a DB queda detrás de getSql() y no del cliente Neon directo', () => {
+    const dbHelper = join(LIB_DIR, 'db.ts')
+    const offenders = productionFiles
+      .filter((file) => file !== dbHelper)
+      .filter((file) => {
+        const src = uncommentedSource(file)
+        return (
+          /NETLIFY_DATABASE_URL/.test(src) ||
+          /@neondatabase\/serverless/.test(src) ||
+          /\bneon\s*\(/.test(src) ||
+          /from\s+['"]@netlify\/database['"]/.test(src)
+        )
+      })
+      .map(repoPath)
+
+    expect(offenders).toEqual([])
+  })
+
+  it('el cliente no importa @netlify/blobs', () => {
+    const offenders = productionCodeFiles(SRC_DIR)
+      .filter((file) => /@netlify\/blobs/.test(uncommentedSource(file)))
+      .map(repoPath)
+
+    expect(offenders).toEqual([])
+  })
 })

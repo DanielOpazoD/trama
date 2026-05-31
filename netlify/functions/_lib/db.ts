@@ -1,4 +1,8 @@
-import { getDatabase, type ServerlessDatabaseConnection } from '@netlify/database'
+import {
+  getDatabase,
+  MissingDatabaseConnectionError,
+  type ServerlessDatabaseConnection,
+} from '@netlify/database'
 
 /**
  * Returns the Neon HTTP client (`sql\`SELECT ...\`` tagged template) that the
@@ -17,6 +21,10 @@ export function getSql(): ServerlessDatabaseConnection['httpClient'] {
     )
   }
   return conn.httpClient
+}
+
+export function isMissingDatabaseConnectionError(err: unknown): boolean {
+  return err instanceof MissingDatabaseConnectionError
 }
 
 /**
