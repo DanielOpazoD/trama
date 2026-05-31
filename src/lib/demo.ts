@@ -561,6 +561,7 @@ function route(
       // Integración con X — inerte en demo (necesita app de X + red real).
       if (id === 'sync') return { fetched: 0, inserted: 0, classified: 0 }
       if (id === 'classify') return { classified: 0, remaining: false }
+      if (id === 'cronica') return { cronica: null }
       if (id === 'bookmarks') {
         if (method === 'DELETE') return { ok: true }
         return { items: [] }

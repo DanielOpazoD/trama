@@ -16,6 +16,7 @@ import { ActivityHeatmap } from './home/ActivityHeatmap'
 import { RecentTimeline, buildTimeline } from './home/RecentTimeline'
 import { FirstMomentPreview } from './home/FirstMomentPreview'
 import { CronicasSection } from './home/CronicasSection'
+import { XCronicaSection } from './home/XCronicaSection'
 
 /**
  * Home is the first thing the user sees. It's not the graph (intimidating
@@ -191,6 +192,9 @@ export function HomeView({
               cuando hay material o crónicas generadas; degrada a nada en
               tramas muy nuevas. */}
           <CronicasSection />
+
+          {/* Crónica de bookmarks de X — solo si ya se generó una. */}
+          <XCronicaSection />
 
           {(featuredQuote || timeline.length > 0) && (
             <div className="flex justify-center pt-2 pb-1">

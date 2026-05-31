@@ -47,3 +47,23 @@ export function useClassifyBookmarks() {
     },
   })
 }
+
+/** La crónica de bookmarks más reciente (se muestra en Twitter e Inicio). */
+export function useXCronicaQuery() {
+  return useQuery({
+    queryKey: ['x', 'cronica'],
+    queryFn: () => api.xCronica(),
+    retry: false,
+  })
+}
+
+/** Genera una crónica nueva; invalida la crónica al terminar. */
+export function useGenerateXCronica() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.xGenerateCronica(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['x', 'cronica'] })
+    },
+  })
+}

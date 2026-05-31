@@ -85,4 +85,6 @@ export {
   useXStatusQuery,
   useDeleteBookmark,
   useClassifyBookmarks,
+  useXCronicaQuery,
+  useGenerateXCronica,
 } from './useTwitter'
