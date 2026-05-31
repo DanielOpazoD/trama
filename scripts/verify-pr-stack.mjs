@@ -81,6 +81,7 @@ const prStack = [
       /^netlify\/functions\/_lib\/observability(\.test)?\.ts$/,
       /^netlify\/functions\/_lib\/rag-context-boundary\.test\.ts$/,
       /^netlify\/functions\/_lib\/rag-context\.ts$/,
+      /^netlify\/functions\/_lib\/reindex-embeddings-boundary\.test\.ts$/,
       /^netlify\/functions\/ai-settings\.mts$/,
       /^netlify\/functions\/atlas\.mts$/,
       /^netlify\/functions\/cost-alert-check\.mts$/,

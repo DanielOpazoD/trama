@@ -71,13 +71,13 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
     year: number | null
     description: string | null
   }
-  const entityRows = (await sql`
+  const entityRows = await sqlTyped<EntityRow>(sql`
     SELECT id, name, type, year, description
     FROM entities
     WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId}
     ORDER BY created_at DESC
     LIMIT ${batchSize}
-  `) as EntityRow[]
+  `)
 
   for (const e of entityRows) {
     const text = entityEmbeddingText({
@@ -113,7 +113,7 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
       context: string | null
       entity_name: string | null
     }
-    const quoteRows = (await sql`
+    const quoteRows = await sqlTyped<QuoteRow>(sql`
       SELECT q.id, q.text, q.source, q.context, e.name AS entity_name
       FROM quotes q
       LEFT JOIN entities e ON e.id = q.entity_id
@@ -122,7 +122,7 @@ export default withObservability('reindex-embeddings', async (req, _ctx, { reque
       WHERE q.deleted_at IS NULL AND q.embedding IS NULL AND q.user_id = ${userId}
       ORDER BY q.created_at DESC
       LIMIT ${remainingCapacity}
-    `) as QuoteRow[]
+    `)
 
     for (const q of quoteRows) {
       const text = quoteEmbeddingText({
