@@ -90,6 +90,6 @@ describe('<ToastHost />', () => {
     const { show } = setup()
     show({ message: 'Algo falló', tone: 'error' })
     const status = screen.getByRole('status')
-    expect(status.querySelector('.bg-red-900')).not.toBeNull()
+    expect(status.querySelector('.toast-error')).not.toBeNull()
   })
 })

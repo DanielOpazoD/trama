@@ -37,9 +37,9 @@ export type Toast = {
   durationMs?: number
   /** Tono visual.
    *
-   * - 'default' → ink-800 (snackbar neutro)
-   * - 'error'   → red-900 (operación falló)
-   * - 'success' → emerald-900 (guardado, undo)
+   * - 'default' → snackbar neutro
+   * - 'error'   → operación falló
+   * - 'success' → guardado, undo
    * - 'achievement' (λ6) → gold cálido editorial, reservado para
    *   useAchievements u otros momentos que celebran un hito. Suficientemente
    *   distinto de 'success' como para que el usuario sienta el cambio de

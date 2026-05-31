@@ -45,18 +45,17 @@ export function ToastHost() {
   if (!current) return null
 
   // λ6: 'achievement' usa inline style porque depende de --accent-gold
-  // (que se mueve con la hora del día gracias a δ6). Tailwind classes
-  // estáticas no pueden reflejar esa dinámica. El resto sigue con tonos
-  // de Tailwind para mantener consistencia con el resto del sistema.
+  // (que se mueve con la hora del día gracias a δ6). El resto usa clases
+  // semánticas para que el color viva con los tokens visuales, no en JSX.
   const isAchievement = current.tone === 'achievement'
   const toneClass =
     current.tone === 'error'
-      ? 'bg-red-900 text-red-50 border-red-700/50'
+      ? 'toast-error'
       : current.tone === 'success'
-        ? 'bg-emerald-900 text-emerald-50 border-emerald-700/50'
+        ? 'toast-success'
         : isAchievement
-          ? 'text-paper-50' // bg + border van inline abajo
-          : 'bg-ink-800 text-paper-50 border-ink-700/50'
+          ? 'toast-achievement' // bg + border van inline abajo
+          : 'toast-default'
 
   const achievementStyle: React.CSSProperties | undefined = isAchievement
     ? {
@@ -79,10 +78,7 @@ export function ToastHost() {
       // (que vive en flex-col root). Desktop mantiene bottom-6 estándar.
       className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-up pointer-events-none"
     >
-      <div
-        className={`pointer-events-auto flex items-center gap-3 pl-4 pr-2 py-2.5 rounded-xl border shadow-lg shadow-ink-900/25 min-w-[260px] max-w-[480px] ${toneClass}`}
-        style={achievementStyle}
-      >
+      <div className={`toast-surface ${toneClass}`} style={achievementStyle}>
         <span className="text-sm leading-snug flex-1">{current.message}</span>
         {current.action && (
           <button

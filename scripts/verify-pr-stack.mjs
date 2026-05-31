@@ -177,6 +177,7 @@ const prStack = [
       /^src\/components\/NumberTicker(\.test)?\.tsx$/,
       /^src\/components\/Onboarding(\.test)?\.tsx$/,
       /^src\/components\/Sidebar\.tsx$/,
+      /^src\/components\/ToastHost(\.test)?\.tsx$/,
       /^src\/components\/TwitterView\.tsx$/,
       /^src\/components\/momentos\/(AlbumGrid|MomentoEntry)(\.test)?\.tsx$/,
       /^src\/components\/momentos\/helpers(\.test)?\.ts$/,
@@ -185,6 +186,8 @@ const prStack = [
       /^src\/components\/notas\/(NotasView|NoteCard|TareasView)\.tsx$/,
       /^src\/components\/quotes\/ResonanceDots\.tsx$/,
       /^src\/components\/sidebar\/NavButton\.tsx$/,
+      /^src\/index\.css$/,
+      /^src\/state\/toast\.tsx$/,
     ],
   },
 ]
