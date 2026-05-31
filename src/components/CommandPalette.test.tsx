@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { CommandPalette } from './CommandPalette'
 import { renderWithProviders } from '../test-utils'
 import type { SearchResponse } from '../api'
@@ -155,6 +157,41 @@ describe('<CommandPalette />', () => {
     )
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('usa el onClose vigente en el listener global cuando el padre re-renderiza', () => {
+    const staleOnClose = vi.fn()
+    const currentOnClose = vi.fn()
+    const { rerender } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={staleOnClose}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+
+    rerender(
+      <CommandPalette
+        open
+        onClose={currentOnClose}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    expect(staleOnClose).not.toHaveBeenCalled()
+    expect(currentOnClose).toHaveBeenCalledOnce()
+  })
+
+  it('no oculta dependencias del listener global con suppressions de exhaustive-deps', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/components/CommandPalette.tsx'),
+      'utf8',
+    )
+    expect(source).not.toContain('eslint-disable-next-line react-hooks/exhaustive-deps')
   })
 
   it('merges server results (momento + crónica + chat) for queries ≥2', async () => {

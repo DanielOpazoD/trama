@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ENTITY_TYPES } from '../types'
 import type { ViewMode } from './Sidebar'
 import {
@@ -96,6 +96,41 @@ export function CommandPalette({
     setFocusIdx(0)
   }, [query])
 
+  const selectItem = useCallback(
+    (item: Item) => {
+      switch (item.kind) {
+        case 'view':
+          onNavigate(item.view)
+          break
+        case 'action':
+          onAction?.(item.action)
+          break
+        case 'entity':
+          onSelectEntity(item.id)
+          break
+        case 'quote':
+          // Cita → abrir el panel de su entidad.
+          onSelectEntity(item.entityId)
+          break
+        case 'momento':
+          // No hay deep-link a un momento puntual (lista infinita); llevamos
+          // a la vista Momentos.
+          onNavigate('momentos')
+          break
+        case 'cronica':
+          // Las crónicas viven en Inicio.
+          onNavigate('inicio')
+          break
+        case 'chat':
+          if (onOpenThread) onOpenThread(item.threadId)
+          else onNavigate('chat')
+          break
+      }
+      onClose()
+    },
+    [onAction, onClose, onNavigate, onOpenThread, onSelectEntity],
+  )
+
   useEffect(() => {
     if (!open) return
     function handler(e: KeyboardEvent) {
@@ -116,43 +151,7 @@ export function CommandPalette({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-    // Re-suscribimos el listener global solo al abrir o cambiar items/foco.
-    // onClose y selectItem se omiten a propósito: re-bindear en cada render
-    // no aporta y el handler ya lee el estado vigente vía estas deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, items, focusIdx])
-
-  function selectItem(item: Item) {
-    switch (item.kind) {
-      case 'view':
-        onNavigate(item.view)
-        break
-      case 'action':
-        onAction?.(item.action)
-        break
-      case 'entity':
-        onSelectEntity(item.id)
-        break
-      case 'quote':
-        // Cita → abrir el panel de su entidad.
-        onSelectEntity(item.entityId)
-        break
-      case 'momento':
-        // No hay deep-link a un momento puntual (lista infinita); llevamos
-        // a la vista Momentos.
-        onNavigate('momentos')
-        break
-      case 'cronica':
-        // Las crónicas viven en Inicio.
-        onNavigate('inicio')
-        break
-      case 'chat':
-        if (onOpenThread) onOpenThread(item.threadId)
-        else onNavigate('chat')
-        break
-    }
-    onClose()
-  }
+  }, [open, items, focusIdx, onClose, selectItem])
 
   if (!open) return null
 

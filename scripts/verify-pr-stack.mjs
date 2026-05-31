@@ -102,7 +102,7 @@ const prStack = [
       /^src\/api\/request\.test\.ts$/,
       /^src\/components\/(ApiAuthBridge|AuthGate|ErrorBoundary|UserMenu)(\.test)?\.tsx$/,
       /^src\/components\/ChatView\.tsx$/,
-      /^src\/components\/CommandPalette\.tsx$/,
+      /^src\/components\/CommandPalette(\.test)?\.tsx$/,
       /^src\/components\/EntitiesView\.test\.tsx$/,
       /^src\/components\/NodeDetailPanel\.test\.tsx$/,
       /^src\/components\/ProposalPanel\.test\.tsx$/,
