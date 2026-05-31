@@ -111,13 +111,13 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
     if (threadRows.length === 0) {
       return ApiErrors.notFound(requestId, 'Thread no encontrado')
     }
-    const rows = (await sql`
+    const rows = await sqlTyped<HistoryRow>(sql`
       SELECT role, content
       FROM chat_messages
       WHERE thread_id = ${incomingThreadId} AND user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT 10
-    `) as HistoryRow[]
+    `)
     history = rows.slice().reverse()
   }
 
@@ -295,9 +295,9 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
     let activeThreadId: string | null = incomingThreadId
     if (!activeThreadId && view) {
       type TIdRow = { id: string }
-      const created = (await sql`
+      const created = await sqlTyped<TIdRow>(sql`
         INSERT INTO chat_threads (context, user_id) VALUES (${view}, ${userId}) RETURNING id
-      `) as TIdRow[]
+      `)
       activeThreadId = created[0]?.id ?? null
     }
 
