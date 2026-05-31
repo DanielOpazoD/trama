@@ -209,7 +209,12 @@ export function ViewRouter({
   // cualquier parte del viewport, no sólo sobre el texto centrado.
   // El wrapper INTERIOR limita el ancho de lectura (max-w-3xl).
   return (
-    <div id="main-scroll" className="h-full overflow-y-auto">
+    <div
+      id="main-scroll"
+      className="h-full overflow-y-auto"
+      tabIndex={0}
+      aria-label="Contenido principal"
+    >
       <div className="px-8 py-10 pb-32 max-w-3xl mx-auto">
         {view === 'inicio' && (
           <ErrorBoundary
