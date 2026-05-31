@@ -5,13 +5,16 @@ import { CloseIcon, EndMark, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
 import {
   useClassifyBookmarks,
+  useCreateNote,
   useDeleteBookmark,
+  useExtract,
   useGenerateXCronica,
   useTwitterBookmarksQuery,
   useXCronicaQuery,
   useXStatusQuery,
 } from '../state'
 import { api, type XBookmark } from '../api'
+import type { ExtractionProposal } from '../types'
 import { formatRelative } from './settings/_shared'
 
 /**
@@ -27,7 +30,11 @@ function monthName(m: number): string {
   return new Date(2000, m, 1).toLocaleDateString('es', { month: 'long' })
 }
 
-export function TwitterView() {
+export function TwitterView({
+  onProposal,
+}: {
+  onProposal?: (title: string, proposal: ExtractionProposal) => void
+}) {
   const queryClient = useQueryClient()
   const status = useXStatusQuery()
   const bookmarks = useTwitterBookmarksQuery()
@@ -35,6 +42,9 @@ export function TwitterView() {
   const classify = useClassifyBookmarks()
   const cronicaQuery = useXCronicaQuery()
   const genCronica = useGenerateXCronica()
+  const extract = useExtract()
+  const createNote = useCreateNote()
+  const [promotingId, setPromotingId] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [year, setYear] = useState<number | null>(null)
@@ -158,6 +168,44 @@ export function TwitterView() {
       await genCronica.mutateAsync()
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'No se pudo generar la crónica')
+    }
+  }
+
+  // #1 Promover a la trama — extraer con IA (propone entidades/relaciones para
+  // revisar) o guardar como nota (texto crudo, sin IA).
+  async function handleExtract(b: XBookmark) {
+    if (!onProposal) return
+    setPromotingId(b.id)
+    setMessage(null)
+    try {
+      const who = b.authorUsername ? `@${b.authorUsername}` : 'alguien'
+      const hint = [
+        'Extraé de este tweet las entidades (personas, obras, conceptos) que valga ' +
+          'la pena agregar a mi mapa, y relaciones entre ellas si las hay con certeza.',
+        `Tweet de ${who}: "${b.text.replace(/"/g, "'").slice(0, 600)}"`,
+        'No inventes citas — el array quotes debe quedar vacío.',
+      ].join('\n')
+      const proposal = await extract.mutateAsync(hint)
+      onProposal(who, proposal)
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'No se pudo extraer')
+    } finally {
+      setPromotingId(null)
+    }
+  }
+
+  async function handleSaveNote(b: XBookmark) {
+    setPromotingId(b.id)
+    setMessage(null)
+    try {
+      const attribution = b.authorUsername ? `\n\n— @${b.authorUsername}` : ''
+      const link = b.url ? `\n${b.url}` : ''
+      await createNote.mutateAsync(`${b.text}${attribution}${link}`)
+      setMessage('Guardado en Notas')
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'No se pudo guardar la nota')
+    } finally {
+      setPromotingId(null)
     }
   }
 
@@ -439,6 +487,27 @@ export function TwitterView() {
                       {b.topic}
                     </span>
                   )}
+                  {/* #1 Promover a la trama — aparecen al hover. */}
+                  <span className="ml-auto flex items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100">
+                    {onProposal && (
+                      <button
+                        onClick={() => handleExtract(b)}
+                        disabled={promotingId === b.id}
+                        title="Extraer entidades/relaciones con IA para revisar"
+                        className="text-micro text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-50"
+                      >
+                        {promotingId === b.id ? 'extrayendo…' : '+ extraer (IA)'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleSaveNote(b)}
+                      disabled={promotingId === b.id}
+                      title="Guardar el texto del tweet como nota"
+                      className="text-micro text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-50"
+                    >
+                      + nota
+                    </button>
+                  </span>
                 </div>
               </li>
             ))}

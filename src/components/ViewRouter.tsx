@@ -241,7 +241,7 @@ export function ViewRouter({
         )}
         {view === 'twitter' && (
           <ViewSlot scope="view:twitter">
-            <TwitterView />
+            <TwitterView onProposal={onProposal} />
           </ViewSlot>
         )}
         {view === 'momentos' && (
