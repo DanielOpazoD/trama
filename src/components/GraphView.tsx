@@ -131,6 +131,11 @@ export default function GraphView({
     false,
   )
   const [focusId, setFocusId] = useLocalStorageNullable(GRAPH_FOCUS_KEY)
+  const selectedIdRef = useRef(selectedId)
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId
+  }, [selectedId])
 
   function setGraphMode(m: GraphMode) {
     setGraphModeRaw(m)
@@ -321,12 +326,9 @@ export default function GraphView({
     if (graphMode !== 'exploratorio') return
     if (focusId) return
     if (allEntities.length === 0) return
-    const candidate = selectedId ?? allEntities[0]?.id
+    const candidate = selectedIdRef.current ?? allEntities[0]?.id
     if (candidate) setFocusId(candidate)
-    // selectedId se omite a propósito: solo auto-elegimos foco al entrar al
-    // modo / quedar sin foco / cargar entidades, no en cada cambio de selección.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graphMode, focusId, allEntities])
+  }, [graphMode, focusId, allEntities, setFocusId])
 
   // If the persisted focus is stale (entity deleted → 404), clear it so the
   // auto-pick above can run.
@@ -334,9 +336,7 @@ export default function GraphView({
     if (graphMode !== 'exploratorio') return
     if (!neighborsQuery.isError) return
     setFocusId(null)
-    // setFocusId es un setter estable de useState; se omite de las deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graphMode, neighborsQuery.isError])
+  }, [graphMode, neighborsQuery.isError, setFocusId])
 
   // Empty state: en modo "completo" sin entidades, mostramos el EmptyState
   // global. En "exploratorio" sin entidades pasa lo mismo (no hay focus
