@@ -50,11 +50,7 @@ export function ChatView({
       setActiveId(initialThreadId)
       onConsumedInitialThread?.()
     }
-    // Solo reacciona a un nuevo initialThreadId (consumo del deep-link).
-    // setActiveId/onConsumedInitialThread se omiten para no re-consumir el
-    // thread inicial cuando cambia su identidad entre renders.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialThreadId])
+  }, [initialThreadId, activeId, onConsumedInitialThread])
 
   // Auto-select the most recent thread on first load. Don't override an
   // explicit user selection.
