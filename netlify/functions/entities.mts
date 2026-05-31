@@ -28,6 +28,7 @@ type EntityRow = {
   origin: unknown
   spotify_url: string | null
   wikipedia_url: string | null
+  grokipedia_url: string | null
   created_at: string
   updated_at: string
 }
@@ -49,7 +50,7 @@ export default withObservability(
       if (!limitParam) {
         const ENTITY_HARD_CAP = 5000
         const rows = await sqlTyped<EntityRow>(sql`
-        SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, created_at, updated_at
+        SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, created_at, updated_at
         FROM entities
         WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY created_at DESC, id DESC
@@ -91,7 +92,7 @@ export default withObservability(
         cursorTs && cursorId
           ? await sqlTyped<EntityRow>(sql`
           SELECT id, type, name, year, description, essay,
-                 position_x, position_y, origin, spotify_url, wikipedia_url,
+                 position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url,
                  created_at, updated_at
           FROM entities
           WHERE deleted_at IS NULL AND user_id = ${userId}
@@ -101,7 +102,7 @@ export default withObservability(
         `)
           : await sqlTyped<EntityRow>(sql`
           SELECT id, type, name, year, description, essay,
-                 position_x, position_y, origin, spotify_url, wikipedia_url,
+                 position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url,
                  created_at, updated_at
           FROM entities
           WHERE deleted_at IS NULL AND user_id = ${userId}
@@ -196,7 +197,7 @@ export default withObservability(
 
       const rows = await sqlTyped<EntityRow>(sql`
       INSERT INTO entities (
-        type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url,
+        type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url,
         embedding, embedding_model, embedding_at, user_id
       )
       VALUES (
@@ -210,12 +211,13 @@ export default withObservability(
         ${origin}::jsonb,
         ${body.spotify_url ?? null},
         ${body.wikipedia_url ?? null},
+        ${body.grokipedia_url ?? null},
         ${emb ? toPgVector(emb.vector) : null}::vector,
         ${emb?.model ?? null},
         ${emb ? new Date().toISOString() : null},
         ${userId}
       )
-      RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, created_at, updated_at
+      RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, created_at, updated_at
     `)
       return Response.json(rows[0], { status: 201 })
     }
@@ -236,9 +238,10 @@ export default withObservability(
         position_x  = CASE WHEN ${body.position_x !== undefined} THEN ${body.position_x ?? null} ELSE position_x END,
         position_y  = CASE WHEN ${body.position_y !== undefined} THEN ${body.position_y ?? null} ELSE position_y END,
         spotify_url = CASE WHEN ${body.spotify_url !== undefined} THEN ${body.spotify_url ?? null} ELSE spotify_url END,
-        wikipedia_url = CASE WHEN ${body.wikipedia_url !== undefined} THEN ${body.wikipedia_url ?? null} ELSE wikipedia_url END
+        wikipedia_url = CASE WHEN ${body.wikipedia_url !== undefined} THEN ${body.wikipedia_url ?? null} ELSE wikipedia_url END,
+        grokipedia_url = CASE WHEN ${body.grokipedia_url !== undefined} THEN ${body.grokipedia_url ?? null} ELSE grokipedia_url END
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, created_at, updated_at
+      RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, created_at, updated_at
     `)
       if (rows.length === 0) {
         return ApiErrors.notFound(requestId, 'Entidad no encontrada')

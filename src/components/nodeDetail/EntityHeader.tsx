@@ -116,6 +116,16 @@ export function EntityHeader({
               ↗ Wikipedia
             </a>
           )}
+          {entity.grokipediaUrl && (
+            <a
+              href={entity.grokipediaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-ink-400 hover:text-ink-700 transition-colors"
+            >
+              ↗ Grokipedia
+            </a>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-0.5 shrink-0">
