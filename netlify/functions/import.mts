@@ -10,7 +10,7 @@ import { ImportBody } from './_lib/admin-schemas.js'
 import { persistError, safeSql } from './_lib/observability.js'
 
 type IncomingEntity = {
-  id?: string
+  id: string
   type: string
   name: string
   year?: number | null
@@ -20,7 +20,7 @@ type IncomingEntity = {
   origin?: unknown
 }
 type IncomingRelationship = {
-  id?: string
+  id: string
   fromId: string
   toId: string
   type: string
@@ -28,19 +28,13 @@ type IncomingRelationship = {
   origin?: unknown
 }
 type IncomingQuote = {
-  id?: string
+  id: string
   entityId: string
   text: string
   source?: string | null
   context?: string | null
   link?: string | null
   origin?: unknown
-}
-type ImportPayload = {
-  version: number
-  entities?: IncomingEntity[]
-  relationships?: IncomingRelationship[]
-  quotes?: IncomingQuote[]
 }
 
 import { normalizeOrigin } from './_lib/origin.js'
@@ -57,6 +51,79 @@ type FailedItem = {
   reason: string
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
+function nullableString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null
+}
+
+function nullableNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function incomingEntity(value: unknown): IncomingEntity | null {
+  const item = asRecord(value)
+  if (!item) return null
+  const id = stringValue(item.id)
+  const type = stringValue(item.type)
+  const name = stringValue(item.name)
+  if (!id || !type || !name) return null
+  return {
+    id,
+    type,
+    name,
+    year: nullableNumber(item.year),
+    description: nullableString(item.description),
+    positionX: nullableNumber(item.positionX),
+    positionY: nullableNumber(item.positionY),
+    origin: item.origin,
+  }
+}
+
+function incomingRelationship(value: unknown): IncomingRelationship | null {
+  const item = asRecord(value)
+  if (!item) return null
+  const id = stringValue(item.id)
+  const fromId = stringValue(item.fromId)
+  const toId = stringValue(item.toId)
+  const type = stringValue(item.type)
+  if (!id || !fromId || !toId || !type) return null
+  return {
+    id,
+    fromId,
+    toId,
+    type,
+    notes: nullableString(item.notes),
+    origin: item.origin,
+  }
+}
+
+function incomingQuote(value: unknown): IncomingQuote | null {
+  const item = asRecord(value)
+  if (!item) return null
+  const id = stringValue(item.id)
+  const entityId = stringValue(item.entityId)
+  const text = stringValue(item.text)
+  if (!id || !entityId || !text) return null
+  return {
+    id,
+    entityId,
+    text,
+    source: nullableString(item.source),
+    context: nullableString(item.context),
+    link: nullableString(item.link),
+    origin: item.origin,
+  }
+}
+
 export default withObservability('import', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
     return ApiErrors.methodNotAllowed(requestId)
@@ -68,9 +135,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
 
   const parsed = await parseJsonBody(req, ImportBody, requestId)
   if (!parsed.ok) return parsed.response
-  // Cast después de validación de Zod — el ImportBody pasa los items
-  // como unknown[], el handler los procesa con error recovery por item.
-  const payload = parsed.data as unknown as ImportPayload
+  const payload = parsed.data
 
   const entities = payload.entities ?? []
   const relationships = payload.relationships ?? []
@@ -97,8 +162,9 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     })
   }
 
-  for (const e of entities) {
-    if (!e.id || !e.type || !e.name) {
+  for (const rawEntity of entities) {
+    const e = incomingEntity(rawEntity)
+    if (!e) {
       skipped++
       continue
     }
@@ -127,8 +193,9 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     }
   }
 
-  for (const r of relationships) {
-    if (!r.id || !r.fromId || !r.toId || !r.type) {
+  for (const rawRelationship of relationships) {
+    const r = incomingRelationship(rawRelationship)
+    if (!r) {
       skipped++
       continue
     }
@@ -155,8 +222,9 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     }
   }
 
-  for (const q of quotes) {
-    if (!q.id || !q.entityId || !q.text) {
+  for (const rawQuote of quotes) {
+    const q = incomingQuote(rawQuote)
+    if (!q) {
       skipped++
       continue
     }
