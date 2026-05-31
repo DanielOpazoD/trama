@@ -1,5 +1,16 @@
+import { useState } from 'react'
 import { ENTITY_TYPES, type Entity } from '../../types'
 import { CloseIcon, SparkleIcon } from '../Icons'
+
+/** Link a Grokipedia por defecto: el artículo fijado (si lo hay) o el buscador
+ *  de Grokipedia con el nombre de la entidad. Grokipedia no tiene API pública,
+ *  así que el default es la búsqueda — siempre funciona, sin configurar nada. */
+function grokipediaHref(entity: Entity): string {
+  return (
+    entity.grokipediaUrl ??
+    `https://grokipedia.com/search?q=${encodeURIComponent(entity.name)}`
+  )
+}
 import { Tooltip } from '../Tooltip'
 import { EntitySigil } from '../EntitySigil'
 import { EntityActionsMenu } from './EntityActionsMenu'
@@ -27,6 +38,12 @@ export function EntityHeader({
   editingDescription?: boolean
 }) {
   const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label
+  // La descripción/interpretación arranca colapsada — se despliega con la
+  // flecha. (Pedido del usuario: la lectura de la IA no debe ocupar espacio
+  // por default.)
+  const [descOpen, setDescOpen] = useState(false)
+  const descLabel =
+    entity.origin.kind === 'ai' ? 'interpretación de la IA' : 'descripción'
   return (
     <header
       // viewTransitionName matchea con el EntityRow en lista — el navegador
@@ -74,18 +91,32 @@ export function EntityHeader({
         <h2 className="font-serif text-xl text-ink-800 leading-[1.2] tracking-tight break-words">
           {entity.name}
         </h2>
-        {/* Descripción inmediatamente debajo del título — el editor se
-            dispara desde el menú ⋯ o con doble-clic. Mientras se edita, el
-            form vive en el body, así que acá ocultamos el display. */}
+        {/* Descripción/interpretación — colapsada por default detrás de una
+            flecha. El editor se dispara desde el menú ⋯ o con doble-clic.
+            Mientras se edita, el form vive en el body, así que acá ocultamos
+            el display. */}
         {!editingDescription &&
           (entity.description ? (
-            <p
-              onDoubleClick={onEditDescription}
-              className="text-sm text-ink-600 leading-relaxed cursor-text select-text"
-              title="Doble clic para editar"
-            >
-              {entity.description}
-            </p>
+            <div>
+              <button
+                onClick={() => setDescOpen((o) => !o)}
+                className="inline-flex items-center gap-1 text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-600 transition-colors"
+                aria-expanded={descOpen}
+                title={descOpen ? `Ocultar ${descLabel}` : `Mostrar ${descLabel}`}
+              >
+                <span aria-hidden>{descOpen ? '▾' : '▸'}</span>
+                {descLabel}
+              </button>
+              {descOpen && (
+                <p
+                  onDoubleClick={onEditDescription}
+                  className="mt-1 text-sm text-ink-600 leading-relaxed cursor-text select-text animate-fade-up"
+                  title="Doble clic para editar"
+                >
+                  {entity.description}
+                </p>
+              )}
+            </div>
           ) : (
             <p
               onDoubleClick={onEditDescription}
@@ -116,16 +147,22 @@ export function EntityHeader({
               ↗ Wikipedia
             </a>
           )}
-          {entity.grokipediaUrl && (
-            <a
-              href={entity.grokipediaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-ink-400 hover:text-ink-700 transition-colors"
-            >
-              ↗ Grokipedia
-            </a>
-          )}
+          {/* Grokipedia: link por defecto en TODA entidad. Apunta al artículo
+              fijado si se guardó uno; si no, al buscador de Grokipedia con el
+              nombre (no hay API para autollenar, pero la búsqueda siempre sirve). */}
+          <a
+            href={grokipediaHref(entity)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-ink-400 hover:text-ink-700 transition-colors"
+            title={
+              entity.grokipediaUrl
+                ? 'Abrir el artículo de Grokipedia'
+                : 'Buscar en Grokipedia'
+            }
+          >
+            ↗ Grokipedia
+          </a>
         </div>
       </div>
       <div className="flex items-center gap-0.5 shrink-0">
