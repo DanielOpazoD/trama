@@ -8,9 +8,14 @@ function shouldFetchWithApiClient(src: string): boolean {
 
 function shouldRetryLegacyMediaWithoutAuth(src: string, response: Response): boolean {
   if (response.status !== 401 && response.status !== 404) return false
+  const prefix = '/api/momentos-file/'
+  if (!src.startsWith(prefix)) return false
+  const keyPath = src.slice(prefix.length)
+
   return (
-    src.startsWith('/api/momentos-file/legacy-single-user/') ||
-    src.startsWith('/api/momentos-file/legacy-single-user%2F')
+    keyPath.startsWith('legacy-single-user/') ||
+    keyPath.toLowerCase().startsWith('legacy-single-user%2f') ||
+    (!keyPath.includes('/') && !keyPath.toLowerCase().includes('%2f'))
   )
 }
 

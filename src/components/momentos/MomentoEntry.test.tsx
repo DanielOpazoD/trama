@@ -333,4 +333,69 @@ describe('<MomentoEntry />', () => {
       }),
     )
   })
+
+  it('recupera fotos y notas de voz legacy sin namespace si el bearer resuelve a otro userId', async () => {
+    setApiAuthTokenProvider(async () => 'clerk-token')
+    const fetchMock = vi.fn<typeof fetch>(async (_url, init) => {
+      const authorization = new Headers(init?.headers).get('Authorization')
+      if (authorization) {
+        return Response.json({ error: { code: 'NOT_FOUND' } }, { status: 404 })
+      }
+      return new Response(new Blob(['media'], { type: 'image/jpeg' }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, {
+        createObjectURL: vi
+          .fn()
+          .mockReturnValueOnce('blob:foto-simple-legacy')
+          .mockReturnValueOnce('blob:audio-simple-legacy'),
+        revokeObjectURL: vi.fn(),
+      }),
+    )
+
+    const { container } = render(
+      <MomentoEntry
+        momento={{
+          ...baseMomento('foto', {
+            caption: 'archivo simple',
+            items: [{ storageKey: 'foto-simple.jpg' }],
+            audioKey: 'voz-simple.webm',
+          }),
+        }}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    await waitFor(() =>
+      expect(screen.getByRole('img', { name: /archivo simple/i })).toHaveAttribute(
+        'src',
+        'blob:foto-simple-legacy',
+      ),
+    )
+    await waitFor(() =>
+      expect(container.querySelector('audio')).toHaveAttribute(
+        'src',
+        'blob:audio-simple-legacy',
+      ),
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/momentos-file/foto-simple.jpg',
+      expect.objectContaining({
+        headers: expect.not.objectContaining({
+          Authorization: expect.any(String),
+        }),
+      }),
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/momentos-file/voz-simple.webm',
+      expect.objectContaining({
+        headers: expect.not.objectContaining({
+          Authorization: expect.any(String),
+        }),
+      }),
+    )
+  })
 })
