@@ -214,7 +214,7 @@ export async function apiFetch(url: string, init?: RequestInit): Promise<Respons
   })
 }
 
-export async function request<T = any>(url: string, init?: RequestInit): Promise<T> {
+export async function request<T = unknown>(url: string, init?: RequestInit): Promise<T> {
   // Modo prueba: servimos desde el store local en vez de pegar a /api/*.
   if (isDemoMode()) return demoRequest<T>(url, init)
   const response = await apiFetch(url, init)

@@ -42,9 +42,9 @@ export function HomeView({
   onSelectEntity: (id: string) => void
 }) {
   const { data: home, isLoading: entitiesLoading } = useHomeQuery()
-  const entities = home?.entities ?? []
-  const quotes = home?.quotes ?? []
-  const relationships = home?.relationships ?? []
+  const entities = useMemo(() => home?.entities ?? [], [home?.entities])
+  const quotes = useMemo(() => home?.quotes ?? [], [home?.quotes])
+  const relationships = useMemo(() => home?.relationships ?? [], [home?.relationships])
   const proactive = useProactiveQuery()
   const pendingCount = proactive.data?.length ?? 0
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Momento, MomentoPayload } from '../../types'
 import { api } from '../../api'
@@ -36,6 +36,9 @@ export function MergeMomentosBar({
   const [primaryId, setPrimaryId] = useState<string | null>(null)
   const [newNote, setNewNote] = useState('')
   const [newCapturedAt, setNewCapturedAt] = useState('')
+  const primarySelectId = useId()
+  const noteInputId = useId()
+  const capturedAtInputId = useId()
 
   if (selected.length < 2) return null
 
@@ -240,10 +243,11 @@ export function MergeMomentosBar({
         {showOptions && !confirming && fotos.length >= 2 && (
           <div className="px-4 py-3 space-y-3 bg-paper-100/40">
             <div>
-              <label className="block section-eyebrow mb-1">
+              <label htmlFor={primarySelectId} className="block section-eyebrow mb-1">
                 Cuál sobrevive (primary)
               </label>
               <select
+                id={primarySelectId}
                 value={effectivePrimaryId ?? ''}
                 onChange={(e) => setPrimaryId(e.target.value)}
                 className="input-paper w-full text-sm"
@@ -270,10 +274,11 @@ export function MergeMomentosBar({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block section-eyebrow mb-1">
+                <label htmlFor={noteInputId} className="block section-eyebrow mb-1">
                   Título / nota (opcional)
                 </label>
                 <input
+                  id={noteInputId}
                   type="text"
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
@@ -282,10 +287,11 @@ export function MergeMomentosBar({
                 />
               </div>
               <div>
-                <label className="block section-eyebrow mb-1">
+                <label htmlFor={capturedAtInputId} className="block section-eyebrow mb-1">
                   Fecha del evento (opcional)
                 </label>
                 <input
+                  id={capturedAtInputId}
                   type="date"
                   value={newCapturedAt.slice(0, 10)}
                   onChange={(e) =>

@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import type { MomentoKind } from '../../types'
 import type { useMomentoComposer } from './useMomentoComposer'
 import { MomentoQRModal } from './MomentoQRModal'
 import { AudioPicker } from './AudioPicker'
+import { MomentoKindTabs } from './MomentoKindTabs'
 
 type Composer = ReturnType<typeof useMomentoComposer>
 
@@ -63,7 +63,7 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
         )}
       </header>
 
-      <KindTabs kind={composer.kind} onChange={composer.setKind} />
+      <MomentoKindTabs kind={composer.kind} onChange={composer.setKind} />
 
       {composer.kind === 'nota' && <NotaFields composer={composer} />}
       {composer.kind === 'recorte' && <RecorteFields composer={composer} />}
@@ -88,33 +88,6 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
         </button>
       </div>
     </form>
-  )
-}
-
-function KindTabs({
-  kind,
-  onChange,
-}: {
-  kind: MomentoKind
-  onChange: (k: MomentoKind) => void
-}) {
-  return (
-    <div className="flex gap-1 p-1 bg-paper-50/60 rounded-lg border border-ink-100/50 w-fit">
-      {(['nota', 'recorte', 'foto'] as MomentoKind[]).map((k) => (
-        <button
-          key={k}
-          type="button"
-          onClick={() => onChange(k)}
-          className={`px-3 py-1 rounded text-caption transition-all duration-150 active:scale-95 ${
-            kind === k
-              ? 'bg-paper-50 text-ink-700 shadow-sm'
-              : 'text-ink-400 hover:text-ink-700'
-          }`}
-        >
-          {k === 'nota' ? 'Nota' : k === 'recorte' ? 'Recorte' : 'Foto'}
-        </button>
-      ))}
-    </div>
   )
 }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import type { Momento, MomentoKind, MomentoPayload } from '../../types'
 import { useAddMomento, useToast } from '../../state'
@@ -64,6 +64,20 @@ export function useMomentoComposer({
     file: File
     previewUrl: string
   } | null>(null)
+  const photoDraftsRef = useRef(photoDrafts)
+  const audioDraftRef = useRef(audioDraft)
+
+  photoDraftsRef.current = photoDrafts
+  audioDraftRef.current = audioDraft
+
+  useEffect(
+    () => () => {
+      for (const d of photoDraftsRef.current) URL.revokeObjectURL(d.previewUrl)
+      const audio = audioDraftRef.current
+      if (audio) URL.revokeObjectURL(audio.previewUrl)
+    },
+    [],
+  )
 
   function setAudioFile(file: File) {
     setAudioDraft((prev) => {

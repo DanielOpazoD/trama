@@ -10,6 +10,7 @@ import {
 } from '../helpers'
 import { CapturedAtField, ModalFooter, ModalShell } from './shell'
 import { AudioPicker } from '../AudioPicker'
+import { FotoPhotoTile, type PhotoEditItem, type NewPhotoEditItem } from './FotoPhotoTile'
 
 /**
  * Sub-modal de edición para momentos kind=foto.
@@ -25,26 +26,13 @@ import { AudioPicker } from '../AudioPicker'
  *   - uploading + progress: feedback durante el upload paralelo.
  */
 
-type ExistingItem = {
-  kind: 'existing'
-  storageKey: string
-  width?: number
-  height?: number
-}
-type NewItem = {
-  kind: 'new'
-  file: File
-  previewUrl: string
-}
-type EditItem = ExistingItem | NewItem
-
 /** Nota de voz en edición: la guardada (storageKey) o una nueva (File). */
 type AudioState =
   | { kind: 'existing'; storageKey: string }
   | { kind: 'new'; file: File; previewUrl: string }
   | null
 
-function buildInitialItems(momento: Momento): EditItem[] {
+function buildInitialItems(momento: Momento): PhotoEditItem[] {
   const { items, storageKey, width, height } = momento.payload
   if (items && items.length > 0) {
     return items.map((it) => ({
@@ -70,7 +58,7 @@ export function FotoEditModal({
   const updateMomento = useUpdateMomento()
   const toast = useToast()
 
-  const [items, setItems] = useState<EditItem[]>(() => buildInitialItems(momento))
+  const [items, setItems] = useState<PhotoEditItem[]>(() => buildInitialItems(momento))
   const [caption, setCaption] = useState(momento.payload.caption ?? '')
   const [note, setNote] = useState(momento.note ?? '')
   // Nota de voz: 'existing' (ya en el store) o 'new' (File pendiente).
@@ -176,7 +164,7 @@ export function FotoEditModal({
       return
     }
     setUploading(true)
-    const newItems = items.filter((it): it is NewItem => it.kind === 'new')
+    const newItems = items.filter((it): it is NewPhotoEditItem => it.kind === 'new')
     setProgress(newItems.length > 0 ? { done: 0, total: newItems.length } : null)
     try {
       const uploadedKeys = new Map<
@@ -295,7 +283,7 @@ export function FotoEditModal({
         {items.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {items.map((it, idx) => (
-              <PhotoTile
+              <FotoPhotoTile
                 key={it.kind === 'existing' ? it.storageKey : it.previewUrl}
                 item={it}
                 idx={idx}
@@ -355,116 +343,5 @@ export function FotoEditModal({
         saveDisabled={items.length === 0}
       />
     </ModalShell>
-  )
-}
-
-/**
- * Card por foto en la grilla — preview + acciones hover (quitar,
- * portada, reordenar). Extraído del FotoEditModal porque el JSX de
- * cada tile era ~80 LOC con condicionales anidados.
- */
-function PhotoTile({
-  item,
-  idx,
-  total,
-  disabled,
-  onRemove,
-  onSetPrimary,
-  onMove,
-}: {
-  item: EditItem
-  idx: number
-  total: number
-  disabled: boolean
-  onRemove: () => void
-  onSetPrimary: () => void
-  onMove: (dir: -1 | 1) => void
-}) {
-  const isPrimary = idx === 0
-  const src =
-    item.kind === 'existing'
-      ? `/api/momentos-file/${encodeURIComponent(item.storageKey)}`
-      : item.previewUrl
-  return (
-    <div
-      className={`group relative aspect-square overflow-hidden rounded border ${
-        isPrimary ? 'border-2' : 'border-ink-100/60'
-      } bg-paper-100/40`}
-      style={isPrimary ? { borderColor: 'var(--accent-gold)' } : undefined}
-    >
-      <img
-        src={src}
-        alt={`foto ${idx + 1}`}
-        className="w-full h-full object-cover"
-        loading="lazy"
-      />
-      <button
-        type="button"
-        onClick={onRemove}
-        className="absolute top-1 right-1 size-5 flex items-center justify-center rounded-full bg-ink-900/70 text-paper-50 text-xs hover:bg-ink-900 transition-colors"
-        aria-label={`Quitar foto ${idx + 1}`}
-        title="Quitar"
-        disabled={disabled}
-      >
-        ×
-      </button>
-      {isPrimary ? (
-        <span
-          className="absolute top-1 left-1 text-micro uppercase tracking-eyebrow px-1.5 py-0.5 rounded leading-none font-medium"
-          style={{ backgroundColor: 'var(--accent-gold)', color: '#fff' }}
-        >
-          ★ portada
-        </span>
-      ) : (
-        <button
-          type="button"
-          onClick={onSetPrimary}
-          className="absolute top-1 left-1 text-micro uppercase tracking-eyebrow px-1.5 py-0.5 rounded leading-none bg-ink-900/55 text-paper-50 hover:bg-ink-900/80 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-          title="Marcar como portada"
-          disabled={disabled}
-        >
-          ★ portada
-        </button>
-      )}
-      <span className="absolute bottom-1 left-1 text-micro tabular-nums bg-ink-900/60 text-paper-50 px-1 rounded leading-none py-0.5">
-        {idx + 1}
-      </span>
-      {item.kind === 'new' && (
-        <span
-          className="absolute top-1 right-7 text-micro uppercase tracking-eyebrow bg-emerald-700/80 text-paper-50 px-1 rounded leading-none py-0.5"
-          title="Foto nueva — se subirá al guardar"
-        >
-          nueva
-        </span>
-      )}
-      {total > 1 && (
-        <div className="absolute bottom-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          {idx > 0 && (
-            <button
-              type="button"
-              onClick={() => onMove(-1)}
-              className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
-              aria-label={`Mover foto ${idx + 1} hacia atrás`}
-              title="Mover atrás"
-              disabled={disabled}
-            >
-              ‹
-            </button>
-          )}
-          {idx < total - 1 && (
-            <button
-              type="button"
-              onClick={() => onMove(1)}
-              className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
-              aria-label={`Mover foto ${idx + 1} hacia adelante`}
-              title="Mover adelante"
-              disabled={disabled}
-            >
-              ›
-            </button>
-          )}
-        </div>
-      )}
-    </div>
   )
 }

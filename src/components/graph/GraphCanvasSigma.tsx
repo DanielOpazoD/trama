@@ -60,7 +60,6 @@ export function GraphCanvasSigma({
       })
     }
 
-    let edgeCount = 0
     for (const r of relationships) {
       if (!graph.hasNode(r.fromId) || !graph.hasNode(r.toId)) continue
       // Evitar duplicados / self-loops en la representación visual.
@@ -72,7 +71,6 @@ export function GraphCanvasSigma({
         color: 'rgba(80, 80, 80, 0.18)',
         relType: r.type,
       })
-      edgeCount += 1
     }
 
     // Renderer config: priorizar perf sobre fidelidad visual.
@@ -121,7 +119,6 @@ export function GraphCanvasSigma({
     })
 
     sigmaRef.current = sigma
-    console.info(`[GraphCanvasSigma] WebGL: ${entities.length} nodes, ${edgeCount} edges`)
 
     return () => {
       sigma.kill()
