@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { sanitizeLang, searchWikipedia } from './_lib/wikipedia.js'
+import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * GET /api/wikipedia/search?q=<texto>&lang=es
@@ -12,6 +13,7 @@ import { sanitizeLang, searchWikipedia } from './_lib/wikipedia.js'
  */
 export default withObservability('wikipedia-search', async (req, _ctx, { requestId }) => {
   if (req.method !== 'GET') return ApiErrors.methodNotAllowed(requestId)
+  await getAuthedUser(req)
 
   const url = new URL(req.url)
   const q = url.searchParams.get('q')?.trim()

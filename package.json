@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "node_modules/.bin/tsc -b && node_modules/.bin/vite build",
+    "check:legacy-fallback": "node scripts/check-legacy-fallback-prod.mjs",
+    "pr-stack:check": "node scripts/verify-pr-stack.mjs",
     "bundle:check": "node scripts/check-bundle-size.mjs",
     "bundle:report": "node scripts/check-bundle-size.mjs --report",
     "preview": "vite preview",
