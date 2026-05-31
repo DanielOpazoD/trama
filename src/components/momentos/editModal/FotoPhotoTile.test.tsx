@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FotoPhotoTile, type PhotoEditItem } from './FotoPhotoTile'
 
 const existingItem: PhotoEditItem = {
@@ -9,6 +9,26 @@ const existingItem: PhotoEditItem = {
   width: 800,
   height: 600,
 }
+
+beforeEach(() => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn<typeof fetch>(
+      async () => new Response(new Blob(['media'], { type: 'image/jpeg' })),
+    ),
+  )
+  vi.stubGlobal(
+    'URL',
+    Object.assign(URL, {
+      createObjectURL: vi.fn(() => 'blob:foto-tile'),
+      revokeObjectURL: vi.fn(),
+    }),
+  )
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 function renderTile(
   item: PhotoEditItem,
@@ -29,11 +49,13 @@ function renderTile(
 }
 
 describe('<FotoPhotoTile />', () => {
-  it('usa el endpoint de archivo para fotos existentes', () => {
+  it('usa el cliente autenticado para fotos existentes', async () => {
     renderTile(existingItem)
-    expect(screen.getByRole('img', { name: 'foto 1' })).toHaveAttribute(
-      'src',
-      '/api/momentos-file/foto%20uno.jpg',
+    await waitFor(() =>
+      expect(screen.getByRole('img', { name: 'foto 1' })).toHaveAttribute(
+        'src',
+        'blob:foto-tile',
+      ),
     )
     expect(screen.getByText('★ portada')).toBeInTheDocument()
   })

@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { setApiAuthTokenProvider } from '../../api/request'
 import type { Entity, Momento } from '../../types'
 import { MomentoEntry } from './MomentoEntry'
 
@@ -30,6 +31,28 @@ const entity: Entity = {
   createdAt: '2026-05-20T10:00:00.000Z',
   updatedAt: '2026-05-20T10:00:00.000Z',
 }
+
+beforeEach(() => {
+  let objectUrlIndex = 0
+  vi.stubGlobal(
+    'fetch',
+    vi.fn<typeof fetch>(
+      async () => new Response(new Blob(['media'], { type: 'image/jpeg' })),
+    ),
+  )
+  vi.stubGlobal(
+    'URL',
+    Object.assign(URL, {
+      createObjectURL: vi.fn(() => `blob:media-${++objectUrlIndex}`),
+      revokeObjectURL: vi.fn(),
+    }),
+  )
+})
+
+afterEach(() => {
+  setApiAuthTokenProvider(null)
+  vi.unstubAllGlobals()
+})
 
 function baseMomento(kind: Momento['kind'], payload: Momento['payload']): Momento {
   return {
@@ -98,7 +121,7 @@ describe('<MomentoEntry />', () => {
     expect(screen.getByText('nota al margen')).toBeInTheDocument()
   })
 
-  it('renderiza foto legacy o múltiple con portada, contador, caption y nota', () => {
+  it('renderiza foto legacy o múltiple con portada, contador, caption y nota', async () => {
     render(
       <MomentoEntry
         momento={{
@@ -118,13 +141,13 @@ describe('<MomentoEntry />', () => {
 
     const openButton = screen.getByRole('button', { name: /abrir visor.*2 fotos/i })
     const image = screen.getByRole('img', { name: /la mesa de trabajo/i })
-    expect(image).toHaveAttribute('src', '/api/momentos-file/foto%20uno.jpg')
+    await waitFor(() => expect(image).toHaveAttribute('src', 'blob:media-1'))
     expect(openButton).toContainElement(image)
     expect(screen.getByText('+1')).toBeInTheDocument()
     expect(screen.getByText('dos fotos del mismo episodio')).toBeInTheDocument()
   })
 
-  it('renderiza fotos y nota de voz guardadas con el payload photos legado', () => {
+  it('renderiza fotos y nota de voz guardadas con el payload photos legado', async () => {
     const { container } = render(
       <MomentoEntry
         momento={{
@@ -144,16 +167,18 @@ describe('<MomentoEntry />', () => {
     )
 
     expect(screen.queryByText('(imagen no encontrada)')).toBeNull()
-    expect(screen.getByRole('img', { name: /archivo viejo/i })).toHaveAttribute(
-      'src',
-      '/api/momentos-file/vieja%20uno.jpg',
+    await waitFor(() =>
+      expect(screen.getByRole('img', { name: /archivo viejo/i })).toHaveAttribute(
+        'src',
+        'blob:media-1',
+      ),
     )
     expect(screen.getByText('+1')).toBeInTheDocument()
     const audio = container.querySelector('audio')
-    expect(audio).toHaveAttribute('src', '/api/momentos-file/voz%20vieja.mp3')
+    await waitFor(() => expect(audio).toHaveAttribute('src', 'blob:media-2'))
   })
 
-  it('renderiza fotos y notas de voz namespaced como segmentos del path', () => {
+  it('renderiza fotos y notas de voz namespaced como segmentos del path', async () => {
     const { container } = render(
       <MomentoEntry
         momento={{
@@ -174,14 +199,73 @@ describe('<MomentoEntry />', () => {
       />,
     )
 
-    expect(screen.getByRole('img', { name: /foto reciente/i })).toHaveAttribute(
-      'src',
-      '/api/momentos-file/legacy-single-user/foto-reciente.jpg',
+    await waitFor(() =>
+      expect(screen.getByRole('img', { name: /foto reciente/i })).toHaveAttribute(
+        'src',
+        'blob:media-1',
+      ),
     )
     const audio = container.querySelector('audio')
-    expect(audio).toHaveAttribute(
+    await waitFor(() => expect(audio).toHaveAttribute('src', 'blob:media-2'))
+  })
+
+  it('carga fotos y notas de voz por el cliente autenticado', async () => {
+    setApiAuthTokenProvider(async () => 'clerk-token')
+    const fetchMock = vi.fn<typeof fetch>(
+      async () => new Response(new Blob(['media'], { type: 'image/jpeg' })),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, {
+        createObjectURL: vi
+          .fn()
+          .mockReturnValueOnce('blob:foto-autenticada')
+          .mockReturnValueOnce('blob:audio-autenticado'),
+        revokeObjectURL: vi.fn(),
+      }),
+    )
+
+    const { container } = render(
+      <MomentoEntry
+        momento={{
+          ...baseMomento('foto', {
+            caption: 'foto privada',
+            items: [{ storageKey: 'legacy-single-user/foto-privada.jpg' }],
+            audioKey: 'legacy-single-user/voz-privada.webm',
+          }),
+        }}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/momentos-file/legacy-single-user/foto-privada.jpg',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer clerk-token',
+          }),
+        }),
+      )
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/momentos-file/legacy-single-user/voz-privada.webm',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer clerk-token',
+          }),
+        }),
+      )
+    })
+
+    expect(screen.getByRole('img', { name: /foto privada/i })).toHaveAttribute(
       'src',
-      '/api/momentos-file/legacy-single-user/voz-reciente.webm',
+      'blob:foto-autenticada',
+    )
+    expect(container.querySelector('audio')).toHaveAttribute(
+      'src',
+      'blob:audio-autenticado',
     )
   })
 })

@@ -54,8 +54,26 @@ const FOTO_MOMENTO = {
   updatedAt: '2026-05-28T10:00:00Z',
 } as unknown as Momento
 
-beforeEach(() => vi.restoreAllMocks())
-afterEach(() => vi.restoreAllMocks())
+beforeEach(() => {
+  vi.restoreAllMocks()
+  vi.stubGlobal(
+    'fetch',
+    vi.fn<typeof fetch>(
+      async () => new Response(new Blob(['media'], { type: 'image/jpeg' })),
+    ),
+  )
+  vi.stubGlobal(
+    'URL',
+    Object.assign(URL, {
+      createObjectURL: vi.fn(() => 'blob:foto-edit'),
+      revokeObjectURL: vi.fn(),
+    }),
+  )
+})
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
 
 describe('<FotoEditModal />', () => {
   it('renderiza el modal con los datos del momento', () => {
@@ -124,7 +142,11 @@ describe('<FotoEditModal />', () => {
     )
     unmount()
 
-    expect(createObjectURL).toHaveBeenCalledOnce()
+    expect(
+      createObjectURL.mock.calls.some(
+        ([arg]) => arg instanceof File && arg.name === 'nueva.png',
+      ),
+    ).toBe(true)
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:nueva-foto')
   })
 })

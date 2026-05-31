@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { useToast } from '../../state'
-import { momentoMediaUrl } from './helpers'
+import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 
 /**
  * DD1: panel de recuperación de blobs huérfanos.
@@ -127,8 +127,8 @@ export function RescueOrphansPanel() {
             key={key}
             className="relative aspect-square rounded-md overflow-hidden border border-ink-100/60 bg-paper-100"
           >
-            <img
-              src={momentoMediaUrl(key)}
+            <AuthenticatedMomentoImage
+              storageKey={key}
               alt={`Foto huérfana ${key.slice(0, 8)}`}
               loading="lazy"
               className="w-full h-full object-cover"

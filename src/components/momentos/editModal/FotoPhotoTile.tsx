@@ -1,4 +1,4 @@
-import { momentoMediaUrl } from '../helpers'
+import { AuthenticatedMomentoImage } from '../AuthenticatedMedia'
 
 export type ExistingPhotoEditItem = {
   kind: 'existing'
@@ -37,8 +37,6 @@ export function FotoPhotoTile({
   onMove: (dir: -1 | 1) => void
 }) {
   const isPrimary = idx === 0
-  const src =
-    item.kind === 'existing' ? momentoMediaUrl(item.storageKey) : item.previewUrl
   return (
     <div
       className={`group relative aspect-square overflow-hidden rounded border ${
@@ -46,12 +44,21 @@ export function FotoPhotoTile({
       } bg-paper-100/40`}
       style={isPrimary ? { borderColor: 'var(--accent-gold)' } : undefined}
     >
-      <img
-        src={src}
-        alt={`foto ${idx + 1}`}
-        className="w-full h-full object-cover"
-        loading="lazy"
-      />
+      {item.kind === 'existing' ? (
+        <AuthenticatedMomentoImage
+          storageKey={item.storageKey}
+          alt={`foto ${idx + 1}`}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <img
+          src={item.previewUrl}
+          alt={`foto ${idx + 1}`}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      )}
       <button
         type="button"
         onClick={onRemove}

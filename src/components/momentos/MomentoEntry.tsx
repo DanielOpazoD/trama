@@ -3,6 +3,7 @@ import { typeAccent } from '../../lib/typeAccents'
 import type { Entity, Momento } from '../../types'
 import { PencilIcon, SparkleIcon, TrashIcon } from '../Icons'
 import { formatTime, getMomentoPhotoItems, momentoMediaUrl } from './helpers'
+import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 import { MomentoEditModal } from './MomentoEditModal'
 import { PhotoLightbox } from './PhotoLightbox'
 import { AudioNote } from './AudioNote'
@@ -199,8 +200,8 @@ function FotoBody({ momento }: { momento: Momento }) {
           }
           className="block w-full rounded-md overflow-hidden border border-ink-100/60 cursor-zoom-in hover:opacity-95 transition-opacity"
         >
-          <img
-            src={momentoMediaUrl(cover.storageKey)}
+          <AuthenticatedMomentoImage
+            storageKey={cover.storageKey}
             alt={caption ?? 'momento'}
             loading="lazy"
             className="block w-full h-auto"

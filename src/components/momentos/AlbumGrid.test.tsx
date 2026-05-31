@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Entity, Momento } from '../../types'
 import { AlbumGrid } from './AlbumGrid'
 
@@ -55,6 +55,24 @@ const legacyPhotoMomento = {
 describe('<AlbumGrid />', () => {
   beforeEach(() => {
     window.localStorage.clear()
+    let objectUrlIndex = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(
+        async () => new Response(new Blob(['media'], { type: 'image/jpeg' })),
+      ),
+    )
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, {
+        createObjectURL: vi.fn(() => `blob:album-${++objectUrlIndex}`),
+        revokeObjectURL: vi.fn(),
+      }),
+    )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('muestra estado vacío cuando no recibe fotos', () => {
@@ -82,7 +100,7 @@ describe('<AlbumGrid />', () => {
     )
 
     const image = screen.getByRole('img', { name: 'Puerto al atardecer' })
-    expect(image).toHaveAttribute('src', '/api/momentos-file/puerto%20uno.jpg')
+    await waitFor(() => expect(image).toHaveAttribute('src', 'blob:album-1'))
     expect(screen.getByText('+1')).toBeInTheDocument()
     expect(screen.queryByText('no soy foto')).not.toBeInTheDocument()
 
@@ -91,7 +109,7 @@ describe('<AlbumGrid />', () => {
     expect(onDelete).toHaveBeenCalledWith('foto-1')
   })
 
-  it('renderiza fotos persistidas con payload photos legado', () => {
+  it('renderiza fotos persistidas con payload photos legado', async () => {
     render(
       <AlbumGrid
         items={[legacyPhotoMomento]}
@@ -100,9 +118,11 @@ describe('<AlbumGrid />', () => {
       />,
     )
 
-    expect(screen.getByRole('img', { name: 'Foto migrada' })).toHaveAttribute(
-      'src',
-      '/api/momentos-file/legada%20uno.jpg',
+    await waitFor(() =>
+      expect(screen.getByRole('img', { name: 'Foto migrada' })).toHaveAttribute(
+        'src',
+        'blob:album-1',
+      ),
     )
     expect(screen.getByText('+1')).toBeInTheDocument()
   })

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from '../Icons'
-import { momentoMediaUrl } from './helpers'
+import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 
 /**
  * AA-C / τ-IA: visor dedicado de fotos de un momento — lightbox de galería.
@@ -131,9 +131,9 @@ export function PhotoLightbox({
               : 'overflow-hidden pointer-events-none'
           }`}
         >
-          <img
+          <AuthenticatedMomentoImage
             key={current.storageKey}
-            src={momentoMediaUrl(current.storageKey)}
+            storageKey={current.storageKey}
             alt={caption ?? `foto ${active + 1} de ${photos.length}`}
             onClick={() => setZoomed((z) => !z)}
             draggable={false}
@@ -184,8 +184,8 @@ export function PhotoLightbox({
                       : 'ring-transparent opacity-45 hover:opacity-90'
                   }`}
                 >
-                  <img
-                    src={momentoMediaUrl(p.storageKey)}
+                  <AuthenticatedMomentoImage
+                    storageKey={p.storageKey}
                     alt=""
                     loading="lazy"
                     draggable={false}

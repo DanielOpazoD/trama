@@ -186,7 +186,7 @@ const prStack = [
       /^src\/components\/ToastHost(\.test)?\.tsx$/,
       /^src\/components\/TwitterView\.tsx$/,
       /^src\/components\/entities\/EntityForm(\.test)?\.tsx$/,
-      /^src\/components\/momentos\/(AlbumGrid|MomentoEntry|PhotoLightbox|RescueOrphansPanel)(\.test)?\.tsx$/,
+      /^src\/components\/momentos\/(AlbumGrid|AudioNote|AuthenticatedMedia|MomentoEntry|PhotoLightbox|RescueOrphansPanel)(\.test)?\.tsx$/,
       /^src\/components\/momentos\/helpers(\.test)?\.ts$/,
       /^src\/components\/momentos\/editModal\/FotoEditModal(\.test)?\.tsx$/,
       /^src\/components\/momentos\/editModal\/FotoPhotoTile(\.test)?\.tsx$/,
