@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { askLLMForText, askLLMForTextStreaming } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -24,6 +24,37 @@ import { ensureUserRow } from './_lib/user-provisioning.js'
 const HISTORY_LIMIT = 30
 const CONTEXT_RELATIONSHIP_LIMIT = 150
 
+type ChatMessageRow = {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  proposal: unknown
+  created_at: string
+  provider: string | null
+  model: string | null
+}
+
+type ChatThreadRow = {
+  id: string
+  title: string | null
+  context: string | null
+}
+
+type UserInsertRow = {
+  id: string
+  created_at: string
+}
+
+type HistoryRow = {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+type AssistantInsertRow = {
+  id: string
+  created_at: string
+}
+
 export default withObservability(
   'chat-messages',
   async (req: Request, context: Context, { requestId }) => {
@@ -35,22 +66,13 @@ export default withObservability(
     const sql = getSql()
 
     if (req.method === 'GET') {
-      type Row = {
-        id: string
-        role: 'user' | 'assistant'
-        content: string
-        proposal: unknown
-        created_at: string
-        provider: string | null
-        model: string | null
-      }
-      const rows = (await sql`
+      const rows = await sqlTyped<ChatMessageRow>(sql`
         SELECT id, role, content, proposal, created_at, provider, model
         FROM chat_messages
         WHERE thread_id = ${threadId} AND user_id = ${userId}
         ORDER BY created_at ASC
         LIMIT 500
-      `) as Row[]
+      `)
       return Response.json(
         rows.map((r) => ({
           id: r.id,
@@ -85,11 +107,11 @@ export default withObservability(
     const invocation = await resolveAIInvocation(req, 'chat', userId)
     if (invocation.kind === 'off') return aiOffResponse(requestId)
 
-    const threadRows = (await sql`
+    const threadRows = await sqlTyped<ChatThreadRow>(sql`
       SELECT id, title, context
       FROM chat_threads
       WHERE id = ${threadId} AND deleted_at IS NULL AND user_id = ${userId}
-    `) as Array<{ id: string; title: string | null; context: string | null }>
+    `)
     const thread = threadRows[0]
     if (!thread) {
       return ApiErrors.notFound(requestId, 'Thread no encontrado')
@@ -103,12 +125,11 @@ export default withObservability(
     const focusEntityId = entityFocusMatch?.[1] ?? null
 
     // Persist user message first so it survives an LLM failure.
-    type UserInsertRow = { id: string; created_at: string }
-    const userRows = (await sql`
+    const userRows = await sqlTyped<UserInsertRow>(sql`
       INSERT INTO chat_messages (thread_id, role, content, user_id)
       VALUES (${threadId}, 'user', ${userText}, ${userId})
       RETURNING id, created_at
-    `) as UserInsertRow[]
+    `)
     const userRow = userRows[0]
     if (!userRow) {
       return ApiErrors.internal(requestId, 'No se pudo persistir el mensaje del usuario')
@@ -122,14 +143,13 @@ export default withObservability(
     }
 
     // Gather context.
-    type HistoryRow = { role: 'user' | 'assistant'; content: string }
-    const historyRows = (await sql`
+    const historyRows = await sqlTyped<HistoryRow>(sql`
       SELECT role, content
       FROM chat_messages
       WHERE thread_id = ${threadId} AND user_id = ${userId}
       ORDER BY created_at ASC
       LIMIT ${HISTORY_LIMIT}
-    `) as HistoryRow[]
+    `)
     const history: ChatTurn[] = historyRows.map((r) => ({ role: r.role, content: r.content }))
 
     // S4: la lógica de carga de contexto vive en `_lib/chat-context.ts`.
@@ -215,8 +235,7 @@ export default withObservability(
         const { prose, proposal } = parseChatReply(assembled)
         const proposalToStore = hasAnyProposal(proposal) ? proposal : null
 
-        type AssistantInsertRow = { id: string; created_at: string }
-        const assistantRows = (await sql`
+        const assistantRows = await sqlTyped<AssistantInsertRow>(sql`
           INSERT INTO chat_messages (
             thread_id, role, content, proposal, tokens_in, tokens_out, cost_cents, provider, model, user_id
           ) VALUES (
@@ -226,7 +245,7 @@ export default withObservability(
             ${usage.provider}, ${usage.model}, ${userId}
           )
           RETURNING id, created_at
-        `) as AssistantInsertRow[]
+        `)
         const assistantRow = assistantRows[0]
         if (!assistantRow) {
           send('error', { message: 'No se pudo persistir la respuesta' })
