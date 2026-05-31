@@ -30,8 +30,8 @@ type EntityRow = {
   spotify_url: string | null
   wikipedia_url: string | null
   grokipedia_url: string | null
-  created_at: string
-  updated_at: string
+  created_at: string | Date
+  updated_at: string | Date
 }
 
 export default withObservability(
@@ -119,10 +119,7 @@ export default withObservability(
       // formato que Postgres NO parsea como timestamptz. Ese cursor vuelve al
       // server, falla el cast `::timestamptz`, y devolvemos 500 en cada scroll.
       // Forzamos ISO 8601 acá, que sí es estable y parseable.
-      const items = (rows as Array<{ id: string; created_at: string | Date }>).slice(
-        0,
-        limit,
-      )
+      const items = rows.slice(0, limit)
       const hasMore = rows.length > limit
       const last = items[items.length - 1]
       const nextCursor =
@@ -170,7 +167,7 @@ export default withObservability(
           description: string | null
           distance: number
         }
-        const dupRows = (await sql`
+        const dupRows = await sqlTyped<DupRow>(sql`
         SELECT id, name, type, description,
                (embedding <=> ${toPgVector(emb.vector)}::vector) AS distance
         FROM entities
@@ -179,7 +176,7 @@ export default withObservability(
           AND embedding <=> ${toPgVector(emb.vector)}::vector < 0.20
         ORDER BY embedding <=> ${toPgVector(emb.vector)}::vector
         LIMIT 3
-      `) as DupRow[]
+      `)
         if (dupRows.length > 0) {
           return ApiErrors.conflict(
             requestId,
