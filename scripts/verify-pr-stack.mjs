@@ -146,6 +146,7 @@ const prStack = [
       /^src\/components\/graph\/GraphSvgCanvas\.tsx$/,
       /^src\/components\/relationships\/RelationshipRow\.tsx$/,
       /^src\/hooks\/useGraphLayout(\.test)?\.tsx?$/,
+      /^src\/hooks\/useMainScrollVirtualizer(\.test)?\.tsx?$/,
       /^src\/state\/useHome\.ts$/,
       /^src\/state\/index\.ts$/,
     ],

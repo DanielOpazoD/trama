@@ -1,5 +1,13 @@
-import { useLayoutEffect, useRef, useState, type MutableRefObject } from 'react'
+import {
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from 'react'
 import { useVirtualizer, type Virtualizer } from '@tanstack/react-virtual'
+
+type ScrollMarginDep = boolean | null | number | string | undefined
 
 /**
  * Virtualizer wired to the app's main scroll container (#main-scroll, set in
@@ -42,7 +50,7 @@ export function useMainScrollVirtualizer<TElement extends HTMLElement = HTMLDivE
   count: number
   estimateSize: number | ((index: number) => number)
   overscan?: number
-  deps?: ReadonlyArray<unknown>
+  deps?: ReadonlyArray<ScrollMarginDep>
 }): {
   listRef: MutableRefObject<TElement | null>
   virtualizer: Virtualizer<HTMLElement, Element>
@@ -58,7 +66,9 @@ export function useMainScrollVirtualizer<TElement extends HTMLElement = HTMLDivE
     scrollMargin,
   })
 
-  useLayoutEffect(() => {
+  const scrollMarginDepsKey = JSON.stringify(deps)
+
+  const measureScrollMargin = useCallback(() => {
     if (!listRef.current) return
     const scrollEl = document.getElementById('main-scroll')
     if (!scrollEl) return
@@ -66,11 +76,11 @@ export function useMainScrollVirtualizer<TElement extends HTMLElement = HTMLDivE
     const scrollRect = scrollEl.getBoundingClientRect()
     const margin = listRect.top - scrollRect.top + scrollEl.scrollTop
     setScrollMargin(margin)
-    // `deps` las provee el caller (re-mide el margen cuando el contenido que
-    // importa cambió). El efecto refleja esas deps en vez de los valores que
-    // lee (listRef es una ref; setScrollMargin es estable).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps)
+  }, [])
+
+  useLayoutEffect(() => {
+    measureScrollMargin()
+  }, [measureScrollMargin, scrollMarginDepsKey])
 
   return { listRef, virtualizer }
 }
