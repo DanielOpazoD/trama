@@ -27,6 +27,7 @@ const prStack = [
       /^netlify\/functions\/_lib\/quote-schemas\.ts$/,
       /^netlify\/functions\/_lib\/quotes-endpoint\.test\.ts$/,
       /^netlify\/functions\/_lib\/relationships-endpoint\.test\.ts$/,
+      /^netlify\/functions\/_lib\/search-endpoint\.test\.ts$/,
       /^netlify\/functions\/_lib\/spotify-oauth\.test\.ts$/,
       /^netlify\/functions\/_lib\/spotify\/auth\.ts$/,
       /^netlify\/functions\/_lib\/spotify\/sync\.ts$/,

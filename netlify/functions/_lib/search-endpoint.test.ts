@@ -59,6 +59,29 @@ describe('search endpoint', () => {
     expect(mockSqlResponses.calls).toHaveLength(0)
   })
 
+  it('rechaza modos de búsqueda desconocidos antes de consultar datos', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/search?q=borges&mode=todo'),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({
+      error: {
+        code: 'VALIDATION',
+        message: 'mode debe ser uno de: hybrid, lexical, semantic',
+      },
+    })
+    expect(
+      mockSqlResponses.calls.some((call) =>
+        /\bFROM\s+(entities|quotes|momentos|cronicas|chat_messages)\b/i.test(
+          call.template,
+        ),
+      ),
+    ).toBe(false)
+    expect(searchMocks.embedSafe).not.toHaveBeenCalled()
+  })
+
   it('ejecuta búsqueda léxica aislada por user_id y devuelve shapes camelCase', async () => {
     mockSqlResponses.push(
       [
