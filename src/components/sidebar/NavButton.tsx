@@ -63,7 +63,7 @@ export function NavButton({
         <button
           onClick={onClick}
           aria-label={ariaLabel}
-          className={`relative p-2.5 rounded-lg transition-all duration-250 ease-out active:scale-95 ${
+          className={`touch-target relative p-2.5 rounded-lg transition-all duration-250 ease-out active:scale-95 ${
             active
               ? 'bg-ink-700/10 text-ink-700'
               : 'text-ink-300 hover:text-ink-700 hover:bg-ink-700/5'
@@ -95,7 +95,7 @@ export function NavButton({
     <button
       onClick={onClick}
       aria-label={ariaLabel}
-      className={`group flex items-center justify-between gap-2 pl-3 pr-2.5 py-1.5 rounded-md text-body transition-colors relative ${
+      className={`touch-target group flex items-center justify-between gap-2 pl-3 pr-2.5 py-1.5 rounded-md text-body transition-colors relative ${
         active
           ? 'text-ink-800 font-medium'
           : 'text-ink-500 hover:text-ink-800 hover:bg-ink-100/60'

@@ -16,6 +16,7 @@ import {
 import { api, type XBookmark } from '../api'
 import type { ExtractionProposal } from '../types'
 import { formatRelative } from './settings/_shared'
+import { queryKeys } from '../state/queryClient'
 
 /**
  * Vista Twitter — los tweets que marcaste como bookmark en X. Espejo de
@@ -140,7 +141,8 @@ export function TwitterView({
       setMessage(
         r.inserted > 0 ? `${r.inserted} bookmarks nuevos${cls}` : 'Sin bookmarks nuevos',
       )
-      queryClient.invalidateQueries({ queryKey: ['x'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.x })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'No se pudo sincronizar')
     } finally {
@@ -321,7 +323,7 @@ export function TwitterView({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar en tus bookmarks…"
-              className="min-w-0 flex-1 rounded-lg border border-ink-100/60 bg-paper-50 px-3 py-1.5 text-sm text-ink-700 placeholder:text-ink-300 focus:border-ink-300 focus:outline-none"
+              className="min-w-0 flex-1 rounded-lg border border-ink-100/60 bg-paper-50 px-3 py-1.5 text-sm text-ink-700 placeholder:text-ink-300 focus:border-ink-300"
             />
             <button
               onClick={() => setShowAuthors((v) => !v)}

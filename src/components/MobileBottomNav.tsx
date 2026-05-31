@@ -99,7 +99,7 @@ export function MobileBottomNav({
                 onClick={() => onChangeView(item.value)}
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
-                className="w-full h-full flex flex-col items-center justify-center gap-0.5 py-1 relative transition-colors"
+                className="touch-target w-full h-full flex flex-col items-center justify-center gap-0.5 py-1 relative transition-colors"
                 style={{
                   color: active ? SECTION_ACCENT[item.value] : 'rgb(var(--ink-400))',
                 }}

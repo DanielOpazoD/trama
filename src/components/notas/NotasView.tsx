@@ -107,7 +107,7 @@ export function NotasView() {
           onKeyDown={onComposerKey}
           rows={3}
           placeholder="Escribe una nota… usa #etiquetas para clasificarla"
-          className="w-full resize-y bg-transparent text-ink-700 placeholder:text-ink-300 focus:outline-none leading-relaxed"
+          className="w-full resize-y bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
         />
         <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60">
           <span className="text-micro text-ink-300">
@@ -142,7 +142,7 @@ export function NotasView() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar en tus notas…"
-              className="flex-1 bg-transparent text-caption text-ink-700 placeholder:text-ink-300 focus:outline-none"
+              className="flex-1 bg-transparent text-caption text-ink-700 placeholder:text-ink-300"
             />
             {search && (
               <button

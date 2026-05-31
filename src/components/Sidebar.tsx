@@ -164,6 +164,18 @@ export function Sidebar({
     // El Gabinete es un índice de gestos, no una colección contable.
     gabinete: null,
   }
+  const healthTone =
+    healthAlerts.maxSeverity === 'error'
+      ? 'var(--accent-clay)'
+      : healthAlerts.maxSeverity === 'warn'
+        ? 'var(--accent-gold)'
+        : 'var(--accent-primary)'
+  const healthToneSoft =
+    healthAlerts.maxSeverity === 'error'
+      ? 'rgb(185 28 28 / 0.12)'
+      : healthAlerts.maxSeverity === 'warn'
+        ? 'var(--accent-gold-soft)'
+        : 'var(--accent-primary-soft)'
 
   // ο2: Sugerencias auto-hide del nav cuando no hay propuestas pendientes.
   // El CommandPalette mantiene la entrada accesible siempre (para forzar
@@ -188,7 +200,7 @@ export function Sidebar({
         <button
           onClick={onToggleCollapsed}
           aria-label="Expandir sidebar"
-          className="p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors"
+          className="touch-target p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors"
         >
           <ChevronRightIcon size={14} />
         </button>
@@ -197,7 +209,7 @@ export function Sidebar({
           <button
             onClick={onOpenPalette}
             aria-label={`Buscar (${SHORTCUT_KEY} K)`}
-            className="p-2 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors"
+            className="touch-target p-2 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors"
           >
             <SearchIcon size={14} />
           </button>
@@ -231,7 +243,8 @@ export function Sidebar({
           {offline && (
             <span
               title="modo local"
-              className="w-1.5 h-1.5 rounded-full bg-amber-500/70"
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: 'var(--accent-gold)' }}
               aria-label="Sin conexión al backend"
             />
           )}
@@ -251,19 +264,16 @@ export function Sidebar({
                   ? `Configuración (${healthAlerts.count} ${healthAlerts.count === 1 ? 'alerta' : 'alertas'})`
                   : 'Configuración'
               }
-              className="relative p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors active:scale-95"
+              className="touch-target relative p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors active:scale-95"
             >
               <SettingsIcon size={14} />
               {healthAlerts.maxSeverity && (
                 <span
                   aria-hidden
                   className={`absolute top-1 right-1 size-1.5 rounded-full ${
-                    healthAlerts.maxSeverity === 'error'
-                      ? 'bg-red-600'
-                      : healthAlerts.maxSeverity === 'warn'
-                        ? 'bg-amber-500'
-                        : 'bg-sky-500'
-                  } ${healthAlerts.maxSeverity !== 'info' ? 'animate-pulse-subtle' : ''}`}
+                    healthAlerts.maxSeverity !== 'info' ? 'animate-pulse-subtle' : ''
+                  }`}
+                  style={{ backgroundColor: healthTone }}
                 />
               )}
             </button>
@@ -299,7 +309,8 @@ export function Sidebar({
             {offline && (
               <span
                 title="Sin conexión al backend"
-                className="text-micro uppercase tracking-wider text-amber-700 leading-none shrink-0"
+                className="text-micro uppercase tracking-wider leading-none shrink-0"
+                style={{ color: 'var(--accent-gold)' }}
               >
                 local
               </span>
@@ -308,7 +319,7 @@ export function Sidebar({
           <button
             onClick={onToggleCollapsed}
             aria-label="Contraer sidebar"
-            className="p-1 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors shrink-0"
+            className="touch-target p-1 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors shrink-0"
           >
             <ChevronLeftIcon size={14} />
           </button>
@@ -323,7 +334,7 @@ export function Sidebar({
           <button
             onClick={onOpenPalette}
             aria-label={`Buscar (${SHORTCUT_KEY} K)`}
-            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-caption text-ink-400 hover:text-ink-700 bg-paper-50 hover:bg-paper-100 border border-ink-100/60 hover:border-ink-200 rounded-md transition-colors"
+            className="touch-target w-full flex items-center gap-2 px-2.5 py-1.5 text-caption text-ink-400 hover:text-ink-700 bg-paper-50 hover:bg-paper-100 border border-ink-100/60 hover:border-ink-200 rounded-md transition-colors"
           >
             <SearchIcon size={12} />
             <span className="flex-1 text-left leading-none">Buscar</span>
@@ -368,19 +379,14 @@ export function Sidebar({
           <AIModeToggle />
           <button
             onClick={handleOpenSettings}
-            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-body text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
+            className="touch-target w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-body text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
           >
             <SettingsIcon size={14} className="text-ink-400" />
             <span className="flex-1 text-left">Configuración</span>
             {healthAlerts.maxSeverity && (
               <span
-                className={`text-micro uppercase tracking-eyebrow tabular-nums px-1.5 py-0.5 rounded-full font-medium ${
-                  healthAlerts.maxSeverity === 'error'
-                    ? 'bg-red-100 text-red-700'
-                    : healthAlerts.maxSeverity === 'warn'
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-sky-100 text-sky-700'
-                }`}
+                className="text-micro uppercase tracking-eyebrow tabular-nums px-1.5 py-0.5 rounded-full font-medium"
+                style={{ backgroundColor: healthToneSoft, color: healthTone }}
                 aria-label={`${healthAlerts.count} ${
                   healthAlerts.count === 1 ? 'alerta' : 'alertas'
                 }`}
