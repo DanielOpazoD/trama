@@ -6,6 +6,7 @@ import { getAuthedUser } from './_lib/auth.js'
 
 /**
  * GET /api/momentos-file/:key
+ * GET /api/momentos-file/:userId/:key
  *
  * Sirve un blob de "momentos-media" como respuesta de imagen. Solo expone
  * mime type + bytes — los metadatos extra (EXIF, etc.) viven en el blob
@@ -35,13 +36,21 @@ function decodeStorageKey(rawKey: string): string | null {
   }
 }
 
+function readRawStorageKey(context: Context): string | null {
+  const rawKey = context.params.key
+  if (!rawKey) return null
+
+  const rawUserId = context.params.userId
+  return rawUserId ? `${rawUserId}/${rawKey}` : rawKey
+}
+
 export default withObservability(
   'momentos-file',
   async (req: Request, context: Context, { requestId }) => {
     if (req.method !== 'GET') {
       return ApiErrors.methodNotAllowed(requestId)
     }
-    const rawKey = context.params.key
+    const rawKey = readRawStorageKey(context)
     if (!rawKey) return ApiErrors.validation(requestId, 'key requerida')
 
     const key = decodeStorageKey(rawKey)
@@ -87,5 +96,5 @@ export default withObservability(
 // uniformamos a `momentos-file` por consistencia y para reducir riesgo
 // de cualquier ambigüedad futura del router.
 export const config: Config = {
-  path: '/api/momentos-file/:key',
+  path: ['/api/momentos-file/:key', '/api/momentos-file/:userId/:key'],
 }

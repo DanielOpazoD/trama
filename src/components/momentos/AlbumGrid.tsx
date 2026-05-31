@@ -2,7 +2,12 @@ import { useMemo, useState } from 'react'
 import type { Entity, Momento } from '../../types'
 import { EmptyMessage } from '../EmptyMessage'
 import { TrashIcon } from '../Icons'
-import { formatMonthLabel, getMomentoPhotoItems, groupByMonth } from './helpers'
+import {
+  formatMonthLabel,
+  getMomentoPhotoItems,
+  groupByMonth,
+  momentoMediaUrl,
+} from './helpers'
 
 /**
  * Vista alternativa de Momentos: grid de fotos agrupado por mes-año
@@ -276,7 +281,7 @@ function AlbumTile({
     <li className="group relative">
       <div className="aspect-square overflow-hidden rounded-md border border-ink-100/60 bg-paper-100/40 relative">
         <img
-          src={`/api/momentos-file/${encodeURIComponent(storageKey)}`}
+          src={momentoMediaUrl(storageKey)}
           alt={caption ?? 'momento'}
           loading="lazy"
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"

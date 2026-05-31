@@ -13,6 +13,19 @@ export type MomentoPhotoItem = {
  */
 
 /**
+ * URL pública para leer una foto/audio de Momentos. Codifica cada segmento
+ * por separado para que `userId/blob.ext` siga siendo un path real de dos
+ * segmentos y no dependa de `%2F`, que algunos routers tratan de forma
+ * distinta antes de entregar params al handler.
+ */
+export function momentoMediaUrl(storageKey: string): string {
+  return `/api/momentos-file/${storageKey
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')}`
+}
+
+/**
  * Devuelve "hoy" si la fecha es hoy, "ayer" si es ayer, sino la fecha
  * completa en español (e.g. "domingo, 24 de mayo"). Si el año difiere
  * del actual, agrega el año.

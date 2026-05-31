@@ -58,6 +58,20 @@ describe('momentos-file endpoint', () => {
     })
   })
 
+  it('sirve keys namespaced cuando llegan como segmentos reales del path', async () => {
+    const res = await handler(
+      new Request(
+        'http://localhost/api/momentos-file/legacy-single-user/foto%20nueva.jpg',
+      ),
+      mockContext({ userId: 'legacy-single-user', key: 'foto%20nueva.jpg' }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(getWithMetadata).toHaveBeenCalledWith('legacy-single-user/foto nueva.jpg', {
+      type: 'arrayBuffer',
+    })
+  })
+
   it('con Clerk estricto, una key legacy sin token no cae a lectura pública', async () => {
     process.env['CLERK_SECRET_KEY'] = 'secret'
 

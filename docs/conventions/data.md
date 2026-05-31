@@ -49,7 +49,7 @@ const blob = await store.getWithMetadata(key, { type: 'arrayBuffer' })
 - Mime y tamaño en `metadata`. Strip EXIF NO se hace (defer hasta que importe — el endpoint que sirve no expone metadata extra).
 - El cliente NUNCA llama a Netlify Blobs directo. Siempre via los endpoints
   `/api/momentos-upload`, `/api/momentos-audio-upload` y
-  `/api/momentos-file/:key`.
+  `/api/momentos-file/:userId/:key` o `/api/momentos-file/:key` legacy.
 
 ## Costos y observabilidad
 

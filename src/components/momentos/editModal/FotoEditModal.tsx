@@ -6,6 +6,7 @@ import {
   compressImage,
   fromDateTimeLocalInput,
   getMomentoPhotoItems,
+  momentoMediaUrl,
   readImageDimensions,
   toDateTimeLocalInput,
 } from '../helpers'
@@ -150,7 +151,7 @@ export function FotoEditModal({
 
   const audioPreviewSrc =
     audio?.kind === 'existing'
-      ? `/api/momentos-file/${encodeURIComponent(audio.storageKey)}`
+      ? momentoMediaUrl(audio.storageKey)
       : audio?.kind === 'new'
         ? audio.previewUrl
         : null

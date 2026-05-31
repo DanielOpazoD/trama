@@ -153,7 +153,7 @@ describe('<MomentoEntry />', () => {
     expect(audio).toHaveAttribute('src', '/api/momentos-file/voz%20vieja.mp3')
   })
 
-  it('renderiza fotos y notas de voz namespaced con slashes codificados', () => {
+  it('renderiza fotos y notas de voz namespaced como segmentos del path', () => {
     const { container } = render(
       <MomentoEntry
         momento={{
@@ -176,12 +176,12 @@ describe('<MomentoEntry />', () => {
 
     expect(screen.getByRole('img', { name: /foto reciente/i })).toHaveAttribute(
       'src',
-      '/api/momentos-file/legacy-single-user%2Ffoto-reciente.jpg',
+      '/api/momentos-file/legacy-single-user/foto-reciente.jpg',
     )
     const audio = container.querySelector('audio')
     expect(audio).toHaveAttribute(
       'src',
-      '/api/momentos-file/legacy-single-user%2Fvoz-reciente.webm',
+      '/api/momentos-file/legacy-single-user/voz-reciente.webm',
     )
   })
 })

@@ -1,3 +1,5 @@
+import { momentoMediaUrl } from '../helpers'
+
 export type ExistingPhotoEditItem = {
   kind: 'existing'
   storageKey: string
@@ -36,9 +38,7 @@ export function FotoPhotoTile({
 }) {
   const isPrimary = idx === 0
   const src =
-    item.kind === 'existing'
-      ? `/api/momentos-file/${encodeURIComponent(item.storageKey)}`
-      : item.previewUrl
+    item.kind === 'existing' ? momentoMediaUrl(item.storageKey) : item.previewUrl
   return (
     <div
       className={`group relative aspect-square overflow-hidden rounded border ${

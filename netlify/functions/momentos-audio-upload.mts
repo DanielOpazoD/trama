@@ -12,9 +12,9 @@ import { getAuthedUser } from './_lib/auth.js'
  * store de Netlify Blobs ("momentos-media"). Devuelve la storageKey que
  * el cliente mete en `payload.audioKey` del momento foto.
  *
- * Se sirve por el endpoint genérico `/api/momentos-file/:key` —ese handler
- * devuelve el Content-Type desde la metadata del blob, así que reproduce
- * audio sin necesitar un endpoint de servido aparte.
+ * Se sirve por el endpoint genérico `/api/momentos-file/:userId/:key`
+ * (o `/:key` para legacy) —ese handler devuelve el Content-Type desde
+ * la metadata del blob, así que reproduce audio sin necesitar un endpoint aparte.
  *
  * Namespacing por usuario (`${userId}/...`) idéntico al de las fotos: la
  * autorización al servir re-deriva el userId del path de la key.
