@@ -5,7 +5,7 @@ import { Splash } from './Splash'
 describe('<Splash />', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-05-31T10:00:00-04:00'))
+    vi.setSystemTime(new Date(2026, 4, 31, 10, 0, 0))
     window.sessionStorage.clear()
     window.localStorage.clear()
   })

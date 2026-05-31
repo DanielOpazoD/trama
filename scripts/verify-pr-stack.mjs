@@ -209,6 +209,7 @@ const prStack = [
       /^src\/components\/NumberTicker(\.test)?\.tsx$/,
       /^src\/components\/Onboarding(\.test)?\.tsx$/,
       /^src\/components\/Sidebar\.tsx$/,
+      /^src\/components\/Splash\.test\.tsx$/,
       /^src\/components\/ToastHost(\.test)?\.tsx$/,
       /^src\/components\/TwitterView\.tsx$/,
       /^src\/components\/entities\/EntityForm(\.test)?\.tsx$/,
