@@ -201,6 +201,7 @@ const prStack = [
     id: 'pr8-ux-accessibility',
     title: 'UX/accesibilidad y deuda visual',
     patterns: [
+      /^e2e\/momentos\.spec\.ts$/,
       /^src\/components\/MobileBottomNav\.tsx$/,
       /^src\/components\/NumberTicker(\.test)?\.tsx$/,
       /^src\/components\/Onboarding(\.test)?\.tsx$/,
