@@ -27,14 +27,25 @@ import { getAuthedUser } from './_lib/auth.js'
  */
 const LEGACY_USER_ID = 'legacy-single-user'
 
+function decodeStorageKey(rawKey: string): string | null {
+  try {
+    return decodeURIComponent(rawKey)
+  } catch {
+    return null
+  }
+}
+
 export default withObservability(
   'momentos-file',
   async (req: Request, context: Context, { requestId }) => {
     if (req.method !== 'GET') {
       return ApiErrors.methodNotAllowed(requestId)
     }
-    const key = context.params.key
-    if (!key) return ApiErrors.validation(requestId, 'key requerida')
+    const rawKey = context.params.key
+    if (!rawKey) return ApiErrors.validation(requestId, 'key requerida')
+
+    const key = decodeStorageKey(rawKey)
+    if (!key) return ApiErrors.validation(requestId, 'key inválida')
 
     const { id: userId } = await getAuthedUser(req)
 

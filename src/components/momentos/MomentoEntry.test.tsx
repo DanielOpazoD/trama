@@ -152,4 +152,36 @@ describe('<MomentoEntry />', () => {
     const audio = container.querySelector('audio')
     expect(audio).toHaveAttribute('src', '/api/momentos-file/voz%20vieja.mp3')
   })
+
+  it('renderiza fotos y notas de voz namespaced con slashes codificados', () => {
+    const { container } = render(
+      <MomentoEntry
+        momento={{
+          ...baseMomento('foto', {
+            caption: 'foto reciente',
+            items: [
+              {
+                storageKey: 'legacy-single-user/foto-reciente.jpg',
+                width: 800,
+                height: 600,
+              },
+            ],
+            audioKey: 'legacy-single-user/voz-reciente.webm',
+          }),
+        }}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('img', { name: /foto reciente/i })).toHaveAttribute(
+      'src',
+      '/api/momentos-file/legacy-single-user%2Ffoto-reciente.jpg',
+    )
+    const audio = container.querySelector('audio')
+    expect(audio).toHaveAttribute(
+      'src',
+      '/api/momentos-file/legacy-single-user%2Fvoz-reciente.webm',
+    )
+  })
 })

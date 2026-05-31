@@ -46,6 +46,18 @@ describe('momentos-file endpoint', () => {
     expect(getWithMetadata).toHaveBeenCalledWith('foto.jpg', { type: 'arrayBuffer' })
   })
 
+  it('decodifica keys namespaced que llegan percent-encoded desde el cliente', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/momentos-file/legacy-single-user%2Ffoto.jpg'),
+      mockContext({ key: 'legacy-single-user%2Ffoto.jpg' }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(getWithMetadata).toHaveBeenCalledWith('legacy-single-user/foto.jpg', {
+      type: 'arrayBuffer',
+    })
+  })
+
   it('con Clerk estricto, una key legacy sin token no cae a lectura pública', async () => {
     process.env['CLERK_SECRET_KEY'] = 'secret'
 
