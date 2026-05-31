@@ -13,11 +13,8 @@
  */
 
 import type { ChatTramaContext } from './chat-prompt.js'
-import type { getSql } from './db.js'
-import { sqlTyped } from './db.js'
+import { sqlTyped, type SqlClient } from './db.js'
 import { buildRagContext } from './rag-context.js'
-
-type SqlClient = ReturnType<typeof getSql>
 
 export type EntityCtxRow = {
   id: string
@@ -166,27 +163,19 @@ export async function loadChatContextWithRag(
   relationshipLimit: number,
 ): Promise<LoadedChatContext> {
   const [ragCtx, eTypes, rTypes] = await Promise.all([
-    buildRagContext(
-      sql as unknown as (
-        strings: TemplateStringsArray,
-        ...values: unknown[]
-      ) => Promise<unknown>,
-      userText,
-      userId,
-      {
-        relationshipLimit,
-        // Activamos LLM-as-reranker en el chat — la calidad del
-        // contexto importa más que los ~1-2s de latencia extra.
-        rerank: true,
-        rerankOverride: {
-          provider: invocation.provider,
-          model: invocation.model,
-        },
-        // HyDE: el chat es donde más rinde, las queries suelen ser
-        // vagas y abstractas ("¿qué hay del tiempo en mis citas?").
-        hyde: true,
+    buildRagContext(sql, userText, userId, {
+      relationshipLimit,
+      // Activamos LLM-as-reranker en el chat — la calidad del
+      // contexto importa más que los ~1-2s de latencia extra.
+      rerank: true,
+      rerankOverride: {
+        provider: invocation.provider,
+        model: invocation.model,
       },
-    ),
+      // HyDE: el chat es donde más rinde, las queries suelen ser
+      // vagas y abstractas ("¿qué hay del tiempo en mis citas?").
+      hyde: true,
+    }),
     sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
     sqlTyped<TypeRow>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
   ])

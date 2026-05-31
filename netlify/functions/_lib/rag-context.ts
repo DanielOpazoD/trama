@@ -15,7 +15,7 @@
  * funciona la rama de recencia. Degradación graceful.
  */
 
-import { sqlTyped } from './db.js'
+import { sqlTyped, type SqlClient } from './db.js'
 import { embedSafe, toPgVector } from './embeddings.js'
 import { describeEntity, describeQuote, llmRerank } from './llm-rerank.js'
 import { askLLMForText, type LLMOverride } from './llm.js'
@@ -53,8 +53,6 @@ export type RagContext = {
   /** true = se embebió un párrafo HyDE en lugar de la query cruda. */
   usedHyde?: boolean
 }
-
-type SqlClient = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<unknown>
 
 /**
  * Build trama context for a user query, blending semantic retrieval +

@@ -77,6 +77,7 @@ const prStack = [
       /^netlify\/functions\/_lib\/llm\/providers\/openai-compatible(\.test)?\.ts$/,
       /^netlify\/functions\/_lib\/llm-cost-observability\.test\.ts$/,
       /^netlify\/functions\/_lib\/observability(\.test)?\.ts$/,
+      /^netlify\/functions\/_lib\/rag-context-boundary\.test\.ts$/,
       /^netlify\/functions\/_lib\/rag-context\.ts$/,
       /^netlify\/functions\/ai-settings\.mts$/,
       /^netlify\/functions\/atlas\.mts$/,
