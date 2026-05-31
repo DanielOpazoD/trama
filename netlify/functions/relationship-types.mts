@@ -6,6 +6,8 @@ import { parseJsonBody } from './_lib/zod-body.js'
 import { RelationshipTypeUpsertBody } from './_lib/admin-schemas.js'
 import { getAuthedUser } from './_lib/auth.js'
 
+type UsageRow = { n: string }
+
 /**
  * Catálogo global de tipos de relación. Mismo patrón que entity-types:
  * GET público, POST/DELETE con auth. Ver entity-types.mts para la
@@ -47,9 +49,9 @@ export default withObservability('relationship-types', async (req: Request, cont
 
   if (req.method === 'DELETE' && slug) {
     await getAuthedUser(req)
-    const usage = (await sql`
+    const usage = await sqlTyped<UsageRow>(sql`
       SELECT COUNT(*) AS n FROM relationships WHERE type = ${slug} AND deleted_at IS NULL
-    `) as Array<{ n: string }>
+    `)
     if (Number(usage[0]?.n ?? 0) > 0) {
       return ApiErrors.conflict(
         requestId,

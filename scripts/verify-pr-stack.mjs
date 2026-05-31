@@ -106,6 +106,7 @@ const prStack = [
     title: 'Correctness cliente y API contracts',
     patterns: [
       /^netlify\/functions\/_lib\/api-(error|success\.test)\.ts$/,
+      /^netlify\/functions\/_lib\/catalog-types-boundary\.test\.ts$/,
       /^netlify\/functions\/_lib\/momento-(embed\.test|schemas)\.ts$/,
       /^netlify\/functions\/_lib\/suggest-relationships-endpoint\.test\.ts$/,
       /^netlify\/functions\/(entity|relationship)-types\.mts$/,
