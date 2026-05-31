@@ -12,7 +12,7 @@ Documentación pensada para Daniel — usuario único, no programador — cuando
 - [**ai.md**](ai.md) — providers, cost cap, modo Off, qué hacer si la IA se vuelve cara o lenta.
 - [**incidentes.md**](incidentes.md) — síntomas comunes (la app no carga, el chat no responde, los embeddings no se generan) y qué hacer.
 - [**escala.md**](escala.md) — cuándo y cómo activar los modos de escala (paginación de quotes, modo explorar del grafo, etc.).
-- [**migracion-multi-user.md**](migracion-multi-user.md) — plan para convertir Trama a multi-user con login. **Solo si decides compartirla.** Hoy es single-user por diseño.
+- [**migracion-multi-user.md**](migracion-multi-user.md) — plan y runbook de cutover multi-user. El código ya soporta Clerk, `user_id` y fallback legacy; úsalo cuando vayas a apagar `ALLOW_LEGACY_FALLBACK`.
 
 ## Cuándo abrir cada uno
 

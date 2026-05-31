@@ -11,14 +11,14 @@
 
 Trama tiene escalones de escalabilidad que se activan a distintos tamaños:
 
-| Tamaño      | Qué tienes                                        | Qué se activa solo                                        | Qué tienes que decidir tú                          |
-| ----------- | ------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------- |
-| 0-500       | Modo "completo" del grafo va sobrado, sin pensar  | —                                                         | —                                                  |
-| 500-2000    | Listas (Citas/Entidades/Relaciones) virtualizadas | Cursor pagination activa cuando llegues a las 60 primeras | —                                                  |
-| 2000-5000   | Grafo completo empieza a notarse                  | Banner sugiere modo explorar                              | Decidir si pasar al modo explorar                  |
-| 5000-15000  | Necesitás explorar obligatorio                    | Hard caps en /api/entities y /api/relationships           | Migrar al modo explorar del grafo si no lo hiciste |
-| 15000-50000 | HNSW empieza a ser indispensable                  | (Ya está activo)                                          | Refactor WebGL del grafo cuando llegues            |
-| 50000+      | Particionar logs                                  | Indices BRIN siguen ágiles                                | Implementar el plan de partition de F              |
+| Tamaño      | Qué tienes                                        | Qué se activa solo                                        | Qué tienes que decidir tú                                                 |
+| ----------- | ------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------- |
+| 0-500       | Modo "completo" del grafo va sobrado, sin pensar  | —                                                         | —                                                                         |
+| 500-2000    | Listas (Citas/Entidades/Relaciones) virtualizadas | Cursor pagination activa cuando llegues a las 60 primeras | —                                                                         |
+| 2000-5000   | Grafo completo empieza a notarse                  | Banner sugiere modo explorar                              | Decidir si pasar al modo explorar                                         |
+| 5000-15000  | Necesitás explorar obligatorio                    | Hard caps en /api/entities y /api/relationships           | Migrar al modo explorar del grafo si no lo hiciste                        |
+| 15000-50000 | HNSW empieza a ser indispensable                  | (Ya está activo)                                          | Modo exploratorio obligatorio; revisar workers si el layout bloquea la UI |
+| 50000+      | Particionar logs                                  | Indices BRIN siguen ágiles                                | Implementar el plan de partition de F                                     |
 
 ## GraphView va lento
 
@@ -38,7 +38,10 @@ Si querés ver el grafo completo en alguna ocasión (rara), aceptá los 10-30 se
 
 ### A 15000+
 
-Cuando llegues, hay que refactorizar GraphView para usar WebGL (sigma.js o cosmograph). Eso es trabajo de programación — sin atajos. Está en el roadmap como tarea Q.
+GraphView ya cambia a WebGL con sigma.js en el modo completo grande. Si aun así
+se siente pesado, el siguiente cuello probable no es el renderer sino el tamaño
+del dataset, el cálculo de layout o la carga wholesale; usa modo explorar antes
+de pedir más fidelidad visual al canvas.
 
 ## Quotes / Citas
 

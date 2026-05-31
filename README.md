@@ -254,7 +254,7 @@ Vitest co-localizado + Playwright para E2E. CI corre tipos + tests + build + bun
 ```bash
 npm test               # unit/integration (Vitest) — una corrida
 npm run test:watch     # modo watch
-npm run test:e2e       # Playwright — requiere build previo
+npm run e2e            # Playwright — requiere build previo
 ```
 
 **Cobertura activa:**

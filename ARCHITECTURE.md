@@ -22,7 +22,7 @@ Tres pilares:
 | Base de datos   | Netlify Database (Postgres serverless via Neon)                                                   | Provisionado por Netlify, plan Pro incluye uso gratuito hasta cierto volumen                                                                                    |
 | Driver Postgres | `@netlify/database` → `getSql()`                                                                  | Resuelve la conexión vía la extensión Netlify Database. Bajo el capó usa `@neondatabase/serverless` (HTTP), tagged template literals con parametrización segura |
 | Streaming       | SSE para chat con DeepSeek/OpenAI; fallback de un chunk para Anthropic/Gemini                     | Token-by-token donde el provider lo soporta; API consumer-side uniforme                                                                                         |
-| Grafo           | SVG con cuatro modos de layout caseros                                                            | Cero dependencias, suficiente hasta ~100 nodos. A migrar a `xyflow` o `sigma.js` si crece                                                                       |
+| Grafo           | SVG rico para tramas chicas + sigma.js WebGL lazy para tramas grandes                             | Mantiene fidelidad visual bajo ~1000 nodos y cambia a WebGL cuando el grafo completo cruza el umbral de escala                                                  |
 | LLM             | Abstracción multi-proveedor: DeepSeek por defecto, OpenAI/Anthropic/Gemini swappables vía env var | El modelo cambia cada 6 meses; la capa de invocación no debería                                                                                                 |
 | Spotify         | OAuth client + scheduled function de sync                                                         | Importa playlists y registra escuchas, sin escribir nada a la trama sin aprobación                                                                              |
 | Sync local      | localStorage como fallback offline (unidireccional)                                               | Temporal; migrar a CRDTs (Yjs) cuando se use en múltiples dispositivos                                                                                          |
@@ -195,9 +195,18 @@ La fuente de verdad real son las tablas `entity_types` y `relationship_types`. L
 
 Convención dominante de cada ecosistema. En vez de quotear identificadores en SQL o nombrar variables raras en JS, se hace transformación explícita en `api.ts` y en cada `*.mts`. La frontera está marcada.
 
-### Por qué un layout force-directed casero en vez de xyflow
+### Por qué SVG + sigma.js en vez de un solo renderer
 
-El entorno local tuvo problemas SSL al instalar paquetes nuevos del registry de npm, que bloquearon `@xyflow/react`. El layout casero (~120 líneas, Fruchterman-Reingold) funciona limpio hasta ~100 nodos. Si la trama crece más allá de eso, migrar a `xyflow` o `sigma.js` es un swap localizado en `useGraphLayout.ts`.
+El grafo tiene dos necesidades distintas. Para tramas chicas, `GraphSvgCanvas`
+mantiene la identidad visual: serif en nodos, sombras, halos, labels y
+animaciones sutiles. Para el grafo completo grande, `GraphCanvasSigma` usa
+sigma.js/WebGL y se carga lazy desde `GraphView` cuando `entities.length >=
+1000`; así el bundle inicial no paga graphology/sigma para usuarios que no lo
+necesitan.
+
+Los layouts siguen siendo funciones puras (`useGraphLayout` y
+`src/hooks/layouts/*`). Los dos renderers consumen el mismo `Map<id, {x,y}>`, así
+que ajustar un layout no obliga a reescribir la capa visual.
 
 ### Por qué localStorage como fallback en vez de error duro
 
@@ -271,7 +280,7 @@ Una falla en cualquier paso aparece como check rojo. No hay branch protection fo
 
 - **Local-first sync con CRDTs (Yjs/Automerge).** Vale la pena cuando se use en 2+ dispositivos en simultáneo. Hoy localStorage es solo fallback unidireccional.
 - **Auth real (Netlify Identity).** Hoy se protege con site password. Si el alcance crece más allá de personal, considerar.
-- **Migrar grafo a xyflow o sigma.js.** El layout casero escala bien hasta ~150 nodos. Más allá, considerar.
+- **Interacciones avanzadas del grafo.** Sigma ya cubre el modo WebGL de escala. Si más adelante hacen falta conexiones manuales, edición directa de aristas o nodos tipo canvas, evaluar `xyflow` como una capa distinta, no como reemplazo automático del renderer actual.
 - **UI de gestión de tipos de entidad y relación.** Las tablas y endpoints existen; falta el formulario.
 - **UI del extraction log.** El endpoint `/api/extraction-log` existe. Falta la vista de costos / historial.
 - **Tests de componentes UI con React Testing Library.** El scaffold de Vitest está; agregar `@testing-library/react` cuando se quiera cubrir UI.
