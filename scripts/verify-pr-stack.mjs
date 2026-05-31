@@ -94,6 +94,7 @@ const prStack = [
       /^netlify\/functions\/_lib\/suggest-relationships-endpoint\.test\.ts$/,
       /^netlify\/functions\/suggest-relationships\.mts$/,
       /^src\/api\/(chat|momentos|request|transform)\.ts$/,
+      /^src\/api\/request-boundary\.test\.ts$/,
       /^src\/api\/request\.test\.ts$/,
       /^src\/components\/(ApiAuthBridge|AuthGate|ErrorBoundary|UserMenu)(\.test)?\.tsx$/,
       /^src\/components\/ChatView\.tsx$/,
