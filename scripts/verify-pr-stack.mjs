@@ -89,6 +89,7 @@ const prStack = [
       /^netlify\/functions\/_lib\/llm\/providers\/openai-compatible(\.test)?\.ts$/,
       /^netlify\/functions\/_lib\/llm-cost-observability\.test\.ts$/,
       /^netlify\/functions\/_lib\/observability(\.test)?\.ts$/,
+      /^netlify\/functions\/_lib\/proactive-suggestions-boundary\.test\.ts$/,
       /^netlify\/functions\/_lib\/quote-reflect-boundary\.test\.ts$/,
       /^netlify\/functions\/_lib\/rag-context-boundary\.test\.ts$/,
       /^netlify\/functions\/_lib\/rag-context\.ts$/,
