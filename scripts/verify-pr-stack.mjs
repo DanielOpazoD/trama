@@ -118,6 +118,7 @@ const prStack = [
       /^src\/state\/(queryClient|useAtlas|useChat|useCronicas|useCronologia|useEntities|useMomentos|useNotes|useQuotes|useRelationships|useTasks|useTwitter)(\.test)?\.tsx?$/,
       /^src\/types\/momento\.ts$/,
       /^src\/types\/relationship\.ts$/,
+      /^docs\/conventions\/api\.md$/,
     ],
   },
   {
