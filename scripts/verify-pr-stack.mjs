@@ -41,6 +41,7 @@ const prStack = [
       /^netlify\/functions\/_lib\/user-provisioning\.ts$/,
       /^netlify\/functions\/_lib\/web-vitals-endpoint\.test\.ts$/,
       /^netlify\/functions\/_lib\/x-oauth\.test\.ts$/,
+      /^netlify\/functions\/_lib\/x-status-boundary\.test\.ts$/,
       /^netlify\/functions\/ask\.mts$/,
       /^netlify\/functions\/chat-messages\.mts$/,
       /^netlify\/functions\/chat-threads\.mts$/,
@@ -62,6 +63,7 @@ const prStack = [
       /^netlify\/functions\/tasks\.mts$/,
       /^netlify\/functions\/web-vitals\.mts$/,
       /^netlify\/functions\/x-callback\.mts$/,
+      /^netlify\/functions\/x-status\.mts$/,
     ],
   },
   {

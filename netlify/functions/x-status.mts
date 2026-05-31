@@ -1,9 +1,11 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { disconnectX, getStoredTokens } from './_lib/x/index.js'
+
+type BookmarkCountRow = { c: number }
 
 /**
  * GET  /api/x/status  → estado de conexión + conteo de bookmarks guardados.
@@ -24,10 +26,10 @@ export default withObservability(
     const tokens = await getStoredTokens(sql, userId)
     if (!tokens) return Response.json({ connected: false })
 
-    const countRows = (await sql`
+    const countRows = await sqlTyped<BookmarkCountRow>(sql`
       SELECT COUNT(*)::int AS c FROM x_bookmarks
       WHERE user_id = ${userId} AND deleted_at IS NULL
-    `) as Array<{ c: number }>
+    `)
 
     return Response.json({
       connected: true,
