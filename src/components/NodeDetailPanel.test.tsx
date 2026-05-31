@@ -85,8 +85,6 @@ describe('<NodeDetailPanel />', () => {
     })
 
     expect(screen.getByText('Albert Camus')).toBeInTheDocument()
-    // La descripción arranca colapsada: se despliega con la flecha.
-    await userEvent.setup().click(screen.getByRole('button', { name: /descripción/i }))
     expect(screen.getByText(/escritor argelino-francés/)).toBeInTheDocument()
     expect(screen.getByText(/En el centro del invierno/)).toBeInTheDocument()
     expect(screen.getByText('El extranjero')).toBeInTheDocument()

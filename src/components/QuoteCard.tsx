@@ -60,6 +60,9 @@ export function QuoteCard({
     model: string
   } | null>(null)
   const [reflectError, setReflectError] = useState<string | null>(null)
+  // La interpretación de la IA guardada arranca colapsada — se despliega con la
+  // flecha. (Pedido del usuario: no debe ocupar espacio por default.)
+  const [aiReflOpen, setAiReflOpen] = useState(false)
 
   function startReflection() {
     setUserReflDraft(quote.userReflection ?? '')
@@ -271,10 +274,20 @@ export function QuoteCard({
         )
       )}
 
-      {/* Interpretación IA guardada (solo lectura; se quita desde el menú). */}
+      {/* Interpretación IA guardada — colapsada por default detrás de la flecha
+          (solo lectura; se quita desde el menú). */}
       {quote.aiReflection && !pendingAi && (
         <div className="mt-3">
-          <div className="flex items-baseline gap-2">
+          <button
+            onClick={() => setAiReflOpen((o) => !o)}
+            className="flex items-baseline gap-2 transition-opacity hover:opacity-80"
+            aria-expanded={aiReflOpen}
+            title={
+              aiReflOpen
+                ? 'Ocultar interpretación de la IA'
+                : 'Mostrar interpretación de la IA'
+            }
+          >
             <span style={{ color: 'var(--accent-primary)' }} className="inline-flex">
               <SparkleIcon size={10} />
             </span>
@@ -282,6 +295,9 @@ export function QuoteCard({
               className="text-micro uppercase tracking-eyebrow"
               style={{ color: 'var(--accent-primary)' }}
             >
+              <span aria-hidden className="mr-1">
+                {aiReflOpen ? '▾' : '▸'}
+              </span>
               interpretación de la IA
             </span>
             {quote.aiReflectionAt && (
@@ -292,10 +308,12 @@ export function QuoteCard({
                 })}
               </span>
             )}
-          </div>
-          <p className="text-ink-500 text-sm leading-relaxed mt-0.5 whitespace-pre-wrap">
-            {quote.aiReflection}
-          </p>
+          </button>
+          {aiReflOpen && (
+            <p className="text-ink-500 text-sm leading-relaxed mt-0.5 whitespace-pre-wrap animate-fade-up">
+              {quote.aiReflection}
+            </p>
+          )}
         </div>
       )}
 
