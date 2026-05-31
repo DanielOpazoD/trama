@@ -14,6 +14,10 @@ import { getAuthedUser } from './_lib/auth.js'
 export default withObservability(
   'x-login',
   async (req: Request, _ctx: Context, { requestId }) => {
+    if (req.method !== 'GET') {
+      return ApiErrors.methodNotAllowed(requestId)
+    }
+
     // Si faltan las claves (feature inerte), error claro en vez de un 500.
     if (!isXConfigured()) {
       return ApiErrors.validation(

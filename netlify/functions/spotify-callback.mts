@@ -8,13 +8,18 @@ import {
 } from './_lib/spotify/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * OAuth callback: Spotify redirects here with ?code=... after the user grants
  * access. We exchange the code for tokens, fetch the user profile, and store
  * everything. Then redirect back to the app.
  */
-export default withObservability('spotify-callback', async (req) => {
+export default withObservability('spotify-callback', async (req, _ctx, { requestId }) => {
+  if (req.method !== 'GET') {
+    return ApiErrors.methodNotAllowed(requestId)
+  }
+
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
   const error = url.searchParams.get('error')

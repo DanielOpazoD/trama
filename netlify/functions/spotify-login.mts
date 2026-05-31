@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { buildAuthUrl } from './_lib/spotify/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * Arranca el flujo OAuth de Spotify. Devuelve la authorize URL como JSON (el
@@ -13,7 +14,11 @@ import { getAuthedUser } from './_lib/auth.js'
  * Spotify y no se puede forjar desde el cliente. El `state` es solo CSRF.
  * En single-user, getAuthedUser cae a 'legacy-single-user'.
  */
-export default withObservability('spotify-login', async (req) => {
+export default withObservability('spotify-login', async (req, _ctx, { requestId }) => {
+  if (req.method !== 'GET') {
+    return ApiErrors.methodNotAllowed(requestId)
+  }
+
   const { id: userId } = await getAuthedUser(req)
   const state = crypto.randomUUID()
   const url = buildAuthUrl(state)

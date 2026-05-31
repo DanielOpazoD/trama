@@ -98,9 +98,10 @@ import statusHandler from '../x-status'
 import syncHandler from '../x-sync'
 import scheduledHandler from '../x-scheduled-sync'
 
-function reqWithCookie(url: string, cookie: string): Request {
+function reqWithCookie(url: string, cookie: string, method = 'GET'): Request {
   return {
     url,
+    method,
     headers: { get: (k: string) => (k.toLowerCase() === 'cookie' ? cookie : null) },
   } as unknown as Request
 }
@@ -115,6 +116,7 @@ beforeEach(() => {
     fetchBookmarks,
     storeBookmarks,
     markSynced,
+    isXConfigured,
   ]) {
     m.mockClear()
   }
@@ -124,6 +126,19 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('x-login', () => {
+  it('rechaza métodos no GET antes de validar configuración o crear cookies OAuth', async () => {
+    isXConfigured.mockReturnValue(false)
+
+    const res = await loginHandler(
+      new Request('http://localhost/api/x/login', { method: 'POST' }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(405)
+    expect(isXConfigured).not.toHaveBeenCalled()
+    expect(res.headers.get('set-cookie')).toBeNull()
+  })
+
   it('devuelve {url} y setea cookies x_state + x_verifier + x_uid', async () => {
     const res = await loginHandler(
       new Request('http://localhost/api/x/login'),
@@ -151,6 +166,21 @@ describe('x-login', () => {
 })
 
 describe('x-callback', () => {
+  it('rechaza métodos no GET antes de intercambiar tokens', async () => {
+    const res = await callbackHandler(
+      reqWithCookie(
+        'http://localhost/api/x/callback?code=the-code&state=OK',
+        'x_state=OK; x_verifier=VER; x_uid=u1',
+        'POST',
+      ),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(405)
+    expect(exchangeCodeForTokens).not.toHaveBeenCalled()
+    expect(saveTokens).not.toHaveBeenCalled()
+  })
+
   it('state_mismatch si el state no coincide', async () => {
     const res = await callbackHandler(
       reqWithCookie(
