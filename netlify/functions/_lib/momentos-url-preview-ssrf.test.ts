@@ -38,6 +38,27 @@ describe('momentos-url-preview SSRF guard', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('bloquea redirects hacia red privada antes del segundo fetch', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response('', {
+        status: 302,
+        headers: { location: 'http://127.0.0.1/admin' },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const res = await handler(
+      new Request(
+        `http://localhost/api/momentos-url-preview?url=${encodeURIComponent('http://8.8.8.8/meta')}`,
+      ),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(await res.json()).toMatchObject({ fetched: false, source: '8.8.8.8' })
+  })
+
   it('clasifica rangos privados y loopback como bloqueados', () => {
     expect(isBlockedPreviewAddress('127.0.0.1')).toBe(true)
     expect(isBlockedPreviewAddress('169.254.169.254')).toBe(true)
