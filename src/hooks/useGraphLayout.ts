@@ -12,6 +12,39 @@ type Options = {
   edges: Relationship[]
 }
 
+type LayoutInput = {
+  mode: LayoutMode
+  nodes: Entity[]
+  layoutNodes: LayoutNode[]
+  layoutEdges: LayoutEdge[]
+  reseed: number
+}
+
+function buildLayoutSignature(
+  mode: LayoutMode,
+  reseed: number,
+  nodes: Entity[],
+  edges: Relationship[],
+) {
+  return JSON.stringify({
+    mode,
+    reseed,
+    nodes: nodes.map((node) => ({
+      id: node.id,
+      type: node.type,
+      year: node.year ?? null,
+      positionX: node.positionX ?? null,
+      positionY: node.positionY ?? null,
+    })),
+    edges: edges.map((edge) => ({
+      id: edge.id,
+      fromId: edge.fromId,
+      toId: edge.toId,
+      type: edge.type,
+    })),
+  })
+}
+
 /**
  * Computes node positions for the selected mode.
  *
@@ -23,6 +56,7 @@ type Options = {
  */
 export function useGraphLayout({ mode, nodes, edges }: Options) {
   const cacheRef = useRef<Map<string, Position>>(new Map())
+  const layoutInputRef = useRef<LayoutInput | null>(null)
   const [positions, setPositions] = useState<Map<string, Position>>(new Map())
   // Forces a recompute when the user hits "reorganizar".
   const [reseed, setReseed] = useState(0)
@@ -36,59 +70,49 @@ export function useGraphLayout({ mode, nodes, edges }: Options) {
     fromId: e.fromId,
     toId: e.toId,
   }))
-
-  const key =
-    mode +
-    '|' +
-    reseed +
-    '|' +
-    nodes.length +
-    ':' +
-    nodes.map((n) => `${n.id}:${n.positionX ?? '_'}:${n.positionY ?? '_'}`).join(',') +
-    '|' +
-    edges.map((e) => e.id).join(',')
+  const layoutSignature = buildLayoutSignature(mode, reseed, nodes, edges)
+  layoutInputRef.current = { mode, nodes, layoutNodes, layoutEdges, reseed }
 
   useEffect(() => {
-    if (nodes.length === 0) {
+    const input = layoutInputRef.current
+    if (!input) return
+
+    if (input.nodes.length === 0) {
       setPositions(new Map())
       return
     }
 
     let result: Map<string, Position>
 
-    if (mode === 'organic') {
+    if (input.mode === 'organic') {
       const seed = new Map<string, Position>()
-      for (const n of nodes) {
+      for (const n of input.nodes) {
         if (n.positionX !== undefined && n.positionY !== undefined) {
           seed.set(n.id, { x: n.positionX, y: n.positionY })
-        } else if (reseed === 0) {
+        } else if (input.reseed === 0) {
           const cached = cacheRef.current.get(n.id)
           if (cached) seed.set(n.id, cached)
         }
       }
-      result = organicLayout(layoutNodes, layoutEdges, {
+      result = organicLayout(input.layoutNodes, input.layoutEdges, {
         seed,
         // When the user explicitly hit reorganizar (reseed > 0), throw the
         // persisted positions away and treat them as warm seeds only.
-        fixSeeded: reseed === 0,
+        fixSeeded: input.reseed === 0,
       })
-    } else if (mode === 'by-type') {
-      result = byTypeLayout(layoutNodes, layoutEdges, reseed)
-    } else if (mode === 'by-year') {
-      result = byYearLayout(layoutNodes, reseed)
+    } else if (input.mode === 'by-type') {
+      result = byTypeLayout(input.layoutNodes, input.layoutEdges, input.reseed)
+    } else if (input.mode === 'by-year') {
+      result = byYearLayout(input.layoutNodes, input.reseed)
     } else {
-      result = byDegreeLayout(layoutNodes, layoutEdges, reseed)
+      result = byDegreeLayout(input.layoutNodes, input.layoutEdges, input.reseed)
     }
 
-    if (mode === 'organic') {
+    if (input.mode === 'organic') {
       for (const [id, p] of result) cacheRef.current.set(id, p)
     }
     setPositions(result)
-    // Recalculamos el layout solo cuando cambia `key` (la firma de las
-    // entradas relevantes); las otras referencias leídas (cacheRef, setters)
-    // son estables y no deben disparar un recálculo.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key])
+  }, [layoutSignature])
 
   const setPosition = useCallback((id: string, x: number, y: number) => {
     cacheRef.current.set(id, { x, y })

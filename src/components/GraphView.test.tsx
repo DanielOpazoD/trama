@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { waitFor } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import GraphView from './GraphView'
 import { renderWithProviders } from '../test-utils'
 
@@ -45,5 +47,14 @@ describe('<GraphView />', () => {
       const buttons = container.querySelectorAll('button')
       expect(buttons.length).toBeGreaterThan(0)
     })
+  })
+
+  it('no oculta dependencias de hooks con suppressions de exhaustive-deps', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/components/GraphView.tsx'),
+      'utf8',
+    )
+
+    expect(source).not.toContain('eslint-disable-next-line react-hooks/exhaustive-deps')
   })
 })

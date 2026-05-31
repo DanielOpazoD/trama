@@ -1,5 +1,7 @@
 import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { useMainScrollVirtualizer } from './useMainScrollVirtualizer'
 
 /**
@@ -67,5 +69,14 @@ describe('useMainScrollVirtualizer', () => {
         useMainScrollVirtualizer({ count: 5, estimateSize: 100, overscan: 12 }),
       ),
     ).not.toThrow()
+  })
+
+  it('no oculta dependencias de layout con suppressions de exhaustive-deps', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/hooks/useMainScrollVirtualizer.ts'),
+      'utf8',
+    )
+
+    expect(source).not.toContain('eslint-disable-next-line react-hooks/exhaustive-deps')
   })
 })

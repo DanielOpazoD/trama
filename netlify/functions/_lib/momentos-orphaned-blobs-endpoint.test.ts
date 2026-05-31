@@ -33,6 +33,38 @@ describe('momentos-orphaned-blobs endpoint', () => {
 
   afterEach(() => vi.unstubAllGlobals())
 
+  it('GET no marca como huérfanas fotos referenciadas en payload photos legado', async () => {
+    list.mockResolvedValue({
+      blobs: [
+        { key: 'legacy/a.jpg' },
+        { key: 'legacy/b.jpg' },
+        { key: 'legacy/audio.webm' },
+        { key: 'orphan.jpg' },
+      ],
+    })
+    mockSqlResponses.push([
+      {
+        payload: {
+          photos: [{ storageKey: 'legacy/a.jpg' }, { storageKey: 'legacy/b.jpg' }],
+          primaryStorageKey: 'legacy/a.jpg',
+          audioKey: 'legacy/audio.webm',
+        },
+      },
+    ])
+
+    const res = await handler(
+      new Request('http://localhost/api/momentos-orphaned-blobs'),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      orphans: ['orphan.jpg'],
+      referenced: 3,
+      totalInStore: 4,
+    })
+  })
+
   it('POST adopta un blob y scopea el UPDATE de embedding por user_id', async () => {
     mockSqlResponses.push(
       [], // ensureUserRow

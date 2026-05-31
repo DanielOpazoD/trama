@@ -94,7 +94,8 @@ DEVUELVE EXCLUSIVAMENTE un objeto JSON con esta forma exacta:
         if (typeof v !== 'object' || v === null) continue
         const idx = typeof v.index === 'number' ? v.index - 1 : null
         if (idx === null || idx < 0 || idx >= input.items.length) continue
-        const agreed = v.agreed === true
+        if (typeof v.agreed !== 'boolean') continue
+        const agreed = v.agreed
         const note =
           typeof v.note === 'string' && v.note.trim()
             ? (v.note as string).trim()

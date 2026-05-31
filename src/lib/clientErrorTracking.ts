@@ -18,6 +18,8 @@
  * mensaje único.
  */
 
+import { apiFetch } from '../api/request'
+
 const POST_THROTTLE_MS = 60_000
 const recentlySent = new Map<string, number>()
 
@@ -65,10 +67,9 @@ function postError(payload: {
       navigator.sendBeacon('/api/error-log', blob)
       return
     }
-    void fetch('/api/error-log', {
+    void apiFetch('/api/error-log', {
       method: 'POST',
       body,
-      headers: { 'Content-Type': 'application/json' },
       keepalive: true,
     }).catch(() => {
       // Best-effort. No re-throw porque estamos en un handler de error

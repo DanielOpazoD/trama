@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
@@ -44,34 +44,77 @@ type FotoPayload = {
   caption?: string
   exifDate?: string
   items?: Array<{ storageKey: string; width?: number; height?: number }>
+  photos?: Array<{ storageKey: string; width?: number; height?: number }>
+  primaryStorageKey?: string | null
+  audioKey?: string
+}
+
+type MergeMomentoRow = {
+  id: string
+  kind: string
+  captured_at: string
+  payload: FotoPayload | null
+  note: string | null
+}
+
+type MergeResultRow = {
+  primary: Record<string, unknown> | null
+  deleted_others: Array<{ id: string; deletedAt: string }>
+  links_inserted: number
+}
+
+type MomentoResponseRow = Record<string, unknown>
+
+type MomentoLinkIdRow = {
+  entity_id: string
 }
 
 /**
- * Extrae las items del payload de un momento foto. Maneja los dos
- * formatos: nuevo (items[]) y legacy (storageKey/width/height singular).
- * Si está en formato legacy, devuelve un array de 1.
+ * Extrae las items del payload de un momento foto. Maneja los formatos
+ * nuevo (items[]), legacy multi (photos[] + primaryStorageKey) y legacy
+ * single (storageKey/width/height).
  */
 function payloadToItems(payload: FotoPayload): Array<{
   storageKey: string
   width?: number
   height?: number
 }> {
-  if (Array.isArray(payload.items) && payload.items.length > 0) {
-    return payload.items.filter(
+  const fromArray = Array.isArray(payload.items) && payload.items.length > 0
+    ? payload.items
+    : Array.isArray(payload.photos) && payload.photos.length > 0
+      ? payload.photos
+      : null
+
+  if (fromArray) {
+    const items = fromArray.filter(
       (it): it is { storageKey: string; width?: number; height?: number } =>
-        !!it && typeof it.storageKey === 'string' && it.storageKey.length > 0,
+        !!it && typeof it.storageKey === 'string' && it.storageKey.trim().length > 0,
     )
+    const primaryStorageKey =
+      typeof payload.primaryStorageKey === 'string' ? payload.primaryStorageKey.trim() : ''
+    if (!primaryStorageKey) return items
+    const primaryIndex = items.findIndex((it) => it.storageKey === primaryStorageKey)
+    if (primaryIndex <= 0) return items
+    const primary = items[primaryIndex]
+    if (!primary) return items
+    return [primary, ...items.filter((_, index) => index !== primaryIndex)]
   }
-  if (payload.storageKey) {
+  if (typeof payload.storageKey === 'string' && payload.storageKey.trim()) {
     return [
       {
-        storageKey: payload.storageKey,
+        storageKey: payload.storageKey.trim(),
         width: payload.width,
         height: payload.height,
       },
     ]
   }
   return []
+}
+
+function payloadAudioKey(payload: FotoPayload): string | undefined {
+  if (typeof payload.audioKey !== 'string') return undefined
+  const audioKey = payload.audioKey.trim()
+  return audioKey || undefined
 }
 
 export default withObservability('momentos-merge', async (req: Request, _ctx, { requestId }) => {
@@ -97,19 +140,12 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
   }
 
   // Lee todos los momentos involucrados de una. unnest evita N+1 queries.
-  type Row = {
-    id: string
-    kind: string
-    captured_at: string
-    payload: FotoPayload | null
-    note: string | null
-  }
   const allIds = [primaryId, ...otherIds]
-  const rows = (await sql`
+  const rows = await sqlTyped<MergeMomentoRow>(sql`
     SELECT id, kind, captured_at, payload, note
     FROM momentos
     WHERE id = ANY(${allIds}::uuid[]) AND deleted_at IS NULL AND user_id = ${userId}
-  `) as Row[]
+  `)
 
   // Verificar que todos existen + son foto.
   const found = new Map(rows.map((r) => [r.id, r]))
@@ -150,6 +186,11 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
       combinedItems.push(it)
     }
   }
+  const audioKey =
+    payloadAudioKey(primary.payload ?? {}) ??
+    otherIds
+      .map((otherId) => payloadAudioKey(found.get(otherId)?.payload ?? {}))
+      .find((key): key is string => Boolean(key))
 
   // Nuevo payload: items[] + legacy storageKey/width/height del primer item
   // para back-compat con renderers viejos.
@@ -166,6 +207,7 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
     // Conservar caption/exifDate del primary si estaban.
     ...(primary.payload?.caption ? { caption: primary.payload.caption } : {}),
     ...(primary.payload?.exifDate ? { exifDate: primary.payload.exifDate } : {}),
+    ...(audioKey ? { audioKey } : {}),
   }
 
   // Note/capturedAt: si vienen del cliente, override; si no, conservar
@@ -215,7 +257,7 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
   //   2. link_others: copia entity_id de others a primary (UNION)
   //   3. soft_delete_others: marca deleted_at en others
   // Final SELECT trae el primary actualizado.
-  const result = (await sql`
+  const result = await sqlTyped<MergeResultRow>(sql`
     WITH update_primary AS (
       UPDATE momentos
       SET payload = ${JSON.stringify(newPayload)}::jsonb,
@@ -254,11 +296,7 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
         '[]'::json
       ) AS deleted_others,
       (SELECT COUNT(*) FROM link_others)::int AS links_inserted
-  `) as Array<{
-    primary: Record<string, unknown> | null
-    deleted_others: Array<{ id: string; deletedAt: string }>
-    links_inserted: number
-  }>
+  `)
 
   const cteRow = result[0]
   if (!cteRow || !cteRow.primary) {
@@ -272,17 +310,17 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
   // Devolver el primary actualizado. Lo obtuvimos del CTE (cteRow.primary)
   // pero hacemos un re-SELECT para tener la versión más reciente (por si
   // el row tiene triggers que tocan updated_at, etc.).
-  const updated = (await sql`
+  const updated = await sqlTyped<MomentoResponseRow>(sql`
     SELECT id, kind, captured_at, payload, note, origin,
            created_at, updated_at
     FROM momentos
     WHERE id = ${primaryId} AND user_id = ${userId}
-  `) as Array<Record<string, unknown>>
-  const links = (await sql`
+  `)
+  const links = await sqlTyped<MomentoLinkIdRow>(sql`
     SELECT entity_id
     FROM momento_entities
     WHERE momento_id = ${primaryId} AND user_id = ${userId} AND deleted_at IS NULL
-  `) as Array<{ entity_id: string }>
+  `)
 
   return Response.json({
     ...updated[0],

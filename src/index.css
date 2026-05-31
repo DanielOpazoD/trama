@@ -1232,6 +1232,33 @@ html.dark .paper-grain::before {
     color: rgb(253 230 138); /* amber-200 */
   }
 
+  /* Toast snackbar variants — keep tone colors semantic instead of embedding
+     Tailwind color utilities in ToastHost.tsx. */
+  .toast-surface {
+    @apply pointer-events-auto flex items-center gap-3 pl-4 pr-2 py-2.5 rounded-xl border min-w-[260px] max-w-[480px];
+    box-shadow:
+      0 10px 15px -3px rgb(var(--ink-800) / 0.25),
+      0 4px 6px -4px rgb(var(--ink-800) / 0.25);
+  }
+  .toast-default {
+    background-color: rgb(var(--ink-800));
+    border-color: rgb(var(--ink-700) / 0.5);
+    color: rgb(var(--paper-50));
+  }
+  .toast-error {
+    background-color: rgb(127 29 29); /* red-900 */
+    border-color: rgb(185 28 28 / 0.5); /* red-700/50 */
+    color: rgb(254 242 242); /* red-50 */
+  }
+  .toast-success {
+    background-color: rgb(6 78 59); /* emerald-900 */
+    border-color: rgb(4 120 87 / 0.5); /* emerald-700/50 */
+    color: rgb(236 253 245); /* emerald-50 */
+  }
+  .toast-achievement {
+    color: rgb(var(--paper-50));
+  }
+
   /* Graph node hover affordance */
   .graph-node {
     transition: opacity 200ms ease;

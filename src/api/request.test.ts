@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { apiFetch, request, setApiAuthTokenProvider } from './request'
+import {
+  apiFetch,
+  DuplicateEntityError,
+  request,
+  setApiAuthTokenProvider,
+} from './request'
+import { enterDemoMode, exitDemoMode } from '../lib/demo'
 
 describe('request auth', () => {
   afterEach(() => {
@@ -44,6 +50,21 @@ describe('request auth', () => {
         }),
       }),
     )
+  })
+
+  it('preserves explicit Headers instances when building API requests', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      Response.json({ ok: true }, { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await request('/api/entities', {
+      headers: new Headers({ 'X-Trama-Test': 'headers-instance' }),
+    })
+
+    const [, init] = fetchMock.mock.calls[0]!
+    expect(new Headers(init?.headers).get('X-Trama-Test')).toBe('headers-instance')
+    expect(new Headers(init?.headers).get('X-AI-Mode')).toBe('auto')
   })
 
   it('falls back to the legacy Clerk window bridge during transition', async () => {
@@ -117,5 +138,72 @@ describe('request auth', () => {
         }),
       }),
     )
+  })
+
+  it('apiFetch sirve media demo local sin tocar red', async () => {
+    enterDemoMode()
+    const fetchMock = vi.fn<typeof fetch>()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const image = await apiFetch('/api/momentos-file/demo/cuaderno.svg')
+    const audio = await apiFetch('/api/momentos-file/demo/nota-voz.wav')
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(image.ok).toBe(true)
+    expect(image.headers.get('Content-Type')).toBe('image/svg+xml')
+    expect(await image.text()).toContain('<svg')
+    expect(audio.ok).toBe(true)
+    expect(audio.headers.get('Content-Type')).toBe('audio/wav')
+    expect((await audio.arrayBuffer()).byteLength).toBeGreaterThan(44)
+    exitDemoMode()
+  })
+})
+
+describe('request error parsing', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('mantiene DuplicateEntityError con el shape canónico de ApiErrors.conflict', async () => {
+    const suggestions = [
+      {
+        id: 'e1',
+        name: 'Borges',
+        type: 'persona',
+        description: 'escritor',
+        similarity: 0.97,
+      },
+    ]
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () =>
+        Response.json(
+          {
+            error: {
+              code: 'CONFLICT',
+              message: 'Posible entidad duplicada',
+              requestId: 'req-dup',
+              details: {
+                kind: 'possible_duplicate',
+                suggestions,
+              },
+            },
+          },
+          { status: 409, headers: { 'x-request-id': 'req-dup' } },
+        ),
+      ),
+    )
+
+    await expect(
+      request('/api/entities', { method: 'POST', body: '{}' }),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        name: 'DuplicateEntityError',
+        suggestions,
+      }),
+    )
+    await expect(
+      request('/api/entities', { method: 'POST', body: '{}' }),
+    ).rejects.toBeInstanceOf(DuplicateEntityError)
   })
 })

@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockContext } from './test-utils'
+import { mockContext, mockSqlResponses, mockSqlState, setupMockSql } from './test-utils'
+
+vi.mock('./db.js', () => setupMockSql())
+
+const verifyTokenMock = vi.hoisted(() => vi.fn())
+vi.mock('@clerk/backend', () => ({
+  verifyToken: verifyTokenMock,
+}))
 
 const { getWithMetadata } = vi.hoisted(() => ({
   getWithMetadata: vi.fn(async () => ({
@@ -19,6 +26,8 @@ describe('momentos-file endpoint', () => {
   const originalFallback = process.env['ALLOW_LEGACY_FALLBACK']
 
   beforeEach(() => {
+    mockSqlResponses.reset()
+    verifyTokenMock.mockReset()
     getWithMetadata.mockClear()
     getWithMetadata.mockResolvedValue({
       data: new Uint8Array([1, 2, 3]).buffer,
@@ -46,6 +55,32 @@ describe('momentos-file endpoint', () => {
     expect(getWithMetadata).toHaveBeenCalledWith('foto.jpg', { type: 'arrayBuffer' })
   })
 
+  it('decodifica keys namespaced que llegan percent-encoded desde el cliente', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/momentos-file/legacy-single-user%2Ffoto.jpg'),
+      mockContext({ key: 'legacy-single-user%2Ffoto.jpg' }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(getWithMetadata).toHaveBeenCalledWith('legacy-single-user/foto.jpg', {
+      type: 'arrayBuffer',
+    })
+  })
+
+  it('sirve keys namespaced cuando llegan como segmentos reales del path', async () => {
+    const res = await handler(
+      new Request(
+        'http://localhost/api/momentos-file/legacy-single-user/foto%20nueva.jpg',
+      ),
+      mockContext({ userId: 'legacy-single-user', key: 'foto%20nueva.jpg' }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(getWithMetadata).toHaveBeenCalledWith('legacy-single-user/foto nueva.jpg', {
+      type: 'arrayBuffer',
+    })
+  })
+
   it('con Clerk estricto, una key legacy sin token no cae a lectura pública', async () => {
     process.env['CLERK_SECRET_KEY'] = 'secret'
 
@@ -66,5 +101,29 @@ describe('momentos-file endpoint', () => {
 
     expect(res.status).toBe(404)
     expect(getWithMetadata).not.toHaveBeenCalled()
+  })
+
+  it('sirve una key legacy a un usuario Clerk cuando su Momento la referencia', async () => {
+    process.env['CLERK_SECRET_KEY'] = 'secret'
+    verifyTokenMock.mockResolvedValue({ sub: 'user_actual' })
+    mockSqlResponses.push([{ referenced: true }])
+
+    const res = await handler(
+      new Request('http://localhost/api/momentos-file/legacy-single-user/voz.webm', {
+        headers: { authorization: 'Bearer token' },
+      }),
+      mockContext({ userId: 'legacy-single-user', key: 'voz.webm' }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(getWithMetadata).toHaveBeenCalledWith('legacy-single-user/voz.webm', {
+      type: 'arrayBuffer',
+    })
+    const referenceLookup = mockSqlState.calls.find((call) =>
+      /FROM momentos/i.test(call.template),
+    )
+    expect(referenceLookup?.template).toMatch(/deleted_at IS NULL/)
+    expect(referenceLookup?.values).toContain('user_actual')
+    expect(referenceLookup?.values).toContain('legacy-single-user/voz.webm')
   })
 })

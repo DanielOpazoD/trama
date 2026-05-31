@@ -358,4 +358,102 @@ describe('momentos-merge endpoint', () => {
     // Items deduplicadas: solo 2 (a + b), no 3.
     expect(body.itemCount).toBe(2)
   })
+
+  it('fusiona payload photos legado sin perder fotos ni portada primaria', async () => {
+    mockSqlResponses.push([
+      {
+        id: '11111111-1111-1111-1111-111111111111',
+        kind: 'foto',
+        captured_at: '2026-05-22T10:00:00Z',
+        payload: {
+          photos: [
+            { storageKey: 'primary-secondary.jpg' },
+            { storageKey: 'primary.jpg' },
+          ],
+          primaryStorageKey: 'primary.jpg',
+          audioKey: 'primary-audio.webm',
+        },
+        note: null,
+      },
+      {
+        id: '22222222-2222-2222-2222-222222222222',
+        kind: 'foto',
+        captured_at: '2026-05-23T10:00:00Z',
+        payload: {
+          photos: [{ storageKey: 'other.jpg' }, { storageKey: 'primary.jpg' }],
+          audioKey: 'other-audio.webm',
+        },
+        note: null,
+      },
+    ])
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([
+      {
+        primary: {
+          id: '11111111-1111-1111-1111-111111111111',
+          kind: 'foto',
+          captured_at: '2026-05-22T10:00:00Z',
+          payload: {
+            items: [
+              { storageKey: 'primary.jpg' },
+              { storageKey: 'primary-secondary.jpg' },
+              { storageKey: 'other.jpg' },
+            ],
+          },
+          note: null,
+        },
+        deleted_others: [
+          {
+            id: '22222222-2222-2222-2222-222222222222',
+            deletedAt: '2026-05-25T13:00:00Z',
+          },
+        ],
+        links_inserted: 0,
+      },
+    ])
+    mockSqlResponses.push([
+      {
+        id: '11111111-1111-1111-1111-111111111111',
+        kind: 'foto',
+        captured_at: '2026-05-22T10:00:00Z',
+        payload: {
+          items: [
+            { storageKey: 'primary.jpg' },
+            { storageKey: 'primary-secondary.jpg' },
+            { storageKey: 'other.jpg' },
+          ],
+        },
+        note: null,
+        origin: { kind: 'manual' },
+        created_at: '',
+        updated_at: '',
+      },
+    ])
+    mockSqlResponses.push([])
+
+    const res = await handler(
+      new Request('http://localhost/api/momentos-merge', {
+        method: 'POST',
+        body: JSON.stringify({
+          primaryId: '11111111-1111-1111-1111-111111111111',
+          otherIds: ['22222222-2222-2222-2222-222222222222'],
+        }),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.itemCount).toBe(3)
+    const cte = mockSqlState.calls.find((c) => c.template.includes('WITH update_primary'))
+    expect(JSON.parse(String(cte?.values[0]))).toMatchObject({
+      items: [
+        { storageKey: 'primary.jpg' },
+        { storageKey: 'primary-secondary.jpg' },
+        { storageKey: 'other.jpg' },
+      ],
+      storageKey: 'primary.jpg',
+      audioKey: 'primary-audio.webm',
+    })
+  })
 })

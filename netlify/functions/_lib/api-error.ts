@@ -138,3 +138,8 @@ export const ApiErrors = {
   internal: (requestId: string, message: string, details?: unknown) =>
     apiError({ status: 500, code: 'INTERNAL', message, requestId, details }),
 }
+
+export const ApiSuccess = {
+  accepted: () => new Response(null, { status: 202 }),
+  noContent: () => new Response(null, { status: 204 }),
+}

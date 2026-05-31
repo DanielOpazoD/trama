@@ -18,6 +18,16 @@ describe('aiOffResponse', () => {
       },
     })
   })
+
+  it('exige requestId explícito para no fabricar ids legacy sintéticos', () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'ai-mode.ts'),
+      'utf8',
+    )
+
+    expect(src).not.toContain('legacy-request')
+    expect(src).not.toMatch(/function aiOffResponse\([^)]*=/)
+  })
 })
 
 describe('resolveAIInvocation', () => {
@@ -26,6 +36,6 @@ describe('resolveAIInvocation', () => {
       join(dirname(fileURLToPath(import.meta.url)), 'ai-mode.ts'),
       'utf8',
     )
-    expect(src).not.toMatch(/userId:\s*string\s*=\s*['"]legacy-single-user['"]/)
+    expect(src).not.toMatch(/\buserId\b[^,\n)]*=\s*['"]legacy-single-user['"]/)
   })
 })

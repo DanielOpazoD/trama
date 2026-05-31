@@ -19,6 +19,6 @@
     "types": ["node"],
     "composite": true
   },
-  "include": ["netlify/functions"],
+  "include": ["netlify/functions", "src/schemas/momento.ts"],
   "exclude": ["netlify/functions/**/*.test.ts"]
 }

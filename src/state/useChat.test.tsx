@@ -1,9 +1,7 @@
 /**
  * BB5+: cierre del gap de P1. useChat tenía 6% coverage (todo lo demás
- * del state/ ya está). Cubrimos las partes NO-SSE (queries + mutations
- * simples). El streaming `useSendChatMessage` requiere mockear el
- * generator de chunks de api.streamChatMessage; lo dejamos para una
- * iteración futura cuando haya un test e2e o setup más completo.
+ * del state/ ya está). Cubre queries/mutations simples y el streaming
+ * de `useSendChatMessage` mockeando los callbacks de api.streamChatMessage.
  */
 
 import { renderHook, act, waitFor } from '@testing-library/react'
@@ -16,8 +14,10 @@ import {
   useChatThreadsQuery,
   useCreateChatThread,
   useDeleteChatThread,
+  useSendChatMessage,
 } from './useChat'
 import * as apiModule from '../api'
+import type { ChatMessage } from '../api'
 
 function makeQueryClient() {
   return new QueryClient({
@@ -211,5 +211,82 @@ describe('useChatMessagesQuery', () => {
     })
     await new Promise((r) => setTimeout(r, 30))
     expect(spy).not.toHaveBeenCalled()
+  })
+})
+
+describe('useSendChatMessage', () => {
+  it('reemplaza burbujas optimistas con mensajes persistidos durante streaming', async () => {
+    vi.spyOn(apiModule.api, 'streamChatMessage').mockImplementation(
+      async (_threadId, _content, handlers) => {
+        handlers.onUser?.({
+          id: 'real-user',
+          role: 'user',
+          content: 'hola',
+          proposal: null,
+          createdAt: '2026-05-31T10:00:00.000Z',
+        })
+        handlers.onChunk?.('res')
+        handlers.onChunk?.('puesta')
+        handlers.onDone?.({
+          id: 'real-assistant',
+          role: 'assistant',
+          content: 'respuesta',
+          proposal: null,
+          createdAt: '2026-05-31T10:00:01.000Z',
+        })
+      },
+    )
+    const qc = makeQueryClient()
+    qc.setQueryData(['chat', 'messages', 'th-1'], [])
+    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
+    const { result } = renderHook(() => useSendChatMessage('th-1'), {
+      wrapper: wrapWith(qc),
+    })
+
+    await act(async () => {
+      await result.current.send('hola')
+    })
+
+    expect(result.current.pending).toBe(false)
+    expect(result.current.error).toBeNull()
+    expect(qc.getQueryData<ChatMessage[]>(['chat', 'messages', 'th-1'])).toEqual([
+      {
+        id: 'real-user',
+        role: 'user',
+        content: 'hola',
+        proposal: null,
+        createdAt: '2026-05-31T10:00:00.000Z',
+      },
+      {
+        id: 'real-assistant',
+        role: 'assistant',
+        content: 'respuesta',
+        proposal: null,
+        createdAt: '2026-05-31T10:00:01.000Z',
+      },
+    ])
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['chat', 'threads'] })
+  })
+
+  it('quita la burbuja assistant optimista si el stream falla antes de responder', async () => {
+    vi.spyOn(apiModule.api, 'streamChatMessage').mockRejectedValue(
+      new Error('conexión cortada'),
+    )
+    const qc = makeQueryClient()
+    qc.setQueryData(['chat', 'messages', 'th-1'], [])
+    const { result } = renderHook(() => useSendChatMessage('th-1'), {
+      wrapper: wrapWith(qc),
+    })
+
+    await act(async () => {
+      await result.current.send('hola')
+    })
+
+    expect(result.current.pending).toBe(false)
+    expect(result.current.error).toBe('conexión cortada')
+    const cached = qc.getQueryData<ChatMessage[]>(['chat', 'messages', 'th-1'])
+    expect(cached).toHaveLength(1)
+    expect(cached?.[0]).toMatchObject({ role: 'user', content: 'hola' })
+    expect(cached?.some((m) => m.role === 'assistant')).toBe(false)
   })
 })

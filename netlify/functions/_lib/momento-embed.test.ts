@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { momentoEmbedText, validatePayloadForKind } from './momento-embed'
 
 describe('momentoEmbedText', () => {
@@ -132,5 +134,18 @@ describe('validatePayloadForKind', () => {
         /storageKey/,
       )
     })
+  })
+})
+
+describe('momento schema boundary', () => {
+  it('mantiene el servidor como adaptador del schema compartido de Momentos', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'netlify/functions/_lib/momento-schemas.ts'),
+      'utf8',
+    )
+
+    expect(source).toContain('../../../src/schemas/momento.js')
+    expect(source).not.toMatch(/export const Momento(?:Nota|Recorte|Foto)PayloadSchema/)
+    expect(source).not.toMatch(/function validateMomentoPayload/)
   })
 })

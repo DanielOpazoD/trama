@@ -1,10 +1,29 @@
 import type { Momento } from '../../types'
 
+export type MomentoPhotoItem = {
+  storageKey: string
+  width?: number
+  height?: number
+}
+
 /**
  * Helpers puros para Momentos. Sin React, sin queries — todo testeable
  * con vitest sin DOM. La idea es que MomentosView y sus sub-componentes
  * importen de acá para no duplicar lógica de fecha / agrupación.
  */
+
+/**
+ * URL pública para leer una foto/audio de Momentos. Codifica cada segmento
+ * por separado para que `userId/blob.ext` siga siendo un path real de dos
+ * segmentos y no dependa de `%2F`, que algunos routers tratan de forma
+ * distinta antes de entregar params al handler.
+ */
+export function momentoMediaUrl(storageKey: string): string {
+  return `/api/momentos-file/${storageKey
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')}`
+}
 
 /**
  * Devuelve "hoy" si la fecha es hoy, "ayer" si es ayer, sino la fecha
@@ -40,6 +59,61 @@ export function formatTime(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
   return d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+}
+
+function normalizePhotoItems(
+  items: Array<{
+    storageKey: string
+    width?: number
+    height?: number
+  }>,
+): MomentoPhotoItem[] {
+  return items
+    .map((item) => ({
+      storageKey: item.storageKey.trim(),
+      width: item.width,
+      height: item.height,
+    }))
+    .filter((item) => item.storageKey.length > 0)
+}
+
+/**
+ * Devuelve las fotos visibles de un momento soportando los tres formatos
+ * que existen en datos reales:
+ * - items[]: formato actual.
+ * - photos[] + primaryStorageKey: legado de fotos múltiples.
+ * - storageKey/width/height: legado de foto única.
+ *
+ * Las escrituras nuevas normalizan a items[], pero la lectura debe ser
+ * tolerante para no ocultar fotos ya persistidas.
+ */
+export function getMomentoPhotoItems(payload: Momento['payload']): MomentoPhotoItem[] {
+  const items =
+    payload.items && payload.items.length > 0
+      ? normalizePhotoItems(payload.items)
+      : payload.photos && payload.photos.length > 0
+        ? normalizePhotoItems(payload.photos)
+        : []
+
+  if (items.length > 0) {
+    const primaryKey =
+      typeof payload.primaryStorageKey === 'string'
+        ? payload.primaryStorageKey.trim()
+        : ''
+    if (!primaryKey) return items
+    const primary = items.find((item) => item.storageKey === primaryKey)
+    if (!primary) return items
+    return [primary, ...items.filter((item) => item.storageKey !== primaryKey)]
+  }
+
+  const storageKey =
+    typeof payload.storageKey === 'string' && payload.storageKey.trim()
+      ? payload.storageKey.trim()
+      : typeof payload.primaryStorageKey === 'string'
+        ? payload.primaryStorageKey.trim()
+        : ''
+
+  return storageKey ? [{ storageKey, width: payload.width, height: payload.height }] : []
 }
 
 /**

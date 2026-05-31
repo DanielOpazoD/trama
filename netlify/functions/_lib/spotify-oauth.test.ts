@@ -56,9 +56,10 @@ afterEach(() => vi.unstubAllGlobals())
  * `headers.get` que necesita el handler (url + cookie). En el runtime real el
  * navegador sí manda la cookie en el redirect de Spotify.
  */
-function reqWithCookie(url: string, cookie: string): Request {
+function reqWithCookie(url: string, cookie: string, method = 'GET'): Request {
   return {
     url,
+    method,
     headers: { get: (k: string) => (k.toLowerCase() === 'cookie' ? cookie : null) },
   } as unknown as Request
 }
@@ -71,6 +72,16 @@ function spotifyHelperSource(file: string): string {
 }
 
 describe('spotify-login — userId en cookie', () => {
+  it('rechaza métodos no GET sin crear cookies OAuth', async () => {
+    const res = await loginHandler(
+      new Request('http://localhost/api/spotify/login', { method: 'POST' }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(405)
+    expect(res.headers.get('set-cookie')).toBeNull()
+  })
+
   it('devuelve {url} y setea cookies spotify_state + spotify_uid', async () => {
     const res = await loginHandler(
       new Request('http://localhost/api/spotify/login'),
@@ -90,6 +101,20 @@ describe('spotify-login — userId en cookie', () => {
 })
 
 describe('spotify-callback — asocia el token al userId de la cookie', () => {
+  it('rechaza métodos no GET antes de intercambiar tokens', async () => {
+    const res = await callbackHandler(
+      reqWithCookie(
+        'http://localhost/api/spotify/callback?code=abc&state=OK',
+        'spotify_state=OK; spotify_uid=u1',
+        'POST',
+      ),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(405)
+    expect(saveTokens).not.toHaveBeenCalled()
+  })
+
   it('rechaza con state_mismatch si el state no coincide con la cookie', async () => {
     const res = await callbackHandler(
       reqWithCookie(
@@ -136,6 +161,18 @@ describe('spotify-callback — asocia el token al userId de la cookie', () => {
 })
 
 describe('spotify-scheduled-sync — itera por usuario', () => {
+  it('rechaza GET con 405 antes de tocar tokens', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }])
+
+    const res = await scheduledSync(
+      new Request('http://localhost/api/spotify/scheduled-sync'),
+    )
+
+    expect(res.status).toBe(405)
+    expect(getValidAccessToken).not.toHaveBeenCalled()
+    expect(markSynced).not.toHaveBeenCalled()
+  })
+
   it('sincroniza a cada usuario con token (no solo el legacy)', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }, { user_id: 'u2' }]) // SELECT user_id
     const res = await scheduledSync(

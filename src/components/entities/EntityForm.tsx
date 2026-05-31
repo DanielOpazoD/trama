@@ -77,8 +77,7 @@ export function EntityForm({
     setProactiveMatches([])
   }
 
-  async function handleSubmit(event: FormEvent, force = false) {
-    event.preventDefault()
+  async function submitEntity(force = false) {
     const trimmed = name.trim()
     if (!trimmed) return
     setDupCandidates(null)
@@ -97,6 +96,11 @@ export function EntityForm({
       }
       // otros errores ya salen vía addEntity.error
     }
+  }
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    void submitEntity()
   }
 
   // κ3: cuando el usuario picks un candidato dup, si había datos en el
@@ -303,7 +307,7 @@ export function EntityForm({
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={(e) => handleSubmit(e as unknown as FormEvent, true)}
+              onClick={() => void submitEntity(true)}
               className="text-caption uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 transition-colors"
             >
               crear igual ↪

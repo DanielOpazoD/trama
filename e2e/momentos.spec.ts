@@ -50,3 +50,29 @@ test('momentos: estado vacío muestra mensaje "Todavía no hay momentos"', async
 
   await expect(page.getByText('Todavía no hay momentos')).toBeVisible()
 })
+
+test('momentos: modo prueba muestra foto y nota de voz en timeline y album', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('trama-demo', '1')
+    window.localStorage.removeItem('trama-demo-store')
+  })
+
+  await page.goto('/?view=momentos')
+
+  await expect(page.getByRole('heading', { name: 'Momentos', level: 2 })).toBeVisible()
+  await expect(page.getByRole('img', { name: 'Cuaderno abierto' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Reproducir nota de voz' })).toBeVisible()
+  await expect(page.getByText('0:01')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Fotos' }).click()
+  await page.getByRole('button', { name: 'Álbum' }).click()
+
+  await expect(page.getByRole('tab', { name: 'medio' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(page.getByRole('img', { name: 'Cuaderno abierto' })).toBeVisible()
+  await expect(page.getByText('1 foto')).toBeVisible()
+})

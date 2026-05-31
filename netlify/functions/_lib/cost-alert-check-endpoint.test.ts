@@ -31,6 +31,18 @@ describe('cost-alert-check scheduled function', () => {
     vi.unstubAllGlobals()
   })
 
+  it('rechaza GET con 405 antes de tocar SQL o webhooks', async () => {
+    const { default: handler } = await import('../cost-alert-check')
+
+    const res = await handler(
+      new Request('http://localhost/.netlify/functions/cost-alert-check'),
+    )
+
+    expect(res.status).toBe(405)
+    expect(mockSqlResponses.calls).toHaveLength(0)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
   it('evalua gasto y alert_state por usuario, no de forma global', async () => {
     const { default: handler } = await import('../cost-alert-check')
 
@@ -45,7 +57,9 @@ describe('cost-alert-check scheduled function', () => {
     )
 
     const res = await handler(
-      new Request('http://localhost/.netlify/functions/cost-alert-check'),
+      new Request('http://localhost/.netlify/functions/cost-alert-check', {
+        method: 'POST',
+      }),
     )
 
     expect(res.status).toBe(202)
@@ -86,7 +100,9 @@ describe('cost-alert-check scheduled function', () => {
     )
 
     const res = await handler(
-      new Request('http://localhost/.netlify/functions/cost-alert-check'),
+      new Request('http://localhost/.netlify/functions/cost-alert-check', {
+        method: 'POST',
+      }),
     )
 
     expect(res.status).toBe(202)

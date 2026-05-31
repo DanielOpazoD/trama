@@ -1,8 +1,28 @@
-import { describe, it, expect, vi } from 'vitest'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { PhotoLightbox } from './PhotoLightbox'
 
 const photos = [{ storageKey: 'user/a.jpg' }, { storageKey: 'user/b.jpg' }]
+
+beforeEach(() => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn<typeof fetch>(
+      async () => new Response(new Blob(['media'], { type: 'image/jpeg' })),
+    ),
+  )
+  vi.stubGlobal(
+    'URL',
+    Object.assign(URL, {
+      createObjectURL: vi.fn(() => 'blob:lightbox'),
+      revokeObjectURL: vi.fn(),
+    }),
+  )
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('<PhotoLightbox />', () => {
   it('no renderiza nada cuando open=false', () => {

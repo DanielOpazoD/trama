@@ -11,10 +11,15 @@
  */
 
 import { getEnv } from './env.js'
+import { PROVIDER_DEFAULTS } from './llm/config.js'
+import { embedOpenAI } from './llm/providers/openai-compatible.js'
 import { logErrorEvent } from './observability.js'
 
 const OPENAI_EMBED_MODEL = 'text-embedding-3-small'
-const OPENAI_EMBED_URL = 'https://api.openai.com/v1/embeddings'
+const OPENAI_EMBED_CONFIG = {
+  ...PROVIDER_DEFAULTS.openai,
+  model: OPENAI_EMBED_MODEL,
+}
 export const EMBED_DIMS = 1536
 
 export type EmbedResult = {
@@ -110,28 +115,11 @@ export async function embed(
     if (cached) return cached
   }
   const key = readEmbeddingsKey()
-  const res = await fetch(OPENAI_EMBED_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: OPENAI_EMBED_MODEL,
-      input: cleaned,
-    }),
-  })
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw new Error(`Embeddings API error ${res.status}: ${body.slice(0, 200)}`)
-  }
-  type EmbedRes = { data: Array<{ embedding: number[] }>; model: string }
-  const json = (await res.json()) as EmbedRes
-  const vector = json.data?.[0]?.embedding
+  const { vector, model } = await embedOpenAI(key, OPENAI_EMBED_CONFIG, cleaned)
   if (!Array.isArray(vector) || vector.length !== EMBED_DIMS) {
     throw new Error('Embeddings API devolvió un vector con dimensiones inesperadas.')
   }
-  const result: EmbedResult = { vector, model: json.model ?? OPENAI_EMBED_MODEL }
+  const result: EmbedResult = { vector, model }
   setCachedEmbedding(cleaned, result)
   return result
 }

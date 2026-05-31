@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Momento, MomentoPayload } from '../../types'
 import { api } from '../../api'
 import { useMergeMomentos, useToast } from '../../state'
 import { queryKeys } from '../../state/queryClient'
+import { getMomentoPhotoItems } from './helpers'
 
 /**
  * EE: barra flotante de acción para fusionar momentos seleccionados.
@@ -36,6 +37,9 @@ export function MergeMomentosBar({
   const [primaryId, setPrimaryId] = useState<string | null>(null)
   const [newNote, setNewNote] = useState('')
   const [newCapturedAt, setNewCapturedAt] = useState('')
+  const primarySelectId = useId()
+  const noteInputId = useId()
+  const capturedAtInputId = useId()
 
   if (selected.length < 2) return null
 
@@ -50,10 +54,7 @@ export function MergeMomentosBar({
   const primary = fotos.find((m) => m.id === effectivePrimaryId) ?? null
 
   const totalPhotos = fotos.reduce((acc, m) => {
-    const items = m.payload.items
-    if (Array.isArray(items)) return acc + items.length
-    if (m.payload.storageKey) return acc + 1
-    return acc
+    return acc + getMomentoPhotoItems(m.payload).length
   }, 0)
 
   async function handleMerge() {
@@ -240,20 +241,17 @@ export function MergeMomentosBar({
         {showOptions && !confirming && fotos.length >= 2 && (
           <div className="px-4 py-3 space-y-3 bg-paper-100/40">
             <div>
-              <label className="block section-eyebrow mb-1">
+              <label htmlFor={primarySelectId} className="block section-eyebrow mb-1">
                 Cuál sobrevive (primary)
               </label>
               <select
+                id={primarySelectId}
                 value={effectivePrimaryId ?? ''}
                 onChange={(e) => setPrimaryId(e.target.value)}
                 className="input-paper w-full text-sm"
               >
                 {sortedByDate.map((m, idx) => {
-                  const itemCount = Array.isArray(m.payload.items)
-                    ? m.payload.items.length
-                    : m.payload.storageKey
-                      ? 1
-                      : 0
+                  const itemCount = getMomentoPhotoItems(m.payload).length
                   const dateShort = m.capturedAt.slice(0, 10)
                   const noteShort = m.note
                     ? ` — ${m.note.slice(0, 40)}${m.note.length > 40 ? '…' : ''}`
@@ -270,10 +268,11 @@ export function MergeMomentosBar({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block section-eyebrow mb-1">
+                <label htmlFor={noteInputId} className="block section-eyebrow mb-1">
                   Título / nota (opcional)
                 </label>
                 <input
+                  id={noteInputId}
                   type="text"
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
@@ -282,10 +281,11 @@ export function MergeMomentosBar({
                 />
               </div>
               <div>
-                <label className="block section-eyebrow mb-1">
+                <label htmlFor={capturedAtInputId} className="block section-eyebrow mb-1">
                   Fecha del evento (opcional)
                 </label>
                 <input
+                  id={capturedAtInputId}
                   type="date"
                   value={newCapturedAt.slice(0, 10)}
                   onChange={(e) =>

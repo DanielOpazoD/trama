@@ -1,7 +1,8 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
 import { getEnv } from './_lib/env.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 
 /**
  * DD7 (audit #6): scheduled function que avisa cuando el gasto IA mensual
@@ -49,7 +50,11 @@ function alertCodeForUser(userId: string): string {
   return `${ALERT_CODE_PREFIX}:${userId}`
 }
 
-export default async (_req: Request) => {
+export default async (req: Request) => {
+  if (req.method !== 'POST') {
+    return ApiErrors.methodNotAllowed(crypto.randomUUID())
+  }
+
   let sql: ReturnType<typeof getSql>
   try {
     sql = getSql()
@@ -59,7 +64,7 @@ export default async (_req: Request) => {
       reason: 'no_db',
       message: err instanceof Error ? err.message : String(err),
     })
-    return new Response(null, { status: 202 })
+    return ApiSuccess.accepted()
   }
 
   const fallbackBudget = readBudgetCents()
@@ -67,7 +72,7 @@ export default async (_req: Request) => {
 
   // Gasto del mes actual por usuario (igual que cost-cap.ts, pero batch).
   type Row = { user_id: string; total: string; monthly_budget_cents: number | null }
-  const rows = (await sql`
+  const rows = await sqlTyped<Row>(sql`
     WITH monthly_spend AS (
       SELECT user_id, COALESCE(SUM(cost_cents), 0) AS total
       FROM extraction_log
@@ -81,14 +86,14 @@ export default async (_req: Request) => {
     FROM monthly_spend s
     LEFT JOIN users u ON u.id = s.user_id
     ORDER BY s.total DESC
-  `) as Row[]
+  `)
 
   if (rows.length === 0) {
     logEvent({
       event: 'cost_alert_check_ok',
       usersChecked: 0,
     })
-    return new Response(null, { status: 202 })
+    return ApiSuccess.accepted()
   }
 
   let alerted = 0
@@ -116,9 +121,9 @@ export default async (_req: Request) => {
 
     // Sobre el threshold — ¿ya avisamos recientemente para este usuario?
     type StateRow = { last_sent_at: string }
-    const state = (await sql`
+    const state = await sqlTyped<StateRow>(sql`
       SELECT last_sent_at FROM alert_state WHERE code = ${alertCode}
-    `) as StateRow[]
+    `)
     const lastSent = state[0]?.last_sent_at ? new Date(state[0].last_sent_at) : null
     const hoursSince = lastSent ? (Date.now() - lastSent.getTime()) / 3_600_000 : Infinity
 
@@ -199,7 +204,7 @@ export default async (_req: Request) => {
     alerted,
   })
 
-  return new Response(null, { status: 202 })
+  return ApiSuccess.accepted()
 }
 
 export const config: Config = {

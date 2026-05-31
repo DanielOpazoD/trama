@@ -55,7 +55,6 @@ export function ReclassifyPanel({
 
   return (
     <section
-      role="region"
       aria-label="Propuesta de reclasificación"
       className="mb-8 ai-panel animate-ai-arrive"
     >

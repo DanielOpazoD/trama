@@ -105,9 +105,12 @@ export async function fetchPlaylist(
   }
   const playlist = (await initial.json()) as PlaylistResp
 
+  const countPlayableTracks = (items: PlaylistTrackItem[]): number =>
+    items.filter((it) => it.track?.id).length
+
   const items: PlaylistTrackItem[] = [...playlist.tracks.items]
   let next = playlist.tracks.next
-  while (next && items.length < maxTracks) {
+  while (next && countPlayableTracks(items) < maxTracks) {
     const r = await fetch(next, { headers })
     if (!r.ok) break
     const page = (await r.json()) as { items: PlaylistTrackItem[]; next: string | null }

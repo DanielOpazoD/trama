@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const FUNCTIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -15,6 +15,17 @@ const LLM_HELPER_LOG_EXEMPT: Record<string, string> = {
 
 function source(file: string): string {
   return readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
+}
+
+function productionFiles(dir = FUNCTIONS_DIR): string[] {
+  return readdirSync(dir).flatMap((entry) => {
+    const absolute = join(dir, entry)
+    const stats = statSync(absolute)
+    if (stats.isDirectory()) return productionFiles(absolute)
+    if (!absolute.match(/\.(mts|ts)$/)) return []
+    if (absolute.match(/\.test\.ts$/)) return []
+    return [relative(FUNCTIONS_DIR, absolute)]
+  })
 }
 
 describe('guardrail: LLM cost-cap y extraction_log', () => {
@@ -58,6 +69,32 @@ describe('guardrail: LLM cost-cap y extraction_log', () => {
     expect(src).toMatch(/reindex_embeddings_batch/)
     expect(src).toMatch(/estimatedCostCents/)
     expect(src).toMatch(/errors/)
+  })
+
+  it('embeddings centraliza el transporte OpenAI bajo providers LLM', () => {
+    const embeddings = source('_lib/embeddings.ts')
+    const provider = source('_lib/llm/providers/openai-compatible.ts')
+
+    expect(embeddings).not.toMatch(/https:\/\/api\.openai\.com/)
+    expect(embeddings).not.toMatch(/\bfetch\(/)
+    expect(provider).toMatch(/\/embeddings/)
+  })
+
+  it('mantiene el transporte directo a proveedores LLM encapsulado en providers', () => {
+    const offenders = productionFiles().filter((file) => {
+      if (file === '_lib/llm/config.ts') return false
+      if (file.startsWith('_lib/llm/providers/')) return false
+
+      const src = source(file)
+      return (
+        /\bfetch\s*\(/.test(src) &&
+        /api\.openai\.com|api\.deepseek\.com|api\.anthropic\.com|generativelanguage\.googleapis\.com|\/chat\/completions|\/embeddings|\/messages|generateContent/.test(
+          src,
+        )
+      )
+    })
+
+    expect(offenders).toEqual([])
   })
 
   it('cada checkMonthlyBudget pasa userId y requestId explícitos', () => {

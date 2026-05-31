@@ -13,11 +13,8 @@
  */
 
 import type { ChatTramaContext } from './chat-prompt.js'
-import type { getSql } from './db.js'
-import { sqlTyped } from './db.js'
+import { sqlTyped, type SqlClient } from './db.js'
 import { buildRagContext } from './rag-context.js'
-
-type SqlClient = ReturnType<typeof getSql>
 
 export type EntityCtxRow = {
   id: string
@@ -146,14 +143,8 @@ export async function loadChatContextForFocus(
 
   return {
     tramaContext: shapeContext(entityRows, relRows, quoteRows),
-    entityTypes:
-      entityTypeRows.length > 0
-        ? entityTypeRows.map((r) => r.slug)
-        : FALLBACK_ENTITY_TYPES,
-    relationshipTypes:
-      relTypeRows.length > 0
-        ? relTypeRows.map((r) => r.slug)
-        : FALLBACK_RELATIONSHIP_TYPES,
+    entityTypes: resolveTypeSlugs(entityTypeRows, FALLBACK_ENTITY_TYPES),
+    relationshipTypes: resolveTypeSlugs(relTypeRows, FALLBACK_RELATIONSHIP_TYPES),
     usedRag: false,
     usedHyde: false,
   }
@@ -172,39 +163,35 @@ export async function loadChatContextWithRag(
   relationshipLimit: number,
 ): Promise<LoadedChatContext> {
   const [ragCtx, eTypes, rTypes] = await Promise.all([
-    buildRagContext(
-      sql as unknown as (
-        strings: TemplateStringsArray,
-        ...values: unknown[]
-      ) => Promise<unknown>,
-      userText,
-      userId,
-      {
-        relationshipLimit,
-        // Activamos LLM-as-reranker en el chat — la calidad del
-        // contexto importa más que los ~1-2s de latencia extra.
-        rerank: true,
-        rerankOverride: {
-          provider: invocation.provider,
-          model: invocation.model,
-        },
-        // HyDE: el chat es donde más rinde, las queries suelen ser
-        // vagas y abstractas ("¿qué hay del tiempo en mis citas?").
-        hyde: true,
+    buildRagContext(sql, userText, userId, {
+      relationshipLimit,
+      // Activamos LLM-as-reranker en el chat — la calidad del
+      // contexto importa más que los ~1-2s de latencia extra.
+      rerank: true,
+      rerankOverride: {
+        provider: invocation.provider,
+        model: invocation.model,
       },
-    ),
+      // HyDE: el chat es donde más rinde, las queries suelen ser
+      // vagas y abstractas ("¿qué hay del tiempo en mis citas?").
+      hyde: true,
+    }),
     sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
     sqlTyped<TypeRow>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
   ])
 
   return {
     tramaContext: shapeContext(ragCtx.entities, ragCtx.relationships, ragCtx.quotes),
-    entityTypes: eTypes.length > 0 ? eTypes.map((r) => r.slug) : FALLBACK_ENTITY_TYPES,
-    relationshipTypes:
-      rTypes.length > 0 ? rTypes.map((r) => r.slug) : FALLBACK_RELATIONSHIP_TYPES,
+    entityTypes: resolveTypeSlugs(eTypes, FALLBACK_ENTITY_TYPES),
+    relationshipTypes: resolveTypeSlugs(rTypes, FALLBACK_RELATIONSHIP_TYPES),
     usedRag: ragCtx.usedRag,
     usedHyde: ragCtx.usedHyde ?? false,
   }
+}
+
+function resolveTypeSlugs(rows: TypeRow[], fallback: string[]): string[] {
+  const slugs = rows.map((r) => r.slug.trim()).filter(Boolean)
+  return slugs.length > 0 ? slugs : fallback
 }
 
 function shapeContext(

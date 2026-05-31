@@ -26,6 +26,7 @@ export function HojaEditor({ onClose }: { onClose: () => void }) {
   const toast = useToast()
   const taRef = useRef<HTMLTextAreaElement>(null)
   const pendingCaret = useRef<number | null>(null)
+  const suppressNextTriggerSync = useRef(false)
 
   const [text, setText] = useState('')
   // Entidades enlazadas (id → nombre), tanto por @mención como por cita
@@ -53,6 +54,7 @@ export function HojaEditor({ onClose }: { onClose: () => void }) {
       taRef.current.focus()
       taRef.current.setSelectionRange(pendingCaret.current, pendingCaret.current)
       pendingCaret.current = null
+      suppressNextTriggerSync.current = false
     }
   }, [text])
 
@@ -121,10 +123,23 @@ export function HojaEditor({ onClose }: { onClose: () => void }) {
 
   function applyText(next: string, caret: number) {
     pendingCaret.current = caret
+    suppressNextTriggerSync.current = true
     setText(next)
   }
 
+  function closeSuggestions() {
+    setTrigger(null)
+    setCaretPos(null)
+    setEntityHits([])
+    setQuoteHits([])
+    setActiveIndex(0)
+  }
+
   function syncTrigger(value: string, caret: number) {
+    if (suppressNextTriggerSync.current) {
+      closeSuggestions()
+      return
+    }
     const t = detectTrigger(value, caret)
     setTrigger(t)
     if (t && taRef.current) {
@@ -154,7 +169,7 @@ export function HojaEditor({ onClose }: { onClose: () => void }) {
     const r = replaceRange(text, trigger.start, trigger.end, `@${ent.name} `)
     applyText(r.text, r.caret)
     setLinks((prev) => new Map(prev).set(ent.id, ent.name))
-    setTrigger(null)
+    closeSuggestions()
   }
 
   function selectQuote(hit: SearchQuoteHit) {
@@ -163,7 +178,7 @@ export function HojaEditor({ onClose }: { onClose: () => void }) {
     const r = replaceRange(text, trigger.start, trigger.end, insert)
     applyText(r.text, r.caret)
     setLinks((prev) => new Map(prev).set(hit.entityId, hit.entityName))
-    setTrigger(null)
+    closeSuggestions()
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {

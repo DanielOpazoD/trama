@@ -1,11 +1,28 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ChatThreadCreateBody } from './_lib/chat-body-schemas.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
+
+type ChatThreadRow = {
+  id: string
+  title: string | null
+  context: string | null
+  created_at: string
+  updated_at: string
+  message_count: string
+}
+
+type CreatedChatThreadRow = {
+  id: string
+  title: string | null
+  context: string | null
+  created_at: string
+  updated_at: string
+}
 
 /**
  * Chat threads CRUD.
@@ -23,15 +40,7 @@ export default withObservability(
     const id = context.params.id
 
     if (req.method === 'GET') {
-      type Row = {
-        id: string
-        title: string | null
-        context: string | null
-        created_at: string
-        updated_at: string
-        message_count: string
-      }
-      const rows = (await sql`
+      const rows = await sqlTyped<ChatThreadRow>(sql`
         SELECT t.id, t.title, t.context, t.created_at, t.updated_at,
                COUNT(m.id) AS message_count
         FROM chat_threads t
@@ -40,7 +49,7 @@ export default withObservability(
         GROUP BY t.id
         ORDER BY t.updated_at DESC
         LIMIT 200
-      `) as Row[]
+      `)
       return Response.json(
         rows.map((r) => ({
           id: r.id,
@@ -60,17 +69,11 @@ export default withObservability(
       const body = parsed.data
       const title = body.title?.trim() || null
       const context = body.context?.trim() || null
-      const rows = (await sql`
+      const rows = await sqlTyped<CreatedChatThreadRow>(sql`
         INSERT INTO chat_threads (title, context, user_id)
         VALUES (${title}, ${context}, ${userId})
         RETURNING id, title, context, created_at, updated_at
-      `) as Array<{
-        id: string
-        title: string | null
-        context: string | null
-        created_at: string
-        updated_at: string
-      }>
+      `)
       const row = rows[0]
       if (!row) {
         return ApiErrors.internal(requestId, 'No se pudo crear el thread')
@@ -91,7 +94,7 @@ export default withObservability(
     if (req.method === 'DELETE' && id) {
       await ensureUserRow(sql, authedUser)
       await sql`UPDATE chat_threads SET deleted_at = NOW() WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
-      return new Response(null, { status: 204 })
+      return ApiSuccess.noContent()
     }
 
     return ApiErrors.methodNotAllowed(requestId)

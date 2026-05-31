@@ -115,4 +115,18 @@ describe('useGraphLayout', () => {
     // Las positions cambiaron (mode distinto => layout distinto).
     expect(result.current.positions).not.toBe(organic)
   })
+
+  it('recalcula by-type cuando cambia el tipo de un nodo sin cambiar ids', () => {
+    const edges: Relationship[] = []
+    const { result, rerender } = renderHook(
+      ({ nodes }: { nodes: Entity[] }) =>
+        useGraphLayout({ mode: 'by-type', nodes, edges }),
+      { initialProps: { nodes: [ent('a', 'persona'), ent('b', 'libro')] } },
+    )
+    const before = new Map(result.current.positions)
+
+    rerender({ nodes: [ent('a', 'libro'), ent('b', 'libro')] })
+
+    expect(result.current.positions).not.toEqual(before)
+  })
 })

@@ -4,6 +4,7 @@ import {
   logContextTruncation,
   DEFAULT_CONTEXT_TOKEN_BUDGET,
 } from './token-budget.js'
+import { stripTramaProposalBlock } from './proposal-markers.js'
 
 export type ChatTramaContext = {
   entities: Array<{
@@ -172,7 +173,11 @@ ${quotesBlock}`
 
   const messages: LLMMessage[] = [{ role: 'system', content: system }]
   for (const turn of history) {
-    messages.push({ role: turn.role, content: turn.content })
+    messages.push({
+      role: turn.role,
+      content:
+        turn.role === 'assistant' ? stripTramaProposalBlock(turn.content) : turn.content,
+    })
   }
   return messages
 }

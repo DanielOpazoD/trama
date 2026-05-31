@@ -122,10 +122,10 @@ export function FeaturedQuote({
  * Vive acá porque es el pair lógico del componente — moverla a un
  * `utils.ts` separado sería ceremonia.
  */
-export function pickFeaturedQuote(quotes: Quote[]): Quote | null {
+export function pickFeaturedQuote(quotes: Quote[], rerollCount = 0): Quote | null {
   if (quotes.length === 0) return null
   // Pick aleatorio. Si hay más de una cita, evitamos repetir la primera
   // del array por sesgo del orden — simplemente Math.random sobre todo.
-  const idx = Math.floor(Math.random() * quotes.length)
+  const idx = (Math.floor(Math.random() * quotes.length) + rerollCount) % quotes.length
   return quotes[idx] ?? null
 }

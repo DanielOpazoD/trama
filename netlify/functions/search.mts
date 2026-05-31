@@ -38,6 +38,9 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   const limitParam = url.searchParams.get('limit')
   const limit = Math.min(Math.max(Number.parseInt(limitParam ?? '15', 10) || 15, 1), 50)
   const mode = (url.searchParams.get('mode') ?? 'hybrid').toLowerCase()
+  if (mode !== 'hybrid' && mode !== 'lexical' && mode !== 'semantic') {
+    return ApiErrors.validation(requestId, 'mode debe ser uno de: hybrid, lexical, semantic')
+  }
   // ?rerank=true activa el LLM-as-reranker (lento, ~1-2s; alta calidad).
   // No lo usa la sidebar (que debe ser fast). Sí lo usa el chat RAG.
   const wantsRerank = url.searchParams.get('rerank') === 'true'

@@ -12,7 +12,7 @@
  * usuario sean trazables al `error_log` del servidor.
  */
 
-import { isDemoMode, demoRequest } from '../lib/demo'
+import { demoMediaResponse, isDemoMode, demoRequest } from '../lib/demo'
 
 /**
  * Read the current AI mode synchronously and convert to its header form.
@@ -45,6 +45,7 @@ export type ApiErrorCode =
   | 'AI_DISABLED'
   | 'PAYLOAD_TOO_LARGE'
   | 'UNSUPPORTED_MEDIA_TYPE'
+  | 'UNPROCESSABLE'
   | 'UPSTREAM'
   | 'INTERNAL'
 
@@ -103,6 +104,20 @@ type CanonicalErrorBody = {
   }
 }
 
+function duplicateSuggestionsFromDetails(
+  details: unknown,
+): DuplicateEntityError['suggestions'] | null {
+  if (!details || typeof details !== 'object') return null
+  const candidate = details as {
+    kind?: unknown
+    suggestions?: unknown
+  }
+  if (candidate.kind !== 'possible_duplicate') return null
+  return Array.isArray(candidate.suggestions)
+    ? (candidate.suggestions as DuplicateEntityError['suggestions'])
+    : null
+}
+
 /**
  * Parsea el body de un response non-2xx y devuelve un error tipado.
  * Maneja tres formatos:
@@ -119,7 +134,8 @@ async function parseErrorResponse(
   const requestId = response.headers.get('x-request-id')
 
   // Caso especial preservado: dup detection en /api/entities 409.
-  // Estos endpoints todavía devuelven `{ error: 'possible_duplicate', suggestions }`.
+  // El servidor nuevo usa ApiErrors.conflict + details; mantenemos el parser
+  // legacy para respuestas antiguas ya desplegadas.
   if (response.status === 409 && url.startsWith('/api/entities')) {
     try {
       const body = JSON.parse(text) as {
@@ -138,6 +154,10 @@ async function parseErrorResponse(
   try {
     const parsed = JSON.parse(text) as CanonicalErrorBody
     if (parsed.error && typeof parsed.error === 'object') {
+      if (response.status === 409 && url.startsWith('/api/entities')) {
+        const suggestions = duplicateSuggestionsFromDetails(parsed.error.details)
+        if (suggestions) return new DuplicateEntityError(suggestions)
+      }
       const code = (parsed.error.code as ApiErrorCode | undefined) ?? 'UNKNOWN'
       const message = parsed.error.message ?? `${method} ${url} → ${response.status}`
       return new ApiClientError({
@@ -161,19 +181,25 @@ async function parseErrorResponse(
   })
 }
 
+declare global {
+  interface Window {
+    /**
+     * Puente legacy de Clerk. El camino principal es setApiAuthTokenProvider();
+     * esto queda solo para compatibilidad durante la transición.
+     */
+    __clerk?: {
+      session?: {
+        getToken: () => Promise<string | null>
+      }
+    }
+  }
+}
+
 /**
  * El token de sesión entra por `setApiAuthTokenProvider()`, montado desde
  * `ApiAuthBridge` con `useAuth()` de Clerk. El fallback a `window.__clerk`
  * queda solo para compatibilidad durante la transición.
  */
-type ClerkWindow = {
-  __clerk?: {
-    session?: {
-      getToken: () => Promise<string | null>
-    }
-  }
-}
-
 export type ApiAuthTokenProvider = () => Promise<string | null>
 
 let apiAuthTokenProvider: ApiAuthTokenProvider | null = null
@@ -192,7 +218,7 @@ async function getAuthHeader(): Promise<HeadersInit> {
   if (token) return { Authorization: `Bearer ${token}` }
 
   if (typeof window === 'undefined') return {}
-  const clerk = (window as unknown as ClerkWindow).__clerk
+  const clerk = window.__clerk
   if (clerk?.session) {
     const legacyToken = await clerk.session.getToken()
     if (legacyToken) return { Authorization: `Bearer ${legacyToken}` }
@@ -200,21 +226,55 @@ async function getAuthHeader(): Promise<HeadersInit> {
   return {}
 }
 
+function setHeader(target: Record<string, string>, name: string, value: string): void {
+  const normalizedName = name.toLowerCase()
+  for (const existingName of Object.keys(target)) {
+    if (existingName.toLowerCase() === normalizedName) {
+      delete target[existingName]
+    }
+  }
+  target[name] = value
+}
+
+function mergeHeaders(
+  target: Record<string, string>,
+  source: HeadersInit | undefined,
+): void {
+  if (!source) return
+  if (source instanceof Headers) {
+    source.forEach((value, name) => setHeader(target, name, value))
+    return
+  }
+  if (Array.isArray(source)) {
+    for (const [name, value] of source) setHeader(target, name, value)
+    return
+  }
+  for (const [name, value] of Object.entries(source)) {
+    setHeader(target, name, value)
+  }
+}
+
 export async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  if (isDemoMode()) {
+    const demoMedia = demoMediaResponse(url)
+    if (demoMedia) return demoMedia
+  }
+
   const authHeader = await getAuthHeader()
   const isFormDataBody = typeof FormData !== 'undefined' && init?.body instanceof FormData
+  const headers: Record<string, string> = {}
+  setHeader(headers, 'X-AI-Mode', aiModeHeader())
+  if (!isFormDataBody) setHeader(headers, 'Content-Type', 'application/json')
+  mergeHeaders(headers, authHeader)
+  mergeHeaders(headers, init?.headers)
+
   return fetch(url, {
     ...init,
-    headers: {
-      'X-AI-Mode': aiModeHeader(),
-      ...(isFormDataBody ? {} : { 'Content-Type': 'application/json' }),
-      ...authHeader,
-      ...init?.headers,
-    },
+    headers,
   })
 }
 
-export async function request<T = any>(url: string, init?: RequestInit): Promise<T> {
+export async function request<T = unknown>(url: string, init?: RequestInit): Promise<T> {
   // Modo prueba: servimos desde el store local en vez de pegar a /api/*.
   if (isDemoMode()) return demoRequest<T>(url, init)
   const response = await apiFetch(url, init)

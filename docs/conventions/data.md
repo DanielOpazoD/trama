@@ -49,7 +49,7 @@ const blob = await store.getWithMetadata(key, { type: 'arrayBuffer' })
 - Mime y tamaño en `metadata`. Strip EXIF NO se hace (defer hasta que importe — el endpoint que sirve no expone metadata extra).
 - El cliente NUNCA llama a Netlify Blobs directo. Siempre via los endpoints
   `/api/momentos-upload`, `/api/momentos-audio-upload` y
-  `/api/momentos-file/:key`.
+  `/api/momentos-file/:userId/:key` o `/api/momentos-file/:key` legacy.
 
 ## Costos y observabilidad
 
@@ -69,3 +69,15 @@ El endpoint `/api/extraction-log` lo expone para una UI futura.
 Errores de cualquier function se persisten en `error_log` vía `persistError()` en `_lib/observability.ts`. Cada fila incluye `request_id` (FF1) que linkea al header `x-request-id` que vio el cliente — un reporte de usuario es trazable a la fila exacta del log con una query. El endpoint `/api/error-log` los expone (también para futura UI).
 
 `AI_MONTHLY_BUDGET_CENTS` corta llamadas al LLM cuando se alcanza el cap mensual. Es la única protección de gasto que queda (no hay rate limit por IP — fue removido conscientemente).
+
+## Hard delete allowlist
+
+La regla general sigue siendo soft-delete para toda tabla con `deleted_at`. Los
+`DELETE FROM` restantes son excepciones explícitas y verificadas por
+`npm run check:hard-delete-allowlist`:
+
+- `ai_task_providers`: override por usuario; borrar la row significa volver al default de entorno.
+- `alert_state`: throttle efímero de alertas de costo.
+- `entity_types` / `relationship_types`: catálogo global sin `deleted_at`; el endpoint rechaza borrar slugs en uso visible.
+- `llm_cache`: GC de cache expirado.
+- `spotify_tokens` / `x_tokens`: desconexión OAuth; se elimina material secreto.

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { AudioNote } from './AudioNote'
 
 /**
@@ -12,21 +12,35 @@ import { AudioNote } from './AudioNote'
 beforeEach(() => {
   vi.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
   vi.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+  vi.stubGlobal(
+    'fetch',
+    vi.fn<typeof fetch>(
+      async () => new Response(new Blob(['audio'], { type: 'audio/mpeg' })),
+    ),
+  )
+  vi.stubGlobal(
+    'URL',
+    Object.assign(URL, {
+      createObjectURL: vi.fn(() => 'blob:audio-note'),
+      revokeObjectURL: vi.fn(),
+    }),
+  )
 })
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 
 describe('<AudioNote />', () => {
-  it('renderiza el botón play y el <audio> con el src dado', () => {
+  it('renderiza el botón play y el <audio> con el src autenticado', async () => {
     const { container } = render(<AudioNote src="/api/momentos-file/u%2Fa.mp3" />)
     expect(
       screen.getByRole('button', { name: /reproducir nota de voz/i }),
     ).toBeInTheDocument()
     const audio = container.querySelector('audio')
     expect(audio).not.toBeNull()
-    expect(audio).toHaveAttribute('src', '/api/momentos-file/u%2Fa.mp3')
+    await waitFor(() => expect(audio).toHaveAttribute('src', 'blob:audio-note'))
   })
 
   it('al hacer click reproduce y alterna a pausar', () => {

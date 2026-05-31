@@ -1,6 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { MissingDatabaseConnectionError } from '@netlify/database'
-import { getSql } from './_lib/db.js'
+import { getSql, isMissingDatabaseConnectionError, sqlTyped } from './_lib/db.js'
 import {
   fetchBookmarks,
   getValidAccessToken,
@@ -12,6 +11,12 @@ import {
 import { resolveAIInvocation } from './_lib/ai-mode.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
+
+type XTokenUserRow = {
+  user_id: string
+  x_user_id: string | null
+}
 
 /**
  * Netlify Scheduled Function — sincroniza los bookmarks de X de cada usuario
@@ -26,6 +31,10 @@ import { logEvent, logErrorEvent } from './_lib/observability.js'
  */
 export default async (req: Request) => {
   const requestId = crypto.randomUUID()
+  if (req.method !== 'POST') {
+    return ApiErrors.methodNotAllowed(requestId)
+  }
+
   let nextRun = 'unknown'
   try {
     const body = (await req.json().catch(() => ({}))) as { next_run?: string }
@@ -38,24 +47,24 @@ export default async (req: Request) => {
   try {
     sql = getSql()
   } catch (err) {
-    if (err instanceof MissingDatabaseConnectionError) {
+    if (isMissingDatabaseConnectionError(err)) {
       logErrorEvent({
         event: 'x_scheduled_sync_skipped',
         reason: 'no_db_url',
         message: 'Netlify Database no está conectada (NETLIFY_DB_URL falta)',
       })
-      return new Response(null, { status: 202 })
+      return ApiSuccess.accepted()
     }
     throw err
   }
 
-  const userRows = (await sql`
+  const userRows = await sqlTyped<XTokenUserRow>(sql`
     SELECT user_id, x_user_id FROM x_tokens
-  `.catch(() => [])) as Array<{ user_id: string; x_user_id: string | null }>
+  `.catch(() => []))
 
   if (userRows.length === 0) {
     logEvent({ event: 'x_scheduled_sync_skipped', reason: 'not_connected', nextRun })
-    return new Response(null, { status: 202 })
+    return ApiSuccess.accepted()
   }
 
   let fetched = 0
@@ -128,7 +137,7 @@ export default async (req: Request) => {
     failures,
     nextRun,
   })
-  return new Response(null, { status: 202 })
+  return ApiSuccess.accepted()
 }
 
 export const config: Config = {

@@ -64,4 +64,22 @@ describe('AuthGate', () => {
     expect(screen.getByTestId('app-shell')).toBeInTheDocument()
     expect(screen.queryByTestId('clerk-sign-in')).not.toBeInTheDocument()
   })
+
+  it('keeps the demo banner above the mobile bottom navigation', () => {
+    vi.stubEnv('VITE_CLERK_PUBLISHABLE_KEY', 'pk_test_trama')
+    localStorage.setItem('trama-demo', '1')
+
+    render(
+      <AuthGate>
+        <div data-testid="app-shell">Trama app</div>
+      </AuthGate>,
+    )
+
+    const banner = screen.getByText('modo prueba').closest('div')
+
+    expect(screen.getByTestId('app-shell')).toBeInTheDocument()
+    expect(banner).toHaveClass('top-14')
+    expect(banner).toHaveClass('md:top-auto')
+    expect(banner).toHaveClass('md:bottom-3')
+  })
 })

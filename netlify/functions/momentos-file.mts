@@ -3,9 +3,11 @@ import { getStore } from '@netlify/blobs'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 
 /**
  * GET /api/momentos-file/:key
+ * GET /api/momentos-file/:userId/:key
  *
  * Sirve un blob de "momentos-media" como respuesta de imagen. Solo expone
  * mime type + bytes — los metadatos extra (EXIF, etc.) viven en el blob
@@ -27,29 +29,99 @@ import { getAuthedUser } from './_lib/auth.js'
  */
 const LEGACY_USER_ID = 'legacy-single-user'
 
+type LegacyMediaReferenceRow = {
+  referenced: boolean
+}
+
+function decodeStorageKey(rawKey: string): string | null {
+  try {
+    return decodeURIComponent(rawKey)
+  } catch {
+    return null
+  }
+}
+
+function readRawStorageKey(context: Context): string | null {
+  const rawKey = context.params.key
+  if (!rawKey) return null
+
+  const rawUserId = context.params.userId
+  return rawUserId ? `${rawUserId}/${rawKey}` : rawKey
+}
+
+async function isLegacyMediaReferencedByUser(
+  userId: string,
+  storageKey: string,
+): Promise<boolean> {
+  const sql = getSql()
+  const rows = await sqlTyped<LegacyMediaReferenceRow>(sql`
+    SELECT EXISTS (
+      SELECT 1
+      FROM momentos
+      WHERE user_id = ${userId}
+        AND kind = 'foto'
+        AND deleted_at IS NULL
+        AND (
+          payload->>'storageKey' = ${storageKey}
+          OR payload->>'audioKey' = ${storageKey}
+          OR EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(
+              CASE
+                WHEN jsonb_typeof(payload->'items') = 'array' THEN payload->'items'
+                ELSE '[]'::jsonb
+              END
+            ) item
+            WHERE item->>'storageKey' = ${storageKey}
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(
+              CASE
+                WHEN jsonb_typeof(payload->'photos') = 'array' THEN payload->'photos'
+                ELSE '[]'::jsonb
+              END
+            ) photo
+            WHERE photo->>'storageKey' = ${storageKey}
+          )
+        )
+    ) AS referenced
+  `)
+  return rows[0]?.referenced === true
+}
+
+async function canReadStorageKey(userId: string, key: string): Promise<boolean> {
+  const slashIdx = key.indexOf('/')
+  if (slashIdx > 0) {
+    const keyUserId = key.slice(0, slashIdx)
+    if (keyUserId === userId) return true
+    if (keyUserId !== LEGACY_USER_ID) return false
+    return isLegacyMediaReferencedByUser(userId, key)
+  }
+
+  if (userId === LEGACY_USER_ID) return true
+  return isLegacyMediaReferencedByUser(userId, key)
+}
+
 export default withObservability(
   'momentos-file',
   async (req: Request, context: Context, { requestId }) => {
     if (req.method !== 'GET') {
       return ApiErrors.methodNotAllowed(requestId)
     }
-    const key = context.params.key
-    if (!key) return ApiErrors.validation(requestId, 'key requerida')
+    const rawKey = readRawStorageKey(context)
+    if (!rawKey) return ApiErrors.validation(requestId, 'key requerida')
+
+    const key = decodeStorageKey(rawKey)
+    if (!key) return ApiErrors.validation(requestId, 'key inválida')
 
     const { id: userId } = await getAuthedUser(req)
 
-    // Autorización por path: si la key tiene formato user/hash.ext,
-    // el primer segmento es el userId y debe coincidir con el authed.
-    const slashIdx = key.indexOf('/')
-    if (slashIdx > 0) {
-      const keyUserId = key.slice(0, slashIdx)
-      if (keyUserId !== userId) {
-        // No leakeamos si existe o no — devolvemos notFound igual.
-        return ApiErrors.notFound(requestId, 'No encontrado')
-      }
-    } else if (userId !== LEGACY_USER_ID) {
-      // Legacy blobs pre-Clerk no llevan namespace; solo el owner legacy
-      // debe poder leerlos durante el cutover.
+    // Autorización por path:
+    // - Keys nuevas: el primer segmento debe coincidir con el userId.
+    // - Keys legacy: el usuario legacy puede leerlas directo; otros usuarios
+    //   solo si un Momento foto activo suyo referencia exactamente esa key.
+    if (!(await canReadStorageKey(userId, key))) {
       return ApiErrors.notFound(requestId, 'No encontrado')
     }
 
@@ -76,5 +148,5 @@ export default withObservability(
 // uniformamos a `momentos-file` por consistencia y para reducir riesgo
 // de cualquier ambigüedad futura del router.
 export const config: Config = {
-  path: '/api/momentos-file/:key',
+  path: ['/api/momentos-file/:key', '/api/momentos-file/:userId/:key'],
 }

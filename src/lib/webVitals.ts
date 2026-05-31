@@ -20,6 +20,7 @@
  */
 
 import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from 'web-vitals'
+import { apiFetch } from '../api/request'
 
 type Reporter = (metric: Metric) => void
 
@@ -70,17 +71,16 @@ const defaultReporter: Reporter = (metric) => {
   try {
     const blob = new Blob([payload], { type: 'application/json' })
     if (typeof navigator.sendBeacon === 'function') {
-      navigator.sendBeacon('/api/web-vitals', blob)
-    } else {
-      // Fallback: fetch keepalive (Safari iOS no soporta sendBeacon en
-      // todas las versiones aún).
-      void fetch('/api/web-vitals', {
-        method: 'POST',
-        body: payload,
-        headers: { 'Content-Type': 'application/json' },
-        keepalive: true,
-      }).catch(() => {})
+      const queued = navigator.sendBeacon('/api/web-vitals', blob)
+      if (queued) return
     }
+    // Fallback: fetch keepalive (Safari iOS no soporta sendBeacon en
+    // todas las versiones aún; Beacon también puede rechazar el queue).
+    void apiFetch('/api/web-vitals', {
+      method: 'POST',
+      body: payload,
+      keepalive: true,
+    }).catch(() => {})
   } catch {
     /* nunca dejar que web-vitals reporting crashee la app */
   }

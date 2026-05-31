@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useAuthenticatedMediaSrc } from './AuthenticatedMedia'
 
 /**
  * Reproductor compacto para una nota de voz de un momento foto.
@@ -14,6 +15,7 @@ import { useRef, useState } from 'react'
  */
 export function AudioNote({ src, className = '' }: { src: string; className?: string }) {
   const audioRef = useRef<HTMLAudioElement>(null)
+  const resolvedSrc = useAuthenticatedMediaSrc(src)
   const [playing, setPlaying] = useState(false)
   const [current, setCurrent] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -63,7 +65,7 @@ export function AudioNote({ src, className = '' }: { src: string; className?: st
       </span>
       <audio
         ref={audioRef}
-        src={src}
+        src={resolvedSrc ?? undefined}
         preload="metadata"
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
         onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}

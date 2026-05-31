@@ -8,13 +8,18 @@ import {
 } from './_lib/x/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * Callback OAuth2 de X. Verifica el state (CSRF), intercambia el code usando el
  * code_verifier de la cookie (PKCE), trae el perfil y guarda los tokens
  * asociados al usuario (cookie x_uid). El userId NO viaja por X → no se forja.
  */
-export default withObservability('x-callback', async (req) => {
+export default withObservability('x-callback', async (req, _ctx, { requestId }) => {
+  if (req.method !== 'GET') {
+    return ApiErrors.methodNotAllowed(requestId)
+  }
+
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
   const error = url.searchParams.get('error')

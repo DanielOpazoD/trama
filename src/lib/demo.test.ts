@@ -53,6 +53,22 @@ describe('demo — seed + lecturas', () => {
     expect(Array.isArray(page.items)).toBe(true)
   })
 
+  it('siembra un momento foto con media local para probar timeline y album', async () => {
+    const page = await demoRequest<{ items: Array<Record<string, unknown>> }>(
+      '/api/momentos?limit=50',
+    )
+    const foto = page.items.find((item) => item.kind === 'foto')
+
+    expect(foto).toMatchObject({
+      kind: 'foto',
+      payload: {
+        caption: 'Cuaderno abierto',
+        storageKey: 'demo/cuaderno.svg',
+        audioKey: 'demo/nota-voz.wav',
+      },
+    })
+  })
+
   it('GET /api/health devuelve counts coherentes con el seed', async () => {
     const health = await demoRequest<{ counts: Record<string, number> }>('/api/health')
     expect(health.counts.entities).toBe(6)

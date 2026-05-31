@@ -9,7 +9,7 @@ import {
   type ExistingRelPair,
 } from './_lib/proactive-prompt.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
@@ -43,6 +43,30 @@ type Suggestion = {
   statusChangedAt: string | null
 }
 
+type SuggestionRow = {
+  id: string
+  kind: string
+  payload: unknown
+  status: 'pending' | 'applied' | 'dismissed'
+  provider: string | null
+  model: string | null
+  created_at: string
+  status_changed_at: string | null
+}
+
+function suggestionFromRow(row: SuggestionRow): Suggestion {
+  return {
+    id: row.id,
+    kind: row.kind,
+    payload: row.payload,
+    status: row.status,
+    provider: row.provider,
+    model: row.model,
+    createdAt: row.created_at,
+    statusChangedAt: row.status_changed_at,
+  }
+}
+
 export default withObservability(
   'proactive-suggestions',
   async (req: Request, context: Context, { requestId }) => {
@@ -54,36 +78,15 @@ export default withObservability(
     if (req.method === 'GET') {
       const url = new URL(req.url)
       const status = url.searchParams.get('status') ?? 'pending'
-      type Row = {
-        id: string
-        kind: string
-        payload: unknown
-        status: 'pending' | 'applied' | 'dismissed'
-        provider: string | null
-        model: string | null
-        created_at: string
-        status_changed_at: string | null
-      }
-      const rows = (await sql`
+      const rows = await sqlTyped<SuggestionRow>(sql`
         SELECT id, kind, payload, status, provider, model, created_at, status_changed_at
         FROM proactive_suggestions
         WHERE status = ${status}
           AND user_id = ${userId}
         ORDER BY created_at DESC
         LIMIT 200
-      `) as Row[]
-      return Response.json(
-        rows.map((r) => ({
-          id: r.id,
-          kind: r.kind,
-          payload: r.payload,
-          status: r.status,
-          provider: r.provider,
-          model: r.model,
-          createdAt: r.created_at,
-          statusChangedAt: r.status_changed_at,
-        })) as Suggestion[],
-      )
+      `)
+      return Response.json(rows.map(suggestionFromRow))
     }
 
     if (req.method === 'POST') {
@@ -271,32 +274,14 @@ export default withObservability(
         // we don't dedupe across rounds aggressively — the UI can clear.
         const inserted: Suggestion[] = []
         for (const s of accepted) {
-          const rows = (await sql`
+          const rows = await sqlTyped<SuggestionRow>(sql`
             INSERT INTO proactive_suggestions (kind, payload, provider, model, user_id)
             VALUES (${s.kind}, ${JSON.stringify(s.payload)}::jsonb, ${usage.provider}, ${usage.model}, ${userId})
             RETURNING id, kind, payload, status, provider, model, created_at, status_changed_at
-          `) as Array<{
-            id: string
-            kind: string
-            payload: unknown
-            status: 'pending' | 'applied' | 'dismissed'
-            provider: string | null
-            model: string | null
-            created_at: string
-            status_changed_at: string | null
-          }>
+          `)
           const r = rows[0]
           if (!r) continue
-          inserted.push({
-            id: r.id,
-            kind: r.kind,
-            payload: r.payload,
-            status: r.status,
-            provider: r.provider,
-            model: r.model,
-            createdAt: r.created_at,
-            statusChangedAt: r.status_changed_at,
-          })
+          inserted.push(suggestionFromRow(r))
         }
 
         logEvent({
@@ -343,7 +328,7 @@ export default withObservability(
         SET status = ${nextStatus}, status_changed_at = NOW()
         WHERE id = ${id} AND user_id = ${userId}
       `
-      return new Response(null, { status: 204 })
+      return ApiSuccess.noContent()
     }
 
     return ApiErrors.methodNotAllowed(requestId)

@@ -1,10 +1,12 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { RelationshipTypeUpsertBody } from './_lib/admin-schemas.js'
 import { getAuthedUser } from './_lib/auth.js'
+
+type UsageRow = { n: string }
 
 /**
  * Catálogo global de tipos de relación. Mismo patrón que entity-types:
@@ -47,9 +49,9 @@ export default withObservability('relationship-types', async (req: Request, cont
 
   if (req.method === 'DELETE' && slug) {
     await getAuthedUser(req)
-    const usage = (await sql`
+    const usage = await sqlTyped<UsageRow>(sql`
       SELECT COUNT(*) AS n FROM relationships WHERE type = ${slug} AND deleted_at IS NULL
-    `) as Array<{ n: string }>
+    `)
     if (Number(usage[0]?.n ?? 0) > 0) {
       return ApiErrors.conflict(
         requestId,
@@ -57,7 +59,7 @@ export default withObservability('relationship-types', async (req: Request, cont
       )
     }
     await sql`DELETE FROM relationship_types WHERE slug = ${slug}`
-    return new Response(null, { status: 204 })
+    return ApiSuccess.noContent()
   }
 
   return ApiErrors.methodNotAllowed(requestId)

@@ -62,4 +62,51 @@ describe('web-vitals endpoint', () => {
       ),
     ).toBe(false)
   })
+
+  it('body JSON inválido devuelve 400 canónico y no persiste muestras vacías', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/web-vitals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{',
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toMatchObject({
+      error: { code: 'VALIDATION', message: 'Body JSON inválido' },
+    })
+    expect(
+      mockSqlResponses.calls.some((c) =>
+        /INSERT INTO web_vitals_samples/i.test(c.template),
+      ),
+    ).toBe(false)
+  })
+
+  it('body JSON válido pero sin métrica requerida devuelve 400 y no persiste', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/web-vitals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: '/inicio' }),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body).toMatchObject({ error: { code: 'VALIDATION' } })
+    expect(body.error.details.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: 'name' }),
+        expect.objectContaining({ path: 'value' }),
+      ]),
+    )
+    expect(
+      mockSqlResponses.calls.some((c) =>
+        /INSERT INTO web_vitals_samples/i.test(c.template),
+      ),
+    ).toBe(false)
+  })
 })

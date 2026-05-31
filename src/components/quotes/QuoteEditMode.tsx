@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { Entity, Quote } from '../../types'
 
 /**
@@ -37,6 +37,7 @@ export function QuoteEditMode({
   const [textDraft, setTextDraft] = useState(quote.text)
   const [sourceDraft, setSourceDraft] = useState(quote.source ?? '')
   const [entityIdDraft, setEntityIdDraft] = useState(quote.entityId)
+  const entitySelectId = useId()
 
   async function handleSave() {
     const text = textDraft.trim()
@@ -71,8 +72,11 @@ export function QuoteEditMode({
         className="input-paper w-full text-sm"
       />
       <div>
-        <label className="section-eyebrow block mb-1">atribuida a</label>
+        <label htmlFor={entitySelectId} className="section-eyebrow block mb-1">
+          atribuida a
+        </label>
         <select
+          id={entitySelectId}
           value={entityIdDraft}
           onChange={(e) => setEntityIdDraft(e.target.value)}
           className="input-paper w-full text-sm"

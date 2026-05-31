@@ -19,9 +19,24 @@ import * as apiModule from '../../api'
 
 beforeEach(() => {
   vi.restoreAllMocks()
+  let objectUrlIndex = 0
+  vi.stubGlobal(
+    'fetch',
+    vi.fn<typeof fetch>(
+      async () => new Response(new Blob(['media'], { type: 'image/jpeg' })),
+    ),
+  )
+  vi.stubGlobal(
+    'URL',
+    Object.assign(URL, {
+      createObjectURL: vi.fn(() => `blob:orphan-${++objectUrlIndex}`),
+      revokeObjectURL: vi.fn(),
+    }),
+  )
 })
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 
 describe('RescueOrphansPanel', () => {
@@ -48,10 +63,11 @@ describe('RescueOrphansPanel', () => {
       expect(screen.getByText(/recuperar todas \(2\)/i)).toBeInTheDocument()
     })
     expect(screen.getAllByRole('img')).toHaveLength(2)
-    // src apunta a /api/momentos-file/:key
     const imgs = screen.getAllByRole('img') as HTMLImageElement[]
-    expect(imgs[0]!.src).toContain('/api/momentos-file/abc.jpg')
-    expect(imgs[1]!.src).toContain('/api/momentos-file/def.png')
+    await waitFor(() => {
+      expect(imgs[0]!.src).toContain('blob:orphan-1')
+      expect(imgs[1]!.src).toContain('blob:orphan-2')
+    })
   })
 
   it('al recuperar un blob, lo quita de la lista', async () => {

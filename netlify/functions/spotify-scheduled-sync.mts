@@ -1,6 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
-import { MissingDatabaseConnectionError } from '@netlify/database'
+import { getSql, isMissingDatabaseConnectionError } from './_lib/db.js'
 import {
   fetchRecentlyPlayed,
   getValidAccessToken,
@@ -8,6 +7,7 @@ import {
   storePlays,
 } from './_lib/spotify/index.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 
 /**
  * Netlify Scheduled Function — Netlify invokes this on its own clock.
@@ -22,6 +22,10 @@ import { logEvent, logErrorEvent } from './_lib/observability.js'
  * Return value is ignored by Netlify; we return 202 by convention.
  */
 export default async (req: Request) => {
+  if (req.method !== 'POST') {
+    return ApiErrors.methodNotAllowed(crypto.randomUUID())
+  }
+
   let nextRun = 'unknown'
   try {
     const body = (await req.json().catch(() => ({}))) as { next_run?: string }
@@ -34,13 +38,13 @@ export default async (req: Request) => {
   try {
     sql = getSql()
   } catch (err) {
-    if (err instanceof MissingDatabaseConnectionError) {
+    if (isMissingDatabaseConnectionError(err)) {
       logErrorEvent({
         event: 'spotify_scheduled_sync_skipped',
         reason: 'no_db_url',
         message: 'Netlify Database no está conectada (NETLIFY_DB_URL falta)',
       })
-      return new Response(null, { status: 202 })
+      return ApiSuccess.accepted()
     }
     throw err
   }
@@ -53,7 +57,7 @@ export default async (req: Request) => {
 
   if (userRows.length === 0) {
     logEvent({ event: 'spotify_scheduled_sync_skipped', reason: 'not_connected', nextRun })
-    return new Response(null, { status: 202 })
+    return ApiSuccess.accepted()
   }
 
   let fetched = 0
@@ -96,7 +100,7 @@ export default async (req: Request) => {
     nextRun,
   })
 
-  return new Response(null, { status: 202 })
+  return ApiSuccess.accepted()
 }
 
 export const config: Config = {

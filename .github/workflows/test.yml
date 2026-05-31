@@ -41,6 +41,9 @@ jobs:
       - name: Format check
         run: npm run format:check
 
+      - name: Documentation drift check
+        run: npm run check:docs-drift
+
   unit:
     runs-on: ubuntu-latest
     steps:

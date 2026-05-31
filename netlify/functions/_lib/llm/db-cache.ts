@@ -20,7 +20,7 @@
  * round-trip a Neon termina siendo costoso para el patrón de uso real.
  */
 
-import { getSql } from '../db.js'
+import { getSql, sqlTyped } from '../db.js'
 import { getEnv } from '../env.js'
 import type { LLMResult } from './types.js'
 
@@ -39,6 +39,10 @@ type DbRow = {
   expires_at: string
 }
 
+type ExpiredCacheRow = {
+  hash: string
+}
+
 /**
  * Lookup del cache persistente. Devuelve LLMResult marcado fromCache=true,
  * o null si no hay match o el row expiró. Best-effort: si la DB falla
@@ -49,12 +53,12 @@ export async function getCachedFromDB(hash: string): Promise<LLMResult | null> {
   if (!dbCacheEnabled()) return null
   try {
     const sql = getSql()
-    const rows = (await sql`
+    const rows = await sqlTyped<DbRow>(sql`
       SELECT content, provider, model, tokens_in, tokens_out, cost_cents, expires_at
       FROM llm_cache
       WHERE hash = ${hash} AND expires_at > NOW()
       LIMIT 1
-    `) as DbRow[]
+    `)
     const row = rows[0]
     if (!row) return null
     return {
@@ -122,10 +126,10 @@ export async function cleanupExpiredCache(): Promise<number> {
   if (!dbCacheEnabled()) return 0
   try {
     const sql = getSql()
-    const result = (await sql`
+    const result = await sqlTyped<ExpiredCacheRow>(sql`
       DELETE FROM llm_cache WHERE expires_at < NOW()
       RETURNING hash
-    `) as Array<{ hash: string }>
+    `)
     return result.length
   } catch {
     return 0

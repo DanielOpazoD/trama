@@ -15,15 +15,40 @@ import { buildRagContext } from './_lib/rag-context.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 
 const FALLBACK_ENTITY_TYPES = [
-  'persona', 'escritor', 'filosofo', 'musico', 'banda', 'director', 'artista', 'cientifico',
-  'libro', 'ensayo', 'poema', 'articulo',
-  'cancion', 'podcast', 'album', 'disco',
-  'pelicula', 'serie', 'documental',
-  'obra', 'concepto', 'idea', 'lugar', 'evento',
+  'persona',
+  'escritor',
+  'filosofo',
+  'musico',
+  'banda',
+  'director',
+  'artista',
+  'cientifico',
+  'libro',
+  'ensayo',
+  'poema',
+  'articulo',
+  'cancion',
+  'podcast',
+  'album',
+  'disco',
+  'pelicula',
+  'serie',
+  'documental',
+  'obra',
+  'concepto',
+  'idea',
+  'lugar',
+  'evento',
 ]
 const FALLBACK_RELATIONSHIP_TYPES = [
-  'influye_en', 'cita_a', 'responde_a', 'me_llego_por',
-  'suena_como', 'inspira', 'contradice', 'asociado_con',
+  'influye_en',
+  'cita_a',
+  'responde_a',
+  'me_llego_por',
+  'suena_como',
+  'inspira',
+  'contradice',
+  'asociado_con',
 ]
 
 // Legacy context limits, kept as fallback for the (very rare) case where
@@ -33,7 +58,13 @@ const FALLBACK_REL_LIMIT = 100
 
 type ViewSlug = AskContext['view']
 const VALID_VIEWS: ViewSlug[] = [
-  'grafo', 'entidades', 'citas', 'relaciones', 'escuchas', 'chat', 'sugerencias',
+  'grafo',
+  'entidades',
+  'citas',
+  'relaciones',
+  'escuchas',
+  'chat',
+  'sugerencias',
 ]
 
 export default withObservability('ask', async (req, _ctx, { requestId }) => {
@@ -80,13 +111,13 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
     if (threadRows.length === 0) {
       return ApiErrors.notFound(requestId, 'Thread no encontrado')
     }
-    const rows = (await sql`
+    const rows = await sqlTyped<HistoryRow>(sql`
       SELECT role, content
       FROM chat_messages
       WHERE thread_id = ${incomingThreadId} AND user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT 10
-    `) as HistoryRow[]
+    `)
     history = rows.slice().reverse()
   }
 
@@ -105,30 +136,34 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
   // Retrieval-augmented context: semantic top-K + recency, merged, y
   // opcionalmente reordenado por el LLM como cross-encoder informal.
   const [ragCtx, entityTypeRows, relTypeRows, selectedRows] = await Promise.all([
-    buildRagContext(
-      sql as unknown as (
-        strings: TemplateStringsArray,
-        ...values: unknown[]
-      ) => Promise<unknown>,
-      userText,
-      userId,
-      {
-        relationshipLimit: FALLBACK_REL_LIMIT,
-        rerank: true,
-        rerankOverride,
-        // HyDE on para queries con substancia. Para una captura
-        // ("pega: cita...") no aporta; para "qué tengo sobre X" mejora
-        // mucho el recall. La función lo desactiva sola si la query es
-        // muy corta o larga.
-        hyde: true,
-      },
-    ),
+    buildRagContext(sql, userText, userId, {
+      relationshipLimit: FALLBACK_REL_LIMIT,
+      rerank: true,
+      rerankOverride,
+      // HyDE on para queries con substancia. Para una captura
+      // ("pega: cita...") no aporta; para "qué tengo sobre X" mejora
+      // mucho el recall. La función lo desactiva sola si la query es
+      // muy corta o larga.
+      hyde: true,
+    }),
     sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
     sqlTyped<TypeRow>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
     body.selectedEntityId
-      ? sqlTyped<{ id: string; name: string; type: string; description: string | null }>(sql`SELECT id, name, type, description FROM entities
+      ? sqlTyped<{
+          id: string
+          name: string
+          type: string
+          description: string | null
+        }>(sql`SELECT id, name, type, description FROM entities
               WHERE id = ${body.selectedEntityId} AND deleted_at IS NULL AND user_id = ${userId}`)
-      : Promise.resolve([] as Array<{ id: string; name: string; type: string; description: string | null }>),
+      : Promise.resolve(
+          [] as Array<{
+            id: string
+            name: string
+            type: string
+            description: string | null
+          }>,
+        ),
   ])
 
   const entityTypes =
@@ -191,9 +226,7 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
     // against real rows. Without this the validator drops them entirely as
     // a safety default.
     const existingIds = {
-      entities: new Map(
-        ctx.entities.map((e) => [e.id, { name: e.name, type: e.type }]),
-      ),
+      entities: new Map(ctx.entities.map((e) => [e.id, { name: e.name, type: e.type }])),
       quotes: new Map(
         ctx.recentQuotes.map((q) => [q.id, { text: q.text, entityName: q.entityName }]),
       ),
@@ -262,9 +295,9 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
     let activeThreadId: string | null = incomingThreadId
     if (!activeThreadId && view) {
       type TIdRow = { id: string }
-      const created = (await sql`
+      const created = await sqlTyped<TIdRow>(sql`
         INSERT INTO chat_threads (context, user_id) VALUES (${view}, ${userId}) RETURNING id
-      `) as TIdRow[]
+      `)
       activeThreadId = created[0]?.id ?? null
     }
 
@@ -295,7 +328,9 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
         )
       `.catch(() => {})
       // Bump the thread so it sorts to the top of the rail.
-      await sql`UPDATE chat_threads SET updated_at = NOW() WHERE id = ${activeThreadId} AND user_id = ${userId}`.catch(() => {})
+      await sql`UPDATE chat_threads SET updated_at = NOW() WHERE id = ${activeThreadId} AND user_id = ${userId}`.catch(
+        () => {},
+      )
     }
 
     return Response.json({

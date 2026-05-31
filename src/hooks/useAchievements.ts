@@ -108,6 +108,7 @@ function detectAchievements(counts: Counts, seen: Set<string>): Achievement[] {
 
 export function useAchievements(counts: Counts): void {
   const toast = useToast()
+  const { entities, quotes, relationships } = counts
   // Ref para evitar re-disparar en el mismo render-cycle o cuando React
   // re-renderea con los mismos counts. La fuente de verdad es localStorage.
   const seenRef = useRef<Set<string>>(readSeen())
@@ -117,10 +118,10 @@ export function useAchievements(counts: Counts): void {
     // Sin esto, en el primer render con data llegando 0,0,0 marcaríamos
     // umbrales de 0 que después subirían a sus valores reales — el patrón
     // "crossover" se rompe.
-    const total = counts.entities + counts.quotes + counts.relationships
+    const total = entities + quotes + relationships
     if (total === 0) return
 
-    const fresh = detectAchievements(counts, seenRef.current)
+    const fresh = detectAchievements({ entities, quotes, relationships }, seenRef.current)
     if (fresh.length === 0) return
 
     // Disparamos UN solo toast a la vez. Si hay múltiples umbrales nuevos
@@ -141,5 +142,5 @@ export function useAchievements(counts: Counts): void {
       tone: 'achievement',
       durationMs: 6000,
     })
-  }, [counts.entities, counts.quotes, counts.relationships, toast])
+  }, [entities, quotes, relationships, toast])
 }

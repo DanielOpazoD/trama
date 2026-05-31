@@ -42,9 +42,9 @@ export function HomeView({
   onSelectEntity: (id: string) => void
 }) {
   const { data: home, isLoading: entitiesLoading } = useHomeQuery()
-  const entities = home?.entities ?? []
-  const quotes = home?.quotes ?? []
-  const relationships = home?.relationships ?? []
+  const entities = useMemo(() => home?.entities ?? [], [home?.entities])
+  const quotes = useMemo(() => home?.quotes ?? [], [home?.quotes])
+  const relationships = useMemo(() => home?.relationships ?? [], [home?.relationships])
   const proactive = useProactiveQuery()
   const pendingCount = proactive.data?.length ?? 0
 
@@ -60,10 +60,7 @@ export function HomeView({
   // contador (rollCounter) deja que el botón "rotar" pida otra.
   const [rollCounter, setRollCounter] = useState(0)
   const featuredQuote = useMemo(
-    () => pickFeaturedQuote(quotes),
-    // rollCounter no se usa en el cálculo: está para forzar un re-pick manual
-    // ("otra cita") reusando el mismo `quotes`. Incluido a propósito.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    () => pickFeaturedQuote(quotes, rollCounter),
     [quotes, rollCounter],
   )
 

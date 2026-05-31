@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 
+// Playwright forces color in worker output; the user's shell may export
+// NO_COLOR globally. Node warns when both are present, so keep E2E logs clean
+// by letting Playwright own color handling inside this process only.
+delete process.env.NO_COLOR
+
 /**
  * Playwright config para los tests E2E críticos.
  *

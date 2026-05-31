@@ -61,4 +61,31 @@ describe('import endpoint', () => {
     expect(errorInsert?.values).toContain('user_import_xyz')
     expect(errorInsert?.values).not.toContain('legacy-single-user')
   })
+
+  it('salta items importados no-objeto sin abortar el import completo', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ id: 'legacy-single-user:e1' }]) // INSERT entidad valida
+
+    const res = await handler(
+      new Request('http://localhost/api/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          version: 1,
+          entities: [null, 42, {}, { id: 'e1', type: 'persona', name: 'Ada' }],
+          relationships: [null, {}],
+          quotes: ['texto suelto', {}],
+        }),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toMatchObject({
+      imported: 1,
+      skipped: 7,
+      failed: [],
+    })
+  })
 })

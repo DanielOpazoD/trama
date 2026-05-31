@@ -15,7 +15,7 @@
  * funciona la rama de recencia. Degradación graceful.
  */
 
-import { sqlTyped } from './db.js'
+import { sqlTyped, type SqlClient } from './db.js'
 import { embedSafe, toPgVector } from './embeddings.js'
 import { describeEntity, describeQuote, llmRerank } from './llm-rerank.js'
 import { askLLMForText, type LLMOverride } from './llm.js'
@@ -53,8 +53,6 @@ export type RagContext = {
   /** true = se embebió un párrafo HyDE en lugar de la query cruda. */
   usedHyde?: boolean
 }
-
-type SqlClient = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<unknown>
 
 /**
  * Build trama context for a user query, blending semantic retrieval +
@@ -231,7 +229,7 @@ export async function buildRagContext(
   const entityIds = entities.map((e) => e.id)
   let relationships: RelCtxRow[] = []
   if (entityIds.length > 0) {
-    relationships = (await sql`
+    relationships = await sqlTyped<RelCtxRow>(sql`
       SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
       FROM relationships r
       JOIN entities ef ON ef.id = r.from_id
@@ -244,7 +242,7 @@ export async function buildRagContext(
         AND (r.from_id = ANY(${entityIds}::uuid[]) OR r.to_id = ANY(${entityIds}::uuid[]))
       ORDER BY r.created_at DESC
       LIMIT ${relCap}
-    `) as RelCtxRow[]
+    `)
   }
 
   return {

@@ -2,7 +2,8 @@ import { memo, useState } from 'react'
 import { typeAccent } from '../../lib/typeAccents'
 import type { Entity, Momento } from '../../types'
 import { PencilIcon, SparkleIcon, TrashIcon } from '../Icons'
-import { formatTime } from './helpers'
+import { formatTime, getMomentoPhotoItems, momentoMediaUrl } from './helpers'
+import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 import { MomentoEditModal } from './MomentoEditModal'
 import { PhotoLightbox } from './PhotoLightbox'
 import { AudioNote } from './AudioNote'
@@ -173,9 +174,8 @@ function FotoBody({ momento }: { momento: Momento }) {
   //   y navegación.
   // El render del timeline mantiene altura visual baja sin importar
   // cuántas fotos tenga el episodio.
-  const { items, storageKey, width, height, caption, audioKey } = momento.payload
-  const photos: Array<{ storageKey: string; width?: number; height?: number }> =
-    items && items.length > 0 ? items : storageKey ? [{ storageKey, width, height }] : []
+  const { caption, audioKey } = momento.payload
+  const photos = getMomentoPhotoItems(momento.payload)
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
   if (photos.length === 0) {
@@ -200,8 +200,8 @@ function FotoBody({ momento }: { momento: Momento }) {
           }
           className="block w-full rounded-md overflow-hidden border border-ink-100/60 cursor-zoom-in hover:opacity-95 transition-opacity"
         >
-          <img
-            src={`/api/momentos-file/${encodeURIComponent(cover.storageKey)}`}
+          <AuthenticatedMomentoImage
+            storageKey={cover.storageKey}
             alt={caption ?? 'momento'}
             loading="lazy"
             className="block w-full h-auto"
@@ -233,7 +233,7 @@ function FotoBody({ momento }: { momento: Momento }) {
         // Nota de voz del episodio. Se sirve por el mismo endpoint que las
         // fotos (devuelve Content-Type desde la metadata del blob).
         <div className="max-w-md">
-          <AudioNote src={`/api/momentos-file/${encodeURIComponent(audioKey)}`} />
+          <AudioNote src={momentoMediaUrl(audioKey)} />
         </div>
       )}
       <PhotoLightbox

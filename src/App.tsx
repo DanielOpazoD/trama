@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useSearchParamState } from './hooks/useSearchParamState'
 import { useInitialView } from './hooks/useInitialView'
+import { useGlobalShortcuts } from './hooks/useGlobalShortcuts'
 import { startViewTransition } from './lib/viewTransition'
 import { readOAuthReturn, clearOAuthReturn, type OAuthReturn } from './lib/oauthReturn'
 import {
@@ -154,55 +155,25 @@ function Shell({
       setSettingsOpen(true)
       clearOAuthReturn()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot al montar
-  }, [])
+  }, [oauthReturn])
 
-  // Atajos globales:
-  //   Cmd/Ctrl+K → CommandPalette
-  //   /          → CommandPalette (alias estilo Slack/GitHub — "buscar")
-  //   ?          → ShortcutsModal (cheatsheet)
-  //   \          → toggle focus mode (zen, como editores markdown)
-  //
-  // Para los que no usan modifiers (?, \, /) ignoramos cuando el foco
-  // está en un input/textarea — no rompemos la escritura.
-  useEffect(() => {
-    function handler(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        setPaletteOpen((open) => !open)
-        return
+  const toggleFocusMode = useCallback(() => {
+    setFocusMode((on) => {
+      const next = !on
+      try {
+        window.localStorage.setItem('trama:focus-mode', next ? '1' : '0')
+      } catch {
+        /* storage disabled */
       }
-      const target = e.target as HTMLElement | null
-      const tag = target?.tagName
-      const inField = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable
-      if (inField) return
-
-      if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        e.preventDefault()
-        setPaletteOpen(true)
-        return
-      }
-      if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        e.preventDefault()
-        setShortcutsOpen((open) => !open)
-        return
-      }
-      if (e.key === '\\' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        e.preventDefault()
-        setFocusMode((on) => {
-          const next = !on
-          try {
-            window.localStorage.setItem('trama:focus-mode', next ? '1' : '0')
-          } catch {
-            /* storage disabled */
-          }
-          return next
-        })
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+      return next
+    })
   }, [])
+  useGlobalShortcuts({
+    onTogglePalette: () => setPaletteOpen((open) => !open),
+    onOpenPalette: () => setPaletteOpen(true),
+    onToggleShortcuts: () => setShortcutsOpen((open) => !open),
+    onToggleFocusMode: toggleFocusMode,
+  })
 
   const showProposal = pendingProposal !== null
   // El panel de detalle se puede abrir desde cualquier vista (graph, entidades,

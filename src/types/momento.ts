@@ -38,11 +38,21 @@ export type MomentoPayload = {
     width?: number
     height?: number
   }>
+  /** Formato legado usado por algunas fotos ya persistidas antes de
+   *  unificar en `items[]`. La UI lo sigue leyendo para no ocultar
+   *  momentos existentes; las escrituras nuevas normalizan a `items[]`. */
+  photos?: Array<{
+    storageKey: string
+    width?: number
+    height?: number
+  }>
+  primaryStorageKey?: string | null
   /** Nota de voz del episodio: storageKey de un blob de audio en el
    *  mismo store `momentos-media`. Es a nivel momento (no por foto),
    *  igual que `note` de texto. Se sirve por `/api/momentos-file/:key`
-   *  —el endpoint devuelve el Content-Type desde la metadata del blob,
-   *  así que sirve audio sin cambios—. Solo aplica a kind='foto'. */
+   *  segmentando la key en `/api/momentos-file/:userId/:key` —el endpoint
+   *  devuelve el Content-Type desde la metadata del blob, así que sirve
+   *  audio sin cambios—. Solo aplica a kind='foto'. */
   audioKey?: string
 }
 

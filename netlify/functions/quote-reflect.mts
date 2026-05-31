@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { askLLMForText } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildReflectPrompt } from './_lib/reflect-prompt.js'
@@ -47,7 +47,7 @@ export default withObservability(
       entity_type: string
       entity_description: string | null
     }
-    const rows = (await sql`
+    const rows = await sqlTyped<Row>(sql`
       SELECT q.text, q.source, q.context, q.user_reflection,
              q.embedding::text AS embedding,
              e.name AS entity_name, e.type AS entity_type, e.description AS entity_description
@@ -56,7 +56,7 @@ export default withObservability(
         AND e.deleted_at IS NULL
         AND e.user_id = ${userId}
       WHERE q.id = ${id} AND q.deleted_at IS NULL AND q.user_id = ${userId}
-    `) as Row[]
+    `)
     const r = rows[0]
     if (!r) {
       return ApiErrors.notFound(requestId, 'Cita no encontrada')
@@ -70,7 +70,7 @@ export default withObservability(
     type NeighborRow = { text: string; entity_name: string }
     let neighbors: NeighborRow[] = []
     if (r.embedding) {
-      neighbors = (await sql`
+      neighbors = await sqlTyped<NeighborRow>(sql`
         SELECT q.text, e.name AS entity_name
         FROM quotes q
         JOIN entities e ON e.id = q.entity_id
@@ -82,7 +82,7 @@ export default withObservability(
           AND q.embedding IS NOT NULL
         ORDER BY q.embedding <=> ${r.embedding}::vector
         LIMIT 5
-      `) as NeighborRow[]
+      `)
     }
 
     const messages = buildReflectPrompt({

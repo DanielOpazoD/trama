@@ -5,6 +5,7 @@ import {
   formatTime,
   groupByDay,
   groupByMonth,
+  momentoMediaUrl,
 } from './helpers'
 import type { Momento } from '../../types'
 
@@ -181,5 +182,17 @@ describe('formatMonthLabel', () => {
   it('devuelve el monthKey crudo si no parsea', () => {
     expect(formatMonthLabel('bad-key')).toBe('bad-key')
     expect(formatMonthLabel('')).toBe('')
+  })
+})
+
+describe('momentoMediaUrl', () => {
+  it('codifica cada segmento de la storageKey sin esconder el namespace', () => {
+    expect(momentoMediaUrl('legacy-single-user/foto reciente.jpg')).toBe(
+      '/api/momentos-file/legacy-single-user/foto%20reciente.jpg',
+    )
+  })
+
+  it('mantiene compatibilidad con keys legacy sin namespace', () => {
+    expect(momentoMediaUrl('foto vieja.jpg')).toBe('/api/momentos-file/foto%20vieja.jpg')
   })
 })

@@ -47,6 +47,10 @@ export function startViewTransition(callback: () => void): void {
     // batchearía y la transición no encontraría el nuevo layout.
     flushSync(callback)
   })
+  transition.finished.catch((error: unknown) => {
+    if (error instanceof Error && error.name === 'AbortError') return
+    throw error
+  })
 
   if (reduceMotion) {
     transition.skipTransition()

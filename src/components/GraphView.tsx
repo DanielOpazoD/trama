@@ -17,8 +17,7 @@ import {
   useSuggestRelationships,
   useUpdateEntityPosition,
 } from '../state'
-import type { Entity, ExtractionProposal, Relationship } from '../types'
-import { ENTITY_TYPES } from '../types'
+import type { Entity, ExtractionProposal } from '../types'
 import { useGraphLayout } from '../hooks/useGraphLayout'
 import { usePanZoom } from '../hooks/usePanZoom'
 import { useGraphKeyboardNav } from '../hooks/useGraphKeyboardNav'
@@ -33,6 +32,12 @@ import { GraphMinimap } from './graph/GraphMinimap'
 import { GraphExploreHint } from './graph/GraphExploreHint'
 import { GraphSuggestStatusBanner } from './graph/GraphSuggestStatusBanner'
 import { GraphSvgCanvas } from './graph/GraphSvgCanvas'
+import {
+  computeClusterCentroids,
+  computeConnectionCount,
+  computePositionBounds,
+  selectGraphDataset,
+} from './graph/graphViewModel'
 import { LoadingHint } from './LoadingHint'
 
 // Lazy-load del renderer WebGL: sigma + graphology pesan ~165KB extra
@@ -126,6 +131,11 @@ export default function GraphView({
     false,
   )
   const [focusId, setFocusId] = useLocalStorageNullable(GRAPH_FOCUS_KEY)
+  const selectedIdRef = useRef(selectedId)
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId
+  }, [selectedId])
 
   function setGraphMode(m: GraphMode) {
     setGraphModeRaw(m)
@@ -143,21 +153,16 @@ export default function GraphView({
 
   // Decide the dataset for the rest of the render. In completo mode we use
   // the wholesale arrays. In exploratorio we use the subgraph from /neighbors.
-  const entities: Entity[] =
-    graphMode === 'exploratorio'
-      ? neighborsQuery.data
-        ? [
-            neighborsQuery.data.from,
-            ...neighborsQuery.data.entities.filter(
-              (e) => e.id !== neighborsQuery.data!.from.id,
-            ),
-          ]
-        : []
-      : allEntities
-  const relationships: Relationship[] =
-    graphMode === 'exploratorio'
-      ? (neighborsQuery.data?.relationships ?? [])
-      : allRelationships
+  const { entities, relationships } = useMemo(
+    () =>
+      selectGraphDataset({
+        graphMode,
+        allEntities,
+        allRelationships,
+        neighbors: neighborsQuery.data,
+      }),
+    [allEntities, allRelationships, graphMode, neighborsQuery.data],
+  )
 
   const focusName =
     graphMode === 'exploratorio' ? (neighborsQuery.data?.from.name ?? null) : null
@@ -199,73 +204,30 @@ export default function GraphView({
       lastFittedModeRef.current = mode
       return
     }
-    if (positions.size === 0) return
     // Solo refit cuando ENTRAMOS al mode (no en cada re-render del mismo).
     if (lastFittedModeRef.current === mode) return
-    let minX = Infinity,
-      minY = Infinity,
-      maxX = -Infinity,
-      maxY = -Infinity
-    for (const p of positions.values()) {
-      if (p.x < minX) minX = p.x
-      if (p.y < minY) minY = p.y
-      if (p.x > maxX) maxX = p.x
-      if (p.y > maxY) maxY = p.y
-    }
-    if (!isFinite(minX)) return
-    pz.fitToView({ minX, minY, maxX, maxY })
+    const bounds = computePositionBounds(positions)
+    if (!bounds) return
+    pz.fitToView(bounds)
     lastFittedModeRef.current = mode
   }, [mode, positions, pz])
 
   const freshEntities = useFreshIds(entities.map((e) => e.id))
   const freshRels = useFreshIds(relationships.map((r) => r.id))
 
-  const connectionCount = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const rel of relationships) {
-      map.set(rel.fromId, (map.get(rel.fromId) ?? 0) + 1)
-      map.set(rel.toId, (map.get(rel.toId) ?? 0) + 1)
-    }
-    return map
-  }, [relationships])
+  const connectionCount = useMemo(
+    () => computeConnectionCount(relationships),
+    [relationships],
+  )
 
   // ζ6: cluster annotations en modo by-type. Calculamos el centroide de
   // cada cluster (promedio de posiciones de los nodos de ese tipo) y
   // rendereamos el label grande detrás. Solo se calcula en by-type
   // — en otros modos no tiene sentido (los nodos no están agrupados).
-  const clusterCentroids = useMemo(() => {
-    if (mode !== 'by-type') return null
-    const byType = new Map<string, { sumX: number; sumY: number; count: number }>()
-    for (const ent of entities) {
-      const pos = positions.get(ent.id)
-      if (!pos) continue
-      const acc = byType.get(ent.type) ?? { sumX: 0, sumY: 0, count: 0 }
-      acc.sumX += pos.x
-      acc.sumY += pos.y
-      acc.count += 1
-      byType.set(ent.type, acc)
-    }
-    const result: Array<{
-      type: string
-      label: string
-      cx: number
-      cy: number
-      count: number
-    }> = []
-    for (const [type, { sumX, sumY, count }] of byType) {
-      // Skip clusters de 1 — un solo nodo no necesita label decorativa.
-      if (count < 2) continue
-      const label = ENTITY_TYPES.find((t) => t.value === type)?.label ?? type
-      result.push({
-        type,
-        label,
-        cx: sumX / count,
-        cy: sumY / count,
-        count,
-      })
-    }
-    return result
-  }, [mode, entities, positions])
+  const clusterCentroids = useMemo(
+    () => computeClusterCentroids(mode, entities, positions),
+    [mode, entities, positions],
+  )
 
   const {
     focusedIndex,
@@ -364,12 +326,9 @@ export default function GraphView({
     if (graphMode !== 'exploratorio') return
     if (focusId) return
     if (allEntities.length === 0) return
-    const candidate = selectedId ?? allEntities[0]?.id
+    const candidate = selectedIdRef.current ?? allEntities[0]?.id
     if (candidate) setFocusId(candidate)
-    // selectedId se omite a propósito: solo auto-elegimos foco al entrar al
-    // modo / quedar sin foco / cargar entidades, no en cada cambio de selección.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graphMode, focusId, allEntities])
+  }, [graphMode, focusId, allEntities, setFocusId])
 
   // If the persisted focus is stale (entity deleted → 404), clear it so the
   // auto-pick above can run.
@@ -377,9 +336,7 @@ export default function GraphView({
     if (graphMode !== 'exploratorio') return
     if (!neighborsQuery.isError) return
     setFocusId(null)
-    // setFocusId es un setter estable de useState; se omite de las deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graphMode, neighborsQuery.isError])
+  }, [graphMode, neighborsQuery.isError, setFocusId])
 
   // Empty state: en modo "completo" sin entidades, mostramos el EmptyState
   // global. En "exploratorio" sin entidades pasa lo mismo (no hay focus

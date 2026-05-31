@@ -1,4 +1,10 @@
-import { getDatabase, type ServerlessDatabaseConnection } from '@netlify/database'
+import {
+  getDatabase,
+  MissingDatabaseConnectionError,
+  type ServerlessDatabaseConnection,
+} from '@netlify/database'
+
+export type SqlClient = ServerlessDatabaseConnection['httpClient']
 
 /**
  * Returns the Neon HTTP client (`sql\`SELECT ...\`` tagged template) that the
@@ -9,7 +15,7 @@ import { getDatabase, type ServerlessDatabaseConnection } from '@netlify/databas
  * extension. The httpClient exposed by @netlify/database is the same Neon HTTP
  * function, so all callers keep their existing template literals unchanged.
  */
-export function getSql(): ServerlessDatabaseConnection['httpClient'] {
+export function getSql(): SqlClient {
   const conn = getDatabase()
   if (conn.driver !== 'serverless') {
     throw new Error(
@@ -17,6 +23,10 @@ export function getSql(): ServerlessDatabaseConnection['httpClient'] {
     )
   }
   return conn.httpClient
+}
+
+export function isMissingDatabaseConnectionError(err: unknown): boolean {
+  return err instanceof MissingDatabaseConnectionError
 }
 
 /**

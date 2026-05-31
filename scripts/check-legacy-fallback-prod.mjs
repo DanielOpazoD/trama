@@ -1,5 +1,3 @@
-/* global console, process */
-
 const isProduction =
   process.env.CONTEXT === 'production' ||
   process.env.NETLIFY_CONTEXT === 'production' ||

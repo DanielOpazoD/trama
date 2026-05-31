@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
@@ -15,6 +15,13 @@ import {
   MomentoPatchBody,
 } from './_lib/momento-schemas.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
+import {
+  buildMomentosListResponse,
+  groupMomentoEntityLinks,
+  parseMomentosListParams,
+  type MomentoEntityLinkRow,
+  type MomentoListRow,
+} from './_lib/momentos-list.js'
 
 /**
  * /api/momentos — la dimensión temporal de la trama.
@@ -39,9 +46,15 @@ import { ensureUserRow } from './_lib/user-provisioning.js'
 
 import { normalizeOrigin } from './_lib/origin.js'
 
-function isValidKind(v: unknown): v is MomentoKind {
-  return v === 'nota' || v === 'recorte' || v === 'foto'
+type MomentoResponseRow = Record<string, unknown>
+type EntityIdRow = { id: string }
+type MomentoLinkIdRow = { entity_id: string }
+type CurrentMomentoRow = {
+  kind: MomentoKind
+  payload: Record<string, unknown>
+  note: string | null
 }
+type DeletedMomentoRow = { id: string; deleted_at: string }
 
 export default withObservability('momentos', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
@@ -51,22 +64,22 @@ export default withObservability('momentos', async (req: Request, context: Conte
 
   // ---------------- GET one ----------------
   if (req.method === 'GET' && id) {
-    const rows = (await sql`
+    const rows = await sqlTyped<MomentoResponseRow>(sql`
       SELECT id, kind, captured_at, payload, note, origin,
              created_at, updated_at
       FROM momentos
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-    `) as Array<Record<string, unknown>>
+    `)
     if (rows.length === 0) {
       return ApiErrors.notFound(requestId, 'Momento no encontrado')
     }
     // Traemos los entityIds linkeados también, para que el cliente no haga
     // un round-trip aparte.
-    const links = (await sql`
+    const links = await sqlTyped<MomentoLinkIdRow>(sql`
       SELECT entity_id
       FROM momento_entities
       WHERE momento_id = ${id} AND user_id = ${userId} AND deleted_at IS NULL
-    `) as Array<{ entity_id: string }>
+    `)
     return Response.json({
       ...rows[0],
       entity_ids: links.map((l) => l.entity_id),
@@ -76,42 +89,11 @@ export default withObservability('momentos', async (req: Request, context: Conte
   // ---------------- GET list ----------------
   if (req.method === 'GET') {
     const url = new URL(req.url)
-    const kind = url.searchParams.get('kind')
-    const limitParam = url.searchParams.get('limit')
-    const cursor = url.searchParams.get('cursor')
+    const { limit, validKind, cursorTs, cursorId } = parseMomentosListParams(url)
 
-    const parsedLimit = limitParam ? Number.parseInt(limitParam, 10) : 50
-    const limit = Number.isFinite(parsedLimit)
-      ? Math.min(Math.max(parsedLimit, 1), 200)
-      : 50
-
-    // Cursor: "<iso_ts>:<uuid>" — tuple compare sobre (captured_at, id).
-    let cursorTs: string | null = null
-    let cursorId: string | null = null
-    if (cursor) {
-      const idx = cursor.lastIndexOf(':')
-      if (idx > 0) {
-        cursorTs = cursor.slice(0, idx)
-        cursorId = cursor.slice(idx + 1)
-      }
-    }
-
-    const validKind = isValidKind(kind) ? kind : null
-
-    type Row = {
-      id: string
-      kind: string
-      captured_at: Date | string
-      payload: unknown
-      note: string | null
-      origin: unknown
-      created_at: Date | string
-      updated_at: Date | string
-    }
-
-    let rows: Row[]
+    let rows: MomentoListRow[]
     if (cursorTs && cursorId && validKind) {
-      rows = (await sql`
+      rows = await sqlTyped<MomentoListRow>(sql`
         SELECT id, kind, captured_at, payload, note, origin,
                created_at, updated_at
         FROM momentos
@@ -121,9 +103,9 @@ export default withObservability('momentos', async (req: Request, context: Conte
           AND (captured_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
         ORDER BY captured_at DESC, id DESC
         LIMIT ${limit + 1}
-      `) as Row[]
+      `)
     } else if (cursorTs && cursorId) {
-      rows = (await sql`
+      rows = await sqlTyped<MomentoListRow>(sql`
         SELECT id, kind, captured_at, payload, note, origin,
                created_at, updated_at
         FROM momentos
@@ -132,62 +114,43 @@ export default withObservability('momentos', async (req: Request, context: Conte
           AND (captured_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
         ORDER BY captured_at DESC, id DESC
         LIMIT ${limit + 1}
-      `) as Row[]
+      `)
     } else if (validKind) {
-      rows = (await sql`
+      rows = await sqlTyped<MomentoListRow>(sql`
         SELECT id, kind, captured_at, payload, note, origin,
                created_at, updated_at
         FROM momentos
         WHERE deleted_at IS NULL AND user_id = ${userId} AND kind = ${validKind}
         ORDER BY captured_at DESC, id DESC
         LIMIT ${limit + 1}
-      `) as Row[]
+      `)
     } else {
-      rows = (await sql`
+      rows = await sqlTyped<MomentoListRow>(sql`
         SELECT id, kind, captured_at, payload, note, origin,
                created_at, updated_at
         FROM momentos
         WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY captured_at DESC, id DESC
         LIMIT ${limit + 1}
-      `) as Row[]
+      `)
     }
 
-    const hasNext = rows.length > limit
-    const items = hasNext ? rows.slice(0, limit) : rows
-    let nextCursor: string | null = null
-    const last = hasNext ? items[items.length - 1] : null
-    if (last) {
-      // γ1: Neon devuelve Date — convertir a ISO antes de meter en cursor.
-      const ts = new Date(last.captured_at).toISOString()
-      nextCursor = `${ts}:${last.id}`
-    }
+    const itemIds = rows.slice(0, limit).map((i) => i.id)
 
     // Bulk-fetch de links para los items de esta página, dedupe por momento_id.
-    const itemIds = items.map((i) => i.id)
     let linksByMomento = new Map<string, string[]>()
     if (itemIds.length > 0) {
-      const links = (await sql`
+      const links = await sqlTyped<MomentoEntityLinkRow>(sql`
         SELECT momento_id, entity_id
         FROM momento_entities
         WHERE momento_id = ANY(${itemIds}::uuid[])
           AND user_id = ${userId}
           AND deleted_at IS NULL
-      `) as Array<{ momento_id: string; entity_id: string }>
-      for (const link of links) {
-        const arr = linksByMomento.get(link.momento_id) ?? []
-        arr.push(link.entity_id)
-        linksByMomento.set(link.momento_id, arr)
-      }
+      `)
+      linksByMomento = groupMomentoEntityLinks(links)
     }
 
-    return Response.json({
-      items: items.map((r) => ({
-        ...r,
-        entity_ids: linksByMomento.get(r.id) ?? [],
-      })),
-      nextCursor,
-    })
+    return Response.json(buildMomentosListResponse({ rows, limit, linksByMomento }))
   }
 
   // ---------------- POST create ----------------
@@ -218,13 +181,13 @@ export default withObservability('momentos', async (req: Request, context: Conte
       ? body.entity_ids.filter((x): x is string => typeof x === 'string')
       : []
     if (entityIds.length > 0) {
-      const entityRows = (await sql`
+      const entityRows = await sqlTyped<EntityIdRow>(sql`
         SELECT id
         FROM entities
         WHERE id = ANY(${entityIds}::uuid[])
           AND deleted_at IS NULL
           AND user_id = ${userId}
-      `) as Array<{ id: string }>
+      `)
       if (new Set(entityRows.map((row) => row.id)).size !== new Set(entityIds).size) {
         return ApiErrors.notFound(requestId, 'Una o más entidades no existen')
       }
@@ -234,7 +197,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
     const embedSource = momentoEmbedText(kind, payload, note)
     const emb = embedSource.length > 0 ? await embedSafe(embedSource) : null
 
-    const inserted = (await sql`
+    const inserted = await sqlTyped<MomentoResponseRow>(sql`
       INSERT INTO momentos (
         kind, captured_at, payload, note, origin,
         embedding, embedding_model, embedding_at, user_id
@@ -250,7 +213,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
         ${userId}
       )
       RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
-    `) as Array<Record<string, unknown>>
+    `)
     const row = inserted[0]
     if (!row) {
       return ApiErrors.internal(requestId, 'No se pudo crear el momento')
@@ -285,10 +248,10 @@ export default withObservability('momentos', async (req: Request, context: Conte
 
     // Lookup actual para conocer kind + valores actuales (no permitimos
     // cambiar kind via PATCH — eso requeriría re-encoding del payload).
-    const current = (await sql`
+    const current = await sqlTyped<CurrentMomentoRow>(sql`
       SELECT kind, payload, note FROM momentos
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-    `) as Array<{ kind: MomentoKind; payload: Record<string, unknown>; note: string | null }>
+    `)
     const currentRow = current[0]
     if (!currentRow) {
       return ApiErrors.notFound(requestId, 'Momento no encontrado')
@@ -371,13 +334,13 @@ export default withObservability('momentos', async (req: Request, context: Conte
     if (Array.isArray(body.entity_ids)) {
       const entityIds = body.entity_ids.filter((x): x is string => typeof x === 'string')
       if (entityIds.length > 0) {
-        const entityRows = (await sql`
+        const entityRows = await sqlTyped<EntityIdRow>(sql`
           SELECT id
           FROM entities
           WHERE id = ANY(${entityIds}::uuid[])
             AND deleted_at IS NULL
             AND user_id = ${userId}
-        `) as Array<{ id: string }>
+        `)
         if (new Set(entityRows.map((row) => row.id)).size !== new Set(entityIds).size) {
           return ApiErrors.notFound(requestId, 'Una o más entidades no existen')
         }
@@ -399,17 +362,17 @@ export default withObservability('momentos', async (req: Request, context: Conte
       }
     }
 
-    const updated = (await sql`
+    const updated = await sqlTyped<MomentoResponseRow>(sql`
       SELECT id, kind, captured_at, payload, note, origin,
              created_at, updated_at
       FROM momentos
       WHERE id = ${id} AND user_id = ${userId}
-    `) as Array<Record<string, unknown>>
-    const links = (await sql`
+    `)
+    const links = await sqlTyped<MomentoLinkIdRow>(sql`
       SELECT entity_id
       FROM momento_entities
       WHERE momento_id = ${id} AND user_id = ${userId} AND deleted_at IS NULL
-    `) as Array<{ entity_id: string }>
+    `)
     return Response.json({
       ...updated[0],
       entity_ids: links.map((l) => l.entity_id),
@@ -419,12 +382,12 @@ export default withObservability('momentos', async (req: Request, context: Conte
   // ---------------- DELETE soft ----------------
   if (req.method === 'DELETE' && id) {
     await ensureUserRow(sql, authedUser)
-    const result = (await sql`
+    const result = await sqlTyped<DeletedMomentoRow>(sql`
       UPDATE momentos
       SET deleted_at = NOW()
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       RETURNING id, deleted_at
-    `) as Array<{ id: string; deleted_at: string }>
+    `)
     const deletedRow = result[0]
     if (!deletedRow) {
       return ApiErrors.notFound(requestId, 'Momento no encontrado')

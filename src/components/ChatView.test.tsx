@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { ChatView } from './ChatView'
 import { renderWithProviders } from '../test-utils'
 
@@ -55,6 +57,14 @@ describe('<ChatView />', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /\+ nueva/i })).toBeInTheDocument()
     })
+  })
+
+  it('no oculta dependencias de hooks al consumir initialThreadId', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/components/ChatView.tsx'),
+      'utf8',
+    )
+    expect(source).not.toContain('eslint-disable-next-line react-hooks/exhaustive-deps')
   })
 
   /**
