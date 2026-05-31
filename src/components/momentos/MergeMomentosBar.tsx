@@ -251,11 +251,7 @@ export function MergeMomentosBar({
                 className="input-paper w-full text-sm"
               >
                 {sortedByDate.map((m, idx) => {
-                  const itemCount = Array.isArray(m.payload.items)
-                    ? m.payload.items.length
-                    : m.payload.storageKey
-                      ? 1
-                      : 0
+                  const itemCount = getMomentoPhotoItems(m.payload).length
                   const dateShort = m.capturedAt.slice(0, 10)
                   const noteShort = m.note
                     ? ` — ${m.note.slice(0, 40)}${m.note.length > 40 ? '…' : ''}`

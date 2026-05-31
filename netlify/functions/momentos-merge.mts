@@ -44,28 +44,44 @@ type FotoPayload = {
   caption?: string
   exifDate?: string
   items?: Array<{ storageKey: string; width?: number; height?: number }>
+  photos?: Array<{ storageKey: string; width?: number; height?: number }>
+  primaryStorageKey?: string | null
 }
 
 /**
- * Extrae las items del payload de un momento foto. Maneja los dos
- * formatos: nuevo (items[]) y legacy (storageKey/width/height singular).
- * Si está en formato legacy, devuelve un array de 1.
+ * Extrae las items del payload de un momento foto. Maneja los formatos
+ * nuevo (items[]), legacy multi (photos[] + primaryStorageKey) y legacy
+ * single (storageKey/width/height).
  */
 function payloadToItems(payload: FotoPayload): Array<{
   storageKey: string
   width?: number
   height?: number
 }> {
-  if (Array.isArray(payload.items) && payload.items.length > 0) {
-    return payload.items.filter(
+  const fromArray = Array.isArray(payload.items) && payload.items.length > 0
+    ? payload.items
+    : Array.isArray(payload.photos) && payload.photos.length > 0
+      ? payload.photos
+      : null
+
+  if (fromArray) {
+    const items = fromArray.filter(
       (it): it is { storageKey: string; width?: number; height?: number } =>
-        !!it && typeof it.storageKey === 'string' && it.storageKey.length > 0,
+        !!it && typeof it.storageKey === 'string' && it.storageKey.trim().length > 0,
     )
+    const primaryStorageKey =
+      typeof payload.primaryStorageKey === 'string' ? payload.primaryStorageKey.trim() : ''
+    if (!primaryStorageKey) return items
+    const primaryIndex = items.findIndex((it) => it.storageKey === primaryStorageKey)
+    if (primaryIndex <= 0) return items
+    const primary = items[primaryIndex]
+    if (!primary) return items
+    return [primary, ...items.filter((_, index) => index !== primaryIndex)]
   }
-  if (payload.storageKey) {
+  if (typeof payload.storageKey === 'string' && payload.storageKey.trim()) {
     return [
       {
-        storageKey: payload.storageKey,
+        storageKey: payload.storageKey.trim(),
         width: payload.width,
         height: payload.height,
       },

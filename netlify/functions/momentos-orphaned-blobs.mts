@@ -32,6 +32,13 @@ import { OrphanedBlobRescueBody } from './_lib/momento-extra-schemas.js'
 type FotoPayload = {
   storageKey?: string
   items?: Array<{ storageKey: string }>
+  photos?: Array<{ storageKey: string }>
+}
+
+function addStorageKey(set: Set<string>, storageKey: unknown): void {
+  if (typeof storageKey !== 'string') return
+  const trimmed = storageKey.trim()
+  if (trimmed) set.add(trimmed)
 }
 
 /**
@@ -50,14 +57,15 @@ async function collectReferencedKeys(sql: ReturnType<typeof getSql>, userId: str
   const set = new Set<string>()
   for (const row of rows) {
     const payload = row.payload ?? {}
-    if (typeof payload.storageKey === 'string' && payload.storageKey.trim()) {
-      set.add(payload.storageKey)
-    }
+    addStorageKey(set, payload.storageKey)
     if (Array.isArray(payload.items)) {
       for (const item of payload.items) {
-        if (item && typeof item.storageKey === 'string' && item.storageKey.trim()) {
-          set.add(item.storageKey)
-        }
+        addStorageKey(set, item?.storageKey)
+      }
+    }
+    if (Array.isArray(payload.photos)) {
+      for (const photo of payload.photos) {
+        addStorageKey(set, photo?.storageKey)
       }
     }
   }

@@ -179,7 +179,7 @@ const prStack = [
       /^src\/components\/momentos\/(AlbumGrid|MomentoEntry)(\.test)?\.tsx$/,
       /^src\/components\/momentos\/helpers(\.test)?\.ts$/,
       /^src\/components\/momentos\/editModal\/FotoEditModal(\.test)?\.tsx$/,
-      /^src\/components\/momentos\/MergeMomentosBar\.tsx$/,
+      /^src\/components\/momentos\/MergeMomentosBar(\.test)?\.tsx$/,
       /^src\/components\/notas\/(NotasView|NoteCard|TareasView)\.tsx$/,
       /^src\/components\/quotes\/ResonanceDots\.tsx$/,
       /^src\/components\/sidebar\/NavButton\.tsx$/,

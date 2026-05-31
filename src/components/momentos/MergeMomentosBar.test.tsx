@@ -165,4 +165,26 @@ describe('<MergeMomentosBar />', () => {
       })
     })
   })
+
+  it('cuenta fotos de payload photos legado en totales y opciones', () => {
+    renderWithProviders(
+      <MergeMomentosBar
+        selected={[
+          foto('legacy', '2026-05-28T09:00:00Z', {
+            photos: [{ storageKey: 'legacy-a.jpg' }, { storageKey: 'legacy-b.jpg' }],
+            primaryStorageKey: 'legacy-a.jpg',
+          }),
+          foto('new', '2026-05-30T10:00:00Z', { storageKey: 'new.jpg' }),
+        ]}
+        onClear={vi.fn()}
+        onMerged={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/3 fotos en total/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /opciones/i }))
+    expect(
+      screen.getByRole('option', { name: /2026-05-28 · 2 fotos/i }),
+    ).toBeInTheDocument()
+  })
 })
