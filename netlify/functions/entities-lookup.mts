@@ -1,8 +1,24 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+
+type EntityLookupRow = {
+  id: string
+  type: string
+  name: string
+  year: number | null
+  description: string | null
+  essay: string | null
+  position_x: number | null
+  position_y: number | null
+  origin: unknown
+  spotify_url: string | null
+  created_at: string | Date
+  updated_at: string | Date
+  sim?: number
+}
 
 /**
  * Resolver liviano para entidades, pensado para los call sites que
@@ -38,12 +54,12 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
   const { id: userId } = await getAuthedUser(req)
   const sql = getSql()
 
-  let rows: unknown[] = []
+  let rows: EntityLookupRow[] = []
   if (name) {
     // Case-insensitive exact match. Uses idx_entities_name_trgm for the
     // ILIKE, but at scale a btree on lower(name) would be better — we
     // can add that index when name lookups become hot.
-    rows = (await sql`
+    rows = await sqlTyped<EntityLookupRow>(sql`
       SELECT id, type, name, year, description, essay,
              position_x, position_y, origin, spotify_url,
              created_at, updated_at
@@ -52,13 +68,13 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
         AND user_id = ${userId}
         AND lower(name) = lower(${name})
       LIMIT 5
-    `) as unknown[]
+    `)
   } else if (prefix) {
     const trimmedPrefix = prefix.trim()
     if (trimmedPrefix.length < 1) {
       return Response.json([])
     }
-    rows = (await sql`
+    rows = await sqlTyped<EntityLookupRow>(sql`
       SELECT id, type, name, year, description, essay,
              position_x, position_y, origin, spotify_url,
              created_at, updated_at,
@@ -69,7 +85,7 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
         AND (name ILIKE ${trimmedPrefix + '%'} OR name % ${trimmedPrefix})
       ORDER BY sim DESC, name ASC
       LIMIT 10
-    `) as unknown[]
+    `)
   } else if (idsRaw) {
     const ids = idsRaw
       .split(',')
@@ -77,7 +93,7 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
       .filter(Boolean)
       .slice(0, 200)
     if (ids.length === 0) return Response.json([])
-    rows = (await sql`
+    rows = await sqlTyped<EntityLookupRow>(sql`
       SELECT id, type, name, year, description, essay,
              position_x, position_y, origin, spotify_url,
              created_at, updated_at
@@ -85,7 +101,7 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
       WHERE deleted_at IS NULL
         AND user_id = ${userId}
         AND id = ANY(${ids}::uuid[])
-    `) as unknown[]
+    `)
   }
 
   // Mantener la shape snake_case porque el resto de /api/entities también
