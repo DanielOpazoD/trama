@@ -14,6 +14,7 @@ import {
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { crossVerify, type VerifyVerdict } from './_lib/cross-verify.js'
@@ -28,12 +29,13 @@ export default withObservability(
       return ApiErrors.methodNotAllowed(requestId)
     }
 
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
+    const sql = getSql()
+    await ensureUserRow(sql, authedUser)
 
     const budgetExceeded = await checkMonthlyBudget(userId, requestId)
     if (budgetExceeded) return budgetExceeded
-
-    const sql = getSql()
 
     type EntityRow = {
       id: string
@@ -86,7 +88,7 @@ export default withObservability(
     const messages = buildReclassifyPrompt(entitiesForPrompt, typeOptions)
 
     const invocation = await resolveAIInvocation(req, 'reclassify', userId)
-    if (invocation.kind === 'off') return aiOffResponse()
+    if (invocation.kind === 'off') return aiOffResponse(requestId)
 
     try {
       const { content, usage, fromCache } = await askLLMForJson(messages, {

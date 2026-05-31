@@ -7,6 +7,7 @@ import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ExtractBody } from './_lib/admin-schemas.js'
 import { logEvent } from './_lib/observability.js'
@@ -30,7 +31,10 @@ export default withObservability('extract', async (req: Request, _context: Conte
     return ApiErrors.methodNotAllowed(requestId)
   }
 
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const userId = authedUser.id
+  const sql = getSql()
+  await ensureUserRow(sql, authedUser)
 
   // Monthly cost cap before incurring LLM cost. Pasamos userId para que
   // el check use el cap individual del usuario y filtre extraction_log
@@ -44,8 +48,6 @@ export default withObservability('extract', async (req: Request, _context: Conte
   if (!text) {
     return ApiErrors.validation(requestId, 'Falta el campo "text"')
   }
-
-  const sql = getSql()
 
   // Fetch context: valid type slugs and existing entities.
   const [entityTypeRows, relTypeRows, existing] = await Promise.all([
@@ -64,7 +66,7 @@ export default withObservability('extract', async (req: Request, _context: Conte
   const messages = buildExtractionPrompt(text, existing, entityTypes, relationshipTypes)
 
   const invocation = await resolveAIInvocation(req, 'extract', userId)
-  if (invocation.kind === 'off') return aiOffResponse()
+  if (invocation.kind === 'off') return aiOffResponse(requestId)
 
   try {
     const { content, usage, fromCache } = await askLLMForJson(messages, {

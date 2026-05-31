@@ -6,6 +6,7 @@ import { buildReflectPrompt } from './_lib/reflect-prompt.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
@@ -28,12 +29,13 @@ export default withObservability(
     const id = context.params.id
     if (!id) return ApiErrors.validation(requestId, 'id requerido')
 
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
+    const sql = getSql()
+    await ensureUserRow(sql, authedUser)
 
     const budgetExceeded = await checkMonthlyBudget(userId, requestId)
     if (budgetExceeded) return budgetExceeded
-
-    const sql = getSql()
 
     type Row = {
       text: string
@@ -51,7 +53,9 @@ export default withObservability(
              e.name AS entity_name, e.type AS entity_type, e.description AS entity_description
       FROM quotes q
       JOIN entities e ON e.id = q.entity_id
-      WHERE q.id = ${id} AND q.deleted_at IS NULL AND q.user_id = ${userId} AND e.deleted_at IS NULL
+        AND e.deleted_at IS NULL
+        AND e.user_id = ${userId}
+      WHERE q.id = ${id} AND q.deleted_at IS NULL AND q.user_id = ${userId}
     `) as Row[]
     const r = rows[0]
     if (!r) {
@@ -70,10 +74,11 @@ export default withObservability(
         SELECT q.text, e.name AS entity_name
         FROM quotes q
         JOIN entities e ON e.id = q.entity_id
+          AND e.deleted_at IS NULL
+          AND e.user_id = ${userId}
         WHERE q.id <> ${id}
           AND q.deleted_at IS NULL
           AND q.user_id = ${userId}
-          AND e.deleted_at IS NULL
           AND q.embedding IS NOT NULL
         ORDER BY q.embedding <=> ${r.embedding}::vector
         LIMIT 5
@@ -97,7 +102,7 @@ export default withObservability(
     })
 
     const invocation = await resolveAIInvocation(req, 'reflect', userId)
-    if (invocation.kind === 'off') return aiOffResponse()
+    if (invocation.kind === 'off') return aiOffResponse(requestId)
 
     try {
       const { content, usage, fromCache } = await askLLMForText(messages, {

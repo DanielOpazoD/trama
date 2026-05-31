@@ -26,7 +26,7 @@ export default withObservability(
     if (budgetExceeded) return budgetExceeded
 
     const invocation = await resolveAIInvocation(req, 'classify', userId)
-    if (invocation.kind === 'off') return aiOffResponse()
+    if (invocation.kind === 'off') return aiOffResponse(requestId)
 
     const sql = getSql()
     try {

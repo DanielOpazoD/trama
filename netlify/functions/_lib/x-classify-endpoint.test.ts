@@ -18,7 +18,17 @@ const { checkMonthlyBudget, resolveAIInvocation, runClassify } = vi.hoisted(() =
 vi.mock('./cost-cap.js', () => ({ checkMonthlyBudget }))
 vi.mock('./ai-mode.js', () => ({
   resolveAIInvocation,
-  aiOffResponse: () => new Response('IA off', { status: 423 }),
+  aiOffResponse: () =>
+    Response.json(
+      {
+        error: {
+          code: 'AI_DISABLED',
+          message: 'IA deshabilitada por el usuario (modo Off).',
+          requestId: 'rid-test',
+        },
+      },
+      { status: 423 },
+    ),
 }))
 vi.mock('./x/index.js', () => ({ runClassify }))
 
@@ -68,6 +78,7 @@ describe('x-classify endpoint', () => {
       mockContext(),
     )
     expect(res.status).toBe(423)
+    expect(await res.json()).toMatchObject({ error: { code: 'AI_DISABLED' } })
     expect(runClassify).not.toHaveBeenCalled()
   })
 

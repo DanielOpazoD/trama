@@ -55,6 +55,8 @@ export default withObservability(
       SELECT q.id, e.name AS entity_name, q.text, q.source
       FROM quotes q
       JOIN entities e ON e.id = q.entity_id
+        AND e.deleted_at IS NULL
+        AND e.user_id = ${userId}
       WHERE q.id != ${id}
         AND q.user_id = ${userId}
         AND q.deleted_at IS NULL

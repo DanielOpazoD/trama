@@ -36,6 +36,8 @@ import {
   monthName,
   type CronicaEntity,
 } from './_lib/cronica-prompt.js'
+import { checkMonthlyBudget } from './_lib/cost-cap.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 type CronicaRow = {
   id: string
@@ -59,7 +61,8 @@ const QUOTES_PER_ENTITY = 3
 export default withObservability(
   'cronicas',
   async (req: Request, _context: Context, { requestId }) => {
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
     const sql = getSql()
     const url = new URL(req.url)
 
@@ -88,6 +91,7 @@ export default withObservability(
     if (req.method === 'POST' && url.pathname === '/api/cronicas/generate') {
       const parsed = await parseJsonBody(req, GenerateBody, requestId)
       if (!parsed.ok) return parsed.response
+      await ensureUserRow(sql, authedUser)
       const { year, month } = parsed.data
 
       // Idempotencia: si ya existe, devolverla sin llamar al LLM.
@@ -208,8 +212,11 @@ export default withObservability(
       }))
 
       const messages = buildCronicaMessages({ year, month, entities: cronicaEntities })
+      const budgetExceeded = await checkMonthlyBudget(userId, requestId)
+      if (budgetExceeded) return budgetExceeded
+
       const invocation = await resolveAIInvocation(req, 'reflect', userId)
-      if (invocation.kind === 'off') return aiOffResponse()
+      if (invocation.kind === 'off') return aiOffResponse(requestId)
 
       const { content, usage, fromCache } = await askLLMForText(messages, {
         provider: invocation.provider,
@@ -230,6 +237,22 @@ export default withObservability(
         durationMs: usage.durationMs,
         fromCache,
       })
+
+      sql`
+        INSERT INTO extraction_log (
+          input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
+        ) VALUES (
+          ${`cronicas:${year}-${String(month).padStart(2, '0')}`},
+          ${JSON.stringify({ sourceEntityIds: entityIds, preview: text.slice(0, 280) })}::jsonb,
+          ${usage.provider},
+          ${usage.model},
+          ${usage.tokensIn},
+          ${usage.tokensOut},
+          ${usage.costCents},
+          ${usage.durationMs},
+          ${userId}
+        )
+      `.catch(() => {})
 
       const inserted = await sqlTyped<CronicaRow>(sql`
         INSERT INTO cronicas (user_id, year, month, text, source_entity_ids, provider, model)

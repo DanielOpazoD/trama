@@ -7,6 +7,7 @@ import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { askLLMForText } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import {
   aggregateDecades,
   aggregateTopGenres,
@@ -43,9 +44,10 @@ export default withObservability(
       return ApiErrors.methodNotAllowed(requestId)
     }
 
-    const { id: userId } = await getAuthedUser(req)
-
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
     const sql = getSql()
+    await ensureUserRow(sql, authedUser)
     const conn = await requireSpotifyConnection({ sql, userId, requestId })
     if (!conn.ok) return conn.response
 
@@ -112,7 +114,7 @@ export default withObservability(
     }
 
     const invocation = await resolveAIInvocation(req, 'reflect', userId)
-    if (invocation.kind === 'off') return aiOffResponse()
+    if (invocation.kind === 'off') return aiOffResponse(requestId)
 
     const genresLine = topGenres
       .map((g) => g.name)

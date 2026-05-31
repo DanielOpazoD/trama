@@ -2,12 +2,12 @@
  * Monthly cost cap for LLM calls.
  *
  * Per-user: la migración 20260527 agregó `users.monthly_budget_cents`.
- * Si pasás un userId, el check usa ese cap individual (o cae a la env
- * var si la columna es NULL) y filtra `extraction_log` por user_id.
- * Si no pasás userId (backward-compat), suma global y env var global.
+ * El check usa ese cap individual (o cae a la env var si la columna es NULL)
+ * y filtra `extraction_log` por user_id. En modo single-user, el caller pasa
+ * `legacy-single-user` desde getAuthedUser().
  *
  * Fallbacks:
- *   - env var `AI_MONTHLY_BUDGET_CENTS` (default 500 = $5/month)
+ *   - env var `AI_MONTHLY_BUDGET_CENTS` (default 5000 = $50/month)
  *   - `users.monthly_budget_cents` si existe ese row (default null →
  *     env var)
  *
@@ -20,9 +20,6 @@
  *   const { id: userId } = await getAuthedUser(req)
  *   const overBudget = await checkMonthlyBudget(userId, requestId)
  *   if (overBudget) return overBudget
- *
- *   // legacy (sin userId): cap global + gasto total
- *   const overBudget = await checkMonthlyBudget(undefined, requestId)
  */
 
 import { safeSql } from './observability.js'
@@ -33,12 +30,12 @@ function readEnvBudgetCents(): number {
   // N4: vía getEnv() en lugar de Netlify.env.get directo. El parsing
   // numérico está centralizado en env.ts; acá solo aplicamos el default.
   const value = getEnv().AI_MONTHLY_BUDGET_CENTS
-  return typeof value === 'number' && value > 0 ? value : 500 // default $5/month
+  return typeof value === 'number' && value > 0 ? value : 5000 // default $50/month
 }
 
 export async function checkMonthlyBudget(
-  userId?: string,
-  requestId?: string,
+  userId: string,
+  requestId: string,
 ): Promise<Response | null> {
   const sql = safeSql()
   if (!sql) return null // No DB → can't check, fail open.
@@ -47,37 +44,29 @@ export async function checkMonthlyBudget(
 
   // Per-user mode: leer cap del row de users, fallback a env var.
   let budget = envBudget
-  if (userId) {
-    try {
-      const rows = (await sql`
-        SELECT monthly_budget_cents AS cap
-        FROM users
-        WHERE id = ${userId}
-        LIMIT 1
-      `) as Array<{ cap: number | null }>
-      const userCap = rows[0]?.cap
-      if (typeof userCap === 'number' && userCap > 0) {
-        budget = userCap
-      }
-    } catch {
-      // tabla users no existe todavía (migración no aplicada) o el
-      // user no está en la tabla — fallback al env var sin romper.
+  try {
+    const rows = (await sql`
+      SELECT monthly_budget_cents AS cap
+      FROM users
+      WHERE id = ${userId}
+      LIMIT 1
+    `) as Array<{ cap: number | null }>
+    const userCap = rows[0]?.cap
+    if (typeof userCap === 'number' && userCap > 0) {
+      budget = userCap
     }
+  } catch {
+    // tabla users no existe todavía (migración no aplicada) o el
+    // user no está en la tabla — fallback al env var sin romper.
   }
 
   type Row = { total: string }
-  const rows = userId
-    ? ((await sql`
-        SELECT COALESCE(SUM(cost_cents), 0) AS total
-        FROM extraction_log
-        WHERE created_at >= date_trunc('month', NOW())
-          AND user_id = ${userId}
-      `) as Row[])
-    : ((await sql`
-        SELECT COALESCE(SUM(cost_cents), 0) AS total
-        FROM extraction_log
-        WHERE created_at >= date_trunc('month', NOW())
-      `) as Row[])
+  const rows = (await sql`
+    SELECT COALESCE(SUM(cost_cents), 0) AS total
+    FROM extraction_log
+    WHERE created_at >= date_trunc('month', NOW())
+      AND user_id = ${userId}
+  `) as Row[]
 
   const spentCents = Number(rows[0]?.total ?? 0)
   if (spentCents >= budget) {
@@ -86,7 +75,7 @@ export async function checkMonthlyBudget(
     // el cliente tenía que parsear distinto. Ahora el detalle viaja
     // estructurado en `details` (budgetCents + spentCents).
     return ApiErrors.rateLimited(
-      requestId ?? crypto.randomUUID(),
+      requestId,
       `Presupuesto mensual del LLM agotado (gastado ${spentCents.toFixed(2)} centavos de un cap de ${budget}). Aumenta AI_MONTHLY_BUDGET_CENTS o espera al próximo mes.`,
       { budgetCents: budget, spentCents },
     )

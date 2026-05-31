@@ -25,6 +25,7 @@ import { logEvent, logErrorEvent } from './_lib/observability.js'
  * Netlify ignora el valor de retorno; devolvemos 202 por convención.
  */
 export default async (req: Request) => {
+  const requestId = crypto.randomUUID()
   let nextRun = 'unknown'
   try {
     const body = (await req.json().catch(() => ({}))) as { next_run?: string }
@@ -93,7 +94,7 @@ export default async (req: Request) => {
       // Auto-clasificar lo nuevo (best-effort, acotado, respeta el cost-cap).
       if (ins > 0) {
         try {
-          const overBudget = await checkMonthlyBudget(userId)
+          const overBudget = await checkMonthlyBudget(userId, requestId)
           const invocation = await resolveAIInvocation(req, 'classify', userId)
           if (!overBudget && invocation.kind === 'ready') {
             const r = await runClassify(

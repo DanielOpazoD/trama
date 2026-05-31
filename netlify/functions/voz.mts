@@ -7,6 +7,7 @@ import { buildVozMessages } from './_lib/voz-prompt.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { parseJsonBody } from './_lib/zod-body.js'
@@ -44,12 +45,13 @@ export default withObservability(
     if (!parsed.ok) return parsed.response
     const { question } = parsed.data
 
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
+    const sql = getSql()
+    await ensureUserRow(sql, authedUser)
 
     const budgetExceeded = await checkMonthlyBudget(userId, requestId)
     if (budgetExceeded) return budgetExceeded
-
-    const sql = getSql()
 
     type EntityRow = { name: string; type: string; description: string | null }
     const entityRows = (await sql`
@@ -87,7 +89,7 @@ export default withObservability(
     })
 
     const invocation = await resolveAIInvocation(req, 'voz', userId)
-    if (invocation.kind === 'off') return aiOffResponse()
+    if (invocation.kind === 'off') return aiOffResponse(requestId)
 
     try {
       const { content, usage, fromCache } = await askLLMForText(messages, {

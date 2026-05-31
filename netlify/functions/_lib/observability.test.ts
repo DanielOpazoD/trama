@@ -40,10 +40,20 @@ describe('observability', () => {
 
   describe('persistError', () => {
     let consoleErrorSpy: ReturnType<typeof vi.spyOn>
+    const originalClerk = process.env['CLERK_SECRET_KEY']
+    const originalFallback = process.env['ALLOW_LEGACY_FALLBACK']
     beforeEach(() => {
       consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      delete process.env['CLERK_SECRET_KEY']
+      delete process.env['ALLOW_LEGACY_FALLBACK']
     })
-    afterEach(() => consoleErrorSpy.mockRestore())
+    afterEach(() => {
+      consoleErrorSpy.mockRestore()
+      if (originalClerk === undefined) delete process.env['CLERK_SECRET_KEY']
+      else process.env['CLERK_SECRET_KEY'] = originalClerk
+      if (originalFallback === undefined) delete process.env['ALLOW_LEGACY_FALLBACK']
+      else process.env['ALLOW_LEGACY_FALLBACK'] = originalFallback
+    })
 
     it('si sql es null, solo logea a stdout (no rompe)', () => {
       expect(() =>
@@ -56,7 +66,7 @@ describe('observability', () => {
       expect(consoleErrorSpy).toHaveBeenCalled()
     })
 
-    it('si sql está dado, ejecuta INSERT INTO error_log con userId default', () => {
+    it('sin Clerk, si sql está dado ejecuta INSERT INTO error_log con userId legacy', () => {
       const calls: Array<{ template: string; values: unknown[] }> = []
       const sql = ((strings: TemplateStringsArray, ...values: unknown[]) => {
         calls.push({ template: strings.join('?'), values })
@@ -73,10 +83,28 @@ describe('observability', () => {
       })
       expect(calls).toHaveLength(1)
       expect(calls[0]!.template).toMatch(/INSERT INTO error_log/i)
-      // userId default debe ser 'legacy-single-user'
       expect(calls[0]!.values).toContain('legacy-single-user')
       // request_id viaja como valor también.
       expect(calls[0]!.values).toContain('rid-123')
+    })
+
+    it('con Clerk estricto y sin userId explícito, no persiste bajo legacy', () => {
+      process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
+      process.env['ALLOW_LEGACY_FALLBACK'] = 'false'
+      const calls: Array<{ template: string; values: unknown[] }> = []
+      const sql = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+        calls.push({ template: strings.join('?'), values })
+        return Promise.resolve([])
+      }) as unknown as ReturnType<typeof import('./db.js').getSql>
+
+      persistError(sql, {
+        functionName: 'entities',
+        message: 'strict unauth',
+        requestId: 'rid-strict',
+      })
+
+      expect(calls).toHaveLength(0)
+      expect(consoleErrorSpy).toHaveBeenCalled()
     })
 
     it('si se pasa userId explícito, lo usa en el INSERT', () => {

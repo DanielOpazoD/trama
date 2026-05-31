@@ -3,6 +3,7 @@ import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
@@ -38,7 +39,8 @@ function toCamel(c: StoredXCronica) {
 export default withObservability(
   'x-cronica',
   async (req: Request, _ctx: Context, { requestId }) => {
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
     const sql = getSql()
 
     if (req.method === 'GET') {
@@ -47,6 +49,7 @@ export default withObservability(
     }
     if (req.method !== 'POST') return ApiErrors.methodNotAllowed(requestId)
 
+    await ensureUserRow(sql, authedUser)
     const budgetExceeded = await checkMonthlyBudget(userId, requestId)
     if (budgetExceeded) return budgetExceeded
 
@@ -59,7 +62,7 @@ export default withObservability(
     }
 
     const invocation = await resolveAIInvocation(req, 'reflect', userId)
-    if (invocation.kind === 'off') return aiOffResponse()
+    if (invocation.kind === 'off') return aiOffResponse(requestId)
 
     try {
       const messages = buildBookmarkCronicaMessages(bookmarks)

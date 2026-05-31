@@ -147,6 +147,8 @@ export async function buildRagContext(
           SELECT q.id, e.name AS entity_name, q.text, q.source
           FROM quotes q
           JOIN entities e ON e.id = q.entity_id
+            AND e.deleted_at IS NULL
+            AND e.user_id = ${userId}
           WHERE q.deleted_at IS NULL AND q.embedding IS NOT NULL AND q.user_id = ${userId}
           ORDER BY q.embedding <=> ${queryVec}::vector
           LIMIT ${semQ}
@@ -156,6 +158,8 @@ export async function buildRagContext(
       SELECT q.id, e.name AS entity_name, q.text, q.source
       FROM quotes q
       JOIN entities e ON e.id = q.entity_id
+        AND e.deleted_at IS NULL
+        AND e.user_id = ${userId}
       WHERE q.deleted_at IS NULL AND q.user_id = ${userId}
       ORDER BY q.created_at DESC
       LIMIT ${recQ}
@@ -231,7 +235,11 @@ export async function buildRagContext(
       SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
       FROM relationships r
       JOIN entities ef ON ef.id = r.from_id
+        AND ef.deleted_at IS NULL
+        AND ef.user_id = ${userId}
       JOIN entities et ON et.id = r.to_id
+        AND et.deleted_at IS NULL
+        AND et.user_id = ${userId}
       WHERE r.deleted_at IS NULL AND r.user_id = ${userId}
         AND (r.from_id = ANY(${entityIds}::uuid[]) OR r.to_id = ANY(${entityIds}::uuid[]))
       ORDER BY r.created_at DESC
