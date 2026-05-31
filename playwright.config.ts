@@ -36,6 +36,9 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:5173',
+    env: {
+      VITE_CLERK_PUBLISHABLE_KEY: '',
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },
