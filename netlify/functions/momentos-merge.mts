@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
@@ -47,6 +47,26 @@ type FotoPayload = {
   photos?: Array<{ storageKey: string; width?: number; height?: number }>
   primaryStorageKey?: string | null
   audioKey?: string
+}
+
+type MergeMomentoRow = {
+  id: string
+  kind: string
+  captured_at: string
+  payload: FotoPayload | null
+  note: string | null
+}
+
+type MergeResultRow = {
+  primary: Record<string, unknown> | null
+  deleted_others: Array<{ id: string; deletedAt: string }>
+  links_inserted: number
+}
+
+type MomentoResponseRow = Record<string, unknown>
+
+type MomentoLinkIdRow = {
+  entity_id: string
 }
 
 /**
@@ -120,19 +140,12 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
   }
 
   // Lee todos los momentos involucrados de una. unnest evita N+1 queries.
-  type Row = {
-    id: string
-    kind: string
-    captured_at: string
-    payload: FotoPayload | null
-    note: string | null
-  }
   const allIds = [primaryId, ...otherIds]
-  const rows = (await sql`
+  const rows = await sqlTyped<MergeMomentoRow>(sql`
     SELECT id, kind, captured_at, payload, note
     FROM momentos
     WHERE id = ANY(${allIds}::uuid[]) AND deleted_at IS NULL AND user_id = ${userId}
-  `) as Row[]
+  `)
 
   // Verificar que todos existen + son foto.
   const found = new Map(rows.map((r) => [r.id, r]))
@@ -244,7 +257,7 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
   //   2. link_others: copia entity_id de others a primary (UNION)
   //   3. soft_delete_others: marca deleted_at en others
   // Final SELECT trae el primary actualizado.
-  const result = (await sql`
+  const result = await sqlTyped<MergeResultRow>(sql`
     WITH update_primary AS (
       UPDATE momentos
       SET payload = ${JSON.stringify(newPayload)}::jsonb,
@@ -283,11 +296,7 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
         '[]'::json
       ) AS deleted_others,
       (SELECT COUNT(*) FROM link_others)::int AS links_inserted
-  `) as Array<{
-    primary: Record<string, unknown> | null
-    deleted_others: Array<{ id: string; deletedAt: string }>
-    links_inserted: number
-  }>
+  `)
 
   const cteRow = result[0]
   if (!cteRow || !cteRow.primary) {
@@ -301,17 +310,17 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
   // Devolver el primary actualizado. Lo obtuvimos del CTE (cteRow.primary)
   // pero hacemos un re-SELECT para tener la versión más reciente (por si
   // el row tiene triggers que tocan updated_at, etc.).
-  const updated = (await sql`
+  const updated = await sqlTyped<MomentoResponseRow>(sql`
     SELECT id, kind, captured_at, payload, note, origin,
            created_at, updated_at
     FROM momentos
     WHERE id = ${primaryId} AND user_id = ${userId}
-  `) as Array<Record<string, unknown>>
-  const links = (await sql`
+  `)
+  const links = await sqlTyped<MomentoLinkIdRow>(sql`
     SELECT entity_id
     FROM momento_entities
     WHERE momento_id = ${primaryId} AND user_id = ${userId} AND deleted_at IS NULL
-  `) as Array<{ entity_id: string }>
+  `)
 
   return Response.json({
     ...updated[0],
