@@ -4,6 +4,7 @@ import type { Momento, MomentoPayload } from '../../types'
 import { api } from '../../api'
 import { useMergeMomentos, useToast } from '../../state'
 import { queryKeys } from '../../state/queryClient'
+import { getMomentoPhotoItems } from './helpers'
 
 /**
  * EE: barra flotante de acción para fusionar momentos seleccionados.
@@ -53,10 +54,7 @@ export function MergeMomentosBar({
   const primary = fotos.find((m) => m.id === effectivePrimaryId) ?? null
 
   const totalPhotos = fotos.reduce((acc, m) => {
-    const items = m.payload.items
-    if (Array.isArray(items)) return acc + items.length
-    if (m.payload.storageKey) return acc + 1
-    return acc
+    return acc + getMomentoPhotoItems(m.payload).length
   }, 0)
 
   async function handleMerge() {

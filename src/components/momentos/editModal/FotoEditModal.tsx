@@ -5,6 +5,7 @@ import { useUpdateMomento, useToast } from '../../../state'
 import {
   compressImage,
   fromDateTimeLocalInput,
+  getMomentoPhotoItems,
   readImageDimensions,
   toDateTimeLocalInput,
 } from '../helpers'
@@ -33,19 +34,12 @@ type AudioState =
   | null
 
 function buildInitialItems(momento: Momento): PhotoEditItem[] {
-  const { items, storageKey, width, height } = momento.payload
-  if (items && items.length > 0) {
-    return items.map((it) => ({
-      kind: 'existing' as const,
-      storageKey: it.storageKey,
-      width: it.width,
-      height: it.height,
-    }))
-  }
-  if (storageKey) {
-    return [{ kind: 'existing', storageKey, width, height }]
-  }
-  return []
+  return getMomentoPhotoItems(momento.payload).map((it) => ({
+    kind: 'existing' as const,
+    storageKey: it.storageKey,
+    width: it.width,
+    height: it.height,
+  }))
 }
 
 export function FotoEditModal({

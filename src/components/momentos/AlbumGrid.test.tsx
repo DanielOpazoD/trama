@@ -36,6 +36,19 @@ const noteMomento = {
   payload: { bodyText: 'no soy foto' },
 } as unknown as Momento
 
+const legacyPhotoMomento = {
+  ...photoMomento,
+  id: 'foto-legacy',
+  payload: {
+    caption: 'Foto migrada',
+    photos: [
+      { storageKey: 'legada uno.jpg', width: 800, height: 600 },
+      { storageKey: 'legada dos.jpg', width: 800, height: 600 },
+    ],
+    primaryStorageKey: 'legada uno.jpg',
+  },
+} as unknown as Momento
+
 describe('<AlbumGrid />', () => {
   beforeEach(() => {
     window.localStorage.clear()
@@ -73,6 +86,22 @@ describe('<AlbumGrid />', () => {
     await user.click(screen.getByRole('button', { name: /eliminar foto/i }))
 
     expect(onDelete).toHaveBeenCalledWith('foto-1')
+  })
+
+  it('renderiza fotos persistidas con payload photos legado', () => {
+    render(
+      <AlbumGrid
+        items={[legacyPhotoMomento]}
+        entitiesById={new Map([['e1', entity]])}
+        onDelete={() => {}}
+      />,
+    )
+
+    expect(screen.getByRole('img', { name: 'Foto migrada' })).toHaveAttribute(
+      'src',
+      '/api/momentos-file/legada%20uno.jpg',
+    )
+    expect(screen.getByText('+1')).toBeInTheDocument()
   })
 
   it('persiste tamaño y modo cronológico', async () => {

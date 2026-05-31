@@ -2,7 +2,7 @@ import { memo, useState } from 'react'
 import { typeAccent } from '../../lib/typeAccents'
 import type { Entity, Momento } from '../../types'
 import { PencilIcon, SparkleIcon, TrashIcon } from '../Icons'
-import { formatTime } from './helpers'
+import { formatTime, getMomentoPhotoItems } from './helpers'
 import { MomentoEditModal } from './MomentoEditModal'
 import { PhotoLightbox } from './PhotoLightbox'
 import { AudioNote } from './AudioNote'
@@ -173,9 +173,8 @@ function FotoBody({ momento }: { momento: Momento }) {
   //   y navegación.
   // El render del timeline mantiene altura visual baja sin importar
   // cuántas fotos tenga el episodio.
-  const { items, storageKey, width, height, caption, audioKey } = momento.payload
-  const photos: Array<{ storageKey: string; width?: number; height?: number }> =
-    items && items.length > 0 ? items : storageKey ? [{ storageKey, width, height }] : []
+  const { caption, audioKey } = momento.payload
+  const photos = getMomentoPhotoItems(momento.payload)
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
   if (photos.length === 0) {

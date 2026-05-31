@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import type { Entity, Momento } from '../../types'
 import { EmptyMessage } from '../EmptyMessage'
 import { TrashIcon } from '../Icons'
-import { formatMonthLabel, groupByMonth } from './helpers'
+import { formatMonthLabel, getMomentoPhotoItems, groupByMonth } from './helpers'
 
 /**
  * Vista alternativa de Momentos: grid de fotos agrupado por mes-año
@@ -252,10 +252,10 @@ function AlbumTile({
   onDelete: () => void
   size: TileSize
 }) {
-  const { items, caption } = momento.payload
-  const storageKey =
-    items && items.length > 0 ? items[0]!.storageKey : momento.payload.storageKey
-  const extraCount = items && items.length > 1 ? items.length - 1 : 0
+  const { caption } = momento.payload
+  const photos = getMomentoPhotoItems(momento.payload)
+  const storageKey = photos[0]?.storageKey
+  const extraCount = Math.max(photos.length - 1, 0)
   const linkedEntities = momento.entityIds
     .map((id) => entitiesById.get(id))
     .filter((e): e is Entity => Boolean(e))

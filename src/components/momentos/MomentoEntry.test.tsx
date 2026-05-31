@@ -123,4 +123,33 @@ describe('<MomentoEntry />', () => {
     expect(screen.getByText('+1')).toBeInTheDocument()
     expect(screen.getByText('dos fotos del mismo episodio')).toBeInTheDocument()
   })
+
+  it('renderiza fotos y nota de voz guardadas con el payload photos legado', () => {
+    const { container } = render(
+      <MomentoEntry
+        momento={{
+          ...baseMomento('foto', {
+            caption: 'archivo viejo',
+            photos: [
+              { storageKey: 'vieja uno.jpg', width: 800, height: 600 },
+              { storageKey: 'vieja-dos.jpg', width: 640, height: 480 },
+            ],
+            primaryStorageKey: 'vieja uno.jpg',
+            audioKey: 'voz vieja.mp3',
+          }),
+        }}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByText('(imagen no encontrada)')).toBeNull()
+    expect(screen.getByRole('img', { name: /archivo viejo/i })).toHaveAttribute(
+      'src',
+      '/api/momentos-file/vieja%20uno.jpg',
+    )
+    expect(screen.getByText('+1')).toBeInTheDocument()
+    const audio = container.querySelector('audio')
+    expect(audio).toHaveAttribute('src', '/api/momentos-file/voz%20vieja.mp3')
+  })
 })
