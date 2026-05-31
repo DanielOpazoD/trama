@@ -45,6 +45,7 @@ export type ApiErrorCode =
   | 'AI_DISABLED'
   | 'PAYLOAD_TOO_LARGE'
   | 'UNSUPPORTED_MEDIA_TYPE'
+  | 'UNPROCESSABLE'
   | 'UPSTREAM'
   | 'INTERNAL'
 
@@ -103,6 +104,20 @@ type CanonicalErrorBody = {
   }
 }
 
+function duplicateSuggestionsFromDetails(
+  details: unknown,
+): DuplicateEntityError['suggestions'] | null {
+  if (!details || typeof details !== 'object') return null
+  const candidate = details as {
+    kind?: unknown
+    suggestions?: unknown
+  }
+  if (candidate.kind !== 'possible_duplicate') return null
+  return Array.isArray(candidate.suggestions)
+    ? (candidate.suggestions as DuplicateEntityError['suggestions'])
+    : null
+}
+
 /**
  * Parsea el body de un response non-2xx y devuelve un error tipado.
  * Maneja tres formatos:
@@ -119,7 +134,8 @@ async function parseErrorResponse(
   const requestId = response.headers.get('x-request-id')
 
   // Caso especial preservado: dup detection en /api/entities 409.
-  // Estos endpoints todavía devuelven `{ error: 'possible_duplicate', suggestions }`.
+  // El servidor nuevo usa ApiErrors.conflict + details; mantenemos el parser
+  // legacy para respuestas antiguas ya desplegadas.
   if (response.status === 409 && url.startsWith('/api/entities')) {
     try {
       const body = JSON.parse(text) as {
@@ -138,6 +154,10 @@ async function parseErrorResponse(
   try {
     const parsed = JSON.parse(text) as CanonicalErrorBody
     if (parsed.error && typeof parsed.error === 'object') {
+      if (response.status === 409 && url.startsWith('/api/entities')) {
+        const suggestions = duplicateSuggestionsFromDetails(parsed.error.details)
+        if (suggestions) return new DuplicateEntityError(suggestions)
+      }
       const code = (parsed.error.code as ApiErrorCode | undefined) ?? 'UNKNOWN'
       const message = parsed.error.message ?? `${method} ${url} → ${response.status}`
       return new ApiClientError({

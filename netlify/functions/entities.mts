@@ -181,10 +181,11 @@ export default withObservability(
         LIMIT 3
       `) as DupRow[]
         if (dupRows.length > 0) {
-          // FF1: preserved — DuplicateEntityError parser depends on this exact shape
-          return Response.json(
+          return ApiErrors.conflict(
+            requestId,
+            'Posible entidad duplicada',
             {
-              error: 'possible_duplicate',
+              kind: 'possible_duplicate',
               suggestions: dupRows.map((d) => ({
                 id: d.id,
                 name: d.name,
@@ -193,7 +194,6 @@ export default withObservability(
                 similarity: Math.max(0, Math.min(1, 1 - Number(d.distance) / 2)),
               })),
             },
-            { status: 409 },
           )
         }
       }

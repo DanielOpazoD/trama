@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { apiFetch, request, setApiAuthTokenProvider } from './request'
+import {
+  apiFetch,
+  DuplicateEntityError,
+  request,
+  setApiAuthTokenProvider,
+} from './request'
 
 describe('request auth', () => {
   afterEach(() => {
@@ -132,5 +137,54 @@ describe('request auth', () => {
         }),
       }),
     )
+  })
+})
+
+describe('request error parsing', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('mantiene DuplicateEntityError con el shape canónico de ApiErrors.conflict', async () => {
+    const suggestions = [
+      {
+        id: 'e1',
+        name: 'Borges',
+        type: 'persona',
+        description: 'escritor',
+        similarity: 0.97,
+      },
+    ]
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () =>
+        Response.json(
+          {
+            error: {
+              code: 'CONFLICT',
+              message: 'Posible entidad duplicada',
+              requestId: 'req-dup',
+              details: {
+                kind: 'possible_duplicate',
+                suggestions,
+              },
+            },
+          },
+          { status: 409, headers: { 'x-request-id': 'req-dup' } },
+        ),
+      ),
+    )
+
+    await expect(
+      request('/api/entities', { method: 'POST', body: '{}' }),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        name: 'DuplicateEntityError',
+        suggestions,
+      }),
+    )
+    await expect(
+      request('/api/entities', { method: 'POST', body: '{}' }),
+    ).rejects.toBeInstanceOf(DuplicateEntityError)
   })
 })
