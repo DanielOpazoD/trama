@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { ENTITY_TYPES, type Entity } from '../../types'
 import { CloseIcon, SparkleIcon } from '../Icons'
 
@@ -38,12 +37,6 @@ export function EntityHeader({
   editingDescription?: boolean
 }) {
   const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label
-  // La descripción/interpretación arranca colapsada — se despliega con la
-  // flecha. (Pedido del usuario: la lectura de la IA no debe ocupar espacio
-  // por default.)
-  const [descOpen, setDescOpen] = useState(false)
-  const descLabel =
-    entity.origin.kind === 'ai' ? 'interpretación de la IA' : 'descripción'
   return (
     <header
       // viewTransitionName matchea con el EntityRow en lista — el navegador
@@ -91,32 +84,18 @@ export function EntityHeader({
         <h2 className="font-serif text-xl text-ink-800 leading-[1.2] tracking-tight break-words">
           {entity.name}
         </h2>
-        {/* Descripción/interpretación — colapsada por default detrás de una
-            flecha. El editor se dispara desde el menú ⋯ o con doble-clic.
-            Mientras se edita, el form vive en el body, así que acá ocultamos
-            el display. */}
+        {/* Descripción inmediatamente debajo del título — el editor se
+            dispara desde el menú ⋯ o con doble-clic. Mientras se edita, el
+            form vive en el body, así que acá ocultamos el display. */}
         {!editingDescription &&
           (entity.description ? (
-            <div>
-              <button
-                onClick={() => setDescOpen((o) => !o)}
-                className="inline-flex items-center gap-1 text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-600 transition-colors"
-                aria-expanded={descOpen}
-                title={descOpen ? `Ocultar ${descLabel}` : `Mostrar ${descLabel}`}
-              >
-                <span aria-hidden>{descOpen ? '▾' : '▸'}</span>
-                {descLabel}
-              </button>
-              {descOpen && (
-                <p
-                  onDoubleClick={onEditDescription}
-                  className="mt-1 text-sm text-ink-600 leading-relaxed cursor-text select-text animate-fade-up"
-                  title="Doble clic para editar"
-                >
-                  {entity.description}
-                </p>
-              )}
-            </div>
+            <p
+              onDoubleClick={onEditDescription}
+              className="text-sm text-ink-600 leading-relaxed cursor-text select-text"
+              title="Doble clic para editar"
+            >
+              {entity.description}
+            </p>
           ) : (
             <p
               onDoubleClick={onEditDescription}

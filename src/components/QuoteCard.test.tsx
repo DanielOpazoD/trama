@@ -87,7 +87,9 @@ describe('<QuoteCard />', () => {
       aiReflectionAt: '2024-01-02T00:00:00Z',
     } as Quote
     renderWithProviders(<QuoteCard quote={withAiRefl} />)
+    // Arranca colapsada: el cuerpo se despliega al tocar la flecha.
     expect(screen.getByText(/interpretación de la IA/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /interpretación de la IA/i }))
     expect(
       screen.getByText(/una interpretación literaria del tiempo/),
     ).toBeInTheDocument()
