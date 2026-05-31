@@ -177,6 +177,19 @@ export default tseslint.config(
       'no-console': 'off',
     },
   },
+  // Node scripts: CLI output and process exit codes are their public API.
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+      },
+    },
+    rules: {
+      'no-console': 'off',
+    },
+  },
   // Tests: relajamos no-explicit-any y unused-vars (los tests a menudo
   // tienen casts pragmáticos para los mocks).
   {
