@@ -18,6 +18,16 @@ describe('aiOffResponse', () => {
       },
     })
   })
+
+  it('exige requestId explícito para no fabricar ids legacy sintéticos', () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'ai-mode.ts'),
+      'utf8',
+    )
+
+    expect(src).not.toContain('legacy-request')
+    expect(src).not.toMatch(/function aiOffResponse\([^)]*=/)
+  })
 })
 
 describe('resolveAIInvocation', () => {

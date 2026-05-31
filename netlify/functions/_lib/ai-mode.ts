@@ -103,6 +103,6 @@ export async function resolveAIInvocation(
 }
 
 /** 423 Locked — clear semantics for "the resource exists but is currently disabled". */
-export function aiOffResponse(requestId = 'legacy-request'): Response {
+export function aiOffResponse(requestId: string): Response {
   return ApiErrors.aiDisabled(requestId, 'IA deshabilitada por el usuario (modo Off).')
 }
