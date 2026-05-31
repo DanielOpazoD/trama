@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { ALL_TASKS, invalidateAITaskCache } from './_lib/ai-tasks.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
@@ -25,24 +25,25 @@ import { getEnv } from './_lib/env.js'
 
 const VALID_PROVIDERS = new Set(['deepseek', 'openai', 'anthropic', 'gemini'])
 
+type AISettingsRow = {
+  task: string
+  provider: string
+  model: string | null
+  verify_with: string | null
+  updated_at: string
+}
+
 export default withObservability('ai-settings', async (req, _ctx, { requestId }) => {
   const authedUser = await getAuthedUser(req)
   const userId = authedUser.id
   const sql = getSql()
 
   if (req.method === 'GET') {
-    type Row = {
-      task: string
-      provider: string
-      model: string | null
-      verify_with: string | null
-      updated_at: string
-    }
-    const rows = (await sql`
+    const rows = await sqlTyped<AISettingsRow>(sql`
       SELECT task, provider, model, verify_with, updated_at
       FROM ai_task_providers
       WHERE user_id = ${userId}
-    `) as Row[]
+    `)
     const byTask = new Map(rows.map((r) => [r.task, r]))
 
     const env = getEnv()
