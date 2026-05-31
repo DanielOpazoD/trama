@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, 'codex/trama-pr*']
 
 # R1: el workflow se dividió en jobs paralelos:
 #
