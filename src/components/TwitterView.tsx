@@ -6,7 +6,9 @@ import { EmptyMessage } from './EmptyMessage'
 import {
   useClassifyBookmarks,
   useDeleteBookmark,
+  useGenerateXCronica,
   useTwitterBookmarksQuery,
+  useXCronicaQuery,
   useXStatusQuery,
 } from '../state'
 import { api, type XBookmark } from '../api'
@@ -31,6 +33,8 @@ export function TwitterView() {
   const bookmarks = useTwitterBookmarksQuery()
   const del = useDeleteBookmark()
   const classify = useClassifyBookmarks()
+  const cronicaQuery = useXCronicaQuery()
+  const genCronica = useGenerateXCronica()
   const [syncing, setSyncing] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [year, setYear] = useState<number | null>(null)
@@ -148,6 +152,15 @@ export function TwitterView() {
     }
   }
 
+  async function handleGenerateCronica() {
+    setMessage(null)
+    try {
+      await genCronica.mutateAsync()
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'No se pudo generar la crónica')
+    }
+  }
+
   function handleDelete(b: XBookmark) {
     if (!confirm('¿Quitar este bookmark de Trama? No se borra de tu cuenta de X.')) {
       return
@@ -220,6 +233,39 @@ export function TwitterView() {
         />
       ) : (
         <>
+          {/* #4 Crónica IA de tus bookmarks (se guarda y aparece en Inicio). */}
+          {(() => {
+            const c = cronicaQuery.data?.cronica
+            return (
+              <div className="card-paper mb-6 p-4">
+                <div className="mb-1 flex items-baseline justify-between gap-3">
+                  <span className="section-eyebrow-serif">Crónica de tus bookmarks</span>
+                  <button
+                    onClick={handleGenerateCronica}
+                    disabled={genCronica.isPending}
+                    className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
+                  >
+                    {genCronica.isPending ? 'escribiendo…' : c ? 'Regenerar' : 'Generar'}
+                  </button>
+                </div>
+                {c ? (
+                  <>
+                    <p className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-ink-700">
+                      {c.text}
+                    </p>
+                    <p className="mt-2 text-micro text-ink-300 tabular-nums">
+                      {formatRelative(c.generatedAt)} · {c.sourceCount} bookmarks
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-ink-400 italic">
+                    Un ensayo breve, escrito por la IA, sobre qué venís guardando en X.
+                  </p>
+                )}
+              </div>
+            )
+          })()}
+
           {/* Buscar + autores. */}
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <input

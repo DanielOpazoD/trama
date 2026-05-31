@@ -14,6 +14,16 @@ export type XBookmark = {
   topic: string | null
 }
 
+/** Crónica de bookmarks (ensayo IA sobre lo que guardás en X). */
+export type XCronica = {
+  id: string
+  text: string
+  sourceCount: number
+  generatedAt: string
+  provider: string | null
+  model: string | null
+}
+
 /** Estado de conexión con X (Twitter). */
 export type XStatus =
   | { connected: false }
@@ -42,6 +52,14 @@ export const xApi = {
   /** Clasifica por tema (IA) los bookmarks sin tema. `remaining` = quedan más. */
   async xClassify(): Promise<{ classified: number; remaining: boolean }> {
     return request('/api/x/classify', { method: 'POST' })
+  },
+  /** La crónica de bookmarks más reciente (o null). */
+  async xCronica(): Promise<{ cronica: XCronica | null }> {
+    return request('/api/x/cronica')
+  },
+  /** Genera (y persiste) una crónica nueva a partir de tus bookmarks. */
+  async xGenerateCronica(): Promise<{ cronica: XCronica }> {
+    return request('/api/x/cronica', { method: 'POST' })
   },
   /** Lista los bookmarks vivos (ordenados por fecha del tweet). La vista agrupa
    * por año/mes y filtra por tema client-side. */

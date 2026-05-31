@@ -32,3 +32,10 @@ export {
   type Topic,
   type ClassifyInvocation,
 } from './classify.js'
+export {
+  buildBookmarkCronicaMessages,
+  selectBookmarksForCronica,
+  getLatestXCronica,
+  insertXCronica,
+  type StoredXCronica,
+} from './cronica.js'
