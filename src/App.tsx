@@ -155,8 +155,7 @@ function Shell({
       setSettingsOpen(true)
       clearOAuthReturn()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot al montar
-  }, [])
+  }, [oauthReturn])
 
   const toggleFocusMode = useCallback(() => {
     setFocusMode((on) => {

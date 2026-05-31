@@ -1,5 +1,7 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { ViewMode } from './types/view'
@@ -566,5 +568,11 @@ describe('<App />', () => {
 
     expect(screen.getByText(/sidebar inicio trama/i)).toBeInTheDocument()
     expect(window.localStorage.getItem('trama:world')).toBe('trama')
+  })
+
+  it('declara dependencias reales para el retorno OAuth', () => {
+    const source = readFileSync(join(process.cwd(), 'src/App.tsx'), 'utf8')
+
+    expect(source).not.toContain('eslint-disable-next-line react-hooks/exhaustive-deps')
   })
 })
