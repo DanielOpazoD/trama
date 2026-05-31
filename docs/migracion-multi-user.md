@@ -1,15 +1,18 @@
 # Migración a multi-user
 
-> **Estado (mayo 2026): parcialmente implementado.** La autenticación con
-> Clerk ya está en producción (`netlify/functions/_lib/auth.ts` verifica el
-> Bearer token con `@clerk/backend`) y todas las tablas tienen `user_id`. El
-> dueño entra con Clerk y un alias (`LEGACY_OWNER_CLERK_ID`) mapea su sub a
-> `legacy-single-user` para ver toda la data pre-Clerk sin migrar nada.
-> **Pendiente antes de abrir a la familia:** provisioning de usuarios al
-> primer login, cerrar `ALLOW_LEGACY_FALLBACK`, tests de aislamiento por
-> `user_id`, y namespacear Spotify + cost-cap por persona. Los "Commit 1–N"
-> de abajo se conservan como referencia: varios ya están hechos. El resumen
-> vivo está en [`docs/conventions/roadmap.md`](conventions/roadmap.md).
+> **Estado (mayo 2026): implementado en código, pendiente de cutover operativo.**
+> La autenticación con Clerk ya está en el repo (`netlify/functions/_lib/auth.ts` verifica el
+> Bearer token con `@clerk/backend`), `AuthGate`/`UserButton` cubren login y
+> logout en la UI, las tablas de dominio tienen `user_id`, el provisioning
+> lazy (`ensureUserRow`) existe en endpoints críticos, y Spotify/cost-cap ya
+> operan por usuario. El dueño entra con Clerk y un alias
+> (`LEGACY_OWNER_CLERK_ID`) mapea su sub a `legacy-single-user` para ver toda
+> la data pre-Clerk sin migrar nada. **Pendiente antes de abrir a la
+> familia:** configurar Clerk en Netlify, verificar login E2E, y cerrar
+> `ALLOW_LEGACY_FALLBACK` para que requests sin token den 401. Los "Commit
+> 1–N" de abajo se conservan como referencia histórica: varios ya están
+> hechos. El resumen vivo está en
+> [`docs/conventions/roadmap.md`](conventions/roadmap.md).
 
 ## Cuándo abrir esto
 
@@ -194,17 +197,22 @@ filtro.
 
 ### Commit 5 — Frontend: gate de auth + estado de sesión
 
-1. `<AuthGate>` en App.tsx: redirect a login si no hay sesión.
+Estado 2026: `AuthGate` ya rodea la app y muestra `SignIn` cuando Clerk está
+configurado; `UserMenu` monta `UserButton` en el TopBar para cuenta/logout.
+
+1. `<AuthGate>` en App.tsx: redirect a login si no hay sesión. ✅
 2. Endpoint `/api/me` → devuelve `{ user, displayName, ... }`.
-3. Settings: mostrar "logueado como X" + botón logout.
+3. Settings: mostrar "logueado como X" si hace falta una vista de cuenta
+   adicional; logout ya está cubierto por `UserButton`.
 4. AskBar / GraphView / etc: si una request devuelve 401, redirect a
    login (limpieza de cache de TanStack).
 
-### Commit 6 — Quitar legacy fallbacks
+### Commit 6 — Quitar legacy fallbacks (referencia histórica)
 
-Cuando todos los datos viejos estén migrados al usuario real (Daniel
-inició sesión y sus datos se reasignaron de `legacy-single-user` a su
-sub real):
+El camino recomendado 2026 ya no reasigna toda la data histórica: usa
+`LEGACY_OWNER_CLERK_ID` para mapear el sub de Daniel a `legacy-single-user`.
+La alternativa de abajo queda como referencia si algún día se decide eliminar
+por completo ese alias y migrar rows/blob keys al sub real:
 
 ```sql
 -- Migrar datos del usuario legacy al real
@@ -227,8 +235,9 @@ Y en código: quitar el `ALLOW_LEGACY_FALLBACK` y borrar la env var.
   queries de cosine SI deben filtrar por user_id. Si no, un usuario
   podría "ver" entidades de otro vía búsqueda semántica. Asegurate de
   añadir `AND user_id = ${user.id}` a TODA query de embedding.
-- **Cost cap mensual**: `AI_MONTHLY_BUDGET_CENTS` es global. Si compartís,
-  considera hacerlo per-user (columna `monthly_budget_cents` en `users`).
+- **Cost cap mensual**: el cap ya opera por usuario. Primero lee
+  `users.monthly_budget_cents`; si está `NULL`, cae al default global
+  `AI_MONTHLY_BUDGET_CENTS`.
 - **Spotify**: cada usuario debe conectar su propia cuenta. El OAuth
   callback debe asociar el token al user_id del que inició el flow.
 - **Backup/export JSON**: el endpoint `/api/export` debe respetar el
@@ -248,16 +257,20 @@ Aproximadamente:
 
 ## Cómo NO romper la app durante la transición
 
-Mantener `ALLOW_LEGACY_FALLBACK=true` durante todos los pasos. Hace
-que los endpoints sigan respondiendo a usuarios no autenticados como
-el `legacy-single-user`, así Daniel puede seguir usando la app
-mientras se va construyendo el otro lado. Quitarlo solo cuando todo
-esté completo y verificado.
+En local/dev se puede mantener `ALLOW_LEGACY_FALLBACK=true` mientras se prueba
+el flujo. En producción, el build bloquea `ALLOW_LEGACY_FALLBACK=true` para no
+abrir un bypass de auth. La transición segura de producción es:
+
+1. Configurar `CLERK_SECRET_KEY` y `VITE_CLERK_PUBLISHABLE_KEY` juntas.
+2. Configurar `LEGACY_OWNER_CLERK_ID` para que Daniel siga viendo la data
+   histórica bajo `legacy-single-user`.
+3. Verificar login E2E en un deploy preview o entorno controlado.
+4. Deployar producción con `ALLOW_LEGACY_FALLBACK` apagado.
 
 ## Estado real + checklist de go-live (auditoría 2026-05)
 
-El schema y el aislamiento por `user_id` ya están en casi todo. Auditoría de
-los 53 handlers:
+El schema y el aislamiento por `user_id` ya están en casi todo. Auditoría de la
+superficie de Netlify Functions:
 
 **🟢 Aislado correctamente:** entities, quotes, relationships, momentos (+merge
 /restore/upload/audio-upload/orphaned-blobs/file — los blobs van namespaced
@@ -271,16 +284,24 @@ ahora filtra todo por `user_id` (con su contract test `health-endpoint.test`).
 
 **🟢 Arreglado:** **Spotify OAuth per-user**. El `/login` ahora autentica al
 usuario y setea una cookie HttpOnly `spotify_uid` (el userId NUNCA pasa por
-Spotify → no se puede forjar); el callback lee esa cookie y asocia el token al
-usuario; el cron `spotify-scheduled-sync` itera por cada usuario con token. El
-front pide la authorize URL por fetch autenticado y navega. (De paso:
-`handler-wrap` ahora preserva los Set-Cookie al inyectar el `x-request-id`.)
+Spotify → no se puede forjar); el callback rechaza callbacks sin `spotify_uid`,
+provisiona `users(id)` y asocia el token al usuario. El cron
+`spotify-scheduled-sync` itera por cada usuario con token. El front pide la
+authorize URL por fetch autenticado y navega. (De paso: `handler-wrap` ahora
+preserva los Set-Cookie al inyectar el `x-request-id`.)
 
-**🔴 Bloqueante que falta antes de encender (código):**
+**🟢 Arreglado:** **X OAuth per-user**. Igual que Spotify: `/api/x/login`
+autentica, setea `x_uid` HttpOnly junto al state/verifier PKCE, y el callback
+rechaza callbacks sin `x_uid` antes de intercambiar tokens.
 
-1. **`cost-alert-check.mts`** (cron): suma el costo GLOBAL. Debe iterar por
-   usuario y alertar por usuario. (Único gap de código que queda; es un cron de
-   alertas, no expone datos a usuarios.)
+**🟢 Arreglado:** **cost-alert-check per-user**. El cron agrupa
+`extraction_log` por `user_id`, usa `users.monthly_budget_cents` con fallback a
+`AI_MONTHLY_BUDGET_CENTS`, y guarda throttling en `alert_state` como
+`cost-cap-warning:<userId>`.
+
+**🔴 Bloqueante que falta antes de encender (código):** no queda un gap de código
+conocido en esta checklist; los pasos restantes son operativos y deben validarse
+en Netlify/Clerk reales.
 
 **Operativo (lo hace Daniel en Netlify, no se puede automatizar):**
 
@@ -289,9 +310,12 @@ front pide la authorize URL por fetch autenticado y navega. (De paso:
    existente, para no perder tus datos).
 4. Provisionar `users.monthly_budget_cents` por usuario (o dejar que caiga al
    `AI_MONTHLY_BUDGET_CENTS` global).
-5. **Recién entonces** quitar `ALLOW_LEGACY_FALLBACK` → modo estricto (401 sin
-   token). Verificar login end-to-end ANTES de quitarlo (si no, te bloqueás).
+5. Verificar login end-to-end en deploy preview o entorno controlado.
+6. Deployar producción con `ALLOW_LEGACY_FALLBACK` apagado → modo estricto
+   (401 sin token). `npm run check:legacy-fallback` también falla si Clerk
+   queda configurado solo en frontend o solo en backend.
 
-**Guardrail recomendado (siguiente iteración):** un test que recorra los
-handlers y falle si una query sobre tabla per-user no menciona `user_id` — para
-que un `WHERE user_id` olvidado lo cace el CI, no un usuario en producción.
+**Guardrail activo:** `netlify/functions/_lib/isolation-guardrail.test.ts`
+recorre handlers y helpers de contexto críticos para fallar si una query sobre
+tabla per-user no menciona `user_id`, si un endpoint HTTP queda sin auth
+explícita, o si un write con `user_id` no llama a `ensureUserRow`.

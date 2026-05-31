@@ -74,19 +74,23 @@ Comandos útiles:
 
 ## Variables de entorno (en Netlify dashboard)
 
-| Variable                  | Valores                                               | Descripción                                                                                                                                                                            |
-| ------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AI_PROVIDER`             | `deepseek` (default), `openai`, `anthropic`, `gemini` | Proveedor del LLM                                                                                                                                                                      |
-| `AI_API_KEY`              | string                                                | Key del proveedor elegido                                                                                                                                                              |
-| `AI_MAX_TOKENS`           | int (default `4096`)                                  | Cap de tokens de respuesta del LLM                                                                                                                                                     |
-| `AI_CACHE_TTL_SECONDS`    | int (default `600`)                                   | TTL del cache in-memory del LLM. `0` desactiva.                                                                                                                                        |
-| `AI_MONTHLY_BUDGET_CENTS` | int (default `500`)                                   | Cap mensual de gasto del LLM en centavos USD. Las llamadas se cortan al cap.                                                                                                           |
-| `AI_VISION_PROVIDER`      | `openai` o `gemini` (opcional)                        | Provider separado para llamadas con imagen. Necesario si `AI_PROVIDER` es DeepSeek o Anthropic (que no soportan visión). Si `AI_PROVIDER=openai` o `gemini`, esta var no es necesaria. |
-| `AI_VISION_API_KEY`       | string (opcional)                                     | Key del provider de visión. Necesaria si `AI_VISION_PROVIDER` está definida.                                                                                                           |
-| `NETLIFY_DB_URL`          | string                                                | Auto-provisionada por la extensión Netlify Database. `getSql()` la resuelve internamente; el código no la lee directo.                                                                 |
-| `SPOTIFY_CLIENT_ID`       | string                                                | OAuth client id de tu app en Spotify Developer                                                                                                                                         |
-| `SPOTIFY_CLIENT_SECRET`   | string                                                | OAuth client secret. **NUNCA al frontend.**                                                                                                                                            |
-| `SPOTIFY_REDIRECT_URI`    | url                                                   | Debe coincidir exacta con la registrada en Spotify Developer                                                                                                                           |
+| Variable                     | Valores                                               | Descripción                                                                                                                                                                            |
+| ---------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AI_PROVIDER`                | `deepseek` (default), `openai`, `anthropic`, `gemini` | Proveedor del LLM                                                                                                                                                                      |
+| `AI_API_KEY`                 | string                                                | Key del proveedor elegido                                                                                                                                                              |
+| `AI_MAX_TOKENS`              | int (default `4096`)                                  | Cap de tokens de respuesta del LLM                                                                                                                                                     |
+| `AI_CACHE_TTL_SECONDS`       | int (default `600`)                                   | TTL del cache in-memory del LLM. `0` desactiva.                                                                                                                                        |
+| `AI_MONTHLY_BUDGET_CENTS`    | int (default `5000`)                                  | Cap mensual de gasto del LLM en centavos USD. Las llamadas se cortan al cap.                                                                                                           |
+| `AI_VISION_PROVIDER`         | `openai` o `gemini` (opcional)                        | Provider separado para llamadas con imagen. Necesario si `AI_PROVIDER` es DeepSeek o Anthropic (que no soportan visión). Si `AI_PROVIDER=openai` o `gemini`, esta var no es necesaria. |
+| `AI_VISION_API_KEY`          | string (opcional)                                     | Key del provider de visión. Necesaria si `AI_VISION_PROVIDER` está definida.                                                                                                           |
+| `NETLIFY_DB_URL`             | string                                                | Auto-provisionada por la extensión Netlify Database. `getSql()` la resuelve internamente; el código no la lee directo.                                                                 |
+| `CLERK_SECRET_KEY`           | string (opcional)                                     | Activa verificación backend de JWT Clerk. Sin esto, dev/single-user cae al usuario legacy.                                                                                             |
+| `VITE_CLERK_PUBLISHABLE_KEY` | string (opcional)                                     | Activa `ClerkProvider` en el cliente.                                                                                                                                                  |
+| `LEGACY_OWNER_CLERK_ID`      | string (opcional)                                     | Mapea el Clerk ID del dueño a `legacy-single-user` durante el cutover.                                                                                                                 |
+| `ALLOW_LEGACY_FALLBACK`      | `true` solo en dev/cutover                            | Permite requests sin token como `legacy-single-user`. Producción debe ir a `false` antes de abrir multi-user real.                                                                     |
+| `SPOTIFY_CLIENT_ID`          | string                                                | OAuth client id de tu app en Spotify Developer                                                                                                                                         |
+| `SPOTIFY_CLIENT_SECRET`      | string                                                | OAuth client secret. **NUNCA al frontend.**                                                                                                                                            |
+| `SPOTIFY_REDIRECT_URI`       | url                                                   | Debe coincidir exacta con la registrada en Spotify Developer                                                                                                                           |
 
 ## Configurar Spotify
 
@@ -148,7 +152,7 @@ trama/
 │   ├── index.css                         # design tokens (3 temas) + componentes globales
 │   ├── api/                              # cliente HTTP con transforms snake↔camel
 │   │   ├── index.ts                      # facade `api.*`
-│   │   ├── request.ts                    # fetch + Bearer JWT injection
+│   │   ├── request.ts                    # fetch + ApiAuthBridge Bearer JWT injection
 │   │   ├── entities.ts · quotes.ts · momentos.ts · …
 │   │   └── transform.ts                  # camelCase ↔ snake_case
 │   ├── state/                            # hooks TanStack Query por dominio
@@ -198,7 +202,7 @@ trama/
 │   └── *.spec.ts                         # add-entity · add-quote · chat-send · momentos · …
 └── netlify/
     ├── database/migrations/              # SQL versionado, aplicado en deploy
-    └── functions/                        # 44 endpoints `.mts`
+    └── functions/                        # 66 endpoints `.mts`
         ├── _lib/                         # lógica compartida
         │   ├── db.ts                     # getSql() singleton
         │   ├── auth.ts                   # Clerk verifyToken + ALLOW_LEGACY_FALLBACK
@@ -265,21 +269,22 @@ npm run test:e2e       # Playwright — requiere build previo
 
 La app fue diseñada inicialmente como single-user y migra incrementalmente a multi-user. Estado actual:
 
-| Pieza                                        | Estado                   |
-| -------------------------------------------- | ------------------------ |
-| Schema con `user_id` en 9 tablas             | ✅ Migración aplicada    |
-| Composite indexes `(user_id, …)`             | ✅                       |
-| `getAuthedUser()` en 25 endpoints CRUD/reads | ✅                       |
-| Schemas Zod en CRUD core                     | ✅                       |
-| Isolation tests                              | ✅                       |
-| `AuthGate` + `ClerkProvider` opcional        | ✅ scaffolding           |
-| `AppPinGate` (PIN opcional desde Settings)   | ✅                       |
-| **Blobs con prefijo `userId/`**              | ⚠️ Pendiente             |
-| **Cost-cap per-user**                        | ⚠️ Hoy es env var global |
-| **Spotify OAuth per-user**                   | ⚠️ Hoy es single account |
-| **UI login / logout**                        | ⚠️ Pendiente             |
+| Pieza                                      | Estado                                         |
+| ------------------------------------------ | ---------------------------------------------- |
+| Schema con `user_id` en tablas de dominio  | ✅ Migraciones aplicadas                       |
+| Composite indexes `(user_id, …)`           | ✅                                             |
+| `getAuthedUser()` en endpoints HTTP        | ✅ con guardrail CI                            |
+| Schemas Zod en CRUD core                   | ✅                                             |
+| Isolation tests                            | ✅                                             |
+| `AuthGate` + `ClerkProvider` opcional      | ✅ scaffolding                                 |
+| `ApiAuthBridge` + Bearer JWT en fetch      | ✅ `useAuth().getToken()`                      |
+| `AppPinGate` (PIN opcional desde Settings) | ✅                                             |
+| **Blobs con prefijo `userId/`**            | ✅                                             |
+| **Cost-cap per-user**                      | ✅ `users.monthly_budget_cents` + fallback env |
+| **Spotify OAuth per-user**                 | ✅                                             |
+| **UI login / logout**                      | ✅ `AuthGate` + `UserButton`                   |
 
-Sin `CLERK_SECRET_KEY` la app funciona en modo single-user (todos los datos contra `legacy-single-user`). Activar Clerk es agregar las 3 env vars (`VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `ALLOW_LEGACY_FALLBACK=true`) y desplegar.
+Sin `CLERK_SECRET_KEY` la app funciona en modo single-user (todos los datos contra `legacy-single-user`). Activar Clerk en cutover es agregar `VITE_CLERK_PUBLISHABLE_KEY` y `CLERK_SECRET_KEY` juntas, más `LEGACY_OWNER_CLERK_ID` para mapear al dueño histórico; antes de abrir multi-user real, `ALLOW_LEGACY_FALLBACK` debe quedar apagado. `npm run check:legacy-fallback` falla si Clerk queda configurado solo en frontend o solo en backend.
 
 ## Contribuir
 

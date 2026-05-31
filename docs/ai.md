@@ -89,7 +89,7 @@ La env var `AI_MONTHLY_BUDGET_CENTS` corta TODAS las llamadas IA cuando se alcan
 
 - Default si no la pones: **5000 (≈ USD 50/mes)**. Si quieres más, ajustar.
 - La medición es por mes calendario. El primero de cada mes se resetea.
-- Cuando se alcanza, los endpoints devuelven 503 con mensaje "budget alcanzado". La app sigue funcionando para todo lo manual.
+- Cuando se alcanza, los endpoints devuelven `429 RATE_LIMITED` con el shape canónico de API. La app sigue funcionando para todo lo manual.
 
 Settings → Health muestra el gasto acumulado del mes en vivo.
 
@@ -156,7 +156,9 @@ Cuando importás datos viejos o cambiás el modelo de embeddings:
 
 ## Contexto técnico
 
-- Toda llamada IA pasa por `_lib/llm.ts` (3 funciones: `askLLMForJson`, `askLLMForText`, `askLLMForTextStreaming`).
+- Toda llamada IA generativa pasa por `_lib/llm.ts` (3 funciones: `askLLMForJson`, `askLLMForText`, `askLLMForTextStreaming`).
 - Cada llamada se loguea en `extraction_log` con tokens, costo, latencia, provider.
 - El cost cap está en `_lib/cost-cap.ts` y se chequea al inicio de cada endpoint IA.
 - HyDE + reranker viven en `_lib/rag-context.ts` + `_lib/llm-rerank.ts`.
+- Excepción deliberada: embeddings usa `_lib/embeddings.ts` contra OpenAI `text-embedding-3-small` porque es infraestructura de búsqueda, no generación. Sus fallos se loguean como `embed_failed`; su costo estimado está documentado arriba para reindexados masivos y debe revisarse antes de correr lotes grandes.
+- Cada lote de `/api/reindex-embeddings` emite `reindex_embeddings_batch` con `attempted`, `processed`, `errors`, `estimatedTokens` y `estimatedCostCents`; revisar esos eventos si se corre un backfill grande.
