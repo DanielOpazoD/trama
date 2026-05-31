@@ -20,6 +20,7 @@
  */
 
 import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from 'web-vitals'
+import { apiFetch } from '../api/request'
 
 type Reporter = (metric: Metric) => void
 
@@ -75,10 +76,9 @@ const defaultReporter: Reporter = (metric) => {
     }
     // Fallback: fetch keepalive (Safari iOS no soporta sendBeacon en
     // todas las versiones aún; Beacon también puede rechazar el queue).
-    void fetch('/api/web-vitals', {
+    void apiFetch('/api/web-vitals', {
       method: 'POST',
       body: payload,
-      headers: { 'Content-Type': 'application/json' },
       keepalive: true,
     }).catch(() => {})
   } catch {

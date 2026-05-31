@@ -38,7 +38,7 @@ describe('installClientErrorTracking', () => {
       configurable: true,
       value: undefined,
     })
-    const fetchMock = vi.spyOn(window, 'fetch').mockResolvedValue(new Response('{}'))
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'))
     const { installClientErrorTracking } = await import('./clientErrorTracking')
 
     installClientErrorTracking()
@@ -46,6 +46,8 @@ describe('installClientErrorTracking', () => {
     Object.defineProperty(rejection, 'reason', { value: 'x' })
     window.dispatchEvent(rejection)
 
+    await Promise.resolve()
+    await Promise.resolve()
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/error-log',
       expect.objectContaining({ method: 'POST', keepalive: true }),

@@ -131,7 +131,7 @@ describe('initWebVitals', () => {
       configurable: true,
       value: vi.fn().mockReturnValue(false),
     })
-    const fetchMock = vi.spyOn(window, 'fetch').mockResolvedValue(new Response('{}'))
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'))
 
     initWebVitals()
     callbacks.cls?.({
@@ -143,11 +143,13 @@ describe('initWebVitals', () => {
       navigationType: 'navigate',
     } as Metric)
 
+    await Promise.resolve()
+    await Promise.resolve()
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/web-vitals',
       expect.objectContaining({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
         keepalive: true,
       }),
     )
