@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql, isMissingDatabaseConnectionError } from './_lib/db.js'
+import { getSql, isMissingDatabaseConnectionError, sqlTyped } from './_lib/db.js'
 import {
   fetchBookmarks,
   getValidAccessToken,
@@ -12,6 +12,11 @@ import { resolveAIInvocation } from './_lib/ai-mode.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
 import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
+
+type XTokenUserRow = {
+  user_id: string
+  x_user_id: string | null
+}
 
 /**
  * Netlify Scheduled Function — sincroniza los bookmarks de X de cada usuario
@@ -53,9 +58,9 @@ export default async (req: Request) => {
     throw err
   }
 
-  const userRows = (await sql`
+  const userRows = await sqlTyped<XTokenUserRow>(sql`
     SELECT user_id, x_user_id FROM x_tokens
-  `.catch(() => [])) as Array<{ user_id: string; x_user_id: string | null }>
+  `.catch(() => []))
 
   if (userRows.length === 0) {
     logEvent({ event: 'x_scheduled_sync_skipped', reason: 'not_connected', nextRun })
