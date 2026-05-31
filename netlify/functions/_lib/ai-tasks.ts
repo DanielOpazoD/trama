@@ -7,7 +7,7 @@
  * model override + optional cross-verification provider.
  */
 
-import { getSql } from './db.js'
+import { getSql, sqlTyped } from './db.js'
 
 export type AITask =
   | 'extract'
@@ -39,7 +39,7 @@ export type ResolvedTask = {
   verifyWith: string | null
 }
 
-type Row = {
+type TaskProviderRow = {
   task: string
   provider: string
   model: string | null
@@ -49,19 +49,21 @@ type Row = {
 // Cache per-user. La migración 20260526 movió la PK de `(task)` a
 // `(user_id, task)` y queremos respetarlo: la configuración de uno no
 // se filtra al otro. Cache `Map<userId, { at, map }>`.
-type UserCache = { at: number; map: Map<string, Row> }
+type UserCache = { at: number; map: Map<string, TaskProviderRow> }
 const cache = new Map<string, UserCache>()
 const CACHE_TTL_MS = 30_000
 
-async function loadAll(userId: string): Promise<Map<string, Row>> {
+async function loadAll(userId: string): Promise<Map<string, TaskProviderRow>> {
   const cached = cache.get(userId)
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.map
   const sql = getSql()
-  const rows = (await sql`
+  const rows = await sqlTyped<TaskProviderRow>(
+    sql`
     SELECT task, provider, model, verify_with
     FROM ai_task_providers
     WHERE user_id = ${userId}
-  `.catch(() => [])) as Row[]
+  `.catch(() => []),
+  )
   const map = new Map(rows.map((r) => [r.task, r]))
   cache.set(userId, { at: Date.now(), map })
   return map

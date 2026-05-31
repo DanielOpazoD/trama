@@ -10,6 +10,7 @@ const prStack = [
       /^netlify\/functions\/_lib\/auth\.test\.ts$/,
       /^netlify\/functions\/_lib\/auth\.ts$/,
       /^netlify\/functions\/_lib\/ai-mode(\.test)?\.ts$/,
+      /^netlify\/functions\/_lib\/ai-tasks(-boundary\.test)?\.ts$/,
       /^netlify\/functions\/_lib\/ask-boundary\.test\.ts$/,
       /^netlify\/functions\/_lib\/chat-context\.ts$/,
       /^netlify\/functions\/_lib\/chat-messages-boundary\.test\.ts$/,
