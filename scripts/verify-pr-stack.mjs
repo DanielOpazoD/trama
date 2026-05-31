@@ -145,6 +145,7 @@ const prStack = [
       /^src\/components\/graph\/GraphCanvasSigma(\.test)?\.tsx$/,
       /^src\/components\/graph\/GraphSvgCanvas\.tsx$/,
       /^src\/components\/relationships\/RelationshipRow\.tsx$/,
+      /^src\/hooks\/useGraphLayout(\.test)?\.tsx?$/,
       /^src\/state\/useHome\.ts$/,
       /^src\/state\/index\.ts$/,
     ],
