@@ -2,7 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { disconnectSpotify, getStoredTokens } from './_lib/spotify/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 
 /**
@@ -17,7 +17,7 @@ export default withObservability('spotify-status', async (req, _ctx, { requestId
 
   if (req.method === 'DELETE') {
     await disconnectSpotify(sql, userId)
-    return new Response(null, { status: 204 })
+    return ApiSuccess.noContent()
   }
 
   if (req.method !== 'GET') {

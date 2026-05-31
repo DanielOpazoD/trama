@@ -2,7 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
 import { getEnv } from './_lib/env.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 
 /**
  * DD7 (audit #6): scheduled function que avisa cuando el gasto IA mensual
@@ -64,7 +64,7 @@ export default async (req: Request) => {
       reason: 'no_db',
       message: err instanceof Error ? err.message : String(err),
     })
-    return new Response(null, { status: 202 })
+    return ApiSuccess.accepted()
   }
 
   const fallbackBudget = readBudgetCents()
@@ -93,7 +93,7 @@ export default async (req: Request) => {
       event: 'cost_alert_check_ok',
       usersChecked: 0,
     })
-    return new Response(null, { status: 202 })
+    return ApiSuccess.accepted()
   }
 
   let alerted = 0
@@ -204,7 +204,7 @@ export default async (req: Request) => {
     alerted,
   })
 
-  return new Response(null, { status: 202 })
+  return ApiSuccess.accepted()
 }
 
 export const config: Config = {

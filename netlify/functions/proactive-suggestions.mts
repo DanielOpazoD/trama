@@ -9,7 +9,7 @@ import {
   type ExistingRelPair,
 } from './_lib/proactive-prompt.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
@@ -343,7 +343,7 @@ export default withObservability(
         SET status = ${nextStatus}, status_changed_at = NOW()
         WHERE id = ${id} AND user_id = ${userId}
       `
-      return new Response(null, { status: 204 })
+      return ApiSuccess.noContent()
     }
 
     return ApiErrors.methodNotAllowed(requestId)

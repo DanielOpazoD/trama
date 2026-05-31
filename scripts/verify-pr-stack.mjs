@@ -50,6 +50,8 @@ const prStack = [
       /^netlify\/functions\/relationships\.mts$/,
       /^netlify\/functions\/search\.mts$/,
       /^netlify\/functions\/spotify-callback\.mts$/,
+      /^netlify\/functions\/spotify-scheduled-sync\.mts$/,
+      /^netlify\/functions\/spotify-status\.mts$/,
       /^netlify\/functions\/tasks\.mts$/,
       /^netlify\/functions\/web-vitals\.mts$/,
       /^netlify\/functions\/x-callback\.mts$/,
@@ -91,7 +93,9 @@ const prStack = [
     id: 'pr4-client-api-contracts',
     title: 'Correctness cliente y API contracts',
     patterns: [
+      /^netlify\/functions\/_lib\/api-(error|success\.test)\.ts$/,
       /^netlify\/functions\/_lib\/suggest-relationships-endpoint\.test\.ts$/,
+      /^netlify\/functions\/(entity|relationship)-types\.mts$/,
       /^netlify\/functions\/suggest-relationships\.mts$/,
       /^src\/api\/(chat|momentos|request|transform)\.ts$/,
       /^src\/api\/request-boundary\.test\.ts$/,

@@ -2,7 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { ALL_TASKS, invalidateAITaskCache } from './_lib/ai-tasks.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { AISettingsUpsertBody } from './_lib/admin-schemas.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -77,7 +77,7 @@ export default withObservability('ai-settings', async (req, _ctx, { requestId })
     if (provider === '') {
       await sql`DELETE FROM ai_task_providers WHERE user_id = ${userId} AND task = ${task}`
       invalidateAITaskCache(userId)
-      return new Response(null, { status: 204 })
+      return ApiSuccess.noContent()
     }
     if (!VALID_PROVIDERS.has(provider)) {
       return ApiErrors.validation(requestId, `provider "${provider}" no es válido`)
@@ -102,7 +102,7 @@ export default withObservability('ai-settings', async (req, _ctx, { requestId })
         verify_with = EXCLUDED.verify_with
     `
     invalidateAITaskCache(userId)
-    return new Response(null, { status: 204 })
+    return ApiSuccess.noContent()
   }
 
   return ApiErrors.methodNotAllowed(requestId)

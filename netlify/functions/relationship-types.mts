@@ -1,7 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { RelationshipTypeUpsertBody } from './_lib/admin-schemas.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -57,7 +57,7 @@ export default withObservability('relationship-types', async (req: Request, cont
       )
     }
     await sql`DELETE FROM relationship_types WHERE slug = ${slug}`
-    return new Response(null, { status: 204 })
+    return ApiSuccess.noContent()
   }
 
   return ApiErrors.methodNotAllowed(requestId)

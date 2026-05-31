@@ -1,7 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ChatThreadCreateBody } from './_lib/chat-body-schemas.js'
@@ -91,7 +91,7 @@ export default withObservability(
     if (req.method === 'DELETE' && id) {
       await ensureUserRow(sql, authedUser)
       await sql`UPDATE chat_threads SET deleted_at = NOW() WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
-      return new Response(null, { status: 204 })
+      return ApiSuccess.noContent()
     }
 
     return ApiErrors.methodNotAllowed(requestId)

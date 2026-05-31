@@ -2,7 +2,7 @@ import type { Config } from '@netlify/functions'
 import { z } from 'zod'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { getAuthedUser, UnauthenticatedError } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
@@ -99,7 +99,7 @@ export default withObservability('web-vitals', async (req, _ctx, { requestId }) 
     // Sin DB / sin tabla todavía → solo nos quedamos con el log stdout.
   }
 
-  return new Response(null, { status: 204 })
+  return ApiSuccess.noContent()
 })
 
 export const config: Config = {

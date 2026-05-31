@@ -12,7 +12,7 @@ import {
 import { resolveAIInvocation } from './_lib/ai-mode.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 
 /**
  * Netlify Scheduled Function — sincroniza los bookmarks de X de cada usuario
@@ -49,7 +49,7 @@ export default async (req: Request) => {
         reason: 'no_db_url',
         message: 'Netlify Database no está conectada (NETLIFY_DB_URL falta)',
       })
-      return new Response(null, { status: 202 })
+      return ApiSuccess.accepted()
     }
     throw err
   }
@@ -60,7 +60,7 @@ export default async (req: Request) => {
 
   if (userRows.length === 0) {
     logEvent({ event: 'x_scheduled_sync_skipped', reason: 'not_connected', nextRun })
-    return new Response(null, { status: 202 })
+    return ApiSuccess.accepted()
   }
 
   let fetched = 0
@@ -133,7 +133,7 @@ export default async (req: Request) => {
     failures,
     nextRun,
   })
-  return new Response(null, { status: 202 })
+  return ApiSuccess.accepted()
 }
 
 export const config: Config = {

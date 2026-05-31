@@ -1,7 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { EntityTypeUpsertBody } from './_lib/admin-schemas.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -57,7 +57,7 @@ export default withObservability('entity-types', async (req: Request, context: C
       )
     }
     await sql`DELETE FROM entity_types WHERE slug = ${slug}`
-    return new Response(null, { status: 204 })
+    return ApiSuccess.noContent()
   }
 
   return ApiErrors.methodNotAllowed(requestId)

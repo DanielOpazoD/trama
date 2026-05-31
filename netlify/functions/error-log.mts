@@ -1,7 +1,7 @@
 import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ErrorLogBody } from './_lib/admin-schemas.js'
 import { getAuthedUser, UnauthenticatedError } from './_lib/auth.js'
@@ -89,7 +89,7 @@ export default withObservability('error-log', async (req, _ctx, { requestId }) =
         path: body.path,
         scope: body.scope,
       })
-      return new Response(null, { status: 204 })
+      return ApiSuccess.noContent()
     }
 
     const message = body.message.slice(0, 2000)
@@ -106,7 +106,7 @@ export default withObservability('error-log', async (req, _ctx, { requestId }) =
       INSERT INTO error_log (function_name, http_method, http_path, message, stack, context, user_id)
       VALUES ('client', NULL, ${path}, ${message}, ${stack}, ${JSON.stringify(context)}::jsonb, ${userId})
     `
-    return new Response(null, { status: 204 })
+    return ApiSuccess.noContent()
   }
 
   return ApiErrors.methodNotAllowed(requestId)
