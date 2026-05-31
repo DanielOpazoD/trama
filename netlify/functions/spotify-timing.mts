@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -22,6 +22,8 @@ import { getAuthedUser } from './_lib/auth.js'
  */
 const MAX_TIMESTAMPS = 20000
 
+type Row = { played_at: string | Date }
+
 export default withObservability('spotify-timing', async (req, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
     return ApiErrors.methodNotAllowed(requestId)
@@ -36,14 +38,13 @@ export default withObservability('spotify-timing', async (req, _ctx, { requestId
 
   const sql = getSql()
 
-  type Row = { played_at: string | Date }
-  const rows = (await sql`
+  const rows = await sqlTyped<Row>(sql`
     SELECT played_at
     FROM spotify_plays
     WHERE played_at >= ${since} AND user_id = ${userId}
     ORDER BY played_at ASC
     LIMIT ${MAX_TIMESTAMPS}
-  `) as Row[]
+  `)
 
   // Normalizamos a ISO string (Neon devuelve Date objects, no strings).
   const playedAts = rows.map((r) =>

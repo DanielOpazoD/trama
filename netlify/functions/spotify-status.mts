@@ -1,9 +1,15 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { disconnectSpotify, getStoredTokens } from './_lib/spotify/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+
+type CountsRow = {
+  total_plays: string
+  unique_tracks: string
+  most_recent_play: string | null
+}
 
 /**
  * GET → returns the current Spotify connection state + summary counts.
@@ -29,14 +35,14 @@ export default withObservability('spotify-status', async (req, _ctx, { requestId
     return Response.json({ connected: false })
   }
 
-  const counts = (await sql`
+  const counts = await sqlTyped<CountsRow>(sql`
     SELECT
       COUNT(*) AS total_plays,
       COUNT(DISTINCT track_id) AS unique_tracks,
       MAX(played_at) AS most_recent_play
     FROM spotify_plays
     WHERE user_id = ${userId}
-  `) as Array<{ total_plays: string; unique_tracks: string; most_recent_play: string | null }>
+  `)
 
   return Response.json({
     connected: true,
