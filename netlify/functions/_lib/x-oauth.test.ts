@@ -257,6 +257,16 @@ describe('x-status', () => {
 })
 
 describe('x-scheduled-sync (cron)', () => {
+  it('rechaza GET con 405 antes de tocar tokens', async () => {
+    mockSqlResponses.push([{ user_id: 'u1', x_user_id: 'x-1' }])
+
+    const res = await scheduledHandler(new Request('http://localhost/x-scheduled-sync'))
+
+    expect(res.status).toBe(405)
+    expect(getValidAccessToken).not.toHaveBeenCalled()
+    expect(storeBookmarks).not.toHaveBeenCalled()
+  })
+
   it('sincroniza a cada usuario con token', async () => {
     mockSqlResponses.push([{ user_id: 'u1', x_user_id: 'x-1' }]) // SELECT x_tokens
     const res = await scheduledHandler(

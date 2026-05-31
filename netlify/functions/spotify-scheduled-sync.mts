@@ -8,6 +8,7 @@ import {
   storePlays,
 } from './_lib/spotify/index.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * Netlify Scheduled Function — Netlify invokes this on its own clock.
@@ -22,6 +23,10 @@ import { logEvent, logErrorEvent } from './_lib/observability.js'
  * Return value is ignored by Netlify; we return 202 by convention.
  */
 export default async (req: Request) => {
+  if (req.method !== 'POST') {
+    return ApiErrors.methodNotAllowed(crypto.randomUUID())
+  }
+
   let nextRun = 'unknown'
   try {
     const body = (await req.json().catch(() => ({}))) as { next_run?: string }

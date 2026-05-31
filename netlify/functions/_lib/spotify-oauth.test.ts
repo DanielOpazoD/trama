@@ -136,6 +136,18 @@ describe('spotify-callback — asocia el token al userId de la cookie', () => {
 })
 
 describe('spotify-scheduled-sync — itera por usuario', () => {
+  it('rechaza GET con 405 antes de tocar tokens', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }])
+
+    const res = await scheduledSync(
+      new Request('http://localhost/api/spotify/scheduled-sync'),
+    )
+
+    expect(res.status).toBe(405)
+    expect(getValidAccessToken).not.toHaveBeenCalled()
+    expect(markSynced).not.toHaveBeenCalled()
+  })
+
   it('sincroniza a cada usuario con token (no solo el legacy)', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }, { user_id: 'u2' }]) // SELECT user_id
     const res = await scheduledSync(

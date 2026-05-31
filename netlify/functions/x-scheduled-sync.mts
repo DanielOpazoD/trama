@@ -12,6 +12,7 @@ import {
 import { resolveAIInvocation } from './_lib/ai-mode.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * Netlify Scheduled Function — sincroniza los bookmarks de X de cada usuario
@@ -26,6 +27,10 @@ import { logEvent, logErrorEvent } from './_lib/observability.js'
  */
 export default async (req: Request) => {
   const requestId = crypto.randomUUID()
+  if (req.method !== 'POST') {
+    return ApiErrors.methodNotAllowed(requestId)
+  }
+
   let nextRun = 'unknown'
   try {
     const body = (await req.json().catch(() => ({}))) as { next_run?: string }
