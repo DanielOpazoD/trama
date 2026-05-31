@@ -46,6 +46,7 @@ type FotoPayload = {
   items?: Array<{ storageKey: string; width?: number; height?: number }>
   photos?: Array<{ storageKey: string; width?: number; height?: number }>
   primaryStorageKey?: string | null
+  audioKey?: string
 }
 
 /**
@@ -88,6 +89,12 @@ function payloadToItems(payload: FotoPayload): Array<{
     ]
   }
   return []
+}
+
+function payloadAudioKey(payload: FotoPayload): string | undefined {
+  if (typeof payload.audioKey !== 'string') return undefined
+  const audioKey = payload.audioKey.trim()
+  return audioKey || undefined
 }
 
 export default withObservability('momentos-merge', async (req: Request, _ctx, { requestId }) => {
@@ -166,6 +173,11 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
       combinedItems.push(it)
     }
   }
+  const audioKey =
+    payloadAudioKey(primary.payload ?? {}) ??
+    otherIds
+      .map((otherId) => payloadAudioKey(found.get(otherId)?.payload ?? {}))
+      .find((key): key is string => Boolean(key))
 
   // Nuevo payload: items[] + legacy storageKey/width/height del primer item
   // para back-compat con renderers viejos.
@@ -182,6 +194,7 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
     // Conservar caption/exifDate del primary si estaban.
     ...(primary.payload?.caption ? { caption: primary.payload.caption } : {}),
     ...(primary.payload?.exifDate ? { exifDate: primary.payload.exifDate } : {}),
+    ...(audioKey ? { audioKey } : {}),
   }
 
   // Note/capturedAt: si vienen del cliente, override; si no, conservar

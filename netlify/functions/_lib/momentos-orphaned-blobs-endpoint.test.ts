@@ -35,13 +35,19 @@ describe('momentos-orphaned-blobs endpoint', () => {
 
   it('GET no marca como huérfanas fotos referenciadas en payload photos legado', async () => {
     list.mockResolvedValue({
-      blobs: [{ key: 'legacy/a.jpg' }, { key: 'legacy/b.jpg' }, { key: 'orphan.jpg' }],
+      blobs: [
+        { key: 'legacy/a.jpg' },
+        { key: 'legacy/b.jpg' },
+        { key: 'legacy/audio.webm' },
+        { key: 'orphan.jpg' },
+      ],
     })
     mockSqlResponses.push([
       {
         payload: {
           photos: [{ storageKey: 'legacy/a.jpg' }, { storageKey: 'legacy/b.jpg' }],
           primaryStorageKey: 'legacy/a.jpg',
+          audioKey: 'legacy/audio.webm',
         },
       },
     ])
@@ -54,8 +60,8 @@ describe('momentos-orphaned-blobs endpoint', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({
       orphans: ['orphan.jpg'],
-      referenced: 2,
-      totalInStore: 3,
+      referenced: 3,
+      totalInStore: 4,
     })
   })
 

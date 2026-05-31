@@ -33,6 +33,7 @@ type FotoPayload = {
   storageKey?: string
   items?: Array<{ storageKey: string }>
   photos?: Array<{ storageKey: string }>
+  audioKey?: string
 }
 
 function addStorageKey(set: Set<string>, storageKey: unknown): void {
@@ -58,6 +59,7 @@ async function collectReferencedKeys(sql: ReturnType<typeof getSql>, userId: str
   for (const row of rows) {
     const payload = row.payload ?? {}
     addStorageKey(set, payload.storageKey)
+    addStorageKey(set, payload.audioKey)
     if (Array.isArray(payload.items)) {
       for (const item of payload.items) {
         addStorageKey(set, item?.storageKey)

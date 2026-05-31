@@ -371,6 +371,7 @@ describe('momentos-merge endpoint', () => {
             { storageKey: 'primary.jpg' },
           ],
           primaryStorageKey: 'primary.jpg',
+          audioKey: 'primary-audio.webm',
         },
         note: null,
       },
@@ -380,6 +381,7 @@ describe('momentos-merge endpoint', () => {
         captured_at: '2026-05-23T10:00:00Z',
         payload: {
           photos: [{ storageKey: 'other.jpg' }, { storageKey: 'primary.jpg' }],
+          audioKey: 'other-audio.webm',
         },
         note: null,
       },
@@ -451,6 +453,7 @@ describe('momentos-merge endpoint', () => {
         { storageKey: 'other.jpg' },
       ],
       storageKey: 'primary.jpg',
+      audioKey: 'primary-audio.webm',
     })
   })
 })
