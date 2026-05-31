@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { HomeView } from './HomeView'
 import { makeQueryClient, renderWithProviders } from '../test-utils'
 import { queryKeys } from '../state/queryClient'
@@ -138,6 +140,14 @@ describe('<HomeView />', () => {
     // Después del reroll también — el rollCounter cambió pero igual hay
     // featured quote.
     expect(screen.getAllByText(/frase [AB]/).length).toBeGreaterThan(0)
+  })
+
+  it('no oculta dependencias de hooks para rotar la cita destacada', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/components/HomeView.tsx'),
+      'utf8',
+    )
+    expect(source).not.toContain('eslint-disable-next-line react-hooks/exhaustive-deps')
   })
 
   it('renderiza el hilo reciente con los items', () => {

@@ -60,10 +60,7 @@ export function HomeView({
   // contador (rollCounter) deja que el botón "rotar" pida otra.
   const [rollCounter, setRollCounter] = useState(0)
   const featuredQuote = useMemo(
-    () => pickFeaturedQuote(quotes),
-    // rollCounter no se usa en el cálculo: está para forzar un re-pick manual
-    // ("otra cita") reusando el mismo `quotes`. Incluido a propósito.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    () => pickFeaturedQuote(quotes, rollCounter),
     [quotes, rollCounter],
   )
 
