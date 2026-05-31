@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * δ5: Number ticker — anima de un valor a otro con easing.
@@ -32,6 +32,12 @@ export function NumberTicker({
   // `display` es lo que aparece en pantalla; `target` es el valor "verdad".
   // Cuando target cambia, animamos display hacia él.
   const [display, setDisplay] = useState(value)
+  const displayRef = useRef(value)
+
+  function updateDisplay(next: number) {
+    displayRef.current = next
+    setDisplay(next)
+  }
 
   useEffect(() => {
     // Reduce motion: salto directo, sin animación.
@@ -39,11 +45,11 @@ export function NumberTicker({
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
     ) {
-      setDisplay(value)
+      updateDisplay(value)
       return
     }
 
-    const start = display
+    const start = displayRef.current
     const end = value
     if (start === end) return
 
@@ -55,14 +61,11 @@ export function NumberTicker({
       const t = Math.min(elapsed / ANIM_MS, 1)
       const eased = easeOutQuart(t)
       const next = Math.round(start + (end - start) * eased)
-      setDisplay(next)
+      updateDisplay(next)
       if (t < 1) raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-    // El effect lo dispara value (objetivo). NO incluimos display
-    // porque sería un loop: cada setDisplay re-ejecutaría el effect.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
   return <span className={`tabular-nums ${className}`}>{display}</span>

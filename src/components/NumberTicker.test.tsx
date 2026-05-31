@@ -1,4 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NumberTicker } from './NumberTicker'
 
@@ -56,5 +58,13 @@ describe('<NumberTicker />', () => {
     rerender(<NumberTicker value={7} />)
 
     expect(screen.getByText('7')).toBeInTheDocument()
+  })
+
+  it('no oculta dependencias de hooks con suppressions de exhaustive-deps', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/components/NumberTicker.tsx'),
+      'utf8',
+    )
+    expect(source).not.toContain('eslint-disable-next-line react-hooks/exhaustive-deps')
   })
 })
