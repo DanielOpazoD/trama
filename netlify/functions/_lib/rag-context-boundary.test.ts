@@ -21,4 +21,11 @@ describe('guardrail: RAG context usa el tipo SQL canonico', () => {
       expect(src).not.toMatch(/buildRagContext\(\s*\n\s*sql\s+as\s+unknown\s+as/)
     }
   })
+
+  it('las queries internas de RAG usan sqlTyped en vez de casts Row[] locales', () => {
+    const src = readRepoFile('netlify/functions/_lib/rag-context.ts')
+
+    expect(src).not.toMatch(/\)\s+as\s+RelCtxRow\[\]/)
+    expect(src).toContain('sqlTyped<RelCtxRow>')
+  })
 })

@@ -229,7 +229,7 @@ export async function buildRagContext(
   const entityIds = entities.map((e) => e.id)
   let relationships: RelCtxRow[] = []
   if (entityIds.length > 0) {
-    relationships = (await sql`
+    relationships = await sqlTyped<RelCtxRow>(sql`
       SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
       FROM relationships r
       JOIN entities ef ON ef.id = r.from_id
@@ -242,7 +242,7 @@ export async function buildRagContext(
         AND (r.from_id = ANY(${entityIds}::uuid[]) OR r.to_id = ANY(${entityIds}::uuid[]))
       ORDER BY r.created_at DESC
       LIMIT ${relCap}
-    `) as RelCtxRow[]
+    `)
   }
 
   return {
