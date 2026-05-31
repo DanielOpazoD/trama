@@ -18,6 +18,7 @@ const prStack = [
       /^netlify\/functions\/_lib\/chat-user-isolation\.test\.ts$/,
       /^netlify\/functions\/_lib\/entities-endpoint\.test\.ts$/,
       /^netlify\/functions\/_lib\/entities-merge-endpoint\.test\.ts$/,
+      /^netlify\/functions\/_lib\/error-log-boundary\.test\.ts$/,
       /^netlify\/functions\/_lib\/error-log-endpoint\.test\.ts$/,
       /^netlify\/functions\/_lib\/health-endpoint\.test\.ts$/,
       /^netlify\/functions\/_lib\/import-endpoint\.test\.ts$/,

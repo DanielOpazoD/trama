@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
@@ -7,6 +7,18 @@ import { ErrorLogBody } from './_lib/admin-schemas.js'
 import { getAuthedUser, UnauthenticatedError } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { logEvent } from './_lib/observability.js'
+
+type Row = {
+  id: string
+  function_name: string
+  http_method: string | null
+  http_path: string | null
+  status_code: number | null
+  message: string
+  stack: string | null
+  context: unknown
+  created_at: string
+}
 
 export default withObservability('error-log', async (req, _ctx, { requestId }) => {
   const sql = getSql()
@@ -19,25 +31,13 @@ export default withObservability('error-log', async (req, _ctx, { requestId }) =
     const url = new URL(req.url)
     const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '100', 10), 500)
 
-    type Row = {
-      id: string
-      function_name: string
-      http_method: string | null
-      http_path: string | null
-      status_code: number | null
-      message: string
-      stack: string | null
-      context: unknown
-      created_at: string
-    }
-
-    const rows = (await sql`
+    const rows = await sqlTyped<Row>(sql`
       SELECT id, function_name, http_method, http_path, status_code, message, stack, context, created_at
       FROM error_log
       WHERE user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT ${limit}
-    `) as Row[]
+    `)
 
     return Response.json(
       rows.map((r) => ({
