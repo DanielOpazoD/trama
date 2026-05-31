@@ -8,7 +8,7 @@ import {
 import { ViewHeader } from './ViewHeader'
 import { RelationshipSkeleton, SkeletonList } from './Skeleton'
 import {
-  useEntitiesQuery,
+  useCountsQuery,
   useInfiniteRelationshipsQuery,
   useAddRelationship,
   useDeleteRelationship,
@@ -28,11 +28,9 @@ export function RelationshipsView({
   onSelectEntity?: (id: string) => void
   onProposal?: (text: string, proposal: ExtractionProposal) => void
 }) {
-  // Paginated relationships for the list. entities stays wholesale because
-  // the form selects (from/to) and the row name resolution both need it.
-  // Cuando entities crezca a 100k habrá que reemplazar los selects por un
-  // autocomplete con /api/entities-lookup.
-  const { data: entities = [] } = useEntitiesQuery()
+  // Paginated relationships for the list; rows carry fromName/toName so this
+  // view no longer needs the wholesale entities query just to paint names.
+  const { data: counts } = useCountsQuery()
   const relsPaged = useInfiniteRelationshipsQuery()
   const relationships = useMemo(
     () => relsPaged.data?.pages.flatMap((p) => p.items) ?? [],
@@ -43,9 +41,9 @@ export function RelationshipsView({
   const suggest = useSuggestRelationships()
   const { offline } = useOffline()
 
-  const [fromId, setFromId] = useState('')
+  const [fromEntity, setFromEntity] = useState<Entity | null>(null)
   const [type, setType] = useState<RelationshipType>('influye_en')
-  const [toId, setToId] = useState('')
+  const [toEntity, setToEntity] = useState<Entity | null>(null)
   const [notes, setNotes] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [emptyHint, setEmptyHint] = useState<string | null>(null)
@@ -57,12 +55,12 @@ export function RelationshipsView({
     Array<{ fromName: string; toName: string; type: string }>
   >([])
 
-  // O(1) entity lookup so the virtualized rows aren't O(rel × entities) each frame.
-  const entitiesById = useMemo(() => {
-    const map = new Map<string, Entity>()
-    for (const e of entities) map.set(e.id, e)
-    return map
-  }, [entities])
+  const fromId = fromEntity?.id ?? ''
+  const toId = toEntity?.id ?? ''
+  const entityCount = counts?.entities ?? 0
+  const hasEnoughEntities = entityCount >= 2
+  const canShowRelationships =
+    hasEnoughEntities || relationships.length > 0 || relsPaged.isLoading
 
   const { listRef, virtualizer } = useMainScrollVirtualizer({
     count: relationships.length,
@@ -142,8 +140,8 @@ export function RelationshipsView({
         type,
         notes: notes.trim() || undefined,
       })
-      setFromId('')
-      setToId('')
+      setFromEntity(null)
+      setToEntity(null)
       setNotes('')
     } catch {
       /* error surfaces via addRelationship.error */
@@ -166,7 +164,7 @@ export function RelationshipsView({
         spacing="normal"
         subtitle="Vínculos entre dos entidades — quién influye en quién, qué cita a qué, qué te llegó por dónde."
         action={
-          entities.length >= 2 ? (
+          hasEnoughEntities ? (
             <div className="flex items-center gap-3 mt-1">
               <button
                 onClick={handleSuggest}
@@ -228,7 +226,7 @@ export function RelationshipsView({
         </div>
       )}
 
-      {entities.length < 2 ? (
+      {!canShowRelationships ? (
         <EmptyMessage
           illustration="pair"
           title="Una relación necesita dos."
@@ -250,10 +248,8 @@ export function RelationshipsView({
                 <div className="flex-1">
                   <EntityCombobox
                     value={fromId || null}
-                    onChange={(entity) => setFromId(entity?.id ?? '')}
-                    selectedName={
-                      fromId ? (entitiesById.get(fromId)?.name ?? null) : null
-                    }
+                    onChange={setFromEntity}
+                    selectedName={fromEntity?.name ?? null}
                     placeholder="— origen —"
                   />
                 </div>
@@ -271,8 +267,8 @@ export function RelationshipsView({
                 <div className="flex-1">
                   <EntityCombobox
                     value={toId || null}
-                    onChange={(entity) => setToId(entity?.id ?? '')}
-                    selectedName={toId ? (entitiesById.get(toId)?.name ?? null) : null}
+                    onChange={setToEntity}
+                    selectedName={toEntity?.name ?? null}
                     excludeId={fromId || null}
                     placeholder="— destino —"
                   />
@@ -336,8 +332,8 @@ export function RelationshipsView({
                   >
                     <RelationshipRow
                       rel={rel}
-                      from={entitiesById.get(rel.fromId)}
-                      to={entitiesById.get(rel.toId)}
+                      from={undefined}
+                      to={undefined}
                       onSelectEntity={onSelectEntity}
                       onDelete={() => deleteRelationship.mutate(rel.id)}
                     />

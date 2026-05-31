@@ -21,6 +21,7 @@ import { entitiesApi } from './entities'
 import { exportImportApi } from './export-import'
 import { graphApi } from './graph'
 import { healthApi } from './health'
+import { homeApi } from './home'
 import { momentosApi } from './momentos'
 import { notesApi } from './notes'
 import { quotesApi } from './quotes'
@@ -47,6 +48,7 @@ export const api = {
   ...spotifyApi,
   ...xApi,
   ...healthApi,
+  ...homeApi,
   ...searchApi,
   ...graphApi,
   ...typeTablesApi,
@@ -112,6 +114,8 @@ export type {
   HealthAlert,
   HealthResponse,
 } from './health'
+
+export type { HomeResponse } from './home'
 
 export type {
   SearchEntityHit,

@@ -1,10 +1,5 @@
 import { useMemo, useState } from 'react'
-import {
-  useEntitiesQuery,
-  useProactiveQuery,
-  useQuotesQuery,
-  useRelationshipsQuery,
-} from '../state'
+import { useHomeQuery, useProactiveQuery } from '../state'
 import { EmptyMessage } from './EmptyMessage'
 import { EndMark, OrnamentBreak } from './Icons'
 import { QuoteSkeleton, SkeletonList, TimelineRowSkeleton } from './Skeleton'
@@ -46,9 +41,10 @@ export function HomeView({
   onNavigate: (view: 'grafo' | 'entidades' | 'citas' | 'momentos' | 'sugerencias') => void
   onSelectEntity: (id: string) => void
 }) {
-  const { data: entities = [], isLoading: entitiesLoading } = useEntitiesQuery()
-  const { data: quotes = [] } = useQuotesQuery()
-  const { data: relationships = [] } = useRelationshipsQuery()
+  const { data: home, isLoading: entitiesLoading } = useHomeQuery()
+  const entities = home?.entities ?? []
+  const quotes = home?.quotes ?? []
+  const relationships = home?.relationships ?? []
   const proactive = useProactiveQuery()
   const pendingCount = proactive.data?.length ?? 0
 
