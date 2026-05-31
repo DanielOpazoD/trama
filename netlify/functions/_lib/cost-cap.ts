@@ -25,6 +25,15 @@
 import { safeSql } from './observability.js'
 import { ApiErrors } from './api-error.js'
 import { getEnv } from './env.js'
+import { sqlTyped } from './db.js'
+
+type UserBudgetRow = {
+  cap: number | null
+}
+
+type MonthlySpendRow = {
+  total: string
+}
 
 function readEnvBudgetCents(): number {
   // N4: vía getEnv() en lugar de Netlify.env.get directo. El parsing
@@ -45,12 +54,12 @@ export async function checkMonthlyBudget(
   // Per-user mode: leer cap del row de users, fallback a env var.
   let budget = envBudget
   try {
-    const rows = (await sql`
+    const rows = await sqlTyped<UserBudgetRow>(sql`
       SELECT monthly_budget_cents AS cap
       FROM users
       WHERE id = ${userId}
       LIMIT 1
-    `) as Array<{ cap: number | null }>
+    `)
     const userCap = rows[0]?.cap
     if (typeof userCap === 'number' && userCap > 0) {
       budget = userCap
@@ -60,13 +69,12 @@ export async function checkMonthlyBudget(
     // user no está en la tabla — fallback al env var sin romper.
   }
 
-  type Row = { total: string }
-  const rows = (await sql`
+  const rows = await sqlTyped<MonthlySpendRow>(sql`
     SELECT COALESCE(SUM(cost_cents), 0) AS total
     FROM extraction_log
     WHERE created_at >= date_trunc('month', NOW())
       AND user_id = ${userId}
-  `) as Row[]
+  `)
 
   const spentCents = Number(rows[0]?.total ?? 0)
   if (spentCents >= budget) {

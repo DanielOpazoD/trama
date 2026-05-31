@@ -72,7 +72,7 @@ const prStack = [
     id: 'pr3-llm-cost-observability',
     title: 'Costos LLM y observabilidad',
     patterns: [
-      /^netlify\/functions\/_lib\/cost-(alert-check-(endpoint|boundary)\.test|cap(\.test)?)\.ts$/,
+      /^netlify\/functions\/_lib\/cost-(alert-check-(endpoint|boundary)\.test|cap(-boundary)?(\.test)?)\.ts$/,
       /^netlify\/functions\/_lib\/embeddings(\.test)?\.ts$/,
       /^netlify\/functions\/_lib\/env\.ts$/,
       /^netlify\/functions\/_lib\/llm\/dispatch\.ts$/,
