@@ -1,6 +1,6 @@
 import type { Config } from '@netlify/functions'
 import { getStore } from '@netlify/blobs'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
@@ -36,6 +36,14 @@ type FotoPayload = {
   audioKey?: string
 }
 
+type ReferencedMomentoPayloadRow = {
+  payload: FotoPayload | null
+}
+
+type CreatedMomentoRow = Record<string, unknown> & {
+  id: string
+}
+
 function addStorageKey(set: Set<string>, storageKey: unknown): void {
   if (typeof storageKey !== 'string') return
   const trimmed = storageKey.trim()
@@ -49,11 +57,11 @@ function addStorageKey(set: Set<string>, storageKey: unknown): void {
  * que el usuario borró a propósito.
  */
 async function collectReferencedKeys(sql: ReturnType<typeof getSql>, userId: string): Promise<Set<string>> {
-  const rows = (await sql`
+  const rows = await sqlTyped<ReferencedMomentoPayloadRow>(sql`
     SELECT payload
     FROM momentos
     WHERE kind = 'foto' AND user_id = ${userId}
-  `) as Array<{ payload: FotoPayload | null }>
+  `)
 
   const set = new Set<string>()
   for (const row of rows) {
@@ -131,7 +139,7 @@ export default withObservability('momentos-orphaned-blobs', async (req: Request,
       importedFrom: 'orphaned-blob-rescue',
     })
 
-    const result = (await sql`
+    const result = await sqlTyped<CreatedMomentoRow>(sql`
       INSERT INTO momentos (kind, captured_at, payload, note, origin, user_id)
       VALUES (
         'foto',
@@ -142,7 +150,7 @@ export default withObservability('momentos-orphaned-blobs', async (req: Request,
         ${userId}
       )
       RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
-    `) as Array<Record<string, unknown>>
+    `)
 
     const created = result[0]
 
