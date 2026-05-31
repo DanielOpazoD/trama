@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../../api'
 import type { Momento, MomentoPayload } from '../../../types'
 import { useUpdateMomento, useToast } from '../../../state'
@@ -57,6 +57,7 @@ export function FotoEditModal({
 }) {
   const updateMomento = useUpdateMomento()
   const toast = useToast()
+  const previewUrlsRef = useRef<Set<string>>(new Set())
 
   const [items, setItems] = useState<PhotoEditItem[]>(() => buildInitialItems(momento))
   const [caption, setCaption] = useState(momento.payload.caption ?? '')
@@ -71,17 +72,25 @@ export function FotoEditModal({
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
 
+  const createPreviewUrl = useCallback((file: File) => {
+    const url = URL.createObjectURL(file)
+    previewUrlsRef.current.add(url)
+    return url
+  }, [])
+
+  const revokePreviewUrl = useCallback((url: string) => {
+    if (!previewUrlsRef.current.delete(url)) return
+    URL.revokeObjectURL(url)
+  }, [])
+
   // Cleanup blob URLs al desmontar — los `new` items tienen
   // URL.createObjectURL que hay que revocar para no leakear memoria.
   useEffect(() => {
+    const previewUrls = previewUrlsRef.current
     return () => {
-      for (const it of items) {
-        if (it.kind === 'new') URL.revokeObjectURL(it.previewUrl)
-      }
+      for (const url of previewUrls) URL.revokeObjectURL(url)
+      previewUrls.clear()
     }
-    // Deps vacías a propósito: el teardown se registra una vez y corre al
-    // desmontar el modal (no es reactivo a cambios de `items`).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function addFiles(files: File[]) {
@@ -92,7 +101,7 @@ export function FotoEditModal({
       ...valid.map((file) => ({
         kind: 'new' as const,
         file,
-        previewUrl: URL.createObjectURL(file),
+        previewUrl: createPreviewUrl(file),
       })),
     ])
   }
@@ -101,7 +110,7 @@ export function FotoEditModal({
     setItems((prev) => {
       const next = [...prev]
       const removed = next.splice(idx, 1)[0]
-      if (removed && removed.kind === 'new') URL.revokeObjectURL(removed.previewUrl)
+      if (removed && removed.kind === 'new') revokePreviewUrl(removed.previewUrl)
       return next
     })
   }
@@ -133,14 +142,14 @@ export function FotoEditModal({
 
   function setAudioFile(file: File) {
     setAudio((prev) => {
-      if (prev && prev.kind === 'new') URL.revokeObjectURL(prev.previewUrl)
-      return { kind: 'new', file, previewUrl: URL.createObjectURL(file) }
+      if (prev && prev.kind === 'new') revokePreviewUrl(prev.previewUrl)
+      return { kind: 'new', file, previewUrl: createPreviewUrl(file) }
     })
   }
 
   function removeAudio() {
     setAudio((prev) => {
-      if (prev && prev.kind === 'new') URL.revokeObjectURL(prev.previewUrl)
+      if (prev && prev.kind === 'new') revokePreviewUrl(prev.previewUrl)
       return null
     })
   }
@@ -210,7 +219,7 @@ export function FotoEditModal({
       } else if (audio?.kind === 'new') {
         const uploadedAudio = await api.momentoAudioUpload(audio.file)
         audioKey = uploadedAudio.storageKey
-        URL.revokeObjectURL(audio.previewUrl)
+        revokePreviewUrl(audio.previewUrl)
       }
 
       const [first] = finalItems

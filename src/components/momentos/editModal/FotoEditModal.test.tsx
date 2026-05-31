@@ -103,4 +103,28 @@ describe('<FotoEditModal />', () => {
     render(<FotoEditModal momento={empty} onClose={() => {}} />, { wrapper: wrap(qc) })
     expect(screen.getByRole('button', { name: /cancelar/i })).toBeInTheDocument()
   })
+
+  it('revoca previews de fotos nuevas al desmontar sin guardar', async () => {
+    const user = userEvent.setup()
+    const createObjectURL = vi
+      .spyOn(URL, 'createObjectURL')
+      .mockReturnValue('blob:nueva-foto')
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    const qc = makeQueryClient()
+    const { unmount } = render(
+      <FotoEditModal momento={FOTO_MOMENTO} onClose={() => {}} />,
+      {
+        wrapper: wrap(qc),
+      },
+    )
+
+    await user.upload(
+      screen.getByLabelText(/arrastra más imágenes o click para elegir/i),
+      new File(['foto'], 'nueva.png', { type: 'image/png' }),
+    )
+    unmount()
+
+    expect(createObjectURL).toHaveBeenCalledOnce()
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:nueva-foto')
+  })
 })

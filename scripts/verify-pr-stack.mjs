@@ -170,6 +170,7 @@ const prStack = [
       /^src\/components\/Onboarding(\.test)?\.tsx$/,
       /^src\/components\/Sidebar\.tsx$/,
       /^src\/components\/TwitterView\.tsx$/,
+      /^src\/components\/momentos\/editModal\/FotoEditModal(\.test)?\.tsx$/,
       /^src\/components\/momentos\/MergeMomentosBar\.tsx$/,
       /^src\/components\/notas\/(NotasView|NoteCard|TareasView)\.tsx$/,
       /^src\/components\/quotes\/ResonanceDots\.tsx$/,
