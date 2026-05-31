@@ -268,4 +268,69 @@ describe('<MomentoEntry />', () => {
       'blob:audio-autenticado',
     )
   })
+
+  it('recupera fotos y notas de voz legacy si el bearer resuelve a otro userId', async () => {
+    setApiAuthTokenProvider(async () => 'clerk-token')
+    const fetchMock = vi.fn<typeof fetch>(async (_url, init) => {
+      const authorization = new Headers(init?.headers).get('Authorization')
+      if (authorization) {
+        return Response.json({ error: { code: 'NOT_FOUND' } }, { status: 404 })
+      }
+      return new Response(new Blob(['media'], { type: 'image/jpeg' }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, {
+        createObjectURL: vi
+          .fn()
+          .mockReturnValueOnce('blob:foto-legacy')
+          .mockReturnValueOnce('blob:audio-legacy'),
+        revokeObjectURL: vi.fn(),
+      }),
+    )
+
+    const { container } = render(
+      <MomentoEntry
+        momento={{
+          ...baseMomento('foto', {
+            caption: 'archivo legacy',
+            items: [{ storageKey: 'legacy-single-user/foto-legacy.jpg' }],
+            audioKey: 'legacy-single-user/voz-legacy.webm',
+          }),
+        }}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    await waitFor(() =>
+      expect(screen.getByRole('img', { name: /archivo legacy/i })).toHaveAttribute(
+        'src',
+        'blob:foto-legacy',
+      ),
+    )
+    await waitFor(() =>
+      expect(container.querySelector('audio')).toHaveAttribute(
+        'src',
+        'blob:audio-legacy',
+      ),
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/momentos-file/legacy-single-user/foto-legacy.jpg',
+      expect.objectContaining({
+        headers: expect.not.objectContaining({
+          Authorization: expect.any(String),
+        }),
+      }),
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/momentos-file/legacy-single-user/voz-legacy.webm',
+      expect.objectContaining({
+        headers: expect.not.objectContaining({
+          Authorization: expect.any(String),
+        }),
+      }),
+    )
+  })
 })

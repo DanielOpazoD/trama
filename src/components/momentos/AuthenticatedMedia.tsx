@@ -6,6 +6,27 @@ function shouldFetchWithApiClient(src: string): boolean {
   return src.startsWith('/api/momentos-file/')
 }
 
+function shouldRetryLegacyMediaWithoutAuth(src: string, response: Response): boolean {
+  if (response.status !== 401 && response.status !== 404) return false
+  return (
+    src.startsWith('/api/momentos-file/legacy-single-user/') ||
+    src.startsWith('/api/momentos-file/legacy-single-user%2F')
+  )
+}
+
+async function fetchMediaBlob(src: string, signal: AbortSignal): Promise<Blob> {
+  const response = await apiFetch(src, { signal })
+  if (response.ok) return response.blob()
+
+  if (shouldRetryLegacyMediaWithoutAuth(src, response)) {
+    const legacyResponse = await fetch(src, { signal, headers: {} })
+    if (legacyResponse.ok) return legacyResponse.blob()
+    throw new Error(`media ${legacyResponse.status}`)
+  }
+
+  throw new Error(`media ${response.status}`)
+}
+
 export function useAuthenticatedMediaSrc(src: string | null | undefined): string | null {
   const [resolvedSrc, setResolvedSrc] = useState<string | null>(() =>
     src && !shouldFetchWithApiClient(src) ? src : null,
@@ -26,11 +47,7 @@ export function useAuthenticatedMediaSrc(src: string | null | undefined): string
     let active = true
     setResolvedSrc(null)
 
-    void apiFetch(src, { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error(`media ${response.status}`)
-        return response.blob()
-      })
+    void fetchMediaBlob(src, controller.signal)
       .then((blob) => {
         if (!active) return
         objectUrl = URL.createObjectURL(blob)
