@@ -166,6 +166,7 @@ const prStack = [
     patterns: [
       /^src\/components\/MobileBottomNav\.tsx$/,
       /^src\/components\/NumberTicker(\.test)?\.tsx$/,
+      /^src\/components\/Onboarding(\.test)?\.tsx$/,
       /^src\/components\/Sidebar\.tsx$/,
       /^src\/components\/TwitterView\.tsx$/,
       /^src\/components\/momentos\/MergeMomentosBar\.tsx$/,

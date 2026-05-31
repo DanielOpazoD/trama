@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { EndMark, OrnamentBreak, SparkleIcon } from './Icons'
 
 /**
@@ -124,6 +124,29 @@ export function Onboarding({
     }
   }, [enabled, open])
 
+  const finish = useCallback(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, '1')
+    } catch {
+      /* localStorage disabled */
+    }
+    setOpen(false)
+    onComplete()
+  }, [onComplete])
+
+  const skip = useCallback(() => {
+    finish()
+  }, [finish])
+
+  const next = useCallback(() => {
+    if (stepIdx < STEPS.length - 1) setStepIdx(stepIdx + 1)
+    else finish()
+  }, [finish, stepIdx])
+
+  const back = useCallback(() => {
+    if (stepIdx > 0) setStepIdx(stepIdx - 1)
+  }, [stepIdx])
+
   useEffect(() => {
     if (!open) return
     function onKey(e: KeyboardEvent) {
@@ -133,33 +156,7 @@ export function Onboarding({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-    // Re-suscribe solo al abrir o cambiar de paso; onKey cierra sobre el
-    // estado vigente vía [open, stepIdx]. Evita re-bindear en cada render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, stepIdx])
-
-  function finish() {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, '1')
-    } catch {
-      /* localStorage disabled */
-    }
-    setOpen(false)
-    onComplete()
-  }
-
-  function skip() {
-    finish()
-  }
-
-  function next() {
-    if (stepIdx < STEPS.length - 1) setStepIdx(stepIdx + 1)
-    else finish()
-  }
-
-  function back() {
-    if (stepIdx > 0) setStepIdx(stepIdx - 1)
-  }
+  }, [back, next, open, skip])
 
   if (!open) return null
 

@@ -52,4 +52,18 @@ describe('<Onboarding />', () => {
     expect(onComplete).toHaveBeenCalledOnce()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
+
+  it('usa el onComplete vigente al cerrar con teclado', async () => {
+    const user = userEvent.setup()
+    const initialOnComplete = vi.fn()
+    const currentOnComplete = vi.fn()
+
+    const { rerender } = render(<Onboarding enabled onComplete={initialOnComplete} />)
+    rerender(<Onboarding enabled onComplete={currentOnComplete} />)
+
+    await user.keyboard('{Escape}')
+
+    expect(initialOnComplete).not.toHaveBeenCalled()
+    expect(currentOnComplete).toHaveBeenCalledOnce()
+  })
 })
