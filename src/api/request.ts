@@ -200,17 +200,46 @@ async function getAuthHeader(): Promise<HeadersInit> {
   return {}
 }
 
+function setHeader(target: Record<string, string>, name: string, value: string): void {
+  const normalizedName = name.toLowerCase()
+  for (const existingName of Object.keys(target)) {
+    if (existingName.toLowerCase() === normalizedName) {
+      delete target[existingName]
+    }
+  }
+  target[name] = value
+}
+
+function mergeHeaders(
+  target: Record<string, string>,
+  source: HeadersInit | undefined,
+): void {
+  if (!source) return
+  if (source instanceof Headers) {
+    source.forEach((value, name) => setHeader(target, name, value))
+    return
+  }
+  if (Array.isArray(source)) {
+    for (const [name, value] of source) setHeader(target, name, value)
+    return
+  }
+  for (const [name, value] of Object.entries(source)) {
+    setHeader(target, name, value)
+  }
+}
+
 export async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
   const authHeader = await getAuthHeader()
   const isFormDataBody = typeof FormData !== 'undefined' && init?.body instanceof FormData
+  const headers: Record<string, string> = {}
+  setHeader(headers, 'X-AI-Mode', aiModeHeader())
+  if (!isFormDataBody) setHeader(headers, 'Content-Type', 'application/json')
+  mergeHeaders(headers, authHeader)
+  mergeHeaders(headers, init?.headers)
+
   return fetch(url, {
     ...init,
-    headers: {
-      'X-AI-Mode': aiModeHeader(),
-      ...(isFormDataBody ? {} : { 'Content-Type': 'application/json' }),
-      ...authHeader,
-      ...init?.headers,
-    },
+    headers,
   })
 }
 

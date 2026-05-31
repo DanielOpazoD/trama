@@ -46,6 +46,21 @@ describe('request auth', () => {
     )
   })
 
+  it('preserves explicit Headers instances when building API requests', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      Response.json({ ok: true }, { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await request('/api/entities', {
+      headers: new Headers({ 'X-Trama-Test': 'headers-instance' }),
+    })
+
+    const [, init] = fetchMock.mock.calls[0]!
+    expect(new Headers(init?.headers).get('X-Trama-Test')).toBe('headers-instance')
+    expect(new Headers(init?.headers).get('X-AI-Mode')).toBe('auto')
+  })
+
   it('falls back to the legacy Clerk window bridge during transition', async () => {
     setApiAuthTokenProvider(null)
     Object.defineProperty(window, '__clerk', {
