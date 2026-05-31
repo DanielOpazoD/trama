@@ -20,7 +20,7 @@
 1. Haces `git push` a `main` desde tu Mac.
 2. GitHub Actions corre **typecheck + tests + build** (~2 min).
    - Si CI falla, Netlify NO deploya. El último deploy bueno sigue sirviendo.
-3. Netlify ve el push, corre **migraciones nuevas** (las que están en `netlify/database/migrations/` y aún no se aplicaron) y deploya las functions + el front estático.
+3. Netlify ve el push, ejecuta el build declarado en `netlify.toml` (`npm run check:legacy-fallback && npm run build`), corre **migraciones nuevas** (las que están en `netlify/database/migrations/` y aún no se aplicaron) y deploya las functions + el front estático.
 4. ~3-5 min después de push, la nueva versión está viva.
 
 **Nada se hace solo en producción que no esté en git.** Las migraciones, el código de las functions, el front, todo viene del repo.
@@ -71,8 +71,26 @@ Ver [ai.md](ai.md).
 
 Hasta que CI no esté verde, Netlify NO deploya. Mantén `main` en verde.
 
+## Checklist pre-PR
+
+Antes de abrir PR, confirmar:
+
+- `npm test`, `npm run typecheck`, `npm run build` verdes.
+- Si el trabajo viene de la rama de saneamiento integral, `npm run pr-stack:check` verde para confirmar que cada archivo del diff tiene dueño en una oleada.
+- Si hay migraciones, son carpetas nuevas en `netlify/database/migrations/<timestamp>_<slug>/migration.sql`; nunca se editó una aplicada.
+- `scripts/apply-migrations.sh` corre en DB limpia y un segundo run reporta `Applied 0 new migration(s).` El script usa `psql` del host o el contenedor Docker `trama-postgres`.
+- Endpoints nuevos o tocados usan `getAuthedUser`, `ensureUserRow` si mutan datos, `parseJsonBody` + Zod para bodies y `ApiErrors.*` para errores.
+- Toda query multi-user filtra `user_id`; toda referencia entrante valida ownership antes de insertar.
+- Deletes de dominio siguen soft-delete y limpian/ocultan relaciones derivadas visibles.
+- Cualquier llamada LLM pasa por cost-cap y escribe `extraction_log`, salvo excepción documentada como embeddings.
+- Producción no puede tener `ALLOW_LEGACY_FALLBACK=true`; `npm run check:legacy-fallback` debe fallar si alguien lo intenta.
+- Clerk debe configurarse como par: `CLERK_SECRET_KEY` y `VITE_CLERK_PUBLISHABLE_KEY` juntas. El mismo check falla si solo una está seteada, porque dejaría front y backend en modos distintos.
+
+Para el saneamiento multi-user grande, publicar como stack chico siguiendo
+[`saneamiento-integral-pr-stack.md`](saneamiento-integral-pr-stack.md).
+
 ## Contexto técnico
 
 - El workflow de CI vive en `.github/workflows/test.yml`.
-- Netlify lee `netlify.toml` (no existe — usa los defaults) y `package.json` para saber cómo buildear.
+- Netlify lee `netlify.toml` y `package.json` para saber cómo buildear.
 - Las migraciones se aplican vía `@netlify/database` durante el deploy, usando los archivos SQL en `netlify/database/migrations/*/migration.sql`. Netlify trackea cuáles ya aplicó por hash.

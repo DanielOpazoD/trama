@@ -46,7 +46,7 @@ Métricas reportadas:
 
 ### 4. Cost tracking
 
-Cada llamada LLM persiste un row en `extraction_log` con `cost_cents`. `cost-alert-check.mts` (cron) chequea si cruzamos el threshold y dispara webhook.
+Cada llamada LLM persiste un row en `extraction_log` con `cost_cents`. `cost-alert-check.mts` (cron) agrupa por `user_id`, compara contra `users.monthly_budget_cents` con fallback a `AI_MONTHLY_BUDGET_CENTS`, y dispara webhook por usuario si cruza el threshold.
 
 `/api/extraction-log` GET (auth + per-user filter) muestra el total mensual + breakdown por modelo en Settings → Logs → Llamadas IA.
 

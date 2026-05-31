@@ -2,7 +2,7 @@
 
 ## El LLM
 
-Toda llamada a un modelo pasa por `netlify/functions/_lib/llm/` (split DD5 — antes era un solo archivo de 807 LOC). Tres funciones públicas en el barrel `llm.ts`:
+Toda llamada generativa a un modelo pasa por `netlify/functions/_lib/llm/` (split DD5 — antes era un solo archivo de 807 LOC). Tres funciones públicas en el barrel `llm.ts`:
 
 - `askLLMForJson(messages)` — fuerza `response_format: json_object`. Para extract/suggest/reclassify.
 - `askLLMForText(messages)` — texto plano (no streaming). Para el auto-título de threads y como fallback en Anthropic/Gemini.
@@ -15,7 +15,14 @@ Las tres:
 - Hacen retry con backoff en 5xx/429, no en 4xx
 - Devuelven `{ content, usage, fromCache }` — usage incluye costo estimado
 
-**No llames a APIs de LLM directamente.** Si necesitás un proveedor nuevo, agregalo en `PROVIDER_DEFAULTS` y en cada dispatcher (`providers/{openai-compatible,anthropic,gemini}.ts`). Nunca hagas `fetch('https://api.openai.com/...')` desde otro archivo.
+**No llames a APIs de LLM directamente.** Si necesitás un proveedor nuevo, agregalo en `PROVIDER_DEFAULTS` y en cada dispatcher (`providers/{openai-compatible,anthropic,gemini}.ts`). Nunca hagas `fetch('https://api.openai.com/...')` desde otro archivo, salvo la excepción de embeddings documentada abajo.
+
+Excepción deliberada: embeddings vive en `_lib/embeddings.ts` y llama OpenAI
+`text-embedding-3-small` directo porque es infraestructura de búsqueda, no un
+camino generativo configurable. Esa excepción debe mantenerse barata,
+best-effort y observable: `embedSafe()` loguea `embed_failed`, y
+`/api/reindex-embeddings` emite `reindex_embeddings_batch` con `attempted`,
+`processed`, `errors`, `estimatedTokens` y `estimatedCostCents`.
 
 ## Los caminos de propuesta IA
 

@@ -42,15 +42,18 @@ Cuando llegues, hay que refactorizar GraphView para usar WebGL (sigma.js o cosmo
 
 ## Quotes / Citas
 
-QuotesView ya tiene paginación por cursor + virtualización. Aguanta 100k+ sin problemas, **siempre que** el `featured quote` en HomeView no cargue todas (actualmente lo hace, queda como TODO de mejora).
-
-Si HomeView empieza a tardar al abrir: hay que cambiar el featured-picker para usar la primera página solo. Búsqueda de "pickFeaturedQuote" en HomeView.tsx.
+QuotesView ya tiene paginación por cursor + virtualización. Aguanta 100k+ sin problemas.
+La portada no descarga todas las citas: `HomeView` consume `GET /api/home`, que
+devuelve una cita destacada, actividad breve y counts desde el servidor.
 
 ## Entidades / Relaciones (listas)
 
 Ya paginadas e virtualizadas (commit D). Sin acciones.
 
-**Excepción**: el formulario de "añadir relación manualmente" (en RelationshipsView) usaba un `<select>` con todas las entidades. Se reemplazó por un autocomplete (commit H). Pero la **resolución de nombres en cada fila** todavía depende de la lista wholesale de entidades. A 100k probablemente vaya bien igual (el browser aguanta un Map de 100k uuid→name), pero si se nota, hay que cambiar `/api/relationships` para que devuelva from_name/to_name en el JOIN.
+El formulario de "añadir relación manualmente" usa autocomplete. La lista de
+relaciones consume `/api/relationships?limit=...`, y cada fila ya viene con
+`from_name/to_name` desde el backend paginado; no necesita cargar todas las
+entidades solo para resolver nombres.
 
 ## Búsqueda en la sidebar
 

@@ -1,4 +1,4 @@
-# Dominios — grafo, chat, Momentos
+# Dominios — grafo, chat, Momentos y derivados
 
 ## Cuando edites el grafo
 
@@ -42,8 +42,9 @@ Momentos es el dominio donde vive la **memoria fechada** de la trama: notas suel
 
 - `/api/momentos` GET/POST y `/api/momentos/:id` GET/PATCH/DELETE — CRUD principal
 - `/api/momentos-url-preview?url=` — server-side fetch de og:title/description/source/author
-- `/api/momentos-upload` — multipart/form-data → Netlify Blobs store `momentos-media`
-- `/api/momentos-file/:key` — sirve el blob con cache inmutable
+- `/api/momentos-upload` — multipart/form-data imagen → Netlify Blobs store `momentos-media`, key `${userId}/${hash}.${ext}`
+- `/api/momentos-audio-upload` — multipart/form-data audio → mismo store, key `${userId}/${hash}.${ext}`
+- `/api/momentos-file/:key` — sirve el blob con cache inmutable y auth por namespace; keys legacy sin slash solo para `legacy-single-user`
 - `/api/momentos-orphaned-blobs` GET/POST — DD1: lista blobs no referenciados desde momentos en la BD actual + adopta uno creando un Momento foto. Recovery de uploads desde deploy previews
 - `/api/momentos-merge` POST — EE: fusiona N momentos foto en uno. CTE atómico que combina UPDATE primary (payload con `items[]` dedupeado por storageKey) + INSERT links (union entity_ids) + soft-delete others. Devuelve `deletedOthers: [{id, deletedAt}]` para "deshacer"
 - `/api/momentos-restore` POST — EE-followup: restaura un Momento soft-deleted. Body `{id, deletedAt}`; 409 si el deletedAt no matchea (defensa contra race con re-delete)
@@ -65,8 +66,17 @@ Momentos es el dominio donde vive la **memoria fechada** de la trama: notas suel
 - **NO cambies `kind` via PATCH** — requeriría re-encoding del payload entero. Si necesitás eso, borrá y recreá.
 - **PATCH solo re-embedea si cambió `payload` o `note`** (no en cada link de entityIds). El handler decide con `shouldReembed`.
 - **Validá el payload con `validateMomentoPayload` en POST y PATCH** — protege contra `foto` sin storageKey, `nota` vacía, etc.
-- **Fotos viven en Netlify Blobs, no en Postgres.** El payload guarda `storageKey` (random hex hash + extension). Para servir, `/api/momentos-file/:key` con cache inmutable (la key NUNCA se sobreescribe).
+- **Fotos y audios viven en Netlify Blobs, no en Postgres.** El payload guarda `storageKey`/`audioKey` namespaced por usuario (`${userId}/${hash}.${ext}`). Para servir, `/api/momentos-file/:key` con cache inmutable y auth por namespace (la key NUNCA se sobreescribe).
 - **Vision base64: usar `Buffer.from(arrayBuffer).toString('base64')`**, NO `btoa(String.fromCharCode(...))` que se rompe con imágenes >2MB.
 - **Cuando fusiones Momentos (`momentos-merge`), usá CTE atómico** — el driver Neon HTTP no soporta tx multi-statement, pero un single SQL con `WITH update_primary AS (...), link_others AS (...), soft_delete_others AS (...) SELECT ...` da atomicidad real. Si una sub-operación falla, ninguna commitea.
 - **UUID validate en código antes del SQL** para endpoints que reciben ids en body. Sin esto, un id mal formado revienta con 500 en el cast `::uuid` en vez del 400 claro que querés.
 - **Recovery de blobs huérfanos:** los deploy previews tienen BD-rama ephemeral pero el store de Blobs es global. Si subís en preview, los blobs sobreviven pero los Momentos no. Usar `/api/momentos-orphaned-blobs` desde Settings → Datos para recuperarlos.
+
+## Dominios derivados y operacionales
+
+- **Home** usa `/api/home` como lectura liviana. No vuelvas a cargar entities/quotes/relationships completos para pintar la portada.
+- **Cronologia** es una vista derivada: al mutar entidades, citas, relaciones, Momentos, Notas, Tasks o X, invalida sus query keys además del dominio principal.
+- **Atlas** y **Cronicas** generan propuestas IA; siempre deben pasar por `checkMonthlyBudget(userId, requestId)` y registrar `extraction_log`.
+- **Notas** y **Tasks** siguen las mismas reglas de `user_id`, soft-delete y transforms camelCase/snake_case que el CRUD core.
+- **X** nunca expone tokens al cliente. Tokens, bookmarks y cronicas de X se filtran por `user_id`; cualquier sync o generación debe invalidar Home si cambia actividad visible.
+- **Preview/search externos** (`momentos-url-preview`, `wikipedia-search`) requieren auth. Cualquier fetch server-side nuevo debe bloquear loopback, link-local y rangos privados antes de seguir redirects.

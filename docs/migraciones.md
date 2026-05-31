@@ -66,7 +66,23 @@ CREATE INDEX IF NOT EXISTS idx_entities_nueva_col
 
 ### Paso 3: probar localmente
 
-No hay test runner para migraciones. La forma honesta de "probar": leer el SQL en voz alta, asegurar que tiene sentido.
+La forma honesta de probar una migración es aplicarla sobre una DB limpia y
+reaplicarla para confirmar idempotencia:
+
+```bash
+npm run db:reset
+scripts/apply-migrations.sh
+```
+
+El primer comando levanta `trama-postgres` con Docker y aplica todo desde cero.
+El segundo run debe terminar con `Applied 0 new migration(s).`
+
+`scripts/apply-migrations.sh` usa `psql` del host si existe; si no, usa
+`docker exec` contra el contenedor local `trama-postgres`. Si no tenés ni
+`psql` ni Docker disponible, no hay forma local de probar SQL de verdad: dejá el
+PR en draft hasta que el job `migrations` de CI esté verde.
+Para apuntar a una base externa, seteá `NETLIFY_DB_URL`; `DATABASE_URL` queda
+aceptado solo por compatibilidad y tiene prioridad si ambos existen.
 
 ### Paso 4: push
 
@@ -126,8 +142,11 @@ En Neon Console → SQL Editor:
 O desde Mac:
 
 ```bash
-# Si tenés psql instalado
-psql $NETLIFY_DB_URL -c "\dt"
+# Si tenés psql instalado:
+psql "$NETLIFY_DB_URL" -c "\dt"
+
+# Si estás usando la DB local de Docker:
+npm run db:psql
 ```
 
 ## Migraciones que NO podés hacer simplemente

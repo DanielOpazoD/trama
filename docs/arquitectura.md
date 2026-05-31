@@ -32,7 +32,7 @@ cada subsistema, mirá los demás archivos en `docs/conventions/`.
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                          NETLIFY EDGE                                    │
 │                                                                          │
-│   44 endpoints /api/* (functions/*.mts)                                  │
+│   66 endpoints /api/* (functions/*.mts)                                  │
 │                                                                          │
 │   Cada endpoint pasa por withObservability() →                          │
 │      • inyecta requestId UUID                                            │
@@ -59,7 +59,7 @@ cada subsistema, mirá los demás archivos en `docs/conventions/`.
    │  • HNSW idx    │    │ (fotos)         │       │ • OpenAI         │
    │  • soft delete │    │                 │       │ • Anthropic      │
    │  • user_id en  │    │                 │       │ • Gemini         │
-   │    9 tablas    │    │                 │       │ • Spotify OAuth  │
+   │    dominios    │    │                 │       │ • Spotify OAuth  │
    └────────────────┘    └─────────────────┘       └──────────────────┘
 ```
 
@@ -85,7 +85,7 @@ El frontend tiene 5 capas, cada una con responsabilidad clara:
 ┌─────────────────────────────────────────────────────────┐
 │  api/  (cliente HTTP)                                   │
 │  Transforma snake_case ↔ camelCase en la frontera.      │
-│  Inyecta Bearer JWT vía window.__clerk si existe.       │
+│  Inyecta Bearer JWT vía ApiAuthBridge + useAuth().      │
 └─────────────────────────────────────────────────────────┘
                        │
                        │  fetch /api/*
@@ -273,9 +273,21 @@ askLLMForJson / askLLMForText
 
 ---
 
+## Superficie de dominios vivos
+
+- **Home**: `GET /api/home` entrega portada liviana con counts y actividad reciente, evitando descargar entidades, citas y relaciones completas en primer paint.
+- **Grafo / Cronologia**: entities, quotes y relationships son la base atemporal; cronologia deriva lecturas recientes con filtros por `user_id`.
+- **Momentos**: memoria fechada con `payload jsonb`, Blobs para fotos, links N:M soft-deletables y preview de URLs autenticado.
+- **Atlas**: snapshot/propuesta IA de clusters; cualquier generación pasa por cost-cap y `extraction_log`.
+- **Cronicas**: resumen mensual IA por usuario; se cachea por mes y registra costo/usage.
+- **Notas y Tasks**: dominios personales con `user_id`, soft-delete e invalidaciones cruzadas hacia Home/Cronologia.
+- **X**: tokens/bookmarks/cronicas de X quedan separados por `user_id`; no exponen credenciales al cliente.
+
+---
+
 ## Convenciones críticas (links rápidos)
 
-- [CLAUDE.md](../CLAUDE.md) — reglas absolutas + índice
+- [AGENTS.md](../AGENTS.md) — reglas absolutas + índice
 - [design.md](conventions/design.md) — type scale, animaciones, accesibilidad
 - [data.md](conventions/data.md) — getSql(), hooks de estado, blobs
 - [llm.md](conventions/llm.md) — abstracción \_lib/llm/
