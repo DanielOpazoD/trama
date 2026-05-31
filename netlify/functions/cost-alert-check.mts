@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
 import { getEnv } from './_lib/env.js'
+import { ApiErrors } from './_lib/api-error.js'
 
 /**
  * DD7 (audit #6): scheduled function que avisa cuando el gasto IA mensual
@@ -49,7 +50,11 @@ function alertCodeForUser(userId: string): string {
   return `${ALERT_CODE_PREFIX}:${userId}`
 }
 
-export default async (_req: Request) => {
+export default async (req: Request) => {
+  if (req.method !== 'POST') {
+    return ApiErrors.methodNotAllowed(crypto.randomUUID())
+  }
+
   let sql: ReturnType<typeof getSql>
   try {
     sql = getSql()
