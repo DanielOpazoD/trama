@@ -70,9 +70,6 @@ export function useSendChatMessage(threadId: string | null) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Local placeholder ids so we can find and update the optimistic bubbles.
-  const userIdRef = useRef<string | null>(null)
-  const assistantIdRef = useRef<string | null>(null)
   const pendingRef = useRef(false)
 
   const send = useCallback(
@@ -90,17 +87,18 @@ export function useSendChatMessage(threadId: string | null) {
       setPending(true)
       setError(null)
 
-      userIdRef.current = `tmp-u-${Date.now()}`
-      assistantIdRef.current = `tmp-a-${Date.now()}`
+      const now = Date.now()
+      const optimisticUserId = `tmp-u-${now}`
+      const optimisticAssistantId = `tmp-a-${now}`
       const optimisticUser: ChatMessage = {
-        id: userIdRef.current,
+        id: optimisticUserId,
         role: 'user',
         content,
         proposal: null,
         createdAt: new Date().toISOString(),
       }
       const optimisticAssistant: ChatMessage = {
-        id: assistantIdRef.current,
+        id: optimisticAssistantId,
         role: 'assistant',
         content: '',
         proposal: null,
@@ -117,34 +115,35 @@ export function useSendChatMessage(threadId: string | null) {
           onUser: (real) => {
             // Replace the optimistic user message with the real persisted one.
             queryClient.setQueryData<ChatMessage[]>(messagesKey(threadId), (prev) =>
-              (prev ?? []).map((m) => (m.id === userIdRef.current ? real : m)),
+              (prev ?? []).map((m) => (m.id === optimisticUserId ? real : m)),
             )
-            userIdRef.current = real.id
           },
           onChunk: (text) => {
             queryClient.setQueryData<ChatMessage[]>(messagesKey(threadId), (prev) =>
               (prev ?? []).map((m) =>
-                m.id === assistantIdRef.current ? { ...m, content: m.content + text } : m,
+                m.id === optimisticAssistantId ? { ...m, content: m.content + text } : m,
               ),
             )
           },
           onDone: (real) => {
             queryClient.setQueryData<ChatMessage[]>(messagesKey(threadId), (prev) =>
-              (prev ?? []).map((m) => (m.id === assistantIdRef.current ? real : m)),
+              (prev ?? []).map((m) => (m.id === optimisticAssistantId ? real : m)),
             )
-            assistantIdRef.current = real.id
             queryClient.invalidateQueries({ queryKey: THREADS_KEY })
           },
           onError: (msg) => {
             setError(msg)
             // Drop the empty assistant bubble so we don't leave a ghost.
             queryClient.setQueryData<ChatMessage[]>(messagesKey(threadId), (prev) =>
-              (prev ?? []).filter((m) => m.id !== assistantIdRef.current),
+              (prev ?? []).filter((m) => m.id !== optimisticAssistantId),
             )
           },
         })
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err))
+        queryClient.setQueryData<ChatMessage[]>(messagesKey(threadId), (prev) =>
+          (prev ?? []).filter((m) => m.id !== optimisticAssistantId),
+        )
       } finally {
         pendingRef.current = false
         setPending(false)

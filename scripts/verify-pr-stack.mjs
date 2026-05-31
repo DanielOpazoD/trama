@@ -112,7 +112,7 @@ const prStack = [
       /^src\/components\/quotes\/QuoteForm\.test\.tsx$/,
       /^src\/components\/settings\/(DataPanel|SearchPanel|XPanel)(\.test)?\.tsx$/,
       /^src\/main\.tsx$/,
-      /^src\/state\/(queryClient|useAtlas|useChat|useCronicas|useCronologia|useEntities|useMomentos|useNotes|useQuotes|useRelationships|useTasks|useTwitter)\.ts$/,
+      /^src\/state\/(queryClient|useAtlas|useChat|useCronicas|useCronologia|useEntities|useMomentos|useNotes|useQuotes|useRelationships|useTasks|useTwitter)(\.test)?\.tsx?$/,
       /^src\/types\/momento\.ts$/,
       /^src\/types\/relationship\.ts$/,
     ],
