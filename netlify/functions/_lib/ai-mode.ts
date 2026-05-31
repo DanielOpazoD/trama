@@ -79,14 +79,13 @@ export type Invocation = { kind: 'off' } | ReadyInvocation
  * should bail out with aiOffResponse(requestId).
  *
  * `userId` busca la config del usuario en `ai_task_providers (user_id, task)`.
- * Debe venir siempre desde getAuthedUser(); el default legacy existe solo para
- * que el stack de PRs pueda migrar callsites en oleadas deployables. El
- * guardrail de aislamiento falla si queda un caller sin userId.
+ * Debe venir siempre desde getAuthedUser(); no hay fallback implícito acá
+ * porque ocultaría callsites nuevos sin scope multi-user explícito.
  */
 export async function resolveAIInvocation(
   req: Request,
   task: AITask,
-  userId = 'legacy-single-user',
+  userId: string,
 ): Promise<Invocation> {
   const mode = readAIMode(req)
   if (mode.kind === 'off') return { kind: 'off' }

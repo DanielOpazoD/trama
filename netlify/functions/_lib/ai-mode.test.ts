@@ -26,6 +26,6 @@ describe('resolveAIInvocation', () => {
       join(dirname(fileURLToPath(import.meta.url)), 'ai-mode.ts'),
       'utf8',
     )
-    expect(src).not.toMatch(/userId:\s*string\s*=\s*['"]legacy-single-user['"]/)
+    expect(src).not.toMatch(/\buserId\b[^,\n)]*=\s*['"]legacy-single-user['"]/)
   })
 })
