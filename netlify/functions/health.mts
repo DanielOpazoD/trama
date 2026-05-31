@@ -54,8 +54,10 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
   type ErrorCountRow = { c: string }
   type EmbeddingPendingRow = { entities: string; quotes: string }
   type DailyCostRow = { day: string; cost_cents: string; calls: string }
+  type UserBudgetRow = { cap: number | null }
 
   const [
+    userBudgetRows,
     entitiesCountRows,
     quotesCountRows,
     relsCountRows,
@@ -66,6 +68,12 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
     embeddingPendingRows,
     dailyCostRows,
   ] = await Promise.all([
+    sqlTyped<UserBudgetRow>(sql`
+      SELECT monthly_budget_cents AS cap
+      FROM users
+      WHERE id = ${userId}
+      LIMIT 1
+    `).catch(() => [] as UserBudgetRow[]),
     sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND user_id = ${userId}`),
     sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND user_id = ${userId}`),
     sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM relationships WHERE deleted_at IS NULL AND user_id = ${userId}`),
@@ -131,9 +139,14 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
     `),
   ])
 
-  // O1: lee via getEnv() para evitar Netlify.env.get directo.
-  // Default 5000 si la env var no está seteada o es inválida.
-  const budgetCents = getEnv().AI_MONTHLY_BUDGET_CENTS ?? 5000
+  // Health debe mostrar el mismo cap que aplica cost-cap.ts:
+  // users.monthly_budget_cents si existe, fallback a AI_MONTHLY_BUDGET_CENTS.
+  const envBudgetCents = getEnv().AI_MONTHLY_BUDGET_CENTS ?? 5000
+  const userBudgetCents = userBudgetRows[0]?.cap
+  const budgetCents =
+    typeof userBudgetCents === 'number' && userBudgetCents > 0
+      ? userBudgetCents
+      : envBudgetCents
   const monthCostCents = Number(monthTotalsRows[0]?.cost_cents ?? 0)
   const budgetPct = budgetCents > 0 ? Math.min(1, monthCostCents / budgetCents) : 0
 

@@ -3,6 +3,7 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { resolveImportId } from './_lib/import-ids.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ImportBody } from './_lib/admin-schemas.js'
@@ -60,8 +61,10 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
   if (req.method !== 'POST') {
     return ApiErrors.methodNotAllowed(requestId)
   }
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const userId = authedUser.id
   const sql = getSql()
+  await ensureUserRow(sql, authedUser)
 
   const parsed = await parseJsonBody(req, ImportBody, requestId)
   if (!parsed.ok) return parsed.response
@@ -90,6 +93,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
       statusCode: 200, // request itself succeeded; per-item failure
       message: `import ${kind} failed: ${reason}`,
       context: { kind, id },
+      userId,
     })
   }
 

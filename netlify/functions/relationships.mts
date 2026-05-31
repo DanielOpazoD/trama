@@ -12,12 +12,15 @@ import {
 } from './_lib/relationship-schemas.js'
 
 import { normalizeOrigin } from './_lib/origin.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 // Shape devuelto por los SELECT/RETURNING de relaciones (snake_case, raw).
 type RelationshipRow = {
   id: string
   from_id: string
+  from_name?: string | null
   to_id: string
+  to_name?: string | null
   type: string
   notes: string | null
   origin: unknown
@@ -28,7 +31,8 @@ type RelationshipRow = {
 export default withObservability(
   'relationships',
   async (req: Request, context: Context, { requestId }) => {
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
     const sql = getSql()
     const id = context.params.id
 
@@ -77,18 +81,32 @@ export default withObservability(
       const rows =
         cursorTs && cursorId
           ? await sqlTyped<RelationshipRow>(sql`
-          SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
-          FROM relationships
-          WHERE deleted_at IS NULL AND user_id = ${userId}
-            AND (created_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
-          ORDER BY created_at DESC, id DESC
+          SELECT r.id, r.from_id, ef.name AS from_name, r.to_id, et.name AS to_name,
+                 r.type, r.notes, r.origin, r.created_at, r.updated_at
+          FROM relationships r
+          JOIN entities ef ON ef.id = r.from_id
+            AND ef.deleted_at IS NULL
+            AND ef.user_id = ${userId}
+          JOIN entities et ON et.id = r.to_id
+            AND et.deleted_at IS NULL
+            AND et.user_id = ${userId}
+          WHERE r.deleted_at IS NULL AND r.user_id = ${userId}
+            AND (r.created_at, r.id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
+          ORDER BY r.created_at DESC, r.id DESC
           LIMIT ${limit + 1}
         `)
           : await sqlTyped<RelationshipRow>(sql`
-          SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
-          FROM relationships
-          WHERE deleted_at IS NULL AND user_id = ${userId}
-          ORDER BY created_at DESC, id DESC
+          SELECT r.id, r.from_id, ef.name AS from_name, r.to_id, et.name AS to_name,
+                 r.type, r.notes, r.origin, r.created_at, r.updated_at
+          FROM relationships r
+          JOIN entities ef ON ef.id = r.from_id
+            AND ef.deleted_at IS NULL
+            AND ef.user_id = ${userId}
+          JOIN entities et ON et.id = r.to_id
+            AND et.deleted_at IS NULL
+            AND et.user_id = ${userId}
+          WHERE r.deleted_at IS NULL AND r.user_id = ${userId}
+          ORDER BY r.created_at DESC, r.id DESC
           LIMIT ${limit + 1}
         `)
 
@@ -111,7 +129,18 @@ export default withObservability(
     if (req.method === 'POST' && !new URL(req.url).pathname.endsWith('/restore')) {
       const parsed = await parseJsonBody(req, RelationshipCreateBody, requestId)
       if (!parsed.ok) return parsed.response
+      await ensureUserRow(sql, authedUser)
       const body = parsed.data
+      const entityRows = await sqlTyped<{ id: string }>(sql`
+        SELECT id
+        FROM entities
+        WHERE id = ANY(${[body.from_id, body.to_id]}::uuid[])
+          AND deleted_at IS NULL
+          AND user_id = ${userId}
+      `)
+      if (new Set(entityRows.map((row) => row.id)).size !== 2) {
+        return ApiErrors.notFound(requestId, 'Entidad origen o destino no encontrada')
+      }
       const origin = JSON.stringify(normalizeOrigin(body.origin))
       const rows = await sqlTyped<RelationshipRow>(sql`
       INSERT INTO relationships (from_id, to_id, type, notes, origin, user_id)
@@ -131,6 +160,7 @@ export default withObservability(
     if (req.method === 'PATCH' && id) {
       const parsed = await parseJsonBody(req, RelationshipPatchBody, requestId)
       if (!parsed.ok) return parsed.response
+      await ensureUserRow(sql, authedUser)
       const body = parsed.data
       const rows = await sqlTyped<RelationshipRow>(sql`
       UPDATE relationships
@@ -147,6 +177,7 @@ export default withObservability(
     }
 
     if (req.method === 'DELETE' && id) {
+      await ensureUserRow(sql, authedUser)
       const tsRows = (await sql`SELECT NOW() AS now`) as Array<{ now: string }>
       const deletedAt = tsRows[0]?.now ?? new Date().toISOString()
       await sql`UPDATE relationships SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
@@ -157,6 +188,7 @@ export default withObservability(
     if (req.method === 'POST' && id && url.pathname.endsWith('/restore')) {
       const parsed = await parseJsonBody(req, RelationshipRestoreBody, requestId)
       if (!parsed.ok) return parsed.response
+      await ensureUserRow(sql, authedUser)
       const { deletedAt } = parsed.data
       await sql`UPDATE relationships SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
       return Response.json({ restored: true })

@@ -94,6 +94,7 @@ const FALLBACK_RELATIONSHIP_TYPES = [
 export async function loadChatContextForFocus(
   sql: SqlClient,
   focusEntityId: string,
+  userId: string,
 ): Promise<LoadedChatContext> {
   const [entityRows, relRows, quoteRows, entityTypeRows, relTypeRows] = await Promise.all(
     [
@@ -101,11 +102,13 @@ export async function loadChatContextForFocus(
       SELECT id, name, type, year, description
       FROM entities
       WHERE deleted_at IS NULL
+        AND user_id = ${userId}
         AND (id = ${focusEntityId}
              OR id IN (
                SELECT CASE WHEN from_id = ${focusEntityId} THEN to_id ELSE from_id END
                FROM relationships
                WHERE deleted_at IS NULL
+                 AND user_id = ${userId}
                  AND (from_id = ${focusEntityId} OR to_id = ${focusEntityId})
              ))
     `),
@@ -113,8 +116,13 @@ export async function loadChatContextForFocus(
       SELECT r.id, ef.name AS from_name, et.name AS to_name, r.type, r.notes
       FROM relationships r
       JOIN entities ef ON ef.id = r.from_id
+        AND ef.deleted_at IS NULL
+        AND ef.user_id = ${userId}
       JOIN entities et ON et.id = r.to_id
+        AND et.deleted_at IS NULL
+        AND et.user_id = ${userId}
       WHERE r.deleted_at IS NULL
+        AND r.user_id = ${userId}
         AND (r.from_id = ${focusEntityId} OR r.to_id = ${focusEntityId})
       ORDER BY r.created_at DESC
     `),
@@ -122,7 +130,11 @@ export async function loadChatContextForFocus(
       SELECT q.id, e.name AS entity_name, q.text, q.source
       FROM quotes q
       JOIN entities e ON e.id = q.entity_id
-      WHERE q.deleted_at IS NULL AND q.entity_id = ${focusEntityId}
+        AND e.deleted_at IS NULL
+        AND e.user_id = ${userId}
+      WHERE q.deleted_at IS NULL
+        AND q.user_id = ${userId}
+        AND q.entity_id = ${focusEntityId}
       ORDER BY q.created_at DESC
     `),
       sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),

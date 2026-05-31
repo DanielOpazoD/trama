@@ -7,6 +7,7 @@ import {
   SPOTIFY_SCOPES,
 } from './_lib/spotify/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 /**
  * OAuth callback: Spotify redirects here with ?code=... after the user grants
@@ -35,13 +36,13 @@ export default withObservability('spotify-callback', async (req) => {
 
   // Multi-user: el userId viene de la cookie HttpOnly que seteó /login (con el
   // usuario autenticado), NO del state que pasó por Spotify — así no se puede
-  // forjar. Sin cookie (flujo legacy) → undefined → saveTokens usa el row
-  // 'legacy-single-user'.
-  const userId = cookies.spotify_uid
-    ? decodeURIComponent(cookies.spotify_uid)
-    : undefined
+  // forjar. Si falta, el callback no tiene identidad confiable: rechazamos en
+  // vez de caer silenciosamente al legacy owner.
+  if (!cookies.spotify_uid) return redirectWith('/?spotify_error=missing_uid')
+  const userId = decodeURIComponent(cookies.spotify_uid)
 
   const sql = getSql()
+  await ensureUserRow(sql, { id: userId })
 
   const tokens = await exchangeCodeForTokens(code)
   const profile = await getSpotifyProfile(tokens.access_token)

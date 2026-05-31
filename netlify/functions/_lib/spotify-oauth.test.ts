@@ -2,7 +2,10 @@
 // Forzamos env node (undici real): happy-dom no maneja bien los Set-Cookie,
 // y este test verifica justamente las cookies del flujo OAuth.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { mockContext, mockSqlResponses, mockSqlState, setupMockSql } from './test-utils'
 
 vi.mock('./db.js', () => setupMockSql())
 
@@ -60,6 +63,13 @@ function reqWithCookie(url: string, cookie: string): Request {
   } as unknown as Request
 }
 
+function spotifyHelperSource(file: string): string {
+  return readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), 'spotify', file),
+    'utf8',
+  )
+}
+
 describe('spotify-login — userId en cookie', () => {
   it('devuelve {url} y setea cookies spotify_state + spotify_uid', async () => {
     const res = await loginHandler(
@@ -106,6 +116,22 @@ describe('spotify-callback — asocia el token al userId de la cookie', () => {
     expect(saveTokens).toHaveBeenCalledTimes(1)
     // 3er argumento = userId de la cookie.
     expect(saveTokens.mock.calls[0]![2]).toBe('user-99')
+    expect(mockSqlState.calls.some((c) => /INSERT INTO users/i.test(c.template))).toBe(
+      true,
+    )
+  })
+
+  it('rechaza si el callback no trae spotify_uid', async () => {
+    const res = await callbackHandler(
+      reqWithCookie(
+        'http://localhost/api/spotify/callback?code=abc&state=OK',
+        'spotify_state=OK',
+      ),
+      mockContext(),
+    )
+    expect(res.status).toBe(302)
+    expect(res.headers.get('Location')).toContain('missing_uid')
+    expect(saveTokens).not.toHaveBeenCalled()
   })
 })
 
@@ -133,5 +159,16 @@ describe('spotify-scheduled-sync — itera por usuario', () => {
     )
     expect(res.status).toBe(202)
     expect(getValidAccessToken).not.toHaveBeenCalled()
+  })
+})
+
+describe('spotify helpers — no fallback implícito a default', () => {
+  it('requieren userId explícito en tokens, plays y estado', () => {
+    const authSrc = spotifyHelperSource('auth.ts')
+    const syncSrc = spotifyHelperSource('sync.ts')
+    expect(authSrc).not.toMatch(/userId\?:/)
+    expect(syncSrc).not.toMatch(/userId\?:/)
+    expect(authSrc).not.toMatch(/WHERE\s+id\s*=\s*'default'/i)
+    expect(syncSrc).not.toMatch(/WHERE\s+id\s*=\s*'default'/i)
   })
 })

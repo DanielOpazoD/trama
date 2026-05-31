@@ -3,6 +3,7 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { NoteCreateBody, NotePatchBody } from './_lib/note-schemas.js'
 import { parseTags } from './_lib/note-tags.js'
@@ -28,7 +29,8 @@ type NoteRow = {
 export default withObservability(
   'notes',
   async (req: Request, context: Context, { requestId }) => {
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
     const sql = getSql()
     const id = context.params.id
 
@@ -54,6 +56,8 @@ export default withObservability(
           'Esta nota ya fue promovida a un Momento',
         )
       }
+
+      await ensureUserRow(sql, authedUser)
 
       const payload = { bodyText: note.content }
       const embedSource = momentoEmbedText('nota', payload, null)
@@ -121,6 +125,7 @@ export default withObservability(
     }
 
     if (req.method === 'POST') {
+      await ensureUserRow(sql, authedUser)
       const parsed = await parseJsonBody(req, NoteCreateBody, requestId)
       if (!parsed.ok) return parsed.response
       const { content, pinned } = parsed.data

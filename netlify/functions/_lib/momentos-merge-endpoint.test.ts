@@ -198,6 +198,7 @@ describe('momentos-merge endpoint', () => {
         note: null,
       },
     ])
+    mockSqlResponses.push([]) // ensureUserRow
     // CTE atómico (EE-followup #4): un solo query que combina UPDATE
     // primary + INSERT links + soft-delete others. Devuelve { primary,
     // deleted_others, links_inserted }.
@@ -308,6 +309,7 @@ describe('momentos-merge endpoint', () => {
         note: null,
       },
     ])
+    mockSqlResponses.push([]) // ensureUserRow
     // CTE atómico devuelve {primary, deleted_others, links_inserted}.
     mockSqlResponses.push([
       {

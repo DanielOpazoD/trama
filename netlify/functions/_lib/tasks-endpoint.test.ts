@@ -33,7 +33,10 @@ describe('tasks endpoint — integration', () => {
   })
 
   it('POST con título válido crea (201) y deriva tags', async () => {
-    mockSqlResponses.push([{ ...TASK_ROW, title: 'leer #rayuela', tags: ['rayuela'] }])
+    mockSqlResponses.push(
+      [], // ensureUserRow
+      [{ ...TASK_ROW, title: 'leer #rayuela', tags: ['rayuela'] }],
+    )
     const res = await handler(
       new Request('http://localhost/api/tasks', {
         method: 'POST',

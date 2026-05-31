@@ -3,6 +3,7 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { logEvent } from './_lib/observability.js'
 import {
@@ -36,7 +37,8 @@ type EntityRow = {
 export default withObservability(
   'entities',
   async (req: Request, context: Context, { requestId }) => {
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
     const sql = getSql()
     const id = context.params.id
 
@@ -134,6 +136,7 @@ export default withObservability(
     // intentaría parsear el body de restore como una nueva entidad y caería
     // en 500.
     if (req.method === 'POST' && !new URL(req.url).pathname.endsWith('/restore')) {
+      await ensureUserRow(sql, authedUser)
       const parsed = await parseJsonBody(req, EntityCreateBody, requestId)
       if (!parsed.ok) return parsed.response
       const body = parsed.data
@@ -226,6 +229,33 @@ export default withObservability(
       const parsed = await parseJsonBody(req, EntityPatchBody, requestId)
       if (!parsed.ok) return parsed.response
       const body = parsed.data
+      const embeddingInputTouched =
+        body.name !== undefined ||
+        body.type !== undefined ||
+        body.year !== undefined ||
+        body.description !== undefined
+      let embeddingDirty = false
+      if (embeddingInputTouched) {
+        const currentRows = await sqlTyped<{
+          name: string
+          type: string
+          year: number | null
+          description: string | null
+        }>(sql`
+          SELECT name, type, year, description
+          FROM entities
+          WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+        `)
+        const current = currentRows[0]
+        embeddingDirty = Boolean(
+          current &&
+            ((body.name !== undefined && body.name !== current.name) ||
+              (body.type !== undefined && body.type !== current.type) ||
+              (body.year !== undefined && (body.year ?? null) !== current.year) ||
+              (body.description !== undefined &&
+                (body.description ?? null) !== current.description)),
+        )
+      }
       // Only update fields that were actually sent. Postgres COALESCE pattern.
       const rows = await sqlTyped<EntityRow>(sql`
       UPDATE entities
@@ -250,11 +280,6 @@ export default withObservability(
       // Re-embed if anything that feeds the embedding changed. We don't await
       // before responding to keep the PATCH snappy — the embedding catches up
       // in the background (best-effort).
-      const embeddingDirty =
-        body.name !== undefined ||
-        body.type !== undefined ||
-        body.year !== undefined ||
-        body.description !== undefined
       if (embeddingDirty) {
         const updated = rows[0] as {
           name: string
@@ -277,7 +302,7 @@ export default withObservability(
             SET embedding = ${toPgVector(emb.vector)}::vector,
                 embedding_model = ${emb.model},
                 embedding_at = NOW()
-            WHERE id = ${id}
+            WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
           `
           })
           .catch(() => {})
@@ -295,6 +320,7 @@ export default withObservability(
       await sql`UPDATE entities SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
       await sql`UPDATE relationships SET deleted_at = ${deletedAt} WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at IS NULL AND user_id = ${userId}`
       await sql`UPDATE quotes SET deleted_at = ${deletedAt} WHERE entity_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
+      await sql`UPDATE momento_entities SET deleted_at = ${deletedAt} WHERE entity_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
       return Response.json({ deletedAt })
     }
 
@@ -308,6 +334,7 @@ export default withObservability(
       await sql`UPDATE entities SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
       await sql`UPDATE relationships SET deleted_at = NULL WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at = ${deletedAt} AND user_id = ${userId}`
       await sql`UPDATE quotes SET deleted_at = NULL WHERE entity_id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
+      await sql`UPDATE momento_entities SET deleted_at = NULL WHERE entity_id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
       return Response.json({ restored: true })
     }
 

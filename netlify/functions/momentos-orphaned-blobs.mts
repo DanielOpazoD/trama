@@ -6,6 +6,7 @@ import { ApiErrors } from './_lib/api-error.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
 import { momentoEmbedText } from './_lib/momento-embed.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { OrphanedBlobRescueBody } from './_lib/momento-extra-schemas.js'
 
@@ -65,7 +66,8 @@ async function collectReferencedKeys(sql: ReturnType<typeof getSql>, userId: str
 
 export default withObservability('momentos-orphaned-blobs', async (req: Request, _ctx, { requestId }) => {
   const sql = getSql()
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const userId = authedUser.id
   const store = getStore('momentos-media')
 
   // GET: listar las keys huérfanas + algún metadata útil (mime) para que
@@ -88,6 +90,7 @@ export default withObservability('momentos-orphaned-blobs', async (req: Request,
   // El servidor verifica que el blob exista en el store (no aceptamos keys
   // arbitrarias) y crea un Momento kind='foto' apuntando a esa key.
   if (req.method === 'POST') {
+    await ensureUserRow(sql, authedUser)
     const parsed = await parseJsonBody(req, OrphanedBlobRescueBody, requestId)
     if (!parsed.ok) return parsed.response
     const body = parsed.data
@@ -140,7 +143,13 @@ export default withObservability('momentos-orphaned-blobs', async (req: Request,
         const emb = await embedSafe(text)
         if (emb) {
           const vec = toPgVector(emb.vector)
-          await sql`UPDATE momentos SET embedding = ${vec}::vector WHERE id = ${created.id as string}`
+          await sql`
+            UPDATE momentos
+            SET embedding = ${vec}::vector
+            WHERE id = ${created.id as string}
+              AND deleted_at IS NULL
+              AND user_id = ${userId}
+          `
         }
       }
     }

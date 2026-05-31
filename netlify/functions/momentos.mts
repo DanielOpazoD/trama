@@ -14,6 +14,7 @@ import {
   MomentoCreateBody,
   MomentoPatchBody,
 } from './_lib/momento-schemas.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 /**
  * /api/momentos — la dimensión temporal de la trama.
@@ -44,7 +45,8 @@ function isValidKind(v: unknown): v is MomentoKind {
 
 export default withObservability('momentos', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const userId = authedUser.id
   const id = context.params.id
 
   // ---------------- GET one ----------------
@@ -61,7 +63,9 @@ export default withObservability('momentos', async (req: Request, context: Conte
     // Traemos los entityIds linkeados también, para que el cliente no haga
     // un round-trip aparte.
     const links = (await sql`
-      SELECT entity_id FROM momento_entities WHERE momento_id = ${id}
+      SELECT entity_id
+      FROM momento_entities
+      WHERE momento_id = ${id} AND user_id = ${userId} AND deleted_at IS NULL
     `) as Array<{ entity_id: string }>
     return Response.json({
       ...rows[0],
@@ -167,6 +171,8 @@ export default withObservability('momentos', async (req: Request, context: Conte
         SELECT momento_id, entity_id
         FROM momento_entities
         WHERE momento_id = ANY(${itemIds}::uuid[])
+          AND user_id = ${userId}
+          AND deleted_at IS NULL
       `) as Array<{ momento_id: string; entity_id: string }>
       for (const link of links) {
         const arr = linksByMomento.get(link.momento_id) ?? []
@@ -188,6 +194,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
   if (req.method === 'POST' && !id) {
     const parsed = await parseJsonBody(req, MomentoCreateBody, requestId)
     if (!parsed.ok) return parsed.response
+    await ensureUserRow(sql, authedUser)
     const body = parsed.data
 
     const kind: MomentoKind = body.kind
@@ -206,6 +213,22 @@ export default withObservability('momentos', async (req: Request, context: Conte
       typeof body.captured_at === 'string' && body.captured_at
         ? body.captured_at
         : new Date().toISOString()
+
+    const entityIds = Array.isArray(body.entity_ids)
+      ? body.entity_ids.filter((x): x is string => typeof x === 'string')
+      : []
+    if (entityIds.length > 0) {
+      const entityRows = (await sql`
+        SELECT id
+        FROM entities
+        WHERE id = ANY(${entityIds}::uuid[])
+          AND deleted_at IS NULL
+          AND user_id = ${userId}
+      `) as Array<{ id: string }>
+      if (new Set(entityRows.map((row) => row.id)).size !== new Set(entityIds).size) {
+        return ApiErrors.notFound(requestId, 'Una o más entidades no existen')
+      }
+    }
 
     // Best-effort embedding del texto agregado del momento.
     const embedSource = momentoEmbedText(kind, payload, note)
@@ -236,15 +259,14 @@ export default withObservability('momentos', async (req: Request, context: Conte
     // Link a entidades si vienen en el body. Validamos que sean UUIDs en
     // teoría — la FK constraint los rechaza si no existen, así que el
     // server-side no tiene que pegarle a entities para verificar.
-    const entityIds = Array.isArray(body.entity_ids)
-      ? body.entity_ids.filter((x): x is string => typeof x === 'string')
-      : []
     if (entityIds.length > 0) {
       await sql`
-        INSERT INTO momento_entities (momento_id, entity_id)
-        SELECT ${row.id}::uuid, e_id
+        INSERT INTO momento_entities (momento_id, entity_id, user_id)
+        SELECT ${row.id}::uuid, e_id, ${userId}
         FROM unnest(${entityIds}::uuid[]) AS e_id
-        ON CONFLICT DO NOTHING
+        ON CONFLICT (momento_id, entity_id) DO UPDATE
+        SET user_id = EXCLUDED.user_id,
+            deleted_at = NULL
       `
     }
 
@@ -258,6 +280,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
   if (req.method === 'PATCH' && id) {
     const parsed = await parseJsonBody(req, MomentoPatchBody, requestId)
     if (!parsed.ok) return parsed.response
+    await ensureUserRow(sql, authedUser)
     const body = parsed.data
 
     // Lookup actual para conocer kind + valores actuales (no permitimos
@@ -321,7 +344,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
             embedding_model = ${emb?.model ?? null},
             embedding_at = ${emb ? new Date().toISOString() : null}::timestamptz,
             updated_at = NOW()
-        WHERE id = ${id} AND user_id = ${userId}
+        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       `
     } else if (newCapturedAt) {
       // Solo captured_at + posiblemente entityIds — sin re-embed.
@@ -329,7 +352,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
         UPDATE momentos
         SET captured_at = ${newCapturedAt}::timestamptz,
             updated_at = NOW()
-        WHERE id = ${id} AND user_id = ${userId}
+        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       `
     } else if (shouldReembed) {
       await sql`
@@ -340,20 +363,38 @@ export default withObservability('momentos', async (req: Request, context: Conte
             embedding_model = ${emb?.model ?? null},
             embedding_at = ${emb ? new Date().toISOString() : null}::timestamptz,
             updated_at = NOW()
-        WHERE id = ${id} AND user_id = ${userId}
+        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       `
     }
 
     // Reemplazar set de entityIds si viene.
     if (Array.isArray(body.entity_ids)) {
       const entityIds = body.entity_ids.filter((x): x is string => typeof x === 'string')
-      await sql`DELETE FROM momento_entities WHERE momento_id = ${id}`
+      if (entityIds.length > 0) {
+        const entityRows = (await sql`
+          SELECT id
+          FROM entities
+          WHERE id = ANY(${entityIds}::uuid[])
+            AND deleted_at IS NULL
+            AND user_id = ${userId}
+        `) as Array<{ id: string }>
+        if (new Set(entityRows.map((row) => row.id)).size !== new Set(entityIds).size) {
+          return ApiErrors.notFound(requestId, 'Una o más entidades no existen')
+        }
+      }
+      await sql`
+        UPDATE momento_entities
+        SET deleted_at = NOW()
+        WHERE momento_id = ${id} AND user_id = ${userId} AND deleted_at IS NULL
+      `
       if (entityIds.length > 0) {
         await sql`
-          INSERT INTO momento_entities (momento_id, entity_id)
-          SELECT ${id}::uuid, e_id
+          INSERT INTO momento_entities (momento_id, entity_id, user_id)
+          SELECT ${id}::uuid, e_id, ${userId}
           FROM unnest(${entityIds}::uuid[]) AS e_id
-          ON CONFLICT DO NOTHING
+          ON CONFLICT (momento_id, entity_id) DO UPDATE
+          SET user_id = EXCLUDED.user_id,
+              deleted_at = NULL
         `
       }
     }
@@ -362,10 +403,12 @@ export default withObservability('momentos', async (req: Request, context: Conte
       SELECT id, kind, captured_at, payload, note, origin,
              created_at, updated_at
       FROM momentos
-      WHERE id = ${id}
+      WHERE id = ${id} AND user_id = ${userId}
     `) as Array<Record<string, unknown>>
     const links = (await sql`
-      SELECT entity_id FROM momento_entities WHERE momento_id = ${id}
+      SELECT entity_id
+      FROM momento_entities
+      WHERE momento_id = ${id} AND user_id = ${userId} AND deleted_at IS NULL
     `) as Array<{ entity_id: string }>
     return Response.json({
       ...updated[0],
@@ -375,6 +418,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
 
   // ---------------- DELETE soft ----------------
   if (req.method === 'DELETE' && id) {
+    await ensureUserRow(sql, authedUser)
     const result = (await sql`
       UPDATE momentos
       SET deleted_at = NOW()

@@ -5,6 +5,7 @@ import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { MomentoRestoreBody } from './_lib/momento-extra-schemas.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 /**
  * EE-followup: restaurar un momento soft-deleted.
@@ -27,11 +28,13 @@ export default withObservability('momentos-restore', async (req: Request, _ctx, 
     return ApiErrors.methodNotAllowed(requestId)
   }
   const sql = getSql()
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const { id: userId } = authedUser
 
   const parsed = await parseJsonBody(req, MomentoRestoreBody, requestId)
   if (!parsed.ok) return parsed.response
   const { id, deletedAt } = parsed.data
+  await ensureUserRow(sql, authedUser)
 
   // UPDATE atómico — solo si deleted_at matchea exactamente. Si no
   // matchea (alguien lo restauró o re-borró), 0 rows afectadas → 409.
@@ -53,7 +56,9 @@ export default withObservability('momentos-restore', async (req: Request, _ctx, 
   // Devolvemos también los entity_ids actuales (los links no se borraron
   // en el soft-delete original, así que siguen ahí).
   const links = (await sql`
-    SELECT entity_id FROM momento_entities WHERE momento_id = ${id}
+    SELECT entity_id
+    FROM momento_entities
+    WHERE momento_id = ${id} AND user_id = ${userId} AND deleted_at IS NULL
   `) as Array<{ entity_id: string }>
 
   return Response.json({

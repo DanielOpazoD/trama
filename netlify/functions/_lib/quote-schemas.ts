@@ -8,10 +8,11 @@ import { z } from 'zod'
  *     entidad). En PATCH es opcional — permite reasignar a otra entidad.
  *   - `text` requerido en POST con min(1); en PATCH opcional con min(1)
  *     (no aceptamos pasar "" para borrar el texto de una cita existente).
- *   - `linked_quote_ids` array de UUIDs — validamos como string[] simple
- *     y dejamos que Postgres rechace si no son UUIDs reales (el server
- *     ya hace `${linked}::uuid[]`).
+ *   - `linked_quote_ids` array de UUIDs — validamos formato en Zod y
+ *     ownership en `quotes.mts` antes de escribir referencias blandas.
  */
+
+const LinkedQuoteId = z.string().uuid('linked_quote_ids contiene un UUID inválido')
 
 export const QuoteCreateBody = z.object({
   entity_id: z.string().min(1, 'entity_id requerido'),
@@ -20,7 +21,7 @@ export const QuoteCreateBody = z.object({
   context: z.string().nullable().optional(),
   link: z.string().max(2000).nullable().optional(),
   user_reflection: z.string().nullable().optional(),
-  linked_quote_ids: z.array(z.string()).nullable().optional(),
+  linked_quote_ids: z.array(LinkedQuoteId).nullable().optional(),
   origin: z.unknown().optional(),
 })
 export type QuoteCreateBodyT = z.infer<typeof QuoteCreateBody>
@@ -35,7 +36,7 @@ export const QuotePatchBody = z.object({
   ai_reflection: z.string().nullable().optional(),
   ai_reflection_provider: z.string().nullable().optional(),
   ai_reflection_model: z.string().nullable().optional(),
-  linked_quote_ids: z.array(z.string()).nullable().optional(),
+  linked_quote_ids: z.array(LinkedQuoteId).nullable().optional(),
   pinned: z.boolean().optional(),
   // U-1: Resonancia. 1-5 = el usuario marcó. null = el usuario destildó
   // (volver a sin marcar). undefined (omitido) = no tocar.

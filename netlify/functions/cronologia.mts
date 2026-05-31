@@ -110,6 +110,8 @@ export default withObservability(
                q.source, q.entity_id::text AS entity_id, e.name AS entity_name
         FROM quotes q
         JOIN entities e ON e.id = q.entity_id
+          AND e.deleted_at IS NULL
+          AND e.user_id = ${userId}
         WHERE q.deleted_at IS NULL
           AND q.user_id = ${userId}
           AND q.created_at < ${before}::timestamptz

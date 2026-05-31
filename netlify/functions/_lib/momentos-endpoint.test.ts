@@ -139,6 +139,7 @@ describe('momentos endpoint — integration (mock SQL)', () => {
   })
 
   it('POST nota válida devuelve 201 con el row creado', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([
       {
         id: 'new-1',
@@ -169,6 +170,8 @@ describe('momentos endpoint — integration (mock SQL)', () => {
   })
 
   it('POST con entity_ids inserta en momento_entities', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ id: 'e1' }, { id: 'e2' }]) // ownership lookup
     mockSqlResponses.push([
       {
         id: 'new-2',
@@ -205,6 +208,7 @@ describe('momentos endpoint — integration (mock SQL)', () => {
   })
 
   it('DELETE devuelve { deletedAt } si existe', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ id: 'm1', deleted_at: '2026-05-24T13:00:00Z' }])
     const res = await handler(
       new Request('http://localhost/api/momentos/m1', { method: 'DELETE' }),

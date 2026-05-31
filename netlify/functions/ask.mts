@@ -12,6 +12,7 @@ import { AskBody } from './_lib/chat-body-schemas.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { buildRagContext } from './_lib/rag-context.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 const FALLBACK_ENTITY_TYPES = [
   'persona', 'escritor', 'filosofo', 'musico', 'banda', 'director', 'artista', 'cientifico',
@@ -56,12 +57,14 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
   const incomingThreadId =
     typeof body.threadId === 'string' && body.threadId.length > 0 ? body.threadId : null
 
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const userId = authedUser.id
+
+  const sql = getSql()
+  await ensureUserRow(sql, authedUser)
 
   const budgetExceeded = await checkMonthlyBudget(userId, requestId)
   if (budgetExceeded) return budgetExceeded
-
-  const sql = getSql()
 
   // Conversational history for this section thread, if any. Reused last N=10
   // turns (5 user + 5 assistant on average). Older turns drop off the prompt
@@ -69,10 +72,18 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
   type HistoryRow = { role: 'user' | 'assistant'; content: string }
   let history: HistoryRow[] = []
   if (incomingThreadId) {
+    const threadRows = await sqlTyped<{ id: string }>(sql`
+      SELECT id
+      FROM chat_threads
+      WHERE id = ${incomingThreadId} AND deleted_at IS NULL AND user_id = ${userId}
+    `)
+    if (threadRows.length === 0) {
+      return ApiErrors.notFound(requestId, 'Thread no encontrado')
+    }
     const rows = (await sql`
       SELECT role, content
       FROM chat_messages
-      WHERE thread_id = ${incomingThreadId}
+      WHERE thread_id = ${incomingThreadId} AND user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT 10
     `) as HistoryRow[]
@@ -85,7 +96,7 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
   // LLM (incluido el rerank). Si está en Off, salimos antes de cualquier
   // trabajo LLM, ahorrando latencia y tokens.
   const invocation = await resolveAIInvocation(req, 'chat', userId)
-  if (invocation.kind === 'off') return aiOffResponse()
+  if (invocation.kind === 'off') return aiOffResponse(requestId)
   const rerankOverride = {
     provider: invocation.provider,
     model: invocation.model,
@@ -116,7 +127,7 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
     sqlTyped<TypeRow>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
     body.selectedEntityId
       ? sqlTyped<{ id: string; name: string; type: string; description: string | null }>(sql`SELECT id, name, type, description FROM entities
-              WHERE id = ${body.selectedEntityId} AND deleted_at IS NULL`)
+              WHERE id = ${body.selectedEntityId} AND deleted_at IS NULL AND user_id = ${userId}`)
       : Promise.resolve([] as Array<{ id: string; name: string; type: string; description: string | null }>),
   ])
 
@@ -252,7 +263,7 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
     if (!activeThreadId && view) {
       type TIdRow = { id: string }
       const created = (await sql`
-        INSERT INTO chat_threads (context) VALUES (${view}) RETURNING id
+        INSERT INTO chat_threads (context, user_id) VALUES (${view}, ${userId}) RETURNING id
       `) as TIdRow[]
       activeThreadId = created[0]?.id ?? null
     }
@@ -263,13 +274,13 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
       // a failure here shouldn't break the response the user already sees.
       const proposalToStore = hasProposal ? cleanedProposal : null
       await sql`
-        INSERT INTO chat_messages (thread_id, role, content)
-        VALUES (${activeThreadId}, 'user', ${userText})
+        INSERT INTO chat_messages (thread_id, role, content, user_id)
+        VALUES (${activeThreadId}, 'user', ${userText}, ${userId})
       `.catch(() => {})
       await sql`
         INSERT INTO chat_messages (
           thread_id, role, content, proposal,
-          tokens_in, tokens_out, cost_cents, provider, model
+          tokens_in, tokens_out, cost_cents, provider, model, user_id
         ) VALUES (
           ${activeThreadId},
           'assistant',
@@ -279,11 +290,12 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
           ${usage.tokensOut},
           ${usage.costCents},
           ${usage.provider},
-          ${usage.model}
+          ${usage.model},
+          ${userId}
         )
       `.catch(() => {})
       // Bump the thread so it sorts to the top of the rail.
-      await sql`UPDATE chat_threads SET updated_at = NOW() WHERE id = ${activeThreadId}`.catch(() => {})
+      await sql`UPDATE chat_threads SET updated_at = NOW() WHERE id = ${activeThreadId} AND user_id = ${userId}`.catch(() => {})
     }
 
     return Response.json({
