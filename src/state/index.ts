@@ -16,6 +16,7 @@ export {
   type HealthAlertSummary,
 } from './useHealthAlerts'
 export { useCountsQuery } from './useCounts'
+export { useHomeQuery } from './useHome'
 export { useNeighborsQuery } from './useNeighbors'
 export {
   useEntitiesQuery,

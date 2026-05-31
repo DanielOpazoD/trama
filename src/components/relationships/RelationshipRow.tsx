@@ -40,6 +40,13 @@ function RelationshipRowInternal({
             >
               {from.name}
             </button>
+          ) : rel.fromName ? (
+            <button
+              onClick={() => onSelectEntity?.(rel.fromId)}
+              className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
+            >
+              {rel.fromName}
+            </button>
           ) : (
             <span className="text-ink-700">—</span>
           )}
@@ -52,6 +59,13 @@ function RelationshipRowInternal({
               className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
             >
               {to.name}
+            </button>
+          ) : rel.toName ? (
+            <button
+              onClick={() => onSelectEntity?.(rel.toId)}
+              className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
+            >
+              {rel.toName}
             </button>
           ) : (
             <span className="text-ink-700">—</span>

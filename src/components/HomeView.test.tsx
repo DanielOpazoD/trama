@@ -65,9 +65,21 @@ function setupCache(
   } = {},
 ) {
   const qc = makeQueryClient()
-  qc.setQueryData(queryKeys.entities, entities)
-  qc.setQueryData(queryKeys.quotes, quotes)
-  qc.setQueryData(queryKeys.relationships, relationships)
+  const homeData = {
+    entities,
+    quotes,
+    relationships,
+    counts: {
+      entities: entities.length,
+      quotes: quotes.length,
+      relationships: relationships.length,
+    },
+  }
+  qc.setQueryDefaults(queryKeys.home, { staleTime: Infinity })
+  qc.setQueryData(queryKeys.home, homeData)
+  qc.setQueryData(['proactive', 'pending'], [])
+  qc.setQueryData(queryKeys.cronicas, [])
+  qc.setQueryData(queryKeys.xCronica, { cronica: null })
   return renderWithProviders(
     <HomeView
       onNavigate={callbacks.onNavigate ?? vi.fn()}
@@ -150,14 +162,6 @@ describe('<HomeView />', () => {
   it('click en "ver grafo →" llama onNavigate("grafo")', async () => {
     const onNavigate = vi.fn()
     setupCache([ENTITY], [], [], { onNavigate })
-    // El botón solo aparece cuando hay timeline events.
-    const qc = makeQueryClient()
-    qc.setQueryData(queryKeys.entities, [ENTITY])
-    qc.setQueryData(queryKeys.quotes, [])
-    qc.setQueryData(queryKeys.relationships, [])
-    renderWithProviders(<HomeView onNavigate={onNavigate} onSelectEntity={vi.fn()} />, {
-      queryClient: qc,
-    })
     const user = userEvent.setup()
     const btns = screen.queryAllByRole('button', { name: /ver grafo/i })
     if (btns.length > 0) {

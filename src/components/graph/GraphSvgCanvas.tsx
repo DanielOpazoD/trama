@@ -1,4 +1,4 @@
-import { type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
+import { useMemo, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
 import type { Entity, Relationship } from '../../types'
 import type { LayoutMode } from '../../hooks/layouts/types'
 import { GraphNode } from './GraphNode'
@@ -86,6 +86,15 @@ export function GraphSvgCanvas({
   onNodeHoverEnd,
 }: GraphSvgCanvasProps) {
   const focusedEntity = focusedIndex >= 0 ? entities[focusedIndex] : null
+  const selectedNeighborIds = useMemo(() => {
+    if (!selectedId) return null
+    const ids = new Set<string>()
+    for (const rel of relationships) {
+      if (rel.fromId === selectedId) ids.add(rel.toId)
+      if (rel.toId === selectedId) ids.add(rel.fromId)
+    }
+    return ids
+  }, [relationships, selectedId])
 
   return (
     <svg
@@ -181,13 +190,7 @@ export function GraphSvgCanvas({
           const isSelected = entity.id === selectedId
           const isFocused = index === focusedIndex
           const isDimmed =
-            selectedId !== null &&
-            !isSelected &&
-            !relationships.some(
-              (r) =>
-                (r.fromId === selectedId && r.toId === entity.id) ||
-                (r.toId === selectedId && r.fromId === entity.id),
-            )
+            selectedId !== null && !isSelected && !selectedNeighborIds?.has(entity.id)
           return (
             <GraphNode
               key={entity.id}

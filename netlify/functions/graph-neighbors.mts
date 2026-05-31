@@ -94,21 +94,27 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
     ),
     dedup AS (
       SELECT id, MIN(depth) AS depth FROM walk GROUP BY id
+    ),
+    degree AS (
+      SELECT entity_id, COUNT(*)::text AS degree
+      FROM (
+        SELECT from_id AS entity_id
+        FROM relationships
+        WHERE deleted_at IS NULL AND user_id = ${userId}
+        UNION ALL
+        SELECT to_id AS entity_id
+        FROM relationships
+        WHERE deleted_at IS NULL AND user_id = ${userId}
+      ) rels
+      GROUP BY entity_id
     )
     SELECT
       d.id,
       d.depth AS hop_distance,
-      (
-        SELECT COUNT(*)::text
-        FROM relationships rr
-        WHERE rr.deleted_at IS NULL
-          AND (rr.from_id = d.id OR rr.to_id = d.id)
-      ) AS degree
+      COALESCE(degree.degree, '0') AS degree
     FROM dedup d
-    ORDER BY d.depth, (
-      SELECT COUNT(*) FROM relationships rr
-      WHERE rr.deleted_at IS NULL AND (rr.from_id = d.id OR rr.to_id = d.id)
-    ) DESC
+    LEFT JOIN degree ON degree.entity_id = d.id
+    ORDER BY d.depth, COALESCE(degree.degree::int, 0) DESC
     LIMIT ${limit}
   `) as WalkRow[]
 
