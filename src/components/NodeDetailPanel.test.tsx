@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { NodeDetailPanel } from './NodeDetailPanel'
-import { renderWithProviders } from '../test-utils'
+import { makeQueryClient, renderWithProviders } from '../test-utils'
 import { queryKeys } from '../state/queryClient'
 import type { Entity, Quote, Relationship } from '../types'
 
@@ -49,10 +49,11 @@ const REL: Relationship = {
 }
 
 function seedCache(entities: Entity[], quotes: Quote[], relationships: Relationship[]) {
-  return (queryClient: ReturnType<typeof import('../test-utils').makeQueryClient>) => {
+  return (queryClient: ReturnType<typeof makeQueryClient>) => {
     queryClient.setQueryData(queryKeys.entities, entities)
     queryClient.setQueryData(queryKeys.quotes, quotes)
     queryClient.setQueryData(queryKeys.relationships, relationships)
+    queryClient.setQueryData(queryKeys.chatThreads, [])
   }
 }
 
@@ -66,19 +67,18 @@ afterEach(() => {
 
 describe('<NodeDetailPanel />', () => {
   it('renders the entity name and metadata', () => {
-    const { queryClient } = renderWithProviders(
-      <NodeDetailPanel entityId="camus" onClose={vi.fn()} />,
-    )
+    const queryClient = makeQueryClient()
     seedCache([CAMUS], [], [])(queryClient)
-    // Rerender after seed by re-rendering happens automatically via TanStack Query.
-    // But initial render with empty cache shows "no encontrada". Render again now.
+    renderWithProviders(<NodeDetailPanel entityId="camus" onClose={vi.fn()} />, {
+      queryClient,
+    })
+    expect(screen.getByText('Albert Camus')).toBeInTheDocument()
+    expect(screen.getByText(/escritor argelino-francés/)).toBeInTheDocument()
   })
 
   it('renders entity, quotes, and connections when cache is seeded', async () => {
-    const queryClient = (await import('../test-utils')).makeQueryClient()
-    queryClient.setQueryData(queryKeys.entities, [CAMUS, EXTRANJERO])
-    queryClient.setQueryData(queryKeys.quotes, [QUOTE])
-    queryClient.setQueryData(queryKeys.relationships, [REL])
+    const queryClient = makeQueryClient()
+    seedCache([CAMUS, EXTRANJERO], [QUOTE], [REL])(queryClient)
 
     renderWithProviders(<NodeDetailPanel entityId="camus" onClose={vi.fn()} />, {
       queryClient,
@@ -91,15 +91,17 @@ describe('<NodeDetailPanel />', () => {
   })
 
   it('shows "no encontrada" when entity is missing', () => {
-    renderWithProviders(<NodeDetailPanel entityId="not-found" onClose={vi.fn()} />)
+    const queryClient = makeQueryClient()
+    seedCache([], [], [])(queryClient)
+    renderWithProviders(<NodeDetailPanel entityId="not-found" onClose={vi.fn()} />, {
+      queryClient,
+    })
     expect(screen.getByText(/no encontrada/i)).toBeInTheDocument()
   })
 
   it('closes on Escape', async () => {
-    const queryClient = (await import('../test-utils')).makeQueryClient()
-    queryClient.setQueryData(queryKeys.entities, [CAMUS])
-    queryClient.setQueryData(queryKeys.quotes, [])
-    queryClient.setQueryData(queryKeys.relationships, [])
+    const queryClient = makeQueryClient()
+    seedCache([CAMUS], [], [])(queryClient)
 
     const onClose = vi.fn()
     renderWithProviders(<NodeDetailPanel entityId="camus" onClose={onClose} />, {
@@ -112,10 +114,8 @@ describe('<NodeDetailPanel />', () => {
   })
 
   it('two-step delete: click reveals confirmation, then "sí, eliminar" fires', async () => {
-    const queryClient = (await import('../test-utils')).makeQueryClient()
-    queryClient.setQueryData(queryKeys.entities, [CAMUS])
-    queryClient.setQueryData(queryKeys.quotes, [])
-    queryClient.setQueryData(queryKeys.relationships, [])
+    const queryClient = makeQueryClient()
+    seedCache([CAMUS], [], [])(queryClient)
 
     // DELETE ahora devuelve { deletedAt } para alimentar el flujo de undo.
     const deleteFetch = vi.fn().mockResolvedValue({
@@ -154,10 +154,8 @@ describe('<NodeDetailPanel />', () => {
       id: 'ai-entity',
       origin: { kind: 'ai', provider: 'deepseek' },
     }
-    const queryClient = (await import('../test-utils')).makeQueryClient()
-    queryClient.setQueryData(queryKeys.entities, [aiEntity])
-    queryClient.setQueryData(queryKeys.quotes, [])
-    queryClient.setQueryData(queryKeys.relationships, [])
+    const queryClient = makeQueryClient()
+    seedCache([aiEntity], [], [])(queryClient)
 
     renderWithProviders(<NodeDetailPanel entityId="ai-entity" onClose={vi.fn()} />, {
       queryClient,

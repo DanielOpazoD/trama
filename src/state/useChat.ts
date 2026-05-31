@@ -2,9 +2,10 @@ import { useCallback, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type ChatMessage, type ChatThread } from '../api'
 import { useOffline } from './offline'
+import { queryKeys } from './queryClient'
 
-const THREADS_KEY = ['chat', 'threads'] as const
-const messagesKey = (threadId: string) => ['chat', 'messages', threadId] as const
+const THREADS_KEY = queryKeys.chatThreads
+const messagesKey = queryKeys.chatMessages
 
 export function useChatThreadsQuery() {
   const { offline } = useOffline()
@@ -72,14 +73,20 @@ export function useSendChatMessage(threadId: string | null) {
   // Local placeholder ids so we can find and update the optimistic bubbles.
   const userIdRef = useRef<string | null>(null)
   const assistantIdRef = useRef<string | null>(null)
+  const pendingRef = useRef(false)
 
   const send = useCallback(
     async (content: string) => {
       if (!threadId) throw new Error('No hay hilo activo')
+      if (pendingRef.current) {
+        setError('Ya hay un mensaje en curso.')
+        return
+      }
       if (offline) {
         setError('El chat con IA requiere conexión al backend.')
         return
       }
+      pendingRef.current = true
       setPending(true)
       setError(null)
 
@@ -139,6 +146,7 @@ export function useSendChatMessage(threadId: string | null) {
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err))
       } finally {
+        pendingRef.current = false
         setPending(false)
       }
     },

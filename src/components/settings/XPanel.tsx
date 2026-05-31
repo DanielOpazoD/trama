@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import { describeOAuthReturn, type OAuthReturn } from '../../lib/oauthReturn'
 import { PanelHeader, formatRelative } from './_shared'
+import { queryKeys } from '../../state/queryClient'
 
 /**
  * Conexión con X (Twitter): trae tus bookmarks y los guarda. Espejo del
@@ -18,7 +19,7 @@ export function XPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null }) {
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
 
   const xStatus = useQuery({
-    queryKey: ['x', 'status'],
+    queryKey: queryKeys.xStatus,
     queryFn: () => api.xStatus(),
     retry: false,
   })
@@ -33,7 +34,7 @@ export function XPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null }) {
   useEffect(() => {
     if (!oauthReturn) return
     setNotice(describeOAuthReturn(oauthReturn))
-    if (oauthReturn.ok) queryClient.invalidateQueries({ queryKey: ['x'] })
+    if (oauthReturn.ok) queryClient.invalidateQueries({ queryKey: queryKeys.x })
   }, [oauthReturn, queryClient])
 
   async function handleConnect() {
@@ -59,7 +60,7 @@ export function XPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null }) {
     try {
       const r = await api.xSync()
       setMessage(`Sincronizado: ${r.inserted} bookmarks nuevos`)
-      queryClient.invalidateQueries({ queryKey: ['x'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.x })
     } catch (err) {
       setMessage(err instanceof Error ? `Error: ${err.message}` : 'Error al sincronizar')
     } finally {
@@ -74,7 +75,7 @@ export function XPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null }) {
     try {
       await api.xDisconnect()
       setMessage('X desconectado')
-      queryClient.invalidateQueries({ queryKey: ['x'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.x })
     } catch (err) {
       setMessage(err instanceof Error ? `Error: ${err.message}` : 'Error al desconectar')
     } finally {

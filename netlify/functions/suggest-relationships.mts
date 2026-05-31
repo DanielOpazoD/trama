@@ -1,4 +1,5 @@
 import type { Config, Context } from '@netlify/functions'
+import { z } from 'zod'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
@@ -11,9 +12,11 @@ import { validateExtraction } from './_lib/extract-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { crossVerify, type VerifyVerdict } from './_lib/cross-verify.js'
+import { parseJsonBody } from './_lib/zod-body.js'
 
 const FALLBACK_RELATIONSHIP_TYPES = [
   'influye_en', 'cita_a', 'responde_a', 'me_llego_por',
@@ -27,6 +30,19 @@ const MAX_ENTITIES = 80
 // Per-entity quote cap before passing to the prompt.
 const MAX_QUOTES_PER_ENTITY = 5
 
+const SuggestRelationshipsBody = z.object({
+  avoidPrevious: z
+    .array(
+      z.object({
+        fromName: z.string().trim().min(1),
+        toName: z.string().trim().min(1),
+        type: z.string().trim().min(1),
+      }),
+    )
+    .optional()
+    .default([]),
+})
+
 export default withObservability(
   'suggest-relationships',
   async (req: Request, _context: Context, { requestId }) => {
@@ -34,7 +50,10 @@ export default withObservability(
       return ApiErrors.methodNotAllowed(requestId)
     }
 
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
+    const sql = getSql()
+    await ensureUserRow(sql, authedUser)
 
     const budgetExceeded = await checkMonthlyBudget(userId, requestId)
     if (budgetExceeded) return budgetExceeded
@@ -42,13 +61,17 @@ export default withObservability(
     // η2: body opcional. Si el usuario clickeó "descubrir IA" tras
     // descartar sugerencias, el cliente nos manda las descartadas
     // para que la IA proponga DIFERENTES.
-    type Body = {
-      avoidPrevious?: Array<{ fromName: string; toName: string; type: string }>
-    }
-    const body = (await req.json().catch(() => ({}))) as Body
-    const avoidPrevious = Array.isArray(body.avoidPrevious) ? body.avoidPrevious : []
-
-    const sql = getSql()
+    const rawBody = await req.text()
+    const parsed = await parseJsonBody(
+      new Request(req.url, {
+        method: req.method,
+        body: rawBody.trim() ? rawBody : '{}',
+      }),
+      SuggestRelationshipsBody,
+      requestId,
+    )
+    if (!parsed.ok) return parsed.response
+    const avoidPrevious = parsed.data.avoidPrevious
 
     type EntityRow = {
       id: string
@@ -73,7 +96,11 @@ export default withObservability(
       sqlTyped<RelRow>(sql`SELECT ef.name AS from_name, et.name AS to_name, r.type
           FROM relationships r
           JOIN entities ef ON ef.id = r.from_id
+            AND ef.deleted_at IS NULL
+            AND ef.user_id = ${userId}
           JOIN entities et ON et.id = r.to_id
+            AND et.deleted_at IS NULL
+            AND et.user_id = ${userId}
           WHERE r.deleted_at IS NULL AND r.user_id = ${userId}`),
       sqlTyped<{ slug: string }>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
     ])
@@ -117,7 +144,7 @@ export default withObservability(
     )
 
     const invocation = await resolveAIInvocation(req, 'suggest-relationships', userId)
-    if (invocation.kind === 'off') return aiOffResponse()
+    if (invocation.kind === 'off') return aiOffResponse(requestId)
 
     try {
       const { content, usage, fromCache } = await askLLMForJson(messages, {
@@ -231,10 +258,10 @@ export default withObservability(
           ${JSON.stringify(result)}::jsonb,
           ${usage.provider},
           ${usage.model},
-          ${usage.tokensIn},
-          ${usage.tokensOut},
-          ${usage.costCents},
-          ${usage.durationMs},
+          ${usage.tokensIn + (verifierUsage?.tokensIn ?? 0)},
+          ${usage.tokensOut + (verifierUsage?.tokensOut ?? 0)},
+          ${usage.costCents + (verifierUsage?.costCents ?? 0)},
+          ${usage.durationMs + (verifierUsage?.durationMs ?? 0)},
           ${userId}
         )
       `.catch(() => {})

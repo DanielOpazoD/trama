@@ -8,8 +8,9 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Entity } from '../../types'
 import { QuoteForm } from './QuoteForm'
-import { renderWithProviders } from '../../test-utils'
+import { makeQueryClient, renderWithProviders } from '../../test-utils'
 import * as apiModule from '../../api'
+import { queryKeys } from '../../state/queryClient'
 
 const ENTITY_A: Entity = {
   id: 'ent-1',
@@ -22,6 +23,7 @@ const ENTITY_A: Entity = {
 
 beforeEach(() => {
   vi.restoreAllMocks()
+  vi.spyOn(apiModule.api, 'getQuoteEchoes').mockResolvedValue([])
 })
 afterEach(() => {
   vi.restoreAllMocks()
@@ -29,13 +31,17 @@ afterEach(() => {
 
 describe('QuoteForm', () => {
   it('renderiza el select con las entidades pasadas', () => {
-    renderWithProviders(<QuoteForm entities={[ENTITY_A]} />)
+    const queryClient = makeQueryClient()
+    queryClient.setQueryData(queryKeys.quoteEchoes('q1'), [])
+    renderWithProviders(<QuoteForm entities={[ENTITY_A]} />, { queryClient })
     expect(screen.getByRole('option', { name: 'Borges' })).toBeInTheDocument()
   })
 
   it('no llama api.createQuote si falta entityId', async () => {
     const spy = vi.spyOn(apiModule.api, 'createQuote').mockResolvedValue({} as never)
-    renderWithProviders(<QuoteForm entities={[ENTITY_A]} />)
+    const queryClient = makeQueryClient()
+    queryClient.setQueryData(queryKeys.quoteEchoes('q1'), [])
+    renderWithProviders(<QuoteForm entities={[ENTITY_A]} />, { queryClient })
     const textarea = screen.getByPlaceholderText('La cita')
     fireEvent.change(textarea, { target: { value: 'el mundo será Tlön' } })
     fireEvent.click(screen.getByRole('button', { name: /añadir/i }))

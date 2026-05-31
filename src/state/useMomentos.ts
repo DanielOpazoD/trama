@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import type { Momento, MomentoKind, MomentoPayload } from '../types'
+import { queryKeys } from './queryClient'
 
 /**
  * ξ — hooks de TanStack Query para Momentos.
@@ -10,7 +11,7 @@ import type { Momento, MomentoKind, MomentoPayload } from '../types'
  * invalidan la query infinite.
  */
 
-const MOMENTOS_INFINITE = ['momentos', 'infinite'] as const
+const MOMENTOS_INFINITE = queryKeys.momentosInfinite
 
 type ListResult = { items: Momento[]; nextCursor: string | null }
 
@@ -41,6 +42,9 @@ export function useAddMomento() {
     onSuccess: () => {
       // Invalidamos todas las variantes de filtro (all + kind=foto, etc.)
       queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
     },
   })
 }
@@ -62,6 +66,9 @@ export function useUpdateMomento() {
     }) => api.updateMomento(id, patch),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
     },
   })
 }
@@ -72,6 +79,9 @@ export function useDeleteMomento() {
     mutationFn: (id: string) => api.deleteMomento(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
     },
   })
 }
@@ -92,6 +102,9 @@ export function useMergeMomentos() {
     }) => api.mergeMomentos(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
     },
   })
 }

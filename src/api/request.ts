@@ -162,13 +162,9 @@ async function parseErrorResponse(
 }
 
 /**
- * Clerk expone el objeto en window.__clerk en el frontend.
- * Leemos el token de sesión actual si está disponible — sin importar
- * @clerk/clerk-react directamente (que requeriría un hook y un componente).
- *
- * TODO Sprint 2: migrar a un hook useApiClient() que use useAuth() de Clerk
- * para obtener el token de forma más tipada. Por ahora este approach de
- * window.__clerk minimiza cambios en los hooks de estado existentes.
+ * El token de sesión entra por `setApiAuthTokenProvider()`, montado desde
+ * `ApiAuthBridge` con `useAuth()` de Clerk. El fallback a `window.__clerk`
+ * queda solo para compatibilidad durante la transición.
  */
 type ClerkWindow = {
   __clerk?: {
@@ -178,28 +174,50 @@ type ClerkWindow = {
   }
 }
 
+export type ApiAuthTokenProvider = () => Promise<string | null>
+
+let apiAuthTokenProvider: ApiAuthTokenProvider | null = null
+
+export function setApiAuthTokenProvider(
+  provider: ApiAuthTokenProvider | null,
+): () => void {
+  apiAuthTokenProvider = provider
+  return () => {
+    if (apiAuthTokenProvider === provider) apiAuthTokenProvider = null
+  }
+}
+
 async function getAuthHeader(): Promise<HeadersInit> {
+  const token = await apiAuthTokenProvider?.()
+  if (token) return { Authorization: `Bearer ${token}` }
+
+  if (typeof window === 'undefined') return {}
   const clerk = (window as unknown as ClerkWindow).__clerk
   if (clerk?.session) {
-    const token = await clerk.session.getToken()
-    if (token) return { Authorization: `Bearer ${token}` }
+    const legacyToken = await clerk.session.getToken()
+    if (legacyToken) return { Authorization: `Bearer ${legacyToken}` }
   }
   return {}
 }
 
-export async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  // Modo prueba: servimos desde el store local en vez de pegar a /api/*.
-  if (isDemoMode()) return demoRequest<T>(url, init)
+export async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
   const authHeader = await getAuthHeader()
-  const response = await fetch(url, {
+  const isFormDataBody = typeof FormData !== 'undefined' && init?.body instanceof FormData
+  return fetch(url, {
     ...init,
     headers: {
-      'Content-Type': 'application/json',
       'X-AI-Mode': aiModeHeader(),
+      ...(isFormDataBody ? {} : { 'Content-Type': 'application/json' }),
       ...authHeader,
       ...init?.headers,
     },
   })
+}
+
+export async function request<T = any>(url: string, init?: RequestInit): Promise<T> {
+  // Modo prueba: servimos desde el store local en vez de pegar a /api/*.
+  if (isDemoMode()) return demoRequest<T>(url, init)
+  const response = await apiFetch(url, init)
   if (!response.ok) {
     throw await parseErrorResponse(response, url, init?.method ?? 'GET')
   }

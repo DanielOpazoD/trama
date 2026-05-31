@@ -10,12 +10,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import type { AtlasResponse } from '../api'
-
-const ATLAS_KEY = ['atlas'] as const
+import { queryKeys } from './queryClient'
 
 export function useAtlasQuery() {
   return useQuery({
-    queryKey: ATLAS_KEY,
+    queryKey: queryKeys.atlas,
     queryFn: () => api.atlas.read(),
     // El snapshot es estable hasta que el usuario regenera.
     staleTime: 5 * 60 * 1000,
@@ -27,7 +26,7 @@ export function useGenerateAtlas() {
   return useMutation({
     mutationFn: (): Promise<AtlasResponse> => api.atlas.generate(),
     onSuccess: (next) => {
-      qc.setQueryData<AtlasResponse>(ATLAS_KEY, next)
+      qc.setQueryData<AtlasResponse>(queryKeys.atlas, next)
     },
   })
 }

@@ -359,7 +359,7 @@ export function ChatView({
             placeholder="pregúntale a la IA sobre tu trama, sus temas, las personas que la habitan…"
             rows={1}
             disabled={sendPending}
-            className="flex-1 resize-none bg-paper-100/40 border border-ink-100/60 rounded-xl px-3 py-2 text-sm text-ink-700 placeholder:text-ink-300 focus:outline-none focus:border-ink-200 leading-relaxed transition-colors"
+            className="flex-1 resize-none bg-paper-100/40 border border-ink-100/60 rounded-xl px-3 py-2 text-sm text-ink-700 placeholder:text-ink-300 focus:border-ink-200 leading-relaxed transition-colors"
           />
           <button
             type="submit"

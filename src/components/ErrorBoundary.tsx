@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { request } from '../api/request'
 import { TramaMark } from './Icons'
 
 /**
@@ -90,9 +91,8 @@ export class ErrorBoundary extends Component<Props, State> {
 async function reportError(error: Error, info: ErrorInfo, scope: string) {
   if (typeof window === 'undefined') return
   try {
-    await fetch('/api/error-log', {
+    await request<void>('/api/error-log', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: error.message || 'Unknown error',
         stack: error.stack ?? null,

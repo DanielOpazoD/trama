@@ -33,6 +33,7 @@ function seedEntities(entities: Entity[]) {
   qc.setQueryData(queryKeys.entities, entities)
   qc.setQueryData(queryKeys.quotes, [])
   qc.setQueryData(queryKeys.relationships, [])
+  qc.setQueryData(queryKeys.entityRefsCount, new Map())
   return qc
 }
 

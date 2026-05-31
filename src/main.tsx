@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ClerkProvider } from '@clerk/react'
 import App from './App'
+import { ApiAuthBridge } from './components/ApiAuthBridge'
 import './index.css'
 import { installClientErrorTracking } from './lib/clientErrorTracking'
 import { initWebVitals } from './lib/webVitals'
@@ -26,6 +27,7 @@ root.render(
   <StrictMode>
     {PUBLISHABLE_KEY ? (
       <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+        <ApiAuthBridge />
         <App />
       </ClerkProvider>
     ) : (

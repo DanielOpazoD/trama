@@ -9,12 +9,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import type { Cronica, GeneratedCronica } from '../api'
-
-const CRONICAS_KEY = ['cronicas'] as const
+import { queryKeys } from './queryClient'
 
 export function useCronicasQuery() {
   return useQuery({
-    queryKey: CRONICAS_KEY,
+    queryKey: queryKeys.cronicas,
     queryFn: () => api.cronicas.list(),
     // staleTime alto — las crónicas son inmutables una vez generadas.
     staleTime: 5 * 60 * 1000,
@@ -33,7 +32,7 @@ export function useGenerateCronica() {
     }): Promise<GeneratedCronica> => api.cronicas.generate(year, month),
     onSuccess: (created) => {
       // Actualizar la cache con la crónica nueva (al frente).
-      qc.setQueryData<Cronica[]>(CRONICAS_KEY, (prev) => {
+      qc.setQueryData<Cronica[]>(queryKeys.cronicas, (prev) => {
         if (!prev) return [created]
         // Si ya está (idempotencia), reemplazar; si no, insertar al frente.
         const idx = prev.findIndex(
@@ -46,6 +45,7 @@ export function useGenerateCronica() {
         }
         return [created, ...prev]
       })
+      qc.invalidateQueries({ queryKey: queryKeys.home })
     },
   })
 }

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProposalPanel } from './ProposalPanel'
-import { renderWithProviders } from '../test-utils'
+import { makeQueryClient, renderWithProviders } from '../test-utils'
 import { queryKeys } from '../state/queryClient'
 import type { Entity, ExtractionProposal } from '../types'
 
@@ -74,16 +74,35 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+function renderProposalPanel({
+  proposal = PROPOSAL,
+  sourceText = 'test',
+  onClose = vi.fn(),
+  onConfirmed = vi.fn(),
+  entities = [],
+}: {
+  proposal?: ExtractionProposal
+  sourceText?: string
+  onClose?: () => void
+  onConfirmed?: () => void
+  entities?: Entity[]
+} = {}) {
+  const queryClient = makeQueryClient()
+  queryClient.setQueryData(queryKeys.entities, entities)
+  return renderWithProviders(
+    <ProposalPanel
+      proposal={proposal}
+      sourceText={sourceText}
+      onClose={onClose}
+      onConfirmed={onConfirmed}
+    />,
+    { queryClient },
+  )
+}
+
 describe('<ProposalPanel />', () => {
   it('renders sections for entities, relationships, and quotes', () => {
-    renderWithProviders(
-      <ProposalPanel
-        proposal={PROPOSAL}
-        sourceText="test"
-        onClose={vi.fn()}
-        onConfirmed={vi.fn()}
-      />,
-    )
+    renderProposalPanel()
     expect(screen.getByText('Entidades')).toBeInTheDocument()
     expect(screen.getByText('Relaciones')).toBeInTheDocument()
     expect(screen.getByText('Citas')).toBeInTheDocument()
@@ -91,41 +110,20 @@ describe('<ProposalPanel />', () => {
   })
 
   it('shows "ya existe" badge for matched entities', () => {
-    renderWithProviders(
-      <ProposalPanel
-        proposal={PROPOSAL}
-        sourceText="test"
-        onClose={vi.fn()}
-        onConfirmed={vi.fn()}
-      />,
-    )
+    renderProposalPanel()
     expect(screen.getByText('ya existe')).toBeInTheDocument()
   })
 
   it('shows empty state when proposal has nothing', () => {
     const empty: ExtractionProposal = { entities: [], relationships: [], quotes: [] }
-    renderWithProviders(
-      <ProposalPanel
-        proposal={empty}
-        sourceText="test"
-        onClose={vi.fn()}
-        onConfirmed={vi.fn()}
-      />,
-    )
+    renderProposalPanel({ proposal: empty })
     expect(screen.getByText(/La IA no detectó nada concreto/)).toBeInTheDocument()
   })
 
   it('calls onClose when discard button is clicked', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
-    renderWithProviders(
-      <ProposalPanel
-        proposal={PROPOSAL}
-        sourceText="test"
-        onClose={onClose}
-        onConfirmed={vi.fn()}
-      />,
-    )
+    renderProposalPanel({ onClose })
     await user.click(screen.getByText('descartar'))
     expect(onClose).toHaveBeenCalled()
   })
@@ -133,28 +131,14 @@ describe('<ProposalPanel />', () => {
   it('calls onClose on Escape key', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
-    renderWithProviders(
-      <ProposalPanel
-        proposal={PROPOSAL}
-        sourceText="test"
-        onClose={onClose}
-        onConfirmed={vi.fn()}
-      />,
-    )
+    renderProposalPanel({ onClose })
     await user.keyboard('{Escape}')
     expect(onClose).toHaveBeenCalled()
   })
 
   it('uncheckes items via checkboxes', async () => {
     const user = userEvent.setup()
-    renderWithProviders(
-      <ProposalPanel
-        proposal={PROPOSAL}
-        sourceText="test"
-        onClose={vi.fn()}
-        onConfirmed={vi.fn()}
-      />,
-    )
+    renderProposalPanel()
     const checkboxes = screen.getAllByRole('checkbox')
     const firstChecked = checkboxes[0] as HTMLInputElement
     expect(firstChecked.checked).toBe(true)
@@ -204,16 +188,7 @@ describe('<ProposalPanel />', () => {
       }),
     )
 
-    const { queryClient } = renderWithProviders(
-      <ProposalPanel
-        proposal={PROPOSAL}
-        sourceText="test"
-        onClose={vi.fn()}
-        onConfirmed={vi.fn()}
-      />,
-    )
-    // Seed the existing entity in the cache so dedup matches.
-    queryClient.setQueryData(queryKeys.entities, [EXISTING_ENTITY])
+    renderProposalPanel({ entities: [EXISTING_ENTITY] })
 
     const user = userEvent.setup()
     await user.click(screen.getByText(/añadir a la trama/))
