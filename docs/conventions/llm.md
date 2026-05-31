@@ -15,14 +15,15 @@ Las tres:
 - Hacen retry con backoff en 5xx/429, no en 4xx
 - Devuelven `{ content, usage, fromCache }` — usage incluye costo estimado
 
-**No llames a APIs de LLM directamente.** Si necesitás un proveedor nuevo, agregalo en `PROVIDER_DEFAULTS` y en cada dispatcher (`providers/{openai-compatible,anthropic,gemini}.ts`). Nunca hagas `fetch('https://api.openai.com/...')` desde otro archivo, salvo la excepción de embeddings documentada abajo.
+**No llames a APIs de LLM directamente.** Si necesitás un proveedor nuevo, agregalo en `PROVIDER_DEFAULTS` y en cada dispatcher (`providers/{openai-compatible,anthropic,gemini}.ts`). Nunca hagas `fetch('https://api.openai.com/...')` desde otro archivo; el transporte HTTP vive en `_lib/llm/providers/`.
 
-Excepción deliberada: embeddings vive en `_lib/embeddings.ts` y llama OpenAI
-`text-embedding-3-small` directo porque es infraestructura de búsqueda, no un
-camino generativo configurable. Esa excepción debe mantenerse barata,
-best-effort y observable: `embedSafe()` loguea `embed_failed`, y
-`/api/reindex-embeddings` emite `reindex_embeddings_batch` con `attempted`,
-`processed`, `errors`, `estimatedTokens` y `estimatedCostCents`.
+Excepción deliberada: embeddings vive en `_lib/embeddings.ts` como
+infraestructura de búsqueda, no como camino generativo configurable. Su
+transporte OpenAI debe permanecer centralizado en
+`_lib/llm/providers/openai-compatible.ts`; `embedSafe()` sigue siendo barato,
+best-effort y observable: loguea `embed_failed`, y `/api/reindex-embeddings`
+emite `reindex_embeddings_batch` con `attempted`, `processed`, `errors`,
+`estimatedTokens` y `estimatedCostCents`.
 
 ## Los caminos de propuesta IA
 

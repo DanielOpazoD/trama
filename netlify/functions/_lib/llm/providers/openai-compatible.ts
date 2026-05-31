@@ -9,6 +9,11 @@
 import type { LLMMessage, ProviderConfig, RawResult } from '../types.js'
 import { fetchWithRetry } from '../retry.js'
 
+export type OpenAIEmbeddingResult = {
+  vector: number[]
+  model: string
+}
+
 /**
  * Los modelos nuevos de OpenAI (familia gpt-5* y la serie o1/o3/o4) cambiaron
  * la API de /chat/completions: exigen `max_completion_tokens` en vez de
@@ -115,5 +120,44 @@ export async function askOpenAIVision(
     content: JSON.parse(text),
     tokensIn: data.usage?.prompt_tokens ?? 0,
     tokensOut: data.usage?.completion_tokens ?? 0,
+  }
+}
+
+export async function embedOpenAI(
+  apiKey: string,
+  config: Pick<ProviderConfig, 'baseUrl' | 'model'>,
+  input: string,
+): Promise<OpenAIEmbeddingResult> {
+  const response = await fetchWithRetry(() =>
+    fetch(`${config.baseUrl}/embeddings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: config.model,
+        input,
+      }),
+    }),
+  )
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Embeddings API error ${response.status}: ${errorText.slice(0, 200)}`)
+  }
+
+  const data = (await response.json()) as {
+    data?: Array<{ embedding?: unknown }>
+    model?: string
+  }
+  const vector = data.data?.[0]?.embedding
+  if (!Array.isArray(vector)) {
+    throw new Error('Embeddings API no devolvió un vector.')
+  }
+  if (!vector.every((n): n is number => typeof n === 'number')) {
+    throw new Error('Embeddings API devolvió un vector no numérico.')
+  }
+
+  return {
+    vector,
+    model: data.model ?? config.model,
   }
 }

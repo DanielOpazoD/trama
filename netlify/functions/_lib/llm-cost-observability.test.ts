@@ -60,6 +60,15 @@ describe('guardrail: LLM cost-cap y extraction_log', () => {
     expect(src).toMatch(/errors/)
   })
 
+  it('embeddings centraliza el transporte OpenAI bajo providers LLM', () => {
+    const embeddings = source('_lib/embeddings.ts')
+    const provider = source('_lib/llm/providers/openai-compatible.ts')
+
+    expect(embeddings).not.toMatch(/https:\/\/api\.openai\.com/)
+    expect(embeddings).not.toMatch(/\bfetch\(/)
+    expect(provider).toMatch(/\/embeddings/)
+  })
+
   it('cada checkMonthlyBudget pasa userId y requestId explícitos', () => {
     for (const file of files) {
       const src = source(file)

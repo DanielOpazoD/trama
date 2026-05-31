@@ -160,5 +160,5 @@ Cuando importás datos viejos o cambiás el modelo de embeddings:
 - Cada llamada se loguea en `extraction_log` con tokens, costo, latencia, provider.
 - El cost cap está en `_lib/cost-cap.ts` y se chequea al inicio de cada endpoint IA.
 - HyDE + reranker viven en `_lib/rag-context.ts` + `_lib/llm-rerank.ts`.
-- Excepción deliberada: embeddings usa `_lib/embeddings.ts` contra OpenAI `text-embedding-3-small` porque es infraestructura de búsqueda, no generación. Sus fallos se loguean como `embed_failed`; su costo estimado está documentado arriba para reindexados masivos y debe revisarse antes de correr lotes grandes.
+- Excepción deliberada: embeddings usa `_lib/embeddings.ts` con transporte OpenAI centralizado en `_lib/llm/providers/openai-compatible.ts`, porque es infraestructura de búsqueda, no generación configurable. Sus fallos se loguean como `embed_failed`; su costo estimado está documentado arriba para reindexados masivos y debe revisarse antes de correr lotes grandes.
 - Cada lote de `/api/reindex-embeddings` emite `reindex_embeddings_batch` con `attempted`, `processed`, `errors`, `estimatedTokens` y `estimatedCostCents`; revisar esos eventos si se corre un backfill grande.

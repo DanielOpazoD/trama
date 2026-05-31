@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest'
-import { isNewOpenAIModel } from './openai-compatible'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { embedOpenAI, isNewOpenAIModel } from './openai-compatible'
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('isNewOpenAIModel', () => {
   it('detecta los modelos nuevos que exigen max_completion_tokens', () => {
@@ -27,5 +31,42 @@ describe('isNewOpenAIModel', () => {
     ]) {
       expect(isNewOpenAIModel(m)).toBe(false)
     }
+  })
+})
+
+describe('embedOpenAI', () => {
+  it('llama al endpoint de embeddings con modelo e input explícitos', async () => {
+    const vector = [0.1, 0.2, 0.3]
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: [{ embedding: vector }],
+        model: 'text-embedding-3-small',
+      }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await embedOpenAI(
+      'sk-test',
+      { baseUrl: 'https://api.openai.com/v1', model: 'text-embedding-3-small' },
+      'Borges',
+    )
+
+    expect(result).toEqual({ vector, model: 'text-embedding-3-small' })
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.openai.com/v1/embeddings',
+      expect.objectContaining({
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer sk-test',
+        },
+        body: JSON.stringify({
+          model: 'text-embedding-3-small',
+          input: 'Borges',
+        }),
+      }),
+    )
   })
 })
