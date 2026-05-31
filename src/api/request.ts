@@ -181,19 +181,25 @@ async function parseErrorResponse(
   })
 }
 
+declare global {
+  interface Window {
+    /**
+     * Puente legacy de Clerk. El camino principal es setApiAuthTokenProvider();
+     * esto queda solo para compatibilidad durante la transición.
+     */
+    __clerk?: {
+      session?: {
+        getToken: () => Promise<string | null>
+      }
+    }
+  }
+}
+
 /**
  * El token de sesión entra por `setApiAuthTokenProvider()`, montado desde
  * `ApiAuthBridge` con `useAuth()` de Clerk. El fallback a `window.__clerk`
  * queda solo para compatibilidad durante la transición.
  */
-type ClerkWindow = {
-  __clerk?: {
-    session?: {
-      getToken: () => Promise<string | null>
-    }
-  }
-}
-
 export type ApiAuthTokenProvider = () => Promise<string | null>
 
 let apiAuthTokenProvider: ApiAuthTokenProvider | null = null
@@ -212,7 +218,7 @@ async function getAuthHeader(): Promise<HeadersInit> {
   if (token) return { Authorization: `Bearer ${token}` }
 
   if (typeof window === 'undefined') return {}
-  const clerk = (window as unknown as ClerkWindow).__clerk
+  const clerk = window.__clerk
   if (clerk?.session) {
     const legacyToken = await clerk.session.getToken()
     if (legacyToken) return { Authorization: `Bearer ${legacyToken}` }

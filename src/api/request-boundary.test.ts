@@ -17,6 +17,13 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe('client API boundary', () => {
+  it('tipa el puente legacy de Clerk sin castear window localmente', () => {
+    const text = readFileSync(join(srcRoot, 'api', 'request.ts'), 'utf8')
+
+    expect(text).not.toContain('(window as unknown as ClerkWindow)')
+    expect(text).toContain('interface Window')
+  })
+
   it('centraliza fetch("/api…") en src/api/request.ts', () => {
     const offenders = sourceFiles(srcRoot)
       .filter((file) => !file.endsWith(join('src', 'api', 'request.ts')))
