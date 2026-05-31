@@ -34,6 +34,7 @@ export function DescriptionEditor({
   const [wikiDraft, setWikiDraft] = useState(entity.wikipediaUrl ?? '')
   const [wikiSearching, setWikiSearching] = useState(false)
   const [wikiMatch, setWikiMatch] = useState<string | null>(null)
+  const [grokDraft, setGrokDraft] = useState(entity.grokipediaUrl ?? '')
 
   // Sincronizar drafts cuando cambia la entidad (p.ej. el usuario abre otro
   // panel sin desmontar este — pasa cuando se navega entre entidades vía
@@ -43,7 +44,14 @@ export function DescriptionEditor({
     setUrlDraft(entity.spotifyUrl ?? '')
     setWikiDraft(entity.wikipediaUrl ?? '')
     setWikiMatch(null)
-  }, [entity.id, entity.description, entity.spotifyUrl, entity.wikipediaUrl])
+    setGrokDraft(entity.grokipediaUrl ?? '')
+  }, [
+    entity.id,
+    entity.description,
+    entity.spotifyUrl,
+    entity.wikipediaUrl,
+    entity.grokipediaUrl,
+  ])
 
   const allowsSpotify = SPOTIFY_TYPES.has(entity.type)
 
@@ -98,6 +106,10 @@ export function DescriptionEditor({
     if ((entity.wikipediaUrl ?? '') !== wiki) {
       patch.wikipediaUrl = wiki ? wiki : null
     }
+    const grok = grokDraft.trim()
+    if ((entity.grokipediaUrl ?? '') !== grok) {
+      patch.grokipediaUrl = grok ? grok : null
+    }
     if (Object.keys(patch).length === 0) {
       onDone()
       return
@@ -151,6 +163,32 @@ export function DescriptionEditor({
           </button>
         </div>
         {wikiMatch && <p className="text-micro text-ink-400">→ {wikiMatch}</p>}
+      </div>
+      {/* Grokipedia — para cualquier tipo. Grokipedia no tiene API pública de
+          búsqueda, así que el llenado es manual: el botón abre el sitio y el
+          usuario pega la URL del artículo. */}
+      <div className="flex items-center gap-2">
+        <input
+          type="url"
+          value={grokDraft}
+          onChange={(e) => setGrokDraft(e.target.value)}
+          placeholder="https://grokipedia.com/…"
+          className="input-paper w-full text-sm"
+        />
+        <button
+          type="button"
+          onClick={() =>
+            window.open(
+              `https://grokipedia.com/search?q=${encodeURIComponent(entity.name)}`,
+              '_blank',
+              'noopener,noreferrer',
+            )
+          }
+          className="btn-ghost shrink-0 whitespace-nowrap text-xs"
+          title="Abrir Grokipedia para buscar y copiar la URL del artículo"
+        >
+          abrir Grokipedia
+        </button>
       </div>
       <div className="flex items-center justify-between gap-2">
         <button

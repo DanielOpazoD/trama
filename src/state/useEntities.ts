@@ -219,6 +219,7 @@ type EntityPatch = Partial<{
   description: string | null
   spotifyUrl: string | null
   wikipediaUrl: string | null
+  grokipediaUrl: string | null
 }>
 
 export function useUpdateEntity() {
@@ -252,6 +253,9 @@ export function useUpdateEntity() {
                   : {}),
                 ...(patch.wikipediaUrl !== undefined
                   ? { wikipediaUrl: patch.wikipediaUrl ?? undefined }
+                  : {}),
+                ...(patch.grokipediaUrl !== undefined
+                  ? { grokipediaUrl: patch.grokipediaUrl ?? undefined }
                   : {}),
                 updatedAt: nowIso(),
               }
