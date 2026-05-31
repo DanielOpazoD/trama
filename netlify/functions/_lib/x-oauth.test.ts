@@ -86,6 +86,7 @@ import loginHandler from '../x-login'
 import callbackHandler from '../x-callback'
 import statusHandler from '../x-status'
 import syncHandler from '../x-sync'
+import scheduledHandler from '../x-scheduled-sync'
 
 function reqWithCookie(url: string, cookie: string): Request {
   return {
@@ -225,5 +226,26 @@ describe('x-status', () => {
     const body = await res.json()
     expect(body.connected).toBe(true)
     expect(body.counts.totalBookmarks).toBe(5)
+  })
+})
+
+describe('x-scheduled-sync (cron)', () => {
+  it('sincroniza a cada usuario con token', async () => {
+    mockSqlResponses.push([{ user_id: 'u1', x_user_id: 'x-1' }]) // SELECT x_tokens
+    const res = await scheduledHandler(
+      new Request('http://localhost/x-scheduled-sync', { method: 'POST', body: '{}' }),
+    )
+    expect(res.status).toBe(202)
+    expect(storeBookmarks).toHaveBeenCalled()
+    expect(markSynced).toHaveBeenCalled()
+  })
+
+  it('no hace nada si no hay tokens', async () => {
+    mockSqlResponses.push([]) // SELECT x_tokens vacío
+    const res = await scheduledHandler(
+      new Request('http://localhost/x-scheduled-sync', { method: 'POST', body: '{}' }),
+    )
+    expect(res.status).toBe(202)
+    expect(storeBookmarks).not.toHaveBeenCalled()
   })
 })
