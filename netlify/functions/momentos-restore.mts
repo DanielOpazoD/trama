@@ -1,11 +1,17 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { MomentoRestoreBody } from './_lib/momento-extra-schemas.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
+
+type RestoredMomentoRow = Record<string, unknown>
+
+type MomentoLinkIdRow = {
+  entity_id: string
+}
 
 /**
  * EE-followup: restaurar un momento soft-deleted.
@@ -38,13 +44,13 @@ export default withObservability('momentos-restore', async (req: Request, _ctx, 
 
   // UPDATE atómico — solo si deleted_at matchea exactamente. Si no
   // matchea (alguien lo restauró o re-borró), 0 rows afectadas → 409.
-  const result = (await sql`
+  const result = await sqlTyped<RestoredMomentoRow>(sql`
     UPDATE momentos
     SET deleted_at = NULL, updated_at = NOW()
     WHERE id = ${id} AND deleted_at = ${deletedAt}::timestamptz AND user_id = ${userId}
     RETURNING id, kind, captured_at, payload, note, origin,
               created_at, updated_at
-  `) as Array<Record<string, unknown>>
+  `)
 
   if (result.length === 0) {
     return ApiErrors.conflict(
@@ -55,11 +61,11 @@ export default withObservability('momentos-restore', async (req: Request, _ctx, 
 
   // Devolvemos también los entity_ids actuales (los links no se borraron
   // en el soft-delete original, así que siguen ahí).
-  const links = (await sql`
+  const links = await sqlTyped<MomentoLinkIdRow>(sql`
     SELECT entity_id
     FROM momento_entities
     WHERE momento_id = ${id} AND user_id = ${userId} AND deleted_at IS NULL
-  `) as Array<{ entity_id: string }>
+  `)
 
   return Response.json({
     ...result[0],

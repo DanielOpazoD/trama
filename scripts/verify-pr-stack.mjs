@@ -22,7 +22,7 @@ const prStack = [
       /^netlify\/functions\/_lib\/momentos-endpoint(-boundary)?\.test\.ts$/,
       /^netlify\/functions\/_lib\/momentos-merge-(endpoint|boundary)\.test\.ts$/,
       /^netlify\/functions\/_lib\/momentos-orphaned-blobs-endpoint\.test\.ts$/,
-      /^netlify\/functions\/_lib\/momentos-restore-endpoint\.test\.ts$/,
+      /^netlify\/functions\/_lib\/momentos-restore-(endpoint|boundary)\.test\.ts$/,
       /^netlify\/functions\/_lib\/notes-endpoint\.test\.ts$/,
       /^netlify\/functions\/_lib\/quote-schemas\.ts$/,
       /^netlify\/functions\/_lib\/quotes-endpoint\.test\.ts$/,
