@@ -7,6 +7,7 @@ import { parseJsonBody } from './_lib/zod-body.js'
 import { MomentosMergeBody } from './_lib/momento-extra-schemas.js'
 import { momentoEmbedText } from './_lib/momento-embed.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 /**
  * EE: fusionar N momentos foto en uno solo ("eventos").
@@ -78,7 +79,8 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
     return ApiErrors.methodNotAllowed(requestId)
   }
   const sql = getSql()
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const userId = authedUser.id
 
   // Zod ya valida UUID format + primaryId/otherIds presence (FF#5).
   const parsed = await parseJsonBody(req, MomentosMergeBody, requestId)
@@ -122,6 +124,8 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
       )
     }
   }
+
+  await ensureUserRow(sql, authedUser)
 
   const primary = found.get(primaryId)!
 
@@ -225,11 +229,15 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
       RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
     ),
     link_others AS (
-      INSERT INTO momento_entities (momento_id, entity_id)
-      SELECT ${primaryId}::uuid, entity_id
+      INSERT INTO momento_entities (momento_id, entity_id, user_id)
+      SELECT ${primaryId}::uuid, entity_id, ${userId}
       FROM momento_entities
       WHERE momento_id = ANY(${otherIds}::uuid[])
-      ON CONFLICT DO NOTHING
+        AND user_id = ${userId}
+        AND deleted_at IS NULL
+      ON CONFLICT (momento_id, entity_id) DO UPDATE
+      SET user_id = EXCLUDED.user_id,
+          deleted_at = NULL
       RETURNING 1
     ),
     soft_delete_others AS (
@@ -271,7 +279,9 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
     WHERE id = ${primaryId} AND user_id = ${userId}
   `) as Array<Record<string, unknown>>
   const links = (await sql`
-    SELECT entity_id FROM momento_entities WHERE momento_id = ${primaryId}
+    SELECT entity_id
+    FROM momento_entities
+    WHERE momento_id = ${primaryId} AND user_id = ${userId} AND deleted_at IS NULL
   `) as Array<{ entity_id: string }>
 
   return Response.json({

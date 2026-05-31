@@ -46,6 +46,8 @@ describe('isolation cross-user — relationships endpoint', () => {
 
   it('POST (crear relación) persiste el userId del authed user', async () => {
     mockSqlResponses.reset()
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ id: 'e-1' }, { id: 'e-2' }])
     mockSqlResponses.push([
       {
         id: 'new-uuid',
@@ -69,6 +71,31 @@ describe('isolation cross-user — relationships endpoint', () => {
 
     const allValues = mockSqlState.calls.flatMap((c) => c.values)
     expect(allValues).toContain('user_rels_xyz')
+  })
+
+  it('POST rechaza from_id/to_id que no pertenecen al usuario', async () => {
+    mockSqlResponses.reset()
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ id: 'e-1' }])
+
+    const res = await handler(
+      requestWithToken('POST', {
+        from_id: 'e-1',
+        to_id: 'e-2',
+        type: 'influencia',
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(404)
+    const ownershipLookup = mockSqlState.calls.find((c) =>
+      /FROM entities/i.test(c.template),
+    )
+    expect(ownershipLookup?.template).toMatch(/user_id/i)
+    expect(ownershipLookup?.values).toContain('user_rels_xyz')
+    expect(
+      mockSqlState.calls.some((c) => /INSERT INTO relationships/i.test(c.template)),
+    ).toBe(false)
   })
 
   it('legacy mode sigue usando legacy-single-user', async () => {

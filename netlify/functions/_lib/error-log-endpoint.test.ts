@@ -8,8 +8,21 @@ vi.mock('./db.js', () => setupMockSql())
 import handler from '../error-log'
 
 describe('error-log endpoint — integration', () => {
-  beforeEach(() => mockSqlResponses.reset())
-  afterEach(() => vi.unstubAllGlobals())
+  const originalClerk = process.env['CLERK_SECRET_KEY']
+  const originalFallback = process.env['ALLOW_LEGACY_FALLBACK']
+
+  beforeEach(() => {
+    mockSqlResponses.reset()
+    delete process.env['CLERK_SECRET_KEY']
+    delete process.env['ALLOW_LEGACY_FALLBACK']
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    if (originalClerk === undefined) delete process.env['CLERK_SECRET_KEY']
+    else process.env['CLERK_SECRET_KEY'] = originalClerk
+    if (originalFallback === undefined) delete process.env['ALLOW_LEGACY_FALLBACK']
+    else process.env['ALLOW_LEGACY_FALLBACK'] = originalFallback
+  })
 
   it('GET devuelve histórico ordenado', async () => {
     mockSqlResponses.push([
@@ -42,6 +55,7 @@ describe('error-log endpoint — integration', () => {
   })
 
   it('POST persiste error del cliente con function_name=client', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([]) // INSERT
     const res = await handler(
       new Request('http://localhost/api/error-log', {
@@ -64,6 +78,28 @@ describe('error-log endpoint — integration', () => {
     expect(lastCall.template).toMatch(/INSERT INTO error_log/i)
     expect(lastCall.template).toContain("'client'")
     expect(lastCall.values).toContain('Cannot read property of undefined')
+  })
+
+  it('POST sin auth en modo Clerk estricto no persiste bajo legacy', async () => {
+    process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
+    process.env['ALLOW_LEGACY_FALLBACK'] = 'false'
+
+    const res = await handler(
+      new Request('http://localhost/api/error-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: 'crash before auth',
+          path: '/inicio',
+        }),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(204)
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO error_log/i.test(c.template)),
+    ).toBe(false)
   })
 
   it('POST sin message devuelve 400', async () => {

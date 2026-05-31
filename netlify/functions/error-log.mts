@@ -5,6 +5,8 @@ import { ApiErrors } from './_lib/api-error.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ErrorLogBody } from './_lib/admin-schemas.js'
 import { getAuthedUser, UnauthenticatedError } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
+import { logEvent } from './_lib/observability.js'
 
 export default withObservability('error-log', async (req, _ctx, { requestId }) => {
   const sql = getSql()
@@ -58,24 +60,36 @@ export default withObservability('error-log', async (req, _ctx, { requestId }) =
   // de tamaño es defensivo (algunos browsers serializan stacks muy
   // largos en componentes async; no queremos un payload de 1MB).
   //
-  // Auth: intentamos asociar el log al user_id si hay Bearer válido,
-  // pero NO requerimos auth — un crash puede ocurrir antes de que
-  // AuthGate termine. Sin token, persistimos 'legacy-single-user'
-  // para no dejar la columna NULL (rompería el filtro del GET).
+  // Auth: intentamos asociar el log al user_id si hay Bearer válido. En modo
+  // single-user sin Clerk, getAuthedUser() devuelve legacy-single-user y se
+  // persiste como antes. En modo multi-user estricto, si no hay token válido,
+  // aceptamos el reporte pero NO lo persistimos bajo legacy: evitar contaminar
+  // la cuenta histórica es más importante que guardar un crash anónimo.
   if (req.method === 'POST') {
     const parsed = await parseJsonBody(req, ErrorLogBody, requestId)
     if (!parsed.ok) return parsed.response
     const body = parsed.data
 
-    let userId = 'legacy-single-user'
+    let userId: string | null = null
     try {
       const authed = await getAuthedUser(req)
+      await ensureUserRow(sql, authed)
       userId = authed.id
     } catch (err) {
       // UnauthenticatedError es esperable cuando el ErrorBoundary se
       // dispara antes del login. Cualquier otro error lo dejamos
       // burbujear porque indicaría algo raro en la verificación.
       if (!(err instanceof UnauthenticatedError)) throw err
+    }
+
+    if (!userId) {
+      logEvent({
+        event: 'client_error_log_skipped',
+        reason: 'unauthenticated',
+        path: body.path,
+        scope: body.scope,
+      })
+      return new Response(null, { status: 204 })
     }
 
     const message = body.message.slice(0, 2000)

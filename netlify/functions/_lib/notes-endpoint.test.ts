@@ -45,7 +45,10 @@ describe('notes endpoint — integration', () => {
   })
 
   it('POST con content válido crea (201) y deriva tags', async () => {
-    mockSqlResponses.push([NOTE_ROW])
+    mockSqlResponses.push(
+      [], // ensureUserRow
+      [NOTE_ROW],
+    )
     const res = await handler(
       new Request('http://localhost/api/notes', {
         method: 'POST',
@@ -128,6 +131,7 @@ describe('notes endpoint — integration', () => {
   it('promote: nota nueva crea el Momento y devuelve {momentoId} (201)', async () => {
     mockSqlResponses.push(
       [{ content: 'idea', promoted: null, created_at: '2026-05-01T00:00:00Z' }], // SELECT
+      [], // ensureUserRow
       [{ id: 'm-nuevo' }], // INSERT momento RETURNING id
       [], // UPDATE notes
     )

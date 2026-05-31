@@ -7,6 +7,7 @@ import {
   X_SCOPES,
 } from './_lib/x/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 /**
  * Callback OAuth2 de X. Verifica el state (CSRF), intercambia el code usando el
@@ -26,9 +27,11 @@ export default withObservability('x-callback', async (req) => {
   if (!state || cookies.x_state !== state) return redirectWith('/?x_error=state_mismatch')
   const verifier = cookies.x_verifier
   if (!verifier) return redirectWith('/?x_error=missing_verifier')
-  const userId = cookies.x_uid ? decodeURIComponent(cookies.x_uid) : 'legacy-single-user'
+  if (!cookies.x_uid) return redirectWith('/?x_error=missing_uid')
+  const userId = decodeURIComponent(cookies.x_uid)
 
   const sql = getSql()
+  await ensureUserRow(sql, { id: userId })
   const tokens = await exchangeCodeForTokens(code, verifier)
   const profile = await getXProfile(tokens.access_token)
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000)

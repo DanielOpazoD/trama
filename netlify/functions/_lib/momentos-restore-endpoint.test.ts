@@ -56,6 +56,7 @@ describe('momentos-restore endpoint', () => {
   it('409 si el UPDATE no afecta filas (id no existe o deletedAt no matchea)', async () => {
     // UPDATE devuelve 0 rows — el WHERE no matcheó (ya restaurado, o id wrong,
     // o deletedAt cambió por otro flujo).
+    mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([])
     const res = await handler(
       new Request('http://localhost/api/momentos-restore', {
@@ -71,6 +72,7 @@ describe('momentos-restore endpoint', () => {
   })
 
   it('200 con el momento restaurado + entity_ids', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([
       {
         id: '11111111-1111-1111-1111-111111111111',

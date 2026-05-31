@@ -1,10 +1,10 @@
 /**
  * Spotify OAuth + gestión de tokens.
  *
- * Single-user assumption (legacy): hay a lo sumo una fila en spotify_tokens
- * con id='default'. Multi-user: la PK migró a `user_id` (migración 20260526);
- * cada usuario tiene su token. Los call sites que pasen userId quedan
- * aislados por usuario; los que no, caen a la fila legacy.
+ * Multi-user: la PK migró a `user_id` (migración 20260526); cada usuario
+ * tiene su token. En modo single-user el caller igual pasa
+ * `legacy-single-user` vía getAuthedUser(), así no queda un camino implícito
+ * que consulte o escriba tokens sin usuario.
  */
 
 import { ApiErrors } from '../api-error.js'
@@ -125,40 +125,28 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenResponse> 
  * Lee el token Spotify almacenado para un usuario.
  *
  * Multi-user: la PK de `spotify_tokens` migró de `id` a `user_id` en la
- * migración 20260526. Sin userId (legacy), usa `id = 'default'`. Con
- * userId, filtra por `user_id = ${userId}` — cada usuario su token.
- *
- * Eventualmente todos los call sites deberían pasar userId; los que
- * no lo hagan caen al legacy row.
+ * migración 20260526. Siempre filtramos por `user_id = ${userId}`. En
+ * single-user, ese userId es `legacy-single-user`.
  */
 export async function getStoredTokens(
   sql: SqlClient,
-  userId?: string,
+  userId: string,
 ): Promise<StoredTokens | null> {
-  const rows = userId
-    ? ((await sql`
-        SELECT id, spotify_user_id, display_name, access_token, refresh_token,
-               expires_at, scopes, connected_at, last_synced_at, updated_at
-        FROM spotify_tokens
-        WHERE user_id = ${userId}
-        LIMIT 1
-      `) as StoredTokens[])
-    : ((await sql`
-        SELECT id, spotify_user_id, display_name, access_token, refresh_token,
-               expires_at, scopes, connected_at, last_synced_at, updated_at
-        FROM spotify_tokens
-        WHERE id = 'default'
-        LIMIT 1
-      `) as StoredTokens[])
+  const rows = (await sql`
+    SELECT id, spotify_user_id, display_name, access_token, refresh_token,
+           expires_at, scopes, connected_at, last_synced_at, updated_at
+    FROM spotify_tokens
+    WHERE user_id = ${userId}
+    LIMIT 1
+  `) as StoredTokens[]
   return rows[0] ?? null
 }
 
 /**
  * Persiste tokens Spotify para el usuario actual.
  *
- * Multi-user: si pasás userId, el row se asocia a ese usuario (ON
- * CONFLICT user_id). Sin userId, usa id='default' / legacy-single-user
- * para retro-compat con la versión single-user.
+ * Multi-user: el row se asocia al usuario autenticado (ON CONFLICT user_id).
+ * En single-user, el caller pasa `legacy-single-user`.
  */
 export async function saveTokens(
   sql: SqlClient,
@@ -170,39 +158,12 @@ export async function saveTokens(
     expiresAt: Date
     scopes: string | null
   },
-  userId?: string,
+  userId: string,
 ): Promise<void> {
-  if (userId) {
-    await sql`
-      INSERT INTO spotify_tokens (
-        id, spotify_user_id, display_name, access_token, refresh_token,
-        expires_at, scopes, connected_at, updated_at, user_id
-      ) VALUES (
-        'default',
-        ${data.spotifyUserId},
-        ${data.displayName},
-        ${data.accessToken},
-        ${data.refreshToken},
-        ${data.expiresAt.toISOString()},
-        ${data.scopes},
-        NOW(),
-        NOW(),
-        ${userId}
-      )
-      ON CONFLICT (user_id) DO UPDATE SET
-        spotify_user_id = EXCLUDED.spotify_user_id,
-        display_name    = EXCLUDED.display_name,
-        access_token    = EXCLUDED.access_token,
-        refresh_token   = EXCLUDED.refresh_token,
-        expires_at      = EXCLUDED.expires_at,
-        scopes          = COALESCE(EXCLUDED.scopes, spotify_tokens.scopes)
-    `
-    return
-  }
   await sql`
     INSERT INTO spotify_tokens (
       id, spotify_user_id, display_name, access_token, refresh_token,
-      expires_at, scopes, connected_at, updated_at
+      expires_at, scopes, connected_at, updated_at, user_id
     ) VALUES (
       'default',
       ${data.spotifyUserId},
@@ -212,7 +173,8 @@ export async function saveTokens(
       ${data.expiresAt.toISOString()},
       ${data.scopes},
       NOW(),
-      NOW()
+      NOW(),
+      ${userId}
     )
     ON CONFLICT (user_id) DO UPDATE SET
       spotify_user_id = EXCLUDED.spotify_user_id,
@@ -230,7 +192,7 @@ export async function saveTokens(
  */
 export async function getValidAccessToken(
   sql: SqlClient,
-  userId?: string,
+  userId: string,
 ): Promise<string | null> {
   const stored = await getStoredTokens(sql, userId)
   if (!stored) return null
@@ -242,24 +204,13 @@ export async function getValidAccessToken(
 
   const refreshed = await refreshAccessToken(stored.refresh_token)
   const newExpiresAt = new Date(now + refreshed.expires_in * 1000)
-  // UPDATE filtra por user_id si vino el param; fallback a id='default'.
-  if (userId) {
-    await sql`
-      UPDATE spotify_tokens
-      SET access_token  = ${refreshed.access_token},
-          refresh_token = ${refreshed.refresh_token ?? stored.refresh_token},
-          expires_at    = ${newExpiresAt.toISOString()}
-      WHERE user_id = ${userId}
-    `
-  } else {
-    await sql`
-      UPDATE spotify_tokens
-      SET access_token  = ${refreshed.access_token},
-          refresh_token = ${refreshed.refresh_token ?? stored.refresh_token},
-          expires_at    = ${newExpiresAt.toISOString()}
-      WHERE id = 'default'
-    `
-  }
+  await sql`
+    UPDATE spotify_tokens
+    SET access_token  = ${refreshed.access_token},
+        refresh_token = ${refreshed.refresh_token ?? stored.refresh_token},
+        expires_at    = ${newExpiresAt.toISOString()}
+    WHERE user_id = ${userId}
+  `
   return refreshed.access_token
 }
 
@@ -286,7 +237,7 @@ export type SpotifyConnectionResult =
 
 export async function requireSpotifyConnection(opts: {
   sql: SqlClient
-  userId: string | undefined
+  userId: string
   requestId: string
   /** Mensaje a mostrar si no hay conexión. Default suficiente para casi
    *  todos los call sites. */

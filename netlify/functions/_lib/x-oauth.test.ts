@@ -1,7 +1,7 @@
 // @vitest-environment node
 // env node (undici real): happy-dom no maneja bien los Set-Cookie del OAuth.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
+import { mockContext, mockSqlResponses, mockSqlState, setupMockSql } from './test-utils'
 
 vi.mock('./db.js', () => setupMockSql())
 
@@ -79,7 +79,17 @@ vi.mock('./ai-mode.js', () => ({
     model: null,
     verifyWith: null,
   })),
-  aiOffResponse: () => new Response('IA off', { status: 423 }),
+  aiOffResponse: () =>
+    Response.json(
+      {
+        error: {
+          code: 'AI_DISABLED',
+          message: 'IA deshabilitada por el usuario (modo Off).',
+          requestId: 'rid-test',
+        },
+      },
+      { status: 423 },
+    ),
 }))
 
 import loginHandler from '../x-login'
@@ -166,6 +176,23 @@ describe('x-callback', () => {
     expect(res.headers.get('Location')).toContain('x=connected')
     expect(exchangeCodeForTokens).toHaveBeenCalledWith('the-code', 'the-verifier')
     expect(saveTokens.mock.calls[0]![2]).toBe('user-9')
+    expect(mockSqlState.calls.some((c) => /INSERT INTO users/i.test(c.template))).toBe(
+      true,
+    )
+  })
+
+  it('rechaza si el callback no trae x_uid', async () => {
+    const res = await callbackHandler(
+      reqWithCookie(
+        'http://localhost/api/x/callback?code=the-code&state=OK',
+        'x_state=OK; x_verifier=the-verifier',
+      ),
+      mockContext(),
+    )
+    expect(res.status).toBe(302)
+    expect(res.headers.get('Location')).toContain('missing_uid')
+    expect(exchangeCodeForTokens).not.toHaveBeenCalled()
+    expect(saveTokens).not.toHaveBeenCalled()
   })
 })
 

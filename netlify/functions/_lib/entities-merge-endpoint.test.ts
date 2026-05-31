@@ -52,14 +52,15 @@ describe('entities-merge endpoint', () => {
     // FIFO en orden: SELECT found (2), luego 7 mutaciones, luego SELECT keep.
     mockSqlResponses.push(
       [{ id: A }, { id: B }], // 1) SELECT found
-      [], // 2) UPDATE quotes
-      [], // 3) INSERT momento_entities
-      [], // 4) DELETE momento_entities
-      [], // 5) UPDATE relationships from_id
-      [], // 6) UPDATE relationships to_id
-      [], // 7) UPDATE self-loops
-      [], // 8) UPDATE entities soft-delete
-      [{ id: A, type: 'escritor', name: 'Borges', origin: { kind: 'manual' } }], // 9) SELECT keep
+      [], // 2) ensureUserRow
+      [], // 3) UPDATE quotes
+      [], // 4) INSERT momento_entities
+      [], // 5) DELETE momento_entities
+      [], // 6) UPDATE relationships from_id
+      [], // 7) UPDATE relationships to_id
+      [], // 8) UPDATE self-loops
+      [], // 9) UPDATE entities soft-delete
+      [{ id: A, type: 'escritor', name: 'Borges', origin: { kind: 'manual' } }], // 10) SELECT keep
     )
     const res = await handler(post({ keepId: A, mergeIds: [B] }), mockContext())
     expect(res.status).toBe(200)

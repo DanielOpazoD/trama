@@ -3,6 +3,7 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { TaskCreateBody, TaskPatchBody } from './_lib/task-schemas.js'
 import { parseTags } from './_lib/note-tags.js'
@@ -34,7 +35,8 @@ function tagsFor(title: string, detail: string | null | undefined): string[] {
 export default withObservability(
   'tasks',
   async (req: Request, context: Context, { requestId }) => {
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
     const sql = getSql()
     const id = context.params.id
 
@@ -73,6 +75,7 @@ export default withObservability(
     }
 
     if (req.method === 'POST') {
+      await ensureUserRow(sql, authedUser)
       const parsed = await parseJsonBody(req, TaskCreateBody, requestId)
       if (!parsed.ok) return parsed.response
       const { title, detail, dueDate } = parsed.data

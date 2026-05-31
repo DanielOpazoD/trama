@@ -16,6 +16,7 @@ import {
 } from './_lib/embeddings.js'
 
 import { normalizeOrigin } from './_lib/origin.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 // Shape devuelto por los SELECT/RETURNING de citas (snake_case, raw).
 // El cliente lo transforma vía quoteFromRow.
@@ -39,8 +40,40 @@ type QuoteRow = {
   updated_at: string
 }
 
+function normalizeLinkedQuoteIds(value: string[] | null | undefined): string[] {
+  if (!Array.isArray(value)) return []
+  return [...new Set(value)]
+}
+
+async function validateLinkedQuoteIds(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  linkedQuoteIds: string[],
+  requestId: string,
+  currentQuoteId?: string,
+): Promise<Response | null> {
+  if (linkedQuoteIds.length === 0) return null
+  if (currentQuoteId && linkedQuoteIds.includes(currentQuoteId)) {
+    return ApiErrors.validation(requestId, 'Una cita no puede vincularse a sí misma')
+  }
+
+  const rows = await sqlTyped<{ id: string }>(sql`
+    SELECT id
+    FROM quotes
+    WHERE id = ANY(${linkedQuoteIds}::uuid[])
+      AND deleted_at IS NULL
+      AND user_id = ${userId}
+  `)
+
+  if (rows.length !== linkedQuoteIds.length) {
+    return ApiErrors.notFound(requestId, 'Una o más citas vinculadas no existen')
+  }
+  return null
+}
+
 export default withObservability('quotes', async (req: Request, context: Context, { requestId }) => {
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const userId = authedUser.id
   const sql = getSql()
   const id = context.params.id
 
@@ -126,17 +159,26 @@ export default withObservability('quotes', async (req: Request, context: Context
   if (req.method === 'POST' && !new URL(req.url).pathname.endsWith('/restore')) {
     const parsed = await parseJsonBody(req, QuoteCreateBody, requestId)
     if (!parsed.ok) return parsed.response
+    await ensureUserRow(sql, authedUser)
     const body = parsed.data
     const origin = JSON.stringify(normalizeOrigin(body.origin))
-    const linked = Array.isArray(body.linked_quote_ids) ? body.linked_quote_ids : []
+    const linked = normalizeLinkedQuoteIds(body.linked_quote_ids)
 
     // Look up the entity name so the embedding has the attribution baked in
     // (so "frase de Borges sobre el tiempo" matches even if "Borges" is just
     // in the relationship, not in the quote text).
     const entityNameRows = (await sql`
-      SELECT name FROM entities WHERE id = ${body.entity_id} AND deleted_at IS NULL
+      SELECT name
+      FROM entities
+      WHERE id = ${body.entity_id} AND deleted_at IS NULL AND user_id = ${userId}
     `) as Array<{ name: string }>
     const entityName = entityNameRows[0]?.name ?? null
+    if (!entityName) {
+      return ApiErrors.notFound(requestId, 'Entidad no encontrada')
+    }
+
+    const linkedError = await validateLinkedQuoteIds(sql, userId, linked, requestId)
+    if (linkedError) return linkedError
 
     const emb = await embedSafe(
       quoteEmbeddingText({
@@ -176,7 +218,52 @@ export default withObservability('quotes', async (req: Request, context: Context
   if (req.method === 'PATCH' && id) {
     const parsed = await parseJsonBody(req, QuotePatchBody, requestId)
     if (!parsed.ok) return parsed.response
+    await ensureUserRow(sql, authedUser)
     const body = parsed.data
+    const linked =
+      body.linked_quote_ids !== undefined
+        ? normalizeLinkedQuoteIds(body.linked_quote_ids)
+        : undefined
+    if (body.entity_id !== undefined) {
+      const entityRows = (await sql`
+        SELECT id FROM entities
+        WHERE id = ${body.entity_id} AND deleted_at IS NULL AND user_id = ${userId}
+      `) as Array<{ id: string }>
+      if (entityRows.length === 0) {
+        return ApiErrors.notFound(requestId, 'Entidad no encontrada')
+      }
+    }
+    if (linked !== undefined) {
+      const linkedError = await validateLinkedQuoteIds(sql, userId, linked, requestId, id)
+      if (linkedError) return linkedError
+    }
+    const embeddingInputTouched =
+      body.text !== undefined ||
+      body.source !== undefined ||
+      body.context !== undefined ||
+      body.entity_id !== undefined
+    let embeddingDirty = false
+    if (embeddingInputTouched) {
+      const currentRows = await sqlTyped<{
+        text: string
+        source: string | null
+        context: string | null
+        entity_id: string
+      }>(sql`
+        SELECT text, source, context, entity_id
+        FROM quotes
+        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+      `)
+      const current = currentRows[0]
+      embeddingDirty = Boolean(
+        current &&
+          ((body.text !== undefined && body.text !== current.text) ||
+            (body.source !== undefined && (body.source ?? null) !== current.source) ||
+            (body.context !== undefined &&
+              (body.context ?? null) !== current.context) ||
+            (body.entity_id !== undefined && body.entity_id !== current.entity_id)),
+      )
+    }
     // ω-E: pinned boolean — el cliente manda true/false. El server
     // mapea a pinned_at = NOW() o NULL respectivamente. Si no se
     // manda, no se toca el campo.
@@ -197,7 +284,7 @@ export default withObservability('quotes', async (req: Request, context: Context
         ai_reflection_provider = CASE WHEN ${body.ai_reflection_provider !== undefined} THEN ${body.ai_reflection_provider ?? null} ELSE ai_reflection_provider END,
         ai_reflection_model    = CASE WHEN ${body.ai_reflection_model !== undefined} THEN ${body.ai_reflection_model ?? null} ELSE ai_reflection_model END,
         ai_reflection_at       = CASE WHEN ${body.ai_reflection !== undefined} THEN NOW() ELSE ai_reflection_at END,
-        linked_quote_ids       = CASE WHEN ${body.linked_quote_ids !== undefined} THEN ${Array.isArray(body.linked_quote_ids) ? body.linked_quote_ids : []}::uuid[] ELSE linked_quote_ids END,
+        linked_quote_ids       = CASE WHEN ${body.linked_quote_ids !== undefined} THEN ${linked ?? []}::uuid[] ELSE linked_quote_ids END,
         pinned_at              = CASE
                                    WHEN ${body.pinned === true} THEN NOW()
                                    WHEN ${body.pinned === false} THEN NULL
@@ -220,11 +307,6 @@ export default withObservability('quotes', async (req: Request, context: Context
 
     // Re-embed when anything that goes into the embedding changed. Fire and
     // forget so the PATCH response isn't held up by an embeddings call.
-    const embeddingDirty =
-      body.text !== undefined ||
-      body.source !== undefined ||
-      body.context !== undefined ||
-      body.entity_id !== undefined
     if (embeddingDirty) {
       const updated = rows[0] as {
         text: string
@@ -234,7 +316,8 @@ export default withObservability('quotes', async (req: Request, context: Context
       }
       ;(async () => {
         const nameRows = (await sql`
-          SELECT name FROM entities WHERE id = ${updated.entity_id} AND deleted_at IS NULL
+          SELECT name FROM entities
+          WHERE id = ${updated.entity_id} AND deleted_at IS NULL AND user_id = ${userId}
         `) as Array<{ name: string }>
         const emb = await embedSafe(
           quoteEmbeddingText({
@@ -250,7 +333,7 @@ export default withObservability('quotes', async (req: Request, context: Context
           SET embedding = ${toPgVector(emb.vector)}::vector,
               embedding_model = ${emb.model},
               embedding_at = NOW()
-          WHERE id = ${id}
+          WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
         `
       })().catch(() => {})
     }
@@ -259,6 +342,7 @@ export default withObservability('quotes', async (req: Request, context: Context
   }
 
   if (req.method === 'DELETE' && id) {
+    await ensureUserRow(sql, authedUser)
     const tsRows = (await sql`SELECT NOW() AS now`) as Array<{ now: string }>
     const deletedAt = tsRows[0]?.now ?? new Date().toISOString()
     await sql`UPDATE quotes SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
@@ -269,6 +353,7 @@ export default withObservability('quotes', async (req: Request, context: Context
   if (req.method === 'POST' && id && url.pathname.endsWith('/restore')) {
     const parsed = await parseJsonBody(req, QuoteRestoreBody, requestId)
     if (!parsed.ok) return parsed.response
+    await ensureUserRow(sql, authedUser)
     const { deletedAt } = parsed.data
     await sql`UPDATE quotes SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
     return Response.json({ restored: true })

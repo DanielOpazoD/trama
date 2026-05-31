@@ -122,6 +122,8 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
                ts_rank(q.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
         FROM quotes q
         JOIN entities e ON e.id = q.entity_id
+          AND e.deleted_at IS NULL
+          AND e.user_id = ${userId}
         WHERE q.deleted_at IS NULL
           AND q.user_id = ${userId}
           AND q.search_vector @@ websearch_to_tsquery('simple', ${q})
@@ -167,6 +169,8 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
                ts_rank(cm.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
         FROM chat_messages cm
         JOIN chat_threads t ON t.id = cm.thread_id
+          AND t.deleted_at IS NULL
+          AND t.user_id = ${userId}
         WHERE t.deleted_at IS NULL
           AND cm.user_id = ${userId}
           AND cm.search_vector @@ websearch_to_tsquery('simple', ${q})
@@ -206,6 +210,8 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
                  (q.embedding <=> ${pgVec}::vector) AS distance
           FROM quotes q
           JOIN entities e ON e.id = q.entity_id
+            AND e.deleted_at IS NULL
+            AND e.user_id = ${userId}
           WHERE q.deleted_at IS NULL AND q.embedding IS NOT NULL
             AND q.user_id = ${userId}
           ORDER BY q.embedding <=> ${pgVec}::vector

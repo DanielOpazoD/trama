@@ -3,6 +3,7 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { EntityMergeBody } from './_lib/entity-schemas.js'
 import { logEvent } from './_lib/observability.js'
@@ -13,7 +14,8 @@ import { logEvent } from './_lib/observability.js'
  * Reasigna a `keepId` todo lo que apunta a los `mergeIds` (citas, relaciones,
  * momento_entities) y luego soft-deletea los duplicados. Cuida la integridad:
  *   - momento_entities tiene PK (momento_id, entity_id) → INSERT ON CONFLICT
- *     antes de borrar, para no violar la PK si un momento ya tenía ambas.
+ *     antes de soft-deletear links viejos, para no violar la PK si un
+ *     momento ya tenía ambas.
  *   - relationships puede quedar con self-loops (from = to) tras reasignar →
  *     se soft-deletean.
  * No es atómico (el driver HTTP de Neon no da transacciones multi-statement
@@ -41,7 +43,9 @@ export default withObservability(
   'entities-merge',
   async (req: Request, _ctx: Context, { requestId }) => {
     if (req.method !== 'POST') return ApiErrors.methodNotAllowed(requestId)
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
+    const sql = getSql()
 
     const parsed = await parseJsonBody(req, EntityMergeBody, requestId)
     if (!parsed.ok) return parsed.response
@@ -50,9 +54,6 @@ export default withObservability(
     if (mergeIds.length === 0) {
       return ApiErrors.validation(requestId, 'No hay entidades distintas para combinar')
     }
-
-    const sql = getSql()
-
     // Todas (keep + merge) deben existir, ser del usuario y estar vivas.
     const ids = [keepId, ...mergeIds]
     const found = (await sql`
@@ -63,21 +64,31 @@ export default withObservability(
       return ApiErrors.notFound(requestId, 'Alguna entidad no existe o no es tuya')
     }
 
+    await ensureUserRow(sql, authedUser)
+
     // 1) Citas → keep.
     await sql`
       UPDATE quotes SET entity_id = ${keepId}
       WHERE entity_id = ANY(${mergeIds}::uuid[]) AND user_id = ${userId}
     `
 
-    // 2) momento_entities → keep (ON CONFLICT por la PK), luego borrar las viejas.
+    // 2) momento_entities → keep (ON CONFLICT por la PK), luego soft-deletear las viejas.
     await sql`
-      INSERT INTO momento_entities (momento_id, entity_id)
-      SELECT momento_id, ${keepId} FROM momento_entities
+      INSERT INTO momento_entities (momento_id, entity_id, user_id)
+      SELECT momento_id, ${keepId}, ${userId} FROM momento_entities
       WHERE entity_id = ANY(${mergeIds}::uuid[])
-      ON CONFLICT (momento_id, entity_id) DO NOTHING
+        AND user_id = ${userId}
+        AND deleted_at IS NULL
+      ON CONFLICT (momento_id, entity_id) DO UPDATE
+      SET user_id = EXCLUDED.user_id,
+          deleted_at = NULL
     `
     await sql`
-      DELETE FROM momento_entities WHERE entity_id = ANY(${mergeIds}::uuid[])
+      UPDATE momento_entities
+      SET deleted_at = NOW()
+      WHERE entity_id = ANY(${mergeIds}::uuid[])
+        AND user_id = ${userId}
+        AND deleted_at IS NULL
     `
 
     // 3) Relaciones → keep (ambos extremos).

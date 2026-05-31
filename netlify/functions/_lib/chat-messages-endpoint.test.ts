@@ -108,4 +108,22 @@ describe('chat-messages endpoint — contrato', () => {
     // provider null → undefined en la respuesta.
     expect(body[0]!.provider).toBeUndefined()
   })
+
+  it('GET filtra mensajes por threadId y userId', async () => {
+    mockSqlResponses.push([])
+
+    const res = await handler(
+      new Request('http://localhost/api/chat/threads/t1/messages', { method: 'GET' }),
+      mockContext({ threadId: 't1' }),
+    )
+
+    expect(res.status).toBe(200)
+    const messageSelect = mockSqlResponses.calls.find((c) =>
+      /FROM chat_messages/i.test(c.template),
+    )
+    expect(messageSelect?.template).toMatch(/user_id/i)
+    expect(messageSelect?.values).toEqual(
+      expect.arrayContaining(['t1', 'legacy-single-user']),
+    )
+  })
 })

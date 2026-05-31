@@ -19,6 +19,7 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 const HISTORY_LIMIT = 30
 const CONTEXT_RELATIONSHIP_LIMIT = 150
@@ -29,7 +30,8 @@ export default withObservability(
     const threadId = context.params.threadId
     if (!threadId) return ApiErrors.validation(requestId, 'thread id required')
 
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
     const sql = getSql()
 
     if (req.method === 'GET') {
@@ -45,7 +47,7 @@ export default withObservability(
       const rows = (await sql`
         SELECT id, role, content, proposal, created_at, provider, model
         FROM chat_messages
-        WHERE thread_id = ${threadId}
+        WHERE thread_id = ${threadId} AND user_id = ${userId}
         ORDER BY created_at ASC
         LIMIT 500
       `) as Row[]
@@ -73,16 +75,20 @@ export default withObservability(
       return ApiErrors.validation(requestId, 'Falta el campo "content"')
     }
 
+    await ensureUserRow(sql, authedUser)
+
     const budgetExceeded = await checkMonthlyBudget(userId, requestId)
     if (budgetExceeded) return budgetExceeded
 
     // Resolve AI mode upfront so we don't persist a user message that the
     // assistant can never answer (Off blocks the whole exchange).
     const invocation = await resolveAIInvocation(req, 'chat', userId)
-    if (invocation.kind === 'off') return aiOffResponse()
+    if (invocation.kind === 'off') return aiOffResponse(requestId)
 
     const threadRows = (await sql`
-      SELECT id, title, context FROM chat_threads WHERE id = ${threadId} AND deleted_at IS NULL
+      SELECT id, title, context
+      FROM chat_threads
+      WHERE id = ${threadId} AND deleted_at IS NULL AND user_id = ${userId}
     `) as Array<{ id: string; title: string | null; context: string | null }>
     const thread = threadRows[0]
     if (!thread) {
@@ -99,8 +105,8 @@ export default withObservability(
     // Persist user message first so it survives an LLM failure.
     type UserInsertRow = { id: string; created_at: string }
     const userRows = (await sql`
-      INSERT INTO chat_messages (thread_id, role, content)
-      VALUES (${threadId}, 'user', ${userText})
+      INSERT INTO chat_messages (thread_id, role, content, user_id)
+      VALUES (${threadId}, 'user', ${userText}, ${userId})
       RETURNING id, created_at
     `) as UserInsertRow[]
     const userRow = userRows[0]
@@ -120,7 +126,7 @@ export default withObservability(
     const historyRows = (await sql`
       SELECT role, content
       FROM chat_messages
-      WHERE thread_id = ${threadId}
+      WHERE thread_id = ${threadId} AND user_id = ${userId}
       ORDER BY created_at ASC
       LIMIT ${HISTORY_LIMIT}
     `) as HistoryRow[]
@@ -132,7 +138,7 @@ export default withObservability(
     //   - general chat: RAG (semantic top-K + recency + rerank LLM + HyDE).
     const { tramaContext, entityTypes, relationshipTypes, usedRag, usedHyde } =
       focusEntityId
-        ? await loadChatContextForFocus(sql, focusEntityId)
+        ? await loadChatContextForFocus(sql, focusEntityId, userId)
         : await loadChatContextWithRag(
             sql,
             userText,
@@ -212,12 +218,12 @@ export default withObservability(
         type AssistantInsertRow = { id: string; created_at: string }
         const assistantRows = (await sql`
           INSERT INTO chat_messages (
-            thread_id, role, content, proposal, tokens_in, tokens_out, cost_cents, provider, model
+            thread_id, role, content, proposal, tokens_in, tokens_out, cost_cents, provider, model, user_id
           ) VALUES (
             ${threadId}, 'assistant', ${prose},
             ${proposalToStore ? JSON.stringify(proposalToStore) : null}::jsonb,
             ${usage.tokensIn}, ${usage.tokensOut}, ${usage.costCents},
-            ${usage.provider}, ${usage.model}
+            ${usage.provider}, ${usage.model}, ${userId}
           )
           RETURNING id, created_at
         `) as AssistantInsertRow[]
@@ -228,7 +234,7 @@ export default withObservability(
           return
         }
 
-        await sql`UPDATE chat_threads SET updated_at = NOW() WHERE id = ${threadId}`
+        await sql`UPDATE chat_threads SET updated_at = NOW() WHERE id = ${threadId} AND user_id = ${userId}`
 
         // Best-effort thread title autogenneration on first exchange.
         if (!thread.title && historyRows.length <= 1) {
@@ -238,7 +244,7 @@ export default withObservability(
             const rawTitle = typeof titleResp.content === 'string' ? titleResp.content : ''
             const cleanTitle = rawTitle.trim().replace(/^["']|["']$/g, '').slice(0, 80)
             if (cleanTitle) {
-              await sql`UPDATE chat_threads SET title = ${cleanTitle} WHERE id = ${threadId}`
+              await sql`UPDATE chat_threads SET title = ${cleanTitle} WHERE id = ${threadId} AND user_id = ${userId}`
             }
           } catch {
             // ignore

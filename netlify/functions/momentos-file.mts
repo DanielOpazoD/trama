@@ -14,17 +14,19 @@ import { getAuthedUser } from './_lib/auth.js'
  * Autorización (multi-user prep):
  *   - Keys nuevas tienen formato `${userId}/${hash}.${ext}` (ver
  *     momentos-upload.mts).
- *   - Verificamos que el userId del path coincide con el authed user
- *     antes de servir. Sin esto, conocer la storageKey daría acceso
- *     sin importar quién la subió.
- *   - Keys legacy (sin "/" — solo hash.ext) se sirven igual; pertenecen
- *     al usuario legacy y todo el mundo en modo legacy las ve.
+ *   - Siempre autenticamos y verificamos que el userId del path coincide
+ *     con el authed user antes de servir. Sin esto, conocer la storageKey
+ *     daría acceso sin importar quién la subió.
+ *   - Keys legacy (sin "/" — solo hash.ext) pertenecen al usuario legacy:
+ *     se sirven solo si el usuario autenticado resuelve a `legacy-single-user`.
  *
  * Cache-Control: public + immutable. La key incluye userId + random hash;
  * nunca se sobreescribe. El "public" es seguro porque la autorización
  * pasa por el path, no por cookies — un CDN nunca verá una request sin
  * el userId correcto en la URL.
  */
+const LEGACY_USER_ID = 'legacy-single-user'
+
 export default withObservability(
   'momentos-file',
   async (req: Request, context: Context, { requestId }) => {
@@ -34,18 +36,22 @@ export default withObservability(
     const key = context.params.key
     if (!key) return ApiErrors.validation(requestId, 'key requerida')
 
+    const { id: userId } = await getAuthedUser(req)
+
     // Autorización por path: si la key tiene formato user/hash.ext,
     // el primer segmento es el userId y debe coincidir con el authed.
     const slashIdx = key.indexOf('/')
     if (slashIdx > 0) {
       const keyUserId = key.slice(0, slashIdx)
-      const { id: userId } = await getAuthedUser(req)
       if (keyUserId !== userId) {
         // No leakeamos si existe o no — devolvemos notFound igual.
         return ApiErrors.notFound(requestId, 'No encontrado')
       }
+    } else if (userId !== LEGACY_USER_ID) {
+      // Legacy blobs pre-Clerk no llevan namespace; solo el owner legacy
+      // debe poder leerlos durante el cutover.
+      return ApiErrors.notFound(requestId, 'No encontrado')
     }
-    // Legacy keys (sin "/") no requieren auth — son pre-multi-user.
 
     const store = getStore('momentos-media')
     const blob = await store.getWithMetadata(key, { type: 'arrayBuffer' })

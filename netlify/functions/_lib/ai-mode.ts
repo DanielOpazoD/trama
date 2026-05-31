@@ -22,6 +22,7 @@
 
 import type { LLMProvider } from './llm.js'
 import { resolveTaskProvider, type AITask } from './ai-tasks.js'
+import { ApiErrors } from './api-error.js'
 
 export type AIMode =
   | { kind: 'off' }
@@ -75,16 +76,17 @@ export type Invocation = { kind: 'off' } | ReadyInvocation
 /**
  * Resolve provider + model + verifier for a task, honoring the X-AI-Mode header.
  * Returns { kind: 'off' } if the user has globally disabled AI; the endpoint
- * should bail out with aiOffResponse().
+ * should bail out with aiOffResponse(requestId).
  *
  * `userId` busca la config del usuario en `ai_task_providers (user_id, task)`.
- * Si la firma no la pasa (legacy call sites), usa 'legacy-single-user' como
- * fallback — ese row es el que existía antes de la migración multi-user.
+ * Debe venir siempre desde getAuthedUser(); el default legacy existe solo para
+ * que el stack de PRs pueda migrar callsites en oleadas deployables. El
+ * guardrail de aislamiento falla si queda un caller sin userId.
  */
 export async function resolveAIInvocation(
   req: Request,
   task: AITask,
-  userId: string = 'legacy-single-user',
+  userId = 'legacy-single-user',
 ): Promise<Invocation> {
   const mode = readAIMode(req)
   if (mode.kind === 'off') return { kind: 'off' }
@@ -102,6 +104,6 @@ export async function resolveAIInvocation(
 }
 
 /** 423 Locked — clear semantics for "the resource exists but is currently disabled". */
-export function aiOffResponse(): Response {
-  return new Response('IA deshabilitada por el usuario (modo Off).', { status: 423 })
+export function aiOffResponse(requestId = 'legacy-request'): Response {
+  return ApiErrors.aiDisabled(requestId, 'IA deshabilitada por el usuario (modo Off).')
 }

@@ -4,6 +4,7 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { logEvent } from './_lib/observability.js'
 import { getAuthedUser, UnauthenticatedError } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 /**
  * N6 + R2: POST /api/web-vitals — recibe Core Web Vitals del cliente.
@@ -13,9 +14,11 @@ import { getAuthedUser, UnauthenticatedError } from './_lib/auth.js'
  * a stdout para Netlify Functions logs.
  *
  * Lightweight a propósito:
- * - No requerimos auth: estas métricas no son sensibles. Si hay
- *   Bearer token válido, asociamos el sample al user; sino queda
- *   con user_id 'legacy-single-user' (consistente con error-log POST).
+ * - No requerimos auth para responder 204: estas métricas no son sensibles.
+ *   Si hay Bearer token válido, asociamos el sample al user. En modo
+ *   single-user sin Clerk, getAuthedUser() devuelve legacy-single-user. En
+ *   multi-user estricto, si falta token, logueamos stdout pero no persistimos
+ *   bajo el usuario legacy.
  * - El path viene **normalizado** del cliente (UUIDs ofuscados a `:id`
  *   antes de enviar — ver `src/lib/webVitals.ts` y R3 del Tier
  *   cleanup). Acá lo recibimos literal; no hacemos sanitización extra.
@@ -42,11 +45,14 @@ export default withObservability('web-vitals', async (req, _ctx, { requestId }) 
   const body = (await req.json().catch(() => ({}))) as WebVitalsBody
 
   // user_id opcional: si el cliente tiene Bearer válido (Clerk activo)
-  // lo asociamos; sino cae a legacy. UnauthenticatedError no debe
-  // bloquear el sample — Web Vitals son anónimas-friendly.
-  let userId = 'legacy-single-user'
+  // lo asociamos. UnauthenticatedError no debe bloquear el sample — Web
+  // Vitals son anónimas-friendly, pero no se persisten como legacy en modo
+  // multi-user estricto.
+  let userId: string | null = null
+  let authedUser: Awaited<ReturnType<typeof getAuthedUser>> | null = null
   try {
     const authed = await getAuthedUser(req)
+    authedUser = authed
     userId = authed.id
   } catch (err) {
     if (!(err instanceof UnauthenticatedError)) throw err
@@ -68,19 +74,22 @@ export default withObservability('web-vitals', async (req, _ctx, { requestId }) 
   // preview en una rama sin la migration), no rompemos al cliente.
   try {
     const sql = getSql()
-    await sql`
-      INSERT INTO web_vitals_samples
-        (metric, value, rating, delta, path, navigation_type, user_id)
-      VALUES (
-        ${body.name ?? null},
-        ${body.value ?? null},
-        ${body.rating ?? null},
-        ${body.delta ?? null},
-        ${body.path ?? null},
-        ${body.navigationType ?? null},
-        ${userId}
-      )
-    `
+    if (authedUser && userId) {
+      await ensureUserRow(sql, authedUser)
+      await sql`
+        INSERT INTO web_vitals_samples
+          (metric, value, rating, delta, path, navigation_type, user_id)
+        VALUES (
+          ${body.name ?? null},
+          ${body.value ?? null},
+          ${body.rating ?? null},
+          ${body.delta ?? null},
+          ${body.path ?? null},
+          ${body.navigationType ?? null},
+          ${userId}
+        )
+      `
+    }
   } catch {
     // Sin DB / sin tabla todavía → solo nos quedamos con el log stdout.
   }

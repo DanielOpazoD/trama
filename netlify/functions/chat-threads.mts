@@ -5,6 +5,7 @@ import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ChatThreadCreateBody } from './_lib/chat-body-schemas.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 
 /**
  * Chat threads CRUD.
@@ -17,7 +18,8 @@ export default withObservability(
   'chat-threads',
   async (req: Request, context: Context, { requestId }) => {
     const sql = getSql()
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
     const id = context.params.id
 
     if (req.method === 'GET') {
@@ -33,7 +35,7 @@ export default withObservability(
         SELECT t.id, t.title, t.context, t.created_at, t.updated_at,
                COUNT(m.id) AS message_count
         FROM chat_threads t
-        LEFT JOIN chat_messages m ON m.thread_id = t.id
+        LEFT JOIN chat_messages m ON m.thread_id = t.id AND m.user_id = ${userId}
         WHERE t.deleted_at IS NULL AND t.user_id = ${userId}
         GROUP BY t.id
         ORDER BY t.updated_at DESC
@@ -54,6 +56,7 @@ export default withObservability(
     if (req.method === 'POST') {
       const parsed = await parseJsonBody(req, ChatThreadCreateBody, requestId)
       if (!parsed.ok) return parsed.response
+      await ensureUserRow(sql, authedUser)
       const body = parsed.data
       const title = body.title?.trim() || null
       const context = body.context?.trim() || null
@@ -86,6 +89,7 @@ export default withObservability(
     }
 
     if (req.method === 'DELETE' && id) {
+      await ensureUserRow(sql, authedUser)
       await sql`UPDATE chat_threads SET deleted_at = NOW() WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
       return new Response(null, { status: 204 })
     }

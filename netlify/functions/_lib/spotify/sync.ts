@@ -48,68 +48,39 @@ export async function fetchRecentlyPlayed(
 export async function storePlays(
   sql: SqlClient,
   items: RecentlyPlayedResponse['items'],
-  userId?: string,
+  userId: string,
 ): Promise<number> {
   let inserted = 0
   for (const item of items) {
     const artistIds = item.track.artists.map((a) => a.id)
     const artistNames = item.track.artists.map((a) => a.name)
-    // user_id se completa con DEFAULT 'legacy-single-user' si no se pasa
-    // (schema migración). En multi-user, cada play se attribuye al user
-    // que disparó el sync.
-    const result = userId
-      ? ((await sql`
-          INSERT INTO spotify_plays (
-            track_id, track_name, artist_ids, artist_names,
-            album_id, album_name, duration_ms, played_at, user_id
-          ) VALUES (
-            ${item.track.id},
-            ${item.track.name},
-            ${artistIds},
-            ${artistNames},
-            ${item.track.album.id},
-            ${item.track.album.name},
-            ${item.track.duration_ms},
-            ${item.played_at},
-            ${userId}
-          )
-          ON CONFLICT (track_id, played_at) DO NOTHING
-          RETURNING id
-        `) as Array<{ id: string }>)
-      : ((await sql`
-          INSERT INTO spotify_plays (
-            track_id, track_name, artist_ids, artist_names,
-            album_id, album_name, duration_ms, played_at
-          ) VALUES (
-            ${item.track.id},
-            ${item.track.name},
-            ${artistIds},
-            ${artistNames},
-            ${item.track.album.id},
-            ${item.track.album.name},
-            ${item.track.duration_ms},
-            ${item.played_at}
-          )
-          ON CONFLICT (track_id, played_at) DO NOTHING
-          RETURNING id
-        `) as Array<{ id: string }>)
+    const result = (await sql`
+      INSERT INTO spotify_plays (
+        track_id, track_name, artist_ids, artist_names,
+        album_id, album_name, duration_ms, played_at, user_id
+      ) VALUES (
+        ${item.track.id},
+        ${item.track.name},
+        ${artistIds},
+        ${artistNames},
+        ${item.track.album.id},
+        ${item.track.album.name},
+        ${item.track.duration_ms},
+        ${item.played_at},
+        ${userId}
+      )
+      ON CONFLICT (track_id, played_at) DO NOTHING
+      RETURNING id
+    `) as Array<{ id: string }>
     if (result.length > 0) inserted++
   }
   return inserted
 }
 
-export async function markSynced(sql: SqlClient, userId?: string): Promise<void> {
-  if (userId) {
-    await sql`UPDATE spotify_tokens SET last_synced_at = NOW() WHERE user_id = ${userId}`
-  } else {
-    await sql`UPDATE spotify_tokens SET last_synced_at = NOW() WHERE id = 'default'`
-  }
+export async function markSynced(sql: SqlClient, userId: string): Promise<void> {
+  await sql`UPDATE spotify_tokens SET last_synced_at = NOW() WHERE user_id = ${userId}`
 }
 
-export async function disconnectSpotify(sql: SqlClient, userId?: string): Promise<void> {
-  if (userId) {
-    await sql`DELETE FROM spotify_tokens WHERE user_id = ${userId}`
-  } else {
-    await sql`DELETE FROM spotify_tokens WHERE id = 'default'`
-  }
+export async function disconnectSpotify(sql: SqlClient, userId: string): Promise<void> {
+  await sql`DELETE FROM spotify_tokens WHERE user_id = ${userId}`
 }
