@@ -4,6 +4,7 @@ import {
   logContextTruncation,
   DEFAULT_CONTEXT_TOKEN_BUDGET,
 } from './token-budget.js'
+import { stripTramaProposalBlock } from './proposal-markers.js'
 
 export type AskContext = {
   /** Which view the user is looking at right now. */
@@ -212,7 +213,8 @@ ${quotesBlock}`
   // replaying so the model doesn't try to extend a stale proposal.
   const history: LLMMessage[] = (ctx.history ?? []).map((turn) => ({
     role: turn.role,
-    content: turn.role === 'assistant' ? stripProposalBlock(turn.content) : turn.content,
+    content:
+      turn.role === 'assistant' ? stripTramaProposalBlock(turn.content) : turn.content,
   }))
 
   return [
@@ -220,11 +222,4 @@ ${quotesBlock}`
     ...history,
     { role: 'user', content: userText },
   ]
-}
-
-/** The chat prompt uses <<<TRAMA-PROPOSAL ... TRAMA-PROPOSAL>>> markers; the
-    AskBar's JSON shape doesn't. Either way, when replaying past assistant
-    turns we want just the prose, not stale proposal JSON. */
-function stripProposalBlock(text: string): string {
-  return text.replace(/<<<TRAMA-PROPOSAL[\s\S]*?TRAMA-PROPOSAL>>>/g, '').trim()
 }

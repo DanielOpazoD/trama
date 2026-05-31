@@ -146,14 +146,8 @@ export async function loadChatContextForFocus(
 
   return {
     tramaContext: shapeContext(entityRows, relRows, quoteRows),
-    entityTypes:
-      entityTypeRows.length > 0
-        ? entityTypeRows.map((r) => r.slug)
-        : FALLBACK_ENTITY_TYPES,
-    relationshipTypes:
-      relTypeRows.length > 0
-        ? relTypeRows.map((r) => r.slug)
-        : FALLBACK_RELATIONSHIP_TYPES,
+    entityTypes: resolveTypeSlugs(entityTypeRows, FALLBACK_ENTITY_TYPES),
+    relationshipTypes: resolveTypeSlugs(relTypeRows, FALLBACK_RELATIONSHIP_TYPES),
     usedRag: false,
     usedHyde: false,
   }
@@ -199,12 +193,16 @@ export async function loadChatContextWithRag(
 
   return {
     tramaContext: shapeContext(ragCtx.entities, ragCtx.relationships, ragCtx.quotes),
-    entityTypes: eTypes.length > 0 ? eTypes.map((r) => r.slug) : FALLBACK_ENTITY_TYPES,
-    relationshipTypes:
-      rTypes.length > 0 ? rTypes.map((r) => r.slug) : FALLBACK_RELATIONSHIP_TYPES,
+    entityTypes: resolveTypeSlugs(eTypes, FALLBACK_ENTITY_TYPES),
+    relationshipTypes: resolveTypeSlugs(rTypes, FALLBACK_RELATIONSHIP_TYPES),
     usedRag: ragCtx.usedRag,
     usedHyde: ragCtx.usedHyde ?? false,
   }
+}
+
+function resolveTypeSlugs(rows: TypeRow[], fallback: string[]): string[] {
+  const slugs = rows.map((r) => r.slug.trim()).filter(Boolean)
+  return slugs.length > 0 ? slugs : fallback
 }
 
 function shapeContext(
