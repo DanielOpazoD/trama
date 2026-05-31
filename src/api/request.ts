@@ -12,7 +12,7 @@
  * usuario sean trazables al `error_log` del servidor.
  */
 
-import { isDemoMode, demoRequest } from '../lib/demo'
+import { demoMediaResponse, isDemoMode, demoRequest } from '../lib/demo'
 
 /**
  * Read the current AI mode synchronously and convert to its header form.
@@ -255,6 +255,11 @@ function mergeHeaders(
 }
 
 export async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  if (isDemoMode()) {
+    const demoMedia = demoMediaResponse(url)
+    if (demoMedia) return demoMedia
+  }
+
   const authHeader = await getAuthHeader()
   const isFormDataBody = typeof FormData !== 'undefined' && init?.body instanceof FormData
   const headers: Record<string, string> = {}

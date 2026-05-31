@@ -5,6 +5,7 @@ import {
   request,
   setApiAuthTokenProvider,
 } from './request'
+import { enterDemoMode, exitDemoMode } from '../lib/demo'
 
 describe('request auth', () => {
   afterEach(() => {
@@ -137,6 +138,24 @@ describe('request auth', () => {
         }),
       }),
     )
+  })
+
+  it('apiFetch sirve media demo local sin tocar red', async () => {
+    enterDemoMode()
+    const fetchMock = vi.fn<typeof fetch>()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const image = await apiFetch('/api/momentos-file/demo/cuaderno.svg')
+    const audio = await apiFetch('/api/momentos-file/demo/nota-voz.wav')
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(image.ok).toBe(true)
+    expect(image.headers.get('Content-Type')).toBe('image/svg+xml')
+    expect(await image.text()).toContain('<svg')
+    expect(audio.ok).toBe(true)
+    expect(audio.headers.get('Content-Type')).toBe('audio/wav')
+    expect((await audio.arrayBuffer()).byteLength).toBeGreaterThan(44)
+    exitDemoMode()
   })
 })
 

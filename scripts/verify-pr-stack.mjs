@@ -123,6 +123,7 @@ const prStack = [
       /^src\/api\/(chat|momentos|request|transform)\.ts$/,
       /^src\/api\/request-boundary\.test\.ts$/,
       /^src\/api\/request\.test\.ts$/,
+      /^src\/lib\/demo(\.test)?\.ts$/,
       /^src\/App(\.test)?\.tsx$/,
       /^src\/components\/(ApiAuthBridge|AuthGate|ErrorBoundary|UserMenu)(\.test)?\.tsx$/,
       /^src\/components\/ChatView(\.test)?\.tsx$/,
