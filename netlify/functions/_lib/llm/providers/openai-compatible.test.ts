@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { embedOpenAI, isNewOpenAIModel } from './openai-compatible'
+import {
+  embedOpenAI,
+  isNewOpenAIModel,
+  openOpenAICompatibleStream,
+} from './openai-compatible'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -68,5 +72,44 @@ describe('embedOpenAI', () => {
         }),
       }),
     )
+  })
+})
+
+describe('openOpenAICompatibleStream', () => {
+  it('abre el stream de chat en el provider con usage incluido', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      body: { getReader: vi.fn() },
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await openOpenAICompatibleStream(
+      'sk-test',
+      { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+      [{ role: 'user', content: 'hola' }],
+      512,
+    )
+
+    expect(response.ok).toBe(true)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.openai.com/v1/chat/completions',
+      expect.objectContaining({
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer sk-test',
+        },
+      }),
+    )
+    const [, init] = fetchMock.mock.calls[0]
+    expect(JSON.parse(init.body)).toEqual({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: 'hola' }],
+      stream: true,
+      stream_options: { include_usage: true },
+      temperature: 0.6,
+      max_tokens: 512,
+    })
   })
 })

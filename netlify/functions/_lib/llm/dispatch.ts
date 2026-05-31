@@ -23,9 +23,13 @@ import {
 } from './config.js'
 import { getCached, hashMessages, putCached } from './cache.js'
 import { getCachedFromDB, putCachedToDB } from './db-cache.js'
-import { fetchWithRetry, LLMTransientError } from './retry.js'
+import { LLMTransientError } from './retry.js'
 import { logEvent } from '../observability.js'
-import { askOpenAICompatible, askOpenAIVision } from './providers/openai-compatible.js'
+import {
+  askOpenAICompatible,
+  askOpenAIVision,
+  openOpenAICompatibleStream,
+} from './providers/openai-compatible.js'
 import { askAnthropic } from './providers/anthropic.js'
 import { askGemini, askGeminiVision } from './providers/gemini.js'
 import type {
@@ -242,23 +246,7 @@ export async function* askLLMForTextStreaming(
   // OpenAI-compatible streaming vía SSE.
   let response: Response
   try {
-    response = await fetchWithRetry(() =>
-      fetch(`${config.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: config.model,
-          messages,
-          stream: true,
-          stream_options: { include_usage: true },
-          temperature: 0.6,
-          max_tokens: maxTokens,
-        }),
-      }),
-    )
+    response = await openOpenAICompatibleStream(apiKey, config, messages, maxTokens)
   } catch (err) {
     // Falla transitoria al abrir el stream: si hay fallback configurado, cae
     // a la cadena no-streaming (callLLM) y emite la respuesta en un solo chunk

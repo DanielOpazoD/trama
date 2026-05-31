@@ -73,6 +73,7 @@ const prStack = [
       /^netlify\/functions\/_lib\/cost-(alert-check-endpoint\.test|cap(\.test)?)\.ts$/,
       /^netlify\/functions\/_lib\/embeddings(\.test)?\.ts$/,
       /^netlify\/functions\/_lib\/env\.ts$/,
+      /^netlify\/functions\/_lib\/llm\/dispatch\.ts$/,
       /^netlify\/functions\/_lib\/llm\/providers\/openai-compatible(\.test)?\.ts$/,
       /^netlify\/functions\/_lib\/llm-cost-observability\.test\.ts$/,
       /^netlify\/functions\/_lib\/observability(\.test)?\.ts$/,

@@ -123,6 +123,30 @@ export async function askOpenAIVision(
   }
 }
 
+export async function openOpenAICompatibleStream(
+  apiKey: string,
+  config: ProviderConfig,
+  messages: LLMMessage[],
+  maxTokens: number,
+): Promise<Response> {
+  const body: Record<string, unknown> = {
+    model: config.model,
+    messages,
+    stream: true,
+    stream_options: { include_usage: true },
+    [tokenParamFor(config.model)]: maxTokens,
+  }
+  if (!isNewOpenAIModel(config.model)) body.temperature = 0.6
+
+  return fetchWithRetry(() =>
+    fetch(`${config.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify(body),
+    }),
+  )
+}
+
 export async function embedOpenAI(
   apiKey: string,
   config: Pick<ProviderConfig, 'baseUrl' | 'model'>,
