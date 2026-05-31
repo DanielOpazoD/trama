@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
 import { getEnv } from './_lib/env.js'
 import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
@@ -72,7 +72,7 @@ export default async (req: Request) => {
 
   // Gasto del mes actual por usuario (igual que cost-cap.ts, pero batch).
   type Row = { user_id: string; total: string; monthly_budget_cents: number | null }
-  const rows = (await sql`
+  const rows = await sqlTyped<Row>(sql`
     WITH monthly_spend AS (
       SELECT user_id, COALESCE(SUM(cost_cents), 0) AS total
       FROM extraction_log
@@ -86,7 +86,7 @@ export default async (req: Request) => {
     FROM monthly_spend s
     LEFT JOIN users u ON u.id = s.user_id
     ORDER BY s.total DESC
-  `) as Row[]
+  `)
 
   if (rows.length === 0) {
     logEvent({
@@ -121,9 +121,9 @@ export default async (req: Request) => {
 
     // Sobre el threshold — ¿ya avisamos recientemente para este usuario?
     type StateRow = { last_sent_at: string }
-    const state = (await sql`
+    const state = await sqlTyped<StateRow>(sql`
       SELECT last_sent_at FROM alert_state WHERE code = ${alertCode}
-    `) as StateRow[]
+    `)
     const lastSent = state[0]?.last_sent_at ? new Date(state[0].last_sent_at) : null
     const hoursSince = lastSent ? (Date.now() - lastSent.getTime()) / 3_600_000 : Infinity
 
