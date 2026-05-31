@@ -15,6 +15,13 @@ import {
   MomentoPatchBody,
 } from './_lib/momento-schemas.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
+import {
+  buildMomentosListResponse,
+  groupMomentoEntityLinks,
+  parseMomentosListParams,
+  type MomentoEntityLinkRow,
+  type MomentoListRow,
+} from './_lib/momentos-list.js'
 
 /**
  * /api/momentos — la dimensión temporal de la trama.
@@ -38,10 +45,6 @@ import { ensureUserRow } from './_lib/user-provisioning.js'
  */
 
 import { normalizeOrigin } from './_lib/origin.js'
-
-function isValidKind(v: unknown): v is MomentoKind {
-  return v === 'nota' || v === 'recorte' || v === 'foto'
-}
 
 export default withObservability('momentos', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
@@ -76,40 +79,9 @@ export default withObservability('momentos', async (req: Request, context: Conte
   // ---------------- GET list ----------------
   if (req.method === 'GET') {
     const url = new URL(req.url)
-    const kind = url.searchParams.get('kind')
-    const limitParam = url.searchParams.get('limit')
-    const cursor = url.searchParams.get('cursor')
+    const { limit, validKind, cursorTs, cursorId } = parseMomentosListParams(url)
 
-    const parsedLimit = limitParam ? Number.parseInt(limitParam, 10) : 50
-    const limit = Number.isFinite(parsedLimit)
-      ? Math.min(Math.max(parsedLimit, 1), 200)
-      : 50
-
-    // Cursor: "<iso_ts>:<uuid>" — tuple compare sobre (captured_at, id).
-    let cursorTs: string | null = null
-    let cursorId: string | null = null
-    if (cursor) {
-      const idx = cursor.lastIndexOf(':')
-      if (idx > 0) {
-        cursorTs = cursor.slice(0, idx)
-        cursorId = cursor.slice(idx + 1)
-      }
-    }
-
-    const validKind = isValidKind(kind) ? kind : null
-
-    type Row = {
-      id: string
-      kind: string
-      captured_at: Date | string
-      payload: unknown
-      note: string | null
-      origin: unknown
-      created_at: Date | string
-      updated_at: Date | string
-    }
-
-    let rows: Row[]
+    let rows: MomentoListRow[]
     if (cursorTs && cursorId && validKind) {
       rows = (await sql`
         SELECT id, kind, captured_at, payload, note, origin,
@@ -121,7 +93,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
           AND (captured_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
         ORDER BY captured_at DESC, id DESC
         LIMIT ${limit + 1}
-      `) as Row[]
+      `) as MomentoListRow[]
     } else if (cursorTs && cursorId) {
       rows = (await sql`
         SELECT id, kind, captured_at, payload, note, origin,
@@ -132,7 +104,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
           AND (captured_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
         ORDER BY captured_at DESC, id DESC
         LIMIT ${limit + 1}
-      `) as Row[]
+      `) as MomentoListRow[]
     } else if (validKind) {
       rows = (await sql`
         SELECT id, kind, captured_at, payload, note, origin,
@@ -141,7 +113,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
         WHERE deleted_at IS NULL AND user_id = ${userId} AND kind = ${validKind}
         ORDER BY captured_at DESC, id DESC
         LIMIT ${limit + 1}
-      `) as Row[]
+      `) as MomentoListRow[]
     } else {
       rows = (await sql`
         SELECT id, kind, captured_at, payload, note, origin,
@@ -150,21 +122,12 @@ export default withObservability('momentos', async (req: Request, context: Conte
         WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY captured_at DESC, id DESC
         LIMIT ${limit + 1}
-      `) as Row[]
+      `) as MomentoListRow[]
     }
 
-    const hasNext = rows.length > limit
-    const items = hasNext ? rows.slice(0, limit) : rows
-    let nextCursor: string | null = null
-    const last = hasNext ? items[items.length - 1] : null
-    if (last) {
-      // γ1: Neon devuelve Date — convertir a ISO antes de meter en cursor.
-      const ts = new Date(last.captured_at).toISOString()
-      nextCursor = `${ts}:${last.id}`
-    }
+    const itemIds = rows.slice(0, limit).map((i) => i.id)
 
     // Bulk-fetch de links para los items de esta página, dedupe por momento_id.
-    const itemIds = items.map((i) => i.id)
     let linksByMomento = new Map<string, string[]>()
     if (itemIds.length > 0) {
       const links = (await sql`
@@ -173,21 +136,11 @@ export default withObservability('momentos', async (req: Request, context: Conte
         WHERE momento_id = ANY(${itemIds}::uuid[])
           AND user_id = ${userId}
           AND deleted_at IS NULL
-      `) as Array<{ momento_id: string; entity_id: string }>
-      for (const link of links) {
-        const arr = linksByMomento.get(link.momento_id) ?? []
-        arr.push(link.entity_id)
-        linksByMomento.set(link.momento_id, arr)
-      }
+      `) as MomentoEntityLinkRow[]
+      linksByMomento = groupMomentoEntityLinks(links)
     }
 
-    return Response.json({
-      items: items.map((r) => ({
-        ...r,
-        entity_ids: linksByMomento.get(r.id) ?? [],
-      })),
-      nextCursor,
-    })
+    return Response.json(buildMomentosListResponse({ rows, limit, linksByMomento }))
   }
 
   // ---------------- POST create ----------------
