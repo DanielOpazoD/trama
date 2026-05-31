@@ -36,6 +36,9 @@ export function TwitterView() {
   const [year, setYear] = useState<number | null>(null)
   const [month, setMonth] = useState<number | null>(null)
   const [topic, setTopic] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [author, setAuthor] = useState<string | null>(null)
+  const [showAuthors, setShowAuthors] = useState(false)
 
   const items = useMemo(() => bookmarks.data?.items ?? [], [bookmarks.data])
   const data = status.data
@@ -75,7 +78,18 @@ export function TwitterView() {
   }, [items])
   const unclassified = useMemo(() => items.filter((b) => !b.topic).length, [items])
 
+  // #5 Constelación de autores: a quién marcás más (top, filtrable al click).
+  const authors = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const b of items) {
+      if (b.authorUsername)
+        map.set(b.authorUsername, (map.get(b.authorUsername) ?? 0) + 1)
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1])
+  }, [items])
+
   const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
     return items.filter((b) => {
       if (year != null) {
         if (!b.tweetCreatedAt) return false
@@ -84,12 +98,19 @@ export function TwitterView() {
         if (month != null && d.getMonth() !== month) return false
       }
       if (topic != null) {
-        if (topic === UNCLASSIFIED) return !b.topic
-        if (b.topic !== topic) return false
+        if (topic === UNCLASSIFIED) {
+          if (b.topic) return false
+        } else if (b.topic !== topic) return false
+      }
+      if (author != null && b.authorUsername !== author) return false
+      if (q) {
+        const hay =
+          `${b.text} ${b.authorName ?? ''} ${b.authorUsername ?? ''}`.toLowerCase()
+        if (!hay.includes(q)) return false
       }
       return true
     })
-  }, [items, year, month, topic])
+  }, [items, year, month, topic, author, query])
 
   function selectYear(y: number | null) {
     setYear((prev) => (prev === y ? null : y))
@@ -199,6 +220,44 @@ export function TwitterView() {
         />
       ) : (
         <>
+          {/* Buscar + autores. */}
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar en tus bookmarks…"
+              className="min-w-0 flex-1 rounded-lg border border-ink-100/60 bg-paper-50 px-3 py-1.5 text-sm text-ink-700 placeholder:text-ink-300 focus:border-ink-300 focus:outline-none"
+            />
+            <button
+              onClick={() => setShowAuthors((v) => !v)}
+              className={chip(showAuthors || author != null)}
+            >
+              Autores
+              {author && <span className="ml-1 text-ink-500">· @{author}</span>}
+            </button>
+          </div>
+          {showAuthors && authors.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-1.5 border-l-2 border-ink-100 pl-3">
+              {author && (
+                <button onClick={() => setAuthor(null)} className={chip(false)}>
+                  ✕ quitar filtro
+                </button>
+              )}
+              {authors.slice(0, 24).map(([u, n]) => (
+                <button
+                  key={u}
+                  onClick={() => setAuthor((prev) => (prev === u ? null : u))}
+                  className={chip(author === u)}
+                  title={`${n} bookmark${n === 1 ? '' : 's'} de @${u}`}
+                >
+                  @{u}
+                  <span className="ml-1 text-micro text-ink-300 tabular-nums">{n}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Temas (clasificación IA) + botón clasificar. */}
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
             <button onClick={() => setTopic(null)} className={chip(topic == null)}>
@@ -277,6 +336,12 @@ export function TwitterView() {
                 </button>
               ))}
             </div>
+          )}
+
+          {filtered.length === 0 && (
+            <p className="py-8 text-center text-sm text-ink-400 italic">
+              Ningún bookmark coincide con el filtro.
+            </p>
           )}
 
           <ul className="space-y-4">
