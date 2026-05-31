@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import Sigma from 'sigma'
 import Graph from 'graphology'
 import type { Entity, Relationship } from '../../types'
@@ -37,46 +37,87 @@ export function GraphCanvasSigma({
   selectedRef.current = selectedId
   onSelectRef.current = onSelect
 
+  const graphModel = useMemo(() => {
+    const nodes = entities.flatMap((e) => {
+      const pos = positions.get(e.id)
+      if (!pos) return []
+      return [
+        {
+          id: e.id,
+          data: {
+            // Sigma's coord system: x positive right, y positive UP.
+            // Nuestro layout usa y positive DOWN. Invertimos.
+            x: pos.x,
+            y: -pos.y,
+            size: 6,
+            label: e.name,
+            color: typeAccent(e.type),
+            entityType: e.type,
+          },
+        },
+      ]
+    })
+    const nodeIds = new Set(nodes.map((node) => node.id))
+    const edgeKeys = new Set<string>()
+    const edges = relationships.flatMap((r) => {
+      if (!nodeIds.has(r.fromId) || !nodeIds.has(r.toId)) return []
+      if (r.fromId === r.toId) return []
+      const key = `${r.fromId}->${r.toId}`
+      if (edgeKeys.has(key)) return []
+      edgeKeys.add(key)
+      return [
+        {
+          fromId: r.fromId,
+          toId: r.toId,
+          data: {
+            type: 'arrow',
+            size: 1,
+            color: 'rgba(80, 80, 80, 0.18)',
+            relType: r.type,
+          },
+        },
+      ]
+    })
+    return { nodes, edges, renderLabels: entities.length < 500 }
+  }, [entities, positions, relationships])
+  const graphSignature = useMemo(
+    () =>
+      [
+        graphModel.renderLabels ? 'labels:on' : 'labels:off',
+        ...graphModel.nodes.map(
+          (node) =>
+            `${node.id}:${node.data.x}:${node.data.y}:${node.data.label}:${node.data.entityType}:${node.data.color}`,
+        ),
+        ...graphModel.edges.map(
+          (edge) => `${edge.fromId}->${edge.toId}:${edge.data.type}:${edge.data.relType}`,
+        ),
+      ].join('|'),
+    [graphModel],
+  )
+  const graphModelRef = useRef(graphModel)
+  graphModelRef.current = graphModel
+
   // (Re)construir el grafo cuando cambian los datos. Sigma es caro de
   // crear; cuando solo cambia la selección no recreamos — usamos
   // refresh() con el reducer.
   useEffect(() => {
     if (!containerRef.current) return
 
+    const model = graphModelRef.current
     const graph = new Graph()
 
-    for (const e of entities) {
-      const pos = positions.get(e.id)
-      if (!pos) continue
-      graph.addNode(e.id, {
-        // Sigma's coord system: x positive right, y positive UP.
-        // Nuestro layout usa y positive DOWN. Invertimos.
-        x: pos.x,
-        y: -pos.y,
-        size: 6,
-        label: e.name,
-        color: typeAccent(e.type),
-        entityType: e.type,
-      })
+    for (const node of model.nodes) {
+      graph.addNode(node.id, node.data)
     }
 
-    for (const r of relationships) {
-      if (!graph.hasNode(r.fromId) || !graph.hasNode(r.toId)) continue
-      // Evitar duplicados / self-loops en la representación visual.
-      if (r.fromId === r.toId) continue
-      if (graph.hasEdge(r.fromId, r.toId)) continue
-      graph.addEdge(r.fromId, r.toId, {
-        type: 'arrow',
-        size: 1,
-        color: 'rgba(80, 80, 80, 0.18)',
-        relType: r.type,
-      })
+    for (const edge of model.edges) {
+      graph.addEdge(edge.fromId, edge.toId, edge.data)
     }
 
     // Renderer config: priorizar perf sobre fidelidad visual.
     const sigma = new Sigma(graph, containerRef.current, {
       renderEdgeLabels: false,
-      renderLabels: entities.length < 500, // a 500+ labels saturan, off por default
+      renderLabels: model.renderLabels, // a 500+ labels saturan, off por default
       labelColor: { color: '#3a3429' },
       labelSize: 11,
       labelWeight: '400',
@@ -124,11 +165,7 @@ export function GraphCanvasSigma({
       sigma.kill()
       sigmaRef.current = null
     }
-    // El positions Map cambia su referencia con cada render del layout,
-    // pero las posiciones individuales son estables por id en cada modo.
-    // Reconstruimos cuando cambia tamaño o el modo (no por cada drag).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entities.length, relationships.length])
+  }, [graphSignature])
 
   // Si solo cambió la selección: refresh sin reconstruir.
   useEffect(() => {

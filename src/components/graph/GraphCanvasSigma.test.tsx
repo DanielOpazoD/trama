@@ -237,4 +237,44 @@ describe('<GraphCanvasSigma />', () => {
 
     expect(sigmaMocks.MockSigma.instances[0]!.config.renderLabels).toBe(false)
   })
+
+  it('reconstruye Sigma cuando cambian posiciones con la misma cantidad de nodos', () => {
+    const { rerender } = render(
+      <GraphCanvasSigma
+        entities={[ent('a'), ent('b')]}
+        relationships={[rel('r1', 'a', 'b')]}
+        positions={
+          new Map([
+            ['a', { x: 10, y: 20 }],
+            ['b', { x: 30, y: 40 }],
+          ])
+        }
+        selectedId={null}
+        onSelect={() => {}}
+      />,
+    )
+    const firstSigma = sigmaMocks.MockSigma.instances[0]!
+
+    rerender(
+      <GraphCanvasSigma
+        entities={[ent('a'), ent('b')]}
+        relationships={[rel('r1', 'a', 'b')]}
+        positions={
+          new Map([
+            ['a', { x: 100, y: 200 }],
+            ['b', { x: 300, y: 400 }],
+          ])
+        }
+        selectedId={null}
+        onSelect={() => {}}
+      />,
+    )
+
+    expect(firstSigma.kill).toHaveBeenCalled()
+    expect(sigmaMocks.MockSigma.instances).toHaveLength(2)
+    expect(sigmaMocks.MockSigma.instances[1]!.graph.nodes.get('a')).toMatchObject({
+      x: 100,
+      y: -200,
+    })
+  })
 })

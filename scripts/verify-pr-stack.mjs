@@ -142,6 +142,7 @@ const prStack = [
       /^src\/components\/HomeView(\.test)?\.tsx$/,
       /^src\/components\/home\/FeaturedQuote\.tsx$/,
       /^src\/components\/RelationshipsView(\.test)?\.tsx$/,
+      /^src\/components\/graph\/GraphCanvasSigma(\.test)?\.tsx$/,
       /^src\/components\/graph\/GraphSvgCanvas\.tsx$/,
       /^src\/components\/relationships\/RelationshipRow\.tsx$/,
       /^src\/state\/useHome\.ts$/,
