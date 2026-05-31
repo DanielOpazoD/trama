@@ -96,6 +96,7 @@ const prStack = [
       /^netlify\/functions\/reindex-embeddings\.mts$/,
       /^netlify\/functions\/spotify-(library-snapshot|suggest-artists)\.mts$/,
       /^netlify\/functions\/voz\.mts$/,
+      /^netlify\/functions\/_lib\/voz-boundary\.test\.ts$/,
       /^netlify\/functions\/x-(classify|cronica|scheduled-sync)\.mts$/,
       /^netlify\/functions\/_lib\/x-(classify|cronica)-endpoint\.test\.ts$/,
     ],

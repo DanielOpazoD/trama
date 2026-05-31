@@ -1,6 +1,6 @@
 import type { Config, Context } from '@netlify/functions'
 import { z } from 'zod'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { askLLMForText } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { buildVozMessages } from './_lib/voz-prompt.js'
@@ -32,6 +32,9 @@ const MIN_QUOTES = 5
 /** Tope de citas que pasamos como contexto, para acotar el prompt. */
 const MAX_QUOTES = 40
 
+type EntityRow = { name: string; type: string; description: string | null }
+type QuoteRow = { text: string; source: string | null }
+
 export default withObservability(
   'voz',
   async (req: Request, context: Context, { requestId }) => {
@@ -53,25 +56,23 @@ export default withObservability(
     const budgetExceeded = await checkMonthlyBudget(userId, requestId)
     if (budgetExceeded) return budgetExceeded
 
-    type EntityRow = { name: string; type: string; description: string | null }
-    const entityRows = (await sql`
+    const entityRows = await sqlTyped<EntityRow>(sql`
       SELECT name, type, description
       FROM entities
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-    `) as EntityRow[]
+    `)
     const entity = entityRows[0]
     if (!entity) {
       return ApiErrors.notFound(requestId, 'Entidad no encontrada')
     }
 
-    type QuoteRow = { text: string; source: string | null }
-    const quoteRows = (await sql`
+    const quoteRows = await sqlTyped<QuoteRow>(sql`
       SELECT text, source
       FROM quotes
       WHERE entity_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT ${MAX_QUOTES}
-    `) as QuoteRow[]
+    `)
 
     if (quoteRows.length < MIN_QUOTES) {
       return ApiErrors.unprocessable(
