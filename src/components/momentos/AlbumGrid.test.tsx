@@ -1,5 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Entity, Momento } from '../../types'
 import { AlbumGrid } from './AlbumGrid'
@@ -122,5 +125,15 @@ describe('<AlbumGrid />', () => {
     expect(window.localStorage.getItem('trama:album-size')).toBe('large')
     expect(screen.getByText('2026')).toBeInTheDocument()
     expect(screen.getByText('Valparaíso')).toBeInTheDocument()
+  })
+
+  it('usa el hook compartido para persistir preferencias de album', () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'AlbumGrid.tsx'),
+      'utf8',
+    )
+
+    expect(src).toContain('useLocalStorageState')
+    expect(src).not.toContain('window.localStorage')
   })
 })

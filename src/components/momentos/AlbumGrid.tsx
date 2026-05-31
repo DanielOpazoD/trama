@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { useLocalStorageState } from '../../hooks/useLocalStorageState'
 import type { Entity, Momento } from '../../types'
 import { EmptyMessage } from '../EmptyMessage'
 import { TrashIcon } from '../Icons'
@@ -24,22 +25,8 @@ type ViewMode = 'monthly' | 'yearly'
 
 const SIZE_STORAGE_KEY = 'trama:album-size'
 const MODE_STORAGE_KEY = 'trama:album-mode'
-
-function readPersisted<T>(key: string, fallback: T, valid: T[]): T {
-  if (typeof window === 'undefined') return fallback
-  const raw = window.localStorage.getItem(key)
-  if (raw && (valid as string[]).includes(raw)) return raw as T
-  return fallback
-}
-
-function writePersisted(key: string, value: string) {
-  if (typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem(key, value)
-  } catch {
-    /* storage disabled */
-  }
-}
+const TILE_SIZES: readonly TileSize[] = ['small', 'medium', 'large']
+const VIEW_MODES: readonly ViewMode[] = ['monthly', 'yearly']
 
 const SIZE_GRID_CLASS: Record<TileSize, string> = {
   // ψ-photos-rich: 3 tamaños de tile. Pequeño = miniaturas tipo grilla
@@ -61,21 +48,16 @@ export function AlbumGrid({
 }) {
   const photoItems = useMemo(() => items.filter((m) => m.kind === 'foto'), [items])
 
-  const [size, setSize] = useState<TileSize>(() =>
-    readPersisted<TileSize>(SIZE_STORAGE_KEY, 'medium', ['small', 'medium', 'large']),
+  const [size, setSize] = useLocalStorageState<TileSize>(
+    SIZE_STORAGE_KEY,
+    'medium',
+    (raw): raw is TileSize => TILE_SIZES.includes(raw as TileSize),
   )
-  const [mode, setMode] = useState<ViewMode>(() =>
-    readPersisted<ViewMode>(MODE_STORAGE_KEY, 'monthly', ['monthly', 'yearly']),
+  const [mode, setMode] = useLocalStorageState<ViewMode>(
+    MODE_STORAGE_KEY,
+    'monthly',
+    (raw): raw is ViewMode => VIEW_MODES.includes(raw as ViewMode),
   )
-
-  function changeSize(next: TileSize) {
-    setSize(next)
-    writePersisted(SIZE_STORAGE_KEY, next)
-  }
-  function changeMode(next: ViewMode) {
-    setMode(next)
-    writePersisted(MODE_STORAGE_KEY, next)
-  }
 
   // Para modo mensual: cada grupo es un mes-año. Para modo cronológico:
   // cada grupo es un AÑO, y dentro sub-agrupamos por mes — el ojo
@@ -106,7 +88,7 @@ export function AlbumGrid({
             { value: 'yearly', label: 'cronológico' },
           ]}
           value={mode}
-          onChange={(v) => changeMode(v as ViewMode)}
+          onChange={(v) => setMode(v as ViewMode)}
         />
         <SegmentedToggle
           label="tamaño"
@@ -116,7 +98,7 @@ export function AlbumGrid({
             { value: 'large', label: 'grande' },
           ]}
           value={size}
-          onChange={(v) => changeSize(v as TileSize)}
+          onChange={(v) => setSize(v as TileSize)}
         />
       </div>
 
