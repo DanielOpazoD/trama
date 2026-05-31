@@ -144,6 +144,7 @@ const prStack = [
     id: 'pr6-performance-scale',
     title: 'Performance y escala',
     patterns: [
+      /^netlify\/functions\/_lib\/graph-neighbors-boundary\.test\.ts$/,
       /^netlify\/functions\/_lib\/home-endpoint\.test\.ts$/,
       /^netlify\/functions\/graph-neighbors\.mts$/,
       /^netlify\/functions\/home\.mts$/,

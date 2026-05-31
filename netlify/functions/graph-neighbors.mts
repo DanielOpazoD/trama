@@ -1,8 +1,40 @@
 import type { Config } from '@netlify/functions'
-import { getSql } from './_lib/db.js'
+import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+
+type EntityRow = {
+  id: string
+  type: string
+  name: string
+  year: number | null
+  description: string | null
+  essay: string | null
+  position_x: number | null
+  position_y: number | null
+  origin: unknown
+  spotify_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+type WalkRow = {
+  id: string
+  hop_distance: number
+  degree: string
+}
+
+type RelRow = {
+  id: string
+  from_id: string
+  to_id: string
+  type: string
+  notes: string | null
+  origin: unknown
+  created_at: string
+  updated_at: string
+}
 
 /**
  * Subgraph endpoint: returns an entity + its N-hop neighborhood.
@@ -48,26 +80,12 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
   const sql = getSql()
 
   // 1) Verify the focal entity exists (and isn't soft-deleted).
-  type EntityRow = {
-    id: string
-    type: string
-    name: string
-    year: number | null
-    description: string | null
-    essay: string | null
-    position_x: number | null
-    position_y: number | null
-    origin: unknown
-    spotify_url: string | null
-    created_at: string
-    updated_at: string
-  }
-  const focalRows = (await sql`
+  const focalRows = await sqlTyped<EntityRow>(sql`
     SELECT id, type, name, year, description, essay, position_x, position_y,
            origin, spotify_url, created_at, updated_at
     FROM entities
     WHERE id = ${fromId} AND deleted_at IS NULL AND user_id = ${userId}
-  `) as EntityRow[]
+  `)
   if (focalRows.length === 0) {
     return ApiErrors.notFound(requestId, 'Entidad no encontrada')
   }
@@ -75,8 +93,7 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
   // 2) Walk the neighborhood up to `hops` and rank: closer first, then by
   // degree so popular nodes win when we truncate. The CTE returns (id, min
   // depth, degree) so the ORDER BY is meaningful.
-  type WalkRow = { id: string; hop_distance: number; degree: string }
-  const walkRows = (await sql`
+  const walkRows = await sqlTyped<WalkRow>(sql`
     WITH RECURSIVE walk(id, depth) AS (
       SELECT id, 0
       FROM entities
@@ -116,7 +133,7 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
     LEFT JOIN degree ON degree.entity_id = d.id
     ORDER BY d.depth, COALESCE(degree.degree::int, 0) DESC
     LIMIT ${limit}
-  `) as WalkRow[]
+  `)
 
   const idsInWindow = walkRows.map((w) => w.id)
   const hopById = new Map(walkRows.map((w) => [w.id, w.hop_distance]))
@@ -125,36 +142,26 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
   const entityRows =
     idsInWindow.length === 0
       ? []
-      : ((await sql`
+      : await sqlTyped<EntityRow>(sql`
           SELECT id, type, name, year, description, essay, position_x, position_y,
                  origin, spotify_url, created_at, updated_at
           FROM entities
           WHERE id = ANY(${idsInWindow}::uuid[]) AND deleted_at IS NULL AND user_id = ${userId}
-        `) as EntityRow[])
+        `)
 
   // 4) Fetch edges whose endpoints are BOTH in the window — this is what
   // makes the subgraph a self-contained drawable.
-  type RelRow = {
-    id: string
-    from_id: string
-    to_id: string
-    type: string
-    notes: string | null
-    origin: unknown
-    created_at: string
-    updated_at: string
-  }
   const relRows =
     idsInWindow.length < 2
       ? []
-      : ((await sql`
+      : await sqlTyped<RelRow>(sql`
           SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
           FROM relationships
           WHERE deleted_at IS NULL
             AND user_id = ${userId}
             AND from_id = ANY(${idsInWindow}::uuid[])
             AND to_id   = ANY(${idsInWindow}::uuid[])
-        `) as RelRow[])
+        `)
 
   return Response.json({
     from: {
