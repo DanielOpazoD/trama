@@ -10,6 +10,9 @@
  * lo dejamos cubierto a nivel de hook por separado, no acá.
  */
 
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -17,6 +20,8 @@ import { EntityForm } from './EntityForm'
 import { renderWithProviders } from '../../test-utils'
 import * as apiModule from '../../api'
 import { DuplicateEntityError } from '../../api'
+
+const here = dirname(fileURLToPath(import.meta.url))
 
 beforeEach(() => {
   vi.restoreAllMocks()
@@ -29,6 +34,12 @@ afterEach(() => {
 })
 
 describe('EntityForm', () => {
+  it('no castea clicks de botón como submit events', () => {
+    const source = readFileSync(join(here, 'EntityForm.tsx'), 'utf8')
+
+    expect(source).not.toContain('as unknown as FormEvent')
+  })
+
   it('renderiza inputs (nombre, año, descripción) y select de tipo', () => {
     renderWithProviders(<EntityForm onClose={() => {}} allLoadedEntities={[]} />)
     expect(screen.getByPlaceholderText('Nombre')).toBeInTheDocument()
