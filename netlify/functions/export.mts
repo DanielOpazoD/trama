@@ -3,7 +3,38 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
-import { LEGACY_PARTIAL_EXPORT_SCOPE } from './_lib/export-scope.js'
+import { STRUCTURED_CORE_EXPORT_SCOPE } from './_lib/export-scope.js'
+
+type JsonRecord = Record<string, unknown>
+
+function optional<T>(value: T | null): T | undefined {
+  return value ?? undefined
+}
+
+function collectBlobReferences(payload: unknown): string[] {
+  const refs = new Set<string>()
+  const add = (value: unknown) => {
+    if (typeof value === 'string' && value.trim().length > 0) refs.add(value)
+  }
+  const itemStorageKeys = (items: unknown) => {
+    if (!Array.isArray(items)) return
+    for (const item of items) {
+      if (item && typeof item === 'object') {
+        add((item as JsonRecord).storageKey)
+      }
+    }
+  }
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    const p = payload as JsonRecord
+    add(p.storageKey)
+    add(p.screenshotKey)
+    add(p.primaryStorageKey)
+    add(p.audioKey)
+    itemStorageKeys(p.items)
+    itemStorageKeys(p.photos)
+  }
+  return [...refs].sort()
+}
 
 export default withObservability('export', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
@@ -18,8 +49,12 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
     name: string
     year: number | null
     description: string | null
+    essay: string | null
     position_x: number | null
     position_y: number | null
+    spotify_url: string | null
+    wikipedia_url: string | null
+    grokipedia_url: string | null
     origin: unknown
     created_at: string
     updated_at: string
@@ -40,35 +75,103 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
     text: string
     source: string | null
     context: string | null
+    user_reflection: string | null
+    ai_reflection: string | null
+    ai_reflection_provider: string | null
+    ai_reflection_model: string | null
+    ai_reflection_at: string | null
+    linked_quote_ids: string[] | null
+    pinned_at: string | null
+    resonance: number | null
+    link: string | null
+    origin: unknown
+    created_at: string
+    updated_at: string
+  }
+  type MomentoRow = {
+    id: string
+    kind: string
+    captured_at: string
+    payload: unknown
+    note: string | null
+    origin: unknown
+    created_at: string
+    updated_at: string
+  }
+  type MomentoEntityRow = {
+    momento_id: string
+    entity_id: string
+  }
+  type NoteRow = {
+    id: string
+    content: string
+    tags: string[] | null
+    pinned: boolean
+    promoted_momento_id: string | null
+    origin: unknown
+    created_at: string
+    updated_at: string
+  }
+  type TaskRow = {
+    id: string
+    title: string
+    detail: string | null
+    done: boolean
+    due_date: string | null
+    completed_at: string | null
+    tags: string[] | null
     origin: unknown
     created_at: string
     updated_at: string
   }
 
-  const [entities, relationships, quotes] = await Promise.all([
-    sqlTyped<EntityRow>(sql`SELECT id, type, name, year, description, position_x, position_y, origin, created_at, updated_at
+  const [entities, relationships, quotes, momentos, momentoEntities, notes, tasks] =
+    await Promise.all([
+      sqlTyped<EntityRow>(sql`SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, created_at, updated_at
         FROM entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`),
-    sqlTyped<RelationshipRow>(sql`SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
+      sqlTyped<RelationshipRow>(sql`SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
         FROM relationships WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`),
-    sqlTyped<QuoteRow>(sql`SELECT id, entity_id, text, source, context, origin, created_at, updated_at
+      sqlTyped<QuoteRow>(sql`SELECT id, entity_id, text, source, context, user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at, linked_quote_ids, pinned_at, resonance, link, origin, created_at, updated_at
         FROM quotes WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`),
-  ])
+      sqlTyped<MomentoRow>(sql`SELECT id, kind, captured_at, payload, note, origin, created_at, updated_at
+        FROM momentos WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY captured_at, created_at`),
+      sqlTyped<MomentoEntityRow>(sql`SELECT momento_id, entity_id
+        FROM momento_entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY momento_id, entity_id`),
+      sqlTyped<NoteRow>(sql`SELECT id, content, tags, pinned, promoted_momento_id, origin, created_at, updated_at
+        FROM notes WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`),
+      sqlTyped<TaskRow>(sql`SELECT id, title, detail, done, due_date, completed_at, tags, origin, created_at, updated_at
+        FROM tasks WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`),
+    ])
+  const entityIdsByMomento = new Map<string, string[]>()
+  for (const link of momentoEntities) {
+    const list = entityIdsByMomento.get(link.momento_id) ?? []
+    list.push(link.entity_id)
+    entityIdsByMomento.set(link.momento_id, list)
+  }
+  const blobReferences = new Set<string>()
+  for (const momento of momentos) {
+    for (const ref of collectBlobReferences(momento.payload)) blobReferences.add(ref)
+  }
 
   const payload = {
-    version: 1 as const,
+    version: 2 as const,
     scope: {
-      label: 'Export parcial legado',
-      ...LEGACY_PARTIAL_EXPORT_SCOPE,
+      label: 'Backup estructurado core',
+      ...STRUCTURED_CORE_EXPORT_SCOPE,
     },
     exportedAt: new Date().toISOString(),
     entities: entities.map((row) => ({
       id: row.id,
       type: row.type,
       name: row.name,
-      year: row.year ?? undefined,
-      description: row.description ?? undefined,
-      positionX: row.position_x ?? undefined,
-      positionY: row.position_y ?? undefined,
+      year: optional(row.year),
+      description: optional(row.description),
+      essay: optional(row.essay),
+      positionX: optional(row.position_x),
+      positionY: optional(row.position_y),
+      spotifyUrl: optional(row.spotify_url),
+      wikipediaUrl: optional(row.wikipedia_url),
+      grokipediaUrl: optional(row.grokipedia_url),
       origin: row.origin,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -87,12 +190,55 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
       id: row.id,
       entityId: row.entity_id,
       text: row.text,
-      source: row.source ?? undefined,
-      context: row.context ?? undefined,
+      source: optional(row.source),
+      context: optional(row.context),
+      userReflection: optional(row.user_reflection),
+      aiReflection: optional(row.ai_reflection),
+      aiReflectionProvider: optional(row.ai_reflection_provider),
+      aiReflectionModel: optional(row.ai_reflection_model),
+      aiReflectionAt: optional(row.ai_reflection_at),
+      linkedQuoteIds: row.linked_quote_ids ?? [],
+      pinnedAt: optional(row.pinned_at),
+      resonance: optional(row.resonance),
+      link: optional(row.link),
       origin: row.origin,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     })),
+    momentos: momentos.map((row) => ({
+      id: row.id,
+      kind: row.kind,
+      capturedAt: row.captured_at,
+      payload: row.payload,
+      note: optional(row.note),
+      origin: row.origin,
+      entityIds: entityIdsByMomento.get(row.id) ?? [],
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })),
+    notes: notes.map((row) => ({
+      id: row.id,
+      content: row.content,
+      tags: row.tags ?? [],
+      pinned: row.pinned,
+      promotedMomentoId: optional(row.promoted_momento_id),
+      origin: row.origin,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })),
+    tasks: tasks.map((row) => ({
+      id: row.id,
+      title: row.title,
+      detail: optional(row.detail),
+      done: row.done,
+      dueDate: optional(row.due_date),
+      completedAt: optional(row.completed_at),
+      tags: row.tags ?? [],
+      origin: row.origin,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })),
+    blobReferences: [...blobReferences].sort(),
   }
 
   return Response.json(payload, {

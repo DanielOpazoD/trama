@@ -72,6 +72,12 @@ beforeEach(() => {
   vi.spyOn(apiModule.api, 'listEntities').mockResolvedValue([])
   vi.spyOn(apiModule.api, 'listQuotes').mockResolvedValue([])
   vi.spyOn(apiModule.api, 'listRelationships').mockResolvedValue([])
+  vi.spyOn(apiModule.api, 'listMomentos').mockResolvedValue({
+    items: [],
+    nextCursor: null,
+  })
+  vi.spyOn(apiModule.api.notes, 'list').mockResolvedValue([])
+  vi.spyOn(apiModule.api.tasks, 'list').mockResolvedValue([])
 })
 afterEach(() => vi.restoreAllMocks())
 
@@ -94,12 +100,46 @@ describe('buildPreview (pure)', () => {
       new Set(), // ningún relationship existente
       new Set(['q-1', 'q-2']), // las 2 quotes ya existen
     )
-    expect(result.entities).toEqual({ incoming: 3, news: 2, duplicates: 1 })
-    expect(result.relationships).toEqual({ incoming: 1, news: 1, duplicates: 0 })
-    expect(result.quotes).toEqual({ incoming: 2, news: 0, duplicates: 2 })
+    expect(result).toMatchObject({
+      entities: { incoming: 3, news: 2, duplicates: 1 },
+      relationships: { incoming: 1, news: 1, duplicates: 0 },
+      quotes: { incoming: 2, news: 0, duplicates: 2 },
+      momentos: { incoming: 0, news: 0, duplicates: 0 },
+      notes: { incoming: 0, news: 0, duplicates: 0 },
+      tasks: { incoming: 0, news: 0, duplicates: 0 },
+    })
     expect(result.totalIncoming).toBe(6)
     expect(result.totalNew).toBe(3)
     expect(result.totalDuplicates).toBe(3)
+  })
+
+  it('incluye Momentos, notas y tareas del backup v2 en el preview', () => {
+    const payload = {
+      version: 2,
+      exportedAt: '',
+      entities: [],
+      relationships: [],
+      quotes: [],
+      momentos: [{ id: 'm-1' }, { id: 'm-2' }],
+      notes: [{ id: 'n-1' }],
+      tasks: [{ id: 't-1' }, { id: 't-2' }],
+    } as unknown as ExportPayload
+    const result = buildPreview(
+      payload,
+      new Set(),
+      new Set(),
+      new Set(),
+      new Set(['m-2']),
+      new Set(),
+      new Set(['t-1']),
+    )
+
+    expect(result.momentos).toEqual({ incoming: 2, news: 1, duplicates: 1 })
+    expect(result.notes).toEqual({ incoming: 1, news: 1, duplicates: 0 })
+    expect(result.tasks).toEqual({ incoming: 2, news: 1, duplicates: 1 })
+    expect(result.totalIncoming).toBe(5)
+    expect(result.totalNew).toBe(3)
+    expect(result.totalDuplicates).toBe(2)
   })
 
   it('filas sin id se cuentan como duplicadas (defensivo)', () => {

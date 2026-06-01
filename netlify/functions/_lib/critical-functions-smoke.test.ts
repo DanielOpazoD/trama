@@ -97,8 +97,8 @@ describe('critical functions smoke', () => {
     expect(await res.json()).toMatchObject({ error: { code: 'UNAUTHENTICATED' } })
   })
 
-  it('export/import mantienen el scope parcial legado visible', async () => {
-    mockSqlResponses.push([], [], [])
+  it('export/import mantienen el scope estructurado core visible', async () => {
+    mockSqlResponses.push([], [], [], [], [], [], [])
     const exported = await exportHandler(
       new Request('http://localhost/api/export'),
       mockContext(),
@@ -106,9 +106,17 @@ describe('critical functions smoke', () => {
 
     expect(exported.status).toBe(200)
     expect(await exported.json()).toMatchObject({
+      version: 2,
       scope: {
-        kind: 'legacy-partial',
-        includes: ['entities', 'relationships', 'quotes'],
+        kind: 'structured-core',
+        includes: expect.arrayContaining([
+          'entities',
+          'relationships',
+          'quotes',
+          'momentos',
+          'notes',
+          'tasks',
+        ]),
       },
     })
 
@@ -118,7 +126,7 @@ describe('critical functions smoke', () => {
       new Request('http://localhost/api/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ version: 1, entities: [], relationships: [], quotes: [] }),
+        body: JSON.stringify({ version: 2, entities: [], relationships: [], quotes: [] }),
       }),
       mockContext(),
     )
@@ -128,7 +136,7 @@ describe('critical functions smoke', () => {
       imported: 0,
       skipped: 0,
       failed: [],
-      scope: { kind: 'legacy-partial' },
+      scope: { kind: 'structured-core' },
     })
   })
 

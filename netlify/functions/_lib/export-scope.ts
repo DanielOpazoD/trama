@@ -1,11 +1,18 @@
-export const LEGACY_PARTIAL_EXPORT_SCOPE = {
-  kind: 'legacy-partial',
-  includes: ['entities', 'relationships', 'quotes'],
-  excludes: [
+export const STRUCTURED_CORE_EXPORT_SCOPE = {
+  kind: 'structured-core',
+  includes: [
+    'entities',
+    'relationships',
+    'quotes',
     'momentos',
     'momento_entities',
     'notes',
     'tasks',
+    'blob_references',
+  ],
+  excludes: [
+    'netlify_blobs_binary',
+    'oauth_tokens',
     'cronicas_snapshots',
     'atlas_snapshots',
     'chat_threads',

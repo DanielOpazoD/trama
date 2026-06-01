@@ -71,6 +71,12 @@ export function useImport(): (payload: ExportPayload) => Promise<ImportResult> {
       queryClient.invalidateQueries({ queryKey: queryKeys.entities }),
       queryClient.invalidateQueries({ queryKey: queryKeys.relationships }),
       queryClient.invalidateQueries({ queryKey: queryKeys.quotes }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.momentosInfinite }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.home }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.atlas }),
     ])
     return result
   }

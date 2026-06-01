@@ -13,7 +13,7 @@
 
 1. Abrir Trama, ir a Settings.
 2. Bajar a "Datos" → clic en **Exportar**.
-3. Se descarga un archivo `trama-export-YYYY-MM-DD.json`.
+3. Se descarga un archivo `trama-YYYY-MM-DD.json`.
 4. Guardarlo en algún lugar fuera de la nube principal (un disco externo, Dropbox, Drive). No solo en iCloud — si pierdes la cuenta principal pierdes todo a la vez.
 5. Ya está.
 
@@ -35,13 +35,21 @@ Cinco minutos al mes te garantizan que aunque Netlify y Neon desaparezcan mañan
 4. Abrir la nueva Trama, ir a Settings → Datos → Importar.
 5. Subir el JSON.
 
-## Backup de la DB (más completo que el JSON)
+## Backup de la DB (incluye lo que el JSON no puede llevar)
 
-El export JSON es un **export parcial legado**. Cubre `entities`, `relationships` y `quotes`, pero **no incluye**:
+El export JSON actual es un **backup estructurado core**. Cubre:
 
-- `momentos` + `momento_entities` ni sus archivos en Blobs
+- `entities`
+- `relationships`
+- `quotes`
+- `momentos` + `momento_entities`
 - `notes`
 - `tasks`
+- referencias a blobs (`blobReferences`) para auditar qué media depende de Netlify Blobs
+
+No incluye los bytes binarios de Netlify Blobs ni tablas operacionales/derivadas:
+
+- archivos reales de fotos, screenshots o audios en Blobs
 - `cronicas_snapshots`
 - `atlas_snapshots`
 - chat_threads + chat_messages
@@ -55,7 +63,8 @@ El export JSON es un **export parcial legado**. Cubre `entities`, `relationships
 - web_vitals_samples
 - Embeddings (aunque se regeneran on-demand vía Settings → "Indexar lo pendiente")
 
-Para un backup TOTAL: usar Neon's built-in.
+Para un backup TOTAL de la DB: usar Neon's built-in. Para un backup TOTAL que además
+incluya media, hay que respaldar también Netlify Blobs.
 
 ### Neon backups automáticos
 
@@ -122,7 +131,7 @@ Para recuperar una fila:
 
 ## Contexto técnico
 
-- El endpoint `/api/export` selecciona solo las tablas del scope parcial legado (`entities`, `relationships`, `quotes`) y devuelve un JSON estructurado.
-- `/api/import` recibe ese JSON e inserta vía `INSERT ... ON CONFLICT ... DO NOTHING`.
+- El endpoint `/api/export` devuelve `version: 2` con scope `structured-core`: grafo, citas, Momentos, notas, tareas y referencias a blobs.
+- `/api/import` acepta `version: 1` legado y `version: 2`, e inserta vía `INSERT ... ON CONFLICT ... DO NOTHING`.
 - Soft-delete vive en `deleted_at TIMESTAMPTZ NULL` en todas las tablas de dominio.
 - Las tablas append-only (chat_messages, spotify_plays, error_log, extraction_log) no tienen soft-delete — se borran via CASCADE de su parent o nunca.

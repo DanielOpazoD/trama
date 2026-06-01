@@ -2,9 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   useEntitiesQuery,
   useExport,
+  useInfiniteMomentosQuery,
   useImport,
+  useNotesQuery,
   useQuotesQuery,
   useRelationshipsQuery,
+  useTasksQuery,
 } from '../../state'
 import type { ExportPayload } from '../../types'
 import { DownloadIcon, UploadIcon } from '../Icons'
@@ -14,8 +17,8 @@ import { RescueOrphansPanel } from '../momentos/RescueOrphansPanel'
 /**
  * Settings → Datos.
  *
- * Export: descarga JSON completo de la trama (entities + relationships +
- * quotes del usuario actual).
+ * Export: descarga el backup estructurado core de la trama: grafo, citas,
+ * Momentos, notas, tareas y referencias a blobs.
  *
  * Import: ADITIVO por diseño. El endpoint `/api/import` usa
  * `INSERT ... ON CONFLICT (id) DO NOTHING`, lo que significa que NUNCA
@@ -41,6 +44,9 @@ type Preview = {
   entities: BucketCount
   relationships: BucketCount
   quotes: BucketCount
+  momentos: BucketCount
+  notes: BucketCount
+  tasks: BucketCount
   totalIncoming: number
   totalNew: number
   totalDuplicates: number
@@ -62,6 +68,14 @@ export function DataPanel() {
   const { data: existingEntities = [] } = useEntitiesQuery()
   const { data: existingQuotes = [] } = useQuotesQuery()
   const { data: existingRelationships = [] } = useRelationshipsQuery()
+  const { data: existingMomentosPages } = useInfiniteMomentosQuery()
+  const { data: existingNotes = [] } = useNotesQuery()
+  const { data: existingTasks = [] } = useTasksQuery()
+
+  const existingMomentos = useMemo(
+    () => existingMomentosPages?.pages.flatMap((page) => page.items) ?? [],
+    [existingMomentosPages],
+  )
 
   useEffect(() => {
     if (!message) return
@@ -76,8 +90,19 @@ export function DataPanel() {
       new Set(existingEntities.map((e) => e.id)),
       new Set(existingRelationships.map((r) => r.id)),
       new Set(existingQuotes.map((q) => q.id)),
+      new Set(existingMomentos.map((m) => m.id)),
+      new Set(existingNotes.map((n) => n.id)),
+      new Set(existingTasks.map((t) => t.id)),
     )
-  }, [parsed, existingEntities, existingRelationships, existingQuotes])
+  }, [
+    parsed,
+    existingEntities,
+    existingRelationships,
+    existingQuotes,
+    existingMomentos,
+    existingNotes,
+    existingTasks,
+  ])
 
   async function handleExport() {
     setBusy(true)
@@ -112,7 +137,7 @@ export function DataPanel() {
     try {
       const text = await file.text()
       const payload = JSON.parse(text) as ExportPayload
-      if (payload.version !== 1) {
+      if (payload.version !== 1 && payload.version !== 2) {
         throw new Error(`versión ${payload.version} no soportada`)
       }
       setParsed({ payload, fileName: file.name })
@@ -244,7 +269,16 @@ function ImportPreviewCard({
   onConfirm: () => void
   onCancel: () => void
 }) {
-  const { entities, relationships, quotes, totalNew, totalDuplicates } = preview
+  const {
+    entities,
+    relationships,
+    quotes,
+    momentos,
+    notes,
+    tasks,
+    totalNew,
+    totalDuplicates,
+  } = preview
 
   return (
     <div
@@ -274,6 +308,9 @@ function ImportPreviewCard({
           <PreviewRow label="Entidades" stats={entities} />
           <PreviewRow label="Relaciones" stats={relationships} />
           <PreviewRow label="Citas" stats={quotes} />
+          <PreviewRow label="Momentos" stats={momentos} />
+          <PreviewRow label="Notas" stats={notes} />
+          <PreviewRow label="Tareas" stats={tasks} />
           <tr className="border-t border-ink-100/60 font-medium">
             <td className="pt-1.5">Total</td>
             <td className="pt-1.5 text-right">{preview.totalIncoming}</td>
@@ -331,15 +368,48 @@ export function buildPreview(
   existingEntityIds: Set<string>,
   existingRelationshipIds: Set<string>,
   existingQuoteIds: Set<string>,
+  existingMomentoIds: Set<string> = new Set(),
+  existingNoteIds: Set<string> = new Set(),
+  existingTaskIds: Set<string> = new Set(),
 ): Preview {
   const entities = countBucket(payload.entities ?? [], existingEntityIds)
   const relationships = countBucket(payload.relationships ?? [], existingRelationshipIds)
   const quotes = countBucket(payload.quotes ?? [], existingQuoteIds)
-  const totalIncoming = entities.incoming + relationships.incoming + quotes.incoming
-  const totalNew = entities.news + relationships.news + quotes.news
+  const momentos = countBucket(payload.momentos ?? [], existingMomentoIds)
+  const notes = countBucket(payload.notes ?? [], existingNoteIds)
+  const tasks = countBucket(payload.tasks ?? [], existingTaskIds)
+  const totalIncoming =
+    entities.incoming +
+    relationships.incoming +
+    quotes.incoming +
+    momentos.incoming +
+    notes.incoming +
+    tasks.incoming
+  const totalNew =
+    entities.news +
+    relationships.news +
+    quotes.news +
+    momentos.news +
+    notes.news +
+    tasks.news
   const totalDuplicates =
-    entities.duplicates + relationships.duplicates + quotes.duplicates
-  return { entities, relationships, quotes, totalIncoming, totalNew, totalDuplicates }
+    entities.duplicates +
+    relationships.duplicates +
+    quotes.duplicates +
+    momentos.duplicates +
+    notes.duplicates +
+    tasks.duplicates
+  return {
+    entities,
+    relationships,
+    quotes,
+    momentos,
+    notes,
+    tasks,
+    totalIncoming,
+    totalNew,
+    totalDuplicates,
+  }
 }
 
 function countBucket(items: Array<{ id?: string }>, existing: Set<string>): BucketCount {

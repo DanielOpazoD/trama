@@ -3,13 +3,13 @@
  * cualquier IA (ChatGPT, Claude, Gemini…) para que genere un archivo JSON
  * con citas de uno o más autores, importable directo a Trama.
  *
- * El formato espeja EXACTAMENTE el body de POST /api/import (export v1):
+ * El formato espeja el body mínimo de POST /api/import (v1 legado aceptado):
  * `entities[]` + `quotes[]`, vinculadas por id (quote.entityId === entity.id).
  * El import inserta los `id` tal cual (no remapea), así que deben ser únicos.
  *
  * Mantener sincronizado con:
  *   - netlify/functions/import.mts            (campos + vinculación por id)
- *   - netlify/functions/_lib/admin-schemas.ts (version: 1)
+ *   - netlify/functions/_lib/admin-schemas.ts (version: 1 | 2)
  *   - netlify/functions/_lib/quote-schemas.ts (campos de cita, incl. link)
  *   - src/types/entity.ts                     (tipos de entidad válidos)
  */
