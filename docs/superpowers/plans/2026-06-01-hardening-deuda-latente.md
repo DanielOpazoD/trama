@@ -19,11 +19,11 @@
 - Modify/Test: `netlify/functions/_lib/import-endpoint.test.ts`
 - Modify docs if needed: `docs/datos.md`
 
-- [ ] Write tests that prove export/import response metadata names the legacy partial scope.
-- [ ] Implement metadata without changing the existing data payload contract.
-- [ ] Update data docs so backup limitations name current domains.
-- [ ] Run focused import/export tests.
-- [ ] Commit.
+- [x] Write tests that prove export/import response metadata names the legacy partial scope.
+- [x] Implement metadata without changing the existing data payload contract.
+- [x] Update data docs so backup limitations name current domains.
+- [x] Run focused import/export tests.
+- [x] Commit.
 
 ### Task 2: LLM rerank cost and observability guardrail
 
@@ -35,11 +35,11 @@
 - Modify/Test: `netlify/functions/_lib/ask-endpoint.test.ts`
 - Modify/Test: `netlify/functions/_lib/llm-cost-observability.test.ts`
 
-- [ ] Write tests showing rerank checks monthly budget and records observable cost where applicable.
-- [ ] Thread `userId` and `requestId` through rerank callers.
-- [ ] Keep graceful degradation when rerank fails.
-- [ ] Run focused LLM/search tests.
-- [ ] Commit.
+- [x] Write tests showing rerank checks monthly budget and records observable cost where applicable.
+- [x] Thread `userId` and `requestId` through rerank callers.
+- [x] Keep graceful degradation when rerank fails or AI mode is not ready.
+- [x] Run focused LLM/search tests.
+- [x] Commit.
 
 ### Task 3: Cron observability
 
@@ -85,3 +85,32 @@
 - [ ] Replace expensive graph signatures with cheaper revision-style signatures while preserving behavior.
 - [ ] Run focused tests, build, full test suite, and bundle check.
 - [ ] Commit.
+
+### Task 6: OAuth callback identity hardening
+
+**Files:**
+
+- Modify: `netlify/functions/spotify-callback.mts`
+- Modify: `netlify/functions/x-callback.mts`
+- Modify/Test: `netlify/functions/_lib/spotify-oauth.test.ts`
+- Modify/Test: `netlify/functions/_lib/x-oauth.test.ts`
+
+- [x] Write tests that prove malformed or blank OAuth user cookies redirect instead of 500.
+- [x] Decode callback user cookies defensively before setting RLS context.
+- [x] Preserve token-save behavior for valid callbacks and skip token exchange/save for invalid identity.
+- [x] Run focused Spotify/X OAuth tests.
+- [x] Commit.
+
+### Task 7: OAuth cookie transport hardening
+
+**Files:**
+
+- Modify: `netlify/functions/spotify-login.mts`
+- Modify: `netlify/functions/x-login.mts`
+- Modify/Test: `netlify/functions/_lib/spotify-oauth.test.ts`
+- Modify/Test: `netlify/functions/_lib/x-oauth.test.ts`
+
+- [x] Write tests that prove OAuth login cookies include `Secure` when served over HTTPS.
+- [x] Add protocol-aware cookie options while preserving local HTTP development.
+- [x] Run focused Spotify/X OAuth tests.
+- [x] Commit.

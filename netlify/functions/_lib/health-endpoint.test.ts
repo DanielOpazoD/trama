@@ -18,8 +18,9 @@ describe('health endpoint — aislamiento por user_id', () => {
     mockSqlResponses.reset()
     process.env['AI_MONTHLY_BUDGET_CENTS'] = '5000'
     resetEnvCache()
-    // 10 respuestas en el orden del Promise.all del handler.
+    // 11 respuestas: set_config RLS + 10 queries del handler.
     mockSqlResponses.push(
+      [{ set_config: 'legacy-single-user' }],
       [{ cap: null }], // users.monthly_budget_cents
       [{ c: '5' }], // entities count
       [{ c: '10' }], // quotes count
@@ -52,6 +53,7 @@ describe('health endpoint — aislamiento por user_id', () => {
     // mostraría agregados globales cross-user.
     expect(mockSqlResponses.calls.length).toBeGreaterThanOrEqual(10)
     for (const call of mockSqlResponses.calls) {
+      if (/set_config\('app\.current_user_id'/.test(call.template)) continue
       if (/FROM users/i.test(call.template)) continue
       expect(call.template).toMatch(/user_id/)
     }
@@ -60,6 +62,7 @@ describe('health endpoint — aislamiento por user_id', () => {
   it('usa users.monthly_budget_cents para mostrar el mismo cap que aplica cost-cap', async () => {
     mockSqlResponses.reset()
     mockSqlResponses.push(
+      [{ set_config: 'legacy-single-user' }],
       [{ cap: 200 }], // users.monthly_budget_cents
       [{ c: '5' }],
       [{ c: '10' }],
@@ -94,6 +97,7 @@ describe('health endpoint — aislamiento por user_id', () => {
     await handler(new Request('http://localhost/api/health'), mockContext())
     // En tests, getAuthedUser cae a 'legacy-single-user' (sin Clerk).
     const first = mockSqlResponses.calls[0]!
+    expect(first.template).toMatch(/set_config\('app\.current_user_id', \?, true\)/)
     expect(first.values).toContain('legacy-single-user')
   })
 

@@ -1,9 +1,10 @@
 import type { Config } from '@netlify/functions'
-import { getSql, sqlTyped } from './_lib/db.js'
+import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { STRUCTURED_CORE_EXPORT_SCOPE } from './_lib/export-scope.js'
+import { runWithUserRls } from './_lib/user-rls.js'
 
 type JsonRecord = Record<string, unknown>
 
@@ -126,22 +127,30 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
   }
 
   const [entities, relationships, quotes, momentos, momentoEntities, notes, tasks] =
-    await Promise.all([
-      sqlTyped<EntityRow>(sql`SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, created_at, updated_at
-        FROM entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`),
-      sqlTyped<RelationshipRow>(sql`SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
-        FROM relationships WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`),
-      sqlTyped<QuoteRow>(sql`SELECT id, entity_id, text, source, context, user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at, linked_quote_ids, pinned_at, resonance, link, origin, created_at, updated_at
-        FROM quotes WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`),
-      sqlTyped<MomentoRow>(sql`SELECT id, kind, captured_at, payload, note, origin, created_at, updated_at
-        FROM momentos WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY captured_at, created_at`),
-      sqlTyped<MomentoEntityRow>(sql`SELECT momento_id, entity_id
-        FROM momento_entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY momento_id, entity_id`),
-      sqlTyped<NoteRow>(sql`SELECT id, content, tags, pinned, promoted_momento_id, origin, created_at, updated_at
-        FROM notes WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`),
-      sqlTyped<TaskRow>(sql`SELECT id, title, detail, done, due_date, completed_at, tags, origin, created_at, updated_at
-        FROM tasks WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`),
-    ])
+    (await runWithUserRls(sql, userId, (scoped) => [
+      scoped`SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, created_at, updated_at
+        FROM entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
+      scoped`SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
+        FROM relationships WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
+      scoped`SELECT id, entity_id, text, source, context, user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at, linked_quote_ids, pinned_at, resonance, link, origin, created_at, updated_at
+        FROM quotes WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
+      scoped`SELECT id, kind, captured_at, payload, note, origin, created_at, updated_at
+        FROM momentos WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY captured_at, created_at`,
+      scoped`SELECT momento_id, entity_id
+        FROM momento_entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY momento_id, entity_id`,
+      scoped`SELECT id, content, tags, pinned, promoted_momento_id, origin, created_at, updated_at
+        FROM notes WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
+      scoped`SELECT id, title, detail, done, due_date, completed_at, tags, origin, created_at, updated_at
+        FROM tasks WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
+    ])) as [
+      EntityRow[],
+      RelationshipRow[],
+      QuoteRow[],
+      MomentoRow[],
+      MomentoEntityRow[],
+      NoteRow[],
+      TaskRow[],
+    ]
   const entityIdsByMomento = new Map<string, string[]>()
   for (const link of momentoEntities) {
     const list = entityIdsByMomento.get(link.momento_id) ?? []

@@ -9,6 +9,7 @@ import {
 import { withObservability } from './_lib/handler-wrap.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { setCurrentRlsUser } from './_lib/user-rls.js'
 
 /**
  * OAuth callback: Spotify redirects here with ?code=... after the user grants
@@ -44,7 +45,9 @@ export default withObservability('spotify-callback', async (req, _ctx, { request
   // forjar. Si falta, el callback no tiene identidad confiable: rechazamos en
   // vez de caer silenciosamente al legacy owner.
   if (!cookies.spotify_uid) return redirectWith('/?spotify_error=missing_uid')
-  const userId = decodeURIComponent(cookies.spotify_uid)
+  const userId = decodeUserCookie(cookies.spotify_uid)
+  if (!userId) return redirectWith('/?spotify_error=invalid_uid')
+  setCurrentRlsUser(userId)
 
   const sql = getSql()
   await ensureUserRow(sql, { id: userId })
@@ -84,6 +87,15 @@ function parseCookies(header: string): Record<string, string> {
       return [k, v.join('=')]
     }),
   )
+}
+
+function decodeUserCookie(value: string): string | null {
+  try {
+    const decoded = decodeURIComponent(value).trim()
+    return decoded.length > 0 ? decoded : null
+  } catch {
+    return null
+  }
 }
 
 export const config: Config = {

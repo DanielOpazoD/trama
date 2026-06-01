@@ -505,6 +505,10 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     scope: {
       label: 'Import estructurado core',
       ...STRUCTURED_CORE_EXPORT_SCOPE,
+      warnings: [
+        'Importa solo el backup estructurado core; no restaura blobs, tokens ni logs.',
+        ...STRUCTURED_CORE_EXPORT_SCOPE.warnings,
+      ],
     },
     // Retro-compat: clientes viejos sólo leen `imported`.
   })

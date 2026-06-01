@@ -49,4 +49,11 @@ describe('deployment guard', () => {
     expect(res.status).toBe(1)
     expect(res.stderr).toContain('ALLOW_LEGACY_FALLBACK=true')
   })
+
+  it('fails when production has no Clerk credentials', () => {
+    const res = run({ CONTEXT: 'production' })
+
+    expect(res.status).toBe(1)
+    expect(res.stderr).toContain('Clerk es obligatorio en producción')
+  })
 })

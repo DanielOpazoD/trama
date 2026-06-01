@@ -27,6 +27,7 @@ Usamos un MADR-lite — ver [`template.md`](./template.md).
 | [0007](./0007-lazy-loading-per-view.md)          | Lazy loading per-view en ViewRouter                          | Accepted | 2026-05-27 |
 | [0008](./0008-webgl-threshold-sigma.md)          | SVG vs sigma.js con `WEBGL_THRESHOLD = 1000`                 | Accepted | 2026-05-27 |
 | [0009](./0009-extraction-log-single-audit.md)    | `extraction_log` como single audit log para LLM calls        | Accepted | 2026-05-27 |
+| [0010](./0010-rls-privacy-boundary.md)           | RLS como segunda barrera de privacidad, no cero-conocimiento | Accepted | 2026-06-01 |
 
 ## Cómo agregar uno
 

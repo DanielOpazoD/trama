@@ -22,6 +22,7 @@ describe('export endpoint', () => {
 
   it('exporta el backup estructurado core en camelCase sin soft-deleted', async () => {
     mockSqlResponses.push(
+      [{ set_config: 'legacy-single-user' }],
       [
         {
           id: 'e1',
@@ -127,6 +128,7 @@ describe('export endpoint', () => {
       version: 2,
       scope: {
         kind: 'structured-core',
+        completeness: 'partial',
         label: 'Backup estructurado core',
         includes: expect.arrayContaining([
           'entities',
@@ -138,6 +140,10 @@ describe('export endpoint', () => {
           'tasks',
         ]),
         excludes: expect.arrayContaining(['netlify_blobs_binary', 'oauth_tokens']),
+        warnings: expect.arrayContaining([
+          'No incluye bytes binarios de Netlify Blobs; respalda media por separado.',
+          'No incluye OAuth tokens ni tablas operacionales/derivadas.',
+        ]),
       },
       entities: [
         {
@@ -208,7 +214,12 @@ describe('export endpoint', () => {
       ],
       blobReferences: ['legacy-single-user/audio.webm', 'legacy-single-user/foto.png'],
     })
+    expect(mockSqlState.calls[0]?.template).toMatch(
+      /set_config\('app\.current_user_id', \?, true\)/,
+    )
+    expect(mockSqlState.calls[0]?.values).toContain('legacy-single-user')
     for (const call of mockSqlState.calls) {
+      if (/set_config\('app\.current_user_id'/.test(call.template)) continue
       expect(call.template).toMatch(/deleted_at IS NULL/)
       expect(call.template).toMatch(/user_id/)
       expect(call.values).toContain('legacy-single-user')

@@ -37,7 +37,9 @@ Cinco minutos al mes te garantizan que aunque Netlify y Neon desaparezcan mañan
 
 ## Backup de la DB (incluye lo que el JSON no puede llevar)
 
-El export JSON actual es un **backup estructurado core**. Cubre:
+El export JSON actual es un **backup estructurado core parcial**. El archivo
+declara `scope.kind = "structured-core"` y `scope.completeness = "partial"`
+para que no se confunda con un dump completo de Neon/Blobs. Cubre:
 
 - `entities`
 - `relationships`
@@ -62,6 +64,9 @@ No incluye los bytes binarios de Netlify Blobs ni tablas operacionales/derivadas
 - llm_cache
 - web_vitals_samples
 - Embeddings (aunque se regeneran on-demand vía Settings → "Indexar lo pendiente")
+
+Importar ese JSON restaura solo ese core estructurado. No restaura blobs, tokens,
+logs ni snapshots derivados.
 
 Para un backup TOTAL de la DB: usar Neon's built-in. Para un backup TOTAL que además
 incluya media, hay que respaldar también Netlify Blobs.

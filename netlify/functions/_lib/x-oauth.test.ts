@@ -153,6 +153,20 @@ describe('x-login', () => {
     expect(setCookie).toMatch(/HttpOnly/i)
   })
 
+  it('marca cookies OAuth como Secure cuando el login corre sobre HTTPS', async () => {
+    const res = await loginHandler(
+      new Request('https://trama.example/api/x/login'),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const setCookie = res.headers.get('set-cookie') ?? ''
+    expect(setCookie).toContain('x_state=')
+    expect(setCookie).toContain('x_verifier=VERIFIER')
+    expect(setCookie).toContain('x_uid=legacy-single-user')
+    expect(setCookie).toMatch(/;\s*Secure/i)
+  })
+
   it('400 (no 500) cuando X no está configurado', async () => {
     isXConfigured.mockReturnValue(false)
     const res = await loginHandler(
@@ -221,6 +235,23 @@ describe('x-callback', () => {
     )
     expect(res.status).toBe(302)
     expect(res.headers.get('Location')).toContain('missing_uid')
+    expect(exchangeCodeForTokens).not.toHaveBeenCalled()
+    expect(saveTokens).not.toHaveBeenCalled()
+  })
+
+  it('rechaza x_uid corrupto o vacío sin convertir el callback en 500', async () => {
+    for (const uid of ['%E0%A4%A', '%20%20']) {
+      const res = await callbackHandler(
+        reqWithCookie(
+          'http://localhost/api/x/callback?code=the-code&state=OK',
+          `x_state=OK; x_verifier=the-verifier; x_uid=${uid}`,
+        ),
+        mockContext(),
+      )
+
+      expect(res.status).toBe(302)
+      expect(res.headers.get('Location')).toContain('invalid_uid')
+    }
     expect(exchangeCodeForTokens).not.toHaveBeenCalled()
     expect(saveTokens).not.toHaveBeenCalled()
   })

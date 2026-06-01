@@ -13,6 +13,7 @@ import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
 import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { runWithSystemRls } from './_lib/user-rls.js'
 
 type XTokenUserRow = {
   user_id: string
@@ -33,113 +34,117 @@ type XTokenUserRow = {
 export default withObservability(
   'x-scheduled-sync',
   async (req: Request, _ctx, { requestId }) => {
-  if (req.method !== 'POST') {
-    return ApiErrors.methodNotAllowed(requestId)
-  }
-
-  let nextRun = 'unknown'
-  try {
-    const body = (await req.json().catch(() => ({}))) as { next_run?: string }
-    nextRun = body.next_run ?? 'unknown'
-  } catch {
-    /* parsing defensivo del body — nunca es crítico */
-  }
-
-  let sql: ReturnType<typeof getSql>
-  try {
-    sql = getSql()
-  } catch (err) {
-    if (isMissingDatabaseConnectionError(err)) {
-      logErrorEvent({
-        event: 'x_scheduled_sync_skipped',
-        reason: 'no_db_url',
-        message: 'Netlify Database no está conectada (NETLIFY_DB_URL falta)',
-      })
-      return ApiSuccess.accepted()
+    if (req.method !== 'POST') {
+      return ApiErrors.methodNotAllowed(requestId)
     }
-    throw err
-  }
 
-  const userRows = await sqlTyped<XTokenUserRow>(sql`
-    SELECT user_id, x_user_id FROM x_tokens
-  `.catch(() => []))
-
-  if (userRows.length === 0) {
-    logEvent({ event: 'x_scheduled_sync_skipped', reason: 'not_connected', nextRun })
-    return ApiSuccess.accepted()
-  }
-
-  let fetched = 0
-  let inserted = 0
-  let classified = 0
-  let failures = 0
-  for (const { user_id: userId, x_user_id } of userRows) {
+    let nextRun = 'unknown'
     try {
-      const accessToken = await getValidAccessToken(sql, userId)
-      if (!accessToken) {
-        failures++
+      const body = (await req.json().catch(() => ({}))) as { next_run?: string }
+      nextRun = body.next_run ?? 'unknown'
+    } catch {
+      /* parsing defensivo del body — nunca es crítico */
+    }
+
+    let sql: ReturnType<typeof getSql>
+    try {
+      sql = getSql()
+    } catch (err) {
+      if (isMissingDatabaseConnectionError(err)) {
         logErrorEvent({
-          event: 'x_scheduled_sync_user_failed',
-          userId,
-          reason: 'token_refresh_failed',
-          message: 'No se pudo obtener un access token válido',
+          event: 'x_scheduled_sync_skipped',
+          reason: 'no_db_url',
+          message: 'Netlify Database no está conectada (NETLIFY_DB_URL falta)',
         })
-        continue
+        return ApiSuccess.accepted()
       }
-      let xUserId = x_user_id
-      if (!xUserId) {
-        const profile = await getXProfile(accessToken)
-        xUserId = profile?.id ?? null
-      }
-      if (!xUserId) {
-        failures++
-        continue
+      throw err
+    }
+
+    return runWithSystemRls(async () => {
+      const userRows = await sqlTyped<XTokenUserRow>(
+        sql`
+    SELECT user_id, x_user_id FROM x_tokens
+  `.catch(() => []),
+      )
+
+      if (userRows.length === 0) {
+        logEvent({ event: 'x_scheduled_sync_skipped', reason: 'not_connected', nextRun })
+        return ApiSuccess.accepted()
       }
 
-      const items = await fetchBookmarks(accessToken, xUserId)
-      const ins = await storeBookmarks(sql, items, userId)
-      await markSynced(sql, userId)
-      fetched += items.length
-      inserted += ins
-
-      // Auto-clasificar lo nuevo (best-effort, acotado, respeta el cost-cap).
-      if (ins > 0) {
+      let fetched = 0
+      let inserted = 0
+      let classified = 0
+      let failures = 0
+      for (const { user_id: userId, x_user_id } of userRows) {
         try {
-          const overBudget = await checkMonthlyBudget(userId, requestId)
-          const invocation = await resolveAIInvocation(req, 'classify', userId)
-          if (!overBudget && invocation.kind === 'ready') {
-            const r = await runClassify(
-              sql,
+          const accessToken = await getValidAccessToken(sql, userId)
+          if (!accessToken) {
+            failures++
+            logErrorEvent({
+              event: 'x_scheduled_sync_user_failed',
               userId,
-              { provider: invocation.provider, model: invocation.model },
-              2,
-            )
-            classified += r.classified
+              reason: 'token_refresh_failed',
+              message: 'No se pudo obtener un access token válido',
+            })
+            continue
           }
-        } catch {
-          /* clasificación best-effort — el sync ya guardó los bookmarks */
+          let xUserId = x_user_id
+          if (!xUserId) {
+            const profile = await getXProfile(accessToken)
+            xUserId = profile?.id ?? null
+          }
+          if (!xUserId) {
+            failures++
+            continue
+          }
+
+          const items = await fetchBookmarks(accessToken, xUserId)
+          const ins = await storeBookmarks(sql, items, userId)
+          await markSynced(sql, userId)
+          fetched += items.length
+          inserted += ins
+
+          // Auto-clasificar lo nuevo (best-effort, acotado, respeta el cost-cap).
+          if (ins > 0) {
+            try {
+              const overBudget = await checkMonthlyBudget(userId, requestId)
+              const invocation = await resolveAIInvocation(req, 'classify', userId)
+              if (!overBudget && invocation.kind === 'ready') {
+                const r = await runClassify(
+                  sql,
+                  userId,
+                  { provider: invocation.provider, model: invocation.model },
+                  2,
+                )
+                classified += r.classified
+              }
+            } catch {
+              /* clasificación best-effort — el sync ya guardó los bookmarks */
+            }
+          }
+        } catch (err) {
+          failures++
+          logErrorEvent({
+            event: 'x_scheduled_sync_user_failed',
+            userId,
+            message: err instanceof Error ? err.message : String(err),
+          })
         }
       }
-    } catch (err) {
-      failures++
-      logErrorEvent({
-        event: 'x_scheduled_sync_user_failed',
-        userId,
-        message: err instanceof Error ? err.message : String(err),
-      })
-    }
-  }
 
-  logEvent({
-    event: 'x_scheduled_sync_ok',
-    users: userRows.length,
-    fetched,
-    inserted,
-    classified,
-    failures,
-    nextRun,
-  })
-  return ApiSuccess.accepted()
+      logEvent({
+        event: 'x_scheduled_sync_ok',
+        users: userRows.length,
+        fetched,
+        inserted,
+        classified,
+        failures,
+        nextRun,
+      })
+      return ApiSuccess.accepted()
+    })
   },
 )
 

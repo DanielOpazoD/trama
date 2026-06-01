@@ -11,6 +11,7 @@
  *     `legacy-single-user` en lugar de 401 (cutover gradual).
  */
 import { verifyToken } from '@clerk/backend'
+import { setCurrentRlsUser } from './user-rls'
 
 /** Lee una env var de forma segura tanto en Netlify runtime como en tests. */
 function readEnv(key: string): string | undefined {
@@ -62,7 +63,9 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
 
   // Sin Clerk: la app funciona como single-user. No hace falta opt-in.
   if (!clerkConfigured) {
-    return { id: 'legacy-single-user' }
+    const user = { id: 'legacy-single-user' }
+    setCurrentRlsUser(user.id)
+    return user
   }
 
   const token = request.headers.get('authorization')?.replace('Bearer ', '').trim()
@@ -81,9 +84,13 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
       // definitiva, sobre las llaves de producción finales.
       const ownerSub = readEnv('LEGACY_OWNER_CLERK_ID')
       if (ownerSub && payload.sub === ownerSub) {
-        return { id: 'legacy-single-user' }
+        const user = { id: 'legacy-single-user' }
+        setCurrentRlsUser(user.id)
+        return user
       }
-      return { id: payload.sub }
+      const user = { id: payload.sub }
+      setCurrentRlsUser(user.id)
+      return user
     } catch {
       // Token inválido — caer al fallback si está habilitado
     }
@@ -92,7 +99,9 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
   // Clerk configurado pero sin token válido. ALLOW_LEGACY_FALLBACK permite
   // un cutover gradual durante el período de migración.
   if (readEnv('ALLOW_LEGACY_FALLBACK') === 'true') {
-    return { id: 'legacy-single-user' }
+    const user = { id: 'legacy-single-user' }
+    setCurrentRlsUser(user.id)
+    return user
   }
 
   throw new UnauthenticatedError()

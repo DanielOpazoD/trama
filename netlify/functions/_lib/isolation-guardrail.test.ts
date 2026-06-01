@@ -261,6 +261,48 @@ describe('guardrail: migraciones mantienen FK user_id -> users(id)', () => {
   })
 })
 
+describe('guardrail: migraciones habilitan RLS en tablas privadas', () => {
+  const sql = allMigrationSql()
+
+  it('declara políticas RLS basadas en app.current_user_id', () => {
+    expect(sql).toMatch(/ENABLE\s+ROW\s+LEVEL\s+SECURITY/i)
+    expect(sql).toMatch(/FORCE\s+ROW\s+LEVEL\s+SECURITY/i)
+    expect(sql).toMatch(/CREATE\s+POLICY\s+trama_user_isolation/i)
+    expect(sql).toMatch(/current_setting\('app\.current_user_id',\s*true\)/i)
+    expect(sql).toMatch(/current_setting\('app\.rls_bypass',\s*true\)\s*=\s*'system'/i)
+  })
+
+  for (const table of PER_USER_TABLES) {
+    it(`${table}: está incluida en el set RLS privado`, () => {
+      expect(
+        sql,
+        `${table} tiene user_id pero no aparece en la migración RLS. ` +
+          'Inclúyela en el array de tablas privadas o documenta por qué queda fuera.',
+      ).toMatch(new RegExp(`'${table}'`))
+    })
+  }
+})
+
+describe('guardrail: endpoints públicos declaran contexto RLS explícito', () => {
+  const contextByFile: Record<string, RegExp> = {
+    'cost-alert-check.mts': /runWithSystemRls/,
+    'spotify-callback.mts': /setCurrentRlsUser/,
+    'spotify-scheduled-sync.mts': /runWithSystemRls/,
+    'x-callback.mts': /setCurrentRlsUser/,
+    'x-scheduled-sync.mts': /runWithSystemRls/,
+  }
+
+  for (const [file, expected] of Object.entries(contextByFile)) {
+    it(`${file}: usa contexto RLS compatible con su exención de auth`, () => {
+      const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
+      expect(
+        src,
+        `${file} está exento de getAuthedUser(), pero con FORCE RLS debe declarar setCurrentRlsUser() o runWithSystemRls().`,
+      ).toMatch(expected)
+    })
+  }
+})
+
 describe('guardrail: JOINs a tablas per-user scopean también el alias unido', () => {
   const expectations = [
     { file: 'search.mts', table: 'entities', alias: 'e', min: 2 },

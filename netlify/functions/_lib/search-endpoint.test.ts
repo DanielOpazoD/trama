@@ -311,4 +311,48 @@ describe('search endpoint', () => {
       }),
     )
   })
+
+  it('omite rerank si el modo IA no está listo', async () => {
+    searchMocks.resolveAIInvocation.mockResolvedValue({ kind: 'off' })
+    mockSqlResponses.push(
+      [
+        {
+          id: 'e1',
+          name: 'A',
+          type: 'persona',
+          description: null,
+          year: null,
+          rank: 0.9,
+        },
+        {
+          id: 'e2',
+          name: 'B',
+          type: 'persona',
+          description: null,
+          year: null,
+          rank: 0.8,
+        },
+      ],
+      [],
+      [],
+      [],
+      [],
+    )
+
+    const res = await handler(
+      new Request('http://localhost/api/search?q=algo&mode=lexical&rerank=true&limit=2'),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.reranked).toBe(false)
+    expect(body.entities.map((e: { id: string }) => e.id)).toEqual(['e1', 'e2'])
+    expect(searchMocks.resolveAIInvocation).toHaveBeenCalledWith(
+      expect.any(Request),
+      'chat',
+      'legacy-single-user',
+    )
+    expect(searchMocks.llmRerank).not.toHaveBeenCalled()
+  })
 })

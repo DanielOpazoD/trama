@@ -98,6 +98,19 @@ describe('spotify-login — userId en cookie', () => {
     expect(setCookie).toContain('spotify_uid=legacy-single-user')
     expect(setCookie).toMatch(/HttpOnly/i)
   })
+
+  it('marca cookies OAuth como Secure cuando el login corre sobre HTTPS', async () => {
+    const res = await loginHandler(
+      new Request('https://trama.example/api/spotify/login'),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const setCookie = res.headers.get('set-cookie') ?? ''
+    expect(setCookie).toContain('spotify_state=')
+    expect(setCookie).toContain('spotify_uid=legacy-single-user')
+    expect(setCookie).toMatch(/;\s*Secure/i)
+  })
 })
 
 describe('spotify-callback — asocia el token al userId de la cookie', () => {
@@ -156,6 +169,22 @@ describe('spotify-callback — asocia el token al userId de la cookie', () => {
     )
     expect(res.status).toBe(302)
     expect(res.headers.get('Location')).toContain('missing_uid')
+    expect(saveTokens).not.toHaveBeenCalled()
+  })
+
+  it('rechaza spotify_uid corrupto o vacío sin convertir el callback en 500', async () => {
+    for (const uid of ['%E0%A4%A', '%20%20']) {
+      const res = await callbackHandler(
+        reqWithCookie(
+          'http://localhost/api/spotify/callback?code=abc&state=OK',
+          `spotify_state=OK; spotify_uid=${uid}`,
+        ),
+        mockContext(),
+      )
+
+      expect(res.status).toBe(302)
+      expect(res.headers.get('Location')).toContain('invalid_uid')
+    }
     expect(saveTokens).not.toHaveBeenCalled()
   })
 })

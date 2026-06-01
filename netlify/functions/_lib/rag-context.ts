@@ -19,6 +19,7 @@ import { sqlTyped, type SqlClient } from './db.js'
 import { embedSafe, toPgVector } from './embeddings.js'
 import { describeEntity, describeQuote, llmRerank } from './llm-rerank.js'
 import { askLLMForText, type LLMOverride } from './llm.js'
+import type { LLMUsage } from './llm/types.js'
 
 // Compact context rows shaped to feed the prompt builder. Mismas formas
 // que las queries existentes en ask.mts / chat-messages.mts, así los
@@ -112,6 +113,11 @@ export async function buildRagContext(
     const hypothetical = await generateHypotheticalDoc(
       trimmedQuery,
       options?.rerankOverride,
+      {
+        sql,
+        userId,
+        requestId: options?.requestId,
+      },
     )
     if (hypothetical) {
       textToEmbed = hypothetical
@@ -290,6 +296,11 @@ export async function buildRagContext(
 async function generateHypotheticalDoc(
   query: string,
   override?: LLMOverride,
+  observability?: {
+    sql: SqlClient
+    userId: string
+    requestId?: string
+  },
 ): Promise<string | null> {
   const prompt = `Escribe un párrafo BREVE (3-4 oraciones, máximo 80 palabras) que sería el TIPO DE TEXTO que respondería esta consulta. NO contestes la pregunta — solo escribe el tipo de párrafo cuya existencia indicaría que la pregunta tiene respuesta.
 
@@ -306,8 +317,18 @@ CONSULTA DEL USUARIO:
 DEVUELVE SOLO EL PÁRRAFO. Sin comillas, sin introducción, sin advertencias.`
 
   try {
-    const { content } = await askLLMForText([{ role: 'user', content: prompt }], override)
+    const { content, usage, fromCache } = await askLLMForText(
+      [{ role: 'user', content: prompt }],
+      override,
+    )
     const text = typeof content === 'string' ? content.trim() : String(content).trim()
+    if (observability?.requestId) {
+      await recordHydeUsage(observability, query, {
+        usage,
+        fromCache,
+        accepted: text.length >= 20 && !/^(no\s|disculp|lo siento|i can'?t)/i.test(text),
+      })
+    }
     // Saneo: descartar respuestas muy cortas (probable falla del modelo)
     // o que claramente NO sean un párrafo (e.g., comienzan con "No puedo").
     if (text.length < 20) return null
@@ -315,5 +336,47 @@ DEVUELVE SOLO EL PÁRRAFO. Sin comillas, sin introducción, sin advertencias.`
     return text
   } catch {
     return null
+  }
+}
+
+async function recordHydeUsage(
+  observability: {
+    sql: SqlClient
+    userId: string
+    requestId?: string
+  },
+  query: string,
+  result: {
+    usage: LLMUsage
+    fromCache: boolean
+    accepted: boolean
+  },
+): Promise<void> {
+  try {
+    await observability.sql`
+      INSERT INTO extraction_log (
+        input_text, proposal, provider, model,
+        tokens_in, tokens_out, cost_cents, duration_ms,
+        user_id
+      )
+      VALUES (
+        ${`hyde:${query}`},
+        ${JSON.stringify({
+          kind: 'hyde',
+          requestId: observability.requestId ?? null,
+          accepted: result.accepted,
+          fromCache: result.fromCache,
+        })}::jsonb,
+        ${result.usage.provider},
+        ${result.usage.model},
+        ${result.usage.tokensIn},
+        ${result.usage.tokensOut},
+        ${result.usage.costCents},
+        ${result.usage.durationMs},
+        ${observability.userId}
+      )
+    `
+  } catch {
+    // Best-effort: HyDE should degrade based on retrieval quality, not telemetry.
   }
 }
