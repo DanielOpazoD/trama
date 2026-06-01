@@ -136,11 +136,12 @@ export default withObservability('ask', async (req, _ctx, { requestId }) => {
   // Retrieval-augmented context: semantic top-K + recency, merged, y
   // opcionalmente reordenado por el LLM como cross-encoder informal.
   const [ragCtx, entityTypeRows, relTypeRows, selectedRows] = await Promise.all([
-    buildRagContext(sql, userText, userId, {
-      relationshipLimit: FALLBACK_REL_LIMIT,
-      rerank: true,
-      rerankOverride,
-      // HyDE on para queries con substancia. Para una captura
+	    buildRagContext(sql, userText, userId, {
+	      relationshipLimit: FALLBACK_REL_LIMIT,
+	      rerank: true,
+	      rerankOverride,
+	      requestId,
+	      // HyDE on para queries con substancia. Para una captura
       // ("pega: cita...") no aporta; para "qué tengo sobre X" mejora
       // mucho el recall. La función lo desactiva sola si la query es
       // muy corta o larga.

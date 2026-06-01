@@ -4,9 +4,15 @@ import { describeEntity, describeQuote, llmRerank } from './llm-rerank.js'
 const llmMocks = vi.hoisted(() => ({
   askLLMForJson: vi.fn(),
 }))
+const costMocks = vi.hoisted(() => ({
+  checkMonthlyBudget: vi.fn(),
+}))
 
 vi.mock('./llm.js', () => ({
   askLLMForJson: llmMocks.askLLMForJson,
+}))
+vi.mock('./cost-cap.js', () => ({
+  checkMonthlyBudget: costMocks.checkMonthlyBudget,
 }))
 
 const candidates = [
@@ -18,6 +24,8 @@ const candidates = [
 describe('llmRerank', () => {
   beforeEach(() => {
     llmMocks.askLLMForJson.mockReset()
+    costMocks.checkMonthlyBudget.mockReset()
+    costMocks.checkMonthlyBudget.mockResolvedValue(null)
   })
 
   it('devuelve rápido para cero o un candidato sin llamar al LLM', async () => {
@@ -73,6 +81,77 @@ describe('llmRerank', () => {
 
     llmMocks.askLLMForJson.mockRejectedValueOnce(new Error('upstream'))
     await expect(llmRerank('x', candidates)).resolves.toBeNull()
+  })
+
+  it('no llama al modelo cuando el cost-cap bloquea el rerank observable', async () => {
+    costMocks.checkMonthlyBudget.mockResolvedValueOnce(
+      Response.json({ error: { code: 'RATE_LIMITED' } }, { status: 429 }),
+    )
+    const sqlCalls: Array<{ template: string; values: unknown[] }> = []
+    const sql = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+      sqlCalls.push({ template: strings.join(' '), values })
+      return Promise.resolve([])
+    }) as never
+
+    await expect(
+      llmRerank('biblioteca', candidates, {
+        observability: {
+          sql,
+          userId: 'user_a',
+          requestId: 'req-1',
+          scope: 'search.entities',
+        },
+      }),
+    ).resolves.toBeNull()
+
+    expect(costMocks.checkMonthlyBudget).toHaveBeenCalledWith('user_a', 'req-1')
+    expect(llmMocks.askLLMForJson).not.toHaveBeenCalled()
+    expect(sqlCalls).toHaveLength(0)
+  })
+
+  it('registra extraction_log cuando el rerank observable usa LLM', async () => {
+    llmMocks.askLLMForJson.mockResolvedValue({
+      content: { ranking: ['b', 'a'] },
+      usage: {
+        provider: 'openai',
+        model: 'gpt-test',
+        tokensIn: 12,
+        tokensOut: 3,
+        costCents: 0.04,
+        durationMs: 25,
+      },
+      fromCache: false,
+    })
+    const sqlCalls: Array<{ template: string; values: unknown[] }> = []
+    const sql = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+      sqlCalls.push({ template: strings.join(' '), values })
+      return Promise.resolve([])
+    }) as never
+
+    await expect(
+      llmRerank('biblioteca', candidates, {
+        observability: {
+          sql,
+          userId: 'user_a',
+          requestId: 'req-2',
+          scope: 'search.entities',
+        },
+      }),
+    ).resolves.toEqual(['b', 'a', 'c'])
+
+    const insert = sqlCalls.find((call) =>
+      /INSERT INTO extraction_log/i.test(call.template),
+    )
+    expect(insert?.template).toMatch(/cost_cents/)
+    expect(insert?.values).toEqual(
+      expect.arrayContaining([
+        'rerank:search.entities:biblioteca',
+        'openai',
+        'gpt-test',
+        'user_a',
+      ]),
+    )
+    expect(insert?.values).toEqual(expect.arrayContaining([12, 3, 0.04, 25]))
   })
 })
 
