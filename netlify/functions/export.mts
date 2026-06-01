@@ -3,6 +3,7 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { LEGACY_PARTIAL_EXPORT_SCOPE } from './_lib/export-scope.js'
 
 export default withObservability('export', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'GET') {
@@ -55,6 +56,10 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
 
   const payload = {
     version: 1 as const,
+    scope: {
+      label: 'Export parcial legado',
+      ...LEGACY_PARTIAL_EXPORT_SCOPE,
+    },
     exportedAt: new Date().toISOString(),
     entities: entities.map((row) => ({
       id: row.id,

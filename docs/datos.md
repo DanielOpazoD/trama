@@ -37,13 +37,22 @@ Cinco minutos al mes te garantizan que aunque Netlify y Neon desaparezcan mañan
 
 ## Backup de la DB (más completo que el JSON)
 
-El export JSON cubre entities, relationships y quotes pero **no incluye**:
+El export JSON es un **export parcial legado**. Cubre `entities`, `relationships` y `quotes`, pero **no incluye**:
 
+- `momentos` + `momento_entities` ni sus archivos en Blobs
+- `notes`
+- `tasks`
+- `cronicas_snapshots`
+- `atlas_snapshots`
 - chat_threads + chat_messages
 - spotify_plays
+- spotify_tokens
+- x_bookmarks + x_tokens
 - proactive_suggestions
 - extraction_log + error_log
 - ai_task_providers
+- llm_cache
+- web_vitals_samples
 - Embeddings (aunque se regeneran on-demand vía Settings → "Indexar lo pendiente")
 
 Para un backup TOTAL: usar Neon's built-in.
@@ -113,7 +122,7 @@ Para recuperar una fila:
 
 ## Contexto técnico
 
-- El endpoint `/api/export` hace `SELECT *` de las tablas principales y devuelve un JSON estructurado.
-- `/api/import` recibe ese JSON e inserta vía `INSERT ... ON CONFLICT ... DO UPDATE`.
+- El endpoint `/api/export` selecciona solo las tablas del scope parcial legado (`entities`, `relationships`, `quotes`) y devuelve un JSON estructurado.
+- `/api/import` recibe ese JSON e inserta vía `INSERT ... ON CONFLICT ... DO NOTHING`.
 - Soft-delete vive en `deleted_at TIMESTAMPTZ NULL` en todas las tablas de dominio.
 - Las tablas append-only (chat_messages, spotify_plays, error_log, extraction_log) no tienen soft-delete — se borran via CASCADE de su parent o nunca.
