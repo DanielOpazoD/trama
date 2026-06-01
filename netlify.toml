@@ -35,12 +35,15 @@
 #   - connect-src: /api propio + Spotify + Clerk (*.clerk.com,
 #     *.clerk.accounts.dev) + clerk-telemetry.com.
 #   - worker-src: 'self' blob: — Clerk usa web workers.
+#   - media-src: 'self' blob: — notas de voz de momentos. AudioNote fetchea
+#     /api/momentos-file/:key con auth de Clerk y arma un blob: URL para
+#     <audio src>. Sin esta directiva, default-src 'self' bloquea el blob.
 #   - frame-src: 'self' + challenges.cloudflare.com + *.clerk.accounts.dev.
 #   - frame-ancestors 'none' / base-uri 'self' / form-action 'self' — hardening.
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://i.scdn.co https://mosaic.scdn.co https://img.clerk.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.spotify.com https://accounts.spotify.com https://*.clerk.com https://*.clerk.accounts.dev https://clerk.com https://clerk-telemetry.com; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://i.scdn.co https://mosaic.scdn.co https://img.clerk.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.spotify.com https://accounts.spotify.com https://*.clerk.com https://*.clerk.accounts.dev https://clerk.com https://clerk-telemetry.com; worker-src 'self' blob:; media-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
