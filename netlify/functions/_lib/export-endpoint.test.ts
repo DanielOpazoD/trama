@@ -139,7 +139,11 @@ describe('export endpoint', () => {
           'notes',
           'tasks',
         ]),
-        excludes: expect.arrayContaining(['netlify_blobs_binary', 'oauth_tokens']),
+        excludes: expect.arrayContaining([
+          'netlify_blobs_binary',
+          'oauth_tokens',
+          'chat_messages',
+        ]),
         warnings: expect.arrayContaining([
           'No incluye bytes binarios de Netlify Blobs; respalda media por separado.',
           'No incluye OAuth tokens ni tablas operacionales/derivadas.',
