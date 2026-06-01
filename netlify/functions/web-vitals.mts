@@ -7,6 +7,7 @@ import { logEvent } from './_lib/observability.js'
 import { getAuthedUser, UnauthenticatedError } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
+import { sanitizeObservedPath } from './_lib/observed-path.js'
 
 /**
  * N6 + R2: POST /api/web-vitals — recibe Core Web Vitals del cliente.
@@ -21,9 +22,9 @@ import { parseJsonBody } from './_lib/zod-body.js'
  *   single-user sin Clerk, getAuthedUser() devuelve legacy-single-user. En
  *   multi-user estricto, si falta token, logueamos stdout pero no persistimos
  *   bajo el usuario legacy.
- * - El path viene **normalizado** del cliente (UUIDs ofuscados a `:id`
- *   antes de enviar — ver `src/lib/webVitals.ts` y R3 del Tier
- *   cleanup). Acá lo recibimos literal; no hacemos sanitización extra.
+ * - El path viene normalizado del cliente y se vuelve a sanitizar acá para
+ *   no persistir query strings ni IDs crudos si un cliente viejo o externo
+ *   manda datos sin normalizar.
  * - 204 para muestras válidas: el `sendBeacon` no lee body. Payloads inválidos
  *   reciben error canónico y no se persisten como filas vacías.
  * - DB write es best-effort — si falla, el log a stdout sigue.
@@ -48,6 +49,7 @@ export default withObservability('web-vitals', async (req, _ctx, { requestId }) 
   const parsed = await parseJsonBody(req, WebVitalsBody, requestId)
   if (!parsed.ok) return parsed.response
   const body = parsed.data
+  const path = sanitizeObservedPath(body.path)
 
   // user_id opcional: si el cliente tiene Bearer válido (Clerk activo)
   // lo asociamos. UnauthenticatedError no debe bloquear el sample — Web
@@ -70,7 +72,7 @@ export default withObservability('web-vitals', async (req, _ctx, { requestId }) 
     value: body.value,
     rating: body.rating,
     delta: body.delta,
-    path: body.path,
+    path,
     navigationType: body.navigationType,
   })
 
@@ -89,7 +91,7 @@ export default withObservability('web-vitals', async (req, _ctx, { requestId }) 
           ${body.value ?? null},
           ${body.rating ?? null},
           ${body.delta ?? null},
-          ${body.path ?? null},
+          ${path},
           ${body.navigationType ?? null},
           ${userId}
         )
