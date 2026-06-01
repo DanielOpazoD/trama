@@ -1,6 +1,9 @@
 import type { Config } from '@netlify/functions'
 import { lookup } from 'node:dns/promises'
+import { request as httpRequest } from 'node:http'
+import { request as httpsRequest } from 'node:https'
 import { isIP } from 'node:net'
+import { Readable } from 'node:stream'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { findMeta, findTitle, prettySource } from './_lib/og-parse.js'
@@ -37,6 +40,11 @@ type Preview = {
   author: string | null
   image: string | null
   fetched: boolean
+}
+
+type PublicPreviewAddress = {
+  address: string
+  family: 4 | 6
 }
 
 function emptyPreview(url: string, source: string | null): Preview {
@@ -91,20 +99,87 @@ export function isBlockedPreviewAddress(address: string): boolean {
   return true
 }
 
-async function assertPublicHttpUrl(target: URL): Promise<void> {
+async function resolvePublicHttpUrl(target: URL): Promise<PublicPreviewAddress> {
   if (target.protocol !== 'http:' && target.protocol !== 'https:') {
     throw new Error('Solo http(s)')
   }
   const hostname = target.hostname.replace(/^\[|\]$/g, '')
   const directIp = isIP(hostname)
-  if (directIp && isBlockedPreviewAddress(hostname)) {
-    throw new Error('URL privada bloqueada')
+  if (directIp) {
+    if (isBlockedPreviewAddress(hostname)) {
+      throw new Error('URL privada bloqueada')
+    }
+    return { address: hostname, family: directIp as 4 | 6 }
   }
 
   const addresses = await lookup(hostname, { all: true, verbatim: true })
   if (addresses.length === 0 || addresses.some((addr) => isBlockedPreviewAddress(addr.address))) {
     throw new Error('URL privada bloqueada')
   }
+  const first = addresses[0]
+  if (!first || (first.family !== 4 && first.family !== 6)) {
+    throw new Error('URL privada bloqueada')
+  }
+  return { address: first.address, family: first.family as 4 | 6 }
+}
+
+function createPinnedLookup(resolved: PublicPreviewAddress) {
+  return (
+    _hostname: string,
+    _options: unknown,
+    callback: (err: NodeJS.ErrnoException | null, address: string, family: 4 | 6) => void,
+  ) => {
+    callback(null, resolved.address, resolved.family)
+  }
+}
+
+function responseHeadersFromNode(headers: Record<string, string | string[] | number | undefined>) {
+  const out = new Headers()
+  for (const [key, value] of Object.entries(headers)) {
+    if (Array.isArray(value)) {
+      for (const item of value) out.append(key, item)
+    } else if (value !== undefined) {
+      out.set(key, String(value))
+    }
+  }
+  return out
+}
+
+async function fetchWithPinnedLookup(
+  target: URL,
+  resolved: PublicPreviewAddress,
+  signal: AbortSignal,
+): Promise<Response> {
+  const requestImpl = target.protocol === 'https:' ? httpsRequest : httpRequest
+
+  return new Promise<Response>((resolve, reject) => {
+    const req = requestImpl(
+      {
+        protocol: target.protocol,
+        hostname: target.hostname,
+        port: target.port || undefined,
+        path: `${target.pathname}${target.search}`,
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; TramaBot/1.0; +https://trama.app/bot)',
+          Accept: 'text/html,application/xhtml+xml',
+        },
+        lookup: createPinnedLookup(resolved),
+        signal,
+      },
+      (res) => {
+        resolve(
+          new Response(Readable.toWeb(res) as ReadableStream<Uint8Array>, {
+            status: res.statusCode ?? 0,
+            statusText: res.statusMessage,
+            headers: responseHeadersFromNode(res.headers),
+          }),
+        )
+      },
+    )
+    req.on('error', reject)
+    req.end()
+  })
 }
 
 export default withObservability('momentos-url-preview', async (req: Request, _ctx, { requestId }) => {
@@ -127,7 +202,7 @@ export default withObservability('momentos-url-preview', async (req: Request, _c
     return ApiErrors.validation(requestId, 'Solo http(s)')
   }
   try {
-    await assertPublicHttpUrl(parsed)
+    await resolvePublicHttpUrl(parsed)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'URL privada bloqueada'
     return ApiErrors.validation(requestId, message)
@@ -154,16 +229,8 @@ export default withObservability('momentos-url-preview', async (req: Request, _c
     let current = parsed
     let r: Response | null = null
     for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
-      await assertPublicHttpUrl(current)
-      r = await fetch(current.toString(), {
-        signal: controller.signal,
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (compatible; TramaBot/1.0; +https://trama.app/bot)',
-          Accept: 'text/html,application/xhtml+xml',
-        },
-        redirect: 'manual',
-      })
+      const resolved = await resolvePublicHttpUrl(current)
+      r = await fetchWithPinnedLookup(current, resolved, controller.signal)
       if (![301, 302, 303, 307, 308].includes(r.status)) break
       const location = r.headers.get('location')
       if (!location) break

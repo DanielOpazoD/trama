@@ -162,10 +162,11 @@ export default withObservability(
         : await loadChatContextWithRag(
             sql,
             userText,
-            userId,
-            { provider: invocation.provider, model: invocation.model },
-            CONTEXT_RELATIONSHIP_LIMIT,
-          )
+	            userId,
+	            { provider: invocation.provider, model: invocation.model },
+	            CONTEXT_RELATIONSHIP_LIMIT,
+	            requestId,
+	          )
 
     // If this is an entity-focused thread, look up the focus entity's name+type
     // so the prompt can address it explicitly ("conversación sobre Borges").

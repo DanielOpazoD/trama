@@ -8,6 +8,7 @@ import { resolveImportId } from './_lib/import-ids.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ImportBody } from './_lib/admin-schemas.js'
 import { persistError, safeSql } from './_lib/observability.js'
+import { LEGACY_PARTIAL_EXPORT_SCOPE } from './_lib/export-scope.js'
 
 type IncomingEntity = {
   id: string
@@ -256,6 +257,10 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     imported,
     skipped,
     failed,
+    scope: {
+      label: 'Import parcial legado',
+      ...LEGACY_PARTIAL_EXPORT_SCOPE,
+    },
     // Retro-compat: clientes viejos sólo leen `imported`.
   })
 })

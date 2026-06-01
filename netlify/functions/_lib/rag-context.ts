@@ -81,6 +81,8 @@ export async function buildRagContext(
     rerank?: boolean
     /** Provider override para el reranker (mismo que el chat). */
     rerankOverride?: LLMOverride
+    /** Request id del endpoint caller, usado para cost-cap/observabilidad del rerank. */
+    requestId?: string
     /** HyDE: si true, genera un párrafo hipotético de respuesta vía LLM
         y embebe ESO en lugar de la query del usuario. Mejor recall en
         preguntas vagas o abstractas. Costo: +1 LLM call (~500ms-1s).
@@ -184,7 +186,17 @@ export async function buildRagContext(
         ? llmRerank(
             userQuery,
             entities.map((e) => ({ id: e.id, text: describeEntity(e) })),
-            { override: options.rerankOverride },
+            {
+              override: options.rerankOverride,
+              observability: options.requestId
+                ? {
+                    sql,
+                    userId,
+                    requestId: options.requestId,
+                    scope: 'rag.entities',
+                  }
+                : undefined,
+            },
           )
         : Promise.resolve<string[] | null>(null),
       quotes.length > 1
@@ -198,7 +210,17 @@ export async function buildRagContext(
                 source: q.source,
               }),
             })),
-            { override: options.rerankOverride },
+            {
+              override: options.rerankOverride,
+              observability: options.requestId
+                ? {
+                    sql,
+                    userId,
+                    requestId: options.requestId,
+                    scope: 'rag.quotes',
+                  }
+                : undefined,
+            },
           )
         : Promise.resolve<string[] | null>(null),
     ])

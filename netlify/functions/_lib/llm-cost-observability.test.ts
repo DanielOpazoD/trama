@@ -97,6 +97,11 @@ describe('guardrail: LLM cost-cap y extraction_log', () => {
     expect(offenders).toEqual([])
   })
 
+  it('los callers de llmRerank pasan observability para cost-cap y extraction_log', () => {
+    expect(source('search.mts')).toMatch(/observability:\s*{/)
+    expect(source('_lib/rag-context.ts')).toMatch(/observability:\s*options\.requestId/)
+  })
+
   it('cada checkMonthlyBudget pasa userId y requestId explícitos', () => {
     for (const file of files) {
       const src = source(file)

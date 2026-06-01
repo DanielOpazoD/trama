@@ -298,5 +298,17 @@ describe('search endpoint', () => {
       'legacy-single-user',
     )
     expect(searchMocks.llmRerank).toHaveBeenCalledTimes(2)
+    expect(searchMocks.llmRerank).toHaveBeenCalledWith(
+      'algo',
+      expect.any(Array),
+      expect.objectContaining({
+        override: { provider: 'openai', model: 'gpt' },
+        observability: expect.objectContaining({
+          userId: 'legacy-single-user',
+          requestId: expect.any(String),
+          scope: 'search.entities',
+        }),
+      }),
+    )
   })
 })

@@ -35,24 +35,20 @@ export default defineConfig({
       // alcanzar 100% — es detectar REGRESIONES: si alguien mergea código
       // sin cubrir y el % global baja, el CI grita.
       //
-      // C1: al sumar los handlers `.mts` al `include` (antes solo medíamos
-      // los `_lib/*.ts`), el denominador creció con un montón de código de
-      // endpoint que los unit tests no ejercitan — el baseline honesto bajó.
-      // Medido global con `.mts` incluidos: lines/statements 39.99%,
-      // functions 56.53%, branches 72.53%. Recalibramos hacia abajo con
-      // ~1 punto de colchón bajo el piso medido para absorber la varianza
-      // run-to-run sin volver flaky el CI. Esto NO es una regresión de
-      // tests — es honestidad: ahora el % refleja TODO el backend, no solo
-      // las libs. Bajamos desde 47/58/73/47 (que medían un subconjunto).
+      // H1: baseline global medido tras cubrir smokes críticos de auth,
+      // export/import parcial, Momentos media y cost-cap LLM:
+      // statements/lines 79.89%, functions 70.47%, branches 75.12%.
+      // Dejamos el piso bajo el decimal medido para que bloquee regresiones
+      // reales sin volver flaky el CI por pequeñas variaciones de V8.
       //
       // Si subiste el piso porque agregaste tests, actualizá estos
       // números acá explícitamente — el threshold es una decisión
       // consciente, no un "que pase CI".
       thresholds: {
-        lines: 39,
-        functions: 55,
-        branches: 71,
-        statements: 39,
+        lines: 79,
+        functions: 70,
+        branches: 75,
+        statements: 79,
       },
     },
   },

@@ -17,7 +17,9 @@
  * usa el orden original.
  */
 
-import { askLLMForJson, type LLMOverride } from './llm.js'
+import { checkMonthlyBudget } from './cost-cap.js'
+import type { SqlClient } from './db.js'
+import { askLLMForJson, type LLMOverride, type LLMUsage } from './llm.js'
 
 export type RerankCandidate = {
   id: string
@@ -35,14 +37,30 @@ export async function llmRerank(
   options?: {
     override?: LLMOverride
     /** Cuántos candidatos pasarle al modelo. Default: todos. Más bajo
-        = más rápido, más barato, pero ofrece menos margen de mejora. */
+	        = más rápido, más barato, pero ofrece menos margen de mejora. */
     consider?: number
+    /** Contexto para que el rerank opcional respete cost-cap y observabilidad. */
+    observability?: {
+      sql: SqlClient
+      userId: string
+      requestId: string
+      scope: string
+    }
   },
 ): Promise<string[] | null> {
   if (candidates.length === 0) return []
   if (candidates.length === 1 && candidates[0]) return [candidates[0].id]
 
   const slice = options?.consider ? candidates.slice(0, options.consider) : candidates
+  const observability = options?.observability
+
+  if (observability) {
+    const overBudget = await checkMonthlyBudget(
+      observability.userId,
+      observability.requestId,
+    )
+    if (overBudget) return null
+  }
 
   // Etiquetamos cada candidato con un índice numérico además del UUID, para
   // que el LLM tenga una etiqueta corta a la cual referirse. Vuelve más
@@ -74,12 +92,23 @@ Incluye TODOS los ids exactamente como aparecen arriba, en orden de
 relevancia decreciente. Sin comentarios, sin texto extra.`
 
   try {
-    const { content } = await askLLMForJson(
+    const { content, usage, fromCache } = await askLLMForJson(
       [{ role: 'user', content: prompt }],
       options?.override,
     )
     const raw = content as { ranking?: unknown } | null
-    if (!raw || !Array.isArray(raw.ranking)) return null
+    if (!raw || !Array.isArray(raw.ranking)) {
+      if (observability) {
+        await recordRerankUsage(observability, query, {
+          usage,
+          fromCache,
+          candidateCount: slice.length,
+          ranking: null,
+          error: 'invalid-ranking',
+        })
+      }
+      return null
+    }
 
     const validIds = new Set(slice.map((c) => c.id))
     const reranked = raw.ranking.filter(
@@ -94,9 +123,61 @@ relevancia decreciente. Sin comentarios, sin texto extra.`
       if (!seen.has(c.id)) reranked.push(c.id)
     }
 
+    if (observability) {
+      await recordRerankUsage(observability, query, {
+        usage,
+        fromCache,
+        candidateCount: slice.length,
+        ranking: reranked,
+      })
+    }
+
     return reranked
   } catch {
     return null
+  }
+}
+
+async function recordRerankUsage(
+  observability: NonNullable<Parameters<typeof llmRerank>[2]>['observability'],
+  query: string,
+  result: {
+    usage: LLMUsage
+    fromCache: boolean
+    candidateCount: number
+    ranking: string[] | null
+    error?: string
+  },
+): Promise<void> {
+  if (!observability) return
+  try {
+    await observability.sql`
+      INSERT INTO extraction_log (
+        input_text, proposal, provider, model,
+        tokens_in, tokens_out, cost_cents, duration_ms,
+        user_id
+      )
+      VALUES (
+        ${`rerank:${observability.scope}:${query}`},
+        ${JSON.stringify({
+          kind: 'llm-rerank',
+          scope: observability.scope,
+          candidateCount: result.candidateCount,
+          ranking: result.ranking,
+          error: result.error,
+          fromCache: result.fromCache,
+        })}::jsonb,
+        ${result.usage.provider},
+        ${result.usage.model},
+        ${result.usage.tokensIn},
+        ${result.usage.tokensOut},
+        ${result.usage.costCents},
+        ${result.usage.durationMs},
+        ${observability.userId}
+      )
+    `
+  } catch {
+    // Best-effort: rerank quality should not fail because telemetry failed.
   }
 }
 

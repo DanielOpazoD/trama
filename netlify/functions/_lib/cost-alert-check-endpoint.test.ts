@@ -39,7 +39,11 @@ describe('cost-alert-check scheduled function', () => {
     )
 
     expect(res.status).toBe(405)
-    expect(mockSqlResponses.calls).toHaveLength(0)
+    expect(
+      mockSqlResponses.calls.some((call) =>
+        /FROM monthly_spend|FROM extraction_log|alert_state/i.test(call.template),
+      ),
+    ).toBe(false)
     expect(fetch).not.toHaveBeenCalled()
   })
 

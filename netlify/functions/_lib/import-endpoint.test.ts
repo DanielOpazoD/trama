@@ -86,6 +86,12 @@ describe('import endpoint', () => {
       imported: 1,
       skipped: 7,
       failed: [],
+      scope: {
+        kind: 'legacy-partial',
+        label: 'Import parcial legado',
+        includes: ['entities', 'relationships', 'quotes'],
+        excludes: expect.arrayContaining(['momentos', 'notes', 'tasks']),
+      },
     })
   })
 })

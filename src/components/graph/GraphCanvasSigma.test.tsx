@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { Entity, Relationship } from '../../types'
@@ -277,4 +280,13 @@ describe('<GraphCanvasSigma />', () => {
       y: -200,
     })
   })
+})
+it('usa una firma compacta para no materializar strings gigantes del grafo', () => {
+  const src = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), 'GraphCanvasSigma.tsx'),
+    'utf8',
+  )
+
+  expect(src).toContain('hashGraphPart')
+  expect(src).not.toContain(".join('|')")
 })

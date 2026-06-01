@@ -161,6 +161,7 @@ export async function loadChatContextWithRag(
   userId: string,
   invocation: { provider: string | undefined; model: string | null },
   relationshipLimit: number,
+  requestId: string,
 ): Promise<LoadedChatContext> {
   const [ragCtx, eTypes, rTypes] = await Promise.all([
     buildRagContext(sql, userText, userId, {
@@ -172,6 +173,7 @@ export async function loadChatContextWithRag(
         provider: invocation.provider,
         model: invocation.model,
       },
+      requestId,
       // HyDE: el chat es donde más rinde, las queries suelen ser
       // vagas y abstractas ("¿qué hay del tiempo en mis citas?").
       hyde: true,

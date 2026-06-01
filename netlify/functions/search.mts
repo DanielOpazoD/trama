@@ -290,31 +290,47 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
         ? { provider: invocation.provider, model: invocation.model }
         : undefined
 
-    if (entitiesFusedFull.length > 1) {
-      entitiesReorderedIds = await llmRerank(
-        q,
-        entitiesFusedFull.map((e) => ({
-          id: e.item.id,
-          text: describeEntity(e.item),
-        })),
-        { override: override ?? undefined },
-      )
-    }
-    if (quotesFusedFull.length > 1) {
-      quotesReorderedIds = await llmRerank(
-        q,
+	    if (entitiesFusedFull.length > 1) {
+	      entitiesReorderedIds = await llmRerank(
+	        q,
+	        entitiesFusedFull.map((e) => ({
+	          id: e.item.id,
+	          text: describeEntity(e.item),
+	        })),
+	        {
+	          override: override ?? undefined,
+	          observability: {
+	            sql,
+	            userId,
+	            requestId,
+	            scope: 'search.entities',
+	          },
+	        },
+	      )
+	    }
+	    if (quotesFusedFull.length > 1) {
+	      quotesReorderedIds = await llmRerank(
+	        q,
         quotesFusedFull.map((q) => ({
           id: q.item.id,
           text: describeQuote({
             text: q.item.text,
             entityName: q.item.entity_name,
-            source: q.item.source,
-          }),
-        })),
-        { override: override ?? undefined },
-      )
-    }
-  }
+	            source: q.item.source,
+	          }),
+	        })),
+	        {
+	          override: override ?? undefined,
+	          observability: {
+	            sql,
+	            userId,
+	            requestId,
+	            scope: 'search.quotes',
+	          },
+	        },
+	      )
+	    }
+	  }
 
   // Aplica el reorden del LLM si está disponible; si no, el orden RRF.
   function applyRerank<T extends { item: { id: string } }>(

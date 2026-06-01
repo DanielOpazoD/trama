@@ -70,6 +70,12 @@ describe('export endpoint', () => {
     )
     expect(await res.json()).toMatchObject({
       version: 1,
+      scope: {
+        kind: 'legacy-partial',
+        label: 'Export parcial legado',
+        includes: ['entities', 'relationships', 'quotes'],
+        excludes: expect.arrayContaining(['momentos', 'notes', 'tasks']),
+      },
       entities: [
         {
           id: 'e1',
