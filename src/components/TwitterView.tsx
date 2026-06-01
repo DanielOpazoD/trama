@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ViewHeader } from './ViewHeader'
-import { CloseIcon, EndMark, SparkleIcon } from './Icons'
+import {
+  CloseIcon,
+  EndMark,
+  SparkleIcon,
+  TwitterIcon,
+  ChevronDownIcon,
+  TrashIcon,
+} from './Icons'
+import { AISourceTag } from './AISourceTag'
 import { EmptyMessage } from './EmptyMessage'
 import {
   useClassifyBookmarks,
@@ -9,6 +17,7 @@ import {
   useDeleteBookmark,
   useExtract,
   useGenerateXCronica,
+  useDeleteXCronica,
   useTwitterBookmarksQuery,
   useXCronicaQuery,
   useXStatusQuery,
@@ -43,6 +52,7 @@ export function TwitterView({
   const classify = useClassifyBookmarks()
   const cronicaQuery = useXCronicaQuery()
   const genCronica = useGenerateXCronica()
+  const deleteCronica = useDeleteXCronica()
   const extract = useExtract()
   const createNote = useCreateNote()
   const [promotingId, setPromotingId] = useState<string | null>(null)
@@ -54,6 +64,8 @@ export function TwitterView({
   const [query, setQuery] = useState('')
   const [author, setAuthor] = useState<string | null>(null)
   const [showAuthors, setShowAuthors] = useState(false)
+  // La crónica arranca visible pero se puede colapsar (ocultar) sin borrarla.
+  const [cronicaOpen, setCronicaOpen] = useState(true)
 
   const items = useMemo(() => bookmarks.data?.items ?? [], [bookmarks.data])
   const data = status.data
@@ -173,6 +185,22 @@ export function TwitterView({
     }
   }
 
+  async function handleDeleteCronica() {
+    if (
+      !confirm(
+        '¿Eliminar la crónica de tus bookmarks? Podés generar otra cuando quieras.',
+      )
+    ) {
+      return
+    }
+    setMessage(null)
+    try {
+      await deleteCronica.mutateAsync()
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'No se pudo eliminar la crónica')
+    }
+  }
+
   // #1 Promover a la trama — extraer con IA (propone entidades/relaciones para
   // revisar) o guardar como nota (texto crudo, sin IA).
   async function handleExtract(b: XBookmark) {
@@ -229,6 +257,7 @@ export function TwitterView({
     <>
       <ViewHeader
         title="Twitter"
+        icon={<TwitterIcon size={26} />}
         eyebrow="tus marcadores"
         accent="var(--accent-primary)"
         eyebrowColor="var(--accent-gold)"
@@ -288,27 +317,73 @@ export function TwitterView({
             const c = cronicaQuery.data?.cronica
             return (
               <div className="card-paper mb-6 p-4">
-                <div className="mb-1 flex items-baseline justify-between gap-3">
-                  <span className="section-eyebrow-serif">Crónica de tus bookmarks</span>
-                  <button
-                    onClick={handleGenerateCronica}
-                    disabled={genCronica.isPending}
-                    className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
-                  >
-                    {genCronica.isPending ? 'escribiendo…' : c ? 'Regenerar' : 'Generar'}
-                  </button>
+                <div className="flex items-baseline justify-between gap-3">
+                  {c ? (
+                    <button
+                      type="button"
+                      onClick={() => setCronicaOpen((v) => !v)}
+                      aria-expanded={cronicaOpen}
+                      className="flex items-baseline gap-1.5 hover:opacity-80 transition-opacity"
+                      title={cronicaOpen ? 'Ocultar la crónica' : 'Mostrar la crónica'}
+                    >
+                      <span className="section-eyebrow-serif">
+                        Crónica de tus bookmarks
+                      </span>
+                      <ChevronDownIcon
+                        size={12}
+                        className={`text-ink-300 transition-transform ${cronicaOpen ? '' : '-rotate-90'}`}
+                      />
+                    </button>
+                  ) : (
+                    <span className="section-eyebrow-serif">
+                      Crónica de tus bookmarks
+                    </span>
+                  )}
+                  <div className="flex items-center gap-3 shrink-0">
+                    {c && (
+                      <AISourceTag
+                        provider={c.provider}
+                        model={c.model}
+                        at={c.generatedAt}
+                      />
+                    )}
+                    <button
+                      onClick={handleGenerateCronica}
+                      disabled={genCronica.isPending}
+                      className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
+                    >
+                      {genCronica.isPending
+                        ? 'escribiendo…'
+                        : c
+                          ? 'Regenerar'
+                          : 'Generar'}
+                    </button>
+                    {c && (
+                      <button
+                        onClick={handleDeleteCronica}
+                        disabled={deleteCronica.isPending}
+                        aria-label="Eliminar crónica"
+                        title="Eliminar la crónica (podés generar otra cuando quieras)"
+                        className="rounded p-1 text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors disabled:opacity-50"
+                      >
+                        <TrashIcon size={13} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {c ? (
-                  <>
-                    <p className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-ink-700">
-                      {c.text}
-                    </p>
-                    <p className="mt-2 text-micro text-ink-300 tabular-nums">
-                      {formatRelative(c.generatedAt)} · {c.sourceCount} bookmarks
-                    </p>
-                  </>
+                  cronicaOpen && (
+                    <div className="mt-2 animate-fade-up">
+                      <p className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-ink-700">
+                        {c.text}
+                      </p>
+                      <p className="mt-2 text-micro text-ink-300 tabular-nums">
+                        {formatRelative(c.generatedAt)} · {c.sourceCount} bookmarks
+                      </p>
+                    </div>
+                  )
                 ) : (
-                  <p className="text-sm text-ink-400 italic">
+                  <p className="mt-1 text-sm text-ink-400 italic">
                     Un ensayo breve, escrito por la IA, sobre qué guardas en X.
                   </p>
                 )}
@@ -356,6 +431,9 @@ export function TwitterView({
 
           {/* Temas (clasificación IA) + botón clasificar. */}
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 self-center text-micro uppercase tracking-eyebrow text-ink-300">
+              tema
+            </span>
             <button onClick={() => setTopic(null)} className={chip(topic == null)}>
               Todos los temas
             </button>
@@ -400,6 +478,9 @@ export function TwitterView({
           {/* Navegación por año (y mes al elegir un año) — sobre la fecha del tweet. */}
           {years.length > 0 && (
             <div className="mb-3 flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 self-center text-micro uppercase tracking-eyebrow text-ink-300">
+                año
+              </span>
               <button onClick={() => selectYear(null)} className={chip(year == null)}>
                 Todos los años
               </button>
@@ -478,10 +559,11 @@ export function TwitterView({
                       href={b.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-micro hover:underline"
+                      className="inline-flex items-center gap-1 text-micro hover:underline"
                       style={{ color: 'var(--accent-primary)' }}
                     >
-                      ver en X ↗
+                      <TwitterIcon size={11} />
+                      ver en X
                     </a>
                   )}
                   {b.topic && (

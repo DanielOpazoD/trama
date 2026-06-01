@@ -37,6 +37,7 @@ export function ViewHeader({
   eyebrowColor,
   noWash = false,
   action,
+  icon,
   spacing = 'normal',
   sticky = false,
 }: {
@@ -47,6 +48,8 @@ export function ViewHeader({
   eyebrowColor?: string
   noWash?: boolean
   action?: ReactNode
+  /** Logo/marca opcional junto al título (ej. logo oficial de X o Spotify). */
+  icon?: ReactNode
   spacing?: 'tight' | 'normal' | 'wide'
   sticky?: boolean
 }) {
@@ -84,7 +87,10 @@ export function ViewHeader({
         <p className="section-eyebrow-serif mb-2" style={{ color: finalEyebrowColor }}>
           {eyebrow}
         </p>
-        <h2 className="font-serif text-4xl text-ink-700 leading-none">{title}</h2>
+        <div className="flex items-center gap-2.5">
+          {icon && <span className="shrink-0 text-ink-700">{icon}</span>}
+          <h2 className="font-serif text-4xl text-ink-700 leading-none">{title}</h2>
+        </div>
         <div className="accent-rule mt-3 mb-2" />
         {subtitle && (
           <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-2xl">

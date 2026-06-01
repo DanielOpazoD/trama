@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { LoadingHint } from './LoadingHint'
+import { Spinner } from './Spinner'
 import { ErrorBoundary, type ErrorFallbackProps } from './ErrorBoundary'
 import { TramaMark } from './Icons'
 import type { ViewMode } from './Sidebar'
@@ -62,7 +62,7 @@ const ProactiveView = lazy(() =>
 function ViewFallback() {
   return (
     <div className="flex items-center justify-center h-full">
-      <LoadingHint text="cargando vista" size="sm" />
+      <Spinner size={22} />
     </div>
   )
 }

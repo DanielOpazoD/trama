@@ -88,4 +88,5 @@ export {
   useClassifyBookmarks,
   useXCronicaQuery,
   useGenerateXCronica,
+  useDeleteXCronica,
 } from './useTwitter'

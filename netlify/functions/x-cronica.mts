@@ -1,7 +1,7 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { logEvent } from './_lib/observability.js'
@@ -13,6 +13,7 @@ import {
   getLatestXCronica,
   insertXCronica,
   selectBookmarksForCronica,
+  softDeleteXCronicas,
   type StoredXCronica,
 } from './_lib/x/index.js'
 
@@ -46,6 +47,10 @@ export default withObservability(
     if (req.method === 'GET') {
       const latest = await getLatestXCronica(sql, userId)
       return Response.json({ cronica: latest ? toCamel(latest) : null })
+    }
+    if (req.method === 'DELETE') {
+      await softDeleteXCronicas(sql, userId)
+      return ApiSuccess.noContent()
     }
     if (req.method !== 'POST') return ApiErrors.methodNotAllowed(requestId)
 

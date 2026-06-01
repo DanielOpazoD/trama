@@ -1,7 +1,7 @@
 import { memo, useState } from 'react'
 import { useReflectQuote, useUpdateQuote, useToast } from '../../state'
 import type { Entity, Quote } from '../../types'
-import { SparkleIcon } from '../Icons'
+import { SparkleIcon, ChevronDownIcon } from '../Icons'
 import { AISourceTag } from '../AISourceTag'
 import { QuoteEditModal } from '../QuoteEditModal'
 import { ResonanceDots } from './ResonanceDots'
@@ -44,6 +44,9 @@ function QuoteItemInternal({
     model: string
   } | null>(null)
   const [editOpen, setEditOpen] = useState(false)
+  // δ-citas: la interpretación de la IA arranca colapsada — es material
+  // secundario, no debe competir con la cita. Se despliega con la flecha.
+  const [reflectionOpen, setReflectionOpen] = useState(false)
 
   async function handleReflect() {
     try {
@@ -242,9 +245,20 @@ function QuoteItemInternal({
 
       {quote.aiReflection && (
         <div className="mt-3 pl-5">
-          <div className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-[color:var(--accent-primary)] mb-1">
-            <SparkleIcon size={10} />
-            <span>interpretación de la IA</span>
+          <div className="flex items-baseline gap-1.5">
+            <button
+              type="button"
+              onClick={() => setReflectionOpen((v) => !v)}
+              aria-expanded={reflectionOpen}
+              className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-[color:var(--accent-primary)] hover:opacity-80 transition-opacity"
+            >
+              <SparkleIcon size={10} />
+              <span>interpretación de la IA</span>
+              <ChevronDownIcon
+                size={12}
+                className={`transition-transform ${reflectionOpen ? '' : '-rotate-90'}`}
+              />
+            </button>
             <AISourceTag
               provider={quote.aiReflectionProvider}
               model={quote.aiReflectionModel}
@@ -252,9 +266,11 @@ function QuoteItemInternal({
               className="ml-auto"
             />
           </div>
-          <p className="text-ink-500 text-sm leading-relaxed whitespace-pre-wrap">
-            {quote.aiReflection}
-          </p>
+          {reflectionOpen && (
+            <p className="mt-1.5 text-ink-500 text-sm leading-relaxed whitespace-pre-wrap animate-fade-up">
+              {quote.aiReflection}
+            </p>
+          )}
         </div>
       )}
 

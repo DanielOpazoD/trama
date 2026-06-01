@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import { describeOAuthReturn, type OAuthReturn } from '../../lib/oauthReturn'
 import { PanelHeader, formatRelative } from './_shared'
+import { SpotifyIcon } from '../Icons'
 
 export function SpotifyPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null }) {
   const queryClient = useQueryClient()
@@ -141,8 +142,9 @@ export function SpotifyPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null
         <button
           onClick={handleConnect}
           disabled={busy}
-          className="inline-block text-sm px-3 py-2 border border-ink-100/60 rounded-lg hover:bg-ink-50 transition-all disabled:opacity-50"
+          className="inline-flex items-center gap-2 text-sm px-3 py-2 border border-ink-100/60 rounded-lg hover:bg-ink-50 transition-all disabled:opacity-50"
         >
+          <SpotifyIcon size={16} />
           Conectar con Spotify
         </button>
       )}

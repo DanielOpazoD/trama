@@ -70,3 +70,15 @@ export function useGenerateXCronica() {
     },
   })
 }
+
+/** Borra (soft-delete) la crónica de bookmarks; invalida crónica + Inicio. */
+export function useDeleteXCronica() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.xDeleteCronica(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.xCronica })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+    },
+  })
+}

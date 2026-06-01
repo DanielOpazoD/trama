@@ -37,5 +37,6 @@ export {
   selectBookmarksForCronica,
   getLatestXCronica,
   insertXCronica,
+  softDeleteXCronicas,
   type StoredXCronica,
 } from './cronica.js'
