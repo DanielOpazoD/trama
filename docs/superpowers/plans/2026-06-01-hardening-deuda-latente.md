@@ -35,11 +35,11 @@
 - Modify/Test: `netlify/functions/_lib/ask-endpoint.test.ts`
 - Modify/Test: `netlify/functions/_lib/llm-cost-observability.test.ts`
 
-- [ ] Write tests showing rerank checks monthly budget and records observable cost where applicable.
-- [ ] Thread `userId` and `requestId` through rerank callers.
-- [ ] Keep graceful degradation when rerank fails.
-- [ ] Run focused LLM/search tests.
-- [ ] Commit.
+- [x] Write tests showing rerank checks monthly budget and records observable cost where applicable.
+- [x] Thread `userId` and `requestId` through rerank callers.
+- [x] Keep graceful degradation when rerank fails or AI mode is not ready.
+- [x] Run focused LLM/search tests.
+- [x] Commit.
 
 ### Task 3: Cron observability
 

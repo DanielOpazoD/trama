@@ -39,7 +39,10 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   const limit = Math.min(Math.max(Number.parseInt(limitParam ?? '15', 10) || 15, 1), 50)
   const mode = (url.searchParams.get('mode') ?? 'hybrid').toLowerCase()
   if (mode !== 'hybrid' && mode !== 'lexical' && mode !== 'semantic') {
-    return ApiErrors.validation(requestId, 'mode debe ser uno de: hybrid, lexical, semantic')
+    return ApiErrors.validation(
+      requestId,
+      'mode debe ser uno de: hybrid, lexical, semantic',
+    )
   }
   // ?rerank=true activa el LLM-as-reranker (lento, ~1-2s; alta calidad).
   // No lo usa la sidebar (que debe ser fast). Sí lo usa el chat RAG.
@@ -285,52 +288,51 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   let quotesReorderedIds: string[] | null = null
   if (wantsRerank) {
     const invocation = await resolveAIInvocation(req, 'chat', userId).catch(() => null)
-    const override =
-      invocation && invocation.kind === 'ready'
-        ? { provider: invocation.provider, model: invocation.model }
-        : undefined
+    if (invocation?.kind === 'ready') {
+      const override = { provider: invocation.provider, model: invocation.model }
 
-	    if (entitiesFusedFull.length > 1) {
-	      entitiesReorderedIds = await llmRerank(
-	        q,
-	        entitiesFusedFull.map((e) => ({
-	          id: e.item.id,
-	          text: describeEntity(e.item),
-	        })),
-	        {
-	          override: override ?? undefined,
-	          observability: {
-	            sql,
-	            userId,
-	            requestId,
-	            scope: 'search.entities',
-	          },
-	        },
-	      )
-	    }
-	    if (quotesFusedFull.length > 1) {
-	      quotesReorderedIds = await llmRerank(
-	        q,
-        quotesFusedFull.map((q) => ({
-          id: q.item.id,
-          text: describeQuote({
-            text: q.item.text,
-            entityName: q.item.entity_name,
-	            source: q.item.source,
-	          }),
-	        })),
-	        {
-	          override: override ?? undefined,
-	          observability: {
-	            sql,
-	            userId,
-	            requestId,
-	            scope: 'search.quotes',
-	          },
-	        },
-	      )
-	    }
-	  }
+      if (entitiesFusedFull.length > 1) {
+        entitiesReorderedIds = await llmRerank(
+          q,
+          entitiesFusedFull.map((e) => ({
+            id: e.item.id,
+            text: describeEntity(e.item),
+          })),
+          {
+            override,
+            observability: {
+              sql,
+              userId,
+              requestId,
+              scope: 'search.entities',
+            },
+          },
+        )
+      }
+      if (quotesFusedFull.length > 1) {
+        quotesReorderedIds = await llmRerank(
+          q,
+          quotesFusedFull.map((q) => ({
+            id: q.item.id,
+            text: describeQuote({
+              text: q.item.text,
+              entityName: q.item.entity_name,
+              source: q.item.source,
+            }),
+          })),
+          {
+            override,
+            observability: {
+              sql,
+              userId,
+              requestId,
+              scope: 'search.quotes',
+            },
+          },
+        )
+      }
+    }
+  }
 
   // Aplica el reorden del LLM si está disponible; si no, el orden RRF.
   function applyRerank<T extends { item: { id: string } }>(
