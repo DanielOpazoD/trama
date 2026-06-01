@@ -1,18 +1,60 @@
 import type { Entity } from './entity'
+import type { Momento } from './momento'
+import type { Origin } from './origin'
 import type { Relationship } from './relationship'
 import type { Quote } from './quote'
 
 /**
- * Payload del export completo. v1 incluye entities + relationships + quotes.
- * Momentos NO están incluidos (todavía) — agregarlos requeriría también
- * los blobs binarios y eso es scope distinto.
+ * Payload de export/import.
+ *
+ * v1 fue el contrato parcial legado: entities + relationships + quotes.
+ * v2 es el backup estructurado core: agrega Momentos, notas, tareas y las
+ * referencias a blobs de media. Los bytes binarios de Netlify Blobs quedan
+ * fuera deliberadamente; `blobReferences` permite auditar qué media depende
+ * del storage.
  */
+export type ExportScope = {
+  kind: 'legacy-partial' | 'structured-core'
+  label?: string
+  includes: string[]
+  excludes: string[]
+}
+
+export type ExportNote = {
+  id: string
+  content: string
+  tags: string[]
+  pinned: boolean
+  promotedMomentoId?: string | null
+  origin?: Origin
+  createdAt: string
+  updatedAt: string
+}
+
+export type ExportTask = {
+  id: string
+  title: string
+  detail?: string | null
+  done: boolean
+  dueDate?: string | null
+  completedAt?: string | null
+  tags: string[]
+  origin?: Origin
+  createdAt: string
+  updatedAt: string
+}
+
 export type ExportPayload = {
-  version: 1
+  version: 1 | 2
+  scope?: ExportScope
   exportedAt: string
   entities: Entity[]
   relationships: Relationship[]
   quotes: Quote[]
+  momentos?: Momento[]
+  notes?: ExportNote[]
+  tasks?: ExportTask[]
+  blobReferences?: string[]
 }
 
 /**
@@ -22,7 +64,14 @@ export type ExportPayload = {
  * entre "10 inválidos" vs "10 reventados".
  */
 export type ImportFailedItem = {
-  kind: 'entity' | 'relationship' | 'quote'
+  kind:
+    | 'entity'
+    | 'relationship'
+    | 'quote'
+    | 'momento'
+    | 'momento_entity'
+    | 'note'
+    | 'task'
   id: string | null
   reason: string
 }

@@ -73,16 +73,21 @@ export const ExtractFromImageBody = z.object({
 export type ExtractFromImageBodyT = z.infer<typeof ExtractFromImageBody>
 
 /**
- * Body de POST /api/import. El payload del export v1 — el handler valida
- * después que version=1 y procesa items uno a uno con error recovery.
+ * Body de POST /api/import. Acepta el export v1 legado y el backup v2
+ * estructurado; el handler procesa items uno a uno con error recovery.
  * Aquí solo verificamos shape global y que los arrays existan.
  */
 export const ImportBody = z
   .object({
-    version: z.literal(1, { message: 'Versión de export no soportada (esperado: 1)' }),
+    version: z.union([z.literal(1), z.literal(2)], {
+      message: 'Versión de export no soportada (esperado: 1 o 2)',
+    }),
     entities: z.array(z.unknown()).optional(),
     relationships: z.array(z.unknown()).optional(),
     quotes: z.array(z.unknown()).optional(),
+    momentos: z.array(z.unknown()).optional(),
+    notes: z.array(z.unknown()).optional(),
+    tasks: z.array(z.unknown()).optional(),
   })
   .passthrough()
 export type ImportBodyT = z.infer<typeof ImportBody>

@@ -8,7 +8,7 @@ import { resolveImportId } from './_lib/import-ids.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ImportBody } from './_lib/admin-schemas.js'
 import { persistError, safeSql } from './_lib/observability.js'
-import { LEGACY_PARTIAL_EXPORT_SCOPE } from './_lib/export-scope.js'
+import { STRUCTURED_CORE_EXPORT_SCOPE } from './_lib/export-scope.js'
 
 type IncomingEntity = {
   id: string
@@ -16,8 +16,12 @@ type IncomingEntity = {
   name: string
   year?: number | null
   description?: string | null
+  essay?: string | null
   positionX?: number | null
   positionY?: number | null
+  spotifyUrl?: string | null
+  wikipediaUrl?: string | null
+  grokipediaUrl?: string | null
   origin?: unknown
 }
 type IncomingRelationship = {
@@ -34,7 +38,42 @@ type IncomingQuote = {
   text: string
   source?: string | null
   context?: string | null
+  userReflection?: string | null
+  aiReflection?: string | null
+  aiReflectionProvider?: string | null
+  aiReflectionModel?: string | null
+  aiReflectionAt?: string | null
+  linkedQuoteIds?: string[]
+  pinnedAt?: string | null
+  resonance?: number | null
   link?: string | null
+  origin?: unknown
+}
+type IncomingMomento = {
+  id: string
+  kind: string
+  capturedAt?: string | null
+  payload: Record<string, unknown>
+  note?: string | null
+  origin?: unknown
+  entityIds: string[]
+}
+type IncomingNote = {
+  id: string
+  content: string
+  tags: string[]
+  pinned: boolean
+  promotedMomentoId?: string | null
+  origin?: unknown
+}
+type IncomingTask = {
+  id: string
+  title: string
+  detail?: string | null
+  done: boolean
+  dueDate?: string | null
+  completedAt?: string | null
+  tags: string[]
   origin?: unknown
 }
 
@@ -46,8 +85,17 @@ import { normalizeOrigin } from './_lib/origin.js'
  * de los 5 perdidos. Ahora cada fallo se persiste en error_log y se
  * devuelve al cliente para que la UI pueda mostrar exactamente qué falló.
  */
+type FailedKind =
+  | 'entity'
+  | 'relationship'
+  | 'quote'
+  | 'momento'
+  | 'momento_entity'
+  | 'note'
+  | 'task'
+
 type FailedItem = {
-  kind: 'entity' | 'relationship' | 'quote'
+  kind: FailedKind
   id: string | null
   reason: string
 }
@@ -70,6 +118,16 @@ function nullableNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+function booleanValue(value: unknown, fallback = false): boolean {
+  return typeof value === 'boolean' ? value : fallback
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : []
+}
+
 function incomingEntity(value: unknown): IncomingEntity | null {
   const item = asRecord(value)
   if (!item) return null
@@ -83,8 +141,12 @@ function incomingEntity(value: unknown): IncomingEntity | null {
     name,
     year: nullableNumber(item.year),
     description: nullableString(item.description),
+    essay: nullableString(item.essay),
     positionX: nullableNumber(item.positionX),
     positionY: nullableNumber(item.positionY),
+    spotifyUrl: nullableString(item.spotifyUrl),
+    wikipediaUrl: nullableString(item.wikipediaUrl),
+    grokipediaUrl: nullableString(item.grokipediaUrl),
     origin: item.origin,
   }
 }
@@ -120,7 +182,67 @@ function incomingQuote(value: unknown): IncomingQuote | null {
     text,
     source: nullableString(item.source),
     context: nullableString(item.context),
+    userReflection: nullableString(item.userReflection),
+    aiReflection: nullableString(item.aiReflection),
+    aiReflectionProvider: nullableString(item.aiReflectionProvider),
+    aiReflectionModel: nullableString(item.aiReflectionModel),
+    aiReflectionAt: nullableString(item.aiReflectionAt),
+    linkedQuoteIds: stringArray(item.linkedQuoteIds),
+    pinnedAt: nullableString(item.pinnedAt),
+    resonance: nullableNumber(item.resonance),
     link: nullableString(item.link),
+    origin: item.origin,
+  }
+}
+
+function incomingMomento(value: unknown): IncomingMomento | null {
+  const item = asRecord(value)
+  if (!item) return null
+  const id = stringValue(item.id)
+  const kind = stringValue(item.kind)
+  const payload = asRecord(item.payload)
+  if (!id || !kind || !payload) return null
+  return {
+    id,
+    kind,
+    capturedAt: nullableString(item.capturedAt),
+    payload,
+    note: nullableString(item.note),
+    origin: item.origin,
+    entityIds: stringArray(item.entityIds),
+  }
+}
+
+function incomingNote(value: unknown): IncomingNote | null {
+  const item = asRecord(value)
+  if (!item) return null
+  const id = stringValue(item.id)
+  const content = stringValue(item.content)
+  if (!id || !content) return null
+  return {
+    id,
+    content,
+    tags: stringArray(item.tags),
+    pinned: booleanValue(item.pinned),
+    promotedMomentoId: nullableString(item.promotedMomentoId),
+    origin: item.origin,
+  }
+}
+
+function incomingTask(value: unknown): IncomingTask | null {
+  const item = asRecord(value)
+  if (!item) return null
+  const id = stringValue(item.id)
+  const title = stringValue(item.title)
+  if (!id || !title) return null
+  return {
+    id,
+    title,
+    detail: nullableString(item.detail),
+    done: booleanValue(item.done),
+    dueDate: nullableString(item.dueDate),
+    completedAt: nullableString(item.completedAt),
+    tags: stringArray(item.tags),
     origin: item.origin,
   }
 }
@@ -141,6 +263,9 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
   const entities = payload.entities ?? []
   const relationships = payload.relationships ?? []
   const quotes = payload.quotes ?? []
+  const momentos = payload.momentos ?? []
+  const notes = payload.notes ?? []
+  const tasks = payload.tasks ?? []
 
   let imported = 0
   let skipped = 0
@@ -149,7 +274,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
   // Try insert + persist failure on error. The loop never throws — every
   // item gets a chance, errors are collected. Avoids the previous behavior
   // where a single bad INSERT silently aborted everything after it.
-  function recordFailure(kind: FailedItem['kind'], id: string | null, err: unknown): void {
+  function recordFailure(kind: FailedKind, id: string | null, err: unknown): void {
     const reason = err instanceof Error ? err.message : String(err)
     failed.push({ kind, id, reason })
     persistError(safeSql(), {
@@ -172,16 +297,20 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     try {
       const origin = JSON.stringify(normalizeOrigin(e.origin))
       const result = await sqlTyped<{ id: string }>(sql`
-        INSERT INTO entities (id, type, name, year, description, position_x, position_y, origin, user_id)
+        INSERT INTO entities (id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, user_id)
         VALUES (
           ${resolveImportId(e.id, userId)},
           ${e.type},
           ${e.name},
           ${e.year ?? null},
           ${e.description ?? null},
+          ${e.essay ?? null},
           ${e.positionX ?? null},
           ${e.positionY ?? null},
           ${origin}::jsonb,
+          ${e.spotifyUrl ?? null},
+          ${e.wikipediaUrl ?? null},
+          ${e.grokipediaUrl ?? null},
           ${userId}
         )
         ON CONFLICT (id) DO NOTHING
@@ -232,13 +361,21 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     try {
       const origin = JSON.stringify(normalizeOrigin(q.origin))
       const result = await sqlTyped<{ id: string }>(sql`
-        INSERT INTO quotes (id, entity_id, text, source, context, link, origin, user_id)
+        INSERT INTO quotes (id, entity_id, text, source, context, user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at, linked_quote_ids, pinned_at, resonance, link, origin, user_id)
         VALUES (
           ${resolveImportId(q.id, userId)},
           ${resolveImportId(q.entityId, userId)},
           ${q.text},
           ${q.source ?? null},
           ${q.context ?? null},
+          ${q.userReflection ?? null},
+          ${q.aiReflection ?? null},
+          ${q.aiReflectionProvider ?? null},
+          ${q.aiReflectionModel ?? null},
+          ${q.aiReflectionAt ?? null},
+          ${(q.linkedQuoteIds ?? []).map((id) => resolveImportId(id, userId))},
+          ${q.pinnedAt ?? null},
+          ${q.resonance ?? null},
           ${q.link ?? null},
           ${origin}::jsonb,
           ${userId}
@@ -253,13 +390,121 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     }
   }
 
+  for (const rawMomento of momentos) {
+    const m = incomingMomento(rawMomento)
+    if (!m) {
+      skipped++
+      continue
+    }
+    try {
+      const origin = JSON.stringify(normalizeOrigin(m.origin))
+      const result = await sqlTyped<{ id: string }>(sql`
+        INSERT INTO momentos (id, kind, captured_at, payload, note, origin, user_id)
+        VALUES (
+          ${resolveImportId(m.id, userId)},
+          ${m.kind},
+          ${m.capturedAt ?? new Date().toISOString()},
+          ${JSON.stringify(m.payload)}::jsonb,
+          ${m.note ?? null},
+          ${origin}::jsonb,
+          ${userId}
+        )
+        ON CONFLICT (id) DO NOTHING
+        RETURNING id
+      `)
+      if (result.length > 0) imported++
+      else skipped++
+      for (const entityId of m.entityIds) {
+        try {
+          const linkResult = await sqlTyped<{ momento_id: string }>(sql`
+            INSERT INTO momento_entities (momento_id, entity_id, user_id)
+            VALUES (
+              ${resolveImportId(m.id, userId)},
+              ${resolveImportId(entityId, userId)},
+              ${userId}
+            )
+            ON CONFLICT (momento_id, entity_id) DO UPDATE
+              SET deleted_at = NULL, user_id = EXCLUDED.user_id
+            RETURNING momento_id
+          `)
+          if (linkResult.length > 0) imported++
+          else skipped++
+        } catch (err) {
+          recordFailure('momento_entity', `${m.id}:${entityId}`, err)
+        }
+      }
+    } catch (err) {
+      recordFailure('momento', m.id ?? null, err)
+    }
+  }
+
+  for (const rawNote of notes) {
+    const n = incomingNote(rawNote)
+    if (!n) {
+      skipped++
+      continue
+    }
+    try {
+      const origin = JSON.stringify(normalizeOrigin(n.origin))
+      const result = await sqlTyped<{ id: string }>(sql`
+        INSERT INTO notes (id, content, tags, pinned, promoted_momento_id, origin, user_id)
+        VALUES (
+          ${resolveImportId(n.id, userId)},
+          ${n.content},
+          ${n.tags},
+          ${n.pinned},
+          ${n.promotedMomentoId ? resolveImportId(n.promotedMomentoId, userId) : null},
+          ${origin}::jsonb,
+          ${userId}
+        )
+        ON CONFLICT (id) DO NOTHING
+        RETURNING id
+      `)
+      if (result.length > 0) imported++
+      else skipped++
+    } catch (err) {
+      recordFailure('note', n.id ?? null, err)
+    }
+  }
+
+  for (const rawTask of tasks) {
+    const t = incomingTask(rawTask)
+    if (!t) {
+      skipped++
+      continue
+    }
+    try {
+      const origin = JSON.stringify(normalizeOrigin(t.origin))
+      const result = await sqlTyped<{ id: string }>(sql`
+        INSERT INTO tasks (id, title, detail, done, due_date, completed_at, tags, origin, user_id)
+        VALUES (
+          ${resolveImportId(t.id, userId)},
+          ${t.title},
+          ${t.detail ?? null},
+          ${t.done},
+          ${t.dueDate ?? null},
+          ${t.completedAt ?? null},
+          ${t.tags},
+          ${origin}::jsonb,
+          ${userId}
+        )
+        ON CONFLICT (id) DO NOTHING
+        RETURNING id
+      `)
+      if (result.length > 0) imported++
+      else skipped++
+    } catch (err) {
+      recordFailure('task', t.id ?? null, err)
+    }
+  }
+
   return Response.json({
     imported,
     skipped,
     failed,
     scope: {
-      label: 'Import parcial legado',
-      ...LEGACY_PARTIAL_EXPORT_SCOPE,
+      label: 'Import estructurado core',
+      ...STRUCTURED_CORE_EXPORT_SCOPE,
     },
     // Retro-compat: clientes viejos sólo leen `imported`.
   })
