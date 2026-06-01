@@ -60,12 +60,27 @@ export const mockSqlResponses = {
  * Eso modela el caso "esta query no afecta al test bajo prueba".
  */
 export function setupMockSql() {
+  function nextResponse(): unknown[] {
+    return mockSqlState.responses.shift() ?? []
+  }
+
   function sql(strings: TemplateStringsArray, ...values: unknown[]): Promise<unknown[]> {
     mockSqlState.calls.push({
       template: strings.join('?'),
       values,
     })
-    return Promise.resolve(mockSqlState.responses.shift() ?? [])
+    return Promise.resolve(nextResponse())
+  }
+  sql.transaction = async (fn: (tx: typeof sql) => unknown[]) => {
+    const tx = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+      mockSqlState.calls.push({
+        template: strings.join('?'),
+        values,
+      })
+      return {}
+    }) as typeof sql
+    const queries = fn(tx)
+    return queries.map(() => nextResponse())
   }
   return {
     getSql: () => sql,
