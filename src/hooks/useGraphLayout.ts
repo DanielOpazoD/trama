@@ -5,6 +5,11 @@ import { byTypeLayout } from './layouts/byType'
 import { byYearLayout } from './layouts/byYear'
 import { organicLayout } from './layouts/organic'
 import type { LayoutEdge, LayoutMode, LayoutNode, Position } from './layouts/types'
+import {
+  graphHashToSignature,
+  hashGraphPart,
+  initialGraphHash,
+} from '../lib/graphSignature'
 
 type Options = {
   mode: LayoutMode
@@ -26,23 +31,25 @@ function buildLayoutSignature(
   nodes: Entity[],
   edges: Relationship[],
 ) {
-  return JSON.stringify({
-    mode,
-    reseed,
-    nodes: nodes.map((node) => ({
-      id: node.id,
-      type: node.type,
-      year: node.year ?? null,
-      positionX: node.positionX ?? null,
-      positionY: node.positionY ?? null,
-    })),
-    edges: edges.map((edge) => ({
-      id: edge.id,
-      fromId: edge.fromId,
-      toId: edge.toId,
-      type: edge.type,
-    })),
-  })
+  let hash = initialGraphHash()
+  hash = hashGraphPart(hash, mode)
+  hash = hashGraphPart(hash, reseed)
+  hash = hashGraphPart(hash, nodes.length)
+  for (const node of nodes) {
+    hash = hashGraphPart(hash, node.id)
+    hash = hashGraphPart(hash, node.type)
+    hash = hashGraphPart(hash, node.year ?? null)
+    hash = hashGraphPart(hash, node.positionX ?? null)
+    hash = hashGraphPart(hash, node.positionY ?? null)
+  }
+  hash = hashGraphPart(hash, edges.length)
+  for (const edge of edges) {
+    hash = hashGraphPart(hash, edge.id)
+    hash = hashGraphPart(hash, edge.fromId)
+    hash = hashGraphPart(hash, edge.toId)
+    hash = hashGraphPart(hash, edge.type)
+  }
+  return graphHashToSignature(hash)
 }
 
 /**

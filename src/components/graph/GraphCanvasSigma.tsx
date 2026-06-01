@@ -3,6 +3,11 @@ import Sigma from 'sigma'
 import Graph from 'graphology'
 import type { Entity, Relationship } from '../../types'
 import { typeAccent } from './GraphNode'
+import {
+  graphHashToSignature,
+  hashGraphPart,
+  initialGraphHash,
+} from '../../lib/graphSignature'
 
 /**
  * Renderer WebGL para el grafo. Se activa cuando hay muchos nodos
@@ -80,20 +85,27 @@ export function GraphCanvasSigma({
     })
     return { nodes, edges, renderLabels: entities.length < 500 }
   }, [entities, positions, relationships])
-  const graphSignature = useMemo(
-    () =>
-      [
-        graphModel.renderLabels ? 'labels:on' : 'labels:off',
-        ...graphModel.nodes.map(
-          (node) =>
-            `${node.id}:${node.data.x}:${node.data.y}:${node.data.label}:${node.data.entityType}:${node.data.color}`,
-        ),
-        ...graphModel.edges.map(
-          (edge) => `${edge.fromId}->${edge.toId}:${edge.data.type}:${edge.data.relType}`,
-        ),
-      ].join('|'),
-    [graphModel],
-  )
+  const graphSignature = useMemo(() => {
+    let hash = initialGraphHash()
+    hash = hashGraphPart(hash, graphModel.renderLabels ? 'labels:on' : 'labels:off')
+    hash = hashGraphPart(hash, graphModel.nodes.length)
+    for (const node of graphModel.nodes) {
+      hash = hashGraphPart(hash, node.id)
+      hash = hashGraphPart(hash, node.data.x)
+      hash = hashGraphPart(hash, node.data.y)
+      hash = hashGraphPart(hash, node.data.label)
+      hash = hashGraphPart(hash, node.data.entityType)
+      hash = hashGraphPart(hash, node.data.color)
+    }
+    hash = hashGraphPart(hash, graphModel.edges.length)
+    for (const edge of graphModel.edges) {
+      hash = hashGraphPart(hash, edge.fromId)
+      hash = hashGraphPart(hash, edge.toId)
+      hash = hashGraphPart(hash, edge.data.type)
+      hash = hashGraphPart(hash, edge.data.relType)
+    }
+    return graphHashToSignature(hash)
+  }, [graphModel])
   const graphModelRef = useRef(graphModel)
   graphModelRef.current = graphModel
 

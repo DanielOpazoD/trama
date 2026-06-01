@@ -1,4 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { useGraphLayout } from './useGraphLayout'
 import type { Entity, Relationship } from '../types'
@@ -45,6 +48,16 @@ function rel(id: string, from: string, to: string): Relationship {
 }
 
 describe('useGraphLayout', () => {
+  it('usa una firma compacta en vez de serializar el grafo completo', () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'useGraphLayout.ts'),
+      'utf8',
+    )
+
+    expect(src).toContain('hashGraphPart')
+    expect(src).not.toContain('JSON.stringify({')
+  })
+
   it('positions es un Map vacío cuando no hay nodos', () => {
     const { result } = renderHook(() =>
       useGraphLayout({ mode: 'organic', nodes: [], edges: [] }),
