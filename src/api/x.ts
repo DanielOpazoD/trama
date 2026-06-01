@@ -61,6 +61,11 @@ export const xApi = {
   async xGenerateCronica(): Promise<{ cronica: XCronica }> {
     return request('/api/x/cronica', { method: 'POST' })
   },
+  /** Borra (soft-delete) tu crónica de bookmarks. La sección queda vacía
+   * hasta que regeneres una nueva. */
+  async xDeleteCronica(): Promise<void> {
+    await request('/api/x/cronica', { method: 'DELETE' })
+  },
   /** Lista los bookmarks vivos (ordenados por fecha del tweet). La vista agrupa
    * por año/mes y filtra por tema client-side. */
   async xBookmarks(): Promise<{ items: XBookmark[] }> {

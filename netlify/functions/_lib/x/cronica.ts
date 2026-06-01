@@ -78,7 +78,7 @@ export async function getLatestXCronica(
   const rows = (await sql`
     SELECT id, text, source_count, generated_at, provider, model
     FROM x_cronicas
-    WHERE user_id = ${userId}
+    WHERE user_id = ${userId} AND deleted_at IS NULL
     ORDER BY generated_at DESC
     LIMIT 1
   `) as StoredXCronica[]
@@ -102,4 +102,14 @@ export async function insertXCronica(
     RETURNING id, text, source_count, generated_at, provider, model
   `) as StoredXCronica[]
   return rows[0]!
+}
+
+/** Soft-delete de TODAS las crónicas vivas del usuario. La vista muestra
+    solo la última; "eliminar" debe dejar la sección vacía hasta regenerar. */
+export async function softDeleteXCronicas(sql: SqlClient, userId: string): Promise<void> {
+  await sql`
+    UPDATE x_cronicas
+    SET deleted_at = NOW()
+    WHERE user_id = ${userId} AND deleted_at IS NULL
+  `
 }

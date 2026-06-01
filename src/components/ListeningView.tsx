@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { api, type SpotifyPlayGroup } from '../api'
 import { useAddEntity, useExtract } from '../state'
-import { SparkleIcon } from './Icons'
+import { SparkleIcon, SpotifyIcon } from './Icons'
 import { MusicPaletteCard } from './MusicPaletteCard'
 import { PlaysTiming } from './listening/PlaysTiming'
 import { SuggestArtists } from './listening/SuggestArtists'
@@ -185,6 +185,7 @@ export function ListeningView({
           ω-B: wash con accent del tipo musico — rojo-tierra. */}
       <ViewHeader
         title="Escuchas"
+        icon={<SpotifyIcon size={24} />}
         eyebrow="tu música reciente"
         accent="var(--type-musico)"
         eyebrowColor="var(--accent-gold)"

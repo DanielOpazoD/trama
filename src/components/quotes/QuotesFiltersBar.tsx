@@ -35,7 +35,7 @@ export function QuotesFiltersBar({
   if (availableTypes.length <= 1 && pinnedCount === 0) return null
 
   return (
-    <div className="py-2 mb-4 border-b border-ink-100/60 flex flex-wrap gap-1.5">
+    <div className="pb-2 mb-4 border-b border-ink-100/60 flex flex-wrap gap-1.5">
       {/* ω-E: chip "favoritas" — solo aparece cuando hay al menos una
           pinneada. Cuando se activa, el filtro de tipo no se toca (se
           acumulan: solo favoritas Y de un cierto tipo si está seleccionado). */}

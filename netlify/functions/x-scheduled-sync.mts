@@ -149,6 +149,8 @@ export default withObservability(
 )
 
 export const config: Config = {
-  // Cron UTC, cada 6 horas: 00, 06, 12, 18.
-  schedule: '0 */6 * * *',
+  // Sync MANUAL (no automática) — a pedido del usuario: la sincronización de
+  // X la dispara el botón "Sincronizar" en la vista Twitter (endpoint
+  // /api/x/sync). Sin `schedule`, esta función ya no corre por cron. Para
+  // reactivar el sync periódico, devolver: schedule: '0 */6 * * *'.
 }

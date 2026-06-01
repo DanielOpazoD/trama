@@ -120,7 +120,7 @@ export function QuotesView({
         title="Citas"
         eyebrow="fragmentos que retuviste"
         accent="var(--accent-gold)"
-        spacing="wide"
+        spacing="tight"
         subtitle="Fragmentos textuales que atribuyes a una entidad. Una frase de un libro, algo que dijo una persona, un verso de una canción."
         action={
           <div className="flex items-center gap-4">
