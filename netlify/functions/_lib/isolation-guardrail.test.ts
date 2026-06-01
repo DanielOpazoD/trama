@@ -261,6 +261,27 @@ describe('guardrail: migraciones mantienen FK user_id -> users(id)', () => {
   })
 })
 
+describe('guardrail: migraciones habilitan RLS en tablas privadas', () => {
+  const sql = allMigrationSql()
+
+  it('declara políticas RLS basadas en app.current_user_id', () => {
+    expect(sql).toMatch(/ENABLE\s+ROW\s+LEVEL\s+SECURITY/i)
+    expect(sql).toMatch(/FORCE\s+ROW\s+LEVEL\s+SECURITY/i)
+    expect(sql).toMatch(/CREATE\s+POLICY\s+trama_user_isolation/i)
+    expect(sql).toMatch(/current_setting\('app\.current_user_id',\s*true\)/i)
+  })
+
+  for (const table of PER_USER_TABLES) {
+    it(`${table}: está incluida en el set RLS privado`, () => {
+      expect(
+        sql,
+        `${table} tiene user_id pero no aparece en la migración RLS. ` +
+          'Inclúyela en el array de tablas privadas o documenta por qué queda fuera.',
+      ).toMatch(new RegExp(`'${table}'`))
+    })
+  }
+})
+
 describe('guardrail: JOINs a tablas per-user scopean también el alias unido', () => {
   const expectations = [
     { file: 'search.mts', table: 'entities', alias: 'e', min: 2 },
