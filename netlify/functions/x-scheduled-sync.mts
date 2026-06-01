@@ -12,6 +12,7 @@ import { resolveAIInvocation } from './_lib/ai-mode.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
 import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
+import { withObservability } from './_lib/handler-wrap.js'
 
 type XTokenUserRow = {
   user_id: string
@@ -29,8 +30,9 @@ type XTokenUserRow = {
  *
  * Netlify ignora el valor de retorno; devolvemos 202 por convención.
  */
-export default async (req: Request) => {
-  const requestId = crypto.randomUUID()
+export default withObservability(
+  'x-scheduled-sync',
+  async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
     return ApiErrors.methodNotAllowed(requestId)
   }
@@ -138,7 +140,8 @@ export default async (req: Request) => {
     nextRun,
   })
   return ApiSuccess.accepted()
-}
+  },
+)
 
 export const config: Config = {
   // Cron UTC, cada 6 horas: 00, 06, 12, 18.

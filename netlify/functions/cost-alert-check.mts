@@ -3,6 +3,7 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
 import { getEnv } from './_lib/env.js'
 import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
+import { withObservability } from './_lib/handler-wrap.js'
 
 /**
  * DD7 (audit #6): scheduled function que avisa cuando el gasto IA mensual
@@ -50,9 +51,9 @@ function alertCodeForUser(userId: string): string {
   return `${ALERT_CODE_PREFIX}:${userId}`
 }
 
-export default async (req: Request) => {
+export default withObservability('cost-alert-check', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
-    return ApiErrors.methodNotAllowed(crypto.randomUUID())
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   let sql: ReturnType<typeof getSql>
@@ -205,7 +206,7 @@ export default async (req: Request) => {
   })
 
   return ApiSuccess.accepted()
-}
+})
 
 export const config: Config = {
   // 12:00 UTC todos los días = 09:00 Chile (UTC-3) en verano,

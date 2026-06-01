@@ -8,6 +8,7 @@ import {
 } from './_lib/spotify/index.js'
 import { logEvent, logErrorEvent } from './_lib/observability.js'
 import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
+import { withObservability } from './_lib/handler-wrap.js'
 
 /**
  * Netlify Scheduled Function — Netlify invokes this on its own clock.
@@ -21,9 +22,11 @@ import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
  *
  * Return value is ignored by Netlify; we return 202 by convention.
  */
-export default async (req: Request) => {
+export default withObservability(
+  'spotify-scheduled-sync',
+  async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
-    return ApiErrors.methodNotAllowed(crypto.randomUUID())
+    return ApiErrors.methodNotAllowed(requestId)
   }
 
   let nextRun = 'unknown'
@@ -101,7 +104,8 @@ export default async (req: Request) => {
   })
 
   return ApiSuccess.accepted()
-}
+  },
+)
 
 export const config: Config = {
   // Cron expression in UTC. Every 3 hours: 00:00, 03:00, 06:00, 09:00,
