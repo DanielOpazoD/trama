@@ -128,6 +128,7 @@ describe('export endpoint', () => {
       version: 2,
       scope: {
         kind: 'structured-core',
+        completeness: 'partial',
         label: 'Backup estructurado core',
         includes: expect.arrayContaining([
           'entities',
@@ -139,6 +140,10 @@ describe('export endpoint', () => {
           'tasks',
         ]),
         excludes: expect.arrayContaining(['netlify_blobs_binary', 'oauth_tokens']),
+        warnings: expect.arrayContaining([
+          'No incluye bytes binarios de Netlify Blobs; respalda media por separado.',
+          'No incluye OAuth tokens ni tablas operacionales/derivadas.',
+        ]),
       },
       entities: [
         {

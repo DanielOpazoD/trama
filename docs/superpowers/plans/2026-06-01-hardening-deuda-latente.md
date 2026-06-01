@@ -19,11 +19,11 @@
 - Modify/Test: `netlify/functions/_lib/import-endpoint.test.ts`
 - Modify docs if needed: `docs/datos.md`
 
-- [ ] Write tests that prove export/import response metadata names the legacy partial scope.
-- [ ] Implement metadata without changing the existing data payload contract.
-- [ ] Update data docs so backup limitations name current domains.
-- [ ] Run focused import/export tests.
-- [ ] Commit.
+- [x] Write tests that prove export/import response metadata names the legacy partial scope.
+- [x] Implement metadata without changing the existing data payload contract.
+- [x] Update data docs so backup limitations name current domains.
+- [x] Run focused import/export tests.
+- [x] Commit.
 
 ### Task 2: LLM rerank cost and observability guardrail
 

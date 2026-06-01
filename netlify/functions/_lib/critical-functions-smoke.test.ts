@@ -109,6 +109,7 @@ describe('critical functions smoke', () => {
       version: 2,
       scope: {
         kind: 'structured-core',
+        completeness: 'partial',
         includes: expect.arrayContaining([
           'entities',
           'relationships',
@@ -136,7 +137,7 @@ describe('critical functions smoke', () => {
       imported: 0,
       skipped: 0,
       failed: [],
-      scope: { kind: 'structured-core' },
+      scope: { kind: 'structured-core', completeness: 'partial' },
     })
   })
 

@@ -88,9 +88,13 @@ describe('import endpoint', () => {
       failed: [],
       scope: {
         kind: 'structured-core',
+        completeness: 'partial',
         label: 'Import estructurado core',
         includes: expect.arrayContaining(['entities', 'momentos', 'notes', 'tasks']),
         excludes: expect.arrayContaining(['netlify_blobs_binary', 'oauth_tokens']),
+        warnings: expect.arrayContaining([
+          'Importa solo el backup estructurado core; no restaura blobs, tokens ni logs.',
+        ]),
       },
     })
   })
@@ -162,7 +166,7 @@ describe('import endpoint', () => {
       imported: 6,
       skipped: 0,
       failed: [],
-      scope: { kind: 'structured-core' },
+      scope: { kind: 'structured-core', completeness: 'partial' },
     })
     const templates = mockSqlState.calls.map((c) => c.template).join('\n')
     expect(templates).toMatch(/INSERT INTO momentos/)

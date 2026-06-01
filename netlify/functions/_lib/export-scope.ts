@@ -1,5 +1,6 @@
 export const STRUCTURED_CORE_EXPORT_SCOPE = {
   kind: 'structured-core',
+  completeness: 'partial',
   includes: [
     'entities',
     'relationships',
@@ -27,5 +28,9 @@ export const STRUCTURED_CORE_EXPORT_SCOPE = {
     'ai_task_providers',
     'llm_cache',
     'web_vitals_samples',
+  ],
+  warnings: [
+    'No incluye bytes binarios de Netlify Blobs; respalda media por separado.',
+    'No incluye OAuth tokens ni tablas operacionales/derivadas.',
   ],
 } as const
