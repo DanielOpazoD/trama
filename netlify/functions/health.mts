@@ -1,9 +1,10 @@
 import type { Config } from '@netlify/functions'
-import { getSql, sqlTyped } from './_lib/db.js'
+import { getSql } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { getEnv } from './_lib/env.js'
+import { runWithUserRls } from './_lib/user-rls.js'
 
 /**
  * Endpoint de "salud" para el panel de Settings → Health.
@@ -67,17 +68,17 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
     errors24hRows,
     embeddingPendingRows,
     dailyCostRows,
-  ] = await Promise.all([
-    sqlTyped<UserBudgetRow>(sql`
+  ] = (await runWithUserRls(sql, userId, (scoped) => [
+    scoped`
       SELECT monthly_budget_cents AS cap
       FROM users
       WHERE id = ${userId}
       LIMIT 1
-    `).catch(() => [] as UserBudgetRow[]),
-    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND user_id = ${userId}`),
-    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND user_id = ${userId}`),
-    sqlTyped<CountRow>(sql`SELECT COUNT(*)::text AS c FROM relationships WHERE deleted_at IS NULL AND user_id = ${userId}`),
-    sqlTyped<MonthTotalsRow>(sql`
+    `,
+    scoped`SELECT COUNT(*)::text AS c FROM entities WHERE deleted_at IS NULL AND user_id = ${userId}`,
+    scoped`SELECT COUNT(*)::text AS c FROM quotes WHERE deleted_at IS NULL AND user_id = ${userId}`,
+    scoped`SELECT COUNT(*)::text AS c FROM relationships WHERE deleted_at IS NULL AND user_id = ${userId}`,
+    scoped`
       SELECT
         COUNT(*)::text AS calls,
         COALESCE(SUM(tokens_in), 0)::text AS tokens_in,
@@ -86,8 +87,8 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       FROM extraction_log
       WHERE created_at >= date_trunc('month', NOW())
         AND user_id = ${userId}
-    `),
-    sqlTyped<ProviderRow>(sql`
+    `,
+    scoped`
       SELECT
         provider,
         model,
@@ -100,33 +101,33 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       GROUP BY provider, model
       ORDER BY cost_cents DESC
       LIMIT 10
-    `),
-    sqlTyped<ErrorRow>(sql`
+    `,
+    scoped`
       SELECT id, function_name, http_method, http_path, status_code, message, created_at
       FROM error_log
       WHERE created_at >= NOW() - INTERVAL '7 days'
         AND user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT 10
-    `),
+    `,
     // Errores en las últimas 24h — para alertar de "algo está pasando ahora"
     // vs el histórico de 7 días.
-    sqlTyped<ErrorCountRow>(sql`
+    scoped`
       SELECT COUNT(*)::text AS c
       FROM error_log
       WHERE created_at >= NOW() - INTERVAL '24 hours'
         AND user_id = ${userId}
-    `),
+    `,
     // Filas sin embedding — alertar cuando vale la pena reindexar.
-    sqlTyped<EmbeddingPendingRow>(sql`
+    scoped`
       SELECT
         (SELECT COUNT(*) FROM entities WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId})::text AS entities,
         (SELECT COUNT(*) FROM quotes WHERE deleted_at IS NULL AND embedding IS NULL AND user_id = ${userId})::text AS quotes
-    `),
+    `,
     // Serie diaria de costo IA — para sparklines en Health.
     // Últimos 30 días, agrupados por día. Días sin actividad no aparecen
     // en el resultado (se rellenan a 0 en el cliente).
-    sqlTyped<DailyCostRow>(sql`
+    scoped`
       SELECT
         date_trunc('day', created_at)::date::text AS day,
         COALESCE(SUM(cost_cents), 0)::text AS cost_cents,
@@ -136,8 +137,19 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
         AND user_id = ${userId}
       GROUP BY day
       ORDER BY day ASC
-    `),
-  ])
+    `,
+  ])) as [
+    UserBudgetRow[],
+    CountRow[],
+    CountRow[],
+    CountRow[],
+    MonthTotalsRow[],
+    ProviderRow[],
+    ErrorRow[],
+    ErrorCountRow[],
+    EmbeddingPendingRow[],
+    DailyCostRow[],
+  ]
 
   // Health debe mostrar el mismo cap que aplica cost-cap.ts:
   // users.monthly_budget_cents si existe, fallback a AI_MONTHLY_BUDGET_CENTS.
