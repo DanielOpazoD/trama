@@ -49,6 +49,32 @@ describe('web-vitals endpoint', () => {
     expect(insert?.values).toContain('legacy-single-user')
   })
 
+  it('sanitiza path antes de persistir métricas', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([]) // INSERT web_vitals_samples
+
+    const res = await handler(
+      new Request('http://localhost/api/web-vitals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'LCP',
+          value: 1234,
+          path: '/entities/550e8400-e29b-41d4-a716-446655440000?token=secret',
+        }),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(204)
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO web_vitals_samples/i.test(c.template),
+    )
+    expect(insert?.values).toContain('/entities/:id')
+    expect(insert?.values.join(' ')).not.toContain('550e8400')
+    expect(insert?.values.join(' ')).not.toContain('secret')
+  })
+
   it('con Clerk estricto y sin token no persiste bajo legacy', async () => {
     process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
     process.env['ALLOW_LEGACY_FALLBACK'] = 'false'

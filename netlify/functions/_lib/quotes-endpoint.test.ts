@@ -58,6 +58,11 @@ describe('quotes endpoint — integration', () => {
     expect(body[0]).toEqual(
       expect.objectContaining({ id: 'q1', entity_id: 'e1', text: 'cita test' }),
     )
+    const listQuery = mockSqlResponses.calls.find((call) =>
+      /FROM quotes/i.test(call.template),
+    )
+    expect(listQuery?.template).toMatch(/\blink\b/)
+    expect(listQuery?.template).toMatch(/\bpinned_at\b/)
   })
 
   it('PATCH con mismo texto fuente no re-embedea', async () => {

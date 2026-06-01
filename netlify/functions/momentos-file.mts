@@ -23,10 +23,9 @@ import { queryWithUserRls } from './_lib/user-rls.js'
  *   - Keys legacy (sin "/" — solo hash.ext) pertenecen al usuario legacy:
  *     se sirven solo si el usuario autenticado resuelve a `legacy-single-user`.
  *
- * Cache-Control: public + immutable. La key incluye userId + random hash;
- * nunca se sobreescribe. El "public" es seguro porque la autorización
- * pasa por el path, no por cookies — un CDN nunca verá una request sin
- * el userId correcto en la URL.
+ * Cache-Control: private + no-store. Aunque la key incluya userId + random
+ * hash, estos bytes son contenido privado de un usuario. No deben quedar en
+ * caches compartidas ni sobrevivir como respuestas publicas de CDN.
  */
 const LEGACY_USER_ID = 'legacy-single-user'
 
@@ -136,7 +135,8 @@ export default withObservability(
     return new Response(blob.data, {
       headers: {
         'Content-Type': mime,
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'private, no-store',
+        Vary: 'Authorization',
       },
     })
   },

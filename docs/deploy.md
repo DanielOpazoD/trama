@@ -85,6 +85,15 @@ Antes de abrir PR, confirmar:
 - Cualquier llamada LLM pasa por cost-cap y escribe `extraction_log`, salvo excepción documentada como embeddings.
 - Producción no puede tener `ALLOW_LEGACY_FALLBACK=true`; `npm run check:legacy-fallback` debe fallar si alguien lo intenta.
 - Clerk debe configurarse como par: `CLERK_SECRET_KEY` y `VITE_CLERK_PUBLISHABLE_KEY` juntas. El mismo check falla si solo una está seteada, porque dejaría front y backend en modos distintos.
+- Si el cambio toca privacidad multiusuario, correr el smoke con dos usuarios de
+  prueba Clerk:
+
+  ```bash
+  E2E_BASE_URL=https://tramadaod.netlify.app \
+  E2E_USER_A_TOKEN=... \
+  E2E_USER_B_TOKEN=... \
+  npx playwright test e2e/multi-user-isolation.spec.ts
+  ```
 
 Para el saneamiento multi-user grande, publicar como stack chico siguiendo
 [`saneamiento-integral-pr-stack.md`](saneamiento-integral-pr-stack.md).

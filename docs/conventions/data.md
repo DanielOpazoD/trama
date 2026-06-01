@@ -45,7 +45,8 @@ const blob = await store.getWithMetadata(key, { type: 'arrayBuffer' })
 
 - Una store por dominio (`momentos-media` hoy; si surge otro caso, store nueva).
 - Keys nuevas son `${userId}/${hash}.${ext}`. Las legacy sin slash pertenecen
-  al usuario `legacy-single-user`. Todas son inmutables.
+  al usuario `legacy-single-user`. Las keys son inmutables; la respuesta del
+  endpoint usa cache privado/no-store porque el contenido es privado.
 - Mime y tamaño en `metadata`. Strip EXIF NO se hace (defer hasta que importe — el endpoint que sirve no expone metadata extra).
 - El cliente NUNCA llama a Netlify Blobs directo. Siempre via los endpoints
   `/api/momentos-upload`, `/api/momentos-audio-upload` y

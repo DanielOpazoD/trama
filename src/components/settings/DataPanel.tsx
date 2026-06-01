@@ -192,7 +192,7 @@ export function DataPanel() {
     <section>
       <PanelHeader
         title="Datos"
-        hint="Exporta toda tu trama como un archivo JSON, o restaura una copia previa. Tu seguro de portabilidad."
+        hint="Exporta el core estructurado de tu trama como JSON, o importa una copia previa. El archivo no incluye bytes de Blobs, tokens ni logs."
       />
       <div className="flex gap-2">
         <button

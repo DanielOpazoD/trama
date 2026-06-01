@@ -91,7 +91,11 @@ describe('import endpoint', () => {
         completeness: 'partial',
         label: 'Import estructurado core',
         includes: expect.arrayContaining(['entities', 'momentos', 'notes', 'tasks']),
-        excludes: expect.arrayContaining(['netlify_blobs_binary', 'oauth_tokens']),
+        excludes: expect.arrayContaining([
+          'netlify_blobs_binary',
+          'oauth_tokens',
+          'chat_messages',
+        ]),
         warnings: expect.arrayContaining([
           'Importa solo el backup estructurado core; no restaura blobs, tokens ni logs.',
         ]),

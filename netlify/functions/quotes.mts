@@ -86,9 +86,9 @@ export default withObservability('quotes', async (req: Request, context: Context
     // With ?limit we switch to cursor pagination, returning { items, nextCursor }.
     if (!limitParam) {
       const rows = await sql`
-        SELECT id, entity_id, text, source, context,
+        SELECT id, entity_id, text, source, context, link,
                user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
-               linked_quote_ids, resonance,
+               linked_quote_ids, pinned_at, resonance,
                origin, created_at, updated_at
         FROM quotes
         WHERE deleted_at IS NULL AND user_id = ${userId}

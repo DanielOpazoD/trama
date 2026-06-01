@@ -12,7 +12,7 @@ on:
 #   unit       → typecheck + vitest + coverage + build + bundle-size + audit
 #   e2e        → Playwright + axe-core a11y
 #   secrets    → gitleaks (D4): escaneo de secretos sobre todo el historial
-#   migrations → G1/K3: aplica las 30 migraciones sobre un Postgres pgvector
+#   migrations → G1/K3: aplica las migraciones versionadas sobre un Postgres pgvector
 #                efímero — gate de drift/SQL antes del deploy a Neon
 #
 # Los jobs node (lint/unit/e2e) comparten install + cache de npm; secrets y

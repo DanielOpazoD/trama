@@ -17,12 +17,15 @@ import { ToastProvider, useToast } from './toast'
 import { queryKeys } from './queryClient'
 import {
   useAddEntity,
+  useEntitiesQuery,
   useUpdateEntity,
   useUpdateEntityType,
   useDeleteEntity,
   useVoiceOfEntity,
 } from './useEntities'
 import * as apiModule from '../api'
+import * as demoModule from '../lib/demo'
+import { storage } from '../storage'
 import type { Entity, Relationship, Quote } from '../types'
 
 function makeQueryClient() {
@@ -309,6 +312,36 @@ describe('useDeleteEntity — undo toast', () => {
 })
 
 describe('manejo de errores — offline', () => {
+  it('useEntitiesQuery no devuelve localStorage ante error API fuera de modo demo', async () => {
+    vi.spyOn(apiModule.api, 'listEntities').mockRejectedValue(new Error('server down'))
+    vi.spyOn(demoModule, 'isDemoMode').mockReturnValue(false)
+    const loadSpy = vi.spyOn(storage, 'loadEntities')
+    const qc = makeQueryClient()
+
+    const { result } = renderHook(() => useEntitiesQuery(), {
+      wrapper: wrapWith(qc),
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(loadSpy).not.toHaveBeenCalled()
+  })
+
+  it('useEntitiesQuery permite localStorage solo en modo demo explícito', async () => {
+    vi.spyOn(apiModule.api, 'listEntities').mockRejectedValue(
+      new Error('demo backend miss'),
+    )
+    vi.spyOn(demoModule, 'isDemoMode').mockReturnValue(true)
+    vi.spyOn(storage, 'loadEntities').mockReturnValue([REAL_ENTITY])
+    const qc = makeQueryClient()
+
+    const { result } = renderHook(() => useEntitiesQuery(), {
+      wrapper: wrapWith(qc),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toEqual([REAL_ENTITY])
+  })
+
   it('useUpdateEntity rechaza pidiendo conexión y revierte el optimistic patch', async () => {
     const qc = makeQueryClient()
     qc.setQueryData<Entity[]>(queryKeys.entities, [REAL_ENTITY])

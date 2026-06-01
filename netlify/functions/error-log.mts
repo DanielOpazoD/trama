@@ -7,6 +7,7 @@ import { ErrorLogBody } from './_lib/admin-schemas.js'
 import { getAuthedUser, UnauthenticatedError } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { logEvent } from './_lib/observability.js'
+import { sanitizeObservedPath } from './_lib/observed-path.js'
 
 type Row = {
   id: string
@@ -86,7 +87,7 @@ export default withObservability('error-log', async (req, _ctx, { requestId }) =
       logEvent({
         event: 'client_error_log_skipped',
         reason: 'unauthenticated',
-        path: body.path,
+        path: sanitizeObservedPath(body.path),
         scope: body.scope,
       })
       return ApiSuccess.noContent()
@@ -94,11 +95,9 @@ export default withObservability('error-log', async (req, _ctx, { requestId }) =
 
     const message = body.message.slice(0, 2000)
     const stack = body.stack ? body.stack.slice(0, 8000) : null
-    const path = body.path ? body.path.slice(0, 500) : null
+    const path = sanitizeObservedPath(body.path)
     const context = {
-      componentStack: body.componentStack
-        ? body.componentStack.slice(0, 8000)
-        : null,
+      componentStack: body.componentStack ? body.componentStack.slice(0, 8000) : null,
       userAgent: body.userAgent ? body.userAgent.slice(0, 500) : null,
       scope: body.scope ? body.scope.slice(0, 100) : null,
     }

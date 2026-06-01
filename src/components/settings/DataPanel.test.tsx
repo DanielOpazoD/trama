@@ -169,6 +169,19 @@ describe('buildPreview (pure)', () => {
 })
 
 describe('<DataPanel /> — flujo de import con preview', () => {
+  it('describe el export como core estructurado parcial, no como backup total', () => {
+    const qc = makeQueryClient()
+    qc.setQueryData<Entity[]>(queryKeys.entities, [])
+    qc.setQueryData<Quote[]>(queryKeys.quotes, [])
+    qc.setQueryData<Relationship[]>(queryKeys.relationships, [])
+
+    render(<DataPanel />, { wrapper: wrap(qc) })
+
+    expect(screen.getByText(/core estructurado/i)).toBeInTheDocument()
+    expect(screen.getByText(/no incluye bytes de Blobs/i)).toBeInTheDocument()
+    expect(screen.queryByText(/exporta toda tu trama/i)).toBeNull()
+  })
+
   it('al subir archivo no llama al backend inmediato; aparece el preview', async () => {
     const importSpy = vi.spyOn(apiModule.api, 'importAll')
     const qc = makeQueryClient()
