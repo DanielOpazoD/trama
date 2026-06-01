@@ -18,6 +18,7 @@ import { persistError, safeSql } from './observability'
 import { ApiErrors } from './api-error'
 import type { ApiErrorBody } from './api-error'
 import { UnauthenticatedError } from './auth.js'
+import { runWithoutRlsContext } from './user-rls.js'
 
 type NetlifyHandler = (req: Request, context: Context) => Promise<Response>
 
@@ -34,72 +35,74 @@ export function withObservability(
   handler: InnerHandler,
 ): NetlifyHandler {
   return async (req, context) => {
-    const start = Date.now()
-    const url = new URL(req.url)
-    // Si el cliente nos manda un x-request-id (ej. una integración upstream
-    // que ya tiene su tracing), lo respetamos. Si no, generamos uno nuevo.
-    const requestId = req.headers.get('x-request-id') || crypto.randomUUID()
+    return runWithoutRlsContext(async () => {
+      const start = Date.now()
+      const url = new URL(req.url)
+      // Si el cliente nos manda un x-request-id (ej. una integración upstream
+      // que ya tiene su tracing), lo respetamos. Si no, generamos uno nuevo.
+      const requestId = req.headers.get('x-request-id') || crypto.randomUUID()
 
-    try {
-      const response = await handler(req, context, { requestId })
+      try {
+        const response = await handler(req, context, { requestId })
 
-      // Garantía: el header `x-request-id` aparece en TODA respuesta. Si
-      // el handler ya lo seteó (caso típico cuando devuelve apiError),
-      // no lo pisamos.
-      const finalResponse = response.headers.has('x-request-id')
-        ? response
-        : withRequestIdHeader(response, requestId)
+        // Garantía: el header `x-request-id` aparece en TODA respuesta. Si
+        // el handler ya lo seteó (caso típico cuando devuelve apiError),
+        // no lo pisamos.
+        const finalResponse = response.headers.has('x-request-id')
+          ? response
+          : withRequestIdHeader(response, requestId)
 
-      // Log non-2xx responses too (warn level, sin stack).
-      if (finalResponse.status >= 400) {
-        const body = await finalResponse
-          .clone()
-          .text()
-          .catch(() => '')
+        // Log non-2xx responses too (warn level, sin stack).
+        if (finalResponse.status >= 400) {
+          const body = await finalResponse
+            .clone()
+            .text()
+            .catch(() => '')
+          persistError(safeSql(), {
+            functionName,
+            httpMethod: req.method,
+            httpPath: url.pathname,
+            statusCode: finalResponse.status,
+            message: `non-2xx response: ${body.slice(0, 500)}`,
+            requestId,
+          })
+        }
+        return finalResponse
+      } catch (err) {
+        if (err instanceof UnauthenticatedError) {
+          return ApiErrors.unauthenticated(requestId)
+        }
+
+        const message = err instanceof Error ? err.message : String(err)
+        const stack = err instanceof Error ? err.stack : undefined
         persistError(safeSql(), {
           functionName,
           httpMethod: req.method,
           httpPath: url.pathname,
-          statusCode: finalResponse.status,
-          message: `non-2xx response: ${body.slice(0, 500)}`,
+          statusCode: 500,
+          message,
+          stack,
+          context: { durationMs: Date.now() - start },
           requestId,
         })
+        // 500 wrap con shape canónica (ApiErrorBody). El cliente parsea esto
+        // exactamente igual que cualquier otro error.
+        const body: ApiErrorBody = {
+          error: {
+            code: 'INTERNAL',
+            message: 'Error interno del servidor',
+            requestId,
+          },
+        }
+        return new Response(JSON.stringify(body), {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'x-request-id': requestId,
+          },
+        })
       }
-      return finalResponse
-    } catch (err) {
-      if (err instanceof UnauthenticatedError) {
-        return ApiErrors.unauthenticated(requestId)
-      }
-
-      const message = err instanceof Error ? err.message : String(err)
-      const stack = err instanceof Error ? err.stack : undefined
-      persistError(safeSql(), {
-        functionName,
-        httpMethod: req.method,
-        httpPath: url.pathname,
-        statusCode: 500,
-        message,
-        stack,
-        context: { durationMs: Date.now() - start },
-        requestId,
-      })
-      // 500 wrap con shape canónica (ApiErrorBody). El cliente parsea esto
-      // exactamente igual que cualquier otro error.
-      const body: ApiErrorBody = {
-        error: {
-          code: 'INTERNAL',
-          message: 'Error interno del servidor',
-          requestId,
-        },
-      }
-      return new Response(JSON.stringify(body), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-request-id': requestId,
-        },
-      })
-    }
+    })
   }
 }
 

@@ -9,6 +9,7 @@ import {
 import { logEvent, logErrorEvent } from './_lib/observability.js'
 import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { withObservability } from './_lib/handler-wrap.js'
+import { runWithSystemRls } from './_lib/user-rls.js'
 
 /**
  * Netlify Scheduled Function — Netlify invokes this on its own clock.
@@ -25,85 +26,91 @@ import { withObservability } from './_lib/handler-wrap.js'
 export default withObservability(
   'spotify-scheduled-sync',
   async (req: Request, _ctx, { requestId }) => {
-  if (req.method !== 'POST') {
-    return ApiErrors.methodNotAllowed(requestId)
-  }
-
-  let nextRun = 'unknown'
-  try {
-    const body = (await req.json().catch(() => ({}))) as { next_run?: string }
-    nextRun = body.next_run ?? 'unknown'
-  } catch {
-    // Ignore — body shape is documented but defensive parsing never hurts.
-  }
-
-  let sql: ReturnType<typeof getSql>
-  try {
-    sql = getSql()
-  } catch (err) {
-    if (isMissingDatabaseConnectionError(err)) {
-      logErrorEvent({
-        event: 'spotify_scheduled_sync_skipped',
-        reason: 'no_db_url',
-        message: 'Netlify Database no está conectada (NETLIFY_DB_URL falta)',
-      })
-      return ApiSuccess.accepted()
+    if (req.method !== 'POST') {
+      return ApiErrors.methodNotAllowed(requestId)
     }
-    throw err
-  }
 
-  // Multi-user: sincronizamos a CADA usuario que tenga Spotify conectado, no
-  // solo al legacy. Una falla de un usuario (token caído) no frena a los demás.
-  const userRows = (await sql`
+    let nextRun = 'unknown'
+    try {
+      const body = (await req.json().catch(() => ({}))) as { next_run?: string }
+      nextRun = body.next_run ?? 'unknown'
+    } catch {
+      // Ignore — body shape is documented but defensive parsing never hurts.
+    }
+
+    let sql: ReturnType<typeof getSql>
+    try {
+      sql = getSql()
+    } catch (err) {
+      if (isMissingDatabaseConnectionError(err)) {
+        logErrorEvent({
+          event: 'spotify_scheduled_sync_skipped',
+          reason: 'no_db_url',
+          message: 'Netlify Database no está conectada (NETLIFY_DB_URL falta)',
+        })
+        return ApiSuccess.accepted()
+      }
+      throw err
+    }
+
+    return runWithSystemRls(async () => {
+      // Multi-user: sincronizamos a CADA usuario que tenga Spotify conectado, no
+      // solo al legacy. Una falla de un usuario (token caído) no frena a los demás.
+      const userRows = (await sql`
     SELECT user_id FROM spotify_tokens
   `.catch(() => [])) as Array<{ user_id: string }>
 
-  if (userRows.length === 0) {
-    logEvent({ event: 'spotify_scheduled_sync_skipped', reason: 'not_connected', nextRun })
-    return ApiSuccess.accepted()
-  }
-
-  let fetched = 0
-  let inserted = 0
-  let failures = 0
-  for (const { user_id: userId } of userRows) {
-    try {
-      const accessToken = await getValidAccessToken(sql, userId)
-      if (!accessToken) {
-        failures++
-        logErrorEvent({
-          event: 'spotify_scheduled_sync_user_failed',
-          userId,
-          reason: 'token_refresh_failed',
-          message: 'Could not obtain valid access token',
+      if (userRows.length === 0) {
+        logEvent({
+          event: 'spotify_scheduled_sync_skipped',
+          reason: 'not_connected',
+          nextRun,
         })
-        continue
+        return ApiSuccess.accepted()
       }
-      const data = await fetchRecentlyPlayed(accessToken)
-      const ins = await storePlays(sql, data.items, userId)
-      await markSynced(sql, userId)
-      fetched += data.items.length
-      inserted += ins
-    } catch (err) {
-      failures++
-      logErrorEvent({
-        event: 'spotify_scheduled_sync_user_failed',
-        userId,
-        message: err instanceof Error ? err.message : String(err),
+
+      let fetched = 0
+      let inserted = 0
+      let failures = 0
+      for (const { user_id: userId } of userRows) {
+        try {
+          const accessToken = await getValidAccessToken(sql, userId)
+          if (!accessToken) {
+            failures++
+            logErrorEvent({
+              event: 'spotify_scheduled_sync_user_failed',
+              userId,
+              reason: 'token_refresh_failed',
+              message: 'Could not obtain valid access token',
+            })
+            continue
+          }
+          const data = await fetchRecentlyPlayed(accessToken)
+          const ins = await storePlays(sql, data.items, userId)
+          await markSynced(sql, userId)
+          fetched += data.items.length
+          inserted += ins
+        } catch (err) {
+          failures++
+          logErrorEvent({
+            event: 'spotify_scheduled_sync_user_failed',
+            userId,
+            message: err instanceof Error ? err.message : String(err),
+          })
+        }
+      }
+
+      logEvent({
+        event: 'spotify_scheduled_sync_ok',
+        users: userRows.length,
+        fetched,
+        inserted,
+        failures,
+        nextRun,
       })
-    }
-  }
 
-  logEvent({
-    event: 'spotify_scheduled_sync_ok',
-    users: userRows.length,
-    fetched,
-    inserted,
-    failures,
-    nextRun,
-  })
-
-  return ApiSuccess.accepted()
+      return ApiSuccess.accepted()
+    })
   },
 )
 

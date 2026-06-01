@@ -42,9 +42,13 @@ BEGIN
       $policy$
         CREATE POLICY trama_user_isolation ON %I
           USING (
+            current_setting('app.rls_bypass', true) = 'system'
+            OR
             user_id = NULLIF(current_setting('app.current_user_id', true), '')
           )
           WITH CHECK (
+            current_setting('app.rls_bypass', true) = 'system'
+            OR
             user_id = NULLIF(current_setting('app.current_user_id', true), '')
           )
       $policy$,

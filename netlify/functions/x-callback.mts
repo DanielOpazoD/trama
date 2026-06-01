@@ -9,6 +9,7 @@ import {
 import { withObservability } from './_lib/handler-wrap.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { ApiErrors } from './_lib/api-error.js'
+import { setCurrentRlsUser } from './_lib/user-rls.js'
 
 /**
  * Callback OAuth2 de X. Verifica el state (CSRF), intercambia el code usando el
@@ -34,6 +35,7 @@ export default withObservability('x-callback', async (req, _ctx, { requestId }) 
   if (!verifier) return redirectWith('/?x_error=missing_verifier')
   if (!cookies.x_uid) return redirectWith('/?x_error=missing_uid')
   const userId = decodeURIComponent(cookies.x_uid)
+  setCurrentRlsUser(userId)
 
   const sql = getSql()
   await ensureUserRow(sql, { id: userId })
