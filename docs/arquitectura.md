@@ -42,8 +42,9 @@ cada subsistema, mirá los demás archivos en `docs/conventions/`.
 │      • parseJsonBody(Zod) en CRUD core                                  │
 │                                                                          │
 │   _lib/                                                                  │
-│     ├─ db.ts        getSql() singleton                                  │
+│     ├─ db.ts        getSql() + wrapper de contexto RLS                  │
 │     ├─ auth.ts      verifyToken + ALLOW_LEGACY_FALLBACK                 │
+│     ├─ user-rls.ts  app.current_user_id / app.rls_bypass                │
 │     ├─ llm.ts       askLLMForJson / Text / Streaming                    │
 │     ├─ llm/         providers: deepseek · openai · anthropic · gemini   │
 │     ├─ embeddings.ts  embedSafe(text) → vector + model                  │
@@ -60,6 +61,7 @@ cada subsistema, mirá los demás archivos en `docs/conventions/`.
    │  • soft delete │    │                 │       │ • Anthropic      │
    │  • user_id en  │    │                 │       │ • Gemini         │
    │    dominios    │    │                 │       │ • Spotify OAuth  │
+   │  • RLS FORCE   │    │                 │       │                  │
    └────────────────┘    └─────────────────┘       └──────────────────┘
 ```
 
@@ -216,6 +218,7 @@ momentos                       chat_threads ──┐
 │                                              ▼                │
 │                            getAuthedUser(request)             │
 │                            • verifyToken(JWT) → {sub}         │
+│                            • registra app.current_user_id      │
 │                            • si falla y ALLOW_LEGACY_FALLBACK │
 │                              → 'legacy-single-user'           │
 │                            • si falla y NO fallback           │
@@ -225,6 +228,44 @@ momentos                       chat_threads ──┐
 │                            handler-wrap captura → 401         │
 └───────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## RLS runtime
+
+Trama usa Row Level Security como segunda barrera de privacidad. Los endpoints
+siguen filtrando por `user_id`, pero Postgres también fuerza que las tablas
+privadas solo vean filas del usuario declarado en el contexto transaccional.
+
+```
+withObservability()
+   │ limpia contexto RLS previo
+   ▼
+getAuthedUser(req)
+   │ setCurrentRlsUser(userId)
+   ▼
+getSql()
+   │ scopeSqlToRlsContext()
+   ▼
+sql`SELECT ... FROM entities ...`
+   │ transaction:
+   │   1. SELECT set_config('app.current_user_id', userId, true)
+   │   2. query de negocio
+   ▼
+Postgres RLS policy
+   │ user_id = current_setting('app.current_user_id')
+   ▼
+filas del usuario actual
+```
+
+Los crons internos que necesitan recorrer todos los usuarios declaran
+`runWithSystemRls(...)`, que setea `app.rls_bypass = 'system'` dentro de la
+transacción. Ese bypass es operativo, no una API de producto.
+
+Este modelo no es cero-conocimiento: el dueño de infraestructura con acceso
+directo a Neon, Netlify Blobs, variables o logs sigue pudiendo leer datos. El
+límite exacto está documentado en
+[`ADR-0010`](adr/0010-rls-privacy-boundary.md).
 
 ---
 

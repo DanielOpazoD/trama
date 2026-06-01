@@ -14,6 +14,16 @@
 > hechos. El resumen vivo está en
 > [`docs/conventions/roadmap.md`](conventions/roadmap.md).
 
+> **Estado RLS (junio 2026): rama `codex/rls-privacy-hardening`.**
+> La rama agrega Row Level Security con `FORCE ROW LEVEL SECURITY` en tablas
+> privadas. `getSql()` envuelve el cliente Neon HTTP para setear
+> `app.current_user_id` dentro de la misma transacción de cada query después de
+> `getAuthedUser()`. Los jobs internos que cruzan usuarios usan
+> `runWithSystemRls(...)`; los callbacks OAuth declaran `setCurrentRlsUser(...)`
+> desde la cookie HttpOnly del flow. Esto es aislamiento fuerte app+DB, **no**
+> cero-conocimiento: quien tenga acceso directo a Neon/Netlify/Blobs/vars/logs
+> sigue siendo una excepción técnica.
+
 ## Cuándo abrir esto
 
 Solo si decides compartir Trama con otra(s) persona(s). Mientras sea
@@ -319,3 +329,25 @@ en Netlify/Clerk reales.
 recorre handlers y helpers de contexto críticos para fallar si una query sobre
 tabla per-user no menciona `user_id`, si un endpoint HTTP queda sin auth
 explícita, o si un write con `user_id` no llama a `ensureUserRow`.
+
+## RLS: contrato de privacidad runtime
+
+El objetivo de RLS es que un bug de aplicación no baste para cruzar usuarios.
+Aunque una query olvide `AND user_id = ${userId}`, Postgres debe negar filas que
+no coincidan con el contexto transaccional `app.current_user_id`.
+
+Reglas:
+
+- Toda request autenticada debe llamar `getAuthedUser(req)` antes de tocar tablas
+  privadas. Ese helper registra el usuario actual para `getSql()`.
+- Toda query privada que sale por `getSql()` queda envuelta en una transacción
+  con `set_config('app.current_user_id', userId, true)`.
+- Los endpoints exentos de auth deben declarar su intención: `setCurrentRlsUser`
+  para callbacks con userId validado por cookie HttpOnly, o `runWithSystemRls`
+  para crons internos multiusuario.
+- `runWithSystemRls` no es un permiso normal de producto. Es una llave operativa
+  para tareas internas como alertas de costo y sync programado.
+
+Validación pendiente fuera de este entorno: aplicar la migración contra Postgres
+real. En esta máquina `npm run db:up` depende de Docker; si Docker no está
+instalado, CI/Netlify debe ser la prueba de sintaxis/aplicación de migraciones.
