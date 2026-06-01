@@ -34,7 +34,8 @@ export default withObservability('x-callback', async (req, _ctx, { requestId }) 
   const verifier = cookies.x_verifier
   if (!verifier) return redirectWith('/?x_error=missing_verifier')
   if (!cookies.x_uid) return redirectWith('/?x_error=missing_uid')
-  const userId = decodeURIComponent(cookies.x_uid)
+  const userId = decodeUserCookie(cookies.x_uid)
+  if (!userId) return redirectWith('/?x_error=invalid_uid')
   setCurrentRlsUser(userId)
 
   const sql = getSql()
@@ -72,6 +73,15 @@ function parseCookies(header: string): Record<string, string> {
       return [k, v.join('=')]
     }),
   )
+}
+
+function decodeUserCookie(value: string): string | null {
+  try {
+    const decoded = decodeURIComponent(value).trim()
+    return decoded.length > 0 ? decoded : null
+  } catch {
+    return null
+  }
 }
 
 export const config: Config = {

@@ -224,6 +224,23 @@ describe('x-callback', () => {
     expect(exchangeCodeForTokens).not.toHaveBeenCalled()
     expect(saveTokens).not.toHaveBeenCalled()
   })
+
+  it('rechaza x_uid corrupto o vacío sin convertir el callback en 500', async () => {
+    for (const uid of ['%E0%A4%A', '%20%20']) {
+      const res = await callbackHandler(
+        reqWithCookie(
+          'http://localhost/api/x/callback?code=the-code&state=OK',
+          `x_state=OK; x_verifier=the-verifier; x_uid=${uid}`,
+        ),
+        mockContext(),
+      )
+
+      expect(res.status).toBe(302)
+      expect(res.headers.get('Location')).toContain('invalid_uid')
+    }
+    expect(exchangeCodeForTokens).not.toHaveBeenCalled()
+    expect(saveTokens).not.toHaveBeenCalled()
+  })
 })
 
 describe('x-sync', () => {

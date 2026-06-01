@@ -85,3 +85,18 @@
 - [ ] Replace expensive graph signatures with cheaper revision-style signatures while preserving behavior.
 - [ ] Run focused tests, build, full test suite, and bundle check.
 - [ ] Commit.
+
+### Task 6: OAuth callback identity hardening
+
+**Files:**
+
+- Modify: `netlify/functions/spotify-callback.mts`
+- Modify: `netlify/functions/x-callback.mts`
+- Modify/Test: `netlify/functions/_lib/spotify-oauth.test.ts`
+- Modify/Test: `netlify/functions/_lib/x-oauth.test.ts`
+
+- [x] Write tests that prove malformed or blank OAuth user cookies redirect instead of 500.
+- [x] Decode callback user cookies defensively before setting RLS context.
+- [x] Preserve token-save behavior for valid callbacks and skip token exchange/save for invalid identity.
+- [x] Run focused Spotify/X OAuth tests.
+- [x] Commit.

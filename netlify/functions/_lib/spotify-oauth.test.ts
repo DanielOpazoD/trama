@@ -158,6 +158,22 @@ describe('spotify-callback — asocia el token al userId de la cookie', () => {
     expect(res.headers.get('Location')).toContain('missing_uid')
     expect(saveTokens).not.toHaveBeenCalled()
   })
+
+  it('rechaza spotify_uid corrupto o vacío sin convertir el callback en 500', async () => {
+    for (const uid of ['%E0%A4%A', '%20%20']) {
+      const res = await callbackHandler(
+        reqWithCookie(
+          'http://localhost/api/spotify/callback?code=abc&state=OK',
+          `spotify_state=OK; spotify_uid=${uid}`,
+        ),
+        mockContext(),
+      )
+
+      expect(res.status).toBe(302)
+      expect(res.headers.get('Location')).toContain('invalid_uid')
+    }
+    expect(saveTokens).not.toHaveBeenCalled()
+  })
 })
 
 describe('spotify-scheduled-sync — itera por usuario', () => {
