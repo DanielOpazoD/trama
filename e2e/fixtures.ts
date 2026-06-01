@@ -46,6 +46,37 @@ export type MockState = {
     created_at: string
     updated_at: string
   }>
+  momentos: Array<{
+    id: string
+    kind: string
+    captured_at: string
+    payload: Record<string, unknown> | null
+    note: string | null
+    origin: { kind: string }
+    entity_ids: string[]
+    created_at: string
+    updated_at: string
+  }>
+  notes: Array<{
+    id: string
+    content: string
+    tags: string[] | null
+    pinned: boolean
+    promoted_momento_id: string | null
+    created_at: string
+    updated_at: string
+  }>
+  tasks: Array<{
+    id: string
+    title: string
+    detail: string | null
+    done: boolean
+    due_date: string | null
+    completed_at: string | null
+    tags: string[] | null
+    created_at: string
+    updated_at: string
+  }>
   chatThreads: Array<{
     id: string
     title: string | null
@@ -73,6 +104,9 @@ export function emptyState(): MockState {
     entities: [],
     quotes: [],
     relationships: [],
+    momentos: [],
+    notes: [],
+    tasks: [],
     chatThreads: [],
     chatMessages: {},
   }
@@ -206,7 +240,7 @@ export async function mockBackend(page: Page, state: MockState) {
       entities: state.entities.length,
       quotes: state.quotes.length,
       relationships: state.relationships.length,
-      momentos: 0,
+      momentos: state.momentos.length,
     }),
   )
 
@@ -248,6 +282,29 @@ export async function mockBackend(page: Page, state: MockState) {
     jsonResp(route, []),
   )
 
+  // /api/momentos (paginado)
+  await page.route(apiPath('momentos', { prefix: true }), (route) => {
+    const url = new URL(route.request().url())
+    const limit = Number.parseInt(url.searchParams.get('limit') ?? '30', 10) || 30
+    return jsonResp(route, {
+      items: state.momentos.slice(0, limit),
+      nextCursor: null,
+    })
+  })
+
+  // /api/notes y /api/tasks
+  await page.route(apiPath('notes', { prefix: true }), (route) =>
+    jsonResp(route, state.notes),
+  )
+  await page.route(apiPath('tasks', { prefix: true }), (route) =>
+    jsonResp(route, state.tasks),
+  )
+
+  // /api/momentos-orphaned-blobs
+  await page.route(apiPath('momentos-orphaned-blobs', { prefix: true }), (route) =>
+    jsonResp(route, { orphans: [], totalInStore: 0, referenced: 0 }),
+  )
+
   // /api/ai-settings (sin overrides)
   await page.route(apiPath('ai-settings'), (route) => jsonResp(route, { providers: [] }))
 
@@ -270,6 +327,8 @@ export async function mockBackend(page: Page, state: MockState) {
       },
       month: { calls: 0, tokensIn: 0, tokensOut: 0, costCents: 0 },
       budget: { limitCents: 5000, remainingCents: 5000, pct: 0 },
+      alerts: [],
+      dailyCost: [],
       byProvider: [],
       recentErrors: [],
     }),
