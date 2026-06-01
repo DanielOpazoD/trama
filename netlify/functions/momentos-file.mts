@@ -3,7 +3,8 @@ import { getStore } from '@netlify/blobs'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
-import { getSql, sqlTyped } from './_lib/db.js'
+import { getSql } from './_lib/db.js'
+import { queryWithUserRls } from './_lib/user-rls.js'
 
 /**
  * GET /api/momentos-file/:key
@@ -54,7 +55,7 @@ async function isLegacyMediaReferencedByUser(
   storageKey: string,
 ): Promise<boolean> {
   const sql = getSql()
-  const rows = await sqlTyped<LegacyMediaReferenceRow>(sql`
+  const rows = await queryWithUserRls<LegacyMediaReferenceRow>(sql, userId, (scoped) => scoped`
     SELECT EXISTS (
       SELECT 1
       FROM momentos

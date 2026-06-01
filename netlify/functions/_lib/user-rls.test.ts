@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SqlClient } from './db'
-import { runWithUserRls } from './user-rls'
+import { queryWithUserRls, runWithUserRls } from './user-rls'
 
 type SqlCall = {
   template: string
@@ -54,5 +54,19 @@ describe('runWithUserRls', () => {
       runWithUserRls(sql, '   ', (scoped) => [scoped`SELECT 1`]),
     ).rejects.toThrow(/userId requerido/)
     expect(transaction).not.toHaveBeenCalled()
+  })
+
+  it('queryWithUserRls devuelve las filas de una sola query scoped', async () => {
+    const { sql, txCalls } = makeSqlMock([[{ referenced: true }]])
+
+    const rows = await queryWithUserRls<{ referenced: boolean }>(
+      sql,
+      'user_a',
+      (scoped) => scoped`SELECT true AS referenced`,
+    )
+
+    expect(txCalls[0]?.template).toMatch(/set_config/)
+    expect(txCalls[1]?.template).toBe('SELECT true AS referenced')
+    expect(rows).toEqual([{ referenced: true }])
   })
 })

@@ -37,3 +37,12 @@ export async function runWithUserRls(
   ])
   return results.slice(1) as unknown[][]
 }
+
+export async function queryWithUserRls<Row>(
+  sql: SqlClient,
+  userId: string,
+  buildQuery: (sql: UserRlsSql) => unknown,
+): Promise<Row[]> {
+  const [rows] = await runWithUserRls(sql, userId, (scoped) => [buildQuery(scoped)])
+  return (rows ?? []) as Row[]
+}
