@@ -1,7 +1,7 @@
 /**
- * In-memory cache de respuestas LLM. Per-function-instance only — se
- * pierde en cold starts. Para cache persistente entre cold starts,
- * agregar capa en Postgres (TODO futuro).
+ * Helpers de cache in-memory de respuestas LLM. Esta capa es
+ * per-function-instance y se pierde en cold starts; el cache persistente
+ * entre cold starts vive en `_lib/llm/db-cache.ts`.
  */
 
 import type { LLMMessage, LLMResult } from './types.js'

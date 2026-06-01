@@ -99,8 +99,8 @@ TTFT = Time to First Token (relevante para streaming).
 
 Decisiones aplazadas, documentadas para no re-discutirlas:
 
-- **Sentry / Datadog / similar**: no es necesario hoy (single-user, low volume). El stack interno con `error_log` + `logEvent` cubre los casos relevantes. Si en el futuro el volume justifica un SaaS, considerar Sentry (gratis hasta 5k events/month).
-- **OpenTelemetry**: idem — costo de instrumentación supera el valor en single-user.
+- **Sentry / Datadog / similar**: no es necesario hoy (app privada, low volume). El stack interno con `error_log` + `logEvent` cubre los casos relevantes sin enviar stacks a otro SaaS. Si en el futuro el volume justifica un SaaS, considerar Sentry (gratis hasta 5k events/month).
+- **OpenTelemetry**: idem — el costo de instrumentación supera el valor mientras siga siendo una app privada de bajo tráfico.
 - **PagerDuty / on-call**: la app no es crítica de negocio. Si se rompe a la madrugada, espera.
 - **APM real**: Netlify deja ver latencia per-function en su dashboard; no agregamos otra capa.
 - **Lighthouse CI** en GitHub Actions: el budget de bundle-size ya cubre el caso más común (regresiones por imports). Lighthouse en CI agrega 3-5 min a cada PR y los thresholds suelen ser ruidosos. Postponed.

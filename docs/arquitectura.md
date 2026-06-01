@@ -14,7 +14,7 @@ cada subsistema, mirá los demás archivos en `docs/conventions/`.
 │   ┌────────────────────────────────────────────────────────────────┐   │
 │   │  React SPA (Vite + TypeScript)                                  │   │
 │   │                                                                  │   │
-│   │   App.tsx ─┬─ AuthGate (Clerk opcional)                         │   │
+│   │   App.tsx ─┬─ AuthGate (Clerk si está configurado)              │   │
 │   │            ├─ AppPinGate (opcional)                              │   │
 │   │            └─ Shell                                              │   │
 │   │                ├─ Sidebar / MobileBottomNav                      │   │
@@ -38,7 +38,7 @@ cada subsistema, mirá los demás archivos en `docs/conventions/`.
 │      • inyecta requestId UUID                                            │
 │      • logs estructurados JSON                                            │
 │      • captura errores → ApiErrors canónico                              │
-│      • getAuthedUser() (Clerk JWT verify o legacy fallback)             │
+│      • getAuthedUser() (Clerk JWT verify; legacy solo transición/dev)   │
 │      • parseJsonBody(Zod) en CRUD core                                  │
 │                                                                          │
 │   _lib/                                                                  │
@@ -57,7 +57,7 @@ cada subsistema, mirá los demás archivos en `docs/conventions/`.
    │  Neon Postgres │    │ Netlify Blobs   │       │ LLM providers    │
    │                │    │                 │       │                  │
    │  • pgvector    │    │ momentos-media  │       │ • DeepSeek       │
-   │  • HNSW idx    │    │ (fotos)         │       │ • OpenAI         │
+   │  • HNSW idx    │    │ (fotos/audio)   │       │ • OpenAI         │
    │  • soft delete │    │                 │       │ • Anthropic      │
    │  • user_id en  │    │                 │       │ • Gemini         │
    │    dominios    │    │                 │       │ • Spotify OAuth  │
@@ -305,8 +305,8 @@ askLLMForJson / askLLMForText
 | Validación | Zod                                    | server-side defense in depth        |
 | Backend    | Netlify Functions (Node 22 ESM)        | edge-deployed, sin servidor         |
 | DB         | Neon Postgres + pgvector               | serverless; embeddings nativos      |
-| Storage    | Netlify Blobs                          | fotos de momentos                   |
-| Auth       | Clerk (opt-in)                         | JWT + UI prefab                     |
+| Storage    | Netlify Blobs                          | fotos y audios de momentos          |
+| Auth       | Clerk                                  | JWT + UI prefab; prod sin fallback  |
 | LLM        | DeepSeek / OpenAI / Anthropic / Gemini | abstracción por provider            |
 | Spotify    | OAuth + Web API                        | escuchas + playlists                |
 | Test       | Vitest + Playwright                    | unit + integration + E2E            |

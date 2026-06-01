@@ -39,7 +39,8 @@ Cinco minutos al mes te garantizan que aunque Netlify y Neon desaparezcan mañan
 
 El export JSON actual es un **backup estructurado core parcial**. El archivo
 declara `scope.kind = "structured-core"` y `scope.completeness = "partial"`
-para que no se confunda con un dump completo de Neon/Blobs. Cubre:
+para que no se confunda con un dump completo de Neon/Blobs. En modo
+multiusuario, exporta solo filas del usuario autenticado. Cubre:
 
 - `entities`
 - `relationships`

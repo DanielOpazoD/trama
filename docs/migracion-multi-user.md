@@ -1,21 +1,21 @@
 # Migración a multi-user
 
-> **Estado (mayo 2026): implementado en código, pendiente de cutover operativo.**
+> **Estado (junio 2026): implementado en código, pendiente de validación operativa final.**
 > La autenticación con Clerk ya está en el repo (`netlify/functions/_lib/auth.ts` verifica el
 > Bearer token con `@clerk/backend`), `AuthGate`/`UserButton` cubren login y
 > logout en la UI, las tablas de dominio tienen `user_id`, el provisioning
-> lazy (`ensureUserRow`) existe en endpoints críticos, y Spotify/cost-cap ya
-> operan por usuario. El dueño entra con Clerk y un alias
+> lazy (`ensureUserRow`) existe en endpoints críticos, RLS fuerza
+> `app.current_user_id`, y Spotify/cost-cap ya operan por usuario. El dueño entra con Clerk y un alias
 > (`LEGACY_OWNER_CLERK_ID`) mapea su sub a `legacy-single-user` para ver toda
 > la data pre-Clerk sin migrar nada. **Pendiente antes de abrir a la
-> familia:** configurar Clerk en Netlify, verificar login E2E, y cerrar
-> `ALLOW_LEGACY_FALLBACK` para que requests sin token den 401. Los "Commit
-> 1–N" de abajo se conservan como referencia histórica: varios ya están
-> hechos. El resumen vivo está en
+> familia:** confirmar Clerk production en Netlify, correr el smoke E2E de
+> aislamiento con dos usuarios reales, y mantener `ALLOW_LEGACY_FALLBACK=false`
+> para que requests sin token den 401. Los "Commit 1–N" de abajo se conservan
+> como referencia histórica: varios ya están hechos. El resumen vivo está en
 > [`docs/conventions/roadmap.md`](conventions/roadmap.md).
 
-> **Estado RLS (junio 2026): rama `codex/rls-privacy-hardening`.**
-> La rama agrega Row Level Security con `FORCE ROW LEVEL SECURITY` en tablas
+> **Estado RLS (junio 2026): implementado como segunda barrera.**
+> El código agrega Row Level Security con `FORCE ROW LEVEL SECURITY` en tablas
 > privadas. `getSql()` envuelve el cliente Neon HTTP para setear
 > `app.current_user_id` dentro de la misma transacción de cada query después de
 > `getAuthedUser()`. Los jobs internos que cruzan usuarios usan
@@ -26,9 +26,9 @@
 
 ## Cuándo abrir esto
 
-Solo si decides compartir Trama con otra(s) persona(s). Mientras sea
-de uso personal, esta migración NO hace falta — está deferida a
-propósito para no añadir friction de login a un usuario único.
+Este runbook aplica cuando decidas compartir Trama con otra(s) persona(s).
+Mientras siga siendo de uso personal, el modo `legacy-single-user` conserva la
+historia existente; en producción multiusuario el fallback debe estar apagado.
 
 ## Lo que cambia conceptualmente
 
