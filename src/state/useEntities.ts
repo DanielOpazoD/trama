@@ -11,6 +11,7 @@ import type { Entity, Origin } from '../types'
 import { queryKeys } from './queryClient'
 import { useOffline } from './offline'
 import { useToast } from './toast'
+import { canUseLocalFallback } from './localFallback'
 
 const DEFAULT_ORIGIN: Origin = { kind: 'manual' }
 
@@ -63,7 +64,7 @@ export function useEntitiesQuery() {
         const result = await api.listEntities()
         if (offline) setOffline(false)
         return result
-      } catch {
+      } catch (err) {
         // Solo marcar offline si el browser CONFIRMA que estamos sin red.
         // Una falla de la API con red disponible (cold start, 503 transient)
         // NO es razón para entrar a modo local. Antes esto disparaba el
@@ -72,6 +73,7 @@ export function useEntitiesQuery() {
         if (typeof navigator !== 'undefined' && !navigator.onLine) {
           setOffline(true)
         }
+        if (!canUseLocalFallback()) throw err
         return storage.loadEntities()
       }
     },

@@ -11,6 +11,7 @@ import { queryKeys } from './queryClient'
 import { useOffline } from './offline'
 import { useToast } from './toast'
 import { type DeleteInput } from './useEntities'
+import { canUseLocalFallback } from './localFallback'
 
 function normalizeDeleteInput(input: DeleteInput): { id: string; silent: boolean } {
   if (typeof input === 'string') return { id: input, silent: false }
@@ -44,13 +45,14 @@ export function useQuotesQuery() {
         const result = await api.listQuotes()
         if (offline) setOffline(false)
         return result
-      } catch {
+      } catch (err) {
         // Ver comentario equivalente en useEntities: solo marcamos offline
         // si el browser confirma falta de red, no por errores transient
         // de la API.
         if (typeof navigator !== 'undefined' && !navigator.onLine) {
           setOffline(true)
         }
+        if (!canUseLocalFallback()) throw err
         return storage.loadQuotes()
       }
     },

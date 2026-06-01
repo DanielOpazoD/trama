@@ -14,10 +14,13 @@ import { ToastProvider, useToast } from './toast'
 import { queryKeys } from './queryClient'
 import {
   useAddRelationship,
+  useRelationshipsQuery,
   useUpdateRelationship,
   useDeleteRelationship,
 } from './useRelationships'
 import * as apiModule from '../api'
+import * as demoModule from '../lib/demo'
+import { storage } from '../storage'
 import type { Relationship } from '../types'
 
 function makeQueryClient() {
@@ -135,6 +138,38 @@ describe('useAddRelationship — optimistic', () => {
 })
 
 describe('useUpdateRelationship — optimistic', () => {
+  it('useRelationshipsQuery no devuelve localStorage ante error API fuera de modo demo', async () => {
+    vi.spyOn(apiModule.api, 'listRelationships').mockRejectedValue(
+      new Error('server down'),
+    )
+    vi.spyOn(demoModule, 'isDemoMode').mockReturnValue(false)
+    const loadSpy = vi.spyOn(storage, 'loadRelationships')
+    const qc = makeQueryClient()
+
+    const { result } = renderHook(() => useRelationshipsQuery(), {
+      wrapper: wrapWith(qc),
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(loadSpy).not.toHaveBeenCalled()
+  })
+
+  it('useRelationshipsQuery permite localStorage solo en modo demo explícito', async () => {
+    vi.spyOn(apiModule.api, 'listRelationships').mockRejectedValue(
+      new Error('demo backend miss'),
+    )
+    vi.spyOn(demoModule, 'isDemoMode').mockReturnValue(true)
+    vi.spyOn(storage, 'loadRelationships').mockReturnValue([REAL_RELATIONSHIP])
+    const qc = makeQueryClient()
+
+    const { result } = renderHook(() => useRelationshipsQuery(), {
+      wrapper: wrapWith(qc),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toEqual([REAL_RELATIONSHIP])
+  })
+
   it('aplica el patch en cache antes del response', async () => {
     const original: Relationship = {
       ...REAL_RELATIONSHIP,

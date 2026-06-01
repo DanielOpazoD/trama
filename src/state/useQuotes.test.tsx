@@ -10,8 +10,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OfflineContext } from './offline'
 import { ToastProvider, useToast } from './toast'
 import { queryKeys } from './queryClient'
-import { useAddQuote, useUpdateQuote, useDeleteQuote } from './useQuotes'
+import { useAddQuote, useQuotesQuery, useUpdateQuote, useDeleteQuote } from './useQuotes'
 import * as apiModule from '../api'
+import * as demoModule from '../lib/demo'
+import { storage } from '../storage'
 import type { Quote } from '../types'
 
 function makeQueryClient() {
@@ -170,6 +172,32 @@ describe('useDeleteQuote', () => {
 })
 
 describe('useUpdateQuote — optimistic patch', () => {
+  it('useQuotesQuery no devuelve localStorage ante error API fuera de modo demo', async () => {
+    vi.spyOn(apiModule.api, 'listQuotes').mockRejectedValue(new Error('server down'))
+    vi.spyOn(demoModule, 'isDemoMode').mockReturnValue(false)
+    const loadSpy = vi.spyOn(storage, 'loadQuotes')
+    const qc = makeQueryClient()
+
+    const { result } = renderHook(() => useQuotesQuery(), { wrapper: wrapWith(qc) })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(loadSpy).not.toHaveBeenCalled()
+  })
+
+  it('useQuotesQuery permite localStorage solo en modo demo explícito', async () => {
+    vi.spyOn(apiModule.api, 'listQuotes').mockRejectedValue(
+      new Error('demo backend miss'),
+    )
+    vi.spyOn(demoModule, 'isDemoMode').mockReturnValue(true)
+    vi.spyOn(storage, 'loadQuotes').mockReturnValue([REAL_QUOTE])
+    const qc = makeQueryClient()
+
+    const { result } = renderHook(() => useQuotesQuery(), { wrapper: wrapWith(qc) })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toEqual([REAL_QUOTE])
+  })
+
   it('aplica el patch en cache al instante; reemplaza por el real en éxito', async () => {
     let resolveServer: (q: Quote) => void = () => {}
     const serverPromise = new Promise<Quote>((r) => (resolveServer = r))
