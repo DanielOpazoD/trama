@@ -92,7 +92,7 @@ export function FotoPhotoTile({
       </span>
       {item.kind === 'new' && (
         <span
-          className="absolute top-1 right-7 text-micro uppercase tracking-eyebrow bg-emerald-700/80 text-paper-50 px-1 rounded leading-none py-0.5"
+          className="absolute top-1 right-7 text-micro uppercase tracking-eyebrow bg-[color:var(--accent-sage)] text-paper-50 px-1 rounded leading-none py-0.5"
           title="Foto nueva — se subirá al guardar"
         >
           nueva

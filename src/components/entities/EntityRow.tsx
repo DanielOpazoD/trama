@@ -54,7 +54,7 @@ function EntityRowInternal({
           </span>
           {entity.origin.kind === 'ai' && (
             <span
-              className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle"
+              className="ml-1.5 inline-flex items-center text-[color:var(--accent-primary)] align-middle"
               title="añadido por IA"
             >
               <SparkleIcon size={10} />

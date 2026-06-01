@@ -117,7 +117,7 @@ export function QuoteActionsMenu({
                 role="menuitem"
                 onClick={() => run(onReflect)}
                 disabled={reflectPending}
-                className={`${ROW} text-sky-700/80 hover:text-sky-800 hover:bg-sky-50`}
+                className={`${ROW} text-[color:var(--accent-primary)] hover:text-[color:var(--accent-primary)] hover:bg-[color:var(--accent-primary-soft)]`}
               >
                 <SparkleIcon size={12} />
                 {reflectPending ? 'Leyendo…' : 'Reflexionar con IA'}
@@ -127,7 +127,7 @@ export function QuoteActionsMenu({
             <button
               role="menuitem"
               onClick={() => run(onDelete)}
-              className={`${ROW} text-red-700 hover:text-red-800 hover:bg-red-50`}
+              className={`${ROW} text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] hover:bg-[color:var(--accent-clay-soft)]`}
             >
               <TrashIcon size={12} />
               Eliminar

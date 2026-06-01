@@ -264,13 +264,13 @@ export function TwitterView({
         <EmptyMessage
           illustration="thread"
           title="X no está conectado"
-          body="Conectá tu cuenta de X en Configuración → X (Twitter) para traer tus tweets marcados."
+          body="Conecta tu cuenta de X en Configuración → X (Twitter) para traer tus tweets marcados."
         />
       ) : items.length === 0 ? (
         <EmptyMessage
           illustration="thread"
           title="Sin bookmarks todavía"
-          body="Marcá tweets como bookmark en X y sincronizá para verlos acá."
+          body="Marca tweets como bookmark en X y sincroniza para verlos aquí."
           action={
             <button
               onClick={handleSync}
@@ -309,7 +309,7 @@ export function TwitterView({
                   </>
                 ) : (
                   <p className="text-sm text-ink-400 italic">
-                    Un ensayo breve, escrito por la IA, sobre qué venís guardando en X.
+                    Un ensayo breve, escrito por la IA, sobre qué guardas en X.
                   </p>
                 )}
               </div>
@@ -448,7 +448,7 @@ export function TwitterView({
                   disabled={del.isPending}
                   aria-label="Quitar bookmark"
                   title="Quitar de Trama (no borra de X)"
-                  className="absolute right-2 top-2 rounded p-1 text-ink-300 opacity-0 transition-opacity hover:bg-ink-50 hover:text-red-700 group-hover:opacity-100 disabled:opacity-50"
+                  className="absolute right-2 top-2 rounded p-1 text-ink-300 opacity-0 transition-opacity hover:bg-ink-50 hover:text-[color:var(--accent-clay)] group-hover:opacity-100 disabled:opacity-50"
                 >
                   <CloseIcon size={12} />
                 </button>

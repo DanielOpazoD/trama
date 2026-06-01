@@ -349,7 +349,9 @@ export function QuoteCard({
         </div>
       )}
 
-      {reflectError && <p className="mt-1 text-xs text-red-700">{reflectError}</p>}
+      {reflectError && (
+        <p className="mt-1 text-xs text-[color:var(--accent-clay)]">{reflectError}</p>
+      )}
 
       {/* Citas vinculadas — chips */}
       {linkedQuotes && linkedQuotes.length > 0 && (

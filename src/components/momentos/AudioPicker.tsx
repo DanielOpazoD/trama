@@ -52,7 +52,7 @@ export function AudioPicker({
           type="button"
           onClick={onClear}
           disabled={disabled}
-          className="section-eyebrow hover:text-red-700 transition-colors"
+          className="section-eyebrow hover:text-[color:var(--accent-clay)] transition-colors"
         >
           quitar
         </button>

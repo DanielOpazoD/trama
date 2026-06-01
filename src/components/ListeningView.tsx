@@ -201,7 +201,7 @@ export function ListeningView({
           </p>
           <p className="text-ink-400 text-sm mt-2">
             Abre <strong>Configuración</strong> en el sidebar y vincula tu cuenta de
-            Spotify. Después podrás sincronizar tus reproducciones y revisarlas acá.
+            Spotify. Después podrás sincronizar tus reproducciones y revisarlas aquí.
           </p>
         </div>
       ) : (
@@ -315,7 +315,7 @@ export function ListeningView({
                             href={`https://open.spotify.com/${group}/${item.spotifyId}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-ink-700 hover:text-emerald-700 transition-colors border-b border-transparent hover:border-emerald-700/40"
+                            className="text-ink-700 hover:text-[color:var(--accent-sage)] transition-colors border-b border-transparent hover:border-[color:var(--accent-sage)]"
                             title="Abrir en Spotify"
                           >
                             {item.key}

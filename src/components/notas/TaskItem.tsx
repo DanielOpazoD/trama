@@ -178,7 +178,7 @@ export function TaskItem({
             {task.dueDate && (
               <span
                 className={`uppercase tracking-eyebrow tabular-nums ${
-                  overdue ? 'text-red-700' : 'text-ink-400'
+                  overdue ? 'text-[color:var(--accent-clay)]' : 'text-ink-400'
                 }`}
               >
                 {overdue ? 'venció' : 'vence'} {formatDue(task.dueDate)}
@@ -201,7 +201,7 @@ export function TaskItem({
                   <button
                     onClick={onDelete}
                     disabled={busy}
-                    className="uppercase tracking-eyebrow text-red-700 hover:text-red-800 transition-colors disabled:opacity-50"
+                    className="uppercase tracking-eyebrow text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] transition-colors disabled:opacity-50"
                   >
                     borrar
                   </button>
@@ -217,7 +217,7 @@ export function TaskItem({
                   onClick={() => setConfirming(true)}
                   aria-label="Borrar tarea"
                   title="Borrar"
-                  className="p-1 text-ink-300 hover:text-red-700 rounded transition-colors"
+                  className="p-1 text-ink-300 hover:text-[color:var(--accent-clay)] rounded transition-colors"
                 >
                   <TrashIcon size={13} />
                 </button>

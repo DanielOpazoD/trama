@@ -22,7 +22,7 @@ export function XCronicaSection() {
           crónica de tus bookmarks
         </p>
         <h3 id="x-cronica-heading" className="font-serif text-h2 text-ink-700">
-          lo que venís guardando en X
+          lo que guardas en X
         </h3>
         <div className="accent-rule mt-2" />
       </header>

@@ -140,7 +140,7 @@ export function EntityActionsMenu({
                   <button
                     onClick={remove}
                     disabled={deleteEntity.isPending}
-                    className="text-xs uppercase tracking-eyebrow text-red-700 hover:text-red-800 disabled:opacity-50"
+                    className="text-xs uppercase tracking-eyebrow text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] disabled:opacity-50"
                   >
                     {deleteEntity.isPending ? 'eliminando…' : 'Eliminar'}
                   </button>
@@ -176,7 +176,7 @@ export function EntityActionsMenu({
                 <button
                   role="menuitem"
                   onClick={() => setConfirming(true)}
-                  className={`${ROW} text-red-700 hover:text-red-800 hover:bg-red-50`}
+                  className={`${ROW} text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] hover:bg-[color:var(--accent-clay-soft)]`}
                 >
                   <TrashIcon size={13} />
                   Eliminar

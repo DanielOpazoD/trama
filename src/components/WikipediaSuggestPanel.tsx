@@ -72,8 +72,9 @@ export function WikipediaSuggestPanel({
         </button>
       </div>
       <p className="mb-2 text-micro text-ink-400">
-        El match por nombre es ambiguo — revisá cada artículo antes de asignarlo.
-        {remaining && ' Quedan más entidades sin enlace; corré de nuevo para seguir.'}
+        El match por nombre es ambiguo — revisa cada artículo antes de asignarlo.
+        {remaining &&
+          ' Quedan más entidades sin enlace; vuelve a ejecutarlo para seguir.'}
       </p>
       {error && <p className="alert-error mb-2 rounded-lg px-3 py-2 text-sm">{error}</p>}
       <ul className="space-y-4">

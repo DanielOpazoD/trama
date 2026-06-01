@@ -292,7 +292,7 @@ function AlbumTile({
       )}
       <button
         onClick={onDelete}
-        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-paper-50/80 backdrop-blur-sm rounded text-ink-500 hover:text-red-700"
+        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-paper-50/80 backdrop-blur-sm rounded text-ink-500 hover:text-[color:var(--accent-clay)]"
         aria-label="Eliminar foto"
         title="Eliminar"
       >

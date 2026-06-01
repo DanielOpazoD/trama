@@ -41,7 +41,7 @@ export function GraphSuggestStatusBanner({
           aria-label="Cerrar aviso"
           className={
             isError
-              ? 'shrink-0 p-1 -m-0.5 text-red-600 hover:text-red-900 rounded transition-colors'
+              ? 'shrink-0 p-1 -m-0.5 text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] rounded transition-colors'
               : 'shrink-0 p-1 -m-0.5 text-ink-300 hover:text-ink-700 rounded transition-colors'
           }
         >

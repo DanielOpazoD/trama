@@ -30,7 +30,7 @@ export function RelationshipLine({
         <span className="text-ink-600">{otherEntity?.name ?? '—'}</span>
         {rel.origin.kind === 'ai' && (
           <span
-            className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle"
+            className="ml-1.5 inline-flex items-center text-[color:var(--accent-primary)] align-middle"
             title="propuesta por IA"
           >
             <SparkleIcon size={10} />
@@ -41,7 +41,7 @@ export function RelationshipLine({
         onClick={onDelete}
         aria-label="Eliminar relación"
         title="Eliminar relación"
-        className="shrink-0 opacity-0 group-hover:opacity-100 text-ink-300 hover:text-red-700 transition-opacity"
+        className="shrink-0 opacity-0 group-hover:opacity-100 text-ink-300 hover:text-[color:var(--accent-clay)] transition-opacity"
       >
         <CloseIcon size={12} />
       </button>

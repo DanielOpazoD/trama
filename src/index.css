@@ -69,6 +69,9 @@
     --accent-gold:         #a07900;  /* dorado contrastado para IA / featured */
     --accent-gold-soft:    rgb(160 121 0 / 0.10);
     --accent-clay:         #b91c1c;  /* rojo nítido — destructivo */
+    --accent-clay-soft:    rgb(185 28 28 / 0.10);
+    --accent-warn:         #b45309;  /* ámbar — atención / offline / costo */
+    --accent-warn-soft:    rgb(180 83 9 / 0.12);
 
     /* ν1: sombras tintadas — antes box-shadow usaba rgb(0 0 0) puro. Le
        agregamos un componente cálido del accent-gold (~12% del gold sobre
@@ -175,6 +178,9 @@
     --accent-gold:         #c9a763;
     --accent-gold-soft:    rgb(201 167 99 / 0.14);
     --accent-clay:         #d18667;
+    --accent-clay-soft:    rgb(209 134 103 / 0.16);
+    --accent-warn:         #e0a55c;
+    --accent-warn-soft:    rgb(224 165 92 / 0.16);
 
     /* ν1: sombras dark — en oscuro las cards no flotan sobre paper claro
        sino sobre noche; las sombras se vuelven sutiles pero conservan el
@@ -256,6 +262,9 @@
     --accent-gold:         #e0b863;
     --accent-gold-soft:    rgb(224 184 99 / 0.16);
     --accent-clay:         #d8836c;
+    --accent-clay-soft:    rgb(216 131 108 / 0.16);
+    --accent-warn:         #d99a4e;
+    --accent-warn-soft:    rgb(217 154 78 / 0.16);
 
     /* Sombras: más profundas porque el papel es muy oscuro y necesitan
        contraste para dar lift. Tinte cobre evidente. */

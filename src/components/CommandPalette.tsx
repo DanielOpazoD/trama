@@ -11,7 +11,6 @@ import {
   AtlasIcon,
   CronologiaIcon,
   EntitiesIcon,
-  GabineteIcon,
   GraphIcon,
   HomeIcon,
   MomentosIcon,
@@ -282,8 +281,6 @@ function ViewIcon({ view }: { view: ViewMode }) {
       return <ChatIcon {...props} />
     case 'sugerencias':
       return <SparkleIcon {...props} />
-    case 'gabinete':
-      return <GabineteIcon {...props} />
   }
 }
 

@@ -86,7 +86,7 @@ export function RescueOrphansPanel() {
   if (error) {
     return (
       <div className="space-y-2">
-        <p className="text-xs text-red-700">{error}</p>
+        <p className="text-xs text-[color:var(--accent-clay)]">{error}</p>
         <button
           onClick={fetchOrphans}
           className="text-xs px-3 py-1.5 border border-ink-100/60 rounded-md hover:bg-ink-50 transition-all"

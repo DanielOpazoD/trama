@@ -122,7 +122,7 @@ export function MusicPaletteCard() {
           </button>
         </div>
         {generate.error && (
-          <p className="mt-2 text-xs text-red-700">
+          <p className="mt-2 text-xs text-[color:var(--accent-clay)]">
             {generate.error instanceof Error
               ? generate.error.message
               : 'No se pudo generar la paleta.'}
@@ -185,7 +185,7 @@ export function MusicPaletteCard() {
                 setCached(null)
               }
             }}
-            className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-red-700 transition-colors"
+            className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors"
             title="Eliminar la paleta guardada"
           >
             eliminar
@@ -194,7 +194,7 @@ export function MusicPaletteCard() {
       </header>
 
       {data.aiSummary && (
-        <p className="font-serif text-base leading-relaxed text-ink-600 italic mb-5 pl-4 border-l-2 border-sky-700/30">
+        <p className="font-serif text-base leading-relaxed text-ink-600 italic mb-5 pl-4 border-l-2 border-[color:var(--accent-primary-ring)]">
           {data.aiSummary}
         </p>
       )}
@@ -232,7 +232,7 @@ export function MusicPaletteCard() {
                 <li key={d.decade} className="flex items-center gap-2 text-caption">
                   <span className="font-mono text-ink-500 w-12 shrink-0">{d.decade}</span>
                   <span
-                    className="h-1.5 rounded-full bg-sky-700/40"
+                    className="h-1.5 rounded-full bg-[color:var(--accent-primary)]"
                     style={{
                       width: `${maxDecadeCount > 0 ? (d.count / maxDecadeCount) * 100 : 0}%`,
                       minWidth: '8px',
@@ -252,7 +252,7 @@ export function MusicPaletteCard() {
             no te conmueve" sin querer. Si hay >=1, lo mostramos. */}
         {data.savedCount > 0 && (
           <span className="inline-flex items-center gap-1.5">
-            <SparkleIcon size={10} className="text-sky-700/70" />
+            <SparkleIcon size={10} className="text-[color:var(--accent-primary)]" />
             {data.savedCount.toLocaleString('es')} canciones con corazón
           </span>
         )}

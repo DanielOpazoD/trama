@@ -31,7 +31,6 @@ const TITLES: Record<ViewMode, { title: string; subtitle?: string }> = {
   atlas: { title: 'Atlas', subtitle: 'constelaciones de tu trama' },
   chat: { title: 'Chat', subtitle: 'conversa con tu trama' },
   sugerencias: { title: 'Sugerencias', subtitle: 'propuestas de la IA' },
-  gabinete: { title: 'Gabinete', subtitle: 'juegos de la trama' },
 }
 
 export type TopBarTab = { value: string; label: string }
@@ -178,10 +177,13 @@ function StatusPill({ status }: { status: GlobalStatus }) {
   if (status.kind === 'offline') {
     return (
       <span
-        className="flex items-center gap-1.5 text-caption text-amber-700 leading-none"
-        title="No se puede contactar al backend. Trabajás contra el caché local."
+        className="flex items-center gap-1.5 text-caption text-[color:var(--accent-warn)] leading-none"
+        title="No se puede contactar al backend. Trabajas contra el caché local."
       >
-        <span className="size-1.5 rounded-full bg-amber-600" aria-hidden />
+        <span
+          className="size-1.5 rounded-full bg-[color:var(--accent-warn)]"
+          aria-hidden
+        />
         sin conexión
       </span>
     )
@@ -193,7 +195,10 @@ function StatusPill({ status }: { status: GlobalStatus }) {
         className="flex items-center gap-1.5 text-caption text-ink-400 leading-none"
         title={`Guardando ${status.pending} cambio${status.pending === 1 ? '' : 's'} en el servidor`}
       >
-        <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" aria-hidden />
+        <span
+          className="size-1.5 rounded-full bg-[color:var(--accent-warn)] animate-pulse"
+          aria-hidden
+        />
         guardando…
       </span>
     )

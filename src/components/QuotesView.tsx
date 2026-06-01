@@ -8,6 +8,7 @@ import {
 import { ViewHeader } from './ViewHeader'
 import { EndMark } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
+import { QuoteSkeleton, SkeletonList } from './Skeleton'
 import { Folio } from './Folio'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import { ENTITY_TYPES } from '../types'
@@ -136,7 +137,14 @@ export function QuotesView({
         }
       />
 
-      {entities.length === 0 ? (
+      {quotesPaged.isLoading ? (
+        // Paridad con Entidades/Momentos/Inicio: skeleton en la carga
+        // inicial en vez de dejar parpadear el empty state mientras la
+        // primera página de citas viaja.
+        <section className="mt-6 space-y-10">
+          <SkeletonList count={4} Component={QuoteSkeleton} />
+        </section>
+      ) : entities.length === 0 ? (
         <EmptyMessage
           illustration="thread"
           title="No hay todavía a quién atribuir nada."

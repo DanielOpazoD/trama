@@ -152,8 +152,8 @@ export function ProactiveView() {
                 style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
               >
                 <div className="flex items-baseline gap-2 mb-1.5">
-                  <SparkleIcon size={10} className="text-sky-700/70" />
-                  <span className="text-micro uppercase tracking-eyebrow text-sky-700/80">
+                  <SparkleIcon size={10} className="text-[color:var(--accent-primary)]" />
+                  <span className="text-micro uppercase tracking-eyebrow text-[color:var(--accent-primary)]">
                     {kindLabel(s.kind)}
                   </span>
                   {/* κ-info: provider antes era texto plano "· deepseek". Ahora
@@ -253,7 +253,7 @@ function SuggestionBody({ suggestion }: { suggestion: ProactiveSuggestion }) {
           {entityTypeLabel(p.oldType)}
         </span>
         <span className="mx-1.5 text-ink-300">→</span>
-        <span className="text-micro uppercase tracking-eyebrow text-sky-800">
+        <span className="text-micro uppercase tracking-eyebrow text-[color:var(--accent-primary)]">
           {entityTypeLabel(p.newType)}
         </span>
       </p>

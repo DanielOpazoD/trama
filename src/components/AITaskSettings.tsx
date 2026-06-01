@@ -70,7 +70,9 @@ export function AITaskSettings() {
   }
   if (settings.error || !settings.data) {
     return (
-      <p className="text-xs text-red-700">No se pudo cargar la configuración de IA.</p>
+      <p className="text-xs text-[color:var(--accent-clay)]">
+        No se pudo cargar la configuración de IA.
+      </p>
     )
   }
 

@@ -158,7 +158,7 @@ export function MomentoQRModal({
                   dangerouslySetInnerHTML={{ __html: svgMarkup }}
                 />
               ) : error ? (
-                <p className="text-xs text-red-700 text-center leading-snug px-2">
+                <p className="text-xs text-[color:var(--accent-clay)] text-center leading-snug px-2">
                   {error}
                 </p>
               ) : (

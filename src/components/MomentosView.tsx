@@ -257,7 +257,7 @@ export function MomentosView() {
             title="Todavía no hay momentos"
             body={
               <>
-                Las entradas que crees acá quedan en una línea de tiempo. Pega tweets,
+                Las entradas que crees aquí quedan en una línea de tiempo. Pega tweets,
                 links, screenshots y fotos — o simplemente escribe una nota del día.
               </>
             }

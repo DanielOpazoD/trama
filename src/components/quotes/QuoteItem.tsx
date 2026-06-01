@@ -149,7 +149,7 @@ function QuoteItemInternal({
             )}
           {quote.origin.kind === 'ai' && (
             <span
-              className="ml-1.5 inline-flex items-center text-sky-700/70"
+              className="ml-1.5 inline-flex items-center text-[color:var(--accent-primary)]"
               title="propuesta por IA"
             >
               <SparkleIcon size={10} />
@@ -242,7 +242,7 @@ function QuoteItemInternal({
 
       {quote.aiReflection && (
         <div className="mt-3 pl-5">
-          <div className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-sky-700/80 mb-1">
+          <div className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-[color:var(--accent-primary)] mb-1">
             <SparkleIcon size={10} />
             <span>interpretación de la IA</span>
             <AISourceTag
@@ -262,7 +262,7 @@ function QuoteItemInternal({
           guarda. El trigger ahora vive en el menú "⋯". */}
       {draftReflection && (
         <div className="mt-3 pl-5 animate-fade-up" aria-live="polite">
-          <div className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-sky-700/80 mb-1">
+          <div className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-[color:var(--accent-primary)] mb-1">
             <SparkleIcon size={10} />
             <span>lectura cruzada (borrador)</span>
             <AISourceTag
@@ -271,14 +271,14 @@ function QuoteItemInternal({
               className="ml-auto"
             />
           </div>
-          <p className="text-ink-500 text-sm leading-relaxed whitespace-pre-wrap border-l-2 border-sky-700/30 pl-3">
+          <p className="text-ink-500 text-sm leading-relaxed whitespace-pre-wrap border-l-2 border-[color:var(--accent-primary-ring)] pl-3">
             {draftReflection.text}
           </p>
           <div className="mt-2 flex items-center gap-3">
             <button
               onClick={handleSaveReflection}
               disabled={updateQuote.isPending}
-              className="text-micro uppercase tracking-eyebrow text-sky-700 hover:text-sky-900 transition-colors disabled:opacity-60"
+              className="text-micro uppercase tracking-eyebrow text-[color:var(--accent-primary)] hover:text-[color:var(--accent-primary)] transition-colors disabled:opacity-60"
             >
               {updateQuote.isPending ? 'guardando…' : 'guardar'}
             </button>

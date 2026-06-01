@@ -37,7 +37,9 @@ export function HealthPanel() {
           hint="Gasto IA del mes, conteos, errores recientes."
         />
         <div className="space-y-2">
-          <p className="text-xs text-red-700">No se pudo cargar el estado del sistema.</p>
+          <p className="text-xs text-[color:var(--accent-clay)]">
+            No se pudo cargar el estado del sistema.
+          </p>
           <button
             onClick={() => refetch()}
             className="text-xs px-3 py-1.5 border border-ink-100/60 rounded-md hover:bg-ink-50 transition-all"
@@ -81,17 +83,17 @@ export function HealthPanel() {
                   ? 'alert-error'
                   : alert.severity === 'warn'
                     ? 'alert-warn'
-                    : 'bg-sky-50/80 border-sky-200/60 text-sky-900'
+                    : 'bg-[color:var(--accent-primary-soft)] border-[color:var(--accent-primary-ring)] text-[color:var(--accent-primary)]'
               }`}
             >
               <span
                 aria-hidden
                 className={`mt-1.5 size-1.5 rounded-full shrink-0 ${
                   alert.severity === 'error'
-                    ? 'bg-red-600'
+                    ? 'bg-[color:var(--accent-clay)]'
                     : alert.severity === 'warn'
-                      ? 'bg-amber-600'
-                      : 'bg-sky-600'
+                      ? 'bg-[color:var(--accent-warn)]'
+                      : 'bg-[color:var(--accent-primary)]'
                 } ${alert.severity !== 'info' ? 'animate-pulse-subtle' : ''}`}
               />
               <div className="min-w-0 flex-1">

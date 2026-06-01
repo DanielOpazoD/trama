@@ -482,15 +482,6 @@ export const ReadingIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
-/** Gabinete — una cómoda de dos cajones con tiradores. Glyph del índice de
-    los gestos literarios (Sortes, Espejo, Voz, Hojas, Postales). */
-export const GabineteIcon = ({ size = 14, className }: Props) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
-    <rect x="4" y="3" width="16" height="18" rx="1.5" />
-    <path d="M4 12h16M10 7.5h4M10 16.5h4" />
-  </svg>
-)
-
 /** Notes — hoja con esquina doblada y renglones. Mundo / sección Trama Notas. */
 export const NotesIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

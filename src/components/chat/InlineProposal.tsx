@@ -385,7 +385,7 @@ function ProposalRow({
             href={spotifyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-2 text-micro uppercase tracking-eyebrow text-emerald-700/80 hover:text-emerald-900 transition-colors"
+            className="ml-2 text-micro uppercase tracking-eyebrow text-[color:var(--accent-sage)] hover:text-[color:var(--accent-sage)] transition-colors"
           >
             ↗ Spotify
           </a>
@@ -410,7 +410,7 @@ function ProposalRow({
         </span>
       )}
       {status === 'failed' && (
-        <span className="text-micro uppercase tracking-eyebrow text-red-700 px-2 py-0.5">
+        <span className="text-micro uppercase tracking-eyebrow text-[color:var(--accent-clay)] px-2 py-0.5">
           falló
         </span>
       )}

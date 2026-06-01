@@ -111,7 +111,7 @@ export function EntityHeader({
               href={entity.spotifyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 transition-colors"
+              className="inline-flex items-center gap-1 text-xs text-[color:var(--accent-sage)] hover:text-[color:var(--accent-sage)] transition-colors"
             >
               ↗ abrir en Spotify
             </a>

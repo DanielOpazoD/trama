@@ -169,7 +169,7 @@ export function SuggestArtists() {
                     href={`https://open.spotify.com/search/${encodeURIComponent(s.name)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-emerald-700 transition-colors"
+                    className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-[color:var(--accent-sage)] transition-colors"
                     title="Buscar en Spotify"
                   >
                     ↗

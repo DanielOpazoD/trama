@@ -248,7 +248,11 @@ export function ReadingMode({
               }
             />
           )}
-          {error && <p className="text-xs text-red-700 leading-relaxed">{error}</p>}
+          {error && (
+            <p className="text-xs text-[color:var(--accent-clay)] leading-relaxed">
+              {error}
+            </p>
+          )}
         </div>
 
         <footer className="px-5 py-4 border-t border-ink-100/60 flex items-baseline justify-between gap-3">

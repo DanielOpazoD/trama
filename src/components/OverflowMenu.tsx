@@ -109,7 +109,7 @@ export function OverflowMenuItem({
       disabled={disabled}
       className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm text-left transition-colors disabled:opacity-50 ${
         danger
-          ? 'text-red-700 hover:text-red-800 hover:bg-red-50'
+          ? 'text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] hover:bg-[color:var(--accent-clay-soft)]'
           : 'text-ink-600 hover:text-ink-800 hover:bg-ink-100/60'
       }`}
     >
