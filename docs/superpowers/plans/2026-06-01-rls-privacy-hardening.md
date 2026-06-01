@@ -61,4 +61,6 @@
 - [x] Run `npm run typecheck`.
 - [x] Run `npm test`.
 - [x] Run `npm run build`.
-- [x] Report exact status and remaining risks.
+- [x] Run `npm run format:check` and `npm run check:docs-drift`.
+- [ ] Apply the RLS migration against real Postgres/Netlify. Local `npm run db:up` needs Docker, which was not available in this workstation.
+- [ ] Report exact status and remaining risks before PR/merge.
