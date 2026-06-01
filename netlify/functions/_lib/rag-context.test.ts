@@ -1,4 +1,20 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+
+const ragMocks = vi.hoisted(() => ({
+  askLLMForText: vi.fn(),
+  embedSafe: vi.fn(),
+  toPgVector: vi.fn((vector: number[]) => `[${vector.join(',')}]`),
+}))
+
+vi.mock('./llm.js', () => ({
+  askLLMForText: ragMocks.askLLMForText,
+}))
+
+vi.mock('./embeddings.js', () => ({
+  embedSafe: ragMocks.embedSafe,
+  toPgVector: ragMocks.toPgVector,
+}))
+
 import { buildRagContext } from './rag-context'
 
 // rag-context.ts imports embedSafe from ./embeddings which reads
@@ -6,6 +22,11 @@ import { buildRagContext } from './rag-context'
 // (returns null) — letting us test the merge + recency fallback purely.
 
 beforeEach(() => {
+  ragMocks.askLLMForText.mockReset()
+  ragMocks.askLLMForText.mockRejectedValue(new Error('no key'))
+  ragMocks.embedSafe.mockReset()
+  ragMocks.embedSafe.mockResolvedValue(null)
+  ragMocks.toPgVector.mockClear()
   vi.stubGlobal('Netlify', {
     env: {
       get: vi.fn(() => undefined),
@@ -123,5 +144,58 @@ describe('buildRagContext — fallback to recency when embedding key is absent',
     // usedHyde puede ser false (porque askLLMForText falló) — lo
     // importante es que la llamada no haya crashed.
     expect(ctx).toBeDefined()
+  })
+
+  it('HyDE: registra costo y uso cuando genera documento hipotético', async () => {
+    ragMocks.askLLMForText.mockResolvedValue({
+      content:
+        'Borges piensa el tiempo como una materia circular donde memoria, muerte y literatura se confunden.',
+      usage: {
+        provider: 'openai',
+        model: 'gpt-test',
+        tokensIn: 120,
+        tokensOut: 24,
+        costCents: 0.42,
+        durationMs: 80,
+      },
+      fromCache: false,
+    })
+    ragMocks.embedSafe.mockResolvedValue({ vector: [0.1, 0.2] })
+
+    const calls: Array<{ template: string; values: unknown[] }> = []
+    const sql = ((strings: TemplateStringsArray, ...values: unknown[]) => {
+      calls.push({ template: strings.join('?'), values })
+      return Promise.resolve([])
+    }) as unknown as Parameters<typeof buildRagContext>[0]
+
+    const ctx = await buildRagContext(
+      sql,
+      'qué tengo sobre Borges, tiempo y memoria?',
+      'user-hyde',
+      {
+        hyde: true,
+        requestId: 'req-hyde',
+      },
+    )
+
+    expect(ctx.usedHyde).toBe(true)
+    expect(ragMocks.embedSafe).toHaveBeenCalledWith(
+      'Borges piensa el tiempo como una materia circular donde memoria, muerte y literatura se confunden.',
+    )
+    const hydeLog = calls.find((call) =>
+      /INSERT INTO extraction_log/i.test(call.template),
+    )
+    expect(hydeLog?.values).toEqual(
+      expect.arrayContaining([
+        'hyde:qué tengo sobre Borges, tiempo y memoria?',
+        'openai',
+        'gpt-test',
+        120,
+        24,
+        0.42,
+        80,
+        'user-hyde',
+      ]),
+    )
   })
 })
