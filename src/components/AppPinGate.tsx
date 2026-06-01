@@ -150,7 +150,10 @@ function PinScreen({ onUnlock }: { onUnlock: () => void }) {
             aria-invalid={error ? 'true' : undefined}
           />
           {error && (
-            <p className="text-caption text-red-700 text-center" role="alert">
+            <p
+              className="text-caption text-[color:var(--accent-clay)] text-center"
+              role="alert"
+            >
               {error}
             </p>
           )}

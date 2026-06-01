@@ -129,7 +129,7 @@ export function XPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null }) {
             <button
               onClick={handleDisconnect}
               disabled={busy}
-              className="text-xs px-3 py-1.5 text-ink-400 hover:text-red-700 transition-colors ml-auto"
+              className="text-xs px-3 py-1.5 text-ink-400 hover:text-[color:var(--accent-clay)] transition-colors ml-auto"
             >
               Desconectar
             </button>

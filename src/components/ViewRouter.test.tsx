@@ -100,25 +100,6 @@ vi.mock('./AtlasView', () => ({
 vi.mock('./ProactiveView', () => ({
   ProactiveView: () => <section>sugerencias mock</section>,
 }))
-vi.mock('./GabineteView', () => ({
-  GabineteView: ({
-    onSortes,
-    onEspejo,
-    onNavigate,
-  }: {
-    onSortes: () => void
-    onEspejo: () => void
-    onNavigate: (view: string) => void
-  }) => (
-    <section>
-      gabinete mock
-      <button onClick={onSortes}>sortes</button>
-      <button onClick={onEspejo}>espejo</button>
-      <button onClick={() => onNavigate('inicio')}>inicio gabinete</button>
-    </section>
-  ),
-}))
-
 function renderRouter(
   view: Parameters<typeof ViewRouter>[0]['view'],
   overrides: Partial<Parameters<typeof ViewRouter>[0]> = {},
@@ -133,8 +114,6 @@ function renderRouter(
     onChangeView: vi.fn(),
     onProposal: vi.fn(),
     onConsumedInitialThread: vi.fn(),
-    onSortes: vi.fn(),
-    onEspejo: vi.fn(),
     ...overrides,
   }
   render(<ViewRouter {...props} />)
@@ -193,20 +172,5 @@ describe('<ViewRouter />', () => {
 
     expect(props.onEntitiesTabChange).toHaveBeenCalledWith('vinculos')
     expect(props.onSelectEntity).toHaveBeenCalledWith('e-entities')
-  })
-
-  it('renderiza Gabinete y propaga overlays', async () => {
-    const user = userEvent.setup()
-    const props = renderRouter('gabinete')
-
-    expect(await screen.findByText(/gabinete mock/i)).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'sortes' }))
-    await user.click(screen.getByRole('button', { name: 'espejo' }))
-    await user.click(screen.getByRole('button', { name: 'inicio gabinete' }))
-
-    expect(props.onSortes).toHaveBeenCalledOnce()
-    expect(props.onEspejo).toHaveBeenCalledOnce()
-    expect(props.onChangeView).toHaveBeenCalledWith('inicio')
   })
 })

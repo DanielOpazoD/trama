@@ -287,8 +287,6 @@ function Shell({
                 onChangeView={setView}
                 onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
                 onConsumedInitialThread={() => setPendingChatThreadId(null)}
-                onSortes={() => setSortesOpen(true)}
-                onEspejo={() => setEspejoOpen(true)}
               />
             </div>
           )}

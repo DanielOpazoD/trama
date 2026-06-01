@@ -54,7 +54,7 @@ export function PlaysTiming({ since, enabled }: { since: string; enabled: boolea
       aria-label="Patrón temporal de escuchas"
     >
       <header className="mb-3 flex items-baseline justify-between gap-3 flex-wrap">
-        <p className="section-eyebrow">cuándo escuchás</p>
+        <p className="section-eyebrow">cuándo escuchas</p>
         <p className="text-caption text-ink-300 italic">
           hora local · {data.total.toLocaleString('es')} plays
         </p>

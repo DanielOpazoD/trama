@@ -113,7 +113,7 @@ function ProposedEntityRow({
             {typeLabel ?? entity.type}
           </span>
           {entity.matchedId && (
-            <span className="text-xs uppercase tracking-wider text-emerald-700/80">
+            <span className="text-xs uppercase tracking-wider text-[color:var(--accent-sage)]">
               ya existe
             </span>
           )}

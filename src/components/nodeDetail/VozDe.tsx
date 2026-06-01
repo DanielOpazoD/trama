@@ -53,7 +53,7 @@ export function VozDe({ entity }: { entity: Entity }) {
       <section>
         <button
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-sky-700/70 hover:text-sky-700 transition-colors"
+          className="inline-flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-[color:var(--accent-primary)] hover:text-[color:var(--accent-primary)] transition-colors"
           title={`Imagina qué diría ${entity.name} sobre un tema, a partir de sus citas. Es una lectura, no una cita.`}
         >
           <SparkleIcon size={10} />
@@ -99,7 +99,7 @@ export function VozDe({ entity }: { entity: Entity }) {
 
       {answer && (
         <div className="animate-fade-up pt-1" aria-live="polite">
-          <div className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-sky-700/80 mb-1">
+          <div className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-[color:var(--accent-primary)] mb-1">
             <SparkleIcon size={10} />
             <span>lectura activa · no es {entity.name}</span>
             <AISourceTag
@@ -108,7 +108,7 @@ export function VozDe({ entity }: { entity: Entity }) {
               className="ml-auto"
             />
           </div>
-          <p className="font-serif italic text-ink-600 text-sm leading-relaxed whitespace-pre-wrap border-l-2 border-sky-700/30 pl-3">
+          <p className="font-serif italic text-ink-600 text-sm leading-relaxed whitespace-pre-wrap border-l-2 border-[color:var(--accent-primary-ring)] pl-3">
             {answer.text}
           </p>
           <div className="mt-2 flex items-center gap-3">

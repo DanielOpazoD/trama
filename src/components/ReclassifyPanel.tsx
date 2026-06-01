@@ -148,13 +148,13 @@ function VerificationChip({
 }) {
   if (verification.agreed) {
     return (
-      <span className="mt-1 inline-flex items-center gap-1 text-micro uppercase tracking-eyebrow text-emerald-700/80">
+      <span className="mt-1 inline-flex items-center gap-1 text-micro uppercase tracking-eyebrow text-[color:var(--accent-sage)]">
         ✓ verificado por {verification.verifier}
       </span>
     )
   }
   return (
-    <span className="mt-1 inline-flex items-baseline gap-1 text-micro uppercase tracking-eyebrow text-amber-700/90">
+    <span className="mt-1 inline-flex items-baseline gap-1 text-micro uppercase tracking-eyebrow text-[color:var(--accent-warn)]">
       ⚠ {verification.verifier} dudó
       {verification.note && (
         <span className="normal-case tracking-normal text-ink-500 italic ml-1">

@@ -77,7 +77,7 @@ export function PlaylistImporter({
             </button>
           </div>
           {hasError && (
-            <p className="mt-2 text-xs text-red-700">
+            <p className="mt-2 text-xs text-[color:var(--accent-clay)]">
               {error instanceof Error
                 ? error.message
                 : 'No se pudo importar la playlist.'}

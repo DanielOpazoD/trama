@@ -65,7 +65,7 @@ export function describeOAuthReturn(r: OAuthReturn): { ok: boolean; text: string
 const OAUTH_ERROR_HINTS: Record<string, string> = {
   access_denied: 'Cancelaste la autorización.',
   state_mismatch:
-    'No se pudo verificar la sesión. Reintentá; si persiste, revisá que el navegador acepte cookies.',
-  missing_verifier: 'Se perdió la sesión de autorización. Reintentá desde cero.',
+    'No se pudo verificar la sesión. Reinténtalo; si persiste, revisa que el navegador acepte cookies.',
+  missing_verifier: 'Se perdió la sesión de autorización. Reinténtalo desde cero.',
   missing_code: 'El proveedor no devolvió el código de autorización.',
 }

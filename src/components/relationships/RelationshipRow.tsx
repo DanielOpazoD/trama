@@ -72,7 +72,7 @@ function RelationshipRowInternal({
           )}
           {rel.origin.kind === 'ai' && (
             <span
-              className="ml-1.5 inline-flex items-center text-sky-700/70 align-middle"
+              className="ml-1.5 inline-flex items-center text-[color:var(--accent-primary)] align-middle"
               title="propuesta por IA"
             >
               <SparkleIcon size={10} />
@@ -81,7 +81,7 @@ function RelationshipRowInternal({
         </div>
         <button
           onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded"
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-[color:var(--accent-clay)] hover:bg-ink-100 rounded"
           aria-label="Eliminar"
           title="Eliminar"
         >

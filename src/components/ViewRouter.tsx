@@ -55,9 +55,6 @@ const AtlasView = lazy(() =>
 const ProactiveView = lazy(() =>
   import('./ProactiveView').then((m) => ({ default: m.ProactiveView })),
 )
-const GabineteView = lazy(() =>
-  import('./GabineteView').then((m) => ({ default: m.GabineteView })),
-)
 
 /** Fallback minimal para Suspense — un LoadingHint centrado mientras
  *  la vista se descarga. La mayoría de las vistas tardan <150ms, así
@@ -162,8 +159,6 @@ export function ViewRouter({
   onChangeView,
   onProposal,
   onConsumedInitialThread,
-  onSortes,
-  onEspejo,
 }: {
   view: ViewMode
   selectedEntityId: string | null
@@ -176,9 +171,6 @@ export function ViewRouter({
   onChangeView: (v: ViewMode) => void
   onProposal: (text: string, proposal: ExtractionProposal) => void
   onConsumedInitialThread: () => void
-  /** Gabinete: lanzar Sortes / Espejo (overlays con estado en App.tsx). */
-  onSortes: () => void
-  onEspejo: () => void
 }) {
   if (view === 'grafo') {
     return (
@@ -267,15 +259,6 @@ export function ViewRouter({
         {view === 'sugerencias' && (
           <ViewSlot scope="view:sugerencias">
             <ProactiveView />
-          </ViewSlot>
-        )}
-        {view === 'gabinete' && (
-          <ViewSlot scope="view:gabinete">
-            <GabineteView
-              onSortes={onSortes}
-              onEspejo={onEspejo}
-              onNavigate={onChangeView}
-            />
           </ViewSlot>
         )}
       </div>

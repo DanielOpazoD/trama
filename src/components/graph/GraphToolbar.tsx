@@ -225,7 +225,9 @@ export function GraphToolbar({
       <div className="hidden md:block pointer-events-none absolute bottom-3 left-3 z-10 text-micro uppercase tracking-eyebrow text-ink-300/70">
         <span>
           {entityCount} entidades · {relationshipCount} relaciones
-          {truncated && <span className="ml-1 text-amber-700/70">· truncado</span>}
+          {truncated && (
+            <span className="ml-1 text-[color:var(--accent-warn)]">· truncado</span>
+          )}
         </span>
         {graphMode === 'exploratorio' && focusName && (
           <>

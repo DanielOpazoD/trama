@@ -270,7 +270,7 @@ export function ChatView({
                   </button>
                   <button
                     onClick={() => handleDeleteThread(t.id)}
-                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-red-700 text-micro uppercase tracking-eyebrow"
+                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-ink-300 hover:text-[color:var(--accent-clay)] text-micro uppercase tracking-eyebrow"
                     aria-label="Eliminar conversación"
                   >
                     borrar

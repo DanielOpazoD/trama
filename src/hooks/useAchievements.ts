@@ -71,7 +71,7 @@ function pickMessage(kind: 'entities' | 'quotes' | 'relationships', n: number): 
     return `✦ ${n.toLocaleString('es')} entidades.`
   }
   if (kind === 'quotes') {
-    if (n === 10) return '✦ diez citas. lo que retenés empieza a hablarte.'
+    if (n === 10) return '✦ diez citas. lo que retienes empieza a hablarte.'
     if (n === 25) return '✦ veinticinco frases que se quedaron.'
     if (n === 50) return '✦ cincuenta citas. un florilegio propio.'
     if (n === 100) return '✦ cien fragmentos. esto es lo que viste.'

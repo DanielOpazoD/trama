@@ -52,7 +52,7 @@ function MomentoEntryInternal({
 
         {momento.origin.kind === 'ai' && (
           <span
-            className="ml-2 inline-flex items-center text-sky-700/70"
+            className="ml-2 inline-flex items-center text-[color:var(--accent-primary)]"
             title="origen IA"
           >
             <SparkleIcon size={10} />
@@ -75,7 +75,7 @@ function MomentoEntryInternal({
         <Tooltip content="Eliminar momento">
           <button
             onClick={onDelete}
-            className="p-1.5 text-ink-400 hover:text-red-700 hover:bg-ink-100 rounded transition-colors"
+            className="p-1.5 text-ink-400 hover:text-[color:var(--accent-clay)] hover:bg-ink-100 rounded transition-colors"
             aria-label="Eliminar momento"
           >
             <TrashIcon size={12} />

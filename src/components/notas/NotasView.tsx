@@ -204,7 +204,7 @@ export function NotasView() {
           body={
             <>
               Escribe arriba una nota corta — una idea, una frase, un pendiente mental.
-              Con <strong>#etiquetas</strong> las vas a poder filtrar y buscar acá mismo.
+              Con <strong>#etiquetas</strong> las podrás filtrar y buscar aquí mismo.
             </>
           }
           hint="Markdown y #etiquetas; ⌘↵ para guardar rápido."

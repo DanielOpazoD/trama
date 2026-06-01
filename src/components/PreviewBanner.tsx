@@ -53,12 +53,12 @@ export function PreviewBanner() {
     >
       <span className="font-medium">deploy preview</span>{' '}
       <span className="opacity-80">
-        — los cambios que hagas acá (entidades, momentos, fotos) viven en una BD efímera y
-        NO se trasladan a producción al hacer merge.
+        — los cambios que hagas aquí (entidades, momentos, fotos) viven en una BD efímera
+        y NO se trasladan a producción al hacer merge.
       </span>{' '}
       <button
         onClick={handleDismiss}
-        className="ml-2 underline hover:no-underline focus-visible:outline-none"
+        className="ml-2 underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-primary-ring)] rounded"
         aria-label="Ocultar banner de preview"
       >
         entendido

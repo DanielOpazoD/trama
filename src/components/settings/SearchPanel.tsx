@@ -102,7 +102,7 @@ function ReindexEmbeddingsSection() {
           {running ? 'indexando…' : 'Indexar lo pendiente'}
         </button>
       </div>
-      {error && <p className="text-xs text-red-700">{error}</p>}
+      {error && <p className="text-xs text-[color:var(--accent-clay)]">{error}</p>}
     </div>
   )
 }

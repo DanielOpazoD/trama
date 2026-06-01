@@ -137,7 +137,7 @@ export function NoteCard({
               <button
                 onClick={onDelete}
                 disabled={busy}
-                className="uppercase tracking-eyebrow text-red-700 hover:text-red-800 transition-colors disabled:opacity-50"
+                className="uppercase tracking-eyebrow text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] transition-colors disabled:opacity-50"
               >
                 borrar
               </button>
@@ -151,7 +151,7 @@ export function NoteCard({
           ) : (
             <button
               onClick={() => setConfirming(true)}
-              className="uppercase tracking-eyebrow text-ink-300 hover:text-red-700 transition-colors"
+              className="uppercase tracking-eyebrow text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors"
             >
               borrar
             </button>

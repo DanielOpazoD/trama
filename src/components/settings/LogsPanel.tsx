@@ -81,7 +81,9 @@ function ErrorList() {
   if (error || !data) {
     return (
       <div className="space-y-2">
-        <p className="text-xs text-red-700">No se pudo cargar el log de errores.</p>
+        <p className="text-xs text-[color:var(--accent-clay)]">
+          No se pudo cargar el log de errores.
+        </p>
         <button
           onClick={() => refetch()}
           className="text-xs px-3 py-1.5 border border-ink-100/60 rounded-md hover:bg-ink-50 transition-all"
@@ -193,9 +195,9 @@ function ErrorRow({
             <span
               className={`text-micro font-mono tabular-nums px-1.5 py-0.5 rounded ${
                 entry.statusCode >= 500
-                  ? 'bg-red-100 text-red-800'
+                  ? 'bg-[color:var(--accent-clay-soft)] text-[color:var(--accent-clay)]'
                   : entry.statusCode >= 400
-                    ? 'bg-amber-100 text-amber-800'
+                    ? 'bg-[color:var(--accent-warn-soft)] text-[color:var(--accent-warn)]'
                     : 'bg-ink-100 text-ink-600'
               }`}
             >
@@ -272,7 +274,9 @@ function ExtractionList() {
   if (error || !data) {
     return (
       <div className="space-y-2">
-        <p className="text-xs text-red-700">No se pudo cargar el log de IA.</p>
+        <p className="text-xs text-[color:var(--accent-clay)]">
+          No se pudo cargar el log de IA.
+        </p>
         <button
           onClick={() => refetch()}
           className="text-xs px-3 py-1.5 border border-ink-100/60 rounded-md hover:bg-ink-50 transition-all"
@@ -394,7 +398,7 @@ function ExtractionRow({
 
         {entry.error && (
           <span
-            className="text-micro font-mono px-1.5 py-0.5 rounded bg-red-100 text-red-800 shrink-0"
+            className="text-micro font-mono px-1.5 py-0.5 rounded bg-[color:var(--accent-clay-soft)] text-[color:var(--accent-clay)] shrink-0"
             title={entry.error}
           >
             ERR
@@ -411,7 +415,7 @@ function ExtractionRow({
           {entry.error && (
             <div>
               <p className="section-eyebrow mb-1">error</p>
-              <p className="text-xs text-red-700 whitespace-pre-wrap break-words font-mono leading-relaxed">
+              <p className="text-xs text-[color:var(--accent-clay)] whitespace-pre-wrap break-words font-mono leading-relaxed">
                 {entry.error}
               </p>
             </div>
