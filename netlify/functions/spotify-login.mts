@@ -25,7 +25,7 @@ export default withObservability('spotify-login', async (req, _ctx, { requestId 
 
   const headers = new Headers({ 'Content-Type': 'application/json' })
   // 10 minutos alcanza para pasar por la pantalla de consentimiento de Spotify.
-  const opts = 'Path=/; HttpOnly; SameSite=Lax; Max-Age=600'
+  const opts = oauthCookieOptions(req)
   headers.append('Set-Cookie', `spotify_state=${state}; ${opts}`)
   headers.append('Set-Cookie', `spotify_uid=${encodeURIComponent(userId)}; ${opts}`)
 
@@ -34,4 +34,9 @@ export default withObservability('spotify-login', async (req, _ctx, { requestId 
 
 export const config: Config = {
   path: '/api/spotify/login',
+}
+
+function oauthCookieOptions(req: Request): string {
+  const secure = new URL(req.url).protocol === 'https:' ? '; Secure' : ''
+  return `Path=/; HttpOnly; SameSite=Lax; Max-Age=600${secure}`
 }

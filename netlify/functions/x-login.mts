@@ -27,17 +27,23 @@ export default withObservability(
     }
     const { id: userId } = await getAuthedUser(req)
     const state = crypto.randomUUID()
-  const { verifier, challenge } = await generatePkce()
-  const url = buildAuthUrl(state, challenge)
+    const { verifier, challenge } = await generatePkce()
+    const url = buildAuthUrl(state, challenge)
 
-  const headers = new Headers({ 'Content-Type': 'application/json' })
-  const opts = 'Path=/; HttpOnly; SameSite=Lax; Max-Age=600'
-  headers.append('Set-Cookie', `x_state=${state}; ${opts}`)
-  headers.append('Set-Cookie', `x_verifier=${verifier}; ${opts}`)
-  headers.append('Set-Cookie', `x_uid=${encodeURIComponent(userId)}; ${opts}`)
-  return new Response(JSON.stringify({ url }), { status: 200, headers })
-})
+    const headers = new Headers({ 'Content-Type': 'application/json' })
+    const opts = oauthCookieOptions(req)
+    headers.append('Set-Cookie', `x_state=${state}; ${opts}`)
+    headers.append('Set-Cookie', `x_verifier=${verifier}; ${opts}`)
+    headers.append('Set-Cookie', `x_uid=${encodeURIComponent(userId)}; ${opts}`)
+    return new Response(JSON.stringify({ url }), { status: 200, headers })
+  },
+)
 
 export const config: Config = {
   path: '/api/x/login',
+}
+
+function oauthCookieOptions(req: Request): string {
+  const secure = new URL(req.url).protocol === 'https:' ? '; Secure' : ''
+  return `Path=/; HttpOnly; SameSite=Lax; Max-Age=600${secure}`
 }

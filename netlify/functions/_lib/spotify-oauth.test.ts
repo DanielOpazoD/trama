@@ -98,6 +98,19 @@ describe('spotify-login — userId en cookie', () => {
     expect(setCookie).toContain('spotify_uid=legacy-single-user')
     expect(setCookie).toMatch(/HttpOnly/i)
   })
+
+  it('marca cookies OAuth como Secure cuando el login corre sobre HTTPS', async () => {
+    const res = await loginHandler(
+      new Request('https://trama.example/api/spotify/login'),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const setCookie = res.headers.get('set-cookie') ?? ''
+    expect(setCookie).toContain('spotify_state=')
+    expect(setCookie).toContain('spotify_uid=legacy-single-user')
+    expect(setCookie).toMatch(/;\s*Secure/i)
+  })
 })
 
 describe('spotify-callback — asocia el token al userId de la cookie', () => {

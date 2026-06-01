@@ -100,3 +100,17 @@
 - [x] Preserve token-save behavior for valid callbacks and skip token exchange/save for invalid identity.
 - [x] Run focused Spotify/X OAuth tests.
 - [x] Commit.
+
+### Task 7: OAuth cookie transport hardening
+
+**Files:**
+
+- Modify: `netlify/functions/spotify-login.mts`
+- Modify: `netlify/functions/x-login.mts`
+- Modify/Test: `netlify/functions/_lib/spotify-oauth.test.ts`
+- Modify/Test: `netlify/functions/_lib/x-oauth.test.ts`
+
+- [x] Write tests that prove OAuth login cookies include `Secure` when served over HTTPS.
+- [x] Add protocol-aware cookie options while preserving local HTTP development.
+- [x] Run focused Spotify/X OAuth tests.
+- [x] Commit.

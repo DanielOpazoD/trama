@@ -153,6 +153,20 @@ describe('x-login', () => {
     expect(setCookie).toMatch(/HttpOnly/i)
   })
 
+  it('marca cookies OAuth como Secure cuando el login corre sobre HTTPS', async () => {
+    const res = await loginHandler(
+      new Request('https://trama.example/api/x/login'),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const setCookie = res.headers.get('set-cookie') ?? ''
+    expect(setCookie).toContain('x_state=')
+    expect(setCookie).toContain('x_verifier=VERIFIER')
+    expect(setCookie).toContain('x_uid=legacy-single-user')
+    expect(setCookie).toMatch(/;\s*Secure/i)
+  })
+
   it('400 (no 500) cuando X no está configurado', async () => {
     isXConfigured.mockReturnValue(false)
     const res = await loginHandler(
