@@ -238,6 +238,27 @@ describe('guardrail: migraciones mantienen FK user_id -> users(id)', () => {
       ).toBe(true)
     })
   }
+
+  it('valida explícitamente las constraints agregadas como NOT VALID', () => {
+    const notValid = sql
+      .split(';')
+      .filter((statement) => /\bNOT\s+VALID\b/i.test(statement))
+      .map((statement) => statement.match(/\bCONSTRAINT\s+([a-z0-9_]+)/i)?.[1])
+      .filter((constraint): constraint is string => Boolean(constraint))
+    const validated = new Set(
+      [...sql.matchAll(/\bVALIDATE\s+CONSTRAINT\s+([a-z0-9_]+)/gi)].map(
+        (match) => match[1],
+      ),
+    )
+
+    expect(notValid.length).toBeGreaterThan(0)
+    for (const constraint of notValid) {
+      expect(
+        validated.has(constraint),
+        `${constraint} fue creada NOT VALID pero no aparece en una migración posterior con VALIDATE CONSTRAINT.`,
+      ).toBe(true)
+    }
+  })
 })
 
 describe('guardrail: JOINs a tablas per-user scopean también el alias unido', () => {

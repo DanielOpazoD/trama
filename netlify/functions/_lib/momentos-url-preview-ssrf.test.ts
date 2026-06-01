@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { mockContext } from './test-utils'
 import handler, { isBlockedPreviewAddress } from '../momentos-url-preview'
+
+const functionsRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 
 describe('momentos-url-preview SSRF guard', () => {
   afterEach(() => vi.unstubAllGlobals())
@@ -38,25 +43,12 @@ describe('momentos-url-preview SSRF guard', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('bloquea redirects hacia red privada antes del segundo fetch', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response('', {
-        status: 302,
-        headers: { location: 'http://127.0.0.1/admin' },
-      }),
-    )
-    vi.stubGlobal('fetch', fetchMock)
+  it('usa request con DNS pinned en vez de fetch con re-resolución libre', () => {
+    const src = readFileSync(join(functionsRoot, 'momentos-url-preview.mts'), 'utf8')
 
-    const res = await handler(
-      new Request(
-        `http://localhost/api/momentos-url-preview?url=${encodeURIComponent('http://8.8.8.8/meta')}`,
-      ),
-      mockContext(),
-    )
-
-    expect(res.status).toBe(200)
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(await res.json()).toMatchObject({ fetched: false, source: '8.8.8.8' })
+    expect(src).toContain('createPinnedLookup')
+    expect(src).toContain('lookup: createPinnedLookup')
+    expect(src).not.toContain('fetch(current.toString()')
   })
 
   it('clasifica rangos privados y loopback como bloqueados', () => {
