@@ -106,16 +106,21 @@ describe('<Sidebar />', () => {
     expect(props.onOpenSettings).toHaveBeenCalledOnce()
   })
 
-  it('renderiza la versión colapsada con búsqueda, mundo y modo local', async () => {
+  it('renderiza la versión colapsada con búsqueda, mundo, modo local y sugerencias pendientes', async () => {
     const user = userEvent.setup()
+    stateMocks.useProactiveQuery.mockReturnValue({ data: [{ id: 'p1' }, { id: 'p2' }] })
     const props = renderSidebar({ collapsed: true, offline: true })
 
     expect(screen.getByRole('button', { name: 'Expandir sidebar' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sugerencias 2' })).toBeInTheDocument()
     expect(screen.getByLabelText('Sin conexión al backend')).toBeInTheDocument()
     expect(screen.getByText(/mundo trama colapsado/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Configuración (1 alerta)' }))
+    await user.click(screen.getByRole('button', { name: 'Sugerencias 2' }))
+
     expect(props.onOpenSettings).toHaveBeenCalledOnce()
+    expect(props.onChangeView).toHaveBeenCalledWith('sugerencias')
   })
 
   it('en móvil pinta backdrop y lo usa para cerrar el menú', async () => {

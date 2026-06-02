@@ -12,7 +12,7 @@ import {
 } from '../Icons'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { AttachmentPhotos } from './AttachmentPhotos'
-import { PriorityDots, PRIORITY_META, PRIORITY_NEXT } from './PriorityDots'
+import { PriorityDots, PriorityMenu } from './PriorityDots'
 import { formatWeekRange, relativeWeekLabel, shiftWeeks } from './notasUtils'
 
 const ACCENT = 'var(--accent-sage)'
@@ -244,7 +244,6 @@ export function TaskItem({
   }
 
   const overdue = !task.done && task.dueDate !== null && task.dueDate < todayLocal()
-  const meta = PRIORITY_META[task.priority]
   // ¿Vino arrastrada de una semana anterior a la que se muestra?
   const carriedFrom =
     !task.done && task.weekStart && task.weekStart < displayWeek ? task.weekStart : null
@@ -268,20 +267,10 @@ export function TaskItem({
         <CheckIcon size={11} className={task.done ? 'animate-check-pop' : undefined} />
       </button>
 
-      {/* Prioridad — el color es la marca; clic cicla alta→media→baja. */}
-      <button
-        onClick={() => onSave({ priority: PRIORITY_NEXT[task.priority] })}
-        disabled={busy}
-        aria-label={`Prioridad ${meta.label}, cambiar`}
-        title={`Prioridad ${meta.label} · clic para cambiar`}
-        className="touch-target mt-[5px] shrink-0 rounded-full transition-transform hover:scale-125 disabled:opacity-50"
-      >
-        <span
-          aria-hidden
-          className="block size-2.5 rounded-full"
-          style={{ backgroundColor: meta.color, opacity: task.done ? 0.3 : 1 }}
-        />
-      </button>
+      {/* Prioridad — el color es la marca; menú para elegir alta/media/baja. */}
+      <span className="mt-[3px] shrink-0">
+        <PriorityMenu value={task.priority} onChange={(p) => onSave({ priority: p })} />
+      </span>
 
       {/* Texto — doble clic para editar (deja libre el clic simple para seleccionar). */}
       <div className="min-w-0 flex-1">

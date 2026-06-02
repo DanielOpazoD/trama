@@ -73,7 +73,9 @@ export function TareasView() {
   const now = new Date()
   const [navYear, setNavYear] = useState(now.getFullYear())
   const [navMonth, setNavMonth] = useState(now.getMonth())
-  const [sortMode, setSortMode] = useState<SortMode>('priority')
+  // Por defecto, fecha de ingreso: así cambiar la prioridad de una tarea no la
+  // reordena en el acto (con orden por prioridad sí saltaría de lugar).
+  const [sortMode, setSortMode] = useState<SortMode>('created')
   // Semanas con la tira de fotos abierta — la actual abre por defecto; las
   // demás cargan al tocar el icono (carga perezosa).
   const [photosOpen, setPhotosOpen] = useState<Set<string>>(
@@ -287,7 +289,7 @@ function WeekComposer({
   pending: boolean
 }) {
   const [title, setTitle] = useState('')
-  const [priority, setPriority] = useState<TaskPriority>('media')
+  const [priority, setPriority] = useState<TaskPriority>('baja')
 
   function submit() {
     const t = title.trim()

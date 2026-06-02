@@ -97,7 +97,7 @@ describe('<TaskItem />', () => {
     expect(screen.queryByPlaceholderText(/título de la tarea/i)).not.toBeInTheDocument()
   })
 
-  it('cicla la prioridad desde la línea sin entrar a edición', () => {
+  it('cambia la prioridad desde el menú de la línea', () => {
     const onSave = vi.fn()
     renderWithProviders(
       <TaskItem
@@ -109,9 +109,10 @@ describe('<TaskItem />', () => {
       />,
     )
 
-    // baseTask es 'media'; un clic en el punto cicla a 'baja'.
-    fireEvent.click(screen.getByRole('button', { name: /prioridad media, cambiar/i }))
-    expect(onSave).toHaveBeenCalledWith({ priority: 'baja' })
+    // El punto de color abre un menú; se elige el color directamente.
+    fireEvent.click(screen.getByRole('button', { name: /prioridad media . cambiar/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /alta/i }))
+    expect(onSave).toHaveBeenCalledWith({ priority: 'alta' })
   })
 
   it('borra desde el menú ⋯', () => {

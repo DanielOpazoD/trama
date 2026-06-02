@@ -1,14 +1,9 @@
 import type { TaskPriority } from '../../api'
+import { CheckIcon } from '../Icons'
+import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 
 /** Orden visual: la prioridad más alta primero. */
 export const PRIORITY_ORDER: TaskPriority[] = ['alta', 'media', 'baja']
-
-/** Próxima prioridad al ciclar (clic en el punto): alta → media → baja → alta. */
-export const PRIORITY_NEXT: Record<TaskPriority, TaskPriority> = {
-  alta: 'media',
-  media: 'baja',
-  baja: 'alta',
-}
 
 /** Metadatos de cada prioridad — color (token semántico) y etiqueta. */
 export const PRIORITY_META: Record<
@@ -84,5 +79,62 @@ export function PriorityDots({
         )
       })}
     </div>
+  )
+}
+
+/**
+ * Selector de prioridad como menú desplegable — el trigger es el punto de color
+ * actual; al abrir, muestra los tres colores para elegir uno directo (sin ciclar
+ * con clics sucesivos). Pensado para cambiar la prioridad de una tarea ya creada.
+ */
+export function PriorityMenu({
+  value,
+  onChange,
+}: {
+  value: TaskPriority
+  onChange: (p: TaskPriority) => void
+}) {
+  const meta = PRIORITY_META[value]
+  return (
+    <OverflowMenu
+      label={`Prioridad ${meta.label} · cambiar`}
+      width="w-40"
+      triggerClassName="touch-target inline-flex p-1 rounded-full transition-transform hover:scale-110"
+      triggerContent={
+        <span
+          aria-hidden
+          className="block size-2.5 rounded-full"
+          style={{ backgroundColor: meta.color }}
+        />
+      }
+    >
+      {(close) => (
+        <>
+          <p className="px-2.5 pt-1 pb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
+            Prioridad
+          </p>
+          {PRIORITY_ORDER.map((p) => {
+            const m = PRIORITY_META[p]
+            return (
+              <OverflowMenuItem
+                key={p}
+                onClick={() => {
+                  onChange(p)
+                  close()
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="size-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: m.color }}
+                />
+                <span className="flex-1 capitalize">{m.label}</span>
+                {p === value && <CheckIcon size={12} className="text-ink-500" />}
+              </OverflowMenuItem>
+            )
+          })}
+        </>
+      )}
+    </OverflowMenu>
   )
 }
