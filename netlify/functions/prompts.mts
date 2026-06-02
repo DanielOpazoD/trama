@@ -175,6 +175,10 @@ export default withObservability(
         UPDATE prompts SET deleted_at = NOW(), updated_at = NOW()
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       `
+      await sql`
+        UPDATE notas_attachments SET deleted_at = NOW(), updated_at = NOW()
+        WHERE owner_type = 'prompt' AND owner_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+      `
       return Response.json({ ok: true })
     }
 

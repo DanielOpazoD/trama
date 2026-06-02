@@ -9,6 +9,7 @@ import { parseJsonBody } from './_lib/zod-body.js'
 import { ImportBody } from './_lib/admin-schemas.js'
 import { persistError, safeSql } from './_lib/observability.js'
 import { STRUCTURED_CORE_EXPORT_SCOPE } from './_lib/export-scope.js'
+import { VaultEnvelopeString } from './_lib/vault-envelope.js'
 
 type IncomingEntity = {
   id: string
@@ -76,6 +77,31 @@ type IncomingTask = {
   tags: string[]
   origin?: unknown
 }
+type IncomingPrompt = {
+  id: string
+  title: string
+  content: string
+  collection?: string | null
+  tags: string[]
+  variables: string[]
+  favorite: boolean
+  useCount: number
+  origin?: unknown
+}
+type IncomingSecret = {
+  id: string
+  label: string
+  encryptedSecret: string
+  kind: string
+  service?: string | null
+  username?: string | null
+  notes?: string | null
+  favorite: boolean
+  critical: boolean
+  expiresAt?: string | null
+  lastRotatedAt?: string | null
+  origin?: unknown
+}
 
 import { normalizeOrigin } from './_lib/origin.js'
 
@@ -93,6 +119,8 @@ type FailedKind =
   | 'momento_entity'
   | 'note'
   | 'task'
+  | 'prompt'
+  | 'secret'
 
 type FailedItem = {
   kind: FailedKind
@@ -247,6 +275,51 @@ function incomingTask(value: unknown): IncomingTask | null {
   }
 }
 
+function incomingPrompt(value: unknown): IncomingPrompt | null {
+  const item = asRecord(value)
+  if (!item) return null
+  const id = stringValue(item.id)
+  const title = stringValue(item.title)
+  const content = stringValue(item.content)
+  if (!id || !title || !content) return null
+  return {
+    id,
+    title,
+    content,
+    collection: nullableString(item.collection),
+    tags: stringArray(item.tags),
+    variables: stringArray(item.variables),
+    favorite: booleanValue(item.favorite),
+    useCount: nullableNumber(item.useCount) ?? 0,
+    origin: item.origin,
+  }
+}
+
+function incomingSecret(value: unknown): IncomingSecret | null {
+  const item = asRecord(value)
+  if (!item) return null
+  const id = stringValue(item.id)
+  const label = stringValue(item.label)
+  const encryptedSecret = stringValue(item.encryptedSecret)
+  const kind = stringValue(item.kind)
+  if (!id || !label || !encryptedSecret || !kind) return null
+  if (!VaultEnvelopeString.safeParse(encryptedSecret).success) return null
+  return {
+    id,
+    label,
+    encryptedSecret,
+    kind,
+    service: nullableString(item.service),
+    username: nullableString(item.username),
+    notes: nullableString(item.notes),
+    favorite: booleanValue(item.favorite),
+    critical: booleanValue(item.critical),
+    expiresAt: nullableString(item.expiresAt),
+    lastRotatedAt: nullableString(item.lastRotatedAt),
+    origin: item.origin,
+  }
+}
+
 export default withObservability('import', async (req: Request, _ctx, { requestId }) => {
   if (req.method !== 'POST') {
     return ApiErrors.methodNotAllowed(requestId)
@@ -266,6 +339,8 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
   const momentos = payload.momentos ?? []
   const notes = payload.notes ?? []
   const tasks = payload.tasks ?? []
+  const prompts = payload.prompts ?? []
+  const secrets = payload.secrets ?? []
 
   let imported = 0
   let skipped = 0
@@ -498,6 +573,76 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     }
   }
 
+  for (const rawPrompt of prompts) {
+    const p = incomingPrompt(rawPrompt)
+    if (!p) {
+      skipped++
+      continue
+    }
+    try {
+      const origin = JSON.stringify(normalizeOrigin(p.origin))
+      const result = await sqlTyped<{ id: string }>(sql`
+        INSERT INTO prompts (id, title, content, collection, tags, variables, favorite, use_count, origin, user_id)
+        VALUES (
+          ${resolveImportId(p.id, userId)},
+          ${p.title},
+          ${p.content},
+          ${p.collection ?? null},
+          ${p.tags},
+          ${p.variables},
+          ${p.favorite},
+          ${p.useCount},
+          ${origin}::jsonb,
+          ${userId}
+        )
+        ON CONFLICT (id) DO NOTHING
+        RETURNING id
+      `)
+      if (result.length > 0) imported++
+      else skipped++
+    } catch (err) {
+      recordFailure('prompt', p.id ?? null, err)
+    }
+  }
+
+  for (const rawSecret of secrets) {
+    const s = incomingSecret(rawSecret)
+    if (!s) {
+      skipped++
+      continue
+    }
+    try {
+      const origin = JSON.stringify(normalizeOrigin(s.origin))
+      const result = await sqlTyped<{ id: string }>(sql`
+        INSERT INTO secrets (
+          id, label, secret_value, kind, service, username, notes, favorite, critical,
+          expires_at, last_rotated_at, origin, user_id
+        )
+        VALUES (
+          ${resolveImportId(s.id, userId)},
+          ${s.label},
+          ${s.encryptedSecret},
+          ${s.kind},
+          ${s.service ?? null},
+          ${s.username ?? null},
+          ${s.notes ?? null},
+          ${s.favorite},
+          ${s.critical},
+          ${s.expiresAt ?? null},
+          ${s.lastRotatedAt ?? null},
+          ${origin}::jsonb,
+          ${userId}
+        )
+        ON CONFLICT (id) DO NOTHING
+        RETURNING id
+      `)
+      if (result.length > 0) imported++
+      else skipped++
+    } catch (err) {
+      recordFailure('secret', s.id ?? null, err)
+    }
+  }
+
   return Response.json({
     imported,
     skipped,
@@ -506,7 +651,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
       label: 'Import estructurado core',
       ...STRUCTURED_CORE_EXPORT_SCOPE,
       warnings: [
-        'Importa solo el backup estructurado core; no restaura blobs, tokens ni logs.',
+        'Importa solo el backup estructurado core; no restaura bytes de blobs, tokens OAuth ni logs.',
         ...STRUCTURED_CORE_EXPORT_SCOPE.warnings,
       ],
     },

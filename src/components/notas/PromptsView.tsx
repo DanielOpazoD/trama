@@ -36,7 +36,8 @@ export function PromptsView() {
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [filter, setFilter] = useState<string | null>(null)
 
-  const prompts = promptsQuery.data ?? []
+  const rawPrompts = promptsQuery.data
+  const prompts = useMemo(() => rawPrompts ?? [], [rawPrompts])
   const collections = useMemo(
     () =>
       [...new Set(prompts.map((p) => p.collection).filter(Boolean) as string[])].sort(),

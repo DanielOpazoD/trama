@@ -13,9 +13,12 @@ export function NotasHomeView({
 }: {
   onNavigate: (section: NotasSection) => void
 }) {
-  const notes = useNotesQuery().data ?? []
-  const tasks = useTasksQuery().data ?? []
-  const prompts = usePromptsQuery().data ?? []
+  const rawNotes = useNotesQuery().data
+  const rawTasks = useTasksQuery().data
+  const rawPrompts = usePromptsQuery().data
+  const notes = useMemo(() => rawNotes ?? [], [rawNotes])
+  const tasks = useMemo(() => rawTasks ?? [], [rawTasks])
+  const prompts = useMemo(() => rawPrompts ?? [], [rawPrompts])
   const today = todayLocal()
 
   const urgentTasks = useMemo(

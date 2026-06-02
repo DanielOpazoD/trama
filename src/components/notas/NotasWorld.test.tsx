@@ -21,13 +21,13 @@ afterEach(() => {
 })
 
 describe('<NotasWorld />', () => {
-  it('arranca en Notas y cambia a Tareas', () => {
+  it('arranca en Inicio y navega a Tareas', () => {
     renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
-    // Eyebrow de la sección Notas (único en el header).
-    expect(screen.getByText('apuntes rápidos')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Inicio' })[0]).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
 
-    // Hay dos botones "Tareas" (sub-barra desktop + tabs mobile, ambos en el
-    // DOM bajo jsdom); el primero alcanza para disparar el cambio.
     fireEvent.click(screen.getAllByRole('button', { name: 'Tareas' })[0]!)
     expect(screen.getByText('por realizar')).toBeInTheDocument()
   })

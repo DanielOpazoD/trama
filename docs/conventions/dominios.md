@@ -77,6 +77,8 @@ Momentos es el dominio donde vive la **memoria fechada** de la trama: notas suel
 - **Home** usa `/api/home` como lectura liviana. No vuelvas a cargar entities/quotes/relationships completos para pintar la portada.
 - **Cronologia** es una vista derivada: al mutar entidades, citas, relaciones, Momentos, Notas, Tasks o X, invalida sus query keys además del dominio principal.
 - **Atlas** y **Cronicas** generan propuestas IA; siempre deben pasar por `checkMonthlyBudget(userId, requestId)` y registrar `extraction_log`.
-- **Notas** y **Tasks** siguen las mismas reglas de `user_id`, soft-delete y transforms camelCase/snake_case que el CRUD core.
+- **Notas, Tasks, Prompts y Claves** siguen las mismas reglas de `user_id`, soft-delete y transforms camelCase/snake_case que el CRUD core.
+- **Anexos de Notas/Prompts** viven en Netlify Blobs vía endpoints backend (`notas-attachments-*`), nunca desde cliente. Cada upload/list/download valida `user_id` y dueño activo (`note` o `prompt` con `deleted_at IS NULL`). Al borrar una nota o prompt, sus anexos se soft-deletean.
+- **Claves** es un vault cliente: el backend solo acepta `secret` como sobre cifrado `{ v: 1, alg: "AES-GCM", iv, data }`. La metadata de la clave sigue siendo visible para la base de datos; no la describas como metadata E2EE. El valor secreto se descifra solo en cliente con contraseña/key física del vault.
 - **X** nunca expone tokens al cliente. Tokens, bookmarks y cronicas de X se filtran por `user_id`; cualquier sync o generación debe invalidar Home si cambia actividad visible.
 - **Preview/search externos** (`momentos-url-preview`, `wikipedia-search`) requieren auth. Cualquier fetch server-side nuevo debe bloquear loopback, link-local y rangos privados antes de seguir redirects.

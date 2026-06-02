@@ -88,6 +88,8 @@ export const ImportBody = z
     momentos: z.array(z.unknown()).optional(),
     notes: z.array(z.unknown()).optional(),
     tasks: z.array(z.unknown()).optional(),
+    prompts: z.array(z.unknown()).optional(),
+    secrets: z.array(z.unknown()).optional(),
   })
   .passthrough()
 export type ImportBodyT = z.infer<typeof ImportBody>

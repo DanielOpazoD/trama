@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
+import { fireEvent, screen } from '@testing-library/react'
 import { NoteCard } from './NoteCard'
 import type { Note } from '../../api'
+import { renderWithProviders } from '../../test-utils'
 
 const BASE: Note = {
   id: 'n1',
@@ -15,10 +16,26 @@ const BASE: Note = {
 
 const noop = () => {}
 
+beforeEach(() => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  )
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
 describe('<NoteCard />', () => {
   it('ofrece promover a Momento cuando la nota no fue promovida', () => {
     const onPromote = vi.fn()
-    render(
+    renderWithProviders(
       <NoteCard
         note={BASE}
         onTogglePin={noop}
@@ -32,7 +49,7 @@ describe('<NoteCard />', () => {
   })
 
   it('muestra la insignia "en momentos" cuando ya fue promovida (sin botón)', () => {
-    render(
+    renderWithProviders(
       <NoteCard
         note={{ ...BASE, promotedMomentoId: 'm1' }}
         onTogglePin={noop}
@@ -47,7 +64,7 @@ describe('<NoteCard />', () => {
 
   it('permite editar el contenido de la nota', () => {
     const onEdit = vi.fn()
-    render(
+    renderWithProviders(
       <NoteCard
         note={BASE}
         onTogglePin={noop}

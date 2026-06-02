@@ -5,6 +5,7 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
+import { attachmentOwnerExists } from './_lib/notas-attachment-owners.js'
 
 const MAX_BYTES = 20 * 1024 * 1024
 const STORE = 'notas-attachments'
@@ -48,33 +49,6 @@ function extensionFor(name: string): string {
   return ext ? `.${ext.slice(0, 12)}` : ''
 }
 
-async function ownerExists(
-  ownerType: string,
-  ownerId: string,
-  userId: string,
-): Promise<boolean> {
-  const sql = getSql()
-  if (ownerType === 'note') {
-    const rows = await sqlTyped<{ exists: boolean }>(sql`
-      SELECT EXISTS (
-        SELECT 1 FROM notes
-        WHERE id = ${ownerId} AND user_id = ${userId} AND deleted_at IS NULL
-      ) AS exists
-    `)
-    return rows[0]?.exists === true
-  }
-  if (ownerType === 'prompt') {
-    const rows = await sqlTyped<{ exists: boolean }>(sql`
-      SELECT EXISTS (
-        SELECT 1 FROM prompts
-        WHERE id = ${ownerId} AND user_id = ${userId} AND deleted_at IS NULL
-      ) AS exists
-    `)
-    return rows[0]?.exists === true
-  }
-  return false
-}
-
 export default withObservability(
   'notas-attachments-upload',
   async (req: Request, _ctx, { requestId }) => {
@@ -111,7 +85,7 @@ export default withObservability(
         `mimeType "${file.type}" no soportado para anexos`,
       )
     }
-    if (!(await ownerExists(ownerType, ownerId, userId))) {
+    if (!(await attachmentOwnerExists(sql, ownerType, ownerId, userId))) {
       return ApiErrors.notFound(requestId, 'Destino no encontrado')
     }
 

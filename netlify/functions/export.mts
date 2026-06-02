@@ -125,8 +125,62 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
     created_at: string
     updated_at: string
   }
+  type PromptRow = {
+    id: string
+    title: string
+    content: string
+    collection: string | null
+    tags: string[] | null
+    variables: string[] | null
+    favorite: boolean
+    use_count: number
+    last_used_at: string | null
+    origin: unknown
+    created_at: string
+    updated_at: string
+  }
+  type SecretRow = {
+    id: string
+    label: string
+    secret_value: string
+    kind: string
+    service: string | null
+    username: string | null
+    notes: string | null
+    favorite: boolean
+    critical: boolean
+    expires_at: string | null
+    last_rotated_at: string | null
+    copied_at: string | null
+    origin: unknown
+    created_at: string
+    updated_at: string
+  }
+  type AttachmentRow = {
+    id: string
+    owner_type: 'note' | 'prompt'
+    owner_id: string
+    file_name: string
+    mime_type: string
+    byte_size: number
+    storage_key: string
+    origin: unknown
+    created_at: string
+    updated_at: string
+  }
 
-  const [entities, relationships, quotes, momentos, momentoEntities, notes, tasks] =
+  const [
+    entities,
+    relationships,
+    quotes,
+    momentos,
+    momentoEntities,
+    notes,
+    tasks,
+    prompts,
+    secrets,
+    attachments,
+  ] =
     (await runWithUserRls(sql, userId, (scoped) => [
       scoped`SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, created_at, updated_at
         FROM entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
@@ -142,6 +196,15 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
         FROM notes WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
       scoped`SELECT id, title, detail, done, due_date, completed_at, tags, origin, created_at, updated_at
         FROM tasks WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
+      scoped`SELECT id, title, content, collection, tags, variables, favorite, use_count, last_used_at, origin, created_at, updated_at
+        FROM prompts WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
+      scoped`SELECT id, label, secret_value, kind, service, username, notes, favorite, critical,
+              to_char(expires_at, 'YYYY-MM-DD') AS expires_at,
+              to_char(last_rotated_at, 'YYYY-MM-DD') AS last_rotated_at,
+              copied_at, origin, created_at, updated_at
+        FROM secrets WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
+      scoped`SELECT id, owner_type, owner_id, file_name, mime_type, byte_size, storage_key, origin, created_at, updated_at
+        FROM notas_attachments WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
     ])) as [
       EntityRow[],
       RelationshipRow[],
@@ -150,6 +213,9 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
       MomentoEntityRow[],
       NoteRow[],
       TaskRow[],
+      PromptRow[],
+      SecretRow[],
+      AttachmentRow[],
     ]
   const entityIdsByMomento = new Map<string, string[]>()
   for (const link of momentoEntities) {
@@ -161,6 +227,7 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
   for (const momento of momentos) {
     for (const ref of collectBlobReferences(momento.payload)) blobReferences.add(ref)
   }
+  for (const attachment of attachments) blobReferences.add(attachment.storage_key)
 
   const payload = {
     version: 2 as const,
@@ -243,6 +310,49 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
       dueDate: optional(row.due_date),
       completedAt: optional(row.completed_at),
       tags: row.tags ?? [],
+      origin: row.origin,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })),
+    prompts: prompts.map((row) => ({
+      id: row.id,
+      title: row.title,
+      content: row.content,
+      collection: optional(row.collection),
+      tags: row.tags ?? [],
+      variables: row.variables ?? [],
+      favorite: row.favorite,
+      useCount: row.use_count,
+      lastUsedAt: optional(row.last_used_at),
+      origin: row.origin,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })),
+    secrets: secrets.map((row) => ({
+      id: row.id,
+      label: row.label,
+      encryptedSecret: row.secret_value,
+      kind: row.kind,
+      service: optional(row.service),
+      username: optional(row.username),
+      notes: optional(row.notes),
+      favorite: row.favorite,
+      critical: row.critical,
+      expiresAt: optional(row.expires_at),
+      lastRotatedAt: optional(row.last_rotated_at),
+      copiedAt: optional(row.copied_at),
+      origin: row.origin,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })),
+    attachments: attachments.map((row) => ({
+      id: row.id,
+      ownerType: row.owner_type,
+      ownerId: row.owner_id,
+      fileName: row.file_name,
+      mimeType: row.mime_type,
+      byteSize: row.byte_size,
+      storageKey: row.storage_key,
       origin: row.origin,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

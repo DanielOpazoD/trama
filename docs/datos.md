@@ -48,11 +48,15 @@ multiusuario, exporta solo filas del usuario autenticado. Cubre:
 - `momentos` + `momento_entities`
 - `notes`
 - `tasks`
+- `prompts`
+- `secrets` con `encryptedSecret` cifrado por el vault del cliente
+- metadata de anexos de Notas/Prompts (`attachments`)
 - referencias a blobs (`blobReferences`) para auditar qué media depende de Netlify Blobs
 
 No incluye los bytes binarios de Netlify Blobs ni tablas operacionales/derivadas:
 
-- archivos reales de fotos, screenshots o audios en Blobs
+- archivos reales de fotos, screenshots, audios o anexos en Blobs
+- claves en texto plano; el servidor solo exporta el sobre cifrado ya persistido
 - `cronicas_snapshots`
 - `atlas_snapshots`
 - chat_threads + chat_messages
@@ -66,8 +70,10 @@ No incluye los bytes binarios de Netlify Blobs ni tablas operacionales/derivadas
 - web_vitals_samples
 - Embeddings (aunque se regeneran on-demand vía Settings → "Indexar lo pendiente")
 
-Importar ese JSON restaura solo ese core estructurado. No restaura blobs, tokens,
-logs ni snapshots derivados.
+Importar ese JSON restaura solo ese core estructurado. Restaura Prompts y Claves
+si el archivo contiene sus filas; las Claves siguen requiriendo la misma
+contraseña/key física del vault cliente para poder descifrarse. No restaura bytes
+de blobs, tokens OAuth, logs ni snapshots derivados.
 
 Para un backup TOTAL de la DB: usar Neon's built-in. Para un backup TOTAL que además
 incluya media, hay que respaldar también Netlify Blobs.
@@ -137,7 +143,7 @@ Para recuperar una fila:
 
 ## Contexto técnico
 
-- El endpoint `/api/export` devuelve `version: 2` con scope `structured-core`: grafo, citas, Momentos, notas, tareas y referencias a blobs.
+- El endpoint `/api/export` devuelve `version: 2` con scope `structured-core`: grafo, citas, Momentos, notas, tareas, Prompts, Claves cifradas y referencias/metadata de blobs.
 - `/api/import` acepta `version: 1` legado y `version: 2`, e inserta vía `INSERT ... ON CONFLICT ... DO NOTHING`.
 - Soft-delete vive en `deleted_at TIMESTAMPTZ NULL` en todas las tablas de dominio.
 - Las tablas append-only (chat_messages, spotify_plays, error_log, extraction_log) no tienen soft-delete — se borran via CASCADE de su parent o nunca.

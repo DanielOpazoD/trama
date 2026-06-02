@@ -9,6 +9,9 @@ export const STRUCTURED_CORE_EXPORT_SCOPE = {
     'momento_entities',
     'notes',
     'tasks',
+    'prompts',
+    'secrets_encrypted',
+    'notas_attachments_metadata',
     'blob_references',
   ],
   excludes: [
@@ -31,6 +34,7 @@ export const STRUCTURED_CORE_EXPORT_SCOPE = {
   ],
   warnings: [
     'No incluye bytes binarios de Netlify Blobs; respalda media por separado.',
+    'Las claves se exportan solo como valores cifrados del vault; no incluye contraseñas en texto plano.',
     'No incluye OAuth tokens ni tablas operacionales/derivadas.',
   ],
 } as const

@@ -116,6 +116,56 @@ describe('export endpoint', () => {
           updated_at: '2026-05-12T00:00:00.000Z',
         },
       ],
+      [
+        {
+          id: 'p1',
+          title: 'Brief',
+          content: 'Escribe para {{cliente}}',
+          collection: 'Ventas',
+          tags: ['ventas'],
+          variables: ['cliente'],
+          favorite: true,
+          use_count: 2,
+          last_used_at: '2026-05-13T00:00:00.000Z',
+          origin: { kind: 'manual' },
+          created_at: '2026-05-13T00:00:00.000Z',
+          updated_at: '2026-05-14T00:00:00.000Z',
+        },
+      ],
+      [
+        {
+          id: 's1',
+          label: 'OpenAI',
+          secret_value:
+            '{"v":1,"alg":"AES-GCM","iv":"AAAAAAAAAAAAAAAA","data":"BBBBBBBBBBBBBBBB"}',
+          kind: 'api_key',
+          service: 'OpenAI',
+          username: null,
+          notes: null,
+          favorite: true,
+          critical: true,
+          expires_at: '2026-12-31',
+          last_rotated_at: null,
+          copied_at: null,
+          origin: { kind: 'manual' },
+          created_at: '2026-05-15T00:00:00.000Z',
+          updated_at: '2026-05-16T00:00:00.000Z',
+        },
+      ],
+      [
+        {
+          id: 'a1',
+          owner_type: 'prompt',
+          owner_id: 'p1',
+          file_name: 'brief.md',
+          mime_type: 'text/markdown',
+          byte_size: 42,
+          storage_key: 'legacy-single-user/brief.md',
+          origin: { kind: 'manual' },
+          created_at: '2026-05-17T00:00:00.000Z',
+          updated_at: '2026-05-18T00:00:00.000Z',
+        },
+      ],
     )
 
     const res = await handler(new Request('http://localhost/api/export'), mockContext())
@@ -138,6 +188,9 @@ describe('export endpoint', () => {
           'momento_entities',
           'notes',
           'tasks',
+          'prompts',
+          'secrets_encrypted',
+          'notas_attachments_metadata',
         ]),
         excludes: expect.arrayContaining([
           'netlify_blobs_binary',
@@ -216,7 +269,45 @@ describe('export endpoint', () => {
           tags: ['ops'],
         },
       ],
-      blobReferences: ['legacy-single-user/audio.webm', 'legacy-single-user/foto.png'],
+      prompts: [
+        {
+          id: 'p1',
+          title: 'Brief',
+          content: 'Escribe para {{cliente}}',
+          collection: 'Ventas',
+          tags: ['ventas'],
+          variables: ['cliente'],
+          favorite: true,
+          useCount: 2,
+        },
+      ],
+      secrets: [
+        {
+          id: 's1',
+          label: 'OpenAI',
+          encryptedSecret:
+            '{"v":1,"alg":"AES-GCM","iv":"AAAAAAAAAAAAAAAA","data":"BBBBBBBBBBBBBBBB"}',
+          kind: 'api_key',
+          service: 'OpenAI',
+          critical: true,
+        },
+      ],
+      attachments: [
+        {
+          id: 'a1',
+          ownerType: 'prompt',
+          ownerId: 'p1',
+          fileName: 'brief.md',
+          mimeType: 'text/markdown',
+          byteSize: 42,
+          storageKey: 'legacy-single-user/brief.md',
+        },
+      ],
+      blobReferences: [
+        'legacy-single-user/audio.webm',
+        'legacy-single-user/brief.md',
+        'legacy-single-user/foto.png',
+      ],
     })
     expect(mockSqlState.calls[0]?.template).toMatch(
       /set_config\('app\.current_user_id', \?, true\)/,

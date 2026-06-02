@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { VaultEnvelopeString } from './vault-envelope.js'
 
 export const SecretKind = z.enum([
   'api_key',
@@ -17,7 +18,7 @@ const dateOnly = z
 
 export const SecretCreateBody = z.object({
   label: z.string().min(1, 'La clave necesita nombre').max(300),
-  secret: z.string().min(1, 'El valor secreto no puede estar vacío').max(50000),
+  secret: VaultEnvelopeString,
   kind: SecretKind.default('other'),
   service: z.string().max(200).nullable().optional(),
   username: z.string().max(300).nullable().optional(),
@@ -31,7 +32,7 @@ export type SecretCreateBodyT = z.infer<typeof SecretCreateBody>
 
 export const SecretPatchBody = z.object({
   label: z.string().min(1).max(300).optional(),
-  secret: z.string().min(1).max(50000).optional(),
+  secret: VaultEnvelopeString.optional(),
   kind: SecretKind.optional(),
   service: z.string().max(200).nullable().optional(),
   username: z.string().max(300).nullable().optional(),

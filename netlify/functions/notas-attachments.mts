@@ -3,6 +3,7 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { attachmentOwnerExists } from './_lib/notas-attachment-owners.js'
 
 type AttachmentRow = {
   id: string
@@ -31,6 +32,9 @@ export default withObservability(
         return ApiErrors.validation(requestId, 'ownerType debe ser note o prompt')
       }
       if (!ownerId) return ApiErrors.validation(requestId, 'ownerId requerido')
+      if (!(await attachmentOwnerExists(sql, ownerType, ownerId, userId))) {
+        return ApiErrors.notFound(requestId, 'Destino no encontrado')
+      }
 
       const rows = await sqlTyped<AttachmentRow>(sql`
         SELECT id, owner_type, owner_id, file_name, mime_type, byte_size, storage_key, created_at, updated_at

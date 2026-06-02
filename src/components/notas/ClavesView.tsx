@@ -54,8 +54,12 @@ export function ClavesView() {
   const [filter, setFilter] = useState<SecretKind | null>(null)
   const [revealed, setRevealed] = useState<Record<string, string>>({})
 
-  const secrets = secretsQuery.data ?? []
-  const filtered = filter ? secrets.filter((s) => s.kind === filter) : secrets
+  const rawSecrets = secretsQuery.data
+  const secrets = useMemo(() => rawSecrets ?? [], [rawSecrets])
+  const filtered = useMemo(
+    () => (filter ? secrets.filter((s) => s.kind === filter) : secrets),
+    [filter, secrets],
+  )
   const counts = useMemo(() => {
     const map = new Map<SecretKind, number>()
     for (const s of secrets) map.set(s.kind, (map.get(s.kind) ?? 0) + 1)
