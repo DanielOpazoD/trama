@@ -1,7 +1,7 @@
 import type { SqlClient } from './db.js'
 import { sqlTyped } from './db.js'
 
-export type AttachmentOwnerType = 'note' | 'prompt' | 'week'
+export type AttachmentOwnerType = 'note' | 'prompt' | 'week' | 'task'
 
 export async function attachmentOwnerExists(
   sql: SqlClient,
@@ -13,6 +13,17 @@ export async function attachmentOwnerExists(
   // Cualquier fecha bien formada es un destino válido para fotos de la semana.
   if (ownerType === 'week') {
     return /^\d{4}-\d{2}-\d{2}$/.test(ownerId)
+  }
+
+  if (ownerType === 'task') {
+    if (!/^[0-9a-f-]{36}$/i.test(ownerId)) return false
+    const rows = await sqlTyped<{ exists: boolean }>(sql`
+      SELECT EXISTS (
+        SELECT 1 FROM tasks
+        WHERE id = ${ownerId} AND user_id = ${userId} AND deleted_at IS NULL
+      ) AS exists
+    `)
+    return rows[0]?.exists === true
   }
 
   if (ownerType === 'note') {

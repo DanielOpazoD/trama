@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import type { NotasAttachmentOwner } from '../../api'
 import {
   useNotasAttachmentsQuery,
   useUploadNotasAttachment,
@@ -8,29 +9,27 @@ import {
 import { CameraIcon, TrashIcon } from '../Icons'
 
 /**
- * Fotos asociadas a una SEMANA (Tareas). Reutiliza el sistema de anexos con
- * ownerType 'week' y ownerId = el lunes de la semana ('YYYY-MM-DD'). Muestra
- * miniaturas y un botón sutil para adjuntar; solo imágenes.
+ * Tira de fotos reutilizable, asociada a un "dueño" del sistema de anexos:
+ * una semana (`week` + lunes) o una tarea (`task` + id). Miniaturas + un botón
+ * sutil para adjuntar; solo imágenes.
  *
- * Carga perezosa: la semana actual abre directo (`eager`); las demás muestran
- * un acceso "fotos" y solo consultan al servidor cuando se abren — así un mes
- * con 5 semanas no dispara 5 peticiones de golpe.
+ * Carga perezosa: con `eager` abre y consulta directo; si no, muestra un acceso
+ * "fotos" y solo consulta al abrirse — así una lista larga no dispara N
+ * peticiones de golpe.
  */
-export function WeekPhotos({
-  weekStart,
+export function AttachmentPhotos({
+  ownerType,
+  ownerId,
   eager = false,
 }: {
-  weekStart: string
+  ownerType: NotasAttachmentOwner
+  ownerId: string
   eager?: boolean
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [open, setOpen] = useState(eager)
   const toast = useToast()
-  const query = useNotasAttachmentsQuery({
-    ownerType: 'week',
-    ownerId: weekStart,
-    enabled: open,
-  })
+  const query = useNotasAttachmentsQuery({ ownerType, ownerId, enabled: open })
   const upload = useUploadNotasAttachment()
   const remove = useDeleteNotasAttachment()
 
@@ -44,7 +43,7 @@ export function WeekPhotos({
       return
     }
     upload.mutate(
-      { ownerType: 'week', ownerId: weekStart, file },
+      { ownerType, ownerId, file },
       {
         onSuccess: () => toast.show({ message: 'Foto guardada.', tone: 'success' }),
         onError: (err) =>
@@ -61,16 +60,26 @@ export function WeekPhotos({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 pt-1 text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+        aria-label="Fotos"
+        title="Fotos"
+        className="touch-target inline-flex items-center mt-1 p-1 -ml-1 rounded text-ink-300 hover:text-ink-700 transition-colors"
       >
-        <CameraIcon size={13} />
-        fotos
+        <CameraIcon size={14} />
       </button>
     )
   }
 
   return (
     <div className="flex items-center gap-2 flex-wrap pt-1">
+      {query.isLoading &&
+        photos.length === 0 &&
+        [0, 1].map((i) => (
+          <span
+            key={`sk-${i}`}
+            aria-hidden
+            className="size-14 rounded-md skeleton-shimmer"
+          />
+        ))}
       {photos.map((p) => (
         <span key={p.id} className="group/photo relative">
           <a href={p.url} target="_blank" rel="noreferrer" title={p.fileName}>
@@ -82,9 +91,7 @@ export function WeekPhotos({
             />
           </a>
           <button
-            onClick={() =>
-              remove.mutate({ id: p.id, ownerType: 'week', ownerId: weekStart })
-            }
+            onClick={() => remove.mutate({ id: p.id, ownerType, ownerId })}
             aria-label={`Quitar foto ${p.fileName}`}
             title="Quitar"
             className="absolute -top-1.5 -right-1.5 size-5 inline-flex items-center justify-center rounded-full bg-paper-50 border border-ink-100 text-ink-300 hover:text-[color:var(--accent-clay)] opacity-0 group-hover/photo:opacity-100 focus:opacity-100 transition-opacity"
@@ -97,14 +104,11 @@ export function WeekPhotos({
       <button
         onClick={() => inputRef.current?.click()}
         disabled={upload.isPending}
-        className="size-14 rounded-md border border-dashed border-ink-200 inline-flex flex-col items-center justify-center gap-0.5 text-ink-300 hover:text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
-        title="Adjuntar foto a la semana"
-        aria-label="Adjuntar foto a la semana"
+        className="touch-target p-1.5 rounded-md text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
+        title="Adjuntar foto"
+        aria-label="Adjuntar foto"
       >
         <CameraIcon size={16} />
-        <span className="text-[9px] uppercase tracking-eyebrow leading-none">
-          {upload.isPending ? '…' : 'foto'}
-        </span>
       </button>
 
       <input
