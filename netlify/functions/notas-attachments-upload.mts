@@ -28,7 +28,7 @@ const ALLOWED_MIMES = new Set([
 
 type AttachmentRow = {
   id: string
-  owner_type: 'note' | 'prompt' | 'week'
+  owner_type: 'note' | 'prompt' | 'week' | 'task'
   owner_id: string
   file_name: string
   mime_type: string
@@ -86,8 +86,13 @@ export default withObservability(
     if (encrypted) {
       return ApiErrors.validation(requestId, 'Los anexos no usan cifrado de vault')
     }
-    if (ownerType !== 'note' && ownerType !== 'prompt' && ownerType !== 'week') {
-      return ApiErrors.validation(requestId, 'ownerType debe ser note, prompt o week')
+    if (
+      ownerType !== 'note' &&
+      ownerType !== 'prompt' &&
+      ownerType !== 'week' &&
+      ownerType !== 'task'
+    ) {
+      return ApiErrors.validation(requestId, 'ownerType debe ser note, prompt, week o task')
     }
     if (!ownerId) return ApiErrors.validation(requestId, 'ownerId requerido')
     const displayName = cleanFileName(file.name)

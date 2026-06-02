@@ -28,10 +28,15 @@ export const queryKeys = {
   cronologiaInfinite: ['cronologia', 'infinite'] as const,
   momentosInfinite: ['momentos', 'infinite'] as const,
   notes: ['notes'] as const,
+  // ['tasks'] es el prefijo de TODOS los queries de tareas (completo, por rango,
+  // pendientes); invalidar este prefijo refresca cualquier variante en cache.
   tasks: ['tasks'] as const,
+  tasksRange: (weekFrom: string, weekTo: string, carryBefore: string | null) =>
+    ['tasks', 'range', weekFrom, weekTo, carryBefore] as const,
+  tasksPending: ['tasks', 'pending'] as const,
   prompts: ['prompts'] as const,
   secrets: ['secrets'] as const,
-  notasAttachments: (ownerType: 'note' | 'prompt' | 'week', ownerId: string) =>
+  notasAttachments: (ownerType: 'note' | 'prompt' | 'week' | 'task', ownerId: string) =>
     ['notas-attachments', ownerType, ownerId] as const,
   monthNote: (month: string) => ['month-note', month] as const,
   x: ['x'] as const,

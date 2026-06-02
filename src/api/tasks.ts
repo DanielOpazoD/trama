@@ -73,12 +73,28 @@ export type TaskPatch = {
   weekStart?: string
 }
 
+export type TaskListOpts = {
+  q?: string
+  tag?: string
+  /** Solo pendientes (para listas tipo "Pendientes"). */
+  pending?: boolean
+  /** Rango de semanas (lunes 'YYYY-MM-DD') — carga acotada. */
+  weekFrom?: string
+  weekTo?: string
+  /** Trae además los pendientes anteriores a esta fecha (arrastre). */
+  carryBefore?: string | null
+}
+
 export const tasksApi = {
-  /** Lista las tareas del usuario. `q` busca en título/detalle; `tag` filtra. */
-  async list(opts?: { q?: string; tag?: string }): Promise<Task[]> {
+  /** Lista tareas. Sin opts trae todo; con `pending` o `weekFrom`/`weekTo` acota. */
+  async list(opts?: TaskListOpts): Promise<Task[]> {
     const params = new URLSearchParams()
     if (opts?.q) params.set('q', opts.q)
     if (opts?.tag) params.set('tag', opts.tag)
+    if (opts?.pending) params.set('pending', '1')
+    if (opts?.weekFrom) params.set('weekFrom', opts.weekFrom)
+    if (opts?.weekTo) params.set('weekTo', opts.weekTo)
+    if (opts?.carryBefore) params.set('carryBefore', opts.carryBefore)
     const qs = params.toString()
     const rows = await request<TaskRow[]>(`/api/tasks${qs ? `?${qs}` : ''}`)
     return rows.map(taskFromRow)

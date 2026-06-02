@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { Task, TaskPatch, TaskPriority } from '../../api'
 import {
   ArrowRightIcon,
@@ -10,6 +10,8 @@ import {
   PencilIcon,
   TrashIcon,
 } from '../Icons'
+import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
+import { AttachmentPhotos } from './AttachmentPhotos'
 import { PriorityDots, PRIORITY_META, PRIORITY_NEXT } from './PriorityDots'
 import { formatWeekRange, relativeWeekLabel, shiftWeeks } from './notasUtils'
 
@@ -68,13 +70,12 @@ function formatCreatedFull(iso: string): string {
 }
 
 /**
- * Una LÍNEA de recordatorio dentro del cuadro de la semana. No es una tarjeta:
- * es una viñeta compacta — checkbox de estado, un punto de color para la
- * prioridad (clic para ciclar alta → media → baja) y el texto con #etiquetas.
- * Si vino arrastrada de una semana anterior, lo marca tenue ("desde …"). El
- * detalle y la fecha de creación viven tras iconos sutiles (ventana flotante al
- * pasar el mouse en escritorio; un toque en táctil). Las acciones (posponer,
- * editar, borrar) se revelan al hover y quedan visibles en táctil.
+ * Una LÍNEA de recordatorio dentro del cuadro de la semana. En reposo muestra lo
+ * esencial — estado, color de prioridad y texto — más, si los tiene, una marca
+ * de "viene de antes" (arrastre) y el vencimiento. El resto de gestos (editar,
+ * posponer, ver cuándo se creó, borrar) se consolidan en un menú "⋯", para no
+ * saturar la fila y ser usable en táctil. El detalle vive tras un icono con
+ * ventana flotante (hover en escritorio; toque en táctil; Escape la cierra).
  */
 export function TaskItem({
   task,
@@ -93,14 +94,23 @@ export function TaskItem({
   busy?: boolean
 }) {
   const [editing, setEditing] = useState(false)
-  const [confirming, setConfirming] = useState(false)
-  const [infoOpen, setInfoOpen] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
   const [title, setTitle] = useState(task.title)
   const [detail, setDetail] = useState(task.detail ?? '')
   const [due, setDue] = useState(task.dueDate ?? '')
   const [showDue, setShowDue] = useState(Boolean(task.dueDate))
   const [priority, setPriority] = useState<TaskPriority>(task.priority)
   const [week, setWeek] = useState(task.weekStart)
+
+  // El popover de detalle se cierra con Escape (además del hover y el toque).
+  useEffect(() => {
+    if (!detailOpen) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setDetailOpen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [detailOpen])
 
   function startEdit() {
     setTitle(task.title)
@@ -135,6 +145,8 @@ export function TaskItem({
             if (e.key === 'Enter') {
               e.preventDefault()
               save()
+            } else if (e.key === 'Escape') {
+              setEditing(false)
             }
           }}
           placeholder="Título de la tarea"
@@ -148,6 +160,13 @@ export function TaskItem({
           rows={2}
           className="input-paper w-full resize-none text-sm mb-2"
         />
+        {/* Fotos de esta tarea */}
+        <div className="mb-2">
+          <span className="section-eyebrow text-ink-300 block mb-1">
+            fotos de la tarea
+          </span>
+          <AttachmentPhotos ownerType="task" ownerId={task.id} eager />
+        </div>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 flex-wrap">
             <PriorityDots value={priority} onChange={setPriority} disabled={busy} />
@@ -158,7 +177,7 @@ export function TaskItem({
                 type="button"
                 onClick={() => setWeek(shiftWeeks(week, -1))}
                 aria-label="Semana anterior"
-                className="p-0.5 rounded text-ink-300 hover:text-ink-700 transition-colors"
+                className="touch-target p-0.5 rounded text-ink-300 hover:text-ink-700 transition-colors"
               >
                 <ChevronLeftIcon size={13} />
               </button>
@@ -169,7 +188,7 @@ export function TaskItem({
                 type="button"
                 onClick={() => setWeek(shiftWeeks(week, 1))}
                 aria-label="Semana siguiente"
-                className="p-0.5 rounded text-ink-300 hover:text-ink-700 transition-colors"
+                className="touch-target p-0.5 rounded text-ink-300 hover:text-ink-700 transition-colors"
               >
                 <ChevronRightIcon size={13} />
               </button>
@@ -232,14 +251,14 @@ export function TaskItem({
 
   return (
     <li className="group flex items-start gap-2.5 py-1.5">
-      {/* Checkbox de estado — el signo de hecho/pendiente. */}
+      {/* Estado — el signo de hecho/pendiente. */}
       <button
         onClick={onToggle}
         disabled={busy}
         role="checkbox"
         aria-checked={task.done}
         aria-label={task.done ? 'Marcar como pendiente' : 'Marcar como hecha'}
-        className={`mt-px shrink-0 inline-flex items-center justify-center size-[17px] rounded-md border transition-colors disabled:opacity-50 ${
+        className={`touch-target mt-px shrink-0 inline-flex items-center justify-center size-[17px] rounded-md border transition-colors disabled:opacity-50 ${
           task.done
             ? 'border-transparent text-paper-50'
             : 'border-ink-200 text-transparent hover:border-ink-400'
@@ -249,13 +268,13 @@ export function TaskItem({
         <CheckIcon size={11} className={task.done ? 'animate-check-pop' : undefined} />
       </button>
 
-      {/* Punto de prioridad — el color es la marca; clic cicla alta→media→baja. */}
+      {/* Prioridad — el color es la marca; clic cicla alta→media→baja. */}
       <button
         onClick={() => onSave({ priority: PRIORITY_NEXT[task.priority] })}
         disabled={busy}
         aria-label={`Prioridad ${meta.label}, cambiar`}
         title={`Prioridad ${meta.label} · clic para cambiar`}
-        className="mt-[5px] shrink-0 rounded-full transition-transform hover:scale-125 disabled:opacity-50"
+        className="touch-target mt-[5px] shrink-0 rounded-full transition-transform hover:scale-125 disabled:opacity-50"
       >
         <span
           aria-hidden
@@ -264,73 +283,48 @@ export function TaskItem({
         />
       </button>
 
-      {/* Texto del recordatorio — clic para editar. */}
+      {/* Texto — doble clic para editar (deja libre el clic simple para seleccionar). */}
       <div className="min-w-0 flex-1">
         <p
-          onClick={startEdit}
-          className={`break-words leading-snug cursor-text ${
+          onDoubleClick={startEdit}
+          className={`break-words leading-snug ${
             task.done ? 'text-ink-300 line-through' : 'text-ink-700'
           }`}
         >
           {renderWithTags(task.title)}
         </p>
         {carriedFrom && (
-          <span className="text-micro uppercase tracking-eyebrow text-ink-300">
+          <span className="inline-flex items-center gap-0.5 text-micro text-ink-300 mt-0.5">
+            <ArrowRightIcon size={9} />
             desde {formatDue(carriedFrom)}
           </span>
         )}
       </div>
 
-      {/* Detalle — icono sutil; ventana flotante al pasar el mouse; clic para
-          escribir o editar (en táctil, el toque abre la edición). */}
-      <span
-        className={`relative shrink-0 mt-px group/detail ${task.detail ? '' : 'hover-actions'}`}
-      >
-        <button
-          onClick={startEdit}
-          disabled={busy}
-          aria-label={task.detail ? 'Ver o editar detalle' : 'Agregar detalle'}
-          title={task.detail ? 'Detalle' : 'Agregar detalle'}
-          className={`p-1 rounded transition-colors disabled:opacity-50 ${
-            task.detail
-              ? 'text-ink-400 hover:text-ink-700'
-              : 'text-ink-300 hover:text-ink-700'
-          }`}
-        >
-          <FileIcon size={13} />
-        </button>
-        {task.detail && (
+      {/* Detalle — icono sutil; ventana flotante al pasar el mouse o tocar. */}
+      {task.detail && (
+        <span className="relative shrink-0 mt-px group/detail">
+          <button
+            type="button"
+            onClick={() => setDetailOpen((v) => !v)}
+            aria-label="Ver detalle"
+            aria-expanded={detailOpen}
+            title="Detalle"
+            className="touch-target p-1 rounded text-ink-400 hover:text-ink-700 transition-colors"
+          >
+            <FileIcon size={13} />
+          </button>
           <span
             role="tooltip"
-            className="pointer-events-none absolute right-0 top-full mt-1 z-20 w-60 max-w-[15rem] rounded-lg border border-ink-100 bg-paper-50 p-2.5 text-sm text-ink-600 whitespace-pre-wrap break-words leading-snug text-left normal-case tracking-normal opacity-0 group-hover/detail:opacity-100 transition-opacity"
+            className={`pointer-events-none absolute right-0 top-full mt-1 z-20 w-60 max-w-[15rem] rounded-lg border border-ink-100 bg-paper-50 p-2.5 text-sm text-ink-600 whitespace-pre-wrap break-words leading-snug text-left normal-case tracking-normal transition-opacity group-hover/detail:opacity-100 ${
+              detailOpen ? 'opacity-100' : 'opacity-0'
+            }`}
             style={{ boxShadow: 'var(--card-shadow-hover)' }}
           >
             {renderWithTags(task.detail)}
           </span>
-        )}
-      </span>
-
-      {/* Información interna — icono "i"; al pasar el mouse o tocar, cuándo se creó. */}
-      <span className="relative shrink-0 mt-px group/info">
-        <button
-          type="button"
-          onClick={() => setInfoOpen((v) => !v)}
-          aria-label={`Creado: ${formatCreatedFull(task.createdAt)}`}
-          title={`Creado: ${formatCreatedFull(task.createdAt)}`}
-          className="p-1 rounded text-ink-300 hover:text-ink-600 transition-colors"
-        >
-          <InfoIcon size={13} />
-        </button>
-        <span
-          role="tooltip"
-          className={`pointer-events-none absolute right-0 top-full mt-1 z-20 w-max max-w-[14rem] rounded-lg border border-ink-100 bg-paper-50 px-2.5 py-1.5 text-xs text-ink-500 normal-case tracking-normal transition-opacity group-hover/info:opacity-100 ${
-            infoOpen ? 'opacity-100' : 'opacity-0'
-          }`}
-          style={{ boxShadow: 'var(--card-shadow-hover)' }}
-        >
-          Creado: {formatCreatedFull(task.createdAt)}
         </span>
-      </span>
+      )}
 
       {/* Vencimiento — opcional y tenue; en rojo solo si está vencido. */}
       {task.dueDate && (
@@ -343,54 +337,51 @@ export function TaskItem({
         </span>
       )}
 
-      {/* Acciones — reveladas al hover en escritorio, visibles en táctil. */}
-      <div className="mt-px shrink-0 flex items-center gap-1 hover-actions">
-        {!task.done && (
-          <button
-            onClick={() => onSave({ weekStart: shiftWeeks(displayWeek, 1) })}
-            disabled={busy}
-            aria-label="Posponer a la próxima semana"
-            title="Posponer a la próxima semana"
-            className="p-1 text-ink-300 hover:text-ink-700 rounded transition-colors disabled:opacity-50"
-          >
-            <ArrowRightIcon size={13} />
-          </button>
-        )}
-        <button
-          onClick={startEdit}
-          disabled={busy}
-          aria-label="Editar tarea"
-          title="Editar"
-          className="p-1 text-ink-300 hover:text-ink-700 rounded transition-colors disabled:opacity-50"
+      {/* Acciones secundarias consolidadas — editar, posponer, info, borrar. */}
+      <div className="mt-px shrink-0">
+        <OverflowMenu
+          label="Acciones del recordatorio"
+          triggerClassName="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
+          width="w-56"
         >
-          <PencilIcon size={13} />
-        </button>
-        {confirming ? (
-          <span className="flex items-center gap-2 pl-1">
-            <button
-              onClick={onDelete}
-              disabled={busy}
-              className="text-micro uppercase tracking-eyebrow text-[color:var(--accent-clay)] transition-colors disabled:opacity-50"
-            >
-              borrar
-            </button>
-            <button
-              onClick={() => setConfirming(false)}
-              className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
-            >
-              no
-            </button>
-          </span>
-        ) : (
-          <button
-            onClick={() => setConfirming(true)}
-            aria-label="Borrar tarea"
-            title="Borrar"
-            className="p-1 text-ink-300 hover:text-[color:var(--accent-clay)] rounded transition-colors"
-          >
-            <TrashIcon size={13} />
-          </button>
-        )}
+          {(close) => (
+            <>
+              <OverflowMenuItem
+                onClick={() => {
+                  startEdit()
+                  close()
+                }}
+                disabled={busy}
+              >
+                <PencilIcon size={13} /> Editar
+              </OverflowMenuItem>
+              {!task.done && (
+                <OverflowMenuItem
+                  onClick={() => {
+                    onSave({ weekStart: shiftWeeks(displayWeek, 1) })
+                    close()
+                  }}
+                  disabled={busy}
+                >
+                  <ArrowRightIcon size={13} /> Posponer una semana
+                </OverflowMenuItem>
+              )}
+              <p className="flex items-center gap-2 px-2.5 pt-2 pb-1 mt-1 border-t border-ink-100/60 text-micro text-ink-300">
+                <InfoIcon size={12} /> Creado: {formatCreatedFull(task.createdAt)}
+              </p>
+              <OverflowMenuItem
+                danger
+                onClick={() => {
+                  onDelete()
+                  close()
+                }}
+                disabled={busy}
+              >
+                <TrashIcon size={13} /> Borrar
+              </OverflowMenuItem>
+            </>
+          )}
+        </OverflowMenu>
       </div>
     </li>
   )

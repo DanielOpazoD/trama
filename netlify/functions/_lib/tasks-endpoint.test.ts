@@ -120,4 +120,37 @@ describe('tasks endpoint — integration', () => {
     )
     expect(res.status).toBe(405)
   })
+
+  it('GET ?pending=1 consulta solo pendientes (done = false)', async () => {
+    mockSqlResponses.push([TASK_ROW])
+    const res = await handler(
+      new Request('http://localhost/api/tasks?pending=1'),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const q = mockSqlResponses.calls.find((c) => /FROM tasks/i.test(c.template))
+    expect(q?.template).toMatch(/done = false/i)
+  })
+
+  it('GET por rango filtra por week_start e incluye el arrastre (carryBefore)', async () => {
+    mockSqlResponses.push([TASK_ROW])
+    const res = await handler(
+      new Request(
+        'http://localhost/api/tasks?weekFrom=2026-06-01&weekTo=2026-06-29&carryBefore=2026-06-01',
+      ),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const q = mockSqlResponses.calls.find((c) => /FROM tasks/i.test(c.template))
+    expect(q?.template).toMatch(/week_start >=/i)
+    expect(q?.template).toMatch(/week_start </i)
+  })
+
+  it('GET por rango con fecha mal formada devuelve 400', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/tasks?weekFrom=junio&weekTo=2026-06-29'),
+      mockContext(),
+    )
+    expect(res.status).toBe(400)
+  })
 })

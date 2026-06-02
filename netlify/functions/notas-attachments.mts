@@ -7,7 +7,7 @@ import { attachmentOwnerExists } from './_lib/notas-attachment-owners.js'
 
 type AttachmentRow = {
   id: string
-  owner_type: 'note' | 'prompt' | 'week'
+  owner_type: 'note' | 'prompt' | 'week' | 'task'
   owner_id: string
   file_name: string
   mime_type: string
@@ -28,8 +28,13 @@ export default withObservability(
       const url = new URL(req.url)
       const ownerType = url.searchParams.get('ownerType')
       const ownerId = url.searchParams.get('ownerId')
-      if (ownerType !== 'note' && ownerType !== 'prompt' && ownerType !== 'week') {
-        return ApiErrors.validation(requestId, 'ownerType debe ser note, prompt o week')
+      if (
+        ownerType !== 'note' &&
+        ownerType !== 'prompt' &&
+        ownerType !== 'week' &&
+        ownerType !== 'task'
+      ) {
+        return ApiErrors.validation(requestId, 'ownerType debe ser note, prompt, week o task')
       }
       if (!ownerId) return ApiErrors.validation(requestId, 'ownerId requerido')
       if (!(await attachmentOwnerExists(sql, ownerType, ownerId, userId))) {

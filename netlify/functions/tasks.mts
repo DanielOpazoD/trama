@@ -46,6 +46,45 @@ export default withObservability(
       const url = new URL(req.url)
       const q = url.searchParams.get('q')?.trim()
       const tag = url.searchParams.get('tag')?.trim().toLowerCase()
+      const pending = url.searchParams.get('pending')
+      const weekFrom = url.searchParams.get('weekFrom')?.trim()
+      const weekTo = url.searchParams.get('weekTo')?.trim()
+      const carryBefore = url.searchParams.get('carryBefore')?.trim() || null
+      const dateRe = /^\d{4}-\d{2}-\d{2}$/
+
+      if (pending) {
+        // Solo pendientes (para vistas tipo "Pendientes" del inicio), priorizados.
+        const rows = await sqlTyped<TaskRow>(sql`
+          SELECT id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, completed_at, tags, created_at, updated_at
+          FROM tasks
+          WHERE deleted_at IS NULL AND user_id = ${userId} AND done = false
+          ORDER BY CASE priority WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END ASC, created_at DESC, id DESC
+        `)
+        return Response.json(rows)
+      }
+
+      if (weekFrom && weekTo) {
+        // Carga acotada por rango de semanas. `carryBefore` (opcional) trae además
+        // los pendientes anteriores a esa fecha — los que se "arrastran" a la
+        // semana actual — para que el rango del mes en curso no los pierda.
+        if (!dateRe.test(weekFrom) || !dateRe.test(weekTo)) {
+          return ApiErrors.validation(requestId, 'weekFrom/weekTo deben ser YYYY-MM-DD')
+        }
+        if (carryBefore && !dateRe.test(carryBefore)) {
+          return ApiErrors.validation(requestId, 'carryBefore debe ser YYYY-MM-DD')
+        }
+        const rows = await sqlTyped<TaskRow>(sql`
+          SELECT id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, completed_at, tags, created_at, updated_at
+          FROM tasks
+          WHERE deleted_at IS NULL AND user_id = ${userId}
+            AND (
+              (week_start >= ${weekFrom}::date AND week_start <= ${weekTo}::date)
+              OR (${carryBefore}::date IS NOT NULL AND done = false AND week_start < ${carryBefore}::date)
+            )
+          ORDER BY week_start DESC, done ASC, CASE priority WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END ASC, created_at DESC, id DESC
+        `)
+        return Response.json(rows)
+      }
 
       if (q) {
         const rows = await sqlTyped<TaskRow>(sql`

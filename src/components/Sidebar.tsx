@@ -9,18 +9,13 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ChatIcon,
-  AtlasIcon,
-  CronologiaIcon,
   EntitiesIcon,
   GraphIcon,
   HomeIcon,
   MomentosIcon,
-  MusicIcon,
   QuoteIcon,
   SearchIcon,
   SettingsIcon,
-  SparkleIcon,
-  TwitterIcon,
 } from './Icons'
 import { AIModeToggle } from './AIModeToggle'
 import { NavButton, type NavItem } from './sidebar/NavButton'
@@ -64,24 +59,15 @@ const NAV_GROUPS: NavGroup[] = [
       { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
       { value: 'citas', label: 'Citas', icon: QuoteIcon },
       { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
-      { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
-      { value: 'twitter', label: 'Twitter', icon: TwitterIcon },
     ],
   },
   {
     label: 'Miradas',
-    items: [
-      { value: 'grafo', label: 'Grafo', icon: GraphIcon },
-      { value: 'cronologia', label: 'Cronología', icon: CronologiaIcon },
-      { value: 'atlas', label: 'Atlas', icon: AtlasIcon },
-    ],
+    items: [{ value: 'grafo', label: 'Grafo', icon: GraphIcon }],
   },
   {
     label: 'Diálogo',
-    items: [
-      { value: 'chat', label: 'Chat', icon: ChatIcon },
-      { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
-    ],
+    items: [{ value: 'chat', label: 'Chat', icon: ChatIcon }],
   },
 ]
 

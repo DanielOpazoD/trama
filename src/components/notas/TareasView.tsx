@@ -1,11 +1,17 @@
 import { useMemo, useState } from 'react'
-import { useTasksQuery, useCreateTask, useUpdateTask, useDeleteTask } from '../../state'
+import {
+  useTasksRange,
+  usePendingTasks,
+  useCreateTask,
+  useUpdateTask,
+  useDeleteTask,
+} from '../../state'
 import type { Task, TaskPriority } from '../../api'
 import { LoadingHint } from '../LoadingHint'
 import { PlusIcon } from '../Icons'
 import { TaskItem } from './TaskItem'
 import { PriorityDots } from './PriorityDots'
-import { WeekPhotos } from './WeekPhotos'
+import { AttachmentPhotos } from './AttachmentPhotos'
 import { MonthNavigator } from './MonthNavigator'
 import { MonthNotes } from './MonthNotes'
 import {
@@ -13,20 +19,27 @@ import {
   formatWeekRangeLong,
   relativeWeekLabel,
   mondaysOfMonth,
-  weekYearMonth,
   monthName,
 } from './notasUtils'
+import {
+  groupTasksByWeek,
+  splitByStatus,
+  pendingMonthsForYear,
+  rawTaskWeek,
+} from './weekModel'
 
 /**
  * Trama Notas — sección Tareas. Arriba, un navegador por año y mes; al elegir
  * un mes se muestran TODAS sus semanas. Cada semana es un cuadro (una hoja
  * semanal) cuyo título es el rango de fechas; dentro, cada recordatorio es una
- * línea con su color de prioridad, un signo de hecho/pendiente y un icono de
- * detalle flotante. Cada semana puede sumar fotos. La búsqueda vive en el
- * buscador global del mundo Notas (arriba).
+ * línea con su color de prioridad, signo de hecho y un icono de detalle. Los
+ * pendientes no completados se arrastran a la semana actual.
+ *
+ * Datos: la lista se carga ACOTADA al mes visible (`useTasksRange`, + arrastre);
+ * los pendientes globales (livianos) alimentan los puntos del navegador. La
+ * lógica de "semana" vive en `weekModel`.
  */
 export function TareasView() {
-  const tasksQuery = useTasksQuery()
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
@@ -35,45 +48,25 @@ export function TareasView() {
   const [navYear, setNavYear] = useState(now.getFullYear())
   const [navMonth, setNavMonth] = useState(now.getMonth())
 
-  const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
   const todayWeek = weekStartLocal()
-
-  // Semana de una tarea, con red de seguridad: si por datos viejos faltara
-  // `weekStart`, la derivamos de su fecha de creación (o la semana actual).
-  function taskWeek(t: Task): string {
-    if (t.weekStart && /^\d{4}-\d{2}-\d{2}$/.test(t.weekStart)) return t.weekStart
-    const d = t.createdAt ? new Date(t.createdAt) : new Date()
-    return weekStartLocal(Number.isNaN(d.getTime()) ? new Date() : d)
-  }
-
-  const byWeek = useMemo(() => {
-    const map = new Map<string, Task[]>()
-    for (const t of tasks) {
-      // Arrastre: un pendiente de una semana anterior "pasa" a la semana actual
-      // hasta que se complete (así no se pierde). Las hechas quedan en su semana.
-      let wk = taskWeek(t)
-      if (!t.done && wk < todayWeek) wk = todayWeek
-      const arr = map.get(wk) ?? []
-      arr.push(t)
-      map.set(wk, arr)
-    }
-    return map
-  }, [tasks, todayWeek])
-
-  // Meses (del año mostrado) con algún pendiente — para el punto del navegador.
-  const pendingMonths = useMemo(() => {
-    const set = new Set<number>()
-    for (const t of tasks) {
-      if (t.done) continue
-      let wk = taskWeek(t)
-      if (wk < todayWeek) wk = todayWeek
-      const { year, month0 } = weekYearMonth(wk)
-      if (year === navYear) set.add(month0)
-    }
-    return set
-  }, [tasks, navYear, todayWeek])
-
   const weekKeys = useMemo(() => mondaysOfMonth(navYear, navMonth), [navYear, navMonth])
+  const isCurrentMonth = navYear === now.getFullYear() && navMonth === now.getMonth()
+  const weekFrom = weekKeys[0] ?? todayWeek
+  const weekTo = weekKeys[weekKeys.length - 1] ?? todayWeek
+  // En el mes en curso traemos también los pendientes anteriores (se arrastran
+  // a la semana actual); en otros meses no hace falta.
+  const carryBefore = isCurrentMonth ? todayWeek : null
+
+  const rangeQuery = useTasksRange({ weekFrom, weekTo, carryBefore })
+  const tasks = useMemo(() => rangeQuery.data ?? [], [rangeQuery.data])
+  const byWeek = useMemo(() => groupTasksByWeek(tasks, todayWeek), [tasks, todayWeek])
+
+  // Pendientes globales (livianos) — solo para los puntos del navegador.
+  const pendingQuery = usePendingTasks()
+  const pendingMonths = useMemo(
+    () => pendingMonthsForYear(pendingQuery.data ?? [], navYear, todayWeek),
+    [pendingQuery.data, navYear, todayWeek],
+  )
 
   function addReminder(weekStart: string, title: string, priority: TaskPriority) {
     if (createTask.isPending) return
@@ -81,23 +74,6 @@ export function TareasView() {
   }
 
   const busy = updateTask.isPending || deleteTask.isPending
-
-  function lines(items: Task[]) {
-    const rank: Record<string, number> = { alta: 0, media: 1, baja: 2 }
-    const pending = items
-      .filter((t) => !t.done)
-      .sort(
-        (a, b) =>
-          (rank[a.priority] ?? 1) - (rank[b.priority] ?? 1) ||
-          b.createdAt.localeCompare(a.createdAt),
-      )
-    const done = items
-      .filter((t) => t.done)
-      .sort((a, b) =>
-        (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt),
-      )
-    return { pending, done }
-  }
 
   function taskLine(task: Task, week: string) {
     return (
@@ -111,7 +87,7 @@ export function TareasView() {
           // Al completar un pendiente arrastrado, lo fijamos en la semana actual
           // (queda registrado como hecho esta semana, no en su semana vieja).
           const patch =
-            completing && taskWeek(task) < todayWeek
+            completing && rawTaskWeek(task) < todayWeek
               ? { done: true, weekStart: todayWeek }
               : { done: !task.done }
           updateTask.mutate({ id: task.id, patch })
@@ -124,7 +100,7 @@ export function TareasView() {
 
   function renderWeek(week: string) {
     const items = byWeek.get(week) ?? []
-    const { pending, done } = lines(items)
+    const { pending, done } = splitByStatus(items)
     const isCurrent = week === todayWeek
     const rel = relativeWeekLabel(week)
     const titleLong = formatWeekRangeLong(week)
@@ -181,7 +157,7 @@ export function TareasView() {
           </div>
 
           {/* Fotos de la semana */}
-          <WeekPhotos weekStart={week} eager={isCurrent} />
+          <AttachmentPhotos ownerType="week" ownerId={week} eager={isCurrent} />
         </div>
       </article>
     )
@@ -208,7 +184,7 @@ export function TareasView() {
         <MonthNotes key={monthKey} monthKey={monthKey} label={monthLabel} />
       </div>
 
-      {tasksQuery.isLoading ? (
+      {rangeQuery.isLoading ? (
         <div className="py-10 flex justify-center">
           <LoadingHint text="cargando recordatorios" size="sm" />
         </div>

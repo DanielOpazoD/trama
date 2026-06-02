@@ -1,7 +1,9 @@
 import { useGlobalStatus, type GlobalStatus } from '../state'
 import type { ViewMode } from './Sidebar'
+import type { World } from '../types/world'
 import { ReadingIcon } from './Icons'
 import { UserMenu } from './UserMenu'
+import { WorldSwitcher } from './WorldSwitcher'
 
 /**
  * Barra superior estilo ChatGPT/OpenAI Platform.
@@ -42,9 +44,15 @@ export function TopBar({
   tabs,
   onSortes,
   titleOverride,
+  world,
+  onChangeWorld,
 }: {
   view: ViewMode
   actions?: React.ReactNode
+  /** Mundo activo + conmutador. Solo se muestra en móvil (en escritorio el
+      WorldSwitcher vive en el Sidebar); permite cambiar de mundo sin sidebar. */
+  world?: World
+  onChangeWorld?: (w: World) => void
   /** Abre Sortes (segunda lectura — una cita al azar). Si se omite, el
       botón no se muestra. */
   onSortes?: () => void
@@ -71,36 +79,43 @@ export function TopBar({
   const showTabs = !!tabs && !breadcrumb
   return (
     <div className="surface-topbar shrink-0 border-b border-ink-100 px-6 py-2.5 flex items-center justify-between gap-4">
-      <div className="min-w-0 flex items-baseline gap-4">
-        {breadcrumb ? (
-          // Path-style — clickeable la raíz para volver a la vista
-          // sin abrir entidad. Lo que hace Codex con `repo › file.tsx`.
-          <nav aria-label="Breadcrumb" className="min-w-0 flex items-baseline gap-2">
-            <button
-              onClick={breadcrumb.onClickRoot}
-              className="font-serif text-xl text-ink-400 hover:text-ink-700 leading-none tracking-tight transition-colors shrink-0"
-            >
-              {title}
-            </button>
-            <span className="text-ink-300 text-lg leading-none">›</span>
-            <h1 className="font-serif text-xl text-ink-800 leading-none tracking-tight truncate">
-              {breadcrumb.label}
-            </h1>
-          </nav>
-        ) : (
-          <>
-            <h1 className="font-serif text-xl text-ink-800 leading-none tracking-tight shrink-0">
-              {title}
-            </h1>
-            {showTabs ? (
-              <TabsStrip tabs={tabs!} />
-            ) : (
-              subtitle && (
-                <span className="text-sm text-ink-400 truncate">{subtitle}</span>
-              )
-            )}
-          </>
+      <div className="min-w-0 flex items-center gap-3">
+        {world && onChangeWorld && (
+          <span className="md:hidden shrink-0">
+            <WorldSwitcher world={world} onChangeWorld={onChangeWorld} collapsed />
+          </span>
         )}
+        <div className="min-w-0 flex items-baseline gap-4">
+          {breadcrumb ? (
+            // Path-style — clickeable la raíz para volver a la vista
+            // sin abrir entidad. Lo que hace Codex con `repo › file.tsx`.
+            <nav aria-label="Breadcrumb" className="min-w-0 flex items-baseline gap-2">
+              <button
+                onClick={breadcrumb.onClickRoot}
+                className="font-serif text-xl text-ink-400 hover:text-ink-700 leading-none tracking-tight transition-colors shrink-0"
+              >
+                {title}
+              </button>
+              <span className="text-ink-300 text-lg leading-none">›</span>
+              <h1 className="font-serif text-xl text-ink-800 leading-none tracking-tight truncate">
+                {breadcrumb.label}
+              </h1>
+            </nav>
+          ) : (
+            <>
+              <h1 className="font-serif text-xl text-ink-800 leading-none tracking-tight shrink-0">
+                {title}
+              </h1>
+              {showTabs ? (
+                <TabsStrip tabs={tabs!} />
+              ) : (
+                subtitle && (
+                  <span className="text-sm text-ink-400 truncate">{subtitle}</span>
+                )
+              )}
+            </>
+          )}
+        </div>
       </div>
       <div className="shrink-0 flex items-center gap-3">
         <StatusPill status={status} />

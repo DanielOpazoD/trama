@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Task } from '../../api'
+import { renderWithProviders } from '../../test-utils'
 import { TaskItem } from './TaskItem'
 
 const baseTask: Task = {
@@ -17,25 +18,38 @@ const baseTask: Task = {
   updatedAt: '2026-05-29T10:00:00.000Z',
 }
 
+const noop = () => {}
+
 describe('<TaskItem />', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-05-31T12:00:00.000Z'))
+    // El editor monta la tira de fotos (React Query); devolvemos [] a cualquier fetch.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
   })
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 
-  it('muestra estado, tags y vencimiento sin disparar acciones de edición', () => {
+  it('muestra estado, tags y vencimiento', () => {
     const onToggle = vi.fn()
-    render(
+    renderWithProviders(
       <TaskItem
         task={baseTask}
         displayWeek="2026-05-25"
         onToggle={onToggle}
-        onSave={vi.fn()}
-        onDelete={vi.fn()}
+        onSave={noop}
+        onDelete={noop}
       />,
     )
 
@@ -49,28 +63,28 @@ describe('<TaskItem />', () => {
     expect(onToggle).toHaveBeenCalledTimes(1)
   })
 
-  it('edita título, detalle y vencimiento normalizando espacios vacíos', () => {
+  it('edita desde el menú ⋯ normalizando espacios vacíos', () => {
     const onSave = vi.fn()
-    render(
+    renderWithProviders(
       <TaskItem
         task={baseTask}
         displayWeek="2026-05-25"
-        onToggle={vi.fn()}
+        onToggle={noop}
         onSave={onSave}
-        onDelete={vi.fn()}
+        onDelete={noop}
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /editar tarea/i }))
+    fireEvent.click(screen.getByRole('button', { name: /acciones del recordatorio/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /editar/i }))
+
     fireEvent.change(screen.getByPlaceholderText(/título de la tarea/i), {
       target: { value: '  nueva tarea  ' },
     })
     fireEvent.change(screen.getByPlaceholderText(/detalle/i), {
       target: { value: '   ' },
     })
-    fireEvent.change(screen.getByLabelText(/vence/i), {
-      target: { value: '' },
-    })
+    fireEvent.change(screen.getByLabelText(/vence/i), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
 
     expect(onSave).toHaveBeenCalledWith({
@@ -85,13 +99,13 @@ describe('<TaskItem />', () => {
 
   it('cicla la prioridad desde la línea sin entrar a edición', () => {
     const onSave = vi.fn()
-    render(
+    renderWithProviders(
       <TaskItem
         task={baseTask}
         displayWeek="2026-05-25"
-        onToggle={vi.fn()}
+        onToggle={noop}
         onSave={onSave}
-        onDelete={vi.fn()}
+        onDelete={noop}
       />,
     )
 
@@ -100,32 +114,33 @@ describe('<TaskItem />', () => {
     expect(onSave).toHaveBeenCalledWith({ priority: 'baja' })
   })
 
-  it('permite cancelar edición y confirma antes de borrar', () => {
+  it('borra desde el menú ⋯', () => {
     const onDelete = vi.fn()
-    render(
+    renderWithProviders(
       <TaskItem
-        task={{ ...baseTask, done: true, dueDate: null }}
+        task={baseTask}
         displayWeek="2026-05-25"
-        onToggle={vi.fn()}
-        onSave={vi.fn()}
+        onToggle={noop}
+        onSave={noop}
         onDelete={onDelete}
       />,
     )
 
-    expect(
-      screen.getByRole('checkbox', { name: /marcar como pendiente/i }),
-    ).toHaveAttribute('aria-checked', 'true')
-
-    fireEvent.click(screen.getByRole('button', { name: /editar tarea/i }))
-    fireEvent.change(screen.getByPlaceholderText(/título de la tarea/i), {
-      target: { value: 'no guardar' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: /cancelar/i }))
-    expect(screen.queryByDisplayValue('no guardar')).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: /borrar tarea/i }))
-    expect(onDelete).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: /^borrar$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /acciones del recordatorio/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /borrar/i }))
     expect(onDelete).toHaveBeenCalledTimes(1)
+  })
+
+  it('marca "desde" cuando el pendiente viene de una semana anterior', () => {
+    renderWithProviders(
+      <TaskItem
+        task={{ ...baseTask, weekStart: '2026-05-18' }}
+        displayWeek="2026-05-25"
+        onToggle={noop}
+        onSave={noop}
+        onDelete={noop}
+      />,
+    )
+    expect(screen.getByText(/desde 18 may/i)).toBeInTheDocument()
   })
 })

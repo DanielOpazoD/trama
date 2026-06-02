@@ -25,20 +25,15 @@ afterEach(() => {
 })
 
 describe('<MobileBottomNav />', () => {
-  it('renders all 8 nav items with their accessible labels', () => {
+  it('renders all nav items with their accessible labels', () => {
     renderWithProviders(<MobileBottomNav view="inicio" onChangeView={() => {}} />)
-    const expectedLabels = [
-      'Inicio',
-      'Grafo',
-      'Entidades',
-      'Citas',
-      'Momentos',
-      'Escuchas',
-      'Chat',
-      'Sugerencias',
-    ]
+    const expectedLabels = ['Inicio', 'Entidades', 'Citas', 'Momentos', 'Grafo', 'Chat']
     for (const label of expectedLabels) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
+    }
+    // Las secciones retiradas del nav ya no aparecen.
+    for (const gone of ['Escuchas', 'Twitter', 'Cronología', 'Atlas', 'Sugerencias']) {
+      expect(screen.queryByRole('button', { name: gone })).not.toBeInTheDocument()
     }
   })
 

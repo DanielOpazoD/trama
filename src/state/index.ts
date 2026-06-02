@@ -76,7 +76,14 @@ export {
   useDeleteNote,
   usePromoteNote,
 } from './useNotes'
-export { useTasksQuery, useCreateTask, useUpdateTask, useDeleteTask } from './useTasks'
+export {
+  useTasksQuery,
+  useTasksRange,
+  usePendingTasks,
+  useCreateTask,
+  useUpdateTask,
+  useDeleteTask,
+} from './useTasks'
 export {
   usePromptsQuery,
   useCreatePrompt,
