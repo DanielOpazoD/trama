@@ -19,4 +19,28 @@ describe('attachmentDownload', () => {
     expect(prepared.type).toBe('text/markdown')
     expect(window.localStorage.getItem('trama.notas.attachments.key.v1')).toBeNull()
   })
+
+  it('conserva un File cuando nombre y mime ya calzan con el anexo', async () => {
+    const file = new File(['ok'], 'contexto.pdf', { type: 'application/pdf' })
+
+    const prepared = await prepareAttachmentDownload(file, {
+      fileName: 'contexto.pdf',
+      mimeType: 'application/pdf',
+    })
+
+    expect(prepared).toBe(file)
+  })
+
+  it('usa el mime original del blob cuando no recibe uno explícito', async () => {
+    const blob = new Blob(['zip'], { type: 'application/zip' })
+
+    const prepared = await prepareAttachmentDownload(blob, {
+      fileName: 'paquete.zip',
+      mimeType: '',
+    })
+
+    expect(prepared).toBeInstanceOf(File)
+    expect((prepared as File).name).toBe('paquete.zip')
+    expect(prepared.type).toBe('application/zip')
+  })
 })
