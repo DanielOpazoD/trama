@@ -8,7 +8,6 @@ import {
   useUploadNotasAttachment,
   useToast,
 } from '../../state'
-import { ViewHeader } from '../ViewHeader'
 import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
 import { SearchIcon } from '../Icons'
@@ -122,13 +121,6 @@ export function NotasView() {
 
   return (
     <>
-      <ViewHeader
-        title="Notas"
-        eyebrow="apuntes rápidos"
-        accent={ACCENT}
-        spacing="wide"
-      />
-
       {/* Composer */}
       <div className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5">
         <textarea

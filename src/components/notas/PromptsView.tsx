@@ -11,7 +11,6 @@ import {
 } from '../../state'
 import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
-import { ViewHeader } from '../ViewHeader'
 import { PromptCard } from './PromptCard'
 import { PromptComposer } from './PromptComposer'
 import { copyText } from './notasUtils'
@@ -86,13 +85,6 @@ export function PromptsView() {
 
   return (
     <>
-      <ViewHeader
-        title="Prompts"
-        eyebrow="biblioteca reutilizable"
-        accent={ACCENT}
-        spacing="wide"
-      />
-
       <PromptComposer
         title={title}
         collection={collection}

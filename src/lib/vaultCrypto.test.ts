@@ -4,6 +4,7 @@ import {
   decryptVaultSecret,
   encryptVaultSecret,
   generatePhysicalKey,
+  hasVaultConfig,
   unlockVault,
   vaultRequiresPhysicalKey,
 } from './vaultCrypto'
@@ -38,5 +39,22 @@ describe('vaultCrypto', () => {
     expect(storedConfig).not.toContain(physicalKey)
     expect(storedConfig).not.toContain('token-super-privado')
     expect(encrypted).not.toContain('token-super-privado')
+  })
+
+  it('separa la configuración del vault por usuario del navegador', async () => {
+    await createVault('password-alice', undefined, { userId: 'alice' })
+
+    expect(hasVaultConfig({ userId: 'alice' })).toBe(true)
+    expect(hasVaultConfig({ userId: 'bob' })).toBe(false)
+
+    await createVault('password-bob', undefined, { userId: 'bob' })
+
+    const unlockedAlice = await unlockVault('password-alice', undefined, {
+      userId: 'alice',
+    })
+    expect(unlockedAlice.type).toBe('secret')
+    await expect(
+      unlockVault('password-alice', undefined, { userId: 'bob' }),
+    ).rejects.toThrow()
   })
 })

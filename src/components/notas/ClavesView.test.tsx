@@ -13,6 +13,136 @@ afterEach(() => {
 })
 
 describe('<ClavesView />', () => {
+  it('bloquea automáticamente el vault después de inactividad', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
+
+    renderWithProviders(<ClavesView autoLockMs={10} />)
+
+    fireEvent.change(screen.getByPlaceholderText('Clave de acceso'), {
+      target: { value: 'password-seguro' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Confirmar clave'), {
+      target: { value: 'password-seguro' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'crear vault' }))
+
+    await screen.findByRole('button', { name: 'bloquear vault' })
+    await waitFor(
+      () => {
+        expect(screen.getByPlaceholderText('Clave de acceso')).toBeInTheDocument()
+      },
+      { timeout: 100 },
+    )
+  })
+
+  it('limpia el portapapeles después de copiar una clave si no cambió el contenido', async () => {
+    let storedSecret = ''
+    const writes: string[] = []
+    vi.stubGlobal('navigator', {
+      clipboard: {
+        writeText: vi.fn(async (value: string) => {
+          writes.push(value)
+        }),
+        readText: vi.fn(async () => writes[writes.length - 1] ?? ''),
+      },
+    })
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/api/secrets') && init?.method === 'POST') {
+        const body = JSON.parse(String(init.body))
+        storedSecret = body.secret
+        return new Response(
+          JSON.stringify({
+            id: 's1',
+            label: body.label,
+            kind: body.kind,
+            service: body.service,
+            username: body.username,
+            notes: body.notes,
+            favorite: false,
+            critical: false,
+            expires_at: null,
+            last_rotated_at: null,
+            copied_at: null,
+            created_at: '2026-06-01T00:00:00.000Z',
+            updated_at: '2026-06-01T00:00:00.000Z',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+      if (url.endsWith('/api/secrets/s1/reveal')) {
+        return new Response(JSON.stringify({ secret: storedSecret }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      if (url.endsWith('/api/secrets/s1/copied')) {
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(
+        JSON.stringify(
+          storedSecret
+            ? [
+                {
+                  id: 's1',
+                  label: 'OpenAI',
+                  kind: 'api_key',
+                  service: null,
+                  username: null,
+                  notes: null,
+                  favorite: false,
+                  critical: false,
+                  expires_at: null,
+                  last_rotated_at: null,
+                  copied_at: null,
+                  created_at: '2026-06-01T00:00:00.000Z',
+                  updated_at: '2026-06-01T00:00:00.000Z',
+                },
+              ]
+            : [],
+        ),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderWithProviders(<ClavesView clipboardClearMs={10} />)
+
+    fireEvent.change(screen.getByPlaceholderText('Clave de acceso'), {
+      target: { value: 'password-seguro' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Confirmar clave'), {
+      target: { value: 'password-seguro' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'crear vault' }))
+
+    await screen.findByPlaceholderText('Nombre de la clave')
+    fireEvent.change(screen.getByPlaceholderText('Nombre de la clave'), {
+      target: { value: 'OpenAI' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Valor secreto'), {
+      target: { value: 'sk-test' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'guardar clave' }))
+
+    await screen.findByRole('button', { name: 'Copiar clave' })
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar clave' }))
+
+    await waitFor(() => expect(writes).toContain('sk-test'))
+    await waitFor(() => expect(writes[writes.length - 1]).toBe(''), { timeout: 100 })
+  })
+
   it('guarda usuario y notas como metadata cifrada del vault', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)

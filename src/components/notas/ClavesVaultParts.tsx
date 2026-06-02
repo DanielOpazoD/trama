@@ -5,10 +5,10 @@ import {
   generatePhysicalKey,
   hasVaultConfig,
   unlockVault,
+  type VaultScope,
   vaultRequiresPhysicalKey,
 } from '../../lib/vaultCrypto'
 import { ClipboardIcon, KeyIcon, PencilIcon, ShieldIcon, TrashIcon } from '../Icons'
-import { ViewHeader } from '../ViewHeader'
 import { formatShortDate, secretHealth } from './notasUtils'
 
 const ACCENT = 'var(--accent-sage)'
@@ -39,15 +39,21 @@ export type SecretEditInput = {
   critical: boolean
 }
 
-export function VaultGate({ onUnlock }: { onUnlock: (key: CryptoKey) => void }) {
+export function VaultGate({
+  scope,
+  onUnlock,
+}: {
+  scope?: VaultScope
+  onUnlock: (key: CryptoKey) => void
+}) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [physicalKey, setPhysicalKey] = useState('')
   const [usePhysicalKey, setUsePhysicalKey] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const hasVault = hasVaultConfig()
-  const needsPhysicalKey = vaultRequiresPhysicalKey()
+  const hasVault = hasVaultConfig(scope)
+  const needsPhysicalKey = vaultRequiresPhysicalKey(scope)
   const showPhysicalKey = needsPhysicalKey || usePhysicalKey
 
   async function submit() {
@@ -64,8 +70,8 @@ export function VaultGate({ onUnlock }: { onUnlock: (key: CryptoKey) => void }) 
     setError(null)
     try {
       const key = hasVault
-        ? await unlockVault(pass, physicalKey)
-        : await createVault(pass, usePhysicalKey ? physicalKey : undefined)
+        ? await unlockVault(pass, physicalKey, scope)
+        : await createVault(pass, usePhysicalKey ? physicalKey : undefined, scope)
       onUnlock(key)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo abrir el vault')
@@ -75,101 +81,93 @@ export function VaultGate({ onUnlock }: { onUnlock: (key: CryptoKey) => void }) 
   }
 
   return (
-    <>
-      <ViewHeader
-        title="Claves"
-        eyebrow="vault bloqueado"
-        accent={ACCENT}
-        spacing="wide"
-      />
-      <section className="card-paper-soft rounded-xl border border-ink-100/70 p-4 max-w-xl">
-        <div className="flex items-start gap-3">
-          <span
-            className="mt-0.5 inline-flex size-9 items-center justify-center rounded-lg bg-paper-50 border border-ink-100"
-            style={{ color: ACCENT }}
-          >
-            <ShieldIcon size={16} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-medium text-ink-800">
-              {hasVault ? 'Abrir vault' : 'Crear clave de acceso'}
-            </h3>
-            <div className="mt-4 space-y-2">
+    <section className="card-paper-soft rounded-xl border border-ink-100/70 p-4 max-w-xl">
+      <div className="flex items-start gap-3">
+        <span
+          className="mt-0.5 inline-flex size-9 items-center justify-center rounded-lg bg-paper-50 border border-ink-100"
+          style={{ color: ACCENT }}
+        >
+          <ShieldIcon size={16} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="font-medium text-ink-800">
+            {hasVault ? 'Abrir vault' : 'Crear clave de acceso'}
+          </h3>
+          <div className="mt-4 space-y-2">
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void submit()
+              }}
+              placeholder="Clave de acceso"
+              className="input-paper w-full text-sm"
+            />
+            {!hasVault && (
               <input
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') void submit()
                 }}
-                placeholder="Clave de acceso"
+                placeholder="Confirmar clave"
                 className="input-paper w-full text-sm"
               />
-              {!hasVault && (
+            )}
+            {!hasVault && (
+              <label className="flex items-center justify-between gap-3 rounded-md border border-ink-100/70 bg-paper-50/50 px-3 py-2 text-caption text-ink-500">
+                <span>Llave física</span>
                 <input
-                  type="password"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
+                  type="checkbox"
+                  checked={usePhysicalKey}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setUsePhysicalKey(checked)
+                    if (checked && !physicalKey) setPhysicalKey(generatePhysicalKey())
+                  }}
+                />
+              </label>
+            )}
+            {showPhysicalKey && (
+              <div className="grid sm:grid-cols-[1fr_auto] gap-2">
+                <input
+                  value={physicalKey}
+                  onChange={(e) => setPhysicalKey(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') void submit()
                   }}
-                  placeholder="Confirmar clave"
-                  className="input-paper w-full text-sm"
+                  placeholder="Llave física"
+                  className="input-paper w-full text-sm font-mono tracking-wider"
                 />
-              )}
-              {!hasVault && (
-                <label className="flex items-center justify-between gap-3 rounded-md border border-ink-100/70 bg-paper-50/50 px-3 py-2 text-caption text-ink-500">
-                  <span>Llave física</span>
-                  <input
-                    type="checkbox"
-                    checked={usePhysicalKey}
-                    onChange={(e) => {
-                      const checked = e.target.checked
-                      setUsePhysicalKey(checked)
-                      if (checked && !physicalKey) setPhysicalKey(generatePhysicalKey())
-                    }}
-                  />
-                </label>
-              )}
-              {showPhysicalKey && (
-                <div className="grid sm:grid-cols-[1fr_auto] gap-2">
-                  <input
-                    value={physicalKey}
-                    onChange={(e) => setPhysicalKey(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') void submit()
-                    }}
-                    placeholder="Llave física"
-                    className="input-paper w-full text-sm font-mono tracking-wider"
-                  />
-                  {!hasVault && (
-                    <button
-                      type="button"
-                      onClick={() => setPhysicalKey(generatePhysicalKey())}
-                      className="section-eyebrow hover:text-ink-700 px-2"
-                    >
-                      generar
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-            {error && (
-              <p className="mt-2 text-caption text-[color:var(--accent-clay)]">{error}</p>
+                {!hasVault && (
+                  <button
+                    type="button"
+                    onClick={() => setPhysicalKey(generatePhysicalKey())}
+                    className="section-eyebrow hover:text-ink-700 px-2"
+                  >
+                    generar
+                  </button>
+                )}
+              </div>
             )}
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => void submit()}
-                disabled={busy}
-                className="btn-ink text-xs disabled:opacity-50"
-              >
-                {busy ? 'abriendo...' : hasVault ? 'abrir vault' : 'crear vault'}
-              </button>
-            </div>
+          </div>
+          {error && (
+            <p className="mt-2 text-caption text-[color:var(--accent-clay)]">{error}</p>
+          )}
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => void submit()}
+              disabled={busy}
+              className="btn-ink text-xs disabled:opacity-50"
+            >
+              {busy ? 'abriendo...' : hasVault ? 'abrir vault' : 'crear vault'}
+            </button>
           </div>
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   )
 }
 

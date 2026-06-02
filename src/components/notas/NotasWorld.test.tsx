@@ -31,7 +31,7 @@ describe('<NotasWorld />', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Prompts' })[0]!)
 
-    expect(screen.getAllByRole('heading', { name: 'Prompts' }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('heading', { name: 'Prompts' })).toHaveLength(1)
     expect(screen.getAllByText('biblioteca reutilizable').length).toBeGreaterThan(0)
   })
 
@@ -43,7 +43,8 @@ describe('<NotasWorld />', () => {
     )
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Tareas' })[0]!)
-    expect(screen.getByText('por realizar')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tareas' })).toBeInTheDocument()
+    expect(screen.getByText('recordatorios y vencimientos')).toBeInTheDocument()
   })
 
   it('no muestra controles de modo cómodo ni compacto', () => {

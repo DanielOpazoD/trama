@@ -2,6 +2,10 @@ const VAULT_CONFIG_KEY = 'trama.notas.vault.v1'
 const VERIFIER_TEXT = 'trama-notas-vault'
 const KDF_ITERATIONS = 250_000
 
+export type VaultScope = {
+  userId?: string | null
+}
+
 export type VaultConfig = {
   v: 1
   kdf: 'PBKDF2-SHA-256'
@@ -35,6 +39,12 @@ function randomBytes(length: number): Uint8Array {
   const bytes = new Uint8Array(length)
   crypto.getRandomValues(bytes)
   return bytes
+}
+
+function vaultConfigKey(scope?: VaultScope): string {
+  const userId = scope?.userId?.trim()
+  if (!userId || userId === 'legacy-single-user') return VAULT_CONFIG_KEY
+  return `${VAULT_CONFIG_KEY}:${encodeURIComponent(userId)}`
 }
 
 function asArrayBuffer(bytes: Uint8Array): ArrayBuffer {
@@ -98,9 +108,9 @@ async function decryptWithKey(envelope: VaultEnvelope, key: CryptoKey): Promise<
   return new TextDecoder().decode(decrypted)
 }
 
-export function readVaultConfig(): VaultConfig | null {
+export function readVaultConfig(scope?: VaultScope): VaultConfig | null {
   if (typeof window === 'undefined') return null
-  const raw = window.localStorage.getItem(VAULT_CONFIG_KEY)
+  const raw = window.localStorage.getItem(vaultConfigKey(scope))
   if (!raw) return null
   try {
     const parsed = JSON.parse(raw) as VaultConfig
@@ -110,12 +120,12 @@ export function readVaultConfig(): VaultConfig | null {
   }
 }
 
-export function hasVaultConfig(): boolean {
-  return readVaultConfig() !== null
+export function hasVaultConfig(scope?: VaultScope): boolean {
+  return readVaultConfig(scope) !== null
 }
 
-export function vaultRequiresPhysicalKey(): boolean {
-  return readVaultConfig()?.requiresPhysicalKey === true
+export function vaultRequiresPhysicalKey(scope?: VaultScope): boolean {
+  return readVaultConfig(scope)?.requiresPhysicalKey === true
 }
 
 export function generatePhysicalKey(): string {
@@ -131,6 +141,7 @@ export function generatePhysicalKey(): string {
 export async function createVault(
   password: string,
   physicalKey?: string,
+  scope?: VaultScope,
 ): Promise<CryptoKey> {
   const salt = randomBytes(16)
   const key = await deriveKey(password, salt, physicalKey)
@@ -143,16 +154,17 @@ export async function createVault(
     verifierData: verifier.data,
     ...(physicalKey?.trim() ? { requiresPhysicalKey: true } : {}),
   }
-  window.localStorage.setItem(VAULT_CONFIG_KEY, JSON.stringify(config))
+  window.localStorage.setItem(vaultConfigKey(scope), JSON.stringify(config))
   return key
 }
 
 export async function unlockVault(
   password: string,
   physicalKey?: string,
+  scope?: VaultScope,
 ): Promise<CryptoKey> {
-  const config = readVaultConfig()
-  if (!config) return createVault(password, physicalKey)
+  const config = readVaultConfig(scope)
+  if (!config) return createVault(password, physicalKey, scope)
   if (config.requiresPhysicalKey && !physicalKey?.trim()) {
     throw new Error('Llave física requerida')
   }

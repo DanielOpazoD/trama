@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SecretKind } from '../../api'
+import { isDemoMode } from '../../lib/demo'
+import { useCurrentClientUserId } from '../../lib/clientIdentity'
 import { decryptVaultSecret, encryptVaultSecret } from '../../lib/vaultCrypto'
 import {
   useCreateSecret,
@@ -12,7 +14,6 @@ import {
 } from '../../state'
 import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
-import { ViewHeader } from '../ViewHeader'
 import {
   SECRET_KINDS,
   SecretCard,
@@ -22,8 +23,19 @@ import {
 import { copyText } from './notasUtils'
 
 const ACCENT = 'var(--accent-sage)'
+const VAULT_AUTO_LOCK_MS = 5 * 60 * 1000
+const CLIPBOARD_CLEAR_MS = 20_000
 
-export function ClavesView() {
+export function ClavesView({
+  autoLockMs = VAULT_AUTO_LOCK_MS,
+  clipboardClearMs = CLIPBOARD_CLEAR_MS,
+}: {
+  autoLockMs?: number
+  clipboardClearMs?: number
+} = {}) {
+  const currentUserId = useCurrentClientUserId()
+  const vaultUserId = isDemoMode() ? 'demo' : (currentUserId ?? 'legacy-single-user')
+  const vaultScope = useMemo(() => ({ userId: vaultUserId }), [vaultUserId])
   const [vaultKey, setVaultKey] = useState<CryptoKey | null>(null)
   const secretsQuery = useSecretsQuery({ enabled: vaultKey !== null })
   const createSecret = useCreateSecret()
@@ -49,6 +61,12 @@ export function ClavesView() {
       { service: string | null; username: string | null; notes: string | null }
     >
   >({})
+
+  const lockVault = useCallback(() => {
+    setVaultKey(null)
+    setRevealed({})
+    setDecryptedMetadata({})
+  }, [])
 
   const rawSecrets = secretsQuery.data
   const secrets = useMemo(() => rawSecrets ?? [], [rawSecrets])
@@ -98,10 +116,58 @@ export function ClavesView() {
     }
   }, [secrets, vaultKey])
 
+  useEffect(() => {
+    lockVault()
+  }, [lockVault, vaultUserId])
+
+  useEffect(() => {
+    if (!vaultKey || autoLockMs <= 0) return
+    let timer: number | undefined
+    const resetTimer = () => {
+      if (timer !== undefined) window.clearTimeout(timer)
+      timer = window.setTimeout(lockVault, autoLockMs)
+    }
+    const lockOnHidden = () => {
+      if (document.visibilityState === 'hidden') lockVault()
+      else resetTimer()
+    }
+    const events = ['keydown', 'mousedown', 'mousemove', 'touchstart'] as const
+    for (const event of events)
+      window.addEventListener(event, resetTimer, {
+        passive: true,
+      })
+    document.addEventListener('visibilitychange', lockOnHidden)
+    resetTimer()
+    return () => {
+      if (timer !== undefined) window.clearTimeout(timer)
+      for (const event of events) window.removeEventListener(event, resetTimer)
+      document.removeEventListener('visibilitychange', lockOnHidden)
+    }
+  }, [autoLockMs, lockVault, vaultKey])
+
   if (!vaultKey) {
-    return <VaultGate onUnlock={setVaultKey} />
+    return <VaultGate scope={vaultScope} onUnlock={setVaultKey} />
   }
   const activeVaultKey = vaultKey
+
+  function scheduleClipboardClear(copiedValue: string) {
+    if (clipboardClearMs <= 0) return
+    window.setTimeout(() => {
+      const clipboard = navigator.clipboard
+      if (!clipboard?.writeText) return
+      const clear = () => clipboard.writeText('').catch(() => undefined)
+      if (clipboard.readText) {
+        clipboard
+          .readText()
+          .then((currentValue) => {
+            if (currentValue === copiedValue) void clear()
+          })
+          .catch(() => undefined)
+        return
+      }
+      void clear()
+    }, clipboardClearMs)
+  }
 
   async function save() {
     if (!label.trim() || !secret.trim()) return
@@ -176,9 +242,7 @@ export function ClavesView() {
           await copyText(plainText)
           markCopied.mutate(id)
           toast.show({ message: 'Clave copiada.', tone: 'success' })
-          window.setTimeout(() => {
-            navigator.clipboard.writeText('').catch(() => undefined)
-          }, 20_000)
+          scheduleClipboardClear(plainText)
         } catch (err) {
           toast.show({
             message: err instanceof Error ? err.message : 'No se pudo descifrar',
@@ -196,13 +260,9 @@ export function ClavesView() {
 
   return (
     <>
-      <ViewHeader title="Claves" eyebrow="vault privado" accent={ACCENT} spacing="wide" />
       <div className="mb-4 flex justify-end">
         <button
-          onClick={() => {
-            setVaultKey(null)
-            setRevealed({})
-          }}
+          onClick={lockVault}
           className="section-eyebrow hover:text-ink-700 transition-colors"
         >
           bloquear vault
