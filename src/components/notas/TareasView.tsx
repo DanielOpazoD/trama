@@ -99,11 +99,12 @@ export function TareasView() {
     return { pending, done }
   }
 
-  function taskLine(task: Task) {
+  function taskLine(task: Task, week: string) {
     return (
       <TaskItem
         key={task.id}
         task={task}
+        displayWeek={week}
         busy={busy}
         onToggle={() => {
           const completing = !task.done
@@ -153,7 +154,7 @@ export function TareasView() {
         <div className="px-4 pb-3">
           {(pending.length > 0 || done.length > 0) && (
             <ul className="divide-y divide-ink-100/40">
-              {pending.map(taskLine)}
+              {pending.map((t) => taskLine(t, week))}
               {done.length > 0 && (
                 <li className="list-none pt-2 pb-0.5">
                   <span className="section-eyebrow text-ink-300">
@@ -161,7 +162,7 @@ export function TareasView() {
                   </span>
                 </li>
               )}
-              {done.map(taskLine)}
+              {done.map((t) => taskLine(t, week))}
             </ul>
           )}
 
@@ -180,7 +181,7 @@ export function TareasView() {
           </div>
 
           {/* Fotos de la semana */}
-          <WeekPhotos weekStart={week} />
+          <WeekPhotos weekStart={week} eager={isCurrent} />
         </div>
       </article>
     )

@@ -1,7 +1,17 @@
 import { useState, type ReactNode } from 'react'
 import type { Task, TaskPatch, TaskPriority } from '../../api'
-import { CheckIcon, FileIcon, InfoIcon, PencilIcon, TrashIcon } from '../Icons'
+import {
+  ArrowRightIcon,
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  FileIcon,
+  InfoIcon,
+  PencilIcon,
+  TrashIcon,
+} from '../Icons'
 import { PriorityDots, PRIORITY_META, PRIORITY_NEXT } from './PriorityDots'
+import { formatWeekRange, relativeWeekLabel, shiftWeeks } from './notasUtils'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -61,16 +71,22 @@ function formatCreatedFull(iso: string): string {
  * Una LÍNEA de recordatorio dentro del cuadro de la semana. No es una tarjeta:
  * es una viñeta compacta — checkbox de estado, un punto de color para la
  * prioridad (clic para ciclar alta → media → baja) y el texto con #etiquetas.
- * El vencimiento, si lo hay, va tenue al final. Editar/borrar aparecen al hover.
+ * Si vino arrastrada de una semana anterior, lo marca tenue ("desde …"). El
+ * detalle y la fecha de creación viven tras iconos sutiles (ventana flotante al
+ * pasar el mouse en escritorio; un toque en táctil). Las acciones (posponer,
+ * editar, borrar) se revelan al hover y quedan visibles en táctil.
  */
 export function TaskItem({
   task,
+  displayWeek,
   onToggle,
   onSave,
   onDelete,
   busy = false,
 }: {
   task: Task
+  /** Semana del cuadro donde se muestra (para "viene de antes" y posponer). */
+  displayWeek: string
   onToggle: () => void
   onSave: (patch: TaskPatch) => void
   onDelete: () => void
@@ -78,11 +94,13 @@ export function TaskItem({
 }) {
   const [editing, setEditing] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false)
   const [title, setTitle] = useState(task.title)
   const [detail, setDetail] = useState(task.detail ?? '')
   const [due, setDue] = useState(task.dueDate ?? '')
   const [showDue, setShowDue] = useState(Boolean(task.dueDate))
   const [priority, setPriority] = useState<TaskPriority>(task.priority)
+  const [week, setWeek] = useState(task.weekStart)
 
   function startEdit() {
     setTitle(task.title)
@@ -90,13 +108,20 @@ export function TaskItem({
     setDue(task.dueDate ?? '')
     setShowDue(Boolean(task.dueDate))
     setPriority(task.priority)
+    setWeek(task.weekStart)
     setEditing(true)
   }
 
   function save() {
     const t = title.trim()
     if (!t) return
-    onSave({ title: t, detail: detail.trim() || null, dueDate: due || null, priority })
+    onSave({
+      title: t,
+      detail: detail.trim() || null,
+      dueDate: due || null,
+      priority,
+      weekStart: week,
+    })
     setEditing(false)
   }
 
@@ -124,8 +149,31 @@ export function TaskItem({
           className="input-paper w-full resize-none text-sm mb-2"
         />
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 flex-wrap">
             <PriorityDots value={priority} onChange={setPriority} disabled={busy} />
+            {/* Mover de semana */}
+            <span className="flex items-center gap-1 text-micro uppercase tracking-eyebrow text-ink-400">
+              semana
+              <button
+                type="button"
+                onClick={() => setWeek(shiftWeeks(week, -1))}
+                aria-label="Semana anterior"
+                className="p-0.5 rounded text-ink-300 hover:text-ink-700 transition-colors"
+              >
+                <ChevronLeftIcon size={13} />
+              </button>
+              <span className="normal-case tracking-normal text-ink-600 tabular-nums text-center min-w-[5.5rem]">
+                {relativeWeekLabel(week) || formatWeekRange(week)}
+              </span>
+              <button
+                type="button"
+                onClick={() => setWeek(shiftWeeks(week, 1))}
+                aria-label="Semana siguiente"
+                className="p-0.5 rounded text-ink-300 hover:text-ink-700 transition-colors"
+              >
+                <ChevronRightIcon size={13} />
+              </button>
+            </span>
             {showDue ? (
               <span className="flex items-center gap-2">
                 <label className="text-micro uppercase tracking-eyebrow text-ink-400 flex items-center gap-2">
@@ -178,10 +226,13 @@ export function TaskItem({
 
   const overdue = !task.done && task.dueDate !== null && task.dueDate < todayLocal()
   const meta = PRIORITY_META[task.priority]
+  // ¿Vino arrastrada de una semana anterior a la que se muestra?
+  const carriedFrom =
+    !task.done && task.weekStart && task.weekStart < displayWeek ? task.weekStart : null
 
   return (
     <li className="group flex items-start gap-2.5 py-1.5">
-      {/* Checkbox de estado */}
+      {/* Checkbox de estado — el signo de hecho/pendiente. */}
       <button
         onClick={onToggle}
         disabled={busy}
@@ -195,7 +246,7 @@ export function TaskItem({
         }`}
         style={task.done ? { backgroundColor: ACCENT } : undefined}
       >
-        <CheckIcon size={11} />
+        <CheckIcon size={11} className={task.done ? 'animate-check-pop' : undefined} />
       </button>
 
       {/* Punto de prioridad — el color es la marca; clic cicla alta→media→baja. */}
@@ -213,23 +264,27 @@ export function TaskItem({
         />
       </button>
 
-      {/* Texto del recordatorio */}
+      {/* Texto del recordatorio — clic para editar. */}
       <div className="min-w-0 flex-1">
         <p
-          className={`break-words leading-snug ${
+          onClick={startEdit}
+          className={`break-words leading-snug cursor-text ${
             task.done ? 'text-ink-300 line-through' : 'text-ink-700'
           }`}
         >
           {renderWithTags(task.title)}
         </p>
+        {carriedFrom && (
+          <span className="text-micro uppercase tracking-eyebrow text-ink-300">
+            desde {formatDue(carriedFrom)}
+          </span>
+        )}
       </div>
 
-      {/* Detalle — icono sutil; al pasar el mouse, ventana flotante con el texto;
-          clic para escribir o editar el detalle. */}
+      {/* Detalle — icono sutil; ventana flotante al pasar el mouse; clic para
+          escribir o editar (en táctil, el toque abre la edición). */}
       <span
-        className={`relative shrink-0 mt-px group/detail ${
-          task.detail ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity'
-        }`}
+        className={`relative shrink-0 mt-px group/detail ${task.detail ? '' : 'hover-actions'}`}
       >
         <button
           onClick={startEdit}
@@ -255,10 +310,11 @@ export function TaskItem({
         )}
       </span>
 
-      {/* Información interna — icono "i"; al pasar el mouse, cuándo se creó. */}
+      {/* Información interna — icono "i"; al pasar el mouse o tocar, cuándo se creó. */}
       <span className="relative shrink-0 mt-px group/info">
         <button
           type="button"
+          onClick={() => setInfoOpen((v) => !v)}
           aria-label={`Creado: ${formatCreatedFull(task.createdAt)}`}
           title={`Creado: ${formatCreatedFull(task.createdAt)}`}
           className="p-1 rounded text-ink-300 hover:text-ink-600 transition-colors"
@@ -267,7 +323,9 @@ export function TaskItem({
         </button>
         <span
           role="tooltip"
-          className="pointer-events-none absolute right-0 top-full mt-1 z-20 w-max max-w-[14rem] rounded-lg border border-ink-100 bg-paper-50 px-2.5 py-1.5 text-xs text-ink-500 normal-case tracking-normal opacity-0 group-hover/info:opacity-100 transition-opacity"
+          className={`pointer-events-none absolute right-0 top-full mt-1 z-20 w-max max-w-[14rem] rounded-lg border border-ink-100 bg-paper-50 px-2.5 py-1.5 text-xs text-ink-500 normal-case tracking-normal transition-opacity group-hover/info:opacity-100 ${
+            infoOpen ? 'opacity-100' : 'opacity-0'
+          }`}
           style={{ boxShadow: 'var(--card-shadow-hover)' }}
         >
           Creado: {formatCreatedFull(task.createdAt)}
@@ -285,8 +343,19 @@ export function TaskItem({
         </span>
       )}
 
-      {/* Acciones — sutiles, al hover (y con foco). */}
-      <div className="mt-px shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+      {/* Acciones — reveladas al hover en escritorio, visibles en táctil. */}
+      <div className="mt-px shrink-0 flex items-center gap-1 hover-actions">
+        {!task.done && (
+          <button
+            onClick={() => onSave({ weekStart: shiftWeeks(displayWeek, 1) })}
+            disabled={busy}
+            aria-label="Posponer a la próxima semana"
+            title="Posponer a la próxima semana"
+            className="p-1 text-ink-300 hover:text-ink-700 rounded transition-colors disabled:opacity-50"
+          >
+            <ArrowRightIcon size={13} />
+          </button>
+        )}
         <button
           onClick={startEdit}
           disabled={busy}
