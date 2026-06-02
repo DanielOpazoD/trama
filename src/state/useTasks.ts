@@ -48,6 +48,8 @@ export function useUpdateTask() {
                 ...(patch.title !== undefined ? { title: patch.title } : {}),
                 ...(patch.detail !== undefined ? { detail: patch.detail } : {}),
                 ...(patch.dueDate !== undefined ? { dueDate: patch.dueDate } : {}),
+                ...(patch.priority !== undefined ? { priority: patch.priority } : {}),
+                ...(patch.weekStart !== undefined ? { weekStart: patch.weekStart } : {}),
                 ...(patch.done !== undefined ? { done: patch.done } : {}),
               }
             : t,

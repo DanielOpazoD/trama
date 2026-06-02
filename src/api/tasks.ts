@@ -5,6 +5,9 @@
  */
 import { request } from './request'
 
+/** Prioridad de un recordatorio — da el color (alta · media · baja). */
+export type TaskPriority = 'alta' | 'media' | 'baja'
+
 export type Task = {
   id: string
   title: string
@@ -12,6 +15,10 @@ export type Task = {
   done: boolean
   /** Vencimiento opcional como 'YYYY-MM-DD', o null. */
   dueDate: string | null
+  /** Color de prioridad del recordatorio. */
+  priority: TaskPriority
+  /** Lunes ('YYYY-MM-DD') de la semana a la que pertenece el recordatorio. */
+  weekStart: string
   /** ISO de cuándo se marcó como hecha, o null si pendiente. */
   completedAt: string | null
   tags: string[]
@@ -25,6 +32,8 @@ type TaskRow = {
   detail: string | null
   done: boolean
   due_date: string | null
+  priority: string
+  week_start: string
   completed_at: string | null
   tags: string[] | null
   created_at: string
@@ -38,6 +47,8 @@ function taskFromRow(r: TaskRow): Task {
     detail: r.detail,
     done: r.done,
     dueDate: r.due_date,
+    priority: (r.priority as TaskPriority) ?? 'media',
+    weekStart: r.week_start,
     completedAt: r.completed_at,
     tags: r.tags ?? [],
     createdAt: r.created_at,
@@ -49,6 +60,8 @@ export type TaskCreate = {
   title: string
   detail?: string | null
   dueDate?: string | null
+  priority?: TaskPriority
+  weekStart?: string
 }
 
 export type TaskPatch = {
@@ -56,6 +69,8 @@ export type TaskPatch = {
   detail?: string | null
   done?: boolean
   dueDate?: string | null
+  priority?: TaskPriority
+  weekStart?: string
 }
 
 export const tasksApi = {

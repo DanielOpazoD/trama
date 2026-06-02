@@ -21,9 +21,17 @@ afterEach(() => {
 })
 
 describe('<TareasView />', () => {
-  it('muestra el composer y el estado vacío cuando no hay tareas', async () => {
+  it('muestra el navegador de meses y un composer por semana', async () => {
     renderWithProviders(<TareasView />)
-    expect(screen.getByPlaceholderText(/Nueva tarea/)).toBeInTheDocument()
-    expect(await screen.findByText(/Nada pendiente/)).toBeInTheDocument()
+    // Navegador temporal: año con flechas y meses.
+    expect(
+      await screen.findByRole('button', { name: /año siguiente/i }),
+    ).toBeInTheDocument()
+    // Cada semana del mes tiene su composer con selector de prioridad.
+    const inputs = await screen.findAllByPlaceholderText(/Agregar recordatorio/)
+    expect(inputs.length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByRole('radio', { name: /prioridad alta/i }).length,
+    ).toBeGreaterThan(0)
   })
 })

@@ -1,25 +1,27 @@
 import { useMemo, useState } from 'react'
 import { useTasksQuery, useCreateTask, useUpdateTask, useDeleteTask } from '../../state'
-import { EmptyMessage } from '../EmptyMessage'
+import type { Task, TaskPriority } from '../../api'
 import { LoadingHint } from '../LoadingHint'
-import { SearchIcon } from '../Icons'
+import { PlusIcon } from '../Icons'
 import { TaskItem } from './TaskItem'
-import { ActivityCalendar } from './ActivityCalendar'
-
-function todayLocal(): string {
-  const d = new Date()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${d.getFullYear()}-${mm}-${dd}`
-}
-
-const ACCENT = 'var(--accent-sage)'
+import { PriorityDots } from './PriorityDots'
+import { WeekPhotos } from './WeekPhotos'
+import { MonthNavigator } from './MonthNavigator'
+import {
+  weekStartLocal,
+  formatWeekRangeLong,
+  relativeWeekLabel,
+  mondaysOfMonth,
+  weekYearMonth,
+} from './notasUtils'
 
 /**
- * τ-worlds Fase 3: la sección Tareas de Trama Notas. Pendientes livianos —
- * título + detalle + fecha opcionales, con las mismas #etiquetas que las
- * notas. Buscador y filtro por etiqueta son client-side (instantáneos). La
- * lista separa pendientes (arriba) de hechas (abajo, atenuadas).
+ * Trama Notas — sección Tareas. Arriba, un navegador por año y mes; al elegir
+ * un mes se muestran TODAS sus semanas. Cada semana es un cuadro (una hoja
+ * semanal) cuyo título es el rango de fechas; dentro, cada recordatorio es una
+ * línea con su color de prioridad, un signo de hecho/pendiente y un icono de
+ * detalle flotante. Cada semana puede sumar fotos. La búsqueda vive en el
+ * buscador global del mundo Notas (arriba).
  */
 export function TareasView() {
   const tasksQuery = useTasksQuery()
@@ -27,289 +29,217 @@ export function TareasView() {
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
 
-  const [title, setTitle] = useState('')
-  const [detail, setDetail] = useState('')
-  const [due, setDue] = useState('')
-  // El vencimiento es opcional: el campo aparece solo si el usuario lo pide.
-  const [showDue, setShowDue] = useState(false)
-  const [search, setSearch] = useState('')
-  const [activeTag, setActiveTag] = useState<string | null>(null)
-  // Día seleccionado en el calendario (filtra por fecha de vencimiento), o null.
-  const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  const now = new Date()
+  const [navYear, setNavYear] = useState(now.getFullYear())
+  const [navMonth, setNavMonth] = useState(now.getMonth())
 
   const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
+  const todayWeek = weekStartLocal()
 
-  const allTags = useMemo(() => {
-    const set = new Set<string>()
-    for (const t of tasks) for (const tag of t.tags) set.add(tag)
-    return [...set].sort((a, b) => a.localeCompare(b))
-  }, [tasks])
-
-  // Calendario de Tareas: por fecha de VENCIMIENTO, solo PENDIENTES (las hechas
-  // y las sin fecha no aparecen). El número en cada día = tareas por vencer.
-  const calendarDays = useMemo(
-    () => tasks.filter((t) => t.dueDate && !t.done).map((t) => t.dueDate as string),
-    [tasks],
-  )
-  const calendarStats = useMemo(() => {
-    const today = todayLocal()
-    const pendientes = tasks.filter((t) => !t.done).length
-    const vencidas = tasks.filter(
-      (t) => !t.done && t.dueDate !== null && t.dueDate < today,
-    ).length
-    return [
-      { n: tasks.length, label: tasks.length === 1 ? 'tarea' : 'tareas' },
-      { n: pendientes, label: 'pendientes' },
-      { n: vencidas, label: vencidas === 1 ? 'vencida' : 'vencidas' },
-    ]
-  }, [tasks])
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return tasks.filter((t) => {
-      if (activeTag && !t.tags.includes(activeTag)) return false
-      if (selectedDay && t.dueDate !== selectedDay) return false
-      if (q && !`${t.title}\n${t.detail ?? ''}`.toLowerCase().includes(q)) return false
-      return true
-    })
-  }, [tasks, search, activeTag, selectedDay])
-
-  function clearFilters() {
-    setSearch('')
-    setActiveTag(null)
-    setSelectedDay(null)
+  // Semana de una tarea, con red de seguridad: si por datos viejos faltara
+  // `weekStart`, la derivamos de su fecha de creación (o la semana actual).
+  function taskWeek(t: Task): string {
+    if (t.weekStart && /^\d{4}-\d{2}-\d{2}$/.test(t.weekStart)) return t.weekStart
+    const d = t.createdAt ? new Date(t.createdAt) : new Date()
+    return weekStartLocal(Number.isNaN(d.getTime()) ? new Date() : d)
   }
 
-  const pending = filtered.filter((t) => !t.done)
-  const done = filtered.filter((t) => t.done)
-
-  function save() {
-    const t = title.trim()
-    if (!t || createTask.isPending) return
-    createTask.mutate(
-      { title: t, detail: detail.trim() || null, dueDate: due || null },
-      {
-        onSuccess: () => {
-          setTitle('')
-          setDetail('')
-          setDue('')
-          setShowDue(false)
-        },
-      },
-    )
-  }
-
-  function onComposerKey(e: React.KeyboardEvent) {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault()
-      save()
+  const byWeek = useMemo(() => {
+    const map = new Map<string, Task[]>()
+    for (const t of tasks) {
+      const wk = taskWeek(t)
+      const arr = map.get(wk) ?? []
+      arr.push(t)
+      map.set(wk, arr)
     }
+    return map
+  }, [tasks])
+
+  // Meses (del año mostrado) con algún pendiente — para el punto del navegador.
+  const pendingMonths = useMemo(() => {
+    const set = new Set<number>()
+    for (const t of tasks) {
+      if (t.done) continue
+      const { year, month0 } = weekYearMonth(taskWeek(t))
+      if (year === navYear) set.add(month0)
+    }
+    return set
+  }, [tasks, navYear])
+
+  const weekKeys = useMemo(() => mondaysOfMonth(navYear, navMonth), [navYear, navMonth])
+
+  function addReminder(weekStart: string, title: string, priority: TaskPriority) {
+    if (createTask.isPending) return
+    createTask.mutate({ title, detail: null, dueDate: null, priority, weekStart })
   }
 
   const busy = updateTask.isPending || deleteTask.isPending
 
+  function lines(items: Task[]) {
+    const rank: Record<string, number> = { alta: 0, media: 1, baja: 2 }
+    const pending = items
+      .filter((t) => !t.done)
+      .sort(
+        (a, b) =>
+          (rank[a.priority] ?? 1) - (rank[b.priority] ?? 1) ||
+          b.createdAt.localeCompare(a.createdAt),
+      )
+    const done = items
+      .filter((t) => t.done)
+      .sort((a, b) =>
+        (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt),
+      )
+    return { pending, done }
+  }
+
+  function taskLine(task: Task) {
+    return (
+      <TaskItem
+        key={task.id}
+        task={task}
+        busy={busy}
+        onToggle={() => updateTask.mutate({ id: task.id, patch: { done: !task.done } })}
+        onSave={(patch) => updateTask.mutate({ id: task.id, patch })}
+        onDelete={() => deleteTask.mutate(task.id)}
+      />
+    )
+  }
+
+  function renderWeek(week: string) {
+    const items = byWeek.get(week) ?? []
+    const { pending, done } = lines(items)
+    const isCurrent = week === todayWeek
+    const rel = relativeWeekLabel(week)
+    const titleLong = formatWeekRangeLong(week)
+
+    return (
+      <article
+        key={week}
+        className="card-paper-soft rounded-xl border border-ink-100/70 animate-fade-up"
+        style={isCurrent ? { borderColor: 'var(--accent-sage)' } : undefined}
+      >
+        <div className="flex items-baseline justify-between gap-3 px-4 pt-4 pb-1">
+          <span className="min-w-0">
+            {rel && <span className="section-eyebrow text-ink-400 block">{rel}</span>}
+            <span className="font-serif text-lg text-ink-700 tracking-tight">
+              {titleLong}
+            </span>
+          </span>
+          <span className="shrink-0 text-micro uppercase tracking-eyebrow text-ink-300 tabular-nums">
+            {pending.length > 0
+              ? `${pending.length} pend.`
+              : done.length > 0
+                ? 'todo hecho'
+                : ''}
+          </span>
+        </div>
+
+        <div className="px-4 pb-3">
+          {(pending.length > 0 || done.length > 0) && (
+            <ul className="divide-y divide-ink-100/40">
+              {pending.map(taskLine)}
+              {done.length > 0 && (
+                <li className="list-none pt-2 pb-0.5">
+                  <span className="section-eyebrow text-ink-300">
+                    hechas · {done.length}
+                  </span>
+                </li>
+              )}
+              {done.map(taskLine)}
+            </ul>
+          )}
+
+          {/* Agregar — una línea dentro del cuadro de la semana. */}
+          <div
+            className={
+              pending.length > 0 || done.length > 0
+                ? 'border-t border-ink-100/50 mt-1'
+                : ''
+            }
+          >
+            <WeekComposer
+              onAdd={(title, priority) => addReminder(week, title, priority)}
+              pending={createTask.isPending}
+            />
+          </div>
+
+          {/* Fotos de la semana */}
+          <WeekPhotos weekStart={week} />
+        </div>
+      </article>
+    )
+  }
+
   return (
     <>
-      {/* Composer */}
-      <div className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={onComposerKey}
-          placeholder="Nueva tarea… usa #etiquetas para clasificarla"
-          className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
-        />
-        <textarea
-          value={detail}
-          onChange={(e) => setDetail(e.target.value)}
-          onKeyDown={onComposerKey}
-          rows={2}
-          placeholder="Detalle (opcional)"
-          className="w-full resize-y bg-transparent text-sm text-ink-600 placeholder:text-ink-300 leading-relaxed mt-1"
-        />
-        <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60">
-          {/* Vencimiento opcional: por defecto solo un enlace discreto; el
-              campo de fecha aparece si el usuario decide ponerle plazo. */}
-          {showDue || due ? (
-            <label className="text-micro uppercase tracking-eyebrow text-ink-400 flex items-center gap-2">
-              vence
-              <input
-                type="date"
-                value={due}
-                onChange={(e) => setDue(e.target.value)}
-                className="input-paper text-sm normal-case tracking-normal"
-                autoFocus
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setDue('')
-                  setShowDue(false)
-                }}
-                aria-label="Quitar vencimiento"
-                className="text-ink-300 hover:text-ink-700 transition-colors"
-              >
-                ✕
-              </button>
-            </label>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowDue(true)}
-              className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
-            >
-              + fecha de vencimiento
-            </button>
-          )}
-          <button
-            onClick={save}
-            disabled={!title.trim() || createTask.isPending}
-            className="btn-ink text-xs disabled:opacity-40"
-          >
-            {createTask.isPending ? 'Agregando…' : 'Agregar tarea'}
-          </button>
-        </div>
-      </div>
+      <MonthNavigator
+        year={navYear}
+        month0={navMonth}
+        currentYear={now.getFullYear()}
+        currentMonth0={now.getMonth()}
+        pendingMonths={pendingMonths}
+        onChange={(y, m) => {
+          setNavYear(y)
+          setNavMonth(m)
+        }}
+      />
 
-      {/* Calendario por vencimiento — solo si hay tareas con fecha */}
-      {calendarDays.length > 0 && (
-        <ActivityCalendar
-          dayKeys={calendarDays}
-          stats={calendarStats}
-          unit={{ one: 'tarea', many: 'tareas' }}
-          selectedDay={selectedDay}
-          onSelectDay={setSelectedDay}
-        />
-      )}
-
-      {/* Buscador + chips — solo si ya hay tareas */}
-      {tasks.length > 0 && (
-        <div className="mb-5 space-y-2.5">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 bg-paper-50 border border-ink-100/60 rounded-md">
-            <SearchIcon size={13} className="text-ink-300 shrink-0" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar en tus tareas…"
-              className="flex-1 bg-transparent text-caption text-ink-700 placeholder:text-ink-300"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                aria-label="Limpiar búsqueda"
-                className="text-ink-300 hover:text-ink-700 text-caption"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-          {allTags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setActiveTag(null)}
-                className={`text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border transition-colors ${
-                  activeTag === null
-                    ? 'border-ink-200 text-ink-700 bg-ink-100/50'
-                    : 'border-ink-100 text-ink-400 hover:text-ink-700'
-                }`}
-              >
-                todas
-              </button>
-              {allTags.map((t) => {
-                const on = activeTag === t
-                return (
-                  <button
-                    key={t}
-                    onClick={() => setActiveTag(on ? null : t)}
-                    className="text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border transition-colors"
-                    style={
-                      on
-                        ? {
-                            borderColor: ACCENT,
-                            color: ACCENT,
-                            background: 'var(--accent-sage-soft, transparent)',
-                          }
-                        : undefined
-                    }
-                  >
-                    #{t}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Lista / estados */}
       {tasksQuery.isLoading ? (
         <div className="py-10 flex justify-center">
-          <LoadingHint text="cargando tareas" size="sm" />
+          <LoadingHint text="cargando recordatorios" size="sm" />
         </div>
-      ) : tasks.length === 0 ? (
-        <EmptyMessage
-          illustration="thread"
-          title="Nada pendiente… por ahora."
-          body={
-            <>
-              Anota arriba lo que tengas que hacer — una tarea, un recado, un pendiente
-              mental. Con <strong>#etiquetas</strong> y una fecha opcional las mantienes
-              ordenadas.
-            </>
-          }
-          hint="⌘↵ para agregar rápido; márcalas como hechas con el check."
-        />
-      ) : filtered.length === 0 ? (
-        <EmptyMessage
-          illustration="thread"
-          title="Nada coincide con eso."
-          body={<>Prueba con otra palabra, otra etiqueta u otro día.</>}
-          hint={
-            <button
-              onClick={clearFilters}
-              className="underline hover:text-ink-700 transition-colors"
-            >
-              Ver todas
-            </button>
-          }
-        />
       ) : (
-        <div className="space-y-6">
-          {pending.length > 0 && (
-            <div className="space-y-3">
-              {pending.map((task) => (
-                <TaskItem
-                  key={task.id}
-                  task={task}
-                  busy={busy}
-                  onToggle={() =>
-                    updateTask.mutate({ id: task.id, patch: { done: true } })
-                  }
-                  onSave={(patch) => updateTask.mutate({ id: task.id, patch })}
-                  onDelete={() => deleteTask.mutate(task.id)}
-                />
-              ))}
-            </div>
-          )}
-          {done.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="section-eyebrow text-ink-300">hechas · {done.length}</h4>
-              {done.map((task) => (
-                <TaskItem
-                  key={task.id}
-                  task={task}
-                  busy={busy}
-                  onToggle={() =>
-                    updateTask.mutate({ id: task.id, patch: { done: false } })
-                  }
-                  onSave={(patch) => updateTask.mutate({ id: task.id, patch })}
-                  onDelete={() => deleteTask.mutate(task.id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <div className="space-y-4">{weekKeys.map(renderWeek)}</div>
       )}
     </>
+  )
+}
+
+/** Composer de una semana: título + prioridad; Enter agrega. Estado local para
+ *  que cada cuadro tenga su propio borrador sin pisarse con los demás. */
+function WeekComposer({
+  onAdd,
+  pending,
+}: {
+  onAdd: (title: string, priority: TaskPriority) => void
+  pending: boolean
+}) {
+  const [title, setTitle] = useState('')
+  const [priority, setPriority] = useState<TaskPriority>('media')
+
+  function submit() {
+    const t = title.trim()
+    if (!t || pending) return
+    onAdd(t, priority)
+    setTitle('')
+    setPriority('media')
+  }
+
+  return (
+    <div className="flex items-center gap-2.5 py-1.5">
+      <PlusIcon size={14} className="text-ink-300 shrink-0" />
+      <PriorityDots value={priority} onChange={setPriority} />
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            submit()
+          }
+        }}
+        placeholder="Agregar recordatorio…"
+        className="flex-1 min-w-0 bg-transparent text-ink-700 placeholder:text-ink-300 py-0.5"
+      />
+      {title.trim() && (
+        <button
+          onClick={submit}
+          disabled={pending}
+          className="btn-ink text-xs disabled:opacity-40 shrink-0"
+        >
+          {pending ? '…' : 'Agregar'}
+        </button>
+      )}
+    </div>
   )
 }

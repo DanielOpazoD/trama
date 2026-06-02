@@ -116,6 +116,16 @@ function daysAgo(n: number): string {
 function dateAgo(n: number): string {
   return daysAgo(n).slice(0, 10)
 }
+/** Lunes (local) de la semana de hace `n` días, como 'YYYY-MM-DD'. */
+function weekStartAgo(n: number): string {
+  const base = new Date(Date.now() - n * 86_400_000)
+  const local = new Date(base.getFullYear(), base.getMonth(), base.getDate())
+  const dow = (local.getDay() + 6) % 7 // 0 = lunes
+  local.setDate(local.getDate() - dow)
+  const mm = String(local.getMonth() + 1).padStart(2, '0')
+  const dd = String(local.getDate()).padStart(2, '0')
+  return `${local.getFullYear()}-${mm}-${dd}`
+}
 
 /** Deriva #etiquetas (igual criterio que el servidor). */
 function parseTags(text: string): string[] {
@@ -371,20 +381,41 @@ function buildSeed(): Store {
     detail: null,
     done: false,
     due_date: null,
+    priority: 'media',
+    week_start: weekStartAgo(d),
     completed_at: null,
     tags: parseTags(title),
     origin: manual,
     ...ts(d),
     ...extra,
   })
+  const thisWeek = weekStartAgo(0)
+  const lastWeek = weekStartAgo(7)
   const tasks: Row[] = [
     task('Terminar el ensayo sobre #memoria', 1, {
       detail: 'Revisar las citas marcadas como resonantes.',
-      due_date: dateAgo(-3),
+      priority: 'alta',
+      week_start: thisWeek,
     }),
-    task('Responder el correo de la editorial', 2, { due_date: dateAgo(1) }),
-    task('Ordenar las #notas de la semana', 3),
-    task('Leer un capítulo de Rayuela', 6, { done: true, completed_at: daysAgo(1) }),
+    task('Responder el correo de la editorial', 1, {
+      priority: 'alta',
+      due_date: dateAgo(-2),
+      week_start: thisWeek,
+    }),
+    task('Ordenar las #notas de la semana', 2, {
+      priority: 'media',
+      week_start: thisWeek,
+    }),
+    task('Comprar tinta para la #pluma', 2, { priority: 'baja', week_start: thisWeek }),
+    task('Llamar a la biblioteca por el préstamo', 8, {
+      priority: 'media',
+      week_start: lastWeek,
+    }),
+    task('Leer un capítulo de Rayuela', 8, {
+      done: true,
+      completed_at: daysAgo(6),
+      week_start: lastWeek,
+    }),
   ]
 
   return {
@@ -623,7 +654,15 @@ function route(
           ? { captured_at: (body.captured_at as string) || nowIso() }
           : {}),
         ...(resource === 'notes' ? { promoted_momento_id: null } : {}),
-        ...(resource === 'tasks' ? { done: false, completed_at: null } : {}),
+        ...(resource === 'tasks'
+          ? {
+              done: false,
+              completed_at: null,
+              due_date: (body.dueDate as string) ?? null,
+              priority: (body.priority as string) ?? 'media',
+              week_start: (body.weekStart as string) ?? weekStartAgo(0),
+            }
+          : {}),
       }
       rows.push(row)
       save(store)

@@ -73,6 +73,18 @@
     --accent-warn:         #b45309;  /* ámbar — atención / offline / costo */
     --accent-warn-soft:    rgb(180 83 9 / 0.12);
 
+    /* Prioridad de recordatorios (Tareas) — aliases semánticos de la paleta
+       del sistema, no colores nuevos. Como son var(--accent-*), se resuelven
+       con el tema activo (día / noche / vela) sin redefinirlos por tema:
+       alta = urgente (clay), media = atención (ámbar), baja = puede esperar
+       (prussian, frío y tranquilo). */
+    --priority-alta:       var(--accent-clay);
+    --priority-alta-soft:  var(--accent-clay-soft);
+    --priority-media:      var(--accent-warn);
+    --priority-media-soft: var(--accent-warn-soft);
+    --priority-baja:       var(--accent-primary);
+    --priority-baja-soft:  var(--accent-primary-soft);
+
     /* ν1: sombras tintadas — antes box-shadow usaba rgb(0 0 0) puro. Le
        agregamos un componente cálido del accent-gold (~12% del gold sobre
        una base mayormente negra) para que las cards floten en "habitación
