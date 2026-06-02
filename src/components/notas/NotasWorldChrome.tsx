@@ -2,7 +2,7 @@ import { HomeIcon, KeyIcon, NotesIcon, PromptIcon, TasksIcon } from '../Icons'
 import { TopBar } from '../TopBar'
 import { WorldSwitcher } from '../WorldSwitcher'
 import type { World } from '../../types/world'
-import type { NotasDensity, NotasSection } from './NotasWorld'
+import type { NotasSection } from './NotasWorld'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -131,42 +131,6 @@ export function NotasMobileTabs({
             </button>
           )
         })}
-      </div>
-    </div>
-  )
-}
-
-export function NotasDensityToggle({
-  density,
-  onChangeDensity,
-}: {
-  density: NotasDensity
-  onChangeDensity: (density: NotasDensity) => void
-}) {
-  const compact = density === 'compact'
-  return (
-    <div className="mb-4 flex justify-end">
-      <div className="inline-flex rounded-md border border-ink-100 bg-paper-50 p-0.5">
-        <button
-          type="button"
-          onClick={() => onChangeDensity('comfortable')}
-          aria-pressed={!compact}
-          className={`px-2.5 py-1 text-micro uppercase tracking-eyebrow rounded ${
-            compact ? 'text-ink-300 hover:text-ink-700' : 'bg-white text-ink-700'
-          }`}
-        >
-          Modo cómodo
-        </button>
-        <button
-          type="button"
-          onClick={() => onChangeDensity('compact')}
-          aria-pressed={compact}
-          className={`px-2.5 py-1 text-micro uppercase tracking-eyebrow rounded ${
-            compact ? 'bg-white text-ink-700' : 'text-ink-300 hover:text-ink-700'
-          }`}
-        >
-          Modo compacto
-        </button>
       </div>
     </div>
   )

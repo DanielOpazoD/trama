@@ -3,12 +3,7 @@ import { ClavesView } from './ClavesView'
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
 import { NotasView } from './NotasView'
-import {
-  NotasDensityToggle,
-  NotasMobileTabs,
-  NotasSidebar,
-  NotasTopBar,
-} from './NotasWorldChrome'
+import { NotasMobileTabs, NotasSidebar, NotasTopBar } from './NotasWorldChrome'
 import { PromptsView } from './PromptsView'
 import { TareasView } from './TareasView'
 import type { World } from '../../types/world'
@@ -23,17 +18,6 @@ import type { World } from '../../types/world'
  */
 export type NotasSection = 'inicio' | 'notas' | 'tareas' | 'prompts' | 'claves'
 
-const DENSITY_STORAGE_KEY = 'trama.notas.density'
-
-export type NotasDensity = 'comfortable' | 'compact'
-
-function readInitialDensity(): NotasDensity {
-  if (typeof window === 'undefined') return 'comfortable'
-  return window.localStorage.getItem(DENSITY_STORAGE_KEY) === 'compact'
-    ? 'compact'
-    : 'comfortable'
-}
-
 export function NotasWorld({
   world,
   onChangeWorld,
@@ -42,13 +26,6 @@ export function NotasWorld({
   onChangeWorld: (w: World) => void
 }) {
   const [section, setSection] = useState<NotasSection>('inicio')
-  const [density, setDensity] = useState<NotasDensity>(readInitialDensity)
-  const compact = density === 'compact'
-
-  function changeDensity(next: NotasDensity) {
-    setDensity(next)
-    window.localStorage.setItem(DENSITY_STORAGE_KEY, next)
-  }
 
   return (
     <div className="h-full w-full flex flex-col md:flex-row overflow-hidden">
@@ -72,11 +49,8 @@ export function NotasWorld({
         <div className="h-full overflow-y-auto">
           <div
             data-testid="notas-world-content"
-            className={`px-5 md:px-8 pb-24 mx-auto transition-[max-width] ${
-              compact ? 'py-5 md:py-7 max-w-6xl' : 'py-8 md:py-10 max-w-5xl'
-            }`}
+            className="px-5 md:px-8 pb-24 mx-auto py-8 md:py-10 max-w-5xl"
           >
-            <NotasDensityToggle density={density} onChangeDensity={changeDensity} />
             <NotasGlobalSearch onNavigate={setSection} />
             {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
             {section === 'notas' && <NotasView />}

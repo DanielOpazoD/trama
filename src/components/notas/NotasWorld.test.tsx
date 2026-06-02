@@ -46,13 +46,11 @@ describe('<NotasWorld />', () => {
     expect(screen.getByText('por realizar')).toBeInTheDocument()
   })
 
-  it('permite alternar densidad compacta y la recuerda', () => {
+  it('no muestra controles de modo cómodo ni compacto', () => {
     renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
 
-    const compactButton = screen.getByRole('button', { name: 'Modo compacto' })
-    fireEvent.click(compactButton)
-
-    expect(screen.getByTestId('notas-world-content')).toHaveClass('max-w-6xl')
-    expect(window.localStorage.getItem('trama.notas.density')).toBe('compact')
+    expect(screen.queryByRole('button', { name: 'Modo cómodo' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Modo compacto' })).toBeNull()
+    expect(screen.getByTestId('notas-world-content')).toHaveClass('max-w-5xl')
   })
 })
