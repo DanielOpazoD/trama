@@ -1336,6 +1336,17 @@ html.dark .paper-grain::before {
   .pad-block-4 { padding-block: var(--space-4); }
   .pad-block-5 { padding-block: var(--space-5); }
   .pad-block-8 { padding-block: var(--space-8); }
+
+  /* Acciones de fila reveladas al hover en escritorio, pero SIEMPRE visibles en
+     dispositivos sin hover (táctil) — donde el patrón "aparece al pasar el
+     mouse" dejaría los controles inalcanzables. El ancestro con `.group` define
+     el hover. */
+  .hover-actions { opacity: 1; transition: opacity 150ms ease; }
+  @media (hover: hover) {
+    .hover-actions { opacity: 0; }
+    .group:hover .hover-actions,
+    .hover-actions:focus-within { opacity: 1; }
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────

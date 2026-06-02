@@ -37,6 +37,11 @@ function addDays(dayKey: string, n: number): string {
   return `${date.getFullYear()}-${mm}-${dd}`
 }
 
+/** Mueve un week_start (lunes) `n` semanas (puede ser negativo). */
+export function shiftWeeks(weekStart: string, n: number): string {
+  return addDays(weekStart, n * 7)
+}
+
 /** Rango legible de la semana cuyo lunes es `weekStart`: "3 – 9 jun" / "29 may – 4 jun". */
 export function formatWeekRange(weekStart: string): string {
   const end = addDays(weekStart, 6)

@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import {
   useNotasAttachmentsQuery,
   useUploadNotasAttachment,
@@ -11,19 +11,30 @@ import { CameraIcon, TrashIcon } from '../Icons'
  * Fotos asociadas a una SEMANA (Tareas). Reutiliza el sistema de anexos con
  * ownerType 'week' y ownerId = el lunes de la semana ('YYYY-MM-DD'). Muestra
  * miniaturas y un botón sutil para adjuntar; solo imágenes.
+ *
+ * Carga perezosa: la semana actual abre directo (`eager`); las demás muestran
+ * un acceso "fotos" y solo consultan al servidor cuando se abren — así un mes
+ * con 5 semanas no dispara 5 peticiones de golpe.
  */
-export function WeekPhotos({ weekStart }: { weekStart: string }) {
+export function WeekPhotos({
+  weekStart,
+  eager = false,
+}: {
+  weekStart: string
+  eager?: boolean
+}) {
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const [open, setOpen] = useState(eager)
   const toast = useToast()
-  const query = useNotasAttachmentsQuery({ ownerType: 'week', ownerId: weekStart })
+  const query = useNotasAttachmentsQuery({
+    ownerType: 'week',
+    ownerId: weekStart,
+    enabled: open,
+  })
   const upload = useUploadNotasAttachment()
   const remove = useDeleteNotasAttachment()
 
   const photos = (query.data ?? []).filter((a) => a.mimeType.startsWith('image/'))
-
-  function pick() {
-    inputRef.current?.click()
-  }
 
   function onFiles(files: FileList | null) {
     const file = files?.[0]
@@ -44,6 +55,18 @@ export function WeekPhotos({ weekStart }: { weekStart: string }) {
       },
     )
     if (inputRef.current) inputRef.current.value = ''
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 pt-1 text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+      >
+        <CameraIcon size={13} />
+        fotos
+      </button>
+    )
   }
 
   return (
@@ -72,7 +95,7 @@ export function WeekPhotos({ weekStart }: { weekStart: string }) {
       ))}
 
       <button
-        onClick={pick}
+        onClick={() => inputRef.current?.click()}
         disabled={upload.isPending}
         className="size-14 rounded-md border border-dashed border-ink-200 inline-flex flex-col items-center justify-center gap-0.5 text-ink-300 hover:text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
         title="Adjuntar foto a la semana"

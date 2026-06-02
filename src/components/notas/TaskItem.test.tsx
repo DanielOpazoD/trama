@@ -32,6 +32,7 @@ describe('<TaskItem />', () => {
     render(
       <TaskItem
         task={baseTask}
+        displayWeek="2026-05-25"
         onToggle={onToggle}
         onSave={vi.fn()}
         onDelete={vi.fn()}
@@ -51,7 +52,13 @@ describe('<TaskItem />', () => {
   it('edita título, detalle y vencimiento normalizando espacios vacíos', () => {
     const onSave = vi.fn()
     render(
-      <TaskItem task={baseTask} onToggle={vi.fn()} onSave={onSave} onDelete={vi.fn()} />,
+      <TaskItem
+        task={baseTask}
+        displayWeek="2026-05-25"
+        onToggle={vi.fn()}
+        onSave={onSave}
+        onDelete={vi.fn()}
+      />,
     )
 
     fireEvent.click(screen.getByRole('button', { name: /editar tarea/i }))
@@ -71,6 +78,7 @@ describe('<TaskItem />', () => {
       detail: null,
       dueDate: null,
       priority: 'media',
+      weekStart: '2026-05-25',
     })
     expect(screen.queryByPlaceholderText(/título de la tarea/i)).not.toBeInTheDocument()
   })
@@ -78,7 +86,13 @@ describe('<TaskItem />', () => {
   it('cicla la prioridad desde la línea sin entrar a edición', () => {
     const onSave = vi.fn()
     render(
-      <TaskItem task={baseTask} onToggle={vi.fn()} onSave={onSave} onDelete={vi.fn()} />,
+      <TaskItem
+        task={baseTask}
+        displayWeek="2026-05-25"
+        onToggle={vi.fn()}
+        onSave={onSave}
+        onDelete={vi.fn()}
+      />,
     )
 
     // baseTask es 'media'; un clic en el punto cicla a 'baja'.
@@ -91,6 +105,7 @@ describe('<TaskItem />', () => {
     render(
       <TaskItem
         task={{ ...baseTask, done: true, dueDate: null }}
+        displayWeek="2026-05-25"
         onToggle={vi.fn()}
         onSave={vi.fn()}
         onDelete={onDelete}
