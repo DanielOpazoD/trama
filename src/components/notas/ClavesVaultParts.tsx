@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Secret, SecretKind } from '../../api'
 import {
   createVault,
@@ -183,7 +183,7 @@ export function SecretCard({
   onSaveEdit,
 }: {
   item: Secret
-  metadata: SecretMetadata | null
+  metadata: SecretMetadata | null | undefined
   value: string | null
   busy: boolean
   onReveal: () => void
@@ -192,6 +192,7 @@ export function SecretCard({
   onDelete: () => void
   onSaveEdit: (input: SecretEditInput) => void
 }) {
+  const metadataReady = metadata !== undefined
   const [editing, setEditing] = useState(false)
   const [label, setLabel] = useState(item.label)
   const [kind, setKind] = useState<SecretKind>(item.kind)
@@ -208,7 +209,19 @@ export function SecretCard({
         ? 'var(--accent-gold)'
         : 'var(--accent-sage)'
 
+  useEffect(() => {
+    if (editing) return
+    setLabel(item.label)
+    setKind(item.kind)
+    setService(metadata?.service ?? '')
+    setUsername(metadata?.username ?? '')
+    setNotes(metadata?.notes ?? '')
+    setExpiresAt(item.expiresAt ?? '')
+    setCritical(item.critical)
+  }, [editing, item, metadata])
+
   function beginEdit() {
+    if (!metadataReady) return
     setLabel(item.label)
     setKind(item.kind)
     setService(metadata?.service ?? '')
@@ -351,7 +364,7 @@ export function SecretCard({
               </button>
               <button
                 onClick={beginEdit}
-                disabled={busy}
+                disabled={busy || !metadataReady}
                 title="Editar"
                 aria-label="Editar clave"
                 className="p-1 text-ink-300 hover:text-ink-700"

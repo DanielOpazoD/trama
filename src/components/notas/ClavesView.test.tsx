@@ -318,6 +318,7 @@ describe('<ClavesView />', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'guardar clave' }))
 
+    await screen.findByText('daniel@example.com')
     await screen.findByRole('button', { name: 'Editar clave' })
     fireEvent.click(screen.getByRole('button', { name: 'Editar clave' }))
     fireEvent.change(screen.getByDisplayValue('daniel@example.com'), {

@@ -402,7 +402,11 @@ export function ClavesView({
             <SecretCard
               key={item.id}
               item={item}
-              metadata={decryptedMetadata[item.id] ?? null}
+              metadata={
+                Object.prototype.hasOwnProperty.call(decryptedMetadata, item.id)
+                  ? decryptedMetadata[item.id]
+                  : undefined
+              }
               value={revealed[item.id] ?? null}
               busy={
                 revealSecret.isPending ||
