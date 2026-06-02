@@ -82,26 +82,20 @@ export default withObservability(
     const ownerType = String(formData.get('ownerType') ?? '')
     const ownerId = String(formData.get('ownerId') ?? '')
     const encrypted = String(formData.get('encrypted') ?? '') === '1'
-    const originalFileName = cleanFileName(String(formData.get('originalFileName') ?? ''))
-    const originalMimeType = String(formData.get('originalMimeType') ?? '')
-    const originalByteSize = Number(String(formData.get('originalByteSize') ?? ''))
     if (!(file instanceof File)) return ApiErrors.validation(requestId, 'Falta file')
+    if (encrypted) {
+      return ApiErrors.validation(requestId, 'Los anexos no usan cifrado de vault')
+    }
     if (ownerType !== 'note' && ownerType !== 'prompt') {
       return ApiErrors.validation(requestId, 'ownerType debe ser note o prompt')
     }
     if (!ownerId) return ApiErrors.validation(requestId, 'ownerId requerido')
-    const displayName = encrypted ? originalFileName : cleanFileName(file.name)
-    const displayMime = encrypted ? originalMimeType : file.type
-    const displaySize = encrypted ? originalByteSize : file.size
+    const displayName = cleanFileName(file.name)
+    const displayMime = file.type
+    const displaySize = file.size
     if (!displayName) return ApiErrors.validation(requestId, 'Nombre de archivo requerido')
     if (!Number.isFinite(displaySize) || displaySize < 0) {
       return ApiErrors.validation(requestId, 'Tamaño de archivo inválido')
-    }
-    if (encrypted && file.type !== 'application/octet-stream') {
-      return ApiErrors.unsupportedMediaType(
-        requestId,
-        'Los anexos cifrados deben subirse como application/octet-stream',
-      )
     }
     if (file.size > MAX_BYTES) return ApiErrors.payloadTooLarge(requestId, 'Archivo > 20 MB')
     if (!ALLOWED_MIMES.has(displayMime)) {

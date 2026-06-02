@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { NotasAttachment, NotasAttachmentOwner } from '../../api'
-import { decryptAttachmentBlob } from '../../lib/attachmentCrypto'
+import { prepareAttachmentDownload } from '../../lib/attachmentDownload'
 import {
   useDeleteNotasAttachment,
   useNotasAttachmentsQuery,
@@ -53,12 +53,11 @@ export function AttachmentsPanel({
     try {
       const res = await fetch(attachment.url)
       if (!res.ok) throw new Error('No se pudo descargar el anexo')
-      const decrypted = await decryptAttachmentBlob(await res.blob(), {
-        encrypted: attachment.encrypted,
+      const fileBlob = await prepareAttachmentDownload(await res.blob(), {
         fileName: attachment.fileName,
         mimeType: attachment.mimeType,
       })
-      const url = URL.createObjectURL(decrypted)
+      const url = URL.createObjectURL(fileBlob)
       const link = document.createElement('a')
       link.href = url
       link.download = attachment.fileName

@@ -7,7 +7,7 @@ beforeEach(() => {
 })
 
 describe('notasAttachmentsApi', () => {
-  it('cifra el archivo antes de subirlo y conserva metadata original en form-data', async () => {
+  it('sube anexos sin cifrado local porque el vault aplica solo a Claves', async () => {
     const original = new File(['contenido privado del anexo'], 'brief.md', {
       type: 'text/markdown',
     })
@@ -16,13 +16,14 @@ describe('notasAttachmentsApi', () => {
       const file = form.get('file') as File
       const uploadedText = await file.text()
 
-      expect(form.get('encrypted')).toBe('1')
-      expect(form.get('originalFileName')).toBe('brief.md')
-      expect(form.get('originalMimeType')).toBe('text/markdown')
-      expect(form.get('originalByteSize')).toBe(String(original.size))
-      expect(file.name).toBe('brief.md.tramaenc')
-      expect(file.type).toBe('application/octet-stream')
-      expect(uploadedText).not.toContain('contenido privado')
+      expect(form.get('encrypted')).toBeNull()
+      expect(form.get('originalFileName')).toBeNull()
+      expect(form.get('originalMimeType')).toBeNull()
+      expect(form.get('originalByteSize')).toBeNull()
+      expect(file.name).toBe('brief.md')
+      expect(file.type).toBe('text/markdown')
+      expect(uploadedText).toContain('contenido privado')
+      expect(window.localStorage.getItem('trama.notas.attachments.key.v1')).toBeNull()
 
       return new Response(
         JSON.stringify({
@@ -31,8 +32,8 @@ describe('notasAttachmentsApi', () => {
           owner_id: 'p1',
           file_name: 'brief.md',
           mime_type: 'text/markdown',
-          byte_size: 24,
-          storage_key: 'user/a1.tramaenc',
+          byte_size: original.size,
+          storage_key: 'user/a1.md',
           created_at: '2026-06-01T00:00:00.000Z',
           updated_at: '2026-06-01T00:00:00.000Z',
         }),

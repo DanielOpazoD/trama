@@ -53,10 +53,9 @@ multiusuario, exporta solo filas del usuario autenticado. Cubre:
 - metadata de anexos de Notas/Prompts (`attachments`)
 - referencias a blobs (`blobReferences`) para auditar qué media depende de Netlify Blobs
 
-Los anexos nuevos de Notas/Prompts suben bytes cifrados en cliente y se marcan
-con storage key `.tramaenc`; la metadata estructurada sigue en la DB para listar
-y exportar referencias. Anexos legacy previos al cifrado pueden existir sin ese
-sufijo.
+Los anexos nuevos de Notas/Prompts suben bytes privados mediante endpoints
+backend autenticados; la metadata estructurada sigue en la DB para listar y
+exportar referencias. El vault fuerte del mundo Notas vive solo en `secrets`.
 
 No incluye los bytes binarios de Netlify Blobs ni tablas operacionales/derivadas:
 
