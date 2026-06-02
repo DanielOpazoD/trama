@@ -8,6 +8,7 @@ export type VaultConfig = {
   salt: string
   verifierIv: string
   verifierData: string
+  requiresPhysicalKey?: boolean
 }
 
 export type VaultEnvelope = {
@@ -42,10 +43,19 @@ function asArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   return out
 }
 
-async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+function vaultSecretMaterial(password: string, physicalKey?: string): string {
+  const normalizedPhysicalKey = (physicalKey ?? '').replace(/\s+/g, '').toUpperCase()
+  return `${password}\u001f${normalizedPhysicalKey}`
+}
+
+async function deriveKey(
+  password: string,
+  salt: Uint8Array,
+  physicalKey?: string,
+): Promise<CryptoKey> {
   const material = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(password),
+    new TextEncoder().encode(vaultSecretMaterial(password, physicalKey)),
     'PBKDF2',
     false,
     ['deriveKey'],
@@ -104,9 +114,26 @@ export function hasVaultConfig(): boolean {
   return readVaultConfig() !== null
 }
 
-export async function createVault(password: string): Promise<CryptoKey> {
+export function vaultRequiresPhysicalKey(): boolean {
+  return readVaultConfig()?.requiresPhysicalKey === true
+}
+
+export function generatePhysicalKey(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const bytes = randomBytes(24)
+  const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length])
+  return chars
+    .join('')
+    .replace(/(.{4})/g, '$1-')
+    .replace(/-$/, '')
+}
+
+export async function createVault(
+  password: string,
+  physicalKey?: string,
+): Promise<CryptoKey> {
   const salt = randomBytes(16)
-  const key = await deriveKey(password, salt)
+  const key = await deriveKey(password, salt, physicalKey)
   const verifier = await encryptWithKey(VERIFIER_TEXT, key)
   const config: VaultConfig = {
     v: 1,
@@ -114,15 +141,22 @@ export async function createVault(password: string): Promise<CryptoKey> {
     salt: bytesToBase64(salt),
     verifierIv: verifier.iv,
     verifierData: verifier.data,
+    ...(physicalKey?.trim() ? { requiresPhysicalKey: true } : {}),
   }
   window.localStorage.setItem(VAULT_CONFIG_KEY, JSON.stringify(config))
   return key
 }
 
-export async function unlockVault(password: string): Promise<CryptoKey> {
+export async function unlockVault(
+  password: string,
+  physicalKey?: string,
+): Promise<CryptoKey> {
   const config = readVaultConfig()
-  if (!config) return createVault(password)
-  const key = await deriveKey(password, base64ToBytes(config.salt))
+  if (!config) return createVault(password, physicalKey)
+  if (config.requiresPhysicalKey && !physicalKey?.trim()) {
+    throw new Error('Llave física requerida')
+  }
+  const key = await deriveKey(password, base64ToBytes(config.salt), physicalKey)
   const verifier = await decryptWithKey(
     {
       v: 1,

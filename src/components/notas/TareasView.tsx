@@ -111,13 +111,7 @@ export function TareasView() {
 
   return (
     <>
-      <ViewHeader
-        title="Tareas"
-        eyebrow="por realizar"
-        accent={ACCENT}
-        spacing="wide"
-        subtitle="Lo que tienes que hacer, simple y a la vista: título, detalle, fecha y #etiquetas."
-      />
+      <ViewHeader title="Tareas" eyebrow="por realizar" accent={ACCENT} spacing="wide" />
 
       {/* Composer */}
       <div className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5">

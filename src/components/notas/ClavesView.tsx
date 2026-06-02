@@ -4,8 +4,10 @@ import {
   createVault,
   decryptVaultSecret,
   encryptVaultSecret,
+  generatePhysicalKey,
   hasVaultConfig,
   unlockVault,
+  vaultRequiresPhysicalKey,
 } from '../../lib/vaultCrypto'
 import {
   useCreateSecret,
@@ -145,13 +147,7 @@ export function ClavesView() {
 
   return (
     <>
-      <ViewHeader
-        title="Claves"
-        eyebrow="vault privado"
-        accent={ACCENT}
-        spacing="wide"
-        subtitle="API keys, tokens, PINs y licencias cifradas en cliente antes de salir del navegador."
-      />
+      <ViewHeader title="Claves" eyebrow="vault privado" accent={ACCENT} spacing="wide" />
       <div className="mb-4 flex justify-end">
         <button
           onClick={() => {
@@ -294,9 +290,13 @@ export function ClavesView() {
 function VaultGate({ onUnlock }: { onUnlock: (key: CryptoKey) => void }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [physicalKey, setPhysicalKey] = useState('')
+  const [usePhysicalKey, setUsePhysicalKey] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const hasVault = hasVaultConfig()
+  const needsPhysicalKey = vaultRequiresPhysicalKey()
+  const showPhysicalKey = needsPhysicalKey || usePhysicalKey
 
   async function submit() {
     const pass = password.trim()
@@ -311,7 +311,9 @@ function VaultGate({ onUnlock }: { onUnlock: (key: CryptoKey) => void }) {
     setBusy(true)
     setError(null)
     try {
-      const key = hasVault ? await unlockVault(pass) : await createVault(pass)
+      const key = hasVault
+        ? await unlockVault(pass, physicalKey)
+        : await createVault(pass, usePhysicalKey ? physicalKey : undefined)
       onUnlock(key)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo abrir el vault')
@@ -327,7 +329,6 @@ function VaultGate({ onUnlock }: { onUnlock: (key: CryptoKey) => void }) {
         eyebrow="vault bloqueado"
         accent={ACCENT}
         spacing="wide"
-        subtitle="Este módulo requiere una clave de acceso local. Los secretos se cifran en tu navegador antes de guardarse."
       />
       <section className="card-paper-soft rounded-xl border border-ink-100/70 p-4 max-w-xl">
         <div className="flex items-start gap-3">
@@ -341,10 +342,6 @@ function VaultGate({ onUnlock }: { onUnlock: (key: CryptoKey) => void }) {
             <h3 className="font-medium text-ink-800">
               {hasVault ? 'Abrir vault' : 'Crear clave de acceso'}
             </h3>
-            <p className="mt-1 text-sm text-ink-500 leading-relaxed">
-              La clave no se envía al servidor. Si la pierdes, no podremos descifrar los
-              secretos guardados.
-            </p>
             <div className="mt-4 space-y-2">
               <input
                 type="password"
@@ -367,6 +364,42 @@ function VaultGate({ onUnlock }: { onUnlock: (key: CryptoKey) => void }) {
                   placeholder="Confirmar clave"
                   className="input-paper w-full text-sm"
                 />
+              )}
+              {!hasVault && (
+                <label className="flex items-center justify-between gap-3 rounded-md border border-ink-100/70 bg-paper-50/50 px-3 py-2 text-caption text-ink-500">
+                  <span>Llave física</span>
+                  <input
+                    type="checkbox"
+                    checked={usePhysicalKey}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setUsePhysicalKey(checked)
+                      if (checked && !physicalKey) setPhysicalKey(generatePhysicalKey())
+                    }}
+                  />
+                </label>
+              )}
+              {showPhysicalKey && (
+                <div className="grid sm:grid-cols-[1fr_auto] gap-2">
+                  <input
+                    value={physicalKey}
+                    onChange={(e) => setPhysicalKey(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void submit()
+                    }}
+                    placeholder="Llave física"
+                    className="input-paper w-full text-sm font-mono tracking-wider"
+                  />
+                  {!hasVault && (
+                    <button
+                      type="button"
+                      onClick={() => setPhysicalKey(generatePhysicalKey())}
+                      className="section-eyebrow hover:text-ink-700 px-2"
+                    >
+                      generar
+                    </button>
+                  )}
+                </div>
               )}
             </div>
             {error && (

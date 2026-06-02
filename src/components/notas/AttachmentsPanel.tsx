@@ -34,8 +34,7 @@ export function AttachmentsPanel({
     upload.mutate(
       { ownerType, ownerId, file },
       {
-        onSuccess: () =>
-          toast.show({ message: 'Anexo guardado en la nube.', tone: 'success' }),
+        onSuccess: () => toast.show({ message: 'Anexo guardado.', tone: 'success' }),
         onError: (err) =>
           toast.show({
             message: err instanceof Error ? err.message : 'No se pudo subir',

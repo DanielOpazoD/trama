@@ -39,13 +39,7 @@ export function NotasHomeView({
 
   return (
     <>
-      <ViewHeader
-        title="Hoy"
-        eyebrow="mundo notas"
-        accent={ACCENT}
-        spacing="wide"
-        subtitle="Inbox personal para notas, tareas, prompts y claves."
-      />
+      <ViewHeader title="Hoy" eyebrow="mundo notas" accent={ACCENT} spacing="wide" />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-5">
         <QuickAction icon={NotesIcon} label="nota" onClick={() => onNavigate('notas')} />

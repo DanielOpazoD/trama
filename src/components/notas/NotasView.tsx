@@ -127,7 +127,6 @@ export function NotasView() {
         eyebrow="apuntes rápidos"
         accent={ACCENT}
         spacing="wide"
-        subtitle="Pensamientos a medio cocinar, citas sueltas e ideas — en una línea de tiempo, con #etiquetas."
       />
 
       {/* Composer */}
@@ -237,13 +236,7 @@ export function NotasView() {
         <EmptyMessage
           illustration="thread"
           title="Tu primer apunte, todavía sin escribir."
-          body={
-            <>
-              Escribe arriba una nota corta — una idea, una frase, un pendiente mental.
-              Con <strong>#etiquetas</strong> las podrás filtrar y buscar aquí mismo.
-            </>
-          }
-          hint="Markdown y #etiquetas; ⌘↵ para guardar rápido."
+          body={<>Escribe arriba una nota corta.</>}
         />
       ) : filtered.length === 0 ? (
         <EmptyMessage

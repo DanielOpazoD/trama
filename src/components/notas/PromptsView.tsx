@@ -92,7 +92,6 @@ export function PromptsView() {
         eyebrow="biblioteca reutilizable"
         accent={ACCENT}
         spacing="wide"
-        subtitle="Prompts versionables en espíritu: colecciones, variables, favoritos, duplicados y anexos."
       />
 
       <section className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5">
@@ -114,7 +113,7 @@ export function PromptsView() {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={5}
-          placeholder="Escribe el prompt... usa variables como {{cliente}}, {{tono}}, {{objetivo}}"
+          placeholder="Escribe el prompt..."
           className="input-paper w-full resize-y text-sm leading-relaxed"
         />
         <PendingAttachmentsInput
@@ -169,8 +168,7 @@ export function PromptsView() {
         <EmptyMessage
           illustration="thread"
           title="Tu biblioteca de prompts está vacía."
-          body={<>Guarda aquí instrucciones reutilizables con variables y contexto.</>}
-          hint="Ejemplo: {{cliente}}, {{tono}}, {{formato}}."
+          body={<>Guarda aquí instrucciones reutilizables.</>}
         />
       ) : (
         <div className="space-y-3">

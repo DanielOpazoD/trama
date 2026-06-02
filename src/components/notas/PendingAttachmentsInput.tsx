@@ -29,7 +29,6 @@ export function PendingAttachmentsInput({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="section-eyebrow text-ink-400">anexos</p>
-          <p className="text-caption text-ink-300">Se subirán a la nube al guardar.</p>
         </div>
         <label className="inline-flex items-center justify-center gap-1.5 rounded-md border border-ink-100 bg-paper-50 px-2.5 py-1.5 text-micro uppercase tracking-eyebrow text-ink-500 hover:text-ink-800 hover:border-ink-200 transition-colors cursor-pointer">
           <UploadIcon size={12} />
