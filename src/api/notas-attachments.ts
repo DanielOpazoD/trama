@@ -1,4 +1,5 @@
 import { request } from './request'
+import { encryptAttachmentFile, isEncryptedAttachmentKey } from '../lib/attachmentCrypto'
 
 export type NotasAttachmentOwner = 'note' | 'prompt'
 
@@ -11,6 +12,7 @@ export type NotasAttachment = {
   byteSize: number
   storageKey: string
   url: string
+  encrypted: boolean
   createdAt: string
   updatedAt: string
 }
@@ -44,6 +46,7 @@ function attachmentFromRow(row: NotasAttachmentRow): NotasAttachment {
     byteSize: row.byte_size,
     storageKey: row.storage_key,
     url: attachmentUrl(row.storage_key),
+    encrypted: isEncryptedAttachmentKey(row.storage_key),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -68,10 +71,15 @@ export const notasAttachmentsApi = {
     ownerId: string
     file: File
   }): Promise<NotasAttachment> {
+    const encryptedFile = await encryptAttachmentFile(input.file)
     const form = new FormData()
     form.append('ownerType', input.ownerType)
     form.append('ownerId', input.ownerId)
-    form.append('file', input.file)
+    form.append('encrypted', '1')
+    form.append('originalFileName', input.file.name)
+    form.append('originalMimeType', input.file.type || 'application/octet-stream')
+    form.append('originalByteSize', String(input.file.size))
+    form.append('file', encryptedFile)
     const row = await request<NotasAttachmentRow>('/api/notas-attachments-upload', {
       method: 'POST',
       body: form,

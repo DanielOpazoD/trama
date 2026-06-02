@@ -49,6 +49,14 @@ function extensionFor(name: string): string {
   return ext ? `.${ext.slice(0, 12)}` : ''
 }
 
+function cleanFileName(value: string): string {
+  return Array.from(value)
+    .filter((char) => char !== '/' && char !== '\\' && char.charCodeAt(0) >= 32)
+    .join('')
+    .trim()
+    .slice(0, 240)
+}
+
 export default withObservability(
   'notas-attachments-upload',
   async (req: Request, _ctx, { requestId }) => {
@@ -73,16 +81,33 @@ export default withObservability(
     const file = formData.get('file')
     const ownerType = String(formData.get('ownerType') ?? '')
     const ownerId = String(formData.get('ownerId') ?? '')
+    const encrypted = String(formData.get('encrypted') ?? '') === '1'
+    const originalFileName = cleanFileName(String(formData.get('originalFileName') ?? ''))
+    const originalMimeType = String(formData.get('originalMimeType') ?? '')
+    const originalByteSize = Number(String(formData.get('originalByteSize') ?? ''))
     if (!(file instanceof File)) return ApiErrors.validation(requestId, 'Falta file')
     if (ownerType !== 'note' && ownerType !== 'prompt') {
       return ApiErrors.validation(requestId, 'ownerType debe ser note o prompt')
     }
     if (!ownerId) return ApiErrors.validation(requestId, 'ownerId requerido')
-    if (file.size > MAX_BYTES) return ApiErrors.payloadTooLarge(requestId, 'Archivo > 20 MB')
-    if (!ALLOWED_MIMES.has(file.type)) {
+    const displayName = encrypted ? originalFileName : cleanFileName(file.name)
+    const displayMime = encrypted ? originalMimeType : file.type
+    const displaySize = encrypted ? originalByteSize : file.size
+    if (!displayName) return ApiErrors.validation(requestId, 'Nombre de archivo requerido')
+    if (!Number.isFinite(displaySize) || displaySize < 0) {
+      return ApiErrors.validation(requestId, 'Tamaño de archivo inválido')
+    }
+    if (encrypted && file.type !== 'application/octet-stream') {
       return ApiErrors.unsupportedMediaType(
         requestId,
-        `mimeType "${file.type}" no soportado para anexos`,
+        'Los anexos cifrados deben subirse como application/octet-stream',
+      )
+    }
+    if (file.size > MAX_BYTES) return ApiErrors.payloadTooLarge(requestId, 'Archivo > 20 MB')
+    if (!ALLOWED_MIMES.has(displayMime)) {
+      return ApiErrors.unsupportedMediaType(
+        requestId,
+        `mimeType "${displayMime}" no soportado para anexos`,
       )
     }
     if (!(await attachmentOwnerExists(sql, ownerType, ownerId, userId))) {
@@ -93,7 +118,7 @@ export default withObservability(
     const buf = await file.arrayBuffer()
     const store = getStore(STORE)
     await store.set(storageKey, buf, {
-      metadata: { mime: file.type, size: String(buf.byteLength), name: file.name },
+      metadata: { mime: file.type, size: String(buf.byteLength), name: displayName },
     })
 
     const rows = await sqlTyped<AttachmentRow>(sql`
@@ -101,7 +126,7 @@ export default withObservability(
         owner_type, owner_id, file_name, mime_type, byte_size, storage_key, user_id
       )
       VALUES (
-        ${ownerType}, ${ownerId}, ${file.name}, ${file.type}, ${buf.byteLength},
+        ${ownerType}, ${ownerId}, ${displayName}, ${displayMime}, ${displaySize},
         ${storageKey}, ${userId}
       )
       RETURNING id, owner_type, owner_id, file_name, mime_type, byte_size, storage_key, created_at, updated_at

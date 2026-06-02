@@ -466,14 +466,24 @@ function route(
     const ownerType = body.ownerType as string
     const ownerId = body.ownerId as string
     const file = body.file as File | undefined
+    const encrypted = body.encrypted === '1'
+    const fileName = encrypted
+      ? String(body.originalFileName ?? file?.name ?? 'archivo')
+      : (file?.name ?? 'archivo')
+    const mimeType = encrypted
+      ? String(body.originalMimeType ?? file?.type ?? 'application/octet-stream')
+      : file?.type || 'application/octet-stream'
+    const byteSize = encrypted
+      ? Number(body.originalByteSize ?? file?.size ?? 0)
+      : file?.size
     const row: Row = {
       id: uid(),
       owner_type: ownerType,
       owner_id: ownerId,
-      file_name: file?.name ?? 'archivo',
-      mime_type: file?.type || 'application/octet-stream',
-      byte_size: file?.size ?? 0,
-      storage_key: `legacy-single-user/demo-${uid()}`,
+      file_name: fileName,
+      mime_type: mimeType,
+      byte_size: Number.isFinite(byteSize) ? Number(byteSize) : 0,
+      storage_key: `legacy-single-user/demo-${uid()}${encrypted ? '.tramaenc' : ''}`,
       created_at: nowIso(),
       updated_at: nowIso(),
       deleted_at: null,
