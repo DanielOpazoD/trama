@@ -93,9 +93,9 @@ type IncomingSecret = {
   label: string
   encryptedSecret: string
   kind: string
-  service?: string | null
-  username?: string | null
-  notes?: string | null
+  encryptedService?: string | null
+  encryptedUsername?: string | null
+  encryptedNotes?: string | null
   favorite: boolean
   critical: boolean
   expiresAt?: string | null
@@ -304,20 +304,29 @@ function incomingSecret(value: unknown): IncomingSecret | null {
   const kind = stringValue(item.kind)
   if (!id || !label || !encryptedSecret || !kind) return null
   if (!VaultEnvelopeString.safeParse(encryptedSecret).success) return null
+  const encryptedService = encryptedField(item.encryptedService ?? item.service)
+  const encryptedUsername = encryptedField(item.encryptedUsername ?? item.username)
+  const encryptedNotes = encryptedField(item.encryptedNotes ?? item.notes)
   return {
     id,
     label,
     encryptedSecret,
     kind,
-    service: nullableString(item.service),
-    username: nullableString(item.username),
-    notes: nullableString(item.notes),
+    encryptedService,
+    encryptedUsername,
+    encryptedNotes,
     favorite: booleanValue(item.favorite),
     critical: booleanValue(item.critical),
     expiresAt: nullableString(item.expiresAt),
     lastRotatedAt: nullableString(item.lastRotatedAt),
     origin: item.origin,
   }
+}
+
+function encryptedField(value: unknown): string | null {
+  const candidate = nullableString(value)
+  if (!candidate) return null
+  return VaultEnvelopeString.safeParse(candidate).success ? candidate : null
 }
 
 export default withObservability('import', async (req: Request, _ctx, { requestId }) => {
@@ -623,9 +632,9 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
           ${s.label},
           ${s.encryptedSecret},
           ${s.kind},
-          ${s.service ?? null},
-          ${s.username ?? null},
-          ${s.notes ?? null},
+          ${s.encryptedService ?? null},
+          ${s.encryptedUsername ?? null},
+          ${s.encryptedNotes ?? null},
           ${s.favorite},
           ${s.critical},
           ${s.expiresAt ?? null},

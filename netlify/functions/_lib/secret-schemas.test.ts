@@ -31,4 +31,37 @@ describe('secret schemas', () => {
     expect(SecretPatchBody.safeParse({ secret: encryptedEnvelope }).success).toBe(true)
     expect(SecretPatchBody.safeParse({ secret: '123456' }).success).toBe(false)
   })
+
+  it('acepta metadata sensible solo como sobre cifrado o null', () => {
+    expect(
+      SecretCreateBody.safeParse({
+        label: 'OpenAI',
+        kind: 'api_key',
+        secret: encryptedEnvelope,
+        service: encryptedEnvelope,
+        username: encryptedEnvelope,
+        notes: encryptedEnvelope,
+      }).success,
+    ).toBe(true)
+
+    expect(
+      SecretCreateBody.safeParse({
+        label: 'OpenAI',
+        kind: 'api_key',
+        secret: encryptedEnvelope,
+        service: null,
+        username: null,
+        notes: null,
+      }).success,
+    ).toBe(true)
+
+    expect(
+      SecretCreateBody.safeParse({
+        label: 'OpenAI',
+        kind: 'api_key',
+        secret: encryptedEnvelope,
+        service: 'OpenAI plaintext',
+      }).success,
+    ).toBe(false)
+  })
 })

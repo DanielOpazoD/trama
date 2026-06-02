@@ -139,9 +139,11 @@ describe('export endpoint', () => {
           secret_value:
             '{"v":1,"alg":"AES-GCM","iv":"AAAAAAAAAAAAAAAA","data":"BBBBBBBBBBBBBBBB"}',
           kind: 'api_key',
-          service: 'OpenAI',
+          service:
+            '{"v":1,"alg":"AES-GCM","iv":"CCCCCCCCCCCCCCCC","data":"DDDDDDDDDDDDDDDD"}',
           username: null,
-          notes: null,
+          notes:
+            '{"v":1,"alg":"AES-GCM","iv":"EEEEEEEEEEEEEEEE","data":"FFFFFFFFFFFFFFFF"}',
           favorite: true,
           critical: true,
           expires_at: '2026-12-31',
@@ -288,7 +290,10 @@ describe('export endpoint', () => {
           encryptedSecret:
             '{"v":1,"alg":"AES-GCM","iv":"AAAAAAAAAAAAAAAA","data":"BBBBBBBBBBBBBBBB"}',
           kind: 'api_key',
-          service: 'OpenAI',
+          encryptedService:
+            '{"v":1,"alg":"AES-GCM","iv":"CCCCCCCCCCCCCCCC","data":"DDDDDDDDDDDDDDDD"}',
+          encryptedNotes:
+            '{"v":1,"alg":"AES-GCM","iv":"EEEEEEEEEEEEEEEE","data":"FFFFFFFFFFFFFFFF"}',
           critical: true,
         },
       ],

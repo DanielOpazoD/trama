@@ -15,14 +15,15 @@ const dateOnly = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida (esperado YYYY-MM-DD)')
   .nullable()
+const encryptedMetadata = VaultEnvelopeString.nullable().optional()
 
 export const SecretCreateBody = z.object({
   label: z.string().min(1, 'La clave necesita nombre').max(300),
   secret: VaultEnvelopeString,
   kind: SecretKind.default('other'),
-  service: z.string().max(200).nullable().optional(),
-  username: z.string().max(300).nullable().optional(),
-  notes: z.string().max(20000).nullable().optional(),
+  service: encryptedMetadata,
+  username: encryptedMetadata,
+  notes: encryptedMetadata,
   favorite: z.boolean().optional(),
   critical: z.boolean().optional(),
   expiresAt: dateOnly.optional(),
@@ -34,9 +35,9 @@ export const SecretPatchBody = z.object({
   label: z.string().min(1).max(300).optional(),
   secret: VaultEnvelopeString.optional(),
   kind: SecretKind.optional(),
-  service: z.string().max(200).nullable().optional(),
-  username: z.string().max(300).nullable().optional(),
-  notes: z.string().max(20000).nullable().optional(),
+  service: encryptedMetadata,
+  username: encryptedMetadata,
+  notes: encryptedMetadata,
   favorite: z.boolean().optional(),
   critical: z.boolean().optional(),
   expiresAt: dateOnly.optional(),

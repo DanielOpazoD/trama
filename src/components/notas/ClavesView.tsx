@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Secret, SecretKind } from '../../api'
 import {
   createVault,
@@ -53,6 +53,12 @@ export function ClavesView() {
   const [critical, setCritical] = useState(false)
   const [filter, setFilter] = useState<SecretKind | null>(null)
   const [revealed, setRevealed] = useState<Record<string, string>>({})
+  const [decryptedMetadata, setDecryptedMetadata] = useState<
+    Record<
+      string,
+      { service: string | null; username: string | null; notes: string | null }
+    >
+  >({})
 
   const rawSecrets = secretsQuery.data
   const secrets = useMemo(() => rawSecrets ?? [], [rawSecrets])
@@ -66,6 +72,42 @@ export function ClavesView() {
     return map
   }, [secrets])
 
+  useEffect(() => {
+    if (!vaultKey) {
+      setDecryptedMetadata({})
+      return
+    }
+    const activeKey = vaultKey
+    let cancelled = false
+    async function decryptMetadata() {
+      const entries = await Promise.all(
+        secrets.map(async (item) => {
+          async function decryptOptional(value: string | null): Promise<string | null> {
+            if (!value) return null
+            try {
+              return await decryptVaultSecret(value, activeKey)
+            } catch {
+              return null
+            }
+          }
+          return [
+            item.id,
+            {
+              service: await decryptOptional(item.service),
+              username: await decryptOptional(item.username),
+              notes: await decryptOptional(item.notes),
+            },
+          ] as const
+        }),
+      )
+      if (!cancelled) setDecryptedMetadata(Object.fromEntries(entries))
+    }
+    void decryptMetadata()
+    return () => {
+      cancelled = true
+    }
+  }, [secrets, vaultKey])
+
   if (!vaultKey) {
     return <VaultGate onUnlock={setVaultKey} />
   }
@@ -74,12 +116,15 @@ export function ClavesView() {
   async function save() {
     if (!label.trim() || !secret.trim()) return
     const encryptedSecret = await encryptVaultSecret(secret.trim(), activeVaultKey)
+    const encryptedService = service.trim()
+      ? await encryptVaultSecret(service.trim(), activeVaultKey)
+      : null
     createSecret.mutate(
       {
         label: label.trim(),
         secret: encryptedSecret,
         kind,
-        service: service.trim() || null,
+        service: encryptedService,
         expiresAt: expiresAt || null,
         critical,
       },
@@ -267,6 +312,7 @@ export function ClavesView() {
             <SecretCard
               key={item.id}
               item={item}
+              metadata={decryptedMetadata[item.id] ?? null}
               value={revealed[item.id] ?? null}
               busy={
                 revealSecret.isPending ||
@@ -427,6 +473,7 @@ function VaultGate({ onUnlock }: { onUnlock: (key: CryptoKey) => void }) {
 
 function SecretCard({
   item,
+  metadata,
   value,
   busy,
   onReveal,
@@ -435,6 +482,11 @@ function SecretCard({
   onDelete,
 }: {
   item: Secret
+  metadata: {
+    service: string | null
+    username: string | null
+    notes: string | null
+  } | null
   value: string | null
   busy: boolean
   onReveal: () => void
@@ -516,7 +568,7 @@ function SecretCard({
               <ShieldIcon size={12} />
               {health.score}/100
             </span>
-            {item.service && <span>{item.service}</span>}
+            {metadata?.service && <span>{metadata.service}</span>}
             {item.expiresAt && <span>vence {formatShortDate(item.expiresAt)}</span>}
             {health.flags.length > 0 && (
               <span className="uppercase tracking-eyebrow">

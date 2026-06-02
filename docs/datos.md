@@ -49,7 +49,7 @@ multiusuario, exporta solo filas del usuario autenticado. Cubre:
 - `notes`
 - `tasks`
 - `prompts`
-- `secrets` con `encryptedSecret` cifrado por el vault del cliente
+- `secrets` con `encryptedSecret` y metadata sensible cifrada por el vault del cliente (`encryptedService`, `encryptedUsername`, `encryptedNotes`)
 - metadata de anexos de Notas/Prompts (`attachments`)
 - referencias a blobs (`blobReferences`) para auditar qué media depende de Netlify Blobs
 
@@ -71,9 +71,10 @@ No incluye los bytes binarios de Netlify Blobs ni tablas operacionales/derivadas
 - Embeddings (aunque se regeneran on-demand vía Settings → "Indexar lo pendiente")
 
 Importar ese JSON restaura solo ese core estructurado. Restaura Prompts y Claves
-si el archivo contiene sus filas; las Claves siguen requiriendo la misma
-contraseña/key física del vault cliente para poder descifrarse. No restaura bytes
-de blobs, tokens OAuth, logs ni snapshots derivados.
+si el archivo contiene sus filas; las Claves y su metadata sensible siguen
+requiriendo la misma contraseña/key física del vault cliente para poder
+descifrarse. No restaura bytes de blobs, tokens OAuth, logs ni snapshots
+derivados.
 
 Para un backup TOTAL de la DB: usar Neon's built-in. Para un backup TOTAL que además
 incluya media, hay que respaldar también Netlify Blobs.

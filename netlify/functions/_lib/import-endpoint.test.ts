@@ -189,7 +189,8 @@ describe('import endpoint', () => {
               encryptedSecret:
                 '{"v":1,"alg":"AES-GCM","iv":"AAAAAAAAAAAAAAAA","data":"BBBBBBBBBBBBBBBB"}',
               kind: 'api_key',
-              service: 'OpenAI',
+              encryptedService:
+                '{"v":1,"alg":"AES-GCM","iv":"CCCCCCCCCCCCCCCC","data":"DDDDDDDDDDDDDDDD"}',
               favorite: true,
               critical: true,
               origin: { kind: 'manual' },

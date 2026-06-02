@@ -65,7 +65,7 @@ export default withObservability(
                  copied_at, created_at, updated_at
           FROM secrets
           WHERE deleted_at IS NULL AND user_id = ${userId}
-            AND (label ILIKE ${'%' + q + '%'} OR service ILIKE ${'%' + q + '%'} OR username ILIKE ${'%' + q + '%'} OR notes ILIKE ${'%' + q + '%'})
+            AND label ILIKE ${'%' + q + '%'}
           ORDER BY favorite DESC, critical DESC, updated_at DESC, id DESC
         `)
         return Response.json(rows)
