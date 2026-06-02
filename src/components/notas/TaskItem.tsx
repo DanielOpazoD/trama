@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import type { Task, TaskPatch, TaskPriority } from '../../api'
-import { CheckIcon, FileIcon, PencilIcon, TrashIcon } from '../Icons'
+import { CheckIcon, FileIcon, InfoIcon, PencilIcon, TrashIcon } from '../Icons'
 import { PriorityDots, PRIORITY_META, PRIORITY_NEXT } from './PriorityDots'
 
 const ACCENT = 'var(--accent-sage)'
@@ -39,6 +39,22 @@ function formatDue(due: string): string {
   if (!y || !m || !d) return due
   const date = new Date(y, m - 1, d)
   return date.toLocaleDateString('es', { day: 'numeric', month: 'short' })
+}
+
+/** ISO de creación → "12 jun 2026, 14:30" (cuándo se generó por primera vez). */
+function formatCreatedFull(iso: string): string {
+  try {
+    const d = new Date(iso)
+    const fecha = d.toLocaleDateString('es', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+    const hora = d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+    return `${fecha}, ${hora}`
+  } catch {
+    return iso
+  }
 }
 
 /**
@@ -237,6 +253,25 @@ export function TaskItem({
             {renderWithTags(task.detail)}
           </span>
         )}
+      </span>
+
+      {/* Información interna — icono "i"; al pasar el mouse, cuándo se creó. */}
+      <span className="relative shrink-0 mt-px group/info">
+        <button
+          type="button"
+          aria-label={`Creado: ${formatCreatedFull(task.createdAt)}`}
+          title={`Creado: ${formatCreatedFull(task.createdAt)}`}
+          className="p-1 rounded text-ink-300 hover:text-ink-600 transition-colors"
+        >
+          <InfoIcon size={13} />
+        </button>
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute right-0 top-full mt-1 z-20 w-max max-w-[14rem] rounded-lg border border-ink-100 bg-paper-50 px-2.5 py-1.5 text-xs text-ink-500 normal-case tracking-normal opacity-0 group-hover/info:opacity-100 transition-opacity"
+          style={{ boxShadow: 'var(--card-shadow-hover)' }}
+        >
+          Creado: {formatCreatedFull(task.createdAt)}
+        </span>
       </span>
 
       {/* Vencimiento — opcional y tenue; en rojo solo si está vencido. */}

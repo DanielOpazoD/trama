@@ -98,6 +98,7 @@ export {
   useUploadNotasAttachment,
   useDeleteNotasAttachment,
 } from './useNotasAttachments'
+export { useMonthNoteQuery, useSaveMonthNote } from './useMonthNotes'
 export { useInfiniteCronologiaQuery } from './useCronologia'
 export { useAtlasQuery, useGenerateAtlas } from './useAtlas'
 export { useSuggestRelationships } from './useSuggestRelationships'

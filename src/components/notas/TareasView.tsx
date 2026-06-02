@@ -7,12 +7,14 @@ import { TaskItem } from './TaskItem'
 import { PriorityDots } from './PriorityDots'
 import { WeekPhotos } from './WeekPhotos'
 import { MonthNavigator } from './MonthNavigator'
+import { MonthNotes } from './MonthNotes'
 import {
   weekStartLocal,
   formatWeekRangeLong,
   relativeWeekLabel,
   mondaysOfMonth,
   weekYearMonth,
+  monthName,
 } from './notasUtils'
 
 /**
@@ -47,24 +49,29 @@ export function TareasView() {
   const byWeek = useMemo(() => {
     const map = new Map<string, Task[]>()
     for (const t of tasks) {
-      const wk = taskWeek(t)
+      // Arrastre: un pendiente de una semana anterior "pasa" a la semana actual
+      // hasta que se complete (así no se pierde). Las hechas quedan en su semana.
+      let wk = taskWeek(t)
+      if (!t.done && wk < todayWeek) wk = todayWeek
       const arr = map.get(wk) ?? []
       arr.push(t)
       map.set(wk, arr)
     }
     return map
-  }, [tasks])
+  }, [tasks, todayWeek])
 
   // Meses (del año mostrado) con algún pendiente — para el punto del navegador.
   const pendingMonths = useMemo(() => {
     const set = new Set<number>()
     for (const t of tasks) {
       if (t.done) continue
-      const { year, month0 } = weekYearMonth(taskWeek(t))
+      let wk = taskWeek(t)
+      if (wk < todayWeek) wk = todayWeek
+      const { year, month0 } = weekYearMonth(wk)
       if (year === navYear) set.add(month0)
     }
     return set
-  }, [tasks, navYear])
+  }, [tasks, navYear, todayWeek])
 
   const weekKeys = useMemo(() => mondaysOfMonth(navYear, navMonth), [navYear, navMonth])
 
@@ -98,7 +105,16 @@ export function TareasView() {
         key={task.id}
         task={task}
         busy={busy}
-        onToggle={() => updateTask.mutate({ id: task.id, patch: { done: !task.done } })}
+        onToggle={() => {
+          const completing = !task.done
+          // Al completar un pendiente arrastrado, lo fijamos en la semana actual
+          // (queda registrado como hecho esta semana, no en su semana vieja).
+          const patch =
+            completing && taskWeek(task) < todayWeek
+              ? { done: true, weekStart: todayWeek }
+              : { done: !task.done }
+          updateTask.mutate({ id: task.id, patch })
+        }}
         onSave={(patch) => updateTask.mutate({ id: task.id, patch })}
         onDelete={() => deleteTask.mutate(task.id)}
       />
@@ -170,19 +186,26 @@ export function TareasView() {
     )
   }
 
+  const monthKey = `${navYear}-${String(navMonth + 1).padStart(2, '0')}`
+  const monthLabel = `${monthName(navMonth)} ${navYear}`
+
   return (
     <>
-      <MonthNavigator
-        year={navYear}
-        month0={navMonth}
-        currentYear={now.getFullYear()}
-        currentMonth0={now.getMonth()}
-        pendingMonths={pendingMonths}
-        onChange={(y, m) => {
-          setNavYear(y)
-          setNavMonth(m)
-        }}
-      />
+      {/* Media página: navegador a la izquierda, notas del mes a la derecha. */}
+      <div className="grid md:grid-cols-2 gap-4 mb-4 items-stretch">
+        <MonthNavigator
+          year={navYear}
+          month0={navMonth}
+          currentYear={now.getFullYear()}
+          currentMonth0={now.getMonth()}
+          pendingMonths={pendingMonths}
+          onChange={(y, m) => {
+            setNavYear(y)
+            setNavMonth(m)
+          }}
+        />
+        <MonthNotes key={monthKey} monthKey={monthKey} label={monthLabel} />
+      </div>
 
       {tasksQuery.isLoading ? (
         <div className="py-10 flex justify-center">

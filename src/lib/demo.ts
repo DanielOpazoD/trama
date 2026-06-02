@@ -102,6 +102,7 @@ type Store = {
   prompts: Row[]
   secrets: Row[]
   notas_attachments: Row[]
+  month_notes: Row[]
 }
 
 function uid(): string {
@@ -428,6 +429,7 @@ function buildSeed(): Store {
     prompts: [],
     secrets: [],
     notas_attachments: [],
+    month_notes: [],
   }
 }
 
@@ -446,6 +448,7 @@ function load(): Store {
         prompts: parsed.prompts ?? [],
         secrets: parsed.secrets ?? [],
         notas_attachments: parsed.notas_attachments ?? [],
+        month_notes: parsed.month_notes ?? [],
       }
     }
   } catch {
@@ -515,6 +518,35 @@ function route(
     store.notas_attachments.push(row)
     save(store)
     return row
+  }
+
+  if (resource === 'month-notes') {
+    if (method === 'GET') {
+      const month = params.get('month') ?? ''
+      const row = store.month_notes.find((r) => r.month_key === month && !r.deleted_at)
+      return { monthKey: month, content: (row?.content as string) ?? '' }
+    }
+    if (method === 'PUT') {
+      const month = String(body.month ?? '')
+      const content = String(body.content ?? '')
+      const row = store.month_notes.find((r) => r.month_key === month && !r.deleted_at)
+      if (row) {
+        row.content = content
+        row.updated_at = nowIso()
+      } else {
+        store.month_notes.push({
+          id: uid(),
+          user_id: 'legacy-single-user',
+          month_key: month,
+          content,
+          created_at: nowIso(),
+          updated_at: nowIso(),
+          deleted_at: null,
+        })
+      }
+      save(store)
+      return { monthKey: month, content }
+    }
   }
 
   // ---- recursos manuales con CRUD ----
