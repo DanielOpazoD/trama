@@ -165,7 +165,7 @@ export function TaskItem({
           <span className="section-eyebrow text-ink-300 block mb-1">
             fotos de la tarea
           </span>
-          <AttachmentPhotos ownerType="task" ownerId={task.id} eager />
+          <AttachmentPhotos ownerType="task" ownerId={task.id} />
         </div>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 flex-wrap">

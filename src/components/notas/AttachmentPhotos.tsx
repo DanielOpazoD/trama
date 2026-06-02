@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import type { NotasAttachmentOwner } from '../../api'
 import {
   useNotasAttachmentsQuery,
@@ -9,27 +9,21 @@ import {
 import { CameraIcon, TrashIcon } from '../Icons'
 
 /**
- * Tira de fotos reutilizable, asociada a un "dueño" del sistema de anexos:
- * una semana (`week` + lunes) o una tarea (`task` + id). Miniaturas + un botón
- * sutil para adjuntar; solo imágenes.
- *
- * Carga perezosa: con `eager` abre y consulta directo; si no, muestra un acceso
- * "fotos" y solo consulta al abrirse — así una lista larga no dispara N
- * peticiones de golpe.
+ * Tira de fotos asociada a un "dueño" de anexos: una semana (`week` + lunes) o
+ * una tarea (`task` + id). Miniaturas + un botón sutil para adjuntar; solo
+ * imágenes. Consulta al montarse, así que la carga perezosa se logra montándola
+ * solo cuando se quiere ver (el padre decide).
  */
 export function AttachmentPhotos({
   ownerType,
   ownerId,
-  eager = false,
 }: {
   ownerType: NotasAttachmentOwner
   ownerId: string
-  eager?: boolean
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null)
-  const [open, setOpen] = useState(eager)
   const toast = useToast()
-  const query = useNotasAttachmentsQuery({ ownerType, ownerId, enabled: open })
+  const query = useNotasAttachmentsQuery({ ownerType, ownerId })
   const upload = useUploadNotasAttachment()
   const remove = useDeleteNotasAttachment()
 
@@ -54,19 +48,6 @@ export function AttachmentPhotos({
       },
     )
     if (inputRef.current) inputRef.current.value = ''
-  }
-
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="Fotos"
-        title="Fotos"
-        className="touch-target inline-flex items-center mt-1 p-1 -ml-1 rounded text-ink-300 hover:text-ink-700 transition-colors"
-      >
-        <CameraIcon size={14} />
-      </button>
-    )
   }
 
   return (

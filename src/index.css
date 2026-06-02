@@ -78,12 +78,12 @@
        con el tema activo (día / noche / vela) sin redefinirlos por tema:
        alta = urgente (clay), media = atención (ámbar), baja = puede esperar
        (prussian, frío y tranquilo). */
-    --priority-alta:       var(--accent-clay);
-    --priority-alta-soft:  var(--accent-clay-soft);
-    --priority-media:      var(--accent-warn);
-    --priority-media-soft: var(--accent-warn-soft);
-    --priority-baja:       var(--accent-primary);
-    --priority-baja-soft:  var(--accent-primary-soft);
+    --priority-alta:       #e0641c;  /* naranjo */
+    --priority-alta-soft:  rgb(224 100 28 / 0.14);
+    --priority-media:      #d6a400;  /* amarillo */
+    --priority-media-soft: rgb(214 164 0 / 0.16);
+    --priority-baja:       rgb(var(--ink-300));  /* gris (neutro, por defecto) */
+    --priority-baja-soft:  rgb(var(--ink-300) / 0.16);
 
     /* ν1: sombras tintadas — antes box-shadow usaba rgb(0 0 0) puro. Le
        agregamos un componente cálido del accent-gold (~12% del gold sobre
