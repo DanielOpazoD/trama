@@ -24,9 +24,12 @@ import { healthApi } from './health'
 import { homeApi } from './home'
 import { momentosApi } from './momentos'
 import { notesApi } from './notes'
+import { notasAttachmentsApi } from './notas-attachments'
+import { promptsApi } from './prompts'
 import { quotesApi } from './quotes'
 import { relationshipsApi } from './relationships'
 import { searchApi } from './search'
+import { secretsApi } from './secrets'
 import { spotifyApi } from './spotify'
 import { tasksApi } from './tasks'
 import { typeTablesApi } from './type-tables'
@@ -41,6 +44,9 @@ export const api = {
   cronicas: cronicasApi,
   notes: notesApi,
   tasks: tasksApi,
+  prompts: promptsApi,
+  secrets: secretsApi,
+  notasAttachments: notasAttachmentsApi,
   atlas: atlasApi,
   ...cronologiaApi,
   ...aiApi,
@@ -79,6 +85,12 @@ export type { Cronica, GeneratedCronica } from './cronicas'
 export type { Note } from './notes'
 
 export type { Task, TaskCreate, TaskPatch } from './tasks'
+
+export type { Prompt, PromptCreate, PromptPatch } from './prompts'
+
+export type { Secret, SecretCreate, SecretKind, SecretPatch } from './secrets'
+
+export type { NotasAttachment, NotasAttachmentOwner } from './notas-attachments'
 
 export type { AtlasMember, AtlasConstellation, AtlasResponse } from './atlas'
 
