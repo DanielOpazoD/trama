@@ -8,7 +8,8 @@ import {
 } from '../../state'
 import type { Task, TaskPriority } from '../../api'
 import { LoadingHint } from '../LoadingHint'
-import { PlusIcon } from '../Icons'
+import { PlusIcon, CameraIcon } from '../Icons'
+import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { TaskItem } from './TaskItem'
 import { PriorityDots } from './PriorityDots'
 import { AttachmentPhotos } from './AttachmentPhotos'
@@ -26,7 +27,32 @@ import {
   splitByStatus,
   pendingMonthsForYear,
   rawTaskWeek,
+  type SortMode,
 } from './weekModel'
+
+const SORT_LABELS: Record<SortMode, string> = {
+  priority: 'Prioridad',
+  created: 'Fecha de ingreso',
+  tag: 'Etiqueta',
+}
+
+/** Icono "ordenar" (barras decrecientes) — el sistema no tiene uno propio. */
+function SortGlyph({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <path d="M4 6h16M4 12h10M4 18h5" />
+    </svg>
+  )
+}
 
 /**
  * Trama Notas — sección Tareas. Arriba, un navegador por año y mes; al elegir
@@ -47,6 +73,20 @@ export function TareasView() {
   const now = new Date()
   const [navYear, setNavYear] = useState(now.getFullYear())
   const [navMonth, setNavMonth] = useState(now.getMonth())
+  const [sortMode, setSortMode] = useState<SortMode>('priority')
+  // Semanas con la tira de fotos abierta — la actual abre por defecto; las
+  // demás cargan al tocar el icono (carga perezosa).
+  const [photosOpen, setPhotosOpen] = useState<Set<string>>(
+    () => new Set([weekStartLocal()]),
+  )
+  function togglePhotos(week: string) {
+    setPhotosOpen((prev) => {
+      const next = new Set(prev)
+      if (next.has(week)) next.delete(week)
+      else next.add(week)
+      return next
+    })
+  }
 
   const todayWeek = weekStartLocal()
   const weekKeys = useMemo(() => mondaysOfMonth(navYear, navMonth), [navYear, navMonth])
@@ -100,10 +140,11 @@ export function TareasView() {
 
   function renderWeek(week: string) {
     const items = byWeek.get(week) ?? []
-    const { pending, done } = splitByStatus(items)
+    const { pending, done } = splitByStatus(items, sortMode)
     const isCurrent = week === todayWeek
     const rel = relativeWeekLabel(week)
     const titleLong = formatWeekRangeLong(week)
+    const showPhotos = photosOpen.has(week)
 
     return (
       <article
@@ -111,20 +152,61 @@ export function TareasView() {
         className="card-paper-soft rounded-xl border border-ink-100/70 animate-fade-up"
         style={isCurrent ? { borderColor: 'var(--accent-sage)' } : undefined}
       >
-        <div className="flex items-baseline justify-between gap-3 px-4 pt-4 pb-1">
+        {/* Header: rango a la izquierda; ordenar y fotos a la derecha. */}
+        <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-1">
           <span className="min-w-0">
             {rel && <span className="section-eyebrow text-ink-400 block">{rel}</span>}
             <span className="font-serif text-lg text-ink-700 tracking-tight">
               {titleLong}
             </span>
           </span>
-          <span className="shrink-0 text-micro uppercase tracking-eyebrow text-ink-300 tabular-nums">
-            {pending.length > 0
-              ? `${pending.length} pend.`
-              : done.length > 0
-                ? 'todo hecho'
-                : ''}
-          </span>
+          <div className="shrink-0 flex items-center gap-0.5 -mr-1">
+            <span className="text-micro uppercase tracking-eyebrow text-ink-300 tabular-nums mr-1">
+              {pending.length > 0
+                ? `${pending.length} pend.`
+                : done.length > 0
+                  ? 'todo hecho'
+                  : ''}
+            </span>
+            <OverflowMenu
+              label={`Ordenar — ${SORT_LABELS[sortMode]}`}
+              width="w-52"
+              triggerClassName="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
+              triggerContent={<SortGlyph />}
+            >
+              {(close) => (
+                <>
+                  <p className="px-2.5 pt-1 pb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
+                    Ordenar por
+                  </p>
+                  {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (
+                    <OverflowMenuItem
+                      key={m}
+                      onClick={() => {
+                        setSortMode(m)
+                        close()
+                      }}
+                    >
+                      <span className="inline-flex w-3 justify-center text-ink-500">
+                        {sortMode === m ? '·' : ''}
+                      </span>
+                      {SORT_LABELS[m]}
+                    </OverflowMenuItem>
+                  ))}
+                </>
+              )}
+            </OverflowMenu>
+            <button
+              type="button"
+              onClick={() => togglePhotos(week)}
+              aria-label="Fotos de la semana"
+              aria-expanded={showPhotos}
+              title="Fotos de la semana"
+              className="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
+            >
+              <CameraIcon size={14} />
+            </button>
+          </div>
         </div>
 
         <div className="px-4 pb-3">
@@ -156,8 +238,8 @@ export function TareasView() {
             />
           </div>
 
-          {/* Fotos de la semana */}
-          <AttachmentPhotos ownerType="week" ownerId={week} eager={isCurrent} />
+          {/* Fotos de la semana — perezosas: solo si la tira está abierta. */}
+          {showPhotos && <AttachmentPhotos ownerType="week" ownerId={week} />}
         </div>
       </article>
     )

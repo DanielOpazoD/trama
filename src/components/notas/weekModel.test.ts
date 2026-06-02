@@ -91,6 +91,18 @@ describe('weekModel', () => {
       expect(pending.map((t) => t.id)).toEqual(['alta', 'media', 'baja'])
       expect(done.map((t) => t.id)).toEqual(['hecha'])
     })
+
+    it('ordena por fecha de ingreso cuando sortMode es "created"', () => {
+      const items = [
+        makeTask({ id: 'tarde', createdAt: '2026-06-03T00:00:00Z', priority: 'alta' }),
+        makeTask({ id: 'temprano', createdAt: '2026-06-01T00:00:00Z', priority: 'baja' }),
+      ]
+      // Ingreso ascendente: lo primero anotado va arriba (ignora prioridad).
+      expect(splitByStatus(items, 'created').pending.map((t) => t.id)).toEqual([
+        'temprano',
+        'tarde',
+      ])
+    })
   })
 
   describe('pendingMonthsForYear', () => {

@@ -14,11 +14,14 @@ export function OverflowMenu({
   label = 'Más acciones',
   triggerClassName = 'p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors',
   width = 'w-48',
+  triggerContent,
 }: {
   children: (close: () => void) => ReactNode
   label?: string
   triggerClassName?: string
   width?: string
+  /** Contenido del trigger. Por defecto, el glifo "⋯". */
+  triggerContent?: ReactNode
 }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
@@ -69,9 +72,11 @@ export function OverflowMenu({
         title={label}
         className={triggerClassName}
       >
-        <span aria-hidden className="block text-base leading-none -mt-1">
-          ⋯
-        </span>
+        {triggerContent ?? (
+          <span aria-hidden className="block text-base leading-none -mt-1">
+            ⋯
+          </span>
+        )}
       </button>
       {open &&
         pos &&

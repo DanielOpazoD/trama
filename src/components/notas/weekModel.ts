@@ -51,10 +51,26 @@ export function groupTasksByWeek(tasks: Task[], todayWeek: string): Map<string, 
   return map
 }
 
-/** Separa los ítems de una semana en pendientes (ordenados) y hechas (ordenadas). */
-export function splitByStatus(items: Task[]): { pending: Task[]; done: Task[] } {
+/** Cómo ordenar los pendientes dentro de la semana. */
+export type SortMode = 'priority' | 'created' | 'tag'
+
+const PENDING_COMPARATORS: Record<SortMode, (a: Task, b: Task) => number> = {
+  priority: byPriorityThenRecency,
+  // Por fecha de ingreso: lo primero anotado, arriba.
+  created: (a, b) => a.createdAt.localeCompare(b.createdAt),
+  // Por etiqueta (primera #tag, alfabético); a igualdad, por prioridad.
+  tag: (a, b) =>
+    (a.tags[0] ?? '￿').localeCompare(b.tags[0] ?? '￿') || byPriorityThenRecency(a, b),
+}
+
+/** Separa los ítems de una semana en pendientes (ordenados según `sortMode`) y
+ *  hechas (lo más reciente primero). */
+export function splitByStatus(
+  items: Task[],
+  sortMode: SortMode = 'priority',
+): { pending: Task[]; done: Task[] } {
   return {
-    pending: items.filter((t) => !t.done).sort(byPriorityThenRecency),
+    pending: items.filter((t) => !t.done).sort(PENDING_COMPARATORS[sortMode]),
     done: items.filter((t) => t.done).sort(byCompletion),
   }
 }
