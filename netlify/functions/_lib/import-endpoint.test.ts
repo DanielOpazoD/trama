@@ -90,14 +90,21 @@ describe('import endpoint', () => {
         kind: 'structured-core',
         completeness: 'partial',
         label: 'Import estructurado core',
-        includes: expect.arrayContaining(['entities', 'momentos', 'notes', 'tasks']),
+        includes: expect.arrayContaining([
+          'entities',
+          'momentos',
+          'notes',
+          'tasks',
+          'prompts',
+          'secrets_encrypted',
+        ]),
         excludes: expect.arrayContaining([
           'netlify_blobs_binary',
           'oauth_tokens',
           'chat_messages',
         ]),
         warnings: expect.arrayContaining([
-          'Importa solo el backup estructurado core; no restaura blobs, tokens ni logs.',
+          'Importa solo el backup estructurado core; no restaura bytes de blobs, tokens OAuth ni logs.',
         ]),
       },
     })
@@ -111,6 +118,8 @@ describe('import endpoint', () => {
     mockSqlResponses.push([{ momento_id: 'legacy-single-user:m1' }]) // link
     mockSqlResponses.push([{ id: 'legacy-single-user:n1' }]) // note
     mockSqlResponses.push([{ id: 'legacy-single-user:t1' }]) // task
+    mockSqlResponses.push([{ id: 'legacy-single-user:p1' }]) // prompt
+    mockSqlResponses.push([{ id: 'legacy-single-user:s1' }]) // encrypted secret
 
     const res = await handler(
       new Request('http://localhost/api/import', {
@@ -160,6 +169,33 @@ describe('import endpoint', () => {
               origin: { kind: 'manual' },
             },
           ],
+          prompts: [
+            {
+              id: 'p1',
+              title: 'Brief',
+              content: 'Escribe para {{cliente}}',
+              collection: 'Ventas',
+              tags: ['ventas'],
+              variables: ['cliente'],
+              favorite: true,
+              useCount: 2,
+              origin: { kind: 'manual' },
+            },
+          ],
+          secrets: [
+            {
+              id: 's1',
+              label: 'OpenAI',
+              encryptedSecret:
+                '{"v":1,"alg":"AES-GCM","iv":"AAAAAAAAAAAAAAAA","data":"BBBBBBBBBBBBBBBB"}',
+              kind: 'api_key',
+              encryptedService:
+                '{"v":1,"alg":"AES-GCM","iv":"CCCCCCCCCCCCCCCC","data":"DDDDDDDDDDDDDDDD"}',
+              favorite: true,
+              critical: true,
+              origin: { kind: 'manual' },
+            },
+          ],
         }),
       }),
       mockContext(),
@@ -167,7 +203,7 @@ describe('import endpoint', () => {
 
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({
-      imported: 6,
+      imported: 8,
       skipped: 0,
       failed: [],
       scope: { kind: 'structured-core', completeness: 'partial' },
@@ -177,13 +213,15 @@ describe('import endpoint', () => {
     expect(templates).toMatch(/INSERT INTO momento_entities/)
     expect(templates).toMatch(/INSERT INTO notes/)
     expect(templates).toMatch(/INSERT INTO tasks/)
+    expect(templates).toMatch(/INSERT INTO prompts/)
+    expect(templates).toMatch(/INSERT INTO secrets/)
     const quoteInsert = mockSqlState.calls.find((c) =>
       /INSERT INTO quotes/i.test(c.template),
     )
     expect(quoteInsert?.values).toContainEqual(['legacy-single-user:q2'])
     for (const call of mockSqlState.calls) {
       if (
-        /INSERT INTO (entities|quotes|momentos|momento_entities|notes|tasks)/i.test(
+        /INSERT INTO (entities|quotes|momentos|momento_entities|notes|tasks|prompts|secrets)/i.test(
           call.template,
         )
       ) {

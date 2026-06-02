@@ -29,6 +29,10 @@ export const queryKeys = {
   momentosInfinite: ['momentos', 'infinite'] as const,
   notes: ['notes'] as const,
   tasks: ['tasks'] as const,
+  prompts: ['prompts'] as const,
+  secrets: ['secrets'] as const,
+  notasAttachments: (ownerType: 'note' | 'prompt', ownerId: string) =>
+    ['notas-attachments', ownerType, ownerId] as const,
   x: ['x'] as const,
   xBookmarks: ['x', 'bookmarks'] as const,
   xStatus: ['x', 'status'] as const,

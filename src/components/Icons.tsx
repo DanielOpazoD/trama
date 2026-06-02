@@ -519,6 +519,38 @@ export const TasksIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Prompt — bloque de texto/código con cursor. */
+export const PromptIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <rect x="4" y="4" width="16" height="16" rx="2" />
+    <path d="M8 9l3 3-3 3M13 15h3" />
+  </svg>
+)
+
+/** Key — sección Claves / secretos. */
+export const KeyIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <circle cx="7.5" cy="12.5" r="3.5" />
+    <path d="M11 12.5h9M16 12.5v3M19 12.5v2" />
+  </svg>
+)
+
+/** Archivo adjunto genérico. */
+export const FileIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+    <path d="M14 3v4h4" />
+  </svg>
+)
+
+/** Escudo — señales de seguridad/confianza. */
+export const ShieldIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M12 3l7 3v5c0 4.5-2.8 8.4-7 10-4.2-1.6-7-5.5-7-10V6l7-3z" />
+    <path d="M9 12l2 2 4-4" />
+  </svg>
+)
+
 /** Chevron hacia abajo — disclosure del conmutador de mundos. */
 export const ChevronDownIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

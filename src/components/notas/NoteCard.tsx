@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Note } from '../../api'
 import { renderMarkdown } from './markdown'
 import { MomentosIcon } from '../Icons'
+import { AttachmentsPanel } from './AttachmentsPanel'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -158,6 +159,7 @@ export function NoteCard({
           )}
         </div>
       </footer>
+      <AttachmentsPanel ownerType="note" ownerId={note.id} />
     </article>
   )
 }

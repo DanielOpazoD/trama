@@ -77,6 +77,27 @@ export {
   usePromoteNote,
 } from './useNotes'
 export { useTasksQuery, useCreateTask, useUpdateTask, useDeleteTask } from './useTasks'
+export {
+  usePromptsQuery,
+  useCreatePrompt,
+  useUpdatePrompt,
+  useDuplicatePrompt,
+  useMarkPromptUsed,
+  useDeletePrompt,
+} from './usePrompts'
+export {
+  useSecretsQuery,
+  useCreateSecret,
+  useUpdateSecret,
+  useRevealSecret,
+  useMarkSecretCopied,
+  useDeleteSecret,
+} from './useSecrets'
+export {
+  useNotasAttachmentsQuery,
+  useUploadNotasAttachment,
+  useDeleteNotasAttachment,
+} from './useNotasAttachments'
 export { useInfiniteCronologiaQuery } from './useCronologia'
 export { useAtlasQuery, useGenerateAtlas } from './useAtlas'
 export { useSuggestRelationships } from './useSuggestRelationships'

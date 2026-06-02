@@ -99,6 +99,9 @@ type Store = {
   momentos: Row[]
   notes: Row[]
   tasks: Row[]
+  prompts: Row[]
+  secrets: Row[]
+  notas_attachments: Row[]
 }
 
 function uid(): string {
@@ -120,6 +123,14 @@ function parseTags(text: string): string[] {
   const re = /(?:^|\s)#([\p{L}\p{N}_-]{1,40})/gu
   let m: RegExpExecArray | null
   while ((m = re.exec(text)) !== null) out.add(m[1]!.toLowerCase())
+  return [...out]
+}
+
+function extractPromptVariables(text: string): string[] {
+  const out = new Set<string>()
+  const re = /\{\{\s*([A-Za-z_][A-Za-z0-9_]{0,39})\s*\}\}/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) out.add(m[1]!)
   return [...out]
 }
 
@@ -376,13 +387,36 @@ function buildSeed(): Store {
     task('Leer un capítulo de Rayuela', 6, { done: true, completed_at: daysAgo(1) }),
   ]
 
-  return { entities, relationships, quotes, momentos, notes, tasks }
+  return {
+    entities,
+    relationships,
+    quotes,
+    momentos,
+    notes,
+    tasks,
+    prompts: [],
+    secrets: [],
+    notas_attachments: [],
+  }
 }
 
 function load(): Store {
   try {
     const raw = window.localStorage.getItem(STORE_KEY)
-    if (raw) return JSON.parse(raw) as Store
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<Store>
+      return {
+        entities: parsed.entities ?? [],
+        relationships: parsed.relationships ?? [],
+        quotes: parsed.quotes ?? [],
+        momentos: parsed.momentos ?? [],
+        notes: parsed.notes ?? [],
+        tasks: parsed.tasks ?? [],
+        prompts: parsed.prompts ?? [],
+        secrets: parsed.secrets ?? [],
+        notas_attachments: parsed.notas_attachments ?? [],
+      }
+    }
   } catch {
     /* corrupto → re-sembramos */
   }
@@ -428,6 +462,30 @@ function route(
   const id = seg[1]
   const action = seg[2]
 
+  if (resource === 'notas-attachments-upload' && method === 'POST') {
+    const ownerType = body.ownerType as string
+    const ownerId = body.ownerId as string
+    const file = body.file as File | undefined
+    const fileName = file?.name ?? 'archivo'
+    const mimeType = file?.type || 'application/octet-stream'
+    const byteSize = file?.size
+    const row: Row = {
+      id: uid(),
+      owner_type: ownerType,
+      owner_id: ownerId,
+      file_name: fileName,
+      mime_type: mimeType,
+      byte_size: Number.isFinite(byteSize) ? Number(byteSize) : 0,
+      storage_key: `legacy-single-user/demo-${uid()}`,
+      created_at: nowIso(),
+      updated_at: nowIso(),
+      deleted_at: null,
+    }
+    store.notas_attachments.push(row)
+    save(store)
+    return row
+  }
+
   // ---- recursos manuales con CRUD ----
   const collections: Record<string, Row[] | undefined> = {
     entities: store.entities,
@@ -436,6 +494,9 @@ function route(
     momentos: store.momentos,
     notes: store.notes,
     tasks: store.tasks,
+    prompts: store.prompts,
+    secrets: store.secrets,
+    'notas-attachments': store.notas_attachments,
   }
   const rows = collections[resource]
 
@@ -463,6 +524,46 @@ function route(
     }
     if (resource === 'quotes' && id && action === 'reflect') aiOff()
     if (resource === 'quotes' && id && action === 'echoes') return []
+    if (resource === 'prompts' && id && action === 'duplicate' && method === 'POST') {
+      const p = findLive(store.prompts, id)
+      if (!p) throw new Error('Prompt no encontrado')
+      const row = {
+        ...p,
+        id: uid(),
+        title: `${p.title as string} copia`,
+        favorite: false,
+        use_count: 0,
+        last_used_at: null,
+        created_at: nowIso(),
+        updated_at: nowIso(),
+        deleted_at: null,
+      }
+      store.prompts.push(row)
+      save(store)
+      return row
+    }
+    if (resource === 'prompts' && id && action === 'use' && method === 'POST') {
+      const p = findLive(store.prompts, id)
+      if (!p) throw new Error('Prompt no encontrado')
+      p.use_count = Number(p.use_count ?? 0) + 1
+      p.last_used_at = nowIso()
+      p.updated_at = nowIso()
+      save(store)
+      return p
+    }
+    if (resource === 'secrets' && id && action === 'reveal' && method === 'GET') {
+      const s = findLive(store.secrets, id)
+      if (!s) throw new Error('Clave no encontrada')
+      return { secret: s.secret_value ?? '' }
+    }
+    if (resource === 'secrets' && id && action === 'copied' && method === 'POST') {
+      const s = findLive(store.secrets, id)
+      if (!s) throw new Error('Clave no encontrada')
+      s.copied_at = nowIso()
+      s.updated_at = nowIso()
+      save(store)
+      return { ok: true }
+    }
     if (id && action === 'restore' && method === 'POST') {
       const r = store[resource as keyof Store].find((x) => x.id === id)
       if (r) {
@@ -486,15 +587,37 @@ function route(
           ? ((body.content as string) ?? '')
           : resource === 'tasks'
             ? `${(body.title as string) ?? ''}\n${(body.detail as string) ?? ''}`
-            : ''
+            : resource === 'prompts'
+              ? `${(body.title as string) ?? ''}\n${(body.content as string) ?? ''}\n${(body.collection as string) ?? ''}`
+              : ''
       const row: Row = {
         id: uid(),
         created_at: nowIso(),
         updated_at: nowIso(),
         deleted_at: null,
         ...body,
-        ...(resource === 'notes' || resource === 'tasks'
+        ...(resource === 'notes' || resource === 'tasks' || resource === 'prompts'
           ? { tags: parseTags(tagsSource) }
+          : {}),
+        ...(resource === 'prompts'
+          ? {
+              variables: extractPromptVariables((body.content as string) ?? ''),
+              favorite: Boolean(body.favorite),
+              use_count: 0,
+              last_used_at: null,
+            }
+          : {}),
+        ...(resource === 'secrets'
+          ? {
+              secret_value: body.secret,
+              secret: undefined,
+              kind: body.kind ?? 'other',
+              favorite: Boolean(body.favorite),
+              critical: Boolean(body.critical),
+              expires_at: body.expiresAt ?? null,
+              last_rotated_at: body.lastRotatedAt ?? null,
+              copied_at: null,
+            }
           : {}),
         ...(resource === 'momentos'
           ? { captured_at: (body.captured_at as string) || nowIso() }
@@ -521,6 +644,26 @@ function route(
         if (body.done === true) r.completed_at = nowIso()
         if (body.done === false) r.completed_at = null
       }
+      if (resource === 'prompts') {
+        if (
+          typeof body.title === 'string' ||
+          typeof body.content === 'string' ||
+          body.collection !== undefined
+        ) {
+          r.tags = parseTags(
+            `${r.title as string}\n${r.content as string}\n${(r.collection as string | null) ?? ''}`,
+          )
+          r.variables = extractPromptVariables((r.content as string) ?? '')
+        }
+      }
+      if (resource === 'secrets') {
+        if (typeof body.secret === 'string') {
+          r.secret_value = body.secret
+          delete r.secret
+        }
+        if (body.expiresAt !== undefined) r.expires_at = body.expiresAt
+        if (body.lastRotatedAt !== undefined) r.last_rotated_at = body.lastRotatedAt
+      }
       r.updated_at = nowIso()
       save(store)
       return r
@@ -532,7 +675,11 @@ function route(
         save(store)
       }
       // notes/tasks devuelven {ok:true}; el resto {deletedAt}.
-      return resource === 'notes' || resource === 'tasks'
+      return resource === 'notes' ||
+        resource === 'tasks' ||
+        resource === 'prompts' ||
+        resource === 'secrets' ||
+        resource === 'notas-attachments'
         ? { ok: true }
         : { deletedAt: nowIso() }
     }
@@ -655,10 +802,12 @@ function route(
 
 export async function demoRequest<T>(url: string, init?: RequestInit): Promise<T> {
   const method = (init?.method ?? 'GET').toUpperCase()
-  const body =
-    init?.body && typeof init.body === 'string'
-      ? (JSON.parse(init.body) as Record<string, unknown>)
-      : {}
+  let body: Record<string, unknown> = {}
+  if (init?.body && typeof init.body === 'string') {
+    body = JSON.parse(init.body) as Record<string, unknown>
+  } else if (typeof FormData !== 'undefined' && init?.body instanceof FormData) {
+    body = Object.fromEntries(init.body.entries())
+  }
   const [rawPath, qs] = url.split('?')
   const params = new URLSearchParams(qs ?? '')
   const store = load()
