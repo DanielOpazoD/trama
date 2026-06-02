@@ -1,7 +1,11 @@
 import { useState } from 'react'
-import { NotesIcon, TasksIcon } from '../Icons'
+import { HomeIcon, KeyIcon, NotesIcon, PromptIcon, TasksIcon } from '../Icons'
 import { WorldSwitcher } from '../WorldSwitcher'
+import { ClavesView } from './ClavesView'
+import { NotasGlobalSearch } from './NotasGlobalSearch'
+import { NotasHomeView } from './NotasHomeView'
 import { NotasView } from './NotasView'
+import { PromptsView } from './PromptsView'
 import { TareasView } from './TareasView'
 import type { World } from '../../types/world'
 
@@ -10,18 +14,21 @@ import type { World } from '../../types/world'
  * (apuntes rápidos + tareas), independiente del mapa pero con puentes (p. ej.
  * promover una nota a Momento, en una fase posterior).
  *
- * Arma la sub-barra del mundo y sus dos secciones funcionales: Notas (memos
- * con #etiquetas, Fase 2) y Tareas (pendientes con fecha, Fase 3).
+ * Arma la sub-barra del mundo y sus secciones funcionales: inicio, notas,
+ * tareas, prompts y claves.
  */
-type NotasSection = 'notas' | 'tareas'
+export type NotasSection = 'inicio' | 'notas' | 'tareas' | 'prompts' | 'claves'
 
 const SECTIONS: Array<{
   id: NotasSection
   label: string
   icon: React.ComponentType<{ size?: number; className?: string }>
 }> = [
+  { id: 'inicio', label: 'Inicio', icon: HomeIcon },
   { id: 'notas', label: 'Notas', icon: NotesIcon },
   { id: 'tareas', label: 'Tareas', icon: TasksIcon },
+  { id: 'prompts', label: 'Prompts', icon: PromptIcon },
+  { id: 'claves', label: 'Claves', icon: KeyIcon },
 ]
 
 const ACCENT = 'var(--accent-sage)'
@@ -33,7 +40,7 @@ export function NotasWorld({
   world: World
   onChangeWorld: (w: World) => void
 }) {
-  const [section, setSection] = useState<NotasSection>('notas')
+  const [section, setSection] = useState<NotasSection>('inicio')
 
   return (
     <div className="h-full w-full flex flex-col md:flex-row overflow-hidden">
@@ -86,30 +93,37 @@ export function NotasWorld({
       <div className="md:hidden border-b border-ink-100 flex items-center gap-2 px-3 py-2 surface-sidebar">
         <WorldSwitcher world={world} onChangeWorld={onChangeWorld} collapsed />
         <div className="w-px h-5 bg-ink-100 shrink-0" />
-        {SECTIONS.map((s) => {
-          const active = section === s.id
-          return (
-            <button
-              key={s.id}
-              onClick={() => setSection(s.id)}
-              aria-current={active ? 'page' : undefined}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors ${
-                active ? 'text-ink-800 font-medium bg-ink-100/60' : 'text-ink-500'
-              }`}
-              style={active ? { color: ACCENT } : undefined}
-            >
-              <s.icon size={14} />
-              {s.label}
-            </button>
-          )
-        })}
+        <div className="flex gap-1 overflow-x-auto">
+          {SECTIONS.map((s) => {
+            const active = section === s.id
+            return (
+              <button
+                key={s.id}
+                onClick={() => setSection(s.id)}
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap ${
+                  active ? 'text-ink-800 font-medium bg-ink-100/60' : 'text-ink-500'
+                }`}
+                style={active ? { color: ACCENT } : undefined}
+              >
+                <s.icon size={14} />
+                {s.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Contenido */}
       <main className="flex-1 relative overflow-hidden flex flex-col">
         <div className="h-full overflow-y-auto">
-          <div className="px-8 py-10 pb-24 max-w-3xl mx-auto">
-            {section === 'notas' ? <NotasView /> : <TareasView />}
+          <div className="px-5 md:px-8 py-8 md:py-10 pb-24 max-w-5xl mx-auto">
+            <NotasGlobalSearch onNavigate={setSection} />
+            {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
+            {section === 'notas' && <NotasView />}
+            {section === 'tareas' && <TareasView />}
+            {section === 'prompts' && <PromptsView />}
+            {section === 'claves' && <ClavesView />}
           </div>
         </div>
       </main>

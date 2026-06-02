@@ -1,0 +1,160 @@
+const VAULT_CONFIG_KEY = 'trama.notas.vault.v1'
+const VERIFIER_TEXT = 'trama-notas-vault'
+const KDF_ITERATIONS = 250_000
+
+export type VaultConfig = {
+  v: 1
+  kdf: 'PBKDF2-SHA-256'
+  salt: string
+  verifierIv: string
+  verifierData: string
+}
+
+export type VaultEnvelope = {
+  v: 1
+  alg: 'AES-GCM'
+  iv: string
+  data: string
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = ''
+  for (const b of bytes) bin += String.fromCharCode(b)
+  return btoa(bin)
+}
+
+function base64ToBytes(value: string): Uint8Array {
+  const bin = atob(value)
+  const out = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
+
+function randomBytes(length: number): Uint8Array {
+  const bytes = new Uint8Array(length)
+  crypto.getRandomValues(bytes)
+  return bytes
+}
+
+function asArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const out = new ArrayBuffer(bytes.byteLength)
+  new Uint8Array(out).set(bytes)
+  return out
+}
+
+async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+  const material = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(password),
+    'PBKDF2',
+    false,
+    ['deriveKey'],
+  )
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: asArrayBuffer(salt),
+      iterations: KDF_ITERATIONS,
+      hash: 'SHA-256',
+    },
+    material,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt'],
+  )
+}
+
+async function encryptWithKey(value: string, key: CryptoKey): Promise<VaultEnvelope> {
+  const iv = randomBytes(12)
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: asArrayBuffer(iv) },
+    key,
+    new TextEncoder().encode(value),
+  )
+  return {
+    v: 1,
+    alg: 'AES-GCM',
+    iv: bytesToBase64(iv),
+    data: bytesToBase64(new Uint8Array(encrypted)),
+  }
+}
+
+async function decryptWithKey(envelope: VaultEnvelope, key: CryptoKey): Promise<string> {
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: asArrayBuffer(base64ToBytes(envelope.iv)) },
+    key,
+    asArrayBuffer(base64ToBytes(envelope.data)),
+  )
+  return new TextDecoder().decode(decrypted)
+}
+
+export function readVaultConfig(): VaultConfig | null {
+  if (typeof window === 'undefined') return null
+  const raw = window.localStorage.getItem(VAULT_CONFIG_KEY)
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw) as VaultConfig
+    return parsed.v === 1 && parsed.kdf === 'PBKDF2-SHA-256' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+export function hasVaultConfig(): boolean {
+  return readVaultConfig() !== null
+}
+
+export async function createVault(password: string): Promise<CryptoKey> {
+  const salt = randomBytes(16)
+  const key = await deriveKey(password, salt)
+  const verifier = await encryptWithKey(VERIFIER_TEXT, key)
+  const config: VaultConfig = {
+    v: 1,
+    kdf: 'PBKDF2-SHA-256',
+    salt: bytesToBase64(salt),
+    verifierIv: verifier.iv,
+    verifierData: verifier.data,
+  }
+  window.localStorage.setItem(VAULT_CONFIG_KEY, JSON.stringify(config))
+  return key
+}
+
+export async function unlockVault(password: string): Promise<CryptoKey> {
+  const config = readVaultConfig()
+  if (!config) return createVault(password)
+  const key = await deriveKey(password, base64ToBytes(config.salt))
+  const verifier = await decryptWithKey(
+    {
+      v: 1,
+      alg: 'AES-GCM',
+      iv: config.verifierIv,
+      data: config.verifierData,
+    },
+    key,
+  )
+  if (verifier !== VERIFIER_TEXT) throw new Error('Clave de acceso incorrecta')
+  return key
+}
+
+export async function encryptVaultSecret(
+  plainText: string,
+  key: CryptoKey,
+): Promise<string> {
+  return JSON.stringify(await encryptWithKey(plainText, key))
+}
+
+export async function decryptVaultSecret(
+  encryptedValue: string,
+  key: CryptoKey,
+): Promise<string> {
+  let envelope: VaultEnvelope
+  try {
+    envelope = JSON.parse(encryptedValue) as VaultEnvelope
+  } catch {
+    throw new Error('Esta clave fue guardada sin cifrado extremo a extremo')
+  }
+  if (envelope.v !== 1 || envelope.alg !== 'AES-GCM') {
+    throw new Error('Formato de clave cifrada no soportado')
+  }
+  return decryptWithKey(envelope, key)
+}

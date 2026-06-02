@@ -5,6 +5,7 @@ import {
   useUpdateNote,
   useDeleteNote,
   usePromoteNote,
+  useUploadNotasAttachment,
   useToast,
 } from '../../state'
 import { ViewHeader } from '../ViewHeader'
@@ -13,6 +14,7 @@ import { LoadingHint } from '../LoadingHint'
 import { SearchIcon } from '../Icons'
 import { NoteCard } from './NoteCard'
 import { ActivityCalendar, localDayKey } from './ActivityCalendar'
+import { PendingAttachmentsInput } from './PendingAttachmentsInput'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -28,9 +30,11 @@ export function NotasView() {
   const updateNote = useUpdateNote()
   const deleteNote = useDeleteNote()
   const promoteNote = usePromoteNote()
+  const uploadAttachment = useUploadNotasAttachment()
   const toast = useToast()
 
   const [draft, setDraft] = useState('')
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState<string | null>(null)
   // Día seleccionado en el calendario de actividad ('YYYY-MM-DD'), o null.
@@ -78,7 +82,34 @@ export function NotasView() {
   function save() {
     const content = draft.trim()
     if (!content || createNote.isPending) return
-    createNote.mutate(content, { onSuccess: () => setDraft('') })
+    const files = pendingFiles
+    createNote.mutate(content, {
+      onSuccess: async (note) => {
+        setDraft('')
+        setPendingFiles([])
+        if (files.length === 0) return
+        try {
+          await Promise.all(
+            files.map((file) =>
+              uploadAttachment.mutateAsync({
+                ownerType: 'note',
+                ownerId: note.id,
+                file,
+              }),
+            ),
+          )
+          toast.show({ message: 'Nota y anexos guardados.', tone: 'success' })
+        } catch (err) {
+          toast.show({
+            message:
+              err instanceof Error
+                ? err.message
+                : 'La nota se guardó, pero algún anexo falló.',
+            tone: 'error',
+          })
+        }
+      },
+    })
   }
 
   function onComposerKey(e: React.KeyboardEvent) {
@@ -108,6 +139,11 @@ export function NotasView() {
           rows={3}
           placeholder="Escribe una nota… usa #etiquetas para clasificarla"
           className="w-full resize-y bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
+        />
+        <PendingAttachmentsInput
+          files={pendingFiles}
+          onChange={setPendingFiles}
+          busy={createNote.isPending || uploadAttachment.isPending}
         />
         <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60">
           <span className="text-micro text-ink-300">
