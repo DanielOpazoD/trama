@@ -32,6 +32,16 @@ const SECTIONS: Array<{
 ]
 
 const ACCENT = 'var(--accent-sage)'
+const DENSITY_STORAGE_KEY = 'trama.notas.density'
+
+type NotasDensity = 'comfortable' | 'compact'
+
+function readInitialDensity(): NotasDensity {
+  if (typeof window === 'undefined') return 'comfortable'
+  return window.localStorage.getItem(DENSITY_STORAGE_KEY) === 'compact'
+    ? 'compact'
+    : 'comfortable'
+}
 
 export function NotasWorld({
   world,
@@ -41,6 +51,13 @@ export function NotasWorld({
   onChangeWorld: (w: World) => void
 }) {
   const [section, setSection] = useState<NotasSection>('inicio')
+  const [density, setDensity] = useState<NotasDensity>(readInitialDensity)
+  const compact = density === 'compact'
+
+  function changeDensity(next: NotasDensity) {
+    setDensity(next)
+    window.localStorage.setItem(DENSITY_STORAGE_KEY, next)
+  }
 
   return (
     <div className="h-full w-full flex flex-col md:flex-row overflow-hidden">
@@ -117,7 +134,36 @@ export function NotasWorld({
       {/* Contenido */}
       <main className="flex-1 relative overflow-hidden flex flex-col">
         <div className="h-full overflow-y-auto">
-          <div className="px-5 md:px-8 py-8 md:py-10 pb-24 max-w-5xl mx-auto">
+          <div
+            data-testid="notas-world-content"
+            className={`px-5 md:px-8 pb-24 mx-auto transition-[max-width] ${
+              compact ? 'py-5 md:py-7 max-w-6xl' : 'py-8 md:py-10 max-w-5xl'
+            }`}
+          >
+            <div className="mb-4 flex justify-end">
+              <div className="inline-flex rounded-md border border-ink-100 bg-paper-50 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => changeDensity('comfortable')}
+                  aria-pressed={!compact}
+                  className={`px-2.5 py-1 text-micro uppercase tracking-eyebrow rounded ${
+                    compact ? 'text-ink-300 hover:text-ink-700' : 'bg-white text-ink-700'
+                  }`}
+                >
+                  Modo cómodo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeDensity('compact')}
+                  aria-pressed={compact}
+                  className={`px-2.5 py-1 text-micro uppercase tracking-eyebrow rounded ${
+                    compact ? 'bg-white text-ink-700' : 'text-ink-300 hover:text-ink-700'
+                  }`}
+                >
+                  Modo compacto
+                </button>
+              </div>
+            </div>
             <NotasGlobalSearch onNavigate={setSection} />
             {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
             {section === 'notas' && <NotasView />}

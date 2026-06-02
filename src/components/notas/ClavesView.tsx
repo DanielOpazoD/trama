@@ -49,6 +49,8 @@ export function ClavesView() {
   const [secret, setSecret] = useState('')
   const [kind, setKind] = useState<SecretKind>('api_key')
   const [service, setService] = useState('')
+  const [username, setUsername] = useState('')
+  const [notes, setNotes] = useState('')
   const [expiresAt, setExpiresAt] = useState('')
   const [critical, setCritical] = useState(false)
   const [filter, setFilter] = useState<SecretKind | null>(null)
@@ -119,12 +121,20 @@ export function ClavesView() {
     const encryptedService = service.trim()
       ? await encryptVaultSecret(service.trim(), activeVaultKey)
       : null
+    const encryptedUsername = username.trim()
+      ? await encryptVaultSecret(username.trim(), activeVaultKey)
+      : null
+    const encryptedNotes = notes.trim()
+      ? await encryptVaultSecret(notes.trim(), activeVaultKey)
+      : null
     createSecret.mutate(
       {
         label: label.trim(),
         secret: encryptedSecret,
         kind,
         service: encryptedService,
+        username: encryptedUsername,
+        notes: encryptedNotes,
         expiresAt: expiresAt || null,
         critical,
       },
@@ -133,6 +143,8 @@ export function ClavesView() {
           setLabel('')
           setSecret('')
           setService('')
+          setUsername('')
+          setNotes('')
           setExpiresAt('')
           setCritical(false)
         },
@@ -236,11 +248,17 @@ export function ClavesView() {
           type="password"
           className="input-paper w-full text-sm mb-2"
         />
-        <div className="grid sm:grid-cols-[1fr_160px_auto] gap-2 items-center">
+        <div className="grid sm:grid-cols-[1fr_1fr_160px_auto] gap-2 items-center">
           <input
             value={service}
             onChange={(e) => setService(e.target.value)}
             placeholder="Servicio o cuenta"
+            className="input-paper w-full text-sm"
+          />
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Usuario o identificador"
             className="input-paper w-full text-sm"
           />
           <input
@@ -258,6 +276,13 @@ export function ClavesView() {
             crítica
           </label>
         </div>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={2}
+          placeholder="Notas privadas"
+          className="input-paper mt-2 w-full resize-y text-sm leading-relaxed"
+        />
         <div className="mt-2 flex justify-end">
           <button
             onClick={save}
@@ -569,6 +594,10 @@ function SecretCard({
               {health.score}/100
             </span>
             {metadata?.service && <span>{metadata.service}</span>}
+            {metadata?.username && (
+              <span className="font-mono text-[11px]">{metadata.username}</span>
+            )}
+            {metadata?.notes && <span className="basis-full">{metadata.notes}</span>}
             {item.expiresAt && <span>vence {formatShortDate(item.expiresAt)}</span>}
             {health.flags.length > 0 && (
               <span className="uppercase tracking-eyebrow">

@@ -4,6 +4,7 @@ import { renderWithProviders } from '../../test-utils'
 import { NotasWorld } from './NotasWorld'
 
 beforeEach(() => {
+  window.localStorage.clear()
   // Notas y Tareas piden sus listas al montar; devolvemos [] (vacío).
   vi.stubGlobal(
     'fetch',
@@ -18,6 +19,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  window.localStorage.clear()
 })
 
 describe('<NotasWorld />', () => {
@@ -30,5 +32,15 @@ describe('<NotasWorld />', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Tareas' })[0]!)
     expect(screen.getByText('por realizar')).toBeInTheDocument()
+  })
+
+  it('permite alternar densidad compacta y la recuerda', () => {
+    renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
+
+    const compactButton = screen.getByRole('button', { name: 'Modo compacto' })
+    fireEvent.click(compactButton)
+
+    expect(screen.getByTestId('notas-world-content')).toHaveClass('max-w-6xl')
+    expect(window.localStorage.getItem('trama.notas.density')).toBe('compact')
   })
 })
