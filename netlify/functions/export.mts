@@ -119,6 +119,8 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
     detail: string | null
     done: boolean
     due_date: string | null
+    priority: string | null
+    week_start: string | null
     completed_at: string | null
     tags: string[] | null
     origin: unknown
@@ -194,7 +196,7 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
         FROM momento_entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY momento_id, entity_id`,
       scoped`SELECT id, content, tags, pinned, promoted_momento_id, origin, created_at, updated_at
         FROM notes WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
-      scoped`SELECT id, title, detail, done, due_date, completed_at, tags, origin, created_at, updated_at
+      scoped`SELECT id, title, detail, done, due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, completed_at, tags, origin, created_at, updated_at
         FROM tasks WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
       scoped`SELECT id, title, content, collection, tags, variables, favorite, use_count, last_used_at, origin, created_at, updated_at
         FROM prompts WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
@@ -308,6 +310,8 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
       detail: optional(row.detail),
       done: row.done,
       dueDate: optional(row.due_date),
+      priority: (row.priority as 'alta' | 'media' | 'baja' | null) ?? 'media',
+      weekStart: optional(row.week_start),
       completedAt: optional(row.completed_at),
       tags: row.tags ?? [],
       origin: row.origin,

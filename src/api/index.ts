@@ -32,6 +32,7 @@ import { searchApi } from './search'
 import { secretsApi } from './secrets'
 import { spotifyApi } from './spotify'
 import { tasksApi } from './tasks'
+import { monthNotesApi } from './month-notes'
 import { typeTablesApi } from './type-tables'
 import { xApi } from './x'
 
@@ -47,6 +48,7 @@ export const api = {
   prompts: promptsApi,
   secrets: secretsApi,
   notasAttachments: notasAttachmentsApi,
+  monthNotes: monthNotesApi,
   atlas: atlasApi,
   ...cronologiaApi,
   ...aiApi,
@@ -84,7 +86,9 @@ export type { Cronica, GeneratedCronica } from './cronicas'
 
 export type { Note } from './notes'
 
-export type { Task, TaskCreate, TaskPatch } from './tasks'
+export type { Task, TaskCreate, TaskPatch, TaskPriority } from './tasks'
+
+export type { MonthNote } from './month-notes'
 
 export type { Prompt, PromptCreate, PromptPatch } from './prompts'
 

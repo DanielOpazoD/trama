@@ -37,6 +37,8 @@ export type ExportTask = {
   detail?: string | null
   done: boolean
   dueDate?: string | null
+  priority?: 'alta' | 'media' | 'baja'
+  weekStart?: string
   completedAt?: string | null
   tags: string[]
   origin?: Origin

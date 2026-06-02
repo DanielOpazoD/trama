@@ -21,7 +21,7 @@ const SECTIONS: Array<{
 const SECTION_META: Record<NotasSection, { title: string; subtitle: string }> = {
   inicio: { title: 'Inicio', subtitle: 'mundo notas' },
   notas: { title: 'Notas', subtitle: 'capturas y anexos' },
-  tareas: { title: 'Tareas', subtitle: 'recordatorios y vencimientos' },
+  tareas: { title: 'Tareas', subtitle: 'recordatorios de la semana' },
   prompts: { title: 'Prompts', subtitle: 'biblioteca reutilizable' },
   claves: { title: 'Claves', subtitle: 'vault seguro' },
 }

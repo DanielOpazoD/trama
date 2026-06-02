@@ -4,7 +4,7 @@ import { ViewHeader } from '../ViewHeader'
 import { EmptyMessage } from '../EmptyMessage'
 import { KeyIcon, NotesIcon, PlusIcon, PromptIcon, TasksIcon } from '../Icons'
 import type { NotasSection } from './NotasWorld'
-import { formatShortDate, todayLocal } from './notasUtils'
+import { PRIORITY_META } from './PriorityDots'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -19,12 +19,19 @@ export function NotasHomeView({
   const notes = useMemo(() => rawNotes ?? [], [rawNotes])
   const tasks = useMemo(() => rawTasks ?? [], [rawTasks])
   const prompts = useMemo(() => rawPrompts ?? [], [rawPrompts])
-  const today = todayLocal()
 
-  const urgentTasks = useMemo(
-    () => tasks.filter((t) => !t.done && t.dueDate && t.dueDate <= today).slice(0, 5),
-    [tasks, today],
-  )
+  // Pendientes ordenados por prioridad (alta primero), luego por recencia.
+  const pendingTasks = useMemo(() => {
+    const rank: Record<string, number> = { alta: 0, media: 1, baja: 2 }
+    return [...tasks]
+      .filter((t) => !t.done)
+      .sort(
+        (a, b) =>
+          (rank[a.priority] ?? 1) - (rank[b.priority] ?? 1) ||
+          b.createdAt.localeCompare(a.createdAt),
+      )
+      .slice(0, 5)
+  }, [tasks])
   const topNotes = useMemo(
     () => [...notes].sort((a, b) => Number(b.pinned) - Number(a.pinned)).slice(0, 4),
     [notes],
@@ -68,21 +75,23 @@ export function NotasHomeView({
         />
       ) : (
         <div className="grid md:grid-cols-2 gap-3">
-          <HubCard title="Tareas urgentes" count={urgentTasks.length}>
-            {urgentTasks.length === 0 ? (
-              <Muted>Nada vencido ni para hoy.</Muted>
+          <HubCard title="Pendientes" count={pendingTasks.length}>
+            {pendingTasks.length === 0 ? (
+              <Muted>Nada pendiente.</Muted>
             ) : (
-              urgentTasks.map((t) => (
+              pendingTasks.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => onNavigate('tareas')}
-                  className="w-full text-left py-1.5 border-b border-ink-100/50 last:border-0"
+                  className="w-full text-left py-1.5 border-b border-ink-100/50 last:border-0 flex items-center gap-2.5"
                 >
+                  <span
+                    aria-hidden
+                    className="size-2 rounded-full shrink-0"
+                    style={{ backgroundColor: PRIORITY_META[t.priority].color }}
+                    title={`Prioridad ${PRIORITY_META[t.priority].label}`}
+                  />
                   <p className="text-sm text-ink-700 truncate">{t.title}</p>
-                  <p className="text-micro uppercase tracking-eyebrow text-[color:var(--accent-clay)]">
-                    {t.dueDate && t.dueDate < today ? 'vencida' : 'hoy'} ·{' '}
-                    {formatShortDate(t.dueDate)}
-                  </p>
                 </button>
               ))
             )}

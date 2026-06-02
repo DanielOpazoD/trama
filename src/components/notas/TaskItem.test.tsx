@@ -9,6 +9,8 @@ const baseTask: Task = {
   detail: 'revisar #caja_1\nantes de guardar',
   done: false,
   dueDate: '2026-05-30',
+  priority: 'media',
+  weekStart: '2026-05-25',
   completedAt: null,
   tags: ['archivo', 'caja_1'],
   createdAt: '2026-05-29T10:00:00.000Z',
@@ -68,8 +70,20 @@ describe('<TaskItem />', () => {
       title: 'nueva tarea',
       detail: null,
       dueDate: null,
+      priority: 'media',
     })
     expect(screen.queryByPlaceholderText(/título de la tarea/i)).not.toBeInTheDocument()
+  })
+
+  it('cicla la prioridad desde la línea sin entrar a edición', () => {
+    const onSave = vi.fn()
+    render(
+      <TaskItem task={baseTask} onToggle={vi.fn()} onSave={onSave} onDelete={vi.fn()} />,
+    )
+
+    // baseTask es 'media'; un clic en el punto cicla a 'baja'.
+    fireEvent.click(screen.getByRole('button', { name: /prioridad media, cambiar/i }))
+    expect(onSave).toHaveBeenCalledWith({ priority: 'baja' })
   })
 
   it('permite cancelar edición y confirma antes de borrar', () => {

@@ -73,6 +73,8 @@ type IncomingTask = {
   detail?: string | null
   done: boolean
   dueDate?: string | null
+  priority?: string | null
+  weekStart?: string | null
   completedAt?: string | null
   tags: string[]
   origin?: unknown
@@ -263,12 +265,18 @@ function incomingTask(value: unknown): IncomingTask | null {
   const id = stringValue(item.id)
   const title = stringValue(item.title)
   if (!id || !title) return null
+  const rawPriority = stringValue(item.priority)
   return {
     id,
     title,
     detail: nullableString(item.detail),
     done: booleanValue(item.done),
     dueDate: nullableString(item.dueDate),
+    priority:
+      rawPriority === 'alta' || rawPriority === 'media' || rawPriority === 'baja'
+        ? rawPriority
+        : null,
+    weekStart: nullableString(item.weekStart),
     completedAt: nullableString(item.completedAt),
     tags: stringArray(item.tags),
     origin: item.origin,
@@ -560,13 +568,15 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     try {
       const origin = JSON.stringify(normalizeOrigin(t.origin))
       const result = await sqlTyped<{ id: string }>(sql`
-        INSERT INTO tasks (id, title, detail, done, due_date, completed_at, tags, origin, user_id)
+        INSERT INTO tasks (id, title, detail, done, due_date, priority, week_start, completed_at, tags, origin, user_id)
         VALUES (
           ${resolveImportId(t.id, userId)},
           ${t.title},
           ${t.detail ?? null},
           ${t.done},
           ${t.dueDate ?? null},
+          COALESCE(${t.priority ?? null}, 'media'),
+          COALESCE(${t.weekStart ?? null}::date, date_trunc('week', NOW())::date),
           ${t.completedAt ?? null},
           ${t.tags},
           ${origin}::jsonb,

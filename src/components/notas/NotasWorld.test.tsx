@@ -44,7 +44,7 @@ describe('<NotasWorld />', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Tareas' })[0]!)
     expect(screen.getByRole('heading', { name: 'Tareas' })).toBeInTheDocument()
-    expect(screen.getByText('recordatorios y vencimientos')).toBeInTheDocument()
+    expect(screen.getByText('recordatorios de la semana')).toBeInTheDocument()
   })
 
   it('no muestra controles de modo cómodo ni compacto', () => {

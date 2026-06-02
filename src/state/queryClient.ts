@@ -31,8 +31,9 @@ export const queryKeys = {
   tasks: ['tasks'] as const,
   prompts: ['prompts'] as const,
   secrets: ['secrets'] as const,
-  notasAttachments: (ownerType: 'note' | 'prompt', ownerId: string) =>
+  notasAttachments: (ownerType: 'note' | 'prompt' | 'week', ownerId: string) =>
     ['notas-attachments', ownerType, ownerId] as const,
+  monthNote: (month: string) => ['month-note', month] as const,
   x: ['x'] as const,
   xBookmarks: ['x', 'bookmarks'] as const,
   xStatus: ['x', 'status'] as const,

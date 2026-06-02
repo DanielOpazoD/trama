@@ -1,6 +1,6 @@
 import { request } from './request'
 
-export type NotasAttachmentOwner = 'note' | 'prompt'
+export type NotasAttachmentOwner = 'note' | 'prompt' | 'week'
 
 export type NotasAttachment = {
   id: string

@@ -102,6 +102,7 @@ type Store = {
   prompts: Row[]
   secrets: Row[]
   notas_attachments: Row[]
+  month_notes: Row[]
 }
 
 function uid(): string {
@@ -115,6 +116,16 @@ function daysAgo(n: number): string {
 }
 function dateAgo(n: number): string {
   return daysAgo(n).slice(0, 10)
+}
+/** Lunes (local) de la semana de hace `n` días, como 'YYYY-MM-DD'. */
+function weekStartAgo(n: number): string {
+  const base = new Date(Date.now() - n * 86_400_000)
+  const local = new Date(base.getFullYear(), base.getMonth(), base.getDate())
+  const dow = (local.getDay() + 6) % 7 // 0 = lunes
+  local.setDate(local.getDate() - dow)
+  const mm = String(local.getMonth() + 1).padStart(2, '0')
+  const dd = String(local.getDate()).padStart(2, '0')
+  return `${local.getFullYear()}-${mm}-${dd}`
 }
 
 /** Deriva #etiquetas (igual criterio que el servidor). */
@@ -371,20 +382,41 @@ function buildSeed(): Store {
     detail: null,
     done: false,
     due_date: null,
+    priority: 'media',
+    week_start: weekStartAgo(d),
     completed_at: null,
     tags: parseTags(title),
     origin: manual,
     ...ts(d),
     ...extra,
   })
+  const thisWeek = weekStartAgo(0)
+  const lastWeek = weekStartAgo(7)
   const tasks: Row[] = [
     task('Terminar el ensayo sobre #memoria', 1, {
       detail: 'Revisar las citas marcadas como resonantes.',
-      due_date: dateAgo(-3),
+      priority: 'alta',
+      week_start: thisWeek,
     }),
-    task('Responder el correo de la editorial', 2, { due_date: dateAgo(1) }),
-    task('Ordenar las #notas de la semana', 3),
-    task('Leer un capítulo de Rayuela', 6, { done: true, completed_at: daysAgo(1) }),
+    task('Responder el correo de la editorial', 1, {
+      priority: 'alta',
+      due_date: dateAgo(-2),
+      week_start: thisWeek,
+    }),
+    task('Ordenar las #notas de la semana', 2, {
+      priority: 'media',
+      week_start: thisWeek,
+    }),
+    task('Comprar tinta para la #pluma', 2, { priority: 'baja', week_start: thisWeek }),
+    task('Llamar a la biblioteca por el préstamo', 8, {
+      priority: 'media',
+      week_start: lastWeek,
+    }),
+    task('Leer un capítulo de Rayuela', 8, {
+      done: true,
+      completed_at: daysAgo(6),
+      week_start: lastWeek,
+    }),
   ]
 
   return {
@@ -397,6 +429,7 @@ function buildSeed(): Store {
     prompts: [],
     secrets: [],
     notas_attachments: [],
+    month_notes: [],
   }
 }
 
@@ -415,6 +448,7 @@ function load(): Store {
         prompts: parsed.prompts ?? [],
         secrets: parsed.secrets ?? [],
         notas_attachments: parsed.notas_attachments ?? [],
+        month_notes: parsed.month_notes ?? [],
       }
     }
   } catch {
@@ -484,6 +518,35 @@ function route(
     store.notas_attachments.push(row)
     save(store)
     return row
+  }
+
+  if (resource === 'month-notes') {
+    if (method === 'GET') {
+      const month = params.get('month') ?? ''
+      const row = store.month_notes.find((r) => r.month_key === month && !r.deleted_at)
+      return { monthKey: month, content: (row?.content as string) ?? '' }
+    }
+    if (method === 'PUT') {
+      const month = String(body.month ?? '')
+      const content = String(body.content ?? '')
+      const row = store.month_notes.find((r) => r.month_key === month && !r.deleted_at)
+      if (row) {
+        row.content = content
+        row.updated_at = nowIso()
+      } else {
+        store.month_notes.push({
+          id: uid(),
+          user_id: 'legacy-single-user',
+          month_key: month,
+          content,
+          created_at: nowIso(),
+          updated_at: nowIso(),
+          deleted_at: null,
+        })
+      }
+      save(store)
+      return { monthKey: month, content }
+    }
   }
 
   // ---- recursos manuales con CRUD ----
@@ -623,7 +686,15 @@ function route(
           ? { captured_at: (body.captured_at as string) || nowIso() }
           : {}),
         ...(resource === 'notes' ? { promoted_momento_id: null } : {}),
-        ...(resource === 'tasks' ? { done: false, completed_at: null } : {}),
+        ...(resource === 'tasks'
+          ? {
+              done: false,
+              completed_at: null,
+              due_date: (body.dueDate as string) ?? null,
+              priority: (body.priority as string) ?? 'media',
+              week_start: (body.weekStart as string) ?? weekStartAgo(0),
+            }
+          : {}),
       }
       rows.push(row)
       save(store)
