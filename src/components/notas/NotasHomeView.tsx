@@ -1,10 +1,11 @@
 import { useMemo } from 'react'
-import { useNotesQuery, usePromptsQuery, useTasksQuery } from '../../state'
+import { useNotesQuery, usePromptsQuery, usePendingTasks } from '../../state'
 import { ViewHeader } from '../ViewHeader'
 import { EmptyMessage } from '../EmptyMessage'
 import { KeyIcon, NotesIcon, PlusIcon, PromptIcon, TasksIcon } from '../Icons'
 import type { NotasSection } from './NotasWorld'
 import { PRIORITY_META } from './PriorityDots'
+import { sortPending } from './weekModel'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -14,24 +15,14 @@ export function NotasHomeView({
   onNavigate: (section: NotasSection) => void
 }) {
   const rawNotes = useNotesQuery().data
-  const rawTasks = useTasksQuery().data
+  const rawTasks = usePendingTasks().data
   const rawPrompts = usePromptsQuery().data
   const notes = useMemo(() => rawNotes ?? [], [rawNotes])
   const tasks = useMemo(() => rawTasks ?? [], [rawTasks])
   const prompts = useMemo(() => rawPrompts ?? [], [rawPrompts])
 
-  // Pendientes ordenados por prioridad (alta primero), luego por recencia.
-  const pendingTasks = useMemo(() => {
-    const rank: Record<string, number> = { alta: 0, media: 1, baja: 2 }
-    return [...tasks]
-      .filter((t) => !t.done)
-      .sort(
-        (a, b) =>
-          (rank[a.priority] ?? 1) - (rank[b.priority] ?? 1) ||
-          b.createdAt.localeCompare(a.createdAt),
-      )
-      .slice(0, 5)
-  }, [tasks])
+  // `tasks` ya son solo pendientes (usePendingTasks); ordenados por prioridad.
+  const pendingTasks = useMemo(() => sortPending(tasks).slice(0, 5), [tasks])
   const topNotes = useMemo(
     () => [...notes].sort((a, b) => Number(b.pinned) - Number(a.pinned)).slice(0, 4),
     [notes],

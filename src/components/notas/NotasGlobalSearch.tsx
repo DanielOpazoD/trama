@@ -17,8 +17,11 @@ export function NotasGlobalSearch({
   onNavigate: (section: NotasSection) => void
 }) {
   const [q, setQ] = useState('')
+  const hasQuery = q.trim().length > 0
   const rawNotes = useNotesQuery().data
-  const rawTasks = useTasksQuery().data
+  // El buscador vive en el chrome (siempre montado). Las tareas pueden crecer
+  // mucho con el tiempo, así que solo las cargamos cuando hay algo que buscar.
+  const rawTasks = useTasksQuery({ enabled: hasQuery }).data
   const rawPrompts = usePromptsQuery().data
   const notes = useMemo(() => rawNotes ?? [], [rawNotes])
   const tasks = useMemo(() => rawTasks ?? [], [rawTasks])

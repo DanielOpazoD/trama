@@ -1,34 +1,86 @@
 /**
- * τ-worlds Fase 3: hooks de Tareas (Trama Notas).
+ * Hooks de Tareas (Trama Notas).
  *
- * `useTasksQuery()` lista todas las tareas (el filtrado por texto/tag se hace
- * client-side en la vista). `useUpdateTask` aplica el patch en cache al
- * instante (onMutate) para que el check de "hecho" y las ediciones se sientan
- * inmediatos; create/delete invalidan y refetchean.
+ * Hay tres formas de leer tareas, todas bajo el prefijo de cache `['tasks']`:
+ *  - `useTasksQuery()` — TODAS (para búsqueda global y export). Trae mucho; úsalo
+ *    solo donde de verdad se necesita el conjunto completo.
+ *  - `useTasksRange()` — acotado a un rango de semanas (+ arrastre). Es lo que usa
+ *    la vista de Tareas, para no traer años de historial.
+ *  - `usePendingTasks()` — solo pendientes (para el "Pendientes" del inicio).
+ *
+ * Las mutaciones aplican el cambio de forma optimista sobre CUALQUIER variante
+ * en cache (`setQueriesData` con el prefijo) e invalidan el prefijo al asentar.
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query'
 import { api } from '../api'
 import type { Task, TaskCreate, TaskPatch } from '../api'
 import { queryKeys } from './queryClient'
 
 const TASKS_KEY = queryKeys.tasks
 
-export function useTasksQuery() {
+export function useTasksQuery(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: TASKS_KEY,
     queryFn: () => api.tasks.list(),
+    enabled: opts?.enabled ?? true,
   })
+}
+
+export function useTasksRange(opts: {
+  weekFrom: string
+  weekTo: string
+  carryBefore: string | null
+}) {
+  return useQuery({
+    queryKey: queryKeys.tasksRange(opts.weekFrom, opts.weekTo, opts.carryBefore),
+    queryFn: () =>
+      api.tasks.list({
+        weekFrom: opts.weekFrom,
+        weekTo: opts.weekTo,
+        carryBefore: opts.carryBefore ?? undefined,
+      }),
+    // Al navegar de mes, conserva el anterior hasta que llega el nuevo (sin flash).
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function usePendingTasks() {
+  return useQuery({
+    queryKey: queryKeys.tasksPending,
+    queryFn: () => api.tasks.list({ pending: true }),
+  })
+}
+
+/** Campos de un patch aplicables al objeto en cache (los definidos). */
+function applyPatch(task: Task, patch: TaskPatch): Task {
+  return {
+    ...task,
+    ...(patch.title !== undefined ? { title: patch.title } : {}),
+    ...(patch.detail !== undefined ? { detail: patch.detail } : {}),
+    ...(patch.dueDate !== undefined ? { dueDate: patch.dueDate } : {}),
+    ...(patch.priority !== undefined ? { priority: patch.priority } : {}),
+    ...(patch.weekStart !== undefined ? { weekStart: patch.weekStart } : {}),
+    ...(patch.done !== undefined ? { done: patch.done } : {}),
+  }
+}
+
+function invalidateTasks(qc: QueryClient) {
+  qc.invalidateQueries({ queryKey: TASKS_KEY })
+  qc.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+  qc.invalidateQueries({ queryKey: queryKeys.home })
 }
 
 export function useCreateTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (input: TaskCreate) => api.tasks.create(input),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: TASKS_KEY })
-      qc.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
-      qc.invalidateQueries({ queryKey: queryKeys.home })
-    },
+    onSuccess: () => invalidateTasks(qc),
   })
 }
 
@@ -39,32 +91,17 @@ export function useUpdateTask() {
       api.tasks.update(id, patch),
     onMutate: async ({ id, patch }) => {
       await qc.cancelQueries({ queryKey: TASKS_KEY })
-      const previous = qc.getQueryData<Task[]>(TASKS_KEY) ?? []
-      qc.setQueryData<Task[]>(TASKS_KEY, (prev) =>
-        (prev ?? []).map((t) =>
-          t.id === id
-            ? {
-                ...t,
-                ...(patch.title !== undefined ? { title: patch.title } : {}),
-                ...(patch.detail !== undefined ? { detail: patch.detail } : {}),
-                ...(patch.dueDate !== undefined ? { dueDate: patch.dueDate } : {}),
-                ...(patch.priority !== undefined ? { priority: patch.priority } : {}),
-                ...(patch.weekStart !== undefined ? { weekStart: patch.weekStart } : {}),
-                ...(patch.done !== undefined ? { done: patch.done } : {}),
-              }
-            : t,
-        ),
+      // Snapshot de todas las variantes de tareas en cache, para revertir.
+      const previous = qc.getQueriesData<Task[]>({ queryKey: TASKS_KEY })
+      qc.setQueriesData<Task[]>({ queryKey: TASKS_KEY }, (prev) =>
+        (prev ?? []).map((t) => (t.id === id ? applyPatch(t, patch) : t)),
       )
       return { previous }
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) qc.setQueryData(TASKS_KEY, context.previous)
+      for (const [key, data] of context?.previous ?? []) qc.setQueryData(key, data)
     },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: TASKS_KEY })
-      qc.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
-      qc.invalidateQueries({ queryKey: queryKeys.home })
-    },
+    onSettled: () => invalidateTasks(qc),
   })
 }
 
@@ -72,10 +109,17 @@ export function useDeleteTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.tasks.remove(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: TASKS_KEY })
-      qc.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
-      qc.invalidateQueries({ queryKey: queryKeys.home })
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: TASKS_KEY })
+      const previous = qc.getQueriesData<Task[]>({ queryKey: TASKS_KEY })
+      qc.setQueriesData<Task[]>({ queryKey: TASKS_KEY }, (prev) =>
+        (prev ?? []).filter((t) => t.id !== id),
+      )
+      return { previous }
     },
+    onError: (_err, _id, context) => {
+      for (const [key, data] of context?.previous ?? []) qc.setQueryData(key, data)
+    },
+    onSettled: () => invalidateTasks(qc),
   })
 }
