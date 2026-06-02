@@ -219,6 +219,8 @@ function Shell({
           <div className="animate-shell-topbar">
             <TopBar
               view={view}
+              world={world}
+              onChangeWorld={onChangeWorld}
               onSortes={() => setSortesOpen(true)}
               breadcrumb={
                 // Si hay una entidad seleccionada y existe en cache,

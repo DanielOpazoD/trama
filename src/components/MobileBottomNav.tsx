@@ -1,16 +1,11 @@
-import { useProactiveQuery, useCountsQuery } from '../state'
+import { useCountsQuery } from '../state'
 import {
-  AtlasIcon,
   ChatIcon,
-  CronologiaIcon,
   EntitiesIcon,
   GraphIcon,
   HomeIcon,
   MomentosIcon,
-  MusicIcon,
   QuoteIcon,
-  SparkleIcon,
-  TwitterIcon,
 } from './Icons'
 import type { ViewMode } from './Sidebar'
 import { SECTION_ACCENT } from '../lib/sectionAccent'
@@ -47,13 +42,8 @@ const NAV_ITEMS: Array<{
   { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
   { value: 'citas', label: 'Citas', icon: QuoteIcon },
   { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
-  { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
-  { value: 'twitter', label: 'Twitter', icon: TwitterIcon },
   { value: 'grafo', label: 'Grafo', icon: GraphIcon },
-  { value: 'cronologia', label: 'Cronología', icon: CronologiaIcon },
-  { value: 'atlas', label: 'Atlas', icon: AtlasIcon },
   { value: 'chat', label: 'Chat', icon: ChatIcon },
-  { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
 ]
 
 export function MobileBottomNav({
@@ -63,9 +53,7 @@ export function MobileBottomNav({
   view: ViewMode
   onChangeView: (v: ViewMode) => void
 }) {
-  const { data: pendingSuggestions = [] } = useProactiveQuery()
   const { data: totals } = useCountsQuery()
-  const pendingCount = pendingSuggestions.length
 
   return (
     <nav
@@ -81,7 +69,6 @@ export function MobileBottomNav({
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon
           const active = view === item.value
-          const showBadge = item.value === 'sugerencias' && pendingCount > 0
           const count =
             item.value === 'entidades'
               ? totals?.entities
@@ -104,13 +91,6 @@ export function MobileBottomNav({
               >
                 <span className="relative">
                   <Icon size={20} />
-                  {showBadge && (
-                    <span
-                      className="absolute -top-1 -right-1.5 size-1.5 rounded-full"
-                      style={{ backgroundColor: 'var(--accent-primary)' }}
-                      aria-hidden
-                    />
-                  )}
                 </span>
                 <span
                   className="text-micro leading-tight tracking-tight font-medium truncate max-w-full px-1"
