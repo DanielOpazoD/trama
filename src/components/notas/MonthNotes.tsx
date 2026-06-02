@@ -44,13 +44,21 @@ export function MonthNotes({ monthKey, label }: { monthKey: string; label: strin
           </span>
         )}
       </div>
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={persist}
-        placeholder="Recordatorios o notas globales del mes…"
-        className="flex-1 min-h-[7.5rem] w-full resize-none bg-transparent text-sm text-ink-700 placeholder:text-ink-300 leading-relaxed"
-      />
+      {query.isLoading && !loaded ? (
+        <div className="flex-1 min-h-[7.5rem] space-y-2 pt-1" aria-hidden>
+          <div className="h-3 w-3/4 rounded skeleton-shimmer" />
+          <div className="h-3 w-2/3 rounded skeleton-shimmer" />
+          <div className="h-3 w-1/2 rounded skeleton-shimmer" />
+        </div>
+      ) : (
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={persist}
+          placeholder="Recordatorios o notas globales del mes…"
+          className="flex-1 min-h-[7.5rem] w-full resize-none bg-transparent text-sm text-ink-700 placeholder:text-ink-300 leading-relaxed"
+        />
+      )}
     </div>
   )
 }
