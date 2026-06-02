@@ -3,7 +3,12 @@ import { ClavesView } from './ClavesView'
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
 import { NotasView } from './NotasView'
-import { NotasDensityToggle, NotasMobileTabs, NotasSidebar } from './NotasWorldChrome'
+import {
+  NotasDensityToggle,
+  NotasMobileTabs,
+  NotasSidebar,
+  NotasTopBar,
+} from './NotasWorldChrome'
 import { PromptsView } from './PromptsView'
 import { TareasView } from './TareasView'
 import type { World } from '../../types/world'
@@ -63,6 +68,7 @@ export function NotasWorld({
 
       {/* Contenido */}
       <main className="flex-1 relative overflow-hidden flex flex-col">
+        <NotasTopBar section={section} />
         <div className="h-full overflow-y-auto">
           <div
             data-testid="notas-world-content"

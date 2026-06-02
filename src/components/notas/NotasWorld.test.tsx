@@ -23,6 +23,18 @@ afterEach(() => {
 })
 
 describe('<NotasWorld />', () => {
+  it('muestra una barra superior equivalente al mundo principal', () => {
+    renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
+
+    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument()
+    expect(screen.getAllByText('mundo notas').length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Prompts' })[0]!)
+
+    expect(screen.getAllByRole('heading', { name: 'Prompts' }).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('biblioteca reutilizable').length).toBeGreaterThan(0)
+  })
+
   it('arranca en Inicio y navega a Tareas', () => {
     renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
     expect(screen.getAllByRole('button', { name: 'Inicio' })[0]).toHaveAttribute(

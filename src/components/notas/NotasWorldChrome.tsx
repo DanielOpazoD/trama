@@ -1,4 +1,5 @@
 import { HomeIcon, KeyIcon, NotesIcon, PromptIcon, TasksIcon } from '../Icons'
+import { TopBar } from '../TopBar'
 import { WorldSwitcher } from '../WorldSwitcher'
 import type { World } from '../../types/world'
 import type { NotasDensity, NotasSection } from './NotasWorld'
@@ -16,6 +17,29 @@ const SECTIONS: Array<{
   { id: 'prompts', label: 'Prompts', icon: PromptIcon },
   { id: 'claves', label: 'Claves', icon: KeyIcon },
 ]
+
+const SECTION_META: Record<NotasSection, { title: string; subtitle: string }> = {
+  inicio: { title: 'Inicio', subtitle: 'mundo notas' },
+  notas: { title: 'Notas', subtitle: 'capturas y anexos' },
+  tareas: { title: 'Tareas', subtitle: 'recordatorios y vencimientos' },
+  prompts: { title: 'Prompts', subtitle: 'biblioteca reutilizable' },
+  claves: { title: 'Claves', subtitle: 'vault seguro' },
+}
+
+export function NotasTopBar({ section }: { section: NotasSection }) {
+  return (
+    <div className="animate-shell-topbar">
+      <TopBar view="inicio" titleOverride={SECTION_META[section]} />
+      <div
+        aria-hidden
+        className="h-[2px] w-full shrink-0 transition-[background] duration-300 ease-out"
+        style={{
+          backgroundImage: `linear-gradient(90deg, transparent 0%, ${ACCENT} 40%, ${ACCENT} 60%, transparent 100%)`,
+        }}
+      />
+    </div>
+  )
+}
 
 export function NotasSidebar({
   world,

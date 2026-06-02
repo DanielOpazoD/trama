@@ -41,6 +41,7 @@ export function TopBar({
   breadcrumb,
   tabs,
   onSortes,
+  titleOverride,
 }: {
   view: ViewMode
   actions?: React.ReactNode
@@ -62,8 +63,10 @@ export function TopBar({
     onChange: (value: string) => void
     'aria-label'?: string
   } | null
+  /** Permite reutilizar el chrome del TopBar en mundos que no son ViewMode. */
+  titleOverride?: { title: string; subtitle?: string } | null
 }) {
-  const { title, subtitle } = TITLES[view]
+  const { title, subtitle } = titleOverride ?? TITLES[view]
   const status = useGlobalStatus()
   const showTabs = !!tabs && !breadcrumb
   return (
