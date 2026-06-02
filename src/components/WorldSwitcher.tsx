@@ -98,9 +98,9 @@ export function WorldSwitcher({
       {open && (
         <div
           role="menu"
-          className={`absolute z-50 w-60 paper-grain rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 p-1.5 ${
-            collapsed ? 'left-full ml-2 top-0' : 'left-0 top-full mt-1.5'
-          }`}
+          // Siempre abajo-izquierda y acotado al viewport, para que no se salga
+          // de pantalla en móvil (donde el trigger vive en el borde superior).
+          className="absolute z-50 left-0 top-full mt-1.5 w-60 max-w-[calc(100vw-1.5rem)] paper-grain rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 p-1.5"
         >
           <p className="px-2 pt-1 pb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
             Mundos

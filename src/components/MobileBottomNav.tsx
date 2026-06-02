@@ -11,22 +11,18 @@ import type { ViewMode } from './Sidebar'
 import { SECTION_ACCENT } from '../lib/sectionAccent'
 
 /**
- * Bottom navigation bar para mobile. Reemplaza al Sidebar cuando el
- * viewport es < md. Los 8 nav items se acomodan como una grid de iconos
- * con micro-labels debajo; el activo se distingue con un dot del color
- * de la sección (mismo `SECTION_ACCENT` que el sidebar desktop).
+ * Barra de navegación principal en móvil. Reemplaza al Sidebar cuando el
+ * viewport es < md y vive en el borde SUPERIOR (dentro del <main>, bajo el
+ * TopBar), unificada con el header del mundo Notas. Los items se acomodan como
+ * una fila de iconos con micro-labels; el activo se distingue con un dot del
+ * color de la sección (mismo `SECTION_ACCENT` que el sidebar desktop).
  *
  * Diseño:
- *   - 8 iconos en una fila, distribuidos uniformes (12px gap interno).
- *   - Cada item es un botón de 44×52 (touch target compliant).
+ *   - Iconos en una fila, distribuidos uniformes.
+ *   - Cada item es un botón touch-target compliant.
  *   - Icono ink-400 cuando inactivo, color de sección cuando activo.
- *   - Micro-dot abajo del icono activo (más sutil que tab underline).
- *   - El bottom-bar tiene paper-50/95 + backdrop-blur + border-t.
- *   - Badge dot encima del icono cuando hay count pendiente
- *     (Sugerencias).
- *
- * Safe area: agregamos pb-safe (vía env(safe-area-inset-bottom)) para
- * que en iPhones con notch + home indicator no se corte el contenido.
+ *   - Micro-dot bajo el icono activo (más sutil que un tab underline).
+ *   - paper-50/95 + backdrop-blur + border-b (separa del contenido).
  */
 
 // τ-IA: el orden replica los grupos del Sidebar (Mi trama → Miradas →
@@ -58,12 +54,9 @@ export function MobileBottomNav({
   return (
     <nav
       aria-label="Navegación principal"
-      // Vive en el flow como flex child del root (que en mobile es
-      // flex-col). shrink-0 garantiza que no se comprime; el main
-      // toma el resto del viewport. Esto deja la AskBar (anclada al
-      // bottom del <main>) automáticamente encima de la nav.
-      className="shrink-0 z-30 bg-paper-50/95 backdrop-blur-md border-t border-ink-100/70 animate-shell-sidebar"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      // Barra SUPERIOR en móvil (unificada con el mundo Notas): vive dentro del
+      // <main>, justo debajo del TopBar. shrink-0 para que no se comprima.
+      className="shrink-0 z-30 bg-paper-50/95 backdrop-blur-md border-b border-ink-100/70"
     >
       <ul className="flex items-stretch justify-around px-1 pt-1.5 pb-1">
         {NAV_ITEMS.map((item) => {

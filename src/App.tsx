@@ -257,6 +257,17 @@ function Shell({
             <SectionAccentBand view={view} />
           </div>
         )}
+        {/* Nav principal en móvil — barra SUPERIOR, unificada con el mundo Notas
+            (antes vivía abajo). En focus mode o con el RightPanel abierto se oculta. */}
+        {!focusMode && isMobile && !rightPanelOpen && (
+          <MobileBottomNav
+            view={view}
+            onChangeView={(v) => {
+              setView(v)
+              if (v !== 'grafo') setSelectedEntityId(null)
+            }}
+          />
+        )}
         <div className="flex-1 relative overflow-hidden animate-shell-main">
           {error && (
             <div className="alert-error absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 text-sm shadow-md z-10">
@@ -437,21 +448,6 @@ function Shell({
       />
 
       <ToastHost />
-
-      {/* Mobile bottom nav — solo aparece en viewports < md. En focus
-          mode también se oculta para no competir con el contenido.
-          Cuando el RightPanel está abierto en mobile (bottom-sheet),
-          el nav se oculta también — el sheet ya ocupa toda la atención
-          y el nav competiría con su borde inferior. */}
-      {!focusMode && isMobile && !rightPanelOpen && (
-        <MobileBottomNav
-          view={view}
-          onChangeView={(v) => {
-            setView(v)
-            if (v !== 'grafo') setSelectedEntityId(null)
-          }}
-        />
-      )}
 
       <RightPanel
         isMobile={isMobile}
