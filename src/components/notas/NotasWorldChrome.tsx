@@ -1,4 +1,4 @@
-import { HomeIcon, KeyIcon, NotesIcon, PromptIcon, TasksIcon } from '../Icons'
+import { HomeIcon, KeyIcon, NotesIcon, PromptIcon, SearchIcon, TasksIcon } from '../Icons'
 import { TopBar } from '../TopBar'
 import { WorldSwitcher } from '../WorldSwitcher'
 import type { World } from '../../types/world'
@@ -46,16 +46,25 @@ export function NotasSidebar({
   section,
   onChangeWorld,
   onChangeSection,
+  onOpenSearch,
 }: {
   world: World
   section: NotasSection
   onChangeWorld: (w: World) => void
   onChangeSection: (section: NotasSection) => void
+  onOpenSearch: () => void
 }) {
   return (
     <aside className="surface-sidebar w-60 shrink-0 border-r border-ink-100 hidden md:flex flex-col">
-      <header className="px-3 py-3">
+      <header className="px-3 py-3 space-y-2">
         <WorldSwitcher world={world} onChangeWorld={onChangeWorld} />
+        <button
+          onClick={onOpenSearch}
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-paper-50 border border-ink-100/70 text-ink-400 hover:text-ink-700 hover:border-ink-200 transition-colors"
+        >
+          <SearchIcon size={13} className="shrink-0" />
+          <span className="text-sm">Buscar…</span>
+        </button>
       </header>
       <nav className="flex flex-col px-2 gap-px">
         {SECTIONS.map((s) => {
@@ -103,17 +112,19 @@ export function NotasMobileTabs({
   section,
   onChangeWorld,
   onChangeSection,
+  onOpenSearch,
 }: {
   world: World
   section: NotasSection
   onChangeWorld: (w: World) => void
   onChangeSection: (section: NotasSection) => void
+  onOpenSearch: () => void
 }) {
   return (
     <div className="md:hidden border-b border-ink-100 flex items-center gap-2 px-3 py-2 surface-sidebar">
       <WorldSwitcher world={world} onChangeWorld={onChangeWorld} collapsed />
       <div className="w-px h-5 bg-ink-100 shrink-0" />
-      <div className="flex gap-1 overflow-x-auto">
+      <div className="flex gap-1 overflow-x-auto flex-1">
         {SECTIONS.map((s) => {
           const active = section === s.id
           return (
@@ -132,6 +143,13 @@ export function NotasMobileTabs({
           )
         })}
       </div>
+      <button
+        onClick={onOpenSearch}
+        aria-label="Buscar"
+        className="touch-target shrink-0 p-1.5 rounded-md text-ink-400 hover:text-ink-700 transition-colors"
+      >
+        <SearchIcon size={16} />
+      </button>
     </div>
   )
 }

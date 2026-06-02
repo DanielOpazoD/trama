@@ -13,8 +13,10 @@ import { copyText } from './notasUtils'
 
 export function NotasGlobalSearch({
   onNavigate,
+  autoFocus = false,
 }: {
   onNavigate: (section: NotasSection) => void
+  autoFocus?: boolean
 }) {
   const [q, setQ] = useState('')
   const hasQuery = q.trim().length > 0
@@ -61,6 +63,7 @@ export function NotasGlobalSearch({
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar en notas, tareas, prompts y claves..."
           className="flex-1 bg-transparent text-sm text-ink-700 placeholder:text-ink-300"
+          autoFocus={autoFocus}
         />
         {q && (
           <button
