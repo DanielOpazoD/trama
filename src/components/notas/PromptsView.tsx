@@ -14,6 +14,7 @@ import { LoadingHint } from '../LoadingHint'
 import { PromptCard } from './PromptCard'
 import { PromptComposer } from './PromptComposer'
 import { copyText } from './notasUtils'
+import { buildPromptViewModel } from './promptViewModel'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -35,12 +36,11 @@ export function PromptsView() {
 
   const rawPrompts = promptsQuery.data
   const prompts = useMemo(() => rawPrompts ?? [], [rawPrompts])
-  const collections = useMemo(
-    () =>
-      [...new Set(prompts.map((p) => p.collection).filter(Boolean) as string[])].sort(),
-    [prompts],
+  const viewModel = useMemo(
+    () => buildPromptViewModel(prompts, filter),
+    [filter, prompts],
   )
-  const filtered = filter ? prompts.filter((p) => p.collection === filter) : prompts
+  const { activeFilter, collections, filtered, stats } = viewModel
 
   function save() {
     if (!title.trim() || !content.trim()) return
@@ -98,12 +98,21 @@ export function PromptsView() {
         onSave={save}
       />
 
+      {prompts.length > 0 && (
+        <section className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <PromptMetric label="prompts" value={stats.total} />
+          <PromptMetric label="favoritos" value={stats.favorites} />
+          <PromptMetric label="colecciones" value={stats.collections} />
+          <PromptMetric label="usos" value={stats.totalUses} />
+        </section>
+      )}
+
       {collections.length > 0 && (
         <div className="mb-5 flex flex-wrap gap-1.5">
           <button
             onClick={() => setFilter(null)}
             className={`text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border ${
-              filter === null
+              activeFilter === null
                 ? 'border-ink-200 text-ink-700 bg-ink-100/50'
                 : 'border-ink-100 text-ink-400'
             }`}
@@ -113,9 +122,11 @@ export function PromptsView() {
           {collections.map((c) => (
             <button
               key={c}
-              onClick={() => setFilter(filter === c ? null : c)}
+              onClick={() => setFilter(activeFilter === c ? null : c)}
               className="text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border border-ink-100 text-ink-400 hover:text-ink-700"
-              style={filter === c ? { borderColor: ACCENT, color: ACCENT } : undefined}
+              style={
+                activeFilter === c ? { borderColor: ACCENT, color: ACCENT } : undefined
+              }
             >
               {c}
             </button>
@@ -164,5 +175,18 @@ export function PromptsView() {
         </div>
       )}
     </>
+  )
+}
+
+function PromptMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-ink-100/70 bg-paper-50/60 px-3 py-2">
+      <div className="text-lg font-serif leading-none text-ink-800 tabular-nums">
+        {value}
+      </div>
+      <div className="mt-1 text-micro uppercase tracking-eyebrow text-ink-300">
+        {label}
+      </div>
+    </div>
   )
 }

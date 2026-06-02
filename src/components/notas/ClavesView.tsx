@@ -21,6 +21,7 @@ import {
   type SecretEditInput,
 } from './ClavesVaultParts'
 import { copyText } from './notasUtils'
+import { buildSecretViewModel, normalizeSecretDraft } from './secretViewModel'
 
 const ACCENT = 'var(--accent-sage)'
 const VAULT_AUTO_LOCK_MS = 5 * 60 * 1000
@@ -70,15 +71,11 @@ export function ClavesView({
 
   const rawSecrets = secretsQuery.data
   const secrets = useMemo(() => rawSecrets ?? [], [rawSecrets])
-  const filtered = useMemo(
-    () => (filter ? secrets.filter((s) => s.kind === filter) : secrets),
+  const viewModel = useMemo(
+    () => buildSecretViewModel(secrets, filter),
     [filter, secrets],
   )
-  const counts = useMemo(() => {
-    const map = new Map<SecretKind, number>()
-    for (const s of secrets) map.set(s.kind, (map.get(s.kind) ?? 0) + 1)
-    return map
-  }, [secrets])
+  const { activeFilter, counts, filtered, stats } = viewModel
 
   useEffect(() => {
     if (!vaultKey) {
@@ -171,26 +168,35 @@ export function ClavesView({
 
   async function save() {
     if (!label.trim() || !secret.trim()) return
-    const encryptedSecret = await encryptVaultSecret(secret.trim(), activeVaultKey)
-    const encryptedService = service.trim()
-      ? await encryptVaultSecret(service.trim(), activeVaultKey)
+    const draft = normalizeSecretDraft({
+      label,
+      secret,
+      service,
+      username,
+      notes,
+      expiresAt,
+      critical,
+    })
+    const encryptedSecret = await encryptVaultSecret(draft.secret, activeVaultKey)
+    const encryptedService = draft.service
+      ? await encryptVaultSecret(draft.service, activeVaultKey)
       : null
-    const encryptedUsername = username.trim()
-      ? await encryptVaultSecret(username.trim(), activeVaultKey)
+    const encryptedUsername = draft.username
+      ? await encryptVaultSecret(draft.username, activeVaultKey)
       : null
-    const encryptedNotes = notes.trim()
-      ? await encryptVaultSecret(notes.trim(), activeVaultKey)
+    const encryptedNotes = draft.notes
+      ? await encryptVaultSecret(draft.notes, activeVaultKey)
       : null
     createSecret.mutate(
       {
-        label: label.trim(),
+        label: draft.label,
         secret: encryptedSecret,
         kind,
         service: encryptedService,
         username: encryptedUsername,
         notes: encryptedNotes,
-        expiresAt: expiresAt || null,
-        critical,
+        expiresAt: draft.expiresAt,
+        critical: draft.critical,
       },
       {
         onSuccess: () => {
@@ -268,6 +274,15 @@ export function ClavesView({
           bloquear vault
         </button>
       </div>
+
+      {secrets.length > 0 && (
+        <section className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <VaultMetric label="claves" value={stats.total} />
+          <VaultMetric label="críticas" value={stats.critical} tone="danger" />
+          <VaultMetric label="favoritas" value={stats.favorites} />
+          <VaultMetric label="vencidas" value={stats.expired} tone="danger" />
+        </section>
+      )}
 
       <section className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5">
         <div className="grid sm:grid-cols-[1fr_160px] gap-2 mb-2">
@@ -347,7 +362,7 @@ export function ClavesView({
           <button
             onClick={() => setFilter(null)}
             className={`text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border ${
-              filter === null
+              activeFilter === null
                 ? 'border-ink-200 text-ink-700 bg-ink-100/50'
                 : 'border-ink-100 text-ink-400'
             }`}
@@ -357,9 +372,11 @@ export function ClavesView({
           {SECRET_KINDS.filter((k) => counts.has(k.id)).map((k) => (
             <button
               key={k.id}
-              onClick={() => setFilter(filter === k.id ? null : k.id)}
+              onClick={() => setFilter(activeFilter === k.id ? null : k.id)}
               className="text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border border-ink-100 text-ink-400 hover:text-ink-700"
-              style={filter === k.id ? { borderColor: ACCENT, color: ACCENT } : undefined}
+              style={
+                activeFilter === k.id ? { borderColor: ACCENT, color: ACCENT } : undefined
+              }
             >
               {k.label}{' '}
               <span className="tabular-nums opacity-60">{counts.get(k.id)}</span>
@@ -424,4 +441,30 @@ async function buildEncryptedSecretPatch(input: SecretEditInput, vaultKey: Crypt
     expiresAt: input.expiresAt,
     critical: input.critical,
   }
+}
+
+function VaultMetric({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string
+  value: number
+  tone?: 'neutral' | 'danger'
+}) {
+  return (
+    <div className="rounded-lg border border-ink-100/70 bg-paper-50/60 px-3 py-2">
+      <div
+        className="text-lg font-serif leading-none text-ink-800 tabular-nums"
+        style={
+          tone === 'danger' && value > 0 ? { color: 'var(--accent-clay)' } : undefined
+        }
+      >
+        {value}
+      </div>
+      <div className="mt-1 text-micro uppercase tracking-eyebrow text-ink-300">
+        {label}
+      </div>
+    </div>
+  )
 }
