@@ -10,8 +10,10 @@ describe('month-notes endpoint — integration', () => {
   beforeEach(() => mockSqlResponses.reset())
   afterEach(() => vi.unstubAllGlobals())
 
-  it('GET devuelve el contenido del mes', async () => {
-    mockSqlResponses.push([{ month_key: '2026-06', content: 'cerrar presupuesto' }])
+  it('GET devuelve el contenido del mes (categoría trabajo por defecto)', async () => {
+    mockSqlResponses.push([
+      { month_key: '2026-06', content: 'cerrar presupuesto', category: 'trabajo' },
+    ])
     const res = await handler(
       new Request('http://localhost/api/month-notes?month=2026-06'),
       mockContext(),
@@ -20,7 +22,26 @@ describe('month-notes endpoint — integration', () => {
     expect(await res.json()).toEqual({
       monthKey: '2026-06',
       content: 'cerrar presupuesto',
+      category: 'trabajo',
     })
+  })
+
+  it('GET ?category=personal filtra por esa categoría', async () => {
+    mockSqlResponses.push([
+      { month_key: '2026-06', content: 'cumpleaños', category: 'personal' },
+    ])
+    const res = await handler(
+      new Request('http://localhost/api/month-notes?month=2026-06&category=personal'),
+      mockContext(),
+    )
+    expect(await res.json()).toEqual({
+      monthKey: '2026-06',
+      content: 'cumpleaños',
+      category: 'personal',
+    })
+    // El WHERE filtra por category.
+    const q = mockSqlResponses.calls.find((c) => /FROM month_notes/i.test(c.template))
+    expect(q?.template).toMatch(/category =/i)
   })
 
   it('GET sin nota guardada devuelve content vacío', async () => {
@@ -29,7 +50,11 @@ describe('month-notes endpoint — integration', () => {
       new Request('http://localhost/api/month-notes?month=2026-06'),
       mockContext(),
     )
-    expect(await res.json()).toEqual({ monthKey: '2026-06', content: '' })
+    expect(await res.json()).toEqual({
+      monthKey: '2026-06',
+      content: '',
+      category: 'trabajo',
+    })
   })
 
   it('GET con month mal formado devuelve 400', async () => {
@@ -40,24 +65,44 @@ describe('month-notes endpoint — integration', () => {
     expect(res.status).toBe(400)
   })
 
-  it('PUT hace upsert (ON CONFLICT) y devuelve el contenido', async () => {
+  it('PUT hace upsert por (mes, categoría) y devuelve el contenido', async () => {
     mockSqlResponses.push(
       [], // ensureUserRow
-      [{ month_key: '2026-06', content: 'texto nuevo' }],
+      [{ month_key: '2026-06', content: 'texto nuevo', category: 'personal' }],
     )
     const res = await handler(
       new Request('http://localhost/api/month-notes', {
         method: 'PUT',
-        body: JSON.stringify({ month: '2026-06', content: 'texto nuevo' }),
+        body: JSON.stringify({
+          month: '2026-06',
+          content: 'texto nuevo',
+          category: 'personal',
+        }),
       }),
       mockContext(),
     )
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ monthKey: '2026-06', content: 'texto nuevo' })
+    expect(await res.json()).toEqual({
+      monthKey: '2026-06',
+      content: 'texto nuevo',
+      category: 'personal',
+    })
     const upsert = mockSqlResponses.calls.find((c) =>
       /INSERT INTO month_notes/i.test(c.template),
     )
     expect(upsert?.template).toMatch(/ON CONFLICT/i)
+    expect(upsert?.template).toMatch(/category/i)
+  })
+
+  it('PUT con category inválida devuelve 400 (validación Zod)', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/month-notes', {
+        method: 'PUT',
+        body: JSON.stringify({ month: '2026-06', content: 'x', category: 'urgente' }),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(400)
   })
 
   it('PUT con month inválido devuelve 400 (validación Zod)', async () => {

@@ -534,23 +534,32 @@ function route(
   }
 
   if (resource === 'month-notes') {
+    const catOf = (v: unknown) => (v === 'personal' ? 'personal' : 'trabajo')
     if (method === 'GET') {
       const month = params.get('month') ?? ''
-      const row = store.month_notes.find((r) => r.month_key === month && !r.deleted_at)
-      return { monthKey: month, content: (row?.content as string) ?? '' }
+      const category = catOf(params.get('category'))
+      const row = store.month_notes.find(
+        (r) => r.month_key === month && catOf(r.category) === category && !r.deleted_at,
+      )
+      return { monthKey: month, content: (row?.content as string) ?? '', category }
     }
     if (method === 'PUT') {
       const month = String(body.month ?? '')
       const content = String(body.content ?? '')
-      const row = store.month_notes.find((r) => r.month_key === month && !r.deleted_at)
+      const category = catOf(body.category)
+      const row = store.month_notes.find(
+        (r) => r.month_key === month && catOf(r.category) === category && !r.deleted_at,
+      )
       if (row) {
         row.content = content
+        row.category = category
         row.updated_at = nowIso()
       } else {
         store.month_notes.push({
           id: uid(),
           user_id: 'legacy-single-user',
           month_key: month,
+          category,
           content,
           created_at: nowIso(),
           updated_at: nowIso(),
@@ -558,7 +567,7 @@ function route(
         })
       }
       save(store)
-      return { monthKey: month, content }
+      return { monthKey: month, content, category }
     }
   }
 

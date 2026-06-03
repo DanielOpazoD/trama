@@ -13,13 +13,22 @@ import { parseJsonBody } from './_lib/zod-body.js'
  * hace upsert. Scope por usuario.
  */
 const monthKey = z.string().regex(/^\d{4}-\d{2}$/, 'Mes inválido (esperado YYYY-MM)')
+const category = z.enum(['trabajo', 'personal'])
 
 const MonthNoteBody = z.object({
   month: monthKey,
   content: z.string().max(50000),
+  // Compat: clientes viejos sin categoría caen en 'trabajo' (la nota histórica).
+  category: category.default('trabajo'),
 })
 
-type MonthNoteRow = { month_key: string; content: string }
+type MonthNoteRow = { month_key: string; content: string; category: string }
+
+/** Normaliza el ?category= del GET (lenient: cualquier cosa que no sea personal
+ *  cae en 'trabajo', la categoría por defecto de las notas existentes). */
+function parseCategory(raw: string | null): 'trabajo' | 'personal' {
+  return raw === 'personal' ? 'personal' : 'trabajo'
+}
 
 export default withObservability(
   'month-notes',
@@ -29,31 +38,38 @@ export default withObservability(
     const sql = getSql()
 
     if (req.method === 'GET') {
-      const month = new URL(req.url).searchParams.get('month')?.trim()
+      const url = new URL(req.url)
+      const month = url.searchParams.get('month')?.trim()
       if (!month || !/^\d{4}-\d{2}$/.test(month)) {
         return ApiErrors.validation(requestId, 'month debe ser YYYY-MM')
       }
+      const cat = parseCategory(url.searchParams.get('category'))
       const rows = await sqlTyped<MonthNoteRow>(sql`
-        SELECT month_key, content FROM month_notes
-        WHERE user_id = ${userId} AND month_key = ${month} AND deleted_at IS NULL
+        SELECT month_key, content, category FROM month_notes
+        WHERE user_id = ${userId} AND month_key = ${month}
+          AND category = ${cat} AND deleted_at IS NULL
       `)
-      return Response.json({ monthKey: month, content: rows[0]?.content ?? '' })
+      return Response.json({ monthKey: month, content: rows[0]?.content ?? '', category: cat })
     }
 
     if (req.method === 'PUT') {
       const parsed = await parseJsonBody(req, MonthNoteBody, requestId)
       if (!parsed.ok) return parsed.response
       await ensureUserRow(sql, authedUser)
-      const { month, content } = parsed.data
+      const { month, content, category: cat } = parsed.data
       const rows = await sqlTyped<MonthNoteRow>(sql`
-        INSERT INTO month_notes (user_id, month_key, content)
-        VALUES (${userId}, ${month}, ${content})
-        ON CONFLICT (user_id, month_key) WHERE deleted_at IS NULL
+        INSERT INTO month_notes (user_id, month_key, content, category)
+        VALUES (${userId}, ${month}, ${content}, ${cat})
+        ON CONFLICT (user_id, month_key, category) WHERE deleted_at IS NULL
         DO UPDATE SET content = EXCLUDED.content, updated_at = NOW()
-        RETURNING month_key, content
+        RETURNING month_key, content, category
       `)
       const row = rows[0]
-      return Response.json({ monthKey: row?.month_key ?? month, content: row?.content ?? content })
+      return Response.json({
+        monthKey: row?.month_key ?? month,
+        content: row?.content ?? content,
+        category: (row?.category as 'trabajo' | 'personal') ?? cat,
+      })
     }
 
     return ApiErrors.methodNotAllowed(requestId)
