@@ -10,8 +10,14 @@
  */
 
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+
+// El editor de imágenes es perezoso/browser-only: lo mockeamos para verificar el
+// cableado del botón "editar" sin montar canvas.
+const editorMock = vi.hoisted(() => ({ editImage: vi.fn() }))
+vi.mock('../../lib/imageEditor', () => ({ editImage: editorMock.editImage }))
+
 import { MomentoComposer } from './MomentoComposer'
 import type { useMomentoComposer } from './useMomentoComposer'
 
@@ -110,5 +116,27 @@ describe('<MomentoComposer />', () => {
       <MomentoComposer composer={makeComposer({ kind: 'foto', photoUploading: true })} />,
     )
     expect(screen.getByRole('button', { name: /subiendo/i })).toBeInTheDocument()
+  })
+
+  it('el botón "editar" del tile pasa la foto por el editor y reemplaza el draft', async () => {
+    const draftFile = new File(['orig'], 'orig.jpg', { type: 'image/jpeg' })
+    const edited = new File(['edit'], 'orig.jpg', { type: 'image/jpeg' })
+    editorMock.editImage.mockResolvedValue(edited)
+    const replacePhotoDraft = vi.fn()
+    const composer = makeComposer({
+      kind: 'foto',
+      photoDrafts: [{ file: draftFile, previewUrl: 'blob:orig' }],
+      replacePhotoDraft,
+    } as Partial<Composer>)
+
+    render(<MomentoComposer composer={composer} />)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /editar foto 1/i }))
+
+    expect(editorMock.editImage).toHaveBeenCalledWith(
+      draftFile,
+      expect.objectContaining({ outputType: 'image/jpeg' }),
+    )
+    await waitFor(() => expect(replacePhotoDraft).toHaveBeenCalledWith(0, edited))
   })
 })

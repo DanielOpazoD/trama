@@ -12,6 +12,7 @@ import {
   resizeCrop,
   rotatedDimensions,
   textPx,
+  textPxOnCrop,
 } from './transforms'
 import type { CropRect, TextPalette } from './types'
 
@@ -169,6 +170,63 @@ describe('imageEditor/transforms', () => {
         textPx({ xN: 0, yN: 0, size: s }, 1000, 1000).fontPx
       expect(at('S')).toBeLessThan(at('M'))
       expect(at('M')).toBeLessThan(at('L'))
+    })
+  })
+
+  describe('textPxOnCrop', () => {
+    const layer = { xN: 0.5, yN: 0.25, size: 'M' as const }
+
+    it('sin recorte coincide con textPx (ancla = imagen completa)', () => {
+      const full = { sx: 0, sy: 0, sw: 800, sh: 600 }
+      const r = textPxOnCrop(layer, 800, 600, full, 800, 600)
+      const base = textPx(layer, 800, 600)
+      expect(r.x).toBeCloseTo(base.x)
+      expect(r.y).toBeCloseTo(base.y)
+      expect(r.fontPx).toBeCloseTo(base.fontPx)
+    })
+
+    it('con recorte, el texto se ubica relativo a la imagen completa, no al recorte', () => {
+      // Recorte = mitad derecha (sx=400). xN=0.5 (centro de la imagen) cae
+      // exactamente en el BORDE IZQUIERDO del recorte → x=0 en el lienzo final.
+      const r = textPxOnCrop(
+        layer,
+        800,
+        600,
+        { sx: 400, sy: 0, sw: 400, sh: 600 },
+        400,
+        600,
+      )
+      expect(r.x).toBeCloseTo(0)
+      expect(r.y).toBeCloseTo(150)
+      // El tamaño sigue anclado al lado menor de la imagen ENTERA (texto "físico").
+      expect(r.fontPx).toBeCloseTo(0.07 * 600)
+    })
+
+    it('el texto fuera del recorte cae fuera del lienzo (coordenada negativa)', () => {
+      const left = { xN: 0.1, yN: 0.25, size: 'M' as const }
+      const r = textPxOnCrop(
+        left,
+        800,
+        600,
+        { sx: 400, sy: 0, sw: 400, sh: 600 },
+        400,
+        600,
+      )
+      expect(r.x).toBeLessThan(0)
+    })
+
+    it('escala posición y tamaño cuando el lienzo final está reducido', () => {
+      // Mismo recorte, pero salida a la mitad (tope de export) → todo a la mitad.
+      const r = textPxOnCrop(
+        layer,
+        800,
+        600,
+        { sx: 400, sy: 0, sw: 400, sh: 600 },
+        200,
+        300,
+      )
+      expect(r.x).toBeCloseTo(0)
+      expect(r.fontPx).toBeCloseTo(0.07 * 600 * 0.5)
     })
   })
 

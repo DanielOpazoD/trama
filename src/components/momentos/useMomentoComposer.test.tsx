@@ -96,6 +96,25 @@ describe('useMomentoComposer', () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:voz.mp3')
   })
 
+  it('replacePhotoDraft intercambia el archivo y revoca el preview viejo', () => {
+    const { result } = renderHook(() => useMomentoComposer({}))
+
+    act(() => {
+      result.current.addPhotoFiles([imageFile('vieja.png')])
+    })
+    expect(result.current.photoDrafts[0]?.previewUrl).toBe('blob:vieja.png')
+
+    const edited = new File(['edit'], 'editada.webp', { type: 'image/webp' })
+    act(() => {
+      result.current.replacePhotoDraft(0, edited)
+    })
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:vieja.png')
+    expect(result.current.photoDrafts).toHaveLength(1)
+    expect(result.current.photoDrafts[0]?.file).toBe(edited)
+    expect(result.current.photoDrafts[0]?.previewUrl).toBe('blob:editada.webp')
+  })
+
   it('crea una nota con texto normalizado y resetea el draft', async () => {
     const onCreated = vi.fn()
     const created = momento({ id: 'nota-creada' })

@@ -19,6 +19,11 @@ vi.mock('../../lib/photoExport', () => ({
   exportImagesToPdf: exportMocks.exportImagesToPdf,
 }))
 
+// El editor de imágenes es perezoso/browser-only: lo mockeamos para verificar el
+// cableado (adjuntar-y-editar, re-editar) sin montar canvas.
+const editorMock = vi.hoisted(() => ({ editImage: vi.fn() }))
+vi.mock('../../lib/imageEditor', () => ({ editImage: editorMock.editImage }))
+
 import { AttachmentPhotos } from './AttachmentPhotos'
 
 /** POSTs al endpoint de upload observados durante el test. */
@@ -62,6 +67,9 @@ describe('<AttachmentPhotos />', () => {
     localStorage.removeItem('trama-demo')
     exportMocks.downloadAllImages.mockClear()
     exportMocks.exportImagesToPdf.mockClear()
+    // Por defecto el editor devuelve el archivo tal cual (= "no se editó").
+    editorMock.editImage.mockReset()
+    editorMock.editImage.mockImplementation(async (f: File) => f)
     stubFetch()
   })
   afterEach(() => vi.unstubAllGlobals())
@@ -151,5 +159,90 @@ describe('<AttachmentPhotos />', () => {
       expect.any(Array),
       'Mi tarea',
     )
+  })
+
+  it('"adjuntar y editar" pasa cada imagen por el editor antes de subir', async () => {
+    const edited = new File(['e'], 'e.webp', { type: 'image/webp' })
+    editorMock.editImage.mockResolvedValue(edited)
+
+    const { container, getByLabelText } = renderWithProviders(
+      <AttachmentPhotos ownerType="week" ownerId="2026-06-01" />,
+    )
+    // Marca la próxima selección como "editar", luego dispara el input.
+    fireEvent.click(getByLabelText('Adjuntar y editar fotos'))
+    const input = fileInput(container)
+    const f1 = new File(['a'], 'a.jpg', { type: 'image/jpeg' })
+    fireEvent.change(input, { target: { files: [f1] } })
+
+    await waitFor(() =>
+      expect(editorMock.editImage).toHaveBeenCalledWith(
+        f1,
+        expect.objectContaining({ outputType: 'image/webp' }),
+      ),
+    )
+    await waitFor(() => expect(uploadCalls).toHaveLength(1))
+  })
+
+  it('editar una foto ya guardada: baja el blob, edita, sube la nueva y borra la vieja', async () => {
+    const edited = new File(['e'], 'e.webp', { type: 'image/webp' })
+    editorMock.editImage.mockResolvedValue(edited)
+
+    const row = {
+      id: 'a1',
+      owner_type: 'task',
+      owner_id: 't-1',
+      file_name: 'f.jpg',
+      mime_type: 'image/jpeg',
+      byte_size: 10,
+      storage_key: 'u1/f.jpg',
+      created_at: 'x',
+      updated_at: 'x',
+    }
+    const calls: { method: string; url: string }[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL, init?: RequestInit) => {
+        const u = String(url)
+        const method = init?.method ?? 'GET'
+        calls.push({ method, url: u })
+        if (method === 'DELETE') return new Response('', { status: 200 })
+        if (method === 'POST' && u.includes('/api/notas-attachments-upload')) {
+          return new Response(
+            JSON.stringify({ ...row, id: 'a2', storage_key: 'u1/2.webp' }),
+            {
+              status: 201,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          )
+        }
+        if (u.includes('/api/notas-attachments?')) {
+          return new Response(JSON.stringify([row]), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        // GET del blob de la foto (photo.url) y cualquier otro.
+        return new Response(new Blob(['img']), {
+          status: 200,
+          headers: { 'Content-Type': 'image/jpeg' },
+        })
+      }),
+    )
+
+    const { findByLabelText } = renderWithProviders(
+      <AttachmentPhotos ownerType="task" ownerId="t-1" />,
+    )
+    const editBtn = await findByLabelText(/editar foto f\.jpg/i)
+    fireEvent.click(editBtn)
+
+    await waitFor(() => expect(editorMock.editImage).toHaveBeenCalledTimes(1))
+    await waitFor(() =>
+      expect(
+        calls.some(
+          (c) => c.method === 'POST' && c.url.includes('notas-attachments-upload'),
+        ),
+      ).toBe(true),
+    )
+    await waitFor(() => expect(calls.some((c) => c.method === 'DELETE')).toBe(true))
   })
 })
