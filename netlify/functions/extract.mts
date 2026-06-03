@@ -94,6 +94,9 @@ export default withObservability('extract', async (req: Request, _context: Conte
       proposedQuotes: cleaned.quotes.length,
     })
 
+    // Un cache hit NO gastó tokens: registramos la propuesta para el historial
+    // pero con cost_cents = 0 para no inflar el presupuesto mensual (checkMonthlyBudget
+    // suma cost_cents de extraction_log). Antes cada hit re-cobraba el costo original.
     sql`
       INSERT INTO extraction_log (
         input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
@@ -104,7 +107,7 @@ export default withObservability('extract', async (req: Request, _context: Conte
         ${usage.model},
         ${usage.tokensIn},
         ${usage.tokensOut},
-        ${usage.costCents},
+        ${fromCache ? 0 : usage.costCents},
         ${usage.durationMs},
         ${userId}
       )

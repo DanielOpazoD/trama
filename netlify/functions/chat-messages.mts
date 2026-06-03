@@ -286,7 +286,13 @@ export default withObservability(
           usedHyde,
         })
 
-        sql`
+        // extraction_log es el libro mayor del presupuesto (checkMonthlyBudget
+        // suma su cost_cents). En el chat el costo se incurre SÍ o SÍ, así que
+        // AWAIT el insert antes de cerrar el stream: antes era fire-and-forget y
+        // si el cliente cortaba o el Lambda moría tras el stream, el gasto del
+        // chat quedaba sin medir. El .catch mantiene el best-effort (un fallo de
+        // log no debe romper la respuesta), pero ya no se pierde por no esperarlo.
+        await sql`
           INSERT INTO extraction_log (
             input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
           ) VALUES (
