@@ -38,9 +38,12 @@ Si no entra en ninguno, probablemente es ruido.
 El producto debe sentirse curado, no configurado. Eso significa **menos
 opciones visuales, no más**.
 
-- **Un único accent primario** (`--accent-primary`, prussian deep). Dos
-  ayudantes con uso semántico estricto: `--accent-sage` para confirmaciones,
-  `--accent-clay` para destrucción.
+- **Un único accent primario** (`--accent-primary`, prussian deep en Trama).
+  Dos ayudantes con uso semántico estricto: `--accent-sage` para confirmaciones,
+  `--accent-clay` para destrucción. **Excepción por mundo:** el mundo Notas mapea
+  `--accent-primary → --accent-sage` (clase `world-notas` en `<html>`, vía
+  `useWorldThemeClass`) para darle su propia voz salvia; sigue siendo un solo
+  primario, solo que su valor depende del mundo. Compone con paper/night/vela.
 - **Un solo gold** (`--accent-gold`) — el único accent que cambia con la
   hora del día (`useTimeOfDayAccent`), y por eso es el que da personalidad
   ambiental.

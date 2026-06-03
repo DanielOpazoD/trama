@@ -66,6 +66,7 @@
     --accent-primary-ring: rgb(31 77 107 / 0.25);
     --accent-sage:         #4a7c3a;  /* sage moderno — para ✓ confirmaciones */
     --accent-sage-soft:    rgb(74 124 58 / 0.10);
+    --accent-sage-ring:    rgb(74 124 58 / 0.25);
     --accent-gold:         #a07900;  /* dorado contrastado para IA / featured */
     --accent-gold-soft:    rgb(160 121 0 / 0.10);
     --accent-clay:         #b91c1c;  /* rojo nítido — destructivo */
@@ -184,6 +185,7 @@
     --accent-primary-ring: rgb(141 184 214 / 0.25);
     --accent-sage:         #a3bd96;
     --accent-sage-soft:    rgb(163 189 150 / 0.14);
+    --accent-sage-ring:    rgb(163 189 150 / 0.25);
     --accent-gold:         #c9a763;
     --accent-gold-soft:    rgb(201 167 99 / 0.14);
     --accent-clay:         #d18667;
@@ -268,6 +270,7 @@
     --accent-primary-ring: rgb(184 160 112 / 0.28);
     --accent-sage:         #8a9b6f;
     --accent-sage-soft:    rgb(138 155 111 / 0.14);
+    --accent-sage-ring:    rgb(138 155 111 / 0.28);
     --accent-gold:         #e0b863;
     --accent-gold-soft:    rgb(224 184 99 / 0.16);
     --accent-clay:         #d8836c;
@@ -308,6 +311,23 @@
     --type-lugar:       #b3c0a0;
     --type-evento:      #c8a778;
     --type-default:     #c5ae84;
+  }
+
+  /*
+   * τ-worlds — identidad de acento por mundo. El mundo Notas habla en SALVIA
+   * (su voz, ya presente en su chrome) en vez del azul prusia de Trama: mapea
+   * --accent-primary → --accent-sage. Solo el acento; el resto de la paleta
+   * (papel, tinta, tipos) lo sigue poniendo el tema activo. De ahí las tres
+   * variantes: cada una iguala la especificidad del tema que sobreescribe
+   * (paper/:root, night/.dark, vela/.dark.theme-vela) para ganarle por cascada.
+   * Trama no se toca: conserva el prusia canónico (no necesita clase).
+   */
+  html.world-notas,
+  html.dark.world-notas,
+  html.dark.theme-vela.world-notas {
+    --accent-primary: var(--accent-sage);
+    --accent-primary-soft: var(--accent-sage-soft);
+    --accent-primary-ring: var(--accent-sage-ring);
   }
 
   html {
