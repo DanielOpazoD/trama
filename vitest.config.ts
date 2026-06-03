@@ -36,6 +36,13 @@ export default defineConfig({
         // que las usa las mockea. Medirlas acá solo daría 0% engañoso.
         'src/lib/imageCompression.ts',
         'src/lib/photoExport.ts',
+        // Editor de imágenes: la matemática pura (transforms.ts) SÍ se testea;
+        // el resto es canvas/createImageBitmap/createRoot/Pointer Events
+        // (browser-only, verificado en navegador).
+        'src/lib/imageEditor/raster.ts',
+        'src/lib/imageEditor/mount.tsx',
+        'src/lib/imageEditor/index.ts',
+        'src/components/imageEditor/**',
       ],
       // N8: thresholds calibrados al baseline medido. El objetivo NO es
       // alcanzar 100% — es detectar REGRESIONES: si alguien mergea código
