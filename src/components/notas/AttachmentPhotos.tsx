@@ -342,7 +342,7 @@ function PhotoThumb({
         title={photo.fileName}
         aria-label={`Ver foto ${photo.fileName}`}
         className="block rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-        style={{ outlineColor: 'rgb(var(--accent-primary))' }}
+        style={{ outlineColor: 'var(--accent-primary)' }}
       >
         {ready ? (
           <img

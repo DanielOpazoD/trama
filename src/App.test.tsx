@@ -36,6 +36,9 @@ vi.mock('./state', () => ({
   useRelationshipsQuery: appMocks.useRelationshipsQuery,
   useQuotesQuery: appMocks.useQuotesQuery,
   useOffline: appMocks.useOffline,
+  readUserPrefsMirror: () => ({}),
+  useUserPrefs: () => ({ data: {} }),
+  useSaveUserPrefs: () => ({ mutate: () => {} }),
 }))
 
 vi.mock('./hooks/useIsMobile', () => ({

@@ -16,7 +16,7 @@ const SIZES: TextSize[] = ['S', 'M', 'L']
 const COLORS: { key: TextColor; label: string; css: string }[] = [
   { key: 'ink', label: 'Tinta', css: 'rgb(var(--ink-800))' },
   { key: 'paper', label: 'Papel', css: 'rgb(var(--paper-50))' },
-  { key: 'accent', label: 'Acento', css: 'rgb(var(--accent-primary))' },
+  { key: 'accent', label: 'Acento', css: 'var(--accent-primary)' },
 ]
 
 const segBtn = (on: boolean) =>
@@ -114,7 +114,7 @@ export function TextControls({
                 borderColor: 'rgb(var(--ink-200))',
                 boxShadow:
                   layer.color === c.key
-                    ? '0 0 0 2px rgb(var(--paper-50)), 0 0 0 3.5px rgb(var(--accent-primary))'
+                    ? '0 0 0 2px rgb(var(--paper-50)), 0 0 0 3.5px var(--accent-primary)'
                     : 'none',
               }}
             />

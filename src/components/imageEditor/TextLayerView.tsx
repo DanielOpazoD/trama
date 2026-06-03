@@ -5,7 +5,7 @@ import { fontFamilyFor, fontWeightFor, textPx } from '../../lib/imageEditor/tran
 const COLOR_CSS: Record<TextLayer['color'], string> = {
   ink: 'rgb(var(--ink-800))', // tinta más oscura del tema (no existe --ink-900)
   paper: 'rgb(var(--paper-50))',
-  accent: 'rgb(var(--accent-primary))',
+  accent: 'var(--accent-primary)',
 }
 
 /** Una capa de texto arrastrable sobre la caja de preview (coords normalizadas). */
@@ -84,7 +84,7 @@ export function TextLayerView({
         WebkitTextStrokeWidth: `${Math.max(1, fontPx * 0.08)}px`,
         WebkitTextStrokeColor: halo,
         paintOrder: 'stroke',
-        outline: selected ? '1.5px dashed rgb(var(--accent-primary))' : 'none',
+        outline: selected ? '1.5px dashed var(--accent-primary)' : 'none',
         outlineOffset: '2px',
         touchAction: 'none',
         maxWidth: '95%',

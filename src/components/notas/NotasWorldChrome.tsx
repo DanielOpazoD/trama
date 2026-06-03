@@ -6,11 +6,14 @@ import type { NotasSection } from './NotasWorld'
 
 const ACCENT = 'var(--accent-sage)'
 
-const SECTIONS: Array<{
+export type NotasSectionMeta = {
   id: NotasSection
   label: string
   icon: React.ComponentType<{ size?: number; className?: string }>
-}> = [
+}
+
+/** Registro canónico de las secciones del mundo Notas (orden de la chrome). */
+export const SECTIONS: NotasSectionMeta[] = [
   { id: 'inicio', label: 'Inicio', icon: HomeIcon },
   { id: 'notas', label: 'Notas', icon: NotesIcon },
   { id: 'tareas', label: 'Tareas', icon: TasksIcon },
@@ -44,12 +47,15 @@ export function NotasTopBar({ section }: { section: NotasSection }) {
 export function NotasSidebar({
   world,
   section,
+  sections,
   onChangeWorld,
   onChangeSection,
   onOpenSearch,
 }: {
   world: World
   section: NotasSection
+  /** Secciones visibles a renderizar (filtradas por las prefs del usuario). */
+  sections: NotasSectionMeta[]
   onChangeWorld: (w: World) => void
   onChangeSection: (section: NotasSection) => void
   onOpenSearch: () => void
@@ -67,7 +73,7 @@ export function NotasSidebar({
         </button>
       </header>
       <nav className="flex flex-col px-2 gap-px">
-        {SECTIONS.map((s) => {
+        {sections.map((s) => {
           const Icon = s.icon
           const active = section === s.id
           return (
@@ -110,12 +116,14 @@ export function NotasSidebar({
 export function NotasMobileTabs({
   world,
   section,
+  sections,
   onChangeWorld,
   onChangeSection,
   onOpenSearch,
 }: {
   world: World
   section: NotasSection
+  sections: NotasSectionMeta[]
   onChangeWorld: (w: World) => void
   onChangeSection: (section: NotasSection) => void
   onOpenSearch: () => void
@@ -125,7 +133,7 @@ export function NotasMobileTabs({
       <WorldSwitcher world={world} onChangeWorld={onChangeWorld} collapsed />
       <div className="w-px h-5 bg-ink-100 shrink-0" />
       <div className="flex gap-1 overflow-x-auto flex-1">
-        {SECTIONS.map((s) => {
+        {sections.map((s) => {
           const active = section === s.id
           return (
             <button

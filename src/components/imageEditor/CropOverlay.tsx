@@ -141,7 +141,7 @@ export function CropOverlay({
           top: `${crop.yN * 100}%`,
           width: `${crop.wN * 100}%`,
           height: `${crop.hN * 100}%`,
-          border: '1.5px solid rgb(var(--accent-primary))',
+          border: '1.5px solid var(--accent-primary)',
           boxShadow: '0 0 0 9999px rgba(10,10,12,0.45)',
         }}
       >

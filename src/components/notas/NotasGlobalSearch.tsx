@@ -7,9 +7,11 @@ import {
   useNotesQuery,
   useToast,
 } from '../../state'
-import { SearchIcon } from '../Icons'
+import { KeyIcon, SearchIcon } from '../Icons'
 import type { NotasSection } from './NotasWorld'
 import { copyText } from './notasUtils'
+import { matchModuleAlias } from './moduleAliases'
+import { useModuleVisibility } from '../../hooks/useModuleVisibility'
 
 export function NotasGlobalSearch({
   onNavigate,
@@ -31,6 +33,11 @@ export function NotasGlobalSearch({
   const updateTask = useUpdateTask()
   const markPromptUsed = useMarkPromptUsed()
   const toast = useToast()
+  const { isVisible, reveal } = useModuleVisibility()
+
+  // Comando para abrir/revelar un módulo (p. ej. "#pass" → Claves), aunque esté
+  // oculto en la barra. Es acceso rápido, no seguridad.
+  const alias = matchModuleAlias(q)
 
   const query = q.trim().toLowerCase()
   const results = useMemo(() => {
@@ -75,6 +82,27 @@ export function NotasGlobalSearch({
           </button>
         )}
       </div>
+
+      {alias && (
+        <button
+          onClick={() => {
+            reveal(alias.moduleId)
+            onNavigate(alias.moduleId)
+          }}
+          className="mt-2 flex w-full items-center gap-2 rounded-lg border border-ink-100/70 bg-paper-50 px-3 py-2 text-sm text-ink-700 hover:border-ink-200 transition-colors"
+        >
+          <span className="shrink-0" style={{ color: 'var(--accent-sage)' }}>
+            <KeyIcon size={14} />
+          </span>
+          <span>
+            {isVisible(alias.moduleId) ? 'Abrir' : 'Revelar'}{' '}
+            <strong className="font-medium">{alias.label}</strong>
+          </span>
+          <span className="ml-auto text-micro uppercase tracking-eyebrow text-ink-300">
+            acceso rápido
+          </span>
+        </button>
+      )}
 
       {results && (
         <div className="mt-2 grid md:grid-cols-2 gap-2">
