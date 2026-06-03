@@ -26,4 +26,13 @@ describe('<NotasView />', () => {
     expect(screen.getByPlaceholderText(/Escribe una nota/)).toBeInTheDocument()
     expect(await screen.findByText(/Tu primer apunte/)).toBeInTheDocument()
   })
+
+  it('el composer es autoexpandible (el hook fija su altura)', () => {
+    renderWithProviders(<NotasView />)
+    const composer = screen.getByPlaceholderText(
+      /Escribe una nota/,
+    ) as HTMLTextAreaElement
+    // useAutosizeTextarea fija el alto en px al montar (en vez del rows fijo).
+    expect(composer.style.height).toMatch(/px$/)
+  })
 })

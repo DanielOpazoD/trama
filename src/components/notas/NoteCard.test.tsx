@@ -95,6 +95,22 @@ describe('<NoteCard />', () => {
     expect(onDelete).toHaveBeenCalledTimes(1)
   })
 
+  it('el menú alterna el panel de anexos (sin perder archivos)', () => {
+    renderCard(BASE)
+    openMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: /^anexos$/i }))
+    // Se montó el panel de anexos…
+    expect(screen.getByText('anexos')).toBeInTheDocument()
+    // …y el menú refleja el estado al reabrir.
+    openMenu()
+    expect(screen.getByRole('menuitem', { name: /ocultar anexos/i })).toBeInTheDocument()
+  })
+
+  it('una nota fijada expone su estado a lectores de pantalla', () => {
+    renderCard({ ...BASE, pinned: true })
+    expect(screen.getByText('Nota fijada')).toBeInTheDocument()
+  })
+
   it('muestra el ícono de fotos solo si hay imágenes adjuntas', async () => {
     stubAttachments([
       {

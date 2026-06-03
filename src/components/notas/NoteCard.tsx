@@ -102,12 +102,15 @@ export function NoteCard({
       {/* Fila de afordancia: punto "fijada" · ícono de fotos · menú. Sin texto. */}
       <div className="mt-2 flex items-center justify-end gap-1.5">
         {note.pinned && (
-          <span
-            aria-hidden
-            title="fijada"
-            className="size-1.5 rounded-full"
-            style={{ backgroundColor: ACCENT }}
-          />
+          <>
+            <span
+              aria-hidden
+              title="fijada"
+              className="size-1.5 rounded-full"
+              style={{ backgroundColor: ACCENT }}
+            />
+            <span className="sr-only">Nota fijada</span>
+          </>
         )}
         <AttachmentPhotos ownerType="note" ownerId={note.id} compact />
         <OverflowMenu
