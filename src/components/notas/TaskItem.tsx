@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import type { Task, TaskPatch, TaskPriority } from '../../api'
 import {
   ArrowRightIcon,
+  CameraIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -165,7 +166,7 @@ export function TaskItem({
           <span className="section-eyebrow text-ink-300 block mb-1">
             fotos de la tarea
           </span>
-          <AttachmentPhotos ownerType="task" ownerId={task.id} />
+          <AttachmentPhotos ownerType="task" ownerId={task.id} title={task.title} />
         </div>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 flex-wrap">
@@ -289,6 +290,17 @@ export function TaskItem({
           </span>
         )}
       </div>
+
+      {/* Marca distintiva: la tarea guarda fotos adjuntas. */}
+      {task.hasPhotos && (
+        <span
+          className="shrink-0 mt-1 inline-flex items-center text-ink-300"
+          title="Tiene fotos adjuntas"
+          aria-label="Tiene fotos adjuntas"
+        >
+          <CameraIcon size={13} />
+        </span>
+      )}
 
       {/* Detalle — icono sutil; ventana flotante al pasar el mouse o tocar. */}
       {task.detail && (

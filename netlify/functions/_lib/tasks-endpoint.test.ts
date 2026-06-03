@@ -16,6 +16,7 @@ const TASK_ROW = {
   priority: 'media',
   week_start: '2026-06-01',
   category: 'trabajo',
+  has_photos: false,
   completed_at: null,
   tags: ['ensayo'],
   created_at: '2026-05-01T00:00:00Z',
@@ -26,13 +27,17 @@ describe('tasks endpoint — integration', () => {
   beforeEach(() => mockSqlResponses.reset())
   afterEach(() => vi.unstubAllGlobals())
 
-  it('GET devuelve la lista', async () => {
+  it('GET devuelve la lista e incluye el flag has_photos (EXISTS)', async () => {
     mockSqlResponses.push([TASK_ROW])
     const res = await handler(new Request('http://localhost/api/tasks'), mockContext())
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body).toHaveLength(1)
     expect(body[0]).toMatchObject({ id: 't1', title: 'Terminar el ensayo' })
+    // El SELECT deriva has_photos con un EXISTS sobre notas_attachments.
+    const q = mockSqlResponses.calls.find((c) => /FROM tasks/i.test(c.template))
+    expect(q?.template).toMatch(/EXISTS\(SELECT 1 FROM notas_attachments/i)
+    expect(q?.template).toMatch(/AS has_photos/i)
   })
 
   it('POST con título válido crea (201) y deriva tags', async () => {
