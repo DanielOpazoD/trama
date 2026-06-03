@@ -114,6 +114,13 @@ export const PlusIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/* Chincheta — fijar/soltar una nota. */
+export const PinIcon = ({ size = 13, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M9 3h6l-1 5 3 3v2H7v-2l3-3-1-5zM12 15v6" />
+  </svg>
+)
+
 /* Marco de recorte — editor de imágenes. */
 export const CropIcon = ({ size = 12, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

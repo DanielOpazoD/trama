@@ -25,11 +25,18 @@ export function AttachmentPhotos({
   ownerType,
   ownerId,
   title,
+  compact = false,
 }: {
   ownerType: NotasAttachmentOwner
   ownerId: string
   /** Nombre para el archivo PDF exportado (título de la tarea / rango de semana). */
   title?: string
+  /**
+   * Modo compacto (notas): solo un ícono de fotos —si hay— que abre el visor
+   * (con editor); sin tira de miniaturas, adjuntar, descargar ni PDF. La gestión
+   * de archivos de la nota vive en su panel de Anexos.
+   */
+  compact?: boolean
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const toast = useToast()
@@ -192,6 +199,38 @@ export function AttachmentPhotos({
     } finally {
       setExporting(null)
     }
+  }
+
+  // Modo compacto (notas): solo el ícono de fotos —si hay— que abre el visor.
+  if (compact) {
+    if (photos.length === 0) return null
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setViewerIndex(0)}
+          className="touch-target inline-flex items-center gap-1 p-1 rounded-md text-ink-300 hover:text-ink-700 transition-colors"
+          title={photos.length === 1 ? 'Ver la foto' : `Ver las ${photos.length} fotos`}
+          aria-label={`Ver fotos (${photos.length})`}
+        >
+          <CameraIcon size={15} />
+          {photos.length > 1 && (
+            <span className="text-micro tabular-nums">{photos.length}</span>
+          )}
+        </button>
+        {viewerIndex !== null && (
+          <AttachmentLightbox
+            photos={photos}
+            index={viewerIndex}
+            onIndexChange={setViewerIndex}
+            onClose={() => setViewerIndex(null)}
+            onEdit={editFromViewer}
+            editing={editingId !== null}
+            interactive={!editorOpen}
+          />
+        )}
+      </>
+    )
   }
 
   return (

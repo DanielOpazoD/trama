@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import type { Note } from '../../api'
 import { renderMarkdown } from './markdown'
-import { MomentosIcon } from '../Icons'
+import { FileIcon, MomentosIcon, PencilIcon, PinIcon, TrashIcon } from '../Icons'
+import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { AttachmentsPanel } from './AttachmentsPanel'
+import { AttachmentPhotos } from './AttachmentPhotos'
+import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -19,6 +22,12 @@ function formatDate(iso: string): string {
   }
 }
 
+/**
+ * Note card minimalista: la cara muestra solo el texto de la nota. Las acciones
+ * (→momento, editar, fijar, anexos, borrar) viven tras un menú de 3 puntos; un
+ * punto salvia indica "fijada" y un ícono de cámara aparece si hay fotos (abre
+ * el visor con editor). Editar usa un textarea que crece con el contenido.
+ */
 export function NoteCard({
   note,
   onTogglePin,
@@ -38,8 +47,10 @@ export function NoteCard({
 }) {
   const [confirming, setConfirming] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [showFiles, setShowFiles] = useState(false)
   const [draft, setDraft] = useState(note.content)
   const promoted = note.promotedMomentoId !== null
+  const editRef = useAutosizeTextarea(draft, { minRows: 4, maxRows: 16 })
 
   function saveEdit() {
     const next = draft.trim()
@@ -53,6 +64,7 @@ export function NoteCard({
     return (
       <article className="card-paper-soft rounded-xl border border-ink-100/70 p-4">
         <textarea
+          ref={editRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -63,7 +75,7 @@ export function NoteCard({
           }}
           rows={4}
           autoFocus
-          className="w-full resize-y bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
+          className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
         />
         <div className="mt-2 flex items-center justify-end gap-2">
           <button onClick={() => setEditing(false)} className="btn-ghost text-xs">
@@ -82,84 +94,106 @@ export function NoteCard({
   }
 
   return (
-    <article className="card-paper-soft group rounded-xl border border-ink-100/70 p-4 transition-colors">
+    <article className="card-paper-soft rounded-xl border border-ink-100/70 p-4 transition-colors">
       <div className="break-words text-ink-700 leading-relaxed space-y-2">
         {renderMarkdown(note.content)}
       </div>
-      <footer className="mt-3 flex items-center gap-3 text-micro">
+
+      {/* Fila de afordancia: punto "fijada" · ícono de fotos · menú. Sin texto. */}
+      <div className="mt-2 flex items-center justify-end gap-1.5">
         {note.pinned && (
-          <span className="uppercase tracking-eyebrow" style={{ color: ACCENT }}>
-            fijada
-          </span>
-        )}
-        <span className="text-ink-300 tabular-nums">{formatDate(note.createdAt)}</span>
-        {promoted && (
           <span
-            className="inline-flex items-center gap-1 uppercase tracking-eyebrow"
-            style={{ color: ACCENT }}
-            title="Esta nota ya vive como Momento en tu trama"
-          >
-            <MomentosIcon size={11} />
-            en momentos
-          </span>
+            aria-hidden
+            title="fijada"
+            className="size-1.5 rounded-full"
+            style={{ backgroundColor: ACCENT }}
+          />
         )}
-        <span className="flex-1" />
-        {/* Acciones — sutiles, visibles en hover (y siempre en touch). */}
-        <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-          {!promoted && (
-            <button
-              onClick={onPromote}
-              disabled={busy || promoting}
-              title="Crear un Momento en tu trama a partir de esta nota"
-              className="uppercase tracking-eyebrow text-ink-300 transition-colors disabled:opacity-50 hover:text-[color:var(--accent-sage)]"
-            >
-              {promoting ? 'promoviendo…' : '→ momento'}
-            </button>
-          )}
-          <button
-            onClick={() => {
-              setDraft(note.content)
-              setEditing(true)
-            }}
-            disabled={busy}
-            className="uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
-          >
-            editar
-          </button>
-          <button
-            onClick={onTogglePin}
-            disabled={busy}
-            className="uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
-          >
-            {note.pinned ? 'soltar' : 'fijar'}
-          </button>
-          {confirming ? (
-            <span className="flex items-center gap-2">
-              <button
-                onClick={onDelete}
+        <AttachmentPhotos ownerType="note" ownerId={note.id} compact />
+        <OverflowMenu
+          label="Acciones de la nota"
+          width="w-52"
+          triggerClassName="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
+        >
+          {(close) => (
+            <>
+              {!promoted && (
+                <OverflowMenuItem
+                  onClick={() => {
+                    onPromote()
+                    close()
+                  }}
+                  disabled={busy || promoting}
+                >
+                  <MomentosIcon size={13} /> {promoting ? 'Promoviendo…' : '→ Momento'}
+                </OverflowMenuItem>
+              )}
+              <OverflowMenuItem
+                onClick={() => {
+                  setConfirming(false)
+                  setDraft(note.content)
+                  setEditing(true)
+                  close()
+                }}
                 disabled={busy}
-                className="uppercase tracking-eyebrow text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] transition-colors disabled:opacity-50"
               >
-                borrar
-              </button>
-              <button
-                onClick={() => setConfirming(false)}
-                className="uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+                <PencilIcon size={13} /> Editar
+              </OverflowMenuItem>
+              <OverflowMenuItem
+                onClick={() => {
+                  onTogglePin()
+                  close()
+                }}
+                disabled={busy}
               >
-                no
-              </button>
-            </span>
-          ) : (
-            <button
-              onClick={() => setConfirming(true)}
-              className="uppercase tracking-eyebrow text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors"
-            >
-              borrar
-            </button>
+                <PinIcon size={13} /> {note.pinned ? 'Soltar' : 'Fijar'}
+              </OverflowMenuItem>
+              <OverflowMenuItem
+                onClick={() => {
+                  setShowFiles((v) => !v)
+                  close()
+                }}
+              >
+                <FileIcon size={13} /> {showFiles ? 'Ocultar anexos' : 'Anexos'}
+              </OverflowMenuItem>
+
+              <p className="px-2.5 pt-1.5 pb-0.5 text-micro text-ink-300 tabular-nums">
+                {promoted
+                  ? 'Ya vive como Momento'
+                  : `Creada · ${formatDate(note.createdAt)}`}
+              </p>
+
+              {confirming ? (
+                <>
+                  <OverflowMenuItem
+                    danger
+                    onClick={() => {
+                      onDelete()
+                      close()
+                    }}
+                    disabled={busy}
+                  >
+                    <TrashIcon size={13} /> Sí, borrar
+                  </OverflowMenuItem>
+                  <OverflowMenuItem onClick={() => setConfirming(false)}>
+                    Cancelar
+                  </OverflowMenuItem>
+                </>
+              ) : (
+                <OverflowMenuItem
+                  danger
+                  onClick={() => setConfirming(true)}
+                  disabled={busy}
+                >
+                  <TrashIcon size={13} /> Borrar
+                </OverflowMenuItem>
+              )}
+            </>
           )}
-        </div>
-      </footer>
-      <AttachmentsPanel ownerType="note" ownerId={note.id} />
+        </OverflowMenu>
+      </div>
+
+      {showFiles && <AttachmentsPanel ownerType="note" ownerId={note.id} />}
     </article>
   )
 }

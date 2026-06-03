@@ -16,67 +16,100 @@ const BASE: Note = {
 
 const noop = () => {}
 
-beforeEach(() => {
+function stubAttachments(rows: unknown[] = []) {
   vi.stubGlobal(
     'fetch',
     vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
+      new Response(JSON.stringify(rows), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),
     ),
   )
-})
+}
 
-afterEach(() => {
-  vi.unstubAllGlobals()
-})
+beforeEach(() => stubAttachments([]))
+afterEach(() => vi.unstubAllGlobals())
+
+function renderCard(note: Note, overrides: Partial<Parameters<typeof NoteCard>[0]> = {}) {
+  return renderWithProviders(
+    <NoteCard
+      note={note}
+      onTogglePin={noop}
+      onDelete={noop}
+      onPromote={noop}
+      onEdit={noop}
+      {...overrides}
+    />,
+  )
+}
+
+const openMenu = () =>
+  fireEvent.click(screen.getByRole('button', { name: /acciones de la nota/i }))
 
 describe('<NoteCard />', () => {
-  it('ofrece promover a Momento cuando la nota no fue promovida', () => {
+  it('la cara muestra solo el texto; las acciones viven tras el menú', () => {
+    renderCard(BASE)
+    expect(screen.getByText('una nota')).toBeInTheDocument()
+    // Sin botones de acción sueltos en la cara (están dentro del menú cerrado).
+    expect(screen.queryByRole('menuitem')).toBeNull()
+    expect(screen.queryByRole('button', { name: /^editar$/i })).toBeNull()
+    expect(
+      screen.getByRole('button', { name: /acciones de la nota/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('promueve a Momento desde el menú cuando no fue promovida', () => {
     const onPromote = vi.fn()
-    renderWithProviders(
-      <NoteCard
-        note={BASE}
-        onTogglePin={noop}
-        onDelete={noop}
-        onPromote={onPromote}
-        onEdit={noop}
-      />,
-    )
-    fireEvent.click(screen.getByRole('button', { name: /→ momento/i }))
+    renderCard(BASE, { onPromote })
+    openMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: /momento/i }))
     expect(onPromote).toHaveBeenCalledTimes(1)
   })
 
-  it('muestra la insignia "en momentos" cuando ya fue promovida (sin botón)', () => {
-    renderWithProviders(
-      <NoteCard
-        note={{ ...BASE, promotedMomentoId: 'm1' }}
-        onTogglePin={noop}
-        onDelete={noop}
-        onPromote={vi.fn()}
-        onEdit={noop}
-      />,
-    )
-    expect(screen.getByText(/en momentos/i)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /→ momento/i })).toBeNull()
+  it('promovida: sin opción de Momento, muestra "Ya vive como Momento"', () => {
+    renderCard({ ...BASE, promotedMomentoId: 'm1' })
+    openMenu()
+    expect(screen.getByText(/ya vive como momento/i)).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: /→ momento/i })).toBeNull()
   })
 
-  it('permite editar el contenido de la nota', () => {
+  it('permite editar el contenido (campo autoexpandible)', () => {
     const onEdit = vi.fn()
-    renderWithProviders(
-      <NoteCard
-        note={BASE}
-        onTogglePin={noop}
-        onDelete={noop}
-        onPromote={noop}
-        onEdit={onEdit}
-      />,
-    )
-    fireEvent.click(screen.getByRole('button', { name: /editar/i }))
+    renderCard(BASE, { onEdit })
+    openMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: /editar/i }))
     const textarea = screen.getByRole('textbox')
     fireEvent.change(textarea, { target: { value: 'nueva versión' } })
     fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
     expect(onEdit).toHaveBeenCalledWith('nueva versión')
+  })
+
+  it('borrar pide confirmación dentro del menú', () => {
+    const onDelete = vi.fn()
+    renderCard(BASE, { onDelete })
+    openMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: /^borrar$/i }))
+    expect(onDelete).not.toHaveBeenCalled() // primer clic solo pide confirmar
+    fireEvent.click(screen.getByRole('menuitem', { name: /sí, borrar/i }))
+    expect(onDelete).toHaveBeenCalledTimes(1)
+  })
+
+  it('muestra el ícono de fotos solo si hay imágenes adjuntas', async () => {
+    stubAttachments([
+      {
+        id: 'a1',
+        owner_type: 'note',
+        owner_id: 'n1',
+        file_name: 'f.jpg',
+        mime_type: 'image/jpeg',
+        byte_size: 10,
+        storage_key: 'u1/f.jpg',
+        created_at: 'x',
+        updated_at: 'x',
+      },
+    ])
+    renderCard(BASE)
+    expect(await screen.findByRole('button', { name: /ver fotos/i })).toBeInTheDocument()
   })
 })
