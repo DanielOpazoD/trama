@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { NotasAttachment, NotasAttachmentOwner } from '../../api'
 import {
   useNotasAttachmentsQuery,
@@ -11,7 +11,8 @@ import { editImage } from '../../lib/imageEditor'
 import { downloadAllImages, exportImagesToPdf } from '../../lib/photoExport'
 import { apiFetch } from '../../api/request'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
-import { CameraIcon, TrashIcon, DownloadIcon, FilePdfIcon, PencilIcon } from '../Icons'
+import { CameraIcon, TrashIcon, DownloadIcon, FilePdfIcon } from '../Icons'
+import { AttachmentLightbox } from './AttachmentLightbox'
 
 /**
  * Tira de fotos asociada a un "dueño" de anexos: una semana (`week` + lunes) o
@@ -37,20 +38,21 @@ export function AttachmentPhotos({
   const remove = useDeleteNotasAttachment()
   const [exporting, setExporting] = useState<'all' | 'pdf' | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  // Si la próxima selección debe pasar por el editor (botón "adjuntar y editar").
-  const editOnAddRef = useRef(false)
+  // Visor: índice de la foto abierta (null = cerrado). Mientras el editor está
+  // abierto encima, `editorOpen` pausa las teclas del visor; al terminar,
+  // `focusAfterEditId` reposiciona el visor sobre el resultado.
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [focusAfterEditId, setFocusAfterEditId] = useState<string | null>(null)
 
   const photos = (query.data ?? []).filter((a) => a.mimeType.startsWith('image/'))
 
-  function pickFiles(editFirst: boolean) {
-    editOnAddRef.current = editFirst
+  function pickFiles() {
     inputRef.current?.click()
   }
 
   async function onFiles(files: FileList | null) {
     if (!files || files.length === 0 || upload.isPending) return
-    const editFirst = editOnAddRef.current
-    editOnAddRef.current = false
     const picked = Array.from(files)
     const images = picked.filter((f) => f.type.startsWith('image/'))
     const skipped = picked.length - images.length
@@ -61,21 +63,12 @@ export function AttachmentPhotos({
       return
     }
 
-    // Subimos en serie: (opcional) editor → compresión → upload. Cada éxito
-    // invalida la query, así la tira se va poblando.
+    // Subimos en serie: compresión → upload. Cada éxito invalida la query, así
+    // la tira se va poblando. (Para editar, se abre la imagen en el visor.)
     let ok = 0
     for (const original of images) {
       try {
-        let chosen = original
-        if (editFirst) {
-          const edited = await editImage(original, {
-            outputType: 'image/webp',
-            title: 'editar foto',
-          })
-          if (edited === null) continue // canceló esta imagen
-          chosen = edited
-        }
-        const file = await compressImage(chosen)
+        const file = await compressImage(original)
         await upload.mutateAsync({ ownerType, ownerId, file })
         ok++
       } catch (err) {
@@ -101,11 +94,10 @@ export function AttachmentPhotos({
     if (inputRef.current) inputRef.current.value = ''
   }
 
-  // Editar una foto YA guardada: baja el blob → editor → sube la nueva + borra
-  // la vieja (la tira se refresca sola).
-  async function editExisting(photo: NotasAttachment) {
-    if (editingId) return
-    setEditingId(photo.id)
+  // Editar una foto ya guardada: baja el blob → editor → sube la nueva + borra
+  // la vieja. Devuelve el id del anexo creado (para reposicionar el visor sobre
+  // él) o null si no hubo cambios / error.
+  async function runEdit(photo: NotasAttachment): Promise<string | null> {
     try {
       const res = await apiFetch(photo.url)
       if (!res.ok) throw new Error('No se pudo bajar la imagen')
@@ -116,21 +108,58 @@ export function AttachmentPhotos({
         outputType: 'image/webp',
         title: 'editar foto',
       })
-      if (edited && edited !== original) {
-        const file = await compressImage(edited)
-        await upload.mutateAsync({ ownerType, ownerId, file })
-        await remove.mutateAsync({ id: photo.id, ownerType, ownerId })
-        toast.show({ message: 'Foto editada.', tone: 'success' })
-      }
+      if (!edited || edited === original) return null // canceló o sin cambios
+      const file = await compressImage(edited)
+      const created = await upload.mutateAsync({ ownerType, ownerId, file })
+      await remove.mutateAsync({ id: photo.id, ownerType, ownerId })
+      toast.show({ message: 'Foto editada.', tone: 'success' })
+      return created?.id ?? null
     } catch (err) {
       toast.show({
         message: err instanceof Error ? err.message : 'No se pudo editar',
         tone: 'error',
       })
+      return null
+    }
+  }
+
+  // Disparado por el botón "editar" del visor: edita la foto abierta. Marca
+  // `editorOpen` para que el visor ignore las teclas mientras el editor está
+  // encima, y agenda reposicionar el visor sobre el resultado.
+  async function editFromViewer() {
+    if (editingId || viewerIndex === null) return
+    const photo = photos[viewerIndex]
+    if (!photo) return
+    setEditingId(photo.id)
+    setEditorOpen(true)
+    try {
+      const newId = await runEdit(photo)
+      if (newId) setFocusAfterEditId(newId)
     } finally {
+      setEditorOpen(false)
       setEditingId(null)
     }
   }
+
+  // Tras editar, reposiciona el visor sobre la foto resultante cuando aparece en
+  // la lista (sin reabrirlo si el usuario lo cerró entretanto).
+  useEffect(() => {
+    if (!focusAfterEditId) return
+    const i = photos.findIndex((p) => p.id === focusAfterEditId)
+    if (i >= 0) {
+      setViewerIndex((prev) => (prev === null ? null : i))
+      setFocusAfterEditId(null)
+    }
+  }, [photos, focusAfterEditId])
+
+  // Mantiene el índice del visor válido si la lista se achica (p. ej. al borrar).
+  useEffect(() => {
+    setViewerIndex((prev) => {
+      if (prev === null) return null
+      if (photos.length === 0) return null
+      return prev >= photos.length ? photos.length - 1 : prev
+    })
+  }, [photos.length])
 
   async function onDownloadAll() {
     if (exporting || photos.length === 0) return
@@ -176,40 +205,23 @@ export function AttachmentPhotos({
             className="size-14 rounded-md skeleton-shimmer"
           />
         ))}
-      {photos.map((p) => (
+      {photos.map((p, i) => (
         <PhotoThumb
           key={p.id}
           photo={p}
-          editing={editingId === p.id}
-          onEdit={() => editExisting(p)}
+          onOpen={() => setViewerIndex(i)}
           onRemove={() => remove.mutate({ id: p.id, ownerType, ownerId })}
         />
       ))}
 
       <button
-        onClick={() => pickFiles(false)}
+        onClick={pickFiles}
         disabled={upload.isPending}
         className="touch-target p-1.5 rounded-md text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
         title="Adjuntar fotos"
         aria-label="Adjuntar fotos"
       >
         <CameraIcon size={16} />
-      </button>
-      <button
-        onClick={() => pickFiles(true)}
-        disabled={upload.isPending}
-        className="touch-target p-1.5 rounded-md text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
-        title="Adjuntar y editar"
-        aria-label="Adjuntar y editar fotos"
-      >
-        {/* Cámara + badge de lápiz = "adjuntar y retocar"; el lápiz solo (en las
-            miniaturas) queda reservado para "editar esta foto ya guardada". */}
-        <span className="relative inline-flex">
-          <CameraIcon size={16} />
-          <span className="absolute -bottom-1 -right-1.5 rounded-full bg-paper-50 p-px leading-none">
-            <PencilIcon size={8} />
-          </span>
-        </span>
       </button>
 
       {photos.length > 0 && (
@@ -248,6 +260,18 @@ export function AttachmentPhotos({
         className="hidden"
         onChange={(e) => onFiles(e.target.files)}
       />
+
+      {viewerIndex !== null && (
+        <AttachmentLightbox
+          photos={photos}
+          index={viewerIndex}
+          onIndexChange={setViewerIndex}
+          onClose={() => setViewerIndex(null)}
+          onEdit={editFromViewer}
+          editing={editingId !== null}
+          interactive={!editorOpen}
+        />
+      )}
     </div>
   )
 }
@@ -257,16 +281,15 @@ export function AttachmentPhotos({
  * puede usar como `<img src>` directo (el browser no manda el bearer de Clerk →
  * 401). Lo bajamos con apiFetch y lo servimos como object-URL vía el hook
  * compartido; mientras viaja, una caja de papel; si falla, queda esa caja.
+ * Clic en la miniatura → abre el visor (donde se navega y se edita).
  */
 function PhotoThumb({
   photo,
-  editing,
-  onEdit,
+  onOpen,
   onRemove,
 }: {
   photo: NotasAttachment
-  editing: boolean
-  onEdit: () => void
+  onOpen: () => void
   onRemove: () => void
 }) {
   const { src, status } = useAuthenticatedMediaState(photo.url)
@@ -274,31 +297,28 @@ function PhotoThumb({
 
   return (
     <span className="group/photo relative">
-      {ready ? (
-        <a href={src} target="_blank" rel="noreferrer" title={photo.fileName}>
+      <button
+        type="button"
+        onClick={onOpen}
+        title={photo.fileName}
+        aria-label={`Ver foto ${photo.fileName}`}
+        className="block rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
+        style={{ outlineColor: 'rgb(var(--accent-primary))' }}
+      >
+        {ready ? (
           <img
             src={src}
             alt={photo.fileName}
             className="size-14 rounded-md object-cover border border-ink-100/70"
           />
-        </a>
-      ) : (
-        <span
-          aria-hidden
-          title={status === 'error' ? 'No se pudo cargar' : photo.fileName}
-          className={`block size-14 rounded-md border border-ink-100/70 ${
-            status === 'error' ? 'bg-paper-100/60' : 'skeleton-shimmer'
-          }`}
-        />
-      )}
-      <button
-        onClick={onEdit}
-        disabled={editing}
-        aria-label={`Editar foto ${photo.fileName}`}
-        title="Editar"
-        className="absolute -top-1.5 -left-1.5 size-5 inline-flex items-center justify-center rounded-full bg-paper-50 border border-ink-100 text-ink-300 hover:text-ink-700 opacity-0 group-hover/photo:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-100 disabled:animate-pulse"
-      >
-        <PencilIcon size={10} />
+        ) : (
+          <span
+            aria-hidden
+            className={`block size-14 rounded-md border border-ink-100/70 ${
+              status === 'error' ? 'bg-paper-100/60' : 'skeleton-shimmer'
+            }`}
+          />
+        )}
       </button>
       <button
         onClick={onRemove}
