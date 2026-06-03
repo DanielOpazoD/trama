@@ -9,6 +9,7 @@
     "check:legacy-fallback": "node scripts/check-legacy-fallback-prod.mjs",
     "check:hard-delete-allowlist": "node scripts/check-hard-delete-allowlist.mjs",
     "check:docs-drift": "node scripts/check-docs-drift.mjs",
+    "check:cte-regression": "bash scripts/check-cte-regression.sh",
     "pr-stack:check": "node scripts/verify-pr-stack.mjs",
     "bundle:check": "node scripts/check-bundle-size.mjs",
     "bundle:report": "node scripts/check-bundle-size.mjs --report",

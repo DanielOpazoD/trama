@@ -199,3 +199,15 @@ jobs:
             echo "::error::Re-run aplicó migraciones de nuevo — el tracking en _migrations está roto"
             exit 1
           }
+
+      # Regresión de los CTE atómicos de los handlers (entities-merge, cascade
+      # DELETE/restore, momento POST) contra Postgres real. Corre sobre una DB
+      # throwaway recién creada — el SQL crea sus propias tablas, así que NO debe
+      # tocar la DB migrada `trama`.
+      - name: CTE atomicity regression
+        env:
+          PGPASSWORD: trama_local_dev
+        run: |
+          createdb -h localhost -p 5433 -U trama cte_regression
+          DATABASE_URL=postgresql://trama:trama_local_dev@localhost:5433/cte_regression \
+            npm run check:cte-regression
