@@ -1,6 +1,13 @@
 import { fireEvent, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from '../../test-utils'
+
+// La compresión real necesita createImageBitmap/canvas (no existen en el entorno
+// de test): la neutralizamos para que devuelva el archivo tal cual.
+vi.mock('../../lib/imageCompression', () => ({
+  compressImage: (file: File) => Promise.resolve(file),
+}))
+
 import { AttachmentPhotos } from './AttachmentPhotos'
 
 /** POSTs al endpoint de upload observados durante el test. */
