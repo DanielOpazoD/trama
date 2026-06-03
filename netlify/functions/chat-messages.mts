@@ -205,6 +205,10 @@ export default withObservability(
           durationMs: 0,
         }
         let llmError: string | null = null
+        // Si el reply salió del cache (providers no-streaming caen a callLLM,
+        // que puede dar hit), no se gastaron tokens → no se re-cobra el
+        // presupuesto. Simétrico al fix de extract.
+        let fromCache = false
 
         const chatOverride = {
           provider: invocation.provider,
@@ -219,6 +223,7 @@ export default withObservability(
             } else if (frame.type === 'done') {
               assembled = frame.content || assembled
               usage = frame.usage
+              fromCache = frame.fromCache
             } else if (frame.type === 'error') {
               llmError = frame.message
             }
@@ -286,7 +291,13 @@ export default withObservability(
           usedHyde,
         })
 
-        sql`
+        // extraction_log es el libro mayor del presupuesto (checkMonthlyBudget
+        // suma su cost_cents). En el chat el costo se incurre SÍ o SÍ, así que
+        // AWAIT el insert antes de cerrar el stream: antes era fire-and-forget y
+        // si el cliente cortaba o el Lambda moría tras el stream, el gasto del
+        // chat quedaba sin medir. El .catch mantiene el best-effort (un fallo de
+        // log no debe romper la respuesta), pero ya no se pierde por no esperarlo.
+        await sql`
           INSERT INTO extraction_log (
             input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
           ) VALUES (
@@ -296,7 +307,7 @@ export default withObservability(
             ${usage.model},
             ${usage.tokensIn},
             ${usage.tokensOut},
-            ${usage.costCents},
+            ${fromCache ? 0 : usage.costCents},
             ${usage.durationMs},
             ${userId}
           )

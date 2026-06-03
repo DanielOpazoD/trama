@@ -309,15 +309,36 @@ export default withObservability(
     }
 
     if (req.method === 'DELETE' && id) {
-      // Soft delete con timestamp compartido entre la entidad y su cascade.
-      // El restore lo usa para identificar exactamente qué se borró en este
-      // acto y revertir solo eso (no relaciones borradas en otro momento).
-      const tsRows = (await sql`SELECT NOW() AS now`) as Array<{ now: string }>
+      // Soft-delete atómico: la entidad + su cascade (relaciones, citas, links de
+      // momentos) en UN solo CTE, con un deleted_at compartido (la CTE `ts`).
+      // Antes eran 4 writes secuenciales: si el Lambda moría a mitad, quedaba la
+      // entidad borrada pero su cascade no (o al revés). El restore usa ese
+      // timestamp exacto para revertir solo lo que este acto borró.
+      const tsRows = (await sql`
+        WITH ts AS (SELECT NOW() AS now),
+        del_entity AS (
+          UPDATE entities SET deleted_at = (SELECT now FROM ts)
+          WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+          RETURNING 1
+        ),
+        del_rels AS (
+          UPDATE relationships SET deleted_at = (SELECT now FROM ts)
+          WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at IS NULL AND user_id = ${userId}
+          RETURNING 1
+        ),
+        del_quotes AS (
+          UPDATE quotes SET deleted_at = (SELECT now FROM ts)
+          WHERE entity_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+          RETURNING 1
+        ),
+        del_links AS (
+          UPDATE momento_entities SET deleted_at = (SELECT now FROM ts)
+          WHERE entity_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+          RETURNING 1
+        )
+        SELECT now FROM ts
+      `) as Array<{ now: string }>
       const deletedAt = tsRows[0]?.now ?? new Date().toISOString()
-      await sql`UPDATE entities SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
-      await sql`UPDATE relationships SET deleted_at = ${deletedAt} WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at IS NULL AND user_id = ${userId}`
-      await sql`UPDATE quotes SET deleted_at = ${deletedAt} WHERE entity_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
-      await sql`UPDATE momento_entities SET deleted_at = ${deletedAt} WHERE entity_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
       return Response.json({ deletedAt })
     }
 
@@ -328,10 +349,31 @@ export default withObservability(
       const parsed = await parseJsonBody(req, EntityRestoreBody, requestId)
       if (!parsed.ok) return parsed.response
       const { deletedAt } = parsed.data
-      await sql`UPDATE entities SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
-      await sql`UPDATE relationships SET deleted_at = NULL WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at = ${deletedAt} AND user_id = ${userId}`
-      await sql`UPDATE quotes SET deleted_at = NULL WHERE entity_id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
-      await sql`UPDATE momento_entities SET deleted_at = NULL WHERE entity_id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
+      // Undo atómico simétrico al DELETE: restaura la entidad + el cascade que
+      // compartía exactamente ese deleted_at, en un único CTE.
+      await sql`
+        WITH restore_entity AS (
+          UPDATE entities SET deleted_at = NULL
+          WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}
+          RETURNING 1
+        ),
+        restore_rels AS (
+          UPDATE relationships SET deleted_at = NULL
+          WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at = ${deletedAt} AND user_id = ${userId}
+          RETURNING 1
+        ),
+        restore_quotes AS (
+          UPDATE quotes SET deleted_at = NULL
+          WHERE entity_id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}
+          RETURNING 1
+        ),
+        restore_links AS (
+          UPDATE momento_entities SET deleted_at = NULL
+          WHERE entity_id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}
+          RETURNING 1
+        )
+        SELECT 1
+      `
       return Response.json({ restored: true })
     }
 

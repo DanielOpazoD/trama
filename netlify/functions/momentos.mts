@@ -197,46 +197,45 @@ export default withObservability('momentos', async (req: Request, context: Conte
     const embedSource = momentoEmbedText(kind, payload, note)
     const emb = embedSource.length > 0 ? await embedSafe(embedSource) : null
 
+    // Crear el momento + linkear sus entidades en UN solo CTE (atomicidad: el
+    // momento no queda sin sus links si el Lambda muere a mitad). Las entidades
+    // ya se validaron arriba; con entity_ids vacío, `unnest` no inserta nada.
+    // Convención "mutación multi-tabla → CTE" (docs/conventions/dominios.md).
+    // Si tocás este CTE, actualizá scripts/check-cte-regression.sql.
     const inserted = await sqlTyped<MomentoResponseRow>(sql`
-      INSERT INTO momentos (
-        kind, captured_at, payload, note, origin,
-        embedding, embedding_model, embedding_at, user_id
-      ) VALUES (
-        ${kind},
-        ${capturedAt}::timestamptz,
-        ${JSON.stringify(payload)}::jsonb,
-        ${note},
-        ${JSON.stringify(origin)}::jsonb,
-        ${emb ? toPgVector(emb.vector) : null}::vector,
-        ${emb?.model ?? null},
-        ${emb ? new Date().toISOString() : null}::timestamptz,
-        ${userId}
+      WITH ins AS (
+        INSERT INTO momentos (
+          kind, captured_at, payload, note, origin,
+          embedding, embedding_model, embedding_at, user_id
+        ) VALUES (
+          ${kind},
+          ${capturedAt}::timestamptz,
+          ${JSON.stringify(payload)}::jsonb,
+          ${note},
+          ${JSON.stringify(origin)}::jsonb,
+          ${emb ? toPgVector(emb.vector) : null}::vector,
+          ${emb?.model ?? null},
+          ${emb ? new Date().toISOString() : null}::timestamptz,
+          ${userId}
+        )
+        RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
+      ),
+      link AS (
+        INSERT INTO momento_entities (momento_id, entity_id, user_id)
+        SELECT (SELECT id FROM ins), e_id, ${userId}
+        FROM unnest(${entityIds}::uuid[]) AS e_id
+        ON CONFLICT (momento_id, entity_id) DO UPDATE
+        SET user_id = EXCLUDED.user_id, deleted_at = NULL
+        RETURNING 1
       )
-      RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
+      SELECT id, kind, captured_at, payload, note, origin, created_at, updated_at FROM ins
     `)
     const row = inserted[0]
     if (!row) {
       return ApiErrors.internal(requestId, 'No se pudo crear el momento')
     }
 
-    // Link a entidades si vienen en el body. Validamos que sean UUIDs en
-    // teoría — la FK constraint los rechaza si no existen, así que el
-    // server-side no tiene que pegarle a entities para verificar.
-    if (entityIds.length > 0) {
-      await sql`
-        INSERT INTO momento_entities (momento_id, entity_id, user_id)
-        SELECT ${row.id}::uuid, e_id, ${userId}
-        FROM unnest(${entityIds}::uuid[]) AS e_id
-        ON CONFLICT (momento_id, entity_id) DO UPDATE
-        SET user_id = EXCLUDED.user_id,
-            deleted_at = NULL
-      `
-    }
-
-    return Response.json(
-      { ...row, entity_ids: entityIds },
-      { status: 201 },
-    )
+    return Response.json({ ...row, entity_ids: entityIds }, { status: 201 })
   }
 
   // ---------------- PATCH update ----------------

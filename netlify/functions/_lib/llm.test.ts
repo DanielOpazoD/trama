@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { askLLMForJson, clearLLMCache } from './llm'
+import {
+  askLLMForJson,
+  askLLMForText,
+  askLLMForTextStreaming,
+  clearLLMCache,
+} from './llm'
 import { readDedicatedKey, readFallbackProviders } from './llm/config'
 import { resetEnvCache } from './env'
 
@@ -329,6 +334,28 @@ describe('askLLMForJson — caching', () => {
 
     expect(first.fromCache).toBe(false)
     expect(second.fromCache).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('askLLMForTextStreaming propaga fromCache en el frame done (provider no-streaming)', async () => {
+    // Anthropic no tiene streaming SSE nativo: cae a callLLM, que chequea cache.
+    // Un hit debe propagarse al frame `done` para que el chat no re-cobre.
+    stubEnv('anthropic', 'test-key')
+    resetEnvCache()
+    const fetchMock = mockFetch(SIMPLE_RESPONSE_ANTHROPIC)
+    vi.stubGlobal('fetch', fetchMock)
+    const messages = [{ role: 'user' as const, content: 'stream-cache-' + Math.random() }]
+
+    // Calentamos el cache con una llamada normal (mismo provider/modelo/mode).
+    const warm = await askLLMForText(messages)
+    expect(warm.fromCache).toBe(false)
+
+    let done: { type: 'done'; fromCache: boolean } | null = null
+    for await (const frame of askLLMForTextStreaming(messages)) {
+      if (frame.type === 'done') done = frame
+    }
+    expect(done?.fromCache).toBe(true)
+    // No hubo segundo hit al provider: el stream salió del cache.
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 

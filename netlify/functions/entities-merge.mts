@@ -30,6 +30,7 @@ type EntityRow = {
   name: string
   year: number | null
   description: string | null
+  essay: string | null
   position_x: number | null
   position_y: number | null
   origin: unknown
@@ -66,58 +67,66 @@ export default withObservability(
 
     await ensureUserRow(sql, authedUser)
 
-    // 1) Citas → keep.
-    await sql`
-      UPDATE quotes SET entity_id = ${keepId}
-      WHERE entity_id = ANY(${mergeIds}::uuid[]) AND user_id = ${userId}
-    `
-
-    // 2) momento_entities → keep (ON CONFLICT por la PK), luego soft-deletear las viejas.
-    await sql`
-      INSERT INTO momento_entities (momento_id, entity_id, user_id)
-      SELECT momento_id, ${keepId}, ${userId} FROM momento_entities
-      WHERE entity_id = ANY(${mergeIds}::uuid[])
-        AND user_id = ${userId}
-        AND deleted_at IS NULL
-      ON CONFLICT (momento_id, entity_id) DO UPDATE
-      SET user_id = EXCLUDED.user_id,
-          deleted_at = NULL
-    `
-    await sql`
-      UPDATE momento_entities
-      SET deleted_at = NOW()
-      WHERE entity_id = ANY(${mergeIds}::uuid[])
-        AND user_id = ${userId}
-        AND deleted_at IS NULL
-    `
-
-    // 3) Relaciones → keep (ambos extremos).
-    await sql`
-      UPDATE relationships SET from_id = ${keepId}
-      WHERE from_id = ANY(${mergeIds}::uuid[]) AND user_id = ${userId}
-    `
-    await sql`
-      UPDATE relationships SET to_id = ${keepId}
-      WHERE to_id = ANY(${mergeIds}::uuid[]) AND user_id = ${userId}
-    `
-    // 4) Self-loops creados por el merge → soft-delete.
-    await sql`
-      UPDATE relationships SET deleted_at = NOW()
-      WHERE from_id = to_id AND deleted_at IS NULL AND user_id = ${userId}
-    `
-
-    // 5) Soft-delete de los duplicados.
-    await sql`
-      UPDATE entities SET deleted_at = NOW()
-      WHERE id = ANY(${mergeIds}::uuid[]) AND user_id = ${userId}
-    `
-
-    logEvent({ event: 'entities_merged', keepId, merged: mergeIds.length })
-
+    // Atomicidad real vía un único CTE (mismo patrón que momentos-merge): el
+    // driver HTTP de Neon no da transacciones multi-statement, pero Postgres
+    // ejecuta un CTE como una unidad atómica — todos los sub-writes commitean
+    // juntos o ninguno. Antes eran 7 writes secuenciales que, si el Lambda
+    // moría a mitad, dejaban el grafo a medio reasignar. Los CTE que modifican
+    // datos corren siempre a término aunque el SELECT final no los referencie.
+    //
+    // Las CTEs corren sobre el MISMO snapshot (no se ven entre sí), así que el
+    // reasignar-relaciones y el quitar-self-loops —que dependían del orden— se
+    // combinan en UN solo UPDATE con CASE: cada relación se toca una vez y queda
+    // como self-loop (deleted_at = NOW()) si, tras mapear ambos extremos
+    // (mergeIds→keepId), el origen iguala al destino. Eso acota el borrado de
+    // self-loops a las relaciones tocadas por el merge (el WHERE filtra por
+    // from_id/to_id ∈ mergeIds), sin barrer self-loops preexistentes de otras
+    // entidades como hacía la versión anterior.
     const rows = await sqlTyped<EntityRow>(sql`
+      WITH reassign_quotes AS (
+        UPDATE quotes SET entity_id = ${keepId}
+        WHERE entity_id = ANY(${mergeIds}::uuid[]) AND user_id = ${userId}
+        RETURNING 1
+      ),
+      reassign_momentos AS (
+        INSERT INTO momento_entities (momento_id, entity_id, user_id)
+        SELECT momento_id, ${keepId}, ${userId} FROM momento_entities
+        WHERE entity_id = ANY(${mergeIds}::uuid[])
+          AND user_id = ${userId}
+          AND deleted_at IS NULL
+        ON CONFLICT (momento_id, entity_id) DO UPDATE
+        SET user_id = EXCLUDED.user_id, deleted_at = NULL
+        RETURNING 1
+      ),
+      soft_delete_old_momentos AS (
+        UPDATE momento_entities SET deleted_at = NOW()
+        WHERE entity_id = ANY(${mergeIds}::uuid[])
+          AND user_id = ${userId}
+          AND deleted_at IS NULL
+        RETURNING 1
+      ),
+      reassign_rels AS (
+        UPDATE relationships r SET
+          from_id = CASE WHEN r.from_id = ANY(${mergeIds}::uuid[]) THEN ${keepId} ELSE r.from_id END,
+          to_id = CASE WHEN r.to_id = ANY(${mergeIds}::uuid[]) THEN ${keepId} ELSE r.to_id END,
+          deleted_at = CASE
+            WHEN (CASE WHEN r.from_id = ANY(${mergeIds}::uuid[]) THEN ${keepId} ELSE r.from_id END)
+               = (CASE WHEN r.to_id = ANY(${mergeIds}::uuid[]) THEN ${keepId} ELSE r.to_id END)
+            THEN NOW() ELSE r.deleted_at END
+        WHERE (r.from_id = ANY(${mergeIds}::uuid[]) OR r.to_id = ANY(${mergeIds}::uuid[]))
+          AND r.user_id = ${userId} AND r.deleted_at IS NULL
+        RETURNING 1
+      ),
+      soft_delete_dupes AS (
+        UPDATE entities SET deleted_at = NOW()
+        WHERE id = ANY(${mergeIds}::uuid[]) AND user_id = ${userId}
+        RETURNING 1
+      )
       SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, created_at, updated_at
       FROM entities WHERE id = ${keepId} AND user_id = ${userId}
     `)
+
+    logEvent({ event: 'entities_merged', keepId, merged: mergeIds.length })
     return Response.json(rows[0])
   },
 )

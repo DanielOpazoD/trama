@@ -51,7 +51,10 @@ export type LLMOverride = {
 
 export type StreamFrame =
   | { type: 'chunk'; content: string }
-  | { type: 'done'; content: string; usage: LLMUsage }
+  // `fromCache`: el reply salió del cache (los providers no-streaming caen a
+  // callLLM, que puede dar un hit). El caller lo usa para no re-cobrar el
+  // presupuesto por tokens que no se compraron.
+  | { type: 'done'; content: string; usage: LLMUsage; fromCache: boolean }
   | { type: 'error'; message: string }
 
 /** Shape devuelta por cada provider antes de envolverse en LLMResult. */

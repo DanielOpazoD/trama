@@ -44,6 +44,12 @@ jobs:
       - name: Documentation drift check
         run: npm run check:docs-drift
 
+      # Gate de soft-delete: bloquea `DELETE FROM` nuevos fuera del allowlist
+      # (los hard-deletes legítimos están enumerados en el script). Antes el
+      # script existía pero no corría en ningún job.
+      - name: Hard-delete allowlist check
+        run: npm run check:hard-delete-allowlist
+
   unit:
     runs-on: ubuntu-latest
     steps:
@@ -193,3 +199,15 @@ jobs:
             echo "::error::Re-run aplicó migraciones de nuevo — el tracking en _migrations está roto"
             exit 1
           }
+
+      # Regresión de los CTE atómicos de los handlers (entities-merge, cascade
+      # DELETE/restore, momento POST) contra Postgres real. Corre sobre una DB
+      # throwaway recién creada — el SQL crea sus propias tablas, así que NO debe
+      # tocar la DB migrada `trama`.
+      - name: CTE atomicity regression
+        env:
+          PGPASSWORD: trama_local_dev
+        run: |
+          createdb -h localhost -p 5433 -U trama cte_regression
+          DATABASE_URL=postgresql://trama:trama_local_dev@localhost:5433/cte_regression \
+            npm run check:cte-regression
