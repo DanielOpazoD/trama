@@ -7,9 +7,11 @@ import {
   useToast,
 } from '../../state'
 import { compressImage } from '../../lib/imageCompression'
+import { editImage } from '../../lib/imageEditor'
 import { downloadAllImages, exportImagesToPdf } from '../../lib/photoExport'
+import { apiFetch } from '../../api/request'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
-import { CameraIcon, TrashIcon, DownloadIcon, FilePdfIcon } from '../Icons'
+import { CameraIcon, TrashIcon, DownloadIcon, FilePdfIcon, PencilIcon } from '../Icons'
 
 /**
  * Tira de fotos asociada a un "dueño" de anexos: una semana (`week` + lunes) o
@@ -34,11 +36,21 @@ export function AttachmentPhotos({
   const upload = useUploadNotasAttachment()
   const remove = useDeleteNotasAttachment()
   const [exporting, setExporting] = useState<'all' | 'pdf' | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  // Si la próxima selección debe pasar por el editor (botón "adjuntar y editar").
+  const editOnAddRef = useRef(false)
 
   const photos = (query.data ?? []).filter((a) => a.mimeType.startsWith('image/'))
 
+  function pickFiles(editFirst: boolean) {
+    editOnAddRef.current = editFirst
+    inputRef.current?.click()
+  }
+
   async function onFiles(files: FileList | null) {
     if (!files || files.length === 0 || upload.isPending) return
+    const editFirst = editOnAddRef.current
+    editOnAddRef.current = false
     const picked = Array.from(files)
     const images = picked.filter((f) => f.type.startsWith('image/'))
     const skipped = picked.length - images.length
@@ -49,12 +61,21 @@ export function AttachmentPhotos({
       return
     }
 
-    // Subimos en serie: comprimimos cada imagen antes de mandarla y cada éxito
+    // Subimos en serie: (opcional) editor → compresión → upload. Cada éxito
     // invalida la query, así la tira se va poblando.
     let ok = 0
     for (const original of images) {
       try {
-        const file = await compressImage(original)
+        let chosen = original
+        if (editFirst) {
+          const edited = await editImage(original, {
+            outputType: 'image/webp',
+            title: 'editar foto',
+          })
+          if (edited === null) continue // canceló esta imagen
+          chosen = edited
+        }
+        const file = await compressImage(chosen)
         await upload.mutateAsync({ ownerType, ownerId, file })
         ok++
       } catch (err) {
@@ -78,6 +99,37 @@ export function AttachmentPhotos({
       })
     }
     if (inputRef.current) inputRef.current.value = ''
+  }
+
+  // Editar una foto YA guardada: baja el blob → editor → sube la nueva + borra
+  // la vieja (la tira se refresca sola).
+  async function editExisting(photo: NotasAttachment) {
+    if (editingId) return
+    setEditingId(photo.id)
+    try {
+      const res = await apiFetch(photo.url)
+      if (!res.ok) throw new Error('No se pudo bajar la imagen')
+      const original = new File([await res.blob()], photo.fileName, {
+        type: photo.mimeType,
+      })
+      const edited = await editImage(original, {
+        outputType: 'image/webp',
+        title: 'editar foto',
+      })
+      if (edited && edited !== original) {
+        const file = await compressImage(edited)
+        await upload.mutateAsync({ ownerType, ownerId, file })
+        await remove.mutateAsync({ id: photo.id, ownerType, ownerId })
+        toast.show({ message: 'Foto editada.', tone: 'success' })
+      }
+    } catch (err) {
+      toast.show({
+        message: err instanceof Error ? err.message : 'No se pudo editar',
+        tone: 'error',
+      })
+    } finally {
+      setEditingId(null)
+    }
   }
 
   async function onDownloadAll() {
@@ -128,18 +180,29 @@ export function AttachmentPhotos({
         <PhotoThumb
           key={p.id}
           photo={p}
+          editing={editingId === p.id}
+          onEdit={() => editExisting(p)}
           onRemove={() => remove.mutate({ id: p.id, ownerType, ownerId })}
         />
       ))}
 
       <button
-        onClick={() => inputRef.current?.click()}
+        onClick={() => pickFiles(false)}
         disabled={upload.isPending}
         className="touch-target p-1.5 rounded-md text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
         title="Adjuntar fotos"
         aria-label="Adjuntar fotos"
       >
         <CameraIcon size={16} />
+      </button>
+      <button
+        onClick={() => pickFiles(true)}
+        disabled={upload.isPending}
+        className="touch-target p-1.5 rounded-md text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
+        title="Adjuntar y editar"
+        aria-label="Adjuntar y editar fotos"
+      >
+        <PencilIcon size={15} />
       </button>
 
       {photos.length > 0 && (
@@ -190,9 +253,13 @@ export function AttachmentPhotos({
  */
 function PhotoThumb({
   photo,
+  editing,
+  onEdit,
   onRemove,
 }: {
   photo: NotasAttachment
+  editing: boolean
+  onEdit: () => void
   onRemove: () => void
 }) {
   const { src, status } = useAuthenticatedMediaState(photo.url)
@@ -217,6 +284,15 @@ function PhotoThumb({
           }`}
         />
       )}
+      <button
+        onClick={onEdit}
+        disabled={editing}
+        aria-label={`Editar foto ${photo.fileName}`}
+        title="Editar"
+        className="absolute -top-1.5 -left-1.5 size-5 inline-flex items-center justify-center rounded-full bg-paper-50 border border-ink-100 text-ink-300 hover:text-ink-700 opacity-0 group-hover/photo:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-100 disabled:animate-pulse"
+      >
+        <PencilIcon size={10} />
+      </button>
       <button
         onClick={onRemove}
         aria-label={`Quitar foto ${photo.fileName}`}
