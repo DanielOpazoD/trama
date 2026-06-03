@@ -12,7 +12,7 @@ import {
   fontWeightFor,
   isIdentityModel,
   rotatedDimensions,
-  textPx,
+  textPxOnCrop,
 } from './transforms'
 
 /** Tope del lado mayor del canvas final (límite de canvas en Safari móvil). */
@@ -37,7 +37,7 @@ export function resolvePalette(): TextPalette {
       return v ? `rgb(${v})` : fb
     }
     return {
-      ink: rgb('--ink-900', fallback.ink),
+      ink: rgb('--ink-800', fallback.ink), // tinta más oscura del tema (no hay --ink-900)
       paper: rgb('--paper-50', fallback.paper),
       accent: rgb('--accent-primary', fallback.accent),
     }
@@ -111,7 +111,9 @@ export async function rasterize(
       for (const layer of model.textLayers) {
         const text = layer.text.trim()
         if (!text) continue
-        const { x, y, fontPx } = textPx(layer, cw, ch)
+        // Ancla el texto a la imagen completa (no al recorte): mismo encuadre
+        // que el preview, aunque haya recorte de por medio.
+        const { x, y, fontPx } = textPxOnCrop(layer, rW, rH, { sx, sy, sw, sh }, cw, ch)
         ctx.font = `${fontWeightFor(layer.bold)} ${fontPx}px ${fontFamilyFor(layer.font)}`
         ctx.fillStyle = palette[layer.color]
         ctx.strokeStyle = layer.color === 'paper' ? palette.ink : palette.paper

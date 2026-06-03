@@ -3,7 +3,7 @@ import type { TextLayer } from '../../lib/imageEditor/types'
 import { fontFamilyFor, fontWeightFor, textPx } from '../../lib/imageEditor/transforms'
 
 const COLOR_CSS: Record<TextLayer['color'], string> = {
-  ink: 'rgb(var(--ink-900))',
+  ink: 'rgb(var(--ink-800))', // tinta más oscura del tema (no existe --ink-900)
   paper: 'rgb(var(--paper-50))',
   accent: 'rgb(var(--accent-primary))',
 }
@@ -31,7 +31,9 @@ export function TextLayerView({
     startYN: number
   } | null>(null)
   const { fontPx } = textPx(layer, boxW, boxH)
-  // Halo de contraste opuesto al color (legibilidad sobre cualquier foto).
+  // Halo de contraste opuesto al color (legibilidad sobre cualquier foto). Se
+  // dibuja como CONTORNO bajo el relleno (paint-order: stroke), igual técnica
+  // que el raster (strokeText + fillText) → preview y export coinciden.
   const halo = layer.color === 'paper' ? COLOR_CSS.ink : COLOR_CSS.paper
 
   function begin(e: React.PointerEvent) {
@@ -79,7 +81,9 @@ export function TextLayerView({
         fontWeight: fontWeightFor(layer.bold),
         fontSize: `${fontPx}px`,
         color: COLOR_CSS[layer.color],
-        textShadow: `0 0 ${Math.max(2, fontPx * 0.06)}px ${halo}, 0 1px 1px ${halo}`,
+        WebkitTextStrokeWidth: `${Math.max(1, fontPx * 0.08)}px`,
+        WebkitTextStrokeColor: halo,
+        paintOrder: 'stroke',
         outline: selected ? '1.5px dashed rgb(var(--accent-primary))' : 'none',
         outlineOffset: '2px',
         touchAction: 'none',

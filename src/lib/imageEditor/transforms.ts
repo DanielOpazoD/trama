@@ -123,16 +123,45 @@ export function resizeCrop(
   return { xN: left, yN: top, wN: right - left, hN: bottom - top }
 }
 
-/** Posición y tamaño en px de un texto sobre el canvas final recortado. */
+/**
+ * Posición y tamaño en px de un texto sobre una caja que representa la imagen
+ * COMPLETA (preview, o exportación sin recorte). `xN/yN` y el tamaño son
+ * fracciones de esa imagen entera.
+ */
 export function textPx(
   layer: Pick<TextLayer, 'xN' | 'yN' | 'size'>,
-  croppedW: number,
-  croppedH: number,
+  fullW: number,
+  fullH: number,
 ): { x: number; y: number; fontPx: number } {
   return {
-    x: layer.xN * croppedW,
-    y: layer.yN * croppedH,
-    fontPx: SIZE_FRACTION[layer.size] * Math.min(croppedW, croppedH),
+    x: layer.xN * fullW,
+    y: layer.yN * fullH,
+    fontPx: SIZE_FRACTION[layer.size] * Math.min(fullW, fullH),
+  }
+}
+
+/**
+ * Posición y tamaño en px de un texto sobre el lienzo final RECORTADO, pero
+ * anclado a la imagen completa. El texto está "pintado sobre la foto": su
+ * posición (`xN/yN` sobre la imagen entera) y su tamaño (fracción del lado menor
+ * de la imagen entera) son físicos, y el recorte solo reencuadra/acerca. Así el
+ * preview —que ubica el texto sobre la imagen completa— y la exportación
+ * coinciden, y el texto que cae fuera del recorte queda fuera del lienzo.
+ */
+export function textPxOnCrop(
+  layer: Pick<TextLayer, 'xN' | 'yN' | 'size'>,
+  fullW: number,
+  fullH: number,
+  src: { sx: number; sy: number; sw: number; sh: number },
+  outW: number,
+  outH: number,
+): { x: number; y: number; fontPx: number } {
+  const scaleX = src.sw > 0 ? outW / src.sw : 1
+  const scaleY = src.sh > 0 ? outH / src.sh : 1
+  return {
+    x: (layer.xN * fullW - src.sx) * scaleX,
+    y: (layer.yN * fullH - src.sy) * scaleY,
+    fontPx: SIZE_FRACTION[layer.size] * Math.min(fullW, fullH) * scaleX,
   }
 }
 
