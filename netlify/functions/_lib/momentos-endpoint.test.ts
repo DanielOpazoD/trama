@@ -169,9 +169,10 @@ describe('momentos endpoint — integration (mock SQL)', () => {
     expect(body.entity_ids).toEqual([])
   })
 
-  it('POST con entity_ids inserta en momento_entities', async () => {
+  it('POST con entity_ids crea momento + links en un solo CTE', async () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ id: 'e1' }, { id: 'e2' }]) // ownership lookup
+    // El CTE (momento + momento_entities) devuelve el row del momento.
     mockSqlResponses.push([
       {
         id: 'new-2',
@@ -184,8 +185,6 @@ describe('momentos endpoint — integration (mock SQL)', () => {
         updated_at: '2026-05-24T12:00:00Z',
       },
     ])
-    // Respuesta del INSERT INTO momento_entities (vacía es OK).
-    mockSqlResponses.push([])
     const res = await handler(
       new Request('http://localhost/api/momentos', {
         method: 'POST',
@@ -199,12 +198,11 @@ describe('momentos endpoint — integration (mock SQL)', () => {
       mockContext(),
     )
     expect(res.status).toBe(201)
-    // Debe haberse ejecutado al menos 2 queries: INSERT momento + INSERT junction
-    expect(mockSqlResponses.calls.length).toBeGreaterThanOrEqual(2)
-    const junctionCall = mockSqlResponses.calls.find((c) =>
-      c.template.includes('momento_entities'),
-    )
-    expect(junctionCall).toBeDefined()
+    // momento + junction viajan en UN solo statement CTE (atomicidad).
+    const cte = mockSqlResponses.calls.find((c) => /WITH ins AS/i.test(c.template))
+    expect(cte).toBeDefined()
+    expect(cte!.template).toMatch(/INSERT INTO momentos/i)
+    expect(cte!.template).toMatch(/INSERT INTO momento_entities/i)
   })
 
   it('DELETE devuelve { deletedAt } si existe', async () => {
