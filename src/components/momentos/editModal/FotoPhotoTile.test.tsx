@@ -40,6 +40,7 @@ function renderTile(
     total: 1,
     disabled: false,
     onRemove: vi.fn(),
+    onEdit: vi.fn(),
     onSetPrimary: vi.fn(),
     onMove: vi.fn(),
     ...overrides,

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../../api'
+import { apiFetch } from '../../../api/request'
+import { editImage } from '../../../lib/imageEditor'
 import type { Momento, MomentoPayload } from '../../../types'
 import { useUpdateMomento, useToast } from '../../../state'
 import {
@@ -131,6 +133,44 @@ export function FotoEditModal({
       if (tmp === undefined || swap === undefined) return prev
       next[idx] = swap
       next[target] = tmp
+      return next
+    })
+  }
+
+  /** Editar una foto (nueva o ya guardada) con el editor de imágenes. Las
+   *  guardadas se bajan, se editan y se convierten en item `new` (al guardar se
+   *  re-suben con storageKey nuevo; el blob viejo queda huérfano, recuperable). */
+  async function editItem(idx: number) {
+    const item = items[idx]
+    if (!item) return
+    let original: File
+    if (item.kind === 'new') {
+      original = item.file
+    } else {
+      try {
+        const res = await apiFetch(momentoMediaUrl(item.storageKey))
+        if (!res.ok) throw new Error('No se pudo bajar la imagen')
+        original = new File([await res.blob()], `foto-${idx + 1}.jpg`, {
+          type: res.headers.get('Content-Type') || 'image/jpeg',
+        })
+      } catch (err) {
+        toast.show({
+          message: err instanceof Error ? err.message : 'No se pudo abrir',
+          tone: 'error',
+        })
+        return
+      }
+    }
+    const edited = await editImage(original, {
+      outputType: 'image/jpeg',
+      title: `foto ${idx + 1}`,
+    })
+    if (!edited || edited === original) return
+    setItems((prev) => {
+      const next = [...prev]
+      const cur = next[idx]
+      if (cur && cur.kind === 'new') revokePreviewUrl(cur.previewUrl)
+      next[idx] = { kind: 'new', file: edited, previewUrl: createPreviewUrl(edited) }
       return next
     })
   }
@@ -294,6 +334,7 @@ export function FotoEditModal({
                 total={items.length}
                 disabled={uploading || updateMomento.isPending}
                 onRemove={() => removeItem(idx)}
+                onEdit={() => editItem(idx)}
                 onSetPrimary={() => setPrimary(idx)}
                 onMove={(dir) => moveItem(idx, dir)}
               />

@@ -3,6 +3,8 @@ import type { useMomentoComposer } from './useMomentoComposer'
 import { MomentoQRModal } from './MomentoQRModal'
 import { AudioPicker } from './AudioPicker'
 import { MomentoKindTabs } from './MomentoKindTabs'
+import { editImage } from '../../lib/imageEditor'
+import { PencilIcon } from '../Icons'
 
 type Composer = ReturnType<typeof useMomentoComposer>
 
@@ -247,6 +249,27 @@ function FotoFields({ composer }: { composer: Composer }) {
                       disabled={composer.isPending}
                     >
                       ×
+                    </button>
+                    {/* Editar con el editor de imágenes (recortar/girar/texto). */}
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        const edited = await editImage(draft.file, {
+                          outputType: 'image/jpeg',
+                          title: `foto ${idx + 1}`,
+                        })
+                        if (edited && edited !== draft.file) {
+                          composer.replacePhotoDraft(idx, edited)
+                        }
+                      }}
+                      className="absolute top-1 right-7 size-5 flex items-center justify-center rounded-full bg-ink-900/70 text-paper-50 hover:bg-ink-900 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                      aria-label={`Editar foto ${idx + 1}`}
+                      title="Editar foto"
+                      disabled={composer.isPending}
+                    >
+                      <PencilIcon size={11} />
                     </button>
                     {/* φ-photo-polish: badge "portada" cuando es la
                         primera; en las otras, botón "★ portada" que

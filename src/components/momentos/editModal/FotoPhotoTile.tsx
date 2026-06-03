@@ -1,4 +1,5 @@
 import { AuthenticatedMomentoImage } from '../AuthenticatedMedia'
+import { PencilIcon } from '../../Icons'
 
 export type ExistingPhotoEditItem = {
   kind: 'existing'
@@ -25,6 +26,7 @@ export function FotoPhotoTile({
   total,
   disabled,
   onRemove,
+  onEdit,
   onSetPrimary,
   onMove,
 }: {
@@ -33,6 +35,7 @@ export function FotoPhotoTile({
   total: number
   disabled: boolean
   onRemove: () => void
+  onEdit: () => void
   onSetPrimary: () => void
   onMove: (dir: -1 | 1) => void
 }) {
@@ -90,6 +93,16 @@ export function FotoPhotoTile({
       <span className="absolute bottom-1 left-1 text-micro tabular-nums bg-ink-900/60 text-paper-50 px-1 rounded leading-none py-0.5">
         {idx + 1}
       </span>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="absolute bottom-1 left-7 size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 hover:bg-ink-900/85 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        aria-label={`Editar foto ${idx + 1}`}
+        title="Editar foto"
+        disabled={disabled}
+      >
+        <PencilIcon size={11} />
+      </button>
       {item.kind === 'new' && (
         <span
           className="absolute top-1 right-7 text-micro uppercase tracking-eyebrow bg-[color:var(--accent-sage)] text-paper-50 px-1 rounded leading-none py-0.5"

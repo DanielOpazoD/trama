@@ -114,6 +114,37 @@ export const PlusIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/* Marco de recorte — editor de imágenes. */
+export const CropIcon = ({ size = 12, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M6 2v16a1 1 0 0 0 1 1h15" />
+    <path d="M2 6h16a1 1 0 0 1 1 1v15" />
+  </svg>
+)
+
+/* Flecha en ángulo recto — rotar 90°. */
+export const RotateIcon = ({ size = 12, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M3 9a9 9 0 0 1 15-3l3 3" />
+    <path d="M21 4v5h-5" />
+    <rect x="3" y="13" width="9" height="8" rx="1" />
+  </svg>
+)
+
+/* "T" de texto — agregar texto en el editor. */
+export const TextIcon = ({ size = 12, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M5 5h14M12 5v14M9 19h6" />
+  </svg>
+)
+
+/* "B" de negrita. */
+export const BoldIcon = ({ size = 12, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z" />
+  </svg>
+)
+
 /* Flecha circular — acción "regenerar / actualizar". */
 export const RefreshIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
