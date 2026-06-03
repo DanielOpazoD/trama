@@ -48,33 +48,33 @@ describe('entities-merge endpoint', () => {
     ).toBe(false)
   })
 
-  it('reasigna citas/relaciones/momentos y soft-deletea el duplicado', async () => {
-    // FIFO en orden: SELECT found (2), luego 7 mutaciones, luego SELECT keep.
+  it('reasigna citas/relaciones/momentos y soft-deletea el duplicado en UN solo CTE', async () => {
+    // FIFO: SELECT found (2), ensureUserRow, y el CTE atómico que devuelve la keep.
     mockSqlResponses.push(
       [{ id: A }, { id: B }], // 1) SELECT found
       [], // 2) ensureUserRow
-      [], // 3) UPDATE quotes
-      [], // 4) INSERT momento_entities
-      [], // 5) DELETE momento_entities
-      [], // 6) UPDATE relationships from_id
-      [], // 7) UPDATE relationships to_id
-      [], // 8) UPDATE self-loops
-      [], // 9) UPDATE entities soft-delete
-      [{ id: A, type: 'escritor', name: 'Borges', origin: { kind: 'manual' } }], // 10) SELECT keep
+      [{ id: A, type: 'escritor', name: 'Borges', origin: { kind: 'manual' } }], // 3) CTE → keep
     )
     const res = await handler(post({ keepId: A, mergeIds: [B] }), mockContext())
     expect(res.status).toBe(200)
 
-    const tpl = mockSqlResponses.calls.map((c) => c.template)
-    // Reasignaciones al keep.
-    expect(tpl.some((t) => /UPDATE quotes SET entity_id/i.test(t))).toBe(true)
-    expect(tpl.some((t) => /INSERT INTO momento_entities/i.test(t))).toBe(true)
-    expect(tpl.some((t) => /UPDATE relationships SET from_id/i.test(t))).toBe(true)
-    expect(tpl.some((t) => /UPDATE relationships SET to_id/i.test(t))).toBe(true)
-    // Soft-delete del duplicado, nunca hard-delete.
-    expect(tpl.some((t) => /UPDATE entities\s+SET deleted_at = NOW\(\)/i.test(t))).toBe(
-      true,
+    // Todas las mutaciones viajan en UN solo statement CTE (atomicidad real).
+    const cte = mockSqlResponses.calls.find((c) =>
+      /WITH reassign_quotes/i.test(c.template),
     )
-    expect(tpl.some((t) => /DELETE FROM entities/i.test(t))).toBe(false)
+    expect(cte).toBeDefined()
+    const t = cte!.template
+    expect(t).toMatch(/UPDATE quotes SET entity_id/i)
+    expect(t).toMatch(/INSERT INTO momento_entities/i)
+    // Reasigna ambos extremos y limpia self-loops en un único UPDATE con CASE.
+    expect(t).toMatch(/UPDATE relationships r SET/i)
+    expect(t).toMatch(/deleted_at = CASE/i)
+    // El borrado de self-loops está acotado a las relaciones tocadas por el merge.
+    expect(t).toMatch(/from_id = ANY\([^)]*\) OR .*to_id = ANY/i)
+    // Soft-delete del duplicado, nunca hard-delete.
+    expect(t).toMatch(/UPDATE entities SET deleted_at = NOW\(\)/i)
+    expect(
+      mockSqlResponses.calls.some((c) => /DELETE FROM entities/i.test(c.template)),
+    ).toBe(false)
   })
 })

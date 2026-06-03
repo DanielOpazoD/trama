@@ -138,14 +138,8 @@ describe('entities endpoint — integration', () => {
   })
 
   describe('DELETE /api/entities/:id', () => {
-    it('devuelve { deletedAt } y ejecuta cascade soft-delete', async () => {
-      mockSqlResponses.push(
-        [{ now: '2026-05-23T12:00:00Z' }], // SELECT NOW()
-        [], // UPDATE entities
-        [], // UPDATE relationships
-        [], // UPDATE quotes
-        [], // UPDATE momento_entities
-      )
+    it('devuelve { deletedAt } y ejecuta el cascade soft-delete en un solo CTE', async () => {
+      mockSqlResponses.push([{ now: '2026-05-23T12:00:00Z' }]) // el CTE → SELECT now FROM ts
 
       const req = new Request('http://localhost/api/entities/abc', {
         method: 'DELETE',
@@ -156,11 +150,16 @@ describe('entities endpoint — integration', () => {
       const body = await res.json()
       expect(body.deletedAt).toBe('2026-05-23T12:00:00Z')
 
-      // Verifica que se ejecutaron los SQL: NOW + entities + relationships + quotes + momento_entities.
-      expect(mockSqlResponses.calls.length).toBeGreaterThanOrEqual(5)
-      // Y que el id 'abc' apareció en los values de algún UPDATE
-      const allValues = mockSqlResponses.calls.flatMap((c) => c.values)
-      expect(allValues).toContain('abc')
+      // Un único statement CTE con el deleted_at compartido (ts) y las 4 tablas.
+      const cte = mockSqlResponses.calls.find((c) => /WITH ts AS/i.test(c.template))
+      expect(cte).toBeDefined()
+      const t = cte!.template
+      expect(t).toMatch(/UPDATE entities SET deleted_at/i)
+      expect(t).toMatch(/UPDATE relationships SET deleted_at/i)
+      expect(t).toMatch(/UPDATE quotes SET deleted_at/i)
+      expect(t).toMatch(/UPDATE momento_entities SET deleted_at/i)
+      // El id 'abc' viaja como valor bindeado.
+      expect(cte!.values).toContain('abc')
     })
   })
 
@@ -227,13 +226,8 @@ describe('entities endpoint — integration', () => {
       expect(res.status).toBe(400)
     })
 
-    it('200 + { restored: true } cuando deletedAt es válido', async () => {
-      mockSqlResponses.push(
-        [], // UPDATE entities SET deleted_at=NULL
-        [], // UPDATE relationships
-        [], // UPDATE quotes
-        [], // UPDATE momento_entities
-      )
+    it('200 + { restored: true } cuando deletedAt es válido (restore atómico)', async () => {
+      mockSqlResponses.push([]) // el CTE de restore
 
       const req = new Request('http://localhost/api/entities/abc/restore', {
         method: 'POST',
@@ -245,8 +239,12 @@ describe('entities endpoint — integration', () => {
       expect(res.status).toBe(200)
       const body = await res.json()
       expect(body.restored).toBe(true)
-      // 3 queries de restore + posibles queries internas de validación
-      expect(mockSqlResponses.calls.length).toBeGreaterThanOrEqual(3)
+      // Un único CTE restaura las 4 tablas que compartían exactamente ese deleted_at.
+      const cte = mockSqlResponses.calls.find((c) =>
+        /WITH restore_entity/i.test(c.template),
+      )
+      expect(cte).toBeDefined()
+      expect(cte!.values).toEqual(expect.arrayContaining(['abc', '2026-05-23T12:00:00Z']))
     })
   })
 
