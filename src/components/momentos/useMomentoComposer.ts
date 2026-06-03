@@ -114,6 +114,19 @@ export function useMomentoComposer({
     })
   }
 
+  /** Reemplaza el archivo de un draft (resultado del editor de imágenes),
+   *  revocando el preview viejo y creando uno nuevo. */
+  function replacePhotoDraft(index: number, file: File) {
+    setPhotoDrafts((prev) => {
+      const cur = prev[index]
+      if (!cur) return prev
+      URL.revokeObjectURL(cur.previewUrl)
+      const next = [...prev]
+      next[index] = { file, previewUrl: URL.createObjectURL(file) }
+      return next
+    })
+  }
+
   /**
    * φ-photo-polish: marca una foto como la "portada" del episodio
    * moviéndola al inicio del array. La primera foto es la que se ve
@@ -352,6 +365,7 @@ export function useMomentoComposer({
     photoDrafts,
     addPhotoFiles,
     removePhotoDraft,
+    replacePhotoDraft,
     setPrimaryPhoto,
     movePhoto,
     clearPhotoDrafts,
