@@ -37,11 +37,15 @@ describe('notes endpoint — integration', () => {
   })
   afterEach(() => vi.unstubAllGlobals())
 
-  it('GET devuelve la lista', async () => {
+  it('GET devuelve la lista e incluye el flag has_images (EXISTS image/%)', async () => {
     mockSqlResponses.push([NOTE_ROW])
     const res = await handler(new Request('http://localhost/api/notes'), mockContext())
     expect(res.status).toBe(200)
     expect(await res.json()).toHaveLength(1)
+    // El SELECT deriva has_images con un EXISTS sobre notas_attachments image/%.
+    const q = mockSqlResponses.calls.find((c) => /FROM notes/i.test(c.template))
+    expect(q?.template).toMatch(/AS has_images/i)
+    expect(q?.template).toMatch(/image\/%/i)
   })
 
   it('POST con content válido crea (201) y deriva tags', async () => {

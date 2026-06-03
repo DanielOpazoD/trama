@@ -24,6 +24,7 @@ type NoteRow = {
   promoted_momento_id: string | null
   created_at: string
   updated_at: string
+  has_images: boolean
 }
 
 export default withObservability(
@@ -51,10 +52,7 @@ export default withObservability(
       if (rows.length === 0) return ApiErrors.notFound(requestId, 'Nota no encontrada')
       const note = rows[0]!
       if (note.promoted) {
-        return ApiErrors.validation(
-          requestId,
-          'Esta nota ya fue promovida a un Momento',
-        )
+        return ApiErrors.validation(requestId, 'Esta nota ya fue promovida a un Momento')
       }
 
       await ensureUserRow(sql, authedUser)
@@ -97,7 +95,7 @@ export default withObservability(
 
       if (q) {
         const rows = await sqlTyped<NoteRow>(sql`
-          SELECT id, content, tags, pinned, promoted_momento_id, created_at, updated_at
+          SELECT id, content, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
           FROM notes
           WHERE deleted_at IS NULL AND user_id = ${userId}
             AND content ILIKE ${'%' + q + '%'}
@@ -107,7 +105,7 @@ export default withObservability(
       }
       if (tag) {
         const rows = await sqlTyped<NoteRow>(sql`
-          SELECT id, content, tags, pinned, promoted_momento_id, created_at, updated_at
+          SELECT id, content, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
           FROM notes
           WHERE deleted_at IS NULL AND user_id = ${userId}
             AND ${tag} = ANY(tags)
@@ -116,7 +114,7 @@ export default withObservability(
         return Response.json(rows)
       }
       const rows = await sqlTyped<NoteRow>(sql`
-        SELECT id, content, tags, pinned, promoted_momento_id, created_at, updated_at
+        SELECT id, content, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
         FROM notes
         WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY pinned DESC, created_at DESC, id DESC
@@ -133,7 +131,7 @@ export default withObservability(
       const rows = await sqlTyped<NoteRow>(sql`
         INSERT INTO notes (content, tags, pinned, user_id)
         VALUES (${content}, ${tags}::text[], ${pinned ?? false}, ${userId})
-        RETURNING id, content, tags, pinned, promoted_momento_id, created_at, updated_at
+        RETURNING id, content, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
       `)
       return Response.json(rows[0], { status: 201 })
     }
@@ -155,7 +153,7 @@ export default withObservability(
                      END,
             updated_at = NOW()
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-        RETURNING id, content, tags, pinned, promoted_momento_id, created_at, updated_at
+        RETURNING id, content, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
       `)
       if (rows.length === 0) return ApiErrors.notFound(requestId, 'Nota no encontrada')
       return Response.json(rows[0])

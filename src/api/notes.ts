@@ -13,6 +13,9 @@ export type Note = {
   promotedMomentoId: string | null
   createdAt: string
   updatedAt: string
+  /** ¿Tiene imágenes adjuntas? Derivado server-side (EXISTS) para evitar una
+   *  consulta de anexos por nota al pintar la lista. */
+  hasImages: boolean
 }
 
 type NoteRow = {
@@ -23,6 +26,7 @@ type NoteRow = {
   promoted_momento_id: string | null
   created_at: string
   updated_at: string
+  has_images?: boolean | null
 }
 
 function noteFromRow(r: NoteRow): Note {
@@ -34,6 +38,7 @@ function noteFromRow(r: NoteRow): Note {
     promotedMomentoId: r.promoted_momento_id,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+    hasImages: r.has_images ?? false,
   }
 }
 
