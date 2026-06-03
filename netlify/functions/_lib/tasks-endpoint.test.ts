@@ -13,6 +13,9 @@ const TASK_ROW = {
   detail: null,
   done: false,
   due_date: '2026-06-01',
+  priority: 'media',
+  week_start: '2026-06-01',
+  category: 'trabajo',
   completed_at: null,
   tags: ['ensayo'],
   created_at: '2026-05-01T00:00:00Z',
@@ -52,6 +55,57 @@ describe('tasks endpoint — integration', () => {
       /INSERT INTO tasks/i.test(c.template),
     )
     expect(insert).toBeDefined()
+  })
+
+  it('POST con category persiste la pestaña elegida y la devuelve', async () => {
+    mockSqlResponses.push(
+      [], // ensureUserRow
+      [{ ...TASK_ROW, category: 'personal' }],
+    )
+    const res = await handler(
+      new Request('http://localhost/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify({ title: 'comprar pan', category: 'personal' }),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.category).toBe('personal')
+    // El INSERT incluye la columna category y bindea el valor enviado.
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO tasks/i.test(c.template),
+    )
+    expect(insert?.template).toMatch(/category/i)
+    expect(insert?.values).toContain('personal')
+  })
+
+  it('POST con category inválida devuelve 400 (validación Zod)', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify({ title: 'x', category: 'urgente' }),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(400)
+  })
+
+  it('PATCH category mueve la tarea de pestaña (Trabajo → Personal)', async () => {
+    mockSqlResponses.push([{ ...TASK_ROW, category: 'personal' }])
+    const res = await handler(
+      new Request('http://localhost/api/tasks/t1', {
+        method: 'PATCH',
+        body: JSON.stringify({ category: 'personal' }),
+      }),
+      mockContext({ id: 't1' }),
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.category).toBe('personal')
+    const update = mockSqlResponses.calls.find((c) => /UPDATE tasks/i.test(c.template))
+    expect(update?.template).toMatch(/category =/i)
+    expect(update?.values).toContain('personal')
   })
 
   it('POST sin título devuelve 400 (validación Zod)', async () => {

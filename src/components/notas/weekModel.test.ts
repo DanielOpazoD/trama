@@ -7,6 +7,10 @@ import {
   splitByStatus,
   pendingMonthsForYear,
   sortPending,
+  taskCategory,
+  filterByCategory,
+  countPendingByCategory,
+  DEFAULT_CATEGORY,
 } from './weekModel'
 
 const TODAY_WEEK = '2026-06-01' // lunes
@@ -20,6 +24,7 @@ function makeTask(over: Partial<Task> & { id: string }): Task {
     dueDate: over.dueDate ?? null,
     priority: over.priority ?? 'media',
     weekStart: over.weekStart ?? TODAY_WEEK,
+    category: over.category ?? 'trabajo',
     completedAt: over.completedAt ?? null,
     tags: over.tags ?? [],
     createdAt: over.createdAt ?? '2026-06-01T10:00:00.000Z',
@@ -125,6 +130,36 @@ describe('weekModel', () => {
         makeTask({ id: 'hecha', done: true }),
       ]
       expect(sortPending(tasks).map((t) => t.id)).toEqual(['alta', 'media'])
+    })
+  })
+
+  describe('categoría (pestañas Trabajo / Personal)', () => {
+    it('taskCategory devuelve la categoría; las viejas sin columna caen en trabajo', () => {
+      expect(taskCategory({ category: 'personal' })).toBe('personal')
+      expect(taskCategory({ category: 'trabajo' })).toBe('trabajo')
+      // Tarea anterior a la columna `category` → red de seguridad.
+      expect(taskCategory({} as Pick<Task, 'category'>)).toBe(DEFAULT_CATEGORY)
+      expect(DEFAULT_CATEGORY).toBe('trabajo')
+    })
+
+    it('filterByCategory deja solo la pestaña pedida', () => {
+      const items = [
+        makeTask({ id: 'a', category: 'trabajo' }),
+        makeTask({ id: 'b', category: 'personal' }),
+        makeTask({ id: 'c', category: 'trabajo' }),
+      ]
+      expect(filterByCategory(items, 'trabajo').map((t) => t.id)).toEqual(['a', 'c'])
+      expect(filterByCategory(items, 'personal').map((t) => t.id)).toEqual(['b'])
+    })
+
+    it('countPendingByCategory cuenta pendientes por pestaña e ignora las hechas', () => {
+      const items = [
+        makeTask({ id: 'a', category: 'trabajo', done: false }),
+        makeTask({ id: 'b', category: 'trabajo', done: true }), // hecha → no cuenta
+        makeTask({ id: 'c', category: 'personal', done: false }),
+        makeTask({ id: 'd', category: 'personal', done: false }),
+      ]
+      expect(countPendingByCategory(items)).toEqual({ trabajo: 1, personal: 2 })
     })
   })
 })

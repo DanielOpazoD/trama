@@ -66,6 +66,7 @@ function applyPatch(task: Task, patch: TaskPatch): Task {
     ...(patch.dueDate !== undefined ? { dueDate: patch.dueDate } : {}),
     ...(patch.priority !== undefined ? { priority: patch.priority } : {}),
     ...(patch.weekStart !== undefined ? { weekStart: patch.weekStart } : {}),
+    ...(patch.category !== undefined ? { category: patch.category } : {}),
     ...(patch.done !== undefined ? { done: patch.done } : {}),
   }
 }

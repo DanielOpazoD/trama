@@ -21,6 +21,7 @@ const weekStart = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Semana inválida (esperado YYYY-MM-DD)')
 
 const priority = z.enum(['alta', 'media', 'baja'])
+const category = z.enum(['trabajo', 'personal'])
 
 export const TaskCreateBody = z.object({
   title: z.string().min(1, 'La tarea necesita un título').max(500),
@@ -28,6 +29,7 @@ export const TaskCreateBody = z.object({
   dueDate: dueDate.optional(),
   priority: priority.optional(),
   weekStart: weekStart.optional(),
+  category: category.optional(),
 })
 export type TaskCreateBodyT = z.infer<typeof TaskCreateBody>
 
@@ -38,5 +40,6 @@ export const TaskPatchBody = z.object({
   dueDate: dueDate.optional(),
   priority: priority.optional(),
   weekStart: weekStart.optional(),
+  category: category.optional(),
 })
 export type TaskPatchBodyT = z.infer<typeof TaskPatchBody>

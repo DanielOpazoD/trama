@@ -12,6 +12,7 @@ const baseTask: Task = {
   dueDate: '2026-05-30',
   priority: 'media',
   weekStart: '2026-05-25',
+  category: 'trabajo',
   completedAt: null,
   tags: ['archivo', 'caja_1'],
   createdAt: '2026-05-29T10:00:00.000Z',

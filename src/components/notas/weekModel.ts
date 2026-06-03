@@ -1,4 +1,4 @@
-import type { Task, TaskPriority } from '../../api'
+import type { Task, TaskPriority, TaskCategory } from '../../api'
 import { weekStartLocal, weekYearMonth } from './notasUtils'
 
 /**
@@ -93,4 +93,35 @@ export function pendingMonthsForYear(
 /** Pendientes ordenados por prioridad — para listas tipo "Pendientes" (home). */
 export function sortPending(tasks: Task[]): Task[] {
   return tasks.filter((t) => !t.done).sort(byPriorityThenRecency)
+}
+
+/**
+ * Categoría por defecto: las tareas sin clasificar (las antiguas, anteriores a
+ * la columna `category`) se consideran de trabajo. Único lugar donde vive este
+ * fallback, para no repetir el literal por toda la app.
+ */
+export const DEFAULT_CATEGORY: TaskCategory = 'trabajo'
+
+/** Categoría de una tarea, con red de seguridad para datos viejos sin `category`. */
+export function taskCategory(task: Pick<Task, 'category'>): TaskCategory {
+  return task.category ?? DEFAULT_CATEGORY
+}
+
+/** Filtra los ítems de un cuadro por la pestaña activa (Trabajo / Personal). */
+export function filterByCategory<T extends Pick<Task, 'category'>>(
+  items: T[],
+  category: TaskCategory,
+): T[] {
+  return items.filter((t) => taskCategory(t) === category)
+}
+
+/** Pendientes por categoría — alimenta el contador discreto de la pestaña inactiva. */
+export function countPendingByCategory(
+  items: Pick<Task, 'category' | 'done'>[],
+): Record<TaskCategory, number> {
+  const counts: Record<TaskCategory, number> = { trabajo: 0, personal: 0 }
+  for (const t of items) {
+    if (!t.done) counts[taskCategory(t)]++
+  }
+  return counts
 }

@@ -34,4 +34,14 @@ describe('<TareasView />', () => {
       screen.getAllByRole('radio', { name: /prioridad alta/i }).length,
     ).toBeGreaterThan(0)
   })
+
+  it('cada cuadro semanal tiene pestañas Trabajo / Personal (Trabajo por defecto)', async () => {
+    renderWithProviders(<TareasView />)
+    const trabajo = await screen.findAllByRole('tab', { name: /trabajo/i })
+    expect(trabajo.length).toBeGreaterThan(0)
+    // Trabajo es la pestaña activa por defecto (ahí quedan las tareas antiguas).
+    expect(trabajo[0]).toHaveAttribute('aria-selected', 'true')
+    // Hay tantas pestañas Personal como cuadros semanales.
+    expect(screen.getAllByRole('tab', { name: /personal/i })).toHaveLength(trabajo.length)
+  })
 })

@@ -384,6 +384,7 @@ function buildSeed(): Store {
     due_date: null,
     priority: 'media',
     week_start: weekStartAgo(d),
+    category: 'trabajo',
     completed_at: null,
     tags: parseTags(title),
     origin: manual,
@@ -407,10 +408,15 @@ function buildSeed(): Store {
       priority: 'media',
       week_start: thisWeek,
     }),
-    task('Comprar tinta para la #pluma', 2, { priority: 'baja', week_start: thisWeek }),
+    task('Comprar tinta para la #pluma', 2, {
+      priority: 'baja',
+      week_start: thisWeek,
+      category: 'personal',
+    }),
     task('Llamar a la biblioteca por el préstamo', 8, {
       priority: 'media',
       week_start: lastWeek,
+      category: 'personal',
     }),
     task('Leer un capítulo de Rayuela', 8, {
       done: true,
@@ -693,6 +699,7 @@ function route(
               due_date: (body.dueDate as string) ?? null,
               priority: (body.priority as string) ?? 'media',
               week_start: (body.weekStart as string) ?? weekStartAgo(0),
+              category: (body.category as string) ?? 'trabajo',
             }
           : {}),
       }
