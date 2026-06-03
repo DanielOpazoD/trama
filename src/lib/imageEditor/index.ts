@@ -17,7 +17,10 @@ export async function editImage(
   file: File,
   options: EditImageOptions = {},
 ): Promise<File | null> {
-  if (busy) return null
+  // Ya hay un editor abierto: devolvemos el original (= "no se editó"), NO null.
+  // null está reservado para "el usuario canceló"; confundirlos haría que un
+  // caller descarte la imagen en vez de subirla tal cual.
+  if (busy) return file
   busy = true
   try {
     const { mountImageEditor } = await import('./mount')

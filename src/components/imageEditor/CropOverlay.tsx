@@ -105,6 +105,21 @@ export function CropOverlay({
     e.preventDefault()
     onChange(moveCrop(crop, delta[0], delta[1]))
   }
+  // Flechas sobre un handle enfocado → redimensiona ese borde (Shift = paso mayor).
+  function nudgeHandle(h: CropHandle, e: React.KeyboardEvent) {
+    const step = e.shiftKey ? 0.05 : 0.01
+    const map: Record<string, [number, number]> = {
+      ArrowLeft: [-step, 0],
+      ArrowRight: [step, 0],
+      ArrowUp: [0, -step],
+      ArrowDown: [0, step],
+    }
+    const delta = map[e.key]
+    if (!delta) return
+    e.preventDefault()
+    e.stopPropagation()
+    onChange(resizeCrop(crop, h, delta[0], delta[1]))
+  }
 
   return (
     <div
@@ -138,6 +153,7 @@ export function CropOverlay({
             onPointerDown={(e) => begin(h, e)}
             onPointerMove={move}
             onPointerUp={end}
+            onKeyDown={(e) => nudgeHandle(h, e)}
             className={`absolute ${pos} size-3.5 rounded-full border border-ink-700 bg-paper-50`}
             style={{ cursor, touchAction: 'none' }}
           />
