@@ -99,6 +99,7 @@ Tareas son recordatorios livianos del mundo Notas agrupados por **semana**: cada
 
 ## Dominios derivados y operacionales
 
+- **Mutaciones multi-tabla → un solo CTE (atomicidad).** El driver HTTP de Neon no da transacciones multi-statement, así que una operación que toca varias tablas (merge, cascade soft-delete + su restore) se escribe como UN `WITH … RETURNING` único: Postgres lo ejecuta atómico (todo o nada) y los `WITH` que modifican datos corren a término aunque el `SELECT` final no los referencie. Patrón ya aplicado en `momentos-merge`, `entities-merge` y el DELETE/restore de `entities`. Ojo con la semántica de snapshot: los CTE NO se ven entre sí, así que pasos dependientes del orden (p. ej. reasignar relaciones y luego quitar self-loops) se combinan en un mismo `UPDATE … CASE` que toca cada fila una sola vez.
 - **Home** usa `/api/home` como lectura liviana. No vuelvas a cargar entities/quotes/relationships completos para pintar la portada.
 - **Cronologia** es una vista derivada: al mutar entidades, citas, relaciones, Momentos, Notas, Tasks o X, invalida sus query keys además del dominio principal.
 - **Atlas** y **Cronicas** generan propuestas IA; siempre deben pasar por `checkMonthlyBudget(userId, requestId)` y registrar `extraction_log`.
