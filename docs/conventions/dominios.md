@@ -72,6 +72,31 @@ Momentos es el dominio donde vive la **memoria fechada** de la trama: notas suel
 - **UUID validate en código antes del SQL** para endpoints que reciben ids en body. Sin esto, un id mal formado revienta con 500 en el cast `::uuid` en vez del 400 claro que querés.
 - **Recovery de blobs huérfanos:** los deploy previews tienen BD-rama ephemeral pero el store de Blobs es global. Si subís en preview, los blobs sobreviven pero los Momentos no. Usar `/api/momentos-orphaned-blobs` desde Settings → Datos para recuperarlos.
 
+## Cuando edites Tareas (recordatorios semanales)
+
+Tareas son recordatorios livianos del mundo Notas agrupados por **semana**: cada cuadro es una hoja semanal (título = rango de fechas) y cada línea un recordatorio con su color de prioridad.
+
+**El dominio puro vive en `src/components/notas/weekModel.ts`** — NO repliques esa lógica dentro de las vistas (esa fue toda la deuda que centralizamos). Funciones puras, testeadas sin DOM ni red en `weekModel.test.ts`:
+
+- `rawTaskWeek` / `effectiveWeek` — a qué semana pertenece, con el arrastre aplicado.
+- `groupTasksByWeek`, `splitByStatus(items, sortMode)`, `sortPending`, `pendingMonthsForYear`.
+- `taskCategory(t)`, `filterByCategory(items, cat)`, `countPendingByCategory(items)` + `DEFAULT_CATEGORY`.
+
+**Arrastre (carry-over):** un pendiente NO completado de una semana anterior se muestra en la semana actual (`effectiveWeek`); las hechas quedan en su semana. Al completar un arrastrado se fija `weekStart = semana actual` (queda registrado como hecho esta semana, no en la vieja). Esa decisión vive en `TareasView` (`onToggle`).
+
+**Carga por rango, no todo:** `useTasksRange({ weekFrom, weekTo, carryBefore })` trae solo el mes visible + los pendientes que se arrastran (`carryBefore` = semana actual cuando el mes navegado es el corriente). Los puntos del navegador usan `usePendingTasks()` (lista liviana de solo-pendientes). Nunca cargar la tabla entera para pintar un mes.
+
+**Categoría (pestañas Trabajo / Personal):** columna `category ∈ {trabajo, personal}`, `DEFAULT 'trabajo'` — las tareas antiguas (anteriores a la columna) quedan en Trabajo sin tocar nada. Cada cuadro recuerda su pestaña activa; la inactiva muestra un contador tenue de pendientes. El literal `'trabajo'` vive en UN solo lugar (`DEFAULT_CATEGORY`): usá `taskCategory()`/`filterByCategory()`, no el fallback suelto.
+
+**Backend** `netlify/functions/tasks.mts` (multi-method, schemas Zod en `_lib/task-schemas.ts`):
+
+- El `RETURNING`/`SELECT` lista TODAS las columnas (incluida `category`); si agregás una, tocá las ~6 queries.
+- El INSERT pone defaults con `COALESCE`: `priority → 'media'`, `category → 'trabajo'`, `week_start → date_trunc('week', NOW())`.
+- El PATCH usa el patrón `campo = CASE WHEN ${body.x !== undefined} THEN ${body.x ?? null} ELSE campo END` para distinguir "no vino" de "vino null".
+- Las `#etiquetas` se derivan en el server de título+detalle (`tagsFor`), nunca del cliente.
+
+**Estado** en `src/state/useTasks.ts`: `applyPatch` refleja el patch en cache (optimista) y las mutaciones invalidan `['tasks']` + cronologia + home. **Fotos** por semana (`owner_id` = fecha) y por tarea (`owner_id` = task.id) van por `notas-attachments-*` como el resto de anexos.
+
 ## Dominios derivados y operacionales
 
 - **Home** usa `/api/home` como lectura liviana. No vuelvas a cargar entities/quotes/relationships completos para pintar la portada.
