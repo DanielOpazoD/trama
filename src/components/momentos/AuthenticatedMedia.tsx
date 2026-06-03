@@ -2,8 +2,15 @@ import { useEffect, useState, type ImgHTMLAttributes } from 'react'
 import { apiFetch } from '../../api/request'
 import { momentoMediaUrl } from './helpers'
 
+// Endpoints de blobs autenticados: el browser no adjunta el bearer de Clerk a
+// un `<img src>` directo (da 401), así que estos se bajan con apiFetch (header
+// Authorization) y se sirven como object-URL. Aplica a media de Momentos y a
+// los anexos de Notas/Tareas.
 function shouldFetchWithApiClient(src: string): boolean {
-  return src.startsWith('/api/momentos-file/')
+  return (
+    src.startsWith('/api/momentos-file/') ||
+    src.startsWith('/api/notas-attachments-file/')
+  )
 }
 
 function shouldRetryLegacyMediaWithoutAuth(src: string, response: Response): boolean {
