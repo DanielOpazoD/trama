@@ -13,6 +13,7 @@ import {
   useRelationshipsQuery,
 } from './state'
 import { useTheme } from './hooks/useTheme'
+import { useWorldThemeClass } from './hooks/useWorldThemeClass'
 import { useTimeOfDayAccent } from './hooks/useTimeOfDayAccent'
 import { useAchievements } from './hooks/useAchievements'
 import { useWeeklyProactiveNudge } from './hooks/useWeeklyProactiveNudge'
@@ -490,6 +491,9 @@ function WorldShell() {
       /* storage deshabilitado */
     }
   }, [])
+
+  // Identidad de acento por mundo (Notas = salvia) vía clase en <html>.
+  useWorldThemeClass(world)
 
   // El conmutador de mundos vive en el logo (WorldSwitcher), dentro del header
   // de cada mundo — por eso acá no hay riel: se monta el mundo activo a pantalla
