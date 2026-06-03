@@ -80,6 +80,13 @@ export function demoMediaResponse(url: string): Response | null {
       headers: { 'Content-Type': 'audio/wav' },
     })
   }
+  // Anexos de Notas/Tareas en modo prueba: cualquier key sirve el placeholder
+  // (no hay blobs reales), así la tira de fotos se ve en vez de quedar rota.
+  if (path.startsWith('/api/notas-attachments-file/')) {
+    return new Response(DEMO_PHOTO_SVG, {
+      headers: { 'Content-Type': 'image/svg+xml' },
+    })
+  }
   return null
 }
 
