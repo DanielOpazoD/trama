@@ -26,6 +26,11 @@ export function useUploadNotasAttachment() {
       qc.invalidateQueries({
         queryKey: queryKeys.notasAttachments(attachment.ownerType, attachment.ownerId),
       })
+      // El flag has_photos de la tarea se deriva en el server; refrescamos la
+      // lista de tareas para que aparezca/desaparezca su icono distintivo.
+      if (attachment.ownerType === 'task') {
+        qc.invalidateQueries({ queryKey: queryKeys.tasks })
+      }
     },
   })
 }
@@ -46,6 +51,9 @@ export function useDeleteNotasAttachment() {
       qc.invalidateQueries({
         queryKey: queryKeys.notasAttachments(ownerType, ownerId),
       })
+      if (ownerType === 'task') {
+        qc.invalidateQueries({ queryKey: queryKeys.tasks })
+      }
     },
   })
 }

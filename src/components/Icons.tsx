@@ -496,6 +496,15 @@ export const CameraIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Documento con marca "PDF" implícita (hoja con esquina doblada + renglones). */
+export const FilePdfIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+    <path d="M14 3v5h5" />
+    <path d="M9 13h6M9 17h6" />
+  </svg>
+)
+
 /** Líneas de lectura (4 líneas horizontales decrecientes) — botón "modo
     lectura" de AskBar. Metáfora visual de "texto largo, párrafos". */
 export const ReadingIcon = ({ size = 14, className }: Props) => (

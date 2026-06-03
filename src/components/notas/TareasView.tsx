@@ -284,7 +284,13 @@ export function TareasView() {
           </div>
 
           {/* Fotos de la semana — perezosas: solo si la tira está abierta. */}
-          {showPhotos && <AttachmentPhotos ownerType="week" ownerId={week} />}
+          {showPhotos && (
+            <AttachmentPhotos
+              ownerType="week"
+              ownerId={week}
+              title={`fotos ${titleLong}`}
+            />
+          )}
         </div>
       </article>
     )

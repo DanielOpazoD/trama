@@ -26,6 +26,8 @@ export type Task = {
   category: TaskCategory
   /** ISO de cuándo se marcó como hecha, o null si pendiente. */
   completedAt: string | null
+  /** Si la tarea tiene ≥1 foto adjunta (derivado en el server). */
+  hasPhotos: boolean
   tags: string[]
   createdAt: string
   updatedAt: string
@@ -41,6 +43,7 @@ type TaskRow = {
   week_start: string
   category: string
   completed_at: string | null
+  has_photos: boolean | null
   tags: string[] | null
   created_at: string
   updated_at: string
@@ -57,6 +60,7 @@ function taskFromRow(r: TaskRow): Task {
     weekStart: r.week_start,
     category: (r.category as TaskCategory) ?? 'trabajo',
     completedAt: r.completed_at,
+    hasPhotos: r.has_photos ?? false,
     tags: r.tags ?? [],
     createdAt: r.created_at,
     updatedAt: r.updated_at,

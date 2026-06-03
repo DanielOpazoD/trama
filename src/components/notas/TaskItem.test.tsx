@@ -14,6 +14,7 @@ const baseTask: Task = {
   weekStart: '2026-05-25',
   category: 'trabajo',
   completedAt: null,
+  hasPhotos: false,
   tags: ['archivo', 'caja_1'],
   createdAt: '2026-05-29T10:00:00.000Z',
   updatedAt: '2026-05-29T10:00:00.000Z',
@@ -131,6 +132,31 @@ describe('<TaskItem />', () => {
     fireEvent.click(screen.getByRole('button', { name: /acciones del recordatorio/i }))
     fireEvent.click(screen.getByRole('menuitem', { name: /borrar/i }))
     expect(onDelete).toHaveBeenCalledTimes(1)
+  })
+
+  it('marca con un icono las tareas que tienen fotos adjuntas', () => {
+    const { rerender } = renderWithProviders(
+      <TaskItem
+        task={baseTask}
+        displayWeek="2026-05-25"
+        onToggle={noop}
+        onSave={noop}
+        onDelete={noop}
+      />,
+    )
+    // baseTask.hasPhotos === false → sin marca.
+    expect(screen.queryByLabelText(/tiene fotos/i)).not.toBeInTheDocument()
+
+    rerender(
+      <TaskItem
+        task={{ ...baseTask, hasPhotos: true }}
+        displayWeek="2026-05-25"
+        onToggle={noop}
+        onSave={noop}
+        onDelete={noop}
+      />,
+    )
+    expect(screen.getByLabelText(/tiene fotos/i)).toBeInTheDocument()
   })
 
   it('marca "desde" cuando el pendiente viene de una semana anterior', () => {

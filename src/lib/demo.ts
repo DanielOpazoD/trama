@@ -650,6 +650,16 @@ function route(
       return { restored: true }
     }
 
+    // Tareas: enriquecer cada fila con has_photos (espejo del EXISTS del backend).
+    if (resource === 'tasks' && method === 'GET' && !id) {
+      return live(rows).map((t) => ({
+        ...t,
+        has_photos: store.notas_attachments.some(
+          (a) => a.owner_type === 'task' && a.owner_id === t.id && !a.deleted_at,
+        ),
+      }))
+    }
+
     // CRUD estándar
     if (method === 'GET' && !id) return listOrPage(rows, params)
     if (method === 'GET' && id) {
