@@ -7,6 +7,7 @@ import { startViewTransition } from './lib/viewTransition'
 import { readOAuthReturn, clearOAuthReturn, type OAuthReturn } from './lib/oauthReturn'
 import {
   Provider,
+  readUserPrefsMirror,
   useEntitiesQuery,
   useOffline,
   useQuotesQuery,
@@ -480,8 +481,12 @@ function Shell({
 function WorldShell() {
   const [world, setWorld] = useState<World>(() => {
     if (typeof window === 'undefined') return DEFAULT_WORLD
+    // El ÚLTIMO mundo usado gana (continuidad). Si no hay (navegador fresco),
+    // siembra con el mundo default configurado (espejo localStorage, sin red).
     const saved = window.localStorage.getItem(WORLD_STORAGE_KEY)
-    return saved === 'notas' || saved === 'trama' ? (saved as World) : DEFAULT_WORLD
+    if (saved === 'notas' || saved === 'trama') return saved as World
+    const def = readUserPrefsMirror().defaultWorld
+    return def === 'notas' || def === 'trama' ? def : DEFAULT_WORLD
   })
   const changeWorld = useCallback((w: World) => {
     setWorld(w)

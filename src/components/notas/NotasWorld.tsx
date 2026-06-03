@@ -3,9 +3,10 @@ import { ClavesView } from './ClavesView'
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
 import { NotasView } from './NotasView'
-import { NotasMobileTabs, NotasSidebar, NotasTopBar } from './NotasWorldChrome'
+import { NotasMobileTabs, NotasSidebar, NotasTopBar, SECTIONS } from './NotasWorldChrome'
 import { PromptsView } from './PromptsView'
 import { TareasView } from './TareasView'
+import { useModuleVisibility } from '../../hooks/useModuleVisibility'
 import type { World } from '../../types/world'
 
 /**
@@ -23,12 +24,24 @@ export type NotasSection = 'inicio' | 'notas' | 'tareas' | 'prompts' | 'claves'
 export function NotasWorld({
   world,
   onChangeWorld,
+  initialSection,
 }: {
   world: World
   onChangeWorld: (w: World) => void
+  /** Sección con la que abrir (p. ej. al revelar un módulo desde el otro mundo). */
+  initialSection?: NotasSection
 }) {
-  const [section, setSection] = useState<NotasSection>('inicio')
+  const [section, setSection] = useState<NotasSection>(initialSection ?? 'inicio')
   const [searchOpen, setSearchOpen] = useState(false)
+  const { isVisible } = useModuleVisibility()
+  const visibleSections = SECTIONS.filter((s) => isVisible(s.id))
+
+  // Si la sección activa queda oculta (desde Settings), volvemos a Inicio — que
+  // nunca se oculta. Garantiza que no quedes en una sección invisible.
+  const sectionVisible = isVisible(section)
+  useEffect(() => {
+    if (!sectionVisible) setSection('inicio')
+  }, [sectionVisible])
 
   useEffect(() => {
     if (!searchOpen) return
@@ -44,6 +57,7 @@ export function NotasWorld({
       <NotasSidebar
         world={world}
         section={section}
+        sections={visibleSections}
         onChangeWorld={onChangeWorld}
         onChangeSection={setSection}
         onOpenSearch={() => setSearchOpen(true)}
@@ -52,6 +66,7 @@ export function NotasWorld({
       <NotasMobileTabs
         world={world}
         section={section}
+        sections={visibleSections}
         onChangeWorld={onChangeWorld}
         onChangeSection={setSection}
         onOpenSearch={() => setSearchOpen(true)}

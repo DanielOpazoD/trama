@@ -10,6 +10,7 @@ import { SearchPanel } from './settings/SearchPanel'
 import { DataPanel } from './settings/DataPanel'
 import { HealthPanel } from './settings/HealthPanel'
 import { LogsPanel } from './settings/LogsPanel'
+import { NotasPanel } from './settings/NotasPanel'
 
 /**
  * Settings — modal full-screen con layout de dos columnas:
@@ -33,6 +34,7 @@ type SectionId =
   | 'health'
   | 'logs'
   | 'appearance'
+  | 'notas'
   | 'privacy'
   | 'spotify'
   | 'x'
@@ -44,6 +46,7 @@ const SECTIONS: Array<{ id: SectionId; label: string; hint: string }> = [
   { id: 'health', label: 'Estado', hint: 'gasto, conteos, errores' },
   { id: 'logs', label: 'Logs', hint: 'historial detallado' },
   { id: 'appearance', label: 'Apariencia', hint: 'papel / noche' },
+  { id: 'notas', label: 'Notas', hint: 'secciones · mundo default' },
   { id: 'privacy', label: 'Privacidad', hint: 'bloqueo por PIN' },
   { id: 'spotify', label: 'Spotify', hint: 'sincronización' },
   { id: 'x', label: 'X (Twitter)', hint: 'bookmarks' },
@@ -157,6 +160,7 @@ export function Settings({
               {section === 'appearance' && (
                 <AppearancePanel theme={theme} onSetTheme={onSetTheme} />
               )}
+              {section === 'notas' && <NotasPanel />}
               {section === 'privacy' && <PrivacyPanel />}
               {section === 'spotify' && (
                 <SpotifyPanel
