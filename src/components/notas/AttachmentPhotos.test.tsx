@@ -8,6 +8,17 @@ vi.mock('../../lib/imageCompression', () => ({
   compressImage: (file: File) => Promise.resolve(file),
 }))
 
+// La exportación (descarga/PDF) toca apiFetch/canvas/jsPDF/Blob: la mockeamos
+// para verificar el cableado de los botones sin ejecutar browser-APIs.
+const exportMocks = vi.hoisted(() => ({
+  downloadAllImages: vi.fn(() => Promise.resolve()),
+  exportImagesToPdf: vi.fn(() => Promise.resolve()),
+}))
+vi.mock('../../lib/photoExport', () => ({
+  downloadAllImages: exportMocks.downloadAllImages,
+  exportImagesToPdf: exportMocks.exportImagesToPdf,
+}))
+
 import { AttachmentPhotos } from './AttachmentPhotos'
 
 /** POSTs al endpoint de upload observados durante el test. */
@@ -49,6 +60,8 @@ function stubFetch() {
 describe('<AttachmentPhotos />', () => {
   beforeEach(() => {
     localStorage.removeItem('trama-demo')
+    exportMocks.downloadAllImages.mockClear()
+    exportMocks.exportImagesToPdf.mockClear()
     stubFetch()
   })
   afterEach(() => vi.unstubAllGlobals())
@@ -92,5 +105,51 @@ describe('<AttachmentPhotos />', () => {
     fireEvent.change(input, { target: { files: [img, txt] } })
 
     await waitFor(() => expect(uploadCalls).toHaveLength(1))
+  })
+
+  it('los botones descargar / PDF aparecen con fotos y disparan la exportación', async () => {
+    // La lista trae una foto → se montan los botones de exportar.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL) => {
+        const u = String(url)
+        if (u.includes('/api/notas-attachments?')) {
+          return new Response(
+            JSON.stringify([
+              {
+                id: 'a1',
+                owner_type: 'task',
+                owner_id: 't-1',
+                file_name: 'f.jpg',
+                mime_type: 'image/jpeg',
+                byte_size: 10,
+                storage_key: 'u1/f.jpg',
+                created_at: 'x',
+                updated_at: 'x',
+              },
+            ]),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          )
+        }
+        return new Response('', { status: 200 })
+      }),
+    )
+
+    const { findByLabelText } = renderWithProviders(
+      <AttachmentPhotos ownerType="task" ownerId="t-1" title="Mi tarea" />,
+    )
+    const dl = await findByLabelText('Descargar todas las fotos')
+    const pdf = await findByLabelText('Exportar fotos a PDF')
+
+    fireEvent.click(dl)
+    await waitFor(() => expect(exportMocks.downloadAllImages).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(pdf).not.toBeDisabled())
+
+    fireEvent.click(pdf)
+    await waitFor(() => expect(exportMocks.exportImagesToPdf).toHaveBeenCalledTimes(1))
+    expect(exportMocks.exportImagesToPdf).toHaveBeenCalledWith(
+      expect.any(Array),
+      'Mi tarea',
+    )
   })
 })

@@ -30,6 +30,12 @@ export default defineConfig({
         // index files que solo re-exportan no aportan al coverage real.
         'src/state/index.ts',
         'src/types/index.ts',
+        // Utilidades 100% browser-API (createImageBitmap/canvas/jsPDF/Blob
+        // download): no se pueden ejercitar en node/happy-dom (loadImage cuelga,
+        // canvas/toBlob no existen). Se verifican en el navegador; el componente
+        // que las usa las mockea. Medirlas acá solo daría 0% engañoso.
+        'src/lib/imageCompression.ts',
+        'src/lib/photoExport.ts',
       ],
       // N8: thresholds calibrados al baseline medido. El objetivo NO es
       // alcanzar 100% — es detectar REGRESIONES: si alguien mergea código
