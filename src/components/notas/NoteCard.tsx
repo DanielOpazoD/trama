@@ -1,11 +1,20 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Note } from '../../api'
 import { renderMarkdown } from './markdown'
-import { FileIcon, MomentosIcon, PencilIcon, PinIcon, TrashIcon } from '../Icons'
+import {
+  CameraIcon,
+  FileIcon,
+  MomentosIcon,
+  PencilIcon,
+  PinIcon,
+  TrashIcon,
+} from '../Icons'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { AttachmentsPanel } from './AttachmentsPanel'
 import { AttachmentPhotos } from './AttachmentPhotos'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
+import { useToast, useUploadNotasAttachment } from '../../state'
+import { compressImage } from '../../lib/imageCompression'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -51,12 +60,46 @@ export function NoteCard({
   const [draft, setDraft] = useState(note.content)
   const promoted = note.promotedMomentoId !== null
   const editRef = useAutosizeTextarea(draft, { minRows: 4, maxRows: 16 })
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const upload = useUploadNotasAttachment()
+  const toast = useToast()
 
   function saveEdit() {
     const next = draft.trim()
     if (!next) return
     if (next !== note.content) onEdit(next)
     setEditing(false)
+  }
+
+  // Agregar foto a la nota: comprime (a diferencia de la subida cruda de
+  // "Anexos") y sube. La edición vive en el visor que abre el ícono de fotos.
+  async function addPhotos(files: FileList | null) {
+    const images = Array.from(files ?? []).filter((f) => f.type.startsWith('image/'))
+    if (images.length === 0) {
+      if (files && files.length > 0)
+        toast.show({ message: 'Solo imágenes por ahora.', tone: 'error' })
+      return
+    }
+    let ok = 0
+    for (const original of images) {
+      try {
+        const file = await compressImage(original)
+        await upload.mutateAsync({ ownerType: 'note', ownerId: note.id, file })
+        ok++
+      } catch (err) {
+        toast.show({
+          message: err instanceof Error ? err.message : 'No se pudo subir',
+          tone: 'error',
+        })
+      }
+    }
+    if (ok > 0) {
+      toast.show({
+        message: ok === 1 ? 'Foto agregada.' : `${ok} fotos agregadas.`,
+        tone: 'success',
+      })
+    }
+    if (photoInputRef.current) photoInputRef.current.value = ''
   }
 
   // Modo edición — textarea con el contenido en crudo (markdown), ⌘↵ guarda.
@@ -112,7 +155,9 @@ export function NoteCard({
             <span className="sr-only">Nota fijada</span>
           </>
         )}
-        <AttachmentPhotos ownerType="note" ownerId={note.id} compact />
+        {note.hasImages && (
+          <AttachmentPhotos ownerType="note" ownerId={note.id} compact />
+        )}
         <OverflowMenu
           label="Acciones de la nota"
           width="w-52"
@@ -141,6 +186,15 @@ export function NoteCard({
                 disabled={busy}
               >
                 <PencilIcon size={13} /> Editar
+              </OverflowMenuItem>
+              <OverflowMenuItem
+                onClick={() => {
+                  photoInputRef.current?.click()
+                  close()
+                }}
+                disabled={upload.isPending}
+              >
+                <CameraIcon size={13} /> Agregar foto
               </OverflowMenuItem>
               <OverflowMenuItem
                 onClick={() => {
@@ -195,6 +249,15 @@ export function NoteCard({
           )}
         </OverflowMenu>
       </div>
+
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => addPhotos(e.target.files)}
+      />
 
       {showFiles && <AttachmentsPanel ownerType="note" ownerId={note.id} />}
     </article>

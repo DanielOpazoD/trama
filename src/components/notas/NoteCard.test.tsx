@@ -12,6 +12,7 @@ const BASE: Note = {
   promotedMomentoId: null,
   createdAt: '2026-05-29T10:00:00.000Z',
   updatedAt: '2026-05-29T10:00:00.000Z',
+  hasImages: false,
 }
 
 const noop = () => {}
@@ -106,12 +107,23 @@ describe('<NoteCard />', () => {
     expect(screen.getByRole('menuitem', { name: /ocultar anexos/i })).toBeInTheDocument()
   })
 
+  it('el menú ofrece "Agregar foto"', () => {
+    renderCard(BASE)
+    openMenu()
+    expect(screen.getByRole('menuitem', { name: /agregar foto/i })).toBeInTheDocument()
+  })
+
   it('una nota fijada expone su estado a lectores de pantalla', () => {
     renderCard({ ...BASE, pinned: true })
     expect(screen.getByText('Nota fijada')).toBeInTheDocument()
   })
 
-  it('muestra el ícono de fotos solo si hay imágenes adjuntas', async () => {
+  it('no consulta ni muestra fotos cuando la nota no tiene imágenes (hasImages=false)', () => {
+    renderCard(BASE) // hasImages: false
+    expect(screen.queryByRole('button', { name: /ver fotos/i })).toBeNull()
+  })
+
+  it('muestra el ícono de fotos cuando la nota tiene imágenes (hasImages=true)', async () => {
     stubAttachments([
       {
         id: 'a1',
@@ -125,7 +137,7 @@ describe('<NoteCard />', () => {
         updated_at: 'x',
       },
     ])
-    renderCard(BASE)
+    renderCard({ ...BASE, hasImages: true })
     expect(await screen.findByRole('button', { name: /ver fotos/i })).toBeInTheDocument()
   })
 })
