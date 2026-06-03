@@ -6,7 +6,7 @@ import {
   useUpdateTask,
   useDeleteTask,
 } from '../../state'
-import type { Task, TaskPriority } from '../../api'
+import type { Task, TaskPriority, TaskCategory } from '../../api'
 import { LoadingHint } from '../LoadingHint'
 import { PlusIcon, CameraIcon } from '../Icons'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
@@ -27,6 +27,9 @@ import {
   splitByStatus,
   pendingMonthsForYear,
   rawTaskWeek,
+  filterByCategory,
+  countPendingByCategory,
+  DEFAULT_CATEGORY,
   type SortMode,
 } from './weekModel'
 
@@ -35,6 +38,12 @@ const SORT_LABELS: Record<SortMode, string> = {
   created: 'Fecha de ingreso',
   tag: 'Etiqueta',
 }
+
+/** Pestañas clasificatorias de cada cuadro semanal. */
+const CATEGORY_TABS: { key: TaskCategory; label: string }[] = [
+  { key: 'trabajo', label: 'Trabajo' },
+  { key: 'personal', label: 'Personal' },
+]
 
 /** Icono "ordenar" (barras decrecientes) — el sistema no tiene uno propio. */
 function SortGlyph({ size = 14 }: { size?: number }) {
@@ -89,6 +98,15 @@ export function TareasView() {
       return next
     })
   }
+  // Pestaña activa (Trabajo/Personal) por cuadro semanal. Cada hoja recuerda la
+  // suya; por defecto 'trabajo' (donde quedan también las tareas antiguas).
+  const [weekCategory, setWeekCategory] = useState<Record<string, TaskCategory>>({})
+  function categoryFor(week: string): TaskCategory {
+    return weekCategory[week] ?? DEFAULT_CATEGORY
+  }
+  function setCategory(week: string, cat: TaskCategory) {
+    setWeekCategory((prev) => ({ ...prev, [week]: cat }))
+  }
 
   const todayWeek = weekStartLocal()
   const weekKeys = useMemo(() => mondaysOfMonth(navYear, navMonth), [navYear, navMonth])
@@ -110,9 +128,21 @@ export function TareasView() {
     [pendingQuery.data, navYear, todayWeek],
   )
 
-  function addReminder(weekStart: string, title: string, priority: TaskPriority) {
+  function addReminder(
+    weekStart: string,
+    title: string,
+    priority: TaskPriority,
+    category: TaskCategory,
+  ) {
     if (createTask.isPending) return
-    createTask.mutate({ title, detail: null, dueDate: null, priority, weekStart })
+    createTask.mutate({
+      title,
+      detail: null,
+      dueDate: null,
+      priority,
+      weekStart,
+      category,
+    })
   }
 
   const busy = updateTask.isPending || deleteTask.isPending
@@ -142,7 +172,11 @@ export function TareasView() {
 
   function renderWeek(week: string) {
     const items = byWeek.get(week) ?? []
-    const { pending, done } = splitByStatus(items, sortMode)
+    const activeCat = categoryFor(week)
+    const visible = filterByCategory(items, activeCat)
+    const { pending, done } = splitByStatus(visible, sortMode)
+    // Pendientes por pestaña — alimentan el contador discreto de la pestaña inactiva.
+    const pendingByCat = countPendingByCategory(items)
     const isCurrent = week === todayWeek
     const rel = relativeWeekLabel(week)
     const titleLong = formatWeekRangeLong(week)
@@ -211,6 +245,15 @@ export function TareasView() {
           </div>
         </div>
 
+        {/* Pestañas Trabajo / Personal — clasifican los recordatorios del cuadro. */}
+        <div className="px-4 pb-1.5">
+          <CategoryTabs
+            value={activeCat}
+            pendingByCat={pendingByCat}
+            onChange={(c) => setCategory(week, c)}
+          />
+        </div>
+
         <div className="px-4 pb-3">
           {(pending.length > 0 || done.length > 0) && (
             <ul className="divide-y divide-ink-100/40">
@@ -235,7 +278,7 @@ export function TareasView() {
             }
           >
             <WeekComposer
-              onAdd={(title, priority) => addReminder(week, title, priority)}
+              onAdd={(title, priority) => addReminder(week, title, priority, activeCat)}
               pending={createTask.isPending}
             />
           </div>
@@ -276,6 +319,53 @@ export function TareasView() {
         <div className="space-y-4">{weekKeys.map(renderWeek)}</div>
       )}
     </>
+  )
+}
+
+/**
+ * Pestañas Trabajo / Personal de un cuadro semanal — control segmentado discreto
+ * (mismo lenguaje visual que el resto de Notas). La pestaña inactiva muestra un
+ * contador tenue cuando esconde pendientes, para no perderlos de vista.
+ */
+function CategoryTabs({
+  value,
+  pendingByCat,
+  onChange,
+}: {
+  value: TaskCategory
+  pendingByCat: Record<TaskCategory, number>
+  onChange: (c: TaskCategory) => void
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Categoría de tareas"
+      className="inline-flex gap-0.5 p-0.5 bg-paper-100/60 rounded-md border border-ink-100/50"
+    >
+      {CATEGORY_TABS.map((c) => {
+        const active = c.key === value
+        const n = pendingByCat[c.key]
+        return (
+          <button
+            key={c.key}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(c.key)}
+            className={`px-2.5 py-0.5 rounded text-caption transition-colors ${
+              active
+                ? 'bg-paper-50 text-ink-700 shadow-sm'
+                : 'text-ink-400 hover:text-ink-700'
+            }`}
+          >
+            {c.label}
+            {!active && n > 0 && (
+              <span className="ml-1 tabular-nums text-ink-300">{n}</span>
+            )}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 

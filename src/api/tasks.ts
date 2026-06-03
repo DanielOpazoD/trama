@@ -8,6 +8,9 @@ import { request } from './request'
 /** Prioridad de un recordatorio — da el color (alta · media · baja). */
 export type TaskPriority = 'alta' | 'media' | 'baja'
 
+/** Pestaña clasificatoria del cuadro semanal: trabajo o personal. */
+export type TaskCategory = 'trabajo' | 'personal'
+
 export type Task = {
   id: string
   title: string
@@ -19,6 +22,8 @@ export type Task = {
   priority: TaskPriority
   /** Lunes ('YYYY-MM-DD') de la semana a la que pertenece el recordatorio. */
   weekStart: string
+  /** Pestaña clasificatoria (trabajo · personal). */
+  category: TaskCategory
   /** ISO de cuándo se marcó como hecha, o null si pendiente. */
   completedAt: string | null
   tags: string[]
@@ -34,6 +39,7 @@ type TaskRow = {
   due_date: string | null
   priority: string
   week_start: string
+  category: string
   completed_at: string | null
   tags: string[] | null
   created_at: string
@@ -49,6 +55,7 @@ function taskFromRow(r: TaskRow): Task {
     dueDate: r.due_date,
     priority: (r.priority as TaskPriority) ?? 'media',
     weekStart: r.week_start,
+    category: (r.category as TaskCategory) ?? 'trabajo',
     completedAt: r.completed_at,
     tags: r.tags ?? [],
     createdAt: r.created_at,
@@ -62,6 +69,7 @@ export type TaskCreate = {
   dueDate?: string | null
   priority?: TaskPriority
   weekStart?: string
+  category?: TaskCategory
 }
 
 export type TaskPatch = {
@@ -71,6 +79,7 @@ export type TaskPatch = {
   dueDate?: string | null
   priority?: TaskPriority
   weekStart?: string
+  category?: TaskCategory
 }
 
 export type TaskListOpts = {

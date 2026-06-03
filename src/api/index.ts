@@ -86,7 +86,7 @@ export type { Cronica, GeneratedCronica } from './cronicas'
 
 export type { Note } from './notes'
 
-export type { Task, TaskCreate, TaskPatch, TaskPriority } from './tasks'
+export type { Task, TaskCreate, TaskPatch, TaskPriority, TaskCategory } from './tasks'
 
 export type { MonthNote } from './month-notes'
 
