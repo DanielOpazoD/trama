@@ -205,6 +205,10 @@ export default withObservability(
           durationMs: 0,
         }
         let llmError: string | null = null
+        // Si el reply salió del cache (providers no-streaming caen a callLLM,
+        // que puede dar hit), no se gastaron tokens → no se re-cobra el
+        // presupuesto. Simétrico al fix de extract.
+        let fromCache = false
 
         const chatOverride = {
           provider: invocation.provider,
@@ -219,6 +223,7 @@ export default withObservability(
             } else if (frame.type === 'done') {
               assembled = frame.content || assembled
               usage = frame.usage
+              fromCache = frame.fromCache
             } else if (frame.type === 'error') {
               llmError = frame.message
             }
@@ -302,7 +307,7 @@ export default withObservability(
             ${usage.model},
             ${usage.tokensIn},
             ${usage.tokensOut},
-            ${usage.costCents},
+            ${fromCache ? 0 : usage.costCents},
             ${usage.durationMs},
             ${userId}
           )

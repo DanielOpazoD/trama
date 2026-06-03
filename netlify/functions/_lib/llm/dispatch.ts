@@ -236,7 +236,7 @@ export async function* askLLMForTextStreaming(
       const content =
         typeof result.content === 'string' ? result.content : String(result.content)
       yield { type: 'chunk', content }
-      yield { type: 'done', content, usage: result.usage }
+      yield { type: 'done', content, usage: result.usage, fromCache: result.fromCache }
     } catch (err) {
       yield { type: 'error', message: err instanceof Error ? err.message : String(err) }
     }
@@ -258,7 +258,7 @@ export async function* askLLMForTextStreaming(
         const content =
           typeof result.content === 'string' ? result.content : String(result.content)
         yield { type: 'chunk', content }
-        yield { type: 'done', content, usage: result.usage }
+        yield { type: 'done', content, usage: result.usage, fromCache: result.fromCache }
         return
       } catch {
         /* cae al frame de error de abajo */
@@ -329,7 +329,8 @@ export async function* askLLMForTextStreaming(
     costCents: computeCostCents({ tokensIn, tokensOut }, config),
     durationMs: Date.now() - start,
   }
-  yield { type: 'done', content: assembled, usage }
+  // El stream SSE real siempre pega al provider (no pasa por cache).
+  yield { type: 'done', content: assembled, usage, fromCache: false }
 }
 
 /**
