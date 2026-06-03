@@ -202,7 +202,14 @@ export function AttachmentPhotos({
         title="Adjuntar y editar"
         aria-label="Adjuntar y editar fotos"
       >
-        <PencilIcon size={15} />
+        {/* Cámara + badge de lápiz = "adjuntar y retocar"; el lápiz solo (en las
+            miniaturas) queda reservado para "editar esta foto ya guardada". */}
+        <span className="relative inline-flex">
+          <CameraIcon size={16} />
+          <span className="absolute -bottom-1 -right-1.5 rounded-full bg-paper-50 p-px leading-none">
+            <PencilIcon size={8} />
+          </span>
+        </span>
       </button>
 
       {photos.length > 0 && (
