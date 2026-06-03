@@ -12,6 +12,7 @@ import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
 import { SearchIcon } from '../Icons'
 import { NoteCard } from './NoteCard'
+import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { ActivityCalendar, localDayKey } from './ActivityCalendar'
 import { PendingAttachmentsInput } from './PendingAttachmentsInput'
 
@@ -33,6 +34,7 @@ export function NotasView() {
   const toast = useToast()
 
   const [draft, setDraft] = useState('')
+  const composerRef = useAutosizeTextarea(draft, { minRows: 3, maxRows: 12 })
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState<string | null>(null)
@@ -124,12 +126,13 @@ export function NotasView() {
       {/* Composer */}
       <div className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5">
         <textarea
+          ref={composerRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onComposerKey}
           rows={3}
           placeholder="Escribe una nota… usa #etiquetas para clasificarla"
-          className="w-full resize-y bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
+          className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
         />
         <PendingAttachmentsInput
           files={pendingFiles}
