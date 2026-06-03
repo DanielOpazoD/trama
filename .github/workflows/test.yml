@@ -44,6 +44,12 @@ jobs:
       - name: Documentation drift check
         run: npm run check:docs-drift
 
+      # Gate de soft-delete: bloquea `DELETE FROM` nuevos fuera del allowlist
+      # (los hard-deletes legítimos están enumerados en el script). Antes el
+      # script existía pero no corría en ningún job.
+      - name: Hard-delete allowlist check
+        run: npm run check:hard-delete-allowlist
+
   unit:
     runs-on: ubuntu-latest
     steps:

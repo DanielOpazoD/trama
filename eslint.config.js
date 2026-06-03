@@ -146,7 +146,10 @@ export default tseslint.config(
           caughtErrorsIgnorePattern: '^_',
         },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // El codebase está en cero `any`: lo hacemos `error` para que el gate de
+      // CI lo mantenga así (antes era `warn` y dependía de disciplina). Tests y
+      // e2e tienen override a `off` para sus casts pragmáticos de mocks.
+      '@typescript-eslint/no-explicit-any': 'error',
       // `as unknown as X` es smell pero útil cuando tipas Neon results;
       // lo dejamos en warn para irlos limpiando incrementalmente.
       '@typescript-eslint/no-unsafe-function-type': 'warn',
