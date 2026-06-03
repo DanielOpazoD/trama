@@ -150,9 +150,9 @@ export default tseslint.config(
       // CI lo mantenga así (antes era `warn` y dependía de disciplina). Tests y
       // e2e tienen override a `off` para sus casts pragmáticos de mocks.
       '@typescript-eslint/no-explicit-any': 'error',
-      // `as unknown as X` es smell pero útil cuando tipas Neon results;
-      // lo dejamos en warn para irlos limpiando incrementalmente.
-      '@typescript-eslint/no-unsafe-function-type': 'warn',
+      // Cero usos del tipo `Function` en el codebase: lo subimos a error junto
+      // con no-explicit-any para que el gate mantenga la tipificación fuerte.
+      '@typescript-eslint/no-unsafe-function-type': 'error',
       // El patrón `let x; try { x = ... } catch {...}` es legítimo
       // (especialmente cuando el catch DEVUELVE una Response). La regla
       // de no-useless-assignment es demasiado estricta — generaba 6+
