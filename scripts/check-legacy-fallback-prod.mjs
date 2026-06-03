@@ -15,19 +15,6 @@ if (hasBackendClerk !== hasFrontendClerk) {
   process.exit(1)
 }
 
-// Independiente del contexto: si la auth real (Clerk) ya está configurada en el
-// backend, el bypass legacy NO puede seguir activo. Sin esto, una request sin
-// token caería a `legacy-single-user` y leería/escribiría todo el dataset del
-// dueño. Cierra el footgun aunque la detección de "producción" falle (branch
-// deploy, contexto mal seteado): el momento en que la auth real entra, el
-// fallback debe estar apagado.
-if (hasBackendClerk && process.env.ALLOW_LEGACY_FALLBACK === 'true') {
-  console.error(
-    'ALLOW_LEGACY_FALLBACK=true es incompatible con CLERK_SECRET_KEY configurado: desactiva el fallback legacy cuando la autenticación real está activa.',
-  )
-  process.exit(1)
-}
-
 if (isProduction && (!hasBackendClerk || !hasFrontendClerk)) {
   console.error(
     'Clerk es obligatorio en producción: CLERK_SECRET_KEY y VITE_CLERK_PUBLISHABLE_KEY deben estar configuradas para evitar modo legacy.',

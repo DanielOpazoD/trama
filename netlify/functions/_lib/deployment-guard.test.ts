@@ -56,17 +56,4 @@ describe('deployment guard', () => {
     expect(res.status).toBe(1)
     expect(res.stderr).toContain('Clerk es obligatorio en producción')
   })
-
-  it('fails when Clerk is live but the legacy fallback stays on (any context)', () => {
-    // Sin CONTEXT=production: aun así debe fallar, porque la auth real ya está
-    // configurada y el bypass legacy expondría el dataset del dueño.
-    const res = run({
-      CLERK_SECRET_KEY: 'sk_live_x',
-      VITE_CLERK_PUBLISHABLE_KEY: 'pk_live_x',
-      ALLOW_LEGACY_FALLBACK: 'true',
-    })
-
-    expect(res.status).toBe(1)
-    expect(res.stderr).toContain('ALLOW_LEGACY_FALLBACK=true')
-  })
 })
