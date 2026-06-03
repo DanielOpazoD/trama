@@ -660,6 +660,21 @@ function route(
       }))
     }
 
+    // Notas: enriquecer con has_images (espejo del EXISTS image/% del backend).
+    if (resource === 'notes' && method === 'GET' && !id) {
+      return live(rows).map((n) => ({
+        ...n,
+        has_images: store.notas_attachments.some(
+          (a) =>
+            a.owner_type === 'note' &&
+            a.owner_id === n.id &&
+            typeof a.mime_type === 'string' &&
+            a.mime_type.startsWith('image/') &&
+            !a.deleted_at,
+        ),
+      }))
+    }
+
     // CRUD estándar
     if (method === 'GET' && !id) return listOrPage(rows, params)
     if (method === 'GET' && id) {

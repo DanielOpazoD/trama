@@ -31,6 +31,10 @@ export function useUploadNotasAttachment() {
       if (attachment.ownerType === 'task') {
         qc.invalidateQueries({ queryKey: queryKeys.tasks })
       }
+      // Idem notas: el flag has_images se deriva en el server → refrescar notes.
+      if (attachment.ownerType === 'note') {
+        qc.invalidateQueries({ queryKey: queryKeys.notes })
+      }
     },
   })
 }
@@ -53,6 +57,9 @@ export function useDeleteNotasAttachment() {
       })
       if (ownerType === 'task') {
         qc.invalidateQueries({ queryKey: queryKeys.tasks })
+      }
+      if (ownerType === 'note') {
+        qc.invalidateQueries({ queryKey: queryKeys.notes })
       }
     },
   })
