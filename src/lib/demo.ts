@@ -110,6 +110,7 @@ type Store = {
   secrets: Row[]
   notas_attachments: Row[]
   month_notes: Row[]
+  user_prefs: Record<string, unknown>
 }
 
 function uid(): string {
@@ -443,6 +444,7 @@ function buildSeed(): Store {
     secrets: [],
     notas_attachments: [],
     month_notes: [],
+    user_prefs: {},
   }
 }
 
@@ -462,6 +464,7 @@ function load(): Store {
         secrets: parsed.secrets ?? [],
         notas_attachments: parsed.notas_attachments ?? [],
         month_notes: parsed.month_notes ?? [],
+        user_prefs: parsed.user_prefs ?? {},
       }
     }
   } catch {
@@ -531,6 +534,16 @@ function route(
     store.notas_attachments.push(row)
     save(store)
     return row
+  }
+
+  if (resource === 'user-prefs') {
+    if (method === 'GET') return store.user_prefs ?? {}
+    if (method === 'PUT') {
+      // Merge superficial (espejo del `jsonb ||` del backend).
+      store.user_prefs = { ...(store.user_prefs ?? {}), ...(body as object) }
+      save(store)
+      return store.user_prefs
+    }
   }
 
   if (resource === 'month-notes') {
@@ -650,7 +663,7 @@ function route(
       return { ok: true }
     }
     if (id && action === 'restore' && method === 'POST') {
-      const r = store[resource as keyof Store].find((x) => x.id === id)
+      const r = (store[resource as keyof Store] as Row[]).find((x) => x.id === id)
       if (r) {
         delete r.deleted_at
         r.updated_at = nowIso()

@@ -40,6 +40,7 @@ export const queryKeys = {
     ['notas-attachments', ownerType, ownerId] as const,
   monthNote: (month: string, category: string) =>
     ['month-note', month, category] as const,
+  userPrefs: ['user-prefs'] as const,
   x: ['x'] as const,
   xBookmarks: ['x', 'bookmarks'] as const,
   xStatus: ['x', 'status'] as const,
