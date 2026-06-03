@@ -6,6 +6,7 @@ import {
   type CommandAction,
   type Item,
 } from '../hooks/useCommandSearch'
+import type { NotasSection } from './notas/NotasWorld'
 import {
   ChatIcon,
   AtlasIcon,
@@ -13,6 +14,7 @@ import {
   EntitiesIcon,
   GraphIcon,
   HomeIcon,
+  KeyIcon,
   MomentosIcon,
   MusicIcon,
   QuoteIcon,
@@ -61,6 +63,7 @@ export function CommandPalette({
   onSelectEntity,
   onAction,
   onOpenThread,
+  onRevealNotasModule,
 }: {
   open: boolean
   onClose: () => void
@@ -72,6 +75,9 @@ export function CommandPalette({
   /** Abrir un hilo de chat por id (para resultados de tipo chat). Si no se
       pasa, los resultados de chat navegan a la vista Chat sin hilo. */
   onOpenThread?: (threadId: string) => void
+  /** Revelar/abrir un módulo del mundo Notas (cruza de mundo). Para el comando
+      "#pass" → Claves desde el ⌘K del mundo principal. */
+  onRevealNotasModule?: (moduleId: NotasSection) => void
 }) {
   const { query, setQuery, items, searching } = useCommandSearch({
     open,
@@ -124,10 +130,13 @@ export function CommandPalette({
           if (onOpenThread) onOpenThread(item.threadId)
           else onNavigate('chat')
           break
+        case 'reveal':
+          onRevealNotasModule?.(item.moduleId)
+          break
       }
       onClose()
     },
-    [onAction, onClose, onNavigate, onOpenThread, onSelectEntity],
+    [onAction, onClose, onNavigate, onOpenThread, onRevealNotasModule, onSelectEntity],
   )
 
   useEffect(() => {
@@ -231,6 +240,7 @@ export function CommandPalette({
 function itemKey(item: Item): string {
   if (item.kind === 'view') return item.view
   if (item.kind === 'action') return item.action
+  if (item.kind === 'reveal') return `reveal-${item.moduleId}`
   if (item.kind === 'entity') return item.id
   return item.id
 }
@@ -317,6 +327,19 @@ function ItemRow({ item, query }: { item: Item; query: string }) {
         {item.hint && (
           <span className="text-ink-300 text-xs ml-2 truncate">— {item.hint}</span>
         )}
+      </>
+    )
+  }
+  if (item.kind === 'reveal') {
+    return (
+      <>
+        <span className="shrink-0" style={{ color: 'var(--accent-sage)' }} aria-hidden>
+          <KeyIcon size={14} />
+        </span>
+        <span className="text-ink-700">
+          Abrir <HighlightedText text={item.label} query={query} />
+        </span>
+        <span className="text-ink-300 text-xs ml-2 truncate">— mundo Notas</span>
       </>
     )
   }

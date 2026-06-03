@@ -3,6 +3,8 @@ import { useEntitiesQuery, useQuotesQuery } from '../state'
 import { api } from '../api'
 import type { SearchResponse } from '../api'
 import type { ViewMode } from '../types/view'
+import { matchModuleAlias } from '../components/notas/moduleAliases'
+import type { NotasSection } from '../components/notas/NotasWorld'
 
 /**
  * Lógica de búsqueda del command palette (Cmd+K), extraída de
@@ -31,6 +33,7 @@ export type CommandAction =
 export type Item =
   | { kind: 'view'; view: ViewMode; label: string; hint?: string }
   | { kind: 'action'; action: CommandAction; label: string; hint?: string }
+  | { kind: 'reveal'; moduleId: NotasSection; label: string }
   | { kind: 'entity'; id: string; name: string; type: string }
   | { kind: 'quote'; id: string; entityId: string; text: string; entityName: string }
   | { kind: 'momento'; id: string; momentoKind: string; text: string }
@@ -252,7 +255,15 @@ export function useCommandSearch({
         }))
       : []
 
+    // Comando para revelar/abrir un módulo del mundo Notas (p. ej. "#pass" →
+    // Claves), cruzando de mundo. Va primero por ser una acción directa.
+    const aliasMatch = matchModuleAlias(deferredQuery)
+    const revealItems: Item[] = aliasMatch
+      ? [{ kind: 'reveal', moduleId: aliasMatch.moduleId, label: aliasMatch.label }]
+      : []
+
     return [
+      ...revealItems,
       ...matchesView,
       ...matchesAction,
       ...entityItems,

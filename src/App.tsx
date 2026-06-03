@@ -39,7 +39,8 @@ import { AuthGate } from './components/AuthGate'
 import { AppPinGate } from './components/AppPinGate'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { SectionAccentBand } from './components/SectionAccentBand'
-import { NotasWorld } from './components/notas/NotasWorld'
+import { NotasWorld, type NotasSection } from './components/notas/NotasWorld'
+import { useModuleVisibility } from './hooks/useModuleVisibility'
 import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
 // GlobalProgressBar removido por feedback del usuario — la barra fina
 // que latía con cada query se percibía como molesta. Si en el futuro
@@ -58,9 +59,12 @@ import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
 function Shell({
   world,
   onChangeWorld,
+  onRevealNotasModule,
 }: {
   world: World
   onChangeWorld: (w: World) => void
+  /** Revelar/abrir un módulo del mundo Notas desde el ⌘K (cruza de mundo). */
+  onRevealNotasModule: (moduleId: NotasSection) => void
 }) {
   const entitiesQuery = useEntitiesQuery()
   const relationshipsQuery = useRelationshipsQuery()
@@ -395,6 +399,7 @@ function Shell({
           setPendingChatThreadId(threadId)
           setView('chat')
         }}
+        onRevealNotasModule={onRevealNotasModule}
         onAction={(action) => {
           // Las acciones rápidas del palette se traducen en navigations
           // + modal openings. "Nueva X" navega a la vista correspondiente;
@@ -500,15 +505,38 @@ function WorldShell() {
   // Identidad de acento por mundo (Notas = salvia) vía clase en <html>.
   useWorldThemeClass(world)
 
+  // Revelar un módulo del mundo Notas desde el ⌘K del mundo principal: lo
+  // des-oculta, agenda abrir esa sección, y cruza al mundo Notas.
+  const { reveal } = useModuleVisibility()
+  const [pendingNotasSection, setPendingNotasSection] = useState<NotasSection | null>(
+    null,
+  )
+  const revealNotasModule = useCallback(
+    (moduleId: NotasSection) => {
+      reveal(moduleId)
+      setPendingNotasSection(moduleId)
+      changeWorld('notas')
+    },
+    [reveal, changeWorld],
+  )
+
   // El conmutador de mundos vive en el logo (WorldSwitcher), dentro del header
   // de cada mundo — por eso acá no hay riel: se monta el mundo activo a pantalla
   // completa y se le pasa el control de cambio de mundo.
   return (
     <div className="h-screen w-screen overflow-hidden">
       {world === 'trama' ? (
-        <Shell world={world} onChangeWorld={changeWorld} />
+        <Shell
+          world={world}
+          onChangeWorld={changeWorld}
+          onRevealNotasModule={revealNotasModule}
+        />
       ) : (
-        <NotasWorld world={world} onChangeWorld={changeWorld} />
+        <NotasWorld
+          world={world}
+          onChangeWorld={changeWorld}
+          initialSection={pendingNotasSection ?? undefined}
+        />
       )}
     </div>
   )
