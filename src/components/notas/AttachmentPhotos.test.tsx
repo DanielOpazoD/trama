@@ -161,43 +161,63 @@ describe('<AttachmentPhotos />', () => {
     )
   })
 
-  it('"adjuntar y editar" pasa cada imagen por el editor antes de subir', async () => {
-    const edited = new File(['e'], 'e.webp', { type: 'image/webp' })
-    editorMock.editImage.mockResolvedValue(edited)
-
-    const { container, getByLabelText } = renderWithProviders(
-      <AttachmentPhotos ownerType="week" ownerId="2026-06-01" />,
-    )
-    // Marca la próxima selección como "editar", luego dispara el input.
-    fireEvent.click(getByLabelText('Adjuntar y editar fotos'))
-    const input = fileInput(container)
-    const f1 = new File(['a'], 'a.jpg', { type: 'image/jpeg' })
-    fireEvent.change(input, { target: { files: [f1] } })
-
-    await waitFor(() =>
-      expect(editorMock.editImage).toHaveBeenCalledWith(
-        f1,
-        expect.objectContaining({ outputType: 'image/webp' }),
-      ),
-    )
-    await waitFor(() => expect(uploadCalls).toHaveLength(1))
-  })
-
-  it('editar una foto ya guardada: baja el blob, edita, sube la nueva y borra la vieja', async () => {
-    const edited = new File(['e'], 'e.webp', { type: 'image/webp' })
-    editorMock.editImage.mockResolvedValue(edited)
-
-    const row = {
-      id: 'a1',
+  function attachmentRow(id: string, fileName: string) {
+    return {
+      id,
       owner_type: 'task',
       owner_id: 't-1',
-      file_name: 'f.jpg',
+      file_name: fileName,
       mime_type: 'image/jpeg',
       byte_size: 10,
-      storage_key: 'u1/f.jpg',
+      storage_key: `u1/${id}.jpg`,
       created_at: 'x',
       updated_at: 'x',
     }
+  }
+
+  it('clic en una miniatura abre el visor y las flechas navegan (wrap)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL) => {
+        const u = String(url)
+        if (u.includes('/api/notas-attachments?')) {
+          return new Response(
+            JSON.stringify([
+              attachmentRow('a1', 'uno.jpg'),
+              attachmentRow('a2', 'dos.jpg'),
+            ]),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          )
+        }
+        return new Response(new Blob(['img']), {
+          status: 200,
+          headers: { 'Content-Type': 'image/jpeg' },
+        })
+      }),
+    )
+
+    const { findByLabelText, getByRole, getByText, queryByRole } = renderWithProviders(
+      <AttachmentPhotos ownerType="task" ownerId="t-1" />,
+    )
+    fireEvent.click(await findByLabelText('Ver foto uno.jpg'))
+    expect(getByRole('dialog', { name: /visor de fotos/i })).toBeInTheDocument()
+    expect(getByText(/1 \/ 2/)).toBeInTheDocument()
+
+    // Siguiente → 2/2; otra vez → vuelve a 1/2 (continuo).
+    fireEvent.click(getByRole('button', { name: /foto siguiente/i }))
+    expect(getByText(/2 \/ 2/)).toBeInTheDocument()
+    fireEvent.click(getByRole('button', { name: /foto siguiente/i }))
+    expect(getByText(/1 \/ 2/)).toBeInTheDocument()
+
+    fireEvent.click(getByRole('button', { name: /^cerrar$/i }))
+    expect(queryByRole('dialog', { name: /visor de fotos/i })).toBeNull()
+  })
+
+  it('editar desde el visor: baja el blob, edita, sube la nueva y borra la vieja', async () => {
+    const edited = new File(['e'], 'e.webp', { type: 'image/webp' })
+    editorMock.editImage.mockResolvedValue(edited)
+
+    const row = attachmentRow('a1', 'f.jpg')
     const calls: { method: string; url: string }[] = []
     vi.stubGlobal(
       'fetch',
@@ -209,10 +229,7 @@ describe('<AttachmentPhotos />', () => {
         if (method === 'POST' && u.includes('/api/notas-attachments-upload')) {
           return new Response(
             JSON.stringify({ ...row, id: 'a2', storage_key: 'u1/2.webp' }),
-            {
-              status: 201,
-              headers: { 'Content-Type': 'application/json' },
-            },
+            { status: 201, headers: { 'Content-Type': 'application/json' } },
           )
         }
         if (u.includes('/api/notas-attachments?')) {
@@ -229,11 +246,12 @@ describe('<AttachmentPhotos />', () => {
       }),
     )
 
-    const { findByLabelText } = renderWithProviders(
+    const { findByLabelText, getByRole } = renderWithProviders(
       <AttachmentPhotos ownerType="task" ownerId="t-1" />,
     )
-    const editBtn = await findByLabelText(/editar foto f\.jpg/i)
-    fireEvent.click(editBtn)
+    // Abrir el visor desde la miniatura, luego editar desde el visor.
+    fireEvent.click(await findByLabelText('Ver foto f.jpg'))
+    fireEvent.click(getByRole('button', { name: /^editar foto$/i }))
 
     await waitFor(() => expect(editorMock.editImage).toHaveBeenCalledTimes(1))
     await waitFor(() =>
