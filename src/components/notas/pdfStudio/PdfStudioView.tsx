@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   addImageSource,
   addPdfSource,
+  applyEdits,
   canExport,
   deletePage,
   deletePages,
@@ -16,7 +17,6 @@ import {
   reseedIds,
   rotatePage,
   rotatePages,
-  setPageAnnotations,
   subsetDoc,
   type Annotation,
   type PdfDoc,
@@ -353,13 +353,7 @@ export function PdfStudioView() {
     // El editor permite navegar y editar varias páginas; entrega un mapa
     // índice→anotaciones de las páginas que tocó. Se confirman todas juntas.
     if (edits && Object.keys(edits).length > 0) {
-      commit((d) => {
-        let next = d
-        for (const [idx, anns] of Object.entries(edits)) {
-          next = setPageAnnotations(next, Number(idx), anns)
-        }
-        return next
-      })
+      commit((d) => applyEdits(d, edits))
     }
     setTextPage(null)
   }

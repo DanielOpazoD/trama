@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   addImageSource,
   addPdfSource,
+  applyEdits,
   baselineDropEm,
   canExport,
   deletePage,
@@ -358,6 +359,16 @@ describe('pdfStudio/model · anotaciones polimórficas', () => {
   it('isTextAnnotation distingue texto de resaltado', () => {
     expect(isTextAnnotation(aText())).toBe(true)
     expect(isTextAnnotation(aHighlight())).toBe(false)
+  })
+
+  it('applyEdits aplica el mapa índice→anotaciones de una vez; {} no cambia el doc', () => {
+    const d = addPdfSource(emptyDoc(), pdf(), 2)
+    const t = aText()
+    const h = aHighlight()
+    const out = applyEdits(d, { 0: [t], 1: [h] })
+    expect(out.pages[0]!.annotations).toEqual([t])
+    expect(out.pages[1]!.annotations).toEqual([h])
+    expect(applyEdits(d, {})).toBe(d) // sin ediciones → mismo doc (misma ref)
   })
 
   it('normalizeDoc pone kind:text a anotaciones viejas (sin kind), respeta las que ya lo tienen', () => {
