@@ -346,10 +346,17 @@ export function PdfStudioView() {
     void clearDraft(userKey)
   }
 
-  function closeTextEditor(annotations: TextAnnotation[] | null) {
-    if (annotations && textPage !== null) {
-      const i = textPage
-      commit((d) => setPageAnnotations(d, i, annotations))
+  function closeTextEditor(edits: Record<number, TextAnnotation[]> | null) {
+    // El editor permite navegar y editar varias páginas; entrega un mapa
+    // índice→anotaciones de las páginas que tocó. Se confirman todas juntas.
+    if (edits && Object.keys(edits).length > 0) {
+      commit((d) => {
+        let next = d
+        for (const [idx, anns] of Object.entries(edits)) {
+          next = setPageAnnotations(next, Number(idx), anns)
+        }
+        return next
+      })
     }
     setTextPage(null)
   }

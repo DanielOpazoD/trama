@@ -290,4 +290,27 @@ describe('<PdfStudioView />', () => {
     // …y NO está el viejo texto instructivo.
     expect(screen.queryByText(/toca uno para editarlo/i)).not.toBeInTheDocument()
   })
+
+  it('navega entre páginas del documento desde el mismo visor', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile()) // getPdfPageCount mock = 2 → 2 páginas
+    await screen.findByAltText('Página 1')
+
+    await user.dblClick(screen.getByAltText('Página 1'))
+    const dialog = await screen.findByRole('dialog', { name: /Texto sobre la página 1/i })
+
+    // En la primera: "anterior" deshabilitada, "siguiente" habilitada.
+    expect(
+      within(dialog).getByRole('button', { name: /Página anterior/i }),
+    ).toBeDisabled()
+    const next = within(dialog).getByRole('button', { name: /Página siguiente/i })
+    expect(next).toBeEnabled()
+
+    // Avanza → ahora el diálogo es la página 2.
+    await user.click(next)
+    expect(
+      screen.getByRole('dialog', { name: /Texto sobre la página 2/i }),
+    ).toBeInTheDocument()
+  })
 })
