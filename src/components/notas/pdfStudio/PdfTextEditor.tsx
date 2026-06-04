@@ -132,23 +132,31 @@ export function PdfTextEditor({
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
-  // Tamaño de despliegue de la página (fit dentro de la ventana, manteniendo aspecto).
-  const display = useMemo(() => {
+  // Layout de la página en su orientación FINAL (rotada = como saldrá). La caja
+  // EXTERIOR es el bounding box rotado (lo que ocupa en pantalla); la página
+  // INTERIOR es la nativa (sin rotar) que se rota dentro. Las anotaciones viven
+  // en la página interior (ratios nativos) → rotan junto con ella, igual que en
+  // el ensamblado (`setRotation`). Así el editor ≡ la salida.
+  const layout = useMemo(() => {
     if (!bg) return null
+    const rot = page ? ((page.rotationQuarters % 4) + 4) % 4 : 0
+    const swap = rot % 2 === 1
     const maxW = Math.min(
       typeof window !== 'undefined' ? window.innerWidth * 0.92 : 760,
       760,
     )
     const maxH = (typeof window !== 'undefined' ? window.innerHeight : 800) * 0.62
-    const ar = bg.h / bg.w
-    let w = maxW
-    let h = w * ar
-    if (h > maxH) {
-      h = maxH
-      w = h / ar
+    const finalAspect = swap ? bg.w / bg.h : bg.h / bg.w
+    let outerW = maxW
+    let outerH = outerW * finalAspect
+    if (outerH > maxH) {
+      outerH = maxH
+      outerW = outerH / finalAspect
     }
-    return { w, h }
-  }, [bg])
+    const innerW = swap ? outerH : outerW
+    const innerH = swap ? outerW : outerH
+    return { rot, outerW, outerH, innerW, innerH }
+  }, [bg, page])
 
   const selected = annotations.find((a) => a.id === selectedId) ?? null
 
@@ -178,16 +186,32 @@ export function PdfTextEditor({
   function startDrag(e: React.PointerEvent, a: TextAnnotation) {
     e.stopPropagation()
     setSelectedId(a.id)
-    const dw = display?.w ?? 1
-    const dh = display?.h ?? 1
+    const dw = layout?.innerW ?? 1
+    const dh = layout?.innerH ?? 1
+    const rot = layout?.rot ?? 0
     const startX = e.clientX
     const startY = e.clientY
     const ox = a.xRatio
     const oy = a.yRatio
     const move = (ev: PointerEvent) => {
+      // Delta de pantalla → frame nativo de la página (inversa de la rotación CSS).
+      const sdx = ev.clientX - startX
+      const sdy = ev.clientY - startY
+      let pdx = sdx
+      let pdy = sdy
+      if (rot === 1) {
+        pdx = sdy
+        pdy = -sdx
+      } else if (rot === 2) {
+        pdx = -sdx
+        pdy = -sdy
+      } else if (rot === 3) {
+        pdx = -sdy
+        pdy = sdx
+      }
       update(a.id, {
-        xRatio: clamp01(ox + (ev.clientX - startX) / dw),
-        yRatio: clamp01(oy + (ev.clientY - startY) / dh),
+        xRatio: clamp01(ox + pdx / dw),
+        yRatio: clamp01(oy + pdy / dh),
       })
     }
     const up = () => {
@@ -228,50 +252,59 @@ export function PdfTextEditor({
           </div>
         </header>
 
-        {/* Página + textos */}
+        {/* Página + textos — en orientación FINAL (rotada como saldrá) */}
         <div className="flex-1 flex items-center justify-center bg-ink-100/30 p-5 sm:p-6">
-          {display && bg ? (
+          {layout && bg ? (
             <div
-              onClick={() => setSelectedId(null)}
-              className="relative bg-white rounded-[2px] ring-1 ring-ink-900/10 shadow-xl shadow-ink-900/15"
-              style={{ width: display.w, height: display.h }}
+              className="relative"
+              style={{ width: layout.outerW, height: layout.outerH }}
             >
-              <img
-                src={bg.url}
-                alt={`Página ${pageIndex + 1}`}
-                className="absolute inset-0 w-full h-full object-contain select-none"
-                draggable={false}
-              />
-              {annotations.map((a) => (
-                <div
-                  key={a.id}
-                  onPointerDown={(e) => startDrag(e, a)}
-                  style={{
-                    position: 'absolute',
-                    left: `${a.xRatio * 100}%`,
-                    top: `${a.yRatio * 100}%`,
-                    fontFamily: previewFontFamily(a.font),
-                    fontWeight: a.bold ? 700 : 400,
-                    fontSize: `${a.sizeRatio * display.h}px`,
-                    lineHeight: 1.15,
-                    color: a.color,
-                    whiteSpace: 'pre',
-                    cursor: 'move',
-                    userSelect: 'none',
-                    touchAction: 'none',
-                    padding: '0 2px',
-                    borderRadius: 2,
-                    outline:
-                      selectedId === a.id
-                        ? `1.5px solid ${ACCENT}`
-                        : '1.5px solid transparent',
-                    outlineOffset: 2,
-                    transition: 'outline-color 120ms ease',
-                  }}
-                >
-                  {a.text || ' '}
-                </div>
-              ))}
+              <div
+                onClick={() => setSelectedId(null)}
+                className="absolute left-1/2 top-1/2 bg-white rounded-sm ring-1 ring-ink-900/10 shadow-xl shadow-ink-900/15"
+                style={{
+                  width: layout.innerW,
+                  height: layout.innerH,
+                  transform: `translate(-50%, -50%) rotate(${layout.rot * 90}deg)`,
+                }}
+              >
+                <img
+                  src={bg.url}
+                  alt={`Página ${pageIndex + 1}`}
+                  className="absolute inset-0 w-full h-full object-contain select-none"
+                  draggable={false}
+                />
+                {annotations.map((a) => (
+                  <div
+                    key={a.id}
+                    onPointerDown={(e) => startDrag(e, a)}
+                    style={{
+                      position: 'absolute',
+                      left: `${a.xRatio * 100}%`,
+                      top: `${a.yRatio * 100}%`,
+                      fontFamily: previewFontFamily(a.font),
+                      fontWeight: a.bold ? 700 : 400,
+                      fontSize: `${a.sizeRatio * layout.innerH}px`,
+                      lineHeight: 1.15,
+                      color: a.color,
+                      whiteSpace: 'pre',
+                      cursor: 'move',
+                      userSelect: 'none',
+                      touchAction: 'none',
+                      padding: '0 2px',
+                      borderRadius: 2,
+                      outline:
+                        selectedId === a.id
+                          ? `1.5px solid ${ACCENT}`
+                          : '1.5px solid transparent',
+                      outlineOffset: 2,
+                      transition: 'outline-color 120ms ease',
+                    }}
+                  >
+                    {a.text || ' '}
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="py-24">
@@ -304,7 +337,7 @@ export function PdfTextEditor({
                 onChange={(e) => update(selected.id, { text: e.target.value })}
                 rows={2}
                 placeholder="Escribe el texto…"
-                className="w-full bg-paper-100/40 rounded-md px-2.5 py-1.5 text-caption text-ink-700 placeholder:text-ink-300 resize-none border border-ink-100/60 outline-none transition-colors focus:border-ink-300 focus:bg-paper-50"
+                className="w-full bg-paper-100/40 rounded-md px-2.5 py-1.5 text-caption text-ink-700 placeholder:text-ink-300 resize-none border border-ink-100/60 transition-colors focus:border-ink-300 focus:bg-paper-50"
               />
               <div className="flex flex-wrap items-center gap-2">
                 {/* Fuente */}

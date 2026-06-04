@@ -40,9 +40,11 @@ import {
   DownloadIcon,
   FileIcon,
   FilePdfIcon,
+  RedoIcon,
   RotateIcon,
   TextIcon,
   TrashIcon,
+  UndoIcon,
   UploadIcon,
 } from '../../Icons'
 import { useToast } from '../../../state'
@@ -255,9 +257,7 @@ export function PdfStudioView() {
                 title="Deshacer (⌘Z)"
                 className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
               >
-                <span aria-hidden className="text-base leading-none">
-                  ↺
-                </span>
+                <UndoIcon size={14} />
               </button>
               <button
                 type="button"
@@ -267,9 +267,7 @@ export function PdfStudioView() {
                 title="Rehacer (⌘⇧Z)"
                 className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
               >
-                <span aria-hidden className="text-base leading-none">
-                  ↻
-                </span>
+                <RedoIcon size={14} />
               </button>
             </div>
           )}
