@@ -21,14 +21,25 @@ export type PdfSource = {
 export type PdfFontKind = 'sans' | 'serif' | 'mono'
 
 /**
- * Texto vectorial superpuesto a una página (PR D). Posición y tamaño se guardan
- * como RATIOS del tamaño de la página (0..1) → independientes de la resolución:
- * el mismo dato sirve para el preview (px) y para pdf-lib (puntos). `yRatio` es
- * el TOPE del texto medido desde arriba (como en pantalla); el ensamblado lo
- * convierte a la baseline desde abajo que usa pdf-lib.
+ * Anotación vectorial superpuesta a una página. Es una **unión discriminada** por
+ * `kind`: hoy `text` (texto) y `highlight` (resaltado), y crecerá con el resto del
+ * "estudio de marcado" (lápiz, formas, firma/imagen). Posición y tamaño SIEMPRE
+ * como RATIOS del tamaño de página (0..1) → independientes de la resolución: el
+ * mismo dato sirve para el preview (px) y para pdf-lib (puntos). El ensamblado
+ * (`assemble`) despacha el dibujo por `kind`.
  */
-export type TextAnnotation = {
+type AnnotationBase = {
   id: string
+  /** Opacidad 0..1 (default 1). Opcional para no romper borradores previos. */
+  opacity?: number
+}
+
+/**
+ * Texto vectorial (`drawText`). `yRatio` es el TOPE del texto desde arriba; el
+ * ensamblado lo convierte a la baseline desde abajo que usa pdf-lib.
+ */
+export type TextAnnotation = AnnotationBase & {
+  kind: 'text'
   text: string
   xRatio: number
   yRatio: number
@@ -38,15 +49,27 @@ export type TextAnnotation = {
   color: string
   font: PdfFontKind
   bold: boolean
-  /** Opacidad 0..1 (default 1). Opcional para no romper borradores previos. */
-  opacity?: number
   /** Rotación en grados HORARIOS (default 0). Opcional (compat). */
   rotation?: number
 }
 
+/** Resaltado: rectángulo translúcido (`drawRectangle`). `(x,y)` = esquina sup-izq. */
+export type HighlightAnnotation = AnnotationBase & {
+  kind: 'highlight'
+  xRatio: number
+  yRatio: number
+  wRatio: number
+  hRatio: number
+  /** Color en hex `#rrggbb`. */
+  color: string
+}
+
+/** Cualquier anotación de una página (unión discriminada por `kind`). */
+export type Annotation = TextAnnotation | HighlightAnnotation
+
 export type PdfPage = {
   id: string
-  annotations: TextAnnotation[]
+  annotations: Annotation[]
   /** Cuartos de vuelta horarios (0..3) aplicados a la página en la salida. */
   rotationQuarters: number
 } & (
@@ -187,7 +210,7 @@ export function duplicatePages(doc: PdfDoc, indices: number[]): PdfDoc {
       pages.push({
         ...p,
         id: nextId('p'),
-        annotations: p.annotations.map((a) => ({ ...a, id: nextId('t') })),
+        annotations: p.annotations.map((a) => ({ ...a, id: nextId('a') })),
       })
     }
   })
@@ -225,11 +248,42 @@ export function pageThumbKey(page: PdfPage): string {
     : `${page.sourceId}:img`
 }
 
-// ── Texto vectorial (PR D) ────────────────────────────────────────────────
+// ── Anotaciones (texto, resaltado, …) ─────────────────────────────────────
 
-/** Crea una anotación de texto con id propio (la UI provee el resto). */
-export function makeAnnotation(init: Omit<TextAnnotation, 'id'>): TextAnnotation {
-  return { ...init, id: nextId('t') }
+/** Crea una anotación de TEXTO con id propio (la UI provee el resto). */
+export function makeTextAnnotation(
+  init: Omit<TextAnnotation, 'id' | 'kind'>,
+): TextAnnotation {
+  return { ...init, id: nextId('t'), kind: 'text' }
+}
+
+/** Crea una anotación de RESALTADO (rectángulo translúcido) con id propio. */
+export function makeHighlightAnnotation(
+  init: Omit<HighlightAnnotation, 'id' | 'kind'>,
+): HighlightAnnotation {
+  return { ...init, id: nextId('a'), kind: 'highlight' }
+}
+
+/** Type guard: ¿es una anotación de texto? */
+export function isTextAnnotation(a: Annotation): a is TextAnnotation {
+  return a.kind === 'text'
+}
+
+/**
+ * Normaliza un documento restaurado: a las anotaciones de borradores VIEJOS (sin
+ * `kind`, de antes de la unión) les pone `kind: 'text'`, para que la unión las
+ * reconozca y el ensamblado las dibuje. Puro; idempotente.
+ */
+export function normalizeDoc(doc: PdfDoc): PdfDoc {
+  return {
+    ...doc,
+    pages: doc.pages.map((p) => ({
+      ...p,
+      annotations: p.annotations.map((a) =>
+        (a as { kind?: string }).kind ? a : ({ ...a, kind: 'text' } as Annotation),
+      ),
+    })),
+  }
 }
 
 /**
@@ -240,7 +294,7 @@ export function makeAnnotation(init: Omit<TextAnnotation, 'id'>): TextAnnotation
 export function setPageAnnotations(
   doc: PdfDoc,
   index: number,
-  annotations: TextAnnotation[],
+  annotations: Annotation[],
 ): PdfDoc {
   if (index < 0 || index >= doc.pages.length) return doc
   const pages = [...doc.pages]
@@ -250,8 +304,8 @@ export function setPageAnnotations(
   return { ...doc, pages }
 }
 
-/** ¿La página tiene texto superpuesto? */
-export function pageHasText(page: PdfPage): boolean {
+/** ¿La página tiene anotaciones superpuestas (de cualquier tipo)? */
+export function pageHasAnnotations(page: PdfPage): boolean {
   return page.annotations.length > 0
 }
 

@@ -19,10 +19,10 @@ import {
   standardFontName,
   TEXT_LINE_HEIGHT,
   textBoxLayout,
+  type Annotation,
   type PdfDoc,
   type PdfFontKind,
   type PdfSource,
-  type TextAnnotation,
 } from './model'
 import type { PDFFont, PDFPage } from 'pdf-lib'
 
@@ -137,7 +137,9 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
   // Sólo si hay texto con fuente embebible: registrar fontkit (necesario para
   // `embedFont` con bytes) y cargarlo PEREZOSO para no sumarlo cuando no se usa.
   const hasEmbeddedText = doc.pages.some((p) =>
-    p.annotations.some((a) => a.text.trim() && isEmbeddableFont(a.font)),
+    p.annotations.some(
+      (a) => a.kind === 'text' && a.text.trim() && isEmbeddableFont(a.font),
+    ),
   )
   if (hasEmbeddedText) {
     const fk = await import('@pdf-lib/fontkit')
@@ -190,33 +192,46 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
     fontCache.set(key, resolved)
     return resolved
   }
-  const applyAnnotations = async (outPage: PDFPage, annotations: TextAnnotation[]) => {
+  // Dibuja cada anotación según su `kind`. Texto → `drawText` con la tipografía
+  // real (o estándar de fallback); resaltado → `drawRectangle` translúcido. Cada
+  // tipo nuevo del "estudio de marcado" agrega su caso acá.
+  const applyAnnotations = async (outPage: PDFPage, annotations: Annotation[]) => {
     const w = outPage.getWidth()
     const h = outPage.getHeight()
     for (const ann of annotations) {
-      if (!ann.text.trim()) continue
       try {
-        const font = await fontFor(ann.font, ann.bold)
-        const layout = textBoxLayout(ann, w, h)
-        const size = Math.max(1, layout.size)
-        const c = hexToRgb(ann.color)
-        outPage.drawText(ann.text, {
-          x: layout.x,
-          y: layout.topY - baselineDropEm(ann.font) * size,
-          size,
-          font,
-          color: rgb(c.r, c.g, c.b),
-          lineHeight: size * TEXT_LINE_HEIGHT,
-          opacity: ann.opacity ?? 1,
-          // CSS rota horario (+); pdf-lib rota antihorario (+) → se niega.
-          rotate: degrees(-(ann.rotation ?? 0)),
-        })
+        if (ann.kind === 'text') {
+          if (!ann.text.trim()) continue
+          const font = await fontFor(ann.font, ann.bold)
+          const layout = textBoxLayout(ann, w, h)
+          const size = Math.max(1, layout.size)
+          const c = hexToRgb(ann.color)
+          outPage.drawText(ann.text, {
+            x: layout.x,
+            y: layout.topY - baselineDropEm(ann.font) * size,
+            size,
+            font,
+            color: rgb(c.r, c.g, c.b),
+            lineHeight: size * TEXT_LINE_HEIGHT,
+            opacity: ann.opacity ?? 1,
+            // CSS rota horario (+); pdf-lib rota antihorario (+) → se niega.
+            rotate: degrees(-(ann.rotation ?? 0)),
+          })
+        } else if (ann.kind === 'highlight') {
+          const c = hexToRgb(ann.color)
+          // `yRatio` es el tope desde arriba; pdf-lib mide `y` desde abajo.
+          outPage.drawRectangle({
+            x: ann.xRatio * w,
+            y: h - (ann.yRatio + ann.hRatio) * h,
+            width: ann.wRatio * w,
+            height: ann.hRatio * h,
+            color: rgb(c.r, c.g, c.b),
+            opacity: ann.opacity ?? 0.4,
+          })
+        }
       } catch (err) {
         // p. ej. carácter fuera de WinAnsi en una fuente estándar.
-        skipped.push({
-          name: `texto «${ann.text.trim().slice(0, 16)}»`,
-          reason: errMessage(err),
-        })
+        skipped.push({ name: `anotación ${ann.kind}`, reason: errMessage(err) })
       }
     }
   }

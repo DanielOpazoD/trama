@@ -4,7 +4,8 @@ import {
   addPdfSource,
   baselineDropEm,
   emptyDoc,
-  makeAnnotation,
+  makeHighlightAnnotation,
+  makeTextAnnotation,
   rotatePage,
   setPageAnnotations,
 } from './model'
@@ -21,6 +22,7 @@ const calls = vi.hoisted(() => ({
   embedFont: vi.fn(),
   drawImage: vi.fn(),
   drawText: vi.fn(),
+  drawRectangle: vi.fn(),
   setRotation: vi.fn(),
   registerFontkit: vi.fn(),
 }))
@@ -33,6 +35,7 @@ vi.mock('pdf-lib', () => {
     setRotation: (...a: unknown[]) => calls.setRotation(...a),
     drawImage: (...a: unknown[]) => calls.drawImage(...a),
     drawText: (...a: unknown[]) => calls.drawText(...a),
+    drawRectangle: (...a: unknown[]) => calls.drawRectangle(...a),
   })
   return {
     PDFDocument: {
@@ -141,7 +144,7 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
 
   it('el texto sans embebe la fuente REAL (Inter por bytes + subconjunto) y dibuja en el layout', async () => {
     let doc = addImageSource(emptyDoc(), png()) // página → 100 x 200 pt (embedPng mock)
-    const ann = makeAnnotation({
+    const ann = makeTextAnnotation({
       text: 'Hola',
       xRatio: 0.25,
       yRatio: 0.5,
@@ -178,7 +181,7 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
   it('mono usa la fuente ESTÁNDAR (Courier), sin embeber ni registrar fontkit', async () => {
     let doc = addImageSource(emptyDoc(), png())
     doc = setPageAnnotations(doc, 0, [
-      makeAnnotation({
+      makeTextAnnotation({
         text: 'cod',
         xRatio: 0.1,
         yRatio: 0.1,
@@ -204,7 +207,7 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     )
     let doc = addImageSource(emptyDoc(), png())
     doc = setPageAnnotations(doc, 0, [
-      makeAnnotation({
+      makeTextAnnotation({
         text: 'x',
         xRatio: 0.1,
         yRatio: 0.1,
@@ -217,6 +220,32 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     await assemble(doc)
     // El WOFF no cargó → se embebió la estándar equivalente (Times-Bold).
     expect(calls.embedFont).toHaveBeenCalledWith('Times-Bold')
+  })
+
+  it('el resaltado se dibuja con drawRectangle translúcido en las coords del layout', async () => {
+    let doc = addImageSource(emptyDoc(), png()) // página → 100 x 200 pt
+    doc = setPageAnnotations(doc, 0, [
+      makeHighlightAnnotation({
+        xRatio: 0.2,
+        yRatio: 0.3,
+        wRatio: 0.4,
+        hRatio: 0.1,
+        color: '#ff0000',
+        opacity: 0.5,
+      }),
+    ])
+    await assemble(doc)
+
+    expect(calls.drawText).not.toHaveBeenCalled()
+    expect(calls.drawRectangle).toHaveBeenCalledTimes(1)
+    const [opts] = calls.drawRectangle.mock.calls[0] as [
+      { x: number; y: number; width: number; height: number; opacity: number },
+    ]
+    expect(opts.x).toBeCloseTo(20) // 0.2 * 100
+    expect(opts.width).toBeCloseTo(40) // 0.4 * 100
+    expect(opts.height).toBeCloseTo(20) // 0.1 * 200
+    expect(opts.y).toBeCloseTo(120) // 200 − (0.3+0.1)*200
+    expect(opts.opacity).toBe(0.5)
   })
 
   it('readPngSize lee las dimensiones del IHDR; null si no es PNG', () => {
