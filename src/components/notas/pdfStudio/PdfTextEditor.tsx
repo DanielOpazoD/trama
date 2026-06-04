@@ -441,6 +441,9 @@ export function PdfTextEditor({
                   <div
                     key={a.id}
                     onPointerDown={(e) => startDrag(e, a)}
+                    // El click NO debe llegar al fondo (que deselecciona): así
+                    // tocar un texto existente lo re-selecciona y reabre la barra.
+                    onClick={(e) => e.stopPropagation()}
                     style={{
                       position: 'absolute',
                       left: `${a.xRatio * 100}%`,
