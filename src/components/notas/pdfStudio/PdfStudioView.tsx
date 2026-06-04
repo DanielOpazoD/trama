@@ -10,16 +10,17 @@ import {
   getSource,
   movePage,
   movePageByDelta,
-  pageHasText,
+  normalizeDoc,
+  pageHasAnnotations,
   pageThumbKey,
   reseedIds,
   rotatePage,
   rotatePages,
   setPageAnnotations,
   subsetDoc,
+  type Annotation,
   type PdfDoc,
   type PdfPage,
-  type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import {
   canRedo,
@@ -138,9 +139,11 @@ export function PdfStudioView() {
   // `reseedIds` continúa el contador de ids para no colisionar tras recargar.
   useEffect(() => {
     let alive = true
-    void loadDraft(userKey).then((restored) => {
+    void loadDraft(userKey).then((loadedDoc) => {
       if (!alive) return
-      if (restored && restored.pages.length > 0) {
+      if (loadedDoc && loadedDoc.pages.length > 0) {
+        // Compat: anotaciones de borradores viejos (sin `kind`) → texto.
+        const restored = normalizeDoc(loadedDoc)
         reseedIds(restored)
         setHistory(initHistory(restored))
         toastRef.current.show({
@@ -346,7 +349,7 @@ export function PdfStudioView() {
     void clearDraft(userKey)
   }
 
-  function closeTextEditor(edits: Record<number, TextAnnotation[]> | null) {
+  function closeTextEditor(edits: Record<number, Annotation[]> | null) {
     // El editor permite navegar y editar varias páginas; entrega un mapa
     // índice→anotaciones de las páginas que tocó. Se confirman todas juntas.
     if (edits && Object.keys(edits).length > 0) {
@@ -842,7 +845,7 @@ function PageCard({
           {selected ? <CheckIcon size={10} /> : <KindIcon size={10} />}
           {index + 1}
         </button>
-        {pageHasText(page) && (
+        {pageHasAnnotations(page) && (
           <span
             className="absolute top-1 right-1 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-micro tabular-nums text-paper-50"
             style={{ backgroundColor: ACCENT }}
@@ -892,7 +895,7 @@ function PageCard({
                 }}
               >
                 <TextIcon size={13} />{' '}
-                {pageHasText(page) ? 'Editar texto' : 'Agregar texto'}
+                {pageHasAnnotations(page) ? 'Editar texto' : 'Agregar texto'}
               </OverflowMenuItem>
               <OverflowMenuItem
                 onClick={() => {

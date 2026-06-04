@@ -10,10 +10,13 @@ import {
   emptyDoc,
   getSource,
   isEmbeddableFont,
-  makeAnnotation,
+  isTextAnnotation,
+  makeHighlightAnnotation,
+  makeTextAnnotation,
   movePage,
   movePageByDelta,
-  pageHasText,
+  normalizeDoc,
+  pageHasAnnotations,
   pageThumbKey,
   previewFontFamily,
   replacePageWithImage,
@@ -24,6 +27,7 @@ import {
   standardFontName,
   subsetDoc,
   textBoxLayout,
+  type Annotation,
   type PdfDoc,
 } from './model'
 
@@ -129,9 +133,9 @@ describe('pdfStudio/model · texto vectorial', () => {
     expect(d.pages.every((p) => p.annotations.length === 0)).toBe(true)
   })
 
-  it('makeAnnotation asigna un id único y conserva los campos', () => {
-    const a = makeAnnotation(baseAnn)
-    const b = makeAnnotation(baseAnn)
+  it('makeTextAnnotation asigna un id único y conserva los campos', () => {
+    const a = makeTextAnnotation(baseAnn)
+    const b = makeTextAnnotation(baseAnn)
     expect(a.id).toBeTruthy()
     expect(a.id).not.toBe(b.id)
     expect(a.text).toBe('Hola')
@@ -140,18 +144,18 @@ describe('pdfStudio/model · texto vectorial', () => {
 
   it('setPageAnnotations reemplaza, no muta, e ignora fuera de rango', () => {
     let d = addPdfSource(emptyDoc(), pdf(), 2)
-    const ann = makeAnnotation(baseAnn)
+    const ann = makeTextAnnotation(baseAnn)
     d = setPageAnnotations(d, 1, [ann])
     expect(d.pages[0]!.annotations).toHaveLength(0)
     expect(d.pages[1]!.annotations).toEqual([ann])
-    expect(pageHasText(d.pages[1]!)).toBe(true)
-    expect(pageHasText(d.pages[0]!)).toBe(false)
+    expect(pageHasAnnotations(d.pages[1]!)).toBe(true)
+    expect(pageHasAnnotations(d.pages[0]!)).toBe(false)
     expect(setPageAnnotations(d, 9, [ann])).toBe(d) // fuera de rango → mismo doc
   })
 
   it('setPageAnnotations no muta el doc original (inmutable)', () => {
     const d0 = addPdfSource(emptyDoc(), pdf(), 1)
-    const d1 = setPageAnnotations(d0, 0, [makeAnnotation(baseAnn)])
+    const d1 = setPageAnnotations(d0, 0, [makeTextAnnotation(baseAnn)])
     expect(d0.pages[0]!.annotations).toHaveLength(0)
     expect(d1.pages[0]!.annotations).toHaveLength(1)
   })
@@ -191,7 +195,12 @@ describe('pdfStudio/model · texto vectorial', () => {
   })
 
   it('textBoxLayout convierte ratios a puntos (tope desde abajo)', () => {
-    const ann = makeAnnotation({ ...baseAnn, xRatio: 0.25, yRatio: 0.5, sizeRatio: 0.1 })
+    const ann = makeTextAnnotation({
+      ...baseAnn,
+      xRatio: 0.25,
+      yRatio: 0.5,
+      sizeRatio: 0.1,
+    })
     const l = textBoxLayout(ann, 400, 600)
     expect(l.x).toBe(100) // 0.25 * 400
     expect(l.size).toBeCloseTo(60) // 0.1 * 600
@@ -212,7 +221,7 @@ describe('pdfStudio/model · texto vectorial', () => {
       ],
     } as unknown as PdfDoc
     reseedIds(restored)
-    const a = makeAnnotation(baseAnn)
+    const a = makeTextAnnotation(baseAnn)
     expect(Number.parseInt(a.id.replace(/\D+/g, ''), 10)).toBeGreaterThan(950)
   })
 })
@@ -244,7 +253,7 @@ describe('pdfStudio/model · rotación', () => {
 
 describe('pdfStudio/model · operaciones en lote (selección múltiple)', () => {
   const textAnn = () =>
-    makeAnnotation({
+    makeTextAnnotation({
       text: 'firma',
       xRatio: 0.1,
       yRatio: 0.1,
@@ -290,8 +299,10 @@ describe('pdfStudio/model · operaciones en lote (selección múltiple)', () => 
     expect(out.pages[1]!.id).not.toBe(out.pages[0]!.id)
     expect(out.pages[1]!.sourceId).toBe(out.pages[0]!.sourceId) // no re-importa
     expect(out.pages[1]!.annotations).not.toBe(out.pages[0]!.annotations) // array propio
-    expect(out.pages[1]!.annotations[0]!.id).not.toBe(ann.id) // id nuevo
-    expect(out.pages[1]!.annotations[0]!.text).toBe('firma') // mismo contenido
+    const copy = out.pages[1]!.annotations[0]!
+    expect(copy.id).not.toBe(ann.id) // id nuevo
+    expect(copy.kind).toBe('text')
+    if (copy.kind === 'text') expect(copy.text).toBe('firma') // mismo contenido
     expect(out.sources.length).toBe(1) // comparten el source
     expect(duplicatePages(d, [])).toBe(d)
   })
@@ -314,5 +325,57 @@ describe('pdfStudio/model · operaciones en lote (selección múltiple)', () => 
     expect(out.sources.length).toBe(2)
     expect(subsetDoc(d, []).pages).toEqual([]) // vacío
     expect(subsetDoc(d, []).sources).toEqual([]) // sin páginas → sin sources
+  })
+})
+
+describe('pdfStudio/model · anotaciones polimórficas', () => {
+  const aText = () =>
+    makeTextAnnotation({
+      text: 'x',
+      xRatio: 0.1,
+      yRatio: 0.1,
+      sizeRatio: 0.04,
+      color: '#000000',
+      font: 'sans',
+      bold: false,
+    })
+  const aHighlight = () =>
+    makeHighlightAnnotation({
+      xRatio: 0.1,
+      yRatio: 0.2,
+      wRatio: 0.3,
+      hRatio: 0.05,
+      color: '#ffee00',
+    })
+
+  it('makeHighlightAnnotation crea un resaltado (kind highlight, id propio)', () => {
+    const h = aHighlight()
+    expect(h.kind).toBe('highlight')
+    expect(h.id).toBeTruthy()
+    expect(h.wRatio).toBe(0.3)
+  })
+
+  it('isTextAnnotation distingue texto de resaltado', () => {
+    expect(isTextAnnotation(aText())).toBe(true)
+    expect(isTextAnnotation(aHighlight())).toBe(false)
+  })
+
+  it('normalizeDoc pone kind:text a anotaciones viejas (sin kind), respeta las que ya lo tienen', () => {
+    // Borrador VIEJO: una anotación de texto SIN `kind` (de antes de la unión).
+    const old = {
+      id: 'x1',
+      text: 'hola',
+      xRatio: 0.1,
+      yRatio: 0.1,
+      sizeRatio: 0.04,
+      color: '#000',
+      font: 'sans',
+      bold: false,
+    }
+    let d = addImageSource(emptyDoc(), img())
+    d = setPageAnnotations(d, 0, [old as unknown as Annotation, aHighlight()])
+    const norm = normalizeDoc(d)
+    expect(norm.pages[0]!.annotations[0]!.kind).toBe('text') // se le puso kind
+    expect(norm.pages[0]!.annotations[1]!.kind).toBe('highlight') // respeta el existente
   })
 })

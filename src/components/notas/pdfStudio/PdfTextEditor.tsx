@@ -11,10 +11,12 @@ import { createPortal } from 'react-dom'
 import {
   baselineDropEm,
   getSource,
-  makeAnnotation,
+  isTextAnnotation,
+  makeTextAnnotation,
   pageThumbKey,
   previewFontFamily,
   TEXT_LINE_HEIGHT,
+  type Annotation,
   type PdfDoc,
   type PdfFontKind,
   type TextAnnotation,
@@ -223,13 +225,13 @@ export function PdfTextEditor({
 }: {
   doc: PdfDoc
   pageIndex: number
-  onClose: (edits: Record<number, TextAnnotation[]> | null) => void
+  onClose: (edits: Record<number, Annotation[]> | null) => void
 }) {
   const total = doc.pages.length
   const [currentPage, setCurrentPage] = useState(pageIndex)
   // Anotaciones EDITADAS por página (las que no se tocan siguen las del doc). Así
   // se puede navegar y editar varias páginas y confirmar todo junto.
-  const [edited, setEdited] = useState<Record<number, TextAnnotation[]>>({})
+  const [edited, setEdited] = useState<Record<number, Annotation[]>>({})
 
   const page = doc.pages[currentPage]
   const source = page ? getSource(doc, page.sourceId) : undefined
@@ -252,7 +254,7 @@ export function PdfTextEditor({
   /** Actualiza las anotaciones de la página VISIBLE (en el mapa de editadas).
    *  Estable: lee la página actual del ref, así sirve desde efectos viejos. */
   const setAnnotations = useCallback(
-    (fn: (list: TextAnnotation[]) => TextAnnotation[]) => {
+    (fn: (list: Annotation[]) => Annotation[]) => {
       const i = pageRef.current
       setEdited((e) => ({ ...e, [i]: fn(e[i] ?? doc.pages[i]?.annotations ?? []) }))
     },
@@ -362,10 +364,17 @@ export function PdfTextEditor({
     return { rot, outerW, outerH, innerW, innerH }
   }, [bg, page, area])
 
-  const selected = annotations.find((a) => a.id === selectedId) ?? null
+  // Sólo el TEXTO es editable por la barra (los otros tipos llegan en fases
+  // siguientes). `selected` se estrecha a TextAnnotation.
+  const selected =
+    annotations.find(
+      (a): a is TextAnnotation => a.id === selectedId && a.kind === 'text',
+    ) ?? null
 
-  const update = (id: string, patch: Partial<TextAnnotation>) =>
-    setAnnotations((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)))
+  const update = (id: string, patch: Partial<Omit<TextAnnotation, 'id' | 'kind'>>) =>
+    setAnnotations((list) =>
+      list.map((a) => (a.id === id && a.kind === 'text' ? { ...a, ...patch } : a)),
+    )
 
   // Estilo "activo" de la barra: si hay un texto seleccionado, las herramientas lo
   // editan; si no, definen el estilo del PRÓXIMO texto. Así la barra está SIEMPRE
@@ -397,7 +406,7 @@ export function PdfTextEditor({
   }
 
   function addText() {
-    const a = makeAnnotation({
+    const a = makeTextAnnotation({
       text: 'Texto',
       xRatio: 0.2,
       yRatio: 0.42,
@@ -413,10 +422,10 @@ export function PdfTextEditor({
     setEditingId(a.id) // se edita inline, sobre el cuadro, al toque
   }
 
-  /** Duplica una anotación con un pequeño offset y la selecciona. */
+  /** Duplica un texto con un pequeño offset y lo selecciona. */
   function duplicate(a: TextAnnotation) {
-    const { id: _id, ...rest } = a
-    const copy = makeAnnotation({
+    const { id: _id, kind: _kind, ...rest } = a
+    const copy = makeTextAnnotation({
       ...rest,
       xRatio: clamp01(a.xRatio + 0.03),
       yRatio: clamp01(a.yRatio + 0.03),
@@ -697,7 +706,7 @@ export function PdfTextEditor({
                   className="absolute inset-0 w-full h-full object-contain select-none"
                   draggable={false}
                 />
-                {annotations.map((a) => {
+                {annotations.filter(isTextAnnotation).map((a) => {
                   const sz = a.sizeRatio * layout.innerH
                   // Estilo compartido por el cuadro display y el editable. El padding
                   // transparente (compensado por el margen negativo) agranda el blanco
