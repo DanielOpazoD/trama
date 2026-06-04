@@ -121,4 +121,31 @@ describe('<NotasHomeView />', () => {
     expect(onNavigate).toHaveBeenNthCalledWith(3, 'prompts')
     expect(onNavigate).toHaveBeenNthCalledWith(4, 'claves')
   })
+
+  it('en estado inicial ofrece entradas directas y acciones cómodas en mobile', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse([])),
+    )
+    const onNavigate = vi.fn()
+    const user = userEvent.setup()
+
+    renderWithProviders(<NotasHomeView onNavigate={onNavigate} />)
+
+    expect(
+      await screen.findByText('Tu centro de trabajo está listo.'),
+    ).toBeInTheDocument()
+
+    const createNote = screen.getByRole('button', { name: /Crear nota/i })
+    const createTask = screen.getByRole('button', { name: /Crear tarea/i })
+
+    expect(createNote.className).toContain('min-h-[44px]')
+    expect(createTask.className).toContain('min-h-[44px]')
+
+    await user.click(createNote)
+    await user.click(createTask)
+
+    expect(onNavigate).toHaveBeenNthCalledWith(1, 'notas')
+    expect(onNavigate).toHaveBeenNthCalledWith(2, 'tareas')
+  })
 })

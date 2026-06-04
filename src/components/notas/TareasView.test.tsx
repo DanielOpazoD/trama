@@ -86,6 +86,18 @@ describe('<TareasView />', () => {
     ).toBeGreaterThan(0)
   })
 
+  it('marca la entrada de la semana actual como punto de partida claro en móvil', async () => {
+    renderWithProviders(<TareasView />)
+
+    const firstInput = (await screen.findAllByPlaceholderText(/Agregar recordatorio/))[0]
+    expect(firstInput).toBeDefined()
+    const composer = firstInput!.closest('[data-testid="week-composer"]')
+
+    expect(composer).not.toBeNull()
+    expect(composer?.className).toContain('min-h-[44px]')
+    expect(within(composer as HTMLElement).getByText('Nueva')).toBeInTheDocument()
+  })
+
   it('cada cuadro semanal tiene pestañas Trabajo / Personal (Trabajo por defecto)', async () => {
     renderWithProviders(<TareasView />)
     const trabajo = await screen.findAllByRole('tab', { name: /trabajo/i })

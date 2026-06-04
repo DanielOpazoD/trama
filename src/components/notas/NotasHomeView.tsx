@@ -61,8 +61,25 @@ export function NotasHomeView({
         <EmptyMessage
           illustration="thread"
           title="Tu centro de trabajo está listo."
-          body={<>Crea una nota, una tarea, un prompt o una clave para empezar.</>}
-          hint="Los accesos de arriba abren cada módulo."
+          body={<>Elige una primera entrada para abrir el día.</>}
+          action={
+            <>
+              <button
+                type="button"
+                onClick={() => onNavigate('notas')}
+                className="btn-ink min-h-[44px] px-4 text-xs"
+              >
+                Crear nota
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate('tareas')}
+                className="min-h-[44px] rounded-md border border-ink-100 bg-paper-50 px-4 text-xs uppercase tracking-eyebrow text-ink-500 hover:text-ink-800 hover:border-ink-200 transition-colors"
+              >
+                Crear tarea
+              </button>
+            </>
+          }
         />
       ) : (
         <div className="grid md:grid-cols-2 gap-3">
@@ -143,7 +160,7 @@ function QuickAction({
   return (
     <button
       onClick={onClick}
-      className="card-paper-soft rounded-lg border border-ink-100/70 px-3 py-2 flex items-center justify-between text-left hover:border-ink-200 transition-colors"
+      className="card-paper-soft min-h-[44px] rounded-lg border border-ink-100/70 px-3 py-2 flex items-center justify-between text-left hover:border-ink-200 transition-colors"
     >
       <span className="inline-flex items-center gap-2 text-sm text-ink-700">
         <span className="inline-flex" style={{ color: ACCENT }}>

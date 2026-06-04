@@ -231,7 +231,16 @@ export function NotasView() {
         <EmptyMessage
           illustration="thread"
           title="Tu primer apunte, todavía sin escribir."
-          body={<>Escribe arriba una nota corta.</>}
+          body={<>Un apunte breve alcanza.</>}
+          action={
+            <button
+              type="button"
+              onClick={() => composerRef.current?.focus()}
+              className="btn-ink min-h-[44px] px-4 text-xs"
+            >
+              Escribir primera nota
+            </button>
+          }
         />
       ) : filtered.length === 0 ? (
         <EmptyMessage

@@ -69,9 +69,15 @@ afterEach(() => {
 
 describe('<NotasView />', () => {
   it('muestra el composer y el estado vacío cuando no hay notas', async () => {
+    const user = userEvent.setup()
     renderWithProviders(<NotasView />)
-    expect(screen.getByPlaceholderText(/Escribe una nota/)).toBeInTheDocument()
+    const composer = screen.getByPlaceholderText(/Escribe una nota/)
+    expect(composer).toBeInTheDocument()
     expect(await screen.findByText(/Tu primer apunte/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Escribir primera nota/i }))
+
+    expect(composer).toHaveFocus()
   })
 
   it('el composer es autoexpandible (el hook fija su altura)', () => {

@@ -396,7 +396,11 @@ function WeekComposer({
   }
 
   return (
-    <div className="flex items-center gap-2.5 py-1.5">
+    <div
+      data-testid="week-composer"
+      className="flex min-h-[44px] items-center gap-2.5 py-1.5"
+    >
+      <span className="section-eyebrow text-ink-300">Nueva</span>
       <PlusIcon size={14} className="text-ink-300 shrink-0" />
       <PriorityDots value={priority} onChange={setPriority} />
       <input

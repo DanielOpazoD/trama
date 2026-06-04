@@ -92,7 +92,7 @@ Antes de abrir PR, confirmar:
   E2E_BASE_URL=https://tramadaod.netlify.app \
   E2E_USER_A_TOKEN=... \
   E2E_USER_B_TOKEN=... \
-  npx playwright test e2e/multi-user-isolation.spec.ts
+  npm run e2e:multiuser -- --project=chromium
   ```
 
 Para el saneamiento multi-user grande, publicar como stack chico siguiendo
