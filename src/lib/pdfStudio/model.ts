@@ -234,3 +234,23 @@ export function textBoxLayout(
     size: ann.sizeRatio * pageHeight,
   }
 }
+
+/**
+ * Tras restaurar un documento (p. ej. autoguardado en IndexedDB), continúa el
+ * contador de ids más allá del máximo restaurado. Al recargar la página el
+ * contador arranca en 0, así que sin esto los ids nuevos (`s1`, `p1`, `t1`…)
+ * colisionarían con los del documento restaurado.
+ */
+export function reseedIds(doc: PdfDoc): void {
+  let max = 0
+  const consider = (id: string) => {
+    const n = Number.parseInt(id.replace(/^\D+/, ''), 10)
+    if (Number.isFinite(n) && n > max) max = n
+  }
+  for (const s of doc.sources) consider(s.id)
+  for (const p of doc.pages) {
+    consider(p.id)
+    for (const a of p.annotations) consider(a.id)
+  }
+  if (max > seq) seq = max
+}

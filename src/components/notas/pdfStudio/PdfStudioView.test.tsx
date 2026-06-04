@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
   disposePdfStudio: vi.fn(),
   assemble: vi.fn(),
   downloadBlob: vi.fn(),
+  loadDraft: vi.fn(),
+  saveDraft: vi.fn(),
+  clearDraft: vi.fn(),
 }))
 vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
   getPdfPageCount: mocks.getPdfPageCount,
@@ -21,8 +24,14 @@ vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
 }))
 vi.mock('../../../lib/pdfStudio/assemble', () => ({ assemble: mocks.assemble }))
 vi.mock('../../../lib/downloadBlob', () => ({ downloadBlob: mocks.downloadBlob }))
+vi.mock('../../../lib/pdfStudio/persistence', () => ({
+  loadDraft: mocks.loadDraft,
+  saveDraft: mocks.saveDraft,
+  clearDraft: mocks.clearDraft,
+}))
 
 import { PdfStudioView } from './PdfStudioView'
+import { addPdfSource, emptyDoc } from '../../../lib/pdfStudio/model'
 
 const pdfFile = (name = 'doc.pdf') =>
   new File(['%PDF-1.4'], name, { type: 'application/pdf' })
@@ -39,6 +48,9 @@ beforeEach(() => {
     blob: new Blob(['pdf'], { type: 'application/pdf' }),
     skipped: [],
   })
+  mocks.loadDraft.mockResolvedValue(null) // sin borrador por defecto
+  mocks.saveDraft.mockResolvedValue(undefined)
+  mocks.clearDraft.mockResolvedValue(undefined)
 })
 
 describe('<PdfStudioView />', () => {
@@ -46,6 +58,15 @@ describe('<PdfStudioView />', () => {
     renderWithProviders(<PdfStudioView />)
     expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar PDF/i })).toBeDisabled()
+  })
+
+  it('restaura el borrador autoguardado al montar', async () => {
+    mocks.loadDraft.mockResolvedValue(addPdfSource(emptyDoc(), pdfFile(), 2))
+    renderWithProviders(<PdfStudioView />)
+    // Sin subir nada, las páginas del borrador aparecen.
+    expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
+    expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
+    expect(mocks.loadDraft).toHaveBeenCalled()
   })
 
   it('importa un PDF como páginas, borra y guarda', async () => {

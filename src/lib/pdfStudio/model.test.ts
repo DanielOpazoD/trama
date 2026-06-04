@@ -13,10 +13,12 @@ import {
   pageThumbKey,
   previewFontFamily,
   replacePageWithImage,
+  reseedIds,
   rotatePage,
   setPageAnnotations,
   standardFontName,
   textBoxLayout,
+  type PdfDoc,
 } from './model'
 
 const pdf = (name = 'a.pdf') => new File(['%PDF'], name, { type: 'application/pdf' })
@@ -169,6 +171,24 @@ describe('pdfStudio/model · texto vectorial', () => {
     expect(l.x).toBe(100) // 0.25 * 400
     expect(l.size).toBeCloseTo(60) // 0.1 * 600
     expect(l.topY).toBeCloseTo(300) // 600 - 0.5*600
+  })
+
+  it('reseedIds continúa el contador para no colisionar tras restaurar', () => {
+    const restored = {
+      sources: [],
+      pages: [
+        {
+          id: 'p900',
+          kind: 'image',
+          sourceId: 's900',
+          rotationQuarters: 0,
+          annotations: [{ ...baseAnn, id: 't950' }],
+        },
+      ],
+    } as unknown as PdfDoc
+    reseedIds(restored)
+    const a = makeAnnotation(baseAnn)
+    expect(Number.parseInt(a.id.replace(/\D+/g, ''), 10)).toBeGreaterThan(950)
   })
 })
 
