@@ -42,6 +42,22 @@ function isPngBytes(b: Uint8Array): boolean {
   return b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47
 }
 
+/**
+ * Dimensiones de un PNG leídas del chunk IHDR (ancho/alto big-endian en los
+ * bytes 16..23), SIN decodificar la imagen. `null` si no parece PNG. Sirve para
+ * decidir si conviene embeberlo sin pérdida o downscalearlo (PNG enorme).
+ */
+export function readPngSize(b: Uint8Array): { w: number; h: number } | null {
+  if (b.length < 24 || !isPngBytes(b)) return null
+  const w = b[16]! * 0x1000000 + b[17]! * 0x10000 + b[18]! * 0x100 + b[19]!
+  const h = b[20]! * 0x1000000 + b[21]! * 0x10000 + b[22]! * 0x100 + b[23]!
+  return { w, h }
+}
+
+// Arriba de ~15 MP, embeber el PNG sin pérdida pesaría de más: se downscalea por
+// el camino JPEG (toJpegBytes, máx 1600px). Los screenshots normales no llegan.
+const MAX_PNG_PX = 15_000_000
+
 /** Re-encodea una imagen a JPEG (fondo blanco, dimensión acotada) → bytes. */
 async function toJpegBytes(
   file: File,
@@ -155,13 +171,17 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
   const addImagePage = async (file: File): Promise<PDFPage> => {
     const buf = new Uint8Array(await file.arrayBuffer())
     if (file.type === 'image/png' || isPngBytes(buf)) {
-      try {
-        const png = await out.embedPng(buf)
-        const p = out.addPage([png.width, png.height])
-        p.drawImage(png, { x: 0, y: 0, width: png.width, height: png.height })
-        return p
-      } catch {
-        // PNG no soportado → JPEG abajo.
+      // PNG normal → sin pérdida. PNG enorme → cae al camino JPEG (downscalea).
+      const size = readPngSize(buf)
+      if (!size || size.w * size.h <= MAX_PNG_PX) {
+        try {
+          const png = await out.embedPng(buf)
+          const p = out.addPage([png.width, png.height])
+          p.drawImage(png, { x: 0, y: 0, width: png.width, height: png.height })
+          return p
+        } catch {
+          // PNG no soportado por pdf-lib → JPEG abajo.
+        }
       }
     }
     const { bytes, width, height } = await toJpegBytes(file)

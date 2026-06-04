@@ -69,7 +69,22 @@ vi.mock('pdf-lib', () => {
   }
 })
 
-import { assemble } from './assemble'
+import { assemble, readPngSize } from './assemble'
+
+const pngHeader = (w: number, h: number) => {
+  const b = new Uint8Array(24)
+  b.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) // firma PNG
+  b.set([0x49, 0x48, 0x44, 0x52], 12) // "IHDR"
+  b[16] = (w >>> 24) & 255
+  b[17] = (w >>> 16) & 255
+  b[18] = (w >>> 8) & 255
+  b[19] = w & 255
+  b[20] = (h >>> 24) & 255
+  b[21] = (h >>> 16) & 255
+  b[22] = (h >>> 8) & 255
+  b[23] = h & 255
+  return b
+}
 
 const png = (name = 'a.png') =>
   new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], name, { type: 'image/png' })
@@ -130,5 +145,11 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(opts.x).toBeCloseTo(25) // 0.25 * 100
     expect(opts.size).toBeCloseTo(20) // 0.1 * 200
     expect(opts.y).toBeCloseTo(84) // topY(200 - 0.5*200=100) - ascent(16)
+  })
+
+  it('readPngSize lee las dimensiones del IHDR; null si no es PNG', () => {
+    expect(readPngSize(pngHeader(800, 600))).toEqual({ w: 800, h: 600 })
+    expect(readPngSize(pngHeader(12000, 9000))).toEqual({ w: 12000, h: 9000 })
+    expect(readPngSize(new Uint8Array([1, 2, 3]))).toBeNull()
   })
 })
