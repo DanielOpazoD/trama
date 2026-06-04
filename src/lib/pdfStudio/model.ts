@@ -213,11 +213,50 @@ export function standardFontName(font: PdfFontKind, bold: boolean): string {
   return bold ? 'Helvetica-Bold' : 'Helvetica'
 }
 
-/** Stack CSS web-safe equivalente, para que el preview sea WYSIWYG con el PDF. */
+/**
+ * Stack CSS de la fuente REAL para que el preview sea WYSIWYG con el PDF: sans →
+ * Inter y serif → Spectral (las que la app ya carga y que el ensamblado EMBEBE),
+ * mono → Courier (estándar, la app no trae monoespaciada).
+ */
 export function previewFontFamily(font: PdfFontKind): string {
-  if (font === 'serif') return "'Times New Roman', Times, serif"
+  if (font === 'serif') return "Spectral, 'Iowan Old Style', Palatino, Georgia, serif"
   if (font === 'mono') return "'Courier New', Courier, monospace"
-  return 'Helvetica, Arial, sans-serif'
+  return 'Inter, system-ui, -apple-system, sans-serif'
+}
+
+/** Familias cuya tipografía REAL se embebe en el PDF (las demás usan estándar). */
+export function isEmbeddableFont(font: PdfFontKind): boolean {
+  return font === 'sans' || font === 'serif'
+}
+
+/**
+ * Interlineado del preview y del modelo de baseline. El editor pinta el texto con
+ * `line-height: TEXT_LINE_HEIGHT`; el ensamblado usa el mismo valor para que la
+ * baseline del PDF caiga donde la pinta el navegador.
+ */
+export const TEXT_LINE_HEIGHT = 1.15
+
+/**
+ * Métricas verticales REALES (ascender/descender ÷ unitsPerEm) de cada familia,
+ * leídas de los archivos de fuente. Sirven para posicionar la baseline igual que
+ * el line-box del navegador (ver `baselineDropEm`). Inter y Spectral son los WOFF
+ * embebidos; Courier (mono) son las métricas de la estándar de PDF.
+ */
+const FONT_VMETRICS: Record<PdfFontKind, { ascent: number; descent: number }> = {
+  sans: { ascent: 2728 / 2816, descent: 680 / 2816 }, // Inter
+  serif: { ascent: 1059 / 1000, descent: 463 / 1000 }, // Spectral
+  mono: { ascent: 629 / 1000, descent: 157 / 1000 }, // Courier (estándar)
+}
+
+/**
+ * Fracción del tamaño de fuente desde el TOPE de la caja de texto hasta la
+ * baseline, modelando el line-box CSS (`line-height` = `TEXT_LINE_HEIGHT`):
+ * `lh/2 + (ascent − descent)/2`. Reemplaza al `heightAtSize` de pdf-lib, que es
+ * inconsistente entre fuentes estándar y embebidas. Pura → testeable.
+ */
+export function baselineDropEm(font: PdfFontKind): number {
+  const m = FONT_VMETRICS[font]
+  return TEXT_LINE_HEIGHT / 2 + (m.ascent - m.descent) / 2
 }
 
 /**

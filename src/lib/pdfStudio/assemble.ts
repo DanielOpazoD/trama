@@ -13,14 +13,45 @@
  * `skipped`) en vez de abortar todo.
  */
 import {
+  baselineDropEm,
   getSource,
+  isEmbeddableFont,
   standardFontName,
+  TEXT_LINE_HEIGHT,
   textBoxLayout,
   type PdfDoc,
+  type PdfFontKind,
   type PdfSource,
   type TextAnnotation,
 } from './model'
 import type { PDFFont, PDFPage } from 'pdf-lib'
+
+// WOFF subset-latino de las fuentes REALES de la app (Inter sans, Spectral serif),
+// vendorizados en `./fonts`. Vite los emite como ASSETS aparte (estos imports son
+// sólo la URL); se bajan por `fetch` recién al ensamblar y `@pdf-lib/fontkit` los
+// embebe con subconjunto. Así el PDF usa la tipografía exacta del editor sin
+// engordar el bundle ni depender de la red en runtime (mismo origen, offline-ok).
+import interRegularUrl from './fonts/inter-latin-400-normal.woff?url'
+import interBoldUrl from './fonts/inter-latin-700-normal.woff?url'
+import spectralRegularUrl from './fonts/spectral-latin-400-normal.woff?url'
+import spectralBoldUrl from './fonts/spectral-latin-700-normal.woff?url'
+
+/** URL del WOFF embebible para una familia + negrita; `null` si usa estándar. */
+function embeddableFontUrl(font: PdfFontKind, bold: boolean): string | null {
+  if (font === 'sans') return bold ? interBoldUrl : interRegularUrl
+  if (font === 'serif') return bold ? spectralBoldUrl : spectralRegularUrl
+  return null
+}
+
+/**
+ * Baja los bytes del WOFF (asset del mismo origen; el navegador lo cachea por
+ * HTTP entre guardados). `fontFor` lo llama una vez por familia+peso y documento.
+ */
+async function fetchFontBytes(url: string): Promise<Uint8Array> {
+  const r = await fetch(url)
+  if (!r.ok) throw new Error(`no se pudo cargar la fuente (${r.status})`)
+  return new Uint8Array(await r.arrayBuffer())
+}
 
 export type SkippedSource = { name: string; reason: string }
 export type AssembleResult = { blob: Blob; skipped: SkippedSource[] }
@@ -103,6 +134,16 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
   const { PDFDocument, rgb, degrees } = await import('pdf-lib')
   const out = await PDFDocument.create()
 
+  // Sólo si hay texto con fuente embebible: registrar fontkit (necesario para
+  // `embedFont` con bytes) y cargarlo PEREZOSO para no sumarlo cuando no se usa.
+  const hasEmbeddedText = doc.pages.some((p) =>
+    p.annotations.some((a) => a.text.trim() && isEmbeddableFont(a.font)),
+  )
+  if (hasEmbeddedText) {
+    const fk = await import('@pdf-lib/fontkit')
+    out.registerFontkit(fk.default ?? fk)
+  }
+
   // Cache del PDFDocument fuente por File (se carga una vez por source).
   const srcCache = new Map<File, ReturnType<typeof PDFDocument.load>>()
   const loadPdf = (file: File) => {
@@ -125,35 +166,47 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
     skipped.push({ name: source.file.name, reason: errMessage(err) })
   }
 
-  // Texto vectorial (PR D): se dibuja sobre la página con fuentes ESTÁNDAR de PDF
-  // (base-14, sin embeber → render garantizado en cualquier visor). `embedFont`
-  // por nombre, cacheado por documento. La posición/tamaño llegan como ratios del
-  // tamaño de página; `yRatio` es el tope desde arriba y pdf-lib usa la baseline
-  // desde abajo, así que se resta el ascent de la fuente.
+  // Texto vectorial: se dibuja con la tipografía REAL de la app (Inter/Spectral
+  // embebidas con SUBCONJUNTO) cuando la familia es embebible; si esa fuente no
+  // carga, cae a las ESTÁNDAR base-14 (render garantizado). `embedFont` cacheado por
+  // documento (clave familia+negrita). La posición/tamaño llegan como ratios del
+  // tamaño de página; la baseline se baja `baselineDropEm` (modelo de line-box, el
+  // mismo que usa el preview) desde el tope del texto.
   const fontCache = new Map<string, PDFFont>()
+  const fontFor = async (font: PdfFontKind, bold: boolean): Promise<PDFFont> => {
+    const key = `${font}:${bold ? 'b' : 'r'}`
+    const hit = fontCache.get(key)
+    if (hit) return hit
+    let embedded: PDFFont | null = null
+    const url = embeddableFontUrl(font, bold)
+    if (url) {
+      try {
+        embedded = await out.embedFont(await fetchFontBytes(url), { subset: true })
+      } catch {
+        embedded = null // WOFF no disponible/ilegible → estándar abajo
+      }
+    }
+    const resolved = embedded ?? (await out.embedFont(standardFontName(font, bold)))
+    fontCache.set(key, resolved)
+    return resolved
+  }
   const applyAnnotations = async (outPage: PDFPage, annotations: TextAnnotation[]) => {
     const w = outPage.getWidth()
     const h = outPage.getHeight()
     for (const ann of annotations) {
       if (!ann.text.trim()) continue
       try {
-        const name = standardFontName(ann.font, ann.bold)
-        let font = fontCache.get(name)
-        if (!font) {
-          font = await out.embedFont(name)
-          fontCache.set(name, font)
-        }
+        const font = await fontFor(ann.font, ann.bold)
         const layout = textBoxLayout(ann, w, h)
         const size = Math.max(1, layout.size)
-        const ascent = font.heightAtSize(size, { descender: false })
         const c = hexToRgb(ann.color)
         outPage.drawText(ann.text, {
           x: layout.x,
-          y: layout.topY - ascent,
+          y: layout.topY - baselineDropEm(ann.font) * size,
           size,
           font,
           color: rgb(c.r, c.g, c.b),
-          lineHeight: size * 1.15,
+          lineHeight: size * TEXT_LINE_HEIGHT,
           opacity: ann.opacity ?? 1,
           // CSS rota horario (+); pdf-lib rota antihorario (+) → se niega.
           rotate: degrees(-(ann.rotation ?? 0)),

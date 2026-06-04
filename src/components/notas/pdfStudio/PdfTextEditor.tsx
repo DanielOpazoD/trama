@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
+  baselineDropEm,
   getSource,
   makeAnnotation,
   pageThumbKey,
   previewFontFamily,
+  TEXT_LINE_HEIGHT,
   type PdfDoc,
   type PdfFontKind,
   type TextAnnotation,
@@ -530,13 +532,13 @@ export function PdfTextEditor({
                       fontFamily: previewFontFamily(a.font),
                       fontWeight: a.bold ? 700 : 400,
                       fontSize: `${a.sizeRatio * layout.innerH}px`,
-                      lineHeight: 1.15,
+                      lineHeight: TEXT_LINE_HEIGHT,
                       color: a.color,
                       opacity: a.opacity ?? 1,
-                      // Rota como pdf-lib: pivote en la baseline-izquierda
-                      // (≈0.8·tamaño desde el tope de la caja).
+                      // Rota como pdf-lib: pivote en la baseline-izquierda, a la
+                      // misma altura (baselineDropEm·tamaño) que usa el ensamblado.
                       transform: a.rotation ? `rotate(${a.rotation}deg)` : undefined,
-                      transformOrigin: `0 ${a.sizeRatio * layout.innerH * 0.8}px`,
+                      transformOrigin: `0 ${a.sizeRatio * layout.innerH * baselineDropEm(a.font)}px`,
                       whiteSpace: 'pre',
                       cursor: 'move',
                       userSelect: 'none',

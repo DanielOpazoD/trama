@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest'
 import {
   addImageSource,
   addPdfSource,
+  baselineDropEm,
   canExport,
   deletePage,
   emptyDoc,
   getSource,
+  isEmbeddableFont,
   makeAnnotation,
   movePage,
   movePageByDelta,
@@ -159,10 +161,29 @@ describe('pdfStudio/model · texto vectorial', () => {
     expect(standardFontName('mono', true)).toBe('Courier-Bold')
   })
 
-  it('previewFontFamily da stacks web-safe por familia', () => {
-    expect(previewFontFamily('sans')).toMatch(/Arial|Helvetica/)
-    expect(previewFontFamily('serif')).toMatch(/Times/)
+  it('previewFontFamily usa la fuente REAL embebible (Inter/Spectral), Courier para mono', () => {
+    expect(previewFontFamily('sans')).toMatch(/Inter/)
+    expect(previewFontFamily('serif')).toMatch(/Spectral/)
     expect(previewFontFamily('mono')).toMatch(/Courier|monospace/)
+  })
+
+  it('isEmbeddableFont: sans y serif se embeben; mono no', () => {
+    expect(isEmbeddableFont('sans')).toBe(true)
+    expect(isEmbeddableFont('serif')).toBe(true)
+    expect(isEmbeddableFont('mono')).toBe(false)
+  })
+
+  it('baselineDropEm modela el line-box (lh/2 + (ascent−descent)/2) por familia', () => {
+    // Inter: ascent 2728/2816, descent 680/2816 → 0.575 + (2728−680)/2816/2
+    expect(baselineDropEm('sans')).toBeCloseTo(0.575 + (2728 - 680) / 2816 / 2, 5)
+    // Spectral: ascent 1.059, descent 0.463
+    expect(baselineDropEm('serif')).toBeCloseTo(0.575 + (1.059 - 0.463) / 2, 5)
+    // Courier (estándar): ascent 0.629, descent 0.157
+    expect(baselineDropEm('mono')).toBeCloseTo(0.575 + (0.629 - 0.157) / 2, 5)
+    // todas caen dentro de la caja (0..1·tamaño) y serif > sans > mono no garantizado,
+    // pero todas deben ser fracciones razonables (~0.8..0.95)
+    expect(baselineDropEm('sans')).toBeGreaterThan(0.5)
+    expect(baselineDropEm('serif')).toBeLessThan(1)
   })
 
   it('textBoxLayout convierte ratios a puntos (tope desde abajo)', () => {
