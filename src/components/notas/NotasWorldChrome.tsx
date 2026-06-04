@@ -1,4 +1,12 @@
-import { HomeIcon, KeyIcon, NotesIcon, PromptIcon, SearchIcon, TasksIcon } from '../Icons'
+import {
+  FilePdfIcon,
+  HomeIcon,
+  KeyIcon,
+  NotesIcon,
+  PromptIcon,
+  SearchIcon,
+  TasksIcon,
+} from '../Icons'
 import { TopBar } from '../TopBar'
 import { WorldSwitcher } from '../WorldSwitcher'
 import type { World } from '../../types/world'
@@ -19,6 +27,7 @@ const SECTION_META_BY_ID: Record<NotasSection, Omit<NotasSectionMeta, 'id'>> = {
   tareas: { label: 'Tareas', icon: TasksIcon },
   prompts: { label: 'Prompts', icon: PromptIcon },
   claves: { label: 'Claves', icon: KeyIcon },
+  pdf: { label: 'PDF', icon: FilePdfIcon },
 }
 
 export const SECTIONS: NotasSectionMeta[] = NOTAS_SECTIONS.map((id) => ({
@@ -32,6 +41,7 @@ const SECTION_META: Record<NotasSection, { title: string; subtitle: string }> = 
   tareas: { title: 'Tareas', subtitle: 'recordatorios de la semana' },
   prompts: { title: 'Prompts', subtitle: 'biblioteca reutilizable' },
   claves: { title: 'Claves', subtitle: 'vault seguro' },
+  pdf: { title: 'PDF', subtitle: 'combinar y editar' },
 }
 
 export function NotasTopBar({ section }: { section: NotasSection }) {

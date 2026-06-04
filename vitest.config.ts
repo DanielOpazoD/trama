@@ -48,6 +48,14 @@ export default defineConfig({
         'src/lib/imageEditor/mount.tsx',
         'src/lib/imageEditor/index.ts',
         'src/components/imageEditor/**',
+        // Editor de PDF: el modelo puro (`pdfStudio/model.ts`) SÍ se testea; el
+        // render (pdf.js: DOMMatrix/canvas/Worker), el ensamblado (pdf-lib +
+        // canvas), la descarga (anchor/object URL) y la UI (file input/DnD) son
+        // browser-only — verificados en el navegador y mockeados en los tests.
+        'src/lib/pdfStudio/pdfRender.ts',
+        'src/lib/pdfStudio/assemble.ts',
+        'src/lib/downloadBlob.ts',
+        'src/components/notas/pdfStudio/**',
       ],
       // N8: thresholds calibrados al baseline medido. El objetivo NO es
       // alcanzar 100% — es detectar REGRESIONES: si alguien mergea código

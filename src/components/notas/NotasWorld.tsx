@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { ClavesView } from './ClavesView'
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
@@ -8,8 +8,14 @@ import { PromptsView } from './PromptsView'
 import { TareasView } from './TareasView'
 import { useModuleVisibility } from '../../hooks/useModuleVisibility'
 import { useClampedSection } from '../../hooks/useClampedSection'
+import { LoadingHint } from '../LoadingHint'
 import type { World } from '../../types/world'
 import type { NotasSection } from '../../types/notas'
+
+// Lazy: pdf.js (~1MB) y pdf-lib sólo se bajan al entrar a la sección PDF.
+const PdfStudioView = lazy(() =>
+  import('./pdfStudio/PdfStudioView').then((m) => ({ default: m.PdfStudioView })),
+)
 
 /**
  * τ-worlds: el mundo "Trama Notas" — un workspace de productividad liviana
@@ -83,6 +89,17 @@ export function NotasWorld({
             {section === 'tareas' && <TareasView />}
             {section === 'prompts' && <PromptsView />}
             {section === 'claves' && <ClavesView />}
+            {section === 'pdf' && (
+              <Suspense
+                fallback={
+                  <div className="py-10 flex justify-center">
+                    <LoadingHint text="cargando editor de PDF" size="sm" />
+                  </div>
+                }
+              >
+                <PdfStudioView />
+              </Suspense>
+            )}
           </div>
         </div>
       </main>

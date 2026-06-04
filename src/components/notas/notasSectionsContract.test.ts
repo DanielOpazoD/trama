@@ -5,6 +5,13 @@ import { NOTAS_SECTIONS } from '../../types/notas'
 describe('Notas sections contract', () => {
   it('mantiene una única allowlist para chrome y deep links', () => {
     expect(SECTIONS.map((section) => section.id)).toEqual(NOTAS_SECTIONS)
-    expect(NOTAS_SECTIONS).toEqual(['inicio', 'notas', 'tareas', 'prompts', 'claves'])
+    expect(NOTAS_SECTIONS).toEqual([
+      'inicio',
+      'notas',
+      'tareas',
+      'prompts',
+      'claves',
+      'pdf',
+    ])
   })
 })

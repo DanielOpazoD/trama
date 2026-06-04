@@ -17,6 +17,7 @@ export type ModuleAlias = {
 export const MODULE_ALIASES: ModuleAlias[] = [
   { token: 'pass', moduleId: 'claves', label: 'Claves' },
   { token: 'claves', moduleId: 'claves', label: 'Claves' },
+  { token: 'pdf', moduleId: 'pdf', label: 'PDF' },
 ]
 
 /**
