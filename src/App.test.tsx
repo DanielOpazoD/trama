@@ -422,12 +422,14 @@ vi.mock('./components/notas/NotasWorld', () => ({
   NotasWorld: ({
     world,
     onChangeWorld,
+    initialSection,
   }: {
     world: World
     onChangeWorld: (world: World) => void
+    initialSection?: string
   }) => (
     <section>
-      notas world {world}
+      notas world {world} section:{initialSection ?? 'none'}
       <button onClick={() => onChangeWorld('trama')}>volver trama</button>
     </section>
   ),
@@ -458,6 +460,7 @@ function installDefaultQueries({
 describe('<App />', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.history.replaceState(null, '', '/')
     window.localStorage.clear()
     appMocks.shortcutConfig = null
     appMocks.oauthReturn = null
@@ -571,6 +574,24 @@ describe('<App />', () => {
 
     expect(screen.getByText(/sidebar inicio trama/i)).toBeInTheDocument()
     expect(window.localStorage.getItem('trama:world')).toBe('trama')
+  })
+
+  it('abre el mundo Notas desde un deep link con sección inicial', () => {
+    window.history.replaceState(null, '', '/?world=notas&section=tareas')
+
+    render(<App />)
+
+    expect(screen.getByText(/notas world notas section:tareas/i)).toBeInTheDocument()
+    expect(window.localStorage.getItem('trama:world')).toBe('notas')
+  })
+
+  it('prioriza el deep link de mundo sobre la preferencia persistida', () => {
+    window.localStorage.setItem('trama:world', 'trama')
+    window.history.replaceState(null, '', '/?world=notas&section=prompts')
+
+    render(<App />)
+
+    expect(screen.getByText(/notas world notas section:prompts/i)).toBeInTheDocument()
   })
 
   it('declara dependencias reales para el retorno OAuth', () => {

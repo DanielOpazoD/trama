@@ -47,6 +47,19 @@ describe('<NotasWorld />', () => {
     expect(screen.getByText('recordatorios de la semana')).toBeInTheDocument()
   })
 
+  it('respeta initialSection para abrir una sección real sin depender de localStorage', () => {
+    renderWithProviders(
+      <NotasWorld world="notas" initialSection="prompts" onChangeWorld={() => {}} />,
+    )
+
+    expect(screen.getAllByRole('button', { name: 'Prompts' })[0]).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(screen.getByRole('heading', { name: 'Prompts' })).toBeInTheDocument()
+    expect(screen.getAllByText('biblioteca reutilizable').length).toBeGreaterThan(0)
+  })
+
   it('no muestra controles de modo cómodo ni compacto', () => {
     renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
 

@@ -86,13 +86,30 @@ Antes de abrir PR, confirmar:
 - Producción no puede tener `ALLOW_LEGACY_FALLBACK=true`; `npm run check:legacy-fallback` debe fallar si alguien lo intenta.
 - Clerk debe configurarse como par: `CLERK_SECRET_KEY` y `VITE_CLERK_PUBLISHABLE_KEY` juntas. El mismo check falla si solo una está seteada, porque dejaría front y backend en modos distintos.
 - Si el cambio toca privacidad multiusuario, correr el smoke con dos usuarios de
-  prueba Clerk:
+  prueba Clerk. Modo recomendado: generar tokens efímeros desde Clerk en cada
+  run, usando el secret del backend y los `user_id` de los dos usuarios de
+  prueba:
+
+  ```bash
+  E2E_BASE_URL=https://tramadaod.netlify.app \
+  CLERK_SECRET_KEY=sk_live_... \
+  E2E_USER_A_ID=user_... \
+  E2E_USER_B_ID=user_... \
+  npm run e2e:multiuser -- --project=chromium
+  ```
+
+  El script crea sesiones temporales, obtiene JWTs para Playwright y revoca las
+  sesiones al terminar. Opcionalmente, ajustar la vida de esos tokens con
+  `E2E_CLERK_TOKEN_TTL_SECONDS` (default: 600 segundos).
+
+- Alternativa manual, útil para una prueba local puntual después de iniciar
+  sesión en el navegador:
 
   ```bash
   E2E_BASE_URL=https://tramadaod.netlify.app \
   E2E_USER_A_TOKEN=... \
   E2E_USER_B_TOKEN=... \
-  npx playwright test e2e/multi-user-isolation.spec.ts
+  npm run e2e:multiuser -- --project=chromium
   ```
 
 Para el saneamiento multi-user grande, publicar como stack chico siguiendo

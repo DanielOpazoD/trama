@@ -194,6 +194,10 @@ export default withObservability(
         UPDATE tasks SET deleted_at = NOW()
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       `
+      await sql`
+        UPDATE notas_attachments SET deleted_at = NOW(), updated_at = NOW()
+        WHERE owner_type = 'task' AND owner_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+      `
       return Response.json({ ok: true })
     }
 

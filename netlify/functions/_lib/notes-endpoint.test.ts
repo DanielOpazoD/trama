@@ -44,8 +44,34 @@ describe('notes endpoint — integration', () => {
     expect(await res.json()).toHaveLength(1)
     // El SELECT deriva has_images con un EXISTS sobre notas_attachments image/%.
     const q = mockSqlResponses.calls.find((c) => /FROM notes/i.test(c.template))
+    expect(q?.template).toMatch(/deleted_at IS NULL/i)
+    expect(q?.template).toMatch(/user_id =/i)
     expect(q?.template).toMatch(/AS has_images/i)
     expect(q?.template).toMatch(/image\/%/i)
+  })
+
+  it('GET ?q y ?tag filtran dentro del usuario y excluyen soft-deleted', async () => {
+    mockSqlResponses.push([NOTE_ROW], [NOTE_ROW])
+
+    const byText = await handler(
+      new Request('http://localhost/api/notes?q=memoria'),
+      mockContext(),
+    )
+    const byTag = await handler(
+      new Request('http://localhost/api/notes?tag=Memoria'),
+      mockContext(),
+    )
+
+    expect(byText.status).toBe(200)
+    expect(byTag.status).toBe(200)
+    const search = mockSqlResponses.calls.find((c) => /content ILIKE/i.test(c.template))
+    const tag = mockSqlResponses.calls.find((c) => /ANY\(tags\)/i.test(c.template))
+    expect(search?.template).toMatch(/deleted_at IS NULL/i)
+    expect(search?.template).toMatch(/user_id =/i)
+    expect(search?.values).toContain('%memoria%')
+    expect(tag?.template).toMatch(/deleted_at IS NULL/i)
+    expect(tag?.template).toMatch(/user_id =/i)
+    expect(tag?.values).toContain('memoria')
   })
 
   it('POST con content válido crea (201) y deriva tags', async () => {
@@ -73,6 +99,9 @@ describe('notes endpoint — integration', () => {
       mockContext(),
     )
     expect(res.status).toBe(400)
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO notes/i.test(c.template)),
+    ).toBe(false)
   })
 
   it('PATCH pinned:true devuelve 200', async () => {
@@ -86,6 +115,26 @@ describe('notes endpoint — integration', () => {
     )
     expect(res.status).toBe(200)
     expect((await res.json()).pinned).toBe(true)
+  })
+
+  it('PATCH content re-deriva tags y mantiene scope por usuario', async () => {
+    mockSqlResponses.push([
+      { ...NOTE_ROW, content: 'nueva #claridad', tags: ['claridad'] },
+    ])
+
+    const res = await handler(
+      new Request('http://localhost/api/notes/n1', {
+        method: 'PATCH',
+        body: JSON.stringify({ content: 'nueva #claridad' }),
+      }),
+      mockContext({ id: 'n1' }),
+    )
+
+    expect(res.status).toBe(200)
+    const update = mockSqlResponses.calls.find((c) => /UPDATE notes/i.test(c.template))
+    expect(update?.template).toMatch(/deleted_at IS NULL/i)
+    expect(update?.template).toMatch(/user_id =/i)
+    expect(update?.values).toContainEqual(['claridad'])
   })
 
   it('PATCH inexistente devuelve 404', async () => {
@@ -110,6 +159,11 @@ describe('notes endpoint — integration', () => {
     expect(
       mockSqlResponses.calls.some((c) => /DELETE FROM notes/i.test(c.template)),
     ).toBe(false)
+    expect(mockSqlResponses.calls[0]?.template).toMatch(/UPDATE notes SET deleted_at/i)
+    expect(mockSqlResponses.calls[0]?.template).toMatch(/user_id =/i)
+    expect(mockSqlResponses.calls[1]?.template).toMatch(/UPDATE notas_attachments/i)
+    expect(mockSqlResponses.calls[1]?.template).toMatch(/owner_type = 'note'/i)
+    expect(mockSqlResponses.calls[1]?.template).toMatch(/user_id =/i)
   })
 
   it('promote: nota inexistente devuelve 404', async () => {
