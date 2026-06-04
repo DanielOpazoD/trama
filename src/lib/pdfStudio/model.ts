@@ -115,11 +115,18 @@ export function movePageByDelta(doc: PdfDoc, index: number, delta: -1 | 1): PdfD
   return movePage(doc, index, index + delta)
 }
 
+/** Quita varias páginas (por índice) y descarta los sources huérfanos. */
+export function deletePages(doc: PdfDoc, indices: number[]): PdfDoc {
+  if (indices.length === 0) return doc
+  const drop = new Set(indices)
+  const pages = doc.pages.filter((_, i) => !drop.has(i))
+  if (pages.length === doc.pages.length) return doc // nada en rango → no-op
+  return { pages, sources: pruneSources(doc.sources, pages) }
+}
+
 /** Quita una página y descarta los sources que quedaron sin páginas. */
 export function deletePage(doc: PdfDoc, index: number): PdfDoc {
-  if (index < 0 || index >= doc.pages.length) return doc
-  const pages = doc.pages.filter((_, i) => i !== index)
-  return { pages, sources: pruneSources(doc.sources, pages) }
+  return deletePages(doc, [index])
 }
 
 /**
@@ -141,15 +148,61 @@ export function replacePageWithImage(doc: PdfDoc, index: number, file: File): Pd
   return { pages, sources: pruneSources([...doc.sources, source], pages) }
 }
 
+/** Rota varias páginas `delta` cuartos de vuelta horarios (normaliza a 0..3). */
+export function rotatePages(doc: PdfDoc, indices: number[], delta: number): PdfDoc {
+  if (indices.length === 0) return doc
+  const set = new Set(indices)
+  const norm = (q: number) => (((q + delta) % 4) + 4) % 4
+  let changed = false
+  const pages = doc.pages.map((p, i) => {
+    if (!set.has(i)) return p
+    const rotationQuarters = norm(p.rotationQuarters)
+    if (rotationQuarters === p.rotationQuarters) return p
+    changed = true
+    return { ...p, rotationQuarters }
+  })
+  return changed ? { ...doc, pages } : doc
+}
+
 /** Rota una página `delta` cuartos de vuelta horarios (normaliza a 0..3). */
 export function rotatePage(doc: PdfDoc, index: number, delta: number): PdfDoc {
-  if (index < 0 || index >= doc.pages.length) return doc
-  const pages = [...doc.pages]
-  const page = pages[index]
-  if (!page) return doc
-  const rotationQuarters = (((page.rotationQuarters + delta) % 4) + 4) % 4
-  pages[index] = { ...page, rotationQuarters }
-  return { ...doc, pages }
+  return rotatePages(doc, [index], delta)
+}
+
+/**
+ * Inserta una copia de cada página indicada justo DESPUÉS de ella (mismo source,
+ * sin re-importar). Las anotaciones se copian con ids nuevos para que editar una
+ * copia no toque el original. Recorre una sola vez → seguro ante el corrimiento
+ * de índices. Sirve para 1 página (menú) o varias (selección).
+ */
+export function duplicatePages(doc: PdfDoc, indices: number[]): PdfDoc {
+  if (indices.length === 0) return doc
+  const set = new Set(indices)
+  let any = false
+  const pages: PdfPage[] = []
+  doc.pages.forEach((p, i) => {
+    pages.push(p)
+    if (set.has(i)) {
+      any = true
+      pages.push({
+        ...p,
+        id: nextId('p'),
+        annotations: p.annotations.map((a) => ({ ...a, id: nextId('t') })),
+      })
+    }
+  })
+  return any ? { ...doc, pages } : doc
+}
+
+/**
+ * Nuevo documento con SÓLO las páginas indicadas (en el orden del documento),
+ * descartando los sources huérfanos. Sirve para extraer/dividir: ensamblar este
+ * subdocumento da un PDF con esas páginas. Reusa los ids existentes (no recrea).
+ */
+export function subsetDoc(doc: PdfDoc, indices: number[]): PdfDoc {
+  const keep = new Set(indices)
+  const pages = doc.pages.filter((_, i) => keep.has(i))
+  return { pages, sources: pruneSources(doc.sources, pages) }
 }
 
 function pruneSources(sources: PdfSource[], pages: PdfPage[]): PdfSource[] {

@@ -5,6 +5,8 @@ import {
   baselineDropEm,
   canExport,
   deletePage,
+  deletePages,
+  duplicatePages,
   emptyDoc,
   getSource,
   isEmbeddableFont,
@@ -17,8 +19,10 @@ import {
   replacePageWithImage,
   reseedIds,
   rotatePage,
+  rotatePages,
   setPageAnnotations,
   standardFontName,
+  subsetDoc,
   textBoxLayout,
   type PdfDoc,
 } from './model'
@@ -235,5 +239,80 @@ describe('pdfStudio/model · rotación', () => {
     const d1 = rotatePage(d0, 0, 1)
     expect(d0.pages[0]!.rotationQuarters).toBe(0)
     expect(d1.pages[0]!.rotationQuarters).toBe(1)
+  })
+})
+
+describe('pdfStudio/model · operaciones en lote (selección múltiple)', () => {
+  const textAnn = () =>
+    makeAnnotation({
+      text: 'firma',
+      xRatio: 0.1,
+      yRatio: 0.1,
+      sizeRatio: 0.05,
+      color: '#222222',
+      font: 'sans',
+      bold: false,
+    })
+
+  it('deletePages quita varias, descarta huérfanos; no-op sin índices o fuera de rango', () => {
+    let d = addPdfSource(emptyDoc(), pdf(), 3) // p0,p1,p2 (un source)
+    d = addImageSource(d, img()) // p3 (otro source)
+    const out = deletePages(d, [0, 2])
+    expect(out.pages.length).toBe(2) // quedan p1 (pdf) y p3 (img)
+    expect(out.sources.length).toBe(2) // ambos sources siguen en uso
+    expect(deletePages(d, [])).toBe(d) // sin índices → mismo doc
+    expect(deletePages(d, [99])).toBe(d) // fuera de rango → mismo doc
+  })
+
+  it('deletePages que vacía un source lo descarta', () => {
+    let d = addPdfSource(emptyDoc(), pdf(), 2)
+    d = addImageSource(d, img())
+    const out = deletePages(d, [0, 1]) // borra ambas páginas del PDF
+    expect(out.pages.length).toBe(1)
+    expect(out.sources.length).toBe(1)
+    expect(out.sources[0]!.kind).toBe('image')
+  })
+
+  it('rotatePages rota varias; no-op fuera de rango o sin índices (mismo doc)', () => {
+    let d = addPdfSource(emptyDoc(), pdf(), 3)
+    d = rotatePages(d, [0, 2], 1)
+    expect(d.pages.map((p) => p.rotationQuarters)).toEqual([1, 0, 1])
+    expect(rotatePages(d, [99], 1)).toBe(d)
+    expect(rotatePages(d, [], 1)).toBe(d)
+  })
+
+  it('duplicatePages inserta la copia justo después, misma fuente, anotaciones con id nuevo', () => {
+    let d = addImageSource(emptyDoc(), img())
+    const ann = textAnn()
+    d = setPageAnnotations(d, 0, [ann])
+    const out = duplicatePages(d, [0])
+    expect(out.pages.length).toBe(2)
+    expect(out.pages[1]!.id).not.toBe(out.pages[0]!.id)
+    expect(out.pages[1]!.sourceId).toBe(out.pages[0]!.sourceId) // no re-importa
+    expect(out.pages[1]!.annotations).not.toBe(out.pages[0]!.annotations) // array propio
+    expect(out.pages[1]!.annotations[0]!.id).not.toBe(ann.id) // id nuevo
+    expect(out.pages[1]!.annotations[0]!.text).toBe('firma') // mismo contenido
+    expect(out.sources.length).toBe(1) // comparten el source
+    expect(duplicatePages(d, [])).toBe(d)
+  })
+
+  it('duplicatePages con varios índices inserta una copia tras cada uno (orden correcto)', () => {
+    const d = addPdfSource(emptyDoc(), pdf(), 3) // p0,p1,p2
+    const out = duplicatePages(d, [0, 2])
+    // p0, copia(p0), p1, p2, copia(p2)
+    expect(out.pages.length).toBe(5)
+    expect(out.pages[0]!.id).toBe(d.pages[0]!.id)
+    expect(out.pages[2]!.id).toBe(d.pages[1]!.id) // p1 intacto en posición 2
+    expect(out.pages[4]!.id).not.toBe(d.pages[2]!.id) // copia de p2 al final
+  })
+
+  it('subsetDoc deja sólo las páginas pedidas, EN ORDEN de documento, y poda sources', () => {
+    let d = addPdfSource(emptyDoc(), pdf(), 2) // p0,p1 (pdf)
+    d = addImageSource(d, img()) // p2 (img)
+    const out = subsetDoc(d, [2, 0]) // pide p2 y p0 (orden inverso)
+    expect(out.pages.map((p) => p.kind)).toEqual(['pdf', 'image']) // orden de doc
+    expect(out.sources.length).toBe(2)
+    expect(subsetDoc(d, []).pages).toEqual([]) // vacío
+    expect(subsetDoc(d, []).sources).toEqual([]) // sin páginas → sin sources
   })
 })
