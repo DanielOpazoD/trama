@@ -171,6 +171,30 @@ export const PrinterIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/* Doble "A" — tamaño de letra. */
+export const TextSizeIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M2 18 L7 6 L12 18 M3.7 14 H10.3" />
+    <path d="M14 18 L17 10 L20 18 M15.2 15 H18.8" />
+  </svg>
+)
+
+/* Círculo medio lleno — opacidad/transparencia. */
+export const OpacityIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <circle cx="12" cy="12" r="8" />
+    <path d="M12 4 A8 8 0 0 1 12 20 Z" fill="currentColor" stroke="none" />
+  </svg>
+)
+
+/* Lupa con + — zoom del documento. */
+export const ZoomIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M20 20 L16 16 M11 8 V14 M8 11 H14" />
+  </svg>
+)
+
 /* "T" de texto — agregar texto en el editor. */
 export const TextIcon = ({ size = 12, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

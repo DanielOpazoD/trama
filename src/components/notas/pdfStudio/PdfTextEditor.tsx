@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
   baselineDropEm,
@@ -13,7 +13,18 @@ import {
 } from '../../../lib/pdfStudio/model'
 import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
 import { LoadingHint } from '../../LoadingHint'
-import { BoldIcon, DuplicateIcon, PlusIcon, TrashIcon } from '../../Icons'
+import {
+  BoldIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  DuplicateIcon,
+  OpacityIcon,
+  PlusIcon,
+  RotateIcon,
+  TextSizeIcon,
+  TrashIcon,
+  ZoomIcon,
+} from '../../Icons'
 
 const ACCENT = 'var(--accent-primary)'
 
@@ -42,7 +53,7 @@ const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
 
 const segGroup =
-  'inline-flex items-center gap-0.5 p-0.5 bg-paper-100/60 rounded-md border border-ink-100/50'
+  'inline-flex shrink-0 items-center gap-0.5 p-0.5 bg-paper-100/60 rounded-md border border-ink-100/50'
 const segBtn = (on: boolean) =>
   `px-2 py-0.5 rounded text-caption transition-colors ${
     on ? 'bg-paper-50 text-ink-800 shadow-sm' : 'text-ink-400 hover:text-ink-700'
@@ -51,12 +62,81 @@ const stepBtn =
   'h-6 w-6 inline-flex items-center justify-center rounded text-ink-500 hover:text-ink-800 hover:bg-paper-50 disabled:opacity-30 transition-colors'
 
 /**
- * Editor de texto VECTORIAL sobre una página (PR D): muestra la página grande con
- * la barra de edición ARRIBA (estilo herramienta pro), zoom, y deja agregar cajas
- * de texto, arrastrarlas y ajustar fuente/tamaño/negrita/color. Es WYSIWYG —el
- * preview usa la fuente web equivalente y guarda posición/tamaño como ratios— y al
- * confirmar entrega las anotaciones; el ensamblado las dibuja con `drawText`
- * (texto seleccionable, la página NO se rasteriza). Browser-only.
+ * Control `−[valor]+` con un ÍCONO que lo identifica (tamaño, opacidad, rotación,
+ * zoom) para que no se confundan entre sí. El valor puede ser un botón (p. ej. el
+ * zoom, que al tocarlo se restablece).
+ */
+function Stepper({
+  icon,
+  label,
+  value,
+  onDec,
+  onInc,
+  onValueClick,
+  decDisabled,
+  incDisabled,
+  valueClass = 'w-8',
+}: {
+  icon: ReactNode
+  label: string
+  value: string
+  onDec: () => void
+  onInc: () => void
+  onValueClick?: () => void
+  decDisabled?: boolean
+  incDisabled?: boolean
+  valueClass?: string
+}) {
+  return (
+    <div className={segGroup} title={label}>
+      <span className="pl-1 text-ink-400" aria-hidden>
+        {icon}
+      </span>
+      <button
+        type="button"
+        onClick={onDec}
+        disabled={decDisabled}
+        aria-label={`${label}: reducir`}
+        className={stepBtn}
+      >
+        −
+      </button>
+      {onValueClick ? (
+        <button
+          type="button"
+          onClick={onValueClick}
+          title="Restablecer"
+          className={`${valueClass} text-center text-caption tabular-nums text-ink-600 hover:text-ink-800`}
+        >
+          {value}
+        </button>
+      ) : (
+        <span
+          className={`${valueClass} text-center text-caption tabular-nums text-ink-600`}
+        >
+          {value}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={onInc}
+        disabled={incDisabled}
+        aria-label={`${label}: aumentar`}
+        className={stepBtn}
+      >
+        +
+      </button>
+    </div>
+  )
+}
+
+/**
+ * Editor / visor de páginas del PDF: muestra la página grande con la barra de
+ * edición ARRIBA y permite **navegar entre todas las páginas** del documento sin
+ * cerrar. Deja agregar/mover/ajustar cajas de texto vectorial (WYSIWYG, posición y
+ * tamaño como ratios). Al confirmar entrega las anotaciones EDITADAS por página; el
+ * ensamblado las dibuja con `drawText` (texto seleccionable, la página NO se
+ * rasteriza). Browser-only.
  */
 export function PdfTextEditor({
   doc,
@@ -65,25 +145,42 @@ export function PdfTextEditor({
 }: {
   doc: PdfDoc
   pageIndex: number
-  onClose: (annotations: TextAnnotation[] | null) => void
+  onClose: (edits: Record<number, TextAnnotation[]> | null) => void
 }) {
-  const page = doc.pages[pageIndex]
-  const source = page ? getSource(doc, page.sourceId) : undefined
+  const total = doc.pages.length
+  const [currentPage, setCurrentPage] = useState(pageIndex)
+  // Anotaciones EDITADAS por página (las que no se tocan siguen las del doc). Así
+  // se puede navegar y editar varias páginas y confirmar todo junto.
+  const [edited, setEdited] = useState<Record<number, TextAnnotation[]>>({})
 
-  const [annotations, setAnnotations] = useState<TextAnnotation[]>(
-    () => page?.annotations ?? [],
-  )
+  const page = doc.pages[currentPage]
+  const source = page ? getSource(doc, page.sourceId) : undefined
+  const annotations = edited[currentPage] ?? page?.annotations ?? []
+
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [bg, setBg] = useState<{ url: string; w: number; h: number } | null>(null)
   const [zoom, setZoom] = useState(1)
   const [area, setArea] = useState<{ w: number; h: number } | null>(null)
   const areaRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLInputElement>(null)
-  // Ref al texto seleccionado, para los atajos de teclado sin re-suscribir.
+  // Refs para que los efectos montados una vez vean el estado actual sin re-suscribir.
   const selectedRef = useRef<string | null>(null)
   selectedRef.current = selectedId
+  const pageRef = useRef(currentPage)
+  pageRef.current = currentPage
 
-  // Fondo: render grande de la página (pdf.js) o la imagen directa.
+  /** Actualiza las anotaciones de la página VISIBLE (en el mapa de editadas).
+   *  Estable: lee la página actual del ref, así sirve desde efectos viejos. */
+  const setAnnotations = useCallback(
+    (fn: (list: TextAnnotation[]) => TextAnnotation[]) => {
+      const i = pageRef.current
+      setEdited((e) => ({ ...e, [i]: fn(e[i] ?? doc.pages[i]?.annotations ?? []) }))
+    },
+    [doc],
+  )
+
+  // Fondo: render grande de la página (pdf.js) o la imagen directa. Re-corre al
+  // navegar (cambia `page`); `bg` se pone null en `goToPage` para mostrar carga.
   useEffect(() => {
     if (!page || !source) return
     let alive = true
@@ -129,7 +226,7 @@ export function PdfTextEditor({
   }, [onClose])
 
   // Atajos sobre el texto seleccionado (fuera de inputs): Supr borra, flechas
-  // mueven fino. Lee de un ref para no re-suscribir en cada render.
+  // mueven fino.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName
@@ -155,12 +252,11 @@ export function PdfTextEditor({
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  }, [setAnnotations])
 
-  // Layout de la página en su orientación FINAL (rotada = como saldrá), ajustada
-  // al área medida. La caja EXTERIOR es el bounding box rotado; la INTERIOR es la
-  // nativa que se rota dentro. Las anotaciones viven en la interior (ratios
-  // nativos) → rotan con ella, igual que `setRotation` en el ensamblado.
+  // Layout de la página en su orientación FINAL (rotada = como saldrá), ajustada al
+  // área medida. Caja EXTERIOR = bounding box rotado; INTERIOR = nativa que se rota
+  // dentro. Las anotaciones viven en la interior (ratios nativos) → rotan con ella.
   const layout = useMemo(() => {
     if (!bg || !area) return null
     const rot = page ? ((page.rotationQuarters % 4) + 4) % 4 : 0
@@ -186,7 +282,7 @@ export function PdfTextEditor({
 
   // Estilo "activo" de la barra: si hay un texto seleccionado, las herramientas lo
   // editan; si no, definen el estilo del PRÓXIMO texto. Así la barra está SIEMPRE
-  // activa y funcional (no aparece/desaparece según la selección).
+  // activa y funcional.
   type TextStyle = Pick<
     TextAnnotation,
     'font' | 'sizeRatio' | 'bold' | 'color' | 'opacity' | 'rotation'
@@ -247,7 +343,9 @@ export function PdfTextEditor({
     if (selectedId === id) setSelectedId(null)
   }
 
-  /** Ajusta opacidad/rotación (texto seleccionado o estilo por defecto). */
+  /** Ajusta tamaño/opacidad/rotación (texto seleccionado o estilo por defecto). */
+  const stepSize = (delta: number) =>
+    applyStyle({ sizeRatio: clamp(activeSize + delta, SIZE_MIN, SIZE_MAX) })
   const stepOpacity = (delta: number) =>
     applyStyle({ opacity: clamp(activeOpacity + delta, 0.1, 1) })
   const stepRotation = (delta: number) =>
@@ -293,14 +391,19 @@ export function PdfTextEditor({
     window.addEventListener('pointerup', up)
   }
 
-  // Caja exterior (scroll) = bounding box FINAL (rotado) escalado por zoom. La
-  // página interior se escala con transform; el drag usa innerW/H × zoom aparte.
+  // Caja exterior (scroll) = bounding box FINAL (rotado) escalado por zoom.
   const zw = layout ? layout.outerW * zoom : 0
   const zh = layout ? layout.outerH * zoom : 0
   const zoomBtn = (delta: number) => () =>
     setZoom((z) => clamp(Math.round((z + delta) * 100) / 100, ZOOM_MIN, ZOOM_MAX))
-  const stepSize = (delta: number) =>
-    applyStyle({ sizeRatio: clamp(activeSize + delta, SIZE_MIN, SIZE_MAX) })
+
+  /** Navega a otra página: deselecciona y muestra "cargando" mientras renderiza. */
+  const goToPage = (i: number) => {
+    if (i < 0 || i >= total || i === currentPage) return
+    setSelectedId(null)
+    setBg(null)
+    setCurrentPage(i)
+  }
 
   // Portal a <body>: el modal debe escapar de cualquier ancestro con overflow o
   // transform (el contenedor scrolleable del mundo Notas), que si no lo recorta.
@@ -308,60 +411,79 @@ export function PdfTextEditor({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Texto sobre la página ${pageIndex + 1}`}
+      aria-label={`Texto sobre la página ${currentPage + 1}`}
       onClick={() => onClose(null)}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-5 bg-ink-900/40 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-ink-900/40 backdrop-blur-sm"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-6xl h-[90vh] overflow-hidden rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col"
+        className="w-full max-w-6xl h-[95vh] overflow-hidden rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col"
       >
-        {/* Cabecera */}
-        <header className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-ink-100/70 shrink-0">
+        {/* Cabecera con navegación de páginas */}
+        <header className="flex items-center justify-between gap-3 px-4 py-2 border-b border-ink-100/70 shrink-0">
           <div className="min-w-0">
             <p className="section-eyebrow text-ink-400">ver y editar</p>
-            <p className="text-sm font-medium text-ink-700 tabular-nums">
-              Página {pageIndex + 1}
-            </p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 0}
+                aria-label="Página anterior"
+                title="Página anterior"
+                className={stepBtn}
+              >
+                <ChevronLeftIcon size={16} />
+              </button>
+              <p className="text-sm font-medium text-ink-700 tabular-nums whitespace-nowrap">
+                Página {currentPage + 1}{' '}
+                <span className="font-normal text-ink-400">de {total}</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === total - 1}
+                aria-label="Página siguiente"
+                title="Página siguiente"
+                className={stepBtn}
+              >
+                <ChevronRightIcon size={16} />
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => onClose(null)} className="btn-ghost text-xs">
               Cancelar
             </button>
-            <button onClick={() => onClose(annotations)} className="btn-accent text-xs">
+            <button onClick={() => onClose(edited)} className="btn-accent text-xs">
               Listo
             </button>
           </div>
         </header>
 
-        {/* Barra de edición — ARRIBA del documento */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-2 px-4 py-2 border-b border-ink-100/70 shrink-0">
+        {/* Barra de edición — UNA fila (scroll horizontal si no entra) para no
+            robarle alto al documento. */}
+        <div className="flex flex-nowrap items-center gap-x-2 overflow-x-auto px-4 py-2 border-b border-ink-100/70 shrink-0">
           <button
             onClick={addText}
-            className="btn-ghost text-xs inline-flex items-center gap-1.5"
+            className="btn-ghost text-xs inline-flex shrink-0 items-center gap-1.5"
           >
             <PlusIcon size={13} /> Agregar texto
           </button>
 
           {/* Contenido del texto seleccionado (contextual) */}
           {selected && (
-            <>
-              <span className="w-px h-5 bg-ink-100 mx-0.5" aria-hidden />
-              <input
-                ref={textRef}
-                value={selected.text}
-                onChange={(e) => update(selected.id, { text: e.target.value })}
-                placeholder="Escribe el texto…"
-                className="w-36 sm:w-52 bg-paper-100/50 rounded-md px-2.5 py-1 text-caption text-ink-700 placeholder:text-ink-300 border border-ink-100/60 transition-colors focus:border-ink-300 focus:bg-paper-50"
-              />
-            </>
+            <input
+              ref={textRef}
+              value={selected.text}
+              onChange={(e) => update(selected.id, { text: e.target.value })}
+              placeholder="Escribe el texto…"
+              className="shrink-0 w-36 sm:w-48 bg-paper-100/50 rounded-md px-2.5 py-1 text-caption text-ink-700 placeholder:text-ink-300 border border-ink-100/60 transition-colors focus:border-ink-300 focus:bg-paper-50"
+            />
           )}
 
-          <span className="w-px h-5 bg-ink-100 mx-0.5" aria-hidden />
+          <span className="w-px h-5 bg-ink-100 mx-0.5 shrink-0" aria-hidden />
 
-          {/* Herramientas de estilo — SIEMPRE activas: editan el texto seleccionado
-              o, si no hay ninguno, definen el estilo del próximo texto. */}
-          {/* Fuente */}
+          {/* Herramientas de estilo — SIEMPRE activas */}
           <div className={segGroup}>
             {FONTS.map((f) => (
               <button
@@ -374,35 +496,22 @@ export function PdfTextEditor({
               </button>
             ))}
           </div>
-          {/* Tamaño de letra */}
-          <div className={segGroup} title="Tamaño de letra">
-            <button
-              onClick={() => stepSize(-SIZE_STEP)}
-              disabled={activeSize <= SIZE_MIN + 1e-6}
-              aria-label="Reducir tamaño de letra"
-              className={stepBtn}
-            >
-              −
-            </button>
-            <span className="w-7 text-center text-caption tabular-nums text-ink-600">
-              {Math.round(activeSize * 1000)}
-            </span>
-            <button
-              onClick={() => stepSize(SIZE_STEP)}
-              disabled={activeSize >= SIZE_MAX - 1e-6}
-              aria-label="Aumentar tamaño de letra"
-              className={stepBtn}
-            >
-              +
-            </button>
-          </div>
-          {/* Negrita */}
+          <Stepper
+            icon={<TextSizeIcon size={14} />}
+            label="Tamaño de letra"
+            value={String(Math.round(activeSize * 1000))}
+            valueClass="w-7"
+            onDec={() => stepSize(-SIZE_STEP)}
+            onInc={() => stepSize(SIZE_STEP)}
+            decDisabled={activeSize <= SIZE_MIN + 1e-6}
+            incDisabled={activeSize >= SIZE_MAX - 1e-6}
+          />
           <button
             onClick={() => applyStyle({ bold: !activeBold })}
             aria-pressed={activeBold}
             aria-label="Negrita"
             title="Negrita"
-            className={`h-7 w-8 inline-flex items-center justify-center rounded-md border transition-colors ${
+            className={`shrink-0 h-7 w-8 inline-flex items-center justify-center rounded-md border transition-colors ${
               activeBold
                 ? 'border-ink-300 text-ink-800 bg-ink-100/60'
                 : 'border-ink-100 text-ink-400 hover:text-ink-700 hover:border-ink-200'
@@ -410,8 +519,7 @@ export function PdfTextEditor({
           >
             <BoldIcon size={14} />
           </button>
-          {/* Color */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1.5">
             {COLORS.map((c) => {
               const on = activeColor === c.hex
               return (
@@ -433,48 +541,24 @@ export function PdfTextEditor({
               )
             })}
           </div>
-          {/* Opacidad */}
-          <div className={segGroup} title="Opacidad">
-            <button
-              onClick={() => stepOpacity(-0.1)}
-              disabled={activeOpacity <= 0.1 + 1e-6}
-              aria-label="Reducir opacidad"
-              className={stepBtn}
-            >
-              −
-            </button>
-            <span className="w-10 text-center text-caption tabular-nums text-ink-600">
-              {Math.round(activeOpacity * 100)}%
-            </span>
-            <button
-              onClick={() => stepOpacity(0.1)}
-              disabled={activeOpacity >= 1 - 1e-6}
-              aria-label="Aumentar opacidad"
-              className={stepBtn}
-            >
-              +
-            </button>
-          </div>
-          {/* Rotación del texto */}
-          <div className={segGroup} title="Rotación del texto">
-            <button
-              onClick={() => stepRotation(-15)}
-              aria-label="Rotar texto a la izquierda"
-              className={stepBtn}
-            >
-              −
-            </button>
-            <span className="w-9 text-center text-caption tabular-nums text-ink-600">
-              {activeRotation}°
-            </span>
-            <button
-              onClick={() => stepRotation(15)}
-              aria-label="Rotar texto a la derecha"
-              className={stepBtn}
-            >
-              +
-            </button>
-          </div>
+          <Stepper
+            icon={<OpacityIcon size={14} />}
+            label="Opacidad"
+            value={`${Math.round(activeOpacity * 100)}%`}
+            valueClass="w-9"
+            onDec={() => stepOpacity(-0.1)}
+            onInc={() => stepOpacity(0.1)}
+            decDisabled={activeOpacity <= 0.1 + 1e-6}
+            incDisabled={activeOpacity >= 1 - 1e-6}
+          />
+          <Stepper
+            icon={<RotateIcon size={14} />}
+            label="Rotación del texto"
+            value={`${activeRotation}°`}
+            valueClass="w-8"
+            onDec={() => stepRotation(-15)}
+            onInc={() => stepRotation(15)}
+          />
 
           {/* Acciones sobre el texto seleccionado (contextual) */}
           {selected && (
@@ -483,7 +567,7 @@ export function PdfTextEditor({
                 onClick={() => duplicate(selected)}
                 aria-label="Duplicar texto"
                 title="Duplicar texto"
-                className="touch-target inline-flex items-center justify-center h-7 w-7 rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100/40 transition-colors"
+                className="shrink-0 touch-target inline-flex items-center justify-center h-7 w-7 rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100/40 transition-colors"
               >
                 <DuplicateIcon size={14} />
               </button>
@@ -491,31 +575,27 @@ export function PdfTextEditor({
                 onClick={() => removeText(selected.id)}
                 aria-label="Eliminar texto"
                 title="Eliminar texto (Supr)"
-                className="touch-target inline-flex items-center justify-center h-7 w-7 rounded-md text-ink-300 hover:text-[color:var(--accent-clay)] hover:bg-ink-100/40 transition-colors"
+                className="shrink-0 touch-target inline-flex items-center justify-center h-7 w-7 rounded-md text-ink-300 hover:text-[color:var(--accent-clay)] hover:bg-ink-100/40 transition-colors"
               >
                 <TrashIcon size={14} />
               </button>
             </>
           )}
 
-          <div className="flex-1" />
+          <div className="flex-1 min-w-[8px]" />
 
-          {/* Zoom */}
-          <div className={segGroup} title="Zoom">
-            <button onClick={zoomBtn(-ZOOM_STEP)} aria-label="Alejar" className={stepBtn}>
-              −
-            </button>
-            <button
-              onClick={() => setZoom(1)}
-              title="Restablecer zoom"
-              className="w-12 text-center text-caption tabular-nums text-ink-600 hover:text-ink-800"
-            >
-              {Math.round(zoom * 100)}%
-            </button>
-            <button onClick={zoomBtn(ZOOM_STEP)} aria-label="Acercar" className={stepBtn}>
-              +
-            </button>
-          </div>
+          {/* Zoom del documento — separado a la derecha */}
+          <Stepper
+            icon={<ZoomIcon size={14} />}
+            label="Zoom del documento"
+            value={`${Math.round(zoom * 100)}%`}
+            valueClass="w-10"
+            onValueClick={() => setZoom(1)}
+            onDec={zoomBtn(-ZOOM_STEP)}
+            onInc={zoomBtn(ZOOM_STEP)}
+            decDisabled={zoom <= ZOOM_MIN}
+            incDisabled={zoom >= ZOOM_MAX}
+          />
         </div>
 
         {/* Página — ocupa el resto; centrada y scrolleable al hacer zoom */}
@@ -536,7 +616,7 @@ export function PdfTextEditor({
               >
                 <img
                   src={bg.url}
-                  alt={`Página ${pageIndex + 1}`}
+                  alt={`Página ${currentPage + 1}`}
                   className="absolute inset-0 w-full h-full object-contain select-none"
                   draggable={false}
                 />
@@ -544,8 +624,8 @@ export function PdfTextEditor({
                   <div
                     key={a.id}
                     onPointerDown={(e) => startDrag(e, a)}
-                    // El click NO debe llegar al fondo (que deselecciona): así
-                    // tocar un texto existente lo re-selecciona y reabre la barra.
+                    // El click NO debe llegar al fondo (que deselecciona): así tocar
+                    // un texto existente lo re-selecciona y reabre la barra.
                     onClick={(e) => e.stopPropagation()}
                     style={{
                       position: 'absolute',
@@ -557,8 +637,6 @@ export function PdfTextEditor({
                       lineHeight: TEXT_LINE_HEIGHT,
                       color: a.color,
                       opacity: a.opacity ?? 1,
-                      // Rota como pdf-lib: pivote en la baseline-izquierda, a la
-                      // misma altura (baselineDropEm·tamaño) que usa el ensamblado.
                       transform: a.rotation ? `rotate(${a.rotation}deg)` : undefined,
                       transformOrigin: `0 ${a.sizeRatio * layout.innerH * baselineDropEm(a.font)}px`,
                       whiteSpace: 'pre',
