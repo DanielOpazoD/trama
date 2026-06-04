@@ -34,6 +34,7 @@ import {
 import { assemble } from '../../../lib/pdfStudio/assemble'
 import { downloadBlob } from '../../../lib/downloadBlob'
 import { PdfTextEditor } from './PdfTextEditor'
+import { OverflowMenu, OverflowMenuItem } from '../../OverflowMenu'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -230,8 +231,9 @@ export function PdfStudioView() {
       <header className="space-y-1">
         <p className="section-eyebrow text-ink-400">editor de pdf</p>
         <p className="text-caption text-ink-500 max-w-prose">
-          Combina PDFs e imágenes en un documento. Reordena o elimina páginas y guárdalo
-          como un PDF nuevo. Todo ocurre en tu navegador: nada se sube.
+          Combina PDFs e imágenes en un documento. Reordena, rota, agrega texto o elimina
+          páginas, y guárdalo como un PDF nuevo. Todo ocurre en tu navegador: nada se
+          sube.
         </p>
       </header>
 
@@ -448,6 +450,8 @@ function PageCard({
   return (
     <li
       draggable
+      tabIndex={0}
+      aria-label={`Página ${index + 1} de ${total}. Flechas izquierda/derecha para reordenar.`}
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move'
         onDragStart()
@@ -459,6 +463,17 @@ function PageCard({
         e.preventDefault()
         e.stopPropagation()
         onDropOn()
+      }}
+      onKeyDown={(e) => {
+        // Reordenar por teclado cuando la card (no un control interno) tiene foco.
+        if (e.target !== e.currentTarget) return
+        if (e.key === 'ArrowLeft' && index > 0) {
+          e.preventDefault()
+          onNudge(index, -1)
+        } else if (e.key === 'ArrowRight' && index < total - 1) {
+          e.preventDefault()
+          onNudge(index, 1)
+        }
       }}
       style={isDropTarget ? { boxShadow: `0 0 0 2px ${ACCENT}` } : undefined}
       className={`group flex flex-col rounded-lg border bg-paper-50 overflow-hidden transition-all duration-150 ${
@@ -534,35 +549,53 @@ function PageCard({
             <ChevronRightIcon size={15} />
           </button>
         </div>
-        <div className="inline-flex items-center">
-          <button
-            type="button"
-            onClick={() => onRotate(1)}
-            aria-label="Rotar página 90 grados"
-            title="Rotar 90°"
-            className={ctrlBtn}
-          >
-            <RotateIcon size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={onOpenText}
-            aria-label="Agregar o editar texto"
-            title="Texto"
-            className={ctrlBtn}
-          >
-            <TextIcon size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={() => onDelete(index)}
-            aria-label="Eliminar página"
-            title="Eliminar página"
-            className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-300 hover:text-[color:var(--accent-clay)] hover:bg-ink-100/50 transition-colors"
-          >
-            <TrashIcon size={14} />
-          </button>
-        </div>
+        <OverflowMenu
+          label={`Acciones de la página ${index + 1}`}
+          width="w-48"
+          triggerClassName={ctrlBtn}
+        >
+          {(close) => (
+            <>
+              <OverflowMenuItem
+                onClick={() => {
+                  onOpenText()
+                  close()
+                }}
+              >
+                <TextIcon size={13} />{' '}
+                {pageHasText(page) ? 'Editar texto' : 'Agregar texto'}
+              </OverflowMenuItem>
+              <OverflowMenuItem
+                onClick={() => {
+                  onRotate(1)
+                  close()
+                }}
+              >
+                <RotateIcon size={13} /> Rotar a la derecha
+              </OverflowMenuItem>
+              <OverflowMenuItem
+                onClick={() => {
+                  onRotate(-1)
+                  close()
+                }}
+              >
+                <span className="inline-flex" style={{ transform: 'scaleX(-1)' }}>
+                  <RotateIcon size={13} />
+                </span>{' '}
+                Rotar a la izquierda
+              </OverflowMenuItem>
+              <OverflowMenuItem
+                danger
+                onClick={() => {
+                  onDelete(index)
+                  close()
+                }}
+              >
+                <TrashIcon size={13} /> Eliminar página
+              </OverflowMenuItem>
+            </>
+          )}
+        </OverflowMenu>
       </div>
     </li>
   )

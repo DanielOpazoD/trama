@@ -60,8 +60,9 @@ describe('<PdfStudioView />', () => {
     expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
     expect(mocks.getPdfPageCount).toHaveBeenCalledTimes(1)
 
-    // Borrar la primera → queda una.
-    await user.click(screen.getAllByRole('button', { name: /Eliminar página/i })[0]!)
+    // Borrar la primera (acción en el menú ⋯) → queda una.
+    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
+    await user.click(await screen.findByRole('menuitem', { name: /Eliminar página/i }))
     expect(screen.queryByAltText('Página 2')).not.toBeInTheDocument()
     expect(screen.getByText(/1 página/)).toBeInTheDocument()
     expect(mocks.forgetThumb).toHaveBeenCalled()
@@ -94,7 +95,8 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    await user.click(screen.getAllByRole('button', { name: /Rotar página/i })[0]!)
+    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
+    await user.click(await screen.findByRole('menuitem', { name: /Rotar a la derecha/i }))
     // La página sigue ahí y ahora hay historial para deshacer la rotación.
     expect(screen.getByAltText('Página 1')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Deshacer/i })).toBeEnabled()
@@ -106,10 +108,9 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    // Abrir el editor de texto de la primera página.
-    await user.click(
-      screen.getAllByRole('button', { name: /Agregar o editar texto/i })[0]!,
-    )
+    // Abrir el editor de texto desde el menú ⋯ de la primera página.
+    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
+    await user.click(await screen.findByRole('menuitem', { name: /Agregar texto/i }))
     expect(
       await screen.findByRole('dialog', { name: /Texto sobre la página 1/i }),
     ).toBeInTheDocument()
