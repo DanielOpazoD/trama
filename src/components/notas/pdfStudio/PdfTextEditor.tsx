@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 import { createPortal } from 'react-dom'
 import {
   baselineDropEm,
@@ -48,6 +56,12 @@ const SIZE_STEP = 0.004
 const ZOOM_MIN = 0.5
 const ZOOM_MAX = 4
 const ZOOM_STEP = 0.25
+
+// Padding TRANSPARENTE alrededor del texto para agrandar el blanco clickeable (el
+// bug "a veces no se selecciona"): el margen negativo lo compensa, así el texto NO
+// se mueve respecto de la salida.
+const HIT_X = 6
+const HIT_Y = 4
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
@@ -131,6 +145,70 @@ function Stepper({
 }
 
 /**
+ * Edición INLINE del texto SOBRE el cuadro (no en la barra). `contentEditable` NO
+ * controlado: setea el contenido inicial por ref al montar y lo lee al confirmar,
+ * así el cursor no salta. Enter/blur confirman; Escape cancela. Detiene la
+ * propagación para no disparar los atajos globales (Supr/flechas) ni el drag.
+ */
+function EditableBox({
+  initial,
+  style,
+  onCommit,
+  onCancel,
+}: {
+  initial: string
+  style: CSSProperties
+  onCommit: (text: string) => void
+  onCancel: () => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.textContent = initial
+    el.focus()
+    const range = document.createRange()
+    range.selectNodeContents(el)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+    // sólo al montar (es no controlado a propósito)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const commit = () => onCommit((ref.current?.textContent ?? '').replace(/\r?\n/g, ' '))
+  return (
+    <div
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      role="textbox"
+      aria-label="Editar texto"
+      spellCheck={false}
+      onBlur={commit}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        e.stopPropagation()
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          commit()
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          onCancel()
+        }
+      }}
+      style={{
+        ...style,
+        cursor: 'text',
+        userSelect: 'text',
+        outline: `1.5px solid ${ACCENT}`,
+        outlineOffset: 0,
+      }}
+    />
+  )
+}
+
+/**
  * Editor / visor de páginas del PDF: muestra la página grande con la barra de
  * edición ARRIBA y permite **navegar entre todas las páginas** del documento sin
  * cerrar. Deja agregar/mover/ajustar cajas de texto vectorial (WYSIWYG, posición y
@@ -158,11 +236,12 @@ export function PdfTextEditor({
   const annotations = edited[currentPage] ?? page?.annotations ?? []
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Texto en edición INLINE (sobre el cuadro). null = ninguno.
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [bg, setBg] = useState<{ url: string; w: number; h: number } | null>(null)
   const [zoom, setZoom] = useState(1)
   const [area, setArea] = useState<{ w: number; h: number } | null>(null)
   const areaRef = useRef<HTMLDivElement>(null)
-  const textRef = useRef<HTMLInputElement>(null)
   // Refs para que los efectos montados una vez vean el estado actual sin re-suscribir.
   const selectedRef = useRef<string | null>(null)
   selectedRef.current = selectedId
@@ -216,10 +295,13 @@ export function PdfTextEditor({
     return () => ro.disconnect()
   }, [])
 
-  // Escape cancela.
+  // Escape cancela el modal — salvo mientras se edita un texto inline (ahí Escape
+  // lo maneja el propio cuadro para cancelar la edición).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose(null)
+      if (e.key !== 'Escape') return
+      if ((e.target as HTMLElement | null)?.isContentEditable) return
+      onClose(null)
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
@@ -229,8 +311,12 @@ export function PdfTextEditor({
   // mueven fino.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement | null)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      const el = e.target as HTMLElement | null
+      if (
+        el &&
+        (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+      )
+        return
       const id = selectedRef.current
       if (!id) return
       if (e.key === 'Delete') {
@@ -323,7 +409,7 @@ export function PdfTextEditor({
     })
     setAnnotations((l) => [...l, a])
     setSelectedId(a.id)
-    requestAnimationFrame(() => textRef.current?.select())
+    setEditingId(a.id) // se edita inline, sobre el cuadro, al toque
   }
 
   /** Duplica una anotación con un pequeño offset y la selecciona. */
@@ -401,6 +487,7 @@ export function PdfTextEditor({
   const goToPage = (i: number) => {
     if (i < 0 || i >= total || i === currentPage) return
     setSelectedId(null)
+    setEditingId(null)
     setBg(null)
     setCurrentPage(i)
   }
@@ -469,17 +556,6 @@ export function PdfTextEditor({
           >
             <PlusIcon size={13} /> Agregar texto
           </button>
-
-          {/* Contenido del texto seleccionado (contextual) */}
-          {selected && (
-            <input
-              ref={textRef}
-              value={selected.text}
-              onChange={(e) => update(selected.id, { text: e.target.value })}
-              placeholder="Escribe el texto…"
-              className="shrink-0 w-36 sm:w-48 bg-paper-100/50 rounded-md px-2.5 py-1 text-caption text-ink-700 placeholder:text-ink-300 border border-ink-100/60 transition-colors focus:border-ink-300 focus:bg-paper-50"
-            />
-          )}
 
           <span className="w-px h-5 bg-ink-100 mx-0.5 shrink-0" aria-hidden />
 
@@ -606,7 +682,10 @@ export function PdfTextEditor({
           {layout && bg ? (
             <div className="relative" style={{ width: zw, height: zh }}>
               <div
-                onClick={() => setSelectedId(null)}
+                onClick={() => {
+                  setSelectedId(null)
+                  setEditingId(null)
+                }}
                 className="absolute left-1/2 top-1/2 bg-white rounded-sm ring-1 ring-ink-900/10 shadow-xl shadow-ink-900/15"
                 style={{
                   width: layout.innerW,
@@ -620,42 +699,76 @@ export function PdfTextEditor({
                   className="absolute inset-0 w-full h-full object-contain select-none"
                   draggable={false}
                 />
-                {annotations.map((a) => (
-                  <div
-                    key={a.id}
-                    onPointerDown={(e) => startDrag(e, a)}
-                    // El click NO debe llegar al fondo (que deselecciona): así tocar
-                    // un texto existente lo re-selecciona y reabre la barra.
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      position: 'absolute',
-                      left: `${a.xRatio * 100}%`,
-                      top: `${a.yRatio * 100}%`,
-                      fontFamily: previewFontFamily(a.font),
-                      fontWeight: a.bold ? 700 : 400,
-                      fontSize: `${a.sizeRatio * layout.innerH}px`,
-                      lineHeight: TEXT_LINE_HEIGHT,
-                      color: a.color,
-                      opacity: a.opacity ?? 1,
-                      transform: a.rotation ? `rotate(${a.rotation}deg)` : undefined,
-                      transformOrigin: `0 ${a.sizeRatio * layout.innerH * baselineDropEm(a.font)}px`,
-                      whiteSpace: 'pre',
-                      cursor: 'move',
-                      userSelect: 'none',
-                      touchAction: 'none',
-                      padding: '0 2px',
-                      borderRadius: 2,
-                      outline:
-                        selectedId === a.id
-                          ? `1.5px solid ${ACCENT}`
-                          : '1.5px solid transparent',
-                      outlineOffset: 2,
-                      transition: 'outline-color 120ms ease',
-                    }}
-                  >
-                    {a.text || ' '}
-                  </div>
-                ))}
+                {annotations.map((a) => {
+                  const sz = a.sizeRatio * layout.innerH
+                  // Estilo compartido por el cuadro display y el editable. El padding
+                  // transparente (compensado por el margen negativo) agranda el blanco
+                  // clickeable SIN mover el texto; el pivote de rotación queda en la
+                  // baseline-izquierda real del texto.
+                  const boxStyle: CSSProperties = {
+                    position: 'absolute',
+                    left: `${a.xRatio * 100}%`,
+                    top: `${a.yRatio * 100}%`,
+                    margin: `-${HIT_Y}px -${HIT_X}px`,
+                    padding: `${HIT_Y}px ${HIT_X}px`,
+                    fontFamily: previewFontFamily(a.font),
+                    fontWeight: a.bold ? 700 : 400,
+                    fontSize: `${sz}px`,
+                    lineHeight: TEXT_LINE_HEIGHT,
+                    color: a.color,
+                    opacity: a.opacity ?? 1,
+                    transform: a.rotation ? `rotate(${a.rotation}deg)` : undefined,
+                    transformOrigin: `${HIT_X}px ${HIT_Y + sz * baselineDropEm(a.font)}px`,
+                    whiteSpace: 'pre',
+                    borderRadius: 3,
+                  }
+                  if (editingId === a.id) {
+                    return (
+                      <EditableBox
+                        key={a.id}
+                        initial={a.text}
+                        style={boxStyle}
+                        onCommit={(text) => {
+                          update(a.id, { text })
+                          setEditingId(null)
+                        }}
+                        onCancel={() => setEditingId(null)}
+                      />
+                    )
+                  }
+                  return (
+                    <div
+                      key={a.id}
+                      onPointerDown={(e) => startDrag(e, a)}
+                      // Click selecciona ESTE (no llega al fondo, que deselecciona).
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedId(a.id)
+                      }}
+                      // Doble clic edita el texto INLINE, sobre el cuadro.
+                      onDoubleClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedId(a.id)
+                        setEditingId(a.id)
+                      }}
+                      title="Doble clic para editar · arrastra para mover"
+                      style={{
+                        ...boxStyle,
+                        cursor: 'move',
+                        userSelect: 'none',
+                        touchAction: 'none',
+                        outline:
+                          selectedId === a.id
+                            ? `1.5px solid ${ACCENT}`
+                            : '1.5px solid transparent',
+                        outlineOffset: 0,
+                        transition: 'outline-color 120ms ease',
+                      }}
+                    >
+                      {a.text || ' '}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           ) : (
