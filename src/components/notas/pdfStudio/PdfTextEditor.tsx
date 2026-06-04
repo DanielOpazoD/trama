@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   getSource,
   makeAnnotation,
@@ -222,7 +223,10 @@ export function PdfTextEditor({
     window.addEventListener('pointerup', up)
   }
 
-  return (
+  // Portal a <body>: el modal debe escapar de cualquier ancestro con overflow o
+  // transform (el contenedor scrolleable del mundo Notas), que si no lo recorta
+  // y "esconde" pese al position:fixed.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -426,6 +430,7 @@ export function PdfTextEditor({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
