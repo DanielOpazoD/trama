@@ -783,8 +783,12 @@ function PageCard({
             : 'border-ink-100 hover:border-ink-200 hover:shadow-md hover:shadow-ink-900/5'
       }`}
     >
-      {/* Miniatura */}
-      <div className="relative aspect-square min-h-0 bg-ink-100/30 flex items-center justify-center cursor-grab active:cursor-grabbing p-1.5">
+      {/* Miniatura — doble clic la abre grande (ver y editar) */}
+      <div
+        onDoubleClick={onOpenText}
+        title="Doble clic para ver y editar"
+        className="relative aspect-square min-h-0 bg-ink-100/30 flex items-center justify-center cursor-grab active:cursor-grabbing p-1.5"
+      >
         {thumb ? (
           <img
             src={thumb}
