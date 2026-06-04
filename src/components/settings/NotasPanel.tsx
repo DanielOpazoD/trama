@@ -15,7 +15,7 @@ const WORLDS: { key: World; label: string }[] = [
  * `user_prefs`): qué subsecciones se ven y qué mundo abre por defecto.
  */
 export function NotasPanel() {
-  const { isVisible, setVisible, showAll } = useModuleVisibility()
+  const { isVisible, isHideable, setVisible, showAll } = useModuleVisibility()
   const { data } = useUserPrefs()
   const save = useSaveUserPrefs()
   const defaultWorld = data?.defaultWorld ?? DEFAULT_WORLD
@@ -29,14 +29,16 @@ export function NotasPanel() {
         />
         <div className="card-segment flex flex-col">
           {SECTIONS.map((s) => {
-            const locked = s.id === 'inicio'
+            const locked = !isHideable(s.id)
             const on = isVisible(s.id)
             return (
               <button
                 key={s.id}
                 type="button"
+                role="switch"
+                aria-checked={on}
+                aria-label={`Sección ${s.label}`}
                 disabled={locked}
-                aria-pressed={on}
                 onClick={() => setVisible(s.id, !on)}
                 className="flex items-center justify-between gap-3 w-full text-left px-2 py-1.5 rounded-md hover:bg-ink-100/50 disabled:opacity-60 disabled:hover:bg-transparent transition-colors"
               >

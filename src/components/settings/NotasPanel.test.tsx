@@ -9,6 +9,7 @@ let prefsData: { defaultWorld?: string } = {}
 vi.mock('../../hooks/useModuleVisibility', () => ({
   useModuleVisibility: () => ({
     isVisible: () => true,
+    isHideable: (id: string) => id !== 'inicio',
     setVisible,
     showAll,
     reveal: vi.fn(),
@@ -33,9 +34,9 @@ describe('<NotasPanel />', () => {
   it('lista las secciones; togglear una llama setVisible; inicio está bloqueado', () => {
     render(<NotasPanel />)
     expect(screen.getByText('Claves')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /claves/i }))
+    fireEvent.click(screen.getByRole('switch', { name: /claves/i }))
     expect(setVisible).toHaveBeenCalledWith('claves', false) // visible → ocultar
-    expect(screen.getByRole('button', { name: /inicio/i })).toBeDisabled()
+    expect(screen.getByRole('switch', { name: /inicio/i })).toBeDisabled()
   })
 
   it('elegir el mundo default guarda la preferencia', () => {

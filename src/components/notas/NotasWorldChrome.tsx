@@ -2,7 +2,7 @@ import { HomeIcon, KeyIcon, NotesIcon, PromptIcon, SearchIcon, TasksIcon } from 
 import { TopBar } from '../TopBar'
 import { WorldSwitcher } from '../WorldSwitcher'
 import type { World } from '../../types/world'
-import type { NotasSection } from './NotasWorld'
+import type { NotasSection } from '../../types/notas'
 
 const ACCENT = 'var(--accent-sage)'
 

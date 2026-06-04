@@ -145,6 +145,24 @@ describe('<CommandPalette />', () => {
     expect(screen.queryByText('Nueva entidad')).not.toBeInTheDocument()
   })
 
+  it('comando "#pass" ofrece revelar un módulo de Notas y lo despacha', () => {
+    const onRevealNotasModule = vi.fn()
+    renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+        onRevealNotasModule={onRevealNotasModule}
+      />,
+    )
+    fireEvent.change(screen.getByPlaceholderText(/buscar/i), {
+      target: { value: '#pass' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /abrir claves/i }))
+    expect(onRevealNotasModule).toHaveBeenCalledWith('claves')
+  })
+
   it('calls onClose when ESC is pressed', () => {
     const onClose = vi.fn()
     renderWithProviders(
