@@ -239,7 +239,8 @@ export function PdfTextEditor({
   // Texto en edición INLINE (sobre el cuadro). null = ninguno.
   const [editingId, setEditingId] = useState<string | null>(null)
   const [bg, setBg] = useState<{ url: string; w: number; h: number } | null>(null)
-  const [zoom, setZoom] = useState(1)
+  // Default 150%: prioriza ver/editar la página en grande (la barra es compacta).
+  const [zoom, setZoom] = useState(1.5)
   const [area, setArea] = useState<{ w: number; h: number } | null>(null)
   const areaRef = useRef<HTMLDivElement>(null)
   // Refs para que los efectos montados una vez vean el estado actual sin re-suscribir.
@@ -506,36 +507,33 @@ export function PdfTextEditor({
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-6xl h-[95vh] overflow-hidden rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col"
       >
-        {/* Cabecera con navegación de páginas */}
-        <header className="flex items-center justify-between gap-3 px-4 py-2 border-b border-ink-100/70 shrink-0">
-          <div className="min-w-0">
-            <p className="section-eyebrow text-ink-400">ver y editar</p>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 0}
-                aria-label="Página anterior"
-                title="Página anterior"
-                className={stepBtn}
-              >
-                <ChevronLeftIcon size={16} />
-              </button>
-              <p className="text-sm font-medium text-ink-700 tabular-nums whitespace-nowrap">
-                Página {currentPage + 1}{' '}
-                <span className="font-normal text-ink-400">de {total}</span>
-              </p>
-              <button
-                type="button"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === total - 1}
-                aria-label="Página siguiente"
-                title="Página siguiente"
-                className={stepBtn}
-              >
-                <ChevronRightIcon size={16} />
-              </button>
-            </div>
+        {/* Cabecera compacta (una línea): navegación de páginas + acciones */}
+        <header className="flex items-center justify-between gap-3 px-3 py-1.5 border-b border-ink-100/70 shrink-0">
+          <div className="flex items-center gap-1 min-w-0">
+            <button
+              type="button"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 0}
+              aria-label="Página anterior"
+              title="Página anterior"
+              className={stepBtn}
+            >
+              <ChevronLeftIcon size={16} />
+            </button>
+            <p className="text-sm font-medium text-ink-700 tabular-nums whitespace-nowrap">
+              Página {currentPage + 1}{' '}
+              <span className="font-normal text-ink-400">de {total}</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === total - 1}
+              aria-label="Página siguiente"
+              title="Página siguiente"
+              className={stepBtn}
+            >
+              <ChevronRightIcon size={16} />
+            </button>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => onClose(null)} className="btn-ghost text-xs">
@@ -549,7 +547,7 @@ export function PdfTextEditor({
 
         {/* Barra de edición — UNA fila (scroll horizontal si no entra) para no
             robarle alto al documento. */}
-        <div className="flex flex-nowrap items-center gap-x-2 overflow-x-auto px-4 py-2 border-b border-ink-100/70 shrink-0">
+        <div className="flex flex-nowrap items-center gap-x-2 overflow-x-auto px-3 py-1.5 border-b border-ink-100/70 shrink-0">
           <button
             onClick={addText}
             className="btn-ghost text-xs inline-flex shrink-0 items-center gap-1.5"
@@ -677,7 +675,7 @@ export function PdfTextEditor({
         {/* Página — ocupa el resto; centrada y scrolleable al hacer zoom */}
         <div
           ref={areaRef}
-          className="flex-1 min-h-0 overflow-auto grid place-items-center bg-ink-100/30 p-4"
+          className="flex-1 min-h-0 overflow-auto grid place-items-center bg-ink-100/30 p-3"
         >
           {layout && bg ? (
             <div className="relative" style={{ width: zw, height: zh }}>
