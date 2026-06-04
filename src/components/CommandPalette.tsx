@@ -6,7 +6,7 @@ import {
   type CommandAction,
   type Item,
 } from '../hooks/useCommandSearch'
-import type { NotasSection } from './notas/NotasWorld'
+import type { NotasSection } from '../types/notas'
 import {
   ChatIcon,
   AtlasIcon,

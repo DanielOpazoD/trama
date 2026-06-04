@@ -8,7 +8,7 @@ import {
   useToast,
 } from '../../state'
 import { KeyIcon, SearchIcon } from '../Icons'
-import type { NotasSection } from './NotasWorld'
+import type { NotasSection } from '../../types/notas'
 import { copyText } from './notasUtils'
 import { matchModuleAlias } from './moduleAliases'
 import { useModuleVisibility } from '../../hooks/useModuleVisibility'

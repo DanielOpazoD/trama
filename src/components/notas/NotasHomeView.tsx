@@ -3,7 +3,7 @@ import { useNotesQuery, usePromptsQuery, usePendingTasks } from '../../state'
 import { ViewHeader } from '../ViewHeader'
 import { EmptyMessage } from '../EmptyMessage'
 import { KeyIcon, NotesIcon, PlusIcon, PromptIcon, TasksIcon } from '../Icons'
-import type { NotasSection } from './NotasWorld'
+import type { NotasSection } from '../../types/notas'
 import { PRIORITY_META } from './PriorityDots'
 import { sortPending } from './weekModel'
 

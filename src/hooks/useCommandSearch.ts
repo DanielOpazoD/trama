@@ -4,7 +4,7 @@ import { api } from '../api'
 import type { SearchResponse } from '../api'
 import type { ViewMode } from '../types/view'
 import { matchModuleAlias } from '../components/notas/moduleAliases'
-import type { NotasSection } from '../components/notas/NotasWorld'
+import type { NotasSection } from '../types/notas'
 
 /**
  * Lógica de búsqueda del command palette (Cmd+K), extraída de

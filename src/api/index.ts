@@ -33,7 +33,7 @@ import { secretsApi } from './secrets'
 import { spotifyApi } from './spotify'
 import { tasksApi } from './tasks'
 import { monthNotesApi } from './month-notes'
-import { userPrefsApi } from './userPrefs'
+import { userPrefsApi } from './user-prefs'
 import { typeTablesApi } from './type-tables'
 import { xApi } from './x'
 
@@ -91,7 +91,7 @@ export type { Note } from './notes'
 export type { Task, TaskCreate, TaskPatch, TaskPriority, TaskCategory } from './tasks'
 
 export type { MonthNote } from './month-notes'
-export type { UserPrefs } from './userPrefs'
+export type { UserPrefs } from './user-prefs'
 
 export type { Prompt, PromptCreate, PromptPatch } from './prompts'
 

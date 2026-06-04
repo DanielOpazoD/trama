@@ -1,4 +1,4 @@
-import type { NotasSection } from './NotasWorld'
+import type { NotasSection } from '../../types/notas'
 
 /**
  * Tokens para revelar/abrir un módulo del mundo Notas desde el buscador
@@ -20,11 +20,14 @@ export const MODULE_ALIASES: ModuleAlias[] = [
 ]
 
 /**
- * Matchea un token tipeado (con o sin '#' inicial, case-insensitive) contra el
- * mapa de alias. Devuelve el alias o `null`.
+ * Matchea un comando contra el mapa de alias. **Exige el prefijo '#'** (la
+ * sintaxis documentada) para no disparar falsos positivos al buscar contenido
+ * que contenga la palabra. Case-insensitive. Devuelve el alias o `null`.
  */
 export function matchModuleAlias(query: string): ModuleAlias | null {
-  const t = query.trim().toLowerCase().replace(/^#/, '')
-  if (!t) return null
-  return MODULE_ALIASES.find((a) => a.token === t) ?? null
+  const trimmed = query.trim().toLowerCase()
+  if (!trimmed.startsWith('#')) return null
+  const token = trimmed.slice(1)
+  if (!token) return null
+  return MODULE_ALIASES.find((a) => a.token === token) ?? null
 }

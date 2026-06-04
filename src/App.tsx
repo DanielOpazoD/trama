@@ -8,11 +8,13 @@ import { readOAuthReturn, clearOAuthReturn, type OAuthReturn } from './lib/oauth
 import {
   Provider,
   readUserPrefsMirror,
+  clearUserPrefsMirror,
   useEntitiesQuery,
   useOffline,
   useQuotesQuery,
   useRelationshipsQuery,
 } from './state'
+import { useCurrentClientUserId } from './lib/clientIdentity'
 import { useTheme } from './hooks/useTheme'
 import { useWorldThemeClass } from './hooks/useWorldThemeClass'
 import { useTimeOfDayAccent } from './hooks/useTimeOfDayAccent'
@@ -39,7 +41,8 @@ import { AuthGate } from './components/AuthGate'
 import { AppPinGate } from './components/AppPinGate'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { SectionAccentBand } from './components/SectionAccentBand'
-import { NotasWorld, type NotasSection } from './components/notas/NotasWorld'
+import { NotasWorld } from './components/notas/NotasWorld'
+import type { NotasSection } from './types/notas'
 import { useModuleVisibility } from './hooks/useModuleVisibility'
 import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
 // GlobalProgressBar removido por feedback del usuario — la barra fina
@@ -501,6 +504,35 @@ function WorldShell() {
       /* storage deshabilitado */
     }
   }, [])
+
+  // Multiusuario en navegador compartido: si cambia el usuario autenticado, no
+  // hereda el último mundo / espejo de prefs del anterior — los descarta y
+  // resetea al mundo default. Sin Clerk el id es null → nunca dispara.
+  const clientUserId = useCurrentClientUserId()
+  useEffect(() => {
+    if (!clientUserId) return
+    let last: string | null = null
+    try {
+      last = window.localStorage.getItem('trama:auth-user')
+    } catch {
+      return
+    }
+    if (last === clientUserId) return
+    if (last !== null) {
+      clearUserPrefsMirror()
+      try {
+        window.localStorage.removeItem(WORLD_STORAGE_KEY)
+      } catch {
+        /* ignore */
+      }
+      setWorld(DEFAULT_WORLD)
+    }
+    try {
+      window.localStorage.setItem('trama:auth-user', clientUserId)
+    } catch {
+      /* ignore */
+    }
+  }, [clientUserId])
 
   // Identidad de acento por mundo (Notas = salvia) vía clase en <html>.
   useWorldThemeClass(world)

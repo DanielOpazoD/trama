@@ -7,7 +7,9 @@ import { NotasMobileTabs, NotasSidebar, NotasTopBar, SECTIONS } from './NotasWor
 import { PromptsView } from './PromptsView'
 import { TareasView } from './TareasView'
 import { useModuleVisibility } from '../../hooks/useModuleVisibility'
+import { useClampedSection } from '../../hooks/useClampedSection'
 import type { World } from '../../types/world'
+import type { NotasSection } from '../../types/notas'
 
 /**
  * τ-worlds: el mundo "Trama Notas" — un workspace de productividad liviana
@@ -19,8 +21,6 @@ import type { World } from '../../types/world'
  * que el ⌘K del mundo principal): un acceso en el sidebar/cabecera despliega un
  * overlay, en vez de ocupar una barra fija sobre el contenido.
  */
-export type NotasSection = 'inicio' | 'notas' | 'tareas' | 'prompts' | 'claves'
-
 export function NotasWorld({
   world,
   onChangeWorld,
@@ -31,17 +31,15 @@ export function NotasWorld({
   /** Sección con la que abrir (p. ej. al revelar un módulo desde el otro mundo). */
   initialSection?: NotasSection
 }) {
-  const [section, setSection] = useState<NotasSection>(initialSection ?? 'inicio')
   const [searchOpen, setSearchOpen] = useState(false)
   const { isVisible } = useModuleVisibility()
   const visibleSections = SECTIONS.filter((s) => isVisible(s.id))
-
-  // Si la sección activa queda oculta (desde Settings), volvemos a Inicio — que
-  // nunca se oculta. Garantiza que no quedes en una sección invisible.
-  const sectionVisible = isVisible(section)
-  useEffect(() => {
-    if (!sectionVisible) setSection('inicio')
-  }, [sectionVisible])
+  // La sección activa se clampa a Inicio si deja de ser visible (anti-trampa).
+  const [section, setSection] = useClampedSection<NotasSection>(
+    initialSection ?? 'inicio',
+    'inicio',
+    isVisible,
+  )
 
   useEffect(() => {
     if (!searchOpen) return

@@ -106,7 +106,12 @@ export {
   useDeleteNotasAttachment,
 } from './useNotasAttachments'
 export { useMonthNoteQuery, useSaveMonthNote } from './useMonthNotes'
-export { useUserPrefs, useSaveUserPrefs, readUserPrefsMirror } from './useUserPrefs'
+export {
+  useUserPrefs,
+  useSaveUserPrefs,
+  readUserPrefsMirror,
+  clearUserPrefsMirror,
+} from './useUserPrefs'
 export { useInfiniteCronologiaQuery } from './useCronologia'
 export { useAtlasQuery, useGenerateAtlas } from './useAtlas'
 export { useSuggestRelationships } from './useSuggestRelationships'
