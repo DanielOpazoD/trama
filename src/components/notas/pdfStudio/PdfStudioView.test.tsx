@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '../../../test-utils'
 
@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   disposePdfStudio: vi.fn(),
   assemble: vi.fn(),
   downloadBlob: vi.fn(),
+  printPdfBlob: vi.fn(),
   loadDraft: vi.fn(),
   saveDraft: vi.fn(),
   clearDraft: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
   disposePdfStudio: mocks.disposePdfStudio,
 }))
 vi.mock('../../../lib/pdfStudio/assemble', () => ({ assemble: mocks.assemble }))
+vi.mock('../../../lib/pdfStudio/printPdf', () => ({ printPdfBlob: mocks.printPdfBlob }))
 vi.mock('../../../lib/downloadBlob', () => ({ downloadBlob: mocks.downloadBlob }))
 vi.mock('../../../lib/pdfStudio/persistence', () => ({
   loadDraft: mocks.loadDraft,
@@ -224,5 +226,42 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: 'Extraer' }))
     expect(mocks.assemble).toHaveBeenCalledTimes(1)
     expect(mocks.downloadBlob).toHaveBeenCalledTimes(1)
+  })
+
+  it('imprime una página desde el menú ⋯ (ensambla + imprime, sin descargar)', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
+    await user.click(await screen.findByRole('menuitem', { name: /Imprimir página/i }))
+    expect(mocks.assemble).toHaveBeenCalledTimes(1)
+    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
+    expect(mocks.downloadBlob).not.toHaveBeenCalled()
+  })
+
+  it('imprime todo el documento desde la barra superior', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /^Imprimir$/i }))
+    expect(mocks.assemble).toHaveBeenCalledTimes(1)
+    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
+  })
+
+  it('imprime las páginas seleccionadas desde la barra de lote', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Seleccionar página 1/i }))
+    const bar = screen.getByRole('toolbar', { name: /páginas seleccionadas/i })
+    await user.click(within(bar).getByRole('button', { name: 'Imprimir' }))
+    expect(mocks.assemble).toHaveBeenCalledTimes(1)
+    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
   })
 })

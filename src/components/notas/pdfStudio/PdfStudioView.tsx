@@ -37,6 +37,7 @@ import {
   renderPageThumb,
 } from '../../../lib/pdfStudio/pdfRender'
 import { assemble } from '../../../lib/pdfStudio/assemble'
+import { printPdfBlob } from '../../../lib/pdfStudio/printPdf'
 import { clearDraft, loadDraft, saveDraft } from '../../../lib/pdfStudio/persistence'
 import { downloadBlob } from '../../../lib/downloadBlob'
 import { useCurrentClientUserId } from '../../../lib/clientIdentity'
@@ -51,6 +52,7 @@ import {
   DuplicateIcon,
   FileIcon,
   FilePdfIcon,
+  PrinterIcon,
   RedoIcon,
   RotateIcon,
   TextIcon,
@@ -103,6 +105,7 @@ export function PdfStudioView() {
   const doc = history.present
   const [busy, setBusy] = useState(false) // importando
   const [saving, setSaving] = useState(false)
+  const [printing, setPrinting] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [textPage, setTextPage] = useState<number | null>(null)
@@ -377,6 +380,37 @@ export function PdfStudioView() {
     }
   }
 
+  /**
+   * Imprime el documento (o un subconjunto de páginas) abriéndolo en un iframe
+   * oculto. `indices` undefined → todo; si no, sólo esas páginas (en orden de
+   * documento). El navegador muestra su propio diálogo/preview de impresión.
+   */
+  async function printPages(indices?: number[]) {
+    if (printing || saving || busy) return
+    const target = indices ? subsetDoc(doc, indices) : doc
+    if (target.pages.length === 0) return
+    setPrinting(true)
+    try {
+      const { blob, skipped } = await assemble(target)
+      printPdfBlob(blob)
+      if (skipped.length > 0) {
+        toast.show({
+          message: `Enviado a imprimir, pero se saltearon ${skipped.length} archivo(s): ${skipped
+            .map((s) => s.name)
+            .join(', ')}.`,
+          tone: 'error',
+        })
+      }
+    } catch (err) {
+      toast.show({
+        message: err instanceof Error ? err.message : 'No se pudo imprimir.',
+        tone: 'error',
+      })
+    } finally {
+      setPrinting(false)
+    }
+  }
+
   const total = doc.pages.length
   const empty = total === 0
   const undoable = canUndo(history)
@@ -446,6 +480,18 @@ export function PdfStudioView() {
               Nuevo
             </button>
           )}
+          {!empty && (
+            <button
+              type="button"
+              onClick={() => printPages()}
+              disabled={saving || busy || printing}
+              title="Imprimir todo el documento"
+              className="btn-ghost text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
+            >
+              <PrinterIcon size={13} />
+              {printing ? 'Imprimiendo…' : 'Imprimir'}
+            </button>
+          )}
           <button
             type="button"
             onClick={save}
@@ -503,6 +549,15 @@ export function PdfStudioView() {
             className={barBtn}
           >
             <DownloadIcon size={14} /> Extraer
+          </button>
+          <button
+            type="button"
+            onClick={() => printPages(selectedIndices)}
+            disabled={saving || busy || printing}
+            title="Imprimir las páginas seleccionadas"
+            className={barBtn}
+          >
+            <PrinterIcon size={14} /> Imprimir
           </button>
           <button
             type="button"
@@ -595,6 +650,7 @@ export function PdfStudioView() {
               onNudge={nudge}
               onRotate={(delta) => rotate(index, delta)}
               onDuplicate={() => duplicateOne(index)}
+              onPrint={() => printPages([index])}
               onDelete={removePage}
               onOpenText={() => setTextPage(index)}
             />
@@ -625,6 +681,7 @@ function PageCard({
   onNudge,
   onRotate,
   onDuplicate,
+  onPrint,
   onDelete,
   onOpenText,
 }: {
@@ -643,6 +700,7 @@ function PageCard({
   onNudge: (index: number, delta: -1 | 1) => void
   onRotate: (delta: -1 | 1) => void
   onDuplicate: () => void
+  onPrint: () => void
   onDelete: (index: number) => void
   onOpenText: () => void
 }) {
@@ -851,6 +909,14 @@ function PageCard({
                 }}
               >
                 <DuplicateIcon size={13} /> Duplicar página
+              </OverflowMenuItem>
+              <OverflowMenuItem
+                onClick={() => {
+                  onPrint()
+                  close()
+                }}
+              >
+                <PrinterIcon size={13} /> Imprimir página
               </OverflowMenuItem>
               <OverflowMenuItem
                 danger
