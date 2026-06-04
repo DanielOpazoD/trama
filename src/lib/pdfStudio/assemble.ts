@@ -154,6 +154,9 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
           font,
           color: rgb(c.r, c.g, c.b),
           lineHeight: size * 1.15,
+          opacity: ann.opacity ?? 1,
+          // CSS rota horario (+); pdf-lib rota antihorario (+) → se niega.
+          rotate: degrees(-(ann.rotation ?? 0)),
         })
       } catch (err) {
         // p. ej. carácter fuera de WinAnsi en una fuente estándar.

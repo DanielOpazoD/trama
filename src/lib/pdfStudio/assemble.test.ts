@@ -131,6 +131,8 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
       color: '#222222',
       font: 'sans',
       bold: false,
+      opacity: 0.5,
+      rotation: 30,
     })
     doc = setPageAnnotations(doc, 0, [ann])
     await assemble(doc)
@@ -139,12 +141,14 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(calls.drawText).toHaveBeenCalledTimes(1)
     const [text, opts] = calls.drawText.mock.calls[0] as [
       string,
-      { x: number; y: number; size: number },
+      { x: number; y: number; size: number; opacity: number; rotate: { __deg: number } },
     ]
     expect(text).toBe('Hola')
     expect(opts.x).toBeCloseTo(25) // 0.25 * 100
     expect(opts.size).toBeCloseTo(20) // 0.1 * 200
     expect(opts.y).toBeCloseTo(84) // topY(200 - 0.5*200=100) - ascent(16)
+    expect(opts.opacity).toBe(0.5)
+    expect(opts.rotate).toEqual({ __deg: -30 }) // CSS horario → pdf-lib antihorario
   })
 
   it('readPngSize lee las dimensiones del IHDR; null si no es PNG', () => {

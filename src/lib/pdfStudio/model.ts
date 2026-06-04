@@ -38,6 +38,10 @@ export type TextAnnotation = {
   color: string
   font: PdfFontKind
   bold: boolean
+  /** Opacidad 0..1 (default 1). Opcional para no romper borradores previos. */
+  opacity?: number
+  /** Rotación en grados HORARIOS (default 0). Opcional (compat). */
+  rotation?: number
 }
 
 export type PdfPage = {
