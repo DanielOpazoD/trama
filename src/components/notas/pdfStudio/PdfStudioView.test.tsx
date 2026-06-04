@@ -180,4 +180,49 @@ describe('<PdfStudioView />', () => {
     expect(screen.queryByAltText('Página 1')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar PDF/i })).toBeDisabled()
   })
+
+  it('selecciona varias páginas y las elimina en lote', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+    expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Seleccionar página 1/i }))
+    await user.click(screen.getByRole('button', { name: /Seleccionar página 2/i }))
+
+    // Aparece la barra de lote con el conteo.
+    expect(
+      screen.getByRole('toolbar', { name: /páginas seleccionadas/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/2 seleccionadas/)).toBeInTheDocument()
+
+    // Eliminar en lote → documento vacío.
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }))
+    expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
+    expect(screen.queryByAltText('Página 1')).not.toBeInTheDocument()
+  })
+
+  it('duplica una página seleccionada en lote (2 → 3)', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Seleccionar página 1/i }))
+    await user.click(screen.getByRole('button', { name: 'Duplicar' }))
+    expect(screen.getByText(/3 páginas/)).toBeInTheDocument()
+  })
+
+  it('extrae las páginas seleccionadas a un PDF nuevo (ensambla + descarga)', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Seleccionar página 1/i }))
+    await user.click(screen.getByRole('button', { name: 'Extraer' }))
+    expect(mocks.assemble).toHaveBeenCalledTimes(1)
+    expect(mocks.downloadBlob).toHaveBeenCalledTimes(1)
+  })
 })
