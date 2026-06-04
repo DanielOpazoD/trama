@@ -12,7 +12,12 @@ export default defineConfig({
     // don't depend on the environment.
     environment: 'happy-dom',
     setupFiles: ['./src/test-setup.ts'],
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'netlify/**/*.test.ts'],
+    include: [
+      'src/**/*.test.ts',
+      'src/**/*.test.tsx',
+      'netlify/**/*.test.ts',
+      'scripts/**/*.test.mjs',
+    ],
     coverage: {
       provider: 'v8',
       // N8: lcov para tooling externo (codecov, sonar) si en algún momento

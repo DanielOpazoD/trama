@@ -1,14 +1,18 @@
 import { spawnSync } from 'node:child_process'
 
-const REQUIRED_ENV = ['E2E_BASE_URL', 'E2E_USER_A_TOKEN', 'E2E_USER_B_TOKEN']
-const missing = REQUIRED_ENV.filter((key) => !process.env[key])
+import { resolveMultiuserSmokeEnv } from './multiuser-smoke-env.mjs'
 
-if (missing.length > 0) {
-  console.error(
-    `multi-user smoke no ejecutado: faltan ${missing.join(', ')}.\n` +
-      'Configura E2E_BASE_URL, E2E_USER_A_TOKEN y E2E_USER_B_TOKEN para correr el smoke real.',
-  )
+let smokeEnv
+
+try {
+  smokeEnv = await resolveMultiuserSmokeEnv()
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error)
   process.exit(1)
+}
+
+if (smokeEnv.mode === 'minted-clerk-tokens') {
+  console.info('multi-user smoke: usando tokens efimeros generados con Clerk.')
 }
 
 const result = spawnSync(
@@ -19,8 +23,15 @@ const result = spawnSync(
     'e2e/multi-user-isolation.spec.ts',
     ...process.argv.slice(2),
   ],
-  { stdio: 'inherit', env: process.env },
+  { stdio: 'inherit', env: smokeEnv.env },
 )
+
+try {
+  await smokeEnv.cleanup()
+} catch (error) {
+  console.warn('multi-user smoke: no se pudieron revocar todas las sesiones temporales.')
+  console.warn(error instanceof Error ? error.message : error)
+}
 
 if (result.error) {
   console.error(result.error)
