@@ -12,11 +12,13 @@ import {
   baselineDropEm,
   getSource,
   isTextAnnotation,
+  makeHighlightAnnotation,
   makeTextAnnotation,
   pageThumbKey,
   previewFontFamily,
   TEXT_LINE_HEIGHT,
   type Annotation,
+  type HighlightAnnotation,
   type PdfDoc,
   type PdfFontKind,
   type TextAnnotation,
@@ -27,7 +29,9 @@ import {
   BoldIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  CursorIcon,
   DuplicateIcon,
+  HighlighterIcon,
   OpacityIcon,
   PlusIcon,
   RotateIcon,
@@ -65,8 +69,22 @@ const ZOOM_STEP = 0.25
 const HIT_X = 6
 const HIT_Y = 4
 
+// Opacidad por defecto del resaltado (translúcido, como un marcador).
+const HIGHLIGHT_OPACITY = 0.35
+// Herramientas del editor (modos). Crece con lápiz/formas/firma.
+type Tool = 'select' | 'highlight'
+
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
+
+/** `#rrggbb` + alfa → `rgba(...)`, para pintar el relleno translúcido del
+ *  resaltado sin atenuar el contorno de selección (que `opacity` sí atenuaría). */
+function hexToRgba(hex: string, alpha: number): string {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim())
+  if (!m) return hex
+  const n = parseInt(m[1]!, 16)
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
+}
 
 const segGroup =
   'inline-flex shrink-0 items-center gap-0.5 p-0.5 bg-paper-100/60 rounded-md border border-ink-100/50'
@@ -240,6 +258,15 @@ export function PdfTextEditor({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   // Texto en edición INLINE (sobre el cuadro). null = ninguno.
   const [editingId, setEditingId] = useState<string | null>(null)
+  // Herramienta activa y el rectángulo que se está dibujando (resaltador), en px
+  // LOCALES de la página interior (para el preview en vivo).
+  const [tool, setTool] = useState<Tool>('select')
+  const [drawing, setDrawing] = useState<{
+    x0: number
+    y0: number
+    x1: number
+    y1: number
+  } | null>(null)
   const [bg, setBg] = useState<{ url: string; w: number; h: number } | null>(null)
   // Default 150%: prioriza ver/editar la página en grande (la barra es compacta).
   const [zoom, setZoom] = useState(1.5)
@@ -366,19 +393,19 @@ export function PdfTextEditor({
 
   // Sólo el TEXTO es editable por la barra (los otros tipos llegan en fases
   // siguientes). `selected` se estrecha a TextAnnotation.
-  const selected =
-    annotations.find(
-      (a): a is TextAnnotation => a.id === selectedId && a.kind === 'text',
-    ) ?? null
+  // La anotación seleccionada de CUALQUIER tipo (para color/opacidad/borrar) y, si
+  // es texto, estrechada (para los controles de sólo-texto y la edición inline).
+  const selectedAnn = annotations.find((a) => a.id === selectedId) ?? null
+  const selected = selectedAnn?.kind === 'text' ? selectedAnn : null
 
   const update = (id: string, patch: Partial<Omit<TextAnnotation, 'id' | 'kind'>>) =>
     setAnnotations((list) =>
       list.map((a) => (a.id === id && a.kind === 'text' ? { ...a, ...patch } : a)),
     )
 
-  // Estilo "activo" de la barra: si hay un texto seleccionado, las herramientas lo
-  // editan; si no, definen el estilo del PRÓXIMO texto. Así la barra está SIEMPRE
-  // activa y funcional.
+  // Estilo "activo" de la barra: edita la anotación seleccionada o, si no hay,
+  // define el estilo del PRÓXIMO texto/resaltado. Color/opacidad valen para texto y
+  // resaltado; fuente/tamaño/negrita/rotación son sólo de texto.
   type TextStyle = Pick<
     TextAnnotation,
     'font' | 'sizeRatio' | 'bold' | 'color' | 'opacity' | 'rotation'
@@ -394,15 +421,28 @@ export function PdfTextEditor({
   const activeFont = selected?.font ?? style.font
   const activeSize = selected?.sizeRatio ?? style.sizeRatio
   const activeBold = selected?.bold ?? style.bold
-  const activeColor = selected?.color ?? style.color
-  const activeOpacity = selected?.opacity ?? style.opacity ?? 1
+  const activeColor = selectedAnn?.color ?? style.color
+  const activeOpacity = selectedAnn?.opacity ?? style.opacity ?? 1
   const activeRotation = selected?.rotation ?? style.rotation ?? 0
 
-  /** Aplica un cambio de estilo: al texto seleccionado (si hay) y lo recuerda como
-   *  default para el próximo. */
+  /** Aplica un cambio de estilo: lo recuerda como default y lo aplica a la
+   *  selección (texto → todo; resaltado → sólo color/opacidad). */
   const applyStyle = (patch: Partial<TextStyle>) => {
     setStyle((s) => ({ ...s, ...patch }))
-    if (selectedId) update(selectedId, patch)
+    if (!selectedId) return
+    setAnnotations((list) =>
+      list.map((a) => {
+        if (a.id !== selectedId) return a
+        if (a.kind === 'text') return { ...a, ...patch }
+        if (a.kind === 'highlight') {
+          const hp: Partial<HighlightAnnotation> = {}
+          if (patch.color !== undefined) hp.color = patch.color
+          if (patch.opacity !== undefined) hp.opacity = patch.opacity
+          return { ...a, ...hp }
+        }
+        return a
+      }),
+    )
   }
 
   function addText() {
@@ -417,6 +457,7 @@ export function PdfTextEditor({
       opacity: style.opacity,
       rotation: style.rotation,
     })
+    setTool('select')
     setAnnotations((l) => [...l, a])
     setSelectedId(a.id)
     setEditingId(a.id) // se edita inline, sobre el cuadro, al toque
@@ -447,7 +488,7 @@ export function PdfTextEditor({
   const stepRotation = (delta: number) =>
     applyStyle({ rotation: (((activeRotation + delta) % 360) + 360) % 360 })
 
-  function startDrag(e: React.PointerEvent, a: TextAnnotation) {
+  function startDrag(e: React.PointerEvent, a: Annotation) {
     e.stopPropagation()
     setSelectedId(a.id)
     // px reales en pantalla del lado interior (incluye el zoom).
@@ -474,14 +515,78 @@ export function PdfTextEditor({
         pdx = -sdy
         pdy = sdx
       }
-      update(a.id, {
-        xRatio: clamp01(ox + pdx / dw),
-        yRatio: clamp01(oy + pdy / dh),
-      })
+      const xRatio = clamp01(ox + pdx / dw)
+      const yRatio = clamp01(oy + pdy / dh)
+      setAnnotations((list) =>
+        list.map((x) => (x.id === a.id ? { ...x, xRatio, yRatio } : x)),
+      )
     }
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  /**
+   * Inicia el dibujo de un RESALTADO (modo resaltar): rectángulo de arrastre. El
+   * inicio en coords LOCALES de la página interior (offsetX/Y son pre-transform);
+   * el movimiento usa el delta de pantalla transformado por la rotación / zoom
+   * (igual que el drag). Al soltar crea la anotación si tiene tamaño.
+   */
+  function startHighlight(e: React.PointerEvent) {
+    if (!layout) return
+    e.stopPropagation()
+    const x0 = e.nativeEvent.offsetX
+    const y0 = e.nativeEvent.offsetY
+    const startX = e.clientX
+    const startY = e.clientY
+    const rot = layout.rot
+    const innerW = layout.innerW
+    const innerH = layout.innerH
+    let last = { x0, y0, x1: x0, y1: y0 }
+    setDrawing(last)
+    const move = (ev: PointerEvent) => {
+      const sdx = ev.clientX - startX
+      const sdy = ev.clientY - startY
+      let pdx = sdx
+      let pdy = sdy
+      if (rot === 1) {
+        pdx = sdy
+        pdy = -sdx
+      } else if (rot === 2) {
+        pdx = -sdx
+        pdy = -sdy
+      } else if (rot === 3) {
+        pdx = -sdy
+        pdy = sdx
+      }
+      last = {
+        x0,
+        y0,
+        x1: clamp(x0 + pdx / zoom, 0, innerW),
+        y1: clamp(y0 + pdy / zoom, 0, innerH),
+      }
+      setDrawing(last)
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      setDrawing(null)
+      const w = Math.abs(last.x1 - last.x0)
+      const h = Math.abs(last.y1 - last.y0)
+      if (w < 4 || h < 4) return // clic suelto sin arrastrar → nada
+      const hl = makeHighlightAnnotation({
+        xRatio: Math.min(last.x0, last.x1) / innerW,
+        yRatio: Math.min(last.y0, last.y1) / innerH,
+        wRatio: w / innerW,
+        hRatio: h / innerH,
+        color: style.color,
+        opacity: HIGHLIGHT_OPACITY,
+      })
+      setAnnotations((l) => [...l, hl])
+      setSelectedId(hl.id)
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
@@ -557,6 +662,30 @@ export function PdfTextEditor({
         {/* Barra de edición — UNA fila (scroll horizontal si no entra) para no
             robarle alto al documento. */}
         <div className="flex flex-nowrap items-center gap-x-2 overflow-x-auto px-3 py-1.5 border-b border-ink-100/70 shrink-0">
+          {/* Modos de herramienta */}
+          <div className={segGroup}>
+            <button
+              type="button"
+              onClick={() => setTool('select')}
+              className={segBtn(tool === 'select')}
+              title="Seleccionar y mover"
+              aria-label="Herramienta seleccionar"
+              aria-pressed={tool === 'select'}
+            >
+              <CursorIcon size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setTool('highlight')}
+              className={segBtn(tool === 'highlight')}
+              title="Resaltar (arrastra sobre la página)"
+              aria-label="Herramienta resaltar"
+              aria-pressed={tool === 'highlight'}
+            >
+              <HighlighterIcon size={14} />
+            </button>
+          </div>
+
           <button
             onClick={addText}
             className="btn-ghost text-xs inline-flex shrink-0 items-center gap-1.5"
@@ -643,26 +772,27 @@ export function PdfTextEditor({
             onInc={() => stepRotation(15)}
           />
 
-          {/* Acciones sobre el texto seleccionado (contextual) */}
+          {/* Duplicar — sólo texto (contextual) */}
           {selected && (
-            <>
-              <button
-                onClick={() => duplicate(selected)}
-                aria-label="Duplicar texto"
-                title="Duplicar texto"
-                className="shrink-0 touch-target inline-flex items-center justify-center h-7 w-7 rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100/40 transition-colors"
-              >
-                <DuplicateIcon size={14} />
-              </button>
-              <button
-                onClick={() => removeText(selected.id)}
-                aria-label="Eliminar texto"
-                title="Eliminar texto (Supr)"
-                className="shrink-0 touch-target inline-flex items-center justify-center h-7 w-7 rounded-md text-ink-300 hover:text-[color:var(--accent-clay)] hover:bg-ink-100/40 transition-colors"
-              >
-                <TrashIcon size={14} />
-              </button>
-            </>
+            <button
+              onClick={() => duplicate(selected)}
+              aria-label="Duplicar texto"
+              title="Duplicar texto"
+              className="shrink-0 touch-target inline-flex items-center justify-center h-7 w-7 rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100/40 transition-colors"
+            >
+              <DuplicateIcon size={14} />
+            </button>
+          )}
+          {/* Eliminar — cualquier anotación seleccionada */}
+          {selectedAnn && (
+            <button
+              onClick={() => removeText(selectedAnn.id)}
+              aria-label="Eliminar"
+              title="Eliminar (Supr)"
+              className="shrink-0 touch-target inline-flex items-center justify-center h-7 w-7 rounded-md text-ink-300 hover:text-[color:var(--accent-clay)] hover:bg-ink-100/40 transition-colors"
+            >
+              <TrashIcon size={14} />
+            </button>
           )}
 
           <div className="flex-1 min-w-[8px]" />
@@ -689,15 +819,22 @@ export function PdfTextEditor({
           {layout && bg ? (
             <div className="relative" style={{ width: zw, height: zh }}>
               <div
-                onClick={() => {
-                  setSelectedId(null)
-                  setEditingId(null)
-                }}
+                onPointerDown={tool === 'highlight' ? startHighlight : undefined}
+                onClick={
+                  tool === 'select'
+                    ? () => {
+                        setSelectedId(null)
+                        setEditingId(null)
+                      }
+                    : undefined
+                }
                 className="absolute left-1/2 top-1/2 bg-white rounded-sm ring-1 ring-ink-900/10 shadow-xl shadow-ink-900/15"
                 style={{
                   width: layout.innerW,
                   height: layout.innerH,
                   transform: `translate(-50%, -50%) rotate(${layout.rot * 90}deg) scale(${zoom})`,
+                  cursor: tool === 'highlight' ? 'crosshair' : undefined,
+                  touchAction: tool === 'highlight' ? 'none' : undefined,
                 }}
               >
                 <img
@@ -764,6 +901,8 @@ export function PdfTextEditor({
                         cursor: 'move',
                         userSelect: 'none',
                         touchAction: 'none',
+                        // Fuera de "seleccionar" no captura (deja dibujar encima).
+                        pointerEvents: tool === 'select' ? undefined : 'none',
                         outline:
                           selectedId === a.id
                             ? `1.5px solid ${ACCENT}`
@@ -776,6 +915,61 @@ export function PdfTextEditor({
                     </div>
                   )
                 })}
+
+                {/* Resaltados (rectángulos translúcidos) */}
+                {annotations
+                  .filter((a) => a.kind === 'highlight')
+                  .map((a) => (
+                    <div
+                      key={a.id}
+                      onPointerDown={
+                        tool === 'select' ? (e) => startDrag(e, a) : undefined
+                      }
+                      onClick={
+                        tool === 'select'
+                          ? (e) => {
+                              e.stopPropagation()
+                              setSelectedId(a.id)
+                            }
+                          : undefined
+                      }
+                      title="Arrastra para mover"
+                      style={{
+                        position: 'absolute',
+                        left: `${a.xRatio * 100}%`,
+                        top: `${a.yRatio * 100}%`,
+                        width: `${a.wRatio * 100}%`,
+                        height: `${a.hRatio * 100}%`,
+                        backgroundColor: hexToRgba(
+                          a.color,
+                          a.opacity ?? HIGHLIGHT_OPACITY,
+                        ),
+                        borderRadius: 2,
+                        cursor: 'move',
+                        touchAction: 'none',
+                        pointerEvents: tool === 'select' ? undefined : 'none',
+                        outline: selectedId === a.id ? `1.5px solid ${ACCENT}` : 'none',
+                        outlineOffset: 1,
+                      }}
+                    />
+                  ))}
+
+                {/* Preview en vivo del resaltado que se está dibujando */}
+                {drawing && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: Math.min(drawing.x0, drawing.x1),
+                      top: Math.min(drawing.y0, drawing.y1),
+                      width: Math.abs(drawing.x1 - drawing.x0),
+                      height: Math.abs(drawing.y1 - drawing.y0),
+                      backgroundColor: hexToRgba(style.color, HIGHLIGHT_OPACITY),
+                      border: `1px dashed ${ACCENT}`,
+                      borderRadius: 2,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                )}
               </div>
             </div>
           ) : (

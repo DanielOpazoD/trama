@@ -195,6 +195,21 @@ export const ZoomIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/* Flecha de cursor — herramienta "seleccionar". */
+export const CursorIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M5 3 L19 11 L12.5 12.5 L11 19 Z" />
+  </svg>
+)
+
+/* Marcador — herramienta "resaltar". */
+export const HighlighterIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M15 4 L20 9 L11 18 L6 13 Z" />
+    <path d="M6 13 L4 20 L11 18" />
+  </svg>
+)
+
 /* "T" de texto — agregar texto en el editor. */
 export const TextIcon = ({ size = 12, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
