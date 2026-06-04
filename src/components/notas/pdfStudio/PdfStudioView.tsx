@@ -334,7 +334,7 @@ export function PdfStudioView() {
         <ul
           onDragOver={(e) => e.preventDefault()}
           onDrop={onDropFiles}
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
+          className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5"
         >
           {doc.pages.map((page, index) => (
             <PageCard
@@ -437,14 +437,14 @@ function PageCard({
   const KindIcon = page.kind === 'pdf' ? FilePdfIcon : FileIcon
 
   // Rotación visual de la miniatura. En 90°/270° se reescala para que la imagen
-  // rotada entre en la caja 3:4 (depende solo de los aspectos, no de px reales).
+  // rotada entre en la caja CUADRADA (depende solo de los aspectos, no de px).
   const rot = ((page.rotationQuarters % 4) + 4) % 4
   let thumbTransform = `rotate(${rot * 90}deg)`
   if (rot % 2 === 1 && nat) {
-    const s0 = Math.min(3 / nat.w, 4 / nat.h)
+    const s0 = Math.min(1 / nat.w, 1 / nat.h)
     const dw = nat.w * s0
     const dh = nat.h * s0
-    thumbTransform += ` scale(${Math.min(3 / dh, 4 / dw)})`
+    thumbTransform += ` scale(${Math.min(1 / dh, 1 / dw)})`
   }
 
   return (
@@ -485,7 +485,7 @@ function PageCard({
       }`}
     >
       {/* Miniatura */}
-      <div className="relative aspect-[3/4] bg-ink-100/30 flex items-center justify-center cursor-grab active:cursor-grabbing p-2">
+      <div className="relative aspect-square min-h-0 bg-ink-100/30 flex items-center justify-center cursor-grab active:cursor-grabbing p-1.5">
         {thumb ? (
           <img
             src={thumb}
