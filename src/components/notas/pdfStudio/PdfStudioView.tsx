@@ -10,6 +10,7 @@ import {
   movePageByDelta,
   pageHasText,
   pageThumbKey,
+  reseedIds,
   rotatePage,
   setPageAnnotations,
   type PdfDoc,
@@ -32,7 +33,9 @@ import {
   renderPageThumb,
 } from '../../../lib/pdfStudio/pdfRender'
 import { assemble } from '../../../lib/pdfStudio/assemble'
+import { clearDraft, loadDraft, saveDraft } from '../../../lib/pdfStudio/persistence'
 import { downloadBlob } from '../../../lib/downloadBlob'
+import { useCurrentClientUserId } from '../../../lib/clientIdentity'
 import { PdfTextEditor } from './PdfTextEditor'
 import { OverflowMenu, OverflowMenuItem } from '../../OverflowMenu'
 import {
@@ -93,6 +96,14 @@ export function PdfStudioView() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [textPage, setTextPage] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Borrador autoguardado por usuario (sin Clerk, `getCurrentClientUserId` es
+  // null → clave 'anon'). `loaded` evita autoguardar antes de restaurar.
+  const userKey = useCurrentClientUserId() ?? 'anon'
+  const [loaded, setLoaded] = useState(false)
+  // `toast` cambia de referencia al mostrarse uno (el contexto lleva el actual);
+  // se accede por ref para que el efecto de carga NO se re-dispare en loop.
+  const toastRef = useRef(toast)
+  toastRef.current = toast
 
   /** Aplica un cambio al documento y lo registra en el historial. */
   const commit = useCallback((next: PdfDoc | ((prev: PdfDoc) => PdfDoc)) => {
@@ -104,6 +115,34 @@ export function PdfStudioView() {
 
   // Al desmontar la sección, libera las miniaturas/documentos de pdf.js.
   useEffect(() => () => disposePdfStudio(), [])
+
+  // Al montar: restaura el borrador autoguardado del usuario (si tiene páginas).
+  // `reseedIds` continúa el contador de ids para no colisionar tras recargar.
+  useEffect(() => {
+    let alive = true
+    void loadDraft(userKey).then((restored) => {
+      if (!alive) return
+      if (restored && restored.pages.length > 0) {
+        reseedIds(restored)
+        setHistory(initHistory(restored))
+        toastRef.current.show({
+          message: 'Borrador del editor restaurado.',
+          tone: 'success',
+        })
+      }
+      setLoaded(true)
+    })
+    return () => {
+      alive = false
+    }
+  }, [userKey])
+
+  // Autoguardado debounced del documento de trabajo (tras restaurar).
+  useEffect(() => {
+    if (!loaded) return
+    const t = window.setTimeout(() => void saveDraft(userKey, doc), 600)
+    return () => window.clearTimeout(t)
+  }, [doc, loaded, userKey])
 
   // Atajos: ⌘/Ctrl+Z deshace, ⌘/Ctrl+Shift+Z rehace (salvo en inputs o con el
   // editor de texto abierto, que tiene su propio estado).
@@ -185,6 +224,12 @@ export function PdfStudioView() {
 
   function rotate(index: number, delta: -1 | 1) {
     commit((d) => rotatePage(d, index, delta))
+  }
+
+  /** Empieza un documento nuevo (descarta el borrador; es deshacible). */
+  function newDoc() {
+    commit(emptyDoc())
+    void clearDraft(userKey)
   }
 
   function closeTextEditor(annotations: TextAnnotation[] | null) {
@@ -279,6 +324,16 @@ export function PdfStudioView() {
             <span className="text-micro text-ink-300 tabular-nums">
               {total} {total === 1 ? 'página' : 'páginas'}
             </span>
+          )}
+          {!empty && (
+            <button
+              type="button"
+              onClick={newDoc}
+              title="Empezar un documento nuevo (descarta el borrador; deshacible)"
+              className="btn-ghost text-xs"
+            >
+              Nuevo
+            </button>
           )}
           <button
             type="button"
