@@ -36,8 +36,34 @@ describe('tasks endpoint — integration', () => {
     expect(body[0]).toMatchObject({ id: 't1', title: 'Terminar el ensayo' })
     // El SELECT deriva has_photos con un EXISTS sobre notas_attachments.
     const q = mockSqlResponses.calls.find((c) => /FROM tasks/i.test(c.template))
+    expect(q?.template).toMatch(/deleted_at IS NULL/i)
+    expect(q?.template).toMatch(/user_id =/i)
     expect(q?.template).toMatch(/EXISTS\(SELECT 1 FROM notas_attachments/i)
     expect(q?.template).toMatch(/AS has_photos/i)
+  })
+
+  it('GET ?q y ?tag filtran dentro del usuario y excluyen soft-deleted', async () => {
+    mockSqlResponses.push([TASK_ROW], [TASK_ROW])
+
+    const byText = await handler(
+      new Request('http://localhost/api/tasks?q=ensayo'),
+      mockContext(),
+    )
+    const byTag = await handler(
+      new Request('http://localhost/api/tasks?tag=Ensayo'),
+      mockContext(),
+    )
+
+    expect(byText.status).toBe(200)
+    expect(byTag.status).toBe(200)
+    const search = mockSqlResponses.calls.find((c) => /title ILIKE/i.test(c.template))
+    const tag = mockSqlResponses.calls.find((c) => /ANY\(tags\)/i.test(c.template))
+    expect(search?.template).toMatch(/deleted_at IS NULL/i)
+    expect(search?.template).toMatch(/user_id =/i)
+    expect(search?.values).toContain('%ensayo%')
+    expect(tag?.template).toMatch(/deleted_at IS NULL/i)
+    expect(tag?.template).toMatch(/user_id =/i)
+    expect(tag?.values).toContain('ensayo')
   })
 
   it('POST con título válido crea (201) y deriva tags', async () => {
@@ -124,6 +150,9 @@ describe('tasks endpoint — integration', () => {
     expect(res.status).toBe(400)
     const body = await res.json()
     expect(body.error?.code).toBeDefined()
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO tasks/i.test(c.template)),
+    ).toBe(false)
   })
 
   it('PATCH done:true actualiza y devuelve 200', async () => {
@@ -140,6 +169,32 @@ describe('tasks endpoint — integration', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.done).toBe(true)
+  })
+
+  it('PATCH title/detail re-deriva tags y mantiene scope por usuario', async () => {
+    mockSqlResponses.push(
+      [{ title: 'Viejo #archivo', detail: null }],
+      [{ ...TASK_ROW, title: 'Nuevo #claridad', detail: 'detalle #foco' }],
+    )
+
+    const res = await handler(
+      new Request('http://localhost/api/tasks/t1', {
+        method: 'PATCH',
+        body: JSON.stringify({ title: 'Nuevo #claridad', detail: 'detalle #foco' }),
+      }),
+      mockContext({ id: 't1' }),
+    )
+
+    expect(res.status).toBe(200)
+    const select = mockSqlResponses.calls.find((c) =>
+      /SELECT title, detail/i.test(c.template),
+    )
+    const update = mockSqlResponses.calls.find((c) => /UPDATE tasks/i.test(c.template))
+    expect(select?.template).toMatch(/deleted_at IS NULL/i)
+    expect(select?.template).toMatch(/user_id =/i)
+    expect(update?.template).toMatch(/deleted_at IS NULL/i)
+    expect(update?.template).toMatch(/user_id =/i)
+    expect(update?.values).toContainEqual(['claridad', 'foco'])
   })
 
   it('PATCH sobre id inexistente devuelve 404', async () => {
@@ -170,6 +225,10 @@ describe('tasks endpoint — integration', () => {
     expect(
       mockSqlResponses.calls.some((c) => /DELETE FROM tasks/i.test(c.template)),
     ).toBe(false)
+    expect(mockSqlResponses.calls[0]?.template).toMatch(/user_id =/i)
+    expect(mockSqlResponses.calls[1]?.template).toMatch(/UPDATE notas_attachments/i)
+    expect(mockSqlResponses.calls[1]?.template).toMatch(/owner_type = 'task'/i)
+    expect(mockSqlResponses.calls[1]?.template).toMatch(/user_id =/i)
   })
 
   it('método no soportado devuelve 405', async () => {

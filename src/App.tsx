@@ -42,7 +42,7 @@ import { AppPinGate } from './components/AppPinGate'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { SectionAccentBand } from './components/SectionAccentBand'
 import { NotasWorld } from './components/notas/NotasWorld'
-import type { NotasSection } from './types/notas'
+import { NOTAS_SECTIONS, type NotasSection } from './types/notas'
 import { useModuleVisibility } from './hooks/useModuleVisibility'
 import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
 // GlobalProgressBar removido por feedback del usuario — la barra fina
@@ -486,9 +486,33 @@ function Shell({
  * Notas. El mundo activo persiste en localStorage. Es el único nivel por
  * encima del Shell — todo lo de la Trama sigue intacto adentro de Shell.
  */
+function readWorldDeepLink(): World | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const world = new URLSearchParams(window.location.search).get('world')
+    return world === 'notas' || world === 'trama' ? world : null
+  } catch {
+    return null
+  }
+}
+
+function readNotasSectionDeepLink(): NotasSection | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const section = new URLSearchParams(window.location.search).get('section')
+    return NOTAS_SECTIONS.includes(section as NotasSection)
+      ? (section as NotasSection)
+      : null
+  } catch {
+    return null
+  }
+}
+
 function WorldShell() {
+  const initialWorldFromUrl = readWorldDeepLink()
   const [world, setWorld] = useState<World>(() => {
     if (typeof window === 'undefined') return DEFAULT_WORLD
+    if (initialWorldFromUrl) return initialWorldFromUrl
     // El ÚLTIMO mundo usado gana (continuidad). Si no hay (navegador fresco),
     // siembra con el mundo default configurado (espejo localStorage, sin red).
     const saved = window.localStorage.getItem(WORLD_STORAGE_KEY)
@@ -504,6 +528,15 @@ function WorldShell() {
       /* storage deshabilitado */
     }
   }, [])
+
+  useEffect(() => {
+    if (!initialWorldFromUrl) return
+    try {
+      window.localStorage.setItem(WORLD_STORAGE_KEY, initialWorldFromUrl)
+    } catch {
+      /* storage deshabilitado */
+    }
+  }, [initialWorldFromUrl])
 
   // Multiusuario en navegador compartido: si cambia el usuario autenticado, no
   // hereda el último mundo / espejo de prefs del anterior — los descarta y
@@ -541,7 +574,7 @@ function WorldShell() {
   // des-oculta, agenda abrir esa sección, y cruza al mundo Notas.
   const { reveal } = useModuleVisibility()
   const [pendingNotasSection, setPendingNotasSection] = useState<NotasSection | null>(
-    null,
+    () => (initialWorldFromUrl === 'notas' ? readNotasSectionDeepLink() : null),
   )
   const revealNotasModule = useCallback(
     (moduleId: NotasSection) => {

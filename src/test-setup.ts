@@ -11,6 +11,13 @@ import { cleanup } from '@testing-library/react'
 // a un eventual vi.unstubAllEnvs() de algún archivo.
 beforeEach(() => {
   vi.stubEnv('VITE_CLERK_PUBLISHABLE_KEY', '')
+  if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'confirm', {
+      configurable: true,
+      writable: true,
+      value: vi.fn(() => true),
+    })
+  }
 })
 
 afterEach(() => {

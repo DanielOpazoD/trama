@@ -3,8 +3,20 @@ import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
 import pkg from './package.json'
 
+const projectRoot = fileURLToPath(new URL('.', import.meta.url))
+const projectPathNeedsRelaxedFs = projectRoot.includes(':')
+
 export default defineConfig({
   plugins: [react()],
+  server: {
+    fs: {
+      // Vite 7 compara el request id de index.html de forma más estricta; en
+      // este checkout local ("Citas : Notas") termina bloqueando su propio root
+      // por el ":" del path. Solo relajamos fs.strict en ese caso local; no
+      // afecta al build/Netlify.
+      strict: !projectPathNeedsRelaxedFs,
+    },
+  },
   resolve: {
     // G1: alias `@/*` → `./src/*` para que el código frontend pueda usar
     // imports absolutos en vez de `../../../`. Refleja el `paths` en

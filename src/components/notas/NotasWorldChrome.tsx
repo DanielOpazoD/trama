@@ -2,7 +2,7 @@ import { HomeIcon, KeyIcon, NotesIcon, PromptIcon, SearchIcon, TasksIcon } from 
 import { TopBar } from '../TopBar'
 import { WorldSwitcher } from '../WorldSwitcher'
 import type { World } from '../../types/world'
-import type { NotasSection } from '../../types/notas'
+import { NOTAS_SECTIONS, type NotasSection } from '../../types/notas'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -13,13 +13,18 @@ export type NotasSectionMeta = {
 }
 
 /** Registro canónico de las secciones del mundo Notas (orden de la chrome). */
-export const SECTIONS: NotasSectionMeta[] = [
-  { id: 'inicio', label: 'Inicio', icon: HomeIcon },
-  { id: 'notas', label: 'Notas', icon: NotesIcon },
-  { id: 'tareas', label: 'Tareas', icon: TasksIcon },
-  { id: 'prompts', label: 'Prompts', icon: PromptIcon },
-  { id: 'claves', label: 'Claves', icon: KeyIcon },
-]
+const SECTION_META_BY_ID: Record<NotasSection, Omit<NotasSectionMeta, 'id'>> = {
+  inicio: { label: 'Inicio', icon: HomeIcon },
+  notas: { label: 'Notas', icon: NotesIcon },
+  tareas: { label: 'Tareas', icon: TasksIcon },
+  prompts: { label: 'Prompts', icon: PromptIcon },
+  claves: { label: 'Claves', icon: KeyIcon },
+}
+
+export const SECTIONS: NotasSectionMeta[] = NOTAS_SECTIONS.map((id) => ({
+  id,
+  ...SECTION_META_BY_ID[id],
+}))
 
 const SECTION_META: Record<NotasSection, { title: string; subtitle: string }> = {
   inicio: { title: 'Inicio', subtitle: 'mundo notas' },

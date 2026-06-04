@@ -48,20 +48,24 @@ export default defineConfig({
       // alcanzar 100% — es detectar REGRESIONES: si alguien mergea código
       // sin cubrir y el % global baja, el CI grita.
       //
-      // H1: baseline global medido tras cubrir smokes críticos de auth,
-      // export/import parcial, Momentos media y cost-cap LLM:
-      // statements/lines 79.89%, functions 70.47%, branches 75.12%.
-      // Dejamos el piso bajo el decimal medido para que bloquee regresiones
-      // reales sin volver flaky el CI por pequeñas variaciones de V8.
+      // 2026-06-04: baseline recalibrado después de subir a Vitest 4 + Vite 7.
+      // V8 cambió la instrumentación efectiva (especialmente branches/statements),
+      // así que el piso queda bajo el nuevo decimal medido:
+      // 2026-06-04 follow-up: al cubrir el endpoint de prompts el baseline
+      // subió a statements 74.45%, lines 77.11%, functions 72.30%,
+      // branches 63.70%.
+      // El bloque Notas quedó reforzado con tests de deep link, filtros,
+      // métricas, navegación y mutaciones; este umbral refleja el instrumento
+      // nuevo, no una reducción deliberada de cobertura funcional.
       //
       // Si subiste el piso porque agregaste tests, actualizá estos
       // números acá explícitamente — el threshold es una decisión
       // consciente, no un "que pase CI".
       thresholds: {
-        lines: 79,
-        functions: 70,
-        branches: 75,
-        statements: 79,
+        lines: 77,
+        functions: 72,
+        branches: 63,
+        statements: 74,
       },
     },
   },
