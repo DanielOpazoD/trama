@@ -9,9 +9,10 @@ import {
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
-import { BoldIcon, CloseIcon, PlusIcon, TrashIcon } from '../../Icons'
+import { LoadingHint } from '../../LoadingHint'
+import { BoldIcon, PlusIcon, TextIcon, TrashIcon } from '../../Icons'
 
-const ACCENT = 'var(--accent-sage)'
+const ACCENT = 'var(--accent-primary)'
 
 const FONTS: { key: PdfFontKind; label: string }[] = [
   { key: 'sans', label: 'Sans' },
@@ -211,27 +212,28 @@ export function PdfTextEditor({
       >
         {/* Cabecera */}
         <header className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-ink-100/70">
-          <p className="section-eyebrow text-ink-400">texto · página {pageIndex + 1}</p>
-          <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <p className="section-eyebrow text-ink-400">texto sobre la página</p>
+            <p className="text-sm font-medium text-ink-700 tabular-nums">
+              Página {pageIndex + 1}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => onClose(null)} className="btn-ghost text-xs">
               Cancelar
             </button>
-            <button
-              onClick={() => onClose(annotations)}
-              className="btn-ink text-xs"
-              style={{ backgroundColor: ACCENT }}
-            >
+            <button onClick={() => onClose(annotations)} className="btn-accent text-xs">
               Listo
             </button>
           </div>
         </header>
 
         {/* Página + textos */}
-        <div className="flex-1 flex items-center justify-center bg-ink-50/40 p-4">
+        <div className="flex-1 flex items-center justify-center bg-ink-100/30 p-5 sm:p-6">
           {display && bg ? (
             <div
               onClick={() => setSelectedId(null)}
-              className="relative shadow-sm"
+              className="relative bg-white rounded-[2px] ring-1 ring-ink-900/10 shadow-xl shadow-ink-900/15"
               style={{ width: display.w, height: display.h }}
             >
               <img
@@ -257,11 +259,14 @@ export function PdfTextEditor({
                     cursor: 'move',
                     userSelect: 'none',
                     touchAction: 'none',
-                    padding: 1,
+                    padding: '0 2px',
+                    borderRadius: 2,
                     outline:
                       selectedId === a.id
-                        ? `1px dashed ${ACCENT}`
-                        : '1px solid transparent',
+                        ? `1.5px solid ${ACCENT}`
+                        : '1.5px solid transparent',
+                    outlineOffset: 2,
+                    transition: 'outline-color 120ms ease',
                   }}
                 >
                   {a.text || ' '}
@@ -269,7 +274,9 @@ export function PdfTextEditor({
               ))}
             </div>
           ) : (
-            <div className="py-20 text-micro text-ink-300">cargando página…</div>
+            <div className="py-24">
+              <LoadingHint text="cargando página" size="sm" />
+            </div>
           )}
         </div>
 
@@ -297,7 +304,7 @@ export function PdfTextEditor({
                 onChange={(e) => update(selected.id, { text: e.target.value })}
                 rows={2}
                 placeholder="Escribe el texto…"
-                className="w-full bg-paper-100/40 rounded-md px-2 py-1.5 text-caption text-ink-700 placeholder:text-ink-300 resize-none border border-ink-100/60"
+                className="w-full bg-paper-100/40 rounded-md px-2.5 py-1.5 text-caption text-ink-700 placeholder:text-ink-300 resize-none border border-ink-100/60 outline-none transition-colors focus:border-ink-300 focus:bg-paper-50"
               />
               <div className="flex flex-wrap items-center gap-2">
                 {/* Fuente */}
@@ -330,46 +337,58 @@ export function PdfTextEditor({
                   onClick={() => update(selected.id, { bold: !selected.bold })}
                   aria-pressed={selected.bold}
                   aria-label="Negrita"
-                  className={`touch-target rounded-md border transition-colors ${
+                  title="Negrita"
+                  className={`h-7 w-8 inline-flex items-center justify-center rounded-md border transition-colors ${
                     selected.bold
-                      ? 'border-ink-300 text-ink-800 bg-ink-100/50'
-                      : 'border-ink-100 text-ink-400 hover:text-ink-700'
+                      ? 'border-ink-300 text-ink-800 bg-ink-100/60'
+                      : 'border-ink-100 text-ink-400 hover:text-ink-700 hover:border-ink-200'
                   }`}
                 >
                   <BoldIcon size={14} />
                 </button>
                 {/* Color */}
-                <div className="flex items-center gap-1">
-                  {COLORS.map((c) => (
-                    <button
-                      key={c.hex}
-                      onClick={() => update(selected.id, { color: c.hex })}
-                      aria-label={`Color ${c.label}`}
-                      title={c.label}
-                      className={`h-6 w-6 rounded-full border transition-transform ${
-                        selected.color === c.hex
-                          ? 'ring-2 ring-offset-1 ring-ink-300 scale-110'
-                          : 'border-ink-200'
-                      }`}
-                      style={{ backgroundColor: c.hex }}
-                    />
-                  ))}
+                <div className="flex items-center gap-1.5 pl-0.5">
+                  {COLORS.map((c) => {
+                    const on = selected.color === c.hex
+                    return (
+                      <button
+                        key={c.hex}
+                        onClick={() => update(selected.id, { color: c.hex })}
+                        aria-label={`Color ${c.label}`}
+                        aria-pressed={on}
+                        title={c.label}
+                        className="h-6 w-6 rounded-full border border-ink-900/15 transition-transform duration-150 hover:scale-110"
+                        style={{
+                          backgroundColor: c.hex,
+                          transform: on ? 'scale(1.15)' : undefined,
+                          boxShadow: on
+                            ? `0 0 0 2px rgb(var(--paper-50)), 0 0 0 3.5px ${ACCENT}`
+                            : undefined,
+                        }}
+                      />
+                    )
+                  })}
                 </div>
                 {/* Borrar */}
                 <button
                   onClick={() => removeText(selected.id)}
                   aria-label="Eliminar texto"
-                  title="Eliminar texto"
-                  className="touch-target ml-auto rounded-md text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors"
+                  title="Eliminar texto (Supr)"
+                  className="touch-target ml-auto inline-flex items-center justify-center h-7 w-7 rounded-md text-ink-300 hover:text-[color:var(--accent-clay)] hover:bg-ink-100/40 transition-colors"
                 >
                   <TrashIcon size={14} />
                 </button>
               </div>
             </div>
           ) : (
-            <p className="text-micro text-ink-300 flex items-center gap-1.5">
-              <CloseIcon size={11} className="opacity-0" />
-              Agrega un texto o toca uno existente para editarlo.
+            <p className="text-caption text-ink-400 text-center py-1.5">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full bg-ink-100/40 px-3 py-1"
+                style={{ color: 'rgb(var(--ink-500))' }}
+              >
+                <TextIcon size={12} />
+                Agrega un texto o toca uno para editarlo
+              </span>
             </p>
           )}
         </div>

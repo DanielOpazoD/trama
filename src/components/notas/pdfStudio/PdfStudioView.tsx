@@ -50,6 +50,10 @@ import { useToast } from '../../../state'
 const ACCENT = 'var(--accent-sage)'
 const ACCEPT = 'application/pdf,image/*'
 
+/** Botón de control de la miniatura (reordenar/rotar/texto). */
+const ctrlBtn =
+  'touch-target inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-ink-400 transition-colors'
+
 function isPdf(file: File): boolean {
   return file.type === 'application/pdf' || /\.pdf$/i.test(file.name)
 }
@@ -83,6 +87,7 @@ export function PdfStudioView() {
   const [busy, setBusy] = useState(false) // importando
   const [saving, setSaving] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [textPage, setTextPage] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -228,60 +233,63 @@ export function PdfStudioView() {
         </p>
       </header>
 
-      {/* Barra de acciones */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={busy}
-          className="btn-ghost text-xs inline-flex items-center gap-1.5 disabled:opacity-50"
-        >
-          <UploadIcon size={13} />
-          {busy ? 'Agregando…' : 'Agregar PDF o imagen'}
-        </button>
-        {(undoable || redoable) && (
-          <div className="inline-flex items-center gap-0.5">
-            <button
-              type="button"
-              onClick={() => setHistory((h) => undo(h))}
-              disabled={!undoable}
-              aria-label="Deshacer"
-              title="Deshacer (⌘Z)"
-              className="touch-target inline-flex items-center justify-center rounded text-ink-400 hover:text-ink-800 disabled:opacity-25 disabled:hover:text-ink-400 transition-colors"
-            >
-              <span aria-hidden className="text-base leading-none">
-                ↺
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setHistory((h) => redo(h))}
-              disabled={!redoable}
-              aria-label="Rehacer"
-              title="Rehacer (⌘⇧Z)"
-              className="touch-target inline-flex items-center justify-center rounded text-ink-400 hover:text-ink-800 disabled:opacity-25 disabled:hover:text-ink-400 transition-colors"
-            >
-              <span aria-hidden className="text-base leading-none">
-                ↻
-              </span>
-            </button>
-          </div>
-        )}
-        <div className="flex-1" />
-        {!empty && (
-          <span className="text-micro text-ink-300 tabular-nums">
-            {total} {total === 1 ? 'página' : 'páginas'}
-          </span>
-        )}
-        <button
-          type="button"
-          onClick={save}
-          disabled={empty || saving || busy}
-          className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
-        >
-          <DownloadIcon size={13} />
-          {saving ? 'Guardando…' : 'Guardar PDF'}
-        </button>
+      {/* Barra de acciones: izquierda (agregar · historial) — derecha (contador · guardar) */}
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={busy}
+            className="btn-ghost text-xs inline-flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <UploadIcon size={13} />
+            {busy ? 'Agregando…' : 'Agregar PDF o imagen'}
+          </button>
+          {(undoable || redoable) && (
+            <div className="inline-flex items-center rounded-md border border-ink-100 bg-paper-50 overflow-hidden divide-x divide-ink-100">
+              <button
+                type="button"
+                onClick={() => setHistory((h) => undo(h))}
+                disabled={!undoable}
+                aria-label="Deshacer"
+                title="Deshacer (⌘Z)"
+                className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
+              >
+                <span aria-hidden className="text-base leading-none">
+                  ↺
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistory((h) => redo(h))}
+                disabled={!redoable}
+                aria-label="Rehacer"
+                title="Rehacer (⌘⇧Z)"
+                className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
+              >
+                <span aria-hidden className="text-base leading-none">
+                  ↻
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {!empty && (
+            <span className="text-micro text-ink-300 tabular-nums">
+              {total} {total === 1 ? 'página' : 'páginas'}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={save}
+            disabled={empty || saving || busy}
+            className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
+          >
+            <DownloadIcon size={13} />
+            {saving ? 'Guardando…' : 'Guardar PDF'}
+          </button>
+        </div>
         <input
           ref={fileInputRef}
           type="file"
@@ -298,19 +306,28 @@ export function PdfStudioView() {
           onClick={() => fileInputRef.current?.click()}
           onDragOver={(e) => e.preventDefault()}
           onDrop={onDropFiles}
-          className="w-full rounded-xl border border-dashed border-ink-200/80 bg-paper-50/50 px-6 py-14 flex flex-col items-center justify-center gap-3 text-center hover:border-ink-300 transition-colors"
+          className="group w-full rounded-2xl border border-dashed border-ink-200 bg-paper-50/40 px-6 py-16 flex flex-col items-center justify-center gap-4 text-center transition-colors hover:border-ink-300 hover:bg-paper-50/70"
         >
           <span
-            className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-ink-100"
-            style={{ color: ACCENT }}
+            className="inline-flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-105"
+            style={{ backgroundColor: 'var(--accent-primary-soft)', color: ACCENT }}
           >
-            <FilePdfIcon size={22} />
+            <FilePdfIcon size={26} />
           </span>
-          <span className="text-body text-ink-600">
-            Arrastra PDFs o imágenes aquí, o haz clic para elegir.
+          <span className="flex flex-col gap-1">
+            <span className="text-body font-medium text-ink-700">
+              Arrastra PDFs o imágenes aquí
+            </span>
+            <span className="text-caption text-ink-400">
+              o haz clic para elegir archivos
+            </span>
           </span>
-          <span className="text-micro text-ink-300">
-            Cada PDF se abre por páginas; cada imagen es una página.
+          <span className="flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-400">
+            {['PDF', 'JPG', 'PNG'].map((t) => (
+              <span key={t} className="rounded bg-ink-100/60 px-1.5 py-0.5">
+                {t}
+              </span>
+            ))}
           </span>
         </button>
       ) : (
@@ -327,11 +344,19 @@ export function PdfStudioView() {
               index={index}
               total={total}
               dragging={dragIndex === index}
+              isDropTarget={
+                dragIndex !== null && dragOverIndex === index && dragIndex !== index
+              }
               onDragStart={() => setDragIndex(index)}
-              onDragEnd={() => setDragIndex(null)}
+              onDragEnterCard={() => setDragOverIndex(index)}
+              onDragEnd={() => {
+                setDragIndex(null)
+                setDragOverIndex(null)
+              }}
               onDropOn={() => {
                 if (dragIndex !== null) reorder(dragIndex, index)
                 setDragIndex(null)
+                setDragOverIndex(null)
               }}
               onNudge={nudge}
               onRotate={(delta) => rotate(index, delta)}
@@ -355,7 +380,9 @@ function PageCard({
   index,
   total,
   dragging,
+  isDropTarget,
   onDragStart,
+  onDragEnterCard,
   onDragEnd,
   onDropOn,
   onNudge,
@@ -368,7 +395,9 @@ function PageCard({
   index: number
   total: number
   dragging: boolean
+  isDropTarget: boolean
   onDragStart: () => void
+  onDragEnterCard: () => void
   onDragEnd: () => void
   onDropOn: () => void
   onNudge: (index: number, delta: -1 | 1) => void
@@ -425,6 +454,7 @@ function PageCard({
         e.dataTransfer.effectAllowed = 'move'
         onDragStart()
       }}
+      onDragEnter={onDragEnterCard}
       onDragEnd={onDragEnd}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
@@ -432,12 +462,17 @@ function PageCard({
         e.stopPropagation()
         onDropOn()
       }}
-      className={`group flex flex-col rounded-lg border bg-paper-50 overflow-hidden transition-shadow ${
-        dragging ? 'opacity-40 border-ink-300' : 'border-ink-100 hover:shadow-sm'
+      style={isDropTarget ? { boxShadow: `0 0 0 2px ${ACCENT}` } : undefined}
+      className={`group flex flex-col rounded-lg border bg-paper-50 overflow-hidden transition-all duration-150 ${
+        dragging
+          ? 'opacity-40 scale-[0.97] border-ink-300'
+          : isDropTarget
+            ? 'border-transparent'
+            : 'border-ink-100 hover:border-ink-200 hover:shadow-md hover:shadow-ink-900/5'
       }`}
     >
       {/* Miniatura */}
-      <div className="relative aspect-[3/4] bg-ink-50/40 flex items-center justify-center cursor-grab active:cursor-grabbing">
+      <div className="relative aspect-[3/4] bg-ink-100/30 flex items-center justify-center cursor-grab active:cursor-grabbing p-2">
         {thumb ? (
           <img
             src={thumb}
@@ -449,11 +484,17 @@ function PageCard({
               })
             }
             className="max-h-full max-w-full object-contain transition-transform duration-200"
-            style={{ transform: thumbTransform }}
+            style={{
+              transform: thumbTransform,
+              boxShadow: '0 1px 5px rgb(0 0 0 / 0.12)',
+            }}
             draggable={false}
           />
         ) : (
-          <span className="text-micro text-ink-300">cargando…</span>
+          <span
+            aria-label="cargando"
+            className="h-6 w-6 rounded-full border-2 border-ink-100 border-t-ink-300 animate-spin"
+          />
         )}
         <span className="absolute top-1 left-1 inline-flex items-center gap-1 rounded bg-ink-900/65 px-1.5 py-0.5 text-micro tabular-nums text-paper-50">
           <KindIcon size={10} />
@@ -471,55 +512,59 @@ function PageCard({
         )}
       </div>
 
-      {/* Controles */}
-      <div className="flex items-center justify-between gap-0.5 px-1 py-1 border-t border-ink-100/70">
-        <button
-          type="button"
-          onClick={() => onNudge(index, -1)}
-          disabled={index === 0}
-          aria-label="Mover página a la izquierda"
-          title="Mover a la izquierda"
-          className="touch-target flex items-center justify-center rounded text-ink-400 hover:text-ink-800 disabled:opacity-25 disabled:hover:text-ink-400 transition-colors"
-        >
-          <ChevronLeftIcon size={15} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onNudge(index, 1)}
-          disabled={index === total - 1}
-          aria-label="Mover página a la derecha"
-          title="Mover a la derecha"
-          className="touch-target flex items-center justify-center rounded text-ink-400 hover:text-ink-800 disabled:opacity-25 disabled:hover:text-ink-400 transition-colors"
-        >
-          <ChevronRightIcon size={15} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onRotate(1)}
-          aria-label="Rotar página 90 grados"
-          title="Rotar 90°"
-          className="touch-target flex items-center justify-center rounded text-ink-400 hover:text-ink-800 transition-colors"
-        >
-          <RotateIcon size={14} />
-        </button>
-        <button
-          type="button"
-          onClick={onOpenText}
-          aria-label="Agregar o editar texto"
-          title="Texto"
-          className="touch-target flex items-center justify-center rounded text-ink-400 hover:text-ink-800 transition-colors"
-        >
-          <TextIcon size={14} />
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(index)}
-          aria-label="Eliminar página"
-          title="Eliminar página"
-          className="touch-target flex items-center justify-center rounded text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors"
-        >
-          <TrashIcon size={14} />
-        </button>
+      {/* Controles: reordenar · acciones */}
+      <div className="flex items-center justify-between px-1 py-1 border-t border-ink-100/70">
+        <div className="inline-flex items-center">
+          <button
+            type="button"
+            onClick={() => onNudge(index, -1)}
+            disabled={index === 0}
+            aria-label="Mover página a la izquierda"
+            title="Mover a la izquierda"
+            className={ctrlBtn}
+          >
+            <ChevronLeftIcon size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onNudge(index, 1)}
+            disabled={index === total - 1}
+            aria-label="Mover página a la derecha"
+            title="Mover a la derecha"
+            className={ctrlBtn}
+          >
+            <ChevronRightIcon size={15} />
+          </button>
+        </div>
+        <div className="inline-flex items-center">
+          <button
+            type="button"
+            onClick={() => onRotate(1)}
+            aria-label="Rotar página 90 grados"
+            title="Rotar 90°"
+            className={ctrlBtn}
+          >
+            <RotateIcon size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={onOpenText}
+            aria-label="Agregar o editar texto"
+            title="Texto"
+            className={ctrlBtn}
+          >
+            <TextIcon size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(index)}
+            aria-label="Eliminar página"
+            title="Eliminar página"
+            className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-300 hover:text-[color:var(--accent-clay)] hover:bg-ink-100/50 transition-colors"
+          >
+            <TrashIcon size={14} />
+          </button>
+        </div>
       </div>
     </li>
   )
