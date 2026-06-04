@@ -72,6 +72,34 @@ describe('<PdfStudioView />', () => {
     expect(mocks.downloadBlob).toHaveBeenCalledTimes(1)
   })
 
+  it('undo y redo revierten y reaplican la importación', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+    expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Deshacer/i }))
+    expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
+    expect(screen.queryByAltText('Página 1')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Rehacer/i }))
+    expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
+    expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
+  })
+
+  it('rota una página sin romper la grilla', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getAllByRole('button', { name: /Rotar página/i })[0]!)
+    // La página sigue ahí y ahora hay historial para deshacer la rotación.
+    expect(screen.getByAltText('Página 1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Deshacer/i })).toBeEnabled()
+  })
+
   it('agrega texto a una página y la deja marcada', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)

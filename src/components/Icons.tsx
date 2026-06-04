@@ -138,6 +138,22 @@ export const RotateIcon = ({ size = 12, className }: Props) => (
   </svg>
 )
 
+/* Flecha curva hacia atrás — deshacer. */
+export const UndoIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M9 5 4 10l5 5" />
+    <path d="M4 10h10a6 6 0 0 1 0 12H9" />
+  </svg>
+)
+
+/* Flecha curva hacia adelante — rehacer. */
+export const RedoIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M15 5 20 10l-5 5" />
+    <path d="M20 10H10a6 6 0 0 0 0 12h5" />
+  </svg>
+)
+
 /* "T" de texto — agregar texto en el editor. */
 export const TextIcon = ({ size = 12, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

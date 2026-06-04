@@ -13,8 +13,10 @@ import {
   pageThumbKey,
   previewFontFamily,
   replacePageWithImage,
+  rotatePage,
   setPageAnnotations,
   standardFontName,
+  textBoxLayout,
 } from './model'
 
 const pdf = (name = 'a.pdf') => new File(['%PDF'], name, { type: 'application/pdf' })
@@ -159,5 +161,38 @@ describe('pdfStudio/model · texto vectorial', () => {
     expect(previewFontFamily('sans')).toMatch(/Arial|Helvetica/)
     expect(previewFontFamily('serif')).toMatch(/Times/)
     expect(previewFontFamily('mono')).toMatch(/Courier|monospace/)
+  })
+
+  it('textBoxLayout convierte ratios a puntos (tope desde abajo)', () => {
+    const ann = makeAnnotation({ ...baseAnn, xRatio: 0.25, yRatio: 0.5, sizeRatio: 0.1 })
+    const l = textBoxLayout(ann, 400, 600)
+    expect(l.x).toBe(100) // 0.25 * 400
+    expect(l.size).toBeCloseTo(60) // 0.1 * 600
+    expect(l.topY).toBeCloseTo(300) // 600 - 0.5*600
+  })
+})
+
+describe('pdfStudio/model · rotación', () => {
+  it('las páginas nuevas arrancan sin rotación', () => {
+    const d = addImageSource(addPdfSource(emptyDoc(), pdf(), 2), img())
+    expect(d.pages.every((p) => p.rotationQuarters === 0)).toBe(true)
+  })
+
+  it('rotatePage suma cuartos mod 4 y normaliza negativos; ignora fuera de rango', () => {
+    let d = addImageSource(emptyDoc(), img())
+    d = rotatePage(d, 0, 1)
+    expect(d.pages[0]!.rotationQuarters).toBe(1)
+    d = rotatePage(d, 0, 3)
+    expect(d.pages[0]!.rotationQuarters).toBe(0) // 1+3=4 → 0
+    d = rotatePage(d, 0, -1)
+    expect(d.pages[0]!.rotationQuarters).toBe(3) // -1 → 3
+    expect(rotatePage(d, 9, 1)).toBe(d) // fuera de rango → mismo doc
+  })
+
+  it('rotatePage no muta el doc original', () => {
+    const d0 = addImageSource(emptyDoc(), img())
+    const d1 = rotatePage(d0, 0, 1)
+    expect(d0.pages[0]!.rotationQuarters).toBe(0)
+    expect(d1.pages[0]!.rotationQuarters).toBe(1)
   })
 })
