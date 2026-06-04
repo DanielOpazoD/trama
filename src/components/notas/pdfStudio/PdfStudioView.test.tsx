@@ -148,6 +148,23 @@ describe('<PdfStudioView />', () => {
     expect(screen.getByTitle('Tiene texto')).toBeInTheDocument()
   })
 
+  it('duplicar deja dos textos en la página', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
+    await user.click(await screen.findByRole('menuitem', { name: /Agregar texto/i }))
+    await screen.findByRole('dialog', { name: /Texto sobre la página 1/i })
+    await user.click(screen.getByRole('button', { name: /Agregar texto/i }))
+    await user.click(screen.getByRole('button', { name: /Duplicar texto/i }))
+    await user.click(screen.getByRole('button', { name: /^Listo$/ }))
+
+    // El badge "Tiene texto" muestra el conteo (2).
+    expect(screen.getByTitle('Tiene texto')).toHaveTextContent('2')
+  })
+
   it('no agrega páginas si el archivo no se puede leer', async () => {
     mocks.getPdfPageCount.mockRejectedValueOnce(new Error('cifrado'))
     const user = userEvent.setup()

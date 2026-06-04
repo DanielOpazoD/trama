@@ -11,7 +11,7 @@ import {
 } from '../../../lib/pdfStudio/model'
 import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
 import { LoadingHint } from '../../LoadingHint'
-import { BoldIcon, PlusIcon, TrashIcon } from '../../Icons'
+import { BoldIcon, DuplicateIcon, PlusIcon, TrashIcon } from '../../Icons'
 
 const ACCENT = 'var(--accent-primary)'
 
@@ -191,15 +191,43 @@ export function PdfTextEditor({
       color: '#222222',
       font: 'sans',
       bold: false,
+      opacity: 1,
+      rotation: 0,
     })
     setAnnotations((l) => [...l, a])
     setSelectedId(a.id)
     requestAnimationFrame(() => textRef.current?.select())
   }
 
+  /** Duplica una anotación con un pequeño offset y la selecciona. */
+  function duplicate(a: TextAnnotation) {
+    const { id: _id, ...rest } = a
+    const copy = makeAnnotation({
+      ...rest,
+      xRatio: clamp01(a.xRatio + 0.03),
+      yRatio: clamp01(a.yRatio + 0.03),
+    })
+    setAnnotations((l) => [...l, copy])
+    setSelectedId(copy.id)
+  }
+
   function removeText(id: string) {
     setAnnotations((l) => l.filter((a) => a.id !== id))
     if (selectedId === id) setSelectedId(null)
+  }
+
+  /** Ajusta opacidad/rotación del texto seleccionado. */
+  const stepOpacity = (delta: number) => {
+    if (selected) {
+      update(selected.id, { opacity: clamp((selected.opacity ?? 1) + delta, 0.1, 1) })
+    }
+  }
+  const stepRotation = (delta: number) => {
+    if (selected) {
+      update(selected.id, {
+        rotation: ((((selected.rotation ?? 0) + delta) % 360) + 360) % 360,
+      })
+    }
   }
 
   function startDrag(e: React.PointerEvent, a: TextAnnotation) {
@@ -342,6 +370,48 @@ export function PdfTextEditor({
                   +
                 </button>
               </div>
+              {/* Opacidad */}
+              <div className={segGroup} title="Opacidad">
+                <button
+                  onClick={() => stepOpacity(-0.1)}
+                  disabled={(selected.opacity ?? 1) <= 0.1 + 1e-6}
+                  aria-label="Reducir opacidad"
+                  className={stepBtn}
+                >
+                  −
+                </button>
+                <span className="w-10 text-center text-caption tabular-nums text-ink-600">
+                  {Math.round((selected.opacity ?? 1) * 100)}%
+                </span>
+                <button
+                  onClick={() => stepOpacity(0.1)}
+                  disabled={(selected.opacity ?? 1) >= 1 - 1e-6}
+                  aria-label="Aumentar opacidad"
+                  className={stepBtn}
+                >
+                  +
+                </button>
+              </div>
+              {/* Rotación del texto */}
+              <div className={segGroup} title="Rotación del texto">
+                <button
+                  onClick={() => stepRotation(-15)}
+                  aria-label="Rotar texto a la izquierda"
+                  className={stepBtn}
+                >
+                  −
+                </button>
+                <span className="w-9 text-center text-caption tabular-nums text-ink-600">
+                  {selected.rotation ?? 0}°
+                </span>
+                <button
+                  onClick={() => stepRotation(15)}
+                  aria-label="Rotar texto a la derecha"
+                  className={stepBtn}
+                >
+                  +
+                </button>
+              </div>
               {/* Negrita */}
               <button
                 onClick={() => update(selected.id, { bold: !selected.bold })}
@@ -379,6 +449,15 @@ export function PdfTextEditor({
                   )
                 })}
               </div>
+              {/* Duplicar */}
+              <button
+                onClick={() => duplicate(selected)}
+                aria-label="Duplicar texto"
+                title="Duplicar texto"
+                className="touch-target inline-flex items-center justify-center h-7 w-7 rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100/40 transition-colors"
+              >
+                <DuplicateIcon size={14} />
+              </button>
               {/* Borrar */}
               <button
                 onClick={() => removeText(selected.id)}
@@ -453,6 +532,11 @@ export function PdfTextEditor({
                       fontSize: `${a.sizeRatio * layout.innerH}px`,
                       lineHeight: 1.15,
                       color: a.color,
+                      opacity: a.opacity ?? 1,
+                      // Rota como pdf-lib: pivote en la baseline-izquierda
+                      // (≈0.8·tamaño desde el tope de la caja).
+                      transform: a.rotation ? `rotate(${a.rotation}deg)` : undefined,
+                      transformOrigin: `0 ${a.sizeRatio * layout.innerH * 0.8}px`,
                       whiteSpace: 'pre',
                       cursor: 'move',
                       userSelect: 'none',

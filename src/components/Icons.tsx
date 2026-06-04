@@ -154,6 +154,14 @@ export const RedoIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/* Dos rectángulos — duplicar. */
+export const DuplicateIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <rect x="8" y="8" width="12" height="12" rx="2" />
+    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+  </svg>
+)
+
 /* "T" de texto — agregar texto en el editor. */
 export const TextIcon = ({ size = 12, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
