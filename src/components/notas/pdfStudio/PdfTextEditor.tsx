@@ -1,0 +1,347 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  getSource,
+  makeAnnotation,
+  pageThumbKey,
+  previewFontFamily,
+  type PdfDoc,
+  type PdfFontKind,
+  type TextAnnotation,
+} from '../../../lib/pdfStudio/model'
+import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
+import { BoldIcon, CloseIcon, PlusIcon, TrashIcon } from '../../Icons'
+
+const ACCENT = 'var(--accent-sage)'
+
+const FONTS: { key: PdfFontKind; label: string }[] = [
+  { key: 'sans', label: 'Sans' },
+  { key: 'serif', label: 'Serif' },
+  { key: 'mono', label: 'Mono' },
+]
+const SIZES: { key: string; ratio: number }[] = [
+  { key: 'S', ratio: 0.028 },
+  { key: 'M', ratio: 0.04 },
+  { key: 'L', ratio: 0.058 },
+]
+const COLORS: { hex: string; label: string }[] = [
+  { hex: '#222222', label: 'Tinta' },
+  { hex: '#ffffff', label: 'Papel' },
+  { hex: '#b3412c', label: 'Rojo' },
+  { hex: '#2f5d8a', label: 'Azul' },
+  { hex: '#4b7355', label: 'Verde' },
+]
+
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
+
+const segGroup =
+  'inline-flex gap-0.5 p-0.5 bg-paper-100/60 rounded-md border border-ink-100/50'
+const segBtn = (on: boolean) =>
+  `px-2 py-0.5 rounded text-caption transition-colors ${
+    on ? 'bg-paper-50 text-ink-800 shadow-sm' : 'text-ink-400 hover:text-ink-700'
+  }`
+
+/**
+ * Editor de texto VECTORIAL sobre una página (PR D): muestra la página grande y
+ * deja agregar cajas de texto, arrastrarlas y ajustar fuente/tamaño/negrita/color.
+ * Es WYSIWYG —el preview usa la fuente web equivalente y guarda posición/tamaño
+ * como ratios— y al confirmar entrega las anotaciones; el ensamblado las dibuja
+ * con `drawText` (texto seleccionable, la página NO se rasteriza). Browser-only.
+ */
+export function PdfTextEditor({
+  doc,
+  pageIndex,
+  onClose,
+}: {
+  doc: PdfDoc
+  pageIndex: number
+  onClose: (annotations: TextAnnotation[] | null) => void
+}) {
+  const page = doc.pages[pageIndex]
+  const source = page ? getSource(doc, page.sourceId) : undefined
+
+  const [annotations, setAnnotations] = useState<TextAnnotation[]>(
+    () => page?.annotations ?? [],
+  )
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [bg, setBg] = useState<{ url: string; w: number; h: number } | null>(null)
+  const textRef = useRef<HTMLTextAreaElement>(null)
+
+  // Fondo: render grande de la página (pdf.js) o la imagen directa.
+  useEffect(() => {
+    if (!page || !source) return
+    let alive = true
+    let createdUrl: string | null = null
+    const measure = (url: string) => {
+      const im = new Image()
+      im.onload = () => alive && setBg({ url, w: im.naturalWidth, h: im.naturalHeight })
+      im.src = url
+    }
+    if (page.kind === 'image') {
+      createdUrl = URL.createObjectURL(source.file)
+      measure(createdUrl)
+    } else {
+      renderPageThumb(source.file, page.pageIndex, `${pageThumbKey(page)}:lg`, 1100)
+        .then((url) => alive && measure(url))
+        .catch(() => {})
+    }
+    return () => {
+      alive = false
+      if (createdUrl) URL.revokeObjectURL(createdUrl)
+    }
+  }, [page, source])
+
+  // Escape cancela.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose(null)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  // Tamaño de despliegue de la página (fit dentro de la ventana, manteniendo aspecto).
+  const display = useMemo(() => {
+    if (!bg) return null
+    const maxW = Math.min(
+      typeof window !== 'undefined' ? window.innerWidth * 0.92 : 760,
+      760,
+    )
+    const maxH = (typeof window !== 'undefined' ? window.innerHeight : 800) * 0.62
+    const ar = bg.h / bg.w
+    let w = maxW
+    let h = w * ar
+    if (h > maxH) {
+      h = maxH
+      w = h / ar
+    }
+    return { w, h }
+  }, [bg])
+
+  const selected = annotations.find((a) => a.id === selectedId) ?? null
+
+  const update = (id: string, patch: Partial<TextAnnotation>) =>
+    setAnnotations((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)))
+
+  function addText() {
+    const a = makeAnnotation({
+      text: 'Texto',
+      xRatio: 0.2,
+      yRatio: 0.42,
+      sizeRatio: 0.04,
+      color: '#222222',
+      font: 'sans',
+      bold: false,
+    })
+    setAnnotations((l) => [...l, a])
+    setSelectedId(a.id)
+    requestAnimationFrame(() => textRef.current?.select())
+  }
+
+  function removeText(id: string) {
+    setAnnotations((l) => l.filter((a) => a.id !== id))
+    if (selectedId === id) setSelectedId(null)
+  }
+
+  function startDrag(e: React.PointerEvent, a: TextAnnotation) {
+    e.stopPropagation()
+    setSelectedId(a.id)
+    const dw = display?.w ?? 1
+    const dh = display?.h ?? 1
+    const startX = e.clientX
+    const startY = e.clientY
+    const ox = a.xRatio
+    const oy = a.yRatio
+    const move = (ev: PointerEvent) => {
+      update(a.id, {
+        xRatio: clamp01(ox + (ev.clientX - startX) / dw),
+        yRatio: clamp01(oy + (ev.clientY - startY) / dh),
+      })
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Texto sobre la página ${pageIndex + 1}`}
+      onClick={() => onClose(null)}
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink-900/40 backdrop-blur-sm"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-3xl max-h-[92vh] overflow-auto rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col"
+      >
+        {/* Cabecera */}
+        <header className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-ink-100/70">
+          <p className="section-eyebrow text-ink-400">texto · página {pageIndex + 1}</p>
+          <div className="flex items-center gap-2">
+            <button onClick={() => onClose(null)} className="btn-ghost text-xs">
+              Cancelar
+            </button>
+            <button
+              onClick={() => onClose(annotations)}
+              className="btn-ink text-xs"
+              style={{ backgroundColor: ACCENT }}
+            >
+              Listo
+            </button>
+          </div>
+        </header>
+
+        {/* Página + textos */}
+        <div className="flex-1 flex items-center justify-center bg-ink-50/40 p-4">
+          {display && bg ? (
+            <div
+              onClick={() => setSelectedId(null)}
+              className="relative shadow-sm"
+              style={{ width: display.w, height: display.h }}
+            >
+              <img
+                src={bg.url}
+                alt={`Página ${pageIndex + 1}`}
+                className="absolute inset-0 w-full h-full object-contain select-none"
+                draggable={false}
+              />
+              {annotations.map((a) => (
+                <div
+                  key={a.id}
+                  onPointerDown={(e) => startDrag(e, a)}
+                  style={{
+                    position: 'absolute',
+                    left: `${a.xRatio * 100}%`,
+                    top: `${a.yRatio * 100}%`,
+                    fontFamily: previewFontFamily(a.font),
+                    fontWeight: a.bold ? 700 : 400,
+                    fontSize: `${a.sizeRatio * display.h}px`,
+                    lineHeight: 1.15,
+                    color: a.color,
+                    whiteSpace: 'pre',
+                    cursor: 'move',
+                    userSelect: 'none',
+                    touchAction: 'none',
+                    padding: 1,
+                    outline:
+                      selectedId === a.id
+                        ? `1px dashed ${ACCENT}`
+                        : '1px solid transparent',
+                  }}
+                >
+                  {a.text || ' '}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-20 text-micro text-ink-300">cargando página…</div>
+          )}
+        </div>
+
+        {/* Controles */}
+        <div className="border-t border-ink-100/70 px-4 py-3 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <button
+              onClick={addText}
+              className="btn-ghost text-xs inline-flex items-center gap-1.5"
+            >
+              <PlusIcon size={13} /> Agregar texto
+            </button>
+            <span className="text-micro text-ink-300">
+              {annotations.length === 0
+                ? 'sin texto todavía'
+                : `${annotations.length} ${annotations.length === 1 ? 'texto' : 'textos'} · arrastra para mover`}
+            </span>
+          </div>
+
+          {selected ? (
+            <div className="space-y-2.5 rounded-lg border border-ink-100/70 bg-paper-50 p-2.5">
+              <textarea
+                ref={textRef}
+                value={selected.text}
+                onChange={(e) => update(selected.id, { text: e.target.value })}
+                rows={2}
+                placeholder="Escribe el texto…"
+                className="w-full bg-paper-100/40 rounded-md px-2 py-1.5 text-caption text-ink-700 placeholder:text-ink-300 resize-none border border-ink-100/60"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Fuente */}
+                <div className={segGroup}>
+                  {FONTS.map((f) => (
+                    <button
+                      key={f.key}
+                      onClick={() => update(selected.id, { font: f.key })}
+                      className={segBtn(selected.font === f.key)}
+                      style={{ fontFamily: previewFontFamily(f.key) }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Tamaño */}
+                <div className={segGroup}>
+                  {SIZES.map((s) => (
+                    <button
+                      key={s.key}
+                      onClick={() => update(selected.id, { sizeRatio: s.ratio })}
+                      className={segBtn(Math.abs(selected.sizeRatio - s.ratio) < 0.005)}
+                    >
+                      {s.key}
+                    </button>
+                  ))}
+                </div>
+                {/* Negrita */}
+                <button
+                  onClick={() => update(selected.id, { bold: !selected.bold })}
+                  aria-pressed={selected.bold}
+                  aria-label="Negrita"
+                  className={`touch-target rounded-md border transition-colors ${
+                    selected.bold
+                      ? 'border-ink-300 text-ink-800 bg-ink-100/50'
+                      : 'border-ink-100 text-ink-400 hover:text-ink-700'
+                  }`}
+                >
+                  <BoldIcon size={14} />
+                </button>
+                {/* Color */}
+                <div className="flex items-center gap-1">
+                  {COLORS.map((c) => (
+                    <button
+                      key={c.hex}
+                      onClick={() => update(selected.id, { color: c.hex })}
+                      aria-label={`Color ${c.label}`}
+                      title={c.label}
+                      className={`h-6 w-6 rounded-full border transition-transform ${
+                        selected.color === c.hex
+                          ? 'ring-2 ring-offset-1 ring-ink-300 scale-110'
+                          : 'border-ink-200'
+                      }`}
+                      style={{ backgroundColor: c.hex }}
+                    />
+                  ))}
+                </div>
+                {/* Borrar */}
+                <button
+                  onClick={() => removeText(selected.id)}
+                  aria-label="Eliminar texto"
+                  title="Eliminar texto"
+                  className="touch-target ml-auto rounded-md text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors"
+                >
+                  <TrashIcon size={14} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-micro text-ink-300 flex items-center gap-1.5">
+              <CloseIcon size={11} className="opacity-0" />
+              Agrega un texto o toca uno existente para editarlo.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

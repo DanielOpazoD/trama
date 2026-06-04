@@ -72,6 +72,32 @@ describe('<PdfStudioView />', () => {
     expect(mocks.downloadBlob).toHaveBeenCalledTimes(1)
   })
 
+  it('agrega texto a una página y la deja marcada', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    // Abrir el editor de texto de la primera página.
+    await user.click(
+      screen.getAllByRole('button', { name: /Agregar o editar texto/i })[0]!,
+    )
+    expect(
+      await screen.findByRole('dialog', { name: /Texto sobre la página 1/i }),
+    ).toBeInTheDocument()
+
+    // Agregar un texto y editarlo.
+    await user.click(screen.getByRole('button', { name: /Agregar texto/i }))
+    const ta = screen.getByPlaceholderText(/Escribe el texto/i)
+    await user.clear(ta)
+    await user.type(ta, 'Firmado')
+
+    // Confirmar → el modal cierra y la página queda marcada con texto.
+    await user.click(screen.getByRole('button', { name: /^Listo$/ }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByTitle('Tiene texto')).toBeInTheDocument()
+  })
+
   it('no agrega páginas si el archivo no se puede leer', async () => {
     mocks.getPdfPageCount.mockRejectedValueOnce(new Error('cifrado'))
     const user = userEvent.setup()

@@ -8,9 +8,12 @@ import {
   getSource,
   movePage,
   movePageByDelta,
+  pageHasText,
   pageThumbKey,
+  setPageAnnotations,
   type PdfDoc,
   type PdfPage,
+  type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import {
   disposePdfStudio,
@@ -20,12 +23,14 @@ import {
 } from '../../../lib/pdfStudio/pdfRender'
 import { assemble } from '../../../lib/pdfStudio/assemble'
 import { downloadBlob } from '../../../lib/downloadBlob'
+import { PdfTextEditor } from './PdfTextEditor'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
   DownloadIcon,
   FileIcon,
   FilePdfIcon,
+  TextIcon,
   TrashIcon,
   UploadIcon,
 } from '../../Icons'
@@ -65,6 +70,7 @@ export function PdfStudioView() {
   const [busy, setBusy] = useState(false) // importando
   const [saving, setSaving] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [textPage, setTextPage] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Al desmontar la sección, libera las miniaturas/documentos de pdf.js.
@@ -130,6 +136,14 @@ export function PdfStudioView() {
 
   function nudge(index: number, delta: -1 | 1) {
     setDoc((d) => movePageByDelta(d, index, delta))
+  }
+
+  function closeTextEditor(annotations: TextAnnotation[] | null) {
+    if (annotations && textPage !== null) {
+      const i = textPage
+      setDoc((d) => setPageAnnotations(d, i, annotations))
+    }
+    setTextPage(null)
   }
 
   async function save() {
@@ -250,9 +264,14 @@ export function PdfStudioView() {
               }}
               onNudge={nudge}
               onDelete={removePage}
+              onOpenText={() => setTextPage(index)}
             />
           ))}
         </ul>
+      )}
+
+      {textPage !== null && (
+        <PdfTextEditor doc={doc} pageIndex={textPage} onClose={closeTextEditor} />
       )}
     </section>
   )
@@ -269,6 +288,7 @@ function PageCard({
   onDropOn,
   onNudge,
   onDelete,
+  onOpenText,
 }: {
   doc: PdfDoc
   page: PdfPage
@@ -280,6 +300,7 @@ function PageCard({
   onDropOn: () => void
   onNudge: (index: number, delta: -1 | 1) => void
   onDelete: (index: number) => void
+  onOpenText: () => void
 }) {
   const source = getSource(doc, page.sourceId)
   const [thumb, setThumb] = useState<string | null>(null)
@@ -345,6 +366,16 @@ function PageCard({
           <KindIcon size={10} />
           {index + 1}
         </span>
+        {pageHasText(page) && (
+          <span
+            className="absolute top-1 right-1 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-micro tabular-nums text-paper-50"
+            style={{ backgroundColor: ACCENT }}
+            title="Tiene texto"
+          >
+            <TextIcon size={9} />
+            {page.annotations.length}
+          </span>
+        )}
       </div>
 
       {/* Controles */}
@@ -368,6 +399,15 @@ function PageCard({
           className="touch-target flex items-center justify-center rounded text-ink-400 hover:text-ink-800 disabled:opacity-25 disabled:hover:text-ink-400 transition-colors"
         >
           <ChevronRightIcon size={15} />
+        </button>
+        <button
+          type="button"
+          onClick={onOpenText}
+          aria-label="Agregar o editar texto"
+          title="Texto"
+          className="touch-target flex items-center justify-center rounded text-ink-400 hover:text-ink-800 transition-colors"
+        >
+          <TextIcon size={14} />
         </button>
         <button
           type="button"
