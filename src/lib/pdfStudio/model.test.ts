@@ -6,10 +6,15 @@ import {
   deletePage,
   emptyDoc,
   getSource,
+  makeAnnotation,
   movePage,
   movePageByDelta,
+  pageHasText,
   pageThumbKey,
+  previewFontFamily,
   replacePageWithImage,
+  setPageAnnotations,
+  standardFontName,
 } from './model'
 
 const pdf = (name = 'a.pdf') => new File(['%PDF'], name, { type: 'application/pdf' })
@@ -95,5 +100,64 @@ describe('pdfStudio/model', () => {
     expect(pageThumbKey(p0)).toMatch(/:0$/)
     const di = addImageSource(emptyDoc(), img())
     expect(pageThumbKey(di.pages[0]!)).toMatch(/:img$/)
+  })
+})
+
+describe('pdfStudio/model · texto vectorial', () => {
+  const baseAnn = {
+    text: 'Hola',
+    xRatio: 0.1,
+    yRatio: 0.2,
+    sizeRatio: 0.04,
+    color: '#222222',
+    font: 'sans' as const,
+    bold: false,
+  }
+
+  it('las páginas nuevas arrancan sin anotaciones', () => {
+    const d = addImageSource(addPdfSource(emptyDoc(), pdf(), 2), img())
+    expect(d.pages.every((p) => p.annotations.length === 0)).toBe(true)
+  })
+
+  it('makeAnnotation asigna un id único y conserva los campos', () => {
+    const a = makeAnnotation(baseAnn)
+    const b = makeAnnotation(baseAnn)
+    expect(a.id).toBeTruthy()
+    expect(a.id).not.toBe(b.id)
+    expect(a.text).toBe('Hola')
+    expect(a.font).toBe('sans')
+  })
+
+  it('setPageAnnotations reemplaza, no muta, e ignora fuera de rango', () => {
+    let d = addPdfSource(emptyDoc(), pdf(), 2)
+    const ann = makeAnnotation(baseAnn)
+    d = setPageAnnotations(d, 1, [ann])
+    expect(d.pages[0]!.annotations).toHaveLength(0)
+    expect(d.pages[1]!.annotations).toEqual([ann])
+    expect(pageHasText(d.pages[1]!)).toBe(true)
+    expect(pageHasText(d.pages[0]!)).toBe(false)
+    expect(setPageAnnotations(d, 9, [ann])).toBe(d) // fuera de rango → mismo doc
+  })
+
+  it('setPageAnnotations no muta el doc original (inmutable)', () => {
+    const d0 = addPdfSource(emptyDoc(), pdf(), 1)
+    const d1 = setPageAnnotations(d0, 0, [makeAnnotation(baseAnn)])
+    expect(d0.pages[0]!.annotations).toHaveLength(0)
+    expect(d1.pages[0]!.annotations).toHaveLength(1)
+  })
+
+  it('standardFontName mapea familia + negrita a fuentes base-14', () => {
+    expect(standardFontName('sans', false)).toBe('Helvetica')
+    expect(standardFontName('sans', true)).toBe('Helvetica-Bold')
+    expect(standardFontName('serif', false)).toBe('Times-Roman')
+    expect(standardFontName('serif', true)).toBe('Times-Bold')
+    expect(standardFontName('mono', false)).toBe('Courier')
+    expect(standardFontName('mono', true)).toBe('Courier-Bold')
+  })
+
+  it('previewFontFamily da stacks web-safe por familia', () => {
+    expect(previewFontFamily('sans')).toMatch(/Arial|Helvetica/)
+    expect(previewFontFamily('serif')).toMatch(/Times/)
+    expect(previewFontFamily('mono')).toMatch(/Courier|monospace/)
   })
 })

@@ -17,9 +17,33 @@ export type PdfSource = {
   pageCount: number
 }
 
-export type PdfPage =
-  | { id: string; kind: 'pdf'; sourceId: string; pageIndex: number }
-  | { id: string; kind: 'image'; sourceId: string }
+/** Familia de fuente para el texto vectorial (mapea a fuentes estándar de PDF). */
+export type PdfFontKind = 'sans' | 'serif' | 'mono'
+
+/**
+ * Texto vectorial superpuesto a una página (PR D). Posición y tamaño se guardan
+ * como RATIOS del tamaño de la página (0..1) → independientes de la resolución:
+ * el mismo dato sirve para el preview (px) y para pdf-lib (puntos). `yRatio` es
+ * el TOPE del texto medido desde arriba (como en pantalla); el ensamblado lo
+ * convierte a la baseline desde abajo que usa pdf-lib.
+ */
+export type TextAnnotation = {
+  id: string
+  text: string
+  xRatio: number
+  yRatio: number
+  /** Tamaño de fuente como fracción del alto de página (p. ej. 0.04). */
+  sizeRatio: number
+  /** Color en hex `#rrggbb`. */
+  color: string
+  font: PdfFontKind
+  bold: boolean
+}
+
+export type PdfPage = { id: string; annotations: TextAnnotation[] } & (
+  | { kind: 'pdf'; sourceId: string; pageIndex: number }
+  | { kind: 'image'; sourceId: string }
+)
 
 export type PdfDoc = {
   sources: PdfSource[]
@@ -46,6 +70,7 @@ export function addPdfSource(doc: PdfDoc, file: File, pageCount: number): PdfDoc
     kind: 'pdf',
     sourceId,
     pageIndex: i,
+    annotations: [],
   }))
   return { sources: [...doc.sources, source], pages: [...doc.pages, ...pages] }
 }
@@ -54,7 +79,7 @@ export function addPdfSource(doc: PdfDoc, file: File, pageCount: number): PdfDoc
 export function addImageSource(doc: PdfDoc, file: File): PdfDoc {
   const sourceId = nextId('s')
   const source: PdfSource = { id: sourceId, kind: 'image', file, pageCount: 1 }
-  const page: PdfPage = { id: nextId('p'), kind: 'image', sourceId }
+  const page: PdfPage = { id: nextId('p'), kind: 'image', sourceId, annotations: [] }
   return { sources: [...doc.sources, source], pages: [...doc.pages, page] }
 }
 
@@ -90,7 +115,7 @@ export function replacePageWithImage(doc: PdfDoc, index: number, file: File): Pd
   const sourceId = nextId('s')
   const source: PdfSource = { id: sourceId, kind: 'image', file, pageCount: 1 }
   const pages = [...doc.pages]
-  pages[index] = { id: nextId('p'), kind: 'image', sourceId }
+  pages[index] = { id: nextId('p'), kind: 'image', sourceId, annotations: [] }
   return { pages, sources: pruneSources([...doc.sources, source], pages) }
 }
 
@@ -112,4 +137,52 @@ export function pageThumbKey(page: PdfPage): string {
   return page.kind === 'pdf'
     ? `${page.sourceId}:${page.pageIndex}`
     : `${page.sourceId}:img`
+}
+
+// ── Texto vectorial (PR D) ────────────────────────────────────────────────
+
+/** Crea una anotación de texto con id propio (la UI provee el resto). */
+export function makeAnnotation(init: Omit<TextAnnotation, 'id'>): TextAnnotation {
+  return { ...init, id: nextId('t') }
+}
+
+/**
+ * Reemplaza TODAS las anotaciones de una página. El editor mantiene la lista de
+ * forma local (agregar/mover/editar/borrar) y la confirma de una sola vez; por
+ * eso una sola op de reemplazo en lugar de add/update/remove granulares.
+ */
+export function setPageAnnotations(
+  doc: PdfDoc,
+  index: number,
+  annotations: TextAnnotation[],
+): PdfDoc {
+  if (index < 0 || index >= doc.pages.length) return doc
+  const pages = [...doc.pages]
+  const page = pages[index]
+  if (!page) return doc
+  pages[index] = { ...page, annotations }
+  return { ...doc, pages }
+}
+
+/** ¿La página tiene texto superpuesto? */
+export function pageHasText(page: PdfPage): boolean {
+  return page.annotations.length > 0
+}
+
+/**
+ * Nombre de la fuente ESTÁNDAR de PDF (base-14, sin embeber → render garantizado
+ * en cualquier visor) para una familia + negrita. Coincide con los valores de
+ * `StandardFonts` de pdf-lib.
+ */
+export function standardFontName(font: PdfFontKind, bold: boolean): string {
+  if (font === 'serif') return bold ? 'Times-Bold' : 'Times-Roman'
+  if (font === 'mono') return bold ? 'Courier-Bold' : 'Courier'
+  return bold ? 'Helvetica-Bold' : 'Helvetica'
+}
+
+/** Stack CSS web-safe equivalente, para que el preview sea WYSIWYG con el PDF. */
+export function previewFontFamily(font: PdfFontKind): string {
+  if (font === 'serif') return "'Times New Roman', Times, serif"
+  if (font === 'mono') return "'Courier New', Courier, monospace"
+  return 'Helvetica, Arial, sans-serif'
 }
