@@ -304,6 +304,19 @@ export function setPageAnnotations(
   return { ...doc, pages }
 }
 
+/**
+ * Aplica de una vez un mapa `índice→anotaciones` (las páginas que el modal editó)
+ * sobre el documento. Las páginas no presentes en el mapa quedan iguales. Sirve
+ * para confirmar todo el trabajo del editor en un solo commit de historial.
+ */
+export function applyEdits(doc: PdfDoc, edits: Record<number, Annotation[]>): PdfDoc {
+  let next = doc
+  for (const [idx, anns] of Object.entries(edits)) {
+    next = setPageAnnotations(next, Number(idx), anns)
+  }
+  return next
+}
+
 /** ¿La página tiene anotaciones superpuestas (de cualquier tipo)? */
 export function pageHasAnnotations(page: PdfPage): boolean {
   return page.annotations.length > 0

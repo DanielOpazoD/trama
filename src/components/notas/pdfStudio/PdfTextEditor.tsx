@@ -23,6 +23,11 @@ import {
   type PdfFontKind,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
+import {
+  fitPageLayout,
+  rectFromPoints,
+  screenDeltaToPage,
+} from '../../../lib/pdfStudio/editorGeometry'
 import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
 import { LoadingHint } from '../../LoadingHint'
 import {
@@ -373,23 +378,13 @@ export function PdfTextEditor({
   // Layout de la página en su orientación FINAL (rotada = como saldrá), ajustada al
   // área medida. Caja EXTERIOR = bounding box rotado; INTERIOR = nativa que se rota
   // dentro. Las anotaciones viven en la interior (ratios nativos) → rotan con ella.
-  const layout = useMemo(() => {
-    if (!bg || !area) return null
-    const rot = page ? ((page.rotationQuarters % 4) + 4) % 4 : 0
-    const swap = rot % 2 === 1
-    const maxW = Math.max(80, area.w - 32)
-    const maxH = Math.max(80, area.h - 32)
-    const finalAspect = swap ? bg.w / bg.h : bg.h / bg.w
-    let outerW = maxW
-    let outerH = outerW * finalAspect
-    if (outerH > maxH) {
-      outerH = maxH
-      outerW = outerH / finalAspect
-    }
-    const innerW = swap ? outerH : outerW
-    const innerH = swap ? outerW : outerH
-    return { rot, outerW, outerH, innerW, innerH }
-  }, [bg, page, area])
+  const layout = useMemo(
+    () =>
+      bg && area
+        ? fitPageLayout(bg.w, bg.h, area.w, area.h, page?.rotationQuarters ?? 0)
+        : null,
+    [bg, page, area],
+  )
 
   // Sólo el TEXTO es editable por la barra (los otros tipos llegan en fases
   // siguientes). `selected` se estrecha a TextAnnotation.
@@ -500,21 +495,11 @@ export function PdfTextEditor({
     const ox = a.xRatio
     const oy = a.yRatio
     const move = (ev: PointerEvent) => {
-      // Delta de pantalla → frame nativo de la página (inversa de la rotación CSS).
-      const sdx = ev.clientX - startX
-      const sdy = ev.clientY - startY
-      let pdx = sdx
-      let pdy = sdy
-      if (rot === 1) {
-        pdx = sdy
-        pdy = -sdx
-      } else if (rot === 2) {
-        pdx = -sdx
-        pdy = -sdy
-      } else if (rot === 3) {
-        pdx = -sdy
-        pdy = sdx
-      }
+      const { dx: pdx, dy: pdy } = screenDeltaToPage(
+        ev.clientX - startX,
+        ev.clientY - startY,
+        rot,
+      )
       const xRatio = clamp01(ox + pdx / dw)
       const yRatio = clamp01(oy + pdy / dh)
       setAnnotations((list) =>
@@ -548,20 +533,11 @@ export function PdfTextEditor({
     let last = { x0, y0, x1: x0, y1: y0 }
     setDrawing(last)
     const move = (ev: PointerEvent) => {
-      const sdx = ev.clientX - startX
-      const sdy = ev.clientY - startY
-      let pdx = sdx
-      let pdy = sdy
-      if (rot === 1) {
-        pdx = sdy
-        pdy = -sdx
-      } else if (rot === 2) {
-        pdx = -sdx
-        pdy = -sdy
-      } else if (rot === 3) {
-        pdx = -sdy
-        pdy = sdx
-      }
+      const { dx: pdx, dy: pdy } = screenDeltaToPage(
+        ev.clientX - startX,
+        ev.clientY - startY,
+        rot,
+      )
       last = {
         x0,
         y0,
@@ -574,14 +550,13 @@ export function PdfTextEditor({
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       setDrawing(null)
-      const w = Math.abs(last.x1 - last.x0)
-      const h = Math.abs(last.y1 - last.y0)
-      if (w < 4 || h < 4) return // clic suelto sin arrastrar → nada
+      const r = rectFromPoints(last.x0, last.y0, last.x1, last.y1)
+      if (r.w < 4 || r.h < 4) return // clic suelto sin arrastrar → nada
       const hl = makeHighlightAnnotation({
-        xRatio: Math.min(last.x0, last.x1) / innerW,
-        yRatio: Math.min(last.y0, last.y1) / innerH,
-        wRatio: w / innerW,
-        hRatio: h / innerH,
+        xRatio: r.x / innerW,
+        yRatio: r.y / innerH,
+        wRatio: r.w / innerW,
+        hRatio: r.h / innerH,
         color: style.color,
         opacity: HIGHLIGHT_OPACITY,
       })
@@ -955,21 +930,30 @@ export function PdfTextEditor({
                   ))}
 
                 {/* Preview en vivo del resaltado que se está dibujando */}
-                {drawing && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: Math.min(drawing.x0, drawing.x1),
-                      top: Math.min(drawing.y0, drawing.y1),
-                      width: Math.abs(drawing.x1 - drawing.x0),
-                      height: Math.abs(drawing.y1 - drawing.y0),
-                      backgroundColor: hexToRgba(style.color, HIGHLIGHT_OPACITY),
-                      border: `1px dashed ${ACCENT}`,
-                      borderRadius: 2,
-                      pointerEvents: 'none',
-                    }}
-                  />
-                )}
+                {drawing &&
+                  (() => {
+                    const r = rectFromPoints(
+                      drawing.x0,
+                      drawing.y0,
+                      drawing.x1,
+                      drawing.y1,
+                    )
+                    return (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: r.x,
+                          top: r.y,
+                          width: r.w,
+                          height: r.h,
+                          backgroundColor: hexToRgba(style.color, HIGHLIGHT_OPACITY),
+                          border: `1px dashed ${ACCENT}`,
+                          borderRadius: 2,
+                          pointerEvents: 'none',
+                        }}
+                      />
+                    )
+                  })()}
               </div>
             </div>
           ) : (
