@@ -60,6 +60,12 @@ export default defineConfig({
           if (id.includes('sigma') || id.includes('graphology')) {
             return 'vendor-graph'
           }
+          // pdf-lib (editor de PDF, lazy): su entry es `index.js`, así que sin
+          // esto Vite nombra el chunk `index-*.js` y colisiona con el budget del
+          // bundle principal `index`. Nombrarlo lo deja como chunk lazy propio.
+          if (id.includes('pdf-lib') || id.includes('@pdf-lib')) {
+            return 'vendor-pdf-lib'
+          }
           return undefined
         },
       },

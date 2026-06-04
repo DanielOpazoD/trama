@@ -6,6 +6,7 @@
  * exportar).
  */
 import { apiFetch } from '../api/request'
+import { downloadBlob } from './downloadBlob'
 
 export type ExportablePhoto = { url: string; fileName: string }
 
@@ -15,24 +16,13 @@ async function fetchBlob(url: string): Promise<Blob> {
   return res.blob()
 }
 
-function triggerDownload(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
-
 /** Baja cada imagen como archivo, en serie (un respiro entre cada una para que
  *  el navegador no agrupe/bloquee las descargas). */
 export async function downloadAllImages(photos: ExportablePhoto[]): Promise<void> {
   for (let i = 0; i < photos.length; i++) {
     const photo = photos[i]!
     const blob = await fetchBlob(photo.url)
-    triggerDownload(blob, photo.fileName)
+    downloadBlob(blob, photo.fileName)
     if (i < photos.length - 1) await new Promise((r) => setTimeout(r, 350))
   }
 }
