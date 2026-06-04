@@ -138,11 +138,10 @@ describe('<PdfStudioView />', () => {
       await screen.findByRole('dialog', { name: /Texto sobre la página 1/i }),
     ).toBeInTheDocument()
 
-    // Agregar un texto y editarlo.
+    // Agregar un texto (la edición del contenido es INLINE sobre el cuadro, que
+    // necesita el fondo renderizado y no corre en happy-dom; acá basta con que la
+    // anotación se cree y se confirme).
     await user.click(screen.getByRole('button', { name: /Agregar texto/i }))
-    const ta = screen.getByPlaceholderText(/Escribe el texto/i)
-    await user.clear(ta)
-    await user.type(ta, 'Firmado')
 
     // Confirmar → el modal cierra y la página queda marcada con texto.
     await user.click(screen.getByRole('button', { name: /^Listo$/ }))
