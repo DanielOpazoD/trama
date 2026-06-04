@@ -15,6 +15,7 @@
 import {
   getSource,
   standardFontName,
+  textBoxLayout,
   type PdfDoc,
   type PdfSource,
   type TextAnnotation,
@@ -34,6 +35,11 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
   if (!m) return { r: 0, g: 0, b: 0 }
   const n = parseInt(m[1]!, 16)
   return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 }
+}
+
+/** Firma de archivo PNG (‰PNG) — para embeber sin pérdida aunque falte el mime. */
+function isPngBytes(b: Uint8Array): boolean {
+  return b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47
 }
 
 /** Re-encodea una imagen a JPEG (fondo blanco, dimensión acotada) → bytes. */
@@ -78,7 +84,7 @@ async function toJpegBytes(
  * Lanza si NINGUNA página se pudo procesar.
  */
 export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
-  const { PDFDocument, rgb } = await import('pdf-lib')
+  const { PDFDocument, rgb, degrees } = await import('pdf-lib')
   const out = await PDFDocument.create()
 
   // Cache del PDFDocument fuente por File (se carga una vez por source).
@@ -121,12 +127,13 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
           font = await out.embedFont(name)
           fontCache.set(name, font)
         }
-        const size = Math.max(1, ann.sizeRatio * h)
+        const layout = textBoxLayout(ann, w, h)
+        const size = Math.max(1, layout.size)
         const ascent = font.heightAtSize(size, { descender: false })
         const c = hexToRgb(ann.color)
         outPage.drawText(ann.text, {
-          x: ann.xRatio * w,
-          y: h - ann.yRatio * h - ascent,
+          x: layout.x,
+          y: layout.topY - ascent,
           size,
           font,
           color: rgb(c.r, c.g, c.b),
@@ -142,24 +149,47 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
     }
   }
 
+  // Embebe una imagen como una hoja. PNG → sin pérdida (`embedPng`, preserva
+  // screenshots/line-art); el resto se re-encodea a JPEG. Si pdf-lib no soporta
+  // ese PNG, cae al camino JPEG.
+  const addImagePage = async (file: File): Promise<PDFPage> => {
+    const buf = new Uint8Array(await file.arrayBuffer())
+    if (file.type === 'image/png' || isPngBytes(buf)) {
+      try {
+        const png = await out.embedPng(buf)
+        const p = out.addPage([png.width, png.height])
+        p.drawImage(png, { x: 0, y: 0, width: png.width, height: png.height })
+        return p
+      } catch {
+        // PNG no soportado → JPEG abajo.
+      }
+    }
+    const { bytes, width, height } = await toJpegBytes(file)
+    const jpg = await out.embedJpg(bytes)
+    const p = out.addPage([width, height])
+    p.drawImage(jpg, { x: 0, y: 0, width, height })
+    return p
+  }
+
   for (const page of doc.pages) {
     const source = getSource(doc, page.sourceId)
     if (!source || skippedIds.has(source.id)) continue
     try {
+      let outPage: PDFPage | null = null
       if (page.kind === 'pdf') {
         const src = await loadPdf(source.file)
         const [copied] = await out.copyPages(src, [page.pageIndex])
-        if (copied) {
-          const outPage = out.addPage(copied)
-          if (page.annotations.length > 0)
-            await applyAnnotations(outPage, page.annotations)
-        }
+        if (copied) outPage = out.addPage(copied)
       } else {
-        const { bytes, width, height } = await toJpegBytes(source.file)
-        const jpg = await out.embedJpg(bytes)
-        const p = out.addPage([width, height])
-        p.drawImage(jpg, { x: 0, y: 0, width, height })
-        if (page.annotations.length > 0) await applyAnnotations(p, page.annotations)
+        outPage = await addImagePage(source.file)
+      }
+      if (outPage) {
+        // Texto en coords nativas; la rotación de página lo rota junto con todo.
+        if (page.annotations.length > 0) await applyAnnotations(outPage, page.annotations)
+        if (page.rotationQuarters) {
+          const base = outPage.getRotation().angle
+          outPage.setRotation(degrees(base + page.rotationQuarters * 90))
+        }
       }
     } catch (err) {
       // Saltea esta página y el resto del source (si el PDF está corrupto, no

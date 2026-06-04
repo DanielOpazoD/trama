@@ -40,7 +40,12 @@ export type TextAnnotation = {
   bold: boolean
 }
 
-export type PdfPage = { id: string; annotations: TextAnnotation[] } & (
+export type PdfPage = {
+  id: string
+  annotations: TextAnnotation[]
+  /** Cuartos de vuelta horarios (0..3) aplicados a la página en la salida. */
+  rotationQuarters: number
+} & (
   | { kind: 'pdf'; sourceId: string; pageIndex: number }
   | { kind: 'image'; sourceId: string }
 )
@@ -71,6 +76,7 @@ export function addPdfSource(doc: PdfDoc, file: File, pageCount: number): PdfDoc
     sourceId,
     pageIndex: i,
     annotations: [],
+    rotationQuarters: 0,
   }))
   return { sources: [...doc.sources, source], pages: [...doc.pages, ...pages] }
 }
@@ -79,7 +85,13 @@ export function addPdfSource(doc: PdfDoc, file: File, pageCount: number): PdfDoc
 export function addImageSource(doc: PdfDoc, file: File): PdfDoc {
   const sourceId = nextId('s')
   const source: PdfSource = { id: sourceId, kind: 'image', file, pageCount: 1 }
-  const page: PdfPage = { id: nextId('p'), kind: 'image', sourceId, annotations: [] }
+  const page: PdfPage = {
+    id: nextId('p'),
+    kind: 'image',
+    sourceId,
+    annotations: [],
+    rotationQuarters: 0,
+  }
   return { sources: [...doc.sources, source], pages: [...doc.pages, page] }
 }
 
@@ -115,8 +127,25 @@ export function replacePageWithImage(doc: PdfDoc, index: number, file: File): Pd
   const sourceId = nextId('s')
   const source: PdfSource = { id: sourceId, kind: 'image', file, pageCount: 1 }
   const pages = [...doc.pages]
-  pages[index] = { id: nextId('p'), kind: 'image', sourceId, annotations: [] }
+  pages[index] = {
+    id: nextId('p'),
+    kind: 'image',
+    sourceId,
+    annotations: [],
+    rotationQuarters: 0,
+  }
   return { pages, sources: pruneSources([...doc.sources, source], pages) }
+}
+
+/** Rota una página `delta` cuartos de vuelta horarios (normaliza a 0..3). */
+export function rotatePage(doc: PdfDoc, index: number, delta: number): PdfDoc {
+  if (index < 0 || index >= doc.pages.length) return doc
+  const pages = [...doc.pages]
+  const page = pages[index]
+  if (!page) return doc
+  const rotationQuarters = (((page.rotationQuarters + delta) % 4) + 4) % 4
+  pages[index] = { ...page, rotationQuarters }
+  return { ...doc, pages }
 }
 
 function pruneSources(sources: PdfSource[], pages: PdfPage[]): PdfSource[] {
@@ -185,4 +214,23 @@ export function previewFontFamily(font: PdfFontKind): string {
   if (font === 'serif') return "'Times New Roman', Times, serif"
   if (font === 'mono') return "'Courier New', Courier, monospace"
   return 'Helvetica, Arial, sans-serif'
+}
+
+/**
+ * Convierte la posición/tamaño (ratios) de una anotación a PUNTOS del PDF.
+ * Devuelve `x` (izquierda), `topY` (tope del texto medido desde ABAJO, como usa
+ * pdf-lib) y `size`. La baseline final = `topY - ascent` (el ascent depende de
+ * la fuente y lo aporta el ensamblado). Esta parte es pura → testeable, que es
+ * la matemática más delicada del módulo.
+ */
+export function textBoxLayout(
+  ann: TextAnnotation,
+  pageWidth: number,
+  pageHeight: number,
+): { x: number; topY: number; size: number } {
+  return {
+    x: ann.xRatio * pageWidth,
+    topY: pageHeight - ann.yRatio * pageHeight,
+    size: ann.sizeRatio * pageHeight,
+  }
 }

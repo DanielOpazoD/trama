@@ -10,11 +10,21 @@ import {
   movePageByDelta,
   pageHasText,
   pageThumbKey,
+  rotatePage,
   setPageAnnotations,
   type PdfDoc,
   type PdfPage,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
+import {
+  canRedo,
+  canUndo,
+  initHistory,
+  pushHistory,
+  redo,
+  undo,
+  type History,
+} from '../../../lib/pdfStudio/history'
 import {
   disposePdfStudio,
   forgetThumb,
@@ -30,6 +40,7 @@ import {
   DownloadIcon,
   FileIcon,
   FilePdfIcon,
+  RotateIcon,
   TextIcon,
   TrashIcon,
   UploadIcon,
@@ -66,15 +77,41 @@ function exportName(): string {
  */
 export function PdfStudioView() {
   const toast = useToast()
-  const [doc, setDoc] = useState<PdfDoc>(emptyDoc)
+  // El documento vive detrás de un historial (undo/redo). `doc` = presente.
+  const [history, setHistory] = useState<History<PdfDoc>>(() => initHistory(emptyDoc()))
+  const doc = history.present
   const [busy, setBusy] = useState(false) // importando
   const [saving, setSaving] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [textPage, setTextPage] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  /** Aplica un cambio al documento y lo registra en el historial. */
+  const commit = useCallback((next: PdfDoc | ((prev: PdfDoc) => PdfDoc)) => {
+    setHistory((h) => {
+      const value = typeof next === 'function' ? next(h.present) : next
+      return pushHistory(h, value)
+    })
+  }, [])
+
   // Al desmontar la sección, libera las miniaturas/documentos de pdf.js.
   useEffect(() => () => disposePdfStudio(), [])
+
+  // Atajos: ⌘/Ctrl+Z deshace, ⌘/Ctrl+Shift+Z rehace (salvo en inputs o con el
+  // editor de texto abierto, que tiene su propio estado).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (textPage !== null) return
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        setHistory((h) => (e.shiftKey ? redo(h) : undo(h)))
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [textPage])
 
   const addFiles = useCallback(
     async (list: FileList | File[] | null) => {
@@ -98,7 +135,7 @@ export function PdfStudioView() {
             failed.push(file.name)
           }
         }
-        setDoc(next)
+        commit(next)
         if (failed.length > 0) {
           toast.show({
             message: `No se pudo leer: ${failed.join(', ')} (¿PDF cifrado o formato no soportado?).`,
@@ -109,7 +146,7 @@ export function PdfStudioView() {
         setBusy(false)
       }
     },
-    [doc, toast],
+    [doc, toast, commit],
   )
 
   function onFileInput(e: React.ChangeEvent<HTMLInputElement>) {
@@ -127,21 +164,25 @@ export function PdfStudioView() {
   function removePage(index: number) {
     const page = doc.pages[index]
     if (page) forgetThumb(pageThumbKey(page))
-    setDoc((d) => deletePage(d, index))
+    commit((d) => deletePage(d, index))
   }
 
   function reorder(from: number, to: number) {
-    setDoc((d) => movePage(d, from, to))
+    commit((d) => movePage(d, from, to))
   }
 
   function nudge(index: number, delta: -1 | 1) {
-    setDoc((d) => movePageByDelta(d, index, delta))
+    commit((d) => movePageByDelta(d, index, delta))
+  }
+
+  function rotate(index: number, delta: -1 | 1) {
+    commit((d) => rotatePage(d, index, delta))
   }
 
   function closeTextEditor(annotations: TextAnnotation[] | null) {
     if (annotations && textPage !== null) {
       const i = textPage
-      setDoc((d) => setPageAnnotations(d, i, annotations))
+      commit((d) => setPageAnnotations(d, i, annotations))
     }
     setTextPage(null)
   }
@@ -174,6 +215,8 @@ export function PdfStudioView() {
 
   const total = doc.pages.length
   const empty = total === 0
+  const undoable = canUndo(history)
+  const redoable = canRedo(history)
 
   return (
     <section className="space-y-5">
@@ -196,6 +239,34 @@ export function PdfStudioView() {
           <UploadIcon size={13} />
           {busy ? 'Agregando…' : 'Agregar PDF o imagen'}
         </button>
+        {(undoable || redoable) && (
+          <div className="inline-flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={() => setHistory((h) => undo(h))}
+              disabled={!undoable}
+              aria-label="Deshacer"
+              title="Deshacer (⌘Z)"
+              className="touch-target inline-flex items-center justify-center rounded text-ink-400 hover:text-ink-800 disabled:opacity-25 disabled:hover:text-ink-400 transition-colors"
+            >
+              <span aria-hidden className="text-base leading-none">
+                ↺
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setHistory((h) => redo(h))}
+              disabled={!redoable}
+              aria-label="Rehacer"
+              title="Rehacer (⌘⇧Z)"
+              className="touch-target inline-flex items-center justify-center rounded text-ink-400 hover:text-ink-800 disabled:opacity-25 disabled:hover:text-ink-400 transition-colors"
+            >
+              <span aria-hidden className="text-base leading-none">
+                ↻
+              </span>
+            </button>
+          </div>
+        )}
         <div className="flex-1" />
         {!empty && (
           <span className="text-micro text-ink-300 tabular-nums">
@@ -263,6 +334,7 @@ export function PdfStudioView() {
                 setDragIndex(null)
               }}
               onNudge={nudge}
+              onRotate={(delta) => rotate(index, delta)}
               onDelete={removePage}
               onOpenText={() => setTextPage(index)}
             />
@@ -287,6 +359,7 @@ function PageCard({
   onDragEnd,
   onDropOn,
   onNudge,
+  onRotate,
   onDelete,
   onOpenText,
 }: {
@@ -299,11 +372,13 @@ function PageCard({
   onDragEnd: () => void
   onDropOn: () => void
   onNudge: (index: number, delta: -1 | 1) => void
+  onRotate: (delta: -1 | 1) => void
   onDelete: (index: number) => void
   onOpenText: () => void
 }) {
   const source = getSource(doc, page.sourceId)
   const [thumb, setThumb] = useState<string | null>(null)
+  const [nat, setNat] = useState<{ w: number; h: number } | null>(null)
 
   useEffect(() => {
     if (!source) return
@@ -332,6 +407,17 @@ function PageCard({
   if (!source) return null
   const KindIcon = page.kind === 'pdf' ? FilePdfIcon : FileIcon
 
+  // Rotación visual de la miniatura. En 90°/270° se reescala para que la imagen
+  // rotada entre en la caja 3:4 (depende solo de los aspectos, no de px reales).
+  const rot = ((page.rotationQuarters % 4) + 4) % 4
+  let thumbTransform = `rotate(${rot * 90}deg)`
+  if (rot % 2 === 1 && nat) {
+    const s0 = Math.min(3 / nat.w, 4 / nat.h)
+    const dw = nat.w * s0
+    const dh = nat.h * s0
+    thumbTransform += ` scale(${Math.min(3 / dh, 4 / dw)})`
+  }
+
   return (
     <li
       draggable
@@ -356,7 +442,14 @@ function PageCard({
           <img
             src={thumb}
             alt={`Página ${index + 1}`}
-            className="max-h-full max-w-full object-contain"
+            onLoad={(e) =>
+              setNat({
+                w: e.currentTarget.naturalWidth,
+                h: e.currentTarget.naturalHeight,
+              })
+            }
+            className="max-h-full max-w-full object-contain transition-transform duration-200"
+            style={{ transform: thumbTransform }}
             draggable={false}
           />
         ) : (
@@ -399,6 +492,15 @@ function PageCard({
           className="touch-target flex items-center justify-center rounded text-ink-400 hover:text-ink-800 disabled:opacity-25 disabled:hover:text-ink-400 transition-colors"
         >
           <ChevronRightIcon size={15} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onRotate(1)}
+          aria-label="Rotar página 90 grados"
+          title="Rotar 90°"
+          className="touch-target flex items-center justify-center rounded text-ink-400 hover:text-ink-800 transition-colors"
+        >
+          <RotateIcon size={14} />
         </button>
         <button
           type="button"

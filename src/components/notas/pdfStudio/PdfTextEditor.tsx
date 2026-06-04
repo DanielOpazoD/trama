@@ -65,6 +65,9 @@ export function PdfTextEditor({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [bg, setBg] = useState<{ url: string; w: number; h: number } | null>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
+  // Ref al texto seleccionado, para los atajos de teclado sin re-suscribir.
+  const selectedRef = useRef<string | null>(null)
+  selectedRef.current = selectedId
 
   // Fondo: render grande de la página (pdf.js) o la imagen directa.
   useEffect(() => {
@@ -98,6 +101,35 @@ export function PdfTextEditor({
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
+
+  // Atajos sobre el texto seleccionado (fuera de inputs): Supr borra, flechas
+  // mueven fino. Lee de un ref para no re-suscribir en cada render.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      const id = selectedRef.current
+      if (!id) return
+      if (e.key === 'Delete') {
+        e.preventDefault()
+        setAnnotations((l) => l.filter((a) => a.id !== id))
+        setSelectedId(null)
+      } else if (e.key.startsWith('Arrow')) {
+        e.preventDefault()
+        const dx = e.key === 'ArrowLeft' ? -0.01 : e.key === 'ArrowRight' ? 0.01 : 0
+        const dy = e.key === 'ArrowUp' ? -0.01 : e.key === 'ArrowDown' ? 0.01 : 0
+        setAnnotations((l) =>
+          l.map((a) =>
+            a.id === id
+              ? { ...a, xRatio: clamp01(a.xRatio + dx), yRatio: clamp01(a.yRatio + dy) }
+              : a,
+          ),
+        )
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   // Tamaño de despliegue de la página (fit dentro de la ventana, manteniendo aspecto).
   const display = useMemo(() => {
