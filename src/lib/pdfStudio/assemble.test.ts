@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   addImageSource,
   addPdfSource,
+  baselineDropEm,
   emptyDoc,
   makeAnnotation,
   rotatePage,
@@ -21,6 +22,7 @@ const calls = vi.hoisted(() => ({
   drawImage: vi.fn(),
   drawText: vi.fn(),
   setRotation: vi.fn(),
+  registerFontkit: vi.fn(),
 }))
 
 vi.mock('pdf-lib', () => {
@@ -54,10 +56,11 @@ vi.mock('pdf-lib', () => {
             calls.embedJpg(b)
             return { width: 100, height: 200 }
           },
-          embedFont: async (n: unknown) => {
-            calls.embedFont(n)
+          embedFont: async (...a: unknown[]) => {
+            calls.embedFont(...a)
             return { heightAtSize: () => 16 }
           },
+          registerFontkit: (...a: unknown[]) => calls.registerFontkit(...a),
           getPageCount: () => count,
           save: async () => new Uint8Array([37, 80, 68, 70]),
         }
@@ -68,6 +71,11 @@ vi.mock('pdf-lib', () => {
     degrees: (n: number) => ({ __deg: n }),
   }
 })
+
+// fontkit es browser-only (igual que pdf-lib) → se mockea; sólo importa que se
+// registre. Los `?url` de los WOFF resuelven a un string en vitest y `fetch` se
+// stubea para devolver bytes sin tocar la red.
+vi.mock('@pdf-lib/fontkit', () => ({ default: { registerFormat: () => {} } }))
 
 import { assemble, readPngSize } from './assemble'
 
@@ -90,7 +98,17 @@ const png = (name = 'a.png') =>
   new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], name, { type: 'image/png' })
 const pdf = (name = 'a.pdf') => new File(['%PDF'], name, { type: 'application/pdf' })
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  // `fetch` del WOFF → bytes cualquiera (pdf-lib está mockeado, no los parsea).
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => new Uint8Array([1, 2, 3, 4]).buffer,
+    })),
+  )
+})
 
 describe('pdfStudio/assemble (contrato browser-only)', () => {
   it('PNG se embebe sin pérdida (embedPng), no JPEG; devuelve blob PDF', async () => {
@@ -121,7 +139,7 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(calls.setRotation).not.toHaveBeenCalled()
   })
 
-  it('el texto se dibuja con drawText en las coordenadas del layout', async () => {
+  it('el texto sans embebe la fuente REAL (Inter por bytes + subconjunto) y dibuja en el layout', async () => {
     let doc = addImageSource(emptyDoc(), png()) // página → 100 x 200 pt (embedPng mock)
     const ann = makeAnnotation({
       text: 'Hola',
@@ -137,7 +155,12 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     doc = setPageAnnotations(doc, 0, [ann])
     await assemble(doc)
 
-    expect(calls.embedFont).toHaveBeenCalledWith('Helvetica')
+    // Se registró fontkit y la fuente se embebió por BYTES (no por nombre estándar).
+    expect(calls.registerFontkit).toHaveBeenCalledTimes(1)
+    const [fontArg, fontOpts] = calls.embedFont.mock.calls[0] as [unknown, unknown]
+    expect(fontArg).toBeInstanceOf(Uint8Array)
+    expect(fontOpts).toEqual({ subset: true })
+
     expect(calls.drawText).toHaveBeenCalledTimes(1)
     const [text, opts] = calls.drawText.mock.calls[0] as [
       string,
@@ -146,9 +169,54 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(text).toBe('Hola')
     expect(opts.x).toBeCloseTo(25) // 0.25 * 100
     expect(opts.size).toBeCloseTo(20) // 0.1 * 200
-    expect(opts.y).toBeCloseTo(84) // topY(200 - 0.5*200=100) - ascent(16)
+    // topY(100) − baselineDropEm('sans')·size — modelo de line-box, no heightAtSize.
+    expect(opts.y).toBeCloseTo(100 - baselineDropEm('sans') * 20)
     expect(opts.opacity).toBe(0.5)
     expect(opts.rotate).toEqual({ __deg: -30 }) // CSS horario → pdf-lib antihorario
+  })
+
+  it('mono usa la fuente ESTÁNDAR (Courier), sin embeber ni registrar fontkit', async () => {
+    let doc = addImageSource(emptyDoc(), png())
+    doc = setPageAnnotations(doc, 0, [
+      makeAnnotation({
+        text: 'cod',
+        xRatio: 0.1,
+        yRatio: 0.1,
+        sizeRatio: 0.05,
+        color: '#000000',
+        font: 'mono',
+        bold: false,
+      }),
+    ])
+    await assemble(doc)
+    expect(calls.registerFontkit).not.toHaveBeenCalled()
+    expect(calls.embedFont).toHaveBeenCalledWith('Courier')
+  })
+
+  it('si la fuente embebible no carga (fetch falla), cae a la estándar', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: false,
+        status: 404,
+        arrayBuffer: async () => new ArrayBuffer(0),
+      })),
+    )
+    let doc = addImageSource(emptyDoc(), png())
+    doc = setPageAnnotations(doc, 0, [
+      makeAnnotation({
+        text: 'x',
+        xRatio: 0.1,
+        yRatio: 0.1,
+        sizeRatio: 0.05,
+        color: '#000000',
+        font: 'serif',
+        bold: true,
+      }),
+    ])
+    await assemble(doc)
+    // El WOFF no cargó → se embebió la estándar equivalente (Times-Bold).
+    expect(calls.embedFont).toHaveBeenCalledWith('Times-Bold')
   })
 
   it('readPngSize lee las dimensiones del IHDR; null si no es PNG', () => {
