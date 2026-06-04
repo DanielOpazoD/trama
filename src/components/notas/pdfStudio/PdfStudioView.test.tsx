@@ -264,4 +264,30 @@ describe('<PdfStudioView />', () => {
     expect(mocks.assemble).toHaveBeenCalledTimes(1)
     expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
   })
+
+  it('doble clic en la miniatura abre el modal de ver/editar', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    const thumb = await screen.findByAltText('Página 1')
+
+    await user.dblClick(thumb)
+    expect(
+      await screen.findByRole('dialog', { name: /Texto sobre la página 1/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('la barra del editor muestra las herramientas de estilo sin texto seleccionado (sin hint)', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await user.dblClick(await screen.findByAltText('Página 1'))
+    await screen.findByRole('dialog', { name: /Texto sobre la página 1/i })
+
+    // Sin agregar ni seleccionar texto, las herramientas de estilo ya están activas…
+    expect(screen.getByRole('button', { name: 'Negrita' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Color Tinta/i })).toBeInTheDocument()
+    // …y NO está el viejo texto instructivo.
+    expect(screen.queryByText(/toca uno para editarlo/i)).not.toBeInTheDocument()
+  })
 })

@@ -184,17 +184,46 @@ export function PdfTextEditor({
   const update = (id: string, patch: Partial<TextAnnotation>) =>
     setAnnotations((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)))
 
+  // Estilo "activo" de la barra: si hay un texto seleccionado, las herramientas lo
+  // editan; si no, definen el estilo del PRÓXIMO texto. Así la barra está SIEMPRE
+  // activa y funcional (no aparece/desaparece según la selección).
+  type TextStyle = Pick<
+    TextAnnotation,
+    'font' | 'sizeRatio' | 'bold' | 'color' | 'opacity' | 'rotation'
+  >
+  const [style, setStyle] = useState<TextStyle>({
+    font: 'sans',
+    sizeRatio: 0.04,
+    bold: false,
+    color: '#222222',
+    opacity: 1,
+    rotation: 0,
+  })
+  const activeFont = selected?.font ?? style.font
+  const activeSize = selected?.sizeRatio ?? style.sizeRatio
+  const activeBold = selected?.bold ?? style.bold
+  const activeColor = selected?.color ?? style.color
+  const activeOpacity = selected?.opacity ?? style.opacity ?? 1
+  const activeRotation = selected?.rotation ?? style.rotation ?? 0
+
+  /** Aplica un cambio de estilo: al texto seleccionado (si hay) y lo recuerda como
+   *  default para el próximo. */
+  const applyStyle = (patch: Partial<TextStyle>) => {
+    setStyle((s) => ({ ...s, ...patch }))
+    if (selectedId) update(selectedId, patch)
+  }
+
   function addText() {
     const a = makeAnnotation({
       text: 'Texto',
       xRatio: 0.2,
       yRatio: 0.42,
-      sizeRatio: 0.04,
-      color: '#222222',
-      font: 'sans',
-      bold: false,
-      opacity: 1,
-      rotation: 0,
+      sizeRatio: style.sizeRatio,
+      color: style.color,
+      font: style.font,
+      bold: style.bold,
+      opacity: style.opacity,
+      rotation: style.rotation,
     })
     setAnnotations((l) => [...l, a])
     setSelectedId(a.id)
@@ -218,19 +247,11 @@ export function PdfTextEditor({
     if (selectedId === id) setSelectedId(null)
   }
 
-  /** Ajusta opacidad/rotación del texto seleccionado. */
-  const stepOpacity = (delta: number) => {
-    if (selected) {
-      update(selected.id, { opacity: clamp((selected.opacity ?? 1) + delta, 0.1, 1) })
-    }
-  }
-  const stepRotation = (delta: number) => {
-    if (selected) {
-      update(selected.id, {
-        rotation: ((((selected.rotation ?? 0) + delta) % 360) + 360) % 360,
-      })
-    }
-  }
+  /** Ajusta opacidad/rotación (texto seleccionado o estilo por defecto). */
+  const stepOpacity = (delta: number) =>
+    applyStyle({ opacity: clamp(activeOpacity + delta, 0.1, 1) })
+  const stepRotation = (delta: number) =>
+    applyStyle({ rotation: (((activeRotation + delta) % 360) + 360) % 360 })
 
   function startDrag(e: React.PointerEvent, a: TextAnnotation) {
     e.stopPropagation()
@@ -278,13 +299,8 @@ export function PdfTextEditor({
   const zh = layout ? layout.outerH * zoom : 0
   const zoomBtn = (delta: number) => () =>
     setZoom((z) => clamp(Math.round((z + delta) * 100) / 100, ZOOM_MIN, ZOOM_MAX))
-  const stepSize = (delta: number) => {
-    if (selected) {
-      update(selected.id, {
-        sizeRatio: clamp(selected.sizeRatio + delta, SIZE_MIN, SIZE_MAX),
-      })
-    }
-  }
+  const stepSize = (delta: number) =>
+    applyStyle({ sizeRatio: clamp(activeSize + delta, SIZE_MIN, SIZE_MAX) })
 
   // Portal a <body>: el modal debe escapar de cualquier ancestro con overflow o
   // transform (el contenedor scrolleable del mundo Notas), que si no lo recorta.
@@ -303,7 +319,7 @@ export function PdfTextEditor({
         {/* Cabecera */}
         <header className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-ink-100/70 shrink-0">
           <div className="min-w-0">
-            <p className="section-eyebrow text-ink-400">texto sobre la página</p>
+            <p className="section-eyebrow text-ink-400">ver y editar</p>
             <p className="text-sm font-medium text-ink-700 tabular-nums">
               Página {pageIndex + 1}
             </p>
@@ -327,7 +343,8 @@ export function PdfTextEditor({
             <PlusIcon size={13} /> Agregar texto
           </button>
 
-          {selected ? (
+          {/* Contenido del texto seleccionado (contextual) */}
+          {selected && (
             <>
               <span className="w-px h-5 bg-ink-100 mx-0.5" aria-hidden />
               <input
@@ -337,121 +354,131 @@ export function PdfTextEditor({
                 placeholder="Escribe el texto…"
                 className="w-36 sm:w-52 bg-paper-100/50 rounded-md px-2.5 py-1 text-caption text-ink-700 placeholder:text-ink-300 border border-ink-100/60 transition-colors focus:border-ink-300 focus:bg-paper-50"
               />
-              {/* Fuente */}
-              <div className={segGroup}>
-                {FONTS.map((f) => (
-                  <button
-                    key={f.key}
-                    onClick={() => update(selected.id, { font: f.key })}
-                    className={segBtn(selected.font === f.key)}
-                    style={{ fontFamily: previewFontFamily(f.key) }}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-              {/* Tamaño de letra (configurable, granular) */}
-              <div className={segGroup} title="Tamaño de letra">
-                <button
-                  onClick={() => stepSize(-SIZE_STEP)}
-                  disabled={selected.sizeRatio <= SIZE_MIN + 1e-6}
-                  aria-label="Reducir tamaño de letra"
-                  className={stepBtn}
-                >
-                  −
-                </button>
-                <span className="w-7 text-center text-caption tabular-nums text-ink-600">
-                  {Math.round(selected.sizeRatio * 1000)}
-                </span>
-                <button
-                  onClick={() => stepSize(SIZE_STEP)}
-                  disabled={selected.sizeRatio >= SIZE_MAX - 1e-6}
-                  aria-label="Aumentar tamaño de letra"
-                  className={stepBtn}
-                >
-                  +
-                </button>
-              </div>
-              {/* Opacidad */}
-              <div className={segGroup} title="Opacidad">
-                <button
-                  onClick={() => stepOpacity(-0.1)}
-                  disabled={(selected.opacity ?? 1) <= 0.1 + 1e-6}
-                  aria-label="Reducir opacidad"
-                  className={stepBtn}
-                >
-                  −
-                </button>
-                <span className="w-10 text-center text-caption tabular-nums text-ink-600">
-                  {Math.round((selected.opacity ?? 1) * 100)}%
-                </span>
-                <button
-                  onClick={() => stepOpacity(0.1)}
-                  disabled={(selected.opacity ?? 1) >= 1 - 1e-6}
-                  aria-label="Aumentar opacidad"
-                  className={stepBtn}
-                >
-                  +
-                </button>
-              </div>
-              {/* Rotación del texto */}
-              <div className={segGroup} title="Rotación del texto">
-                <button
-                  onClick={() => stepRotation(-15)}
-                  aria-label="Rotar texto a la izquierda"
-                  className={stepBtn}
-                >
-                  −
-                </button>
-                <span className="w-9 text-center text-caption tabular-nums text-ink-600">
-                  {selected.rotation ?? 0}°
-                </span>
-                <button
-                  onClick={() => stepRotation(15)}
-                  aria-label="Rotar texto a la derecha"
-                  className={stepBtn}
-                >
-                  +
-                </button>
-              </div>
-              {/* Negrita */}
+            </>
+          )}
+
+          <span className="w-px h-5 bg-ink-100 mx-0.5" aria-hidden />
+
+          {/* Herramientas de estilo — SIEMPRE activas: editan el texto seleccionado
+              o, si no hay ninguno, definen el estilo del próximo texto. */}
+          {/* Fuente */}
+          <div className={segGroup}>
+            {FONTS.map((f) => (
               <button
-                onClick={() => update(selected.id, { bold: !selected.bold })}
-                aria-pressed={selected.bold}
-                aria-label="Negrita"
-                title="Negrita"
-                className={`h-7 w-8 inline-flex items-center justify-center rounded-md border transition-colors ${
-                  selected.bold
-                    ? 'border-ink-300 text-ink-800 bg-ink-100/60'
-                    : 'border-ink-100 text-ink-400 hover:text-ink-700 hover:border-ink-200'
-                }`}
+                key={f.key}
+                onClick={() => applyStyle({ font: f.key })}
+                className={segBtn(activeFont === f.key)}
+                style={{ fontFamily: previewFontFamily(f.key) }}
               >
-                <BoldIcon size={14} />
+                {f.label}
               </button>
-              {/* Color */}
-              <div className="flex items-center gap-1.5">
-                {COLORS.map((c) => {
-                  const on = selected.color === c.hex
-                  return (
-                    <button
-                      key={c.hex}
-                      onClick={() => update(selected.id, { color: c.hex })}
-                      aria-label={`Color ${c.label}`}
-                      aria-pressed={on}
-                      title={c.label}
-                      className="h-6 w-6 rounded-full border border-ink-900/15 transition-transform duration-150 hover:scale-110"
-                      style={{
-                        backgroundColor: c.hex,
-                        transform: on ? 'scale(1.15)' : undefined,
-                        boxShadow: on
-                          ? `0 0 0 2px rgb(var(--paper-50)), 0 0 0 3.5px ${ACCENT}`
-                          : undefined,
-                      }}
-                    />
-                  )
-                })}
-              </div>
-              {/* Duplicar */}
+            ))}
+          </div>
+          {/* Tamaño de letra */}
+          <div className={segGroup} title="Tamaño de letra">
+            <button
+              onClick={() => stepSize(-SIZE_STEP)}
+              disabled={activeSize <= SIZE_MIN + 1e-6}
+              aria-label="Reducir tamaño de letra"
+              className={stepBtn}
+            >
+              −
+            </button>
+            <span className="w-7 text-center text-caption tabular-nums text-ink-600">
+              {Math.round(activeSize * 1000)}
+            </span>
+            <button
+              onClick={() => stepSize(SIZE_STEP)}
+              disabled={activeSize >= SIZE_MAX - 1e-6}
+              aria-label="Aumentar tamaño de letra"
+              className={stepBtn}
+            >
+              +
+            </button>
+          </div>
+          {/* Negrita */}
+          <button
+            onClick={() => applyStyle({ bold: !activeBold })}
+            aria-pressed={activeBold}
+            aria-label="Negrita"
+            title="Negrita"
+            className={`h-7 w-8 inline-flex items-center justify-center rounded-md border transition-colors ${
+              activeBold
+                ? 'border-ink-300 text-ink-800 bg-ink-100/60'
+                : 'border-ink-100 text-ink-400 hover:text-ink-700 hover:border-ink-200'
+            }`}
+          >
+            <BoldIcon size={14} />
+          </button>
+          {/* Color */}
+          <div className="flex items-center gap-1.5">
+            {COLORS.map((c) => {
+              const on = activeColor === c.hex
+              return (
+                <button
+                  key={c.hex}
+                  onClick={() => applyStyle({ color: c.hex })}
+                  aria-label={`Color ${c.label}`}
+                  aria-pressed={on}
+                  title={c.label}
+                  className="h-6 w-6 rounded-full border border-ink-900/15 transition-transform duration-150 hover:scale-110"
+                  style={{
+                    backgroundColor: c.hex,
+                    transform: on ? 'scale(1.15)' : undefined,
+                    boxShadow: on
+                      ? `0 0 0 2px rgb(var(--paper-50)), 0 0 0 3.5px ${ACCENT}`
+                      : undefined,
+                  }}
+                />
+              )
+            })}
+          </div>
+          {/* Opacidad */}
+          <div className={segGroup} title="Opacidad">
+            <button
+              onClick={() => stepOpacity(-0.1)}
+              disabled={activeOpacity <= 0.1 + 1e-6}
+              aria-label="Reducir opacidad"
+              className={stepBtn}
+            >
+              −
+            </button>
+            <span className="w-10 text-center text-caption tabular-nums text-ink-600">
+              {Math.round(activeOpacity * 100)}%
+            </span>
+            <button
+              onClick={() => stepOpacity(0.1)}
+              disabled={activeOpacity >= 1 - 1e-6}
+              aria-label="Aumentar opacidad"
+              className={stepBtn}
+            >
+              +
+            </button>
+          </div>
+          {/* Rotación del texto */}
+          <div className={segGroup} title="Rotación del texto">
+            <button
+              onClick={() => stepRotation(-15)}
+              aria-label="Rotar texto a la izquierda"
+              className={stepBtn}
+            >
+              −
+            </button>
+            <span className="w-9 text-center text-caption tabular-nums text-ink-600">
+              {activeRotation}°
+            </span>
+            <button
+              onClick={() => stepRotation(15)}
+              aria-label="Rotar texto a la derecha"
+              className={stepBtn}
+            >
+              +
+            </button>
+          </div>
+
+          {/* Acciones sobre el texto seleccionado (contextual) */}
+          {selected && (
+            <>
               <button
                 onClick={() => duplicate(selected)}
                 aria-label="Duplicar texto"
@@ -460,7 +487,6 @@ export function PdfTextEditor({
               >
                 <DuplicateIcon size={14} />
               </button>
-              {/* Borrar */}
               <button
                 onClick={() => removeText(selected.id)}
                 aria-label="Eliminar texto"
@@ -470,10 +496,6 @@ export function PdfTextEditor({
                 <TrashIcon size={14} />
               </button>
             </>
-          ) : (
-            <span className="text-micro text-ink-300">
-              Agrega un texto o toca uno para editarlo
-            </span>
           )}
 
           <div className="flex-1" />
