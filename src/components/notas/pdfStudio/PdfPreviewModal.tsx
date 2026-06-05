@@ -5,6 +5,7 @@ import { openPdfPreview, type PdfPreview } from '../../../lib/pdfStudio/pdfRende
 import { type PdfDoc } from '../../../lib/pdfStudio/model'
 import { LoadingHint } from '../../LoadingHint'
 import { CloseIcon, DownloadIcon } from '../../Icons'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { useInViewport } from './useInViewport'
 
 /** Una página del preview: render PEREZOSO (sólo al acercarse al scroll del modal),
@@ -74,6 +75,7 @@ export function PdfPreviewModal({
   onDownload: (blob: Blob) => void
 }) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(dialogRef, true)
   const [preview, setPreview] = useState<PdfPreview | null>(null)
   const [blob, setBlob] = useState<Blob | null>(null)
   const [skipped, setSkipped] = useState<{ name: string }[]>([])
