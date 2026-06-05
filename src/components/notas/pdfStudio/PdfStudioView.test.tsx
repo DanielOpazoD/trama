@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   disposePdfStudio: vi.fn(),
   assemble: vi.fn(),
   downloadBlob: vi.fn(),
+  printPdfBlob: vi.fn(),
   loadDraft: vi.fn(),
   saveDraft: vi.fn(),
   clearDraft: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
   disposePdfStudio: mocks.disposePdfStudio,
 }))
 vi.mock('../../../lib/pdfStudio/assemble', () => ({ assemble: mocks.assemble }))
+vi.mock('../../../lib/pdfStudio/printPdf', () => ({ printPdfBlob: mocks.printPdfBlob }))
 vi.mock('../../../lib/downloadBlob', () => ({ downloadBlob: mocks.downloadBlob }))
 vi.mock('../../../lib/pdfStudio/persistence', () => ({
   loadDraft: mocks.loadDraft,
@@ -111,10 +113,10 @@ describe('<PdfStudioView />', () => {
     expect(screen.getByText(/1 página/)).toBeInTheDocument()
     expect(mocks.forgetThumb).toHaveBeenCalled()
 
-    // Guardar → ensambla + descarga.
+    // Guardar → ensambla + abre el diálogo de impresión.
     await user.click(screen.getByRole('button', { name: /Guardar PDF/i }))
     expect(mocks.assemble).toHaveBeenCalledTimes(1)
-    expect(mocks.downloadBlob).toHaveBeenCalledTimes(1)
+    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
   })
 
   it('undo y redo revierten y reaplican la importación', async () => {
@@ -247,7 +249,7 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
     await user.click(screen.getByRole('button', { name: /Guardar PDF \(1\)/i }))
     expect(mocks.assemble).toHaveBeenCalledTimes(1)
-    expect(mocks.downloadBlob).toHaveBeenCalledTimes(1)
+    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
   })
 
   it('doble clic en la miniatura abre el modal de ver/editar', async () => {
