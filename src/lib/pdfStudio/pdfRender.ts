@@ -95,6 +95,57 @@ export async function renderPageThumb(
   return url
 }
 
+export type PdfPreview = {
+  numPages: number
+  /** Renderiza la página `index` (0-based) a un object URL (cacheado por sesión). */
+  renderPage: (index: number) => Promise<string>
+  /** Revoca los URLs renderizados y suelta el documento. Llamar al cerrar. */
+  dispose: () => void
+}
+
+/**
+ * Abre un PDF (blob, p. ej. el ENSAMBLADO) para previsualizarlo, con lifecycle
+ * PROPIO: no toca los caches de la grilla. Renderiza páginas a demanda (el modal
+ * pide sólo las visibles) y las cachea; `dispose()` revoca todo. Browser-only.
+ */
+export async function openPdfPreview(blob: Blob, maxWidth = 760): Promise<PdfPreview> {
+  const lib = await getLib()
+  const data = new Uint8Array(await blob.arrayBuffer())
+  const task = lib.getDocument({ data })
+  const doc = await task.promise
+  const cache = new Map<number, string>()
+  return {
+    numPages: doc.numPages,
+    renderPage: async (index: number) => {
+      const hit = cache.get(index)
+      if (hit) return hit
+      const page = await doc.getPage(index + 1) // pdf.js es 1-based
+      const base = page.getViewport({ scale: 1 })
+      const scale = Math.min(2, maxWidth / base.width) // tope 2x: nítido sin gigante
+      const viewport = page.getViewport({ scale })
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(1, Math.ceil(viewport.width))
+      canvas.height = Math.max(1, Math.ceil(viewport.height))
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Canvas no disponible')
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      await page.render({ canvas, canvasContext: ctx, viewport }).promise
+      const out = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', 0.85),
+      )
+      if (!out) throw new Error('No se pudo renderizar la página')
+      const url = URL.createObjectURL(out)
+      cache.set(index, url)
+      return url
+    },
+    dispose: () => {
+      for (const u of cache.values()) URL.revokeObjectURL(u)
+      void task.destroy().catch(() => {})
+    },
+  }
+}
+
 /** Revoca y olvida la miniatura cacheada de una página (al borrarla). */
 export function forgetThumb(key: string): void {
   const url = thumbCache.get(key)

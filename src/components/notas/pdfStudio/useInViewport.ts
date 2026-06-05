@@ -8,9 +8,10 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
  * selección quedan intactos. `rootMargin` precarga un poco antes de entrar en
  * pantalla. Sin `IntersectionObserver` (entornos viejos) asume visible.
  */
-export function useInViewport<T extends Element>(
+export function useInViewport<T extends Element>({
+  root = null,
   rootMargin = '400px',
-): [RefObject<T>, boolean] {
+}: { root?: Element | null; rootMargin?: string } = {}): [RefObject<T>, boolean] {
   const ref = useRef<T>(null)
   const [inView, setInView] = useState(false)
   useEffect(() => {
@@ -28,10 +29,10 @@ export function useInViewport<T extends Element>(
           io.disconnect()
         }
       },
-      { rootMargin },
+      { root, rootMargin },
     )
     io.observe(el)
     return () => io.disconnect()
-  }, [inView, rootMargin])
+  }, [inView, root, rootMargin])
   return [ref, inView]
 }

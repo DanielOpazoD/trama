@@ -40,10 +40,12 @@ import { downloadBlob } from '../../../lib/downloadBlob'
 import { useCurrentClientUserId } from '../../../lib/clientIdentity'
 import { BulkBar } from './BulkBar'
 import { PageGrid } from './PageGrid'
+import { PdfPreviewModal } from './PdfPreviewModal'
 import { PdfTextEditor } from './PdfTextEditor'
 import { usePageSelection } from './usePageSelection'
 import {
   DownloadIcon,
+  EyeIcon,
   FilePdfIcon,
   PrinterIcon,
   RedoIcon,
@@ -88,6 +90,7 @@ export function PdfStudioView() {
   const [busy, setBusy] = useState(false) // importando
   const [saving, setSaving] = useState(false)
   const [printing, setPrinting] = useState(false)
+  const [previewing, setPreviewing] = useState(false)
   const [textPage, setTextPage] = useState<number | null>(null)
   // Selección múltiple de páginas (por ID → sobrevive reordenar/borrar).
   const {
@@ -444,6 +447,18 @@ export function PdfStudioView() {
               {printing ? 'Imprimiendo…' : 'Imprimir'}
             </button>
           )}
+          {!empty && (
+            <button
+              type="button"
+              onClick={() => setPreviewing(true)}
+              disabled={saving || busy}
+              title="Ver el PDF final antes de descargar"
+              className="btn-ghost text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
+            >
+              <EyeIcon size={13} />
+              Vista previa
+            </button>
+          )}
           <button
             type="button"
             onClick={save}
@@ -527,6 +542,18 @@ export function PdfStudioView() {
 
       {textPage !== null && (
         <PdfTextEditor doc={doc} pageIndex={textPage} onClose={closeTextEditor} />
+      )}
+
+      {previewing && (
+        <PdfPreviewModal
+          doc={doc}
+          onClose={() => setPreviewing(false)}
+          onDownload={(blob) => {
+            downloadBlob(blob, exportName())
+            toast.show({ message: 'PDF guardado.', tone: 'success' })
+            setPreviewing(false)
+          }}
+        />
       )}
     </section>
   )
