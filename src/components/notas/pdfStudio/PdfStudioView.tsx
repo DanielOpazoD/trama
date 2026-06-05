@@ -42,13 +42,13 @@ import { printPdfBlob } from '../../../lib/pdfStudio/printPdf'
 import { clearDraft, loadDraft, saveDraft } from '../../../lib/pdfStudio/persistence'
 import { downloadBlob } from '../../../lib/downloadBlob'
 import { useCurrentClientUserId } from '../../../lib/clientIdentity'
+import { BulkBar } from './BulkBar'
 import { PdfTextEditor } from './PdfTextEditor'
 import { OverflowMenu, OverflowMenuItem } from '../../OverflowMenu'
 import {
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  CloseIcon,
   DownloadIcon,
   DuplicateIcon,
   FileIcon,
@@ -69,10 +69,6 @@ const ACCEPT = 'application/pdf,image/*'
 /** Botón de control de la miniatura (reordenar/rotar/texto). */
 const ctrlBtn =
   'touch-target inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-ink-400 transition-colors'
-
-/** Botón de la barra de acciones en lote (selección múltiple). */
-const barBtn =
-  'touch-target inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption text-ink-600 hover:text-ink-900 hover:bg-paper-50/80 disabled:opacity-40 disabled:hover:bg-transparent transition-colors'
 
 function isPdf(file: File): boolean {
   return file.type === 'application/pdf' || /\.pdf$/i.test(file.name)
@@ -517,78 +513,18 @@ export function PdfStudioView() {
       </div>
 
       {selectedCount > 0 && (
-        <div
-          role="toolbar"
-          aria-label="Acciones para las páginas seleccionadas"
-          className="flex flex-wrap items-center gap-x-0.5 gap-y-2 rounded-lg border px-2 py-1.5"
-          style={{
-            borderColor: 'var(--accent-primary-soft)',
-            backgroundColor: 'var(--accent-primary-soft)',
-          }}
-        >
-          <span
-            className="text-caption font-medium px-1.5 tabular-nums"
-            style={{ color: ACCENT }}
-          >
-            {selectedCount} {selectedCount === 1 ? 'seleccionada' : 'seleccionadas'}
-          </span>
-          <span className="mx-1 h-4 w-px bg-ink-200/60" aria-hidden />
-          <button type="button" onClick={() => bulkRotate(-1)} className={barBtn}>
-            <span className="inline-flex" style={{ transform: 'scaleX(-1)' }}>
-              <RotateIcon size={14} />
-            </span>
-            Rotar
-          </button>
-          <button type="button" onClick={() => bulkRotate(1)} className={barBtn}>
-            <RotateIcon size={14} /> Rotar
-          </button>
-          <button type="button" onClick={bulkDuplicate} className={barBtn}>
-            <DuplicateIcon size={14} /> Duplicar
-          </button>
-          <button
-            type="button"
-            onClick={extractSelected}
-            disabled={saving || busy}
-            title="Exportar las páginas seleccionadas como un PDF nuevo"
-            className={barBtn}
-          >
-            <DownloadIcon size={14} /> Extraer
-          </button>
-          <button
-            type="button"
-            onClick={() => printPages(selectedIndices)}
-            disabled={saving || busy || printing}
-            title="Imprimir las páginas seleccionadas"
-            className={barBtn}
-          >
-            <PrinterIcon size={14} /> Imprimir
-          </button>
-          <button
-            type="button"
-            onClick={bulkDelete}
-            className={`${barBtn} hover:!text-[color:var(--accent-clay)] hover:!bg-[color:var(--accent-clay-soft)]`}
-          >
-            <TrashIcon size={14} /> Eliminar
-          </button>
-          <span className="flex-1" />
-          <button
-            type="button"
-            onClick={() => setSelectedIds(new Set(doc.pages.map((p) => p.id)))}
-            disabled={selectedCount === total}
-            className={barBtn}
-          >
-            <CheckIcon size={14} /> Todo
-          </button>
-          <button
-            type="button"
-            onClick={clearSelection}
-            aria-label="Deseleccionar todo"
-            title="Deseleccionar (Esc)"
-            className={`${barBtn} !px-1.5`}
-          >
-            <CloseIcon size={14} />
-          </button>
-        </div>
+        <BulkBar
+          count={selectedCount}
+          total={total}
+          busy={saving || busy || printing}
+          onRotate={bulkRotate}
+          onDuplicate={bulkDuplicate}
+          onExtract={extractSelected}
+          onPrint={() => printPages(selectedIndices)}
+          onDelete={bulkDelete}
+          onSelectAll={() => setSelectedIds(new Set(doc.pages.map((p) => p.id)))}
+          onClear={clearSelection}
+        />
       )}
 
       {empty ? (

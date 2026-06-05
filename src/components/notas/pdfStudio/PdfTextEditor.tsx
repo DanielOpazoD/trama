@@ -1,22 +1,11 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  baselineDropEm,
   getSource,
-  isTextAnnotation,
   makeHighlightAnnotation,
   makeTextAnnotation,
   pageThumbKey,
   previewFontFamily,
-  TEXT_LINE_HEIGHT,
   type Annotation,
   type HighlightAnnotation,
   type PdfDoc,
@@ -55,8 +44,8 @@ import {
   UndoIcon,
   ZoomIcon,
 } from '../../Icons'
-
-const ACCENT = 'var(--accent-primary)'
+import { AnnotationLayer } from './AnnotationLayer'
+import { ACCENT, HIGHLIGHT_OPACITY, type Tool } from './editorStyle'
 
 const FONTS: { key: PdfFontKind; label: string }[] = [
   { key: 'sans', label: 'Sans' },
@@ -79,28 +68,8 @@ const ZOOM_MIN = 0.5
 const ZOOM_MAX = 4
 const ZOOM_STEP = 0.25
 
-// Padding TRANSPARENTE alrededor del texto para agrandar el blanco clickeable (el
-// bug "a veces no se selecciona"): el margen negativo lo compensa, así el texto NO
-// se mueve respecto de la salida.
-const HIT_X = 6
-const HIT_Y = 4
-
-// Opacidad por defecto del resaltado (translúcido, como un marcador).
-const HIGHLIGHT_OPACITY = 0.35
-// Herramientas del editor (modos). Crece con lápiz/formas/firma.
-type Tool = 'select' | 'highlight'
-
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
-
-/** `#rrggbb` + alfa → `rgba(...)`, para pintar el relleno translúcido del
- *  resaltado sin atenuar el contorno de selección (que `opacity` sí atenuaría). */
-function hexToRgba(hex: string, alpha: number): string {
-  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim())
-  if (!m) return hex
-  const n = parseInt(m[1]!, 16)
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
-}
 
 const segGroup =
   'inline-flex shrink-0 items-center gap-0.5 p-0.5 bg-paper-100/60 rounded-md border border-ink-100/50'
@@ -177,70 +146,6 @@ function Stepper({
         +
       </button>
     </div>
-  )
-}
-
-/**
- * Edición INLINE del texto SOBRE el cuadro (no en la barra). `contentEditable` NO
- * controlado: setea el contenido inicial por ref al montar y lo lee al confirmar,
- * así el cursor no salta. Enter/blur confirman; Escape cancela. Detiene la
- * propagación para no disparar los atajos globales (Supr/flechas) ni el drag.
- */
-function EditableBox({
-  initial,
-  style,
-  onCommit,
-  onCancel,
-}: {
-  initial: string
-  style: CSSProperties
-  onCommit: (text: string) => void
-  onCancel: () => void
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    el.textContent = initial
-    el.focus()
-    const range = document.createRange()
-    range.selectNodeContents(el)
-    const sel = window.getSelection()
-    sel?.removeAllRanges()
-    sel?.addRange(range)
-    // sólo al montar (es no controlado a propósito)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-  const commit = () => onCommit((ref.current?.textContent ?? '').replace(/\r?\n/g, ' '))
-  return (
-    <div
-      ref={ref}
-      contentEditable
-      suppressContentEditableWarning
-      role="textbox"
-      aria-label="Editar texto"
-      spellCheck={false}
-      onBlur={commit}
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => {
-        e.stopPropagation()
-        if (e.key === 'Enter') {
-          e.preventDefault()
-          commit()
-        } else if (e.key === 'Escape') {
-          e.preventDefault()
-          onCancel()
-        }
-      }}
-      style={{
-        ...style,
-        cursor: 'text',
-        userSelect: 'text',
-        outline: `1.5px solid ${ACCENT}`,
-        outlineOffset: 0,
-      }}
-    />
   )
 }
 
@@ -912,142 +817,26 @@ export function PdfTextEditor({
                   className="absolute inset-0 w-full h-full object-contain select-none"
                   draggable={false}
                 />
-                {annotations.filter(isTextAnnotation).map((a) => {
-                  const sz = a.sizeRatio * layout.innerH
-                  // Estilo compartido por el cuadro display y el editable. El padding
-                  // transparente (compensado por el margen negativo) agranda el blanco
-                  // clickeable SIN mover el texto; el pivote de rotación queda en la
-                  // baseline-izquierda real del texto.
-                  const boxStyle: CSSProperties = {
-                    position: 'absolute',
-                    left: `${a.xRatio * 100}%`,
-                    top: `${a.yRatio * 100}%`,
-                    margin: `-${HIT_Y}px -${HIT_X}px`,
-                    padding: `${HIT_Y}px ${HIT_X}px`,
-                    fontFamily: previewFontFamily(a.font),
-                    fontWeight: a.bold ? 700 : 400,
-                    fontSize: `${sz}px`,
-                    lineHeight: TEXT_LINE_HEIGHT,
-                    color: a.color,
-                    opacity: a.opacity ?? 1,
-                    transform: a.rotation ? `rotate(${a.rotation}deg)` : undefined,
-                    transformOrigin: `${HIT_X}px ${HIT_Y + sz * baselineDropEm(a.font)}px`,
-                    whiteSpace: 'pre',
-                    borderRadius: 3,
-                  }
-                  if (editingId === a.id) {
-                    return (
-                      <EditableBox
-                        key={a.id}
-                        initial={a.text}
-                        style={boxStyle}
-                        onCommit={(text) => {
-                          update(a.id, { text })
-                          setEditingId(null)
-                        }}
-                        onCancel={() => setEditingId(null)}
-                      />
-                    )
-                  }
-                  return (
-                    <div
-                      key={a.id}
-                      onPointerDown={(e) => startDrag(e, a)}
-                      // Click selecciona ESTE (no llega al fondo, que deselecciona).
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedId(a.id)
-                      }}
-                      // Doble clic edita el texto INLINE, sobre el cuadro.
-                      onDoubleClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedId(a.id)
-                        setEditingId(a.id)
-                      }}
-                      title="Doble clic para editar · arrastra para mover"
-                      style={{
-                        ...boxStyle,
-                        cursor: 'move',
-                        userSelect: 'none',
-                        touchAction: 'none',
-                        // Fuera de "seleccionar" no captura (deja dibujar encima).
-                        pointerEvents: tool === 'select' ? undefined : 'none',
-                        outline:
-                          selectedId === a.id
-                            ? `1.5px solid ${ACCENT}`
-                            : '1.5px solid transparent',
-                        outlineOffset: 0,
-                        transition: 'outline-color 120ms ease',
-                      }}
-                    >
-                      {a.text || ' '}
-                    </div>
-                  )
-                })}
-
-                {/* Resaltados (rectángulos translúcidos) */}
-                {annotations
-                  .filter((a) => a.kind === 'highlight')
-                  .map((a) => (
-                    <div
-                      key={a.id}
-                      onPointerDown={
-                        tool === 'select' ? (e) => startDrag(e, a) : undefined
-                      }
-                      onClick={
-                        tool === 'select'
-                          ? (e) => {
-                              e.stopPropagation()
-                              setSelectedId(a.id)
-                            }
-                          : undefined
-                      }
-                      title="Arrastra para mover"
-                      style={{
-                        position: 'absolute',
-                        left: `${a.xRatio * 100}%`,
-                        top: `${a.yRatio * 100}%`,
-                        width: `${a.wRatio * 100}%`,
-                        height: `${a.hRatio * 100}%`,
-                        backgroundColor: hexToRgba(
-                          a.color,
-                          a.opacity ?? HIGHLIGHT_OPACITY,
-                        ),
-                        borderRadius: 2,
-                        cursor: 'move',
-                        touchAction: 'none',
-                        pointerEvents: tool === 'select' ? undefined : 'none',
-                        outline: selectedId === a.id ? `1.5px solid ${ACCENT}` : 'none',
-                        outlineOffset: 1,
-                      }}
-                    />
-                  ))}
-
-                {/* Preview en vivo del resaltado que se está dibujando */}
-                {drawing &&
-                  (() => {
-                    const r = rectFromPoints(
-                      drawing.x0,
-                      drawing.y0,
-                      drawing.x1,
-                      drawing.y1,
-                    )
-                    return (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: r.x,
-                          top: r.y,
-                          width: r.w,
-                          height: r.h,
-                          backgroundColor: hexToRgba(style.color, HIGHLIGHT_OPACITY),
-                          border: `1px dashed ${ACCENT}`,
-                          borderRadius: 2,
-                          pointerEvents: 'none',
-                        }}
-                      />
-                    )
-                  })()}
+                <AnnotationLayer
+                  annotations={annotations}
+                  innerH={layout.innerH}
+                  tool={tool}
+                  selectedId={selectedId}
+                  editingId={editingId}
+                  drawing={drawing}
+                  drawColor={style.color}
+                  onStartDrag={startDrag}
+                  onSelect={setSelectedId}
+                  onStartEdit={(id) => {
+                    setSelectedId(id)
+                    setEditingId(id)
+                  }}
+                  onCommitText={(id, text) => {
+                    update(id, { text })
+                    setEditingId(null)
+                  }}
+                  onCancelEdit={() => setEditingId(null)}
+                />
               </div>
             </div>
           ) : (
