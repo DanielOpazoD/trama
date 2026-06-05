@@ -24,7 +24,7 @@ import {
   undo,
   type History,
 } from '../../../lib/pdfStudio/history'
-import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
+import { renderPageBitmap } from '../../../lib/pdfStudio/pdfRender'
 import { ChevronLeftIcon, ChevronRightIcon, RedoIcon, UndoIcon } from '../../Icons'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { AnnotationLayer } from './AnnotationLayer'
@@ -98,6 +98,37 @@ export function PdfTextEditor({
   const pageRef = useRef(currentPage)
   pageRef.current = currentPage
 
+  // Layout de la página en su orientación FINAL (rotada = como saldrá), ajustada al
+  // área medida. Caja EXTERIOR = bounding box rotado; INTERIOR = nativa que se rota
+  // dentro. Las anotaciones viven en la interior (ratios nativos) → rotan con ella.
+  const layout = useMemo(
+    () =>
+      bg && area
+        ? fitPageLayout(bg.w, bg.h, area.w, area.h, page?.rotationQuarters ?? 0)
+        : null,
+    [bg, page, area],
+  )
+
+  // Ancho objetivo del bitmap del fondo = px REALES de pantalla (ancho mostrado ·
+  // zoom · DPR), redondeado a pasos de 256 px para no re-rendear por cada píxel. Es
+  // lo que mantiene la página NÍTIDA al hacer zoom (en vez de estirar un raster
+  // chico). `max(1, zoom)` → nunca por debajo del tamaño de ajuste.
+  const renderWidth = useMemo(() => {
+    const dpr = window.devicePixelRatio || 1
+    const fitW = layout?.innerW ?? (area ? Math.max(80, area.w - 32) : 800)
+    return Math.ceil((fitW * Math.max(1, zoom) * dpr) / 256) * 256
+  }, [layout, area, zoom])
+
+  // Qué página/ancho está renderizado como fondo (para SÓLO subir de resolución al
+  // hacer zoom) + el object URL a revocar (lo posee el editor, no el cache).
+  const renderedRef = useRef<{ key: string; width: number; url: string } | null>(null)
+  useEffect(
+    () => () => {
+      if (renderedRef.current) URL.revokeObjectURL(renderedRef.current.url)
+    },
+    [],
+  )
+
   /** Edición DISCRETA (agregar/borrar/estilo/flechas/…): empuja una entrada de
    *  historial. Estable (lee la página actual del ref → sirve desde efectos viejos). */
   const setAnnotations = useCallback(
@@ -129,30 +160,58 @@ export function PdfTextEditor({
     [doc],
   )
 
-  // Fondo: render grande de la página (pdf.js) o la imagen directa. Re-corre al
-  // navegar (cambia `page`); `bg` se pone null en `goToPage` para mostrar carga.
+  // Fondo IMAGEN: la imagen entera ES la página → object URL directo (full-res, sin
+  // rasterizar). Re-corre al navegar; se revoca al salir.
   useEffect(() => {
-    if (!page || !source) return
+    if (!page || !source || page.kind !== 'image') return
     let alive = true
-    let createdUrl: string | null = null
-    const measure = (url: string) => {
-      const im = new Image()
-      im.onload = () => alive && setBg({ url, w: im.naturalWidth, h: im.naturalHeight })
-      im.src = url
-    }
-    if (page.kind === 'image') {
-      createdUrl = URL.createObjectURL(source.file)
-      measure(createdUrl)
-    } else {
-      renderPageThumb(source.file, page.pageIndex, `${pageThumbKey(page)}:lg`, 1400)
-        .then((url) => alive && measure(url))
-        .catch(() => {})
-    }
+    const url = URL.createObjectURL(source.file)
+    const im = new Image()
+    im.onload = () => alive && setBg({ url, w: im.naturalWidth, h: im.naturalHeight })
+    im.src = url
     return () => {
       alive = false
-      if (createdUrl) URL.revokeObjectURL(createdUrl)
+      URL.revokeObjectURL(url)
     }
   }, [page, source])
+
+  // Fondo PDF: render NÍTIDO con pdf.js al ancho que pide el zoom (`renderWidth`).
+  // Navegar (cambia la página) renderiza ya y muestra "cargando" (`goToPage` puso
+  // `bg=null`); subir el zoom re-renderiza más grande con un pequeño debounce y SIN
+  // parpadeo (el bitmap viejo se mantiene hasta que carga el nuevo, y se revoca
+  // 500 ms después). Bajar el zoom NO re-renderiza (se reusa el bitmap más grande).
+  useEffect(() => {
+    if (!page || !source || page.kind !== 'pdf') return
+    let alive = true
+    const key = pageThumbKey(page)
+    const samePage = renderedRef.current?.key === key
+    if (samePage && renderedRef.current!.width >= renderWidth) return
+    const run = () => {
+      renderPageBitmap(source.file, page.pageIndex, renderWidth)
+        .then(({ url, w, h }) => {
+          if (!alive) {
+            URL.revokeObjectURL(url)
+            return
+          }
+          const prev = renderedRef.current
+          renderedRef.current = { key, width: renderWidth, url }
+          setBg({ url, w, h })
+          if (prev) window.setTimeout(() => URL.revokeObjectURL(prev.url), 500)
+        })
+        .catch(() => {})
+    }
+    if (samePage) {
+      const t = window.setTimeout(run, 200)
+      return () => {
+        alive = false
+        window.clearTimeout(t)
+      }
+    }
+    run()
+    return () => {
+      alive = false
+    }
+  }, [page, source, renderWidth])
 
   // Mide el área disponible para la página (para que ocupe todo el espacio).
   useEffect(() => {
@@ -230,17 +289,6 @@ export function PdfTextEditor({
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [setAnnotations])
-
-  // Layout de la página en su orientación FINAL (rotada = como saldrá), ajustada al
-  // área medida. Caja EXTERIOR = bounding box rotado; INTERIOR = nativa que se rota
-  // dentro. Las anotaciones viven en la interior (ratios nativos) → rotan con ella.
-  const layout = useMemo(
-    () =>
-      bg && area
-        ? fitPageLayout(bg.w, bg.h, area.w, area.h, page?.rotationQuarters ?? 0)
-        : null,
-    [bg, page, area],
-  )
 
   // Sólo el TEXTO es editable por la barra (los otros tipos llegan en fases
   // siguientes). `selected` se estrecha a TextAnnotation.
