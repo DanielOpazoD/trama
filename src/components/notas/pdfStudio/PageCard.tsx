@@ -7,6 +7,7 @@ import {
   type PdfPage,
 } from '../../../lib/pdfStudio/model'
 import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
+import { useInViewport } from './useInViewport'
 import { OverflowMenu, OverflowMenuItem } from '../../OverflowMenu'
 import {
   CheckIcon,
@@ -75,9 +76,12 @@ export function PageCard({
   const source = getSource(doc, page.sourceId)
   const [thumb, setThumb] = useState<string | null>(null)
   const [nat, setNat] = useState<{ w: number; h: number } | null>(null)
+  // Render PEREZOSO de la miniatura: sólo cuando la card se acerca al viewport,
+  // para no disparar cientos de renders de pdf.js a la vez en documentos grandes.
+  const [viewRef, inView] = useInViewport<HTMLLIElement>()
 
   useEffect(() => {
-    if (!source) return
+    if (!source || !inView) return
     let alive = true
     if (page.kind === 'image') {
       // La imagen entera es la página: object URL directo (lo posee la card).
@@ -98,7 +102,7 @@ export function PageCard({
     return () => {
       alive = false
     }
-  }, [page, source])
+  }, [page, source, inView])
 
   if (!source) return null
   const KindIcon = page.kind === 'pdf' ? FilePdfIcon : FileIcon
@@ -116,6 +120,7 @@ export function PageCard({
 
   return (
     <li
+      ref={viewRef}
       draggable
       tabIndex={0}
       aria-label={`Página ${index + 1} de ${total}. Flechas izquierda/derecha para reordenar.`}
@@ -175,9 +180,12 @@ export function PageCard({
             draggable={false}
           />
         ) : (
+          // Sólo gira mientras renderiza (en viewport); fuera, anillo estático.
           <span
-            aria-label="cargando"
-            className="h-6 w-6 rounded-full border-2 border-ink-100 border-t-ink-300 animate-spin"
+            aria-label={inView ? 'cargando' : undefined}
+            className={`h-6 w-6 rounded-full border-2 border-ink-100 ${
+              inView ? 'border-t-ink-300 animate-spin' : ''
+            }`}
           />
         )}
         <button
