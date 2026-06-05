@@ -6,13 +6,21 @@
  * no está disponible (modo privado, cuota), el editor sigue funcionando sin
  * autoguardado. Excluido del coverage: API de navegador, se verifica en el navegador.
  */
-import type { PdfDoc } from './model'
+import type { ImageAsset, PdfDoc } from './model'
 
 const DB_NAME = 'trama-pdf-studio'
 const STORE = 'drafts'
 const VERSION = 1
 
-type DraftRecord = { doc: PdfDoc; savedAt: number; v: number }
+type DraftRecord = {
+  doc: PdfDoc
+  /** Biblioteca de imágenes del workspace (compat: borradores viejos no la tienen). */
+  library?: ImageAsset[]
+  savedAt: number
+  v: number
+}
+
+export type Draft = { doc: PdfDoc; library: ImageAsset[] }
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -26,13 +34,17 @@ function openDb(): Promise<IDBDatabase> {
   })
 }
 
-/** Autoguarda el documento de trabajo del usuario. Best-effort. */
-export async function saveDraft(userKey: string, doc: PdfDoc): Promise<void> {
+/** Autoguarda el documento + la biblioteca del usuario. Best-effort. */
+export async function saveDraft(
+  userKey: string,
+  doc: PdfDoc,
+  library: ImageAsset[],
+): Promise<void> {
   try {
     const db = await openDb()
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite')
-      const rec: DraftRecord = { doc, savedAt: Date.now(), v: VERSION }
+      const rec: DraftRecord = { doc, library, savedAt: Date.now(), v: VERSION }
       tx.objectStore(STORE).put(rec, userKey)
       tx.oncomplete = () => resolve()
       tx.onerror = () => reject(tx.error)
@@ -44,8 +56,8 @@ export async function saveDraft(userKey: string, doc: PdfDoc): Promise<void> {
   }
 }
 
-/** Devuelve el borrador guardado del usuario, o null si no hay / falla. */
-export async function loadDraft(userKey: string): Promise<PdfDoc | null> {
+/** Devuelve el borrador (documento + biblioteca) del usuario, o null si no hay / falla. */
+export async function loadDraft(userKey: string): Promise<Draft | null> {
   try {
     const db = await openDb()
     const rec = await new Promise<DraftRecord | undefined>((resolve, reject) => {
@@ -56,7 +68,7 @@ export async function loadDraft(userKey: string): Promise<PdfDoc | null> {
     })
     db.close()
     if (!rec || rec.v !== VERSION) return null
-    return rec.doc
+    return { doc: rec.doc, library: rec.library ?? [] }
   } catch {
     return null
   }

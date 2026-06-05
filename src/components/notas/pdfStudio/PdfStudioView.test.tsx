@@ -64,12 +64,32 @@ describe('<PdfStudioView />', () => {
   })
 
   it('restaura el borrador autoguardado al montar', async () => {
-    mocks.loadDraft.mockResolvedValue(addPdfSource(emptyDoc(), pdfFile(), 2))
+    mocks.loadDraft.mockResolvedValue({
+      doc: addPdfSource(emptyDoc(), pdfFile(), 2),
+      library: [],
+    })
     renderWithProviders(<PdfStudioView />)
     // Sin subir nada, las páginas del borrador aparecen.
     expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
     expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
     expect(mocks.loadDraft).toHaveBeenCalled()
+  })
+
+  it('subir una imagen la guarda en la biblioteca lateral', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    const img = new File(['x'], 'foto.png', { type: 'image/png' })
+    await user.upload(fileInput(), img)
+    // La imagen entra como página y además aparece el panel de biblioteca.
+    expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Ocultar la biblioteca de imágenes/i }),
+    ).toBeInTheDocument()
+    // Y se puede agregar otra vez al documento desde la biblioteca.
+    await user.click(
+      screen.getByRole('button', { name: /Agregar esta imagen al documento/i }),
+    )
+    expect(await screen.findByAltText('Página 2')).toBeInTheDocument()
   })
 
   it('importa un PDF como páginas, borra y guarda', async () => {

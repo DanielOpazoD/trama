@@ -17,6 +17,7 @@ import {
   rotatePages,
   subsetDoc,
   type Annotation,
+  type ImageAsset,
   type PdfDoc,
 } from '../../../lib/pdfStudio/model'
 import {
@@ -38,6 +39,7 @@ import { clearDraft, loadDraft, saveDraft } from '../../../lib/pdfStudio/persist
 import { downloadBlob } from '../../../lib/downloadBlob'
 import { useCurrentClientUserId } from '../../../lib/clientIdentity'
 import { BulkBar } from './BulkBar'
+import { ImageLibraryPanel } from './ImageLibraryPanel'
 import { PageGrid } from './PageGrid'
 import { PdfPreviewModal } from './PdfPreviewModal'
 import { PdfTextEditor } from './PdfTextEditor'
@@ -103,6 +105,10 @@ export function PdfStudioView() {
   // null → clave 'anon'). `loaded` evita autoguardar antes de restaurar.
   const userKey = useCurrentClientUserId() ?? 'anon'
   const [loaded, setLoaded] = useState(false)
+  // Biblioteca de imágenes subidas (workspace reutilizable, aparte del documento).
+  // Arranca colapsada (riel finito); se abre al subir la primera imagen.
+  const [library, setLibrary] = useState<ImageAsset[]>([])
+  const [libraryCollapsed, setLibraryCollapsed] = useState(true)
   // `toast` cambia de referencia al mostrarse uno (el contexto lleva el actual);
   // se accede por ref para que el efecto de carga NO se re-dispare en loop.
   const toastRef = useRef(toast)
@@ -123,13 +129,15 @@ export function PdfStudioView() {
   // `reseedIds` continúa el contador de ids para no colisionar tras recargar.
   useEffect(() => {
     let alive = true
-    void loadDraft(userKey).then((loadedDoc) => {
+    void loadDraft(userKey).then((draft) => {
       if (!alive) return
-      if (loadedDoc && loadedDoc.pages.length > 0) {
+      if (draft && (draft.doc.pages.length > 0 || draft.library.length > 0)) {
         // Compat: anotaciones de borradores viejos (sin `kind`) → texto.
-        const restored = normalizeDoc(loadedDoc)
+        const restored = normalizeDoc(draft.doc)
         reseedIds(restored)
         setHistory(initHistory(restored))
+        setLibrary(draft.library)
+        if (draft.library.length > 0) setLibraryCollapsed(false)
         toastRef.current.show({
           message: 'Borrador del editor restaurado.',
           tone: 'success',
@@ -142,12 +150,12 @@ export function PdfStudioView() {
     }
   }, [userKey])
 
-  // Autoguardado debounced del documento de trabajo (tras restaurar).
+  // Autoguardado debounced del documento + la biblioteca (tras restaurar).
   useEffect(() => {
     if (!loaded) return
-    const t = window.setTimeout(() => void saveDraft(userKey, doc), 600)
+    const t = window.setTimeout(() => void saveDraft(userKey, doc, library), 600)
     return () => window.clearTimeout(t)
-  }, [doc, loaded, userKey])
+  }, [doc, library, loaded, userKey])
 
   // Atajos: ⌘/Ctrl+Z deshace, ⌘/Ctrl+Shift+Z rehace (salvo en inputs o con el
   // editor de texto abierto, que tiene su propio estado).
@@ -177,6 +185,7 @@ export function PdfStudioView() {
       try {
         let next = doc
         const failed: string[] = []
+        const newAssets: ImageAsset[] = []
         for (const file of files) {
           try {
             if (isPdf(file)) {
@@ -184,6 +193,8 @@ export function PdfStudioView() {
               next = addPdfSource(next, file, count)
             } else if (isImage(file)) {
               next = addImageSource(next, file)
+              // Las imágenes subidas quedan además en la biblioteca reutilizable.
+              newAssets.push({ id: crypto.randomUUID(), file })
             } else {
               failed.push(file.name)
             }
@@ -192,6 +203,10 @@ export function PdfStudioView() {
           }
         }
         commit(next)
+        if (newAssets.length > 0) {
+          setLibrary((lib) => [...lib, ...newAssets])
+          setLibraryCollapsed(false)
+        }
         if (failed.length > 0) {
           toast.show({
             message: `No se pudo leer: ${failed.join(', ')} (¿PDF cifrado o formato no soportado?).`,
@@ -282,6 +297,18 @@ export function PdfStudioView() {
     setTextPage(null)
   }
 
+  // ── Biblioteca de imágenes ───────────────────────────────────────────────
+  /** Agrega una imagen de la biblioteca como una página nueva del documento. */
+  function addLibraryToDoc(asset: ImageAsset) {
+    commit((d) => addImageSource(d, asset.file))
+  }
+  function removeFromLibrary(id: string) {
+    setLibrary((lib) => lib.filter((a) => a.id !== id))
+  }
+  function downloadLibrary(asset: ImageAsset) {
+    downloadBlob(asset.file, asset.file.name || 'imagen')
+  }
+
   // El documento a EXPORTAR: si hay hojas marcadas (tick), sólo esas; si no, todas.
   const exportDoc = selectedIndices.length ? subsetDoc(doc, selectedIndices) : doc
 
@@ -315,6 +342,55 @@ export function PdfStudioView() {
   const empty = total === 0
   const undoable = canUndo(history)
   const redoable = canRedo(history)
+  // El panel de biblioteca aparece cuando hay imágenes subidas.
+  const showLibrary = library.length > 0
+
+  const dropzone = (
+    <button
+      type="button"
+      onClick={() => fileInputRef.current?.click()}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={onDropFiles}
+      className="group w-full rounded-2xl border border-dashed border-ink-200 bg-paper-50/40 px-6 py-16 flex flex-col items-center justify-center gap-4 text-center transition-colors hover:border-ink-300 hover:bg-paper-50/70"
+    >
+      <span
+        className="inline-flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-105"
+        style={{ backgroundColor: 'var(--accent-primary-soft)', color: ACCENT }}
+      >
+        <FilePdfIcon size={26} />
+      </span>
+      <span className="flex flex-col gap-1">
+        <span className="text-body font-medium text-ink-700">
+          Arrastra PDFs o imágenes aquí
+        </span>
+        <span className="text-caption text-ink-400">o haz clic para elegir archivos</span>
+      </span>
+      <span className="flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-400">
+        {['PDF', 'JPG', 'PNG'].map((t) => (
+          <span key={t} className="rounded bg-ink-100/60 px-1.5 py-0.5">
+            {t}
+          </span>
+        ))}
+      </span>
+    </button>
+  )
+
+  const mainPane = empty ? (
+    dropzone
+  ) : (
+    <PageGrid
+      doc={doc}
+      selectedIds={selectedIds}
+      onToggleSelect={toggleSelect}
+      onReorder={reorder}
+      onNudge={nudge}
+      onRotate={rotate}
+      onDuplicate={duplicateOne}
+      onDelete={removePage}
+      onOpenText={setTextPage}
+      onDropFiles={onDropFiles}
+    />
+  )
 
   return (
     <section className="space-y-5">
@@ -432,49 +508,20 @@ export function PdfStudioView() {
         />
       )}
 
-      {empty ? (
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={onDropFiles}
-          className="group w-full rounded-2xl border border-dashed border-ink-200 bg-paper-50/40 px-6 py-16 flex flex-col items-center justify-center gap-4 text-center transition-colors hover:border-ink-300 hover:bg-paper-50/70"
-        >
-          <span
-            className="inline-flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-105"
-            style={{ backgroundColor: 'var(--accent-primary-soft)', color: ACCENT }}
-          >
-            <FilePdfIcon size={26} />
-          </span>
-          <span className="flex flex-col gap-1">
-            <span className="text-body font-medium text-ink-700">
-              Arrastra PDFs o imágenes aquí
-            </span>
-            <span className="text-caption text-ink-400">
-              o haz clic para elegir archivos
-            </span>
-          </span>
-          <span className="flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-400">
-            {['PDF', 'JPG', 'PNG'].map((t) => (
-              <span key={t} className="rounded bg-ink-100/60 px-1.5 py-0.5">
-                {t}
-              </span>
-            ))}
-          </span>
-        </button>
+      {showLibrary ? (
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">{mainPane}</div>
+          <ImageLibraryPanel
+            library={library}
+            collapsed={libraryCollapsed}
+            onToggleCollapsed={() => setLibraryCollapsed((c) => !c)}
+            onAddToDoc={addLibraryToDoc}
+            onRemove={removeFromLibrary}
+            onDownload={downloadLibrary}
+          />
+        </div>
       ) : (
-        <PageGrid
-          doc={doc}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
-          onReorder={reorder}
-          onNudge={nudge}
-          onRotate={rotate}
-          onDuplicate={duplicateOne}
-          onDelete={removePage}
-          onOpenText={setTextPage}
-          onDropFiles={onDropFiles}
-        />
+        mainPane
       )}
 
       {textPage !== null && (
