@@ -3,9 +3,25 @@
  * anotaciones y edición inline). Viven aparte para que los subcomponentes los
  * compartan sin crear ciclos de importación con `PdfTextEditor`.
  */
+import { type TextAnnotation } from '../../../lib/pdfStudio/model'
 
 /** Color de acento del editor (selección, contornos, swatches activos). */
 export const ACCENT = 'var(--accent-primary)'
+
+/** Estilo "activo" de la barra: edita la anotación seleccionada o, si no hay,
+ *  define el estilo de la PRÓXIMA. Color/opacidad valen para texto y resaltado;
+ *  fuente/tamaño/negrita/rotación son sólo de texto. */
+export type TextStyle = Pick<
+  TextAnnotation,
+  'font' | 'sizeRatio' | 'bold' | 'color' | 'opacity' | 'rotation'
+>
+
+/** Acota `n` al rango `[lo, hi]`. */
+export const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
+
+/** Botón cuadrado de control (−/+, flechas de página, deshacer/rehacer). */
+export const stepBtn =
+  'h-6 w-6 inline-flex items-center justify-center rounded text-ink-500 hover:text-ink-800 hover:bg-paper-50 disabled:opacity-30 transition-colors'
 
 // Padding TRANSPARENTE alrededor del texto para agrandar el blanco clickeable (el
 // bug "a veces no se selecciona"): el margen negativo lo compensa, así el texto NO
