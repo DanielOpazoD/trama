@@ -487,7 +487,7 @@ export function PdfTextEditor({
       aria-modal="true"
       aria-label={`Texto sobre la página ${currentPage + 1}`}
       onClick={() => onClose(null)}
-      className="fixed inset-0 z-[60] flex items-stretch justify-center bg-ink-900/40 backdrop-blur-sm"
+      className="pdf-studio fixed inset-0 z-[60] flex items-stretch justify-center bg-ink-900/40 backdrop-blur-sm"
     >
       <div
         ref={dialogRef}

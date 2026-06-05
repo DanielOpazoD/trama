@@ -124,7 +124,7 @@ export function PdfPreviewModal({
       aria-modal="true"
       aria-label="Vista previa del PDF ensamblado"
       onClick={onClose}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-ink-900/40 backdrop-blur-sm"
+      className="pdf-studio fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-ink-900/40 backdrop-blur-sm"
     >
       <div
         ref={dialogRef}
