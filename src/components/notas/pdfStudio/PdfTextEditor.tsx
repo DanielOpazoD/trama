@@ -92,6 +92,11 @@ export function PdfTextEditor({
   // Atrapa el foco dentro del modal (Tab no se escapa) y lo restaura al cerrar.
   const dialogRef = useRef<HTMLDivElement>(null)
   useFocusTrap(dialogRef, true)
+  // Enfoca el CONTENEDOR (tabindex -1) al abrir, no un botón → así no aparece el
+  // anillo azul de `:focus-visible` (externo, con offset) sobre un control al abrir.
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
   // Refs para que los efectos montados una vez vean el estado actual sin re-suscribir.
   const selectedRef = useRef<string | null>(null)
   selectedRef.current = selectedId
@@ -482,12 +487,13 @@ export function PdfTextEditor({
       aria-modal="true"
       aria-label={`Texto sobre la página ${currentPage + 1}`}
       onClick={() => onClose(null)}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-ink-900/40 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex items-stretch justify-center bg-ink-900/40 backdrop-blur-sm"
     >
       <div
         ref={dialogRef}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-6xl h-[95vh] overflow-hidden rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col"
+        className="w-full max-w-6xl h-full overflow-hidden border-x border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col focus:outline-none"
       >
         {/* Cabecera compacta (una línea): navegación de páginas + acciones */}
         <header className="flex items-center justify-between gap-3 px-3 py-1.5 border-b border-ink-100/70 shrink-0">

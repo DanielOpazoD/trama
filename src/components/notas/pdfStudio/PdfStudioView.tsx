@@ -35,6 +35,7 @@ import {
   getPdfPageCount,
 } from '../../../lib/pdfStudio/pdfRender'
 import { assemble } from '../../../lib/pdfStudio/assemble'
+import { printPdfBlob } from '../../../lib/pdfStudio/printPdf'
 import { clearDraft, loadDraft, saveDraft } from '../../../lib/pdfStudio/persistence'
 import { downloadBlob } from '../../../lib/downloadBlob'
 import { useCurrentClientUserId } from '../../../lib/clientIdentity'
@@ -312,25 +313,25 @@ export function PdfStudioView() {
   // El documento a EXPORTAR: si hay hojas marcadas (tick), sólo esas; si no, todas.
   const exportDoc = selectedIndices.length ? subsetDoc(doc, selectedIndices) : doc
 
+  // "Guardar PDF" abre el diálogo de impresión del navegador (guardar como PDF a
+  // disco o imprimir), no descarga directo: ensambla y manda el PDF a `printPdfBlob`.
   async function save() {
     if (!canExport(doc) || saving) return
     setSaving(true)
     try {
       const { blob, skipped } = await assemble(exportDoc)
-      downloadBlob(blob, exportName())
+      printPdfBlob(blob)
       if (skipped.length > 0) {
         toast.show({
-          message: `PDF guardado, pero se saltearon ${skipped.length} archivo(s): ${skipped
+          message: `Se abrió la impresión, pero se saltearon ${skipped.length} archivo(s): ${skipped
             .map((s) => s.name)
             .join(', ')}.`,
           tone: 'error',
         })
-      } else {
-        toast.show({ message: 'PDF guardado.', tone: 'success' })
       }
     } catch (err) {
       toast.show({
-        message: err instanceof Error ? err.message : 'No se pudo guardar el PDF.',
+        message: err instanceof Error ? err.message : 'No se pudo preparar el PDF.',
         tone: 'error',
       })
     } finally {
@@ -473,8 +474,8 @@ export function PdfStudioView() {
             disabled={empty || saving || busy}
             title={
               selectedCount > 0
-                ? 'Guardar solo las hojas seleccionadas como un PDF'
-                : 'Guardar todas las hojas como un PDF'
+                ? 'Abrir la impresión para guardar/imprimir las hojas seleccionadas'
+                : 'Abrir la impresión para guardar/imprimir todas las hojas'
             }
             className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
           >
