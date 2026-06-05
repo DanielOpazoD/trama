@@ -55,7 +55,6 @@ export default defineConfig({
         'src/lib/pdfStudio/pdfRender.ts',
         'src/lib/pdfStudio/assemble.ts',
         'src/lib/pdfStudio/persistence.ts',
-        'src/lib/pdfStudio/printPdf.ts',
         'src/lib/downloadBlob.ts',
         'src/components/notas/pdfStudio/**',
       ],

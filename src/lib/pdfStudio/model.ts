@@ -82,6 +82,13 @@ export type PdfDoc = {
   pages: PdfPage[]
 }
 
+/**
+ * Imagen guardada en la BIBLIOTECA (workspace, no parte del documento exportado):
+ * las imágenes que el usuario sube quedan en una lista reutilizable, aparte de la
+ * grilla de páginas. Se persiste junto al borrador, no dentro del `PdfDoc`.
+ */
+export type ImageAsset = { id: string; file: File }
+
 // Contador monótono para ids opacos (mismo patrón que `layerSeq` del editor de
 // imágenes). No afecta la pureza de las transformaciones del documento.
 let seq = 0
