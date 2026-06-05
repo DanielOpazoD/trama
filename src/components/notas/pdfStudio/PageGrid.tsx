@@ -1,0 +1,81 @@
+import { useState, type DragEvent } from 'react'
+import { type PdfDoc } from '../../../lib/pdfStudio/model'
+import { PageCard } from './PageCard'
+
+/**
+ * Grilla de miniaturas reordenables. Es dueña del estado VISUAL del arrastre
+ * (qué card se arrastra / sobre cuál está) y traduce el drop a `onReorder`; el
+ * resto de las acciones por página suben al contenedor con el índice. Las
+ * mutaciones del documento y la selección viven en `PdfStudioView`.
+ */
+export function PageGrid({
+  doc,
+  selectedIds,
+  onToggleSelect,
+  onReorder,
+  onNudge,
+  onRotate,
+  onDuplicate,
+  onPrint,
+  onDelete,
+  onOpenText,
+  onDropFiles,
+}: {
+  doc: PdfDoc
+  selectedIds: Set<string>
+  onToggleSelect: (index: number, shift: boolean) => void
+  onReorder: (from: number, to: number) => void
+  onNudge: (index: number, delta: -1 | 1) => void
+  onRotate: (index: number, delta: -1 | 1) => void
+  onDuplicate: (index: number) => void
+  onPrint: (index: number) => void
+  onDelete: (index: number) => void
+  onOpenText: (index: number) => void
+  onDropFiles: (e: DragEvent) => void
+}) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const total = doc.pages.length
+
+  const endDrag = () => {
+    setDragIndex(null)
+    setDragOverIndex(null)
+  }
+
+  return (
+    <ul
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={onDropFiles}
+      className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5"
+    >
+      {doc.pages.map((page, index) => (
+        <PageCard
+          key={page.id}
+          doc={doc}
+          page={page}
+          index={index}
+          total={total}
+          selected={selectedIds.has(page.id)}
+          dragging={dragIndex === index}
+          isDropTarget={
+            dragIndex !== null && dragOverIndex === index && dragIndex !== index
+          }
+          onToggleSelect={(shift) => onToggleSelect(index, shift)}
+          onDragStart={() => setDragIndex(index)}
+          onDragEnterCard={() => setDragOverIndex(index)}
+          onDragEnd={endDrag}
+          onDropOn={() => {
+            if (dragIndex !== null) onReorder(dragIndex, index)
+            endDrag()
+          }}
+          onNudge={onNudge}
+          onRotate={(delta) => onRotate(index, delta)}
+          onDuplicate={() => onDuplicate(index)}
+          onPrint={() => onPrint(index)}
+          onDelete={onDelete}
+          onOpenText={() => onOpenText(index)}
+        />
+      ))}
+    </ul>
+  )
+}
