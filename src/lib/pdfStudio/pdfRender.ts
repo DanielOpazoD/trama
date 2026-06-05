@@ -146,6 +146,49 @@ export async function openPdfPreview(blob: Blob, maxWidth = 760): Promise<PdfPre
   }
 }
 
+// Tope del ancho del bitmap del editor (px). Es un BALANCE: más grande = más
+// nítido al zoom, pero el render de pdf.js corre en el HILO PRINCIPAL y un canvas
+// grande de una página PESADA (p. ej. con varias fotos embebidas) lo traba. 1536 px
+// ≈ lo que pide el zoom default (150 %) en pantallas retina (dpr 2) → nítido ahí y
+// ~2.5× la resolución vieja, sin congelar. La nitidez perfecta a zoom extremo en
+// páginas foto-pesadas pediría render fuera del hilo (OffscreenCanvas) o por tiles.
+const MAX_BITMAP_WIDTH = 1536
+
+/**
+ * Renderiza una página de PDF a un bitmap NÍTIDO de ~`targetWidth` px (px reales de
+ * pantalla = ancho mostrado · zoom · devicePixelRatio) para el FONDO del editor. A
+ * diferencia de `renderPageThumb` (mini, con tope de escala 1 → sólo achica), acá
+ * se UPSCALEA a la resolución pedida y se usa JPEG de alta calidad → al hacer zoom
+ * no se ve pixelado. No usa el cache de miniaturas (el ancho varía con el zoom): el
+ * llamador POSEE el object URL devuelto y debe revocarlo.
+ */
+export async function renderPageBitmap(
+  file: File,
+  pageIndex: number,
+  targetWidth: number,
+): Promise<{ url: string; w: number; h: number }> {
+  const doc = await getDoc(file)
+  const page = await doc.getPage(pageIndex + 1) // pdf.js es 1-based
+  const base = page.getViewport({ scale: 1 })
+  const want = Math.min(MAX_BITMAP_WIDTH, Math.max(1, targetWidth))
+  const viewport = page.getViewport({ scale: want / base.width })
+
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.ceil(viewport.width))
+  canvas.height = Math.max(1, Math.ceil(viewport.height))
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas no disponible')
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  await page.render({ canvas, canvasContext: ctx, viewport }).promise
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, 'image/jpeg', 0.92),
+  )
+  if (!blob) throw new Error('No se pudo renderizar la página')
+  return { url: URL.createObjectURL(blob), w: canvas.width, h: canvas.height }
+}
+
 /** Revoca y olvida la miniatura cacheada de una página (al borrarla). */
 export function forgetThumb(key: string): void {
   const url = thumbCache.get(key)

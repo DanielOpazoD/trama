@@ -8,6 +8,7 @@ import { renderWithProviders } from '../../../test-utils'
 const mocks = vi.hoisted(() => ({
   getPdfPageCount: vi.fn(),
   renderPageThumb: vi.fn(),
+  renderPageBitmap: vi.fn(),
   forgetThumb: vi.fn(),
   disposePdfStudio: vi.fn(),
   assemble: vi.fn(),
@@ -20,6 +21,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
   getPdfPageCount: mocks.getPdfPageCount,
   renderPageThumb: mocks.renderPageThumb,
+  renderPageBitmap: mocks.renderPageBitmap,
   forgetThumb: mocks.forgetThumb,
   disposePdfStudio: mocks.disposePdfStudio,
 }))
@@ -46,6 +48,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mocks.getPdfPageCount.mockResolvedValue(2)
   mocks.renderPageThumb.mockResolvedValue('blob:thumb')
+  mocks.renderPageBitmap.mockResolvedValue({ url: 'blob:bg', w: 1000, h: 1400 })
   mocks.assemble.mockResolvedValue({
     blob: new Blob(['pdf'], { type: 'application/pdf' }),
     skipped: [],
