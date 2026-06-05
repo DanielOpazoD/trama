@@ -28,6 +28,15 @@ import {
   rectFromPoints,
   screenDeltaToPage,
 } from '../../../lib/pdfStudio/editorGeometry'
+import {
+  canRedo,
+  canUndo,
+  initHistory,
+  pushHistory,
+  redo,
+  undo,
+  type History,
+} from '../../../lib/pdfStudio/history'
 import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
 import { LoadingHint } from '../../LoadingHint'
 import {
@@ -39,9 +48,11 @@ import {
   HighlighterIcon,
   OpacityIcon,
   PlusIcon,
+  RedoIcon,
   RotateIcon,
   TextSizeIcon,
   TrashIcon,
+  UndoIcon,
   ZoomIcon,
 } from '../../Icons'
 
@@ -252,9 +263,14 @@ export function PdfTextEditor({
 }) {
   const total = doc.pages.length
   const [currentPage, setCurrentPage] = useState(pageIndex)
-  // Anotaciones EDITADAS por página (las que no se tocan siguen las del doc). Así
-  // se puede navegar y editar varias páginas y confirmar todo junto.
-  const [edited, setEdited] = useState<Record<number, Annotation[]>>({})
+  // Anotaciones EDITADAS por página (las no tocadas siguen las del doc), con
+  // HISTORIAL propio → undo/redo DENTRO del modal. `edited` = presente.
+  const [history, setHistory] = useState<History<Record<number, Annotation[]>>>(() =>
+    initHistory({}),
+  )
+  const edited = history.present
+  const editedRef = useRef(edited)
+  editedRef.current = edited
 
   const page = doc.pages[currentPage]
   const source = page ? getSource(doc, page.sourceId) : undefined
@@ -283,12 +299,33 @@ export function PdfTextEditor({
   const pageRef = useRef(currentPage)
   pageRef.current = currentPage
 
-  /** Actualiza las anotaciones de la página VISIBLE (en el mapa de editadas).
-   *  Estable: lee la página actual del ref, así sirve desde efectos viejos. */
+  /** Edición DISCRETA (agregar/borrar/estilo/flechas/…): empuja una entrada de
+   *  historial. Estable (lee la página actual del ref → sirve desde efectos viejos). */
   const setAnnotations = useCallback(
     (fn: (list: Annotation[]) => Annotation[]) => {
       const i = pageRef.current
-      setEdited((e) => ({ ...e, [i]: fn(e[i] ?? doc.pages[i]?.annotations ?? []) }))
+      setHistory((h) =>
+        pushHistory(h, {
+          ...h.present,
+          [i]: fn(h.present[i] ?? doc.pages[i]?.annotations ?? []),
+        }),
+      )
+    },
+    [doc],
+  )
+
+  /** Edición EN VIVO (durante un arrastre): reemplaza el presente SIN crear una
+   *  entrada de historial (el arrastre entero = un solo undo, ver `startDrag`). */
+  const editLive = useCallback(
+    (fn: (list: Annotation[]) => Annotation[]) => {
+      const i = pageRef.current
+      setHistory((h) => ({
+        ...h,
+        present: {
+          ...h.present,
+          [i]: fn(h.present[i] ?? doc.pages[i]?.annotations ?? []),
+        },
+      }))
     },
     [doc],
   )
@@ -341,6 +378,26 @@ export function PdfTextEditor({
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
+
+  // Undo/redo DENTRO del modal (⌘Z / ⌘⇧Z) sobre el historial de anotaciones —
+  // salvo en inputs / contentEditable (ahí ⌘Z es el undo nativo del texto).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return
+      const el = e.target as HTMLElement | null
+      if (
+        el &&
+        (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+      )
+        return
+      e.preventDefault()
+      setSelectedId(null)
+      setEditingId(null)
+      setHistory((h) => (e.shiftKey ? redo(h) : undo(h)))
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   // Atajos sobre el texto seleccionado (fuera de inputs): Supr borra, flechas
   // mueven fino.
@@ -494,6 +551,10 @@ export function PdfTextEditor({
     const startY = e.clientY
     const ox = a.xRatio
     const oy = a.yRatio
+    // Snapshot ANTES del arrastre: al soltar se empuja UNA entrada de historial
+    // (no una por cada `pointermove`).
+    const before = editedRef.current
+    let moved = false
     const move = (ev: PointerEvent) => {
       const { dx: pdx, dy: pdy } = screenDeltaToPage(
         ev.clientX - startX,
@@ -502,13 +563,16 @@ export function PdfTextEditor({
       )
       const xRatio = clamp01(ox + pdx / dw)
       const yRatio = clamp01(oy + pdy / dh)
-      setAnnotations((list) =>
-        list.map((x) => (x.id === a.id ? { ...x, xRatio, yRatio } : x)),
-      )
+      moved = true
+      editLive((list) => list.map((x) => (x.id === a.id ? { ...x, xRatio, yRatio } : x)))
     }
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
+      // Cierra el arrastre como UN paso de historial: el `before` va al pasado y
+      // el presente (final) queda; un solo undo lo revierte entero.
+      if (moved)
+        setHistory((h) => ({ past: [...h.past, before], present: h.present, future: [] }))
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
@@ -625,6 +689,36 @@ export function PdfTextEditor({
             </button>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <div className="inline-flex items-center rounded-md border border-ink-100 bg-paper-50 overflow-hidden divide-x divide-ink-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedId(null)
+                  setEditingId(null)
+                  setHistory(undo)
+                }}
+                disabled={!canUndo(history)}
+                aria-label="Deshacer"
+                title="Deshacer (⌘Z)"
+                className={stepBtn}
+              >
+                <UndoIcon size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedId(null)
+                  setEditingId(null)
+                  setHistory(redo)
+                }}
+                disabled={!canRedo(history)}
+                aria-label="Rehacer"
+                title="Rehacer (⌘⇧Z)"
+                className={stepBtn}
+              >
+                <RedoIcon size={15} />
+              </button>
+            </div>
             <button onClick={() => onClose(null)} className="btn-ghost text-xs">
               Cancelar
             </button>
