@@ -540,6 +540,15 @@ html.dark .paper-grain::before {
 .ornament-accent { color: var(--accent-primary); opacity: 0.7; }
 
 @layer utilities {
+  /* En el editor de PDF (sección + sus modales, marcados con `.pdf-studio`) el
+     acento es SALVIA, no el azul de --accent-primary. El anillo de foco global
+     usa --accent-primary y "choca" con la sección; acá se reescribe a salvia para
+     no meter bordes azules. Va en @layer utilities → gana sobre el `:focus-visible`
+     de @layer base. */
+  .pdf-studio :focus-visible {
+    outline-color: var(--accent-sage);
+  }
+
   @keyframes node-spring-in {
     0%   { opacity: 0; transform: scale(0.4); }
     60%  { opacity: 1; transform: scale(1.08); }

@@ -455,7 +455,7 @@ export function PdfStudioView() {
   )
 
   return (
-    <section className="space-y-5">
+    <section className="pdf-studio space-y-5">
       <header>
         <p className="section-eyebrow text-ink-400">editor de pdf</p>
       </header>
