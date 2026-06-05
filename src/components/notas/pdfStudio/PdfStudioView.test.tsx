@@ -13,7 +13,6 @@ const mocks = vi.hoisted(() => ({
   disposePdfStudio: vi.fn(),
   assemble: vi.fn(),
   downloadBlob: vi.fn(),
-  printPdfBlob: vi.fn(),
   loadDraft: vi.fn(),
   saveDraft: vi.fn(),
   clearDraft: vi.fn(),
@@ -26,7 +25,6 @@ vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
   disposePdfStudio: mocks.disposePdfStudio,
 }))
 vi.mock('../../../lib/pdfStudio/assemble', () => ({ assemble: mocks.assemble }))
-vi.mock('../../../lib/pdfStudio/printPdf', () => ({ printPdfBlob: mocks.printPdfBlob }))
 vi.mock('../../../lib/downloadBlob', () => ({ downloadBlob: mocks.downloadBlob }))
 vi.mock('../../../lib/pdfStudio/persistence', () => ({
   loadDraft: mocks.loadDraft,
@@ -192,14 +190,12 @@ describe('<PdfStudioView />', () => {
     await screen.findByAltText('Página 1')
     expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /Seleccionar página 1/i }))
-    await user.click(screen.getByRole('button', { name: /Seleccionar página 2/i }))
+    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Incluir la hoja 2 en el PDF/i }))
 
     // Aparece la barra de lote con el conteo.
-    expect(
-      screen.getByRole('toolbar', { name: /páginas seleccionadas/i }),
-    ).toBeInTheDocument()
-    expect(screen.getByText(/2 seleccionadas/)).toBeInTheDocument()
+    expect(screen.getByRole('toolbar', { name: /hojas marcadas/i })).toBeInTheDocument()
+    expect(screen.getByText(/2 marcadas/)).toBeInTheDocument()
 
     // Eliminar en lote → documento vacío.
     await user.click(screen.getByRole('button', { name: 'Eliminar' }))
@@ -213,58 +209,25 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    await user.click(screen.getByRole('button', { name: /Seleccionar página 1/i }))
+    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
     await user.click(screen.getByRole('button', { name: 'Duplicar' }))
     expect(screen.getByText(/3 páginas/)).toBeInTheDocument()
   })
 
-  it('extrae las páginas seleccionadas a un PDF nuevo (ensambla + descarga)', async () => {
+  it('Guardar PDF refleja la marca y exporta sólo las hojas marcadas', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    await user.click(screen.getByRole('button', { name: /Seleccionar página 1/i }))
-    await user.click(screen.getByRole('button', { name: 'Extraer' }))
+    // Sin marcar: guarda todo.
+    expect(screen.getByRole('button', { name: /^Guardar PDF$/i })).toBeInTheDocument()
+
+    // Marco una hoja → el botón muestra el conteo y exporta el subconjunto.
+    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Guardar PDF \(1\)/i }))
     expect(mocks.assemble).toHaveBeenCalledTimes(1)
     expect(mocks.downloadBlob).toHaveBeenCalledTimes(1)
-  })
-
-  it('imprime una página desde el menú ⋯ (ensambla + imprime, sin descargar)', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<PdfStudioView />)
-    await user.upload(fileInput(), pdfFile())
-    await screen.findByAltText('Página 1')
-
-    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
-    await user.click(await screen.findByRole('menuitem', { name: /Imprimir página/i }))
-    expect(mocks.assemble).toHaveBeenCalledTimes(1)
-    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
-    expect(mocks.downloadBlob).not.toHaveBeenCalled()
-  })
-
-  it('imprime todo el documento desde la barra superior', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<PdfStudioView />)
-    await user.upload(fileInput(), pdfFile())
-    await screen.findByAltText('Página 1')
-
-    await user.click(screen.getByRole('button', { name: /^Imprimir$/i }))
-    expect(mocks.assemble).toHaveBeenCalledTimes(1)
-    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
-  })
-
-  it('imprime las páginas seleccionadas desde la barra de lote', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<PdfStudioView />)
-    await user.upload(fileInput(), pdfFile())
-    await screen.findByAltText('Página 1')
-
-    await user.click(screen.getByRole('button', { name: /Seleccionar página 1/i }))
-    const bar = screen.getByRole('toolbar', { name: /páginas seleccionadas/i })
-    await user.click(within(bar).getByRole('button', { name: 'Imprimir' }))
-    expect(mocks.assemble).toHaveBeenCalledTimes(1)
-    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
   })
 
   it('doble clic en la miniatura abre el modal de ver/editar', async () => {

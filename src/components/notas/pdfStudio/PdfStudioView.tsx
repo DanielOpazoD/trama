@@ -34,7 +34,6 @@ import {
   getPdfPageCount,
 } from '../../../lib/pdfStudio/pdfRender'
 import { assemble } from '../../../lib/pdfStudio/assemble'
-import { printPdfBlob } from '../../../lib/pdfStudio/printPdf'
 import { clearDraft, loadDraft, saveDraft } from '../../../lib/pdfStudio/persistence'
 import { downloadBlob } from '../../../lib/downloadBlob'
 import { useCurrentClientUserId } from '../../../lib/clientIdentity'
@@ -47,7 +46,6 @@ import {
   DownloadIcon,
   EyeIcon,
   FilePdfIcon,
-  PrinterIcon,
   RedoIcon,
   UndoIcon,
   UploadIcon,
@@ -89,7 +87,6 @@ export function PdfStudioView() {
   const doc = history.present
   const [busy, setBusy] = useState(false) // importando
   const [saving, setSaving] = useState(false)
-  const [printing, setPrinting] = useState(false)
   const [previewing, setPreviewing] = useState(false)
   const [textPage, setTextPage] = useState<number | null>(null)
   // Selección múltiple de páginas (por ID → sobrevive reordenar/borrar).
@@ -269,30 +266,6 @@ export function PdfStudioView() {
     clearSelection()
   }
 
-  async function extractSelected() {
-    if (selectedCount === 0 || saving || busy) return
-    setSaving(true)
-    try {
-      const { blob, skipped } = await assemble(subsetDoc(doc, selectedIndices))
-      downloadBlob(blob, exportName('extracto'))
-      toast.show({
-        message: skipped.length
-          ? `Extraído, pero se saltearon ${skipped.length} archivo(s): ${skipped
-              .map((s) => s.name)
-              .join(', ')}.`
-          : `${selectedCount} página(s) extraídas a un PDF nuevo.`,
-        tone: skipped.length ? 'error' : 'success',
-      })
-    } catch (err) {
-      toast.show({
-        message: err instanceof Error ? err.message : 'No se pudo extraer.',
-        tone: 'error',
-      })
-    } finally {
-      setSaving(false)
-    }
-  }
-
   /** Empieza un documento nuevo (descarta el borrador; es deshacible). */
   function newDoc() {
     commit(emptyDoc())
@@ -309,11 +282,14 @@ export function PdfStudioView() {
     setTextPage(null)
   }
 
+  // El documento a EXPORTAR: si hay hojas marcadas (tick), sólo esas; si no, todas.
+  const exportDoc = selectedIndices.length ? subsetDoc(doc, selectedIndices) : doc
+
   async function save() {
     if (!canExport(doc) || saving) return
     setSaving(true)
     try {
-      const { blob, skipped } = await assemble(doc)
+      const { blob, skipped } = await assemble(exportDoc)
       downloadBlob(blob, exportName())
       if (skipped.length > 0) {
         toast.show({
@@ -335,37 +311,6 @@ export function PdfStudioView() {
     }
   }
 
-  /**
-   * Imprime el documento (o un subconjunto de páginas) abriéndolo en un iframe
-   * oculto. `indices` undefined → todo; si no, sólo esas páginas (en orden de
-   * documento). El navegador muestra su propio diálogo/preview de impresión.
-   */
-  async function printPages(indices?: number[]) {
-    if (printing || saving || busy) return
-    const target = indices ? subsetDoc(doc, indices) : doc
-    if (target.pages.length === 0) return
-    setPrinting(true)
-    try {
-      const { blob, skipped } = await assemble(target)
-      printPdfBlob(blob)
-      if (skipped.length > 0) {
-        toast.show({
-          message: `Enviado a imprimir, pero se saltearon ${skipped.length} archivo(s): ${skipped
-            .map((s) => s.name)
-            .join(', ')}.`,
-          tone: 'error',
-        })
-      }
-    } catch (err) {
-      toast.show({
-        message: err instanceof Error ? err.message : 'No se pudo imprimir.',
-        tone: 'error',
-      })
-    } finally {
-      setPrinting(false)
-    }
-  }
-
   const total = doc.pages.length
   const empty = total === 0
   const undoable = canUndo(history)
@@ -373,13 +318,8 @@ export function PdfStudioView() {
 
   return (
     <section className="space-y-5">
-      <header className="space-y-1">
+      <header>
         <p className="section-eyebrow text-ink-400">editor de pdf</p>
-        <p className="text-caption text-ink-500 max-w-prose">
-          Combina PDFs e imágenes en un documento. Reordena, rota, agrega texto o elimina
-          páginas, y guárdalo como un PDF nuevo. Todo ocurre en tu navegador: nada se
-          sube.
-        </p>
       </header>
 
       {/* Barra de acciones: izquierda (agregar · historial) — derecha (contador · guardar) */}
@@ -438,21 +378,13 @@ export function PdfStudioView() {
           {!empty && (
             <button
               type="button"
-              onClick={() => printPages()}
-              disabled={saving || busy || printing}
-              title="Imprimir todo el documento"
-              className="btn-ghost text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
-            >
-              <PrinterIcon size={13} />
-              {printing ? 'Imprimiendo…' : 'Imprimir'}
-            </button>
-          )}
-          {!empty && (
-            <button
-              type="button"
               onClick={() => setPreviewing(true)}
               disabled={saving || busy}
-              title="Ver el PDF final antes de descargar"
+              title={
+                selectedCount > 0
+                  ? 'Ver las hojas seleccionadas antes de guardar'
+                  : 'Ver el PDF final antes de guardar'
+              }
               className="btn-ghost text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
             >
               <EyeIcon size={13} />
@@ -463,10 +395,19 @@ export function PdfStudioView() {
             type="button"
             onClick={save}
             disabled={empty || saving || busy}
+            title={
+              selectedCount > 0
+                ? 'Guardar solo las hojas seleccionadas como un PDF'
+                : 'Guardar todas las hojas como un PDF'
+            }
             className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
           >
             <DownloadIcon size={13} />
-            {saving ? 'Guardando…' : 'Guardar PDF'}
+            {saving
+              ? 'Guardando…'
+              : selectedCount > 0
+                ? `Guardar PDF (${selectedCount})`
+                : 'Guardar PDF'}
           </button>
         </div>
         <input
@@ -483,11 +424,8 @@ export function PdfStudioView() {
         <BulkBar
           count={selectedCount}
           total={total}
-          busy={saving || busy || printing}
           onRotate={bulkRotate}
           onDuplicate={bulkDuplicate}
-          onExtract={extractSelected}
-          onPrint={() => printPages(selectedIndices)}
           onDelete={bulkDelete}
           onSelectAll={selectAll}
           onClear={clearSelection}
@@ -533,7 +471,6 @@ export function PdfStudioView() {
           onNudge={nudge}
           onRotate={rotate}
           onDuplicate={duplicateOne}
-          onPrint={(index) => printPages([index])}
           onDelete={removePage}
           onOpenText={setTextPage}
           onDropFiles={onDropFiles}
@@ -546,7 +483,7 @@ export function PdfStudioView() {
 
       {previewing && (
         <PdfPreviewModal
-          doc={doc}
+          doc={exportDoc}
           onClose={() => setPreviewing(false)}
           onDownload={(blob) => {
             downloadBlob(blob, exportName())

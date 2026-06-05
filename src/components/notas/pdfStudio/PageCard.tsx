@@ -16,7 +16,6 @@ import {
   DuplicateIcon,
   FileIcon,
   FilePdfIcon,
-  PrinterIcon,
   RotateIcon,
   TextIcon,
   TrashIcon,
@@ -50,7 +49,6 @@ export function PageCard({
   onNudge,
   onRotate,
   onDuplicate,
-  onPrint,
   onDelete,
   onOpenText,
 }: {
@@ -69,7 +67,6 @@ export function PageCard({
   onNudge: (index: number, delta: -1 | 1) => void
   onRotate: (delta: -1 | 1) => void
   onDuplicate: () => void
-  onPrint: () => void
   onDelete: (index: number) => void
   onOpenText: () => void
 }) {
@@ -188,6 +185,18 @@ export function PageCard({
             }`}
           />
         )}
+        {/* Info (no interactiva): tipo + nº de hoja (+ texto si tiene). */}
+        <span className="absolute top-1 left-1 inline-flex items-center gap-1 rounded bg-ink-900/60 px-1.5 py-0.5 text-micro tabular-nums text-paper-50">
+          <KindIcon size={10} />
+          {index + 1}
+          {pageHasAnnotations(page) && (
+            <span className="inline-flex items-center gap-0.5 pl-0.5" title="Tiene texto">
+              <TextIcon size={9} />
+              {page.annotations.length}
+            </span>
+          )}
+        </span>
+        {/* Tick: incluir/quitar esta hoja del PDF a guardar. */}
         <button
           type="button"
           draggable={false}
@@ -199,28 +208,23 @@ export function PageCard({
           aria-pressed={selected}
           aria-label={
             selected
-              ? `Deseleccionar página ${index + 1}`
-              : `Seleccionar página ${index + 1}`
+              ? `Quitar la hoja ${index + 1} del PDF`
+              : `Incluir la hoja ${index + 1} en el PDF`
           }
-          title={selected ? 'Deseleccionar' : 'Seleccionar (Shift: rango)'}
-          className={`absolute top-1 left-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-micro tabular-nums text-paper-50 transition-colors ${
-            selected ? '' : 'bg-ink-900/65 hover:bg-ink-900/85'
+          title={
+            selected
+              ? 'Quitar del PDF (Shift: rango)'
+              : 'Incluir en el PDF (Shift: rango)'
+          }
+          className={`absolute top-1 right-1 inline-flex h-5 w-5 items-center justify-center rounded border transition-colors ${
+            selected
+              ? 'text-paper-50'
+              : 'bg-paper-50/85 border-ink-300 text-transparent hover:border-ink-400'
           }`}
-          style={selected ? { backgroundColor: ACCENT } : undefined}
+          style={selected ? { backgroundColor: ACCENT, borderColor: ACCENT } : undefined}
         >
-          {selected ? <CheckIcon size={10} /> : <KindIcon size={10} />}
-          {index + 1}
+          <CheckIcon size={12} />
         </button>
-        {pageHasAnnotations(page) && (
-          <span
-            className="absolute top-1 right-1 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-micro tabular-nums text-paper-50"
-            style={{ backgroundColor: ACCENT }}
-            title="Tiene texto"
-          >
-            <TextIcon size={9} />
-            {page.annotations.length}
-          </span>
-        )}
       </div>
 
       {/* Controles: reordenar · acciones */}
@@ -289,14 +293,6 @@ export function PageCard({
                 }}
               >
                 <DuplicateIcon size={13} /> Duplicar página
-              </OverflowMenuItem>
-              <OverflowMenuItem
-                onClick={() => {
-                  onPrint()
-                  close()
-                }}
-              >
-                <PrinterIcon size={13} /> Imprimir página
               </OverflowMenuItem>
               <OverflowMenuItem
                 danger
