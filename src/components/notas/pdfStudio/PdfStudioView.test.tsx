@@ -17,6 +17,9 @@ const mocks = vi.hoisted(() => ({
   loadDraft: vi.fn(),
   saveDraft: vi.fn(),
   clearDraft: vi.fn(),
+  listSavedDocs: vi.fn(),
+  putSavedDoc: vi.fn(),
+  deleteSavedDoc: vi.fn(),
 }))
 vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
   getPdfPageCount: mocks.getPdfPageCount,
@@ -32,6 +35,9 @@ vi.mock('../../../lib/pdfStudio/persistence', () => ({
   loadDraft: mocks.loadDraft,
   saveDraft: mocks.saveDraft,
   clearDraft: mocks.clearDraft,
+  listSavedDocs: mocks.listSavedDocs,
+  putSavedDoc: mocks.putSavedDoc,
+  deleteSavedDoc: mocks.deleteSavedDoc,
 }))
 
 import { PdfStudioView } from './PdfStudioView'
@@ -56,6 +62,9 @@ beforeEach(() => {
   mocks.loadDraft.mockResolvedValue(null) // sin borrador por defecto
   mocks.saveDraft.mockResolvedValue(undefined)
   mocks.clearDraft.mockResolvedValue(undefined)
+  mocks.listSavedDocs.mockResolvedValue([]) // sin guardados por defecto
+  mocks.putSavedDoc.mockResolvedValue(undefined)
+  mocks.deleteSavedDoc.mockResolvedValue(undefined)
 })
 
 describe('<PdfStudioView />', () => {
@@ -82,16 +91,33 @@ describe('<PdfStudioView />', () => {
     renderWithProviders(<PdfStudioView />)
     const img = new File(['x'], 'foto.png', { type: 'image/png' })
     await user.upload(fileInput(), img)
-    // La imagen entra como página y además aparece el panel de biblioteca.
+    // La imagen entra como página y además aparece el panel (con la biblioteca).
     expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /Ocultar la biblioteca de imágenes/i }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Ocultar el panel/i })).toBeInTheDocument()
     // Y se puede agregar otra vez al documento desde la biblioteca.
     await user.click(
       screen.getByRole('button', { name: /Agregar esta imagen al documento/i }),
     )
     expect(await screen.findByAltText('Página 2')).toBeInTheDocument()
+  })
+
+  it('guarda una creación con nombre y la lista persiste', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    // Abrir el panel y guardar la creación (sección Guardados).
+    await user.click(screen.getByRole('button', { name: /Mostrar el panel/i }))
+    await user.click(screen.getByRole('button', { name: /^Guardar$/i }))
+    const input = screen.getByPlaceholderText(/Nombre de la creación/i)
+    await user.type(input, 'Mi receta{Enter}')
+
+    expect(mocks.putSavedDoc).toHaveBeenCalledTimes(1)
+    // La creación aparece en la lista, re-abrible.
+    expect(
+      screen.getByRole('button', { name: /Abrir Mi receta para editar/i }),
+    ).toBeInTheDocument()
   })
 
   it('importa un PDF como páginas, borra y guarda', async () => {
