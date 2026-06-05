@@ -38,11 +38,16 @@ export function usePageSelection(pages: PdfPage[]): PageSelection {
 
   const toggleSelect = useCallback(
     (index: number, shift: boolean) => {
+      // Capturar el ancla ANTES de actualizar: `setSelectedIds` corre su updater
+      // de forma diferida (tras el handler), y abajo movemos el ancla a `index`;
+      // si el updater leyera `anchorRef.current` vería ya el valor nuevo y el
+      // rango colapsaría a [index, index]. Por eso lo congelamos acá.
+      const anchor = anchorRef.current
       setSelectedIds((prev) => {
         const next = new Set(prev)
-        if (shift && anchorRef.current !== null) {
-          const lo = Math.min(anchorRef.current, index)
-          const hi = Math.max(anchorRef.current, index)
+        if (shift && anchor !== null) {
+          const lo = Math.min(anchor, index)
+          const hi = Math.max(anchor, index)
           for (let i = lo; i <= hi; i++) {
             const id = pages[i]?.id
             if (id) next.add(id)
