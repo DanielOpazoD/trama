@@ -50,6 +50,13 @@ export const SearchIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+export const EyeIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+)
+
 export const ArrowRightIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
     <path d="M5 12h14M13 5l7 7-7 7" />

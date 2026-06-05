@@ -26,6 +26,7 @@ import {
 } from '../../../lib/pdfStudio/history'
 import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
 import { ChevronLeftIcon, ChevronRightIcon, RedoIcon, UndoIcon } from '../../Icons'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { AnnotationLayer } from './AnnotationLayer'
 import { EditorToolbar } from './EditorToolbar'
 import { PageCanvas } from './PageCanvas'
@@ -88,6 +89,9 @@ export function PdfTextEditor({
   const [zoom, setZoom] = useState(1.5)
   const [area, setArea] = useState<{ w: number; h: number } | null>(null)
   const areaRef = useRef<HTMLDivElement>(null)
+  // Atrapa el foco dentro del modal (Tab no se escapa) y lo restaura al cerrar.
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(dialogRef, true)
   // Refs para que los efectos montados una vez vean el estado actual sin re-suscribir.
   const selectedRef = useRef<string | null>(null)
   selectedRef.current = selectedId
@@ -433,6 +437,7 @@ export function PdfTextEditor({
       className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-ink-900/40 backdrop-blur-sm"
     >
       <div
+        ref={dialogRef}
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-6xl h-[95vh] overflow-hidden rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col"
       >
