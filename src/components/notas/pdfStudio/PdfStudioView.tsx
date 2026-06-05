@@ -36,11 +36,19 @@ import {
 } from '../../../lib/pdfStudio/pdfRender'
 import { assemble } from '../../../lib/pdfStudio/assemble'
 import { printPdfBlob } from '../../../lib/pdfStudio/printPdf'
-import { clearDraft, loadDraft, saveDraft } from '../../../lib/pdfStudio/persistence'
+import {
+  clearDraft,
+  deleteSavedDoc,
+  listSavedDocs,
+  loadDraft,
+  putSavedDoc,
+  saveDraft,
+  type SavedDoc,
+} from '../../../lib/pdfStudio/persistence'
 import { downloadBlob } from '../../../lib/downloadBlob'
 import { useCurrentClientUserId } from '../../../lib/clientIdentity'
 import { BulkBar } from './BulkBar'
-import { ImageLibraryPanel } from './ImageLibraryPanel'
+import { WorkspacePanel } from './WorkspacePanel'
 import { PageGrid } from './PageGrid'
 import { PdfPreviewModal } from './PdfPreviewModal'
 import { PdfTextEditor } from './PdfTextEditor'
@@ -109,7 +117,9 @@ export function PdfStudioView() {
   // Biblioteca de imágenes subidas (workspace reutilizable, aparte del documento).
   // Arranca colapsada (riel finito); se abre al subir la primera imagen.
   const [library, setLibrary] = useState<ImageAsset[]>([])
-  const [libraryCollapsed, setLibraryCollapsed] = useState(true)
+  // Creaciones guardadas (con nombre, perduran aparte del borrador de trabajo).
+  const [saved, setSaved] = useState<SavedDoc[]>([])
+  const [panelCollapsed, setPanelCollapsed] = useState(true)
   // `toast` cambia de referencia al mostrarse uno (el contexto lleva el actual);
   // se accede por ref para que el efecto de carga NO se re-dispare en loop.
   const toastRef = useRef(toast)
@@ -138,13 +148,19 @@ export function PdfStudioView() {
         reseedIds(restored)
         setHistory(initHistory(restored))
         setLibrary(draft.library)
-        if (draft.library.length > 0) setLibraryCollapsed(false)
+        if (draft.library.length > 0) setPanelCollapsed(false)
         toastRef.current.show({
           message: 'Borrador del editor restaurado.',
           tone: 'success',
         })
       }
       setLoaded(true)
+    })
+    // Lista de creaciones guardadas (perdura aparte del borrador).
+    void listSavedDocs(userKey).then((list) => {
+      if (!alive) return
+      setSaved(list)
+      if (list.length > 0) setPanelCollapsed(false)
     })
     return () => {
       alive = false
@@ -206,7 +222,7 @@ export function PdfStudioView() {
         commit(next)
         if (newAssets.length > 0) {
           setLibrary((lib) => [...lib, ...newAssets])
-          setLibraryCollapsed(false)
+          setPanelCollapsed(false)
         }
         if (failed.length > 0) {
           toast.show({
@@ -310,6 +326,51 @@ export function PdfStudioView() {
     downloadBlob(asset.file, asset.file.name || 'imagen')
   }
 
+  // ── Creaciones guardadas ─────────────────────────────────────────────────
+  /** Guarda el documento actual como una creación con nombre (perdura). */
+  function saveCreation(name: string) {
+    const s: SavedDoc = { id: crypto.randomUUID(), name, doc, savedAt: Date.now() }
+    setSaved((list) => [s, ...list])
+    void putSavedDoc(userKey, s)
+    toast.show({ message: `Guardado "${name}".`, tone: 'success' })
+  }
+  /** Re-abre una creación guardada en el editor (reemplaza lo que haya en pantalla). */
+  function openSaved(s: SavedDoc) {
+    if (
+      doc.pages.length > 0 &&
+      !window.confirm('¿Abrir esta creación? Se reemplazará lo que tenés en pantalla.')
+    ) {
+      return
+    }
+    const restored = normalizeDoc(s.doc)
+    reseedIds(restored)
+    setHistory(initHistory(restored))
+    clearSelection()
+  }
+  function renameSaved(id: string, name: string) {
+    setSaved((list) => {
+      const next = list.map((s) => (s.id === id ? { ...s, name } : s))
+      const target = next.find((s) => s.id === id)
+      if (target) void putSavedDoc(userKey, target)
+      return next
+    })
+  }
+  function removeSaved(id: string) {
+    setSaved((list) => list.filter((s) => s.id !== id))
+    void deleteSavedDoc(userKey, id)
+  }
+  async function downloadSaved(s: SavedDoc) {
+    try {
+      const { blob } = await assemble(s.doc)
+      downloadBlob(blob, `${s.name || 'creacion'}.pdf`)
+    } catch (err) {
+      toast.show({
+        message: err instanceof Error ? err.message : 'No se pudo descargar.',
+        tone: 'error',
+      })
+    }
+  }
+
   // El documento a EXPORTAR: si hay hojas marcadas (tick), sólo esas; si no, todas.
   const exportDoc = selectedIndices.length ? subsetDoc(doc, selectedIndices) : doc
 
@@ -343,8 +404,8 @@ export function PdfStudioView() {
   const empty = total === 0
   const undoable = canUndo(history)
   const redoable = canRedo(history)
-  // El panel de biblioteca aparece cuando hay imágenes subidas.
-  const showLibrary = library.length > 0
+  // El panel aparece cuando hay hojas (para poder guardar), imágenes o guardados.
+  const showPanel = !empty || library.length > 0 || saved.length > 0
 
   const dropzone = (
     <button
@@ -509,16 +570,23 @@ export function PdfStudioView() {
         />
       )}
 
-      {showLibrary ? (
+      {showPanel ? (
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">{mainPane}</div>
-          <ImageLibraryPanel
+          <WorkspacePanel
             library={library}
-            collapsed={libraryCollapsed}
-            onToggleCollapsed={() => setLibraryCollapsed((c) => !c)}
-            onAddToDoc={addLibraryToDoc}
-            onRemove={removeFromLibrary}
-            onDownload={downloadLibrary}
+            onAddImage={addLibraryToDoc}
+            onRemoveImage={removeFromLibrary}
+            onDownloadImage={downloadLibrary}
+            saved={saved}
+            canSave={!empty}
+            onSaveCreation={saveCreation}
+            onOpenSaved={openSaved}
+            onRenameSaved={renameSaved}
+            onDeleteSaved={removeSaved}
+            onDownloadSaved={downloadSaved}
+            collapsed={panelCollapsed}
+            onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
           />
         </div>
       ) : (
