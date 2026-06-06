@@ -39,6 +39,7 @@ import { PageCanvas } from './PageCanvas'
 import { createAnnotationFromDrawGesture } from './pdfAnnotationDrawing'
 import { resizeAnnotationFromPointerDelta } from './pdfAnnotationResize'
 import { reduceAnnotationShortcut } from './pdfAnnotationShortcuts'
+import { snapAnnotationDrag, type SnapGuide } from './pdfAnnotationSnap'
 import {
   applyEditorStylePatch,
   defaultEditorTextStyle,
@@ -141,6 +142,7 @@ export function PdfTextEditor({
     x1: number
     y1: number
   } | null>(null)
+  const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([])
   const [bg, setBg] = useState<{ url: string; w: number; h: number } | null>(null)
   // Default 150%: prioriza ver/editar la página en grande (la barra es compacta).
   const [zoom, setZoom] = useState(1.5)
@@ -473,19 +475,23 @@ export function PdfTextEditor({
 
   function startDrag(e: React.PointerEvent, a: Annotation) {
     e.stopPropagation()
-    setSelectedId(a.id)
     // px reales en pantalla del lado interior (incluye el zoom).
     const dw = (layout?.innerW ?? 1) * zoom
     const dh = (layout?.innerH ?? 1) * zoom
     const rot = layout?.rot ?? 0
     const startX = e.clientX
     const startY = e.clientY
+    const duplicateDrag = e.altKey
     // Anotación al iniciar el arrastre: mover = trasladarla desde acá (vale para
     // texto/resaltado/forma vía `translateAnnotation`).
-    const orig = a
+    const orig = duplicateDrag ? cloneAnnotation(a) : a
+    setSelectedId(orig.id)
     // Snapshot ANTES del arrastre: al soltar se empuja UNA entrada de historial
     // (no una por cada `pointermove`).
     const before = editedRef.current
+    if (duplicateDrag) {
+      editLive((list) => [...list, orig])
+    }
     let moved = false
     const move = (ev: PointerEvent) => {
       const { dx: pdx, dy: pdy } = screenDeltaToPage(
@@ -494,16 +500,34 @@ export function PdfTextEditor({
         rot,
       )
       moved = true
-      const next = translateAnnotation(orig, pdx / dw, pdy / dh)
-      editLive((list) => list.map((x) => (x.id === a.id ? next : x)))
+      const snapped = snapAnnotationDrag({
+        annotation: orig,
+        annotations: [...annotationsRef.current.filter((ann) => ann.id !== a.id), orig],
+        dxRatio: pdx / dw,
+        dyRatio: pdy / dh,
+        pageWidthPx: dw,
+        pageHeightPx: dh,
+      })
+      setSnapGuides(snapped.guides)
+      const next = translateAnnotation(orig, snapped.dxRatio, snapped.dyRatio)
+      editLive((list) =>
+        list.some((x) => x.id === orig.id)
+          ? list.map((x) => (x.id === orig.id ? next : x))
+          : [...list, next],
+      )
     }
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
+      setSnapGuides([])
       // Cierra el arrastre como UN paso de historial: el `before` va al pasado y
       // el presente (final) queda; un solo undo lo revierte entero.
       if (moved)
         setHistory((h) => ({ past: [...h.past, before], present: h.present, future: [] }))
+      else if (duplicateDrag) {
+        setSelectedId(a.id)
+        setHistory((h) => ({ ...h, present: before }))
+      }
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
@@ -764,6 +788,7 @@ export function PdfTextEditor({
             selectedId={selectedId}
             editingId={editingId}
             drawing={drawing}
+            snapGuides={snapGuides}
             drawColor={style.color}
             onStartDrag={startDrag}
             onSelect={setSelectedId}

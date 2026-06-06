@@ -167,6 +167,18 @@ describe('<AnnotationLayer />', () => {
     expect(container.querySelector('div[style*="dashed"]')).not.toBeNull()
   })
 
+  it('pinta guías de alineación durante snapping', () => {
+    const { container } = setup({
+      snapGuides: [
+        { axis: 'x', ratio: 0.5 },
+        { axis: 'y', ratio: 0.25 },
+      ],
+    })
+
+    expect(container.querySelector('[data-pdf-snap-guide="x"]')).not.toBeNull()
+    expect(container.querySelector('[data-pdf-snap-guide="y"]')).not.toBeNull()
+  })
+
   it('dibuja el preview vectorial (SVG) mientras se arrastra una forma', () => {
     const { container } = setup({
       tool: 'rect',

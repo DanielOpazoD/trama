@@ -26,6 +26,7 @@ import {
   isShapeTool,
   type Tool,
 } from './editorStyle'
+import type { SnapGuide } from './pdfAnnotationSnap'
 
 /** Rectángulo en curso del resaltado que se está dibujando (coords nativas). */
 export type DrawingRect = { x0: number; y0: number; x1: number; y1: number }
@@ -109,6 +110,7 @@ export function AnnotationLayer({
   selectedId,
   editingId,
   drawing,
+  snapGuides = [],
   drawColor,
   onStartDrag,
   onSelect,
@@ -126,6 +128,7 @@ export function AnnotationLayer({
   selectedId: string | null
   editingId: string | null
   drawing: DrawingRect | null
+  snapGuides?: SnapGuide[]
   /** Color del resaltado en curso (para el preview punteado). */
   drawColor: string
   onStartDrag: (e: ReactPointerEvent, a: Annotation) => void
@@ -242,6 +245,32 @@ export function AnnotationLayer({
 
   return (
     <>
+      {snapGuides.map((guide) => (
+        <div
+          key={`${guide.axis}-${guide.ratio}`}
+          aria-hidden="true"
+          data-pdf-snap-guide={guide.axis}
+          className="pointer-events-none absolute z-20 bg-[color:var(--accent-sage)]/70"
+          style={
+            guide.axis === 'x'
+              ? {
+                  left: `${guide.ratio * 100}%`,
+                  top: 0,
+                  width: 1,
+                  height: '100%',
+                  transform: 'translateX(-50%)',
+                }
+              : {
+                  left: 0,
+                  top: `${guide.ratio * 100}%`,
+                  width: '100%',
+                  height: 1,
+                  transform: 'translateY(-50%)',
+                }
+          }
+        />
+      ))}
+
       {annotations.filter(isTextAnnotation).map((a) => {
         const sz = a.sizeRatio * innerH
         // Estilo compartido por el cuadro display y el editable. El padding

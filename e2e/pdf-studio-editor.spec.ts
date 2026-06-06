@@ -312,6 +312,51 @@ test.describe('Imprenta · editor PDF', () => {
     expect(afterFontSize).toBeCloseTo(beforeFontSize, 1)
   })
 
+  test('permite duplicar arrastrando con Alt y muestra guías de snapping', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+
+    await page.getByRole('button', { name: 'Agregar cuadro de texto' }).click()
+    const editor = page.getByRole('textbox', { name: 'Editar texto' })
+    await expect(editor).toBeVisible()
+    await editor.fill('Texto snap')
+    await page.keyboard.press('Enter')
+
+    const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
+    const textBoxes = dialog.getByText('Texto snap', { exact: true })
+    await expect(textBoxes).toHaveCount(1)
+
+    const textBox = page.getByTitle('Doble clic para editar · arrastra para mover')
+    const textBoxBounds = await textBox.boundingBox()
+    expect(textBoxBounds).not.toBeNull()
+    if (!textBoxBounds) return
+
+    const pageImage = dialog.getByAltText('Página 1')
+    const pageBounds = await pageImage.boundingBox()
+    expect(pageBounds).not.toBeNull()
+    if (!pageBounds) return
+
+    const start = {
+      x: textBoxBounds.x + textBoxBounds.width / 2,
+      y: textBoxBounds.y + textBoxBounds.height / 2,
+    }
+    const target = {
+      x: pageBounds.x + pageBounds.width / 2,
+      y: start.y,
+    }
+
+    await page.keyboard.down('Alt')
+    await page.mouse.move(start.x, start.y)
+    await page.mouse.down()
+    await page.mouse.move(target.x, target.y, { steps: 6 })
+    await expect(dialog.locator('[data-pdf-snap-guide="x"]')).toBeVisible()
+    await page.mouse.up()
+    await page.keyboard.up('Alt')
+
+    await expect(textBoxes).toHaveCount(2)
+  })
+
   test('permite insertar y redimensionar una imagen estampada', async ({ page }) => {
     await openPdfEditor(page)
 
