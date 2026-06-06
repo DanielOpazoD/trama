@@ -30,16 +30,8 @@ import {
 } from './editorStyle'
 import type { SnapGuide } from './pdfAnnotationSnap'
 
-/** Rectángulo en curso del resaltado que se está dibujando (coords nativas). */
 export type DrawingRect = { x0: number; y0: number; x1: number; y1: number }
 
-/**
- * Capa de ANOTACIONES que se monta sobre la imagen de la página: cuadros de texto
- * (con edición inline), resaltados translúcidos y el preview en vivo del resaltado
- * que se está dibujando. Presentacional: la geometría de la página (zoom/rotación)
- * y el estado viven en `PdfTextEditor`; acá sólo se pintan las anotaciones y se
- * avisan las interacciones (seleccionar, arrastrar, editar).
- */
 export function AnnotationLayer({
   annotations,
   innerW,
@@ -93,6 +85,13 @@ export function AnnotationLayer({
       return
     }
     onSelect(id)
+  }
+  const startDragFromPointer = (e: ReactPointerEvent, annotation: Annotation) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey) {
+      e.stopPropagation()
+      return
+    }
+    onStartDrag(e, annotation)
   }
 
   return (
@@ -170,7 +169,7 @@ export function AnnotationLayer({
         return (
           <div key={a.id}>
             <div
-              onPointerDown={(e) => onStartDrag(e, a)}
+              onPointerDown={(e) => startDragFromPointer(e, a)}
               // Click selecciona ESTE (no llega al fondo, que deselecciona).
               onClick={(e) => {
                 selectFromClick(e, a.id)
@@ -215,7 +214,9 @@ export function AnnotationLayer({
         .map((a) => (
           <div key={a.id}>
             <div
-              onPointerDown={tool === 'select' ? (e) => onStartDrag(e, a) : undefined}
+              onPointerDown={
+                tool === 'select' ? (e) => startDragFromPointer(e, a) : undefined
+              }
               onClick={
                 tool === 'select'
                   ? (e) => {
@@ -258,7 +259,9 @@ export function AnnotationLayer({
             <img
               src={a.src}
               alt="Imagen estampada"
-              onPointerDown={tool === 'select' ? (e) => onStartDrag(e, a) : undefined}
+              onPointerDown={
+                tool === 'select' ? (e) => startDragFromPointer(e, a) : undefined
+              }
               onClick={
                 tool === 'select'
                   ? (e) => {
@@ -319,7 +322,7 @@ export function AnnotationLayer({
               const pe: CSSProperties['pointerEvents'] =
                 a.shape === 'rect' || a.shape === 'oval' ? 'all' : 'stroke'
               const hit = {
-                onPointerDown: (e: ReactPointerEvent) => onStartDrag(e, a),
+                onPointerDown: (e: ReactPointerEvent) => startDragFromPointer(e, a),
                 onClick: (e: ReactMouseEvent) => {
                   selectFromClick(e, a.id)
                 },

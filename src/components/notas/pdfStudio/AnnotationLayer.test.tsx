@@ -104,6 +104,9 @@ describe('<AnnotationLayer />', () => {
   it('permite sumar o quitar selección con modificador', () => {
     const { props } = setup({ selectedId: TEXT.id, selectedIds: [TEXT.id, HL.id] })
 
+    fireEvent.pointerDown(screen.getByTitle('Arrastra para mover'), { metaKey: true })
+    expect(props.onStartDrag).not.toHaveBeenCalled()
+
     fireEvent.click(screen.getByTitle('Arrastra para mover'), { metaKey: true })
     expect(props.onToggleSelect).toHaveBeenCalledWith(HL.id)
 
