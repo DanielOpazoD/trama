@@ -32,6 +32,10 @@ type AnnotationBase = {
   id: string
   /** Opacidad 0..1 (default 1). Opcional para no romper borradores previos. */
   opacity?: number
+  /** Si está bloqueada, la UI no debe mover/redimensionar/borrar esta anotación. */
+  locked?: boolean
+  /** Identificador de grupo básico para seleccionar/operar objetos en conjunto. */
+  groupId?: string
 }
 
 /**

@@ -312,6 +312,56 @@ test.describe('Imprenta · editor PDF', () => {
     expect(afterFontSize).toBeCloseTo(beforeFontSize, 1)
   })
 
+  test('muestra inspector de selección con alinear y bloquear objeto', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+
+    await page.getByRole('button', { name: 'Agregar cuadro de texto' }).click()
+    const editor = page.getByRole('textbox', { name: 'Editar texto' })
+    await expect(editor).toBeVisible()
+    await editor.fill('Inspector QA')
+    await page.keyboard.press('Enter')
+
+    const textBox = page.getByTitle('Doble clic para editar · arrastra para mover')
+    await expect(textBox).toBeVisible()
+    await textBox.click()
+
+    const inspector = page.getByRole('complementary', {
+      name: 'Inspector de selección',
+    })
+    await expect(inspector).toBeVisible()
+
+    const before = await textBox.boundingBox()
+    expect(before).not.toBeNull()
+    if (!before) return
+
+    await inspector.getByRole('button', { name: 'Alinear a la derecha' }).click()
+    const afterAlign = await textBox.boundingBox()
+    expect(afterAlign).not.toBeNull()
+    if (!afterAlign) return
+    expect(afterAlign.x).toBeGreaterThan(before.x + 80)
+
+    await inspector.getByRole('button', { name: 'Bloquear selección' }).click()
+    await expect(
+      inspector.getByRole('button', { name: 'Desbloquear selección' }),
+    ).toBeVisible()
+
+    const start = {
+      x: afterAlign.x + afterAlign.width / 2,
+      y: afterAlign.y + afterAlign.height / 2,
+    }
+    await page.mouse.move(start.x, start.y)
+    await page.mouse.down()
+    await page.mouse.move(start.x - 100, start.y + 40)
+    await page.mouse.up()
+
+    const afterLockedDrag = await textBox.boundingBox()
+    expect(afterLockedDrag).not.toBeNull()
+    if (!afterLockedDrag) return
+    expect(afterLockedDrag.x).toBeCloseTo(afterAlign.x, 0)
+  })
+
   test('permite duplicar arrastrando con Alt y muestra guías de snapping', async ({
     page,
   }) => {

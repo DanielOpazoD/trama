@@ -172,7 +172,7 @@ export function AnnotationLayer({
     box: { xRatio: number; yRatio: number; wRatio: number; hRatio: number },
     labelPrefix = 'Redimensionar desde',
   ) =>
-    tool === 'select' && selectedId === a.id
+    tool === 'select' && selectedId === a.id && !a.locked
       ? [
           resizeHandle(
             a,
@@ -332,7 +332,7 @@ export function AnnotationLayer({
               title="Doble clic para editar · arrastra para mover"
               style={{
                 ...boxStyle,
-                cursor: 'move',
+                cursor: a.locked ? 'default' : 'move',
                 userSelect: 'none',
                 touchAction: 'none',
                 // Fuera de "seleccionar" no captura (deja dibujar encima).
@@ -376,7 +376,7 @@ export function AnnotationLayer({
                 height: `${a.hRatio * 100}%`,
                 backgroundColor: hexToRgba(a.color, a.opacity ?? HIGHLIGHT_OPACITY),
                 borderRadius: 2,
-                cursor: 'move',
+                cursor: a.locked ? 'default' : 'move',
                 touchAction: 'none',
                 pointerEvents: tool === 'select' ? undefined : 'none',
                 outline: selectedId === a.id ? `1.5px solid ${ACCENT}` : 'none',
@@ -413,7 +413,7 @@ export function AnnotationLayer({
                 height: `${a.hRatio * 100}%`,
                 opacity: a.opacity ?? 1,
                 objectFit: 'contain',
-                cursor: 'move',
+                cursor: a.locked ? 'default' : 'move',
                 touchAction: 'none',
                 userSelect: 'none',
                 pointerEvents: tool === 'select' ? undefined : 'none',
@@ -455,7 +455,10 @@ export function AnnotationLayer({
                   e.stopPropagation()
                   onSelect(a.id)
                 },
-                style: { cursor: 'move', pointerEvents: pe } as CSSProperties,
+                style: {
+                  cursor: a.locked ? 'default' : 'move',
+                  pointerEvents: pe,
+                } as CSSProperties,
               }
               return (
                 <g key={a.id}>

@@ -36,7 +36,16 @@ import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { AnnotationLayer } from './AnnotationLayer'
 import { EditorToolbar } from './EditorToolbar'
 import { PageCanvas } from './PageCanvas'
+import { SelectionInspector } from './SelectionInspector'
 import { createAnnotationFromDrawGesture } from './pdfAnnotationDrawing'
+import {
+  alignAnnotations,
+  annotationArrangeBox,
+  moveAnnotationLayer,
+  setAnnotationsLocked,
+  type AnnotationHorizontalAlignment,
+  type AnnotationLayerMove,
+} from './pdfAnnotationArrange'
 import { resizeAnnotationFromPointerDelta } from './pdfAnnotationResize'
 import { reduceAnnotationShortcut } from './pdfAnnotationShortcuts'
 import { snapAnnotationDrag, type SnapGuide } from './pdfAnnotationSnap'
@@ -376,12 +385,17 @@ export function PdfTextEditor({
     return () => document.removeEventListener('keydown', onKey)
   }, [setAnnotations])
 
-  // Sólo el TEXTO es editable por la barra (los otros tipos llegan en fases
-  // siguientes). `selected` se estrecha a TextAnnotation.
   // La anotación seleccionada de CUALQUIER tipo (para color/opacidad/borrar) y, si
   // es texto, estrechada (para los controles de sólo-texto y la edición inline).
   const selectedAnn = annotations.find((a) => a.id === selectedId) ?? null
   const selected = selectedAnn?.kind === 'text' ? selectedAnn : null
+  const arrangeGeometry = layout
+    ? { pageWidthPx: layout.innerW, pageHeightPx: layout.innerH }
+    : null
+  const selectedBounds =
+    selectedAnn && arrangeGeometry
+      ? annotationArrangeBox(selectedAnn, arrangeGeometry)
+      : null
 
   const update = (id: string, patch: Partial<Omit<TextAnnotation, 'id' | 'kind'>>) =>
     setAnnotations((list) =>
@@ -406,7 +420,25 @@ export function PdfTextEditor({
   const applyStyle = (patch: Partial<TextStyle>) => {
     setStyle((s) => ({ ...s, ...patch }))
     if (!selectedId) return
+    if (selectedAnn?.locked) return
     setAnnotations((list) => applyEditorStylePatch(list, selectedId, patch))
+  }
+
+  const alignSelection = (alignment: AnnotationHorizontalAlignment) => {
+    if (!selectedId || !arrangeGeometry) return
+    setAnnotations((list) =>
+      alignAnnotations(list, [selectedId], alignment, arrangeGeometry),
+    )
+  }
+
+  const moveSelectionLayer = (move: AnnotationLayerMove) => {
+    if (!selectedId) return
+    setAnnotations((list) => moveAnnotationLayer(list, selectedId, move))
+  }
+
+  const toggleSelectionLocked = (locked: boolean) => {
+    if (!selectedId) return
+    setAnnotations((list) => setAnnotationsLocked(list, [selectedId], locked))
   }
 
   function addText() {
@@ -469,12 +501,15 @@ export function PdfTextEditor({
   }
 
   function removeAnnotation(id: string) {
+    const target = annotationsRef.current.find((a) => a.id === id)
+    if (target?.locked) return
     setAnnotations((l) => l.filter((a) => a.id !== id))
     if (selectedId === id) setSelectedId(null)
   }
 
   function startDrag(e: React.PointerEvent, a: Annotation) {
     e.stopPropagation()
+    if (a.locked) return
     // px reales en pantalla del lado interior (incluye el zoom).
     const dw = (layout?.innerW ?? 1) * zoom
     const dh = (layout?.innerH ?? 1) * zoom
@@ -541,6 +576,7 @@ export function PdfTextEditor({
     if (!layout) return
     e.stopPropagation()
     e.preventDefault()
+    if (a.locked) return
     setSelectedId(a.id)
     const dw = layout.innerW * zoom
     const dh = layout.innerH * zoom
@@ -739,7 +775,9 @@ export function PdfTextEditor({
           activeOpacity={activeOpacity}
           activeRotation={activeRotation}
           onApplyStyle={applyStyle}
-          hasDuplicableSelection={!!selected || selectedAnn?.kind === 'image'}
+          hasDuplicableSelection={
+            !selectedAnn?.locked && (!!selected || selectedAnn?.kind === 'image')
+          }
           duplicateLabel={
             selectedAnn?.kind === 'image' ? 'Duplicar imagen' : 'Duplicar texto'
           }
@@ -752,6 +790,17 @@ export function PdfTextEditor({
           zoom={zoom}
           onZoomChange={setZoom}
         />
+        {selectedAnn && selectedBounds && (
+          <SelectionInspector
+            annotation={selectedAnn}
+            bounds={selectedBounds}
+            onAlign={alignSelection}
+            onLayerMove={moveSelectionLayer}
+            onToggleLocked={toggleSelectionLocked}
+            onColorChange={(color) => applyStyle({ color })}
+            onOpacityChange={(opacity) => applyStyle({ opacity })}
+          />
+        )}
         <input
           ref={stampInputRef}
           type="file"
