@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Annotation } from '../../../lib/pdfStudio/model'
 import {
   alignAnnotations,
+  annotationSelectionBox,
   distributeAnnotations,
   groupAnnotations,
   moveAnnotationLayer,
@@ -72,6 +73,17 @@ describe('pdfAnnotationArrange', () => {
     expect(aligned[0]).toMatchObject({ xRatio: 0.1 })
     expect(aligned[1]).toMatchObject({ xRatio: 0.1 })
     expect(aligned[2]).toBe(locked)
+  })
+
+  it('calcula el contorno unido de una selección múltiple', () => {
+    const list = [text('a', 0.3, 0.2), mark('b', 0.1, 0.15), shape('c', 0.5, 0.7)]
+
+    expect(annotationSelectionBox(list, ['a', 'b', 'c'], geom)).toMatchObject({
+      xRatio: 0.1,
+      yRatio: 0.15,
+      wRatio: 0.6,
+      hRatio: 0.15,
+    })
   })
 
   it('distribuye tres o más anotaciones por centros y respeta formas', () => {

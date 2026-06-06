@@ -53,7 +53,7 @@ export function usePdfTextEditorInteractions({
   style: TextStyle
   editedRef: { current: Record<number, Annotation[]> }
   annotationsRef: { current: Annotation[] }
-  setSelectedId: Dispatch<SetStateAction<string | null>>
+  setSelectedId: (id: string | null) => void
   setDrawing: Dispatch<SetStateAction<DrawingRect | null>>
   setSnapGuides: Dispatch<SetStateAction<SnapGuide[]>>
   setHistory: Dispatch<SetStateAction<History<Record<number, Annotation[]>>>>

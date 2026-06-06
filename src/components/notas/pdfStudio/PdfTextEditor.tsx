@@ -25,23 +25,12 @@ import { EditorToolbar } from './EditorToolbar'
 import { PageCanvas } from './PageCanvas'
 import { PdfTextEditorHeader } from './PdfTextEditorHeader'
 import { SelectionInspector } from './SelectionInspector'
-import {
-  alignAnnotations,
-  annotationArrangeBox,
-  moveAnnotationLayer,
-  setAnnotationsLocked,
-  type AnnotationHorizontalAlignment,
-  type AnnotationLayerMove,
-} from './pdfAnnotationArrange'
 import type { SnapGuide } from './pdfAnnotationSnap'
 import { usePdfTextEditorInteractions } from './usePdfTextEditorInteractions'
 import { usePdfTextEditorPageRender } from './usePdfTextEditorPageRender'
 import { usePdfTextEditorKeyboard } from './usePdfTextEditorKeyboard'
-import {
-  applyEditorStylePatch,
-  defaultEditorTextStyle,
-  resolveActiveEditorStyle,
-} from './pdfEditorStyleState'
+import { usePdfTextEditorSelection } from './usePdfTextEditorSelection'
+import { defaultEditorTextStyle, resolveActiveEditorStyle } from './pdfEditorStyleState'
 import { type TextStyle, type Tool } from './editorStyle'
 import { createImageStampAnnotation, STAMP_ACCEPT } from './pdfImageStamp'
 
@@ -79,7 +68,6 @@ export function PdfTextEditor({
   const source = page ? getSource(doc, page.sourceId) : undefined
   const annotations = edited[currentPage] ?? page?.annotations ?? []
 
-  const [selectedId, setSelectedId] = useState<string | null>(null)
   // Texto en edición INLINE (sobre el cuadro). null = ninguno.
   const [editingId, setEditingId] = useState<string | null>(null)
   // Herramienta activa y el rectángulo que se está dibujando (resaltador), en px
@@ -105,7 +93,6 @@ export function PdfTextEditor({
   }, [])
   // Refs para que los efectos montados una vez vean el estado actual sin re-suscribir.
   const selectedRef = useRef<string | null>(null)
-  selectedRef.current = selectedId
   const editingRef = useRef<string | null>(null)
   editingRef.current = editingId
   const pageRef = useRef(currentPage)
@@ -153,6 +140,38 @@ export function PdfTextEditor({
     [doc],
   )
 
+  // Estilo "activo" de la barra: edita la anotación seleccionada o, si no hay,
+  // define el estilo del PRÓXIMO texto/resaltado (ver `TextStyle` en editorStyle).
+  const [style, setStyle] = useState<TextStyle>({
+    ...defaultEditorTextStyle(),
+  })
+  const arrangeGeometry = layout
+    ? { pageWidthPx: layout.innerW, pageHeightPx: layout.innerH }
+    : null
+  const {
+    selectedId,
+    selectedIds: operationSelectedIds,
+    selectedAnn,
+    selectedBounds,
+    setSelectedId,
+    toggleSelectedId,
+    applyStyle,
+    alignSelection,
+    distributeSelection,
+    moveSelectionLayer,
+    toggleSelectionLocked,
+    groupSelection,
+    ungroupSelection,
+    removeAnnotation,
+  } = usePdfTextEditorSelection({
+    annotations,
+    arrangeGeometry,
+    setAnnotations,
+    setStyle,
+    clearEditing: () => setEditingId(null),
+  })
+  selectedRef.current = selectedId
+
   usePdfTextEditorKeyboard({
     editingRef,
     selectedRef,
@@ -167,26 +186,11 @@ export function PdfTextEditor({
 
   // La anotación seleccionada de CUALQUIER tipo (para color/opacidad/borrar) y, si
   // es texto, estrechada (para los controles de sólo-texto y la edición inline).
-  const selectedAnn = annotations.find((a) => a.id === selectedId) ?? null
   const selected = selectedAnn?.kind === 'text' ? selectedAnn : null
-  const arrangeGeometry = layout
-    ? { pageWidthPx: layout.innerW, pageHeightPx: layout.innerH }
-    : null
-  const selectedBounds =
-    selectedAnn && arrangeGeometry
-      ? annotationArrangeBox(selectedAnn, arrangeGeometry)
-      : null
-
   const update = (id: string, patch: Partial<Omit<TextAnnotation, 'id' | 'kind'>>) =>
     setAnnotations((list) =>
       list.map((a) => (a.id === id && a.kind === 'text' ? { ...a, ...patch } : a)),
     )
-
-  // Estilo "activo" de la barra: edita la anotación seleccionada o, si no hay,
-  // define el estilo del PRÓXIMO texto/resaltado (ver `TextStyle` en editorStyle).
-  const [style, setStyle] = useState<TextStyle>({
-    ...defaultEditorTextStyle(),
-  })
   const activeStyle = resolveActiveEditorStyle(selectedAnn, style)
   const activeFont = activeStyle.font
   const activeSize = activeStyle.sizeRatio
@@ -194,32 +198,6 @@ export function PdfTextEditor({
   const activeColor = activeStyle.color
   const activeOpacity = activeStyle.opacity ?? 1
   const activeRotation = activeStyle.rotation ?? 0
-
-  /** Aplica un cambio de estilo: lo recuerda como default y lo aplica a la selección
-   *  (texto → todo; resaltado/forma → sólo color/opacidad). */
-  const applyStyle = (patch: Partial<TextStyle>) => {
-    setStyle((s) => ({ ...s, ...patch }))
-    if (!selectedId) return
-    if (selectedAnn?.locked) return
-    setAnnotations((list) => applyEditorStylePatch(list, selectedId, patch))
-  }
-
-  const alignSelection = (alignment: AnnotationHorizontalAlignment) => {
-    if (!selectedId || !arrangeGeometry) return
-    setAnnotations((list) =>
-      alignAnnotations(list, [selectedId], alignment, arrangeGeometry),
-    )
-  }
-
-  const moveSelectionLayer = (move: AnnotationLayerMove) => {
-    if (!selectedId) return
-    setAnnotations((list) => moveAnnotationLayer(list, selectedId, move))
-  }
-
-  const toggleSelectionLocked = (locked: boolean) => {
-    if (!selectedId) return
-    setAnnotations((list) => setAnnotationsLocked(list, [selectedId], locked))
-  }
 
   function addText() {
     const a = makeTextAnnotation({
@@ -270,13 +248,6 @@ export function PdfTextEditor({
     const copy = translateAnnotation(cloneAnnotation(a), 0.03, 0.03)
     setAnnotations((l) => [...l, copy])
     setSelectedId(copy.id)
-  }
-
-  function removeAnnotation(id: string) {
-    const target = annotationsRef.current.find((a) => a.id === id)
-    if (target?.locked) return
-    setAnnotations((l) => l.filter((a) => a.id !== id))
-    if (selectedId === id) setSelectedId(null)
   }
 
   const { startDrag, startResize, startDraw } = usePdfTextEditorInteractions({
@@ -371,7 +342,11 @@ export function PdfTextEditor({
           <SelectionInspector
             annotation={selectedAnn}
             bounds={selectedBounds}
+            selectionCount={operationSelectedIds.length}
             onAlign={alignSelection}
+            onDistribute={distributeSelection}
+            onGroup={groupSelection}
+            onUngroup={ungroupSelection}
             onLayerMove={moveSelectionLayer}
             onToggleLocked={toggleSelectionLocked}
             onColorChange={(color) => applyStyle({ color })}
@@ -412,12 +387,14 @@ export function PdfTextEditor({
             innerH={layout?.innerH ?? 0}
             tool={tool}
             selectedId={selectedId}
+            selectedIds={operationSelectedIds}
             editingId={editingId}
             drawing={drawing}
             snapGuides={snapGuides}
             drawColor={style.color}
             onStartDrag={startDrag}
             onSelect={setSelectedId}
+            onToggleSelect={toggleSelectedId}
             onStartEdit={(id) => {
               setSelectedId(id)
               setEditingId(id)

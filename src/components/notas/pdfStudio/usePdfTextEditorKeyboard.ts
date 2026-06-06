@@ -26,7 +26,7 @@ export function usePdfTextEditorKeyboard({
   selectedRef: RefObject<string | null>
   annotationsRef: { current: Annotation[] }
   annotationClipboardRef: { current: Annotation | null }
-  setSelectedId: Dispatch<SetStateAction<string | null>>
+  setSelectedId: (id: string | null) => void
   setEditingId: Dispatch<SetStateAction<string | null>>
   setHistory: Dispatch<SetStateAction<History<Record<number, Annotation[]>>>>
   setAnnotations: (fn: (list: Annotation[]) => Annotation[]) => void

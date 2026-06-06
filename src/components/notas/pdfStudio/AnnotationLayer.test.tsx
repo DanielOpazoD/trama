@@ -54,11 +54,13 @@ function setup(overrides: Partial<Parameters<typeof AnnotationLayer>[0]> = {}) {
     innerH: 1000,
     tool: 'select' as const,
     selectedId: null as string | null,
+    selectedIds: [] as string[],
     editingId: null as string | null,
     drawing: null,
     drawColor: '#222222',
     onStartDrag: vi.fn(),
     onSelect: vi.fn(),
+    onToggleSelect: vi.fn(),
     onStartEdit: vi.fn(),
     onCommitText: vi.fn(),
     onCancelEdit: vi.fn(),
@@ -97,6 +99,16 @@ describe('<AnnotationLayer />', () => {
     const { props } = setup()
     fireEvent.click(screen.getByTitle('Arrastra para mover'))
     expect(props.onSelect).toHaveBeenCalledWith(HL.id)
+  })
+
+  it('permite sumar o quitar selección con modificador', () => {
+    const { props } = setup({ selectedId: TEXT.id, selectedIds: [TEXT.id, HL.id] })
+
+    fireEvent.click(screen.getByTitle('Arrastra para mover'), { metaKey: true })
+    expect(props.onToggleSelect).toHaveBeenCalledWith(HL.id)
+
+    const selectedHighlights = screen.getAllByTitle('Arrastra para mover')
+    expect(selectedHighlights[0]?.style.outline).toContain('var(--accent-sage)')
   })
 
   it('muestra handles de redimensionado al seleccionar un resaltado', () => {

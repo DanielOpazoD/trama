@@ -17,7 +17,11 @@ const selected: Annotation = {
 const props = {
   annotation: selected,
   bounds: { xRatio: 0.25, yRatio: 0.1, wRatio: 0.35, hRatio: 0.2 },
+  selectionCount: 1,
   onAlign: vi.fn(),
+  onDistribute: vi.fn(),
+  onGroup: vi.fn(),
+  onUngroup: vi.fn(),
   onLayerMove: vi.fn(),
   onToggleLocked: vi.fn(),
   onColorChange: vi.fn(),
@@ -69,5 +73,27 @@ describe('<SelectionInspector />', () => {
       'aria-pressed',
       'true',
     )
+  })
+
+  it('revela distribución y agrupación cuando hay selección múltiple', () => {
+    render(
+      <SelectionInspector
+        {...props}
+        selectionCount={3}
+        annotation={{ ...selected, groupId: 'g1' }}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Distribuir horizontalmente' }))
+    expect(props.onDistribute).toHaveBeenCalledWith('x')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Distribuir verticalmente' }))
+    expect(props.onDistribute).toHaveBeenCalledWith('y')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Agrupar selección' }))
+    expect(props.onGroup).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Desagrupar selección' }))
+    expect(props.onUngroup).toHaveBeenCalledTimes(1)
   })
 })

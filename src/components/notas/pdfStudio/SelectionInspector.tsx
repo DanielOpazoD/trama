@@ -1,5 +1,6 @@
 import type { Annotation } from '../../../lib/pdfStudio/model'
 import type {
+  AnnotationDistributionAxis,
   AnnotationHorizontalAlignment,
   AnnotationLayerMove,
 } from './pdfAnnotationArrange'
@@ -27,7 +28,17 @@ function pct(value: number): string {
 function Glyph({
   kind,
 }: {
-  kind: 'left' | 'center' | 'right' | 'front' | 'back' | 'lock'
+  kind:
+    | 'left'
+    | 'center'
+    | 'right'
+    | 'front'
+    | 'back'
+    | 'lock'
+    | 'distribute-x'
+    | 'distribute-y'
+    | 'group'
+    | 'ungroup'
 }) {
   if (kind === 'lock') {
     return (
@@ -57,6 +68,47 @@ function Glyph({
           stroke="currentColor"
           opacity=".45"
         />
+      </svg>
+    )
+  }
+  if (kind === 'distribute-x' || kind === 'distribute-y') {
+    const horizontal = kind === 'distribute-x'
+    return (
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden>
+        <path
+          d={horizontal ? 'M3 10h14' : 'M10 3v14'}
+          stroke="currentColor"
+          opacity=".45"
+        />
+        <rect
+          x={horizontal ? 3 : 7}
+          y={horizontal ? 7 : 3}
+          width="4"
+          height="6"
+          rx="1"
+          stroke="currentColor"
+        />
+        <rect
+          x={horizontal ? 13 : 7}
+          y={horizontal ? 7 : 13}
+          width="4"
+          height="6"
+          rx="1"
+          stroke="currentColor"
+        />
+      </svg>
+    )
+  }
+  if (kind === 'group' || kind === 'ungroup') {
+    return (
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden>
+        <rect x="4" y="4" width="6" height="6" rx="1" stroke="currentColor" />
+        <rect x="10" y="10" width="6" height="6" rx="1" stroke="currentColor" />
+        {kind === 'group' ? (
+          <path d="M9.5 7h3.5M13 7v3.5" stroke="currentColor" />
+        ) : (
+          <path d="M8 12h4" stroke="currentColor" />
+        )}
       </svg>
     )
   }
@@ -105,7 +157,11 @@ function TinyButton({
 export function SelectionInspector({
   annotation,
   bounds,
+  selectionCount,
   onAlign,
+  onDistribute,
+  onGroup,
+  onUngroup,
   onLayerMove,
   onToggleLocked,
   onColorChange,
@@ -113,7 +169,11 @@ export function SelectionInspector({
 }: {
   annotation: Annotation
   bounds: AnnotationBounds
+  selectionCount?: number
   onAlign: (alignment: AnnotationHorizontalAlignment) => void
+  onDistribute: (axis: AnnotationDistributionAxis) => void
+  onGroup: () => void
+  onUngroup: () => void
   onLayerMove: (move: AnnotationLayerMove) => void
   onToggleLocked: (locked: boolean) => void
   onColorChange: (color: string) => void
@@ -125,6 +185,10 @@ export function SelectionInspector({
       ? annotation.color
       : '#222222'
   const opacity = annotation.opacity ?? 1
+  const count = Math.max(1, selectionCount ?? 1)
+  const canDistribute = count >= 3
+  const canGroup = count >= 2
+  const canUngroup = count >= 2 || Boolean(annotation.groupId)
 
   return (
     <aside
@@ -170,6 +234,41 @@ export function SelectionInspector({
           </TinyButton>
         </div>
       </div>
+
+      {(canDistribute || canGroup || canUngroup) && (
+        <div className="mt-2 flex items-center justify-between gap-2">
+          {canDistribute && (
+            <div className="inline-flex rounded-md bg-ink-100/45 p-0.5">
+              <TinyButton
+                label="Distribuir horizontalmente"
+                onClick={() => onDistribute('x')}
+              >
+                <Glyph kind="distribute-x" />
+              </TinyButton>
+              <TinyButton
+                label="Distribuir verticalmente"
+                onClick={() => onDistribute('y')}
+              >
+                <Glyph kind="distribute-y" />
+              </TinyButton>
+            </div>
+          )}
+          {(canGroup || canUngroup) && (
+            <div className="ml-auto inline-flex rounded-md bg-ink-100/45 p-0.5">
+              {canGroup && (
+                <TinyButton label="Agrupar selección" onClick={onGroup}>
+                  <Glyph kind="group" />
+                </TinyButton>
+              )}
+              {canUngroup && (
+                <TinyButton label="Desagrupar selección" onClick={onUngroup}>
+                  <Glyph kind="ungroup" />
+                </TinyButton>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-2 flex items-center gap-2">
         <div className="flex flex-1 items-center gap-1">

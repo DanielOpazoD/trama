@@ -46,12 +46,14 @@ export function AnnotationLayer({
   innerH,
   tool,
   selectedId,
+  selectedIds = selectedId ? [selectedId] : [],
   editingId,
   drawing,
   snapGuides = [],
   drawColor,
   onStartDrag,
   onSelect,
+  onToggleSelect,
   onStartEdit,
   onCommitText,
   onCancelEdit,
@@ -64,6 +66,7 @@ export function AnnotationLayer({
   innerH: number
   tool: Tool
   selectedId: string | null
+  selectedIds?: string[]
   editingId: string | null
   drawing: DrawingRect | null
   snapGuides?: SnapGuide[]
@@ -71,6 +74,7 @@ export function AnnotationLayer({
   drawColor: string
   onStartDrag: (e: ReactPointerEvent, a: Annotation) => void
   onSelect: (id: string) => void
+  onToggleSelect?: (id: string) => void
   onStartEdit: (id: string) => void
   onCommitText: (id: string, text: string) => void
   onCancelEdit: () => void
@@ -80,6 +84,17 @@ export function AnnotationLayer({
     handle: ResizeHandle,
   ) => void
 }) {
+  const selectedSet = new Set(selectedIds)
+  const isSelected = (id: string) => selectedSet.has(id) || selectedId === id
+  const selectFromClick = (e: ReactMouseEvent, id: string) => {
+    e.stopPropagation()
+    if ((e.metaKey || e.ctrlKey || e.shiftKey) && onToggleSelect) {
+      onToggleSelect(id)
+      return
+    }
+    onSelect(id)
+  }
+
   return (
     <>
       {snapGuides.map((guide) => (
@@ -158,8 +173,7 @@ export function AnnotationLayer({
               onPointerDown={(e) => onStartDrag(e, a)}
               // Click selecciona ESTE (no llega al fondo, que deselecciona).
               onClick={(e) => {
-                e.stopPropagation()
-                onSelect(a.id)
+                selectFromClick(e, a.id)
               }}
               // Doble clic edita el texto INLINE, sobre el cuadro.
               onDoubleClick={(e) => {
@@ -174,10 +188,9 @@ export function AnnotationLayer({
                 touchAction: 'none',
                 // Fuera de "seleccionar" no captura (deja dibujar encima).
                 pointerEvents: tool === 'select' ? undefined : 'none',
-                outline:
-                  selectedId === a.id
-                    ? `1.5px solid ${ACCENT}`
-                    : '1.5px solid transparent',
+                outline: isSelected(a.id)
+                  ? `1.5px solid ${ACCENT}`
+                  : '1.5px solid transparent',
                 outlineOffset: 0,
                 transition: 'outline-color 120ms ease',
               }}
@@ -206,8 +219,7 @@ export function AnnotationLayer({
               onClick={
                 tool === 'select'
                   ? (e) => {
-                      e.stopPropagation()
-                      onSelect(a.id)
+                      selectFromClick(e, a.id)
                     }
                   : undefined
               }
@@ -223,7 +235,7 @@ export function AnnotationLayer({
                 cursor: a.locked ? 'default' : 'move',
                 touchAction: 'none',
                 pointerEvents: tool === 'select' ? undefined : 'none',
-                outline: selectedId === a.id ? `1.5px solid ${ACCENT}` : 'none',
+                outline: isSelected(a.id) ? `1.5px solid ${ACCENT}` : 'none',
                 outlineOffset: 1,
               }}
             />
@@ -250,8 +262,7 @@ export function AnnotationLayer({
               onClick={
                 tool === 'select'
                   ? (e) => {
-                      e.stopPropagation()
-                      onSelect(a.id)
+                      selectFromClick(e, a.id)
                     }
                   : undefined
               }
@@ -268,7 +279,7 @@ export function AnnotationLayer({
                 touchAction: 'none',
                 userSelect: 'none',
                 pointerEvents: tool === 'select' ? undefined : 'none',
-                outline: selectedId === a.id ? `1.5px solid ${ACCENT}` : 'none',
+                outline: isSelected(a.id) ? `1.5px solid ${ACCENT}` : 'none',
                 outlineOffset: 2,
               }}
             />
@@ -303,15 +314,14 @@ export function AnnotationLayer({
               const y = Math.min(p0.y, p1.y)
               const w = Math.abs(p1.x - p0.x)
               const hh = Math.abs(p1.y - p0.y)
-              const sel = selectedId === a.id
+              const sel = isSelected(a.id)
               const interactive = tool === 'select'
               const pe: CSSProperties['pointerEvents'] =
                 a.shape === 'rect' || a.shape === 'oval' ? 'all' : 'stroke'
               const hit = {
                 onPointerDown: (e: ReactPointerEvent) => onStartDrag(e, a),
                 onClick: (e: ReactMouseEvent) => {
-                  e.stopPropagation()
-                  onSelect(a.id)
+                  selectFromClick(e, a.id)
                 },
                 style: {
                   cursor: a.locked ? 'default' : 'move',

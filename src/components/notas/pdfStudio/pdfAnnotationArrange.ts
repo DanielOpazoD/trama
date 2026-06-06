@@ -73,6 +73,15 @@ function unionBox(boxes: AnnotationBox[]): AnnotationBox | null {
   }
 }
 
+export function annotationSelectionBox(
+  annotations: Annotation[],
+  ids: string[],
+  geometry: AnnotationArrangeGeometry,
+): AnnotationBox | null {
+  const selected = selectedAnnotations(annotations, ids).selected
+  return unionBox(selected.map((a) => annotationArrangeBox(a, geometry)))
+}
+
 function moveAnnotationToBox(
   annotation: Annotation,
   box: AnnotationBox,
