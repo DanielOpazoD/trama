@@ -32,12 +32,14 @@ import { PdfDropzone } from './PdfDropzone'
 import { PageGrid } from './PageGrid'
 import { PdfStudioDocumentToolbar } from './PdfStudioDocumentToolbar'
 import { PdfStudioFormPanel } from './PdfStudioFormPanel'
+import { PdfStudioOcrPanel } from './PdfStudioOcrPanel'
 import { PdfTextEditor } from './PdfTextEditor'
 import { usePageSelection } from './usePageSelection'
 import { usePdfStudioExport } from './usePdfStudioExport'
 import { usePdfStudioImport } from './usePdfStudioImport'
 import { usePdfStudioForms } from './usePdfStudioForms'
 import { usePdfStudioPageKeyboard } from './usePdfStudioPageKeyboard'
+import { usePdfStudioOcr } from './usePdfStudioOcr'
 import { usePdfStudioWorkspace } from './usePdfStudioWorkspace'
 import { useToast } from '../../../state'
 
@@ -104,6 +106,16 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   })
   const { applyForms, formSummary, forms, inspectForms, updateFormValue } =
     usePdfStudioForms(doc, commit)
+  const {
+    cancelOcr,
+    language: ocrLanguage,
+    ocrOpen,
+    ocrRunning,
+    ocrStatus,
+    setLanguage: setOcrLanguage,
+    setOcrOpen,
+    startOcr,
+  } = usePdfStudioOcr({ compression: exportCompression })
 
   // Al desmontar la sección, libera las miniaturas/documentos de pdf.js.
   useEffect(() => () => disposePdfStudio(), [])
@@ -311,6 +323,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
               onDownload={() => void downloadPdf(doc)}
               onCancelExport={cancelExport}
               onNewDoc={newDoc}
+              onOpenOcr={() => setOcrOpen(true)}
               onInspectForms={() => void inspectForms()}
               onSetExportCompression={setExportCompression}
               onSetPageNumbers={setPageNumbers}
@@ -338,6 +351,18 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
               onApply={(flatten) => void applyForms(flatten)}
               onChange={updateFormValue}
             />
+            {ocrOpen && (
+              <PdfStudioOcrPanel
+                disabled={empty || saving || busy}
+                language={ocrLanguage}
+                running={ocrRunning}
+                status={ocrStatus}
+                totalPages={total}
+                onCancel={cancelOcr}
+                onChangeLanguage={setOcrLanguage}
+                onRun={() => void startOcr(doc)}
+              />
+            )}
 
             {editBar}
             {mainPane}

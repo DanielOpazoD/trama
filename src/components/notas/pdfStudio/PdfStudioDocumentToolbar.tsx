@@ -32,6 +32,7 @@ export function PdfStudioDocumentToolbar({
   onDownload,
   onImport,
   onNewDoc,
+  onOpenOcr,
   onInspectForms,
   onRedo,
   onSavePdf,
@@ -54,6 +55,7 @@ export function PdfStudioDocumentToolbar({
   onDownload: () => void
   onImport: () => void
   onNewDoc: () => void
+  onOpenOcr: () => void
   onInspectForms: () => void
   onRedo: () => void
   onSavePdf: () => void
@@ -172,6 +174,16 @@ export function PdfStudioDocumentToolbar({
               >
                 <FileIcon size={13} />
                 Detectar formularios
+              </OverflowMenuItem>
+              <OverflowMenuItem
+                disabled={empty || saving || busy}
+                onClick={() => {
+                  close()
+                  onOpenOcr()
+                }}
+              >
+                <FileIcon size={13} />
+                OCR buscable
               </OverflowMenuItem>
               {!empty && (
                 <div className="mt-1 border-t border-ink-100 px-2 py-2">
