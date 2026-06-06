@@ -8,22 +8,9 @@ import {
 } from '../../../lib/pdfStudio/model'
 import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
 import { useInViewport } from './useInViewport'
-import { OverflowMenu, OverflowMenuItem } from '../../OverflowMenu'
-import {
-  CheckIcon,
-  DuplicateIcon,
-  FileIcon,
-  FilePdfIcon,
-  RotateIcon,
-  TextIcon,
-  TrashIcon,
-} from '../../Icons'
+import { CheckIcon, FileIcon, FilePdfIcon, TextIcon } from '../../Icons'
 
 const ACCENT = 'var(--accent-sage)'
-
-/** Botón de control de la miniatura (reordenar/rotar/texto). */
-const ctrlBtn =
-  'touch-target inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-ink-400 transition-colors'
 
 /**
  * Una página en la grilla: miniatura (render pdf.js o la imagen directa) con su
@@ -46,9 +33,6 @@ export function PageCard({
   onDragEnd,
   onDropOn,
   onNudge,
-  onRotate,
-  onDuplicate,
-  onDelete,
   onOpenText,
 }: {
   doc: PdfDoc
@@ -64,9 +48,6 @@ export function PageCard({
   onDragEnd: () => void
   onDropOn: () => void
   onNudge: (index: number, delta: -1 | 1) => void
-  onRotate: (delta: -1 | 1) => void
-  onDuplicate: () => void
-  onDelete: (index: number) => void
   onOpenText: () => void
 }) {
   const source = getSource(doc, page.sourceId)
@@ -224,65 +205,6 @@ export function PageCard({
         >
           <CheckIcon size={12} />
         </button>
-      </div>
-
-      {/* Acciones de la página (reordenar = arrastrar o ◄ ► del teclado) */}
-      <div className="flex items-center justify-end px-1 py-1 border-t border-ink-100/70">
-        <OverflowMenu
-          label={`Acciones de la página ${index + 1}`}
-          width="w-48"
-          triggerClassName={ctrlBtn}
-        >
-          {(close) => (
-            <>
-              <OverflowMenuItem
-                onClick={() => {
-                  onOpenText()
-                  close()
-                }}
-              >
-                <TextIcon size={13} />{' '}
-                {pageHasAnnotations(page) ? 'Editar texto' : 'Agregar texto'}
-              </OverflowMenuItem>
-              <OverflowMenuItem
-                onClick={() => {
-                  onRotate(1)
-                  close()
-                }}
-              >
-                <RotateIcon size={13} /> Rotar a la derecha
-              </OverflowMenuItem>
-              <OverflowMenuItem
-                onClick={() => {
-                  onRotate(-1)
-                  close()
-                }}
-              >
-                <span className="inline-flex" style={{ transform: 'scaleX(-1)' }}>
-                  <RotateIcon size={13} />
-                </span>{' '}
-                Rotar a la izquierda
-              </OverflowMenuItem>
-              <OverflowMenuItem
-                onClick={() => {
-                  onDuplicate()
-                  close()
-                }}
-              >
-                <DuplicateIcon size={13} /> Duplicar página
-              </OverflowMenuItem>
-              <OverflowMenuItem
-                danger
-                onClick={() => {
-                  onDelete(index)
-                  close()
-                }}
-              >
-                <TrashIcon size={13} /> Eliminar página
-              </OverflowMenuItem>
-            </>
-          )}
-        </OverflowMenu>
       </div>
     </li>
   )

@@ -1,17 +1,27 @@
-import { CheckIcon, CloseIcon, DuplicateIcon, RotateIcon, TrashIcon } from '../../Icons'
+import {
+  CheckIcon,
+  CloseIcon,
+  DuplicateIcon,
+  RotateIcon,
+  TextIcon,
+  TrashIcon,
+} from '../../Icons'
 
 const ACCENT = 'var(--accent-sage)'
 const barBtn =
-  'touch-target inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption text-ink-600 hover:text-ink-900 hover:bg-paper-50/80 disabled:opacity-40 disabled:hover:bg-transparent transition-colors'
+  'touch-target inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption text-ink-600 hover:text-ink-900 hover:bg-paper-50/80 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-ink-600 disabled:cursor-default transition-colors'
 
 /**
- * Barra de acciones en LOTE sobre las hojas marcadas (rotar, duplicar, eliminar;
- * marcar todas / desmarcar). Las hojas marcadas son además las que entran en
- * "Guardar PDF". Presentacional: el estado y los handlers viven en `PdfStudioView`.
+ * Barra de EDICIÓN de hojas, SIEMPRE visible cuando hay páginas. Actúa sobre las
+ * hojas MARCADAS con el tick: editar texto (1 sola), rotar, duplicar, eliminar, más
+ * marcar todas / desmarcar. Las marcadas son además las que entran en "Guardar
+ * PDF". Cada acción se habilita según cuántas haya marcadas. Presentacional: el
+ * estado y los handlers viven en `PdfStudioView`.
  */
 export function BulkBar({
   count,
   total,
+  onEditText,
   onRotate,
   onDuplicate,
   onDelete,
@@ -20,16 +30,19 @@ export function BulkBar({
 }: {
   count: number
   total: number
+  /** Abre el editor de la única hoja marcada (habilitado sólo con count === 1). */
+  onEditText: () => void
   onRotate: (delta: -1 | 1) => void
   onDuplicate: () => void
   onDelete: () => void
   onSelectAll: () => void
   onClear: () => void
 }) {
+  const none = count === 0
   return (
     <div
       role="toolbar"
-      aria-label="Acciones para las hojas marcadas"
+      aria-label="Barra de edición de hojas"
       className="flex flex-wrap items-center gap-x-0.5 gap-y-2 rounded-lg border px-2 py-1.5"
       style={{
         borderColor: 'var(--accent-primary-soft)',
@@ -37,28 +50,52 @@ export function BulkBar({
       }}
     >
       <span
-        className="text-caption font-medium px-1.5 tabular-nums"
-        style={{ color: ACCENT }}
+        className={`px-1.5 text-caption font-medium ${none ? 'text-ink-400' : 'tabular-nums'}`}
+        style={none ? undefined : { color: ACCENT }}
       >
-        {count} {count === 1 ? 'marcada' : 'marcadas'}
+        {none
+          ? 'Marcá hojas para editarlas'
+          : `${count} ${count === 1 ? 'marcada' : 'marcadas'}`}
       </span>
       <span className="mx-1 h-4 w-px bg-ink-200/60" aria-hidden />
-      <button type="button" onClick={() => onRotate(-1)} className={barBtn}>
+      <button
+        type="button"
+        onClick={onEditText}
+        disabled={count !== 1}
+        title="Editar el texto de la hoja marcada (marcá 1 sola)"
+        className={barBtn}
+      >
+        <TextIcon size={14} /> Texto
+      </button>
+      <button
+        type="button"
+        onClick={() => onRotate(-1)}
+        disabled={none}
+        aria-label="Rotar a la izquierda"
+        className={barBtn}
+      >
         <span className="inline-flex" style={{ transform: 'scaleX(-1)' }}>
           <RotateIcon size={14} />
         </span>
         Rotar
       </button>
-      <button type="button" onClick={() => onRotate(1)} className={barBtn}>
+      <button
+        type="button"
+        onClick={() => onRotate(1)}
+        disabled={none}
+        aria-label="Rotar a la derecha"
+        className={barBtn}
+      >
         <RotateIcon size={14} /> Rotar
       </button>
-      <button type="button" onClick={onDuplicate} className={barBtn}>
+      <button type="button" onClick={onDuplicate} disabled={none} className={barBtn}>
         <DuplicateIcon size={14} /> Duplicar
       </button>
       <button
         type="button"
         onClick={onDelete}
-        className={`${barBtn} hover:!text-[color:var(--accent-clay)] hover:!bg-[color:var(--accent-clay-soft)]`}
+        disabled={none}
+        className={`${barBtn} hover:!bg-[color:var(--accent-clay-soft)] hover:!text-[color:var(--accent-clay)]`}
       >
         <TrashIcon size={14} /> Eliminar
       </button>
@@ -74,6 +111,7 @@ export function BulkBar({
       <button
         type="button"
         onClick={onClear}
+        disabled={none}
         aria-label="Desmarcar todo"
         title="Desmarcar (Esc)"
         className={`${barBtn} !px-1.5`}

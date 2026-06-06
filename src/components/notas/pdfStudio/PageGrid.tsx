@@ -14,9 +14,6 @@ export function PageGrid({
   onToggleSelect,
   onReorder,
   onNudge,
-  onRotate,
-  onDuplicate,
-  onDelete,
   onOpenText,
   onDropFiles,
 }: {
@@ -25,9 +22,6 @@ export function PageGrid({
   onToggleSelect: (index: number, shift: boolean) => void
   onReorder: (from: number, to: number) => void
   onNudge: (index: number, delta: -1 | 1) => void
-  onRotate: (index: number, delta: -1 | 1) => void
-  onDuplicate: (index: number) => void
-  onDelete: (index: number) => void
   onOpenText: (index: number) => void
   onDropFiles: (e: DragEvent) => void
 }) {
@@ -67,9 +61,6 @@ export function PageGrid({
             endDrag()
           }}
           onNudge={onNudge}
-          onRotate={(delta) => onRotate(index, delta)}
-          onDuplicate={() => onDuplicate(index)}
-          onDelete={onDelete}
           onOpenText={() => onOpenText(index)}
         />
       ))}

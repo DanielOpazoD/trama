@@ -137,9 +137,9 @@ describe('<PdfStudioView />', () => {
     expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
     expect(mocks.getPdfPageCount).toHaveBeenCalledTimes(1)
 
-    // Borrar la primera (acción en el menú ⋯) → queda una.
-    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
-    await user.click(await screen.findByRole('menuitem', { name: /Eliminar página/i }))
+    // Marcar la primera y eliminarla desde la barra de edición → queda una.
+    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }))
     expect(screen.queryByAltText('Página 2')).not.toBeInTheDocument()
     expect(screen.getByText(/1 página/)).toBeInTheDocument()
     expect(mocks.forgetThumb).toHaveBeenCalled()
@@ -172,8 +172,9 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
-    await user.click(await screen.findByRole('menuitem', { name: /Rotar a la derecha/i }))
+    // Marcar la primera y rotarla desde la barra de edición.
+    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Rotar a la derecha/i }))
     // La página sigue ahí y ahora hay historial para deshacer la rotación.
     expect(screen.getByAltText('Página 1')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Deshacer/i })).toBeEnabled()
@@ -185,9 +186,8 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    // Abrir el editor de texto desde el menú ⋯ de la primera página.
-    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
-    await user.click(await screen.findByRole('menuitem', { name: /Agregar texto/i }))
+    // Abrir el editor con doble clic en la miniatura.
+    await user.dblClick(screen.getByAltText('Página 1'))
     expect(
       await screen.findByRole('dialog', { name: /Texto sobre la página 1/i }),
     ).toBeInTheDocument()
@@ -209,8 +209,7 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
-    await user.click(await screen.findByRole('menuitem', { name: /Agregar texto/i }))
+    await user.dblClick(screen.getByAltText('Página 1'))
     await screen.findByRole('dialog', { name: /Texto sobre la página 1/i })
     await user.click(screen.getByRole('button', { name: /Agregar texto/i }))
     await user.click(screen.getByRole('button', { name: /Duplicar texto/i }))
@@ -246,8 +245,8 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
     await user.click(screen.getByRole('button', { name: /Incluir la hoja 2 en el PDF/i }))
 
-    // Aparece la barra de lote con el conteo.
-    expect(screen.getByRole('toolbar', { name: /hojas marcadas/i })).toBeInTheDocument()
+    // La barra de edición (siempre visible) refleja el conteo de marcadas.
+    expect(screen.getByRole('toolbar', { name: /edición de hojas/i })).toBeInTheDocument()
     expect(screen.getByText(/2 marcadas/)).toBeInTheDocument()
 
     // Eliminar en lote → documento vacío.
@@ -265,6 +264,24 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
     await user.click(screen.getByRole('button', { name: 'Duplicar' }))
     expect(screen.getByText(/3 páginas/)).toBeInTheDocument()
+  })
+
+  it('la barra de edición está siempre visible y "Texto" abre la hoja marcada', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    // La barra aparece sin marcar nada; "Texto" está deshabilitado.
+    expect(screen.getByRole('toolbar', { name: /edición de hojas/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Texto' })).toBeDisabled()
+
+    // Marcar 1 hoja → "Texto" abre el editor de esa página.
+    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: 'Texto' }))
+    expect(
+      await screen.findByRole('dialog', { name: /Texto sobre la página 1/i }),
+    ).toBeInTheDocument()
   })
 
   it('Guardar PDF refleja la marca y exporta sólo las hojas marcadas', async () => {

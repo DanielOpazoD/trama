@@ -4,7 +4,6 @@ import {
   addPdfSource,
   applyEdits,
   canExport,
-  deletePage,
   deletePages,
   duplicatePages,
   emptyDoc,
@@ -14,7 +13,6 @@ import {
   normalizeDoc,
   pageThumbKey,
   reseedIds,
-  rotatePage,
   rotatePages,
   subsetDoc,
   type Annotation,
@@ -329,11 +327,6 @@ export function PdfStudioView() {
     }
   }
 
-  function removePage(index: number) {
-    forgetRemovedThumbs([index])
-    commit((d) => deletePage(d, index))
-  }
-
   function reorder(from: number, to: number) {
     commit((d) => movePage(d, from, to))
   }
@@ -342,15 +335,12 @@ export function PdfStudioView() {
     commit((d) => movePageByDelta(d, index, delta))
   }
 
-  function rotate(index: number, delta: -1 | 1) {
-    commit((d) => rotatePage(d, index, delta))
+  // ── Acciones en lote sobre la selección (barra de edición) ────────────────
+  /** Abre el editor de texto de la única hoja marcada (botón "Texto" de la barra). */
+  function editSelectedText() {
+    if (selectedIndices.length === 1) setTextPage(selectedIndices[0]!)
   }
 
-  function duplicateOne(index: number) {
-    commit((d) => duplicatePages(d, [index]))
-  }
-
-  // ── Acciones en lote sobre la selección ──────────────────────────────────
   function bulkRotate(delta: -1 | 1) {
     if (selectedCount > 0) commit((d) => rotatePages(d, selectedIndices, delta))
   }
@@ -518,11 +508,23 @@ export function PdfStudioView() {
       onToggleSelect={toggleSelect}
       onReorder={reorder}
       onNudge={nudge}
-      onRotate={rotate}
-      onDuplicate={duplicateOne}
-      onDelete={removePage}
       onOpenText={setTextPage}
       onDropFiles={onDropFiles}
+    />
+  )
+
+  // Barra de edición de hojas: SIEMPRE visible cuando hay páginas (actúa sobre las
+  // marcadas con el tick). Vive en la columna izquierda, sobre la grilla.
+  const editBar = !empty && (
+    <BulkBar
+      count={selectedCount}
+      total={total}
+      onEditText={editSelectedText}
+      onRotate={bulkRotate}
+      onDuplicate={bulkDuplicate}
+      onDelete={bulkDelete}
+      onSelectAll={selectAll}
+      onClear={clearSelection}
     />
   )
 
@@ -611,36 +613,31 @@ export function PdfStudioView() {
         />
       </div>
 
-      {selectedCount > 0 && (
-        <BulkBar
-          count={selectedCount}
-          total={total}
-          onRotate={bulkRotate}
-          onDuplicate={bulkDuplicate}
-          onDelete={bulkDelete}
-          onSelectAll={selectAll}
-          onClear={clearSelection}
-        />
-      )}
-
       {showPanel ? (
-        <div className="flex items-start gap-3">
-          <div className="flex-1 min-w-0">{mainPane}</div>
-          <WorkspacePanel
-            library={library}
-            onAddImage={addLibraryToDoc}
-            onRemoveImage={removeFromLibrary}
-            onDownloadImage={downloadLibrary}
-            saved={saved}
-            canSave={!empty}
-            onSaveCreation={saveCreation}
-            onOpenSaved={openSaved}
-            onRenameSaved={renameSaved}
-            onDeleteSaved={removeSaved}
-            onDownloadSaved={downloadSaved}
-            collapsed={panelCollapsed}
-            onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
-          />
+        <div className="flex items-start gap-4">
+          <div className="min-w-0 flex-1 space-y-3">
+            {editBar}
+            {mainPane}
+          </div>
+          {/* Panel a la DERECHA, full-height en desktop (sticky → siempre visible
+              mientras se hace scroll de la grilla); en móvil acompaña a la grilla. */}
+          <div className="shrink-0 self-stretch md:sticky md:top-0 md:h-[calc(100dvh-3.25rem)] md:self-start">
+            <WorkspacePanel
+              library={library}
+              onAddImage={addLibraryToDoc}
+              onRemoveImage={removeFromLibrary}
+              onDownloadImage={downloadLibrary}
+              saved={saved}
+              canSave={!empty}
+              onSaveCreation={saveCreation}
+              onOpenSaved={openSaved}
+              onRenameSaved={renameSaved}
+              onDeleteSaved={removeSaved}
+              onDownloadSaved={downloadSaved}
+              collapsed={panelCollapsed}
+              onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
+            />
+          </div>
         </div>
       ) : (
         mainPane
