@@ -56,6 +56,10 @@ export function reduceAnnotationShortcut({
     return { annotations, selectedId, clipboard: current, handled: true }
   }
 
+  if (current.locked) {
+    return { annotations, selectedId, clipboard, handled: false }
+  }
+
   if (mod && normalizedKey === 'x') {
     return {
       annotations: annotations.filter((a) => a.id !== current.id),

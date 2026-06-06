@@ -312,6 +312,116 @@ test.describe('Imprenta · editor PDF', () => {
     expect(afterFontSize).toBeCloseTo(beforeFontSize, 1)
   })
 
+  test('muestra inspector de selección con alinear y bloquear objeto', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+
+    await page.getByRole('button', { name: 'Agregar cuadro de texto' }).click()
+    const editor = page.getByRole('textbox', { name: 'Editar texto' })
+    await expect(editor).toBeVisible()
+    await editor.fill('Inspector QA')
+    await page.keyboard.press('Enter')
+
+    const textBox = page.getByTitle('Doble clic para editar · arrastra para mover')
+    await expect(textBox).toBeVisible()
+    await textBox.click()
+
+    const inspector = page.getByRole('complementary', {
+      name: 'Inspector de selección',
+    })
+    await expect(inspector).toBeVisible()
+
+    const before = await textBox.boundingBox()
+    expect(before).not.toBeNull()
+    if (!before) return
+
+    await inspector.getByRole('button', { name: 'Alinear a la derecha' }).click()
+    const afterAlign = await textBox.boundingBox()
+    expect(afterAlign).not.toBeNull()
+    if (!afterAlign) return
+    expect(afterAlign.x).toBeGreaterThan(before.x + 80)
+
+    await inspector.getByRole('button', { name: 'Bloquear selección' }).click()
+    await expect(
+      inspector.getByRole('button', { name: 'Desbloquear selección' }),
+    ).toBeVisible()
+
+    const start = {
+      x: afterAlign.x + afterAlign.width / 2,
+      y: afterAlign.y + afterAlign.height / 2,
+    }
+    await page.mouse.move(start.x, start.y)
+    await page.mouse.down()
+    await page.mouse.move(start.x - 100, start.y + 40)
+    await page.mouse.up()
+
+    const afterLockedDrag = await textBox.boundingBox()
+    expect(afterLockedDrag).not.toBeNull()
+    if (!afterLockedDrag) return
+    expect(afterLockedDrag.x).toBeCloseTo(afterAlign.x, 0)
+  })
+
+  test('permite selección múltiple y distribución desde el inspector', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+
+    await page.getByRole('button', { name: 'Herramienta resaltar' }).click()
+
+    const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
+    const pageImage = dialog.getByAltText('Página 1')
+    const pageBox = await pageImage.boundingBox()
+    expect(pageBox).not.toBeNull()
+    if (!pageBox) return
+
+    const drawHighlight = async (left: number, top: number) => {
+      await page.mouse.move(
+        pageBox.x + pageBox.width * left,
+        pageBox.y + pageBox.height * top,
+      )
+      await page.mouse.down()
+      await page.mouse.move(
+        pageBox.x + pageBox.width * (left + 0.08),
+        pageBox.y + pageBox.height * (top + 0.055),
+      )
+      await page.mouse.up()
+    }
+
+    await drawHighlight(0.12, 0.22)
+    await drawHighlight(0.32, 0.3)
+    await drawHighlight(0.82, 0.38)
+
+    await page.getByRole('button', { name: 'Herramienta seleccionar' }).click()
+    const highlights = page.locator('[title="Arrastra para mover"]')
+    await expect(highlights).toHaveCount(3)
+
+    const before = await highlights.nth(1).boundingBox()
+    expect(before).not.toBeNull()
+    if (!before) return
+
+    await highlights.nth(0).click()
+    await highlights.nth(1).click({ modifiers: [shortcutMod] })
+    await highlights.nth(2).click({ modifiers: [shortcutMod] })
+
+    await expect(
+      page.getByRole('button', { name: 'Distribuir horizontalmente' }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Agrupar selección', exact: true }),
+    ).toBeVisible()
+
+    await page.getByRole('button', { name: 'Distribuir horizontalmente' }).click()
+
+    const after = await highlights.nth(1).boundingBox()
+    expect(after).not.toBeNull()
+    if (!after) return
+    expect(after.x).toBeGreaterThan(before.x + 40)
+
+    await page.getByRole('button', { name: 'Agrupar selección', exact: true }).click()
+    await page.getByRole('button', { name: 'Desagrupar selección' }).click()
+  })
+
   test('permite duplicar arrastrando con Alt y muestra guías de snapping', async ({
     page,
   }) => {

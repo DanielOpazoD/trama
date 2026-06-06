@@ -142,4 +142,32 @@ describe('reduceAnnotationShortcut', () => {
     })
     expect(noSelection.handled).toBe(false)
   })
+
+  it('ignora comandos mutantes sobre una anotación bloqueada', () => {
+    const locked: Annotation = { ...baseText, locked: true }
+
+    for (const key of ['x', 'd', 'Delete', 'ArrowRight']) {
+      const result = reduceAnnotationShortcut({
+        annotations: [locked, otherText],
+        selectedId: 'txt',
+        clipboard: null,
+        key,
+        mod: key === 'x' || key === 'd',
+        shift: false,
+      })
+      expect(result.handled).toBe(false)
+      expect(result.annotations).toEqual([locked, otherText])
+    }
+
+    const copied = reduceAnnotationShortcut({
+      annotations: [locked],
+      selectedId: 'txt',
+      clipboard: null,
+      key: 'c',
+      mod: true,
+      shift: false,
+    })
+    expect(copied.handled).toBe(true)
+    expect(copied.clipboard).toEqual(locked)
+  })
 })
