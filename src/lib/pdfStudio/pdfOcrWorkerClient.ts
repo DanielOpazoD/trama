@@ -1,5 +1,6 @@
 import { runPdfHeavyOperation } from './heavyOperationClient'
 import { createSearchablePdf, type PdfOcrOptions, type PdfOcrResult } from './pdfOcr'
+import { createClientPdfOcrAdapter } from './pdfOcrBackendAdapter'
 import {
   PDF_OCR_OPERATION_KIND,
   type PdfOcrWorkerPayload,
@@ -16,6 +17,8 @@ function createPdfOcrWorker(): Worker {
   })
 }
 
+const clientPdfOcrAdapter = createClientPdfOcrAdapter(createSearchablePdf)
+
 export function createSearchablePdfInWorker(
   file: File,
   options: PdfOcrOptions,
@@ -31,6 +34,6 @@ export function createSearchablePdfInWorker(
     createWorker: createPdfOcrWorker,
     signal: options.signal,
     onProgress: options.onProgress,
-    fallback: () => createSearchablePdf(file, options),
+    fallback: () => clientPdfOcrAdapter.run(file, options),
   })
 }
