@@ -33,26 +33,23 @@ import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
 import {
   clearDraft,
   deleteSavedDoc,
-  listSavedDocs,
-  loadDraft,
   putSavedDoc,
-  saveDraft,
   type SavedDoc,
 } from '../../../lib/pdfStudio/persistence'
 import { downloadBlob } from '../../../lib/downloadBlob'
-import { useCurrentClientUserId } from '../../../lib/clientIdentity'
 import { OverflowMenu, OverflowMenuItem } from '../../OverflowMenu'
 import { BulkBar } from './BulkBar'
 import { WorkspacePanel } from './WorkspacePanel'
+import { PdfDropzone } from './PdfDropzone'
 import { PageGrid } from './PageGrid'
 import { PdfTextEditor } from './PdfTextEditor'
 import { usePageSelection } from './usePageSelection'
 import { usePdfStudioExport } from './usePdfStudioExport'
 import { usePdfStudioImport } from './usePdfStudioImport'
+import { usePdfStudioWorkspace } from './usePdfStudioWorkspace'
 import {
   DownloadIcon,
   FileIcon,
-  FilePdfIcon,
   PrinterIcon,
   RedoIcon,
   UndoIcon,
@@ -60,7 +57,6 @@ import {
 } from '../../Icons'
 import { useToast } from '../../../state'
 
-const ACCENT = 'var(--accent-sage)'
 const ACCEPT = 'application/pdf,image/*'
 
 function isMacLike(): boolean {
@@ -102,16 +98,15 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     selectAll,
   } = usePageSelection(doc.pages)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  // Borrador autoguardado por usuario (sin Clerk, `getCurrentClientUserId` es
-  // null → clave 'anon'). `loaded` evita autoguardar antes de restaurar.
-  const userKey = useCurrentClientUserId() ?? 'anon'
-  const [loaded, setLoaded] = useState(false)
-  // Biblioteca de imágenes subidas (workspace reutilizable, aparte del documento).
-  // Arranca colapsada (riel finito); se abre al subir la primera imagen.
-  const [library, setLibrary] = useState<ImageAsset[]>([])
-  // Creaciones guardadas (con nombre, perduran aparte del borrador de trabajo).
-  const [saved, setSaved] = useState<SavedDoc[]>([])
-  const [panelCollapsed, setPanelCollapsed] = useState(true)
+  const {
+    library,
+    panelCollapsed,
+    saved,
+    setLibrary,
+    setPanelCollapsed,
+    setSaved,
+    userKey,
+  } = usePdfStudioWorkspace({ doc, setHistory })
   // `toast` cambia de referencia al mostrarse uno (el contexto lleva el actual);
   // se accede por ref para que el efecto de carga NO se re-dispare en loop.
   const toastRef = useRef(toast)
@@ -151,44 +146,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
 
   // Al desmontar la sección, libera las miniaturas/documentos de pdf.js.
   useEffect(() => () => disposePdfStudio(), [])
-
-  // Al montar: restaura el borrador autoguardado del usuario (si tiene páginas).
-  // `reseedIds` continúa el contador de ids para no colisionar tras recargar.
-  useEffect(() => {
-    let alive = true
-    void loadDraft(userKey).then((draft) => {
-      if (!alive) return
-      if (draft && (draft.doc.pages.length > 0 || draft.library.length > 0)) {
-        // Compat: anotaciones de borradores viejos (sin `kind`) → texto.
-        const restored = normalizeDoc(draft.doc)
-        reseedIds(restored)
-        setHistory(initHistory(restored))
-        setLibrary(draft.library)
-        if (draft.library.length > 0) setPanelCollapsed(false)
-        toastRef.current.show({
-          message: 'Borrador del editor restaurado.',
-          tone: 'success',
-        })
-      }
-      setLoaded(true)
-    })
-    // Lista de creaciones guardadas (perdura aparte del borrador).
-    void listSavedDocs(userKey).then((list) => {
-      if (!alive) return
-      setSaved(list)
-      if (list.length > 0) setPanelCollapsed(false)
-    })
-    return () => {
-      alive = false
-    }
-  }, [userKey])
-
-  // Autoguardado debounced del documento + la biblioteca (tras restaurar).
-  useEffect(() => {
-    if (!loaded) return
-    const t = window.setTimeout(() => void saveDraft(userKey, doc, library), 600)
-    return () => window.clearTimeout(t)
-  }, [doc, library, loaded, userKey])
 
   // Atajos de teclado de la grilla (con el editor de texto cerrado y fuera de
   // inputs): deshacer/rehacer (⌘Z/⌘⇧Z), seleccionar todo (⌘A), copiar/cortar/pegar
@@ -397,38 +354,11 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   // El panel aparece cuando hay hojas (para poder guardar), imágenes o guardados.
   const showPanel = !empty || library.length > 0 || saved.length > 0
 
-  const dropzone = (
-    <button
-      type="button"
-      onClick={() => fileInputRef.current?.click()}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={onDropFiles}
-      className="group mx-auto flex w-full max-w-3xl flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-ink-200 bg-paper-50/55 px-6 py-16 text-center shadow-sm shadow-ink-900/5 transition-colors hover:border-ink-300 hover:bg-paper-50/80"
-    >
-      <span
-        className="inline-flex h-12 w-12 items-center justify-center rounded-md transition-transform duration-200 group-hover:scale-105"
-        style={{ backgroundColor: 'var(--accent-sage-soft)', color: ACCENT }}
-      >
-        <FilePdfIcon size={22} />
-      </span>
-      <span className="flex flex-col gap-1">
-        <span className="text-body font-medium text-ink-700">
-          Arrastra PDFs o imágenes aquí
-        </span>
-        <span className="text-caption text-ink-400">o haz clic para elegir archivos</span>
-      </span>
-      <span className="flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-400">
-        {['PDF', 'JPG', 'PNG'].map((t) => (
-          <span key={t} className="rounded bg-ink-100/60 px-1.5 py-0.5">
-            {t}
-          </span>
-        ))}
-      </span>
-    </button>
-  )
-
   const mainPane = empty ? (
-    dropzone
+    <PdfDropzone
+      onClick={() => fileInputRef.current?.click()}
+      onDropFiles={onDropFiles}
+    />
   ) : (
     <PageGrid
       doc={doc}

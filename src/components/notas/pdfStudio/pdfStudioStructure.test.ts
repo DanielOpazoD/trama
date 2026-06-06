@@ -12,4 +12,10 @@ describe('pdfStudio · estructura incremental', () => {
       fileLineCount('src/components/notas/pdfStudio/PdfTextEditor.tsx'),
     ).toBeLessThanOrEqual(650)
   })
+
+  it('mantiene PdfStudioView bajo el ratchet estructural actual', () => {
+    expect(
+      fileLineCount('src/components/notas/pdfStudio/PdfStudioView.tsx'),
+    ).toBeLessThanOrEqual(650)
+  })
 })
