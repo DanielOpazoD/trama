@@ -150,8 +150,9 @@ export function AnnotationLayer({
       key={`${a.id}-${handle}`}
       type="button"
       aria-label={label}
+      title={label}
       onPointerDown={(e) => onStartResize(e, a, handle)}
-      className="absolute z-10 h-3 w-3 rounded-sm border border-paper-50 bg-[color:var(--accent-sage)] shadow-sm shadow-ink-900/25"
+      className="absolute z-10 h-3.5 w-3.5 rounded-sm border border-paper-50 bg-[color:var(--accent-sage)] shadow-sm shadow-ink-900/25"
       style={{
         left,
         top,
@@ -202,7 +203,11 @@ export function AnnotationLayer({
       : null
 
   const rectResizeHandles = (a: HighlightAnnotation | ImageAnnotation) =>
-    boxResizeHandles(a, a)
+    boxResizeHandles(
+      a,
+      a,
+      a.kind === 'image' ? 'Redimensionar imagen desde' : 'Redimensionar resaltado desde',
+    )
 
   const textResizeHandles = (a: TextAnnotation, sz: number) => {
     const widthPx = Math.max(sz * 1.6, (a.text || ' ').length * sz * 0.55)

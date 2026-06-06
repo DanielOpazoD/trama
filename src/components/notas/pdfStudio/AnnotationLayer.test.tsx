@@ -92,11 +92,25 @@ describe('<AnnotationLayer />', () => {
   it('muestra handles de redimensionado al seleccionar un resaltado', () => {
     const { props } = setup({ selectedId: HL.id })
     const handle = screen.getByRole('button', {
-      name: 'Redimensionar desde esquina inferior derecha',
+      name: 'Redimensionar resaltado desde esquina inferior derecha',
     })
-    expect(screen.getAllByLabelText(/Redimensionar desde esquina/i)).toHaveLength(4)
+    expect(
+      screen.getAllByLabelText(/Redimensionar resaltado desde esquina/i),
+    ).toHaveLength(4)
     fireEvent.pointerDown(handle)
     expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), HL, 'se')
+  })
+
+  it('muestra handles de redimensionado al seleccionar una imagen estampada', () => {
+    const { props } = setup({ selectedId: IMG.id })
+    const handle = screen.getByRole('button', {
+      name: 'Redimensionar imagen desde esquina inferior derecha',
+    })
+    expect(screen.getAllByLabelText(/Redimensionar imagen desde esquina/i)).toHaveLength(
+      4,
+    )
+    fireEvent.pointerDown(handle)
+    expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), IMG, 'se')
   })
 
   it('muestra handles de redimensionado al seleccionar un cuadro de texto', () => {

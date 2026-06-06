@@ -106,4 +106,62 @@ test.describe('Imprenta · editor PDF', () => {
     await expectMenuInFront(page, 'Color')
     await expectMenuInFront(page, 'Más funciones')
   })
+
+  test('permite redimensionar un resaltado arrastrando un handle', async ({ page }) => {
+    await openPdfEditor(page)
+
+    await page.getByRole('button', { name: 'Herramienta resaltar' }).click()
+
+    const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
+    const pageImage = dialog.getByAltText('Página 1')
+    const pageBox = await pageImage.boundingBox()
+    expect(pageBox).not.toBeNull()
+    if (!pageBox) return
+
+    await page.mouse.move(
+      pageBox.x + pageBox.width * 0.28,
+      pageBox.y + pageBox.height * 0.25,
+    )
+    await page.mouse.down()
+    await page.mouse.move(
+      pageBox.x + pageBox.width * 0.48,
+      pageBox.y + pageBox.height * 0.38,
+    )
+    await page.mouse.up()
+
+    await page.getByRole('button', { name: 'Herramienta seleccionar' }).click()
+
+    const highlight = page.locator('[title="Arrastra para mover"]').first()
+    await expect(highlight).toBeVisible()
+
+    const before = await highlight.boundingBox()
+    expect(before).not.toBeNull()
+    if (!before) return
+
+    const handle = page.getByRole('button', {
+      name: 'Redimensionar resaltado desde esquina inferior derecha',
+    })
+    await expect(handle).toBeVisible()
+    const handleBox = await handle.boundingBox()
+    expect(handleBox).not.toBeNull()
+    if (!handleBox) return
+
+    await page.mouse.move(
+      handleBox.x + handleBox.width / 2,
+      handleBox.y + handleBox.height / 2,
+    )
+    await page.mouse.down()
+    await page.mouse.move(
+      handleBox.x + handleBox.width / 2 + 90,
+      handleBox.y + handleBox.height / 2 + 60,
+    )
+    await page.mouse.up()
+
+    const after = await highlight.boundingBox()
+    expect(after).not.toBeNull()
+    if (!after) return
+
+    expect(after.width).toBeGreaterThan(before.width + 20)
+    expect(after.height).toBeGreaterThan(before.height + 12)
+  })
 })
