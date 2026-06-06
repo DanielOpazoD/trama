@@ -26,6 +26,9 @@ const calls = vi.hoisted(() => ({
   drawRectangle: vi.fn(),
   setRotation: vi.fn(),
   registerFontkit: vi.fn(),
+  load: vi.fn(),
+  save: vi.fn(),
+  failSave: false,
 }))
 
 vi.mock('pdf-lib', () => {
@@ -69,10 +72,21 @@ vi.mock('pdf-lib', () => {
           },
           registerFontkit: (...a: unknown[]) => calls.registerFontkit(...a),
           getPageCount: () => count,
-          save: async () => new Uint8Array([37, 80, 68, 70]),
+          save: async () => {
+            calls.save()
+            if (calls.failSave) throw new Error('out of memory while saving')
+            return new Uint8Array([37, 80, 68, 70])
+          },
         }
       },
-      load: async () => ({}),
+      load: async (bytes: Uint8Array) => {
+        calls.load(bytes)
+        const text = String.fromCharCode(...bytes.slice(0, 64))
+        if (text.includes('BROKEN') || text.includes('ENCRYPTED')) {
+          throw new Error('encrypted or corrupt fixture')
+        }
+        return {}
+      },
     },
     rgb: (r: number, g: number, b: number) => ({ r, g, b }),
     degrees: (n: number) => ({ __deg: n }),
@@ -105,10 +119,12 @@ const pngDataUrl = (w = 10, h = 10) =>
 
 const png = (name = 'a.png') =>
   new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], name, { type: 'image/png' })
-const pdf = (name = 'a.pdf') => new File(['%PDF'], name, { type: 'application/pdf' })
+const pdf = (name = 'a.pdf', body = '%PDF') =>
+  new File([body], name, { type: 'application/pdf' })
 
 beforeEach(() => {
   vi.clearAllMocks()
+  calls.failSave = false
   // `fetch` del WOFF → bytes cualquiera (pdf-lib está mockeado, no los parsea).
   vi.stubGlobal(
     'fetch',
@@ -167,6 +183,38 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(calls.copyPages).toHaveBeenCalledTimes(1)
     expect(calls.embedPng).not.toHaveBeenCalled()
     expect(calls.embedJpg).not.toHaveBeenCalled()
+  })
+
+  it('cachea un PDF grande y copia múltiples páginas sin recargar el source', async () => {
+    await assemble(addPdfSource(emptyDoc(), pdf('heavy.pdf'), 20))
+
+    expect(calls.load).toHaveBeenCalledTimes(1)
+    expect(calls.copyPages).toHaveBeenCalledTimes(20)
+    expect(calls.save).toHaveBeenCalledTimes(1)
+  })
+
+  it('salta un PDF corrupto o cifrado y exporta las páginas restantes', async () => {
+    let doc = addPdfSource(emptyDoc(), pdf('cifrado.pdf', 'ENCRYPTED'), 1)
+    doc = addImageSource(doc, png('respaldo.png'))
+
+    const { skipped, blob } = await assemble(doc)
+
+    expect(blob.type).toBe('application/pdf')
+    expect(skipped).toEqual([
+      { name: 'cifrado.pdf', reason: 'encrypted or corrupt fixture' },
+    ])
+    expect(calls.embedPng).toHaveBeenCalledTimes(1)
+  })
+
+  it('lanza error tipado cuando falla el guardado del PDF final', async () => {
+    calls.failSave = true
+
+    await expect(assemble(addImageSource(emptyDoc(), png()))).rejects.toMatchObject({
+      name: 'PdfExportPipelineError',
+      phase: 'save',
+      code: 'SAVE_FAILED',
+      message: expect.stringContaining('out of memory while saving'),
+    })
   })
 
   it('la rotación aplica setRotation con el ángulo correcto', async () => {
@@ -364,6 +412,7 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
   it('readPngSize lee las dimensiones del IHDR; null si no es PNG', () => {
     expect(readPngSize(pngHeader(800, 600))).toEqual({ w: 800, h: 600 })
     expect(readPngSize(pngHeader(12000, 9000))).toEqual({ w: 12000, h: 9000 })
+    expect(readPngSize(pngHeader(30000, 24000))).toEqual({ w: 30000, h: 24000 })
     expect(readPngSize(new Uint8Array([1, 2, 3]))).toBeNull()
   })
 })

@@ -86,6 +86,12 @@ npm run e2e -- e2e/pdf-studio-editor.spec.ts --project=chromium
 Tambien revisar line-count ratchets en
 `src/components/notas/pdfStudio/pdfStudioStructure.test.ts`.
 
+Snapshots visuales opt-in para macOS:
+
+```bash
+PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chromium
+```
+
 ## Limites Conocidos
 
 - `vendor-pdf-lib` y `pdf.worker` siguen siendo chunks grandes, aunque cargan de
