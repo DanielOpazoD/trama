@@ -293,6 +293,47 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
     throw new Error('No se pudo armar el PDF: ninguna página se pudo procesar.')
   }
 
+  // Ajustes a NIVEL DOCUMENTO: numeración en el pie + marca de agua diagonal sobre
+  // TODAS las páginas de salida. Usan Helvetica estándar (no requiere fontkit). Se
+  // dibujan en el espacio SIN rotar (una página rotada los llevaría rotados, caso
+  // raro y aceptable para v1).
+  const settings = doc.settings
+  const wmText = settings?.watermark?.text?.trim()
+  if (settings?.pageNumbers || wmText) {
+    const outPages = out.getPages()
+    const helv = await out.embedFont('Helvetica')
+    const total = outPages.length
+    outPages.forEach((p, i) => {
+      const w = p.getWidth()
+      const h = p.getHeight()
+      if (settings?.pageNumbers) {
+        const label = `${i + 1} / ${total}`
+        const size = Math.max(8, Math.min(w, h) * 0.018)
+        const tw = helv.widthOfTextAtSize(label, size)
+        const margin = Math.max(18, Math.min(w, h) * 0.04)
+        const pos = settings.pageNumbers.position
+        const x =
+          pos === 'left' ? margin : pos === 'right' ? w - margin - tw : (w - tw) / 2
+        p.drawText(label, { x, y: margin, size, font: helv, color: rgb(0.35, 0.35, 0.4) })
+      }
+      if (wmText) {
+        const size = Math.min(w, h) * 0.13
+        const tw = helv.widthOfTextAtSize(wmText, size)
+        // Centrado aprox. de un texto rotado 45° (CCW) respecto de su inicio.
+        const d = (tw / 2) * Math.SQRT1_2
+        p.drawText(wmText, {
+          x: w / 2 - d,
+          y: h / 2 - d,
+          size,
+          font: helv,
+          color: rgb(0.6, 0.6, 0.62),
+          opacity: 0.12,
+          rotate: degrees(45),
+        })
+      }
+    })
+  }
+
   const bytes = await out.save()
   const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' })
   return { blob, skipped }

@@ -77,9 +77,23 @@ export type PdfPage = {
   | { kind: 'image'; sourceId: string }
 )
 
+/**
+ * Ajustes a nivel DOCUMENTO (no de una página): se aplican al ensamblar, sobre
+ * TODAS las páginas. Hoy: numeración en el pie y marca de agua diagonal. Opcionales
+ * (ausente = desactivado). Viven en `PdfDoc` para persistir con el borrador/guardado.
+ */
+export type DocSettings = {
+  /** Numeración de páginas en el pie ("n / total"). Ausente = sin números. */
+  pageNumbers?: { position: 'left' | 'center' | 'right' }
+  /** Marca de agua diagonal translúcida. Texto vacío/ausente = sin marca. */
+  watermark?: { text: string }
+}
+
 export type PdfDoc = {
   sources: PdfSource[]
   pages: PdfPage[]
+  /** Ajustes del documento (numeración, marca de agua). Opcional (compat). */
+  settings?: DocSettings
 }
 
 /**
@@ -274,6 +288,11 @@ export function getSource(doc: PdfDoc, sourceId: string): PdfSource | undefined 
 
 export function canExport(doc: PdfDoc): boolean {
   return doc.pages.length > 0
+}
+
+/** Reemplaza los ajustes del documento (numeración/marca de agua). Inmutable. */
+export function setDocSettings(doc: PdfDoc, settings: DocSettings): PdfDoc {
+  return { ...doc, settings }
 }
 
 /** Clave estable para cachear la miniatura de una página. */

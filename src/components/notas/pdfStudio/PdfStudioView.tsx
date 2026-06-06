@@ -14,8 +14,10 @@ import {
   pageThumbKey,
   reseedIds,
   rotatePages,
+  setDocSettings,
   subsetDoc,
   type Annotation,
+  type DocSettings,
   type ImageAsset,
   type PdfDoc,
 } from '../../../lib/pdfStudio/model'
@@ -47,6 +49,7 @@ import {
 import { downloadBlob } from '../../../lib/downloadBlob'
 import { useCurrentClientUserId } from '../../../lib/clientIdentity'
 import { BulkBar } from './BulkBar'
+import { DocSettingsMenu } from './DocSettingsMenu'
 import { WorkspacePanel } from './WorkspacePanel'
 import { PageGrid } from './PageGrid'
 import { PdfTextEditor } from './PdfTextEditor'
@@ -155,6 +158,12 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
       const value = typeof next === 'function' ? next(h.present) : next
       return pushHistory(h, value)
     })
+  }, [])
+
+  /** Actualiza los ajustes del documento (numeración/marca de agua) SIN entrada de
+   *  historial (son config, no edición de contenido); igual persisten en el doc. */
+  const updateSettings = useCallback((settings: DocSettings) => {
+    setHistory((h) => ({ ...h, present: setDocSettings(h.present, settings) }))
   }, [])
 
   // Al desmontar la sección, libera las miniaturas/documentos de pdf.js.
@@ -668,6 +677,13 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
                       <RedoIcon size={14} />
                     </button>
                   </div>
+                )}
+                {!empty && (
+                  <DocSettingsMenu
+                    settings={doc.settings}
+                    onChange={updateSettings}
+                    disabled={busy}
+                  />
                 )}
               </div>
               <div className="flex items-center gap-2">

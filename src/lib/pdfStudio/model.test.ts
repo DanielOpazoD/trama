@@ -26,6 +26,7 @@ import {
   reseedIds,
   rotatePage,
   rotatePages,
+  setDocSettings,
   setPageAnnotations,
   standardFontName,
   subsetDoc,
@@ -385,6 +386,22 @@ describe('pdfStudio/model · anotaciones polimórficas', () => {
     expect(out.pages).toHaveLength(3)
     expect(out.pages[0]!.sourceId).toBe(out.sources[out.sources.length - 1]!.id)
     expect(insertPages(d, emptyDoc())).toBe(d)
+  })
+
+  it('setDocSettings reemplaza los ajustes del documento (inmutable)', () => {
+    const d = addPdfSource(emptyDoc(), pdf(), 2)
+    expect(d.settings).toBeUndefined()
+    const out = setDocSettings(d, {
+      pageNumbers: { position: 'center' },
+      watermark: { text: 'BORRADOR' },
+    })
+    expect(out.settings).toEqual({
+      pageNumbers: { position: 'center' },
+      watermark: { text: 'BORRADOR' },
+    })
+    expect(out).not.toBe(d)
+    expect(d.settings).toBeUndefined() // no mutó el original
+    expect(out.pages).toBe(d.pages) // conserva el resto
   })
 
   it('cloneAnnotation copia con id nuevo y mismo contenido', () => {
