@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { assemble } from '../../../lib/pdfStudio/assemble'
+import { useRef, useState } from 'react'
+import { assemble, type AssembleOptions } from '../../../lib/pdfStudio/assemble'
 import { canExport, type PdfDoc } from '../../../lib/pdfStudio/model'
 import { openBlankPdfTab, showPdfInTab } from '../../../lib/pdfStudio/printPdf'
 import { downloadBlob } from '../../../lib/downloadBlob'
@@ -12,17 +12,33 @@ import {
   pdfExportProgressLabel,
 } from './pdfExportFeedback'
 
-export function usePdfStudioExport() {
+export function usePdfStudioExport({
+  compression = 'balanced',
+}: {
+  compression?: AssembleOptions['compression']
+} = {}) {
   const toast = useToast()
+  const abortRef = useRef<AbortController | null>(null)
   const [saving, setSaving] = useState(false)
   const [exportStatus, setExportStatus] = useState<string | null>(null)
 
   async function assembleOrToast(target: PdfDoc): Promise<Blob | null> {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
     setExportStatus(pdfExportProgressLabel(target.pages.length))
     try {
-      const { blob, skipped } = await assemble(target, {
+      const { blob, skipped, warnings } = await assemble(target, {
+        compression,
         onProgress: (event) => setExportStatus(pdfExportPipelineProgressLabel(event)),
+        signal: controller.signal,
       })
+      ;(warnings ?? []).forEach((warning) =>
+        toast.show({
+          message: warning.message,
+          tone: 'default',
+        }),
+      )
       if (skipped.length > 0) {
         toast.show({
           message: `Se saltearon ${skipped.length} archivo(s): ${skipped
@@ -38,6 +54,8 @@ export function usePdfStudioExport() {
         tone: 'error',
       })
       return null
+    } finally {
+      if (abortRef.current === controller) abortRef.current = null
     }
   }
 
@@ -94,8 +112,13 @@ export function usePdfStudioExport() {
     }
   }
 
+  function cancelExport() {
+    abortRef.current?.abort()
+  }
+
   return {
     assembleOrToast,
+    cancelExport,
     downloadPdf,
     downloadSaved,
     exportPdf,

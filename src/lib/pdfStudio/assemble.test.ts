@@ -72,8 +72,8 @@ vi.mock('pdf-lib', () => {
           },
           registerFontkit: (...a: unknown[]) => calls.registerFontkit(...a),
           getPageCount: () => count,
-          save: async () => {
-            calls.save()
+          save: async (...a: unknown[]) => {
+            calls.save(...a)
             if (calls.failSave) throw new Error('out of memory while saving')
             return new Uint8Array([37, 80, 68, 70])
           },
@@ -191,6 +191,47 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(calls.load).toHaveBeenCalledTimes(1)
     expect(calls.copyPages).toHaveBeenCalledTimes(20)
     expect(calls.save).toHaveBeenCalledTimes(1)
+  })
+
+  it('permite configurar compatibilidad de compresión al guardar', async () => {
+    await assemble(addImageSource(emptyDoc(), png()), { compression: 'compatibility' })
+
+    expect(calls.save).toHaveBeenCalledWith({ useObjectStreams: false })
+  })
+
+  it('emite warnings tempranos para exportaciones grandes o con muchas imágenes', async () => {
+    let doc = emptyDoc()
+    for (let i = 0; i < 20; i += 1) {
+      doc = addImageSource(doc, png(`img-${i}.png`))
+    }
+
+    const { warnings } = await assemble(doc)
+
+    expect(warnings).toEqual([expect.objectContaining({ code: 'LARGE_IMAGE_SET' })])
+  })
+
+  it('cancela la exportación con AbortSignal entre fases del pipeline', async () => {
+    const controller = new AbortController()
+    const progress: string[] = []
+
+    await expect(
+      assemble(addImageSource(emptyDoc(), png()), {
+        signal: controller.signal,
+        onProgress: (event) => {
+          progress.push(`${event.phase}:${event.status}`)
+          if (event.phase === 'validate-images' && event.status === 'complete') {
+            controller.abort()
+          }
+        },
+      }),
+    ).rejects.toMatchObject({
+      name: 'PdfExportPipelineError',
+      phase: 'process-pages',
+      code: 'CANCELLED',
+    })
+
+    expect(progress).toContain('validate-images:complete')
+    expect(calls.save).not.toHaveBeenCalled()
   })
 
   it('salta un PDF corrupto o cifrado y exporta las páginas restantes', async () => {

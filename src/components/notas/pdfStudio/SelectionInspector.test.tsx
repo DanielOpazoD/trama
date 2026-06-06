@@ -36,6 +36,7 @@ describe('<SelectionInspector />', () => {
     expect(
       screen.getByRole('complementary', { name: 'Inspector de selección' }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('1 objeto seleccionado')
     expect(screen.getByText('x 25%')).toBeInTheDocument()
     expect(screen.getByText('y 10%')).toBeInTheDocument()
     expect(screen.getByText('w 35%')).toBeInTheDocument()
@@ -110,5 +111,6 @@ describe('<SelectionInspector />', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Desagrupar selección' }))
     expect(props.onUngroup).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('status')).toHaveTextContent('3 objetos seleccionados')
   })
 })

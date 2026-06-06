@@ -6,6 +6,7 @@ import {
   distributeAnnotations,
   groupAnnotations,
   moveAnnotationLayer,
+  selectAnnotationsInBox,
   setAnnotationsLocked,
   setAnnotationBounds,
   ungroupAnnotations,
@@ -85,6 +86,23 @@ describe('pdfAnnotationArrange', () => {
       wRatio: 0.6,
       hRatio: 0.15,
     })
+  })
+
+  it('selecciona anotaciones que intersectan un marco de selección', () => {
+    const list = [
+      text('a', 0.08, 0.08),
+      mark('b', 0.36, 0.28),
+      shape('c', 0.7, 0.8),
+      { ...mark('d', 0.2, 0.2), locked: true },
+    ]
+
+    expect(
+      selectAnnotationsInBox(
+        list,
+        { xRatio: 0.05, yRatio: 0.05, wRatio: 0.42, hRatio: 0.28 },
+        geom,
+      ),
+    ).toEqual(['a', 'b', 'd'])
   })
 
   it('distribuye tres o más anotaciones por centros y respeta formas', () => {

@@ -338,14 +338,23 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
 
     expect(screen.getByRole('status')).toHaveTextContent('Preparando 2 páginas…')
+    expect(
+      screen.getByRole('button', { name: 'Cancelar exportación' }),
+    ).toBeInTheDocument()
     const options = mocks.assemble.mock.calls[0]![1] as {
+      compression: 'balanced'
       onProgress: (event: {
         phase: 'process-pages'
         status: 'progress'
         current: number
         total: number
       }) => void
+      signal: AbortSignal
     }
+    expect(options.compression).toBe('balanced')
+    expect(options.signal).toBeInstanceOf(AbortSignal)
+    await user.click(screen.getByRole('button', { name: 'Cancelar exportación' }))
+    expect(options.signal.aborted).toBe(true)
     act(() => {
       options.onProgress({
         phase: 'process-pages',

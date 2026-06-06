@@ -16,7 +16,7 @@ function setup(overrides: Partial<Parameters<typeof PageCanvas>[0]> = {}) {
     tool: 'select' as const,
     currentPage: 0,
     onStartDraw: vi.fn(),
-    onBackgroundClick: vi.fn(),
+    onStartMarquee: vi.fn(),
     children: <div data-testid="anotaciones" />,
     ...overrides,
   }
@@ -41,16 +41,17 @@ describe('<PageCanvas />', () => {
     expect(pageDiv.style.transform).toContain('scale(1.5)')
   })
 
-  it('clic en el fondo deselecciona (modo seleccionar)', () => {
+  it('apuntar el fondo inicia el gesto de selección por marco en modo seleccionar', () => {
     const { props } = setup()
-    fireEvent.click(screen.getByAltText('Página 1').parentElement!)
-    expect(props.onBackgroundClick).toHaveBeenCalledOnce()
+    fireEvent.pointerDown(screen.getByAltText('Página 1').parentElement!)
+    expect(props.onStartMarquee).toHaveBeenCalledOnce()
   })
 
   it('en modo seleccionar NO empieza a dibujar al apuntar', () => {
     const { props } = setup({ tool: 'select' })
     fireEvent.pointerDown(screen.getByAltText('Página 1').parentElement!)
     expect(props.onStartDraw).not.toHaveBeenCalled()
+    expect(props.onStartMarquee).toHaveBeenCalledOnce()
   })
 
   it('con una herramienta de dibujo (forma) empieza a dibujar al apuntar', () => {

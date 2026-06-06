@@ -194,6 +194,14 @@ describe('<AnnotationLayer />', () => {
     expect(container.querySelector('[data-pdf-snap-guide="y"]')).not.toBeNull()
   })
 
+  it('pinta el marco de selección por área en modo seleccionar', () => {
+    const { container } = setup({
+      selectionMarquee: { x0: 20, y0: 30, x1: 160, y1: 130 },
+    })
+
+    expect(container.querySelector('[data-pdf-selection-marquee="true"]')).not.toBeNull()
+  })
+
   it('dibuja el preview vectorial (SVG) mientras se arrastra una forma', () => {
     const { container } = setup({
       tool: 'rect',

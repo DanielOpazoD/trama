@@ -33,5 +33,8 @@ describe('pdfExportFeedback', () => {
     expect(describePdfExportError(new Error('Array buffer allocation failed'))).toMatch(
       /memoria|grande/i,
     )
+    expect(describePdfExportError(new Error('Exportación cancelada.'))).toMatch(
+      /cancelada/i,
+    )
   })
 })

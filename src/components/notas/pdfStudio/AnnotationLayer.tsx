@@ -18,6 +18,7 @@ import {
 import { rectFromPoints, type ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
 import { AnnotationResizeHandles } from './AnnotationResizeHandles'
 import { EditableBox } from './EditableBox'
+import { SelectionMarqueePreview } from './SelectionMarqueePreview'
 import { ShapeStroke } from './AnnotationShapeStroke'
 import {
   ACCENT,
@@ -41,6 +42,7 @@ export function AnnotationLayer({
   selectedIds = selectedId ? [selectedId] : [],
   editingId,
   drawing,
+  selectionMarquee,
   snapGuides = [],
   drawColor,
   onStartDrag,
@@ -61,6 +63,7 @@ export function AnnotationLayer({
   selectedIds?: string[]
   editingId: string | null
   drawing: DrawingRect | null
+  selectionMarquee?: DrawingRect | null
   snapGuides?: SnapGuide[]
   /** Color del resaltado en curso (para el preview punteado). */
   drawColor: string
@@ -297,8 +300,7 @@ export function AnnotationLayer({
           </div>
         ))}
 
-      {/* Formas vectoriales: SVG sobre la página, coords nativas vía viewBox (escala
-          uniforme con el zoom porque el aspecto coincide). */}
+      {/* Formas vectoriales sobre la página, en coords nativas vía viewBox. */}
       {(annotations.some((a) => a.kind === 'shape') ||
         (drawing && isShapeTool(tool))) && (
         <svg
@@ -418,7 +420,6 @@ export function AnnotationLayer({
           </div>
         ))}
 
-      {/* Preview en vivo del resaltado que se está dibujando */}
       {drawing &&
         tool === 'highlight' &&
         (() => {
@@ -439,6 +440,10 @@ export function AnnotationLayer({
             />
           )
         })()}
+
+      {selectionMarquee && tool === 'select' && (
+        <SelectionMarqueePreview rect={selectionMarquee} />
+      )}
     </>
   )
 }

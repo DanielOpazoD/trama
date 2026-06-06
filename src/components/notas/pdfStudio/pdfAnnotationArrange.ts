@@ -75,6 +75,16 @@ function unionBox(boxes: AnnotationBox[]): AnnotationBox | null {
   }
 }
 
+function boxesIntersect(a: AnnotationBox, b: AnnotationBox): boolean {
+  const aRight = a.xRatio + a.wRatio
+  const aBottom = a.yRatio + a.hRatio
+  const bRight = b.xRatio + b.wRatio
+  const bBottom = b.yRatio + b.hRatio
+  return (
+    a.xRatio <= bRight && aRight >= b.xRatio && a.yRatio <= bBottom && aBottom >= b.yRatio
+  )
+}
+
 export function annotationSelectionBox(
   annotations: Annotation[],
   ids: string[],
@@ -82,6 +92,19 @@ export function annotationSelectionBox(
 ): AnnotationBox | null {
   const selected = selectedAnnotations(annotations, ids).selected
   return unionBox(selected.map((a) => annotationArrangeBox(a, geometry)))
+}
+
+export function selectAnnotationsInBox(
+  annotations: Annotation[],
+  box: AnnotationBox,
+  geometry: AnnotationArrangeGeometry,
+): string[] {
+  const normalized = normalizeBounds(box)
+  return annotations
+    .filter((annotation) =>
+      boxesIntersect(annotationArrangeBox(annotation, geometry), normalized),
+    )
+    .map((annotation) => annotation.id)
 }
 
 function moveAnnotationToBox(

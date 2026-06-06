@@ -430,6 +430,55 @@ test.describe('Imprenta · editor PDF', () => {
     await page.getByRole('button', { name: 'Desagrupar selección' }).click()
   })
 
+  test('permite seleccionar varios objetos arrastrando un marco de selección', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+
+    await page.getByRole('button', { name: 'Herramienta resaltar' }).click()
+
+    const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
+    const pageImage = dialog.getByAltText('Página 1')
+    const pageBox = await pageImage.boundingBox()
+    expect(pageBox).not.toBeNull()
+    if (!pageBox) return
+
+    const drawHighlight = async (left: number, top: number) => {
+      await page.mouse.move(
+        pageBox.x + pageBox.width * left,
+        pageBox.y + pageBox.height * top,
+      )
+      await page.mouse.down()
+      await page.mouse.move(
+        pageBox.x + pageBox.width * (left + 0.08),
+        pageBox.y + pageBox.height * (top + 0.055),
+      )
+      await page.mouse.up()
+    }
+
+    await drawHighlight(0.18, 0.24)
+    await drawHighlight(0.34, 0.3)
+    await drawHighlight(0.74, 0.5)
+
+    await page.getByRole('button', { name: 'Herramienta seleccionar' }).click()
+    await page.mouse.move(
+      pageBox.x + pageBox.width * 0.12,
+      pageBox.y + pageBox.height * 0.2,
+    )
+    await page.mouse.down()
+    await expect(page.locator('[data-pdf-selection-marquee="true"]')).toBeVisible()
+    await page.mouse.move(
+      pageBox.x + pageBox.width * 0.5,
+      pageBox.y + pageBox.height * 0.42,
+    )
+    await page.mouse.up()
+
+    await expect(
+      page.getByRole('button', { name: 'Agrupar selección', exact: true }),
+    ).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Desagrupar selección' })).toBeVisible()
+  })
+
   test('permite duplicar arrastrando con Alt y muestra guías de snapping', async ({
     page,
   }) => {

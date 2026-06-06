@@ -231,6 +231,10 @@ export function SelectionInspector({
       aria-label="Inspector de selección"
       className="absolute right-3 top-28 z-30 w-[17rem] rounded-lg border border-ink-100/70 bg-paper-50/95 p-2 shadow-lg shadow-ink-900/10 backdrop-blur"
     >
+      <p role="status" aria-live="polite" className="sr-only">
+        {count === 1 ? '1 objeto seleccionado' : `${count} objetos seleccionados`}
+        {locked ? ', bloqueado' : ''}
+      </p>
       <div className="flex items-center justify-between gap-2">
         <p className="text-caption font-medium text-ink-700">Selección</p>
         <TinyButton

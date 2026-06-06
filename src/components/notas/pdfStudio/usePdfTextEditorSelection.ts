@@ -40,6 +40,20 @@ export function usePdfTextEditorSelection({
     setSelectedIds(id ? [id] : [])
   }, [])
 
+  const selectAnnotationIds = useCallback(
+    (ids: string[], additive = false) => {
+      clearEditing()
+      setSelectedIds((current) => {
+        const next = additive
+          ? [...current, ...ids.filter((id) => !current.includes(id))]
+          : ids
+        setSelectedIdState(next[next.length - 1] ?? null)
+        return next
+      })
+    },
+    [clearEditing],
+  )
+
   const toggleSelectedId = useCallback(
     (id: string) => {
       clearEditing()
@@ -139,6 +153,7 @@ export function usePdfTextEditorSelection({
     selectedAnn,
     selectedBounds,
     setSelectedId,
+    selectAnnotationIds,
     toggleSelectedId,
     applyStyle,
     alignSelection,

@@ -14,6 +14,7 @@ import {
   type DocSettings,
   type PdfDoc,
 } from '../../../lib/pdfStudio/model'
+import type { AssembleOptions } from '../../../lib/pdfStudio/assemble'
 import {
   canRedo,
   canUndo,
@@ -51,11 +52,13 @@ const ACCEPT = 'application/pdf,image/*'
  */
 export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   const toast = useToast()
+  const [exportCompression, setExportCompression] =
+    useState<AssembleOptions['compression']>('balanced')
   // El documento vive detrás de un historial (undo/redo). `doc` = presente.
   const [history, setHistory] = useState<History<PdfDoc>>(() => initHistory(emptyDoc()))
   const doc = history.present
-  const { downloadPdf, downloadSaved, exportPdf, exportStatus, saving } =
-    usePdfStudioExport()
+  const { cancelExport, downloadPdf, downloadSaved, exportPdf, exportStatus, saving } =
+    usePdfStudioExport({ compression: exportCompression })
   const [textPage, setTextPage] = useState<number | null>(null)
   // Contenedor scrolleable del área de trabajo: raíz del IntersectionObserver del
   // lazy-load de las miniaturas (el app-shell scrollea acá adentro, no el viewport).
@@ -310,6 +313,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
               busy={busy}
               empty={empty}
               exportStatus={exportStatus}
+              exportCompression={exportCompression}
               pageNumbers={pageNumbers}
               redoable={redoable}
               saving={saving}
@@ -321,7 +325,9 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
               onRedo={() => setHistory((h) => redo(h))}
               onSavePdf={() => void exportPdf(doc)}
               onDownload={() => void downloadPdf(doc)}
+              onCancelExport={cancelExport}
               onNewDoc={newDoc}
+              onSetExportCompression={setExportCompression}
               onSetPageNumbers={setPageNumbers}
               onSetWatermark={setWatermark}
             />
