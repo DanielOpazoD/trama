@@ -3,9 +3,7 @@ import { createPortal } from 'react-dom'
 import {
   cloneAnnotation,
   getSource,
-  makeHighlightAnnotation,
   makeImageAnnotation,
-  makeShapeAnnotation,
   makeTextAnnotation,
   pageThumbKey,
   translateAnnotation,
@@ -13,14 +11,11 @@ import {
   type HighlightAnnotation,
   type ImageAnnotation,
   type PdfDoc,
-  type ShapeKind,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import {
   fitPageLayout,
   fitImageStampBox,
-  rectFromPoints,
-  resizeRatioBox,
   screenDeltaToPage,
   type ResizeHandle,
 } from '../../../lib/pdfStudio/editorGeometry'
@@ -40,6 +35,8 @@ import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { AnnotationLayer } from './AnnotationLayer'
 import { EditorToolbar } from './EditorToolbar'
 import { PageCanvas } from './PageCanvas'
+import { createAnnotationFromDrawGesture } from './pdfAnnotationDrawing'
+import { resizeAnnotationFromPointerDelta } from './pdfAnnotationResize'
 import { reduceAnnotationShortcut } from './pdfAnnotationShortcuts'
 import {
   applyEditorStylePatch,
@@ -50,7 +47,6 @@ import {
   HIGHLIGHT_OPACITY,
   SHAPE_STROKE,
   clamp,
-  isShapeTool,
   stepBtn,
   type TextStyle,
   type Tool,
@@ -527,30 +523,19 @@ export function PdfTextEditor({
     const before = editedRef.current
     let resized = false
     const move = (ev: PointerEvent) => {
-      const { dx: pdx, dy: pdy } = screenDeltaToPage(
-        ev.clientX - startX,
-        ev.clientY - startY,
-        rot,
-      )
       resized = true
-      if (a.kind === 'text') {
-        const sx = handle.includes('w') ? -pdx / dw : pdx / dw
-        const sy = handle.includes('n') ? -pdy / dh : pdy / dh
-        const sizeRatio = clamp(
-          a.sizeRatio + Math.max(sx, sy),
-          TEXT_SIZE_MIN,
-          TEXT_SIZE_MAX,
-        )
-        editLive((list) =>
-          list.map((x) => (x.id === a.id && x.kind === 'text' ? { ...x, sizeRatio } : x)),
-        )
-        return
-      }
-      const box = resizeRatioBox(a, handle, pdx / dw, pdy / dh, {
-        minW: 14 / dw,
-        minH: 14 / dh,
+      const next = resizeAnnotationFromPointerDelta(a, handle, {
+        screenDx: ev.clientX - startX,
+        screenDy: ev.clientY - startY,
+        pageWidthPx: dw,
+        pageHeightPx: dh,
+        rotationQuarters: rot,
+        minTextSizeRatio: TEXT_SIZE_MIN,
+        maxTextSizeRatio: TEXT_SIZE_MAX,
+        minBoxWidthRatio: 14 / dw,
+        minBoxHeightRatio: 14 / dh,
       })
-      editLive((list) => list.map((x) => (x.id === a.id ? { ...x, ...box } : x)))
+      editLive((list) => list.map((x) => (x.id === a.id ? next : x)))
     }
     const up = () => {
       window.removeEventListener('pointermove', move)
@@ -599,33 +584,23 @@ export function PdfTextEditor({
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       setDrawing(null)
-      if (Math.hypot(last.x1 - last.x0, last.y1 - last.y0) < 4) return // clic suelto
-      if (drawTool === 'highlight') {
-        const r = rectFromPoints(last.x0, last.y0, last.x1, last.y1)
-        if (r.w < 4 || r.h < 4) return
-        const hl = makeHighlightAnnotation({
-          xRatio: r.x / innerW,
-          yRatio: r.y / innerH,
-          wRatio: r.w / innerW,
-          hRatio: r.h / innerH,
-          color: style.color,
-          opacity: HIGHLIGHT_OPACITY,
-        })
-        setAnnotations((l) => [...l, hl])
-        setSelectedId(hl.id)
-      } else if (isShapeTool(drawTool)) {
-        const sh = makeShapeAnnotation({
-          shape: drawTool as ShapeKind,
-          x0Ratio: last.x0 / innerW,
-          y0Ratio: last.y0 / innerH,
-          x1Ratio: last.x1 / innerW,
-          y1Ratio: last.y1 / innerH,
+      const annotation = createAnnotationFromDrawGesture({
+        tool: drawTool,
+        x0: last.x0,
+        y0: last.y0,
+        x1: last.x1,
+        y1: last.y1,
+        pageWidthPx: innerW,
+        pageHeightPx: innerH,
+        style: {
           color: style.color,
           strokeRatio: SHAPE_STROKE,
-        })
-        setAnnotations((l) => [...l, sh])
-        setSelectedId(sh.id)
-      }
+          highlightOpacity: HIGHLIGHT_OPACITY,
+        },
+      })
+      if (!annotation) return
+      setAnnotations((l) => [...l, annotation])
+      setSelectedId(annotation.id)
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
