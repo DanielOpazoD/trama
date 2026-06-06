@@ -3,22 +3,14 @@ import { createPortal } from 'react-dom'
 import {
   cloneAnnotation,
   getSource,
-  makePdfFormFieldDraft,
   makeTextAnnotation,
   translateAnnotation,
   type Annotation,
   type ImageAnnotation,
   type PdfDoc,
   type PdfFormFieldDraft,
-  type PdfFormFieldKind,
-  type PdfFormValue,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
-import {
-  resizeRatioBox,
-  screenDeltaToPage,
-  type ResizeHandle,
-} from '../../../lib/pdfStudio/editorGeometry'
 import {
   canRedo,
   canUndo,
@@ -35,8 +27,10 @@ import { PageCanvas } from './PageCanvas'
 import { PdfTextEditorHeader } from './PdfTextEditorHeader'
 import { SelectionInspector } from './SelectionInspector'
 import { FormFieldLayer } from './FormFieldLayer'
+import { SignatureCaptureDialog } from './SignatureCaptureDialog'
 import type { SnapGuide } from './pdfAnnotationSnap'
 import { usePdfTextEditorInteractions } from './usePdfTextEditorInteractions'
+import { usePdfTextEditorForms } from './usePdfTextEditorForms'
 import { usePdfTextEditorPageRender } from './usePdfTextEditorPageRender'
 import { usePdfTextEditorKeyboard } from './usePdfTextEditorKeyboard'
 import { usePdfTextEditorSelection } from './usePdfTextEditorSelection'
@@ -122,12 +116,6 @@ export function PdfTextEditor({
   // Default 150%: prioriza ver/editar la página en grande (la barra es compacta).
   const [zoom, setZoom] = useState(1.5)
   const stampInputRef = useRef<HTMLInputElement>(null)
-  const signatureInputRef = useRef<HTMLInputElement>(null)
-  const signatureTargetRef = useRef<string | null>(null)
-  const [formFields, setFormFields] = useState<PdfFormFieldDraft[]>(
-    () => doc.formFields ?? [],
-  )
-  const [selectedFormFieldId, setSelectedFormFieldId] = useState<string | null>(null)
   // Atrapa el foco dentro del modal (Tab no se escapa) y lo restaura al cerrar.
   const dialogRef = useRef<HTMLDivElement>(null)
   useFocusTrap(dialogRef, true)
@@ -317,140 +305,31 @@ export function PdfTextEditor({
     })
 
   const visibleFormWidgets = page ? visualWidgetsForPage(page, detectedForms) : []
-  const visibleDraftFields = page
-    ? formFields.filter((field) => field.pageId === page.id)
-    : []
-
-  function nextFormFieldName(kind: PdfFormFieldKind): string {
-    const prefix =
-      kind === 'date'
-        ? 'fecha'
-        : kind === 'checkbox'
-          ? 'checkbox'
-          : kind === 'radio'
-            ? 'radio'
-            : kind === 'signature'
-              ? 'firma'
-              : 'campo'
-    const used = new Set(formFields.map((field) => field.name))
-    let i = used.size + 1
-    while (used.has(`${prefix}_${i}`)) i += 1
-    return `${prefix}_${i}`
-  }
-
-  function defaultFormValue(kind: PdfFormFieldKind): PdfFormValue {
-    if (kind === 'checkbox') return false
-    if (kind === 'radio') return null
-    return ''
-  }
-
-  function addFormField(kind: PdfFormFieldKind) {
-    if (!page) return
-    const box =
-      kind === 'checkbox' || kind === 'radio'
-        ? { xRatio: 0.24, yRatio: 0.42, wRatio: 0.045, hRatio: 0.045 }
-        : kind === 'signature'
-          ? { xRatio: 0.22, yRatio: 0.42, wRatio: 0.32, hRatio: 0.11 }
-          : { xRatio: 0.2, yRatio: 0.42, wRatio: 0.32, hRatio: 0.055 }
-    const field = makePdfFormFieldDraft({
-      fieldKind: kind,
-      pageId: page.id,
-      name: nextFormFieldName(kind),
-      value: defaultFormValue(kind),
-      options: kind === 'radio' ? ['Sí'] : undefined,
-      ...box,
-    })
-    setTool('select')
-    setEditingId(null)
-    setSelectedId(null)
-    setFormFields((fields) => [...fields, field])
-    setSelectedFormFieldId(field.id)
-  }
-
-  function updateDraftFormValue(id: string, value: string | boolean) {
-    setFormFields((fields) =>
-      fields.map((field) => (field.id === id ? { ...field, value } : field)),
-    )
-  }
-
-  function openSignature(field: PdfFormFieldDraft) {
-    signatureTargetRef.current = field.id
-    signatureInputRef.current?.click()
-  }
-
-  function setSignatureFile(file: File) {
-    const target = signatureTargetRef.current
-    if (!target) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result !== 'string') return
-      updateDraftFormValue(target, reader.result)
-    }
-    reader.readAsDataURL(file)
-  }
-
-  function startDraftDrag(e: React.PointerEvent, field: PdfFormFieldDraft) {
-    if (!layout || field.readOnly) return
-    e.stopPropagation()
-    const dw = layout.innerW * zoom
-    const dh = layout.innerH * zoom
-    const startX = e.clientX
-    const startY = e.clientY
-    const rot = layout.rot
-    const move = (ev: PointerEvent) => {
-      const { dx, dy } = screenDeltaToPage(ev.clientX - startX, ev.clientY - startY, rot)
-      const xRatio = clamp01(field.xRatio + dx / dw)
-      const yRatio = clamp01(field.yRatio + dy / dh)
-      setFormFields((fields) =>
-        fields.map((item) =>
-          item.id === field.id
-            ? {
-                ...item,
-                xRatio: Math.min(1 - item.wRatio, xRatio),
-                yRatio: Math.min(1 - item.hRatio, yRatio),
-              }
-            : item,
-        ),
-      )
-    }
-    const up = () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
-    }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
-  }
-
-  function startDraftResize(
-    e: React.PointerEvent,
-    field: PdfFormFieldDraft,
-    handle: ResizeHandle,
-  ) {
-    if (!layout || field.readOnly) return
-    e.stopPropagation()
-    e.preventDefault()
-    const dw = layout.innerW * zoom
-    const dh = layout.innerH * zoom
-    const startX = e.clientX
-    const startY = e.clientY
-    const rot = layout.rot
-    const move = (ev: PointerEvent) => {
-      const { dx, dy } = screenDeltaToPage(ev.clientX - startX, ev.clientY - startY, rot)
-      const next = resizeRatioBox(field, handle, dx / dw, dy / dh, {
-        minW: 14 / dw,
-        minH: 14 / dh,
-      })
-      setFormFields((fields) =>
-        fields.map((item) => (item.id === field.id ? { ...item, ...next } : item)),
-      )
-    }
-    const up = () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
-    }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
-  }
+  const {
+    addFormField,
+    formFields,
+    chooseSignatureImage,
+    openSignature,
+    saveSignatureDataUrl,
+    selectedFormFieldId,
+    selectDraftFormField,
+    setSignatureFile,
+    setSignatureField,
+    signatureField,
+    signatureInputRef,
+    startDraftDrag,
+    startDraftResize,
+    updateDraftFormValue,
+    visibleDraftFields,
+  } = usePdfTextEditorForms({
+    doc,
+    page,
+    layout,
+    zoom,
+    setTool,
+    setEditingId,
+    setSelectedId,
+  })
 
   /** Navega a otra página: deselecciona y muestra "cargando" mientras renderiza. */
   const goToPage = (i: number) => {
@@ -614,16 +493,20 @@ export function PdfTextEditor({
             selectedDraftId={selectedFormFieldId}
             onDetectedValueChange={onFormValueChange}
             onDraftValueChange={updateDraftFormValue}
-            onSelectDraft={(id) => {
-              setSelectedFormFieldId(id)
-              setSelectedId(null)
-              setEditingId(null)
-            }}
+            onSelectDraft={selectDraftFormField}
             onStartDraftDrag={startDraftDrag}
             onStartDraftResize={startDraftResize}
             onOpenSignature={openSignature}
           />
         </PageCanvas>
+        {signatureField && (
+          <SignatureCaptureDialog
+            field={signatureField}
+            onCancel={() => setSignatureField(null)}
+            onChooseImage={() => chooseSignatureImage(signatureField)}
+            onSave={saveSignatureDataUrl}
+          />
+        )}
       </div>
     </div>,
     document.body,

@@ -13,8 +13,6 @@ import type {
   HighlightAnnotation,
   ImageAnnotation,
   PdfDoc,
-  PdfFormFieldDraft,
-  PdfFormValue,
   PdfPage,
   PdfSource,
   RedactionAnnotation,
@@ -49,11 +47,18 @@ export {
   TEXT_LINE_HEIGHT,
   textBoxLayout,
 } from './modelText'
-
-// Contador monótono para ids opacos (mismo patrón que `layerSeq` del editor de
-// imágenes). No afecta la pureza de las transformaciones del documento.
-let seq = 0
-const nextId = (prefix: string) => `${prefix}${(seq += 1)}`
+export {
+  addPdfFormField,
+  clonePdfFormField,
+  deletePdfFormField,
+  makePdfFormFieldDraft,
+  renamePdfFormField,
+  resizePdfFormField,
+  setPdfFormFieldValue,
+  translatePdfFormField,
+} from './modelForms'
+import { clonePdfFormField, pruneFormFields } from './modelForms'
+import { nextId, reseedIdCounter } from './modelIds'
 
 export function emptyDoc(): PdfDoc {
   return { sources: [], pages: [] }
@@ -274,14 +279,6 @@ function pruneSources(sources: PdfSource[], pages: PdfPage[]): PdfSource[] {
   return sources.filter((s) => used.has(s.id))
 }
 
-function pruneFormFields(
-  formFields: PdfFormFieldDraft[] | undefined,
-  pages: PdfPage[],
-): PdfFormFieldDraft[] {
-  const used = new Set(pages.map((p) => p.id))
-  return (formFields ?? []).filter((field) => used.has(field.pageId))
-}
-
 export function getSource(doc: PdfDoc, sourceId: string): PdfSource | undefined {
   return doc.sources.find((s) => s.id === sourceId)
 }
@@ -337,106 +334,6 @@ export function makeImageAnnotation(
   init: Omit<ImageAnnotation, 'id' | 'kind'>,
 ): ImageAnnotation {
   return { ...init, id: nextId('a'), kind: 'image' }
-}
-
-export function makePdfFormFieldDraft(
-  init: Omit<PdfFormFieldDraft, 'id'>,
-): PdfFormFieldDraft {
-  return { ...normalizeFormFieldBox(init), id: nextId('f') }
-}
-
-export function clonePdfFormField(
-  field: PdfFormFieldDraft,
-  pageId = field.pageId,
-): PdfFormFieldDraft {
-  return {
-    ...field,
-    id: nextId('f'),
-    pageId,
-    name: `${field.name}_copia_${seq + 1}`,
-  }
-}
-
-export function addPdfFormField(doc: PdfDoc, field: PdfFormFieldDraft): PdfDoc {
-  if (!doc.pages.some((page) => page.id === field.pageId)) return doc
-  return { ...doc, formFields: [...(doc.formFields ?? []), normalizeFormFieldBox(field)] }
-}
-
-export function renamePdfFormField(doc: PdfDoc, id: string, name: string): PdfDoc {
-  const clean = name.trim()
-  if (!clean) return doc
-  return updatePdfFormField(doc, id, (field) => ({ ...field, name: clean }))
-}
-
-export function setPdfFormFieldValue(
-  doc: PdfDoc,
-  id: string,
-  value: PdfFormValue,
-): PdfDoc {
-  return updatePdfFormField(doc, id, (field) => ({ ...field, value }))
-}
-
-export function translatePdfFormField(
-  doc: PdfDoc,
-  id: string,
-  dx: number,
-  dy: number,
-): PdfDoc {
-  return updatePdfFormField(doc, id, (field) =>
-    normalizeFormFieldBox({
-      ...field,
-      xRatio: field.xRatio + dx,
-      yRatio: field.yRatio + dy,
-    }),
-  )
-}
-
-export function resizePdfFormField(
-  doc: PdfDoc,
-  id: string,
-  box: Pick<PdfFormFieldDraft, 'xRatio' | 'yRatio' | 'wRatio' | 'hRatio'>,
-): PdfDoc {
-  return updatePdfFormField(doc, id, (field) =>
-    normalizeFormFieldBox({ ...field, ...box }),
-  )
-}
-
-export function deletePdfFormField(doc: PdfDoc, id: string): PdfDoc {
-  const formFields = (doc.formFields ?? []).filter((field) => field.id !== id)
-  return formFields.length === (doc.formFields ?? []).length
-    ? doc
-    : { ...doc, formFields }
-}
-
-function updatePdfFormField(
-  doc: PdfDoc,
-  id: string,
-  fn: (field: PdfFormFieldDraft) => PdfFormFieldDraft,
-): PdfDoc {
-  const formFields = doc.formFields ?? []
-  let changed = false
-  const next = formFields.map((field) => {
-    if (field.id !== id) return field
-    changed = true
-    return fn(field)
-  })
-  return changed ? { ...doc, formFields: next } : doc
-}
-
-function normalizeFormFieldBox<
-  T extends Pick<PdfFormFieldDraft, 'xRatio' | 'yRatio' | 'wRatio' | 'hRatio'>,
->(field: T): T {
-  const minW = 0.018
-  const minH = 0.018
-  const xRatio = Math.min(1 - minW, Math.max(0, field.xRatio))
-  const yRatio = Math.min(1 - minH, Math.max(0, field.yRatio))
-  return {
-    ...field,
-    xRatio,
-    yRatio,
-    wRatio: Math.min(1 - xRatio, Math.max(minW, field.wRatio)),
-    hRatio: Math.min(1 - yRatio, Math.max(minH, field.hRatio)),
-  }
 }
 
 /**
@@ -544,5 +441,5 @@ export function reseedIds(doc: PdfDoc): void {
     for (const a of p.annotations) consider(a.id)
   }
   for (const field of doc.formFields ?? []) consider(field.id)
-  if (max > seq) seq = max
+  reseedIdCounter(max)
 }
