@@ -34,6 +34,7 @@ export function PageCard({
   onDropOn,
   onNudge,
   onOpenText,
+  scrollRoot,
 }: {
   doc: PdfDoc
   page: PdfPage
@@ -49,13 +50,15 @@ export function PageCard({
   onDropOn: () => void
   onNudge: (index: number, delta: -1 | 1) => void
   onOpenText: () => void
+  scrollRoot: Element | null
 }) {
   const source = getSource(doc, page.sourceId)
   const [thumb, setThumb] = useState<string | null>(null)
   const [nat, setNat] = useState<{ w: number; h: number } | null>(null)
-  // Render PEREZOSO de la miniatura: sólo cuando la card se acerca al viewport,
-  // para no disparar cientos de renders de pdf.js a la vez en documentos grandes.
-  const [viewRef, inView] = useInViewport<HTMLLIElement>()
+  // Render PEREZOSO de la miniatura: sólo cuando la card se acerca al área visible
+  // del contenedor de scroll (no del viewport entero), para no disparar cientos de
+  // renders de pdf.js a la vez en documentos grandes.
+  const [viewRef, inView] = useInViewport<HTMLLIElement>({ root: scrollRoot })
 
   useEffect(() => {
     if (!source || !inView) return
@@ -83,6 +86,9 @@ export function PageCard({
 
   if (!source) return null
   const KindIcon = page.kind === 'pdf' ? FilePdfIcon : FileIcon
+  const annotationTitle = page.annotations.every((a) => a.kind === 'text')
+    ? 'Tiene texto'
+    : 'Tiene anotaciones'
 
   // Rotación visual de la miniatura. En 90°/270° se reescala para que la imagen
   // rotada entre en la caja CUADRADA (depende solo de los aspectos, no de px).
@@ -170,7 +176,10 @@ export function PageCard({
           <KindIcon size={10} />
           {index + 1}
           {pageHasAnnotations(page) && (
-            <span className="inline-flex items-center gap-0.5 pl-0.5" title="Tiene texto">
+            <span
+              className="inline-flex items-center gap-0.5 pl-0.5"
+              title={annotationTitle}
+            >
               <TextIcon size={9} />
               {page.annotations.length}
             </span>
@@ -193,7 +202,7 @@ export function PageCard({
           className={`absolute top-1 right-1 inline-flex h-5 w-5 items-center justify-center rounded border transition-colors ${
             selected
               ? 'text-paper-50'
-              : 'bg-paper-50/85 border-ink-300 text-transparent hover:border-ink-400'
+              : 'bg-paper-50/85 border-ink-300 text-ink-300 hover:border-ink-400 hover:text-ink-500'
           }`}
           style={selected ? { backgroundColor: ACCENT, borderColor: ACCENT } : undefined}
         >

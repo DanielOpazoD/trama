@@ -34,8 +34,20 @@ export const HIT_Y = 4
 /** Opacidad por defecto del resaltado (translúcido, como un marcador). */
 export const HIGHLIGHT_OPACITY = 0.35
 
-/** Herramientas del editor (modos). Crece con lápiz/formas/firma. */
-export type Tool = 'select' | 'highlight'
+/** Herramientas del editor (modos). `rect/oval/line/arrow` son formas vectoriales. */
+export type Tool = 'select' | 'highlight' | 'rect' | 'oval' | 'line' | 'arrow'
+
+/** Las formas son los modos de dibujo de contorno (todo lo que no es seleccionar
+ *  ni resaltar ni agregar texto). */
+export const SHAPE_TOOLS = ['rect', 'oval', 'line', 'arrow'] as const
+
+/** ¿La herramienta activa es una forma (rect/oval/line/arrow)? */
+export function isShapeTool(t: Tool): boolean {
+  return t === 'rect' || t === 'oval' || t === 'line' || t === 'arrow'
+}
+
+/** Grosor por defecto del trazo de las formas (fracción del alto de página). */
+export const SHAPE_STROKE = 0.004
 
 /** `#rrggbb` + alfa → `rgba(...)`, para pintar el relleno translúcido del
  *  resaltado sin atenuar el contorno de selección (que `opacity` sí atenuaría). */

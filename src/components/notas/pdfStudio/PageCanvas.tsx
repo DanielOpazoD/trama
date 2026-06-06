@@ -21,7 +21,7 @@ export function PageCanvas({
   zoom,
   tool,
   currentPage,
-  onStartHighlight,
+  onStartDraw,
   onBackgroundClick,
   children,
 }: {
@@ -32,8 +32,8 @@ export function PageCanvas({
   tool: Tool
   /** Índice 0-based de la página visible (para el alt de la imagen). */
   currentPage: number
-  /** Inicia el arrastre del resaltado (sólo en modo resaltar). */
-  onStartHighlight: (e: ReactPointerEvent) => void
+  /** Inicia el dibujo por arrastre (modo resaltar o una forma). */
+  onStartDraw: (e: ReactPointerEvent) => void
   /** Clic en el fondo de la página (deselecciona, sólo en modo seleccionar). */
   onBackgroundClick: () => void
   children: ReactNode
@@ -49,15 +49,15 @@ export function PageCanvas({
       {layout && bg ? (
         <div className="relative" style={{ width: zw, height: zh }}>
           <div
-            onPointerDown={tool === 'highlight' ? onStartHighlight : undefined}
+            onPointerDown={tool !== 'select' ? onStartDraw : undefined}
             onClick={tool === 'select' ? onBackgroundClick : undefined}
             className="absolute left-1/2 top-1/2 bg-white rounded-sm ring-1 ring-ink-800/15 shadow-xl shadow-ink-800/15"
             style={{
               width: layout.innerW,
               height: layout.innerH,
               transform: `translate(-50%, -50%) rotate(${layout.rot * 90}deg) scale(${zoom})`,
-              cursor: tool === 'highlight' ? 'crosshair' : undefined,
-              touchAction: tool === 'highlight' ? 'none' : undefined,
+              cursor: tool !== 'select' ? 'crosshair' : undefined,
+              touchAction: tool !== 'select' ? 'none' : undefined,
             }}
           >
             <img

@@ -3,18 +3,22 @@ import { createPortal } from 'react-dom'
 import {
   cloneAnnotation,
   getSource,
-  makeHighlightAnnotation,
+  makeImageAnnotation,
   makeTextAnnotation,
   pageThumbKey,
+  translateAnnotation,
   type Annotation,
   type HighlightAnnotation,
+  type ImageAnnotation,
   type PdfDoc,
+  type ShapeAnnotation,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import {
   fitPageLayout,
-  rectFromPoints,
+  fitImageStampBox,
   screenDeltaToPage,
+  type ResizeHandle,
 } from '../../../lib/pdfStudio/editorGeometry'
 import {
   canRedo,
@@ -25,14 +29,25 @@ import {
   undo,
   type History,
 } from '../../../lib/pdfStudio/history'
+import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
 import { renderPageBitmap } from '../../../lib/pdfStudio/pdfRender'
 import { ChevronLeftIcon, ChevronRightIcon, RedoIcon, UndoIcon } from '../../Icons'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { AnnotationLayer } from './AnnotationLayer'
 import { EditorToolbar } from './EditorToolbar'
 import { PageCanvas } from './PageCanvas'
+import { createAnnotationFromDrawGesture } from './pdfAnnotationDrawing'
+import { resizeAnnotationFromPointerDelta } from './pdfAnnotationResize'
+import { reduceAnnotationShortcut } from './pdfAnnotationShortcuts'
+import { snapAnnotationDrag, type SnapGuide } from './pdfAnnotationSnap'
+import {
+  applyEditorStylePatch,
+  defaultEditorTextStyle,
+  resolveActiveEditorStyle,
+} from './pdfEditorStyleState'
 import {
   HIGHLIGHT_OPACITY,
+  SHAPE_STROKE,
   clamp,
   stepBtn,
   type TextStyle,
@@ -40,6 +55,47 @@ import {
 } from './editorStyle'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
+const TEXT_SIZE_MIN = 0.012
+const TEXT_SIZE_MAX = 0.14
+const STAMP_ACCEPT = 'image/png,image/jpeg'
+
+function isMacLike(): boolean {
+  if (typeof navigator === 'undefined') return true
+  return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () =>
+      typeof reader.result === 'string'
+        ? resolve(reader.result)
+        : reject(new Error('No se pudo leer la imagen'))
+    reader.onerror = () => reject(reader.error ?? new Error('No se pudo leer la imagen'))
+    reader.readAsDataURL(file)
+  })
+}
+
+function readImageSize(src: string): Promise<{ w: number; h: number }> {
+  return new Promise((resolve, reject) => {
+    const im = new Image()
+    im.onload = () =>
+      resolve({
+        w: Math.max(1, im.naturalWidth || im.width),
+        h: Math.max(1, im.naturalHeight || im.height),
+      })
+    im.onerror = () => reject(new Error('No se pudo decodificar la imagen'))
+    im.src = src
+  })
+}
+
+function isImageStampFile(file: File): boolean {
+  return (
+    file.type === 'image/png' ||
+    file.type === 'image/jpeg' ||
+    /\.(png|jpe?g)$/i.test(file.name)
+  )
+}
 
 /**
  * Editor / visor de páginas del PDF: muestra la página grande con la barra de
@@ -58,6 +114,7 @@ export function PdfTextEditor({
   pageIndex: number
   onClose: (edits: Record<number, Annotation[]> | null) => void
 }) {
+  const isMac = isMacLike()
   const total = doc.pages.length
   const [currentPage, setCurrentPage] = useState(pageIndex)
   // Anotaciones EDITADAS por página (las no tocadas siguen las del doc), con
@@ -85,11 +142,13 @@ export function PdfTextEditor({
     x1: number
     y1: number
   } | null>(null)
+  const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([])
   const [bg, setBg] = useState<{ url: string; w: number; h: number } | null>(null)
   // Default 150%: prioriza ver/editar la página en grande (la barra es compacta).
   const [zoom, setZoom] = useState(1.5)
   const [area, setArea] = useState<{ w: number; h: number } | null>(null)
   const areaRef = useRef<HTMLDivElement>(null)
+  const stampInputRef = useRef<HTMLInputElement>(null)
   // Atrapa el foco dentro del modal (Tab no se escapa) y lo restaura al cerrar.
   const dialogRef = useRef<HTMLDivElement>(null)
   useFocusTrap(dialogRef, true)
@@ -287,16 +346,6 @@ export function PdfTextEditor({
   // portapapeles interno), eliminar (Supr/Retroceso) y mover fino con las flechas
   // (Shift = paso grande).
   useEffect(() => {
-    const pasteAnnotation = (src: Annotation) => {
-      const fresh = cloneAnnotation(src)
-      const placed: Annotation = {
-        ...fresh,
-        xRatio: clamp01(fresh.xRatio + 0.03),
-        yRatio: clamp01(fresh.yRatio + 0.03),
-      }
-      setAnnotations((l) => [...l, placed])
-      setSelectedId(placed.id)
-    }
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null
       if (
@@ -304,50 +353,23 @@ export function PdfTextEditor({
         (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
       )
         return
-      const mod = e.metaKey || e.ctrlKey
-      const key = e.key.toLowerCase()
 
-      // Pegar NO requiere selección.
-      if (mod && key === 'v') {
-        if (!annClipboardRef.current) return
-        e.preventDefault()
-        pasteAnnotation(annClipboardRef.current)
-        return
-      }
+      const currentAnnotations = annotationsRef.current
+      const result = reduceAnnotationShortcut({
+        annotations: currentAnnotations,
+        selectedId: selectedRef.current,
+        clipboard: annClipboardRef.current,
+        key: e.key,
+        mod: e.metaKey || e.ctrlKey,
+        shift: e.shiftKey,
+      })
+      if (!result.handled) return
 
-      const id = selectedRef.current
-      const current = id
-        ? (annotationsRef.current.find((a) => a.id === id) ?? null)
-        : null
-      if (!current) return
-
-      if (mod && key === 'c') {
-        e.preventDefault()
-        annClipboardRef.current = current
-      } else if (mod && key === 'x') {
-        e.preventDefault()
-        annClipboardRef.current = current
-        setAnnotations((l) => l.filter((a) => a.id !== current.id))
-        setSelectedId(null)
-      } else if (mod && key === 'd') {
-        e.preventDefault()
-        pasteAnnotation(current)
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        e.preventDefault()
-        setAnnotations((l) => l.filter((a) => a.id !== current.id))
-        setSelectedId(null)
-      } else if (e.key.startsWith('Arrow')) {
-        e.preventDefault()
-        const step = e.shiftKey ? 0.05 : 0.01
-        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0
-        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0
-        setAnnotations((l) =>
-          l.map((a) =>
-            a.id === current.id
-              ? { ...a, xRatio: clamp01(a.xRatio + dx), yRatio: clamp01(a.yRatio + dy) }
-              : a,
-          ),
-        )
+      e.preventDefault()
+      annClipboardRef.current = result.clipboard
+      if (result.selectedId !== selectedRef.current) setSelectedId(result.selectedId)
+      if (result.annotations !== currentAnnotations) {
+        setAnnotations(() => result.annotations)
       }
     }
     document.addEventListener('keydown', onKey)
@@ -369,38 +391,22 @@ export function PdfTextEditor({
   // Estilo "activo" de la barra: edita la anotación seleccionada o, si no hay,
   // define el estilo del PRÓXIMO texto/resaltado (ver `TextStyle` en editorStyle).
   const [style, setStyle] = useState<TextStyle>({
-    font: 'sans',
-    sizeRatio: 0.04,
-    bold: false,
-    color: '#222222',
-    opacity: 1,
-    rotation: 0,
+    ...defaultEditorTextStyle(),
   })
-  const activeFont = selected?.font ?? style.font
-  const activeSize = selected?.sizeRatio ?? style.sizeRatio
-  const activeBold = selected?.bold ?? style.bold
-  const activeColor = selectedAnn?.color ?? style.color
-  const activeOpacity = selectedAnn?.opacity ?? style.opacity ?? 1
-  const activeRotation = selected?.rotation ?? style.rotation ?? 0
+  const activeStyle = resolveActiveEditorStyle(selectedAnn, style)
+  const activeFont = activeStyle.font
+  const activeSize = activeStyle.sizeRatio
+  const activeBold = activeStyle.bold
+  const activeColor = activeStyle.color
+  const activeOpacity = activeStyle.opacity ?? 1
+  const activeRotation = activeStyle.rotation ?? 0
 
-  /** Aplica un cambio de estilo: lo recuerda como default y lo aplica a la
-   *  selección (texto → todo; resaltado → sólo color/opacidad). */
+  /** Aplica un cambio de estilo: lo recuerda como default y lo aplica a la selección
+   *  (texto → todo; resaltado/forma → sólo color/opacidad). */
   const applyStyle = (patch: Partial<TextStyle>) => {
     setStyle((s) => ({ ...s, ...patch }))
     if (!selectedId) return
-    setAnnotations((list) =>
-      list.map((a) => {
-        if (a.id !== selectedId) return a
-        if (a.kind === 'text') return { ...a, ...patch }
-        if (a.kind === 'highlight') {
-          const hp: Partial<HighlightAnnotation> = {}
-          if (patch.color !== undefined) hp.color = patch.color
-          if (patch.opacity !== undefined) hp.opacity = patch.opacity
-          return { ...a, ...hp }
-        }
-        return a
-      }),
-    )
+    setAnnotations((list) => applyEditorStylePatch(list, selectedId, patch))
   }
 
   function addText() {
@@ -408,6 +414,8 @@ export function PdfTextEditor({
       text: 'Texto',
       xRatio: 0.2,
       yRatio: 0.42,
+      wRatio: 0.24,
+      hRatio: Math.max(0.055, style.sizeRatio * 1.7),
       sizeRatio: style.sizeRatio,
       color: style.color,
       font: style.font,
@@ -419,6 +427,27 @@ export function PdfTextEditor({
     setAnnotations((l) => [...l, a])
     setSelectedId(a.id)
     setEditingId(a.id) // se edita inline, sobre el cuadro, al toque
+  }
+
+  async function addImageStamp(file: File) {
+    if (!isImageStampFile(file)) return
+    const src = await fileToDataUrl(file)
+    const size = await readImageSize(src)
+    const box = fitImageStampBox({
+      pageW: layout?.innerW ?? size.w,
+      pageH: layout?.innerH ?? size.h,
+      imageW: size.w,
+      imageH: size.h,
+    })
+    const a = makeImageAnnotation({
+      src,
+      ...box,
+      opacity: style.opacity,
+    })
+    setTool('select')
+    setEditingId(null)
+    setAnnotations((l) => [...l, a])
+    setSelectedId(a.id)
   }
 
   /** Duplica un texto con un pequeño offset y lo selecciona. */
@@ -433,25 +462,36 @@ export function PdfTextEditor({
     setSelectedId(copy.id)
   }
 
-  function removeText(id: string) {
+  function duplicateImage(a: ImageAnnotation) {
+    const copy = translateAnnotation(cloneAnnotation(a), 0.03, 0.03)
+    setAnnotations((l) => [...l, copy])
+    setSelectedId(copy.id)
+  }
+
+  function removeAnnotation(id: string) {
     setAnnotations((l) => l.filter((a) => a.id !== id))
     if (selectedId === id) setSelectedId(null)
   }
 
   function startDrag(e: React.PointerEvent, a: Annotation) {
     e.stopPropagation()
-    setSelectedId(a.id)
     // px reales en pantalla del lado interior (incluye el zoom).
     const dw = (layout?.innerW ?? 1) * zoom
     const dh = (layout?.innerH ?? 1) * zoom
     const rot = layout?.rot ?? 0
     const startX = e.clientX
     const startY = e.clientY
-    const ox = a.xRatio
-    const oy = a.yRatio
+    const duplicateDrag = e.altKey
+    // Anotación al iniciar el arrastre: mover = trasladarla desde acá (vale para
+    // texto/resaltado/forma vía `translateAnnotation`).
+    const orig = duplicateDrag ? cloneAnnotation(a) : a
+    setSelectedId(orig.id)
     // Snapshot ANTES del arrastre: al soltar se empuja UNA entrada de historial
     // (no una por cada `pointermove`).
     const before = editedRef.current
+    if (duplicateDrag) {
+      editLive((list) => [...list, orig])
+    }
     let moved = false
     const move = (ev: PointerEvent) => {
       const { dx: pdx, dy: pdy } = screenDeltaToPage(
@@ -459,17 +499,76 @@ export function PdfTextEditor({
         ev.clientY - startY,
         rot,
       )
-      const xRatio = clamp01(ox + pdx / dw)
-      const yRatio = clamp01(oy + pdy / dh)
       moved = true
-      editLive((list) => list.map((x) => (x.id === a.id ? { ...x, xRatio, yRatio } : x)))
+      const snapped = snapAnnotationDrag({
+        annotation: orig,
+        annotations: [...annotationsRef.current.filter((ann) => ann.id !== a.id), orig],
+        dxRatio: pdx / dw,
+        dyRatio: pdy / dh,
+        pageWidthPx: dw,
+        pageHeightPx: dh,
+      })
+      setSnapGuides(snapped.guides)
+      const next = translateAnnotation(orig, snapped.dxRatio, snapped.dyRatio)
+      editLive((list) =>
+        list.some((x) => x.id === orig.id)
+          ? list.map((x) => (x.id === orig.id ? next : x))
+          : [...list, next],
+      )
     }
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
+      setSnapGuides([])
       // Cierra el arrastre como UN paso de historial: el `before` va al pasado y
       // el presente (final) queda; un solo undo lo revierte entero.
       if (moved)
+        setHistory((h) => ({ past: [...h.past, before], present: h.present, future: [] }))
+      else if (duplicateDrag) {
+        setSelectedId(a.id)
+        setHistory((h) => ({ ...h, present: before }))
+      }
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  function startResize(
+    e: React.PointerEvent,
+    a: TextAnnotation | HighlightAnnotation | ImageAnnotation | ShapeAnnotation,
+    handle: ResizeHandle,
+  ) {
+    if (!layout) return
+    e.stopPropagation()
+    e.preventDefault()
+    setSelectedId(a.id)
+    const dw = layout.innerW * zoom
+    const dh = layout.innerH * zoom
+    const rot = layout.rot
+    const startX = e.clientX
+    const startY = e.clientY
+    const before = editedRef.current
+    let resized = false
+    const move = (ev: PointerEvent) => {
+      resized = true
+      const next = resizeAnnotationFromPointerDelta(a, handle, {
+        screenDx: ev.clientX - startX,
+        screenDy: ev.clientY - startY,
+        pageWidthPx: dw,
+        pageHeightPx: dh,
+        rotationQuarters: rot,
+        minTextSizeRatio: TEXT_SIZE_MIN,
+        maxTextSizeRatio: TEXT_SIZE_MAX,
+        minBoxWidthRatio: 14 / dw,
+        minBoxHeightRatio: 14 / dh,
+        lockAspectRatio: a.kind === 'image' && ev.shiftKey,
+      })
+      editLive((list) => list.map((x) => (x.id === a.id ? next : x)))
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      if (resized)
         setHistory((h) => ({ past: [...h.past, before], present: h.present, future: [] }))
     }
     window.addEventListener('pointermove', move)
@@ -477,14 +576,15 @@ export function PdfTextEditor({
   }
 
   /**
-   * Inicia el dibujo de un RESALTADO (modo resaltar): rectángulo de arrastre. El
-   * inicio en coords LOCALES de la página interior (offsetX/Y son pre-transform);
-   * el movimiento usa el delta de pantalla transformado por la rotación / zoom
-   * (igual que el drag). Al soltar crea la anotación si tiene tamaño.
+   * Inicia el DIBUJO por arrastre (modo resaltar o una forma). El inicio en coords
+   * LOCALES de la página interior (offsetX/Y pre-transform); el movimiento usa el
+   * delta de pantalla transformado por rotación/zoom (igual que el drag). Al soltar
+   * crea un resaltado (rectángulo) o una forma según la herramienta activa.
    */
-  function startHighlight(e: React.PointerEvent) {
+  function startDraw(e: React.PointerEvent) {
     if (!layout) return
     e.stopPropagation()
+    const drawTool = tool
     const x0 = e.nativeEvent.offsetX
     const y0 = e.nativeEvent.offsetY
     const startX = e.clientX
@@ -512,18 +612,23 @@ export function PdfTextEditor({
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       setDrawing(null)
-      const r = rectFromPoints(last.x0, last.y0, last.x1, last.y1)
-      if (r.w < 4 || r.h < 4) return // clic suelto sin arrastrar → nada
-      const hl = makeHighlightAnnotation({
-        xRatio: r.x / innerW,
-        yRatio: r.y / innerH,
-        wRatio: r.w / innerW,
-        hRatio: r.h / innerH,
-        color: style.color,
-        opacity: HIGHLIGHT_OPACITY,
+      const annotation = createAnnotationFromDrawGesture({
+        tool: drawTool,
+        x0: last.x0,
+        y0: last.y0,
+        x1: last.x1,
+        y1: last.y1,
+        pageWidthPx: innerW,
+        pageHeightPx: innerH,
+        style: {
+          color: style.color,
+          strokeRatio: SHAPE_STROKE,
+          highlightOpacity: HIGHLIGHT_OPACITY,
+        },
       })
-      setAnnotations((l) => [...l, hl])
-      setSelectedId(hl.id)
+      if (!annotation) return
+      setAnnotations((l) => [...l, annotation])
+      setSelectedId(annotation.id)
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
@@ -544,7 +649,7 @@ export function PdfTextEditor({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Texto sobre la página ${currentPage + 1}`}
+      aria-label={`Editar página ${currentPage + 1}`}
       onClick={() => onClose(null)}
       className="pdf-studio fixed inset-0 z-[60] flex items-stretch justify-center bg-ink-900/40 backdrop-blur-sm"
     >
@@ -555,7 +660,7 @@ export function PdfTextEditor({
         className="w-full max-w-6xl h-full overflow-hidden border-x border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col focus:outline-none"
       >
         {/* Cabecera compacta (una línea): navegación de páginas + acciones */}
-        <header className="flex items-center justify-between gap-3 px-3 py-1.5 border-b border-ink-100/70 shrink-0">
+        <header className="flex items-center justify-between gap-3 border-b border-ink-100/70 bg-paper-50/95 px-3 py-2 shadow-sm shadow-ink-900/5 shrink-0">
           <div className="flex items-center gap-1 min-w-0">
             <button
               type="button"
@@ -593,7 +698,7 @@ export function PdfTextEditor({
                 }}
                 disabled={!canUndo(history)}
                 aria-label="Deshacer"
-                title="Deshacer (⌘Z)"
+                title={pdfCommandTooltip('undo', isMac)}
                 className={stepBtn}
               >
                 <UndoIcon size={15} />
@@ -607,7 +712,7 @@ export function PdfTextEditor({
                 }}
                 disabled={!canRedo(history)}
                 aria-label="Rehacer"
-                title="Rehacer (⌘⇧Z)"
+                title={pdfCommandTooltip('redo', isMac)}
                 className={stepBtn}
               >
                 <RedoIcon size={15} />
@@ -626,6 +731,7 @@ export function PdfTextEditor({
           tool={tool}
           onToolChange={setTool}
           onAddText={addText}
+          onAddImage={() => stampInputRef.current?.click()}
           activeFont={activeFont}
           activeSize={activeSize}
           activeBold={activeBold}
@@ -633,12 +739,31 @@ export function PdfTextEditor({
           activeOpacity={activeOpacity}
           activeRotation={activeRotation}
           onApplyStyle={applyStyle}
-          hasTextSelected={!!selected}
-          onDuplicate={() => selected && duplicate(selected)}
+          hasDuplicableSelection={!!selected || selectedAnn?.kind === 'image'}
+          duplicateLabel={
+            selectedAnn?.kind === 'image' ? 'Duplicar imagen' : 'Duplicar texto'
+          }
+          onDuplicate={() => {
+            if (selected) duplicate(selected)
+            else if (selectedAnn?.kind === 'image') duplicateImage(selectedAnn)
+          }}
           hasSelection={!!selectedAnn}
-          onDelete={() => selectedAnn && removeText(selectedAnn.id)}
+          onDelete={() => selectedAnn && removeAnnotation(selectedAnn.id)}
           zoom={zoom}
           onZoomChange={setZoom}
+        />
+        <input
+          ref={stampInputRef}
+          type="file"
+          accept={STAMP_ACCEPT}
+          className="hidden"
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={(e) => {
+            const file = e.currentTarget.files?.[0]
+            e.currentTarget.value = ''
+            if (file) void addImageStamp(file)
+          }}
         />
 
         {/* Página — ocupa el resto; centrada y scrolleable al hacer zoom */}
@@ -649,7 +774,7 @@ export function PdfTextEditor({
           zoom={zoom}
           tool={tool}
           currentPage={currentPage}
-          onStartHighlight={startHighlight}
+          onStartDraw={startDraw}
           onBackgroundClick={() => {
             setSelectedId(null)
             setEditingId(null)
@@ -657,11 +782,13 @@ export function PdfTextEditor({
         >
           <AnnotationLayer
             annotations={annotations}
+            innerW={layout?.innerW ?? 0}
             innerH={layout?.innerH ?? 0}
             tool={tool}
             selectedId={selectedId}
             editingId={editingId}
             drawing={drawing}
+            snapGuides={snapGuides}
             drawColor={style.color}
             onStartDrag={startDrag}
             onSelect={setSelectedId}
@@ -674,6 +801,7 @@ export function PdfTextEditor({
               setEditingId(null)
             }}
             onCancelEdit={() => setEditingId(null)}
+            onStartResize={startResize}
           />
         </PageCanvas>
       </div>

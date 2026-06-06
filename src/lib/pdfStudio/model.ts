@@ -43,6 +43,10 @@ export type TextAnnotation = AnnotationBase & {
   text: string
   xRatio: number
   yRatio: number
+  /** Ancho de la caja de texto como fracción del ancho de página. Opcional compat. */
+  wRatio?: number
+  /** Alto de la caja de texto como fracción del alto de página. Opcional compat. */
+  hRatio?: number
   /** Tamaño de fuente como fracción del alto de página (p. ej. 0.04). */
   sizeRatio: number
   /** Color en hex `#rrggbb`. */
@@ -64,8 +68,50 @@ export type HighlightAnnotation = AnnotationBase & {
   color: string
 }
 
+/** Tipos de forma vectorial. */
+export type ShapeKind = 'rect' | 'oval' | 'line' | 'arrow'
+
+/**
+ * Forma vectorial (línea, flecha, rectángulo, óvalo). Definida por DOS puntos en
+ * ratios 0..1 — `(x0,y0)`→`(x1,y1)`: para rect/óvalo es la caja entre ambos; para
+ * línea/flecha son los extremos (la punta va en `(x1,y1)`). Sólo contorno (sin
+ * relleno), color y grosor como fracción del alto de página.
+ */
+export type ShapeAnnotation = AnnotationBase & {
+  kind: 'shape'
+  shape: ShapeKind
+  x0Ratio: number
+  y0Ratio: number
+  x1Ratio: number
+  y1Ratio: number
+  /** Color del trazo en hex `#rrggbb`. */
+  color: string
+  /** Grosor del trazo como fracción del alto de página. */
+  strokeRatio: number
+}
+
+/**
+ * Imagen estampada (firma, sello, logo). Se guarda como **data URL** (PNG/JPEG)
+ * para que perdure en el borrador serializado (a diferencia de los `source.file`).
+ * Geometría tipo resaltado: `(x,y)` = esquina sup-izq, `w/h` como ratios — el
+ * ensamblado la embebe y la dibuja con `drawImage`.
+ */
+export type ImageAnnotation = AnnotationBase & {
+  kind: 'image'
+  /** Data URL `data:image/png;base64,...` (o jpeg). */
+  src: string
+  xRatio: number
+  yRatio: number
+  wRatio: number
+  hRatio: number
+}
+
 /** Cualquier anotación de una página (unión discriminada por `kind`). */
-export type Annotation = TextAnnotation | HighlightAnnotation
+export type Annotation =
+  | TextAnnotation
+  | HighlightAnnotation
+  | ShapeAnnotation
+  | ImageAnnotation
 
 export type PdfPage = {
   id: string
@@ -77,9 +123,23 @@ export type PdfPage = {
   | { kind: 'image'; sourceId: string }
 )
 
+/**
+ * Ajustes a nivel DOCUMENTO (no de una página): se aplican al ensamblar, sobre
+ * TODAS las páginas. Hoy: numeración en el pie y marca de agua diagonal. Opcionales
+ * (ausente = desactivado). Viven en `PdfDoc` para persistir con el borrador/guardado.
+ */
+export type DocSettings = {
+  /** Numeración de páginas en el pie ("n / total"). Ausente = sin números. */
+  pageNumbers?: { position: 'left' | 'center' | 'right' }
+  /** Marca de agua diagonal translúcida. Texto vacío/ausente = sin marca. */
+  watermark?: { text: string }
+}
+
 export type PdfDoc = {
   sources: PdfSource[]
   pages: PdfPage[]
+  /** Ajustes del documento (numeración, marca de agua). Opcional (compat). */
+  settings?: DocSettings
 }
 
 /**
@@ -276,6 +336,11 @@ export function canExport(doc: PdfDoc): boolean {
   return doc.pages.length > 0
 }
 
+/** Reemplaza los ajustes del documento (numeración/marca de agua). Inmutable. */
+export function setDocSettings(doc: PdfDoc, settings: DocSettings): PdfDoc {
+  return { ...doc, settings }
+}
+
 /** Clave estable para cachear la miniatura de una página. */
 export function pageThumbKey(page: PdfPage): string {
   return page.kind === 'pdf'
@@ -299,6 +364,20 @@ export function makeHighlightAnnotation(
   return { ...init, id: nextId('a'), kind: 'highlight' }
 }
 
+/** Crea una FORMA (línea/flecha/rect/óvalo) con id propio. */
+export function makeShapeAnnotation(
+  init: Omit<ShapeAnnotation, 'id' | 'kind'>,
+): ShapeAnnotation {
+  return { ...init, id: nextId('a'), kind: 'shape' }
+}
+
+/** Crea una IMAGEN estampada (firma/sello) con id propio. */
+export function makeImageAnnotation(
+  init: Omit<ImageAnnotation, 'id' | 'kind'>,
+): ImageAnnotation {
+  return { ...init, id: nextId('a'), kind: 'image' }
+}
+
 /**
  * Clona una anotación con un id NUEVO (mismo tipo y propiedades). Sirve para
  * copiar/pegar/duplicar anotaciones (en el editor o al pegar páginas) sin que la
@@ -306,6 +385,25 @@ export function makeHighlightAnnotation(
  */
 export function cloneAnnotation(a: Annotation): Annotation {
   return a.kind === 'text' ? { ...a, id: nextId('t') } : { ...a, id: nextId('a') }
+}
+
+/**
+ * Mueve una anotación `(dx, dy)` en ratios, acotando los anclajes a 0..1. Unifica
+ * la geometría de los tres tipos (texto/resaltado usan `xRatio/yRatio`; las formas,
+ * sus dos puntos) → arrastrar/flechas/pegar funcionan igual para todas. Puro.
+ */
+export function translateAnnotation(a: Annotation, dx: number, dy: number): Annotation {
+  const c = (n: number) => Math.min(1, Math.max(0, n))
+  if (a.kind === 'shape') {
+    return {
+      ...a,
+      x0Ratio: c(a.x0Ratio + dx),
+      y0Ratio: c(a.y0Ratio + dy),
+      x1Ratio: c(a.x1Ratio + dx),
+      y1Ratio: c(a.y1Ratio + dy),
+    }
+  }
+  return { ...a, xRatio: c(a.xRatio + dx), yRatio: c(a.yRatio + dy) }
 }
 
 /** Type guard: ¿es una anotación de texto? */
@@ -434,11 +532,17 @@ export function textBoxLayout(
   ann: TextAnnotation,
   pageWidth: number,
   pageHeight: number,
-): { x: number; topY: number; size: number } {
+): { x: number; topY: number; size: number; maxWidth?: number; maxHeight?: number } {
+  const maxWidth =
+    typeof ann.wRatio === 'number' ? Math.max(1, ann.wRatio * pageWidth) : undefined
+  const maxHeight =
+    typeof ann.hRatio === 'number' ? Math.max(1, ann.hRatio * pageHeight) : undefined
   return {
     x: ann.xRatio * pageWidth,
     topY: pageHeight - ann.yRatio * pageHeight,
     size: ann.sizeRatio * pageHeight,
+    ...(maxWidth != null ? { maxWidth } : null),
+    ...(maxHeight != null ? { maxHeight } : null),
   }
 }
 

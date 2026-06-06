@@ -81,3 +81,81 @@ export function fitPageLayout(
   const innerH = swap ? outerW : outerH
   return { rot, outerW, outerH, innerW, innerH }
 }
+
+export type ImageStampBox = {
+  xRatio: number
+  yRatio: number
+  wRatio: number
+  hRatio: number
+}
+
+export type ResizeHandle = 'nw' | 'ne' | 'sw' | 'se'
+
+export type RatioBox = {
+  xRatio: number
+  yRatio: number
+  wRatio: number
+  hRatio: number
+}
+
+export function resizeRatioBox(
+  box: RatioBox,
+  handle: ResizeHandle,
+  dxRatio: number,
+  dyRatio: number,
+  options: { minW?: number; minH?: number } = {},
+): RatioBox {
+  const minW = options.minW ?? 0.02
+  const minH = options.minH ?? 0.02
+  const right = box.xRatio + box.wRatio
+  const bottom = box.yRatio + box.hRatio
+
+  let x = box.xRatio
+  let y = box.yRatio
+  let w = box.wRatio
+  let h = box.hRatio
+
+  if (handle.includes('e')) w = Math.min(1 - x, Math.max(minW, w + dxRatio))
+  if (handle.includes('s')) h = Math.min(1 - y, Math.max(minH, h + dyRatio))
+  if (handle.includes('w')) {
+    const nextX = Math.min(right - minW, Math.max(0, x + dxRatio))
+    x = nextX
+    w = right - nextX
+  }
+  if (handle.includes('n')) {
+    const nextY = Math.min(bottom - minH, Math.max(0, y + dyRatio))
+    y = nextY
+    h = bottom - nextY
+  }
+
+  return { xRatio: x, yRatio: y, wRatio: w, hRatio: h }
+}
+
+/**
+ * Caja inicial para una firma/sello/logo: centrada, ancho cómodo y alto calculado
+ * para conservar el aspecto real de la imagen en ratios de página. Se acota para
+ * que casos extremos no creen una anotación microscópica o inmanejable.
+ */
+export function fitImageStampBox({
+  pageW,
+  pageH,
+  imageW,
+  imageH,
+}: {
+  pageW: number
+  pageH: number
+  imageW: number
+  imageH: number
+}): ImageStampBox {
+  const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
+  const wRatio = 0.28
+  const pageAspect = Math.max(1, pageW) / Math.max(1, pageH)
+  const imageAspect = Math.max(1, imageW) / Math.max(1, imageH)
+  const hRatio = clamp((wRatio * pageAspect) / imageAspect, 0.06, 0.32)
+  return {
+    xRatio: clamp((1 - wRatio) / 2, 0, 1),
+    yRatio: clamp((1 - hRatio) / 2, 0, 1),
+    wRatio,
+    hRatio,
+  }
+}

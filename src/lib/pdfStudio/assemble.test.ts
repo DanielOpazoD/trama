@@ -5,6 +5,7 @@ import {
   baselineDropEm,
   emptyDoc,
   makeHighlightAnnotation,
+  makeImageAnnotation,
   makeTextAnnotation,
   rotatePage,
   setPageAnnotations,
@@ -61,7 +62,10 @@ vi.mock('pdf-lib', () => {
           },
           embedFont: async (...a: unknown[]) => {
             calls.embedFont(...a)
-            return { heightAtSize: () => 16 }
+            return {
+              heightAtSize: () => 16,
+              widthOfTextAtSize: (text: string, size: number) => text.length * size * 0.5,
+            }
           },
           registerFontkit: (...a: unknown[]) => calls.registerFontkit(...a),
           getPageCount: () => count,
@@ -96,6 +100,8 @@ const pngHeader = (w: number, h: number) => {
   b[23] = h & 255
   return b
 }
+const pngDataUrl = (w = 10, h = 10) =>
+  `data:image/png;base64,${btoa(String.fromCharCode(...pngHeader(w, h)))}`
 
 const png = (name = 'a.png') =>
   new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], name, { type: 'image/png' })
@@ -178,6 +184,53 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(opts.rotate).toEqual({ __deg: -30 }) // CSS horario → pdf-lib antihorario
   })
 
+  it('el texto con caja real se exporta con maxWidth para envolver líneas', async () => {
+    let doc = addImageSource(emptyDoc(), png())
+    doc = setPageAnnotations(doc, 0, [
+      makeTextAnnotation({
+        text: 'Texto largo para envolver',
+        xRatio: 0.1,
+        yRatio: 0.2,
+        wRatio: 0.35,
+        hRatio: 0.12,
+        sizeRatio: 0.04,
+        color: '#111111',
+        font: 'sans',
+        bold: false,
+      }),
+    ])
+    await assemble(doc)
+
+    const [_text, opts] = calls.drawText.mock.calls[0] as [
+      string,
+      { maxWidth?: number; lineHeight: number },
+    ]
+    expect(opts.maxWidth).toBeCloseTo(35)
+    expect(opts.lineHeight).toBeCloseTo(8 * 1.15)
+  })
+
+  it('el texto con caja real respeta el alto máximo al exportar', async () => {
+    let doc = addImageSource(emptyDoc(), png())
+    doc = setPageAnnotations(doc, 0, [
+      makeTextAnnotation({
+        text: 'uno dos tres cuatro cinco seis',
+        xRatio: 0.1,
+        yRatio: 0.2,
+        wRatio: 0.2,
+        hRatio: 0.12,
+        sizeRatio: 0.05,
+        color: '#111111',
+        font: 'sans',
+        bold: false,
+      }),
+    ])
+    await assemble(doc)
+
+    const [text] = calls.drawText.mock.calls[0] as [string]
+    expect(text.split('\n')).toHaveLength(2)
+    expect(text).toBe('uno\ndos')
+  })
+
   it('mono usa la fuente ESTÁNDAR (Courier), sin embeber ni registrar fontkit', async () => {
     let doc = addImageSource(emptyDoc(), png())
     doc = setPageAnnotations(doc, 0, [
@@ -246,6 +299,33 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(opts.height).toBeCloseTo(20) // 0.1 * 200
     expect(opts.y).toBeCloseTo(120) // 200 − (0.3+0.1)*200
     expect(opts.opacity).toBe(0.5)
+  })
+
+  it('la imagen estampada se embebe y dibuja en las coords del layout', async () => {
+    let doc = addImageSource(emptyDoc(), png()) // página → 100 x 200 pt
+    doc = setPageAnnotations(doc, 0, [
+      makeImageAnnotation({
+        src: pngDataUrl(),
+        xRatio: 0.2,
+        yRatio: 0.3,
+        wRatio: 0.4,
+        hRatio: 0.1,
+        opacity: 0.75,
+      }),
+    ])
+    await assemble(doc)
+
+    expect(calls.embedPng).toHaveBeenCalledTimes(2) // página base + imagen estampada
+    expect(calls.drawImage).toHaveBeenCalledTimes(2)
+    const [_img, opts] = calls.drawImage.mock.calls[1] as [
+      unknown,
+      { x: number; y: number; width: number; height: number; opacity: number },
+    ]
+    expect(opts.x).toBeCloseTo(20)
+    expect(opts.width).toBeCloseTo(40)
+    expect(opts.height).toBeCloseTo(20)
+    expect(opts.y).toBeCloseTo(120)
+    expect(opts.opacity).toBe(0.75)
   })
 
   it('readPngSize lee las dimensiones del IHDR; null si no es PNG', () => {

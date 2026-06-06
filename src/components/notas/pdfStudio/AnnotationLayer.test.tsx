@@ -3,6 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { AnnotationLayer } from './AnnotationLayer'
 import {
   makeHighlightAnnotation,
+  makeImageAnnotation,
+  makeShapeAnnotation,
   makeTextAnnotation,
   type Annotation,
 } from '../../../lib/pdfStudio/model'
@@ -26,11 +28,29 @@ const HL = makeHighlightAnnotation({
   color: '#b3412c',
   opacity: 0.35,
 })
+const IMG = makeImageAnnotation({
+  src: 'data:image/png;base64,iVBORw0KGgo=',
+  xRatio: 0.3,
+  yRatio: 0.2,
+  wRatio: 0.25,
+  hRatio: 0.1,
+  opacity: 0.8,
+})
+const SHAPE = makeShapeAnnotation({
+  shape: 'rect',
+  x0Ratio: 0.15,
+  y0Ratio: 0.2,
+  x1Ratio: 0.45,
+  y1Ratio: 0.4,
+  color: '#222222',
+  strokeRatio: 0.003,
+})
 const DISPLAY_TITLE = 'Doble clic para editar · arrastra para mover'
 
 function setup(overrides: Partial<Parameters<typeof AnnotationLayer>[0]> = {}) {
   const props = {
-    annotations: [TEXT, HL] as Annotation[],
+    annotations: [TEXT, HL, IMG, SHAPE] as Annotation[],
+    innerW: 720,
     innerH: 1000,
     tool: 'select' as const,
     selectedId: null as string | null,
@@ -42,6 +62,7 @@ function setup(overrides: Partial<Parameters<typeof AnnotationLayer>[0]> = {}) {
     onStartEdit: vi.fn(),
     onCommitText: vi.fn(),
     onCancelEdit: vi.fn(),
+    onStartResize: vi.fn(),
     ...overrides,
   }
   const utils = render(<AnnotationLayer {...props} />)
@@ -54,6 +75,14 @@ describe('<AnnotationLayer />', () => {
     expect(screen.getByText('Hola')).toBeInTheDocument()
     expect(screen.getByTitle(DISPLAY_TITLE)).toBeInTheDocument()
     expect(screen.getByTitle('Arrastra para mover')).toBeInTheDocument()
+  })
+
+  it('pinta una imagen estampada y permite seleccionarla', () => {
+    const { props } = setup()
+    const stamp = screen.getByRole('img', { name: 'Imagen estampada' })
+    expect(stamp).toBeInTheDocument()
+    fireEvent.click(stamp)
+    expect(props.onSelect).toHaveBeenCalledWith(IMG.id)
   })
 
   it('clic en el texto selecciona; doble clic lo edita', () => {
@@ -70,6 +99,58 @@ describe('<AnnotationLayer />', () => {
     expect(props.onSelect).toHaveBeenCalledWith(HL.id)
   })
 
+  it('muestra handles de redimensionado al seleccionar un resaltado', () => {
+    const { props } = setup({ selectedId: HL.id })
+    const handle = screen.getByRole('button', {
+      name: 'Redimensionar resaltado desde esquina inferior derecha',
+    })
+    expect(
+      screen.getAllByLabelText(/Redimensionar resaltado desde esquina/i),
+    ).toHaveLength(4)
+    fireEvent.pointerDown(handle)
+    expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), HL, 'se')
+  })
+
+  it('muestra handles de redimensionado al seleccionar una imagen estampada', () => {
+    const { props } = setup({ selectedId: IMG.id })
+    const handle = screen.getByRole('button', {
+      name: 'Redimensionar imagen desde esquina inferior derecha',
+    })
+    expect(screen.getAllByLabelText(/Redimensionar imagen desde esquina/i)).toHaveLength(
+      4,
+    )
+    fireEvent.pointerDown(handle)
+    expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), IMG, 'se')
+  })
+
+  it('muestra handles de redimensionado al seleccionar un cuadro de texto', () => {
+    const { props } = setup({ selectedId: TEXT.id })
+    const handle = screen.getByRole('button', {
+      name: 'Redimensionar texto desde esquina inferior derecha',
+    })
+    fireEvent.pointerDown(handle)
+    expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), TEXT, 'se')
+  })
+
+  it('pinta cuadros de texto con ancho y alto reales cuando están definidos', () => {
+    setup({ annotations: [{ ...TEXT, wRatio: 0.25, hRatio: 0.08 }] })
+    expect(screen.getByTitle(DISPLAY_TITLE)).toHaveStyle({
+      width: '25%',
+      height: '8%',
+      whiteSpace: 'pre-wrap',
+    })
+  })
+
+  it('muestra handles de redimensionado al seleccionar una forma', () => {
+    const { props } = setup({ selectedId: SHAPE.id })
+    const handle = screen.getByRole('button', {
+      name: 'Redimensionar forma desde esquina inferior derecha',
+    })
+    expect(screen.getAllByLabelText(/Redimensionar forma desde esquina/i)).toHaveLength(4)
+    fireEvent.pointerDown(handle)
+    expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), SHAPE, 'se')
+  })
+
   it('en edición muestra el cuadro editable y confirma con Enter', () => {
     const { props } = setup({ editingId: TEXT.id })
     const box = screen.getByRole('textbox', { name: 'Editar texto' })
@@ -79,7 +160,32 @@ describe('<AnnotationLayer />', () => {
   })
 
   it('dibuja el preview translúcido mientras se arrastra un resaltado', () => {
-    const { container } = setup({ drawing: { x0: 10, y0: 10, x1: 60, y1: 40 } })
+    const { container } = setup({
+      tool: 'highlight',
+      drawing: { x0: 10, y0: 10, x1: 60, y1: 40 },
+    })
     expect(container.querySelector('div[style*="dashed"]')).not.toBeNull()
+  })
+
+  it('pinta guías de alineación durante snapping', () => {
+    const { container } = setup({
+      snapGuides: [
+        { axis: 'x', ratio: 0.5 },
+        { axis: 'y', ratio: 0.25 },
+      ],
+    })
+
+    expect(container.querySelector('[data-pdf-snap-guide="x"]')).not.toBeNull()
+    expect(container.querySelector('[data-pdf-snap-guide="y"]')).not.toBeNull()
+  })
+
+  it('dibuja el preview vectorial (SVG) mientras se arrastra una forma', () => {
+    const { container } = setup({
+      tool: 'rect',
+      drawing: { x0: 10, y0: 10, x1: 60, y1: 40 },
+    })
+    // El preview de forma es un SVG, no el div punteado del resaltado.
+    expect(container.querySelector('svg rect')).not.toBeNull()
+    expect(container.querySelector('div[style*="dashed"]')).toBeNull()
   })
 })

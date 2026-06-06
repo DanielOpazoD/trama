@@ -1,0 +1,100 @@
+<h2>Direccion visual para Notas + Tareas</h2>
+<p class="subtitle">Tres posibles experiencias para hacer mas poderoso el editor de notas, los recordatorios y la sensacion general del mundo Notas.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a-editor" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A · Editor concentrado</div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:14px;">
+            <div style="border:1px solid #d9d1c3;border-radius:8px;padding:12px;background:#fffaf1;">
+              <div style="display:flex;gap:8px;margin-bottom:10px;color:#746b5c;font-size:12px;">
+                <span>B</span><span>I</span><span>#</span><span>[[ ]]</span><span>- [ ]</span><span>Preview</span>
+              </div>
+              <div style="height:148px;border-top:1px solid #e9dfcf;padding-top:12px;color:#2f2a23;font-family:Georgia,serif;line-height:1.55;">
+                <strong>Idea para ensayo</strong><br>
+                Vincular [[Borges]] con #memoria<br>
+                - [ ] buscar cita exacta<br>
+                - [ ] convertir en Momento
+              </div>
+            </div>
+            <div style="border:1px solid #e2dacd;border-radius:8px;padding:12px;background:#f7f3eb;">
+              <div style="font-size:11px;text-transform:uppercase;color:#887f70;margin-bottom:8px;">Relacionadas</div>
+              <div style="height:28px;background:#eee6d8;border-radius:6px;margin-bottom:8px;"></div>
+              <div style="height:28px;background:#eee6d8;border-radius:6px;margin-bottom:8px;"></div>
+              <div style="height:28px;background:#eee6d8;border-radius:6px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Editor concentrado</h3>
+      <p>Notas se vuelve un espacio de escritura: toolbar markdown, preview, checklists, wikilinks, borrador persistente y panel de notas relacionadas.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b-inbox" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B · Inbox procesable</div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:.9fr 1.1fr;gap:14px;">
+            <div style="border-right:1px solid #ded5c8;padding-right:12px;">
+              <div style="font-size:11px;text-transform:uppercase;color:#887f70;margin-bottom:8px;">Bandejas</div>
+              <div style="height:30px;border-radius:6px;background:#dce8df;margin-bottom:7px;"></div>
+              <div style="height:30px;border-radius:6px;background:#f0e7d8;margin-bottom:7px;"></div>
+              <div style="height:30px;border-radius:6px;background:#f0e7d8;"></div>
+            </div>
+            <div>
+              <div style="border:1px solid #d9d1c3;border-radius:8px;padding:10px;background:#fffaf1;margin-bottom:10px;">
+                <div style="font-family:Georgia,serif;color:#2f2a23;">Leer sobre temporalidad #ensayo</div>
+                <div style="display:flex;gap:7px;margin-top:9px;font-size:11px;color:#6f7d6d;">
+                  <span>Momento</span><span>Tarea</span><span>Cita</span><span>Archivar</span>
+                </div>
+              </div>
+              <div style="border:1px solid #d9d1c3;border-radius:8px;padding:10px;background:#fffaf1;">
+                <div style="font-family:Georgia,serif;color:#2f2a23;">Comprar libro manana</div>
+                <div style="margin-top:9px;font-size:11px;color:#9a5f43;">Recordar: hoy 18:00</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Inbox procesable</h3>
+      <p>Notas y tareas se sienten como una mesa de despacho: capturar, clasificar, convertir, recordar y archivar con estados claros.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c-ritual" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">C · Ritual diario</div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div style="border:1px solid #d9d1c3;border-radius:8px;padding:12px;background:#fffaf1;">
+              <div style="font-size:11px;text-transform:uppercase;color:#887f70;margin-bottom:8px;">Hoy</div>
+              <div style="font-family:Georgia,serif;font-size:20px;color:#2f2a23;">3 notas</div>
+              <div style="height:7px;background:#d6e2d8;border-radius:999px;margin:14px 0;"></div>
+              <div style="height:52px;background:#f0e7d8;border-radius:7px;"></div>
+            </div>
+            <div style="border:1px solid #d9d1c3;border-radius:8px;padding:12px;background:#fffaf1;">
+              <div style="font-size:11px;text-transform:uppercase;color:#887f70;margin-bottom:8px;">Recordatorios</div>
+              <div style="height:32px;background:#f4dfd1;border-radius:7px;margin-bottom:8px;"></div>
+              <div style="height:32px;background:#eee6d8;border-radius:7px;margin-bottom:8px;"></div>
+              <div style="height:32px;background:#eee6d8;border-radius:7px;"></div>
+            </div>
+          </div>
+          <div style="margin-top:12px;height:42px;border-radius:8px;background:#efe5d3;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Ritual diario</h3>
+      <p>La experiencia enfatiza el dia: foco de hoy, pendientes proximos, notas recientes y una lectura mas editorial del pulso personal.</p>
+    </div>
+  </div>
+</div>

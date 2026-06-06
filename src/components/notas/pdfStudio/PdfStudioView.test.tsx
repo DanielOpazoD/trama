@@ -77,6 +77,26 @@ describe('<PdfStudioView />', () => {
     renderWithProviders(<PdfStudioView />)
     expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar PDF/i })).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: /Importar PDF o imagen/i }),
+    ).toHaveTextContent('Importar')
+    expect(
+      screen.getByRole('button', { name: /Más acciones del documento/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('la barra principal mantiene una fila compacta y agrupa acciones secundarias', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+
+    const toolbar = screen.getByRole('toolbar', { name: /Acciones del documento PDF/i })
+    expect(toolbar).toHaveClass('flex-nowrap')
+    expect(toolbar).not.toHaveClass('rounded-lg')
+    expect(screen.queryByRole('button', { name: /^Descargar$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Nuevo$/i })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
+    expect(screen.getByRole('menuitem', { name: /Descargar/i })).toBeDisabled()
   })
 
   it('restaura el borrador autoguardado al montar', async () => {
@@ -189,13 +209,13 @@ describe('<PdfStudioView />', () => {
     // Abrir el editor con doble clic en la miniatura.
     await user.dblClick(screen.getByAltText('Página 1'))
     expect(
-      await screen.findByRole('dialog', { name: /Texto sobre la página 1/i }),
+      await screen.findByRole('dialog', { name: /Editar página 1/i }),
     ).toBeInTheDocument()
 
     // Agregar un texto (la edición del contenido es INLINE sobre el cuadro, que
     // necesita el fondo renderizado y no corre en happy-dom; acá basta con que la
     // anotación se cree y se confirme).
-    await user.click(screen.getByRole('button', { name: /Agregar texto/i }))
+    await user.click(screen.getByRole('button', { name: /Agregar cuadro de texto/i }))
 
     // Confirmar → el modal cierra y la página queda marcada con texto.
     await user.click(screen.getByRole('button', { name: /^Listo$/ }))
@@ -210,8 +230,8 @@ describe('<PdfStudioView />', () => {
     await screen.findByAltText('Página 1')
 
     await user.dblClick(screen.getByAltText('Página 1'))
-    await screen.findByRole('dialog', { name: /Texto sobre la página 1/i })
-    await user.click(screen.getByRole('button', { name: /Agregar texto/i }))
+    await screen.findByRole('dialog', { name: /Editar página 1/i })
+    await user.click(screen.getByRole('button', { name: /Agregar cuadro de texto/i }))
     await user.click(screen.getByRole('button', { name: /Duplicar texto/i }))
     await user.click(screen.getByRole('button', { name: /^Listo$/ }))
 
@@ -227,7 +247,7 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile('roto.pdf'))
 
     // Esperamos a que termine el import (el botón vuelve de "Agregando…").
-    await screen.findByRole('button', { name: /Agregar PDF o imagen/i })
+    await screen.findByRole('button', { name: /Importar PDF o imagen/i })
     expect(mocks.getPdfPageCount).toHaveBeenCalledTimes(1)
     // No se agregó ninguna página: sigue el estado vacío y Guardar deshabilitado.
     expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
@@ -280,7 +300,7 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: 'Texto' }))
     expect(
-      await screen.findByRole('dialog', { name: /Texto sobre la página 1/i }),
+      await screen.findByRole('dialog', { name: /Editar página 1/i }),
     ).toBeInTheDocument()
   })
 
@@ -303,6 +323,25 @@ describe('<PdfStudioView />', () => {
     expect(mocks.assemble.mock.calls[1]![0].pages).toHaveLength(1)
   })
 
+  it('muestra progreso accesible mientras arma el PDF', async () => {
+    const user = userEvent.setup()
+    let resolveAssemble!: (value: { blob: Blob; skipped: [] }) => void
+    mocks.assemble.mockReturnValue(
+      new Promise((resolve) => {
+        resolveAssemble = resolve
+      }),
+    )
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('Preparando 2 páginas…')
+    resolveAssemble({ blob: new Blob(['pdf'], { type: 'application/pdf' }), skipped: [] })
+    expect(await screen.findByRole('button', { name: /^Guardar PDF$/i })).toBeEnabled()
+  })
+
   it('doble clic en la miniatura abre el modal de ver/editar', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
@@ -311,7 +350,7 @@ describe('<PdfStudioView />', () => {
 
     await user.dblClick(thumb)
     expect(
-      await screen.findByRole('dialog', { name: /Texto sobre la página 1/i }),
+      await screen.findByRole('dialog', { name: /Editar página 1/i }),
     ).toBeInTheDocument()
   })
 
@@ -320,11 +359,14 @@ describe('<PdfStudioView />', () => {
     renderWithProviders(<PdfStudioView />)
     await user.upload(fileInput(), pdfFile())
     await user.dblClick(await screen.findByAltText('Página 1'))
-    await screen.findByRole('dialog', { name: /Texto sobre la página 1/i })
+    await screen.findByRole('dialog', { name: /Editar página 1/i })
 
     // Sin agregar ni seleccionar texto, las herramientas de estilo ya están activas…
     expect(screen.getByRole('button', { name: 'Negrita' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Color Tinta/i })).toBeInTheDocument()
+    const colorMenu = screen.getByRole('button', { name: 'Color' })
+    expect(colorMenu).toBeInTheDocument()
+    await user.click(colorMenu)
+    expect(screen.getByRole('menuitemradio', { name: 'Color Tinta' })).toBeInTheDocument()
     // …y NO está el viejo texto instructivo.
     expect(screen.queryByText(/toca uno para editarlo/i)).not.toBeInTheDocument()
   })
@@ -336,7 +378,7 @@ describe('<PdfStudioView />', () => {
     await screen.findByAltText('Página 1')
 
     await user.dblClick(screen.getByAltText('Página 1'))
-    const dialog = await screen.findByRole('dialog', { name: /Texto sobre la página 1/i })
+    const dialog = await screen.findByRole('dialog', { name: /Editar página 1/i })
 
     // En la primera: "anterior" deshabilitada, "siguiente" habilitada.
     expect(
@@ -347,9 +389,7 @@ describe('<PdfStudioView />', () => {
 
     // Avanza → ahora el diálogo es la página 2.
     await user.click(next)
-    expect(
-      screen.getByRole('dialog', { name: /Texto sobre la página 2/i }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: /Editar página 2/i })).toBeInTheDocument()
   })
 
   it('elimina las páginas marcadas con la tecla Suprimir', async () => {

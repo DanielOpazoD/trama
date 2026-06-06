@@ -68,6 +68,58 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
   return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 }
 }
 
+function fitTextForPdfBox({
+  text,
+  font,
+  size,
+  maxWidth,
+  maxHeight,
+  lineHeight,
+}: {
+  text: string
+  font: PDFFont
+  size: number
+  maxWidth?: number
+  maxHeight?: number
+  lineHeight: number
+}): string {
+  const maxLines =
+    maxHeight != null ? Math.max(1, Math.floor(maxHeight / lineHeight)) : Infinity
+  const lines: string[] = []
+  const push = (line: string) => {
+    if (lines.length < maxLines) lines.push(line)
+  }
+
+  for (const paragraph of text.replace(/\r\n?/g, '\n').split('\n')) {
+    if (lines.length >= maxLines) break
+    if (maxWidth == null) {
+      push(paragraph)
+      continue
+    }
+
+    const words = paragraph.trim().split(/\s+/).filter(Boolean)
+    if (words.length === 0) {
+      push('')
+      continue
+    }
+
+    let line = ''
+    for (const word of words) {
+      const candidate = line ? `${line} ${word}` : word
+      if (!line || font.widthOfTextAtSize(candidate, size) <= maxWidth) {
+        line = candidate
+      } else {
+        push(line)
+        line = word
+        if (lines.length >= maxLines) break
+      }
+    }
+    if (line && lines.length < maxLines) push(line)
+  }
+
+  return lines.join('\n')
+}
+
 /** Firma de archivo PNG (‰PNG) — para embeber sin pérdida aunque falte el mime. */
 function isPngBytes(b: Uint8Array): boolean {
   return b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47
@@ -88,6 +140,16 @@ export function readPngSize(b: Uint8Array): { w: number; h: number } | null {
 // Arriba de ~15 MP, embeber el PNG sin pérdida pesaría de más: se downscalea por
 // el camino JPEG (toJpegBytes, máx 1600px). Los screenshots normales no llegan.
 const MAX_PNG_PX = 15_000_000
+
+/** Decodifica un data URL `data:...;base64,...` a bytes. `null` si no es base64. */
+function dataUrlToBytes(src: string): Uint8Array | null {
+  const i = src.indexOf('base64,')
+  if (i < 0) return null
+  const bin = atob(src.slice(i + 7))
+  const out = new Uint8Array(bin.length)
+  for (let j = 0; j < bin.length; j++) out[j] = bin.charCodeAt(j)
+  return out
+}
 
 /** Re-encodea una imagen a JPEG (fondo blanco, dimensión acotada) → bytes. */
 async function toJpegBytes(
@@ -206,14 +268,25 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
           const layout = textBoxLayout(ann, w, h)
           const size = Math.max(1, layout.size)
           const c = hexToRgb(ann.color)
-          outPage.drawText(ann.text, {
+          const lineHeight = size * TEXT_LINE_HEIGHT
+          const text = fitTextForPdfBox({
+            text: ann.text,
+            font,
+            size,
+            maxWidth: layout.maxWidth,
+            maxHeight: layout.maxHeight,
+            lineHeight,
+          })
+          if (!text.trim()) continue
+          outPage.drawText(text, {
             x: layout.x,
             y: layout.topY - baselineDropEm(ann.font) * size,
             size,
             font,
             color: rgb(c.r, c.g, c.b),
-            lineHeight: size * TEXT_LINE_HEIGHT,
+            lineHeight,
             opacity: ann.opacity ?? 1,
+            ...(layout.maxWidth != null ? { maxWidth: layout.maxWidth } : null),
             // CSS rota horario (+); pdf-lib rota antihorario (+) → se niega.
             rotate: degrees(-(ann.rotation ?? 0)),
           })
@@ -227,6 +300,89 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
             height: ann.hRatio * h,
             color: rgb(c.r, c.g, c.b),
             opacity: ann.opacity ?? 0.4,
+          })
+        } else if (ann.kind === 'shape') {
+          const c = hexToRgb(ann.color)
+          const col = rgb(c.r, c.g, c.b)
+          const sw = Math.max(0.5, ann.strokeRatio * h)
+          const op = ann.opacity ?? 1
+          // Dos puntos en coords de pdf-lib (y desde abajo).
+          const p0 = { x: ann.x0Ratio * w, y: h - ann.y0Ratio * h }
+          const p1 = { x: ann.x1Ratio * w, y: h - ann.y1Ratio * h }
+          if (ann.shape === 'rect' || ann.shape === 'oval') {
+            const x = Math.min(p0.x, p1.x)
+            const y = Math.min(p0.y, p1.y)
+            const rw = Math.abs(p1.x - p0.x)
+            const rh = Math.abs(p1.y - p0.y)
+            // Sólo contorno: `opacity: 0` mata el relleno, `borderOpacity` lo muestra.
+            if (ann.shape === 'rect') {
+              outPage.drawRectangle({
+                x,
+                y,
+                width: rw,
+                height: rh,
+                borderColor: col,
+                borderWidth: sw,
+                opacity: 0,
+                borderOpacity: op,
+              })
+            } else {
+              outPage.drawEllipse({
+                x: x + rw / 2,
+                y: y + rh / 2,
+                xScale: rw / 2,
+                yScale: rh / 2,
+                borderColor: col,
+                borderWidth: sw,
+                opacity: 0,
+                borderOpacity: op,
+              })
+            }
+          } else {
+            outPage.drawLine({
+              start: p0,
+              end: p1,
+              thickness: sw,
+              color: col,
+              opacity: op,
+            })
+            if (ann.shape === 'arrow') {
+              const dx = p1.x - p0.x
+              const dy = p1.y - p0.y
+              const len = Math.hypot(dx, dy) || 1
+              const back = { x: -dx / len, y: -dy / len } // de la punta hacia el inicio
+              const headLen = Math.min(len * 0.3, Math.max(8, sw * 5))
+              const a = Math.PI / 7 // ~25°
+              const rot = (v: { x: number; y: number }, t: number) => ({
+                x: v.x * Math.cos(t) - v.y * Math.sin(t),
+                y: v.x * Math.sin(t) + v.y * Math.cos(t),
+              })
+              for (const t of [a, -a]) {
+                const d = rot(back, t)
+                outPage.drawLine({
+                  start: p1,
+                  end: { x: p1.x + d.x * headLen, y: p1.y + d.y * headLen },
+                  thickness: sw,
+                  color: col,
+                  opacity: op,
+                })
+              }
+            }
+          }
+        } else if (ann.kind === 'image') {
+          const bytes = dataUrlToBytes(ann.src)
+          if (!bytes) continue
+          // Firma/sello: PNG (preserva transparencia) o JPEG según los magic bytes.
+          const img = isPngBytes(bytes)
+            ? await out.embedPng(bytes)
+            : await out.embedJpg(bytes)
+          // `yRatio` es el tope desde arriba; pdf-lib mide `y` desde abajo.
+          outPage.drawImage(img, {
+            x: ann.xRatio * w,
+            y: h - (ann.yRatio + ann.hRatio) * h,
+            width: ann.wRatio * w,
+            height: ann.hRatio * h,
+            opacity: ann.opacity ?? 1,
           })
         }
       } catch (err) {
@@ -291,6 +447,47 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
 
   if (out.getPageCount() === 0) {
     throw new Error('No se pudo armar el PDF: ninguna página se pudo procesar.')
+  }
+
+  // Ajustes a NIVEL DOCUMENTO: numeración en el pie + marca de agua diagonal sobre
+  // TODAS las páginas de salida. Usan Helvetica estándar (no requiere fontkit). Se
+  // dibujan en el espacio SIN rotar (una página rotada los llevaría rotados, caso
+  // raro y aceptable para v1).
+  const settings = doc.settings
+  const wmText = settings?.watermark?.text?.trim()
+  if (settings?.pageNumbers || wmText) {
+    const outPages = out.getPages()
+    const helv = await out.embedFont('Helvetica')
+    const total = outPages.length
+    outPages.forEach((p, i) => {
+      const w = p.getWidth()
+      const h = p.getHeight()
+      if (settings?.pageNumbers) {
+        const label = `${i + 1} / ${total}`
+        const size = Math.max(8, Math.min(w, h) * 0.018)
+        const tw = helv.widthOfTextAtSize(label, size)
+        const margin = Math.max(18, Math.min(w, h) * 0.04)
+        const pos = settings.pageNumbers.position
+        const x =
+          pos === 'left' ? margin : pos === 'right' ? w - margin - tw : (w - tw) / 2
+        p.drawText(label, { x, y: margin, size, font: helv, color: rgb(0.35, 0.35, 0.4) })
+      }
+      if (wmText) {
+        const size = Math.min(w, h) * 0.13
+        const tw = helv.widthOfTextAtSize(wmText, size)
+        // Centrado aprox. de un texto rotado 45° (CCW) respecto de su inicio.
+        const d = (tw / 2) * Math.SQRT1_2
+        p.drawText(wmText, {
+          x: w / 2 - d,
+          y: h / 2 - d,
+          size,
+          font: helv,
+          color: rgb(0.6, 0.6, 0.62),
+          opacity: 0.12,
+          rotate: degrees(45),
+        })
+      }
+    })
   }
 
   const bytes = await out.save()

@@ -15,6 +15,8 @@ import {
   isEmbeddableFont,
   isTextAnnotation,
   makeHighlightAnnotation,
+  makeImageAnnotation,
+  makeShapeAnnotation,
   makeTextAnnotation,
   movePage,
   movePageByDelta,
@@ -26,6 +28,8 @@ import {
   reseedIds,
   rotatePage,
   rotatePages,
+  setDocSettings,
+  translateAnnotation,
   setPageAnnotations,
   standardFontName,
   subsetDoc,
@@ -145,6 +149,17 @@ describe('pdfStudio/model · texto vectorial', () => {
     expect(a.font).toBe('sans')
   })
 
+  it('textBoxLayout expone ancho y alto cuando el texto usa caja real', () => {
+    const ann = makeTextAnnotation({ ...baseAnn, wRatio: 0.3, hRatio: 0.12 })
+    expect(textBoxLayout(ann, 500, 800)).toEqual({
+      x: 50,
+      topY: 640,
+      size: 32,
+      maxWidth: 150,
+      maxHeight: 96,
+    })
+  })
+
   it('setPageAnnotations reemplaza, no muta, e ignora fuera de rango', () => {
     let d = addPdfSource(emptyDoc(), pdf(), 2)
     const ann = makeTextAnnotation(baseAnn)
@@ -226,6 +241,44 @@ describe('pdfStudio/model · texto vectorial', () => {
     reseedIds(restored)
     const a = makeTextAnnotation(baseAnn)
     expect(Number.parseInt(a.id.replace(/\D+/g, ''), 10)).toBeGreaterThan(950)
+  })
+})
+
+describe('pdfStudio/model · imágenes estampadas', () => {
+  it('makeImageAnnotation asigna id, conserva data URL y translateAnnotation la mueve', () => {
+    const a = makeImageAnnotation({
+      src: 'data:image/png;base64,abc',
+      xRatio: 0.2,
+      yRatio: 0.3,
+      wRatio: 0.25,
+      hRatio: 0.1,
+      opacity: 0.8,
+    })
+    expect(a.kind).toBe('image')
+    expect(a.src).toMatch(/^data:image\/png/)
+
+    const moved = translateAnnotation(a, 0.1, -0.1)
+    expect(moved.kind).toBe('image')
+    if (moved.kind !== 'image') throw new Error('expected image annotation')
+    expect(moved.xRatio).toBeCloseTo(0.3)
+    expect(moved.yRatio).toBeCloseTo(0.2)
+    expect(moved.wRatio).toBeCloseTo(0.25)
+    expect(moved.hRatio).toBeCloseTo(0.1)
+  })
+
+  it('cloneAnnotation copia la imagen estampada con id nuevo', () => {
+    const a = makeImageAnnotation({
+      src: 'data:image/jpeg;base64,abc',
+      xRatio: 0.2,
+      yRatio: 0.3,
+      wRatio: 0.25,
+      hRatio: 0.1,
+    })
+    const b = cloneAnnotation(a)
+    expect(b.kind).toBe('image')
+    if (b.kind !== 'image') throw new Error('expected image annotation')
+    expect(b.id).not.toBe(a.id)
+    expect(b).toMatchObject({ src: a.src, xRatio: a.xRatio, yRatio: a.yRatio })
   })
 })
 
@@ -387,6 +440,22 @@ describe('pdfStudio/model · anotaciones polimórficas', () => {
     expect(insertPages(d, emptyDoc())).toBe(d)
   })
 
+  it('setDocSettings reemplaza los ajustes del documento (inmutable)', () => {
+    const d = addPdfSource(emptyDoc(), pdf(), 2)
+    expect(d.settings).toBeUndefined()
+    const out = setDocSettings(d, {
+      pageNumbers: { position: 'center' },
+      watermark: { text: 'BORRADOR' },
+    })
+    expect(out.settings).toEqual({
+      pageNumbers: { position: 'center' },
+      watermark: { text: 'BORRADOR' },
+    })
+    expect(out).not.toBe(d)
+    expect(d.settings).toBeUndefined() // no mutó el original
+    expect(out.pages).toBe(d.pages) // conserva el resto
+  })
+
   it('cloneAnnotation copia con id nuevo y mismo contenido', () => {
     const t = makeTextAnnotation({
       text: 'hola',
@@ -432,5 +501,45 @@ describe('pdfStudio/model · anotaciones polimórficas', () => {
     const norm = normalizeDoc(d)
     expect(norm.pages[0]!.annotations[0]!.kind).toBe('text') // se le puso kind
     expect(norm.pages[0]!.annotations[1]!.kind).toBe('highlight') // respeta el existente
+  })
+
+  const aShape = () =>
+    makeShapeAnnotation({
+      shape: 'arrow',
+      x0Ratio: 0.1,
+      y0Ratio: 0.2,
+      x1Ratio: 0.5,
+      y1Ratio: 0.6,
+      color: '#222222',
+      strokeRatio: 0.004,
+    })
+
+  it('makeShapeAnnotation crea una forma (kind shape, geometría, id propio)', () => {
+    const s = aShape()
+    expect(s.kind).toBe('shape')
+    expect(s.shape).toBe('arrow')
+    expect(s.id).toBeTruthy()
+    expect([s.x0Ratio, s.y0Ratio, s.x1Ratio, s.y1Ratio]).toEqual([0.1, 0.2, 0.5, 0.6])
+  })
+
+  it('cloneAnnotation copia una forma con id nuevo y mismo contenido', () => {
+    const s = aShape()
+    const c = cloneAnnotation(s)
+    expect(c.id).not.toBe(s.id)
+    expect(c.kind).toBe('shape')
+    expect({ ...c, id: '' }).toEqual({ ...s, id: '' })
+  })
+
+  it('translateAnnotation mueve texto y forma y acota a [0,1]', () => {
+    // Texto: mueve x/y.
+    const t = translateAnnotation(aText(), 0.05, -0.05)
+    expect(t.kind === 'text' && t.xRatio).toBeCloseTo(0.15)
+    expect(t.kind === 'text' && t.yRatio).toBeCloseTo(0.05)
+    // Forma: mueve los dos extremos y acota (0.6 + 0.5 → 1).
+    const s = translateAnnotation(aShape(), 0.5, 0.5)
+    if (s.kind !== 'shape') throw new Error('esperaba forma')
+    expect(s.x0Ratio).toBeCloseTo(0.6)
+    expect(s.y1Ratio).toBe(1) // 0.6 + 0.5 acotado a 1
+    expect(s.x1Ratio).toBe(1) // 0.5 + 0.5 acotado a 1
   })
 })

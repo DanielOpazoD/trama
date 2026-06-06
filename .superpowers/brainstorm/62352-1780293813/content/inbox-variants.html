@@ -1,0 +1,92 @@
+<h2>Inbox procesable: que forma deberia tomar?</h2>
+<p class="subtitle">Ya elegimos la direccion B. Ahora hay que decidir si la experiencia debe sentirse mas compacta, mas editorial o mas tipo tablero de trabajo.</p>
+
+<div class="cards">
+  <div class="card" data-choice="b1-rail" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B1 · Rail + lista central</div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:130px 1fr;gap:14px;min-height:230px;">
+            <aside style="border-right:1px solid #ded5c8;padding-right:12px;">
+              <div style="font-size:10px;text-transform:uppercase;color:#887f70;margin-bottom:8px;">Estados</div>
+              <div style="height:28px;border-radius:6px;background:#dce8df;margin-bottom:7px;"></div>
+              <div style="height:28px;border-radius:6px;background:#f0e7d8;margin-bottom:7px;"></div>
+              <div style="height:28px;border-radius:6px;background:#f0e7d8;margin-bottom:7px;"></div>
+              <div style="height:28px;border-radius:6px;background:#f0e7d8;"></div>
+            </aside>
+            <main>
+              <div style="height:38px;border:1px solid #d9d1c3;border-radius:8px;background:#fffaf1;margin-bottom:10px;"></div>
+              <div style="border:1px solid #d9d1c3;border-radius:8px;background:#fffaf1;padding:10px;margin-bottom:8px;">
+                <div style="height:18px;background:#efe5d3;border-radius:4px;margin-bottom:10px;"></div>
+                <div style="display:flex;gap:8px;"><span style="width:52px;height:18px;background:#d6e2d8;border-radius:99px;"></span><span style="width:52px;height:18px;background:#f4dfd1;border-radius:99px;"></span><span style="width:52px;height:18px;background:#e9dfcf;border-radius:99px;"></span></div>
+              </div>
+              <div style="height:64px;border:1px solid #d9d1c3;border-radius:8px;background:#fffaf1;"></div>
+            </main>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B1. Rail + lista central</h3>
+      <p>Mas parecido a la estructura actual: sidebar de estados, lista cronologica y acciones en cada nota. Es el camino mas simple y estable.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b2-digest" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B2 · Hoy primero</div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div style="border:1px solid #d9d1c3;border-radius:8px;background:#fffaf1;padding:12px;">
+              <div style="font-size:10px;text-transform:uppercase;color:#887f70;">Para procesar</div>
+              <div style="font-family:Georgia,serif;font-size:30px;color:#2f2a23;margin-top:12px;">7</div>
+            </div>
+            <div style="border:1px solid #d9d1c3;border-radius:8px;background:#fffaf1;padding:12px;">
+              <div style="font-size:10px;text-transform:uppercase;color:#887f70;">Recordatorios</div>
+              <div style="height:26px;background:#f4dfd1;border-radius:7px;margin-top:12px;margin-bottom:8px;"></div>
+              <div style="height:26px;background:#eee6d8;border-radius:7px;"></div>
+            </div>
+          </div>
+          <div style="height:44px;border-radius:8px;background:#fffaf1;border:1px solid #d9d1c3;margin-bottom:8px;"></div>
+          <div style="height:44px;border-radius:8px;background:#fffaf1;border:1px solid #d9d1c3;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B2. Hoy primero</h3>
+      <p>La pantalla arranca con foco diario: que hay que procesar, que hay que recordar, y debajo las notas. Mas emocional y menos utilitario.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b3-board" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B3 · Tablero por destino</div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;min-height:230px;">
+            <div style="border:1px solid #ded5c8;border-radius:8px;background:#f7f3eb;padding:8px;">
+              <div style="font-size:10px;text-transform:uppercase;color:#887f70;margin-bottom:8px;">Inbox</div>
+              <div style="height:54px;background:#fffaf1;border-radius:7px;margin-bottom:8px;"></div>
+              <div style="height:54px;background:#fffaf1;border-radius:7px;"></div>
+            </div>
+            <div style="border:1px solid #ded5c8;border-radius:8px;background:#f7f3eb;padding:8px;">
+              <div style="font-size:10px;text-transform:uppercase;color:#887f70;margin-bottom:8px;">Recordar</div>
+              <div style="height:54px;background:#fffaf1;border-radius:7px;margin-bottom:8px;"></div>
+            </div>
+            <div style="border:1px solid #ded5c8;border-radius:8px;background:#f7f3eb;padding:8px;">
+              <div style="font-size:10px;text-transform:uppercase;color:#887f70;margin-bottom:8px;">Convertir</div>
+              <div style="height:54px;background:#fffaf1;border-radius:7px;margin-bottom:8px;"></div>
+              <div style="height:54px;background:#fffaf1;border-radius:7px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B3. Tablero por destino</h3>
+      <p>Notas se organiza como kanban: inbox, recordar, convertir. Visualmente claro, pero mas invasivo y menos alineado con la simpleza actual.</p>
+    </div>
+  </div>
+</div>

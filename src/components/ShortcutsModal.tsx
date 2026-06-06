@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { getPdfShortcutGroups } from '../lib/pdfStudio/commands'
 import { CloseIcon, OrnamentBreak } from './Icons'
 
 /**
@@ -59,6 +60,7 @@ const GROUPS: Group[] = [
       { keys: ['Doble click'], label: 'Editar descripción / ensayo / cita directo' },
     ],
   },
+  ...getPdfShortcutGroups(IS_MAC),
 ]
 
 export function ShortcutsModal({
