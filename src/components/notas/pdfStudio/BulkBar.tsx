@@ -49,8 +49,8 @@ export function BulkBar({
       aria-label="Barra de edición de hojas"
       className="flex flex-wrap items-center gap-x-0.5 gap-y-2 rounded-lg border px-2 py-1.5"
       style={{
-        borderColor: 'var(--accent-primary-soft)',
-        backgroundColor: 'var(--accent-primary-soft)',
+        borderColor: 'var(--accent-sage-soft)',
+        backgroundColor: 'var(--accent-sage-soft)',
       }}
     >
       {!none && (

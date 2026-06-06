@@ -483,7 +483,7 @@ export function PdfStudioView() {
     >
       <span
         className="inline-flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-105"
-        style={{ backgroundColor: 'var(--accent-primary-soft)', color: ACCENT }}
+        style={{ backgroundColor: 'var(--accent-sage-soft)', color: ACCENT }}
       >
         <FilePdfIcon size={26} />
       </span>
@@ -542,7 +542,7 @@ export function PdfStudioView() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={busy}
-            className="btn-ghost text-xs inline-flex items-center gap-1.5 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1 text-xs text-ink-600 transition-colors hover:border-ink-300 hover:bg-ink-100/40 hover:text-ink-800 disabled:opacity-50"
           >
             <UploadIcon size={13} />
             {busy ? 'Agregando…' : 'Agregar PDF o imagen'}
