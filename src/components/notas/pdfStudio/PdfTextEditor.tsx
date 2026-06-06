@@ -69,6 +69,7 @@ export function PdfTextEditor({
   pageIndex,
   detectedForms = [],
   onFormValueChange = () => undefined,
+  onInspectForms,
   onClose,
 }: {
   doc: PdfDoc
@@ -79,6 +80,7 @@ export function PdfTextEditor({
     fieldName: string,
     value: string | boolean,
   ) => void
+  onInspectForms?: () => void
   onClose: (edits: PdfTextEditorResult | null) => void
 }) {
   const total = doc.pages.length
@@ -502,6 +504,7 @@ export function PdfTextEditor({
           onAddText={addText}
           onAddImage={() => stampInputRef.current?.click()}
           onAddFormField={addFormField}
+          onInspectForms={onInspectForms}
           activeFont={activeFont}
           activeSize={activeSize}
           activeBold={activeBold}

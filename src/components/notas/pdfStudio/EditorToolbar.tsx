@@ -69,6 +69,7 @@ export function EditorToolbar({
   onAddText,
   onAddImage,
   onAddFormField,
+  onInspectForms,
   activeFont,
   activeSize,
   activeBold,
@@ -89,6 +90,7 @@ export function EditorToolbar({
   onAddText: () => void
   onAddImage: () => void
   onAddFormField?: (kind: PdfFormFieldKind) => void
+  onInspectForms?: () => void
   activeFont: PdfFontKind
   activeSize: number
   activeBold: boolean
@@ -220,7 +222,7 @@ export function EditorToolbar({
             <CameraIcon size={14} />
           </button>
         </Hint>
-        {onAddFormField && (
+        {(onAddFormField || onInspectForms) && (
           <OverflowMenu
             label="Campos"
             width="w-44"
@@ -235,24 +237,42 @@ export function EditorToolbar({
           >
             {(close) => (
               <>
-                {FORM_FIELDS.map((field) => (
+                {onInspectForms && (
                   <button
-                    key={field.key}
                     type="button"
                     role="menuitem"
-                    aria-label={`Crear campo ${field.label}`}
+                    aria-label="Detectar campos del PDF"
                     onClick={() => {
-                      onAddFormField(field.key)
+                      onInspectForms()
                       close()
                     }}
                     className={activeMenuItem(false)}
                   >
                     <span className="inline-flex w-4 justify-center" aria-hidden>
-                      {field.glyph}
+                      ⌖
                     </span>
-                    <span>{field.label}</span>
+                    <span>Detectar</span>
                   </button>
-                ))}
+                )}
+                {onAddFormField &&
+                  FORM_FIELDS.map((field) => (
+                    <button
+                      key={field.key}
+                      type="button"
+                      role="menuitem"
+                      aria-label={`Crear campo ${field.label}`}
+                      onClick={() => {
+                        onAddFormField(field.key)
+                        close()
+                      }}
+                      className={activeMenuItem(false)}
+                    >
+                      <span className="inline-flex w-4 justify-center" aria-hidden>
+                        {field.glyph}
+                      </span>
+                      <span>{field.label}</span>
+                    </button>
+                  ))}
               </>
             )}
           </OverflowMenu>

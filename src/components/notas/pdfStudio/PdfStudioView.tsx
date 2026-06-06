@@ -101,7 +101,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     doc,
     onImageAssets: addAssets,
   })
-  const { applyForms, formSummary, forms, inspectForms, updateFormValue } =
+  const { applyForms, clearForms, formSummary, forms, inspectForms, updateFormValue } =
     usePdfStudioForms(doc, commit)
   const {
     cancelOcr,
@@ -331,6 +331,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
             <PdfStudioFormPanel
               forms={forms}
               onApply={(flatten) => void applyForms(flatten)}
+              onClear={clearForms}
               onChange={updateFormValue}
             />
             {ocrOpen && (
@@ -359,6 +360,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
           pageIndex={textPage}
           detectedForms={forms}
           onFormValueChange={updateFormValue}
+          onInspectForms={() => void inspectForms()}
           onClose={closeTextEditor}
         />
       )}
