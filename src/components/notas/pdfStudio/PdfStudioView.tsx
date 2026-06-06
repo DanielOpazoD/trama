@@ -60,6 +60,7 @@ import {
   isStudioImageFile,
   shouldDownloadPdfDirectly,
 } from './pdfStudioFileUtils'
+import { describePdfExportError, pdfExportProgressLabel } from './pdfExportFeedback'
 import { usePageSelection } from './usePageSelection'
 import {
   DownloadIcon,
@@ -97,6 +98,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   const doc = history.present
   const [busy, setBusy] = useState(false) // importando
   const [saving, setSaving] = useState(false)
+  const [exportStatus, setExportStatus] = useState<string | null>(null)
   const [textPage, setTextPage] = useState<number | null>(null)
   // Contenedor scrolleable del área de trabajo: raíz del IntersectionObserver del
   // lazy-load de las miniaturas (el app-shell scrollea acá adentro, no el viewport).
@@ -429,14 +431,19 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     void deleteSavedDoc(userKey, id)
   }
   async function downloadSaved(s: SavedDoc) {
-    const blob = await assembleOrToast(s.doc)
-    if (blob) downloadBlob(blob, `${s.name || 'creacion'}.pdf`)
+    try {
+      const blob = await assembleOrToast(s.doc)
+      if (blob) downloadBlob(blob, `${s.name || 'creacion'}.pdf`)
+    } finally {
+      setExportStatus(null)
+    }
   }
 
   /** Ensambla `target` con UN solo manejo de errores y del aviso de archivos
    *  salteados (los tres caminos de export lo comparten → comportamiento idéntico,
    *  sin el bug silencioso de descartar `skipped`). Devuelve el blob o `null`. */
   async function assembleOrToast(target: PdfDoc): Promise<Blob | null> {
+    setExportStatus(pdfExportProgressLabel(target.pages.length))
     try {
       const { blob, skipped } = await assemble(target)
       if (skipped.length > 0) {
@@ -450,7 +457,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
       return blob
     } catch (err) {
       toast.show({
-        message: err instanceof Error ? err.message : 'No se pudo preparar el PDF.',
+        message: describePdfExportError(err),
         tone: 'error',
       })
       return null
@@ -489,6 +496,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
         })
       })
     } finally {
+      setExportStatus(null)
       setSaving(false)
     }
   }
@@ -502,6 +510,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
       const blob = await assembleOrToast(target)
       if (blob) downloadBlob(blob, exportPdfName(undefined, kind))
     } finally {
+      setExportStatus(null)
       setSaving(false)
     }
   }
@@ -694,6 +703,15 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
                   <PrinterIcon size={13} />
                   {saving ? 'Preparando…' : 'Guardar PDF'}
                 </button>
+                {exportStatus && (
+                  <span
+                    role="status"
+                    aria-live="polite"
+                    className="hidden text-micro text-ink-400 sm:inline"
+                  >
+                    {exportStatus}
+                  </span>
+                )}
                 <OverflowMenu
                   label="Más acciones del documento"
                   width="w-64"

@@ -535,6 +535,7 @@ export function PdfTextEditor({
         maxTextSizeRatio: TEXT_SIZE_MAX,
         minBoxWidthRatio: 14 / dw,
         minBoxHeightRatio: 14 / dh,
+        lockAspectRatio: a.kind === 'image' && ev.shiftKey,
       })
       editLive((list) => list.map((x) => (x.id === a.id ? next : x)))
     }

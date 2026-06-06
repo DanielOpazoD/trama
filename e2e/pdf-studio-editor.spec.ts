@@ -303,4 +303,53 @@ test.describe('Imprenta · editor PDF', () => {
     expect(after.width).toBeGreaterThan(before.width + 20)
     expect(after.height).toBeGreaterThan(before.height + 12)
   })
+
+  test('mantiene proporción de imagen estampada al redimensionar con Shift', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+
+    await page.getByRole('button', { name: 'Estampar imagen' }).click()
+    await page.locator('input[accept="image/png,image/jpeg"]').setInputFiles({
+      name: 'sello-qa.png',
+      mimeType: 'image/png',
+      buffer: samplePng,
+    })
+
+    const stamp = page.getByRole('img', { name: 'Imagen estampada' })
+    await expect(stamp).toBeVisible()
+    await stamp.click()
+
+    const before = await stamp.boundingBox()
+    expect(before).not.toBeNull()
+    if (!before) return
+    const beforeAspect = before.width / before.height
+
+    const handle = page.getByRole('button', {
+      name: 'Redimensionar imagen desde esquina inferior derecha',
+    })
+    const handleBox = await handle.boundingBox()
+    expect(handleBox).not.toBeNull()
+    if (!handleBox) return
+
+    await page.keyboard.down('Shift')
+    await page.mouse.move(
+      handleBox.x + handleBox.width / 2,
+      handleBox.y + handleBox.height / 2,
+    )
+    await page.mouse.down()
+    await page.mouse.move(
+      handleBox.x + handleBox.width / 2 + 130,
+      handleBox.y + handleBox.height / 2 + 10,
+    )
+    await page.mouse.up()
+    await page.keyboard.up('Shift')
+
+    const after = await stamp.boundingBox()
+    expect(after).not.toBeNull()
+    if (!after) return
+
+    expect(after.width).toBeGreaterThan(before.width + 20)
+    expect(after.width / after.height).toBeCloseTo(beforeAspect, 1)
+  })
 })

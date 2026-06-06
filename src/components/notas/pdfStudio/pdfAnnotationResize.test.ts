@@ -106,6 +106,23 @@ describe('pdfAnnotationResize · resizeAnnotationFromPointerDelta', () => {
     })
   })
 
+  it('bloquea la proporción visual de imágenes cuando se redimensiona con modificador', () => {
+    const resized = resizeAnnotationFromPointerDelta(image, 'se', {
+      screenDx: 160,
+      screenDy: 10,
+      pageWidthPx: 800,
+      pageHeightPx: 400,
+      rotationQuarters: 0,
+      lockAspectRatio: true,
+    })
+
+    expect((resized.wRatio * 800) / (resized.hRatio * 400)).toBeCloseTo(
+      (image.wRatio * 800) / (image.hRatio * 400),
+    )
+    expect(resized.wRatio).toBeCloseTo(0.5)
+    expect(resized.hRatio).toBeCloseTo(1 / 3)
+  })
+
   it('redimensiona formas preservando la dirección de líneas y flechas', () => {
     const resized = resizeAnnotationFromPointerDelta(arrow, 'nw', {
       screenDx: -80,

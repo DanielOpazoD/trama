@@ -27,6 +27,35 @@ export type AnnotationResizePointerDelta = {
   maxTextSizeRatio?: number
   minBoxWidthRatio?: number
   minBoxHeightRatio?: number
+  lockAspectRatio?: boolean
+}
+
+function resizeImageWithLockedAspectRatio(
+  annotation: ImageAnnotation,
+  box: { xRatio: number; yRatio: number; wRatio: number; hRatio: number },
+  handle: ResizeHandle,
+  pageWidthPx: number,
+  pageHeightPx: number,
+): ImageAnnotation {
+  const aspect = (annotation.wRatio * pageWidthPx) / (annotation.hRatio * pageHeightPx)
+  if (!Number.isFinite(aspect) || aspect <= 0) return { ...annotation, ...box }
+
+  const widthDeltaPx = Math.abs((box.wRatio - annotation.wRatio) * pageWidthPx)
+  const heightDeltaPx = Math.abs((box.hRatio - annotation.hRatio) * pageHeightPx)
+  let wRatio = box.wRatio
+  let hRatio = box.hRatio
+
+  if (widthDeltaPx >= heightDeltaPx) {
+    hRatio = (wRatio * pageWidthPx) / (aspect * pageHeightPx)
+  } else {
+    wRatio = (hRatio * pageHeightPx * aspect) / pageWidthPx
+  }
+
+  const right = annotation.xRatio + annotation.wRatio
+  const bottom = annotation.yRatio + annotation.hRatio
+  const xRatio = handle.includes('w') ? right - wRatio : box.xRatio
+  const yRatio = handle.includes('n') ? bottom - hRatio : box.yRatio
+  return { ...annotation, xRatio, yRatio, wRatio, hRatio }
 }
 
 export function resizeAnnotationFromPointerDelta<T extends ResizableAnnotation>(
@@ -84,11 +113,20 @@ export function resizeAnnotationFromPointerDelta<T extends ResizableAnnotation>(
     return { ...annotation, x0Ratio, y0Ratio, x1Ratio, y1Ratio }
   }
 
-  return {
-    ...annotation,
-    ...resizeRatioBox(annotation, handle, dxRatio, dyRatio, {
-      minW: delta.minBoxWidthRatio,
-      minH: delta.minBoxHeightRatio,
-    }),
+  const box = resizeRatioBox(annotation, handle, dxRatio, dyRatio, {
+    minW: delta.minBoxWidthRatio,
+    minH: delta.minBoxHeightRatio,
+  })
+
+  if (annotation.kind === 'image' && delta.lockAspectRatio) {
+    return resizeImageWithLockedAspectRatio(
+      annotation,
+      box,
+      handle,
+      pageWidthPx,
+      pageHeightPx,
+    ) as T
   }
+
+  return { ...annotation, ...box }
 }

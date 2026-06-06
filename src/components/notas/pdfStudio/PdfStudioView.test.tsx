@@ -323,6 +323,25 @@ describe('<PdfStudioView />', () => {
     expect(mocks.assemble.mock.calls[1]![0].pages).toHaveLength(1)
   })
 
+  it('muestra progreso accesible mientras arma el PDF', async () => {
+    const user = userEvent.setup()
+    let resolveAssemble!: (value: { blob: Blob; skipped: [] }) => void
+    mocks.assemble.mockReturnValue(
+      new Promise((resolve) => {
+        resolveAssemble = resolve
+      }),
+    )
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('Preparando 2 páginas…')
+    resolveAssemble({ blob: new Blob(['pdf'], { type: 'application/pdf' }), skipped: [] })
+    expect(await screen.findByRole('button', { name: /^Guardar PDF$/i })).toBeEnabled()
+  })
+
   it('doble clic en la miniatura abre el modal de ver/editar', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
