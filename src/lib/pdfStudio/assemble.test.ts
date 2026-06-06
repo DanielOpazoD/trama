@@ -62,7 +62,10 @@ vi.mock('pdf-lib', () => {
           },
           embedFont: async (...a: unknown[]) => {
             calls.embedFont(...a)
-            return { heightAtSize: () => 16 }
+            return {
+              heightAtSize: () => 16,
+              widthOfTextAtSize: (text: string, size: number) => text.length * size * 0.5,
+            }
           },
           registerFontkit: (...a: unknown[]) => calls.registerFontkit(...a),
           getPageCount: () => count,
@@ -179,6 +182,53 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(opts.y).toBeCloseTo(100 - baselineDropEm('sans') * 20)
     expect(opts.opacity).toBe(0.5)
     expect(opts.rotate).toEqual({ __deg: -30 }) // CSS horario → pdf-lib antihorario
+  })
+
+  it('el texto con caja real se exporta con maxWidth para envolver líneas', async () => {
+    let doc = addImageSource(emptyDoc(), png())
+    doc = setPageAnnotations(doc, 0, [
+      makeTextAnnotation({
+        text: 'Texto largo para envolver',
+        xRatio: 0.1,
+        yRatio: 0.2,
+        wRatio: 0.35,
+        hRatio: 0.12,
+        sizeRatio: 0.04,
+        color: '#111111',
+        font: 'sans',
+        bold: false,
+      }),
+    ])
+    await assemble(doc)
+
+    const [_text, opts] = calls.drawText.mock.calls[0] as [
+      string,
+      { maxWidth?: number; lineHeight: number },
+    ]
+    expect(opts.maxWidth).toBeCloseTo(35)
+    expect(opts.lineHeight).toBeCloseTo(8 * 1.15)
+  })
+
+  it('el texto con caja real respeta el alto máximo al exportar', async () => {
+    let doc = addImageSource(emptyDoc(), png())
+    doc = setPageAnnotations(doc, 0, [
+      makeTextAnnotation({
+        text: 'uno dos tres cuatro cinco seis',
+        xRatio: 0.1,
+        yRatio: 0.2,
+        wRatio: 0.2,
+        hRatio: 0.12,
+        sizeRatio: 0.05,
+        color: '#111111',
+        font: 'sans',
+        bold: false,
+      }),
+    ])
+    await assemble(doc)
+
+    const [text] = calls.drawText.mock.calls[0] as [string]
+    expect(text.split('\n')).toHaveLength(2)
+    expect(text).toBe('uno\ndos')
   })
 
   it('mono usa la fuente ESTÁNDAR (Courier), sin embeber ni registrar fontkit', async () => {

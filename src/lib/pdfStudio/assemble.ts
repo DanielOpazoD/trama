@@ -68,6 +68,58 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
   return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 }
 }
 
+function fitTextForPdfBox({
+  text,
+  font,
+  size,
+  maxWidth,
+  maxHeight,
+  lineHeight,
+}: {
+  text: string
+  font: PDFFont
+  size: number
+  maxWidth?: number
+  maxHeight?: number
+  lineHeight: number
+}): string {
+  const maxLines =
+    maxHeight != null ? Math.max(1, Math.floor(maxHeight / lineHeight)) : Infinity
+  const lines: string[] = []
+  const push = (line: string) => {
+    if (lines.length < maxLines) lines.push(line)
+  }
+
+  for (const paragraph of text.replace(/\r\n?/g, '\n').split('\n')) {
+    if (lines.length >= maxLines) break
+    if (maxWidth == null) {
+      push(paragraph)
+      continue
+    }
+
+    const words = paragraph.trim().split(/\s+/).filter(Boolean)
+    if (words.length === 0) {
+      push('')
+      continue
+    }
+
+    let line = ''
+    for (const word of words) {
+      const candidate = line ? `${line} ${word}` : word
+      if (!line || font.widthOfTextAtSize(candidate, size) <= maxWidth) {
+        line = candidate
+      } else {
+        push(line)
+        line = word
+        if (lines.length >= maxLines) break
+      }
+    }
+    if (line && lines.length < maxLines) push(line)
+  }
+
+  return lines.join('\n')
+}
+
 /** Firma de archivo PNG (‰PNG) — para embeber sin pérdida aunque falte el mime. */
 function isPngBytes(b: Uint8Array): boolean {
   return b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47
@@ -216,14 +268,25 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
           const layout = textBoxLayout(ann, w, h)
           const size = Math.max(1, layout.size)
           const c = hexToRgb(ann.color)
-          outPage.drawText(ann.text, {
+          const lineHeight = size * TEXT_LINE_HEIGHT
+          const text = fitTextForPdfBox({
+            text: ann.text,
+            font,
+            size,
+            maxWidth: layout.maxWidth,
+            maxHeight: layout.maxHeight,
+            lineHeight,
+          })
+          if (!text.trim()) continue
+          outPage.drawText(text, {
             x: layout.x,
             y: layout.topY - baselineDropEm(ann.font) * size,
             size,
             font,
             color: rgb(c.r, c.g, c.b),
-            lineHeight: size * TEXT_LINE_HEIGHT,
+            lineHeight,
             opacity: ann.opacity ?? 1,
+            ...(layout.maxWidth != null ? { maxWidth: layout.maxWidth } : null),
             // CSS rota horario (+); pdf-lib rota antihorario (+) → se niega.
             rotate: degrees(-(ann.rotation ?? 0)),
           })

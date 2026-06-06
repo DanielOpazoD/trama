@@ -70,6 +70,23 @@ describe('pdfAnnotationResize · resizeAnnotationFromPointerDelta', () => {
     })
   })
 
+  it('redimensiona la caja real de texto cuando tiene ancho y alto', () => {
+    const boxedText = { ...text, wRatio: 0.22, hRatio: 0.08 }
+    const resized = resizeAnnotationFromPointerDelta(boxedText, 'se', {
+      screenDx: 80,
+      screenDy: 40,
+      pageWidthPx: 800,
+      pageHeightPx: 1000,
+      rotationQuarters: 0,
+      minBoxWidthRatio: 0.02,
+      minBoxHeightRatio: 0.02,
+    })
+
+    expect(resized.sizeRatio).toBe(boxedText.sizeRatio)
+    expect(resized.wRatio).toBeCloseTo(0.32)
+    expect(resized.hRatio).toBeCloseTo(0.12)
+  })
+
   it('redimensiona resaltados con mínimos táctiles y sin salir de la página', () => {
     const resized = resizeAnnotationFromPointerDelta(highlight, 'nw', {
       screenDx: 500,

@@ -74,6 +74,26 @@ export function resizeAnnotationFromPointerDelta<T extends ResizableAnnotation>(
   const dyRatio = dy / pageHeightPx
 
   if (annotation.kind === 'text') {
+    if (typeof annotation.wRatio === 'number' && typeof annotation.hRatio === 'number') {
+      return {
+        ...annotation,
+        ...resizeRatioBox(
+          {
+            xRatio: annotation.xRatio,
+            yRatio: annotation.yRatio,
+            wRatio: annotation.wRatio,
+            hRatio: annotation.hRatio,
+          },
+          handle,
+          dxRatio,
+          dyRatio,
+          {
+            minW: delta.minBoxWidthRatio,
+            minH: delta.minBoxHeightRatio,
+          },
+        ),
+      }
+    }
     const sx = handle.includes('w') ? -dxRatio : dxRatio
     const sy = handle.includes('n') ? -dyRatio : dyRatio
     return {

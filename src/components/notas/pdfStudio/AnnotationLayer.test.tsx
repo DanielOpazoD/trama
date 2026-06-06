@@ -132,6 +132,15 @@ describe('<AnnotationLayer />', () => {
     expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), TEXT, 'se')
   })
 
+  it('pinta cuadros de texto con ancho y alto reales cuando están definidos', () => {
+    setup({ annotations: [{ ...TEXT, wRatio: 0.25, hRatio: 0.08 }] })
+    expect(screen.getByTitle(DISPLAY_TITLE)).toHaveStyle({
+      width: '25%',
+      height: '8%',
+      whiteSpace: 'pre-wrap',
+    })
+  })
+
   it('muestra handles de redimensionado al seleccionar una forma', () => {
     const { props } = setup({ selectedId: SHAPE.id })
     const handle = screen.getByRole('button', {

@@ -43,6 +43,10 @@ export type TextAnnotation = AnnotationBase & {
   text: string
   xRatio: number
   yRatio: number
+  /** Ancho de la caja de texto como fracción del ancho de página. Opcional compat. */
+  wRatio?: number
+  /** Alto de la caja de texto como fracción del alto de página. Opcional compat. */
+  hRatio?: number
   /** Tamaño de fuente como fracción del alto de página (p. ej. 0.04). */
   sizeRatio: number
   /** Color en hex `#rrggbb`. */
@@ -528,11 +532,17 @@ export function textBoxLayout(
   ann: TextAnnotation,
   pageWidth: number,
   pageHeight: number,
-): { x: number; topY: number; size: number } {
+): { x: number; topY: number; size: number; maxWidth?: number; maxHeight?: number } {
+  const maxWidth =
+    typeof ann.wRatio === 'number' ? Math.max(1, ann.wRatio * pageWidth) : undefined
+  const maxHeight =
+    typeof ann.hRatio === 'number' ? Math.max(1, ann.hRatio * pageHeight) : undefined
   return {
     x: ann.xRatio * pageWidth,
     topY: pageHeight - ann.yRatio * pageHeight,
     size: ann.sizeRatio * pageHeight,
+    ...(maxWidth != null ? { maxWidth } : null),
+    ...(maxHeight != null ? { maxHeight } : null),
   }
 }
 

@@ -412,6 +412,8 @@ export function PdfTextEditor({
       text: 'Texto',
       xRatio: 0.2,
       yRatio: 0.42,
+      wRatio: 0.24,
+      hRatio: Math.max(0.055, style.sizeRatio * 1.7),
       sizeRatio: style.sizeRatio,
       color: style.color,
       font: style.font,

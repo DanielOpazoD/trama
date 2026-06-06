@@ -149,6 +149,17 @@ describe('pdfStudio/model · texto vectorial', () => {
     expect(a.font).toBe('sans')
   })
 
+  it('textBoxLayout expone ancho y alto cuando el texto usa caja real', () => {
+    const ann = makeTextAnnotation({ ...baseAnn, wRatio: 0.3, hRatio: 0.12 })
+    expect(textBoxLayout(ann, 500, 800)).toEqual({
+      x: 50,
+      topY: 640,
+      size: 32,
+      maxWidth: 150,
+      maxHeight: 96,
+    })
+  })
+
   it('setPageAnnotations reemplaza, no muta, e ignora fuera de rango', () => {
     let d = addPdfSource(emptyDoc(), pdf(), 2)
     const ann = makeTextAnnotation(baseAnn)

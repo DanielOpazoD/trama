@@ -259,6 +259,59 @@ test.describe('Imprenta · editor PDF', () => {
     await expect(textBoxes).toHaveCount(1)
   })
 
+  test('permite redimensionar una caja de texto sin cambiar la fuente', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+
+    await page.getByRole('button', { name: 'Agregar cuadro de texto' }).click()
+    const editor = page.getByRole('textbox', { name: 'Editar texto' })
+    await expect(editor).toBeVisible()
+    await editor.fill('Texto largo para medir caja')
+    await page.keyboard.press('Enter')
+
+    const textBox = page.getByTitle('Doble clic para editar · arrastra para mover')
+    await expect(textBox).toBeVisible()
+    await textBox.click()
+
+    const before = await textBox.boundingBox()
+    expect(before).not.toBeNull()
+    if (!before) return
+    const beforeFontSize = await textBox.evaluate((el) =>
+      Number.parseFloat(getComputedStyle(el).fontSize),
+    )
+
+    const handle = page.getByRole('button', {
+      name: 'Redimensionar texto desde esquina inferior derecha',
+    })
+    await expect(handle).toBeVisible()
+    const handleBox = await handle.boundingBox()
+    expect(handleBox).not.toBeNull()
+    if (!handleBox) return
+
+    await page.mouse.move(
+      handleBox.x + handleBox.width / 2,
+      handleBox.y + handleBox.height / 2,
+    )
+    await page.mouse.down()
+    await page.mouse.move(
+      handleBox.x + handleBox.width / 2 + 90,
+      handleBox.y + handleBox.height / 2 + 55,
+    )
+    await page.mouse.up()
+
+    const after = await textBox.boundingBox()
+    expect(after).not.toBeNull()
+    if (!after) return
+    const afterFontSize = await textBox.evaluate((el) =>
+      Number.parseFloat(getComputedStyle(el).fontSize),
+    )
+
+    expect(after.width).toBeGreaterThan(before.width + 20)
+    expect(after.height).toBeGreaterThan(before.height + 12)
+    expect(afterFontSize).toBeCloseTo(beforeFontSize, 1)
+  })
+
   test('permite insertar y redimensionar una imagen estampada', async ({ page }) => {
     await openPdfEditor(page)
 

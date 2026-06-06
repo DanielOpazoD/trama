@@ -222,8 +222,12 @@ export function AnnotationLayer({
     )
 
   const textResizeHandles = (a: TextAnnotation, sz: number) => {
-    const widthPx = Math.max(sz * 1.6, (a.text || ' ').length * sz * 0.55)
-    const heightPx = sz * TEXT_LINE_HEIGHT
+    const widthPx =
+      typeof a.wRatio === 'number'
+        ? a.wRatio * innerW
+        : Math.max(sz * 1.6, (a.text || ' ').length * sz * 0.55)
+    const heightPx =
+      typeof a.hRatio === 'number' ? a.hRatio * innerH : sz * TEXT_LINE_HEIGHT
     return boxResizeHandles(
       a,
       {
@@ -248,6 +252,8 @@ export function AnnotationLayer({
           position: 'absolute',
           left: `${a.xRatio * 100}%`,
           top: `${a.yRatio * 100}%`,
+          ...(typeof a.wRatio === 'number' ? { width: `${a.wRatio * 100}%` } : null),
+          ...(typeof a.hRatio === 'number' ? { height: `${a.hRatio * 100}%` } : null),
           margin: `-${HIT_Y}px -${HIT_X}px`,
           padding: `${HIT_Y}px ${HIT_X}px`,
           fontFamily: previewFontFamily(a.font),
@@ -258,7 +264,15 @@ export function AnnotationLayer({
           opacity: a.opacity ?? 1,
           transform: a.rotation ? `rotate(${a.rotation}deg)` : undefined,
           transformOrigin: `${HIT_X}px ${HIT_Y + sz * baselineDropEm(a.font)}px`,
-          whiteSpace: 'pre',
+          whiteSpace:
+            typeof a.wRatio === 'number' && typeof a.hRatio === 'number'
+              ? 'pre-wrap'
+              : 'pre',
+          overflow:
+            typeof a.wRatio === 'number' && typeof a.hRatio === 'number'
+              ? 'hidden'
+              : undefined,
+          overflowWrap: 'break-word',
           borderRadius: 3,
         }
         if (editingId === a.id) {
