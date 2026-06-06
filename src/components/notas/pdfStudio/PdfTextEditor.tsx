@@ -7,17 +7,11 @@ import {
   makeTextAnnotation,
   translateAnnotation,
   type Annotation,
-  type HighlightAnnotation,
   type ImageAnnotation,
   type PdfDoc,
-  type ShapeAnnotation,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
-import {
-  fitImageStampBox,
-  screenDeltaToPage,
-  type ResizeHandle,
-} from '../../../lib/pdfStudio/editorGeometry'
+import { fitImageStampBox } from '../../../lib/pdfStudio/editorGeometry'
 import {
   canRedo,
   canUndo,
@@ -34,7 +28,6 @@ import { AnnotationLayer } from './AnnotationLayer'
 import { EditorToolbar } from './EditorToolbar'
 import { PageCanvas } from './PageCanvas'
 import { SelectionInspector } from './SelectionInspector'
-import { createAnnotationFromDrawGesture } from './pdfAnnotationDrawing'
 import {
   alignAnnotations,
   annotationArrangeBox,
@@ -43,8 +36,8 @@ import {
   type AnnotationHorizontalAlignment,
   type AnnotationLayerMove,
 } from './pdfAnnotationArrange'
-import { resizeAnnotationFromPointerDelta } from './pdfAnnotationResize'
-import { snapAnnotationDrag, type SnapGuide } from './pdfAnnotationSnap'
+import type { SnapGuide } from './pdfAnnotationSnap'
+import { usePdfTextEditorInteractions } from './usePdfTextEditorInteractions'
 import { usePdfTextEditorPageRender } from './usePdfTextEditorPageRender'
 import { usePdfTextEditorKeyboard } from './usePdfTextEditorKeyboard'
 import {
@@ -52,18 +45,9 @@ import {
   defaultEditorTextStyle,
   resolveActiveEditorStyle,
 } from './pdfEditorStyleState'
-import {
-  HIGHLIGHT_OPACITY,
-  SHAPE_STROKE,
-  clamp,
-  stepBtn,
-  type TextStyle,
-  type Tool,
-} from './editorStyle'
+import { stepBtn, type TextStyle, type Tool } from './editorStyle'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
-const TEXT_SIZE_MIN = 0.012
-const TEXT_SIZE_MAX = 0.14
 const STAMP_ACCEPT = 'image/png,image/jpeg'
 
 function isMacLike(): boolean {
@@ -345,168 +329,20 @@ export function PdfTextEditor({
     if (selectedId === id) setSelectedId(null)
   }
 
-  function startDrag(e: React.PointerEvent, a: Annotation) {
-    e.stopPropagation()
-    if (a.locked) return
-    // px reales en pantalla del lado interior (incluye el zoom).
-    const dw = (layout?.innerW ?? 1) * zoom
-    const dh = (layout?.innerH ?? 1) * zoom
-    const rot = layout?.rot ?? 0
-    const startX = e.clientX
-    const startY = e.clientY
-    const duplicateDrag = e.altKey
-    // Anotación al iniciar el arrastre: mover = trasladarla desde acá (vale para
-    // texto/resaltado/forma vía `translateAnnotation`).
-    const orig = duplicateDrag ? cloneAnnotation(a) : a
-    setSelectedId(orig.id)
-    // Snapshot ANTES del arrastre: al soltar se empuja UNA entrada de historial
-    // (no una por cada `pointermove`).
-    const before = editedRef.current
-    if (duplicateDrag) {
-      editLive((list) => [...list, orig])
-    }
-    let moved = false
-    const move = (ev: PointerEvent) => {
-      const { dx: pdx, dy: pdy } = screenDeltaToPage(
-        ev.clientX - startX,
-        ev.clientY - startY,
-        rot,
-      )
-      moved = true
-      const snapped = snapAnnotationDrag({
-        annotation: orig,
-        annotations: [...annotationsRef.current.filter((ann) => ann.id !== a.id), orig],
-        dxRatio: pdx / dw,
-        dyRatio: pdy / dh,
-        pageWidthPx: dw,
-        pageHeightPx: dh,
-      })
-      setSnapGuides(snapped.guides)
-      const next = translateAnnotation(orig, snapped.dxRatio, snapped.dyRatio)
-      editLive((list) =>
-        list.some((x) => x.id === orig.id)
-          ? list.map((x) => (x.id === orig.id ? next : x))
-          : [...list, next],
-      )
-    }
-    const up = () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
-      setSnapGuides([])
-      // Cierra el arrastre como UN paso de historial: el `before` va al pasado y
-      // el presente (final) queda; un solo undo lo revierte entero.
-      if (moved)
-        setHistory((h) => ({ past: [...h.past, before], present: h.present, future: [] }))
-      else if (duplicateDrag) {
-        setSelectedId(a.id)
-        setHistory((h) => ({ ...h, present: before }))
-      }
-    }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
-  }
-
-  function startResize(
-    e: React.PointerEvent,
-    a: TextAnnotation | HighlightAnnotation | ImageAnnotation | ShapeAnnotation,
-    handle: ResizeHandle,
-  ) {
-    if (!layout) return
-    e.stopPropagation()
-    e.preventDefault()
-    if (a.locked) return
-    setSelectedId(a.id)
-    const dw = layout.innerW * zoom
-    const dh = layout.innerH * zoom
-    const rot = layout.rot
-    const startX = e.clientX
-    const startY = e.clientY
-    const before = editedRef.current
-    let resized = false
-    const move = (ev: PointerEvent) => {
-      resized = true
-      const next = resizeAnnotationFromPointerDelta(a, handle, {
-        screenDx: ev.clientX - startX,
-        screenDy: ev.clientY - startY,
-        pageWidthPx: dw,
-        pageHeightPx: dh,
-        rotationQuarters: rot,
-        minTextSizeRatio: TEXT_SIZE_MIN,
-        maxTextSizeRatio: TEXT_SIZE_MAX,
-        minBoxWidthRatio: 14 / dw,
-        minBoxHeightRatio: 14 / dh,
-        lockAspectRatio: a.kind === 'image' && ev.shiftKey,
-      })
-      editLive((list) => list.map((x) => (x.id === a.id ? next : x)))
-    }
-    const up = () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
-      if (resized)
-        setHistory((h) => ({ past: [...h.past, before], present: h.present, future: [] }))
-    }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
-  }
-
-  /**
-   * Inicia el DIBUJO por arrastre (modo resaltar o una forma). El inicio en coords
-   * LOCALES de la página interior (offsetX/Y pre-transform); el movimiento usa el
-   * delta de pantalla transformado por rotación/zoom (igual que el drag). Al soltar
-   * crea un resaltado (rectángulo) o una forma según la herramienta activa.
-   */
-  function startDraw(e: React.PointerEvent) {
-    if (!layout) return
-    e.stopPropagation()
-    const drawTool = tool
-    const x0 = e.nativeEvent.offsetX
-    const y0 = e.nativeEvent.offsetY
-    const startX = e.clientX
-    const startY = e.clientY
-    const rot = layout.rot
-    const innerW = layout.innerW
-    const innerH = layout.innerH
-    let last = { x0, y0, x1: x0, y1: y0 }
-    setDrawing(last)
-    const move = (ev: PointerEvent) => {
-      const { dx: pdx, dy: pdy } = screenDeltaToPage(
-        ev.clientX - startX,
-        ev.clientY - startY,
-        rot,
-      )
-      last = {
-        x0,
-        y0,
-        x1: clamp(x0 + pdx / zoom, 0, innerW),
-        y1: clamp(y0 + pdy / zoom, 0, innerH),
-      }
-      setDrawing(last)
-    }
-    const up = () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
-      setDrawing(null)
-      const annotation = createAnnotationFromDrawGesture({
-        tool: drawTool,
-        x0: last.x0,
-        y0: last.y0,
-        x1: last.x1,
-        y1: last.y1,
-        pageWidthPx: innerW,
-        pageHeightPx: innerH,
-        style: {
-          color: style.color,
-          strokeRatio: SHAPE_STROKE,
-          highlightOpacity: HIGHLIGHT_OPACITY,
-        },
-      })
-      if (!annotation) return
-      setAnnotations((l) => [...l, annotation])
-      setSelectedId(annotation.id)
-    }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
-  }
+  const { startDrag, startResize, startDraw } = usePdfTextEditorInteractions({
+    layout,
+    zoom,
+    tool,
+    style,
+    editedRef,
+    annotationsRef,
+    setSelectedId,
+    setDrawing,
+    setSnapGuides,
+    setHistory,
+    setAnnotations,
+    editLive,
+  })
 
   /** Navega a otra página: deselecciona y muestra "cargando" mientras renderiza. */
   const goToPage = (i: number) => {
