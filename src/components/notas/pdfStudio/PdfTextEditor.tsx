@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   cloneAnnotation,
   getSource,
   makeImageAnnotation,
   makeTextAnnotation,
-  pageThumbKey,
   translateAnnotation,
   type Annotation,
   type HighlightAnnotation,
@@ -15,7 +14,6 @@ import {
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import {
-  fitPageLayout,
   fitImageStampBox,
   screenDeltaToPage,
   type ResizeHandle,
@@ -30,7 +28,6 @@ import {
   type History,
 } from '../../../lib/pdfStudio/history'
 import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
-import { renderPageBitmap } from '../../../lib/pdfStudio/pdfRender'
 import { ChevronLeftIcon, ChevronRightIcon, RedoIcon, UndoIcon } from '../../Icons'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { AnnotationLayer } from './AnnotationLayer'
@@ -47,8 +44,9 @@ import {
   type AnnotationLayerMove,
 } from './pdfAnnotationArrange'
 import { resizeAnnotationFromPointerDelta } from './pdfAnnotationResize'
-import { reduceAnnotationShortcut } from './pdfAnnotationShortcuts'
 import { snapAnnotationDrag, type SnapGuide } from './pdfAnnotationSnap'
+import { usePdfTextEditorPageRender } from './usePdfTextEditorPageRender'
+import { usePdfTextEditorKeyboard } from './usePdfTextEditorKeyboard'
 import {
   applyEditorStylePatch,
   defaultEditorTextStyle,
@@ -152,11 +150,8 @@ export function PdfTextEditor({
     y1: number
   } | null>(null)
   const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([])
-  const [bg, setBg] = useState<{ url: string; w: number; h: number } | null>(null)
   // Default 150%: prioriza ver/editar la página en grande (la barra es compacta).
   const [zoom, setZoom] = useState(1.5)
-  const [area, setArea] = useState<{ w: number; h: number } | null>(null)
-  const areaRef = useRef<HTMLDivElement>(null)
   const stampInputRef = useRef<HTMLInputElement>(null)
   // Atrapa el foco dentro del modal (Tab no se escapa) y lo restaura al cerrar.
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -179,36 +174,11 @@ export function PdfTextEditor({
   annotationsRef.current = annotations
   const annClipboardRef = useRef<Annotation | null>(null)
 
-  // Layout de la página en su orientación FINAL (rotada = como saldrá), ajustada al
-  // área medida. Caja EXTERIOR = bounding box rotado; INTERIOR = nativa que se rota
-  // dentro. Las anotaciones viven en la interior (ratios nativos) → rotan con ella.
-  const layout = useMemo(
-    () =>
-      bg && area
-        ? fitPageLayout(bg.w, bg.h, area.w, area.h, page?.rotationQuarters ?? 0)
-        : null,
-    [bg, page, area],
-  )
-
-  // Ancho objetivo del bitmap del fondo = px REALES de pantalla (ancho mostrado ·
-  // zoom · DPR), redondeado a pasos de 256 px para no re-rendear por cada píxel. Es
-  // lo que mantiene la página NÍTIDA al hacer zoom (en vez de estirar un raster
-  // chico). `max(1, zoom)` → nunca por debajo del tamaño de ajuste.
-  const renderWidth = useMemo(() => {
-    const dpr = window.devicePixelRatio || 1
-    const fitW = layout?.innerW ?? (area ? Math.max(80, area.w - 32) : 800)
-    return Math.ceil((fitW * Math.max(1, zoom) * dpr) / 256) * 256
-  }, [layout, area, zoom])
-
-  // Qué página/ancho está renderizado como fondo (para SÓLO subir de resolución al
-  // hacer zoom) + el object URL a revocar (lo posee el editor, no el cache).
-  const renderedRef = useRef<{ key: string; width: number; url: string } | null>(null)
-  useEffect(
-    () => () => {
-      if (renderedRef.current) URL.revokeObjectURL(renderedRef.current.url)
-    },
-    [],
-  )
+  const { areaRef, bg, layout, resetBackground } = usePdfTextEditorPageRender({
+    page,
+    source,
+    zoom,
+  })
 
   /** Edición DISCRETA (agregar/borrar/estilo/flechas/…): empuja una entrada de
    *  historial. Estable (lee la página actual del ref → sirve desde efectos viejos). */
@@ -241,149 +211,17 @@ export function PdfTextEditor({
     [doc],
   )
 
-  // Fondo IMAGEN: la imagen entera ES la página → object URL directo (full-res, sin
-  // rasterizar). Re-corre al navegar; se revoca al salir.
-  useEffect(() => {
-    if (!page || !source || page.kind !== 'image') return
-    let alive = true
-    const url = URL.createObjectURL(source.file)
-    const im = new Image()
-    im.onload = () => alive && setBg({ url, w: im.naturalWidth, h: im.naturalHeight })
-    im.src = url
-    return () => {
-      alive = false
-      URL.revokeObjectURL(url)
-    }
-  }, [page, source])
-
-  // Fondo PDF: render NÍTIDO con pdf.js al ancho que pide el zoom (`renderWidth`).
-  // Navegar (cambia la página) renderiza ya y muestra "cargando" (`goToPage` puso
-  // `bg=null`); subir el zoom re-renderiza más grande con un pequeño debounce y SIN
-  // parpadeo (el bitmap viejo se mantiene hasta que carga el nuevo, y se revoca
-  // 500 ms después). Bajar el zoom NO re-renderiza (se reusa el bitmap más grande).
-  useEffect(() => {
-    if (!page || !source || page.kind !== 'pdf') return
-    let alive = true
-    const key = pageThumbKey(page)
-    const samePage = renderedRef.current?.key === key
-    if (samePage && renderedRef.current!.width >= renderWidth) return
-    const run = () => {
-      renderPageBitmap(source.file, page.pageIndex, renderWidth)
-        .then(({ url, w, h }) => {
-          if (!alive) {
-            URL.revokeObjectURL(url)
-            return
-          }
-          const prev = renderedRef.current
-          renderedRef.current = { key, width: renderWidth, url }
-          setBg({ url, w, h })
-          if (prev) window.setTimeout(() => URL.revokeObjectURL(prev.url), 500)
-        })
-        .catch(() => {})
-    }
-    if (samePage) {
-      const t = window.setTimeout(run, 200)
-      return () => {
-        alive = false
-        window.clearTimeout(t)
-      }
-    }
-    run()
-    return () => {
-      alive = false
-    }
-  }, [page, source, renderWidth])
-
-  // Mide el área disponible para la página (para que ocupe todo el espacio).
-  useEffect(() => {
-    const el = areaRef.current
-    if (!el) return
-    const read = () => setArea({ w: el.clientWidth, h: el.clientHeight })
-    read()
-    if (typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(read)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  // Escape en DOS etapas: si hay una anotación en edición inline o seleccionada,
-  // primero deselecciona; sólo con nada seleccionado cierra el modal (evita perder
-  // el trabajo por un Escape de más). En edición inline el propio cuadro maneja
-  // Escape para cancelar.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      if ((e.target as HTMLElement | null)?.isContentEditable) return
-      if (editingRef.current) {
-        e.preventDefault()
-        setEditingId(null)
-        return
-      }
-      if (selectedRef.current) {
-        e.preventDefault()
-        setSelectedId(null)
-        return
-      }
-      onClose(null)
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
-
-  // Undo/redo DENTRO del modal (⌘Z / ⌘⇧Z) sobre el historial de anotaciones —
-  // salvo en inputs / contentEditable (ahí ⌘Z es el undo nativo del texto).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return
-      const el = e.target as HTMLElement | null
-      if (
-        el &&
-        (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
-      )
-        return
-      e.preventDefault()
-      setSelectedId(null)
-      setEditingId(null)
-      setHistory((h) => (e.shiftKey ? redo(h) : undo(h)))
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [])
-
-  // Atajos del editor (fuera de inputs / edición inline): copiar/cortar/pegar/
-  // duplicar la anotación seleccionada (⌘C/⌘X/⌘V/⌘D, incluso entre páginas vía un
-  // portapapeles interno), eliminar (Supr/Retroceso) y mover fino con las flechas
-  // (Shift = paso grande).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement | null
-      if (
-        el &&
-        (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
-      )
-        return
-
-      const currentAnnotations = annotationsRef.current
-      const result = reduceAnnotationShortcut({
-        annotations: currentAnnotations,
-        selectedId: selectedRef.current,
-        clipboard: annClipboardRef.current,
-        key: e.key,
-        mod: e.metaKey || e.ctrlKey,
-        shift: e.shiftKey,
-      })
-      if (!result.handled) return
-
-      e.preventDefault()
-      annClipboardRef.current = result.clipboard
-      if (result.selectedId !== selectedRef.current) setSelectedId(result.selectedId)
-      if (result.annotations !== currentAnnotations) {
-        setAnnotations(() => result.annotations)
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [setAnnotations])
+  usePdfTextEditorKeyboard({
+    editingRef,
+    selectedRef,
+    annotationsRef,
+    annotationClipboardRef: annClipboardRef,
+    setSelectedId,
+    setEditingId,
+    setHistory,
+    setAnnotations,
+    onClose,
+  })
 
   // La anotación seleccionada de CUALQUIER tipo (para color/opacidad/borrar) y, si
   // es texto, estrechada (para los controles de sólo-texto y la edición inline).
@@ -675,7 +513,7 @@ export function PdfTextEditor({
     if (i < 0 || i >= total || i === currentPage) return
     setSelectedId(null)
     setEditingId(null)
-    setBg(null)
+    resetBackground()
     setCurrentPage(i)
   }
 
