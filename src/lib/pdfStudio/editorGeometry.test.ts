@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { fitPageLayout, rectFromPoints, screenDeltaToPage } from './editorGeometry'
+import {
+  fitImageStampBox,
+  fitPageLayout,
+  rectFromPoints,
+  resizeRatioBox,
+  screenDeltaToPage,
+} from './editorGeometry'
 
 describe('pdfStudio/editorGeometry · screenDeltaToPage', () => {
   it('rot 0 deja el delta igual', () => {
@@ -54,5 +60,51 @@ describe('pdfStudio/editorGeometry · fitPageLayout', () => {
     // la EXTERIOR es el bounding box rotado (más ancho que alto)
     expect(l.outerW).toBeGreaterThan(l.outerH)
     expect(fitPageLayout(400, 600, 1000, 800, 5).rot).toBe(1) // 5 ≡ 1
+  })
+})
+
+describe('pdfStudio/editorGeometry · fitImageStampBox', () => {
+  it('centra la imagen y conserva su aspecto en ratios de página', () => {
+    const box = fitImageStampBox({ pageW: 1000, pageH: 1400, imageW: 800, imageH: 400 })
+    expect(box.xRatio).toBeCloseTo((1 - 0.28) / 2)
+    expect(box.wRatio).toBeCloseTo(0.28)
+    // 0.28*1000 px de ancho / aspecto 2 = 140 px de alto; 140/1400 = 0.1
+    expect(box.hRatio).toBeCloseTo(0.1)
+    expect(box.yRatio).toBeCloseTo((1 - 0.1) / 2)
+  })
+
+  it('acota imágenes extremadamente verticales para que sigan manipulables', () => {
+    const box = fitImageStampBox({ pageW: 1000, pageH: 1400, imageW: 100, imageH: 1000 })
+    expect(box.hRatio).toBeLessThanOrEqual(0.32)
+    expect(box.yRatio).toBeGreaterThanOrEqual(0)
+  })
+})
+
+describe('pdfStudio/editorGeometry · resizeRatioBox', () => {
+  it('agranda una caja desde la esquina inferior derecha y la mantiene dentro de la página', () => {
+    const out = resizeRatioBox(
+      { xRatio: 0.1, yRatio: 0.2, wRatio: 0.3, hRatio: 0.2 },
+      'se',
+      0.15,
+      0.1,
+    )
+    expect(out.xRatio).toBeCloseTo(0.1)
+    expect(out.yRatio).toBeCloseTo(0.2)
+    expect(out.wRatio).toBeCloseTo(0.45)
+    expect(out.hRatio).toBeCloseTo(0.3)
+  })
+
+  it('respeta tamaño mínimo al arrastrar la esquina superior izquierda', () => {
+    const out = resizeRatioBox(
+      { xRatio: 0.2, yRatio: 0.2, wRatio: 0.2, hRatio: 0.2 },
+      'nw',
+      0.19,
+      0.18,
+      { minW: 0.06, minH: 0.04 },
+    )
+    expect(out.xRatio).toBeCloseTo(0.34)
+    expect(out.yRatio).toBeCloseTo(0.36)
+    expect(out.wRatio).toBeCloseTo(0.06)
+    expect(out.hRatio).toBeCloseTo(0.04)
   })
 })

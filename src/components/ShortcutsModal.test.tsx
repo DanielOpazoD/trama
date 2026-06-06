@@ -20,6 +20,10 @@ describe('<ShortcutsModal />', () => {
     expect(screen.getByText('Navegación')).toBeInTheDocument()
     expect(screen.getByText('Buscar entidades, citas, ir a sección')).toBeInTheDocument()
     expect(screen.getByText('Captura rápida')).toBeInTheDocument()
+    expect(screen.getByText('Imprenta · páginas')).toBeInTheDocument()
+    expect(screen.getByText('Copiar páginas marcadas')).toBeInTheDocument()
+    expect(screen.getByText('Imprenta · edición')).toBeInTheDocument()
+    expect(screen.getByText('Copiar cuadro o imagen seleccionada')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Cerrar' }))
     await user.click(screen.getByRole('button', { name: 'Cerrar atajos' }))

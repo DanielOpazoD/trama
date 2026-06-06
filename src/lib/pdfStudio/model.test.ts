@@ -15,6 +15,7 @@ import {
   isEmbeddableFont,
   isTextAnnotation,
   makeHighlightAnnotation,
+  makeImageAnnotation,
   makeShapeAnnotation,
   makeTextAnnotation,
   movePage,
@@ -229,6 +230,44 @@ describe('pdfStudio/model · texto vectorial', () => {
     reseedIds(restored)
     const a = makeTextAnnotation(baseAnn)
     expect(Number.parseInt(a.id.replace(/\D+/g, ''), 10)).toBeGreaterThan(950)
+  })
+})
+
+describe('pdfStudio/model · imágenes estampadas', () => {
+  it('makeImageAnnotation asigna id, conserva data URL y translateAnnotation la mueve', () => {
+    const a = makeImageAnnotation({
+      src: 'data:image/png;base64,abc',
+      xRatio: 0.2,
+      yRatio: 0.3,
+      wRatio: 0.25,
+      hRatio: 0.1,
+      opacity: 0.8,
+    })
+    expect(a.kind).toBe('image')
+    expect(a.src).toMatch(/^data:image\/png/)
+
+    const moved = translateAnnotation(a, 0.1, -0.1)
+    expect(moved.kind).toBe('image')
+    if (moved.kind !== 'image') throw new Error('expected image annotation')
+    expect(moved.xRatio).toBeCloseTo(0.3)
+    expect(moved.yRatio).toBeCloseTo(0.2)
+    expect(moved.wRatio).toBeCloseTo(0.25)
+    expect(moved.hRatio).toBeCloseTo(0.1)
+  })
+
+  it('cloneAnnotation copia la imagen estampada con id nuevo', () => {
+    const a = makeImageAnnotation({
+      src: 'data:image/jpeg;base64,abc',
+      xRatio: 0.2,
+      yRatio: 0.3,
+      wRatio: 0.25,
+      hRatio: 0.1,
+    })
+    const b = cloneAnnotation(a)
+    expect(b.kind).toBe('image')
+    if (b.kind !== 'image') throw new Error('expected image annotation')
+    expect(b.id).not.toBe(a.id)
+    expect(b).toMatchObject({ src: a.src, xRatio: a.xRatio, yRatio: a.yRatio })
   })
 })
 

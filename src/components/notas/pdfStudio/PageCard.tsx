@@ -86,6 +86,9 @@ export function PageCard({
 
   if (!source) return null
   const KindIcon = page.kind === 'pdf' ? FilePdfIcon : FileIcon
+  const annotationTitle = page.annotations.every((a) => a.kind === 'text')
+    ? 'Tiene texto'
+    : 'Tiene anotaciones'
 
   // Rotación visual de la miniatura. En 90°/270° se reescala para que la imagen
   // rotada entre en la caja CUADRADA (depende solo de los aspectos, no de px).
@@ -173,7 +176,10 @@ export function PageCard({
           <KindIcon size={10} />
           {index + 1}
           {pageHasAnnotations(page) && (
-            <span className="inline-flex items-center gap-0.5 pl-0.5" title="Tiene texto">
+            <span
+              className="inline-flex items-center gap-0.5 pl-0.5"
+              title={annotationTitle}
+            >
               <TextIcon size={9} />
               {page.annotations.length}
             </span>

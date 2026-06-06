@@ -9,10 +9,13 @@ import {
   previewFontFamily,
   TEXT_LINE_HEIGHT,
   type Annotation,
+  type HighlightAnnotation,
+  type ImageAnnotation,
   type ShapeAnnotation,
   type ShapeKind,
+  type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
-import { rectFromPoints } from '../../../lib/pdfStudio/editorGeometry'
+import { rectFromPoints, type ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
 import { EditableBox } from './EditableBox'
 import {
   ACCENT,
@@ -112,6 +115,7 @@ export function AnnotationLayer({
   onStartEdit,
   onCommitText,
   onCancelEdit,
+  onStartResize,
 }: {
   annotations: Annotation[]
   /** Ancho/alto en px de la página nativa (para el viewBox del SVG de formas y el
@@ -129,7 +133,92 @@ export function AnnotationLayer({
   onStartEdit: (id: string) => void
   onCommitText: (id: string, text: string) => void
   onCancelEdit: () => void
+  onStartResize: (
+    e: ReactPointerEvent,
+    a: TextAnnotation | HighlightAnnotation | ImageAnnotation,
+    handle: ResizeHandle,
+  ) => void
 }) {
+  const resizeHandle = (
+    a: TextAnnotation | HighlightAnnotation | ImageAnnotation,
+    handle: ResizeHandle,
+    left: string,
+    top: string,
+    label: string,
+  ) => (
+    <button
+      key={`${a.id}-${handle}`}
+      type="button"
+      aria-label={label}
+      onPointerDown={(e) => onStartResize(e, a, handle)}
+      className="absolute z-10 h-3 w-3 rounded-sm border border-paper-50 bg-[color:var(--accent-sage)] shadow-sm shadow-ink-900/25"
+      style={{
+        left,
+        top,
+        transform: 'translate(-50%, -50%)',
+        cursor: handle === 'nw' || handle === 'se' ? 'nwse-resize' : 'nesw-resize',
+        touchAction: 'none',
+        pointerEvents: tool === 'select' ? undefined : 'none',
+      }}
+    />
+  )
+
+  const boxResizeHandles = (
+    a: TextAnnotation | HighlightAnnotation | ImageAnnotation,
+    box: { xRatio: number; yRatio: number; wRatio: number; hRatio: number },
+    labelPrefix = 'Redimensionar desde',
+  ) =>
+    tool === 'select' && selectedId === a.id
+      ? [
+          resizeHandle(
+            a,
+            'nw',
+            `${box.xRatio * 100}%`,
+            `${box.yRatio * 100}%`,
+            `${labelPrefix} esquina superior izquierda`,
+          ),
+          resizeHandle(
+            a,
+            'ne',
+            `${(box.xRatio + box.wRatio) * 100}%`,
+            `${box.yRatio * 100}%`,
+            `${labelPrefix} esquina superior derecha`,
+          ),
+          resizeHandle(
+            a,
+            'sw',
+            `${box.xRatio * 100}%`,
+            `${(box.yRatio + box.hRatio) * 100}%`,
+            `${labelPrefix} esquina inferior izquierda`,
+          ),
+          resizeHandle(
+            a,
+            'se',
+            `${(box.xRatio + box.wRatio) * 100}%`,
+            `${(box.yRatio + box.hRatio) * 100}%`,
+            `${labelPrefix} esquina inferior derecha`,
+          ),
+        ]
+      : null
+
+  const rectResizeHandles = (a: HighlightAnnotation | ImageAnnotation) =>
+    boxResizeHandles(a, a)
+
+  const textResizeHandles = (a: TextAnnotation, sz: number) => {
+    const widthPx = Math.max(sz * 1.6, (a.text || ' ').length * sz * 0.55)
+    const heightPx = sz * TEXT_LINE_HEIGHT
+    return boxResizeHandles(
+      a,
+      {
+        xRatio: a.xRatio,
+        yRatio: a.yRatio,
+        wRatio: widthPx / Math.max(1, innerW),
+        hRatio: heightPx / Math.max(1, innerH),
+      },
+      'Redimensionar texto desde',
+    )
+  }
+
   return (
     <>
       {annotations.filter(isTextAnnotation).map((a) => {
@@ -167,34 +256,38 @@ export function AnnotationLayer({
           )
         }
         return (
-          <div
-            key={a.id}
-            onPointerDown={(e) => onStartDrag(e, a)}
-            // Click selecciona ESTE (no llega al fondo, que deselecciona).
-            onClick={(e) => {
-              e.stopPropagation()
-              onSelect(a.id)
-            }}
-            // Doble clic edita el texto INLINE, sobre el cuadro.
-            onDoubleClick={(e) => {
-              e.stopPropagation()
-              onStartEdit(a.id)
-            }}
-            title="Doble clic para editar · arrastra para mover"
-            style={{
-              ...boxStyle,
-              cursor: 'move',
-              userSelect: 'none',
-              touchAction: 'none',
-              // Fuera de "seleccionar" no captura (deja dibujar encima).
-              pointerEvents: tool === 'select' ? undefined : 'none',
-              outline:
-                selectedId === a.id ? `1.5px solid ${ACCENT}` : '1.5px solid transparent',
-              outlineOffset: 0,
-              transition: 'outline-color 120ms ease',
-            }}
-          >
-            {a.text || ' '}
+          <div key={a.id}>
+            <div
+              onPointerDown={(e) => onStartDrag(e, a)}
+              // Click selecciona ESTE (no llega al fondo, que deselecciona).
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelect(a.id)
+              }}
+              // Doble clic edita el texto INLINE, sobre el cuadro.
+              onDoubleClick={(e) => {
+                e.stopPropagation()
+                onStartEdit(a.id)
+              }}
+              title="Doble clic para editar · arrastra para mover"
+              style={{
+                ...boxStyle,
+                cursor: 'move',
+                userSelect: 'none',
+                touchAction: 'none',
+                // Fuera de "seleccionar" no captura (deja dibujar encima).
+                pointerEvents: tool === 'select' ? undefined : 'none',
+                outline:
+                  selectedId === a.id
+                    ? `1.5px solid ${ACCENT}`
+                    : '1.5px solid transparent',
+                outlineOffset: 0,
+                transition: 'outline-color 120ms ease',
+              }}
+            >
+              {a.text || ' '}
+            </div>
+            {textResizeHandles(a, sz)}
           </div>
         )
       })}
@@ -203,33 +296,73 @@ export function AnnotationLayer({
       {annotations
         .filter((a) => a.kind === 'highlight')
         .map((a) => (
-          <div
-            key={a.id}
-            onPointerDown={tool === 'select' ? (e) => onStartDrag(e, a) : undefined}
-            onClick={
-              tool === 'select'
-                ? (e) => {
-                    e.stopPropagation()
-                    onSelect(a.id)
-                  }
-                : undefined
-            }
-            title="Arrastra para mover"
-            style={{
-              position: 'absolute',
-              left: `${a.xRatio * 100}%`,
-              top: `${a.yRatio * 100}%`,
-              width: `${a.wRatio * 100}%`,
-              height: `${a.hRatio * 100}%`,
-              backgroundColor: hexToRgba(a.color, a.opacity ?? HIGHLIGHT_OPACITY),
-              borderRadius: 2,
-              cursor: 'move',
-              touchAction: 'none',
-              pointerEvents: tool === 'select' ? undefined : 'none',
-              outline: selectedId === a.id ? `1.5px solid ${ACCENT}` : 'none',
-              outlineOffset: 1,
-            }}
-          />
+          <div key={a.id}>
+            <div
+              onPointerDown={tool === 'select' ? (e) => onStartDrag(e, a) : undefined}
+              onClick={
+                tool === 'select'
+                  ? (e) => {
+                      e.stopPropagation()
+                      onSelect(a.id)
+                    }
+                  : undefined
+              }
+              title="Arrastra para mover"
+              style={{
+                position: 'absolute',
+                left: `${a.xRatio * 100}%`,
+                top: `${a.yRatio * 100}%`,
+                width: `${a.wRatio * 100}%`,
+                height: `${a.hRatio * 100}%`,
+                backgroundColor: hexToRgba(a.color, a.opacity ?? HIGHLIGHT_OPACITY),
+                borderRadius: 2,
+                cursor: 'move',
+                touchAction: 'none',
+                pointerEvents: tool === 'select' ? undefined : 'none',
+                outline: selectedId === a.id ? `1.5px solid ${ACCENT}` : 'none',
+                outlineOffset: 1,
+              }}
+            />
+            {rectResizeHandles(a)}
+          </div>
+        ))}
+
+      {/* Imágenes estampadas (firma/sello/logo) */}
+      {annotations
+        .filter((a) => a.kind === 'image')
+        .map((a) => (
+          <div key={a.id}>
+            <img
+              src={a.src}
+              alt="Imagen estampada"
+              onPointerDown={tool === 'select' ? (e) => onStartDrag(e, a) : undefined}
+              onClick={
+                tool === 'select'
+                  ? (e) => {
+                      e.stopPropagation()
+                      onSelect(a.id)
+                    }
+                  : undefined
+              }
+              title="Imagen estampada · arrastra para mover"
+              style={{
+                position: 'absolute',
+                left: `${a.xRatio * 100}%`,
+                top: `${a.yRatio * 100}%`,
+                width: `${a.wRatio * 100}%`,
+                height: `${a.hRatio * 100}%`,
+                opacity: a.opacity ?? 1,
+                objectFit: 'contain',
+                cursor: 'move',
+                touchAction: 'none',
+                userSelect: 'none',
+                pointerEvents: tool === 'select' ? undefined : 'none',
+                outline: selectedId === a.id ? `1.5px solid ${ACCENT}` : 'none',
+                outlineOffset: 2,
+              }}
+            />
+            {rectResizeHandles(a)}
+          </div>
         ))}
 
       {/* Formas vectoriales: SVG sobre la página, coords nativas vía viewBox (escala

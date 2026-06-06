@@ -89,6 +89,16 @@ export function readPngSize(b: Uint8Array): { w: number; h: number } | null {
 // el camino JPEG (toJpegBytes, máx 1600px). Los screenshots normales no llegan.
 const MAX_PNG_PX = 15_000_000
 
+/** Decodifica un data URL `data:...;base64,...` a bytes. `null` si no es base64. */
+function dataUrlToBytes(src: string): Uint8Array | null {
+  const i = src.indexOf('base64,')
+  if (i < 0) return null
+  const bin = atob(src.slice(i + 7))
+  const out = new Uint8Array(bin.length)
+  for (let j = 0; j < bin.length; j++) out[j] = bin.charCodeAt(j)
+  return out
+}
+
 /** Re-encodea una imagen a JPEG (fondo blanco, dimensión acotada) → bytes. */
 async function toJpegBytes(
   file: File,
@@ -296,6 +306,21 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
               }
             }
           }
+        } else if (ann.kind === 'image') {
+          const bytes = dataUrlToBytes(ann.src)
+          if (!bytes) continue
+          // Firma/sello: PNG (preserva transparencia) o JPEG según los magic bytes.
+          const img = isPngBytes(bytes)
+            ? await out.embedPng(bytes)
+            : await out.embedJpg(bytes)
+          // `yRatio` es el tope desde arriba; pdf-lib mide `y` desde abajo.
+          outPage.drawImage(img, {
+            x: ann.xRatio * w,
+            y: h - (ann.yRatio + ann.hRatio) * h,
+            width: ann.wRatio * w,
+            height: ann.hRatio * h,
+            opacity: ann.opacity ?? 1,
+          })
         }
       } catch (err) {
         // p. ej. carácter fuera de WinAnsi en una fuente estándar.

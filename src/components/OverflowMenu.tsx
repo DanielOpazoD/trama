@@ -14,12 +14,15 @@ export function OverflowMenu({
   label = 'Más acciones',
   triggerClassName = 'p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors',
   width = 'w-48',
+  menuLayerClassName = 'z-50',
   triggerContent,
 }: {
   children: (close: () => void) => ReactNode
   label?: string
   triggerClassName?: string
   width?: string
+  /** Capa del popover portado. Algunos modales viven sobre `z-50`. */
+  menuLayerClassName?: string
   /** Contenido del trigger. Por defecto, el glifo "⋯". */
   triggerContent?: ReactNode
 }) {
@@ -85,7 +88,7 @@ export function OverflowMenu({
             ref={menuRef}
             role="menu"
             style={{ position: 'fixed', top: pos.top, right: pos.right }}
-            className={`z-50 ${width} paper-grain rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/15 p-1.5 animate-fade-up`}
+            className={`${menuLayerClassName} ${width} paper-grain rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/15 p-1.5 animate-fade-up`}
           >
             {children(() => setOpen(false))}
           </div>,

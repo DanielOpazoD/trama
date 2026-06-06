@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { AnnotationLayer } from './AnnotationLayer'
 import {
   makeHighlightAnnotation,
+  makeImageAnnotation,
   makeTextAnnotation,
   type Annotation,
 } from '../../../lib/pdfStudio/model'
@@ -26,11 +27,19 @@ const HL = makeHighlightAnnotation({
   color: '#b3412c',
   opacity: 0.35,
 })
+const IMG = makeImageAnnotation({
+  src: 'data:image/png;base64,iVBORw0KGgo=',
+  xRatio: 0.3,
+  yRatio: 0.2,
+  wRatio: 0.25,
+  hRatio: 0.1,
+  opacity: 0.8,
+})
 const DISPLAY_TITLE = 'Doble clic para editar · arrastra para mover'
 
 function setup(overrides: Partial<Parameters<typeof AnnotationLayer>[0]> = {}) {
   const props = {
-    annotations: [TEXT, HL] as Annotation[],
+    annotations: [TEXT, HL, IMG] as Annotation[],
     innerW: 720,
     innerH: 1000,
     tool: 'select' as const,
@@ -43,6 +52,7 @@ function setup(overrides: Partial<Parameters<typeof AnnotationLayer>[0]> = {}) {
     onStartEdit: vi.fn(),
     onCommitText: vi.fn(),
     onCancelEdit: vi.fn(),
+    onStartResize: vi.fn(),
     ...overrides,
   }
   const utils = render(<AnnotationLayer {...props} />)
@@ -57,6 +67,14 @@ describe('<AnnotationLayer />', () => {
     expect(screen.getByTitle('Arrastra para mover')).toBeInTheDocument()
   })
 
+  it('pinta una imagen estampada y permite seleccionarla', () => {
+    const { props } = setup()
+    const stamp = screen.getByRole('img', { name: 'Imagen estampada' })
+    expect(stamp).toBeInTheDocument()
+    fireEvent.click(stamp)
+    expect(props.onSelect).toHaveBeenCalledWith(IMG.id)
+  })
+
   it('clic en el texto selecciona; doble clic lo edita', () => {
     const { props } = setup()
     fireEvent.click(screen.getByTitle(DISPLAY_TITLE))
@@ -69,6 +87,25 @@ describe('<AnnotationLayer />', () => {
     const { props } = setup()
     fireEvent.click(screen.getByTitle('Arrastra para mover'))
     expect(props.onSelect).toHaveBeenCalledWith(HL.id)
+  })
+
+  it('muestra handles de redimensionado al seleccionar un resaltado', () => {
+    const { props } = setup({ selectedId: HL.id })
+    const handle = screen.getByRole('button', {
+      name: 'Redimensionar desde esquina inferior derecha',
+    })
+    expect(screen.getAllByLabelText(/Redimensionar desde esquina/i)).toHaveLength(4)
+    fireEvent.pointerDown(handle)
+    expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), HL, 'se')
+  })
+
+  it('muestra handles de redimensionado al seleccionar un cuadro de texto', () => {
+    const { props } = setup({ selectedId: TEXT.id })
+    const handle = screen.getByRole('button', {
+      name: 'Redimensionar texto desde esquina inferior derecha',
+    })
+    fireEvent.pointerDown(handle)
+    expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), TEXT, 'se')
   })
 
   it('en edición muestra el cuadro editable y confirma con Enter', () => {

@@ -4,19 +4,25 @@ import {
   cloneAnnotation,
   getSource,
   makeHighlightAnnotation,
+  makeImageAnnotation,
   makeShapeAnnotation,
   makeTextAnnotation,
   pageThumbKey,
   translateAnnotation,
   type Annotation,
+  type HighlightAnnotation,
+  type ImageAnnotation,
   type PdfDoc,
   type ShapeKind,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import {
   fitPageLayout,
+  fitImageStampBox,
   rectFromPoints,
+  resizeRatioBox,
   screenDeltaToPage,
+  type ResizeHandle,
 } from '../../../lib/pdfStudio/editorGeometry'
 import {
   canRedo,
@@ -27,6 +33,7 @@ import {
   undo,
   type History,
 } from '../../../lib/pdfStudio/history'
+import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
 import { renderPageBitmap } from '../../../lib/pdfStudio/pdfRender'
 import { ChevronLeftIcon, ChevronRightIcon, RedoIcon, UndoIcon } from '../../Icons'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
@@ -44,6 +51,47 @@ import {
 } from './editorStyle'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
+const TEXT_SIZE_MIN = 0.012
+const TEXT_SIZE_MAX = 0.14
+const STAMP_ACCEPT = 'image/png,image/jpeg'
+
+function isMacLike(): boolean {
+  if (typeof navigator === 'undefined') return true
+  return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () =>
+      typeof reader.result === 'string'
+        ? resolve(reader.result)
+        : reject(new Error('No se pudo leer la imagen'))
+    reader.onerror = () => reject(reader.error ?? new Error('No se pudo leer la imagen'))
+    reader.readAsDataURL(file)
+  })
+}
+
+function readImageSize(src: string): Promise<{ w: number; h: number }> {
+  return new Promise((resolve, reject) => {
+    const im = new Image()
+    im.onload = () =>
+      resolve({
+        w: Math.max(1, im.naturalWidth || im.width),
+        h: Math.max(1, im.naturalHeight || im.height),
+      })
+    im.onerror = () => reject(new Error('No se pudo decodificar la imagen'))
+    im.src = src
+  })
+}
+
+function isImageStampFile(file: File): boolean {
+  return (
+    file.type === 'image/png' ||
+    file.type === 'image/jpeg' ||
+    /\.(png|jpe?g)$/i.test(file.name)
+  )
+}
 
 /**
  * Editor / visor de páginas del PDF: muestra la página grande con la barra de
@@ -62,6 +110,7 @@ export function PdfTextEditor({
   pageIndex: number
   onClose: (edits: Record<number, Annotation[]> | null) => void
 }) {
+  const isMac = isMacLike()
   const total = doc.pages.length
   const [currentPage, setCurrentPage] = useState(pageIndex)
   // Anotaciones EDITADAS por página (las no tocadas siguen las del doc), con
@@ -94,6 +143,7 @@ export function PdfTextEditor({
   const [zoom, setZoom] = useState(1.5)
   const [area, setArea] = useState<{ w: number; h: number } | null>(null)
   const areaRef = useRef<HTMLDivElement>(null)
+  const stampInputRef = useRef<HTMLInputElement>(null)
   // Atrapa el foco dentro del modal (Tab no se escapa) y lo restaura al cerrar.
   const dialogRef = useRef<HTMLDivElement>(null)
   useFocusTrap(dialogRef, true)
@@ -374,7 +424,8 @@ export function PdfTextEditor({
   const activeFont = selected?.font ?? style.font
   const activeSize = selected?.sizeRatio ?? style.sizeRatio
   const activeBold = selected?.bold ?? style.bold
-  const activeColor = selectedAnn?.color ?? style.color
+  const activeColor =
+    selectedAnn && 'color' in selectedAnn ? selectedAnn.color : style.color
   const activeOpacity = selectedAnn?.opacity ?? style.opacity ?? 1
   const activeRotation = selected?.rotation ?? style.rotation ?? 0
 
@@ -387,6 +438,12 @@ export function PdfTextEditor({
       list.map((a) => {
         if (a.id !== selectedId) return a
         if (a.kind === 'text') return { ...a, ...patch }
+        if (a.kind === 'image') {
+          return {
+            ...a,
+            ...(patch.opacity !== undefined ? { opacity: patch.opacity } : {}),
+          }
+        }
         // Resaltado y formas: sólo color/opacidad.
         return {
           ...a,
@@ -415,6 +472,27 @@ export function PdfTextEditor({
     setEditingId(a.id) // se edita inline, sobre el cuadro, al toque
   }
 
+  async function addImageStamp(file: File) {
+    if (!isImageStampFile(file)) return
+    const src = await fileToDataUrl(file)
+    const size = await readImageSize(src)
+    const box = fitImageStampBox({
+      pageW: layout?.innerW ?? size.w,
+      pageH: layout?.innerH ?? size.h,
+      imageW: size.w,
+      imageH: size.h,
+    })
+    const a = makeImageAnnotation({
+      src,
+      ...box,
+      opacity: style.opacity,
+    })
+    setTool('select')
+    setEditingId(null)
+    setAnnotations((l) => [...l, a])
+    setSelectedId(a.id)
+  }
+
   /** Duplica un texto con un pequeño offset y lo selecciona. */
   function duplicate(a: TextAnnotation) {
     const { id: _id, kind: _kind, ...rest } = a
@@ -427,7 +505,13 @@ export function PdfTextEditor({
     setSelectedId(copy.id)
   }
 
-  function removeText(id: string) {
+  function duplicateImage(a: ImageAnnotation) {
+    const copy = translateAnnotation(cloneAnnotation(a), 0.03, 0.03)
+    setAnnotations((l) => [...l, copy])
+    setSelectedId(copy.id)
+  }
+
+  function removeAnnotation(id: string) {
     setAnnotations((l) => l.filter((a) => a.id !== id))
     if (selectedId === id) setSelectedId(null)
   }
@@ -464,6 +548,58 @@ export function PdfTextEditor({
       // Cierra el arrastre como UN paso de historial: el `before` va al pasado y
       // el presente (final) queda; un solo undo lo revierte entero.
       if (moved)
+        setHistory((h) => ({ past: [...h.past, before], present: h.present, future: [] }))
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  function startResize(
+    e: React.PointerEvent,
+    a: TextAnnotation | HighlightAnnotation | ImageAnnotation,
+    handle: ResizeHandle,
+  ) {
+    if (!layout) return
+    e.stopPropagation()
+    e.preventDefault()
+    setSelectedId(a.id)
+    const dw = layout.innerW * zoom
+    const dh = layout.innerH * zoom
+    const rot = layout.rot
+    const startX = e.clientX
+    const startY = e.clientY
+    const before = editedRef.current
+    let resized = false
+    const move = (ev: PointerEvent) => {
+      const { dx: pdx, dy: pdy } = screenDeltaToPage(
+        ev.clientX - startX,
+        ev.clientY - startY,
+        rot,
+      )
+      resized = true
+      if (a.kind === 'text') {
+        const sx = handle.includes('w') ? -pdx / dw : pdx / dw
+        const sy = handle.includes('n') ? -pdy / dh : pdy / dh
+        const sizeRatio = clamp(
+          a.sizeRatio + Math.max(sx, sy),
+          TEXT_SIZE_MIN,
+          TEXT_SIZE_MAX,
+        )
+        editLive((list) =>
+          list.map((x) => (x.id === a.id && x.kind === 'text' ? { ...x, sizeRatio } : x)),
+        )
+        return
+      }
+      const box = resizeRatioBox(a, handle, pdx / dw, pdy / dh, {
+        minW: 14 / dw,
+        minH: 14 / dh,
+      })
+      editLive((list) => list.map((x) => (x.id === a.id ? { ...x, ...box } : x)))
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      if (resized)
         setHistory((h) => ({ past: [...h.past, before], present: h.present, future: [] }))
     }
     window.addEventListener('pointermove', move)
@@ -554,7 +690,7 @@ export function PdfTextEditor({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Texto sobre la página ${currentPage + 1}`}
+      aria-label={`Editar página ${currentPage + 1}`}
       onClick={() => onClose(null)}
       className="pdf-studio fixed inset-0 z-[60] flex items-stretch justify-center bg-ink-900/40 backdrop-blur-sm"
     >
@@ -565,7 +701,7 @@ export function PdfTextEditor({
         className="w-full max-w-6xl h-full overflow-hidden border-x border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col focus:outline-none"
       >
         {/* Cabecera compacta (una línea): navegación de páginas + acciones */}
-        <header className="flex items-center justify-between gap-3 px-3 py-1.5 border-b border-ink-100/70 shrink-0">
+        <header className="flex items-center justify-between gap-3 border-b border-ink-100/70 bg-paper-50/95 px-3 py-2 shadow-sm shadow-ink-900/5 shrink-0">
           <div className="flex items-center gap-1 min-w-0">
             <button
               type="button"
@@ -603,7 +739,7 @@ export function PdfTextEditor({
                 }}
                 disabled={!canUndo(history)}
                 aria-label="Deshacer"
-                title="Deshacer (⌘Z)"
+                title={pdfCommandTooltip('undo', isMac)}
                 className={stepBtn}
               >
                 <UndoIcon size={15} />
@@ -617,7 +753,7 @@ export function PdfTextEditor({
                 }}
                 disabled={!canRedo(history)}
                 aria-label="Rehacer"
-                title="Rehacer (⌘⇧Z)"
+                title={pdfCommandTooltip('redo', isMac)}
                 className={stepBtn}
               >
                 <RedoIcon size={15} />
@@ -636,6 +772,7 @@ export function PdfTextEditor({
           tool={tool}
           onToolChange={setTool}
           onAddText={addText}
+          onAddImage={() => stampInputRef.current?.click()}
           activeFont={activeFont}
           activeSize={activeSize}
           activeBold={activeBold}
@@ -643,12 +780,31 @@ export function PdfTextEditor({
           activeOpacity={activeOpacity}
           activeRotation={activeRotation}
           onApplyStyle={applyStyle}
-          hasTextSelected={!!selected}
-          onDuplicate={() => selected && duplicate(selected)}
+          hasDuplicableSelection={!!selected || selectedAnn?.kind === 'image'}
+          duplicateLabel={
+            selectedAnn?.kind === 'image' ? 'Duplicar imagen' : 'Duplicar texto'
+          }
+          onDuplicate={() => {
+            if (selected) duplicate(selected)
+            else if (selectedAnn?.kind === 'image') duplicateImage(selectedAnn)
+          }}
           hasSelection={!!selectedAnn}
-          onDelete={() => selectedAnn && removeText(selectedAnn.id)}
+          onDelete={() => selectedAnn && removeAnnotation(selectedAnn.id)}
           zoom={zoom}
           onZoomChange={setZoom}
+        />
+        <input
+          ref={stampInputRef}
+          type="file"
+          accept={STAMP_ACCEPT}
+          className="hidden"
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={(e) => {
+            const file = e.currentTarget.files?.[0]
+            e.currentTarget.value = ''
+            if (file) void addImageStamp(file)
+          }}
         />
 
         {/* Página — ocupa el resto; centrada y scrolleable al hacer zoom */}
@@ -685,6 +841,7 @@ export function PdfTextEditor({
               setEditingId(null)
             }}
             onCancelEdit={() => setEditingId(null)}
+            onStartResize={startResize}
           />
         </PageCanvas>
       </div>

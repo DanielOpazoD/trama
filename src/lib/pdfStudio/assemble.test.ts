@@ -5,6 +5,7 @@ import {
   baselineDropEm,
   emptyDoc,
   makeHighlightAnnotation,
+  makeImageAnnotation,
   makeTextAnnotation,
   rotatePage,
   setPageAnnotations,
@@ -96,6 +97,8 @@ const pngHeader = (w: number, h: number) => {
   b[23] = h & 255
   return b
 }
+const pngDataUrl = (w = 10, h = 10) =>
+  `data:image/png;base64,${btoa(String.fromCharCode(...pngHeader(w, h)))}`
 
 const png = (name = 'a.png') =>
   new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], name, { type: 'image/png' })
@@ -246,6 +249,33 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(opts.height).toBeCloseTo(20) // 0.1 * 200
     expect(opts.y).toBeCloseTo(120) // 200 − (0.3+0.1)*200
     expect(opts.opacity).toBe(0.5)
+  })
+
+  it('la imagen estampada se embebe y dibuja en las coords del layout', async () => {
+    let doc = addImageSource(emptyDoc(), png()) // página → 100 x 200 pt
+    doc = setPageAnnotations(doc, 0, [
+      makeImageAnnotation({
+        src: pngDataUrl(),
+        xRatio: 0.2,
+        yRatio: 0.3,
+        wRatio: 0.4,
+        hRatio: 0.1,
+        opacity: 0.75,
+      }),
+    ])
+    await assemble(doc)
+
+    expect(calls.embedPng).toHaveBeenCalledTimes(2) // página base + imagen estampada
+    expect(calls.drawImage).toHaveBeenCalledTimes(2)
+    const [_img, opts] = calls.drawImage.mock.calls[1] as [
+      unknown,
+      { x: number; y: number; width: number; height: number; opacity: number },
+    ]
+    expect(opts.x).toBeCloseTo(20)
+    expect(opts.width).toBeCloseTo(40)
+    expect(opts.height).toBeCloseTo(20)
+    expect(opts.y).toBeCloseTo(120)
+    expect(opts.opacity).toBe(0.75)
   })
 
   it('readPngSize lee las dimensiones del IHDR; null si no es PNG', () => {

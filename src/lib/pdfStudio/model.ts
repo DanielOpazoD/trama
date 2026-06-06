@@ -86,8 +86,28 @@ export type ShapeAnnotation = AnnotationBase & {
   strokeRatio: number
 }
 
+/**
+ * Imagen estampada (firma, sello, logo). Se guarda como **data URL** (PNG/JPEG)
+ * para que perdure en el borrador serializado (a diferencia de los `source.file`).
+ * Geometría tipo resaltado: `(x,y)` = esquina sup-izq, `w/h` como ratios — el
+ * ensamblado la embebe y la dibuja con `drawImage`.
+ */
+export type ImageAnnotation = AnnotationBase & {
+  kind: 'image'
+  /** Data URL `data:image/png;base64,...` (o jpeg). */
+  src: string
+  xRatio: number
+  yRatio: number
+  wRatio: number
+  hRatio: number
+}
+
 /** Cualquier anotación de una página (unión discriminada por `kind`). */
-export type Annotation = TextAnnotation | HighlightAnnotation | ShapeAnnotation
+export type Annotation =
+  | TextAnnotation
+  | HighlightAnnotation
+  | ShapeAnnotation
+  | ImageAnnotation
 
 export type PdfPage = {
   id: string
@@ -345,6 +365,13 @@ export function makeShapeAnnotation(
   init: Omit<ShapeAnnotation, 'id' | 'kind'>,
 ): ShapeAnnotation {
   return { ...init, id: nextId('a'), kind: 'shape' }
+}
+
+/** Crea una IMAGEN estampada (firma/sello) con id propio. */
+export function makeImageAnnotation(
+  init: Omit<ImageAnnotation, 'id' | 'kind'>,
+): ImageAnnotation {
+  return { ...init, id: nextId('a'), kind: 'image' }
 }
 
 /**

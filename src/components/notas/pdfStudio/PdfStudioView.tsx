@@ -36,6 +36,7 @@ import {
   getPdfPageCount,
 } from '../../../lib/pdfStudio/pdfRender'
 import { assemble } from '../../../lib/pdfStudio/assemble'
+import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
 import { openBlankPdfTab, showPdfInTab } from '../../../lib/pdfStudio/printPdf'
 import {
   clearDraft,
@@ -48,8 +49,8 @@ import {
 } from '../../../lib/pdfStudio/persistence'
 import { downloadBlob } from '../../../lib/downloadBlob'
 import { useCurrentClientUserId } from '../../../lib/clientIdentity'
+import { OverflowMenu, OverflowMenuItem } from '../../OverflowMenu'
 import { BulkBar } from './BulkBar'
-import { DocSettingsMenu } from './DocSettingsMenu'
 import { WorkspacePanel } from './WorkspacePanel'
 import { PageGrid } from './PageGrid'
 import { PdfTextEditor } from './PdfTextEditor'
@@ -87,6 +88,11 @@ function isIos(): boolean {
   )
 }
 
+function isMacLike(): boolean {
+  if (typeof navigator === 'undefined') return true
+  return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
 /** Nombre de archivo del PDF exportado, con fecha local para no pisar descargas. */
 function exportName(kind?: string): string {
   const d = new Date()
@@ -106,6 +112,7 @@ function exportName(kind?: string): string {
  * archivos aparte.
  */
 export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
+  const isMac = isMacLike()
   const toast = useToast()
   // El documento vive detrás de un historial (undo/redo). `doc` = presente.
   const [history, setHistory] = useState<History<PdfDoc>>(() => initHistory(emptyDoc()))
@@ -540,13 +547,13 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
       onClick={() => fileInputRef.current?.click()}
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDropFiles}
-      className="group mx-auto flex w-full max-w-3xl flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-ink-200 bg-paper-50/40 px-6 py-16 text-center transition-colors hover:border-ink-300 hover:bg-paper-50/70"
+      className="group mx-auto flex w-full max-w-3xl flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-ink-200 bg-paper-50/55 px-6 py-16 text-center shadow-sm shadow-ink-900/5 transition-colors hover:border-ink-300 hover:bg-paper-50/80"
     >
       <span
-        className="inline-flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-105"
+        className="inline-flex h-12 w-12 items-center justify-center rounded-md transition-transform duration-200 group-hover:scale-105"
         style={{ backgroundColor: 'var(--accent-sage-soft)', color: ACCENT }}
       >
-        <FilePdfIcon size={26} />
+        <FilePdfIcon size={22} />
       </span>
       <span className="flex flex-col gap-1">
         <span className="text-body font-medium text-ink-700">
@@ -595,6 +602,16 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     />
   )
 
+  const pageNumbers = doc.settings?.pageNumbers
+  const watermarkText = doc.settings?.watermark?.text ?? ''
+  const setPageNumbers = (next: DocSettings['pageNumbers']) =>
+    updateSettings({ ...doc.settings, pageNumbers: next })
+  const setWatermark = (text: string) =>
+    updateSettings({
+      ...doc.settings,
+      watermark: text.trim() ? { text } : undefined,
+    })
+
   return (
     <section className="pdf-studio flex min-h-0 flex-1">
       {/* Panel = SEGUNDA barra lateral: adosada a la navegación y FULL-HEIGHT en
@@ -642,26 +659,30 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
         {topBar}
         <div ref={setScrollRoot} className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-5xl space-y-5 px-5 pb-24 pt-6 md:px-8">
-            {/* Barra de acciones: izquierda (agregar · historial) — derecha (contador · nuevo · guardar) */}
-            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
-              <div className="flex items-center gap-2">
+            <div
+              role="toolbar"
+              aria-label="Acciones del documento PDF"
+              className="flex flex-nowrap items-center gap-1.5 border-y border-ink-100/70 bg-paper-50/70 px-1.5 py-1.5 shadow-sm shadow-ink-900/5"
+            >
+              <div className="flex min-w-0 items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={busy}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1 text-xs text-ink-600 transition-colors hover:border-ink-300 hover:bg-ink-100/40 hover:text-ink-800 disabled:opacity-50"
+                  aria-label="Importar PDF o imagen"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-caption font-medium text-ink-700 transition-colors hover:bg-ink-100/50 hover:text-ink-900 disabled:opacity-50"
                 >
                   <UploadIcon size={13} />
-                  {busy ? 'Agregando…' : 'Agregar PDF o imagen'}
+                  {busy ? 'Agregando…' : 'Importar'}
                 </button>
                 {(undoable || redoable) && (
-                  <div className="inline-flex items-center rounded-md border border-ink-100 bg-paper-50 overflow-hidden divide-x divide-ink-100">
+                  <div className="inline-flex items-center overflow-hidden rounded-md bg-ink-100/40">
                     <button
                       type="button"
                       onClick={() => setHistory((h) => undo(h))}
                       disabled={!undoable}
                       aria-label="Deshacer"
-                      title="Deshacer (⌘Z)"
+                      title={pdfCommandTooltip('undo', isMac)}
                       className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
                     >
                       <UndoIcon size={14} />
@@ -671,58 +692,125 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
                       onClick={() => setHistory((h) => redo(h))}
                       disabled={!redoable}
                       aria-label="Rehacer"
-                      title="Rehacer (⌘⇧Z)"
+                      title={pdfCommandTooltip('redo', isMac)}
                       className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
                     >
                       <RedoIcon size={14} />
                     </button>
                   </div>
                 )}
-                {!empty && (
-                  <DocSettingsMenu
-                    settings={doc.settings}
-                    onChange={updateSettings}
-                    disabled={busy}
-                  />
-                )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="ml-auto flex min-w-0 items-center gap-1.5">
                 {!empty && (
-                  <span className="mr-1 text-micro text-ink-300 tabular-nums">
+                  <span className="hidden text-micro text-ink-300 tabular-nums sm:inline">
                     {total} {total === 1 ? 'página' : 'páginas'}
                   </span>
                 )}
-                {!empty && (
-                  <button
-                    type="button"
-                    onClick={newDoc}
-                    title="Empezar un documento nuevo (descarta el borrador; deshacible)"
-                    className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-ink-200 text-ink-600 hover:text-ink-800 hover:border-ink-300 hover:bg-ink-100/40 transition-colors"
-                  >
-                    <FileIcon size={13} />
-                    Nuevo
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => void downloadPdf(doc)}
-                  disabled={empty || saving || busy}
-                  title="Descargar el PDF como archivo (a tu dispositivo)"
-                  className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-ink-200 text-ink-600 hover:text-ink-800 hover:border-ink-300 hover:bg-ink-100/40 transition-colors disabled:opacity-40"
-                >
-                  <DownloadIcon size={13} />
-                  Descargar
-                </button>
                 <button
                   type="button"
                   onClick={() => void exportPdf(doc)}
                   disabled={empty || saving || busy}
                   title="Abrir el visor del navegador para imprimir o guardar todo el documento"
-                  className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md bg-ink-800 px-2.5 text-caption font-medium text-paper-50 transition-colors hover:bg-ink-700 disabled:opacity-35 disabled:hover:bg-ink-800"
                 >
                   <PrinterIcon size={13} />
                   {saving ? 'Preparando…' : 'Guardar PDF'}
                 </button>
+                <OverflowMenu
+                  label="Más acciones del documento"
+                  width="w-64"
+                  triggerClassName="inline-flex h-8 w-8 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-800"
+                >
+                  {(close) => (
+                    <>
+                      <OverflowMenuItem
+                        disabled={empty || saving || busy}
+                        onClick={() => {
+                          close()
+                          void downloadPdf(doc)
+                        }}
+                      >
+                        <DownloadIcon size={13} />
+                        Descargar
+                      </OverflowMenuItem>
+                      {/*
+                        Nuevo documento queda en acciones secundarias: útil, pero no
+                        tanto como importar/guardar durante el armado cotidiano.
+                      */}
+                      <OverflowMenuItem
+                        disabled={empty || busy}
+                        onClick={() => {
+                          close()
+                          newDoc()
+                        }}
+                      >
+                        <FileIcon size={13} />
+                        Nuevo documento
+                      </OverflowMenuItem>
+                      {!empty && (
+                        <div className="mt-1 border-t border-ink-100 px-2 py-2">
+                          <p className="mb-2 text-micro uppercase tracking-eyebrow text-ink-300">
+                            Ajustes
+                          </p>
+                          <label className="flex items-center gap-2 text-caption text-ink-700">
+                            <input
+                              type="checkbox"
+                              checked={!!pageNumbers}
+                              onChange={(e) =>
+                                setPageNumbers(
+                                  e.target.checked ? { position: 'center' } : undefined,
+                                )
+                              }
+                            />
+                            Numerar páginas
+                          </label>
+                          {pageNumbers && (
+                            <div className="mt-1.5 flex gap-1 pl-6">
+                              {(['left', 'center', 'right'] as const).map((position) => {
+                                const on = pageNumbers.position === position
+                                const label =
+                                  position === 'left'
+                                    ? 'Izq.'
+                                    : position === 'center'
+                                      ? 'Centro'
+                                      : 'Der.'
+                                return (
+                                  <button
+                                    key={position}
+                                    type="button"
+                                    aria-pressed={on}
+                                    onClick={() => setPageNumbers({ position })}
+                                    className={`rounded px-2 py-0.5 text-micro transition-colors ${
+                                      on
+                                        ? 'bg-[color:var(--accent-sage)] text-paper-50'
+                                        : 'text-ink-500 hover:bg-ink-100/60'
+                                    }`}
+                                  >
+                                    {label}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
+                          <label
+                            className="mt-2 block text-caption text-ink-700"
+                            htmlFor="pdf-watermark-menu"
+                          >
+                            Marca de agua
+                          </label>
+                          <input
+                            id="pdf-watermark-menu"
+                            type="text"
+                            value={watermarkText}
+                            onChange={(e) => setWatermark(e.target.value)}
+                            placeholder="Ej: BORRADOR"
+                            className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </OverflowMenu>
               </div>
               <input
                 ref={fileInputRef}
@@ -735,12 +823,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
             </div>
 
             {editBar}
-            {!empty && (
-              <p className="text-micro text-ink-400">
-                Doble clic en una hoja para editarla · arrastra para reordenar · marca (✓)
-                una o más para exportarlas por separado.
-              </p>
-            )}
             {mainPane}
           </div>
         </div>
