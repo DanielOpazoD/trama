@@ -1,22 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
-  addImageSource,
   applyEdits,
   deletePages,
   duplicatePages,
   emptyDoc,
-  insertPages,
   movePage,
   movePageByDelta,
-  normalizeDoc,
   pageThumbKey,
-  reseedIds,
   rotatePages,
   setDocSettings,
   subsetDoc,
   type Annotation,
   type DocSettings,
-  type ImageAsset,
   type PdfDoc,
 } from '../../../lib/pdfStudio/model'
 import {
@@ -29,40 +24,21 @@ import {
   type History,
 } from '../../../lib/pdfStudio/history'
 import { disposePdfStudio, forgetThumb } from '../../../lib/pdfStudio/pdfRender'
-import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
-import {
-  clearDraft,
-  deleteSavedDoc,
-  putSavedDoc,
-  type SavedDoc,
-} from '../../../lib/pdfStudio/persistence'
-import { downloadBlob } from '../../../lib/downloadBlob'
-import { OverflowMenu, OverflowMenuItem } from '../../OverflowMenu'
+import { clearDraft } from '../../../lib/pdfStudio/persistence'
 import { BulkBar } from './BulkBar'
 import { WorkspacePanel } from './WorkspacePanel'
 import { PdfDropzone } from './PdfDropzone'
 import { PageGrid } from './PageGrid'
+import { PdfStudioDocumentToolbar } from './PdfStudioDocumentToolbar'
 import { PdfTextEditor } from './PdfTextEditor'
 import { usePageSelection } from './usePageSelection'
 import { usePdfStudioExport } from './usePdfStudioExport'
 import { usePdfStudioImport } from './usePdfStudioImport'
+import { usePdfStudioPageKeyboard } from './usePdfStudioPageKeyboard'
 import { usePdfStudioWorkspace } from './usePdfStudioWorkspace'
-import {
-  DownloadIcon,
-  FileIcon,
-  PrinterIcon,
-  RedoIcon,
-  UndoIcon,
-  UploadIcon,
-} from '../../Icons'
 import { useToast } from '../../../state'
 
 const ACCEPT = 'application/pdf,image/*'
-
-function isMacLike(): boolean {
-  if (typeof navigator === 'undefined') return true
-  return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
-}
 
 /**
  * Imprenta (submódulo del mundo Notas), 100% client-side: combina PDFs e imágenes
@@ -74,7 +50,6 @@ function isMacLike(): boolean {
  * archivos aparte.
  */
 export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
-  const isMac = isMacLike()
   const toast = useToast()
   // El documento vive detrás de un historial (undo/redo). `doc` = presente.
   const [history, setHistory] = useState<History<PdfDoc>>(() => initHistory(emptyDoc()))
@@ -98,27 +73,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     selectAll,
   } = usePageSelection(doc.pages)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const {
-    library,
-    panelCollapsed,
-    saved,
-    setLibrary,
-    setPanelCollapsed,
-    setSaved,
-    userKey,
-  } = usePdfStudioWorkspace({ doc, setHistory })
-  // `toast` cambia de referencia al mostrarse uno (el contexto lleva el actual);
-  // se accede por ref para que el efecto de carga NO se re-dispare en loop.
-  const toastRef = useRef(toast)
-  toastRef.current = toast
-  // Refs para leer selección/doc actuales desde el handler de teclado (montado una
-  // sola vez) sin re-suscribirlo en cada cambio de selección.
-  const selectedIndicesRef = useRef(selectedIndices)
-  selectedIndicesRef.current = selectedIndices
-  const docRef = useRef(doc)
-  docRef.current = doc
-  const selectAllRef = useRef(selectAll)
-  selectAllRef.current = selectAll
 
   /** Aplica un cambio al documento y lo registra en el historial. */
   const commit = useCallback((next: PdfDoc | ((prev: PdfDoc) => PdfDoc)) => {
@@ -128,101 +82,56 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     })
   }, [])
 
+  const {
+    addAssets,
+    addLibraryToDoc,
+    downloadLibrary,
+    library,
+    openSaved,
+    panelCollapsed,
+    removeFromLibrary,
+    removeSaved,
+    renameSaved,
+    saveCreation,
+    saved,
+    setPanelCollapsed,
+    userKey,
+  } = usePdfStudioWorkspace({ clearSelection, commit, doc, setHistory })
+  // Refs para leer selección/doc actuales desde el handler de teclado (montado una
+  // sola vez) sin re-suscribirlo en cada cambio de selección.
+  const selectedIndicesRef = useRef(selectedIndices)
+  selectedIndicesRef.current = selectedIndices
+  const docRef = useRef(doc)
+  docRef.current = doc
+  const selectAllRef = useRef(selectAll)
+  selectAllRef.current = selectAll
+
   /** Actualiza los ajustes del documento (numeración/marca de agua) SIN entrada de
    *  historial (son config, no edición de contenido); igual persisten en el doc. */
   const updateSettings = useCallback((settings: DocSettings) => {
     setHistory((h) => ({ ...h, present: setDocSettings(h.present, settings) }))
   }, [])
 
-  const onImportedImageAssets = useCallback((assets: ImageAsset[]) => {
-    setLibrary((lib) => [...lib, ...assets])
-    setPanelCollapsed(false)
-  }, [])
   const { addFiles, busy } = usePdfStudioImport({
     commit,
     doc,
-    onImageAssets: onImportedImageAssets,
+    onImageAssets: addAssets,
   })
 
   // Al desmontar la sección, libera las miniaturas/documentos de pdf.js.
   useEffect(() => () => disposePdfStudio(), [])
 
-  // Atajos de teclado de la grilla (con el editor de texto cerrado y fuera de
-  // inputs): deshacer/rehacer (⌘Z/⌘⇧Z), seleccionar todo (⌘A), copiar/cortar/pegar
-  // las páginas marcadas (⌘C/⌘X/⌘V) y eliminarlas (Supr/Retroceso). Lee la
-  // selección/doc por ref para no re-suscribirse en cada cambio.
-  useEffect(() => {
-    const hasTextSelection = () => !!window.getSelection()?.toString()
-    const forgetThumbsFor = (indices: number[], from: PdfDoc) => {
-      const drop = new Set(indices)
-      const surviving = new Set(
-        from.pages.filter((_, i) => !drop.has(i)).map(pageThumbKey),
-      )
-      for (const i of indices) {
-        const page = from.pages[i]
-        if (page && !surviving.has(pageThumbKey(page))) forgetThumb(pageThumbKey(page))
-      }
-    }
-    const deleteMarked = (indices: number[]) => {
-      forgetThumbsFor(indices, docRef.current)
-      commit((d) => deletePages(d, indices))
-      clearSelection()
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (textPage !== null) return
-      const el = e.target as HTMLElement | null
-      if (
-        el &&
-        (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
-      )
-        return
-      const mod = e.metaKey || e.ctrlKey
-      const key = e.key.toLowerCase()
-      const sel = selectedIndicesRef.current
-
-      if (e.key === 'Escape') {
-        clearSelection()
-        return
-      }
-      if (mod && key === 'z') {
-        e.preventDefault()
-        setHistory((h) => (e.shiftKey ? redo(h) : undo(h)))
-        return
-      }
-      if (mod && key === 'a') {
-        if (hasTextSelection()) return // dejá que ⌘A seleccione texto real
-        e.preventDefault()
-        selectAllRef.current()
-        return
-      }
-      if (mod && (key === 'c' || key === 'x')) {
-        if (sel.length === 0 || hasTextSelection()) return
-        e.preventDefault()
-        pageClipboardRef.current = subsetDoc(docRef.current, sel)
-        toastRef.current.show({
-          message: `${sel.length} ${sel.length === 1 ? 'página copiada' : 'páginas copiadas'}.`,
-          tone: 'default',
-        })
-        if (key === 'x') deleteMarked(sel)
-        return
-      }
-      if (mod && key === 'v') {
-        const clip = pageClipboardRef.current
-        if (!clip) return
-        e.preventDefault()
-        const at = sel.length ? Math.max(...sel) + 1 : undefined
-        commit((d) => insertPages(d, clip, at))
-        return
-      }
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (sel.length === 0) return
-        e.preventDefault()
-        deleteMarked(sel)
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [textPage, clearSelection, commit])
+  usePdfStudioPageKeyboard({
+    textPage,
+    selectedIndicesRef,
+    docRef,
+    pageClipboardRef,
+    selectAllRef,
+    clearSelection,
+    commit,
+    setHistory,
+    showToast: (message) => toast.show({ message, tone: 'default' }),
+  })
 
   function onFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     void addFiles(e.target.files)
@@ -291,54 +200,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
       commit((d) => applyEdits(d, edits))
     }
     setTextPage(null)
-  }
-
-  // ── Biblioteca de imágenes ───────────────────────────────────────────────
-  /** Agrega una imagen de la biblioteca como una página nueva del documento. */
-  function addLibraryToDoc(asset: ImageAsset) {
-    commit((d) => addImageSource(d, asset.file))
-  }
-  function removeFromLibrary(id: string) {
-    setLibrary((lib) => lib.filter((a) => a.id !== id))
-  }
-  function downloadLibrary(asset: ImageAsset) {
-    downloadBlob(asset.file, asset.file.name || 'imagen')
-  }
-
-  // ── Creaciones guardadas ─────────────────────────────────────────────────
-  /** Guarda el documento actual como una creación con nombre (perdura). */
-  function saveCreation(name: string) {
-    const s: SavedDoc = { id: crypto.randomUUID(), name, doc, savedAt: Date.now() }
-    setSaved((list) => [s, ...list])
-    void putSavedDoc(userKey, s)
-    toast.show({ message: `Guardado "${name}".`, tone: 'success' })
-  }
-  /** Re-abre una creación guardada en el editor (reemplaza lo que haya en pantalla;
-   *  es deshacible con ⌘Z). */
-  function openSaved(s: SavedDoc) {
-    const hadWork = doc.pages.length > 0
-    const restored = normalizeDoc(s.doc)
-    reseedIds(restored)
-    setHistory((h) => pushHistory(h, restored))
-    clearSelection()
-    if (hadWork) {
-      toast.show({
-        message: `Abriste "${s.name}". El documento anterior queda en el historial (⌘Z).`,
-        tone: 'default',
-      })
-    }
-  }
-  function renameSaved(id: string, name: string) {
-    setSaved((list) => {
-      const next = list.map((s) => (s.id === id ? { ...s, name } : s))
-      const target = next.find((s) => s.id === id)
-      if (target) void putSavedDoc(userKey, target)
-      return next
-    })
-  }
-  function removeSaved(id: string) {
-    setSaved((list) => list.filter((s) => s.id !== id))
-    void deleteSavedDoc(userKey, id)
   }
 
   /** Exporta (al visor) SÓLO las hojas marcadas con el tick (barra de edición). */
@@ -445,177 +306,33 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
         {topBar}
         <div ref={setScrollRoot} className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-5xl space-y-5 px-5 pb-24 pt-6 md:px-8">
-            <div
-              role="toolbar"
-              aria-label="Acciones del documento PDF"
-              className="flex flex-nowrap items-center gap-1.5 border-y border-ink-100/70 bg-paper-50/70 px-1.5 py-1.5 shadow-sm shadow-ink-900/5"
-            >
-              <div className="flex min-w-0 items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={busy}
-                  aria-label="Importar PDF o imagen"
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-caption font-medium text-ink-700 transition-colors hover:bg-ink-100/50 hover:text-ink-900 disabled:opacity-50"
-                >
-                  <UploadIcon size={13} />
-                  {busy ? 'Agregando…' : 'Importar'}
-                </button>
-                {(undoable || redoable) && (
-                  <div className="inline-flex items-center overflow-hidden rounded-md bg-ink-100/40">
-                    <button
-                      type="button"
-                      onClick={() => setHistory((h) => undo(h))}
-                      disabled={!undoable}
-                      aria-label="Deshacer"
-                      title={pdfCommandTooltip('undo', isMac)}
-                      className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
-                    >
-                      <UndoIcon size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setHistory((h) => redo(h))}
-                      disabled={!redoable}
-                      aria-label="Rehacer"
-                      title={pdfCommandTooltip('redo', isMac)}
-                      className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
-                    >
-                      <RedoIcon size={14} />
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="ml-auto flex min-w-0 items-center gap-1.5">
-                {!empty && (
-                  <span className="hidden text-micro text-ink-300 tabular-nums sm:inline">
-                    {total} {total === 1 ? 'página' : 'páginas'}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => void exportPdf(doc)}
-                  disabled={empty || saving || busy}
-                  title="Abrir el visor del navegador para imprimir o guardar todo el documento"
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md bg-ink-800 px-2.5 text-caption font-medium text-paper-50 transition-colors hover:bg-ink-700 disabled:opacity-35 disabled:hover:bg-ink-800"
-                >
-                  <PrinterIcon size={13} />
-                  {saving ? 'Preparando…' : 'Guardar PDF'}
-                </button>
-                {exportStatus && (
-                  <span
-                    role="status"
-                    aria-live="polite"
-                    className="hidden text-micro text-ink-400 sm:inline"
-                  >
-                    {exportStatus}
-                  </span>
-                )}
-                <OverflowMenu
-                  label="Más acciones del documento"
-                  width="w-64"
-                  triggerClassName="inline-flex h-8 w-8 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-800"
-                >
-                  {(close) => (
-                    <>
-                      <OverflowMenuItem
-                        disabled={empty || saving || busy}
-                        onClick={() => {
-                          close()
-                          void downloadPdf(doc)
-                        }}
-                      >
-                        <DownloadIcon size={13} />
-                        Descargar
-                      </OverflowMenuItem>
-                      {/*
-                        Nuevo documento queda en acciones secundarias: útil, pero no
-                        tanto como importar/guardar durante el armado cotidiano.
-                      */}
-                      <OverflowMenuItem
-                        disabled={empty || busy}
-                        onClick={() => {
-                          close()
-                          newDoc()
-                        }}
-                      >
-                        <FileIcon size={13} />
-                        Nuevo documento
-                      </OverflowMenuItem>
-                      {!empty && (
-                        <div className="mt-1 border-t border-ink-100 px-2 py-2">
-                          <p className="mb-2 text-micro uppercase tracking-eyebrow text-ink-300">
-                            Ajustes
-                          </p>
-                          <label className="flex items-center gap-2 text-caption text-ink-700">
-                            <input
-                              type="checkbox"
-                              checked={!!pageNumbers}
-                              onChange={(e) =>
-                                setPageNumbers(
-                                  e.target.checked ? { position: 'center' } : undefined,
-                                )
-                              }
-                            />
-                            Numerar páginas
-                          </label>
-                          {pageNumbers && (
-                            <div className="mt-1.5 flex gap-1 pl-6">
-                              {(['left', 'center', 'right'] as const).map((position) => {
-                                const on = pageNumbers.position === position
-                                const label =
-                                  position === 'left'
-                                    ? 'Izq.'
-                                    : position === 'center'
-                                      ? 'Centro'
-                                      : 'Der.'
-                                return (
-                                  <button
-                                    key={position}
-                                    type="button"
-                                    aria-pressed={on}
-                                    onClick={() => setPageNumbers({ position })}
-                                    className={`rounded px-2 py-0.5 text-micro transition-colors ${
-                                      on
-                                        ? 'bg-[color:var(--accent-sage)] text-paper-50'
-                                        : 'text-ink-500 hover:bg-ink-100/60'
-                                    }`}
-                                  >
-                                    {label}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          )}
-                          <label
-                            className="mt-2 block text-caption text-ink-700"
-                            htmlFor="pdf-watermark-menu"
-                          >
-                            Marca de agua
-                          </label>
-                          <input
-                            id="pdf-watermark-menu"
-                            type="text"
-                            value={watermarkText}
-                            onChange={(e) => setWatermark(e.target.value)}
-                            placeholder="Ej: BORRADOR"
-                            className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
-                </OverflowMenu>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={ACCEPT}
-                multiple
-                className="sr-only"
-                onChange={onFileInput}
-              />
-            </div>
+            <PdfStudioDocumentToolbar
+              busy={busy}
+              empty={empty}
+              exportStatus={exportStatus}
+              pageNumbers={pageNumbers}
+              redoable={redoable}
+              saving={saving}
+              total={total}
+              undoable={undoable}
+              watermarkText={watermarkText}
+              onImport={() => fileInputRef.current?.click()}
+              onUndo={() => setHistory((h) => undo(h))}
+              onRedo={() => setHistory((h) => redo(h))}
+              onSavePdf={() => void exportPdf(doc)}
+              onDownload={() => void downloadPdf(doc)}
+              onNewDoc={newDoc}
+              onSetPageNumbers={setPageNumbers}
+              onSetWatermark={setWatermark}
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPT}
+              multiple
+              className="sr-only"
+              onChange={onFileInput}
+            />
 
             {editBar}
             {mainPane}

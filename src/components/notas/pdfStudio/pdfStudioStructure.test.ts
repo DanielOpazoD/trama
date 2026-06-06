@@ -10,12 +10,16 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene PdfTextEditor bajo el ratchet estructural actual', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/PdfTextEditor.tsx'),
-    ).toBeLessThanOrEqual(650)
+    ).toBeLessThanOrEqual(450)
   })
 
   it('mantiene PdfStudioView bajo el ratchet estructural actual', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/PdfStudioView.tsx'),
-    ).toBeLessThanOrEqual(650)
+    ).toBeLessThanOrEqual(360)
+  })
+
+  it('mantiene assemble como orquestador del pipeline', () => {
+    expect(fileLineCount('src/lib/pdfStudio/assemble.ts')).toBeLessThanOrEqual(300)
   })
 })

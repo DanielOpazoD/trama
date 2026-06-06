@@ -128,7 +128,6 @@ export function SelectionInspector({
 
   return (
     <aside
-      role="complementary"
       aria-label="Inspector de selección"
       className="absolute right-3 top-14 z-30 w-[17rem] rounded-lg border border-ink-100/70 bg-paper-50/95 p-2 shadow-lg shadow-ink-900/10 backdrop-blur"
     >

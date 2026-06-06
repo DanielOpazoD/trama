@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import {
   cloneAnnotation,
   getSource,
-  makeImageAnnotation,
   makeTextAnnotation,
   translateAnnotation,
   type Annotation,
@@ -11,7 +10,6 @@ import {
   type PdfDoc,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
-import { fitImageStampBox } from '../../../lib/pdfStudio/editorGeometry'
 import {
   canRedo,
   canUndo,
@@ -21,12 +19,11 @@ import {
   undo,
   type History,
 } from '../../../lib/pdfStudio/history'
-import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
-import { ChevronLeftIcon, ChevronRightIcon, RedoIcon, UndoIcon } from '../../Icons'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { AnnotationLayer } from './AnnotationLayer'
 import { EditorToolbar } from './EditorToolbar'
 import { PageCanvas } from './PageCanvas'
+import { PdfTextEditorHeader } from './PdfTextEditorHeader'
 import { SelectionInspector } from './SelectionInspector'
 import {
   alignAnnotations,
@@ -45,48 +42,10 @@ import {
   defaultEditorTextStyle,
   resolveActiveEditorStyle,
 } from './pdfEditorStyleState'
-import { stepBtn, type TextStyle, type Tool } from './editorStyle'
+import { type TextStyle, type Tool } from './editorStyle'
+import { createImageStampAnnotation, STAMP_ACCEPT } from './pdfImageStamp'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
-const STAMP_ACCEPT = 'image/png,image/jpeg'
-
-function isMacLike(): boolean {
-  if (typeof navigator === 'undefined') return true
-  return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
-}
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () =>
-      typeof reader.result === 'string'
-        ? resolve(reader.result)
-        : reject(new Error('No se pudo leer la imagen'))
-    reader.onerror = () => reject(reader.error ?? new Error('No se pudo leer la imagen'))
-    reader.readAsDataURL(file)
-  })
-}
-
-function readImageSize(src: string): Promise<{ w: number; h: number }> {
-  return new Promise((resolve, reject) => {
-    const im = new Image()
-    im.onload = () =>
-      resolve({
-        w: Math.max(1, im.naturalWidth || im.width),
-        h: Math.max(1, im.naturalHeight || im.height),
-      })
-    im.onerror = () => reject(new Error('No se pudo decodificar la imagen'))
-    im.src = src
-  })
-}
-
-function isImageStampFile(file: File): boolean {
-  return (
-    file.type === 'image/png' ||
-    file.type === 'image/jpeg' ||
-    /\.(png|jpe?g)$/i.test(file.name)
-  )
-}
 
 /**
  * Editor / visor de páginas del PDF: muestra la página grande con la barra de
@@ -105,7 +64,6 @@ export function PdfTextEditor({
   pageIndex: number
   onClose: (edits: Record<number, Annotation[]> | null) => void
 }) {
-  const isMac = isMacLike()
   const total = doc.pages.length
   const [currentPage, setCurrentPage] = useState(pageIndex)
   // Anotaciones EDITADAS por página (las no tocadas siguen las del doc), con
@@ -284,20 +242,12 @@ export function PdfTextEditor({
   }
 
   async function addImageStamp(file: File) {
-    if (!isImageStampFile(file)) return
-    const src = await fileToDataUrl(file)
-    const size = await readImageSize(src)
-    const box = fitImageStampBox({
-      pageW: layout?.innerW ?? size.w,
-      pageH: layout?.innerH ?? size.h,
-      imageW: size.w,
-      imageH: size.h,
-    })
-    const a = makeImageAnnotation({
-      src,
-      ...box,
+    const a = await createImageStampAnnotation({
+      file,
+      layout,
       opacity: style.opacity,
     })
+    if (!a) return
     setTool('select')
     setEditingId(null)
     setAnnotations((l) => [...l, a])
@@ -369,73 +319,26 @@ export function PdfTextEditor({
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-6xl h-full overflow-hidden border-x border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col focus:outline-none"
       >
-        {/* Cabecera compacta (una línea): navegación de páginas + acciones */}
-        <header className="flex items-center justify-between gap-3 border-b border-ink-100/70 bg-paper-50/95 px-3 py-2 shadow-sm shadow-ink-900/5 shrink-0">
-          <div className="flex items-center gap-1 min-w-0">
-            <button
-              type="button"
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 0}
-              aria-label="Página anterior"
-              title="Página anterior"
-              className={stepBtn}
-            >
-              <ChevronLeftIcon size={16} />
-            </button>
-            <p className="text-sm font-medium text-ink-700 tabular-nums whitespace-nowrap">
-              Página {currentPage + 1}{' '}
-              <span className="font-normal text-ink-400">de {total}</span>
-            </p>
-            <button
-              type="button"
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === total - 1}
-              aria-label="Página siguiente"
-              title="Página siguiente"
-              className={stepBtn}
-            >
-              <ChevronRightIcon size={16} />
-            </button>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="inline-flex items-center rounded-md border border-ink-100 bg-paper-50 overflow-hidden divide-x divide-ink-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedId(null)
-                  setEditingId(null)
-                  setHistory(undo)
-                }}
-                disabled={!canUndo(history)}
-                aria-label="Deshacer"
-                title={pdfCommandTooltip('undo', isMac)}
-                className={stepBtn}
-              >
-                <UndoIcon size={15} />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedId(null)
-                  setEditingId(null)
-                  setHistory(redo)
-                }}
-                disabled={!canRedo(history)}
-                aria-label="Rehacer"
-                title={pdfCommandTooltip('redo', isMac)}
-                className={stepBtn}
-              >
-                <RedoIcon size={15} />
-              </button>
-            </div>
-            <button onClick={() => onClose(null)} className="btn-ghost text-xs">
-              Cancelar
-            </button>
-            <button onClick={() => onClose(edited)} className="btn-accent text-xs">
-              Listo
-            </button>
-          </div>
-        </header>
+        <PdfTextEditorHeader
+          currentPage={currentPage}
+          total={total}
+          undoable={canUndo(history)}
+          redoable={canRedo(history)}
+          onPrevPage={() => goToPage(currentPage - 1)}
+          onNextPage={() => goToPage(currentPage + 1)}
+          onUndo={() => {
+            setSelectedId(null)
+            setEditingId(null)
+            setHistory(undo)
+          }}
+          onRedo={() => {
+            setSelectedId(null)
+            setEditingId(null)
+            setHistory(redo)
+          }}
+          onCancel={() => onClose(null)}
+          onDone={() => onClose(edited)}
+        />
 
         <EditorToolbar
           tool={tool}

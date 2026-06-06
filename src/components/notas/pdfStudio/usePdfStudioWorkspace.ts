@@ -1,24 +1,32 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
-import { initHistory, type History } from '../../../lib/pdfStudio/history'
+import { initHistory, pushHistory, type History } from '../../../lib/pdfStudio/history'
 import {
+  addImageSource,
   normalizeDoc,
   reseedIds,
   type ImageAsset,
   type PdfDoc,
 } from '../../../lib/pdfStudio/model'
 import {
+  deleteSavedDoc,
   listSavedDocs,
   loadDraft,
+  putSavedDoc,
   saveDraft,
   type SavedDoc,
 } from '../../../lib/pdfStudio/persistence'
 import { useCurrentClientUserId } from '../../../lib/clientIdentity'
+import { downloadBlob } from '../../../lib/downloadBlob'
 import { useToast } from '../../../state'
 
 export function usePdfStudioWorkspace({
+  clearSelection,
+  commit,
   doc,
   setHistory,
 }: {
+  clearSelection: () => void
+  commit: (next: PdfDoc | ((prev: PdfDoc) => PdfDoc)) => void
   doc: PdfDoc
   setHistory: Dispatch<SetStateAction<History<PdfDoc>>>
 }) {
@@ -64,13 +72,72 @@ export function usePdfStudioWorkspace({
     return () => window.clearTimeout(t)
   }, [doc, library, loaded, userKey])
 
+  function addAssets(assets: ImageAsset[]) {
+    if (assets.length === 0) return
+    setLibrary((lib) => [...lib, ...assets])
+    setPanelCollapsed(false)
+  }
+
+  function addLibraryToDoc(asset: ImageAsset) {
+    commit((d) => addImageSource(d, asset.file))
+  }
+
+  function removeFromLibrary(id: string) {
+    setLibrary((lib) => lib.filter((a) => a.id !== id))
+  }
+
+  function downloadLibrary(asset: ImageAsset) {
+    downloadBlob(asset.file, asset.file.name || 'imagen')
+  }
+
+  function saveCreation(name: string) {
+    const s: SavedDoc = { id: crypto.randomUUID(), name, doc, savedAt: Date.now() }
+    setSaved((list) => [s, ...list])
+    void putSavedDoc(userKey, s)
+    toast.show({ message: `Guardado "${name}".`, tone: 'success' })
+  }
+
+  function openSaved(s: SavedDoc) {
+    const hadWork = doc.pages.length > 0
+    const restored = normalizeDoc(s.doc)
+    reseedIds(restored)
+    setHistory((h) => pushHistory(h, restored))
+    clearSelection()
+    if (hadWork) {
+      toast.show({
+        message: `Abriste "${s.name}". El documento anterior queda en el historial (⌘Z).`,
+        tone: 'default',
+      })
+    }
+  }
+
+  function renameSaved(id: string, name: string) {
+    setSaved((list) => {
+      const next = list.map((s) => (s.id === id ? { ...s, name } : s))
+      const target = next.find((s) => s.id === id)
+      if (target) void putSavedDoc(userKey, target)
+      return next
+    })
+  }
+
+  function removeSaved(id: string) {
+    setSaved((list) => list.filter((s) => s.id !== id))
+    void deleteSavedDoc(userKey, id)
+  }
+
   return {
+    addAssets,
+    addLibraryToDoc,
+    downloadLibrary,
     library,
+    openSaved,
     panelCollapsed,
+    removeFromLibrary,
+    removeSaved,
+    renameSaved,
+    saveCreation,
     saved,
-    setLibrary,
     setPanelCollapsed,
-    setSaved,
     userKey,
   }
 }
