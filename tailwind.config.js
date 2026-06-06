@@ -40,6 +40,7 @@ export default {
           600: 'rgb(var(--ink-600) / <alpha-value>)',
           700: 'rgb(var(--ink-700) / <alpha-value>)',
           800: 'rgb(var(--ink-800) / <alpha-value>)',
+          900: 'rgb(var(--ink-900) / <alpha-value>)',
         },
       },
       // Type scale canónico — 6 niveles semánticos. Antes había 12 variantes

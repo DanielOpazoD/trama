@@ -129,7 +129,7 @@ function RecorteBody({ momento }: { momento: Momento }) {
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-ink-900 transition-colors border-b border-dotted border-transparent hover:border-ink-400"
+              className="hover:text-ink-800 transition-colors border-b border-dotted border-transparent hover:border-ink-400"
             >
               {title}
               <span className="text-ink-300 text-sm ml-1">↗</span>

@@ -187,15 +187,9 @@ export function PageCard({
           }}
           aria-pressed={selected}
           aria-label={
-            selected
-              ? `Quitar la hoja ${index + 1} del PDF`
-              : `Incluir la hoja ${index + 1} en el PDF`
+            selected ? `Desmarcar la hoja ${index + 1}` : `Marcar la hoja ${index + 1}`
           }
-          title={
-            selected
-              ? 'Quitar del PDF (Shift: rango)'
-              : 'Incluir en el PDF (Shift: rango)'
-          }
+          title={selected ? 'Desmarcar (Shift: rango)' : 'Marcar (Shift: rango)'}
           className={`absolute top-1 right-1 inline-flex h-5 w-5 items-center justify-center rounded border transition-colors ${
             selected
               ? 'text-paper-50'

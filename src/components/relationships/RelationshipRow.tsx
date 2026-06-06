@@ -36,14 +36,14 @@ function RelationshipRowInternal({
           {from ? (
             <button
               onClick={() => onSelectEntity?.(from.id)}
-              className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
+              className="text-ink-700 hover:text-ink-800 transition-colors border-b border-transparent hover:border-ink-300"
             >
               {from.name}
             </button>
           ) : rel.fromName ? (
             <button
               onClick={() => onSelectEntity?.(rel.fromId)}
-              className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
+              className="text-ink-700 hover:text-ink-800 transition-colors border-b border-transparent hover:border-ink-300"
             >
               {rel.fromName}
             </button>
@@ -56,14 +56,14 @@ function RelationshipRowInternal({
           {to ? (
             <button
               onClick={() => onSelectEntity?.(to.id)}
-              className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
+              className="text-ink-700 hover:text-ink-800 transition-colors border-b border-transparent hover:border-ink-300"
             >
               {to.name}
             </button>
           ) : rel.toName ? (
             <button
               onClick={() => onSelectEntity?.(rel.toId)}
-              className="text-ink-700 hover:text-ink-900 transition-colors border-b border-transparent hover:border-ink-300"
+              className="text-ink-700 hover:text-ink-800 transition-colors border-b border-transparent hover:border-ink-300"
             >
               {rel.toName}
             </button>

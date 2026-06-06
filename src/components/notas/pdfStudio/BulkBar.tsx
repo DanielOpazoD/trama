@@ -2,6 +2,7 @@ import {
   CheckIcon,
   CloseIcon,
   DuplicateIcon,
+  PrinterIcon,
   RotateIcon,
   TextIcon,
   TrashIcon,
@@ -9,7 +10,7 @@ import {
 
 const ACCENT = 'var(--accent-sage)'
 const barBtn =
-  'touch-target inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption text-ink-600 hover:text-ink-900 hover:bg-paper-50/80 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-ink-600 disabled:cursor-default transition-colors'
+  'touch-target inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption text-ink-600 hover:text-ink-800 hover:bg-paper-50/80 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-ink-600 disabled:cursor-default transition-colors'
 
 /**
  * Barra de EDICIÓN de hojas, SIEMPRE visible cuando hay páginas. Actúa sobre las
@@ -25,6 +26,7 @@ export function BulkBar({
   onRotate,
   onDuplicate,
   onDelete,
+  onExport,
   onSelectAll,
   onClear,
 }: {
@@ -35,6 +37,8 @@ export function BulkBar({
   onRotate: (delta: -1 | 1) => void
   onDuplicate: () => void
   onDelete: () => void
+  /** Exporta SÓLO las hojas marcadas a PDF (abre el visor). */
+  onExport: () => void
   onSelectAll: () => void
   onClear: () => void
 }) {
@@ -98,6 +102,16 @@ export function BulkBar({
         className={`${barBtn} hover:!bg-[color:var(--accent-clay-soft)] hover:!text-[color:var(--accent-clay)]`}
       >
         <TrashIcon size={14} /> Eliminar
+      </button>
+      <span className="mx-1 h-4 w-px bg-ink-200/60" aria-hidden />
+      <button
+        type="button"
+        onClick={onExport}
+        disabled={none}
+        title="Abrir el visor para guardar/imprimir sólo las hojas marcadas"
+        className={barBtn}
+      >
+        <PrinterIcon size={14} /> Exportar
       </button>
       <span className="flex-1" />
       <button

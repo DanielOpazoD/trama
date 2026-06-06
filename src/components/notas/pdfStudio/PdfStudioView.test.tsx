@@ -138,7 +138,7 @@ describe('<PdfStudioView />', () => {
     expect(mocks.getPdfPageCount).toHaveBeenCalledTimes(1)
 
     // Marcar la primera y eliminarla desde la barra de edición → queda una.
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: 'Eliminar' }))
     expect(screen.queryByAltText('Página 2')).not.toBeInTheDocument()
     expect(screen.getByText(/1 página/)).toBeInTheDocument()
@@ -173,7 +173,7 @@ describe('<PdfStudioView />', () => {
     await screen.findByAltText('Página 1')
 
     // Marcar la primera y rotarla desde la barra de edición.
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: /Rotar a la derecha/i }))
     // La página sigue ahí y ahora hay historial para deshacer la rotación.
     expect(screen.getByAltText('Página 1')).toBeInTheDocument()
@@ -242,8 +242,8 @@ describe('<PdfStudioView />', () => {
     await screen.findByAltText('Página 1')
     expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 2 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 2/i }))
 
     // La barra de edición (siempre visible) refleja el conteo de marcadas.
     expect(screen.getByRole('toolbar', { name: /edición de hojas/i })).toBeInTheDocument()
@@ -261,7 +261,7 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: 'Duplicar' }))
     expect(screen.getByText(/3 páginas/)).toBeInTheDocument()
   })
@@ -277,27 +277,30 @@ describe('<PdfStudioView />', () => {
     expect(screen.getByRole('button', { name: 'Texto' })).toBeDisabled()
 
     // Marcar 1 hoja → "Texto" abre el editor de esa página.
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: 'Texto' }))
     expect(
       await screen.findByRole('dialog', { name: /Texto sobre la página 1/i }),
     ).toBeInTheDocument()
   })
 
-  it('Guardar PDF refleja la marca y exporta sólo las hojas marcadas', async () => {
+  it('Guardar PDF exporta TODO; "Exportar" exporta sólo las marcadas', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
-    await user.upload(fileInput(), pdfFile())
+    await user.upload(fileInput(), pdfFile()) // 2 páginas
     await screen.findByAltText('Página 1')
 
-    // Sin marcar: guarda todo.
-    expect(screen.getByRole('button', { name: /^Guardar PDF$/i })).toBeInTheDocument()
-
-    // Marco una hoja → el botón muestra el conteo y exporta el subconjunto.
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
-    await user.click(screen.getByRole('button', { name: /Guardar PDF \(1\)/i }))
+    // "Guardar PDF" no muestra conteo y exporta el documento completo.
+    await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
     expect(mocks.assemble).toHaveBeenCalledTimes(1)
+    expect(mocks.assemble.mock.calls[0]![0].pages).toHaveLength(2)
     expect(mocks.showPdfInTab).toHaveBeenCalledTimes(1)
+
+    // Marco 1 hoja → "Exportar" (barra) exporta SÓLO esa.
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.click(screen.getByRole('button', { name: /^Exportar$/i }))
+    expect(mocks.assemble).toHaveBeenCalledTimes(2)
+    expect(mocks.assemble.mock.calls[1]![0].pages).toHaveLength(1)
   })
 
   it('doble clic en la miniatura abre el modal de ver/editar', async () => {
@@ -355,8 +358,8 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 2 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 2/i }))
     await user.keyboard('{Delete}')
 
     expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
@@ -370,7 +373,7 @@ describe('<PdfStudioView />', () => {
     await screen.findByAltText('Página 1')
     expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.keyboard('{Meta>}c{/Meta}')
     await user.keyboard('{Meta>}v{/Meta}')
 

@@ -429,20 +429,18 @@ export function PdfStudioView() {
     }
   }
 
-  // El documento a EXPORTAR: si hay hojas marcadas (tick), sólo esas; si no, todas.
-  const exportDoc = selectedIndices.length ? subsetDoc(doc, selectedIndices) : doc
-
-  // "Guardar PDF": ensambla y abre el PDF en el VISOR del navegador (pestaña nueva),
-  // donde los botones nativos de imprimir y "guardar como PDF" sí funcionan. La
-  // pestaña se abre ANTES de ensamblar (en el gesto del clic) para esquivar el
-  // bloqueador de pop-ups; si igual la bloquean, plan B = descarga directa.
-  async function save() {
-    if (!canExport(doc) || saving) return
+  // Exporta un documento: ensambla y lo abre en el VISOR del navegador (pestaña
+  // nueva), donde imprimir y "guardar como PDF" sí funcionan. La pestaña se abre
+  // ANTES de ensamblar (en el gesto del clic) para esquivar el bloqueador de
+  // pop-ups; si igual la bloquean, plan B = descarga directa. "Guardar PDF" exporta
+  // SIEMPRE el documento completo; "Exportar marcadas" usa el subconjunto del tick.
+  async function exportPdf(target: PdfDoc, kind?: string) {
+    if (!canExport(target) || saving) return
     setSaving(true)
     const viewer = openBlankPdfTab()
     try {
-      const { blob, skipped } = await assemble(exportDoc)
-      showPdfInTab(viewer, blob, () => downloadBlob(blob, exportName()))
+      const { blob, skipped } = await assemble(target)
+      showPdfInTab(viewer, blob, () => downloadBlob(blob, exportName(kind)))
       if (skipped.length > 0) {
         toast.show({
           message: `Se preparó el PDF, pero se saltearon ${skipped.length} archivo(s): ${skipped
@@ -460,6 +458,12 @@ export function PdfStudioView() {
     } finally {
       setSaving(false)
     }
+  }
+
+  /** Exporta SÓLO las hojas marcadas con el tick (acción de la barra de edición). */
+  function exportMarked() {
+    if (selectedIndices.length > 0)
+      void exportPdf(subsetDoc(doc, selectedIndices), 'seleccion')
   }
 
   const total = doc.pages.length
@@ -523,6 +527,7 @@ export function PdfStudioView() {
       onRotate={bulkRotate}
       onDuplicate={bulkDuplicate}
       onDelete={bulkDelete}
+      onExport={exportMarked}
       onSelectAll={selectAll}
       onClear={clearSelection}
     />
@@ -578,7 +583,7 @@ export function PdfStudioView() {
               type="button"
               onClick={newDoc}
               title="Empezar un documento nuevo (descarta el borrador; deshacible)"
-              className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-ink-200 text-ink-600 hover:text-ink-900 hover:border-ink-300 hover:bg-ink-100/40 transition-colors"
+              className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-ink-200 text-ink-600 hover:text-ink-800 hover:border-ink-300 hover:bg-ink-100/40 transition-colors"
             >
               <FileIcon size={13} />
               Nuevo
@@ -586,21 +591,13 @@ export function PdfStudioView() {
           )}
           <button
             type="button"
-            onClick={save}
+            onClick={() => void exportPdf(doc)}
             disabled={empty || saving || busy}
-            title={
-              selectedCount > 0
-                ? 'Abrir el visor para imprimir o guardar las hojas marcadas'
-                : 'Abrir el visor para imprimir o guardar todo el documento'
-            }
+            title="Abrir el visor para imprimir o guardar todo el documento"
             className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
           >
             <PrinterIcon size={13} />
-            {saving
-              ? 'Preparando…'
-              : selectedCount > 0
-                ? `Guardar PDF (${selectedCount})`
-                : 'Guardar PDF'}
+            {saving ? 'Preparando…' : 'Guardar PDF'}
           </button>
         </div>
         <input
