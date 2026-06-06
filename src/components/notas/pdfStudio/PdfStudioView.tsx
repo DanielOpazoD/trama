@@ -479,7 +479,7 @@ export function PdfStudioView() {
       onClick={() => fileInputRef.current?.click()}
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDropFiles}
-      className="group w-full rounded-2xl border border-dashed border-ink-200 bg-paper-50/40 px-6 py-16 flex flex-col items-center justify-center gap-4 text-center transition-colors hover:border-ink-300 hover:bg-paper-50/70"
+      className="group mx-auto flex w-full max-w-3xl flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-ink-200 bg-paper-50/40 px-6 py-16 text-center transition-colors hover:border-ink-300 hover:bg-paper-50/70"
     >
       <span
         className="inline-flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-105"
@@ -534,86 +534,11 @@ export function PdfStudioView() {
   )
 
   return (
-    <section className="pdf-studio space-y-5">
-      {/* Barra de acciones: izquierda (agregar · historial) — derecha (contador · nuevo · guardar) */}
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1 text-xs text-ink-600 transition-colors hover:border-ink-300 hover:bg-ink-100/40 hover:text-ink-800 disabled:opacity-50"
-          >
-            <UploadIcon size={13} />
-            {busy ? 'Agregando…' : 'Agregar PDF o imagen'}
-          </button>
-          {(undoable || redoable) && (
-            <div className="inline-flex items-center rounded-md border border-ink-100 bg-paper-50 overflow-hidden divide-x divide-ink-100">
-              <button
-                type="button"
-                onClick={() => setHistory((h) => undo(h))}
-                disabled={!undoable}
-                aria-label="Deshacer"
-                title="Deshacer (⌘Z)"
-                className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
-              >
-                <UndoIcon size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setHistory((h) => redo(h))}
-                disabled={!redoable}
-                aria-label="Rehacer"
-                title="Rehacer (⌘⇧Z)"
-                className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
-              >
-                <RedoIcon size={14} />
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {!empty && (
-            <span className="mr-1 text-micro text-ink-300 tabular-nums">
-              {total} {total === 1 ? 'página' : 'páginas'}
-            </span>
-          )}
-          {!empty && (
-            <button
-              type="button"
-              onClick={newDoc}
-              title="Empezar un documento nuevo (descarta el borrador; deshacible)"
-              className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-ink-200 text-ink-600 hover:text-ink-800 hover:border-ink-300 hover:bg-ink-100/40 transition-colors"
-            >
-              <FileIcon size={13} />
-              Nuevo
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void exportPdf(doc)}
-            disabled={empty || saving || busy}
-            title="Abrir el visor para imprimir o guardar todo el documento"
-            className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
-          >
-            <PrinterIcon size={13} />
-            {saving ? 'Preparando…' : 'Guardar PDF'}
-          </button>
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPT}
-          multiple
-          className="sr-only"
-          onChange={onFileInput}
-        />
-      </div>
-
-      {showPanel ? (
-        <div className="flex items-start gap-4">
-          {/* Panel a la IZQUIERDA, full-height en desktop (sticky → siempre visible
-              mientras se hace scroll de la grilla); en móvil acompaña a la grilla. */}
+    <section className="pdf-studio">
+      <div className="flex items-start">
+        {/* Panel = SEGUNDA barra lateral, adosada a la navegación principal (flush a
+            la izquierda), full-height sticky en desktop. */}
+        {showPanel && (
           <div className="shrink-0 self-stretch md:sticky md:top-0 md:h-[calc(100dvh-3.25rem)] md:self-start">
             <WorkspacePanel
               library={library}
@@ -631,14 +556,90 @@ export function PdfStudioView() {
               onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
             />
           </div>
-          <div className="min-w-0 flex-1 space-y-3">
-            {editBar}
-            {mainPane}
+        )}
+
+        {/* Área de trabajo: barra de acciones · barra de edición · grilla. Tiene su
+            propio padding; el panel queda flush contra la navegación. */}
+        <div className="min-w-0 flex-1 space-y-5 px-5 pb-24 pt-6 md:px-8">
+          {/* Barra de acciones: izquierda (agregar · historial) — derecha (contador · nuevo · guardar) */}
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1 text-xs text-ink-600 transition-colors hover:border-ink-300 hover:bg-ink-100/40 hover:text-ink-800 disabled:opacity-50"
+              >
+                <UploadIcon size={13} />
+                {busy ? 'Agregando…' : 'Agregar PDF o imagen'}
+              </button>
+              {(undoable || redoable) && (
+                <div className="inline-flex items-center rounded-md border border-ink-100 bg-paper-50 overflow-hidden divide-x divide-ink-100">
+                  <button
+                    type="button"
+                    onClick={() => setHistory((h) => undo(h))}
+                    disabled={!undoable}
+                    aria-label="Deshacer"
+                    title="Deshacer (⌘Z)"
+                    className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
+                  >
+                    <UndoIcon size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHistory((h) => redo(h))}
+                    disabled={!redoable}
+                    aria-label="Rehacer"
+                    title="Rehacer (⌘⇧Z)"
+                    className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
+                  >
+                    <RedoIcon size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {!empty && (
+                <span className="mr-1 text-micro text-ink-300 tabular-nums">
+                  {total} {total === 1 ? 'página' : 'páginas'}
+                </span>
+              )}
+              {!empty && (
+                <button
+                  type="button"
+                  onClick={newDoc}
+                  title="Empezar un documento nuevo (descarta el borrador; deshacible)"
+                  className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-ink-200 text-ink-600 hover:text-ink-800 hover:border-ink-300 hover:bg-ink-100/40 transition-colors"
+                >
+                  <FileIcon size={13} />
+                  Nuevo
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => void exportPdf(doc)}
+                disabled={empty || saving || busy}
+                title="Abrir el visor para imprimir o guardar todo el documento"
+                className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
+              >
+                <PrinterIcon size={13} />
+                {saving ? 'Preparando…' : 'Guardar PDF'}
+              </button>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPT}
+              multiple
+              className="sr-only"
+              onChange={onFileInput}
+            />
           </div>
+
+          {editBar}
+          {mainPane}
         </div>
-      ) : (
-        mainPane
-      )}
+      </div>
 
       {textPage !== null && (
         <PdfTextEditor doc={doc} pageIndex={textPage} onClose={closeTextEditor} />
