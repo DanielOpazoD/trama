@@ -235,6 +235,34 @@ export function subsetDoc(doc: PdfDoc, indices: number[]): PdfDoc {
   return { pages, sources: pruneSources(doc.sources, pages) }
 }
 
+/**
+ * Inserta en `doc` una copia de las páginas de `clip` (un subdocumento, p. ej. el
+ * que devuelve `subsetDoc`) en la posición `atIndex` (al final si se omite). Clona
+ * sources y páginas con IDS NUEVOS y remapea `sourceId`, así pegar NO comparte ids
+ * con el origen ni con lo ya presente — sirve para copiar/pegar páginas, incluso
+ * después de cortar el original. Reutiliza los mismos `File` (no recodifica).
+ * Inmutable; `clip` vacío es no-op.
+ */
+export function insertPages(doc: PdfDoc, clip: PdfDoc, atIndex?: number): PdfDoc {
+  if (clip.pages.length === 0) return doc
+  const idMap = new Map<string, string>()
+  const sources: PdfSource[] = clip.sources.map((s) => {
+    const id = nextId('s')
+    idMap.set(s.id, id)
+    return { ...s, id }
+  })
+  const pages: PdfPage[] = clip.pages.map((p) => ({
+    ...p,
+    id: nextId('p'),
+    sourceId: idMap.get(p.sourceId) ?? p.sourceId,
+    annotations: p.annotations.map((a) => cloneAnnotation(a)),
+  }))
+  const n = doc.pages.length
+  const at = atIndex == null ? n : Math.min(Math.max(0, atIndex), n)
+  const nextPages = [...doc.pages.slice(0, at), ...pages, ...doc.pages.slice(at)]
+  return { sources: [...doc.sources, ...sources], pages: nextPages }
+}
+
 function pruneSources(sources: PdfSource[], pages: PdfPage[]): PdfSource[] {
   const used = new Set(pages.map((p) => p.sourceId))
   return sources.filter((s) => used.has(s.id))
@@ -269,6 +297,15 @@ export function makeHighlightAnnotation(
   init: Omit<HighlightAnnotation, 'id' | 'kind'>,
 ): HighlightAnnotation {
   return { ...init, id: nextId('a'), kind: 'highlight' }
+}
+
+/**
+ * Clona una anotación con un id NUEVO (mismo tipo y propiedades). Sirve para
+ * copiar/pegar/duplicar anotaciones (en el editor o al pegar páginas) sin que la
+ * copia comparta id con el original. Puro.
+ */
+export function cloneAnnotation(a: Annotation): Annotation {
+  return a.kind === 'text' ? { ...a, id: nextId('t') } : { ...a, id: nextId('a') }
 }
 
 /** Type guard: ¿es una anotación de texto? */

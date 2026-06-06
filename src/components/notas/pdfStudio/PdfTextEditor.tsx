@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
+  cloneAnnotation,
   getSource,
   makeHighlightAnnotation,
   makeTextAnnotation,
@@ -100,8 +101,15 @@ export function PdfTextEditor({
   // Refs para que los efectos montados una vez vean el estado actual sin re-suscribir.
   const selectedRef = useRef<string | null>(null)
   selectedRef.current = selectedId
+  const editingRef = useRef<string | null>(null)
+  editingRef.current = editingId
   const pageRef = useRef(currentPage)
   pageRef.current = currentPage
+  // Lista de anotaciones de la página actual (para que el teclado copie/corte la
+  // anotación seleccionada) y portapapeles interno (copia entre páginas).
+  const annotationsRef = useRef(annotations)
+  annotationsRef.current = annotations
+  const annClipboardRef = useRef<Annotation | null>(null)
 
   // Layout de la página en su orientación FINAL (rotada = como saldrá), ajustada al
   // área medida. Caja EXTERIOR = bounding box rotado; INTERIOR = nativa que se rota
@@ -230,12 +238,24 @@ export function PdfTextEditor({
     return () => ro.disconnect()
   }, [])
 
-  // Escape cancela el modal — salvo mientras se edita un texto inline (ahí Escape
-  // lo maneja el propio cuadro para cancelar la edición).
+  // Escape en DOS etapas: si hay una anotación en edición inline o seleccionada,
+  // primero deselecciona; sólo con nada seleccionado cierra el modal (evita perder
+  // el trabajo por un Escape de más). En edición inline el propio cuadro maneja
+  // Escape para cancelar.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       if ((e.target as HTMLElement | null)?.isContentEditable) return
+      if (editingRef.current) {
+        e.preventDefault()
+        setEditingId(null)
+        return
+      }
+      if (selectedRef.current) {
+        e.preventDefault()
+        setSelectedId(null)
+        return
+      }
       onClose(null)
     }
     document.addEventListener('keydown', onKey)
@@ -262,9 +282,21 @@ export function PdfTextEditor({
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
-  // Atajos sobre el texto seleccionado (fuera de inputs): Supr borra, flechas
-  // mueven fino.
+  // Atajos del editor (fuera de inputs / edición inline): copiar/cortar/pegar/
+  // duplicar la anotación seleccionada (⌘C/⌘X/⌘V/⌘D, incluso entre páginas vía un
+  // portapapeles interno), eliminar (Supr/Retroceso) y mover fino con las flechas
+  // (Shift = paso grande).
   useEffect(() => {
+    const pasteAnnotation = (src: Annotation) => {
+      const fresh = cloneAnnotation(src)
+      const placed: Annotation = {
+        ...fresh,
+        xRatio: clamp01(fresh.xRatio + 0.03),
+        yRatio: clamp01(fresh.yRatio + 0.03),
+      }
+      setAnnotations((l) => [...l, placed])
+      setSelectedId(placed.id)
+    }
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null
       if (
@@ -272,19 +304,46 @@ export function PdfTextEditor({
         (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
       )
         return
-      const id = selectedRef.current
-      if (!id) return
-      if (e.key === 'Delete') {
+      const mod = e.metaKey || e.ctrlKey
+      const key = e.key.toLowerCase()
+
+      // Pegar NO requiere selección.
+      if (mod && key === 'v') {
+        if (!annClipboardRef.current) return
         e.preventDefault()
-        setAnnotations((l) => l.filter((a) => a.id !== id))
+        pasteAnnotation(annClipboardRef.current)
+        return
+      }
+
+      const id = selectedRef.current
+      const current = id
+        ? (annotationsRef.current.find((a) => a.id === id) ?? null)
+        : null
+      if (!current) return
+
+      if (mod && key === 'c') {
+        e.preventDefault()
+        annClipboardRef.current = current
+      } else if (mod && key === 'x') {
+        e.preventDefault()
+        annClipboardRef.current = current
+        setAnnotations((l) => l.filter((a) => a.id !== current.id))
+        setSelectedId(null)
+      } else if (mod && key === 'd') {
+        e.preventDefault()
+        pasteAnnotation(current)
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault()
+        setAnnotations((l) => l.filter((a) => a.id !== current.id))
         setSelectedId(null)
       } else if (e.key.startsWith('Arrow')) {
         e.preventDefault()
-        const dx = e.key === 'ArrowLeft' ? -0.01 : e.key === 'ArrowRight' ? 0.01 : 0
-        const dy = e.key === 'ArrowUp' ? -0.01 : e.key === 'ArrowDown' ? 0.01 : 0
+        const step = e.shiftKey ? 0.05 : 0.01
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0
+        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0
         setAnnotations((l) =>
           l.map((a) =>
-            a.id === id
+            a.id === current.id
               ? { ...a, xRatio: clamp01(a.xRatio + dx), yRatio: clamp01(a.yRatio + dy) }
               : a,
           ),

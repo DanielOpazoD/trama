@@ -8,6 +8,7 @@ import {
   deletePages,
   duplicatePages,
   emptyDoc,
+  insertPages,
   movePage,
   movePageByDelta,
   normalizeDoc,
@@ -35,7 +36,7 @@ import {
   getPdfPageCount,
 } from '../../../lib/pdfStudio/pdfRender'
 import { assemble } from '../../../lib/pdfStudio/assemble'
-import { printPdfBlob } from '../../../lib/pdfStudio/printPdf'
+import { openBlankPdfTab, showPdfInTab } from '../../../lib/pdfStudio/printPdf'
 import {
   clearDraft,
   deleteSavedDoc,
@@ -50,13 +51,12 @@ import { useCurrentClientUserId } from '../../../lib/clientIdentity'
 import { BulkBar } from './BulkBar'
 import { WorkspacePanel } from './WorkspacePanel'
 import { PageGrid } from './PageGrid'
-import { PdfPreviewModal } from './PdfPreviewModal'
 import { PdfTextEditor } from './PdfTextEditor'
 import { usePageSelection } from './usePageSelection'
 import {
-  DownloadIcon,
-  EyeIcon,
+  FileIcon,
   FilePdfIcon,
+  PrinterIcon,
   RedoIcon,
   UndoIcon,
   UploadIcon,
@@ -84,12 +84,13 @@ function exportName(kind?: string): string {
 }
 
 /**
- * Editor de PDF (submódulo del mundo Notas), 100% client-side: combina PDFs e
- * imágenes en un solo documento, a nivel de PÁGINA (estilo iLovePDF). Cada PDF
- * se expande en sus páginas y cada imagen es una página; todas se ven como
- * miniaturas reordenables (botones ◄ ► o arrastrando) y borrables, y se guardan
- * como un PDF nuevo. El modelo es puro y testeado; el render (pdf.js) y el
- * ensamblado (pdf-lib) son perezosos y viven en archivos aparte.
+ * Imprenta (submódulo del mundo Notas), 100% client-side: combina PDFs e imágenes
+ * en un solo documento, a nivel de PÁGINA (estilo iLovePDF). Cada PDF se expande en
+ * sus páginas y cada imagen es una página; todas se ven como miniaturas
+ * reordenables (arrastrando o con ◄ ► del teclado) y borrables, y se exportan al
+ * visor del navegador para imprimir o guardar como PDF. El modelo es puro y
+ * testeado; el render (pdf.js) y el ensamblado (pdf-lib) son perezosos y viven en
+ * archivos aparte.
  */
 export function PdfStudioView() {
   const toast = useToast()
@@ -98,8 +99,10 @@ export function PdfStudioView() {
   const doc = history.present
   const [busy, setBusy] = useState(false) // importando
   const [saving, setSaving] = useState(false)
-  const [previewing, setPreviewing] = useState(false)
   const [textPage, setTextPage] = useState<number | null>(null)
+  // Portapapeles INTERNO de páginas (copiar/cortar/pegar por teclado): guarda un
+  // subdocumento con las páginas marcadas; `insertPages` les da ids nuevos al pegar.
+  const pageClipboardRef = useRef<PdfDoc | null>(null)
   // Selección múltiple de páginas (por ID → sobrevive reordenar/borrar).
   const {
     selectedIds,
@@ -124,6 +127,14 @@ export function PdfStudioView() {
   // se accede por ref para que el efecto de carga NO se re-dispare en loop.
   const toastRef = useRef(toast)
   toastRef.current = toast
+  // Refs para leer selección/doc actuales desde el handler de teclado (montado una
+  // sola vez) sin re-suscribirlo en cada cambio de selección.
+  const selectedIndicesRef = useRef(selectedIndices)
+  selectedIndicesRef.current = selectedIndices
+  const docRef = useRef(doc)
+  docRef.current = doc
+  const selectAllRef = useRef(selectAll)
+  selectAllRef.current = selectAll
 
   /** Aplica un cambio al documento y lo registra en el historial. */
   const commit = useCallback((next: PdfDoc | ((prev: PdfDoc) => PdfDoc)) => {
@@ -174,25 +185,82 @@ export function PdfStudioView() {
     return () => window.clearTimeout(t)
   }, [doc, library, loaded, userKey])
 
-  // Atajos: ⌘/Ctrl+Z deshace, ⌘/Ctrl+Shift+Z rehace (salvo en inputs o con el
-  // editor de texto abierto, que tiene su propio estado).
+  // Atajos de teclado de la grilla (con el editor de texto cerrado y fuera de
+  // inputs): deshacer/rehacer (⌘Z/⌘⇧Z), seleccionar todo (⌘A), copiar/cortar/pegar
+  // las páginas marcadas (⌘C/⌘X/⌘V) y eliminarlas (Supr/Retroceso). Lee la
+  // selección/doc por ref para no re-suscribirse en cada cambio.
   useEffect(() => {
+    const hasTextSelection = () => !!window.getSelection()?.toString()
+    const forgetThumbsFor = (indices: number[], from: PdfDoc) => {
+      const drop = new Set(indices)
+      const surviving = new Set(
+        from.pages.filter((_, i) => !drop.has(i)).map(pageThumbKey),
+      )
+      for (const i of indices) {
+        const page = from.pages[i]
+        if (page && !surviving.has(pageThumbKey(page))) forgetThumb(pageThumbKey(page))
+      }
+    }
+    const deleteMarked = (indices: number[]) => {
+      forgetThumbsFor(indices, docRef.current)
+      commit((d) => deletePages(d, indices))
+      clearSelection()
+    }
     const onKey = (e: KeyboardEvent) => {
       if (textPage !== null) return
-      const tag = (e.target as HTMLElement | null)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      const el = e.target as HTMLElement | null
+      if (
+        el &&
+        (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+      )
+        return
+      const mod = e.metaKey || e.ctrlKey
+      const key = e.key.toLowerCase()
+      const sel = selectedIndicesRef.current
+
       if (e.key === 'Escape') {
         clearSelection()
         return
       }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+      if (mod && key === 'z') {
         e.preventDefault()
         setHistory((h) => (e.shiftKey ? redo(h) : undo(h)))
+        return
+      }
+      if (mod && key === 'a') {
+        if (hasTextSelection()) return // dejá que ⌘A seleccione texto real
+        e.preventDefault()
+        selectAllRef.current()
+        return
+      }
+      if (mod && (key === 'c' || key === 'x')) {
+        if (sel.length === 0 || hasTextSelection()) return
+        e.preventDefault()
+        pageClipboardRef.current = subsetDoc(docRef.current, sel)
+        toastRef.current.show({
+          message: `${sel.length} ${sel.length === 1 ? 'página copiada' : 'páginas copiadas'}.`,
+          tone: 'default',
+        })
+        if (key === 'x') deleteMarked(sel)
+        return
+      }
+      if (mod && key === 'v') {
+        const clip = pageClipboardRef.current
+        if (!clip) return
+        e.preventDefault()
+        const at = sel.length ? Math.max(...sel) + 1 : undefined
+        commit((d) => insertPages(d, clip, at))
+        return
+      }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (sel.length === 0) return
+        e.preventDefault()
+        deleteMarked(sel)
       }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [textPage, clearSelection])
+  }, [textPage, clearSelection, commit])
 
   const addFiles = useCallback(
     async (list: FileList | File[] | null) => {
@@ -374,23 +442,27 @@ export function PdfStudioView() {
   // El documento a EXPORTAR: si hay hojas marcadas (tick), sólo esas; si no, todas.
   const exportDoc = selectedIndices.length ? subsetDoc(doc, selectedIndices) : doc
 
-  // "Guardar PDF" abre el diálogo de impresión del navegador (guardar como PDF a
-  // disco o imprimir), no descarga directo: ensambla y manda el PDF a `printPdfBlob`.
+  // "Guardar PDF": ensambla y abre el PDF en el VISOR del navegador (pestaña nueva),
+  // donde los botones nativos de imprimir y "guardar como PDF" sí funcionan. La
+  // pestaña se abre ANTES de ensamblar (en el gesto del clic) para esquivar el
+  // bloqueador de pop-ups; si igual la bloquean, plan B = descarga directa.
   async function save() {
     if (!canExport(doc) || saving) return
     setSaving(true)
+    const viewer = openBlankPdfTab()
     try {
       const { blob, skipped } = await assemble(exportDoc)
-      printPdfBlob(blob)
+      showPdfInTab(viewer, blob, () => downloadBlob(blob, exportName()))
       if (skipped.length > 0) {
         toast.show({
-          message: `Se abrió la impresión, pero se saltearon ${skipped.length} archivo(s): ${skipped
+          message: `Se preparó el PDF, pero se saltearon ${skipped.length} archivo(s): ${skipped
             .map((s) => s.name)
             .join(', ')}.`,
           tone: 'error',
         })
       }
     } catch (err) {
+      viewer?.close()
       toast.show({
         message: err instanceof Error ? err.message : 'No se pudo preparar el PDF.',
         tone: 'error',
@@ -456,11 +528,7 @@ export function PdfStudioView() {
 
   return (
     <section className="pdf-studio space-y-5">
-      <header>
-        <p className="section-eyebrow text-ink-400">editor de pdf</p>
-      </header>
-
-      {/* Barra de acciones: izquierda (agregar · historial) — derecha (contador · guardar) */}
+      {/* Barra de acciones: izquierda (agregar · historial) — derecha (contador · nuevo · guardar) */}
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
         <div className="flex items-center gap-2">
           <button
@@ -497,9 +565,9 @@ export function PdfStudioView() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {!empty && (
-            <span className="text-micro text-ink-300 tabular-nums">
+            <span className="mr-1 text-micro text-ink-300 tabular-nums">
               {total} {total === 1 ? 'página' : 'páginas'}
             </span>
           )}
@@ -508,25 +576,10 @@ export function PdfStudioView() {
               type="button"
               onClick={newDoc}
               title="Empezar un documento nuevo (descarta el borrador; deshacible)"
-              className="btn-ghost text-xs"
+              className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-ink-200 text-ink-600 hover:text-ink-900 hover:border-ink-300 hover:bg-ink-100/40 transition-colors"
             >
+              <FileIcon size={13} />
               Nuevo
-            </button>
-          )}
-          {!empty && (
-            <button
-              type="button"
-              onClick={() => setPreviewing(true)}
-              disabled={saving || busy}
-              title={
-                selectedCount > 0
-                  ? 'Ver las hojas seleccionadas antes de guardar'
-                  : 'Ver el PDF final antes de guardar'
-              }
-              className="btn-ghost text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
-            >
-              <EyeIcon size={13} />
-              Vista previa
             </button>
           )}
           <button
@@ -535,14 +588,14 @@ export function PdfStudioView() {
             disabled={empty || saving || busy}
             title={
               selectedCount > 0
-                ? 'Abrir la impresión para guardar/imprimir las hojas seleccionadas'
-                : 'Abrir la impresión para guardar/imprimir todas las hojas'
+                ? 'Abrir el visor para imprimir o guardar las hojas marcadas'
+                : 'Abrir el visor para imprimir o guardar todo el documento'
             }
             className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
           >
-            <DownloadIcon size={13} />
+            <PrinterIcon size={13} />
             {saving
-              ? 'Guardando…'
+              ? 'Preparando…'
               : selectedCount > 0
                 ? `Guardar PDF (${selectedCount})`
                 : 'Guardar PDF'}
@@ -595,18 +648,6 @@ export function PdfStudioView() {
 
       {textPage !== null && (
         <PdfTextEditor doc={doc} pageIndex={textPage} onClose={closeTextEditor} />
-      )}
-
-      {previewing && (
-        <PdfPreviewModal
-          doc={exportDoc}
-          onClose={() => setPreviewing(false)}
-          onDownload={(blob) => {
-            downloadBlob(blob, exportName())
-            toast.show({ message: 'PDF guardado.', tone: 'success' })
-            setPreviewing(false)
-          }}
-        />
       )}
     </section>
   )

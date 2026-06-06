@@ -13,7 +13,8 @@ const mocks = vi.hoisted(() => ({
   disposePdfStudio: vi.fn(),
   assemble: vi.fn(),
   downloadBlob: vi.fn(),
-  printPdfBlob: vi.fn(),
+  openBlankPdfTab: vi.fn(),
+  showPdfInTab: vi.fn(),
   loadDraft: vi.fn(),
   saveDraft: vi.fn(),
   clearDraft: vi.fn(),
@@ -29,7 +30,10 @@ vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
   disposePdfStudio: mocks.disposePdfStudio,
 }))
 vi.mock('../../../lib/pdfStudio/assemble', () => ({ assemble: mocks.assemble }))
-vi.mock('../../../lib/pdfStudio/printPdf', () => ({ printPdfBlob: mocks.printPdfBlob }))
+vi.mock('../../../lib/pdfStudio/printPdf', () => ({
+  openBlankPdfTab: mocks.openBlankPdfTab,
+  showPdfInTab: mocks.showPdfInTab,
+}))
 vi.mock('../../../lib/downloadBlob', () => ({ downloadBlob: mocks.downloadBlob }))
 vi.mock('../../../lib/pdfStudio/persistence', () => ({
   loadDraft: mocks.loadDraft,
@@ -59,6 +63,7 @@ beforeEach(() => {
     blob: new Blob(['pdf'], { type: 'application/pdf' }),
     skipped: [],
   })
+  mocks.openBlankPdfTab.mockReturnValue(null) // sin pestaña real en happy-dom
   mocks.loadDraft.mockResolvedValue(null) // sin borrador por defecto
   mocks.saveDraft.mockResolvedValue(undefined)
   mocks.clearDraft.mockResolvedValue(undefined)
@@ -139,10 +144,10 @@ describe('<PdfStudioView />', () => {
     expect(screen.getByText(/1 página/)).toBeInTheDocument()
     expect(mocks.forgetThumb).toHaveBeenCalled()
 
-    // Guardar → ensambla + abre el diálogo de impresión.
+    // Guardar → ensambla + abre el PDF en el visor del navegador.
     await user.click(screen.getByRole('button', { name: /Guardar PDF/i }))
     expect(mocks.assemble).toHaveBeenCalledTimes(1)
-    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
+    expect(mocks.showPdfInTab).toHaveBeenCalledTimes(1)
   })
 
   it('undo y redo revierten y reaplican la importación', async () => {
@@ -275,7 +280,7 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
     await user.click(screen.getByRole('button', { name: /Guardar PDF \(1\)/i }))
     expect(mocks.assemble).toHaveBeenCalledTimes(1)
-    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
+    expect(mocks.showPdfInTab).toHaveBeenCalledTimes(1)
   })
 
   it('doble clic en la miniatura abre el modal de ver/editar', async () => {
@@ -325,5 +330,33 @@ describe('<PdfStudioView />', () => {
     expect(
       screen.getByRole('dialog', { name: /Texto sobre la página 2/i }),
     ).toBeInTheDocument()
+  })
+
+  it('elimina las páginas marcadas con la tecla Suprimir', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Incluir la hoja 2 en el PDF/i }))
+    await user.keyboard('{Delete}')
+
+    expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
+    expect(screen.queryByAltText('Página 1')).not.toBeInTheDocument()
+  })
+
+  it('copia y pega una página marcada con ⌘C/⌘V (2 → 3)', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+    expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.keyboard('{Meta>}c{/Meta}')
+    await user.keyboard('{Meta>}v{/Meta}')
+
+    expect(screen.getByText(/3 páginas/)).toBeInTheDocument()
   })
 })

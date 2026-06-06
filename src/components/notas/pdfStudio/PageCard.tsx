@@ -11,8 +11,6 @@ import { useInViewport } from './useInViewport'
 import { OverflowMenu, OverflowMenuItem } from '../../OverflowMenu'
 import {
   CheckIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   DuplicateIcon,
   FileIcon,
   FilePdfIcon,
@@ -29,9 +27,10 @@ const ctrlBtn =
 
 /**
  * Una página en la grilla: miniatura (render pdf.js o la imagen directa) con su
- * rotación visual, badge de selección (✓ / nº) y de anotaciones, y los controles
- * (reordenar ◄ ►, menú de acciones). Presentacional: el estado del documento y la
- * selección viven en `PdfStudioView`/`usePageSelection`.
+ * rotación visual, badge de selección (✓ / nº) y de anotaciones, y el menú de
+ * acciones (⋯). Se reordena ARRASTRANDO o con ◄ ► del teclado cuando la card tiene
+ * foco. Presentacional: el estado del documento y la selección viven en
+ * `PdfStudioView`/`usePageSelection`.
  */
 export function PageCard({
   doc,
@@ -227,30 +226,8 @@ export function PageCard({
         </button>
       </div>
 
-      {/* Controles: reordenar · acciones */}
-      <div className="flex items-center justify-between px-1 py-1 border-t border-ink-100/70">
-        <div className="inline-flex items-center">
-          <button
-            type="button"
-            onClick={() => onNudge(index, -1)}
-            disabled={index === 0}
-            aria-label="Mover página a la izquierda"
-            title="Mover a la izquierda"
-            className={ctrlBtn}
-          >
-            <ChevronLeftIcon size={15} />
-          </button>
-          <button
-            type="button"
-            onClick={() => onNudge(index, 1)}
-            disabled={index === total - 1}
-            aria-label="Mover página a la derecha"
-            title="Mover a la derecha"
-            className={ctrlBtn}
-          >
-            <ChevronRightIcon size={15} />
-          </button>
-        </div>
+      {/* Acciones de la página (reordenar = arrastrar o ◄ ► del teclado) */}
+      <div className="flex items-center justify-end px-1 py-1 border-t border-ink-100/70">
         <OverflowMenu
           label={`Acciones de la página ${index + 1}`}
           width="w-48"
