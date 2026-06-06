@@ -42,7 +42,6 @@ import { usePdfStudioPageKeyboard } from './usePdfStudioPageKeyboard'
 import { usePdfStudioOcr } from './usePdfStudioOcr'
 import { usePdfStudioWorkspace } from './usePdfStudioWorkspace'
 import { useToast } from '../../../state'
-
 const ACCEPT = 'application/pdf,image/*'
 
 export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
@@ -117,7 +116,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     startOcr,
   } = usePdfStudioOcr({ compression: exportCompression })
 
-  // Al desmontar la sección, libera las miniaturas/documentos de pdf.js.
   useEffect(() => () => disposePdfStudio(), [])
 
   usePdfStudioPageKeyboard({
@@ -144,9 +142,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     }
   }
 
-  // Libera las miniaturas de las páginas que se van, PERO sólo las que ningún
-  // página sobreviviente sigue usando (los duplicados comparten `thumbKey`, así
-  // que revocar a ciegas rompería la imagen del que queda).
   function forgetRemovedThumbs(indices: number[]) {
     const drop = new Set(indices)
     const surviving = new Set(doc.pages.filter((_, i) => !drop.has(i)).map(pageThumbKey))
@@ -164,8 +159,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     commit((d) => movePageByDelta(d, index, delta))
   }
 
-  // ── Acciones en lote sobre la selección (barra de edición) ────────────────
-  /** Abre el editor de texto de la única hoja marcada (botón "Texto" de la barra). */
   function editSelectedText() {
     if (selectedIndices.length === 1) setTextPage(selectedIndices[0]!)
   }
@@ -185,7 +178,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     clearSelection()
   }
 
-  /** Empieza un documento nuevo (descarta el borrador; es deshacible). */
   function newDoc() {
     commit(emptyDoc())
     clearSelection()
@@ -193,15 +185,12 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   }
 
   function closeTextEditor(edits: Record<number, Annotation[]> | null) {
-    // El editor permite navegar y editar varias páginas; entrega un mapa
-    // índice→anotaciones de las páginas que tocó. Se confirman todas juntas.
     if (edits && Object.keys(edits).length > 0) {
       commit((d) => applyEdits(d, edits))
     }
     setTextPage(null)
   }
 
-  /** Exporta (al visor) SÓLO las hojas marcadas con el tick (barra de edición). */
   function exportMarked() {
     if (selectedIndices.length > 0)
       void exportPdf(subsetDoc(doc, selectedIndices), 'seleccion')
@@ -211,7 +200,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   const empty = total === 0
   const undoable = canUndo(history)
   const redoable = canRedo(history)
-  // El panel aparece cuando hay hojas (para poder guardar), imágenes o guardados.
   const showPanel = !empty || library.length > 0 || saved.length > 0
 
   const mainPane = empty ? (
@@ -232,8 +220,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     />
   )
 
-  // Barra de edición de hojas: SIEMPRE visible cuando hay páginas (actúa sobre las
-  // marcadas con el tick). Vive en la columna izquierda, sobre la grilla.
   const editBar = !empty && (
     <BulkBar
       count={selectedCount}
@@ -260,9 +246,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
 
   return (
     <section className="pdf-studio flex min-h-0 flex-1">
-      {/* Panel = SEGUNDA barra lateral: adosada a la navegación y FULL-HEIGHT en
-          DESKTOP. En MÓVIL, expandido es un drawer por encima (no le roba ancho a
-          la grilla); colapsado es un riel fino. */}
       {showPanel && (
         <>
           {!panelCollapsed && (
@@ -299,8 +282,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
         </>
       )}
 
-      {/* Columna de trabajo: topbar de la sección + contenido scrolleable y CENTRADO
-          (los botones y los documentos quedan centrados, como antes). */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {topBar}
         <div ref={setScrollRoot} className="min-h-0 flex-1 overflow-y-auto">

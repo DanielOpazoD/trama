@@ -21,7 +21,6 @@ export function PdfStudioOcrPanel({
 }) {
   return (
     <section
-      role="region"
       aria-label="OCR buscable"
       className="rounded-md border border-ink-100 bg-paper-50/85 px-3 py-2 shadow-sm shadow-ink-900/5"
     >

@@ -32,6 +32,19 @@ backend.
   para inspeccionar/rellenar formularios con el contrato de operaciones pesadas.
 - `src/components/notas/pdfStudio/PdfStudioFormPanel.tsx`: panel compacto para
   editar valores detectados y aplicar el PDF resultante al documento.
+- `src/lib/pdfStudio/pdfOcr.ts`: fachada publica del OCR buscable; orquesta
+  renderizado, reconocimiento, ensamblado y sidecar `.txt`.
+- `src/lib/pdfStudio/pdfOcrInput.ts`: convierte PDF/imagen a paginas raster para
+  OCR, con pdf.js y canvas sin bloquear el flujo principal.
+- `src/lib/pdfStudio/pdfOcrRecognition.ts`: borde Tesseract.js para reconocer
+  texto por pagina, idioma y cajas de lineas.
+- `src/lib/pdfStudio/pdfOcrSearchablePdf.ts`: copia el PDF visual y agrega capa de
+  texto invisible; tambien arma el sidecar de texto.
+- `src/lib/pdfStudio/pdfOcrWorkerClient.ts`, `pdfOcr.worker.ts` y
+  `pdfOcrBackendAdapter.ts`: contrato Worker actual y adaptador explicito para
+  una ruta backend/OCRmyPDF futura.
+- `src/components/notas/pdfStudio/PdfStudioOcrPanel.tsx`: panel compacto con
+  selector de idioma, progreso, cancelacion y disparo de descargas.
 - `src/lib/pdfStudio/assembleImages.ts`: lectura/compresion/embedding de imagenes.
 - `src/lib/pdfStudio/assembleAnnotations.ts`: dibujo vectorial de texto,
   resaltados, formas e imagenes estampadas.
@@ -90,6 +103,33 @@ aplanado quema los valores en la pagina.
 
 La edicion visual campo-a-campo sobre el canvas, firmas dibujadas y la creacion de
 formularios desde cero son el siguiente bloque funcional.
+
+## OCR y PDF Buscable
+
+La primera version es client-side y apunta a documentos pequenos/medianos. El
+panel se abre desde el menu de documento con tres idiomas: espanol, ingles y
+espanol+ingles.
+
+El flujo mantiene una frontera clara con exportacion:
+
+1. `usePdfStudioOcr` primero llama `assemblePdfInWorker(doc)` para convertir el
+   estado actual del editor en un PDF fuente. Esto preserva paginas, anotaciones,
+   formularios aplicados y redacciones ya quemadas.
+2. `createSearchablePdfInWorker(file, { language, signal, onProgress })` ejecuta
+   la operacion `pdf-ocr` en Worker dedicado con cancelacion por `AbortSignal`.
+3. `pdfOcrInput` renderiza paginas con pdf.js/canvas. Imagenes sueltas tambien se
+   aceptan como entrada OCR.
+4. `pdfOcrRecognition` usa Tesseract.js y extrae texto, confianza y cajas de
+   linea por pagina.
+5. `pdfOcrSearchablePdf` copia el PDF visual y agrega texto invisible con
+   `pdf-lib`; ademas genera `trama-ocr.txt` como sidecar.
+6. La UI descarga `trama-ocr.pdf` y `trama-ocr.txt`, muestra progreso y permite
+   cancelar sin dejar estado intermedio.
+
+`pdfOcrBackendAdapter.ts` deja preparado el contrato para una ruta futura
+backend/OCRmyPDF en documentos grandes o de alta calidad. Esa ruta aun no esta
+conectada; el placeholder falla con `OCR_BACKEND_UNAVAILABLE` para evitar
+fallbacks ambiguos.
 
 ## Redaccion
 
@@ -153,6 +193,7 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
 | Organizacion         | Seleccion multiple de paginas, ordenar, rotar, duplicar, extraer, borrar y portapapeles.                                             | `model.ts`, `usePageSelection.ts`, `PdfStudioView.test.tsx`                                   |
 | Edicion de pagina    | Texto, resaltado, redaccion real, rectangulo, ovalo, linea, flecha e imagen estampada.                                               | `EditorToolbar.tsx`, `AnnotationLayer.tsx`, `e2e/pdf-studio-editor.spec.ts`                   |
 | Formularios          | Inspeccion y rellenado basico de AcroForms existentes en Worker; aplicacion editable o aplanada sobre el source PDF.                 | `pdfForms.ts`, `pdfForm.worker.ts`, `PdfStudioFormPanel.tsx`, `PdfStudioView.test.tsx`        |
+| OCR buscable         | PDF escaneado a PDF con texto seleccionable/buscable, Worker, progreso, cancelacion, selector de idioma y sidecar `.txt`.            | `pdfOcr.ts`, `pdfOcr.worker.ts`, `PdfStudioOcrPanel.tsx`, `PdfStudioView.test.tsx`            |
 | Redimensionado       | Handles para texto, resaltados, redacciones, formas e imagenes; Shift conserva aspecto de imagen.                                    | `AnnotationResizeHandles.tsx`, `pdfAnnotationResize.test.ts`, `AnnotationLayer.test.tsx`      |
 | Atajos               | Copiar, cortar, pegar, duplicar, borrar, mover con flechas, undo/redo y Escape contextual.                                           | `usePdfTextEditorKeyboard.ts`, `pdfAnnotationShortcuts.test.ts`                               |
 | Seleccion de objetos | Seleccion simple, multiple con modificador, marquee y lazo; alinear, distribuir, bloquear, capas y grupos.                           | `usePdfTextEditorSelection.ts`, `pdfAnnotationArrange.test.ts`, e2e editor                    |
@@ -182,3 +223,9 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
   seleccionable en esa pagina.
 - Formularios aun no tiene overlays editables por campo dentro del canvas, firmas
   dibujadas ni creacion de campos desde cero.
+- El OCR client-side descarga datos/worker de Tesseract.js y consume CPU/memoria
+  local. Para PDFs grandes o calidad legal/archivo falta conectar la ruta
+  backend/OCRmyPDF ya preparada por adaptador.
+- La capa de texto invisible se alinea con cajas de lineas OCR, no con geometria
+  tipografica perfecta. Es suficiente para busqueda/seleccion general, pero no
+  reemplaza un OCR profesional con deskew/layout avanzado.
