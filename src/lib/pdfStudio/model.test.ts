@@ -3,9 +3,11 @@ import {
   addImageSource,
   addPdfSource,
   applyEdits,
+  addPdfFormField,
   baselineDropEm,
   canExport,
   cloneAnnotation,
+  clonePdfFormField,
   deletePage,
   deletePages,
   duplicatePages,
@@ -16,6 +18,7 @@ import {
   isTextAnnotation,
   makeHighlightAnnotation,
   makeImageAnnotation,
+  makePdfFormFieldDraft,
   makeRedactionAnnotation,
   makeShapeAnnotation,
   makeTextAnnotation,
@@ -28,10 +31,14 @@ import {
   replacePageWithImage,
   replacePdfSourceFile,
   reseedIds,
+  resizePdfFormField,
   rotatePage,
   rotatePages,
   setDocSettings,
+  setPdfFormFieldValue,
+  renamePdfFormField,
   translateAnnotation,
+  translatePdfFormField,
   setPageAnnotations,
   standardFontName,
   subsetDoc,
@@ -139,6 +146,172 @@ describe('pdfStudio/model', () => {
     expect(pageThumbKey(p0)).toMatch(/:0$/)
     const di = addImageSource(emptyDoc(), img())
     expect(pageThumbKey(di.pages[0]!)).toMatch(/:img$/)
+  })
+})
+
+describe('pdfStudio/model · campos de formulario visuales', () => {
+  it('crea campos de formulario anclados a pageId y los agrega sin mutar el documento', () => {
+    const d = addPdfSource(emptyDoc(), pdf(), 1)
+    const pageId = d.pages[0]!.id
+    const field = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId,
+      name: 'paciente',
+      value: 'Daniel',
+      xRatio: 0.1,
+      yRatio: 0.2,
+      wRatio: 0.35,
+      hRatio: 0.04,
+      required: true,
+    })
+
+    const next = addPdfFormField(d, field)
+
+    expect(d.formFields).toBeUndefined()
+    expect(next.formFields).toEqual([
+      expect.objectContaining({
+        id: field.id,
+        fieldKind: 'text',
+        pageId,
+        name: 'paciente',
+        value: 'Daniel',
+        required: true,
+      }),
+    ])
+  })
+
+  it('actualiza nombre, valor, posición y tamaño de campos de formulario', () => {
+    const d0 = addPdfSource(emptyDoc(), pdf(), 1)
+    const field = makePdfFormFieldDraft({
+      fieldKind: 'checkbox',
+      pageId: d0.pages[0]!.id,
+      name: 'aprobado',
+      value: false,
+      xRatio: 0.1,
+      yRatio: 0.2,
+      wRatio: 0.04,
+      hRatio: 0.04,
+    })
+    const d1 = addPdfFormField(d0, field)
+    const d2 = renamePdfFormField(d1, field.id, 'aprobado_final')
+    const d3 = setPdfFormFieldValue(d2, field.id, true)
+    const d4 = translatePdfFormField(d3, field.id, 0.2, -0.1)
+    const d5 = resizePdfFormField(d4, field.id, {
+      xRatio: 0.25,
+      yRatio: 0.15,
+      wRatio: 0.2,
+      hRatio: 0.08,
+    })
+
+    expect(d5.formFields?.[0]).toMatchObject({
+      name: 'aprobado_final',
+      value: true,
+      xRatio: 0.25,
+      yRatio: 0.15,
+      wRatio: 0.2,
+      hRatio: 0.08,
+    })
+  })
+
+  it('normaliza documentos viejos sin formFields y reseedIds considera campos', () => {
+    const legacy = addPdfSource(emptyDoc(), pdf(), 1) as PdfDoc
+    expect(normalizeDoc(legacy).formFields).toEqual([])
+
+    const restored = {
+      sources: [{ id: 's90', kind: 'pdf', file: pdf(), pageCount: 1 }],
+      pages: [
+        {
+          id: 'p91',
+          kind: 'pdf',
+          sourceId: 's90',
+          pageIndex: 0,
+          annotations: [],
+          rotationQuarters: 0,
+        },
+      ],
+      formFields: [
+        {
+          id: 'f120',
+          fieldKind: 'text',
+          pageId: 'p91',
+          name: 'campo',
+          value: '',
+          xRatio: 0.1,
+          yRatio: 0.1,
+          wRatio: 0.2,
+          hRatio: 0.05,
+        },
+      ],
+    } as PdfDoc
+    reseedIds(restored)
+    const field = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: 'p91',
+      name: 'nuevo',
+      value: '',
+      xRatio: 0.1,
+      yRatio: 0.1,
+      wRatio: 0.2,
+      hRatio: 0.05,
+    })
+
+    expect(Number(field.id.replace(/\D+/g, ''))).toBeGreaterThan(120)
+  })
+
+  it('clona campos al duplicar páginas y los elimina al borrar páginas', () => {
+    let d = addPdfSource(emptyDoc(), pdf(), 2)
+    const originalPageId = d.pages[0]!.id
+    const field = makePdfFormFieldDraft({
+      fieldKind: 'date',
+      pageId: originalPageId,
+      name: 'fecha',
+      value: '2026-06-06',
+      xRatio: 0.1,
+      yRatio: 0.2,
+      wRatio: 0.2,
+      hRatio: 0.04,
+    })
+    d = addPdfFormField(d, field)
+
+    const duplicated = duplicatePages(d, [0])
+
+    expect(duplicated.pages).toHaveLength(3)
+    expect(duplicated.formFields).toHaveLength(2)
+    expect(duplicated.formFields?.map((f) => f.pageId)).toEqual([
+      duplicated.pages[0]!.id,
+      duplicated.pages[1]!.id,
+    ])
+    expect(new Set(duplicated.formFields?.map((f) => f.name)).size).toBe(2)
+
+    const deleted = deletePages(duplicated, [0, 1])
+    expect(deleted.formFields).toEqual([])
+  })
+
+  it('clonePdfFormField asigna id y nombre nuevos conservando contenido', () => {
+    const field = makePdfFormFieldDraft({
+      fieldKind: 'signature',
+      pageId: 'p1',
+      name: 'firma',
+      value: 'data:image/png;base64,abc',
+      xRatio: 0.1,
+      yRatio: 0.2,
+      wRatio: 0.3,
+      hRatio: 0.12,
+    })
+
+    const copy = clonePdfFormField(field, 'p2')
+
+    expect(copy).toMatchObject({
+      fieldKind: 'signature',
+      pageId: 'p2',
+      value: field.value,
+      xRatio: field.xRatio,
+      yRatio: field.yRatio,
+      wRatio: field.wRatio,
+      hRatio: field.hRatio,
+    })
+    expect(copy.id).not.toBe(field.id)
+    expect(copy.name).not.toBe(field.name)
   })
 })
 
