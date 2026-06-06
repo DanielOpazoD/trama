@@ -160,6 +160,7 @@ export function PdfTextEditor({
     distributeSelection,
     moveSelectionLayer,
     toggleSelectionLocked,
+    updateSelectionBounds,
     groupSelection,
     ungroupSelection,
     removeAnnotation,
@@ -349,6 +350,7 @@ export function PdfTextEditor({
             onUngroup={ungroupSelection}
             onLayerMove={moveSelectionLayer}
             onToggleLocked={toggleSelectionLocked}
+            onBoundsChange={updateSelectionBounds}
             onColorChange={(color) => applyStyle({ color })}
             onOpacityChange={(opacity) => applyStyle({ opacity })}
           />

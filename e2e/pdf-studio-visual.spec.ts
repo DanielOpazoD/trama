@@ -61,6 +61,16 @@ test.describe('Imprenta · PDF visual regression', () => {
     })
   })
 
+  test('menú de formas queda delante y estable', async ({ page }) => {
+    await openPdfEditor(page, { width: 1280, height: 800 })
+
+    await page.getByRole('button', { name: 'Formas', exact: true }).click()
+    await expect(page.getByRole('menu')).toHaveScreenshot('pdf-studio-shapes-menu.png', {
+      animations: 'disabled',
+      maxDiffPixelRatio: 0.01,
+    })
+  })
+
   test('modal con selección, inspector y handles', async ({ page }) => {
     await openPdfEditor(page, { width: 1280, height: 800 })
 
@@ -72,6 +82,57 @@ test.describe('Imprenta · PDF visual regression', () => {
       page.getByRole('complementary', { name: 'Inspector de selección' }),
     ).toBeVisible()
     await expect(dialog).toHaveScreenshot('pdf-studio-modal-selection.png', {
+      animations: 'disabled',
+      maxDiffPixelRatio: 0.015,
+    })
+  })
+
+  test('modal con selección múltiple agrupada', async ({ page }) => {
+    await openPdfEditor(page, { width: 1280, height: 800 })
+
+    await page.getByRole('button', { name: 'Herramienta resaltar' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
+    const pageImage = dialog.getByAltText('Página 1')
+    const pageBox = await pageImage.boundingBox()
+    expect(pageBox).not.toBeNull()
+    if (!pageBox) return
+
+    for (const left of [0.18, 0.34, 0.58]) {
+      await page.mouse.move(
+        pageBox.x + pageBox.width * left,
+        pageBox.y + pageBox.height * 0.28,
+      )
+      await page.mouse.down()
+      await page.mouse.move(
+        pageBox.x + pageBox.width * (left + 0.08),
+        pageBox.y + pageBox.height * 0.34,
+      )
+      await page.mouse.up()
+    }
+
+    await page.getByRole('button', { name: 'Herramienta seleccionar' }).click()
+    const highlights = page.locator('[title="Arrastra para mover"]')
+    await highlights.nth(0).click()
+    await highlights.nth(1).click({ modifiers: ['Meta'] })
+    await highlights.nth(2).click({ modifiers: ['Meta'] })
+    await page.getByRole('button', { name: 'Agrupar selección', exact: true }).click()
+
+    await expect(dialog).toHaveScreenshot('pdf-studio-modal-grouped-selection.png', {
+      animations: 'disabled',
+      maxDiffPixelRatio: 0.015,
+    })
+  })
+
+  test('modal con zoom alto conserva toolbar e inspector', async ({ page }) => {
+    await openPdfEditor(page, { width: 1280, height: 800 })
+
+    await page.getByRole('button', { name: 'Agregar cuadro de texto' }).click()
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Zoom del documento: aumentar' }).click()
+    await page.getByRole('button', { name: 'Zoom del documento: aumentar' }).click()
+
+    const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
+    await expect(dialog).toHaveScreenshot('pdf-studio-modal-high-zoom.png', {
       animations: 'disabled',
       maxDiffPixelRatio: 0.015,
     })

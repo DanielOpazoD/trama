@@ -7,8 +7,10 @@ import {
   distributeAnnotations,
   groupAnnotations,
   moveAnnotationLayer,
+  setAnnotationBounds,
   setAnnotationsLocked,
   ungroupAnnotations,
+  type AnnotationBoundsPatch,
   type AnnotationArrangeGeometry,
   type AnnotationDistributionAxis,
   type AnnotationHorizontalAlignment,
@@ -104,6 +106,11 @@ export function usePdfTextEditorSelection({
     setAnnotations((list) => setAnnotationsLocked(list, operationSelectedIds, locked))
   }
 
+  const updateSelectionBounds = (patch: AnnotationBoundsPatch) => {
+    if (!selectedId || operationSelectedIds.length !== 1) return
+    setAnnotations((list) => setAnnotationBounds(list, selectedId, patch))
+  }
+
   const groupSelection = () => {
     if (operationSelectedIds.length < 2) return
     setAnnotations((list) =>
@@ -138,6 +145,7 @@ export function usePdfTextEditorSelection({
     distributeSelection,
     moveSelectionLayer,
     toggleSelectionLocked,
+    updateSelectionBounds,
     groupSelection,
     ungroupSelection,
     removeAnnotation,

@@ -22,6 +22,8 @@ type AnnotationBox = {
   hRatio: number
 }
 
+export type AnnotationBoundsPatch = Partial<AnnotationBox>
+
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n))
 }
@@ -190,6 +192,49 @@ export function distributeAnnotations(
         : moveAnnotationToBox(a, box, box.xRatio, targetCenter - box.hRatio / 2)
     if (moved !== a) changed = true
     return moved
+  })
+  return changed ? next : annotations
+}
+
+function normalizeBounds(box: AnnotationBox): AnnotationBox {
+  const wRatio = clamp(box.wRatio, 0.01, 1)
+  const hRatio = clamp(box.hRatio, 0.01, 1)
+  return {
+    xRatio: clamp(box.xRatio, 0, 1 - wRatio),
+    yRatio: clamp(box.yRatio, 0, 1 - hRatio),
+    wRatio,
+    hRatio,
+  }
+}
+
+function applyBounds(annotation: Annotation, box: AnnotationBox): Annotation {
+  if (annotation.kind === 'shape') {
+    return {
+      ...annotation,
+      x0Ratio: box.xRatio,
+      y0Ratio: box.yRatio,
+      x1Ratio: box.xRatio + box.wRatio,
+      y1Ratio: box.yRatio + box.hRatio,
+    }
+  }
+  return { ...annotation, ...box }
+}
+
+export function setAnnotationBounds(
+  annotations: Annotation[],
+  id: string,
+  patch: AnnotationBoundsPatch,
+): Annotation[] {
+  const current = annotations.find((a) => a.id === id)
+  if (!current || current.locked) return annotations
+  const currentBox = annotationArrangeBox(current, { pageWidthPx: 1, pageHeightPx: 1 })
+  const nextBox = normalizeBounds({ ...currentBox, ...patch })
+  let changed = false
+  const next = annotations.map((a) => {
+    if (a.id !== id) return a
+    const updated = applyBounds(a, nextBox)
+    changed = updated !== a
+    return updated
   })
   return changed ? next : annotations
 }

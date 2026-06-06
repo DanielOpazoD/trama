@@ -92,12 +92,32 @@ Snapshots visuales opt-in para macOS:
 PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chromium
 ```
 
+## Matriz de Capacidades
+
+| Area                 | Estado actual                                                                                                 | Evidencia                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Importacion          | PDF multipagina e imagenes como paginas o biblioteca reutilizable.                                            | `usePdfStudioImport`, `usePdfStudioWorkspace`, `PdfStudioView.test.tsx`     |
+| Organizacion         | Seleccion multiple de paginas, ordenar, rotar, duplicar, extraer, borrar y portapapeles.                      | `model.ts`, `usePageSelection.ts`, `PdfStudioView.test.tsx`                 |
+| Edicion de pagina    | Texto, resaltado, rectangulo, ovalo, linea, flecha e imagen estampada.                                        | `EditorToolbar.tsx`, `AnnotationLayer.tsx`, `e2e/pdf-studio-editor.spec.ts` |
+| Redimensionado       | Handles para texto, resaltados, formas e imagenes; Shift conserva aspecto de imagen.                          | `AnnotationResizeHandles.tsx`, `pdfAnnotationResize.test.ts`                |
+| Atajos               | Copiar, cortar, pegar, duplicar, borrar, mover con flechas, undo/redo y Escape contextual.                    | `usePdfTextEditorKeyboard.ts`, `pdfAnnotationShortcuts.test.ts`             |
+| Seleccion de objetos | Seleccion simple y multiple con modificador; alinear, distribuir, bloquear, agrupar y desagrupar.             | `usePdfTextEditorSelection.ts`, `pdfAnnotationArrange.test.ts`, e2e editor  |
+| Exportacion          | Copia paginas PDF sin rasterizar, embebe imagenes, dibuja anotaciones vectoriales y emite progreso por fases. | `assemble.ts`, `assemblePipeline.ts`, `assemble.test.ts`                    |
+| Robustez             | Salta sources corruptos/cifrados, fallback de fuentes y error tipado si no hay paginas o falla el guardado.   | `PdfExportPipelineError`, `assemble.test.ts`                                |
+| Calidad visual       | Toolbar compacta, menus delante del modal, inspector contextual, handles y snapshots visuales opt-in.         | `e2e/pdf-studio-visual.spec.ts`                                             |
+| Estructura           | Ratchets de lineas para archivos criticos.                                                                    | `pdfStudioStructure.test.ts`                                                |
+
 ## Limites Conocidos
 
 - `vendor-pdf-lib` y `pdf.worker` siguen siendo chunks grandes, aunque cargan de
   forma perezosa.
-- La seleccion de anotaciones es principalmente de un objeto; agrupacion y
-  distribucion existen como operaciones puras, pero requieren mas superficie UI para
-  multi-seleccion completa.
-- La visual regression aun debe agregarse para proteger toolbar, menus, seleccion,
-  handles y snapping.
+- Los snapshots visuales son opt-in y macOS-only para evitar ruido por diferencias
+  de fuentes/render en Linux CI.
+- Los fixtures de estres siguen siendo sinteticos o pequenos; falta una carpeta de
+  PDFs reales representativos para escaneados, fuentes raras y casos de memoria.
+- La seleccion multiple funciona con modificadores, pero aun no hay marquee/lazo
+  para seleccionar objetos por region.
+- El inspector permite posicion/tamano por inputs numericos basicos; falta un modo
+  avanzado con unidades, nudging fino y presets de proporcion.
+- La exportacion informa fases, pero no soporta cancelacion explicita ni perfiles
+  de compresion configurables por el usuario.

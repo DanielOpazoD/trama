@@ -7,6 +7,7 @@ import {
   groupAnnotations,
   moveAnnotationLayer,
   setAnnotationsLocked,
+  setAnnotationBounds,
   ungroupAnnotations,
 } from './pdfAnnotationArrange'
 
@@ -98,6 +99,55 @@ describe('pdfAnnotationArrange', () => {
     expect(distributed[0]).toMatchObject({ xRatio: 0.1 })
     expect(distributed[1]).toMatchObject({ x0Ratio: 0.45, x1Ratio: 0.55 })
     expect(distributed[2]).toMatchObject({ xRatio: 0.8 })
+  })
+
+  it('edita posición y tamaño de una anotación desde bounds normalizados', () => {
+    const list = [text('a', 0.3, 0.2), mark('b', 0.1, 0.1), shape('c', 0.4, 0.5)]
+
+    expect(
+      setAnnotationBounds(list, 'a', { xRatio: 0.12, wRatio: 0.32 })[0],
+    ).toMatchObject({
+      xRatio: 0.12,
+      yRatio: 0.2,
+      wRatio: 0.32,
+      hRatio: 0.08,
+    })
+    expect(
+      setAnnotationBounds(list, 'b', { yRatio: 0.22, hRatio: 0.18 })[1],
+    ).toMatchObject({
+      xRatio: 0.1,
+      yRatio: 0.22,
+      wRatio: 0.1,
+      hRatio: 0.18,
+    })
+    expect(setAnnotationBounds(list, 'c', { xRatio: 0.2, wRatio: 0.3 })[2]).toMatchObject(
+      {
+        x0Ratio: 0.2,
+        x1Ratio: 0.5,
+        y0Ratio: 0.2,
+        y1Ratio: 0.3,
+      },
+    )
+  })
+
+  it('acota bounds inválidos y respeta anotaciones bloqueadas', () => {
+    const locked = { ...mark('a', 0.2, 0.2), locked: true }
+    const list = [locked, mark('b', 0.2, 0.2)]
+
+    expect(setAnnotationBounds(list, 'a', { xRatio: 0.8 })).toBe(list)
+    expect(
+      setAnnotationBounds(list, 'b', {
+        xRatio: 1.5,
+        yRatio: -1,
+        wRatio: 0,
+        hRatio: 2,
+      })[1],
+    ).toMatchObject({
+      xRatio: 0.99,
+      yRatio: 0,
+      wRatio: 0.01,
+      hRatio: 1,
+    })
   })
 
   it('mueve capas por orden visual sin mutar la lista original', () => {

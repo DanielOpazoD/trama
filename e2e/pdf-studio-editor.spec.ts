@@ -336,6 +336,14 @@ test.describe('Imprenta · editor PDF', () => {
     expect(before).not.toBeNull()
     if (!before) return
 
+    await inspector.getByRole('spinbutton', { name: 'X de selección (%)' }).fill('32')
+    await inspector.getByRole('spinbutton', { name: 'Ancho de selección (%)' }).fill('34')
+    const afterNumericEdit = await textBox.boundingBox()
+    expect(afterNumericEdit).not.toBeNull()
+    if (!afterNumericEdit) return
+    expect(afterNumericEdit.x).toBeGreaterThan(before.x + 30)
+    expect(afterNumericEdit.width).toBeGreaterThan(before.width + 20)
+
     await inspector.getByRole('button', { name: 'Alinear a la derecha' }).click()
     const afterAlign = await textBox.boundingBox()
     expect(afterAlign).not.toBeNull()
