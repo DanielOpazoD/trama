@@ -22,4 +22,20 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene assemble como orquestador del pipeline', () => {
     expect(fileLineCount('src/lib/pdfStudio/assemble.ts')).toBeLessThanOrEqual(300)
   })
+
+  it('mantiene EditorToolbar bajo el ratchet estructural actual', () => {
+    expect(
+      fileLineCount('src/components/notas/pdfStudio/EditorToolbar.tsx'),
+    ).toBeLessThanOrEqual(400)
+  })
+
+  it('mantiene AnnotationLayer bajo el ratchet estructural actual', () => {
+    expect(
+      fileLineCount('src/components/notas/pdfStudio/AnnotationLayer.tsx'),
+    ).toBeLessThanOrEqual(450)
+  })
+
+  it('mantiene el modelo PDF bajo el ratchet estructural actual', () => {
+    expect(fileLineCount('src/lib/pdfStudio/model.ts')).toBeLessThanOrEqual(400)
+  })
 })

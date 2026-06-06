@@ -16,7 +16,9 @@ import {
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import { rectFromPoints, type ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
+import { AnnotationResizeHandles } from './AnnotationResizeHandles'
 import { EditableBox } from './EditableBox'
+import { ShapeStroke } from './AnnotationShapeStroke'
 import {
   ACCENT,
   HIGHLIGHT_OPACITY,
@@ -30,70 +32,6 @@ import type { SnapGuide } from './pdfAnnotationSnap'
 
 /** Rectángulo en curso del resaltado que se está dibujando (coords nativas). */
 export type DrawingRect = { x0: number; y0: number; x1: number; y1: number }
-
-/** Punta de flecha: dos trazos cortos desde `p1` hacia atrás de la dirección. */
-function arrowHeadPath(
-  p0: { x: number; y: number },
-  p1: { x: number; y: number },
-  sw: number,
-): string {
-  const dx = p1.x - p0.x
-  const dy = p1.y - p0.y
-  const len = Math.hypot(dx, dy) || 1
-  const back = { x: -dx / len, y: -dy / len }
-  const headLen = Math.min(len * 0.3, Math.max(8, sw * 5))
-  const a = Math.PI / 7
-  const rot = (v: { x: number; y: number }, t: number) => ({
-    x: v.x * Math.cos(t) - v.y * Math.sin(t),
-    y: v.x * Math.sin(t) + v.y * Math.cos(t),
-  })
-  const h1 = rot(back, a)
-  const h2 = rot(back, -a)
-  return (
-    `M ${p1.x} ${p1.y} L ${p1.x + h1.x * headLen} ${p1.y + h1.y * headLen} ` +
-    `M ${p1.x} ${p1.y} L ${p1.x + h2.x * headLen} ${p1.y + h2.y * headLen}`
-  )
-}
-
-/** Dibuja una forma (líneas/contornos, sin relleno) en coords de SVG (y desde arriba). */
-function ShapeStroke({
-  shape,
-  p0,
-  p1,
-  color,
-  sw,
-  opacity,
-}: {
-  shape: ShapeKind
-  p0: { x: number; y: number }
-  p1: { x: number; y: number }
-  color: string
-  sw: number
-  opacity: number
-}) {
-  const x = Math.min(p0.x, p1.x)
-  const y = Math.min(p0.y, p1.y)
-  const w = Math.abs(p1.x - p0.x)
-  const h = Math.abs(p1.y - p0.y)
-  const common = {
-    stroke: color,
-    strokeWidth: sw,
-    fill: 'none' as const,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    opacity,
-    style: { pointerEvents: 'none' as const },
-  }
-  if (shape === 'rect') return <rect x={x} y={y} width={w} height={h} {...common} />
-  if (shape === 'oval')
-    return <ellipse cx={x + w / 2} cy={y + h / 2} rx={w / 2} ry={h / 2} {...common} />
-  return (
-    <>
-      <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} {...common} />
-      {shape === 'arrow' && <path d={arrowHeadPath(p0, p1, sw)} {...common} />}
-    </>
-  )
-}
 
 /**
  * Capa de ANOTACIONES que se monta sobre la imagen de la página: cuadros de texto
@@ -142,107 +80,6 @@ export function AnnotationLayer({
     handle: ResizeHandle,
   ) => void
 }) {
-  const resizeHandle = (
-    a: TextAnnotation | HighlightAnnotation | ImageAnnotation | ShapeAnnotation,
-    handle: ResizeHandle,
-    left: string,
-    top: string,
-    label: string,
-  ) => (
-    <button
-      key={`${a.id}-${handle}`}
-      type="button"
-      aria-label={label}
-      title={label}
-      onPointerDown={(e) => onStartResize(e, a, handle)}
-      className="absolute z-10 h-3.5 w-3.5 rounded-sm border border-paper-50 bg-[color:var(--accent-sage)] shadow-sm shadow-ink-900/25"
-      style={{
-        left,
-        top,
-        transform: 'translate(-50%, -50%)',
-        cursor: handle === 'nw' || handle === 'se' ? 'nwse-resize' : 'nesw-resize',
-        touchAction: 'none',
-        pointerEvents: tool === 'select' ? undefined : 'none',
-      }}
-    />
-  )
-
-  const boxResizeHandles = (
-    a: TextAnnotation | HighlightAnnotation | ImageAnnotation | ShapeAnnotation,
-    box: { xRatio: number; yRatio: number; wRatio: number; hRatio: number },
-    labelPrefix = 'Redimensionar desde',
-  ) =>
-    tool === 'select' && selectedId === a.id && !a.locked
-      ? [
-          resizeHandle(
-            a,
-            'nw',
-            `${box.xRatio * 100}%`,
-            `${box.yRatio * 100}%`,
-            `${labelPrefix} esquina superior izquierda`,
-          ),
-          resizeHandle(
-            a,
-            'ne',
-            `${(box.xRatio + box.wRatio) * 100}%`,
-            `${box.yRatio * 100}%`,
-            `${labelPrefix} esquina superior derecha`,
-          ),
-          resizeHandle(
-            a,
-            'sw',
-            `${box.xRatio * 100}%`,
-            `${(box.yRatio + box.hRatio) * 100}%`,
-            `${labelPrefix} esquina inferior izquierda`,
-          ),
-          resizeHandle(
-            a,
-            'se',
-            `${(box.xRatio + box.wRatio) * 100}%`,
-            `${(box.yRatio + box.hRatio) * 100}%`,
-            `${labelPrefix} esquina inferior derecha`,
-          ),
-        ]
-      : null
-
-  const rectResizeHandles = (a: HighlightAnnotation | ImageAnnotation) =>
-    boxResizeHandles(
-      a,
-      a,
-      a.kind === 'image' ? 'Redimensionar imagen desde' : 'Redimensionar resaltado desde',
-    )
-
-  const shapeResizeHandles = (a: ShapeAnnotation) =>
-    boxResizeHandles(
-      a,
-      {
-        xRatio: Math.min(a.x0Ratio, a.x1Ratio),
-        yRatio: Math.min(a.y0Ratio, a.y1Ratio),
-        wRatio: Math.abs(a.x1Ratio - a.x0Ratio),
-        hRatio: Math.abs(a.y1Ratio - a.y0Ratio),
-      },
-      'Redimensionar forma desde',
-    )
-
-  const textResizeHandles = (a: TextAnnotation, sz: number) => {
-    const widthPx =
-      typeof a.wRatio === 'number'
-        ? a.wRatio * innerW
-        : Math.max(sz * 1.6, (a.text || ' ').length * sz * 0.55)
-    const heightPx =
-      typeof a.hRatio === 'number' ? a.hRatio * innerH : sz * TEXT_LINE_HEIGHT
-    return boxResizeHandles(
-      a,
-      {
-        xRatio: a.xRatio,
-        yRatio: a.yRatio,
-        wRatio: widthPx / Math.max(1, innerW),
-        hRatio: heightPx / Math.max(1, innerH),
-      },
-      'Redimensionar texto desde',
-    )
-  }
-
   return (
     <>
       {snapGuides.map((guide) => (
@@ -347,7 +184,14 @@ export function AnnotationLayer({
             >
               {a.text || ' '}
             </div>
-            {textResizeHandles(a, sz)}
+            <AnnotationResizeHandles
+              annotation={a}
+              innerW={innerW}
+              innerH={innerH}
+              selectedId={selectedId}
+              tool={tool}
+              onStartResize={onStartResize}
+            />
           </div>
         )
       })}
@@ -383,7 +227,14 @@ export function AnnotationLayer({
                 outlineOffset: 1,
               }}
             />
-            {rectResizeHandles(a)}
+            <AnnotationResizeHandles
+              annotation={a}
+              innerW={innerW}
+              innerH={innerH}
+              selectedId={selectedId}
+              tool={tool}
+              onStartResize={onStartResize}
+            />
           </div>
         ))}
 
@@ -421,7 +272,14 @@ export function AnnotationLayer({
                 outlineOffset: 2,
               }}
             />
-            {rectResizeHandles(a)}
+            <AnnotationResizeHandles
+              annotation={a}
+              innerW={innerW}
+              innerH={innerH}
+              selectedId={selectedId}
+              tool={tool}
+              onStartResize={onStartResize}
+            />
           </div>
         ))}
 
@@ -535,7 +393,16 @@ export function AnnotationLayer({
       {annotations
         .filter((a): a is ShapeAnnotation => a.kind === 'shape')
         .map((a) => (
-          <div key={`${a.id}-shape-handles`}>{shapeResizeHandles(a)}</div>
+          <div key={`${a.id}-shape-handles`}>
+            <AnnotationResizeHandles
+              annotation={a}
+              innerW={innerW}
+              innerH={innerH}
+              selectedId={selectedId}
+              tool={tool}
+              onStartResize={onStartResize}
+            />
+          </div>
         ))}
 
       {/* Preview en vivo del resaltado que se está dibujando */}

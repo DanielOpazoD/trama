@@ -7,151 +7,41 @@
  * aparte (`pdfRender.ts`, `assemble.ts`), excluidos del coverage.
  */
 
-export type PdfSourceKind = 'pdf' | 'image'
+import type {
+  Annotation,
+  DocSettings,
+  HighlightAnnotation,
+  ImageAnnotation,
+  PdfDoc,
+  PdfPage,
+  PdfSource,
+  ShapeAnnotation,
+  TextAnnotation,
+} from './modelTypes'
 
-export type PdfSource = {
-  id: string
-  kind: PdfSourceKind
-  file: File
-  /** PDF: cantidad de páginas; imagen: 1. */
-  pageCount: number
-}
-
-/** Familia de fuente para el texto vectorial (mapea a fuentes estándar de PDF). */
-export type PdfFontKind = 'sans' | 'serif' | 'mono'
-
-/**
- * Anotación vectorial superpuesta a una página. Es una **unión discriminada** por
- * `kind`: hoy `text` (texto) y `highlight` (resaltado), y crecerá con el resto del
- * "estudio de marcado" (lápiz, formas, firma/imagen). Posición y tamaño SIEMPRE
- * como RATIOS del tamaño de página (0..1) → independientes de la resolución: el
- * mismo dato sirve para el preview (px) y para pdf-lib (puntos). El ensamblado
- * (`assemble`) despacha el dibujo por `kind`.
- */
-type AnnotationBase = {
-  id: string
-  /** Opacidad 0..1 (default 1). Opcional para no romper borradores previos. */
-  opacity?: number
-  /** Si está bloqueada, la UI no debe mover/redimensionar/borrar esta anotación. */
-  locked?: boolean
-  /** Identificador de grupo básico para seleccionar/operar objetos en conjunto. */
-  groupId?: string
-}
-
-/**
- * Texto vectorial (`drawText`). `yRatio` es el TOPE del texto desde arriba; el
- * ensamblado lo convierte a la baseline desde abajo que usa pdf-lib.
- */
-export type TextAnnotation = AnnotationBase & {
-  kind: 'text'
-  text: string
-  xRatio: number
-  yRatio: number
-  /** Ancho de la caja de texto como fracción del ancho de página. Opcional compat. */
-  wRatio?: number
-  /** Alto de la caja de texto como fracción del alto de página. Opcional compat. */
-  hRatio?: number
-  /** Tamaño de fuente como fracción del alto de página (p. ej. 0.04). */
-  sizeRatio: number
-  /** Color en hex `#rrggbb`. */
-  color: string
-  font: PdfFontKind
-  bold: boolean
-  /** Rotación en grados HORARIOS (default 0). Opcional (compat). */
-  rotation?: number
-}
-
-/** Resaltado: rectángulo translúcido (`drawRectangle`). `(x,y)` = esquina sup-izq. */
-export type HighlightAnnotation = AnnotationBase & {
-  kind: 'highlight'
-  xRatio: number
-  yRatio: number
-  wRatio: number
-  hRatio: number
-  /** Color en hex `#rrggbb`. */
-  color: string
-}
-
-/** Tipos de forma vectorial. */
-export type ShapeKind = 'rect' | 'oval' | 'line' | 'arrow'
-
-/**
- * Forma vectorial (línea, flecha, rectángulo, óvalo). Definida por DOS puntos en
- * ratios 0..1 — `(x0,y0)`→`(x1,y1)`: para rect/óvalo es la caja entre ambos; para
- * línea/flecha son los extremos (la punta va en `(x1,y1)`). Sólo contorno (sin
- * relleno), color y grosor como fracción del alto de página.
- */
-export type ShapeAnnotation = AnnotationBase & {
-  kind: 'shape'
-  shape: ShapeKind
-  x0Ratio: number
-  y0Ratio: number
-  x1Ratio: number
-  y1Ratio: number
-  /** Color del trazo en hex `#rrggbb`. */
-  color: string
-  /** Grosor del trazo como fracción del alto de página. */
-  strokeRatio: number
-}
-
-/**
- * Imagen estampada (firma, sello, logo). Se guarda como **data URL** (PNG/JPEG)
- * para que perdure en el borrador serializado (a diferencia de los `source.file`).
- * Geometría tipo resaltado: `(x,y)` = esquina sup-izq, `w/h` como ratios — el
- * ensamblado la embebe y la dibuja con `drawImage`.
- */
-export type ImageAnnotation = AnnotationBase & {
-  kind: 'image'
-  /** Data URL `data:image/png;base64,...` (o jpeg). */
-  src: string
-  xRatio: number
-  yRatio: number
-  wRatio: number
-  hRatio: number
-}
-
-/** Cualquier anotación de una página (unión discriminada por `kind`). */
-export type Annotation =
-  | TextAnnotation
-  | HighlightAnnotation
-  | ShapeAnnotation
-  | ImageAnnotation
-
-export type PdfPage = {
-  id: string
-  annotations: Annotation[]
-  /** Cuartos de vuelta horarios (0..3) aplicados a la página en la salida. */
-  rotationQuarters: number
-} & (
-  | { kind: 'pdf'; sourceId: string; pageIndex: number }
-  | { kind: 'image'; sourceId: string }
-)
-
-/**
- * Ajustes a nivel DOCUMENTO (no de una página): se aplican al ensamblar, sobre
- * TODAS las páginas. Hoy: numeración en el pie y marca de agua diagonal. Opcionales
- * (ausente = desactivado). Viven en `PdfDoc` para persistir con el borrador/guardado.
- */
-export type DocSettings = {
-  /** Numeración de páginas en el pie ("n / total"). Ausente = sin números. */
-  pageNumbers?: { position: 'left' | 'center' | 'right' }
-  /** Marca de agua diagonal translúcida. Texto vacío/ausente = sin marca. */
-  watermark?: { text: string }
-}
-
-export type PdfDoc = {
-  sources: PdfSource[]
-  pages: PdfPage[]
-  /** Ajustes del documento (numeración, marca de agua). Opcional (compat). */
-  settings?: DocSettings
-}
-
-/**
- * Imagen guardada en la BIBLIOTECA (workspace, no parte del documento exportado):
- * las imágenes que el usuario sube quedan en una lista reutilizable, aparte de la
- * grilla de páginas. Se persiste junto al borrador, no dentro del `PdfDoc`.
- */
-export type ImageAsset = { id: string; file: File }
+export type {
+  Annotation,
+  DocSettings,
+  HighlightAnnotation,
+  ImageAnnotation,
+  ImageAsset,
+  PdfDoc,
+  PdfFontKind,
+  PdfPage,
+  PdfSource,
+  PdfSourceKind,
+  ShapeAnnotation,
+  ShapeKind,
+  TextAnnotation,
+} from './modelTypes'
+export {
+  baselineDropEm,
+  isEmbeddableFont,
+  previewFontFamily,
+  standardFontName,
+  TEXT_LINE_HEIGHT,
+  textBoxLayout,
+} from './modelText'
 
 // Contador monótono para ids opacos (mismo patrón que `layerSeq` del editor de
 // imágenes). No afecta la pureza de las transformaciones del documento.
@@ -466,88 +356,6 @@ export function applyEdits(doc: PdfDoc, edits: Record<number, Annotation[]>): Pd
 /** ¿La página tiene anotaciones superpuestas (de cualquier tipo)? */
 export function pageHasAnnotations(page: PdfPage): boolean {
   return page.annotations.length > 0
-}
-
-/**
- * Nombre de la fuente ESTÁNDAR de PDF (base-14, sin embeber → render garantizado
- * en cualquier visor) para una familia + negrita. Coincide con los valores de
- * `StandardFonts` de pdf-lib.
- */
-export function standardFontName(font: PdfFontKind, bold: boolean): string {
-  if (font === 'serif') return bold ? 'Times-Bold' : 'Times-Roman'
-  if (font === 'mono') return bold ? 'Courier-Bold' : 'Courier'
-  return bold ? 'Helvetica-Bold' : 'Helvetica'
-}
-
-/**
- * Stack CSS de la fuente REAL para que el preview sea WYSIWYG con el PDF: sans →
- * Inter y serif → Spectral (las que la app ya carga y que el ensamblado EMBEBE),
- * mono → Courier (estándar, la app no trae monoespaciada).
- */
-export function previewFontFamily(font: PdfFontKind): string {
-  if (font === 'serif') return "Spectral, 'Iowan Old Style', Palatino, Georgia, serif"
-  if (font === 'mono') return "'Courier New', Courier, monospace"
-  return 'Inter, system-ui, -apple-system, sans-serif'
-}
-
-/** Familias cuya tipografía REAL se embebe en el PDF (las demás usan estándar). */
-export function isEmbeddableFont(font: PdfFontKind): boolean {
-  return font === 'sans' || font === 'serif'
-}
-
-/**
- * Interlineado del preview y del modelo de baseline. El editor pinta el texto con
- * `line-height: TEXT_LINE_HEIGHT`; el ensamblado usa el mismo valor para que la
- * baseline del PDF caiga donde la pinta el navegador.
- */
-export const TEXT_LINE_HEIGHT = 1.15
-
-/**
- * Métricas verticales REALES (ascender/descender ÷ unitsPerEm) de cada familia,
- * leídas de los archivos de fuente. Sirven para posicionar la baseline igual que
- * el line-box del navegador (ver `baselineDropEm`). Inter y Spectral son los WOFF
- * embebidos; Courier (mono) son las métricas de la estándar de PDF.
- */
-const FONT_VMETRICS: Record<PdfFontKind, { ascent: number; descent: number }> = {
-  sans: { ascent: 2728 / 2816, descent: 680 / 2816 }, // Inter
-  serif: { ascent: 1059 / 1000, descent: 463 / 1000 }, // Spectral
-  mono: { ascent: 629 / 1000, descent: 157 / 1000 }, // Courier (estándar)
-}
-
-/**
- * Fracción del tamaño de fuente desde el TOPE de la caja de texto hasta la
- * baseline, modelando el line-box CSS (`line-height` = `TEXT_LINE_HEIGHT`):
- * `lh/2 + (ascent − descent)/2`. Reemplaza al `heightAtSize` de pdf-lib, que es
- * inconsistente entre fuentes estándar y embebidas. Pura → testeable.
- */
-export function baselineDropEm(font: PdfFontKind): number {
-  const m = FONT_VMETRICS[font]
-  return TEXT_LINE_HEIGHT / 2 + (m.ascent - m.descent) / 2
-}
-
-/**
- * Convierte la posición/tamaño (ratios) de una anotación a PUNTOS del PDF.
- * Devuelve `x` (izquierda), `topY` (tope del texto medido desde ABAJO, como usa
- * pdf-lib) y `size`. La baseline final = `topY - ascent` (el ascent depende de
- * la fuente y lo aporta el ensamblado). Esta parte es pura → testeable, que es
- * la matemática más delicada del módulo.
- */
-export function textBoxLayout(
-  ann: TextAnnotation,
-  pageWidth: number,
-  pageHeight: number,
-): { x: number; topY: number; size: number; maxWidth?: number; maxHeight?: number } {
-  const maxWidth =
-    typeof ann.wRatio === 'number' ? Math.max(1, ann.wRatio * pageWidth) : undefined
-  const maxHeight =
-    typeof ann.hRatio === 'number' ? Math.max(1, ann.hRatio * pageHeight) : undefined
-  return {
-    x: ann.xRatio * pageWidth,
-    topY: pageHeight - ann.yRatio * pageHeight,
-    size: ann.sizeRatio * pageHeight,
-    ...(maxWidth != null ? { maxWidth } : null),
-    ...(maxHeight != null ? { maxHeight } : null),
-  }
 }
 
 /**
