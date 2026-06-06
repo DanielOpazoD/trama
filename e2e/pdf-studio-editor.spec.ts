@@ -93,6 +93,8 @@ async function expectMenuInFront(page: Page, triggerName: string) {
 }
 
 test.describe('Imprenta · editor PDF', () => {
+  test.describe.configure({ mode: 'serial' })
+
   test('mantiene toolbar compacta y todos los menús delante del modal', async ({
     page,
   }) => {
