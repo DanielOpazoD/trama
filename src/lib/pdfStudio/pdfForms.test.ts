@@ -164,4 +164,39 @@ describe('pdfStudio/pdfForms', () => {
     const loaded = await PDFDocument.load(await blob.arrayBuffer())
     expect(loaded.getForm().getFields()).toHaveLength(0)
   })
+
+  it('exporta firmas visuales como imagen sin escribir el data URL como texto', async () => {
+    const pdf = await PDFDocument.create()
+    pdf.addPage([600, 800])
+    const bytes = await pdf.save()
+    const base = new File([bytes as BlobPart], 'base.pdf', { type: 'application/pdf' })
+    const pageId = 'page-1'
+    const signaturePng =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='
+
+    const { blob } = await writePdfFormFields(
+      base,
+      [
+        makePdfFormFieldDraft({
+          fieldKind: 'signature',
+          pageId,
+          name: 'firma',
+          value: signaturePng,
+          xRatio: 0.1,
+          yRatio: 0.2,
+          wRatio: 0.3,
+          hRatio: 0.08,
+        }),
+      ],
+      [pageId],
+      { flatten: false },
+    )
+
+    const loaded = await PDFDocument.load(await blob.arrayBuffer())
+    const form = loaded.getForm()
+
+    expect(form.getButton('firma').getName()).toBe('firma')
+    expect(() => form.getTextField('firma')).toThrow()
+    expect(form.getFields()).toHaveLength(1)
+  })
 })

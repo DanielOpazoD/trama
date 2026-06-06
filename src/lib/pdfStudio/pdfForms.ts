@@ -1,7 +1,9 @@
 import {
+  PDFButton,
   PDFCheckBox,
   PDFDropdown,
   PDFDocument,
+  type PDFImage,
   PDFOptionList,
   PDFPage,
   PDFRadioGroup,
@@ -10,6 +12,7 @@ import {
   StandardFonts,
   rgb,
 } from 'pdf-lib'
+import { dataUrlToBytes, isPngBytes } from './assembleImages'
 import type { PdfFormFieldDraft } from './model'
 
 export type PdfFormFieldType =
@@ -140,6 +143,9 @@ function fieldInfo(pdf: PDFDocument, form: PdfForm, field: PdfField) {
   if (field instanceof PDFSignature) {
     return { ...base, type: 'button' as const, value: null }
   }
+  if (field instanceof PDFButton) {
+    return { ...base, type: 'button' as const, value: null }
+  }
   return { ...base, type: 'unknown' as const, value: null }
 }
 
@@ -223,6 +229,35 @@ function applyFlags(
   if (draft.required) field.enableRequired()
 }
 
+async function embedSignatureImage(
+  pdf: PDFDocument,
+  value: PdfFormFieldDraft['value'],
+): Promise<PDFImage | null> {
+  const src = stringValue(value).trim()
+  if (!src) return null
+
+  let bytes: Uint8Array | null = null
+  try {
+    bytes = dataUrlToBytes(src)
+  } catch {
+    bytes = null
+  }
+  if (!bytes) {
+    throw Object.assign(new Error('La firma no es una imagen base64 válida'), {
+      code: 'PDF_FORM_SIGNATURE_IMAGE_INVALID',
+    })
+  }
+
+  try {
+    return isPngBytes(bytes) ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes)
+  } catch (cause) {
+    throw Object.assign(new Error('No se pudo embeber la imagen de firma'), {
+      code: 'PDF_FORM_SIGNATURE_IMAGE_INVALID',
+      cause,
+    })
+  }
+}
+
 export async function writePdfFormFields(
   file: File,
   fields: PdfFormFieldDraft[],
@@ -262,10 +297,11 @@ export async function writePdfFormFields(
       field.addOptionToPage(option, page, rect)
       if (draft.value === option) field.select(option)
     } else if (draft.fieldKind === 'signature') {
-      const field = form.createTextField(draft.name)
+      const field = form.createButton(draft.name)
       applyFlags(field, draft)
-      field.setText(stringValue(draft.value))
-      field.addToPage(page, { ...rect, font })
+      field.addToPage('', page, { ...rect, font })
+      const image = await embedSignatureImage(pdf, draft.value)
+      if (image) field.setImage(image)
     } else {
       const field = form.createTextField(draft.name)
       applyFlags(field, draft)
