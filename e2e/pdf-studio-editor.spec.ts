@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test'
 import { PDFDocument } from 'pdf-lib'
 import { emptyState, mockBackend } from './fixtures'
 
+const shortcutMod = process.platform === 'darwin' ? 'Meta' : 'Control'
+
 async function makePdfBuffer(): Promise<Buffer> {
   const pdf = await PDFDocument.create()
   pdf.addPage([612, 792])
@@ -225,5 +227,29 @@ test.describe('Imprenta · editor PDF', () => {
 
     expect(after.width).toBeGreaterThan(before.width + 20)
     expect(after.height).toBeGreaterThan(before.height + 12)
+  })
+
+  test('permite copiar, pegar y eliminar cuadros de texto con teclado', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+
+    await page.getByRole('button', { name: 'Agregar cuadro de texto' }).click()
+    const editor = page.getByRole('textbox', { name: 'Editar texto' })
+    await expect(editor).toBeVisible()
+    await editor.fill('Caja QA')
+    await page.keyboard.press('Enter')
+
+    const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
+    const textBoxes = dialog.getByText('Caja QA', { exact: true })
+    await expect(textBoxes).toHaveCount(1)
+    await textBoxes.first().click()
+
+    await page.keyboard.press(`${shortcutMod}+C`)
+    await page.keyboard.press(`${shortcutMod}+V`)
+    await expect(textBoxes).toHaveCount(2)
+
+    await page.keyboard.press('Delete')
+    await expect(textBoxes).toHaveCount(1)
   })
 })
