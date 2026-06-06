@@ -18,6 +18,20 @@ backend.
 - `src/lib/pdfStudio/assemble.ts`: orquestador del pipeline de exportacion.
 - `src/lib/pdfStudio/assemblePipeline.ts`: tipos de fases, progreso y errores de
   exportacion.
+- `src/lib/pdfStudio/heavyOperationContract.ts`: contrato comun para operaciones
+  pesadas (`pdf-export`, `pdf-ocr`, `pdf-form`, `pdf-redaction`), con mensajes de
+  progreso, cancelacion y errores serializables entre UI y Worker.
+- `src/lib/pdfStudio/heavyOperationClient.ts`: cliente generico para ejecutar una
+  operacion pesada en un Worker dedicado, con fallback al hilo principal.
+- `src/lib/pdfStudio/exportWorkerClient.ts` y `pdfExport.worker.ts`: borde de
+  exportacion en segundo plano; reusa `assemble` y conserva el mismo contrato de
+  progreso/cancelacion que la UI ya consume.
+- `src/lib/pdfStudio/pdfForms.ts`: inspeccion y rellenado basico de AcroForms
+  existentes con `pdf-lib`; soporta mantener campos editables o aplanarlos.
+- `src/lib/pdfStudio/pdfFormWorkerClient.ts` y `pdfForm.worker.ts`: borde Worker
+  para inspeccionar/rellenar formularios con el contrato de operaciones pesadas.
+- `src/components/notas/pdfStudio/PdfStudioFormPanel.tsx`: panel compacto para
+  editar valores detectados y aplicar el PDF resultante al documento.
 - `src/lib/pdfStudio/assembleImages.ts`: lectura/compresion/embedding de imagenes.
 - `src/lib/pdfStudio/assembleAnnotations.ts`: dibujo vectorial de texto,
   resaltados, formas e imagenes estampadas.
@@ -39,25 +53,64 @@ backend.
 
 ## Flujo de Exportacion
 
-`assemble(doc, { onProgress })` emite fases en orden:
+`assemblePdfInWorker(doc, { onProgress, signal })` es el borde publico de
+exportacion. Intenta ejecutar `assemble` en `pdfExport.worker.ts`; si el navegador
+no puede crear Workers, cae al ensamblado local para preservar compatibilidad.
+
+`assemble(doc, { onProgress })` sigue siendo el pipeline puro de exportacion y
+emite fases en orden:
 
 1. `load-fonts`: registra fontkit solo si hay texto con fuentes embebibles.
 2. `validate-images`: cuenta imagenes de paginas y anotaciones.
 3. `process-pages`: copia paginas PDF con `copyPages` o crea paginas desde imagen.
-4. `apply-annotations`: dibuja anotaciones vectoriales sin rasterizar el PDF base.
+4. `apply-annotations`: dibuja anotaciones vectoriales; si la pagina tiene
+   redacciones, primero rasteriza la pagina completa y quema los bloques de
+   redaccion para no conservar el contenido subyacente.
 5. `compress`: aplica ajustes globales, como numeracion y marca de agua.
 6. `save`: serializa el PDF y devuelve `Blob`.
 
 Errores recuperables de sources corruptos/cifrados se acumulan en `skipped`. Si no
 queda ninguna pagina exportable, se lanza `PdfExportPipelineError`.
 
+## Formularios
+
+La primera version trabaja sobre AcroForms existentes:
+
+1. `inspectPdfFormInWorker(file)` detecta campos de texto, checkbox, radio,
+   dropdown y option-list sin bloquear la UI.
+2. `fillPdfFormInWorker(file, values, { flatten })` rellena valores simples.
+3. `flatten: false` mantiene el PDF editable; `flatten: true` quema los valores
+   como contenido de pagina.
+
+La UI expone deteccion desde el menu del documento y luego un panel compacto para
+editar valores. Al aplicar, `fillPdfFormInWorker` crea un PDF nuevo y
+`replacePdfSourceFile` reemplaza el source original preservando paginas,
+anotaciones e historial. El modo editable conserva campos AcroForm; el modo
+aplanado quema los valores en la pagina.
+
+La edicion visual campo-a-campo sobre el canvas, firmas dibujadas y la creacion de
+formularios desde cero son el siguiente bloque funcional.
+
+## Redaccion
+
+La redaccion es un tipo de anotacion propio (`kind: 'redaction'`), distinto de un
+rectangulo negro. Se dibuja desde la barra del editor con la herramienta de escudo
+y tiene handles de redimensionado.
+
+En exportacion, cualquier pagina con redacciones entra por
+`addRedactedRasterPage`: se renderiza la pagina completa a bitmap, se queman las
+zonas redactadas dentro de ese bitmap y se embebe la pagina resultante como una
+imagen nueva. Esto elimina texto/vector/imagen subyacente de las paginas
+redactadas. Las paginas sin redaccion conservan el camino normal de copia PDF sin
+rasterizar.
+
 ## Invariantes
 
 - Posiciones y tamanos de anotaciones siempre son ratios `0..1` respecto de la
   pagina nativa.
 - El preview y el PDF comparten `TEXT_LINE_HEIGHT` y `baselineDropEm`.
-- El PDF base no se rasteriza: paginas PDF se copian; solo imagenes de pagina se
-  embeben como imagenes.
+- El PDF base no se rasteriza salvo en paginas con redaccion real: esas paginas
+  se rasterizan completas para eliminar contenido subyacente.
 - Los ids son opacos. Tras restaurar borradores, `reseedIds` evita colisiones.
 - Objetos `locked` no deben moverse, redimensionarse, borrarse ni cambiar estilo.
 
@@ -92,12 +145,40 @@ Snapshots visuales opt-in para macOS:
 PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chromium
 ```
 
+## Matriz de Capacidades
+
+| Area                 | Estado actual                                                                                                                        | Evidencia                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Importacion          | PDF multipagina e imagenes como paginas o biblioteca reutilizable.                                                                   | `usePdfStudioImport`, `usePdfStudioWorkspace`, `PdfStudioView.test.tsx`                       |
+| Organizacion         | Seleccion multiple de paginas, ordenar, rotar, duplicar, extraer, borrar y portapapeles.                                             | `model.ts`, `usePageSelection.ts`, `PdfStudioView.test.tsx`                                   |
+| Edicion de pagina    | Texto, resaltado, redaccion real, rectangulo, ovalo, linea, flecha e imagen estampada.                                               | `EditorToolbar.tsx`, `AnnotationLayer.tsx`, `e2e/pdf-studio-editor.spec.ts`                   |
+| Formularios          | Inspeccion y rellenado basico de AcroForms existentes en Worker; aplicacion editable o aplanada sobre el source PDF.                 | `pdfForms.ts`, `pdfForm.worker.ts`, `PdfStudioFormPanel.tsx`, `PdfStudioView.test.tsx`        |
+| Redimensionado       | Handles para texto, resaltados, redacciones, formas e imagenes; Shift conserva aspecto de imagen.                                    | `AnnotationResizeHandles.tsx`, `pdfAnnotationResize.test.ts`, `AnnotationLayer.test.tsx`      |
+| Atajos               | Copiar, cortar, pegar, duplicar, borrar, mover con flechas, undo/redo y Escape contextual.                                           | `usePdfTextEditorKeyboard.ts`, `pdfAnnotationShortcuts.test.ts`                               |
+| Seleccion de objetos | Seleccion simple, multiple con modificador, marquee y lazo; alinear, distribuir, bloquear, capas y grupos.                           | `usePdfTextEditorSelection.ts`, `pdfAnnotationArrange.test.ts`, e2e editor                    |
+| Exportacion          | Copia paginas PDF sin rasterizar salvo paginas redactadas, que se queman por rasterizacion segura; corre en Web Worker con progreso. | `exportWorkerClient.ts`, `pdfExport.worker.ts`, `assemble.ts`, `heavyOperationClient.test.ts` |
+| Robustez             | Salta sources corruptos/cifrados, warnings tempranos, fallback de fuentes, error tipado y errores explicitos de rasterizacion.       | `PdfExportPipelineError`, `assemble.test.ts`                                                  |
+| Calidad visual       | Toolbar compacta, menus delante del modal, inspector contextual, handles y snapshots visuales opt-in.                                | `e2e/pdf-studio-visual.spec.ts`                                                               |
+| Estructura           | Ratchets de lineas para archivos criticos.                                                                                           | `pdfStudioStructure.test.ts`                                                                  |
+
 ## Limites Conocidos
 
-- `vendor-pdf-lib` y `pdf.worker` siguen siendo chunks grandes, aunque cargan de
-  forma perezosa.
-- La seleccion de anotaciones es principalmente de un objeto; agrupacion y
-  distribucion existen como operaciones puras, pero requieren mas superficie UI para
-  multi-seleccion completa.
-- La visual regression aun debe agregarse para proteger toolbar, menus, seleccion,
-  handles y snapping.
+- `vendor-pdf-lib`, `pdf.worker` y `pdfExport.worker` siguen siendo chunks grandes,
+  aunque cargan de forma perezosa y ya no bloquean la UI durante la exportacion
+  normal.
+- Los snapshots visuales son opt-in y macOS-only para evitar ruido por diferencias
+  de fuentes/render en Linux CI.
+- Los fixtures reales cubren multipagina, rotado, escaneado, corrupto, fuente no
+  usual y una exportacion de estres pequena medida; falta una carpeta curada de PDFs
+  grandes de usuario para pruebas de memoria extrema.
+- El lazo libre existe con modificador de teclado; aun no tiene affordance visual
+  dedicada en la barra ni seleccion por rango semantico de objetos.
+- El inspector permite posicion/tamano por inputs numericos basicos; falta un modo
+  avanzado con unidades, nudging fino y presets de proporcion.
+- La exportacion recomprime imagenes grandes segun perfil, pero aun no estima
+  memoria precisa por pagina ni muestra prediccion de peso final antes de guardar.
+- La redaccion real rasteriza la pagina completa. Es segura para remover contenido
+  subyacente, pero convierte esa pagina en imagen y pierde texto/vector
+  seleccionable en esa pagina.
+- Formularios aun no tiene overlays editables por campo dentro del canvas, firmas
+  dibujadas ni creacion de campos desde cero.

@@ -46,6 +46,29 @@ describe('pdfAnnotationDrawing · createAnnotationFromDrawGesture', () => {
     })
   })
 
+  it('crea redacciones como objeto propio de seguridad', () => {
+    const annotation = createAnnotationFromDrawGesture({
+      tool: 'redact',
+      x0: 100,
+      y0: 80,
+      x1: 260,
+      y1: 220,
+      pageWidthPx: 800,
+      pageHeightPx: 700,
+      style,
+    })
+
+    expect(annotation).toMatchObject({
+      kind: 'redaction',
+      xRatio: 0.125,
+      yRatio: expect.closeTo(0.114285714, 8),
+      wRatio: 0.2,
+      hRatio: 0.2,
+      color: '#000000',
+      opacity: 1,
+    })
+  })
+
   it('crea formas conservando dirección y grosor configurado', () => {
     const annotation = createAnnotationFromDrawGesture({
       tool: 'arrow',

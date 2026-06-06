@@ -23,6 +23,12 @@ export function pdfExportPipelineProgressLabel(event: PdfExportProgressEvent): s
 export function describePdfExportError(err: unknown): string {
   const raw = messageFrom(err)
   const normalized = raw.toLowerCase()
+  if (/cancel|abort/.test(normalized)) {
+    return 'Exportación cancelada.'
+  }
+  if (/redacci|redaction|unsafe_redaction/.test(normalized)) {
+    return `No se pudo aplicar la redacción segura. La página redactada debe rasterizarse para eliminar el contenido subyacente. Detalle: ${raw}`
+  }
   if (/font|fontkit|fuente|woff/.test(normalized)) {
     return `No se pudo preparar una fuente del PDF. Intenta cambiar la familia de letra o exportar de nuevo. Detalle: ${raw}`
   }

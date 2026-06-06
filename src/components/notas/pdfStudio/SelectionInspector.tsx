@@ -4,6 +4,7 @@ import type {
   AnnotationHorizontalAlignment,
   AnnotationLayerMove,
 } from './pdfAnnotationArrange'
+import { focusRing } from './EditorToolbarPrimitives'
 
 type AnnotationBounds = {
   xRatio: number
@@ -23,6 +24,39 @@ const COLORS = [
 
 function pct(value: number): string {
   return `${Math.round(value * 100)}%`
+}
+
+function pctNumber(value: number): number {
+  return Math.round(value * 100)
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string
+  value: number
+  onChange: (value: number) => void
+  disabled: boolean
+}) {
+  return (
+    <label className="grid gap-0.5 text-micro text-ink-400">
+      <span>{label}</span>
+      <input
+        type="number"
+        min="0"
+        max="100"
+        step="1"
+        value={pctNumber(value)}
+        disabled={disabled}
+        aria-label={`${label} de selección (%)`}
+        onChange={(e) => onChange(Number(e.currentTarget.value) / 100)}
+        className="h-7 rounded-md border border-ink-100 bg-paper-50 px-1.5 text-caption tabular-nums text-ink-700 outline-none transition-colors focus:border-[color:var(--accent-sage)] focus-visible:ring-2 focus-visible:ring-[color:var(--accent-sage)] focus-visible:ring-offset-1 disabled:opacity-45"
+      />
+    </label>
+  )
 }
 
 function Glyph({
@@ -143,7 +177,7 @@ function TinyButton({
       aria-pressed={active}
       title={label}
       onClick={onClick}
-      className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+      className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors ${focusRing} ${
         active
           ? 'bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]'
           : 'text-ink-500 hover:bg-ink-100/60 hover:text-ink-800'
@@ -164,6 +198,7 @@ export function SelectionInspector({
   onUngroup,
   onLayerMove,
   onToggleLocked,
+  onBoundsChange,
   onColorChange,
   onOpacityChange,
 }: {
@@ -176,6 +211,7 @@ export function SelectionInspector({
   onUngroup: () => void
   onLayerMove: (move: AnnotationLayerMove) => void
   onToggleLocked: (locked: boolean) => void
+  onBoundsChange: (patch: Partial<AnnotationBounds>) => void
   onColorChange: (color: string) => void
   onOpacityChange: (opacity: number) => void
 }) {
@@ -189,12 +225,17 @@ export function SelectionInspector({
   const canDistribute = count >= 3
   const canGroup = count >= 2
   const canUngroup = count >= 2 || Boolean(annotation.groupId)
+  const canEditBounds = count === 1 && !locked
 
   return (
     <aside
       aria-label="Inspector de selección"
-      className="absolute right-3 top-14 z-30 w-[17rem] rounded-lg border border-ink-100/70 bg-paper-50/95 p-2 shadow-lg shadow-ink-900/10 backdrop-blur"
+      className="absolute right-3 top-28 z-30 w-[17rem] rounded-lg border border-ink-100/70 bg-paper-50/95 p-2 shadow-lg shadow-ink-900/10 backdrop-blur"
     >
+      <p role="status" aria-live="polite" className="sr-only">
+        {count === 1 ? '1 objeto seleccionado' : `${count} objetos seleccionados`}
+        {locked ? ', bloqueado' : ''}
+      </p>
       <div className="flex items-center justify-between gap-2">
         <p className="text-caption font-medium text-ink-700">Selección</p>
         <TinyButton
@@ -212,6 +253,33 @@ export function SelectionInspector({
         <div className="rounded bg-ink-50 px-1.5 py-1">w {pct(bounds.wRatio)}</div>
         <div className="rounded bg-ink-50 px-1.5 py-1">h {pct(bounds.hRatio)}</div>
       </dl>
+
+      <div className="mt-2 grid grid-cols-4 gap-1">
+        <Field
+          label="X"
+          value={bounds.xRatio}
+          disabled={!canEditBounds}
+          onChange={(xRatio) => onBoundsChange({ xRatio })}
+        />
+        <Field
+          label="Y"
+          value={bounds.yRatio}
+          disabled={!canEditBounds}
+          onChange={(yRatio) => onBoundsChange({ yRatio })}
+        />
+        <Field
+          label="Ancho"
+          value={bounds.wRatio}
+          disabled={!canEditBounds}
+          onChange={(wRatio) => onBoundsChange({ wRatio })}
+        />
+        <Field
+          label="Alto"
+          value={bounds.hRatio}
+          disabled={!canEditBounds}
+          onChange={(hRatio) => onBoundsChange({ hRatio })}
+        />
+      </div>
 
       <div className="mt-2 flex items-center justify-between gap-2">
         <div className="inline-flex rounded-md bg-ink-100/45 p-0.5">

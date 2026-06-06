@@ -33,5 +33,14 @@ describe('pdfExportFeedback', () => {
     expect(describePdfExportError(new Error('Array buffer allocation failed'))).toMatch(
       /memoria|grande/i,
     )
+    expect(describePdfExportError(new Error('Exportación cancelada.'))).toMatch(
+      /cancelada/i,
+    )
+  })
+
+  it('explica errores de redacción como fallos de rasterización segura', () => {
+    expect(
+      describePdfExportError(new Error('Canvas no disponible para redacción segura')),
+    ).toMatch(/rasterizarse|contenido subyacente/i)
   })
 })

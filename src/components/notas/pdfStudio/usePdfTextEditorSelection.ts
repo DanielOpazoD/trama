@@ -7,8 +7,11 @@ import {
   distributeAnnotations,
   groupAnnotations,
   moveAnnotationLayer,
+  moveAnnotationLayers,
+  setAnnotationBounds,
   setAnnotationsLocked,
   ungroupAnnotations,
+  type AnnotationBoundsPatch,
   type AnnotationArrangeGeometry,
   type AnnotationDistributionAxis,
   type AnnotationHorizontalAlignment,
@@ -37,6 +40,20 @@ export function usePdfTextEditorSelection({
     setSelectedIdState(id)
     setSelectedIds(id ? [id] : [])
   }, [])
+
+  const selectAnnotationIds = useCallback(
+    (ids: string[], additive = false) => {
+      clearEditing()
+      setSelectedIds((current) => {
+        const next = additive
+          ? [...current, ...ids.filter((id) => !current.includes(id))]
+          : ids
+        setSelectedIdState(next[next.length - 1] ?? null)
+        return next
+      })
+    },
+    [clearEditing],
+  )
 
   const toggleSelectedId = useCallback(
     (id: string) => {
@@ -95,13 +112,22 @@ export function usePdfTextEditorSelection({
   }
 
   const moveSelectionLayer = (move: AnnotationLayerMove) => {
-    if (!selectedId) return
-    setAnnotations((list) => moveAnnotationLayer(list, selectedId, move))
+    if (operationSelectedIds.length === 0) return
+    setAnnotations((list) =>
+      operationSelectedIds.length === 1 && selectedId
+        ? moveAnnotationLayer(list, selectedId, move)
+        : moveAnnotationLayers(list, operationSelectedIds, move),
+    )
   }
 
   const toggleSelectionLocked = (locked: boolean) => {
     if (operationSelectedIds.length === 0) return
     setAnnotations((list) => setAnnotationsLocked(list, operationSelectedIds, locked))
+  }
+
+  const updateSelectionBounds = (patch: AnnotationBoundsPatch) => {
+    if (!selectedId || operationSelectedIds.length !== 1) return
+    setAnnotations((list) => setAnnotationBounds(list, selectedId, patch))
   }
 
   const groupSelection = () => {
@@ -132,12 +158,14 @@ export function usePdfTextEditorSelection({
     selectedAnn,
     selectedBounds,
     setSelectedId,
+    selectAnnotationIds,
     toggleSelectedId,
     applyStyle,
     alignSelection,
     distributeSelection,
     moveSelectionLayer,
     toggleSelectionLocked,
+    updateSelectionBounds,
     groupSelection,
     ungroupSelection,
     removeAnnotation,

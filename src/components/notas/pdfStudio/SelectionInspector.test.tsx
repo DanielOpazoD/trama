@@ -24,6 +24,7 @@ const props = {
   onUngroup: vi.fn(),
   onLayerMove: vi.fn(),
   onToggleLocked: vi.fn(),
+  onBoundsChange: vi.fn(),
   onColorChange: vi.fn(),
   onOpacityChange: vi.fn(),
 }
@@ -35,6 +36,7 @@ describe('<SelectionInspector />', () => {
     expect(
       screen.getByRole('complementary', { name: 'Inspector de selección' }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('1 objeto seleccionado')
     expect(screen.getByText('x 25%')).toBeInTheDocument()
     expect(screen.getByText('y 10%')).toBeInTheDocument()
     expect(screen.getByText('w 35%')).toBeInTheDocument()
@@ -43,6 +45,20 @@ describe('<SelectionInspector />', () => {
       screen.getByRole('button', { name: 'Alinear a la izquierda' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Traer al frente' })).toBeInTheDocument()
+  })
+
+  it('permite editar posición y tamaño como porcentajes', () => {
+    render(<SelectionInspector {...props} />)
+
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'X de selección (%)' }), {
+      target: { value: '32' },
+    })
+    expect(props.onBoundsChange).toHaveBeenCalledWith({ xRatio: 0.32 })
+
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Ancho de selección (%)' }), {
+      target: { value: '44' },
+    })
+    expect(props.onBoundsChange).toHaveBeenCalledWith({ wRatio: 0.44 })
   })
 
   it('dispara alineación, capas, color, opacidad y bloqueo', () => {
@@ -95,5 +111,6 @@ describe('<SelectionInspector />', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Desagrupar selección' }))
     expect(props.onUngroup).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('status')).toHaveTextContent('3 objetos seleccionados')
   })
 })

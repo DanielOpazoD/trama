@@ -15,6 +15,7 @@ import type {
   PdfDoc,
   PdfPage,
   PdfSource,
+  RedactionAnnotation,
   ShapeAnnotation,
   TextAnnotation,
 } from './modelTypes'
@@ -30,6 +31,7 @@ export type {
   PdfPage,
   PdfSource,
   PdfSourceKind,
+  RedactionAnnotation,
   ShapeAnnotation,
   ShapeKind,
   TextAnnotation,
@@ -130,6 +132,16 @@ export function replacePageWithImage(doc: PdfDoc, index: number, file: File): Pd
     rotationQuarters: 0,
   }
   return { pages, sources: pruneSources([...doc.sources, source], pages) }
+}
+
+/** Reemplaza el archivo de un source PDF preservando páginas, ids y anotaciones. */
+export function replacePdfSourceFile(doc: PdfDoc, sourceId: string, file: File): PdfDoc {
+  const source = doc.sources.find((s) => s.id === sourceId)
+  if (!source || source.kind !== 'pdf') return doc
+  return {
+    ...doc,
+    sources: doc.sources.map((s) => (s.id === sourceId ? { ...s, file } : s)),
+  }
 }
 
 /** Rota varias páginas `delta` cuartos de vuelta horarios (normaliza a 0..3). */
@@ -256,6 +268,13 @@ export function makeHighlightAnnotation(
   init: Omit<HighlightAnnotation, 'id' | 'kind'>,
 ): HighlightAnnotation {
   return { ...init, id: nextId('a'), kind: 'highlight' }
+}
+
+/** Crea una REDACCIÓN: intención de borrado seguro, no mero rectángulo visual. */
+export function makeRedactionAnnotation(
+  init: Omit<RedactionAnnotation, 'id' | 'kind' | 'opacity'>,
+): RedactionAnnotation {
+  return { ...init, id: nextId('r'), kind: 'redaction', opacity: 1 }
 }
 
 /** Crea una FORMA (línea/flecha/rect/óvalo) con id propio. */

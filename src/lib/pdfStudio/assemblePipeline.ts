@@ -17,12 +17,17 @@ export type PdfExportProgressEvent = {
 }
 
 export type AssembleOptions = {
+  compression?: 'balanced' | 'compatibility'
   onProgress?: (event: PdfExportProgressEvent) => void
+  signal?: AbortSignal
 }
 
 export type SkippedSource = { name: string; reason: string }
+export type PdfExportWarningCode = 'LARGE_EXPORT' | 'LARGE_IMAGE_SET'
+export type PdfExportWarning = { code: PdfExportWarningCode; message: string }
 
 export type PdfExportErrorCode =
+  | 'CANCELLED'
   | 'NO_PAGES_EXPORTED'
   | 'FONT_LOAD_FAILED'
   | 'IMAGE_PROCESSING_FAILED'
@@ -59,4 +64,14 @@ export function errMessage(err: unknown): string {
 
 export function createProgressEmitter(onProgress: AssembleOptions['onProgress']) {
   return (event: PdfExportProgressEvent) => onProgress?.(event)
+}
+
+export function throwIfAborted(signal: AbortSignal | undefined, phase: PdfExportPhase) {
+  if (!signal?.aborted) return
+  throw new PdfExportPipelineError({
+    phase,
+    code: 'CANCELLED',
+    message: 'Exportación cancelada.',
+    cause: signal.reason,
+  })
 }

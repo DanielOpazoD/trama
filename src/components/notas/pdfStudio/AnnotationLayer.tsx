@@ -11,23 +11,21 @@ import {
   type Annotation,
   type HighlightAnnotation,
   type ImageAnnotation,
+  type RedactionAnnotation,
   type ShapeAnnotation,
   type ShapeKind,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
-import { rectFromPoints, type ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
+import { type ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
 import { AnnotationResizeHandles } from './AnnotationResizeHandles'
 import { EditableBox } from './EditableBox'
+import { AnnotationHighlightBox } from './AnnotationHighlightBox'
+import { HighlightDrawingPreview } from './HighlightDrawingPreview'
+import { AnnotationRedactionBox } from './AnnotationRedactionBox'
+import { SelectionLassoPreview } from './SelectionLassoPreview'
+import { SelectionMarqueePreview } from './SelectionMarqueePreview'
 import { ShapeStroke } from './AnnotationShapeStroke'
-import {
-  ACCENT,
-  HIGHLIGHT_OPACITY,
-  HIT_X,
-  HIT_Y,
-  hexToRgba,
-  isShapeTool,
-  type Tool,
-} from './editorStyle'
+import { ACCENT, HIT_X, HIT_Y, isShapeTool, type Tool } from './editorStyle'
 import type { SnapGuide } from './pdfAnnotationSnap'
 
 export type DrawingRect = { x0: number; y0: number; x1: number; y1: number }
@@ -41,6 +39,8 @@ export function AnnotationLayer({
   selectedIds = selectedId ? [selectedId] : [],
   editingId,
   drawing,
+  selectionMarquee,
+  selectionLasso,
   snapGuides = [],
   drawColor,
   onStartDrag,
@@ -61,6 +61,8 @@ export function AnnotationLayer({
   selectedIds?: string[]
   editingId: string | null
   drawing: DrawingRect | null
+  selectionMarquee?: DrawingRect | null
+  selectionLasso?: { x: number; y: number }[] | null
   snapGuides?: SnapGuide[]
   /** Color del resaltado en curso (para el preview punteado). */
   drawColor: string
@@ -72,7 +74,12 @@ export function AnnotationLayer({
   onCancelEdit: () => void
   onStartResize: (
     e: ReactPointerEvent,
-    a: TextAnnotation | HighlightAnnotation | ImageAnnotation | ShapeAnnotation,
+    a:
+      | TextAnnotation
+      | HighlightAnnotation
+      | RedactionAnnotation
+      | ImageAnnotation
+      | ShapeAnnotation,
     handle: ResizeHandle,
   ) => void
 }) {
@@ -208,47 +215,40 @@ export function AnnotationLayer({
         )
       })}
 
+      {/* Redacciones: intención de borrado seguro; exportación exige motor dedicado. */}
+      {annotations
+        .filter((a): a is RedactionAnnotation => a.kind === 'redaction')
+        .map((a) => (
+          <AnnotationRedactionBox
+            key={a.id}
+            annotation={a}
+            innerW={innerW}
+            innerH={innerH}
+            tool={tool}
+            selectedId={selectedId}
+            selected={isSelected(a.id)}
+            onStartDrag={startDragFromPointer}
+            onSelect={selectFromClick}
+            onStartResize={onStartResize}
+          />
+        ))}
+
       {/* Resaltados (rectángulos translúcidos) */}
       {annotations
         .filter((a) => a.kind === 'highlight')
         .map((a) => (
-          <div key={a.id}>
-            <div
-              onPointerDown={
-                tool === 'select' ? (e) => startDragFromPointer(e, a) : undefined
-              }
-              onClick={
-                tool === 'select'
-                  ? (e) => {
-                      selectFromClick(e, a.id)
-                    }
-                  : undefined
-              }
-              title="Arrastra para mover"
-              style={{
-                position: 'absolute',
-                left: `${a.xRatio * 100}%`,
-                top: `${a.yRatio * 100}%`,
-                width: `${a.wRatio * 100}%`,
-                height: `${a.hRatio * 100}%`,
-                backgroundColor: hexToRgba(a.color, a.opacity ?? HIGHLIGHT_OPACITY),
-                borderRadius: 2,
-                cursor: a.locked ? 'default' : 'move',
-                touchAction: 'none',
-                pointerEvents: tool === 'select' ? undefined : 'none',
-                outline: isSelected(a.id) ? `1.5px solid ${ACCENT}` : 'none',
-                outlineOffset: 1,
-              }}
-            />
-            <AnnotationResizeHandles
-              annotation={a}
-              innerW={innerW}
-              innerH={innerH}
-              selectedId={selectedId}
-              tool={tool}
-              onStartResize={onStartResize}
-            />
-          </div>
+          <AnnotationHighlightBox
+            key={a.id}
+            annotation={a}
+            innerW={innerW}
+            innerH={innerH}
+            tool={tool}
+            selectedId={selectedId}
+            selected={isSelected(a.id)}
+            onStartDrag={startDragFromPointer}
+            onSelect={selectFromClick}
+            onStartResize={onStartResize}
+          />
         ))}
 
       {/* Imágenes estampadas (firma/sello/logo) */}
@@ -297,8 +297,7 @@ export function AnnotationLayer({
           </div>
         ))}
 
-      {/* Formas vectoriales: SVG sobre la página, coords nativas vía viewBox (escala
-          uniforme con el zoom porque el aspecto coincide). */}
+      {/* Formas vectoriales sobre la página, en coords nativas vía viewBox. */}
       {(annotations.some((a) => a.kind === 'shape') ||
         (drawing && isShapeTool(tool))) && (
         <svg
@@ -418,27 +417,16 @@ export function AnnotationLayer({
           </div>
         ))}
 
-      {/* Preview en vivo del resaltado que se está dibujando */}
-      {drawing &&
-        tool === 'highlight' &&
-        (() => {
-          const r = rectFromPoints(drawing.x0, drawing.y0, drawing.x1, drawing.y1)
-          return (
-            <div
-              style={{
-                position: 'absolute',
-                left: r.x,
-                top: r.y,
-                width: r.w,
-                height: r.h,
-                backgroundColor: hexToRgba(drawColor, HIGHLIGHT_OPACITY),
-                border: `1px dashed ${ACCENT}`,
-                borderRadius: 2,
-                pointerEvents: 'none',
-              }}
-            />
-          )
-        })()}
+      {drawing && tool === 'highlight' && (
+        <HighlightDrawingPreview rect={drawing} color={drawColor} />
+      )}
+
+      {selectionMarquee && tool === 'select' && (
+        <SelectionMarqueePreview rect={selectionMarquee} />
+      )}
+      {selectionLasso && tool === 'select' && (
+        <SelectionLassoPreview points={selectionLasso} width={innerW} height={innerH} />
+      )}
     </>
   )
 }

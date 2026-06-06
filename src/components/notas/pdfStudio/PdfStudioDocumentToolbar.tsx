@@ -1,7 +1,9 @@
 import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
+import type { AssembleOptions } from '../../../lib/pdfStudio/assemble'
 import type { DocSettings } from '../../../lib/pdfStudio/model'
 import { OverflowMenu, OverflowMenuItem } from '../../OverflowMenu'
 import {
+  CloseIcon,
   DownloadIcon,
   FileIcon,
   PrinterIcon,
@@ -18,6 +20,7 @@ function isMacLike(): boolean {
 export function PdfStudioDocumentToolbar({
   busy,
   empty,
+  exportCompression,
   exportStatus,
   pageNumbers,
   redoable,
@@ -25,17 +28,21 @@ export function PdfStudioDocumentToolbar({
   total,
   undoable,
   watermarkText,
+  onCancelExport,
   onDownload,
   onImport,
   onNewDoc,
+  onInspectForms,
   onRedo,
   onSavePdf,
+  onSetExportCompression,
   onSetPageNumbers,
   onSetWatermark,
   onUndo,
 }: {
   busy: boolean
   empty: boolean
+  exportCompression: AssembleOptions['compression']
   exportStatus: string | null
   pageNumbers: DocSettings['pageNumbers']
   redoable: boolean
@@ -43,11 +50,14 @@ export function PdfStudioDocumentToolbar({
   total: number
   undoable: boolean
   watermarkText: string
+  onCancelExport: () => void
   onDownload: () => void
   onImport: () => void
   onNewDoc: () => void
+  onInspectForms: () => void
   onRedo: () => void
   onSavePdf: () => void
+  onSetExportCompression: (next: AssembleOptions['compression']) => void
   onSetPageNumbers: (next: DocSettings['pageNumbers']) => void
   onSetWatermark: (text: string) => void
   onUndo: () => void
@@ -112,13 +122,19 @@ export function PdfStudioDocumentToolbar({
           {saving ? 'Preparando…' : 'Guardar PDF'}
         </button>
         {exportStatus && (
-          <span
-            role="status"
-            aria-live="polite"
-            className="hidden text-micro text-ink-400 sm:inline"
-          >
-            {exportStatus}
-          </span>
+          <div className="hidden items-center gap-1.5 sm:flex">
+            <span role="status" aria-live="polite" className="text-micro text-ink-400">
+              {exportStatus}
+            </span>
+            <button
+              type="button"
+              onClick={onCancelExport}
+              aria-label="Cancelar exportación"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-800"
+            >
+              <CloseIcon size={12} />
+            </button>
+          </div>
         )}
         <OverflowMenu
           label="Más acciones del documento"
@@ -146,6 +162,16 @@ export function PdfStudioDocumentToolbar({
               >
                 <FileIcon size={13} />
                 Nuevo documento
+              </OverflowMenuItem>
+              <OverflowMenuItem
+                disabled={empty || saving || busy}
+                onClick={() => {
+                  close()
+                  onInspectForms()
+                }}
+              >
+                <FileIcon size={13} />
+                Detectar formularios
               </OverflowMenuItem>
               {!empty && (
                 <div className="mt-1 border-t border-ink-100 px-2 py-2">
@@ -206,6 +232,25 @@ export function PdfStudioDocumentToolbar({
                     placeholder="Ej: BORRADOR"
                     className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
                   />
+                  <label
+                    className="mt-2 block text-caption text-ink-700"
+                    htmlFor="pdf-compression-menu"
+                  >
+                    Exportación
+                  </label>
+                  <select
+                    id="pdf-compression-menu"
+                    value={exportCompression ?? 'balanced'}
+                    onChange={(e) =>
+                      onSetExportCompression(
+                        e.currentTarget.value as AssembleOptions['compression'],
+                      )
+                    }
+                    className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
+                  >
+                    <option value="balanced">Optimizada</option>
+                    <option value="compatibility">Máxima compatibilidad</option>
+                  </select>
                 </div>
               )}
             </>

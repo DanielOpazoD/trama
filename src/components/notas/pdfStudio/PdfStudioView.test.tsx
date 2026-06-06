@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
   forgetThumb: vi.fn(),
   disposePdfStudio: vi.fn(),
   assemble: vi.fn(),
+  assemblePdfInWorker: vi.fn(),
+  inspectPdfFormInWorker: vi.fn(),
+  fillPdfFormInWorker: vi.fn(),
   downloadBlob: vi.fn(),
   openBlankPdfTab: vi.fn(),
   showPdfInTab: vi.fn(),
@@ -30,6 +33,13 @@ vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
   disposePdfStudio: mocks.disposePdfStudio,
 }))
 vi.mock('../../../lib/pdfStudio/assemble', () => ({ assemble: mocks.assemble }))
+vi.mock('../../../lib/pdfStudio/exportWorkerClient', () => ({
+  assemblePdfInWorker: mocks.assemblePdfInWorker,
+}))
+vi.mock('../../../lib/pdfStudio/pdfFormWorkerClient', () => ({
+  inspectPdfFormInWorker: mocks.inspectPdfFormInWorker,
+  fillPdfFormInWorker: mocks.fillPdfFormInWorker,
+}))
 vi.mock('../../../lib/pdfStudio/printPdf', () => ({
   openBlankPdfTab: mocks.openBlankPdfTab,
   showPdfInTab: mocks.showPdfInTab,
@@ -62,6 +72,15 @@ beforeEach(() => {
   mocks.assemble.mockResolvedValue({
     blob: new Blob(['pdf'], { type: 'application/pdf' }),
     skipped: [],
+  })
+  mocks.assemblePdfInWorker.mockResolvedValue({
+    blob: new Blob(['pdf'], { type: 'application/pdf' }),
+    skipped: [],
+    warnings: [],
+  })
+  mocks.inspectPdfFormInWorker.mockResolvedValue({ fieldCount: 0, fields: [] })
+  mocks.fillPdfFormInWorker.mockResolvedValue({
+    blob: new Blob(['filled'], { type: 'application/pdf' }),
   })
   mocks.openBlankPdfTab.mockReturnValue(null) // sin pestaña real en happy-dom
   mocks.loadDraft.mockResolvedValue(null) // sin borrador por defecto
@@ -97,6 +116,66 @@ describe('<PdfStudioView />', () => {
 
     await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
     expect(screen.getByRole('menuitem', { name: /Descargar/i })).toBeDisabled()
+  })
+
+  it('detecta formularios AcroForm desde el menú de documento', async () => {
+    const user = userEvent.setup()
+    mocks.inspectPdfFormInWorker.mockResolvedValueOnce({
+      fieldCount: 2,
+      fields: [
+        { name: 'fullName', type: 'text', value: '' },
+        { name: 'approved', type: 'checkbox', value: false },
+      ],
+    })
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
+    await user.click(screen.getByRole('menuitem', { name: /Detectar formularios/i }))
+
+    expect(mocks.inspectPdfFormInWorker).toHaveBeenCalledTimes(1)
+    expect(mocks.inspectPdfFormInWorker.mock.calls[0]![0]).toBeInstanceOf(File)
+    expect(await screen.findByText(/2 campos de formulario/i)).toBeInTheDocument()
+  })
+
+  it('rellena formularios detectados y los aplica como PDF editable', async () => {
+    const user = userEvent.setup()
+    mocks.inspectPdfFormInWorker.mockResolvedValueOnce({
+      fieldCount: 2,
+      fields: [
+        { name: 'fullName', type: 'text', value: '' },
+        { name: 'approved', type: 'checkbox', value: false },
+      ],
+    })
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile('formulario.pdf'))
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
+    await user.click(screen.getByRole('menuitem', { name: /Detectar formularios/i }))
+
+    const nameInput = await screen.findByRole('textbox', { name: 'fullName' })
+    await user.type(nameInput, 'Ada Lovelace')
+    await user.click(screen.getByRole('checkbox', { name: 'approved' }))
+    await user.click(screen.getByRole('button', { name: /Aplicar editable/i }))
+
+    expect(mocks.fillPdfFormInWorker).toHaveBeenCalledWith(
+      expect.any(File),
+      { fullName: 'Ada Lovelace', approved: true },
+      { flatten: false },
+    )
+    expect(
+      await screen.findByText(/Formulario aplicado como editable/i),
+    ).toBeInTheDocument()
+
+    mocks.fillPdfFormInWorker.mockClear()
+    await user.click(screen.getByRole('button', { name: /Aplanar formulario/i }))
+    expect(mocks.fillPdfFormInWorker).toHaveBeenCalledWith(
+      expect.any(File),
+      { fullName: 'Ada Lovelace', approved: true },
+      { flatten: true },
+    )
   })
 
   it('restaura el borrador autoguardado al montar', async () => {
@@ -166,7 +245,8 @@ describe('<PdfStudioView />', () => {
 
     // Guardar → ensambla + abre el PDF en el visor del navegador.
     await user.click(screen.getByRole('button', { name: /Guardar PDF/i }))
-    expect(mocks.assemble).toHaveBeenCalledTimes(1)
+    expect(mocks.assemblePdfInWorker).toHaveBeenCalledTimes(1)
+    expect(mocks.assemble).not.toHaveBeenCalled()
     expect(mocks.showPdfInTab).toHaveBeenCalledTimes(1)
   })
 
@@ -312,21 +392,21 @@ describe('<PdfStudioView />', () => {
 
     // "Guardar PDF" no muestra conteo y exporta el documento completo.
     await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
-    expect(mocks.assemble).toHaveBeenCalledTimes(1)
-    expect(mocks.assemble.mock.calls[0]![0].pages).toHaveLength(2)
+    expect(mocks.assemblePdfInWorker).toHaveBeenCalledTimes(1)
+    expect(mocks.assemblePdfInWorker.mock.calls[0]![0].pages).toHaveLength(2)
     expect(mocks.showPdfInTab).toHaveBeenCalledTimes(1)
 
     // Marco 1 hoja → "Exportar" (barra) exporta SÓLO esa.
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: /^Exportar$/i }))
-    expect(mocks.assemble).toHaveBeenCalledTimes(2)
-    expect(mocks.assemble.mock.calls[1]![0].pages).toHaveLength(1)
+    expect(mocks.assemblePdfInWorker).toHaveBeenCalledTimes(2)
+    expect(mocks.assemblePdfInWorker.mock.calls[1]![0].pages).toHaveLength(1)
   })
 
   it('muestra progreso accesible mientras arma el PDF', async () => {
     const user = userEvent.setup()
     let resolveAssemble!: (value: { blob: Blob; skipped: [] }) => void
-    mocks.assemble.mockReturnValue(
+    mocks.assemblePdfInWorker.mockReturnValue(
       new Promise((resolve) => {
         resolveAssemble = resolve
       }),
@@ -338,14 +418,23 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
 
     expect(screen.getByRole('status')).toHaveTextContent('Preparando 2 páginas…')
-    const options = mocks.assemble.mock.calls[0]![1] as {
+    expect(
+      screen.getByRole('button', { name: 'Cancelar exportación' }),
+    ).toBeInTheDocument()
+    const options = mocks.assemblePdfInWorker.mock.calls[0]![1] as {
+      compression: 'balanced'
       onProgress: (event: {
         phase: 'process-pages'
         status: 'progress'
         current: number
         total: number
       }) => void
+      signal: AbortSignal
     }
+    expect(options.compression).toBe('balanced')
+    expect(options.signal).toBeInstanceOf(AbortSignal)
+    await user.click(screen.getByRole('button', { name: 'Cancelar exportación' }))
+    expect(options.signal.aborted).toBe(true)
     act(() => {
       options.onProgress({
         phase: 'process-pages',

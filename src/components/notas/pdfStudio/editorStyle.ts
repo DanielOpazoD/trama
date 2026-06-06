@@ -23,7 +23,7 @@ export const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.ma
 
 /** Botón cuadrado de control (−/+, flechas de página, deshacer/rehacer). */
 export const stepBtn =
-  'h-6 w-6 inline-flex items-center justify-center rounded text-ink-500 hover:text-ink-800 hover:bg-paper-50 disabled:opacity-30 transition-colors'
+  'h-6 w-6 inline-flex items-center justify-center rounded text-ink-500 hover:text-ink-800 hover:bg-paper-50 disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-sage)] focus-visible:ring-offset-1 focus-visible:ring-offset-paper-50'
 
 // Padding TRANSPARENTE alrededor del texto para agrandar el blanco clickeable (el
 // bug "a veces no se selecciona"): el margen negativo lo compensa, así el texto NO
@@ -35,7 +35,7 @@ export const HIT_Y = 4
 export const HIGHLIGHT_OPACITY = 0.35
 
 /** Herramientas del editor (modos). `rect/oval/line/arrow` son formas vectoriales. */
-export type Tool = 'select' | 'highlight' | 'rect' | 'oval' | 'line' | 'arrow'
+export type Tool = 'select' | 'highlight' | 'redact' | 'rect' | 'oval' | 'line' | 'arrow'
 
 /** Las formas son los modos de dibujo de contorno (todo lo que no es seleccionar
  *  ni resaltar ni agregar texto). */

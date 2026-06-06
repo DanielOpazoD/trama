@@ -22,7 +22,7 @@ export function PageCanvas({
   tool,
   currentPage,
   onStartDraw,
-  onBackgroundClick,
+  onStartMarquee,
   children,
 }: {
   areaRef: RefObject<HTMLDivElement>
@@ -34,8 +34,8 @@ export function PageCanvas({
   currentPage: number
   /** Inicia el dibujo por arrastre (modo resaltar o una forma). */
   onStartDraw: (e: ReactPointerEvent) => void
-  /** Clic en el fondo de la página (deselecciona, sólo en modo seleccionar). */
-  onBackgroundClick: () => void
+  /** Inicia selección por marco sobre el fondo de la página. */
+  onStartMarquee: (e: ReactPointerEvent) => void
   children: ReactNode
 }) {
   // Caja exterior (scroll) = bounding box FINAL (rotado) escalado por zoom.
@@ -49,8 +49,7 @@ export function PageCanvas({
       {layout && bg ? (
         <div className="relative" style={{ width: zw, height: zh }}>
           <div
-            onPointerDown={tool !== 'select' ? onStartDraw : undefined}
-            onClick={tool === 'select' ? onBackgroundClick : undefined}
+            onPointerDown={tool === 'select' ? onStartMarquee : onStartDraw}
             className="absolute left-1/2 top-1/2 bg-white rounded-sm ring-1 ring-ink-800/15 shadow-xl shadow-ink-800/15"
             style={{
               width: layout.innerW,

@@ -1,10 +1,4 @@
-/**
- * Borde BROWSER-ONLY del editor de PDF: ensambla el documento final con pdf-lib.
- *
- * Orquesta un pipeline explícito y perezoso: fuentes, validación de assets,
- * páginas, anotaciones, compresión y guardado. La lógica pesada vive en módulos
- * pequeños para mantener el exportador testeable y fácil de endurecer.
- */
+/** Borde browser-only del editor de PDF: ensambla el documento final con pdf-lib. */
 import {
   getSource,
   isEmbeddableFont,
@@ -17,11 +11,19 @@ import type { PDFFont, PDFPage } from 'pdf-lib'
 import { applyPdfAnnotations } from './assembleAnnotations'
 import { addImagePage, readPngSize } from './assembleImages'
 import {
+  addRedactedRasterPage,
+  annotationsWithoutRedactions,
+  pageHasRedactions,
+} from './assembleRedactions'
+import { exportWarnings } from './assembleWarnings'
+import {
   createProgressEmitter,
   errMessage,
   PdfExportPipelineError,
+  throwIfAborted,
   type AssembleOptions,
   type PdfExportProgressEvent,
+  type PdfExportWarning,
   type SkippedSource,
 } from './assemblePipeline'
 
@@ -33,6 +35,8 @@ export type {
   PdfExportPhase,
   PdfExportProgressEvent,
   PdfExportProgressStatus,
+  PdfExportWarning,
+  PdfExportWarningCode,
   SkippedSource,
 } from './assemblePipeline'
 
@@ -41,7 +45,11 @@ import interBoldUrl from './fonts/inter-latin-700-normal.woff?url'
 import spectralRegularUrl from './fonts/spectral-latin-400-normal.woff?url'
 import spectralBoldUrl from './fonts/spectral-latin-700-normal.woff?url'
 
-export type AssembleResult = { blob: Blob; skipped: SkippedSource[] }
+export type AssembleResult = {
+  blob: Blob
+  skipped: SkippedSource[]
+  warnings: PdfExportWarning[]
+}
 
 function embeddableFontUrl(font: PdfFontKind, bold: boolean): string | null {
   if (font === 'sans') return bold ? interBoldUrl : interRegularUrl
@@ -87,6 +95,7 @@ export async function assemble(
   options: AssembleOptions = {},
 ): Promise<AssembleResult> {
   const emit = createProgressEmitter(options.onProgress)
+  throwIfAborted(options.signal, 'load-fonts')
   const { PDFDocument, rgb, degrees } = await import('pdf-lib')
   const out = await PDFDocument.create()
 
@@ -101,9 +110,11 @@ export async function assemble(
     out.registerFontkit(fk.default ?? fk)
   }
   emitLifecycle(emit, 'load-fonts', 'complete')
+  throwIfAborted(options.signal, 'validate-images')
 
   emitLifecycle(emit, 'validate-images', 'start')
   const imageCount = countImages(doc)
+  const warnings = exportWarnings(doc, imageCount)
   emitLifecycle(emit, 'validate-images', 'complete', imageCount, imageCount)
 
   const srcCache = new Map<File, ReturnType<typeof PDFDocument.load>>()
@@ -148,25 +159,39 @@ export async function assemble(
 
   emitLifecycle(emit, 'process-pages', 'start', 0, doc.pages.length)
   for (const [pageIndex, page] of doc.pages.entries()) {
+    throwIfAborted(options.signal, 'process-pages')
     const source = getSource(doc, page.sourceId)
     if (!source || skippedIds.has(source.id)) continue
     try {
       let outPage: PDFPage | null = null
-      if (page.kind === 'pdf') {
+      const redacted = pageHasRedactions(page)
+      if (redacted) {
+        outPage = await addRedactedRasterPage({
+          out,
+          source,
+          page,
+          compression: options.compression,
+        })
+      } else if (page.kind === 'pdf') {
         const src = await loadPdf(source.file)
         const [copied] = await out.copyPages(src, [page.pageIndex])
         if (copied) outPage = out.addPage(copied)
       } else {
-        outPage = await addImagePage(out, source.file)
+        outPage = await addImagePage(out, source.file, {
+          compression: options.compression,
+        })
       }
       if (!outPage) continue
 
       emitLifecycle(emit, 'apply-annotations', 'start', pageIndex + 1, doc.pages.length)
-      if (page.annotations.length > 0) {
+      const annotations = redacted
+        ? annotationsWithoutRedactions(page.annotations)
+        : page.annotations
+      if (annotations.length > 0) {
         await applyPdfAnnotations({
           out,
           outPage,
-          annotations: page.annotations,
+          annotations,
           fontFor,
           rgb,
           degrees,
@@ -187,6 +212,7 @@ export async function assemble(
       }
       emitLifecycle(emit, 'process-pages', 'progress', pageIndex + 1, doc.pages.length)
     } catch (err) {
+      throwIfAborted(options.signal, 'process-pages')
       recordSkip(source, err)
     }
   }
@@ -199,16 +225,21 @@ export async function assemble(
     })
   }
   emitLifecycle(emit, 'process-pages', 'complete', out.getPageCount(), doc.pages.length)
+  throwIfAborted(options.signal, 'compress')
 
   emitLifecycle(emit, 'compress', 'start')
   await applyDocumentSettings(out, rgb, degrees, doc)
   emitLifecycle(emit, 'compress', 'complete')
+  throwIfAborted(options.signal, 'save')
 
   emitLifecycle(emit, 'save', 'start')
   let bytes: Uint8Array
   try {
-    bytes = await out.save()
+    bytes = await out.save({
+      useObjectStreams: options.compression !== 'compatibility',
+    })
   } catch (err) {
+    throwIfAborted(options.signal, 'save')
     throw new PdfExportPipelineError({
       phase: 'save',
       code: 'SAVE_FAILED',
@@ -218,7 +249,7 @@ export async function assemble(
   }
   emitLifecycle(emit, 'save', 'complete')
   const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' })
-  return { blob, skipped }
+  return { blob, skipped, warnings }
 }
 
 async function applyDocumentSettings(

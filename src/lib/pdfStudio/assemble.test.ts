@@ -6,6 +6,7 @@ import {
   emptyDoc,
   makeHighlightAnnotation,
   makeImageAnnotation,
+  makeRedactionAnnotation,
   makeTextAnnotation,
   rotatePage,
   setPageAnnotations,
@@ -29,6 +30,11 @@ const calls = vi.hoisted(() => ({
   load: vi.fn(),
   save: vi.fn(),
   failSave: false,
+}))
+const pdfjsCalls = vi.hoisted(() => ({
+  getDocument: vi.fn(),
+  render: vi.fn(),
+  destroy: vi.fn(),
 }))
 
 vi.mock('pdf-lib', () => {
@@ -72,8 +78,8 @@ vi.mock('pdf-lib', () => {
           },
           registerFontkit: (...a: unknown[]) => calls.registerFontkit(...a),
           getPageCount: () => count,
-          save: async () => {
-            calls.save()
+          save: async (...a: unknown[]) => {
+            calls.save(...a)
             if (calls.failSave) throw new Error('out of memory while saving')
             return new Uint8Array([37, 80, 68, 70])
           },
@@ -97,6 +103,32 @@ vi.mock('pdf-lib', () => {
 // registre. Los `?url` de los WOFF resuelven a un string en vitest y `fetch` se
 // stubea para devolver bytes sin tocar la red.
 vi.mock('@pdf-lib/fontkit', () => ({ default: { registerFormat: () => {} } }))
+vi.mock('pdfjs-dist/build/pdf.worker.min.mjs?url', () => ({
+  default: '/pdf.worker.test.js',
+}))
+vi.mock('pdfjs-dist', () => ({
+  GlobalWorkerOptions: { workerSrc: '' },
+  getDocument: (...args: unknown[]) => {
+    pdfjsCalls.getDocument(...args)
+    return {
+      promise: Promise.resolve({
+        getPage: async () => ({
+          getViewport: ({ scale }: { scale: number }) => ({
+            width: 400 * scale,
+            height: 560 * scale,
+          }),
+          render: (...renderArgs: unknown[]) => {
+            pdfjsCalls.render(...renderArgs)
+            return { promise: Promise.resolve() }
+          },
+        }),
+      }),
+      destroy: async () => {
+        pdfjsCalls.destroy()
+      },
+    }
+  },
+}))
 
 import { assemble, PdfExportPipelineError, readPngSize } from './assemble'
 
@@ -123,7 +155,11 @@ const pdf = (name = 'a.pdf', body = '%PDF') =>
   new File([body], name, { type: 'application/pdf' })
 
 beforeEach(() => {
+  vi.restoreAllMocks()
   vi.clearAllMocks()
+  pdfjsCalls.getDocument.mockClear()
+  pdfjsCalls.render.mockClear()
+  pdfjsCalls.destroy.mockClear()
   calls.failSave = false
   // `fetch` del WOFF → bytes cualquiera (pdf-lib está mockeado, no los parsea).
   vi.stubGlobal(
@@ -133,6 +169,30 @@ beforeEach(() => {
       arrayBuffer: async () => new Uint8Array([1, 2, 3, 4]).buffer,
     })),
   )
+  vi.stubGlobal(
+    'createImageBitmap',
+    vi.fn(async () => ({
+      width: 100,
+      height: 200,
+      close: vi.fn(),
+    })),
+  )
+  const realCreateElement = document.createElement.bind(document)
+  vi.spyOn(document, 'createElement').mockImplementation((tagName, options) => {
+    if (tagName !== 'canvas') return realCreateElement(tagName, options)
+    return {
+      width: 0,
+      height: 0,
+      getContext: vi.fn(() => ({
+        fillStyle: '#ffffff',
+        fillRect: vi.fn(),
+        drawImage: vi.fn(),
+      })),
+      toBlob: vi.fn((callback: BlobCallback) => {
+        callback(new Blob([new Uint8Array([1, 2, 3])], { type: 'image/jpeg' }))
+      }),
+    } as unknown as HTMLCanvasElement
+  })
 })
 
 describe('pdfStudio/assemble (contrato browser-only)', () => {
@@ -193,6 +253,47 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(calls.save).toHaveBeenCalledTimes(1)
   })
 
+  it('permite configurar compatibilidad de compresión al guardar', async () => {
+    await assemble(addImageSource(emptyDoc(), png()), { compression: 'compatibility' })
+
+    expect(calls.save).toHaveBeenCalledWith({ useObjectStreams: false })
+  })
+
+  it('emite warnings tempranos para exportaciones grandes o con muchas imágenes', async () => {
+    let doc = emptyDoc()
+    for (let i = 0; i < 20; i += 1) {
+      doc = addImageSource(doc, png(`img-${i}.png`))
+    }
+
+    const { warnings } = await assemble(doc)
+
+    expect(warnings).toEqual([expect.objectContaining({ code: 'LARGE_IMAGE_SET' })])
+  })
+
+  it('cancela la exportación con AbortSignal entre fases del pipeline', async () => {
+    const controller = new AbortController()
+    const progress: string[] = []
+
+    await expect(
+      assemble(addImageSource(emptyDoc(), png()), {
+        signal: controller.signal,
+        onProgress: (event) => {
+          progress.push(`${event.phase}:${event.status}`)
+          if (event.phase === 'validate-images' && event.status === 'complete') {
+            controller.abort()
+          }
+        },
+      }),
+    ).rejects.toMatchObject({
+      name: 'PdfExportPipelineError',
+      phase: 'process-pages',
+      code: 'CANCELLED',
+    })
+
+    expect(progress).toContain('validate-images:complete')
+    expect(calls.save).not.toHaveBeenCalled()
+  })
+
   it('salta un PDF corrupto o cifrado y exporta las páginas restantes', async () => {
     let doc = addPdfSource(emptyDoc(), pdf('cifrado.pdf', 'ENCRYPTED'), 1)
     doc = addImageSource(doc, png('respaldo.png'))
@@ -215,6 +316,51 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
       code: 'SAVE_FAILED',
       message: expect.stringContaining('out of memory while saving'),
     })
+  })
+
+  it('exporta redacciones quemándolas en una página rasterizada', async () => {
+    let doc = addImageSource(emptyDoc(), png())
+    doc = setPageAnnotations(doc, 0, [
+      makeRedactionAnnotation({
+        xRatio: 0.2,
+        yRatio: 0.3,
+        wRatio: 0.4,
+        hRatio: 0.1,
+        color: '#000000',
+      }),
+    ])
+
+    await expect(assemble(doc)).resolves.toMatchObject({
+      blob: expect.objectContaining({ type: 'application/pdf' }),
+      skipped: [],
+    })
+    expect(calls.drawRectangle).not.toHaveBeenCalled()
+    expect(calls.embedJpg).toHaveBeenCalledTimes(1)
+    expect(calls.save).toHaveBeenCalledTimes(1)
+  })
+
+  it('redacta páginas PDF rasterizando sin copiar el PDF original', async () => {
+    let doc = addPdfSource(emptyDoc(), pdf('secreto.pdf'), 1)
+    doc = setPageAnnotations(doc, 0, [
+      makeRedactionAnnotation({
+        xRatio: 0.1,
+        yRatio: 0.1,
+        wRatio: 0.5,
+        hRatio: 0.2,
+        color: '#000000',
+      }),
+    ])
+
+    await assemble(doc)
+
+    expect(calls.load).not.toHaveBeenCalled()
+    expect(calls.copyPages).not.toHaveBeenCalled()
+    expect(pdfjsCalls.getDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ disableWorker: true }),
+    )
+    expect(pdfjsCalls.render).toHaveBeenCalledTimes(1)
+    expect(calls.embedJpg).toHaveBeenCalledTimes(1)
+    expect(calls.save).toHaveBeenCalledTimes(1)
   })
 
   it('la rotación aplica setRotation con el ángulo correcto', async () => {

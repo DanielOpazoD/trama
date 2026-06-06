@@ -3,6 +3,7 @@ import {
   type Annotation,
   type HighlightAnnotation,
   type ImageAnnotation,
+  type RedactionAnnotation,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 
@@ -21,6 +22,9 @@ type AnnotationBox = {
   wRatio: number
   hRatio: number
 }
+
+export type AnnotationPoint = { xRatio: number; yRatio: number }
+export type AnnotationBoundsPatch = Partial<AnnotationBox>
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n))
@@ -56,7 +60,7 @@ export function annotationArrangeBox(
       hRatio: Math.abs(annotation.y1Ratio - annotation.y0Ratio),
     }
   }
-  return annotation as HighlightAnnotation | ImageAnnotation
+  return annotation as HighlightAnnotation | RedactionAnnotation | ImageAnnotation
 }
 
 function unionBox(boxes: AnnotationBox[]): AnnotationBox | null {
@@ -73,6 +77,16 @@ function unionBox(boxes: AnnotationBox[]): AnnotationBox | null {
   }
 }
 
+function boxesIntersect(a: AnnotationBox, b: AnnotationBox): boolean {
+  const aRight = a.xRatio + a.wRatio
+  const aBottom = a.yRatio + a.hRatio
+  const bRight = b.xRatio + b.wRatio
+  const bBottom = b.yRatio + b.hRatio
+  return (
+    a.xRatio <= bRight && aRight >= b.xRatio && a.yRatio <= bBottom && aBottom >= b.yRatio
+  )
+}
+
 export function annotationSelectionBox(
   annotations: Annotation[],
   ids: string[],
@@ -80,6 +94,53 @@ export function annotationSelectionBox(
 ): AnnotationBox | null {
   const selected = selectedAnnotations(annotations, ids).selected
   return unionBox(selected.map((a) => annotationArrangeBox(a, geometry)))
+}
+
+export function selectAnnotationsInBox(
+  annotations: Annotation[],
+  box: AnnotationBox,
+  geometry: AnnotationArrangeGeometry,
+): string[] {
+  const normalized = normalizeBounds(box)
+  return annotations
+    .filter((annotation) =>
+      boxesIntersect(annotationArrangeBox(annotation, geometry), normalized),
+    )
+    .map((annotation) => annotation.id)
+}
+
+function pointInPolygon(point: AnnotationPoint, polygon: AnnotationPoint[]): boolean {
+  if (polygon.length < 3) return false
+  let inside = false
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
+    const a = polygon[i]!
+    const b = polygon[j]!
+    const dy = b.yRatio - a.yRatio
+    const crosses =
+      a.yRatio > point.yRatio !== b.yRatio > point.yRatio &&
+      point.xRatio < ((b.xRatio - a.xRatio) * (point.yRatio - a.yRatio)) / dy + a.xRatio
+    if (crosses) inside = !inside
+  }
+  return inside
+}
+
+export function selectAnnotationsInPolygon(
+  annotations: Annotation[],
+  polygon: AnnotationPoint[],
+  geometry: AnnotationArrangeGeometry,
+): string[] {
+  return annotations
+    .filter((annotation) => {
+      const box = annotationArrangeBox(annotation, geometry)
+      return pointInPolygon(
+        {
+          xRatio: box.xRatio + box.wRatio / 2,
+          yRatio: box.yRatio + box.hRatio / 2,
+        },
+        polygon,
+      )
+    })
+    .map((annotation) => annotation.id)
 }
 
 function moveAnnotationToBox(
@@ -194,6 +255,49 @@ export function distributeAnnotations(
   return changed ? next : annotations
 }
 
+function normalizeBounds(box: AnnotationBox): AnnotationBox {
+  const wRatio = clamp(box.wRatio, 0.01, 1)
+  const hRatio = clamp(box.hRatio, 0.01, 1)
+  return {
+    xRatio: clamp(box.xRatio, 0, 1 - wRatio),
+    yRatio: clamp(box.yRatio, 0, 1 - hRatio),
+    wRatio,
+    hRatio,
+  }
+}
+
+function applyBounds(annotation: Annotation, box: AnnotationBox): Annotation {
+  if (annotation.kind === 'shape') {
+    return {
+      ...annotation,
+      x0Ratio: box.xRatio,
+      y0Ratio: box.yRatio,
+      x1Ratio: box.xRatio + box.wRatio,
+      y1Ratio: box.yRatio + box.hRatio,
+    }
+  }
+  return { ...annotation, ...box }
+}
+
+export function setAnnotationBounds(
+  annotations: Annotation[],
+  id: string,
+  patch: AnnotationBoundsPatch,
+): Annotation[] {
+  const current = annotations.find((a) => a.id === id)
+  if (!current || current.locked) return annotations
+  const currentBox = annotationArrangeBox(current, { pageWidthPx: 1, pageHeightPx: 1 })
+  const nextBox = normalizeBounds({ ...currentBox, ...patch })
+  let changed = false
+  const next = annotations.map((a) => {
+    if (a.id !== id) return a
+    const updated = applyBounds(a, nextBox)
+    changed = updated !== a
+    return updated
+  })
+  return changed ? next : annotations
+}
+
 export function moveAnnotationLayer(
   annotations: Annotation[],
   id: string,
@@ -215,6 +319,42 @@ export function moveAnnotationLayer(
   if (!item) return annotations
   next.splice(target, 0, item)
   return next
+}
+
+export function moveAnnotationLayers(
+  annotations: Annotation[],
+  ids: string[],
+  move: AnnotationLayerMove,
+): Annotation[] {
+  const selected = new Set(ids)
+  const movableIds = new Set(
+    annotations.filter((a) => selected.has(a.id) && !a.locked).map((a) => a.id),
+  )
+  if (movableIds.size === 0) return annotations
+  if (movableIds.size === 1) {
+    const [id] = movableIds
+    return id ? moveAnnotationLayer(annotations, id, move) : annotations
+  }
+
+  const moving = annotations.filter((a) => movableIds.has(a.id))
+  const rest = annotations.filter((a) => !movableIds.has(a.id))
+  const firstIndex = annotations.findIndex((a) => movableIds.has(a.id))
+  const restBefore = annotations
+    .slice(0, firstIndex)
+    .filter((a) => !movableIds.has(a.id)).length
+
+  const insertAt =
+    move === 'front'
+      ? rest.length
+      : move === 'back'
+        ? 0
+        : move === 'forward'
+          ? Math.min(rest.length, restBefore + 1)
+          : Math.max(0, restBefore - 1)
+  const next = [...rest.slice(0, insertAt), ...moving, ...rest.slice(insertAt)]
+  return next.map((a) => a.id).join('\0') === annotations.map((a) => a.id).join('\0')
+    ? annotations
+    : next
 }
 
 export function setAnnotationsLocked(

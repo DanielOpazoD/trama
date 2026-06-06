@@ -78,21 +78,21 @@ export const SHAPES: { key: Tool; label: string; glyph: ReactNode }[] = [
 export const segGroup =
   'inline-flex shrink-0 items-center gap-0.5 rounded-md bg-ink-100/45 p-0.5'
 
+export const focusRing =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-sage)] focus-visible:ring-offset-1 focus-visible:ring-offset-paper-50'
+
 export const segBtnTool = (on: boolean) =>
-  `h-7 min-w-7 px-2 rounded inline-flex items-center justify-center transition-colors ${
+  `h-7 min-w-7 px-2 rounded inline-flex items-center justify-center transition-colors ${focusRing} ${
     on
       ? 'bg-paper-50 shadow-sm text-[color:var(--accent-sage)]'
       : 'text-ink-400 hover:text-ink-700'
   }`
 
-export const primaryAction =
-  'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-700 transition-colors hover:bg-ink-100/60 hover:text-ink-900'
+export const primaryAction = `inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-700 transition-colors hover:bg-ink-100/60 hover:text-ink-900 ${focusRing}`
 
-export const objectAction =
-  'shrink-0 touch-target inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/50 hover:text-ink-800 disabled:opacity-30'
+export const objectAction = `shrink-0 touch-target inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/50 hover:text-ink-800 disabled:opacity-30 ${focusRing}`
 
-export const menuTrigger =
-  'inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md px-2 text-ink-600 transition-colors hover:bg-ink-100/60 hover:text-ink-900'
+export const menuTrigger = `inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md px-2 text-ink-600 transition-colors hover:bg-ink-100/60 hover:text-ink-900 ${focusRing}`
 
 export const editorMenuLayer = 'z-[80]'
 
@@ -185,7 +185,7 @@ export function Stepper({
           <button
             type="button"
             onClick={onValueClick}
-            className={`${valueClass} text-center text-caption tabular-nums text-ink-600 hover:text-ink-800`}
+            className={`${valueClass} text-center text-caption tabular-nums text-ink-600 hover:text-ink-800 ${focusRing}`}
           >
             {value}
           </button>

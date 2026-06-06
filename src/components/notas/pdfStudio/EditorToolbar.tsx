@@ -10,6 +10,7 @@ import {
   OpacityIcon,
   PlusIcon,
   RotateIcon,
+  ShieldIcon,
   TextIcon,
   TextSizeIcon,
   TrashIcon,
@@ -21,6 +22,7 @@ import {
   activeMenuItem,
   COLORS,
   editorMenuLayer,
+  focusRing,
   FONTS,
   Hint,
   menuTrigger,
@@ -125,6 +127,17 @@ export function EditorToolbar({
               aria-pressed={tool === 'highlight'}
             >
               <HighlighterIcon size={14} />
+            </button>
+          </Hint>
+          <Hint content="Marcar redacción segura">
+            <button
+              type="button"
+              onClick={() => onToolChange('redact')}
+              className={segBtnTool(tool === 'redact')}
+              aria-label="Herramienta redactar"
+              aria-pressed={tool === 'redact'}
+            >
+              <ShieldIcon size={14} />
             </button>
           </Hint>
         </div>
@@ -248,7 +261,7 @@ export function EditorToolbar({
             onClick={() => onApplyStyle({ bold: !activeBold })}
             aria-pressed={activeBold}
             aria-label="Negrita"
-            className={`shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors ${
+            className={`shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors ${focusRing} ${
               activeBold
                 ? 'bg-ink-100/60 text-ink-800'
                 : 'text-ink-400 hover:bg-ink-100/50 hover:text-ink-700'

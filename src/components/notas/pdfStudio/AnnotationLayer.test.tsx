@@ -4,6 +4,7 @@ import { AnnotationLayer } from './AnnotationLayer'
 import {
   makeHighlightAnnotation,
   makeImageAnnotation,
+  makeRedactionAnnotation,
   makeShapeAnnotation,
   makeTextAnnotation,
   type Annotation,
@@ -27,6 +28,13 @@ const HL = makeHighlightAnnotation({
   hRatio: 0.2,
   color: '#b3412c',
   opacity: 0.35,
+})
+const REDACTION = makeRedactionAnnotation({
+  xRatio: 0.5,
+  yRatio: 0.15,
+  wRatio: 0.18,
+  hRatio: 0.08,
+  color: '#000000',
 })
 const IMG = makeImageAnnotation({
   src: 'data:image/png;base64,iVBORw0KGgo=',
@@ -99,6 +107,27 @@ describe('<AnnotationLayer />', () => {
     const { props } = setup()
     fireEvent.click(screen.getByTitle('Arrastra para mover'))
     expect(props.onSelect).toHaveBeenCalledWith(HL.id)
+  })
+
+  it('pinta una redacción segura y permite redimensionarla', () => {
+    const { props } = setup({
+      annotations: [TEXT, REDACTION],
+      selectedId: REDACTION.id,
+    })
+
+    const redaction = screen.getByTitle('Redacción segura pendiente')
+    expect(redaction).toBeInTheDocument()
+    fireEvent.click(redaction)
+    expect(props.onSelect).toHaveBeenCalledWith(REDACTION.id)
+
+    const handle = screen.getByRole('button', {
+      name: 'Redimensionar redacción desde esquina inferior derecha',
+    })
+    expect(
+      screen.getAllByLabelText(/Redimensionar redacción desde esquina/i),
+    ).toHaveLength(4)
+    fireEvent.pointerDown(handle)
+    expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), REDACTION, 'se')
   })
 
   it('permite sumar o quitar selección con modificador', () => {
@@ -192,6 +221,26 @@ describe('<AnnotationLayer />', () => {
 
     expect(container.querySelector('[data-pdf-snap-guide="x"]')).not.toBeNull()
     expect(container.querySelector('[data-pdf-snap-guide="y"]')).not.toBeNull()
+  })
+
+  it('pinta el marco de selección por área en modo seleccionar', () => {
+    const { container } = setup({
+      selectionMarquee: { x0: 20, y0: 30, x1: 160, y1: 130 },
+    })
+
+    expect(container.querySelector('[data-pdf-selection-marquee="true"]')).not.toBeNull()
+  })
+
+  it('pinta el lazo de selección libre en modo seleccionar', () => {
+    const { container } = setup({
+      selectionLasso: [
+        { x: 20, y: 30 },
+        { x: 160, y: 35 },
+        { x: 120, y: 130 },
+      ],
+    })
+
+    expect(container.querySelector('[data-pdf-selection-lasso="true"]')).not.toBeNull()
   })
 
   it('dibuja el preview vectorial (SVG) mientras se arrastra una forma', () => {

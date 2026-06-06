@@ -6,6 +6,29 @@ import pkg from './package.json'
 const projectRoot = fileURLToPath(new URL('.', import.meta.url))
 const projectPathNeedsRelaxedFs = projectRoot.includes(':')
 
+function manualVendorChunks(id: string) {
+  if (!id.includes('node_modules')) return undefined
+  if (id.includes('react-dom') || id.match(/[\\/]react[\\/]/)) {
+    return 'vendor-react'
+  }
+  if (id.includes('@tanstack')) {
+    return 'vendor-query'
+  }
+  // sigma y graphology van juntas — y ya están en su lazy chunk
+  // GraphCanvasSigma (cargado solo al entrar al grafo grande).
+  // Si Vite vuelve a meterlas en el principal, las separamos acá.
+  if (id.includes('sigma') || id.includes('graphology')) {
+    return 'vendor-graph'
+  }
+  // pdf-lib (editor de PDF, lazy): su entry es `index.js`, así que sin
+  // esto Vite nombra el chunk `index-*.js` y colisiona con el budget del
+  // bundle principal `index`. Nombrarlo lo deja como chunk lazy propio.
+  if (id.includes('pdf-lib') || id.includes('@pdf-lib')) {
+    return 'vendor-pdf-lib'
+  }
+  return undefined
+}
+
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -33,6 +56,16 @@ export default defineConfig({
     // sidebar lee de acá en vez de hardcodear "v0.x.0" en JSX.
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version),
   },
+  worker: {
+    // El exportador PDF usa imports dinamicos/chunks dentro del Worker. Vite
+    // necesita formato ES para empaquetar workers con code-splitting.
+    format: 'es',
+    rollupOptions: {
+      output: {
+        manualChunks: manualVendorChunks,
+      },
+    },
+  },
   build: {
     // DD2: manualChunks separa los vendors del código de aplicación.
     // Beneficio: los vendors casi nunca cambian entre deploys (versión
@@ -46,28 +79,7 @@ export default defineConfig({
     // solo se re-descarga index.[hash].js (~280KB).
     rollupOptions: {
       output: {
-        manualChunks(id: string) {
-          if (!id.includes('node_modules')) return undefined
-          if (id.includes('react-dom') || id.match(/[\\/]react[\\/]/)) {
-            return 'vendor-react'
-          }
-          if (id.includes('@tanstack')) {
-            return 'vendor-query'
-          }
-          // sigma y graphology van juntas — y ya están en su lazy chunk
-          // GraphCanvasSigma (cargado solo al entrar al grafo grande).
-          // Si Vite vuelve a meterlas en el principal, las separamos acá.
-          if (id.includes('sigma') || id.includes('graphology')) {
-            return 'vendor-graph'
-          }
-          // pdf-lib (editor de PDF, lazy): su entry es `index.js`, así que sin
-          // esto Vite nombra el chunk `index-*.js` y colisiona con el budget del
-          // bundle principal `index`. Nombrarlo lo deja como chunk lazy propio.
-          if (id.includes('pdf-lib') || id.includes('@pdf-lib')) {
-            return 'vendor-pdf-lib'
-          }
-          return undefined
-        },
+        manualChunks: manualVendorChunks,
       },
     },
   },

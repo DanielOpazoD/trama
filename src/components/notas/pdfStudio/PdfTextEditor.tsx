@@ -79,6 +79,15 @@ export function PdfTextEditor({
     x1: number
     y1: number
   } | null>(null)
+  const [selectionMarquee, setSelectionMarquee] = useState<{
+    x0: number
+    y0: number
+    x1: number
+    y1: number
+  } | null>(null)
+  const [selectionLasso, setSelectionLasso] = useState<{ x: number; y: number }[] | null>(
+    null,
+  )
   const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([])
   // Default 150%: prioriza ver/editar la página en grande (la barra es compacta).
   const [zoom, setZoom] = useState(1.5)
@@ -154,12 +163,14 @@ export function PdfTextEditor({
     selectedAnn,
     selectedBounds,
     setSelectedId,
+    selectAnnotationIds,
     toggleSelectedId,
     applyStyle,
     alignSelection,
     distributeSelection,
     moveSelectionLayer,
     toggleSelectionLocked,
+    updateSelectionBounds,
     groupSelection,
     ungroupSelection,
     removeAnnotation,
@@ -250,20 +261,24 @@ export function PdfTextEditor({
     setSelectedId(copy.id)
   }
 
-  const { startDrag, startResize, startDraw } = usePdfTextEditorInteractions({
-    layout,
-    zoom,
-    tool,
-    style,
-    editedRef,
-    annotationsRef,
-    setSelectedId,
-    setDrawing,
-    setSnapGuides,
-    setHistory,
-    setAnnotations,
-    editLive,
-  })
+  const { startDrag, startResize, startDraw, startMarquee } =
+    usePdfTextEditorInteractions({
+      layout,
+      zoom,
+      tool,
+      style,
+      editedRef,
+      annotationsRef,
+      setSelectedId,
+      selectAnnotationIds,
+      setDrawing,
+      setSelectionMarquee,
+      setSelectionLasso,
+      setSnapGuides,
+      setHistory,
+      setAnnotations,
+      editLive,
+    })
 
   /** Navega a otra página: deselecciona y muestra "cargando" mientras renderiza. */
   const goToPage = (i: number) => {
@@ -349,6 +364,7 @@ export function PdfTextEditor({
             onUngroup={ungroupSelection}
             onLayerMove={moveSelectionLayer}
             onToggleLocked={toggleSelectionLocked}
+            onBoundsChange={updateSelectionBounds}
             onColorChange={(color) => applyStyle({ color })}
             onOpacityChange={(opacity) => applyStyle({ opacity })}
           />
@@ -376,10 +392,7 @@ export function PdfTextEditor({
           tool={tool}
           currentPage={currentPage}
           onStartDraw={startDraw}
-          onBackgroundClick={() => {
-            setSelectedId(null)
-            setEditingId(null)
-          }}
+          onStartMarquee={startMarquee}
         >
           <AnnotationLayer
             annotations={annotations}
@@ -390,6 +403,8 @@ export function PdfTextEditor({
             selectedIds={operationSelectedIds}
             editingId={editingId}
             drawing={drawing}
+            selectionMarquee={selectionMarquee}
+            selectionLasso={selectionLasso}
             snapGuides={snapGuides}
             drawColor={style.color}
             onStartDrag={startDrag}
