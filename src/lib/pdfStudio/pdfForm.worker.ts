@@ -1,4 +1,4 @@
-import { fillPdfForm, inspectPdfForm } from './pdfForms'
+import { fillPdfForm, inspectPdfForm, writePdfFormFields } from './pdfForms'
 import {
   PDF_FORM_OPERATION_KIND,
   type PdfFormWorkerPayload,
@@ -65,14 +65,34 @@ async function runForm(message: PdfHeavyOperationRunMessage<PdfFormWorkerPayload
       return
     }
 
-    progress(message.id, 'fill', 'start')
-    const result = await fillPdfForm(
+    if (message.payload.action === 'fill') {
+      progress(message.id, 'fill', 'start')
+      const result = await fillPdfForm(
+        message.payload.file,
+        message.payload.values,
+        message.payload.options,
+      )
+      throwIfCancelled(message.id)
+      progress(message.id, 'fill', 'complete')
+      progress(message.id, 'save', 'complete')
+      post({
+        type: 'complete',
+        id: message.id,
+        kind: PDF_FORM_OPERATION_KIND,
+        result,
+      })
+      return
+    }
+
+    progress(message.id, 'write', 'start')
+    const result = await writePdfFormFields(
       message.payload.file,
-      message.payload.values,
+      message.payload.fields,
+      message.payload.pageIds,
       message.payload.options,
     )
     throwIfCancelled(message.id)
-    progress(message.id, 'fill', 'complete')
+    progress(message.id, 'write', 'complete')
     progress(message.id, 'save', 'complete')
     post({
       type: 'complete',

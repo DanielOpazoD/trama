@@ -3,9 +3,14 @@ import {
   PDFDropdown,
   PDFDocument,
   PDFOptionList,
+  PDFPage,
   PDFRadioGroup,
+  PDFSignature,
   PDFTextField,
+  StandardFonts,
+  rgb,
 } from 'pdf-lib'
+import type { PdfFormFieldDraft } from './model'
 
 export type PdfFormFieldType =
   | 'text'
@@ -18,10 +23,23 @@ export type PdfFormFieldType =
 
 export type PdfFormFieldValue = string | boolean | string[] | null
 
+export type PdfFormWidgetInfo = {
+  pageIndex: number | null
+  widgetIndex: number
+  xRatio: number
+  yRatio: number
+  wRatio: number
+  hRatio: number
+}
+
 export type PdfFormFieldInfo = {
   name: string
   type: PdfFormFieldType
   value: PdfFormFieldValue
+  options?: string[]
+  readOnly: boolean
+  required: boolean
+  widgets: PdfFormWidgetInfo[]
 }
 
 export type PdfFormInspection = {
@@ -39,26 +57,90 @@ export type PdfFormFillResult = {
   blob: Blob
 }
 
-function fieldInfo(
-  field: ReturnType<ReturnType<PDFDocument['getForm']>['getFields']>[number],
-) {
+type PdfForm = ReturnType<PDFDocument['getForm']>
+type PdfField = ReturnType<PdfForm['getFields']>[number]
+type PdfWidget = ReturnType<PdfField['acroField']['getWidgets']>[number]
+
+function pageIndexForWidget(pdf: PDFDocument, form: PdfForm, widget: PdfWidget) {
+  try {
+    const page = (
+      form as unknown as { findWidgetPage?: (w: PdfWidget) => PDFPage }
+    ).findWidgetPage?.(widget)
+    if (page) return pdf.getPages().findIndex((candidate) => candidate === page)
+  } catch {
+    // Some malformed PDFs contain widget dictionaries without a resolvable page.
+  }
+
+  const pageRef = widget.P()
+  if (!pageRef) return null
+  const index = pdf.getPages().findIndex((page) => page.ref === pageRef)
+  return index >= 0 ? index : null
+}
+
+function widgetInfo(
+  pdf: PDFDocument,
+  form: PdfForm,
+  field: PdfField,
+): PdfFormWidgetInfo[] {
+  return field.acroField.getWidgets().map((widget, widgetIndex) => {
+    const rectangle = widget.getRectangle()
+    const pageIndex = pageIndexForWidget(pdf, form, widget)
+    const page = pageIndex == null ? null : pdf.getPage(pageIndex)
+    const pageW = page?.getWidth() ?? 1
+    const pageH = page?.getHeight() ?? 1
+    return {
+      pageIndex,
+      widgetIndex,
+      xRatio: rectangle.x / pageW,
+      yRatio: (pageH - rectangle.y - rectangle.height) / pageH,
+      wRatio: rectangle.width / pageW,
+      hRatio: rectangle.height / pageH,
+    }
+  })
+}
+
+function fieldInfo(pdf: PDFDocument, form: PdfForm, field: PdfField) {
   const name = field.getName()
+  const base = {
+    name,
+    readOnly: field.isReadOnly(),
+    required: field.isRequired(),
+    widgets: widgetInfo(pdf, form, field),
+  }
   if (field instanceof PDFTextField) {
-    return { name, type: 'text' as const, value: field.getText() ?? '' }
+    return { ...base, type: 'text' as const, value: field.getText() ?? '' }
   }
   if (field instanceof PDFCheckBox) {
-    return { name, type: 'checkbox' as const, value: field.isChecked() }
+    return { ...base, type: 'checkbox' as const, value: field.isChecked() }
   }
   if (field instanceof PDFRadioGroup) {
-    return { name, type: 'radio' as const, value: field.getSelected() ?? null }
+    return {
+      ...base,
+      type: 'radio' as const,
+      value: field.getSelected() ?? null,
+      options: field.getOptions(),
+    }
   }
   if (field instanceof PDFDropdown) {
-    return { name, type: 'dropdown' as const, value: field.getSelected() }
+    return {
+      ...base,
+      type: 'dropdown' as const,
+      value: field.getSelected(),
+      options: field.getOptions(),
+    }
   }
   if (field instanceof PDFOptionList) {
-    return { name, type: 'option-list' as const, value: field.getSelected() }
+    return {
+      ...base,
+      type: 'option-list' as const,
+      value: field.getSelected(),
+      options: field.getOptions(),
+    }
   }
-  return { name, type: 'unknown' as const, value: null }
+  if (field instanceof PDFSignature) {
+    return { ...base, type: 'button' as const, value: null }
+  }
+  return { ...base, type: 'unknown' as const, value: null }
 }
 
 async function loadPdf(file: File): Promise<PDFDocument> {
@@ -67,10 +149,11 @@ async function loadPdf(file: File): Promise<PDFDocument> {
 
 export async function inspectPdfForm(file: File): Promise<PdfFormInspection> {
   const pdf = await loadPdf(file)
+  const form = pdf.getForm()
   const fields = pdf
     .getForm()
     .getFields()
-    .map(fieldInfo)
+    .map((field) => fieldInfo(pdf, form, field))
     .sort((a, b) => a.name.localeCompare(b.name))
   return {
     fieldCount: fields.length,
@@ -98,6 +181,98 @@ export async function fillPdfForm(
     } else if (field instanceof PDFRadioGroup || field instanceof PDFDropdown) {
       field.select(String(rawValue))
     }
+  }
+
+  if (options.flatten) {
+    form.flatten()
+  }
+
+  const bytes = await pdf.save({ useObjectStreams: true })
+  return {
+    blob: new Blob([bytes as BlobPart], { type: 'application/pdf' }),
+  }
+}
+
+function pdfRectForField(field: PdfFormFieldDraft, page: PDFPage) {
+  const w = page.getWidth()
+  const h = page.getHeight()
+  return {
+    x: field.xRatio * w,
+    y: h - (field.yRatio + field.hRatio) * h,
+    width: field.wRatio * w,
+    height: field.hRatio * h,
+    borderColor: rgb(0.29, 0.45, 0.33),
+    borderWidth: 0.8,
+  }
+}
+
+function stringValue(value: PdfFormFieldDraft['value']) {
+  if (typeof value === 'string') return value
+  if (Array.isArray(value)) return value.join(', ')
+  return ''
+}
+
+function applyFlags(
+  field: {
+    enableReadOnly: () => void
+    enableRequired: () => void
+  },
+  draft: PdfFormFieldDraft,
+) {
+  if (draft.readOnly) field.enableReadOnly()
+  if (draft.required) field.enableRequired()
+}
+
+export async function writePdfFormFields(
+  file: File,
+  fields: PdfFormFieldDraft[],
+  pageIds: string[],
+  options: PdfFormFillOptions = {},
+): Promise<PdfFormFillResult> {
+  const pdf = await loadPdf(file)
+  const form = pdf.getForm()
+  const font = await pdf.embedFont(StandardFonts.Helvetica)
+  const existingNames = new Set(form.getFields().map((field) => field.getName()))
+  const writtenNames = new Set<string>()
+
+  for (const draft of fields) {
+    if (existingNames.has(draft.name) || writtenNames.has(draft.name)) {
+      throw Object.assign(new Error(`Campo duplicado: ${draft.name}`), {
+        code: 'PDF_FORM_DUPLICATE_FIELD',
+      })
+    }
+    const pageIndex = pageIds.indexOf(draft.pageId)
+    if (pageIndex < 0 || pageIndex >= pdf.getPageCount()) {
+      throw Object.assign(new Error(`Página no encontrada para ${draft.name}`), {
+        code: 'PDF_FORM_PAGE_NOT_FOUND',
+      })
+    }
+    const page = pdf.getPage(pageIndex)
+    const rect = pdfRectForField(draft, page)
+
+    if (draft.fieldKind === 'checkbox') {
+      const field = form.createCheckBox(draft.name)
+      applyFlags(field, draft)
+      if (draft.value === true) field.check()
+      field.addToPage(page, rect)
+    } else if (draft.fieldKind === 'radio') {
+      const field = form.createRadioGroup(draft.name)
+      applyFlags(field, draft)
+      const option = draft.options?.[0] ?? 'Sí'
+      field.addOptionToPage(option, page, rect)
+      if (draft.value === option) field.select(option)
+    } else if (draft.fieldKind === 'signature') {
+      const field = form.createTextField(draft.name)
+      applyFlags(field, draft)
+      field.setText(stringValue(draft.value))
+      field.addToPage(page, { ...rect, font })
+    } else {
+      const field = form.createTextField(draft.name)
+      applyFlags(field, draft)
+      field.setText(stringValue(draft.value))
+      field.addToPage(page, { ...rect, font })
+    }
+    writtenNames.add(draft.name)
   }
 
   if (options.flatten) {
