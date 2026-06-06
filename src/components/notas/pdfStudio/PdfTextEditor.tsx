@@ -4,11 +4,13 @@ import {
   cloneAnnotation,
   getSource,
   makeHighlightAnnotation,
+  makeShapeAnnotation,
   makeTextAnnotation,
   pageThumbKey,
+  translateAnnotation,
   type Annotation,
-  type HighlightAnnotation,
   type PdfDoc,
+  type ShapeKind,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import {
@@ -33,7 +35,9 @@ import { EditorToolbar } from './EditorToolbar'
 import { PageCanvas } from './PageCanvas'
 import {
   HIGHLIGHT_OPACITY,
+  SHAPE_STROKE,
   clamp,
+  isShapeTool,
   stepBtn,
   type TextStyle,
   type Tool,
@@ -288,12 +292,7 @@ export function PdfTextEditor({
   // (Shift = paso grande).
   useEffect(() => {
     const pasteAnnotation = (src: Annotation) => {
-      const fresh = cloneAnnotation(src)
-      const placed: Annotation = {
-        ...fresh,
-        xRatio: clamp01(fresh.xRatio + 0.03),
-        yRatio: clamp01(fresh.yRatio + 0.03),
-      }
+      const placed = translateAnnotation(cloneAnnotation(src), 0.03, 0.03)
       setAnnotations((l) => [...l, placed])
       setSelectedId(placed.id)
     }
@@ -342,11 +341,7 @@ export function PdfTextEditor({
         const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0
         const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0
         setAnnotations((l) =>
-          l.map((a) =>
-            a.id === current.id
-              ? { ...a, xRatio: clamp01(a.xRatio + dx), yRatio: clamp01(a.yRatio + dy) }
-              : a,
-          ),
+          l.map((a) => (a.id === current.id ? translateAnnotation(a, dx, dy) : a)),
         )
       }
     }
@@ -383,8 +378,8 @@ export function PdfTextEditor({
   const activeOpacity = selectedAnn?.opacity ?? style.opacity ?? 1
   const activeRotation = selected?.rotation ?? style.rotation ?? 0
 
-  /** Aplica un cambio de estilo: lo recuerda como default y lo aplica a la
-   *  selección (texto → todo; resaltado → sólo color/opacidad). */
+  /** Aplica un cambio de estilo: lo recuerda como default y lo aplica a la selección
+   *  (texto → todo; resaltado/forma → sólo color/opacidad). */
   const applyStyle = (patch: Partial<TextStyle>) => {
     setStyle((s) => ({ ...s, ...patch }))
     if (!selectedId) return
@@ -392,13 +387,12 @@ export function PdfTextEditor({
       list.map((a) => {
         if (a.id !== selectedId) return a
         if (a.kind === 'text') return { ...a, ...patch }
-        if (a.kind === 'highlight') {
-          const hp: Partial<HighlightAnnotation> = {}
-          if (patch.color !== undefined) hp.color = patch.color
-          if (patch.opacity !== undefined) hp.opacity = patch.opacity
-          return { ...a, ...hp }
+        // Resaltado y formas: sólo color/opacidad.
+        return {
+          ...a,
+          ...(patch.color !== undefined ? { color: patch.color } : {}),
+          ...(patch.opacity !== undefined ? { opacity: patch.opacity } : {}),
         }
-        return a
       }),
     )
   }
@@ -447,8 +441,9 @@ export function PdfTextEditor({
     const rot = layout?.rot ?? 0
     const startX = e.clientX
     const startY = e.clientY
-    const ox = a.xRatio
-    const oy = a.yRatio
+    // Anotación al iniciar el arrastre: mover = trasladarla desde acá (vale para
+    // texto/resaltado/forma vía `translateAnnotation`).
+    const orig = a
     // Snapshot ANTES del arrastre: al soltar se empuja UNA entrada de historial
     // (no una por cada `pointermove`).
     const before = editedRef.current
@@ -459,10 +454,9 @@ export function PdfTextEditor({
         ev.clientY - startY,
         rot,
       )
-      const xRatio = clamp01(ox + pdx / dw)
-      const yRatio = clamp01(oy + pdy / dh)
       moved = true
-      editLive((list) => list.map((x) => (x.id === a.id ? { ...x, xRatio, yRatio } : x)))
+      const next = translateAnnotation(orig, pdx / dw, pdy / dh)
+      editLive((list) => list.map((x) => (x.id === a.id ? next : x)))
     }
     const up = () => {
       window.removeEventListener('pointermove', move)
@@ -477,14 +471,15 @@ export function PdfTextEditor({
   }
 
   /**
-   * Inicia el dibujo de un RESALTADO (modo resaltar): rectángulo de arrastre. El
-   * inicio en coords LOCALES de la página interior (offsetX/Y son pre-transform);
-   * el movimiento usa el delta de pantalla transformado por la rotación / zoom
-   * (igual que el drag). Al soltar crea la anotación si tiene tamaño.
+   * Inicia el DIBUJO por arrastre (modo resaltar o una forma). El inicio en coords
+   * LOCALES de la página interior (offsetX/Y pre-transform); el movimiento usa el
+   * delta de pantalla transformado por rotación/zoom (igual que el drag). Al soltar
+   * crea un resaltado (rectángulo) o una forma según la herramienta activa.
    */
-  function startHighlight(e: React.PointerEvent) {
+  function startDraw(e: React.PointerEvent) {
     if (!layout) return
     e.stopPropagation()
+    const drawTool = tool
     const x0 = e.nativeEvent.offsetX
     const y0 = e.nativeEvent.offsetY
     const startX = e.clientX
@@ -512,18 +507,33 @@ export function PdfTextEditor({
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       setDrawing(null)
-      const r = rectFromPoints(last.x0, last.y0, last.x1, last.y1)
-      if (r.w < 4 || r.h < 4) return // clic suelto sin arrastrar → nada
-      const hl = makeHighlightAnnotation({
-        xRatio: r.x / innerW,
-        yRatio: r.y / innerH,
-        wRatio: r.w / innerW,
-        hRatio: r.h / innerH,
-        color: style.color,
-        opacity: HIGHLIGHT_OPACITY,
-      })
-      setAnnotations((l) => [...l, hl])
-      setSelectedId(hl.id)
+      if (Math.hypot(last.x1 - last.x0, last.y1 - last.y0) < 4) return // clic suelto
+      if (drawTool === 'highlight') {
+        const r = rectFromPoints(last.x0, last.y0, last.x1, last.y1)
+        if (r.w < 4 || r.h < 4) return
+        const hl = makeHighlightAnnotation({
+          xRatio: r.x / innerW,
+          yRatio: r.y / innerH,
+          wRatio: r.w / innerW,
+          hRatio: r.h / innerH,
+          color: style.color,
+          opacity: HIGHLIGHT_OPACITY,
+        })
+        setAnnotations((l) => [...l, hl])
+        setSelectedId(hl.id)
+      } else if (isShapeTool(drawTool)) {
+        const sh = makeShapeAnnotation({
+          shape: drawTool as ShapeKind,
+          x0Ratio: last.x0 / innerW,
+          y0Ratio: last.y0 / innerH,
+          x1Ratio: last.x1 / innerW,
+          y1Ratio: last.y1 / innerH,
+          color: style.color,
+          strokeRatio: SHAPE_STROKE,
+        })
+        setAnnotations((l) => [...l, sh])
+        setSelectedId(sh.id)
+      }
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
@@ -649,7 +659,7 @@ export function PdfTextEditor({
           zoom={zoom}
           tool={tool}
           currentPage={currentPage}
-          onStartHighlight={startHighlight}
+          onStartDraw={startDraw}
           onBackgroundClick={() => {
             setSelectedId(null)
             setEditingId(null)
@@ -657,6 +667,7 @@ export function PdfTextEditor({
         >
           <AnnotationLayer
             annotations={annotations}
+            innerW={layout?.innerW ?? 0}
             innerH={layout?.innerH ?? 0}
             tool={tool}
             selectedId={selectedId}

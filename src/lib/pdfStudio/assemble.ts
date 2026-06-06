@@ -228,6 +228,74 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
             color: rgb(c.r, c.g, c.b),
             opacity: ann.opacity ?? 0.4,
           })
+        } else if (ann.kind === 'shape') {
+          const c = hexToRgb(ann.color)
+          const col = rgb(c.r, c.g, c.b)
+          const sw = Math.max(0.5, ann.strokeRatio * h)
+          const op = ann.opacity ?? 1
+          // Dos puntos en coords de pdf-lib (y desde abajo).
+          const p0 = { x: ann.x0Ratio * w, y: h - ann.y0Ratio * h }
+          const p1 = { x: ann.x1Ratio * w, y: h - ann.y1Ratio * h }
+          if (ann.shape === 'rect' || ann.shape === 'oval') {
+            const x = Math.min(p0.x, p1.x)
+            const y = Math.min(p0.y, p1.y)
+            const rw = Math.abs(p1.x - p0.x)
+            const rh = Math.abs(p1.y - p0.y)
+            // Sólo contorno: `opacity: 0` mata el relleno, `borderOpacity` lo muestra.
+            if (ann.shape === 'rect') {
+              outPage.drawRectangle({
+                x,
+                y,
+                width: rw,
+                height: rh,
+                borderColor: col,
+                borderWidth: sw,
+                opacity: 0,
+                borderOpacity: op,
+              })
+            } else {
+              outPage.drawEllipse({
+                x: x + rw / 2,
+                y: y + rh / 2,
+                xScale: rw / 2,
+                yScale: rh / 2,
+                borderColor: col,
+                borderWidth: sw,
+                opacity: 0,
+                borderOpacity: op,
+              })
+            }
+          } else {
+            outPage.drawLine({
+              start: p0,
+              end: p1,
+              thickness: sw,
+              color: col,
+              opacity: op,
+            })
+            if (ann.shape === 'arrow') {
+              const dx = p1.x - p0.x
+              const dy = p1.y - p0.y
+              const len = Math.hypot(dx, dy) || 1
+              const back = { x: -dx / len, y: -dy / len } // de la punta hacia el inicio
+              const headLen = Math.min(len * 0.3, Math.max(8, sw * 5))
+              const a = Math.PI / 7 // ~25°
+              const rot = (v: { x: number; y: number }, t: number) => ({
+                x: v.x * Math.cos(t) - v.y * Math.sin(t),
+                y: v.x * Math.sin(t) + v.y * Math.cos(t),
+              })
+              for (const t of [a, -a]) {
+                const d = rot(back, t)
+                outPage.drawLine({
+                  start: p1,
+                  end: { x: p1.x + d.x * headLen, y: p1.y + d.y * headLen },
+                  thickness: sw,
+                  color: col,
+                  opacity: op,
+                })
+              }
+            }
+          }
         }
       } catch (err) {
         // p. ej. carácter fuera de WinAnsi en una fuente estándar.

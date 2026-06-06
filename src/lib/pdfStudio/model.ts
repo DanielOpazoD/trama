@@ -64,8 +64,30 @@ export type HighlightAnnotation = AnnotationBase & {
   color: string
 }
 
+/** Tipos de forma vectorial. */
+export type ShapeKind = 'rect' | 'oval' | 'line' | 'arrow'
+
+/**
+ * Forma vectorial (línea, flecha, rectángulo, óvalo). Definida por DOS puntos en
+ * ratios 0..1 — `(x0,y0)`→`(x1,y1)`: para rect/óvalo es la caja entre ambos; para
+ * línea/flecha son los extremos (la punta va en `(x1,y1)`). Sólo contorno (sin
+ * relleno), color y grosor como fracción del alto de página.
+ */
+export type ShapeAnnotation = AnnotationBase & {
+  kind: 'shape'
+  shape: ShapeKind
+  x0Ratio: number
+  y0Ratio: number
+  x1Ratio: number
+  y1Ratio: number
+  /** Color del trazo en hex `#rrggbb`. */
+  color: string
+  /** Grosor del trazo como fracción del alto de página. */
+  strokeRatio: number
+}
+
 /** Cualquier anotación de una página (unión discriminada por `kind`). */
-export type Annotation = TextAnnotation | HighlightAnnotation
+export type Annotation = TextAnnotation | HighlightAnnotation | ShapeAnnotation
 
 export type PdfPage = {
   id: string
@@ -318,6 +340,13 @@ export function makeHighlightAnnotation(
   return { ...init, id: nextId('a'), kind: 'highlight' }
 }
 
+/** Crea una FORMA (línea/flecha/rect/óvalo) con id propio. */
+export function makeShapeAnnotation(
+  init: Omit<ShapeAnnotation, 'id' | 'kind'>,
+): ShapeAnnotation {
+  return { ...init, id: nextId('a'), kind: 'shape' }
+}
+
 /**
  * Clona una anotación con un id NUEVO (mismo tipo y propiedades). Sirve para
  * copiar/pegar/duplicar anotaciones (en el editor o al pegar páginas) sin que la
@@ -325,6 +354,25 @@ export function makeHighlightAnnotation(
  */
 export function cloneAnnotation(a: Annotation): Annotation {
   return a.kind === 'text' ? { ...a, id: nextId('t') } : { ...a, id: nextId('a') }
+}
+
+/**
+ * Mueve una anotación `(dx, dy)` en ratios, acotando los anclajes a 0..1. Unifica
+ * la geometría de los tres tipos (texto/resaltado usan `xRatio/yRatio`; las formas,
+ * sus dos puntos) → arrastrar/flechas/pegar funcionan igual para todas. Puro.
+ */
+export function translateAnnotation(a: Annotation, dx: number, dy: number): Annotation {
+  const c = (n: number) => Math.min(1, Math.max(0, n))
+  if (a.kind === 'shape') {
+    return {
+      ...a,
+      x0Ratio: c(a.x0Ratio + dx),
+      y0Ratio: c(a.y0Ratio + dy),
+      x1Ratio: c(a.x1Ratio + dx),
+      y1Ratio: c(a.y1Ratio + dy),
+    }
+  }
+  return { ...a, xRatio: c(a.xRatio + dx), yRatio: c(a.yRatio + dy) }
 }
 
 /** Type guard: ¿es una anotación de texto? */

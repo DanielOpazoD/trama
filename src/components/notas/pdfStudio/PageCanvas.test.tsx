@@ -15,7 +15,7 @@ function setup(overrides: Partial<Parameters<typeof PageCanvas>[0]> = {}) {
     zoom: 1.5,
     tool: 'select' as const,
     currentPage: 0,
-    onStartHighlight: vi.fn(),
+    onStartDraw: vi.fn(),
     onBackgroundClick: vi.fn(),
     children: <div data-testid="anotaciones" />,
     ...overrides,
@@ -45,5 +45,17 @@ describe('<PageCanvas />', () => {
     const { props } = setup()
     fireEvent.click(screen.getByAltText('Página 1').parentElement!)
     expect(props.onBackgroundClick).toHaveBeenCalledOnce()
+  })
+
+  it('en modo seleccionar NO empieza a dibujar al apuntar', () => {
+    const { props } = setup({ tool: 'select' })
+    fireEvent.pointerDown(screen.getByAltText('Página 1').parentElement!)
+    expect(props.onStartDraw).not.toHaveBeenCalled()
+  })
+
+  it('con una herramienta de dibujo (forma) empieza a dibujar al apuntar', () => {
+    const { props } = setup({ tool: 'rect' })
+    fireEvent.pointerDown(screen.getByAltText('Página 1').parentElement!)
+    expect(props.onStartDraw).toHaveBeenCalledOnce()
   })
 })

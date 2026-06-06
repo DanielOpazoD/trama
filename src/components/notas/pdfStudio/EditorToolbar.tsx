@@ -27,6 +27,63 @@ const COLORS: { hex: string; label: string }[] = [
   { hex: '#4b7355', label: 'Verde' },
 ]
 
+/** Íconos mínimos de formas (no existen en el set general). */
+function ShapeGlyph({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {children}
+    </svg>
+  )
+}
+const SHAPES: { key: Tool; label: string; glyph: ReactNode }[] = [
+  {
+    key: 'rect',
+    label: 'Rectángulo',
+    glyph: (
+      <ShapeGlyph>
+        <rect x="3.5" y="5.5" width="13" height="9" rx="1" />
+      </ShapeGlyph>
+    ),
+  },
+  {
+    key: 'oval',
+    label: 'Óvalo',
+    glyph: (
+      <ShapeGlyph>
+        <ellipse cx="10" cy="10" rx="7" ry="5" />
+      </ShapeGlyph>
+    ),
+  },
+  {
+    key: 'line',
+    label: 'Línea',
+    glyph: (
+      <ShapeGlyph>
+        <line x1="4" y1="16" x2="16" y2="4" />
+      </ShapeGlyph>
+    ),
+  },
+  {
+    key: 'arrow',
+    label: 'Flecha',
+    glyph: (
+      <ShapeGlyph>
+        <line x1="4" y1="16" x2="16" y2="4" />
+        <path d="M16 4 L11.5 5 M16 4 L15 8.5" />
+      </ShapeGlyph>
+    ),
+  },
+]
+
 // Tamaño de letra (fracción del alto de página) y zoom: rangos + pasos.
 const SIZE_MIN = 0.012
 const SIZE_MAX = 0.14
@@ -200,6 +257,23 @@ export function EditorToolbar({
         >
           <HighlighterIcon size={14} />
         </button>
+      </div>
+
+      {/* Formas vectoriales (arrastra sobre la página) */}
+      <div className={segGroup}>
+        {SHAPES.map((s) => (
+          <button
+            key={s.key}
+            type="button"
+            onClick={() => onToolChange(s.key)}
+            className={segBtnTool(tool === s.key)}
+            title={`${s.label} (arrastra sobre la página)`}
+            aria-label={`Herramienta ${s.label}`}
+            aria-pressed={tool === s.key}
+          >
+            {s.glyph}
+          </button>
+        ))}
       </div>
 
       <button

@@ -1,10 +1,16 @@
-import { type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import {
   baselineDropEm,
   isTextAnnotation,
   previewFontFamily,
   TEXT_LINE_HEIGHT,
   type Annotation,
+  type ShapeAnnotation,
+  type ShapeKind,
 } from '../../../lib/pdfStudio/model'
 import { rectFromPoints } from '../../../lib/pdfStudio/editorGeometry'
 import { EditableBox } from './EditableBox'
@@ -14,11 +20,76 @@ import {
   HIT_X,
   HIT_Y,
   hexToRgba,
+  isShapeTool,
   type Tool,
 } from './editorStyle'
 
 /** Rectángulo en curso del resaltado que se está dibujando (coords nativas). */
 export type DrawingRect = { x0: number; y0: number; x1: number; y1: number }
+
+/** Punta de flecha: dos trazos cortos desde `p1` hacia atrás de la dirección. */
+function arrowHeadPath(
+  p0: { x: number; y: number },
+  p1: { x: number; y: number },
+  sw: number,
+): string {
+  const dx = p1.x - p0.x
+  const dy = p1.y - p0.y
+  const len = Math.hypot(dx, dy) || 1
+  const back = { x: -dx / len, y: -dy / len }
+  const headLen = Math.min(len * 0.3, Math.max(8, sw * 5))
+  const a = Math.PI / 7
+  const rot = (v: { x: number; y: number }, t: number) => ({
+    x: v.x * Math.cos(t) - v.y * Math.sin(t),
+    y: v.x * Math.sin(t) + v.y * Math.cos(t),
+  })
+  const h1 = rot(back, a)
+  const h2 = rot(back, -a)
+  return (
+    `M ${p1.x} ${p1.y} L ${p1.x + h1.x * headLen} ${p1.y + h1.y * headLen} ` +
+    `M ${p1.x} ${p1.y} L ${p1.x + h2.x * headLen} ${p1.y + h2.y * headLen}`
+  )
+}
+
+/** Dibuja una forma (líneas/contornos, sin relleno) en coords de SVG (y desde arriba). */
+function ShapeStroke({
+  shape,
+  p0,
+  p1,
+  color,
+  sw,
+  opacity,
+}: {
+  shape: ShapeKind
+  p0: { x: number; y: number }
+  p1: { x: number; y: number }
+  color: string
+  sw: number
+  opacity: number
+}) {
+  const x = Math.min(p0.x, p1.x)
+  const y = Math.min(p0.y, p1.y)
+  const w = Math.abs(p1.x - p0.x)
+  const h = Math.abs(p1.y - p0.y)
+  const common = {
+    stroke: color,
+    strokeWidth: sw,
+    fill: 'none' as const,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    opacity,
+    style: { pointerEvents: 'none' as const },
+  }
+  if (shape === 'rect') return <rect x={x} y={y} width={w} height={h} {...common} />
+  if (shape === 'oval')
+    return <ellipse cx={x + w / 2} cy={y + h / 2} rx={w / 2} ry={h / 2} {...common} />
+  return (
+    <>
+      <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} {...common} />
+      {shape === 'arrow' && <path d={arrowHeadPath(p0, p1, sw)} {...common} />}
+    </>
+  )
+}
 
 /**
  * Capa de ANOTACIONES que se monta sobre la imagen de la página: cuadros de texto
@@ -29,6 +100,7 @@ export type DrawingRect = { x0: number; y0: number; x1: number; y1: number }
  */
 export function AnnotationLayer({
   annotations,
+  innerW,
   innerH,
   tool,
   selectedId,
@@ -42,7 +114,9 @@ export function AnnotationLayer({
   onCancelEdit,
 }: {
   annotations: Annotation[]
-  /** Alto en px de la página nativa (para escalar el tamaño de letra). */
+  /** Ancho/alto en px de la página nativa (para el viewBox del SVG de formas y el
+   *  tamaño de letra). */
+  innerW: number
   innerH: number
   tool: Tool
   selectedId: string | null
@@ -158,8 +232,113 @@ export function AnnotationLayer({
           />
         ))}
 
+      {/* Formas vectoriales: SVG sobre la página, coords nativas vía viewBox (escala
+          uniforme con el zoom porque el aspecto coincide). */}
+      {(annotations.some((a) => a.kind === 'shape') ||
+        (drawing && isShapeTool(tool))) && (
+        <svg
+          className="absolute inset-0 h-full w-full"
+          viewBox={`0 0 ${Math.max(1, innerW)} ${Math.max(1, innerH)}`}
+          preserveAspectRatio="none"
+          style={{ pointerEvents: 'none', overflow: 'visible' }}
+        >
+          {annotations
+            .filter((a): a is ShapeAnnotation => a.kind === 'shape')
+            .map((a) => {
+              const p0 = { x: a.x0Ratio * innerW, y: a.y0Ratio * innerH }
+              const p1 = { x: a.x1Ratio * innerW, y: a.y1Ratio * innerH }
+              const sw = Math.max(0.5, a.strokeRatio * innerH)
+              const x = Math.min(p0.x, p1.x)
+              const y = Math.min(p0.y, p1.y)
+              const w = Math.abs(p1.x - p0.x)
+              const hh = Math.abs(p1.y - p0.y)
+              const sel = selectedId === a.id
+              const interactive = tool === 'select'
+              const pe: CSSProperties['pointerEvents'] =
+                a.shape === 'rect' || a.shape === 'oval' ? 'all' : 'stroke'
+              const hit = {
+                onPointerDown: (e: ReactPointerEvent) => onStartDrag(e, a),
+                onClick: (e: ReactMouseEvent) => {
+                  e.stopPropagation()
+                  onSelect(a.id)
+                },
+                style: { cursor: 'move', pointerEvents: pe } as CSSProperties,
+              }
+              return (
+                <g key={a.id}>
+                  <ShapeStroke
+                    shape={a.shape}
+                    p0={p0}
+                    p1={p1}
+                    color={a.color}
+                    sw={sw}
+                    opacity={a.opacity ?? 1}
+                  />
+                  {interactive &&
+                    (a.shape === 'rect' ? (
+                      <rect
+                        x={x}
+                        y={y}
+                        width={w}
+                        height={hh}
+                        fill="transparent"
+                        stroke="transparent"
+                        strokeWidth={Math.max(sw, 10)}
+                        {...hit}
+                      />
+                    ) : a.shape === 'oval' ? (
+                      <ellipse
+                        cx={x + w / 2}
+                        cy={y + hh / 2}
+                        rx={w / 2}
+                        ry={hh / 2}
+                        fill="transparent"
+                        stroke="transparent"
+                        strokeWidth={Math.max(sw, 10)}
+                        {...hit}
+                      />
+                    ) : (
+                      <line
+                        x1={p0.x}
+                        y1={p0.y}
+                        x2={p1.x}
+                        y2={p1.y}
+                        stroke="transparent"
+                        strokeWidth={Math.max(sw, 14)}
+                        {...hit}
+                      />
+                    ))}
+                  {sel && (
+                    <rect
+                      x={x - 3}
+                      y={y - 3}
+                      width={w + 6}
+                      height={hh + 6}
+                      fill="none"
+                      strokeWidth={1.5}
+                      strokeDasharray="5 3"
+                      style={{ stroke: ACCENT, pointerEvents: 'none' }}
+                    />
+                  )}
+                </g>
+              )
+            })}
+          {drawing && isShapeTool(tool) && (
+            <ShapeStroke
+              shape={tool as ShapeKind}
+              p0={{ x: drawing.x0, y: drawing.y0 }}
+              p1={{ x: drawing.x1, y: drawing.y1 }}
+              color={drawColor}
+              sw={Math.max(0.5, 0.004 * innerH)}
+              opacity={0.9}
+            />
+          )}
+        </svg>
+      )}
+
       {/* Preview en vivo del resaltado que se está dibujando */}
       {drawing &&
+        tool === 'highlight' &&
         (() => {
           const r = rectFromPoints(drawing.x0, drawing.y0, drawing.x1, drawing.y1)
           return (

@@ -15,6 +15,7 @@ import {
   isEmbeddableFont,
   isTextAnnotation,
   makeHighlightAnnotation,
+  makeShapeAnnotation,
   makeTextAnnotation,
   movePage,
   movePageByDelta,
@@ -27,6 +28,7 @@ import {
   rotatePage,
   rotatePages,
   setDocSettings,
+  translateAnnotation,
   setPageAnnotations,
   standardFontName,
   subsetDoc,
@@ -449,5 +451,45 @@ describe('pdfStudio/model · anotaciones polimórficas', () => {
     const norm = normalizeDoc(d)
     expect(norm.pages[0]!.annotations[0]!.kind).toBe('text') // se le puso kind
     expect(norm.pages[0]!.annotations[1]!.kind).toBe('highlight') // respeta el existente
+  })
+
+  const aShape = () =>
+    makeShapeAnnotation({
+      shape: 'arrow',
+      x0Ratio: 0.1,
+      y0Ratio: 0.2,
+      x1Ratio: 0.5,
+      y1Ratio: 0.6,
+      color: '#222222',
+      strokeRatio: 0.004,
+    })
+
+  it('makeShapeAnnotation crea una forma (kind shape, geometría, id propio)', () => {
+    const s = aShape()
+    expect(s.kind).toBe('shape')
+    expect(s.shape).toBe('arrow')
+    expect(s.id).toBeTruthy()
+    expect([s.x0Ratio, s.y0Ratio, s.x1Ratio, s.y1Ratio]).toEqual([0.1, 0.2, 0.5, 0.6])
+  })
+
+  it('cloneAnnotation copia una forma con id nuevo y mismo contenido', () => {
+    const s = aShape()
+    const c = cloneAnnotation(s)
+    expect(c.id).not.toBe(s.id)
+    expect(c.kind).toBe('shape')
+    expect({ ...c, id: '' }).toEqual({ ...s, id: '' })
+  })
+
+  it('translateAnnotation mueve texto y forma y acota a [0,1]', () => {
+    // Texto: mueve x/y.
+    const t = translateAnnotation(aText(), 0.05, -0.05)
+    expect(t.kind === 'text' && t.xRatio).toBeCloseTo(0.15)
+    expect(t.kind === 'text' && t.yRatio).toBeCloseTo(0.05)
+    // Forma: mueve los dos extremos y acota (0.6 + 0.5 → 1).
+    const s = translateAnnotation(aShape(), 0.5, 0.5)
+    if (s.kind !== 'shape') throw new Error('esperaba forma')
+    expect(s.x0Ratio).toBeCloseTo(0.6)
+    expect(s.y1Ratio).toBe(1) // 0.6 + 0.5 acotado a 1
+    expect(s.x1Ratio).toBe(1) // 0.5 + 0.5 acotado a 1
   })
 })

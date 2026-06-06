@@ -31,6 +31,7 @@ const DISPLAY_TITLE = 'Doble clic para editar · arrastra para mover'
 function setup(overrides: Partial<Parameters<typeof AnnotationLayer>[0]> = {}) {
   const props = {
     annotations: [TEXT, HL] as Annotation[],
+    innerW: 720,
     innerH: 1000,
     tool: 'select' as const,
     selectedId: null as string | null,
@@ -79,7 +80,20 @@ describe('<AnnotationLayer />', () => {
   })
 
   it('dibuja el preview translúcido mientras se arrastra un resaltado', () => {
-    const { container } = setup({ drawing: { x0: 10, y0: 10, x1: 60, y1: 40 } })
+    const { container } = setup({
+      tool: 'highlight',
+      drawing: { x0: 10, y0: 10, x1: 60, y1: 40 },
+    })
     expect(container.querySelector('div[style*="dashed"]')).not.toBeNull()
+  })
+
+  it('dibuja el preview vectorial (SVG) mientras se arrastra una forma', () => {
+    const { container } = setup({
+      tool: 'rect',
+      drawing: { x0: 10, y0: 10, x1: 60, y1: 40 },
+    })
+    // El preview de forma es un SVG, no el div punteado del resaltado.
+    expect(container.querySelector('svg rect')).not.toBeNull()
+    expect(container.querySelector('div[style*="dashed"]')).toBeNull()
   })
 })
