@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   disposePdfStudio: vi.fn(),
   assemble: vi.fn(),
   assemblePdfInWorker: vi.fn(),
+  createSearchablePdfInWorker: vi.fn(),
   inspectPdfFormInWorker: vi.fn(),
   fillPdfFormInWorker: vi.fn(),
   downloadBlob: vi.fn(),
@@ -35,6 +36,9 @@ vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
 vi.mock('../../../lib/pdfStudio/assemble', () => ({ assemble: mocks.assemble }))
 vi.mock('../../../lib/pdfStudio/exportWorkerClient', () => ({
   assemblePdfInWorker: mocks.assemblePdfInWorker,
+}))
+vi.mock('../../../lib/pdfStudio/pdfOcrWorkerClient', () => ({
+  createSearchablePdfInWorker: mocks.createSearchablePdfInWorker,
 }))
 vi.mock('../../../lib/pdfStudio/pdfFormWorkerClient', () => ({
   inspectPdfFormInWorker: mocks.inspectPdfFormInWorker,
@@ -76,6 +80,12 @@ beforeEach(() => {
   mocks.assemblePdfInWorker.mockResolvedValue({
     blob: new Blob(['pdf'], { type: 'application/pdf' }),
     skipped: [],
+    warnings: [],
+  })
+  mocks.createSearchablePdfInWorker.mockResolvedValue({
+    pdfBlob: new Blob(['searchable'], { type: 'application/pdf' }),
+    textBlob: new Blob(['texto ocr'], { type: 'text/plain' }),
+    pages: [{ pageNumber: 1, text: 'texto ocr', confidence: 90 }],
     warnings: [],
   })
   mocks.inspectPdfFormInWorker.mockResolvedValue({ fieldCount: 0, fields: [] })
@@ -176,6 +186,82 @@ describe('<PdfStudioView />', () => {
       { fullName: 'Ada Lovelace', approved: true },
       { flatten: true },
     )
+  })
+
+  it('crea PDF buscable con OCR y descarga sidecar txt', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile('escaneo.pdf'))
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
+    await user.click(screen.getByRole('menuitem', { name: /OCR buscable/i }))
+
+    expect(
+      await screen.findByRole('region', { name: /OCR buscable/i }),
+    ).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText(/Idioma OCR/i), 'eng')
+    await user.click(screen.getByRole('button', { name: /Crear PDF buscable/i }))
+
+    expect(mocks.assemblePdfInWorker).toHaveBeenCalledTimes(1)
+    expect(mocks.createSearchablePdfInWorker).toHaveBeenCalledWith(
+      expect.any(File),
+      expect.objectContaining({ language: 'eng' }),
+    )
+    expect(mocks.downloadBlob).toHaveBeenCalledWith(
+      expect.any(Blob),
+      expect.stringMatching(/ocr\.pdf$/),
+    )
+    expect(mocks.downloadBlob).toHaveBeenCalledWith(
+      expect.any(Blob),
+      expect.stringMatching(/ocr\.txt$/),
+    )
+    expect(await screen.findByText(/OCR completado/i)).toBeInTheDocument()
+  })
+
+  it('muestra límite client-side y bloquea OCR en documentos demasiado grandes', async () => {
+    const user = userEvent.setup()
+    mocks.loadDraft.mockResolvedValue({
+      doc: addPdfSource(emptyDoc(), pdfFile('archivo-grande.pdf'), 55),
+      library: [],
+    })
+    renderWithProviders(<PdfStudioView />)
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
+    await user.click(screen.getByRole('menuitem', { name: /OCR buscable/i }))
+
+    const panel = await screen.findByRole('region', { name: /OCR buscable/i })
+    expect(within(panel).getByRole('alert')).toHaveTextContent(/55 páginas/i)
+    expect(within(panel).getByRole('alert')).toHaveTextContent(/OCRmyPDF/i)
+    expect(
+      within(panel).getByRole('button', { name: /Crear PDF buscable/i }),
+    ).toBeDisabled()
+  })
+
+  it('cancela OCR sin descargar archivos ni dejar la UI procesando', async () => {
+    const user = userEvent.setup()
+    mocks.assemblePdfInWorker.mockImplementationOnce(
+      (_doc, options: { signal?: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => {
+            reject(new DOMException('Operación cancelada.', 'AbortError'))
+          })
+        }),
+    )
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile('escaneo.pdf'))
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
+    await user.click(screen.getByRole('menuitem', { name: /OCR buscable/i }))
+    await user.click(screen.getByRole('button', { name: /Crear PDF buscable/i }))
+    await user.click(await screen.findByRole('button', { name: /Cancelar/i }))
+
+    expect(await screen.findByText(/OCR cancelado/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Crear PDF buscable/i })).toBeEnabled()
+    expect(mocks.createSearchablePdfInWorker).not.toHaveBeenCalled()
+    expect(mocks.downloadBlob).not.toHaveBeenCalled()
   })
 
   it('restaura el borrador autoguardado al montar', async () => {

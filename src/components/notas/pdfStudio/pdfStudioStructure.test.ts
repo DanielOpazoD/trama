@@ -38,4 +38,20 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene el modelo PDF bajo el ratchet estructural actual', () => {
     expect(fileLineCount('src/lib/pdfStudio/model.ts')).toBeLessThanOrEqual(400)
   })
+
+  it('mantiene el OCR buscable separado en modulos pequenos', () => {
+    const ocrModules = [
+      'src/lib/pdfStudio/pdfOcr.ts',
+      'src/lib/pdfStudio/pdfOcrInput.ts',
+      'src/lib/pdfStudio/pdfOcrLimits.ts',
+      'src/lib/pdfStudio/pdfOcrRecognition.ts',
+      'src/lib/pdfStudio/pdfOcrSearchablePdf.ts',
+      'src/lib/pdfStudio/pdfOcrWorkerClient.ts',
+      'src/lib/pdfStudio/pdfOcrBackendAdapter.ts',
+    ]
+
+    for (const path of ocrModules) {
+      expect(fileLineCount(path), path).toBeLessThanOrEqual(120)
+    }
+  })
 })
