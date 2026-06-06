@@ -4,6 +4,7 @@ import { AnnotationLayer } from './AnnotationLayer'
 import {
   makeHighlightAnnotation,
   makeImageAnnotation,
+  makeShapeAnnotation,
   makeTextAnnotation,
   type Annotation,
 } from '../../../lib/pdfStudio/model'
@@ -35,11 +36,20 @@ const IMG = makeImageAnnotation({
   hRatio: 0.1,
   opacity: 0.8,
 })
+const SHAPE = makeShapeAnnotation({
+  shape: 'rect',
+  x0Ratio: 0.15,
+  y0Ratio: 0.2,
+  x1Ratio: 0.45,
+  y1Ratio: 0.4,
+  color: '#222222',
+  strokeRatio: 0.003,
+})
 const DISPLAY_TITLE = 'Doble clic para editar · arrastra para mover'
 
 function setup(overrides: Partial<Parameters<typeof AnnotationLayer>[0]> = {}) {
   const props = {
-    annotations: [TEXT, HL, IMG] as Annotation[],
+    annotations: [TEXT, HL, IMG, SHAPE] as Annotation[],
     innerW: 720,
     innerH: 1000,
     tool: 'select' as const,
@@ -120,6 +130,16 @@ describe('<AnnotationLayer />', () => {
     })
     fireEvent.pointerDown(handle)
     expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), TEXT, 'se')
+  })
+
+  it('muestra handles de redimensionado al seleccionar una forma', () => {
+    const { props } = setup({ selectedId: SHAPE.id })
+    const handle = screen.getByRole('button', {
+      name: 'Redimensionar forma desde esquina inferior derecha',
+    })
+    expect(screen.getAllByLabelText(/Redimensionar forma desde esquina/i)).toHaveLength(4)
+    fireEvent.pointerDown(handle)
+    expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), SHAPE, 'se')
   })
 
   it('en edición muestra el cuadro editable y confirma con Enter', () => {

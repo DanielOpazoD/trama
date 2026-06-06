@@ -1,6 +1,7 @@
 import type {
   HighlightAnnotation,
   ImageAnnotation,
+  ShapeAnnotation,
   TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import {
@@ -10,7 +11,11 @@ import {
 } from '../../../lib/pdfStudio/editorGeometry'
 import { clamp } from './editorStyle'
 
-export type ResizableAnnotation = TextAnnotation | HighlightAnnotation | ImageAnnotation
+export type ResizableAnnotation =
+  | TextAnnotation
+  | HighlightAnnotation
+  | ImageAnnotation
+  | ShapeAnnotation
 
 export type AnnotationResizePointerDelta = {
   screenDx: number
@@ -50,6 +55,33 @@ export function resizeAnnotationFromPointerDelta<T extends ResizableAnnotation>(
         delta.maxTextSizeRatio ?? 0.14,
       ),
     }
+  }
+
+  if (annotation.kind === 'shape') {
+    const left = Math.min(annotation.x0Ratio, annotation.x1Ratio)
+    const top = Math.min(annotation.y0Ratio, annotation.y1Ratio)
+    const box = resizeRatioBox(
+      {
+        xRatio: left,
+        yRatio: top,
+        wRatio: Math.abs(annotation.x1Ratio - annotation.x0Ratio),
+        hRatio: Math.abs(annotation.y1Ratio - annotation.y0Ratio),
+      },
+      handle,
+      dxRatio,
+      dyRatio,
+      {
+        minW: delta.minBoxWidthRatio,
+        minH: delta.minBoxHeightRatio,
+      },
+    )
+    const right = box.xRatio + box.wRatio
+    const bottom = box.yRatio + box.hRatio
+    const x0Ratio = annotation.x0Ratio <= annotation.x1Ratio ? box.xRatio : right
+    const x1Ratio = annotation.x0Ratio <= annotation.x1Ratio ? right : box.xRatio
+    const y0Ratio = annotation.y0Ratio <= annotation.y1Ratio ? box.yRatio : bottom
+    const y1Ratio = annotation.y0Ratio <= annotation.y1Ratio ? bottom : box.yRatio
+    return { ...annotation, x0Ratio, y0Ratio, x1Ratio, y1Ratio }
   }
 
   return {

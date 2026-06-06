@@ -135,12 +135,12 @@ export function AnnotationLayer({
   onCancelEdit: () => void
   onStartResize: (
     e: ReactPointerEvent,
-    a: TextAnnotation | HighlightAnnotation | ImageAnnotation,
+    a: TextAnnotation | HighlightAnnotation | ImageAnnotation | ShapeAnnotation,
     handle: ResizeHandle,
   ) => void
 }) {
   const resizeHandle = (
-    a: TextAnnotation | HighlightAnnotation | ImageAnnotation,
+    a: TextAnnotation | HighlightAnnotation | ImageAnnotation | ShapeAnnotation,
     handle: ResizeHandle,
     left: string,
     top: string,
@@ -165,7 +165,7 @@ export function AnnotationLayer({
   )
 
   const boxResizeHandles = (
-    a: TextAnnotation | HighlightAnnotation | ImageAnnotation,
+    a: TextAnnotation | HighlightAnnotation | ImageAnnotation | ShapeAnnotation,
     box: { xRatio: number; yRatio: number; wRatio: number; hRatio: number },
     labelPrefix = 'Redimensionar desde',
   ) =>
@@ -207,6 +207,18 @@ export function AnnotationLayer({
       a,
       a,
       a.kind === 'image' ? 'Redimensionar imagen desde' : 'Redimensionar resaltado desde',
+    )
+
+  const shapeResizeHandles = (a: ShapeAnnotation) =>
+    boxResizeHandles(
+      a,
+      {
+        xRatio: Math.min(a.x0Ratio, a.x1Ratio),
+        yRatio: Math.min(a.y0Ratio, a.y1Ratio),
+        wRatio: Math.abs(a.x1Ratio - a.x0Ratio),
+        hRatio: Math.abs(a.y1Ratio - a.y0Ratio),
+      },
+      'Redimensionar forma desde',
     )
 
   const textResizeHandles = (a: TextAnnotation, sz: number) => {
@@ -473,6 +485,12 @@ export function AnnotationLayer({
           )}
         </svg>
       )}
+
+      {annotations
+        .filter((a): a is ShapeAnnotation => a.kind === 'shape')
+        .map((a) => (
+          <div key={`${a.id}-shape-handles`}>{shapeResizeHandles(a)}</div>
+        ))}
 
       {/* Preview en vivo del resaltado que se está dibujando */}
       {drawing &&

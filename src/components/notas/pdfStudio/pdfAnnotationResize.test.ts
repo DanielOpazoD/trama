@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type {
   HighlightAnnotation,
   ImageAnnotation,
+  ShapeAnnotation,
   TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import { resizeAnnotationFromPointerDelta } from './pdfAnnotationResize'
@@ -37,6 +38,18 @@ const image: ImageAnnotation = {
   yRatio: 0.2,
   wRatio: 0.3,
   hRatio: 0.2,
+}
+
+const arrow: ShapeAnnotation = {
+  id: 's1',
+  kind: 'shape',
+  shape: 'arrow',
+  x0Ratio: 0.7,
+  y0Ratio: 0.2,
+  x1Ratio: 0.3,
+  y1Ratio: 0.6,
+  color: '#111111',
+  strokeRatio: 0.003,
 }
 
 describe('pdfAnnotationResize · resizeAnnotationFromPointerDelta', () => {
@@ -90,6 +103,26 @@ describe('pdfAnnotationResize · resizeAnnotationFromPointerDelta', () => {
       ...image,
       wRatio: expect.closeTo(0.35, 8),
       hRatio: expect.closeTo(0.02, 8),
+    })
+  })
+
+  it('redimensiona formas preservando la dirección de líneas y flechas', () => {
+    const resized = resizeAnnotationFromPointerDelta(arrow, 'nw', {
+      screenDx: -80,
+      screenDy: -40,
+      pageWidthPx: 800,
+      pageHeightPx: 400,
+      rotationQuarters: 0,
+      minBoxWidthRatio: 0.02,
+      minBoxHeightRatio: 0.02,
+    })
+
+    expect(resized).toMatchObject({
+      ...arrow,
+      x0Ratio: expect.closeTo(0.7, 8),
+      y0Ratio: expect.closeTo(0.1, 8),
+      x1Ratio: expect.closeTo(0.2, 8),
+      y1Ratio: expect.closeTo(0.6, 8),
     })
   })
 })

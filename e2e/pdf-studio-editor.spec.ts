@@ -164,4 +164,66 @@ test.describe('Imprenta · editor PDF', () => {
     expect(after.width).toBeGreaterThan(before.width + 20)
     expect(after.height).toBeGreaterThan(before.height + 12)
   })
+
+  test('permite redimensionar una forma vectorial arrastrando un handle', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+
+    await page.getByRole('button', { name: 'Formas' }).click()
+    await page.getByRole('menuitemradio', { name: 'Herramienta Rectángulo' }).click()
+
+    const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
+    const pageImage = dialog.getByAltText('Página 1')
+    const pageBox = await pageImage.boundingBox()
+    expect(pageBox).not.toBeNull()
+    if (!pageBox) return
+
+    await page.mouse.move(
+      pageBox.x + pageBox.width * 0.22,
+      pageBox.y + pageBox.height * 0.22,
+    )
+    await page.mouse.down()
+    await page.mouse.move(
+      pageBox.x + pageBox.width * 0.42,
+      pageBox.y + pageBox.height * 0.34,
+    )
+    await page.mouse.up()
+
+    await page.getByRole('button', { name: 'Herramienta seleccionar' }).click()
+
+    const shape = dialog.locator('svg[viewBox^="0 0"] rect[stroke="#222222"]').first()
+    await expect(shape).toBeVisible()
+    const before = await shape.evaluate((el) => ({
+      width: Number(el.getAttribute('width')),
+      height: Number(el.getAttribute('height')),
+    }))
+
+    const handle = page.getByRole('button', {
+      name: 'Redimensionar forma desde esquina inferior derecha',
+    })
+    await expect(handle).toBeVisible()
+    const handleBox = await handle.boundingBox()
+    expect(handleBox).not.toBeNull()
+    if (!handleBox) return
+
+    await page.mouse.move(
+      handleBox.x + handleBox.width / 2,
+      handleBox.y + handleBox.height / 2,
+    )
+    await page.mouse.down()
+    await page.mouse.move(
+      handleBox.x + handleBox.width / 2 + 80,
+      handleBox.y + handleBox.height / 2 + 60,
+    )
+    await page.mouse.up()
+
+    const after = await shape.evaluate((el) => ({
+      width: Number(el.getAttribute('width')),
+      height: Number(el.getAttribute('height')),
+    }))
+
+    expect(after.width).toBeGreaterThan(before.width + 20)
+    expect(after.height).toBeGreaterThan(before.height + 12)
+  })
 })

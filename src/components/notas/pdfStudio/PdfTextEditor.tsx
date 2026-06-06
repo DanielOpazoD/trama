@@ -11,6 +11,7 @@ import {
   type HighlightAnnotation,
   type ImageAnnotation,
   type PdfDoc,
+  type ShapeAnnotation,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import {
@@ -508,7 +509,7 @@ export function PdfTextEditor({
 
   function startResize(
     e: React.PointerEvent,
-    a: TextAnnotation | HighlightAnnotation | ImageAnnotation,
+    a: TextAnnotation | HighlightAnnotation | ImageAnnotation | ShapeAnnotation,
     handle: ResizeHandle,
   ) {
     if (!layout) return
