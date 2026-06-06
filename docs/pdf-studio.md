@@ -40,6 +40,8 @@ backend.
   texto por pagina, idioma y cajas de lineas.
 - `src/lib/pdfStudio/pdfOcrSearchablePdf.ts`: copia el PDF visual y agrega capa de
   texto invisible; tambien arma el sidecar de texto.
+- `src/lib/pdfStudio/pdfOcrLimits.ts`: heuristica client-side para advertir o
+  bloquear documentos que exceden el rango razonable de OCR local.
 - `src/lib/pdfStudio/pdfOcrWorkerClient.ts`, `pdfOcr.worker.ts` y
   `pdfOcrBackendAdapter.ts`: contrato Worker actual y adaptador explicito para
   una ruta backend/OCRmyPDF futura.
@@ -126,6 +128,12 @@ El flujo mantiene una frontera clara con exportacion:
 6. La UI descarga `trama-ocr.pdf` y `trama-ocr.txt`, muestra progreso y permite
    cancelar sin dejar estado intermedio.
 
+Antes de ejecutar, `assessPdfOcrDocument` calcula limites client-side:
+
+- desde 15 paginas o 30 MB de sources: muestra advertencia, pero permite correr.
+- desde 45 paginas o 90 MB de sources: bloquea OCR local y deriva el caso a la
+  ruta backend/OCRmyPDF futura.
+
 `pdfOcrBackendAdapter.ts` deja preparado el contrato para una ruta futura
 backend/OCRmyPDF en documentos grandes o de alta calidad. Esa ruta aun no esta
 conectada; el placeholder falla con `OCR_BACKEND_UNAVAILABLE` para evitar
@@ -193,7 +201,7 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
 | Organizacion         | Seleccion multiple de paginas, ordenar, rotar, duplicar, extraer, borrar y portapapeles.                                             | `model.ts`, `usePageSelection.ts`, `PdfStudioView.test.tsx`                                   |
 | Edicion de pagina    | Texto, resaltado, redaccion real, rectangulo, ovalo, linea, flecha e imagen estampada.                                               | `EditorToolbar.tsx`, `AnnotationLayer.tsx`, `e2e/pdf-studio-editor.spec.ts`                   |
 | Formularios          | Inspeccion y rellenado basico de AcroForms existentes en Worker; aplicacion editable o aplanada sobre el source PDF.                 | `pdfForms.ts`, `pdfForm.worker.ts`, `PdfStudioFormPanel.tsx`, `PdfStudioView.test.tsx`        |
-| OCR buscable         | PDF escaneado a PDF con texto seleccionable/buscable, Worker, progreso, cancelacion, selector de idioma y sidecar `.txt`.            | `pdfOcr.ts`, `pdfOcr.worker.ts`, `PdfStudioOcrPanel.tsx`, `PdfStudioView.test.tsx`            |
+| OCR buscable         | PDF escaneado a PDF con texto seleccionable/buscable, Worker, progreso, cancelacion, selector de idioma, limites y sidecar `.txt`.   | `pdfOcr.ts`, `pdfOcr.worker.ts`, `pdfOcrLimits.ts`, `PdfStudioView.test.tsx`                  |
 | Redimensionado       | Handles para texto, resaltados, redacciones, formas e imagenes; Shift conserva aspecto de imagen.                                    | `AnnotationResizeHandles.tsx`, `pdfAnnotationResize.test.ts`, `AnnotationLayer.test.tsx`      |
 | Atajos               | Copiar, cortar, pegar, duplicar, borrar, mover con flechas, undo/redo y Escape contextual.                                           | `usePdfTextEditorKeyboard.ts`, `pdfAnnotationShortcuts.test.ts`                               |
 | Seleccion de objetos | Seleccion simple, multiple con modificador, marquee y lazo; alinear, distribuir, bloquear, capas y grupos.                           | `usePdfTextEditorSelection.ts`, `pdfAnnotationArrange.test.ts`, e2e editor                    |
@@ -224,8 +232,8 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
 - Formularios aun no tiene overlays editables por campo dentro del canvas, firmas
   dibujadas ni creacion de campos desde cero.
 - El OCR client-side descarga datos/worker de Tesseract.js y consume CPU/memoria
-  local. Para PDFs grandes o calidad legal/archivo falta conectar la ruta
-  backend/OCRmyPDF ya preparada por adaptador.
+  local. La UI advierte desde 15 paginas o 30 MB, y bloquea desde 45 paginas o
+  90 MB hasta conectar la ruta backend/OCRmyPDF ya preparada por adaptador.
 - La capa de texto invisible se alinea con cajas de lineas OCR, no con geometria
   tipografica perfecta. Es suficiente para busqueda/seleccion general, pero no
   reemplaza un OCR profesional con deskew/layout avanzado.

@@ -1,7 +1,10 @@
 import type { PdfOcrLanguage } from '../../../lib/pdfStudio/pdfOcr'
+import type { PdfDoc } from '../../../lib/pdfStudio/model'
+import { assessPdfOcrDocument } from '../../../lib/pdfStudio/pdfOcrLimits'
 
 export function PdfStudioOcrPanel({
   disabled,
+  doc,
   language,
   running,
   status,
@@ -11,6 +14,7 @@ export function PdfStudioOcrPanel({
   onRun,
 }: {
   disabled: boolean
+  doc: PdfDoc
   language: PdfOcrLanguage
   running: boolean
   status: string | null
@@ -19,6 +23,8 @@ export function PdfStudioOcrPanel({
   onChangeLanguage: (language: PdfOcrLanguage) => void
   onRun: () => void
 }) {
+  const assessment = assessPdfOcrDocument(doc)
+  const blocked = !assessment.canRunClientSide
   return (
     <section
       aria-label="OCR buscable"
@@ -47,7 +53,7 @@ export function PdfStudioOcrPanel({
         <button
           type="button"
           onClick={onRun}
-          disabled={disabled || running}
+          disabled={disabled || running || blocked}
           className="inline-flex h-8 items-center rounded-md bg-ink-800 px-3 text-caption font-medium text-paper-50 transition-colors hover:bg-ink-700 disabled:opacity-35 disabled:hover:bg-ink-800"
         >
           {running ? 'Procesando…' : 'Crear PDF buscable'}
@@ -65,6 +71,20 @@ export function PdfStudioOcrPanel({
           {totalPages} {totalPages === 1 ? 'página' : 'páginas'}
         </span>
       </div>
+      {assessment.messages.length > 0 && (
+        <div
+          role={assessment.severity === 'blocked' ? 'alert' : 'status'}
+          className={`mt-2 rounded border px-2 py-1.5 text-caption ${
+            assessment.severity === 'blocked'
+              ? 'border-red-200 bg-red-50 text-red-700'
+              : 'border-amber-200 bg-amber-50 text-amber-800'
+          }`}
+        >
+          {assessment.messages.map((message) => (
+            <p key={message}>{message}</p>
+          ))}
+        </div>
+      )}
       {status && (
         <p role="status" aria-live="polite" className="mt-2 text-caption text-ink-600">
           {status}

@@ -43,7 +43,6 @@ import { usePdfStudioOcr } from './usePdfStudioOcr'
 import { usePdfStudioWorkspace } from './usePdfStudioWorkspace'
 import { useToast } from '../../../state'
 const ACCEPT = 'application/pdf,image/*'
-
 export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   const toast = useToast()
   const [exportCompression, setExportCompression] =
@@ -335,6 +334,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
             {ocrOpen && (
               <PdfStudioOcrPanel
                 disabled={empty || saving || busy}
+                doc={doc}
                 language={ocrLanguage}
                 running={ocrRunning}
                 status={ocrStatus}

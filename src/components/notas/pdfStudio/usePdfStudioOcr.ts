@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { assemblePdfInWorker } from '../../../lib/pdfStudio/exportWorkerClient'
 import { createSearchablePdfInWorker } from '../../../lib/pdfStudio/pdfOcrWorkerClient'
 import type { PdfOcrLanguage, PdfOcrProgress } from '../../../lib/pdfStudio/pdfOcr'
+import { assessPdfOcrDocument } from '../../../lib/pdfStudio/pdfOcrLimits'
 import { canExport, type PdfDoc } from '../../../lib/pdfStudio/model'
 import type { AssembleOptions } from '../../../lib/pdfStudio/assemble'
 import { downloadBlob } from '../../../lib/downloadBlob'
@@ -43,6 +44,13 @@ export function usePdfStudioOcr({
 
   async function startOcr(doc: PdfDoc) {
     if (!canExport(doc) || ocrRunning) return
+    const assessment = assessPdfOcrDocument(doc)
+    if (!assessment.canRunClientSide) {
+      const message = assessment.messages[0] ?? 'OCR client-side no disponible.'
+      setOcrStatus(message)
+      toast.show({ message, tone: 'error' })
+      return
+    }
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller

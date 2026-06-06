@@ -219,6 +219,51 @@ describe('<PdfStudioView />', () => {
     expect(await screen.findByText(/OCR completado/i)).toBeInTheDocument()
   })
 
+  it('muestra límite client-side y bloquea OCR en documentos demasiado grandes', async () => {
+    const user = userEvent.setup()
+    mocks.loadDraft.mockResolvedValue({
+      doc: addPdfSource(emptyDoc(), pdfFile('archivo-grande.pdf'), 55),
+      library: [],
+    })
+    renderWithProviders(<PdfStudioView />)
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
+    await user.click(screen.getByRole('menuitem', { name: /OCR buscable/i }))
+
+    const panel = await screen.findByRole('region', { name: /OCR buscable/i })
+    expect(within(panel).getByRole('alert')).toHaveTextContent(/55 páginas/i)
+    expect(within(panel).getByRole('alert')).toHaveTextContent(/OCRmyPDF/i)
+    expect(
+      within(panel).getByRole('button', { name: /Crear PDF buscable/i }),
+    ).toBeDisabled()
+  })
+
+  it('cancela OCR sin descargar archivos ni dejar la UI procesando', async () => {
+    const user = userEvent.setup()
+    mocks.assemblePdfInWorker.mockImplementationOnce(
+      (_doc, options: { signal?: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => {
+            reject(new DOMException('Operación cancelada.', 'AbortError'))
+          })
+        }),
+    )
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile('escaneo.pdf'))
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
+    await user.click(screen.getByRole('menuitem', { name: /OCR buscable/i }))
+    await user.click(screen.getByRole('button', { name: /Crear PDF buscable/i }))
+    await user.click(await screen.findByRole('button', { name: /Cancelar/i }))
+
+    expect(await screen.findByText(/OCR cancelado/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Crear PDF buscable/i })).toBeEnabled()
+    expect(mocks.createSearchablePdfInWorker).not.toHaveBeenCalled()
+    expect(mocks.downloadBlob).not.toHaveBeenCalled()
+  })
+
   it('restaura el borrador autoguardado al montar', async () => {
     mocks.loadDraft.mockResolvedValue({
       doc: addPdfSource(emptyDoc(), pdfFile(), 2),

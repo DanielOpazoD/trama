@@ -43,6 +43,7 @@ describe('pdfStudio · estructura incremental', () => {
     const ocrModules = [
       'src/lib/pdfStudio/pdfOcr.ts',
       'src/lib/pdfStudio/pdfOcrInput.ts',
+      'src/lib/pdfStudio/pdfOcrLimits.ts',
       'src/lib/pdfStudio/pdfOcrRecognition.ts',
       'src/lib/pdfStudio/pdfOcrSearchablePdf.ts',
       'src/lib/pdfStudio/pdfOcrWorkerClient.ts',
