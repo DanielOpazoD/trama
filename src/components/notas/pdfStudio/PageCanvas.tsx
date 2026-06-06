@@ -51,7 +51,7 @@ export function PageCanvas({
           <div
             onPointerDown={tool === 'highlight' ? onStartHighlight : undefined}
             onClick={tool === 'select' ? onBackgroundClick : undefined}
-            className="absolute left-1/2 top-1/2 bg-white rounded-sm ring-1 ring-ink-900/10 shadow-xl shadow-ink-900/15"
+            className="absolute left-1/2 top-1/2 bg-white rounded-sm ring-1 ring-ink-800/15 shadow-xl shadow-ink-800/15"
             style={{
               width: layout.innerW,
               height: layout.innerH,
