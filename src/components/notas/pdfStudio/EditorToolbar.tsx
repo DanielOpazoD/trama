@@ -41,6 +41,16 @@ const segBtn = (on: boolean) =>
   `px-2 py-0.5 rounded text-caption transition-colors ${
     on ? 'bg-paper-50 text-ink-800 shadow-sm' : 'text-ink-400 hover:text-ink-700'
   }`
+/** Botón de MODO/herramienta: activo en salvia (es el estado que el usuario debe
+ *  ver de un vistazo), a diferencia del segmento de fuente (activo neutro). */
+const segBtnTool = (on: boolean) =>
+  `px-2 py-0.5 rounded transition-colors ${
+    on
+      ? 'bg-paper-50 shadow-sm text-[color:var(--accent-sage)]'
+      : 'text-ink-400 hover:text-ink-700'
+  }`
+/** Separador de ZONAS de la barra (herramientas · estilo · objeto · vista). */
+const sep = 'h-5 w-px shrink-0 bg-ink-100'
 
 /**
  * Control `−[valor]+` con un ÍCONO que lo identifica (tamaño, opacidad, rotación,
@@ -173,7 +183,7 @@ export function EditorToolbar({
         <button
           type="button"
           onClick={() => onToolChange('select')}
-          className={segBtn(tool === 'select')}
+          className={segBtnTool(tool === 'select')}
           title="Seleccionar y mover"
           aria-label="Herramienta seleccionar"
           aria-pressed={tool === 'select'}
@@ -183,7 +193,7 @@ export function EditorToolbar({
         <button
           type="button"
           onClick={() => onToolChange('highlight')}
-          className={segBtn(tool === 'highlight')}
+          className={segBtnTool(tool === 'highlight')}
           title="Resaltar (arrastra sobre la página)"
           aria-label="Herramienta resaltar"
           aria-pressed={tool === 'highlight'}
@@ -199,9 +209,9 @@ export function EditorToolbar({
         <PlusIcon size={13} /> Agregar texto
       </button>
 
-      <span className="w-px h-5 bg-ink-100 mx-0.5 shrink-0" aria-hidden />
+      <span className={sep} aria-hidden />
 
-      {/* Herramientas de estilo — SIEMPRE activas */}
+      {/* Zona ESTILO — fuente, tamaño, negrita, color, opacidad, rotación */}
       <div className={segGroup}>
         {FONTS.map((f) => (
           <button
@@ -278,7 +288,8 @@ export function EditorToolbar({
         onInc={() => stepRotation(15)}
       />
 
-      {/* Duplicar — sólo texto (contextual) */}
+      {/* Zona OBJETO — acciones de la anotación seleccionada (contextual) */}
+      {hasSelection && <span className={sep} aria-hidden />}
       {hasTextSelected && (
         <button
           onClick={onDuplicate}

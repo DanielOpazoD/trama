@@ -232,7 +232,7 @@ function TimelineRow({
           {from ? (
             <button
               onClick={() => onSelectEntity(from.id)}
-              className="text-ink-700 hover:text-ink-900 border-b border-transparent hover:border-ink-300 transition-colors"
+              className="text-ink-700 hover:text-ink-800 border-b border-transparent hover:border-ink-300 transition-colors"
             >
               {from.name}
             </button>
@@ -245,7 +245,7 @@ function TimelineRow({
           {to ? (
             <button
               onClick={() => onSelectEntity(to.id)}
-              className="text-ink-700 hover:text-ink-900 border-b border-transparent hover:border-ink-300 transition-colors"
+              className="text-ink-700 hover:text-ink-800 border-b border-transparent hover:border-ink-300 transition-colors"
             >
               {to.name}
             </button>

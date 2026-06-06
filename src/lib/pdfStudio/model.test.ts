@@ -5,11 +5,13 @@ import {
   applyEdits,
   baselineDropEm,
   canExport,
+  cloneAnnotation,
   deletePage,
   deletePages,
   duplicatePages,
   emptyDoc,
   getSource,
+  insertPages,
   isEmbeddableFont,
   isTextAnnotation,
   makeHighlightAnnotation,
@@ -359,6 +361,48 @@ describe('pdfStudio/model · anotaciones polimórficas', () => {
   it('isTextAnnotation distingue texto de resaltado', () => {
     expect(isTextAnnotation(aText())).toBe(true)
     expect(isTextAnnotation(aHighlight())).toBe(false)
+  })
+
+  it('insertPages pega copias con ids nuevos, remapea el source y reusa el File', () => {
+    const d = addPdfSource(emptyDoc(), pdf(), 2) // p0,p1 (source s)
+    const clip = subsetDoc(d, [0]) // 1 página + su source
+    const out = insertPages(d, clip) // pega al final
+    expect(out.pages).toHaveLength(3)
+    // Todos los ids son únicos y el pegado no comparte id con el clip.
+    expect(new Set(out.pages.map((p) => p.id)).size).toBe(3)
+    expect(out.pages[2]!.id).not.toBe(clip.pages[0]!.id)
+    // El source pegado es nuevo (id distinto) pero reusa el mismo File.
+    expect(out.sources).toHaveLength(2)
+    expect(out.pages[2]!.sourceId).toBe(out.sources[1]!.id)
+    expect(out.sources[1]!.id).not.toBe(clip.sources[0]!.id)
+    expect(out.sources[1]!.file).toBe(clip.sources[0]!.file)
+  })
+
+  it('insertPages respeta atIndex; clip vacío es no-op (misma ref)', () => {
+    const d = addPdfSource(emptyDoc(), pdf(), 2)
+    const clip = subsetDoc(d, [1])
+    const out = insertPages(d, clip, 0) // al principio
+    expect(out.pages).toHaveLength(3)
+    expect(out.pages[0]!.sourceId).toBe(out.sources[out.sources.length - 1]!.id)
+    expect(insertPages(d, emptyDoc())).toBe(d)
+  })
+
+  it('cloneAnnotation copia con id nuevo y mismo contenido', () => {
+    const t = makeTextAnnotation({
+      text: 'hola',
+      xRatio: 0.1,
+      yRatio: 0.2,
+      sizeRatio: 0.04,
+      color: '#222',
+      font: 'sans',
+      bold: false,
+      opacity: 1,
+      rotation: 0,
+    })
+    const c = cloneAnnotation(t)
+    expect(c.id).not.toBe(t.id)
+    expect(c.kind).toBe('text')
+    expect({ ...c, id: '' }).toEqual({ ...t, id: '' })
   })
 
   it('applyEdits aplica el mapa índice→anotaciones de una vez; {} no cambia el doc', () => {

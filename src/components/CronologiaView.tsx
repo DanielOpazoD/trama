@@ -193,7 +193,7 @@ function EntryBody({
           onClick={() => onSelectEntity(entry.entityId)}
           className="text-left w-full group"
         >
-          <p className="font-serif text-ink-700 italic leading-relaxed group-hover:text-ink-900 transition-colors">
+          <p className="font-serif text-ink-700 italic leading-relaxed group-hover:text-ink-800 transition-colors">
             «{entry.text}»
           </p>
           <p className="mt-1 text-caption text-ink-400">

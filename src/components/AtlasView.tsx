@@ -150,7 +150,7 @@ function Constellation({
             <button
               type="button"
               onClick={() => onSelectEntity(m.id)}
-              className="text-left text-sm text-ink-600 hover:text-ink-900 bg-paper-50 border border-ink-100/60 hover:border-ink-200 rounded-md px-2.5 py-1 transition-colors"
+              className="text-left text-sm text-ink-600 hover:text-ink-800 bg-paper-50 border border-ink-100/60 hover:border-ink-200 rounded-md px-2.5 py-1 transition-colors"
               style={{ borderLeftColor: typeAccent(m.type), borderLeftWidth: '3px' }}
             >
               {m.name}

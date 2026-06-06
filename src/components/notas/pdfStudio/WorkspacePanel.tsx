@@ -92,9 +92,9 @@ export function WorkspacePanel({
         onClick={onToggleCollapsed}
         aria-label="Mostrar el panel de imágenes y guardados"
         title="Mostrar panel"
-        className="shrink-0 self-stretch flex flex-col items-center gap-2 rounded-lg border border-ink-100 bg-paper-50 px-1.5 py-3 text-ink-400 hover:text-ink-700 hover:border-ink-200 transition-colors"
+        className="flex h-full w-full flex-col items-center gap-2 border-r border-ink-100 bg-paper-50 px-1.5 py-3 text-ink-400 hover:bg-ink-100/30 hover:text-ink-700 transition-colors"
       >
-        <ChevronLeftIcon size={14} />
+        <ChevronRightIcon size={14} />
         <CameraIcon size={15} />
         <span className="text-micro tabular-nums" style={{ color: ACCENT }}>
           {library.length}
@@ -121,7 +121,7 @@ export function WorkspacePanel({
   }
 
   return (
-    <aside className="w-60 shrink-0 rounded-lg border border-ink-100 bg-paper-50 flex flex-col self-stretch overflow-hidden">
+    <aside className="flex h-full w-60 flex-col overflow-hidden border-r border-ink-100 bg-paper-50">
       <header className="flex items-center justify-between gap-2 px-2.5 py-2 border-b border-ink-100/70 shrink-0">
         <span className="text-caption font-medium text-ink-600">Panel</span>
         <button
@@ -131,7 +131,7 @@ export function WorkspacePanel({
           title="Ocultar"
           className="touch-target p-1 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors shrink-0"
         >
-          <ChevronRightIcon size={14} />
+          <ChevronLeftIcon size={14} />
         </button>
       </header>
 
@@ -214,7 +214,7 @@ export function WorkspacePanel({
                 title={
                   canSave
                     ? 'Guardar la creación actual con un nombre'
-                    : 'Agregá hojas para poder guardar'
+                    : 'Agrega hojas para poder guardar'
                 }
                 className="btn-ghost text-micro inline-flex items-center gap-1 disabled:opacity-40"
               >
@@ -260,7 +260,7 @@ export function WorkspacePanel({
 
           {saved.length === 0 ? (
             <p className="px-2.5 text-micro text-ink-400">
-              Guardá tus creaciones con un nombre para volver a abrirlas y editarlas.
+              Guarda tus creaciones con un nombre para volver a abrirlas y editarlas.
             </p>
           ) : (
             <ul className="flex flex-col gap-1 px-2 pt-1">

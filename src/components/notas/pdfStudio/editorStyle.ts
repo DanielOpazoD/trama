@@ -5,8 +5,10 @@
  */
 import { type TextAnnotation } from '../../../lib/pdfStudio/model'
 
-/** Color de acento del editor (selección, contornos, swatches activos). */
-export const ACCENT = 'var(--accent-primary)'
+/** Color de acento del editor (selección, contornos, swatches activos) = salvia de
+ *  la sección. Directo a `--accent-sage` (no vía `--accent-primary`) para no
+ *  depender del remap de `.world-notas` cuando el modal se portalea a <body>. */
+export const ACCENT = 'var(--accent-sage)'
 
 /** Estilo "activo" de la barra: edita la anotación seleccionada o, si no hay,
  *  define el estilo de la PRÓXIMA. Color/opacidad valen para texto y resaltado;

@@ -35,7 +35,7 @@ function PreviewPage({
   return (
     <div
       ref={ref}
-      className="relative w-full bg-white rounded-sm ring-1 ring-ink-900/10 shadow-sm overflow-hidden"
+      className="relative w-full bg-white rounded-sm ring-1 ring-ink-800/15 shadow-sm overflow-hidden"
       // Placeholder con alto real (A4) para que el lazy-load mida bien; al cargar,
       // la imagen impone su propio aspecto.
       style={url ? undefined : { aspectRatio: '1 / 1.414' }}

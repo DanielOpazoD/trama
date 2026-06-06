@@ -13,7 +13,8 @@ const mocks = vi.hoisted(() => ({
   disposePdfStudio: vi.fn(),
   assemble: vi.fn(),
   downloadBlob: vi.fn(),
-  printPdfBlob: vi.fn(),
+  openBlankPdfTab: vi.fn(),
+  showPdfInTab: vi.fn(),
   loadDraft: vi.fn(),
   saveDraft: vi.fn(),
   clearDraft: vi.fn(),
@@ -29,7 +30,10 @@ vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
   disposePdfStudio: mocks.disposePdfStudio,
 }))
 vi.mock('../../../lib/pdfStudio/assemble', () => ({ assemble: mocks.assemble }))
-vi.mock('../../../lib/pdfStudio/printPdf', () => ({ printPdfBlob: mocks.printPdfBlob }))
+vi.mock('../../../lib/pdfStudio/printPdf', () => ({
+  openBlankPdfTab: mocks.openBlankPdfTab,
+  showPdfInTab: mocks.showPdfInTab,
+}))
 vi.mock('../../../lib/downloadBlob', () => ({ downloadBlob: mocks.downloadBlob }))
 vi.mock('../../../lib/pdfStudio/persistence', () => ({
   loadDraft: mocks.loadDraft,
@@ -59,6 +63,7 @@ beforeEach(() => {
     blob: new Blob(['pdf'], { type: 'application/pdf' }),
     skipped: [],
   })
+  mocks.openBlankPdfTab.mockReturnValue(null) // sin pestaña real en happy-dom
   mocks.loadDraft.mockResolvedValue(null) // sin borrador por defecto
   mocks.saveDraft.mockResolvedValue(undefined)
   mocks.clearDraft.mockResolvedValue(undefined)
@@ -132,17 +137,17 @@ describe('<PdfStudioView />', () => {
     expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
     expect(mocks.getPdfPageCount).toHaveBeenCalledTimes(1)
 
-    // Borrar la primera (acción en el menú ⋯) → queda una.
-    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
-    await user.click(await screen.findByRole('menuitem', { name: /Eliminar página/i }))
+    // Marcar la primera y eliminarla desde la barra de edición → queda una.
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }))
     expect(screen.queryByAltText('Página 2')).not.toBeInTheDocument()
     expect(screen.getByText(/1 página/)).toBeInTheDocument()
     expect(mocks.forgetThumb).toHaveBeenCalled()
 
-    // Guardar → ensambla + abre el diálogo de impresión.
+    // Guardar → ensambla + abre el PDF en el visor del navegador.
     await user.click(screen.getByRole('button', { name: /Guardar PDF/i }))
     expect(mocks.assemble).toHaveBeenCalledTimes(1)
-    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
+    expect(mocks.showPdfInTab).toHaveBeenCalledTimes(1)
   })
 
   it('undo y redo revierten y reaplican la importación', async () => {
@@ -167,8 +172,9 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
-    await user.click(await screen.findByRole('menuitem', { name: /Rotar a la derecha/i }))
+    // Marcar la primera y rotarla desde la barra de edición.
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.click(screen.getByRole('button', { name: /Rotar a la derecha/i }))
     // La página sigue ahí y ahora hay historial para deshacer la rotación.
     expect(screen.getByAltText('Página 1')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Deshacer/i })).toBeEnabled()
@@ -180,9 +186,8 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    // Abrir el editor de texto desde el menú ⋯ de la primera página.
-    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
-    await user.click(await screen.findByRole('menuitem', { name: /Agregar texto/i }))
+    // Abrir el editor con doble clic en la miniatura.
+    await user.dblClick(screen.getByAltText('Página 1'))
     expect(
       await screen.findByRole('dialog', { name: /Texto sobre la página 1/i }),
     ).toBeInTheDocument()
@@ -204,8 +209,7 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    await user.click(screen.getByRole('button', { name: /Acciones de la página 1/i }))
-    await user.click(await screen.findByRole('menuitem', { name: /Agregar texto/i }))
+    await user.dblClick(screen.getByAltText('Página 1'))
     await screen.findByRole('dialog', { name: /Texto sobre la página 1/i })
     await user.click(screen.getByRole('button', { name: /Agregar texto/i }))
     await user.click(screen.getByRole('button', { name: /Duplicar texto/i }))
@@ -238,11 +242,11 @@ describe('<PdfStudioView />', () => {
     await screen.findByAltText('Página 1')
     expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 2 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 2/i }))
 
-    // Aparece la barra de lote con el conteo.
-    expect(screen.getByRole('toolbar', { name: /hojas marcadas/i })).toBeInTheDocument()
+    // La barra de edición (siempre visible) refleja el conteo de marcadas.
+    expect(screen.getByRole('toolbar', { name: /edición de hojas/i })).toBeInTheDocument()
     expect(screen.getByText(/2 marcadas/)).toBeInTheDocument()
 
     // Eliminar en lote → documento vacío.
@@ -257,25 +261,46 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: 'Duplicar' }))
     expect(screen.getByText(/3 páginas/)).toBeInTheDocument()
   })
 
-  it('Guardar PDF refleja la marca y exporta sólo las hojas marcadas', async () => {
+  it('la barra de edición está siempre visible y "Texto" abre la hoja marcada', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    // Sin marcar: guarda todo.
-    expect(screen.getByRole('button', { name: /^Guardar PDF$/i })).toBeInTheDocument()
+    // La barra aparece sin marcar nada; "Texto" está deshabilitado.
+    expect(screen.getByRole('toolbar', { name: /edición de hojas/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Texto' })).toBeDisabled()
 
-    // Marco una hoja → el botón muestra el conteo y exporta el subconjunto.
-    await user.click(screen.getByRole('button', { name: /Incluir la hoja 1 en el PDF/i }))
-    await user.click(screen.getByRole('button', { name: /Guardar PDF \(1\)/i }))
+    // Marcar 1 hoja → "Texto" abre el editor de esa página.
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.click(screen.getByRole('button', { name: 'Texto' }))
+    expect(
+      await screen.findByRole('dialog', { name: /Texto sobre la página 1/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('Guardar PDF exporta TODO; "Exportar" exporta sólo las marcadas', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile()) // 2 páginas
+    await screen.findByAltText('Página 1')
+
+    // "Guardar PDF" no muestra conteo y exporta el documento completo.
+    await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
     expect(mocks.assemble).toHaveBeenCalledTimes(1)
-    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
+    expect(mocks.assemble.mock.calls[0]![0].pages).toHaveLength(2)
+    expect(mocks.showPdfInTab).toHaveBeenCalledTimes(1)
+
+    // Marco 1 hoja → "Exportar" (barra) exporta SÓLO esa.
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.click(screen.getByRole('button', { name: /^Exportar$/i }))
+    expect(mocks.assemble).toHaveBeenCalledTimes(2)
+    expect(mocks.assemble.mock.calls[1]![0].pages).toHaveLength(1)
   })
 
   it('doble clic en la miniatura abre el modal de ver/editar', async () => {
@@ -325,5 +350,33 @@ describe('<PdfStudioView />', () => {
     expect(
       screen.getByRole('dialog', { name: /Texto sobre la página 2/i }),
     ).toBeInTheDocument()
+  })
+
+  it('elimina las páginas marcadas con la tecla Suprimir', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 2/i }))
+    await user.keyboard('{Delete}')
+
+    expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
+    expect(screen.queryByAltText('Página 1')).not.toBeInTheDocument()
+  })
+
+  it('copia y pega una página marcada con ⌘C/⌘V (2 → 3)', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+    expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.keyboard('{Meta>}c{/Meta}')
+    await user.keyboard('{Meta>}v{/Meta}')
+
+    expect(screen.getByText(/3 páginas/)).toBeInTheDocument()
   })
 })
