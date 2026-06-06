@@ -30,7 +30,7 @@ export function usePdfTextEditorKeyboard({
   setEditingId: Dispatch<SetStateAction<string | null>>
   setHistory: Dispatch<SetStateAction<History<Record<number, Annotation[]>>>>
   setAnnotations: (fn: (list: Annotation[]) => Annotation[]) => void
-  onClose: (edits: Record<number, Annotation[]> | null) => void
+  onClose: (edits: null) => void
 }) {
   // Escape en dos etapas: primero cierra edición/selección, luego el modal.
   useEffect(() => {

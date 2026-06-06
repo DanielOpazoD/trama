@@ -10,7 +10,6 @@ import {
   rotatePages,
   setDocSettings,
   subsetDoc,
-  type Annotation,
   type DocSettings,
   type PdfDoc,
 } from '../../../lib/pdfStudio/model'
@@ -33,7 +32,7 @@ import { PageGrid } from './PageGrid'
 import { PdfStudioDocumentToolbar } from './PdfStudioDocumentToolbar'
 import { PdfStudioFormPanel } from './PdfStudioFormPanel'
 import { PdfStudioOcrPanel } from './PdfStudioOcrPanel'
-import { PdfTextEditor } from './PdfTextEditor'
+import { PdfTextEditor, type PdfTextEditorResult } from './PdfTextEditor'
 import { usePageSelection } from './usePageSelection'
 import { usePdfStudioExport } from './usePdfStudioExport'
 import { usePdfStudioImport } from './usePdfStudioImport'
@@ -183,9 +182,12 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     void clearDraft(userKey)
   }
 
-  function closeTextEditor(edits: Record<number, Annotation[]> | null) {
-    if (edits && Object.keys(edits).length > 0) {
-      commit((d) => applyEdits(d, edits))
+  function closeTextEditor(edits: PdfTextEditorResult | null) {
+    if (edits) {
+      commit((d) => ({
+        ...applyEdits(d, edits.annotations),
+        formFields: edits.formFields,
+      }))
     }
     setTextPage(null)
   }
@@ -352,7 +354,13 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
       </div>
 
       {textPage !== null && (
-        <PdfTextEditor doc={doc} pageIndex={textPage} onClose={closeTextEditor} />
+        <PdfTextEditor
+          doc={doc}
+          pageIndex={textPage}
+          detectedForms={forms}
+          onFormValueChange={updateFormValue}
+          onClose={closeTextEditor}
+        />
       )}
     </section>
   )

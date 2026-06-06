@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { AssembleOptions } from '../../../lib/pdfStudio/assemble'
 import { assemblePdfInWorker } from '../../../lib/pdfStudio/exportWorkerClient'
 import { canExport, type PdfDoc } from '../../../lib/pdfStudio/model'
+import { writePdfFormFieldsInWorker } from '../../../lib/pdfStudio/pdfFormWorkerClient'
 import { openBlankPdfTab, showPdfInTab } from '../../../lib/pdfStudio/printPdf'
 import { downloadBlob } from '../../../lib/downloadBlob'
 import { useToast } from '../../../state'
@@ -48,7 +49,16 @@ export function usePdfStudioExport({
           tone: 'error',
         })
       }
-      return blob
+      if (!target.formFields || target.formFields.length === 0) return blob
+      setExportStatus('Escribiendo campos de formulario…')
+      const { blob: withForms } = await writePdfFormFieldsInWorker(
+        new File([blob], 'trama.pdf', { type: 'application/pdf' }),
+        target.formFields,
+        target.pages.map((page) => page.id),
+        { flatten: false },
+        { signal: controller.signal },
+      )
+      return withForms
     } catch (err) {
       toast.show({
         message: describePdfExportError(err),

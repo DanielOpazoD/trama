@@ -1,5 +1,9 @@
 import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
-import { previewFontFamily, type PdfFontKind } from '../../../lib/pdfStudio/model'
+import {
+  previewFontFamily,
+  type PdfFontKind,
+  type PdfFormFieldKind,
+} from '../../../lib/pdfStudio/model'
 import {
   BoldIcon,
   CameraIcon,
@@ -42,6 +46,18 @@ const ZOOM_MIN = 0.5
 const ZOOM_MAX = 4
 const ZOOM_STEP = 0.25
 
+const FORM_FIELDS: {
+  key: PdfFormFieldKind
+  label: string
+  glyph: string
+}[] = [
+  { key: 'text', label: 'Texto', glyph: 'T' },
+  { key: 'date', label: 'Fecha', glyph: 'D' },
+  { key: 'checkbox', label: 'Checkbox', glyph: '✓' },
+  { key: 'radio', label: 'Radio', glyph: '○' },
+  { key: 'signature', label: 'Firma', glyph: '✎' },
+]
+
 function isMacLike(): boolean {
   if (typeof navigator === 'undefined') return true
   return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
@@ -52,6 +68,7 @@ export function EditorToolbar({
   onToolChange,
   onAddText,
   onAddImage,
+  onAddFormField,
   activeFont,
   activeSize,
   activeBold,
@@ -71,6 +88,7 @@ export function EditorToolbar({
   onToolChange: (t: Tool) => void
   onAddText: () => void
   onAddImage: () => void
+  onAddFormField?: (kind: PdfFormFieldKind) => void
   activeFont: PdfFontKind
   activeSize: number
   activeBold: boolean
@@ -202,6 +220,43 @@ export function EditorToolbar({
             <CameraIcon size={14} />
           </button>
         </Hint>
+        {onAddFormField && (
+          <OverflowMenu
+            label="Campos"
+            width="w-44"
+            menuLayerClassName={editorMenuLayer}
+            triggerClassName={menuTrigger}
+            triggerContent={
+              <>
+                <span className="text-caption font-semibold">□</span>
+                <ChevronDownIcon size={12} className="text-ink-300" />
+              </>
+            }
+          >
+            {(close) => (
+              <>
+                {FORM_FIELDS.map((field) => (
+                  <button
+                    key={field.key}
+                    type="button"
+                    role="menuitem"
+                    aria-label={`Crear campo ${field.label}`}
+                    onClick={() => {
+                      onAddFormField(field.key)
+                      close()
+                    }}
+                    className={activeMenuItem(false)}
+                  >
+                    <span className="inline-flex w-4 justify-center" aria-hidden>
+                      {field.glyph}
+                    </span>
+                    <span>{field.label}</span>
+                  </button>
+                ))}
+              </>
+            )}
+          </OverflowMenu>
+        )}
       </ToolbarGroup>
 
       <ToolbarGroup label="Estilo">
