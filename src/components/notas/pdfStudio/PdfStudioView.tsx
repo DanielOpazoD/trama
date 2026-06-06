@@ -52,6 +52,7 @@ import { PageGrid } from './PageGrid'
 import { PdfTextEditor } from './PdfTextEditor'
 import { usePageSelection } from './usePageSelection'
 import {
+  DownloadIcon,
   FileIcon,
   FilePdfIcon,
   PrinterIcon,
@@ -70,6 +71,17 @@ function isPdf(file: File): boolean {
 
 function isImage(file: File): boolean {
   return file.type.startsWith('image/')
+}
+
+/** iOS / iPadOS: abrir un `blob:` en pestaña nueva suele quedar en blanco, así que
+ *  ahí conviene descargar directo en vez de mandar al visor. */
+function isIos(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return (
+    /iP(ad|hone|od)/.test(navigator.userAgent) ||
+    // iPadOS 13+ se reporta como Mac con touch.
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  )
 }
 
 /** Nombre de archivo del PDF exportado, con fecha local para no pisar descargas. */
@@ -98,6 +110,9 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   const [busy, setBusy] = useState(false) // importando
   const [saving, setSaving] = useState(false)
   const [textPage, setTextPage] = useState<number | null>(null)
+  // Contenedor scrolleable del área de trabajo: raíz del IntersectionObserver del
+  // lazy-load de las miniaturas (el app-shell scrollea acá adentro, no el viewport).
+  const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null)
   // Portapapeles INTERNO de páginas (copiar/cortar/pegar por teclado): guarda un
   // subdocumento con las páginas marcadas; `insertPages` les da ids nuevos al pegar.
   const pageClipboardRef = useRef<PdfDoc | null>(null)
@@ -392,18 +407,20 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     void putSavedDoc(userKey, s)
     toast.show({ message: `Guardado "${name}".`, tone: 'success' })
   }
-  /** Re-abre una creación guardada en el editor (reemplaza lo que haya en pantalla). */
+  /** Re-abre una creación guardada en el editor (reemplaza lo que haya en pantalla;
+   *  es deshacible con ⌘Z). */
   function openSaved(s: SavedDoc) {
-    if (
-      doc.pages.length > 0 &&
-      !window.confirm('¿Abrir esta creación? Se reemplazará lo que tenés en pantalla.')
-    ) {
-      return
-    }
+    const hadWork = doc.pages.length > 0
     const restored = normalizeDoc(s.doc)
     reseedIds(restored)
-    setHistory(initHistory(restored))
+    setHistory((h) => pushHistory(h, restored))
     clearSelection()
+    if (hadWork) {
+      toast.show({
+        message: `Abriste "${s.name}". El documento anterior queda en el historial (⌘Z).`,
+        tone: 'default',
+      })
+    }
   }
   function renameSaved(id: string, name: string) {
     setSaved((list) => {
@@ -418,49 +435,84 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     void deleteSavedDoc(userKey, id)
   }
   async function downloadSaved(s: SavedDoc) {
-    try {
-      const { blob } = await assemble(s.doc)
-      downloadBlob(blob, `${s.name || 'creacion'}.pdf`)
-    } catch (err) {
-      toast.show({
-        message: err instanceof Error ? err.message : 'No se pudo descargar.',
-        tone: 'error',
-      })
-    }
+    const blob = await assembleOrToast(s.doc)
+    if (blob) downloadBlob(blob, `${s.name || 'creacion'}.pdf`)
   }
 
-  // Exporta un documento: ensambla y lo abre en el VISOR del navegador (pestaña
-  // nueva), donde imprimir y "guardar como PDF" sí funcionan. La pestaña se abre
-  // ANTES de ensamblar (en el gesto del clic) para esquivar el bloqueador de
-  // pop-ups; si igual la bloquean, plan B = descarga directa. "Guardar PDF" exporta
-  // SIEMPRE el documento completo; "Exportar marcadas" usa el subconjunto del tick.
-  async function exportPdf(target: PdfDoc, kind?: string) {
-    if (!canExport(target) || saving) return
-    setSaving(true)
-    const viewer = openBlankPdfTab()
+  /** Ensambla `target` con UN solo manejo de errores y del aviso de archivos
+   *  salteados (los tres caminos de export lo comparten → comportamiento idéntico,
+   *  sin el bug silencioso de descartar `skipped`). Devuelve el blob o `null`. */
+  async function assembleOrToast(target: PdfDoc): Promise<Blob | null> {
     try {
       const { blob, skipped } = await assemble(target)
-      showPdfInTab(viewer, blob, () => downloadBlob(blob, exportName(kind)))
       if (skipped.length > 0) {
         toast.show({
-          message: `Se preparó el PDF, pero se saltearon ${skipped.length} archivo(s): ${skipped
+          message: `Se saltearon ${skipped.length} archivo(s): ${skipped
             .map((s) => s.name)
             .join(', ')}.`,
           tone: 'error',
         })
       }
+      return blob
     } catch (err) {
-      viewer?.close()
       toast.show({
         message: err instanceof Error ? err.message : 'No se pudo preparar el PDF.',
         tone: 'error',
+      })
+      return null
+    }
+  }
+
+  // "Guardar PDF": ensambla y abre el PDF en el VISOR del navegador (pestaña nueva),
+  // donde imprimir y "guardar como PDF" sí funcionan. La pestaña se abre ANTES de
+  // ensamblar (en el gesto del clic) para esquivar el bloqueador de pop-ups. En iOS
+  // (donde abrir un blob en pestaña suele fallar) o si la bloquean → descarga directa
+  // con aviso. Exporta SIEMPRE el documento completo (el subset es vía "Exportar").
+  async function exportPdf(target: PdfDoc, kind?: string) {
+    if (!canExport(target) || saving) return
+    setSaving(true)
+    const ios = isIos()
+    const viewer = ios ? null : openBlankPdfTab()
+    try {
+      const blob = await assembleOrToast(target)
+      if (!blob) {
+        viewer?.close()
+        return
+      }
+      if (ios) {
+        downloadBlob(blob, exportName(kind))
+        toast.show({
+          message: 'Descargamos el PDF; ábrelo desde Archivos para imprimir.',
+          tone: 'default',
+        })
+        return
+      }
+      showPdfInTab(viewer, blob, () => {
+        downloadBlob(blob, exportName(kind))
+        toast.show({
+          message: 'Tu navegador bloqueó la ventana; descargamos el PDF.',
+          tone: 'default',
+        })
       })
     } finally {
       setSaving(false)
     }
   }
 
-  /** Exporta SÓLO las hojas marcadas con el tick (acción de la barra de edición). */
+  /** Descarga el PDF directo a disco: 100% confiable, conserva el texto vectorial y
+   *  da nombre con fecha; no depende del visor ni del bloqueador de pop-ups. */
+  async function downloadPdf(target: PdfDoc, kind?: string) {
+    if (!canExport(target) || saving) return
+    setSaving(true)
+    try {
+      const blob = await assembleOrToast(target)
+      if (blob) downloadBlob(blob, exportName(kind))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  /** Exporta (al visor) SÓLO las hojas marcadas con el tick (barra de edición). */
   function exportMarked() {
     if (selectedIndices.length > 0)
       void exportPdf(subsetDoc(doc, selectedIndices), 'seleccion')
@@ -514,6 +566,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
       onNudge={nudge}
       onOpenText={setTextPage}
       onDropFiles={onDropFiles}
+      scrollRoot={scrollRoot}
     />
   )
 
@@ -535,33 +588,50 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
 
   return (
     <section className="pdf-studio flex min-h-0 flex-1">
-      {/* Panel = SEGUNDA barra lateral: adosada a la navegación y FULL-HEIGHT (de
-          arriba a abajo, igual que la barra de navegación principal). */}
+      {/* Panel = SEGUNDA barra lateral: adosada a la navegación y FULL-HEIGHT en
+          DESKTOP. En MÓVIL, expandido es un drawer por encima (no le roba ancho a
+          la grilla); colapsado es un riel fino. */}
       {showPanel && (
-        <div className="shrink-0 self-stretch">
-          <WorkspacePanel
-            library={library}
-            onAddImage={addLibraryToDoc}
-            onRemoveImage={removeFromLibrary}
-            onDownloadImage={downloadLibrary}
-            saved={saved}
-            canSave={!empty}
-            onSaveCreation={saveCreation}
-            onOpenSaved={openSaved}
-            onRenameSaved={renameSaved}
-            onDeleteSaved={removeSaved}
-            onDownloadSaved={downloadSaved}
-            collapsed={panelCollapsed}
-            onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
-          />
-        </div>
+        <>
+          {!panelCollapsed && (
+            <button
+              type="button"
+              aria-label="Cerrar el panel"
+              onClick={() => setPanelCollapsed(true)}
+              className="fixed inset-0 z-30 bg-ink-900/40 md:hidden"
+            />
+          )}
+          <div
+            className={`shrink-0 self-stretch ${
+              panelCollapsed
+                ? ''
+                : 'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:shadow-2xl'
+            }`}
+          >
+            <WorkspacePanel
+              library={library}
+              onAddImage={addLibraryToDoc}
+              onRemoveImage={removeFromLibrary}
+              onDownloadImage={downloadLibrary}
+              saved={saved}
+              canSave={!empty}
+              onSaveCreation={saveCreation}
+              onOpenSaved={openSaved}
+              onRenameSaved={renameSaved}
+              onDeleteSaved={removeSaved}
+              onDownloadSaved={downloadSaved}
+              collapsed={panelCollapsed}
+              onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
+            />
+          </div>
+        </>
       )}
 
       {/* Columna de trabajo: topbar de la sección + contenido scrolleable y CENTRADO
           (los botones y los documentos quedan centrados, como antes). */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {topBar}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div ref={setScrollRoot} className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-5xl space-y-5 px-5 pb-24 pt-6 md:px-8">
             {/* Barra de acciones: izquierda (agregar · historial) — derecha (contador · nuevo · guardar) */}
             <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
@@ -619,9 +689,19 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
                 )}
                 <button
                   type="button"
+                  onClick={() => void downloadPdf(doc)}
+                  disabled={empty || saving || busy}
+                  title="Descargar el PDF como archivo (a tu dispositivo)"
+                  className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-ink-200 text-ink-600 hover:text-ink-800 hover:border-ink-300 hover:bg-ink-100/40 transition-colors disabled:opacity-40"
+                >
+                  <DownloadIcon size={13} />
+                  Descargar
+                </button>
+                <button
+                  type="button"
                   onClick={() => void exportPdf(doc)}
                   disabled={empty || saving || busy}
-                  title="Abrir el visor para imprimir o guardar todo el documento"
+                  title="Abrir el visor del navegador para imprimir o guardar todo el documento"
                   className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
                 >
                   <PrinterIcon size={13} />
@@ -639,6 +719,12 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
             </div>
 
             {editBar}
+            {!empty && (
+              <p className="text-micro text-ink-400">
+                Doble clic en una hoja para editarla · arrastra para reordenar · marca (✓)
+                una o más para exportarlas por separado.
+              </p>
+            )}
             {mainPane}
           </div>
         </div>

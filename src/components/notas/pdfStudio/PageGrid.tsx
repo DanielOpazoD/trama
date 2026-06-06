@@ -16,6 +16,7 @@ export function PageGrid({
   onNudge,
   onOpenText,
   onDropFiles,
+  scrollRoot,
 }: {
   doc: PdfDoc
   selectedIds: Set<string>
@@ -24,6 +25,9 @@ export function PageGrid({
   onNudge: (index: number, delta: -1 | 1) => void
   onOpenText: (index: number) => void
   onDropFiles: (e: DragEvent) => void
+  /** Contenedor scrolleable del área de trabajo: raíz del IntersectionObserver del
+   *  lazy-load de miniaturas (si no, observa el viewport y precarga de más). */
+  scrollRoot: Element | null
 }) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
@@ -62,6 +66,7 @@ export function PageGrid({
           }}
           onNudge={onNudge}
           onOpenText={() => onOpenText(index)}
+          scrollRoot={scrollRoot}
         />
       ))}
     </ul>

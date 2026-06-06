@@ -92,7 +92,7 @@ export function WorkspacePanel({
         onClick={onToggleCollapsed}
         aria-label="Mostrar el panel de imágenes y guardados"
         title="Mostrar panel"
-        className="flex h-full w-full flex-col items-center gap-2 border-r border-ink-100 bg-paper-50 px-1.5 py-3 text-ink-400 hover:bg-ink-100/30 hover:text-ink-700 transition-colors"
+        className="surface-sidebar flex h-full w-full flex-col items-center gap-2 border-r border-ink-100 px-1.5 py-3 text-ink-400 hover:bg-ink-100/30 hover:text-ink-700 transition-colors"
       >
         <ChevronRightIcon size={14} />
         <CameraIcon size={15} />
@@ -121,7 +121,7 @@ export function WorkspacePanel({
   }
 
   return (
-    <aside className="flex h-full w-60 flex-col overflow-hidden border-r border-ink-100 bg-paper-50">
+    <aside className="surface-sidebar flex h-full w-60 flex-col overflow-hidden border-r border-ink-100">
       <header className="flex items-center justify-between gap-2 px-2.5 py-2 border-b border-ink-100/70 shrink-0">
         <span className="text-caption font-medium text-ink-600">Panel</span>
         <button

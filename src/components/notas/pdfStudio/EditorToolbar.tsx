@@ -227,7 +227,7 @@ export function EditorToolbar({
       <Stepper
         icon={<TextSizeIcon size={14} />}
         label="Tamaño de letra"
-        value={String(Math.round(activeSize * 1000))}
+        value={String(Math.round(activeSize * 792))}
         valueClass="w-7"
         onDec={() => stepSize(-SIZE_STEP)}
         onInc={() => stepSize(SIZE_STEP)}
