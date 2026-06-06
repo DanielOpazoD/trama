@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   addImageSource,
   addPdfSource,
@@ -90,7 +90,7 @@ function exportName(kind?: string): string {
  * testeado; el render (pdf.js) y el ensamblado (pdf-lib) son perezosos y viven en
  * archivos aparte.
  */
-export function PdfStudioView() {
+export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   const toast = useToast()
   // El documento vive detrás de un historial (undo/redo). `doc` = presente.
   const [history, setHistory] = useState<History<PdfDoc>>(() => initHistory(emptyDoc()))
@@ -534,110 +534,113 @@ export function PdfStudioView() {
   )
 
   return (
-    <section className="pdf-studio">
-      <div className="flex items-start">
-        {/* Panel = SEGUNDA barra lateral, adosada a la navegación principal (flush a
-            la izquierda), full-height sticky en desktop. */}
-        {showPanel && (
-          <div className="shrink-0 self-stretch md:sticky md:top-0 md:h-[calc(100dvh-3.25rem)] md:self-start">
-            <WorkspacePanel
-              library={library}
-              onAddImage={addLibraryToDoc}
-              onRemoveImage={removeFromLibrary}
-              onDownloadImage={downloadLibrary}
-              saved={saved}
-              canSave={!empty}
-              onSaveCreation={saveCreation}
-              onOpenSaved={openSaved}
-              onRenameSaved={renameSaved}
-              onDeleteSaved={removeSaved}
-              onDownloadSaved={downloadSaved}
-              collapsed={panelCollapsed}
-              onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
-            />
-          </div>
-        )}
+    <section className="pdf-studio flex min-h-0 flex-1">
+      {/* Panel = SEGUNDA barra lateral: adosada a la navegación y FULL-HEIGHT (de
+          arriba a abajo, igual que la barra de navegación principal). */}
+      {showPanel && (
+        <div className="shrink-0 self-stretch">
+          <WorkspacePanel
+            library={library}
+            onAddImage={addLibraryToDoc}
+            onRemoveImage={removeFromLibrary}
+            onDownloadImage={downloadLibrary}
+            saved={saved}
+            canSave={!empty}
+            onSaveCreation={saveCreation}
+            onOpenSaved={openSaved}
+            onRenameSaved={renameSaved}
+            onDeleteSaved={removeSaved}
+            onDownloadSaved={downloadSaved}
+            collapsed={panelCollapsed}
+            onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
+          />
+        </div>
+      )}
 
-        {/* Área de trabajo: barra de acciones · barra de edición · grilla. Tiene su
-            propio padding; el panel queda flush contra la navegación. */}
-        <div className="min-w-0 flex-1 space-y-5 px-5 pb-24 pt-6 md:px-8">
-          {/* Barra de acciones: izquierda (agregar · historial) — derecha (contador · nuevo · guardar) */}
-          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={busy}
-                className="inline-flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1 text-xs text-ink-600 transition-colors hover:border-ink-300 hover:bg-ink-100/40 hover:text-ink-800 disabled:opacity-50"
-              >
-                <UploadIcon size={13} />
-                {busy ? 'Agregando…' : 'Agregar PDF o imagen'}
-              </button>
-              {(undoable || redoable) && (
-                <div className="inline-flex items-center rounded-md border border-ink-100 bg-paper-50 overflow-hidden divide-x divide-ink-100">
-                  <button
-                    type="button"
-                    onClick={() => setHistory((h) => undo(h))}
-                    disabled={!undoable}
-                    aria-label="Deshacer"
-                    title="Deshacer (⌘Z)"
-                    className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
-                  >
-                    <UndoIcon size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setHistory((h) => redo(h))}
-                    disabled={!redoable}
-                    aria-label="Rehacer"
-                    title="Rehacer (⌘⇧Z)"
-                    className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
-                  >
-                    <RedoIcon size={14} />
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {!empty && (
-                <span className="mr-1 text-micro text-ink-300 tabular-nums">
-                  {total} {total === 1 ? 'página' : 'páginas'}
-                </span>
-              )}
-              {!empty && (
+      {/* Columna de trabajo: topbar de la sección + contenido scrolleable y CENTRADO
+          (los botones y los documentos quedan centrados, como antes). */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {topBar}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-5xl space-y-5 px-5 pb-24 pt-6 md:px-8">
+            {/* Barra de acciones: izquierda (agregar · historial) — derecha (contador · nuevo · guardar) */}
+            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={newDoc}
-                  title="Empezar un documento nuevo (descarta el borrador; deshacible)"
-                  className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-ink-200 text-ink-600 hover:text-ink-800 hover:border-ink-300 hover:bg-ink-100/40 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1 text-xs text-ink-600 transition-colors hover:border-ink-300 hover:bg-ink-100/40 hover:text-ink-800 disabled:opacity-50"
                 >
-                  <FileIcon size={13} />
-                  Nuevo
+                  <UploadIcon size={13} />
+                  {busy ? 'Agregando…' : 'Agregar PDF o imagen'}
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => void exportPdf(doc)}
-                disabled={empty || saving || busy}
-                title="Abrir el visor para imprimir o guardar todo el documento"
-                className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
-              >
-                <PrinterIcon size={13} />
-                {saving ? 'Preparando…' : 'Guardar PDF'}
-              </button>
+                {(undoable || redoable) && (
+                  <div className="inline-flex items-center rounded-md border border-ink-100 bg-paper-50 overflow-hidden divide-x divide-ink-100">
+                    <button
+                      type="button"
+                      onClick={() => setHistory((h) => undo(h))}
+                      disabled={!undoable}
+                      aria-label="Deshacer"
+                      title="Deshacer (⌘Z)"
+                      className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
+                    >
+                      <UndoIcon size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHistory((h) => redo(h))}
+                      disabled={!redoable}
+                      aria-label="Rehacer"
+                      title="Rehacer (⌘⇧Z)"
+                      className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
+                    >
+                      <RedoIcon size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {!empty && (
+                  <span className="mr-1 text-micro text-ink-300 tabular-nums">
+                    {total} {total === 1 ? 'página' : 'páginas'}
+                  </span>
+                )}
+                {!empty && (
+                  <button
+                    type="button"
+                    onClick={newDoc}
+                    title="Empezar un documento nuevo (descarta el borrador; deshacible)"
+                    className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-ink-200 text-ink-600 hover:text-ink-800 hover:border-ink-300 hover:bg-ink-100/40 transition-colors"
+                  >
+                    <FileIcon size={13} />
+                    Nuevo
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void exportPdf(doc)}
+                  disabled={empty || saving || busy}
+                  title="Abrir el visor para imprimir o guardar todo el documento"
+                  className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
+                >
+                  <PrinterIcon size={13} />
+                  {saving ? 'Preparando…' : 'Guardar PDF'}
+                </button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPT}
+                multiple
+                className="sr-only"
+                onChange={onFileInput}
+              />
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPT}
-              multiple
-              className="sr-only"
-              onChange={onFileInput}
-            />
-          </div>
 
-          {editBar}
-          {mainPane}
+            {editBar}
+            {mainPane}
+          </div>
         </div>
       </div>
 

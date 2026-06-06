@@ -78,33 +78,36 @@ export function NotasWorld({
 
       {/* Contenido */}
       <main className="flex-1 relative overflow-hidden flex flex-col">
-        <NotasTopBar section={section} />
-        <div className="h-full overflow-y-auto">
-          {/* Imprenta va a ANCHO COMPLETO (sin el contenedor centrado), para que su
-              panel pueda adosarse como segunda barra lateral pegada a la navegación. */}
-          {section === 'pdf' ? (
-            <Suspense
-              fallback={
-                <div className="py-10 flex justify-center">
-                  <LoadingHint text="cargando Imprenta" size="sm" />
-                </div>
-              }
-            >
-              <PdfStudioView />
-            </Suspense>
-          ) : (
-            <div
-              data-testid="notas-world-content"
-              className="px-5 md:px-8 pb-24 mx-auto py-8 md:py-10 max-w-5xl"
-            >
-              {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
-              {section === 'notas' && <NotasView />}
-              {section === 'tareas' && <TareasView />}
-              {section === 'prompts' && <PromptsView />}
-              {section === 'claves' && <ClavesView />}
+        {/* Imprenta es un layout tipo app de ANCHO COMPLETO: recibe el topbar como
+            prop y lo monta DENTRO de su área de trabajo, para que su panel lateral
+            llegue hasta el borde superior (full-height, como la navegación). */}
+        {section === 'pdf' ? (
+          <Suspense
+            fallback={
+              <div className="py-10 flex justify-center">
+                <LoadingHint text="cargando Imprenta" size="sm" />
+              </div>
+            }
+          >
+            <PdfStudioView topBar={<NotasTopBar section={section} />} />
+          </Suspense>
+        ) : (
+          <>
+            <NotasTopBar section={section} />
+            <div className="h-full overflow-y-auto">
+              <div
+                data-testid="notas-world-content"
+                className="px-5 md:px-8 pb-24 mx-auto py-8 md:py-10 max-w-5xl"
+              >
+                {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
+                {section === 'notas' && <NotasView />}
+                {section === 'tareas' && <TareasView />}
+                {section === 'prompts' && <PromptsView />}
+                {section === 'claves' && <ClavesView />}
+              </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </main>
 
       {/* Buscador global — overlay abierto desde el chrome. */}
