@@ -95,6 +95,38 @@ describe('pdfStudio/assemble · fixtures reales pequeñas', () => {
     expect(skipped[0]?.name).toBe('corrupto.pdf')
   })
 
+  it('mide una exportación de estrés pequeña con progreso y sin skips', async () => {
+    const source = await pdfFile('estres-multipagina.pdf', (pdf) => {
+      for (let i = 0; i < 12; i += 1) {
+        const page = pdf.addPage(i % 2 === 0 ? [420, 594] : [594, 420])
+        page.drawRectangle({
+          x: 24,
+          y: 24,
+          width: 120 + i,
+          height: 60,
+          color: rgb(0.9, 0.9, 0.86),
+        })
+      }
+    })
+    const progress: string[] = []
+    const started = performance.now()
+
+    const { blob, skipped, warnings } = await assemble(
+      addPdfSource(emptyDoc(), source, 12),
+      {
+        onProgress: (event) => progress.push(`${event.phase}:${event.status}`),
+      },
+    )
+
+    expect(performance.now() - started).toBeLessThan(2_000)
+    expect(blob.size).toBeGreaterThan(100)
+    expect(skipped).toEqual([])
+    expect(warnings).toEqual([])
+    expect(progress.filter((event) => event === 'process-pages:progress')).toHaveLength(
+      12,
+    )
+  })
+
   it('lanza error tipado si todos los PDFs reales son inválidos', async () => {
     const corrupt = new File(['not a pdf'], 'solo-corrupto.pdf', {
       type: 'application/pdf',

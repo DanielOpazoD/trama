@@ -115,6 +115,37 @@ test.describe('Imprenta · editor PDF', () => {
     await expectMenuInFront(page, 'Más funciones')
   })
 
+  test('mantiene foco atrapado, visible y navegable dentro del editor', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+
+    const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
+    await page.keyboard.press('Tab')
+    await expect
+      .poll(() => dialog.evaluate((root) => root.contains(document.activeElement)))
+      .toBe(true)
+
+    const selectButton = page.getByRole('button', { name: 'Herramienta seleccionar' })
+    await selectButton.focus()
+    await expect(selectButton).toHaveClass(/focus-visible:ring-2/)
+
+    await page.getByRole('button', { name: 'Agregar cuadro de texto' }).click()
+    await page.keyboard.press('Escape')
+    const xField = page.getByRole('spinbutton', { name: 'X de selección (%)' })
+    await xField.focus()
+    await expect(xField).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(
+      page.getByRole('spinbutton', { name: 'Y de selección (%)' }),
+    ).toBeFocused()
+
+    for (let i = 0; i < 40; i += 1) await page.keyboard.press('Tab')
+    await expect
+      .poll(() => dialog.evaluate((root) => root.contains(document.activeElement)))
+      .toBe(true)
+  })
+
   test('permite redimensionar un resaltado arrastrando un handle', async ({ page }) => {
     await openPdfEditor(page)
 

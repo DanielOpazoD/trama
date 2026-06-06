@@ -4,6 +4,7 @@ import type {
   AnnotationHorizontalAlignment,
   AnnotationLayerMove,
 } from './pdfAnnotationArrange'
+import { focusRing } from './EditorToolbarPrimitives'
 
 type AnnotationBounds = {
   xRatio: number
@@ -52,7 +53,7 @@ function Field({
         disabled={disabled}
         aria-label={`${label} de selección (%)`}
         onChange={(e) => onChange(Number(e.currentTarget.value) / 100)}
-        className="h-7 rounded-md border border-ink-100 bg-paper-50 px-1.5 text-caption tabular-nums text-ink-700 outline-none transition-colors focus:border-[color:var(--accent-sage)] disabled:opacity-45"
+        className="h-7 rounded-md border border-ink-100 bg-paper-50 px-1.5 text-caption tabular-nums text-ink-700 outline-none transition-colors focus:border-[color:var(--accent-sage)] focus-visible:ring-2 focus-visible:ring-[color:var(--accent-sage)] focus-visible:ring-offset-1 disabled:opacity-45"
       />
     </label>
   )
@@ -176,7 +177,7 @@ function TinyButton({
       aria-pressed={active}
       title={label}
       onClick={onClick}
-      className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+      className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors ${focusRing} ${
         active
           ? 'bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]'
           : 'text-ink-500 hover:bg-ink-100/60 hover:text-ink-800'

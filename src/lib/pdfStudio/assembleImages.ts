@@ -1,5 +1,30 @@
 import type { PDFDocument, PDFPage } from 'pdf-lib'
 
+export type PdfImageCompressionMode = 'balanced' | 'compatibility'
+
+export type PdfImageCompressionPolicy = {
+  jpegMaxDimension: number
+  jpegQuality: number
+  maxLosslessPngPixels: number
+}
+
+export function imageCompressionPolicy(
+  mode: PdfImageCompressionMode = 'balanced',
+): PdfImageCompressionPolicy {
+  if (mode === 'compatibility') {
+    return {
+      jpegMaxDimension: 2200,
+      jpegQuality: 0.9,
+      maxLosslessPngPixels: 20_000_000,
+    }
+  }
+  return {
+    jpegMaxDimension: 1600,
+    jpegQuality: 0.82,
+    maxLosslessPngPixels: 8_000_000,
+  }
+}
+
 /** Firma de archivo PNG (‰PNG) — para embeber sin pérdida aunque falte el mime. */
 export function isPngBytes(b: Uint8Array): boolean {
   return b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47
@@ -26,13 +51,10 @@ export function dataUrlToBytes(src: string): Uint8Array | null {
   return out
 }
 
-// Arriba de ~15 MP, embeber el PNG sin pérdida pesaría de más: se downscalea por
-// el camino JPEG (toJpegBytes, máx 1600px). Los screenshots normales no llegan.
-const MAX_PNG_PX = 15_000_000
-
 /** Re-encodea una imagen a JPEG (fondo blanco, dimensión acotada) → bytes. */
 async function toJpegBytes(
   file: File,
+  policy: PdfImageCompressionPolicy,
 ): Promise<{ bytes: Uint8Array; width: number; height: number }> {
   const blobUrl = URL.createObjectURL(file)
   try {
@@ -42,8 +64,10 @@ async function toJpegBytes(
       el.onerror = () => reject(new Error('No se pudo decodificar la imagen'))
       el.src = blobUrl
     })
-    const MAX = 1600
-    const scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight))
+    const scale = Math.min(
+      1,
+      policy.jpegMaxDimension / Math.max(img.naturalWidth, img.naturalHeight),
+    )
     const width = Math.max(1, Math.round(img.naturalWidth * scale))
     const height = Math.max(1, Math.round(img.naturalHeight * scale))
     const canvas = document.createElement('canvas')
@@ -55,7 +79,7 @@ async function toJpegBytes(
     ctx.fillRect(0, 0, width, height)
     ctx.drawImage(img, 0, 0, width, height)
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/jpeg', 0.85),
+      canvas.toBlob(resolve, 'image/jpeg', policy.jpegQuality),
     )
     if (!blob) throw new Error('No se pudo codificar la imagen')
     const bytes = new Uint8Array(await blob.arrayBuffer())
@@ -70,11 +94,16 @@ async function toJpegBytes(
  * screenshots/line-art); el resto se re-encodea a JPEG. Si pdf-lib no soporta
  * ese PNG, cae al camino JPEG.
  */
-export async function addImagePage(out: PDFDocument, file: File): Promise<PDFPage> {
+export async function addImagePage(
+  out: PDFDocument,
+  file: File,
+  options: { compression?: PdfImageCompressionMode } = {},
+): Promise<PDFPage> {
+  const policy = imageCompressionPolicy(options.compression)
   const buf = new Uint8Array(await file.arrayBuffer())
   if (file.type === 'image/png' || isPngBytes(buf)) {
     const size = readPngSize(buf)
-    if (!size || size.w * size.h <= MAX_PNG_PX) {
+    if (!size || size.w * size.h <= policy.maxLosslessPngPixels) {
       try {
         const png = await out.embedPng(buf)
         const p = out.addPage([png.width, png.height])
@@ -85,7 +114,7 @@ export async function addImagePage(out: PDFDocument, file: File): Promise<PDFPag
       }
     }
   }
-  const { bytes, width, height } = await toJpegBytes(file)
+  const { bytes, width, height } = await toJpegBytes(file, policy)
   const jpg = await out.embedJpg(bytes)
   const p = out.addPage([width, height])
   p.drawImage(jpg, { x: 0, y: 0, width, height })

@@ -170,7 +170,9 @@ export async function assemble(
         const [copied] = await out.copyPages(src, [page.pageIndex])
         if (copied) outPage = out.addPage(copied)
       } else {
-        outPage = await addImagePage(out, source.file)
+        outPage = await addImagePage(out, source.file, {
+          compression: options.compression,
+        })
       }
       if (!outPage) continue
 

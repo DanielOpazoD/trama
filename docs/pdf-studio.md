@@ -94,18 +94,18 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
 
 ## Matriz de Capacidades
 
-| Area                 | Estado actual                                                                                              | Evidencia                                                                   |
-| -------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Importacion          | PDF multipagina e imagenes como paginas o biblioteca reutilizable.                                         | `usePdfStudioImport`, `usePdfStudioWorkspace`, `PdfStudioView.test.tsx`     |
-| Organizacion         | Seleccion multiple de paginas, ordenar, rotar, duplicar, extraer, borrar y portapapeles.                   | `model.ts`, `usePageSelection.ts`, `PdfStudioView.test.tsx`                 |
-| Edicion de pagina    | Texto, resaltado, rectangulo, ovalo, linea, flecha e imagen estampada.                                     | `EditorToolbar.tsx`, `AnnotationLayer.tsx`, `e2e/pdf-studio-editor.spec.ts` |
-| Redimensionado       | Handles para texto, resaltados, formas e imagenes; Shift conserva aspecto de imagen.                       | `AnnotationResizeHandles.tsx`, `pdfAnnotationResize.test.ts`                |
-| Atajos               | Copiar, cortar, pegar, duplicar, borrar, mover con flechas, undo/redo y Escape contextual.                 | `usePdfTextEditorKeyboard.ts`, `pdfAnnotationShortcuts.test.ts`             |
-| Seleccion de objetos | Seleccion simple, multiple con modificador y marquee; alinear, distribuir, bloquear, agrupar y desagrupar. | `usePdfTextEditorSelection.ts`, `pdfAnnotationArrange.test.ts`, e2e editor  |
-| Exportacion          | Copia paginas PDF sin rasterizar, embebe imagenes, progreso por fases, cancelacion y perfil de compresion. | `assemble.ts`, `assemblePipeline.ts`, `assemble.test.ts`                    |
-| Robustez             | Salta sources corruptos/cifrados, warnings tempranos, fallback de fuentes y error tipado.                  | `PdfExportPipelineError`, `assemble.test.ts`                                |
-| Calidad visual       | Toolbar compacta, menus delante del modal, inspector contextual, handles y snapshots visuales opt-in.      | `e2e/pdf-studio-visual.spec.ts`                                             |
-| Estructura           | Ratchets de lineas para archivos criticos.                                                                 | `pdfStudioStructure.test.ts`                                                |
+| Area                 | Estado actual                                                                                                 | Evidencia                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Importacion          | PDF multipagina e imagenes como paginas o biblioteca reutilizable.                                            | `usePdfStudioImport`, `usePdfStudioWorkspace`, `PdfStudioView.test.tsx`     |
+| Organizacion         | Seleccion multiple de paginas, ordenar, rotar, duplicar, extraer, borrar y portapapeles.                      | `model.ts`, `usePageSelection.ts`, `PdfStudioView.test.tsx`                 |
+| Edicion de pagina    | Texto, resaltado, rectangulo, ovalo, linea, flecha e imagen estampada.                                        | `EditorToolbar.tsx`, `AnnotationLayer.tsx`, `e2e/pdf-studio-editor.spec.ts` |
+| Redimensionado       | Handles para texto, resaltados, formas e imagenes; Shift conserva aspecto de imagen.                          | `AnnotationResizeHandles.tsx`, `pdfAnnotationResize.test.ts`                |
+| Atajos               | Copiar, cortar, pegar, duplicar, borrar, mover con flechas, undo/redo y Escape contextual.                    | `usePdfTextEditorKeyboard.ts`, `pdfAnnotationShortcuts.test.ts`             |
+| Seleccion de objetos | Seleccion simple, multiple con modificador y marquee; alinear, distribuir, bloquear, agrupar y desagrupar.    | `usePdfTextEditorSelection.ts`, `pdfAnnotationArrange.test.ts`, e2e editor  |
+| Exportacion          | Copia paginas PDF sin rasterizar, embebe imagenes, progreso por fases, cancelacion y compresion configurable. | `assemble.ts`, `assemblePipeline.ts`, `assembleImages.test.ts`              |
+| Robustez             | Salta sources corruptos/cifrados, warnings tempranos, fallback de fuentes y error tipado.                     | `PdfExportPipelineError`, `assemble.test.ts`                                |
+| Calidad visual       | Toolbar compacta, menus delante del modal, inspector contextual, handles y snapshots visuales opt-in.         | `e2e/pdf-studio-visual.spec.ts`                                             |
+| Estructura           | Ratchets de lineas para archivos criticos.                                                                    | `pdfStudioStructure.test.ts`                                                |
 
 ## Limites Conocidos
 
@@ -113,11 +113,12 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
   forma perezosa.
 - Los snapshots visuales son opt-in y macOS-only para evitar ruido por diferencias
   de fuentes/render en Linux CI.
-- Los fixtures de estres siguen siendo sinteticos o pequenos; falta una carpeta de
-  PDFs reales representativos para escaneados, fuentes raras y casos de memoria.
+- Los fixtures reales cubren multipagina, rotado, escaneado, corrupto, fuente no
+  usual y una exportacion de estres pequena medida; falta una carpeta curada de PDFs
+  grandes de usuario para pruebas de memoria extrema.
 - La seleccion por marquee es rectangular; aun no hay lazo libre ni seleccion por
   rango semantico de objetos.
 - El inspector permite posicion/tamano por inputs numericos basicos; falta un modo
   avanzado con unidades, nudging fino y presets de proporcion.
-- La exportacion soporta cancelacion y perfil de compatibilidad, pero aun no hace
-  recompression real de imagenes ni estimacion precisa de memoria por pagina.
+- La exportacion recomprime imagenes grandes segun perfil, pero aun no estima
+  memoria precisa por pagina ni muestra prediccion de peso final antes de guardar.

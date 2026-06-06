@@ -21,6 +21,7 @@ import {
   activeMenuItem,
   COLORS,
   editorMenuLayer,
+  focusRing,
   FONTS,
   Hint,
   menuTrigger,
@@ -248,7 +249,7 @@ export function EditorToolbar({
             onClick={() => onApplyStyle({ bold: !activeBold })}
             aria-pressed={activeBold}
             aria-label="Negrita"
-            className={`shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors ${
+            className={`shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors ${focusRing} ${
               activeBold
                 ? 'bg-ink-100/60 text-ink-800'
                 : 'text-ink-400 hover:bg-ink-100/50 hover:text-ink-700'
