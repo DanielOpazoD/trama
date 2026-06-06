@@ -22,6 +22,7 @@ type AnnotationBox = {
   hRatio: number
 }
 
+export type AnnotationPoint = { xRatio: number; yRatio: number }
 export type AnnotationBoundsPatch = Partial<AnnotationBox>
 
 function clamp(n: number, min: number, max: number): number {
@@ -104,6 +105,40 @@ export function selectAnnotationsInBox(
     .filter((annotation) =>
       boxesIntersect(annotationArrangeBox(annotation, geometry), normalized),
     )
+    .map((annotation) => annotation.id)
+}
+
+function pointInPolygon(point: AnnotationPoint, polygon: AnnotationPoint[]): boolean {
+  if (polygon.length < 3) return false
+  let inside = false
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
+    const a = polygon[i]!
+    const b = polygon[j]!
+    const dy = b.yRatio - a.yRatio
+    const crosses =
+      a.yRatio > point.yRatio !== b.yRatio > point.yRatio &&
+      point.xRatio < ((b.xRatio - a.xRatio) * (point.yRatio - a.yRatio)) / dy + a.xRatio
+    if (crosses) inside = !inside
+  }
+  return inside
+}
+
+export function selectAnnotationsInPolygon(
+  annotations: Annotation[],
+  polygon: AnnotationPoint[],
+  geometry: AnnotationArrangeGeometry,
+): string[] {
+  return annotations
+    .filter((annotation) => {
+      const box = annotationArrangeBox(annotation, geometry)
+      return pointInPolygon(
+        {
+          xRatio: box.xRatio + box.wRatio / 2,
+          yRatio: box.yRatio + box.hRatio / 2,
+        },
+        polygon,
+      )
+    })
     .map((annotation) => annotation.id)
 }
 
@@ -283,6 +318,42 @@ export function moveAnnotationLayer(
   if (!item) return annotations
   next.splice(target, 0, item)
   return next
+}
+
+export function moveAnnotationLayers(
+  annotations: Annotation[],
+  ids: string[],
+  move: AnnotationLayerMove,
+): Annotation[] {
+  const selected = new Set(ids)
+  const movableIds = new Set(
+    annotations.filter((a) => selected.has(a.id) && !a.locked).map((a) => a.id),
+  )
+  if (movableIds.size === 0) return annotations
+  if (movableIds.size === 1) {
+    const [id] = movableIds
+    return id ? moveAnnotationLayer(annotations, id, move) : annotations
+  }
+
+  const moving = annotations.filter((a) => movableIds.has(a.id))
+  const rest = annotations.filter((a) => !movableIds.has(a.id))
+  const firstIndex = annotations.findIndex((a) => movableIds.has(a.id))
+  const restBefore = annotations
+    .slice(0, firstIndex)
+    .filter((a) => !movableIds.has(a.id)).length
+
+  const insertAt =
+    move === 'front'
+      ? rest.length
+      : move === 'back'
+        ? 0
+        : move === 'forward'
+          ? Math.min(rest.length, restBefore + 1)
+          : Math.max(0, restBefore - 1)
+  const next = [...rest.slice(0, insertAt), ...moving, ...rest.slice(insertAt)]
+  return next.map((a) => a.id).join('\0') === annotations.map((a) => a.id).join('\0')
+    ? annotations
+    : next
 }
 
 export function setAnnotationsLocked(

@@ -6,7 +6,9 @@ import {
   distributeAnnotations,
   groupAnnotations,
   moveAnnotationLayer,
+  moveAnnotationLayers,
   selectAnnotationsInBox,
+  selectAnnotationsInPolygon,
   setAnnotationsLocked,
   setAnnotationBounds,
   ungroupAnnotations,
@@ -105,6 +107,23 @@ describe('pdfAnnotationArrange', () => {
     ).toEqual(['a', 'b', 'd'])
   })
 
+  it('selecciona anotaciones cuyo centro cae dentro de un lazo libre', () => {
+    const list = [mark('a', 0.12, 0.12), mark('b', 0.32, 0.18), mark('c', 0.72, 0.72)]
+
+    expect(
+      selectAnnotationsInPolygon(
+        list,
+        [
+          { xRatio: 0.05, yRatio: 0.05 },
+          { xRatio: 0.55, yRatio: 0.08 },
+          { xRatio: 0.5, yRatio: 0.38 },
+          { xRatio: 0.08, yRatio: 0.36 },
+        ],
+        geom,
+      ),
+    ).toEqual(['a', 'b'])
+  })
+
   it('distribuye tres o más anotaciones por centros y respeta formas', () => {
     const list = [
       mark('a', 0.1, 0.1, 0.1),
@@ -182,6 +201,35 @@ describe('pdfAnnotationArrange', () => {
       'b',
     ])
     expect(list.map((a) => a.id)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('mueve múltiples capas preservando orden interno y respetando bloqueadas', () => {
+    const locked = { ...mark('d', 0.4, 0.1), locked: true }
+    const list = [
+      mark('a', 0.1, 0.1),
+      mark('b', 0.2, 0.1),
+      mark('c', 0.3, 0.1),
+      locked,
+      mark('e', 0.5, 0.1),
+    ]
+
+    expect(moveAnnotationLayers(list, ['b', 'd', 'c'], 'front').map((a) => a.id)).toEqual(
+      ['a', 'd', 'e', 'b', 'c'],
+    )
+    expect(moveAnnotationLayers(list, ['b', 'c'], 'back').map((a) => a.id)).toEqual([
+      'b',
+      'c',
+      'a',
+      'd',
+      'e',
+    ])
+    expect(moveAnnotationLayers(list, ['b', 'c'], 'forward').map((a) => a.id)).toEqual([
+      'a',
+      'd',
+      'b',
+      'c',
+      'e',
+    ])
   })
 
   it('bloquea y agrupa anotaciones con metadatos mínimos', () => {

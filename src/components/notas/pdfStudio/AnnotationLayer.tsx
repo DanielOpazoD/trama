@@ -15,9 +15,11 @@ import {
   type ShapeKind,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
-import { rectFromPoints, type ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
+import { type ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
 import { AnnotationResizeHandles } from './AnnotationResizeHandles'
 import { EditableBox } from './EditableBox'
+import { HighlightDrawingPreview } from './HighlightDrawingPreview'
+import { SelectionLassoPreview } from './SelectionLassoPreview'
 import { SelectionMarqueePreview } from './SelectionMarqueePreview'
 import { ShapeStroke } from './AnnotationShapeStroke'
 import {
@@ -43,6 +45,7 @@ export function AnnotationLayer({
   editingId,
   drawing,
   selectionMarquee,
+  selectionLasso,
   snapGuides = [],
   drawColor,
   onStartDrag,
@@ -64,6 +67,7 @@ export function AnnotationLayer({
   editingId: string | null
   drawing: DrawingRect | null
   selectionMarquee?: DrawingRect | null
+  selectionLasso?: { x: number; y: number }[] | null
   snapGuides?: SnapGuide[]
   /** Color del resaltado en curso (para el preview punteado). */
   drawColor: string
@@ -420,29 +424,15 @@ export function AnnotationLayer({
           </div>
         ))}
 
-      {drawing &&
-        tool === 'highlight' &&
-        (() => {
-          const r = rectFromPoints(drawing.x0, drawing.y0, drawing.x1, drawing.y1)
-          return (
-            <div
-              style={{
-                position: 'absolute',
-                left: r.x,
-                top: r.y,
-                width: r.w,
-                height: r.h,
-                backgroundColor: hexToRgba(drawColor, HIGHLIGHT_OPACITY),
-                border: `1px dashed ${ACCENT}`,
-                borderRadius: 2,
-                pointerEvents: 'none',
-              }}
-            />
-          )
-        })()}
+      {drawing && tool === 'highlight' && (
+        <HighlightDrawingPreview rect={drawing} color={drawColor} />
+      )}
 
       {selectionMarquee && tool === 'select' && (
         <SelectionMarqueePreview rect={selectionMarquee} />
+      )}
+      {selectionLasso && tool === 'select' && (
+        <SelectionLassoPreview points={selectionLasso} width={innerW} height={innerH} />
       )}
     </>
   )

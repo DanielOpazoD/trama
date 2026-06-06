@@ -19,7 +19,10 @@ import {
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import type { DrawingRect } from './AnnotationLayer'
-import { selectAnnotationsInBox } from './pdfAnnotationArrange'
+import {
+  selectAnnotationsInBox,
+  selectAnnotationsInPolygon,
+} from './pdfAnnotationArrange'
 import { createAnnotationFromDrawGesture } from './pdfAnnotationDrawing'
 import { resizeAnnotationFromPointerDelta } from './pdfAnnotationResize'
 import { snapAnnotationDrag, type SnapGuide } from './pdfAnnotationSnap'
@@ -45,6 +48,7 @@ export function usePdfTextEditorInteractions({
   selectAnnotationIds,
   setDrawing,
   setSelectionMarquee,
+  setSelectionLasso,
   setSnapGuides,
   setHistory,
   setAnnotations,
@@ -60,6 +64,7 @@ export function usePdfTextEditorInteractions({
   selectAnnotationIds: (ids: string[], additive?: boolean) => void
   setDrawing: Dispatch<SetStateAction<DrawingRect | null>>
   setSelectionMarquee: Dispatch<SetStateAction<DrawingRect | null>>
+  setSelectionLasso: Dispatch<SetStateAction<{ x: number; y: number }[] | null>>
   setSnapGuides: Dispatch<SetStateAction<SnapGuide[]>>
   setHistory: Dispatch<SetStateAction<History<Record<number, Annotation[]>>>>
   setAnnotations: (fn: (list: Annotation[]) => Annotation[]) => void
@@ -165,6 +170,7 @@ export function usePdfTextEditorInteractions({
   function startMarquee(e: ReactPointerEvent) {
     if (!layout) return
     e.stopPropagation()
+    const freehand = e.altKey
     const x0 = e.nativeEvent.offsetX
     const y0 = e.nativeEvent.offsetY
     const startX = e.clientX
@@ -174,8 +180,10 @@ export function usePdfTextEditorInteractions({
     const innerW = layout.innerW
     const innerH = layout.innerH
     let last = { x0, y0, x1: x0, y1: y0 }
+    let path = [{ x: x0, y: y0 }]
     let moved = false
-    setSelectionMarquee(last)
+    if (freehand) setSelectionLasso(path)
+    else setSelectionMarquee(last)
     const move = (ev: PointerEvent) => {
       const { dx: pdx, dy: pdy } = screenDeltaToPage(
         ev.clientX - startX,
@@ -190,14 +198,38 @@ export function usePdfTextEditorInteractions({
         x1: clamp(x0 + pdx / zoom, 0, innerW),
         y1: clamp(y0 + pdy / zoom, 0, innerH),
       }
-      setSelectionMarquee(last)
+      if (freehand) {
+        const point = { x: last.x1, y: last.y1 }
+        const previous = path[path.length - 1]!
+        if (Math.hypot(point.x - previous.x, point.y - previous.y) >= 4) {
+          path = [...path, point]
+          setSelectionLasso(path)
+        }
+      } else {
+        setSelectionMarquee(last)
+      }
     }
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       setSelectionMarquee(null)
+      setSelectionLasso(null)
       if (!moved) {
         selectAnnotationIds([])
+        return
+      }
+      if (freehand) {
+        selectAnnotationIds(
+          selectAnnotationsInPolygon(
+            annotationsRef.current,
+            path.map((point) => ({
+              xRatio: point.x / Math.max(1, innerW),
+              yRatio: point.y / Math.max(1, innerH),
+            })),
+            { pageWidthPx: innerW, pageHeightPx: innerH },
+          ),
+          additive,
+        )
         return
       }
       const left = Math.min(last.x0, last.x1) / Math.max(1, innerW)

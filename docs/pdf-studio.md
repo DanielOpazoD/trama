@@ -101,7 +101,7 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
 | Edicion de pagina    | Texto, resaltado, rectangulo, ovalo, linea, flecha e imagen estampada.                                        | `EditorToolbar.tsx`, `AnnotationLayer.tsx`, `e2e/pdf-studio-editor.spec.ts` |
 | Redimensionado       | Handles para texto, resaltados, formas e imagenes; Shift conserva aspecto de imagen.                          | `AnnotationResizeHandles.tsx`, `pdfAnnotationResize.test.ts`                |
 | Atajos               | Copiar, cortar, pegar, duplicar, borrar, mover con flechas, undo/redo y Escape contextual.                    | `usePdfTextEditorKeyboard.ts`, `pdfAnnotationShortcuts.test.ts`             |
-| Seleccion de objetos | Seleccion simple, multiple con modificador y marquee; alinear, distribuir, bloquear, agrupar y desagrupar.    | `usePdfTextEditorSelection.ts`, `pdfAnnotationArrange.test.ts`, e2e editor  |
+| Seleccion de objetos | Seleccion simple, multiple con modificador, marquee y lazo; alinear, distribuir, bloquear, capas y grupos.    | `usePdfTextEditorSelection.ts`, `pdfAnnotationArrange.test.ts`, e2e editor  |
 | Exportacion          | Copia paginas PDF sin rasterizar, embebe imagenes, progreso por fases, cancelacion y compresion configurable. | `assemble.ts`, `assemblePipeline.ts`, `assembleImages.test.ts`              |
 | Robustez             | Salta sources corruptos/cifrados, warnings tempranos, fallback de fuentes y error tipado.                     | `PdfExportPipelineError`, `assemble.test.ts`                                |
 | Calidad visual       | Toolbar compacta, menus delante del modal, inspector contextual, handles y snapshots visuales opt-in.         | `e2e/pdf-studio-visual.spec.ts`                                             |
@@ -116,8 +116,8 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
 - Los fixtures reales cubren multipagina, rotado, escaneado, corrupto, fuente no
   usual y una exportacion de estres pequena medida; falta una carpeta curada de PDFs
   grandes de usuario para pruebas de memoria extrema.
-- La seleccion por marquee es rectangular; aun no hay lazo libre ni seleccion por
-  rango semantico de objetos.
+- El lazo libre existe con modificador de teclado; aun no tiene affordance visual
+  dedicada en la barra ni seleccion por rango semantico de objetos.
 - El inspector permite posicion/tamano por inputs numericos basicos; falta un modo
   avanzado con unidades, nudging fino y presets de proporcion.
 - La exportacion recomprime imagenes grandes segun perfil, pero aun no estima

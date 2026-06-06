@@ -7,6 +7,7 @@ import {
   distributeAnnotations,
   groupAnnotations,
   moveAnnotationLayer,
+  moveAnnotationLayers,
   setAnnotationBounds,
   setAnnotationsLocked,
   ungroupAnnotations,
@@ -111,8 +112,12 @@ export function usePdfTextEditorSelection({
   }
 
   const moveSelectionLayer = (move: AnnotationLayerMove) => {
-    if (!selectedId) return
-    setAnnotations((list) => moveAnnotationLayer(list, selectedId, move))
+    if (operationSelectedIds.length === 0) return
+    setAnnotations((list) =>
+      operationSelectedIds.length === 1 && selectedId
+        ? moveAnnotationLayer(list, selectedId, move)
+        : moveAnnotationLayers(list, operationSelectedIds, move),
+    )
   }
 
   const toggleSelectionLocked = (locked: boolean) => {

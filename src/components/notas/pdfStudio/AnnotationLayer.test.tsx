@@ -202,6 +202,18 @@ describe('<AnnotationLayer />', () => {
     expect(container.querySelector('[data-pdf-selection-marquee="true"]')).not.toBeNull()
   })
 
+  it('pinta el lazo de selección libre en modo seleccionar', () => {
+    const { container } = setup({
+      selectionLasso: [
+        { x: 20, y: 30 },
+        { x: 160, y: 35 },
+        { x: 120, y: 130 },
+      ],
+    })
+
+    expect(container.querySelector('[data-pdf-selection-lasso="true"]')).not.toBeNull()
+  })
+
   it('dibuja el preview vectorial (SVG) mientras se arrastra una forma', () => {
     const { container } = setup({
       tool: 'rect',

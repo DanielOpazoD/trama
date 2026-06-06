@@ -85,6 +85,9 @@ export function PdfTextEditor({
     x1: number
     y1: number
   } | null>(null)
+  const [selectionLasso, setSelectionLasso] = useState<{ x: number; y: number }[] | null>(
+    null,
+  )
   const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([])
   // Default 150%: prioriza ver/editar la página en grande (la barra es compacta).
   const [zoom, setZoom] = useState(1.5)
@@ -270,6 +273,7 @@ export function PdfTextEditor({
       selectAnnotationIds,
       setDrawing,
       setSelectionMarquee,
+      setSelectionLasso,
       setSnapGuides,
       setHistory,
       setAnnotations,
@@ -400,6 +404,7 @@ export function PdfTextEditor({
             editingId={editingId}
             drawing={drawing}
             selectionMarquee={selectionMarquee}
+            selectionLasso={selectionLasso}
             snapGuides={snapGuides}
             drawColor={style.color}
             onStartDrag={startDrag}
