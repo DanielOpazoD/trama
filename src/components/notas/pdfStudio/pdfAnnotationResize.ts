@@ -1,6 +1,7 @@
 import type {
   HighlightAnnotation,
   ImageAnnotation,
+  RedactionAnnotation,
   ShapeAnnotation,
   TextAnnotation,
 } from '../../../lib/pdfStudio/model'
@@ -14,6 +15,7 @@ import { clamp } from './editorStyle'
 export type ResizableAnnotation =
   | TextAnnotation
   | HighlightAnnotation
+  | RedactionAnnotation
   | ImageAnnotation
   | ShapeAnnotation
 

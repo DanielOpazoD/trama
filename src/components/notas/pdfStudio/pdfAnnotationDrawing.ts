@@ -1,5 +1,6 @@
 import {
   makeHighlightAnnotation,
+  makeRedactionAnnotation,
   makeShapeAnnotation,
   type Annotation,
   type ShapeKind,
@@ -46,6 +47,18 @@ export function createAnnotationFromDrawGesture(
       hRatio: rect.h / pageHeightPx,
       color: input.style.color,
       opacity: input.style.highlightOpacity,
+    })
+  }
+
+  if (input.tool === 'redact') {
+    const rect = rectFromPoints(input.x0, input.y0, input.x1, input.y1)
+    if (rect.w < MIN_BOX_SIDE_PX || rect.h < MIN_BOX_SIDE_PX) return null
+    return makeRedactionAnnotation({
+      xRatio: rect.x / pageWidthPx,
+      yRatio: rect.y / pageHeightPx,
+      wRatio: rect.w / pageWidthPx,
+      hRatio: rect.h / pageHeightPx,
+      color: '#000000',
     })
   }
 

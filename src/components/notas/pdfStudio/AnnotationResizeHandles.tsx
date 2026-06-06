@@ -2,6 +2,7 @@ import {
   TEXT_LINE_HEIGHT,
   type HighlightAnnotation,
   type ImageAnnotation,
+  type RedactionAnnotation,
   type ShapeAnnotation,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
@@ -11,6 +12,7 @@ import type { Tool } from './editorStyle'
 type ResizableAnnotation =
   | TextAnnotation
   | HighlightAnnotation
+  | RedactionAnnotation
   | ImageAnnotation
   | ShapeAnnotation
 
@@ -56,6 +58,7 @@ function boxForAnnotation(
 
 function labelPrefix(annotation: ResizableAnnotation): string {
   if (annotation.kind === 'image') return 'Redimensionar imagen desde'
+  if (annotation.kind === 'redaction') return 'Redimensionar redacción desde'
   if (annotation.kind === 'highlight') return 'Redimensionar resaltado desde'
   if (annotation.kind === 'shape') return 'Redimensionar forma desde'
   return 'Redimensionar texto desde'

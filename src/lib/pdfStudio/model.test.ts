@@ -16,6 +16,7 @@ import {
   isTextAnnotation,
   makeHighlightAnnotation,
   makeImageAnnotation,
+  makeRedactionAnnotation,
   makeShapeAnnotation,
   makeTextAnnotation,
   movePage,
@@ -25,6 +26,7 @@ import {
   pageThumbKey,
   previewFontFamily,
   replacePageWithImage,
+  replacePdfSourceFile,
   reseedIds,
   rotatePage,
   rotatePages,
@@ -113,6 +115,22 @@ describe('pdfStudio/model', () => {
     expect(replacePageWithImage(d, 9, img())).toBe(d) // fuera de rango → no-op
   })
 
+  it('replacePdfSourceFile actualiza el PDF fuente sin tocar páginas', () => {
+    const original = pdf('original.pdf')
+    const filled = pdf('relleno.pdf')
+    const d = addPdfSource(addImageSource(emptyDoc(), img()), original, 2)
+    const sourceId = d.sources.find((source) => source.kind === 'pdf')!.id
+
+    const next = replacePdfSourceFile(d, sourceId, filled)
+
+    expect(getSource(next, sourceId)?.file).toBe(filled)
+    expect(next.pages).toEqual(d.pages)
+    expect(replacePdfSourceFile(d, 'missing', filled)).toBe(d)
+    expect(
+      replacePdfSourceFile(d, d.sources.find((s) => s.kind === 'image')!.id, filled),
+    ).toBe(d)
+  })
+
   it('getSource y pageThumbKey', () => {
     const d = addPdfSource(emptyDoc(), pdf(), 2)
     const p0 = d.pages[0]!
@@ -147,6 +165,26 @@ describe('pdfStudio/model · texto vectorial', () => {
     expect(a.id).not.toBe(b.id)
     expect(a.text).toBe('Hola')
     expect(a.font).toBe('sans')
+  })
+
+  it('makeRedactionAnnotation crea una redacción opaca distinta de un resaltado', () => {
+    const a = makeRedactionAnnotation({
+      xRatio: 0.1,
+      yRatio: 0.2,
+      wRatio: 0.3,
+      hRatio: 0.08,
+      color: '#000000',
+    })
+
+    expect(a).toMatchObject({
+      kind: 'redaction',
+      xRatio: 0.1,
+      yRatio: 0.2,
+      wRatio: 0.3,
+      hRatio: 0.08,
+      color: '#000000',
+      opacity: 1,
+    })
   })
 
   it('textBoxLayout expone ancho y alto cuando el texto usa caja real', () => {

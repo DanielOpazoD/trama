@@ -31,42 +31,29 @@ import { WorkspacePanel } from './WorkspacePanel'
 import { PdfDropzone } from './PdfDropzone'
 import { PageGrid } from './PageGrid'
 import { PdfStudioDocumentToolbar } from './PdfStudioDocumentToolbar'
+import { PdfStudioFormPanel } from './PdfStudioFormPanel'
 import { PdfTextEditor } from './PdfTextEditor'
 import { usePageSelection } from './usePageSelection'
 import { usePdfStudioExport } from './usePdfStudioExport'
 import { usePdfStudioImport } from './usePdfStudioImport'
+import { usePdfStudioForms } from './usePdfStudioForms'
 import { usePdfStudioPageKeyboard } from './usePdfStudioPageKeyboard'
 import { usePdfStudioWorkspace } from './usePdfStudioWorkspace'
 import { useToast } from '../../../state'
 
 const ACCEPT = 'application/pdf,image/*'
 
-/**
- * Imprenta (submódulo del mundo Notas), 100% client-side: combina PDFs e imágenes
- * en un solo documento, a nivel de PÁGINA (estilo iLovePDF). Cada PDF se expande en
- * sus páginas y cada imagen es una página; todas se ven como miniaturas
- * reordenables (arrastrando o con ◄ ► del teclado) y borrables, y se exportan al
- * visor del navegador para imprimir o guardar como PDF. El modelo es puro y
- * testeado; el render (pdf.js) y el ensamblado (pdf-lib) son perezosos y viven en
- * archivos aparte.
- */
 export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   const toast = useToast()
   const [exportCompression, setExportCompression] =
     useState<AssembleOptions['compression']>('balanced')
-  // El documento vive detrás de un historial (undo/redo). `doc` = presente.
   const [history, setHistory] = useState<History<PdfDoc>>(() => initHistory(emptyDoc()))
   const doc = history.present
   const { cancelExport, downloadPdf, downloadSaved, exportPdf, exportStatus, saving } =
     usePdfStudioExport({ compression: exportCompression })
   const [textPage, setTextPage] = useState<number | null>(null)
-  // Contenedor scrolleable del área de trabajo: raíz del IntersectionObserver del
-  // lazy-load de las miniaturas (el app-shell scrollea acá adentro, no el viewport).
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null)
-  // Portapapeles INTERNO de páginas (copiar/cortar/pegar por teclado): guarda un
-  // subdocumento con las páginas marcadas; `insertPages` les da ids nuevos al pegar.
   const pageClipboardRef = useRef<PdfDoc | null>(null)
-  // Selección múltiple de páginas (por ID → sobrevive reordenar/borrar).
   const {
     selectedIds,
     selectedIndices,
@@ -77,7 +64,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   } = usePageSelection(doc.pages)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  /** Aplica un cambio al documento y lo registra en el historial. */
   const commit = useCallback((next: PdfDoc | ((prev: PdfDoc) => PdfDoc)) => {
     setHistory((h) => {
       const value = typeof next === 'function' ? next(h.present) : next
@@ -100,8 +86,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     setPanelCollapsed,
     userKey,
   } = usePdfStudioWorkspace({ clearSelection, commit, doc, setHistory })
-  // Refs para leer selección/doc actuales desde el handler de teclado (montado una
-  // sola vez) sin re-suscribirlo en cada cambio de selección.
   const selectedIndicesRef = useRef(selectedIndices)
   selectedIndicesRef.current = selectedIndices
   const docRef = useRef(doc)
@@ -109,8 +93,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   const selectAllRef = useRef(selectAll)
   selectAllRef.current = selectAll
 
-  /** Actualiza los ajustes del documento (numeración/marca de agua) SIN entrada de
-   *  historial (son config, no edición de contenido); igual persisten en el doc. */
   const updateSettings = useCallback((settings: DocSettings) => {
     setHistory((h) => ({ ...h, present: setDocSettings(h.present, settings) }))
   }, [])
@@ -120,6 +102,8 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     doc,
     onImageAssets: addAssets,
   })
+  const { applyForms, formSummary, forms, inspectForms, updateFormValue } =
+    usePdfStudioForms(doc, commit)
 
   // Al desmontar la sección, libera las miniaturas/documentos de pdf.js.
   useEffect(() => () => disposePdfStudio(), [])
@@ -327,6 +311,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
               onDownload={() => void downloadPdf(doc)}
               onCancelExport={cancelExport}
               onNewDoc={newDoc}
+              onInspectForms={() => void inspectForms()}
               onSetExportCompression={setExportCompression}
               onSetPageNumbers={setPageNumbers}
               onSetWatermark={setWatermark}
@@ -338,6 +323,20 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
               multiple
               className="sr-only"
               onChange={onFileInput}
+            />
+            {formSummary && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="rounded-md border border-ink-100 bg-paper-50/80 px-3 py-2 text-caption text-ink-600"
+              >
+                {formSummary}
+              </div>
+            )}
+            <PdfStudioFormPanel
+              forms={forms}
+              onApply={(flatten) => void applyForms(flatten)}
+              onChange={updateFormValue}
             />
 
             {editBar}

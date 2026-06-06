@@ -32,6 +32,7 @@ export function PdfStudioDocumentToolbar({
   onDownload,
   onImport,
   onNewDoc,
+  onInspectForms,
   onRedo,
   onSavePdf,
   onSetExportCompression,
@@ -53,6 +54,7 @@ export function PdfStudioDocumentToolbar({
   onDownload: () => void
   onImport: () => void
   onNewDoc: () => void
+  onInspectForms: () => void
   onRedo: () => void
   onSavePdf: () => void
   onSetExportCompression: (next: AssembleOptions['compression']) => void
@@ -160,6 +162,16 @@ export function PdfStudioDocumentToolbar({
               >
                 <FileIcon size={13} />
                 Nuevo documento
+              </OverflowMenuItem>
+              <OverflowMenuItem
+                disabled={empty || saving || busy}
+                onClick={() => {
+                  close()
+                  onInspectForms()
+                }}
+              >
+                <FileIcon size={13} />
+                Detectar formularios
               </OverflowMenuItem>
               {!empty && (
                 <div className="mt-1 border-t border-ink-100 px-2 py-2">

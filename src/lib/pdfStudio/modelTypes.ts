@@ -39,6 +39,15 @@ export type HighlightAnnotation = AnnotationBase & {
   color: string
 }
 
+export type RedactionAnnotation = AnnotationBase & {
+  kind: 'redaction'
+  xRatio: number
+  yRatio: number
+  wRatio: number
+  hRatio: number
+  color: string
+}
+
 export type ShapeKind = 'rect' | 'oval' | 'line' | 'arrow'
 
 export type ShapeAnnotation = AnnotationBase & {
@@ -64,6 +73,7 @@ export type ImageAnnotation = AnnotationBase & {
 export type Annotation =
   | TextAnnotation
   | HighlightAnnotation
+  | RedactionAnnotation
   | ShapeAnnotation
   | ImageAnnotation
 

@@ -41,6 +41,17 @@ const mark = (id: string, xRatio: number, yRatio: number, wRatio = 0.1): Annotat
   opacity: 0.45,
 })
 
+const redaction = (id: string, xRatio: number, yRatio: number): Annotation => ({
+  id,
+  kind: 'redaction',
+  xRatio,
+  yRatio,
+  wRatio: 0.12,
+  hRatio: 0.08,
+  color: '#000000',
+  opacity: 1,
+})
+
 const shape = (id: string, x0Ratio: number, x1Ratio: number): Annotation => ({
   id,
   kind: 'shape',
@@ -96,6 +107,7 @@ describe('pdfAnnotationArrange', () => {
       mark('b', 0.36, 0.28),
       shape('c', 0.7, 0.8),
       { ...mark('d', 0.2, 0.2), locked: true },
+      redaction('e', 0.24, 0.12),
     ]
 
     expect(
@@ -104,7 +116,7 @@ describe('pdfAnnotationArrange', () => {
         { xRatio: 0.05, yRatio: 0.05, wRatio: 0.42, hRatio: 0.28 },
         geom,
       ),
-    ).toEqual(['a', 'b', 'd'])
+    ).toEqual(['a', 'b', 'd', 'e'])
   })
 
   it('selecciona anotaciones cuyo centro cae dentro de un lazo libre', () => {
@@ -139,7 +151,12 @@ describe('pdfAnnotationArrange', () => {
   })
 
   it('edita posición y tamaño de una anotación desde bounds normalizados', () => {
-    const list = [text('a', 0.3, 0.2), mark('b', 0.1, 0.1), shape('c', 0.4, 0.5)]
+    const list = [
+      text('a', 0.3, 0.2),
+      mark('b', 0.1, 0.1),
+      shape('c', 0.4, 0.5),
+      redaction('d', 0.5, 0.3),
+    ]
 
     expect(
       setAnnotationBounds(list, 'a', { xRatio: 0.12, wRatio: 0.32 })[0],
@@ -165,6 +182,14 @@ describe('pdfAnnotationArrange', () => {
         y1Ratio: 0.3,
       },
     )
+    expect(
+      setAnnotationBounds(list, 'd', { xRatio: 0.42, hRatio: 0.16 })[3],
+    ).toMatchObject({
+      xRatio: 0.42,
+      yRatio: 0.3,
+      wRatio: 0.12,
+      hRatio: 0.16,
+    })
   })
 
   it('acota bounds inválidos y respeta anotaciones bloqueadas', () => {

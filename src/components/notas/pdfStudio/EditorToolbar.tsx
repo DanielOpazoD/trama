@@ -10,6 +10,7 @@ import {
   OpacityIcon,
   PlusIcon,
   RotateIcon,
+  ShieldIcon,
   TextIcon,
   TextSizeIcon,
   TrashIcon,
@@ -126,6 +127,17 @@ export function EditorToolbar({
               aria-pressed={tool === 'highlight'}
             >
               <HighlighterIcon size={14} />
+            </button>
+          </Hint>
+          <Hint content="Marcar redacción segura">
+            <button
+              type="button"
+              onClick={() => onToolChange('redact')}
+              className={segBtnTool(tool === 'redact')}
+              aria-label="Herramienta redactar"
+              aria-pressed={tool === 'redact'}
+            >
+              <ShieldIcon size={14} />
             </button>
           </Hint>
         </div>

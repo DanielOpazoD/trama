@@ -35,7 +35,7 @@ export const HIT_Y = 4
 export const HIGHLIGHT_OPACITY = 0.35
 
 /** Herramientas del editor (modos). `rect/oval/line/arrow` son formas vectoriales. */
-export type Tool = 'select' | 'highlight' | 'rect' | 'oval' | 'line' | 'arrow'
+export type Tool = 'select' | 'highlight' | 'redact' | 'rect' | 'oval' | 'line' | 'arrow'
 
 /** Las formas son los modos de dibujo de contorno (todo lo que no es seleccionar
  *  ni resaltar ni agregar texto). */

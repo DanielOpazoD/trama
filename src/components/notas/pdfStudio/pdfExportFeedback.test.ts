@@ -37,4 +37,10 @@ describe('pdfExportFeedback', () => {
       /cancelada/i,
     )
   })
+
+  it('explica errores de redacción como fallos de rasterización segura', () => {
+    expect(
+      describePdfExportError(new Error('Canvas no disponible para redacción segura')),
+    ).toMatch(/rasterizarse|contenido subyacente/i)
+  })
 })

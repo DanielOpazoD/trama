@@ -33,6 +33,11 @@ export default defineConfig({
     // sidebar lee de acá en vez de hardcodear "v0.x.0" en JSX.
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version),
   },
+  worker: {
+    // El exportador PDF usa imports dinamicos/chunks dentro del Worker. Vite
+    // necesita formato ES para empaquetar workers con code-splitting.
+    format: 'es',
+  },
   build: {
     // DD2: manualChunks separa los vendors del código de aplicación.
     // Beneficio: los vendors casi nunca cambian entre deploys (versión

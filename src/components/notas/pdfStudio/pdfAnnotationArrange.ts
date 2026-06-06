@@ -3,6 +3,7 @@ import {
   type Annotation,
   type HighlightAnnotation,
   type ImageAnnotation,
+  type RedactionAnnotation,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 
@@ -59,7 +60,7 @@ export function annotationArrangeBox(
       hRatio: Math.abs(annotation.y1Ratio - annotation.y0Ratio),
     }
   }
-  return annotation as HighlightAnnotation | ImageAnnotation
+  return annotation as HighlightAnnotation | RedactionAnnotation | ImageAnnotation
 }
 
 function unionBox(boxes: AnnotationBox[]): AnnotationBox | null {

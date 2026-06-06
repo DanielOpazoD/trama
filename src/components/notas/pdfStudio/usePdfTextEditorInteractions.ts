@@ -15,6 +15,7 @@ import {
   type Annotation,
   type HighlightAnnotation,
   type ImageAnnotation,
+  type RedactionAnnotation,
   type ShapeAnnotation,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
@@ -126,7 +127,12 @@ export function usePdfTextEditorInteractions({
 
   function startResize(
     e: ReactPointerEvent,
-    a: TextAnnotation | HighlightAnnotation | ImageAnnotation | ShapeAnnotation,
+    a:
+      | TextAnnotation
+      | HighlightAnnotation
+      | RedactionAnnotation
+      | ImageAnnotation
+      | ShapeAnnotation,
     handle: ResizeHandle,
   ) {
     if (!layout) return

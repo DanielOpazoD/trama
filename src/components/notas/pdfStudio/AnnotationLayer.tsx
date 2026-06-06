@@ -11,6 +11,7 @@ import {
   type Annotation,
   type HighlightAnnotation,
   type ImageAnnotation,
+  type RedactionAnnotation,
   type ShapeAnnotation,
   type ShapeKind,
   type TextAnnotation,
@@ -18,19 +19,13 @@ import {
 import { type ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
 import { AnnotationResizeHandles } from './AnnotationResizeHandles'
 import { EditableBox } from './EditableBox'
+import { AnnotationHighlightBox } from './AnnotationHighlightBox'
 import { HighlightDrawingPreview } from './HighlightDrawingPreview'
+import { AnnotationRedactionBox } from './AnnotationRedactionBox'
 import { SelectionLassoPreview } from './SelectionLassoPreview'
 import { SelectionMarqueePreview } from './SelectionMarqueePreview'
 import { ShapeStroke } from './AnnotationShapeStroke'
-import {
-  ACCENT,
-  HIGHLIGHT_OPACITY,
-  HIT_X,
-  HIT_Y,
-  hexToRgba,
-  isShapeTool,
-  type Tool,
-} from './editorStyle'
+import { ACCENT, HIT_X, HIT_Y, isShapeTool, type Tool } from './editorStyle'
 import type { SnapGuide } from './pdfAnnotationSnap'
 
 export type DrawingRect = { x0: number; y0: number; x1: number; y1: number }
@@ -79,7 +74,12 @@ export function AnnotationLayer({
   onCancelEdit: () => void
   onStartResize: (
     e: ReactPointerEvent,
-    a: TextAnnotation | HighlightAnnotation | ImageAnnotation | ShapeAnnotation,
+    a:
+      | TextAnnotation
+      | HighlightAnnotation
+      | RedactionAnnotation
+      | ImageAnnotation
+      | ShapeAnnotation,
     handle: ResizeHandle,
   ) => void
 }) {
@@ -215,47 +215,40 @@ export function AnnotationLayer({
         )
       })}
 
+      {/* Redacciones: intención de borrado seguro; exportación exige motor dedicado. */}
+      {annotations
+        .filter((a): a is RedactionAnnotation => a.kind === 'redaction')
+        .map((a) => (
+          <AnnotationRedactionBox
+            key={a.id}
+            annotation={a}
+            innerW={innerW}
+            innerH={innerH}
+            tool={tool}
+            selectedId={selectedId}
+            selected={isSelected(a.id)}
+            onStartDrag={startDragFromPointer}
+            onSelect={selectFromClick}
+            onStartResize={onStartResize}
+          />
+        ))}
+
       {/* Resaltados (rectángulos translúcidos) */}
       {annotations
         .filter((a) => a.kind === 'highlight')
         .map((a) => (
-          <div key={a.id}>
-            <div
-              onPointerDown={
-                tool === 'select' ? (e) => startDragFromPointer(e, a) : undefined
-              }
-              onClick={
-                tool === 'select'
-                  ? (e) => {
-                      selectFromClick(e, a.id)
-                    }
-                  : undefined
-              }
-              title="Arrastra para mover"
-              style={{
-                position: 'absolute',
-                left: `${a.xRatio * 100}%`,
-                top: `${a.yRatio * 100}%`,
-                width: `${a.wRatio * 100}%`,
-                height: `${a.hRatio * 100}%`,
-                backgroundColor: hexToRgba(a.color, a.opacity ?? HIGHLIGHT_OPACITY),
-                borderRadius: 2,
-                cursor: a.locked ? 'default' : 'move',
-                touchAction: 'none',
-                pointerEvents: tool === 'select' ? undefined : 'none',
-                outline: isSelected(a.id) ? `1.5px solid ${ACCENT}` : 'none',
-                outlineOffset: 1,
-              }}
-            />
-            <AnnotationResizeHandles
-              annotation={a}
-              innerW={innerW}
-              innerH={innerH}
-              selectedId={selectedId}
-              tool={tool}
-              onStartResize={onStartResize}
-            />
-          </div>
+          <AnnotationHighlightBox
+            key={a.id}
+            annotation={a}
+            innerW={innerW}
+            innerH={innerH}
+            tool={tool}
+            selectedId={selectedId}
+            selected={isSelected(a.id)}
+            onStartDrag={startDragFromPointer}
+            onSelect={selectFromClick}
+            onStartResize={onStartResize}
+          />
         ))}
 
       {/* Imágenes estampadas (firma/sello/logo) */}

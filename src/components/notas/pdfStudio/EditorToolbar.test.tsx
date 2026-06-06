@@ -119,6 +119,8 @@ describe('<EditorToolbar />', () => {
     expect(p.onAddText).toHaveBeenCalledOnce()
     fireEvent.click(screen.getByLabelText('Herramienta resaltar'))
     expect(p.onToolChange).toHaveBeenCalledWith('highlight')
+    fireEvent.click(screen.getByLabelText('Herramienta redactar'))
+    expect(p.onToolChange).toHaveBeenCalledWith('redact')
   })
 
   it('agrega una imagen estampada desde la barra', () => {

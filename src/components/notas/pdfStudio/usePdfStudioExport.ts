@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { assemble, type AssembleOptions } from '../../../lib/pdfStudio/assemble'
+import type { AssembleOptions } from '../../../lib/pdfStudio/assemble'
+import { assemblePdfInWorker } from '../../../lib/pdfStudio/exportWorkerClient'
 import { canExport, type PdfDoc } from '../../../lib/pdfStudio/model'
 import { openBlankPdfTab, showPdfInTab } from '../../../lib/pdfStudio/printPdf'
 import { downloadBlob } from '../../../lib/downloadBlob'
@@ -28,7 +29,7 @@ export function usePdfStudioExport({
     abortRef.current = controller
     setExportStatus(pdfExportProgressLabel(target.pages.length))
     try {
-      const { blob, skipped, warnings } = await assemble(target, {
+      const { blob, skipped, warnings } = await assemblePdfInWorker(target, {
         compression,
         onProgress: (event) => setExportStatus(pdfExportPipelineProgressLabel(event)),
         signal: controller.signal,

@@ -1,10 +1,4 @@
-/**
- * Borde BROWSER-ONLY del editor de PDF: ensambla el documento final con pdf-lib.
- *
- * Orquesta un pipeline explícito y perezoso: fuentes, validación de assets,
- * páginas, anotaciones, compresión y guardado. La lógica pesada vive en módulos
- * pequeños para mantener el exportador testeable y fácil de endurecer.
- */
+/** Borde browser-only del editor de PDF: ensambla el documento final con pdf-lib. */
 import {
   getSource,
   isEmbeddableFont,
@@ -16,6 +10,11 @@ import {
 import type { PDFFont, PDFPage } from 'pdf-lib'
 import { applyPdfAnnotations } from './assembleAnnotations'
 import { addImagePage, readPngSize } from './assembleImages'
+import {
+  addRedactedRasterPage,
+  annotationsWithoutRedactions,
+  pageHasRedactions,
+} from './assembleRedactions'
 import { exportWarnings } from './assembleWarnings'
 import {
   createProgressEmitter,
@@ -165,7 +164,15 @@ export async function assemble(
     if (!source || skippedIds.has(source.id)) continue
     try {
       let outPage: PDFPage | null = null
-      if (page.kind === 'pdf') {
+      const redacted = pageHasRedactions(page)
+      if (redacted) {
+        outPage = await addRedactedRasterPage({
+          out,
+          source,
+          page,
+          compression: options.compression,
+        })
+      } else if (page.kind === 'pdf') {
         const src = await loadPdf(source.file)
         const [copied] = await out.copyPages(src, [page.pageIndex])
         if (copied) outPage = out.addPage(copied)
@@ -177,11 +184,14 @@ export async function assemble(
       if (!outPage) continue
 
       emitLifecycle(emit, 'apply-annotations', 'start', pageIndex + 1, doc.pages.length)
-      if (page.annotations.length > 0) {
+      const annotations = redacted
+        ? annotationsWithoutRedactions(page.annotations)
+        : page.annotations
+      if (annotations.length > 0) {
         await applyPdfAnnotations({
           out,
           outPage,
-          annotations: page.annotations,
+          annotations,
           fontFor,
           rgb,
           degrees,
