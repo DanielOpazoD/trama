@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   addImageSource,
-  addPdfSource,
   applyEdits,
-  canExport,
   deletePages,
   duplicatePages,
   emptyDoc,
@@ -30,14 +28,8 @@ import {
   undo,
   type History,
 } from '../../../lib/pdfStudio/history'
-import {
-  disposePdfStudio,
-  forgetThumb,
-  getPdfPageCount,
-} from '../../../lib/pdfStudio/pdfRender'
-import { assemble } from '../../../lib/pdfStudio/assemble'
+import { disposePdfStudio, forgetThumb } from '../../../lib/pdfStudio/pdfRender'
 import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
-import { openBlankPdfTab, showPdfInTab } from '../../../lib/pdfStudio/printPdf'
 import {
   clearDraft,
   deleteSavedDoc,
@@ -54,14 +46,9 @@ import { BulkBar } from './BulkBar'
 import { WorkspacePanel } from './WorkspacePanel'
 import { PageGrid } from './PageGrid'
 import { PdfTextEditor } from './PdfTextEditor'
-import {
-  exportPdfName,
-  isPdfFile,
-  isStudioImageFile,
-  shouldDownloadPdfDirectly,
-} from './pdfStudioFileUtils'
-import { describePdfExportError, pdfExportProgressLabel } from './pdfExportFeedback'
 import { usePageSelection } from './usePageSelection'
+import { usePdfStudioExport } from './usePdfStudioExport'
+import { usePdfStudioImport } from './usePdfStudioImport'
 import {
   DownloadIcon,
   FileIcon,
@@ -96,9 +83,8 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   // El documento vive detrás de un historial (undo/redo). `doc` = presente.
   const [history, setHistory] = useState<History<PdfDoc>>(() => initHistory(emptyDoc()))
   const doc = history.present
-  const [busy, setBusy] = useState(false) // importando
-  const [saving, setSaving] = useState(false)
-  const [exportStatus, setExportStatus] = useState<string | null>(null)
+  const { downloadPdf, downloadSaved, exportPdf, exportStatus, saving } =
+    usePdfStudioExport()
   const [textPage, setTextPage] = useState<number | null>(null)
   // Contenedor scrolleable del área de trabajo: raíz del IntersectionObserver del
   // lazy-load de las miniaturas (el app-shell scrollea acá adentro, no el viewport).
@@ -152,6 +138,16 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   const updateSettings = useCallback((settings: DocSettings) => {
     setHistory((h) => ({ ...h, present: setDocSettings(h.present, settings) }))
   }, [])
+
+  const onImportedImageAssets = useCallback((assets: ImageAsset[]) => {
+    setLibrary((lib) => [...lib, ...assets])
+    setPanelCollapsed(false)
+  }, [])
+  const { addFiles, busy } = usePdfStudioImport({
+    commit,
+    doc,
+    onImageAssets: onImportedImageAssets,
+  })
 
   // Al desmontar la sección, libera las miniaturas/documentos de pdf.js.
   useEffect(() => () => disposePdfStudio(), [])
@@ -271,49 +267,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     return () => document.removeEventListener('keydown', onKey)
   }, [textPage, clearSelection, commit])
 
-  const addFiles = useCallback(
-    async (list: FileList | File[] | null) => {
-      const files = list ? Array.from(list) : []
-      if (files.length === 0) return
-      setBusy(true)
-      try {
-        let next = doc
-        const failed: string[] = []
-        const newAssets: ImageAsset[] = []
-        for (const file of files) {
-          try {
-            if (isPdfFile(file)) {
-              const count = await getPdfPageCount(file)
-              next = addPdfSource(next, file, count)
-            } else if (isStudioImageFile(file)) {
-              next = addImageSource(next, file)
-              // Las imágenes subidas quedan además en la biblioteca reutilizable.
-              newAssets.push({ id: crypto.randomUUID(), file })
-            } else {
-              failed.push(file.name)
-            }
-          } catch {
-            failed.push(file.name)
-          }
-        }
-        commit(next)
-        if (newAssets.length > 0) {
-          setLibrary((lib) => [...lib, ...newAssets])
-          setPanelCollapsed(false)
-        }
-        if (failed.length > 0) {
-          toast.show({
-            message: `No se pudo leer: ${failed.join(', ')} (¿PDF cifrado o formato no soportado?).`,
-            tone: 'error',
-          })
-        }
-      } finally {
-        setBusy(false)
-      }
-    },
-    [doc, toast, commit],
-  )
-
   function onFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     void addFiles(e.target.files)
     e.currentTarget.value = ''
@@ -429,90 +382,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   function removeSaved(id: string) {
     setSaved((list) => list.filter((s) => s.id !== id))
     void deleteSavedDoc(userKey, id)
-  }
-  async function downloadSaved(s: SavedDoc) {
-    try {
-      const blob = await assembleOrToast(s.doc)
-      if (blob) downloadBlob(blob, `${s.name || 'creacion'}.pdf`)
-    } finally {
-      setExportStatus(null)
-    }
-  }
-
-  /** Ensambla `target` con UN solo manejo de errores y del aviso de archivos
-   *  salteados (los tres caminos de export lo comparten → comportamiento idéntico,
-   *  sin el bug silencioso de descartar `skipped`). Devuelve el blob o `null`. */
-  async function assembleOrToast(target: PdfDoc): Promise<Blob | null> {
-    setExportStatus(pdfExportProgressLabel(target.pages.length))
-    try {
-      const { blob, skipped } = await assemble(target)
-      if (skipped.length > 0) {
-        toast.show({
-          message: `Se saltearon ${skipped.length} archivo(s): ${skipped
-            .map((s) => s.name)
-            .join(', ')}.`,
-          tone: 'error',
-        })
-      }
-      return blob
-    } catch (err) {
-      toast.show({
-        message: describePdfExportError(err),
-        tone: 'error',
-      })
-      return null
-    }
-  }
-
-  // "Guardar PDF": ensambla y abre el PDF en el VISOR del navegador (pestaña nueva),
-  // donde imprimir y "guardar como PDF" sí funcionan. La pestaña se abre ANTES de
-  // ensamblar (en el gesto del clic) para esquivar el bloqueador de pop-ups. En iOS
-  // (donde abrir un blob en pestaña suele fallar) o si la bloquean → descarga directa
-  // con aviso. Exporta SIEMPRE el documento completo (el subset es vía "Exportar").
-  async function exportPdf(target: PdfDoc, kind?: string) {
-    if (!canExport(target) || saving) return
-    setSaving(true)
-    const ios = shouldDownloadPdfDirectly()
-    const viewer = ios ? null : openBlankPdfTab()
-    try {
-      const blob = await assembleOrToast(target)
-      if (!blob) {
-        viewer?.close()
-        return
-      }
-      if (ios) {
-        downloadBlob(blob, exportPdfName(undefined, kind))
-        toast.show({
-          message: 'Descargamos el PDF; ábrelo desde Archivos para imprimir.',
-          tone: 'default',
-        })
-        return
-      }
-      showPdfInTab(viewer, blob, () => {
-        downloadBlob(blob, exportPdfName(undefined, kind))
-        toast.show({
-          message: 'Tu navegador bloqueó la ventana; descargamos el PDF.',
-          tone: 'default',
-        })
-      })
-    } finally {
-      setExportStatus(null)
-      setSaving(false)
-    }
-  }
-
-  /** Descarga el PDF directo a disco: 100% confiable, conserva el texto vectorial y
-   *  da nombre con fecha; no depende del visor ni del bloqueador de pop-ups. */
-  async function downloadPdf(target: PdfDoc, kind?: string) {
-    if (!canExport(target) || saving) return
-    setSaving(true)
-    try {
-      const blob = await assembleOrToast(target)
-      if (blob) downloadBlob(blob, exportPdfName(undefined, kind))
-    } finally {
-      setExportStatus(null)
-      setSaving(false)
-    }
   }
 
   /** Exporta (al visor) SÓLO las hojas marcadas con el tick (barra de edición). */

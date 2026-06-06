@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '../../../test-utils'
 
@@ -338,6 +338,23 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
 
     expect(screen.getByRole('status')).toHaveTextContent('Preparando 2 páginas…')
+    const options = mocks.assemble.mock.calls[0]![1] as {
+      onProgress: (event: {
+        phase: 'process-pages'
+        status: 'progress'
+        current: number
+        total: number
+      }) => void
+    }
+    act(() => {
+      options.onProgress({
+        phase: 'process-pages',
+        status: 'progress',
+        current: 1,
+        total: 2,
+      })
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('Procesando páginas 1/2…')
     resolveAssemble({ blob: new Blob(['pdf'], { type: 'application/pdf' }), skipped: [] })
     expect(await screen.findByRole('button', { name: /^Guardar PDF$/i })).toBeEnabled()
   })

@@ -1,3 +1,5 @@
+import type { PdfExportProgressEvent } from '../../../lib/pdfStudio/assemble'
+
 function messageFrom(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
@@ -5,6 +7,17 @@ function messageFrom(err: unknown): string {
 export function pdfExportProgressLabel(pageCount: number): string {
   const safeCount = Math.max(0, Math.floor(pageCount))
   return `Preparando ${safeCount} ${safeCount === 1 ? 'página' : 'páginas'}…`
+}
+
+export function pdfExportPipelineProgressLabel(event: PdfExportProgressEvent): string {
+  const suffix =
+    event.current != null && event.total != null ? ` ${event.current}/${event.total}` : ''
+  if (event.phase === 'load-fonts') return 'Preparando fuentes…'
+  if (event.phase === 'validate-images') return 'Revisando imágenes…'
+  if (event.phase === 'process-pages') return `Procesando páginas${suffix}…`
+  if (event.phase === 'apply-annotations') return `Aplicando edición${suffix}…`
+  if (event.phase === 'compress') return 'Optimizando PDF…'
+  return 'Guardando PDF…'
 }
 
 export function describePdfExportError(err: unknown): string {

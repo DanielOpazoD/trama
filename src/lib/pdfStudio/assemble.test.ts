@@ -84,7 +84,7 @@ vi.mock('pdf-lib', () => {
 // stubea para devolver bytes sin tocar la red.
 vi.mock('@pdf-lib/fontkit', () => ({ default: { registerFormat: () => {} } }))
 
-import { assemble, readPngSize } from './assemble'
+import { assemble, PdfExportPipelineError, readPngSize } from './assemble'
 
 const pngHeader = (w: number, h: number) => {
   const b = new Uint8Array(24)
@@ -127,6 +127,39 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(calls.drawImage).toHaveBeenCalledTimes(1)
     expect(blob.type).toBe('application/pdf')
     expect(skipped).toEqual([])
+  })
+
+  it('emite progreso por fases del pipeline de exportación', async () => {
+    const progress: Array<{ phase: string; status: string }> = []
+
+    await assemble(addImageSource(emptyDoc(), png()), {
+      onProgress: (event) => progress.push(event),
+    })
+
+    expect(progress.map((event) => `${event.phase}:${event.status}`)).toEqual([
+      'load-fonts:start',
+      'load-fonts:complete',
+      'validate-images:start',
+      'validate-images:complete',
+      'process-pages:start',
+      'apply-annotations:start',
+      'apply-annotations:complete',
+      'process-pages:progress',
+      'process-pages:complete',
+      'compress:start',
+      'compress:complete',
+      'save:start',
+      'save:complete',
+    ])
+  })
+
+  it('lanza un error tipado si ninguna página se puede exportar', async () => {
+    await expect(assemble(emptyDoc())).rejects.toMatchObject({
+      name: 'PdfExportPipelineError',
+      phase: 'process-pages',
+      code: 'NO_PAGES_EXPORTED',
+    })
+    await expect(assemble(emptyDoc())).rejects.toBeInstanceOf(PdfExportPipelineError)
   })
 
   it('una página de PDF se copia (copyPages), no se re-encodea', async () => {

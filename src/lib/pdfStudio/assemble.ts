@@ -55,6 +55,54 @@ async function fetchFontBytes(url: string): Promise<Uint8Array> {
 
 export type SkippedSource = { name: string; reason: string }
 export type AssembleResult = { blob: Blob; skipped: SkippedSource[] }
+export type PdfExportPhase =
+  | 'load-fonts'
+  | 'validate-images'
+  | 'process-pages'
+  | 'apply-annotations'
+  | 'compress'
+  | 'save'
+export type PdfExportProgressStatus = 'start' | 'progress' | 'complete'
+export type PdfExportProgressEvent = {
+  phase: PdfExportPhase
+  status: PdfExportProgressStatus
+  current?: number
+  total?: number
+  message?: string
+}
+export type AssembleOptions = {
+  onProgress?: (event: PdfExportProgressEvent) => void
+}
+export type PdfExportErrorCode =
+  | 'NO_PAGES_EXPORTED'
+  | 'FONT_LOAD_FAILED'
+  | 'IMAGE_PROCESSING_FAILED'
+  | 'PDF_PROCESSING_FAILED'
+  | 'SAVE_FAILED'
+
+export class PdfExportPipelineError extends Error {
+  readonly name = 'PdfExportPipelineError'
+  readonly phase: PdfExportPhase
+  readonly code: PdfExportErrorCode
+  readonly cause?: unknown
+
+  constructor({
+    phase,
+    code,
+    message,
+    cause,
+  }: {
+    phase: PdfExportPhase
+    code: PdfExportErrorCode
+    message: string
+    cause?: unknown
+  }) {
+    super(message)
+    this.phase = phase
+    this.code = code
+    this.cause = cause
+  }
+}
 
 function errMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
@@ -192,7 +240,11 @@ async function toJpegBytes(
  * saltearon (cifrados/corruptos/no decodificables) para avisar al usuario.
  * Lanza si NINGUNA página se pudo procesar.
  */
-export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
+export async function assemble(
+  doc: PdfDoc,
+  options: AssembleOptions = {},
+): Promise<AssembleResult> {
+  const emit = (event: PdfExportProgressEvent) => options.onProgress?.(event)
   const { PDFDocument, rgb, degrees } = await import('pdf-lib')
   const out = await PDFDocument.create()
 
@@ -203,10 +255,28 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
       (a) => a.kind === 'text' && a.text.trim() && isEmbeddableFont(a.font),
     ),
   )
+  emit({ phase: 'load-fonts', status: 'start' })
   if (hasEmbeddedText) {
     const fk = await import('@pdf-lib/fontkit')
     out.registerFontkit(fk.default ?? fk)
   }
+  emit({ phase: 'load-fonts', status: 'complete' })
+
+  emit({ phase: 'validate-images', status: 'start' })
+  const imageCount =
+    doc.sources.filter((source) => source.kind === 'image').length +
+    doc.pages.reduce(
+      (count, page) =>
+        count +
+        page.annotations.filter((annotation) => annotation.kind === 'image').length,
+      0,
+    )
+  emit({
+    phase: 'validate-images',
+    status: 'complete',
+    current: imageCount,
+    total: imageCount,
+  })
 
   // Cache del PDFDocument fuente por File (se carga una vez por source).
   const srcCache = new Map<File, ReturnType<typeof PDFDocument.load>>()
@@ -418,7 +488,8 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
     return p
   }
 
-  for (const page of doc.pages) {
+  emit({ phase: 'process-pages', status: 'start', current: 0, total: doc.pages.length })
+  for (const [pageIndex, page] of doc.pages.entries()) {
     const source = getSource(doc, page.sourceId)
     if (!source || skippedIds.has(source.id)) continue
     try {
@@ -432,11 +503,29 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
       }
       if (outPage) {
         // Texto en coords nativas; la rotación de página lo rota junto con todo.
+        emit({
+          phase: 'apply-annotations',
+          status: 'start',
+          current: pageIndex + 1,
+          total: doc.pages.length,
+        })
         if (page.annotations.length > 0) await applyAnnotations(outPage, page.annotations)
+        emit({
+          phase: 'apply-annotations',
+          status: 'complete',
+          current: pageIndex + 1,
+          total: doc.pages.length,
+        })
         if (page.rotationQuarters) {
           const base = outPage.getRotation().angle
           outPage.setRotation(degrees(base + page.rotationQuarters * 90))
         }
+        emit({
+          phase: 'process-pages',
+          status: 'progress',
+          current: pageIndex + 1,
+          total: doc.pages.length,
+        })
       }
     } catch (err) {
       // Saltea esta página y el resto del source (si el PDF está corrupto, no
@@ -446,8 +535,18 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
   }
 
   if (out.getPageCount() === 0) {
-    throw new Error('No se pudo armar el PDF: ninguna página se pudo procesar.')
+    throw new PdfExportPipelineError({
+      phase: 'process-pages',
+      code: 'NO_PAGES_EXPORTED',
+      message: 'No se pudo armar el PDF: ninguna página se pudo procesar.',
+    })
   }
+  emit({
+    phase: 'process-pages',
+    status: 'complete',
+    current: out.getPageCount(),
+    total: doc.pages.length,
+  })
 
   // Ajustes a NIVEL DOCUMENTO: numeración en el pie + marca de agua diagonal sobre
   // TODAS las páginas de salida. Usan Helvetica estándar (no requiere fontkit). Se
@@ -490,7 +589,21 @@ export async function assemble(doc: PdfDoc): Promise<AssembleResult> {
     })
   }
 
-  const bytes = await out.save()
+  emit({ phase: 'compress', status: 'start' })
+  emit({ phase: 'compress', status: 'complete' })
+  emit({ phase: 'save', status: 'start' })
+  let bytes: Uint8Array
+  try {
+    bytes = await out.save()
+  } catch (err) {
+    throw new PdfExportPipelineError({
+      phase: 'save',
+      code: 'SAVE_FAILED',
+      message: `No se pudo guardar el PDF ensamblado: ${errMessage(err)}`,
+      cause: err,
+    })
+  }
+  emit({ phase: 'save', status: 'complete' })
   const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' })
   return { blob, skipped }
 }
