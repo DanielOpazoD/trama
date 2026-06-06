@@ -283,7 +283,7 @@ export function EditorToolbar({
     <div
       role="toolbar"
       aria-label="Barra de herramientas de edición del PDF"
-      className="flex flex-nowrap items-center gap-1.5 overflow-x-auto border-b border-ink-100/70 bg-paper-100/65 px-2 py-1.5 shadow-sm shadow-ink-900/5 shrink-0"
+      className="flex flex-nowrap items-center gap-1.5 overflow-x-auto border-b border-ink-100/70 bg-paper-100/65 px-2 py-1 shadow-sm shadow-ink-900/5 shrink-0"
     >
       <ToolbarGroup label="Herramientas">
         <div className={segGroup}>

@@ -1,0 +1,109 @@
+import { expect, test, type Page } from '@playwright/test'
+import { PDFDocument } from 'pdf-lib'
+import { emptyState, mockBackend } from './fixtures'
+
+async function makePdfBuffer(): Promise<Buffer> {
+  const pdf = await PDFDocument.create()
+  pdf.addPage([612, 792])
+  return Buffer.from(await pdf.save())
+}
+
+async function openPdfEditor(page: Page) {
+  await mockBackend(page, emptyState())
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.addInitScript(() => {
+    window.localStorage.setItem('trama-demo', '1')
+    window.localStorage.setItem('trama:world', 'notas')
+    window.localStorage.removeItem('trama-demo-store')
+  })
+  await page.goto('/?world=notas&section=pdf')
+  await expect(page.getByRole('heading', { name: 'Imprenta' })).toBeVisible()
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'qa-editor.pdf',
+    mimeType: 'application/pdf',
+    buffer: await makePdfBuffer(),
+  })
+
+  const thumb = page.getByAltText('Página 1')
+  await expect(thumb).toBeVisible()
+  await thumb.dblclick()
+  await expect(page.getByRole('dialog', { name: 'Editar página 1' })).toBeVisible()
+}
+
+async function toolbarMetrics(page: Page) {
+  return page.evaluate(() => {
+    const toolbar = document.querySelector<HTMLElement>(
+      '[role="toolbar"][aria-label="Barra de herramientas de edición del PDF"]',
+    )
+    if (!toolbar) throw new Error('No se encontró la toolbar del editor PDF')
+    const children = Array.from(toolbar.children).map((child) => {
+      const rect = child.getBoundingClientRect()
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        centerY: rect.top + rect.height / 2,
+      }
+    })
+    const centers = children.map((child) => child.centerY)
+    return {
+      className: toolbar.className,
+      height: toolbar.getBoundingClientRect().height,
+      scrollWidth: toolbar.scrollWidth,
+      clientWidth: toolbar.clientWidth,
+      centerRange: Math.max(...centers) - Math.min(...centers),
+      maxChildBottom: Math.max(...children.map((child) => child.bottom)),
+      minChildTop: Math.min(...children.map((child) => child.top)),
+      bodyOverflow:
+        document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    }
+  })
+}
+
+async function expectMenuInFront(page: Page, triggerName: string) {
+  await page.getByRole('button', { name: triggerName, exact: true }).click()
+  const menu = page.getByRole('menu')
+  await expect(menu).toBeVisible()
+
+  const layer = await menu.evaluate((el) => {
+    const rect = el.getBoundingClientRect()
+    const probeX = Math.round(rect.left + rect.width / 2)
+    const probeY = Math.round(rect.top + Math.min(24, rect.height / 2))
+    const top = document.elementFromPoint(probeX, probeY)
+    return {
+      className: el.className,
+      zIndex: getComputedStyle(el).zIndex,
+      topRole: top?.getAttribute('role') ?? null,
+      menuContainsTop: top ? el.contains(top) || el === top : false,
+    }
+  })
+
+  expect(layer.className).toContain('z-[80]')
+  expect(Number(layer.zIndex)).toBeGreaterThan(60)
+  expect(layer.menuContainsTop).toBe(true)
+
+  await page.keyboard.press('Escape')
+  await expect(menu).toBeHidden()
+}
+
+test.describe('Imprenta · editor PDF', () => {
+  test('mantiene toolbar compacta y todos los menús delante del modal', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+
+    const metrics = await toolbarMetrics(page)
+    expect(metrics.className).toContain('flex-nowrap')
+    expect(metrics.className).not.toContain('flex-wrap')
+    expect(metrics.height).toBeLessThanOrEqual(48)
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1)
+    expect(metrics.centerRange).toBeLessThanOrEqual(1)
+    expect(metrics.maxChildBottom - metrics.minChildTop).toBeLessThanOrEqual(36)
+    expect(metrics.bodyOverflow).toBeLessThanOrEqual(1)
+
+    await expectMenuInFront(page, 'Fuente')
+    await expectMenuInFront(page, 'Formas')
+    await expectMenuInFront(page, 'Color')
+    await expectMenuInFront(page, 'Más funciones')
+  })
+})

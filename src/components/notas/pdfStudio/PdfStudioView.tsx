@@ -54,6 +54,12 @@ import { BulkBar } from './BulkBar'
 import { WorkspacePanel } from './WorkspacePanel'
 import { PageGrid } from './PageGrid'
 import { PdfTextEditor } from './PdfTextEditor'
+import {
+  exportPdfName,
+  isPdfFile,
+  isStudioImageFile,
+  shouldDownloadPdfDirectly,
+} from './pdfStudioFileUtils'
 import { usePageSelection } from './usePageSelection'
 import {
   DownloadIcon,
@@ -69,37 +75,9 @@ import { useToast } from '../../../state'
 const ACCENT = 'var(--accent-sage)'
 const ACCEPT = 'application/pdf,image/*'
 
-function isPdf(file: File): boolean {
-  return file.type === 'application/pdf' || /\.pdf$/i.test(file.name)
-}
-
-function isImage(file: File): boolean {
-  return file.type.startsWith('image/')
-}
-
-/** iOS / iPadOS: abrir un `blob:` en pestaña nueva suele quedar en blanco, así que
- *  ahí conviene descargar directo en vez de mandar al visor. */
-function isIos(): boolean {
-  if (typeof navigator === 'undefined') return false
-  return (
-    /iP(ad|hone|od)/.test(navigator.userAgent) ||
-    // iPadOS 13+ se reporta como Mac con touch.
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-  )
-}
-
 function isMacLike(): boolean {
   if (typeof navigator === 'undefined') return true
   return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
-}
-
-/** Nombre de archivo del PDF exportado, con fecha local para no pisar descargas. */
-function exportName(kind?: string): string {
-  const d = new Date()
-  const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(
-    d.getDate(),
-  ).padStart(2, '0')}`
-  return `trama-${kind ? `${kind}-` : ''}${stamp}.pdf`
 }
 
 /**
@@ -302,10 +280,10 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
         const newAssets: ImageAsset[] = []
         for (const file of files) {
           try {
-            if (isPdf(file)) {
+            if (isPdfFile(file)) {
               const count = await getPdfPageCount(file)
               next = addPdfSource(next, file, count)
-            } else if (isImage(file)) {
+            } else if (isStudioImageFile(file)) {
               next = addImageSource(next, file)
               // Las imágenes subidas quedan además en la biblioteca reutilizable.
               newAssets.push({ id: crypto.randomUUID(), file })
@@ -487,7 +465,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   async function exportPdf(target: PdfDoc, kind?: string) {
     if (!canExport(target) || saving) return
     setSaving(true)
-    const ios = isIos()
+    const ios = shouldDownloadPdfDirectly()
     const viewer = ios ? null : openBlankPdfTab()
     try {
       const blob = await assembleOrToast(target)
@@ -496,7 +474,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
         return
       }
       if (ios) {
-        downloadBlob(blob, exportName(kind))
+        downloadBlob(blob, exportPdfName(undefined, kind))
         toast.show({
           message: 'Descargamos el PDF; ábrelo desde Archivos para imprimir.',
           tone: 'default',
@@ -504,7 +482,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
         return
       }
       showPdfInTab(viewer, blob, () => {
-        downloadBlob(blob, exportName(kind))
+        downloadBlob(blob, exportPdfName(undefined, kind))
         toast.show({
           message: 'Tu navegador bloqueó la ventana; descargamos el PDF.',
           tone: 'default',
@@ -522,7 +500,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     setSaving(true)
     try {
       const blob = await assembleOrToast(target)
-      if (blob) downloadBlob(blob, exportName(kind))
+      if (blob) downloadBlob(blob, exportPdfName(undefined, kind))
     } finally {
       setSaving(false)
     }

@@ -40,6 +40,12 @@ import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { AnnotationLayer } from './AnnotationLayer'
 import { EditorToolbar } from './EditorToolbar'
 import { PageCanvas } from './PageCanvas'
+import { reduceAnnotationShortcut } from './pdfAnnotationShortcuts'
+import {
+  applyEditorStylePatch,
+  defaultEditorTextStyle,
+  resolveActiveEditorStyle,
+} from './pdfEditorStyleState'
 import {
   HIGHLIGHT_OPACITY,
   SHAPE_STROKE,
@@ -341,11 +347,6 @@ export function PdfTextEditor({
   // portapapeles interno), eliminar (Supr/Retroceso) y mover fino con las flechas
   // (Shift = paso grande).
   useEffect(() => {
-    const pasteAnnotation = (src: Annotation) => {
-      const placed = translateAnnotation(cloneAnnotation(src), 0.03, 0.03)
-      setAnnotations((l) => [...l, placed])
-      setSelectedId(placed.id)
-    }
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null
       if (
@@ -353,46 +354,23 @@ export function PdfTextEditor({
         (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
       )
         return
-      const mod = e.metaKey || e.ctrlKey
-      const key = e.key.toLowerCase()
 
-      // Pegar NO requiere selección.
-      if (mod && key === 'v') {
-        if (!annClipboardRef.current) return
-        e.preventDefault()
-        pasteAnnotation(annClipboardRef.current)
-        return
-      }
+      const currentAnnotations = annotationsRef.current
+      const result = reduceAnnotationShortcut({
+        annotations: currentAnnotations,
+        selectedId: selectedRef.current,
+        clipboard: annClipboardRef.current,
+        key: e.key,
+        mod: e.metaKey || e.ctrlKey,
+        shift: e.shiftKey,
+      })
+      if (!result.handled) return
 
-      const id = selectedRef.current
-      const current = id
-        ? (annotationsRef.current.find((a) => a.id === id) ?? null)
-        : null
-      if (!current) return
-
-      if (mod && key === 'c') {
-        e.preventDefault()
-        annClipboardRef.current = current
-      } else if (mod && key === 'x') {
-        e.preventDefault()
-        annClipboardRef.current = current
-        setAnnotations((l) => l.filter((a) => a.id !== current.id))
-        setSelectedId(null)
-      } else if (mod && key === 'd') {
-        e.preventDefault()
-        pasteAnnotation(current)
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        e.preventDefault()
-        setAnnotations((l) => l.filter((a) => a.id !== current.id))
-        setSelectedId(null)
-      } else if (e.key.startsWith('Arrow')) {
-        e.preventDefault()
-        const step = e.shiftKey ? 0.05 : 0.01
-        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0
-        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0
-        setAnnotations((l) =>
-          l.map((a) => (a.id === current.id ? translateAnnotation(a, dx, dy) : a)),
-        )
+      e.preventDefault()
+      annClipboardRef.current = result.clipboard
+      if (result.selectedId !== selectedRef.current) setSelectedId(result.selectedId)
+      if (result.annotations !== currentAnnotations) {
+        setAnnotations(() => result.annotations)
       }
     }
     document.addEventListener('keydown', onKey)
@@ -414,44 +392,22 @@ export function PdfTextEditor({
   // Estilo "activo" de la barra: edita la anotación seleccionada o, si no hay,
   // define el estilo del PRÓXIMO texto/resaltado (ver `TextStyle` en editorStyle).
   const [style, setStyle] = useState<TextStyle>({
-    font: 'sans',
-    sizeRatio: 0.04,
-    bold: false,
-    color: '#222222',
-    opacity: 1,
-    rotation: 0,
+    ...defaultEditorTextStyle(),
   })
-  const activeFont = selected?.font ?? style.font
-  const activeSize = selected?.sizeRatio ?? style.sizeRatio
-  const activeBold = selected?.bold ?? style.bold
-  const activeColor =
-    selectedAnn && 'color' in selectedAnn ? selectedAnn.color : style.color
-  const activeOpacity = selectedAnn?.opacity ?? style.opacity ?? 1
-  const activeRotation = selected?.rotation ?? style.rotation ?? 0
+  const activeStyle = resolveActiveEditorStyle(selectedAnn, style)
+  const activeFont = activeStyle.font
+  const activeSize = activeStyle.sizeRatio
+  const activeBold = activeStyle.bold
+  const activeColor = activeStyle.color
+  const activeOpacity = activeStyle.opacity ?? 1
+  const activeRotation = activeStyle.rotation ?? 0
 
   /** Aplica un cambio de estilo: lo recuerda como default y lo aplica a la selección
    *  (texto → todo; resaltado/forma → sólo color/opacidad). */
   const applyStyle = (patch: Partial<TextStyle>) => {
     setStyle((s) => ({ ...s, ...patch }))
     if (!selectedId) return
-    setAnnotations((list) =>
-      list.map((a) => {
-        if (a.id !== selectedId) return a
-        if (a.kind === 'text') return { ...a, ...patch }
-        if (a.kind === 'image') {
-          return {
-            ...a,
-            ...(patch.opacity !== undefined ? { opacity: patch.opacity } : {}),
-          }
-        }
-        // Resaltado y formas: sólo color/opacidad.
-        return {
-          ...a,
-          ...(patch.color !== undefined ? { color: patch.color } : {}),
-          ...(patch.opacity !== undefined ? { opacity: patch.opacity } : {}),
-        }
-      }),
-    )
+    setAnnotations((list) => applyEditorStylePatch(list, selectedId, patch))
   }
 
   function addText() {
