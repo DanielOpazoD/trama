@@ -3,6 +3,10 @@ import { PDFDocument } from 'pdf-lib'
 import { emptyState, mockBackend } from './fixtures'
 
 const shortcutMod = process.platform === 'darwin' ? 'Meta' : 'Control'
+const samplePng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAXElEQVR4nO3QMQEAAAgDINc/9F1gCwQhMmt2ZgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB8G4QAAY0JbgoAAAAASUVORK5CYII=',
+  'base64',
+)
 
 async function makePdfBuffer(): Promise<Buffer> {
   const pdf = await PDFDocument.create()
@@ -251,5 +255,50 @@ test.describe('Imprenta · editor PDF', () => {
 
     await page.keyboard.press('Delete')
     await expect(textBoxes).toHaveCount(1)
+  })
+
+  test('permite insertar y redimensionar una imagen estampada', async ({ page }) => {
+    await openPdfEditor(page)
+
+    await page.getByRole('button', { name: 'Estampar imagen' }).click()
+    await page.locator('input[accept="image/png,image/jpeg"]').setInputFiles({
+      name: 'sello-qa.png',
+      mimeType: 'image/png',
+      buffer: samplePng,
+    })
+
+    const stamp = page.getByRole('img', { name: 'Imagen estampada' })
+    await expect(stamp).toBeVisible()
+    await stamp.click()
+
+    const before = await stamp.boundingBox()
+    expect(before).not.toBeNull()
+    if (!before) return
+
+    const handle = page.getByRole('button', {
+      name: 'Redimensionar imagen desde esquina inferior derecha',
+    })
+    await expect(handle).toBeVisible()
+    const handleBox = await handle.boundingBox()
+    expect(handleBox).not.toBeNull()
+    if (!handleBox) return
+
+    await page.mouse.move(
+      handleBox.x + handleBox.width / 2,
+      handleBox.y + handleBox.height / 2,
+    )
+    await page.mouse.down()
+    await page.mouse.move(
+      handleBox.x + handleBox.width / 2 + 80,
+      handleBox.y + handleBox.height / 2 + 60,
+    )
+    await page.mouse.up()
+
+    const after = await stamp.boundingBox()
+    expect(after).not.toBeNull()
+    if (!after) return
+
+    expect(after.width).toBeGreaterThan(before.width + 20)
+    expect(after.height).toBeGreaterThan(before.height + 12)
   })
 })
