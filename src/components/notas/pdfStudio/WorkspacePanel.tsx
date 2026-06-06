@@ -94,7 +94,7 @@ export function WorkspacePanel({
         title="Mostrar panel"
         className="flex h-full w-full flex-col items-center gap-2 rounded-lg border border-ink-100 bg-paper-50 px-1.5 py-3 text-ink-400 hover:border-ink-200 hover:text-ink-700 transition-colors"
       >
-        <ChevronLeftIcon size={14} />
+        <ChevronRightIcon size={14} />
         <CameraIcon size={15} />
         <span className="text-micro tabular-nums" style={{ color: ACCENT }}>
           {library.length}
@@ -131,7 +131,7 @@ export function WorkspacePanel({
           title="Ocultar"
           className="touch-target p-1 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors shrink-0"
         >
-          <ChevronRightIcon size={14} />
+          <ChevronLeftIcon size={14} />
         </button>
       </header>
 

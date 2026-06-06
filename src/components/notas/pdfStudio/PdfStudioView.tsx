@@ -612,11 +612,7 @@ export function PdfStudioView() {
 
       {showPanel ? (
         <div className="flex items-start gap-4">
-          <div className="min-w-0 flex-1 space-y-3">
-            {editBar}
-            {mainPane}
-          </div>
-          {/* Panel a la DERECHA, full-height en desktop (sticky → siempre visible
+          {/* Panel a la IZQUIERDA, full-height en desktop (sticky → siempre visible
               mientras se hace scroll de la grilla); en móvil acompaña a la grilla. */}
           <div className="shrink-0 self-stretch md:sticky md:top-0 md:h-[calc(100dvh-3.25rem)] md:self-start">
             <WorkspacePanel
@@ -634,6 +630,10 @@ export function PdfStudioView() {
               collapsed={panelCollapsed}
               onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
             />
+          </div>
+          <div className="min-w-0 flex-1 space-y-3">
+            {editBar}
+            {mainPane}
           </div>
         </div>
       ) : (
