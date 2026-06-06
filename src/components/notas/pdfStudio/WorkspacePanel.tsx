@@ -214,7 +214,7 @@ export function WorkspacePanel({
                 title={
                   canSave
                     ? 'Guardar la creación actual con un nombre'
-                    : 'Agregá hojas para poder guardar'
+                    : 'Agrega hojas para poder guardar'
                 }
                 className="btn-ghost text-micro inline-flex items-center gap-1 disabled:opacity-40"
               >
@@ -260,7 +260,7 @@ export function WorkspacePanel({
 
           {saved.length === 0 ? (
             <p className="px-2.5 text-micro text-ink-400">
-              Guardá tus creaciones con un nombre para volver a abrirlas y editarlas.
+              Guarda tus creaciones con un nombre para volver a abrirlas y editarlas.
             </p>
           ) : (
             <ul className="flex flex-col gap-1 px-2 pt-1">

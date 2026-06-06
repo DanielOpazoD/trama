@@ -53,15 +53,17 @@ export function BulkBar({
         backgroundColor: 'var(--accent-primary-soft)',
       }}
     >
-      <span
-        className={`px-1.5 text-caption font-medium ${none ? 'text-ink-400' : 'tabular-nums'}`}
-        style={none ? undefined : { color: ACCENT }}
-      >
-        {none
-          ? 'Marcá hojas para editarlas'
-          : `${count} ${count === 1 ? 'marcada' : 'marcadas'}`}
-      </span>
-      <span className="mx-1 h-4 w-px bg-ink-200/60" aria-hidden />
+      {!none && (
+        <>
+          <span
+            className="px-1.5 text-caption font-medium tabular-nums"
+            style={{ color: ACCENT }}
+          >
+            {count} {count === 1 ? 'marcada' : 'marcadas'}
+          </span>
+          <span className="mx-1 h-4 w-px bg-ink-200/60" aria-hidden />
+        </>
+      )}
       <button
         type="button"
         onClick={onEditText}
