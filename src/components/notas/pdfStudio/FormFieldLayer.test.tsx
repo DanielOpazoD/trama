@@ -141,7 +141,12 @@ describe('<FormFieldLayer />', () => {
 
     const input = screen.getByRole('textbox', { name: 'paciente' })
     expect(input).toHaveAttribute('placeholder', 'Escriba aquí')
-    expect(screen.getByText('[paciente]')).toBeInTheDocument()
+    expect(screen.getByText('#1')).toHaveStyle({
+      right: '-4px',
+      transform: 'translate(100%, -50%)',
+    })
+    expect(screen.queryByText('[paciente]')).toBeNull()
+    expect(input).toHaveStyle({ borderWidth: '1px' })
     expect(
       screen.queryByRole('button', {
         name: 'Redimensionar campo paciente desde esquina inferior derecha',

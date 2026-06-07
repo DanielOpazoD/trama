@@ -84,6 +84,27 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
     expect(screen.getByRole('button', { name: /Siguiente pendiente/i })).toBeDisabled()
   })
 
+  it('permite rellenar rápido avanzando al siguiente casillero con Enter', () => {
+    const onJump = vi.fn()
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[emptyField, filledField]}
+        pageIndexById={{ p1: 0, p2: 1 }}
+        onChange={vi.fn()}
+        onJump={onJump}
+      />,
+    )
+
+    const first = screen.getByRole('textbox', { name: /Variable paciente/i })
+    const second = screen.getByRole('textbox', { name: /Variable rut/i })
+    first.focus()
+
+    fireEvent.keyDown(first, { key: 'Enter' })
+
+    expect(second).toHaveFocus()
+    expect(onJump).toHaveBeenCalledWith(filledField)
+  })
+
   it('muestra un estado vacío simple cuando la planilla no tiene casilleros', () => {
     render(
       <PdfTemplateFillVariablesPanel

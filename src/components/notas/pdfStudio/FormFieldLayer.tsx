@@ -92,7 +92,7 @@ export function FormFieldLayer({
   const selectedSet = new Set(selectedDraftIds)
   return (
     <>
-      {detectedWidgets.map((widget) => (
+      {detectedWidgets.map((widget, index) => (
         <div
           key={widget.id}
           style={boxStyle(widget)}
@@ -100,7 +100,7 @@ export function FormFieldLayer({
           title={`Campo ${widget.fieldName}`}
         >
           {mode === 'fill' ? (
-            <FillFieldLabel name={widget.fieldName} zoom={zoom} />
+            <FillFieldLabel index={index + 1} name={widget.fieldName} zoom={zoom} />
           ) : null}
           <FormFieldControl
             ariaName={widget.fieldName}
@@ -118,10 +118,11 @@ export function FormFieldLayer({
         </div>
       ))}
 
-      {draftFields.map((field) => {
+      {draftFields.map((field, index) => {
         const selected = selectedSet.has(field.id)
         const fillMode = mode === 'fill'
         const showHandles = !fillMode && selected && selectedDraftIds.length === 1
+        const fillIndex = detectedWidgets.length + index + 1
         return (
           <div
             key={field.id}
@@ -137,7 +138,9 @@ export function FormFieldLayer({
             }}
             title={`Campo ${field.name}`}
           >
-            {fillMode ? <FillFieldLabel name={field.name} zoom={zoom} /> : null}
+            {fillMode ? (
+              <FillFieldLabel index={fillIndex} name={field.name} zoom={zoom} />
+            ) : null}
             <FormFieldControl
               ariaName={field.name}
               controlId={field.id}

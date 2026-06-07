@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import type { PdfFormFieldDraft, PdfFormValue } from '../../../lib/pdfStudio/model'
 
 function valueAsText(value: PdfFormValue): string {
@@ -24,9 +25,16 @@ export function PdfTemplateFillVariablesPanel({
   onChange: (id: string, value: string | boolean) => void
   onJump: (field: PdfFormFieldDraft) => void
 }) {
+  const fieldInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const pending = fields.filter((field) => !isFilled(field)).length
   const completed = fields.length - pending
   const nextPending = fields.find((field) => !isFilled(field)) ?? null
+  const focusNextField = (index: number) => {
+    const next = fields.slice(index + 1).find((field) => !field.readOnly)
+    if (!next) return
+    onJump(next)
+    fieldInputRefs.current[next.id]?.focus()
+  }
   const statusText =
     fields.length === 0
       ? 'Sin casilleros'
@@ -69,7 +77,7 @@ export function PdfTemplateFillVariablesPanel({
         </div>
       ) : null}
       <div className="mt-3 flex flex-col gap-2">
-        {fields.map((field) => {
+        {fields.map((field, index) => {
           const pageNumber = (pageIndexById[field.pageId] ?? 0) + 1
           const filled = isFilled(field)
           const label = `Variable ${field.name}`
@@ -108,11 +116,19 @@ export function PdfTemplateFillVariablesPanel({
                 </label>
               ) : (
                 <input
+                  ref={(node) => {
+                    fieldInputRefs.current[field.id] = node
+                  }}
                   type={field.fieldKind === 'date' ? 'date' : 'text'}
                   aria-label={label}
                   value={valueAsText(field.value)}
                   readOnly={field.readOnly}
                   onChange={(event) => onChange(field.id, event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter') return
+                    event.preventDefault()
+                    focusNextField(index)
+                  }}
                   placeholder={`[${field.name}]`}
                   className="input-paper w-full rounded-md border border-ink-200 px-2 py-1.5 text-caption text-ink-800 placeholder:text-ink-300"
                 />
