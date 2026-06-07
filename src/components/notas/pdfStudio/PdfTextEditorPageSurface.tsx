@@ -49,6 +49,7 @@ export function PdfTextEditorPageSurface({
   detectedForms,
   draftFields,
   pendingFormKind,
+  activeDraftId,
   selectedDraftId,
   selectedDraftIds,
   onActivate,
@@ -65,6 +66,7 @@ export function PdfTextEditorPageSurface({
   onCancelEdit,
   onDetectedValueChange,
   onDraftValueChange,
+  onDraftFocus,
   onOpenSignature,
   onSelectDraft,
   onStartDraftDrag,
@@ -88,6 +90,7 @@ export function PdfTextEditorPageSurface({
   detectedForms: DetectedPdfFormForCanvas[]
   draftFields: PdfFormFieldDraft[]
   pendingFormKind: boolean
+  activeDraftId?: string | null
   selectedDraftId: string | null
   selectedDraftIds: string[]
   onActivate: (pageIndex: number) => void
@@ -116,6 +119,7 @@ export function PdfTextEditorPageSurface({
     value: string | boolean,
   ) => void
   onDraftValueChange: (id: string, value: string | boolean) => void
+  onDraftFocus?: (field: PdfFormFieldDraft) => void
   onOpenSignature: (field: PdfFormFieldDraft) => void
   onSelectDraft: (id: string, additive?: boolean) => void
   onStartDraftDrag: (event: ReactPointerEvent, field: PdfFormFieldDraft) => void
@@ -186,12 +190,14 @@ export function PdfTextEditorPageSurface({
           detectedWidgets={visibleFormWidgets}
           draftFields={visibleDraftFields}
           mode={mode}
+          activeDraftId={activeDraftId}
           selectedDraftId={selectedDraftId}
           selectedDraftIds={selectedDraftIds}
           pageHeightPx={layout?.innerH ?? 1}
           zoom={zoom}
           onDetectedValueChange={onDetectedValueChange}
           onDraftValueChange={onDraftValueChange}
+          onDraftFocus={onDraftFocus}
           onSelectDraft={onSelectDraft}
           onStartDraftDrag={startDraftDrag}
           onStartDraftResize={startDraftResize}
@@ -202,12 +208,14 @@ export function PdfTextEditorPageSurface({
           detectedWidgets={visibleFormWidgets}
           draftFields={visibleDraftFields}
           mode={mode}
+          activeDraftId={activeDraftId}
           selectedDraftId={null}
           selectedDraftIds={[]}
           pageHeightPx={layout?.innerH ?? 1}
           zoom={zoom}
           onDetectedValueChange={onDetectedValueChange}
           onDraftValueChange={onDraftValueChange}
+          onDraftFocus={onDraftFocus}
           onSelectDraft={(id) => (onActivate(pageIndex), onSelectDraft(id))}
           onStartDraftDrag={activatePointer}
           onStartDraftResize={activatePointer}

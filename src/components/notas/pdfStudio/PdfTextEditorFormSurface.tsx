@@ -7,12 +7,14 @@ export function PdfTextEditorFormSurface({
   detectedWidgets,
   draftFields,
   mode = 'edit',
+  activeDraftId,
   selectedDraftId,
   selectedDraftIds,
   pageHeightPx,
   zoom,
   onDetectedValueChange,
   onDraftValueChange,
+  onDraftFocus,
   onOpenSignature,
   onSelectDraft,
   onStartDraftDrag,
@@ -21,6 +23,7 @@ export function PdfTextEditorFormSurface({
   detectedWidgets: VisualPdfFormWidget[]
   draftFields: PdfFormFieldDraft[]
   mode?: 'edit' | 'fill'
+  activeDraftId?: string | null
   selectedDraftId: string | null
   selectedDraftIds: string[]
   pageHeightPx: number
@@ -31,6 +34,7 @@ export function PdfTextEditorFormSurface({
     value: string | boolean,
   ) => void
   onDraftValueChange: (id: string, value: string | boolean) => void
+  onDraftFocus?: (field: PdfFormFieldDraft) => void
   onOpenSignature: (field: PdfFormFieldDraft) => void
   onSelectDraft: (id: string, additive?: boolean) => void
   onStartDraftDrag: (event: ReactPointerEvent, field: PdfFormFieldDraft) => void
@@ -46,12 +50,14 @@ export function PdfTextEditorFormSurface({
         detectedWidgets={detectedWidgets}
         draftFields={draftFields}
         mode={mode}
+        activeDraftId={activeDraftId}
         selectedDraftId={selectedDraftId}
         selectedDraftIds={selectedDraftIds}
         pageHeightPx={pageHeightPx}
         zoom={zoom}
         onDetectedValueChange={onDetectedValueChange}
         onDraftValueChange={onDraftValueChange}
+        onDraftFocus={onDraftFocus}
         onSelectDraft={onSelectDraft}
         onStartDraftDrag={onStartDraftDrag}
         onStartDraftResize={onStartDraftResize}

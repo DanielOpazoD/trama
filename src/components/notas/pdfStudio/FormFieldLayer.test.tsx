@@ -158,6 +158,30 @@ describe('<FormFieldLayer />', () => {
     expect(props.onStartDraftDrag).not.toHaveBeenCalled()
   })
 
+  it('resalta el casillero activo en modo llenado', () => {
+    const text = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: 'p1',
+      name: 'paciente',
+      value: '',
+      xRatio: 0.2,
+      yRatio: 0.3,
+      wRatio: 0.3,
+      hRatio: 0.05,
+    })
+    setup({
+      activeDraftId: text.id,
+      detectedWidgets: [],
+      draftFields: [text],
+      mode: 'fill',
+      selectedDraftId: null,
+    })
+
+    expect(screen.getByLabelText('Casillero activo paciente')).toHaveClass(
+      'ring-[color:var(--accent-sage)]/45',
+    )
+  })
+
   it('limpia el valor estándar Escriba aquí al enfocar un casillero de relleno', () => {
     const text = makePdfFormFieldDraft({
       fieldKind: 'text',

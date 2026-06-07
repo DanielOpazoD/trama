@@ -82,6 +82,7 @@ export function FormFieldControl({
   zoom = 1,
   options,
   onChange,
+  onFocus,
   onOpenSignature,
   textStyle,
 }: {
@@ -95,6 +96,7 @@ export function FormFieldControl({
   zoom?: number
   options?: string[]
   onChange: (value: string | boolean) => void
+  onFocus?: () => void
   onOpenSignature?: () => void
   textStyle?: CSSProperties
 }) {
@@ -196,6 +198,7 @@ export function FormFieldControl({
       placeholder={FORM_FIELD_EMPTY_HINT}
       readOnly={readOnly}
       onFocus={() => {
+        onFocus?.()
         if (mode === 'fill' && valueAsText(value) === FORM_FIELD_EMPTY_HINT) {
           onChange('')
         }

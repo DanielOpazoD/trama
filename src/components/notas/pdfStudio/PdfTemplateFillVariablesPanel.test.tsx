@@ -105,6 +105,23 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
     expect(onJump).toHaveBeenCalledWith(filledField)
   })
 
+  it('resalta el casillero activo en el panel lateral', () => {
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[emptyField, filledField]}
+        activeFieldId={filledField.id}
+        pageIndexById={{ p1: 0, p2: 1 }}
+        onChange={vi.fn()}
+        onJump={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByLabelText('Campo activo: rut')).toHaveClass(
+      'border-[color:var(--accent-sage)]',
+    )
+    expect(screen.getByText('Activo')).toBeInTheDocument()
+  })
+
   it('muestra un estado vacío simple cuando la planilla no tiene casilleros', () => {
     render(
       <PdfTemplateFillVariablesPanel

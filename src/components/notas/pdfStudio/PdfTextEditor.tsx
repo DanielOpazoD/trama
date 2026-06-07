@@ -43,6 +43,7 @@ import { PdfTextEditorAuxiliaryControls } from './PdfTextEditorAuxiliaryControls
 import { PdfTextEditorScrollArea } from './PdfTextEditorScrollArea'
 import { pdfTextEditorBodyClass } from './pdfTextEditorLayoutClasses'
 import { formFieldTextStyle } from './pdfFormFieldStyle'
+import { usePdfTextEditorFillFocus } from './usePdfTextEditorFillFocus'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 export type PdfTextEditorResult = {
@@ -326,17 +327,8 @@ export function PdfTextEditor({
       onAddSuggested: addSuggestedFormFields,
     })
   const pageIndexById = Object.fromEntries(doc.pages.map((p, i) => [p.id, i]))
-  const jumpToFormField = (field: PdfFormFieldDraft) => {
-    const targetPage = pageIndexById[field.pageId]
-    if (targetPage == null) return
-    goToPage(targetPage)
-    window.setTimeout(() => {
-      const control = document.querySelector<HTMLElement>(
-        `[data-form-field-control="${field.id}"]`,
-      )
-      control?.focus()
-    }, 80)
-  }
+  const { activeFillFieldId, jumpToFormField, setActiveFillFieldId } =
+    usePdfTextEditorFillFocus({ goToPage, pageIndexById })
   return createPortal(
     <div
       role="dialog"
@@ -469,9 +461,11 @@ export function PdfTextEditor({
         <div className={pdfTextEditorBodyClass(fillMode)}>
           {fillMode ? (
             <PdfTemplateFillVariablesPanel
+              activeFieldId={activeFillFieldId}
               fields={formFields}
               pageIndexById={pageIndexById}
               onChange={updateDraftFormValue}
+              onFocusField={(field) => setActiveFillFieldId(field.id)}
               onJump={jumpToFormField}
             />
           ) : null}
@@ -501,6 +495,7 @@ export function PdfTextEditor({
                   detectedForms={detectedForms}
                   draftFields={formFields}
                   pendingFormKind={Boolean(pendingFormKind)}
+                  activeDraftId={activeFillFieldId}
                   selectedDraftId={selectedFormFieldId}
                   selectedDraftIds={selectedFormFieldIds}
                   onActivate={activatePage}
@@ -523,6 +518,7 @@ export function PdfTextEditor({
                   onStartResize={startResize}
                   onDetectedValueChange={onFormValueChange}
                   onDraftValueChange={updateDraftFormValue}
+                  onDraftFocus={(field) => setActiveFillFieldId(field.id)}
                   onSelectDraft={selectDraftFormField}
                   onStartDraftDrag={startDraftDrag}
                   onStartDraftResize={startDraftResize}

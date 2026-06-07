@@ -15,14 +15,18 @@ function isFilled(field: PdfFormFieldDraft): boolean {
 }
 
 export function PdfTemplateFillVariablesPanel({
+  activeFieldId = null,
   fields,
   pageIndexById,
   onChange,
+  onFocusField,
   onJump,
 }: {
+  activeFieldId?: string | null
   fields: PdfFormFieldDraft[]
   pageIndexById: Record<string, number>
   onChange: (id: string, value: string | boolean) => void
+  onFocusField?: (field: PdfFormFieldDraft) => void
   onJump: (field: PdfFormFieldDraft) => void
 }) {
   const fieldInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
@@ -81,10 +85,16 @@ export function PdfTemplateFillVariablesPanel({
           const pageNumber = (pageIndexById[field.pageId] ?? 0) + 1
           const filled = isFilled(field)
           const label = `Variable ${field.name}`
+          const active = activeFieldId === field.id
           return (
             <div
               key={field.id}
-              className="rounded-md border border-ink-100 bg-paper-50 p-2 shadow-sm shadow-ink-900/5"
+              aria-label={active ? `Campo activo: ${field.name}` : undefined}
+              className={`rounded-md border bg-paper-50 p-2 shadow-sm shadow-ink-900/5 ${
+                active
+                  ? 'border-[color:var(--accent-sage)] ring-2 ring-[color:var(--accent-sage)]/15'
+                  : 'border-ink-100'
+              }`}
             >
               <div className="mb-1.5 flex items-center gap-2">
                 <button
@@ -101,6 +111,11 @@ export function PdfTemplateFillVariablesPanel({
                   }`}
                   aria-label={filled ? 'completa' : 'pendiente'}
                 />
+                {active ? (
+                  <span className="rounded bg-[color:var(--accent-sage-soft)] px-1.5 py-0.5 text-micro font-medium text-[color:var(--accent-sage)]">
+                    Activo
+                  </span>
+                ) : null}
               </div>
               {field.fieldKind === 'checkbox' ? (
                 <label className="flex items-center gap-2 text-caption text-ink-600">
@@ -124,6 +139,7 @@ export function PdfTemplateFillVariablesPanel({
                   value={valueAsText(field.value)}
                   readOnly={field.readOnly}
                   onChange={(event) => onChange(field.id, event.currentTarget.value)}
+                  onFocus={() => onFocusField?.(field)}
                   onKeyDown={(event) => {
                     if (event.key !== 'Enter') return
                     event.preventDefault()

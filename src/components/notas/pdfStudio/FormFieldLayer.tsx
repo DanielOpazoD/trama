@@ -53,12 +53,14 @@ export function FormFieldLayer({
   detectedWidgets,
   draftFields,
   mode = 'edit',
+  activeDraftId = null,
   selectedDraftId,
   selectedDraftIds = selectedDraftId ? [selectedDraftId] : [],
   pageHeightPx = 1,
   zoom = 1,
   onDetectedValueChange,
   onDraftValueChange,
+  onDraftFocus,
   onSelectDraft,
   onStartDraftDrag,
   onStartDraftResize,
@@ -67,6 +69,7 @@ export function FormFieldLayer({
   detectedWidgets: VisualPdfFormWidget[]
   draftFields: PdfFormFieldDraft[]
   mode?: 'edit' | 'fill'
+  activeDraftId?: string | null
   selectedDraftId: string | null
   selectedDraftIds?: string[]
   pageHeightPx?: number
@@ -77,6 +80,7 @@ export function FormFieldLayer({
     value: string | boolean,
   ) => void
   onDraftValueChange: (id: string, value: string | boolean) => void
+  onDraftFocus?: (field: PdfFormFieldDraft) => void
   onSelectDraft: (id: string, additive?: boolean) => void
   onStartDraftDrag: (event: ReactPointerEvent, field: PdfFormFieldDraft) => void
   onStartDraftResize: (
@@ -121,13 +125,15 @@ export function FormFieldLayer({
       {draftFields.map((field, index) => {
         const selected = selectedSet.has(field.id)
         const fillMode = mode === 'fill'
+        const activeInFill = fillMode && activeDraftId === field.id
         const showHandles = !fillMode && selected && selectedDraftIds.length === 1
         const fillIndex = detectedWidgets.length + index + 1
         return (
           <div
             key={field.id}
+            aria-label={activeInFill ? `Casillero activo ${field.name}` : undefined}
             style={boxStyle(field)}
-            className="z-20"
+            className={`z-20 ${activeInFill ? 'rounded-[4px] ring-2 ring-[color:var(--accent-sage)]/45 ring-offset-1 ring-offset-paper-50' : ''}`}
             onPointerDown={(event) => {
               event.stopPropagation()
               if (fillMode) return
@@ -157,6 +163,7 @@ export function FormFieldLayer({
               }
               options={field.options}
               onChange={(value) => onDraftValueChange(field.id, value)}
+              onFocus={() => onDraftFocus?.(field)}
               onOpenSignature={() => onOpenSignature(field)}
             />
             {showHandles
