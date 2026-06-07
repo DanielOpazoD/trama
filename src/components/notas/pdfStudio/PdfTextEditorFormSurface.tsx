@@ -8,6 +8,7 @@ import { SignatureCaptureDialog } from './SignatureCaptureDialog'
 export function PdfTextEditorFormSurface({
   detectedWidgets,
   draftFields,
+  mode = 'edit',
   selectedDraftField,
   selectedDraftId,
   signatureField,
@@ -25,6 +26,7 @@ export function PdfTextEditorFormSurface({
 }: {
   detectedWidgets: VisualPdfFormWidget[]
   draftFields: PdfFormFieldDraft[]
+  mode?: 'edit' | 'fill'
   selectedDraftField: PdfFormFieldDraft | null
   selectedDraftId: string | null
   signatureField: PdfFormFieldDraft | null
@@ -53,6 +55,7 @@ export function PdfTextEditorFormSurface({
       <FormFieldLayer
         detectedWidgets={detectedWidgets}
         draftFields={draftFields}
+        mode={mode}
         selectedDraftId={selectedDraftId}
         onDetectedValueChange={onDetectedValueChange}
         onDraftValueChange={onDraftValueChange}
@@ -61,7 +64,7 @@ export function PdfTextEditorFormSurface({
         onStartDraftResize={onStartDraftResize}
         onOpenSignature={onOpenSignature}
       />
-      {selectedDraftField && (
+      {mode !== 'fill' && selectedDraftField && (
         <FormFieldInspector
           field={selectedDraftField}
           onDelete={() => onDeleteDraft(selectedDraftField.id)}

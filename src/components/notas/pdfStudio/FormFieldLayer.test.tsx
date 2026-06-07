@@ -109,4 +109,35 @@ describe('<FormFieldLayer />', () => {
 
     expect(props.onOpenSignature).toHaveBeenCalledWith(signature)
   })
+
+  it('en modo llenado muestra placeholders explícitos y no permite mover/redimensionar', () => {
+    const text = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: 'p1',
+      name: 'paciente',
+      value: '',
+      xRatio: 0.2,
+      yRatio: 0.3,
+      wRatio: 0.3,
+      hRatio: 0.05,
+    })
+    const { props } = setup({
+      detectedWidgets: [],
+      draftFields: [text],
+      mode: 'fill',
+      selectedDraftId: text.id,
+    })
+
+    const input = screen.getByRole('textbox', { name: 'paciente' })
+    expect(input).toHaveAttribute('placeholder', '[paciente]')
+    expect(
+      screen.queryByRole('button', {
+        name: 'Redimensionar campo paciente desde esquina inferior derecha',
+      }),
+    ).toBeNull()
+
+    fireEvent.pointerDown(input.closest('div')!)
+    expect(props.onSelectDraft).not.toHaveBeenCalled()
+    expect(props.onStartDraftDrag).not.toHaveBeenCalled()
+  })
 })

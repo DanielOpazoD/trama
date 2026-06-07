@@ -9,9 +9,6 @@ const FORM_FIELDS: {
   glyph: string
 }[] = [
   { key: 'text', label: 'Texto', glyph: 'T' },
-  { key: 'date', label: 'Fecha', glyph: 'D' },
-  { key: 'checkbox', label: 'Checkbox', glyph: '✓' },
-  { key: 'radio', label: 'Radio', glyph: '○' },
   { key: 'signature', label: 'Firma', glyph: '✎' },
 ]
 

@@ -78,18 +78,26 @@ export function NotasWorld({
 
       {/* Contenido */}
       <main className="flex-1 relative overflow-hidden flex flex-col">
-        {/* Imprenta es un layout tipo app de ANCHO COMPLETO: recibe el topbar como
-            prop y lo monta DENTRO de su área de trabajo, para que su panel lateral
-            llegue hasta el borde superior (full-height, como la navegación). */}
-        {section === 'pdf' ? (
+        {/* Imprenta/Planillas son layouts tipo app de ANCHO COMPLETO: reciben el
+            topbar como prop y lo montan DENTRO del área de trabajo, para que su
+            panel lateral llegue hasta el borde superior. */}
+        {section === 'pdf' || section === 'planillas' ? (
           <Suspense
             fallback={
               <div className="py-10 flex justify-center">
-                <LoadingHint text="cargando Imprenta" size="sm" />
+                <LoadingHint
+                  text={
+                    section === 'planillas' ? 'cargando Planillas' : 'cargando Imprenta'
+                  }
+                  size="sm"
+                />
               </div>
             }
           >
-            <PdfStudioView topBar={<NotasTopBar section={section} />} />
+            <PdfStudioView
+              topBar={<NotasTopBar section={section} />}
+              studioMode={section === 'planillas' ? 'templates' : 'editor'}
+            />
           </Suspense>
         ) : (
           <>

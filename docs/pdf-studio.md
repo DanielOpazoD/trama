@@ -1,8 +1,15 @@
-# Imprenta / PDF Studio
+# Imprenta, Planillas / PDF Studio
 
-Imprenta es el editor PDF del mundo Notas. Es 100% client-side: los PDFs,
-imagenes y anotaciones viven en memoria/IndexedDB del navegador y no se suben al
-backend.
+PDF Studio es el motor client-side compartido por dos secciones del mundo Notas:
+`Imprenta` (`section=pdf`) y `Planillas` (`section=planillas`). Los PDFs,
+imagenes, anotaciones y casilleros viven en memoria/IndexedDB del navegador y no
+se suben al backend.
+
+- `Imprenta` es el editor PDF general: importar, ordenar, anotar, redactar,
+  OCR, formularios existentes y exportar.
+- `Planillas` es el creador/ejecutor de planillas imprimibles: disenar
+  casilleros especiales, guardar plantillas, rellenar una copia limpia e
+  imprimir/descargar.
 
 ## Mapa de Modulos
 
@@ -39,6 +46,9 @@ backend.
   formularios sobre el canvas de pagina.
 - `src/components/notas/pdfStudio/SignatureCaptureDialog.tsx`: firma simple con
   trazo dibujado o imagen cargada.
+- `src/components/notas/pdfStudio/PdfTextEditorPageSurface.tsx`: superficie de
+  pagina dentro del visor continuo de edicion; renderiza fondo, anotaciones y
+  campos por pagina.
 - `src/lib/pdfStudio/pdfOcr.ts`: fachada publica del OCR buscable; orquesta
   renderizado, reconocimiento, ensamblado y sidecar `.txt`.
 - `src/lib/pdfStudio/pdfOcrInput.ts`: convierte PDF/imagen a paginas raster para
@@ -58,8 +68,9 @@ backend.
 - `src/lib/pdfStudio/assembleAnnotations.ts`: dibujo vectorial de texto,
   resaltados, formas e imagenes estampadas.
 - `src/components/notas/pdfStudio/PdfStudioView.tsx`: composicion de la vista de
-  documento.
-- `PdfTextEditor.tsx`: composicion del modal de edicion de una pagina.
+  documento con modos `editor` y `templates`.
+- `PdfTextEditor.tsx`: composicion del modal de edicion con paginas consecutivas
+  navegables por scroll; una pagina activa conserva la geometria de edicion.
 - `EditorToolbar.tsx`, `SelectionInspector.tsx`, `AnnotationLayer.tsx`: controles
   de edicion, inspector contextual y capa visual de anotaciones.
 
@@ -125,22 +136,34 @@ ubicada dentro de un campo de firma de oficina.
 
 ### Planillas imprimibles
 
-Una planilla es una creacion guardada cuyo `PdfDoc` contiene `formFields`.
-El panel lateral separa estas planillas de los guardados generales y ofrece dos
-flujos distintos:
+Una planilla es una creacion guardada cuyo `PdfDoc` contiene `formFields`. Vive
+en la seccion `Planillas`, separada de `Imprenta` para no mezclar edicion PDF
+general con ejecucion operativa de planillas. El panel lateral de Planillas
+separa estas planillas de los guardados generales y ofrece dos flujos distintos:
 
-1. `Guardar planilla` guarda una copia con valores limpios. Conserva paginas,
+1. `Editar casilleros` sirve para crear o modificar la estructura:
+   importar PDF/imagen base, colocar casilleros especiales sobre celdas vacias,
+   moverlos, redimensionarlos, renombrar variables y guardar la planilla.
+2. `Guardar planilla` guarda una copia con valores limpios. Conserva paginas,
    posiciones, nombres de variables, required/readOnly y opciones, pero borra
    datos ingresados para que la planilla no quede contaminada por un llenado.
-2. `Usar planilla` abre una copia limpia en el editor. El usuario rellena los
-   casilleros especiales sobre la pagina y luego imprime/descarga desde el mismo
-   flujo de exportacion.
+3. `Rellenar` abre una copia limpia en `Rellenar planilla`: el usuario completa
+   los casilleros especiales sobre la pagina y luego imprime/descarga. Este modo
+   esta pensado para uso operativo de oficina, no para redisenar la estructura.
 
 Los nombres de casillero son las variables de oficina: por ejemplo `paciente`,
 `fecha_control`, `diagnostico`. Se editan desde el inspector contextual de
-casillero. Al seleccionar un tipo en el menu `Campos`, el siguiente clic sobre la
-pagina coloca el casillero en esa posicion, pensado para alinear variables sobre
-celdas vacias de PDFs base o escaneos.
+casillero. En la barra principal queda visible `Agregar cuadro de texto`; el menu
+`Campos` queda reservado para el modulo Planillas: crear campos de texto y firma
+simple sobre celdas vacias de PDFs base o escaneos sin llenar la barra de
+controles raros. En Imprenta, `Campos` queda oculto en el editor de pagina para
+que la herramienta sea solo editor PDF.
+
+El banner superior distingue ambos flujos: `Rellenar planilla` muestra acciones
+de imprimir y volver a editar estructura; `Editar casilleros` habla de ubicar los
+casilleros que luego se llenaran. En el panel lateral, cada planilla muestra dos
+botones explicitos: `Rellenar` para imprimir una copia limpia y `Editar` para
+cambiar su estructura.
 
 ## OCR y PDF Buscable
 
@@ -236,8 +259,8 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
 | Importacion          | PDF multipagina e imagenes como paginas o biblioteca reutilizable.                                                                   | `usePdfStudioImport`, `usePdfStudioWorkspace`, `PdfStudioView.test.tsx`                       |
 | Organizacion         | Seleccion multiple de paginas, ordenar, rotar, duplicar, extraer, borrar y portapapeles.                                             | `model.ts`, `usePageSelection.ts`, `PdfStudioView.test.tsx`                                   |
 | Edicion de pagina    | Texto, resaltado, redaccion real, rectangulo, ovalo, linea, flecha e imagen estampada.                                               | `EditorToolbar.tsx`, `AnnotationLayer.tsx`, `e2e/pdf-studio-editor.spec.ts`                   |
-| Formularios          | Overlays visuales para AcroForms existentes, campos nuevos posicionados por clic, firma simple, export editable/aplanable en Worker. | `pdfForms.ts`, `modelForms.ts`, `FormFieldLayer.tsx`, `SignatureCaptureDialog.tsx`            |
-| Planillas            | Guardar planillas con casilleros especiales limpios, reabrir copia rellenable e imprimir/descargar desde PDF Studio.                 | `WorkspacePanel.tsx`, `usePdfStudioWorkspace.ts`, `FormFieldInspector.tsx`                    |
+| Formularios          | Overlays visuales para AcroForms existentes y export editable/aplanable en Worker.                                                   | `pdfForms.ts`, `PdfStudioFormPanel.tsx`, `pdfFormWorkerClient.ts`                             |
+| Planillas            | Modulo separado para disenar casilleros, guardar plantillas y rellenar/imprimir una copia limpia.                                    | `WorkspacePanel.tsx`, `usePdfStudioTemplateMode.tsx`, `PdfTemplateModeBanner.tsx`             |
 | OCR buscable         | PDF escaneado a PDF con texto seleccionable/buscable, Worker, progreso, cancelacion, selector de idioma, limites y sidecar `.txt`.   | `pdfOcr.ts`, `pdfOcr.worker.ts`, `pdfOcrLimits.ts`, `PdfStudioView.test.tsx`                  |
 | Redimensionado       | Handles para texto, resaltados, redacciones, formas e imagenes; Shift conserva aspecto de imagen.                                    | `AnnotationResizeHandles.tsx`, `pdfAnnotationResize.test.ts`, `AnnotationLayer.test.tsx`      |
 | Atajos               | Copiar, cortar, pegar, duplicar, borrar, mover con flechas, undo/redo y Escape contextual.                                           | `usePdfTextEditorKeyboard.ts`, `pdfAnnotationShortcuts.test.ts`                               |

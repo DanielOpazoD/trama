@@ -47,12 +47,27 @@ describe('pdfStudio · estructura incremental', () => {
       'src/components/notas/pdfStudio/SignatureCaptureDialog.tsx',
       'src/components/notas/pdfStudio/FormFieldInspector.tsx',
       'src/components/notas/pdfStudio/PdfTextEditorFormSurface.tsx',
+      'src/components/notas/pdfStudio/PdfTextEditorPageSurface.tsx',
       'src/components/notas/pdfStudio/pdfFormVisualMapping.ts',
+      'src/components/notas/pdfStudio/pdfEditorZoomScroll.ts',
+      'src/components/notas/pdfStudio/usePdfEditorZoomScroll.ts',
       'src/components/notas/pdfStudio/EditorToolbarFormMenu.tsx',
     ]
 
     for (const path of formModules) {
       expect(fileLineCount(path), path).toBeLessThanOrEqual(280)
+    }
+  })
+
+  it('mantiene el modo planilla separado en modulos pequenos', () => {
+    const templateModules = [
+      'src/components/notas/pdfStudio/PdfTemplateModeBanner.tsx',
+      'src/components/notas/pdfStudio/usePdfStudioTemplateMode.tsx',
+      'src/components/notas/pdfStudio/PdfStudioWorkspacePanelHost.tsx',
+    ]
+
+    for (const path of templateModules) {
+      expect(fileLineCount(path), path).toBeLessThanOrEqual(140)
     }
   })
 

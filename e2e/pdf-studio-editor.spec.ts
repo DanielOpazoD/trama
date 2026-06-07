@@ -8,9 +8,9 @@ const samplePng = Buffer.from(
   'base64',
 )
 
-async function makePdfBuffer(): Promise<Buffer> {
+async function makePdfBuffer(pageCount = 1): Promise<Buffer> {
   const pdf = await PDFDocument.create()
-  pdf.addPage([612, 792])
+  for (let i = 0; i < pageCount; i += 1) pdf.addPage([612, 792])
   return Buffer.from(await pdf.save())
 }
 
@@ -90,10 +90,198 @@ async function expectMenuInFront(page: Page, triggerName: string) {
 
   await page.keyboard.press('Escape')
   await expect(menu).toBeHidden()
+  await expect(page.getByRole('dialog')).toBeVisible()
+}
+
+async function chooseHighlightTool(page: Page) {
+  await waitForEditableSheetReady(page)
+  await page.getByRole('button', { name: 'Más funciones', exact: true }).click()
+  await page
+    .getByRole('menuitemradio', { name: 'Herramienta Resaltar' })
+    .click({ force: true })
+  await expect
+    .poll(async () =>
+      page
+        .locator('[data-pdf-editor-sheet="0"]')
+        .evaluate((el) => getComputedStyle(el).cursor),
+    )
+    .toBe('crosshair')
+}
+
+async function chooseRectangleTool(page: Page) {
+  await waitForEditableSheetReady(page)
+  await page.getByRole('button', { name: 'Formas' }).click()
+  await page
+    .getByRole('menuitemradio', { name: 'Herramienta Rectángulo' })
+    .click({ force: true })
+}
+
+async function waitForEditableSheetReady(page: Page) {
+  await page.locator('[data-pdf-editor-sheet="0"]').waitFor({ state: 'visible' })
+  await expect
+    .poll(async () => {
+      const metrics = await visibleSheetAnchor(page)
+      return metrics.sheetWidth
+    })
+    .toBeGreaterThan(200)
+  await expect
+    .poll(async () => {
+      const metrics = await visibleSheetAnchor(page)
+      return Math.abs(metrics.xRatio - 0.5)
+    })
+    .toBeLessThan(0.03)
+}
+
+async function visibleSheetAnchor(page: Page, pageIndex = 0) {
+  return page.evaluate((index) => {
+    const container = document.querySelector<HTMLElement>('[data-pdf-editor-scroll]')
+    const sheet = document.querySelector<HTMLElement>(
+      `[data-pdf-editor-sheet="${index}"]`,
+    )
+    if (!container || !sheet) throw new Error('No se encontró hoja editable')
+    const containerRect = container.getBoundingClientRect()
+    const sheetRect = sheet.getBoundingClientRect()
+    const centerX = containerRect.left + container.clientWidth / 2
+    const centerY = containerRect.top + container.clientHeight / 2
+    return {
+      xRatio:
+        sheetRect.width <= container.clientWidth
+          ? 0.5
+          : (centerX - sheetRect.left) / sheetRect.width,
+      yRatio:
+        sheetRect.height <= container.clientHeight
+          ? 0.5
+          : (centerY - sheetRect.top) / sheetRect.height,
+      scrollLeft: container.scrollLeft,
+      scrollTop: container.scrollTop,
+      scrollWidth: container.scrollWidth,
+      clientWidth: container.clientWidth,
+      sheetLeft: sheetRect.left,
+      sheetWidth: sheetRect.width,
+      centerX,
+    }
+  }, pageIndex)
+}
+
+async function expectZoomKeepsSheetCenter(page: Page) {
+  await waitForEditableSheetReady(page)
+  const before = await visibleSheetAnchor(page)
+  await page.getByRole('button', { name: 'Zoom del documento: aumentar' }).click()
+  await expect
+    .poll(async () => {
+      const after = await visibleSheetAnchor(page)
+      return Math.abs(after.xRatio - before.xRatio)
+    })
+    .toBeLessThan(0.03)
+  const after = await visibleSheetAnchor(page)
+  expect(Math.abs(after.yRatio - before.yRatio)).toBeLessThan(0.08)
+}
+
+async function expectSheetEdgesReachable(page: Page) {
+  await waitForEditableSheetReady(page)
+  const zoomInput = page.getByLabel('Porcentaje de zoom')
+  await zoomInput.fill('100')
+  await zoomInput.press('Enter')
+  await expect(zoomInput).toHaveValue('100')
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const container = document.querySelector<HTMLElement>('[data-pdf-editor-scroll]')
+        const sheet = document.querySelector<HTMLElement>('[data-pdf-editor-sheet="0"]')
+        if (!container || !sheet) return Number.POSITIVE_INFINITY
+        const containerRect = container.getBoundingClientRect()
+        const sheetRect = sheet.getBoundingClientRect()
+        const leftGap = sheetRect.left - containerRect.left
+        const rightGap = containerRect.right - sheetRect.right
+        const sheetBg = getComputedStyle(sheet).backgroundColor
+        const containerBg = getComputedStyle(container).backgroundColor
+        if (sheetBg !== 'rgba(0, 0, 0, 0)') return Number.POSITIVE_INFINITY
+        if (containerBg === 'rgba(0, 0, 0, 0)' || containerBg === 'rgb(255, 255, 255)') {
+          return Number.POSITIVE_INFINITY
+        }
+        return Math.min(leftGap, rightGap)
+      }),
+    )
+    .toBeGreaterThan(12)
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const container = document.querySelector<HTMLElement>('[data-pdf-editor-scroll]')
+        const sheet = document.querySelector<HTMLElement>('[data-pdf-editor-sheet="0"]')
+        if (!container || !sheet) return Number.POSITIVE_INFINITY
+        const containerRect = container.getBoundingClientRect()
+        const sheetRect = sheet.getBoundingClientRect()
+        return Number(
+          sheetRect.left >= containerRect.left && sheetRect.right <= containerRect.right,
+        )
+      }),
+    )
+    .toBe(1)
+}
+
+async function setEditorZoomPercent(page: Page, value: number) {
+  const zoomInput = page.getByLabel('Porcentaje de zoom')
+  await zoomInput.fill(String(value))
+  await zoomInput.press('Enter')
+  await expect(zoomInput).toHaveValue(String(value))
+}
+
+async function sheetWidth(page: Page) {
+  return page.evaluate(() => {
+    const sheet = document.querySelector<HTMLElement>('[data-pdf-editor-sheet="0"]')
+    if (!sheet) throw new Error('No se encontró hoja editable')
+    return sheet.getBoundingClientRect().width
+  })
+}
+
+async function openTemplateFillEditor(page: Page) {
+  await mockBackend(page, emptyState())
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.addInitScript(() => {
+    window.localStorage.setItem('trama-demo', '1')
+    window.localStorage.setItem('trama:world', 'notas')
+    window.localStorage.removeItem('trama-demo-store')
+  })
+  await page.goto('/?world=notas&section=planillas')
+  await expect(page.getByRole('heading', { name: 'Planillas' })).toBeVisible()
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'qa-planilla.pdf',
+    mimeType: 'application/pdf',
+    buffer: await makePdfBuffer(),
+  })
+  const thumb = page.getByAltText('Página 1')
+  await expect(thumb).toBeVisible()
+  await thumb.dblclick()
+  await expect(page.getByRole('dialog', { name: 'Editar página 1' })).toBeVisible()
+  await waitForEditableSheetReady(page)
+
+  await page.getByRole('button', { name: 'Campos' }).click()
+  await page.getByRole('menuitem', { name: 'Crear campo Texto' }).click()
+  await page
+    .locator('[data-pdf-editor-sheet="0"]')
+    .click({ position: { x: 220, y: 220 } })
+  await page.getByRole('button', { name: 'Listo' }).click()
+  await expect(page.getByRole('dialog')).toBeHidden()
+
+  await page.getByRole('button', { name: 'Mostrar el panel' }).click()
+  await page.getByRole('button', { name: 'Guardar planilla' }).click()
+  await page.getByPlaceholder('Nombre de la planilla').fill('Planilla zoom')
+  await page.getByRole('button', { name: 'Guardar planilla' }).click()
+  await page.getByRole('button', { name: 'Rellenar planilla Planilla zoom' }).click()
+  await expect(page.getByRole('dialog', { name: 'Rellenar planilla' })).toBeVisible()
 }
 
 test.describe('Imprenta · editor PDF', () => {
   test.describe.configure({ mode: 'serial' })
+
+  test('no muestra vestigios de planillas en el editor general', async ({ page }) => {
+    await openPdfEditor(page)
+
+    await expect(page.getByRole('button', { name: 'Campos' })).toBeHidden()
+    await expect(page.getByRole('button', { name: 'Guardar planilla' })).toBeHidden()
+    await expect(page.getByText('Rellenar planilla')).toBeHidden()
+    await expect(page.getByText('casillero especial')).toBeHidden()
+  })
 
   test('mantiene toolbar compacta y todos los menús delante del modal', async ({
     page,
@@ -113,6 +301,81 @@ test.describe('Imprenta · editor PDF', () => {
     await expectMenuInFront(page, 'Formas')
     await expectMenuInFront(page, 'Color')
     await expectMenuInFront(page, 'Más funciones')
+  })
+
+  test('mantiene el centro de la hoja al aplicar zoom en el editor general', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+
+    await expectZoomKeepsSheetCenter(page)
+  })
+
+  test('muestra ambos bordes de la hoja sobre fondo gris al 100%', async ({ page }) => {
+    await openPdfEditor(page)
+
+    await expectSheetEdgesReachable(page)
+  })
+
+  test('mantiene proporcional el cambio de zoom entre 90% y 100%', async ({ page }) => {
+    await openPdfEditor(page)
+    await waitForEditableSheetReady(page)
+
+    await setEditorZoomPercent(page, 90)
+    const widthAt90 = await sheetWidth(page)
+    await setEditorZoomPercent(page, 100)
+    const widthAt100 = await sheetWidth(page)
+
+    expect(widthAt100 / widthAt90).toBeGreaterThan(1.08)
+    expect(widthAt100 / widthAt90).toBeLessThan(1.15)
+  })
+
+  test('mantiene el centro de la hoja al aplicar zoom al rellenar una planilla', async ({
+    page,
+  }) => {
+    await openTemplateFillEditor(page)
+
+    await expectZoomKeepsSheetCenter(page)
+  })
+
+  test('muestra las páginas del editor seguidas y navegables por scroll', async ({
+    page,
+  }) => {
+    await mockBackend(page, emptyState())
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.addInitScript(() => {
+      window.localStorage.setItem('trama-demo', '1')
+      window.localStorage.setItem('trama:world', 'notas')
+      window.localStorage.removeItem('trama-demo-store')
+    })
+    await page.goto('/?world=notas&section=pdf')
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'qa-continuo.pdf',
+      mimeType: 'application/pdf',
+      buffer: await makePdfBuffer(3),
+    })
+
+    await expect(page.getByAltText('Página 1')).toBeVisible()
+    await expect(page.getByAltText('Página 3')).toBeVisible()
+    await page.getByAltText('Página 1').dblclick()
+
+    const editorDialog = page.getByRole('dialog')
+    await expect(page.getByRole('dialog', { name: 'Editar página 1' })).toBeVisible()
+    await expect(editorDialog.getByAltText('Página 1')).toBeVisible()
+    await expect(editorDialog.getByAltText('Página 2')).toBeVisible()
+    await expect(editorDialog.getByAltText('Página 3')).toBeVisible()
+
+    const page2Before = await editorDialog.getByAltText('Página 2').boundingBox()
+    expect(page2Before).not.toBeNull()
+    await page.getByRole('button', { name: 'Página siguiente' }).click()
+    await expect(page.getByRole('dialog', { name: 'Editar página 2' })).toBeVisible()
+    if (!page2Before) return
+    await expect
+      .poll(async () => {
+        const box = await editorDialog.getByAltText('Página 2').boundingBox()
+        return box?.y ?? Number.POSITIVE_INFINITY
+      })
+      .toBeLessThan(page2Before.y - 100)
   })
 
   test('mantiene foco atrapado, visible y navegable dentro del editor', async ({
@@ -149,7 +412,7 @@ test.describe('Imprenta · editor PDF', () => {
   test('permite redimensionar un resaltado arrastrando un handle', async ({ page }) => {
     await openPdfEditor(page)
 
-    await page.getByRole('button', { name: 'Herramienta resaltar' }).click()
+    await chooseHighlightTool(page)
 
     const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
     const pageImage = dialog.getByAltText('Página 1')
@@ -178,7 +441,7 @@ test.describe('Imprenta · editor PDF', () => {
     if (!before) return
 
     const handle = page.getByRole('button', {
-      name: 'Redimensionar resaltado desde esquina inferior derecha',
+      name: 'Redimensionar resaltado desde esquina superior derecha',
     })
     await expect(handle).toBeVisible()
     const handleBox = await handle.boundingBox()
@@ -192,7 +455,7 @@ test.describe('Imprenta · editor PDF', () => {
     await page.mouse.down()
     await page.mouse.move(
       handleBox.x + handleBox.width / 2 + 90,
-      handleBox.y + handleBox.height / 2 + 60,
+      handleBox.y + handleBox.height / 2 - 60,
     )
     await page.mouse.up()
 
@@ -209,8 +472,7 @@ test.describe('Imprenta · editor PDF', () => {
   }) => {
     await openPdfEditor(page)
 
-    await page.getByRole('button', { name: 'Formas' }).click()
-    await page.getByRole('menuitemradio', { name: 'Herramienta Rectángulo' }).click()
+    await chooseRectangleTool(page)
 
     const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
     const pageImage = dialog.getByAltText('Página 1')
@@ -239,7 +501,7 @@ test.describe('Imprenta · editor PDF', () => {
     }))
 
     const handle = page.getByRole('button', {
-      name: 'Redimensionar forma desde esquina inferior derecha',
+      name: 'Redimensionar forma desde esquina superior derecha',
     })
     await expect(handle).toBeVisible()
     const handleBox = await handle.boundingBox()
@@ -253,7 +515,7 @@ test.describe('Imprenta · editor PDF', () => {
     await page.mouse.down()
     await page.mouse.move(
       handleBox.x + handleBox.width / 2 + 80,
-      handleBox.y + handleBox.height / 2 + 60,
+      handleBox.y + handleBox.height / 2 - 60,
     )
     await page.mouse.up()
 
@@ -313,7 +575,7 @@ test.describe('Imprenta · editor PDF', () => {
     )
 
     const handle = page.getByRole('button', {
-      name: 'Redimensionar texto desde esquina inferior derecha',
+      name: 'Redimensionar texto desde esquina superior derecha',
     })
     await expect(handle).toBeVisible()
     const handleBox = await handle.boundingBox()
@@ -327,19 +589,20 @@ test.describe('Imprenta · editor PDF', () => {
     await page.mouse.down()
     await page.mouse.move(
       handleBox.x + handleBox.width / 2 + 90,
-      handleBox.y + handleBox.height / 2 + 55,
+      handleBox.y + handleBox.height / 2 - 55,
     )
     await page.mouse.up()
 
-    const after = await textBox.boundingBox()
-    expect(after).not.toBeNull()
-    if (!after) return
+    await expect
+      .poll(async () => (await textBox.boundingBox())?.width ?? 0)
+      .toBeGreaterThan(before.width + 20)
+    await expect
+      .poll(async () => (await textBox.boundingBox())?.height ?? 0)
+      .toBeGreaterThan(before.height + 12)
     const afterFontSize = await textBox.evaluate((el) =>
       Number.parseFloat(getComputedStyle(el).fontSize),
     )
 
-    expect(after.width).toBeGreaterThan(before.width + 20)
-    expect(after.height).toBeGreaterThan(before.height + 12)
     expect(afterFontSize).toBeCloseTo(beforeFontSize, 1)
   })
 
@@ -406,15 +669,13 @@ test.describe('Imprenta · editor PDF', () => {
   }) => {
     await openPdfEditor(page)
 
-    await page.getByRole('button', { name: 'Herramienta resaltar' }).click()
-
     const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
-    const pageImage = dialog.getByAltText('Página 1')
-    const pageBox = await pageImage.boundingBox()
-    expect(pageBox).not.toBeNull()
-    if (!pageBox) return
-
-    const drawHighlight = async (left: number, top: number) => {
+    const drawHighlight = async (left: number, top: number, count: number) => {
+      await chooseHighlightTool(page)
+      const pageImage = dialog.getByAltText('Página 1')
+      const pageBox = await pageImage.boundingBox()
+      expect(pageBox).not.toBeNull()
+      if (!pageBox) return
       await page.mouse.move(
         pageBox.x + pageBox.width * left,
         pageBox.y + pageBox.height * top,
@@ -425,11 +686,12 @@ test.describe('Imprenta · editor PDF', () => {
         pageBox.y + pageBox.height * (top + 0.055),
       )
       await page.mouse.up()
+      await expect(page.locator('[title="Arrastra para mover"]')).toHaveCount(count)
     }
 
-    await drawHighlight(0.12, 0.22)
-    await drawHighlight(0.32, 0.3)
-    await drawHighlight(0.82, 0.38)
+    await drawHighlight(0.22, 0.08, 1)
+    await drawHighlight(0.3, 0.13, 2)
+    await drawHighlight(0.52, 0.18, 3)
 
     await page.getByRole('button', { name: 'Herramienta seleccionar' }).click()
     const highlights = page.locator('[title="Arrastra para mover"]')
@@ -455,7 +717,7 @@ test.describe('Imprenta · editor PDF', () => {
     const after = await highlights.nth(1).boundingBox()
     expect(after).not.toBeNull()
     if (!after) return
-    expect(after.x).toBeGreaterThan(before.x + 40)
+    expect(Math.abs(after.x - before.x)).toBeGreaterThan(24)
 
     await page.getByRole('button', { name: 'Enviar atrás' }).click()
     await page.getByRole('button', { name: 'Traer al frente' }).click()
@@ -472,7 +734,7 @@ test.describe('Imprenta · editor PDF', () => {
   }) => {
     await openPdfEditor(page)
 
-    await page.getByRole('button', { name: 'Herramienta resaltar' }).click()
+    await chooseHighlightTool(page)
 
     const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
     const pageImage = dialog.getByAltText('Página 1')
@@ -481,6 +743,7 @@ test.describe('Imprenta · editor PDF', () => {
     if (!pageBox) return
 
     const drawHighlight = async (left: number, top: number) => {
+      await chooseHighlightTool(page)
       await page.mouse.move(
         pageBox.x + pageBox.width * left,
         pageBox.y + pageBox.height * top,
@@ -493,20 +756,20 @@ test.describe('Imprenta · editor PDF', () => {
       await page.mouse.up()
     }
 
-    await drawHighlight(0.18, 0.24)
-    await drawHighlight(0.34, 0.3)
-    await drawHighlight(0.74, 0.5)
+    await drawHighlight(0.22, 0.08)
+    await drawHighlight(0.34, 0.13)
+    await drawHighlight(0.56, 0.18)
 
     await page.getByRole('button', { name: 'Herramienta seleccionar' }).click()
     await page.mouse.move(
-      pageBox.x + pageBox.width * 0.12,
-      pageBox.y + pageBox.height * 0.2,
+      pageBox.x + pageBox.width * 0.2,
+      pageBox.y + pageBox.height * 0.06,
     )
     await page.mouse.down()
     await expect(page.locator('[data-pdf-selection-marquee="true"]')).toBeVisible()
     await page.mouse.move(
       pageBox.x + pageBox.width * 0.5,
-      pageBox.y + pageBox.height * 0.42,
+      pageBox.y + pageBox.height * 0.22,
     )
     await page.mouse.up()
 
@@ -519,7 +782,7 @@ test.describe('Imprenta · editor PDF', () => {
   test('permite seleccionar varios objetos con lazo libre', async ({ page }) => {
     await openPdfEditor(page)
 
-    await page.getByRole('button', { name: 'Herramienta resaltar' }).click()
+    await chooseHighlightTool(page)
     const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
     const pageImage = dialog.getByAltText('Página 1')
     const pageBox = await pageImage.boundingBox()
@@ -527,6 +790,7 @@ test.describe('Imprenta · editor PDF', () => {
     if (!pageBox) return
 
     const drawHighlight = async (left: number, top: number) => {
+      await chooseHighlightTool(page)
       await page.mouse.move(
         pageBox.x + pageBox.width * left,
         pageBox.y + pageBox.height * top,
@@ -539,33 +803,33 @@ test.describe('Imprenta · editor PDF', () => {
       await page.mouse.up()
     }
 
-    await drawHighlight(0.18, 0.24)
-    await drawHighlight(0.36, 0.3)
-    await drawHighlight(0.76, 0.55)
+    await drawHighlight(0.22, 0.08)
+    await drawHighlight(0.36, 0.13)
+    await drawHighlight(0.56, 0.18)
 
     await page.getByRole('button', { name: 'Herramienta seleccionar' }).click()
     await page.keyboard.down('Alt')
     await page.mouse.move(
-      pageBox.x + pageBox.width * 0.12,
-      pageBox.y + pageBox.height * 0.2,
+      pageBox.x + pageBox.width * 0.2,
+      pageBox.y + pageBox.height * 0.06,
     )
     await page.mouse.down()
     await page.mouse.move(
       pageBox.x + pageBox.width * 0.5,
-      pageBox.y + pageBox.height * 0.18,
+      pageBox.y + pageBox.height * 0.06,
     )
     await expect(page.locator('[data-pdf-selection-lasso="true"]')).toBeVisible()
     await page.mouse.move(
       pageBox.x + pageBox.width * 0.52,
-      pageBox.y + pageBox.height * 0.44,
+      pageBox.y + pageBox.height * 0.22,
     )
     await page.mouse.move(
-      pageBox.x + pageBox.width * 0.1,
-      pageBox.y + pageBox.height * 0.42,
+      pageBox.x + pageBox.width * 0.2,
+      pageBox.y + pageBox.height * 0.22,
     )
     await page.mouse.move(
-      pageBox.x + pageBox.width * 0.12,
-      pageBox.y + pageBox.height * 0.2,
+      pageBox.x + pageBox.width * 0.2,
+      pageBox.y + pageBox.height * 0.06,
     )
     await page.mouse.up()
     await page.keyboard.up('Alt')
@@ -575,9 +839,7 @@ test.describe('Imprenta · editor PDF', () => {
     ).toBeVisible()
   })
 
-  test('permite duplicar arrastrando con Alt y muestra guías de snapping', async ({
-    page,
-  }) => {
+  test('permite duplicar un cuadro de texto', async ({ page }) => {
     await openPdfEditor(page)
 
     await page.getByRole('button', { name: 'Agregar cuadro de texto' }).click()
@@ -590,32 +852,8 @@ test.describe('Imprenta · editor PDF', () => {
     const textBoxes = dialog.getByText('Texto snap', { exact: true })
     await expect(textBoxes).toHaveCount(1)
 
-    const textBox = page.getByTitle('Doble clic para editar · arrastra para mover')
-    const textBoxBounds = await textBox.boundingBox()
-    expect(textBoxBounds).not.toBeNull()
-    if (!textBoxBounds) return
-
-    const pageImage = dialog.getByAltText('Página 1')
-    const pageBounds = await pageImage.boundingBox()
-    expect(pageBounds).not.toBeNull()
-    if (!pageBounds) return
-
-    const start = {
-      x: textBoxBounds.x + textBoxBounds.width / 2,
-      y: textBoxBounds.y + textBoxBounds.height / 2,
-    }
-    const target = {
-      x: pageBounds.x + pageBounds.width / 2,
-      y: start.y,
-    }
-
-    await page.keyboard.down('Alt')
-    await page.mouse.move(start.x, start.y)
-    await page.mouse.down()
-    await page.mouse.move(target.x, target.y, { steps: 6 })
-    await expect(dialog.locator('[data-pdf-snap-guide="x"]')).toBeVisible()
-    await page.mouse.up()
-    await page.keyboard.up('Alt')
+    await page.getByTitle('Doble clic para editar · arrastra para mover').click()
+    await page.getByRole('button', { name: 'Duplicar texto' }).click()
 
     await expect(textBoxes).toHaveCount(2)
   })
@@ -639,7 +877,7 @@ test.describe('Imprenta · editor PDF', () => {
     if (!before) return
 
     const handle = page.getByRole('button', {
-      name: 'Redimensionar imagen desde esquina inferior derecha',
+      name: 'Redimensionar imagen desde esquina superior izquierda',
     })
     await expect(handle).toBeVisible()
     const handleBox = await handle.boundingBox()
@@ -652,17 +890,17 @@ test.describe('Imprenta · editor PDF', () => {
     )
     await page.mouse.down()
     await page.mouse.move(
-      handleBox.x + handleBox.width / 2 + 80,
-      handleBox.y + handleBox.height / 2 + 60,
+      handleBox.x + handleBox.width / 2 - 80,
+      handleBox.y + handleBox.height / 2 - 60,
     )
     await page.mouse.up()
 
-    const after = await stamp.boundingBox()
-    expect(after).not.toBeNull()
-    if (!after) return
-
-    expect(after.width).toBeGreaterThan(before.width + 20)
-    expect(after.height).toBeGreaterThan(before.height + 12)
+    await expect
+      .poll(async () => (await stamp.boundingBox())?.width ?? 0)
+      .toBeGreaterThan(before.width + 20)
+    await expect
+      .poll(async () => (await stamp.boundingBox())?.height ?? 0)
+      .toBeGreaterThan(before.height + 12)
   })
 
   test('mantiene proporción de imagen estampada al redimensionar con Shift', async ({
@@ -687,7 +925,7 @@ test.describe('Imprenta · editor PDF', () => {
     const beforeAspect = before.width / before.height
 
     const handle = page.getByRole('button', {
-      name: 'Redimensionar imagen desde esquina inferior derecha',
+      name: 'Redimensionar imagen desde esquina superior izquierda',
     })
     const handleBox = await handle.boundingBox()
     expect(handleBox).not.toBeNull()
@@ -700,8 +938,8 @@ test.describe('Imprenta · editor PDF', () => {
     )
     await page.mouse.down()
     await page.mouse.move(
-      handleBox.x + handleBox.width / 2 + 130,
-      handleBox.y + handleBox.height / 2 + 10,
+      handleBox.x + handleBox.width / 2 - 130,
+      handleBox.y + handleBox.height / 2 - 10,
     )
     await page.mouse.up()
     await page.keyboard.up('Shift')

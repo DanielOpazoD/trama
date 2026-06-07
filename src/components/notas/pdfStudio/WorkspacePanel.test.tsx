@@ -63,12 +63,29 @@ function setup(overrides: Partial<Parameters<typeof WorkspacePanel>[0]> = {}) {
 }
 
 describe('<WorkspacePanel /> · planillas', () => {
+  it('puede ocultar planillas cuando el módulo es sólo editor PDF', () => {
+    setup({ templatesEnabled: false })
+
+    expect(screen.queryByText('Planillas')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Rellenar planilla Ingreso paciente/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', {
+        name: /Editar estructura de planilla Ingreso paciente/i,
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Abrir PDF suelto para editar/i }),
+    ).toBeInTheDocument()
+  })
+
   it('separa planillas con campos especiales y permite usarlas limpias', () => {
     const props = setup()
 
     expect(screen.getByText('Planillas')).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: /Usar planilla Ingreso paciente/i }),
+      screen.getByRole('button', { name: /Rellenar planilla Ingreso paciente/i }),
     ).toBeInTheDocument()
     expect(screen.getByText(/1 campo/)).toBeInTheDocument()
     expect(
@@ -76,10 +93,23 @@ describe('<WorkspacePanel /> · planillas', () => {
     ).toBeInTheDocument()
 
     fireEvent.click(
-      screen.getByRole('button', { name: /Usar planilla Ingreso paciente/i }),
+      screen.getByRole('button', { name: /Rellenar planilla Ingreso paciente/i }),
     )
 
     expect(props.onUseTemplate).toHaveBeenCalledWith(props.saved[0])
+  })
+
+  it('permite editar la estructura de una planilla sin entrar al flujo de llenado', () => {
+    const props = setup()
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Editar estructura de planilla Ingreso paciente/i,
+      }),
+    )
+
+    expect(props.onOpenSaved).toHaveBeenCalledWith(props.saved[0])
+    expect(props.onUseTemplate).not.toHaveBeenCalled()
   })
 
   it('ofrece guardar la creación actual como planilla cuando hay campos especiales', () => {

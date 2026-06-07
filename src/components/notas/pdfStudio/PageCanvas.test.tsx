@@ -41,6 +41,7 @@ describe('<PageCanvas />', () => {
     const pageDiv = img.parentElement!
     expect(pageDiv.style.transform).toContain('rotate(0deg)')
     expect(pageDiv.style.transform).toContain('scale(1.5)')
+    expect(pageDiv).not.toHaveClass('bg-white')
   })
 
   it('apuntar el fondo inicia el gesto de selección por marco en modo seleccionar', () => {
@@ -68,5 +69,26 @@ describe('<PageCanvas />', () => {
     expect(props.onStartFormField).toHaveBeenCalledOnce()
     expect(props.onStartMarquee).not.toHaveBeenCalled()
     expect(props.onStartDraw).not.toHaveBeenCalled()
+  })
+
+  it('puede renderizar dentro de un visor continuo sin crear scroll propio por página', () => {
+    const { container } = setup({ scrollContainer: false })
+    const wrapper = container.firstElementChild!
+
+    expect(wrapper).not.toHaveClass('flex-1')
+    expect(wrapper).not.toHaveClass('overflow-auto')
+    expect(wrapper).not.toHaveClass('place-items-center')
+    expect(screen.getByAltText('Página 1')).toBeInTheDocument()
+  })
+
+  it('no centra con grid una hoja ancha y reserva margen simétrico para ambos bordes', () => {
+    setup({ scrollContainer: false, zoom: 2 })
+    const img = screen.getByAltText('Página 1')
+    const stage = img.parentElement!.parentElement!
+    const sheet = img.parentElement!
+
+    expect(stage).toHaveClass('mx-auto')
+    expect(stage).toHaveStyle({ width: '848px', height: '1168px' })
+    expect(sheet).toHaveStyle({ left: '424px', top: '584px' })
   })
 })

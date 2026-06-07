@@ -18,7 +18,6 @@ import {
   TextIcon,
   TextSizeIcon,
   TrashIcon,
-  ZoomIcon,
 } from '../../Icons'
 import { OverflowMenu } from '../../OverflowMenu'
 import { clamp, type TextStyle, type Tool } from './editorStyle'
@@ -39,13 +38,11 @@ import {
   ToolbarGroup,
 } from './EditorToolbarPrimitives'
 import { EditorToolbarFormMenu } from './EditorToolbarFormMenu'
+import { EditorToolbarZoomControl } from './EditorToolbarZoomControl'
 
 const SIZE_MIN = 0.012
 const SIZE_MAX = 0.14
 const SIZE_STEP = 0.004
-const ZOOM_MIN = 0.5
-const ZOOM_MAX = 4
-const ZOOM_STEP = 0.25
 
 function isMacLike(): boolean {
   if (typeof navigator === 'undefined') return true
@@ -72,6 +69,7 @@ export function EditorToolbar({
   hasSelection,
   onDelete,
   zoom,
+  onPrepareZoomAnchor,
   onZoomChange,
 }: {
   tool: Tool
@@ -93,6 +91,7 @@ export function EditorToolbar({
   hasSelection: boolean
   onDelete: () => void
   zoom: number
+  onPrepareZoomAnchor?: () => void
   onZoomChange: (z: number) => void
 }) {
   const isMac = isMacLike()
@@ -105,8 +104,6 @@ export function EditorToolbar({
     onApplyStyle({ opacity: clamp(activeOpacity + delta, 0.1, 1) })
   const stepRotation = (delta: number) =>
     onApplyStyle({ rotation: (((activeRotation + delta) % 360) + 360) % 360 })
-  const zoomStep = (delta: number) => () =>
-    onZoomChange(clamp(Math.round((zoom + delta) * 100) / 100, ZOOM_MIN, ZOOM_MAX))
 
   return (
     <div
@@ -115,6 +112,16 @@ export function EditorToolbar({
       className="flex flex-nowrap items-center gap-1.5 overflow-x-auto border-b border-ink-100/70 bg-paper-100/65 px-2 py-1 shadow-sm shadow-ink-900/5 shrink-0"
     >
       <ToolbarGroup label="Herramientas">
+        <Hint content="Agregar un cuadro editable">
+          <button
+            type="button"
+            onClick={onAddText}
+            aria-label="Agregar cuadro de texto"
+            className={primaryAction}
+          >
+            <TextIcon size={14} />
+          </button>
+        </Hint>
         <div className={segGroup}>
           <Hint content="Seleccionar y mover">
             <button
@@ -125,17 +132,6 @@ export function EditorToolbar({
               aria-pressed={tool === 'select'}
             >
               <CursorIcon size={14} />
-            </button>
-          </Hint>
-          <Hint content="Resaltar arrastrando">
-            <button
-              type="button"
-              onClick={() => onToolChange('highlight')}
-              className={segBtnTool(tool === 'highlight')}
-              aria-label="Herramienta resaltar"
-              aria-pressed={tool === 'highlight'}
-            >
-              <HighlighterIcon size={14} />
             </button>
           </Hint>
           <Hint content="Marcar redacción segura">
@@ -191,16 +187,6 @@ export function EditorToolbar({
       </ToolbarGroup>
 
       <ToolbarGroup label="Insertar">
-        <Hint content="Agregar un cuadro editable">
-          <button
-            type="button"
-            onClick={onAddText}
-            aria-label="Agregar cuadro de texto"
-            className={primaryAction}
-          >
-            <TextIcon size={14} />
-          </button>
-        </Hint>
         <Hint content="Estampar una imagen sobre la página">
           <button
             type="button"
@@ -333,8 +319,22 @@ export function EditorToolbar({
           triggerClassName={menuTrigger}
           triggerContent={<PlusIcon size={14} />}
         >
-          {() => (
+          {(close) => (
             <div className="space-y-1.5">
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={tool === 'highlight'}
+                aria-label="Herramienta Resaltar"
+                onClick={() => {
+                  onToolChange('highlight')
+                  close()
+                }}
+                className={activeMenuItem(tool === 'highlight')}
+              >
+                <HighlighterIcon size={14} />
+                <span>Resaltar</span>
+              </button>
               <Stepper
                 icon={<OpacityIcon size={14} />}
                 label="Opacidad"
@@ -393,18 +393,11 @@ export function EditorToolbar({
           </button>
         </Hint>
       </ToolbarGroup>
-
       <ToolbarGroup label="Vista" grow>
-        <Stepper
-          icon={<ZoomIcon size={14} />}
-          label="Zoom del documento"
-          value={`${Math.round(zoom * 100)}%`}
-          valueClass="w-10"
-          onValueClick={() => onZoomChange(1)}
-          onDec={zoomStep(-ZOOM_STEP)}
-          onInc={zoomStep(ZOOM_STEP)}
-          decDisabled={zoom <= ZOOM_MIN}
-          incDisabled={zoom >= ZOOM_MAX}
+        <EditorToolbarZoomControl
+          zoom={zoom}
+          onBeforeChange={onPrepareZoomAnchor}
+          onZoomChange={onZoomChange}
         />
       </ToolbarGroup>
     </div>

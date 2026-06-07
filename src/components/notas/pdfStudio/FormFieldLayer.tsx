@@ -29,12 +29,8 @@ const handles: { key: ResizeHandle; label: string; style: CSSProperties }[] = [
   { key: 'se', label: 'esquina inferior derecha', style: { right: -5, bottom: -5 } },
 ]
 
-function boxStyle(box: {
-  xRatio: number
-  yRatio: number
-  wRatio: number
-  hRatio: number
-}): CSSProperties {
+type FormBox = Pick<PdfFormFieldDraft, 'xRatio' | 'yRatio' | 'wRatio' | 'hRatio'>
+function boxStyle(box: FormBox): CSSProperties {
   return {
     position: 'absolute',
     left: `${box.xRatio * 100}%`,
@@ -71,6 +67,7 @@ function isInteractiveFormTarget(target: EventTarget | null): boolean {
 function renderFieldControl({
   ariaName,
   fieldKind,
+  mode,
   readOnly,
   selected,
   value,
@@ -80,6 +77,7 @@ function renderFieldControl({
 }: {
   ariaName: string
   fieldKind: PdfFormFieldKind | PdfFormFieldType
+  mode?: 'edit' | 'fill'
   readOnly?: boolean
   selected?: boolean
   value: PdfFormValue
@@ -165,6 +163,7 @@ function renderFieldControl({
       type={fieldKind === 'date' ? 'date' : 'text'}
       aria-label={ariaName}
       value={valueAsText(value)}
+      placeholder={mode === 'fill' ? `[${ariaName}]` : undefined}
       readOnly={readOnly}
       onChange={(event) => onChange(event.currentTarget.value)}
       className={commonControlStyle(selected)}
@@ -175,6 +174,7 @@ function renderFieldControl({
 export function FormFieldLayer({
   detectedWidgets,
   draftFields,
+  mode = 'edit',
   selectedDraftId,
   onDetectedValueChange,
   onDraftValueChange,
@@ -185,6 +185,7 @@ export function FormFieldLayer({
 }: {
   detectedWidgets: VisualPdfFormWidget[]
   draftFields: PdfFormFieldDraft[]
+  mode?: 'edit' | 'fill'
   selectedDraftId: string | null
   onDetectedValueChange: (
     sourceId: string,
@@ -213,6 +214,7 @@ export function FormFieldLayer({
           {renderFieldControl({
             ariaName: widget.fieldName,
             fieldKind: widget.type,
+            mode,
             readOnly: widget.readOnly,
             value: widget.value,
             options: widget.options,
@@ -224,6 +226,7 @@ export function FormFieldLayer({
 
       {draftFields.map((field) => {
         const selected = selectedDraftId === field.id
+        const fillMode = mode === 'fill'
         return (
           <div
             key={field.id}
@@ -231,6 +234,7 @@ export function FormFieldLayer({
             className="z-20"
             onPointerDown={(event) => {
               event.stopPropagation()
+              if (fillMode) return
               onSelectDraft(field.id)
               if (isInteractiveFormTarget(event.target)) return
               onStartDraftDrag(event, field)
@@ -240,8 +244,9 @@ export function FormFieldLayer({
             {renderFieldControl({
               ariaName: field.name,
               fieldKind: field.fieldKind,
+              mode,
               readOnly: field.readOnly,
-              selected,
+              selected: !fillMode && selected,
               value:
                 field.fieldKind === 'radio' && field.value == null
                   ? defaultRadioValue(field)
@@ -250,21 +255,22 @@ export function FormFieldLayer({
               onChange: (value) => onDraftValueChange(field.id, value),
               onOpenSignature: () => onOpenSignature(field),
             })}
-            {selected &&
-              handles.map((handle) => (
-                <button
-                  key={handle.key}
-                  type="button"
-                  aria-label={`Redimensionar campo ${field.name} desde ${handle.label}`}
-                  onPointerDown={(event) => {
-                    event.stopPropagation()
-                    event.preventDefault()
-                    onStartDraftResize(event, field, handle.key)
-                  }}
-                  className={`${stepBtn} absolute z-30 h-3 w-3 rounded-full border border-paper-50 bg-[color:var(--accent-sage)] p-0 text-transparent shadow-sm`}
-                  style={{ ...handle.style, outlineColor: ACCENT }}
-                />
-              ))}
+            {!fillMode && selected
+              ? handles.map((handle) => (
+                  <button
+                    key={handle.key}
+                    type="button"
+                    aria-label={`Redimensionar campo ${field.name} desde ${handle.label}`}
+                    onPointerDown={(event) => {
+                      event.stopPropagation()
+                      event.preventDefault()
+                      onStartDraftResize(event, field, handle.key)
+                    }}
+                    className={`${stepBtn} absolute z-30 h-3 w-3 rounded-full border border-paper-50 bg-[color:var(--accent-sage)] p-0 text-transparent shadow-sm`}
+                    style={{ ...handle.style, outlineColor: ACCENT }}
+                  />
+                ))
+              : null}
           </div>
         )
       })}

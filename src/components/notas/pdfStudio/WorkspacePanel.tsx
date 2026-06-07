@@ -56,6 +56,7 @@ export function WorkspacePanel({
   onRemoveImage,
   onDownloadImage,
   saved,
+  templatesEnabled = true,
   canSave,
   canSaveTemplate,
   onSaveCreation,
@@ -73,6 +74,7 @@ export function WorkspacePanel({
   onRemoveImage: (id: string) => void
   onDownloadImage: (asset: ImageAsset) => void
   saved: SavedDoc[]
+  templatesEnabled?: boolean
   /** Hay algo (hojas) para guardar como creación. */
   canSave: boolean
   canSaveTemplate: boolean
@@ -91,6 +93,9 @@ export function WorkspacePanel({
   const [newTemplateName, setNewTemplateName] = useState<string | null>(null)
   // Renombrado inline de un guardado (id en edición + valor).
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
+  const templates = saved.filter((s) => isPdfTemplate(s.doc))
+  const creations = saved.filter((s) => !isPdfTemplate(s.doc))
+  const savedCount = templatesEnabled ? saved.length : creations.length
 
   if (collapsed) {
     return (
@@ -108,7 +113,7 @@ export function WorkspacePanel({
         </span>
         <FilePdfIcon size={14} />
         <span className="text-micro tabular-nums" style={{ color: ACCENT }}>
-          {saved.length}
+          {savedCount}
         </span>
       </button>
     )
@@ -131,9 +136,6 @@ export function WorkspacePanel({
     }
     setRenaming(null)
   }
-  const templates = saved.filter((s) => isPdfTemplate(s.doc))
-  const creations = saved.filter((s) => !isPdfTemplate(s.doc))
-
   const fieldCount = (doc: PdfDoc) => doc.formFields?.length ?? 0
   const fieldCountLabel = (doc: PdfDoc) => {
     const count = fieldCount(doc)
@@ -218,146 +220,168 @@ export function WorkspacePanel({
 
         <div className="mx-2.5 border-t border-ink-100/70" />
 
-        {/* ── Planillas ──────────────────────────────────────────────────── */}
-        <section className="pb-2">
-          <div className="flex items-center justify-between gap-2 px-2.5 pt-2.5 pb-1">
-            <h3 className="flex items-center gap-1.5 text-caption font-medium text-ink-600">
-              <FilePdfIcon size={13} />
-              Planillas
-              <span className="text-ink-300 tabular-nums">({templates.length})</span>
-            </h3>
-            {newTemplateName === null && (
-              <button
-                type="button"
-                aria-label="Guardar planilla"
-                onClick={() => setNewTemplateName('')}
-                disabled={!canSaveTemplate}
-                title={
-                  canSaveTemplate
-                    ? 'Guardar la creación actual como planilla reusable'
-                    : 'Agrega campos especiales para poder guardar una planilla'
-                }
-                className="btn-ghost text-micro inline-flex items-center gap-1 disabled:opacity-40"
-              >
-                <PlusIcon size={11} /> Planilla
-              </button>
-            )}
-          </div>
+        {templatesEnabled && (
+          <>
+            {/* ── Planillas ──────────────────────────────────────────────────── */}
+            <section className="pb-2">
+              <div className="flex items-center justify-between gap-2 px-2.5 pt-2.5 pb-1">
+                <h3 className="flex items-center gap-1.5 text-caption font-medium text-ink-600">
+                  <FilePdfIcon size={13} />
+                  Planillas
+                  <span className="text-ink-300 tabular-nums">({templates.length})</span>
+                </h3>
+                {newTemplateName === null && (
+                  <button
+                    type="button"
+                    aria-label="Guardar planilla"
+                    onClick={() => setNewTemplateName('')}
+                    disabled={!canSaveTemplate}
+                    title={
+                      canSaveTemplate
+                        ? 'Guardar la creación actual como planilla reusable'
+                        : 'Agrega campos especiales para poder guardar una planilla'
+                    }
+                    className="btn-ghost text-micro inline-flex items-center gap-1 disabled:opacity-40"
+                  >
+                    <PlusIcon size={11} /> Planilla
+                  </button>
+                )}
+              </div>
 
-          {newTemplateName !== null && (
-            <div className="flex items-center gap-1 px-2.5 pb-2">
-              <input
-                autoFocus
-                value={newTemplateName}
-                onChange={(e) => setNewTemplateName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') confirmNewTemplate()
-                  else if (e.key === 'Escape') setNewTemplateName(null)
-                }}
-                placeholder="Nombre de la planilla"
-                className="input-paper flex-1 min-w-0 text-caption px-2 py-1 rounded-md border border-ink-200"
-              />
-              <button
-                type="button"
-                onClick={confirmNewTemplate}
-                aria-label="Guardar planilla"
-                title="Guardar planilla"
-                className={rowBtn}
-                style={{ color: ACCENT }}
-              >
-                <CheckIcon size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setNewTemplateName(null)}
-                aria-label="Cancelar"
-                title="Cancelar"
-                className={rowBtn}
-              >
-                <CloseIcon size={14} />
-              </button>
-            </div>
-          )}
+              {newTemplateName !== null && (
+                <div className="flex items-center gap-1 px-2.5 pb-2">
+                  <input
+                    autoFocus
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') confirmNewTemplate()
+                      else if (e.key === 'Escape') setNewTemplateName(null)
+                    }}
+                    placeholder="Nombre de la planilla"
+                    className="input-paper flex-1 min-w-0 text-caption px-2 py-1 rounded-md border border-ink-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={confirmNewTemplate}
+                    aria-label="Guardar planilla"
+                    title="Guardar planilla"
+                    className={rowBtn}
+                    style={{ color: ACCENT }}
+                  >
+                    <CheckIcon size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewTemplateName(null)}
+                    aria-label="Cancelar"
+                    title="Cancelar"
+                    className={rowBtn}
+                  >
+                    <CloseIcon size={14} />
+                  </button>
+                </div>
+              )}
 
-          {templates.length === 0 ? (
-            <p className="px-2.5 text-micro text-ink-400">
-              Diseña casilleros especiales y guarda la planilla para rellenarla después.
-            </p>
-          ) : (
-            <ul className="flex flex-col gap-1 px-2 pt-1">
-              {templates.map((s) => (
-                <li
-                  key={s.id}
-                  className="group flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-ink-100/40 transition-colors"
-                >
-                  {renaming?.id === s.id ? (
-                    <input
-                      autoFocus
-                      value={renaming.value}
-                      onChange={(e) => setRenaming({ id: s.id, value: e.target.value })}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') confirmRename()
-                        else if (e.key === 'Escape') setRenaming(null)
-                      }}
-                      onBlur={confirmRename}
-                      className="input-paper flex-1 min-w-0 text-caption px-1.5 py-0.5 rounded border border-ink-200"
-                    />
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => onUseTemplate(s)}
-                        aria-label={`Usar planilla ${s.name}`}
-                        title="Abrir limpia para rellenar e imprimir"
-                        className="flex-1 min-w-0 text-left"
-                      >
-                        <span className="block truncate text-caption text-ink-700">
-                          {s.name}
-                        </span>
-                        <span className="block text-micro text-ink-400 tabular-nums">
-                          {fieldCountLabel(s.doc)} · {s.doc.pages.length}{' '}
-                          {s.doc.pages.length === 1 ? 'hoja' : 'hojas'} ·{' '}
-                          {dateLabel(s.savedAt)}
-                        </span>
-                      </button>
-                      <div className="flex shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          type="button"
-                          onClick={() => onDownloadSaved(s)}
-                          aria-label={`Descargar ${s.name}`}
-                          title="Descargar"
-                          className={rowBtn}
-                        >
-                          <DownloadIcon size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setRenaming({ id: s.id, value: s.name })}
-                          aria-label={`Renombrar ${s.name}`}
-                          title="Renombrar"
-                          className={rowBtn}
-                        >
-                          <PencilIcon size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDeleteSaved(s.id)}
-                          aria-label={`Eliminar ${s.name}`}
-                          title="Eliminar de la lista"
-                          className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
-                        >
-                          <TrashIcon size={13} />
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+              {templates.length === 0 ? (
+                <p className="px-2.5 text-micro text-ink-400">
+                  Diseña casilleros especiales y guarda la planilla para rellenarla
+                  después.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-1 px-2 pt-1">
+                  {templates.map((s) => (
+                    <li
+                      key={s.id}
+                      className="group flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-ink-100/40 transition-colors"
+                    >
+                      {renaming?.id === s.id ? (
+                        <input
+                          autoFocus
+                          value={renaming.value}
+                          onChange={(e) =>
+                            setRenaming({ id: s.id, value: e.target.value })
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') confirmRename()
+                            else if (e.key === 'Escape') setRenaming(null)
+                          }}
+                          onBlur={confirmRename}
+                          className="input-paper flex-1 min-w-0 text-caption px-1.5 py-0.5 rounded border border-ink-200"
+                        />
+                      ) : (
+                        <>
+                          <div className="min-w-0 flex-1">
+                            <span className="block truncate text-caption text-ink-700">
+                              {s.name}
+                            </span>
+                            <span className="block text-micro text-ink-400 tabular-nums">
+                              {fieldCountLabel(s.doc)} · {s.doc.pages.length}{' '}
+                              {s.doc.pages.length === 1 ? 'hoja' : 'hojas'} ·{' '}
+                              {dateLabel(s.savedAt)}
+                            </span>
+                            <div className="mt-1 flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => onUseTemplate(s)}
+                                aria-label={`Rellenar planilla ${s.name}`}
+                                title="Rellenar e imprimir"
+                                className="btn-accent inline-flex h-6 items-center px-2 text-micro"
+                              >
+                                Rellenar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onOpenSaved(s)}
+                                aria-label={`Editar estructura de planilla ${s.name}`}
+                                title="Editar casilleros"
+                                className="btn-ghost inline-flex h-6 items-center gap-1 px-2 text-micro"
+                              >
+                                <PencilIcon size={11} />
+                                Editar
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              onClick={() => onDownloadSaved(s)}
+                              aria-label={`Descargar ${s.name}`}
+                              title="Descargar"
+                              className={rowBtn}
+                            >
+                              <DownloadIcon size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRenaming({ id: s.id, value: s.name })}
+                              aria-label={`Renombrar ${s.name}`}
+                              title="Renombrar"
+                              className={rowBtn}
+                            >
+                              <PencilIcon size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onDeleteSaved(s.id)}
+                              aria-label={`Eliminar ${s.name}`}
+                              title="Eliminar de la lista"
+                              className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
+                            >
+                              <TrashIcon size={13} />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
 
-        <div className="mx-2.5 border-t border-ink-100/70" />
+            <div className="mx-2.5 border-t border-ink-100/70" />
+          </>
+        )}
 
         {/* ── Guardados ──────────────────────────────────────────────────── */}
         <section className="pb-2">

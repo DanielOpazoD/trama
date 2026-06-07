@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
-  applyEdits,
   deletePages,
   duplicatePages,
   emptyDoc,
@@ -27,24 +26,34 @@ import {
 import { disposePdfStudio, forgetThumb } from '../../../lib/pdfStudio/pdfRender'
 import { clearDraft } from '../../../lib/pdfStudio/persistence'
 import { BulkBar } from './BulkBar'
-import { WorkspacePanel } from './WorkspacePanel'
 import { PdfDropzone } from './PdfDropzone'
 import { PageGrid } from './PageGrid'
 import { PdfStudioDocumentToolbar } from './PdfStudioDocumentToolbar'
 import { PdfStudioFormPanel } from './PdfStudioFormPanel'
 import { PdfStudioOcrPanel } from './PdfStudioOcrPanel'
+import { PdfStudioWorkspacePanelHost } from './PdfStudioWorkspacePanelHost'
 import { PdfTextEditor, type PdfTextEditorResult } from './PdfTextEditor'
+import { applyPdfTextEditorResult } from './pdfTextEditorResult'
 import { usePageSelection } from './usePageSelection'
 import { usePdfStudioExport } from './usePdfStudioExport'
 import { usePdfStudioImport } from './usePdfStudioImport'
 import { usePdfStudioForms } from './usePdfStudioForms'
 import { usePdfStudioPageKeyboard } from './usePdfStudioPageKeyboard'
 import { usePdfStudioOcr } from './usePdfStudioOcr'
+import { usePdfStudioTemplateMode } from './usePdfStudioTemplateMode'
 import { usePdfStudioWorkspace } from './usePdfStudioWorkspace'
 import { useToast } from '../../../state'
 const ACCEPT = 'application/pdf,image/*'
-export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
+export type PdfStudioMode = 'editor' | 'templates'
+export function PdfStudioView({
+  topBar,
+  studioMode = 'editor',
+}: {
+  topBar?: ReactNode
+  studioMode?: PdfStudioMode
+}) {
   const toast = useToast()
+  const templatesEnabled = studioMode === 'templates'
   const [exportCompression, setExportCompression] =
     useState<AssembleOptions['compression']>('balanced')
   const [history, setHistory] = useState<History<PdfDoc>>(() => initHistory(emptyDoc()))
@@ -63,7 +72,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     selectAll,
   } = usePageSelection(doc.pages)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
   const commit = useCallback((next: PdfDoc | ((prev: PdfDoc) => PdfDoc)) => {
     setHistory((h) => {
       const value = typeof next === 'function' ? next(h.present) : next
@@ -88,17 +96,29 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     setPanelCollapsed,
     userKey,
   } = usePdfStudioWorkspace({ clearSelection, commit, doc, setHistory })
+  const {
+    effectiveTemplateMode,
+    openSavedWithMode,
+    resetTemplateMode,
+    saveTemplateWithMode,
+    templateModeBanner,
+    openTemplateWithFillMode,
+  } = usePdfStudioTemplateMode({
+    doc,
+    exportPdf,
+    openSaved,
+    openTemplate,
+    saveTemplate,
+  })
   const selectedIndicesRef = useRef(selectedIndices)
   selectedIndicesRef.current = selectedIndices
   const docRef = useRef(doc)
   docRef.current = doc
   const selectAllRef = useRef(selectAll)
   selectAllRef.current = selectAll
-
   const updateSettings = useCallback((settings: DocSettings) => {
     setHistory((h) => ({ ...h, present: setDocSettings(h.present, settings) }))
   }, [])
-
   const { addFiles, busy } = usePdfStudioImport({
     commit,
     doc,
@@ -116,9 +136,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     setOcrOpen,
     startOcr,
   } = usePdfStudioOcr({ compression: exportCompression })
-
   useEffect(() => () => disposePdfStudio(), [])
-
   usePdfStudioPageKeyboard({
     textPage,
     selectedIndicesRef,
@@ -130,7 +148,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     setHistory,
     showToast: (message) => toast.show({ message, tone: 'default' }),
   })
-
   function onFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     void addFiles(e.target.files)
     e.currentTarget.value = ''
@@ -142,7 +159,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
       void addFiles(e.dataTransfer.files)
     }
   }
-
   function forgetRemovedThumbs(indices: number[]) {
     const drop = new Set(indices)
     const surviving = new Set(doc.pages.filter((_, i) => !drop.has(i)).map(pageThumbKey))
@@ -151,27 +167,21 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
       if (page && !surviving.has(pageThumbKey(page))) forgetThumb(pageThumbKey(page))
     }
   }
-
   function reorder(from: number, to: number) {
     commit((d) => movePage(d, from, to))
   }
-
   function nudge(index: number, delta: -1 | 1) {
     commit((d) => movePageByDelta(d, index, delta))
   }
-
   function editSelectedText() {
     if (selectedIndices.length === 1) setTextPage(selectedIndices[0]!)
   }
-
   function bulkRotate(delta: -1 | 1) {
     if (selectedCount > 0) commit((d) => rotatePages(d, selectedIndices, delta))
   }
-
   function bulkDuplicate() {
     if (selectedCount > 0) commit((d) => duplicatePages(d, selectedIndices))
   }
-
   function bulkDelete() {
     if (selectedCount === 0) return
     forgetRemovedThumbs(selectedIndices)
@@ -182,19 +192,18 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   function newDoc() {
     commit(emptyDoc())
     clearSelection()
+    resetTemplateMode()
     void clearDraft(userKey)
   }
-
   function closeTextEditor(edits: PdfTextEditorResult | null) {
-    if (edits) {
-      commit((d) => ({
-        ...applyEdits(d, edits.annotations),
-        formFields: edits.formFields,
-      }))
-    }
+    if (edits) commit((d) => applyPdfTextEditorResult(d, edits))
     setTextPage(null)
   }
-
+  function printFilledTemplate(edits: PdfTextEditorResult) {
+    const next = applyPdfTextEditorResult(doc, edits)
+    commit(next)
+    void exportPdf(next, 'planilla')
+  }
   function exportMarked() {
     if (selectedIndices.length > 0)
       void exportPdf(subsetDoc(doc, selectedIndices), 'seleccion')
@@ -204,8 +213,10 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
   const empty = total === 0
   const undoable = canUndo(history)
   const redoable = canRedo(history)
-  const showPanel = !empty || library.length > 0 || saved.length > 0
-
+  const hasVisibleSaved = templatesEnabled
+    ? saved.length > 0
+    : saved.some((s) => !isPdfTemplate(s.doc))
+  const showPanel = !empty || library.length > 0 || hasVisibleSaved
   const mainPane = empty ? (
     <PdfDropzone
       onClick={() => fileInputRef.current?.click()}
@@ -223,7 +234,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
       scrollRoot={scrollRoot}
     />
   )
-
   const editBar = !empty && (
     <BulkBar
       count={selectedCount}
@@ -237,7 +247,6 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
       onClear={clearSelection}
     />
   )
-
   const pageNumbers = doc.settings?.pageNumbers
   const watermarkText = doc.settings?.watermark?.text ?? ''
   const setPageNumbers = (next: DocSettings['pageNumbers']) =>
@@ -247,48 +256,31 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
       ...doc.settings,
       watermark: text.trim() ? { text } : undefined,
     })
-
   return (
     <section className="pdf-studio flex min-h-0 flex-1">
-      {showPanel && (
-        <>
-          {!panelCollapsed && (
-            <button
-              type="button"
-              aria-label="Cerrar el panel"
-              onClick={() => setPanelCollapsed(true)}
-              className="fixed inset-0 z-30 bg-ink-900/40 md:hidden"
-            />
-          )}
-          <div
-            className={`shrink-0 self-stretch ${
-              panelCollapsed
-                ? ''
-                : 'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:shadow-2xl'
-            }`}
-          >
-            <WorkspacePanel
-              library={library}
-              onAddImage={addLibraryToDoc}
-              onRemoveImage={removeFromLibrary}
-              onDownloadImage={downloadLibrary}
-              saved={saved}
-              canSave={!empty}
-              canSaveTemplate={!empty && isPdfTemplate(doc)}
-              onSaveCreation={saveCreation}
-              onSaveTemplate={saveTemplate}
-              onOpenSaved={openSaved}
-              onUseTemplate={openTemplate}
-              onRenameSaved={renameSaved}
-              onDeleteSaved={removeSaved}
-              onDownloadSaved={downloadSaved}
-              collapsed={panelCollapsed}
-              onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
-            />
-          </div>
-        </>
-      )}
-
+      <PdfStudioWorkspacePanelHost
+        show={showPanel}
+        library={library}
+        saved={saved}
+        templatesEnabled={templatesEnabled}
+        canSave={!empty}
+        canSaveTemplate={templatesEnabled && !empty && isPdfTemplate(doc)}
+        collapsed={panelCollapsed}
+        onAddImage={addLibraryToDoc}
+        onRemoveImage={removeFromLibrary}
+        onDownloadImage={downloadLibrary}
+        onSaveCreation={saveCreation}
+        onSaveTemplate={saveTemplateWithMode}
+        onOpenSaved={openSavedWithMode}
+        onUseTemplate={(saved) => {
+          openTemplateWithFillMode(saved)
+          setTextPage(0)
+        }}
+        onRenameSaved={renameSaved}
+        onDeleteSaved={removeSaved}
+        onDownloadSaved={downloadSaved}
+        onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
+      />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {topBar}
         <div ref={setScrollRoot} className="min-h-0 flex-1 overflow-y-auto">
@@ -334,6 +326,7 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
                 {formSummary}
               </div>
             )}
+            {templateModeBanner}
             <PdfStudioFormPanel
               forms={forms}
               onApply={(flatten) => void applyForms(flatten)}
@@ -353,21 +346,22 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
                 onRun={() => void startOcr(doc)}
               />
             )}
-
             {editBar}
             {mainPane}
           </div>
         </div>
       </div>
-
       {textPage !== null && (
         <PdfTextEditor
           doc={doc}
           pageIndex={textPage}
           detectedForms={forms}
+          mode={effectiveTemplateMode === 'fill' ? 'fill' : 'edit'}
+          templateToolsEnabled={templatesEnabled}
           onFormValueChange={updateFormValue}
-          onInspectForms={() => void inspectForms()}
+          onInspectForms={templatesEnabled ? () => void inspectForms() : undefined}
           onClose={closeTextEditor}
+          onPrint={printFilledTemplate}
         />
       )}
     </section>

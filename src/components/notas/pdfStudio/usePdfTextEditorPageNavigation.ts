@@ -1,0 +1,63 @@
+import { useCallback, type Dispatch, type SetStateAction } from 'react'
+import type { PageLayout } from '../../../lib/pdfStudio/editorGeometry'
+
+function scrollEditorPageIntoView(pageIndex: number) {
+  const target = document.querySelector<HTMLElement>(
+    `[data-pdf-editor-page="${pageIndex}"]`,
+  )
+  const container = document.querySelector<HTMLElement>('[data-pdf-editor-scroll]')
+  if (!target || !container) return
+  const containerRect = container.getBoundingClientRect()
+  const targetRect = target.getBoundingClientRect()
+  const top =
+    container.scrollTop +
+    targetRect.top -
+    containerRect.top -
+    Math.max(0, (container.clientHeight - targetRect.height) / 2)
+  container.scrollTop = top
+}
+
+export function usePdfTextEditorPageNavigation({
+  currentPage,
+  setActivePageLayout,
+  setCurrentPage,
+  setEditingId,
+  setSelectedId,
+  total,
+}: {
+  currentPage: number
+  setActivePageLayout: (layout: PageLayout | null) => void
+  setCurrentPage: Dispatch<SetStateAction<number>>
+  setEditingId: (id: string | null) => void
+  setSelectedId: (id: string | null) => void
+  total: number
+}) {
+  const clearPageState = useCallback(() => {
+    setSelectedId(null)
+    setEditingId(null)
+    setActivePageLayout(null)
+  }, [setActivePageLayout, setEditingId, setSelectedId])
+
+  const goToPage = useCallback(
+    (i: number) => {
+      if (i < 0 || i >= total || i === currentPage) return
+      clearPageState()
+      setCurrentPage(i)
+      window.setTimeout(() => {
+        scrollEditorPageIntoView(i)
+      }, 0)
+    },
+    [clearPageState, currentPage, setCurrentPage, total],
+  )
+
+  const activatePage = useCallback(
+    (i: number) => {
+      if (i < 0 || i >= total || i === currentPage) return
+      clearPageState()
+      setCurrentPage(i)
+    },
+    [clearPageState, currentPage, setCurrentPage, total],
+  )
+
+  return { activatePage, goToPage }
+}

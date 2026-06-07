@@ -149,6 +149,7 @@ export function Stepper({
   value,
   onDec,
   onInc,
+  onBeforeChange,
   onValueClick,
   decDisabled,
   incDisabled,
@@ -159,6 +160,7 @@ export function Stepper({
   value: string
   onDec: () => void
   onInc: () => void
+  onBeforeChange?: () => void
   onValueClick?: () => void
   decDisabled?: boolean
   incDisabled?: boolean
@@ -172,6 +174,9 @@ export function Stepper({
       <Hint content={`${label}: reducir`}>
         <button
           type="button"
+          onPointerDown={onBeforeChange}
+          onMouseDown={onBeforeChange}
+          onFocus={onBeforeChange}
           onClick={onDec}
           disabled={decDisabled}
           aria-label={`${label}: reducir`}
@@ -200,6 +205,9 @@ export function Stepper({
       <Hint content={`${label}: aumentar`}>
         <button
           type="button"
+          onPointerDown={onBeforeChange}
+          onMouseDown={onBeforeChange}
+          onFocus={onBeforeChange}
           onClick={onInc}
           disabled={incDisabled}
           aria-label={`${label}: aumentar`}

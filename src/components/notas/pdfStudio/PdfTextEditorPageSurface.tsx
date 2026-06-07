@@ -1,0 +1,266 @@
+import { useEffect, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  getSource,
+  type Annotation,
+  type HighlightAnnotation,
+  type ImageAnnotation,
+  type PdfDoc,
+  type PdfFormFieldDraft,
+  type RedactionAnnotation,
+  type ShapeAnnotation,
+  type TextAnnotation,
+} from '../../../lib/pdfStudio/model'
+import type { PageLayout, ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
+import { AnnotationLayer, type DrawingRect } from './AnnotationLayer'
+import { FormFieldLayer } from './FormFieldLayer'
+import { PageCanvas } from './PageCanvas'
+import { PdfTextEditorFormSurface } from './PdfTextEditorFormSurface'
+import type { SnapGuide } from './pdfAnnotationSnap'
+import {
+  visualWidgetsForPage,
+  type DetectedPdfFormForCanvas,
+} from './pdfFormVisualMapping'
+import { usePdfTextEditorPageRender } from './usePdfTextEditorPageRender'
+import type { Tool } from './editorStyle'
+
+type ResizableAnnotation =
+  | TextAnnotation
+  | HighlightAnnotation
+  | RedactionAnnotation
+  | ImageAnnotation
+  | ShapeAnnotation
+
+export function PdfTextEditorPageSurface({
+  doc,
+  pageIndex,
+  isActive,
+  mode = 'edit',
+  edited,
+  zoom,
+  tool,
+  selectedId,
+  selectedIds,
+  editingId,
+  drawing,
+  selectionMarquee,
+  selectionLasso,
+  snapGuides,
+  drawColor,
+  detectedForms,
+  draftFields,
+  pendingFormKind,
+  selectedDraftField,
+  selectedDraftId,
+  signatureField,
+  onActivate,
+  onActiveLayoutChange,
+  onStartDraw,
+  onStartMarquee,
+  onStartFormField,
+  onStartDrag,
+  onStartResize,
+  onSelectAnnotation,
+  onToggleAnnotation,
+  onStartEdit,
+  onCommitText,
+  onCancelEdit,
+  onChooseSignatureImage,
+  onDeleteDraft,
+  onDetectedValueChange,
+  onDraftPatch,
+  onDraftValueChange,
+  onOpenSignature,
+  onSaveSignature,
+  onSelectDraft,
+  onSetSignatureField,
+  onStartDraftDrag,
+  onStartDraftResize,
+}: {
+  doc: PdfDoc
+  pageIndex: number
+  isActive: boolean
+  mode?: 'edit' | 'fill'
+  edited: Record<number, Annotation[]>
+  zoom: number
+  tool: Tool
+  selectedId: string | null
+  selectedIds: string[]
+  editingId: string | null
+  drawing: DrawingRect | null
+  selectionMarquee: DrawingRect | null
+  selectionLasso: { x: number; y: number }[] | null
+  snapGuides: SnapGuide[]
+  drawColor: string
+  detectedForms: DetectedPdfFormForCanvas[]
+  draftFields: PdfFormFieldDraft[]
+  pendingFormKind: boolean
+  selectedDraftField: PdfFormFieldDraft | null
+  selectedDraftId: string | null
+  signatureField: PdfFormFieldDraft | null
+  onActivate: (pageIndex: number) => void
+  onActiveLayoutChange: (layout: PageLayout | null) => void
+  onStartDraw: (event: ReactPointerEvent) => void
+  onStartMarquee: (event: ReactPointerEvent) => void
+  onStartFormField: (event: ReactPointerEvent) => void
+  onStartDrag: (event: ReactPointerEvent, annotation: Annotation) => void
+  onStartResize: (
+    event: ReactPointerEvent,
+    annotation: ResizableAnnotation,
+    handle: ResizeHandle,
+  ) => void
+  onSelectAnnotation: (id: string) => void
+  onToggleAnnotation: (id: string) => void
+  onStartEdit: (id: string) => void
+  onCommitText: (id: string, text: string) => void
+  onCancelEdit: () => void
+  onChooseSignatureImage: (field?: PdfFormFieldDraft | null) => void
+  onDeleteDraft: (id: string) => void
+  onDetectedValueChange: (
+    sourceId: string,
+    fieldName: string,
+    value: string | boolean,
+  ) => void
+  onDraftPatch: (id: string, patch: Partial<PdfFormFieldDraft>) => void
+  onDraftValueChange: (id: string, value: string | boolean) => void
+  onOpenSignature: (field: PdfFormFieldDraft) => void
+  onSaveSignature: (dataUrl: string) => void
+  onSelectDraft: (id: string) => void
+  onSetSignatureField: (field: PdfFormFieldDraft | null) => void
+  onStartDraftDrag: (event: ReactPointerEvent, field: PdfFormFieldDraft) => void
+  onStartDraftResize: (
+    event: ReactPointerEvent,
+    field: PdfFormFieldDraft,
+    handle: ResizeHandle,
+  ) => void
+}) {
+  const page = doc.pages[pageIndex]
+  const source = page ? getSource(doc, page.sourceId) : undefined
+  const { areaRef, bg, layout } = usePdfTextEditorPageRender({ page, source, zoom })
+  const annotations = edited[pageIndex] ?? page?.annotations ?? []
+  const fillMode = mode === 'fill'
+  const visibleFormWidgets = page ? visualWidgetsForPage(page, detectedForms) : []
+  const visibleDraftFields = page
+    ? draftFields.filter((field) => field.pageId === page.id)
+    : []
+
+  useEffect(() => {
+    if (isActive) onActiveLayoutChange(layout)
+  }, [isActive, layout, onActiveLayoutChange])
+
+  if (!page) return null
+
+  const syncActiveLayout = () => {
+    if (isActive) onActiveLayoutChange(layout)
+  }
+  const withActiveLayout =
+    <Args extends unknown[]>(fn: (...args: Args) => void) =>
+    (...args: Args) => {
+      syncActiveLayout()
+      fn(...args)
+    }
+  const activatePointer = (event: ReactPointerEvent) => {
+    event.stopPropagation()
+    onActivate(pageIndex)
+  }
+  const startDraw = withActiveLayout(onStartDraw)
+  const startFormField = withActiveLayout(onStartFormField)
+  const startMarquee = withActiveLayout(onStartMarquee)
+  const startDrag = withActiveLayout(onStartDrag)
+  const startResize = withActiveLayout(onStartResize)
+  const startDraftDrag = withActiveLayout(onStartDraftDrag)
+  const startDraftResize = withActiveLayout(onStartDraftResize)
+  const activateAndSelect = (id: string) => {
+    onActivate(pageIndex)
+    onSelectAnnotation(id)
+  }
+  const activateAndToggle = (id: string) => {
+    onActivate(pageIndex)
+    onToggleAnnotation(id)
+  }
+  const activateAndEdit = (id: string) => {
+    onActivate(pageIndex)
+    onStartEdit(id)
+  }
+  const formSurface =
+    isActive || visibleFormWidgets.length > 0 || visibleDraftFields.length > 0 ? (
+      isActive ? (
+        <PdfTextEditorFormSurface
+          detectedWidgets={visibleFormWidgets}
+          draftFields={visibleDraftFields}
+          mode={mode}
+          selectedDraftField={selectedDraftField}
+          selectedDraftId={selectedDraftId}
+          signatureField={signatureField}
+          onChooseSignatureImage={onChooseSignatureImage}
+          onDeleteDraft={onDeleteDraft}
+          onDetectedValueChange={onDetectedValueChange}
+          onDraftPatch={onDraftPatch}
+          onDraftValueChange={onDraftValueChange}
+          onSelectDraft={onSelectDraft}
+          onSetSignatureField={onSetSignatureField}
+          onStartDraftDrag={startDraftDrag}
+          onStartDraftResize={startDraftResize}
+          onOpenSignature={onOpenSignature}
+          onSaveSignature={onSaveSignature}
+        />
+      ) : (
+        <FormFieldLayer
+          detectedWidgets={visibleFormWidgets}
+          draftFields={visibleDraftFields}
+          mode={mode}
+          selectedDraftId={null}
+          onDetectedValueChange={onDetectedValueChange}
+          onDraftValueChange={onDraftValueChange}
+          onSelectDraft={(id) => (onActivate(pageIndex), onSelectDraft(id))}
+          onStartDraftDrag={activatePointer}
+          onStartDraftResize={activatePointer}
+          onOpenSignature={(field) => {
+            onActivate(pageIndex)
+            onOpenSignature(field)
+          }}
+        />
+      )
+    ) : null
+
+  return (
+    <section data-pdf-editor-page={pageIndex} className="w-full">
+      <PageCanvas
+        areaRef={areaRef}
+        layout={layout}
+        bg={bg}
+        zoom={zoom}
+        tool={isActive ? tool : 'select'}
+        currentPage={pageIndex}
+        scrollContainer={false}
+        placingFormField={!fillMode && isActive && pendingFormKind}
+        onStartFormField={!fillMode && isActive ? startFormField : activatePointer}
+        onStartDraw={!fillMode && isActive ? startDraw : activatePointer}
+        onStartMarquee={!fillMode && isActive ? startMarquee : activatePointer}
+      >
+        <AnnotationLayer
+          annotations={annotations}
+          innerW={layout?.innerW ?? 0}
+          innerH={layout?.innerH ?? 0}
+          tool={isActive ? tool : 'select'}
+          readOnly={fillMode}
+          selectedId={!fillMode && isActive ? selectedId : null}
+          selectedIds={!fillMode && isActive ? selectedIds : []}
+          editingId={!fillMode && isActive ? editingId : null}
+          drawing={!fillMode && isActive ? drawing : null}
+          selectionMarquee={isActive ? selectionMarquee : null}
+          selectionLasso={isActive ? selectionLasso : null}
+          snapGuides={isActive ? snapGuides : []}
+          drawColor={drawColor}
+          onStartDrag={isActive ? startDrag : activatePointer}
+          onSelect={activateAndSelect}
+          onToggleSelect={activateAndToggle}
+          onStartEdit={activateAndEdit}
+          onCommitText={onCommitText}
+          onCancelEdit={onCancelEdit}
+          onStartResize={isActive ? startResize : activatePointer}
+        />
+        {formSurface}
+      </PageCanvas>
+    </section>
+  )
+}
