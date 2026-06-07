@@ -15,6 +15,7 @@ import {
 } from './pdfFormFieldPointer'
 import { patchFormFieldTextStyle } from './pdfFormFieldStyle'
 import { initialFieldBox, uniqueFieldName } from './pdfTextEditorFormDefaults'
+import { usePdfTextEditorFormArrange } from './usePdfTextEditorFormArrange'
 import { usePdfTextEditorFormShortcuts } from './usePdfTextEditorFormShortcuts'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
@@ -59,6 +60,12 @@ export function usePdfTextEditorForms({
     setSelectedId,
     setSelectedIds: setSelectedFormFieldIds,
   })
+  const { alignDraftFormFields, distributeDraftFormFields } = usePdfTextEditorFormArrange(
+    {
+      selectedIds: selectedFormFieldIds,
+      setFields: setFormFields,
+    },
+  )
 
   function addFormField(kind: PdfFormFieldKind) {
     setPendingFormKind(kind)
@@ -238,8 +245,10 @@ export function usePdfTextEditorForms({
   return {
     addFormField,
     addSuggestedFormFields,
+    alignDraftFormFields,
     applyDraftFieldStyle,
     deleteDraftFormField,
+    distributeDraftFormFields,
     formFields,
     pendingFormKind,
     placePendingFormField,

@@ -50,6 +50,7 @@ export type PdfTextEditorResult = {
   annotations: Record<number, Annotation[]>
   formFields: PdfFormFieldDraft[]
 }
+type PdfTextEditorHistory = History<Record<number, Annotation[]>>
 export function PdfTextEditor({
   doc,
   pageIndex,
@@ -78,9 +79,7 @@ export function PdfTextEditor({
   const total = doc.pages.length
   const fillMode = mode === 'fill'
   const [currentPage, setCurrentPage] = useState(pageIndex)
-  const [history, setHistory] = useState<History<Record<number, Annotation[]>>>(() =>
-    initHistory({}),
-  )
+  const [history, setHistory] = useState<PdfTextEditorHistory>(() => initHistory({}))
   const edited = history.present
   const editedRef = useRef(edited)
   editedRef.current = edited
@@ -274,7 +273,9 @@ export function PdfTextEditor({
   const {
     addFormField,
     addSuggestedFormFields,
+    alignDraftFormFields,
     deleteDraftFormField,
+    distributeDraftFormFields,
     formFields,
     chooseSignatureImage,
     applyDraftFieldStyle,
@@ -440,9 +441,12 @@ export function PdfTextEditor({
         ) : null}
         <PdfTextEditorFloatingFormTools
           field={fillMode ? null : selectedDraftFormField}
+          selectionCount={fillMode ? 0 : selectedFormFieldIds.length}
           signatureField={signatureField}
+          onAlignFields={alignDraftFormFields}
           onChooseSignatureImage={chooseSignatureImage}
           onDeleteField={deleteDraftFormField}
+          onDistributeFields={distributeDraftFormFields}
           onPatchField={patchDraftFormField}
           onSaveSignature={saveSignatureDataUrl}
           onSetSignatureField={setSignatureField}
