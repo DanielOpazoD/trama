@@ -26,10 +26,9 @@ import {
 import { disposePdfStudio, forgetThumb } from '../../../lib/pdfStudio/pdfRender'
 import { clearDraft } from '../../../lib/pdfStudio/persistence'
 import { BulkBar } from './BulkBar'
-import { PdfDropzone } from './PdfDropzone'
-import { PageGrid } from './PageGrid'
 import { PdfStudioDocumentToolbar } from './PdfStudioDocumentToolbar'
 import { PdfStudioFormPanel } from './PdfStudioFormPanel'
+import { PdfStudioMainPane } from './PdfStudioMainPane'
 import { PdfStudioOcrPanel } from './PdfStudioOcrPanel'
 import { PdfStudioWorkspacePanelHost } from './PdfStudioWorkspacePanelHost'
 import { PdfTextEditor, type PdfTextEditorResult } from './PdfTextEditor'
@@ -61,6 +60,7 @@ export function PdfStudioView({
   const { cancelExport, downloadPdf, downloadSaved, exportPdf, exportStatus, saving } =
     usePdfStudioExport({ compression: exportCompression })
   const [textPage, setTextPage] = useState<number | null>(null)
+  const [saveTemplateSignal, setSaveTemplateSignal] = useState(0)
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null)
   const pageClipboardRef = useRef<PdfDoc | null>(null)
   const {
@@ -78,11 +78,12 @@ export function PdfStudioView({
       return pushHistory(h, value)
     })
   }, [])
-
   const {
     addAssets,
     addLibraryToDoc,
     downloadLibrary,
+    duplicateSaved,
+    exportTemplatePackage,
     library,
     openTemplate,
     openSaved,
@@ -105,6 +106,7 @@ export function PdfStudioView({
     openTemplateWithFillMode,
   } = usePdfStudioTemplateMode({
     doc,
+    enabled: templatesEnabled,
     exportPdf,
     openSaved,
     openTemplate,
@@ -152,7 +154,6 @@ export function PdfStudioView({
     void addFiles(e.target.files)
     e.currentTarget.value = ''
   }
-
   function onDropFiles(e: React.DragEvent) {
     if (e.dataTransfer.files.length > 0) {
       e.preventDefault()
@@ -173,9 +174,6 @@ export function PdfStudioView({
   function nudge(index: number, delta: -1 | 1) {
     commit((d) => movePageByDelta(d, index, delta))
   }
-  function editSelectedText() {
-    if (selectedIndices.length === 1) setTextPage(selectedIndices[0]!)
-  }
   function bulkRotate(delta: -1 | 1) {
     if (selectedCount > 0) commit((d) => rotatePages(d, selectedIndices, delta))
   }
@@ -188,7 +186,6 @@ export function PdfStudioView({
     commit((d) => deletePages(d, selectedIndices))
     clearSelection()
   }
-
   function newDoc() {
     commit(emptyDoc())
     clearSelection()
@@ -201,14 +198,18 @@ export function PdfStudioView({
   }
   function printFilledTemplate(edits: PdfTextEditorResult) {
     const next = applyPdfTextEditorResult(doc, edits)
-    commit(next)
-    void exportPdf(next, 'planilla')
+    void exportPdf(next, 'planilla', { flattenFormFields: true })
   }
   function exportMarked() {
     if (selectedIndices.length > 0)
       void exportPdf(subsetDoc(doc, selectedIndices), 'seleccion')
   }
-
+  function startTemplateSave() {
+    if (!templatesEnabled || empty) return
+    if (!isPdfTemplate(doc)) return setTextPage(0)
+    setPanelCollapsed(false)
+    setSaveTemplateSignal((signal) => signal + 1)
+  }
   const total = doc.pages.length
   const empty = total === 0
   const undoable = canUndo(history)
@@ -217,28 +218,11 @@ export function PdfStudioView({
     ? saved.length > 0
     : saved.some((s) => !isPdfTemplate(s.doc))
   const showPanel = !empty || library.length > 0 || hasVisibleSaved
-  const mainPane = empty ? (
-    <PdfDropzone
-      onClick={() => fileInputRef.current?.click()}
-      onDropFiles={onDropFiles}
-    />
-  ) : (
-    <PageGrid
-      doc={doc}
-      selectedIds={selectedIds}
-      onToggleSelect={toggleSelect}
-      onReorder={reorder}
-      onNudge={nudge}
-      onOpenText={setTextPage}
-      onDropFiles={onDropFiles}
-      scrollRoot={scrollRoot}
-    />
-  )
-  const editBar = !empty && (
+  const editBar = !empty && effectiveTemplateMode !== 'fill' && (
     <BulkBar
+      context={templatesEnabled ? 'templates' : 'editor'}
       count={selectedCount}
       total={total}
-      onEditText={editSelectedText}
       onRotate={bulkRotate}
       onDuplicate={bulkDuplicate}
       onDelete={bulkDelete}
@@ -257,7 +241,7 @@ export function PdfStudioView({
       watermark: text.trim() ? { text } : undefined,
     })
   return (
-    <section className="pdf-studio flex min-h-0 flex-1">
+    <section className="pdf-studio flex min-h-0 flex-1" aria-hidden={textPage !== null}>
       <PdfStudioWorkspacePanelHost
         show={showPanel}
         library={library}
@@ -271,6 +255,7 @@ export function PdfStudioView({
         onDownloadImage={downloadLibrary}
         onSaveCreation={saveCreation}
         onSaveTemplate={saveTemplateWithMode}
+        saveTemplateSignal={saveTemplateSignal}
         onOpenSaved={openSavedWithMode}
         onUseTemplate={(saved) => {
           openTemplateWithFillMode(saved)
@@ -279,6 +264,8 @@ export function PdfStudioView({
         onRenameSaved={renameSaved}
         onDeleteSaved={removeSaved}
         onDownloadSaved={downloadSaved}
+        onDuplicateSaved={duplicateSaved}
+        onExportTemplatePackage={exportTemplatePackage}
         onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
       />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -287,12 +274,16 @@ export function PdfStudioView({
           <div className="mx-auto max-w-5xl space-y-5 px-5 pb-24 pt-6 md:px-8">
             <PdfStudioDocumentToolbar
               busy={busy}
+              canSaveTemplate={templatesEnabled && !empty && isPdfTemplate(doc)}
               empty={empty}
               exportStatus={exportStatus}
               exportCompression={exportCompression}
+              formsEnabled={templatesEnabled}
               pageNumbers={pageNumbers}
               redoable={redoable}
               saving={saving}
+              studioMode={studioMode}
+              templateMode={effectiveTemplateMode ?? 'design'}
               total={total}
               undoable={undoable}
               watermarkText={watermarkText}
@@ -301,10 +292,15 @@ export function PdfStudioView({
               onRedo={() => setHistory((h) => redo(h))}
               onSavePdf={() => void exportPdf(doc)}
               onDownload={() => void downloadPdf(doc)}
+              onDownloadFillable={() => void downloadPdf(doc, 'rellenable')}
               onCancelExport={cancelExport}
               onNewDoc={newDoc}
               onOpenOcr={() => setOcrOpen(true)}
               onInspectForms={() => void inspectForms()}
+              onPrintTemplate={() =>
+                void exportPdf(doc, 'planilla', { flattenFormFields: true })
+              }
+              onStartSaveTemplate={startTemplateSave}
               onSetExportCompression={setExportCompression}
               onSetPageNumbers={setPageNumbers}
               onSetWatermark={setWatermark}
@@ -317,7 +313,7 @@ export function PdfStudioView({
               className="sr-only"
               onChange={onFileInput}
             />
-            {formSummary && (
+            {templatesEnabled && formSummary && (
               <div
                 role="status"
                 aria-live="polite"
@@ -327,12 +323,14 @@ export function PdfStudioView({
               </div>
             )}
             {templateModeBanner}
-            <PdfStudioFormPanel
-              forms={forms}
-              onApply={(flatten) => void applyForms(flatten)}
-              onClear={clearForms}
-              onChange={updateFormValue}
-            />
+            {templatesEnabled && (
+              <PdfStudioFormPanel
+                forms={forms}
+                onApply={(flatten) => void applyForms(flatten)}
+                onClear={clearForms}
+                onChange={updateFormValue}
+              />
+            )}
             {ocrOpen && (
               <PdfStudioOcrPanel
                 disabled={empty || saving || busy}
@@ -347,7 +345,18 @@ export function PdfStudioView({
               />
             )}
             {editBar}
-            {mainPane}
+            <PdfStudioMainPane
+              doc={doc}
+              isTemplates={templatesEnabled}
+              scrollRoot={scrollRoot}
+              selectedIds={selectedIds}
+              onDropFiles={onDropFiles}
+              onNudge={nudge}
+              onOpenText={setTextPage}
+              onPickFiles={() => fileInputRef.current?.click()}
+              onReorder={reorder}
+              onToggleSelect={toggleSelect}
+            />
           </div>
         </div>
       </div>

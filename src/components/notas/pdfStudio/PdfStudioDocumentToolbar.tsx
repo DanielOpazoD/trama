@@ -1,10 +1,12 @@
 import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
 import type { AssembleOptions } from '../../../lib/pdfStudio/assemble'
 import type { DocSettings } from '../../../lib/pdfStudio/model'
+import type { PdfTemplateMode } from './PdfTemplateModeBanner'
 import { OverflowMenu, OverflowMenuItem } from '../../OverflowMenu'
 import {
   CloseIcon,
   DownloadIcon,
+  FilePdfIcon,
   FileIcon,
   PrinterIcon,
   RedoIcon,
@@ -19,52 +21,100 @@ function isMacLike(): boolean {
 
 export function PdfStudioDocumentToolbar({
   busy,
+  canSaveTemplate,
   empty,
   exportCompression,
   exportStatus,
+  formsEnabled,
   pageNumbers,
   redoable,
   saving,
+  studioMode,
+  templateMode,
   total,
   undoable,
   watermarkText,
   onCancelExport,
   onDownload,
+  onDownloadFillable,
   onImport,
   onNewDoc,
   onOpenOcr,
   onInspectForms,
+  onPrintTemplate,
   onRedo,
   onSavePdf,
+  onStartSaveTemplate,
   onSetExportCompression,
   onSetPageNumbers,
   onSetWatermark,
   onUndo,
 }: {
   busy: boolean
+  canSaveTemplate: boolean
   empty: boolean
   exportCompression: AssembleOptions['compression']
   exportStatus: string | null
+  formsEnabled: boolean
   pageNumbers: DocSettings['pageNumbers']
   redoable: boolean
   saving: boolean
+  studioMode: 'editor' | 'templates'
+  templateMode: PdfTemplateMode
   total: number
   undoable: boolean
   watermarkText: string
   onCancelExport: () => void
   onDownload: () => void
+  onDownloadFillable: () => void
   onImport: () => void
   onNewDoc: () => void
   onOpenOcr: () => void
   onInspectForms: () => void
+  onPrintTemplate: () => void
   onRedo: () => void
   onSavePdf: () => void
+  onStartSaveTemplate: () => void
   onSetExportCompression: (next: AssembleOptions['compression']) => void
   onSetPageNumbers: (next: DocSettings['pageNumbers']) => void
   onSetWatermark: (text: string) => void
   onUndo: () => void
 }) {
   const isMac = isMacLike()
+  const isTemplates = studioMode === 'templates'
+  const isFillMode = isTemplates && templateMode === 'fill'
+  const canDownloadFillable = isTemplates && templateMode === 'design'
+  const needsTemplateFields = canDownloadFillable && !empty && !canSaveTemplate
+  const modeLabel = isFillMode
+    ? 'Rellenando planilla'
+    : isTemplates
+      ? 'Diseñando planilla'
+      : 'Editando PDF'
+  const primaryLabel = isFillMode
+    ? 'Imprimir planilla'
+    : needsTemplateFields
+      ? 'Agregar casilleros'
+      : isTemplates
+        ? 'Guardar planilla'
+        : 'Guardar PDF'
+  const primaryDisabled = isFillMode
+    ? empty || saving || busy
+    : isTemplates
+      ? empty || saving || busy
+      : empty || saving || busy
+  const primaryTitle = isFillMode
+    ? 'Abrir el visor para imprimir la planilla rellenada'
+    : needsTemplateFields
+      ? 'Abrir el editor para agregar casilleros de texto a esta planilla'
+      : isTemplates
+        ? 'Guardar esta estructura como planilla reusable'
+        : 'Abrir el visor del navegador para imprimir o guardar todo el documento'
+  const PrimaryIcon = isTemplates && !isFillMode ? FilePdfIcon : PrinterIcon
+  const handlePrimary = isFillMode
+    ? onPrintTemplate
+    : isTemplates
+      ? onStartSaveTemplate
+      : onSavePdf
   return (
     <div
       role="toolbar"
@@ -82,6 +132,16 @@ export function PdfStudioDocumentToolbar({
           <UploadIcon size={13} />
           {busy ? 'Agregando…' : 'Importar'}
         </button>
+        <span
+          aria-label="Modo PDF Studio"
+          className={`hidden h-7 items-center rounded-md border px-2 text-micro font-medium sm:inline-flex ${
+            isTemplates
+              ? 'border-[color:var(--accent-sage)]/25 bg-[color:var(--accent-sage-soft)]/35 text-[color:var(--accent-sage)]'
+              : 'border-ink-100 bg-paper-50/75 text-ink-500'
+          }`}
+        >
+          {modeLabel}
+        </span>
         {(undoable || redoable) && (
           <div className="inline-flex items-center overflow-hidden rounded-md bg-ink-100/40">
             <button
@@ -115,13 +175,13 @@ export function PdfStudioDocumentToolbar({
         )}
         <button
           type="button"
-          onClick={onSavePdf}
-          disabled={empty || saving || busy}
-          title="Abrir el visor del navegador para imprimir o guardar todo el documento"
+          onClick={handlePrimary}
+          disabled={primaryDisabled}
+          title={primaryTitle}
           className="inline-flex h-8 items-center gap-1.5 rounded-md bg-ink-800 px-2.5 text-caption font-medium text-paper-50 transition-colors hover:bg-ink-700 disabled:opacity-35 disabled:hover:bg-ink-800"
         >
-          <PrinterIcon size={13} />
-          {saving ? 'Preparando…' : 'Guardar PDF'}
+          <PrimaryIcon size={13} />
+          {saving ? 'Preparando…' : primaryLabel}
         </button>
         {exportStatus && (
           <div className="hidden items-center gap-1.5 sm:flex">
@@ -155,6 +215,18 @@ export function PdfStudioDocumentToolbar({
                 <DownloadIcon size={13} />
                 Descargar
               </OverflowMenuItem>
+              {canDownloadFillable && (
+                <OverflowMenuItem
+                  disabled={empty || saving || busy || !canSaveTemplate}
+                  onClick={() => {
+                    close()
+                    onDownloadFillable()
+                  }}
+                >
+                  <FilePdfIcon size={13} />
+                  Descargar PDF rellenable
+                </OverflowMenuItem>
+              )}
               <OverflowMenuItem
                 disabled={empty || busy}
                 onClick={() => {
@@ -165,16 +237,18 @@ export function PdfStudioDocumentToolbar({
                 <FileIcon size={13} />
                 Nuevo documento
               </OverflowMenuItem>
-              <OverflowMenuItem
-                disabled={empty || saving || busy}
-                onClick={() => {
-                  close()
-                  onInspectForms()
-                }}
-              >
-                <FileIcon size={13} />
-                Detectar formularios
-              </OverflowMenuItem>
+              {formsEnabled && (
+                <OverflowMenuItem
+                  disabled={empty || saving || busy}
+                  onClick={() => {
+                    close()
+                    onInspectForms()
+                  }}
+                >
+                  <FileIcon size={13} />
+                  Detectar formularios
+                </OverflowMenuItem>
+              )}
               <OverflowMenuItem
                 disabled={empty || saving || busy}
                 onClick={() => {

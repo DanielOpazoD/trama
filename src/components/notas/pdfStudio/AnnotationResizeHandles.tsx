@@ -70,6 +70,7 @@ export function AnnotationResizeHandles({
   innerH,
   selectedId,
   tool,
+  zoom = 1,
   onStartResize,
 }: {
   annotation: ResizableAnnotation
@@ -77,6 +78,7 @@ export function AnnotationResizeHandles({
   innerH: number
   selectedId: string | null
   tool: Tool
+  zoom?: number
   onStartResize: (
     e: React.PointerEvent,
     annotation: ResizableAnnotation,
@@ -86,6 +88,8 @@ export function AnnotationResizeHandles({
   if (tool !== 'select' || selectedId !== annotation.id || annotation.locked) return null
   const box = boxForAnnotation(annotation, innerW, innerH)
   const prefix = labelPrefix(annotation)
+  const inverseZoom = 1 / Math.max(0.25, zoom)
+  const handleSize = 14 * inverseZoom
   const handles: Array<{
     handle: ResizeHandle
     left: string
@@ -127,10 +131,12 @@ export function AnnotationResizeHandles({
           aria-label={label}
           title={label}
           onPointerDown={(e) => onStartResize(e, annotation, handle)}
-          className="absolute z-10 h-3.5 w-3.5 rounded-sm border border-paper-50 bg-[color:var(--accent-sage)] shadow-sm shadow-ink-900/25"
+          className="absolute z-10 rounded-sm border border-paper-50 bg-[color:var(--accent-sage)] shadow-sm shadow-ink-900/25"
           style={{
             left,
             top,
+            width: handleSize,
+            height: handleSize,
             transform: 'translate(-50%, -50%)',
             cursor: handle === 'nw' || handle === 'se' ? 'nwse-resize' : 'nesw-resize',
             touchAction: 'none',

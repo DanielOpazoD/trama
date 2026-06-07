@@ -32,6 +32,7 @@ export function PdfTextEditorHeader({
   onZoomChange,
   primaryLabel = 'Listo',
   showHistory = true,
+  showPrimaryAction = true,
   title,
   zoom,
   zoomInDisabled,
@@ -54,6 +55,7 @@ export function PdfTextEditorHeader({
   onZoomChange?: (zoom: number) => void
   primaryLabel?: string
   showHistory?: boolean
+  showPrimaryAction?: boolean
   title?: string
   zoom?: number
   zoomInDisabled?: boolean
@@ -158,15 +160,18 @@ export function PdfTextEditorHeader({
         {onPrint ? (
           <button
             onClick={onPrint}
+            aria-label="Imprimir planilla"
             className="btn-accent inline-flex items-center gap-1 text-xs"
           >
             <PrinterIcon size={13} />
-            Imprimir planilla
+            Imprimir
           </button>
         ) : null}
-        <button onClick={onDone} className="btn-accent text-xs">
-          {primaryLabel}
-        </button>
+        {showPrimaryAction ? (
+          <button onClick={onDone} className="btn-accent text-xs">
+            {primaryLabel}
+          </button>
+        ) : null}
       </div>
     </header>
   )

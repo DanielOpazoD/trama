@@ -3,16 +3,11 @@ import type { PageLayout } from '../../../lib/pdfStudio/editorGeometry'
 import { usePdfEditorZoomScroll } from './usePdfEditorZoomScroll'
 
 const ZOOM_MIN = 0.5
-const PAGE_ZOOM_MAX = 4
-const PAGE_ZOOM_BASE = 1.9
-const ZOOM_MAX = Math.round((PAGE_ZOOM_MAX / PAGE_ZOOM_BASE) * 100) / 100
+const ZOOM_MAX = 2.1
 const ZOOM_STEP = 0.1
 
 export function displayZoomToPageZoom(displayZoom: number): number {
-  return Math.min(
-    PAGE_ZOOM_MAX,
-    Math.max(ZOOM_MIN * PAGE_ZOOM_BASE, displayZoom * PAGE_ZOOM_BASE),
-  )
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, displayZoom))
 }
 
 export function usePdfTextEditorViewport(currentPage: number) {

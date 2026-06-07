@@ -1,0 +1,127 @@
+import type { PdfFormFieldDraft, PdfFormValue } from '../../../lib/pdfStudio/model'
+
+function valueAsText(value: PdfFormValue): string {
+  if (typeof value === 'string') return value
+  if (Array.isArray(value)) return value.join(', ')
+  return ''
+}
+
+function isFilled(field: PdfFormFieldDraft): boolean {
+  if (field.fieldKind === 'checkbox' || field.fieldKind === 'radio') {
+    return field.value === true || valueAsText(field.value).trim().length > 0
+  }
+  return valueAsText(field.value).trim().length > 0
+}
+
+export function PdfTemplateFillVariablesPanel({
+  fields,
+  pageIndexById,
+  onChange,
+  onJump,
+}: {
+  fields: PdfFormFieldDraft[]
+  pageIndexById: Record<string, number>
+  onChange: (id: string, value: string | boolean) => void
+  onJump: (field: PdfFormFieldDraft) => void
+}) {
+  const pending = fields.filter((field) => !isFilled(field)).length
+  const completed = fields.length - pending
+  const nextPending = fields.find((field) => !isFilled(field)) ?? null
+  const statusText =
+    fields.length === 0
+      ? 'Sin casilleros'
+      : pending === 0
+        ? 'Todo listo para imprimir'
+        : `${pending} ${pending === 1 ? 'pendiente' : 'pendientes'}`
+  return (
+    <aside
+      aria-label="Variables de planilla"
+      className="w-full shrink-0 border-b border-ink-100 bg-paper-50/95 px-3 py-3 md:w-72 md:border-b-0 md:border-r"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h2 className="text-caption font-semibold text-ink-800">Completar datos</h2>
+          <p className="mt-0.5 text-micro text-ink-400">
+            {completed} de {fields.length} listos
+          </p>
+        </div>
+        <span
+          className={`rounded-full px-2 py-0.5 text-micro font-medium ${
+            pending > 0
+              ? 'bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]'
+              : 'bg-ink-100 text-ink-500'
+          }`}
+        >
+          {statusText}
+        </span>
+      </div>
+      <button
+        type="button"
+        disabled={!nextPending}
+        onClick={() => nextPending && onJump(nextPending)}
+        className="mt-3 w-full rounded-md border border-[color:var(--accent-sage)]/25 bg-[color:var(--accent-sage-soft)]/55 px-2.5 py-2 text-caption font-semibold text-[color:var(--accent-sage)] transition-colors hover:bg-[color:var(--accent-sage-soft)] disabled:border-ink-100 disabled:bg-ink-50 disabled:text-ink-300"
+      >
+        Siguiente pendiente
+      </button>
+      {fields.length === 0 ? (
+        <div className="mt-3 rounded-md border border-dashed border-ink-200 bg-paper-50 px-3 py-4 text-caption text-ink-500">
+          Esta planilla no tiene casilleros para rellenar.
+        </div>
+      ) : null}
+      <div className="mt-3 flex flex-col gap-2">
+        {fields.map((field) => {
+          const pageNumber = (pageIndexById[field.pageId] ?? 0) + 1
+          const filled = isFilled(field)
+          const label = `Variable ${field.name}`
+          return (
+            <div
+              key={field.id}
+              className="rounded-md border border-ink-100 bg-paper-50 p-2 shadow-sm shadow-ink-900/5"
+            >
+              <div className="mb-1.5 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onJump(field)}
+                  aria-label={`Ir al campo ${field.name}`}
+                  className="min-w-0 flex-1 truncate text-left text-caption font-medium text-ink-800 transition-colors hover:text-[color:var(--accent-sage)]"
+                >
+                  [{field.name}]
+                </button>
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    filled ? 'bg-[color:var(--accent-sage)]' : 'bg-ink-200'
+                  }`}
+                  aria-label={filled ? 'completa' : 'pendiente'}
+                />
+              </div>
+              {field.fieldKind === 'checkbox' ? (
+                <label className="flex items-center gap-2 text-caption text-ink-600">
+                  <input
+                    type="checkbox"
+                    aria-label={label}
+                    checked={field.value === true}
+                    disabled={field.readOnly}
+                    onChange={(event) => onChange(field.id, event.currentTarget.checked)}
+                    className="h-4 w-4 accent-[color:var(--accent-sage)]"
+                  />
+                  Marcado
+                </label>
+              ) : (
+                <input
+                  type={field.fieldKind === 'date' ? 'date' : 'text'}
+                  aria-label={label}
+                  value={valueAsText(field.value)}
+                  readOnly={field.readOnly}
+                  onChange={(event) => onChange(field.id, event.currentTarget.value)}
+                  placeholder={`[${field.name}]`}
+                  className="input-paper w-full rounded-md border border-ink-200 px-2 py-1.5 text-caption text-ink-800 placeholder:text-ink-300"
+                />
+              )}
+              <div className="mt-1 text-micro text-ink-400">Página {pageNumber}</div>
+            </div>
+          )
+        })}
+      </div>
+    </aside>
+  )
+}

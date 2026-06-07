@@ -1,0 +1,100 @@
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { makePdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import { PdfTemplateFillVariablesPanel } from './PdfTemplateFillVariablesPanel'
+
+const emptyField = makePdfFormFieldDraft({
+  fieldKind: 'text',
+  pageId: 'p1',
+  name: 'paciente',
+  value: '',
+  xRatio: 0.1,
+  yRatio: 0.2,
+  wRatio: 0.35,
+  hRatio: 0.05,
+})
+
+const filledField = makePdfFormFieldDraft({
+  fieldKind: 'text',
+  pageId: 'p2',
+  name: 'rut',
+  value: '12.345.678-9',
+  xRatio: 0.1,
+  yRatio: 0.3,
+  wRatio: 0.25,
+  hRatio: 0.05,
+})
+
+describe('<PdfTemplateFillVariablesPanel />', () => {
+  it('lista variables, muestra progreso y permite escribir sin buscar en la hoja', () => {
+    const onChange = vi.fn()
+    const onJump = vi.fn()
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[emptyField, filledField]}
+        pageIndexById={{ p1: 0, p2: 1 }}
+        onChange={onChange}
+        onJump={onJump}
+      />,
+    )
+
+    expect(
+      screen.getByRole('complementary', { name: /Variables de planilla/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('1 pendiente')).toBeInTheDocument()
+    expect(screen.getByText('1 de 2 listos')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /Variable paciente/i })).toHaveValue('')
+    expect(screen.getByRole('textbox', { name: /Variable rut/i })).toHaveValue(
+      '12.345.678-9',
+    )
+
+    fireEvent.change(screen.getByRole('textbox', { name: /Variable paciente/i }), {
+      target: { value: 'Camila' },
+    })
+    expect(onChange).toHaveBeenCalledWith(emptyField.id, 'Camila')
+
+    fireEvent.click(screen.getByRole('button', { name: /Ir al campo paciente/i }))
+    expect(onJump).toHaveBeenCalledWith(emptyField)
+  })
+
+  it('lleva al siguiente casillero pendiente y avisa cuando todo está completo', () => {
+    const onJump = vi.fn()
+    const { rerender } = render(
+      <PdfTemplateFillVariablesPanel
+        fields={[emptyField, filledField]}
+        pageIndexById={{ p1: 0, p2: 1 }}
+        onChange={vi.fn()}
+        onJump={onJump}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Siguiente pendiente/i }))
+    expect(onJump).toHaveBeenCalledWith(emptyField)
+
+    rerender(
+      <PdfTemplateFillVariablesPanel
+        fields={[filledField]}
+        pageIndexById={{ p2: 1 }}
+        onChange={vi.fn()}
+        onJump={onJump}
+      />,
+    )
+
+    expect(screen.getByText('Todo listo para imprimir')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Siguiente pendiente/i })).toBeDisabled()
+  })
+
+  it('muestra un estado vacío simple cuando la planilla no tiene casilleros', () => {
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[]}
+        pageIndexById={{}}
+        onChange={vi.fn()}
+        onJump={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/Esta planilla no tiene casilleros/i)).toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).toBeNull()
+  })
+})

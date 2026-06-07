@@ -1,12 +1,10 @@
 import { type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
-import type {
-  PdfFormFieldDraft,
-  PdfFormFieldKind,
-  PdfFormValue,
-} from '../../../lib/pdfStudio/model'
+import type { PdfFormFieldDraft, PdfFormValue } from '../../../lib/pdfStudio/model'
 import type { ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
 import type { PdfFormFieldType } from '../../../lib/pdfStudio/pdfForms'
-import { ACCENT, stepBtn } from './editorStyle'
+import { ACCENT } from './editorStyle'
+import { FillFieldLabel, FormFieldControl } from './FormFieldControl'
+import { formFieldTextCss } from './pdfFormFieldStyle'
 
 export type VisualPdfFormWidget = {
   id: string
@@ -23,10 +21,10 @@ export type VisualPdfFormWidget = {
 }
 
 const handles: { key: ResizeHandle; label: string; style: CSSProperties }[] = [
-  { key: 'nw', label: 'esquina superior izquierda', style: { left: -5, top: -5 } },
-  { key: 'ne', label: 'esquina superior derecha', style: { right: -5, top: -5 } },
-  { key: 'sw', label: 'esquina inferior izquierda', style: { left: -5, bottom: -5 } },
-  { key: 'se', label: 'esquina inferior derecha', style: { right: -5, bottom: -5 } },
+  { key: 'nw', label: 'esquina superior izquierda', style: { left: -4, top: -4 } },
+  { key: 'ne', label: 'esquina superior derecha', style: { right: -4, top: -4 } },
+  { key: 'sw', label: 'esquina inferior izquierda', style: { left: -4, bottom: -4 } },
+  { key: 'se', label: 'esquina inferior derecha', style: { right: -4, bottom: -4 } },
 ]
 
 type FormBox = Pick<PdfFormFieldDraft, 'xRatio' | 'yRatio' | 'wRatio' | 'hRatio'>
@@ -40,135 +38,15 @@ function boxStyle(box: FormBox): CSSProperties {
   }
 }
 
-function commonControlStyle(selected = false): string {
-  return `h-full w-full rounded-[3px] border bg-paper-50/80 px-1.5 text-caption text-ink-800 shadow-sm outline-none transition-colors ${
-    selected
-      ? 'border-[color:var(--accent-sage)] ring-1 ring-[color:var(--accent-sage)]'
-      : 'border-[color:var(--accent-sage)]/45 hover:border-[color:var(--accent-sage)]'
-  }`
-}
-
-function valueAsText(value: PdfFormValue): string {
-  if (typeof value === 'string') return value
-  if (Array.isArray(value)) return value.join(', ')
-  return ''
-}
-
 function defaultRadioValue(field: PdfFormFieldDraft): string {
   return field.options?.[0] ?? 'Sí'
 }
 
-function isInteractiveFormTarget(target: EventTarget | null): boolean {
+function isInteractiveFormTarget(target: EventTarget | null, fillMode: boolean): boolean {
+  if (!fillMode) return false
   return target instanceof HTMLElement
     ? Boolean(target.closest('input, select, textarea, button'))
     : false
-}
-
-function renderFieldControl({
-  ariaName,
-  fieldKind,
-  mode,
-  readOnly,
-  selected,
-  value,
-  options,
-  onChange,
-  onOpenSignature,
-}: {
-  ariaName: string
-  fieldKind: PdfFormFieldKind | PdfFormFieldType
-  mode?: 'edit' | 'fill'
-  readOnly?: boolean
-  selected?: boolean
-  value: PdfFormValue
-  options?: string[]
-  onChange: (value: string | boolean) => void
-  onOpenSignature?: () => void
-}) {
-  if (fieldKind === 'checkbox') {
-    return (
-      <label className="flex h-full w-full items-center justify-center rounded-[3px] border border-[color:var(--accent-sage)]/50 bg-paper-50/85 shadow-sm">
-        <input
-          type="checkbox"
-          aria-label={ariaName}
-          checked={value === true}
-          disabled={readOnly}
-          onChange={(event) => onChange(event.currentTarget.checked)}
-          className="h-4 w-4 accent-[color:var(--accent-sage)]"
-        />
-      </label>
-    )
-  }
-
-  if (fieldKind === 'radio') {
-    const selectedValue = valueAsText(value)
-    const option = options?.[0] ?? 'Sí'
-    return (
-      <label className="flex h-full w-full items-center justify-center rounded-[3px] border border-[color:var(--accent-sage)]/50 bg-paper-50/85 shadow-sm">
-        <input
-          type="radio"
-          aria-label={ariaName}
-          checked={selectedValue === option}
-          disabled={readOnly}
-          onChange={() => onChange(option)}
-          className="h-4 w-4 accent-[color:var(--accent-sage)]"
-        />
-      </label>
-    )
-  }
-
-  if (fieldKind === 'signature') {
-    const text = valueAsText(value)
-    return text.startsWith('data:image/') ? (
-      <button
-        type="button"
-        aria-label={`Firmar ${ariaName}`}
-        onClick={onOpenSignature}
-        className="h-full w-full rounded-[3px] border border-[color:var(--accent-sage)]/50 bg-paper-50/85 p-1 shadow-sm"
-      >
-        <img src={text} alt="" className="h-full w-full object-contain" />
-      </button>
-    ) : (
-      <button
-        type="button"
-        aria-label={`Firmar ${ariaName}`}
-        onClick={onOpenSignature}
-        className="h-full w-full rounded-[3px] border border-dashed border-[color:var(--accent-sage)]/70 bg-[color:var(--accent-sage-soft)]/40 text-caption font-medium text-[color:var(--accent-sage)]"
-      >
-        Firmar
-      </button>
-    )
-  }
-
-  if (fieldKind === 'dropdown' || fieldKind === 'option-list') {
-    return (
-      <select
-        aria-label={ariaName}
-        value={valueAsText(value)}
-        disabled={readOnly}
-        onChange={(event) => onChange(event.currentTarget.value)}
-        className={commonControlStyle(selected)}
-      >
-        {(options?.length ? options : [valueAsText(value)]).map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    )
-  }
-
-  return (
-    <input
-      type={fieldKind === 'date' ? 'date' : 'text'}
-      aria-label={ariaName}
-      value={valueAsText(value)}
-      placeholder={mode === 'fill' ? `[${ariaName}]` : undefined}
-      readOnly={readOnly}
-      onChange={(event) => onChange(event.currentTarget.value)}
-      className={commonControlStyle(selected)}
-    />
-  )
 }
 
 export function FormFieldLayer({
@@ -176,6 +54,9 @@ export function FormFieldLayer({
   draftFields,
   mode = 'edit',
   selectedDraftId,
+  selectedDraftIds = selectedDraftId ? [selectedDraftId] : [],
+  pageHeightPx = 1,
+  zoom = 1,
   onDetectedValueChange,
   onDraftValueChange,
   onSelectDraft,
@@ -187,13 +68,16 @@ export function FormFieldLayer({
   draftFields: PdfFormFieldDraft[]
   mode?: 'edit' | 'fill'
   selectedDraftId: string | null
+  selectedDraftIds?: string[]
+  pageHeightPx?: number
+  zoom?: number
   onDetectedValueChange: (
     sourceId: string,
     fieldName: string,
     value: string | boolean,
   ) => void
   onDraftValueChange: (id: string, value: string | boolean) => void
-  onSelectDraft: (id: string) => void
+  onSelectDraft: (id: string, additive?: boolean) => void
   onStartDraftDrag: (event: ReactPointerEvent, field: PdfFormFieldDraft) => void
   onStartDraftResize: (
     event: ReactPointerEvent,
@@ -202,6 +86,10 @@ export function FormFieldLayer({
   ) => void
   onOpenSignature: (field: PdfFormFieldDraft) => void
 }) {
+  const inverseZoom = 1 / Math.max(0.25, zoom)
+  const handleSize = 8 * inverseZoom
+  const handleOffset = -4 * inverseZoom
+  const selectedSet = new Set(selectedDraftIds)
   return (
     <>
       {detectedWidgets.map((widget) => (
@@ -211,22 +99,29 @@ export function FormFieldLayer({
           className="z-10"
           title={`Campo ${widget.fieldName}`}
         >
-          {renderFieldControl({
-            ariaName: widget.fieldName,
-            fieldKind: widget.type,
-            mode,
-            readOnly: widget.readOnly,
-            value: widget.value,
-            options: widget.options,
-            onChange: (value) =>
-              onDetectedValueChange(widget.sourceId, widget.fieldName, value),
-          })}
+          {mode === 'fill' ? (
+            <FillFieldLabel name={widget.fieldName} zoom={zoom} />
+          ) : null}
+          <FormFieldControl
+            ariaName={widget.fieldName}
+            controlId={widget.id}
+            fieldKind={widget.type}
+            mode={mode}
+            readOnly={widget.readOnly}
+            value={widget.value}
+            zoom={zoom}
+            options={widget.options}
+            onChange={(value) =>
+              onDetectedValueChange(widget.sourceId, widget.fieldName, value)
+            }
+          />
         </div>
       ))}
 
       {draftFields.map((field) => {
-        const selected = selectedDraftId === field.id
+        const selected = selectedSet.has(field.id)
         const fillMode = mode === 'fill'
+        const showHandles = !fillMode && selected && selectedDraftIds.length === 1
         return (
           <div
             key={field.id}
@@ -235,27 +130,33 @@ export function FormFieldLayer({
             onPointerDown={(event) => {
               event.stopPropagation()
               if (fillMode) return
-              onSelectDraft(field.id)
-              if (isInteractiveFormTarget(event.target)) return
+              event.preventDefault()
+              onSelectDraft(field.id, event.shiftKey)
+              if (isInteractiveFormTarget(event.target, fillMode)) return
               onStartDraftDrag(event, field)
             }}
             title={`Campo ${field.name}`}
           >
-            {renderFieldControl({
-              ariaName: field.name,
-              fieldKind: field.fieldKind,
-              mode,
-              readOnly: field.readOnly,
-              selected: !fillMode && selected,
-              value:
+            {fillMode ? <FillFieldLabel name={field.name} zoom={zoom} /> : null}
+            <FormFieldControl
+              ariaName={field.name}
+              controlId={field.id}
+              fieldKind={field.fieldKind}
+              mode={mode}
+              readOnly={field.readOnly}
+              selected={!fillMode && selected}
+              zoom={zoom}
+              textStyle={formFieldTextCss(field, pageHeightPx)}
+              value={
                 field.fieldKind === 'radio' && field.value == null
                   ? defaultRadioValue(field)
-                  : field.value,
-              options: field.options,
-              onChange: (value) => onDraftValueChange(field.id, value),
-              onOpenSignature: () => onOpenSignature(field),
-            })}
-            {!fillMode && selected
+                  : field.value
+              }
+              options={field.options}
+              onChange={(value) => onDraftValueChange(field.id, value)}
+              onOpenSignature={() => onOpenSignature(field)}
+            />
+            {showHandles
               ? handles.map((handle) => (
                   <button
                     key={handle.key}
@@ -266,8 +167,29 @@ export function FormFieldLayer({
                       event.preventDefault()
                       onStartDraftResize(event, field, handle.key)
                     }}
-                    className={`${stepBtn} absolute z-30 h-3 w-3 rounded-full border border-paper-50 bg-[color:var(--accent-sage)] p-0 text-transparent shadow-sm`}
-                    style={{ ...handle.style, outlineColor: ACCENT }}
+                    className="absolute z-30 rounded-full border border-paper-50 bg-[color:var(--accent-sage)] p-0 text-transparent shadow-sm shadow-ink-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-sage)]"
+                    style={{
+                      ...handle.style,
+                      left:
+                        typeof handle.style.left === 'number'
+                          ? handleOffset
+                          : handle.style.left,
+                      right:
+                        typeof handle.style.right === 'number'
+                          ? handleOffset
+                          : handle.style.right,
+                      top:
+                        typeof handle.style.top === 'number'
+                          ? handleOffset
+                          : handle.style.top,
+                      bottom:
+                        typeof handle.style.bottom === 'number'
+                          ? handleOffset
+                          : handle.style.bottom,
+                      width: handleSize,
+                      height: handleSize,
+                      outlineColor: ACCENT,
+                    }}
                   />
                 ))
               : null}

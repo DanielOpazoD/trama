@@ -1,26 +1,36 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { isPdfTemplate, type PdfDoc } from '../../../lib/pdfStudio/model'
 import type { SavedDoc } from '../../../lib/pdfStudio/persistence'
 import { PdfTemplateModeBanner, type PdfTemplateMode } from './PdfTemplateModeBanner'
 
 export function usePdfStudioTemplateMode({
   doc,
+  enabled = true,
   exportPdf,
   openSaved,
   openTemplate,
   saveTemplate,
 }: {
   doc: PdfDoc
-  exportPdf: (target: PdfDoc, kind?: string) => void | Promise<void>
+  enabled?: boolean
+  exportPdf: (
+    target: PdfDoc,
+    kind?: string,
+    options?: { flattenFormFields?: boolean },
+  ) => void | Promise<void>
   openSaved: (saved: SavedDoc) => void
   openTemplate: (saved: SavedDoc) => void
   saveTemplate: (name: string) => void
 }) {
   const [templateMode, setTemplateMode] = useState<PdfTemplateMode | null>(null)
-  const docIsTemplate = isPdfTemplate(doc)
+  const docIsTemplate = enabled && isPdfTemplate(doc)
   const effectiveTemplateMode: PdfTemplateMode | null = docIsTemplate
     ? (templateMode ?? 'design')
     : null
+
+  useEffect(() => {
+    if (!enabled) setTemplateMode(null)
+  }, [enabled])
 
   function resetTemplateMode() {
     setTemplateMode(null)
@@ -28,12 +38,12 @@ export function usePdfStudioTemplateMode({
 
   function openSavedWithMode(saved: SavedDoc) {
     openSaved(saved)
-    setTemplateMode(isPdfTemplate(saved.doc) ? 'design' : null)
+    setTemplateMode(enabled && isPdfTemplate(saved.doc) ? 'design' : null)
   }
 
   function openTemplateWithFillMode(saved: SavedDoc) {
     openTemplate(saved)
-    setTemplateMode('fill')
+    setTemplateMode(enabled ? 'fill' : null)
   }
 
   function saveTemplateWithMode(name: string) {
@@ -41,20 +51,18 @@ export function usePdfStudioTemplateMode({
     setTemplateMode('design')
   }
 
-  const templateModeBanner = effectiveTemplateMode ? (
-    <PdfTemplateModeBanner
-      mode={effectiveTemplateMode}
-      fieldCount={doc.formFields?.length ?? 0}
-      onPrint={
-        effectiveTemplateMode === 'fill'
-          ? () => void exportPdf(doc, 'planilla')
-          : undefined
-      }
-      onEditStructure={
-        effectiveTemplateMode === 'fill' ? () => setTemplateMode('design') : undefined
-      }
-    />
-  ) : null
+  const templateModeBanner =
+    enabled && effectiveTemplateMode ? (
+      <PdfTemplateModeBanner
+        mode={effectiveTemplateMode}
+        fieldCount={doc.formFields?.length ?? 0}
+        onPrint={
+          effectiveTemplateMode === 'fill'
+            ? () => void exportPdf(doc, 'planilla', { flattenFormFields: true })
+            : undefined
+        }
+      />
+    ) : null
 
   return {
     effectiveTemplateMode,

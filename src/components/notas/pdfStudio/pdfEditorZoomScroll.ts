@@ -75,6 +75,38 @@ export function restorePdfEditorScrollAnchor(
   container.scrollTop = targetContentY - container.clientHeight / 2
 }
 
+export function findMostVisiblePdfEditorPage(
+  container: HTMLElement | null,
+): number | null {
+  if (!container) return null
+  const pages = pdfEditorPages(container)
+  if (pages.length === 0) return null
+  const containerRect = container.getBoundingClientRect()
+  let best: { index: number; visible: number; distance: number } | null = null
+  const centerY = containerRect.top + container.clientHeight / 2
+  for (const page of pages) {
+    const rect = page.getBoundingClientRect()
+    const visible = Math.max(
+      0,
+      Math.min(rect.bottom, containerRect.bottom) - Math.max(rect.top, containerRect.top),
+    )
+    const pageCenter = rect.top + rect.height / 2
+    const candidate = {
+      index: pageIndexForAnchor(page),
+      visible,
+      distance: Math.abs(pageCenter - centerY),
+    }
+    if (
+      !best ||
+      candidate.visible > best.visible ||
+      (candidate.visible === best.visible && candidate.distance < best.distance)
+    ) {
+      best = candidate
+    }
+  }
+  return best && best.visible > 0 ? best.index : null
+}
+
 export function centerPdfEditorSheetHorizontally(
   container: HTMLElement | null,
   pageIndex: number,

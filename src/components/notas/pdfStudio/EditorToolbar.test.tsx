@@ -66,6 +66,23 @@ describe('<EditorToolbar />', () => {
     expect(screen.queryByLabelText('Herramienta resaltar')).not.toBeInTheDocument()
   })
 
+  it('en modo planilla prioriza crear casillero y no texto PDF normal', () => {
+    const p = setup({
+      context: 'templateDesign',
+      onAddFormField: vi.fn(),
+      onInspectForms: vi.fn(),
+      onSuggestFormFields: vi.fn(),
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Crear casillero de texto/i }))
+
+    expect(p.onAddFormField).toHaveBeenCalledWith('text')
+    expect(p.onAddText).not.toHaveBeenCalled()
+    expect(
+      screen.queryByRole('button', { name: /Agregar cuadro de texto/i }),
+    ).not.toBeInTheDocument()
+  })
+
   it('evita bordes anidados en los grupos principales', () => {
     setup({ hasDuplicableSelection: true, hasSelection: true })
     for (const label of ['Herramientas', 'Insertar', 'Estilo', 'Objeto', 'Vista']) {
@@ -106,8 +123,12 @@ describe('<EditorToolbar />', () => {
     expect(lastStyle(p.onApplyStyle)).toEqual({ rotation: 15 })
   })
 
-  it('deja el menú Campos limitado a detectar, texto y firma simple', () => {
-    const p = setup({ onAddFormField: vi.fn(), onInspectForms: vi.fn() })
+  it('deja el menú Campos limitado a casilleros de texto en planillas v1', () => {
+    const p = setup({
+      onAddFormField: vi.fn(),
+      onInspectForms: vi.fn(),
+      onSuggestFormFields: vi.fn(),
+    })
 
     fireEvent.click(screen.getByRole('button', { name: 'Campos' }))
 
@@ -115,16 +136,21 @@ describe('<EditorToolbar />', () => {
       screen.getByRole('menuitem', { name: 'Detectar campos del PDF' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('menuitem', { name: 'Crear campo Texto' }),
+      screen.getByRole('menuitem', { name: 'Sugerir casilleros vacíos' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('menuitem', { name: 'Crear campo Firma' }),
+      screen.getByRole('menuitem', { name: 'Crear casillero de texto' }),
     ).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Crear campo Firma' })).toBeNull()
     expect(screen.queryByRole('menuitem', { name: 'Crear campo Fecha' })).toBeNull()
     expect(screen.queryByRole('menuitem', { name: 'Crear campo Checkbox' })).toBeNull()
     expect(screen.queryByRole('menuitem', { name: 'Crear campo Radio' })).toBeNull()
 
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Crear campo Texto' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Sugerir casilleros vacíos' }))
+    expect(p.onSuggestFormFields).toHaveBeenCalledOnce()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Campos' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Crear casillero de texto' }))
     expect(p.onAddFormField).toHaveBeenCalledWith('text')
   })
 

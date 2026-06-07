@@ -1,5 +1,6 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react'
 import type { PageLayout } from '../../../lib/pdfStudio/editorGeometry'
+import { findMostVisiblePdfEditorPage } from './pdfEditorZoomScroll'
 
 function scrollEditorPageIntoView(pageIndex: number) {
   const target = document.querySelector<HTMLElement>(
@@ -59,5 +60,16 @@ export function usePdfTextEditorPageNavigation({
     [clearPageState, currentPage, setCurrentPage, total],
   )
 
-  return { activatePage, goToPage }
+  const syncPageFromScroll = useCallback(
+    (container?: HTMLElement | null) => {
+      const next = findMostVisiblePdfEditorPage(
+        container ?? document.querySelector<HTMLElement>('[data-pdf-editor-scroll]'),
+      )
+      if (next == null || next < 0 || next >= total || next === currentPage) return
+      setCurrentPage(next)
+    },
+    [currentPage, setCurrentPage, total],
+  )
+
+  return { activatePage, goToPage, syncPageFromScroll }
 }

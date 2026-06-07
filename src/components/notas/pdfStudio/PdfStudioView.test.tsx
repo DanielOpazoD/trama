@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   createSearchablePdfInWorker: vi.fn(),
   inspectPdfFormInWorker: vi.fn(),
   fillPdfFormInWorker: vi.fn(),
+  writePdfFormFieldsInWorker: vi.fn(),
   downloadBlob: vi.fn(),
   openBlankPdfTab: vi.fn(),
   showPdfInTab: vi.fn(),
@@ -43,7 +44,7 @@ vi.mock('../../../lib/pdfStudio/pdfOcrWorkerClient', () => ({
 vi.mock('../../../lib/pdfStudio/pdfFormWorkerClient', () => ({
   inspectPdfFormInWorker: mocks.inspectPdfFormInWorker,
   fillPdfFormInWorker: mocks.fillPdfFormInWorker,
-  writePdfFormFieldsInWorker: vi.fn(async (file: File) => ({ blob: file })),
+  writePdfFormFieldsInWorker: mocks.writePdfFormFieldsInWorker,
 }))
 vi.mock('../../../lib/pdfStudio/printPdf', () => ({
   openBlankPdfTab: mocks.openBlankPdfTab,
@@ -115,6 +116,9 @@ beforeEach(() => {
   mocks.fillPdfFormInWorker.mockResolvedValue({
     blob: new Blob(['filled'], { type: 'application/pdf' }),
   })
+  mocks.writePdfFormFieldsInWorker.mockResolvedValue({
+    blob: new Blob(['with-forms'], { type: 'application/pdf' }),
+  })
   mocks.openBlankPdfTab.mockReturnValue(null) // sin pestaña real en happy-dom
   mocks.loadDraft.mockResolvedValue(null) // sin borrador por defecto
   mocks.saveDraft.mockResolvedValue(undefined)
@@ -128,12 +132,54 @@ describe('<PdfStudioView />', () => {
   it('muestra el estado vacío con Guardar deshabilitado', () => {
     renderWithProviders(<PdfStudioView />)
     expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
+    expect(screen.getByText(/Editando PDF/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar PDF/i })).toBeDisabled()
     expect(
       screen.getByRole('button', { name: /Importar PDF o imagen/i }),
     ).toHaveTextContent('Importar')
     expect(
       screen.getByRole('button', { name: /Más acciones del documento/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('en modo planillas usa estado vacío, modo y acción primaria propios', () => {
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    expect(screen.getByText(/Crea una planilla desde PDF o imagen/i)).toBeInTheDocument()
+    expect(screen.getByText(/Diseñando planilla/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Guardar planilla/i })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /Guardar PDF/i })).not.toBeInTheDocument()
+  })
+
+  it('Guardar planilla abre el nombre de guardado cuando hay casilleros', async () => {
+    const user = userEvent.setup()
+    mocks.loadDraft.mockResolvedValueOnce({ doc: templateDoc(), library: [] })
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await screen.findByAltText('Página 1')
+    await user.click(screen.getByRole('button', { name: /^Guardar planilla$/i }))
+
+    expect(
+      await screen.findByPlaceholderText(/Nombre de la planilla/i),
+    ).toBeInTheDocument()
+  })
+
+  it('en planillas abre el editor de casilleros cuando el PDF aún no tiene campos', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    const addFields = screen.getByRole('button', { name: /Agregar casilleros/i })
+    expect(addFields).toBeEnabled()
+    await user.click(addFields)
+
+    expect(
+      await screen.findByRole('dialog', { name: /Editar página 1/i }),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Campos' }))
+    expect(
+      screen.getByRole('menuitem', { name: /Crear casillero de texto/i }),
     ).toBeInTheDocument()
   })
 
@@ -149,6 +195,9 @@ describe('<PdfStudioView />', () => {
 
     await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
     expect(screen.getByRole('menuitem', { name: /Descargar/i })).toBeDisabled()
+    expect(
+      screen.queryByRole('menuitem', { name: /Detectar formularios/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('en modo editor PDF no muestra ni ejecuta planillas guardadas', async () => {
@@ -163,6 +212,40 @@ describe('<PdfStudioView />', () => {
       screen.queryByRole('button', {
         name: /Rellenar planilla Ingreso paciente/i,
       }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('en modo editor PDF ignora el modo planilla aunque el borrador tenga casilleros', async () => {
+    mocks.loadDraft.mockResolvedValueOnce({ doc: templateDoc(), library: [] })
+    renderWithProviders(<PdfStudioView studioMode="editor" />)
+
+    expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
+    expect(screen.queryByText(/Rellenar planilla/i)).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Imprimir planilla/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('limpia el modo rellenar al pasar desde Planillas a Imprenta', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+    ])
+    const view = renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Rellenar planilla Ingreso paciente/i,
+      }),
+    )
+    const fillDialog = await screen.findByRole('dialog', { name: /Rellenar planilla/i })
+    await user.click(within(fillDialog).getByRole('button', { name: /Cerrar/i }))
+
+    view.rerender(<PdfStudioView studioMode="editor" />)
+
+    expect(screen.queryByText(/Rellenar planilla/i)).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Imprimir planilla/i }),
     ).not.toBeInTheDocument()
   })
 
@@ -186,15 +269,18 @@ describe('<PdfStudioView />', () => {
       screen.queryByRole('button', { name: /Agregar cuadro de texto/i }),
     ).not.toBeInTheDocument()
     expect(screen.queryByRole('complementary', { name: /Inspector/i })).toBeNull()
+    const fillDialog = screen.getByRole('dialog', { name: /Rellenar planilla/i })
+    expect(within(fillDialog).queryByRole('button', { name: /^Guardar$/i })).toBeNull()
+    expect(
+      within(fillDialog).queryByRole('button', { name: /Editar estructura/i }),
+    ).toBeNull()
 
     const input = screen.getByRole('textbox', { name: 'paciente' })
-    expect(input).toHaveAttribute('placeholder', '[paciente]')
+    expect(input).toHaveAttribute('placeholder', 'Escriba aquí')
+    expect(screen.getAllByText('[paciente]').length).toBeGreaterThanOrEqual(1)
     await user.type(input, 'Daniel')
     await user.click(
-      within(screen.getByRole('dialog', { name: /Rellenar planilla/i })).getByRole(
-        'button',
-        { name: /Imprimir planilla/i },
-      ),
+      within(fillDialog).getByRole('button', { name: /Imprimir planilla/i }),
     )
 
     expect(mocks.openBlankPdfTab).toHaveBeenCalled()
@@ -204,6 +290,74 @@ describe('<PdfStudioView />', () => {
       }),
       expect.anything(),
     )
+    expect(mocks.writePdfFormFieldsInWorker).toHaveBeenCalledWith(
+      expect.any(File),
+      [expect.objectContaining({ name: 'paciente', value: 'Daniel' })],
+      expect.any(Array),
+      { flatten: true },
+      expect.anything(),
+    )
+  })
+
+  it('permite completar una planilla desde el panel lateral de variables', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Rellenar planilla Ingreso paciente/i,
+      }),
+    )
+    const fillDialog = await screen.findByRole('dialog', { name: /Rellenar planilla/i })
+    expect(
+      within(fillDialog).getByRole('complementary', { name: /Variables de planilla/i }),
+    ).toBeInTheDocument()
+    expect(within(fillDialog).getByText('1 pendiente')).toBeInTheDocument()
+
+    await user.type(
+      within(fillDialog).getByRole('textbox', { name: /Variable paciente/i }),
+      'Camila',
+    )
+    await user.click(
+      within(fillDialog).getByRole('button', { name: /Imprimir planilla/i }),
+    )
+
+    expect(mocks.assemblePdfInWorker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        formFields: [expect.objectContaining({ name: 'paciente', value: 'Camila' })],
+      }),
+      expect.anything(),
+    )
+  })
+
+  it('presenta el modo relleno como superficie simple de completar e imprimir', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Rellenar planilla Ingreso paciente/i,
+      }),
+    )
+    const fillDialog = await screen.findByRole('dialog', { name: /Rellenar planilla/i })
+
+    expect(
+      within(fillDialog).getByRole('main', { name: /Área de relleno de planilla/i }),
+    ).toBeInTheDocument()
+    expect(within(fillDialog).getByText('Completar datos')).toBeInTheDocument()
+    expect(within(fillDialog).getByText('0 de 1 listos')).toBeInTheDocument()
+    expect(
+      within(fillDialog).getByRole('button', { name: /Siguiente pendiente/i }),
+    ).toBeEnabled()
+    expect(
+      within(fillDialog).queryByRole('toolbar', { name: /Herramientas de edición/i }),
+    ).toBeNull()
   })
 
   it('deja los campos especiales fuera del editor PDF general', async () => {
@@ -226,7 +380,7 @@ describe('<PdfStudioView />', () => {
     expect(dialog.firstElementChild).toHaveClass('max-w-[min(1360px,85vw)]')
   })
 
-  it('mantiene los campos especiales visibles al diseñar planillas', async () => {
+  it('en planillas v1 permite crear solo casilleros de texto', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView studioMode="templates" />)
     await user.upload(fileInput(), pdfFile())
@@ -234,9 +388,72 @@ describe('<PdfStudioView />', () => {
     await screen.findByRole('dialog', { name: /Editar página 1/i })
 
     expect(screen.getByRole('button', { name: 'Campos' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Campos' }))
+    expect(
+      screen.getByRole('menuitem', { name: /Crear casillero de texto/i }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: /Crear campo Firma/i })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: /Crear campo Checkbox/i })).toBeNull()
   })
 
-  it('detecta formularios AcroForm desde el menú de documento', async () => {
+  it('descarga una planilla como PDF rellenable editable sin aplanar campos', async () => {
+    const user = userEvent.setup()
+    mocks.loadDraft.mockResolvedValueOnce({ doc: templateDoc(), library: [] })
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await screen.findByAltText('Página 1')
+    await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
+    await user.click(screen.getByRole('menuitem', { name: /Descargar PDF rellenable/i }))
+
+    expect(mocks.writePdfFormFieldsInWorker).toHaveBeenCalledWith(
+      expect.any(File),
+      [expect.objectContaining({ name: 'paciente', value: '' })],
+      expect.any(Array),
+      { flatten: false },
+      expect.anything(),
+    )
+    expect(mocks.downloadBlob).toHaveBeenCalledWith(
+      expect.any(Blob),
+      expect.stringMatching(/rellenable.*\.pdf$/),
+    )
+  })
+
+  it('imprime datos de una planilla sin guardarlos en el borrador reutilizable', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Rellenar planilla Ingreso paciente/i,
+      }),
+    )
+    const fillDialog = await screen.findByRole('dialog', { name: /Rellenar planilla/i })
+    await user.type(screen.getByRole('textbox', { name: 'paciente' }), 'Daniel')
+    await user.click(
+      within(fillDialog).getByRole('button', { name: /Imprimir planilla/i }),
+    )
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 700))
+    })
+
+    expect(mocks.assemblePdfInWorker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        formFields: [expect.objectContaining({ value: 'Daniel' })],
+      }),
+      expect.anything(),
+    )
+    expect(
+      mocks.saveDraft.mock.calls.some((call) =>
+        JSON.stringify(call[1]).includes('Daniel'),
+      ),
+    ).toBe(false)
+  })
+
+  it('detecta formularios AcroForm desde el menú de documento en Planillas', async () => {
     const user = userEvent.setup()
     mocks.inspectPdfFormInWorker.mockResolvedValueOnce({
       fieldCount: 2,
@@ -245,7 +462,7 @@ describe('<PdfStudioView />', () => {
         { name: 'approved', type: 'checkbox', value: false },
       ],
     })
-    renderWithProviders(<PdfStudioView />)
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
@@ -257,7 +474,7 @@ describe('<PdfStudioView />', () => {
     expect(await screen.findByText(/2 campos de formulario/i)).toBeInTheDocument()
   })
 
-  it('rellena formularios detectados y los aplica como PDF editable', async () => {
+  it('rellena formularios detectados y los aplica como PDF editable en Planillas', async () => {
     const user = userEvent.setup()
     mocks.inspectPdfFormInWorker.mockResolvedValueOnce({
       fieldCount: 2,
@@ -266,7 +483,7 @@ describe('<PdfStudioView />', () => {
         { name: 'approved', type: 'checkbox', value: false },
       ],
     })
-    renderWithProviders(<PdfStudioView />)
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
     await user.upload(fileInput(), pdfFile('formulario.pdf'))
     await screen.findByAltText('Página 1')
 
@@ -334,7 +551,7 @@ describe('<PdfStudioView />', () => {
       library: [],
     })
     renderWithProviders(<PdfStudioView />)
-    await screen.findByAltText('Página 1')
+    await screen.findByText(/55 páginas/i)
 
     await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
     await user.click(screen.getByRole('menuitem', { name: /OCR buscable/i }))
@@ -540,7 +757,9 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 2/i }))
 
     // La barra de edición (siempre visible) refleja el conteo de marcadas.
-    expect(screen.getByRole('toolbar', { name: /edición de hojas/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('toolbar', { name: /Barra de hojas de PDF/i }),
+    ).toBeInTheDocument()
     expect(screen.getByText(/2 marcadas/)).toBeInTheDocument()
 
     // Eliminar en lote → documento vacío.
@@ -560,22 +779,74 @@ describe('<PdfStudioView />', () => {
     expect(screen.getByText(/3 páginas/)).toBeInTheDocument()
   })
 
-  it('la barra de edición está siempre visible y "Texto" abre la hoja marcada', async () => {
+  it('la barra de edición de hojas no mezcla acciones de texto', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    // La barra aparece sin marcar nada; "Texto" está deshabilitado.
-    expect(screen.getByRole('toolbar', { name: /edición de hojas/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Texto' })).toBeDisabled()
-
-    // Marcar 1 hoja → "Texto" abre el editor de esa página.
-    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
-    await user.click(screen.getByRole('button', { name: 'Texto' }))
     expect(
-      await screen.findByRole('dialog', { name: /Editar página 1/i }),
+      screen.getByRole('toolbar', { name: /Barra de hojas de PDF/i }),
     ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Texto' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    expect(screen.queryByRole('button', { name: 'Texto' })).not.toBeInTheDocument()
+  })
+
+  it('no muestra barra de hojas ni herramientas de edición al rellenar planillas', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Rellenar planilla Ingreso paciente/i,
+      }),
+    )
+    await screen.findByRole('dialog', { name: /Rellenar planilla/i })
+
+    expect(screen.getByText(/Rellenando planilla/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Imprimir planilla/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Importar/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Guardar PDF/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Guardar planilla/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Campos' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('toolbar', { name: /Barra de hojas/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('exporta una planilla guardada como paquete de variables JSON y CSV', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Exportar variables JSON de planilla Ingreso paciente/i,
+      }),
+    )
+    expect(mocks.downloadBlob).toHaveBeenCalledWith(
+      expect.any(Blob),
+      'ingreso-paciente-variables.json',
+    )
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /Exportar variables CSV de planilla Ingreso paciente/i,
+      }),
+    )
+    expect(mocks.downloadBlob).toHaveBeenCalledWith(
+      expect.any(Blob),
+      'ingreso-paciente-variables.csv',
+    )
   })
 
   it('Guardar PDF exporta TODO; "Exportar" exporta sólo las marcadas', async () => {

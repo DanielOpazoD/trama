@@ -10,6 +10,10 @@ import {
 import type { SavedDoc } from '../../../lib/pdfStudio/persistence'
 import { WorkspacePanel } from './WorkspacePanel'
 
+vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
+  renderPageThumb: vi.fn(async () => 'blob:template-thumb'),
+}))
+
 const pdf = () => new File(['%PDF'], 'base.pdf', { type: 'application/pdf' })
 
 function templateDoc() {
@@ -51,9 +55,11 @@ function setup(overrides: Partial<Parameters<typeof WorkspacePanel>[0]> = {}) {
     onSaveTemplate: vi.fn(),
     onOpenSaved: vi.fn(),
     onUseTemplate: vi.fn(),
+    onDuplicateSaved: vi.fn(),
     onRenameSaved: vi.fn(),
     onDeleteSaved: vi.fn(),
     onDownloadSaved: vi.fn(),
+    onExportTemplatePackage: vi.fn(),
     collapsed: false,
     onToggleCollapsed: vi.fn(),
     ...overrides,
@@ -97,6 +103,51 @@ describe('<WorkspacePanel /> · planillas', () => {
     )
 
     expect(props.onUseTemplate).toHaveBeenCalledWith(props.saved[0])
+  })
+
+  it('permite buscar planillas por nombre y deja la biblioteca escaneable', () => {
+    setup({
+      saved: [
+        { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+        { id: 'tpl-2', name: 'Control HTA', doc: templateDoc(), savedAt: 2000 },
+      ],
+    })
+
+    expect(
+      screen.getByRole('searchbox', { name: /Buscar planillas/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Ingreso paciente')).toBeInTheDocument()
+    expect(screen.getByText('Control HTA')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('searchbox', { name: /Buscar planillas/i }), {
+      target: { value: 'hta' },
+    })
+
+    expect(screen.queryByText('Ingreso paciente')).not.toBeInTheDocument()
+    expect(screen.getByText('Control HTA')).toBeInTheDocument()
+  })
+
+  it('expone acciones profesionales para duplicar y exportar variables de una planilla', () => {
+    const props = setup()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Duplicar planilla Ingreso paciente/i }),
+    )
+    expect(props.onDuplicateSaved).toHaveBeenCalledWith(props.saved[0])
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Exportar variables JSON de planilla Ingreso paciente/i,
+      }),
+    )
+    expect(props.onExportTemplatePackage).toHaveBeenCalledWith(props.saved[0], 'json')
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Exportar variables CSV de planilla Ingreso paciente/i,
+      }),
+    )
+    expect(props.onExportTemplatePackage).toHaveBeenCalledWith(props.saved[0], 'csv')
   })
 
   it('permite editar la estructura de una planilla sin entrar al flujo de llenado', () => {

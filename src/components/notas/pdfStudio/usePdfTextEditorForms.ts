@@ -1,51 +1,30 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import {
-  makePdfFormFieldDraft,
   type PdfDoc,
   type PdfFormFieldDraft,
   type PdfFormFieldKind,
-  type PdfFormValue,
   type PdfPage,
 } from '../../../lib/pdfStudio/model'
+import type { PageLayout, ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
+import type { TextStyle, Tool } from './editorStyle'
+import { makeDraftFormField } from './pdfFormFieldFactory'
 import {
-  resizeRatioBox,
-  screenDeltaToPage,
-  type PageLayout,
-  type ResizeHandle,
-} from '../../../lib/pdfStudio/editorGeometry'
-import type { Tool } from './editorStyle'
+  startFormFieldDrag,
+  startFormFieldResize,
+  trackNewFieldDrag,
+} from './pdfFormFieldPointer'
+import { patchFormFieldTextStyle } from './pdfFormFieldStyle'
+import { initialFieldBox, uniqueFieldName } from './pdfTextEditorFormDefaults'
+import { usePdfTextEditorFormShortcuts } from './usePdfTextEditorFormShortcuts'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
-
-function defaultFormValue(kind: PdfFormFieldKind): PdfFormValue {
-  if (kind === 'checkbox') return false
-  if (kind === 'radio') return null
-  return ''
-}
-
-function fieldNamePrefix(kind: PdfFormFieldKind): string {
-  if (kind === 'date') return 'fecha'
-  if (kind === 'checkbox') return 'checkbox'
-  if (kind === 'radio') return 'radio'
-  if (kind === 'signature') return 'firma'
-  return 'campo'
-}
-
-function initialFieldBox(kind: PdfFormFieldKind) {
-  if (kind === 'checkbox' || kind === 'radio') {
-    return { xRatio: 0.24, yRatio: 0.42, wRatio: 0.045, hRatio: 0.045 }
-  }
-  if (kind === 'signature') {
-    return { xRatio: 0.22, yRatio: 0.42, wRatio: 0.32, hRatio: 0.11 }
-  }
-  return { xRatio: 0.2, yRatio: 0.42, wRatio: 0.32, hRatio: 0.055 }
-}
 
 export function usePdfTextEditorForms({
   doc,
   page,
   layout,
   zoom,
+  style,
   setTool,
   setEditingId,
   setSelectedId,
@@ -54,6 +33,7 @@ export function usePdfTextEditorForms({
   page: PdfPage | undefined
   layout: PageLayout | null
   zoom: number
+  style: TextStyle
   setTool: (tool: Tool) => void
   setEditingId: (id: string | null) => void
   setSelectedId: (id: string | null) => void
@@ -63,35 +43,22 @@ export function usePdfTextEditorForms({
   const [formFields, setFormFields] = useState<PdfFormFieldDraft[]>(
     () => doc.formFields ?? [],
   )
-  const [selectedFormFieldId, setSelectedFormFieldId] = useState<string | null>(null)
+  const [selectedFormFieldIds, setSelectedFormFieldIds] = useState<string[]>([])
+  const formClipboardRef = useRef<PdfFormFieldDraft[]>([])
+  const selectedFormFieldId =
+    selectedFormFieldIds[selectedFormFieldIds.length - 1] ?? null
   const [signatureField, setSignatureField] = useState<PdfFormFieldDraft | null>(null)
   const [pendingFormKind, setPendingFormKind] = useState<PdfFormFieldKind | null>(null)
-  const visibleDraftFields = page
-    ? formFields.filter((field) => field.pageId === page.id)
-    : []
 
-  function nextFormFieldName(kind: PdfFormFieldKind): string {
-    const prefix = fieldNamePrefix(kind)
-    const used = new Set(formFields.map((field) => field.name))
-    let i = used.size + 1
-    while (used.has(`${prefix}_${i}`)) i += 1
-    return `${prefix}_${i}`
-  }
-
-  function makeDraftFormField(
-    kind: PdfFormFieldKind,
-    box = initialFieldBox(kind),
-  ): PdfFormFieldDraft | null {
-    if (!page) return null
-    return makePdfFormFieldDraft({
-      fieldKind: kind,
-      pageId: page.id,
-      name: nextFormFieldName(kind),
-      value: defaultFormValue(kind),
-      options: kind === 'radio' ? ['Sí'] : undefined,
-      ...box,
-    })
-  }
+  usePdfTextEditorFormShortcuts({
+    clipboardRef: formClipboardRef,
+    fields: formFields,
+    selectedIds: selectedFormFieldIds,
+    setEditingId,
+    setFields: setFormFields,
+    setSelectedId,
+    setSelectedIds: setSelectedFormFieldIds,
+  })
 
   function addFormField(kind: PdfFormFieldKind) {
     setPendingFormKind(kind)
@@ -100,32 +67,73 @@ export function usePdfTextEditorForms({
     setSelectedId(null)
   }
 
-  function placePendingFormField(e: ReactPointerEvent) {
-    if (!layout || !pendingFormKind) return
+  function placePendingFormField(
+    e: ReactPointerEvent,
+    targetPage = page,
+    targetLayout = layout,
+  ) {
+    if (!targetPage || !targetLayout || !pendingFormKind) return
     e.stopPropagation()
     e.preventDefault()
     const base = initialFieldBox(pendingFormKind)
     const xRatio = clamp01(
-      e.nativeEvent.offsetX / Math.max(1, layout.innerW) - base.wRatio / 2,
+      e.nativeEvent.offsetX / Math.max(1, targetLayout.innerW) - base.wRatio / 2,
     )
     const yRatio = clamp01(
-      e.nativeEvent.offsetY / Math.max(1, layout.innerH) - base.hRatio / 2,
+      e.nativeEvent.offsetY / Math.max(1, targetLayout.innerH) - base.hRatio / 2,
     )
-    const field = makeDraftFormField(pendingFormKind, {
-      ...base,
-      xRatio: Math.min(1 - base.wRatio, xRatio),
-      yRatio: Math.min(1 - base.hRatio, yRatio),
+    const field = makeDraftFormField({
+      kind: pendingFormKind,
+      page: targetPage,
+      fields: formFields,
+      style,
+      box: {
+        ...base,
+        xRatio: Math.min(1 - base.wRatio, xRatio),
+        yRatio: Math.min(1 - base.hRatio, yRatio),
+      },
     })
     if (!field) return
     setFormFields((fields) => [...fields, field])
-    setSelectedFormFieldId(field.id)
+    setSelectedFormFieldIds([field.id])
     setPendingFormKind(null)
+    trackNewFieldDrag({
+      event: e,
+      field,
+      layout: targetLayout,
+      setFields: setFormFields,
+      zoom,
+    })
   }
 
   function updateDraftFormValue(id: string, value: string | boolean) {
     setFormFields((fields) =>
       fields.map((field) => (field.id === id ? { ...field, value } : field)),
     )
+  }
+
+  function addSuggestedFormFields(suggestions: PdfFormFieldDraft[]): number {
+    const validSuggestions = suggestions.filter((suggestion) =>
+      doc.pages.some((p) => p.id === suggestion.pageId),
+    )
+    if (validSuggestions.length === 0) return 0
+    setFormFields((fields) => {
+      const next = [...fields]
+      for (const suggestion of validSuggestions) {
+        const field = {
+          ...suggestion,
+          name: uniqueFieldName(suggestion.name, next),
+        }
+        next.push(field)
+      }
+      return next
+    })
+    const first = validSuggestions[0]
+    if (first) setSelectedFormFieldIds([first.id])
+    setTool('select')
+    setEditingId(null)
+    setSelectedId(null)
+    return validSuggestions.length
   }
 
   function patchDraftFormField(id: string, patch: Partial<PdfFormFieldDraft>) {
@@ -147,7 +155,7 @@ export function usePdfTextEditorForms({
 
   function deleteDraftFormField(id: string) {
     setFormFields((fields) => fields.filter((field) => field.id !== id))
-    setSelectedFormFieldId((selected) => (selected === id ? null : selected))
+    setSelectedFormFieldIds((selected) => selected.filter((fieldId) => fieldId !== id))
   }
 
   function openSignature(field: PdfFormFieldDraft) {
@@ -178,42 +186,38 @@ export function usePdfTextEditorForms({
     setSignatureField(null)
   }
 
-  function selectDraftFormField(id: string) {
-    setSelectedFormFieldId(id)
+  function selectDraftFormField(id: string, additive = false) {
+    setSelectedFormFieldIds((selected) =>
+      additive
+        ? selected.includes(id)
+          ? selected.filter((fieldId) => fieldId !== id)
+          : [...selected, id]
+        : [id],
+    )
     setSelectedId(null)
     setEditingId(null)
   }
 
+  function applyDraftFieldStyle(patch: Partial<TextStyle>) {
+    if (selectedFormFieldIds.length === 0) return
+    const selected = new Set(selectedFormFieldIds)
+    setFormFields((fields) =>
+      fields.map((field) =>
+        selected.has(field.id) ? patchFormFieldTextStyle(field, patch) : field,
+      ),
+    )
+  }
+
   function startDraftDrag(e: ReactPointerEvent, field: PdfFormFieldDraft) {
-    if (!layout || field.readOnly) return
-    e.stopPropagation()
-    const dw = layout.innerW * zoom
-    const dh = layout.innerH * zoom
-    const startX = e.clientX
-    const startY = e.clientY
-    const rot = layout.rot
-    const move = (ev: PointerEvent) => {
-      const { dx, dy } = screenDeltaToPage(ev.clientX - startX, ev.clientY - startY, rot)
-      const xRatio = clamp01(field.xRatio + dx / dw)
-      const yRatio = clamp01(field.yRatio + dy / dh)
-      setFormFields((fields) =>
-        fields.map((item) =>
-          item.id === field.id
-            ? {
-                ...item,
-                xRatio: Math.min(1 - item.wRatio, xRatio),
-                yRatio: Math.min(1 - item.hRatio, yRatio),
-              }
-            : item,
-        ),
-      )
-    }
-    const up = () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
-    }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
+    startFormFieldDrag({
+      event: e,
+      field,
+      fields: formFields,
+      layout,
+      selectedIds: selectedFormFieldIds,
+      setFields: setFormFields,
+      zoom,
+    })
   }
 
   function startDraftResize(
@@ -221,34 +225,20 @@ export function usePdfTextEditorForms({
     field: PdfFormFieldDraft,
     handle: ResizeHandle,
   ) {
-    if (!layout || field.readOnly) return
-    e.stopPropagation()
-    e.preventDefault()
-    const dw = layout.innerW * zoom
-    const dh = layout.innerH * zoom
-    const startX = e.clientX
-    const startY = e.clientY
-    const rot = layout.rot
-    const move = (ev: PointerEvent) => {
-      const { dx, dy } = screenDeltaToPage(ev.clientX - startX, ev.clientY - startY, rot)
-      const next = resizeRatioBox(field, handle, dx / dw, dy / dh, {
-        minW: 14 / dw,
-        minH: 14 / dh,
-      })
-      setFormFields((fields) =>
-        fields.map((item) => (item.id === field.id ? { ...item, ...next } : item)),
-      )
-    }
-    const up = () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
-    }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
+    startFormFieldResize({
+      event: e,
+      field,
+      handle,
+      layout,
+      setFields: setFormFields,
+      zoom,
+    })
   }
 
   return {
     addFormField,
+    addSuggestedFormFields,
+    applyDraftFieldStyle,
     deleteDraftFormField,
     formFields,
     pendingFormKind,
@@ -257,6 +247,7 @@ export function usePdfTextEditorForms({
       formFields.find((field) => field.id === selectedFormFieldId) ?? null,
     openSignature,
     selectedFormFieldId,
+    selectedFormFieldIds,
     selectDraftFormField,
     chooseSignatureImage,
     saveSignatureDataUrl,
@@ -268,6 +259,5 @@ export function usePdfTextEditorForms({
     startDraftResize,
     patchDraftFormField,
     updateDraftFormValue,
-    visibleDraftFields,
   }
 }
