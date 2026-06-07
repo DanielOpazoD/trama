@@ -31,14 +31,14 @@ export function PdfTemplateModeBanner({
         </span>
         <p className="min-w-0">
           <span className="font-medium text-ink-800">
-            {isFill ? 'Rellenar planilla' : 'Editar casilleros'}
+            {isFill ? 'Rellenar e imprimir' : 'Diseñar planilla'}
           </span>
           <span className="text-ink-500">
             {' '}
             ·{' '}
             {isFill
-              ? `completa datos en ${countLabel} e imprime.`
-              : `ubica los casilleros que luego se llenarán al imprimir.`}
+              ? `solo completa ${countLabel}, imprime sin editar la plantilla.`
+              : `define casilleros y guarda una plantilla reusable para rellenarla después.`}
           </span>
         </p>
       </div>

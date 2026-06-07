@@ -146,7 +146,7 @@ describe('<PdfStudioView />', () => {
     renderWithProviders(<PdfStudioView studioMode="templates" />)
 
     expect(screen.getByText(/Crea una planilla desde PDF o imagen/i)).toBeInTheDocument()
-    expect(screen.getByText(/Diseñando planilla/i)).toBeInTheDocument()
+    expect(screen.getByText(/Diseñar planilla/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar planilla/i })).toBeDisabled()
     expect(screen.queryByRole('button', { name: /Guardar PDF/i })).not.toBeInTheDocument()
   })
@@ -808,7 +808,7 @@ describe('<PdfStudioView />', () => {
     )
     await screen.findByRole('dialog', { name: /Rellenar planilla/i })
 
-    expect(screen.getByText(/Rellenando planilla/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Rellenar e imprimir/i).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: /Imprimir planilla/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Importar/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Guardar PDF/i })).not.toBeInTheDocument()
