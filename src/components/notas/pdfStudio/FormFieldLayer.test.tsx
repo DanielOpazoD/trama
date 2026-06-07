@@ -65,7 +65,7 @@ describe('<FormFieldLayer />', () => {
   })
 
   it('selecciona campos draft y muestra handles de redimensionado', () => {
-    const { props } = setup({ selectedDraftId: draftCheckbox.id })
+    const { props } = setup({ selectedDraftId: draftCheckbox.id, zoom: 2 })
 
     fireEvent.pointerDown(
       screen.getByRole('checkbox', { name: 'acepta' }).closest('div')!,
@@ -75,6 +75,7 @@ describe('<FormFieldLayer />', () => {
     const handle = screen.getByRole('button', {
       name: 'Redimensionar campo acepta desde esquina inferior derecha',
     })
+    expect(handle).toHaveStyle({ width: '4px', height: '4px' })
     fireEvent.pointerDown(handle)
     expect(props.onStartDraftResize).toHaveBeenCalledWith(
       expect.anything(),
@@ -83,13 +84,23 @@ describe('<FormFieldLayer />', () => {
     )
   })
 
-  it('no inicia arrastre al interactuar directamente con el control del casillero', () => {
+  it('compensa el grosor del marco para que el zoom no engorde el casillero', () => {
+    setup({ selectedDraftId: draftCheckbox.id, zoom: 2 })
+
+    expect(screen.getByRole('checkbox', { name: 'acepta' }).closest('label')).toHaveStyle(
+      {
+        borderWidth: '0.5px',
+      },
+    )
+  })
+
+  it('en modo diseño permite arrastrar desde el cuerpo del casillero', () => {
     const { props } = setup({ selectedDraftId: draftCheckbox.id })
 
     fireEvent.pointerDown(screen.getByRole('checkbox', { name: 'acepta' }))
 
-    expect(props.onSelectDraft).toHaveBeenCalledWith(draftCheckbox.id)
-    expect(props.onStartDraftDrag).not.toHaveBeenCalled()
+    expect(props.onSelectDraft).toHaveBeenCalledWith(draftCheckbox.id, false)
+    expect(props.onStartDraftDrag).toHaveBeenCalledWith(expect.anything(), draftCheckbox)
   })
 
   it('muestra campo de firma simple con acción para firmar', () => {
@@ -110,7 +121,7 @@ describe('<FormFieldLayer />', () => {
     expect(props.onOpenSignature).toHaveBeenCalledWith(signature)
   })
 
-  it('en modo llenado muestra placeholders explícitos y no permite mover/redimensionar', () => {
+  it('en modo llenado muestra placeholder de escritura y no permite mover/redimensionar', () => {
     const text = makePdfFormFieldDraft({
       fieldKind: 'text',
       pageId: 'p1',
@@ -129,7 +140,8 @@ describe('<FormFieldLayer />', () => {
     })
 
     const input = screen.getByRole('textbox', { name: 'paciente' })
-    expect(input).toHaveAttribute('placeholder', '[paciente]')
+    expect(input).toHaveAttribute('placeholder', 'Escriba aquí')
+    expect(screen.getByText('[paciente]')).toBeInTheDocument()
     expect(
       screen.queryByRole('button', {
         name: 'Redimensionar campo paciente desde esquina inferior derecha',
@@ -139,5 +151,53 @@ describe('<FormFieldLayer />', () => {
     fireEvent.pointerDown(input.closest('div')!)
     expect(props.onSelectDraft).not.toHaveBeenCalled()
     expect(props.onStartDraftDrag).not.toHaveBeenCalled()
+  })
+
+  it('limpia el valor estándar Escriba aquí al enfocar un casillero de relleno', () => {
+    const text = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: 'p1',
+      name: 'paciente',
+      value: 'Escriba aquí',
+      xRatio: 0.2,
+      yRatio: 0.3,
+      wRatio: 0.3,
+      hRatio: 0.05,
+    })
+    const { props } = setup({
+      detectedWidgets: [],
+      draftFields: [text],
+      mode: 'fill',
+      selectedDraftId: text.id,
+    })
+
+    fireEvent.focus(screen.getByRole('textbox', { name: 'paciente' }))
+
+    expect(props.onDraftValueChange).toHaveBeenCalledWith(text.id, '')
+  })
+
+  it('muestra el placeholder de diseño con el tamaño de letra del casillero', () => {
+    const text = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: 'p1',
+      name: 'paciente',
+      value: '',
+      xRatio: 0.2,
+      yRatio: 0.3,
+      wRatio: 0.3,
+      hRatio: 0.05,
+      sizeRatio: 0.05,
+    })
+    setup({
+      detectedWidgets: [],
+      draftFields: [text],
+      pageHeightPx: 600,
+      selectedDraftId: text.id,
+      selectedDraftIds: [text.id],
+    })
+
+    const input = screen.getByRole('textbox', { name: 'paciente' })
+    expect(input).toHaveAttribute('placeholder', 'Escriba aquí')
+    expect(input).toHaveStyle({ fontSize: '30px' })
   })
 })

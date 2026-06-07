@@ -4,25 +4,21 @@ import {
   DuplicateIcon,
   PrinterIcon,
   RotateIcon,
-  TextIcon,
   TrashIcon,
 } from '../../Icons'
 
-const ACCENT = 'var(--accent-sage)'
 const barBtn =
   'touch-target inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption text-ink-600 hover:text-ink-800 hover:bg-paper-50/80 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-ink-600 disabled:cursor-default transition-colors'
 
 /**
  * Barra de EDICIÓN de hojas, SIEMPRE visible cuando hay páginas. Actúa sobre las
- * hojas MARCADAS con el tick: editar texto (1 sola), rotar, duplicar, eliminar, más
- * marcar todas / desmarcar. Las marcadas son además las que entran en "Guardar
- * PDF". Cada acción se habilita según cuántas haya marcadas. Presentacional: el
- * estado y los handlers viven en `PdfStudioView`.
+ * hojas MARCADAS con el tick: rotar, duplicar, eliminar, exportar, marcar todas
+ * / desmarcar. Presentacional: el estado y los handlers viven en `PdfStudioView`.
  */
 export function BulkBar({
+  context = 'editor',
   count,
   total,
-  onEditText,
   onRotate,
   onDuplicate,
   onDelete,
@@ -30,10 +26,9 @@ export function BulkBar({
   onSelectAll,
   onClear,
 }: {
+  context?: 'editor' | 'templates'
   count: number
   total: number
-  /** Abre el editor de la única hoja marcada (habilitado sólo con count === 1). */
-  onEditText: () => void
   onRotate: (delta: -1 | 1) => void
   onDuplicate: () => void
   onDelete: () => void
@@ -43,36 +38,24 @@ export function BulkBar({
   onClear: () => void
 }) {
   const none = count === 0
+  const label = context === 'templates' ? 'Hojas base' : 'Hojas'
+  const ariaLabel =
+    context === 'templates' ? 'Barra de hojas base de planilla' : 'Barra de hojas de PDF'
   return (
     <div
       role="toolbar"
-      aria-label="Barra de edición de hojas"
-      className="flex flex-wrap items-center gap-x-0.5 gap-y-2 rounded-lg border px-2 py-1.5"
-      style={{
-        borderColor: 'var(--accent-sage-soft)',
-        backgroundColor: 'var(--accent-sage-soft)',
-      }}
+      aria-label={ariaLabel}
+      className="flex flex-wrap items-center gap-x-0.5 gap-y-2 rounded-lg border border-ink-100 bg-paper-50/80 px-2 py-1.5 shadow-sm shadow-ink-900/5"
     >
+      <span className="px-1.5 text-caption font-medium text-ink-500">{label}</span>
       {!none && (
         <>
-          <span
-            className="px-1.5 text-caption font-medium tabular-nums"
-            style={{ color: ACCENT }}
-          >
+          <span className="px-1.5 text-caption font-medium tabular-nums text-ink-500">
             {count} {count === 1 ? 'marcada' : 'marcadas'}
           </span>
           <span className="mx-1 h-4 w-px bg-ink-200/60" aria-hidden />
         </>
       )}
-      <button
-        type="button"
-        onClick={onEditText}
-        disabled={count !== 1}
-        title="Editar el texto de la hoja marcada (marcá 1 sola)"
-        className={barBtn}
-      >
-        <TextIcon size={14} /> Texto
-      </button>
       <button
         type="button"
         onClick={() => onRotate(-1)}

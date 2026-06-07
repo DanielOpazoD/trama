@@ -15,6 +15,7 @@ export function AnnotationRedactionBox({
   tool,
   selectedId,
   selected,
+  zoom = 1,
   onStartDrag,
   onSelect,
   onStartResize,
@@ -25,6 +26,7 @@ export function AnnotationRedactionBox({
   tool: Tool
   selectedId: string | null
   selected: boolean
+  zoom?: number
   onStartDrag: (e: ReactPointerEvent, a: RedactionAnnotation) => void
   onSelect: (e: ReactMouseEvent, id: string) => void
   onStartResize: (
@@ -34,6 +36,7 @@ export function AnnotationRedactionBox({
   ) => void
 }) {
   const interactive = tool === 'select'
+  const selectionStroke = 1.5 / Math.max(0.25, zoom)
   return (
     <div>
       <div
@@ -51,7 +54,9 @@ export function AnnotationRedactionBox({
           cursor: annotation.locked ? 'default' : 'move',
           touchAction: 'none',
           pointerEvents: interactive ? undefined : 'none',
-          outline: selected ? `1.5px solid ${ACCENT}` : 'none',
+          outlineWidth: selected ? selectionStroke : undefined,
+          outlineStyle: selected ? 'solid' : undefined,
+          outlineColor: selected ? ACCENT : undefined,
           outlineOffset: 1,
         }}
       />
@@ -62,6 +67,7 @@ export function AnnotationRedactionBox({
         selectedId={selectedId}
         tool={tool}
         onStartResize={onStartResize}
+        zoom={zoom}
       />
     </div>
   )

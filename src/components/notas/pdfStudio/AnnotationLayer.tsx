@@ -38,6 +38,7 @@ export function AnnotationLayer({
   selectedId,
   selectedIds = selectedId ? [selectedId] : [],
   editingId,
+  zoom = 1,
   drawing,
   selectionMarquee,
   selectionLasso,
@@ -61,6 +62,7 @@ export function AnnotationLayer({
   selectedId: string | null
   selectedIds?: string[]
   editingId: string | null
+  zoom?: number
   drawing: DrawingRect | null
   selectionMarquee?: DrawingRect | null
   selectionLasso?: { x: number; y: number }[] | null
@@ -86,6 +88,8 @@ export function AnnotationLayer({
   ) => void
 }) {
   const selectedSet = new Set(selectedIds)
+  const inverseZoom = 1 / Math.max(0.25, zoom)
+  const selectionStroke = 1.5 * inverseZoom
   const isSelected = (id: string) => selectedSet.has(id) || selectedId === id
   const selectFromClick = (e: ReactMouseEvent, id: string) => {
     e.stopPropagation()
@@ -201,9 +205,9 @@ export function AnnotationLayer({
                 touchAction: 'none',
                 // Fuera de "seleccionar" no captura (deja dibujar encima).
                 pointerEvents: !readOnly && tool === 'select' ? undefined : 'none',
-                outline: isSelected(a.id)
-                  ? `1.5px solid ${ACCENT}`
-                  : '1.5px solid transparent',
+                outlineWidth: selectionStroke,
+                outlineStyle: 'solid',
+                outlineColor: isSelected(a.id) ? ACCENT : 'transparent',
                 outlineOffset: 0,
                 transition: 'outline-color 120ms ease',
               }}
@@ -217,12 +221,12 @@ export function AnnotationLayer({
               selectedId={selectedId}
               tool={readOnly ? 'highlight' : tool}
               onStartResize={onStartResize}
+              zoom={zoom}
             />
           </div>
         )
       })}
 
-      {/* Redacciones: intención de borrado seguro; exportación exige motor dedicado. */}
       {annotations
         .filter((a): a is RedactionAnnotation => a.kind === 'redaction')
         .map((a) => (
@@ -237,10 +241,10 @@ export function AnnotationLayer({
             onStartDrag={startDragFromPointer}
             onSelect={selectFromClick}
             onStartResize={onStartResize}
+            zoom={zoom}
           />
         ))}
 
-      {/* Resaltados (rectángulos translúcidos) */}
       {annotations
         .filter((a) => a.kind === 'highlight')
         .map((a) => (
@@ -255,10 +259,10 @@ export function AnnotationLayer({
             onStartDrag={startDragFromPointer}
             onSelect={selectFromClick}
             onStartResize={onStartResize}
+            zoom={zoom}
           />
         ))}
 
-      {/* Imágenes estampadas (firma/sello/logo) */}
       {annotations
         .filter((a) => a.kind === 'image')
         .map((a) => (
@@ -291,7 +295,9 @@ export function AnnotationLayer({
                 touchAction: 'none',
                 userSelect: 'none',
                 pointerEvents: !readOnly && tool === 'select' ? undefined : 'none',
-                outline: !readOnly && isSelected(a.id) ? `1.5px solid ${ACCENT}` : 'none',
+                outlineWidth: !readOnly && isSelected(a.id) ? selectionStroke : undefined,
+                outlineStyle: !readOnly && isSelected(a.id) ? 'solid' : undefined,
+                outlineColor: !readOnly && isSelected(a.id) ? ACCENT : undefined,
                 outlineOffset: 2,
               }}
             />
@@ -302,11 +308,11 @@ export function AnnotationLayer({
               selectedId={readOnly ? null : selectedId}
               tool={readOnly ? 'highlight' : tool}
               onStartResize={onStartResize}
+              zoom={zoom}
             />
           </div>
         ))}
 
-      {/* Formas vectoriales sobre la página, en coords nativas vía viewBox. */}
       {(annotations.some((a) => a.kind === 'shape') ||
         (drawing && isShapeTool(tool))) && (
         <svg
@@ -390,7 +396,7 @@ export function AnnotationLayer({
                       width={w + 6}
                       height={hh + 6}
                       fill="none"
-                      strokeWidth={1.5}
+                      strokeWidth={selectionStroke}
                       strokeDasharray="5 3"
                       style={{ stroke: ACCENT, pointerEvents: 'none' }}
                     />
@@ -422,6 +428,7 @@ export function AnnotationLayer({
               selectedId={readOnly ? null : selectedId}
               tool={readOnly ? 'highlight' : tool}
               onStartResize={onStartResize}
+              zoom={zoom}
             />
           </div>
         ))}

@@ -23,6 +23,7 @@ import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { EditorToolbar } from './EditorToolbar'
 import { PdfTextEditorHeader } from './PdfTextEditorHeader'
 import { SelectionInspector } from './SelectionInspector'
+import type { DrawingRect } from './AnnotationLayer'
 import type { SnapGuide } from './pdfAnnotationSnap'
 import { usePdfTextEditorInteractions } from './usePdfTextEditorInteractions'
 import { usePdfTextEditorForms } from './usePdfTextEditorForms'
@@ -35,9 +36,15 @@ import { PdfTextEditorPageSurface } from './PdfTextEditorPageSurface'
 import { type DetectedPdfFormForCanvas } from './pdfFormVisualMapping'
 import { usePdfTextEditorPageNavigation } from './usePdfTextEditorPageNavigation'
 import { usePdfTextEditorViewport } from './usePdfTextEditorViewport'
+import { PdfTextEditorFloatingFormTools } from './PdfTextEditorFloatingFormTools'
+import { PdfTemplateFillVariablesPanel } from './PdfTemplateFillVariablesPanel'
+import { usePdfTextEditorFormSuggestions } from './usePdfTextEditorFormSuggestions'
+import { PdfTextEditorAuxiliaryControls } from './PdfTextEditorAuxiliaryControls'
+import { PdfTextEditorScrollArea } from './PdfTextEditorScrollArea'
+import { pdfTextEditorBodyClass } from './pdfTextEditorLayoutClasses'
+import { formFieldTextStyle } from './pdfFormFieldStyle'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
-const FORM_ACCEPT = 'image/png,image/jpeg,image/webp'
 export type PdfTextEditorResult = {
   annotations: Record<number, Annotation[]>
   formFields: PdfFormFieldDraft[]
@@ -76,24 +83,12 @@ export function PdfTextEditor({
   const edited = history.present
   const editedRef = useRef(edited)
   editedRef.current = edited
-
   const page = doc.pages[currentPage]
   const annotations = edited[currentPage] ?? page?.annotations ?? []
-
   const [editingId, setEditingId] = useState<string | null>(null)
   const [tool, setTool] = useState<Tool>('select')
-  const [drawing, setDrawing] = useState<{
-    x0: number
-    y0: number
-    x1: number
-    y1: number
-  } | null>(null)
-  const [selectionMarquee, setSelectionMarquee] = useState<{
-    x0: number
-    y0: number
-    x1: number
-    y1: number
-  } | null>(null)
+  const [drawing, setDrawing] = useState<DrawingRect | null>(null)
+  const [selectionMarquee, setSelectionMarquee] = useState<DrawingRect | null>(null)
   const [selectionLasso, setSelectionLasso] = useState<{ x: number; y: number }[] | null>(
     null,
   )
@@ -127,7 +122,6 @@ export function PdfTextEditor({
   const annotationsRef = useRef(annotations)
   annotationsRef.current = annotations
   const annClipboardRef = useRef<Annotation | null>(null)
-
   const setAnnotations = useCallback(
     (fn: (list: Annotation[]) => Annotation[]) => {
       const i = pageRef.current
@@ -140,7 +134,6 @@ export function PdfTextEditor({
     },
     [doc],
   )
-
   const editLive = useCallback(
     (fn: (list: Annotation[]) => Annotation[]) => {
       const i = pageRef.current
@@ -198,21 +191,12 @@ export function PdfTextEditor({
     setAnnotations,
     onClose,
   })
-
-  // La anotación seleccionada de CUALQUIER tipo (para color/opacidad/borrar) y, si
-  // es texto, estrechada (para los controles de sólo-texto y la edición inline).
   const selected = selectedAnn?.kind === 'text' ? selectedAnn : null
   const update = (id: string, patch: Partial<Omit<TextAnnotation, 'id' | 'kind'>>) =>
     setAnnotations((list) =>
       list.map((a) => (a.id === id && a.kind === 'text' ? { ...a, ...patch } : a)),
     )
-  const activeStyle = resolveActiveEditorStyle(selectedAnn, style)
-  const activeFont = activeStyle.font
-  const activeSize = activeStyle.sizeRatio
-  const activeBold = activeStyle.bold
-  const activeColor = activeStyle.color
-  const activeOpacity = activeStyle.opacity ?? 1
-  const activeRotation = activeStyle.rotation ?? 0
+  const annotationStyle = resolveActiveEditorStyle(selectedAnn, style)
 
   function addText() {
     const a = makeTextAnnotation({
@@ -288,9 +272,11 @@ export function PdfTextEditor({
 
   const {
     addFormField,
+    addSuggestedFormFields,
     deleteDraftFormField,
     formFields,
     chooseSignatureImage,
+    applyDraftFieldStyle,
     openSignature,
     pendingFormKind,
     patchDraftFormField,
@@ -298,6 +284,7 @@ export function PdfTextEditor({
     selectedDraftFormField,
     saveSignatureDataUrl,
     selectedFormFieldId,
+    selectedFormFieldIds,
     selectDraftFormField,
     setSignatureFile,
     setSignatureField,
@@ -311,10 +298,18 @@ export function PdfTextEditor({
     page,
     layout: activeLayout,
     zoom,
+    style,
     setTool,
     setEditingId,
     setSelectedId,
   })
+  const activeStyle = selectedDraftFormField
+    ? { ...annotationStyle, ...formFieldTextStyle(selectedDraftFormField) }
+    : annotationStyle
+  const applyEditorStyle = (patch: Partial<TextStyle>) => {
+    applyStyle(patch)
+    applyDraftFieldStyle(patch)
+  }
   const { activatePage, goToPage } = usePdfTextEditorPageNavigation({
     currentPage,
     setActivePageLayout,
@@ -323,9 +318,25 @@ export function PdfTextEditor({
     setSelectedId,
     total,
   })
-
-  // Portal a <body>: el modal debe escapar de cualquier ancestro con overflow o
-  // transform (el contenedor scrolleable del mundo Notas), que si no lo recorta.
+  const { status: formSuggestionStatus, suggestCurrentPage } =
+    usePdfTextEditorFormSuggestions({
+      currentPage,
+      doc,
+      formFields,
+      onAddSuggested: addSuggestedFormFields,
+    })
+  const pageIndexById = Object.fromEntries(doc.pages.map((p, i) => [p.id, i]))
+  const jumpToFormField = (field: PdfFormFieldDraft) => {
+    const targetPage = pageIndexById[field.pageId]
+    if (targetPage == null) return
+    goToPage(targetPage)
+    window.setTimeout(() => {
+      const control = document.querySelector<HTMLElement>(
+        `[data-form-field-control="${field.id}"]`,
+      )
+      control?.focus()
+    }, 80)
+  }
   return createPortal(
     <div
       role="dialog"
@@ -348,7 +359,7 @@ export function PdfTextEditor({
         ref={dialogRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="h-full w-full max-w-[min(1360px,85vw)] overflow-hidden border-x border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col focus:outline-none"
+        className="relative h-full w-full max-w-[min(1360px,85vw)] overflow-hidden border-x border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col focus:outline-none"
       >
         <PdfTextEditorHeader
           currentPage={currentPage}
@@ -372,8 +383,8 @@ export function PdfTextEditor({
           onPrint={
             fillMode ? () => onPrint?.({ annotations: edited, formFields }) : undefined
           }
-          primaryLabel={fillMode ? 'Guardar' : 'Listo'}
           showHistory={!fillMode}
+          showPrimaryAction={!fillMode}
           title={fillMode ? 'Rellenar planilla' : undefined}
           onPrepareZoomAnchor={fillMode ? prepareZoomAnchor : undefined}
           onZoomIn={fillMode ? stepZoomIn : undefined}
@@ -385,19 +396,23 @@ export function PdfTextEditor({
         />
         {!fillMode ? (
           <EditorToolbar
+            context={templateToolsEnabled ? 'templateDesign' : 'editor'}
             tool={tool}
             onToolChange={setTool}
             onAddText={addText}
             onAddImage={() => stampInputRef.current?.click()}
             onAddFormField={templateToolsEnabled ? addFormField : undefined}
             onInspectForms={templateToolsEnabled ? onInspectForms : undefined}
-            activeFont={activeFont}
-            activeSize={activeSize}
-            activeBold={activeBold}
-            activeColor={activeColor}
-            activeOpacity={activeOpacity}
-            activeRotation={activeRotation}
-            onApplyStyle={applyStyle}
+            onSuggestFormFields={
+              templateToolsEnabled ? () => void suggestCurrentPage() : undefined
+            }
+            activeFont={activeStyle.font}
+            activeSize={activeStyle.sizeRatio}
+            activeBold={activeStyle.bold}
+            activeColor={activeStyle.color}
+            activeOpacity={activeStyle.opacity ?? 1}
+            activeRotation={activeStyle.rotation ?? 0}
+            onApplyStyle={applyEditorStyle}
             hasDuplicableSelection={
               !selectedAnn?.locked && (!!selected || selectedAnn?.kind === 'image')
             }
@@ -431,106 +446,91 @@ export function PdfTextEditor({
             onOpacityChange={(opacity) => applyStyle({ opacity })}
           />
         ) : null}
-        {!fillMode ? (
-          <input
-            ref={stampInputRef}
-            type="file"
-            accept={STAMP_ACCEPT}
-            className="hidden"
-            aria-hidden="true"
-            tabIndex={-1}
-            onChange={(e) => {
-              const file = e.currentTarget.files?.[0]
-              e.currentTarget.value = ''
-              if (file) void addImageStamp(file)
-            }}
-          />
-        ) : null}
-        <input
-          ref={signatureInputRef}
-          type="file"
-          accept={FORM_ACCEPT}
-          className="hidden"
-          aria-hidden="true"
-          tabIndex={-1}
-          onChange={(e) => {
-            const file = e.currentTarget.files?.[0]
-            e.currentTarget.value = ''
-            if (file) setSignatureFile(file)
-          }}
+        <PdfTextEditorFloatingFormTools
+          field={fillMode ? null : selectedDraftFormField}
+          signatureField={signatureField}
+          onChooseSignatureImage={chooseSignatureImage}
+          onDeleteField={deleteDraftFormField}
+          onPatchField={patchDraftFormField}
+          onSaveSignature={saveSignatureDataUrl}
+          onSetSignatureField={setSignatureField}
+          onValueChange={updateDraftFormValue}
         />
-        {!fillMode && pendingFormKind && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="border-b border-[color:var(--accent-sage)]/20 bg-[color:var(--accent-sage-soft)]/45 px-3 py-1.5 text-caption text-[color:var(--accent-sage)]"
+        <PdfTextEditorAuxiliaryControls
+          fillMode={fillMode}
+          formSuggestionStatus={formSuggestionStatus}
+          pendingFormKind={Boolean(pendingFormKind)}
+          signatureInputRef={signatureInputRef}
+          stampAccept={STAMP_ACCEPT}
+          stampInputRef={stampInputRef}
+          onSignatureFile={setSignatureFile}
+          onStampFile={(file) => void addImageStamp(file)}
+        />
+        <div className={pdfTextEditorBodyClass(fillMode)}>
+          {fillMode ? (
+            <PdfTemplateFillVariablesPanel
+              fields={formFields}
+              pageIndexById={pageIndexById}
+              onChange={updateDraftFormValue}
+              onJump={jumpToFormField}
+            />
+          ) : null}
+          <PdfTextEditorScrollArea
+            fillMode={fillMode}
+            scrollContainerRef={scrollContainerRef}
           >
-            Haz clic en la página para colocar el casillero especial.
-          </div>
-        )}
-
-        <div
-          data-pdf-editor-scroll
-          ref={scrollContainerRef}
-          className="min-h-0 flex-1 overflow-auto bg-ink-100/30 px-3 py-4 [overflow-anchor:none]"
-        >
-          <div className="mx-auto flex min-w-full flex-col items-center gap-4">
-            {doc.pages.map((_, i) => (
-              <PdfTextEditorPageSurface
-                key={doc.pages[i]!.id}
-                doc={doc}
-                pageIndex={i}
-                isActive={i === currentPage}
-                mode={mode}
-                edited={edited}
-                zoom={zoom}
-                tool={tool}
-                selectedId={selectedId}
-                selectedIds={operationSelectedIds}
-                editingId={editingId}
-                drawing={drawing}
-                selectionMarquee={selectionMarquee}
-                selectionLasso={selectionLasso}
-                snapGuides={snapGuides}
-                drawColor={style.color}
-                detectedForms={detectedForms}
-                draftFields={formFields}
-                pendingFormKind={Boolean(pendingFormKind)}
-                selectedDraftField={selectedDraftFormField}
-                selectedDraftId={selectedFormFieldId}
-                signatureField={signatureField}
-                onActivate={activatePage}
-                onActiveLayoutChange={setActivePageLayout}
-                onStartDraw={startDraw}
-                onStartMarquee={startMarquee}
-                onStartFormField={placePendingFormField}
-                onStartDrag={startDrag}
-                onSelectAnnotation={setSelectedId}
-                onToggleAnnotation={toggleSelectedId}
-                onStartEdit={(id) => {
-                  setSelectedId(id)
-                  setEditingId(id)
-                }}
-                onCommitText={(id, text) => {
-                  update(id, { text })
-                  setEditingId(null)
-                }}
-                onCancelEdit={() => setEditingId(null)}
-                onStartResize={startResize}
-                onChooseSignatureImage={chooseSignatureImage}
-                onDeleteDraft={deleteDraftFormField}
-                onDetectedValueChange={onFormValueChange}
-                onDraftPatch={patchDraftFormField}
-                onDraftValueChange={updateDraftFormValue}
-                onSelectDraft={selectDraftFormField}
-                onSetSignatureField={setSignatureField}
-                onStartDraftDrag={startDraftDrag}
-                onStartDraftResize={startDraftResize}
-                onOpenSignature={openSignature}
-                onSaveSignature={saveSignatureDataUrl}
-              />
-            ))}
-          </div>
+            <div className="mx-auto flex min-w-full flex-col items-center gap-4">
+              {doc.pages.map((_, i) => (
+                <PdfTextEditorPageSurface
+                  key={doc.pages[i]!.id}
+                  doc={doc}
+                  pageIndex={i}
+                  isActive={i === currentPage}
+                  mode={mode}
+                  edited={edited}
+                  zoom={zoom}
+                  tool={tool}
+                  selectedId={selectedId}
+                  selectedIds={operationSelectedIds}
+                  editingId={editingId}
+                  drawing={drawing}
+                  selectionMarquee={selectionMarquee}
+                  selectionLasso={selectionLasso}
+                  snapGuides={snapGuides}
+                  drawColor={style.color}
+                  detectedForms={detectedForms}
+                  draftFields={formFields}
+                  pendingFormKind={Boolean(pendingFormKind)}
+                  selectedDraftId={selectedFormFieldId}
+                  selectedDraftIds={selectedFormFieldIds}
+                  onActivate={activatePage}
+                  onActiveLayoutChange={setActivePageLayout}
+                  onStartDraw={startDraw}
+                  onStartMarquee={startMarquee}
+                  onStartFormField={placePendingFormField}
+                  onStartDrag={startDrag}
+                  onSelectAnnotation={setSelectedId}
+                  onToggleAnnotation={toggleSelectedId}
+                  onStartEdit={(id) => {
+                    setSelectedId(id)
+                    setEditingId(id)
+                  }}
+                  onCommitText={(id, text) => {
+                    update(id, { text })
+                    setEditingId(null)
+                  }}
+                  onCancelEdit={() => setEditingId(null)}
+                  onStartResize={startResize}
+                  onDetectedValueChange={onFormValueChange}
+                  onDraftValueChange={updateDraftFormValue}
+                  onSelectDraft={selectDraftFormField}
+                  onStartDraftDrag={startDraftDrag}
+                  onStartDraftResize={startDraftResize}
+                  onOpenSignature={openSignature}
+                />
+              ))}
+            </div>
+          </PdfTextEditorScrollArea>
         </div>
       </div>
     </div>,

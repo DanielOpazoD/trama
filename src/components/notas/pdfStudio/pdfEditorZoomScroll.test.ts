@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   centerPdfEditorSheetHorizontally,
   capturePdfEditorScrollAnchor,
+  findMostVisiblePdfEditorPage,
   restorePdfEditorScrollAnchor,
 } from './pdfEditorZoomScroll'
 
@@ -73,6 +74,23 @@ describe('pdfEditorZoomScroll', () => {
     container.append(first, second)
 
     expect(capturePdfEditorScrollAnchor(container)?.pageIndex).toBe(1)
+  })
+
+  it('detecta la página más visible al navegar con scroll', () => {
+    const container = makeContainer()
+    const first = document.createElement('section') as HTMLElement & {
+      getBoundingClientRect: () => DOMRect
+    }
+    const second = document.createElement('section') as HTMLElement & {
+      getBoundingClientRect: () => DOMRect
+    }
+    first.dataset.pdfEditorPage = '0'
+    second.dataset.pdfEditorPage = '1'
+    first.getBoundingClientRect = () => rect(-260, 100, 300, 600)
+    second.getBoundingClientRect = () => rect(180, 100, 300, 600)
+    container.append(first, second)
+
+    expect(findMostVisiblePdfEditorPage(container)).toBe(1)
   })
 
   it('ancla el zoom contra la hoja real, no contra el contenedor de página', () => {

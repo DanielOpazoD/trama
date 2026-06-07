@@ -50,12 +50,14 @@ function isMacLike(): boolean {
 }
 
 export function EditorToolbar({
+  context = 'editor',
   tool,
   onToolChange,
   onAddText,
   onAddImage,
   onAddFormField,
   onInspectForms,
+  onSuggestFormFields,
   activeFont,
   activeSize,
   activeBold,
@@ -72,12 +74,14 @@ export function EditorToolbar({
   onPrepareZoomAnchor,
   onZoomChange,
 }: {
+  context?: 'editor' | 'templateDesign'
   tool: Tool
   onToolChange: (t: Tool) => void
   onAddText: () => void
   onAddImage: () => void
   onAddFormField?: (kind: PdfFormFieldKind) => void
   onInspectForms?: () => void
+  onSuggestFormFields?: () => void
   activeFont: PdfFontKind
   activeSize: number
   activeBold: boolean
@@ -95,6 +99,7 @@ export function EditorToolbar({
   onZoomChange: (z: number) => void
 }) {
   const isMac = isMacLike()
+  const isTemplateDesign = context === 'templateDesign'
   const activeFontLabel = FONTS.find((f) => f.key === activeFont)?.label ?? 'Fuente'
   const activeShape = SHAPES.find((s) => s.key === tool)
   const activeColorLabel = COLORS.find((c) => c.hex === activeColor)?.label ?? 'Color'
@@ -104,6 +109,14 @@ export function EditorToolbar({
     onApplyStyle({ opacity: clamp(activeOpacity + delta, 0.1, 1) })
   const stepRotation = (delta: number) =>
     onApplyStyle({ rotation: (((activeRotation + delta) % 360) + 360) % 360 })
+  const primaryInsertLabel = isTemplateDesign
+    ? 'Crear casillero de texto'
+    : 'Agregar cuadro de texto'
+  const primaryInsertHint = isTemplateDesign
+    ? 'Crear un casillero rellenable'
+    : 'Agregar un cuadro editable'
+  const handlePrimaryInsert =
+    isTemplateDesign && onAddFormField ? () => onAddFormField('text') : onAddText
 
   return (
     <div
@@ -112,11 +125,11 @@ export function EditorToolbar({
       className="flex flex-nowrap items-center gap-1.5 overflow-x-auto border-b border-ink-100/70 bg-paper-100/65 px-2 py-1 shadow-sm shadow-ink-900/5 shrink-0"
     >
       <ToolbarGroup label="Herramientas">
-        <Hint content="Agregar un cuadro editable">
+        <Hint content={primaryInsertHint}>
           <button
             type="button"
-            onClick={onAddText}
-            aria-label="Agregar cuadro de texto"
+            onClick={handlePrimaryInsert}
+            aria-label={primaryInsertLabel}
             className={primaryAction}
           >
             <TextIcon size={14} />
@@ -200,6 +213,7 @@ export function EditorToolbar({
         <EditorToolbarFormMenu
           onAddFormField={onAddFormField}
           onInspectForms={onInspectForms}
+          onSuggestFormFields={onSuggestFormFields}
         />
       </ToolbarGroup>
 

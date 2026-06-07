@@ -101,6 +101,9 @@ export type PdfFormFieldDraft = {
   options?: string[]
   required?: boolean
   readOnly?: boolean
+  font?: PdfFontKind
+  sizeRatio?: number
+  bold?: boolean
 }
 
 export type PdfPage = {

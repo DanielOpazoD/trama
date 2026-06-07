@@ -15,6 +15,8 @@ import {
 import { dataUrlToBytes, isPngBytes } from './assembleImages'
 import type { PdfFormFieldDraft } from './model'
 
+const DEFAULT_FORM_FIELD_SIZE_RATIO = 0.04
+
 export type PdfFormFieldType =
   | 'text'
   | 'checkbox'
@@ -212,6 +214,13 @@ function pdfRectForField(field: PdfFormFieldDraft, page: PDFPage) {
   }
 }
 
+function fontSizeForField(field: PdfFormFieldDraft, page: PDFPage) {
+  return Math.max(
+    6,
+    (field.sizeRatio ?? DEFAULT_FORM_FIELD_SIZE_RATIO) * page.getHeight(),
+  )
+}
+
 function stringValue(value: PdfFormFieldDraft['value']) {
   if (typeof value === 'string') return value
   if (Array.isArray(value)) return value.join(', ')
@@ -307,6 +316,7 @@ export async function writePdfFormFields(
       applyFlags(field, draft)
       field.setText(stringValue(draft.value))
       field.addToPage(page, { ...rect, font })
+      field.setFontSize(fontSizeForField(draft, page))
     }
     writtenNames.add(draft.name)
   }

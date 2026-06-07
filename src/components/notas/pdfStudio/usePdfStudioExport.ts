@@ -24,7 +24,10 @@ export function usePdfStudioExport({
   const [saving, setSaving] = useState(false)
   const [exportStatus, setExportStatus] = useState<string | null>(null)
 
-  async function assembleOrToast(target: PdfDoc): Promise<Blob | null> {
+  async function assembleOrToast(
+    target: PdfDoc,
+    options: { flattenFormFields?: boolean } = {},
+  ): Promise<Blob | null> {
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
@@ -55,7 +58,7 @@ export function usePdfStudioExport({
         new File([blob], 'trama.pdf', { type: 'application/pdf' }),
         target.formFields,
         target.pages.map((page) => page.id),
-        { flatten: false },
+        { flatten: options.flattenFormFields ?? false },
         { signal: controller.signal },
       )
       return withForms
@@ -79,13 +82,17 @@ export function usePdfStudioExport({
     }
   }
 
-  async function exportPdf(target: PdfDoc, kind?: string) {
+  async function exportPdf(
+    target: PdfDoc,
+    kind?: string,
+    options: { flattenFormFields?: boolean } = {},
+  ) {
     if (!canExport(target) || saving) return
     setSaving(true)
     const ios = shouldDownloadPdfDirectly()
     const viewer = ios ? null : openBlankPdfTab()
     try {
-      const blob = await assembleOrToast(target)
+      const blob = await assembleOrToast(target, options)
       if (!blob) {
         viewer?.close()
         return
@@ -111,11 +118,15 @@ export function usePdfStudioExport({
     }
   }
 
-  async function downloadPdf(target: PdfDoc, kind?: string) {
+  async function downloadPdf(
+    target: PdfDoc,
+    kind?: string,
+    options: { flattenFormFields?: boolean } = {},
+  ) {
     if (!canExport(target) || saving) return
     setSaving(true)
     try {
-      const blob = await assembleOrToast(target)
+      const blob = await assembleOrToast(target, options)
       if (blob) downloadBlob(blob, exportPdfName(undefined, kind))
     } finally {
       setExportStatus(null)

@@ -6,9 +6,13 @@ const ACCENT = 'var(--accent-sage)'
 export function PdfDropzone({
   onClick,
   onDropFiles,
+  subtitle = 'o haz clic para elegir archivos',
+  title = 'Arrastra PDFs o imágenes aquí',
 }: {
   onClick: () => void
   onDropFiles: (e: DragEvent) => void
+  subtitle?: string
+  title?: string
 }) {
   return (
     <button
@@ -25,10 +29,8 @@ export function PdfDropzone({
         <FilePdfIcon size={22} />
       </span>
       <span className="flex flex-col gap-1">
-        <span className="text-body font-medium text-ink-700">
-          Arrastra PDFs o imágenes aquí
-        </span>
-        <span className="text-caption text-ink-400">o haz clic para elegir archivos</span>
+        <span className="text-body font-medium text-ink-700">{title}</span>
+        <span className="text-caption text-ink-400">{subtitle}</span>
       </span>
       <span className="flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-400">
         {['PDF', 'JPG', 'PNG'].map((t) => (

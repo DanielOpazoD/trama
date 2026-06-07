@@ -1,48 +1,38 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
 import type { ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
-import { FormFieldInspector } from './FormFieldInspector'
 import { FormFieldLayer, type VisualPdfFormWidget } from './FormFieldLayer'
-import { SignatureCaptureDialog } from './SignatureCaptureDialog'
 
 export function PdfTextEditorFormSurface({
   detectedWidgets,
   draftFields,
   mode = 'edit',
-  selectedDraftField,
   selectedDraftId,
-  signatureField,
-  onChooseSignatureImage,
-  onDeleteDraft,
+  selectedDraftIds,
+  pageHeightPx,
+  zoom,
   onDetectedValueChange,
-  onDraftPatch,
   onDraftValueChange,
   onOpenSignature,
-  onSaveSignature,
   onSelectDraft,
-  onSetSignatureField,
   onStartDraftDrag,
   onStartDraftResize,
 }: {
   detectedWidgets: VisualPdfFormWidget[]
   draftFields: PdfFormFieldDraft[]
   mode?: 'edit' | 'fill'
-  selectedDraftField: PdfFormFieldDraft | null
   selectedDraftId: string | null
-  signatureField: PdfFormFieldDraft | null
-  onChooseSignatureImage: (field?: PdfFormFieldDraft | null) => void
-  onDeleteDraft: (id: string) => void
+  selectedDraftIds: string[]
+  pageHeightPx: number
+  zoom: number
   onDetectedValueChange: (
     sourceId: string,
     fieldName: string,
     value: string | boolean,
   ) => void
-  onDraftPatch: (id: string, patch: Partial<PdfFormFieldDraft>) => void
   onDraftValueChange: (id: string, value: string | boolean) => void
   onOpenSignature: (field: PdfFormFieldDraft) => void
-  onSaveSignature: (dataUrl: string) => void
-  onSelectDraft: (id: string) => void
-  onSetSignatureField: (field: PdfFormFieldDraft | null) => void
+  onSelectDraft: (id: string, additive?: boolean) => void
   onStartDraftDrag: (event: ReactPointerEvent, field: PdfFormFieldDraft) => void
   onStartDraftResize: (
     event: ReactPointerEvent,
@@ -57,6 +47,9 @@ export function PdfTextEditorFormSurface({
         draftFields={draftFields}
         mode={mode}
         selectedDraftId={selectedDraftId}
+        selectedDraftIds={selectedDraftIds}
+        pageHeightPx={pageHeightPx}
+        zoom={zoom}
         onDetectedValueChange={onDetectedValueChange}
         onDraftValueChange={onDraftValueChange}
         onSelectDraft={onSelectDraft}
@@ -64,22 +57,6 @@ export function PdfTextEditorFormSurface({
         onStartDraftResize={onStartDraftResize}
         onOpenSignature={onOpenSignature}
       />
-      {mode !== 'fill' && selectedDraftField && (
-        <FormFieldInspector
-          field={selectedDraftField}
-          onDelete={() => onDeleteDraft(selectedDraftField.id)}
-          onPatch={(patch) => onDraftPatch(selectedDraftField.id, patch)}
-          onValueChange={(value) => onDraftValueChange(selectedDraftField.id, value)}
-        />
-      )}
-      {signatureField && (
-        <SignatureCaptureDialog
-          field={signatureField}
-          onCancel={() => onSetSignatureField(null)}
-          onChooseImage={() => onChooseSignatureImage(signatureField)}
-          onSave={onSaveSignature}
-        />
-      )}
     </>
   )
 }

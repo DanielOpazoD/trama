@@ -168,10 +168,12 @@ describe('<AnnotationLayer />', () => {
   })
 
   it('muestra handles de redimensionado al seleccionar un cuadro de texto', () => {
-    const { props } = setup({ selectedId: TEXT.id })
+    const { props } = setup({ selectedId: TEXT.id, zoom: 2 })
     const handle = screen.getByRole('button', {
       name: 'Redimensionar texto desde esquina inferior derecha',
     })
+    expect(handle).toHaveStyle({ width: '7px', height: '7px' })
+    expect(screen.getByTitle(DISPLAY_TITLE).style.outlineWidth).toBe('0.75px')
     fireEvent.pointerDown(handle)
     expect(props.onStartResize).toHaveBeenCalledWith(expect.anything(), TEXT, 'se')
   })

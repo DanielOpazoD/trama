@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
-import { isPdfTemplate, type ImageAsset, type PdfDoc } from '../../../lib/pdfStudio/model'
+import {
+  getSource,
+  isPdfTemplate,
+  pageThumbKey,
+  type ImageAsset,
+  type PdfDoc,
+  type PdfPage,
+} from '../../../lib/pdfStudio/model'
 import { type SavedDoc } from '../../../lib/pdfStudio/persistence'
+import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
 import {
   CameraIcon,
   CheckIcon,
@@ -8,9 +16,11 @@ import {
   ChevronRightIcon,
   CloseIcon,
   DownloadIcon,
+  DuplicateIcon,
   FilePdfIcon,
   PencilIcon,
   PlusIcon,
+  SearchIcon,
   TrashIcon,
 } from '../../Icons'
 
@@ -34,6 +44,51 @@ function LibraryThumb({ file }: { file: File }) {
   ) : (
     <span className="block h-full w-full bg-ink-100/40" />
   )
+}
+
+function TemplateThumb({ doc }: { doc: PdfDoc }) {
+  const page = doc.pages[0]
+  const source = page ? getSource(doc, page.sourceId) : undefined
+  const [url, setUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!page || !source) return
+    let alive = true
+    if (page.kind === 'image') {
+      const u = URL.createObjectURL(source.file)
+      setUrl(u)
+      return () => {
+        alive = false
+        URL.revokeObjectURL(u)
+      }
+    }
+    setUrl(null)
+    renderPdfTemplateThumb(source.file, page)
+      .then((u) => {
+        if (alive) setUrl(u)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [page, source])
+
+  return url ? (
+    <img
+      src={url}
+      alt=""
+      className="h-full w-full object-contain p-1"
+      draggable={false}
+    />
+  ) : (
+    <FilePdfIcon size={16} />
+  )
+}
+
+function renderPdfTemplateThumb(file: File, page: PdfPage): Promise<string> {
+  return page.kind === 'pdf'
+    ? renderPageThumb(file, page.pageIndex, pageThumbKey(page))
+    : Promise.reject(new Error('La página no es PDF'))
 }
 
 /** Fecha corta local (día/mes hh:mm) para los guardados. */
@@ -61,11 +116,14 @@ export function WorkspacePanel({
   canSaveTemplate,
   onSaveCreation,
   onSaveTemplate,
+  saveTemplateSignal = 0,
   onOpenSaved,
   onUseTemplate,
+  onDuplicateSaved,
   onRenameSaved,
   onDeleteSaved,
   onDownloadSaved,
+  onExportTemplatePackage,
   collapsed,
   onToggleCollapsed,
 }: {
@@ -80,11 +138,14 @@ export function WorkspacePanel({
   canSaveTemplate: boolean
   onSaveCreation: (name: string) => void
   onSaveTemplate: (name: string) => void
+  saveTemplateSignal?: number
   onOpenSaved: (s: SavedDoc) => void
   onUseTemplate: (s: SavedDoc) => void
+  onDuplicateSaved: (s: SavedDoc) => void
   onRenameSaved: (id: string, name: string) => void
   onDeleteSaved: (id: string) => void
   onDownloadSaved: (s: SavedDoc) => void
+  onExportTemplatePackage: (s: SavedDoc, format: 'json' | 'csv') => void
   collapsed: boolean
   onToggleCollapsed: () => void
 }) {
@@ -93,9 +154,19 @@ export function WorkspacePanel({
   const [newTemplateName, setNewTemplateName] = useState<string | null>(null)
   // Renombrado inline de un guardado (id en edición + valor).
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
+  const [templateQuery, setTemplateQuery] = useState('')
   const templates = saved.filter((s) => isPdfTemplate(s.doc))
+  const visibleTemplates = templates.filter((s) =>
+    s.name.toLowerCase().includes(templateQuery.trim().toLowerCase()),
+  )
   const creations = saved.filter((s) => !isPdfTemplate(s.doc))
   const savedCount = templatesEnabled ? saved.length : creations.length
+
+  useEffect(() => {
+    if (templatesEnabled && canSaveTemplate && saveTemplateSignal > 0) {
+      setNewTemplateName('')
+    }
+  }, [canSaveTemplate, saveTemplateSignal, templatesEnabled])
 
   if (collapsed) {
     return (
@@ -289,93 +360,152 @@ export function WorkspacePanel({
                   después.
                 </p>
               ) : (
-                <ul className="flex flex-col gap-1 px-2 pt-1">
-                  {templates.map((s) => (
-                    <li
-                      key={s.id}
-                      className="group flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-ink-100/40 transition-colors"
-                    >
-                      {renaming?.id === s.id ? (
-                        <input
-                          autoFocus
-                          value={renaming.value}
-                          onChange={(e) =>
-                            setRenaming({ id: s.id, value: e.target.value })
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') confirmRename()
-                            else if (e.key === 'Escape') setRenaming(null)
-                          }}
-                          onBlur={confirmRename}
-                          className="input-paper flex-1 min-w-0 text-caption px-1.5 py-0.5 rounded border border-ink-200"
-                        />
-                      ) : (
-                        <>
-                          <div className="min-w-0 flex-1">
-                            <span className="block truncate text-caption text-ink-700">
-                              {s.name}
-                            </span>
-                            <span className="block text-micro text-ink-400 tabular-nums">
-                              {fieldCountLabel(s.doc)} · {s.doc.pages.length}{' '}
-                              {s.doc.pages.length === 1 ? 'hoja' : 'hojas'} ·{' '}
-                              {dateLabel(s.savedAt)}
-                            </span>
-                            <div className="mt-1 flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => onUseTemplate(s)}
-                                aria-label={`Rellenar planilla ${s.name}`}
-                                title="Rellenar e imprimir"
-                                className="btn-accent inline-flex h-6 items-center px-2 text-micro"
-                              >
-                                Rellenar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => onOpenSaved(s)}
-                                aria-label={`Editar estructura de planilla ${s.name}`}
-                                title="Editar casilleros"
-                                className="btn-ghost inline-flex h-6 items-center gap-1 px-2 text-micro"
-                              >
-                                <PencilIcon size={11} />
-                                Editar
-                              </button>
+                <>
+                  <label className="mx-2 mb-1 flex items-center gap-1.5 rounded-md border border-ink-100 bg-paper-50/70 px-2 py-1.5 text-ink-400">
+                    <SearchIcon size={12} />
+                    <span className="sr-only">Buscar planillas</span>
+                    <input
+                      type="search"
+                      role="searchbox"
+                      aria-label="Buscar planillas"
+                      value={templateQuery}
+                      onChange={(e) => setTemplateQuery(e.target.value)}
+                      placeholder="Buscar planillas"
+                      className="min-w-0 flex-1 bg-transparent text-caption text-ink-700 placeholder:text-ink-300 outline-none"
+                    />
+                  </label>
+                  {visibleTemplates.length === 0 ? (
+                    <p className="px-2.5 py-1 text-micro text-ink-400">
+                      No hay planillas con ese nombre.
+                    </p>
+                  ) : (
+                    <ul className="flex flex-col gap-1.5 px-2 pt-1">
+                      {visibleTemplates.map((s) => (
+                        <li
+                          key={s.id}
+                          className="group rounded-md border border-ink-100 bg-paper-50/70 p-1.5 shadow-[0_1px_2px_rgba(31,28,24,0.04)] transition-colors hover:border-ink-200"
+                        >
+                          {renaming?.id === s.id ? (
+                            <input
+                              autoFocus
+                              value={renaming.value}
+                              onChange={(e) =>
+                                setRenaming({ id: s.id, value: e.target.value })
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') confirmRename()
+                                else if (e.key === 'Escape') setRenaming(null)
+                              }}
+                              onBlur={confirmRename}
+                              className="input-paper flex-1 min-w-0 text-caption px-1.5 py-0.5 rounded border border-ink-200"
+                            />
+                          ) : (
+                            <div className="flex gap-2">
+                              <div className="flex h-14 w-10 shrink-0 items-center justify-center overflow-hidden rounded border border-ink-100 bg-gradient-to-b from-paper-50 to-ink-50 text-ink-300">
+                                <TemplateThumb doc={s.doc} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start gap-1">
+                                  <div className="min-w-0 flex-1">
+                                    <span className="block truncate text-caption font-medium text-ink-700">
+                                      {s.name}
+                                    </span>
+                                    <span className="block text-micro text-ink-400 tabular-nums">
+                                      {fieldCountLabel(s.doc)} · {s.doc.pages.length}{' '}
+                                      {s.doc.pages.length === 1 ? 'hoja' : 'hojas'} ·{' '}
+                                      {dateLabel(s.savedAt)}
+                                    </span>
+                                  </div>
+                                  <div className="flex shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => onDuplicateSaved(s)}
+                                      aria-label={`Duplicar planilla ${s.name}`}
+                                      title="Duplicar planilla"
+                                      className={rowBtn}
+                                    >
+                                      <DuplicateIcon size={13} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setRenaming({ id: s.id, value: s.name })
+                                      }
+                                      aria-label={`Renombrar ${s.name}`}
+                                      title="Renombrar"
+                                      className={rowBtn}
+                                    >
+                                      <PencilIcon size={13} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onDeleteSaved(s.id)}
+                                      aria-label={`Eliminar ${s.name}`}
+                                      title="Eliminar de la lista"
+                                      className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
+                                    >
+                                      <TrashIcon size={13} />
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="mt-1 flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => onUseTemplate(s)}
+                                    aria-label={`Rellenar planilla ${s.name}`}
+                                    title="Rellenar e imprimir"
+                                    className="btn-accent inline-flex h-6 items-center px-2 text-micro"
+                                  >
+                                    Rellenar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onOpenSaved(s)}
+                                    aria-label={`Editar estructura de planilla ${s.name}`}
+                                    title="Editar casilleros"
+                                    className="btn-ghost inline-flex h-6 items-center gap-1 px-2 text-micro"
+                                  >
+                                    <PencilIcon size={11} />
+                                    Editar
+                                  </button>
+                                </div>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => onDownloadSaved(s)}
+                                    aria-label={`Descargar PDF editable de planilla ${s.name}`}
+                                    title="Descargar PDF editable"
+                                    className="btn-ghost inline-flex h-5 items-center px-1.5 text-[10px]"
+                                  >
+                                    PDF
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onExportTemplatePackage(s, 'json')}
+                                    aria-label={`Exportar variables JSON de planilla ${s.name}`}
+                                    title="Exportar estructura JSON"
+                                    className="btn-ghost inline-flex h-5 items-center px-1.5 text-[10px]"
+                                  >
+                                    JSON
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onExportTemplatePackage(s, 'csv')}
+                                    aria-label={`Exportar variables CSV de planilla ${s.name}`}
+                                    title="Exportar variables CSV"
+                                    className="btn-ghost inline-flex h-5 items-center px-1.5 text-[10px]"
+                                  >
+                                    CSV
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              type="button"
-                              onClick={() => onDownloadSaved(s)}
-                              aria-label={`Descargar ${s.name}`}
-                              title="Descargar"
-                              className={rowBtn}
-                            >
-                              <DownloadIcon size={13} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setRenaming({ id: s.id, value: s.name })}
-                              aria-label={`Renombrar ${s.name}`}
-                              title="Renombrar"
-                              className={rowBtn}
-                            >
-                              <PencilIcon size={13} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => onDeleteSaved(s.id)}
-                              aria-label={`Eliminar ${s.name}`}
-                              title="Eliminar de la lista"
-                              className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
-                            >
-                              <TrashIcon size={13} />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
               )}
             </section>
 

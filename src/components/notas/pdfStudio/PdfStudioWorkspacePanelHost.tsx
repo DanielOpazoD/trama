@@ -14,11 +14,14 @@ export function PdfStudioWorkspacePanelHost({
   onDeleteSaved,
   onDownloadImage,
   onDownloadSaved,
+  onDuplicateSaved,
+  onExportTemplatePackage,
   onOpenSaved,
   onRemoveImage,
   onRenameSaved,
   onSaveCreation,
   onSaveTemplate,
+  saveTemplateSignal,
   onToggleCollapsed,
   onUseTemplate,
 }: {
@@ -33,11 +36,14 @@ export function PdfStudioWorkspacePanelHost({
   onDeleteSaved: (id: string) => void
   onDownloadImage: (asset: ImageAsset) => void
   onDownloadSaved: (saved: SavedDoc) => void
+  onDuplicateSaved: (saved: SavedDoc) => void
+  onExportTemplatePackage: (saved: SavedDoc, format: 'json' | 'csv') => void
   onOpenSaved: (saved: SavedDoc) => void
   onRemoveImage: (id: string) => void
   onRenameSaved: (id: string, name: string) => void
   onSaveCreation: (name: string) => void
   onSaveTemplate: (name: string) => void
+  saveTemplateSignal?: number
   onToggleCollapsed: () => void
   onUseTemplate: (saved: SavedDoc) => void
 }) {
@@ -71,11 +77,14 @@ export function PdfStudioWorkspacePanelHost({
           canSaveTemplate={canSaveTemplate}
           onSaveCreation={onSaveCreation}
           onSaveTemplate={onSaveTemplate}
+          saveTemplateSignal={saveTemplateSignal}
           onOpenSaved={onOpenSaved}
           onUseTemplate={onUseTemplate}
+          onDuplicateSaved={onDuplicateSaved}
           onRenameSaved={onRenameSaved}
           onDeleteSaved={onDeleteSaved}
           onDownloadSaved={onDownloadSaved}
+          onExportTemplatePackage={onExportTemplatePackage}
           collapsed={collapsed}
           onToggleCollapsed={onToggleCollapsed}
         />

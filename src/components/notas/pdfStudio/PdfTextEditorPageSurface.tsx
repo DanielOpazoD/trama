@@ -49,9 +49,8 @@ export function PdfTextEditorPageSurface({
   detectedForms,
   draftFields,
   pendingFormKind,
-  selectedDraftField,
   selectedDraftId,
-  signatureField,
+  selectedDraftIds,
   onActivate,
   onActiveLayoutChange,
   onStartDraw,
@@ -64,15 +63,10 @@ export function PdfTextEditorPageSurface({
   onStartEdit,
   onCommitText,
   onCancelEdit,
-  onChooseSignatureImage,
-  onDeleteDraft,
   onDetectedValueChange,
-  onDraftPatch,
   onDraftValueChange,
   onOpenSignature,
-  onSaveSignature,
   onSelectDraft,
-  onSetSignatureField,
   onStartDraftDrag,
   onStartDraftResize,
 }: {
@@ -94,14 +88,17 @@ export function PdfTextEditorPageSurface({
   detectedForms: DetectedPdfFormForCanvas[]
   draftFields: PdfFormFieldDraft[]
   pendingFormKind: boolean
-  selectedDraftField: PdfFormFieldDraft | null
   selectedDraftId: string | null
-  signatureField: PdfFormFieldDraft | null
+  selectedDraftIds: string[]
   onActivate: (pageIndex: number) => void
   onActiveLayoutChange: (layout: PageLayout | null) => void
   onStartDraw: (event: ReactPointerEvent) => void
   onStartMarquee: (event: ReactPointerEvent) => void
-  onStartFormField: (event: ReactPointerEvent) => void
+  onStartFormField: (
+    event: ReactPointerEvent,
+    page: NonNullable<PdfDoc['pages'][number]>,
+    layout: PageLayout | null,
+  ) => void
   onStartDrag: (event: ReactPointerEvent, annotation: Annotation) => void
   onStartResize: (
     event: ReactPointerEvent,
@@ -113,19 +110,14 @@ export function PdfTextEditorPageSurface({
   onStartEdit: (id: string) => void
   onCommitText: (id: string, text: string) => void
   onCancelEdit: () => void
-  onChooseSignatureImage: (field?: PdfFormFieldDraft | null) => void
-  onDeleteDraft: (id: string) => void
   onDetectedValueChange: (
     sourceId: string,
     fieldName: string,
     value: string | boolean,
   ) => void
-  onDraftPatch: (id: string, patch: Partial<PdfFormFieldDraft>) => void
   onDraftValueChange: (id: string, value: string | boolean) => void
   onOpenSignature: (field: PdfFormFieldDraft) => void
-  onSaveSignature: (dataUrl: string) => void
-  onSelectDraft: (id: string) => void
-  onSetSignatureField: (field: PdfFormFieldDraft | null) => void
+  onSelectDraft: (id: string, additive?: boolean) => void
   onStartDraftDrag: (event: ReactPointerEvent, field: PdfFormFieldDraft) => void
   onStartDraftResize: (
     event: ReactPointerEvent,
@@ -149,9 +141,7 @@ export function PdfTextEditorPageSurface({
 
   if (!page) return null
 
-  const syncActiveLayout = () => {
-    if (isActive) onActiveLayoutChange(layout)
-  }
+  const syncActiveLayout = () => onActiveLayoutChange(layout)
   const withActiveLayout =
     <Args extends unknown[]>(fn: (...args: Args) => void) =>
     (...args: Args) => {
@@ -162,8 +152,16 @@ export function PdfTextEditorPageSurface({
     event.stopPropagation()
     onActivate(pageIndex)
   }
+  const activateAndStartFormField = (event: ReactPointerEvent) => {
+    onActivate(pageIndex)
+    syncActiveLayout()
+    onStartFormField(event, page, layout)
+  }
   const startDraw = withActiveLayout(onStartDraw)
-  const startFormField = withActiveLayout(onStartFormField)
+  const startFormField = (event: ReactPointerEvent) => {
+    syncActiveLayout()
+    onStartFormField(event, page, layout)
+  }
   const startMarquee = withActiveLayout(onStartMarquee)
   const startDrag = withActiveLayout(onStartDrag)
   const startResize = withActiveLayout(onStartResize)
@@ -188,20 +186,16 @@ export function PdfTextEditorPageSurface({
           detectedWidgets={visibleFormWidgets}
           draftFields={visibleDraftFields}
           mode={mode}
-          selectedDraftField={selectedDraftField}
           selectedDraftId={selectedDraftId}
-          signatureField={signatureField}
-          onChooseSignatureImage={onChooseSignatureImage}
-          onDeleteDraft={onDeleteDraft}
+          selectedDraftIds={selectedDraftIds}
+          pageHeightPx={layout?.innerH ?? 1}
+          zoom={zoom}
           onDetectedValueChange={onDetectedValueChange}
-          onDraftPatch={onDraftPatch}
           onDraftValueChange={onDraftValueChange}
           onSelectDraft={onSelectDraft}
-          onSetSignatureField={onSetSignatureField}
           onStartDraftDrag={startDraftDrag}
           onStartDraftResize={startDraftResize}
           onOpenSignature={onOpenSignature}
-          onSaveSignature={onSaveSignature}
         />
       ) : (
         <FormFieldLayer
@@ -209,6 +203,9 @@ export function PdfTextEditorPageSurface({
           draftFields={visibleDraftFields}
           mode={mode}
           selectedDraftId={null}
+          selectedDraftIds={[]}
+          pageHeightPx={layout?.innerH ?? 1}
+          zoom={zoom}
           onDetectedValueChange={onDetectedValueChange}
           onDraftValueChange={onDraftValueChange}
           onSelectDraft={(id) => (onActivate(pageIndex), onSelectDraft(id))}
@@ -232,8 +229,14 @@ export function PdfTextEditorPageSurface({
         tool={isActive ? tool : 'select'}
         currentPage={pageIndex}
         scrollContainer={false}
-        placingFormField={!fillMode && isActive && pendingFormKind}
-        onStartFormField={!fillMode && isActive ? startFormField : activatePointer}
+        placingFormField={!fillMode && pendingFormKind}
+        onStartFormField={
+          !fillMode && pendingFormKind
+            ? isActive
+              ? startFormField
+              : activateAndStartFormField
+            : activatePointer
+        }
         onStartDraw={!fillMode && isActive ? startDraw : activatePointer}
         onStartMarquee={!fillMode && isActive ? startMarquee : activatePointer}
       >
@@ -246,6 +249,7 @@ export function PdfTextEditorPageSurface({
           selectedId={!fillMode && isActive ? selectedId : null}
           selectedIds={!fillMode && isActive ? selectedIds : []}
           editingId={!fillMode && isActive ? editingId : null}
+          zoom={zoom}
           drawing={!fillMode && isActive ? drawing : null}
           selectionMarquee={isActive ? selectionMarquee : null}
           selectionLasso={isActive ? selectionLasso : null}

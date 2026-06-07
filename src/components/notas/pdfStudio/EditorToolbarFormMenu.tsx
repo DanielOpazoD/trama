@@ -6,20 +6,27 @@ import { OverflowMenu } from '../../OverflowMenu'
 const FORM_FIELDS: {
   key: PdfFormFieldKind
   label: string
+  ariaLabel: string
   glyph: string
 }[] = [
-  { key: 'text', label: 'Texto', glyph: 'T' },
-  { key: 'signature', label: 'Firma', glyph: '✎' },
+  {
+    key: 'text',
+    label: 'Casillero de texto',
+    ariaLabel: 'Crear casillero de texto',
+    glyph: 'T',
+  },
 ]
 
 export function EditorToolbarFormMenu({
   onAddFormField,
   onInspectForms,
+  onSuggestFormFields,
 }: {
   onAddFormField?: (kind: PdfFormFieldKind) => void
   onInspectForms?: () => void
+  onSuggestFormFields?: () => void
 }) {
-  if (!onAddFormField && !onInspectForms) return null
+  if (!onAddFormField && !onInspectForms && !onSuggestFormFields) return null
 
   return (
     <OverflowMenu
@@ -53,13 +60,30 @@ export function EditorToolbarFormMenu({
               <span>Detectar</span>
             </button>
           )}
+          {onSuggestFormFields && (
+            <button
+              type="button"
+              role="menuitem"
+              aria-label="Sugerir casilleros vacíos"
+              onClick={() => {
+                onSuggestFormFields()
+                close()
+              }}
+              className={activeMenuItem(false)}
+            >
+              <span className="inline-flex w-4 justify-center" aria-hidden>
+                ✦
+              </span>
+              <span>Sugerir</span>
+            </button>
+          )}
           {onAddFormField &&
             FORM_FIELDS.map((field) => (
               <button
                 key={field.key}
                 type="button"
                 role="menuitem"
-                aria-label={`Crear campo ${field.label}`}
+                aria-label={field.ariaLabel}
                 onClick={() => {
                   onAddFormField(field.key)
                   close()
