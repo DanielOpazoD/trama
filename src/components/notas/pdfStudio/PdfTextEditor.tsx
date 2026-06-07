@@ -26,8 +26,7 @@ import { EditorToolbar } from './EditorToolbar'
 import { PageCanvas } from './PageCanvas'
 import { PdfTextEditorHeader } from './PdfTextEditorHeader'
 import { SelectionInspector } from './SelectionInspector'
-import { FormFieldLayer } from './FormFieldLayer'
-import { SignatureCaptureDialog } from './SignatureCaptureDialog'
+import { PdfTextEditorFormSurface } from './PdfTextEditorFormSurface'
 import type { SnapGuide } from './pdfAnnotationSnap'
 import { usePdfTextEditorInteractions } from './usePdfTextEditorInteractions'
 import { usePdfTextEditorForms } from './usePdfTextEditorForms'
@@ -307,9 +306,14 @@ export function PdfTextEditor({
   const visibleFormWidgets = page ? visualWidgetsForPage(page, detectedForms) : []
   const {
     addFormField,
+    deleteDraftFormField,
     formFields,
     chooseSignatureImage,
     openSignature,
+    pendingFormKind,
+    patchDraftFormField,
+    placePendingFormField,
+    selectedDraftFormField,
     saveSignatureDataUrl,
     selectedFormFieldId,
     selectDraftFormField,
@@ -406,7 +410,7 @@ export function PdfTextEditor({
           zoom={zoom}
           onZoomChange={setZoom}
         />
-        {selectedAnn && selectedBounds && (
+        {selectedAnn && selectedBounds ? (
           <SelectionInspector
             annotation={selectedAnn}
             bounds={selectedBounds}
@@ -421,7 +425,7 @@ export function PdfTextEditor({
             onColorChange={(color) => applyStyle({ color })}
             onOpacityChange={(opacity) => applyStyle({ opacity })}
           />
-        )}
+        ) : null}
         <input
           ref={stampInputRef}
           type="file"
@@ -448,6 +452,15 @@ export function PdfTextEditor({
             if (file) setSignatureFile(file)
           }}
         />
+        {pendingFormKind && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="border-b border-[color:var(--accent-sage)]/20 bg-[color:var(--accent-sage-soft)]/45 px-3 py-1.5 text-caption text-[color:var(--accent-sage)]"
+          >
+            Haz clic en la página para colocar el casillero especial.
+          </div>
+        )}
 
         {/* Página — ocupa el resto; centrada y scrolleable al hacer zoom */}
         <PageCanvas
@@ -457,6 +470,8 @@ export function PdfTextEditor({
           zoom={zoom}
           tool={tool}
           currentPage={currentPage}
+          placingFormField={Boolean(pendingFormKind)}
+          onStartFormField={placePendingFormField}
           onStartDraw={startDraw}
           onStartMarquee={startMarquee}
         >
@@ -487,26 +502,25 @@ export function PdfTextEditor({
             onCancelEdit={() => setEditingId(null)}
             onStartResize={startResize}
           />
-          <FormFieldLayer
+          <PdfTextEditorFormSurface
             detectedWidgets={visibleFormWidgets}
             draftFields={visibleDraftFields}
+            selectedDraftField={selectedDraftFormField}
             selectedDraftId={selectedFormFieldId}
+            signatureField={signatureField}
+            onChooseSignatureImage={chooseSignatureImage}
+            onDeleteDraft={deleteDraftFormField}
             onDetectedValueChange={onFormValueChange}
+            onDraftPatch={patchDraftFormField}
             onDraftValueChange={updateDraftFormValue}
             onSelectDraft={selectDraftFormField}
+            onSetSignatureField={setSignatureField}
             onStartDraftDrag={startDraftDrag}
             onStartDraftResize={startDraftResize}
             onOpenSignature={openSignature}
+            onSaveSignature={saveSignatureDataUrl}
           />
         </PageCanvas>
-        {signatureField && (
-          <SignatureCaptureDialog
-            field={signatureField}
-            onCancel={() => setSignatureField(null)}
-            onChooseImage={() => chooseSignatureImage(signatureField)}
-            onSave={saveSignatureDataUrl}
-          />
-        )}
       </div>
     </div>,
     document.body,

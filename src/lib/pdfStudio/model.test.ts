@@ -6,6 +6,7 @@ import {
   addPdfFormField,
   baselineDropEm,
   canExport,
+  clearPdfFormFieldValues,
   cloneAnnotation,
   clonePdfFormField,
   deletePage,
@@ -15,6 +16,7 @@ import {
   getSource,
   insertPages,
   isEmbeddableFont,
+  isPdfTemplate,
   isTextAnnotation,
   makeHighlightAnnotation,
   makeImageAnnotation,
@@ -256,6 +258,47 @@ describe('pdfStudio/model · campos de formulario visuales', () => {
     })
 
     expect(Number(field.id.replace(/\D+/g, ''))).toBeGreaterThan(120)
+  })
+
+  it('detecta planillas y prepara una copia limpia para rellenar sin mutar valores guardados', () => {
+    const d0 = addPdfSource(emptyDoc(), pdf(), 1)
+    const pageId = d0.pages[0]!.id
+    const text = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId,
+      name: 'paciente',
+      value: 'Daniel',
+      xRatio: 0.1,
+      yRatio: 0.2,
+      wRatio: 0.35,
+      hRatio: 0.04,
+    })
+    const checkbox = makePdfFormFieldDraft({
+      fieldKind: 'checkbox',
+      pageId,
+      name: 'autoriza',
+      value: true,
+      xRatio: 0.1,
+      yRatio: 0.3,
+      wRatio: 0.04,
+      hRatio: 0.04,
+    })
+    const template = addPdfFormField(addPdfFormField(d0, text), checkbox)
+
+    expect(isPdfTemplate(template)).toBe(true)
+    expect(isPdfTemplate(d0)).toBe(false)
+
+    const clean = clearPdfFormFieldValues(template)
+
+    expect(clean).not.toBe(template)
+    expect(clean.formFields).toEqual([
+      expect.objectContaining({ name: 'paciente', value: '' }),
+      expect.objectContaining({ name: 'autoriza', value: false }),
+    ])
+    expect(template.formFields).toEqual([
+      expect.objectContaining({ name: 'paciente', value: 'Daniel' }),
+      expect.objectContaining({ name: 'autoriza', value: true }),
+    ])
   })
 
   it('clona campos al duplicar páginas y los elimina al borrar páginas', () => {

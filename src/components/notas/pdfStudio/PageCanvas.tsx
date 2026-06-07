@@ -21,7 +21,9 @@ export function PageCanvas({
   zoom,
   tool,
   currentPage,
+  placingFormField = false,
   onStartDraw,
+  onStartFormField,
   onStartMarquee,
   children,
 }: {
@@ -32,8 +34,11 @@ export function PageCanvas({
   tool: Tool
   /** Índice 0-based de la página visible (para el alt de la imagen). */
   currentPage: number
+  placingFormField?: boolean
   /** Inicia el dibujo por arrastre (modo resaltar o una forma). */
   onStartDraw: (e: ReactPointerEvent) => void
+  /** Coloca un campo especial en la posición clicada sobre la página. */
+  onStartFormField?: (e: ReactPointerEvent) => void
   /** Inicia selección por marco sobre el fondo de la página. */
   onStartMarquee: (e: ReactPointerEvent) => void
   children: ReactNode
@@ -49,14 +54,20 @@ export function PageCanvas({
       {layout && bg ? (
         <div className="relative" style={{ width: zw, height: zh }}>
           <div
-            onPointerDown={tool === 'select' ? onStartMarquee : onStartDraw}
+            onPointerDown={
+              placingFormField && onStartFormField
+                ? onStartFormField
+                : tool === 'select'
+                  ? onStartMarquee
+                  : onStartDraw
+            }
             className="absolute left-1/2 top-1/2 bg-white rounded-sm ring-1 ring-ink-800/15 shadow-xl shadow-ink-800/15"
             style={{
               width: layout.innerW,
               height: layout.innerH,
               transform: `translate(-50%, -50%) rotate(${layout.rot * 90}deg) scale(${zoom})`,
-              cursor: tool !== 'select' ? 'crosshair' : undefined,
-              touchAction: tool !== 'select' ? 'none' : undefined,
+              cursor: placingFormField || tool !== 'select' ? 'crosshair' : undefined,
+              touchAction: placingFormField || tool !== 'select' ? 'none' : undefined,
             }}
           >
             <img

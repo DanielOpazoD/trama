@@ -123,6 +123,25 @@ primero ensambla el PDF visual y luego escribe esos campos como AcroForms reales
 La firma simple no es una firma digital criptografica: es un trazo o imagen
 ubicada dentro de un campo de firma de oficina.
 
+### Planillas imprimibles
+
+Una planilla es una creacion guardada cuyo `PdfDoc` contiene `formFields`.
+El panel lateral separa estas planillas de los guardados generales y ofrece dos
+flujos distintos:
+
+1. `Guardar planilla` guarda una copia con valores limpios. Conserva paginas,
+   posiciones, nombres de variables, required/readOnly y opciones, pero borra
+   datos ingresados para que la planilla no quede contaminada por un llenado.
+2. `Usar planilla` abre una copia limpia en el editor. El usuario rellena los
+   casilleros especiales sobre la pagina y luego imprime/descarga desde el mismo
+   flujo de exportacion.
+
+Los nombres de casillero son las variables de oficina: por ejemplo `paciente`,
+`fecha_control`, `diagnostico`. Se editan desde el inspector contextual de
+casillero. Al seleccionar un tipo en el menu `Campos`, el siguiente clic sobre la
+pagina coloca el casillero en esa posicion, pensado para alinear variables sobre
+celdas vacias de PDFs base o escaneos.
+
 ## OCR y PDF Buscable
 
 La primera version es client-side y apunta a documentos pequenos/medianos. El
@@ -217,7 +236,8 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
 | Importacion          | PDF multipagina e imagenes como paginas o biblioteca reutilizable.                                                                   | `usePdfStudioImport`, `usePdfStudioWorkspace`, `PdfStudioView.test.tsx`                       |
 | Organizacion         | Seleccion multiple de paginas, ordenar, rotar, duplicar, extraer, borrar y portapapeles.                                             | `model.ts`, `usePageSelection.ts`, `PdfStudioView.test.tsx`                                   |
 | Edicion de pagina    | Texto, resaltado, redaccion real, rectangulo, ovalo, linea, flecha e imagen estampada.                                               | `EditorToolbar.tsx`, `AnnotationLayer.tsx`, `e2e/pdf-studio-editor.spec.ts`                   |
-| Formularios          | Overlays visuales para AcroForms existentes, campos nuevos desde cero, firma simple, export editable/aplanable en Worker.            | `pdfForms.ts`, `modelForms.ts`, `FormFieldLayer.tsx`, `SignatureCaptureDialog.tsx`            |
+| Formularios          | Overlays visuales para AcroForms existentes, campos nuevos posicionados por clic, firma simple, export editable/aplanable en Worker. | `pdfForms.ts`, `modelForms.ts`, `FormFieldLayer.tsx`, `SignatureCaptureDialog.tsx`            |
+| Planillas            | Guardar planillas con casilleros especiales limpios, reabrir copia rellenable e imprimir/descargar desde PDF Studio.                 | `WorkspacePanel.tsx`, `usePdfStudioWorkspace.ts`, `FormFieldInspector.tsx`                    |
 | OCR buscable         | PDF escaneado a PDF con texto seleccionable/buscable, Worker, progreso, cancelacion, selector de idioma, limites y sidecar `.txt`.   | `pdfOcr.ts`, `pdfOcr.worker.ts`, `pdfOcrLimits.ts`, `PdfStudioView.test.tsx`                  |
 | Redimensionado       | Handles para texto, resaltados, redacciones, formas e imagenes; Shift conserva aspecto de imagen.                                    | `AnnotationResizeHandles.tsx`, `pdfAnnotationResize.test.ts`, `AnnotationLayer.test.tsx`      |
 | Atajos               | Copiar, cortar, pegar, duplicar, borrar, mover con flechas, undo/redo y Escape contextual.                                           | `usePdfTextEditorKeyboard.ts`, `pdfAnnotationShortcuts.test.ts`                               |

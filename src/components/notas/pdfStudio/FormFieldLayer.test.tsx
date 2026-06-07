@@ -67,7 +67,9 @@ describe('<FormFieldLayer />', () => {
   it('selecciona campos draft y muestra handles de redimensionado', () => {
     const { props } = setup({ selectedDraftId: draftCheckbox.id })
 
-    fireEvent.pointerDown(screen.getByRole('checkbox', { name: 'acepta' }))
+    fireEvent.pointerDown(
+      screen.getByRole('checkbox', { name: 'acepta' }).closest('div')!,
+    )
     expect(props.onStartDraftDrag).toHaveBeenCalledWith(expect.anything(), draftCheckbox)
 
     const handle = screen.getByRole('button', {
@@ -79,6 +81,15 @@ describe('<FormFieldLayer />', () => {
       draftCheckbox,
       'se',
     )
+  })
+
+  it('no inicia arrastre al interactuar directamente con el control del casillero', () => {
+    const { props } = setup({ selectedDraftId: draftCheckbox.id })
+
+    fireEvent.pointerDown(screen.getByRole('checkbox', { name: 'acepta' }))
+
+    expect(props.onSelectDraft).toHaveBeenCalledWith(draftCheckbox.id)
+    expect(props.onStartDraftDrag).not.toHaveBeenCalled()
   })
 
   it('muestra campo de firma simple con acción para firmar', () => {

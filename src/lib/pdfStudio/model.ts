@@ -49,8 +49,11 @@ export {
 } from './modelText'
 export {
   addPdfFormField,
+  clearPdfFormFieldValues,
   clonePdfFormField,
   deletePdfFormField,
+  emptyPdfFormValue,
+  isPdfTemplate,
   makePdfFormFieldDraft,
   renamePdfFormField,
   resizePdfFormField,

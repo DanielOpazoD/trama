@@ -17,6 +17,8 @@ function setup(overrides: Partial<Parameters<typeof PageCanvas>[0]> = {}) {
     currentPage: 0,
     onStartDraw: vi.fn(),
     onStartMarquee: vi.fn(),
+    onStartFormField: vi.fn(),
+    placingFormField: false,
     children: <div data-testid="anotaciones" />,
     ...overrides,
   }
@@ -58,5 +60,13 @@ describe('<PageCanvas />', () => {
     const { props } = setup({ tool: 'rect' })
     fireEvent.pointerDown(screen.getByAltText('Página 1').parentElement!)
     expect(props.onStartDraw).toHaveBeenCalledOnce()
+  })
+
+  it('al colocar un campo especial usa el gesto de formulario antes que el marquee', () => {
+    const { props } = setup({ placingFormField: true })
+    fireEvent.pointerDown(screen.getByAltText('Página 1').parentElement!)
+    expect(props.onStartFormField).toHaveBeenCalledOnce()
+    expect(props.onStartMarquee).not.toHaveBeenCalled()
+    expect(props.onStartDraw).not.toHaveBeenCalled()
   })
 })

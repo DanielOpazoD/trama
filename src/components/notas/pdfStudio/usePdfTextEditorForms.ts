@@ -65,6 +65,7 @@ export function usePdfTextEditorForms({
   )
   const [selectedFormFieldId, setSelectedFormFieldId] = useState<string | null>(null)
   const [signatureField, setSignatureField] = useState<PdfFormFieldDraft | null>(null)
+  const [pendingFormKind, setPendingFormKind] = useState<PdfFormFieldKind | null>(null)
   const visibleDraftFields = page
     ? formFields.filter((field) => field.pageId === page.id)
     : []
@@ -77,27 +78,76 @@ export function usePdfTextEditorForms({
     return `${prefix}_${i}`
   }
 
-  function addFormField(kind: PdfFormFieldKind) {
-    if (!page) return
-    const field = makePdfFormFieldDraft({
+  function makeDraftFormField(
+    kind: PdfFormFieldKind,
+    box = initialFieldBox(kind),
+  ): PdfFormFieldDraft | null {
+    if (!page) return null
+    return makePdfFormFieldDraft({
       fieldKind: kind,
       pageId: page.id,
       name: nextFormFieldName(kind),
       value: defaultFormValue(kind),
       options: kind === 'radio' ? ['Sí'] : undefined,
-      ...initialFieldBox(kind),
+      ...box,
     })
+  }
+
+  function addFormField(kind: PdfFormFieldKind) {
+    setPendingFormKind(kind)
     setTool('select')
     setEditingId(null)
     setSelectedId(null)
+  }
+
+  function placePendingFormField(e: ReactPointerEvent) {
+    if (!layout || !pendingFormKind) return
+    e.stopPropagation()
+    e.preventDefault()
+    const base = initialFieldBox(pendingFormKind)
+    const xRatio = clamp01(
+      e.nativeEvent.offsetX / Math.max(1, layout.innerW) - base.wRatio / 2,
+    )
+    const yRatio = clamp01(
+      e.nativeEvent.offsetY / Math.max(1, layout.innerH) - base.hRatio / 2,
+    )
+    const field = makeDraftFormField(pendingFormKind, {
+      ...base,
+      xRatio: Math.min(1 - base.wRatio, xRatio),
+      yRatio: Math.min(1 - base.hRatio, yRatio),
+    })
+    if (!field) return
     setFormFields((fields) => [...fields, field])
     setSelectedFormFieldId(field.id)
+    setPendingFormKind(null)
   }
 
   function updateDraftFormValue(id: string, value: string | boolean) {
     setFormFields((fields) =>
       fields.map((field) => (field.id === id ? { ...field, value } : field)),
     )
+  }
+
+  function patchDraftFormField(id: string, patch: Partial<PdfFormFieldDraft>) {
+    setFormFields((fields) =>
+      fields.map((field) =>
+        field.id === id
+          ? {
+              ...field,
+              ...patch,
+              name:
+                patch.name == null
+                  ? field.name
+                  : patch.name.trim().replace(/\s+/g, '_') || field.name,
+            }
+          : field,
+      ),
+    )
+  }
+
+  function deleteDraftFormField(id: string) {
+    setFormFields((fields) => fields.filter((field) => field.id !== id))
+    setSelectedFormFieldId((selected) => (selected === id ? null : selected))
   }
 
   function openSignature(field: PdfFormFieldDraft) {
@@ -199,7 +249,12 @@ export function usePdfTextEditorForms({
 
   return {
     addFormField,
+    deleteDraftFormField,
     formFields,
+    pendingFormKind,
+    placePendingFormField,
+    selectedDraftFormField:
+      formFields.find((field) => field.id === selectedFormFieldId) ?? null,
     openSignature,
     selectedFormFieldId,
     selectDraftFormField,
@@ -211,6 +266,7 @@ export function usePdfTextEditorForms({
     signatureInputRef,
     startDraftDrag,
     startDraftResize,
+    patchDraftFormField,
     updateDraftFormValue,
     visibleDraftFields,
   }

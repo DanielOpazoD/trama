@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 
 import { initHistory, pushHistory, type History } from '../../../lib/pdfStudio/history'
 import {
   addImageSource,
+  clearPdfFormFieldValues,
   normalizeDoc,
   reseedIds,
   type ImageAsset,
@@ -97,6 +98,19 @@ export function usePdfStudioWorkspace({
     toast.show({ message: `Guardado "${name}".`, tone: 'success' })
   }
 
+  function saveTemplate(name: string) {
+    const template = clearPdfFormFieldValues(doc)
+    const s: SavedDoc = {
+      id: crypto.randomUUID(),
+      name,
+      doc: template,
+      savedAt: Date.now(),
+    }
+    setSaved((list) => [s, ...list])
+    void putSavedDoc(userKey, s)
+    toast.show({ message: `Planilla "${name}" guardada.`, tone: 'success' })
+  }
+
   function openSaved(s: SavedDoc) {
     const hadWork = doc.pages.length > 0
     const restored = normalizeDoc(s.doc)
@@ -109,6 +123,20 @@ export function usePdfStudioWorkspace({
         tone: 'default',
       })
     }
+  }
+
+  function openTemplate(s: SavedDoc) {
+    const hadWork = doc.pages.length > 0
+    const restored = normalizeDoc(clearPdfFormFieldValues(s.doc))
+    reseedIds(restored)
+    setHistory((h) => pushHistory(h, restored))
+    clearSelection()
+    toast.show({
+      message: hadWork
+        ? `Planilla "${s.name}" abierta para rellenar. El documento anterior queda en el historial.`
+        : `Planilla "${s.name}" abierta para rellenar.`,
+      tone: 'default',
+    })
   }
 
   function renameSaved(id: string, name: string) {
@@ -131,11 +159,13 @@ export function usePdfStudioWorkspace({
     downloadLibrary,
     library,
     openSaved,
+    openTemplate,
     panelCollapsed,
     removeFromLibrary,
     removeSaved,
     renameSaved,
     saveCreation,
+    saveTemplate,
     saved,
     setPanelCollapsed,
     userKey,

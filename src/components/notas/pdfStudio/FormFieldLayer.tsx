@@ -62,6 +62,12 @@ function defaultRadioValue(field: PdfFormFieldDraft): string {
   return field.options?.[0] ?? 'Sí'
 }
 
+function isInteractiveFormTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement
+    ? Boolean(target.closest('input, select, textarea, button'))
+    : false
+}
+
 function renderFieldControl({
   ariaName,
   fieldKind,
@@ -226,6 +232,7 @@ export function FormFieldLayer({
             onPointerDown={(event) => {
               event.stopPropagation()
               onSelectDraft(field.id)
+              if (isInteractiveFormTarget(event.target)) return
               onStartDraftDrag(event, field)
             }}
             title={`Campo ${field.name}`}

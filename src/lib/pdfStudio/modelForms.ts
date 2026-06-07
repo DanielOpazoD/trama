@@ -1,5 +1,11 @@
 import { nextId, nextIdNumber } from './modelIds'
-import type { PdfDoc, PdfFormFieldDraft, PdfFormValue, PdfPage } from './modelTypes'
+import type {
+  PdfDoc,
+  PdfFormFieldDraft,
+  PdfFormFieldKind,
+  PdfFormValue,
+  PdfPage,
+} from './modelTypes'
 
 export function pruneFormFields(
   formFields: PdfFormFieldDraft[] | undefined,
@@ -76,6 +82,31 @@ export function deletePdfFormField(doc: PdfDoc, id: string): PdfDoc {
   return formFields.length === (doc.formFields ?? []).length
     ? doc
     : { ...doc, formFields }
+}
+
+export function isPdfTemplate(doc: PdfDoc): boolean {
+  return (doc.formFields ?? []).length > 0
+}
+
+export function emptyPdfFormValue(kind: PdfFormFieldKind): PdfFormValue {
+  if (kind === 'checkbox') return false
+  return null
+}
+
+export function clearPdfFormFieldValues(doc: PdfDoc): PdfDoc {
+  if (!isPdfTemplate(doc)) return doc
+  return {
+    ...doc,
+    formFields: (doc.formFields ?? []).map((field) => ({
+      ...field,
+      value:
+        field.fieldKind === 'text' ||
+        field.fieldKind === 'date' ||
+        field.fieldKind === 'signature'
+          ? ''
+          : emptyPdfFormValue(field.fieldKind),
+    })),
+  }
 }
 
 function updatePdfFormField(

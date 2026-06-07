@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { type ImageAsset } from '../../../lib/pdfStudio/model'
+import { isPdfTemplate, type ImageAsset, type PdfDoc } from '../../../lib/pdfStudio/model'
 import { type SavedDoc } from '../../../lib/pdfStudio/persistence'
 import {
   CameraIcon,
@@ -57,8 +57,11 @@ export function WorkspacePanel({
   onDownloadImage,
   saved,
   canSave,
+  canSaveTemplate,
   onSaveCreation,
+  onSaveTemplate,
   onOpenSaved,
+  onUseTemplate,
   onRenameSaved,
   onDeleteSaved,
   onDownloadSaved,
@@ -72,8 +75,11 @@ export function WorkspacePanel({
   saved: SavedDoc[]
   /** Hay algo (hojas) para guardar como creación. */
   canSave: boolean
+  canSaveTemplate: boolean
   onSaveCreation: (name: string) => void
+  onSaveTemplate: (name: string) => void
   onOpenSaved: (s: SavedDoc) => void
+  onUseTemplate: (s: SavedDoc) => void
   onRenameSaved: (id: string, name: string) => void
   onDeleteSaved: (id: string) => void
   onDownloadSaved: (s: SavedDoc) => void
@@ -82,6 +88,7 @@ export function WorkspacePanel({
 }) {
   // Formulario inline para nombrar una creación nueva (null = cerrado).
   const [newName, setNewName] = useState<string | null>(null)
+  const [newTemplateName, setNewTemplateName] = useState<string | null>(null)
   // Renombrado inline de un guardado (id en edición + valor).
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
 
@@ -112,12 +119,25 @@ export function WorkspacePanel({
     if (name) onSaveCreation(name)
     setNewName(null)
   }
+  const confirmNewTemplate = () => {
+    const name = (newTemplateName ?? '').trim()
+    if (name) onSaveTemplate(name)
+    setNewTemplateName(null)
+  }
   const confirmRename = () => {
     if (renaming) {
       const name = renaming.value.trim()
       if (name) onRenameSaved(renaming.id, name)
     }
     setRenaming(null)
+  }
+  const templates = saved.filter((s) => isPdfTemplate(s.doc))
+  const creations = saved.filter((s) => !isPdfTemplate(s.doc))
+
+  const fieldCount = (doc: PdfDoc) => doc.formFields?.length ?? 0
+  const fieldCountLabel = (doc: PdfDoc) => {
+    const count = fieldCount(doc)
+    return `${count} ${count === 1 ? 'campo' : 'campos'}`
   }
 
   return (
@@ -198,13 +218,154 @@ export function WorkspacePanel({
 
         <div className="mx-2.5 border-t border-ink-100/70" />
 
+        {/* ── Planillas ──────────────────────────────────────────────────── */}
+        <section className="pb-2">
+          <div className="flex items-center justify-between gap-2 px-2.5 pt-2.5 pb-1">
+            <h3 className="flex items-center gap-1.5 text-caption font-medium text-ink-600">
+              <FilePdfIcon size={13} />
+              Planillas
+              <span className="text-ink-300 tabular-nums">({templates.length})</span>
+            </h3>
+            {newTemplateName === null && (
+              <button
+                type="button"
+                aria-label="Guardar planilla"
+                onClick={() => setNewTemplateName('')}
+                disabled={!canSaveTemplate}
+                title={
+                  canSaveTemplate
+                    ? 'Guardar la creación actual como planilla reusable'
+                    : 'Agrega campos especiales para poder guardar una planilla'
+                }
+                className="btn-ghost text-micro inline-flex items-center gap-1 disabled:opacity-40"
+              >
+                <PlusIcon size={11} /> Planilla
+              </button>
+            )}
+          </div>
+
+          {newTemplateName !== null && (
+            <div className="flex items-center gap-1 px-2.5 pb-2">
+              <input
+                autoFocus
+                value={newTemplateName}
+                onChange={(e) => setNewTemplateName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') confirmNewTemplate()
+                  else if (e.key === 'Escape') setNewTemplateName(null)
+                }}
+                placeholder="Nombre de la planilla"
+                className="input-paper flex-1 min-w-0 text-caption px-2 py-1 rounded-md border border-ink-200"
+              />
+              <button
+                type="button"
+                onClick={confirmNewTemplate}
+                aria-label="Guardar planilla"
+                title="Guardar planilla"
+                className={rowBtn}
+                style={{ color: ACCENT }}
+              >
+                <CheckIcon size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewTemplateName(null)}
+                aria-label="Cancelar"
+                title="Cancelar"
+                className={rowBtn}
+              >
+                <CloseIcon size={14} />
+              </button>
+            </div>
+          )}
+
+          {templates.length === 0 ? (
+            <p className="px-2.5 text-micro text-ink-400">
+              Diseña casilleros especiales y guarda la planilla para rellenarla después.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1 px-2 pt-1">
+              {templates.map((s) => (
+                <li
+                  key={s.id}
+                  className="group flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-ink-100/40 transition-colors"
+                >
+                  {renaming?.id === s.id ? (
+                    <input
+                      autoFocus
+                      value={renaming.value}
+                      onChange={(e) => setRenaming({ id: s.id, value: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') confirmRename()
+                        else if (e.key === 'Escape') setRenaming(null)
+                      }}
+                      onBlur={confirmRename}
+                      className="input-paper flex-1 min-w-0 text-caption px-1.5 py-0.5 rounded border border-ink-200"
+                    />
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onUseTemplate(s)}
+                        aria-label={`Usar planilla ${s.name}`}
+                        title="Abrir limpia para rellenar e imprimir"
+                        className="flex-1 min-w-0 text-left"
+                      >
+                        <span className="block truncate text-caption text-ink-700">
+                          {s.name}
+                        </span>
+                        <span className="block text-micro text-ink-400 tabular-nums">
+                          {fieldCountLabel(s.doc)} · {s.doc.pages.length}{' '}
+                          {s.doc.pages.length === 1 ? 'hoja' : 'hojas'} ·{' '}
+                          {dateLabel(s.savedAt)}
+                        </span>
+                      </button>
+                      <div className="flex shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => onDownloadSaved(s)}
+                          aria-label={`Descargar ${s.name}`}
+                          title="Descargar"
+                          className={rowBtn}
+                        >
+                          <DownloadIcon size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRenaming({ id: s.id, value: s.name })}
+                          aria-label={`Renombrar ${s.name}`}
+                          title="Renombrar"
+                          className={rowBtn}
+                        >
+                          <PencilIcon size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDeleteSaved(s.id)}
+                          aria-label={`Eliminar ${s.name}`}
+                          title="Eliminar de la lista"
+                          className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
+                        >
+                          <TrashIcon size={13} />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <div className="mx-2.5 border-t border-ink-100/70" />
+
         {/* ── Guardados ──────────────────────────────────────────────────── */}
         <section className="pb-2">
           <div className="flex items-center justify-between gap-2 px-2.5 pt-2.5 pb-1">
             <h3 className="flex items-center gap-1.5 text-caption font-medium text-ink-600">
               <FilePdfIcon size={13} />
               Guardados
-              <span className="text-ink-300 tabular-nums">({saved.length})</span>
+              <span className="text-ink-300 tabular-nums">({creations.length})</span>
             </h3>
             {newName === null && (
               <button
@@ -258,13 +419,13 @@ export function WorkspacePanel({
             </div>
           )}
 
-          {saved.length === 0 ? (
+          {creations.length === 0 ? (
             <p className="px-2.5 text-micro text-ink-400">
               Guarda tus creaciones con un nombre para volver a abrirlas y editarlas.
             </p>
           ) : (
             <ul className="flex flex-col gap-1 px-2 pt-1">
-              {saved.map((s) => (
+              {creations.map((s) => (
                 <li
                   key={s.id}
                   className="group flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-ink-100/40 transition-colors"

@@ -6,6 +6,7 @@ import {
   emptyDoc,
   movePage,
   movePageByDelta,
+  isPdfTemplate,
   pageThumbKey,
   rotatePages,
   setDocSettings,
@@ -75,12 +76,14 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
     addLibraryToDoc,
     downloadLibrary,
     library,
+    openTemplate,
     openSaved,
     panelCollapsed,
     removeFromLibrary,
     removeSaved,
     renameSaved,
     saveCreation,
+    saveTemplate,
     saved,
     setPanelCollapsed,
     userKey,
@@ -271,8 +274,11 @@ export function PdfStudioView({ topBar }: { topBar?: ReactNode }) {
               onDownloadImage={downloadLibrary}
               saved={saved}
               canSave={!empty}
+              canSaveTemplate={!empty && isPdfTemplate(doc)}
               onSaveCreation={saveCreation}
+              onSaveTemplate={saveTemplate}
               onOpenSaved={openSaved}
+              onUseTemplate={openTemplate}
               onRenameSaved={renameSaved}
               onDeleteSaved={removeSaved}
               onDownloadSaved={downloadSaved}

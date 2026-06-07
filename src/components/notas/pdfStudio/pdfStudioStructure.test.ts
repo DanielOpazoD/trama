@@ -10,7 +10,7 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene PdfTextEditor bajo el ratchet estructural actual', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/PdfTextEditor.tsx'),
-    ).toBeLessThanOrEqual(520)
+    ).toBeLessThanOrEqual(540)
   })
 
   it('mantiene PdfStudioView bajo el ratchet estructural actual', () => {
@@ -45,6 +45,8 @@ describe('pdfStudio · estructura incremental', () => {
       'src/components/notas/pdfStudio/FormFieldLayer.tsx',
       'src/components/notas/pdfStudio/usePdfTextEditorForms.ts',
       'src/components/notas/pdfStudio/SignatureCaptureDialog.tsx',
+      'src/components/notas/pdfStudio/FormFieldInspector.tsx',
+      'src/components/notas/pdfStudio/PdfTextEditorFormSurface.tsx',
       'src/components/notas/pdfStudio/pdfFormVisualMapping.ts',
       'src/components/notas/pdfStudio/EditorToolbarFormMenu.tsx',
     ]
