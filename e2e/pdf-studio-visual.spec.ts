@@ -33,6 +33,11 @@ async function openPdfEditor(page: Page, viewport = { width: 1280, height: 800 }
   await expect(page.getByRole('dialog', { name: 'Editar página 1' })).toBeVisible()
 }
 
+async function chooseHighlightTool(page: Page) {
+  await page.getByRole('button', { name: 'Más funciones', exact: true }).click()
+  await page.getByRole('menuitemradio', { name: 'Herramienta Resaltar' }).click()
+}
+
 test.describe('Imprenta · PDF visual regression', () => {
   test.skip(
     !runVisual,
@@ -90,7 +95,6 @@ test.describe('Imprenta · PDF visual regression', () => {
   test('modal con selección múltiple agrupada', async ({ page }) => {
     await openPdfEditor(page, { width: 1280, height: 800 })
 
-    await page.getByRole('button', { name: 'Herramienta resaltar' }).click()
     const dialog = page.getByRole('dialog', { name: 'Editar página 1' })
     const pageImage = dialog.getByAltText('Página 1')
     const pageBox = await pageImage.boundingBox()
@@ -98,6 +102,7 @@ test.describe('Imprenta · PDF visual regression', () => {
     if (!pageBox) return
 
     for (const left of [0.18, 0.34, 0.58]) {
+      await chooseHighlightTool(page)
       await page.mouse.move(
         pageBox.x + pageBox.width * left,
         pageBox.y + pageBox.height * 0.28,

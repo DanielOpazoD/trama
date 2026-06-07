@@ -40,6 +40,7 @@ const TEXT_SIZE_MAX = 0.14
 
 export function usePdfTextEditorInteractions({
   layout,
+  layoutRef,
   zoom,
   tool,
   style,
@@ -53,9 +54,11 @@ export function usePdfTextEditorInteractions({
   setSnapGuides,
   setHistory,
   setAnnotations,
+  setTool,
   editLive,
 }: {
   layout: PageLayout | null
+  layoutRef?: { current: PageLayout | null }
   zoom: number
   tool: Tool
   style: TextStyle
@@ -69,14 +72,18 @@ export function usePdfTextEditorInteractions({
   setSnapGuides: Dispatch<SetStateAction<SnapGuide[]>>
   setHistory: Dispatch<SetStateAction<History<Record<number, Annotation[]>>>>
   setAnnotations: (fn: (list: Annotation[]) => Annotation[]) => void
+  setTool: (tool: Tool) => void
   editLive: (fn: (list: Annotation[]) => Annotation[]) => void
 }) {
+  const currentLayout = () => layoutRef?.current ?? layout
+
   function startDrag(e: ReactPointerEvent, a: Annotation) {
     e.stopPropagation()
     if (a.locked) return
-    const dw = (layout?.innerW ?? 1) * zoom
-    const dh = (layout?.innerH ?? 1) * zoom
-    const rot = layout?.rot ?? 0
+    const activeLayout = currentLayout()
+    const dw = (activeLayout?.innerW ?? 1) * zoom
+    const dh = (activeLayout?.innerH ?? 1) * zoom
+    const rot = activeLayout?.rot ?? 0
     const startX = e.clientX
     const startY = e.clientY
     const duplicateDrag = e.altKey
@@ -135,14 +142,15 @@ export function usePdfTextEditorInteractions({
       | ShapeAnnotation,
     handle: ResizeHandle,
   ) {
-    if (!layout) return
+    const activeLayout = currentLayout()
+    if (!activeLayout) return
     e.stopPropagation()
     e.preventDefault()
     if (a.locked) return
     setSelectedId(a.id)
-    const dw = layout.innerW * zoom
-    const dh = layout.innerH * zoom
-    const rot = layout.rot
+    const dw = activeLayout.innerW * zoom
+    const dh = activeLayout.innerH * zoom
+    const rot = activeLayout.rot
     const startX = e.clientX
     const startY = e.clientY
     const before = editedRef.current
@@ -174,7 +182,8 @@ export function usePdfTextEditorInteractions({
   }
 
   function startMarquee(e: ReactPointerEvent) {
-    if (!layout) return
+    const activeLayout = currentLayout()
+    if (!activeLayout) return
     e.stopPropagation()
     const freehand = e.altKey
     const x0 = e.nativeEvent.offsetX
@@ -182,9 +191,9 @@ export function usePdfTextEditorInteractions({
     const startX = e.clientX
     const startY = e.clientY
     const additive = e.metaKey || e.ctrlKey || e.shiftKey
-    const rot = layout.rot
-    const innerW = layout.innerW
-    const innerH = layout.innerH
+    const rot = activeLayout.rot
+    const innerW = activeLayout.innerW
+    const innerH = activeLayout.innerH
     let last = { x0, y0, x1: x0, y1: y0 }
     let path = [{ x: x0, y: y0 }]
     let moved = false
@@ -256,16 +265,17 @@ export function usePdfTextEditorInteractions({
   }
 
   function startDraw(e: ReactPointerEvent) {
-    if (!layout) return
+    const activeLayout = currentLayout()
+    if (!activeLayout) return
     e.stopPropagation()
     const drawTool = tool
     const x0 = e.nativeEvent.offsetX
     const y0 = e.nativeEvent.offsetY
     const startX = e.clientX
     const startY = e.clientY
-    const rot = layout.rot
-    const innerW = layout.innerW
-    const innerH = layout.innerH
+    const rot = activeLayout.rot
+    const innerW = activeLayout.innerW
+    const innerH = activeLayout.innerH
     let last = { x0, y0, x1: x0, y1: y0 }
     setDrawing(last)
     const move = (ev: PointerEvent) => {
@@ -300,6 +310,7 @@ export function usePdfTextEditorInteractions({
           highlightOpacity: HIGHLIGHT_OPACITY,
         },
       })
+      setTool('select')
       if (!annotation) return
       setAnnotations((list) => [...list, annotation])
       setSelectedId(annotation.id)

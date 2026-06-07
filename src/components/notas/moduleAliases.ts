@@ -19,6 +19,9 @@ export const MODULE_ALIASES: ModuleAlias[] = [
   { token: 'claves', moduleId: 'claves', label: 'Claves' },
   { token: 'imprenta', moduleId: 'pdf', label: 'Imprenta' },
   { token: 'pdf', moduleId: 'pdf', label: 'Imprenta' },
+  { token: 'planillas', moduleId: 'planillas', label: 'Planillas' },
+  { token: 'plantillas', moduleId: 'planillas', label: 'Planillas' },
+  { token: 'formularios', moduleId: 'planillas', label: 'Planillas' },
 ]
 
 /**

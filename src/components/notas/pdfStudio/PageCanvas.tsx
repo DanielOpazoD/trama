@@ -7,6 +7,8 @@ import { LoadingHint } from '../../LoadingHint'
 import { type PageLayout } from '../../../lib/pdfStudio/editorGeometry'
 import { type Tool } from './editorStyle'
 
+const SHEET_EDGE_GUTTER = 24
+
 /**
  * Lienzo de la página: el área scrolleable que centra la página en su orientación
  * FINAL (rotada `layout.rot`) y escalada por `zoom`, con el render de fondo y el
@@ -21,7 +23,10 @@ export function PageCanvas({
   zoom,
   tool,
   currentPage,
+  placingFormField = false,
+  scrollContainer = true,
   onStartDraw,
+  onStartFormField,
   onStartMarquee,
   children,
 }: {
@@ -32,8 +37,13 @@ export function PageCanvas({
   tool: Tool
   /** Índice 0-based de la página visible (para el alt de la imagen). */
   currentPage: number
+  placingFormField?: boolean
+  /** Si es false, el padre controla el scroll vertical de varias páginas seguidas. */
+  scrollContainer?: boolean
   /** Inicia el dibujo por arrastre (modo resaltar o una forma). */
   onStartDraw: (e: ReactPointerEvent) => void
+  /** Coloca un campo especial en la posición clicada sobre la página. */
+  onStartFormField?: (e: ReactPointerEvent) => void
   /** Inicia selección por marco sobre el fondo de la página. */
   onStartMarquee: (e: ReactPointerEvent) => void
   children: ReactNode
@@ -41,22 +51,39 @@ export function PageCanvas({
   // Caja exterior (scroll) = bounding box FINAL (rotado) escalado por zoom.
   const zw = layout ? layout.outerW * zoom : 0
   const zh = layout ? layout.outerH * zoom : 0
+  const stageW = layout ? zw + SHEET_EDGE_GUTTER * 2 : 0
+  const stageH = layout ? zh + SHEET_EDGE_GUTTER * 2 : 0
+  const sheetCenterX = layout ? SHEET_EDGE_GUTTER + zw / 2 : 0
+  const sheetCenterY = layout ? SHEET_EDGE_GUTTER + zh / 2 : 0
   return (
     <div
       ref={areaRef}
-      className="flex-1 min-h-0 overflow-auto grid place-items-center bg-ink-100/30 p-3"
+      className={
+        scrollContainer
+          ? 'flex-1 min-h-0 overflow-auto grid place-items-center bg-ink-100/30 p-3'
+          : 'min-h-[72vh] w-full p-3'
+      }
     >
       {layout && bg ? (
-        <div className="relative" style={{ width: zw, height: zh }}>
+        <div className="relative mx-auto" style={{ width: stageW, height: stageH }}>
           <div
-            onPointerDown={tool === 'select' ? onStartMarquee : onStartDraw}
-            className="absolute left-1/2 top-1/2 bg-white rounded-sm ring-1 ring-ink-800/15 shadow-xl shadow-ink-800/15"
+            data-pdf-editor-sheet={currentPage}
+            onPointerDown={
+              placingFormField && onStartFormField
+                ? onStartFormField
+                : tool === 'select'
+                  ? onStartMarquee
+                  : onStartDraw
+            }
+            className="absolute rounded-sm ring-1 ring-ink-800/15 shadow-xl shadow-ink-800/15"
             style={{
+              left: sheetCenterX,
+              top: sheetCenterY,
               width: layout.innerW,
               height: layout.innerH,
               transform: `translate(-50%, -50%) rotate(${layout.rot * 90}deg) scale(${zoom})`,
-              cursor: tool !== 'select' ? 'crosshair' : undefined,
-              touchAction: tool !== 'select' ? 'none' : undefined,
+              cursor: placingFormField || tool !== 'select' ? 'crosshair' : undefined,
+              touchAction: placingFormField || tool !== 'select' ? 'none' : undefined,
             }}
           >
             <img

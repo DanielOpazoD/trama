@@ -3,6 +3,10 @@ import { emptyState, mockBackend } from './fixtures'
 
 async function setupNotasDeepLink(page: Page) {
   await mockBackend(page, emptyState())
+  await page.addInitScript(() => {
+    window.localStorage.setItem('trama-demo', '1')
+    window.localStorage.removeItem('trama-demo-store')
+  })
 }
 
 async function expectNotasSection(page: Page, label: string, heading: string) {
@@ -45,6 +49,18 @@ test.describe('mundo notas deep links', () => {
     await expectNotasSection(page, 'Prompts', 'Prompts')
     await page.reload()
     await expectNotasSection(page, 'Prompts', 'Prompts')
+  })
+
+  test('abre Imprenta y Planillas como módulos separados', async ({ page }) => {
+    await setupNotasDeepLink(page)
+
+    await page.goto('/?world=notas&section=pdf')
+    await expectNotasSection(page, 'Imprenta', 'Imprenta')
+    await expect(page.getByText(/Arrastra PDFs o imágenes/)).toBeVisible()
+
+    await page.goto('/?world=notas&section=planillas')
+    await expectNotasSection(page, 'Planillas', 'Planillas')
+    await expect(page.getByText(/Arrastra PDFs o imágenes/)).toBeVisible()
   })
 
   test('world=trama fuerza el mundo principal aunque hubiera preferencia Notas', async ({

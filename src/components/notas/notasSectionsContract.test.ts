@@ -12,6 +12,7 @@ describe('Notas sections contract', () => {
       'prompts',
       'claves',
       'pdf',
+      'planillas',
     ])
   })
 })

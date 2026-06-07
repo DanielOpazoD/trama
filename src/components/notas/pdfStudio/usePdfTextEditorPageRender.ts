@@ -3,6 +3,7 @@ import { fitPageLayout, type PageLayout } from '../../../lib/pdfStudio/editorGeo
 import type { PdfPage, PdfSource } from '../../../lib/pdfStudio/model'
 import { pageThumbKey } from '../../../lib/pdfStudio/model'
 import { renderPageBitmap } from '../../../lib/pdfStudio/pdfRender'
+import { readPdfTextEditorPageArea } from './pdfEditorPageArea'
 
 export type PdfTextEditorBackground = { url: string; w: number; h: number }
 
@@ -95,11 +96,13 @@ export function usePdfTextEditorPageRender({
   useEffect(() => {
     const el = areaRef.current
     if (!el) return
-    const read = () => setArea({ w: el.clientWidth, h: el.clientHeight })
+    const read = () => setArea(readPdfTextEditorPageArea(el))
     read()
     if (typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver(read)
     ro.observe(el)
+    const scrollContainer = el.closest<HTMLElement>('[data-pdf-editor-scroll]')
+    if (scrollContainer) ro.observe(scrollContainer)
     return () => ro.disconnect()
   }, [])
 

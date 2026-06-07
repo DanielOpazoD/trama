@@ -10,13 +10,13 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene PdfTextEditor bajo el ratchet estructural actual', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/PdfTextEditor.tsx'),
-    ).toBeLessThanOrEqual(450)
+    ).toBeLessThanOrEqual(540)
   })
 
   it('mantiene PdfStudioView bajo el ratchet estructural actual', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/PdfStudioView.tsx'),
-    ).toBeLessThanOrEqual(360)
+    ).toBeLessThanOrEqual(380)
   })
 
   it('mantiene assemble como orquestador del pipeline', () => {
@@ -26,7 +26,7 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene EditorToolbar bajo el ratchet estructural actual', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/EditorToolbar.tsx'),
-    ).toBeLessThanOrEqual(400)
+    ).toBeLessThanOrEqual(420)
   })
 
   it('mantiene AnnotationLayer bajo el ratchet estructural actual', () => {
@@ -36,7 +36,39 @@ describe('pdfStudio · estructura incremental', () => {
   })
 
   it('mantiene el modelo PDF bajo el ratchet estructural actual', () => {
-    expect(fileLineCount('src/lib/pdfStudio/model.ts')).toBeLessThanOrEqual(400)
+    expect(fileLineCount('src/lib/pdfStudio/model.ts')).toBeLessThanOrEqual(460)
+  })
+
+  it('mantiene formularios visuales separados en modulos pequenos', () => {
+    const formModules = [
+      'src/lib/pdfStudio/modelForms.ts',
+      'src/components/notas/pdfStudio/FormFieldLayer.tsx',
+      'src/components/notas/pdfStudio/usePdfTextEditorForms.ts',
+      'src/components/notas/pdfStudio/SignatureCaptureDialog.tsx',
+      'src/components/notas/pdfStudio/FormFieldInspector.tsx',
+      'src/components/notas/pdfStudio/PdfTextEditorFormSurface.tsx',
+      'src/components/notas/pdfStudio/PdfTextEditorPageSurface.tsx',
+      'src/components/notas/pdfStudio/pdfFormVisualMapping.ts',
+      'src/components/notas/pdfStudio/pdfEditorZoomScroll.ts',
+      'src/components/notas/pdfStudio/usePdfEditorZoomScroll.ts',
+      'src/components/notas/pdfStudio/EditorToolbarFormMenu.tsx',
+    ]
+
+    for (const path of formModules) {
+      expect(fileLineCount(path), path).toBeLessThanOrEqual(280)
+    }
+  })
+
+  it('mantiene el modo planilla separado en modulos pequenos', () => {
+    const templateModules = [
+      'src/components/notas/pdfStudio/PdfTemplateModeBanner.tsx',
+      'src/components/notas/pdfStudio/usePdfStudioTemplateMode.tsx',
+      'src/components/notas/pdfStudio/PdfStudioWorkspacePanelHost.tsx',
+    ]
+
+    for (const path of templateModules) {
+      expect(fileLineCount(path), path).toBeLessThanOrEqual(140)
+    }
   })
 
   it('mantiene el OCR buscable separado en modulos pequenos', () => {

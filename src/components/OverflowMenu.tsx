@@ -1,6 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
+function zIndexFromClassName(className: string): number | undefined {
+  if (className.includes('z-[80]')) return 80
+  if (className.includes('z-50')) return 50
+  const arbitrary = className.match(/z-\[(\d+)\]/)?.[1]
+  if (arbitrary) return Number(arbitrary)
+  const scale = className.match(/\bz-(\d+)\b/)?.[1]
+  return scale ? Number(scale) : undefined
+}
+
 /**
  * Menú "⋯" reutilizable: un trigger discreto + un popover portado a
  * `document.body` con posición `fixed` (no se recorta dentro de columnas ni
@@ -90,7 +99,12 @@ export function OverflowMenu({
           <div
             ref={menuRef}
             role="menu"
-            style={{ position: 'fixed', top: pos.top, right: pos.right }}
+            style={{
+              position: 'fixed',
+              top: pos.top,
+              right: pos.right,
+              zIndex: zIndexFromClassName(menuLayerClassName),
+            }}
             className={`${menuLayerClassName} ${width} paper-grain rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/15 p-1.5 animate-fade-up`}
           >
             {children(() => setOpen(false))}

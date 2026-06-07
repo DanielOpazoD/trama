@@ -1,8 +1,15 @@
-# Imprenta / PDF Studio
+# Imprenta, Planillas / PDF Studio
 
-Imprenta es el editor PDF del mundo Notas. Es 100% client-side: los PDFs,
-imagenes y anotaciones viven en memoria/IndexedDB del navegador y no se suben al
-backend.
+PDF Studio es el motor client-side compartido por dos secciones del mundo Notas:
+`Imprenta` (`section=pdf`) y `Planillas` (`section=planillas`). Los PDFs,
+imagenes, anotaciones y casilleros viven en memoria/IndexedDB del navegador y no
+se suben al backend.
+
+- `Imprenta` es el editor PDF general: importar, ordenar, anotar, redactar,
+  OCR, formularios existentes y exportar.
+- `Planillas` es el creador/ejecutor de planillas imprimibles: disenar
+  casilleros especiales, guardar plantillas, rellenar una copia limpia e
+  imprimir/descargar.
 
 ## Mapa de Modulos
 
@@ -27,11 +34,21 @@ backend.
   exportacion en segundo plano; reusa `assemble` y conserva el mismo contrato de
   progreso/cancelacion que la UI ya consume.
 - `src/lib/pdfStudio/pdfForms.ts`: inspeccion y rellenado basico de AcroForms
-  existentes con `pdf-lib`; soporta mantener campos editables o aplanarlos.
+  existentes con `pdf-lib`; extrae geometria de widgets, soporta mantener campos
+  editables o aplanarlos, y escribe campos nuevos creados desde el canvas.
+- `src/lib/pdfStudio/modelForms.ts`: modelo puro de campos visuales creados en
+  Imprenta, separados de las anotaciones porque exportan como AcroForms reales.
 - `src/lib/pdfStudio/pdfFormWorkerClient.ts` y `pdfForm.worker.ts`: borde Worker
   para inspeccionar/rellenar formularios con el contrato de operaciones pesadas.
 - `src/components/notas/pdfStudio/PdfStudioFormPanel.tsx`: panel compacto para
   editar valores detectados y aplicar el PDF resultante al documento.
+- `src/components/notas/pdfStudio/FormFieldLayer.tsx`: overlays editables de
+  formularios sobre el canvas de pagina.
+- `src/components/notas/pdfStudio/SignatureCaptureDialog.tsx`: firma simple con
+  trazo dibujado o imagen cargada.
+- `src/components/notas/pdfStudio/PdfTextEditorPageSurface.tsx`: superficie de
+  pagina dentro del visor continuo de edicion; renderiza fondo, anotaciones y
+  campos por pagina.
 - `src/lib/pdfStudio/pdfOcr.ts`: fachada publica del OCR buscable; orquesta
   renderizado, reconocimiento, ensamblado y sidecar `.txt`.
 - `src/lib/pdfStudio/pdfOcrInput.ts`: convierte PDF/imagen a paginas raster para
@@ -51,8 +68,9 @@ backend.
 - `src/lib/pdfStudio/assembleAnnotations.ts`: dibujo vectorial de texto,
   resaltados, formas e imagenes estampadas.
 - `src/components/notas/pdfStudio/PdfStudioView.tsx`: composicion de la vista de
-  documento.
-- `PdfTextEditor.tsx`: composicion del modal de edicion de una pagina.
+  documento con modos `editor` y `templates`.
+- `PdfTextEditor.tsx`: composicion del modal de edicion con paginas consecutivas
+  navegables por scroll; una pagina activa conserva la geometria de edicion.
 - `EditorToolbar.tsx`, `SelectionInspector.tsx`, `AnnotationLayer.tsx`: controles
   de edicion, inspector contextual y capa visual de anotaciones.
 
@@ -89,22 +107,63 @@ queda ninguna pagina exportable, se lanza `PdfExportPipelineError`.
 
 ## Formularios
 
-La primera version trabaja sobre AcroForms existentes:
+La experiencia actual trabaja sobre AcroForms existentes y campos nuevos creados
+en Imprenta:
 
 1. `inspectPdfFormInWorker(file)` detecta campos de texto, checkbox, radio,
-   dropdown y option-list sin bloquear la UI.
+   dropdown y option-list sin bloquear la UI, incluyendo widgets y geometria por
+   pagina.
 2. `fillPdfFormInWorker(file, values, { flatten })` rellena valores simples.
-3. `flatten: false` mantiene el PDF editable; `flatten: true` quema los valores
+3. `writePdfFormFieldsInWorker(file, fields, pageIds, { flatten })` escribe
+   campos creados desde cero sobre el PDF ensamblado.
+4. `flatten: false` mantiene el PDF editable; `flatten: true` quema los valores
    como contenido de pagina.
 
-La UI expone deteccion desde el menu del documento y luego un panel compacto para
-editar valores. Al aplicar, `fillPdfFormInWorker` crea un PDF nuevo y
+La UI expone deteccion desde el menu del documento y desde el menu compacto
+`Campos` del editor. Los campos con ubicacion se editan sobre la pagina; el panel
+compacto conserva acciones de aplicar/aplanar/limpiar y muestra lista editable
+solo para campos sin ubicacion visual. Al aplicar, `fillPdfFormInWorker` crea un
+PDF nuevo y
 `replacePdfSourceFile` reemplaza el source original preservando paginas,
 anotaciones e historial. El modo editable conserva campos AcroForm; el modo
 aplanado quema los valores en la pagina.
 
-La edicion visual campo-a-campo sobre el canvas, firmas dibujadas y la creacion de
-formularios desde cero son el siguiente bloque funcional.
+Los campos creados desde cero viven en `PdfDoc.formFields`, anclados por `pageId`
+para sobrevivir reordenamiento de paginas. Al exportar, `usePdfStudioExport`
+primero ensambla el PDF visual y luego escribe esos campos como AcroForms reales.
+La firma simple no es una firma digital criptografica: es un trazo o imagen
+ubicada dentro de un campo de firma de oficina.
+
+### Planillas imprimibles
+
+Una planilla es una creacion guardada cuyo `PdfDoc` contiene `formFields`. Vive
+en la seccion `Planillas`, separada de `Imprenta` para no mezclar edicion PDF
+general con ejecucion operativa de planillas. El panel lateral de Planillas
+separa estas planillas de los guardados generales y ofrece dos flujos distintos:
+
+1. `Editar casilleros` sirve para crear o modificar la estructura:
+   importar PDF/imagen base, colocar casilleros especiales sobre celdas vacias,
+   moverlos, redimensionarlos, renombrar variables y guardar la planilla.
+2. `Guardar planilla` guarda una copia con valores limpios. Conserva paginas,
+   posiciones, nombres de variables, required/readOnly y opciones, pero borra
+   datos ingresados para que la planilla no quede contaminada por un llenado.
+3. `Rellenar` abre una copia limpia en `Rellenar planilla`: el usuario completa
+   los casilleros especiales sobre la pagina y luego imprime/descarga. Este modo
+   esta pensado para uso operativo de oficina, no para redisenar la estructura.
+
+Los nombres de casillero son las variables de oficina: por ejemplo `paciente`,
+`fecha_control`, `diagnostico`. Se editan desde el inspector contextual de
+casillero. En la barra principal queda visible `Agregar cuadro de texto`; el menu
+`Campos` queda reservado para el modulo Planillas: crear campos de texto y firma
+simple sobre celdas vacias de PDFs base o escaneos sin llenar la barra de
+controles raros. En Imprenta, `Campos` queda oculto en el editor de pagina para
+que la herramienta sea solo editor PDF.
+
+El banner superior distingue ambos flujos: `Rellenar planilla` muestra acciones
+de imprimir y volver a editar estructura; `Editar casilleros` habla de ubicar los
+casilleros que luego se llenaran. En el panel lateral, cada planilla muestra dos
+botones explicitos: `Rellenar` para imprimir una copia limpia y `Editar` para
+cambiar su estructura.
 
 ## OCR y PDF Buscable
 
@@ -200,7 +259,8 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
 | Importacion          | PDF multipagina e imagenes como paginas o biblioteca reutilizable.                                                                   | `usePdfStudioImport`, `usePdfStudioWorkspace`, `PdfStudioView.test.tsx`                       |
 | Organizacion         | Seleccion multiple de paginas, ordenar, rotar, duplicar, extraer, borrar y portapapeles.                                             | `model.ts`, `usePageSelection.ts`, `PdfStudioView.test.tsx`                                   |
 | Edicion de pagina    | Texto, resaltado, redaccion real, rectangulo, ovalo, linea, flecha e imagen estampada.                                               | `EditorToolbar.tsx`, `AnnotationLayer.tsx`, `e2e/pdf-studio-editor.spec.ts`                   |
-| Formularios          | Inspeccion y rellenado basico de AcroForms existentes en Worker; aplicacion editable o aplanada sobre el source PDF.                 | `pdfForms.ts`, `pdfForm.worker.ts`, `PdfStudioFormPanel.tsx`, `PdfStudioView.test.tsx`        |
+| Formularios          | Overlays visuales para AcroForms existentes y export editable/aplanable en Worker.                                                   | `pdfForms.ts`, `PdfStudioFormPanel.tsx`, `pdfFormWorkerClient.ts`                             |
+| Planillas            | Modulo separado para disenar casilleros, guardar plantillas y rellenar/imprimir una copia limpia.                                    | `WorkspacePanel.tsx`, `usePdfStudioTemplateMode.tsx`, `PdfTemplateModeBanner.tsx`             |
 | OCR buscable         | PDF escaneado a PDF con texto seleccionable/buscable, Worker, progreso, cancelacion, selector de idioma, limites y sidecar `.txt`.   | `pdfOcr.ts`, `pdfOcr.worker.ts`, `pdfOcrLimits.ts`, `PdfStudioView.test.tsx`                  |
 | Redimensionado       | Handles para texto, resaltados, redacciones, formas e imagenes; Shift conserva aspecto de imagen.                                    | `AnnotationResizeHandles.tsx`, `pdfAnnotationResize.test.ts`, `AnnotationLayer.test.tsx`      |
 | Atajos               | Copiar, cortar, pegar, duplicar, borrar, mover con flechas, undo/redo y Escape contextual.                                           | `usePdfTextEditorKeyboard.ts`, `pdfAnnotationShortcuts.test.ts`                               |
@@ -229,8 +289,9 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
 - La redaccion real rasteriza la pagina completa. Es segura para remover contenido
   subyacente, pero convierte esa pagina en imagen y pierde texto/vector
   seleccionable en esa pagina.
-- Formularios aun no tiene overlays editables por campo dentro del canvas, firmas
-  dibujadas ni creacion de campos desde cero.
+- Formularios soporta firma simple dibujada/imagen, no firma digital con
+  certificado. Dropdown/option-list se inspeccionan y rellenan, pero la creacion
+  visual premium se centra en texto, fecha, checkbox, radio y firma.
 - El OCR client-side descarga datos/worker de Tesseract.js y consume CPU/memoria
   local. La UI advierte desde 15 paginas o 30 MB, y bloquea desde 45 paginas o
   90 MB hasta conectar la ruta backend/OCRmyPDF ya preparada por adaptador.

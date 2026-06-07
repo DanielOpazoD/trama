@@ -27,6 +27,9 @@ export type {
   ImageAnnotation,
   ImageAsset,
   PdfDoc,
+  PdfFormFieldDraft,
+  PdfFormFieldKind,
+  PdfFormValue,
   PdfFontKind,
   PdfPage,
   PdfSource,
@@ -44,11 +47,21 @@ export {
   TEXT_LINE_HEIGHT,
   textBoxLayout,
 } from './modelText'
-
-// Contador monótono para ids opacos (mismo patrón que `layerSeq` del editor de
-// imágenes). No afecta la pureza de las transformaciones del documento.
-let seq = 0
-const nextId = (prefix: string) => `${prefix}${(seq += 1)}`
+export {
+  addPdfFormField,
+  clearPdfFormFieldValues,
+  clonePdfFormField,
+  deletePdfFormField,
+  emptyPdfFormValue,
+  isPdfTemplate,
+  makePdfFormFieldDraft,
+  renamePdfFormField,
+  resizePdfFormField,
+  setPdfFormFieldValue,
+  translatePdfFormField,
+} from './modelForms'
+import { clonePdfFormField, pruneFormFields } from './modelForms'
+import { nextId, reseedIdCounter } from './modelIds'
 
 export function emptyDoc(): PdfDoc {
   return { sources: [], pages: [] }
@@ -107,7 +120,12 @@ export function deletePages(doc: PdfDoc, indices: number[]): PdfDoc {
   const drop = new Set(indices)
   const pages = doc.pages.filter((_, i) => !drop.has(i))
   if (pages.length === doc.pages.length) return doc // nada en rango → no-op
-  return { pages, sources: pruneSources(doc.sources, pages) }
+  return {
+    ...doc,
+    pages,
+    sources: pruneSources(doc.sources, pages),
+    formFields: pruneFormFields(doc.formFields, pages),
+  }
 }
 
 /** Quita una página y descarta los sources que quedaron sin páginas. */
@@ -131,7 +149,12 @@ export function replacePageWithImage(doc: PdfDoc, index: number, file: File): Pd
     annotations: [],
     rotationQuarters: 0,
   }
-  return { pages, sources: pruneSources([...doc.sources, source], pages) }
+  return {
+    ...doc,
+    pages,
+    sources: pruneSources([...doc.sources, source], pages),
+    formFields: pruneFormFields(doc.formFields, pages),
+  }
 }
 
 /** Reemplaza el archivo de un source PDF preservando páginas, ids y anotaciones. */
@@ -176,18 +199,27 @@ export function duplicatePages(doc: PdfDoc, indices: number[]): PdfDoc {
   const set = new Set(indices)
   let any = false
   const pages: PdfPage[] = []
+  const pageIdMap = new Map<string, string>()
   doc.pages.forEach((p, i) => {
     pages.push(p)
     if (set.has(i)) {
       any = true
+      const pageId = nextId('p')
+      pageIdMap.set(p.id, pageId)
       pages.push({
         ...p,
-        id: nextId('p'),
+        id: pageId,
         annotations: p.annotations.map((a) => ({ ...a, id: nextId('a') })),
       })
     }
   })
-  return any ? { ...doc, pages } : doc
+  if (!any) return doc
+  const clonedFields =
+    doc.formFields?.flatMap((field) => {
+      const pageId = pageIdMap.get(field.pageId)
+      return pageId ? [clonePdfFormField(field, pageId)] : []
+    }) ?? []
+  return { ...doc, pages, formFields: [...(doc.formFields ?? []), ...clonedFields] }
 }
 
 /**
@@ -198,7 +230,12 @@ export function duplicatePages(doc: PdfDoc, indices: number[]): PdfDoc {
 export function subsetDoc(doc: PdfDoc, indices: number[]): PdfDoc {
   const keep = new Set(indices)
   const pages = doc.pages.filter((_, i) => keep.has(i))
-  return { pages, sources: pruneSources(doc.sources, pages) }
+  return {
+    ...doc,
+    pages,
+    sources: pruneSources(doc.sources, pages),
+    formFields: pruneFormFields(doc.formFields, pages),
+  }
 }
 
 /**
@@ -223,10 +260,21 @@ export function insertPages(doc: PdfDoc, clip: PdfDoc, atIndex?: number): PdfDoc
     sourceId: idMap.get(p.sourceId) ?? p.sourceId,
     annotations: p.annotations.map((a) => cloneAnnotation(a)),
   }))
+  const pageIdMap = new Map(clip.pages.map((p, i) => [p.id, pages[i]!.id]))
+  const formFields =
+    clip.formFields?.flatMap((field) => {
+      const pageId = pageIdMap.get(field.pageId)
+      return pageId ? [clonePdfFormField(field, pageId)] : []
+    }) ?? []
   const n = doc.pages.length
   const at = atIndex == null ? n : Math.min(Math.max(0, atIndex), n)
   const nextPages = [...doc.pages.slice(0, at), ...pages, ...doc.pages.slice(at)]
-  return { sources: [...doc.sources, ...sources], pages: nextPages }
+  return {
+    ...doc,
+    sources: [...doc.sources, ...sources],
+    pages: nextPages,
+    formFields: [...(doc.formFields ?? []), ...formFields],
+  }
 }
 
 function pruneSources(sources: PdfSource[], pages: PdfPage[]): PdfSource[] {
@@ -332,6 +380,7 @@ export function isTextAnnotation(a: Annotation): a is TextAnnotation {
 export function normalizeDoc(doc: PdfDoc): PdfDoc {
   return {
     ...doc,
+    formFields: doc.formFields ?? [],
     pages: doc.pages.map((p) => ({
       ...p,
       annotations: p.annotations.map((a) =>
@@ -394,5 +443,6 @@ export function reseedIds(doc: PdfDoc): void {
     consider(p.id)
     for (const a of p.annotations) consider(a.id)
   }
-  if (max > seq) seq = max
+  for (const field of doc.formFields ?? []) consider(field.id)
+  reseedIdCounter(max)
 }

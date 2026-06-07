@@ -43,6 +43,7 @@ vi.mock('../../../lib/pdfStudio/pdfOcrWorkerClient', () => ({
 vi.mock('../../../lib/pdfStudio/pdfFormWorkerClient', () => ({
   inspectPdfFormInWorker: mocks.inspectPdfFormInWorker,
   fillPdfFormInWorker: mocks.fillPdfFormInWorker,
+  writePdfFormFieldsInWorker: vi.fn(async (file: File) => ({ blob: file })),
 }))
 vi.mock('../../../lib/pdfStudio/printPdf', () => ({
   openBlankPdfTab: mocks.openBlankPdfTab,
@@ -59,10 +60,32 @@ vi.mock('../../../lib/pdfStudio/persistence', () => ({
 }))
 
 import { PdfStudioView } from './PdfStudioView'
-import { addPdfSource, emptyDoc } from '../../../lib/pdfStudio/model'
+import {
+  addPdfFormField,
+  addPdfSource,
+  emptyDoc,
+  makePdfFormFieldDraft,
+} from '../../../lib/pdfStudio/model'
 
 const pdfFile = (name = 'doc.pdf') =>
   new File(['%PDF-1.4'], name, { type: 'application/pdf' })
+
+function templateDoc() {
+  const doc = addPdfSource(emptyDoc(), pdfFile('planilla.pdf'), 1)
+  return addPdfFormField(
+    doc,
+    makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: doc.pages[0]!.id,
+      name: 'paciente',
+      value: '',
+      xRatio: 0.2,
+      yRatio: 0.25,
+      wRatio: 0.3,
+      hRatio: 0.05,
+    }),
+  )
+}
 
 function fileInput(): HTMLInputElement {
   return document.querySelector('input[type="file"]') as HTMLInputElement
@@ -126,6 +149,91 @@ describe('<PdfStudioView />', () => {
 
     await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
     expect(screen.getByRole('menuitem', { name: /Descargar/i })).toBeDisabled()
+  })
+
+  it('en modo editor PDF no muestra ni ejecuta planillas guardadas', async () => {
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="editor" />)
+
+    expect(await screen.findByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
+    expect(screen.queryByText('Planillas')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', {
+        name: /Rellenar planilla Ingreso paciente/i,
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('abre una planilla directamente en visor simplificado para rellenar e imprimir', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Rellenar planilla Ingreso paciente/i,
+      }),
+    )
+
+    expect(
+      await screen.findByRole('dialog', { name: /Rellenar planilla/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Agregar cuadro de texto/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('complementary', { name: /Inspector/i })).toBeNull()
+
+    const input = screen.getByRole('textbox', { name: 'paciente' })
+    expect(input).toHaveAttribute('placeholder', '[paciente]')
+    await user.type(input, 'Daniel')
+    await user.click(
+      within(screen.getByRole('dialog', { name: /Rellenar planilla/i })).getByRole(
+        'button',
+        { name: /Imprimir planilla/i },
+      ),
+    )
+
+    expect(mocks.openBlankPdfTab).toHaveBeenCalled()
+    expect(mocks.assemblePdfInWorker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        formFields: [expect.objectContaining({ name: 'paciente', value: 'Daniel' })],
+      }),
+      expect.anything(),
+    )
+  })
+
+  it('deja los campos especiales fuera del editor PDF general', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView studioMode="editor" />)
+    await user.upload(fileInput(), pdfFile())
+    await user.dblClick(await screen.findByAltText('Página 1'))
+    await screen.findByRole('dialog', { name: /Editar página 1/i })
+
+    expect(screen.queryByRole('button', { name: 'Campos' })).not.toBeInTheDocument()
+  })
+
+  it('abre el editor con una ventana amplia para PDF y planillas', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+    await user.upload(fileInput(), pdfFile())
+    await user.dblClick(await screen.findByAltText('Página 1'))
+
+    const dialog = await screen.findByRole('dialog', { name: /Editar página 1/i })
+    expect(dialog.firstElementChild).toHaveClass('max-w-[min(1360px,85vw)]')
+  })
+
+  it('mantiene los campos especiales visibles al diseñar planillas', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+    await user.upload(fileInput(), pdfFile())
+    await user.dblClick(await screen.findByAltText('Página 1'))
+    await screen.findByRole('dialog', { name: /Editar página 1/i })
+
+    expect(screen.getByRole('button', { name: 'Campos' })).toBeInTheDocument()
   })
 
   it('detecta formularios AcroForm desde el menú de documento', async () => {

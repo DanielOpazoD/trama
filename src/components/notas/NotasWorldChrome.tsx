@@ -1,4 +1,5 @@
 import {
+  ClipboardIcon,
   FilePdfIcon,
   HomeIcon,
   KeyIcon,
@@ -28,6 +29,7 @@ const SECTION_META_BY_ID: Record<NotasSection, Omit<NotasSectionMeta, 'id'>> = {
   prompts: { label: 'Prompts', icon: PromptIcon },
   claves: { label: 'Claves', icon: KeyIcon },
   pdf: { label: 'Imprenta', icon: FilePdfIcon },
+  planillas: { label: 'Planillas', icon: ClipboardIcon },
 }
 
 export const SECTIONS: NotasSectionMeta[] = NOTAS_SECTIONS.map((id) => ({
@@ -41,7 +43,8 @@ const SECTION_META: Record<NotasSection, { title: string; subtitle: string }> = 
   tareas: { title: 'Tareas', subtitle: 'recordatorios de la semana' },
   prompts: { title: 'Prompts', subtitle: 'biblioteca reutilizable' },
   claves: { title: 'Claves', subtitle: 'vault seguro' },
-  pdf: { title: 'Imprenta', subtitle: 'componer y editar' },
+  pdf: { title: 'Imprenta', subtitle: 'editar PDF' },
+  planillas: { title: 'Planillas', subtitle: 'rellenar e imprimir' },
 }
 
 export function NotasTopBar({ section }: { section: NotasSection }) {

@@ -2,11 +2,13 @@ import { runPdfHeavyOperation } from './heavyOperationClient'
 import {
   fillPdfForm,
   inspectPdfForm,
+  writePdfFormFields,
   type PdfFormFillOptions,
   type PdfFormFillResult,
   type PdfFormFillValues,
   type PdfFormInspection,
 } from './pdfForms'
+import type { PdfFormFieldDraft } from './model'
 import {
   PDF_FORM_OPERATION_KIND,
   type PdfFormWorkerPayload,
@@ -69,5 +71,35 @@ export function fillPdfFormInWorker(
     signal: options.signal,
     onProgress: options.onProgress,
     fallback: () => fillPdfForm(file, values, fillOptions),
+  })
+}
+
+export function writePdfFormFieldsInWorker(
+  file: File,
+  fields: PdfFormFieldDraft[],
+  pageIds: string[],
+  fillOptions: PdfFormFillOptions = {},
+  options: {
+    signal?: AbortSignal
+    onProgress?: (progress: PdfFormWorkerProgress) => void
+  } = {},
+): Promise<PdfFormFillResult> {
+  return runPdfHeavyOperation<
+    PdfFormWorkerPayload,
+    PdfFormFillResult,
+    PdfFormWorkerProgress
+  >({
+    kind: PDF_FORM_OPERATION_KIND,
+    payload: {
+      action: 'write',
+      file,
+      fields,
+      pageIds,
+      options: fillOptions,
+    },
+    createWorker: createPdfFormWorker,
+    signal: options.signal,
+    onProgress: options.onProgress,
+    fallback: () => writePdfFormFields(file, fields, pageIds, fillOptions),
   })
 }

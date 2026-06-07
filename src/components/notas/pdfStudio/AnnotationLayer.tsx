@@ -43,6 +43,7 @@ export function AnnotationLayer({
   selectionLasso,
   snapGuides = [],
   drawColor,
+  readOnly = false,
   onStartDrag,
   onSelect,
   onToggleSelect,
@@ -66,6 +67,7 @@ export function AnnotationLayer({
   snapGuides?: SnapGuide[]
   /** Color del resaltado en curso (para el preview punteado). */
   drawColor: string
+  readOnly?: boolean
   onStartDrag: (e: ReactPointerEvent, a: Annotation) => void
   onSelect: (id: string) => void
   onToggleSelect?: (id: string) => void
@@ -87,6 +89,7 @@ export function AnnotationLayer({
   const isSelected = (id: string) => selectedSet.has(id) || selectedId === id
   const selectFromClick = (e: ReactMouseEvent, id: string) => {
     e.stopPropagation()
+    if (readOnly) return
     if ((e.metaKey || e.ctrlKey || e.shiftKey) && onToggleSelect) {
       onToggleSelect(id)
       return
@@ -94,6 +97,10 @@ export function AnnotationLayer({
     onSelect(id)
   }
   const startDragFromPointer = (e: ReactPointerEvent, annotation: Annotation) => {
+    if (readOnly) {
+      e.stopPropagation()
+      return
+    }
     if (e.metaKey || e.ctrlKey || e.shiftKey) {
       e.stopPropagation()
       return
@@ -193,7 +200,7 @@ export function AnnotationLayer({
                 userSelect: 'none',
                 touchAction: 'none',
                 // Fuera de "seleccionar" no captura (deja dibujar encima).
-                pointerEvents: tool === 'select' ? undefined : 'none',
+                pointerEvents: !readOnly && tool === 'select' ? undefined : 'none',
                 outline: isSelected(a.id)
                   ? `1.5px solid ${ACCENT}`
                   : '1.5px solid transparent',
@@ -208,7 +215,7 @@ export function AnnotationLayer({
               innerW={innerW}
               innerH={innerH}
               selectedId={selectedId}
-              tool={tool}
+              tool={readOnly ? 'highlight' : tool}
               onStartResize={onStartResize}
             />
           </div>
@@ -225,8 +232,8 @@ export function AnnotationLayer({
             innerW={innerW}
             innerH={innerH}
             tool={tool}
-            selectedId={selectedId}
-            selected={isSelected(a.id)}
+            selectedId={readOnly ? null : selectedId}
+            selected={!readOnly && isSelected(a.id)}
             onStartDrag={startDragFromPointer}
             onSelect={selectFromClick}
             onStartResize={onStartResize}
@@ -243,8 +250,8 @@ export function AnnotationLayer({
             innerW={innerW}
             innerH={innerH}
             tool={tool}
-            selectedId={selectedId}
-            selected={isSelected(a.id)}
+            selectedId={readOnly ? null : selectedId}
+            selected={!readOnly && isSelected(a.id)}
             onStartDrag={startDragFromPointer}
             onSelect={selectFromClick}
             onStartResize={onStartResize}
@@ -260,10 +267,12 @@ export function AnnotationLayer({
               src={a.src}
               alt="Imagen estampada"
               onPointerDown={
-                tool === 'select' ? (e) => startDragFromPointer(e, a) : undefined
+                !readOnly && tool === 'select'
+                  ? (e) => startDragFromPointer(e, a)
+                  : undefined
               }
               onClick={
-                tool === 'select'
+                !readOnly && tool === 'select'
                   ? (e) => {
                       selectFromClick(e, a.id)
                     }
@@ -281,8 +290,8 @@ export function AnnotationLayer({
                 cursor: a.locked ? 'default' : 'move',
                 touchAction: 'none',
                 userSelect: 'none',
-                pointerEvents: tool === 'select' ? undefined : 'none',
-                outline: isSelected(a.id) ? `1.5px solid ${ACCENT}` : 'none',
+                pointerEvents: !readOnly && tool === 'select' ? undefined : 'none',
+                outline: !readOnly && isSelected(a.id) ? `1.5px solid ${ACCENT}` : 'none',
                 outlineOffset: 2,
               }}
             />
@@ -290,8 +299,8 @@ export function AnnotationLayer({
               annotation={a}
               innerW={innerW}
               innerH={innerH}
-              selectedId={selectedId}
-              tool={tool}
+              selectedId={readOnly ? null : selectedId}
+              tool={readOnly ? 'highlight' : tool}
               onStartResize={onStartResize}
             />
           </div>
@@ -317,7 +326,7 @@ export function AnnotationLayer({
               const w = Math.abs(p1.x - p0.x)
               const hh = Math.abs(p1.y - p0.y)
               const sel = isSelected(a.id)
-              const interactive = tool === 'select'
+              const interactive = !readOnly && tool === 'select'
               const pe: CSSProperties['pointerEvents'] =
                 a.shape === 'rect' || a.shape === 'oval' ? 'all' : 'stroke'
               const hit = {
@@ -374,7 +383,7 @@ export function AnnotationLayer({
                         {...hit}
                       />
                     ))}
-                  {sel && (
+                  {!readOnly && sel && (
                     <rect
                       x={x - 3}
                       y={y - 3}
@@ -410,8 +419,8 @@ export function AnnotationLayer({
               annotation={a}
               innerW={innerW}
               innerH={innerH}
-              selectedId={selectedId}
-              tool={tool}
+              selectedId={readOnly ? null : selectedId}
+              tool={readOnly ? 'highlight' : tool}
               onStartResize={onStartResize}
             />
           </div>

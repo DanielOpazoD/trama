@@ -55,6 +55,17 @@ describe('<EditorToolbar />', () => {
     expect(screen.getByRole('group', { name: 'Vista' })).toBeInTheDocument()
   })
 
+  it('prioriza agregar texto y seleccionar como acciones visibles de primera fila', () => {
+    setup()
+
+    const tools = screen.getByRole('group', { name: 'Herramientas' })
+    expect(tools).toContainElement(
+      screen.getByRole('button', { name: /Agregar cuadro de texto/i }),
+    )
+    expect(tools).toContainElement(screen.getByLabelText('Herramienta seleccionar'))
+    expect(screen.queryByLabelText('Herramienta resaltar')).not.toBeInTheDocument()
+  })
+
   it('evita bordes anidados en los grupos principales', () => {
     setup({ hasDuplicableSelection: true, hasSelection: true })
     for (const label of ['Herramientas', 'Insertar', 'Estilo', 'Objeto', 'Vista']) {
@@ -88,8 +99,33 @@ describe('<EditorToolbar />', () => {
     expect(lastStyle(p.onApplyStyle)).toEqual({ color: '#f2c94c' })
 
     fireEvent.click(screen.getByRole('button', { name: 'Más funciones' }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Herramienta Resaltar' }))
+    expect(p.onToolChange).toHaveBeenCalledWith('highlight')
+    fireEvent.click(screen.getByRole('button', { name: 'Más funciones' }))
     fireEvent.click(screen.getByLabelText('Rotación del texto: aumentar'))
     expect(lastStyle(p.onApplyStyle)).toEqual({ rotation: 15 })
+  })
+
+  it('deja el menú Campos limitado a detectar, texto y firma simple', () => {
+    const p = setup({ onAddFormField: vi.fn(), onInspectForms: vi.fn() })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Campos' }))
+
+    expect(
+      screen.getByRole('menuitem', { name: 'Detectar campos del PDF' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('menuitem', { name: 'Crear campo Texto' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('menuitem', { name: 'Crear campo Firma' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Crear campo Fecha' })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: 'Crear campo Checkbox' })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: 'Crear campo Radio' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Crear campo Texto' }))
+    expect(p.onAddFormField).toHaveBeenCalledWith('text')
   })
 
   it('abre todos sus menús por delante del modal del editor PDF', () => {
@@ -117,8 +153,6 @@ describe('<EditorToolbar />', () => {
     expect(addText.textContent).toBe('')
     fireEvent.click(addText)
     expect(p.onAddText).toHaveBeenCalledOnce()
-    fireEvent.click(screen.getByLabelText('Herramienta resaltar'))
-    expect(p.onToolChange).toHaveBeenCalledWith('highlight')
     fireEvent.click(screen.getByLabelText('Herramienta redactar'))
     expect(p.onToolChange).toHaveBeenCalledWith('redact')
   })
@@ -152,12 +186,15 @@ describe('<EditorToolbar />', () => {
     expect(screen.getByLabelText('Tamaño de letra: aumentar')).toBeDisabled()
   })
 
-  it('el zoom sube y se restablece al tocar el valor', () => {
+  it('el zoom sube de 10% en 10% y permite escribir un porcentaje manual', () => {
     const p = setup({ zoom: 1.5 })
     fireEvent.click(screen.getByLabelText('Zoom del documento: aumentar'))
-    expect(p.onZoomChange).toHaveBeenLastCalledWith(1.75)
-    fireEvent.click(screen.getByText('150%'))
-    expect(p.onZoomChange).toHaveBeenLastCalledWith(1)
+    expect(p.onZoomChange).toHaveBeenLastCalledWith(1.6)
+
+    const input = screen.getByLabelText('Porcentaje de zoom')
+    fireEvent.change(input, { target: { value: '125' } })
+    fireEvent.blur(input)
+    expect(p.onZoomChange).toHaveBeenLastCalledWith(1.25)
   })
 
   it('mantiene Duplicar/Eliminar visibles pero deshabilitados cuando no hay selección', () => {

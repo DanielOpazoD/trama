@@ -10,6 +10,7 @@ export const NOTAS_SECTIONS = [
   'prompts',
   'claves',
   'pdf',
+  'planillas',
 ] as const
 
 export type NotasSection = (typeof NOTAS_SECTIONS)[number]

@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   cloneAnnotation,
-  getSource,
   makeTextAnnotation,
   translateAnnotation,
   type Annotation,
   type ImageAnnotation,
   type PdfDoc,
+  type PdfFormFieldDraft,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import {
@@ -20,43 +20,56 @@ import {
   type History,
 } from '../../../lib/pdfStudio/history'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
-import { AnnotationLayer } from './AnnotationLayer'
 import { EditorToolbar } from './EditorToolbar'
-import { PageCanvas } from './PageCanvas'
 import { PdfTextEditorHeader } from './PdfTextEditorHeader'
 import { SelectionInspector } from './SelectionInspector'
 import type { SnapGuide } from './pdfAnnotationSnap'
 import { usePdfTextEditorInteractions } from './usePdfTextEditorInteractions'
-import { usePdfTextEditorPageRender } from './usePdfTextEditorPageRender'
+import { usePdfTextEditorForms } from './usePdfTextEditorForms'
 import { usePdfTextEditorKeyboard } from './usePdfTextEditorKeyboard'
 import { usePdfTextEditorSelection } from './usePdfTextEditorSelection'
 import { defaultEditorTextStyle, resolveActiveEditorStyle } from './pdfEditorStyleState'
 import { type TextStyle, type Tool } from './editorStyle'
 import { createImageStampAnnotation, STAMP_ACCEPT } from './pdfImageStamp'
+import { PdfTextEditorPageSurface } from './PdfTextEditorPageSurface'
+import { type DetectedPdfFormForCanvas } from './pdfFormVisualMapping'
+import { usePdfTextEditorPageNavigation } from './usePdfTextEditorPageNavigation'
+import { usePdfTextEditorViewport } from './usePdfTextEditorViewport'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
-
-/**
- * Editor / visor de páginas del PDF: muestra la página grande con la barra de
- * edición ARRIBA y permite **navegar entre todas las páginas** del documento sin
- * cerrar. Deja agregar/mover/ajustar cajas de texto vectorial (WYSIWYG, posición y
- * tamaño como ratios). Al confirmar entrega las anotaciones EDITADAS por página; el
- * ensamblado las dibuja con `drawText` (texto seleccionable, la página NO se
- * rasteriza). Browser-only.
- */
+const FORM_ACCEPT = 'image/png,image/jpeg,image/webp'
+export type PdfTextEditorResult = {
+  annotations: Record<number, Annotation[]>
+  formFields: PdfFormFieldDraft[]
+}
 export function PdfTextEditor({
   doc,
   pageIndex,
+  detectedForms = [],
+  mode = 'edit',
+  templateToolsEnabled = true,
+  onFormValueChange = () => undefined,
+  onInspectForms,
   onClose,
+  onPrint,
 }: {
   doc: PdfDoc
   pageIndex: number
-  onClose: (edits: Record<number, Annotation[]> | null) => void
+  detectedForms?: DetectedPdfFormForCanvas[]
+  mode?: 'edit' | 'fill'
+  templateToolsEnabled?: boolean
+  onFormValueChange?: (
+    sourceId: string,
+    fieldName: string,
+    value: string | boolean,
+  ) => void
+  onInspectForms?: () => void
+  onClose: (edits: PdfTextEditorResult | null) => void
+  onPrint?: (edits: PdfTextEditorResult) => void
 }) {
   const total = doc.pages.length
+  const fillMode = mode === 'fill'
   const [currentPage, setCurrentPage] = useState(pageIndex)
-  // Anotaciones EDITADAS por página (las no tocadas siguen las del doc), con
-  // HISTORIAL propio → undo/redo DENTRO del modal. `edited` = presente.
   const [history, setHistory] = useState<History<Record<number, Annotation[]>>>(() =>
     initHistory({}),
   )
@@ -65,13 +78,9 @@ export function PdfTextEditor({
   editedRef.current = edited
 
   const page = doc.pages[currentPage]
-  const source = page ? getSource(doc, page.sourceId) : undefined
   const annotations = edited[currentPage] ?? page?.annotations ?? []
 
-  // Texto en edición INLINE (sobre el cuadro). null = ninguno.
   const [editingId, setEditingId] = useState<string | null>(null)
-  // Herramienta activa y el rectángulo que se está dibujando (resaltador), en px
-  // LOCALES de la página interior (para el preview en vivo).
   const [tool, setTool] = useState<Tool>('select')
   const [drawing, setDrawing] = useState<{
     x0: number
@@ -89,37 +98,36 @@ export function PdfTextEditor({
     null,
   )
   const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([])
-  // Default 150%: prioriza ver/editar la página en grande (la barra es compacta).
-  const [zoom, setZoom] = useState(1.5)
+  const {
+    activeLayout,
+    activeLayoutRef,
+    changeZoom,
+    displayZoom,
+    prepareZoomAnchor,
+    scrollContainerRef,
+    setActivePageLayout,
+    stepZoomIn,
+    stepZoomOut,
+    zoom,
+    zoomInDisabled,
+    zoomOutDisabled,
+  } = usePdfTextEditorViewport(currentPage)
   const stampInputRef = useRef<HTMLInputElement>(null)
-  // Atrapa el foco dentro del modal (Tab no se escapa) y lo restaura al cerrar.
+  const backdropDownRef = useRef<{ x: number; y: number } | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   useFocusTrap(dialogRef, true)
-  // Enfoca el CONTENEDOR (tabindex -1) al abrir, no un botón → así no aparece el
-  // anillo azul de `:focus-visible` (externo, con offset) sobre un control al abrir.
   useEffect(() => {
     dialogRef.current?.focus()
   }, [])
-  // Refs para que los efectos montados una vez vean el estado actual sin re-suscribir.
   const selectedRef = useRef<string | null>(null)
   const editingRef = useRef<string | null>(null)
   editingRef.current = editingId
   const pageRef = useRef(currentPage)
   pageRef.current = currentPage
-  // Lista de anotaciones de la página actual (para que el teclado copie/corte la
-  // anotación seleccionada) y portapapeles interno (copia entre páginas).
   const annotationsRef = useRef(annotations)
   annotationsRef.current = annotations
   const annClipboardRef = useRef<Annotation | null>(null)
 
-  const { areaRef, bg, layout, resetBackground } = usePdfTextEditorPageRender({
-    page,
-    source,
-    zoom,
-  })
-
-  /** Edición DISCRETA (agregar/borrar/estilo/flechas/…): empuja una entrada de
-   *  historial. Estable (lee la página actual del ref → sirve desde efectos viejos). */
   const setAnnotations = useCallback(
     (fn: (list: Annotation[]) => Annotation[]) => {
       const i = pageRef.current
@@ -133,8 +141,6 @@ export function PdfTextEditor({
     [doc],
   )
 
-  /** Edición EN VIVO (durante un arrastre): reemplaza el presente SIN crear una
-   *  entrada de historial (el arrastre entero = un solo undo, ver `startDrag`). */
   const editLive = useCallback(
     (fn: (list: Annotation[]) => Annotation[]) => {
       const i = pageRef.current
@@ -149,13 +155,11 @@ export function PdfTextEditor({
     [doc],
   )
 
-  // Estilo "activo" de la barra: edita la anotación seleccionada o, si no hay,
-  // define el estilo del PRÓXIMO texto/resaltado (ver `TextStyle` en editorStyle).
   const [style, setStyle] = useState<TextStyle>({
     ...defaultEditorTextStyle(),
   })
-  const arrangeGeometry = layout
-    ? { pageWidthPx: layout.innerW, pageHeightPx: layout.innerH }
+  const arrangeGeometry = activeLayout
+    ? { pageWidthPx: activeLayout.innerW, pageHeightPx: activeLayout.innerH }
     : null
   const {
     selectedId,
@@ -214,7 +218,7 @@ export function PdfTextEditor({
     const a = makeTextAnnotation({
       text: 'Texto',
       xRatio: 0.2,
-      yRatio: 0.42,
+      yRatio: 0.2,
       wRatio: 0.24,
       hRatio: Math.max(0.055, style.sizeRatio * 1.7),
       sizeRatio: style.sizeRatio,
@@ -233,7 +237,7 @@ export function PdfTextEditor({
   async function addImageStamp(file: File) {
     const a = await createImageStampAnnotation({
       file,
-      layout,
+      layout: activeLayout,
       opacity: style.opacity,
     })
     if (!a) return
@@ -263,7 +267,8 @@ export function PdfTextEditor({
 
   const { startDrag, startResize, startDraw, startMarquee } =
     usePdfTextEditorInteractions({
-      layout,
+      layout: activeLayout,
+      layoutRef: activeLayoutRef,
       zoom,
       tool,
       style,
@@ -277,17 +282,47 @@ export function PdfTextEditor({
       setSnapGuides,
       setHistory,
       setAnnotations,
+      setTool,
       editLive,
     })
 
-  /** Navega a otra página: deselecciona y muestra "cargando" mientras renderiza. */
-  const goToPage = (i: number) => {
-    if (i < 0 || i >= total || i === currentPage) return
-    setSelectedId(null)
-    setEditingId(null)
-    resetBackground()
-    setCurrentPage(i)
-  }
+  const {
+    addFormField,
+    deleteDraftFormField,
+    formFields,
+    chooseSignatureImage,
+    openSignature,
+    pendingFormKind,
+    patchDraftFormField,
+    placePendingFormField,
+    selectedDraftFormField,
+    saveSignatureDataUrl,
+    selectedFormFieldId,
+    selectDraftFormField,
+    setSignatureFile,
+    setSignatureField,
+    signatureField,
+    signatureInputRef,
+    startDraftDrag,
+    startDraftResize,
+    updateDraftFormValue,
+  } = usePdfTextEditorForms({
+    doc,
+    page,
+    layout: activeLayout,
+    zoom,
+    setTool,
+    setEditingId,
+    setSelectedId,
+  })
+  const { activatePage, goToPage } = usePdfTextEditorPageNavigation({
+    currentPage,
+    setActivePageLayout,
+    setCurrentPage,
+    setEditingId,
+    setSelectedId,
+    total,
+  })
 
   // Portal a <body>: el modal debe escapar de cualquier ancestro con overflow o
   // transform (el contenedor scrolleable del mundo Notas), que si no lo recorta.
@@ -295,15 +330,25 @@ export function PdfTextEditor({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Editar página ${currentPage + 1}`}
-      onClick={() => onClose(null)}
+      aria-label={fillMode ? 'Rellenar planilla' : `Editar página ${currentPage + 1}`}
+      onPointerDown={(e) => {
+        backdropDownRef.current =
+          e.target === e.currentTarget ? { x: e.clientX, y: e.clientY } : null
+      }}
+      onClick={(e) => {
+        if (e.target !== e.currentTarget) return
+        const start = backdropDownRef.current
+        backdropDownRef.current = null
+        if (!start || Math.hypot(e.clientX - start.x, e.clientY - start.y) <= 4)
+          onClose(null)
+      }}
       className="pdf-studio fixed inset-0 z-[60] flex items-stretch justify-center bg-ink-900/40 backdrop-blur-sm"
     >
       <div
         ref={dialogRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-6xl h-full overflow-hidden border-x border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col focus:outline-none"
+        className="h-full w-full max-w-[min(1360px,85vw)] overflow-hidden border-x border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col focus:outline-none"
       >
         <PdfTextEditorHeader
           currentPage={currentPage}
@@ -323,37 +368,54 @@ export function PdfTextEditor({
             setHistory(redo)
           }}
           onCancel={() => onClose(null)}
-          onDone={() => onClose(edited)}
-        />
-
-        <EditorToolbar
-          tool={tool}
-          onToolChange={setTool}
-          onAddText={addText}
-          onAddImage={() => stampInputRef.current?.click()}
-          activeFont={activeFont}
-          activeSize={activeSize}
-          activeBold={activeBold}
-          activeColor={activeColor}
-          activeOpacity={activeOpacity}
-          activeRotation={activeRotation}
-          onApplyStyle={applyStyle}
-          hasDuplicableSelection={
-            !selectedAnn?.locked && (!!selected || selectedAnn?.kind === 'image')
+          onDone={() => onClose({ annotations: edited, formFields })}
+          onPrint={
+            fillMode ? () => onPrint?.({ annotations: edited, formFields }) : undefined
           }
-          duplicateLabel={
-            selectedAnn?.kind === 'image' ? 'Duplicar imagen' : 'Duplicar texto'
-          }
-          onDuplicate={() => {
-            if (selected) duplicate(selected)
-            else if (selectedAnn?.kind === 'image') duplicateImage(selectedAnn)
-          }}
-          hasSelection={!!selectedAnn}
-          onDelete={() => selectedAnn && removeAnnotation(selectedAnn.id)}
-          zoom={zoom}
-          onZoomChange={setZoom}
+          primaryLabel={fillMode ? 'Guardar' : 'Listo'}
+          showHistory={!fillMode}
+          title={fillMode ? 'Rellenar planilla' : undefined}
+          onPrepareZoomAnchor={fillMode ? prepareZoomAnchor : undefined}
+          onZoomIn={fillMode ? stepZoomIn : undefined}
+          onZoomOut={fillMode ? stepZoomOut : undefined}
+          onZoomChange={fillMode ? changeZoom : undefined}
+          zoom={fillMode ? displayZoom : undefined}
+          zoomInDisabled={zoomInDisabled}
+          zoomOutDisabled={zoomOutDisabled}
         />
-        {selectedAnn && selectedBounds && (
+        {!fillMode ? (
+          <EditorToolbar
+            tool={tool}
+            onToolChange={setTool}
+            onAddText={addText}
+            onAddImage={() => stampInputRef.current?.click()}
+            onAddFormField={templateToolsEnabled ? addFormField : undefined}
+            onInspectForms={templateToolsEnabled ? onInspectForms : undefined}
+            activeFont={activeFont}
+            activeSize={activeSize}
+            activeBold={activeBold}
+            activeColor={activeColor}
+            activeOpacity={activeOpacity}
+            activeRotation={activeRotation}
+            onApplyStyle={applyStyle}
+            hasDuplicableSelection={
+              !selectedAnn?.locked && (!!selected || selectedAnn?.kind === 'image')
+            }
+            duplicateLabel={
+              selectedAnn?.kind === 'image' ? 'Duplicar imagen' : 'Duplicar texto'
+            }
+            onDuplicate={() => {
+              if (selected) duplicate(selected)
+              else if (selectedAnn?.kind === 'image') duplicateImage(selectedAnn)
+            }}
+            hasSelection={!!selectedAnn}
+            onDelete={() => selectedAnn && removeAnnotation(selectedAnn.id)}
+            zoom={displayZoom}
+            onPrepareZoomAnchor={prepareZoomAnchor}
+            onZoomChange={changeZoom}
+          />
+        ) : null}
+        {!fillMode && selectedAnn && selectedBounds ? (
           <SelectionInspector
             annotation={selectedAnn}
             bounds={selectedBounds}
@@ -368,60 +430,108 @@ export function PdfTextEditor({
             onColorChange={(color) => applyStyle({ color })}
             onOpacityChange={(opacity) => applyStyle({ opacity })}
           />
-        )}
+        ) : null}
+        {!fillMode ? (
+          <input
+            ref={stampInputRef}
+            type="file"
+            accept={STAMP_ACCEPT}
+            className="hidden"
+            aria-hidden="true"
+            tabIndex={-1}
+            onChange={(e) => {
+              const file = e.currentTarget.files?.[0]
+              e.currentTarget.value = ''
+              if (file) void addImageStamp(file)
+            }}
+          />
+        ) : null}
         <input
-          ref={stampInputRef}
+          ref={signatureInputRef}
           type="file"
-          accept={STAMP_ACCEPT}
+          accept={FORM_ACCEPT}
           className="hidden"
           aria-hidden="true"
           tabIndex={-1}
           onChange={(e) => {
             const file = e.currentTarget.files?.[0]
             e.currentTarget.value = ''
-            if (file) void addImageStamp(file)
+            if (file) setSignatureFile(file)
           }}
         />
+        {!fillMode && pendingFormKind && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="border-b border-[color:var(--accent-sage)]/20 bg-[color:var(--accent-sage-soft)]/45 px-3 py-1.5 text-caption text-[color:var(--accent-sage)]"
+          >
+            Haz clic en la página para colocar el casillero especial.
+          </div>
+        )}
 
-        {/* Página — ocupa el resto; centrada y scrolleable al hacer zoom */}
-        <PageCanvas
-          areaRef={areaRef}
-          layout={layout}
-          bg={bg}
-          zoom={zoom}
-          tool={tool}
-          currentPage={currentPage}
-          onStartDraw={startDraw}
-          onStartMarquee={startMarquee}
+        <div
+          data-pdf-editor-scroll
+          ref={scrollContainerRef}
+          className="min-h-0 flex-1 overflow-auto bg-ink-100/30 px-3 py-4 [overflow-anchor:none]"
         >
-          <AnnotationLayer
-            annotations={annotations}
-            innerW={layout?.innerW ?? 0}
-            innerH={layout?.innerH ?? 0}
-            tool={tool}
-            selectedId={selectedId}
-            selectedIds={operationSelectedIds}
-            editingId={editingId}
-            drawing={drawing}
-            selectionMarquee={selectionMarquee}
-            selectionLasso={selectionLasso}
-            snapGuides={snapGuides}
-            drawColor={style.color}
-            onStartDrag={startDrag}
-            onSelect={setSelectedId}
-            onToggleSelect={toggleSelectedId}
-            onStartEdit={(id) => {
-              setSelectedId(id)
-              setEditingId(id)
-            }}
-            onCommitText={(id, text) => {
-              update(id, { text })
-              setEditingId(null)
-            }}
-            onCancelEdit={() => setEditingId(null)}
-            onStartResize={startResize}
-          />
-        </PageCanvas>
+          <div className="mx-auto flex min-w-full flex-col items-center gap-4">
+            {doc.pages.map((_, i) => (
+              <PdfTextEditorPageSurface
+                key={doc.pages[i]!.id}
+                doc={doc}
+                pageIndex={i}
+                isActive={i === currentPage}
+                mode={mode}
+                edited={edited}
+                zoom={zoom}
+                tool={tool}
+                selectedId={selectedId}
+                selectedIds={operationSelectedIds}
+                editingId={editingId}
+                drawing={drawing}
+                selectionMarquee={selectionMarquee}
+                selectionLasso={selectionLasso}
+                snapGuides={snapGuides}
+                drawColor={style.color}
+                detectedForms={detectedForms}
+                draftFields={formFields}
+                pendingFormKind={Boolean(pendingFormKind)}
+                selectedDraftField={selectedDraftFormField}
+                selectedDraftId={selectedFormFieldId}
+                signatureField={signatureField}
+                onActivate={activatePage}
+                onActiveLayoutChange={setActivePageLayout}
+                onStartDraw={startDraw}
+                onStartMarquee={startMarquee}
+                onStartFormField={placePendingFormField}
+                onStartDrag={startDrag}
+                onSelectAnnotation={setSelectedId}
+                onToggleAnnotation={toggleSelectedId}
+                onStartEdit={(id) => {
+                  setSelectedId(id)
+                  setEditingId(id)
+                }}
+                onCommitText={(id, text) => {
+                  update(id, { text })
+                  setEditingId(null)
+                }}
+                onCancelEdit={() => setEditingId(null)}
+                onStartResize={startResize}
+                onChooseSignatureImage={chooseSignatureImage}
+                onDeleteDraft={deleteDraftFormField}
+                onDetectedValueChange={onFormValueChange}
+                onDraftPatch={patchDraftFormField}
+                onDraftValueChange={updateDraftFormValue}
+                onSelectDraft={selectDraftFormField}
+                onSetSignatureField={setSignatureField}
+                onStartDraftDrag={startDraftDrag}
+                onStartDraftResize={startDraftResize}
+                onOpenSignature={openSignature}
+                onSaveSignature={saveSignatureDataUrl}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </div>,
     document.body,

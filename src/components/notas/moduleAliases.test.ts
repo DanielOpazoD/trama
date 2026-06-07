@@ -6,6 +6,8 @@ describe('matchModuleAlias', () => {
     expect(matchModuleAlias('#pass')?.moduleId).toBe('claves')
     expect(matchModuleAlias('#CLAVES')?.moduleId).toBe('claves')
     expect(matchModuleAlias('  #pass ')?.moduleId).toBe('claves')
+    expect(matchModuleAlias('#planillas')?.moduleId).toBe('planillas')
+    expect(matchModuleAlias('#plantillas')?.moduleId).toBe('planillas')
   })
 
   it('sin "#" no matchea (evita falsos positivos al buscar contenido)', () => {

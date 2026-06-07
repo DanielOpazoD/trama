@@ -77,6 +77,32 @@ export type Annotation =
   | ShapeAnnotation
   | ImageAnnotation
 
+export type PdfFormFieldKind =
+  | 'text'
+  | 'date'
+  | 'checkbox'
+  | 'radio'
+  | 'dropdown'
+  | 'option-list'
+  | 'signature'
+
+export type PdfFormValue = string | boolean | string[] | null
+
+export type PdfFormFieldDraft = {
+  id: string
+  fieldKind: PdfFormFieldKind
+  pageId: string
+  name: string
+  value: PdfFormValue
+  xRatio: number
+  yRatio: number
+  wRatio: number
+  hRatio: number
+  options?: string[]
+  required?: boolean
+  readOnly?: boolean
+}
+
 export type PdfPage = {
   id: string
   annotations: Annotation[]
@@ -94,6 +120,7 @@ export type DocSettings = {
 export type PdfDoc = {
   sources: PdfSource[]
   pages: PdfPage[]
+  formFields?: PdfFormFieldDraft[]
   settings?: DocSettings
 }
 

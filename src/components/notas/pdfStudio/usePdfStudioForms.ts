@@ -160,5 +160,10 @@ export function usePdfStudioForms(
     }
   }
 
-  return { applyForms, formSummary, forms, inspectForms, updateFormValue }
+  function clearForms() {
+    setForms([])
+    setFormSummary(null)
+  }
+
+  return { applyForms, clearForms, formSummary, forms, inspectForms, updateFormValue }
 }
