@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import type { PdfFormFieldDraft, PdfFormValue } from '../../../lib/pdfStudio/model'
+import { orderFormFieldsForFill } from './pdfFormFieldFillOrder'
 
 function valueAsText(value: PdfFormValue): string {
   if (typeof value === 'string') return value
@@ -30,17 +31,18 @@ export function PdfTemplateFillVariablesPanel({
   onJump: (field: PdfFormFieldDraft) => void
 }) {
   const fieldInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
-  const pending = fields.filter((field) => !isFilled(field)).length
-  const completed = fields.length - pending
-  const nextPending = fields.find((field) => !isFilled(field)) ?? null
+  const orderedFields = orderFormFieldsForFill(fields, pageIndexById)
+  const pending = orderedFields.filter((field) => !isFilled(field)).length
+  const completed = orderedFields.length - pending
+  const nextPending = orderedFields.find((field) => !isFilled(field)) ?? null
   const focusNextField = (index: number) => {
-    const next = fields.slice(index + 1).find((field) => !field.readOnly)
+    const next = orderedFields.slice(index + 1).find((field) => !field.readOnly)
     if (!next) return
     onJump(next)
     fieldInputRefs.current[next.id]?.focus()
   }
   const statusText =
-    fields.length === 0
+    orderedFields.length === 0
       ? 'Sin casilleros'
       : pending === 0
         ? 'Todo listo para imprimir'
@@ -54,7 +56,7 @@ export function PdfTemplateFillVariablesPanel({
         <div className="min-w-0">
           <h2 className="text-caption font-semibold text-ink-800">Completar datos</h2>
           <p className="mt-0.5 text-micro text-ink-400">
-            {completed} de {fields.length} listos
+            {completed} de {orderedFields.length} listos
           </p>
         </div>
         <span
@@ -75,13 +77,13 @@ export function PdfTemplateFillVariablesPanel({
       >
         Siguiente pendiente
       </button>
-      {fields.length === 0 ? (
+      {orderedFields.length === 0 ? (
         <div className="mt-3 rounded-md border border-dashed border-ink-200 bg-paper-50 px-3 py-4 text-caption text-ink-500">
           Esta planilla no tiene casilleros para rellenar.
         </div>
       ) : null}
       <div className="mt-3 flex flex-col gap-2">
-        {fields.map((field, index) => {
+        {orderedFields.map((field, index) => {
           const pageNumber = (pageIndexById[field.pageId] ?? 0) + 1
           const filled = isFilled(field)
           const label = `Variable ${field.name}`
