@@ -41,7 +41,7 @@ export function usePdfEditorZoomScroll(initialZoom = 1.5) {
     pendingZoomAnchorRef.current = null
     lastZoomAnchorRef.current = anchor
     let frame = 0
-    let remaining = 1
+    let remaining = 3
     const tick = () => {
       restorePdfEditorScrollAnchor(scrollContainerRef.current, anchor)
       remaining -= 1

@@ -60,7 +60,7 @@ test.describe('mundo notas deep links', () => {
 
     await page.goto('/?world=notas&section=planillas')
     await expectNotasSection(page, 'Planillas', 'Planillas')
-    await expect(page.getByText(/Arrastra PDFs o imágenes/)).toBeVisible()
+    await expect(page.getByText(/Crea una planilla desde PDF o imagen/)).toBeVisible()
   })
 
   test('world=trama fuerza el mundo principal aunque hubiera preferencia Notas', async ({
