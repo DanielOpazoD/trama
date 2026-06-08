@@ -93,6 +93,7 @@ describe('<WorkspacePanel /> · planillas', () => {
     expect(
       screen.getByRole('button', { name: /Rellenar planilla Ingreso paciente/i }),
     ).toBeInTheDocument()
+    expect(screen.getByText('Usar planilla')).toBeInTheDocument()
     expect(screen.getByText(/1 campo/)).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /Abrir PDF suelto para editar/i }),

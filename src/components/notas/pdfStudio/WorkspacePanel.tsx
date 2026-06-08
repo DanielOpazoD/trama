@@ -1,14 +1,6 @@
 import { useEffect, useState } from 'react'
-import {
-  getSource,
-  isPdfTemplate,
-  pageThumbKey,
-  type ImageAsset,
-  type PdfDoc,
-  type PdfPage,
-} from '../../../lib/pdfStudio/model'
+import { isPdfTemplate, type ImageAsset } from '../../../lib/pdfStudio/model'
 import { type SavedDoc } from '../../../lib/pdfStudio/persistence'
-import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
 import {
   CameraIcon,
   CheckIcon,
@@ -16,13 +8,13 @@ import {
   ChevronRightIcon,
   CloseIcon,
   DownloadIcon,
-  DuplicateIcon,
   FilePdfIcon,
   PencilIcon,
   PlusIcon,
   SearchIcon,
   TrashIcon,
 } from '../../Icons'
+import { WorkspaceTemplateCard } from './WorkspaceTemplateCard'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -44,51 +36,6 @@ function LibraryThumb({ file }: { file: File }) {
   ) : (
     <span className="block h-full w-full bg-ink-100/40" />
   )
-}
-
-function TemplateThumb({ doc }: { doc: PdfDoc }) {
-  const page = doc.pages[0]
-  const source = page ? getSource(doc, page.sourceId) : undefined
-  const [url, setUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!page || !source) return
-    let alive = true
-    if (page.kind === 'image') {
-      const u = URL.createObjectURL(source.file)
-      setUrl(u)
-      return () => {
-        alive = false
-        URL.revokeObjectURL(u)
-      }
-    }
-    setUrl(null)
-    renderPdfTemplateThumb(source.file, page)
-      .then((u) => {
-        if (alive) setUrl(u)
-      })
-      .catch(() => {})
-    return () => {
-      alive = false
-    }
-  }, [page, source])
-
-  return url ? (
-    <img
-      src={url}
-      alt=""
-      className="h-full w-full object-contain p-1"
-      draggable={false}
-    />
-  ) : (
-    <FilePdfIcon size={16} />
-  )
-}
-
-function renderPdfTemplateThumb(file: File, page: PdfPage): Promise<string> {
-  return page.kind === 'pdf'
-    ? renderPageThumb(file, page.pageIndex, pageThumbKey(page))
-    : Promise.reject(new Error('La página no es PDF'))
 }
 
 /** Fecha corta local (día/mes hh:mm) para los guardados. */
@@ -207,12 +154,6 @@ export function WorkspacePanel({
     }
     setRenaming(null)
   }
-  const fieldCount = (doc: PdfDoc) => doc.formFields?.length ?? 0
-  const fieldCountLabel = (doc: PdfDoc) => {
-    const count = fieldCount(doc)
-    return `${count} ${count === 1 ? 'campo' : 'campos'}`
-  }
-
   return (
     <aside className="surface-sidebar flex h-full w-60 flex-col overflow-hidden border-r border-ink-100">
       <header className="flex items-center justify-between gap-2 px-2.5 py-2 border-b border-ink-100/70 shrink-0">
@@ -381,127 +322,24 @@ export function WorkspacePanel({
                   ) : (
                     <ul className="flex flex-col gap-1.5 px-2 pt-1">
                       {visibleTemplates.map((s) => (
-                        <li
+                        <WorkspaceTemplateCard
                           key={s.id}
-                          className="group rounded-md border border-ink-100 bg-paper-50/70 p-1.5 shadow-[0_1px_2px_rgba(31,28,24,0.04)] transition-colors hover:border-ink-200"
-                        >
-                          {renaming?.id === s.id ? (
-                            <input
-                              autoFocus
-                              value={renaming.value}
-                              onChange={(e) =>
-                                setRenaming({ id: s.id, value: e.target.value })
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') confirmRename()
-                                else if (e.key === 'Escape') setRenaming(null)
-                              }}
-                              onBlur={confirmRename}
-                              className="input-paper flex-1 min-w-0 text-caption px-1.5 py-0.5 rounded border border-ink-200"
-                            />
-                          ) : (
-                            <div className="flex gap-2">
-                              <div className="flex h-14 w-10 shrink-0 items-center justify-center overflow-hidden rounded border border-ink-100 bg-gradient-to-b from-paper-50 to-ink-50 text-ink-300">
-                                <TemplateThumb doc={s.doc} />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-start gap-1">
-                                  <div className="min-w-0 flex-1">
-                                    <span className="block truncate text-caption font-medium text-ink-700">
-                                      {s.name}
-                                    </span>
-                                    <span className="block text-micro text-ink-400 tabular-nums">
-                                      {fieldCountLabel(s.doc)} · {s.doc.pages.length}{' '}
-                                      {s.doc.pages.length === 1 ? 'hoja' : 'hojas'} ·{' '}
-                                      {dateLabel(s.savedAt)}
-                                    </span>
-                                  </div>
-                                  <div className="flex shrink-0">
-                                    <button
-                                      type="button"
-                                      onClick={() => onDuplicateSaved(s)}
-                                      aria-label={`Duplicar planilla ${s.name}`}
-                                      title="Duplicar planilla"
-                                      className={rowBtn}
-                                    >
-                                      <DuplicateIcon size={13} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setRenaming({ id: s.id, value: s.name })
-                                      }
-                                      aria-label={`Renombrar ${s.name}`}
-                                      title="Renombrar"
-                                      className={rowBtn}
-                                    >
-                                      <PencilIcon size={13} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => onDeleteSaved(s.id)}
-                                      aria-label={`Eliminar ${s.name}`}
-                                      title="Eliminar de la lista"
-                                      className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
-                                    >
-                                      <TrashIcon size={13} />
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="mt-1 flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => onUseTemplate(s)}
-                                    aria-label={`Rellenar planilla ${s.name}`}
-                                    title="Rellenar e imprimir"
-                                    className="btn-accent inline-flex h-6 items-center px-2 text-micro"
-                                  >
-                                    Rellenar
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => onOpenSaved(s)}
-                                    aria-label={`Editar estructura de planilla ${s.name}`}
-                                    title="Editar casilleros"
-                                    className="btn-ghost inline-flex h-6 items-center gap-1 px-2 text-micro"
-                                  >
-                                    <PencilIcon size={11} />
-                                    Editar
-                                  </button>
-                                </div>
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => onDownloadSaved(s)}
-                                    aria-label={`Descargar PDF editable de planilla ${s.name}`}
-                                    title="Descargar PDF editable"
-                                    className="btn-ghost inline-flex h-5 items-center px-1.5 text-[10px]"
-                                  >
-                                    PDF
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => onExportTemplatePackage(s, 'json')}
-                                    aria-label={`Exportar variables JSON de planilla ${s.name}`}
-                                    title="Exportar estructura JSON"
-                                    className="btn-ghost inline-flex h-5 items-center px-1.5 text-[10px]"
-                                  >
-                                    JSON
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => onExportTemplatePackage(s, 'csv')}
-                                    aria-label={`Exportar variables CSV de planilla ${s.name}`}
-                                    title="Exportar variables CSV"
-                                    className="btn-ghost inline-flex h-5 items-center px-1.5 text-[10px]"
-                                  >
-                                    CSV
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </li>
+                          saved={s}
+                          renameValue={renaming?.id === s.id ? renaming.value : null}
+                          onRenameValueChange={(value) =>
+                            setRenaming({ id: s.id, value })
+                          }
+                          onConfirmRename={confirmRename}
+                          onCancelRename={() => setRenaming(null)}
+                          onStartRename={() => setRenaming({ id: s.id, value: s.name })}
+                          onUseTemplate={() => onUseTemplate(s)}
+                          onEditStructure={() => onOpenSaved(s)}
+                          onDuplicate={() => onDuplicateSaved(s)}
+                          onDelete={() => onDeleteSaved(s.id)}
+                          onDownloadPdf={() => onDownloadSaved(s)}
+                          onExportJson={() => onExportTemplatePackage(s, 'json')}
+                          onExportCsv={() => onExportTemplatePackage(s, 'csv')}
+                        />
                       ))}
                     </ul>
                   )}
