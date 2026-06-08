@@ -44,7 +44,7 @@ export function PdfTextEditorHeaderSlot({
         zoomInDisabled={zoomInDisabled}
         zoomOutDisabled={zoomOutDisabled}
         onApply={headerProps.onDone}
-        onClose={headerProps.onCancel}
+        onClose={headerProps.onDone}
         onCreateField={onCreateTemplateField}
         onNextPage={headerProps.onNextPage}
         onPrepareZoomAnchor={prepareZoomAnchor}
