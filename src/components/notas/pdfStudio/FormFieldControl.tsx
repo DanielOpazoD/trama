@@ -18,10 +18,10 @@ function controlFrameStyle(mode?: 'edit' | 'fill'): string {
 function commonControlStyle(selected = false, fillMode = false): string {
   if (fillMode) {
     return [
-      'h-full w-full rounded-[4px] border border-[color:var(--accent-sage)]',
-      'bg-paper-50/95 px-2 text-caption font-medium text-ink-900 shadow-sm shadow-ink-900/10',
+      'h-full w-full rounded-none border-0',
+      'bg-transparent px-1.5 text-caption font-medium text-ink-900 shadow-none',
       'outline-none transition-colors placeholder:text-[color:var(--accent-sage)]/80',
-      'hover:bg-paper-50 focus:bg-paper-50 focus:ring-2 focus:ring-[color:var(--accent-sage)]/35',
+      'focus:bg-paper-50/45 focus:ring-1 focus:ring-[color:var(--accent-sage)]/25',
     ].join(' ')
   }
   return `h-full w-full rounded-[3px] border bg-paper-50/80 px-1.5 text-caption text-ink-800 shadow-sm outline-none transition-colors ${
@@ -205,7 +205,11 @@ export function FormFieldControl({
       }}
       onChange={(event) => onChange(event.currentTarget.value)}
       className={commonControlStyle(selected, mode === 'fill')}
-      style={{ ...frameVisualStyle(zoom, mode === 'fill'), ...textStyle }}
+      style={{
+        ...frameVisualStyle(zoom, mode === 'fill'),
+        ...(mode === 'fill' ? { borderWidth: 0, borderRadius: 0 } : null),
+        ...textStyle,
+      }}
     />
   )
 }

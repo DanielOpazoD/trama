@@ -217,13 +217,21 @@ function pdfRectForField(field: PdfFormFieldDraft, page: PDFPage) {
 
 type FieldWithWidgets = {
   acroField: {
-    getWidgets(): { MK(): { delete(key: PDFName): boolean } | undefined }[]
+    getWidgets(): {
+      MK(): { delete(key: PDFName): boolean } | undefined
+      getOrCreateBorderStyle(): { setWidth(width: number): void }
+    }[]
   }
 }
 
-function clearWidgetBackground(field: FieldWithWidgets) {
+function clearWidgetChrome(field: FieldWithWidgets, options: { border?: boolean } = {}) {
   for (const widget of field.acroField.getWidgets()) {
-    widget.MK()?.delete(PDFName.of('BG'))
+    const appearance = widget.MK()
+    appearance?.delete(PDFName.of('BG'))
+    if (options.border) {
+      appearance?.delete(PDFName.of('BC'))
+      widget.getOrCreateBorderStyle().setWidth(0)
+    }
   }
 }
 
@@ -312,28 +320,28 @@ export async function writePdfFormFields(
       applyFlags(field, draft)
       if (draft.value === true) field.check()
       field.addToPage(page, rect)
-      clearWidgetBackground(field)
+      clearWidgetChrome(field)
     } else if (draft.fieldKind === 'radio') {
       const field = form.createRadioGroup(draft.name)
       applyFlags(field, draft)
       const option = draft.options?.[0] ?? 'Sí'
       field.addOptionToPage(option, page, rect)
       if (draft.value === option) field.select(option)
-      clearWidgetBackground(field)
+      clearWidgetChrome(field)
     } else if (draft.fieldKind === 'signature') {
       const field = form.createButton(draft.name)
       applyFlags(field, draft)
       field.addToPage('', page, { ...rect, font })
       const image = await embedSignatureImage(pdf, draft.value)
       if (image) field.setImage(image)
-      clearWidgetBackground(field)
+      clearWidgetChrome(field)
     } else {
       const field = form.createTextField(draft.name)
       applyFlags(field, draft)
       field.setText(stringValue(draft.value))
       field.addToPage(page, { ...rect, font })
       field.setFontSize(fontSizeForField(draft, page))
-      clearWidgetBackground(field)
+      clearWidgetChrome(field, { border: true })
     }
     writtenNames.add(draft.name)
   }

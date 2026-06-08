@@ -136,7 +136,7 @@ describe('pdfStudio/pdfForms', () => {
     expect(form.getFields()).toHaveLength(2)
   })
 
-  it('crea cuadros de texto con fondo transparente para imprimir sin tapar el PDF base', async () => {
+  it('crea cuadros de texto sin fondo ni borde para imprimir sin tapar el PDF base', async () => {
     const pdf = await PDFDocument.create()
     pdf.addPage([600, 800])
     const bytes = await pdf.save()
@@ -166,6 +166,8 @@ describe('pdfStudio/pdfForms', () => {
     const appearance = widget?.MK()
 
     expect(appearance?.has(PDFName.of('BG'))).toBe(false)
+    expect(appearance?.has(PDFName.of('BC'))).toBe(false)
+    expect(widget?.getBorderStyle()?.getWidth()).toBe(0)
   })
 
   it('aplana campos nuevos cuando flatten es verdadero', async () => {

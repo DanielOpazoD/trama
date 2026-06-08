@@ -146,7 +146,7 @@ describe('<FormFieldLayer />', () => {
       transform: 'translate(100%, -50%)',
     })
     expect(screen.queryByText('[paciente]')).toBeNull()
-    expect(input).toHaveStyle({ borderWidth: '1px' })
+    expect(input).toHaveStyle({ borderWidth: '0px' })
     expect(
       screen.queryByRole('button', {
         name: 'Redimensionar campo paciente desde esquina inferior derecha',
