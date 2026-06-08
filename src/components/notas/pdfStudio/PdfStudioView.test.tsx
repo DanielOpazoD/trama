@@ -500,7 +500,9 @@ describe('<PdfStudioView />', () => {
       within(designHeader).getByRole('button', { name: /Crear casillero/i }),
     )
     await user.click(within(dialog).getByAltText('Página 1'))
-    await user.click(within(designHeader).getByRole('button', { name: /^Cerrar$/i }))
+    await user.click(
+      within(designHeader).getByRole('button', { name: /Guardar y cerrar/i }),
+    )
 
     await act(async () => {
       await new Promise((resolve) => window.setTimeout(resolve, 700))

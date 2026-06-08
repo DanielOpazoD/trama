@@ -51,6 +51,7 @@ export function PdfTemplateDesignHeader({
 }) {
   const isMac = isMacLike()
   const fieldLabel = `${fieldCount} ${fieldCount === 1 ? 'casillero' : 'casilleros'}`
+  const closeLabel = fieldCount > 0 ? 'Guardar y cerrar' : 'Cerrar'
   const primaryAction =
     fieldCount === 0
       ? { label: 'Crear casillero', onClick: onCreateField }
@@ -147,8 +148,13 @@ export function PdfTemplateDesignHeader({
             <RedoIcon size={15} />
           </button>
         </div>
-        <button type="button" onClick={onClose} className="btn-ghost text-xs">
-          Cerrar
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={closeLabel}
+          className="btn-ghost text-xs"
+        >
+          {closeLabel}
         </button>
         <button
           type="button"

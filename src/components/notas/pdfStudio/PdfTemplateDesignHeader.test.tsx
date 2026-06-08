@@ -6,10 +6,12 @@ import { PdfTemplateDesignHeader } from './PdfTemplateDesignHeader'
 function renderHeader({
   fieldCount = 0,
   onApply = vi.fn(),
+  onClose = vi.fn(),
   onCreateField = vi.fn(),
 }: {
   fieldCount?: number
   onApply?: () => void
+  onClose?: () => void
   onCreateField?: () => void
 } = {}) {
   render(
@@ -21,7 +23,7 @@ function renderHeader({
       undoable={false}
       zoom={100}
       onApply={onApply}
-      onClose={vi.fn()}
+      onClose={onClose}
       onCreateField={onCreateField}
       onNextPage={vi.fn()}
       onPrepareZoomAnchor={vi.fn()}
@@ -71,5 +73,18 @@ describe('<PdfTemplateDesignHeader />', () => {
 
     expect(onApply).toHaveBeenCalledTimes(1)
     expect(onCreateField).not.toHaveBeenCalled()
+  })
+
+  it('nombra el cierre como guardado cuando ya hay estructura', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+
+    renderHeader({ fieldCount: 2, onClose })
+
+    expect(screen.queryByRole('button', { name: /^Cerrar$/i })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Guardar y cerrar/i }))
+
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 })
