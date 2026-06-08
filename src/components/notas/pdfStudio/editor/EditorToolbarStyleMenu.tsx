@@ -13,6 +13,7 @@ import { OverflowMenu } from '../../../OverflowMenu'
 import { clamp, type TextStyle } from './editorStyle'
 import {
   activeMenuItem,
+  ColorSwatch,
   COLORS,
   editorMenuLayer,
   focusRing,
@@ -132,17 +133,13 @@ export function EditorToolbarStyleMenu({
             </p>
             <div className="flex flex-wrap gap-1 px-1">
               {COLORS.map((c) => (
-                <button
+                <ColorSwatch
                   key={c.hex}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={activeColor === c.hex}
-                  aria-label={`Color ${c.label}`}
-                  onClick={() => onApplyStyle({ color: c.hex })}
-                  className={`h-6 w-6 rounded-full border transition-transform hover:scale-110 ${focusRing} ${
-                    activeColor === c.hex ? 'border-ink-800' : 'border-ink-900/15'
-                  }`}
-                  style={{ backgroundColor: c.hex }}
+                  color={c.hex}
+                  label={c.label}
+                  active={activeColor === c.hex}
+                  onSelect={() => onApplyStyle({ color: c.hex })}
+                  radio
                 />
               ))}
             </div>

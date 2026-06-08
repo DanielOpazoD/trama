@@ -4,7 +4,7 @@ import type {
   AnnotationHorizontalAlignment,
   AnnotationLayerMove,
 } from './pdfAnnotationArrange'
-import { focusRing } from './EditorToolbarPrimitives'
+import { ColorSwatch, COLORS, focusRing } from './EditorToolbarPrimitives'
 
 type AnnotationBounds = {
   xRatio: number
@@ -12,15 +12,6 @@ type AnnotationBounds = {
   wRatio: number
   hRatio: number
 }
-
-const COLORS = [
-  { hex: '#222222', label: 'Tinta' },
-  { hex: '#ffffff', label: 'Papel' },
-  { hex: '#b3412c', label: 'Rojo' },
-  { hex: '#2f5d8a', label: 'Azul' },
-  { hex: '#4b7355', label: 'Verde' },
-  { hex: '#f2c94c', label: 'Amarillo' },
-]
 
 function pct(value: number): string {
   return `${Math.round(value * 100)}%`
@@ -341,18 +332,12 @@ export function SelectionInspector({
       <div className="mt-2 flex items-center gap-2">
         <div className="flex flex-1 items-center gap-1">
           {COLORS.map((c) => (
-            <button
+            <ColorSwatch
               key={c.hex}
-              type="button"
-              aria-label={`Color ${c.label}`}
-              title={c.label}
-              onClick={() => onColorChange(c.hex)}
-              className={`h-5 w-5 rounded-full border transition-transform ${
-                color === c.hex
-                  ? 'scale-110 border-ink-700'
-                  : 'border-ink-900/15 hover:scale-105'
-              }`}
-              style={{ backgroundColor: c.hex }}
+              color={c.hex}
+              label={c.label}
+              active={color === c.hex}
+              onSelect={() => onColorChange(c.hex)}
             />
           ))}
         </div>

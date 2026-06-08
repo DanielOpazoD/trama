@@ -111,6 +111,7 @@ export function AnnotationShapeLayer({
                   color={strokeColor}
                   sw={sw}
                   opacity={a.opacity ?? 1}
+                  dashed={isX && !!a.disabled}
                 />
                 {(interactive || xClickable) &&
                   (a.shape === 'rect' || isX ? (

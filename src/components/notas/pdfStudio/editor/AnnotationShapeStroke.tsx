@@ -30,6 +30,7 @@ export function ShapeStroke({
   color,
   sw,
   opacity,
+  dashed = false,
 }: {
   shape: ShapeKind
   p0: { x: number; y: number }
@@ -37,6 +38,8 @@ export function ShapeStroke({
   color: string
   sw: number
   opacity: number
+  /** Trazo punteado (ej.: marca X DESHABILITADA, para leerse como "apagada"). */
+  dashed?: boolean
 }) {
   const x = Math.min(p0.x, p1.x)
   const y = Math.min(p0.y, p1.y)
@@ -49,6 +52,7 @@ export function ShapeStroke({
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
     opacity,
+    ...(dashed ? { strokeDasharray: `${sw * 1.6} ${sw * 1.4}` } : null),
     style: { pointerEvents: 'none' as const },
   }
   if (shape === 'rect') return <rect x={x} y={y} width={w} height={h} {...common} />

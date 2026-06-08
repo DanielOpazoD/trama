@@ -143,6 +143,36 @@ export function activeMenuItem(on: boolean): string {
   return `${menuItem} ${on ? menuItemActive : ''}`
 }
 
+/** Botón circular para elegir un color de la paleta COLORS. Tamaño normalizado
+ *  (h-6 w-6) para que la barra de estilo y el inspector se vean idénticos.
+ *  `radio` lo marca como menuitemradio (cuando vive dentro de un menú). */
+export function ColorSwatch({
+  color,
+  label,
+  active,
+  onSelect,
+  radio = false,
+}: {
+  color: string
+  label: string
+  active: boolean
+  onSelect: () => void
+  radio?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      {...(radio ? { role: 'menuitemradio', 'aria-checked': active } : { title: label })}
+      aria-label={`Color ${label}`}
+      onClick={onSelect}
+      className={`h-6 w-6 rounded-full border transition-transform hover:scale-110 ${focusRing} ${
+        active ? 'border-ink-800' : 'border-ink-900/15'
+      }`}
+      style={{ backgroundColor: color }}
+    />
+  )
+}
+
 export function Stepper({
   icon,
   label,
