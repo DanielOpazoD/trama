@@ -1,7 +1,7 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { PdfFormFieldDraft } from '../../../../lib/pdfStudio/model/model'
 import type { ResizeHandle } from '../../../../lib/pdfStudio/model/editorGeometry'
-import { FormFieldLayer, type VisualPdfFormWidget } from '../FormFieldLayer'
+import { FormFieldLayer, type VisualPdfFormWidget } from '../planillas/FormFieldLayer'
 
 export function PdfTextEditorFormSurface({
   detectedWidgets,

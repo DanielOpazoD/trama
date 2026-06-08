@@ -3,7 +3,7 @@ import {
   clearPdfFormFieldValues,
   type PdfDoc,
 } from '../../../../lib/pdfStudio/model/model'
-import type { PdfTemplateMode } from '../PdfTemplateModeBanner'
+import type { PdfTemplateMode } from '../planillas/design/PdfTemplateModeBanner'
 
 export function usePdfStudioDraftSanitizer({
   mode,

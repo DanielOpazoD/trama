@@ -1,7 +1,7 @@
 import { pdfCommandTooltip } from '../../../../lib/pdfStudio/model/commands'
 import type { AssembleOptions } from '../../../../lib/pdfStudio/assemble/assemble'
 import type { DocSettings } from '../../../../lib/pdfStudio/model/model'
-import type { PdfTemplateMode } from '../PdfTemplateModeBanner'
+import type { PdfTemplateMode } from '../planillas/design/PdfTemplateModeBanner'
 import { OverflowMenu, OverflowMenuItem } from '../../../OverflowMenu'
 import {
   CloseIcon,

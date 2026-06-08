@@ -15,15 +15,15 @@ import type {
   ResizeHandle,
 } from '../../../../lib/pdfStudio/model/editorGeometry'
 import { AnnotationLayer, type DrawingRect } from './AnnotationLayer'
-import { FormFieldLayer } from '../FormFieldLayer'
+import { FormFieldLayer } from '../planillas/FormFieldLayer'
 import { PageCanvas } from '../pages/PageCanvas'
 import { PdfTextEditorFormSurface } from './PdfTextEditorFormSurface'
 import type { SnapGuide } from './pdfAnnotationSnap'
 import {
   visualWidgetsForPage,
   type DetectedPdfFormForCanvas,
-} from '../pdfFormVisualMapping'
-import { orderFormFieldsForPage } from '../pdfFormFieldFillOrder'
+} from '../planillas/pdfFormVisualMapping'
+import { orderFormFieldsForPage } from '../planillas/pdfFormFieldFillOrder'
 import { usePdfTextEditorPageRender } from './usePdfTextEditorPageRender'
 import type { Tool } from './editorStyle'
 type ResizableAnnotation =

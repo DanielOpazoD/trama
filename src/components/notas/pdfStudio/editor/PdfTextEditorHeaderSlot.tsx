@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react'
-import { PdfTemplateDesignHeader } from '../PdfTemplateDesignHeader'
-import { PdfTemplateFillHeader } from '../PdfTemplateFillHeader'
+import { PdfTemplateDesignHeader } from '../planillas/design/PdfTemplateDesignHeader'
+import { PdfTemplateFillHeader } from '../planillas/fill/PdfTemplateFillHeader'
 import { PdfTextEditorHeader } from './PdfTextEditorHeader'
 
 type EditorHeaderProps = ComponentProps<typeof PdfTextEditorHeader>

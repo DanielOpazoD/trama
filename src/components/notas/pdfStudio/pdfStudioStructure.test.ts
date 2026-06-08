@@ -44,13 +44,13 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene formularios visuales separados en modulos pequenos', () => {
     const formModules = [
       'src/lib/pdfStudio/model/modelForms.ts',
-      'src/components/notas/pdfStudio/FormFieldLayer.tsx',
-      'src/components/notas/pdfStudio/usePdfTextEditorForms.ts',
-      'src/components/notas/pdfStudio/SignatureCaptureDialog.tsx',
-      'src/components/notas/pdfStudio/FormFieldInspector.tsx',
+      'src/components/notas/pdfStudio/planillas/FormFieldLayer.tsx',
+      'src/components/notas/pdfStudio/planillas/usePdfTextEditorForms.ts',
+      'src/components/notas/pdfStudio/planillas/SignatureCaptureDialog.tsx',
+      'src/components/notas/pdfStudio/planillas/FormFieldInspector.tsx',
       'src/components/notas/pdfStudio/editor/PdfTextEditorFormSurface.tsx',
       'src/components/notas/pdfStudio/editor/PdfTextEditorPageSurface.tsx',
-      'src/components/notas/pdfStudio/pdfFormVisualMapping.ts',
+      'src/components/notas/pdfStudio/planillas/pdfFormVisualMapping.ts',
       'src/components/notas/pdfStudio/editor/pdfEditorZoomScroll.ts',
       'src/components/notas/pdfStudio/editor/usePdfEditorZoomScroll.ts',
       'src/components/notas/pdfStudio/editor/EditorToolbarFormMenu.tsx',
@@ -63,8 +63,8 @@ describe('pdfStudio · estructura incremental', () => {
 
   it('mantiene el modo planilla separado en modulos pequenos', () => {
     const templateModules = [
-      'src/components/notas/pdfStudio/PdfTemplateModeBanner.tsx',
-      'src/components/notas/pdfStudio/usePdfStudioTemplateMode.tsx',
+      'src/components/notas/pdfStudio/planillas/design/PdfTemplateModeBanner.tsx',
+      'src/components/notas/pdfStudio/planillas/design/usePdfStudioTemplateMode.tsx',
       'src/components/notas/pdfStudio/shell/PdfStudioWorkspacePanelHost.tsx',
     ]
 

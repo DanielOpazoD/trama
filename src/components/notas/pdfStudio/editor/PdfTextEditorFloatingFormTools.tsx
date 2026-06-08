@@ -4,9 +4,9 @@ import type {
   AnnotationHorizontalAlignment,
 } from './pdfAnnotationArrange'
 import type { TextStyle } from './editorStyle'
-import { FormFieldInspector } from '../FormFieldInspector'
-import { FormFieldSelectionInspector } from '../FormFieldSelectionInspector'
-import { SignatureCaptureDialog } from '../SignatureCaptureDialog'
+import { FormFieldInspector } from '../planillas/FormFieldInspector'
+import { FormFieldSelectionInspector } from '../planillas/FormFieldSelectionInspector'
+import { SignatureCaptureDialog } from '../planillas/SignatureCaptureDialog'
 
 export function PdfTextEditorFloatingFormTools({
   field,
