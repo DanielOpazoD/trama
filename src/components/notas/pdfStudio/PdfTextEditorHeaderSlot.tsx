@@ -1,4 +1,5 @@
 import type { ComponentProps } from 'react'
+import { PdfTemplateDesignHeader } from './PdfTemplateDesignHeader'
 import { PdfTemplateFillHeader } from './PdfTemplateFillHeader'
 import { PdfTextEditorHeader } from './PdfTextEditorHeader'
 
@@ -6,6 +7,7 @@ type EditorHeaderProps = ComponentProps<typeof PdfTextEditorHeader>
 
 export function PdfTextEditorHeaderSlot({
   changeZoom,
+  designMode,
   displayZoom,
   fillMode,
   fillProgress,
@@ -17,6 +19,7 @@ export function PdfTextEditorHeaderSlot({
   zoomOutDisabled,
 }: {
   changeZoom: (zoom: number) => void
+  designMode: boolean
   displayZoom: number
   fillMode: boolean
   fillProgress: { completed: number; total: number }
@@ -27,6 +30,31 @@ export function PdfTextEditorHeaderSlot({
   zoomInDisabled: boolean
   zoomOutDisabled: boolean
 }) {
+  if (designMode) {
+    return (
+      <PdfTemplateDesignHeader
+        currentPage={headerProps.currentPage}
+        fieldCount={fillProgress.total}
+        redoable={headerProps.redoable}
+        totalPages={headerProps.total}
+        undoable={headerProps.undoable}
+        zoom={displayZoom}
+        zoomInDisabled={zoomInDisabled}
+        zoomOutDisabled={zoomOutDisabled}
+        onApply={headerProps.onDone}
+        onClose={headerProps.onCancel}
+        onNextPage={headerProps.onNextPage}
+        onPrepareZoomAnchor={prepareZoomAnchor}
+        onPrevPage={headerProps.onPrevPage}
+        onRedo={headerProps.onRedo}
+        onUndo={headerProps.onUndo}
+        onZoomChange={changeZoom}
+        onZoomIn={stepZoomIn}
+        onZoomOut={stepZoomOut}
+      />
+    )
+  }
+
   if (!fillMode) return <PdfTextEditorHeader {...headerProps} />
 
   return (

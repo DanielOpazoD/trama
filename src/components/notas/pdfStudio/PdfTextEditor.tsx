@@ -32,6 +32,7 @@ import { PdfTextEditorFillSidebar } from './PdfTextEditorFillSidebar'
 import { usePdfTextEditorFormSuggestions } from './usePdfTextEditorFormSuggestions'
 import { PdfTextEditorAuxiliaryControls } from './PdfTextEditorAuxiliaryControls'
 import { PdfTextEditorScrollArea } from './PdfTextEditorScrollArea'
+import { pdfTextEditorDialogLabel } from './pdfTextEditorDialogMode'
 import { pdfTextEditorBodyClass } from './pdfTextEditorLayoutClasses'
 import type { PdfTextEditorResult } from './pdfTextEditorResult'
 import { formFieldTextStyle } from './pdfFormFieldStyle'
@@ -72,6 +73,7 @@ export function PdfTextEditor({
 }) {
   const total = doc.pages.length
   const fillMode = mode === 'fill'
+  const designMode = !fillMode && templateToolsEnabled
   const [currentPage, setCurrentPage] = useState(pageIndex)
   const [history, setHistory] = useState<PdfTextEditorHistory>(() => initHistory({}))
   const edited = history.present
@@ -357,7 +359,7 @@ export function PdfTextEditor({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={fillMode ? 'Rellenar planilla' : `Editar página ${currentPage + 1}`}
+      aria-label={pdfTextEditorDialogLabel({ currentPage, designMode, fillMode })}
       onPointerDown={(e) => {
         backdropDownRef.current =
           e.target === e.currentTarget ? { x: e.clientX, y: e.clientY } : null
@@ -379,6 +381,7 @@ export function PdfTextEditor({
       >
         <PdfTextEditorHeaderSlot
           changeZoom={changeZoom}
+          designMode={designMode}
           displayZoom={displayZoom}
           fillMode={fillMode}
           fillProgress={fillProgress}

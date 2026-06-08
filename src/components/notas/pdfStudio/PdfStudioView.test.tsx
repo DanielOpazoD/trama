@@ -164,8 +164,15 @@ describe('<PdfStudioView />', () => {
 
     await user.click(within(guide).getByRole('button', { name: /Definir casilleros/i }))
     expect(
-      await screen.findByRole('dialog', { name: /Editar página 1/i }),
+      await screen.findByRole('dialog', { name: /Crear plantilla/i }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('banner', { name: /Crear plantilla/i })).toHaveTextContent(
+      '0 casilleros',
+    )
+    expect(
+      screen.getByRole('button', { name: /Aplicar casilleros/i }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Listo$/i })).not.toBeInTheDocument()
   })
 
   it('desde la guía descarga PDF rellenable cuando la planilla tiene casilleros', async () => {
@@ -211,7 +218,7 @@ describe('<PdfStudioView />', () => {
     await user.click(addFields)
 
     expect(
-      await screen.findByRole('dialog', { name: /Editar página 1/i }),
+      await screen.findByRole('dialog', { name: /Crear plantilla/i }),
     ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Campos' }))
     expect(
@@ -417,7 +424,7 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await user.dblClick(await screen.findByAltText('Página 1'))
 
-    const dialog = await screen.findByRole('dialog', { name: /Editar página 1/i })
+    const dialog = await screen.findByRole('dialog', { name: /Crear plantilla/i })
     expect(dialog.firstElementChild).toHaveClass('max-w-[min(1360px,85vw)]')
   })
 
@@ -426,7 +433,7 @@ describe('<PdfStudioView />', () => {
     renderWithProviders(<PdfStudioView studioMode="templates" />)
     await user.upload(fileInput(), pdfFile())
     await user.dblClick(await screen.findByAltText('Página 1'))
-    await screen.findByRole('dialog', { name: /Editar página 1/i })
+    await screen.findByRole('dialog', { name: /Crear plantilla/i })
 
     expect(screen.getByRole('button', { name: 'Campos' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Campos' }))
