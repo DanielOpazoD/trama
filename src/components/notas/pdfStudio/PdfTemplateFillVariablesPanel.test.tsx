@@ -146,6 +146,81 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
     expect(screen.getByRole('button', { name: /Siguiente pendiente/i })).toBeDisabled()
   })
 
+  it('filtra pendientes sin perder el conteo total de la planilla', () => {
+    const onShowPendingOnlyChange = vi.fn()
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[emptyField, filledField]}
+        pageIndexById={{ p1: 0, p2: 1 }}
+        showPendingOnly
+        onChange={vi.fn()}
+        onShowPendingOnlyChange={onShowPendingOnlyChange}
+        onJump={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('1/2')).toBeInTheDocument()
+    expect(
+      screen.getByRole('textbox', { name: /Variable paciente/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('textbox', { name: /Variable rut/i }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Solo pendientes/i }))
+    expect(onShowPendingOnlyChange).toHaveBeenCalledWith(false)
+  })
+
+  it('permite limpiar datos temporales e importar JSON/CSV desde el panel', () => {
+    const onClearValues = vi.fn()
+    const onImportValues = vi.fn()
+    const file = new File(['{"paciente":"Camila"}'], 'datos.json', {
+      type: 'application/json',
+    })
+
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[emptyField]}
+        pageIndexById={{ p1: 0 }}
+        onChange={vi.fn()}
+        onClearValues={onClearValues}
+        onImportValues={onImportValues}
+        onJump={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/la plantilla base no cambia/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Limpiar datos/i }))
+    expect(onClearValues).toHaveBeenCalledTimes(1)
+
+    expect(screen.getByRole('button', { name: /Cargar datos/i })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText(/Archivo de datos/i), {
+      target: { files: [file] },
+    })
+    expect(onImportValues).toHaveBeenCalledWith(file)
+  })
+
+  it('muestra feedback compacto de importación de datos', () => {
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[emptyField]}
+        pageIndexById={{ p1: 0 }}
+        importFeedback={{
+          tone: 'error',
+          message: 'No se encontraron datos para importar.',
+        }}
+        onChange={vi.fn()}
+        onJump={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'No se encontraron datos para importar.',
+    )
+  })
+
   it('permite rellenar rápido avanzando al siguiente casillero con Enter', () => {
     const onJump = vi.fn()
     render(

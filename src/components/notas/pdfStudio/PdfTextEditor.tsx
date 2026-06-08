@@ -37,6 +37,7 @@ import { pdfTextEditorBodyClass } from './pdfTextEditorLayoutClasses'
 import { formFieldTextStyle } from './pdfFormFieldStyle'
 import { usePdfTextEditorFillFocus } from './usePdfTextEditorFillFocus'
 import { usePdfTextEditorHeaderProps } from './usePdfTextEditorHeaderProps'
+import { usePdfTemplateFillImport } from './usePdfTemplateFillImport'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 export type PdfTextEditorResult = {
@@ -75,6 +76,7 @@ export function PdfTextEditor({
   const total = doc.pages.length
   const fillMode = mode === 'fill'
   const [showFillGuides, setShowFillGuides] = useState(false)
+  const [showPendingOnly, setShowPendingOnly] = useState(false)
   const [currentPage, setCurrentPage] = useState(pageIndex)
   const [history, setHistory] = useState<PdfTextEditorHistory>(() => initHistory({}))
   const edited = history.present
@@ -144,7 +146,6 @@ export function PdfTextEditor({
     },
     [doc],
   )
-
   const [style, setStyle] = useState<TextStyle>({
     ...defaultEditorTextStyle(),
   })
@@ -176,7 +177,6 @@ export function PdfTextEditor({
     clearEditing: () => setEditingId(null),
   })
   selectedRef.current = selectedId
-
   usePdfTextEditorKeyboard({
     editingRef,
     selectedRef,
@@ -194,7 +194,6 @@ export function PdfTextEditor({
       list.map((a) => (a.id === id && a.kind === 'text' ? { ...a, ...patch } : a)),
     )
   const annotationStyle = resolveActiveEditorStyle(selectedAnn, style)
-
   function addText() {
     const a = makeTextAnnotation({
       text: 'Texto',
@@ -239,7 +238,6 @@ export function PdfTextEditor({
     setAnnotations((l) => [...l, copy])
     setSelectedId(copy.id)
   }
-
   function duplicateImage(a: ImageAnnotation) {
     const copy = translateAnnotation(cloneAnnotation(a), 0.03, 0.03)
     setAnnotations((l) => [...l, copy])
@@ -271,6 +269,8 @@ export function PdfTextEditor({
     addFormField,
     addSuggestedFormFields,
     alignDraftFormFields,
+    applyDraftFormValues,
+    clearDraftFormValues,
     deleteDraftFormField,
     distributeDraftFormFields,
     formFields,
@@ -327,6 +327,8 @@ export function PdfTextEditor({
   const pageIndexById = Object.fromEntries(doc.pages.map((p, i) => [p.id, i]))
   const { activeFillFieldId, jumpToFormField, setActiveFillFieldId } =
     usePdfTextEditorFillFocus({ goToPage, pageIndexById })
+  const { importFeedback, importTemplateValues } =
+    usePdfTemplateFillImport(applyDraftFormValues)
   const currentEdits = () => ({ annotations: edited, formFields })
   const headerProps = usePdfTextEditorHeaderProps({
     changeZoom,
@@ -457,11 +459,16 @@ export function PdfTextEditor({
             <PdfTemplateFillVariablesPanel
               activeFieldId={activeFillFieldId}
               fields={formFields}
+              importFeedback={importFeedback}
               pageIndexById={pageIndexById}
               showFieldGuides={showFillGuides}
+              showPendingOnly={showPendingOnly}
               onChange={updateDraftFormValue}
+              onClearValues={clearDraftFormValues}
               onFocusField={(field) => setActiveFillFieldId(field.id)}
+              onImportValues={importTemplateValues}
               onShowFieldGuidesChange={setShowFillGuides}
+              onShowPendingOnlyChange={setShowPendingOnly}
               onJump={jumpToFormField}
             />
           ) : null}

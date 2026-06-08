@@ -1,5 +1,7 @@
 import { useRef } from 'react'
 import type { PdfFormFieldDraft, PdfFormValue } from '../../../lib/pdfStudio/model'
+import type { TemplateFillImportValues } from './pdfTemplateFillImport'
+import type { TemplateFillImportFeedback } from './usePdfTemplateFillImport'
 import { orderFormFieldsForFill } from './pdfFormFieldFillOrder'
 import { FORM_FIELD_EMPTY_HINT } from './pdfFormFieldStyle'
 
@@ -24,32 +26,46 @@ function isFilled(field: PdfFormFieldDraft): boolean {
 export function PdfTemplateFillVariablesPanel({
   activeFieldId = null,
   fields,
+  importFeedback = null,
   pageIndexById,
   showFieldGuides = false,
+  showPendingOnly = false,
   onChange,
+  onClearValues,
   onFocusField,
+  onImportValues,
   onShowFieldGuidesChange = () => undefined,
+  onShowPendingOnlyChange = () => undefined,
   onJump,
 }: {
   activeFieldId?: string | null
   fields: PdfFormFieldDraft[]
+  importFeedback?: TemplateFillImportFeedback | null
   pageIndexById: Record<string, number>
   showFieldGuides?: boolean
+  showPendingOnly?: boolean
   onChange: (id: string, value: string | boolean) => void
+  onClearValues?: () => void
   onFocusField?: (field: PdfFormFieldDraft) => void
+  onImportValues?: (file: File) => void | Promise<TemplateFillImportValues | void>
   onShowFieldGuidesChange?: (show: boolean) => void
+  onShowPendingOnlyChange?: (show: boolean) => void
   onJump: (field: PdfFormFieldDraft) => void
 }) {
   const fieldInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const importInputRef = useRef<HTMLInputElement | null>(null)
   const orderedFields = orderFormFieldsForFill(fields, pageIndexById)
+  const visibleFields = showPendingOnly
+    ? orderedFields.filter((field) => !isFilled(field))
+    : orderedFields
   const pending = orderedFields.filter((field) => !isFilled(field)).length
   const completed = orderedFields.length - pending
   const nextPending = orderedFields.find((field) => !isFilled(field)) ?? null
   const focusAdjacentField = (index: number, direction: 1 | -1): boolean => {
     const candidates =
       direction > 0
-        ? orderedFields.slice(index + 1)
-        : orderedFields.slice(0, index).reverse()
+        ? visibleFields.slice(index + 1)
+        : visibleFields.slice(0, index).reverse()
     const next = candidates.find((field) => !field.readOnly)
     if (!next) return false
     onJump(next)
@@ -92,15 +108,72 @@ export function PdfTemplateFillVariablesPanel({
       >
         Siguiente pendiente
       </button>
-      <label className="mt-2 flex items-center justify-between gap-2 rounded-md bg-ink-50 px-2 py-1.5 text-caption text-ink-600">
-        <span>Mostrar campos</span>
-        <input
-          type="checkbox"
-          checked={showFieldGuides}
-          onChange={(event) => onShowFieldGuidesChange(event.currentTarget.checked)}
-          className="h-4 w-4 accent-[color:var(--accent-sage)]"
-        />
-      </label>
+      <p className="mt-2 rounded-md bg-ink-50 px-2 py-1.5 text-micro leading-snug text-ink-500">
+        Los datos son temporales: la plantilla base no cambia salvo que guardes una copia
+        con datos.
+      </p>
+      <div className="mt-2 grid grid-cols-2 gap-1.5">
+        <button
+          type="button"
+          onClick={() => importInputRef.current?.click()}
+          disabled={!onImportValues}
+          className="rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-[color:var(--accent-sage)]/40 hover:text-[color:var(--accent-sage)] disabled:cursor-not-allowed disabled:text-ink-300"
+        >
+          Cargar datos
+        </button>
+        <button
+          type="button"
+          onClick={onClearValues}
+          disabled={!onClearValues || orderedFields.length === 0}
+          className="rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-red-300 hover:text-red-700 disabled:cursor-not-allowed disabled:text-ink-300"
+        >
+          Limpiar datos
+        </button>
+      </div>
+      <input
+        ref={importInputRef}
+        aria-label="Archivo de datos"
+        type="file"
+        accept=".json,.csv,application/json,text/csv,text/plain"
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0]
+          if (file) void onImportValues?.(file)
+          event.currentTarget.value = ''
+        }}
+      />
+      {importFeedback ? (
+        <p
+          role="status"
+          className={`mt-2 rounded-md px-2 py-1.5 text-micro leading-snug ${
+            importFeedback.tone === 'error'
+              ? 'bg-red-50 text-red-700'
+              : 'bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]'
+          }`}
+        >
+          {importFeedback.message}
+        </p>
+      ) : null}
+      <div className="mt-2 grid grid-cols-2 gap-1.5">
+        <label className="flex items-center justify-between gap-2 rounded-md bg-ink-50 px-2 py-1.5 text-caption text-ink-600">
+          <span>Mostrar campos</span>
+          <input
+            type="checkbox"
+            checked={showFieldGuides}
+            onChange={(event) => onShowFieldGuidesChange(event.currentTarget.checked)}
+            className="h-4 w-4 accent-[color:var(--accent-sage)]"
+          />
+        </label>
+        <label className="flex items-center justify-between gap-2 rounded-md bg-ink-50 px-2 py-1.5 text-caption text-ink-600">
+          <span>Solo pendientes</span>
+          <input
+            type="checkbox"
+            checked={showPendingOnly}
+            onChange={(event) => onShowPendingOnlyChange(event.currentTarget.checked)}
+            className="h-4 w-4 accent-[color:var(--accent-sage)]"
+          />
+        </label>
+      </div>
       {orderedFields.length === 0 ? (
         <div className="mt-3 rounded-md border border-dashed border-ink-200 bg-paper-50 px-3 py-4 text-caption text-ink-500">
           Esta planilla no tiene casilleros para rellenar.
@@ -110,7 +183,7 @@ export function PdfTemplateFillVariablesPanel({
         data-testid="template-fill-fields-scroll"
         className="mt-2 flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1"
       >
-        {orderedFields.map((field, index) => {
+        {visibleFields.map((field, index) => {
           const filled = isFilled(field)
           const label = `Variable ${field.name}`
           const active = activeFieldId === field.id
