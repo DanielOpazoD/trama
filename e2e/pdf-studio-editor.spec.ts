@@ -95,10 +95,8 @@ async function expectMenuInFront(page: Page, triggerName: string) {
 
 async function chooseHighlightTool(page: Page) {
   await waitForEditableSheetReady(page)
-  await page.getByRole('button', { name: 'Más funciones', exact: true }).click()
-  await page
-    .getByRole('menuitemradio', { name: 'Herramienta Resaltar' })
-    .click({ force: true })
+  // "Resaltar" ahora es un botón directo de la barra (antes vivía en "Más funciones").
+  await page.getByRole('button', { name: 'Herramienta Resaltar', exact: true }).click()
   await expect
     .poll(async () =>
       page
@@ -300,10 +298,10 @@ test.describe('Imprenta · editor PDF', () => {
     expect(metrics.maxChildBottom - metrics.minChildTop).toBeLessThanOrEqual(36)
     expect(metrics.bodyOverflow).toBeLessThanOrEqual(1)
 
-    await expectMenuInFront(page, 'Fuente')
+    // Tras consolidar el estilo, los menús del editor PDF son "Texto" (fuente,
+    // color, tamaño, opacidad, rotación) y "Formas".
+    await expectMenuInFront(page, 'Texto')
     await expectMenuInFront(page, 'Formas')
-    await expectMenuInFront(page, 'Color')
-    await expectMenuInFront(page, 'Más funciones')
   })
 
   test('mantiene el centro de la hoja al aplicar zoom en el editor general', async ({

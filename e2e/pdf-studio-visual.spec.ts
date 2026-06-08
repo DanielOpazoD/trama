@@ -34,8 +34,8 @@ async function openPdfEditor(page: Page, viewport = { width: 1280, height: 800 }
 }
 
 async function chooseHighlightTool(page: Page) {
-  await page.getByRole('button', { name: 'Más funciones', exact: true }).click()
-  await page.getByRole('menuitemradio', { name: 'Herramienta Resaltar' }).click()
+  // "Resaltar" ahora es un botón directo de la barra (antes vivía en "Más funciones").
+  await page.getByRole('button', { name: 'Herramienta Resaltar', exact: true }).click()
 }
 
 test.describe('Imprenta · PDF visual regression', () => {
@@ -56,11 +56,12 @@ test.describe('Imprenta · PDF visual regression', () => {
     })
   })
 
-  test('menú de color queda delante y estable', async ({ page }) => {
+  test('menú de texto queda delante y estable', async ({ page }) => {
     await openPdfEditor(page, { width: 1280, height: 800 })
 
-    await page.getByRole('button', { name: 'Color', exact: true }).click()
-    await expect(page.getByRole('menu')).toHaveScreenshot('pdf-studio-color-menu.png', {
+    // El color se consolidó dentro del menú "Texto" (fuente, tamaño, color, etc.).
+    await page.getByRole('button', { name: 'Texto', exact: true }).click()
+    await expect(page.getByRole('menu')).toHaveScreenshot('pdf-studio-text-menu.png', {
       animations: 'disabled',
       maxDiffPixelRatio: 0.01,
     })

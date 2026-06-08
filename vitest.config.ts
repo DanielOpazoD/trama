@@ -52,10 +52,13 @@ export default defineConfig({
         // render (pdf.js: DOMMatrix/canvas/Worker), el ensamblado (pdf-lib +
         // canvas), la descarga (anchor/object URL) y la UI (file input/DnD) son
         // browser-only — verificados en el navegador y mockeados en los tests.
-        'src/lib/pdfStudio/pdfRender.ts',
-        'src/lib/pdfStudio/assemble.ts',
-        'src/lib/pdfStudio/persistence.ts',
-        'src/lib/pdfStudio/printPdf.ts',
+        // (2026-06-08) La reorganización por subcarpetas movió estos archivos
+        // browser-only; las rutas del exclude se actualizan para que sigan fuera
+        // del coverage (si no, vuelven a contar como 0% y hunden el umbral).
+        'src/lib/pdfStudio/render/pdfRender.ts',
+        'src/lib/pdfStudio/assemble/assemble.ts',
+        'src/lib/pdfStudio/render/persistence.ts',
+        'src/lib/pdfStudio/export/printPdf.ts',
         'src/lib/downloadBlob.ts',
         'src/components/notas/pdfStudio/**',
       ],
