@@ -167,6 +167,32 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
     expect(onJump).toHaveBeenCalledWith(filledField)
   })
 
+  it('permite navegar casilleros con Tab y Shift+Tab desde el panel', () => {
+    const onJump = vi.fn()
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[emptyField, filledField]}
+        pageIndexById={{ p1: 0, p2: 1 }}
+        onChange={vi.fn()}
+        onJump={onJump}
+      />,
+    )
+
+    const first = screen.getByRole('textbox', { name: /Variable paciente/i })
+    const second = screen.getByRole('textbox', { name: /Variable rut/i })
+    first.focus()
+
+    fireEvent.keyDown(first, { key: 'Tab' })
+
+    expect(second).toHaveFocus()
+    expect(onJump).toHaveBeenCalledWith(filledField)
+
+    fireEvent.keyDown(second, { key: 'Tab', shiftKey: true })
+
+    expect(first).toHaveFocus()
+    expect(onJump).toHaveBeenCalledWith(emptyField)
+  })
+
   it('trata el texto estándar como placeholder vacío en el panel de relleno', () => {
     const hintedField = makePdfFormFieldDraft({
       fieldKind: 'text',
