@@ -121,10 +121,11 @@ export function PdfTemplateFillHeader({
           <button
             type="button"
             onClick={onSaveCopy}
-            aria-label="Guardar copia con datos"
+            disabled={completedFields === 0}
+            aria-label="Guardar con datos"
             className="btn-ghost text-xs"
           >
-            Guardar copia
+            Guardar con datos
           </button>
         ) : null}
         <button

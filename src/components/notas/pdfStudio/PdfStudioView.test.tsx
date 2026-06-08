@@ -545,7 +545,7 @@ describe('<PdfStudioView />', () => {
     const fillDialog = await screen.findByRole('dialog', { name: /Rellenar planilla/i })
     await user.type(screen.getByRole('textbox', { name: 'paciente' }), 'Daniel')
     await user.click(
-      within(fillDialog).getByRole('button', { name: /Guardar copia con datos/i }),
+      within(fillDialog).getByRole('button', { name: /Guardar con datos/i }),
     )
 
     expect(mocks.putSavedDoc).toHaveBeenCalledWith(

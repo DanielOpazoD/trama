@@ -35,12 +35,35 @@ describe('<PdfTemplateFillHeader />', () => {
     expect(screen.queryByRole('button', { name: /Deshacer/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Listo/i })).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /Guardar copia con datos/i }))
+    await user.click(screen.getByRole('button', { name: /Guardar con datos/i }))
     await user.click(screen.getByRole('button', { name: /Imprimir planilla/i }))
     await user.click(screen.getByRole('button', { name: /Cerrar/i }))
 
     expect(onSaveCopy).toHaveBeenCalledTimes(1)
     expect(onPrint).toHaveBeenCalledTimes(1)
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('deshabilita guardar con datos mientras no haya datos ingresados', () => {
+    render(
+      <PdfTemplateFillHeader
+        currentPage={0}
+        completedFields={0}
+        totalFields={3}
+        totalPages={4}
+        zoom={100}
+        onClose={vi.fn()}
+        onNextPage={vi.fn()}
+        onPrevPage={vi.fn()}
+        onPrepareZoomAnchor={vi.fn()}
+        onPrint={vi.fn()}
+        onSaveCopy={vi.fn()}
+        onZoomChange={vi.fn()}
+        onZoomIn={vi.fn()}
+        onZoomOut={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: /Guardar con datos/i })).toBeDisabled()
   })
 })
