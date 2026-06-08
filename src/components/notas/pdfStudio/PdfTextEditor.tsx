@@ -40,7 +40,6 @@ import { fillProgressForTemplateFields } from './pdfTemplateFillProgress'
 import { usePdfTextEditorFillFocus } from './usePdfTextEditorFillFocus'
 import { usePdfTextEditorFillSidebarProps } from './usePdfTextEditorFillSidebarProps'
 import { usePdfTextEditorHeaderProps } from './usePdfTextEditorHeaderProps'
-
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 type PdfTextEditorHistory = History<Record<number, Annotation[]>>
 type PdfFormValueHandler = (
@@ -386,6 +385,7 @@ export function PdfTextEditor({
           fillMode={fillMode}
           fillProgress={fillProgress}
           headerProps={headerProps}
+          onCreateTemplateField={() => addFormField('text')}
           prepareZoomAnchor={prepareZoomAnchor}
           stepZoomIn={stepZoomIn}
           stepZoomOut={stepZoomOut}

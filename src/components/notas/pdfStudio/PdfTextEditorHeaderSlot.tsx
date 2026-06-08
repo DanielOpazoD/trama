@@ -12,6 +12,7 @@ export function PdfTextEditorHeaderSlot({
   fillMode,
   fillProgress,
   headerProps,
+  onCreateTemplateField,
   prepareZoomAnchor,
   stepZoomIn,
   stepZoomOut,
@@ -24,6 +25,7 @@ export function PdfTextEditorHeaderSlot({
   fillMode: boolean
   fillProgress: { completed: number; total: number }
   headerProps: EditorHeaderProps
+  onCreateTemplateField: () => void
   prepareZoomAnchor: () => void
   stepZoomIn: () => void
   stepZoomOut: () => void
@@ -43,6 +45,7 @@ export function PdfTextEditorHeaderSlot({
         zoomOutDisabled={zoomOutDisabled}
         onApply={headerProps.onDone}
         onClose={headerProps.onCancel}
+        onCreateField={onCreateTemplateField}
         onNextPage={headerProps.onNextPage}
         onPrepareZoomAnchor={prepareZoomAnchor}
         onPrevPage={headerProps.onPrevPage}

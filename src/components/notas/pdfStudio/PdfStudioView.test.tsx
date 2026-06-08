@@ -166,12 +166,14 @@ describe('<PdfStudioView />', () => {
     expect(
       await screen.findByRole('dialog', { name: /Crear plantilla/i }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('banner', { name: /Crear plantilla/i })).toHaveTextContent(
-      '0 casilleros',
-    )
+    const designHeader = screen.getByRole('banner', { name: /Crear plantilla/i })
+    expect(designHeader).toHaveTextContent('0 casilleros')
     expect(
-      screen.getByRole('button', { name: /Aplicar casilleros/i }),
+      within(designHeader).getByRole('button', { name: /Crear casillero/i }),
     ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Aplicar casilleros/i }),
+    ).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Listo$/i })).not.toBeInTheDocument()
   })
 

@@ -19,6 +19,7 @@ export function PdfTemplateDesignHeader({
   zoomOutDisabled = false,
   onApply,
   onClose,
+  onCreateField,
   onNextPage,
   onPrepareZoomAnchor,
   onPrevPage,
@@ -38,6 +39,7 @@ export function PdfTemplateDesignHeader({
   zoomOutDisabled?: boolean
   onApply: () => void
   onClose: () => void
+  onCreateField: () => void
   onNextPage: () => void
   onPrepareZoomAnchor: () => void
   onPrevPage: () => void
@@ -49,6 +51,10 @@ export function PdfTemplateDesignHeader({
 }) {
   const isMac = isMacLike()
   const fieldLabel = `${fieldCount} ${fieldCount === 1 ? 'casillero' : 'casilleros'}`
+  const primaryAction =
+    fieldCount === 0
+      ? { label: 'Crear casillero', onClick: onCreateField }
+      : { label: 'Aplicar casilleros', onClick: onApply }
 
   return (
     <header
@@ -144,8 +150,12 @@ export function PdfTemplateDesignHeader({
         <button type="button" onClick={onClose} className="btn-ghost text-xs">
           Cerrar
         </button>
-        <button type="button" onClick={onApply} className="btn-accent text-xs">
-          Aplicar casilleros
+        <button
+          type="button"
+          onClick={primaryAction.onClick}
+          className="btn-accent text-xs"
+        >
+          {primaryAction.label}
         </button>
       </div>
     </header>
