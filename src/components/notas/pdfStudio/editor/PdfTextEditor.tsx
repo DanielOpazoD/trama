@@ -25,7 +25,14 @@ import { usePdfTextEditorForms } from '../planillas/usePdfTextEditorForms'
 import { usePdfTextEditorKeyboard } from './usePdfTextEditorKeyboard'
 import { usePdfTextEditorSelection } from './usePdfTextEditorSelection'
 import { defaultEditorTextStyle, resolveActiveEditorStyle } from './pdfEditorStyleState'
-import { type TextStyle, type Tool } from './editorStyle'
+import {
+  clamp,
+  X_DEFAULT_SIDE,
+  X_SIZE_MAX,
+  X_SIZE_MIN,
+  type TextStyle,
+  type Tool,
+} from './editorStyle'
 import { createImageStampAnnotation, STAMP_ACCEPT } from './pdfImageStamp'
 import { PdfTextEditorPageSurface } from './PdfTextEditorPageSurface'
 import { type DetectedPdfFormForCanvas } from '../planillas/pdfFormVisualMapping'
@@ -86,6 +93,10 @@ export function PdfTextEditor({
   const annotations = edited[currentPage] ?? page?.annotations ?? []
   const [editingId, setEditingId] = useState<string | null>(null)
   const [tool, setTool] = useState<Tool>('select')
+  // Tamaño GLOBAL de las marcas X (una sola medida para todo el documento).
+  const [xMarkSize, setXMarkSize] = useState(
+    () => doc.settings?.xMarkSize ?? X_DEFAULT_SIDE,
+  )
   const [drawing, setDrawing] = useState<DrawingRect | null>(null)
   const [selectionMarquee, setSelectionMarquee] = useState<DrawingRect | null>(null)
   const [selectionLasso, setSelectionLasso] = useState<{ x: number; y: number }[] | null>(
@@ -208,6 +219,38 @@ export function PdfTextEditor({
         ),
       }),
     )
+  // Cambia el tamaño GLOBAL de la X y redimensiona TODAS las X del documento
+  // alrededor de su centro (cuadradas en px según la página activa). Undoable.
+  const resizeAllXMarks = (next: number) => {
+    const size = clamp(next, X_SIZE_MIN, X_SIZE_MAX)
+    setXMarkSize(size)
+    const L = activeLayoutRef.current ?? activeLayout
+    if (!L || L.innerW <= 0 || L.innerH <= 0) return
+    const wRatio = (size * L.innerH) / L.innerW
+    const hRatio = size
+    const resizeX = (a: Annotation): Annotation => {
+      if (a.kind !== 'shape' || a.shape !== 'x') return a
+      const cx = (a.x0Ratio + a.x1Ratio) / 2
+      const cy = (a.y0Ratio + a.y1Ratio) / 2
+      return {
+        ...a,
+        x0Ratio: cx - wRatio / 2,
+        y0Ratio: cy - hRatio / 2,
+        x1Ratio: cx + wRatio / 2,
+        y1Ratio: cy + hRatio / 2,
+      }
+    }
+    setHistory((h) => {
+      const present: Record<number, Annotation[]> = { ...h.present }
+      doc.pages.forEach((p, i) => {
+        const list = present[i] ?? p.annotations
+        if (list.some((a) => a.kind === 'shape' && a.shape === 'x')) {
+          present[i] = list.map(resizeX)
+        }
+      })
+      return pushHistory(h, present)
+    })
+  }
   const annotationStyle = resolveActiveEditorStyle(selectedAnn, style)
   function addText() {
     const a = makeTextAnnotation({
@@ -265,6 +308,7 @@ export function PdfTextEditor({
       zoom,
       tool,
       style,
+      xMarkSize,
       editedRef,
       annotationsRef,
       setSelectedId,
@@ -351,7 +395,17 @@ export function PdfTextEditor({
     setActiveFillFieldId,
     updateDraftFormValue,
   })
-  const currentEdits = () => ({ annotations: edited, formFields })
+  const currentEdits = () => ({
+    annotations: edited,
+    formFields,
+    settings: { ...doc.settings, xMarkSize },
+  })
+  // Al elegir una herramienta de dibujo (X), cancela el campo de formulario
+  // pendiente para que el clic dibuje la marca en vez de colocar un casillero.
+  const changeTool = (t: Tool) => {
+    if (t !== 'select') cancelPendingFormField()
+    setTool(t)
+  }
   const fillProgress = fillProgressForTemplateFields(formFields)
   const headerProps = usePdfTextEditorHeaderProps({
     changeZoom,
@@ -416,7 +470,9 @@ export function PdfTextEditor({
           <EditorToolbar
             context={templateToolsEnabled ? 'templateDesign' : 'editor'}
             tool={tool}
-            onToolChange={setTool}
+            onToolChange={changeTool}
+            xMarkSize={xMarkSize}
+            onXMarkSizeChange={resizeAllXMarks}
             onAddText={addText}
             onAddImage={() => stampInputRef.current?.click()}
             onAddFormField={templateToolsEnabled ? addFormField : undefined}

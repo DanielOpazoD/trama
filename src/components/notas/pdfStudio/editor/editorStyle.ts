@@ -62,9 +62,13 @@ export const SHAPE_STROKE = 0.004
  *  como casillero marcado). */
 export const X_STROKE = 0.006
 
-/** Lado por defecto de una X estampada con un clic (fracción del alto de página);
- *  cuadrada en píxeles, redimensionable luego. */
+/** Lado por defecto de una X (fracción del alto de página); cuadrada en píxeles.
+ *  El tamaño es GLOBAL al documento (vive en `DocSettings.xMarkSize`). */
 export const X_DEFAULT_SIDE = 0.02
+/** Rango y paso del control de tamaño global de la X. */
+export const X_SIZE_MIN = 0.008
+export const X_SIZE_MAX = 0.06
+export const X_SIZE_STEP = 0.004
 
 /** `#rrggbb` + alfa → `rgba(...)`, para pintar el relleno translúcido del
  *  resaltado sin atenuar el contorno de selección (que `opacity` sí atenuaría). */

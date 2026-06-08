@@ -430,7 +430,8 @@ export function AnnotationLayer({
       )}
 
       {annotations
-        .filter((a): a is ShapeAnnotation => a.kind === 'shape')
+        // Las marcas X no se redimensionan una a una: su tamaño es GLOBAL.
+        .filter((a): a is ShapeAnnotation => a.kind === 'shape' && a.shape !== 'x')
         .map((a) => (
           <div key={`${a.id}-shape-handles`}>
             <AnnotationResizeHandles

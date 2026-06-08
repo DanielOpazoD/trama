@@ -140,7 +140,9 @@ export function PdfTextEditorPageSurface({
   const { areaRef, bg, layout } = usePdfTextEditorPageRender({ page, source, zoom })
   const annotations = edited[pageIndex] ?? page?.annotations ?? []
   const fillMode = mode === 'fill'
-  const canEditAnnotations = mode === 'edit'
+  // En diseño de planilla también se pueden dibujar/togglear marcas X (la barra
+  // solo expone seleccionar, X y campos de formulario en ese modo).
+  const canEditAnnotations = mode === 'edit' || mode === 'design'
   const visibleFormWidgets = page ? visualWidgetsForPage(page, detectedForms) : []
   const visibleDraftFields = page
     ? orderFormFieldsForPage(draftFields, page.id, pageIndex)

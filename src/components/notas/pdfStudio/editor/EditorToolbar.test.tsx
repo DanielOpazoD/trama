@@ -9,6 +9,8 @@ function setup(overrides: Partial<Props> = {}) {
   const props: Props = {
     tool: 'select',
     onToolChange: vi.fn(),
+    xMarkSize: 0.02,
+    onXMarkSizeChange: vi.fn(),
     onAddText: vi.fn(),
     onAddImage: vi.fn(),
     activeFont: 'sans',
@@ -37,6 +39,32 @@ const lastStyle = (fn: Props['onApplyStyle']): Partial<TextStyle> => {
 }
 
 describe('<EditorToolbar />', () => {
+  it('ofrece la herramienta X y su control de tamaño GLOBAL al activarla', () => {
+    const props = setup({ tool: 'x', xMarkSize: 0.02 })
+    expect(
+      screen.getByRole('button', { name: /marca X para casilleros/i }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Agrandar la marca X/i }))
+    expect(vi.mocked(props.onXMarkSizeChange).mock.calls[0]![0]).toBeCloseTo(0.024, 6)
+    fireEvent.click(screen.getByRole('button', { name: /Achicar la marca X/i }))
+    expect(vi.mocked(props.onXMarkSizeChange).mock.calls[1]![0]).toBeCloseTo(0.016, 6)
+  })
+
+  it('oculta el control de tamaño X cuando la herramienta no está activa', () => {
+    setup({ tool: 'select' })
+    expect(
+      screen.queryByRole('button', { name: /Agrandar la marca X/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('expone la herramienta X también al diseñar planillas', () => {
+    setup({ context: 'templateDesign' })
+    expect(
+      screen.getByRole('button', { name: /marca X para casilleros/i }),
+    ).toBeInTheDocument()
+  })
+
   it('se presenta como una barra profesional con zonas de edición', () => {
     setup({ hasDuplicableSelection: true, hasSelection: true })
 

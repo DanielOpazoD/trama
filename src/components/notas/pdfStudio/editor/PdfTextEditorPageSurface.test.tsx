@@ -84,7 +84,7 @@ describe('<PdfTextEditorPageSurface />', () => {
     expect(props.onStartFormField).not.toHaveBeenCalled()
   })
 
-  it('en modo crear plantilla deja las anotaciones PDF como solo lectura', () => {
+  it('en modo crear plantilla permite editar anotaciones (necesario para las marcas X)', () => {
     const text = makeTextAnnotation({
       text: 'Texto PDF normal',
       xRatio: 0.2,
@@ -105,10 +105,11 @@ describe('<PdfTextEditorPageSurface />', () => {
       pendingFormKind: false,
     })
 
+    // El diseño de planilla ahora habilita la capa de anotaciones para poder
+    // estampar/togglear marcas X; la barra solo expone X + campos para crear.
     fireEvent.pointerDown(screen.getByText('Texto PDF normal'))
     fireEvent.click(screen.getByText('Texto PDF normal'))
 
-    expect(props.onStartDrag).not.toHaveBeenCalled()
-    expect(props.onSelectAnnotation).not.toHaveBeenCalled()
+    expect(props.onSelectAnnotation).toHaveBeenCalledWith(text.id)
   })
 })

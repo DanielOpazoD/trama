@@ -5,6 +5,7 @@ const style = {
   color: '#fff4a3',
   strokeRatio: 0.0025,
   highlightOpacity: 0.35,
+  xMarkSize: 0.02,
 }
 
 describe('pdfAnnotationDrawing · createAnnotationFromDrawGesture', () => {
@@ -93,7 +94,7 @@ describe('pdfAnnotationDrawing · createAnnotationFromDrawGesture', () => {
     })
   })
 
-  it('dimensiona la marca X cuando se arrastra', () => {
+  it('la X siempre se centra al tamaño GLOBAL (no se dimensiona al arrastrar)', () => {
     const annotation = createAnnotationFromDrawGesture({
       tool: 'x',
       x0: 100,
@@ -105,11 +106,14 @@ describe('pdfAnnotationDrawing · createAnnotationFromDrawGesture', () => {
       style,
     })
 
+    // half = xMarkSize(0.02) × 700 / 2 = 7, centrada en (100,80) — ignora x1/y1.
     expect(annotation).toMatchObject({
       kind: 'shape',
       shape: 'x',
-      x0Ratio: 0.125,
-      x1Ratio: 0.325,
+      x0Ratio: expect.closeTo(93 / 800, 8),
+      y0Ratio: expect.closeTo(73 / 700, 8),
+      x1Ratio: expect.closeTo(107 / 800, 8),
+      y1Ratio: expect.closeTo(87 / 700, 8),
       strokeRatio: 0.006,
     })
     expect((annotation as { disabled?: boolean }).disabled).toBeUndefined()

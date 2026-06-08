@@ -20,7 +20,15 @@ import {
   TrashIcon,
 } from '../../../Icons'
 import { OverflowMenu } from '../../../OverflowMenu'
-import { clamp, type TextStyle, type Tool } from './editorStyle'
+import {
+  clamp,
+  stepBtn,
+  X_SIZE_MAX,
+  X_SIZE_MIN,
+  X_SIZE_STEP,
+  type TextStyle,
+  type Tool,
+} from './editorStyle'
 import {
   activeMenuItem,
   COLORS,
@@ -53,6 +61,8 @@ export function EditorToolbar({
   context = 'editor',
   tool,
   onToolChange,
+  xMarkSize,
+  onXMarkSizeChange,
   onAddText,
   onAddImage,
   onAddFormField,
@@ -77,6 +87,8 @@ export function EditorToolbar({
   context?: 'editor' | 'templateDesign'
   tool: Tool
   onToolChange: (t: Tool) => void
+  xMarkSize: number
+  onXMarkSizeChange: (next: number) => void
   onAddText: () => void
   onAddImage: () => void
   onAddFormField?: (kind: PdfFormFieldKind) => void
@@ -163,40 +175,74 @@ export function EditorToolbar({
         {!isTemplateDesign ? (
           <EditorToolbarShapesMenu tool={tool} onToolChange={onToolChange} />
         ) : null}
-        {!isTemplateDesign ? (
-          <Hint content="Marcar casilleros con una X · clic en la X la activa o desactiva">
-            <button
-              type="button"
-              onClick={() => onToolChange('x')}
-              className={segBtnTool(tool === 'x')}
-              aria-label="Herramienta marca X para casilleros"
-              aria-pressed={tool === 'x'}
+        <Hint content="Marcar casilleros con una X · clic en la X la activa o desactiva">
+          <button
+            type="button"
+            onClick={() => onToolChange('x')}
+            className={segBtnTool(tool === 'x')}
+            aria-label="Herramienta marca X para casilleros"
+            aria-pressed={tool === 'x'}
+          >
+            <svg
+              width={14}
+              height={14}
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
             >
-              <svg
-                width={14}
-                height={14}
-                viewBox="0 0 16 16"
-                fill="none"
-                aria-hidden="true"
+              <rect
+                x={2.25}
+                y={2.25}
+                width={11.5}
+                height={11.5}
+                rx={2.5}
+                stroke="currentColor"
+                strokeWidth={1.4}
+              />
+              <path
+                d="M5.5 5.5l5 5M10.5 5.5l-5 5"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </Hint>
+        {tool === 'x' ? (
+          <div
+            className={segGroup}
+            role="group"
+            aria-label="Tamaño de la marca X (aplica a todas)"
+          >
+            <Hint content="Achicar todas las X">
+              <button
+                type="button"
+                onClick={() => onXMarkSizeChange(xMarkSize - X_SIZE_STEP)}
+                disabled={xMarkSize <= X_SIZE_MIN + 1e-6}
+                className={stepBtn}
+                aria-label="Achicar la marca X"
               >
-                <rect
-                  x={2.25}
-                  y={2.25}
-                  width={11.5}
-                  height={11.5}
-                  rx={2.5}
-                  stroke="currentColor"
-                  strokeWidth={1.4}
-                />
-                <path
-                  d="M5.5 5.5l5 5M10.5 5.5l-5 5"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
-          </Hint>
+                -
+              </button>
+            </Hint>
+            <span
+              className="min-w-[2.5rem] text-center text-micro tabular-nums text-ink-500"
+              aria-live="polite"
+            >
+              X {Math.round((xMarkSize / X_SIZE_MAX) * 100)}%
+            </span>
+            <Hint content="Agrandar todas las X">
+              <button
+                type="button"
+                onClick={() => onXMarkSizeChange(xMarkSize + X_SIZE_STEP)}
+                disabled={xMarkSize >= X_SIZE_MAX - 1e-6}
+                className={stepBtn}
+                aria-label="Agrandar la marca X"
+              >
+                +
+              </button>
+            </Hint>
+          </div>
         ) : null}
       </ToolbarGroup>
 

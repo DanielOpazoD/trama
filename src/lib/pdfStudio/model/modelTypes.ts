@@ -121,6 +121,9 @@ export type PdfPage = {
 export type DocSettings = {
   pageNumbers?: { position: 'left' | 'center' | 'right' }
   watermark?: { text: string }
+  /** Tamaño GLOBAL de las marcas X (lado como fracción del alto de página). Una
+   *  sola medida para todo el documento: cambiarla redimensiona todas las X. */
+  xMarkSize?: number
 }
 
 export type PdfDoc = {

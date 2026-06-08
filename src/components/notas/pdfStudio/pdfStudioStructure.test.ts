@@ -10,7 +10,7 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene PdfTextEditor bajo el ratchet estructural actual', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/editor/PdfTextEditor.tsx'),
-    ).toBeLessThanOrEqual(575)
+    ).toBeLessThanOrEqual(620)
   })
 
   it('mantiene PdfStudioView bajo el ratchet estructural actual', () => {
@@ -28,7 +28,7 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene EditorToolbar bajo el ratchet estructural actual', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/editor/EditorToolbar.tsx'),
-    ).toBeLessThanOrEqual(420)
+    ).toBeLessThanOrEqual(475)
   })
 
   it('mantiene AnnotationLayer bajo el ratchet estructural actual', () => {

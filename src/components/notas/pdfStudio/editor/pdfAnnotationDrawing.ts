@@ -6,7 +6,7 @@ import {
   type ShapeKind,
 } from '../../../../lib/pdfStudio/model/model'
 import { rectFromPoints } from '../../../../lib/pdfStudio/model/editorGeometry'
-import { isShapeTool, X_DEFAULT_SIDE, X_STROKE, type Tool } from './editorStyle'
+import { isShapeTool, X_STROKE, type Tool } from './editorStyle'
 
 const MIN_DRAW_DISTANCE_PX = 4
 const MIN_BOX_SIDE_PX = 4
@@ -15,6 +15,8 @@ export type DrawGestureStyle = {
   color: string
   strokeRatio: number
   highlightOpacity: number
+  /** Tamaño GLOBAL de la X (lado como fracción del alto de página). */
+  xMarkSize: number
 }
 
 export type DrawGestureInput = {
@@ -34,22 +36,17 @@ export function createAnnotationFromDrawGesture(
   const pageWidthPx = Math.max(1, input.pageWidthPx)
   const pageHeightPx = Math.max(1, input.pageHeightPx)
 
-  // Marca X de casillero: un CLIC estampa una X cuadrada de tamaño por defecto
-  // centrada en el punto (para tildar casilleros rápido); un ARRASTRE la dimensiona.
+  // Marca X de casillero: un CLIC estampa una X cuadrada del tamaño GLOBAL
+  // centrada en el punto (para tildar casilleros rápido). El tamaño es uniforme
+  // a todo el documento, así que siempre se centra (no se dimensiona al arrastrar).
   if (input.tool === 'x') {
-    const dragged =
-      Math.hypot(input.x1 - input.x0, input.y1 - input.y0) >= MIN_BOX_SIDE_PX
-    const half = (X_DEFAULT_SIDE * pageHeightPx) / 2
-    const x0 = dragged ? input.x0 : input.x0 - half
-    const y0 = dragged ? input.y0 : input.y0 - half
-    const x1 = dragged ? input.x1 : input.x0 + half
-    const y1 = dragged ? input.y1 : input.y0 + half
+    const half = (input.style.xMarkSize * pageHeightPx) / 2
     return makeShapeAnnotation({
       shape: 'x',
-      x0Ratio: x0 / pageWidthPx,
-      y0Ratio: y0 / pageHeightPx,
-      x1Ratio: x1 / pageWidthPx,
-      y1Ratio: y1 / pageHeightPx,
+      x0Ratio: (input.x0 - half) / pageWidthPx,
+      y0Ratio: (input.y0 - half) / pageHeightPx,
+      x1Ratio: (input.x0 + half) / pageWidthPx,
+      y1Ratio: (input.y0 + half) / pageHeightPx,
       color: input.style.color,
       strokeRatio: X_STROKE,
     })
