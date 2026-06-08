@@ -2,7 +2,6 @@ import {
   baselineDropEm,
   TEXT_LINE_HEIGHT,
   textBoxLayout,
-  X_DISABLED_COLOR,
   type Annotation,
   type PdfFontKind,
 } from '../model/model'
@@ -190,26 +189,28 @@ export async function applyPdfAnnotations({
             })
           }
         } else if (ann.shape === 'x') {
-          const xc = ann.disabled ? hexToRgb(X_DISABLED_COLOR) : c
-          const xcol = rgb(xc.r, xc.g, xc.b)
-          const x = Math.min(p0.x, p1.x)
-          const y = Math.min(p0.y, p1.y)
-          const rw = Math.abs(p1.x - p0.x)
-          const rh = Math.abs(p1.y - p0.y)
-          outPage.drawLine({
-            start: { x, y },
-            end: { x: x + rw, y: y + rh },
-            thickness: sw,
-            color: xcol,
-            opacity: op,
-          })
-          outPage.drawLine({
-            start: { x: x + rw, y },
-            end: { x, y: y + rh },
-            thickness: sw,
-            color: xcol,
-            opacity: op,
-          })
+          // Una X DESHABILITADA (gris claro en el editor) = casillero NO marcado:
+          // no se dibuja en el PDF (el gris es sólo un indicador de edición).
+          if (!ann.disabled) {
+            const x = Math.min(p0.x, p1.x)
+            const y = Math.min(p0.y, p1.y)
+            const rw = Math.abs(p1.x - p0.x)
+            const rh = Math.abs(p1.y - p0.y)
+            outPage.drawLine({
+              start: { x, y },
+              end: { x: x + rw, y: y + rh },
+              thickness: sw,
+              color: col,
+              opacity: op,
+            })
+            outPage.drawLine({
+              start: { x: x + rw, y },
+              end: { x, y: y + rh },
+              thickness: sw,
+              color: col,
+              opacity: op,
+            })
+          }
         } else {
           outPage.drawLine({ start: p0, end: p1, thickness: sw, color: col, opacity: op })
           if (ann.shape === 'arrow') {

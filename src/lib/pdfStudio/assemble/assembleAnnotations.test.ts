@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { applyPdfAnnotations } from './assembleAnnotations'
-import { makeShapeAnnotation, X_DISABLED_COLOR } from '../model/model'
+import { makeShapeAnnotation } from '../model/model'
 
 const rgb = ((r: number, g: number, b: number) => ({ r, g, b })) as unknown as Parameters<
   typeof applyPdfAnnotations
@@ -58,16 +58,14 @@ describe('applyPdfAnnotations · marca X', () => {
     expect(b.end).toEqual({ x: 40, y: 540 })
   })
 
-  it('una X activa usa su color; una deshabilitada se pinta en gris claro', async () => {
+  it('una X activa se dibuja con su color; una deshabilitada NO se imprime', async () => {
     const active = await exportX(false)
+    expect(active).toHaveBeenCalledTimes(2)
     const activeColor = active.mock.calls[0]![0] as { color: { r: number } }
     expect(activeColor.color.r).toBeCloseTo(0x22 / 255, 5)
 
+    // Gris claro = casillero apagado: no se dibuja ninguna línea en el PDF.
     const off = await exportX(true)
-    const offColor = off.mock.calls[0]![0] as {
-      color: { r: number; g: number; b: number }
-    }
-    expect(offColor.color.r).toBeCloseTo(0xbd / 255, 5)
-    expect(X_DISABLED_COLOR).toBe('#bdbdbd')
+    expect(off).not.toHaveBeenCalled()
   })
 })
