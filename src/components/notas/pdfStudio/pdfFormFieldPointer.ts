@@ -10,6 +10,58 @@ import { trackPointerMove } from './pdfTextEditorPointerListeners'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 type SetFields = Dispatch<SetStateAction<PdfFormFieldDraft[]>>
+type RatioBox = Pick<PdfFormFieldDraft, 'xRatio' | 'yRatio' | 'wRatio' | 'hRatio'>
+
+export function newFieldBoxFromDrag({
+  currentClientX,
+  currentClientY,
+  fallback,
+  layout,
+  startClientX,
+  startClientY,
+  startOffsetX,
+  startOffsetY,
+  zoom,
+}: {
+  currentClientX: number
+  currentClientY: number
+  fallback: RatioBox
+  layout: PageLayout
+  startClientX: number
+  startClientY: number
+  startOffsetX: number
+  startOffsetY: number
+  zoom: number
+}): RatioBox {
+  const dw = layout.innerW * zoom
+  const dh = layout.innerH * zoom
+  const startRatio = {
+    x: startOffsetX / Math.max(1, layout.innerW),
+    y: startOffsetY / Math.max(1, layout.innerH),
+  }
+  const { dx, dy } = screenDeltaToPage(
+    currentClientX - startClientX,
+    currentClientY - startClientY,
+    layout.rot,
+  )
+  if (Math.hypot(dx, dy) < 3) {
+    return {
+      ...fallback,
+      xRatio: Math.min(1 - fallback.wRatio, clamp01(startRatio.x - fallback.wRatio / 2)),
+      yRatio: Math.min(1 - fallback.hRatio, clamp01(startRatio.y - fallback.hRatio / 2)),
+    }
+  }
+  const x2 = clamp01(startRatio.x + dx / dw)
+  const y2 = clamp01(startRatio.y + dy / dh)
+  const wRatio = Math.max(Math.abs(x2 - startRatio.x), 14 / dw)
+  const hRatio = Math.max(Math.abs(y2 - startRatio.y), 14 / dh)
+  return {
+    xRatio: Math.min(1 - wRatio, Math.min(startRatio.x, x2)),
+    yRatio: Math.min(1 - hRatio, Math.min(startRatio.y, y2)),
+    wRatio,
+    hRatio,
+  }
+}
 
 export function trackNewFieldDrag({
   event,
@@ -24,31 +76,22 @@ export function trackNewFieldDrag({
   setFields: SetFields
   zoom: number
 }) {
-  const dw = layout.innerW * zoom
-  const dh = layout.innerH * zoom
   const startX = event.clientX
   const startY = event.clientY
-  const startRatio = {
-    x: event.nativeEvent.offsetX / Math.max(1, layout.innerW),
-    y: event.nativeEvent.offsetY / Math.max(1, layout.innerH),
-  }
+  const startOffsetX = event.nativeEvent.offsetX
+  const startOffsetY = event.nativeEvent.offsetY
   const move = (ev: PointerEvent) => {
-    const { dx, dy } = screenDeltaToPage(
-      ev.clientX - startX,
-      ev.clientY - startY,
-      layout.rot,
-    )
-    if (Math.hypot(dx, dy) < 3) return
-    const x2 = clamp01(startRatio.x + dx / dw)
-    const y2 = clamp01(startRatio.y + dy / dh)
-    const wRatio = Math.max(Math.abs(x2 - startRatio.x), 14 / dw)
-    const hRatio = Math.max(Math.abs(y2 - startRatio.y), 14 / dh)
-    const next = {
-      xRatio: Math.min(1 - wRatio, Math.min(startRatio.x, x2)),
-      yRatio: Math.min(1 - hRatio, Math.min(startRatio.y, y2)),
-      wRatio,
-      hRatio,
-    }
+    const next = newFieldBoxFromDrag({
+      currentClientX: ev.clientX,
+      currentClientY: ev.clientY,
+      fallback: field,
+      layout,
+      startClientX: startX,
+      startClientY: startY,
+      startOffsetX,
+      startOffsetY,
+      zoom,
+    })
     setFields((fields) =>
       fields.map((item) => (item.id === field.id ? { ...item, ...next } : item)),
     )

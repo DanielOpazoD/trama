@@ -43,4 +43,30 @@ describe('pdfExportFeedback', () => {
       describePdfExportError(new Error('Canvas no disponible para redacción segura')),
     ).toMatch(/rasterizarse|contenido subyacente/i)
   })
+
+  it('describe errores específicos al crear PDFs rellenables', () => {
+    expect(
+      describePdfExportError(
+        Object.assign(new Error('Campo duplicado: paciente'), {
+          code: 'PDF_FORM_DUPLICATE_FIELD',
+        }),
+      ),
+    ).toMatch(/nombres duplicados/i)
+
+    expect(
+      describePdfExportError(
+        Object.assign(new Error('Página no encontrada'), {
+          code: 'PDF_FORM_PAGE_NOT_FOUND',
+        }),
+      ),
+    ).toMatch(/casillero.*página|página.*casillero/i)
+
+    expect(
+      describePdfExportError(
+        Object.assign(new Error('Firma inválida'), {
+          code: 'PDF_FORM_SIGNATURE_IMAGE_INVALID',
+        }),
+      ),
+    ).toMatch(/imagen de firma/i)
+  })
 })

@@ -2,9 +2,11 @@ import type { DragEvent } from 'react'
 import type { PdfDoc } from '../../../lib/pdfStudio/model'
 import { PageGrid } from './PageGrid'
 import { PdfDropzone } from './PdfDropzone'
+import type { PageInteractionMode } from './pdfStudioPageInteractionMode'
 
 export function PdfStudioMainPane({
   doc,
+  interactionMode = 'editor',
   isTemplates,
   scrollRoot,
   selectedIds,
@@ -16,6 +18,7 @@ export function PdfStudioMainPane({
   onToggleSelect,
 }: {
   doc: PdfDoc
+  interactionMode?: PageInteractionMode
   isTemplates: boolean
   scrollRoot: HTMLElement | null
   selectedIds: Set<string>
@@ -48,6 +51,7 @@ export function PdfStudioMainPane({
   return (
     <PageGrid
       doc={doc}
+      interactionMode={interactionMode}
       selectedIds={selectedIds}
       onToggleSelect={onToggleSelect}
       onReorder={onReorder}

@@ -9,19 +9,19 @@ function valueAsText(value: PdfFormValue): string {
   return ''
 }
 
-function controlFrameStyle(mode?: 'edit' | 'fill'): string {
+function controlFrameStyle(mode?: 'edit' | 'design' | 'fill'): string {
   return mode === 'fill'
-    ? 'flex h-full w-full items-center justify-center rounded-[4px] border-2 border-[color:var(--accent-sage)] bg-paper-50/95 shadow-md shadow-ink-900/10'
+    ? 'flex h-full w-full items-center justify-center rounded-[4px] border border-[color:var(--accent-sage)] bg-paper-50/95 shadow-sm shadow-ink-900/10'
     : 'flex h-full w-full items-center justify-center rounded-[3px] border border-[color:var(--accent-sage)]/50 bg-paper-50/70'
 }
 
 function commonControlStyle(selected = false, fillMode = false): string {
   if (fillMode) {
     return [
-      'h-full w-full rounded-[4px] border-2 border-[color:var(--accent-sage)]',
-      'bg-paper-50/95 px-2 text-caption font-medium text-ink-900 shadow-md shadow-ink-900/10',
+      'h-full w-full rounded-none border-0',
+      'bg-transparent px-1.5 text-caption font-medium text-ink-900 shadow-none',
       'outline-none transition-colors placeholder:text-[color:var(--accent-sage)]/80',
-      'hover:bg-paper-50 focus:bg-paper-50 focus:ring-2 focus:ring-[color:var(--accent-sage)]/35',
+      'focus:bg-paper-50/45 focus:ring-1 focus:ring-[color:var(--accent-sage)]/25',
     ].join(' ')
   }
   return `h-full w-full rounded-[3px] border bg-paper-50/80 px-1.5 text-caption text-ink-800 shadow-sm outline-none transition-colors ${
@@ -38,24 +38,35 @@ function zoomSafeScale(zoom = 1): number {
 function frameVisualStyle(zoom = 1, fillMode = false): CSSProperties {
   const k = zoomSafeScale(zoom)
   return {
-    borderWidth: `${(fillMode ? 2 : 1) * k}px`,
+    borderWidth: `${k}px`,
     borderRadius: `${(fillMode ? 4 : 3) * k}px`,
   }
 }
 
-export function FillFieldLabel({ name, zoom = 1 }: { name: string; zoom?: number }) {
+export function FillFieldLabel({
+  index,
+  name,
+  zoom = 1,
+}: {
+  index: number
+  name: string
+  zoom?: number
+}) {
   const k = zoomSafeScale(zoom)
   return (
     <span
-      className="pointer-events-none absolute left-0 z-10 rounded bg-[color:var(--accent-sage)] font-semibold leading-none text-paper-50 shadow-sm shadow-ink-900/15"
+      aria-label={`Campo ${index}: ${name}`}
+      className="pointer-events-none absolute z-10 rounded bg-[color:var(--accent-sage)] font-semibold leading-none text-paper-50 shadow-sm shadow-ink-900/15"
       style={{
-        top: `${-20 * k}px`,
-        padding: `${2 * k}px ${6 * k}px`,
+        right: `${-4 * k}px`,
+        top: '50%',
+        transform: 'translate(100%, -50%)',
+        padding: `${2 * k}px ${5 * k}px`,
         fontSize: `${10 * k}px`,
         borderRadius: `${3 * k}px`,
       }}
     >
-      [{name}]
+      #{index}
     </span>
   )
 }
@@ -71,19 +82,21 @@ export function FormFieldControl({
   zoom = 1,
   options,
   onChange,
+  onFocus,
   onOpenSignature,
   textStyle,
 }: {
   ariaName: string
   controlId?: string
   fieldKind: PdfFormFieldKind | PdfFormFieldType
-  mode?: 'edit' | 'fill'
+  mode?: 'edit' | 'design' | 'fill'
   readOnly?: boolean
   selected?: boolean
   value: PdfFormValue
   zoom?: number
   options?: string[]
   onChange: (value: string | boolean) => void
+  onFocus?: () => void
   onOpenSignature?: () => void
   textStyle?: CSSProperties
 }) {
@@ -146,7 +159,7 @@ export function FormFieldControl({
         onClick={onOpenSignature}
         className={
           fillMode
-            ? 'h-full w-full rounded-[4px] border-2 border-dashed border-[color:var(--accent-sage)] bg-[color:var(--accent-sage-soft)]/65 text-caption font-semibold text-[color:var(--accent-sage)] shadow-md shadow-ink-900/10'
+            ? 'h-full w-full rounded-[4px] border border-dashed border-[color:var(--accent-sage)] bg-[color:var(--accent-sage-soft)]/65 text-caption font-semibold text-[color:var(--accent-sage)] shadow-sm shadow-ink-900/10'
             : 'h-full w-full rounded-[3px] border border-dashed border-[color:var(--accent-sage)]/70 bg-[color:var(--accent-sage-soft)]/40 text-caption font-medium text-[color:var(--accent-sage)]'
         }
         style={signatureStyle}
@@ -185,13 +198,18 @@ export function FormFieldControl({
       placeholder={FORM_FIELD_EMPTY_HINT}
       readOnly={readOnly}
       onFocus={() => {
+        onFocus?.()
         if (mode === 'fill' && valueAsText(value) === FORM_FIELD_EMPTY_HINT) {
           onChange('')
         }
       }}
       onChange={(event) => onChange(event.currentTarget.value)}
       className={commonControlStyle(selected, mode === 'fill')}
-      style={{ ...frameVisualStyle(zoom, mode === 'fill'), ...textStyle }}
+      style={{
+        ...frameVisualStyle(zoom, mode === 'fill'),
+        ...(mode === 'fill' ? { borderWidth: 0, borderRadius: 0 } : null),
+        ...textStyle,
+      }}
     />
   )
 }

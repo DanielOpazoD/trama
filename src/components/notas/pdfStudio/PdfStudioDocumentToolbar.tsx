@@ -86,9 +86,9 @@ export function PdfStudioDocumentToolbar({
   const canDownloadFillable = isTemplates && templateMode === 'design'
   const needsTemplateFields = canDownloadFillable && !empty && !canSaveTemplate
   const modeLabel = isFillMode
-    ? 'Rellenando planilla'
+    ? 'Rellenar e imprimir'
     : isTemplates
-      ? 'Diseñando planilla'
+      ? 'Diseñar planilla'
       : 'Editando PDF'
   const primaryLabel = isFillMode
     ? 'Imprimir planilla'

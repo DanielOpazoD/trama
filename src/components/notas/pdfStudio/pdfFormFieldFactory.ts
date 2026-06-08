@@ -44,6 +44,6 @@ export function makeDraftFormField({
     value: defaultFormValue(kind),
     options: kind === 'radio' ? ['Sí'] : undefined,
     ...(kind === 'text' ? formFieldTextStyleFromEditor(style) : {}),
-    ...(box ?? initialFieldBox(kind)),
+    ...(box ?? initialFieldBox(kind, style)),
   })
 }

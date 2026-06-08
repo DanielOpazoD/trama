@@ -20,16 +20,15 @@ import {
   visualWidgetsForPage,
   type DetectedPdfFormForCanvas,
 } from './pdfFormVisualMapping'
+import { orderFormFieldsForPage } from './pdfFormFieldFillOrder'
 import { usePdfTextEditorPageRender } from './usePdfTextEditorPageRender'
 import type { Tool } from './editorStyle'
-
 type ResizableAnnotation =
   | TextAnnotation
   | HighlightAnnotation
   | RedactionAnnotation
   | ImageAnnotation
   | ShapeAnnotation
-
 export function PdfTextEditorPageSurface({
   doc,
   pageIndex,
@@ -49,6 +48,8 @@ export function PdfTextEditorPageSurface({
   detectedForms,
   draftFields,
   pendingFormKind,
+  activeDraftId,
+  showFillGuides,
   selectedDraftId,
   selectedDraftIds,
   onActivate,
@@ -65,6 +66,7 @@ export function PdfTextEditorPageSurface({
   onCancelEdit,
   onDetectedValueChange,
   onDraftValueChange,
+  onDraftFocus,
   onOpenSignature,
   onSelectDraft,
   onStartDraftDrag,
@@ -73,7 +75,7 @@ export function PdfTextEditorPageSurface({
   doc: PdfDoc
   pageIndex: number
   isActive: boolean
-  mode?: 'edit' | 'fill'
+  mode?: 'edit' | 'design' | 'fill'
   edited: Record<number, Annotation[]>
   zoom: number
   tool: Tool
@@ -88,6 +90,8 @@ export function PdfTextEditorPageSurface({
   detectedForms: DetectedPdfFormForCanvas[]
   draftFields: PdfFormFieldDraft[]
   pendingFormKind: boolean
+  activeDraftId?: string | null
+  showFillGuides?: boolean
   selectedDraftId: string | null
   selectedDraftIds: string[]
   onActivate: (pageIndex: number) => void
@@ -116,6 +120,7 @@ export function PdfTextEditorPageSurface({
     value: string | boolean,
   ) => void
   onDraftValueChange: (id: string, value: string | boolean) => void
+  onDraftFocus?: (field: PdfFormFieldDraft) => void
   onOpenSignature: (field: PdfFormFieldDraft) => void
   onSelectDraft: (id: string, additive?: boolean) => void
   onStartDraftDrag: (event: ReactPointerEvent, field: PdfFormFieldDraft) => void
@@ -130,17 +135,15 @@ export function PdfTextEditorPageSurface({
   const { areaRef, bg, layout } = usePdfTextEditorPageRender({ page, source, zoom })
   const annotations = edited[pageIndex] ?? page?.annotations ?? []
   const fillMode = mode === 'fill'
+  const canEditAnnotations = mode === 'edit'
   const visibleFormWidgets = page ? visualWidgetsForPage(page, detectedForms) : []
   const visibleDraftFields = page
-    ? draftFields.filter((field) => field.pageId === page.id)
+    ? orderFormFieldsForPage(draftFields, page.id, pageIndex)
     : []
-
   useEffect(() => {
     if (isActive) onActiveLayoutChange(layout)
   }, [isActive, layout, onActiveLayoutChange])
-
   if (!page) return null
-
   const syncActiveLayout = () => onActiveLayoutChange(layout)
   const withActiveLayout =
     <Args extends unknown[]>(fn: (...args: Args) => void) =>
@@ -186,12 +189,15 @@ export function PdfTextEditorPageSurface({
           detectedWidgets={visibleFormWidgets}
           draftFields={visibleDraftFields}
           mode={mode}
+          activeDraftId={activeDraftId}
+          showFillGuides={showFillGuides}
           selectedDraftId={selectedDraftId}
           selectedDraftIds={selectedDraftIds}
           pageHeightPx={layout?.innerH ?? 1}
           zoom={zoom}
           onDetectedValueChange={onDetectedValueChange}
           onDraftValueChange={onDraftValueChange}
+          onDraftFocus={onDraftFocus}
           onSelectDraft={onSelectDraft}
           onStartDraftDrag={startDraftDrag}
           onStartDraftResize={startDraftResize}
@@ -202,12 +208,15 @@ export function PdfTextEditorPageSurface({
           detectedWidgets={visibleFormWidgets}
           draftFields={visibleDraftFields}
           mode={mode}
+          activeDraftId={activeDraftId}
+          showFillGuides={showFillGuides}
           selectedDraftId={null}
           selectedDraftIds={[]}
           pageHeightPx={layout?.innerH ?? 1}
           zoom={zoom}
           onDetectedValueChange={onDetectedValueChange}
           onDraftValueChange={onDraftValueChange}
+          onDraftFocus={onDraftFocus}
           onSelectDraft={(id) => (onActivate(pageIndex), onSelectDraft(id))}
           onStartDraftDrag={activatePointer}
           onStartDraftResize={activatePointer}
@@ -237,31 +246,31 @@ export function PdfTextEditorPageSurface({
               : activateAndStartFormField
             : activatePointer
         }
-        onStartDraw={!fillMode && isActive ? startDraw : activatePointer}
-        onStartMarquee={!fillMode && isActive ? startMarquee : activatePointer}
+        onStartDraw={canEditAnnotations && isActive ? startDraw : activatePointer}
+        onStartMarquee={canEditAnnotations && isActive ? startMarquee : activatePointer}
       >
         <AnnotationLayer
           annotations={annotations}
           innerW={layout?.innerW ?? 0}
           innerH={layout?.innerH ?? 0}
           tool={isActive ? tool : 'select'}
-          readOnly={fillMode}
-          selectedId={!fillMode && isActive ? selectedId : null}
-          selectedIds={!fillMode && isActive ? selectedIds : []}
-          editingId={!fillMode && isActive ? editingId : null}
+          readOnly={!canEditAnnotations}
+          selectedId={canEditAnnotations && isActive ? selectedId : null}
+          selectedIds={canEditAnnotations && isActive ? selectedIds : []}
+          editingId={canEditAnnotations && isActive ? editingId : null}
           zoom={zoom}
-          drawing={!fillMode && isActive ? drawing : null}
-          selectionMarquee={isActive ? selectionMarquee : null}
-          selectionLasso={isActive ? selectionLasso : null}
-          snapGuides={isActive ? snapGuides : []}
+          drawing={canEditAnnotations && isActive ? drawing : null}
+          selectionMarquee={canEditAnnotations && isActive ? selectionMarquee : null}
+          selectionLasso={canEditAnnotations && isActive ? selectionLasso : null}
+          snapGuides={canEditAnnotations && isActive ? snapGuides : []}
           drawColor={drawColor}
-          onStartDrag={isActive ? startDrag : activatePointer}
+          onStartDrag={canEditAnnotations && isActive ? startDrag : activatePointer}
           onSelect={activateAndSelect}
           onToggleSelect={activateAndToggle}
           onStartEdit={activateAndEdit}
           onCommitText={onCommitText}
           onCancelEdit={onCancelEdit}
-          onStartResize={isActive ? startResize : activatePointer}
+          onStartResize={canEditAnnotations && isActive ? startResize : activatePointer}
         />
         {formSurface}
       </PageCanvas>

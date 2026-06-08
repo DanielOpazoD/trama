@@ -39,6 +39,7 @@ export function usePdfStudioWorkspace({
   const [saved, setSaved] = useState<SavedDoc[]>([])
   const [panelCollapsed, setPanelCollapsed] = useState(true)
   const toastRef = useRef(toast)
+  const draftSanitizerRef = useRef<(draft: PdfDoc) => PdfDoc>((draft) => draft)
   toastRef.current = toast
 
   useEffect(() => {
@@ -70,9 +71,16 @@ export function usePdfStudioWorkspace({
 
   useEffect(() => {
     if (!loaded) return
-    const t = window.setTimeout(() => void saveDraft(userKey, doc, library), 600)
+    const t = window.setTimeout(
+      () => void saveDraft(userKey, draftSanitizerRef.current(doc), library),
+      600,
+    )
     return () => window.clearTimeout(t)
   }, [doc, library, loaded, userKey])
+
+  function setDraftSanitizer(sanitize: (draft: PdfDoc) => PdfDoc) {
+    draftSanitizerRef.current = sanitize
+  }
 
   function addAssets(assets: ImageAsset[]) {
     if (assets.length === 0) return
@@ -93,7 +101,13 @@ export function usePdfStudioWorkspace({
   }
 
   function saveCreation(name: string) {
-    const s: SavedDoc = { id: crypto.randomUUID(), name, doc, savedAt: Date.now() }
+    const s: SavedDoc = {
+      id: crypto.randomUUID(),
+      name,
+      doc,
+      savedAt: Date.now(),
+      kind: 'creation',
+    }
     setSaved((list) => [s, ...list])
     void putSavedDoc(userKey, s)
     toast.show({ message: `Guardado "${name}".`, tone: 'success' })
@@ -106,10 +120,24 @@ export function usePdfStudioWorkspace({
       name,
       doc: template,
       savedAt: Date.now(),
+      kind: 'template',
     }
     setSaved((list) => [s, ...list])
     void putSavedDoc(userKey, s)
     toast.show({ message: `Planilla "${name}" guardada.`, tone: 'success' })
+  }
+
+  function saveFilledCopy(name: string, filledDoc: PdfDoc) {
+    const s: SavedDoc = {
+      id: crypto.randomUUID(),
+      name: uniqueFilledCopyName(name, saved),
+      doc: normalizeDoc(filledDoc),
+      savedAt: Date.now(),
+      kind: 'filled-template',
+    }
+    setSaved((list) => [s, ...list])
+    void putSavedDoc(userKey, s)
+    toast.show({ message: `Copia con datos "${s.name}" guardada.`, tone: 'success' })
   }
 
   function duplicateSaved(s: SavedDoc) {
@@ -119,6 +147,7 @@ export function usePdfStudioWorkspace({
       name,
       doc: normalizeDoc(clearPdfFormFieldValues(s.doc)),
       savedAt: Date.now(),
+      kind: 'template',
     }
     setSaved((list) => [copy, ...list])
     void putSavedDoc(userKey, copy)
@@ -191,15 +220,26 @@ export function usePdfStudioWorkspace({
     removeSaved,
     renameSaved,
     saveCreation,
+    saveFilledCopy,
     saveTemplate,
     saved,
     setPanelCollapsed,
+    setDraftSanitizer,
     userKey,
   }
 }
 
 function uniqueCopyName(name: string, saved: SavedDoc[]): string {
   const base = `${name.trim() || 'Planilla'} copia`
+  const names = new Set(saved.map((s) => s.name))
+  if (!names.has(base)) return base
+  let i = 2
+  while (names.has(`${base} ${i}`)) i += 1
+  return `${base} ${i}`
+}
+
+function uniqueFilledCopyName(name: string, saved: SavedDoc[]): string {
+  const base = `${name.trim() || 'Planilla'} datos`
   const names = new Set(saved.map((s) => s.name))
   if (!names.has(base)) return base
   let i = 2

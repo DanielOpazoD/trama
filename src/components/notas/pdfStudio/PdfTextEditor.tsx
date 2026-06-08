@@ -7,21 +7,12 @@ import {
   type Annotation,
   type ImageAnnotation,
   type PdfDoc,
-  type PdfFormFieldDraft,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
-import {
-  canRedo,
-  canUndo,
-  initHistory,
-  pushHistory,
-  redo,
-  undo,
-  type History,
-} from '../../../lib/pdfStudio/history'
+import { initHistory, pushHistory, type History } from '../../../lib/pdfStudio/history'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { EditorToolbar } from './EditorToolbar'
-import { PdfTextEditorHeader } from './PdfTextEditorHeader'
+import { PdfTextEditorHeaderSlot } from './PdfTextEditorHeaderSlot'
 import { SelectionInspector } from './SelectionInspector'
 import type { DrawingRect } from './AnnotationLayer'
 import type { SnapGuide } from './pdfAnnotationSnap'
@@ -37,18 +28,25 @@ import { type DetectedPdfFormForCanvas } from './pdfFormVisualMapping'
 import { usePdfTextEditorPageNavigation } from './usePdfTextEditorPageNavigation'
 import { usePdfTextEditorViewport } from './usePdfTextEditorViewport'
 import { PdfTextEditorFloatingFormTools } from './PdfTextEditorFloatingFormTools'
-import { PdfTemplateFillVariablesPanel } from './PdfTemplateFillVariablesPanel'
+import { PdfTextEditorFillSidebar } from './PdfTextEditorFillSidebar'
 import { usePdfTextEditorFormSuggestions } from './usePdfTextEditorFormSuggestions'
 import { PdfTextEditorAuxiliaryControls } from './PdfTextEditorAuxiliaryControls'
 import { PdfTextEditorScrollArea } from './PdfTextEditorScrollArea'
+import { pdfTextEditorDialogLabel } from './pdfTextEditorDialogMode'
 import { pdfTextEditorBodyClass } from './pdfTextEditorLayoutClasses'
+import type { PdfTextEditorResult } from './pdfTextEditorResult'
 import { formFieldTextStyle } from './pdfFormFieldStyle'
-
+import { fillProgressForTemplateFields } from './pdfTemplateFillProgress'
+import { usePdfTextEditorFillFocus } from './usePdfTextEditorFillFocus'
+import { usePdfTextEditorFillSidebarProps } from './usePdfTextEditorFillSidebarProps'
+import { usePdfTextEditorHeaderProps } from './usePdfTextEditorHeaderProps'
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
-export type PdfTextEditorResult = {
-  annotations: Record<number, Annotation[]>
-  formFields: PdfFormFieldDraft[]
-}
+type PdfTextEditorHistory = History<Record<number, Annotation[]>>
+type PdfFormValueHandler = (
+  sourceId: string,
+  fieldName: string,
+  value: string | boolean,
+) => void
 export function PdfTextEditor({
   doc,
   pageIndex,
@@ -59,27 +57,24 @@ export function PdfTextEditor({
   onInspectForms,
   onClose,
   onPrint,
+  onSaveCopy,
 }: {
   doc: PdfDoc
   pageIndex: number
   detectedForms?: DetectedPdfFormForCanvas[]
   mode?: 'edit' | 'fill'
   templateToolsEnabled?: boolean
-  onFormValueChange?: (
-    sourceId: string,
-    fieldName: string,
-    value: string | boolean,
-  ) => void
+  onFormValueChange?: PdfFormValueHandler
   onInspectForms?: () => void
   onClose: (edits: PdfTextEditorResult | null) => void
   onPrint?: (edits: PdfTextEditorResult) => void
+  onSaveCopy?: (edits: PdfTextEditorResult) => void
 }) {
   const total = doc.pages.length
   const fillMode = mode === 'fill'
+  const designMode = !fillMode && templateToolsEnabled
   const [currentPage, setCurrentPage] = useState(pageIndex)
-  const [history, setHistory] = useState<History<Record<number, Annotation[]>>>(() =>
-    initHistory({}),
-  )
+  const [history, setHistory] = useState<PdfTextEditorHistory>(() => initHistory({}))
   const edited = history.present
   const editedRef = useRef(edited)
   editedRef.current = edited
@@ -147,10 +142,7 @@ export function PdfTextEditor({
     },
     [doc],
   )
-
-  const [style, setStyle] = useState<TextStyle>({
-    ...defaultEditorTextStyle(),
-  })
+  const [style, setStyle] = useState<TextStyle>({ ...defaultEditorTextStyle() })
   const arrangeGeometry = activeLayout
     ? { pageWidthPx: activeLayout.innerW, pageHeightPx: activeLayout.innerH }
     : null
@@ -179,7 +171,6 @@ export function PdfTextEditor({
     clearEditing: () => setEditingId(null),
   })
   selectedRef.current = selectedId
-
   usePdfTextEditorKeyboard({
     editingRef,
     selectedRef,
@@ -197,7 +188,6 @@ export function PdfTextEditor({
       list.map((a) => (a.id === id && a.kind === 'text' ? { ...a, ...patch } : a)),
     )
   const annotationStyle = resolveActiveEditorStyle(selectedAnn, style)
-
   function addText() {
     const a = makeTextAnnotation({
       text: 'Texto',
@@ -242,13 +232,11 @@ export function PdfTextEditor({
     setAnnotations((l) => [...l, copy])
     setSelectedId(copy.id)
   }
-
   function duplicateImage(a: ImageAnnotation) {
     const copy = translateAnnotation(cloneAnnotation(a), 0.03, 0.03)
     setAnnotations((l) => [...l, copy])
     setSelectedId(copy.id)
   }
-
   const { startDrag, startResize, startDraw, startMarquee } =
     usePdfTextEditorInteractions({
       layout: activeLayout,
@@ -269,11 +257,15 @@ export function PdfTextEditor({
       setTool,
       editLive,
     })
-
   const {
     addFormField,
     addSuggestedFormFields,
+    alignDraftFormFields,
+    applyDraftFormValues,
+    cancelPendingFormField,
+    clearDraftFormValues,
     deleteDraftFormField,
+    distributeDraftFormFields,
     formFields,
     chooseSignatureImage,
     applyDraftFieldStyle,
@@ -326,22 +318,46 @@ export function PdfTextEditor({
       onAddSuggested: addSuggestedFormFields,
     })
   const pageIndexById = Object.fromEntries(doc.pages.map((p, i) => [p.id, i]))
-  const jumpToFormField = (field: PdfFormFieldDraft) => {
-    const targetPage = pageIndexById[field.pageId]
-    if (targetPage == null) return
-    goToPage(targetPage)
-    window.setTimeout(() => {
-      const control = document.querySelector<HTMLElement>(
-        `[data-form-field-control="${field.id}"]`,
-      )
-      control?.focus()
-    }, 80)
-  }
+  const { activeFillFieldId, jumpToFormField, setActiveFillFieldId } =
+    usePdfTextEditorFillFocus({ goToPage, pageIndexById })
+  const { fillSidebarProps, showFillGuides } = usePdfTextEditorFillSidebarProps({
+    activeFillFieldId,
+    applyDraftFormValues,
+    clearDraftFormValues,
+    formFields,
+    jumpToFormField,
+    pageIndexById,
+    setActiveFillFieldId,
+    updateDraftFormValue,
+  })
+  const currentEdits = () => ({ annotations: edited, formFields })
+  const fillProgress = fillProgressForTemplateFields(formFields)
+  const headerProps = usePdfTextEditorHeaderProps({
+    changeZoom,
+    currentEdits,
+    currentPage,
+    displayZoom,
+    fillMode,
+    goToPage,
+    history,
+    onClose,
+    onPrint,
+    onSaveCopy,
+    prepareZoomAnchor,
+    setEditingId,
+    setHistory,
+    setSelectedId,
+    stepZoomIn,
+    stepZoomOut,
+    total,
+    zoomInDisabled,
+    zoomOutDisabled,
+  })
   return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={fillMode ? 'Rellenar planilla' : `Editar página ${currentPage + 1}`}
+      aria-label={pdfTextEditorDialogLabel({ currentPage, designMode, fillMode })}
       onPointerDown={(e) => {
         backdropDownRef.current =
           e.target === e.currentTarget ? { x: e.clientX, y: e.clientY } : null
@@ -351,7 +367,7 @@ export function PdfTextEditor({
         const start = backdropDownRef.current
         backdropDownRef.current = null
         if (!start || Math.hypot(e.clientX - start.x, e.clientY - start.y) <= 4)
-          onClose(null)
+          onClose(designMode ? currentEdits() : null)
       }}
       className="pdf-studio fixed inset-0 z-[60] flex items-stretch justify-center bg-ink-900/40 backdrop-blur-sm"
     >
@@ -361,36 +377,17 @@ export function PdfTextEditor({
         onClick={(e) => e.stopPropagation()}
         className="relative h-full w-full max-w-[min(1360px,85vw)] overflow-hidden border-x border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col focus:outline-none"
       >
-        <PdfTextEditorHeader
-          currentPage={currentPage}
-          total={total}
-          undoable={canUndo(history)}
-          redoable={canRedo(history)}
-          onPrevPage={() => goToPage(currentPage - 1)}
-          onNextPage={() => goToPage(currentPage + 1)}
-          onUndo={() => {
-            setSelectedId(null)
-            setEditingId(null)
-            setHistory(undo)
-          }}
-          onRedo={() => {
-            setSelectedId(null)
-            setEditingId(null)
-            setHistory(redo)
-          }}
-          onCancel={() => onClose(null)}
-          onDone={() => onClose({ annotations: edited, formFields })}
-          onPrint={
-            fillMode ? () => onPrint?.({ annotations: edited, formFields }) : undefined
-          }
-          showHistory={!fillMode}
-          showPrimaryAction={!fillMode}
-          title={fillMode ? 'Rellenar planilla' : undefined}
-          onPrepareZoomAnchor={fillMode ? prepareZoomAnchor : undefined}
-          onZoomIn={fillMode ? stepZoomIn : undefined}
-          onZoomOut={fillMode ? stepZoomOut : undefined}
-          onZoomChange={fillMode ? changeZoom : undefined}
-          zoom={fillMode ? displayZoom : undefined}
+        <PdfTextEditorHeaderSlot
+          changeZoom={changeZoom}
+          designMode={designMode}
+          displayZoom={displayZoom}
+          fillMode={fillMode}
+          fillProgress={fillProgress}
+          headerProps={headerProps}
+          onCreateTemplateField={() => addFormField('text')}
+          prepareZoomAnchor={prepareZoomAnchor}
+          stepZoomIn={stepZoomIn}
+          stepZoomOut={stepZoomOut}
           zoomInDisabled={zoomInDisabled}
           zoomOutDisabled={zoomOutDisabled}
         />
@@ -448,9 +445,15 @@ export function PdfTextEditor({
         ) : null}
         <PdfTextEditorFloatingFormTools
           field={fillMode ? null : selectedDraftFormField}
+          activeBold={activeStyle.bold}
+          activeSizeRatio={activeStyle.sizeRatio}
+          selectionCount={fillMode ? 0 : selectedFormFieldIds.length}
           signatureField={signatureField}
+          onAlignFields={alignDraftFormFields}
+          onApplyStyle={applyEditorStyle}
           onChooseSignatureImage={chooseSignatureImage}
           onDeleteField={deleteDraftFormField}
+          onDistributeFields={distributeDraftFormFields}
           onPatchField={patchDraftFormField}
           onSaveSignature={saveSignatureDataUrl}
           onSetSignatureField={setSignatureField}
@@ -463,18 +466,12 @@ export function PdfTextEditor({
           signatureInputRef={signatureInputRef}
           stampAccept={STAMP_ACCEPT}
           stampInputRef={stampInputRef}
+          onCancelPendingFormField={cancelPendingFormField}
           onSignatureFile={setSignatureFile}
           onStampFile={(file) => void addImageStamp(file)}
         />
         <div className={pdfTextEditorBodyClass(fillMode)}>
-          {fillMode ? (
-            <PdfTemplateFillVariablesPanel
-              fields={formFields}
-              pageIndexById={pageIndexById}
-              onChange={updateDraftFormValue}
-              onJump={jumpToFormField}
-            />
-          ) : null}
+          {fillMode ? <PdfTextEditorFillSidebar {...fillSidebarProps} /> : null}
           <PdfTextEditorScrollArea
             fillMode={fillMode}
             scrollContainerRef={scrollContainerRef}
@@ -486,7 +483,7 @@ export function PdfTextEditor({
                   doc={doc}
                   pageIndex={i}
                   isActive={i === currentPage}
-                  mode={mode}
+                  mode={fillMode ? 'fill' : designMode ? 'design' : 'edit'}
                   edited={edited}
                   zoom={zoom}
                   tool={tool}
@@ -501,6 +498,8 @@ export function PdfTextEditor({
                   detectedForms={detectedForms}
                   draftFields={formFields}
                   pendingFormKind={Boolean(pendingFormKind)}
+                  activeDraftId={activeFillFieldId}
+                  showFillGuides={showFillGuides}
                   selectedDraftId={selectedFormFieldId}
                   selectedDraftIds={selectedFormFieldIds}
                   onActivate={activatePage}
@@ -523,6 +522,7 @@ export function PdfTextEditor({
                   onStartResize={startResize}
                   onDetectedValueChange={onFormValueChange}
                   onDraftValueChange={updateDraftFormValue}
+                  onDraftFocus={(field) => setActiveFillFieldId(field.id)}
                   onSelectDraft={selectDraftFormField}
                   onStartDraftDrag={startDraftDrag}
                   onStartDraftResize={startDraftResize}

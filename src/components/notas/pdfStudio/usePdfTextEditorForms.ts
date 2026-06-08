@@ -7,6 +7,11 @@ import {
 } from '../../../lib/pdfStudio/model'
 import type { PageLayout, ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
 import type { TextStyle, Tool } from './editorStyle'
+import type { TemplateFillImportValues } from './pdfTemplateFillImport'
+import {
+  applyTemplateFieldValues,
+  clearTemplateFieldValues,
+} from './pdfTemplateFillValues'
 import { makeDraftFormField } from './pdfFormFieldFactory'
 import {
   startFormFieldDrag,
@@ -15,7 +20,9 @@ import {
 } from './pdfFormFieldPointer'
 import { patchFormFieldTextStyle } from './pdfFormFieldStyle'
 import { initialFieldBox, uniqueFieldName } from './pdfTextEditorFormDefaults'
+import { usePdfTextEditorFormArrange } from './usePdfTextEditorFormArrange'
 import { usePdfTextEditorFormShortcuts } from './usePdfTextEditorFormShortcuts'
+import { usePdfTextEditorFormSignature } from './usePdfTextEditorFormSignature'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 
@@ -38,8 +45,6 @@ export function usePdfTextEditorForms({
   setEditingId: (id: string | null) => void
   setSelectedId: (id: string | null) => void
 }) {
-  const signatureInputRef = useRef<HTMLInputElement>(null)
-  const signatureTargetRef = useRef<string | null>(null)
   const [formFields, setFormFields] = useState<PdfFormFieldDraft[]>(
     () => doc.formFields ?? [],
   )
@@ -47,7 +52,6 @@ export function usePdfTextEditorForms({
   const formClipboardRef = useRef<PdfFormFieldDraft[]>([])
   const selectedFormFieldId =
     selectedFormFieldIds[selectedFormFieldIds.length - 1] ?? null
-  const [signatureField, setSignatureField] = useState<PdfFormFieldDraft | null>(null)
   const [pendingFormKind, setPendingFormKind] = useState<PdfFormFieldKind | null>(null)
 
   usePdfTextEditorFormShortcuts({
@@ -59,12 +63,30 @@ export function usePdfTextEditorForms({
     setSelectedId,
     setSelectedIds: setSelectedFormFieldIds,
   })
+  const { alignDraftFormFields, distributeDraftFormFields } = usePdfTextEditorFormArrange(
+    {
+      selectedIds: selectedFormFieldIds,
+      setFields: setFormFields,
+    },
+  )
+  const {
+    chooseSignatureImage,
+    openSignature,
+    saveSignatureDataUrl,
+    setSignatureField,
+    setSignatureFile,
+    signatureField,
+    signatureInputRef,
+  } = usePdfTextEditorFormSignature({ updateDraftFormValue })
 
   function addFormField(kind: PdfFormFieldKind) {
     setPendingFormKind(kind)
     setTool('select')
     setEditingId(null)
     setSelectedId(null)
+  }
+  function cancelPendingFormField() {
+    setPendingFormKind(null)
   }
 
   function placePendingFormField(
@@ -75,7 +97,7 @@ export function usePdfTextEditorForms({
     if (!targetPage || !targetLayout || !pendingFormKind) return
     e.stopPropagation()
     e.preventDefault()
-    const base = initialFieldBox(pendingFormKind)
+    const base = initialFieldBox(pendingFormKind, style)
     const xRatio = clamp01(
       e.nativeEvent.offsetX / Math.max(1, targetLayout.innerW) - base.wRatio / 2,
     )
@@ -110,6 +132,20 @@ export function usePdfTextEditorForms({
     setFormFields((fields) =>
       fields.map((field) => (field.id === id ? { ...field, value } : field)),
     )
+  }
+
+  function clearDraftFormValues() {
+    setFormFields(clearTemplateFieldValues)
+  }
+
+  function applyDraftFormValues(values: TemplateFillImportValues): number {
+    let applied = 0
+    setFormFields((fields) => {
+      const result = applyTemplateFieldValues(fields, values)
+      applied = result.applied
+      return result.fields
+    })
+    return applied
   }
 
   function addSuggestedFormFields(suggestions: PdfFormFieldDraft[]): number {
@@ -156,34 +192,6 @@ export function usePdfTextEditorForms({
   function deleteDraftFormField(id: string) {
     setFormFields((fields) => fields.filter((field) => field.id !== id))
     setSelectedFormFieldIds((selected) => selected.filter((fieldId) => fieldId !== id))
-  }
-
-  function openSignature(field: PdfFormFieldDraft) {
-    setSignatureField(field)
-  }
-
-  function chooseSignatureImage(field = signatureField) {
-    if (!field) return
-    signatureTargetRef.current = field.id
-    signatureInputRef.current?.click()
-  }
-
-  function setSignatureFile(file: File) {
-    const target = signatureTargetRef.current
-    if (!target) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === 'string') updateDraftFormValue(target, reader.result)
-      setSignatureField(null)
-    }
-    reader.readAsDataURL(file)
-  }
-
-  function saveSignatureDataUrl(dataUrl: string) {
-    const target = signatureField?.id
-    if (!target) return
-    updateDraftFormValue(target, dataUrl)
-    setSignatureField(null)
   }
 
   function selectDraftFormField(id: string, additive = false) {
@@ -238,8 +246,13 @@ export function usePdfTextEditorForms({
   return {
     addFormField,
     addSuggestedFormFields,
+    alignDraftFormFields,
+    applyDraftFormValues,
     applyDraftFieldStyle,
+    cancelPendingFormField,
+    clearDraftFormValues,
     deleteDraftFormField,
+    distributeDraftFormFields,
     formFields,
     pendingFormKind,
     placePendingFormField,

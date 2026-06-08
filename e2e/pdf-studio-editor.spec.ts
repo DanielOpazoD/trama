@@ -254,7 +254,7 @@ async function openTemplateFillEditor(page: Page) {
   const thumb = page.getByAltText('Página 1')
   await expect(thumb).toBeVisible()
   await thumb.dblclick()
-  await expect(page.getByRole('dialog', { name: 'Editar página 1' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Crear plantilla' })).toBeVisible()
   await waitForEditableSheetReady(page)
 
   await page.getByRole('button', { name: 'Campos' }).click()
@@ -262,7 +262,7 @@ async function openTemplateFillEditor(page: Page) {
   await page
     .locator('[data-pdf-editor-sheet="0"]')
     .click({ position: { x: 220, y: 220 } })
-  await page.getByRole('button', { name: 'Listo' }).click()
+  await page.getByRole('button', { name: 'Aplicar casilleros' }).click()
   await expect(page.getByRole('dialog')).toBeHidden()
 
   await page.getByRole('button', { name: 'Mostrar el panel' }).click()

@@ -33,6 +33,14 @@ function templateDoc() {
   )
 }
 
+function filledTemplateDoc() {
+  const doc = templateDoc()
+  return {
+    ...doc,
+    formFields: doc.formFields?.map((field) => ({ ...field, value: 'Daniel' })),
+  }
+}
+
 function setup(overrides: Partial<Parameters<typeof WorkspacePanel>[0]> = {}) {
   const saved: SavedDoc[] = [
     { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
@@ -90,9 +98,21 @@ describe('<WorkspacePanel /> · planillas', () => {
     const props = setup()
 
     expect(screen.getByText('Planillas')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /Crear plantilla/i })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /Rellenar plantilla/i })).toBeInTheDocument()
+    expect(screen.getByText('Plantilla')).toBeInTheDocument()
+    expect(screen.getByText('Diseño editable')).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /Rellenar planilla Ingreso paciente/i }),
     ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Rellenar planilla Ingreso paciente/i }),
+    ).toHaveTextContent('Rellenar plantilla')
+    expect(
+      screen.getByRole('button', {
+        name: /Editar estructura de planilla Ingreso paciente/i,
+      }),
+    ).toHaveTextContent('Editar plantilla')
     expect(screen.getByText(/1 campo/)).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /Abrir PDF suelto para editar/i }),
@@ -103,6 +123,43 @@ describe('<WorkspacePanel /> · planillas', () => {
     )
 
     expect(props.onUseTemplate).toHaveBeenCalledWith(props.saved[0])
+  })
+
+  it('separa copias con datos de las planillas reusables aunque tengan campos', () => {
+    setup({
+      saved: [
+        {
+          id: 'filled-1',
+          name: 'Ingreso paciente datos',
+          doc: filledTemplateDoc(),
+          savedAt: 1200,
+          kind: 'filled-template',
+        },
+        {
+          id: 'tpl-1',
+          name: 'Ingreso paciente',
+          doc: templateDoc(),
+          savedAt: 1000,
+          kind: 'template',
+        },
+      ],
+    })
+
+    expect(
+      screen.getByRole('button', { name: /Rellenar planilla Ingreso paciente$/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', {
+        name: /Rellenar planilla Ingreso paciente datos/i,
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', {
+        name: /Abrir copia con datos Ingreso paciente datos/i,
+      }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Copia con datos')).toBeInTheDocument()
+    expect(screen.getByText('Abrir relleno')).toBeInTheDocument()
   })
 
   it('permite buscar planillas por nombre y deja la biblioteca escaneable', () => {

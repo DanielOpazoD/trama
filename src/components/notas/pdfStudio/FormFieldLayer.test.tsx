@@ -141,7 +141,12 @@ describe('<FormFieldLayer />', () => {
 
     const input = screen.getByRole('textbox', { name: 'paciente' })
     expect(input).toHaveAttribute('placeholder', 'Escriba aquí')
-    expect(screen.getByText('[paciente]')).toBeInTheDocument()
+    expect(screen.getByText('#1')).toHaveStyle({
+      right: '-4px',
+      transform: 'translate(100%, -50%)',
+    })
+    expect(screen.queryByText('[paciente]')).toBeNull()
+    expect(input).toHaveStyle({ borderWidth: '0px' })
     expect(
       screen.queryByRole('button', {
         name: 'Redimensionar campo paciente desde esquina inferior derecha',
@@ -151,6 +156,54 @@ describe('<FormFieldLayer />', () => {
     fireEvent.pointerDown(input.closest('div')!)
     expect(props.onSelectDraft).not.toHaveBeenCalled()
     expect(props.onStartDraftDrag).not.toHaveBeenCalled()
+  })
+
+  it('permite mostrar una guía visual opcional sin devolver el borde al input', () => {
+    const text = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: 'p1',
+      name: 'paciente',
+      value: '',
+      xRatio: 0.2,
+      yRatio: 0.3,
+      wRatio: 0.3,
+      hRatio: 0.05,
+    })
+    setup({
+      detectedWidgets: [],
+      draftFields: [text],
+      mode: 'fill',
+      selectedDraftId: null,
+      showFillGuides: true,
+    })
+
+    const input = screen.getByRole('textbox', { name: 'paciente' })
+    expect(input).toHaveStyle({ borderWidth: '0px' })
+    expect(input.closest('div')).toHaveClass('ring-1')
+  })
+
+  it('resalta el casillero activo en modo llenado', () => {
+    const text = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: 'p1',
+      name: 'paciente',
+      value: '',
+      xRatio: 0.2,
+      yRatio: 0.3,
+      wRatio: 0.3,
+      hRatio: 0.05,
+    })
+    setup({
+      activeDraftId: text.id,
+      detectedWidgets: [],
+      draftFields: [text],
+      mode: 'fill',
+      selectedDraftId: null,
+    })
+
+    expect(screen.getByLabelText('Casillero activo paciente')).toHaveClass(
+      'ring-[color:var(--accent-sage)]/45',
+    )
   })
 
   it('limpia el valor estándar Escriba aquí al enfocar un casillero de relleno', () => {

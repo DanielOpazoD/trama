@@ -33,11 +33,11 @@ import {
   primaryAction,
   segBtnTool,
   segGroup,
-  SHAPES,
   Stepper,
   ToolbarGroup,
 } from './EditorToolbarPrimitives'
 import { EditorToolbarFormMenu } from './EditorToolbarFormMenu'
+import { EditorToolbarShapesMenu } from './EditorToolbarShapesMenu'
 import { EditorToolbarZoomControl } from './EditorToolbarZoomControl'
 
 const SIZE_MIN = 0.012
@@ -101,7 +101,6 @@ export function EditorToolbar({
   const isMac = isMacLike()
   const isTemplateDesign = context === 'templateDesign'
   const activeFontLabel = FONTS.find((f) => f.key === activeFont)?.label ?? 'Fuente'
-  const activeShape = SHAPES.find((s) => s.key === tool)
   const activeColorLabel = COLORS.find((c) => c.hex === activeColor)?.label ?? 'Color'
   const stepSize = (delta: number) =>
     onApplyStyle({ sizeRatio: clamp(activeSize + delta, SIZE_MIN, SIZE_MAX) })
@@ -147,69 +146,38 @@ export function EditorToolbar({
               <CursorIcon size={14} />
             </button>
           </Hint>
-          <Hint content="Marcar redacción segura">
-            <button
-              type="button"
-              onClick={() => onToolChange('redact')}
-              className={segBtnTool(tool === 'redact')}
-              aria-label="Herramienta redactar"
-              aria-pressed={tool === 'redact'}
-            >
-              <ShieldIcon size={14} />
-            </button>
-          </Hint>
+          {!isTemplateDesign ? (
+            <Hint content="Marcar redacción segura">
+              <button
+                type="button"
+                onClick={() => onToolChange('redact')}
+                className={segBtnTool(tool === 'redact')}
+                aria-label="Herramienta redactar"
+                aria-pressed={tool === 'redact'}
+              >
+                <ShieldIcon size={14} />
+              </button>
+            </Hint>
+          ) : null}
         </div>
-        <OverflowMenu
-          label="Formas"
-          width="w-44"
-          menuLayerClassName={editorMenuLayer}
-          triggerClassName={menuTrigger}
-          triggerContent={
-            <>
-              <span className="inline-flex w-4 justify-center" aria-hidden>
-                {activeShape?.glyph ?? SHAPES[0]!.glyph}
-              </span>
-              <ChevronDownIcon size={12} className="text-ink-300" />
-            </>
-          }
-        >
-          {(close) => (
-            <>
-              {SHAPES.map((s) => (
-                <button
-                  key={s.key}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={tool === s.key}
-                  aria-label={`Herramienta ${s.label}`}
-                  onClick={() => {
-                    onToolChange(s.key)
-                    close()
-                  }}
-                  className={activeMenuItem(tool === s.key)}
-                >
-                  <span className="inline-flex w-4 justify-center" aria-hidden>
-                    {s.glyph}
-                  </span>
-                  <span>{s.label}</span>
-                </button>
-              ))}
-            </>
-          )}
-        </OverflowMenu>
+        {!isTemplateDesign ? (
+          <EditorToolbarShapesMenu tool={tool} onToolChange={onToolChange} />
+        ) : null}
       </ToolbarGroup>
 
       <ToolbarGroup label="Insertar">
-        <Hint content="Estampar una imagen sobre la página">
-          <button
-            type="button"
-            onClick={onAddImage}
-            aria-label="Estampar imagen"
-            className={primaryAction}
-          >
-            <CameraIcon size={14} />
-          </button>
-        </Hint>
+        {!isTemplateDesign ? (
+          <Hint content="Estampar una imagen sobre la página">
+            <button
+              type="button"
+              onClick={onAddImage}
+              aria-label="Estampar imagen"
+              className={primaryAction}
+            >
+              <CameraIcon size={14} />
+            </button>
+          </Hint>
+        ) : null}
         <EditorToolbarFormMenu
           onAddFormField={onAddFormField}
           onInspectForms={onInspectForms}

@@ -6,7 +6,7 @@
  * no está disponible (modo privado, cuota), el editor sigue funcionando sin
  * autoguardado. Excluido del coverage: API de navegador, se verifica en el navegador.
  */
-import type { ImageAsset, PdfDoc } from './model'
+import { isPdfTemplate, type ImageAsset, type PdfDoc } from './model'
 
 const DB_NAME = 'trama-pdf-studio'
 const STORE = 'drafts'
@@ -28,7 +28,14 @@ export type Draft = { doc: PdfDoc; library: ImageAsset[] }
 
 /** Una creación GUARDADA: snapshot con nombre del documento, que perdura aparte del
  *  borrador de trabajo (se puede re-abrir para editar, descargar/imprimir, borrar). */
-export type SavedDoc = { id: string; name: string; doc: PdfDoc; savedAt: number }
+export type SavedDocKind = 'creation' | 'template' | 'filled-template'
+export type SavedDoc = {
+  id: string
+  name: string
+  doc: PdfDoc
+  savedAt: number
+  kind?: SavedDocKind
+}
 type SavedRecord = SavedDoc & { userKey: string }
 
 function openDb(): Promise<IDBDatabase> {
@@ -118,7 +125,7 @@ export async function listSavedDocs(userKey: string): Promise<SavedDoc[]> {
     return recs
       .filter((r) => r.userKey === userKey)
       .sort((a, b) => b.savedAt - a.savedAt)
-      .map(({ userKey: _u, ...s }) => s)
+      .map(({ userKey: _u, ...s }) => normalizeSavedDocKind(s))
   } catch {
     return []
   }
@@ -156,4 +163,20 @@ export async function deleteSavedDoc(userKey: string, id: string): Promise<void>
   } catch {
     // no-op
   }
+}
+
+export function normalizeSavedDocKind(saved: SavedDoc): SavedDoc {
+  return saved.kind ? saved : { ...saved, kind: inferSavedDocKind(saved.doc) }
+}
+
+export function isSavedTemplate(saved: SavedDoc): boolean {
+  return normalizeSavedDocKind(saved).kind === 'template'
+}
+
+export function isSavedFilledTemplate(saved: SavedDoc): boolean {
+  return normalizeSavedDocKind(saved).kind === 'filled-template'
+}
+
+function inferSavedDocKind(doc: PdfDoc): SavedDocKind {
+  return isPdfTemplate(doc) ? 'template' : 'creation'
 }

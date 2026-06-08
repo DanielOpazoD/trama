@@ -9,6 +9,7 @@ import {
 import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
 import { useInViewport } from './useInViewport'
 import { CheckIcon, FileIcon, FilePdfIcon, TextIcon } from '../../Icons'
+import type { PageInteractionMode } from './pdfStudioPageInteractionMode'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -21,6 +22,7 @@ const ACCENT = 'var(--accent-sage)'
  */
 export function PageCard({
   doc,
+  interactionMode = 'editor',
   page,
   index,
   total,
@@ -37,6 +39,7 @@ export function PageCard({
   scrollRoot,
 }: {
   doc: PdfDoc
+  interactionMode?: PageInteractionMode
   page: PdfPage
   index: number
   total: number
@@ -89,6 +92,12 @@ export function PageCard({
   const annotationTitle = page.annotations.every((a) => a.kind === 'text')
     ? 'Tiene texto'
     : 'Tiene anotaciones'
+  const openTitle =
+    interactionMode === 'templateFill'
+      ? 'Doble clic para rellenar planilla'
+      : interactionMode === 'templateDesign'
+        ? 'Doble clic para crear plantilla'
+        : 'Doble clic para ver y editar'
 
   // Rotación visual de la miniatura. En 90°/270° se reescala para que la imagen
   // rotada entre en la caja CUADRADA (depende solo de los aspectos, no de px).
@@ -139,10 +148,10 @@ export function PageCard({
             : 'border-ink-100 hover:border-ink-200 hover:shadow-md hover:shadow-ink-900/5'
       }`}
     >
-      {/* Miniatura — doble clic la abre grande (ver y editar) */}
+      {/* Miniatura — doble clic abre el flujo principal del modo actual. */}
       <div
         onDoubleClick={onOpenText}
-        title="Doble clic para ver y editar"
+        title={openTitle}
         className="relative aspect-square min-h-0 bg-ink-100/30 flex items-center justify-center cursor-grab active:cursor-grabbing p-1.5"
       >
         {thumb ? (

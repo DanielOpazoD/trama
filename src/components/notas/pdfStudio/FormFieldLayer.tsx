@@ -53,12 +53,15 @@ export function FormFieldLayer({
   detectedWidgets,
   draftFields,
   mode = 'edit',
+  activeDraftId = null,
+  showFillGuides = false,
   selectedDraftId,
   selectedDraftIds = selectedDraftId ? [selectedDraftId] : [],
   pageHeightPx = 1,
   zoom = 1,
   onDetectedValueChange,
   onDraftValueChange,
+  onDraftFocus,
   onSelectDraft,
   onStartDraftDrag,
   onStartDraftResize,
@@ -66,7 +69,9 @@ export function FormFieldLayer({
 }: {
   detectedWidgets: VisualPdfFormWidget[]
   draftFields: PdfFormFieldDraft[]
-  mode?: 'edit' | 'fill'
+  mode?: 'edit' | 'design' | 'fill'
+  activeDraftId?: string | null
+  showFillGuides?: boolean
   selectedDraftId: string | null
   selectedDraftIds?: string[]
   pageHeightPx?: number
@@ -77,6 +82,7 @@ export function FormFieldLayer({
     value: string | boolean,
   ) => void
   onDraftValueChange: (id: string, value: string | boolean) => void
+  onDraftFocus?: (field: PdfFormFieldDraft) => void
   onSelectDraft: (id: string, additive?: boolean) => void
   onStartDraftDrag: (event: ReactPointerEvent, field: PdfFormFieldDraft) => void
   onStartDraftResize: (
@@ -92,15 +98,19 @@ export function FormFieldLayer({
   const selectedSet = new Set(selectedDraftIds)
   return (
     <>
-      {detectedWidgets.map((widget) => (
+      {detectedWidgets.map((widget, index) => (
         <div
           key={widget.id}
           style={boxStyle(widget)}
-          className="z-10"
+          className={`z-10 ${
+            mode === 'fill' && showFillGuides
+              ? 'rounded-[4px] bg-[color:var(--accent-sage-soft)]/20 ring-1 ring-[color:var(--accent-sage)]/25'
+              : ''
+          }`}
           title={`Campo ${widget.fieldName}`}
         >
           {mode === 'fill' ? (
-            <FillFieldLabel name={widget.fieldName} zoom={zoom} />
+            <FillFieldLabel index={index + 1} name={widget.fieldName} zoom={zoom} />
           ) : null}
           <FormFieldControl
             ariaName={widget.fieldName}
@@ -118,15 +128,22 @@ export function FormFieldLayer({
         </div>
       ))}
 
-      {draftFields.map((field) => {
+      {draftFields.map((field, index) => {
         const selected = selectedSet.has(field.id)
         const fillMode = mode === 'fill'
+        const activeInFill = fillMode && activeDraftId === field.id
         const showHandles = !fillMode && selected && selectedDraftIds.length === 1
+        const fillIndex = detectedWidgets.length + index + 1
+        const guideClass =
+          fillMode && showFillGuides
+            ? 'rounded-[4px] bg-[color:var(--accent-sage-soft)]/20 ring-1 ring-[color:var(--accent-sage)]/25'
+            : ''
         return (
           <div
             key={field.id}
+            aria-label={activeInFill ? `Casillero activo ${field.name}` : undefined}
             style={boxStyle(field)}
-            className="z-20"
+            className={`z-20 ${guideClass} ${activeInFill ? 'rounded-[4px] ring-2 ring-[color:var(--accent-sage)]/45 ring-offset-1 ring-offset-paper-50' : ''}`}
             onPointerDown={(event) => {
               event.stopPropagation()
               if (fillMode) return
@@ -137,7 +154,9 @@ export function FormFieldLayer({
             }}
             title={`Campo ${field.name}`}
           >
-            {fillMode ? <FillFieldLabel name={field.name} zoom={zoom} /> : null}
+            {fillMode ? (
+              <FillFieldLabel index={fillIndex} name={field.name} zoom={zoom} />
+            ) : null}
             <FormFieldControl
               ariaName={field.name}
               controlId={field.id}
@@ -154,6 +173,7 @@ export function FormFieldLayer({
               }
               options={field.options}
               onChange={(value) => onDraftValueChange(field.id, value)}
+              onFocus={() => onDraftFocus?.(field)}
               onOpenSignature={() => onOpenSignature(field)}
             />
             {showHandles
