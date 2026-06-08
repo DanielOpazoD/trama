@@ -7,13 +7,12 @@ import {
   type Annotation,
   type ImageAnnotation,
   type PdfDoc,
-  type PdfFormFieldDraft,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
 import { initHistory, pushHistory, type History } from '../../../lib/pdfStudio/history'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { EditorToolbar } from './EditorToolbar'
-import { PdfTextEditorHeader } from './PdfTextEditorHeader'
+import { PdfTextEditorHeaderSlot } from './PdfTextEditorHeaderSlot'
 import { SelectionInspector } from './SelectionInspector'
 import type { DrawingRect } from './AnnotationLayer'
 import type { SnapGuide } from './pdfAnnotationSnap'
@@ -29,21 +28,19 @@ import { type DetectedPdfFormForCanvas } from './pdfFormVisualMapping'
 import { usePdfTextEditorPageNavigation } from './usePdfTextEditorPageNavigation'
 import { usePdfTextEditorViewport } from './usePdfTextEditorViewport'
 import { PdfTextEditorFloatingFormTools } from './PdfTextEditorFloatingFormTools'
-import { PdfTemplateFillVariablesPanel } from './PdfTemplateFillVariablesPanel'
+import { PdfTextEditorFillSidebar } from './PdfTextEditorFillSidebar'
 import { usePdfTextEditorFormSuggestions } from './usePdfTextEditorFormSuggestions'
 import { PdfTextEditorAuxiliaryControls } from './PdfTextEditorAuxiliaryControls'
 import { PdfTextEditorScrollArea } from './PdfTextEditorScrollArea'
 import { pdfTextEditorBodyClass } from './pdfTextEditorLayoutClasses'
+import type { PdfTextEditorResult } from './pdfTextEditorResult'
 import { formFieldTextStyle } from './pdfFormFieldStyle'
+import { fillProgressForTemplateFields } from './pdfTemplateFillProgress'
 import { usePdfTextEditorFillFocus } from './usePdfTextEditorFillFocus'
+import { usePdfTextEditorFillSidebarProps } from './usePdfTextEditorFillSidebarProps'
 import { usePdfTextEditorHeaderProps } from './usePdfTextEditorHeaderProps'
-import { usePdfTemplateFillImport } from './usePdfTemplateFillImport'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
-export type PdfTextEditorResult = {
-  annotations: Record<number, Annotation[]>
-  formFields: PdfFormFieldDraft[]
-}
 type PdfTextEditorHistory = History<Record<number, Annotation[]>>
 type PdfFormValueHandler = (
   sourceId: string,
@@ -75,8 +72,6 @@ export function PdfTextEditor({
 }) {
   const total = doc.pages.length
   const fillMode = mode === 'fill'
-  const [showFillGuides, setShowFillGuides] = useState(false)
-  const [showPendingOnly, setShowPendingOnly] = useState(false)
   const [currentPage, setCurrentPage] = useState(pageIndex)
   const [history, setHistory] = useState<PdfTextEditorHistory>(() => initHistory({}))
   const edited = history.present
@@ -146,9 +141,7 @@ export function PdfTextEditor({
     },
     [doc],
   )
-  const [style, setStyle] = useState<TextStyle>({
-    ...defaultEditorTextStyle(),
-  })
+  const [style, setStyle] = useState<TextStyle>({ ...defaultEditorTextStyle() })
   const arrangeGeometry = activeLayout
     ? { pageWidthPx: activeLayout.innerW, pageHeightPx: activeLayout.innerH }
     : null
@@ -327,9 +320,18 @@ export function PdfTextEditor({
   const pageIndexById = Object.fromEntries(doc.pages.map((p, i) => [p.id, i]))
   const { activeFillFieldId, jumpToFormField, setActiveFillFieldId } =
     usePdfTextEditorFillFocus({ goToPage, pageIndexById })
-  const { importFeedback, importTemplateValues } =
-    usePdfTemplateFillImport(applyDraftFormValues)
+  const { fillSidebarProps, showFillGuides } = usePdfTextEditorFillSidebarProps({
+    activeFillFieldId,
+    applyDraftFormValues,
+    clearDraftFormValues,
+    formFields,
+    jumpToFormField,
+    pageIndexById,
+    setActiveFillFieldId,
+    updateDraftFormValue,
+  })
   const currentEdits = () => ({ annotations: edited, formFields })
+  const fillProgress = fillProgressForTemplateFields(formFields)
   const headerProps = usePdfTextEditorHeaderProps({
     changeZoom,
     currentEdits,
@@ -375,7 +377,18 @@ export function PdfTextEditor({
         onClick={(e) => e.stopPropagation()}
         className="relative h-full w-full max-w-[min(1360px,85vw)] overflow-hidden border-x border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col focus:outline-none"
       >
-        <PdfTextEditorHeader {...headerProps} />
+        <PdfTextEditorHeaderSlot
+          changeZoom={changeZoom}
+          displayZoom={displayZoom}
+          fillMode={fillMode}
+          fillProgress={fillProgress}
+          headerProps={headerProps}
+          prepareZoomAnchor={prepareZoomAnchor}
+          stepZoomIn={stepZoomIn}
+          stepZoomOut={stepZoomOut}
+          zoomInDisabled={zoomInDisabled}
+          zoomOutDisabled={zoomOutDisabled}
+        />
         {!fillMode ? (
           <EditorToolbar
             context={templateToolsEnabled ? 'templateDesign' : 'editor'}
@@ -455,23 +468,7 @@ export function PdfTextEditor({
           onStampFile={(file) => void addImageStamp(file)}
         />
         <div className={pdfTextEditorBodyClass(fillMode)}>
-          {fillMode ? (
-            <PdfTemplateFillVariablesPanel
-              activeFieldId={activeFillFieldId}
-              fields={formFields}
-              importFeedback={importFeedback}
-              pageIndexById={pageIndexById}
-              showFieldGuides={showFillGuides}
-              showPendingOnly={showPendingOnly}
-              onChange={updateDraftFormValue}
-              onClearValues={clearDraftFormValues}
-              onFocusField={(field) => setActiveFillFieldId(field.id)}
-              onImportValues={importTemplateValues}
-              onShowFieldGuidesChange={setShowFillGuides}
-              onShowPendingOnlyChange={setShowPendingOnly}
-              onJump={jumpToFormField}
-            />
-          ) : null}
+          {fillMode ? <PdfTextEditorFillSidebar {...fillSidebarProps} /> : null}
           <PdfTextEditorScrollArea
             fillMode={fillMode}
             scrollContainerRef={scrollContainerRef}

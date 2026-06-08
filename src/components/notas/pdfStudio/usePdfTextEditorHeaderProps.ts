@@ -7,7 +7,7 @@ import {
   undo,
   type History,
 } from '../../../lib/pdfStudio/history'
-import type { PdfTextEditorResult } from './PdfTextEditor'
+import type { PdfTextEditorResult } from './pdfTextEditorResult'
 
 type PdfTextEditorHistory = History<Record<number, Annotation[]>>
 

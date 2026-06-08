@@ -1,5 +1,14 @@
-import { applyEdits, type PdfDoc } from '../../../lib/pdfStudio/model'
-import type { PdfTextEditorResult } from './PdfTextEditor'
+import {
+  applyEdits,
+  type Annotation,
+  type PdfDoc,
+  type PdfFormFieldDraft,
+} from '../../../lib/pdfStudio/model'
+
+export type PdfTextEditorResult = {
+  annotations: Record<number, Annotation[]>
+  formFields: PdfFormFieldDraft[]
+}
 
 export function applyPdfTextEditorResult(
   doc: PdfDoc,

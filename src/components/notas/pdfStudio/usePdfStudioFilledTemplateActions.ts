@@ -1,6 +1,5 @@
 import type { PdfDoc } from '../../../lib/pdfStudio/model'
-import { applyPdfTextEditorResult } from './pdfTextEditorResult'
-import type { PdfTextEditorResult } from './PdfTextEditor'
+import { applyPdfTextEditorResult, type PdfTextEditorResult } from './pdfTextEditorResult'
 
 export function usePdfStudioFilledTemplateActions({
   activeTemplateName,

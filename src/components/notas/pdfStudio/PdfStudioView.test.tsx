@@ -386,6 +386,11 @@ describe('<PdfStudioView />', () => {
     expect(
       within(fillDialog).getByRole('main', { name: /Área de relleno de planilla/i }),
     ).toBeInTheDocument()
+    expect(
+      within(fillDialog).getByRole('banner', { name: /Rellenar planilla/i }),
+    ).toHaveTextContent('0/1 datos')
+    expect(within(fillDialog).queryByRole('button', { name: /Deshacer/i })).toBeNull()
+    expect(within(fillDialog).queryByRole('button', { name: /^Listo$/i })).toBeNull()
     expect(within(fillDialog).getByText('Completar datos')).toBeInTheDocument()
     expect(within(fillDialog).getByText('0/1')).toBeInTheDocument()
     expect(

@@ -1,27 +1,15 @@
 import { useRef } from 'react'
-import type { PdfFormFieldDraft, PdfFormValue } from '../../../lib/pdfStudio/model'
+import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
 import type { TemplateFillImportValues } from './pdfTemplateFillImport'
 import type { TemplateFillImportFeedback } from './usePdfTemplateFillImport'
 import { orderFormFieldsForFill } from './pdfFormFieldFillOrder'
 import { FORM_FIELD_EMPTY_HINT } from './pdfFormFieldStyle'
-
-function valueAsText(value: PdfFormValue): string {
-  if (typeof value === 'string') return value
-  if (Array.isArray(value)) return value.join(', ')
-  return ''
-}
-
-function valueAsFillText(value: PdfFormValue): string {
-  const text = valueAsText(value)
-  return text === FORM_FIELD_EMPTY_HINT ? '' : text
-}
-
-function isFilled(field: PdfFormFieldDraft): boolean {
-  if (field.fieldKind === 'checkbox' || field.fieldKind === 'radio') {
-    return field.value === true || valueAsFillText(field.value).trim().length > 0
-  }
-  return valueAsFillText(field.value).trim().length > 0
-}
+import {
+  fillProgressForTemplateFields,
+  isTemplateFieldFilled,
+  rawValueAsText,
+  valueAsFillText,
+} from './pdfTemplateFillProgress'
 
 export function PdfTemplateFillVariablesPanel({
   activeFieldId = null,
@@ -56,11 +44,10 @@ export function PdfTemplateFillVariablesPanel({
   const importInputRef = useRef<HTMLInputElement | null>(null)
   const orderedFields = orderFormFieldsForFill(fields, pageIndexById)
   const visibleFields = showPendingOnly
-    ? orderedFields.filter((field) => !isFilled(field))
+    ? orderedFields.filter((field) => !isTemplateFieldFilled(field))
     : orderedFields
-  const pending = orderedFields.filter((field) => !isFilled(field)).length
-  const completed = orderedFields.length - pending
-  const nextPending = orderedFields.find((field) => !isFilled(field)) ?? null
+  const { completed, pending } = fillProgressForTemplateFields(orderedFields)
+  const nextPending = orderedFields.find((field) => !isTemplateFieldFilled(field)) ?? null
   const focusAdjacentField = (index: number, direction: 1 | -1): boolean => {
     const candidates =
       direction > 0
@@ -184,7 +171,7 @@ export function PdfTemplateFillVariablesPanel({
         className="mt-2 flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1"
       >
         {visibleFields.map((field, index) => {
-          const filled = isFilled(field)
+          const filled = isTemplateFieldFilled(field)
           const label = `Variable ${field.name}`
           const active = activeFieldId === field.id
           return (
@@ -242,7 +229,7 @@ export function PdfTemplateFillVariablesPanel({
                   onChange={(event) => onChange(field.id, event.currentTarget.value)}
                   onFocus={() => {
                     onFocusField?.(field)
-                    if (valueAsText(field.value) === FORM_FIELD_EMPTY_HINT) {
+                    if (rawValueAsText(field.value) === FORM_FIELD_EMPTY_HINT) {
                       onChange(field.id, '')
                     }
                   }}
