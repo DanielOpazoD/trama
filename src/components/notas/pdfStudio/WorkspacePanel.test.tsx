@@ -98,10 +98,13 @@ describe('<WorkspacePanel /> · planillas', () => {
     const props = setup()
 
     expect(screen.getByText('Planillas')).toBeInTheDocument()
+    expect(screen.getByText('Plantilla')).toBeInTheDocument()
+    expect(screen.getByText('Diseño editable')).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /Rellenar planilla Ingreso paciente/i }),
     ).toBeInTheDocument()
-    expect(screen.getByText('Usar planilla')).toBeInTheDocument()
+    expect(screen.getByText('Rellenar')).toBeInTheDocument()
+    expect(screen.getByText('Diseñar')).toBeInTheDocument()
     expect(screen.getByText(/1 campo/)).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /Abrir PDF suelto para editar/i }),
@@ -147,7 +150,8 @@ describe('<WorkspacePanel /> · planillas', () => {
         name: /Abrir copia con datos Ingreso paciente datos/i,
       }),
     ).toBeInTheDocument()
-    expect(screen.getByText(/copia con datos/i)).toBeInTheDocument()
+    expect(screen.getByText('Copia con datos')).toBeInTheDocument()
+    expect(screen.getByText('Abrir relleno')).toBeInTheDocument()
   })
 
   it('permite buscar planillas por nombre y deja la biblioteca escaneable', () => {

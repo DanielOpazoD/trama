@@ -1,38 +1,12 @@
 import { useRef, useState } from 'react'
-import { isSavedFilledTemplate, type SavedDoc } from '../../../lib/pdfStudio/persistence'
-import {
-  CheckIcon,
-  CloseIcon,
-  DownloadIcon,
-  FilePdfIcon,
-  PencilIcon,
-  PlusIcon,
-  TrashIcon,
-} from '../../Icons'
+import type { SavedDoc } from '../../../lib/pdfStudio/persistence'
+import { CheckIcon, CloseIcon, FilePdfIcon, PlusIcon } from '../../Icons'
+import { WorkspaceSavedDocItem } from './WorkspaceSavedDocItem'
 
 const ACCENT = 'var(--accent-sage)'
 
 const rowBtn =
   'touch-target inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
-
-function dateLabel(ms: number): string {
-  const d = new Date(ms)
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getDate()}/${d.getMonth() + 1} ${p(d.getHours())}:${p(d.getMinutes())}`
-}
-
-function savedDocActionLabel(saved: SavedDoc): string {
-  return isSavedFilledTemplate(saved)
-    ? `Abrir copia con datos ${saved.name}`
-    : `Abrir ${saved.name} para editar`
-}
-
-function savedDocSubtitle(saved: SavedDoc): string {
-  const pages = `${saved.doc.pages.length} ${saved.doc.pages.length === 1 ? 'hoja' : 'hojas'}`
-  return isSavedFilledTemplate(saved)
-    ? `copia con datos · ${pages} · ${dateLabel(saved.savedAt)}`
-    : `${pages} · ${dateLabel(saved.savedAt)}`
-}
 
 export function WorkspaceSavedDocsSection({
   creations,
@@ -129,75 +103,29 @@ export function WorkspaceSavedDocsSection({
       ) : (
         <ul className="flex flex-col gap-1 px-2 pt-1">
           {creations.map((s) => (
-            <li
+            <WorkspaceSavedDocItem
               key={s.id}
-              className="group flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-ink-100/40 transition-colors"
-            >
-              {renaming?.id === s.id ? (
-                <input
-                  autoFocus
-                  value={renaming.value}
-                  onChange={(e) => setRenaming({ id: s.id, value: e.target.value })}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') confirmRename()
-                    else if (e.key === 'Escape') {
-                      skipBlurConfirmRef.current = true
-                      setRenaming(null)
-                    }
-                  }}
-                  onBlur={() => {
-                    if (skipBlurConfirmRef.current) {
-                      skipBlurConfirmRef.current = false
-                      return
-                    }
-                    confirmRename()
-                  }}
-                  className="input-paper flex-1 min-w-0 text-caption px-1.5 py-0.5 rounded border border-ink-200"
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => onOpenSaved(s)}
-                  aria-label={savedDocActionLabel(s)}
-                  className="flex-1 min-w-0 text-left"
-                >
-                  <span className="block truncate text-caption text-ink-700">
-                    {s.name}
-                  </span>
-                  <span className="block text-micro text-ink-400 tabular-nums">
-                    {savedDocSubtitle(s)}
-                  </span>
-                </button>
-              )}
-              {renaming?.id !== s.id && (
-                <div className="flex shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    type="button"
-                    onClick={() => onDownloadSaved(s)}
-                    aria-label={`Descargar ${s.name}`}
-                    className={rowBtn}
-                  >
-                    <DownloadIcon size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRenaming({ id: s.id, value: s.name })}
-                    aria-label={`Renombrar ${s.name}`}
-                    className={rowBtn}
-                  >
-                    <PencilIcon size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteSaved(s.id)}
-                    aria-label={`Eliminar ${s.name}`}
-                    className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
-                  >
-                    <TrashIcon size={13} />
-                  </button>
-                </div>
-              )}
-            </li>
+              saved={s}
+              isRenaming={renaming?.id === s.id}
+              renameValue={renaming?.id === s.id ? renaming.value : ''}
+              onRenameValueChange={(value) => setRenaming({ id: s.id, value })}
+              onConfirmRename={confirmRename}
+              onCancelRename={() => {
+                skipBlurConfirmRef.current = true
+                setRenaming(null)
+              }}
+              onRenameBlur={() => {
+                if (skipBlurConfirmRef.current) {
+                  skipBlurConfirmRef.current = false
+                  return
+                }
+                confirmRename()
+              }}
+              onOpen={() => onOpenSaved(s)}
+              onDownload={() => onDownloadSaved(s)}
+              onStartRename={() => setRenaming({ id: s.id, value: s.name })}
+              onDelete={() => onDeleteSaved(s.id)}
+            />
           ))}
         </ul>
       )}

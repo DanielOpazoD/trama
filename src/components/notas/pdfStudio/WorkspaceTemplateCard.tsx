@@ -12,6 +12,11 @@ import { DuplicateIcon, FilePdfIcon, PencilIcon, TrashIcon } from '../../Icons'
 const rowBtn =
   'touch-target inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
 
+const chip =
+  'inline-flex h-4 items-center rounded px-1.5 text-[9px] font-medium leading-none'
+const templateChip = `${chip} bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]`
+const neutralChip = `${chip} bg-ink-100 text-ink-500`
+
 function TemplateThumb({ doc }: { doc: PdfDoc }) {
   const page = doc.pages[0]
   const source = page ? getSource(doc, page.sourceId) : undefined
@@ -131,6 +136,10 @@ export function WorkspaceTemplateCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-start gap-1">
               <div className="min-w-0 flex-1">
+                <div className="mb-1 flex flex-wrap gap-1">
+                  <span className={templateChip}>Plantilla</span>
+                  <span className={neutralChip}>Diseño editable</span>
+                </div>
                 <span className="block truncate text-caption font-medium text-ink-700">
                   {saved.name}
                 </span>
@@ -179,7 +188,7 @@ export function WorkspaceTemplateCard({
                 title="Rellenar sin modificar la plantilla"
                 className="btn-accent inline-flex h-7 items-center justify-center px-2 text-micro"
               >
-                Usar planilla
+                Rellenar
               </button>
               <button
                 type="button"
@@ -189,7 +198,7 @@ export function WorkspaceTemplateCard({
                 className="btn-ghost inline-flex h-7 items-center justify-center gap-1 px-2 text-micro"
               >
                 <PencilIcon size={11} />
-                Editar
+                Diseñar
               </button>
             </div>
 
