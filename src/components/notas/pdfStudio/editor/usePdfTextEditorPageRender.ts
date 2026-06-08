@@ -31,7 +31,10 @@ export function usePdfTextEditorPageRender({
   const layout = useMemo(
     () =>
       bg && area
-        ? fitPageLayout(bg.w, bg.h, area.w, area.h, page?.rotationQuarters ?? 0)
+        ? // Ajuste a lo ANCHO: la página llena el ancho disponible y se scrollea
+          // en vertical. Antes encajaba la página ENTERA en el visor, así que a
+          // 100% una hoja vertical se veía como una columna angosta (~50%).
+          fitPageLayout(bg.w, bg.h, area.w, Infinity, page?.rotationQuarters ?? 0)
         : null,
     [bg, page, area],
   )

@@ -192,10 +192,6 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     setPanelCollapsed(false)
     setSaveTemplateSignal((signal) => signal + 1)
   }
-  function openTemplateDesigner() {
-    if (!templatesEnabled || empty) return
-    setTextPage(0)
-  }
   const total = doc.pages.length
   const empty = total === 0
   const undoable = canUndo(history)
@@ -304,14 +300,8 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
             />
             {templatesEnabled && effectiveTemplateMode !== 'fill' && (
               <PdfTemplateWorkflowGuide
-                busy={busy}
                 fieldCount={doc.formFields?.length ?? 0}
                 pageCount={total}
-                saving={saving}
-                onAddFields={openTemplateDesigner}
-                onDownloadFillable={() => void downloadPdf(doc, 'rellenable')}
-                onImport={() => fileInputRef.current?.click()}
-                onSaveTemplate={startTemplateSave}
               />
             )}
             {templatesEnabled && formSummary && (

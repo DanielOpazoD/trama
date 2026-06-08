@@ -157,7 +157,7 @@ describe('<PdfStudioView />', () => {
   it('en modo planillas usa estado vacío, modo y acción primaria propios', () => {
     renderWithProviders(<PdfStudioView studioMode="templates" />)
 
-    expect(screen.getByRole('region', { name: /Crear plantilla/i })).toBeInTheDocument()
+    expect(screen.getByText(/Sube un PDF o imagen para empezar/i)).toBeInTheDocument()
     expect(screen.getByText(/Crea una planilla desde PDF o imagen/i)).toBeInTheDocument()
     expect(screen.getByText(/Diseñar planilla/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar planilla/i })).toBeDisabled()
@@ -170,12 +170,11 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    const guide = screen.getByRole('region', { name: /Crear plantilla/i })
-    expect(within(guide).getByText('2 páginas')).toBeInTheDocument()
-    expect(within(guide).getByText('Marca dónde escribir')).toBeInTheDocument()
-    expect(within(guide).getByText('Sin campos')).toBeInTheDocument()
+    expect(
+      screen.getByText(/Marca en el documento los espacios donde se escribirá/i),
+    ).toBeInTheDocument()
 
-    await user.click(within(guide).getByRole('button', { name: /Marcar espacios/i }))
+    await user.click(screen.getByRole('button', { name: /Agregar casilleros/i }))
     expect(
       await screen.findByRole('dialog', { name: /Crear plantilla/i }),
     ).toBeInTheDocument()
@@ -190,23 +189,16 @@ describe('<PdfStudioView />', () => {
     expect(screen.queryByRole('button', { name: /^Listo$/i })).not.toBeInTheDocument()
   })
 
-  it('desde la guía descarga PDF rellenable cuando la planilla tiene casilleros', async () => {
-    const user = userEvent.setup()
+  it('la guía resume los casilleros y no repite acciones de la barra', async () => {
     mocks.loadDraft.mockResolvedValueOnce({ doc: templateDoc(), library: [] })
     renderWithProviders(<PdfStudioView studioMode="templates" />)
 
     await screen.findByAltText('Página 1')
-    const guide = screen.getByRole('region', { name: /Crear plantilla/i })
-    expect(within(guide).getByText('1 campo')).toBeInTheDocument()
-
-    await user.click(within(guide).getByRole('button', { name: /PDF rellenable/i }))
-    expect(mocks.writePdfFormFieldsInWorker).toHaveBeenCalledWith(
-      expect.any(File),
-      [expect.objectContaining({ name: 'paciente', value: '' })],
-      expect.any(Array),
-      { flatten: false },
-      expect.anything(),
-    )
+    expect(screen.getByText(/1 campo marcado/i)).toBeInTheDocument()
+    expect(screen.getByText(/guárdala como plantilla/i)).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Subir PDF\/imagen/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('Guardar planilla abre el nombre de guardado cuando hay casilleros', async () => {
