@@ -85,6 +85,9 @@ export function usePdfTextEditorForms({
     setEditingId(null)
     setSelectedId(null)
   }
+  function cancelPendingFormField() {
+    setPendingFormKind(null)
+  }
 
   function placePendingFormField(
     e: ReactPointerEvent,
@@ -246,6 +249,7 @@ export function usePdfTextEditorForms({
     alignDraftFormFields,
     applyDraftFormValues,
     applyDraftFieldStyle,
+    cancelPendingFormField,
     clearDraftFormValues,
     deleteDraftFormField,
     distributeDraftFormFields,

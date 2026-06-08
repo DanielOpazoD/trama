@@ -237,7 +237,6 @@ export function PdfTextEditor({
     setAnnotations((l) => [...l, copy])
     setSelectedId(copy.id)
   }
-
   const { startDrag, startResize, startDraw, startMarquee } =
     usePdfTextEditorInteractions({
       layout: activeLayout,
@@ -258,12 +257,12 @@ export function PdfTextEditor({
       setTool,
       editLive,
     })
-
   const {
     addFormField,
     addSuggestedFormFields,
     alignDraftFormFields,
     applyDraftFormValues,
+    cancelPendingFormField,
     clearDraftFormValues,
     deleteDraftFormField,
     distributeDraftFormFields,
@@ -467,6 +466,7 @@ export function PdfTextEditor({
           signatureInputRef={signatureInputRef}
           stampAccept={STAMP_ACCEPT}
           stampInputRef={stampInputRef}
+          onCancelPendingFormField={cancelPendingFormField}
           onSignatureFile={setSignatureFile}
           onStampFile={(file) => void addImageStamp(file)}
         />

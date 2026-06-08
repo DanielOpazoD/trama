@@ -7,6 +7,7 @@ export function PdfTextEditorAuxiliaryControls({
   signatureInputRef,
   stampAccept,
   stampInputRef,
+  onCancelPendingFormField,
   onSignatureFile,
   onStampFile,
 }: {
@@ -16,6 +17,7 @@ export function PdfTextEditorAuxiliaryControls({
   signatureInputRef: RefObject<HTMLInputElement>
   stampAccept: string
   stampInputRef: RefObject<HTMLInputElement>
+  onCancelPendingFormField: () => void
   onSignatureFile: (file: File) => void
   onStampFile: (file: File) => void
 }) {
@@ -53,9 +55,22 @@ export function PdfTextEditorAuxiliaryControls({
         <div
           role="status"
           aria-live="polite"
-          className="border-b border-[color:var(--accent-sage)]/20 bg-[color:var(--accent-sage-soft)]/45 px-3 py-1.5 text-caption text-[color:var(--accent-sage)]"
+          className="flex items-center justify-between gap-3 border-b border-[color:var(--accent-sage)]/20 bg-[color:var(--accent-sage-soft)]/45 px-3 py-1.5 text-caption text-[color:var(--accent-sage)]"
         >
-          Haz clic o arrastra en la página para definir el casillero.
+          <span className="min-w-0 truncate">
+            <strong className="font-semibold">Colocar casillero</strong>
+            <span className="text-[color:var(--accent-sage)]/80">
+              {' '}
+              · ubicación pendiente
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={onCancelPendingFormField}
+            className="shrink-0 rounded px-2 py-1 text-micro font-semibold text-[color:var(--accent-sage)] transition-colors hover:bg-paper-50/70"
+          >
+            Cancelar creación
+          </button>
         </div>
       )}
       {!fillMode && formSuggestionStatus && (
