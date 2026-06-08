@@ -9,7 +9,7 @@ function valueAsText(value: PdfFormValue): string {
   return ''
 }
 
-function controlFrameStyle(mode?: 'edit' | 'fill'): string {
+function controlFrameStyle(mode?: 'edit' | 'design' | 'fill'): string {
   return mode === 'fill'
     ? 'flex h-full w-full items-center justify-center rounded-[4px] border border-[color:var(--accent-sage)] bg-paper-50/95 shadow-sm shadow-ink-900/10'
     : 'flex h-full w-full items-center justify-center rounded-[3px] border border-[color:var(--accent-sage)]/50 bg-paper-50/70'
@@ -89,7 +89,7 @@ export function FormFieldControl({
   ariaName: string
   controlId?: string
   fieldKind: PdfFormFieldKind | PdfFormFieldType
-  mode?: 'edit' | 'fill'
+  mode?: 'edit' | 'design' | 'fill'
   readOnly?: boolean
   selected?: boolean
   value: PdfFormValue

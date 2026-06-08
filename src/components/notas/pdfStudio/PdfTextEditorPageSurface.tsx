@@ -29,7 +29,6 @@ type ResizableAnnotation =
   | RedactionAnnotation
   | ImageAnnotation
   | ShapeAnnotation
-
 export function PdfTextEditorPageSurface({
   doc,
   pageIndex,
@@ -76,7 +75,7 @@ export function PdfTextEditorPageSurface({
   doc: PdfDoc
   pageIndex: number
   isActive: boolean
-  mode?: 'edit' | 'fill'
+  mode?: 'edit' | 'design' | 'fill'
   edited: Record<number, Annotation[]>
   zoom: number
   tool: Tool
@@ -136,6 +135,7 @@ export function PdfTextEditorPageSurface({
   const { areaRef, bg, layout } = usePdfTextEditorPageRender({ page, source, zoom })
   const annotations = edited[pageIndex] ?? page?.annotations ?? []
   const fillMode = mode === 'fill'
+  const canEditAnnotations = mode === 'edit'
   const visibleFormWidgets = page ? visualWidgetsForPage(page, detectedForms) : []
   const visibleDraftFields = page
     ? orderFormFieldsForPage(draftFields, page.id, pageIndex)
@@ -246,31 +246,31 @@ export function PdfTextEditorPageSurface({
               : activateAndStartFormField
             : activatePointer
         }
-        onStartDraw={!fillMode && isActive ? startDraw : activatePointer}
-        onStartMarquee={!fillMode && isActive ? startMarquee : activatePointer}
+        onStartDraw={canEditAnnotations && isActive ? startDraw : activatePointer}
+        onStartMarquee={canEditAnnotations && isActive ? startMarquee : activatePointer}
       >
         <AnnotationLayer
           annotations={annotations}
           innerW={layout?.innerW ?? 0}
           innerH={layout?.innerH ?? 0}
           tool={isActive ? tool : 'select'}
-          readOnly={fillMode}
-          selectedId={!fillMode && isActive ? selectedId : null}
-          selectedIds={!fillMode && isActive ? selectedIds : []}
-          editingId={!fillMode && isActive ? editingId : null}
+          readOnly={!canEditAnnotations}
+          selectedId={canEditAnnotations && isActive ? selectedId : null}
+          selectedIds={canEditAnnotations && isActive ? selectedIds : []}
+          editingId={canEditAnnotations && isActive ? editingId : null}
           zoom={zoom}
-          drawing={!fillMode && isActive ? drawing : null}
-          selectionMarquee={isActive ? selectionMarquee : null}
-          selectionLasso={isActive ? selectionLasso : null}
-          snapGuides={isActive ? snapGuides : []}
+          drawing={canEditAnnotations && isActive ? drawing : null}
+          selectionMarquee={canEditAnnotations && isActive ? selectionMarquee : null}
+          selectionLasso={canEditAnnotations && isActive ? selectionLasso : null}
+          snapGuides={canEditAnnotations && isActive ? snapGuides : []}
           drawColor={drawColor}
-          onStartDrag={isActive ? startDrag : activatePointer}
+          onStartDrag={canEditAnnotations && isActive ? startDrag : activatePointer}
           onSelect={activateAndSelect}
           onToggleSelect={activateAndToggle}
           onStartEdit={activateAndEdit}
           onCommitText={onCommitText}
           onCancelEdit={onCancelEdit}
-          onStartResize={isActive ? startResize : activatePointer}
+          onStartResize={canEditAnnotations && isActive ? startResize : activatePointer}
         />
         {formSurface}
       </PageCanvas>

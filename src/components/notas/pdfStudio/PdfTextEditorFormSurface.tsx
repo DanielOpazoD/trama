@@ -23,7 +23,7 @@ export function PdfTextEditorFormSurface({
 }: {
   detectedWidgets: VisualPdfFormWidget[]
   draftFields: PdfFormFieldDraft[]
-  mode?: 'edit' | 'fill'
+  mode?: 'edit' | 'design' | 'fill'
   activeDraftId?: string | null
   showFillGuides?: boolean
   selectedDraftId: string | null

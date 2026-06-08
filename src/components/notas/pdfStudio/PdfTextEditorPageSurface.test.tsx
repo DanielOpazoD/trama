@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { addPdfSource, emptyDoc } from '../../../lib/pdfStudio/model'
+import { addPdfSource, emptyDoc, makeTextAnnotation } from '../../../lib/pdfStudio/model'
 import { PdfTextEditorPageSurface } from './PdfTextEditorPageSurface'
 
 vi.mock('./usePdfTextEditorPageRender', () => ({
@@ -77,5 +77,33 @@ describe('<PdfTextEditorPageSurface />', () => {
 
     expect(props.onActivate).toHaveBeenCalledWith(1)
     expect(props.onStartFormField).not.toHaveBeenCalled()
+  })
+
+  it('en modo crear plantilla deja las anotaciones PDF como solo lectura', () => {
+    const text = makeTextAnnotation({
+      text: 'Texto PDF normal',
+      xRatio: 0.2,
+      yRatio: 0.2,
+      wRatio: 0.25,
+      hRatio: 0.05,
+      sizeRatio: 0.03,
+      color: '#222222',
+      font: 'sans',
+      bold: false,
+      opacity: 1,
+      rotation: 0,
+    })
+    const props = setup({
+      isActive: true,
+      mode: 'design',
+      edited: { 1: [text] },
+      pendingFormKind: false,
+    })
+
+    fireEvent.pointerDown(screen.getByText('Texto PDF normal'))
+    fireEvent.click(screen.getByText('Texto PDF normal'))
+
+    expect(props.onStartDrag).not.toHaveBeenCalled()
+    expect(props.onSelectAnnotation).not.toHaveBeenCalled()
   })
 })

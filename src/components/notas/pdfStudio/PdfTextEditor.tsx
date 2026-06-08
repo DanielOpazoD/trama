@@ -483,7 +483,7 @@ export function PdfTextEditor({
                   doc={doc}
                   pageIndex={i}
                   isActive={i === currentPage}
-                  mode={mode}
+                  mode={fillMode ? 'fill' : designMode ? 'design' : 'edit'}
                   edited={edited}
                   zoom={zoom}
                   tool={tool}
