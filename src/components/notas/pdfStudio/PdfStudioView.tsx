@@ -17,7 +17,7 @@ import {
   type History,
 } from '../../../lib/pdfStudio/history'
 import { disposePdfStudio } from '../../../lib/pdfStudio/pdfRender'
-import { clearDraft } from '../../../lib/pdfStudio/persistence'
+import { clearDraft, isSavedFilledTemplate } from '../../../lib/pdfStudio/persistence'
 import { BulkBar } from './BulkBar'
 import { PdfStudioDocumentToolbar } from './PdfStudioDocumentToolbar'
 import { PdfStudioFormPanel } from './PdfStudioFormPanel'
@@ -237,7 +237,10 @@ export function PdfStudioView({
         onSaveCreation={saveCreation}
         onSaveTemplate={saveTemplateWithMode}
         saveTemplateSignal={saveTemplateSignal}
-        onOpenSaved={openSavedWithMode}
+        onOpenSaved={(saved) => {
+          openSavedWithMode(saved)
+          if (isSavedFilledTemplate(saved)) setTextPage(0)
+        }}
         onUseTemplate={(saved) => {
           openTemplateWithFillMode(saved)
           setTextPage(0)

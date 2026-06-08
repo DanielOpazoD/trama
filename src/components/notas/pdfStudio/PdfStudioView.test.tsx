@@ -61,6 +61,7 @@ vi.mock('../../../lib/pdfStudio/persistence', () => ({
   isSavedTemplate: (saved: { kind?: string; doc: { formFields?: unknown[] } }) =>
     (saved.kind ??
       ((saved.doc.formFields?.length ?? 0) > 0 ? 'template' : 'creation')) === 'template',
+  isSavedFilledTemplate: (saved: { kind?: string }) => saved.kind === 'filled-template',
 }))
 
 import { PdfStudioView } from './PdfStudioView'
@@ -89,6 +90,14 @@ function templateDoc() {
       hRatio: 0.05,
     }),
   )
+}
+
+function filledTemplateDoc() {
+  const doc = templateDoc()
+  return {
+    ...doc,
+    formFields: doc.formFields?.map((field) => ({ ...field, value: 'Daniel' })),
+  }
 }
 
 function fileInput(): HTMLInputElement {
@@ -567,6 +576,40 @@ describe('<PdfStudioView />', () => {
         JSON.stringify(call[1]).includes('Daniel'),
       ),
     ).toBe(false)
+  })
+
+  it('abre copias con datos en modo relleno, no como edición de estructura', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      {
+        id: 'filled-1',
+        name: 'Ingreso paciente datos',
+        doc: filledTemplateDoc(),
+        savedAt: 1200,
+        kind: 'filled-template',
+      },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Abrir copia con datos Ingreso paciente datos/i,
+      }),
+    )
+
+    const fillDialog = await screen.findByRole('dialog', { name: /Rellenar planilla/i })
+    expect(
+      within(fillDialog).getByRole('textbox', { name: /Variable paciente/i }),
+    ).toHaveValue('Daniel')
+    expect(
+      within(fillDialog).queryByRole('button', { name: /Crear casillero/i }),
+    ).toBeNull()
+    expect(
+      within(fillDialog).queryByRole('button', { name: /Aplicar casilleros/i }),
+    ).toBeNull()
+    expect(
+      within(fillDialog).getByRole('button', { name: /Imprimir planilla/i }),
+    ).toBeInTheDocument()
   })
 
   it('detecta formularios AcroForm desde el menú de documento en Planillas', async () => {

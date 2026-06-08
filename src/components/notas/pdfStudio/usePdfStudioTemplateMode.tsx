@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { isPdfTemplate, type PdfDoc } from '../../../lib/pdfStudio/model'
-import type { SavedDoc } from '../../../lib/pdfStudio/persistence'
+import { isSavedFilledTemplate, type SavedDoc } from '../../../lib/pdfStudio/persistence'
 import { PdfTemplateModeBanner, type PdfTemplateMode } from './PdfTemplateModeBanner'
 
 export function usePdfStudioTemplateMode({
@@ -43,6 +43,11 @@ export function usePdfStudioTemplateMode({
 
   function openSavedWithMode(saved: SavedDoc) {
     openSaved(saved)
+    if (enabled && isSavedFilledTemplate(saved)) {
+      setTemplateMode('fill')
+      setActiveTemplateName(saved.name)
+      return
+    }
     setTemplateMode(enabled && isPdfTemplate(saved.doc) ? 'design' : null)
     setActiveTemplateName(null)
   }

@@ -143,8 +143,11 @@ describe('<WorkspacePanel /> · planillas', () => {
       }),
     ).not.toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: /Abrir Ingreso paciente datos para editar/i }),
+      screen.getByRole('button', {
+        name: /Abrir copia con datos Ingreso paciente datos/i,
+      }),
     ).toBeInTheDocument()
+    expect(screen.getByText(/copia con datos/i)).toBeInTheDocument()
   })
 
   it('permite buscar planillas por nombre y deja la biblioteca escaneable', () => {

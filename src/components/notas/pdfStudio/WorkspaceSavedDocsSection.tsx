@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import type { SavedDoc } from '../../../lib/pdfStudio/persistence'
+import { isSavedFilledTemplate, type SavedDoc } from '../../../lib/pdfStudio/persistence'
 import {
   CheckIcon,
   CloseIcon,
@@ -19,6 +19,19 @@ function dateLabel(ms: number): string {
   const d = new Date(ms)
   const p = (n: number) => String(n).padStart(2, '0')
   return `${d.getDate()}/${d.getMonth() + 1} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+function savedDocActionLabel(saved: SavedDoc): string {
+  return isSavedFilledTemplate(saved)
+    ? `Abrir copia con datos ${saved.name}`
+    : `Abrir ${saved.name} para editar`
+}
+
+function savedDocSubtitle(saved: SavedDoc): string {
+  const pages = `${saved.doc.pages.length} ${saved.doc.pages.length === 1 ? 'hoja' : 'hojas'}`
+  return isSavedFilledTemplate(saved)
+    ? `copia con datos · ${pages} · ${dateLabel(saved.savedAt)}`
+    : `${pages} · ${dateLabel(saved.savedAt)}`
 }
 
 export function WorkspaceSavedDocsSection({
@@ -69,11 +82,6 @@ export function WorkspaceSavedDocsSection({
             type="button"
             onClick={() => setNewName('')}
             disabled={!canSave}
-            title={
-              canSave
-                ? 'Guardar la creación actual con un nombre'
-                : 'Agrega hojas para poder guardar'
-            }
             className="btn-ghost text-micro inline-flex items-center gap-1 disabled:opacity-40"
           >
             <PlusIcon size={11} /> Guardar
@@ -98,7 +106,6 @@ export function WorkspaceSavedDocsSection({
             type="button"
             onClick={confirmNew}
             aria-label="Guardar"
-            title="Guardar"
             className={rowBtn}
             style={{ color: ACCENT }}
           >
@@ -108,7 +115,6 @@ export function WorkspaceSavedDocsSection({
             type="button"
             onClick={() => setNewName(null)}
             aria-label="Cancelar"
-            title="Cancelar"
             className={rowBtn}
           >
             <CloseIcon size={14} />
@@ -152,16 +158,14 @@ export function WorkspaceSavedDocsSection({
                 <button
                   type="button"
                   onClick={() => onOpenSaved(s)}
-                  aria-label={`Abrir ${s.name} para editar`}
-                  title="Abrir para editar"
+                  aria-label={savedDocActionLabel(s)}
                   className="flex-1 min-w-0 text-left"
                 >
                   <span className="block truncate text-caption text-ink-700">
                     {s.name}
                   </span>
                   <span className="block text-micro text-ink-400 tabular-nums">
-                    {s.doc.pages.length} {s.doc.pages.length === 1 ? 'hoja' : 'hojas'} ·{' '}
-                    {dateLabel(s.savedAt)}
+                    {savedDocSubtitle(s)}
                   </span>
                 </button>
               )}
@@ -171,7 +175,6 @@ export function WorkspaceSavedDocsSection({
                     type="button"
                     onClick={() => onDownloadSaved(s)}
                     aria-label={`Descargar ${s.name}`}
-                    title="Descargar"
                     className={rowBtn}
                   >
                     <DownloadIcon size={13} />
@@ -180,7 +183,6 @@ export function WorkspaceSavedDocsSection({
                     type="button"
                     onClick={() => setRenaming({ id: s.id, value: s.name })}
                     aria-label={`Renombrar ${s.name}`}
-                    title="Renombrar"
                     className={rowBtn}
                   >
                     <PencilIcon size={13} />
@@ -189,7 +191,6 @@ export function WorkspaceSavedDocsSection({
                     type="button"
                     onClick={() => onDeleteSaved(s.id)}
                     aria-label={`Eliminar ${s.name}`}
-                    title="Eliminar de la lista"
                     className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
                   >
                     <TrashIcon size={13} />

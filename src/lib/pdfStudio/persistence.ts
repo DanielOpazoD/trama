@@ -173,6 +173,10 @@ export function isSavedTemplate(saved: SavedDoc): boolean {
   return normalizeSavedDocKind(saved).kind === 'template'
 }
 
+export function isSavedFilledTemplate(saved: SavedDoc): boolean {
+  return normalizeSavedDocKind(saved).kind === 'filled-template'
+}
+
 function inferSavedDocKind(doc: PdfDoc): SavedDocKind {
   return isPdfTemplate(doc) ? 'template' : 'creation'
 }
