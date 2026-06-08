@@ -83,6 +83,22 @@ describe('<EditorToolbar />', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('en modo planilla oculta herramientas de edición PDF que no crean casilleros', () => {
+    setup({
+      context: 'templateDesign',
+      onAddFormField: vi.fn(),
+      onInspectForms: vi.fn(),
+      onSuggestFormFields: vi.fn(),
+    })
+
+    expect(screen.queryByLabelText('Herramienta redactar')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Formas' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Estampar imagen/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Campos' })).toBeInTheDocument()
+  })
+
   it('evita bordes anidados en los grupos principales', () => {
     setup({ hasDuplicableSelection: true, hasSelection: true })
     for (const label of ['Herramientas', 'Insertar', 'Estilo', 'Objeto', 'Vista']) {
