@@ -98,13 +98,21 @@ describe('<WorkspacePanel /> · planillas', () => {
     const props = setup()
 
     expect(screen.getByText('Planillas')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /Crear plantilla/i })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /Rellenar plantilla/i })).toBeInTheDocument()
     expect(screen.getByText('Plantilla')).toBeInTheDocument()
     expect(screen.getByText('Diseño editable')).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /Rellenar planilla Ingreso paciente/i }),
     ).toBeInTheDocument()
-    expect(screen.getByText('Rellenar')).toBeInTheDocument()
-    expect(screen.getByText('Diseñar')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Rellenar planilla Ingreso paciente/i }),
+    ).toHaveTextContent('Rellenar plantilla')
+    expect(
+      screen.getByRole('button', {
+        name: /Editar estructura de planilla Ingreso paciente/i,
+      }),
+    ).toHaveTextContent('Editar plantilla')
     expect(screen.getByText(/1 campo/)).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /Abrir PDF suelto para editar/i }),

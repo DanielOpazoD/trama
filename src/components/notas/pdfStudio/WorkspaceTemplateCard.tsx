@@ -188,7 +188,7 @@ export function WorkspaceTemplateCard({
                 title="Rellenar sin modificar la plantilla"
                 className="btn-accent inline-flex h-7 items-center justify-center px-2 text-micro"
               >
-                Rellenar
+                Rellenar plantilla
               </button>
               <button
                 type="button"
@@ -198,7 +198,7 @@ export function WorkspaceTemplateCard({
                 className="btn-ghost inline-flex h-7 items-center justify-center gap-1 px-2 text-micro"
               >
                 <PencilIcon size={11} />
-                Diseñar
+                Editar plantilla
               </button>
             </div>
 
