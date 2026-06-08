@@ -1,6 +1,7 @@
 import { useState, type DragEvent } from 'react'
 import { type PdfDoc } from '../../../lib/pdfStudio/model'
 import { PageCard } from './PageCard'
+import type { PageInteractionMode } from './pdfStudioPageInteractionMode'
 
 /**
  * Grilla de miniaturas reordenables. Es dueña del estado VISUAL del arrastre
@@ -10,6 +11,7 @@ import { PageCard } from './PageCard'
  */
 export function PageGrid({
   doc,
+  interactionMode = 'editor',
   selectedIds,
   onToggleSelect,
   onReorder,
@@ -19,6 +21,7 @@ export function PageGrid({
   scrollRoot,
 }: {
   doc: PdfDoc
+  interactionMode?: PageInteractionMode
   selectedIds: Set<string>
   onToggleSelect: (index: number, shift: boolean) => void
   onReorder: (from: number, to: number) => void
@@ -48,6 +51,7 @@ export function PageGrid({
         <PageCard
           key={page.id}
           doc={doc}
+          interactionMode={interactionMode}
           page={page}
           index={index}
           total={total}

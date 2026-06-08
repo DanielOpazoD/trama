@@ -241,6 +241,29 @@ describe('<PdfStudioView />', () => {
     ).toBeInTheDocument()
   })
 
+  it('en planillas la miniatura comunica creación de plantilla, no edición PDF genérica', async () => {
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+    await userEvent.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    expect(screen.getAllByTitle(/Doble clic para crear plantilla/i)).toHaveLength(2)
+    expect(screen.queryByTitle(/Doble clic para ver y editar/i)).toBeNull()
+  })
+
+  it('el botón principal Agregar casilleros abre directamente Crear plantilla', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /^Agregar casilleros$/i }))
+
+    expect(
+      await screen.findByRole('dialog', { name: /Crear plantilla/i }),
+    ).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText(/Nombre de la planilla/i)).toBeNull()
+  })
+
   it('la barra principal mantiene una fila compacta y agrupa acciones secundarias', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)

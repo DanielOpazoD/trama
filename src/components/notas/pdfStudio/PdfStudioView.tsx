@@ -37,16 +37,12 @@ import { usePdfStudioOcr } from './usePdfStudioOcr'
 import { usePdfStudioFilledTemplateActions } from './usePdfStudioFilledTemplateActions'
 import { usePdfStudioTemplateMode } from './usePdfStudioTemplateMode'
 import { usePdfStudioWorkspace } from './usePdfStudioWorkspace'
+import { pdfStudioPageInteractionMode as pageMode } from './pdfStudioPageInteractionMode'
 import { useToast } from '../../../state'
 const ACCEPT = 'application/pdf,image/*'
 export type PdfStudioMode = 'editor' | 'templates'
-export function PdfStudioView({
-  topBar,
-  studioMode = 'editor',
-}: {
-  topBar?: ReactNode
-  studioMode?: PdfStudioMode
-}) {
+type PdfStudioViewProps = { topBar?: ReactNode; studioMode?: PdfStudioMode }
+export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewProps) {
   const toast = useToast()
   const templatesEnabled = studioMode === 'templates'
   const [exportCompression, setExportCompression] =
@@ -343,6 +339,10 @@ export function PdfStudioView({
             {editBar}
             <PdfStudioMainPane
               doc={doc}
+              interactionMode={pageMode({
+                templatesEnabled,
+                templateMode: effectiveTemplateMode,
+              })}
               isTemplates={templatesEnabled}
               scrollRoot={scrollRoot}
               selectedIds={selectedIds}
