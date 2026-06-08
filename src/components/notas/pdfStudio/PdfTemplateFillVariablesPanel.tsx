@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import type { PdfFormFieldDraft, PdfFormValue } from '../../../lib/pdfStudio/model'
 import { orderFormFieldsForFill } from './pdfFormFieldFillOrder'
+import { FORM_FIELD_EMPTY_HINT } from './pdfFormFieldStyle'
 
 function valueAsText(value: PdfFormValue): string {
   if (typeof value === 'string') return value
@@ -8,11 +9,16 @@ function valueAsText(value: PdfFormValue): string {
   return ''
 }
 
+function valueAsFillText(value: PdfFormValue): string {
+  const text = valueAsText(value)
+  return text === FORM_FIELD_EMPTY_HINT ? '' : text
+}
+
 function isFilled(field: PdfFormFieldDraft): boolean {
   if (field.fieldKind === 'checkbox' || field.fieldKind === 'radio') {
-    return field.value === true || valueAsText(field.value).trim().length > 0
+    return field.value === true || valueAsFillText(field.value).trim().length > 0
   }
-  return valueAsText(field.value).trim().length > 0
+  return valueAsFillText(field.value).trim().length > 0
 }
 
 export function PdfTemplateFillVariablesPanel({
@@ -140,10 +146,15 @@ export function PdfTemplateFillVariablesPanel({
                   }}
                   type={field.fieldKind === 'date' ? 'date' : 'text'}
                   aria-label={label}
-                  value={valueAsText(field.value)}
+                  value={valueAsFillText(field.value)}
                   readOnly={field.readOnly}
                   onChange={(event) => onChange(field.id, event.currentTarget.value)}
-                  onFocus={() => onFocusField?.(field)}
+                  onFocus={() => {
+                    onFocusField?.(field)
+                    if (valueAsText(field.value) === FORM_FIELD_EMPTY_HINT) {
+                      onChange(field.id, '')
+                    }
+                  }}
                   onKeyDown={(event) => {
                     if (event.key !== 'Enter') return
                     event.preventDefault()

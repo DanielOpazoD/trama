@@ -161,6 +161,36 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
     expect(onJump).toHaveBeenCalledWith(filledField)
   })
 
+  it('trata el texto estándar como placeholder vacío en el panel de relleno', () => {
+    const hintedField = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: 'p1',
+      name: 'diagnostico',
+      value: 'Escriba aquí',
+      xRatio: 0.1,
+      yRatio: 0.2,
+      wRatio: 0.35,
+      hRatio: 0.05,
+    })
+    const onChange = vi.fn()
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[hintedField]}
+        pageIndexById={{ p1: 0 }}
+        onChange={onChange}
+        onJump={vi.fn()}
+      />,
+    )
+
+    const input = screen.getByRole('textbox', { name: /Variable diagnostico/i })
+    expect(screen.getByText('1 pendiente')).toBeInTheDocument()
+    expect(input).toHaveValue('')
+
+    fireEvent.focus(input)
+
+    expect(onChange).toHaveBeenCalledWith(hintedField.id, '')
+  })
+
   it('resalta el casillero activo en el panel lateral', () => {
     render(
       <PdfTemplateFillVariablesPanel

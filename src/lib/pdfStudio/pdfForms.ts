@@ -14,6 +14,7 @@ import {
   rgb,
 } from 'pdf-lib'
 import { dataUrlToBytes, isPngBytes } from './assembleImages'
+import { FORM_FIELD_EMPTY_HINT } from './formFieldConstants'
 import type { PdfFormFieldDraft } from './model'
 
 const DEFAULT_FORM_FIELD_SIZE_RATIO = 0.04
@@ -248,6 +249,11 @@ function stringValue(value: PdfFormFieldDraft['value']) {
   return ''
 }
 
+function formTextValue(value: PdfFormFieldDraft['value']) {
+  const text = stringValue(value)
+  return text === FORM_FIELD_EMPTY_HINT ? '' : text
+}
+
 function applyFlags(
   field: {
     enableReadOnly: () => void
@@ -338,7 +344,7 @@ export async function writePdfFormFields(
     } else {
       const field = form.createTextField(draft.name)
       applyFlags(field, draft)
-      field.setText(stringValue(draft.value))
+      field.setText(formTextValue(draft.value))
       field.addToPage(page, { ...rect, font })
       field.setFontSize(fontSizeForField(draft, page))
       clearWidgetChrome(field, { border: true })

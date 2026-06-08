@@ -5,9 +5,10 @@ import {
 } from '../../../lib/pdfStudio/model'
 import type { CSSProperties } from 'react'
 import type { TextStyle } from './editorStyle'
+import { FORM_FIELD_EMPTY_HINT } from '../../../lib/pdfStudio/formFieldConstants'
 
 export const DEFAULT_FORM_FIELD_SIZE_RATIO = 0.04
-export const FORM_FIELD_EMPTY_HINT = 'Escriba aquí'
+export { FORM_FIELD_EMPTY_HINT }
 
 export type FormFieldTextStyle = Pick<TextStyle, 'font' | 'sizeRatio' | 'bold'>
 
