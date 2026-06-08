@@ -74,13 +74,16 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene la biblioteca de planillas en componentes enfocados', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/WorkspacePanel.tsx'),
-    ).toBeLessThanOrEqual(390)
+    ).toBeLessThanOrEqual(230)
     expect(
       fileLineCount('src/components/notas/pdfStudio/WorkspaceTemplatesSection.tsx'),
     ).toBeLessThanOrEqual(190)
     expect(
       fileLineCount('src/components/notas/pdfStudio/WorkspaceTemplateCard.tsx'),
     ).toBeLessThanOrEqual(240)
+    expect(
+      fileLineCount('src/components/notas/pdfStudio/WorkspaceSavedDocsSection.tsx'),
+    ).toBeLessThanOrEqual(210)
   })
 
   it('mantiene el OCR buscable separado en modulos pequenos', () => {

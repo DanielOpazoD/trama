@@ -3,25 +3,20 @@ import { isPdfTemplate, type ImageAsset } from '../../../lib/pdfStudio/model'
 import { type SavedDoc } from '../../../lib/pdfStudio/persistence'
 import {
   CameraIcon,
-  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  CloseIcon,
   DownloadIcon,
   FilePdfIcon,
-  PencilIcon,
   PlusIcon,
   TrashIcon,
 } from '../../Icons'
+import { WorkspaceSavedDocsSection } from './WorkspaceSavedDocsSection'
 import { WorkspaceTemplatesSection } from './WorkspaceTemplatesSection'
 
 const ACCENT = 'var(--accent-sage)'
 
 const iconBtn =
   'touch-target inline-flex h-5 w-5 items-center justify-center rounded bg-ink-900/65 text-paper-50 hover:bg-ink-900/90 transition-colors'
-const rowBtn =
-  'touch-target inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
-
 /** Miniatura de una imagen de la biblioteca (object URL propio, revocado al salir). */
 function LibraryThumb({ file }: { file: File }) {
   const [url, setUrl] = useState<string | null>(null)
@@ -37,19 +32,10 @@ function LibraryThumb({ file }: { file: File }) {
   )
 }
 
-/** Fecha corta local (día/mes hh:mm) para los guardados. */
-function dateLabel(ms: number): string {
-  const d = new Date(ms)
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getDate()}/${d.getMonth() + 1} ${p(d.getHours())}:${p(d.getMinutes())}`
-}
-
 /**
- * Panel lateral del workspace con DOS secciones: **Imágenes** (biblioteca de
- * imágenes subidas, reutilizables → agregar al documento / descargar / quitar) y
- * **Guardados** (creaciones con nombre que perduran → re-abrir para editar,
- * descargar, renombrar, eliminar). Colapsable a un riel finito. Presentacional: el
- * estado y las mutaciones viven en `PdfStudioView`.
+ * Panel lateral del workspace con imágenes, planillas reutilizables y creaciones
+ * sueltas. Colapsable a un riel finito. Presentacional: el estado y las mutaciones
+ * viven en `PdfStudioView`.
  */
 export function WorkspacePanel({
   library,
@@ -95,10 +81,6 @@ export function WorkspacePanel({
   collapsed: boolean
   onToggleCollapsed: () => void
 }) {
-  // Formulario inline para nombrar una creación nueva (null = cerrado).
-  const [newName, setNewName] = useState<string | null>(null)
-  // Renombrado inline de un guardado (id en edición + valor).
-  const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
   const templates = saved.filter((s) => isPdfTemplate(s.doc))
   const creations = saved.filter((s) => !isPdfTemplate(s.doc))
   const savedCount = templatesEnabled ? saved.length : creations.length
@@ -125,18 +107,6 @@ export function WorkspacePanel({
     )
   }
 
-  const confirmNew = () => {
-    const name = (newName ?? '').trim()
-    if (name) onSaveCreation(name)
-    setNewName(null)
-  }
-  const confirmRename = () => {
-    if (renaming) {
-      const name = renaming.value.trim()
-      if (name) onRenameSaved(renaming.id, name)
-    }
-    setRenaming(null)
-  }
   return (
     <aside className="surface-sidebar flex h-full w-60 flex-col overflow-hidden border-r border-ink-100">
       <header className="flex items-center justify-between gap-2 px-2.5 py-2 border-b border-ink-100/70 shrink-0">
@@ -235,142 +205,15 @@ export function WorkspacePanel({
           </>
         )}
 
-        {/* ── Guardados ──────────────────────────────────────────────────── */}
-        <section className="pb-2">
-          <div className="flex items-center justify-between gap-2 px-2.5 pt-2.5 pb-1">
-            <h3 className="flex items-center gap-1.5 text-caption font-medium text-ink-600">
-              <FilePdfIcon size={13} />
-              Guardados
-              <span className="text-ink-300 tabular-nums">({creations.length})</span>
-            </h3>
-            {newName === null && (
-              <button
-                type="button"
-                onClick={() => setNewName('')}
-                disabled={!canSave}
-                title={
-                  canSave
-                    ? 'Guardar la creación actual con un nombre'
-                    : 'Agrega hojas para poder guardar'
-                }
-                className="btn-ghost text-micro inline-flex items-center gap-1 disabled:opacity-40"
-              >
-                <PlusIcon size={11} /> Guardar
-              </button>
-            )}
-          </div>
-
-          {newName !== null && (
-            <div className="flex items-center gap-1 px-2.5 pb-2">
-              <input
-                autoFocus
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') confirmNew()
-                  else if (e.key === 'Escape') setNewName(null)
-                }}
-                placeholder="Nombre de la creación"
-                className="input-paper flex-1 min-w-0 text-caption px-2 py-1 rounded-md border border-ink-200"
-              />
-              <button
-                type="button"
-                onClick={confirmNew}
-                aria-label="Guardar"
-                title="Guardar"
-                className={rowBtn}
-                style={{ color: ACCENT }}
-              >
-                <CheckIcon size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setNewName(null)}
-                aria-label="Cancelar"
-                title="Cancelar"
-                className={rowBtn}
-              >
-                <CloseIcon size={14} />
-              </button>
-            </div>
-          )}
-
-          {creations.length === 0 ? (
-            <p className="px-2.5 text-micro text-ink-400">
-              Guarda tus creaciones con un nombre para volver a abrirlas y editarlas.
-            </p>
-          ) : (
-            <ul className="flex flex-col gap-1 px-2 pt-1">
-              {creations.map((s) => (
-                <li
-                  key={s.id}
-                  className="group flex items-center gap-1 rounded-md px-1.5 py-1 hover:bg-ink-100/40 transition-colors"
-                >
-                  {renaming?.id === s.id ? (
-                    <input
-                      autoFocus
-                      value={renaming.value}
-                      onChange={(e) => setRenaming({ id: s.id, value: e.target.value })}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') confirmRename()
-                        else if (e.key === 'Escape') setRenaming(null)
-                      }}
-                      onBlur={confirmRename}
-                      className="input-paper flex-1 min-w-0 text-caption px-1.5 py-0.5 rounded border border-ink-200"
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => onOpenSaved(s)}
-                      aria-label={`Abrir ${s.name} para editar`}
-                      title="Abrir para editar"
-                      className="flex-1 min-w-0 text-left"
-                    >
-                      <span className="block truncate text-caption text-ink-700">
-                        {s.name}
-                      </span>
-                      <span className="block text-micro text-ink-400 tabular-nums">
-                        {s.doc.pages.length} {s.doc.pages.length === 1 ? 'hoja' : 'hojas'}{' '}
-                        · {dateLabel(s.savedAt)}
-                      </span>
-                    </button>
-                  )}
-                  {renaming?.id !== s.id && (
-                    <div className="flex shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        type="button"
-                        onClick={() => onDownloadSaved(s)}
-                        aria-label={`Descargar ${s.name}`}
-                        title="Descargar"
-                        className={rowBtn}
-                      >
-                        <DownloadIcon size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRenaming({ id: s.id, value: s.name })}
-                        aria-label={`Renombrar ${s.name}`}
-                        title="Renombrar"
-                        className={rowBtn}
-                      >
-                        <PencilIcon size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDeleteSaved(s.id)}
-                        aria-label={`Eliminar ${s.name}`}
-                        title="Eliminar de la lista"
-                        className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
-                      >
-                        <TrashIcon size={13} />
-                      </button>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <WorkspaceSavedDocsSection
+          creations={creations}
+          canSave={canSave}
+          onSaveCreation={onSaveCreation}
+          onOpenSaved={onOpenSaved}
+          onRenameSaved={onRenameSaved}
+          onDeleteSaved={onDeleteSaved}
+          onDownloadSaved={onDownloadSaved}
+        />
       </div>
     </aside>
   )
