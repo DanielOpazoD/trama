@@ -30,6 +30,9 @@ import {
   X_DEFAULT_SIDE,
   X_SIZE_MAX,
   X_SIZE_MIN,
+  X_STROKE,
+  X_STROKE_MAX,
+  X_STROKE_MIN,
   type TextStyle,
   type Tool,
 } from './editorStyle'
@@ -93,9 +96,12 @@ export function PdfTextEditor({
   const annotations = edited[currentPage] ?? page?.annotations ?? []
   const [editingId, setEditingId] = useState<string | null>(null)
   const [tool, setTool] = useState<Tool>('select')
-  // Tamaño GLOBAL de las marcas X (una sola medida para todo el documento).
+  // Tamaño y grosor GLOBALES de las marcas X (una sola medida para todo el doc).
   const [xMarkSize, setXMarkSize] = useState(
     () => doc.settings?.xMarkSize ?? X_DEFAULT_SIDE,
+  )
+  const [xMarkStroke, setXMarkStroke] = useState(
+    () => doc.settings?.xMarkStroke ?? X_STROKE,
   )
   const [drawing, setDrawing] = useState<DrawingRect | null>(null)
   const [selectionMarquee, setSelectionMarquee] = useState<DrawingRect | null>(null)
@@ -251,6 +257,23 @@ export function PdfTextEditor({
       return pushHistory(h, present)
     })
   }
+  // Cambia el grosor GLOBAL de la X y lo reaplica a TODAS las X. Undoable.
+  const setAllXMarkStroke = (next: number) => {
+    const stroke = clamp(next, X_STROKE_MIN, X_STROKE_MAX)
+    setXMarkStroke(stroke)
+    setHistory((h) => {
+      const present: Record<number, Annotation[]> = { ...h.present }
+      doc.pages.forEach((p, i) => {
+        const list = present[i] ?? p.annotations
+        if (list.some((a) => a.kind === 'shape' && a.shape === 'x')) {
+          present[i] = list.map((a) =>
+            a.kind === 'shape' && a.shape === 'x' ? { ...a, strokeRatio: stroke } : a,
+          )
+        }
+      })
+      return pushHistory(h, present)
+    })
+  }
   const annotationStyle = resolveActiveEditorStyle(selectedAnn, style)
   function addText() {
     const a = makeTextAnnotation({
@@ -309,6 +332,7 @@ export function PdfTextEditor({
       tool,
       style,
       xMarkSize,
+      xMarkStroke,
       editedRef,
       annotationsRef,
       setSelectedId,
@@ -398,7 +422,7 @@ export function PdfTextEditor({
   const currentEdits = () => ({
     annotations: edited,
     formFields,
-    settings: { ...doc.settings, xMarkSize },
+    settings: { ...doc.settings, xMarkSize, xMarkStroke },
   })
   // Al elegir una herramienta de dibujo (X), cancela el campo de formulario
   // pendiente para que el clic dibuje la marca en vez de colocar un casillero.
@@ -473,6 +497,8 @@ export function PdfTextEditor({
             onToolChange={changeTool}
             xMarkSize={xMarkSize}
             onXMarkSizeChange={resizeAllXMarks}
+            xMarkStroke={xMarkStroke}
+            onXMarkStrokeChange={setAllXMarkStroke}
             onAddText={addText}
             onAddImage={() => stampInputRef.current?.click()}
             onAddFormField={templateToolsEnabled ? addFormField : undefined}

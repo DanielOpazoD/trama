@@ -45,6 +45,7 @@ export function usePdfTextEditorInteractions({
   tool,
   style,
   xMarkSize,
+  xMarkStroke,
   editedRef,
   annotationsRef,
   setSelectedId,
@@ -64,6 +65,7 @@ export function usePdfTextEditorInteractions({
   tool: Tool
   style: TextStyle
   xMarkSize: number
+  xMarkStroke: number
   editedRef: { current: Record<number, Annotation[]> }
   annotationsRef: { current: Annotation[] }
   setSelectedId: (id: string | null) => void
@@ -311,6 +313,7 @@ export function usePdfTextEditorInteractions({
           strokeRatio: SHAPE_STROKE,
           highlightOpacity: HIGHLIGHT_OPACITY,
           xMarkSize,
+          xMarkStroke,
         },
       })
       // La marca X queda activa (pegajosa) para tildar varios casilleros seguidos

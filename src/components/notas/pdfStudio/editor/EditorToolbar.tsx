@@ -20,15 +20,7 @@ import {
   TrashIcon,
 } from '../../../Icons'
 import { OverflowMenu } from '../../../OverflowMenu'
-import {
-  clamp,
-  stepBtn,
-  X_SIZE_MAX,
-  X_SIZE_MIN,
-  X_SIZE_STEP,
-  type TextStyle,
-  type Tool,
-} from './editorStyle'
+import { clamp, type TextStyle, type Tool } from './editorStyle'
 import {
   activeMenuItem,
   COLORS,
@@ -46,6 +38,7 @@ import {
 } from './EditorToolbarPrimitives'
 import { EditorToolbarFormMenu } from './EditorToolbarFormMenu'
 import { EditorToolbarShapesMenu } from './EditorToolbarShapesMenu'
+import { EditorToolbarXMenu } from './EditorToolbarXMenu'
 import { EditorToolbarZoomControl } from './EditorToolbarZoomControl'
 
 const SIZE_MIN = 0.012
@@ -63,6 +56,8 @@ export function EditorToolbar({
   onToolChange,
   xMarkSize,
   onXMarkSizeChange,
+  xMarkStroke,
+  onXMarkStrokeChange,
   onAddText,
   onAddImage,
   onAddFormField,
@@ -89,6 +84,8 @@ export function EditorToolbar({
   onToolChange: (t: Tool) => void
   xMarkSize: number
   onXMarkSizeChange: (next: number) => void
+  xMarkStroke: number
+  onXMarkStrokeChange: (next: number) => void
   onAddText: () => void
   onAddImage: () => void
   onAddFormField?: (kind: PdfFormFieldKind) => void
@@ -209,40 +206,12 @@ export function EditorToolbar({
           </button>
         </Hint>
         {tool === 'x' ? (
-          <div
-            className={segGroup}
-            role="group"
-            aria-label="Tamaño de la marca X (aplica a todas)"
-          >
-            <Hint content="Achicar todas las X">
-              <button
-                type="button"
-                onClick={() => onXMarkSizeChange(xMarkSize - X_SIZE_STEP)}
-                disabled={xMarkSize <= X_SIZE_MIN + 1e-6}
-                className={stepBtn}
-                aria-label="Achicar la marca X"
-              >
-                -
-              </button>
-            </Hint>
-            <span
-              className="min-w-[2.5rem] text-center text-micro tabular-nums text-ink-500"
-              aria-live="polite"
-            >
-              X {Math.round((xMarkSize / X_SIZE_MAX) * 100)}%
-            </span>
-            <Hint content="Agrandar todas las X">
-              <button
-                type="button"
-                onClick={() => onXMarkSizeChange(xMarkSize + X_SIZE_STEP)}
-                disabled={xMarkSize >= X_SIZE_MAX - 1e-6}
-                className={stepBtn}
-                aria-label="Agrandar la marca X"
-              >
-                +
-              </button>
-            </Hint>
-          </div>
+          <EditorToolbarXMenu
+            xMarkSize={xMarkSize}
+            onXMarkSizeChange={onXMarkSizeChange}
+            xMarkStroke={xMarkStroke}
+            onXMarkStrokeChange={onXMarkStrokeChange}
+          />
         ) : null}
       </ToolbarGroup>
 

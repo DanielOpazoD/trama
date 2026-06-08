@@ -6,7 +6,7 @@ import {
   type ShapeKind,
 } from '../../../../lib/pdfStudio/model/model'
 import { rectFromPoints } from '../../../../lib/pdfStudio/model/editorGeometry'
-import { isShapeTool, X_STROKE, type Tool } from './editorStyle'
+import { isShapeTool, type Tool } from './editorStyle'
 
 const MIN_DRAW_DISTANCE_PX = 4
 const MIN_BOX_SIDE_PX = 4
@@ -17,6 +17,8 @@ export type DrawGestureStyle = {
   highlightOpacity: number
   /** Tamaño GLOBAL de la X (lado como fracción del alto de página). */
   xMarkSize: number
+  /** Grosor GLOBAL del trazo de la X (fracción del alto de página). */
+  xMarkStroke: number
 }
 
 export type DrawGestureInput = {
@@ -48,7 +50,7 @@ export function createAnnotationFromDrawGesture(
       x1Ratio: (input.x0 + half) / pageWidthPx,
       y1Ratio: (input.y0 + half) / pageHeightPx,
       color: input.style.color,
-      strokeRatio: X_STROKE,
+      strokeRatio: input.style.xMarkStroke,
     })
   }
 

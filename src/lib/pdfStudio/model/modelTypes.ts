@@ -124,6 +124,9 @@ export type DocSettings = {
   /** Tamaño GLOBAL de las marcas X (lado como fracción del alto de página). Una
    *  sola medida para todo el documento: cambiarla redimensiona todas las X. */
   xMarkSize?: number
+  /** Grosor GLOBAL del trazo de las marcas X (fracción del alto de página).
+   *  Cambiarlo reaplica a todas las X del documento. */
+  xMarkStroke?: number
 }
 
 export type PdfDoc = {

@@ -6,6 +6,7 @@ const style = {
   strokeRatio: 0.0025,
   highlightOpacity: 0.35,
   xMarkSize: 0.02,
+  xMarkStroke: 0.006,
 }
 
 describe('pdfAnnotationDrawing · createAnnotationFromDrawGesture', () => {

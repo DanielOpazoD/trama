@@ -58,9 +58,13 @@ export function isShapeTool(t: Tool): boolean {
 /** Grosor por defecto del trazo de las formas (fracción del alto de página). */
 export const SHAPE_STROKE = 0.004
 
-/** Grosor del trazo de la marca X (más grueso que una forma fina, para leerse
- *  como casillero marcado). */
+/** Grosor por defecto del trazo de la marca X (más grueso que una forma fina,
+ *  para leerse como casillero marcado). El grosor es GLOBAL al documento. */
 export const X_STROKE = 0.006
+/** Rango y paso del control de grosor global de la X. */
+export const X_STROKE_MIN = 0.002
+export const X_STROKE_MAX = 0.014
+export const X_STROKE_STEP = 0.002
 
 /** Lado por defecto de una X (fracción del alto de página); cuadrada en píxeles.
  *  El tamaño es GLOBAL al documento (vive en `DocSettings.xMarkSize`). */
