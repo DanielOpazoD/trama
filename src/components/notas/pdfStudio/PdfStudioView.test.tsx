@@ -446,6 +446,33 @@ describe('<PdfStudioView />', () => {
     expect(screen.queryByRole('menuitem', { name: /Crear campo Checkbox/i })).toBeNull()
   })
 
+  it('autoguarda cambios estructurales al crear casilleros en modo edición de planilla', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+    await user.upload(fileInput(), pdfFile())
+    await user.dblClick(await screen.findByAltText('Página 1'))
+
+    const dialog = await screen.findByRole('dialog', { name: /Crear plantilla/i })
+    const designHeader = within(dialog).getByRole('banner', {
+      name: /Crear plantilla/i,
+    })
+    await user.click(
+      within(designHeader).getByRole('button', { name: /Crear casillero/i }),
+    )
+    await user.click(within(dialog).getByAltText('Página 1'))
+    await user.click(within(dialog).getByRole('button', { name: /Aplicar casilleros/i }))
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 700))
+    })
+
+    expect(
+      mocks.saveDraft.mock.calls.some(
+        (call) => Array.isArray(call[1].formFields) && call[1].formFields.length > 0,
+      ),
+    ).toBe(true)
+  })
+
   it('descarga una planilla como PDF rellenable editable sin aplanar campos', async () => {
     const user = userEvent.setup()
     mocks.loadDraft.mockResolvedValueOnce({ doc: templateDoc(), library: [] })
