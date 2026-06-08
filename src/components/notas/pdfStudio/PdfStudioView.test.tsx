@@ -58,6 +58,9 @@ vi.mock('../../../lib/pdfStudio/persistence', () => ({
   listSavedDocs: mocks.listSavedDocs,
   putSavedDoc: mocks.putSavedDoc,
   deleteSavedDoc: mocks.deleteSavedDoc,
+  isSavedTemplate: (saved: { kind?: string; doc: { formFields?: unknown[] } }) =>
+    (saved.kind ??
+      ((saved.doc.formFields?.length ?? 0) > 0 ? 'template' : 'creation')) === 'template',
 }))
 
 import { PdfStudioView } from './PdfStudioView'
@@ -553,6 +556,7 @@ describe('<PdfStudioView />', () => {
       expect.any(String),
       expect.objectContaining({
         name: expect.stringMatching(/Ingreso paciente.+datos/i),
+        kind: 'filled-template',
         doc: expect.objectContaining({
           formFields: [expect.objectContaining({ name: 'paciente', value: 'Daniel' })],
         }),

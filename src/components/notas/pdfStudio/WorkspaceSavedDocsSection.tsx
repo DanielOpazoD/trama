@@ -61,7 +61,7 @@ export function WorkspaceSavedDocsSection({
       <div className="flex items-center justify-between gap-2 px-2.5 pt-2.5 pb-1">
         <h3 className="flex items-center gap-1.5 text-caption font-medium text-ink-600">
           <FilePdfIcon size={13} />
-          Guardados
+          PDFs y copias
           <span className="text-ink-300 tabular-nums">({creations.length})</span>
         </h3>
         {newName === null && (
@@ -118,7 +118,7 @@ export function WorkspaceSavedDocsSection({
 
       {creations.length === 0 ? (
         <p className="px-2.5 text-micro text-ink-400">
-          Guarda tus creaciones con un nombre para volver a abrirlas y editarlas.
+          Guarda PDFs sueltos o copias rellenadas para volver a abrirlas.
         </p>
       ) : (
         <ul className="flex flex-col gap-1 px-2 pt-1">

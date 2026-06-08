@@ -1,5 +1,5 @@
-import { isPdfTemplate, type ImageAsset } from '../../../lib/pdfStudio/model'
-import { type SavedDoc } from '../../../lib/pdfStudio/persistence'
+import { type ImageAsset } from '../../../lib/pdfStudio/model'
+import { isSavedTemplate, type SavedDoc } from '../../../lib/pdfStudio/persistence'
 import { CameraIcon, ChevronLeftIcon, ChevronRightIcon, FilePdfIcon } from '../../Icons'
 import { WorkspaceImagesSection } from './WorkspaceImagesSection'
 import { WorkspaceSavedDocsSection } from './WorkspaceSavedDocsSection'
@@ -56,8 +56,8 @@ export function WorkspacePanel({
   collapsed: boolean
   onToggleCollapsed: () => void
 }) {
-  const templates = saved.filter((s) => isPdfTemplate(s.doc))
-  const creations = saved.filter((s) => !isPdfTemplate(s.doc))
+  const templates = saved.filter(isSavedTemplate)
+  const creations = saved.filter((s) => !isSavedTemplate(s))
   const savedCount = templatesEnabled ? saved.length : creations.length
 
   if (collapsed) {

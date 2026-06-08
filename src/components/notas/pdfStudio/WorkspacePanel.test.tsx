@@ -33,6 +33,14 @@ function templateDoc() {
   )
 }
 
+function filledTemplateDoc() {
+  const doc = templateDoc()
+  return {
+    ...doc,
+    formFields: doc.formFields?.map((field) => ({ ...field, value: 'Daniel' })),
+  }
+}
+
 function setup(overrides: Partial<Parameters<typeof WorkspacePanel>[0]> = {}) {
   const saved: SavedDoc[] = [
     { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
@@ -104,6 +112,39 @@ describe('<WorkspacePanel /> · planillas', () => {
     )
 
     expect(props.onUseTemplate).toHaveBeenCalledWith(props.saved[0])
+  })
+
+  it('separa copias con datos de las planillas reusables aunque tengan campos', () => {
+    setup({
+      saved: [
+        {
+          id: 'filled-1',
+          name: 'Ingreso paciente datos',
+          doc: filledTemplateDoc(),
+          savedAt: 1200,
+          kind: 'filled-template',
+        },
+        {
+          id: 'tpl-1',
+          name: 'Ingreso paciente',
+          doc: templateDoc(),
+          savedAt: 1000,
+          kind: 'template',
+        },
+      ],
+    })
+
+    expect(
+      screen.getByRole('button', { name: /Rellenar planilla Ingreso paciente$/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', {
+        name: /Rellenar planilla Ingreso paciente datos/i,
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Abrir Ingreso paciente datos para editar/i }),
+    ).toBeInTheDocument()
   })
 
   it('permite buscar planillas por nombre y deja la biblioteca escaneable', () => {

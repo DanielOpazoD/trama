@@ -93,7 +93,13 @@ export function usePdfStudioWorkspace({
   }
 
   function saveCreation(name: string) {
-    const s: SavedDoc = { id: crypto.randomUUID(), name, doc, savedAt: Date.now() }
+    const s: SavedDoc = {
+      id: crypto.randomUUID(),
+      name,
+      doc,
+      savedAt: Date.now(),
+      kind: 'creation',
+    }
     setSaved((list) => [s, ...list])
     void putSavedDoc(userKey, s)
     toast.show({ message: `Guardado "${name}".`, tone: 'success' })
@@ -106,6 +112,7 @@ export function usePdfStudioWorkspace({
       name,
       doc: template,
       savedAt: Date.now(),
+      kind: 'template',
     }
     setSaved((list) => [s, ...list])
     void putSavedDoc(userKey, s)
@@ -118,6 +125,7 @@ export function usePdfStudioWorkspace({
       name: uniqueFilledCopyName(name, saved),
       doc: normalizeDoc(filledDoc),
       savedAt: Date.now(),
+      kind: 'filled-template',
     }
     setSaved((list) => [s, ...list])
     void putSavedDoc(userKey, s)
@@ -131,6 +139,7 @@ export function usePdfStudioWorkspace({
       name,
       doc: normalizeDoc(clearPdfFormFieldValues(s.doc)),
       savedAt: Date.now(),
+      kind: 'template',
     }
     setSaved((list) => [copy, ...list])
     void putSavedDoc(userKey, copy)
