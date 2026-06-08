@@ -1,9 +1,14 @@
 # Consolidación estructural de PDF Studio
 
-> Estado: **en ejecución** (rama `refactor/pdf-studio-consolidacion`).
+> Estado: **completado** (rama `refactor/pdf-studio-consolidacion`).
 > Objetivo: reflejar en el árbol de carpetas la estructura que ya gobierna el código,
 > sin cambiar comportamiento. La prueba de éxito es objetiva: `typecheck + test + lint + build`
 > verdes y la app rinde igual en preview.
+>
+> **Resultado:** 211 archivos reorganizados en 4 fases (lib + 3 de componentes), ~530
+> imports recalculados, 0 cambios de lógica. La raíz de `components/notas/pdfStudio/` queda
+> solo con `PdfStudioView` + sus tests. Cada fase es un commit con typecheck + tests (2340) +
+> lint verdes; las fases con workers/assets pasan además `build`. El codemod se eliminó al cerrar.
 
 ## Por qué
 
