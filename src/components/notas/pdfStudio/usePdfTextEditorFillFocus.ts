@@ -1,6 +1,21 @@
 import { useCallback, useState } from 'react'
 import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
 
+function formFieldControlSelector(id: string): string {
+  return `[data-form-field-control="${id.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`
+}
+
+function selectTextIfPossible(control: HTMLElement) {
+  if (!(control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement)) {
+    return
+  }
+  if (control instanceof HTMLInputElement) {
+    const selectableTypes = new Set(['', 'email', 'search', 'tel', 'text', 'url'])
+    if (!selectableTypes.has(control.type)) return
+  }
+  control.select()
+}
+
 export function usePdfTextEditorFillFocus({
   goToPage,
   pageIndexById,
@@ -17,9 +32,12 @@ export function usePdfTextEditorFillFocus({
       goToPage(targetPage)
       window.setTimeout(() => {
         const control = document.querySelector<HTMLElement>(
-          `[data-form-field-control="${field.id}"]`,
+          formFieldControlSelector(field.id),
         )
-        control?.focus()
+        if (!control) return
+        control.scrollIntoView({ block: 'center', inline: 'center', behavior: 'auto' })
+        control.focus({ preventScroll: true })
+        selectTextIfPossible(control)
       }, 80)
     },
     [goToPage, pageIndexById],
