@@ -26,12 +26,9 @@ export function WorkspaceTemplateCreateBox({
       className="mx-2 mb-2 rounded-md border border-ink-100 bg-paper-50/75 px-2 py-1.5"
     >
       <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-caption font-medium text-ink-700">
-            Crear plantilla
-          </p>
-          <p className="truncate text-micro text-ink-400">Guardar estructura limpia</p>
-        </div>
+        <p className="min-w-0 truncate text-caption font-medium text-ink-700">
+          Crear plantilla
+        </p>
         {name === null && (
           <button
             type="button"
@@ -40,7 +37,7 @@ export function WorkspaceTemplateCreateBox({
             disabled={!canSaveTemplate}
             title={
               canSaveTemplate
-                ? 'Guardar la creación actual como planilla reusable'
+                ? 'Guardar la creación actual como planilla reusable (los datos de relleno no se guardan)'
                 : 'Agrega campos especiales para poder guardar una planilla'
             }
             className="btn-ghost text-micro inline-flex items-center gap-1 disabled:opacity-40"
@@ -50,11 +47,7 @@ export function WorkspaceTemplateCreateBox({
         )}
       </div>
 
-      {name === null ? (
-        <p className="mt-1 text-micro text-ink-400">
-          Los datos de relleno no se guardan en la plantilla.
-        </p>
-      ) : (
+      {name !== null && (
         <div className="mt-1.5 flex items-center gap-1">
           <input
             autoFocus

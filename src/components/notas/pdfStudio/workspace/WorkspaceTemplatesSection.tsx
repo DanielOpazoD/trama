@@ -83,9 +83,6 @@ export function WorkspaceTemplatesSection({
         <div role="group" aria-label="Rellenar plantilla">
           <div className="px-2 pb-1">
             <p className="text-caption font-medium text-ink-700">Rellenar plantilla</p>
-            <p className="text-micro text-ink-400">
-              Usa una plantilla sin cambiar sus casilleros.
-            </p>
           </div>
           <label className="mx-2 mb-1 flex items-center gap-1.5 rounded-md border border-ink-100 bg-paper-50/70 px-2 py-1.5 text-ink-400">
             <SearchIcon size={12} />
