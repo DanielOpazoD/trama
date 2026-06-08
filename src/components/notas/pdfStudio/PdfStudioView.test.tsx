@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { act, screen, within } from '@testing-library/react'
+import { act, fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '../../../test-utils'
 
@@ -503,6 +503,35 @@ describe('<PdfStudioView />', () => {
     await user.click(
       within(designHeader).getByRole('button', { name: /Guardar y cerrar/i }),
     )
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 700))
+    })
+
+    expect(
+      mocks.saveDraft.mock.calls.some(
+        (call) => Array.isArray(call[1].formFields) && call[1].formFields.length > 0,
+      ),
+    ).toBe(true)
+  })
+
+  it('conserva cambios estructurales al cerrar Crear plantilla desde el fondo', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+    await user.upload(fileInput(), pdfFile())
+    await user.dblClick(await screen.findByAltText('Página 1'))
+
+    const dialog = await screen.findByRole('dialog', { name: /Crear plantilla/i })
+    const designHeader = within(dialog).getByRole('banner', {
+      name: /Crear plantilla/i,
+    })
+    await user.click(
+      within(designHeader).getByRole('button', { name: /Crear casillero/i }),
+    )
+    await user.click(within(dialog).getByAltText('Página 1'))
+
+    fireEvent.pointerDown(dialog, { clientX: 8, clientY: 8 })
+    fireEvent.click(dialog, { clientX: 8, clientY: 8 })
 
     await act(async () => {
       await new Promise((resolve) => window.setTimeout(resolve, 700))

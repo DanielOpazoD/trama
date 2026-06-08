@@ -367,7 +367,7 @@ export function PdfTextEditor({
         const start = backdropDownRef.current
         backdropDownRef.current = null
         if (!start || Math.hypot(e.clientX - start.x, e.clientY - start.y) <= 4)
-          onClose(null)
+          onClose(designMode ? currentEdits() : null)
       }}
       className="pdf-studio fixed inset-0 z-[60] flex items-stretch justify-center bg-ink-900/40 backdrop-blur-sm"
     >
