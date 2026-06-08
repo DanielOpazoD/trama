@@ -74,7 +74,10 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene la biblioteca de planillas en componentes enfocados', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/WorkspacePanel.tsx'),
-    ).toBeLessThanOrEqual(230)
+    ).toBeLessThanOrEqual(160)
+    expect(
+      fileLineCount('src/components/notas/pdfStudio/WorkspaceImagesSection.tsx'),
+    ).toBeLessThanOrEqual(110)
     expect(
       fileLineCount('src/components/notas/pdfStudio/WorkspaceTemplatesSection.tsx'),
     ).toBeLessThanOrEqual(190)
