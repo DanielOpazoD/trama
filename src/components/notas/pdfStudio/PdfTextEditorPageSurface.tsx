@@ -16,7 +16,7 @@ import type {
 } from '../../../lib/pdfStudio/model/editorGeometry'
 import { AnnotationLayer, type DrawingRect } from './AnnotationLayer'
 import { FormFieldLayer } from './FormFieldLayer'
-import { PageCanvas } from './PageCanvas'
+import { PageCanvas } from './pages/PageCanvas'
 import { PdfTextEditorFormSurface } from './PdfTextEditorFormSurface'
 import type { SnapGuide } from './pdfAnnotationSnap'
 import {

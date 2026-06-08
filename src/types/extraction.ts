@@ -28,7 +28,7 @@ export type ExtractionProposal = {
   model?: string
 }
 
-// Re-export para que `from '../types'` siga resolviendo estos nombres
+// Re-export para que `from './'` siga resolviendo estos nombres
 // sin que cada call site tenga que saber que viven en schemas/.
 export type {
   ProposedEntity,

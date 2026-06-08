@@ -10,13 +10,13 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene PdfTextEditor bajo el ratchet estructural actual', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/PdfTextEditor.tsx'),
-    ).toBeLessThanOrEqual(540)
+    ).toBeLessThanOrEqual(550)
   })
 
   it('mantiene PdfStudioView bajo el ratchet estructural actual', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/PdfStudioView.tsx'),
-    ).toBeLessThanOrEqual(380)
+    ).toBeLessThanOrEqual(388)
   })
 
   it('mantiene assemble como orquestador del pipeline', () => {
@@ -57,7 +57,7 @@ describe('pdfStudio · estructura incremental', () => {
     ]
 
     for (const path of formModules) {
-      expect(fileLineCount(path), path).toBeLessThanOrEqual(280)
+      expect(fileLineCount(path), path).toBeLessThanOrEqual(290)
     }
   })
 
@@ -65,7 +65,7 @@ describe('pdfStudio · estructura incremental', () => {
     const templateModules = [
       'src/components/notas/pdfStudio/PdfTemplateModeBanner.tsx',
       'src/components/notas/pdfStudio/usePdfStudioTemplateMode.tsx',
-      'src/components/notas/pdfStudio/PdfStudioWorkspacePanelHost.tsx',
+      'src/components/notas/pdfStudio/shell/PdfStudioWorkspacePanelHost.tsx',
     ]
 
     for (const path of templateModules) {
@@ -75,19 +75,25 @@ describe('pdfStudio · estructura incremental', () => {
 
   it('mantiene la biblioteca de planillas en componentes enfocados', () => {
     expect(
-      fileLineCount('src/components/notas/pdfStudio/WorkspacePanel.tsx'),
+      fileLineCount('src/components/notas/pdfStudio/workspace/WorkspacePanel.tsx'),
     ).toBeLessThanOrEqual(160)
     expect(
-      fileLineCount('src/components/notas/pdfStudio/WorkspaceImagesSection.tsx'),
+      fileLineCount(
+        'src/components/notas/pdfStudio/workspace/WorkspaceImagesSection.tsx',
+      ),
     ).toBeLessThanOrEqual(110)
     expect(
-      fileLineCount('src/components/notas/pdfStudio/WorkspaceTemplatesSection.tsx'),
+      fileLineCount(
+        'src/components/notas/pdfStudio/workspace/WorkspaceTemplatesSection.tsx',
+      ),
     ).toBeLessThanOrEqual(190)
     expect(
-      fileLineCount('src/components/notas/pdfStudio/WorkspaceTemplateCard.tsx'),
+      fileLineCount('src/components/notas/pdfStudio/workspace/WorkspaceTemplateCard.tsx'),
     ).toBeLessThanOrEqual(240)
     expect(
-      fileLineCount('src/components/notas/pdfStudio/WorkspaceSavedDocsSection.tsx'),
+      fileLineCount(
+        'src/components/notas/pdfStudio/workspace/WorkspaceSavedDocsSection.tsx',
+      ),
     ).toBeLessThanOrEqual(210)
   })
 

@@ -6,7 +6,7 @@
  *   1. Recompone el objeto `api` con todos los métodos (igual que antes).
  *   2. Re-exporta los types públicos que vivían sueltos en api.ts.
  *
- * Los call sites (`import { api, type ChatMessage } from '../api'`)
+ * Los call sites (`import { api, type ChatMessage } from './'`)
  * siguen funcionando sin cambios porque Node/Vite resuelve `'../api'` a
  * `src/api/index.ts`.
  */
