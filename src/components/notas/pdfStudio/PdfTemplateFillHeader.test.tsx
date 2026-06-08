@@ -37,7 +37,7 @@ describe('<PdfTemplateFillHeader />', () => {
 
     await user.click(screen.getByRole('button', { name: /Guardar copia con datos/i }))
     await user.click(screen.getByRole('button', { name: /Imprimir planilla/i }))
-    await user.click(screen.getByRole('button', { name: /Cerrar/i }))
+    await user.click(screen.getByRole('button', { name: /Cerrar sin guardar datos/i }))
 
     expect(onSaveCopy).toHaveBeenCalledTimes(1)
     expect(onPrint).toHaveBeenCalledTimes(1)
@@ -67,5 +67,6 @@ describe('<PdfTemplateFillHeader />', () => {
     expect(
       screen.getByRole('button', { name: /Guardar copia con datos/i }),
     ).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^Cerrar$/i })).toBeInTheDocument()
   })
 })

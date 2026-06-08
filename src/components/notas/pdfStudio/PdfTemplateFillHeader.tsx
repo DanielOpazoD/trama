@@ -38,6 +38,7 @@ export function PdfTemplateFillHeader({
   onZoomOut: () => void
 }) {
   const pending = Math.max(0, totalFields - completedFields)
+  const hasData = completedFields > 0
   const status =
     totalFields === 0
       ? 'Sin campos para llenar'
@@ -114,8 +115,13 @@ export function PdfTemplateFillHeader({
             +
           </button>
         </div>
-        <button type="button" onClick={onClose} className="btn-ghost text-xs">
-          Cerrar
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={hasData ? 'Cerrar sin guardar datos' : 'Cerrar'}
+          className="btn-ghost text-xs"
+        >
+          {hasData ? 'Cerrar sin guardar' : 'Cerrar'}
         </button>
         {onSaveCopy ? (
           <button
