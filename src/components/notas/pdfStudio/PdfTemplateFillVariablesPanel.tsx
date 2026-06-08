@@ -25,15 +25,19 @@ export function PdfTemplateFillVariablesPanel({
   activeFieldId = null,
   fields,
   pageIndexById,
+  showFieldGuides = false,
   onChange,
   onFocusField,
+  onShowFieldGuidesChange = () => undefined,
   onJump,
 }: {
   activeFieldId?: string | null
   fields: PdfFormFieldDraft[]
   pageIndexById: Record<string, number>
+  showFieldGuides?: boolean
   onChange: (id: string, value: string | boolean) => void
   onFocusField?: (field: PdfFormFieldDraft) => void
+  onShowFieldGuidesChange?: (show: boolean) => void
   onJump: (field: PdfFormFieldDraft) => void
 }) {
   const fieldInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
@@ -83,6 +87,15 @@ export function PdfTemplateFillVariablesPanel({
       >
         Siguiente pendiente
       </button>
+      <label className="mt-2 flex items-center justify-between gap-2 rounded-md bg-ink-50 px-2 py-1.5 text-caption text-ink-600">
+        <span>Mostrar campos</span>
+        <input
+          type="checkbox"
+          checked={showFieldGuides}
+          onChange={(event) => onShowFieldGuidesChange(event.currentTarget.checked)}
+          className="h-4 w-4 accent-[color:var(--accent-sage)]"
+        />
+      </label>
       {orderedFields.length === 0 ? (
         <div className="mt-3 rounded-md border border-dashed border-ink-200 bg-paper-50 px-3 py-4 text-caption text-ink-500">
           Esta planilla no tiene casilleros para rellenar.

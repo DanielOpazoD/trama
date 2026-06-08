@@ -8,6 +8,7 @@ export function PdfTextEditorFormSurface({
   draftFields,
   mode = 'edit',
   activeDraftId,
+  showFillGuides,
   selectedDraftId,
   selectedDraftIds,
   pageHeightPx,
@@ -24,6 +25,7 @@ export function PdfTextEditorFormSurface({
   draftFields: PdfFormFieldDraft[]
   mode?: 'edit' | 'fill'
   activeDraftId?: string | null
+  showFillGuides?: boolean
   selectedDraftId: string | null
   selectedDraftIds: string[]
   pageHeightPx: number
@@ -51,6 +53,7 @@ export function PdfTextEditorFormSurface({
         draftFields={draftFields}
         mode={mode}
         activeDraftId={activeDraftId}
+        showFillGuides={showFillGuides}
         selectedDraftId={selectedDraftId}
         selectedDraftIds={selectedDraftIds}
         pageHeightPx={pageHeightPx}

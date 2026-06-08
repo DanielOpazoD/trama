@@ -74,6 +74,7 @@ export function PdfTextEditor({
 }) {
   const total = doc.pages.length
   const fillMode = mode === 'fill'
+  const [showFillGuides, setShowFillGuides] = useState(false)
   const [currentPage, setCurrentPage] = useState(pageIndex)
   const [history, setHistory] = useState<PdfTextEditorHistory>(() => initHistory({}))
   const edited = history.present
@@ -454,8 +455,10 @@ export function PdfTextEditor({
               activeFieldId={activeFillFieldId}
               fields={formFields}
               pageIndexById={pageIndexById}
+              showFieldGuides={showFillGuides}
               onChange={updateDraftFormValue}
               onFocusField={(field) => setActiveFillFieldId(field.id)}
+              onShowFieldGuidesChange={setShowFillGuides}
               onJump={jumpToFormField}
             />
           ) : null}
@@ -486,6 +489,7 @@ export function PdfTextEditor({
                   draftFields={formFields}
                   pendingFormKind={Boolean(pendingFormKind)}
                   activeDraftId={activeFillFieldId}
+                  showFillGuides={showFillGuides}
                   selectedDraftId={selectedFormFieldId}
                   selectedDraftIds={selectedFormFieldIds}
                   onActivate={activatePage}

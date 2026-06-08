@@ -29,11 +29,14 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
   it('lista variables, muestra progreso y permite escribir sin buscar en la hoja', () => {
     const onChange = vi.fn()
     const onJump = vi.fn()
+    const onShowFieldGuidesChange = vi.fn()
     render(
       <PdfTemplateFillVariablesPanel
         fields={[emptyField, filledField]}
         pageIndexById={{ p1: 0, p2: 1 }}
+        showFieldGuides={false}
         onChange={onChange}
+        onShowFieldGuidesChange={onShowFieldGuidesChange}
         onJump={onJump}
       />,
     )
@@ -55,6 +58,9 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Ir al campo paciente/i }))
     expect(onJump).toHaveBeenCalledWith(emptyField)
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Mostrar campos/i }))
+    expect(onShowFieldGuidesChange).toHaveBeenCalledWith(true)
   })
 
   it('es compacto, scrollable y ordena variables por coordenadas visuales', () => {

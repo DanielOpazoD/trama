@@ -23,7 +23,6 @@ import {
 import { orderFormFieldsForPage } from './pdfFormFieldFillOrder'
 import { usePdfTextEditorPageRender } from './usePdfTextEditorPageRender'
 import type { Tool } from './editorStyle'
-
 type ResizableAnnotation =
   | TextAnnotation
   | HighlightAnnotation
@@ -51,6 +50,7 @@ export function PdfTextEditorPageSurface({
   draftFields,
   pendingFormKind,
   activeDraftId,
+  showFillGuides,
   selectedDraftId,
   selectedDraftIds,
   onActivate,
@@ -92,6 +92,7 @@ export function PdfTextEditorPageSurface({
   draftFields: PdfFormFieldDraft[]
   pendingFormKind: boolean
   activeDraftId?: string | null
+  showFillGuides?: boolean
   selectedDraftId: string | null
   selectedDraftIds: string[]
   onActivate: (pageIndex: number) => void
@@ -139,13 +140,10 @@ export function PdfTextEditorPageSurface({
   const visibleDraftFields = page
     ? orderFormFieldsForPage(draftFields, page.id, pageIndex)
     : []
-
   useEffect(() => {
     if (isActive) onActiveLayoutChange(layout)
   }, [isActive, layout, onActiveLayoutChange])
-
   if (!page) return null
-
   const syncActiveLayout = () => onActiveLayoutChange(layout)
   const withActiveLayout =
     <Args extends unknown[]>(fn: (...args: Args) => void) =>
@@ -192,6 +190,7 @@ export function PdfTextEditorPageSurface({
           draftFields={visibleDraftFields}
           mode={mode}
           activeDraftId={activeDraftId}
+          showFillGuides={showFillGuides}
           selectedDraftId={selectedDraftId}
           selectedDraftIds={selectedDraftIds}
           pageHeightPx={layout?.innerH ?? 1}
@@ -210,6 +209,7 @@ export function PdfTextEditorPageSurface({
           draftFields={visibleDraftFields}
           mode={mode}
           activeDraftId={activeDraftId}
+          showFillGuides={showFillGuides}
           selectedDraftId={null}
           selectedDraftIds={[]}
           pageHeightPx={layout?.innerH ?? 1}
