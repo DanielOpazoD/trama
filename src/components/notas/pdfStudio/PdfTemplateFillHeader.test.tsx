@@ -30,12 +30,12 @@ describe('<PdfTemplateFillHeader />', () => {
     )
 
     expect(screen.getByRole('banner', { name: /Rellenar planilla/i })).toHaveTextContent(
-      '2/3 datos',
+      '2 de 3 campos completos',
     )
     expect(screen.queryByRole('button', { name: /Deshacer/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Listo/i })).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /Guardar con datos/i }))
+    await user.click(screen.getByRole('button', { name: /Guardar copia con datos/i }))
     await user.click(screen.getByRole('button', { name: /Imprimir planilla/i }))
     await user.click(screen.getByRole('button', { name: /Cerrar/i }))
 
@@ -64,6 +64,8 @@ describe('<PdfTemplateFillHeader />', () => {
       />,
     )
 
-    expect(screen.getByRole('button', { name: /Guardar con datos/i })).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: /Guardar copia con datos/i }),
+    ).toBeDisabled()
   })
 })

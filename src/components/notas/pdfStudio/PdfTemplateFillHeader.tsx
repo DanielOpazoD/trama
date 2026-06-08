@@ -40,10 +40,10 @@ export function PdfTemplateFillHeader({
   const pending = Math.max(0, totalFields - completedFields)
   const status =
     totalFields === 0
-      ? 'Sin datos configurados'
+      ? 'Sin campos para llenar'
       : pending === 0
         ? 'Lista para imprimir'
-        : `${completedFields}/${totalFields} datos`
+        : `${completedFields} de ${totalFields} campos completos`
 
   return (
     <header
@@ -65,7 +65,7 @@ export function PdfTemplateFillHeader({
         <div className="min-w-0 px-1">
           <p className="truncate text-sm font-semibold text-ink-800">Rellenar planilla</p>
           <p className="truncate text-micro text-ink-400">
-            Página {currentPage + 1} de {totalPages} · {status}
+            Solo relleno · Página {currentPage + 1} de {totalPages} · {status}
           </p>
         </div>
         <button
@@ -122,10 +122,10 @@ export function PdfTemplateFillHeader({
             type="button"
             onClick={onSaveCopy}
             disabled={completedFields === 0}
-            aria-label="Guardar con datos"
+            aria-label="Guardar copia con datos"
             className="btn-ghost text-xs"
           >
-            Guardar con datos
+            Guardar copia con datos
           </button>
         ) : null}
         <button

@@ -361,7 +361,7 @@ describe('<PdfStudioView />', () => {
     expect(
       within(fillDialog).getByRole('complementary', { name: /Variables de planilla/i }),
     ).toBeInTheDocument()
-    expect(within(fillDialog).getByText('1 pendiente')).toBeInTheDocument()
+    expect(within(fillDialog).getByText('1 campo pendiente')).toBeInTheDocument()
 
     await user.type(
       within(fillDialog).getByRole('textbox', { name: /Variable paciente/i }),
@@ -398,13 +398,13 @@ describe('<PdfStudioView />', () => {
     ).toBeInTheDocument()
     expect(
       within(fillDialog).getByRole('banner', { name: /Rellenar planilla/i }),
-    ).toHaveTextContent('0/1 datos')
+    ).toHaveTextContent('0 de 1 campos completos')
     expect(within(fillDialog).queryByRole('button', { name: /Deshacer/i })).toBeNull()
     expect(within(fillDialog).queryByRole('button', { name: /^Listo$/i })).toBeNull()
-    expect(within(fillDialog).getByText('Completar datos')).toBeInTheDocument()
+    expect(within(fillDialog).getByText('Datos de esta copia')).toBeInTheDocument()
     expect(within(fillDialog).getByText('0/1')).toBeInTheDocument()
     expect(
-      within(fillDialog).getByRole('button', { name: /Siguiente pendiente/i }),
+      within(fillDialog).getByRole('button', { name: /Ir al siguiente campo/i }),
     ).toBeEnabled()
     expect(
       within(fillDialog).queryByRole('toolbar', { name: /Herramientas de edición/i }),
@@ -546,7 +546,7 @@ describe('<PdfStudioView />', () => {
     const fillDialog = await screen.findByRole('dialog', { name: /Rellenar planilla/i })
     await user.type(screen.getByRole('textbox', { name: 'paciente' }), 'Daniel')
     await user.click(
-      within(fillDialog).getByRole('button', { name: /Guardar con datos/i }),
+      within(fillDialog).getByRole('button', { name: /Guardar copia con datos/i }),
     )
 
     expect(mocks.putSavedDoc).toHaveBeenCalledWith(
@@ -922,7 +922,9 @@ describe('<PdfStudioView />', () => {
 
     expect(screen.getAllByText(/Rellenar e imprimir/i).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: /Imprimir planilla/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Importar/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Importar PDF o imagen/i }),
+    ).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Guardar PDF/i })).not.toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: /Guardar planilla/i }),

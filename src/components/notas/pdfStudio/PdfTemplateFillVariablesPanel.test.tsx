@@ -44,7 +44,7 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
     expect(
       screen.getByRole('complementary', { name: /Variables de planilla/i }),
     ).toBeInTheDocument()
-    expect(screen.getByText('1 pendiente')).toBeInTheDocument()
+    expect(screen.getByText('1 campo pendiente')).toBeInTheDocument()
     expect(screen.getByText('1/2')).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: /Variable paciente/i })).toHaveValue('')
     expect(screen.getByRole('textbox', { name: /Variable rut/i })).toHaveValue(
@@ -59,7 +59,7 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
     fireEvent.click(screen.getByRole('button', { name: /Ir al campo paciente/i }))
     expect(onJump).toHaveBeenCalledWith(emptyField)
 
-    fireEvent.click(screen.getByRole('checkbox', { name: /Mostrar campos/i }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /Ver campos/i }))
     expect(onShowFieldGuidesChange).toHaveBeenCalledWith(true)
   })
 
@@ -130,7 +130,7 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /Siguiente pendiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Ir al siguiente campo/i }))
     expect(onJump).toHaveBeenCalledWith(emptyField)
 
     rerender(
@@ -143,7 +143,7 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
     )
 
     expect(screen.getByText('Todo listo para imprimir')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Siguiente pendiente/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Ir al siguiente campo/i })).toBeDisabled()
   })
 
   it('filtra pendientes sin perder el conteo total de la planilla', () => {
@@ -189,12 +189,12 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
       />,
     )
 
-    expect(screen.getByText(/la plantilla base no cambia/i)).toBeInTheDocument()
+    expect(screen.getByText(/La plantilla original no cambia/i)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /Limpiar datos/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Borrar datos/i }))
     expect(onClearValues).toHaveBeenCalledTimes(1)
 
-    expect(screen.getByRole('button', { name: /Cargar datos/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Importar datos/i })).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText(/Archivo de datos/i), {
       target: { files: [file] },
@@ -321,7 +321,7 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
     )
 
     const input = screen.getByRole('textbox', { name: /Variable diagnostico/i })
-    expect(screen.getByText('1 pendiente')).toBeInTheDocument()
+    expect(screen.getByText('1 campo pendiente')).toBeInTheDocument()
     expect(input).toHaveValue('')
 
     fireEvent.focus(input)

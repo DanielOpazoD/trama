@@ -61,10 +61,10 @@ export function PdfTemplateFillVariablesPanel({
   }
   const statusText =
     orderedFields.length === 0
-      ? 'Sin casilleros'
+      ? 'Sin campos'
       : pending === 0
         ? 'Todo listo para imprimir'
-        : `${pending} ${pending === 1 ? 'pendiente' : 'pendientes'}`
+        : `${pending} ${pending === 1 ? 'campo pendiente' : 'campos pendientes'}`
   return (
     <aside
       aria-label="Variables de planilla"
@@ -72,7 +72,7 @@ export function PdfTemplateFillVariablesPanel({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="text-caption font-semibold text-ink-800">Completar datos</h2>
+          <h2 className="text-caption font-semibold text-ink-800">Datos de esta copia</h2>
           <p className="mt-0.5 text-micro text-ink-400">
             {completed}/{orderedFields.length}
           </p>
@@ -93,11 +93,11 @@ export function PdfTemplateFillVariablesPanel({
         onClick={() => nextPending && onJump(nextPending)}
         className="mt-2 w-full rounded-md border border-[color:var(--accent-sage)]/25 bg-[color:var(--accent-sage-soft)]/55 px-2 py-1.5 text-caption font-semibold text-[color:var(--accent-sage)] transition-colors hover:bg-[color:var(--accent-sage-soft)] disabled:border-ink-100 disabled:bg-ink-50 disabled:text-ink-300"
       >
-        Siguiente pendiente
+        Ir al siguiente campo
       </button>
       <p className="mt-2 rounded-md bg-ink-50 px-2 py-1.5 text-micro leading-snug text-ink-500">
-        Los datos son temporales: la plantilla base no cambia salvo que guardes una copia
-        con datos.
+        Modo relleno: escribe e imprime. La plantilla original no cambia salvo que guardes
+        una copia con datos.
       </p>
       <div className="mt-2 grid grid-cols-2 gap-1.5">
         <button
@@ -106,7 +106,7 @@ export function PdfTemplateFillVariablesPanel({
           disabled={!onImportValues}
           className="rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-[color:var(--accent-sage)]/40 hover:text-[color:var(--accent-sage)] disabled:cursor-not-allowed disabled:text-ink-300"
         >
-          Cargar datos
+          Importar datos
         </button>
         <button
           type="button"
@@ -114,7 +114,7 @@ export function PdfTemplateFillVariablesPanel({
           disabled={!onClearValues || orderedFields.length === 0}
           className="rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-red-300 hover:text-red-700 disabled:cursor-not-allowed disabled:text-ink-300"
         >
-          Limpiar datos
+          Borrar datos
         </button>
       </div>
       <input
@@ -143,7 +143,7 @@ export function PdfTemplateFillVariablesPanel({
       ) : null}
       <div className="mt-2 grid grid-cols-2 gap-1.5">
         <label className="flex items-center justify-between gap-2 rounded-md bg-ink-50 px-2 py-1.5 text-caption text-ink-600">
-          <span>Mostrar campos</span>
+          <span>Ver campos</span>
           <input
             type="checkbox"
             checked={showFieldGuides}
