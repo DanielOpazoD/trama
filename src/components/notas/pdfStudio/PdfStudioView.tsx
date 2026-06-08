@@ -35,6 +35,7 @@ import { usePdfStudioPageKeyboard } from './usePdfStudioPageKeyboard'
 import { usePdfStudioPageActions } from './usePdfStudioPageActions'
 import { usePdfStudioOcr } from './usePdfStudioOcr'
 import { usePdfStudioFilledTemplateActions } from './usePdfStudioFilledTemplateActions'
+import { usePdfStudioDraftSanitizer } from './usePdfStudioDraftSanitizer'
 import { usePdfStudioTemplateMode } from './usePdfStudioTemplateMode'
 import { usePdfStudioWorkspace } from './usePdfStudioWorkspace'
 import { pdfStudioPageInteractionMode as pageMode } from './pdfStudioPageInteractionMode'
@@ -87,6 +88,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     saveFilledCopy,
     saveTemplate,
     saved,
+    setDraftSanitizer,
     setPanelCollapsed,
     userKey,
   } = usePdfStudioWorkspace({ clearSelection, commit, doc, setHistory })
@@ -106,6 +108,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     openTemplate,
     saveTemplate,
   })
+  usePdfStudioDraftSanitizer({ mode: effectiveTemplateMode, setDraftSanitizer })
   const selectedIndicesRef = useRef(selectedIndices)
   selectedIndicesRef.current = selectedIndices
   const docRef = useRef(doc)

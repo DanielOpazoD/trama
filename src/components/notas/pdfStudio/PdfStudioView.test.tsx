@@ -693,6 +693,37 @@ describe('<PdfStudioView />', () => {
     ).toBeInTheDocument()
   })
 
+  it('no autoguarda datos de una copia rellenada como borrador base', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      {
+        id: 'filled-1',
+        name: 'Ingreso paciente datos',
+        doc: filledTemplateDoc(),
+        savedAt: 1200,
+        kind: 'filled-template',
+      },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Abrir copia con datos Ingreso paciente datos/i,
+      }),
+    )
+    await screen.findByRole('dialog', { name: /Rellenar planilla/i })
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 700))
+    })
+
+    expect(
+      mocks.saveDraft.mock.calls.some((call) =>
+        JSON.stringify(call[1]).includes('Daniel'),
+      ),
+    ).toBe(false)
+  })
+
   it('detecta formularios AcroForm desde el menú de documento en Planillas', async () => {
     const user = userEvent.setup()
     mocks.inspectPdfFormInWorker.mockResolvedValueOnce({

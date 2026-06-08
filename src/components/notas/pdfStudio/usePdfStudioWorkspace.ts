@@ -39,6 +39,7 @@ export function usePdfStudioWorkspace({
   const [saved, setSaved] = useState<SavedDoc[]>([])
   const [panelCollapsed, setPanelCollapsed] = useState(true)
   const toastRef = useRef(toast)
+  const draftSanitizerRef = useRef<(draft: PdfDoc) => PdfDoc>((draft) => draft)
   toastRef.current = toast
 
   useEffect(() => {
@@ -70,9 +71,16 @@ export function usePdfStudioWorkspace({
 
   useEffect(() => {
     if (!loaded) return
-    const t = window.setTimeout(() => void saveDraft(userKey, doc, library), 600)
+    const t = window.setTimeout(
+      () => void saveDraft(userKey, draftSanitizerRef.current(doc), library),
+      600,
+    )
     return () => window.clearTimeout(t)
   }, [doc, library, loaded, userKey])
+
+  function setDraftSanitizer(sanitize: (draft: PdfDoc) => PdfDoc) {
+    draftSanitizerRef.current = sanitize
+  }
 
   function addAssets(assets: ImageAsset[]) {
     if (assets.length === 0) return
@@ -216,6 +224,7 @@ export function usePdfStudioWorkspace({
     saveTemplate,
     saved,
     setPanelCollapsed,
+    setDraftSanitizer,
     userKey,
   }
 }
