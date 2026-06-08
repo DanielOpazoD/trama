@@ -23,6 +23,7 @@ import { PdfStudioDocumentToolbar } from './PdfStudioDocumentToolbar'
 import { PdfStudioFormPanel } from './PdfStudioFormPanel'
 import { PdfStudioMainPane } from './PdfStudioMainPane'
 import { PdfStudioOcrPanel } from './PdfStudioOcrPanel'
+import { PdfTemplateWorkflowGuide } from './PdfTemplateWorkflowGuide'
 import { PdfStudioWorkspacePanelHost } from './PdfStudioWorkspacePanelHost'
 import { PdfTextEditor, type PdfTextEditorResult } from './PdfTextEditor'
 import { applyPdfTextEditorResult } from './pdfTextEditorResult'
@@ -186,6 +187,10 @@ export function PdfStudioView({
     setPanelCollapsed(false)
     setSaveTemplateSignal((signal) => signal + 1)
   }
+  function openTemplateDesigner() {
+    if (!templatesEnabled || empty) return
+    setTextPage(0)
+  }
   const total = doc.pages.length
   const empty = total === 0
   const undoable = canUndo(history)
@@ -289,6 +294,18 @@ export function PdfStudioView({
               className="sr-only"
               onChange={onFileInput}
             />
+            {templatesEnabled && effectiveTemplateMode !== 'fill' && (
+              <PdfTemplateWorkflowGuide
+                busy={busy}
+                fieldCount={doc.formFields?.length ?? 0}
+                pageCount={total}
+                saving={saving}
+                onAddFields={openTemplateDesigner}
+                onDownloadFillable={() => void downloadPdf(doc, 'rellenable')}
+                onImport={() => fileInputRef.current?.click()}
+                onSaveTemplate={startTemplateSave}
+              />
+            )}
             {templatesEnabled && formSummary && (
               <div
                 role="status"

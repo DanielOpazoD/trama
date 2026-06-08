@@ -145,10 +145,46 @@ describe('<PdfStudioView />', () => {
   it('en modo planillas usa estado vacío, modo y acción primaria propios', () => {
     renderWithProviders(<PdfStudioView studioMode="templates" />)
 
+    expect(screen.getByRole('region', { name: /Crear plantilla/i })).toBeInTheDocument()
     expect(screen.getByText(/Crea una planilla desde PDF o imagen/i)).toBeInTheDocument()
     expect(screen.getByText(/Diseñar planilla/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar planilla/i })).toBeDisabled()
     expect(screen.queryByRole('button', { name: /Guardar PDF/i })).not.toBeInTheDocument()
+  })
+
+  it('guía la creación de planillas desde base hasta casilleros', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    const guide = screen.getByRole('region', { name: /Crear plantilla/i })
+    expect(within(guide).getByText('2 páginas')).toBeInTheDocument()
+    expect(within(guide).getAllByText('Pendiente')).toHaveLength(2)
+
+    await user.click(within(guide).getByRole('button', { name: /Definir casilleros/i }))
+    expect(
+      await screen.findByRole('dialog', { name: /Editar página 1/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('desde la guía descarga PDF rellenable cuando la planilla tiene casilleros', async () => {
+    const user = userEvent.setup()
+    mocks.loadDraft.mockResolvedValueOnce({ doc: templateDoc(), library: [] })
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await screen.findByAltText('Página 1')
+    const guide = screen.getByRole('region', { name: /Crear plantilla/i })
+    expect(within(guide).getByText('1 casillero')).toBeInTheDocument()
+
+    await user.click(within(guide).getByRole('button', { name: /PDF rellenable/i }))
+    expect(mocks.writePdfFormFieldsInWorker).toHaveBeenCalledWith(
+      expect.any(File),
+      [expect.objectContaining({ name: 'paciente', value: '' })],
+      expect.any(Array),
+      { flatten: false },
+      expect.anything(),
+    )
   })
 
   it('Guardar planilla abre el nombre de guardado cuando hay casilleros', async () => {

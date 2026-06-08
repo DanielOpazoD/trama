@@ -160,8 +160,13 @@ export function PdfTextEditorHeader({
           Cerrar
         </button>
         {onSaveCopy ? (
-          <button type="button" onClick={onSaveCopy} className="btn-ghost text-xs">
-            Guardar copia con datos
+          <button
+            type="button"
+            onClick={onSaveCopy}
+            aria-label="Guardar copia con datos"
+            className="btn-ghost text-xs"
+          >
+            Guardar copia
           </button>
         ) : null}
         {onPrint ? (
