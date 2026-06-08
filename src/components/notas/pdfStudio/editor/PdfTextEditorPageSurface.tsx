@@ -143,6 +143,9 @@ export function PdfTextEditorPageSurface({
   // En diseño de planilla también se pueden dibujar/togglear marcas X (la barra
   // solo expone seleccionar, X y campos de formulario en ese modo).
   const canEditAnnotations = mode === 'edit' || mode === 'design'
+  // Las marcas X se activan/desactivan en TODOS los modos, incluido LLENADO:
+  // tildar/destildar un casillero (gris = apagado = no se imprime).
+  const canToggleXMarks = canEditAnnotations || fillMode
   const visibleFormWidgets = page ? visualWidgetsForPage(page, detectedForms) : []
   const visibleDraftFields = page
     ? orderFormFieldsForPage(draftFields, page.id, pageIndex)
@@ -274,8 +277,9 @@ export function PdfTextEditorPageSurface({
           onStartDrag={canEditAnnotations && isActive ? startDrag : activatePointer}
           onSelect={activateAndSelect}
           onToggleSelect={activateAndToggle}
+          xToggleEnabled={canToggleXMarks}
           onToggleDisabled={
-            canEditAnnotations
+            canToggleXMarks
               ? (id) => {
                   onActivate(pageIndex)
                   onToggleAnnotationDisabled(pageIndex, id)

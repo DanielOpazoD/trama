@@ -79,6 +79,7 @@ function setup(overrides: Partial<Parameters<typeof AnnotationLayer>[0]> = {}) {
     onSelect: vi.fn(),
     onToggleSelect: vi.fn(),
     onToggleDisabled: vi.fn(),
+    xToggleEnabled: true,
     onStartEdit: vi.fn(),
     onCommitText: vi.fn(),
     onCancelEdit: vi.fn(),
@@ -262,6 +263,32 @@ describe('<AnnotationLayer />', () => {
     fireEvent.click(hit!)
     expect(props.onToggleDisabled).toHaveBeenCalledWith(X_MARK.id)
     expect(props.onSelect).not.toHaveBeenCalled()
+  })
+
+  it('permite togglear la X en solo-lectura (modo llenado), sin moverla', () => {
+    const { props, container } = setup({
+      annotations: [X_MARK],
+      readOnly: true,
+      xToggleEnabled: true,
+    })
+    const hit = container.querySelector('svg rect')
+    expect(hit).not.toBeNull()
+    fireEvent.click(hit!)
+    expect(props.onToggleDisabled).toHaveBeenCalledWith(X_MARK.id)
+    // En solo-lectura no se arrastra (no hay handler de pointerDown).
+    fireEvent.pointerDown(hit!)
+    expect(props.onStartDrag).not.toHaveBeenCalled()
+  })
+
+  it('no permite togglear la X si xToggleEnabled es falso', () => {
+    const { props, container } = setup({
+      annotations: [X_MARK],
+      readOnly: true,
+      xToggleEnabled: false,
+    })
+    // Sin interactividad ni toggle habilitado, no hay zona clickeable de la X.
+    expect(container.querySelector('svg rect')).toBeNull()
+    expect(props.onToggleDisabled).not.toHaveBeenCalled()
   })
 
   it('pinta la marca X con su color si está activa y en gris claro si está deshabilitada', () => {

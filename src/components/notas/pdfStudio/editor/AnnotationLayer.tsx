@@ -50,6 +50,7 @@ export function AnnotationLayer({
   onSelect,
   onToggleSelect,
   onToggleDisabled,
+  xToggleEnabled = false,
   onStartEdit,
   onCommitText,
   onCancelEdit,
@@ -77,6 +78,8 @@ export function AnnotationLayer({
   onToggleSelect?: (id: string) => void
   /** Clic sobre una marca X: la activa/desactiva (gris claro ↔ color). */
   onToggleDisabled?: (id: string) => void
+  /** Permite togglear las marcas X aunque la capa sea solo-lectura (modo llenado). */
+  xToggleEnabled?: boolean
   onStartEdit: (id: string) => void
   onCommitText: (id: string, text: string) => void
   onCancelEdit: () => void
@@ -338,16 +341,21 @@ export function AnnotationLayer({
               const sel = isSelected(a.id)
               const interactive = !readOnly && tool === 'select'
               const isX = a.shape === 'x'
+              // La X se puede activar/desactivar incluso en solo-lectura (modo
+              // LLENADO de planilla): clic = toggle, pero sin mover/redimensionar.
+              const xClickable = isX && !!xToggleEnabled && !!onToggleDisabled
               const strokeColor = isX && a.disabled ? X_DISABLED_COLOR : a.color
               const pe: CSSProperties['pointerEvents'] =
                 a.shape === 'rect' || a.shape === 'oval' || isX ? 'all' : 'stroke'
               const hit = {
-                onPointerDown: (e: ReactPointerEvent) => startDragFromPointer(e, a),
+                onPointerDown: interactive
+                  ? (e: ReactPointerEvent) => startDragFromPointer(e, a)
+                  : undefined,
                 onClick: (e: ReactMouseEvent) => {
                   // La X se activa/desactiva con un clic (no se "selecciona").
-                  if (isX && onToggleDisabled) {
+                  if (xClickable) {
                     e.stopPropagation()
-                    onToggleDisabled(a.id)
+                    onToggleDisabled!(a.id)
                     return
                   }
                   selectFromClick(e, a.id)
@@ -367,7 +375,7 @@ export function AnnotationLayer({
                     sw={sw}
                     opacity={a.opacity ?? 1}
                   />
-                  {interactive &&
+                  {(interactive || xClickable) &&
                     (a.shape === 'rect' || isX ? (
                       <rect
                         x={x}
