@@ -173,16 +173,20 @@ export function PdfStudioDocumentToolbar({
             {total} {total === 1 ? 'página' : 'páginas'}
           </span>
         )}
-        <button
-          type="button"
-          onClick={handlePrimary}
-          disabled={primaryDisabled}
-          title={primaryTitle}
-          className="inline-flex h-8 items-center gap-1.5 rounded-md bg-ink-800 px-2.5 text-caption font-medium text-paper-50 transition-colors hover:bg-ink-700 disabled:opacity-35 disabled:hover:bg-ink-800"
-        >
-          <PrimaryIcon size={13} />
-          {saving ? 'Preparando…' : primaryLabel}
-        </button>
+        {/* En LLENADO la acción de imprimir vive en el banner contextual
+            (PdfTemplateModeBanner), así no se duplica el botón. */}
+        {!isFillMode && (
+          <button
+            type="button"
+            onClick={handlePrimary}
+            disabled={primaryDisabled}
+            title={primaryTitle}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-ink-800 px-2.5 text-caption font-medium text-paper-50 transition-colors hover:bg-ink-700 disabled:opacity-35 disabled:hover:bg-ink-800"
+          >
+            <PrimaryIcon size={13} />
+            {saving ? 'Preparando…' : primaryLabel}
+          </button>
+        )}
         {exportStatus && (
           <div className="hidden items-center gap-1.5 sm:flex">
             <span role="status" aria-live="polite" className="text-micro text-ink-400">

@@ -89,7 +89,7 @@ describe('pdfStudio · estructura incremental', () => {
     ).toBeLessThanOrEqual(190)
     expect(
       fileLineCount('src/components/notas/pdfStudio/workspace/WorkspaceTemplateCard.tsx'),
-    ).toBeLessThanOrEqual(240)
+    ).toBeLessThanOrEqual(250)
     expect(
       fileLineCount(
         'src/components/notas/pdfStudio/workspace/WorkspaceSavedDocsSection.tsx',

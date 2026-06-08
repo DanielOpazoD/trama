@@ -1093,21 +1093,23 @@ describe('<PdfStudioView />', () => {
     ])
     renderWithProviders(<PdfStudioView studioMode="templates" />)
 
-    await user.click(
-      await screen.findByRole('button', {
-        name: /Exportar variables JSON de planilla Ingreso paciente/i,
-      }),
-    )
+    // Exportar variables vive en el menú "..." de la tarjeta de planilla.
+    const openMenu = async () =>
+      user.click(
+        await screen.findByRole('button', {
+          name: /Más acciones de Ingreso paciente/i,
+        }),
+      )
+
+    await openMenu()
+    await user.click(screen.getByRole('menuitem', { name: /Exportar JSON/i }))
     expect(mocks.downloadBlob).toHaveBeenCalledWith(
       expect.any(Blob),
       'ingreso-paciente-variables.json',
     )
 
-    await user.click(
-      screen.getByRole('button', {
-        name: /Exportar variables CSV de planilla Ingreso paciente/i,
-      }),
-    )
+    await openMenu()
+    await user.click(screen.getByRole('menuitem', { name: /Exportar CSV/i }))
     expect(mocks.downloadBlob).toHaveBeenCalledWith(
       expect.any(Blob),
       'ingreso-paciente-variables.csv',

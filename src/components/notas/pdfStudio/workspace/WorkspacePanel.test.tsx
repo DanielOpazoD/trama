@@ -100,8 +100,6 @@ describe('<WorkspacePanel /> · planillas', () => {
     expect(screen.getByText('Planillas')).toBeInTheDocument()
     expect(screen.getByRole('group', { name: /Crear plantilla/i })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: /Rellenar plantilla/i })).toBeInTheDocument()
-    expect(screen.getByText('Plantilla')).toBeInTheDocument()
-    expect(screen.getByText('Diseño editable')).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /Rellenar planilla Ingreso paciente/i }),
     ).toBeInTheDocument()
@@ -187,23 +185,22 @@ describe('<WorkspacePanel /> · planillas', () => {
   it('expone acciones profesionales para duplicar y exportar variables de una planilla', () => {
     const props = setup()
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /Duplicar planilla Ingreso paciente/i }),
-    )
+    // Las acciones secundarias viven detrás del menú "..." (más compacto).
+    const openMenu = () =>
+      fireEvent.click(
+        screen.getByRole('button', { name: /Más acciones de Ingreso paciente/i }),
+      )
+
+    openMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: /Duplicar/i }))
     expect(props.onDuplicateSaved).toHaveBeenCalledWith(props.saved[0])
 
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: /Exportar variables JSON de planilla Ingreso paciente/i,
-      }),
-    )
+    openMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: /Exportar JSON/i }))
     expect(props.onExportTemplatePackage).toHaveBeenCalledWith(props.saved[0], 'json')
 
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: /Exportar variables CSV de planilla Ingreso paciente/i,
-      }),
-    )
+    openMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: /Exportar CSV/i }))
     expect(props.onExportTemplatePackage).toHaveBeenCalledWith(props.saved[0], 'csv')
   })
 

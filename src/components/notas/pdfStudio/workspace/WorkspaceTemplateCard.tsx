@@ -7,15 +7,17 @@ import {
 } from '../../../../lib/pdfStudio/model/model'
 import type { SavedDoc } from '../../../../lib/pdfStudio/render/persistence'
 import { renderPageThumb } from '../../../../lib/pdfStudio/render/pdfRender'
-import { DuplicateIcon, FilePdfIcon, PencilIcon, TrashIcon } from '../../../Icons'
+import {
+  DownloadIcon,
+  DuplicateIcon,
+  FilePdfIcon,
+  PencilIcon,
+  TrashIcon,
+} from '../../../Icons'
+import { OverflowMenu, OverflowMenuItem } from '../../../OverflowMenu'
 
 const rowBtn =
   'touch-target inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
-
-const chip =
-  'inline-flex h-4 items-center rounded px-1.5 text-[9px] font-medium leading-none'
-const templateChip = `${chip} bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]`
-const neutralChip = `${chip} bg-ink-100 text-ink-500`
 
 function TemplateThumb({ doc }: { doc: PdfDoc }) {
   const page = doc.pages[0]
@@ -136,10 +138,6 @@ export function WorkspaceTemplateCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-start gap-1">
               <div className="min-w-0 flex-1">
-                <div className="mb-1 flex flex-wrap gap-1">
-                  <span className={templateChip}>Plantilla</span>
-                  <span className={neutralChip}>Diseño editable</span>
-                </div>
                 <span className="block truncate text-caption font-medium text-ink-700">
                   {saved.name}
                 </span>
@@ -149,35 +147,73 @@ export function WorkspaceTemplateCard({
                   {dateLabel(saved.savedAt)}
                 </span>
               </div>
-              <div className="flex shrink-0">
-                <button
-                  type="button"
-                  onClick={onDuplicate}
-                  aria-label={`Duplicar planilla ${saved.name}`}
-                  title="Duplicar planilla"
-                  className={rowBtn}
-                >
-                  <DuplicateIcon size={13} />
-                </button>
-                <button
-                  type="button"
-                  onClick={onStartRename}
-                  aria-label={`Renombrar ${saved.name}`}
-                  title="Renombrar"
-                  className={rowBtn}
-                >
-                  <PencilIcon size={13} />
-                </button>
-                <button
-                  type="button"
-                  onClick={onDelete}
-                  aria-label={`Eliminar ${saved.name}`}
-                  title="Eliminar de la lista"
-                  className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
-                >
-                  <TrashIcon size={13} />
-                </button>
-              </div>
+              <OverflowMenu
+                label={`Más acciones de ${saved.name}`}
+                width="w-52"
+                triggerClassName={rowBtn}
+              >
+                {(close) => (
+                  <>
+                    <OverflowMenuItem
+                      onClick={() => {
+                        close()
+                        onDuplicate()
+                      }}
+                    >
+                      <DuplicateIcon size={14} />
+                      Duplicar
+                    </OverflowMenuItem>
+                    <OverflowMenuItem
+                      onClick={() => {
+                        close()
+                        onStartRename()
+                      }}
+                    >
+                      <PencilIcon size={14} />
+                      Renombrar
+                    </OverflowMenuItem>
+                    <div className="my-1 border-t border-ink-100" />
+                    <OverflowMenuItem
+                      onClick={() => {
+                        close()
+                        onDownloadPdf()
+                      }}
+                    >
+                      <FilePdfIcon size={14} />
+                      Descargar PDF editable
+                    </OverflowMenuItem>
+                    <OverflowMenuItem
+                      onClick={() => {
+                        close()
+                        onExportJson()
+                      }}
+                    >
+                      <DownloadIcon size={14} />
+                      Exportar JSON
+                    </OverflowMenuItem>
+                    <OverflowMenuItem
+                      onClick={() => {
+                        close()
+                        onExportCsv()
+                      }}
+                    >
+                      <DownloadIcon size={14} />
+                      Exportar CSV
+                    </OverflowMenuItem>
+                    <div className="my-1 border-t border-ink-100" />
+                    <OverflowMenuItem
+                      danger
+                      onClick={() => {
+                        close()
+                        onDelete()
+                      }}
+                    >
+                      <TrashIcon size={14} />
+                      Eliminar
+                    </OverflowMenuItem>
+                  </>
+                )}
+              </OverflowMenu>
             </div>
 
             <div className="mt-1.5 grid grid-cols-[1fr_auto] gap-1">
@@ -199,36 +235,6 @@ export function WorkspaceTemplateCard({
               >
                 <PencilIcon size={11} />
                 Editar plantilla
-              </button>
-            </div>
-
-            <div className="mt-1 flex flex-wrap gap-1">
-              <button
-                type="button"
-                onClick={onDownloadPdf}
-                aria-label={`Descargar PDF editable de planilla ${saved.name}`}
-                title="Descargar PDF editable"
-                className="btn-ghost inline-flex h-5 items-center px-1.5 text-[10px]"
-              >
-                PDF editable
-              </button>
-              <button
-                type="button"
-                onClick={onExportJson}
-                aria-label={`Exportar variables JSON de planilla ${saved.name}`}
-                title="Exportar estructura JSON"
-                className="btn-ghost inline-flex h-5 items-center px-1.5 text-[10px]"
-              >
-                JSON
-              </button>
-              <button
-                type="button"
-                onClick={onExportCsv}
-                aria-label={`Exportar variables CSV de planilla ${saved.name}`}
-                title="Exportar variables CSV"
-                className="btn-ghost inline-flex h-5 items-center px-1.5 text-[10px]"
-              >
-                CSV
               </button>
             </div>
           </div>
