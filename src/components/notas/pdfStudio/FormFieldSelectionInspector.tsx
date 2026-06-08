@@ -3,6 +3,10 @@ import type {
   AnnotationHorizontalAlignment,
 } from './pdfAnnotationArrange'
 import { focusRing } from './EditorToolbarPrimitives'
+import type { TextStyle } from './editorStyle'
+
+const SIZE_STEP = 0.005
+const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
 
 function ToolButton({
   children,
@@ -27,11 +31,17 @@ function ToolButton({
 
 export function FormFieldSelectionInspector({
   count,
+  activeBold = false,
+  activeSizeRatio = 0.04,
   onAlign,
+  onApplyStyle,
   onDistribute,
 }: {
   count: number
+  activeBold?: boolean
+  activeSizeRatio?: number
   onAlign: (alignment: AnnotationHorizontalAlignment) => void
+  onApplyStyle?: (patch: Partial<TextStyle>) => void
   onDistribute: (axis: AnnotationDistributionAxis) => void
 }) {
   return (
@@ -77,6 +87,39 @@ export function FormFieldSelectionInspector({
           Distribuir Y
         </ToolButton>
       </div>
+      {onApplyStyle ? (
+        <>
+          <p className="mt-2 text-micro text-ink-400">Estilo selección</p>
+          <div className="mt-1 grid grid-cols-3 gap-1.5">
+            <ToolButton
+              label="Disminuir tamaño de casilleros"
+              onClick={() =>
+                onApplyStyle({
+                  sizeRatio: clamp(activeSizeRatio - SIZE_STEP, 0.015, 0.12),
+                })
+              }
+            >
+              A-
+            </ToolButton>
+            <ToolButton
+              label="Aplicar negrita a casilleros"
+              onClick={() => onApplyStyle({ bold: !activeBold })}
+            >
+              B
+            </ToolButton>
+            <ToolButton
+              label="Aumentar tamaño de casilleros"
+              onClick={() =>
+                onApplyStyle({
+                  sizeRatio: clamp(activeSizeRatio + SIZE_STEP, 0.015, 0.12),
+                })
+              }
+            >
+              A+
+            </ToolButton>
+          </div>
+        </>
+      ) : null}
     </aside>
   )
 }

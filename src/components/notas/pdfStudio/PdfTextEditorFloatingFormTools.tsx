@@ -9,9 +9,12 @@ import { SignatureCaptureDialog } from './SignatureCaptureDialog'
 
 export function PdfTextEditorFloatingFormTools({
   field,
+  activeBold,
+  activeSizeRatio,
   selectionCount = 0,
   signatureField,
   onAlignFields,
+  onApplyStyle,
   onChooseSignatureImage,
   onDeleteField,
   onDistributeFields,
@@ -21,9 +24,12 @@ export function PdfTextEditorFloatingFormTools({
   onValueChange,
 }: {
   field: PdfFormFieldDraft | null
+  activeBold?: boolean
+  activeSizeRatio?: number
   selectionCount?: number
   signatureField: PdfFormFieldDraft | null
   onAlignFields?: (alignment: AnnotationHorizontalAlignment) => void
+  onApplyStyle?: Parameters<typeof FormFieldSelectionInspector>[0]['onApplyStyle']
   onChooseSignatureImage: (field?: PdfFormFieldDraft | null) => void
   onDeleteField: (id: string) => void
   onDistributeFields?: (axis: AnnotationDistributionAxis) => void
@@ -37,7 +43,10 @@ export function PdfTextEditorFloatingFormTools({
       {selectionCount > 1 && onAlignFields && onDistributeFields ? (
         <FormFieldSelectionInspector
           count={selectionCount}
+          activeBold={activeBold}
+          activeSizeRatio={activeSizeRatio}
           onAlign={onAlignFields}
+          onApplyStyle={onApplyStyle}
           onDistribute={onDistributeFields}
         />
       ) : field ? (

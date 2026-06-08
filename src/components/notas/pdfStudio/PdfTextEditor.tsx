@@ -428,9 +428,12 @@ export function PdfTextEditor({
         ) : null}
         <PdfTextEditorFloatingFormTools
           field={fillMode ? null : selectedDraftFormField}
+          activeBold={activeStyle.bold}
+          activeSizeRatio={activeStyle.sizeRatio}
           selectionCount={fillMode ? 0 : selectedFormFieldIds.length}
           signatureField={signatureField}
           onAlignFields={alignDraftFormFields}
+          onApplyStyle={applyEditorStyle}
           onChooseSignatureImage={chooseSignatureImage}
           onDeleteField={deleteDraftFormField}
           onDistributeFields={distributeDraftFormFields}
