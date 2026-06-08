@@ -1,6 +1,6 @@
 import { ChevronLeftIcon, ChevronRightIcon, PrinterIcon } from '../../Icons'
-import { stepBtn } from './editorStyle'
-import { ZoomPercentInput } from './ZoomPercentInput'
+import { stepBtn } from './editor/editorStyle'
+import { ZoomPercentInput } from './editor/ZoomPercentInput'
 
 export function PdfTemplateFillHeader({
   completedFields,

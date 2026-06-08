@@ -9,7 +9,7 @@ function fileLineCount(path: string): number {
 describe('pdfStudio · estructura incremental', () => {
   it('mantiene PdfTextEditor bajo el ratchet estructural actual', () => {
     expect(
-      fileLineCount('src/components/notas/pdfStudio/PdfTextEditor.tsx'),
+      fileLineCount('src/components/notas/pdfStudio/editor/PdfTextEditor.tsx'),
     ).toBeLessThanOrEqual(550)
   })
 
@@ -27,13 +27,13 @@ describe('pdfStudio · estructura incremental', () => {
 
   it('mantiene EditorToolbar bajo el ratchet estructural actual', () => {
     expect(
-      fileLineCount('src/components/notas/pdfStudio/EditorToolbar.tsx'),
+      fileLineCount('src/components/notas/pdfStudio/editor/EditorToolbar.tsx'),
     ).toBeLessThanOrEqual(420)
   })
 
   it('mantiene AnnotationLayer bajo el ratchet estructural actual', () => {
     expect(
-      fileLineCount('src/components/notas/pdfStudio/AnnotationLayer.tsx'),
+      fileLineCount('src/components/notas/pdfStudio/editor/AnnotationLayer.tsx'),
     ).toBeLessThanOrEqual(450)
   })
 
@@ -48,12 +48,12 @@ describe('pdfStudio · estructura incremental', () => {
       'src/components/notas/pdfStudio/usePdfTextEditorForms.ts',
       'src/components/notas/pdfStudio/SignatureCaptureDialog.tsx',
       'src/components/notas/pdfStudio/FormFieldInspector.tsx',
-      'src/components/notas/pdfStudio/PdfTextEditorFormSurface.tsx',
-      'src/components/notas/pdfStudio/PdfTextEditorPageSurface.tsx',
+      'src/components/notas/pdfStudio/editor/PdfTextEditorFormSurface.tsx',
+      'src/components/notas/pdfStudio/editor/PdfTextEditorPageSurface.tsx',
       'src/components/notas/pdfStudio/pdfFormVisualMapping.ts',
-      'src/components/notas/pdfStudio/pdfEditorZoomScroll.ts',
-      'src/components/notas/pdfStudio/usePdfEditorZoomScroll.ts',
-      'src/components/notas/pdfStudio/EditorToolbarFormMenu.tsx',
+      'src/components/notas/pdfStudio/editor/pdfEditorZoomScroll.ts',
+      'src/components/notas/pdfStudio/editor/usePdfEditorZoomScroll.ts',
+      'src/components/notas/pdfStudio/editor/EditorToolbarFormMenu.tsx',
     ]
 
     for (const path of formModules) {

@@ -2,7 +2,7 @@ import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 import type {
   AnnotationDistributionAxis,
   AnnotationHorizontalAlignment,
-} from './pdfAnnotationArrange'
+} from './editor/pdfAnnotationArrange'
 
 type FieldBox = Pick<PdfFormFieldDraft, 'xRatio' | 'yRatio' | 'wRatio' | 'hRatio'>
 

@@ -28,8 +28,11 @@ import { PdfStudioMainPane } from './shell/PdfStudioMainPane'
 import { PdfStudioOcrPanel } from './ocr/PdfStudioOcrPanel'
 import { PdfTemplateWorkflowGuide } from './PdfTemplateWorkflowGuide'
 import { PdfStudioWorkspacePanelHost } from './shell/PdfStudioWorkspacePanelHost'
-import { PdfTextEditor } from './PdfTextEditor'
-import { applyPdfTextEditorResult, type PdfTextEditorResult } from './pdfTextEditorResult'
+import { PdfTextEditor } from './editor/PdfTextEditor'
+import {
+  applyPdfTextEditorResult,
+  type PdfTextEditorResult,
+} from './editor/pdfTextEditorResult'
 import { usePageSelection } from './shell/usePageSelection'
 import { usePdfStudioExport } from './shell/usePdfStudioExport'
 import { usePdfStudioImport } from './shell/usePdfStudioImport'

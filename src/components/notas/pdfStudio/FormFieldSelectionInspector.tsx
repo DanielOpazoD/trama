@@ -1,9 +1,9 @@
 import type {
   AnnotationDistributionAxis,
   AnnotationHorizontalAlignment,
-} from './pdfAnnotationArrange'
-import { focusRing } from './EditorToolbarPrimitives'
-import type { TextStyle } from './editorStyle'
+} from './editor/pdfAnnotationArrange'
+import { focusRing } from './editor/EditorToolbarPrimitives'
+import type { TextStyle } from './editor/editorStyle'
 
 const SIZE_STEP = 0.005
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))

@@ -6,7 +6,7 @@ import {
   type PageLayout,
   type ResizeHandle,
 } from '../../../lib/pdfStudio/model/editorGeometry'
-import { trackPointerMove } from './pdfTextEditorPointerListeners'
+import { trackPointerMove } from './editor/pdfTextEditorPointerListeners'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 type SetFields = Dispatch<SetStateAction<PdfFormFieldDraft[]>>

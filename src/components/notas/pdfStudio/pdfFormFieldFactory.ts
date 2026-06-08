@@ -4,7 +4,7 @@ import {
   type PdfFormFieldKind,
   type PdfPage,
 } from '../../../lib/pdfStudio/model/model'
-import type { TextStyle } from './editorStyle'
+import type { TextStyle } from './editor/editorStyle'
 import {
   defaultFormValue,
   fieldNamePrefix,

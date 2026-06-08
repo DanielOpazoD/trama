@@ -4,7 +4,7 @@ import {
   type PdfFontKind,
 } from '../../../lib/pdfStudio/model/model'
 import type { CSSProperties } from 'react'
-import type { TextStyle } from './editorStyle'
+import type { TextStyle } from './editor/editorStyle'
 import { FORM_FIELD_EMPTY_HINT } from '../../../lib/pdfStudio/forms/formFieldConstants'
 import { DEFAULT_FORM_FIELD_SIZE_RATIO } from './pdfFormFieldSizing'
 

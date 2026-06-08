@@ -1,7 +1,7 @@
 import { pdfCommandTooltip } from '../../../lib/pdfStudio/model/commands'
 import { ChevronLeftIcon, ChevronRightIcon, RedoIcon, UndoIcon } from '../../Icons'
-import { stepBtn } from './editorStyle'
-import { ZoomPercentInput } from './ZoomPercentInput'
+import { stepBtn } from './editor/editorStyle'
+import { ZoomPercentInput } from './editor/ZoomPercentInput'
 
 function isMacLike(): boolean {
   if (typeof navigator === 'undefined') return true

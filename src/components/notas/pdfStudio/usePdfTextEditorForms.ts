@@ -9,7 +9,7 @@ import type {
   PageLayout,
   ResizeHandle,
 } from '../../../lib/pdfStudio/model/editorGeometry'
-import type { TextStyle, Tool } from './editorStyle'
+import type { TextStyle, Tool } from './editor/editorStyle'
 import type { TemplateFillImportValues } from './pdfTemplateFillImport'
 import {
   applyTemplateFieldValues,

@@ -1,5 +1,5 @@
 import type { PdfFormFieldDraft, PdfFormValue } from '../../../lib/pdfStudio/model/model'
-import { focusRing } from './EditorToolbarPrimitives'
+import { focusRing } from './editor/EditorToolbarPrimitives'
 
 function valueAsText(value: PdfFormValue): string {
   if (typeof value === 'string') return value

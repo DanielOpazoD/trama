@@ -2,7 +2,7 @@ import { type CSSProperties, type PointerEvent as ReactPointerEvent } from 'reac
 import type { PdfFormFieldDraft, PdfFormValue } from '../../../lib/pdfStudio/model/model'
 import type { ResizeHandle } from '../../../lib/pdfStudio/model/editorGeometry'
 import type { PdfFormFieldType } from '../../../lib/pdfStudio/forms/pdfForms'
-import { ACCENT } from './editorStyle'
+import { ACCENT } from './editor/editorStyle'
 import { FillFieldLabel, FormFieldControl } from './FormFieldControl'
 import { formFieldTextCss } from './pdfFormFieldStyle'
 

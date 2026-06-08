@@ -1,5 +1,5 @@
 import type { PdfFormFieldKind } from '../../../lib/pdfStudio/model/model'
-import { clamp } from './editorStyle'
+import { clamp } from './editor/editorStyle'
 
 export type InitialFormFieldStyle = {
   sizeRatio?: number

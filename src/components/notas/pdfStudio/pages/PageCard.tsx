@@ -7,7 +7,7 @@ import {
   type PdfPage,
 } from '../../../../lib/pdfStudio/model/model'
 import { renderPageThumb } from '../../../../lib/pdfStudio/render/pdfRender'
-import { useInViewport } from '../useInViewport'
+import { useInViewport } from '../editor/useInViewport'
 import { CheckIcon, FileIcon, FilePdfIcon, TextIcon } from '../../../Icons'
 import type { PageInteractionMode } from '../shell/pdfStudioPageInteractionMode'
 

@@ -3,7 +3,7 @@ import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 import type {
   AnnotationDistributionAxis,
   AnnotationHorizontalAlignment,
-} from './pdfAnnotationArrange'
+} from './editor/pdfAnnotationArrange'
 import { alignFormFields, distributeFormFields } from './pdfFormFieldArrange'
 
 export function usePdfTextEditorFormArrange({
