@@ -23,6 +23,11 @@ describe('<PdfTemplateWorkflowGuide />', () => {
     expect(screen.getByText('Casilleros')).toBeInTheDocument()
     expect(screen.getByText('Guardar')).toBeInTheDocument()
     expect(screen.getAllByText('Pendiente')).toHaveLength(2)
+    expect(screen.getByText('Base').closest('[aria-current="step"]')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Importar base/i })).toHaveAttribute(
+      'data-primary-action',
+      'true',
+    )
     expect(screen.getByRole('button', { name: /Importar base/i })).toBeEnabled()
     expect(screen.getByRole('button', { name: /Definir casilleros/i })).toBeDisabled()
 
@@ -45,6 +50,11 @@ describe('<PdfTemplateWorkflowGuide />', () => {
     )
 
     expect(screen.getByText('2 páginas')).toBeInTheDocument()
+    expect(screen.getByText('Casilleros').closest('[aria-current="step"]')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Definir casilleros/i })).toHaveAttribute(
+      'data-primary-action',
+      'true',
+    )
     expect(screen.getByRole('button', { name: /Definir casilleros/i })).toBeEnabled()
     expect(screen.getByRole('button', { name: /Guardar como plantilla/i })).toBeDisabled()
 
@@ -70,6 +80,10 @@ describe('<PdfTemplateWorkflowGuide />', () => {
     expect(screen.getByText('3 casilleros')).toBeInTheDocument()
     expect(screen.getByText('1 página')).toBeInTheDocument()
     expect(screen.getByText('Listo')).toBeInTheDocument()
+    expect(screen.getByText('Guardar').closest('[aria-current="step"]')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: /Guardar como plantilla/i }),
+    ).toHaveAttribute('data-primary-action', 'true')
 
     await user.click(screen.getByRole('button', { name: /Guardar como plantilla/i }))
     await user.click(screen.getByRole('button', { name: /PDF rellenable/i }))
