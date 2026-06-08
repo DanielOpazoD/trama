@@ -3,6 +3,7 @@ import type {
   AnnotationDistributionAxis,
   AnnotationHorizontalAlignment,
 } from './pdfAnnotationArrange'
+import type { TextStyle } from './editorStyle'
 import { FormFieldInspector } from './FormFieldInspector'
 import { FormFieldSelectionInspector } from './FormFieldSelectionInspector'
 import { SignatureCaptureDialog } from './SignatureCaptureDialog'
@@ -29,7 +30,7 @@ export function PdfTextEditorFloatingFormTools({
   selectionCount?: number
   signatureField: PdfFormFieldDraft | null
   onAlignFields?: (alignment: AnnotationHorizontalAlignment) => void
-  onApplyStyle?: Parameters<typeof FormFieldSelectionInspector>[0]['onApplyStyle']
+  onApplyStyle?: (patch: Partial<TextStyle>) => void
   onChooseSignatureImage: (field?: PdfFormFieldDraft | null) => void
   onDeleteField: (id: string) => void
   onDistributeFields?: (axis: AnnotationDistributionAxis) => void

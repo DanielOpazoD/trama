@@ -193,6 +193,37 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
     expect(onJump).toHaveBeenCalledWith(emptyField)
   })
 
+  it('no atrapa Tab cuando no hay un casillero siguiente o anterior', () => {
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[emptyField, filledField]}
+        pageIndexById={{ p1: 0, p2: 1 }}
+        onChange={vi.fn()}
+        onJump={vi.fn()}
+      />,
+    )
+
+    const first = screen.getByRole('textbox', { name: /Variable paciente/i })
+    const second = screen.getByRole('textbox', { name: /Variable rut/i })
+    const leaveEnd = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'Tab',
+    })
+    const leaveStart = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      key: 'Tab',
+      shiftKey: true,
+    })
+
+    second.dispatchEvent(leaveEnd)
+    first.dispatchEvent(leaveStart)
+
+    expect(leaveEnd.defaultPrevented).toBe(false)
+    expect(leaveStart.defaultPrevented).toBe(false)
+  })
+
   it('trata el texto estándar como placeholder vacío en el panel de relleno', () => {
     const hintedField = makePdfFormFieldDraft({
       fieldKind: 'text',

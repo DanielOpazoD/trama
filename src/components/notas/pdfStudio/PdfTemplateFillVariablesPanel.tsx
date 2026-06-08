@@ -45,15 +45,16 @@ export function PdfTemplateFillVariablesPanel({
   const pending = orderedFields.filter((field) => !isFilled(field)).length
   const completed = orderedFields.length - pending
   const nextPending = orderedFields.find((field) => !isFilled(field)) ?? null
-  const focusAdjacentField = (index: number, direction: 1 | -1) => {
+  const focusAdjacentField = (index: number, direction: 1 | -1): boolean => {
     const candidates =
       direction > 0
         ? orderedFields.slice(index + 1)
         : orderedFields.slice(0, index).reverse()
     const next = candidates.find((field) => !field.readOnly)
-    if (!next) return
+    if (!next) return false
     onJump(next)
     fieldInputRefs.current[next.id]?.focus()
+    return true
   }
   const statusText =
     orderedFields.length === 0
@@ -174,11 +175,11 @@ export function PdfTemplateFillVariablesPanel({
                   }}
                   onKeyDown={(event) => {
                     if (event.key !== 'Enter' && event.key !== 'Tab') return
-                    event.preventDefault()
-                    focusAdjacentField(
+                    const moved = focusAdjacentField(
                       index,
                       event.key === 'Tab' && event.shiftKey ? -1 : 1,
                     )
+                    if (event.key === 'Enter' || moved) event.preventDefault()
                   }}
                   placeholder={`[${field.name}]`}
                   className="input-paper w-full rounded-md border border-ink-200 px-2 py-1 text-caption text-ink-800 placeholder:text-ink-300"
