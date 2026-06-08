@@ -54,6 +54,13 @@ export function ShapeStroke({
   if (shape === 'rect') return <rect x={x} y={y} width={w} height={h} {...common} />
   if (shape === 'oval')
     return <ellipse cx={x + w / 2} cy={y + h / 2} rx={w / 2} ry={h / 2} {...common} />
+  if (shape === 'x')
+    return (
+      <>
+        <line x1={x} y1={y} x2={x + w} y2={y + h} {...common} />
+        <line x1={x + w} y1={y} x2={x} y2={y + h} {...common} />
+      </>
+    )
   return (
     <>
       <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} {...common} />

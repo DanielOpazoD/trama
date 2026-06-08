@@ -310,10 +310,12 @@ export function usePdfTextEditorInteractions({
           highlightOpacity: HIGHLIGHT_OPACITY,
         },
       })
-      setTool('select')
+      // La marca X queda activa (pegajosa) para tildar varios casilleros seguidos
+      // sin volver a elegir la herramienta; el resto vuelve a "seleccionar".
+      if (drawTool !== 'x') setTool('select')
       if (!annotation) return
       setAnnotations((list) => [...list, annotation])
-      setSelectedId(annotation.id)
+      if (drawTool !== 'x') setSelectedId(annotation.id)
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)

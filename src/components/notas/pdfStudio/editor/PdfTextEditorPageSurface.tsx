@@ -64,6 +64,7 @@ export function PdfTextEditorPageSurface({
   onStartResize,
   onSelectAnnotation,
   onToggleAnnotation,
+  onToggleAnnotationDisabled,
   onStartEdit,
   onCommitText,
   onCancelEdit,
@@ -114,6 +115,7 @@ export function PdfTextEditorPageSurface({
   ) => void
   onSelectAnnotation: (id: string) => void
   onToggleAnnotation: (id: string) => void
+  onToggleAnnotationDisabled: (pageIndex: number, id: string) => void
   onStartEdit: (id: string) => void
   onCommitText: (id: string, text: string) => void
   onCancelEdit: () => void
@@ -270,6 +272,14 @@ export function PdfTextEditorPageSurface({
           onStartDrag={canEditAnnotations && isActive ? startDrag : activatePointer}
           onSelect={activateAndSelect}
           onToggleSelect={activateAndToggle}
+          onToggleDisabled={
+            canEditAnnotations
+              ? (id) => {
+                  onActivate(pageIndex)
+                  onToggleAnnotationDisabled(pageIndex, id)
+                }
+              : undefined
+          }
           onStartEdit={activateAndEdit}
           onCommitText={onCommitText}
           onCancelEdit={onCancelEdit}

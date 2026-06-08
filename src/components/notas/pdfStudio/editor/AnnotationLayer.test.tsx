@@ -53,6 +53,15 @@ const SHAPE = makeShapeAnnotation({
   color: '#222222',
   strokeRatio: 0.003,
 })
+const X_MARK = makeShapeAnnotation({
+  shape: 'x',
+  x0Ratio: 0.2,
+  y0Ratio: 0.2,
+  x1Ratio: 0.3,
+  y1Ratio: 0.3,
+  color: '#222222',
+  strokeRatio: 0.006,
+})
 const DISPLAY_TITLE = 'Doble clic para editar · arrastra para mover'
 
 function setup(overrides: Partial<Parameters<typeof AnnotationLayer>[0]> = {}) {
@@ -69,6 +78,7 @@ function setup(overrides: Partial<Parameters<typeof AnnotationLayer>[0]> = {}) {
     onStartDrag: vi.fn(),
     onSelect: vi.fn(),
     onToggleSelect: vi.fn(),
+    onToggleDisabled: vi.fn(),
     onStartEdit: vi.fn(),
     onCommitText: vi.fn(),
     onCancelEdit: vi.fn(),
@@ -243,6 +253,27 @@ describe('<AnnotationLayer />', () => {
     })
 
     expect(container.querySelector('[data-pdf-selection-lasso="true"]')).not.toBeNull()
+  })
+
+  it('clic en una marca X la activa/desactiva en vez de seleccionarla', () => {
+    const { props, container } = setup({ annotations: [X_MARK] })
+    const hit = container.querySelector('svg rect')
+    expect(hit).not.toBeNull()
+    fireEvent.click(hit!)
+    expect(props.onToggleDisabled).toHaveBeenCalledWith(X_MARK.id)
+    expect(props.onSelect).not.toHaveBeenCalled()
+  })
+
+  it('pinta la marca X con su color si está activa y en gris claro si está deshabilitada', () => {
+    const active = setup({ annotations: [X_MARK] })
+    expect(active.container.querySelector('svg line')?.getAttribute('stroke')).toBe(
+      '#222222',
+    )
+
+    const off = setup({ annotations: [{ ...X_MARK, disabled: true }] })
+    expect(off.container.querySelector('svg line')?.getAttribute('stroke')).toBe(
+      '#bdbdbd',
+    )
   })
 
   it('dibuja el preview vectorial (SVG) mientras se arrastra una forma', () => {

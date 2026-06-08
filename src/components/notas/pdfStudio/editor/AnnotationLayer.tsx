@@ -15,6 +15,7 @@ import {
   type ShapeAnnotation,
   type ShapeKind,
   type TextAnnotation,
+  X_DISABLED_COLOR,
 } from '../../../../lib/pdfStudio/model/model'
 import { type ResizeHandle } from '../../../../lib/pdfStudio/model/editorGeometry'
 import { AnnotationResizeHandles } from './AnnotationResizeHandles'
@@ -48,6 +49,7 @@ export function AnnotationLayer({
   onStartDrag,
   onSelect,
   onToggleSelect,
+  onToggleDisabled,
   onStartEdit,
   onCommitText,
   onCancelEdit,
@@ -73,6 +75,8 @@ export function AnnotationLayer({
   onStartDrag: (e: ReactPointerEvent, a: Annotation) => void
   onSelect: (id: string) => void
   onToggleSelect?: (id: string) => void
+  /** Clic sobre una marca X: la activa/desactiva (gris claro ↔ color). */
+  onToggleDisabled?: (id: string) => void
   onStartEdit: (id: string) => void
   onCommitText: (id: string, text: string) => void
   onCancelEdit: () => void
@@ -333,15 +337,23 @@ export function AnnotationLayer({
               const hh = Math.abs(p1.y - p0.y)
               const sel = isSelected(a.id)
               const interactive = !readOnly && tool === 'select'
+              const isX = a.shape === 'x'
+              const strokeColor = isX && a.disabled ? X_DISABLED_COLOR : a.color
               const pe: CSSProperties['pointerEvents'] =
-                a.shape === 'rect' || a.shape === 'oval' ? 'all' : 'stroke'
+                a.shape === 'rect' || a.shape === 'oval' || isX ? 'all' : 'stroke'
               const hit = {
                 onPointerDown: (e: ReactPointerEvent) => startDragFromPointer(e, a),
                 onClick: (e: ReactMouseEvent) => {
+                  // La X se activa/desactiva con un clic (no se "selecciona").
+                  if (isX && onToggleDisabled) {
+                    e.stopPropagation()
+                    onToggleDisabled(a.id)
+                    return
+                  }
                   selectFromClick(e, a.id)
                 },
                 style: {
-                  cursor: a.locked ? 'default' : 'move',
+                  cursor: a.locked ? 'default' : isX ? 'pointer' : 'move',
                   pointerEvents: pe,
                 } as CSSProperties,
               }
@@ -351,12 +363,12 @@ export function AnnotationLayer({
                     shape={a.shape}
                     p0={p0}
                     p1={p1}
-                    color={a.color}
+                    color={strokeColor}
                     sw={sw}
                     opacity={a.opacity ?? 1}
                   />
                   {interactive &&
-                    (a.shape === 'rect' ? (
+                    (a.shape === 'rect' || isX ? (
                       <rect
                         x={x}
                         y={y}

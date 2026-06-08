@@ -48,7 +48,7 @@ export type RedactionAnnotation = AnnotationBase & {
   color: string
 }
 
-export type ShapeKind = 'rect' | 'oval' | 'line' | 'arrow'
+export type ShapeKind = 'rect' | 'oval' | 'line' | 'arrow' | 'x'
 
 export type ShapeAnnotation = AnnotationBase & {
   kind: 'shape'
@@ -59,6 +59,9 @@ export type ShapeAnnotation = AnnotationBase & {
   y1Ratio: number
   color: string
   strokeRatio: number
+  /** Sólo para la marca `x` (casilleros): si está deshabilitada se pinta en gris
+   *  claro (clic la activa/desactiva). El resto de formas la ignoran. */
+  disabled?: boolean
 }
 
 export type ImageAnnotation = AnnotationBase & {

@@ -6,7 +6,7 @@ import {
   type ShapeKind,
 } from '../../../../lib/pdfStudio/model/model'
 import { rectFromPoints } from '../../../../lib/pdfStudio/model/editorGeometry'
-import { isShapeTool, type Tool } from './editorStyle'
+import { isShapeTool, X_DEFAULT_SIDE, X_STROKE, type Tool } from './editorStyle'
 
 const MIN_DRAW_DISTANCE_PX = 4
 const MIN_BOX_SIDE_PX = 4
@@ -33,6 +33,28 @@ export function createAnnotationFromDrawGesture(
 ): Annotation | null {
   const pageWidthPx = Math.max(1, input.pageWidthPx)
   const pageHeightPx = Math.max(1, input.pageHeightPx)
+
+  // Marca X de casillero: un CLIC estampa una X cuadrada de tamaño por defecto
+  // centrada en el punto (para tildar casilleros rápido); un ARRASTRE la dimensiona.
+  if (input.tool === 'x') {
+    const dragged =
+      Math.hypot(input.x1 - input.x0, input.y1 - input.y0) >= MIN_BOX_SIDE_PX
+    const half = (X_DEFAULT_SIDE * pageHeightPx) / 2
+    const x0 = dragged ? input.x0 : input.x0 - half
+    const y0 = dragged ? input.y0 : input.y0 - half
+    const x1 = dragged ? input.x1 : input.x0 + half
+    const y1 = dragged ? input.y1 : input.y0 + half
+    return makeShapeAnnotation({
+      shape: 'x',
+      x0Ratio: x0 / pageWidthPx,
+      y0Ratio: y0 / pageHeightPx,
+      x1Ratio: x1 / pageWidthPx,
+      y1Ratio: y1 / pageHeightPx,
+      color: input.style.color,
+      strokeRatio: X_STROKE,
+    })
+  }
+
   if (Math.hypot(input.x1 - input.x0, input.y1 - input.y0) < MIN_DRAW_DISTANCE_PX) {
     return null
   }

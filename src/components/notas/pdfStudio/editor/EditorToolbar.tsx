@@ -163,6 +163,41 @@ export function EditorToolbar({
         {!isTemplateDesign ? (
           <EditorToolbarShapesMenu tool={tool} onToolChange={onToolChange} />
         ) : null}
+        {!isTemplateDesign ? (
+          <Hint content="Marcar casilleros con una X · clic en la X la activa o desactiva">
+            <button
+              type="button"
+              onClick={() => onToolChange('x')}
+              className={segBtnTool(tool === 'x')}
+              aria-label="Herramienta marca X para casilleros"
+              aria-pressed={tool === 'x'}
+            >
+              <svg
+                width={14}
+                height={14}
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+              >
+                <rect
+                  x={2.25}
+                  y={2.25}
+                  width={11.5}
+                  height={11.5}
+                  rx={2.5}
+                  stroke="currentColor"
+                  strokeWidth={1.4}
+                />
+                <path
+                  d="M5.5 5.5l5 5M10.5 5.5l-5 5"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </Hint>
+        ) : null}
       </ToolbarGroup>
 
       <ToolbarGroup label="Insertar">

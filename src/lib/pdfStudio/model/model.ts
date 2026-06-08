@@ -325,12 +325,16 @@ export function makeRedactionAnnotation(
   return { ...init, id: nextId('r'), kind: 'redaction', opacity: 1 }
 }
 
-/** Crea una FORMA (línea/flecha/rect/óvalo) con id propio. */
+/** Crea una FORMA (línea/flecha/rect/óvalo/marca X) con id propio. */
 export function makeShapeAnnotation(
   init: Omit<ShapeAnnotation, 'id' | 'kind'>,
 ): ShapeAnnotation {
   return { ...init, id: nextId('a'), kind: 'shape' }
 }
+
+/** Gris claro de una marca `x` DESHABILITADA (clic la apaga/enciende). Compartido
+ *  entre el render del editor y el ensamblado a PDF para que pantalla ≈ salida. */
+export const X_DISABLED_COLOR = '#bdbdbd'
 
 /** Crea una IMAGEN estampada (firma/sello) con id propio. */
 export function makeImageAnnotation(

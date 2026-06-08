@@ -191,6 +191,23 @@ export function PdfTextEditor({
     setAnnotations((list) =>
       list.map((a) => (a.id === id && a.kind === 'text' ? { ...a, ...patch } : a)),
     )
+  // Activa/desactiva una marca X (gris claro ↔ color). Apunta a la página por
+  // índice (no a la "activa") para que el clic toggle la X correcta; undoable.
+  const toggleAnnotationDisabled = (pageIndex: number, id: string) =>
+    setHistory((h) =>
+      pushHistory(h, {
+        ...h.present,
+        [pageIndex]: (
+          h.present[pageIndex] ??
+          doc.pages[pageIndex]?.annotations ??
+          []
+        ).map((a) =>
+          a.id === id && a.kind === 'shape' && a.shape === 'x'
+            ? { ...a, disabled: !a.disabled }
+            : a,
+        ),
+      }),
+    )
   const annotationStyle = resolveActiveEditorStyle(selectedAnn, style)
   function addText() {
     const a = makeTextAnnotation({
@@ -514,6 +531,7 @@ export function PdfTextEditor({
                   onStartDrag={startDrag}
                   onSelectAnnotation={setSelectedId}
                   onToggleAnnotation={toggleSelectedId}
+                  onToggleAnnotationDisabled={toggleAnnotationDisabled}
                   onStartEdit={(id) => {
                     setSelectedId(id)
                     setEditingId(id)

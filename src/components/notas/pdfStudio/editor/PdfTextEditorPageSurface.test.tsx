@@ -49,6 +49,7 @@ function setup(overrides: Partial<Parameters<typeof PdfTextEditorPageSurface>[0]
     onStartResize: vi.fn(),
     onSelectAnnotation: vi.fn(),
     onToggleAnnotation: vi.fn(),
+    onToggleAnnotationDisabled: vi.fn(),
     onStartEdit: vi.fn(),
     onCommitText: vi.fn(),
     onCancelEdit: vi.fn(),

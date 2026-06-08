@@ -69,6 +69,52 @@ describe('pdfAnnotationDrawing · createAnnotationFromDrawGesture', () => {
     })
   })
 
+  it('estampa una marca X cuadrada por defecto con un clic (sin arrastre)', () => {
+    const annotation = createAnnotationFromDrawGesture({
+      tool: 'x',
+      x0: 100,
+      y0: 100,
+      x1: 100,
+      y1: 100,
+      pageWidthPx: 800,
+      pageHeightPx: 600,
+      style,
+    })
+
+    // X_DEFAULT_SIDE (0.02) × 600 = 12px de lado, centrada en (100,100).
+    expect(annotation).toMatchObject({
+      kind: 'shape',
+      shape: 'x',
+      x0Ratio: expect.closeTo(94 / 800, 8),
+      y0Ratio: expect.closeTo(94 / 600, 8),
+      x1Ratio: expect.closeTo(106 / 800, 8),
+      y1Ratio: expect.closeTo(106 / 600, 8),
+      strokeRatio: 0.006,
+    })
+  })
+
+  it('dimensiona la marca X cuando se arrastra', () => {
+    const annotation = createAnnotationFromDrawGesture({
+      tool: 'x',
+      x0: 100,
+      y0: 80,
+      x1: 260,
+      y1: 220,
+      pageWidthPx: 800,
+      pageHeightPx: 700,
+      style,
+    })
+
+    expect(annotation).toMatchObject({
+      kind: 'shape',
+      shape: 'x',
+      x0Ratio: 0.125,
+      x1Ratio: 0.325,
+      strokeRatio: 0.006,
+    })
+    expect((annotation as { disabled?: boolean }).disabled).toBeUndefined()
+  })
+
   it('crea formas conservando dirección y grosor configurado', () => {
     const annotation = createAnnotationFromDrawGesture({
       tool: 'arrow',

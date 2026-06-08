@@ -34,20 +34,37 @@ export const HIT_Y = 4
 /** Opacidad por defecto del resaltado (translúcido, como un marcador). */
 export const HIGHLIGHT_OPACITY = 0.35
 
-/** Herramientas del editor (modos). `rect/oval/line/arrow` son formas vectoriales. */
-export type Tool = 'select' | 'highlight' | 'redact' | 'rect' | 'oval' | 'line' | 'arrow'
+/** Herramientas del editor (modos). `rect/oval/line/arrow/x` son formas vectoriales;
+ *  `x` es la marca de casillero (clic para activar/desactivar). */
+export type Tool =
+  | 'select'
+  | 'highlight'
+  | 'redact'
+  | 'rect'
+  | 'oval'
+  | 'line'
+  | 'arrow'
+  | 'x'
 
 /** Las formas son los modos de dibujo de contorno (todo lo que no es seleccionar
  *  ni resaltar ni agregar texto). */
-export const SHAPE_TOOLS = ['rect', 'oval', 'line', 'arrow'] as const
+export const SHAPE_TOOLS = ['rect', 'oval', 'line', 'arrow', 'x'] as const
 
-/** ¿La herramienta activa es una forma (rect/oval/line/arrow)? */
+/** ¿La herramienta activa es una forma (rect/oval/line/arrow/x)? */
 export function isShapeTool(t: Tool): boolean {
-  return t === 'rect' || t === 'oval' || t === 'line' || t === 'arrow'
+  return t === 'rect' || t === 'oval' || t === 'line' || t === 'arrow' || t === 'x'
 }
 
 /** Grosor por defecto del trazo de las formas (fracción del alto de página). */
 export const SHAPE_STROKE = 0.004
+
+/** Grosor del trazo de la marca X (más grueso que una forma fina, para leerse
+ *  como casillero marcado). */
+export const X_STROKE = 0.006
+
+/** Lado por defecto de una X estampada con un clic (fracción del alto de página);
+ *  cuadrada en píxeles, redimensionable luego. */
+export const X_DEFAULT_SIDE = 0.02
 
 /** `#rrggbb` + alfa → `rgba(...)`, para pintar el relleno translúcido del
  *  resaltado sin atenuar el contorno de selección (que `opacity` sí atenuaría). */
