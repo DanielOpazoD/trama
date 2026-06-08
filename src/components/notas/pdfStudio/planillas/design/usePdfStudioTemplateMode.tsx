@@ -67,16 +67,15 @@ export function usePdfStudioTemplateMode({
     setActiveTemplateName(name)
   }
 
+  // El banner sólo aporta en LLENADO (acción de imprimir + contexto). En diseño
+  // la guía de una línea ya orienta, así que no se muestra (evita la etiqueta
+  // redundante "Diseñar planilla").
   const templateModeBanner =
-    enabled && effectiveTemplateMode ? (
+    enabled && effectiveTemplateMode === 'fill' ? (
       <PdfTemplateModeBanner
-        mode={effectiveTemplateMode}
+        mode="fill"
         fieldCount={doc.formFields?.length ?? 0}
-        onPrint={
-          effectiveTemplateMode === 'fill'
-            ? () => void exportPdf(doc, 'planilla', { flattenFormFields: true })
-            : undefined
-        }
+        onPrint={() => void exportPdf(doc, 'planilla', { flattenFormFields: true })}
       />
     ) : null
 

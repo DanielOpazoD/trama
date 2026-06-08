@@ -144,7 +144,6 @@ describe('<PdfStudioView />', () => {
   it('muestra el estado vacío con Guardar deshabilitado', () => {
     renderWithProviders(<PdfStudioView />)
     expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
-    expect(screen.getByText(/Editando PDF/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar PDF/i })).toBeDisabled()
     expect(
       screen.getByRole('button', { name: /Importar PDF o imagen/i }),
@@ -159,7 +158,6 @@ describe('<PdfStudioView />', () => {
 
     expect(screen.getByText(/Sube un PDF o imagen para empezar/i)).toBeInTheDocument()
     expect(screen.getByText(/Crea una planilla desde PDF o imagen/i)).toBeInTheDocument()
-    expect(screen.getByText(/Diseñar planilla/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar planilla/i })).toBeDisabled()
     expect(screen.queryByRole('button', { name: /Guardar PDF/i })).not.toBeInTheDocument()
   })
@@ -320,6 +318,25 @@ describe('<PdfStudioView />', () => {
     expect(
       screen.queryByRole('button', { name: /Imprimir planilla/i }),
     ).not.toBeInTheDocument()
+  })
+
+  it('Editar plantilla abre el editor directamente (sin doble clic en el documento)', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Editar estructura de planilla Ingreso paciente/i,
+      }),
+    )
+
+    // Se abre el editor de diseño directo (no hace falta doble clic en la hoja).
+    expect(
+      await screen.findByRole('dialog', { name: /Crear plantilla/i }),
+    ).toBeInTheDocument()
   })
 
   it('abre una planilla directamente en visor simplificado para rellenar e imprimir', async () => {

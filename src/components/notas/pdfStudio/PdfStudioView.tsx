@@ -17,10 +17,7 @@ import {
   type History,
 } from '../../../lib/pdfStudio/model/history'
 import { disposePdfStudio } from '../../../lib/pdfStudio/render/pdfRender'
-import {
-  clearDraft,
-  isSavedFilledTemplate,
-} from '../../../lib/pdfStudio/render/persistence'
+import { clearDraft } from '../../../lib/pdfStudio/render/persistence'
 import { BulkBar } from './shell/BulkBar'
 import { PdfStudioDocumentToolbar } from './shell/PdfStudioDocumentToolbar'
 import { PdfStudioFormPanel } from './planillas/PdfStudioFormPanel'
@@ -240,7 +237,8 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
         saveTemplateSignal={saveTemplateSignal}
         onOpenSaved={(saved) => {
           openSavedWithMode(saved)
-          if (isSavedFilledTemplate(saved)) setTextPage(0)
+          // Editar plantilla / abrir copia: abre el editor directo (sin doble clic).
+          if (isPdfTemplate(saved.doc)) setTextPage(0)
         }}
         onUseTemplate={(saved) => {
           openTemplateWithFillMode(saved)

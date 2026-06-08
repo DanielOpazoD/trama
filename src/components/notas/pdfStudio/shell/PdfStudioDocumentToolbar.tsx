@@ -85,11 +85,6 @@ export function PdfStudioDocumentToolbar({
   const isFillMode = isTemplates && templateMode === 'fill'
   const canDownloadFillable = isTemplates && templateMode === 'design'
   const needsTemplateFields = canDownloadFillable && !empty && !canSaveTemplate
-  const modeLabel = isFillMode
-    ? 'Rellenar e imprimir'
-    : isTemplates
-      ? 'Diseñar planilla'
-      : 'Editando PDF'
   const primaryLabel = isFillMode
     ? 'Imprimir planilla'
     : needsTemplateFields
@@ -132,16 +127,6 @@ export function PdfStudioDocumentToolbar({
           <UploadIcon size={13} />
           {busy ? 'Agregando…' : 'Importar'}
         </button>
-        <span
-          aria-label="Modo PDF Studio"
-          className={`hidden h-7 items-center rounded-md border px-2 text-micro font-medium sm:inline-flex ${
-            isTemplates
-              ? 'border-[color:var(--accent-sage)]/25 bg-[color:var(--accent-sage-soft)]/35 text-[color:var(--accent-sage)]'
-              : 'border-ink-100 bg-paper-50/75 text-ink-500'
-          }`}
-        >
-          {modeLabel}
-        </span>
         {(undoable || redoable) && (
           <div className="inline-flex items-center overflow-hidden rounded-md bg-ink-100/40">
             <button
