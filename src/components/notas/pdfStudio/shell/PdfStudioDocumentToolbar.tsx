@@ -114,7 +114,7 @@ export function PdfStudioDocumentToolbar({
     <div
       role="toolbar"
       aria-label="Acciones del documento PDF"
-      className="flex flex-nowrap items-center gap-1.5 border-y border-ink-100/70 bg-paper-50/70 px-1.5 py-1.5 shadow-sm shadow-ink-900/5"
+      className="flex flex-nowrap items-center gap-1.5 border-y border-ink-100/70 bg-paper-50/70 px-1.5 py-1 shadow-sm shadow-ink-900/5"
     >
       <div className="flex min-w-0 items-center gap-1.5">
         <button
@@ -122,7 +122,7 @@ export function PdfStudioDocumentToolbar({
           onClick={onImport}
           disabled={busy}
           aria-label="Importar PDF o imagen"
-          className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-caption font-medium text-ink-700 transition-colors hover:bg-ink-100/50 hover:text-ink-900 disabled:opacity-50"
+          className="inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-caption font-medium text-ink-700 transition-colors hover:bg-ink-100/50 hover:text-ink-900 disabled:opacity-50"
         >
           <UploadIcon size={13} />
           {busy ? 'Agregando…' : 'Importar'}
@@ -166,7 +166,7 @@ export function PdfStudioDocumentToolbar({
             onClick={handlePrimary}
             disabled={primaryDisabled}
             title={primaryTitle}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-ink-800 px-2.5 text-caption font-medium text-paper-50 transition-colors hover:bg-ink-700 disabled:opacity-35 disabled:hover:bg-ink-800"
+            className="inline-flex h-7 items-center gap-1.5 rounded-md bg-ink-800 px-2.5 text-caption font-medium text-paper-50 transition-colors hover:bg-ink-700 disabled:opacity-35 disabled:hover:bg-ink-800"
           >
             <PrimaryIcon size={13} />
             {saving ? 'Preparando…' : primaryLabel}

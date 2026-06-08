@@ -45,9 +45,9 @@ export function WorkspaceSavedDocsSection({
 
   return (
     <section className="pb-2">
-      <div className="flex items-center justify-between gap-2 px-2.5 pt-2.5 pb-1">
-        <h3 className="flex items-center gap-1.5 text-caption font-medium text-ink-600">
-          <FilePdfIcon size={13} />
+      <div className="flex items-center justify-between gap-2 px-2.5 pt-2 pb-0.5">
+        <h3 className="flex items-center gap-1.5 text-micro font-semibold uppercase tracking-eyebrow text-ink-400">
+          <FilePdfIcon size={12} />
           PDFs y copias
           <span className="text-ink-300 tabular-nums">({creations.length})</span>
         </h3>
@@ -98,7 +98,7 @@ export function WorkspaceSavedDocsSection({
 
       {creations.length === 0 ? (
         <p className="px-2.5 text-micro text-ink-400">
-          Guarda PDFs sueltos o copias rellenadas para volver a abrirlas.
+          Guarda PDFs y copias para reabrirlas.
         </p>
       ) : (
         <ul className="flex flex-col gap-1 px-2 pt-1">

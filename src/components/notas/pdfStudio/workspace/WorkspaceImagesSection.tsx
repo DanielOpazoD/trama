@@ -36,14 +36,14 @@ export function WorkspaceImagesSection({
 }) {
   return (
     <section>
-      <h3 className="flex items-center gap-1.5 px-2.5 pt-2.5 pb-1 text-caption font-medium text-ink-600">
-        <CameraIcon size={13} />
+      <h3 className="flex items-center gap-1.5 px-2.5 pt-2 pb-0.5 text-micro font-semibold uppercase tracking-eyebrow text-ink-400">
+        <CameraIcon size={12} />
         Imágenes
         <span className="text-ink-300 tabular-nums">({library.length})</span>
       </h3>
       {library.length === 0 ? (
         <p className="px-2.5 pb-2 text-micro text-ink-400">
-          Las imágenes que subas quedan acá para reutilizarlas.
+          Tus imágenes para reutilizar.
         </p>
       ) : (
         <ul className="grid grid-cols-2 gap-2 px-2.5 pb-2.5">
