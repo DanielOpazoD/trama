@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
 import type { TemplateFillImportValues } from './pdfTemplateFillImport'
 import type { TemplateFillImportFeedback } from './usePdfTemplateFillImport'
@@ -13,6 +13,7 @@ import {
 
 export function PdfTemplateFillVariablesPanel({
   activeFieldId = null,
+  autoFocusFirstPending = false,
   fields,
   importFeedback = null,
   pageIndexById,
@@ -27,6 +28,7 @@ export function PdfTemplateFillVariablesPanel({
   onJump,
 }: {
   activeFieldId?: string | null
+  autoFocusFirstPending?: boolean
   fields: PdfFormFieldDraft[]
   importFeedback?: TemplateFillImportFeedback | null
   pageIndexById: Record<string, number>
@@ -48,6 +50,7 @@ export function PdfTemplateFillVariablesPanel({
     : orderedFields
   const { completed, pending } = fillProgressForTemplateFields(orderedFields)
   const nextPending = orderedFields.find((field) => !isTemplateFieldFilled(field)) ?? null
+  const autoFocusedRef = useRef(false)
   const focusAdjacentField = (index: number, direction: 1 | -1): boolean => {
     const candidates =
       direction > 0
@@ -65,6 +68,18 @@ export function PdfTemplateFillVariablesPanel({
       : pending === 0
         ? 'Todo listo para imprimir'
         : `${pending} ${pending === 1 ? 'campo pendiente' : 'campos pendientes'}`
+
+  useEffect(() => {
+    if (!autoFocusFirstPending || autoFocusedRef.current || activeFieldId) return
+    const target = orderedFields.find(
+      (field) => !field.readOnly && !isTemplateFieldFilled(field),
+    )
+    if (!target) return
+    autoFocusedRef.current = true
+    onFocusField?.(target)
+    fieldInputRefs.current[target.id]?.focus()
+  }, [activeFieldId, autoFocusFirstPending, onFocusField, orderedFields])
+
   return (
     <aside
       aria-label="Variables de planilla"
@@ -93,7 +108,7 @@ export function PdfTemplateFillVariablesPanel({
         onClick={() => nextPending && onJump(nextPending)}
         className="mt-2 w-full rounded-md border border-[color:var(--accent-sage)]/25 bg-[color:var(--accent-sage-soft)]/55 px-2 py-1.5 text-caption font-semibold text-[color:var(--accent-sage)] transition-colors hover:bg-[color:var(--accent-sage-soft)] disabled:border-ink-100 disabled:bg-ink-50 disabled:text-ink-300"
       >
-        Ir al siguiente campo
+        {nextPending ? 'Ir al siguiente campo' : 'Lista para imprimir'}
       </button>
       <p className="mt-2 rounded-md bg-ink-50 px-2 py-1.5 text-micro leading-snug text-ink-500">
         Modo relleno: escribe e imprime. La plantilla original no cambia salvo que guardes

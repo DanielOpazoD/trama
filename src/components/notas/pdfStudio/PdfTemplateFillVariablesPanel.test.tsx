@@ -143,7 +143,26 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
     )
 
     expect(screen.getByText('Todo listo para imprimir')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Ir al siguiente campo/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Lista para imprimir/i })).toBeDisabled()
+  })
+
+  it('enfoca automáticamente el primer casillero pendiente al abrir relleno', () => {
+    const onJump = vi.fn()
+    const onFocusField = vi.fn()
+    render(
+      <PdfTemplateFillVariablesPanel
+        autoFocusFirstPending
+        fields={[filledField, emptyField]}
+        pageIndexById={{ p1: 0, p2: 1 }}
+        onChange={vi.fn()}
+        onFocusField={onFocusField}
+        onJump={onJump}
+      />,
+    )
+
+    expect(onFocusField).toHaveBeenCalledWith(emptyField)
+    expect(onJump).not.toHaveBeenCalled()
+    expect(screen.getByRole('textbox', { name: /Variable paciente/i })).toHaveFocus()
   })
 
   it('filtra pendientes sin perder el conteo total de la planilla', () => {

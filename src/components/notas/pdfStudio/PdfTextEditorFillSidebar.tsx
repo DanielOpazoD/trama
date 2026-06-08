@@ -38,6 +38,7 @@ export function PdfTextEditorFillSidebar({
   return (
     <PdfTemplateFillVariablesPanel
       activeFieldId={activeFieldId}
+      autoFocusFirstPending
       fields={fields}
       importFeedback={importFeedback}
       pageIndexById={pageIndexById}
