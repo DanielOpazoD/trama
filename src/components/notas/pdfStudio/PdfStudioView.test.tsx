@@ -27,31 +27,31 @@ const mocks = vi.hoisted(() => ({
   putSavedDoc: vi.fn(),
   deleteSavedDoc: vi.fn(),
 }))
-vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
+vi.mock('../../../lib/pdfStudio/render/pdfRender', () => ({
   getPdfPageCount: mocks.getPdfPageCount,
   renderPageThumb: mocks.renderPageThumb,
   renderPageBitmap: mocks.renderPageBitmap,
   forgetThumb: mocks.forgetThumb,
   disposePdfStudio: mocks.disposePdfStudio,
 }))
-vi.mock('../../../lib/pdfStudio/assemble', () => ({ assemble: mocks.assemble }))
-vi.mock('../../../lib/pdfStudio/exportWorkerClient', () => ({
+vi.mock('../../../lib/pdfStudio/assemble/assemble', () => ({ assemble: mocks.assemble }))
+vi.mock('../../../lib/pdfStudio/export/exportWorkerClient', () => ({
   assemblePdfInWorker: mocks.assemblePdfInWorker,
 }))
-vi.mock('../../../lib/pdfStudio/pdfOcrWorkerClient', () => ({
+vi.mock('../../../lib/pdfStudio/ocr/pdfOcrWorkerClient', () => ({
   createSearchablePdfInWorker: mocks.createSearchablePdfInWorker,
 }))
-vi.mock('../../../lib/pdfStudio/pdfFormWorkerClient', () => ({
+vi.mock('../../../lib/pdfStudio/forms/pdfFormWorkerClient', () => ({
   inspectPdfFormInWorker: mocks.inspectPdfFormInWorker,
   fillPdfFormInWorker: mocks.fillPdfFormInWorker,
   writePdfFormFieldsInWorker: mocks.writePdfFormFieldsInWorker,
 }))
-vi.mock('../../../lib/pdfStudio/printPdf', () => ({
+vi.mock('../../../lib/pdfStudio/export/printPdf', () => ({
   openBlankPdfTab: mocks.openBlankPdfTab,
   showPdfInTab: mocks.showPdfInTab,
 }))
 vi.mock('../../../lib/downloadBlob', () => ({ downloadBlob: mocks.downloadBlob }))
-vi.mock('../../../lib/pdfStudio/persistence', () => ({
+vi.mock('../../../lib/pdfStudio/render/persistence', () => ({
   loadDraft: mocks.loadDraft,
   saveDraft: mocks.saveDraft,
   clearDraft: mocks.clearDraft,
@@ -70,7 +70,7 @@ import {
   addPdfSource,
   emptyDoc,
   makePdfFormFieldDraft,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 
 const pdfFile = (name = 'doc.pdf') =>
   new File(['%PDF-1.4'], name, { type: 'application/pdf' })
@@ -144,7 +144,6 @@ describe('<PdfStudioView />', () => {
   it('muestra el estado vacío con Guardar deshabilitado', () => {
     renderWithProviders(<PdfStudioView />)
     expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
-    expect(screen.getByText(/Editando PDF/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar PDF/i })).toBeDisabled()
     expect(
       screen.getByRole('button', { name: /Importar PDF o imagen/i }),
@@ -157,9 +156,8 @@ describe('<PdfStudioView />', () => {
   it('en modo planillas usa estado vacío, modo y acción primaria propios', () => {
     renderWithProviders(<PdfStudioView studioMode="templates" />)
 
-    expect(screen.getByRole('region', { name: /Crear plantilla/i })).toBeInTheDocument()
+    expect(screen.getByText(/Sube un PDF o imagen para empezar/i)).toBeInTheDocument()
     expect(screen.getByText(/Crea una planilla desde PDF o imagen/i)).toBeInTheDocument()
-    expect(screen.getByText(/Diseñar planilla/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar planilla/i })).toBeDisabled()
     expect(screen.queryByRole('button', { name: /Guardar PDF/i })).not.toBeInTheDocument()
   })
@@ -170,12 +168,11 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    const guide = screen.getByRole('region', { name: /Crear plantilla/i })
-    expect(within(guide).getByText('2 páginas')).toBeInTheDocument()
-    expect(within(guide).getByText('Marca dónde escribir')).toBeInTheDocument()
-    expect(within(guide).getByText('Sin campos')).toBeInTheDocument()
+    expect(
+      screen.getByText(/Marca en el documento los espacios donde se escribirá/i),
+    ).toBeInTheDocument()
 
-    await user.click(within(guide).getByRole('button', { name: /Marcar espacios/i }))
+    await user.click(screen.getByRole('button', { name: /Agregar casilleros/i }))
     expect(
       await screen.findByRole('dialog', { name: /Crear plantilla/i }),
     ).toBeInTheDocument()
@@ -190,23 +187,16 @@ describe('<PdfStudioView />', () => {
     expect(screen.queryByRole('button', { name: /^Listo$/i })).not.toBeInTheDocument()
   })
 
-  it('desde la guía descarga PDF rellenable cuando la planilla tiene casilleros', async () => {
-    const user = userEvent.setup()
+  it('la guía resume los casilleros y no repite acciones de la barra', async () => {
     mocks.loadDraft.mockResolvedValueOnce({ doc: templateDoc(), library: [] })
     renderWithProviders(<PdfStudioView studioMode="templates" />)
 
     await screen.findByAltText('Página 1')
-    const guide = screen.getByRole('region', { name: /Crear plantilla/i })
-    expect(within(guide).getByText('1 campo')).toBeInTheDocument()
-
-    await user.click(within(guide).getByRole('button', { name: /PDF rellenable/i }))
-    expect(mocks.writePdfFormFieldsInWorker).toHaveBeenCalledWith(
-      expect.any(File),
-      [expect.objectContaining({ name: 'paciente', value: '' })],
-      expect.any(Array),
-      { flatten: false },
-      expect.anything(),
-    )
+    expect(screen.getByText(/1 campo marcado/i)).toBeInTheDocument()
+    expect(screen.getByText(/guárdala como plantilla/i)).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Subir PDF\/imagen/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('Guardar planilla abre el nombre de guardado cuando hay casilleros', async () => {
@@ -328,6 +318,25 @@ describe('<PdfStudioView />', () => {
     expect(
       screen.queryByRole('button', { name: /Imprimir planilla/i }),
     ).not.toBeInTheDocument()
+  })
+
+  it('Editar plantilla abre el editor directamente (sin doble clic en el documento)', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Editar estructura de planilla Ingreso paciente/i,
+      }),
+    )
+
+    // Se abre el editor de diseño directo (no hace falta doble clic en la hoja).
+    expect(
+      await screen.findByRole('dialog', { name: /Crear plantilla/i }),
+    ).toBeInTheDocument()
   })
 
   it('abre una planilla directamente en visor simplificado para rellenar e imprimir', async () => {
@@ -1101,21 +1110,23 @@ describe('<PdfStudioView />', () => {
     ])
     renderWithProviders(<PdfStudioView studioMode="templates" />)
 
-    await user.click(
-      await screen.findByRole('button', {
-        name: /Exportar variables JSON de planilla Ingreso paciente/i,
-      }),
-    )
+    // Exportar variables vive en el menú "..." de la tarjeta de planilla.
+    const openMenu = async () =>
+      user.click(
+        await screen.findByRole('button', {
+          name: /Más acciones de Ingreso paciente/i,
+        }),
+      )
+
+    await openMenu()
+    await user.click(screen.getByRole('menuitem', { name: /Exportar JSON/i }))
     expect(mocks.downloadBlob).toHaveBeenCalledWith(
       expect.any(Blob),
       'ingreso-paciente-variables.json',
     )
 
-    await user.click(
-      screen.getByRole('button', {
-        name: /Exportar variables CSV de planilla Ingreso paciente/i,
-      }),
-    )
+    await openMenu()
+    await user.click(screen.getByRole('menuitem', { name: /Exportar CSV/i }))
     expect(mocks.downloadBlob).toHaveBeenCalledWith(
       expect.any(Blob),
       'ingreso-paciente-variables.csv',
@@ -1198,18 +1209,16 @@ describe('<PdfStudioView />', () => {
     ).toBeInTheDocument()
   })
 
-  it('la barra del editor muestra las herramientas de estilo sin texto seleccionado (sin hint)', async () => {
+  it('la barra del editor agrupa las herramientas de estilo en el menú Texto', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
     await user.upload(fileInput(), pdfFile())
     await user.dblClick(await screen.findByAltText('Página 1'))
     await screen.findByRole('dialog', { name: /Editar página 1/i })
 
-    // Sin agregar ni seleccionar texto, las herramientas de estilo ya están activas…
+    // El estilo (fuente/tamaño/negrita/color/…) vive detrás de un solo menú "Texto".
+    await user.click(screen.getByRole('button', { name: 'Texto' }))
     expect(screen.getByRole('button', { name: 'Negrita' })).toBeInTheDocument()
-    const colorMenu = screen.getByRole('button', { name: 'Color' })
-    expect(colorMenu).toBeInTheDocument()
-    await user.click(colorMenu)
     expect(screen.getByRole('menuitemradio', { name: 'Color Tinta' })).toBeInTheDocument()
     // …y NO está el viejo texto instructivo.
     expect(screen.queryByText(/toca uno para editarlo/i)).not.toBeInTheDocument()

@@ -5,8 +5,8 @@ import {
   setDocSettings,
   type DocSettings,
   type PdfDoc,
-} from '../../../lib/pdfStudio/model'
-import type { AssembleOptions } from '../../../lib/pdfStudio/assemble'
+} from '../../../lib/pdfStudio/model/model'
+import type { AssembleOptions } from '../../../lib/pdfStudio/assemble/assemble'
 import {
   canRedo,
   canUndo,
@@ -15,30 +15,33 @@ import {
   redo,
   undo,
   type History,
-} from '../../../lib/pdfStudio/history'
-import { disposePdfStudio } from '../../../lib/pdfStudio/pdfRender'
-import { clearDraft, isSavedFilledTemplate } from '../../../lib/pdfStudio/persistence'
-import { BulkBar } from './BulkBar'
-import { PdfStudioDocumentToolbar } from './PdfStudioDocumentToolbar'
-import { PdfStudioFormPanel } from './PdfStudioFormPanel'
-import { PdfStudioMainPane } from './PdfStudioMainPane'
-import { PdfStudioOcrPanel } from './PdfStudioOcrPanel'
-import { PdfTemplateWorkflowGuide } from './PdfTemplateWorkflowGuide'
-import { PdfStudioWorkspacePanelHost } from './PdfStudioWorkspacePanelHost'
-import { PdfTextEditor } from './PdfTextEditor'
-import { applyPdfTextEditorResult, type PdfTextEditorResult } from './pdfTextEditorResult'
-import { usePageSelection } from './usePageSelection'
-import { usePdfStudioExport } from './usePdfStudioExport'
-import { usePdfStudioImport } from './usePdfStudioImport'
-import { usePdfStudioForms } from './usePdfStudioForms'
-import { usePdfStudioPageKeyboard } from './usePdfStudioPageKeyboard'
-import { usePdfStudioPageActions } from './usePdfStudioPageActions'
-import { usePdfStudioOcr } from './usePdfStudioOcr'
-import { usePdfStudioFilledTemplateActions } from './usePdfStudioFilledTemplateActions'
-import { usePdfStudioDraftSanitizer } from './usePdfStudioDraftSanitizer'
-import { usePdfStudioTemplateMode } from './usePdfStudioTemplateMode'
-import { usePdfStudioWorkspace } from './usePdfStudioWorkspace'
-import { pdfStudioPageInteractionMode as pageMode } from './pdfStudioPageInteractionMode'
+} from '../../../lib/pdfStudio/model/history'
+import { disposePdfStudio } from '../../../lib/pdfStudio/render/pdfRender'
+import { clearDraft } from '../../../lib/pdfStudio/render/persistence'
+import { BulkBar } from './shell/BulkBar'
+import { PdfStudioDocumentToolbar } from './shell/PdfStudioDocumentToolbar'
+import { PdfStudioFormPanel } from './planillas/PdfStudioFormPanel'
+import { PdfStudioMainPane } from './shell/PdfStudioMainPane'
+import { PdfStudioOcrPanel } from './ocr/PdfStudioOcrPanel'
+import { PdfTemplateWorkflowGuide } from './planillas/design/PdfTemplateWorkflowGuide'
+import { PdfStudioWorkspacePanelHost } from './shell/PdfStudioWorkspacePanelHost'
+import { PdfTextEditor } from './editor/PdfTextEditor'
+import {
+  applyPdfTextEditorResult,
+  type PdfTextEditorResult,
+} from './editor/pdfTextEditorResult'
+import { usePageSelection } from './shell/usePageSelection'
+import { usePdfStudioExport } from './shell/usePdfStudioExport'
+import { usePdfStudioImport } from './shell/usePdfStudioImport'
+import { usePdfStudioForms } from './planillas/usePdfStudioForms'
+import { usePdfStudioPageKeyboard } from './shell/usePdfStudioPageKeyboard'
+import { usePdfStudioPageActions } from './shell/usePdfStudioPageActions'
+import { usePdfStudioOcr } from './ocr/usePdfStudioOcr'
+import { usePdfStudioFilledTemplateActions } from './planillas/fill/usePdfStudioFilledTemplateActions'
+import { usePdfStudioDraftSanitizer } from './workspace/usePdfStudioDraftSanitizer'
+import { usePdfStudioTemplateMode } from './planillas/design/usePdfStudioTemplateMode'
+import { usePdfStudioWorkspace } from './workspace/usePdfStudioWorkspace'
+import { pdfStudioPageInteractionMode as pageMode } from './shell/pdfStudioPageInteractionMode'
 import { useToast } from '../../../state'
 const ACCEPT = 'application/pdf,image/*'
 export type PdfStudioMode = 'editor' | 'templates'
@@ -186,10 +189,6 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     setPanelCollapsed(false)
     setSaveTemplateSignal((signal) => signal + 1)
   }
-  function openTemplateDesigner() {
-    if (!templatesEnabled || empty) return
-    setTextPage(0)
-  }
   const total = doc.pages.length
   const empty = total === 0
   const undoable = canUndo(history)
@@ -238,7 +237,8 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
         saveTemplateSignal={saveTemplateSignal}
         onOpenSaved={(saved) => {
           openSavedWithMode(saved)
-          if (isSavedFilledTemplate(saved)) setTextPage(0)
+          // Editar plantilla / abrir copia: abre el editor directo (sin doble clic).
+          if (isPdfTemplate(saved.doc)) setTextPage(0)
         }}
         onUseTemplate={(saved) => {
           openTemplateWithFillMode(saved)
@@ -298,14 +298,8 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
             />
             {templatesEnabled && effectiveTemplateMode !== 'fill' && (
               <PdfTemplateWorkflowGuide
-                busy={busy}
                 fieldCount={doc.formFields?.length ?? 0}
                 pageCount={total}
-                saving={saving}
-                onAddFields={openTemplateDesigner}
-                onDownloadFillable={() => void downloadPdf(doc, 'rellenable')}
-                onImport={() => fileInputRef.current?.click()}
-                onSaveTemplate={startTemplateSave}
               />
             )}
             {templatesEnabled && formSummary && (

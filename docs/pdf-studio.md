@@ -13,59 +13,59 @@ se suben al backend.
 
 ## Mapa de Modulos
 
-- `src/lib/pdfStudio/model.ts`: fachada publica del modelo puro. Re-exporta tipos
+- `src/lib/pdfStudio/model/model.ts`: fachada publica del modelo puro. Re-exporta tipos
   y helpers tipograficos, y conserva operaciones de documento/paginas/anotaciones.
-- `src/lib/pdfStudio/modelTypes.ts`: tipos canonicos del documento, paginas,
+- `src/lib/pdfStudio/model/modelTypes.ts`: tipos canonicos del documento, paginas,
   sources, anotaciones, ajustes y biblioteca de imagenes.
-- `src/lib/pdfStudio/modelText.ts`: mapeo de fuentes, line-height, baseline y
+- `src/lib/pdfStudio/model/modelText.ts`: mapeo de fuentes, line-height, baseline y
   layout de texto PDF.
-- `src/lib/pdfStudio/history.ts`: historial generico undo/redo.
-- `src/lib/pdfStudio/pdfRender.ts`: borde browser-only para miniaturas y preview
+- `src/lib/pdfStudio/model/history.ts`: historial generico undo/redo.
+- `src/lib/pdfStudio/render/pdfRender.ts`: borde browser-only para miniaturas y preview
   con pdf.js.
-- `src/lib/pdfStudio/assemble.ts`: orquestador del pipeline de exportacion.
-- `src/lib/pdfStudio/assemblePipeline.ts`: tipos de fases, progreso y errores de
+- `src/lib/pdfStudio/assemble/assemble.ts`: orquestador del pipeline de exportacion.
+- `src/lib/pdfStudio/assemble/assemblePipeline.ts`: tipos de fases, progreso y errores de
   exportacion.
-- `src/lib/pdfStudio/heavyOperationContract.ts`: contrato comun para operaciones
+- `src/lib/pdfStudio/export/heavyOperationContract.ts`: contrato comun para operaciones
   pesadas (`pdf-export`, `pdf-ocr`, `pdf-form`, `pdf-redaction`), con mensajes de
   progreso, cancelacion y errores serializables entre UI y Worker.
-- `src/lib/pdfStudio/heavyOperationClient.ts`: cliente generico para ejecutar una
+- `src/lib/pdfStudio/export/heavyOperationClient.ts`: cliente generico para ejecutar una
   operacion pesada en un Worker dedicado, con fallback al hilo principal.
-- `src/lib/pdfStudio/exportWorkerClient.ts` y `pdfExport.worker.ts`: borde de
+- `src/lib/pdfStudio/export/exportWorkerClient.ts` y `pdfExport.worker.ts`: borde de
   exportacion en segundo plano; reusa `assemble` y conserva el mismo contrato de
   progreso/cancelacion que la UI ya consume.
-- `src/lib/pdfStudio/pdfForms.ts`: inspeccion y rellenado basico de AcroForms
+- `src/lib/pdfStudio/forms/pdfForms.ts`: inspeccion y rellenado basico de AcroForms
   existentes con `pdf-lib`; extrae geometria de widgets, soporta mantener campos
   editables o aplanarlos, y escribe campos nuevos creados desde el canvas.
-- `src/lib/pdfStudio/modelForms.ts`: modelo puro de campos visuales creados en
+- `src/lib/pdfStudio/model/modelForms.ts`: modelo puro de campos visuales creados en
   Imprenta, separados de las anotaciones porque exportan como AcroForms reales.
-- `src/lib/pdfStudio/pdfFormWorkerClient.ts` y `pdfForm.worker.ts`: borde Worker
+- `src/lib/pdfStudio/forms/pdfFormWorkerClient.ts` y `pdfForm.worker.ts`: borde Worker
   para inspeccionar/rellenar formularios con el contrato de operaciones pesadas.
-- `src/components/notas/pdfStudio/PdfStudioFormPanel.tsx`: panel compacto para
+- `src/components/notas/pdfStudio/planillas/PdfStudioFormPanel.tsx`: panel compacto para
   editar valores detectados y aplicar el PDF resultante al documento.
-- `src/components/notas/pdfStudio/FormFieldLayer.tsx`: overlays editables de
+- `src/components/notas/pdfStudio/planillas/FormFieldLayer.tsx`: overlays editables de
   formularios sobre el canvas de pagina.
-- `src/components/notas/pdfStudio/SignatureCaptureDialog.tsx`: firma simple con
+- `src/components/notas/pdfStudio/planillas/SignatureCaptureDialog.tsx`: firma simple con
   trazo dibujado o imagen cargada.
-- `src/components/notas/pdfStudio/PdfTextEditorPageSurface.tsx`: superficie de
+- `src/components/notas/pdfStudio/editor/PdfTextEditorPageSurface.tsx`: superficie de
   pagina dentro del visor continuo de edicion; renderiza fondo, anotaciones y
   campos por pagina.
-- `src/lib/pdfStudio/pdfOcr.ts`: fachada publica del OCR buscable; orquesta
+- `src/lib/pdfStudio/ocr/pdfOcr.ts`: fachada publica del OCR buscable; orquesta
   renderizado, reconocimiento, ensamblado y sidecar `.txt`.
-- `src/lib/pdfStudio/pdfOcrInput.ts`: convierte PDF/imagen a paginas raster para
+- `src/lib/pdfStudio/ocr/pdfOcrInput.ts`: convierte PDF/imagen a paginas raster para
   OCR, con pdf.js y canvas sin bloquear el flujo principal.
-- `src/lib/pdfStudio/pdfOcrRecognition.ts`: borde Tesseract.js para reconocer
+- `src/lib/pdfStudio/ocr/pdfOcrRecognition.ts`: borde Tesseract.js para reconocer
   texto por pagina, idioma y cajas de lineas.
-- `src/lib/pdfStudio/pdfOcrSearchablePdf.ts`: copia el PDF visual y agrega capa de
+- `src/lib/pdfStudio/ocr/pdfOcrSearchablePdf.ts`: copia el PDF visual y agrega capa de
   texto invisible; tambien arma el sidecar de texto.
-- `src/lib/pdfStudio/pdfOcrLimits.ts`: heuristica client-side para advertir o
+- `src/lib/pdfStudio/ocr/pdfOcrLimits.ts`: heuristica client-side para advertir o
   bloquear documentos que exceden el rango razonable de OCR local.
-- `src/lib/pdfStudio/pdfOcrWorkerClient.ts`, `pdfOcr.worker.ts` y
+- `src/lib/pdfStudio/ocr/pdfOcrWorkerClient.ts`, `pdfOcr.worker.ts` y
   `pdfOcrBackendAdapter.ts`: contrato Worker actual y adaptador explicito para
   una ruta backend/OCRmyPDF futura.
-- `src/components/notas/pdfStudio/PdfStudioOcrPanel.tsx`: panel compacto con
+- `src/components/notas/pdfStudio/ocr/PdfStudioOcrPanel.tsx`: panel compacto con
   selector de idioma, progreso, cancelacion y disparo de descargas.
-- `src/lib/pdfStudio/assembleImages.ts`: lectura/compresion/embedding de imagenes.
-- `src/lib/pdfStudio/assembleAnnotations.ts`: dibujo vectorial de texto,
+- `src/lib/pdfStudio/assemble/assembleImages.ts`: lectura/compresion/embedding de imagenes.
+- `src/lib/pdfStudio/assemble/assembleAnnotations.ts`: dibujo vectorial de texto,
   resaltados, formas e imagenes estampadas.
 - `src/components/notas/pdfStudio/PdfStudioView.tsx`: composicion de la vista de
   documento con modos `editor` y `templates`.
