@@ -1209,18 +1209,16 @@ describe('<PdfStudioView />', () => {
     ).toBeInTheDocument()
   })
 
-  it('la barra del editor muestra las herramientas de estilo sin texto seleccionado (sin hint)', async () => {
+  it('la barra del editor agrupa las herramientas de estilo en el menú Texto', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
     await user.upload(fileInput(), pdfFile())
     await user.dblClick(await screen.findByAltText('Página 1'))
     await screen.findByRole('dialog', { name: /Editar página 1/i })
 
-    // Sin agregar ni seleccionar texto, las herramientas de estilo ya están activas…
+    // El estilo (fuente/tamaño/negrita/color/…) vive detrás de un solo menú "Texto".
+    await user.click(screen.getByRole('button', { name: 'Texto' }))
     expect(screen.getByRole('button', { name: 'Negrita' })).toBeInTheDocument()
-    const colorMenu = screen.getByRole('button', { name: 'Color' })
-    expect(colorMenu).toBeInTheDocument()
-    await user.click(colorMenu)
     expect(screen.getByRole('menuitemradio', { name: 'Color Tinta' })).toBeInTheDocument()
     // …y NO está el viejo texto instructivo.
     expect(screen.queryByText(/toca uno para editarlo/i)).not.toBeInTheDocument()

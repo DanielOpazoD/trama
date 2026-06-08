@@ -28,7 +28,7 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene EditorToolbar bajo el ratchet estructural actual', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/editor/EditorToolbar.tsx'),
-    ).toBeLessThanOrEqual(475)
+    ).toBeLessThanOrEqual(290)
   })
 
   it('mantiene AnnotationLayer bajo el ratchet estructural actual', () => {
