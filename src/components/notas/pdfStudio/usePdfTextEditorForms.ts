@@ -97,7 +97,7 @@ export function usePdfTextEditorForms({
     if (!targetPage || !targetLayout || !pendingFormKind) return
     e.stopPropagation()
     e.preventDefault()
-    const base = initialFieldBox(pendingFormKind)
+    const base = initialFieldBox(pendingFormKind, style)
     const xRatio = clamp01(
       e.nativeEvent.offsetX / Math.max(1, targetLayout.innerW) - base.wRatio / 2,
     )

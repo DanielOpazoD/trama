@@ -3,6 +3,7 @@ import type {
   PdfFormFieldKind,
   PdfFormValue,
 } from '../../../lib/pdfStudio/model'
+export { initialFieldBox } from './pdfFormFieldSizing'
 
 export function defaultFormValue(kind: PdfFormFieldKind): PdfFormValue {
   if (kind === 'checkbox') return false
@@ -16,16 +17,6 @@ export function fieldNamePrefix(kind: PdfFormFieldKind): string {
   if (kind === 'radio') return 'radio'
   if (kind === 'signature') return 'firma'
   return 'campo'
-}
-
-export function initialFieldBox(kind: PdfFormFieldKind) {
-  if (kind === 'checkbox' || kind === 'radio') {
-    return { xRatio: 0.24, yRatio: 0.42, wRatio: 0.045, hRatio: 0.045 }
-  }
-  if (kind === 'signature') {
-    return { xRatio: 0.22, yRatio: 0.42, wRatio: 0.32, hRatio: 0.11 }
-  }
-  return { xRatio: 0.2, yRatio: 0.42, wRatio: 0.32, hRatio: 0.055 }
 }
 
 export function uniqueFieldName(base: string, fields: PdfFormFieldDraft[]): string {
