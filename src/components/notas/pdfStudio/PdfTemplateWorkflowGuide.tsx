@@ -69,13 +69,13 @@ export function PdfTemplateWorkflowGuide({
   const hasFields = fieldCount > 0
   const baseStatus = hasBase
     ? `${pageCount} ${pageCount === 1 ? 'página' : 'páginas'}`
-    : 'Pendiente'
+    : 'PDF o imagen'
   const fieldStatus = hasFields
-    ? `${fieldCount} ${fieldCount === 1 ? 'casillero' : 'casilleros'}`
+    ? `${fieldCount} ${fieldCount === 1 ? 'campo' : 'campos'}`
     : hasBase
-      ? 'Pendiente'
-      : 'Sin base'
-  const saveStatus = hasFields ? 'Listo' : 'Pendiente'
+      ? 'Marca dónde escribir'
+      : 'Primero sube base'
+  const saveStatus = hasFields ? 'Lista para usar' : 'Sin campos'
   const activeStep = !hasBase ? 'base' : !hasFields ? 'fields' : 'save'
 
   return (
@@ -86,19 +86,19 @@ export function PdfTemplateWorkflowGuide({
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <div className="grid min-w-0 flex-1 grid-cols-1 gap-1.5 sm:grid-cols-3">
           <StepPill
-            label="Base"
+            label="Documento"
             status={baseStatus}
             complete={hasBase}
             current={activeStep === 'base'}
           />
           <StepPill
-            label="Casilleros"
+            label="Campos de texto"
             status={fieldStatus}
             complete={hasFields}
             current={activeStep === 'fields'}
           />
           <StepPill
-            label="Guardar"
+            label="Plantilla"
             status={saveStatus}
             complete={hasFields}
             current={activeStep === 'save'}
@@ -113,7 +113,7 @@ export function PdfTemplateWorkflowGuide({
             className={actionClass(activeStep === 'base', 'dark')}
           >
             <UploadIcon size={13} />
-            Importar base
+            Subir PDF/imagen
           </button>
           <button
             type="button"
@@ -123,7 +123,7 @@ export function PdfTemplateWorkflowGuide({
             className={actionClass(activeStep === 'fields', 'sage')}
           >
             <PlusIcon size={13} />
-            Definir casilleros
+            Marcar espacios
           </button>
           <button
             type="button"
@@ -133,7 +133,7 @@ export function PdfTemplateWorkflowGuide({
             className={actionClass(activeStep === 'save', 'dark')}
           >
             <FilePdfIcon size={13} />
-            Guardar como plantilla
+            Guardar plantilla
           </button>
           <button
             type="button"

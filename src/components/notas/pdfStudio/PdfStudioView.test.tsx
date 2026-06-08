@@ -160,9 +160,10 @@ describe('<PdfStudioView />', () => {
 
     const guide = screen.getByRole('region', { name: /Crear plantilla/i })
     expect(within(guide).getByText('2 páginas')).toBeInTheDocument()
-    expect(within(guide).getAllByText('Pendiente')).toHaveLength(2)
+    expect(within(guide).getByText('Marca dónde escribir')).toBeInTheDocument()
+    expect(within(guide).getByText('Sin campos')).toBeInTheDocument()
 
-    await user.click(within(guide).getByRole('button', { name: /Definir casilleros/i }))
+    await user.click(within(guide).getByRole('button', { name: /Marcar espacios/i }))
     expect(
       await screen.findByRole('dialog', { name: /Crear plantilla/i }),
     ).toBeInTheDocument()
@@ -184,7 +185,7 @@ describe('<PdfStudioView />', () => {
 
     await screen.findByAltText('Página 1')
     const guide = screen.getByRole('region', { name: /Crear plantilla/i })
-    expect(within(guide).getByText('1 casillero')).toBeInTheDocument()
+    expect(within(guide).getByText('1 campo')).toBeInTheDocument()
 
     await user.click(within(guide).getByRole('button', { name: /PDF rellenable/i }))
     expect(mocks.writePdfFormFieldsInWorker).toHaveBeenCalledWith(
