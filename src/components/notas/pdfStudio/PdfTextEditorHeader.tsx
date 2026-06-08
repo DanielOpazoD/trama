@@ -25,6 +25,7 @@ export function PdfTextEditorHeader({
   onPrint,
   onPrevPage,
   onRedo,
+  onSaveCopy,
   onUndo,
   onPrepareZoomAnchor,
   onZoomIn,
@@ -48,6 +49,7 @@ export function PdfTextEditorHeader({
   onPrint?: () => void
   onPrevPage: () => void
   onRedo: () => void
+  onSaveCopy?: () => void
   onUndo: () => void
   onPrepareZoomAnchor?: () => void
   onZoomIn?: () => void
@@ -157,6 +159,11 @@ export function PdfTextEditorHeader({
         <button onClick={onCancel} className="btn-ghost text-xs">
           Cerrar
         </button>
+        {onSaveCopy ? (
+          <button type="button" onClick={onSaveCopy} className="btn-ghost text-xs">
+            Guardar copia con datos
+          </button>
+        ) : null}
         {onPrint ? (
           <button
             onClick={onPrint}

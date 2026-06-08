@@ -20,6 +20,7 @@ import {
   visualWidgetsForPage,
   type DetectedPdfFormForCanvas,
 } from './pdfFormVisualMapping'
+import { orderFormFieldsForPage } from './pdfFormFieldFillOrder'
 import { usePdfTextEditorPageRender } from './usePdfTextEditorPageRender'
 import type { Tool } from './editorStyle'
 
@@ -136,7 +137,7 @@ export function PdfTextEditorPageSurface({
   const fillMode = mode === 'fill'
   const visibleFormWidgets = page ? visualWidgetsForPage(page, detectedForms) : []
   const visibleDraftFields = page
-    ? draftFields.filter((field) => field.pageId === page.id)
+    ? orderFormFieldsForPage(draftFields, page.id, pageIndex)
     : []
 
   useEffect(() => {

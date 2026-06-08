@@ -9,6 +9,7 @@ import {
   PDFRadioGroup,
   PDFSignature,
   PDFTextField,
+  PDFName,
   StandardFonts,
   rgb,
 } from 'pdf-lib'
@@ -214,6 +215,18 @@ function pdfRectForField(field: PdfFormFieldDraft, page: PDFPage) {
   }
 }
 
+type FieldWithWidgets = {
+  acroField: {
+    getWidgets(): { MK(): { delete(key: PDFName): boolean } | undefined }[]
+  }
+}
+
+function clearWidgetBackground(field: FieldWithWidgets) {
+  for (const widget of field.acroField.getWidgets()) {
+    widget.MK()?.delete(PDFName.of('BG'))
+  }
+}
+
 function fontSizeForField(field: PdfFormFieldDraft, page: PDFPage) {
   return Math.max(
     6,
@@ -299,24 +312,28 @@ export async function writePdfFormFields(
       applyFlags(field, draft)
       if (draft.value === true) field.check()
       field.addToPage(page, rect)
+      clearWidgetBackground(field)
     } else if (draft.fieldKind === 'radio') {
       const field = form.createRadioGroup(draft.name)
       applyFlags(field, draft)
       const option = draft.options?.[0] ?? 'Sí'
       field.addOptionToPage(option, page, rect)
       if (draft.value === option) field.select(option)
+      clearWidgetBackground(field)
     } else if (draft.fieldKind === 'signature') {
       const field = form.createButton(draft.name)
       applyFlags(field, draft)
       field.addToPage('', page, { ...rect, font })
       const image = await embedSignatureImage(pdf, draft.value)
       if (image) field.setImage(image)
+      clearWidgetBackground(field)
     } else {
       const field = form.createTextField(draft.name)
       applyFlags(field, draft)
       field.setText(stringValue(draft.value))
       field.addToPage(page, { ...rect, font })
       field.setFontSize(fontSizeForField(draft, page))
+      clearWidgetBackground(field)
     }
     writtenNames.add(draft.name)
   }

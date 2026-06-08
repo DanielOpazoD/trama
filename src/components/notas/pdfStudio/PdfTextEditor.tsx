@@ -10,15 +10,7 @@ import {
   type PdfFormFieldDraft,
   type TextAnnotation,
 } from '../../../lib/pdfStudio/model'
-import {
-  canRedo,
-  canUndo,
-  initHistory,
-  pushHistory,
-  redo,
-  undo,
-  type History,
-} from '../../../lib/pdfStudio/history'
+import { initHistory, pushHistory, type History } from '../../../lib/pdfStudio/history'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { EditorToolbar } from './EditorToolbar'
 import { PdfTextEditorHeader } from './PdfTextEditorHeader'
@@ -44,6 +36,7 @@ import { PdfTextEditorScrollArea } from './PdfTextEditorScrollArea'
 import { pdfTextEditorBodyClass } from './pdfTextEditorLayoutClasses'
 import { formFieldTextStyle } from './pdfFormFieldStyle'
 import { usePdfTextEditorFillFocus } from './usePdfTextEditorFillFocus'
+import { usePdfTextEditorHeaderProps } from './usePdfTextEditorHeaderProps'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 export type PdfTextEditorResult = {
@@ -51,6 +44,11 @@ export type PdfTextEditorResult = {
   formFields: PdfFormFieldDraft[]
 }
 type PdfTextEditorHistory = History<Record<number, Annotation[]>>
+type PdfFormValueHandler = (
+  sourceId: string,
+  fieldName: string,
+  value: string | boolean,
+) => void
 export function PdfTextEditor({
   doc,
   pageIndex,
@@ -61,20 +59,18 @@ export function PdfTextEditor({
   onInspectForms,
   onClose,
   onPrint,
+  onSaveCopy,
 }: {
   doc: PdfDoc
   pageIndex: number
   detectedForms?: DetectedPdfFormForCanvas[]
   mode?: 'edit' | 'fill'
   templateToolsEnabled?: boolean
-  onFormValueChange?: (
-    sourceId: string,
-    fieldName: string,
-    value: string | boolean,
-  ) => void
+  onFormValueChange?: PdfFormValueHandler
   onInspectForms?: () => void
   onClose: (edits: PdfTextEditorResult | null) => void
   onPrint?: (edits: PdfTextEditorResult) => void
+  onSaveCopy?: (edits: PdfTextEditorResult) => void
 }) {
   const total = doc.pages.length
   const fillMode = mode === 'fill'
@@ -330,6 +326,28 @@ export function PdfTextEditor({
   const pageIndexById = Object.fromEntries(doc.pages.map((p, i) => [p.id, i]))
   const { activeFillFieldId, jumpToFormField, setActiveFillFieldId } =
     usePdfTextEditorFillFocus({ goToPage, pageIndexById })
+  const currentEdits = () => ({ annotations: edited, formFields })
+  const headerProps = usePdfTextEditorHeaderProps({
+    changeZoom,
+    currentEdits,
+    currentPage,
+    displayZoom,
+    fillMode,
+    goToPage,
+    history,
+    onClose,
+    onPrint,
+    onSaveCopy,
+    prepareZoomAnchor,
+    setEditingId,
+    setHistory,
+    setSelectedId,
+    stepZoomIn,
+    stepZoomOut,
+    total,
+    zoomInDisabled,
+    zoomOutDisabled,
+  })
   return createPortal(
     <div
       role="dialog"
@@ -354,39 +372,7 @@ export function PdfTextEditor({
         onClick={(e) => e.stopPropagation()}
         className="relative h-full w-full max-w-[min(1360px,85vw)] overflow-hidden border-x border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col focus:outline-none"
       >
-        <PdfTextEditorHeader
-          currentPage={currentPage}
-          total={total}
-          undoable={canUndo(history)}
-          redoable={canRedo(history)}
-          onPrevPage={() => goToPage(currentPage - 1)}
-          onNextPage={() => goToPage(currentPage + 1)}
-          onUndo={() => {
-            setSelectedId(null)
-            setEditingId(null)
-            setHistory(undo)
-          }}
-          onRedo={() => {
-            setSelectedId(null)
-            setEditingId(null)
-            setHistory(redo)
-          }}
-          onCancel={() => onClose(null)}
-          onDone={() => onClose({ annotations: edited, formFields })}
-          onPrint={
-            fillMode ? () => onPrint?.({ annotations: edited, formFields }) : undefined
-          }
-          showHistory={!fillMode}
-          showPrimaryAction={!fillMode}
-          title={fillMode ? 'Rellenar planilla' : undefined}
-          onPrepareZoomAnchor={fillMode ? prepareZoomAnchor : undefined}
-          onZoomIn={fillMode ? stepZoomIn : undefined}
-          onZoomOut={fillMode ? stepZoomOut : undefined}
-          onZoomChange={fillMode ? changeZoom : undefined}
-          zoom={fillMode ? displayZoom : undefined}
-          zoomInDisabled={zoomInDisabled}
-          zoomOutDisabled={zoomOutDisabled}
-        />
+        <PdfTextEditorHeader {...headerProps} />
         {!fillMode ? (
           <EditorToolbar
             context={templateToolsEnabled ? 'templateDesign' : 'editor'}

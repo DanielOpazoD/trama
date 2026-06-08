@@ -13,3 +13,14 @@ export function orderFormFieldsForFill(
     return a.name.localeCompare(b.name, 'es')
   })
 }
+
+export function orderFormFieldsForPage(
+  fields: PdfFormFieldDraft[],
+  pageId: string,
+  pageIndex: number,
+): PdfFormFieldDraft[] {
+  return orderFormFieldsForFill(
+    fields.filter((field) => field.pageId === pageId),
+    { [pageId]: pageIndex },
+  )
+}

@@ -1,15 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
-  deletePages,
-  duplicatePages,
   emptyDoc,
-  movePage,
-  movePageByDelta,
   isPdfTemplate,
-  pageThumbKey,
-  rotatePages,
   setDocSettings,
-  subsetDoc,
   type DocSettings,
   type PdfDoc,
 } from '../../../lib/pdfStudio/model'
@@ -23,7 +16,7 @@ import {
   undo,
   type History,
 } from '../../../lib/pdfStudio/history'
-import { disposePdfStudio, forgetThumb } from '../../../lib/pdfStudio/pdfRender'
+import { disposePdfStudio } from '../../../lib/pdfStudio/pdfRender'
 import { clearDraft } from '../../../lib/pdfStudio/persistence'
 import { BulkBar } from './BulkBar'
 import { PdfStudioDocumentToolbar } from './PdfStudioDocumentToolbar'
@@ -38,7 +31,9 @@ import { usePdfStudioExport } from './usePdfStudioExport'
 import { usePdfStudioImport } from './usePdfStudioImport'
 import { usePdfStudioForms } from './usePdfStudioForms'
 import { usePdfStudioPageKeyboard } from './usePdfStudioPageKeyboard'
+import { usePdfStudioPageActions } from './usePdfStudioPageActions'
 import { usePdfStudioOcr } from './usePdfStudioOcr'
+import { usePdfStudioFilledTemplateActions } from './usePdfStudioFilledTemplateActions'
 import { usePdfStudioTemplateMode } from './usePdfStudioTemplateMode'
 import { usePdfStudioWorkspace } from './usePdfStudioWorkspace'
 import { useToast } from '../../../state'
@@ -92,6 +87,7 @@ export function PdfStudioView({
     removeSaved,
     renameSaved,
     saveCreation,
+    saveFilledCopy,
     saveTemplate,
     saved,
     setPanelCollapsed,
@@ -99,6 +95,7 @@ export function PdfStudioView({
   } = usePdfStudioWorkspace({ clearSelection, commit, doc, setHistory })
   const {
     effectiveTemplateMode,
+    activeTemplateName,
     openSavedWithMode,
     resetTemplateMode,
     saveTemplateWithMode,
@@ -138,6 +135,25 @@ export function PdfStudioView({
     setOcrOpen,
     startOcr,
   } = usePdfStudioOcr({ compression: exportCompression })
+  const { printFilledTemplate, saveFilledTemplateCopy } =
+    usePdfStudioFilledTemplateActions({
+      activeTemplateName,
+      doc,
+      exportPdf,
+      saveFilledCopy,
+    })
+  const { bulkDelete, bulkDuplicate, bulkRotate, exportMarked, newDoc, nudge, reorder } =
+    usePdfStudioPageActions({
+      clearDraft,
+      clearSelection,
+      commit,
+      doc,
+      exportPdf,
+      resetTemplateMode,
+      selectedCount,
+      selectedIndices,
+      userKey,
+    })
   useEffect(() => () => disposePdfStudio(), [])
   usePdfStudioPageKeyboard({
     textPage,
@@ -160,49 +176,9 @@ export function PdfStudioView({
       void addFiles(e.dataTransfer.files)
     }
   }
-  function forgetRemovedThumbs(indices: number[]) {
-    const drop = new Set(indices)
-    const surviving = new Set(doc.pages.filter((_, i) => !drop.has(i)).map(pageThumbKey))
-    for (const i of indices) {
-      const page = doc.pages[i]
-      if (page && !surviving.has(pageThumbKey(page))) forgetThumb(pageThumbKey(page))
-    }
-  }
-  function reorder(from: number, to: number) {
-    commit((d) => movePage(d, from, to))
-  }
-  function nudge(index: number, delta: -1 | 1) {
-    commit((d) => movePageByDelta(d, index, delta))
-  }
-  function bulkRotate(delta: -1 | 1) {
-    if (selectedCount > 0) commit((d) => rotatePages(d, selectedIndices, delta))
-  }
-  function bulkDuplicate() {
-    if (selectedCount > 0) commit((d) => duplicatePages(d, selectedIndices))
-  }
-  function bulkDelete() {
-    if (selectedCount === 0) return
-    forgetRemovedThumbs(selectedIndices)
-    commit((d) => deletePages(d, selectedIndices))
-    clearSelection()
-  }
-  function newDoc() {
-    commit(emptyDoc())
-    clearSelection()
-    resetTemplateMode()
-    void clearDraft(userKey)
-  }
   function closeTextEditor(edits: PdfTextEditorResult | null) {
     if (edits) commit((d) => applyPdfTextEditorResult(d, edits))
     setTextPage(null)
-  }
-  function printFilledTemplate(edits: PdfTextEditorResult) {
-    const next = applyPdfTextEditorResult(doc, edits)
-    void exportPdf(next, 'planilla', { flattenFormFields: true })
-  }
-  function exportMarked() {
-    if (selectedIndices.length > 0)
-      void exportPdf(subsetDoc(doc, selectedIndices), 'seleccion')
   }
   function startTemplateSave() {
     if (!templatesEnabled || empty) return
@@ -371,6 +347,7 @@ export function PdfStudioView({
           onInspectForms={templatesEnabled ? () => void inspectForms() : undefined}
           onClose={closeTextEditor}
           onPrint={printFilledTemplate}
+          onSaveCopy={templatesEnabled ? saveFilledTemplateCopy : undefined}
         />
       )}
     </section>

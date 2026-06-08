@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument, PDFName } from 'pdf-lib'
 import { makePdfFormFieldDraft } from './model'
 import {
   fillPdfForm,
@@ -134,6 +134,38 @@ describe('pdfStudio/pdfForms', () => {
     expect(form.getTextField('paciente').isRequired()).toBe(true)
     expect(form.getCheckBox('acepta').isChecked()).toBe(true)
     expect(form.getFields()).toHaveLength(2)
+  })
+
+  it('crea cuadros de texto con fondo transparente para imprimir sin tapar el PDF base', async () => {
+    const pdf = await PDFDocument.create()
+    pdf.addPage([600, 800])
+    const bytes = await pdf.save()
+    const base = new File([bytes as BlobPart], 'base.pdf', { type: 'application/pdf' })
+    const pageId = 'page-1'
+
+    const { blob } = await writePdfFormFields(
+      base,
+      [
+        makePdfFormFieldDraft({
+          fieldKind: 'text',
+          pageId,
+          name: 'paciente',
+          value: 'Daniel',
+          xRatio: 0.1,
+          yRatio: 0.2,
+          wRatio: 0.4,
+          hRatio: 0.05,
+        }),
+      ],
+      [pageId],
+      { flatten: false },
+    )
+
+    const loaded = await PDFDocument.load(await blob.arrayBuffer())
+    const widget = loaded.getForm().getTextField('paciente').acroField.getWidgets()[0]
+    const appearance = widget?.MK()
+
+    expect(appearance?.has(PDFName.of('BG'))).toBe(false)
   })
 
   it('aplana campos nuevos cuando flatten es verdadero', async () => {

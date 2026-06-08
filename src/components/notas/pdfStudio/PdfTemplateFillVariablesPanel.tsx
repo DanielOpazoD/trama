@@ -50,13 +50,13 @@ export function PdfTemplateFillVariablesPanel({
   return (
     <aside
       aria-label="Variables de planilla"
-      className="w-full shrink-0 border-b border-ink-100 bg-paper-50/95 px-3 py-3 md:w-72 md:border-b-0 md:border-r"
+      className="flex min-h-0 w-full shrink-0 flex-col overflow-hidden border-b border-ink-100 bg-paper-50/95 px-2.5 py-2.5 md:w-64 md:border-b-0 md:border-r"
     >
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-caption font-semibold text-ink-800">Completar datos</h2>
           <p className="mt-0.5 text-micro text-ink-400">
-            {completed} de {orderedFields.length} listos
+            {completed}/{orderedFields.length}
           </p>
         </div>
         <span
@@ -73,7 +73,7 @@ export function PdfTemplateFillVariablesPanel({
         type="button"
         disabled={!nextPending}
         onClick={() => nextPending && onJump(nextPending)}
-        className="mt-3 w-full rounded-md border border-[color:var(--accent-sage)]/25 bg-[color:var(--accent-sage-soft)]/55 px-2.5 py-2 text-caption font-semibold text-[color:var(--accent-sage)] transition-colors hover:bg-[color:var(--accent-sage-soft)] disabled:border-ink-100 disabled:bg-ink-50 disabled:text-ink-300"
+        className="mt-2 w-full rounded-md border border-[color:var(--accent-sage)]/25 bg-[color:var(--accent-sage-soft)]/55 px-2 py-1.5 text-caption font-semibold text-[color:var(--accent-sage)] transition-colors hover:bg-[color:var(--accent-sage-soft)] disabled:border-ink-100 disabled:bg-ink-50 disabled:text-ink-300"
       >
         Siguiente pendiente
       </button>
@@ -82,9 +82,11 @@ export function PdfTemplateFillVariablesPanel({
           Esta planilla no tiene casilleros para rellenar.
         </div>
       ) : null}
-      <div className="mt-3 flex flex-col gap-2">
+      <div
+        data-testid="template-fill-fields-scroll"
+        className="mt-2 flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1"
+      >
         {orderedFields.map((field, index) => {
-          const pageNumber = (pageIndexById[field.pageId] ?? 0) + 1
           const filled = isFilled(field)
           const label = `Variable ${field.name}`
           const active = activeFieldId === field.id
@@ -92,13 +94,13 @@ export function PdfTemplateFillVariablesPanel({
             <div
               key={field.id}
               aria-label={active ? `Campo activo: ${field.name}` : undefined}
-              className={`rounded-md border bg-paper-50 p-2 shadow-sm shadow-ink-900/5 ${
+              className={`rounded-md border bg-paper-50 p-1.5 shadow-sm shadow-ink-900/5 ${
                 active
                   ? 'border-[color:var(--accent-sage)] ring-2 ring-[color:var(--accent-sage)]/15'
                   : 'border-ink-100'
               }`}
             >
-              <div className="mb-1.5 flex items-center gap-2">
+              <div className="mb-1 flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => onJump(field)}
@@ -148,10 +150,9 @@ export function PdfTemplateFillVariablesPanel({
                     focusNextField(index)
                   }}
                   placeholder={`[${field.name}]`}
-                  className="input-paper w-full rounded-md border border-ink-200 px-2 py-1.5 text-caption text-ink-800 placeholder:text-ink-300"
+                  className="input-paper w-full rounded-md border border-ink-200 px-2 py-1 text-caption text-ink-800 placeholder:text-ink-300"
                 />
               )}
-              <div className="mt-1 text-micro text-ink-400">Página {pageNumber}</div>
             </div>
           )
         })}

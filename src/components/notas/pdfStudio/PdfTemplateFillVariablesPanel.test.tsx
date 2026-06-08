@@ -42,7 +42,7 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
       screen.getByRole('complementary', { name: /Variables de planilla/i }),
     ).toBeInTheDocument()
     expect(screen.getByText('1 pendiente')).toBeInTheDocument()
-    expect(screen.getByText('1 de 2 listos')).toBeInTheDocument()
+    expect(screen.getByText('1/2')).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: /Variable paciente/i })).toHaveValue('')
     expect(screen.getByRole('textbox', { name: /Variable rut/i })).toHaveValue(
       '12.345.678-9',
@@ -55,6 +55,62 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Ir al campo paciente/i }))
     expect(onJump).toHaveBeenCalledWith(emptyField)
+  })
+
+  it('es compacto, scrollable y ordena variables por coordenadas visuales', () => {
+    const lowerLeft = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: 'p1',
+      name: 'abajo',
+      value: '',
+      xRatio: 0.1,
+      yRatio: 0.5,
+      wRatio: 0.3,
+      hRatio: 0.05,
+    })
+    const upperRight = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: 'p1',
+      name: 'derecha',
+      value: '',
+      xRatio: 0.5,
+      yRatio: 0.1,
+      wRatio: 0.3,
+      hRatio: 0.05,
+    })
+    const upperLeft = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: 'p1',
+      name: 'izquierda',
+      value: '',
+      xRatio: 0.1,
+      yRatio: 0.1,
+      wRatio: 0.3,
+      hRatio: 0.05,
+    })
+
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[lowerLeft, upperRight, upperLeft]}
+        pageIndexById={{ p1: 0 }}
+        onChange={vi.fn()}
+        onJump={vi.fn()}
+      />,
+    )
+
+    const panel = screen.getByRole('complementary', { name: /Variables de planilla/i })
+    const labels = screen.getAllByRole('button', { name: /Ir al campo/i })
+
+    expect(panel).toHaveClass('overflow-hidden')
+    expect(screen.getByTestId('template-fill-fields-scroll')).toHaveClass(
+      'overflow-y-auto',
+    )
+    expect(labels.map((label) => label.textContent)).toEqual([
+      '[izquierda]',
+      '[derecha]',
+      '[abajo]',
+    ])
+    expect(screen.queryByText(/Página \d+/i)).not.toBeInTheDocument()
   })
 
   it('lleva al siguiente casillero pendiente y avisa cuando todo está completo', () => {

@@ -351,7 +351,7 @@ describe('<PdfStudioView />', () => {
       within(fillDialog).getByRole('main', { name: /Área de relleno de planilla/i }),
     ).toBeInTheDocument()
     expect(within(fillDialog).getByText('Completar datos')).toBeInTheDocument()
-    expect(within(fillDialog).getByText('0 de 1 listos')).toBeInTheDocument()
+    expect(within(fillDialog).getByText('0/1')).toBeInTheDocument()
     expect(
       within(fillDialog).getByRole('button', { name: /Siguiente pendiente/i }),
     ).toBeEnabled()
@@ -445,6 +445,40 @@ describe('<PdfStudioView />', () => {
         formFields: [expect.objectContaining({ value: 'Daniel' })],
       }),
       expect.anything(),
+    )
+    expect(
+      mocks.saveDraft.mock.calls.some((call) =>
+        JSON.stringify(call[1]).includes('Daniel'),
+      ),
+    ).toBe(false)
+  })
+
+  it('permite guardar una copia con datos sin contaminar la planilla reusable', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Rellenar planilla Ingreso paciente/i,
+      }),
+    )
+    const fillDialog = await screen.findByRole('dialog', { name: /Rellenar planilla/i })
+    await user.type(screen.getByRole('textbox', { name: 'paciente' }), 'Daniel')
+    await user.click(
+      within(fillDialog).getByRole('button', { name: /Guardar copia con datos/i }),
+    )
+
+    expect(mocks.putSavedDoc).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        name: expect.stringMatching(/Ingreso paciente.+datos/i),
+        doc: expect.objectContaining({
+          formFields: [expect.objectContaining({ name: 'paciente', value: 'Daniel' })],
+        }),
+      }),
     )
     expect(
       mocks.saveDraft.mock.calls.some((call) =>

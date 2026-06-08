@@ -23,32 +23,40 @@ export function usePdfStudioTemplateMode({
   saveTemplate: (name: string) => void
 }) {
   const [templateMode, setTemplateMode] = useState<PdfTemplateMode | null>(null)
+  const [activeTemplateName, setActiveTemplateName] = useState<string | null>(null)
   const docIsTemplate = enabled && isPdfTemplate(doc)
   const effectiveTemplateMode: PdfTemplateMode | null = docIsTemplate
     ? (templateMode ?? 'design')
     : null
 
   useEffect(() => {
-    if (!enabled) setTemplateMode(null)
+    if (!enabled) {
+      setTemplateMode(null)
+      setActiveTemplateName(null)
+    }
   }, [enabled])
 
   function resetTemplateMode() {
     setTemplateMode(null)
+    setActiveTemplateName(null)
   }
 
   function openSavedWithMode(saved: SavedDoc) {
     openSaved(saved)
     setTemplateMode(enabled && isPdfTemplate(saved.doc) ? 'design' : null)
+    setActiveTemplateName(null)
   }
 
   function openTemplateWithFillMode(saved: SavedDoc) {
     openTemplate(saved)
     setTemplateMode(enabled ? 'fill' : null)
+    setActiveTemplateName(saved.name)
   }
 
   function saveTemplateWithMode(name: string) {
     saveTemplate(name)
     setTemplateMode('design')
+    setActiveTemplateName(name)
   }
 
   const templateModeBanner =
@@ -66,6 +74,7 @@ export function usePdfStudioTemplateMode({
 
   return {
     effectiveTemplateMode,
+    activeTemplateName,
     openSavedWithMode,
     resetTemplateMode,
     saveTemplateWithMode,
