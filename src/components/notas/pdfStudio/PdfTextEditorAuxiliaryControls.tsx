@@ -55,7 +55,7 @@ export function PdfTextEditorAuxiliaryControls({
           aria-live="polite"
           className="border-b border-[color:var(--accent-sage)]/20 bg-[color:var(--accent-sage-soft)]/45 px-3 py-1.5 text-caption text-[color:var(--accent-sage)]"
         >
-          Haz clic en la página para colocar el casillero especial.
+          Haz clic o arrastra en la página para definir el casillero.
         </div>
       )}
       {!fillMode && formSuggestionStatus && (
