@@ -1,36 +1,36 @@
 import {
-  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import {
-  baselineDropEm,
   isTextAnnotation,
-  previewFontFamily,
-  TEXT_LINE_HEIGHT,
   type Annotation,
   type HighlightAnnotation,
   type ImageAnnotation,
   type RedactionAnnotation,
   type ShapeAnnotation,
-  type ShapeKind,
   type TextAnnotation,
-  X_DISABLED_COLOR,
 } from '../../../../lib/pdfStudio/model/model'
 import { type ResizeHandle } from '../../../../lib/pdfStudio/model/editorGeometry'
-import { AnnotationResizeHandles } from './AnnotationResizeHandles'
-import { EditableBox } from './EditableBox'
 import { AnnotationHighlightBox } from './AnnotationHighlightBox'
 import { HighlightDrawingPreview } from './HighlightDrawingPreview'
 import { AnnotationRedactionBox } from './AnnotationRedactionBox'
+import { AnnotationTextBox } from './AnnotationTextBox'
+import { AnnotationImageBox } from './AnnotationImageBox'
+import { AnnotationShapeLayer } from './AnnotationShapeLayer'
 import { SelectionLassoPreview } from './SelectionLassoPreview'
 import { SelectionMarqueePreview } from './SelectionMarqueePreview'
-import { ShapeStroke } from './AnnotationShapeStroke'
-import { ACCENT, HIT_X, HIT_Y, isShapeTool, type Tool } from './editorStyle'
+import { type Tool } from './editorStyle'
 import type { SnapGuide } from './pdfAnnotationSnap'
 
 export type DrawingRect = { x0: number; y0: number; x1: number; y1: number }
 
+/**
+ * Despachador de la capa de anotaciones: enruta cada `kind` a su componente
+ * (texto/redacción/resaltado/imagen/formas-X) y dibuja guías, previews y la
+ * selección por área. La lógica de selección y arrastre (con sus reglas de
+ * solo-lectura y modificadores) vive acá y se pasa a cada subcomponente.
+ */
 export function AnnotationLayer({
   annotations,
   innerW,
@@ -95,8 +95,6 @@ export function AnnotationLayer({
   ) => void
 }) {
   const selectedSet = new Set(selectedIds)
-  const inverseZoom = 1 / Math.max(0.25, zoom)
-  const selectionStroke = 1.5 * inverseZoom
   const isSelected = (id: string) => selectedSet.has(id) || selectedId === id
   const selectFromClick = (e: ReactMouseEvent, id: string) => {
     e.stopPropagation()
@@ -147,92 +145,26 @@ export function AnnotationLayer({
         />
       ))}
 
-      {annotations.filter(isTextAnnotation).map((a) => {
-        const sz = a.sizeRatio * innerH
-        // Estilo compartido por el cuadro display y el editable. El padding
-        // transparente (compensado por el margen negativo) agranda el blanco
-        // clickeable SIN mover el texto; el pivote de rotación queda en la
-        // baseline-izquierda real del texto.
-        const boxStyle: CSSProperties = {
-          position: 'absolute',
-          left: `${a.xRatio * 100}%`,
-          top: `${a.yRatio * 100}%`,
-          ...(typeof a.wRatio === 'number' ? { width: `${a.wRatio * 100}%` } : null),
-          ...(typeof a.hRatio === 'number' ? { height: `${a.hRatio * 100}%` } : null),
-          margin: `-${HIT_Y}px -${HIT_X}px`,
-          padding: `${HIT_Y}px ${HIT_X}px`,
-          fontFamily: previewFontFamily(a.font),
-          fontWeight: a.bold ? 700 : 400,
-          fontSize: `${sz}px`,
-          lineHeight: TEXT_LINE_HEIGHT,
-          color: a.color,
-          opacity: a.opacity ?? 1,
-          transform: a.rotation ? `rotate(${a.rotation}deg)` : undefined,
-          transformOrigin: `${HIT_X}px ${HIT_Y + sz * baselineDropEm(a.font)}px`,
-          whiteSpace:
-            typeof a.wRatio === 'number' && typeof a.hRatio === 'number'
-              ? 'pre-wrap'
-              : 'pre',
-          overflow:
-            typeof a.wRatio === 'number' && typeof a.hRatio === 'number'
-              ? 'hidden'
-              : undefined,
-          overflowWrap: 'break-word',
-          borderRadius: 3,
-        }
-        if (editingId === a.id) {
-          return (
-            <EditableBox
-              key={a.id}
-              initial={a.text}
-              style={boxStyle}
-              onCommit={(text) => onCommitText(a.id, text)}
-              onCancel={onCancelEdit}
-            />
-          )
-        }
-        return (
-          <div key={a.id}>
-            <div
-              onPointerDown={(e) => startDragFromPointer(e, a)}
-              // Click selecciona ESTE (no llega al fondo, que deselecciona).
-              onClick={(e) => {
-                selectFromClick(e, a.id)
-              }}
-              // Doble clic edita el texto INLINE, sobre el cuadro.
-              onDoubleClick={(e) => {
-                e.stopPropagation()
-                onStartEdit(a.id)
-              }}
-              title="Doble clic para editar · arrastra para mover"
-              style={{
-                ...boxStyle,
-                cursor: a.locked ? 'default' : 'move',
-                userSelect: 'none',
-                touchAction: 'none',
-                // Fuera de "seleccionar" no captura (deja dibujar encima).
-                pointerEvents: !readOnly && tool === 'select' ? undefined : 'none',
-                outlineWidth: selectionStroke,
-                outlineStyle: 'solid',
-                outlineColor: isSelected(a.id) ? ACCENT : 'transparent',
-                outlineOffset: 0,
-                transition: 'outline-color 120ms ease',
-              }}
-            >
-              {a.text || ' '}
-            </div>
-            <AnnotationResizeHandles
-              annotation={a}
-              innerW={innerW}
-              innerH={innerH}
-              selectedId={selectedId}
-              tool={readOnly ? 'highlight' : tool}
-              onStartResize={onStartResize}
-              zoom={zoom}
-            />
-          </div>
-        )
-      })}
+      {annotations.filter(isTextAnnotation).map((a) => (
+        <AnnotationTextBox
+          key={a.id}
+          annotation={a}
+          innerW={innerW}
+          innerH={innerH}
+          tool={tool}
+          selectedId={selectedId}
+          selected={isSelected(a.id)}
+          editing={editingId === a.id}
+          zoom={zoom}
+          readOnly={readOnly}
+          onStartDrag={startDragFromPointer}
+          onSelect={selectFromClick}
+          onStartEdit={onStartEdit}
+          onCommitText={onCommitText}
+          onCancelEdit={onCancelEdit}
+          onStartResize={onStartResize}
+        />
+      ))}
 
       {annotations
         .filter((a): a is RedactionAnnotation => a.kind === 'redaction')
@@ -271,188 +203,41 @@ export function AnnotationLayer({
         ))}
 
       {annotations
-        .filter((a) => a.kind === 'image')
+        .filter((a): a is ImageAnnotation => a.kind === 'image')
         .map((a) => (
-          <div key={a.id}>
-            <img
-              src={a.src}
-              alt="Imagen estampada"
-              onPointerDown={
-                !readOnly && tool === 'select'
-                  ? (e) => startDragFromPointer(e, a)
-                  : undefined
-              }
-              onClick={
-                !readOnly && tool === 'select'
-                  ? (e) => {
-                      selectFromClick(e, a.id)
-                    }
-                  : undefined
-              }
-              title="Imagen estampada · arrastra para mover"
-              style={{
-                position: 'absolute',
-                left: `${a.xRatio * 100}%`,
-                top: `${a.yRatio * 100}%`,
-                width: `${a.wRatio * 100}%`,
-                height: `${a.hRatio * 100}%`,
-                opacity: a.opacity ?? 1,
-                objectFit: 'contain',
-                cursor: a.locked ? 'default' : 'move',
-                touchAction: 'none',
-                userSelect: 'none',
-                pointerEvents: !readOnly && tool === 'select' ? undefined : 'none',
-                outlineWidth: !readOnly && isSelected(a.id) ? selectionStroke : undefined,
-                outlineStyle: !readOnly && isSelected(a.id) ? 'solid' : undefined,
-                outlineColor: !readOnly && isSelected(a.id) ? ACCENT : undefined,
-                outlineOffset: 2,
-              }}
-            />
-            <AnnotationResizeHandles
-              annotation={a}
-              innerW={innerW}
-              innerH={innerH}
-              selectedId={readOnly ? null : selectedId}
-              tool={readOnly ? 'highlight' : tool}
-              onStartResize={onStartResize}
-              zoom={zoom}
-            />
-          </div>
+          <AnnotationImageBox
+            key={a.id}
+            annotation={a}
+            innerW={innerW}
+            innerH={innerH}
+            tool={tool}
+            selectedId={selectedId}
+            selected={!readOnly && isSelected(a.id)}
+            zoom={zoom}
+            readOnly={readOnly}
+            onStartDrag={startDragFromPointer}
+            onSelect={selectFromClick}
+            onStartResize={onStartResize}
+          />
         ))}
 
-      {(annotations.some((a) => a.kind === 'shape') ||
-        (drawing && isShapeTool(tool))) && (
-        <svg
-          className="absolute inset-0 h-full w-full"
-          viewBox={`0 0 ${Math.max(1, innerW)} ${Math.max(1, innerH)}`}
-          preserveAspectRatio="none"
-          style={{ pointerEvents: 'none', overflow: 'visible' }}
-        >
-          {annotations
-            .filter((a): a is ShapeAnnotation => a.kind === 'shape')
-            .map((a) => {
-              const p0 = { x: a.x0Ratio * innerW, y: a.y0Ratio * innerH }
-              const p1 = { x: a.x1Ratio * innerW, y: a.y1Ratio * innerH }
-              const sw = Math.max(0.5, a.strokeRatio * innerH)
-              const x = Math.min(p0.x, p1.x)
-              const y = Math.min(p0.y, p1.y)
-              const w = Math.abs(p1.x - p0.x)
-              const hh = Math.abs(p1.y - p0.y)
-              const sel = isSelected(a.id)
-              const interactive = !readOnly && tool === 'select'
-              const isX = a.shape === 'x'
-              // La X se puede activar/desactivar incluso en solo-lectura (modo
-              // LLENADO de planilla): clic = toggle, pero sin mover/redimensionar.
-              const xClickable = isX && !!xToggleEnabled && !!onToggleDisabled
-              const strokeColor = isX && a.disabled ? X_DISABLED_COLOR : a.color
-              const pe: CSSProperties['pointerEvents'] =
-                a.shape === 'rect' || a.shape === 'oval' || isX ? 'all' : 'stroke'
-              const hit = {
-                onPointerDown: interactive
-                  ? (e: ReactPointerEvent) => startDragFromPointer(e, a)
-                  : undefined,
-                onClick: (e: ReactMouseEvent) => {
-                  // La X se activa/desactiva con un clic (no se "selecciona").
-                  if (xClickable) {
-                    e.stopPropagation()
-                    onToggleDisabled!(a.id)
-                    return
-                  }
-                  selectFromClick(e, a.id)
-                },
-                style: {
-                  cursor: a.locked ? 'default' : isX ? 'pointer' : 'move',
-                  pointerEvents: pe,
-                } as CSSProperties,
-              }
-              return (
-                <g key={a.id}>
-                  <ShapeStroke
-                    shape={a.shape}
-                    p0={p0}
-                    p1={p1}
-                    color={strokeColor}
-                    sw={sw}
-                    opacity={a.opacity ?? 1}
-                  />
-                  {(interactive || xClickable) &&
-                    (a.shape === 'rect' || isX ? (
-                      <rect
-                        x={x}
-                        y={y}
-                        width={w}
-                        height={hh}
-                        fill="transparent"
-                        stroke="transparent"
-                        strokeWidth={Math.max(sw, 10)}
-                        {...hit}
-                      />
-                    ) : a.shape === 'oval' ? (
-                      <ellipse
-                        cx={x + w / 2}
-                        cy={y + hh / 2}
-                        rx={w / 2}
-                        ry={hh / 2}
-                        fill="transparent"
-                        stroke="transparent"
-                        strokeWidth={Math.max(sw, 10)}
-                        {...hit}
-                      />
-                    ) : (
-                      <line
-                        x1={p0.x}
-                        y1={p0.y}
-                        x2={p1.x}
-                        y2={p1.y}
-                        stroke="transparent"
-                        strokeWidth={Math.max(sw, 14)}
-                        {...hit}
-                      />
-                    ))}
-                  {!readOnly && sel && (
-                    <rect
-                      x={x - 3}
-                      y={y - 3}
-                      width={w + 6}
-                      height={hh + 6}
-                      fill="none"
-                      strokeWidth={selectionStroke}
-                      strokeDasharray="5 3"
-                      style={{ stroke: ACCENT, pointerEvents: 'none' }}
-                    />
-                  )}
-                </g>
-              )
-            })}
-          {drawing && isShapeTool(tool) && (
-            <ShapeStroke
-              shape={tool as ShapeKind}
-              p0={{ x: drawing.x0, y: drawing.y0 }}
-              p1={{ x: drawing.x1, y: drawing.y1 }}
-              color={drawColor}
-              sw={Math.max(0.5, 0.004 * innerH)}
-              opacity={0.9}
-            />
-          )}
-        </svg>
-      )}
-
-      {annotations
-        // Las marcas X no se redimensionan una a una: su tamaño es GLOBAL.
-        .filter((a): a is ShapeAnnotation => a.kind === 'shape' && a.shape !== 'x')
-        .map((a) => (
-          <div key={`${a.id}-shape-handles`}>
-            <AnnotationResizeHandles
-              annotation={a}
-              innerW={innerW}
-              innerH={innerH}
-              selectedId={readOnly ? null : selectedId}
-              tool={readOnly ? 'highlight' : tool}
-              onStartResize={onStartResize}
-              zoom={zoom}
-            />
-          </div>
-        ))}
+      <AnnotationShapeLayer
+        shapes={annotations.filter((a): a is ShapeAnnotation => a.kind === 'shape')}
+        innerW={innerW}
+        innerH={innerH}
+        tool={tool}
+        selectedId={selectedId}
+        isSelected={isSelected}
+        zoom={zoom}
+        readOnly={readOnly}
+        drawing={drawing}
+        drawColor={drawColor}
+        xToggleEnabled={xToggleEnabled}
+        onStartDrag={startDragFromPointer}
+        onSelect={selectFromClick}
+        onToggleDisabled={onToggleDisabled}
+        onStartResize={onStartResize}
+      />
 
       {drawing && tool === 'highlight' && (
         <HighlightDrawingPreview rect={drawing} color={drawColor} />

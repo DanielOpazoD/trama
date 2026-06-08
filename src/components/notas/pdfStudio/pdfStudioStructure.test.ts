@@ -34,7 +34,7 @@ describe('pdfStudio · estructura incremental', () => {
   it('mantiene AnnotationLayer bajo el ratchet estructural actual', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/editor/AnnotationLayer.tsx'),
-    ).toBeLessThanOrEqual(470)
+    ).toBeLessThanOrEqual(270)
   })
 
   it('mantiene el modelo PDF bajo el ratchet estructural actual', () => {
