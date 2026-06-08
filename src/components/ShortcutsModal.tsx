@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { getPdfShortcutGroups } from '../lib/pdfStudio/commands'
+import { getPdfShortcutGroups } from '../lib/pdfStudio/model/commands'
 import { CloseIcon, OrnamentBreak } from './Icons'
 
 /**

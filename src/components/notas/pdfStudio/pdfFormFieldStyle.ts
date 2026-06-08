@@ -2,10 +2,10 @@ import {
   previewFontFamily,
   type PdfFormFieldDraft,
   type PdfFontKind,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 import type { CSSProperties } from 'react'
 import type { TextStyle } from './editorStyle'
-import { FORM_FIELD_EMPTY_HINT } from '../../../lib/pdfStudio/formFieldConstants'
+import { FORM_FIELD_EMPTY_HINT } from '../../../lib/pdfStudio/forms/formFieldConstants'
 import { DEFAULT_FORM_FIELD_SIZE_RATIO } from './pdfFormFieldSizing'
 
 export { DEFAULT_FORM_FIELD_SIZE_RATIO }

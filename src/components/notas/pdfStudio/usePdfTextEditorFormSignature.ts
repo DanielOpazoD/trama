@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 
 export function usePdfTextEditorFormSignature({
   updateDraftFormValue,

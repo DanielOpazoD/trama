@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
-import type { Annotation } from '../../../lib/pdfStudio/model'
+import type { Annotation } from '../../../lib/pdfStudio/model/model'
 import {
   alignAnnotations,
   annotationArrangeBox,

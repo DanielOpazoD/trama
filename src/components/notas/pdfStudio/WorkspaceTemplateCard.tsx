@@ -4,9 +4,9 @@ import {
   pageThumbKey,
   type PdfDoc,
   type PdfPage,
-} from '../../../lib/pdfStudio/model'
-import type { SavedDoc } from '../../../lib/pdfStudio/persistence'
-import { renderPageThumb } from '../../../lib/pdfStudio/pdfRender'
+} from '../../../lib/pdfStudio/model/model'
+import type { SavedDoc } from '../../../lib/pdfStudio/render/persistence'
+import { renderPageThumb } from '../../../lib/pdfStudio/render/pdfRender'
 import { DuplicateIcon, FilePdfIcon, PencilIcon, TrashIcon } from '../../Icons'
 
 const rowBtn =

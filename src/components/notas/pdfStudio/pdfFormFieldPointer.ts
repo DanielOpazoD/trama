@@ -1,11 +1,11 @@
 import type { Dispatch, PointerEvent as ReactPointerEvent, SetStateAction } from 'react'
-import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 import {
   resizeRatioBox,
   screenDeltaToPage,
   type PageLayout,
   type ResizeHandle,
-} from '../../../lib/pdfStudio/editorGeometry'
+} from '../../../lib/pdfStudio/model/editorGeometry'
 import { trackPointerMove } from './pdfTextEditorPointerListeners'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))

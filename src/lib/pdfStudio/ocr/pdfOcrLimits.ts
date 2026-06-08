@@ -1,4 +1,4 @@
-import type { PdfDoc } from './model'
+import type { PdfDoc } from '../model/model'
 
 const MB = 1024 * 1024
 

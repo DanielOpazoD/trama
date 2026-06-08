@@ -3,7 +3,7 @@ import {
   type Annotation,
   type PdfDoc,
   type PdfFormFieldDraft,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 
 export type PdfTextEditorResult = {
   annotations: Record<number, Annotation[]>

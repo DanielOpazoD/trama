@@ -1,4 +1,4 @@
-import type { PdfFormFieldKind } from '../../../lib/pdfStudio/model'
+import type { PdfFormFieldKind } from '../../../lib/pdfStudio/model/model'
 import { clamp } from './editorStyle'
 
 export type InitialFormFieldStyle = {

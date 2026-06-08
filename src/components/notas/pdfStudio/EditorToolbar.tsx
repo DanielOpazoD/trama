@@ -1,9 +1,9 @@
-import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
+import { pdfCommandTooltip } from '../../../lib/pdfStudio/model/commands'
 import {
   previewFontFamily,
   type PdfFontKind,
   type PdfFormFieldKind,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 import {
   BoldIcon,
   CameraIcon,

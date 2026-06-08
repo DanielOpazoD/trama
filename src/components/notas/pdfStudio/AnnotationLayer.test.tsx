@@ -8,7 +8,7 @@ import {
   makeShapeAnnotation,
   makeTextAnnotation,
   type Annotation,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 
 const TEXT = makeTextAnnotation({
   text: 'Hola',

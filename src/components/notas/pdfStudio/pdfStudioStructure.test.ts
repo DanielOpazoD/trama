@@ -20,7 +20,9 @@ describe('pdfStudio · estructura incremental', () => {
   })
 
   it('mantiene assemble como orquestador del pipeline', () => {
-    expect(fileLineCount('src/lib/pdfStudio/assemble.ts')).toBeLessThanOrEqual(300)
+    expect(fileLineCount('src/lib/pdfStudio/assemble/assemble.ts')).toBeLessThanOrEqual(
+      300,
+    )
   })
 
   it('mantiene EditorToolbar bajo el ratchet estructural actual', () => {
@@ -36,12 +38,12 @@ describe('pdfStudio · estructura incremental', () => {
   })
 
   it('mantiene el modelo PDF bajo el ratchet estructural actual', () => {
-    expect(fileLineCount('src/lib/pdfStudio/model.ts')).toBeLessThanOrEqual(460)
+    expect(fileLineCount('src/lib/pdfStudio/model/model.ts')).toBeLessThanOrEqual(460)
   })
 
   it('mantiene formularios visuales separados en modulos pequenos', () => {
     const formModules = [
-      'src/lib/pdfStudio/modelForms.ts',
+      'src/lib/pdfStudio/model/modelForms.ts',
       'src/components/notas/pdfStudio/FormFieldLayer.tsx',
       'src/components/notas/pdfStudio/usePdfTextEditorForms.ts',
       'src/components/notas/pdfStudio/SignatureCaptureDialog.tsx',
@@ -91,13 +93,13 @@ describe('pdfStudio · estructura incremental', () => {
 
   it('mantiene el OCR buscable separado en modulos pequenos', () => {
     const ocrModules = [
-      'src/lib/pdfStudio/pdfOcr.ts',
-      'src/lib/pdfStudio/pdfOcrInput.ts',
-      'src/lib/pdfStudio/pdfOcrLimits.ts',
-      'src/lib/pdfStudio/pdfOcrRecognition.ts',
-      'src/lib/pdfStudio/pdfOcrSearchablePdf.ts',
-      'src/lib/pdfStudio/pdfOcrWorkerClient.ts',
-      'src/lib/pdfStudio/pdfOcrBackendAdapter.ts',
+      'src/lib/pdfStudio/ocr/pdfOcr.ts',
+      'src/lib/pdfStudio/ocr/pdfOcrInput.ts',
+      'src/lib/pdfStudio/ocr/pdfOcrLimits.ts',
+      'src/lib/pdfStudio/ocr/pdfOcrRecognition.ts',
+      'src/lib/pdfStudio/ocr/pdfOcrSearchablePdf.ts',
+      'src/lib/pdfStudio/ocr/pdfOcrWorkerClient.ts',
+      'src/lib/pdfStudio/ocr/pdfOcrBackendAdapter.ts',
     ]
 
     for (const path of ocrModules) {

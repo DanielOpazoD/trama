@@ -1,5 +1,5 @@
 import { type ReactElement, type ReactNode } from 'react'
-import { type PdfFontKind } from '../../../lib/pdfStudio/model'
+import { type PdfFontKind } from '../../../lib/pdfStudio/model/model'
 import { Tooltip } from '../../Tooltip'
 import { stepBtn, type Tool } from './editorStyle'
 

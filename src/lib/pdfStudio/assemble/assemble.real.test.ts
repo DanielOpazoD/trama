@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib'
-import { addPdfSource, emptyDoc } from './model'
+import { addPdfSource, emptyDoc } from '../model/model'
 import { assemble, PdfExportPipelineError } from './assemble'
 
 const tinyPng = new Uint8Array([

@@ -1,5 +1,9 @@
-import type { AssembleOptions, AssembleResult, PdfExportProgressEvent } from './assemble'
-import type { PdfDoc } from './model'
+import type {
+  AssembleOptions,
+  AssembleResult,
+  PdfExportProgressEvent,
+} from '../assemble/assemble'
+import type { PdfDoc } from '../model/model'
 
 export const PDF_EXPORT_OPERATION_KIND = 'pdf-export' as const
 

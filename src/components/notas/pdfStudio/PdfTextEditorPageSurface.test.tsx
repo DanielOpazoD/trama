@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { addPdfSource, emptyDoc, makeTextAnnotation } from '../../../lib/pdfStudio/model'
+import {
+  addPdfSource,
+  emptyDoc,
+  makeTextAnnotation,
+} from '../../../lib/pdfStudio/model/model'
 import { PdfTextEditorPageSurface } from './PdfTextEditorPageSurface'
 
 vi.mock('./usePdfTextEditorPageRender', () => ({

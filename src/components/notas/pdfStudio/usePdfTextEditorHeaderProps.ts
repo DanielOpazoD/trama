@@ -1,12 +1,12 @@
 import type { Dispatch, SetStateAction } from 'react'
-import type { Annotation, PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import type { Annotation, PdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 import {
   canRedo,
   canUndo,
   redo,
   undo,
   type History,
-} from '../../../lib/pdfStudio/history'
+} from '../../../lib/pdfStudio/model/history'
 import type { PdfTextEditorResult } from './pdfTextEditorResult'
 
 type PdfTextEditorHistory = History<Record<number, Annotation[]>>

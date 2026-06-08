@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
-import type { PageLayout } from '../../../lib/pdfStudio/editorGeometry'
+import type { PageLayout } from '../../../lib/pdfStudio/model/editorGeometry'
 import { usePdfEditorZoomScroll } from './usePdfEditorZoomScroll'
 
 const ZOOM_MIN = 0.5

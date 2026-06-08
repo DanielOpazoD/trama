@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 
 function formFieldControlSelector(id: string): string {
   return `[data-form-field-control="${id.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`

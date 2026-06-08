@@ -1,4 +1,4 @@
-import { runPdfHeavyOperation } from './heavyOperationClient'
+import { runPdfHeavyOperation } from '../export/heavyOperationClient'
 import {
   fillPdfForm,
   inspectPdfForm,
@@ -8,7 +8,7 @@ import {
   type PdfFormFillValues,
   type PdfFormInspection,
 } from './pdfForms'
-import type { PdfFormFieldDraft } from './model'
+import type { PdfFormFieldDraft } from '../model/model'
 import {
   PDF_FORM_OPERATION_KIND,
   type PdfFormWorkerPayload,

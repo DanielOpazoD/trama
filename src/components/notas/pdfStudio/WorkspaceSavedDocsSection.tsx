@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import type { SavedDoc } from '../../../lib/pdfStudio/persistence'
+import type { SavedDoc } from '../../../lib/pdfStudio/render/persistence'
 import { CheckIcon, CloseIcon, FilePdfIcon, PlusIcon } from '../../Icons'
 import { WorkspaceSavedDocItem } from './WorkspaceSavedDocItem'
 

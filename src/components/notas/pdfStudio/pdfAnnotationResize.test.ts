@@ -4,7 +4,7 @@ import type {
   ImageAnnotation,
   ShapeAnnotation,
   TextAnnotation,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 import { resizeAnnotationFromPointerDelta } from './pdfAnnotationResize'
 
 const text: TextAnnotation = {

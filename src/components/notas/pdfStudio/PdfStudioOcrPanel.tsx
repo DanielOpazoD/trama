@@ -1,6 +1,6 @@
-import type { PdfOcrLanguage } from '../../../lib/pdfStudio/pdfOcr'
-import type { PdfDoc } from '../../../lib/pdfStudio/model'
-import { assessPdfOcrDocument } from '../../../lib/pdfStudio/pdfOcrLimits'
+import type { PdfOcrLanguage } from '../../../lib/pdfStudio/ocr/pdfOcr'
+import type { PdfDoc } from '../../../lib/pdfStudio/model/model'
+import { assessPdfOcrDocument } from '../../../lib/pdfStudio/ocr/pdfOcrLimits'
 
 export function PdfStudioOcrPanel({
   disabled,

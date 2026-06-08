@@ -1,11 +1,11 @@
-import { assemble, type AssembleOptions, type AssembleResult } from './assemble'
+import { assemble, type AssembleOptions, type AssembleResult } from '../assemble/assemble'
 import { runPdfHeavyOperation } from './heavyOperationClient'
 import {
   PDF_EXPORT_OPERATION_KIND,
   type PdfExportWorkerPayload,
   type PdfExportWorkerProgress,
 } from './exportWorkerContract'
-import type { PdfDoc } from './model'
+import type { PdfDoc } from '../model/model'
 
 function createPdfExportWorker(): Worker {
   if (typeof Worker === 'undefined') {

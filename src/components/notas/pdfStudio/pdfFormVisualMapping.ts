@@ -1,5 +1,8 @@
-import type { PdfFormFieldInfo, PdfFormFillValues } from '../../../lib/pdfStudio/pdfForms'
-import type { PdfPage } from '../../../lib/pdfStudio/model'
+import type {
+  PdfFormFieldInfo,
+  PdfFormFillValues,
+} from '../../../lib/pdfStudio/forms/pdfForms'
+import type { PdfPage } from '../../../lib/pdfStudio/model/model'
 import type { VisualPdfFormWidget } from './FormFieldLayer'
 
 export type DetectedPdfFormForCanvas = {

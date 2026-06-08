@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { Annotation } from '../../../lib/pdfStudio/model'
+import type { Annotation } from '../../../lib/pdfStudio/model/model'
 import { SelectionInspector } from './SelectionInspector'
 
 const selected: Annotation = {

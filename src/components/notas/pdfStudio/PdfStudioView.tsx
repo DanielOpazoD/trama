@@ -5,8 +5,8 @@ import {
   setDocSettings,
   type DocSettings,
   type PdfDoc,
-} from '../../../lib/pdfStudio/model'
-import type { AssembleOptions } from '../../../lib/pdfStudio/assemble'
+} from '../../../lib/pdfStudio/model/model'
+import type { AssembleOptions } from '../../../lib/pdfStudio/assemble/assemble'
 import {
   canRedo,
   canUndo,
@@ -15,9 +15,12 @@ import {
   redo,
   undo,
   type History,
-} from '../../../lib/pdfStudio/history'
-import { disposePdfStudio } from '../../../lib/pdfStudio/pdfRender'
-import { clearDraft, isSavedFilledTemplate } from '../../../lib/pdfStudio/persistence'
+} from '../../../lib/pdfStudio/model/history'
+import { disposePdfStudio } from '../../../lib/pdfStudio/render/pdfRender'
+import {
+  clearDraft,
+  isSavedFilledTemplate,
+} from '../../../lib/pdfStudio/render/persistence'
 import { BulkBar } from './BulkBar'
 import { PdfStudioDocumentToolbar } from './PdfStudioDocumentToolbar'
 import { PdfStudioFormPanel } from './PdfStudioFormPanel'

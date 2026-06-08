@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   writePdfFormFields: vi.fn(),
 }))
 
-vi.mock('./heavyOperationClient', () => ({
+vi.mock('../export/heavyOperationClient', () => ({
   runPdfHeavyOperation: mocks.runPdfHeavyOperation,
 }))
 vi.mock('./pdfForms', () => ({

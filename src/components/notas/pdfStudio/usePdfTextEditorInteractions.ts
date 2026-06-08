@@ -7,8 +7,8 @@ import {
   screenDeltaToPage,
   type PageLayout,
   type ResizeHandle,
-} from '../../../lib/pdfStudio/editorGeometry'
-import type { History } from '../../../lib/pdfStudio/history'
+} from '../../../lib/pdfStudio/model/editorGeometry'
+import type { History } from '../../../lib/pdfStudio/model/history'
 import {
   cloneAnnotation,
   translateAnnotation,
@@ -18,7 +18,7 @@ import {
   type RedactionAnnotation,
   type ShapeAnnotation,
   type TextAnnotation,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 import type { DrawingRect } from './AnnotationLayer'
 import {
   selectAnnotationsInBox,

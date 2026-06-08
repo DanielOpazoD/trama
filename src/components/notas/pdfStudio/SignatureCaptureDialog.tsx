@@ -1,5 +1,5 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
-import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 
 export function SignatureCaptureDialog({
   field,

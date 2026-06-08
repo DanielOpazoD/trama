@@ -2,7 +2,7 @@ import {
   cloneAnnotation,
   translateAnnotation,
   type Annotation,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 
 export type AnnotationShortcutInput = {
   annotations: Annotation[]

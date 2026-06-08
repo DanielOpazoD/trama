@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import { usePageSelection } from './usePageSelection'
-import { addImageSource, emptyDoc, type PdfPage } from '../../../lib/pdfStudio/model'
+import {
+  addImageSource,
+  emptyDoc,
+  type PdfPage,
+} from '../../../lib/pdfStudio/model/model'
 
 /** 4 páginas (imágenes) con ids estables para mapear índice↔id. */
 function fourPages(): PdfPage[] {

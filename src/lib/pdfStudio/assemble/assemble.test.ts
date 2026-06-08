@@ -10,7 +10,7 @@ import {
   makeTextAnnotation,
   rotatePage,
   setPageAnnotations,
-} from './model'
+} from '../model/model'
 
 // pdf-lib es browser-only (canvas/DOMMatrix) → se mockea. Este test guarda el
 // CONTRATO del ensamblado (qué llama y con qué args), que vive en `assemble.ts`

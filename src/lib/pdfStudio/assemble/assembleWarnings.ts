@@ -1,4 +1,4 @@
-import type { PdfDoc } from './model'
+import type { PdfDoc } from '../model/model'
 import type { PdfExportWarning } from './assemblePipeline'
 
 export function exportWarnings(doc: PdfDoc, imageCount: number): PdfExportWarning[] {

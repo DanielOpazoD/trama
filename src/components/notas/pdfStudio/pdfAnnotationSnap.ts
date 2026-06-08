@@ -4,7 +4,7 @@ import {
   type HighlightAnnotation,
   type ImageAnnotation,
   type TextAnnotation,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 
 export type SnapGuide = { axis: 'x' | 'y'; ratio: number }
 

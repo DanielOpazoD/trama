@@ -27,31 +27,31 @@ const mocks = vi.hoisted(() => ({
   putSavedDoc: vi.fn(),
   deleteSavedDoc: vi.fn(),
 }))
-vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
+vi.mock('../../../lib/pdfStudio/render/pdfRender', () => ({
   getPdfPageCount: mocks.getPdfPageCount,
   renderPageThumb: mocks.renderPageThumb,
   renderPageBitmap: mocks.renderPageBitmap,
   forgetThumb: mocks.forgetThumb,
   disposePdfStudio: mocks.disposePdfStudio,
 }))
-vi.mock('../../../lib/pdfStudio/assemble', () => ({ assemble: mocks.assemble }))
-vi.mock('../../../lib/pdfStudio/exportWorkerClient', () => ({
+vi.mock('../../../lib/pdfStudio/assemble/assemble', () => ({ assemble: mocks.assemble }))
+vi.mock('../../../lib/pdfStudio/export/exportWorkerClient', () => ({
   assemblePdfInWorker: mocks.assemblePdfInWorker,
 }))
-vi.mock('../../../lib/pdfStudio/pdfOcrWorkerClient', () => ({
+vi.mock('../../../lib/pdfStudio/ocr/pdfOcrWorkerClient', () => ({
   createSearchablePdfInWorker: mocks.createSearchablePdfInWorker,
 }))
-vi.mock('../../../lib/pdfStudio/pdfFormWorkerClient', () => ({
+vi.mock('../../../lib/pdfStudio/forms/pdfFormWorkerClient', () => ({
   inspectPdfFormInWorker: mocks.inspectPdfFormInWorker,
   fillPdfFormInWorker: mocks.fillPdfFormInWorker,
   writePdfFormFieldsInWorker: mocks.writePdfFormFieldsInWorker,
 }))
-vi.mock('../../../lib/pdfStudio/printPdf', () => ({
+vi.mock('../../../lib/pdfStudio/export/printPdf', () => ({
   openBlankPdfTab: mocks.openBlankPdfTab,
   showPdfInTab: mocks.showPdfInTab,
 }))
 vi.mock('../../../lib/downloadBlob', () => ({ downloadBlob: mocks.downloadBlob }))
-vi.mock('../../../lib/pdfStudio/persistence', () => ({
+vi.mock('../../../lib/pdfStudio/render/persistence', () => ({
   loadDraft: mocks.loadDraft,
   saveDraft: mocks.saveDraft,
   clearDraft: mocks.clearDraft,
@@ -70,7 +70,7 @@ import {
   addPdfSource,
   emptyDoc,
   makePdfFormFieldDraft,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 
 const pdfFile = (name = 'doc.pdf') =>
   new File(['%PDF-1.4'], name, { type: 'application/pdf' })

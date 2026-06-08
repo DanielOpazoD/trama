@@ -5,7 +5,7 @@ import type {
   PdfPage as PdfModelPage,
   PdfSource,
   RedactionAnnotation,
-} from './model'
+} from '../model/model'
 
 type RasterCanvas = HTMLCanvasElement | OffscreenCanvas
 type RasterContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D

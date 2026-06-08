@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react'
-import type { AssembleOptions } from '../../../lib/pdfStudio/assemble'
-import { assemblePdfInWorker } from '../../../lib/pdfStudio/exportWorkerClient'
-import { canExport, type PdfDoc } from '../../../lib/pdfStudio/model'
-import { writePdfFormFieldsInWorker } from '../../../lib/pdfStudio/pdfFormWorkerClient'
-import { openBlankPdfTab, showPdfInTab } from '../../../lib/pdfStudio/printPdf'
+import type { AssembleOptions } from '../../../lib/pdfStudio/assemble/assemble'
+import { assemblePdfInWorker } from '../../../lib/pdfStudio/export/exportWorkerClient'
+import { canExport, type PdfDoc } from '../../../lib/pdfStudio/model/model'
+import { writePdfFormFieldsInWorker } from '../../../lib/pdfStudio/forms/pdfFormWorkerClient'
+import { openBlankPdfTab, showPdfInTab } from '../../../lib/pdfStudio/export/printPdf'
 import { downloadBlob } from '../../../lib/downloadBlob'
 import { useToast } from '../../../state'
-import { type SavedDoc } from '../../../lib/pdfStudio/persistence'
+import { type SavedDoc } from '../../../lib/pdfStudio/render/persistence'
 import { exportPdfName, shouldDownloadPdfDirectly } from './pdfStudioFileUtils'
 import {
   describePdfExportError,

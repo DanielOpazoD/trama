@@ -5,8 +5,8 @@ import {
   type RedactionAnnotation,
   type ShapeAnnotation,
   type TextAnnotation,
-} from '../../../lib/pdfStudio/model'
-import type { ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
+} from '../../../lib/pdfStudio/model/model'
+import type { ResizeHandle } from '../../../lib/pdfStudio/model/editorGeometry'
 import type { Tool } from './editorStyle'
 
 type ResizableAnnotation =

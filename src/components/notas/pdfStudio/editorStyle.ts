@@ -3,7 +3,7 @@
  * anotaciones y edición inline). Viven aparte para que los subcomponentes los
  * compartan sin crear ciclos de importación con `PdfTextEditor`.
  */
-import { type TextAnnotation } from '../../../lib/pdfStudio/model'
+import { type TextAnnotation } from '../../../lib/pdfStudio/model/model'
 
 /** Color de acento del editor (selección, contornos, swatches activos) = salvia de
  *  la sección. Directo a `--accent-sage` (no vía `--accent-primary`) para no

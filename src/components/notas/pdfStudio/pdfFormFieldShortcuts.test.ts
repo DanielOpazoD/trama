@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { makePdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import { makePdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 import { reduceFormFieldShortcut } from './pdfFormFieldShortcuts'
 
 const base = makePdfFormFieldDraft({

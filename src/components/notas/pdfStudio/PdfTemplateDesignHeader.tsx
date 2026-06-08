@@ -1,4 +1,4 @@
-import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
+import { pdfCommandTooltip } from '../../../lib/pdfStudio/model/commands'
 import { ChevronLeftIcon, ChevronRightIcon, RedoIcon, UndoIcon } from '../../Icons'
 import { stepBtn } from './editorStyle'
 import { ZoomPercentInput } from './ZoomPercentInput'

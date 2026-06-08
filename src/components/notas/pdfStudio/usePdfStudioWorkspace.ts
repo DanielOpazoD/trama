@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
-import { initHistory, pushHistory, type History } from '../../../lib/pdfStudio/history'
+import {
+  initHistory,
+  pushHistory,
+  type History,
+} from '../../../lib/pdfStudio/model/history'
 import {
   addImageSource,
   clearPdfFormFieldValues,
@@ -8,7 +12,7 @@ import {
   type ImageAsset,
   type PdfDoc,
   type PdfFormFieldDraft,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 import {
   deleteSavedDoc,
   listSavedDocs,
@@ -16,7 +20,7 @@ import {
   putSavedDoc,
   saveDraft,
   type SavedDoc,
-} from '../../../lib/pdfStudio/persistence'
+} from '../../../lib/pdfStudio/render/persistence'
 import { useCurrentClientUserId } from '../../../lib/clientIdentity'
 import { downloadBlob } from '../../../lib/downloadBlob'
 import { useToast } from '../../../state'

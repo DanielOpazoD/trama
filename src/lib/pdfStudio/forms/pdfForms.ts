@@ -13,9 +13,9 @@ import {
   StandardFonts,
   rgb,
 } from 'pdf-lib'
-import { dataUrlToBytes, isPngBytes } from './assembleImages'
+import { dataUrlToBytes, isPngBytes } from '../assemble/assembleImages'
 import { FORM_FIELD_EMPTY_HINT } from './formFieldConstants'
-import type { PdfFormFieldDraft } from './model'
+import type { PdfFormFieldDraft } from '../model/model'
 
 const DEFAULT_FORM_FIELD_SIZE_RATIO = 0.04
 

@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
-import type { PdfFormFieldKind, PdfFormValue } from '../../../lib/pdfStudio/model'
-import type { PdfFormFieldType } from '../../../lib/pdfStudio/pdfForms'
+import type { PdfFormFieldKind, PdfFormValue } from '../../../lib/pdfStudio/model/model'
+import type { PdfFormFieldType } from '../../../lib/pdfStudio/forms/pdfForms'
 import { FORM_FIELD_EMPTY_HINT } from './pdfFormFieldStyle'
 
 function valueAsText(value: PdfFormValue): string {

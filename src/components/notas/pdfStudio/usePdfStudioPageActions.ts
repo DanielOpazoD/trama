@@ -8,8 +8,8 @@ import {
   rotatePages,
   subsetDoc,
   type PdfDoc,
-} from '../../../lib/pdfStudio/model'
-import { forgetThumb } from '../../../lib/pdfStudio/pdfRender'
+} from '../../../lib/pdfStudio/model/model'
+import { forgetThumb } from '../../../lib/pdfStudio/render/pdfRender'
 
 export function usePdfStudioPageActions({
   clearDraft,

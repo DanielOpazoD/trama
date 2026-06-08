@@ -1,5 +1,11 @@
-import { fitImageStampBox, type PageLayout } from '../../../lib/pdfStudio/editorGeometry'
-import { makeImageAnnotation, type ImageAnnotation } from '../../../lib/pdfStudio/model'
+import {
+  fitImageStampBox,
+  type PageLayout,
+} from '../../../lib/pdfStudio/model/editorGeometry'
+import {
+  makeImageAnnotation,
+  type ImageAnnotation,
+} from '../../../lib/pdfStudio/model/model'
 
 export const STAMP_ACCEPT = 'image/png,image/jpeg'
 

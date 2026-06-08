@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { clearPdfFormFieldValues, type PdfDoc } from '../../../lib/pdfStudio/model'
+import { clearPdfFormFieldValues, type PdfDoc } from '../../../lib/pdfStudio/model/model'
 import type { PdfTemplateMode } from './PdfTemplateModeBanner'
 
 export function usePdfStudioDraftSanitizer({

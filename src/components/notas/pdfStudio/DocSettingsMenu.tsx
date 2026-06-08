@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { type DocSettings } from '../../../lib/pdfStudio/model'
+import { type DocSettings } from '../../../lib/pdfStudio/model/model'
 import { SettingsIcon } from '../../Icons'
 
 const POSITIONS: { key: 'left' | 'center' | 'right'; label: string }[] = [

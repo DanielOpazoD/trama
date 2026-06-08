@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { makePdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import { makePdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 import { PdfTemplateFillVariablesPanel } from './PdfTemplateFillVariablesPanel'
 
 const emptyField = makePdfFormFieldDraft({

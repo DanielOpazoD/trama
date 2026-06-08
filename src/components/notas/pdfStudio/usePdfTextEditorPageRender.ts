@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
-import { fitPageLayout, type PageLayout } from '../../../lib/pdfStudio/editorGeometry'
-import type { PdfPage, PdfSource } from '../../../lib/pdfStudio/model'
-import { pageThumbKey } from '../../../lib/pdfStudio/model'
-import { renderPageBitmap } from '../../../lib/pdfStudio/pdfRender'
+import {
+  fitPageLayout,
+  type PageLayout,
+} from '../../../lib/pdfStudio/model/editorGeometry'
+import type { PdfPage, PdfSource } from '../../../lib/pdfStudio/model/model'
+import { pageThumbKey } from '../../../lib/pdfStudio/model/model'
+import { renderPageBitmap } from '../../../lib/pdfStudio/render/pdfRender'
 import { readPdfTextEditorPageArea } from './pdfEditorPageArea'
 
 export type PdfTextEditorBackground = { url: string; w: number; h: number }

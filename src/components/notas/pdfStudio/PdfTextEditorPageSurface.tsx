@@ -9,8 +9,11 @@ import {
   type RedactionAnnotation,
   type ShapeAnnotation,
   type TextAnnotation,
-} from '../../../lib/pdfStudio/model'
-import type { PageLayout, ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
+} from '../../../lib/pdfStudio/model/model'
+import type {
+  PageLayout,
+  ResizeHandle,
+} from '../../../lib/pdfStudio/model/editorGeometry'
 import { AnnotationLayer, type DrawingRect } from './AnnotationLayer'
 import { FormFieldLayer } from './FormFieldLayer'
 import { PageCanvas } from './PageCanvas'

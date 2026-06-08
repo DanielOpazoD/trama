@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 import type { TemplateFillImportValues } from './pdfTemplateFillImport'
 import type { TemplateFillImportFeedback } from './usePdfTemplateFillImport'
 import { orderFormFieldsForFill } from './pdfFormFieldFillOrder'

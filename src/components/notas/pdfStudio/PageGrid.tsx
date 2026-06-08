@@ -1,5 +1,5 @@
 import { useState, type DragEvent } from 'react'
-import { type PdfDoc } from '../../../lib/pdfStudio/model'
+import { type PdfDoc } from '../../../lib/pdfStudio/model/model'
 import { PageCard } from './PageCard'
 import type { PageInteractionMode } from './pdfStudioPageInteractionMode'
 

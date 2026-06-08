@@ -5,7 +5,7 @@ import {
   type ImageAnnotation,
   type RedactionAnnotation,
   type TextAnnotation,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 
 export type AnnotationArrangeGeometry = {
   pageWidthPx: number

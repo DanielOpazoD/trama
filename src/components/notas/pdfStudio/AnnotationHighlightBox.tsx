@@ -2,8 +2,8 @@ import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from 'react'
-import type { HighlightAnnotation } from '../../../lib/pdfStudio/model'
-import type { ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
+import type { HighlightAnnotation } from '../../../lib/pdfStudio/model/model'
+import type { ResizeHandle } from '../../../lib/pdfStudio/model/editorGeometry'
 import { AnnotationResizeHandles } from './AnnotationResizeHandles'
 import { ACCENT, HIGHLIGHT_OPACITY, hexToRgba, type Tool } from './editorStyle'
 import type { ResizableAnnotation } from './pdfAnnotationResize'

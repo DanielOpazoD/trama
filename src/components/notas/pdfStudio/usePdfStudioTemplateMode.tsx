@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
-import { isPdfTemplate, type PdfDoc } from '../../../lib/pdfStudio/model'
-import { isSavedFilledTemplate, type SavedDoc } from '../../../lib/pdfStudio/persistence'
+import { isPdfTemplate, type PdfDoc } from '../../../lib/pdfStudio/model/model'
+import {
+  isSavedFilledTemplate,
+  type SavedDoc,
+} from '../../../lib/pdfStudio/render/persistence'
 import { PdfTemplateModeBanner, type PdfTemplateMode } from './PdfTemplateModeBanner'
 
 export function usePdfStudioTemplateMode({

@@ -9,7 +9,7 @@ import {
   type PdfHeavyOperationRunMessage,
   type PdfHeavyOperationWorkerMessage,
   type PdfHeavyOperationWorkerRequest,
-} from './heavyOperationContract'
+} from '../export/heavyOperationContract'
 
 const cancelled = new Set<string>()
 

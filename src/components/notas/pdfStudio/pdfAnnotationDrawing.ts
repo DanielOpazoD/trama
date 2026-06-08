@@ -4,8 +4,8 @@ import {
   makeShapeAnnotation,
   type Annotation,
   type ShapeKind,
-} from '../../../lib/pdfStudio/model'
-import { rectFromPoints } from '../../../lib/pdfStudio/editorGeometry'
+} from '../../../lib/pdfStudio/model/model'
+import { rectFromPoints } from '../../../lib/pdfStudio/model/editorGeometry'
 import { isShapeTool, type Tool } from './editorStyle'
 
 const MIN_DRAW_DISTANCE_PX = 4

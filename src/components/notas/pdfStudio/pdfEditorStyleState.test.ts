@@ -4,7 +4,7 @@ import {
   defaultEditorTextStyle,
   resolveActiveEditorStyle,
 } from './pdfEditorStyleState'
-import type { Annotation } from '../../../lib/pdfStudio/model'
+import type { Annotation } from '../../../lib/pdfStudio/model/model'
 import type { TextStyle } from './editorStyle'
 
 const baseStyle: TextStyle = defaultEditorTextStyle()

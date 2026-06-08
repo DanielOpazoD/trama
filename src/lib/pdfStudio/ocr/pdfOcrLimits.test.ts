@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addPdfSource, emptyDoc } from './model'
+import { addPdfSource, emptyDoc } from '../model/model'
 import { assessPdfOcrDocument } from './pdfOcrLimits'
 
 const pdf = (name = 'scan.pdf') =>

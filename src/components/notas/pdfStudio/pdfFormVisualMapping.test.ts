@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { PdfPage } from '../../../lib/pdfStudio/model'
+import type { PdfPage } from '../../../lib/pdfStudio/model/model'
 import {
   visualWidgetsForPage,
   type DetectedPdfFormForCanvas,

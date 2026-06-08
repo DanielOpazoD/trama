@@ -4,7 +4,7 @@ import {
   type RefObject,
 } from 'react'
 import { LoadingHint } from '../../LoadingHint'
-import { type PageLayout } from '../../../lib/pdfStudio/editorGeometry'
+import { type PageLayout } from '../../../lib/pdfStudio/model/editorGeometry'
 import { type Tool } from './editorStyle'
 
 const SHEET_EDGE_GUTTER = 24

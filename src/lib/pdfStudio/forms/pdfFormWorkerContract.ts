@@ -4,7 +4,7 @@ import type {
   PdfFormFillValues,
   PdfFormInspection,
 } from './pdfForms'
-import type { PdfFormFieldDraft } from './model'
+import type { PdfFormFieldDraft } from '../model/model'
 
 export const PDF_FORM_OPERATION_KIND = 'pdf-form' as const
 

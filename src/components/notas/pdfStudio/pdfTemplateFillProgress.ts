@@ -1,4 +1,4 @@
-import type { PdfFormFieldDraft, PdfFormValue } from '../../../lib/pdfStudio/model'
+import type { PdfFormFieldDraft, PdfFormValue } from '../../../lib/pdfStudio/model/model'
 import { FORM_FIELD_EMPTY_HINT } from './pdfFormFieldStyle'
 
 function valueAsText(value: PdfFormValue): string {

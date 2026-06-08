@@ -6,7 +6,7 @@
  * no está disponible (modo privado, cuota), el editor sigue funcionando sin
  * autoguardado. Excluido del coverage: API de navegador, se verifica en el navegador.
  */
-import { isPdfTemplate, type ImageAsset, type PdfDoc } from './model'
+import { isPdfTemplate, type ImageAsset, type PdfDoc } from '../model/model'
 
 const DB_NAME = 'trama-pdf-studio'
 const STORE = 'drafts'

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 import type { TemplateFillImportValues } from './pdfTemplateFillImport'
 import type { PdfTextEditorFillSidebarProps } from './PdfTextEditorFillSidebar'
 import { usePdfTemplateFillImport } from './usePdfTemplateFillImport'

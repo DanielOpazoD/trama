@@ -3,7 +3,7 @@ import {
   translatePdfFormField,
   type PdfDoc,
   type PdfFormFieldDraft,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 import { uniqueFieldName } from './pdfTextEditorFormDefaults'
 
 export type FormFieldShortcutInput = {

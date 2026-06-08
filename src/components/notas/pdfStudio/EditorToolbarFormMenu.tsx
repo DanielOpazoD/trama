@@ -1,4 +1,4 @@
-import type { PdfFormFieldKind } from '../../../lib/pdfStudio/model'
+import type { PdfFormFieldKind } from '../../../lib/pdfStudio/model/model'
 import { ChevronDownIcon } from '../../Icons'
 import { activeMenuItem, editorMenuLayer, menuTrigger } from './EditorToolbarPrimitives'
 import { OverflowMenu } from '../../OverflowMenu'

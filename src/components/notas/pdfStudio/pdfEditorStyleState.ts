@@ -1,4 +1,4 @@
-import type { Annotation } from '../../../lib/pdfStudio/model'
+import type { Annotation } from '../../../lib/pdfStudio/model/model'
 import type { TextStyle } from './editorStyle'
 
 export function defaultEditorTextStyle(): TextStyle {

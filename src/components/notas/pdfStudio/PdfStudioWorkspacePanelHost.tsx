@@ -1,5 +1,5 @@
-import type { ImageAsset } from '../../../lib/pdfStudio/model'
-import type { SavedDoc } from '../../../lib/pdfStudio/persistence'
+import type { ImageAsset } from '../../../lib/pdfStudio/model/model'
+import type { SavedDoc } from '../../../lib/pdfStudio/render/persistence'
 import { WorkspacePanel } from './WorkspacePanel'
 
 export function PdfStudioWorkspacePanelHost({

@@ -4,8 +4,8 @@ import {
   addPdfSource,
   type ImageAsset,
   type PdfDoc,
-} from '../../../lib/pdfStudio/model'
-import { getPdfPageCount } from '../../../lib/pdfStudio/pdfRender'
+} from '../../../lib/pdfStudio/model/model'
+import { getPdfPageCount } from '../../../lib/pdfStudio/render/pdfRender'
 import { useToast } from '../../../state'
 import { isPdfFile, isStudioImageFile } from './pdfStudioFileUtils'
 

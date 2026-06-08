@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Annotation } from '../../../lib/pdfStudio/model'
+import type { Annotation } from '../../../lib/pdfStudio/model/model'
 import {
   alignAnnotations,
   annotationSelectionBox,

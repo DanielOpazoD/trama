@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import type { PdfDoc, PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import type { PdfDoc, PdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 import {
   detectHorizontalRunsFromImage,
   suggestTextFieldsFromHorizontalRuns,
-} from '../../../lib/pdfStudio/formFieldSuggestions'
+} from '../../../lib/pdfStudio/forms/formFieldSuggestions'
 
 export function usePdfTextEditorFormSuggestions({
   currentPage,

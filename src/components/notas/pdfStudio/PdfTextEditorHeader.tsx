@@ -1,4 +1,4 @@
-import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
+import { pdfCommandTooltip } from '../../../lib/pdfStudio/model/commands'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,

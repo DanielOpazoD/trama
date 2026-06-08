@@ -1,9 +1,9 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { addPdfSource, emptyDoc } from '../../../lib/pdfStudio/model'
+import { addPdfSource, emptyDoc } from '../../../lib/pdfStudio/model/model'
 import { PageCard } from './PageCard'
 
-vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
+vi.mock('../../../lib/pdfStudio/render/pdfRender', () => ({
   renderPageThumb: vi.fn(async () => 'blob:thumb'),
 }))
 

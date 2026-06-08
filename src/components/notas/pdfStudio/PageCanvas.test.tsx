@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { createRef } from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { PageCanvas } from './PageCanvas'
-import { type PageLayout } from '../../../lib/pdfStudio/editorGeometry'
+import { type PageLayout } from '../../../lib/pdfStudio/model/editorGeometry'
 
 const LAYOUT: PageLayout = { rot: 0, outerW: 400, outerH: 560, innerW: 400, innerH: 560 }
 const BG = { url: 'blob:bg', w: 400, h: 560 }

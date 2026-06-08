@@ -1,5 +1,5 @@
 import type { DragEvent } from 'react'
-import type { PdfDoc } from '../../../lib/pdfStudio/model'
+import type { PdfDoc } from '../../../lib/pdfStudio/model/model'
 import { PageGrid } from './PageGrid'
 import { PdfDropzone } from './PdfDropzone'
 import type { PageInteractionMode } from './pdfStudioPageInteractionMode'

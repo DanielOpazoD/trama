@@ -4,8 +4,11 @@ import {
   type PdfFormFieldDraft,
   type PdfFormFieldKind,
   type PdfPage,
-} from '../../../lib/pdfStudio/model'
-import type { PageLayout, ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
+} from '../../../lib/pdfStudio/model/model'
+import type {
+  PageLayout,
+  ResizeHandle,
+} from '../../../lib/pdfStudio/model/editorGeometry'
 import type { TextStyle, Tool } from './editorStyle'
 import type { TemplateFillImportValues } from './pdfTemplateFillImport'
 import {

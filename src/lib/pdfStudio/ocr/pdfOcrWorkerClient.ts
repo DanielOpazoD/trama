@@ -1,4 +1,4 @@
-import { runPdfHeavyOperation } from './heavyOperationClient'
+import { runPdfHeavyOperation } from '../export/heavyOperationClient'
 import { createSearchablePdf, type PdfOcrOptions, type PdfOcrResult } from './pdfOcr'
 import { createClientPdfOcrAdapter } from './pdfOcrBackendAdapter'
 import {

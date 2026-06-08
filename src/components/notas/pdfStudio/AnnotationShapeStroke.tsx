@@ -1,4 +1,4 @@
-import type { ShapeKind } from '../../../lib/pdfStudio/model'
+import type { ShapeKind } from '../../../lib/pdfStudio/model/model'
 
 function arrowHeadPath(
   p0: { x: number; y: number },

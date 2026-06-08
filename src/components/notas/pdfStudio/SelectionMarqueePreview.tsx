@@ -1,4 +1,4 @@
-import { rectFromPoints } from '../../../lib/pdfStudio/editorGeometry'
+import { rectFromPoints } from '../../../lib/pdfStudio/model/editorGeometry'
 import { ACCENT } from './editorStyle'
 
 type MarqueeRect = { x0: number; y0: number; x1: number; y1: number }

@@ -15,8 +15,8 @@ import {
   type ShapeAnnotation,
   type ShapeKind,
   type TextAnnotation,
-} from '../../../lib/pdfStudio/model'
-import { type ResizeHandle } from '../../../lib/pdfStudio/editorGeometry'
+} from '../../../lib/pdfStudio/model/model'
+import { type ResizeHandle } from '../../../lib/pdfStudio/model/editorGeometry'
 import { AnnotationResizeHandles } from './AnnotationResizeHandles'
 import { EditableBox } from './EditableBox'
 import { AnnotationHighlightBox } from './AnnotationHighlightBox'

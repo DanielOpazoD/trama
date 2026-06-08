@@ -1,5 +1,5 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react'
-import type { PageLayout } from '../../../lib/pdfStudio/editorGeometry'
+import type { PageLayout } from '../../../lib/pdfStudio/model/editorGeometry'
 import { findMostVisiblePdfEditorPage } from './pdfEditorZoomScroll'
 
 function scrollEditorPageIntoView(pageIndex: number) {

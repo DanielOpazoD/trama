@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ImageAsset } from '../../../lib/pdfStudio/model'
+import type { ImageAsset } from '../../../lib/pdfStudio/model/model'
 import { CameraIcon, DownloadIcon, PlusIcon, TrashIcon } from '../../Icons'
 
 const ACCENT = 'var(--accent-sage)'

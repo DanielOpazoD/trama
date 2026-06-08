@@ -1,6 +1,6 @@
 import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react'
-import { redo, undo, type History } from '../../../lib/pdfStudio/history'
-import type { Annotation } from '../../../lib/pdfStudio/model'
+import { redo, undo, type History } from '../../../lib/pdfStudio/model/history'
+import type { Annotation } from '../../../lib/pdfStudio/model/model'
 import { reduceAnnotationShortcut } from './pdfAnnotationShortcuts'
 
 function isEditableTarget(target: EventTarget | null): boolean {

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { makePdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import { makePdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 import { PdfTextEditorFormSurface } from './PdfTextEditorFormSurface'
 
 const field = makePdfFormFieldDraft({

@@ -8,8 +8,12 @@ import {
   type ImageAnnotation,
   type PdfDoc,
   type TextAnnotation,
-} from '../../../lib/pdfStudio/model'
-import { initHistory, pushHistory, type History } from '../../../lib/pdfStudio/history'
+} from '../../../lib/pdfStudio/model/model'
+import {
+  initHistory,
+  pushHistory,
+  type History,
+} from '../../../lib/pdfStudio/model/history'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { EditorToolbar } from './EditorToolbar'
 import { PdfTextEditorHeaderSlot } from './PdfTextEditorHeaderSlot'

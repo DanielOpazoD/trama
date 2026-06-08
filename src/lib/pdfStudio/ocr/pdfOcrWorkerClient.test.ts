@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   createSearchablePdf: vi.fn(),
 }))
 
-vi.mock('./heavyOperationClient', () => ({
+vi.mock('../export/heavyOperationClient', () => ({
   runPdfHeavyOperation: mocks.runPdfHeavyOperation,
 }))
 vi.mock('./pdfOcr', () => ({

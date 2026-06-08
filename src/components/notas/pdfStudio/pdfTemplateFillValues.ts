@@ -2,7 +2,7 @@ import type {
   PdfFormFieldDraft,
   PdfFormFieldKind,
   PdfFormValue,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 import type { TemplateFillImportValues } from './pdfTemplateFillImport'
 
 const normalizeImportKey = (value: string) => value.trim().toLowerCase()

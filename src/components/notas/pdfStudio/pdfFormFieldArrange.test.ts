@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   makePdfFormFieldDraft,
   type PdfFormFieldDraft,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 import { alignFormFields, distributeFormFields } from './pdfFormFieldArrange'
 
 const field = (

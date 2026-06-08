@@ -4,7 +4,7 @@ import {
   textBoxLayout,
   type Annotation,
   type PdfFontKind,
-} from './model'
+} from '../model/model'
 import { dataUrlToBytes, isPngBytes } from './assembleImages'
 import { errMessage, type SkippedSource } from './assemblePipeline'
 import type { PDFFont, PDFDocument, PDFPage } from 'pdf-lib'

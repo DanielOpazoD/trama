@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PDFDocument, PDFName } from 'pdf-lib'
-import { makePdfFormFieldDraft } from './model'
+import { makePdfFormFieldDraft } from '../model/model'
 import {
   fillPdfForm,
   inspectPdfForm,

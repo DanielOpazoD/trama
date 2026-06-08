@@ -1,4 +1,7 @@
-import { isSavedFilledTemplate, type SavedDoc } from '../../../lib/pdfStudio/persistence'
+import {
+  isSavedFilledTemplate,
+  type SavedDoc,
+} from '../../../lib/pdfStudio/render/persistence'
 import { DownloadIcon, PencilIcon, TrashIcon } from '../../Icons'
 
 const rowBtn =

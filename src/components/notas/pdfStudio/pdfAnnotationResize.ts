@@ -4,12 +4,12 @@ import type {
   RedactionAnnotation,
   ShapeAnnotation,
   TextAnnotation,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 import {
   resizeRatioBox,
   screenDeltaToPage,
   type ResizeHandle,
-} from '../../../lib/pdfStudio/editorGeometry'
+} from '../../../lib/pdfStudio/model/editorGeometry'
 import { clamp } from './editorStyle'
 
 export type ResizableAnnotation =

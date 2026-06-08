@@ -1,5 +1,5 @@
-import { type ImageAsset } from '../../../lib/pdfStudio/model'
-import { isSavedTemplate, type SavedDoc } from '../../../lib/pdfStudio/persistence'
+import { type ImageAsset } from '../../../lib/pdfStudio/model/model'
+import { isSavedTemplate, type SavedDoc } from '../../../lib/pdfStudio/render/persistence'
 import { CameraIcon, ChevronLeftIcon, ChevronRightIcon, FilePdfIcon } from '../../Icons'
 import { WorkspaceImagesSection } from './WorkspaceImagesSection'
 import { WorkspaceSavedDocsSection } from './WorkspaceSavedDocsSection'

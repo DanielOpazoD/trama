@@ -1,10 +1,10 @@
-import { createSearchablePdf } from './pdfOcr'
+import { assemble } from '../assemble/assemble'
 import {
-  PDF_OCR_OPERATION_KIND,
-  type PdfOcrWorkerPayload,
-  type PdfOcrWorkerProgress,
-  type PdfOcrWorkerResult,
-} from './pdfOcrWorkerContract'
+  PDF_EXPORT_OPERATION_KIND,
+  type PdfExportWorkerPayload,
+  type PdfExportWorkerProgress,
+  type PdfExportWorkerResult,
+} from './exportWorkerContract'
 import {
   serializePdfHeavyOperationError,
   type PdfHeavyOperationRunMessage,
@@ -26,19 +26,19 @@ function post(message: PdfHeavyOperationWorkerMessage) {
   workerScope.postMessage(message)
 }
 
-async function runOcr(message: PdfHeavyOperationRunMessage<PdfOcrWorkerPayload>) {
+async function runExport(message: PdfHeavyOperationRunMessage<PdfExportWorkerPayload>) {
   const controller = new AbortController()
   controllers.set(message.id, controller)
 
   try {
-    const result = await createSearchablePdf(message.payload.file, {
-      language: message.payload.options.language,
+    const result = await assemble(message.payload.doc, {
+      compression: message.payload.options?.compression,
       signal: controller.signal,
-      onProgress: (progress: PdfOcrWorkerProgress) => {
+      onProgress: (progress: PdfExportWorkerProgress) => {
         post({
           type: 'progress',
           id: message.id,
-          kind: PDF_OCR_OPERATION_KIND,
+          kind: PDF_EXPORT_OPERATION_KIND,
           progress,
         })
       },
@@ -47,14 +47,14 @@ async function runOcr(message: PdfHeavyOperationRunMessage<PdfOcrWorkerPayload>)
     post({
       type: 'complete',
       id: message.id,
-      kind: PDF_OCR_OPERATION_KIND,
-      result: result satisfies PdfOcrWorkerResult,
+      kind: PDF_EXPORT_OPERATION_KIND,
+      result: result satisfies PdfExportWorkerResult,
     })
   } catch (err) {
     post({
       type: 'error',
       id: message.id,
-      kind: PDF_OCR_OPERATION_KIND,
+      kind: PDF_EXPORT_OPERATION_KIND,
       error: serializePdfHeavyOperationError(err),
     })
   } finally {
@@ -68,17 +68,17 @@ workerScope.addEventListener('message', (event) => {
     controllers.get(message.id)?.abort('cancelled')
     return
   }
-  if (message.kind !== PDF_OCR_OPERATION_KIND) {
+  if (message.kind !== PDF_EXPORT_OPERATION_KIND) {
     post({
       type: 'error',
       id: message.id,
       kind: message.kind,
       error: {
-        message: `Operación no soportada por el worker OCR: ${message.kind}`,
+        message: `Operación no soportada por el worker de exportación: ${message.kind}`,
         code: 'UNSUPPORTED_OPERATION',
       },
     })
     return
   }
-  void runOcr(message as PdfHeavyOperationRunMessage<PdfOcrWorkerPayload>)
+  void runExport(message as PdfHeavyOperationRunMessage<PdfExportWorkerPayload>)
 })

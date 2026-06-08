@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { type PdfPage } from '../../../lib/pdfStudio/model'
+import { type PdfPage } from '../../../lib/pdfStudio/model/model'
 
 export type PageSelection = {
   /** IDs de las páginas seleccionadas (por ID → sobrevive reordenar/borrar). */

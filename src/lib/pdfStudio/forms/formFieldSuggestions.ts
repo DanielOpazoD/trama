@@ -1,5 +1,5 @@
-import { makePdfFormFieldDraft } from './modelForms'
-import type { PdfFormFieldDraft } from './modelTypes'
+import { makePdfFormFieldDraft } from '../model/modelForms'
+import type { PdfFormFieldDraft } from '../model/modelTypes'
 
 export type HorizontalRun = { x: number; y: number; width: number; height: number }
 

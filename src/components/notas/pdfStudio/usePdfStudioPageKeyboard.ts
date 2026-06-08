@@ -10,9 +10,9 @@ import {
   pageThumbKey,
   subsetDoc,
   type PdfDoc,
-} from '../../../lib/pdfStudio/model'
-import { redo, undo, type History } from '../../../lib/pdfStudio/history'
-import { forgetThumb } from '../../../lib/pdfStudio/pdfRender'
+} from '../../../lib/pdfStudio/model/model'
+import { redo, undo, type History } from '../../../lib/pdfStudio/model/history'
+import { forgetThumb } from '../../../lib/pdfStudio/render/pdfRender'
 
 export function usePdfStudioPageKeyboard({
   textPage,

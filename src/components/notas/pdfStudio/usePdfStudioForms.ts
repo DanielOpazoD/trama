@@ -4,16 +4,16 @@ import {
   replacePdfSourceFile,
   type PdfDoc,
   type PdfSource,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 import {
   fillPdfFormInWorker,
   inspectPdfFormInWorker,
-} from '../../../lib/pdfStudio/pdfFormWorkerClient'
+} from '../../../lib/pdfStudio/forms/pdfFormWorkerClient'
 import type {
   PdfFormFieldInfo,
   PdfFormFieldValue,
   PdfFormFillValues,
-} from '../../../lib/pdfStudio/pdfForms'
+} from '../../../lib/pdfStudio/forms/pdfForms'
 import { useToast } from '../../../state'
 
 export type PdfStudioDetectedForm = {

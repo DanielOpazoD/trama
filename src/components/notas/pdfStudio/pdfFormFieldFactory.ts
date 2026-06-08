@@ -3,7 +3,7 @@ import {
   type PdfFormFieldDraft,
   type PdfFormFieldKind,
   type PdfPage,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 import type { TextStyle } from './editorStyle'
 import {
   defaultFormValue,

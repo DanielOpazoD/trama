@@ -6,11 +6,11 @@ import {
   emptyDoc,
   makePdfFormFieldDraft,
   type ImageAsset,
-} from '../../../lib/pdfStudio/model'
-import type { SavedDoc } from '../../../lib/pdfStudio/persistence'
+} from '../../../lib/pdfStudio/model/model'
+import type { SavedDoc } from '../../../lib/pdfStudio/render/persistence'
 import { WorkspacePanel } from './WorkspacePanel'
 
-vi.mock('../../../lib/pdfStudio/pdfRender', () => ({
+vi.mock('../../../lib/pdfStudio/render/pdfRender', () => ({
   renderPageThumb: vi.fn(async () => 'blob:template-thumb'),
 }))
 

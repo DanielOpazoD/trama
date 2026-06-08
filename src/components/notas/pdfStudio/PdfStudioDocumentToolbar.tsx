@@ -1,6 +1,6 @@
-import { pdfCommandTooltip } from '../../../lib/pdfStudio/commands'
-import type { AssembleOptions } from '../../../lib/pdfStudio/assemble'
-import type { DocSettings } from '../../../lib/pdfStudio/model'
+import { pdfCommandTooltip } from '../../../lib/pdfStudio/model/commands'
+import type { AssembleOptions } from '../../../lib/pdfStudio/assemble/assemble'
+import type { DocSettings } from '../../../lib/pdfStudio/model/model'
 import type { PdfTemplateMode } from './PdfTemplateModeBanner'
 import { OverflowMenu, OverflowMenuItem } from '../../OverflowMenu'
 import {

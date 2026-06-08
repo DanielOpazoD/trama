@@ -2,7 +2,7 @@ import type {
   PdfFormFieldDraft,
   PdfFormFieldKind,
   PdfFormValue,
-} from '../../../lib/pdfStudio/model'
+} from '../../../lib/pdfStudio/model/model'
 export { initialFieldBox } from './pdfFormFieldSizing'
 
 export function defaultFormValue(kind: PdfFormFieldKind): PdfFormValue {

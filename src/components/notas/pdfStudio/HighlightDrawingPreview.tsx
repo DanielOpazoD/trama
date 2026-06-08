@@ -1,4 +1,4 @@
-import { rectFromPoints } from '../../../lib/pdfStudio/editorGeometry'
+import { rectFromPoints } from '../../../lib/pdfStudio/model/editorGeometry'
 import { ACCENT, HIGHLIGHT_OPACITY, hexToRgba } from './editorStyle'
 
 type PreviewRect = { x0: number; y0: number; x1: number; y1: number }

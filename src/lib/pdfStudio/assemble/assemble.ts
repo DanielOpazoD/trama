@@ -6,7 +6,7 @@ import {
   type PdfDoc,
   type PdfFontKind,
   type PdfSource,
-} from './model'
+} from '../model/model'
 import type { PDFFont, PDFPage } from 'pdf-lib'
 import { applyPdfAnnotations } from './assembleAnnotations'
 import { addImagePage, readPngSize } from './assembleImages'
@@ -40,10 +40,10 @@ export type {
   SkippedSource,
 } from './assemblePipeline'
 
-import interRegularUrl from './fonts/inter-latin-400-normal.woff?url'
-import interBoldUrl from './fonts/inter-latin-700-normal.woff?url'
-import spectralRegularUrl from './fonts/spectral-latin-400-normal.woff?url'
-import spectralBoldUrl from './fonts/spectral-latin-700-normal.woff?url'
+import interRegularUrl from '../fonts/inter-latin-400-normal.woff?url'
+import interBoldUrl from '../fonts/inter-latin-700-normal.woff?url'
+import spectralRegularUrl from '../fonts/spectral-latin-400-normal.woff?url'
+import spectralBoldUrl from '../fonts/spectral-latin-700-normal.woff?url'
 
 export type AssembleResult = {
   blob: Blob

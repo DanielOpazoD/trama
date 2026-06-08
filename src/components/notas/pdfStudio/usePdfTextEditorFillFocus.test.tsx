@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { makePdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import { makePdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 import { usePdfTextEditorFillFocus } from './usePdfTextEditorFillFocus'
 
 const field = makePdfFormFieldDraft({

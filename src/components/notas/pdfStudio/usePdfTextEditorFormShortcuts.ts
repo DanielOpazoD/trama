@@ -1,5 +1,5 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react'
-import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model'
+import type { PdfFormFieldDraft } from '../../../lib/pdfStudio/model/model'
 import { reduceFormFieldShortcut } from './pdfFormFieldShortcuts'
 
 export function usePdfTextEditorFormShortcuts({
