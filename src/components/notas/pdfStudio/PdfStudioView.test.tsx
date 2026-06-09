@@ -377,8 +377,11 @@ describe('<PdfStudioView />', () => {
       within(fillDialog).getByRole('button', { name: /Imprimir planilla/i }),
     )
 
-    // "Imprimir planilla" del diálogo de llenado descarga la planilla rellenada.
-    await waitFor(() => expect(mocks.downloadBlob).toHaveBeenCalled())
+    // "Imprimir planilla" abre la planilla rellenada (campos aplicados) en la
+    // vista previa en modal, desde donde se imprime o descarga.
+    expect(
+      await screen.findByRole('dialog', { name: /Vista previa del PDF/i }),
+    ).toBeInTheDocument()
     expect(mocks.assemblePdfInWorker).toHaveBeenCalledWith(
       expect.objectContaining({
         formFields: [expect.objectContaining({ name: 'paciente', value: 'Daniel' })],
@@ -420,6 +423,8 @@ describe('<PdfStudioView />', () => {
       within(fillDialog).getByRole('button', { name: /Imprimir planilla/i }),
     )
 
+    // Abre la vista previa en modal con la planilla rellenada.
+    await screen.findByRole('dialog', { name: /Vista previa del PDF/i })
     expect(mocks.assemblePdfInWorker).toHaveBeenCalledWith(
       expect.objectContaining({
         formFields: [expect.objectContaining({ name: 'paciente', value: 'Camila' })],

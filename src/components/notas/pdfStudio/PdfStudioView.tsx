@@ -129,7 +129,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   } = usePdfStudioTemplateMode({
     doc,
     enabled: templatesEnabled,
-    exportPdf,
+    openPreview,
     openSaved,
     openTemplate,
     saveTemplate,
@@ -165,7 +165,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     usePdfStudioFilledTemplateActions({
       activeTemplateName,
       doc,
-      exportPdf,
+      openPreview,
       saveFilledCopy,
     })
   const { bulkDelete, bulkDuplicate, bulkRotate, exportMarked, newDoc, nudge, reorder } =

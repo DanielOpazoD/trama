@@ -7,12 +7,14 @@ import {
 export function usePdfStudioFilledTemplateActions({
   activeTemplateName,
   doc,
-  exportPdf,
+  openPreview,
   saveFilledCopy,
 }: {
   activeTemplateName: string | null
   doc: PdfDoc
-  exportPdf: (
+  /** Abre la planilla rellenada (aplanada) en la vista previa en modal, desde
+   *  donde el usuario imprime o descarga — igual que "Guardar PDF" del editor. */
+  openPreview: (
     target: PdfDoc,
     kind?: string,
     options?: { flattenFormFields?: boolean },
@@ -20,7 +22,7 @@ export function usePdfStudioFilledTemplateActions({
   saveFilledCopy: (name: string, doc: PdfDoc) => void
 }) {
   function printFilledTemplate(edits: PdfTextEditorResult) {
-    void exportPdf(applyPdfTextEditorResult(doc, edits), 'planilla', {
+    void openPreview(applyPdfTextEditorResult(doc, edits), 'planilla', {
       flattenFormFields: true,
     })
   }
