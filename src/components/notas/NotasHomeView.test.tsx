@@ -114,7 +114,7 @@ describe('<NotasHomeView />', () => {
     await user.click(screen.getByRole('button', { name: /nueva tarea/i }))
     await user.click(screen.getByRole('button', { name: /Nota fijada del día/i }))
     await user.click(screen.getByRole('button', { name: /Prompt favorito/i }))
-    await user.click(screen.getByRole('button', { name: /Claves protegidas/i }))
+    await user.click(screen.getByRole('button', { name: /Tus claves, a salvo/i }))
 
     expect(onNavigate).toHaveBeenNthCalledWith(1, 'tareas')
     expect(onNavigate).toHaveBeenNthCalledWith(2, 'notas')

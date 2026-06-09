@@ -173,10 +173,12 @@ describe('<PdfStudioView />', () => {
     await screen.findByAltText('Página 1')
 
     expect(
-      screen.getByText(/Marca en el documento los espacios donde se escribirá/i),
+      screen.getByText(/Doble clic en una hoja para marcar los casilleros/i),
     ).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /Agregar casilleros/i }))
+    // Se entra al diseño con doble clic en la hoja (ya no hay botón "Agregar
+    // casilleros": era redundante con este gesto).
+    await user.dblClick(screen.getByAltText('Página 1'))
     expect(
       await screen.findByRole('dialog', { name: /Crear plantilla/i }),
     ).toBeInTheDocument()
@@ -216,15 +218,13 @@ describe('<PdfStudioView />', () => {
     ).toBeInTheDocument()
   })
 
-  it('en planillas abre el editor de casilleros cuando el PDF aún no tiene campos', async () => {
+  it('en planillas abre el editor de casilleros con doble clic en la hoja', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView studioMode="templates" />)
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
-    const addFields = screen.getByRole('button', { name: /Agregar casilleros/i })
-    expect(addFields).toBeEnabled()
-    await user.click(addFields)
+    await user.dblClick(screen.getByAltText('Página 1'))
 
     expect(
       await screen.findByRole('dialog', { name: /Crear plantilla/i }),
@@ -244,32 +244,25 @@ describe('<PdfStudioView />', () => {
     expect(screen.queryByTitle(/Doble clic para ver y editar/i)).toBeNull()
   })
 
-  it('el botón principal Agregar casilleros abre directamente Crear plantilla', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<PdfStudioView studioMode="templates" />)
-    await user.upload(fileInput(), pdfFile())
-    await screen.findByAltText('Página 1')
-
-    await user.click(screen.getByRole('button', { name: /^Agregar casilleros$/i }))
-
-    expect(
-      await screen.findByRole('dialog', { name: /Crear plantilla/i }),
-    ).toBeInTheDocument()
-    expect(screen.queryByPlaceholderText(/Nombre de la planilla/i)).toBeNull()
-  })
-
-  it('la barra principal mantiene una fila compacta y agrupa acciones secundarias', async () => {
+  it('la barra principal mantiene una fila compacta con Nuevo documento a la par del guardado', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
 
     const toolbar = screen.getByRole('toolbar', { name: /Acciones del documento PDF/i })
     expect(toolbar).toHaveClass('flex-nowrap')
     expect(toolbar).not.toHaveClass('rounded-lg')
-    expect(screen.queryByRole('button', { name: /^Descargar$/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^Nuevo$/i })).not.toBeInTheDocument()
+    // "Nuevo documento" salió del menú y es un botón primario en Imprenta.
+    expect(
+      within(toolbar).getByRole('button', { name: /Nuevo documento/i }),
+    ).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
-    expect(screen.getByRole('menuitem', { name: /Descargar/i })).toBeDisabled()
+    // "Descargar" ya no vive en el menú (Guardar PDF abre la vista previa para
+    // descargar) y "Nuevo documento" se promovió a botón.
+    expect(screen.queryByRole('menuitem', { name: /Descargar/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('menuitem', { name: /Nuevo documento/i }),
+    ).not.toBeInTheDocument()
     expect(
       screen.queryByRole('menuitem', { name: /Detectar formularios/i }),
     ).not.toBeInTheDocument()
@@ -602,6 +595,10 @@ describe('<PdfStudioView />', () => {
       { flatten: false },
       expect.anything(),
     )
+    // La descarga sale de la vista previa en modal (gesto fresco del click →
+    // funciona en Safari/WebKit, que bloquea descargas post-async del menú).
+    const preview = await screen.findByRole('dialog', { name: /Vista previa del PDF/i })
+    await user.click(within(preview).getByRole('button', { name: /Descargar/i }))
     expect(mocks.downloadBlob).toHaveBeenCalledWith(
       expect.any(Blob),
       expect.stringMatching(/rellenable.*\.pdf$/),
@@ -899,6 +896,8 @@ describe('<PdfStudioView />', () => {
     // La imagen entra como página y además aparece el panel (con la biblioteca).
     expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Ocultar el panel/i })).toBeInTheDocument()
+    // La sección "Imágenes" arranca colapsada; la abrimos para reutilizar.
+    await user.click(screen.getByRole('button', { name: /Imágenes/i }))
     // Y se puede agregar otra vez al documento desde la biblioteca.
     await user.click(
       screen.getByRole('button', { name: /Agregar esta imagen al documento/i }),

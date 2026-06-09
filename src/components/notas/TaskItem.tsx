@@ -16,7 +16,9 @@ import { AttachmentPhotos } from './AttachmentPhotos'
 import { PriorityDots, PriorityMenu } from './PriorityDots'
 import { formatWeekRange, relativeWeekLabel, shiftWeeks } from './notasUtils'
 
-const ACCENT = 'var(--accent-sage)'
+// Tono único del mundo Notas: el primario (--accent-primary), remapeado a
+// salvia por world-notas. No hardcodear el salvia (un solo sistema de tono).
+const ACCENT = 'var(--accent-primary)'
 
 /** Resalta los #tags del texto conservando saltos de línea (igual que NoteCard). */
 function renderWithTags(text: string): ReactNode[] {

@@ -8,7 +8,7 @@ import {
 } from '../../state'
 import type { Task, TaskPriority, TaskCategory } from '../../api'
 import { LoadingHint } from '../LoadingHint'
-import { PlusIcon, CameraIcon } from '../Icons'
+import { PlusIcon, CameraIcon, SortIcon } from '../Icons'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { TaskItem } from './TaskItem'
 import { PriorityDots } from './PriorityDots'
@@ -44,24 +44,6 @@ const CATEGORY_TABS: { key: TaskCategory; label: string }[] = [
   { key: 'trabajo', label: 'Trabajo' },
   { key: 'personal', label: 'Personal' },
 ]
-
-/** Icono "ordenar" (barras decrecientes) — el sistema no tiene uno propio. */
-function SortGlyph({ size = 14 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      aria-hidden
-    >
-      <path d="M4 6h16M4 12h10M4 18h5" />
-    </svg>
-  )
-}
 
 /**
  * Trama Notas — sección Tareas. Arriba, un navegador por año y mes; al elegir
@@ -208,7 +190,7 @@ export function TareasView() {
               label={`Ordenar — ${SORT_LABELS[sortMode]}`}
               width="w-52"
               triggerClassName="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
-              triggerContent={<SortGlyph />}
+              triggerContent={<SortIcon />}
             >
               {(close) => (
                 <>

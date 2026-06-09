@@ -16,7 +16,10 @@ import { Fragment, type ReactNode } from 'react'
  * `**` — es la convención más segura y común en notas.
  */
 
-const ACCENT = 'var(--accent-sage)'
+// Tono de acento del mundo Notas: fluye del primario único (--accent-primary),
+// que world-notas remapea a salvia. Un solo sistema de tono para tags/chips —
+// el mismo que usa .chip[data-tone='primary']; no se hardcodea el salvia.
+const ACCENT = 'var(--accent-primary)'
 
 // ---------- Inline ----------
 

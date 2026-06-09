@@ -661,6 +661,14 @@ export const KeyIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Ordenar — barras decrecientes. Usado por el menú de orden de Tareas; antes
+    era un SVG suelto a strokeWidth 2 (fuera de la house weight 1.6). */
+export const SortIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M4 6h16M4 12h10M4 18h5" />
+  </svg>
+)
+
 /** Archivo adjunto genérico. */
 export const FileIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

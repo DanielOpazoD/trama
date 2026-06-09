@@ -392,8 +392,10 @@ export function ClavesView({
       ) : secrets.length === 0 ? (
         <EmptyMessage
           illustration="thread"
-          title="Tu vault aún está vacío."
-          body={<>Guarda API keys, tokens, PINs, licencias o recovery codes.</>}
+          title="Tu llavero aún está vacío."
+          body={
+            <>Guarda contraseñas, tokens, PINs, licencias o códigos de recuperación.</>
+          }
           hint="Los secretos se ocultan en la lista y se revelan temporalmente."
         />
       ) : (

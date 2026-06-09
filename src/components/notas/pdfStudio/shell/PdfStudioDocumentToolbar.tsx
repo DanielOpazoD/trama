@@ -5,7 +5,6 @@ import type { PdfTemplateMode } from '../planillas/design/PdfTemplateModeBanner'
 import { OverflowMenu, OverflowMenuItem } from '../../../OverflowMenu'
 import {
   CloseIcon,
-  DownloadIcon,
   FilePdfIcon,
   FileIcon,
   PrinterIcon,
@@ -35,7 +34,6 @@ export function PdfStudioDocumentToolbar({
   undoable,
   watermarkText,
   onCancelExport,
-  onDownload,
   onDownloadFillable,
   onImport,
   onNewDoc,
@@ -65,7 +63,6 @@ export function PdfStudioDocumentToolbar({
   undoable: boolean
   watermarkText: string
   onCancelExport: () => void
-  onDownload: () => void
   onDownloadFillable: () => void
   onImport: () => void
   onNewDoc: () => void
@@ -84,26 +81,21 @@ export function PdfStudioDocumentToolbar({
   const isTemplates = studioMode === 'templates'
   const isFillMode = isTemplates && templateMode === 'fill'
   const canDownloadFillable = isTemplates && templateMode === 'design'
+  // En diseño de planilla SIN casilleros aún, no hay botón primario: se agregan
+  // casilleros con doble clic en la hoja (entra a "Crear plantilla"). El botón
+  // "Agregar casilleros" era redundante con ese gesto.
   const needsTemplateFields = canDownloadFillable && !empty && !canSaveTemplate
   const primaryLabel = isFillMode
     ? 'Imprimir planilla'
-    : needsTemplateFields
-      ? 'Agregar casilleros'
-      : isTemplates
-        ? 'Guardar planilla'
-        : 'Guardar PDF'
-  const primaryDisabled = isFillMode
-    ? empty || saving || busy
     : isTemplates
-      ? empty || saving || busy
-      : empty || saving || busy
+      ? 'Guardar planilla'
+      : 'Guardar PDF'
+  const primaryDisabled = empty || saving || busy
   const primaryTitle = isFillMode
     ? 'Abrir la vista previa para imprimir o descargar la planilla rellenada'
-    : needsTemplateFields
-      ? 'Abrir el editor para agregar casilleros de texto a esta planilla'
-      : isTemplates
-        ? 'Guardar esta estructura como planilla reusable'
-        : 'Abrir la vista previa para imprimir o descargar el PDF'
+    : isTemplates
+      ? 'Guardar esta estructura como planilla reusable'
+      : 'Abrir la vista previa para imprimir o descargar el PDF'
   const PrimaryIcon = isTemplates && !isFillMode ? FilePdfIcon : PrinterIcon
   const handlePrimary = isFillMode
     ? onPrintTemplate
@@ -158,9 +150,25 @@ export function PdfStudioDocumentToolbar({
             {total} {total === 1 ? 'página' : 'páginas'}
           </span>
         )}
+        {/* "Nuevo documento" salió del menú "···" y queda como acción a la par
+            del guardado (sólo Imprenta; en Planillas sigue en el menú). */}
+        {!isTemplates && (
+          <button
+            type="button"
+            onClick={onNewDoc}
+            disabled={empty || busy}
+            aria-label="Nuevo documento"
+            title="Empezar un documento nuevo (descarta el actual)"
+            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-ink-200 px-2.5 text-caption font-medium text-ink-700 transition-colors hover:bg-ink-100/50 hover:text-ink-900 disabled:opacity-40"
+          >
+            <FileIcon size={13} />
+            <span className="hidden sm:inline">Nuevo documento</span>
+          </button>
+        )}
         {/* En LLENADO la acción de imprimir vive en el banner contextual
-            (PdfTemplateModeBanner), así no se duplica el botón. */}
-        {!isFillMode && (
+            (PdfTemplateModeBanner), así no se duplica el botón. En diseño sin
+            casilleros tampoco hay primario (se entra con doble clic en la hoja). */}
+        {!isFillMode && !needsTemplateFields && (
           <button
             type="button"
             onClick={handlePrimary}
@@ -194,16 +202,6 @@ export function PdfStudioDocumentToolbar({
         >
           {(close) => (
             <>
-              <OverflowMenuItem
-                disabled={empty || saving || busy}
-                onClick={() => {
-                  close()
-                  onDownload()
-                }}
-              >
-                <DownloadIcon size={13} />
-                Descargar
-              </OverflowMenuItem>
               {canDownloadFillable && (
                 <OverflowMenuItem
                   disabled={empty || saving || busy || !canSaveTemplate}
@@ -216,16 +214,18 @@ export function PdfStudioDocumentToolbar({
                   Descargar PDF rellenable
                 </OverflowMenuItem>
               )}
-              <OverflowMenuItem
-                disabled={empty || busy}
-                onClick={() => {
-                  close()
-                  onNewDoc()
-                }}
-              >
-                <FileIcon size={13} />
-                Nuevo documento
-              </OverflowMenuItem>
+              {isTemplates && (
+                <OverflowMenuItem
+                  disabled={empty || busy}
+                  onClick={() => {
+                    close()
+                    onNewDoc()
+                  }}
+                >
+                  <FileIcon size={13} />
+                  Nuevo documento
+                </OverflowMenuItem>
+              )}
               {formsEnabled && (
                 <OverflowMenuItem
                   disabled={empty || saving || busy}
