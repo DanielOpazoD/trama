@@ -290,11 +290,10 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
               onUndo={() => setHistory((h) => undo(h))}
               onRedo={() => setHistory((h) => redo(h))}
               onSavePdf={() => void openPreview(doc)}
-              // Descargar/rellenable van por la vista previa en modal (no descarga
+              // "Descargar rellenable" va por la vista previa en modal (no descarga
               // directa): Safari bloquea el a.click() tras el ensamblado async, fuera
               // del gesto del usuario. En el modal la descarga sale del click del botón
               // (gesto fresco) — el mismo camino seguro que ya usa "Guardar PDF".
-              onDownload={() => void openPreview(doc)}
               onDownloadFillable={() => void openPreview(doc, 'rellenable')}
               onCancelExport={cancelExport}
               onNewDoc={newDoc}
