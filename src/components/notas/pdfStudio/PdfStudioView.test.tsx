@@ -373,7 +373,7 @@ describe('<PdfStudioView />', () => {
       within(fillDialog).getByRole('button', { name: /Imprimir planilla/i }),
     )
 
-    expect(mocks.openBlankPdfTab).toHaveBeenCalled()
+    expect(mocks.downloadBlob).toHaveBeenCalled()
     expect(mocks.assemblePdfInWorker).toHaveBeenCalledWith(
       expect.objectContaining({
         formFields: [expect.objectContaining({ name: 'paciente', value: 'Daniel' })],
@@ -934,11 +934,11 @@ describe('<PdfStudioView />', () => {
     expect(screen.getByText(/1 página/)).toBeInTheDocument()
     expect(mocks.forgetThumb).toHaveBeenCalled()
 
-    // Guardar → ensambla + abre el PDF en el visor del navegador.
+    // Guardar → ensambla + descarga el PDF directamente.
     await user.click(screen.getByRole('button', { name: /Guardar PDF/i }))
     expect(mocks.assemblePdfInWorker).toHaveBeenCalledTimes(1)
     expect(mocks.assemble).not.toHaveBeenCalled()
-    expect(mocks.showPdfInTab).toHaveBeenCalledTimes(1)
+    expect(mocks.downloadBlob).toHaveBeenCalledTimes(1)
   })
 
   it('undo y redo revierten y reaplican la importación', async () => {
@@ -1143,7 +1143,7 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
     expect(mocks.assemblePdfInWorker).toHaveBeenCalledTimes(1)
     expect(mocks.assemblePdfInWorker.mock.calls[0]![0].pages).toHaveLength(2)
-    expect(mocks.showPdfInTab).toHaveBeenCalledTimes(1)
+    expect(mocks.downloadBlob).toHaveBeenCalledTimes(1)
 
     // Marco 1 hoja → "Exportar" (barra) exporta SÓLO esa.
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))

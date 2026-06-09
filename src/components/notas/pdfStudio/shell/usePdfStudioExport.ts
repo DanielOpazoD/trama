@@ -3,11 +3,10 @@ import type { AssembleOptions } from '../../../../lib/pdfStudio/assemble/assembl
 import { assemblePdfInWorker } from '../../../../lib/pdfStudio/export/exportWorkerClient'
 import { canExport, type PdfDoc } from '../../../../lib/pdfStudio/model/model'
 import { writePdfFormFieldsInWorker } from '../../../../lib/pdfStudio/forms/pdfFormWorkerClient'
-import { openBlankPdfTab, showPdfInTab } from '../../../../lib/pdfStudio/export/printPdf'
 import { downloadBlob } from '../../../../lib/downloadBlob'
 import { useToast } from '../../../../state'
 import { type SavedDoc } from '../../../../lib/pdfStudio/render/persistence'
-import { exportPdfName, shouldDownloadPdfDirectly } from './pdfStudioFileUtils'
+import { exportPdfName } from './pdfStudioFileUtils'
 import {
   describePdfExportError,
   pdfExportPipelineProgressLabel,
@@ -82,45 +81,12 @@ export function usePdfStudioExport({
     }
   }
 
-  async function exportPdf(
-    target: PdfDoc,
-    kind?: string,
-    options: { flattenFormFields?: boolean } = {},
-  ) {
-    if (!canExport(target) || saving) return
-    setSaving(true)
-    // Safari (iOS y escritorio) no muestra de forma confiable un blob PDF en una
-    // pestaña nueva, así que para esos navegadores descargamos directo.
-    const downloadDirectly = shouldDownloadPdfDirectly()
-    const viewer = downloadDirectly ? null : openBlankPdfTab()
-    try {
-      const blob = await assembleOrToast(target, options)
-      if (!blob) {
-        viewer?.close()
-        return
-      }
-      if (downloadDirectly) {
-        downloadBlob(blob, exportPdfName(undefined, kind))
-        toast.show({
-          message:
-            'Descargamos el PDF; ábrelo desde tus descargas para verlo o imprimirlo.',
-          tone: 'default',
-        })
-        return
-      }
-      showPdfInTab(viewer, blob, () => {
-        downloadBlob(blob, exportPdfName(undefined, kind))
-        toast.show({
-          message: 'Tu navegador bloqueó la ventana; descargamos el PDF.',
-          tone: 'default',
-        })
-      })
-    } finally {
-      setExportStatus(null)
-      setSaving(false)
-    }
-  }
-
+  // "Guardar PDF" DESCARGA el archivo directamente. Antes abría el PDF en una
+  // pestaña nueva (visor del navegador) y eso fallaba en varios navegadores
+  // (bloqueador de pop-ups, y Safari ni siquiera navega a un `blob:` en pestaña
+  // nueva) → el usuario clickeaba y "no pasaba nada". Descargar es lo que el
+  // botón promete y funciona igual en todos lados; para imprimir, se abre el
+  // archivo descargado.
   async function downloadPdf(
     target: PdfDoc,
     kind?: string,
@@ -130,12 +96,18 @@ export function usePdfStudioExport({
     setSaving(true)
     try {
       const blob = await assembleOrToast(target, options)
-      if (blob) downloadBlob(blob, exportPdfName(undefined, kind))
+      if (!blob) return
+      downloadBlob(blob, exportPdfName(undefined, kind))
+      toast.show({ message: 'PDF descargado.', tone: 'success' })
     } finally {
       setExportStatus(null)
       setSaving(false)
     }
   }
+
+  // Alias histórico: "Guardar PDF" / exportar selección / planilla usan este
+  // nombre. Hoy es idéntico a descargar (ver downloadPdf).
+  const exportPdf = downloadPdf
 
   function cancelExport() {
     abortRef.current?.abort()
