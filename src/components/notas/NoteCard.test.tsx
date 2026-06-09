@@ -7,6 +7,7 @@ import { renderWithProviders } from '../../test-utils'
 const BASE: Note = {
   id: 'n1',
   content: 'una nota',
+  title: null,
   tags: [],
   pinned: false,
   promotedMomentoId: null,
@@ -80,10 +81,27 @@ describe('<NoteCard />', () => {
     renderCard(BASE, { onEdit })
     openMenu()
     fireEvent.click(screen.getByRole('menuitem', { name: /editar/i }))
-    const textarea = screen.getByRole('textbox')
+    const textarea = screen.getByRole('textbox', { name: /contenido de la nota/i })
     fireEvent.change(textarea, { target: { value: 'nueva versión' } })
     fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
-    expect(onEdit).toHaveBeenCalledWith('nueva versión')
+    expect(onEdit).toHaveBeenCalledWith({ content: 'nueva versión', title: null })
+  })
+
+  it('muestra el título cuando la nota lo tiene', () => {
+    renderCard({ ...BASE, title: 'Mi título' })
+    expect(screen.getByRole('heading', { name: 'Mi título' })).toBeInTheDocument()
+  })
+
+  it('permite agregar/editar el título en modo edición', () => {
+    const onEdit = vi.fn()
+    renderCard(BASE, { onEdit })
+    openMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: /editar/i }))
+    fireEvent.change(screen.getByRole('textbox', { name: /título de la nota/i }), {
+      target: { value: 'Título nuevo' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+    expect(onEdit).toHaveBeenCalledWith({ content: 'una nota', title: 'Título nuevo' })
   })
 
   it('borrar pide confirmación dentro del menú', () => {

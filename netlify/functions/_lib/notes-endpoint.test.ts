@@ -90,6 +90,39 @@ describe('notes endpoint — integration', () => {
     expect((await res.json()).tags).toEqual(['memoria'])
   })
 
+  it('POST con title lo inserta junto al content', async () => {
+    mockSqlResponses.push([], [{ ...NOTE_ROW, title: 'Mi título' }])
+    const res = await handler(
+      new Request('http://localhost/api/notes', {
+        method: 'POST',
+        body: JSON.stringify({ content: 'cuerpo', title: 'Mi título' }),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(201)
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO notes/i.test(c.template),
+    )
+    expect(insert?.template).toMatch(/\(content, title, tags, pinned, user_id\)/i)
+    expect(insert?.values).toContain('Mi título')
+  })
+
+  it('PATCH title:null lo borra (CASE provisto → null)', async () => {
+    mockSqlResponses.push([{ ...NOTE_ROW, title: null }])
+    const res = await handler(
+      new Request('http://localhost/api/notes/n1', {
+        method: 'PATCH',
+        body: JSON.stringify({ title: null }),
+      }),
+      mockContext({ id: 'n1' }),
+    )
+    expect(res.status).toBe(200)
+    const update = mockSqlResponses.calls.find((c) => /UPDATE notes/i.test(c.template))
+    // El CASE de title recibe `true` (provisto) y el valor normalizado (null).
+    expect(update?.template).toMatch(/title = CASE/i)
+    expect(update?.values).toContain(true)
+  })
+
   it('POST con content vacío devuelve 400', async () => {
     const res = await handler(
       new Request('http://localhost/api/notes', {

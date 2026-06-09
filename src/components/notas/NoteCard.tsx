@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { Note } from '../../api'
 import { renderMarkdown } from './markdown'
 import {
@@ -17,6 +17,10 @@ import { useToast, useUploadNotasAttachment } from '../../state'
 import { compressImage } from '../../lib/imageCompression'
 
 const ACCENT = 'var(--accent-sage)'
+// Alto (px) a partir del cual una nota larga se colapsa con "leer más". Calibrado
+// para ~9-10 líneas: alcanza para leer el comienzo sin que una nota domine la
+// lista. El colapso es la pieza que mantiene la lista compacta.
+const COLLAPSED_MAX_PX = 220
 
 function formatDate(iso: string): string {
   try {
@@ -32,10 +36,11 @@ function formatDate(iso: string): string {
 }
 
 /**
- * Note card minimalista: la cara muestra solo el texto de la nota. Las acciones
- * (→momento, editar, fijar, anexos, borrar) viven tras un menú de 3 puntos; un
- * punto salvia indica "fijada" y un ícono de cámara aparece si hay fotos (abre
- * el visor con editor). Editar usa un textarea que crece con el contenido.
+ * Note card minimalista: la cara muestra el título (si hay) + el texto, y las
+ * notas largas se colapsan con un "leer más" para que la lista entre más en
+ * pantalla. Las acciones más usadas (fijar, editar) aparecen al hover; el resto
+ * (→momento, foto, anexos, borrar) vive tras un menú de 3 puntos. Editar usa un
+ * textarea que crece con el contenido.
  */
 export function NoteCard({
   note,
@@ -50,7 +55,7 @@ export function NoteCard({
   onTogglePin: () => void
   onDelete: () => void
   onPromote: () => void
-  onEdit: (content: string) => void
+  onEdit: (patch: { content: string; title: string | null }) => void
   busy?: boolean
   promoting?: boolean
 }) {
@@ -58,16 +63,38 @@ export function NoteCard({
   const [editing, setEditing] = useState(false)
   const [showFiles, setShowFiles] = useState(false)
   const [draft, setDraft] = useState(note.content)
+  const [titleDraft, setTitleDraft] = useState(note.title ?? '')
+  const [expanded, setExpanded] = useState(false)
+  const [overflowing, setOverflowing] = useState(false)
+  const bodyRef = useRef<HTMLDivElement>(null)
   const promoted = note.promotedMomentoId !== null
   const editRef = useAutosizeTextarea(draft, { minRows: 4, maxRows: 16 })
   const photoInputRef = useRef<HTMLInputElement>(null)
   const upload = useUploadNotasAttachment()
   const toast = useToast()
 
+  // ¿La nota excede el alto colapsado? `scrollHeight` mide el alto COMPLETO
+  // aunque apliquemos max-height para el clamp, así sabemos si ofrecer "leer más".
+  useLayoutEffect(() => {
+    const el = bodyRef.current
+    if (!el) return
+    setOverflowing(el.scrollHeight > COLLAPSED_MAX_PX + 12)
+  }, [note.content])
+
+  function openEdit() {
+    setConfirming(false)
+    setDraft(note.content)
+    setTitleDraft(note.title ?? '')
+    setEditing(true)
+  }
+
   function saveEdit() {
     const next = draft.trim()
     if (!next) return
-    if (next !== note.content) onEdit(next)
+    const nextTitle = titleDraft.trim() || null
+    if (next !== note.content || nextTitle !== (note.title ?? null)) {
+      onEdit({ content: next, title: nextTitle })
+    }
     setEditing(false)
   }
 
@@ -102,22 +129,33 @@ export function NoteCard({
     if (photoInputRef.current) photoInputRef.current.value = ''
   }
 
-  // Modo edición — textarea con el contenido en crudo (markdown), ⌘↵ guarda.
+  // Modo edición — título opcional + textarea con el markdown en crudo, ⌘↵ guarda.
   if (editing) {
+    const onEditKey = (e: React.KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        saveEdit()
+      }
+    }
     return (
-      <article className="card-paper-soft rounded-xl border border-ink-100/70 p-4">
+      <article className="card-paper-soft rounded-xl border border-ink-100/70 p-3.5">
+        <input
+          value={titleDraft}
+          onChange={(e) => setTitleDraft(e.target.value)}
+          onKeyDown={onEditKey}
+          maxLength={200}
+          placeholder="Título (opcional)"
+          aria-label="Título de la nota (opcional)"
+          className="w-full bg-transparent font-serif text-lead text-ink-800 placeholder:font-sans placeholder:not-italic placeholder:text-ink-300 mb-1.5"
+        />
         <textarea
           ref={editRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-              e.preventDefault()
-              saveEdit()
-            }
-          }}
+          onKeyDown={onEditKey}
           rows={4}
           autoFocus
+          aria-label="Contenido de la nota"
           className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
         />
         <div className="mt-2 flex items-center justify-end gap-2">
@@ -137,12 +175,40 @@ export function NoteCard({
   }
 
   return (
-    <article className="card-paper-soft rounded-xl border border-ink-100/70 p-4 transition-colors">
-      <div className="break-words text-ink-700 leading-relaxed space-y-2">
-        {renderMarkdown(note.content)}
+    <article className="group card-paper-soft rounded-xl border border-ink-100/70 p-3.5 transition-colors">
+      {note.title && (
+        <h3 className="mb-1 break-words font-serif text-lead leading-snug text-ink-800">
+          {note.title}
+        </h3>
+      )}
+
+      <div className="relative">
+        <div
+          ref={bodyRef}
+          className="space-y-2 overflow-hidden break-words leading-relaxed text-ink-700"
+          style={overflowing && !expanded ? { maxHeight: COLLAPSED_MAX_PX } : undefined}
+        >
+          {renderMarkdown(note.content)}
+        </div>
+        {overflowing && !expanded && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-b from-transparent to-paper-100"
+          />
+        )}
       </div>
 
-      {/* Fila de afordancia: punto "fijada" · ícono de fotos · menú. Sin texto. */}
+      {overflowing && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-1 text-micro uppercase tracking-eyebrow text-ink-400 transition-colors hover:text-ink-700"
+        >
+          {expanded ? 'leer menos' : 'leer más'}
+        </button>
+      )}
+
+      {/* Fila de afordancia: estado (fijada/fotos) + acciones rápidas al hover + menú. */}
       <div className="mt-2 flex items-center justify-end gap-1.5">
         {note.pinned && (
           <>
@@ -158,6 +224,32 @@ export function NoteCard({
         {note.hasImages && (
           <AttachmentPhotos ownerType="note" ownerId={note.id} compact />
         )}
+
+        {/* Acciones rápidas: aparecen al hover/focus. En touch (sin hover) quedan
+            igualmente accesibles dentro del menú de 3 puntos. */}
+        <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <button
+            type="button"
+            onClick={onTogglePin}
+            disabled={busy}
+            aria-label={note.pinned ? 'Soltar nota' : 'Fijar nota'}
+            title={note.pinned ? 'Soltar' : 'Fijar'}
+            className="touch-target rounded p-1 text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700 disabled:opacity-40"
+          >
+            <PinIcon size={13} />
+          </button>
+          <button
+            type="button"
+            onClick={openEdit}
+            disabled={busy}
+            aria-label="Editar nota"
+            title="Editar"
+            className="touch-target rounded p-1 text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700 disabled:opacity-40"
+          >
+            <PencilIcon size={13} />
+          </button>
+        </div>
+
         <OverflowMenu
           label="Acciones de la nota"
           width="w-52"
@@ -178,9 +270,7 @@ export function NoteCard({
               )}
               <OverflowMenuItem
                 onClick={() => {
-                  setConfirming(false)
-                  setDraft(note.content)
-                  setEditing(true)
+                  openEdit()
                   close()
                 }}
                 disabled={busy}
