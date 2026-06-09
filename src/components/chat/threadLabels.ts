@@ -12,7 +12,9 @@
 
 /** Título por default cuando el hilo no tiene uno asignado. */
 export function defaultTitleFor(context: string | null | undefined): string {
-  if (!context) return '(sin título)'
+  // "(sin título)" leía como placeholder de sistema. "Hilo libre" es editorial
+  // y consistente con el patrón "Hilo de {sección}".
+  if (!context) return 'Hilo libre'
   if (context.startsWith('entity:')) return 'Conversación con una entidad'
   const label = context.charAt(0).toUpperCase() + context.slice(1)
   return `Hilo de ${label}`

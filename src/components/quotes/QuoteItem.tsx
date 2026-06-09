@@ -2,6 +2,7 @@ import { memo, useState } from 'react'
 import { useReflectQuote, useUpdateQuote, useToast } from '../../state'
 import type { Entity, Quote } from '../../types'
 import { SparkleIcon, ChevronDownIcon } from '../Icons'
+import { typeAccent } from '../graph/GraphNode'
 import { AISourceTag } from '../AISourceTag'
 import { QuoteEditModal } from '../QuoteEditModal'
 import { ResonanceDots } from './ResonanceDots'
@@ -113,6 +114,19 @@ function QuoteItemInternal({
           cambia el tamaño, no el estilo de apertura (antes algunas llevaban
           capital y otras comillas según largo — se veía desprolijo). */}
       <blockquote
+        // P1-olfato: el filete toma el color de tipo de la entidad fuente —
+        // de un vistazo se distingue cita de escritor / libro / canción. Tinte
+        // (no barra plena) para no romper la disciplina cromática: el acento
+        // mezclado con el neutro del borde.
+        style={
+          entity
+            ? {
+                // --ink-200 es un triplete RGB (para el modifier de opacidad de
+                // Tailwind), así que dentro de color-mix va envuelto en rgb().
+                borderLeftColor: `color-mix(in srgb, ${typeAccent(entity.type)} 65%, rgb(var(--ink-200)))`,
+              }
+            : undefined
+        }
         className={`quote-block font-serif italic border-l-2 border-ink-200 pl-4 ${
           compact
             ? 'text-sm leading-snug text-ink-600'
