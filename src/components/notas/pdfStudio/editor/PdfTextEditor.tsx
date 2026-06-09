@@ -126,6 +126,10 @@ export function PdfTextEditor({
   useFocusTrap(dialogRef, true)
   useEffect(() => {
     dialogRef.current?.focus()
+    // Calienta las fuentes del menú de estilo. Caveat ("Manuscrita") puede no
+    // haberse usado aún en esta sesión: si se descargara recién al abrir el
+    // menú, el reflow de la carga dispara el cierre-por-scroll del popover.
+    void document.fonts?.load?.('16px Caveat')?.catch(() => {})
   }, [])
   const selectedRef = useRef<string | null>(null)
   const editingRef = useRef<string | null>(null)

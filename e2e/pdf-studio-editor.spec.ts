@@ -67,6 +67,10 @@ async function toolbarMetrics(page: Page) {
 }
 
 async function expectMenuInFront(page: Page, triggerName: string) {
+  // Las webfonts del menú (Caveat de "Manuscrita") deben estar cargadas ANTES
+  // de abrirlo: el popover se cierra con cualquier scroll/resize, y el reflow
+  // de una fuente que llega tarde lo cerraría entre el clic y los asserts.
+  await page.evaluate(() => document.fonts.ready.then(() => undefined))
   await page.getByRole('button', { name: triggerName, exact: true }).click()
   const menu = page.getByRole('menu')
   await expect(menu).toBeVisible()
