@@ -155,6 +155,19 @@
     --space-12: calc(var(--rhythm-unit) * 4.5);   /* 99px    */
   }
 
+  /* P2-mobile: en pantallas chicas la generosidad editorial (header de vista
+     66px, separación de secciones 44px, ornamentos 99px) pesa demasiado y
+     empuja el contenido fuera del viewport. Apretamos SOLO los steps grandes;
+     los chicos (padding de card --space-3, metadata --space-2) quedan iguales,
+     así el ritmo se siente proporcional, no aplastado. */
+  @media (max-width: 640px) {
+    :root {
+      --space-6:  calc(var(--rhythm-unit) * 1.5);  /* 44 → 33px */
+      --space-8:  calc(var(--rhythm-unit) * 2);    /* 66 → 44px */
+      --space-12: calc(var(--rhythm-unit) * 3);    /* 99 → 66px */
+    }
+  }
+
   /* Night mode — neutro oscuro moderno, alto contraste */
   html.dark {
     --paper-50:  9   9   11;   /* #09090b — main background */
