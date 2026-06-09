@@ -50,6 +50,12 @@ jobs:
       - name: Hard-delete allowlist check
         run: npm run check:hard-delete-allowlist
 
+      # Gate de migraciones: prefijos de timestamp duplicados rompen el orden de
+      # aplicación y ya tumbaron un deploy. Check estático (sin DB), corre acá
+      # en el job de lint que sí tiene node (el job `migrations` no lo usa).
+      - name: Migration duplicate-prefix check
+        run: npm run check:migration-duplicates
+
   unit:
     runs-on: ubuntu-latest
     steps:
