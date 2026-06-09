@@ -25,6 +25,7 @@ function QuoteItemInternal({
   entity,
   author,
   isFeature,
+  compact = false,
   onSelectEntity,
   onDelete,
 }: {
@@ -32,6 +33,8 @@ function QuoteItemInternal({
   entity: Entity | undefined
   author: Entity | undefined
   isFeature: boolean
+  /** Modo compacto (densidad): serif más chico, márgenes y sangrías apretadas. */
+  compact?: boolean
   onSelectEntity?: (id: string) => void
   onDelete: () => void
 }) {
@@ -110,14 +113,22 @@ function QuoteItemInternal({
           cambia el tamaño, no el estilo de apertura (antes algunas llevaban
           capital y otras comillas según largo — se veía desprolijo). */}
       <blockquote
-        className={`quote-block font-serif italic border-l-2 border-ink-200 pl-4 leading-relaxed ${
-          isFeature ? 'text-xl text-ink-700' : 'text-base md:text-lg text-ink-600'
+        className={`quote-block font-serif italic border-l-2 border-ink-200 pl-4 ${
+          compact
+            ? 'text-sm leading-snug text-ink-600'
+            : `leading-relaxed ${
+                isFeature ? 'text-xl text-ink-700' : 'text-base md:text-lg text-ink-600'
+              }`
         }`}
       >
         «{quote.text}»
       </blockquote>
 
-      <div className="mt-3 pl-5 flex items-center justify-between gap-4">
+      <div
+        className={`flex items-center justify-between gap-4 ${
+          compact ? 'mt-1.5 pl-4' : 'mt-3 pl-5'
+        }`}
+      >
         {/* Atribución + fecha */}
         <div className="text-sm min-w-0">
           {author && entity ? (
@@ -237,14 +248,14 @@ function QuoteItemInternal({
       <QuoteEditModal quote={quote} open={editOpen} onClose={() => setEditOpen(false)} />
 
       {quote.userReflection && (
-        <div className="mt-3 pl-5">
+        <div className={compact ? 'mt-2 pl-4' : 'mt-3 pl-5'}>
           <div className="section-eyebrow mb-1">tu reflexión</div>
           <p className="marginalia-script whitespace-pre-wrap">{quote.userReflection}</p>
         </div>
       )}
 
       {quote.aiReflection && (
-        <div className="mt-3 pl-5">
+        <div className={compact ? 'mt-2 pl-4' : 'mt-3 pl-5'}>
           <div className="flex items-baseline gap-1.5">
             <button
               type="button"
@@ -277,7 +288,10 @@ function QuoteItemInternal({
       {/* κ6: draft de la lectura IA bajo demanda — el usuario decide si la
           guarda. El trigger ahora vive en el menú "⋯". */}
       {draftReflection && (
-        <div className="mt-3 pl-5 animate-fade-up" aria-live="polite">
+        <div
+          className={`animate-fade-up ${compact ? 'mt-2 pl-4' : 'mt-3 pl-5'}`}
+          aria-live="polite"
+        >
           <div className="flex items-baseline gap-1.5 text-micro uppercase tracking-eyebrow text-[color:var(--accent-primary)] mb-1">
             <SparkleIcon size={10} />
             <span>lectura cruzada (borrador)</span>
@@ -327,6 +341,7 @@ export const QuoteItem = memo(QuoteItemInternal, (prev, next) => {
     prev.quote === next.quote &&
     prev.entity === next.entity &&
     prev.author === next.author &&
-    prev.isFeature === next.isFeature
+    prev.isFeature === next.isFeature &&
+    prev.compact === next.compact
   )
 })

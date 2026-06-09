@@ -26,6 +26,8 @@ import { EntityForm } from './entities/EntityForm'
 import { useEntitiesFilters } from './entities/useEntitiesFilters'
 import { EntitiesFiltersBar } from './entities/EntitiesFiltersBar'
 import { EntityRow } from './entities/EntityRow'
+import { DensityToggle } from './DensityToggle'
+import { useDensity } from '../hooks/useDensity'
 import { AIMenu } from './entities/AIMenu'
 
 export function EntitiesView({
@@ -98,11 +100,15 @@ export function EntitiesView({
     return map
   }, [refsCount])
 
+  // P0-densidad: compacto para escanear cientos de entidades; cómodo para leer
+  // pocas. measureElement corrige la altura real al montar cada fila.
+  const { compact, setCompact } = useDensity(entities.length)
+
   const { listRef, virtualizer } = useMainScrollVirtualizer({
     count: entities.length,
-    estimateSize: 88,
+    estimateSize: compact ? 48 : 88,
     overscan: 10,
-    deps: [showForm, entities.length, pending !== null, emptyHint],
+    deps: [showForm, entities.length, pending !== null, emptyHint, compact],
   })
 
   // Fetch next page when the virtualizer enters the last few items.
@@ -267,6 +273,12 @@ export function EntitiesView({
           (no-sticky por diseño). State y derivaciones viven en
           `useEntitiesFilters`; el chrome presentacional en
           `EntitiesFiltersBar` (FF3-b). */}
+      {entities.length > 0 && (
+        <div className="mb-3 flex justify-end">
+          <DensityToggle compact={compact} onChange={setCompact} />
+        </div>
+      )}
+
       <EntitiesFiltersBar
         availableTypes={availableTypes}
         totalCount={allLoadedEntities.length}
@@ -317,13 +329,14 @@ export function EntitiesView({
                   left: 0,
                   right: 0,
                   transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
-                  paddingBottom: '0.5rem',
+                  paddingBottom: compact ? '0.25rem' : '0.5rem',
                 }}
               >
                 <EntityRow
                   entity={entity}
                   quoteCount={quoteCount}
                   relCount={relCount}
+                  compact={compact}
                   onSelectEntity={onSelectEntity}
                 />
               </div>
