@@ -168,7 +168,7 @@ function QuickAction({
         </span>
         nueva {label}
       </span>
-      <PlusIcon size={13} className="text-ink-300" />
+      <PlusIcon size={12} className="text-ink-300" />
     </button>
   )
 }

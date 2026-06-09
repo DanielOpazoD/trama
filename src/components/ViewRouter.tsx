@@ -99,7 +99,7 @@ function ViewErrorFallback({
   return (
     <div role="alert" className="h-full flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-paper-50 border border-ink-100 rounded-xl shadow-lg shadow-ink-900/5 p-6">
-        <TramaMark size={16} className="text-ink-200 mb-2" />
+        <TramaMark size={18} className="text-ink-200 mb-2" />
         <p className="text-micro uppercase tracking-shout text-ink-300 mb-1.5">
           Vista interrumpida
         </p>

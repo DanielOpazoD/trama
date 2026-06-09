@@ -112,3 +112,68 @@ export function parseTemplateFillValues(text: string): TemplateFillImportValues 
 
   throw new Error('No se encontraron datos para importar.')
 }
+
+/** Una fila tiene datos si al menos una celda trae algo (boolean cuenta). */
+function rowHasData(values: TemplateFillImportValues): boolean {
+  return Object.values(values).some((v) => typeof v === 'boolean' || v.length > 0)
+}
+
+function rowsFromCsv(text: string): TemplateFillImportValues[] {
+  const rows = parseCsvRows(text)
+  if (rows.length < 2) return []
+  const headers = rows[0] ?? []
+
+  // El formato de dos columnas `name,value` describe UNA copia, no un lote.
+  const nameIndex = headers.findIndex((header) => /^name|nombre|variable$/i.test(header))
+  const valueIndex = headers.findIndex((header) => /^value|valor|dato$/i.test(header))
+  if (nameIndex >= 0 && valueIndex >= 0) {
+    const single = valuesFromCsv(text)
+    return Object.keys(single).length > 0 ? [single] : []
+  }
+
+  return rows
+    .slice(1)
+    .map((data) => {
+      const values: TemplateFillImportValues = {}
+      headers.forEach((header, index) => {
+        const name = header.trim()
+        if (!name) return
+        values[name] = data[index] ?? ''
+      })
+      return values
+    })
+    .filter(rowHasData)
+}
+
+/**
+ * Lote (relleno en serie): varias filas → varias copias de la planilla.
+ * Acepta:
+ *  - CSV con cabecera de nombres de casillero + UNA FILA POR COPIA.
+ *  - JSON: array de objetos `[{campo: valor}, …]` o `{rows: [...]}`.
+ *  - Los formatos de copia única (JSON objeto, CSV `name,value`) degeneran a
+ *    un lote de 1 — el caller decide si eso es un import normal.
+ */
+export function parseTemplateFillRows(text: string): TemplateFillImportValues[] {
+  const clean = text.trim()
+  if (!clean) throw new Error('No se encontraron datos para importar.')
+
+  if (clean.startsWith('[') || clean.startsWith('{')) {
+    const parsed = JSON.parse(clean) as unknown
+    const list: unknown[] = Array.isArray(parsed)
+      ? parsed
+      : isRecord(parsed) && Array.isArray(parsed.rows)
+        ? parsed.rows
+        : isRecord(parsed)
+          ? [isRecord(parsed.values) ? parsed.values : parsed]
+          : []
+    const rows = list.filter(isRecord).map(valuesFromObject).filter(rowHasData)
+    if (rows.length > 0) return rows
+  } else {
+    const rows = rowsFromCsv(clean)
+    if (rows.length > 0) return rows
+  }
+
+  throw new Error(
+    'No se encontraron filas de datos. El lote espera un CSV con cabecera y una fila por copia.',
+  )
+}

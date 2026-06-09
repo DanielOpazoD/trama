@@ -54,7 +54,7 @@ function TemplateThumb({ doc }: { doc: PdfDoc }) {
       draggable={false}
     />
   ) : (
-    <FilePdfIcon size={16} />
+    <FilePdfIcon size={14} />
   )
 }
 

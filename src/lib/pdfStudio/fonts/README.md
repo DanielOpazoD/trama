@@ -13,8 +13,12 @@ offline-ok, no engordan el bundle `index`). `@pdf-lib/fontkit` los decodifica
 | `inter-latin-700-normal.woff`    | Inter (sans)     | 700  |
 | `spectral-latin-400-normal.woff` | Spectral (serif) | 400  |
 | `spectral-latin-700-normal.woff` | Spectral (serif) | 700  |
+| `caveat-latin-400-normal.woff`   | Caveat (script)  | 400  |
+| `caveat-latin-700-normal.woff`   | Caveat (script)  | 700  |
 
-Mono usa Courier estándar (la app no trae monoespaciada).
+Mono usa Courier estándar (la app no trae monoespaciada). Caveat (la voz
+manuscrita de la app, `caveat-OFL.txt`) viene de
+[`@fontsource/caveat`](https://www.npmjs.com/package/@fontsource/caveat).
 
 ## Origen y licencia
 

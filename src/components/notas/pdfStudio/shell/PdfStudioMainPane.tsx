@@ -34,15 +34,16 @@ export function PdfStudioMainPane({
       <PdfDropzone
         onClick={onPickFiles}
         onDropFiles={onDropFiles}
+        eyebrow={isTemplates ? 'planillas' : 'imprenta'}
         title={
           isTemplates
-            ? 'Crea una planilla desde PDF o imagen'
-            : 'Arrastra PDFs o imágenes aquí'
+            ? 'Una planilla empieza con una hoja.'
+            : 'Trae un PDF o unas imágenes; aquí se componen.'
         }
         subtitle={
           isTemplates
-            ? 'Agrega casilleros y guárdala para rellenarla después'
-            : 'o haz clic para elegir archivos'
+            ? 'Trae el PDF o la imagen de base; después marcas sus casilleros y la guardas para rellenarla.'
+            : 'Arrastra archivos o haz clic para elegirlos. Todo queda en este dispositivo.'
         }
       />
     )

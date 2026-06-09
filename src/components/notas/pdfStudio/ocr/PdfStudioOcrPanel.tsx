@@ -74,10 +74,8 @@ export function PdfStudioOcrPanel({
       {assessment.messages.length > 0 && (
         <div
           role={assessment.severity === 'blocked' ? 'alert' : 'status'}
-          className={`mt-2 rounded border px-2 py-1.5 text-caption ${
-            assessment.severity === 'blocked'
-              ? 'border-red-200 bg-red-50 text-red-700'
-              : 'border-amber-200 bg-amber-50 text-amber-800'
+          className={`mt-2 px-2 py-1.5 text-caption ${
+            assessment.severity === 'blocked' ? 'alert-error' : 'alert-warn'
           }`}
         >
           {assessment.messages.map((message) => (

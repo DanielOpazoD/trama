@@ -255,7 +255,7 @@ export function HojaEditor({ onClose }: { onClose: () => void }) {
           aria-label="Cerrar la hoja"
           title="Cerrar"
         >
-          <CloseIcon size={16} />
+          <CloseIcon size={14} />
         </button>
       </header>
 

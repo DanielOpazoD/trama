@@ -3,6 +3,8 @@ import {
   applyPdfTextEditorResult,
   type PdfTextEditorResult,
 } from '../../editor/pdfTextEditorResult'
+import type { TemplateFillImportValues } from './pdfTemplateFillImport'
+import { buildMailMergeDoc } from './pdfTemplateMailMerge'
 
 export function usePdfStudioFilledTemplateActions({
   activeTemplateName,
@@ -31,5 +33,15 @@ export function usePdfStudioFilledTemplateActions({
     saveFilledCopy(activeTemplateName ?? 'Planilla', applyPdfTextEditorResult(doc, edits))
   }
 
-  return { printFilledTemplate, saveFilledTemplateCopy }
+  /** Lote: una copia rellenada por fila, todas en un único PDF aplanado. */
+  function printMailMergeTemplate(
+    edits: PdfTextEditorResult,
+    rows: TemplateFillImportValues[],
+  ) {
+    const filled = applyPdfTextEditorResult(doc, edits)
+    const { doc: merged } = buildMailMergeDoc(filled, rows)
+    void openPreview(merged, 'lote', { flattenFormFields: true })
+  }
+
+  return { printFilledTemplate, printMailMergeTemplate, saveFilledTemplateCopy }
 }

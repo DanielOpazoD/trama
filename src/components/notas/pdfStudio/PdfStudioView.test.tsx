@@ -147,7 +147,7 @@ beforeEach(() => {
 describe('<PdfStudioView />', () => {
   it('muestra el estado vacío con Guardar deshabilitado', () => {
     renderWithProviders(<PdfStudioView />)
-    expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
+    expect(screen.getByText(/Trae un PDF o unas imágenes/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar PDF/i })).toBeDisabled()
     expect(
       screen.getByRole('button', { name: /Importar PDF o imagen/i }),
@@ -161,7 +161,7 @@ describe('<PdfStudioView />', () => {
     renderWithProviders(<PdfStudioView studioMode="templates" />)
 
     expect(screen.getByText(/Sube un PDF o imagen para empezar/i)).toBeInTheDocument()
-    expect(screen.getByText(/Crea una planilla desde PDF o imagen/i)).toBeInTheDocument()
+    expect(screen.getByText(/Una planilla empieza con una hoja/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar planilla/i })).toBeDisabled()
     expect(screen.queryByRole('button', { name: /Guardar PDF/i })).not.toBeInTheDocument()
   })
@@ -274,7 +274,7 @@ describe('<PdfStudioView />', () => {
     ])
     renderWithProviders(<PdfStudioView studioMode="editor" />)
 
-    expect(await screen.findByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
+    expect(await screen.findByText(/Trae un PDF o unas imágenes/)).toBeInTheDocument()
     expect(screen.queryByText('Planillas')).not.toBeInTheDocument()
     expect(
       screen.queryByRole('button', {
@@ -962,7 +962,7 @@ describe('<PdfStudioView />', () => {
     expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /Deshacer/i }))
-    expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
+    expect(screen.getByText(/Trae un PDF o unas imágenes/)).toBeInTheDocument()
     expect(screen.queryByAltText('Página 1')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /Rehacer/i }))
@@ -1034,7 +1034,7 @@ describe('<PdfStudioView />', () => {
     await screen.findByRole('button', { name: /Importar PDF o imagen/i })
     expect(mocks.getPdfPageCount).toHaveBeenCalledTimes(1)
     // No se agregó ninguna página: sigue el estado vacío y Guardar deshabilitado.
-    expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
+    expect(screen.getByText(/Trae un PDF o unas imágenes/)).toBeInTheDocument()
     expect(screen.queryByAltText('Página 1')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Guardar PDF/i })).toBeDisabled()
   })
@@ -1057,7 +1057,7 @@ describe('<PdfStudioView />', () => {
 
     // Eliminar en lote → documento vacío.
     await user.click(screen.getByRole('button', { name: 'Eliminar' }))
-    expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
+    expect(screen.getByText(/Trae un PDF o unas imágenes/)).toBeInTheDocument()
     expect(screen.queryByAltText('Página 1')).not.toBeInTheDocument()
   })
 
@@ -1272,7 +1272,7 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 2/i }))
     await user.keyboard('{Delete}')
 
-    expect(screen.getByText(/Arrastra PDFs o imágenes/)).toBeInTheDocument()
+    expect(screen.getByText(/Trae un PDF o unas imágenes/)).toBeInTheDocument()
     expect(screen.queryByAltText('Página 1')).not.toBeInTheDocument()
   })
 

@@ -35,10 +35,10 @@ export function CopyImportPromptButton() {
       className="p-1.5 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
     >
       {state === 'copied' ? (
-        <CheckIcon size={15} className="text-[color:var(--accent-sage)]" />
+        <CheckIcon size={14} className="text-[color:var(--accent-sage)]" />
       ) : (
         <ClipboardIcon
-          size={15}
+          size={14}
           className={state === 'error' ? 'text-[color:var(--accent-clay)]' : undefined}
         />
       )}

@@ -7,7 +7,7 @@ export type PdfSource = {
   pageCount: number
 }
 
-export type PdfFontKind = 'sans' | 'serif' | 'mono'
+export type PdfFontKind = 'sans' | 'serif' | 'mono' | 'script'
 
 type AnnotationBase = {
   id: string
@@ -134,6 +134,8 @@ export type PdfDoc = {
   pages: PdfPage[]
   formFields?: PdfFormFieldDraft[]
   settings?: DocSettings
+  /** Nombre del documento: alimenta el archivo exportado y el guardado. */
+  title?: string
 }
 
 export type ImageAsset = { id: string; file: File }

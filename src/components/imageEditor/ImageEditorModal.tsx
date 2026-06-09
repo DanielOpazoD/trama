@@ -242,13 +242,13 @@ export function ImageEditorModal({
                 className={toolBtn(cropMode)}
                 aria-pressed={cropMode}
               >
-                <CropIcon size={13} /> Recortar
+                <CropIcon size={12} /> Recortar
               </button>
               <button type="button" onClick={rotate} className={toolBtn(false)}>
-                <RotateIcon size={13} /> Girar
+                <RotateIcon size={12} /> Girar
               </button>
               <button type="button" onClick={addText} className={toolBtn(false)}>
-                <TextIcon size={13} /> Texto
+                <TextIcon size={12} /> Texto
               </button>
             </div>
 

@@ -126,7 +126,7 @@ export function TopBar({
             title="Sortes — una cita al azar para releer"
             className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
           >
-            <ReadingIcon size={16} />
+            <ReadingIcon size={14} />
           </button>
         )}
         {actions && <div className="flex items-center gap-2">{actions}</div>}

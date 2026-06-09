@@ -146,14 +146,14 @@ export function PdfPreviewModal({
               onClick={() => onPrint(blob)}
               className="btn-ink text-xs inline-flex items-center gap-1.5"
             >
-              <PrinterIcon size={13} /> Imprimir
+              <PrinterIcon size={12} /> Imprimir
             </button>
             <button
               type="button"
               onClick={() => onDownload(blob)}
               className="btn-ghost text-xs inline-flex items-center gap-1.5"
             >
-              <DownloadIcon size={13} /> Descargar
+              <DownloadIcon size={12} /> Descargar
             </button>
             <button
               type="button"
@@ -162,7 +162,7 @@ export function PdfPreviewModal({
               title="Cerrar (Esc)"
               className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100/50 transition-colors"
             >
-              <CloseIcon size={16} />
+              <CloseIcon size={14} />
             </button>
           </div>
         </header>

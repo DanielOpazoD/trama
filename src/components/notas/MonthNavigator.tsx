@@ -43,7 +43,7 @@ export function MonthNavigator({
           aria-label="Año anterior"
           className="p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
         >
-          <ChevronLeftIcon size={15} />
+          <ChevronLeftIcon size={14} />
         </button>
         <span className="font-serif text-lg text-ink-700 tabular-nums tracking-tight">
           {year}
@@ -53,7 +53,7 @@ export function MonthNavigator({
           aria-label="Año siguiente"
           className="p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
         >
-          <ChevronRightIcon size={15} />
+          <ChevronRightIcon size={14} />
         </button>
       </div>
       {/* Una sola fila en desktop (slim); dos filas de 6 en mobile. */}

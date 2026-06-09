@@ -91,7 +91,7 @@ export function TextControls({
               : 'border-ink-100 text-ink-400 hover:text-ink-700'
           }`}
         >
-          <BoldIcon size={13} />
+          <BoldIcon size={12} />
         </button>
 
         <div
@@ -128,7 +128,7 @@ export function TextControls({
           title="Quitar texto"
           className="touch-target ml-auto p-1.5 rounded-md text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors"
         >
-          <TrashIcon size={13} />
+          <TrashIcon size={12} />
         </button>
       </div>
     </div>

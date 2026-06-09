@@ -123,7 +123,7 @@ export function WorldSwitcher({
                 }`}
               >
                 <span className="mt-0.5 inline-flex shrink-0" style={{ color: w.accent }}>
-                  <Icon size={16} />
+                  <Icon size={14} />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">

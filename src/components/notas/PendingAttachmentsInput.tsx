@@ -53,7 +53,7 @@ export function PendingAttachmentsInput({
               key={`${file.name}-${file.size}-${index}`}
               className="flex items-center gap-2 rounded-md border border-ink-100/60 bg-paper-50 px-2 py-1.5 text-caption"
             >
-              <FileIcon size={13} className="shrink-0 text-ink-300" />
+              <FileIcon size={12} className="shrink-0 text-ink-300" />
               <span className="min-w-0 flex-1 truncate text-ink-600">{file.name}</span>
               <span className="shrink-0 text-micro tabular-nums text-ink-300">
                 {formatBytes(file.size)}

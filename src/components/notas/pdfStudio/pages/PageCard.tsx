@@ -139,13 +139,14 @@ export function PageCard({
           onNudge(index, 1)
         }
       }}
+      data-page-id={page.id}
       style={isDropTarget || selected ? { boxShadow: `0 0 0 2px ${ACCENT}` } : undefined}
-      className={`group flex flex-col rounded-lg border bg-paper-50 overflow-hidden transition-all duration-150 ${
+      className={`group pdf-page-card flex flex-col rounded-lg border bg-paper-50 overflow-hidden ${
         dragging
           ? 'opacity-40 scale-[0.97] border-ink-300'
           : isDropTarget || selected
             ? 'border-transparent'
-            : 'border-ink-100 hover:border-ink-200 hover:shadow-md hover:shadow-ink-900/5'
+            : 'border-ink-100 hover:border-ink-200'
       }`}
     >
       {/* Miniatura — doble clic abre el flujo principal del modo actual. */}
@@ -164,11 +165,8 @@ export function PageCard({
                 h: e.currentTarget.naturalHeight,
               })
             }
-            className="max-h-full max-w-full object-contain transition-transform duration-200"
-            style={{
-              transform: thumbTransform,
-              boxShadow: '0 1px 5px rgb(0 0 0 / 0.12)',
-            }}
+            className="pdf-sheet-shadow max-h-full max-w-full object-contain transition-transform duration-200"
+            style={{ transform: thumbTransform }}
             draggable={false}
           />
         ) : (

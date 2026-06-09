@@ -153,7 +153,7 @@ export function AIModeToggle({ collapsed = false }: { collapsed?: boolean }) {
                     }`}
                   >
                     <span>{opt.label}</span>
-                    {active && <CheckIcon size={13} className="text-ink-500 shrink-0" />}
+                    {active && <CheckIcon size={12} className="text-ink-500 shrink-0" />}
                   </button>
                   {opt.hint && !active && (
                     <p className="px-2.5 pb-0.5 text-micro text-ink-300 leading-tight">

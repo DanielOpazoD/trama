@@ -23,6 +23,7 @@ export function PdfTemplateFillVariablesPanel({
   onClearValues,
   onFocusField,
   onImportValues,
+  onImportBatch,
   onShowFieldGuidesChange = () => undefined,
   onShowPendingOnlyChange = () => undefined,
   onJump,
@@ -38,12 +39,15 @@ export function PdfTemplateFillVariablesPanel({
   onClearValues?: () => void
   onFocusField?: (field: PdfFormFieldDraft) => void
   onImportValues?: (file: File) => void | Promise<TemplateFillImportValues | void>
+  /** Lote: CSV con cabecera + una fila por copia → N copias en un solo PDF. */
+  onImportBatch?: (file: File) => void | Promise<void>
   onShowFieldGuidesChange?: (show: boolean) => void
   onShowPendingOnlyChange?: (show: boolean) => void
   onJump: (field: PdfFormFieldDraft) => void
 }) {
   const fieldInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const importInputRef = useRef<HTMLInputElement | null>(null)
+  const batchInputRef = useRef<HTMLInputElement | null>(null)
   const orderedFields = orderFormFieldsForFill(fields, pageIndexById)
   const visibleFields = showPendingOnly
     ? orderedFields.filter((field) => !isTemplateFieldFilled(field))
@@ -127,11 +131,21 @@ export function PdfTemplateFillVariablesPanel({
           type="button"
           onClick={onClearValues}
           disabled={!onClearValues || orderedFields.length === 0}
-          className="rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-red-300 hover:text-red-700 disabled:cursor-not-allowed disabled:text-ink-300"
+          className="rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] disabled:cursor-not-allowed disabled:text-ink-300"
         >
           Borrar datos
         </button>
       </div>
+      {onImportBatch ? (
+        <button
+          type="button"
+          onClick={() => batchInputRef.current?.click()}
+          title="CSV con cabecera de nombres de casillero y una fila por copia: genera todas las copias rellenadas en un solo PDF."
+          className="mt-1.5 w-full rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-[color:var(--accent-sage)]/40 hover:text-[color:var(--accent-sage)]"
+        >
+          Rellenar en lote (CSV)
+        </button>
+      ) : null}
       <input
         ref={importInputRef}
         aria-label="Archivo de datos"
@@ -144,13 +158,25 @@ export function PdfTemplateFillVariablesPanel({
           event.currentTarget.value = ''
         }}
       />
+      <input
+        ref={batchInputRef}
+        aria-label="Archivo de lote (una fila por copia)"
+        type="file"
+        accept=".json,.csv,application/json,text/csv,text/plain"
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0]
+          if (file) void onImportBatch?.(file)
+          event.currentTarget.value = ''
+        }}
+      />
       {importFeedback ? (
         <p
           role="status"
-          className={`mt-2 rounded-md px-2 py-1.5 text-micro leading-snug ${
+          className={`mt-2 px-2 py-1.5 text-micro leading-snug ${
             importFeedback.tone === 'error'
-              ? 'bg-red-50 text-red-700'
-              : 'bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]'
+              ? 'alert-error'
+              : 'rounded-md bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]'
           }`}
         >
           {importFeedback.message}

@@ -86,7 +86,7 @@ export function NotasSidebar({
           onClick={onOpenSearch}
           className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-paper-50 border border-ink-100/70 text-ink-400 hover:text-ink-700 hover:border-ink-200 transition-colors"
         >
-          <SearchIcon size={13} className="shrink-0" />
+          <SearchIcon size={12} className="shrink-0" />
           <span className="text-sm">Buscar…</span>
         </button>
       </header>
@@ -174,7 +174,7 @@ export function NotasMobileTabs({
         aria-label="Buscar"
         className="touch-target shrink-0 p-1.5 rounded-md text-ink-400 hover:text-ink-700 transition-colors"
       >
-        <SearchIcon size={16} />
+        <SearchIcon size={14} />
       </button>
     </div>
   )

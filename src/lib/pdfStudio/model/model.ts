@@ -81,7 +81,7 @@ export function addPdfSource(doc: PdfDoc, file: File, pageCount: number): PdfDoc
     annotations: [],
     rotationQuarters: 0,
   }))
-  return { sources: [...doc.sources, source], pages: [...doc.pages, ...pages] }
+  return { ...doc, sources: [...doc.sources, source], pages: [...doc.pages, ...pages] }
 }
 
 /** Agrega una imagen como una página al final. */
@@ -95,7 +95,7 @@ export function addImageSource(doc: PdfDoc, file: File): PdfDoc {
     annotations: [],
     rotationQuarters: 0,
   }
-  return { sources: [...doc.sources, source], pages: [...doc.pages, page] }
+  return { ...doc, sources: [...doc.sources, source], pages: [...doc.pages, page] }
 }
 
 /** Mueve una página de `from` a `to` (índice arbitrario, para drag-and-drop). */
@@ -223,6 +223,37 @@ export function duplicatePages(doc: PdfDoc, indices: number[]): PdfDoc {
 }
 
 /**
+ * Lote / relleno en serie: agrega `copies - 1` BLOQUES completos de las páginas
+ * del documento al final, en orden secuencial (p1…pn, p1'…pn', …). Cada bloque
+ * clona páginas, anotaciones y casilleros con ids nuevos; los sources se
+ * COMPARTEN (las páginas clonadas referencian el mismo archivo — no se
+ * re-importa ni re-carga nada al ensamblar). Inmutable; `copies <= 1` es no-op.
+ */
+export function repeatDocPages(doc: PdfDoc, copies: number): PdfDoc {
+  const times = Math.floor(copies)
+  if (times <= 1 || doc.pages.length === 0) return doc
+  const pages = [...doc.pages]
+  const formFields = [...(doc.formFields ?? [])]
+  for (let copy = 1; copy < times; copy += 1) {
+    const pageIdMap = new Map<string, string>()
+    for (const page of doc.pages) {
+      const id = nextId('p')
+      pageIdMap.set(page.id, id)
+      pages.push({
+        ...page,
+        id,
+        annotations: page.annotations.map((a) => cloneAnnotation(a)),
+      })
+    }
+    for (const field of doc.formFields ?? []) {
+      const pageId = pageIdMap.get(field.pageId)
+      if (pageId) formFields.push(clonePdfFormField(field, pageId))
+    }
+  }
+  return { ...doc, pages, formFields }
+}
+
+/**
  * Nuevo documento con SÓLO las páginas indicadas (en el orden del documento),
  * descartando los sources huérfanos. Sirve para extraer/dividir: ensamblar este
  * subdocumento da un PDF con esas páginas. Reusa los ids existentes (no recrea).
@@ -293,6 +324,13 @@ export function canExport(doc: PdfDoc): boolean {
 /** Reemplaza los ajustes del documento (numeración/marca de agua). Inmutable. */
 export function setDocSettings(doc: PdfDoc, settings: DocSettings): PdfDoc {
   return { ...doc, settings }
+}
+
+/** Renombra el documento (vacío → sin título). Inmutable. */
+export function setDocTitle(doc: PdfDoc, title: string): PdfDoc {
+  const clean = title.trim()
+  if ((doc.title ?? '') === clean) return doc
+  return { ...doc, title: clean || undefined }
 }
 
 /** Clave estable para cachear la miniatura de una página. */

@@ -15,6 +15,8 @@ export type PdfTextEditorFillSidebarProps = {
   onClearValues: () => void
   onFocusField: (field: PdfFormFieldDraft) => void
   onImportValues: (file: File) => void | Promise<TemplateFillImportValues | void>
+  /** Lote: CSV con una fila por copia → N copias rellenadas en un solo PDF. */
+  onImportBatch?: (file: File) => void | Promise<void>
   onJump: (field: PdfFormFieldDraft) => void
   onShowFieldGuidesChange: Dispatch<SetStateAction<boolean>>
   onShowPendingOnlyChange: Dispatch<SetStateAction<boolean>>
@@ -31,6 +33,7 @@ export function PdfTextEditorFillSidebar({
   onClearValues,
   onFocusField,
   onImportValues,
+  onImportBatch,
   onJump,
   onShowFieldGuidesChange,
   onShowPendingOnlyChange,
@@ -48,6 +51,7 @@ export function PdfTextEditorFillSidebar({
       onClearValues={onClearValues}
       onFocusField={onFocusField}
       onImportValues={onImportValues}
+      onImportBatch={onImportBatch}
       onShowFieldGuidesChange={onShowFieldGuidesChange}
       onShowPendingOnlyChange={onShowPendingOnlyChange}
       onJump={onJump}

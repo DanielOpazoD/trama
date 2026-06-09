@@ -7,6 +7,7 @@ export const FONTS: { key: PdfFontKind; label: string }[] = [
   { key: 'sans', label: 'Sans' },
   { key: 'serif', label: 'Serif' },
   { key: 'mono', label: 'Mono' },
+  { key: 'script', label: 'Manuscrita' },
 ]
 
 export const COLORS: { hex: string; label: string }[] = [

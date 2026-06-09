@@ -283,7 +283,10 @@ inventario de "excepciones deliberadas" más abajo.
 Reconocer estos patrones evita reinventarlos. Catálogo no exhaustivo —
 para detalles ver `design.md`.
 
-- **`<ViewHeader />`** → header de vista (6 de 8 vistas).
+- **`<ViewHeader />`** → header de vista (6 de 8 vistas de Trama, y todas
+  las secciones de página del mundo Notas — Hoy, Notas, Tareas, Prompts,
+  Claves — con `accent` salvia; Imprenta/Planillas quedan fuera por ser
+  layouts tipo app de ancho completo).
 - **`.card-paper-hover`** → fila de lista interactiva (con micro-tilt 0.4°
   - shadow tintada al hover).
 - **`.card-paper-elevated`** → panel/modal prominente (sin hover state,

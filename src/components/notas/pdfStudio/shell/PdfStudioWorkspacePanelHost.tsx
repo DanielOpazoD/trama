@@ -22,6 +22,7 @@ export function PdfStudioWorkspacePanelHost({
   onSaveCreation,
   onSaveTemplate,
   saveTemplateSignal,
+  suggestedSaveName,
   onToggleCollapsed,
   onUseTemplate,
 }: {
@@ -44,6 +45,8 @@ export function PdfStudioWorkspacePanelHost({
   onSaveCreation: (name: string) => void
   onSaveTemplate: (name: string) => void
   saveTemplateSignal?: number
+  /** Nombre sugerido al guardar una creación (el título del documento). */
+  suggestedSaveName?: string
   onToggleCollapsed: () => void
   onUseTemplate: (saved: SavedDoc) => void
 }) {
@@ -78,6 +81,7 @@ export function PdfStudioWorkspacePanelHost({
           onSaveCreation={onSaveCreation}
           onSaveTemplate={onSaveTemplate}
           saveTemplateSignal={saveTemplateSignal}
+          suggestedSaveName={suggestedSaveName}
           onOpenSaved={onOpenSaved}
           onUseTemplate={onUseTemplate}
           onDuplicateSaved={onDuplicateSaved}

@@ -213,7 +213,7 @@ export function AttachmentPhotos({
           title={photos.length === 1 ? 'Ver la foto' : `Ver las ${photos.length} fotos`}
           aria-label={`Ver fotos (${photos.length})`}
         >
-          <CameraIcon size={15} />
+          <CameraIcon size={14} />
           {photos.length > 1 && (
             <span className="text-micro tabular-nums">{photos.length}</span>
           )}
@@ -260,7 +260,7 @@ export function AttachmentPhotos({
         title="Adjuntar fotos"
         aria-label="Adjuntar fotos"
       >
-        <CameraIcon size={16} />
+        <CameraIcon size={14} />
       </button>
 
       {photos.length > 0 && (
@@ -272,7 +272,7 @@ export function AttachmentPhotos({
             title={`Descargar ${photos.length === 1 ? 'la foto' : 'todas las fotos'}`}
             aria-label="Descargar todas las fotos"
           >
-            <DownloadIcon size={16} />
+            <DownloadIcon size={14} />
           </button>
           <button
             onClick={onExportPdf}
@@ -281,7 +281,7 @@ export function AttachmentPhotos({
             title="Exportar a PDF (2 por hoja)"
             aria-label="Exportar fotos a PDF"
           >
-            <FilePdfIcon size={16} />
+            <FilePdfIcon size={14} />
           </button>
           {exporting && (
             <span className="text-micro text-ink-300">

@@ -87,7 +87,7 @@ export function VaultGate({
           className="mt-0.5 inline-flex size-9 items-center justify-center rounded-lg bg-paper-50 border border-ink-100"
           style={{ color: ACCENT }}
         >
-          <ShieldIcon size={16} />
+          <ShieldIcon size={18} />
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="font-medium text-ink-800">
@@ -327,7 +327,7 @@ export function SecretCard({
           className="mt-0.5 inline-flex size-8 items-center justify-center rounded-lg bg-paper-50 border border-ink-100"
           style={{ color: tone }}
         >
-          <KeyIcon size={15} />
+          <KeyIcon size={14} />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -360,7 +360,7 @@ export function SecretCard({
                 aria-label="Copiar clave"
                 className="p-1 text-ink-300 hover:text-ink-700"
               >
-                <ClipboardIcon size={13} />
+                <ClipboardIcon size={12} />
               </button>
               <button
                 onClick={beginEdit}
@@ -369,7 +369,7 @@ export function SecretCard({
                 aria-label="Editar clave"
                 className="p-1 text-ink-300 hover:text-ink-700"
               >
-                <PencilIcon size={13} />
+                <PencilIcon size={12} />
               </button>
               <button
                 onClick={onDelete}
@@ -378,7 +378,7 @@ export function SecretCard({
                 aria-label="Borrar clave"
                 className="p-1 text-ink-300 hover:text-[color:var(--accent-clay)]"
               >
-                <TrashIcon size={13} />
+                <TrashIcon size={12} />
               </button>
             </div>
           </div>
@@ -389,7 +389,7 @@ export function SecretCard({
             </span>
             {metadata?.service && <span>{metadata.service}</span>}
             {metadata?.username && (
-              <span className="font-mono text-[11px]">{metadata.username}</span>
+              <span className="font-mono text-caption">{metadata.username}</span>
             )}
             {metadata?.notes && <span className="basis-full">{metadata.notes}</span>}
             {item.expiresAt && <span>vence {formatShortDate(item.expiresAt)}</span>}

@@ -156,14 +156,14 @@ export function PhotoLightbox({
               aria-label="Foto anterior"
               className="pointer-events-auto absolute left-3 top-1/2 -translate-y-1/2 z-10 size-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             >
-              <ChevronLeftIcon size={26} />
+              <ChevronLeftIcon size={22} />
             </button>
             <button
               onClick={next}
               aria-label="Foto siguiente"
               className="pointer-events-auto absolute right-3 top-1/2 -translate-y-1/2 z-10 size-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             >
-              <ChevronRightIcon size={26} />
+              <ChevronRightIcon size={22} />
             </button>
           </>
         )}

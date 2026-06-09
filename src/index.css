@@ -9,7 +9,9 @@
    userReflection se renderiza con esta face para señalar que es ANOTACIÓN
    suya en el catálogo (no UI, no prosa generada). Tres pesos cubren
    la cursividad sin agregar bulk innecesario. */
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600&display=swap');
+/* 700 incluido para que la "Manuscrita" en negrita del editor de PDF previsualice
+   con el mismo peso que el Caveat 700 embebido al exportar. */
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -567,6 +569,47 @@ html.dark .paper-grain::before {
      de @layer base. */
   .pdf-studio :focus-visible {
     outline-color: var(--accent-sage);
+  }
+
+  /* Hojas de la grilla de Imprenta/Planillas: cada miniatura es "una hoja de
+     papel sobre la mesa" — sombra tintada cálida (muta con el tema) y un lift
+     físico sutil al hover, el mismo lenguaje que .card-paper-hover pero sin
+     tilt (el tilt pelea con el drag de reordenar). */
+  .pdf-page-card {
+    box-shadow: var(--card-shadow);
+    transition:
+      box-shadow 200ms cubic-bezier(0.25, 1, 0.5, 1),
+      transform 200ms cubic-bezier(0.25, 1, 0.5, 1),
+      border-color 150ms ease,
+      opacity 150ms ease;
+  }
+  .pdf-page-card:hover {
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-1px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pdf-page-card,
+    .pdf-page-card:hover {
+      transform: none;
+    }
+  }
+
+  /* La sombra de la HOJA renderizada (miniatura y lienzo del editor): tintada
+     con la var del tema en vez del negro genérico. */
+  .pdf-sheet-shadow {
+    box-shadow: var(--card-shadow);
+  }
+
+  /* Passe-partout: en los temas oscuros el área de trabajo se HUNDE un paso
+     bajo el paper (velo negro sutil — en dark la escala paper-100/200 sube de
+     luz, así que aclarar no sirve para enmarcar) y las hojas blancas quedan
+     flotando enmarcadas en vez de deslumbrar. En Vela además se atenúa apenas
+     el brillo de la página renderizada (lectura nocturna). */
+  html.dark .pdf-studio-canvas {
+    background-color: rgb(0 0 0 / 0.22);
+  }
+  html.dark.theme-vela .pdf-studio-canvas img {
+    filter: brightness(0.94) sepia(0.06);
   }
 
   @keyframes node-spring-in {

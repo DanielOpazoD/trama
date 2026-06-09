@@ -32,6 +32,7 @@ export function WorkspacePanel({
   onSaveCreation,
   onSaveTemplate,
   saveTemplateSignal = 0,
+  suggestedSaveName,
   onOpenSaved,
   onUseTemplate,
   onDuplicateSaved,
@@ -54,6 +55,8 @@ export function WorkspacePanel({
   onSaveCreation: (name: string) => void
   onSaveTemplate: (name: string) => void
   saveTemplateSignal?: number
+  /** Nombre sugerido al guardar una creación (el título del documento). */
+  suggestedSaveName?: string
   onOpenSaved: (s: SavedDoc) => void
   onUseTemplate: (s: SavedDoc) => void
   onDuplicateSaved: (s: SavedDoc) => void
@@ -78,7 +81,7 @@ export function WorkspacePanel({
         className="surface-sidebar flex h-full w-full flex-col items-center gap-2 border-r border-ink-100 px-1.5 py-3 text-ink-400 hover:bg-ink-100/30 hover:text-ink-700 transition-colors"
       >
         <ChevronRightIcon size={14} />
-        <CameraIcon size={15} />
+        <CameraIcon size={14} />
         <span className="text-micro tabular-nums" style={{ color: ACCENT }}>
           {library.length}
         </span>
@@ -93,7 +96,9 @@ export function WorkspacePanel({
   return (
     <aside className="surface-sidebar flex h-full w-60 flex-col overflow-hidden border-r border-ink-100">
       <header className="flex items-center justify-between gap-2 px-2.5 py-2 border-b border-ink-100/70 shrink-0">
-        <span className="text-caption font-medium text-ink-600">Panel</span>
+        <span className="section-eyebrow-serif" style={{ color: ACCENT }}>
+          mesa de trabajo
+        </span>
         <button
           type="button"
           onClick={onToggleCollapsed}
@@ -138,6 +143,7 @@ export function WorkspacePanel({
         <WorkspaceSavedDocsSection
           creations={creations}
           canSave={canSave}
+          suggestedName={suggestedSaveName}
           onSaveCreation={onSaveCreation}
           onOpenSaved={onOpenSaved}
           onRenameSaved={onRenameSaved}

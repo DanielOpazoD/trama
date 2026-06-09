@@ -42,7 +42,7 @@ export function QuotesList({ entity }: { entity: Entity }) {
             title="Añadir cita"
             className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-ink-100 text-ink-400 hover:border-ink-200 hover:bg-ink-50 hover:text-ink-700 transition-colors"
           >
-            <PlusIcon size={13} />
+            <PlusIcon size={12} />
           </button>
         )}
       </div>

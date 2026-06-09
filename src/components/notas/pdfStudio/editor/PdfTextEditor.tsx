@@ -43,6 +43,7 @@ import { formFieldTextStyle } from '../planillas/pdfFormFieldStyle'
 import { fillProgressForTemplateFields } from '../planillas/fill/pdfTemplateFillProgress'
 import { usePdfTextEditorFillFocus } from '../planillas/fill/usePdfTextEditorFillFocus'
 import { usePdfTextEditorFillSidebarProps } from '../planillas/fill/usePdfTextEditorFillSidebarProps'
+import type { TemplateFillImportValues } from '../planillas/fill/pdfTemplateFillImport'
 import { usePdfTextEditorHeaderProps } from './usePdfTextEditorHeaderProps'
 import { usePdfTextEditorXMarks } from './usePdfTextEditorXMarks'
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
@@ -61,6 +62,7 @@ export function PdfTextEditor({
   onFormValueChange = () => undefined,
   onInspectForms,
   onClose,
+  onMailMerge,
   onPrint,
   onSaveCopy,
 }: {
@@ -72,6 +74,8 @@ export function PdfTextEditor({
   onFormValueChange?: PdfFormValueHandler
   onInspectForms?: () => void
   onClose: (edits: PdfTextEditorResult | null) => void
+  /** Lote: N filas → N copias rellenadas en un solo PDF (vista previa). */
+  onMailMerge?: (edits: PdfTextEditorResult, rows: TemplateFillImportValues[]) => void
   onPrint?: (edits: PdfTextEditorResult) => void
   onSaveCopy?: (edits: PdfTextEditorResult) => void
 }) {
@@ -122,6 +126,10 @@ export function PdfTextEditor({
   useFocusTrap(dialogRef, true)
   useEffect(() => {
     dialogRef.current?.focus()
+    // Calienta las fuentes del menú de estilo. Caveat ("Manuscrita") puede no
+    // haberse usado aún en esta sesión: si se descargara recién al abrir el
+    // menú, el reflow de la carga dispara el cierre-por-scroll del popover.
+    void document.fonts?.load?.('16px Caveat')?.catch(() => {})
   }, [])
   const selectedRef = useRef<string | null>(null)
   const editingRef = useRef<string | null>(null)
@@ -336,20 +344,22 @@ export function PdfTextEditor({
   const pageIndexById = Object.fromEntries(doc.pages.map((p, i) => [p.id, i]))
   const { activeFillFieldId, jumpToFormField, setActiveFillFieldId } =
     usePdfTextEditorFillFocus({ goToPage, pageIndexById })
+  const currentEdits = () => ({
+    annotations: edited,
+    formFields,
+    settings: { ...doc.settings, xMarkSize, xMarkStroke },
+  })
   const { fillSidebarProps, showFillGuides } = usePdfTextEditorFillSidebarProps({
     activeFillFieldId,
     applyDraftFormValues,
     clearDraftFormValues,
     formFields,
     jumpToFormField,
+    onMailMergeRows:
+      fillMode && onMailMerge ? (rows) => onMailMerge(currentEdits(), rows) : undefined,
     pageIndexById,
     setActiveFillFieldId,
     updateDraftFormValue,
-  })
-  const currentEdits = () => ({
-    annotations: edited,
-    formFields,
-    settings: { ...doc.settings, xMarkSize, xMarkStroke },
   })
   // Al elegir una herramienta de dibujo (X), cancela el campo de formulario
   // pendiente para que el clic dibuje la marca en vez de colocar un casillero.

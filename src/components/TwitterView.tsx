@@ -257,7 +257,7 @@ export function TwitterView({
     <>
       <ViewHeader
         title="Twitter"
-        icon={<TwitterIcon size={26} />}
+        icon={<TwitterIcon size={22} />}
         eyebrow="tus marcadores"
         accent="var(--accent-primary)"
         eyebrowColor="var(--accent-gold)"
@@ -366,7 +366,7 @@ export function TwitterView({
                         title="Eliminar la crónica (podés generar otra cuando quieras)"
                         className="rounded p-1 text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors disabled:opacity-50"
                       >
-                        <TrashIcon size={13} />
+                        <TrashIcon size={12} />
                       </button>
                     )}
                   </div>

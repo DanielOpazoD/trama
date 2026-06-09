@@ -105,7 +105,7 @@ export function usePdfStudioExport({
   ) {
     const blob = await preparePdf(target, options)
     if (!blob) return
-    downloadBlob(blob, exportPdfName(undefined, kind))
+    downloadBlob(blob, exportPdfName(undefined, kind, target.title))
     toast.show({ message: 'PDF descargado.', tone: 'success' })
   }
 

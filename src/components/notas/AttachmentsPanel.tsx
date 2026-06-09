@@ -98,7 +98,7 @@ export function AttachmentsPanel({
               key={attachment.id}
               className="flex items-center gap-2 rounded-md border border-ink-100/60 bg-paper-50/50 px-2 py-1.5 text-caption"
             >
-              <FileIcon size={13} className="shrink-0 text-ink-300" />
+              <FileIcon size={12} className="shrink-0 text-ink-300" />
               <button
                 type="button"
                 onClick={() => void downloadAttachment(attachment)}
