@@ -38,8 +38,12 @@ export type ChatMessageSendBodyT = z.infer<typeof ChatMessageSendBody>
  */
 export const AskBody = z.object({
   text: z.string().min(1, 'text requerido'),
-  view: z.string().optional(),
-  selectedEntityId: z.string().optional(),
-  threadId: z.string().optional(),
+  // El cliente manda `null` (no `undefined`) cuando no hay contexto —
+  // `ai.ask` hace `view: options?.view ?? null`. Zod `.optional()` rechaza
+  // `null`, así que sin `.nullable()` el body "soledad" daba 400 "Body
+  // inválido". El handler ya tolera null en los tres (chequea truthy/typeof).
+  view: z.string().nullable().optional(),
+  selectedEntityId: z.string().nullable().optional(),
+  threadId: z.string().nullable().optional(),
 })
 export type AskBodyT = z.infer<typeof AskBody>
