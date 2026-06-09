@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { ImageAsset } from '../../../../lib/pdfStudio/model/model'
-import { CameraIcon, DownloadIcon, PlusIcon, TrashIcon } from '../../../Icons'
+import {
+  CameraIcon,
+  ChevronDownIcon,
+  DownloadIcon,
+  PlusIcon,
+  TrashIcon,
+} from '../../../Icons'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -34,14 +40,30 @@ export function WorkspaceImagesSection({
   onRemoveImage: (id: string) => void
   onDownloadImage: (asset: ImageAsset) => void
 }) {
+  // Colapsada por defecto: la galería de miniaturas empujaba "PDFs y copias" fuera de vista.
+  const [collapsed, setCollapsed] = useState(true)
+
   return (
     <section>
-      <h3 className="flex items-center gap-1.5 px-2.5 pt-2 pb-0.5 text-micro font-semibold uppercase tracking-eyebrow text-ink-400">
-        <CameraIcon size={12} />
-        Imágenes
-        <span className="text-ink-300 tabular-nums">({library.length})</span>
+      <h3>
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-expanded={!collapsed}
+          className="flex w-full items-center gap-1.5 px-2.5 pt-2 pb-0.5 text-micro font-semibold uppercase tracking-eyebrow text-ink-400 transition-colors hover:text-ink-700"
+        >
+          <CameraIcon size={12} />
+          Imágenes
+          <span className="text-ink-300 tabular-nums">({library.length})</span>
+          <ChevronDownIcon
+            size={12}
+            className={`ml-auto text-ink-300 transition-transform duration-200 ease-out-quart ${
+              collapsed ? '-rotate-90' : ''
+            }`}
+          />
+        </button>
       </h3>
-      {library.length === 0 ? (
+      {collapsed ? null : library.length === 0 ? (
         <p className="px-2.5 pb-2 text-micro text-ink-400">
           Tus imágenes para reutilizar.
         </p>

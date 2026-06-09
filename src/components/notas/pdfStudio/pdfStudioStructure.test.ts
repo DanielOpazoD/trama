@@ -80,10 +80,12 @@ describe('pdfStudio · estructura incremental', () => {
       fileLineCount('src/components/notas/pdfStudio/workspace/WorkspacePanel.tsx'),
     ).toBeLessThanOrEqual(160)
     expect(
+      // 110 → 120: la sección de imágenes ahora colapsa (botón disclosure +
+      // estado), colapsada por defecto.
       fileLineCount(
         'src/components/notas/pdfStudio/workspace/WorkspaceImagesSection.tsx',
       ),
-    ).toBeLessThanOrEqual(110)
+    ).toBeLessThanOrEqual(120)
     expect(
       fileLineCount(
         'src/components/notas/pdfStudio/workspace/WorkspaceTemplatesSection.tsx',

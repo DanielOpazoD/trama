@@ -903,6 +903,8 @@ describe('<PdfStudioView />', () => {
     // La imagen entra como página y además aparece el panel (con la biblioteca).
     expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Ocultar el panel/i })).toBeInTheDocument()
+    // La sección "Imágenes" arranca colapsada; la abrimos para reutilizar.
+    await user.click(screen.getByRole('button', { name: /Imágenes/i }))
     // Y se puede agregar otra vez al documento desde la biblioteca.
     await user.click(
       screen.getByRole('button', { name: /Agregar esta imagen al documento/i }),
