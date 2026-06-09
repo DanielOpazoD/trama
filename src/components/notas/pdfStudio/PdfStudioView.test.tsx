@@ -602,6 +602,10 @@ describe('<PdfStudioView />', () => {
       { flatten: false },
       expect.anything(),
     )
+    // La descarga sale de la vista previa en modal (gesto fresco del click →
+    // funciona en Safari/WebKit, que bloquea descargas post-async del menú).
+    const preview = await screen.findByRole('dialog', { name: /Vista previa del PDF/i })
+    await user.click(within(preview).getByRole('button', { name: /Descargar/i }))
     expect(mocks.downloadBlob).toHaveBeenCalledWith(
       expect.any(Blob),
       expect.stringMatching(/rellenable.*\.pdf$/),

@@ -57,15 +57,8 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     useState<AssembleOptions['compression']>('balanced')
   const [history, setHistory] = useState<History<PdfDoc>>(() => initHistory(emptyDoc()))
   const doc = history.present
-  const {
-    cancelExport,
-    downloadPdf,
-    downloadSaved,
-    exportPdf,
-    preparePdf,
-    exportStatus,
-    saving,
-  } = usePdfStudioExport({ compression: exportCompression })
+  const { cancelExport, downloadSaved, exportPdf, preparePdf, exportStatus, saving } =
+    usePdfStudioExport({ compression: exportCompression })
   // Vista previa en modal del PDF ensamblado (con botón Imprimir + Descargar).
   const [previewState, setPreviewState] = useState<{
     blob: Blob
@@ -297,8 +290,12 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
               onUndo={() => setHistory((h) => undo(h))}
               onRedo={() => setHistory((h) => redo(h))}
               onSavePdf={() => void openPreview(doc)}
-              onDownload={() => void downloadPdf(doc)}
-              onDownloadFillable={() => void downloadPdf(doc, 'rellenable')}
+              // Descargar/rellenable van por la vista previa en modal (no descarga
+              // directa): Safari bloquea el a.click() tras el ensamblado async, fuera
+              // del gesto del usuario. En el modal la descarga sale del click del botón
+              // (gesto fresco) — el mismo camino seguro que ya usa "Guardar PDF".
+              onDownload={() => void openPreview(doc)}
+              onDownloadFillable={() => void openPreview(doc, 'rellenable')}
               onCancelExport={cancelExport}
               onNewDoc={newDoc}
               onOpenOcr={() => setOcrOpen(true)}
