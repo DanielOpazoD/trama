@@ -42,7 +42,7 @@ const SECTION_META: Record<NotasSection, { title: string; subtitle: string }> = 
   notas: { title: 'Notas', subtitle: 'capturas y anexos' },
   tareas: { title: 'Tareas', subtitle: 'recordatorios de la semana' },
   prompts: { title: 'Prompts', subtitle: 'biblioteca reutilizable' },
-  claves: { title: 'Claves', subtitle: 'vault seguro' },
+  claves: { title: 'Claves', subtitle: 'bajo llave' },
   pdf: { title: 'Imprenta', subtitle: 'editar PDF' },
   planillas: { title: 'Planillas', subtitle: 'rellenar e imprimir' },
 }

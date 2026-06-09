@@ -85,7 +85,7 @@ export function NotasHomeView({
         <div className="grid md:grid-cols-2 gap-3">
           <HubCard title="Pendientes" count={pendingTasks.length}>
             {pendingTasks.length === 0 ? (
-              <Muted>Nada pendiente.</Muted>
+              <Muted>Nada pendiente por ahora.</Muted>
             ) : (
               pendingTasks.map((t) => (
                 <button
@@ -114,7 +114,7 @@ export function NotasHomeView({
                 <p className="text-sm text-ink-700 line-clamp-2">{n.content}</p>
               </button>
             ))}
-            {topNotes.length === 0 && <Muted>Sin notas todavía.</Muted>}
+            {topNotes.length === 0 && <Muted>Todavía sin apuntes.</Muted>}
           </HubCard>
           <HubCard title="Prompts listos" count={topPrompts.length}>
             {topPrompts.map((p) => (
@@ -129,16 +129,16 @@ export function NotasHomeView({
                 </p>
               </button>
             ))}
-            {topPrompts.length === 0 && <Muted>Sin prompts todavía.</Muted>}
+            {topPrompts.length === 0 && <Muted>Todavía sin prompts.</Muted>}
           </HubCard>
-          <HubCard title="Vault" count={0}>
+          <HubCard title="Claves" count={0}>
             <button
               onClick={() => onNavigate('claves')}
               className="w-full text-left py-1.5"
             >
-              <p className="text-sm text-ink-700 truncate">Claves protegidas</p>
+              <p className="text-sm text-ink-700 truncate">Tus claves, a salvo</p>
               <p className="text-micro uppercase tracking-eyebrow text-ink-300">
-                requiere clave de acceso
+                se abren con tu clave
               </p>
             </button>
           </HubCard>
