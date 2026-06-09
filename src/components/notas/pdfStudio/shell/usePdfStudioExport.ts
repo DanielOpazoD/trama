@@ -89,18 +89,21 @@ export function usePdfStudioExport({
   ) {
     if (!canExport(target) || saving) return
     setSaving(true)
-    const ios = shouldDownloadPdfDirectly()
-    const viewer = ios ? null : openBlankPdfTab()
+    // Safari (iOS y escritorio) no muestra de forma confiable un blob PDF en una
+    // pestaña nueva, así que para esos navegadores descargamos directo.
+    const downloadDirectly = shouldDownloadPdfDirectly()
+    const viewer = downloadDirectly ? null : openBlankPdfTab()
     try {
       const blob = await assembleOrToast(target, options)
       if (!blob) {
         viewer?.close()
         return
       }
-      if (ios) {
+      if (downloadDirectly) {
         downloadBlob(blob, exportPdfName(undefined, kind))
         toast.show({
-          message: 'Descargamos el PDF; ábrelo desde Archivos para imprimir.',
+          message:
+            'Descargamos el PDF; ábrelo desde tus descargas para verlo o imprimirlo.',
           tone: 'default',
         })
         return

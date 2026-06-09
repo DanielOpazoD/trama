@@ -3,8 +3,21 @@ import {
   exportPdfName,
   isIosLike,
   isPdfFile,
+  isSafari,
   isStudioImageFile,
 } from './pdfStudioFileUtils'
+
+const UA = {
+  safariMac:
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
+  safariIos:
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+  chromeMac:
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+  chromeIos:
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/124.0 Mobile/15E148 Safari/604.1',
+  edge: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 Edg/124.0',
+}
 
 describe('pdfStudioFileUtils', () => {
   it('detecta PDFs por MIME o extensión', () => {
@@ -38,5 +51,16 @@ describe('pdfStudioFileUtils', () => {
     expect(
       isIosLike({ userAgent: 'Macintosh', platform: 'MacIntel', maxTouchPoints: 0 }),
     ).toBe(false)
+  })
+
+  it('detecta Safari (escritorio e iOS) y NO confunde a Chrome/Edge', () => {
+    const nav = (userAgent: string) => ({ userAgent, platform: '', maxTouchPoints: 0 })
+    // Safari real → true (es el caso que rompe el visor en pestaña nueva).
+    expect(isSafari(nav(UA.safariMac))).toBe(true)
+    expect(isSafari(nav(UA.safariIos))).toBe(true)
+    // Chromium/Firefox/Edge traen "Safari" en el UA pero NO "Version/" → false.
+    expect(isSafari(nav(UA.chromeMac))).toBe(false)
+    expect(isSafari(nav(UA.chromeIos))).toBe(false)
+    expect(isSafari(nav(UA.edge))).toBe(false)
   })
 })

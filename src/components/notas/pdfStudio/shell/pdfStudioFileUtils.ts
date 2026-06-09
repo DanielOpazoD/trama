@@ -19,13 +19,36 @@ export function isIosLike(nav: BrowserLike): boolean {
   )
 }
 
+/** Safari real (escritorio o iOS), excluyendo Chrome/Edge/Firefox/Opera, que
+ *  también incluyen el token "Safari" en su UA. El discriminante fuerte es
+ *  "Version/": solo WebKit-Safari lo emite. */
+export function isSafari(nav: BrowserLike): boolean {
+  const ua = nav.userAgent
+  return (
+    /Safari/.test(ua) &&
+    /Version\//.test(ua) &&
+    !/Chrom(e|ium)|CriOS|FxiOS|Edg|OPR|OPiOS|Android|SamsungBrowser/.test(ua)
+  )
+}
+
+/**
+ * Decide si "Guardar PDF" descarga el archivo DIRECTAMENTE en vez de abrirlo en
+ * una pestaña nueva con el visor del navegador.
+ *
+ * Safari (iOS y escritorio) NO logra navegar de forma confiable una pestaña
+ * recién abierta hacia un `blob:` PDF: la pestaña queda colgada en "Preparando
+ * tu PDF…" y el visor nunca aparece (sin error ni aviso). Para esos navegadores
+ * descargamos el PDF, que SÍ funciona siempre. Chrome/Firefox/Edge mantienen el
+ * visor en pestaña nueva.
+ */
 export function shouldDownloadPdfDirectly(): boolean {
   if (typeof navigator === 'undefined') return false
-  return isIosLike({
+  const nav = {
     userAgent: navigator.userAgent,
     platform: navigator.platform,
     maxTouchPoints: navigator.maxTouchPoints,
-  })
+  }
+  return isIosLike(nav) || isSafari(nav)
 }
 
 export function exportPdfName(date = new Date(), kind?: string): string {
