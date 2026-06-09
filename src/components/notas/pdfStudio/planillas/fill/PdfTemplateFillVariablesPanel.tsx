@@ -23,6 +23,7 @@ export function PdfTemplateFillVariablesPanel({
   onClearValues,
   onFocusField,
   onImportValues,
+  onImportBatch,
   onShowFieldGuidesChange = () => undefined,
   onShowPendingOnlyChange = () => undefined,
   onJump,
@@ -38,12 +39,15 @@ export function PdfTemplateFillVariablesPanel({
   onClearValues?: () => void
   onFocusField?: (field: PdfFormFieldDraft) => void
   onImportValues?: (file: File) => void | Promise<TemplateFillImportValues | void>
+  /** Lote: CSV con cabecera + una fila por copia → N copias en un solo PDF. */
+  onImportBatch?: (file: File) => void | Promise<void>
   onShowFieldGuidesChange?: (show: boolean) => void
   onShowPendingOnlyChange?: (show: boolean) => void
   onJump: (field: PdfFormFieldDraft) => void
 }) {
   const fieldInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const importInputRef = useRef<HTMLInputElement | null>(null)
+  const batchInputRef = useRef<HTMLInputElement | null>(null)
   const orderedFields = orderFormFieldsForFill(fields, pageIndexById)
   const visibleFields = showPendingOnly
     ? orderedFields.filter((field) => !isTemplateFieldFilled(field))
@@ -132,6 +136,16 @@ export function PdfTemplateFillVariablesPanel({
           Borrar datos
         </button>
       </div>
+      {onImportBatch ? (
+        <button
+          type="button"
+          onClick={() => batchInputRef.current?.click()}
+          title="CSV con cabecera de nombres de casillero y una fila por copia: genera todas las copias rellenadas en un solo PDF."
+          className="mt-1.5 w-full rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-[color:var(--accent-sage)]/40 hover:text-[color:var(--accent-sage)]"
+        >
+          Rellenar en lote (CSV)
+        </button>
+      ) : null}
       <input
         ref={importInputRef}
         aria-label="Archivo de datos"
@@ -141,6 +155,18 @@ export function PdfTemplateFillVariablesPanel({
         onChange={(event) => {
           const file = event.currentTarget.files?.[0]
           if (file) void onImportValues?.(file)
+          event.currentTarget.value = ''
+        }}
+      />
+      <input
+        ref={batchInputRef}
+        aria-label="Archivo de lote (una fila por copia)"
+        type="file"
+        accept=".json,.csv,application/json,text/csv,text/plain"
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0]
+          if (file) void onImportBatch?.(file)
           event.currentTarget.value = ''
         }}
       />

@@ -10,6 +10,7 @@ export function usePdfTextEditorFillSidebarProps({
   clearDraftFormValues,
   formFields,
   jumpToFormField,
+  onMailMergeRows,
   pageIndexById,
   setActiveFillFieldId,
   updateDraftFormValue,
@@ -19,14 +20,16 @@ export function usePdfTextEditorFillSidebarProps({
   clearDraftFormValues: () => void
   formFields: PdfFormFieldDraft[]
   jumpToFormField: (field: PdfFormFieldDraft) => void
+  /** Lote: genera N copias rellenadas (una por fila) y abre la vista previa. */
+  onMailMergeRows?: (rows: TemplateFillImportValues[]) => void
   pageIndexById: Record<string, number>
   setActiveFillFieldId: (id: string | null) => void
   updateDraftFormValue: (id: string, value: string | boolean) => void
 }) {
   const [showFillGuides, setShowFillGuides] = useState(false)
   const [showPendingOnly, setShowPendingOnly] = useState(false)
-  const { importFeedback, importTemplateValues } =
-    usePdfTemplateFillImport(applyDraftFormValues)
+  const { importFeedback, importTemplateValues, importTemplateBatch } =
+    usePdfTemplateFillImport(applyDraftFormValues, onMailMergeRows)
 
   const fillSidebarProps: PdfTextEditorFillSidebarProps = {
     activeFieldId: activeFillFieldId,
@@ -39,6 +42,7 @@ export function usePdfTextEditorFillSidebarProps({
     onClearValues: clearDraftFormValues,
     onFocusField: (field) => setActiveFillFieldId(field.id),
     onImportValues: importTemplateValues,
+    onImportBatch: onMailMergeRows ? importTemplateBatch : undefined,
     onJump: jumpToFormField,
     onShowFieldGuidesChange: setShowFillGuides,
     onShowPendingOnlyChange: setShowPendingOnly,

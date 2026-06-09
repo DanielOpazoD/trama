@@ -51,7 +51,23 @@ export function shouldDownloadPdfDirectly(): boolean {
   return isIosLike(nav) || isSafari(nav)
 }
 
-export function exportPdfName(date = new Date(), kind?: string): string {
+/** Slug seguro para nombre de archivo (sin acentos ni símbolos). */
+export function pdfFileSlug(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+/**
+ * Nombre del PDF exportado. Con título del documento → `<titulo>[-<kind>].pdf`;
+ * sin título, el genérico fechado `trama[-<kind>]-<YYYYMMDD>.pdf` de siempre.
+ */
+export function exportPdfName(date = new Date(), kind?: string, title?: string): string {
+  const slug = title ? pdfFileSlug(title) : ''
+  if (slug) return `${slug}${kind ? `-${kind}` : ''}.pdf`
   const stamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(
     date.getDate(),
   ).padStart(2, '0')}`

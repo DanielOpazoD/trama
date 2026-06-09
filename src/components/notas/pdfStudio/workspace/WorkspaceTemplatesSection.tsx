@@ -59,7 +59,7 @@ export function WorkspaceTemplatesSection({
   return (
     <section className="pb-2">
       <div className="flex items-center justify-between gap-2 px-2.5 pt-2 pb-0.5">
-        <h3 className="flex items-center gap-1.5 text-micro font-semibold uppercase tracking-eyebrow text-ink-400">
+        <h3 className="section-eyebrow-serif flex items-center gap-1.5 text-ink-400">
           <FilePdfIcon size={12} />
           Planillas
           <span className="text-ink-300 tabular-nums">({templates.length})</span>

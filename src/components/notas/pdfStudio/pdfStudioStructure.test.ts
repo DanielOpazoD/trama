@@ -8,17 +8,21 @@ function fileLineCount(path: string): number {
 
 describe('pdfStudio · estructura incremental', () => {
   it('mantiene PdfTextEditor bajo el ratchet estructural actual', () => {
+    // 575 → 582: prop onMailMerge (lote) que conecta el sidebar de relleno con
+    // la acción de N copias; la lógica vive en pdfTemplateMailMerge.ts.
     expect(
       fileLineCount('src/components/notas/pdfStudio/editor/PdfTextEditor.tsx'),
-    ).toBeLessThanOrEqual(575)
+    ).toBeLessThanOrEqual(582)
   })
 
   it('mantiene PdfStudioView bajo el ratchet estructural actual', () => {
     // 388 → 412: vista previa en modal del PDF (estado + openPreview + render +
     // imports) para imprimir/descargar dentro de la app.
+    // 412 → 428: título de documento (updateTitle + input + nombre del export)
+    // y cableado del relleno en lote.
     expect(
       fileLineCount('src/components/notas/pdfStudio/PdfStudioView.tsx'),
-    ).toBeLessThanOrEqual(412)
+    ).toBeLessThanOrEqual(428)
   })
 
   it('mantiene assemble como orquestador del pipeline', () => {
@@ -40,7 +44,8 @@ describe('pdfStudio · estructura incremental', () => {
   })
 
   it('mantiene el modelo PDF bajo el ratchet estructural actual', () => {
-    expect(fileLineCount('src/lib/pdfStudio/model/model.ts')).toBeLessThanOrEqual(460)
+    // 460 → 495: repeatDocPages (bloques del relleno en lote) + setDocTitle.
+    expect(fileLineCount('src/lib/pdfStudio/model/model.ts')).toBeLessThanOrEqual(495)
   })
 
   it('mantiene formularios visuales separados en modulos pequenos', () => {

@@ -50,7 +50,7 @@ export function WorkspaceImagesSection({
           type="button"
           onClick={() => setCollapsed((c) => !c)}
           aria-expanded={!collapsed}
-          className="flex w-full items-center gap-1.5 px-2.5 pt-2 pb-0.5 text-micro font-semibold uppercase tracking-eyebrow text-ink-400 transition-colors hover:text-ink-700"
+          className="section-eyebrow-serif flex w-full items-center gap-1.5 px-2.5 pt-2 pb-0.5 text-ink-400 transition-colors hover:text-ink-700"
         >
           <CameraIcon size={12} />
           Imágenes

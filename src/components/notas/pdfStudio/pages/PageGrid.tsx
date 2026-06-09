@@ -1,7 +1,43 @@
-import { useState, type DragEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type DragEvent } from 'react'
 import { type PdfDoc } from '../../../../lib/pdfStudio/model/model'
 import { PageCard } from './PageCard'
 import type { PageInteractionMode } from '../shell/pdfStudioPageInteractionMode'
+
+/**
+ * FLIP: al reordenar, cada hoja viaja de su posición vieja a la nueva en vez de
+ * teletransportarse. Mide los rects por `data-page-id` ANTES del paint del nuevo
+ * orden y anima el delta invertido hacia cero con la curva canónica out-quart.
+ * Respeta `prefers-reduced-motion` y degrada en silencio donde no hay WAAPI
+ * (happy-dom de los tests).
+ */
+function useFlipPages(listRef: React.RefObject<HTMLUListElement | null>, dep: unknown) {
+  const rectsRef = useRef<Map<string, DOMRect>>(new Map())
+  useLayoutEffect(() => {
+    const list = listRef.current
+    if (!list) return
+    const prev = rectsRef.current
+    const next = new Map<string, DOMRect>()
+    const reduced =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    for (const el of Array.from(list.children) as HTMLElement[]) {
+      const id = el.dataset.pageId
+      if (!id) continue
+      const rect = el.getBoundingClientRect()
+      next.set(id, rect)
+      const old = prev.get(id)
+      if (reduced || !old || typeof el.animate !== 'function') continue
+      const dx = old.left - rect.left
+      const dy = old.top - rect.top
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue
+      el.animate(
+        [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }],
+        { duration: 220, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
+      )
+    }
+    rectsRef.current = next
+  }, [listRef, dep])
+}
 
 /**
  * Grilla de miniaturas reordenables. Es dueña del estado VISUAL del arrastre
@@ -35,6 +71,8 @@ export function PageGrid({
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const total = doc.pages.length
+  const listRef = useRef<HTMLUListElement>(null)
+  useFlipPages(listRef, doc.pages)
 
   const endDrag = () => {
     setDragIndex(null)
@@ -43,6 +81,7 @@ export function PageGrid({
 
   return (
     <ul
+      ref={listRef}
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDropFiles}
       className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5"

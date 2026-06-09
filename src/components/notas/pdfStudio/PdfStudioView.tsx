@@ -3,6 +3,7 @@ import {
   emptyDoc,
   isPdfTemplate,
   setDocSettings,
+  setDocTitle,
   type DocSettings,
   type PdfDoc,
 } from '../../../lib/pdfStudio/model/model'
@@ -19,6 +20,7 @@ import {
 import { disposePdfStudio } from '../../../lib/pdfStudio/render/pdfRender'
 import { clearDraft } from '../../../lib/pdfStudio/render/persistence'
 import { BulkBar } from './shell/BulkBar'
+import { PdfDocTitleInput } from './shell/PdfDocTitleInput'
 import { PdfStudioDocumentToolbar } from './shell/PdfStudioDocumentToolbar'
 import { PdfStudioFormPanel } from './planillas/PdfStudioFormPanel'
 import { PdfStudioMainPane } from './shell/PdfStudioMainPane'
@@ -63,11 +65,12 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   const [previewState, setPreviewState] = useState<{
     blob: Blob
     kind?: string
+    title?: string
   } | null>(null)
   const openPreview = useCallback(
     async (target: PdfDoc, kind?: string, options?: { flattenFormFields?: boolean }) => {
       const blob = await preparePdf(target, options)
-      if (blob) setPreviewState({ blob, kind })
+      if (blob) setPreviewState({ blob, kind, title: target.title })
     },
     [preparePdf],
   )
@@ -137,6 +140,11 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   const updateSettings = useCallback((settings: DocSettings) => {
     setHistory((h) => ({ ...h, present: setDocSettings(h.present, settings) }))
   }, [])
+  // El renombre no pasa por el historial (como los settings): renombrar no es
+  // un paso de edición que se deshaga con ⌘Z.
+  const updateTitle = useCallback((title: string) => {
+    setHistory((h) => ({ ...h, present: setDocTitle(h.present, title) }))
+  }, [])
   const { addFiles, busy } = usePdfStudioImport({
     commit,
     doc,
@@ -154,7 +162,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     setOcrOpen,
     startOcr,
   } = usePdfStudioOcr({ compression: exportCompression })
-  const { printFilledTemplate, saveFilledTemplateCopy } =
+  const { printFilledTemplate, printMailMergeTemplate, saveFilledTemplateCopy } =
     usePdfStudioFilledTemplateActions({
       activeTemplateName,
       doc,
@@ -244,6 +252,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
         templatesEnabled={templatesEnabled}
         canSave={!empty}
         canSaveTemplate={templatesEnabled && !empty && isPdfTemplate(doc)}
+        suggestedSaveName={doc.title}
         collapsed={panelCollapsed}
         onAddImage={addLibraryToDoc}
         onRemoveImage={removeFromLibrary}
@@ -269,8 +278,14 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
       />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {topBar}
-        <div ref={setScrollRoot} className="min-h-0 flex-1 overflow-y-auto">
+        <div
+          ref={setScrollRoot}
+          className="pdf-studio-canvas min-h-0 flex-1 overflow-y-auto"
+        >
           <div className="mx-auto max-w-5xl space-y-5 px-5 pb-24 pt-6 md:px-8">
+            {!templatesEnabled && !empty && (
+              <PdfDocTitleInput title={doc.title ?? ''} onCommit={updateTitle} />
+            )}
             <PdfStudioDocumentToolbar
               busy={busy}
               canSaveTemplate={templatesEnabled && !empty && isPdfTemplate(doc)}
@@ -383,6 +398,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
           onInspectForms={templatesEnabled ? () => void inspectForms() : undefined}
           onClose={closeTextEditor}
           onPrint={printFilledTemplate}
+          onMailMerge={templatesEnabled ? printMailMergeTemplate : undefined}
           onSaveCopy={templatesEnabled ? saveFilledTemplateCopy : undefined}
         />
       )}
@@ -392,7 +408,10 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
           onClose={() => setPreviewState(null)}
           onPrint={(blob) => printPdfBlob(blob)}
           onDownload={(blob) => {
-            downloadBlob(blob, exportPdfName(undefined, previewState.kind))
+            downloadBlob(
+              blob,
+              exportPdfName(undefined, previewState.kind, previewState.title),
+            )
             toast.show({ message: 'PDF descargado.', tone: 'success' })
           }}
         />

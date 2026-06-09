@@ -41,6 +41,18 @@ describe('pdfStudioFileUtils', () => {
     expect(exportPdfName(date, 'seleccion')).toBe('trama-seleccion-20260606.pdf')
   })
 
+  it('con título del documento usa el slug en vez del genérico fechado', () => {
+    const date = new Date(2026, 5, 6)
+    expect(exportPdfName(date, undefined, 'Ensayo: memoria y olvido')).toBe(
+      'ensayo-memoria-y-olvido.pdf',
+    )
+    expect(exportPdfName(date, 'planilla', 'Ficha médica')).toBe(
+      'ficha-medica-planilla.pdf',
+    )
+    // Título que slugifica a vacío → vuelve al genérico.
+    expect(exportPdfName(date, undefined, '···')).toBe('trama-20260606.pdf')
+  })
+
   it('detecta iOS/iPadOS desde datos de navegador', () => {
     expect(
       isIosLike({ userAgent: 'iPhone', platform: 'iPhone', maxTouchPoints: 0 }),

@@ -11,6 +11,7 @@ const rowBtn =
 export function WorkspaceSavedDocsSection({
   creations,
   canSave,
+  suggestedName,
   onSaveCreation,
   onOpenSaved,
   onRenameSaved,
@@ -19,6 +20,8 @@ export function WorkspaceSavedDocsSection({
 }: {
   creations: SavedDoc[]
   canSave: boolean
+  /** Prefill del nombre al guardar (el título del documento, si lo tiene). */
+  suggestedName?: string
   onSaveCreation: (name: string) => void
   onOpenSaved: (s: SavedDoc) => void
   onRenameSaved: (id: string, name: string) => void
@@ -46,7 +49,7 @@ export function WorkspaceSavedDocsSection({
   return (
     <section className="pb-2">
       <div className="flex items-center justify-between gap-2 px-2.5 pt-2 pb-0.5">
-        <h3 className="flex items-center gap-1.5 text-micro font-semibold uppercase tracking-eyebrow text-ink-400">
+        <h3 className="section-eyebrow-serif flex items-center gap-1.5 text-ink-400">
           <FilePdfIcon size={12} />
           PDFs y copias
           <span className="text-ink-300 tabular-nums">({creations.length})</span>
@@ -54,7 +57,7 @@ export function WorkspaceSavedDocsSection({
         {newName === null && (
           <button
             type="button"
-            onClick={() => setNewName('')}
+            onClick={() => setNewName(suggestedName ?? '')}
             disabled={!canSave}
             className="btn-ghost text-micro inline-flex items-center gap-1 disabled:opacity-40"
           >
