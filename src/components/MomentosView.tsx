@@ -8,6 +8,7 @@ import {
 import type { Entity, MomentoKind } from '../types'
 import { Paginator } from './Paginator'
 import { EmptyMessage } from './EmptyMessage'
+import { ErrorState } from './ErrorState'
 import { AlbumGrid } from './momentos/AlbumGrid'
 import { HojaEditor } from './momentos/HojaEditor'
 import { MomentoComposer } from './momentos/MomentoComposer'
@@ -221,6 +222,12 @@ export function MomentosView() {
         <ul className="space-y-4">
           <SkeletonList count={6} Component={MomentoSkeleton} />
         </ul>
+      ) : momentosQuery.isError && items.length === 0 ? (
+        <ErrorState
+          title="No se pudieron cargar los momentos"
+          onRetry={() => momentosQuery.refetch()}
+          retrying={momentosQuery.isFetching}
+        />
       ) : items.length === 0 ? (
         filterKind || dayFilter ? (
           // Hay momentos en general, pero el filtro actual no devuelve nada.

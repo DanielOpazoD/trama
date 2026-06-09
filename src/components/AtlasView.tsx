@@ -2,6 +2,7 @@ import { useAtlasQuery, useGenerateAtlas, useToast } from '../state'
 import { typeAccent } from '../lib/typeAccents'
 import { ViewHeader } from './ViewHeader'
 import { EmptyMessage } from './EmptyMessage'
+import { ErrorState } from './ErrorState'
 import { SkeletonList, TimelineRowSkeleton } from './Skeleton'
 import { RefreshIcon } from './Icons'
 import { AISourceTag } from './AISourceTag'
@@ -25,7 +26,7 @@ import type { AtlasConstellation } from '../api'
  * clickeables (→ abren la entidad).
  */
 export function AtlasView({ onSelectEntity }: { onSelectEntity: (id: string) => void }) {
-  const { data, isLoading } = useAtlasQuery()
+  const { data, isLoading, isError, isFetching, refetch } = useAtlasQuery()
   const generate = useGenerateAtlas()
   const toast = useToast()
 
@@ -74,6 +75,14 @@ export function AtlasView({ onSelectEntity }: { onSelectEntity: (id: string) => 
         <div className="space-y-4">
           <SkeletonList count={4} Component={TimelineRowSkeleton} />
         </div>
+      ) : isError && !hasAtlas ? (
+        // Un fetch fallido NO debe verse como "atlas vacío": ahí el CTA sería
+        // "Trazar el atlas", que gasta IA por un problema que quizá es temporal.
+        <ErrorState
+          title="No se pudo cargar el atlas"
+          onRetry={() => refetch()}
+          retrying={isFetching}
+        />
       ) : !hasAtlas ? (
         <EmptyMessage
           illustration="weave"

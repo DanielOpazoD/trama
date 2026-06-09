@@ -89,4 +89,28 @@ describe('<AtlasView />', () => {
       expect(screen.getByText(/el cielo todavía no está trazado/i)).toBeInTheDocument(),
     )
   })
+
+  it('muestra estado de error (no el CTA de trazar) cuando la carga falla', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | Request | URL) => {
+        if (String(input).includes('/api/atlas')) {
+          return new Response('boom', { status: 500 })
+        }
+        return new Response('{}', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }),
+    )
+    renderWithProviders(<AtlasView onSelectEntity={() => {}} />)
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /no se pudo cargar el atlas/i,
+    )
+    // El CTA caro ("Trazar el atlas") NO debe aparecer ante un fallo de carga.
+    expect(
+      screen.queryByRole('button', { name: /trazar el atlas/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument()
+  })
 })

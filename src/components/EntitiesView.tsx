@@ -18,6 +18,7 @@ import { WikipediaSuggestPanel } from './WikipediaSuggestPanel'
 import { EndMark } from './Icons'
 import { ReclassifyPanel } from './ReclassifyPanel'
 import { EmptyMessage } from './EmptyMessage'
+import { ErrorState } from './ErrorState'
 import { EntityCardSkeleton, SkeletonList } from './Skeleton'
 import { Folio } from './Folio'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
@@ -277,6 +278,12 @@ export function EntitiesView({
         <div className="space-y-2">
           <SkeletonList count={6} Component={EntityCardSkeleton} />
         </div>
+      ) : entitiesPaged.isError && entities.length === 0 ? (
+        <ErrorState
+          title="No se pudieron cargar las entidades"
+          onRetry={() => entitiesPaged.refetch()}
+          retrying={entitiesPaged.isFetching}
+        />
       ) : entities.length === 0 ? (
         <EmptyMessage
           illustration="weave"

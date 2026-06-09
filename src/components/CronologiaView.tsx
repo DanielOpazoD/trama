@@ -5,6 +5,7 @@ import { seasonOf, seasonKeyString, formatSeason } from '../lib/season'
 import { ViewHeader } from './ViewHeader'
 import { Paginator } from './Paginator'
 import { EmptyMessage } from './EmptyMessage'
+import { ErrorState } from './ErrorState'
 import { SkeletonList, TimelineRowSkeleton } from './Skeleton'
 
 /**
@@ -115,6 +116,12 @@ export function CronologiaView({
         <div className="space-y-4">
           <SkeletonList count={6} Component={TimelineRowSkeleton} />
         </div>
+      ) : query.isError && entradas.length === 0 ? (
+        <ErrorState
+          title="No se pudo cargar la cronología"
+          onRetry={() => query.refetch()}
+          retrying={query.isFetching}
+        />
       ) : entradas.length === 0 ? (
         <EmptyMessage
           illustration="thread"
