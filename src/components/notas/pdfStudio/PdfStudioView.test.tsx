@@ -173,7 +173,7 @@ describe('<PdfStudioView />', () => {
     await screen.findByAltText('Página 1')
 
     expect(
-      screen.getByText(/Marca en el documento los espacios donde se escribirá/i),
+      screen.getByText(/Doble clic en una hoja para marcar los casilleros/i),
     ).toBeInTheDocument()
 
     // Se entra al diseño con doble clic en la hoja (ya no hay botón "Agregar

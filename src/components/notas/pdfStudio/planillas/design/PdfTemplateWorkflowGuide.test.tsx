@@ -8,9 +8,11 @@ describe('<PdfTemplateWorkflowGuide />', () => {
     expect(screen.getByText(/Sube un PDF o imagen/i)).toBeInTheDocument()
   })
 
-  it('guía a marcar espacios cuando hay base sin campos', () => {
+  it('indica el doble clic para crear casilleros cuando hay base sin campos', () => {
     render(<PdfTemplateWorkflowGuide pageCount={2} fieldCount={0} />)
-    expect(screen.getByText(/Marca en el documento los espacios/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/Doble clic en una hoja para marcar los casilleros/i),
+    ).toBeInTheDocument()
   })
 
   it('invita a guardar cuando ya hay casilleros, sin repetir botones de la barra', () => {
