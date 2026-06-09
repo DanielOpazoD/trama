@@ -56,6 +56,16 @@ function GraphNodeInternal({
   const labelY = radius + 14
   const typeLabelY = labelY + 10
 
+  // ζ8: inicial editorial dentro del nodo. Antes el centro era un disco hueco
+  // (cuerpo paper + dot de acento al 14%) que leía como "imagen faltante". La
+  // capital serif lo convierte en una entrada de índice impreso / capitular
+  // iluminada — y de paso permite distinguir entidades de un vistazo sin leer el
+  // label de abajo. Va en `--ink` (no en el acento) para garantizar contraste en
+  // los tres temas; el color de tipo se queda en el anillo. Escala con el radio
+  // pero acotada para que ni se pierda en nodos chicos ni domine en los grandes.
+  const initial = (Array.from(entity.name.trim())[0] ?? '·').toUpperCase()
+  const initialSize = Math.round(Math.min(Math.max(radius * 1.05, 11), 26))
+
   const ringStroke = isSelected ? 'var(--ink)' : isFocused ? 'var(--ink-2)' : accent
   const ringWidth = isSelected ? 2.2 : isFocused ? 2 : 1.4
   const ringOpacity = isSelected || isFocused ? 0.95 : 0.75
@@ -161,6 +171,21 @@ function GraphNodeInternal({
             fill={accent}
             fillOpacity={0.14}
           />
+          {/* ζ8: capital iluminada — inicial serif centrada en el nodo */}
+          <text
+            x={0}
+            y={0}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={initialSize}
+            fontWeight={500}
+            fill="var(--ink)"
+            fillOpacity={0.82}
+            fontFamily="Spectral, Iowan Old Style, Palatino, Georgia, serif"
+            style={{ userSelect: 'none', pointerEvents: 'none' }}
+          >
+            {initial}
+          </text>
           {/* AI provenance pip */}
           {entity.origin.kind === 'ai' && (
             <circle
