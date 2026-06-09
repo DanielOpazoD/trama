@@ -26,6 +26,12 @@
   /* Values are space-separated RGB so Tailwind's opacity modifier works:
      bg-paper-50/70 → rgb(var(--paper-50) / 0.7) */
   :root {
+    /* Safe areas del dispositivo (notch / home indicator de iOS). El viewport
+       usa viewport-fit=cover; los elementos FLOTANTES del borde inferior
+       (barra de captura, pill de modo prueba) suman esta var a su offset.
+       0px donde no aplica. */
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+
     --paper-50:  255 255 255; /* #ffffff — main background, blanco puro */
     --paper-100: 250 250 250; /* #fafafa — sutil elevación */
     --paper-200: 244 244 245; /* #f4f4f5 — sidebar gris (estilo ChatGPT) */
@@ -429,6 +435,20 @@
     /* Caveat tiene optical sizing decente pero leemos a contraste bajo;
        el font-feature-settings 'kern' mejora pares como "fy", "av". */
     font-feature-settings: 'kern';
+  }
+
+  /* Tipografía de párrafo moderna (progressive enhancement, no-op donde
+     no hay soporte): balance evita líneas viudas en títulos y empty states
+     (sólo actúa en bloques cortos); pretty ajusta los finales de párrafo
+     en prosa. Chrome/Edge hoy, el resto lo ignora en silencio. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p,
+  blockquote {
+    text-wrap: pretty;
   }
 
   /* Selection: usar el accent-primary suave en vez del azul nativo del
