@@ -16,7 +16,9 @@ import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { useToast, useUploadNotasAttachment } from '../../state'
 import { compressImage } from '../../lib/imageCompression'
 
-const ACCENT = 'var(--accent-sage)'
+// Tono único del mundo Notas: el primario (--accent-primary), remapeado a
+// salvia por world-notas. No hardcodear el salvia (un solo sistema de tono).
+const ACCENT = 'var(--accent-primary)'
 // Alto (px) a partir del cual una nota larga se colapsa con "leer más". Calibrado
 // para ~9-10 líneas: alcanza para leer el comienzo sin que una nota domine la
 // lista. El colapso es la pieza que mantiene la lista compacta.

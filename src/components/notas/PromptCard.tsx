@@ -3,7 +3,9 @@ import type { Prompt } from '../../api'
 import { ClipboardIcon, PencilIcon, TrashIcon } from '../Icons'
 import { AttachmentsPanel } from './AttachmentsPanel'
 
-const ACCENT = 'var(--accent-sage)'
+// Tono único del mundo Notas: el primario (--accent-primary), remapeado a
+// salvia por world-notas. No hardcodear el salvia (un solo sistema de tono).
+const ACCENT = 'var(--accent-primary)'
 
 export function PromptCard({
   prompt,
