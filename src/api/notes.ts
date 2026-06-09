@@ -7,6 +7,8 @@ import { request } from './request'
 export type Note = {
   id: string
   content: string
+  /** Título corto opcional; null si la nota no tiene. */
+  title: string | null
   tags: string[]
   pinned: boolean
   /** id del Momento al que se promovió esta nota (Fase 4), o null. */
@@ -21,6 +23,7 @@ export type Note = {
 type NoteRow = {
   id: string
   content: string
+  title?: string | null
   tags: string[] | null
   pinned: boolean
   promoted_momento_id: string | null
@@ -33,6 +36,7 @@ function noteFromRow(r: NoteRow): Note {
   return {
     id: r.id,
     content: r.content,
+    title: r.title ?? null,
     tags: r.tags ?? [],
     pinned: r.pinned,
     promotedMomentoId: r.promoted_momento_id,
@@ -52,14 +56,24 @@ export const notesApi = {
     const rows = await request<NoteRow[]>(`/api/notes${qs ? `?${qs}` : ''}`)
     return rows.map(noteFromRow)
   },
-  async create(content: string, pinned = false): Promise<Note> {
+  async create(
+    content: string,
+    opts: { title?: string | null; pinned?: boolean } = {},
+  ): Promise<Note> {
     const row = await request<NoteRow>('/api/notes', {
       method: 'POST',
-      body: JSON.stringify({ content, pinned }),
+      body: JSON.stringify({
+        content,
+        title: opts.title || undefined,
+        pinned: opts.pinned ?? false,
+      }),
     })
     return noteFromRow(row)
   },
-  async update(id: string, patch: { content?: string; pinned?: boolean }): Promise<Note> {
+  async update(
+    id: string,
+    patch: { content?: string; title?: string | null; pinned?: boolean },
+  ): Promise<Note> {
     const row = await request<NoteRow>(`/api/notes/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),

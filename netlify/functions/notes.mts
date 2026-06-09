@@ -19,12 +19,20 @@ import { momentoEmbedText } from './_lib/momento-embed.js'
 type NoteRow = {
   id: string
   content: string
+  title: string | null
   tags: string[]
   pinned: boolean
   promoted_momento_id: string | null
   created_at: string
   updated_at: string
   has_images: boolean
+}
+
+/** Título corto opcional: recorta espacios y vacío → null. */
+function normalizeTitle(raw: string | null | undefined): string | null {
+  if (raw == null) return null
+  const trimmed = raw.trim()
+  return trimmed.length > 0 ? trimmed.slice(0, 200) : null
 }
 
 export default withObservability(
@@ -95,17 +103,17 @@ export default withObservability(
 
       if (q) {
         const rows = await sqlTyped<NoteRow>(sql`
-          SELECT id, content, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
+          SELECT id, content, title, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
           FROM notes
           WHERE deleted_at IS NULL AND user_id = ${userId}
-            AND content ILIKE ${'%' + q + '%'}
+            AND (content ILIKE ${'%' + q + '%'} OR title ILIKE ${'%' + q + '%'})
           ORDER BY pinned DESC, created_at DESC, id DESC
         `)
         return Response.json(rows)
       }
       if (tag) {
         const rows = await sqlTyped<NoteRow>(sql`
-          SELECT id, content, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
+          SELECT id, content, title, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
           FROM notes
           WHERE deleted_at IS NULL AND user_id = ${userId}
             AND ${tag} = ANY(tags)
@@ -114,7 +122,7 @@ export default withObservability(
         return Response.json(rows)
       }
       const rows = await sqlTyped<NoteRow>(sql`
-        SELECT id, content, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
+        SELECT id, content, title, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
         FROM notes
         WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY pinned DESC, created_at DESC, id DESC
@@ -127,11 +135,12 @@ export default withObservability(
       const parsed = await parseJsonBody(req, NoteCreateBody, requestId)
       if (!parsed.ok) return parsed.response
       const { content, pinned } = parsed.data
+      const title = normalizeTitle(parsed.data.title)
       const tags = parseTags(content)
       const rows = await sqlTyped<NoteRow>(sql`
-        INSERT INTO notes (content, tags, pinned, user_id)
-        VALUES (${content}, ${tags}::text[], ${pinned ?? false}, ${userId})
-        RETURNING id, content, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
+        INSERT INTO notes (content, title, tags, pinned, user_id)
+        VALUES (${content}, ${title}, ${tags}::text[], ${pinned ?? false}, ${userId})
+        RETURNING id, content, title, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
       `)
       return Response.json(rows[0], { status: 201 })
     }
@@ -145,6 +154,10 @@ export default withObservability(
       const rows = await sqlTyped<NoteRow>(sql`
         UPDATE notes
         SET content = COALESCE(${body.content ?? null}, content),
+            title = CASE
+                      WHEN ${body.title !== undefined} THEN ${normalizeTitle(body.title)}
+                      ELSE title
+                    END,
             tags = CASE WHEN ${newTags !== null} THEN ${newTags ?? []}::text[] ELSE tags END,
             pinned = CASE
                        WHEN ${body.pinned === true} THEN true
@@ -153,7 +166,7 @@ export default withObservability(
                      END,
             updated_at = NOW()
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-        RETURNING id, content, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
+        RETURNING id, content, title, tags, pinned, promoted_momento_id, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
       `)
       if (rows.length === 0) return ApiErrors.notFound(requestId, 'Nota no encontrada')
       return Response.json(rows[0])

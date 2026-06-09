@@ -3,11 +3,10 @@ import type { AssembleOptions } from '../../../../lib/pdfStudio/assemble/assembl
 import { assemblePdfInWorker } from '../../../../lib/pdfStudio/export/exportWorkerClient'
 import { canExport, type PdfDoc } from '../../../../lib/pdfStudio/model/model'
 import { writePdfFormFieldsInWorker } from '../../../../lib/pdfStudio/forms/pdfFormWorkerClient'
-import { openBlankPdfTab, showPdfInTab } from '../../../../lib/pdfStudio/export/printPdf'
 import { downloadBlob } from '../../../../lib/downloadBlob'
 import { useToast } from '../../../../state'
 import { type SavedDoc } from '../../../../lib/pdfStudio/render/persistence'
-import { exportPdfName, shouldDownloadPdfDirectly } from './pdfStudioFileUtils'
+import { exportPdfName } from './pdfStudioFileUtils'
 import {
   describePdfExportError,
   pdfExportPipelineProgressLabel,
@@ -82,39 +81,17 @@ export function usePdfStudioExport({
     }
   }
 
-  async function exportPdf(
+  // Ensambla el PDF (en el worker, con campos de formulario aplicados) y
+  // devuelve el blob, manejando el estado `saving`. Es la base de la vista
+  // previa en modal (se le pasa el blob) y de la descarga directa.
+  async function preparePdf(
     target: PdfDoc,
-    kind?: string,
     options: { flattenFormFields?: boolean } = {},
-  ) {
-    if (!canExport(target) || saving) return
+  ): Promise<Blob | null> {
+    if (!canExport(target) || saving) return null
     setSaving(true)
-    // Safari (iOS y escritorio) no muestra de forma confiable un blob PDF en una
-    // pestaña nueva, así que para esos navegadores descargamos directo.
-    const downloadDirectly = shouldDownloadPdfDirectly()
-    const viewer = downloadDirectly ? null : openBlankPdfTab()
     try {
-      const blob = await assembleOrToast(target, options)
-      if (!blob) {
-        viewer?.close()
-        return
-      }
-      if (downloadDirectly) {
-        downloadBlob(blob, exportPdfName(undefined, kind))
-        toast.show({
-          message:
-            'Descargamos el PDF; ábrelo desde tus descargas para verlo o imprimirlo.',
-          tone: 'default',
-        })
-        return
-      }
-      showPdfInTab(viewer, blob, () => {
-        downloadBlob(blob, exportPdfName(undefined, kind))
-        toast.show({
-          message: 'Tu navegador bloqueó la ventana; descargamos el PDF.',
-          tone: 'default',
-        })
-      })
+      return await assembleOrToast(target, options)
     } finally {
       setExportStatus(null)
       setSaving(false)
@@ -126,16 +103,15 @@ export function usePdfStudioExport({
     kind?: string,
     options: { flattenFormFields?: boolean } = {},
   ) {
-    if (!canExport(target) || saving) return
-    setSaving(true)
-    try {
-      const blob = await assembleOrToast(target, options)
-      if (blob) downloadBlob(blob, exportPdfName(undefined, kind))
-    } finally {
-      setExportStatus(null)
-      setSaving(false)
-    }
+    const blob = await preparePdf(target, options)
+    if (!blob) return
+    downloadBlob(blob, exportPdfName(undefined, kind))
+    toast.show({ message: 'PDF descargado.', tone: 'success' })
   }
+
+  // Alias histórico: exportar selección, planilla, etc. lo usan para descargar.
+  // El "Guardar PDF" del editor ahora abre la vista previa (usa `preparePdf`).
+  const exportPdf = downloadPdf
 
   function cancelExport() {
     abortRef.current?.abort()
@@ -147,6 +123,7 @@ export function usePdfStudioExport({
     downloadPdf,
     downloadSaved,
     exportPdf,
+    preparePdf,
     exportStatus,
     saving,
   }

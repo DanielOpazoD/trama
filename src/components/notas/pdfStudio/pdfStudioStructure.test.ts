@@ -14,9 +14,11 @@ describe('pdfStudio · estructura incremental', () => {
   })
 
   it('mantiene PdfStudioView bajo el ratchet estructural actual', () => {
+    // 388 → 412: vista previa en modal del PDF (estado + openPreview + render +
+    // imports) para imprimir/descargar dentro de la app.
     expect(
       fileLineCount('src/components/notas/pdfStudio/PdfStudioView.tsx'),
-    ).toBeLessThanOrEqual(388)
+    ).toBeLessThanOrEqual(412)
   })
 
   it('mantiene assemble como orquestador del pipeline', () => {

@@ -18,8 +18,8 @@ const mocks = vi.hoisted(() => ({
   fillPdfFormInWorker: vi.fn(),
   writePdfFormFieldsInWorker: vi.fn(),
   downloadBlob: vi.fn(),
-  openBlankPdfTab: vi.fn(),
-  showPdfInTab: vi.fn(),
+  openPdfPreview: vi.fn(),
+  printPdfBlob: vi.fn(),
   loadDraft: vi.fn(),
   saveDraft: vi.fn(),
   clearDraft: vi.fn(),
@@ -33,6 +33,7 @@ vi.mock('../../../lib/pdfStudio/render/pdfRender', () => ({
   renderPageBitmap: mocks.renderPageBitmap,
   forgetThumb: mocks.forgetThumb,
   disposePdfStudio: mocks.disposePdfStudio,
+  openPdfPreview: mocks.openPdfPreview,
 }))
 vi.mock('../../../lib/pdfStudio/assemble/assemble', () => ({ assemble: mocks.assemble }))
 vi.mock('../../../lib/pdfStudio/export/exportWorkerClient', () => ({
@@ -47,8 +48,7 @@ vi.mock('../../../lib/pdfStudio/forms/pdfFormWorkerClient', () => ({
   writePdfFormFieldsInWorker: mocks.writePdfFormFieldsInWorker,
 }))
 vi.mock('../../../lib/pdfStudio/export/printPdf', () => ({
-  openBlankPdfTab: mocks.openBlankPdfTab,
-  showPdfInTab: mocks.showPdfInTab,
+  printPdfBlob: mocks.printPdfBlob,
 }))
 vi.mock('../../../lib/downloadBlob', () => ({ downloadBlob: mocks.downloadBlob }))
 vi.mock('../../../lib/pdfStudio/render/persistence', () => ({
@@ -131,7 +131,11 @@ beforeEach(() => {
   mocks.writePdfFormFieldsInWorker.mockResolvedValue({
     blob: new Blob(['with-forms'], { type: 'application/pdf' }),
   })
-  mocks.openBlankPdfTab.mockReturnValue(null) // sin pestaña real en happy-dom
+  mocks.openPdfPreview.mockResolvedValue({
+    numPages: 1,
+    renderPage: vi.fn().mockResolvedValue('blob:preview'),
+    dispose: vi.fn(),
+  })
   mocks.loadDraft.mockResolvedValue(null) // sin borrador por defecto
   mocks.saveDraft.mockResolvedValue(undefined)
   mocks.clearDraft.mockResolvedValue(undefined)
@@ -373,7 +377,11 @@ describe('<PdfStudioView />', () => {
       within(fillDialog).getByRole('button', { name: /Imprimir planilla/i }),
     )
 
-    expect(mocks.openBlankPdfTab).toHaveBeenCalled()
+    // "Imprimir planilla" abre la planilla rellenada (campos aplicados) en la
+    // vista previa en modal, desde donde se imprime o descarga.
+    expect(
+      await screen.findByRole('dialog', { name: /Vista previa del PDF/i }),
+    ).toBeInTheDocument()
     expect(mocks.assemblePdfInWorker).toHaveBeenCalledWith(
       expect.objectContaining({
         formFields: [expect.objectContaining({ name: 'paciente', value: 'Daniel' })],
@@ -415,6 +423,8 @@ describe('<PdfStudioView />', () => {
       within(fillDialog).getByRole('button', { name: /Imprimir planilla/i }),
     )
 
+    // Abre la vista previa en modal con la planilla rellenada.
+    await screen.findByRole('dialog', { name: /Vista previa del PDF/i })
     expect(mocks.assemblePdfInWorker).toHaveBeenCalledWith(
       expect.objectContaining({
         formFields: [expect.objectContaining({ name: 'paciente', value: 'Camila' })],
@@ -934,11 +944,15 @@ describe('<PdfStudioView />', () => {
     expect(screen.getByText(/1 página/)).toBeInTheDocument()
     expect(mocks.forgetThumb).toHaveBeenCalled()
 
-    // Guardar → ensambla + abre el PDF en el visor del navegador.
+    // Guardar → ensambla + abre la vista previa en modal (no descarga directa).
     await user.click(screen.getByRole('button', { name: /Guardar PDF/i }))
+    const preview = await screen.findByRole('dialog', { name: /Vista previa del PDF/i })
     expect(mocks.assemblePdfInWorker).toHaveBeenCalledTimes(1)
     expect(mocks.assemble).not.toHaveBeenCalled()
-    expect(mocks.showPdfInTab).toHaveBeenCalledTimes(1)
+    expect(mocks.downloadBlob).not.toHaveBeenCalled()
+    // "Imprimir" imprime el PDF dentro de la app (diálogo del navegador).
+    await user.click(within(preview).getByRole('button', { name: /Imprimir/i }))
+    expect(mocks.printPdfBlob).toHaveBeenCalledTimes(1)
   })
 
   it('undo y redo revierten y reaplican la importación', async () => {
@@ -1139,13 +1153,17 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), pdfFile()) // 2 páginas
     await screen.findByAltText('Página 1')
 
-    // "Guardar PDF" no muestra conteo y exporta el documento completo.
+    // "Guardar PDF" ensambla el documento completo y abre la vista previa.
     await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
+    const preview = await screen.findByRole('dialog', { name: /Vista previa del PDF/i })
     expect(mocks.assemblePdfInWorker).toHaveBeenCalledTimes(1)
     expect(mocks.assemblePdfInWorker.mock.calls[0]![0].pages).toHaveLength(2)
-    expect(mocks.showPdfInTab).toHaveBeenCalledTimes(1)
+    // Cerrar la vista previa para volver a la grilla.
+    await user.click(
+      within(preview).getByRole('button', { name: /Cerrar vista previa/i }),
+    )
 
-    // Marco 1 hoja → "Exportar" (barra) exporta SÓLO esa.
+    // Marco 1 hoja → "Exportar" (barra) exporta SÓLO esa (descarga directa).
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: /^Exportar$/i }))
     expect(mocks.assemblePdfInWorker).toHaveBeenCalledTimes(2)

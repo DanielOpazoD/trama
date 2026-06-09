@@ -8,6 +8,7 @@ import {
 import { ViewHeader } from './ViewHeader'
 import { EndMark } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
+import { ErrorState } from './ErrorState'
 import { QuoteSkeleton, SkeletonList } from './Skeleton'
 import { Folio } from './Folio'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
@@ -144,6 +145,12 @@ export function QuotesView({
         <section className="mt-6 space-y-10">
           <SkeletonList count={4} Component={QuoteSkeleton} />
         </section>
+      ) : quotesPaged.isError && allLoadedQuotes.length === 0 ? (
+        <ErrorState
+          title="No se pudieron cargar las citas"
+          onRetry={() => quotesPaged.refetch()}
+          retrying={quotesPaged.isFetching}
+        />
       ) : entities.length === 0 ? (
         <EmptyMessage
           illustration="thread"

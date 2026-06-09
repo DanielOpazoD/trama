@@ -17,6 +17,7 @@ import {
 } from '../state'
 import { CloseIcon, EndMark, SparkleIcon } from './Icons'
 import { EmptyMessage } from './EmptyMessage'
+import { ErrorState } from './ErrorState'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import { EntityCombobox } from './EntityCombobox'
 import { RelationshipRow } from './relationships/RelationshipRow'
@@ -295,6 +296,12 @@ export function RelationshipsView({
             <div className="space-y-2">
               <SkeletonList count={5} Component={RelationshipSkeleton} />
             </div>
+          ) : relsPaged.isError && relationships.length === 0 ? (
+            <ErrorState
+              title="No se pudieron cargar los vínculos"
+              onRetry={() => relsPaged.refetch()}
+              retrying={relsPaged.isFetching}
+            />
           ) : relationships.length === 0 ? (
             <EmptyMessage
               illustration="pair"

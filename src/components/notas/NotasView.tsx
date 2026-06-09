@@ -34,6 +34,7 @@ export function NotasView() {
   const toast = useToast()
 
   const [draft, setDraft] = useState('')
+  const [title, setTitle] = useState('')
   const composerRef = useAutosizeTextarea(draft, { minRows: 3, maxRows: 12 })
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [search, setSearch] = useState('')
@@ -69,7 +70,12 @@ export function NotasView() {
     return notes.filter((n) => {
       if (activeTag && !n.tags.includes(activeTag)) return false
       if (selectedDay && localDayKey(n.createdAt) !== selectedDay) return false
-      if (q && !n.content.toLowerCase().includes(q)) return false
+      if (
+        q &&
+        !n.content.toLowerCase().includes(q) &&
+        !(n.title ?? '').toLowerCase().includes(q)
+      )
+        return false
       return true
     })
   }, [notes, search, activeTag, selectedDay])
@@ -84,33 +90,37 @@ export function NotasView() {
     const content = draft.trim()
     if (!content || createNote.isPending) return
     const files = pendingFiles
-    createNote.mutate(content, {
-      onSuccess: async (note) => {
-        setDraft('')
-        setPendingFiles([])
-        if (files.length === 0) return
-        try {
-          await Promise.all(
-            files.map((file) =>
-              uploadAttachment.mutateAsync({
-                ownerType: 'note',
-                ownerId: note.id,
-                file,
-              }),
-            ),
-          )
-          toast.show({ message: 'Nota y anexos guardados.', tone: 'success' })
-        } catch (err) {
-          toast.show({
-            message:
-              err instanceof Error
-                ? err.message
-                : 'La nota se guardó, pero algún anexo falló.',
-            tone: 'error',
-          })
-        }
+    createNote.mutate(
+      { content, title: title.trim() || null },
+      {
+        onSuccess: async (note) => {
+          setDraft('')
+          setTitle('')
+          setPendingFiles([])
+          if (files.length === 0) return
+          try {
+            await Promise.all(
+              files.map((file) =>
+                uploadAttachment.mutateAsync({
+                  ownerType: 'note',
+                  ownerId: note.id,
+                  file,
+                }),
+              ),
+            )
+            toast.show({ message: 'Nota y anexos guardados.', tone: 'success' })
+          } catch (err) {
+            toast.show({
+              message:
+                err instanceof Error
+                  ? err.message
+                  : 'La nota se guardó, pero algún anexo falló.',
+              tone: 'error',
+            })
+          }
+        },
       },
-    })
+    )
   }
 
   function onComposerKey(e: React.KeyboardEvent) {
@@ -125,6 +135,23 @@ export function NotasView() {
     <>
       {/* Composer */}
       <div className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5">
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter en el título salta al cuerpo; ⌘↵ guarda (vía onComposerKey).
+            if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
+              e.preventDefault()
+              composerRef.current?.focus()
+              return
+            }
+            onComposerKey(e)
+          }}
+          maxLength={200}
+          placeholder="Título (opcional)"
+          aria-label="Título de la nota (opcional)"
+          className="w-full bg-transparent font-serif text-lead text-ink-800 placeholder:font-sans placeholder:not-italic placeholder:text-ink-300 mb-1"
+        />
         <textarea
           ref={composerRef}
           value={draft}
@@ -257,7 +284,7 @@ export function NotasView() {
           }
         />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {filtered.map((note) => (
             <NoteCard
               key={note.id}
@@ -267,7 +294,7 @@ export function NotasView() {
               onTogglePin={() =>
                 updateNote.mutate({ id: note.id, patch: { pinned: !note.pinned } })
               }
-              onEdit={(content) => updateNote.mutate({ id: note.id, patch: { content } })}
+              onEdit={(patch) => updateNote.mutate({ id: note.id, patch })}
               onDelete={() => deleteNote.mutate(note.id)}
               onPromote={() =>
                 promoteNote.mutate(note.id, {

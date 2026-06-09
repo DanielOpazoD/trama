@@ -1,58 +1,44 @@
 /**
- * Borde BROWSER-ONLY de "Guardar PDF": abre el PDF ya ensamblado en el VISOR
- * NATIVO del navegador (pestaña nueva), donde los botones de **imprimir** y
- * **guardar como PDF** del propio visor SÍ funcionan de forma confiable en todos
- * los navegadores.
+ * Imprime un PDF ya ensamblado SIN salir de la app (sin pestaña nueva): monta un
+ * `<iframe>` oculto con el blob, espera a que el visor del navegador termine de
+ * pintarlo y dispara el diálogo de impresión, donde el usuario elige "Guardar
+ * como PDF" o una impresora real.
  *
- * Reemplaza al viejo truco del `<iframe>` oculto + `contentWindow.print()`: el
- * visor de PDF corre como un plugin fuera del control de la página, así que ese
- * `print()` programático muchas veces no hacía nada o imprimía en blanco (de ahí
- * que "Guardar PDF" pareciera roto, mientras el botón de imprimir DENTRO del visor
- * sí andaba). Acá no peleamos con `print()`: mostramos el visor y dejamos que el
- * usuario use su botón nativo.
- *
- * La pestaña se abre en DOS pasos para esquivar el bloqueador de pop-ups:
- * `openBlankPdfTab()` debe llamarse SINCRÓNICAMENTE dentro del gesto del usuario
- * (el clic), ANTES de `await assemble(...)`; cuando el PDF está listo,
- * `showPdfInTab()` dirige esa pestaña al blob. Excluido del coverage (depende del
- * navegador) y mockeado en los tests.
+ * Esperar `onload` (+ un pequeño respiro) antes de `print()` evita el viejo bug
+ * de "imprime en blanco" (se imprimía antes de que el plugin de PDF cargara).
+ * Browser-only — verificado en navegador, excluido del coverage.
  */
-
-/** Abre una pestaña en blanco con un placeholder. Llamar dentro del gesto del
- *  usuario (antes de cualquier `await`) para que no la bloquee el pop-up blocker. */
-export function openBlankPdfTab(): Window | null {
-  const tab = window.open('', '_blank')
-  if (tab) {
-    try {
-      tab.document.write(
-        '<!doctype html><html><head><meta charset="utf-8"><title>Preparando PDF…</title></head>' +
-          '<body style="margin:0;font-family:system-ui,-apple-system,sans-serif;color:#6b6b6b;' +
-          'display:grid;place-items:center;height:100vh">Preparando tu PDF…</body></html>',
-      )
-      tab.document.close()
-    } catch {
-      // about:blank es mismo-origen, no debería fallar; si falla, igual sirve.
-    }
-  }
-  return tab
-}
-
-/**
- * Dirige una pestaña ya abierta (`openBlankPdfTab`) al PDF ensamblado. Si la
- * pestaña no existe (pop-up bloqueado o entorno sin `window.open`), ejecuta el
- * plan B (`onBlocked`, típicamente una descarga directa).
- */
-export function showPdfInTab(
-  tab: Window | null,
-  blob: Blob,
-  onBlocked: () => void,
-): void {
-  if (!tab) {
-    onBlocked()
-    return
-  }
+export function printPdfBlob(blob: Blob): void {
   const url = URL.createObjectURL(blob)
-  tab.location.href = url
-  // El visor necesita el object URL vivo un rato; se revoca con holgura.
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  const iframe = document.createElement('iframe')
+  iframe.setAttribute('aria-hidden', 'true')
+  iframe.style.position = 'fixed'
+  iframe.style.right = '0'
+  iframe.style.bottom = '0'
+  iframe.style.width = '1px'
+  iframe.style.height = '1px'
+  iframe.style.opacity = '0'
+  iframe.style.border = '0'
+
+  iframe.addEventListener('load', () => {
+    window.setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus()
+        iframe.contentWindow?.print()
+      } catch {
+        // Algún navegador puede bloquear print() programático del plugin PDF;
+        // el modal igual ofrece "Descargar" como salida garantizada.
+      }
+    }, 250)
+  })
+
+  iframe.src = url
+  document.body.appendChild(iframe)
+
+  // Cleanup holgado: el diálogo de impresión es modal; cuando se cierra,
+  // limpiamos el iframe y revocamos el object URL. 60s cubre de sobra.
+  window.setTimeout(() => {
+    iframe.remove()
+    URL.revokeObjectURL(url)
+  }, 60_000)
 }

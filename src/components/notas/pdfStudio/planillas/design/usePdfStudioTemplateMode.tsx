@@ -9,14 +9,15 @@ import { PdfTemplateModeBanner, type PdfTemplateMode } from './PdfTemplateModeBa
 export function usePdfStudioTemplateMode({
   doc,
   enabled = true,
-  exportPdf,
+  openPreview,
   openSaved,
   openTemplate,
   saveTemplate,
 }: {
   doc: PdfDoc
   enabled?: boolean
-  exportPdf: (
+  /** Abre la planilla rellenada en la vista previa en modal (imprimir/descargar). */
+  openPreview: (
     target: PdfDoc,
     kind?: string,
     options?: { flattenFormFields?: boolean },
@@ -75,7 +76,7 @@ export function usePdfStudioTemplateMode({
       <PdfTemplateModeBanner
         mode="fill"
         fieldCount={doc.formFields?.length ?? 0}
-        onPrint={() => void exportPdf(doc, 'planilla', { flattenFormFields: true })}
+        onPrint={() => void openPreview(doc, 'planilla', { flattenFormFields: true })}
       />
     ) : null
 

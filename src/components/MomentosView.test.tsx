@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { MomentosView } from './MomentosView'
 import { renderWithProviders } from '../test-utils'
 
@@ -50,8 +50,13 @@ describe('<MomentosView />', () => {
 
   it('renders the composer for capturing a new momento', async () => {
     renderWithProviders(<MomentosView />)
+    // El composer arranca COLAPSADO (una línea); se expande al clickear.
+    const trigger = await screen.findByRole('button', {
+      name: /escribir un nuevo momento/i,
+    })
+    fireEvent.click(trigger)
     await waitFor(() => {
-      // El composer tiene tabs "Nota", "Recorte", "Foto"
+      // Ya expandido: aparecen los tabs "Nota", "Recorte", "Foto".
       expect(screen.getByRole('button', { name: /^Nota$/ })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /^Recorte$/ })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /^Foto$/ })).toBeInTheDocument()

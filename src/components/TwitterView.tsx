@@ -230,7 +230,7 @@ export function TwitterView({
     try {
       const attribution = b.authorUsername ? `\n\n— @${b.authorUsername}` : ''
       const link = b.url ? `\n${b.url}` : ''
-      await createNote.mutateAsync(`${b.text}${attribution}${link}`)
+      await createNote.mutateAsync({ content: `${b.text}${attribution}${link}` })
       setMessage('Guardado en Notas')
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'No se pudo guardar la nota')

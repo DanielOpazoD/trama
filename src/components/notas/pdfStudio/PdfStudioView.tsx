@@ -43,6 +43,10 @@ import { usePdfStudioTemplateMode } from './planillas/design/usePdfStudioTemplat
 import { usePdfStudioWorkspace } from './workspace/usePdfStudioWorkspace'
 import { pdfStudioPageInteractionMode as pageMode } from './shell/pdfStudioPageInteractionMode'
 import { useToast } from '../../../state'
+import { PdfPreviewModal } from './editor/PdfPreviewModal'
+import { printPdfBlob } from '../../../lib/pdfStudio/export/printPdf'
+import { downloadBlob } from '../../../lib/downloadBlob'
+import { exportPdfName } from './shell/pdfStudioFileUtils'
 const ACCEPT = 'application/pdf,image/*'
 export type PdfStudioMode = 'editor' | 'templates'
 type PdfStudioViewProps = { topBar?: ReactNode; studioMode?: PdfStudioMode }
@@ -53,8 +57,27 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     useState<AssembleOptions['compression']>('balanced')
   const [history, setHistory] = useState<History<PdfDoc>>(() => initHistory(emptyDoc()))
   const doc = history.present
-  const { cancelExport, downloadPdf, downloadSaved, exportPdf, exportStatus, saving } =
-    usePdfStudioExport({ compression: exportCompression })
+  const {
+    cancelExport,
+    downloadPdf,
+    downloadSaved,
+    exportPdf,
+    preparePdf,
+    exportStatus,
+    saving,
+  } = usePdfStudioExport({ compression: exportCompression })
+  // Vista previa en modal del PDF ensamblado (con botón Imprimir + Descargar).
+  const [previewState, setPreviewState] = useState<{
+    blob: Blob
+    kind?: string
+  } | null>(null)
+  const openPreview = useCallback(
+    async (target: PdfDoc, kind?: string, options?: { flattenFormFields?: boolean }) => {
+      const blob = await preparePdf(target, options)
+      if (blob) setPreviewState({ blob, kind })
+    },
+    [preparePdf],
+  )
   const [textPage, setTextPage] = useState<number | null>(null)
   const [saveTemplateSignal, setSaveTemplateSignal] = useState(0)
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null)
@@ -106,7 +129,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   } = usePdfStudioTemplateMode({
     doc,
     enabled: templatesEnabled,
-    exportPdf,
+    openPreview,
     openSaved,
     openTemplate,
     saveTemplate,
@@ -142,7 +165,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     usePdfStudioFilledTemplateActions({
       activeTemplateName,
       doc,
-      exportPdf,
+      openPreview,
       saveFilledCopy,
     })
   const { bulkDelete, bulkDuplicate, bulkRotate, exportMarked, newDoc, nudge, reorder } =
@@ -273,7 +296,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
               onImport={() => fileInputRef.current?.click()}
               onUndo={() => setHistory((h) => undo(h))}
               onRedo={() => setHistory((h) => redo(h))}
-              onSavePdf={() => void exportPdf(doc)}
+              onSavePdf={() => void openPreview(doc)}
               onDownload={() => void downloadPdf(doc)}
               onDownloadFillable={() => void downloadPdf(doc, 'rellenable')}
               onCancelExport={cancelExport}
@@ -281,7 +304,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
               onOpenOcr={() => setOcrOpen(true)}
               onInspectForms={() => void inspectForms()}
               onPrintTemplate={() =>
-                void exportPdf(doc, 'planilla', { flattenFormFields: true })
+                void openPreview(doc, 'planilla', { flattenFormFields: true })
               }
               onStartSaveTemplate={startTemplateSave}
               onSetExportCompression={setExportCompression}
@@ -365,6 +388,17 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
           onClose={closeTextEditor}
           onPrint={printFilledTemplate}
           onSaveCopy={templatesEnabled ? saveFilledTemplateCopy : undefined}
+        />
+      )}
+      {previewState && (
+        <PdfPreviewModal
+          blob={previewState.blob}
+          onClose={() => setPreviewState(null)}
+          onPrint={(blob) => printPdfBlob(blob)}
+          onDownload={(blob) => {
+            downloadBlob(blob, exportPdfName(undefined, previewState.kind))
+            toast.show({ message: 'PDF descargado.', tone: 'success' })
+          }}
         />
       )}
     </section>

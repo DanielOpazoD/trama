@@ -98,12 +98,12 @@ export function PdfStudioDocumentToolbar({
       ? empty || saving || busy
       : empty || saving || busy
   const primaryTitle = isFillMode
-    ? 'Abrir el visor para imprimir la planilla rellenada'
+    ? 'Abrir la vista previa para imprimir o descargar la planilla rellenada'
     : needsTemplateFields
       ? 'Abrir el editor para agregar casilleros de texto a esta planilla'
       : isTemplates
         ? 'Guardar esta estructura como planilla reusable'
-        : 'Abrir el visor del navegador para imprimir o guardar todo el documento'
+        : 'Abrir la vista previa para imprimir o descargar el PDF'
   const PrimaryIcon = isTemplates && !isFillMode ? FilePdfIcon : PrinterIcon
   const handlePrimary = isFillMode
     ? onPrintTemplate

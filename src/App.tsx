@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useSearchParamState } from './hooks/useSearchParamState'
 import { useInitialView } from './hooks/useInitialView'
@@ -22,16 +22,11 @@ import { useAchievements } from './hooks/useAchievements'
 import { useWeeklyProactiveNudge } from './hooks/useWeeklyProactiveNudge'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
-import { CommandPalette } from './components/CommandPalette'
-import { ShortcutsModal } from './components/ShortcutsModal'
 import { Onboarding } from './components/Onboarding'
 import { ToastHost } from './components/ToastHost'
 import { PreviewBanner } from './components/PreviewBanner'
 import { AskBar } from './components/AskBar'
 import { ReadingMode } from './components/ReadingMode'
-import { Sortes } from './components/Sortes'
-import { Espejo } from './components/Espejo'
-import { Settings } from './components/Settings'
 import { Splash } from './components/Splash'
 import { HomeSkeleton } from './components/HomeSkeleton'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -45,6 +40,27 @@ import { NotasWorld } from './components/notas/NotasWorld'
 import { NOTAS_SECTIONS, type NotasSection } from './types/notas'
 import { useModuleVisibility } from './hooks/useModuleVisibility'
 import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
+
+// Overlays bajo demanda: solo se montan al abrirse (⌘K, ajustes, atajos, etc.),
+// así su código sale del bundle inicial y se baja en el primer uso. Todos hacen
+// `if (!open) return null` sin animación de salida, por eso montarlos
+// condicionalmente equivale a tenerlos siempre montados renderizando null.
+const CommandPalette = lazy(() =>
+  import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })),
+)
+const ShortcutsModal = lazy(() =>
+  import('./components/ShortcutsModal').then((m) => ({ default: m.ShortcutsModal })),
+)
+const Sortes = lazy(() =>
+  import('./components/Sortes').then((m) => ({ default: m.Sortes })),
+)
+const Espejo = lazy(() =>
+  import('./components/Espejo').then((m) => ({ default: m.Espejo })),
+)
+const Settings = lazy(() =>
+  import('./components/Settings').then((m) => ({ default: m.Settings })),
+)
+
 // GlobalProgressBar removido por feedback del usuario — la barra fina
 // que latía con cada query se percibía como molesta. Si en el futuro
 // queremos mostrar progreso global, considerar un patrón más sutil
@@ -381,66 +397,86 @@ function Shell({
         )}
       </main>
 
-      <Settings
-        open={settingsOpen}
-        onClose={() => {
-          setSettingsOpen(false)
-          setOauthReturn(null)
-        }}
-        theme={theme}
-        onSetTheme={setTheme}
-        initialSection={oauthReturn?.provider}
-        oauthReturn={oauthReturn}
-      />
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <Settings
+            open={settingsOpen}
+            onClose={() => {
+              setSettingsOpen(false)
+              setOauthReturn(null)
+            }}
+            theme={theme}
+            onSetTheme={setTheme}
+            initialSection={oauthReturn?.provider}
+            oauthReturn={oauthReturn}
+          />
+        </Suspense>
+      )}
 
-      <CommandPalette
-        open={paletteOpen}
-        onClose={() => setPaletteOpen(false)}
-        onNavigate={(v) => setView(v)}
-        onSelectEntity={(id) => setSelectedEntityId(id)}
-        onOpenThread={(threadId) => {
-          setPendingChatThreadId(threadId)
-          setView('chat')
-        }}
-        onRevealNotasModule={onRevealNotasModule}
-        onAction={(action) => {
-          // Las acciones rápidas del palette se traducen en navigations
-          // + modal openings. "Nueva X" navega a la vista correspondiente;
-          // el form se abrirá manualmente o vía un futuro hint.
-          switch (action) {
-            case 'open-settings':
-              setSettingsOpen(true)
-              break
-            case 'open-shortcuts':
-              setShortcutsOpen(true)
-              break
-            case 'open-sortes':
-              setSortesOpen(true)
-              break
-            case 'open-espejo':
-              setEspejoOpen(true)
-              break
-            case 'new-entity':
-              setView('entidades')
-              break
-            case 'new-quote':
-              setView('citas')
-              break
-            case 'new-momento':
-              setView('momentos')
-              break
-          }
-        }}
-      />
+      {paletteOpen && (
+        <Suspense fallback={null}>
+          <CommandPalette
+            open={paletteOpen}
+            onClose={() => setPaletteOpen(false)}
+            onNavigate={(v) => setView(v)}
+            onSelectEntity={(id) => setSelectedEntityId(id)}
+            onOpenThread={(threadId) => {
+              setPendingChatThreadId(threadId)
+              setView('chat')
+            }}
+            onRevealNotasModule={onRevealNotasModule}
+            onAction={(action) => {
+              // Las acciones rápidas del palette se traducen en navigations
+              // + modal openings. "Nueva X" navega a la vista correspondiente;
+              // el form se abrirá manualmente o vía un futuro hint.
+              switch (action) {
+                case 'open-settings':
+                  setSettingsOpen(true)
+                  break
+                case 'open-shortcuts':
+                  setShortcutsOpen(true)
+                  break
+                case 'open-sortes':
+                  setSortesOpen(true)
+                  break
+                case 'open-espejo':
+                  setEspejoOpen(true)
+                  break
+                case 'new-entity':
+                  setView('entidades')
+                  break
+                case 'new-quote':
+                  setView('citas')
+                  break
+                case 'new-momento':
+                  setView('momentos')
+                  break
+              }
+            }}
+          />
+        </Suspense>
+      )}
 
-      <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      {shortcutsOpen && (
+        <Suspense fallback={null}>
+          <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+        </Suspense>
+      )}
 
       {/* Sortes — segunda lectura: una cita al azar del propio archivo, a
           pantalla completa. Se abre desde el TopBar o el command palette. */}
-      <Sortes open={sortesOpen} onClose={() => setSortesOpen(false)} />
+      {sortesOpen && (
+        <Suspense fallback={null}>
+          <Sortes open={sortesOpen} onClose={() => setSortesOpen(false)} />
+        </Suspense>
+      )}
 
       {/* Espejo — la composición de la trama como un retrato, no un panel. */}
-      <Espejo open={espejoOpen} onClose={() => setEspejoOpen(false)} />
+      {espejoOpen && (
+        <Suspense fallback={null}>
+          <Espejo open={espejoOpen} onClose={() => setEspejoOpen(false)} />
+        </Suspense>
+      )}
 
       {/* Onboarding — solo aparece la primera vez, cuando la trama
           está literalmente vacía. El propio componente checa

@@ -19,7 +19,8 @@ export function useNotesQuery() {
 export function useCreateNote() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (content: string) => api.notes.create(content),
+    mutationFn: (input: { content: string; title?: string | null }) =>
+      api.notes.create(input.content, { title: input.title }),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notes }),
   })
 }
@@ -32,7 +33,7 @@ export function useUpdateNote() {
       patch,
     }: {
       id: string
-      patch: { content?: string; pinned?: boolean }
+      patch: { content?: string; title?: string | null; pinned?: boolean }
     }) => api.notes.update(id, patch),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notes }),
   })
