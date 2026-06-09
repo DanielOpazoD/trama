@@ -2,7 +2,10 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: la app pinta hasta los bordes en iPhones con notch
+         / home indicator; los elementos flotantes compensan con
+         env(safe-area-inset-*) (var --safe-bottom en index.css). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- BB3: preconnect a Google Fonts. Las 3 familias (Inter, Spectral,
          Caveat) se importan desde fonts.googleapis.com y los binarios viven
@@ -14,7 +17,9 @@
     <!-- Favicon SVG — escala perfecto en cualquier resolución, respeta
          prefers-color-scheme dentro del propio archivo. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+    <!-- PNG, no SVG: iOS ignora los SVG en apple-touch-icon (caería al
+         screenshot genérico). Se regenera con scripts/generate-pwa-icons.mjs. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <!-- PWA manifest — habilita "Add to Home Screen" en iOS/Android con
          icono propio y modo standalone. -->

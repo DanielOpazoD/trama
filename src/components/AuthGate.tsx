@@ -43,7 +43,13 @@ const clerkAppearance = {
 /** Banner discreto que recuerda que se está en modo prueba + salida. */
 function DemoBanner() {
   return (
-    <div className="fixed top-14 left-3 md:top-auto md:bottom-3 z-50 flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-paper-50/95 backdrop-blur border border-ink-100 shadow-lg shadow-ink-900/10">
+    <div
+      // En mobile vive ABAJO, por encima de la barra de captura (con top-14
+      // tapaba la fila de tabs); en desktop pegado al borde inferior. El
+      // margen suma el inset del home indicator en iPhones con notch.
+      className="fixed left-3 bottom-28 md:bottom-3 z-50 flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-paper-50/95 backdrop-blur border border-ink-100 shadow-lg shadow-ink-900/10"
+      style={{ marginBottom: 'var(--safe-bottom)' }}
+    >
       <span
         className="size-1.5 rounded-full"
         style={{ backgroundColor: 'var(--accent-gold)' }}

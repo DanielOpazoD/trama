@@ -162,7 +162,11 @@ export function AskBar({
   const imageBusy = extractFromImage.isPending
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-6 flex justify-center">
+    <div
+      className="pointer-events-none absolute inset-x-0 bottom-0 px-4 flex justify-center"
+      // pb-6 + el inset del home indicator (0 fuera de iPhones con notch).
+      style={{ paddingBottom: 'calc(1.5rem + var(--safe-bottom))' }}
+    >
       <div className="pointer-events-auto w-full max-w-2xl">
         {errorMessage && (
           <div className="alert-error mb-2 px-3 py-2 text-xs shadow-sm">
