@@ -144,7 +144,7 @@ export function SpotifyPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null
           disabled={busy}
           className="inline-flex items-center gap-2 text-sm px-3 py-2 border border-ink-100/60 rounded-lg hover:bg-ink-50 transition-all disabled:opacity-50"
         >
-          <SpotifyIcon size={16} />
+          <SpotifyIcon size={14} />
           Conectar con Spotify
         </button>
       )}

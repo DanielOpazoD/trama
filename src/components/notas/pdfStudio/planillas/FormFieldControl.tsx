@@ -14,8 +14,8 @@ function valueAsText(value: PdfFormValue): string {
 
 function controlFrameStyle(mode?: 'edit' | 'design' | 'fill'): string {
   return mode === 'fill'
-    ? 'flex h-full w-full items-center justify-center rounded-[4px] border border-[color:var(--accent-sage)] bg-paper-50/95 shadow-sm shadow-ink-900/10'
-    : 'flex h-full w-full items-center justify-center rounded-[3px] border border-[color:var(--accent-sage)]/50 bg-paper-50/70'
+    ? 'flex h-full w-full items-center justify-center rounded border border-[color:var(--accent-sage)] bg-paper-50/95 shadow-sm shadow-ink-900/10'
+    : 'flex h-full w-full items-center justify-center rounded-sm border border-[color:var(--accent-sage)]/50 bg-paper-50/70'
 }
 
 function commonControlStyle(selected = false, fillMode = false): string {
@@ -27,7 +27,7 @@ function commonControlStyle(selected = false, fillMode = false): string {
       'focus:bg-paper-50/45 focus:ring-1 focus:ring-[color:var(--accent-sage)]/25',
     ].join(' ')
   }
-  return `h-full w-full rounded-[3px] border bg-paper-50/80 px-1.5 text-caption text-ink-800 shadow-sm outline-none transition-colors ${
+  return `h-full w-full rounded-sm border bg-paper-50/80 px-1.5 text-caption text-ink-800 shadow-sm outline-none transition-colors ${
     selected
       ? 'border-[color:var(--accent-sage)] bg-paper-50/90'
       : 'border-[color:var(--accent-sage)]/40 hover:border-[color:var(--accent-sage)]/75'
@@ -162,8 +162,8 @@ export function FormFieldControl({
         onClick={onOpenSignature}
         className={
           fillMode
-            ? 'h-full w-full rounded-[4px] border border-dashed border-[color:var(--accent-sage)] bg-[color:var(--accent-sage-soft)]/65 text-caption font-semibold text-[color:var(--accent-sage)] shadow-sm shadow-ink-900/10'
-            : 'h-full w-full rounded-[3px] border border-dashed border-[color:var(--accent-sage)]/70 bg-[color:var(--accent-sage-soft)]/40 text-caption font-medium text-[color:var(--accent-sage)]'
+            ? 'h-full w-full rounded border border-dashed border-[color:var(--accent-sage)] bg-[color:var(--accent-sage-soft)]/65 text-caption font-semibold text-[color:var(--accent-sage)] shadow-sm shadow-ink-900/10'
+            : 'h-full w-full rounded-sm border border-dashed border-[color:var(--accent-sage)]/70 bg-[color:var(--accent-sage-soft)]/40 text-caption font-medium text-[color:var(--accent-sage)]'
         }
         style={signatureStyle}
       >

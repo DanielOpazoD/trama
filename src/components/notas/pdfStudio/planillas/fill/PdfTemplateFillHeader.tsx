@@ -61,7 +61,7 @@ export function PdfTemplateFillHeader({
           title="Página anterior"
           className={stepBtn}
         >
-          <ChevronLeftIcon size={16} />
+          <ChevronLeftIcon size={14} />
         </button>
         <div className="min-w-0 px-1">
           <p className="truncate text-sm font-semibold text-ink-800">Rellenar planilla</p>
@@ -77,7 +77,7 @@ export function PdfTemplateFillHeader({
           title="Página siguiente"
           className={stepBtn}
         >
-          <ChevronRightIcon size={16} />
+          <ChevronRightIcon size={14} />
         </button>
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -140,7 +140,7 @@ export function PdfTemplateFillHeader({
           aria-label="Imprimir planilla"
           className="btn-accent inline-flex items-center gap-1 text-xs"
         >
-          <PrinterIcon size={13} />
+          <PrinterIcon size={12} />
           Imprimir
         </button>
       </div>

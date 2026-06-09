@@ -157,7 +157,7 @@ export function EntityActionsMenu({
                     }}
                     className={`${ROW} text-ink-600 hover:text-ink-800 hover:bg-ink-100/60`}
                   >
-                    <PencilIcon size={13} />
+                    <PencilIcon size={12} />
                     Editar descripción
                   </button>
                 )}
@@ -168,7 +168,7 @@ export function EntityActionsMenu({
                     disabled={createChatThread.isPending}
                     className={`${ROW} text-ink-600 hover:text-ink-800 hover:bg-ink-100/60 disabled:opacity-50`}
                   >
-                    <ChatIcon size={13} />
+                    <ChatIcon size={12} />
                     {createChatThread.isPending ? 'Abriendo…' : 'Hablar con la entidad'}
                   </button>
                 )}
@@ -178,7 +178,7 @@ export function EntityActionsMenu({
                   onClick={() => setConfirming(true)}
                   className={`${ROW} text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] hover:bg-[color:var(--accent-clay-soft)]`}
                 >
-                  <TrashIcon size={13} />
+                  <TrashIcon size={12} />
                   Eliminar
                 </button>
               </>

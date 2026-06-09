@@ -78,7 +78,7 @@ export function WorkspacePanel({
         className="surface-sidebar flex h-full w-full flex-col items-center gap-2 border-r border-ink-100 px-1.5 py-3 text-ink-400 hover:bg-ink-100/30 hover:text-ink-700 transition-colors"
       >
         <ChevronRightIcon size={14} />
-        <CameraIcon size={15} />
+        <CameraIcon size={14} />
         <span className="text-micro tabular-nums" style={{ color: ACCENT }}>
           {library.length}
         </span>

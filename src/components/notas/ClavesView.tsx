@@ -14,6 +14,7 @@ import {
 } from '../../state'
 import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
+import { ViewHeader } from '../ViewHeader'
 import {
   SECRET_KINDS,
   SecretCard,
@@ -143,7 +144,17 @@ export function ClavesView({
   }, [autoLockMs, lockVault, vaultKey])
 
   if (!vaultKey) {
-    return <VaultGate scope={vaultScope} onUnlock={setVaultKey} />
+    return (
+      <>
+        <ViewHeader
+          title="Claves"
+          eyebrow="bajo llave"
+          accent={ACCENT}
+          subtitle="Cifradas con tu clave de acceso. Sin ella, nadie puede leerlas — ni siquiera el servidor."
+        />
+        <VaultGate scope={vaultScope} onUnlock={setVaultKey} />
+      </>
+    )
   }
   const activeVaultKey = vaultKey
 
@@ -266,14 +277,20 @@ export function ClavesView({
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
-        <button
-          onClick={lockVault}
-          className="section-eyebrow hover:text-ink-700 transition-colors"
-        >
-          bloquear vault
-        </button>
-      </div>
+      <ViewHeader
+        title="Claves"
+        eyebrow="bajo llave"
+        accent={ACCENT}
+        subtitle="Cifradas con tu clave de acceso. El vault se bloquea solo tras unos minutos sin uso."
+        action={
+          <button
+            onClick={lockVault}
+            className="section-eyebrow hover:text-ink-700 transition-colors"
+          >
+            bloquear vault
+          </button>
+        }
+      />
 
       {secrets.length > 0 && (
         <section className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">

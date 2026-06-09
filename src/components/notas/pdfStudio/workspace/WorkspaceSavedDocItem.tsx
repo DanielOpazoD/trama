@@ -109,7 +109,7 @@ export function WorkspaceSavedDocItem({
             aria-label={`Descargar ${saved.name}`}
             className={rowBtn}
           >
-            <DownloadIcon size={13} />
+            <DownloadIcon size={12} />
           </button>
           <button
             type="button"
@@ -117,7 +117,7 @@ export function WorkspaceSavedDocItem({
             aria-label={`Renombrar ${saved.name}`}
             className={rowBtn}
           >
-            <PencilIcon size={13} />
+            <PencilIcon size={12} />
           </button>
           <button
             type="button"
@@ -125,7 +125,7 @@ export function WorkspaceSavedDocItem({
             aria-label={`Eliminar ${saved.name}`}
             className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
           >
-            <TrashIcon size={13} />
+            <TrashIcon size={12} />
           </button>
         </div>
       ) : null}

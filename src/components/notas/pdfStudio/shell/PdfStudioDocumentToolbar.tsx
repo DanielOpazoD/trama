@@ -116,7 +116,7 @@ export function PdfStudioDocumentToolbar({
           aria-label="Importar PDF o imagen"
           className="inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-caption font-medium text-ink-700 transition-colors hover:bg-ink-100/50 hover:text-ink-900 disabled:opacity-50"
         >
-          <UploadIcon size={13} />
+          <UploadIcon size={12} />
           {busy ? 'Agregando…' : 'Importar'}
         </button>
         {(undoable || redoable) && (
@@ -161,7 +161,7 @@ export function PdfStudioDocumentToolbar({
             title="Empezar un documento nuevo (descarta el actual)"
             className="inline-flex h-7 items-center gap-1.5 rounded-md border border-ink-200 px-2.5 text-caption font-medium text-ink-700 transition-colors hover:bg-ink-100/50 hover:text-ink-900 disabled:opacity-40"
           >
-            <FileIcon size={13} />
+            <FileIcon size={12} />
             <span className="hidden sm:inline">Nuevo documento</span>
           </button>
         )}
@@ -176,7 +176,7 @@ export function PdfStudioDocumentToolbar({
             title={primaryTitle}
             className="inline-flex h-7 items-center gap-1.5 rounded-md bg-ink-800 px-2.5 text-caption font-medium text-paper-50 transition-colors hover:bg-ink-700 disabled:opacity-35 disabled:hover:bg-ink-800"
           >
-            <PrimaryIcon size={13} />
+            <PrimaryIcon size={12} />
             {saving ? 'Preparando…' : primaryLabel}
           </button>
         )}
@@ -210,7 +210,7 @@ export function PdfStudioDocumentToolbar({
                     onDownloadFillable()
                   }}
                 >
-                  <FilePdfIcon size={13} />
+                  <FilePdfIcon size={12} />
                   Descargar PDF rellenable
                 </OverflowMenuItem>
               )}
@@ -222,7 +222,7 @@ export function PdfStudioDocumentToolbar({
                     onNewDoc()
                   }}
                 >
-                  <FileIcon size={13} />
+                  <FileIcon size={12} />
                   Nuevo documento
                 </OverflowMenuItem>
               )}
@@ -234,7 +234,7 @@ export function PdfStudioDocumentToolbar({
                     onInspectForms()
                   }}
                 >
-                  <FileIcon size={13} />
+                  <FileIcon size={12} />
                   Detectar formularios
                 </OverflowMenuItem>
               )}
@@ -245,7 +245,7 @@ export function PdfStudioDocumentToolbar({
                   onOpenOcr()
                 }}
               >
-                <FileIcon size={13} />
+                <FileIcon size={12} />
                 OCR buscable
               </OverflowMenuItem>
               {!empty && (

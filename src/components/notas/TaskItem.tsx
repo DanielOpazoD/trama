@@ -182,7 +182,7 @@ export function TaskItem({
                 aria-label="Semana anterior"
                 className="touch-target p-0.5 rounded text-ink-300 hover:text-ink-700 transition-colors"
               >
-                <ChevronLeftIcon size={13} />
+                <ChevronLeftIcon size={12} />
               </button>
               <span className="normal-case tracking-normal text-ink-600 tabular-nums text-center min-w-[5.5rem]">
                 {relativeWeekLabel(week) || formatWeekRange(week)}
@@ -193,7 +193,7 @@ export function TaskItem({
                 aria-label="Semana siguiente"
                 className="touch-target p-0.5 rounded text-ink-300 hover:text-ink-700 transition-colors"
               >
-                <ChevronRightIcon size={13} />
+                <ChevronRightIcon size={12} />
               </button>
             </span>
             {showDue ? (
@@ -300,7 +300,7 @@ export function TaskItem({
           title="Tiene fotos adjuntas"
           aria-label="Tiene fotos adjuntas"
         >
-          <CameraIcon size={13} />
+          <CameraIcon size={12} />
         </span>
       )}
 
@@ -315,7 +315,7 @@ export function TaskItem({
             title="Detalle"
             className="touch-target p-1 rounded text-ink-400 hover:text-ink-700 transition-colors"
           >
-            <FileIcon size={13} />
+            <FileIcon size={12} />
           </button>
           <span
             role="tooltip"
@@ -356,7 +356,7 @@ export function TaskItem({
                 }}
                 disabled={busy}
               >
-                <PencilIcon size={13} /> Editar
+                <PencilIcon size={12} /> Editar
               </OverflowMenuItem>
               {!task.done && (
                 <OverflowMenuItem
@@ -366,7 +366,7 @@ export function TaskItem({
                   }}
                   disabled={busy}
                 >
-                  <ArrowRightIcon size={13} /> Posponer una semana
+                  <ArrowRightIcon size={12} /> Posponer una semana
                 </OverflowMenuItem>
               )}
               <p className="flex items-center gap-2 px-2.5 pt-2 pb-1 mt-1 border-t border-ink-100/60 text-micro text-ink-300">
@@ -380,7 +380,7 @@ export function TaskItem({
                 }}
                 disabled={busy}
               >
-                <TrashIcon size={13} /> Borrar
+                <TrashIcon size={12} /> Borrar
               </OverflowMenuItem>
             </>
           )}

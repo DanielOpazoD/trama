@@ -83,7 +83,7 @@ export function MobileBottomNav({
                 }}
               >
                 <span className="relative">
-                  <Icon size={20} />
+                  <Icon size={18} />
                 </span>
                 <span
                   className="text-micro leading-tight tracking-tight font-medium truncate max-w-full px-1"

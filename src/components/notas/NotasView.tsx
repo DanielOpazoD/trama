@@ -11,6 +11,7 @@ import {
 import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
 import { SearchIcon } from '../Icons'
+import { ViewHeader } from '../ViewHeader'
 import { NoteCard } from './NoteCard'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { ActivityCalendar, localDayKey } from './ActivityCalendar'
@@ -133,6 +134,13 @@ export function NotasView() {
 
   return (
     <>
+      <ViewHeader
+        title="Notas"
+        eyebrow="capturas y anexos"
+        accent={ACCENT}
+        subtitle="Apuntes rápidos en markdown, con #etiquetas y anexos. El calendario lee tu actividad."
+      />
+
       {/* Composer */}
       <div className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5">
         <input
@@ -194,7 +202,7 @@ export function NotasView() {
       {notes.length > 0 && (
         <div className="mb-5 space-y-2.5">
           <div className="flex items-center gap-2 px-2.5 py-1.5 bg-paper-50 border border-ink-100/60 rounded-md">
-            <SearchIcon size={13} className="text-ink-300 shrink-0" />
+            <SearchIcon size={12} className="text-ink-300 shrink-0" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}

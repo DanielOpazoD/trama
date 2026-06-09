@@ -107,7 +107,7 @@ export function FormFieldLayer({
           style={boxStyle(widget)}
           className={`z-10 ${
             mode === 'fill' && showFillGuides
-              ? 'rounded-[4px] bg-[color:var(--accent-sage-soft)]/20 ring-1 ring-[color:var(--accent-sage)]/25'
+              ? 'rounded bg-[color:var(--accent-sage-soft)]/20 ring-1 ring-[color:var(--accent-sage)]/25'
               : ''
           }`}
           title={`Campo ${widget.fieldName}`}
@@ -139,14 +139,14 @@ export function FormFieldLayer({
         const fillIndex = detectedWidgets.length + index + 1
         const guideClass =
           fillMode && showFillGuides
-            ? 'rounded-[4px] bg-[color:var(--accent-sage-soft)]/20 ring-1 ring-[color:var(--accent-sage)]/25'
+            ? 'rounded bg-[color:var(--accent-sage-soft)]/20 ring-1 ring-[color:var(--accent-sage)]/25'
             : ''
         return (
           <div
             key={field.id}
             aria-label={activeInFill ? `Casillero activo ${field.name}` : undefined}
             style={boxStyle(field)}
-            className={`z-20 ${guideClass} ${activeInFill ? 'rounded-[4px] ring-2 ring-[color:var(--accent-sage)]/45 ring-offset-1 ring-offset-paper-50' : ''}`}
+            className={`z-20 ${guideClass} ${activeInFill ? 'rounded ring-2 ring-[color:var(--accent-sage)]/45 ring-offset-1 ring-offset-paper-50' : ''}`}
             onPointerDown={(event) => {
               event.stopPropagation()
               if (fillMode) return

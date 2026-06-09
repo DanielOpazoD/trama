@@ -49,7 +49,7 @@ export function PdfTemplateModeBanner({
             onClick={onPrint}
             className="btn-accent inline-flex items-center gap-1 text-xs"
           >
-            <PrinterIcon size={13} />
+            <PrinterIcon size={12} />
             Imprimir planilla
           </button>
         ) : null}
@@ -59,7 +59,7 @@ export function PdfTemplateModeBanner({
             onClick={onEditStructure}
             className="btn-ghost inline-flex items-center gap-1 text-xs"
           >
-            <PencilIcon size={13} />
+            <PencilIcon size={12} />
             Editar estructura
           </button>
         ) : null}

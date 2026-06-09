@@ -31,7 +31,8 @@ describe('<NotasWorld />', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Prompts' })[0]!)
 
-    expect(screen.getAllByRole('heading', { name: 'Prompts' })).toHaveLength(1)
+    // Dos headings: el h1 del topbar y el h2 editorial del ViewHeader.
+    expect(screen.getAllByRole('heading', { name: 'Prompts' })).toHaveLength(2)
     expect(screen.getAllByText('biblioteca reutilizable').length).toBeGreaterThan(0)
   })
 
@@ -43,8 +44,8 @@ describe('<NotasWorld />', () => {
     )
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Tareas' })[0]!)
-    expect(screen.getByRole('heading', { name: 'Tareas' })).toBeInTheDocument()
-    expect(screen.getByText('recordatorios de la semana')).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { name: 'Tareas' }).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('recordatorios de la semana').length).toBeGreaterThan(0)
   })
 
   it('respeta initialSection para abrir una sección real sin depender de localStorage', () => {
@@ -56,7 +57,7 @@ describe('<NotasWorld />', () => {
       'aria-current',
       'page',
     )
-    expect(screen.getByRole('heading', { name: 'Prompts' })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { name: 'Prompts' }).length).toBeGreaterThan(0)
     expect(screen.getAllByText('biblioteca reutilizable').length).toBeGreaterThan(0)
   })
 

@@ -185,7 +185,7 @@ export function ListeningView({
           ω-B: wash con accent del tipo musico — rojo-tierra. */}
       <ViewHeader
         title="Escuchas"
-        icon={<SpotifyIcon size={24} />}
+        icon={<SpotifyIcon size={22} />}
         eyebrow="tu música reciente"
         accent="var(--type-musico)"
         eyebrowColor="var(--accent-gold)"

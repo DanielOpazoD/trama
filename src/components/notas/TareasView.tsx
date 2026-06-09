@@ -8,6 +8,7 @@ import {
 } from '../../state'
 import type { Task, TaskPriority, TaskCategory } from '../../api'
 import { LoadingHint } from '../LoadingHint'
+import { ViewHeader } from '../ViewHeader'
 import { PlusIcon, CameraIcon, SortIcon } from '../Icons'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { TaskItem } from './TaskItem'
@@ -32,6 +33,8 @@ import {
   DEFAULT_CATEGORY,
   type SortMode,
 } from './weekModel'
+
+const ACCENT = 'var(--accent-sage)'
 
 const SORT_LABELS: Record<SortMode, string> = {
   priority: 'Prioridad',
@@ -283,6 +286,13 @@ export function TareasView() {
 
   return (
     <>
+      <ViewHeader
+        title="Tareas"
+        eyebrow="recordatorios de la semana"
+        accent={ACCENT}
+        subtitle="Cada semana es una hoja. Lo pendiente se arrastra a la semana en curso."
+      />
+
       {/* Media página: navegador a la izquierda, notas del mes a la derecha.
           `items-start` deja que cada caja tenga su alto natural — las notas del
           mes ya no se estiran a 7.5rem cuando están vacías. */}

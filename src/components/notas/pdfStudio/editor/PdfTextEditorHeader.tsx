@@ -75,7 +75,7 @@ export function PdfTextEditorHeader({
           title="Página anterior"
           className={stepBtn}
         >
-          <ChevronLeftIcon size={16} />
+          <ChevronLeftIcon size={14} />
         </button>
         <p className="text-sm font-medium text-ink-700 whitespace-nowrap">
           {title ? `${title} · ` : null}
@@ -92,7 +92,7 @@ export function PdfTextEditorHeader({
           title="Página siguiente"
           className={stepBtn}
         >
-          <ChevronRightIcon size={16} />
+          <ChevronRightIcon size={14} />
         </button>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -142,7 +142,7 @@ export function PdfTextEditorHeader({
               title={pdfCommandTooltip('undo', isMac)}
               className={stepBtn}
             >
-              <UndoIcon size={15} />
+              <UndoIcon size={14} />
             </button>
             <button
               type="button"
@@ -152,7 +152,7 @@ export function PdfTextEditorHeader({
               title={pdfCommandTooltip('redo', isMac)}
               className={stepBtn}
             >
-              <RedoIcon size={15} />
+              <RedoIcon size={14} />
             </button>
           </div>
         ) : null}
@@ -175,7 +175,7 @@ export function PdfTextEditorHeader({
             aria-label="Imprimir planilla"
             className="btn-accent inline-flex items-center gap-1 text-xs"
           >
-            <PrinterIcon size={13} />
+            <PrinterIcon size={12} />
             Imprimir
           </button>
         ) : null}

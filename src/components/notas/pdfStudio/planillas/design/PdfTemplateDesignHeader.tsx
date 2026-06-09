@@ -72,7 +72,7 @@ export function PdfTemplateDesignHeader({
           title="Página anterior"
           className={stepBtn}
         >
-          <ChevronLeftIcon size={16} />
+          <ChevronLeftIcon size={14} />
         </button>
         <div className="min-w-0 px-1">
           <p className="truncate text-sm font-semibold text-ink-800">Crear plantilla</p>
@@ -88,7 +88,7 @@ export function PdfTemplateDesignHeader({
           title="Página siguiente"
           className={stepBtn}
         >
-          <ChevronRightIcon size={16} />
+          <ChevronRightIcon size={14} />
         </button>
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -135,7 +135,7 @@ export function PdfTemplateDesignHeader({
             title={pdfCommandTooltip('undo', isMac)}
             className={stepBtn}
           >
-            <UndoIcon size={15} />
+            <UndoIcon size={14} />
           </button>
           <button
             type="button"
@@ -145,7 +145,7 @@ export function PdfTemplateDesignHeader({
             title={pdfCommandTooltip('redo', isMac)}
             className={stepBtn}
           >
-            <RedoIcon size={15} />
+            <RedoIcon size={14} />
           </button>
         </div>
         <button

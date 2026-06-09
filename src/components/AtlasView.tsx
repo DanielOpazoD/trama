@@ -62,7 +62,7 @@ export function AtlasView({ onSelectEntity }: { onSelectEntity: (id: string) => 
                 className="p-1.5 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors disabled:opacity-50"
               >
                 <RefreshIcon
-                  size={15}
+                  size={14}
                   className={generate.isPending ? 'animate-spin' : undefined}
                 />
               </button>

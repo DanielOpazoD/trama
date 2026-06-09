@@ -127,7 +127,7 @@ export function PdfTemplateFillVariablesPanel({
           type="button"
           onClick={onClearValues}
           disabled={!onClearValues || orderedFields.length === 0}
-          className="rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-red-300 hover:text-red-700 disabled:cursor-not-allowed disabled:text-ink-300"
+          className="rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] disabled:cursor-not-allowed disabled:text-ink-300"
         >
           Borrar datos
         </button>
@@ -147,10 +147,10 @@ export function PdfTemplateFillVariablesPanel({
       {importFeedback ? (
         <p
           role="status"
-          className={`mt-2 rounded-md px-2 py-1.5 text-micro leading-snug ${
+          className={`mt-2 px-2 py-1.5 text-micro leading-snug ${
             importFeedback.tone === 'error'
-              ? 'bg-red-50 text-red-700'
-              : 'bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]'
+              ? 'alert-error'
+              : 'rounded-md bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]'
           }`}
         >
           {importFeedback.message}
