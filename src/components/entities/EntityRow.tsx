@@ -18,11 +18,14 @@ function EntityRowInternal({
   entity,
   quoteCount,
   relCount,
+  compact = false,
   onSelectEntity,
 }: {
   entity: Entity
   quoteCount: number
   relCount: number
+  /** Modo compacto (densidad): menos padding; sin descripción ni conteos. */
+  compact?: boolean
   onSelectEntity?: (id: string) => void
 }) {
   return (
@@ -35,7 +38,9 @@ function EntityRowInternal({
           borderLeftColor: typeAccent(entity.type),
         } as React.CSSProperties
       }
-      className="group card-paper-hover w-full text-left p-3 pl-4 border-l-[3px] hover:shadow-ink-900/5 active:scale-[0.995]"
+      className={`group card-paper-hover w-full text-left border-l-[3px] hover:shadow-ink-900/5 active:scale-[0.995] ${
+        compact ? 'p-2 pl-3' : 'p-3 pl-4'
+      }`}
       aria-label={`Abrir ${entity.name}, ${quoteCount} ${
         quoteCount === 1 ? 'cita' : 'citas'
       }`}
@@ -67,12 +72,12 @@ function EntityRowInternal({
           className="text-ink-200 group-hover:text-ink-400 transition-colors shrink-0"
         />
       </div>
-      {entity.description && (
+      {!compact && entity.description && (
         <p className="mt-1 text-ink-500 text-sm leading-relaxed line-clamp-1">
           {entity.description}
         </p>
       )}
-      {(quoteCount > 0 || relCount > 0) && (
+      {!compact && (quoteCount > 0 || relCount > 0) && (
         <div className="mt-1.5 flex gap-3 text-micro uppercase tracking-eyebrow text-ink-300">
           {quoteCount > 0 && (
             <span>
@@ -103,6 +108,7 @@ export const EntityRow = memo(EntityRowInternal, (prev, next) => {
   return (
     prev.entity === next.entity &&
     prev.quoteCount === next.quoteCount &&
-    prev.relCount === next.relCount
+    prev.relCount === next.relCount &&
+    prev.compact === next.compact
   )
 })

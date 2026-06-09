@@ -51,25 +51,34 @@ export function dataUrlToBytes(src: string): Uint8Array | null {
   return out
 }
 
-/** Re-encodea una imagen a JPEG (fondo blanco, dimensión acotada) → bytes. */
-async function toJpegBytes(
-  file: File,
-  policy: PdfImageCompressionPolicy,
-): Promise<{ bytes: Uint8Array; width: number; height: number }> {
-  const blobUrl = URL.createObjectURL(file)
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image()
-      el.onload = () => resolve(el)
-      el.onerror = () => reject(new Error('No se pudo decodificar la imagen'))
-      el.src = blobUrl
-    })
-    const scale = Math.min(
-      1,
-      policy.jpegMaxDimension / Math.max(img.naturalWidth, img.naturalHeight),
-    )
-    const width = Math.max(1, Math.round(img.naturalWidth * scale))
-    const height = Math.max(1, Math.round(img.naturalHeight * scale))
+/**
+ * Rasteriza un bitmap (ya decodificado) a un Blob JPEG sobre fondo blanco.
+ *
+ * El ensamblado corre en un Web Worker, donde NO existen `document`/`<canvas>`.
+ * Por eso usamos `OffscreenCanvas` (disponible en workers y main thread
+ * moderno); sólo si no está, caemos al `<canvas>` del DOM (main thread viejo).
+ * Antes esto usaba `document.createElement('canvas')` directo → tiraba en el
+ * worker y las páginas de imagen (fotos JPEG) se salteaban: el PDF no se
+ * generaba aunque las imágenes están soportadas.
+ */
+async function rasterizeToJpeg(
+  bitmap: ImageBitmap,
+  width: number,
+  height: number,
+  quality: number,
+): Promise<Blob> {
+  if (typeof OffscreenCanvas !== 'undefined') {
+    const canvas = new OffscreenCanvas(width, height)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas no disponible')
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(bitmap, 0, 0, width, height)
+    if (typeof canvas.convertToBlob === 'function') {
+      return canvas.convertToBlob({ type: 'image/jpeg', quality })
+    }
+  }
+  if (typeof document !== 'undefined') {
     const canvas = document.createElement('canvas')
     canvas.width = width
     canvas.height = height
@@ -77,15 +86,41 @@ async function toJpegBytes(
     if (!ctx) throw new Error('Canvas no disponible')
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, width, height)
-    ctx.drawImage(img, 0, 0, width, height)
+    ctx.drawImage(bitmap, 0, 0, width, height)
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/jpeg', policy.jpegQuality),
+      canvas.toBlob(resolve, 'image/jpeg', quality),
     )
     if (!blob) throw new Error('No se pudo codificar la imagen')
+    return blob
+  }
+  throw new Error('No hay canvas disponible para codificar la imagen')
+}
+
+/** Re-encodea una imagen a JPEG (fondo blanco, dimensión acotada) → bytes. */
+async function toJpegBytes(
+  file: File,
+  policy: PdfImageCompressionPolicy,
+): Promise<{ bytes: Uint8Array; width: number; height: number }> {
+  // createImageBitmap decodifica un Blob sin necesitar `<img>`/DOM — funciona
+  // en el worker y en el main thread.
+  let bitmap: ImageBitmap
+  try {
+    bitmap = await createImageBitmap(file)
+  } catch {
+    throw new Error('No se pudo decodificar la imagen')
+  }
+  try {
+    const scale = Math.min(
+      1,
+      policy.jpegMaxDimension / Math.max(bitmap.width, bitmap.height),
+    )
+    const width = Math.max(1, Math.round(bitmap.width * scale))
+    const height = Math.max(1, Math.round(bitmap.height * scale))
+    const blob = await rasterizeToJpeg(bitmap, width, height, policy.jpegQuality)
     const bytes = new Uint8Array(await blob.arrayBuffer())
     return { bytes, width, height }
   } finally {
-    URL.revokeObjectURL(blobUrl)
+    bitmap.close()
   }
 }
 

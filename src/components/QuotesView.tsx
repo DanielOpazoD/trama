@@ -19,6 +19,8 @@ import { QuoteItem } from './quotes/QuoteItem'
 import { CopyImportPromptButton } from './quotes/CopyImportPromptButton'
 import { useQuotesFilters } from './quotes/useQuotesFilters'
 import { QuotesFiltersBar } from './quotes/QuotesFiltersBar'
+import { DensityToggle } from './DensityToggle'
+import { useDensity } from '../hooks/useDensity'
 
 const WORK_TYPES = new Set([
   'libro',
@@ -88,6 +90,10 @@ export function QuotesView({
   const deleteQuote = useDeleteQuote()
 
   const [showForm, setShowForm] = useState(false)
+  // P0-densidad: modo compacto para escanear cientos de citas sin perder la
+  // versión cómoda para leer pocas. measureElement corrige la altura real, así
+  // que sólo bajamos el estimate inicial para que el salto sea mínimo.
+  const { compact, setCompact } = useDensity(quotes.length)
 
   // Virtualized rendering: at 500+ quotes the previous full-list render
   // started to lag. We mount only the visible window + a small overscan.
@@ -96,9 +102,9 @@ export function QuotesView({
   // hook on each row corrects the estimate as soon as it's measured.
   const { listRef, virtualizer } = useMainScrollVirtualizer({
     count: quotes.length,
-    estimateSize: 320,
+    estimateSize: compact ? 130 : 320,
     overscan: 8,
-    deps: [showForm, quotes.length, typeFilter],
+    deps: [showForm, quotes.length, typeFilter, compact],
   })
 
   // Trigger next-page fetch when the user scrolls into the last 5 items of
@@ -166,6 +172,10 @@ export function QuotesView({
       ) : (
         <>
           {showForm && <QuoteForm entities={entities} />}
+
+          <div className="mb-3 flex justify-end">
+            <DensityToggle compact={compact} onChange={setCompact} />
+          </div>
 
           {/* Chips de filtro por tipo de entidad atribuida. Mismo patrón que
               EntitiesView: sticky al top con backdrop blur, Todos + chip por
@@ -247,11 +257,9 @@ export function QuotesView({
                       left: 0,
                       right: 0,
                       transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
-                      // ρ-micro: bajado de 3.5rem (56px) a 2.5rem (40px) entre
-                      // citas. La auditoría visual contaba ~120px de margen
-                      // efectivo entre items; lo bajamos para que el ritmo de
-                      // lectura sea más continuo sin perder respiración.
-                      paddingBottom: '2.5rem',
+                      // ρ-micro: 2.5rem entre citas en cómodo; en compacto se
+                      // baja a 1.25rem para escanear sin tanto desplazamiento.
+                      paddingBottom: compact ? '1.25rem' : '2.5rem',
                     }}
                   >
                     <QuoteItem
@@ -259,6 +267,7 @@ export function QuotesView({
                       entity={entity}
                       author={author}
                       isFeature={isFeature}
+                      compact={compact}
                       onSelectEntity={onSelectEntity}
                       onDelete={() => deleteQuote.mutate(quote.id)}
                     />
