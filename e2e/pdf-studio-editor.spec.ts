@@ -264,7 +264,9 @@ async function openTemplateFillEditor(page: Page) {
   await expect(page.getByRole('dialog')).toBeHidden()
 
   await page.getByRole('button', { name: 'Mostrar el panel' }).click()
-  const workspacePanel = page.getByRole('complementary').filter({ hasText: 'Panel' })
+  const workspacePanel = page
+    .getByRole('complementary')
+    .filter({ hasText: 'mesa de trabajo' })
   await workspacePanel.getByRole('button', { name: 'Guardar planilla' }).click()
   await page.getByPlaceholder('Nombre de la planilla').fill('Planilla zoom')
   await workspacePanel.getByRole('button', { name: 'Guardar planilla' }).click()
