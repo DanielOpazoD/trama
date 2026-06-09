@@ -81,32 +81,36 @@ export function usePdfStudioExport({
     }
   }
 
-  // "Guardar PDF" DESCARGA el archivo directamente. Antes abría el PDF en una
-  // pestaña nueva (visor del navegador) y eso fallaba en varios navegadores
-  // (bloqueador de pop-ups, y Safari ni siquiera navega a un `blob:` en pestaña
-  // nueva) → el usuario clickeaba y "no pasaba nada". Descargar es lo que el
-  // botón promete y funciona igual en todos lados; para imprimir, se abre el
-  // archivo descargado.
-  async function downloadPdf(
+  // Ensambla el PDF (en el worker, con campos de formulario aplicados) y
+  // devuelve el blob, manejando el estado `saving`. Es la base de la vista
+  // previa en modal (se le pasa el blob) y de la descarga directa.
+  async function preparePdf(
     target: PdfDoc,
-    kind?: string,
     options: { flattenFormFields?: boolean } = {},
-  ) {
-    if (!canExport(target) || saving) return
+  ): Promise<Blob | null> {
+    if (!canExport(target) || saving) return null
     setSaving(true)
     try {
-      const blob = await assembleOrToast(target, options)
-      if (!blob) return
-      downloadBlob(blob, exportPdfName(undefined, kind))
-      toast.show({ message: 'PDF descargado.', tone: 'success' })
+      return await assembleOrToast(target, options)
     } finally {
       setExportStatus(null)
       setSaving(false)
     }
   }
 
-  // Alias histórico: "Guardar PDF" / exportar selección / planilla usan este
-  // nombre. Hoy es idéntico a descargar (ver downloadPdf).
+  async function downloadPdf(
+    target: PdfDoc,
+    kind?: string,
+    options: { flattenFormFields?: boolean } = {},
+  ) {
+    const blob = await preparePdf(target, options)
+    if (!blob) return
+    downloadBlob(blob, exportPdfName(undefined, kind))
+    toast.show({ message: 'PDF descargado.', tone: 'success' })
+  }
+
+  // Alias histórico: exportar selección, planilla, etc. lo usan para descargar.
+  // El "Guardar PDF" del editor ahora abre la vista previa (usa `preparePdf`).
   const exportPdf = downloadPdf
 
   function cancelExport() {
@@ -119,6 +123,7 @@ export function usePdfStudioExport({
     downloadPdf,
     downloadSaved,
     exportPdf,
+    preparePdf,
     exportStatus,
     saving,
   }

@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { assemble } from '../../../../lib/pdfStudio/assemble/assemble'
 import {
   openPdfPreview,
   type PdfPreview,
 } from '../../../../lib/pdfStudio/render/pdfRender'
-import { type PdfDoc } from '../../../../lib/pdfStudio/model/model'
 import { LoadingHint } from '../../../LoadingHint'
-import { CloseIcon, DownloadIcon } from '../../../Icons'
+import { CloseIcon, DownloadIcon, PrinterIcon } from '../../../Icons'
 import { useFocusTrap } from '../../../../hooks/useFocusTrap'
 import { useInViewport } from './useInViewport'
 
@@ -63,25 +61,27 @@ function PreviewPage({
 }
 
 /**
- * Vista previa del PDF ENSAMBLADO antes de descargar (cierra el lazo WYSIWYG).
- * Ensambla una vez (`assemble`), abre el resultado con pdf.js y muestra las páginas
- * finales —con anotaciones, rotaciones e imágenes ya aplicadas— en un modal
- * scrolleable. "Descargar" reusa ESE mismo blob (no re-ensambla). Browser-only.
+ * Vista previa, en un modal DENTRO de la app, del PDF ya ensamblado (cierra el
+ * lazo WYSIWYG). Recibe el `blob` final —con anotaciones, rotaciones, imágenes y
+ * campos ya aplicados— y lo abre con pdf.js para mostrar las páginas en un modal
+ * scrolleable, con acciones de Imprimir (diálogo del navegador → "Guardar como
+ * PDF" o impresora) y Descargar. Browser-only.
  */
 export function PdfPreviewModal({
-  doc,
+  blob,
   onClose,
   onDownload,
+  onPrint,
 }: {
-  doc: PdfDoc
+  /** PDF ya ensamblado (anotaciones/rotaciones/imágenes/campos aplicados). */
+  blob: Blob
   onClose: () => void
   onDownload: (blob: Blob) => void
+  onPrint: (blob: Blob) => void
 }) {
   const dialogRef = useRef<HTMLDivElement>(null)
   useFocusTrap(dialogRef, true)
   const [preview, setPreview] = useState<PdfPreview | null>(null)
-  const [blob, setBlob] = useState<Blob | null>(null)
-  const [skipped, setSkipped] = useState<{ name: string }[]>([])
   const [error, setError] = useState<string | null>(null)
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null)
 
@@ -90,11 +90,7 @@ export function PdfPreviewModal({
     let alive = true
     void (async () => {
       try {
-        const res = await assemble(doc)
-        if (!alive) return
-        setBlob(res.blob)
-        setSkipped(res.skipped)
-        p = await openPdfPreview(res.blob)
+        p = await openPdfPreview(blob)
         if (!alive) {
           p.dispose()
           return
@@ -110,7 +106,7 @@ export function PdfPreviewModal({
       alive = false
       p?.dispose()
     }
-  }, [doc])
+  }, [blob])
 
   // Esc cierra (el focus-trap completo lo agrega useFocusTrap).
   useEffect(() => {
@@ -147,9 +143,15 @@ export function PdfPreviewModal({
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={() => blob && onDownload(blob)}
-              disabled={!blob}
-              className="btn-ink text-xs inline-flex items-center gap-1.5 disabled:opacity-40"
+              onClick={() => onPrint(blob)}
+              className="btn-ink text-xs inline-flex items-center gap-1.5"
+            >
+              <PrinterIcon size={13} /> Imprimir
+            </button>
+            <button
+              type="button"
+              onClick={() => onDownload(blob)}
+              className="btn-ghost text-xs inline-flex items-center gap-1.5"
             >
               <DownloadIcon size={13} /> Descargar
             </button>
@@ -164,19 +166,6 @@ export function PdfPreviewModal({
             </button>
           </div>
         </header>
-
-        {skipped.length > 0 && (
-          <p
-            className="px-4 py-1.5 text-caption shrink-0 border-b border-ink-100/70"
-            style={{
-              color: 'var(--accent-clay)',
-              backgroundColor: 'var(--accent-clay-soft)',
-            }}
-          >
-            Se saltearon {skipped.length} archivo(s):{' '}
-            {skipped.map((s) => s.name).join(', ')}.
-          </p>
-        )}
 
         <div
           ref={setScrollEl}
