@@ -301,8 +301,10 @@ export function TareasView() {
 
   return (
     <>
-      {/* Media página: navegador a la izquierda, notas del mes a la derecha. */}
-      <div className="grid md:grid-cols-2 gap-4 mb-4 items-stretch">
+      {/* Media página: navegador a la izquierda, notas del mes a la derecha.
+          `items-start` deja que cada caja tenga su alto natural — las notas del
+          mes ya no se estiran a 7.5rem cuando están vacías. */}
+      <div className="grid md:grid-cols-2 gap-4 mb-4 items-start">
         <MonthNavigator
           year={navYear}
           month0={navMonth}

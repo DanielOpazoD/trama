@@ -36,8 +36,8 @@ export function MonthNavigator({
   onChange: (year: number, month0: number) => void
 }) {
   return (
-    <div className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-4">
-      <div className="flex items-center justify-between mb-2.5">
+    <div className="card-paper-soft rounded-xl border border-ink-100/70 p-2.5 mb-4">
+      <div className="flex items-center justify-between mb-2">
         <button
           onClick={() => onChange(year - 1, month0)}
           aria-label="Año anterior"
@@ -56,7 +56,8 @@ export function MonthNavigator({
           <ChevronRightIcon size={15} />
         </button>
       </div>
-      <div className="grid grid-cols-6 gap-1">
+      {/* Una sola fila en desktop (slim); dos filas de 6 en mobile. */}
+      <div className="grid grid-cols-6 md:grid-cols-12 gap-1">
         {MONTHS_ABBR.map((label, m) => {
           const selected = m === month0
           const isCurrent = year === currentYear && m === currentMonth0

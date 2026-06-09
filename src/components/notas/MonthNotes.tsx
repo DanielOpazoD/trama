@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { TaskCategory } from '../../api'
 import { useMonthNoteQuery, useSaveMonthNote } from '../../state'
+import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 
 const CATEGORY_TABS: { key: TaskCategory; label: string }[] = [
   { key: 'trabajo', label: 'Trabajo' },
@@ -16,7 +17,7 @@ const CATEGORY_TABS: { key: TaskCategory; label: string }[] = [
 export function MonthNotes({ monthKey, label }: { monthKey: string; label: string }) {
   const [category, setCategory] = useState<TaskCategory>('trabajo')
   return (
-    <div className="card-paper-soft rounded-xl border border-ink-100/70 p-4 flex flex-col h-full">
+    <div className="card-paper-soft rounded-xl border border-ink-100/70 p-4 flex flex-col">
       <div className="flex items-center justify-between gap-2 mb-2">
         <span className="section-eyebrow text-ink-400">Notas de {label}</span>
         <div
@@ -63,6 +64,8 @@ function MonthNoteField({
   const save = useSaveMonthNote()
   const [text, setText] = useState('')
   const [loaded, setLoaded] = useState(false)
+  // Crece con el contenido: vacío = ~2 líneas (no la caja fija de 7.5rem).
+  const textareaRef = useAutosizeTextarea(text, { minRows: 2, maxRows: 10 })
 
   // Carga inicial del contenido (una vez por montaje = por categoría).
   useEffect(() => {
@@ -91,20 +94,21 @@ function MonthNoteField({
   }, [text, loaded])
 
   return (
-    <div className="relative flex-1 flex flex-col min-h-[7.5rem]">
+    <div className="relative">
       {query.isLoading && !loaded ? (
         <div className="space-y-2 pt-1" aria-hidden>
           <div className="h-3 w-3/4 rounded skeleton-shimmer" />
           <div className="h-3 w-2/3 rounded skeleton-shimmer" />
-          <div className="h-3 w-1/2 rounded skeleton-shimmer" />
         </div>
       ) : (
         <textarea
+          ref={textareaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onBlur={persist}
+          rows={2}
           placeholder="Recordatorios o notas globales del mes…"
-          className="flex-1 w-full resize-none bg-transparent text-sm text-ink-700 placeholder:text-ink-300 leading-relaxed"
+          className="w-full resize-none bg-transparent text-sm text-ink-700 placeholder:text-ink-300 leading-relaxed"
         />
       )}
       {save.isPending && (

@@ -153,7 +153,9 @@ export function MomentosView() {
         spacing="tight"
       />
 
-      <MomentoComposer composer={composer} />
+      {/* Si se llega por `?compose=` (QR/celular), el composer arranca expandido;
+          en la vista normal arranca colapsado para no dominar el alto. */}
+      <MomentoComposer composer={composer} defaultExpanded={initialKind !== undefined} />
 
       {/* V-4 Hojas sueltas: superficie de escritura que enlaza el archivo
           (@ entidad, > cita). Guarda como nota. Colapsada por default. */}
@@ -276,10 +278,10 @@ export function MomentosView() {
         // fotos en grid sin tener que cambiar de pestaña antes.
         <AlbumGrid items={items} entitiesById={entitiesById} onDelete={handleDelete} />
       ) : (
-        <div className="space-y-10">
+        <div className="space-y-6">
           {groups.map(({ dayKey, entries }) => (
             <section key={dayKey} className="animate-fade-up">
-              <div className="mb-3 flex items-baseline gap-3">
+              <div className="mb-2.5 flex items-baseline gap-3">
                 <h3
                   className="section-eyebrow-serif"
                   style={{ color: 'var(--accent-gold)' }}

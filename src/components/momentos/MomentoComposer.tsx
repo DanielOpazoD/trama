@@ -16,15 +16,53 @@ type Composer = ReturnType<typeof useMomentoComposer>
  * el toggle de arriba; separarlos en archivos sumaría ruido sin
  * dar reuso.
  */
-export function MomentoComposer({ composer }: { composer: Composer }) {
+export function MomentoComposer({
+  composer,
+  defaultExpanded = false,
+}: {
+  composer: Composer
+  /** Arrancar ya expandido (p. ej. tras una acción explícita de "nueva entrada"). */
+  defaultExpanded?: boolean
+}) {
   // τ-mobile-bridge: state local del modal QR. Vive acá adentro porque
   // el botón vive en este componente y no hay otro lugar que necesite
   // saber si está abierto.
   const [qrOpen, setQrOpen] = useState(false)
+  // El composer arranca COLAPSADO (una línea) para no dominar el alto de la
+  // vista: la línea de tiempo sube al primer pantallazo. Se expande al clickear.
+  const [expanded, setExpanded] = useState(defaultExpanded)
+
+  const question =
+    composer.kind === 'nota'
+      ? '¿Qué viste, leíste o pensaste hoy?'
+      : composer.kind === 'recorte'
+        ? 'Algo del mundo que te llamó la atención'
+        : 'Una imagen del día'
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     composer.submit()
+  }
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        aria-label="Escribir un nuevo momento"
+        className="mb-6 w-full p-2.5 bg-paper-100/40 border border-ink-100/60 rounded-lg text-left flex items-baseline gap-2.5 hover:border-ink-200 transition-colors animate-fade-up"
+      >
+        <span
+          className="section-eyebrow-serif shrink-0"
+          style={{ color: 'var(--accent-gold)' }}
+        >
+          nueva entrada
+        </span>
+        <span className="font-serif text-base italic text-ink-400 truncate">
+          {question}
+        </span>
+      </button>
+    )
   }
 
   return (
@@ -40,13 +78,7 @@ export function MomentoComposer({ composer }: { composer: Composer }) {
           <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
             nueva entrada
           </p>
-          <h3 className="font-serif text-xl text-ink-800 leading-tight">
-            {composer.kind === 'nota'
-              ? '¿Qué viste, leíste o pensaste hoy?'
-              : composer.kind === 'recorte'
-                ? 'Algo del mundo que te llamó la atención'
-                : 'Una imagen del día'}
-          </h3>
+          <h3 className="font-serif text-lg text-ink-800 leading-tight">{question}</h3>
         </div>
         {/* τ-mobile-bridge: botón QR — solo se muestra cuando el kind
             es Foto, porque ese es el caso donde tener el celular a

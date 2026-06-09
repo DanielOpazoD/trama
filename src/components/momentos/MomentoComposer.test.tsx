@@ -88,32 +88,49 @@ describe('<MomentoComposer />', () => {
     expect(screen.getByText(/Una imagen del día/i)).toBeInTheDocument()
   })
 
+  it('arranca colapsado en una línea y se expande al clickear', async () => {
+    render(<MomentoComposer composer={makeComposer({ kind: 'nota' })} />)
+    // Colapsado: muestra la pregunta pero NO el form (sin botón Guardar).
+    expect(screen.getByText(/¿Qué viste, leíste o pensaste hoy/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /guardar/i })).toBeNull()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /escribir un nuevo momento/i }))
+    expect(screen.getByRole('button', { name: /guardar/i })).toBeInTheDocument()
+  })
+
   it('el botón QR solo aparece en kind=foto', () => {
     const { rerender } = render(
-      <MomentoComposer composer={makeComposer({ kind: 'nota' })} />,
+      <MomentoComposer composer={makeComposer({ kind: 'nota' })} defaultExpanded />,
     )
     expect(screen.queryByLabelText(/abrir en el celular/i)).toBeNull()
-    rerender(<MomentoComposer composer={makeComposer({ kind: 'foto' })} />)
+    rerender(
+      <MomentoComposer composer={makeComposer({ kind: 'foto' })} defaultExpanded />,
+    )
     expect(screen.getByLabelText(/abrir en el celular/i)).toBeInTheDocument()
   })
 
   it('submit del form llama composer.submit()', async () => {
     const submit = vi.fn()
-    render(<MomentoComposer composer={makeComposer({ submit })} />)
+    render(<MomentoComposer composer={makeComposer({ submit })} defaultExpanded />)
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /guardar/i }))
     expect(submit).toHaveBeenCalledTimes(1)
   })
 
   it('label del botón cambia a "guardando…" cuando isPending', () => {
-    render(<MomentoComposer composer={makeComposer({ isPending: true })} />)
+    render(
+      <MomentoComposer composer={makeComposer({ isPending: true })} defaultExpanded />,
+    )
     expect(screen.getByRole('button', { name: /guardando/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /guardando/i })).toBeDisabled()
   })
 
   it('label del botón cambia a "subiendo…" cuando photoUploading', () => {
     render(
-      <MomentoComposer composer={makeComposer({ kind: 'foto', photoUploading: true })} />,
+      <MomentoComposer
+        composer={makeComposer({ kind: 'foto', photoUploading: true })}
+        defaultExpanded
+      />,
     )
     expect(screen.getByRole('button', { name: /subiendo/i })).toBeInTheDocument()
   })
@@ -129,7 +146,7 @@ describe('<MomentoComposer />', () => {
       replacePhotoDraft,
     } as Partial<Composer>)
 
-    render(<MomentoComposer composer={composer} />)
+    render(<MomentoComposer composer={composer} defaultExpanded />)
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /editar foto 1/i }))
 
