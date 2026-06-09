@@ -10,6 +10,13 @@ import { ImportBody } from './_lib/admin-schemas.js'
 import { persistError, safeSql } from './_lib/observability.js'
 import { STRUCTURED_CORE_EXPORT_SCOPE } from './_lib/export-scope.js'
 import { VaultEnvelopeString } from './_lib/vault-envelope.js'
+import { forEachConcurrent } from './_lib/concurrency.js'
+
+// Tope de inserts en vuelo a la vez por fase. Cada insert es un round-trip HTTP
+// a Neon; en serie, una importación grande (miles de filas) agota el timeout de
+// la función. El pool acotado las paraleliza sin saturar la conexión. Las fases
+// (entidades → relaciones → … ) siguen siendo secuenciales para respetar las FK.
+const IMPORT_CONCURRENCY = 16
 
 type IncomingEntity = {
   id: string
@@ -380,11 +387,11 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     })
   }
 
-  for (const rawEntity of entities) {
+  await forEachConcurrent(entities, IMPORT_CONCURRENCY, async (rawEntity) => {
     const e = incomingEntity(rawEntity)
     if (!e) {
       skipped++
-      continue
+      return
     }
     try {
       const origin = JSON.stringify(normalizeOrigin(e.origin))
@@ -413,13 +420,13 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     } catch (err) {
       recordFailure('entity', e.id ?? null, err)
     }
-  }
+  })
 
-  for (const rawRelationship of relationships) {
+  await forEachConcurrent(relationships, IMPORT_CONCURRENCY, async (rawRelationship) => {
     const r = incomingRelationship(rawRelationship)
     if (!r) {
       skipped++
-      continue
+      return
     }
     try {
       const origin = JSON.stringify(normalizeOrigin(r.origin))
@@ -442,13 +449,13 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     } catch (err) {
       recordFailure('relationship', r.id ?? null, err)
     }
-  }
+  })
 
-  for (const rawQuote of quotes) {
+  await forEachConcurrent(quotes, IMPORT_CONCURRENCY, async (rawQuote) => {
     const q = incomingQuote(rawQuote)
     if (!q) {
       skipped++
-      continue
+      return
     }
     try {
       const origin = JSON.stringify(normalizeOrigin(q.origin))
@@ -480,13 +487,13 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     } catch (err) {
       recordFailure('quote', q.id ?? null, err)
     }
-  }
+  })
 
-  for (const rawMomento of momentos) {
+  await forEachConcurrent(momentos, IMPORT_CONCURRENCY, async (rawMomento) => {
     const m = incomingMomento(rawMomento)
     if (!m) {
       skipped++
-      continue
+      return
     }
     try {
       const origin = JSON.stringify(normalizeOrigin(m.origin))
@@ -528,13 +535,13 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     } catch (err) {
       recordFailure('momento', m.id ?? null, err)
     }
-  }
+  })
 
-  for (const rawNote of notes) {
+  await forEachConcurrent(notes, IMPORT_CONCURRENCY, async (rawNote) => {
     const n = incomingNote(rawNote)
     if (!n) {
       skipped++
-      continue
+      return
     }
     try {
       const origin = JSON.stringify(normalizeOrigin(n.origin))
@@ -557,13 +564,13 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     } catch (err) {
       recordFailure('note', n.id ?? null, err)
     }
-  }
+  })
 
-  for (const rawTask of tasks) {
+  await forEachConcurrent(tasks, IMPORT_CONCURRENCY, async (rawTask) => {
     const t = incomingTask(rawTask)
     if (!t) {
       skipped++
-      continue
+      return
     }
     try {
       const origin = JSON.stringify(normalizeOrigin(t.origin))
@@ -590,13 +597,13 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     } catch (err) {
       recordFailure('task', t.id ?? null, err)
     }
-  }
+  })
 
-  for (const rawPrompt of prompts) {
+  await forEachConcurrent(prompts, IMPORT_CONCURRENCY, async (rawPrompt) => {
     const p = incomingPrompt(rawPrompt)
     if (!p) {
       skipped++
-      continue
+      return
     }
     try {
       const origin = JSON.stringify(normalizeOrigin(p.origin))
@@ -622,13 +629,13 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     } catch (err) {
       recordFailure('prompt', p.id ?? null, err)
     }
-  }
+  })
 
-  for (const rawSecret of secrets) {
+  await forEachConcurrent(secrets, IMPORT_CONCURRENCY, async (rawSecret) => {
     const s = incomingSecret(rawSecret)
     if (!s) {
       skipped++
-      continue
+      return
     }
     try {
       const origin = JSON.stringify(normalizeOrigin(s.origin))
@@ -660,7 +667,7 @@ export default withObservability('import', async (req: Request, _ctx, { requestI
     } catch (err) {
       recordFailure('secret', s.id ?? null, err)
     }
-  }
+  })
 
   return Response.json({
     imported,
