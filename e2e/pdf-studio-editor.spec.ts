@@ -67,29 +67,53 @@ async function toolbarMetrics(page: Page) {
 }
 
 async function expectMenuInFront(page: Page, triggerName: string) {
-  await page.getByRole('button', { name: triggerName, exact: true }).click()
+  const trigger = page.getByRole('button', { name: triggerName, exact: true })
   const menu = page.getByRole('menu')
-  await expect(menu).toBeVisible()
 
-  const layer = await menu.evaluate((el) => {
-    const rect = el.getBoundingClientRect()
-    const probeX = Math.round(rect.left + rect.width / 2)
-    const probeY = Math.round(rect.top + Math.min(24, rect.height / 2))
-    const top = document.elementFromPoint(probeX, probeY)
-    return {
-      className: el.className,
-      zIndex: getComputedStyle(el).zIndex,
-      topRole: top?.getAttribute('role') ?? null,
-      menuContainsTop: top ? el.contains(top) || el === top : false,
+  // Abrir con el propio trigger (toggle). Un menú nunca se auto-abre, así que
+  // clicar SÓLO cuando aria-expanded≠true converge a "abierto" sin togglear-cerrar
+  // y tolera un click perdido o un reflujo que cierre el menú justo tras abrirlo.
+  await expect(trigger).toBeEnabled()
+  await expect(async () => {
+    if ((await trigger.getAttribute('aria-expanded')) !== 'true') {
+      await trigger.click()
     }
-  })
+    await expect(menu).toBeVisible({ timeout: 1_000 })
+  }).toPass({ timeout: 8_000 })
 
-  expect(layer.className).toContain('z-[80]')
-  expect(Number(layer.zIndex)).toBeGreaterThan(60)
-  expect(layer.menuContainsTop).toBe(true)
+  // El layer del menú lleva la clase z-[80] desde el render, pero su z-index
+  // computado y el hit-test (elementFromPoint) pueden tardar un frame en
+  // asentarse mientras corre la animación de entrada — en CI eso daba un flake
+  // (z-index leído 0). Se SONDEA hasta que el menú esté realmente al frente, en
+  // vez de medir un único frame transitorio.
+  await expect
+    .poll(() =>
+      menu.evaluate((el) => {
+        const rect = el.getBoundingClientRect()
+        const probeX = Math.round(rect.left + rect.width / 2)
+        const probeY = Math.round(rect.top + Math.min(24, rect.height / 2))
+        const top = document.elementFromPoint(probeX, probeY)
+        return {
+          hasLayer: el.className.includes('z-[80]'),
+          inFront: Number(getComputedStyle(el).zIndex) > 60,
+          containsTop: !!top && (el.contains(top) || el === top),
+        }
+      }),
+    )
+    .toEqual({ hasLayer: true, inFront: true, containsTop: true })
 
-  await page.keyboard.press('Escape')
-  await expect(menu).toBeHidden()
+  // Cerrar con el propio trigger (toggle), NUNCA con Escape: el modal del editor
+  // también escucha Escape en bubble y se cierra cuando no hay nada en edición. Si
+  // un reflujo cerró el menú un instante antes, ese Escape se filtraría al modal y
+  // lo cerraría entero (flake que arrastraba al siguiente menú). El toggle sólo
+  // afecta al menú. Clic sólo cuando sigue expandido → converge a "cerrado" sin
+  // reabrir, porque nada auto-abre un menú.
+  await expect(async () => {
+    if ((await trigger.getAttribute('aria-expanded')) === 'true') {
+      await trigger.click()
+    }
+    await expect(menu).toBeHidden({ timeout: 1_000 })
+  }).toPass({ timeout: 8_000 })
   await expect(page.getByRole('dialog')).toBeVisible()
 }
 
