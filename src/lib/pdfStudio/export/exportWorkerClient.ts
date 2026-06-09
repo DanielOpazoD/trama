@@ -38,6 +38,13 @@ export function assemblePdfInWorker(
     createWorker: createPdfExportWorker,
     signal: options.signal,
     onProgress: options.onProgress,
-    fallback: () => assemble(doc, options),
+  }).catch((err: unknown) => {
+    // Red de seguridad: el worker puede fallar al CREARSE o al CORRER —
+    // p. ej. un navegador sin OffscreenCanvas/convertToBlob no logra codificar
+    // imágenes dentro del worker (faltan `document`/`<canvas>`). El main thread
+    // siempre tiene canvas, así que reensamblamos ahí. No reintentamos si el
+    // usuario canceló la exportación.
+    if (options.signal?.aborted) throw err
+    return assemble(doc, options)
   })
 }
