@@ -5,7 +5,7 @@ import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
-import { logEvent } from './_lib/observability.js'
+import { logErrorEvent, logEvent } from './_lib/observability.js'
 import {
   EntityCreateBody,
   EntityPatchBody,
@@ -302,7 +302,16 @@ export default withObservability(
             WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
           `
           })
-          .catch(() => {})
+          // Best-effort en segundo plano: no frena la respuesta del PATCH, pero
+          // dejamos rastro si falla (antes era un `.catch(() => {})` silencioso y
+          // la entity quedaba con embedding viejo sin que nadie se enterara).
+          .catch((err) => {
+            logErrorEvent({
+              event: 'entity_embedding_update_failed',
+              entityId: id,
+              message: err instanceof Error ? err.message : String(err),
+            })
+          })
       }
 
       return Response.json(rows[0])
