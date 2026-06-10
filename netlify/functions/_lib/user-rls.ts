@@ -11,7 +11,10 @@ type ScopedRlsSql = UserRlsSql & {
   transaction?: (queries: (sql: UserRlsSql) => unknown[]) => Promise<unknown[][]>
 }
 
-type RlsContext = { kind: 'none' } | { kind: 'user'; userId: string } | { kind: 'system' }
+type RlsContext =
+  | { kind: 'none' }
+  | { kind: 'user'; userId: string; email?: string }
+  | { kind: 'system' }
 
 const rlsContext = new AsyncLocalStorage<RlsContext>()
 
@@ -41,11 +44,22 @@ function contextConfigQuery(tx: UserRlsSql, context: RlsContext): unknown {
   if (context.kind === 'none') {
     throw new Error('contexto RLS vacío')
   }
-  return tx`SELECT set_config('app.current_user_id', ${context.userId}, true)`
+  // El email viaja junto al user_id: las policies de compartir (invitaciones
+  // por correo) lo comparan vía current_setting('app.current_user_email').
+  // Siempre se setea — '' cuando no hay email, así una transacción nunca
+  // hereda el valor de otra y las policies (que envuelven con NULLIF) no
+  // matchean contra cadena vacía.
+  return tx`SELECT set_config('app.current_user_id', ${context.userId}, true),
+                   set_config('app.current_user_email', ${context.email ?? ''}, true)`
 }
 
-export function setCurrentRlsUser(userId: string): void {
-  rlsContext.enterWith({ kind: 'user', userId: trimUserId(userId) })
+export function setCurrentRlsUser(userId: string, email?: string): void {
+  const normalized = email?.trim().toLowerCase()
+  rlsContext.enterWith({
+    kind: 'user',
+    userId: trimUserId(userId),
+    ...(normalized ? { email: normalized } : null),
+  })
 }
 
 export function clearRlsContext(): void {
@@ -101,12 +115,15 @@ export async function runWithUserRls(
   sql: SqlClient,
   userId: string,
   buildQueries: (sql: UserRlsSql) => unknown[],
+  opts?: { email?: string },
 ): Promise<unknown[][]> {
   const trimmedUserId = trimUserId(userId)
+  const email = opts?.email?.trim().toLowerCase() ?? ''
   const results = await runWithoutRlsContext(async () => {
     const transaction = transactionFor(sql)
     return transaction((tx) => [
-      tx`SELECT set_config('app.current_user_id', ${trimmedUserId}, true)`,
+      tx`SELECT set_config('app.current_user_id', ${trimmedUserId}, true),
+                set_config('app.current_user_email', ${email}, true)`,
       ...buildQueries(tx),
     ])
   })

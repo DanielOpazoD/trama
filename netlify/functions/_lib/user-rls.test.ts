@@ -48,10 +48,23 @@ describe('runWithUserRls', () => {
 
     expect(transaction).toHaveBeenCalledTimes(1)
     expect(txCalls[0]?.template).toMatch(/set_config\('app\.current_user_id', \?, true\)/)
-    expect(txCalls[0]?.values).toEqual(['user_a'])
+    expect(txCalls[0]?.template).toMatch(
+      /set_config\('app\.current_user_email', \?, true\)/,
+    )
+    expect(txCalls[0]?.values).toEqual(['user_a', ''])
     expect(txCalls[1]?.template).toBe('SELECT id FROM entities')
     expect(txCalls[2]?.template).toBe('SELECT id FROM quotes')
     expect(result).toEqual([[{ id: 'e1' }], [{ id: 'q1' }]])
+  })
+
+  it('setea app.current_user_email normalizado cuando el caller lo provee', async () => {
+    const { sql, txCalls } = makeSqlMock([[{ id: 'i1' }]])
+
+    await runWithUserRls(sql, 'user_a', (scoped) => [scoped`SELECT 1`], {
+      email: '  Dani@Example.COM ',
+    })
+
+    expect(txCalls[0]?.values).toEqual(['user_a', 'dani@example.com'])
   })
 
   it('rechaza userId vacío para no ejecutar queries con contexto RLS ambiguo', async () => {
@@ -89,7 +102,7 @@ describe('scopeSqlToRlsContext', () => {
 
     expect(transaction).toHaveBeenCalledTimes(1)
     expect(txCalls[0]?.template).toMatch(/set_config\('app\.current_user_id', \?, true\)/)
-    expect(txCalls[0]?.values).toEqual(['user_a'])
+    expect(txCalls[0]?.values).toEqual(['user_a', ''])
     expect(txCalls[1]?.template).toBe('SELECT id FROM entities')
     expect(result).toEqual([{ id: 'e1' }])
     clearRlsContext()
@@ -107,10 +120,25 @@ describe('scopeSqlToRlsContext', () => {
     ])
 
     expect(txCalls[0]?.template).toMatch(/set_config\('app\.current_user_id', \?, true\)/)
-    expect(txCalls[0]?.values).toEqual(['user_a'])
+    expect(txCalls[0]?.values).toEqual(['user_a', ''])
     expect(txCalls[1]?.template).toBe('SELECT id FROM entities')
     expect(txCalls[2]?.template).toBe('SELECT id FROM quotes')
     expect(result).toEqual([[{ id: 'e1' }], [{ id: 'q1' }]])
+    clearRlsContext()
+  })
+
+  it('propaga el email del usuario ambiental para las policies de sharing', async () => {
+    clearRlsContext()
+    setCurrentRlsUser('user_a', 'Invitee@Mail.com')
+    const { sql, txCalls } = makeSqlMock([[{ id: 'i1' }]])
+    const scoped = scopeSqlToRlsContext(sql)
+
+    await scoped`SELECT id FROM momento_space_invitations`
+
+    expect(txCalls[0]?.template).toMatch(
+      /set_config\('app\.current_user_email', \?, true\)/,
+    )
+    expect(txCalls[0]?.values).toEqual(['user_a', 'invitee@mail.com'])
     clearRlsContext()
   })
 
@@ -145,7 +173,7 @@ describe('scopeSqlToRlsContext', () => {
     expect(configCalls[0]?.template).toMatch(
       /set_config\('app\.current_user_id', \?, true\)/,
     )
-    expect(configCalls[0]?.values).toEqual(['explicit_user'])
+    expect(configCalls[0]?.values).toEqual(['explicit_user', ''])
     expect(txCalls[1]?.template).toBe('SELECT id FROM entities')
     expect(result).toEqual([[{ id: 'e1' }]])
     clearRlsContext()

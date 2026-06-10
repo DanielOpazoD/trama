@@ -130,13 +130,15 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
         const email =
           emailFromJwtPayload(payload) ?? (await fetchEmailFromClerk(payload.sub))
         const user = { id: 'legacy-single-user', email }
-        setCurrentRlsUser(user.id)
+        // El email entra al contexto RLS: las policies de invitaciones por
+        // correo (momento_space_*) lo comparan vía app.current_user_email.
+        setCurrentRlsUser(user.id, user.email)
         return user
       }
       const email =
         emailFromJwtPayload(payload) ?? (await fetchEmailFromClerk(payload.sub))
       const user = { id: payload.sub, email }
-      setCurrentRlsUser(user.id)
+      setCurrentRlsUser(user.id, user.email)
       return user
     } catch {
       // Token inválido — caer al fallback si está habilitado

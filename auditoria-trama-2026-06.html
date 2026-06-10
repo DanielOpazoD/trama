@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trama — Auditoría integral · junio 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,600;0,700;1,400&family=Caveat:wght@500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper-50: #ffffff; --paper-100: #fafafa; --paper-200: #f4f4f5;
+    --ink-900: #09090b; --ink-800: #18181b; --ink-700: #27272a; --ink-500: #52525b;
+    --ink-400: #71717a; --ink-300: #63636b; --ink-200: #d4d4d8; --ink-100: #e4e4e7;
+    --accent: #1d4e6b;            /* prussian */
+    --accent-soft: #1d4e6b14;
+    --gold: #b08930; --gold-soft: #b0893018;
+    --sage: #4b7355; --sage-soft: #4b735514;
+    --clay: #b3412c; --clay-soft: #b3412c14;
+    --shadow: 0 1px 2px rgb(70 50 20 / 0.10);
+    --shadow-lift: 0 4px 14px rgb(70 50 20 / 0.14), 0 1px 3px rgb(70 50 20 / 0.08);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--paper-100); color: var(--ink-700);
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    font-size: 15px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 880px; margin: 0 auto; padding: 56px 28px 120px; }
+  h1, h2, h3 { font-family: Spectral, Georgia, serif; color: var(--ink-800); text-wrap: balance; }
+  h1 { font-size: 44px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.08; margin: 8px 0 0; }
+  h2 { font-size: 27px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 6px; }
+  h3 { font-size: 19px; font-weight: 600; margin: 28px 0 8px; }
+  p  { margin: 10px 0; text-wrap: pretty; }
+  section { margin-top: 72px; }
+  .eyebrow {
+    font-family: Spectral, Georgia, serif; font-variant-caps: small-caps; text-transform: lowercase;
+    letter-spacing: 0.08em; font-size: 13px; color: var(--accent); margin: 0;
+  }
+  .rule { width: 34px; height: 2px; background: var(--accent); opacity: 0.75; border: 0; margin: 14px 0 18px; border-radius: 2px; }
+  .lead { font-size: 16.5px; color: var(--ink-500); max-width: 60ch; }
+  .meta { color: var(--ink-400); font-size: 12.5px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .card {
+    background: var(--paper-50); border: 1px solid var(--ink-100); border-radius: 14px;
+    padding: 22px 24px; box-shadow: var(--shadow); margin: 18px 0;
+  }
+  .card.lift { box-shadow: var(--shadow-lift); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-400); font-weight: 600; padding: 10px 12px 8px; border-bottom: 1px solid var(--ink-100); }
+  td { padding: 11px 12px; border-bottom: 1px solid var(--paper-200); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  .num { font-family: Spectral, Georgia, serif; font-weight: 700; font-size: 21px; color: var(--ink-800); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bar { height: 6px; border-radius: 4px; background: var(--paper-200); overflow: hidden; min-width: 120px; }
+  .bar > i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), #2d6e93); }
+  .bar.gold > i { background: linear-gradient(90deg, var(--gold), #cfa84a); }
+  .bar.sage > i { background: linear-gradient(90deg, var(--sage), #6b9377); }
+  .bar.clay > i { background: linear-gradient(90deg, var(--clay), #cf6a55); }
+  .chip { display: inline-block; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; padding: 3px 10px; border-radius: 999px; vertical-align: 2px; }
+  .chip.p0 { background: var(--clay-soft); color: var(--clay); }
+  .chip.p1 { background: var(--gold-soft); color: var(--gold); }
+  .chip.p2 { background: var(--sage-soft); color: var(--sage); }
+  .chip.idea { background: var(--accent-soft); color: var(--accent); }
+  .verdict {
+    font-family: Spectral, Georgia, serif; font-size: 64px; font-weight: 700; color: var(--ink-800);
+    line-height: 1; font-variant-numeric: tabular-nums;
+  }
+  .verdict small { font-size: 22px; color: var(--ink-400); font-weight: 400; }
+  blockquote {
+    font-family: Spectral, Georgia, serif; font-style: italic; font-size: 17px; color: var(--ink-500);
+    border-left: 2px solid var(--gold); margin: 18px 0; padding: 2px 0 2px 18px; hanging-punctuation: first last;
+  }
+  ul { padding-left: 20px; margin: 8px 0; } li { margin: 5px 0; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; background: var(--paper-200); border-radius: 5px; padding: 1.5px 6px; color: var(--ink-700); }
+  .ok   { color: var(--sage); font-weight: 600; }
+  .warn { color: var(--gold); font-weight: 600; }
+  .bad  { color: var(--clay); font-weight: 600; }
+  .footnote { font-size: 12.5px; color: var(--ink-400); }
+  .ornament { text-align: center; color: var(--ink-200); font-size: 18px; letter-spacing: 0.6em; margin: 60px 0 0; }
+  .hand { font-family: Caveat, cursive; font-size: 20px; color: var(--ink-500); }
+  .toc { columns: 2; gap: 32px; font-size: 14px; }
+  .toc a { color: var(--ink-500); text-decoration: none; display: block; padding: 3px 0; border-bottom: 1px dashed var(--paper-200); }
+  .toc a:hover { color: var(--accent); }
+  @media (max-width: 700px) { .toc { columns: 1; } }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .pill-row span { font-size: 12px; background: var(--paper-200); border: 1px solid var(--ink-100); border-radius: 999px; padding: 3px 12px; color: var(--ink-500); }
+  .kicker { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-400); font-weight: 600; }
+  ::selection { background: var(--accent-soft); }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ====================== PORTADA ====================== -->
+<header>
+  <p class="eyebrow">auditoría integral &amp; hoja de ruta</p>
+  <h1>Trama</h1>
+  <hr class="rule" />
+  <p class="lead">Evaluación multiparamétrica del producto, propuesta de resolución de deuda técnica
+  y nuevas ideas de funciones, herramientas y experiencia visual — con mirada hacia un producto
+  premium con sentido comercial.</p>
+  <p class="meta">10 de junio de 2026 · main @ <code>3385f326</code> (#169) · v0.11.0 · auditoría asistida por 4 agentes de exploración + verificación manual</p>
+</header>
+
+<section>
+  <p class="eyebrow">contenido</p>
+  <h2>Índice</h2>
+  <hr class="rule" />
+  <div class="toc">
+    <a href="#veredicto">1 · Veredicto general</a>
+    <a href="#metodo">2 · Metodología</a>
+    <a href="#scorecard">3 · Scorecard — 14 parámetros</a>
+    <a href="#dimensiones">4 · Análisis por dimensión</a>
+    <a href="#deuda">5 · Deuda técnica — plan de alto valor</a>
+    <a href="#ideas">6 · Nuevas ideas — funciones y herramientas</a>
+    <a href="#estetica">7 · Nuevas ideas — estética y experiencia</a>
+    <a href="#comercial">8 · Sentido comercial — posicionamiento y roadmap</a>
+    <a href="#cierre">9 · Cierre y prioridades</a>
+  </div>
+</section>
+
+<!-- ====================== VEREDICTO ====================== -->
+<section id="veredicto">
+  <p class="eyebrow">resumen ejecutivo</p>
+  <h2>1 · Veredicto general</h2>
+  <hr class="rule" />
+  <div class="card lift" style="display:flex; gap:28px; align-items:center; flex-wrap:wrap;">
+    <div class="verdict">5,8<small> / 7</small></div>
+    <div style="flex:1; min-width:260px;">
+      <p style="margin:0;"><strong>Producto de ingeniería notable con alma editorial propia, a 2–3 sprints de ser comercializable.</strong></p>
+      <p style="margin:6px 0 0;" class="footnote">Promedio simple de los 14 parámetros. La distribución importa más que el promedio:
+      la base técnica vive entre 5,5 y 6,5; la única nota deficitaria (3,5) es madurez comercial — que es,
+      precisamente, lo que esta hoja de ruta ataca.</p>
+    </div>
+  </div>
+  <p>Trama es hoy un caso raro: un proyecto personal con disciplina de equipo senior. TypeScript estricto sin un solo
+  <code>any</code>, ~2.300 tests unitarios más 16 specs e2e, CI de cinco jobs con gate de migraciones contra Postgres real,
+  presupuestos de bundle por chunk, RLS en 20 tablas, costos de IA con tope mensual por usuario, y una filosofía estética
+  documentada que el código respeta de verdad. La identidad visual —papel y tinta, serif editorial, tres temas con la misma
+  alma— ya está al nivel de productos pagados del nicho (mymind, Readwise).</p>
+  <p>Las grietas son específicas y abordables: una política RLS nueva que referencia una variable que nadie setea,
+  cascadas de soft-delete incompletas en un punto, PWA instalable pero sin service worker (online-only),
+  cero telemetría de producto, y ninguna pieza de go-to-market (landing, pricing, analytics). Nada estructural;
+  todo accionable.</p>
+  <blockquote>«El catálogo es lo protagonista, no la UI.» — la filosofía está escrita y, en general, cumplida.
+  Lo que falta no es calidad: es ponerle puerta, precio y camino de entrada.</blockquote>
+</section>
+
+<!-- ====================== METODOLOGÍA ====================== -->
+<section id="metodo">
+  <p class="eyebrow">cómo se evaluó</p>
+  <h2>2 · Metodología</h2>
+  <hr class="rule" />
+  <p>Cuatro auditorías paralelas de solo lectura sobre el repositorio sincronizado a <code>main</code>
+  (post #163–#169), cada una con foco distinto, más verificación manual de los hallazgos graves:</p>
+  <ul>
+    <li><strong>Backend, datos y seguridad</strong> — 56 endpoints, 54 migraciones, 79 índices, 20 políticas RLS, CSP, vault, costos LLM.</li>
+    <li><strong>Frontend, estado y rendimiento</strong> — estructura de src (~66k LOC), TanStack Query, build real con análisis de chunks, lazy loading, PWA.</li>
+    <li><strong>Testing, CI/CD, docs y dependencias</strong> — 273 archivos de test en src + 141 en functions, workflows, 41 documentos, 96 dependencias.</li>
+    <li><strong>Producto, UX, accesibilidad y mobile</strong> — 18 vistas/módulos, flujos clave, fricciones, i18n, señales comerciales.</li>
+  </ul>
+  <p class="footnote">Verificaciones manuales destacadas: el «P0 de aislamiento de chat» señalado en la auditoría interna de mayo
+  <strong>ya está resuelto</strong> (todas las queries de <code>chat-messages.mts</code> filtran <code>user_id</code>);
+  en cambio, la política RLS de <code>momento_space_invitations</code> que referencia <code>app.current_user_email</code>
+  <strong>sí es deuda vigente</strong> (la variable no se setea en ningún punto del código).
+  Escala de notas: chilena, 1–7, donde 4 es aprobado y 7 excelente.</p>
+</section>
+
+<!-- ====================== SCORECARD ====================== -->
+<section id="scorecard">
+  <p class="eyebrow">notas de 1 a 7</p>
+  <h2>3 · Scorecard — 14 parámetros</h2>
+  <hr class="rule" />
+  <div class="card">
+  <table>
+    <tr><th style="width:38%">Parámetro</th><th style="width:10%">Nota</th><th>Lectura</th><th style="width:24%"></th></tr>
+    <tr><td><strong>Sistema de diseño y estética</strong></td><td class="num">6,5</td><td>Identidad editorial real, tokens disciplinados, 3 temas coherentes, filosofía documentada y cumplida.</td><td><div class="bar gold"><i style="width:93%"></i></div></td></tr>
+    <tr><td><strong>Arquitectura frontend</strong></td><td class="num">6,5</td><td>Capas limpias (UI→state→api), modelos puros testeados, lazy loading completo, sin componentes-dios injustificados.</td><td><div class="bar"><i style="width:93%"></i></div></td></tr>
+    <tr><td><strong>Calidad de código TS</strong></td><td class="num">6,5</td><td><code>strict</code> + <code>noUncheckedIndexedAccess</code>, cero <code>any</code>, cero TODOs vencidos.</td><td><div class="bar"><i style="width:93%"></i></div></td></tr>
+    <tr><td><strong>Documentación</strong></td><td class="num">6,5</td><td>41 docs vivos, AGENTS/conventions split, gate anti-drift en CI, CHANGELOG mantenido.</td><td><div class="bar"><i style="width:93%"></i></div></td></tr>
+    <tr><td><strong>Rendimiento</strong></td><td class="num">6,3</td><td>Bundle inicial 94 KB gzip con budgets en CI; compresión de imagen cliente; escala documentada. Chunks pdf-lib duplicados (cosmético), Web Vitals sin telemetría.</td><td><div class="bar"><i style="width:90%"></i></div></td></tr>
+    <tr><td><strong>Seguridad y privacidad</strong></td><td class="num">6,0</td><td>CSP+HSTS sólidos, SSRF testeado, gitleaks, vault client-side, cost-caps. Resta: política RLS de email sin setear, sin rate limit HTTP (decisión consciente).</td><td><div class="bar"><i style="width:86%"></i></div></td></tr>
+    <tr><td><strong>CI/CD y tooling</strong></td><td class="num">6,0</td><td>5 jobs paralelos, gate de migraciones en Postgres efímero, budgets, secrets scan. Falta Lighthouse/axe como gates.</td><td><div class="bar"><i style="width:86%"></i></div></td></tr>
+    <tr><td><strong>Arquitectura backend</strong></td><td class="num">6,0</td><td>Patrón único (auth→Zod→ApiErrors→observabilidad) sin desviaciones; RLS transaccional vía AsyncLocalStorage.</td><td><div class="bar"><i style="width:86%"></i></div></td></tr>
+    <tr><td><strong>Testing</strong></td><td class="num">5,8</td><td>~2.300 tests + thresholds calibrados como gate de regresión. Huecos: streaming SSE del chat, contrato de endpoints, axe subutilizado.</td><td><div class="bar"><i style="width:83%"></i></div></td></tr>
+    <tr><td><strong>Integridad de datos</strong></td><td class="num">5,5</td><td>Soft-delete consistente + export + PITR de Neon. Resta: cascada incompleta en <code>momento_entities</code>, sin compaction, blobs huérfanos manuales.</td><td><div class="bar"><i style="width:79%"></i></div></td></tr>
+    <tr><td><strong>Experiencia de usuario</strong></td><td class="num">5,5</td><td>Captura por IA fluida, ⌘K con aliases, onboarding sobrio. Falta deshacer global, offline real, focus-trap consistente en modales anidados.</td><td><div class="bar"><i style="width:79%"></i></div></td></tr>
+    <tr><td><strong>Accesibilidad</strong></td><td class="num">5,0</td><td>HTML semántico, 48+ aria-labels, reduced-motion. Pendiente: axe en CI, contraste en Vela, touch targets &lt;44px.</td><td><div class="bar sage"><i style="width:71%"></i></div></td></tr>
+    <tr><td><strong>Mobile / PWA</strong></td><td class="num">5,0</td><td>Instalable con iconos correctos y safe-areas; responsive cuidado. Sin service worker: online-only, sin push ni share target.</td><td><div class="bar sage"><i style="width:71%"></i></div></td></tr>
+    <tr><td><strong>Madurez comercial</strong></td><td class="num bad">3,5</td><td>Multi-usuario ~90% listo pero no operativo; cero analytics, sin landing, sin pricing, sin funnel.</td><td><div class="bar clay"><i style="width:50%"></i></div></td></tr>
+  </table>
+  </div>
+  <p class="footnote">Las notas integran los informes de los 4 agentes con criterio propio del auditor (que trabajó tres olas de
+  mejoras dentro de este código durante junio). Donde los agentes discreparon de hechos, se verificó contra el código y manda el código.</p>
+</section>
+
+<!-- ====================== DIMENSIONES ====================== -->
+<section id="dimensiones">
+  <p class="eyebrow">el detalle</p>
+  <h2>4 · Análisis por dimensión</h2>
+  <hr class="rule" />
+
+  <h3>4.1 · Diseño y estética — la mayor ventaja competitiva</h3>
+  <p>El sistema es genuinamente distintivo: type scale de 6 niveles, 5 tamaños de icono, 4 trackings, una sola curva de animación
+  canónica, sombras tintadas cálidas, grain de papel, tres voces tipográficas (Inter/Spectral/Caveat) con roles semánticos,
+  hanging punctuation y drop caps. Tres temas (Papel/Noche/Vela) comparten alma vía CSS vars — ningún componente sabe en qué tema corre.
+  Tras las olas de junio se sumaron View Transitions (vista/mundo/tema), paridad editorial del mundo Notas y el tratamiento
+  «mesa de imprenta» del PDF Studio. <strong>Es el tipo de coherencia por la que la gente paga.</strong></p>
+
+  <h3>4.2 · Frontend — arquitectura que aguanta crecer</h3>
+  <p>Separación impecable componentes → hooks de estado → cliente API; los dominios complejos (PDF Studio, grafo) aíslan su
+  matemática en módulos puros testeados. Las invalidaciones de TanStack Query son selectivas por dominio (no «invalidar todo»),
+  las listas grandes paginan por cursor y el grafo cambia a WebGL sobre mil nodos según umbrales documentados en
+  <code>docs/escala.md</code>. El bundle inicial es de 94 KB gzip con presupuestos por chunk vigilados en CI.</p>
+
+  <h3>4.3 · Backend y datos — un solo patrón, bien aplicado</h3>
+  <p>Los 56 endpoints siguen el mismo esqueleto: <code>withObservability()</code> con request-id, <code>getAuthedUser()</code>,
+  Zod en bodies, transforms snake/camel, errores canónicos. RLS forzado en 20 tablas con contexto transaccional. La protección
+  SSRF del url-preview tiene tests dedicados. Grietas: la política de invitaciones referencia <code>app.current_user_email</code>
+  que nunca se setea (los endpoints la esquivan con bypass de sistema + validación manual — funciona, pero la defensa en
+  profundidad queda decorativa); <code>momento_entities</code> no filtra entidades soft-borradas; las filas borradas no se
+  compactan jamás y los blobs huérfanos solo se auditan a mano.</p>
+
+  <h3>4.4 · Testing y CI — madurez real con tres huecos</h3>
+  <p>Los thresholds de cobertura están calibrados como red de regresión (no como vanidad), el mock de SQL centralizado permite
+  verificar qué queries corren, y el job de migraciones aplica todo el historial en un Postgres efímero antes de cada merge.
+  Huecos honestos: el streaming SSE del chat no tiene e2e (se verifica a mano), los tests de endpoint no validan el shape de
+  respuesta contra los schemas Zod, y <code>@axe-core/playwright</code> está instalado pero se usa en un solo spec.</p>
+
+  <h3>4.5 · UX, accesibilidad y mobile — bueno, no redondo</h3>
+  <p>La captura vía AskBar (pegar texto → propuesta de IA → aprobar sin navegar) es el corazón del producto y fluye bien.
+  El ⌘K con aliases por sección (#169) y el PIN por sección suman control sin ruido. Las fricciones que separan «bueno» de
+  «premium»: no hay deshacer global fuera del PDF Studio; el offline detecta pero no encola (si se corta la red, lo escrito
+  se pierde); algunos modales anidados escapan el focus; y el grafo no es plenamente navegable por teclado. En mobile el
+  responsive es cuidadoso y la PWA instala con icono propio, pero sin service worker la app es estrictamente online.</p>
+
+  <h3>4.6 · Comercial — la nota baja que es oportunidad</h3>
+  <p>La infraestructura multi-usuario está ~90% construida (Clerk, RLS, costos por usuario, OAuth por usuario) según el propio
+  plan de <code>docs/migracion-multi-user.md</code>; falta el último tramo operativo. No existe landing, ni pricing, ni una sola
+  métrica de uso (cero analytics), ni i18n. El modo prueba es un excelente demo embrionario sin puerta de entrada pública.
+  Todo el capítulo 8 está dedicado a esto.</p>
+</section>
+
+<!-- ====================== DEUDA ====================== -->
+<section id="deuda">
+  <p class="eyebrow">resolver antes de crecer</p>
+  <h2>5 · Deuda técnica — plan de alto valor</h2>
+  <hr class="rule" />
+  <p>Ordenado por relación impacto/esfuerzo. «P0» = antes de abrir a más usuarios; «P1» = próximas 2–3 semanas; «P2» = trimestre.</p>
+
+  <div class="card">
+  <table>
+    <tr><th>#</th><th>Item</th><th>Por qué importa</th><th style="width:13%">Esfuerzo</th></tr>
+    <tr><td><span class="chip p0">P0</span></td><td><strong>Cerrar la política RLS de invitaciones</strong> — setear <code>app.current_user_email</code> en <code>runWithUserRls()</code> (o simplificar las policies que la referencian) y migrar los endpoints de shares fuera del bypass de sistema.</td><td>Hoy la única defensa del sharing es la validación manual del endpoint; la RLS que parece proteger no se evalúa. Es la grieta de seguridad más concreta del repo.</td><td>3–4 h</td></tr>
+    <tr><td><span class="chip p0">P0</span></td><td><strong>Cascada/filtro en <code>momento_entities</code></strong> — filtrar <code>deleted_at</code> de entidades en los SELECT de momentos (y evaluar FK CASCADE).</td><td>Momentos pueden listar entidades borradas; ruido visible al usuario y deuda de integridad.</td><td>2 h</td></tr>
+    <tr><td><span class="chip p0">P0</span></td><td><strong>Operativo multi-usuario</strong> — Clerk producción, smoke test de aislamiento por pares de usuarios, <code>ALLOW_LEGACY_FALLBACK=false</code>.</td><td>Es el desbloqueador de todo el capítulo comercial; el trabajo de fondo ya está hecho.</td><td>1–2 días</td></tr>
+    <tr><td><span class="chip p1">P1</span></td><td><strong>Sanear dependencias</strong> — resolver el peer-conflict de <code>eslint-plugin-jsx-a11y</code> (eliminar <code>--legacy-peer-deps</code> de CI y del setup), y dejar ADR con timing de React 19 / Vite 8 / Tailwind 4.</td><td>Cada <code>npm ci</code> nuevo falla sin la flag; los majors sin plan se convierten en sorpresas.</td><td>0,5–1 día</td></tr>
+    <tr><td><span class="chip p1">P1</span></td><td><strong>Accesibilidad como gate</strong> — axe-core en e2e de las 6 vistas clave (incluye tema Vela), <code>jsx-a11y</code> de warn a error, barrido de touch targets &lt;44px.</td><td>Cierra los tres pendientes documentados de a11y y evita regresiones futuras; requisito implícito para cobrar.</td><td>1 día</td></tr>
+    <tr><td><span class="chip p1">P1</span></td><td><strong>e2e de streaming del chat</strong> — helper de mock SSE (o test de integración contra backend real en CI nocturno).</td><td>El flujo más visible del producto hoy se verifica a mano.</td><td>0,5–1 día</td></tr>
+    <tr><td><span class="chip p1">P1</span></td><td><strong>Web Vitals → observabilidad</strong> — <code>web-vitals</code> ya está en package.json; falta engancharlo al pipeline de eventos.</td><td>Sin LCP/CLS/INP reales no hay línea base de performance para usuarios externos.</td><td>2–3 h</td></tr>
+    <tr><td><span class="chip p2">P2</span></td><td><strong>Higiene de datos a largo plazo</strong> — job de compaction de soft-deletes (runbook ya esbozado en <code>docs/datos.md</code>) + cron de blobs huérfanos con aviso.</td><td>Bloat y costo de storage silenciosos; barato de resolver ahora, caro en 3 años.</td><td>1–2 días</td></tr>
+    <tr><td><span class="chip p2">P2</span></td><td><strong>Focus-trap auditado en modales anidados</strong> — Settings sobre ⌘K, propuestas sobre vistas.</td><td>Uno de los detalles que separan «app web» de «producto»; ya existe <code>useFocusTrap</code>, falta cobertura.</td><td>0,5 día</td></tr>
+    <tr><td><span class="chip p2">P2</span></td><td><strong>Contrato endpoint↔schema</strong> — validar en tests que las respuestas mockeadas parsean con los schemas Zod del cliente.</td><td>Hoy un drift de shape pasaría los tests de ambos lados sin que nadie lo note.</td><td>1 día</td></tr>
+    <tr><td><span class="chip p2">P2</span></td><td><strong>Documentar el setup local con path exótico</strong> — el <code>:</code> del directorio rompe vitest/husky; el workaround existe pero no está en el README.</td><td>Primera media hora de cualquier colaborador nuevo.</td><td>30 min</td></tr>
+  </table>
+  </div>
+  <p class="footnote">Total estimado del paquete completo: ~7–9 días de trabajo concentrado. El P0 completo cabe en 2–3 días
+  y deja el producto listo para usuarios reales.</p>
+</section>
+
+<!-- ====================== IDEAS FUNCIONALES ====================== -->
+<section id="ideas">
+  <p class="eyebrow">construir después</p>
+  <h2>6 · Nuevas ideas — funciones y herramientas</h2>
+  <hr class="rule" />
+  <p>Seleccionadas por encaje con la identidad (catálogo personal editorial), diferenciación frente al nicho
+  (Readwise, mymind, Matter, Obsidian) y viabilidad sobre la arquitectura actual. Orden sugerido de valor.</p>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="chip idea">idea 1</span> Deshacer global</h3>
+    <p>Toast «Deshacer» de ~10 s tras cada acción destructiva o de guardado (borrar cita, aceptar propuesta, mover tarea),
+    apoyado en los soft-deletes que ya existen — deshacer = restaurar. El PDF Studio ya demostró el patrón con su historial.
+    <em>Es la fricción #1 detectada y la mejora de confianza más barata.</em> Esfuerzo: 2–3 días.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="chip idea">idea 2</span> Offline real (service worker + cola)</h3>
+    <p>SW con cache-first para assets y network-first para API, más cola de mutaciones en IndexedDB que reintenta al volver
+    la red. Convierte la PWA instalable en una app confiable en el metro — coherente con la promesa «tus datos, tu espacio».
+    Esfuerzo: 1–2 semanas. Es la pieza técnica más diferenciadora frente a competidores cloud-only.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="chip idea">idea 3</span> Importadores del nicho: Kindle y Readwise</h3>
+    <p>Importar highlights de Kindle (archivo <code>MyClippings.txt</code> o export de Goodreads) y CSV de Readwise,
+    pasando por el mismo pipeline de propuestas IA (entidades+citas+relaciones). <strong>Es el caballo de Troya comercial</strong>:
+    la gente del nicho ya tiene años de subrayados esperando un lugar más bello donde vivir. El pipeline de extracción ya existe;
+    esto es mayormente parsing + UI de revisión por lotes. Esfuerzo: 3–5 días por fuente.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="chip idea">idea 4</span> «Memoria anual» — el informe que se comparte</h3>
+    <p>Una pieza editorial generada por IA al estilo de los ensayos que ya produce el producto: tu año en lecturas, personas,
+    obsesiones y momentos, compuesta con la tipografía de la casa y exportable como PDF impreso (la Imprenta ya sabe hacerlo)
+    o imagen para compartir. El equivalente Trama del «Wrapped» — marketing orgánico que además es un objeto íntimo hermoso.
+    Esfuerzo: ~1 semana reutilizando Atlas + ensayos + Imprenta.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="chip idea">idea 5</span> Web clipper / share target</h3>
+    <p>El manifest ya está; agregar <code>share_target</code> permite «Compartir → Trama» desde el teléfono (URL, texto, foto)
+    directo al pipeline de captura. Una extensión de navegador mínima (selección → AskBar) cubriría escritorio.
+    La captura es el momento de mayor valor del producto; hay que reducir su costo a cero. Esfuerzo: 2–4 días (share target) + 1 semana (extensión).</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="chip idea">idea 6</span> Imprenta, segunda ola funcional</h3>
+    <p>Lo ya propuesto y pendiente: búsqueda de texto dentro del PDF (pdf.js ya extrae texto; el OCR ya genera capa buscable),
+    split por rangos («1-3, 7, 9-12»), membrete configurable (logo + texto en cabecera/pie) y metadatos al exportar.
+    Con el relleno en lote ya entregado, esto completa una Imprenta por la que un freelance pagaría sola. Esfuerzo: ~1 semana.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="chip idea">idea 7</span> Digest semanal por correo</h3>
+    <p>«El hilo de tu semana»: 3 citas, 2 conexiones nuevas que la IA notó, 1 aniversario. El scheduled-sync de Spotify ya
+    demuestra el patrón de funciones programadas. Retención pura para el usuario multi-cuenta. Esfuerzo: 2–3 días + proveedor de email.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="chip idea">idea 8</span> Espacios compartidos más allá de Momentos</h3>
+    <p>El sharing por invitación (#165–#168) creó la infraestructura (invitaciones, roles, accesos). Extenderla a una
+    «estantería compartida» (entidades+citas de un tema, p. ej. un club de lectura) es el primer paso natural hacia
+    cuentas de a dos — y un plan «dúo» en pricing. Esfuerzo: 1–2 semanas.</p>
+  </div>
+</section>
+
+<!-- ====================== IDEAS ESTÉTICAS ====================== -->
+<section id="estetica">
+  <p class="eyebrow">seguir puliendo</p>
+  <h2>7 · Nuevas ideas — estética y experiencia visual</h2>
+  <hr class="rule" />
+  <ul>
+    <li><strong>Tarjetas de previsualización de tema</strong> en Apariencia — tres mini-hojas con el papel, una línea serif y el
+    acento de cada tema, en vez de tres botones. Elegir tema se vuelve un momento de producto. <span class="footnote">(0,5 día)</span></li>
+    <li><strong>Export del grafo como lámina</strong> — PNG/SVG de alta resolución con fondo de papel, leyenda tipográfica y
+    colofón discreto («Trama · junio 2026»). El grafo pasa de vista a objeto: póster, fondo de pantalla, regalo. <span class="footnote">(2–3 días)</span></li>
+    <li><strong>Modo presentación del grafo</strong> — pantalla completa, chrome desvanecido, nodos respirando; para mostrar
+    tu mapa a alguien sin enseñar la UI. <span class="footnote">(1 día)</span></li>
+    <li><strong>Micro-onboarding contextual</strong> — primera visita a cada vista: una línea editorial que explica el gesto
+    («Doble clic en una hoja para editarla») y no vuelve a aparecer. El Onboarding global ya existe; esto es su eco por vista. <span class="footnote">(1–2 días)</span></li>
+    <li><strong>«Estado del archivo»</strong> — una página de estadísticas con voz editorial (no dashboard): cuántas voces habitan
+    tu trama, qué década domina tus lecturas, tu hora de captura más frecuente. Los counts ya existen; falta la prosa y la
+    composición. <span class="footnote">(2–3 días)</span></li>
+    <li><strong>Contraste Vela auditado</strong> — pase de axe sobre el tema Vela (el pendiente documentado del ai-panel y chips)
+    para que el modo más hermoso sea también el más legible. <span class="footnote">(incluido en P1 de a11y)</span></li>
+    <li><strong>Estados de carga editoriales</strong> — los skeletons ya respetan reduced-motion; sumar frases de espera con voz
+    propia en operaciones largas del PDF Studio y del Atlas («cosiendo el pliego…», «trazando el cielo…»), consistentes con la marca. <span class="footnote">(0,5 día)</span></li>
+  </ul>
+</section>
+
+<!-- ====================== COMERCIAL ====================== -->
+<section id="comercial">
+  <p class="eyebrow">de objeto íntimo a producto</p>
+  <h2>8 · Sentido comercial — posicionamiento y roadmap</h2>
+  <hr class="rule" />
+
+  <h3>8.1 · Posicionamiento</h3>
+  <p><strong>Trama es un «commonplace book» digital con IA: el lugar bello donde viven tus lecturas, citas, música y momentos —
+  y las conexiones entre ellos.</strong> El nicho «tools for thought» paga bien y está mal servido en estética:
+  Readwise (US$9,99/mes) resuelve highlights pero parece una hoja de cálculo; mymind (US$12,99/mes) es bello pero pasivo
+  (no teje conexiones); Obsidian es potente pero hostil para no-técnicos. Trama compite exactamente en el cruce vacío:
+  <em>belleza editorial + IA que propone conexiones + privacidad (datos propios, vault local, costos transparentes)</em>.</p>
+  <div class="pill-row">
+    <span>vs Readwise → estética y grafo</span>
+    <span>vs mymind → conexiones activas por IA</span>
+    <span>vs Obsidian → cero fricción, cero plugins</span>
+    <span>vs Notion → intimidad, no productividad</span>
+  </div>
+
+  <h3>8.2 · Modelo de precios sugerido</h3>
+  <div class="card">
+  <table>
+    <tr><th>Plan</th><th>Precio</th><th>Incluye</th><th>Razonamiento</th></tr>
+    <tr><td><strong>Lector</strong> (free)</td><td class="num" style="font-size:16px">$0</td><td>Modo local/demo completo, captura manual, 1 mundo, export JSON siempre.</td><td>El modo prueba ya existe; es el funnel. Export libre = confianza.</td></tr>
+    <tr><td><strong>Trama Pro</strong></td><td class="num" style="font-size:16px">US$6–8/mes</td><td>IA (extracción, chat, atlas, ensayos) con tope justo, sync multi-dispositivo, compartir, integraciones (Spotify, X, Kindle/Readwise), Imprenta completa.</td><td>Bajo Readwise/mymind a propósito: producto de una persona, costos LLM acotados por el cost-cap ya construido. El margen es sano con DeepSeek/cache.</td></tr>
+    <tr><td><strong>Mecenas</strong> (anual)</td><td class="num" style="font-size:16px">US$59–69/año</td><td>Pro + Memoria anual impresa-lista + voz en el roadmap.</td><td>El público del nicho ama pagar «patronazgo» a productos con alma. Mejora caja y retención.</td></tr>
+  </table>
+  </div>
+  <p class="footnote">El sistema de costos por usuario (<code>monthly_budget_cents</code>) ya construido es exactamente la
+  infraestructura que un SaaS de IA necesita para no quebrar por un usuario intensivo: los tiers son una columna en la tabla.</p>
+
+  <h3>8.3 · Roadmap comercial en tres fases</h3>
+  <div class="card">
+  <table>
+    <tr><th style="width:18%">Fase</th><th>Objetivo</th><th>Trabajo</th></tr>
+    <tr>
+      <td><strong>1 · Cimientos</strong><br/><span class="footnote">2–3 semanas</span></td>
+      <td>Poder invitar gente sin miedo.</td>
+      <td>P0 de deuda (RLS email, cascadas, Clerk prod + smoke de aislamiento), analytics privacy-first
+      (Plausible/Umami self-host: funnel onboarding→primera entidad→primera semana), Web Vitals, deshacer global.</td>
+    </tr>
+    <tr>
+      <td><strong>2 · Beta cerrada</strong><br/><span class="footnote">4–6 semanas</span></td>
+      <td>20–50 usuarios del nicho usándolo de verdad.</td>
+      <td>Landing pública con el demo embebido (el modo prueba ES la demo — hoy está escondido), lista de espera,
+      importador Kindle/Readwise (el gancho de adquisición), share target, digest semanal, i18n EN si la beta lo pide.</td>
+    </tr>
+    <tr>
+      <td><strong>3 · Lanzamiento</strong><br/><span class="footnote">trimestre</span></td>
+      <td>Cobrar.</td>
+      <td>Stripe + página de pricing, offline real (SW + cola), Memoria anual como pieza de marketing,
+      espacios compartidos (plan dúo), Product Hunt / comunidades del nicho (r/Zettelkasten, tools-for-thought).</td>
+    </tr>
+  </table>
+  </div>
+
+  <h3>8.4 · Riesgos y mitigaciones</h3>
+  <ul>
+    <li><strong>Costo de IA por usuario</strong> — mitigado por diseño: cost-cap mensual, proveedor barato por defecto, cache de prompts. Vigilar con el dashboard de gasto ya existente.</li>
+    <li><strong>Producto de una persona</strong> — la disciplina de docs/CI ya baja el bus-factor; el modelo Mecenas financia sin exigir velocidad de startup.</li>
+    <li><strong>Nicho pequeño</strong> — es cierto y está bien: 1.000 mecenas × US$60 es un negocio digno para un producto artesanal; la Memoria anual y las láminas del grafo son crecimiento orgánico.</li>
+    <li><strong>Privacidad como promesa</strong> — convertirla en página («tus datos: export siempre, vault local, sin trackers de terceros») — con Plausible self-host la promesa es literal.</li>
+  </ul>
+</section>
+
+<!-- ====================== CIERRE ====================== -->
+<section id="cierre">
+  <p class="eyebrow">síntesis</p>
+  <h2>9 · Cierre y prioridades</h2>
+  <hr class="rule" />
+  <p><strong>Si solo se hicieran cinco cosas en junio:</strong></p>
+  <ol>
+    <li>Cerrar el P0 de seguridad/datos (RLS de email + cascada de momento_entities) — <em>2–3 días</em>.</li>
+    <li>Encender multi-usuario de verdad (Clerk prod + smoke + fallback off) — <em>1–2 días</em>.</li>
+    <li>Deshacer global — <em>2–3 días</em>.</li>
+    <li>Analytics privacy-first + Web Vitals — <em>1 día</em>.</li>
+    <li>Importador Kindle/Readwise — <em>3–5 días</em>.</li>
+  </ol>
+  <p>Con eso, Trama deja de ser un proyecto personal impecable y pasa a ser un producto en beta con camino de ingreso.
+  La estética —que suele ser lo más caro de conseguir— ya está. La ingeniería —que suele ser lo más frágil— está mejor
+  que en la mayoría de los SaaS pagados del nicho. Lo que queda es la parte más mecánica del viaje: puerta, precio y voz pública.</p>
+  <blockquote class="hand" style="border-left-color: var(--sage);">La trama ya se sostiene sola; ahora hay que dejarla recibir visitas.</blockquote>
+
+  <div class="ornament">· · ❦ · ·</div>
+  <p class="footnote" style="text-align:center; margin-top:18px;">
+    Auditoría integral de Trama · 10 de junio de 2026 · compuesto en Spectral e Inter<br/>
+    Generado por Claude (Fable 5) sobre main <code>3385f326</code> · los hallazgos citan archivo y línea en los informes de origen
+  </p>
+</section>
+
+</div>
+</body>
+</html>

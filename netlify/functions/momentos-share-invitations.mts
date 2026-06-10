@@ -6,7 +6,13 @@ import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
-import { runWithSystemRls } from './_lib/user-rls.js'
+
+// Este endpoint corre BAJO el contexto RLS del usuario (lo entra getAuthedUser
+// vía setCurrentRlsUser(id, email) y lo aplica el cliente scopeado de db.ts).
+// Las policies de momento_space_invitations permiten al invitado operar por
+// match de email (app.current_user_email) — no se necesita ningún bypass de
+// sistema; los JOIN a `users` (datos del invitador) funcionan porque esa tabla
+// es catálogo compartido sin RLS.
 
 const Role = z.enum(['viewer', 'editor'])
 
@@ -45,13 +51,11 @@ async function resolveUserEmail(
   authEmail: string | undefined,
 ): Promise<string | null> {
   if (authEmail) return normalizeEmail(authEmail)
-  const rows = await runWithSystemRls(() =>
-    sqlTyped<UserEmailRow>(sql`
+  const rows = await sqlTyped<UserEmailRow>(sql`
     SELECT email
     FROM users
     WHERE id = ${userId}
-  `),
-  )
+  `)
   const email = rows[0]?.email
   return email ? normalizeEmail(email) : null
 }
@@ -88,8 +92,7 @@ export default withObservability(
       await ensureUserRow(sql, authedUser)
       const email = await resolveUserEmail(sql, userId, authedUser.email)
       if (!email) return Response.json({ items: [] })
-      const rows = await runWithSystemRls(() =>
-        sqlTyped<InvitationRow>(sql`
+      const rows = await sqlTyped<InvitationRow>(sql`
         SELECT i.id, i.inviter_user_id,
                inviter.display_name AS inviter_display_name,
                inviter.email AS inviter_email,
@@ -101,8 +104,7 @@ export default withObservability(
           AND i.status = 'pending'
           AND i.deleted_at IS NULL
         ORDER BY i.created_at DESC
-      `),
-      )
+      `)
       return Response.json({ items: rows.map(invitationFromRow) })
     }
 
@@ -117,8 +119,7 @@ export default withObservability(
         return ApiErrors.validation(requestId, 'No puedes invitarte a ti mismo')
       }
 
-      const rows = await runWithSystemRls(() =>
-        sqlTyped<InvitationRow>(sql`
+      const rows = await sqlTyped<InvitationRow>(sql`
         WITH upserted AS (
           INSERT INTO momento_space_invitations (
             inviter_user_id, invitee_email, role
@@ -143,8 +144,7 @@ export default withObservability(
                upserted.responded_at, upserted.created_at, upserted.updated_at
         FROM upserted
         JOIN users inviter ON inviter.id = upserted.inviter_user_id
-      `),
-      )
+      `)
       const row = rows[0]
       if (!row) return ApiErrors.internal(requestId, 'No se pudo crear la invitación')
       return Response.json(invitationFromRow(row), { status: 201 })
@@ -163,8 +163,7 @@ export default withObservability(
       await ensureUserRow(sql, authedUser)
 
       if (parsed.data.action === 'reject') {
-        const rejected = await runWithSystemRls(() =>
-          sqlTyped<InvitationRow>(sql`
+        const rejected = await sqlTyped<InvitationRow>(sql`
           WITH inv AS (
             SELECT *
             FROM momento_space_invitations
@@ -190,15 +189,13 @@ export default withObservability(
                  upd.responded_at, upd.created_at, upd.updated_at
           FROM upd
           LEFT JOIN users inviter ON inviter.id = upd.inviter_user_id
-        `),
-        )
+        `)
         const row = rejected[0]
         if (!row) return ApiErrors.notFound(requestId, 'Invitación no encontrada')
         return Response.json(invitationFromRow(row))
       }
 
-      const accepted = await runWithSystemRls(() =>
-        sqlTyped<InvitationRow>(sql`
+      const accepted = await sqlTyped<InvitationRow>(sql`
         WITH inv AS (
           SELECT *
           FROM momento_space_invitations
@@ -243,8 +240,7 @@ export default withObservability(
                upd.responded_at, upd.created_at, upd.updated_at
         FROM upd
         LEFT JOIN users inviter ON inviter.id = upd.inviter_user_id
-      `),
-      )
+      `)
       const row = accepted[0]
       if (!row) return ApiErrors.notFound(requestId, 'Invitación no encontrada')
       return Response.json(invitationFromRow(row))
