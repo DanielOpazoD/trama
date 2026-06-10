@@ -42,6 +42,9 @@ export {
   useUpdateMomento,
   useDeleteMomento,
   useMergeMomentos,
+  useMomentoShareInvitationsQuery,
+  useCreateMomentoShareInvitation,
+  useRespondMomentoShareInvitation,
 } from './useMomentos'
 export {
   useChatThreadsQuery,

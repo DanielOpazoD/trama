@@ -20,6 +20,28 @@ export type MomentoUrlPreview = {
   fetched: boolean
 }
 
+export type MomentoShareRole = 'viewer' | 'editor'
+
+export type MomentoShareInvitation = {
+  id: string
+  momentoId: string
+  inviterUserId: string
+  inviterDisplayName?: string
+  inviterEmail?: string
+  inviteeEmail: string
+  inviteeUserId?: string
+  role: MomentoShareRole
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  respondedAt?: string
+  createdAt: string
+  updatedAt: string
+  momento: {
+    kind: string
+    capturedAt: string
+    note?: string
+  }
+}
+
 export const momentosApi = {
   async listMomentos(opts?: {
     cursor?: string | null
@@ -201,6 +223,31 @@ export const momentosApi = {
     }>('/api/momentos-audio-upload', {
       method: 'POST',
       body: form,
+    })
+  },
+
+  async listMomentoShareInvitations(): Promise<{ items: MomentoShareInvitation[] }> {
+    return request('/api/momentos-share-invitations')
+  },
+
+  async createMomentoShareInvitation(input: {
+    momentoId: string
+    email: string
+    role: MomentoShareRole
+  }): Promise<MomentoShareInvitation> {
+    return request('/api/momentos-share-invitations', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  },
+
+  async respondMomentoShareInvitation(
+    id: string,
+    action: 'accept' | 'reject',
+  ): Promise<MomentoShareInvitation> {
+    return request(`/api/momentos-share-invitations/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action }),
     })
   },
 }

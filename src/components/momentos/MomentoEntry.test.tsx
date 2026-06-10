@@ -95,6 +95,26 @@ describe('<MomentoEntry />', () => {
     expect(onDelete).toHaveBeenCalledTimes(1)
   })
 
+  it('muestra quién subió un momento compartido con una marca discreta', () => {
+    render(
+      <MomentoEntry
+        momento={{
+          ...baseMomento('nota', { bodyText: 'La reunión del colegio.' }),
+          ownerUserId: 'user-mama',
+          ownerDisplayName: 'Mamá',
+          ownerEmail: 'mama@example.com',
+          accessRole: 'editor',
+          shared: true,
+        }}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('La reunión del colegio.')).toBeInTheDocument()
+    expect(screen.getByLabelText(/subido por mamá/i)).toBeInTheDocument()
+  })
+
   it('renderiza un recorte con autor, fuente, enlace, cita y nota', () => {
     render(
       <MomentoEntry

@@ -1,5 +1,11 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { api } from '../api'
+import type { MomentoShareRole } from '../api/momentos'
 import type { Momento, MomentoKind, MomentoPayload } from '../types'
 import { queryKeys } from './queryClient'
 
@@ -105,6 +111,34 @@ export function useMergeMomentos() {
       queryClient.invalidateQueries({ queryKey: queryKeys.home })
       queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
       queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
+    },
+  })
+}
+
+export function useMomentoShareInvitationsQuery() {
+  return useQuery({
+    queryKey: queryKeys.momentoShareInvitations,
+    queryFn: () => api.listMomentoShareInvitations(),
+  })
+}
+
+export function useCreateMomentoShareInvitation() {
+  return useMutation({
+    mutationFn: (input: { momentoId: string; email: string; role: MomentoShareRole }) =>
+      api.createMomentoShareInvitation(input),
+  })
+}
+
+export function useRespondMomentoShareInvitation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, action }: { id: string; action: 'accept' | 'reject' }) =>
+      api.respondMomentoShareInvitation(id, action),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.momentoShareInvitations })
+      queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
     },
   })
 }

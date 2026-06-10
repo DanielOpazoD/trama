@@ -1,13 +1,15 @@
 import { memo, useState } from 'react'
 import { typeAccent } from '../../lib/typeAccents'
 import type { Entity, Momento } from '../../types'
-import { PencilIcon, SparkleIcon, TrashIcon } from '../Icons'
+import { PencilIcon, ShareIcon, SparkleIcon, TrashIcon } from '../Icons'
 import { formatTime, getMomentoPhotoItems, momentoMediaUrl } from './helpers'
 import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 import { MomentoEditModal } from './MomentoEditModal'
 import { PhotoLightbox } from './PhotoLightbox'
 import { AudioNote } from './AudioNote'
 import { Tooltip } from '../Tooltip'
+import { MomentoOwnerMark } from './MomentoOwnerMark'
+import { MomentoShareModal } from './MomentoShareModal'
 
 /**
  * Una entrada del timeline de Momentos. Despacha al renderer correcto
@@ -33,6 +35,12 @@ function MomentoEntryInternal({
   // Estado del modal de edición. Aplica a los 3 kinds (nota, recorte,
   // foto) — el modal despacha al sub-renderer correcto según kind.
   const [editOpen, setEditOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+  const canEdit = momento.accessRole !== 'viewer'
+  const canDelete = !momento.shared
+  const canShare =
+    !momento.shared &&
+    (momento.accessRole === undefined || momento.accessRole === 'owner')
 
   return (
     <li className="group relative pl-5">
@@ -59,34 +67,54 @@ function MomentoEntryInternal({
           </span>
         )}
 
+        <MomentoOwnerMark momento={momento} />
+
         {linkedEntities.length > 0 && <LinkedEntities entities={linkedEntities} />}
       </div>
       {/* Toolbar contextual al hover — editar (todos los kinds) + eliminar. */}
       <div className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-        <Tooltip content="Editar contenido y fecha">
-          <button
-            onClick={() => setEditOpen(true)}
-            className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors"
-            aria-label="Editar momento"
-          >
-            <PencilIcon size={12} />
-          </button>
-        </Tooltip>
-        <Tooltip content="Eliminar momento">
-          <button
-            onClick={onDelete}
-            className="p-1.5 text-ink-400 hover:text-[color:var(--accent-clay)] hover:bg-ink-100 rounded transition-colors"
-            aria-label="Eliminar momento"
-          >
-            <TrashIcon size={12} />
-          </button>
-        </Tooltip>
+        {canEdit && (
+          <Tooltip content="Editar contenido y fecha">
+            <button
+              onClick={() => setEditOpen(true)}
+              className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors"
+              aria-label="Editar momento"
+            >
+              <PencilIcon size={12} />
+            </button>
+          </Tooltip>
+        )}
+        {canShare && (
+          <Tooltip content="Compartir momento">
+            <button
+              onClick={() => setShareOpen(true)}
+              className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors"
+              aria-label="Compartir momento"
+            >
+              <ShareIcon size={12} />
+            </button>
+          </Tooltip>
+        )}
+        {canDelete && (
+          <Tooltip content="Eliminar momento">
+            <button
+              onClick={onDelete}
+              className="p-1.5 text-ink-400 hover:text-[color:var(--accent-clay)] hover:bg-ink-100 rounded transition-colors"
+              aria-label="Eliminar momento"
+            >
+              <TrashIcon size={12} />
+            </button>
+          </Tooltip>
+        )}
       </div>
       <MomentoEditModal
         momento={momento}
         open={editOpen}
         onClose={() => setEditOpen(false)}
       />
+      {shareOpen && (
+        <MomentoShareModal momento={momento} onClose={() => setShareOpen(false)} />
+      )}
     </li>
   )
 }

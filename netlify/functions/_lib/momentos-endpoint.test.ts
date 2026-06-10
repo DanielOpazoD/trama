@@ -79,6 +79,19 @@ describe('momentos endpoint — integration (mock SQL)', () => {
     expect(body.items[0].entity_ids).toEqual(['e1', 'e2'])
   })
 
+  it('GET list incluye momentos propios y compartidos aceptados', async () => {
+    mockSqlResponses.push([])
+
+    await handler(new Request('http://localhost/api/momentos'), mockContext())
+
+    const listQuery = mockSqlResponses.calls[0]?.template ?? ''
+    expect(listQuery).toMatch(/LEFT JOIN\s+momento_access/i)
+    expect(listQuery).toMatch(/ma\.user_id = \?/i)
+    expect(listQuery).toMatch(/\(m\.user_id = \? OR ma\.user_id IS NOT NULL\)/i)
+    expect(listQuery).toMatch(/owner_display_name/i)
+    expect(listQuery).toMatch(/access_role/i)
+  })
+
   it('GET :id devuelve el momento + entity_ids', async () => {
     mockSqlResponses.push([
       {
@@ -237,6 +250,57 @@ describe('momentos endpoint — integration (mock SQL)', () => {
       mockContext({ id: 'x' }),
     )
     expect(res.status).toBe(404)
+  })
+
+  it('PATCH permite editar un momento compartido cuando el rol es editor', async () => {
+    mockSqlResponses.push([]) // set_config app.rls_bypass para lookup
+    mockSqlResponses.push([
+      {
+        kind: 'nota',
+        payload: { bodyText: 'original' },
+        note: null,
+        user_id: 'owner-user',
+        access_role: 'editor',
+      },
+    ])
+    mockSqlResponses.push([]) // set_config app.rls_bypass para update
+    mockSqlResponses.push([]) // update
+    mockSqlResponses.push([]) // set_config app.rls_bypass para SELECT final
+    mockSqlResponses.push([
+      {
+        id: 'm-shared',
+        kind: 'nota',
+        captured_at: '2026-05-24T12:00:00Z',
+        payload: { bodyText: 'editada' },
+        note: null,
+        origin: { kind: 'manual' },
+        created_at: '2026-05-24T12:00:00Z',
+        updated_at: '2026-05-24T12:01:00Z',
+        owner_user_id: 'owner-user',
+        owner_display_name: 'Mamá',
+        owner_email: 'mama@example.com',
+        access_role: 'editor',
+      },
+    ])
+    mockSqlResponses.push([]) // set_config app.rls_bypass para links
+    mockSqlResponses.push([])
+
+    const res = await handler(
+      new Request('http://localhost/api/momentos/m-shared', {
+        method: 'PATCH',
+        body: JSON.stringify({ payload: { bodyText: 'editada' } }),
+        headers: { 'content-type': 'application/json' },
+      }),
+      mockContext({ id: 'm-shared' }),
+    )
+
+    expect(res.status).toBe(200)
+    const lookup =
+      mockSqlResponses.calls.find((c) => /LEFT JOIN\s+momento_access/i.test(c.template))
+        ?.template ?? ''
+    expect(lookup).toMatch(/LEFT JOIN\s+momento_access/i)
+    const update = mockSqlResponses.calls.find((c) => /UPDATE momentos/i.test(c.template))
+    expect(update?.template).toMatch(/WHERE id = \? AND deleted_at IS NULL/)
   })
 
   it('métodos no soportados devuelven 405', async () => {

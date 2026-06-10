@@ -57,6 +57,22 @@ export const EyeIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+export const UserIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
+  </svg>
+)
+
+export const ShareIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <path d="M8.7 10.7 15.3 6.3M8.7 13.3l6.6 4.4" />
+  </svg>
+)
+
 export const ArrowRightIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
     <path d="M5 12h14M13 5l7 7-7 7" />
