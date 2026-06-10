@@ -37,7 +37,6 @@ describe('momentos-share-invitations endpoint', () => {
     mockSqlResponses.push([
       {
         id: 'inv-1',
-        momento_id: 'm1',
         inviter_user_id: 'user_owner',
         inviter_display_name: 'Papá',
         inviter_email: 'papa@example.com',
@@ -48,9 +47,6 @@ describe('momentos-share-invitations endpoint', () => {
         responded_at: null,
         created_at: '2026-06-10T00:00:00Z',
         updated_at: '2026-06-10T00:00:00Z',
-        momento_kind: 'nota',
-        momento_captured_at: '2026-06-09T12:00:00Z',
-        momento_note: 'colegio',
       },
     ])
 
@@ -63,7 +59,7 @@ describe('momentos-share-invitations endpoint', () => {
     const body = (await res.json()) as { items: Array<{ id: string; role: string }> }
     expect(body.items).toEqual([expect.objectContaining({ id: 'inv-1', role: 'editor' })])
     const query = mockSqlResponses.calls.find((c) =>
-      /FROM momento_share_invitations/i.test(c.template),
+      /FROM momento_space_invitations/i.test(c.template),
     )
     expect(query?.template).toMatch(/lower\(i\.invitee_email\) = \?/i)
     expect(query?.values).toContain('mama@example.com')
@@ -75,7 +71,6 @@ describe('momentos-share-invitations endpoint', () => {
     mockSqlResponses.push([
       {
         id: 'inv-1',
-        momento_id: 'm1',
         inviter_user_id: 'user_owner',
         inviter_display_name: 'Papá',
         inviter_email: 'papa@example.com',
@@ -86,9 +81,6 @@ describe('momentos-share-invitations endpoint', () => {
         responded_at: null,
         created_at: '2026-06-10T00:00:00Z',
         updated_at: '2026-06-10T00:00:00Z',
-        momento_kind: 'nota',
-        momento_captured_at: '2026-06-09T12:00:00Z',
-        momento_note: 'colegio',
       },
     ])
 
@@ -104,13 +96,11 @@ describe('momentos-share-invitations endpoint', () => {
     expect(mockSqlResponses.calls[0]?.values).toContain('user_invitee')
   })
 
-  it('POST crea invitación y devuelve datos reales del momento e invitador', async () => {
+  it('POST crea invitación global al espacio de Momentos y devuelve invitador', async () => {
     mockSqlResponses.push([]) // ensureUserRow
-    mockSqlResponses.push([{ id: '11111111-1111-4111-8111-111111111111' }])
     mockSqlResponses.push([
       {
         id: 'inv-2',
-        momento_id: '11111111-1111-4111-8111-111111111111',
         inviter_user_id: 'user_invitee',
         inviter_display_name: 'Mamá',
         inviter_email: 'mama@example.com',
@@ -121,9 +111,6 @@ describe('momentos-share-invitations endpoint', () => {
         responded_at: null,
         created_at: '2026-06-10T00:00:00Z',
         updated_at: '2026-06-10T00:00:00Z',
-        momento_kind: 'foto',
-        momento_captured_at: '2026-06-09T12:00:00Z',
-        momento_note: 'paseo',
       },
     ])
 
@@ -131,7 +118,6 @@ describe('momentos-share-invitations endpoint', () => {
       authedRequest('http://localhost/api/momentos-share-invitations', {
         method: 'POST',
         body: JSON.stringify({
-          momentoId: '11111111-1111-4111-8111-111111111111',
           email: 'Papa@Example.com',
           role: 'editor',
         }),
@@ -143,16 +129,14 @@ describe('momentos-share-invitations endpoint', () => {
     const body = (await res.json()) as {
       inviterDisplayName?: string
       inviteeEmail: string
-      momento: { kind: string; note?: string }
     }
     expect(body.inviterDisplayName).toBe('Mamá')
     expect(body.inviteeEmail).toBe('papa@example.com')
-    expect(body.momento).toMatchObject({ kind: 'foto', note: 'paseo' })
     const insert = mockSqlResponses.calls.find((c) =>
-      /INSERT INTO momento_share_invitations/i.test(c.template),
+      /INSERT INTO momento_space_invitations/i.test(c.template),
     )
-    expect(insert?.template).toMatch(/JOIN momentos m/i)
     expect(insert?.template).toMatch(/JOIN users inviter/i)
+    expect(insert?.template).not.toMatch(/momento_id/i)
   })
 
   it('POST bloquea auto-invitación usando el email guardado en users', async () => {
@@ -164,7 +148,6 @@ describe('momentos-share-invitations endpoint', () => {
       authedRequest('http://localhost/api/momentos-share-invitations', {
         method: 'POST',
         body: JSON.stringify({
-          momentoId: '11111111-1111-4111-8111-111111111111',
           email: 'MAMA@example.com',
           role: 'viewer',
         }),
@@ -178,12 +161,11 @@ describe('momentos-share-invitations endpoint', () => {
     )
   })
 
-  it('PATCH accept crea acceso sobre el momento y marca la invitación aceptada', async () => {
+  it('PATCH accept crea acceso recíproco al espacio de Momentos y marca aceptada', async () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([
       {
         id: 'inv-1',
-        momento_id: 'm1',
         inviter_user_id: 'user_owner',
         inviter_display_name: 'Papá',
         inviter_email: 'papa@example.com',
@@ -194,9 +176,6 @@ describe('momentos-share-invitations endpoint', () => {
         responded_at: '2026-06-10T00:01:00Z',
         created_at: '2026-06-10T00:00:00Z',
         updated_at: '2026-06-10T00:01:00Z',
-        momento_kind: 'foto',
-        momento_captured_at: '2026-06-09T12:00:00Z',
-        momento_note: null,
       },
     ])
 
@@ -211,8 +190,10 @@ describe('momentos-share-invitations endpoint', () => {
     expect(res.status).toBe(200)
     const body = (await res.json()) as { status: string }
     expect(body.status).toBe('accepted')
-    const cte = mockSqlResponses.calls.find((c) => /grant_access AS/i.test(c.template))
-    expect(cte?.template).toMatch(/INSERT INTO momento_access/i)
+    const cte = mockSqlResponses.calls.find((c) => /grants AS/i.test(c.template))
+    expect(cte?.template).toMatch(/INSERT INTO momento_space_access/i)
+    expect(cte?.template).toMatch(/UNION ALL/i)
+    expect(cte?.template).toMatch(/owner_user_id, member_user_id/i)
     expect(cte?.template).toMatch(/status = 'accepted'/i)
   })
 })

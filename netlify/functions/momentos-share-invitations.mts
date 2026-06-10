@@ -11,7 +11,6 @@ import { runWithSystemRls } from './_lib/user-rls.js'
 const Role = z.enum(['viewer', 'editor'])
 
 const CreateInvitationBody = z.object({
-  momentoId: z.string().uuid(),
   email: z.string().email(),
   role: Role.default('viewer'),
 })
@@ -22,7 +21,6 @@ const RespondInvitationBody = z.object({
 
 type InvitationRow = {
   id: string
-  momento_id: string
   inviter_user_id: string
   inviter_display_name: string | null
   inviter_email: string | null
@@ -33,12 +31,8 @@ type InvitationRow = {
   responded_at: string | null
   created_at: string
   updated_at: string
-  momento_kind: string
-  momento_captured_at: string
-  momento_note: string | null
 }
 
-type OwnedMomentoRow = { id: string }
 type UserEmailRow = { email: string | null }
 
 function normalizeEmail(email: string): string {
@@ -65,7 +59,6 @@ async function resolveUserEmail(
 function invitationFromRow(row: InvitationRow) {
   return {
     id: row.id,
-    momentoId: row.momento_id,
     inviterUserId: row.inviter_user_id,
     inviterDisplayName: row.inviter_display_name ?? undefined,
     inviterEmail: row.inviter_email ?? undefined,
@@ -76,11 +69,6 @@ function invitationFromRow(row: InvitationRow) {
     respondedAt: row.responded_at ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    momento: {
-      kind: row.momento_kind,
-      capturedAt: row.momento_captured_at,
-      note: row.momento_note ?? undefined,
-    },
   }
 }
 
@@ -97,21 +85,16 @@ export default withObservability(
       if (!email) return Response.json({ items: [] })
       const rows = await runWithSystemRls(() =>
         sqlTyped<InvitationRow>(sql`
-        SELECT i.id, i.momento_id, i.inviter_user_id,
+        SELECT i.id, i.inviter_user_id,
                inviter.display_name AS inviter_display_name,
                inviter.email AS inviter_email,
                i.invitee_email, i.invitee_user_id, i.role, i.status,
-               i.responded_at, i.created_at, i.updated_at,
-               m.kind AS momento_kind,
-               m.captured_at AS momento_captured_at,
-               m.note AS momento_note
-        FROM momento_share_invitations i
-        JOIN momentos m ON m.id = i.momento_id
+               i.responded_at, i.created_at, i.updated_at
+        FROM momento_space_invitations i
         LEFT JOIN users inviter ON inviter.id = i.inviter_user_id
         WHERE lower(i.invitee_email) = ${email}
           AND i.status = 'pending'
           AND i.deleted_at IS NULL
-          AND m.deleted_at IS NULL
         ORDER BY i.created_at DESC
       `),
       )
@@ -129,47 +112,31 @@ export default withObservability(
         return ApiErrors.validation(requestId, 'No puedes invitarte a ti mismo')
       }
 
-      const owned = await runWithSystemRls(() =>
-        sqlTyped<OwnedMomentoRow>(sql`
-        SELECT id
-        FROM momentos
-        WHERE id = ${parsed.data.momentoId}
-          AND user_id = ${userId}
-          AND deleted_at IS NULL
-      `),
-      )
-      if (!owned[0]) return ApiErrors.notFound(requestId, 'Momento no encontrado')
-
       const rows = await runWithSystemRls(() =>
         sqlTyped<InvitationRow>(sql`
         WITH upserted AS (
-          INSERT INTO momento_share_invitations (
-            momento_id, inviter_user_id, invitee_email, role
+          INSERT INTO momento_space_invitations (
+            inviter_user_id, invitee_email, role
           )
           VALUES (
-            ${parsed.data.momentoId},
             ${userId},
             ${email},
             ${parsed.data.role}
           )
-          ON CONFLICT (momento_id, (lower(invitee_email)))
+          ON CONFLICT (inviter_user_id, (lower(invitee_email)))
             WHERE status = 'pending' AND deleted_at IS NULL
           DO UPDATE SET
             role = EXCLUDED.role,
             updated_at = NOW()
           RETURNING *
         )
-        SELECT upserted.id, upserted.momento_id, upserted.inviter_user_id,
+        SELECT upserted.id, upserted.inviter_user_id,
                inviter.display_name AS inviter_display_name,
                inviter.email AS inviter_email,
                upserted.invitee_email, upserted.invitee_user_id,
                upserted.role, upserted.status,
-               upserted.responded_at, upserted.created_at, upserted.updated_at,
-               m.kind AS momento_kind,
-               m.captured_at AS momento_captured_at,
-               m.note AS momento_note
+               upserted.responded_at, upserted.created_at, upserted.updated_at
         FROM upserted
-        JOIN momentos m ON m.id = upserted.momento_id
         JOIN users inviter ON inviter.id = upserted.inviter_user_id
       `),
       )
@@ -195,14 +162,14 @@ export default withObservability(
           sqlTyped<InvitationRow>(sql`
           WITH inv AS (
             SELECT *
-            FROM momento_share_invitations
+            FROM momento_space_invitations
             WHERE id = ${invitationId}
               AND lower(invitee_email) = ${email}
               AND status = 'pending'
               AND deleted_at IS NULL
           ),
           upd AS (
-            UPDATE momento_share_invitations i
+            UPDATE momento_space_invitations i
             SET status = 'rejected',
                 invitee_user_id = ${userId},
                 responded_at = NOW(),
@@ -211,16 +178,12 @@ export default withObservability(
             WHERE i.id = inv.id
             RETURNING i.*
           )
-          SELECT upd.id, upd.momento_id, upd.inviter_user_id,
+          SELECT upd.id, upd.inviter_user_id,
                  inviter.display_name AS inviter_display_name,
                  inviter.email AS inviter_email,
                  upd.invitee_email, upd.invitee_user_id, upd.role, upd.status,
-                 upd.responded_at, upd.created_at, upd.updated_at,
-                 m.kind AS momento_kind,
-                 m.captured_at AS momento_captured_at,
-                 m.note AS momento_note
+                 upd.responded_at, upd.created_at, upd.updated_at
           FROM upd
-          JOIN momentos m ON m.id = upd.momento_id
           LEFT JOIN users inviter ON inviter.id = upd.inviter_user_id
         `),
         )
@@ -233,20 +196,22 @@ export default withObservability(
         sqlTyped<InvitationRow>(sql`
         WITH inv AS (
           SELECT *
-          FROM momento_share_invitations
+          FROM momento_space_invitations
           WHERE id = ${invitationId}
             AND lower(invitee_email) = ${email}
             AND status = 'pending'
             AND deleted_at IS NULL
         ),
-        grant_access AS (
-          INSERT INTO momento_access (
-            momento_id, user_id, role, invited_by, invitation_id
+        grants AS (
+          INSERT INTO momento_space_access (
+            owner_user_id, member_user_id, role, invited_by, invitation_id
           )
-          SELECT inv.momento_id, ${userId}, inv.role, inv.inviter_user_id, inv.id
+          SELECT inv.inviter_user_id, ${userId}, inv.role, inv.inviter_user_id, inv.id
           FROM inv
-          JOIN momentos m ON m.id = inv.momento_id AND m.deleted_at IS NULL
-          ON CONFLICT (momento_id, user_id) DO UPDATE
+          UNION ALL
+          SELECT ${userId}, inv.inviter_user_id, inv.role, inv.inviter_user_id, inv.id
+          FROM inv
+          ON CONFLICT (owner_user_id, member_user_id) DO UPDATE
           SET role = EXCLUDED.role,
               invited_by = EXCLUDED.invited_by,
               invitation_id = EXCLUDED.invitation_id,
@@ -256,26 +221,22 @@ export default withObservability(
           RETURNING 1
         ),
         upd AS (
-          UPDATE momento_share_invitations i
+          UPDATE momento_space_invitations i
           SET status = 'accepted',
               invitee_user_id = ${userId},
               responded_at = NOW(),
               updated_at = NOW()
           FROM inv
           WHERE i.id = inv.id
-            AND EXISTS (SELECT 1 FROM grant_access)
+            AND (SELECT COUNT(*) FROM grants) = 2
           RETURNING i.*
         )
-        SELECT upd.id, upd.momento_id, upd.inviter_user_id,
+        SELECT upd.id, upd.inviter_user_id,
                inviter.display_name AS inviter_display_name,
                inviter.email AS inviter_email,
                upd.invitee_email, upd.invitee_user_id, upd.role, upd.status,
-               upd.responded_at, upd.created_at, upd.updated_at,
-               m.kind AS momento_kind,
-               m.captured_at AS momento_captured_at,
-               m.note AS momento_note
+               upd.responded_at, upd.created_at, upd.updated_at
         FROM upd
-        JOIN momentos m ON m.id = upd.momento_id
         LEFT JOIN users inviter ON inviter.id = upd.inviter_user_id
       `),
       )

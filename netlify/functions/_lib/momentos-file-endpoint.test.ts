@@ -128,7 +128,8 @@ describe('momentos-file endpoint', () => {
     const referenceLookup = mockSqlState.calls.find((call) =>
       /FROM momentos/i.test(call.template),
     )
-    expect(referenceLookup?.template).toMatch(/LEFT JOIN\s+momento_access/i)
+    expect(referenceLookup?.template).toMatch(/LEFT JOIN\s+momento_space_access/i)
+    expect(referenceLookup?.template).toMatch(/msa\.owner_user_id = m\.user_id/i)
     expect(referenceLookup?.template).toMatch(/deleted_at IS NULL/)
     expect(referenceLookup?.values).toContain('user_actual')
     expect(referenceLookup?.values).toContain('legacy-single-user/voz.webm')

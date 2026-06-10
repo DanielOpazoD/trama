@@ -93,9 +93,10 @@ describe('<MomentoEntry />', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /eliminar momento/i }))
     expect(onDelete).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: /compartir momento/i })).toBeNull()
   })
 
-  it('muestra quién subió un momento compartido con una marca discreta', () => {
+  it('muestra quién subió un momento compartido con una marca de autoría premium', () => {
     render(
       <MomentoEntry
         momento={{
@@ -113,6 +114,29 @@ describe('<MomentoEntry />', () => {
 
     expect(screen.getByText('La reunión del colegio.')).toBeInTheDocument()
     expect(screen.getByLabelText(/subido por mamá/i)).toBeInTheDocument()
+    expect(screen.getByText('Subido por')).toBeInTheDocument()
+    expect(screen.getByText('M')).toBeInTheDocument()
+    expect(screen.getByText('puede editar')).toBeInTheDocument()
+  })
+
+  it('marca los momentos propios como subidos por ti cuando el backend entrega dueño', () => {
+    render(
+      <MomentoEntry
+        momento={{
+          ...baseMomento('nota', { bodyText: 'Mi propia nota.' }),
+          ownerUserId: 'user-current',
+          ownerDisplayName: 'Daniel',
+          ownerEmail: 'daniel@example.com',
+          accessRole: 'owner',
+          shared: false,
+        }}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByLabelText(/subido por ti/i)).toBeInTheDocument()
+    expect(screen.getByText('Tú')).toBeInTheDocument()
   })
 
   it('renderiza un recorte con autor, fuente, enlace, cita y nota', () => {

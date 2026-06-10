@@ -48,7 +48,8 @@ Momentos es el dominio donde vive la **memoria fechada** de la trama: notas suel
 - `/api/momentos-orphaned-blobs` GET/POST — DD1: lista blobs no referenciados desde momentos en la BD actual + adopta uno creando un Momento foto. Recovery de uploads desde deploy previews
 - `/api/momentos-merge` POST — EE: fusiona N momentos foto en uno. CTE atómico que combina UPDATE primary (payload con `items[]` dedupeado por storageKey) + INSERT links (union entity_ids) + soft-delete others. Devuelve `deletedOthers: [{id, deletedAt}]` para "deshacer"
 - `/api/momentos-restore` POST — EE-followup: restaura un Momento soft-deleted. Body `{id, deletedAt}`; 409 si el deletedAt no matchea (defensa contra race con re-delete)
-- `/api/momentos-share-invitations` GET/POST/PATCH — invitaciones internas por email para compartir un Momento puntual. No envía SMTP por sí solo: guarda `invitee_email`, aparece como notificación interna cuando el usuario autenticado resuelve a ese correo, y al aceptar crea `momento_access` con rol `viewer` o `editor`.
+- `/api/momentos-share-invitations` GET/POST/PATCH — invitaciones internas por email para compartir el espacio completo de Momentos. No envía SMTP por sí solo: guarda `invitee_email`, aparece como notificación interna cuando el usuario autenticado resuelve a ese correo, y al aceptar crea accesos recíprocos en `momento_space_access` con rol `viewer` o `editor`.
+- `/api/momentos-share-access` GET/DELETE — lista personas con espacio compartido aceptado y revoca el acceso en ambas direcciones. Revocar hace soft-delete de `momento_space_access`, no borra Momentos.
 
 > **Patrón de paths Momentos:** todos los sub-endpoints usan `momentos-X` (hyphen) en vez de `/api/momentos/X` porque el handler de `momentos.mts` matchea `/api/momentos/:id` y trataría "X" como un id. El bug de upload 405 (υ-bugfix) es la razón histórica.
 
@@ -59,7 +60,7 @@ Momentos es el dominio donde vive la **memoria fechada** de la trama: notas suel
 - `MomentoLinkingPanel.tsx` + `useMomentoLinking.ts` — panel post-guardar con AI suggest
 - `MomentoEntry.tsx` — renderer del timeline (despacha por kind)
 - `AlbumGrid.tsx` — vista grid alternativa para fotos
-- `MomentoShareModal.tsx` + `MomentosShareInvitations.tsx` — invitar por correo y aceptar/rechazar invitaciones compartidas
+- `MomentoShareModal.tsx` + `MomentosShareInvitations.tsx` — invitar por correo al espacio completo de Momentos, listar/revocar accesos y aceptar/rechazar invitaciones compartidas
 - `MomentosFilters.tsx` — chips de filtro + toggle vista
 - `helpers.ts` — `groupByDay`, `groupByMonth`, `formatDateHeading`, `readImageDimensions`
 
@@ -69,8 +70,9 @@ Momentos es el dominio donde vive la **memoria fechada** de la trama: notas suel
 - **PATCH solo re-embedea si cambió `payload` o `note`** (no en cada link de entityIds). El handler decide con `shouldReembed`.
 - **Validá el payload con `validateMomentoPayload` en POST y PATCH** — protege contra `foto` sin storageKey, `nota` vacía, etc.
 - **Fotos y audios viven en Netlify Blobs, no en Postgres.** El payload guarda `storageKey`/`audioKey` namespaced por usuario (`${userId}/${hash}.${ext}`). Para servir, el cliente construye `/api/momentos-file/:userId/:key` segmentando la key; legacy sin slash usa `/api/momentos-file/:key`. La key es inmutable, pero la respuesta HTTP usa `Cache-Control: private, no-store` porque es media privada.
-- **Compartir Momento no duplica filas.** `momentos.user_id` sigue siendo el dueño/subidor; `momento_access` otorga lectura/edición a otros usuarios. El timeline muestra `shared` + `ownerDisplayName/ownerEmail` como marca "Subido por". Los colaboradores `viewer` no editan; `editor` puede editar contenido/fecha/links, pero no borrar ni re-compartir.
-- **Media compartida se autoriza por Momento legible.** `/api/momentos-file` puede servir una key cuyo primer segmento no coincide con el usuario actual solo si existe un Momento activo que referencia esa key y que el usuario puede leer por dueño o `momento_access`.
+- **Compartir Momentos no duplica filas ni se hace por foto.** `momentos.user_id` sigue siendo el dueño/subidor; `momento_space_access` otorga lectura/edición de todos los Momentos del otro usuario. La aceptación crea accesos recíprocos para que ambos vean el timeline combinado. El timeline muestra `shared` + `ownerDisplayName/ownerEmail` como marca "Subido por". Los colaboradores `viewer` no editan; `editor` puede editar contenido/fecha/links, pero no borrar Momentos ajenos. Las invitaciones pendientes generan badge en navegación para que no dependan de entrar a Momentos; los accesos aceptados se gestionan desde el modal general.
+- **Smoke real de espacio compartido:** `e2e/momentos-shared-space.spec.ts` prueba A invita a B, B acepta, ambos ven los Momentos del otro y cada item llega con `shared`/`ownerUserId`. Requiere `E2E_BASE_URL`, `E2E_USER_A_TOKEN`, `E2E_USER_B_TOKEN` y `E2E_USER_B_EMAIL`; sin eso se skippea.
+- **Media compartida se autoriza por Momento legible.** `/api/momentos-file` puede servir una key cuyo primer segmento no coincide con el usuario actual solo si existe un Momento activo que referencia esa key y que el usuario puede leer por dueño o `momento_space_access`.
 - **Vision base64: usar `Buffer.from(arrayBuffer).toString('base64')`**, NO `btoa(String.fromCharCode(...))` que se rompe con imágenes >2MB.
 - **Cuando fusiones Momentos (`momentos-merge`), usá CTE atómico** — el driver Neon HTTP no soporta tx multi-statement, pero un single SQL con `WITH update_primary AS (...), link_others AS (...), soft_delete_others AS (...) SELECT ...` da atomicidad real. Si una sub-operación falla, ninguna commitea.
 - **UUID validate en código antes del SQL** para endpoints que reciben ids en body. Sin esto, un id mal formado revienta con 500 en el cast `::uuid` en vez del 400 claro que querés.

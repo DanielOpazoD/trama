@@ -58,11 +58,11 @@ async function isMediaReferencedByReadableMomento(
     SELECT EXISTS (
       SELECT 1
       FROM momentos m
-      LEFT JOIN momento_access ma
-        ON ma.momento_id = m.id
-       AND ma.user_id = ${userId}
-       AND ma.deleted_at IS NULL
-      WHERE (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+      LEFT JOIN momento_space_access msa
+        ON msa.owner_user_id = m.user_id
+       AND msa.member_user_id = ${userId}
+       AND msa.deleted_at IS NULL
+      WHERE (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
         AND m.kind = 'foto'
         AND m.deleted_at IS NULL
         AND (
