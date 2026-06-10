@@ -39,16 +39,6 @@ describe('useModuleVisibility', () => {
     expect(saveMock).toHaveBeenCalledWith({ visibleModules: { inicio: false } })
   })
 
-  it('reveal solo actúa si estaba oculta', () => {
-    mockData = { visibleModules: { claves: false } }
-    const { result } = renderHook(() => useModuleVisibility())
-    result.current.reveal('claves')
-    expect(saveMock).toHaveBeenCalledWith({ visibleModules: { claves: true } })
-    saveMock.mockClear()
-    result.current.reveal('notas') // ya visible → no-op
-    expect(saveMock).not.toHaveBeenCalled()
-  })
-
   it('showAll resetea a todo visible', () => {
     const { result } = renderHook(() => useModuleVisibility())
     result.current.showAll()

@@ -21,15 +21,8 @@ export function useModuleVisibility() {
     save.mutate({ visibleModules: { ...visibleModules, [id]: on } })
   }
 
-  /** Fuerza mostrar una sección oculta (usado por el comando del buscador). */
-  const reveal = (id: NotasSection) => {
-    if (visibleModules[id] === false) {
-      save.mutate({ visibleModules: { ...visibleModules, [id]: true } })
-    }
-  }
-
   /** Vuelve a mostrar todo (reset). */
   const showAll = () => save.mutate({ visibleModules: {} })
 
-  return { isVisible, isHideable, setVisible, reveal, showAll, visibleModules }
+  return { isVisible, isHideable, setVisible, showAll, visibleModules }
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { startViewTransition } from '../lib/viewTransition'
 
 /**
@@ -17,9 +17,27 @@ export function useClampedSection<T extends string>(
 ): readonly [T, (s: T) => void] {
   const [section, _setSection] = useState<T>(initial)
   const visible = isVisible(section)
+
+  const lastSectionRef = useRef(section)
+  const lastVisibleRef = useRef(visible)
+
   useEffect(() => {
-    if (!visible) _setSection(fallback)
-  }, [visible, fallback])
+    const sectionChanged = section !== lastSectionRef.current
+    lastSectionRef.current = section
+
+    if (sectionChanged) {
+      lastVisibleRef.current = visible
+      return
+    }
+
+    const wasVisible = lastVisibleRef.current
+    lastVisibleRef.current = visible
+
+    if (wasVisible && !visible) {
+      _setSection(fallback)
+    }
+  }, [section, visible, fallback])
+
   const setSection = useCallback((s: T) => {
     startViewTransition(() => _setSection(s))
   }, [])

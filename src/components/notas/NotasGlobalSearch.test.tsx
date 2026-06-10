@@ -10,23 +10,21 @@ vi.mock('../../state', () => ({
   useToast: () => ({ show: vi.fn() }),
 }))
 
-const reveal = vi.fn()
 vi.mock('../../hooks/useModuleVisibility', () => ({
-  useModuleVisibility: () => ({ isVisible: () => false, reveal }),
+  useModuleVisibility: () => ({ isVisible: () => false }),
 }))
 
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 
 describe('<NotasGlobalSearch /> — comando de reveal', () => {
-  it('escribir "#pass" ofrece revelar Claves y lo dispara + navega', () => {
+  it('escribir "#pass" permite navegar a Claves aunque esté oculta', () => {
     const onNavigate = vi.fn()
     render(<NotasGlobalSearch onNavigate={onNavigate} />)
     fireEvent.change(screen.getByPlaceholderText(/Buscar en notas/i), {
       target: { value: '#pass' },
     })
-    // Como Claves está oculta (isVisible=false), el botón dice "Revelar".
-    fireEvent.click(screen.getByRole('button', { name: /revelar claves/i }))
-    expect(reveal).toHaveBeenCalledWith('claves')
+    // Como Claves está oculta (isVisible=false), ahora el botón navega igual.
+    fireEvent.click(screen.getByRole('button', { name: /claves/i }))
     expect(onNavigate).toHaveBeenCalledWith('claves')
   })
 
@@ -35,6 +33,6 @@ describe('<NotasGlobalSearch /> — comando de reveal', () => {
     fireEvent.change(screen.getByPlaceholderText(/Buscar en notas/i), {
       target: { value: 'reunión' },
     })
-    expect(screen.queryByRole('button', { name: /revelar/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /claves/i })).toBeNull()
   })
 })

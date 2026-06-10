@@ -33,7 +33,7 @@ export function NotasGlobalSearch({
   const updateTask = useUpdateTask()
   const markPromptUsed = useMarkPromptUsed()
   const toast = useToast()
-  const { isVisible, reveal } = useModuleVisibility()
+  const { isVisible } = useModuleVisibility()
 
   // Comando para abrir/revelar un módulo (p. ej. "#pass" → Claves), aunque esté
   // oculto en la barra. Es acceso rápido, no seguridad.
@@ -86,7 +86,6 @@ export function NotasGlobalSearch({
       {alias && (
         <button
           onClick={() => {
-            reveal(alias.moduleId)
             onNavigate(alias.moduleId)
           }}
           className="mt-2 flex w-full items-center gap-2 rounded-lg border border-ink-100/70 bg-paper-50 px-3 py-2 text-sm text-ink-700 hover:border-ink-200 transition-colors"
