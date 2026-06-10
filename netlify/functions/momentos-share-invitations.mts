@@ -81,6 +81,11 @@ export default withObservability(
     const invitationId = context.params.id
 
     if (req.method === 'GET' && !invitationId) {
+      // Provision the user row (with email from JWT) so that
+      // resolveUserEmail can find the email even on the first visit.
+      // Without this, a new invitee whose JWT lacks the email claim
+      // and has no users row yet would always get back an empty list.
+      await ensureUserRow(sql, authedUser)
       const email = await resolveUserEmail(sql, userId, authedUser.email)
       if (!email) return Response.json({ items: [] })
       const rows = await runWithSystemRls(() =>

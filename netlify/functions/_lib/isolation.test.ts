@@ -25,6 +25,9 @@ vi.mock('./db.js', () => setupMockSql())
 
 vi.mock('@clerk/backend', () => ({
   verifyToken: vi.fn().mockResolvedValue({ sub: 'user_alice_id_xyz' }),
+  createClerkClient: () => ({
+    users: { getUser: vi.fn().mockRejectedValue(new Error('not found')) },
+  }),
 }))
 
 // Las queries que tocan embeddings no deben rompernos en este test.

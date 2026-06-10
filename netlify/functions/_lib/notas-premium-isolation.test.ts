@@ -4,6 +4,9 @@ import { mockContext, mockSqlResponses, mockSqlState, setupMockSql } from './tes
 vi.mock('./db.js', () => setupMockSql())
 vi.mock('@clerk/backend', () => ({
   verifyToken: vi.fn().mockResolvedValue({ sub: 'user_notas_premium_a' }),
+  createClerkClient: () => ({
+    users: { getUser: vi.fn().mockRejectedValue(new Error('not found')) },
+  }),
 }))
 
 process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'

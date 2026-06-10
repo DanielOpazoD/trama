@@ -7,6 +7,9 @@ vi.mock('./import-ids.js', () => ({
 }))
 vi.mock('@clerk/backend', () => ({
   verifyToken: vi.fn().mockResolvedValue({ sub: 'user_import_xyz' }),
+  createClerkClient: () => ({
+    users: { getUser: vi.fn().mockRejectedValue(new Error('not found')) },
+  }),
 }))
 
 import handler from '../import'

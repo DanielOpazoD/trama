@@ -5,6 +5,9 @@ vi.mock('./db.js', () => setupMockSql())
 vi.mock('./cost-cap.js', () => ({ checkMonthlyBudget: vi.fn(async () => null) }))
 vi.mock('@clerk/backend', () => ({
   verifyToken: vi.fn().mockResolvedValue({ sub: 'user_suggest_xyz' }),
+  createClerkClient: () => ({
+    users: { getUser: vi.fn().mockRejectedValue(new Error('not found')) },
+  }),
 }))
 
 process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'

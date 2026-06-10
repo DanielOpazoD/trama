@@ -9,6 +9,9 @@ vi.mock('./db.js', () => setupMockSql())
 
 vi.mock('@clerk/backend', () => ({
   verifyToken: vi.fn().mockResolvedValue({ sub: 'user_rels_xyz' }),
+  createClerkClient: () => ({
+    users: { getUser: vi.fn().mockRejectedValue(new Error('not found')) },
+  }),
 }))
 
 vi.stubGlobal(
