@@ -1,7 +1,7 @@
 import { memo, useState } from 'react'
 import { typeAccent } from '../../lib/typeAccents'
 import type { Entity, Momento } from '../../types'
-import { PencilIcon, ShareIcon, SparkleIcon, TrashIcon } from '../Icons'
+import { PencilIcon, SparkleIcon, TrashIcon } from '../Icons'
 import { formatTime, getMomentoPhotoItems, momentoMediaUrl } from './helpers'
 import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 import { MomentoEditModal } from './MomentoEditModal'
@@ -9,7 +9,6 @@ import { PhotoLightbox } from './PhotoLightbox'
 import { AudioNote } from './AudioNote'
 import { Tooltip } from '../Tooltip'
 import { MomentoOwnerMark } from './MomentoOwnerMark'
-import { MomentoShareModal } from './MomentoShareModal'
 
 /**
  * Una entrada del timeline de Momentos. Despacha al renderer correcto
@@ -35,12 +34,8 @@ function MomentoEntryInternal({
   // Estado del modal de edición. Aplica a los 3 kinds (nota, recorte,
   // foto) — el modal despacha al sub-renderer correcto según kind.
   const [editOpen, setEditOpen] = useState(false)
-  const [shareOpen, setShareOpen] = useState(false)
   const canEdit = momento.accessRole !== 'viewer'
   const canDelete = !momento.shared
-  const canShare =
-    !momento.shared &&
-    (momento.accessRole === undefined || momento.accessRole === 'owner')
 
   return (
     <li className="group relative pl-5">
@@ -84,17 +79,6 @@ function MomentoEntryInternal({
             </button>
           </Tooltip>
         )}
-        {canShare && (
-          <Tooltip content="Compartir momento">
-            <button
-              onClick={() => setShareOpen(true)}
-              className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors"
-              aria-label="Compartir momento"
-            >
-              <ShareIcon size={12} />
-            </button>
-          </Tooltip>
-        )}
         {canDelete && (
           <Tooltip content="Eliminar momento">
             <button
@@ -112,9 +96,6 @@ function MomentoEntryInternal({
         open={editOpen}
         onClose={() => setEditOpen(false)}
       />
-      {shareOpen && (
-        <MomentoShareModal momento={momento} onClose={() => setShareOpen(false)} />
-      )}
     </li>
   )
 }

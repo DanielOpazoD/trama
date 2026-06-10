@@ -26,7 +26,7 @@ export function MomentosShareInvitations({
               </span>
               <div className="min-w-0">
                 <p className="text-sm text-ink-700">
-                  {inviter} compartió un momento contigo
+                  {inviter} compartió sus Momentos contigo
                 </p>
                 <p className="text-caption text-ink-400">
                   {item.role === 'editor' ? 'puedes editar' : 'solo lectura'}

@@ -24,7 +24,6 @@ export type MomentoShareRole = 'viewer' | 'editor'
 
 export type MomentoShareInvitation = {
   id: string
-  momentoId: string
   inviterUserId: string
   inviterDisplayName?: string
   inviterEmail?: string
@@ -35,11 +34,6 @@ export type MomentoShareInvitation = {
   respondedAt?: string
   createdAt: string
   updatedAt: string
-  momento: {
-    kind: string
-    capturedAt: string
-    note?: string
-  }
 }
 
 export const momentosApi = {
@@ -231,7 +225,6 @@ export const momentosApi = {
   },
 
   async createMomentoShareInvitation(input: {
-    momentoId: string
     email: string
     role: MomentoShareRole
   }): Promise<MomentoShareInvitation> {

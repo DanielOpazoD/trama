@@ -77,17 +77,17 @@ export default withObservability('momentos', async (req: Request, context: Conte
              m.user_id AS owner_user_id,
              owner.display_name AS owner_display_name,
              owner.email AS owner_email,
-             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role,
+             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role,
              (m.user_id <> ${userId}) AS shared
       FROM momentos m
-      LEFT JOIN momento_access ma
-        ON ma.momento_id = m.id
-       AND ma.user_id = ${userId}
-       AND ma.deleted_at IS NULL
+      LEFT JOIN momento_space_access msa
+        ON msa.owner_user_id = m.user_id
+       AND msa.member_user_id = ${userId}
+       AND msa.deleted_at IS NULL
       LEFT JOIN users owner ON owner.id = m.user_id
       WHERE m.id = ${id}
         AND m.deleted_at IS NULL
-        AND (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+        AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
     `))
     if (rows.length === 0) {
       return ApiErrors.notFound(requestId, 'Momento no encontrado')
@@ -120,16 +120,16 @@ export default withObservability('momentos', async (req: Request, context: Conte
                m.user_id AS owner_user_id,
                owner.display_name AS owner_display_name,
                owner.email AS owner_email,
-               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role,
+               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role,
                (m.user_id <> ${userId}) AS shared
         FROM momentos m
-        LEFT JOIN momento_access ma
-          ON ma.momento_id = m.id
-         AND ma.user_id = ${userId}
-         AND ma.deleted_at IS NULL
+        LEFT JOIN momento_space_access msa
+          ON msa.owner_user_id = m.user_id
+         AND msa.member_user_id = ${userId}
+         AND msa.deleted_at IS NULL
         LEFT JOIN users owner ON owner.id = m.user_id
         WHERE m.deleted_at IS NULL
-          AND (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+          AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
           AND m.kind = ${validKind}
           AND (m.captured_at, m.id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
         ORDER BY m.captured_at DESC, m.id DESC
@@ -142,16 +142,16 @@ export default withObservability('momentos', async (req: Request, context: Conte
                m.user_id AS owner_user_id,
                owner.display_name AS owner_display_name,
                owner.email AS owner_email,
-               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role,
+               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role,
                (m.user_id <> ${userId}) AS shared
         FROM momentos m
-        LEFT JOIN momento_access ma
-          ON ma.momento_id = m.id
-         AND ma.user_id = ${userId}
-         AND ma.deleted_at IS NULL
+        LEFT JOIN momento_space_access msa
+          ON msa.owner_user_id = m.user_id
+         AND msa.member_user_id = ${userId}
+         AND msa.deleted_at IS NULL
         LEFT JOIN users owner ON owner.id = m.user_id
         WHERE m.deleted_at IS NULL
-          AND (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+          AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
           AND (m.captured_at, m.id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
         ORDER BY m.captured_at DESC, m.id DESC
         LIMIT ${limit + 1}
@@ -163,16 +163,16 @@ export default withObservability('momentos', async (req: Request, context: Conte
                m.user_id AS owner_user_id,
                owner.display_name AS owner_display_name,
                owner.email AS owner_email,
-               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role,
+               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role,
                (m.user_id <> ${userId}) AS shared
         FROM momentos m
-        LEFT JOIN momento_access ma
-          ON ma.momento_id = m.id
-         AND ma.user_id = ${userId}
-         AND ma.deleted_at IS NULL
+        LEFT JOIN momento_space_access msa
+          ON msa.owner_user_id = m.user_id
+         AND msa.member_user_id = ${userId}
+         AND msa.deleted_at IS NULL
         LEFT JOIN users owner ON owner.id = m.user_id
         WHERE m.deleted_at IS NULL
-          AND (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+          AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
           AND m.kind = ${validKind}
         ORDER BY m.captured_at DESC, m.id DESC
         LIMIT ${limit + 1}
@@ -184,16 +184,16 @@ export default withObservability('momentos', async (req: Request, context: Conte
                m.user_id AS owner_user_id,
                owner.display_name AS owner_display_name,
                owner.email AS owner_email,
-               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role,
+               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role,
                (m.user_id <> ${userId}) AS shared
         FROM momentos m
-        LEFT JOIN momento_access ma
-          ON ma.momento_id = m.id
-         AND ma.user_id = ${userId}
-         AND ma.deleted_at IS NULL
+        LEFT JOIN momento_space_access msa
+          ON msa.owner_user_id = m.user_id
+         AND msa.member_user_id = ${userId}
+         AND msa.deleted_at IS NULL
         LEFT JOIN users owner ON owner.id = m.user_id
         WHERE m.deleted_at IS NULL
-          AND (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+          AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
         ORDER BY m.captured_at DESC, m.id DESC
         LIMIT ${limit + 1}
       `))
@@ -314,15 +314,15 @@ export default withObservability('momentos', async (req: Request, context: Conte
     // cambiar kind via PATCH — eso requeriría re-encoding del payload).
     const current = await runWithSystemRls(() => sqlTyped<CurrentMomentoRow>(sql`
       SELECT m.kind, m.payload, m.note, m.user_id,
-             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role
+             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role
       FROM momentos m
-      LEFT JOIN momento_access ma
-        ON ma.momento_id = m.id
-       AND ma.user_id = ${userId}
-       AND ma.deleted_at IS NULL
+      LEFT JOIN momento_space_access msa
+        ON msa.owner_user_id = m.user_id
+       AND msa.member_user_id = ${userId}
+       AND msa.deleted_at IS NULL
       WHERE m.id = ${id}
         AND m.deleted_at IS NULL
-        AND (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+        AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
     `))
     const currentRow = current[0]
     if (!currentRow || currentRow.access_role === 'viewer') {
@@ -441,13 +441,13 @@ export default withObservability('momentos', async (req: Request, context: Conte
              m.user_id AS owner_user_id,
              owner.display_name AS owner_display_name,
              owner.email AS owner_email,
-             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role,
+             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role,
              (m.user_id <> ${userId}) AS shared
       FROM momentos m
-      LEFT JOIN momento_access ma
-        ON ma.momento_id = m.id
-       AND ma.user_id = ${userId}
-       AND ma.deleted_at IS NULL
+      LEFT JOIN momento_space_access msa
+        ON msa.owner_user_id = m.user_id
+       AND msa.member_user_id = ${userId}
+       AND msa.deleted_at IS NULL
       LEFT JOIN users owner ON owner.id = m.user_id
       WHERE m.id = ${id}
     `))

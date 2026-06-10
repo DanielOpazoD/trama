@@ -124,7 +124,7 @@ export function useMomentoShareInvitationsQuery() {
 
 export function useCreateMomentoShareInvitation() {
   return useMutation({
-    mutationFn: (input: { momentoId: string; email: string; role: MomentoShareRole }) =>
+    mutationFn: (input: { email: string; role: MomentoShareRole }) =>
       api.createMomentoShareInvitation(input),
   })
 }

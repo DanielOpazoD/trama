@@ -1,16 +1,9 @@
 import { useState } from 'react'
 import type { MomentoShareRole } from '../../api/momentos'
 import { useCreateMomentoShareInvitation, useToast } from '../../state'
-import type { Momento } from '../../types'
 import { CloseIcon } from '../Icons'
 
-export function MomentoShareModal({
-  momento,
-  onClose,
-}: {
-  momento: Momento
-  onClose: () => void
-}) {
+export function MomentoShareModal({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<MomentoShareRole>('viewer')
   const invite = useCreateMomentoShareInvitation()
@@ -19,7 +12,7 @@ export function MomentoShareModal({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     try {
-      await invite.mutateAsync({ momentoId: momento.id, email, role })
+      await invite.mutateAsync({ email, role })
       toast.show({ message: 'Invitación enviada.', tone: 'success' })
       setEmail('')
       setRole('viewer')
@@ -39,7 +32,7 @@ export function MomentoShareModal({
         className="w-full max-w-sm rounded-lg border border-ink-100 bg-paper-50 p-4 shadow-xl"
       >
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="font-serif text-lg text-ink-700">Compartir momento</h3>
+          <h3 className="font-serif text-lg text-ink-700">Compartir Momentos</h3>
           <button
             type="button"
             onClick={onClose}

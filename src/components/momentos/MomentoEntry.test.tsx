@@ -93,6 +93,7 @@ describe('<MomentoEntry />', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /eliminar momento/i }))
     expect(onDelete).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: /compartir momento/i })).toBeNull()
   })
 
   it('muestra quién subió un momento compartido con una marca discreta', () => {

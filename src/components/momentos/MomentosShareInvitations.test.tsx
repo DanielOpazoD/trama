@@ -5,7 +5,6 @@ import { MomentosShareInvitations } from './MomentosShareInvitations'
 
 const invitation: MomentoShareInvitation = {
   id: 'inv1',
-  momentoId: 'm1',
   inviterUserId: 'user-papa',
   inviterDisplayName: 'Papá',
   inviteeEmail: 'mama@example.com',
@@ -13,11 +12,6 @@ const invitation: MomentoShareInvitation = {
   status: 'pending',
   createdAt: '2026-06-10T12:00:00.000Z',
   updatedAt: '2026-06-10T12:00:00.000Z',
-  momento: {
-    kind: 'foto',
-    capturedAt: '2026-06-09T12:00:00.000Z',
-    note: 'paseo',
-  },
 }
 
 describe('<MomentosShareInvitations />', () => {
@@ -31,7 +25,7 @@ describe('<MomentosShareInvitations />', () => {
       />,
     )
 
-    expect(screen.getByText(/Papá compartió un momento contigo/i)).toBeInTheDocument()
+    expect(screen.getByText(/Papá compartió sus Momentos contigo/i)).toBeInTheDocument()
     expect(screen.getByText(/puedes editar/i)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /aceptar/i }))

@@ -85,9 +85,10 @@ describe('momentos endpoint — integration (mock SQL)', () => {
     await handler(new Request('http://localhost/api/momentos'), mockContext())
 
     const listQuery = mockSqlResponses.calls[0]?.template ?? ''
-    expect(listQuery).toMatch(/LEFT JOIN\s+momento_access/i)
-    expect(listQuery).toMatch(/ma\.user_id = \?/i)
-    expect(listQuery).toMatch(/\(m\.user_id = \? OR ma\.user_id IS NOT NULL\)/i)
+    expect(listQuery).toMatch(/LEFT JOIN\s+momento_space_access/i)
+    expect(listQuery).toMatch(/msa\.owner_user_id = m\.user_id/i)
+    expect(listQuery).toMatch(/msa\.member_user_id = \?/i)
+    expect(listQuery).toMatch(/\(m\.user_id = \? OR msa\.member_user_id IS NOT NULL\)/i)
     expect(listQuery).toMatch(/owner_display_name/i)
     expect(listQuery).toMatch(/access_role/i)
   })
@@ -296,9 +297,11 @@ describe('momentos endpoint — integration (mock SQL)', () => {
 
     expect(res.status).toBe(200)
     const lookup =
-      mockSqlResponses.calls.find((c) => /LEFT JOIN\s+momento_access/i.test(c.template))
-        ?.template ?? ''
-    expect(lookup).toMatch(/LEFT JOIN\s+momento_access/i)
+      mockSqlResponses.calls.find((c) =>
+        /LEFT JOIN\s+momento_space_access/i.test(c.template),
+      )?.template ?? ''
+    expect(lookup).toMatch(/LEFT JOIN\s+momento_space_access/i)
+    expect(lookup).toMatch(/msa\.owner_user_id = m\.user_id/i)
     const update = mockSqlResponses.calls.find((c) => /UPDATE momentos/i.test(c.template))
     expect(update?.template).toMatch(/WHERE id = \? AND deleted_at IS NULL/)
   })

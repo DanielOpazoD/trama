@@ -69,4 +69,16 @@ describe('<MomentosView />', () => {
       expect(screen.getByText(/Todavía no hay momentos/i)).toBeInTheDocument()
     })
   })
+
+  it('abre el control general para compartir todos los Momentos', async () => {
+    renderWithProviders(<MomentosView />)
+
+    const share = await screen.findByRole('button', { name: /compartir momentos/i })
+    fireEvent.click(share)
+
+    expect(
+      screen.getByRole('heading', { name: /compartir momentos/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText(/correo/i)).toBeInTheDocument()
+  })
 })
