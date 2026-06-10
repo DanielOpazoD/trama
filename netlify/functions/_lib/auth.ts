@@ -34,6 +34,23 @@ export class UnauthenticatedError extends Error {
   }
 }
 
+function emailFromJwtPayload(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== 'object') return undefined
+  const claims = payload as Record<string, unknown>
+  const direct = claims.email
+  if (typeof direct === 'string' && direct.includes('@')) return direct.toLowerCase()
+  const primary = claims.primary_email_address
+  if (typeof primary === 'string' && primary.includes('@')) return primary.toLowerCase()
+  const addresses = claims.email_addresses
+  if (Array.isArray(addresses)) {
+    const first = addresses.find((item): item is string => {
+      return typeof item === 'string' && item.includes('@')
+    })
+    if (first) return first.toLowerCase()
+  }
+  return undefined
+}
+
 /**
  * Extrae y verifica el userId del Bearer token de Clerk.
  *
@@ -84,11 +101,11 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
       // definitiva, sobre las llaves de producción finales.
       const ownerSub = readEnv('LEGACY_OWNER_CLERK_ID')
       if (ownerSub && payload.sub === ownerSub) {
-        const user = { id: 'legacy-single-user' }
+        const user = { id: 'legacy-single-user', email: emailFromJwtPayload(payload) }
         setCurrentRlsUser(user.id)
         return user
       }
-      const user = { id: payload.sub }
+      const user = { id: payload.sub, email: emailFromJwtPayload(payload) }
       setCurrentRlsUser(user.id)
       return user
     } catch {

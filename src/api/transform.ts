@@ -82,6 +82,11 @@ export type MomentoRow = {
   note: string | null
   origin: unknown
   entity_ids?: string[]
+  owner_user_id?: string | null
+  owner_display_name?: string | null
+  owner_email?: string | null
+  access_role?: 'owner' | 'viewer' | 'editor' | null
+  shared?: boolean | null
   created_at: string
   updated_at: string
 }
@@ -163,6 +168,11 @@ export function momentoFromRow(row: MomentoRow): Momento {
       ? row.origin
       : { kind: 'manual' }) as Origin,
     entityIds: row.entity_ids ?? [],
+    ownerUserId: row.owner_user_id ?? undefined,
+    ownerDisplayName: row.owner_display_name ?? undefined,
+    ownerEmail: row.owner_email ?? undefined,
+    accessRole: row.access_role ?? undefined,
+    shared: row.shared ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

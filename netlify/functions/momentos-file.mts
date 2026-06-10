@@ -4,7 +4,7 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { getSql } from './_lib/db.js'
-import { queryWithUserRls } from './_lib/user-rls.js'
+import { runWithSystemRls } from './_lib/user-rls.js'
 
 /**
  * GET /api/momentos-file/:key
@@ -29,7 +29,7 @@ import { queryWithUserRls } from './_lib/user-rls.js'
  */
 const LEGACY_USER_ID = 'legacy-single-user'
 
-type LegacyMediaReferenceRow = {
+type MediaReferenceRow = {
   referenced: boolean
 }
 
@@ -49,26 +49,30 @@ function readRawStorageKey(context: Context): string | null {
   return rawUserId ? `${rawUserId}/${rawKey}` : rawKey
 }
 
-async function isLegacyMediaReferencedByUser(
+async function isMediaReferencedByReadableMomento(
   userId: string,
   storageKey: string,
 ): Promise<boolean> {
   const sql = getSql()
-  const rows = await queryWithUserRls<LegacyMediaReferenceRow>(sql, userId, (scoped) => scoped`
+  const rows = await runWithSystemRls(() => sql`
     SELECT EXISTS (
       SELECT 1
-      FROM momentos
-      WHERE user_id = ${userId}
-        AND kind = 'foto'
-        AND deleted_at IS NULL
+      FROM momentos m
+      LEFT JOIN momento_access ma
+        ON ma.momento_id = m.id
+       AND ma.user_id = ${userId}
+       AND ma.deleted_at IS NULL
+      WHERE (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+        AND m.kind = 'foto'
+        AND m.deleted_at IS NULL
         AND (
-          payload->>'storageKey' = ${storageKey}
-          OR payload->>'audioKey' = ${storageKey}
+          m.payload->>'storageKey' = ${storageKey}
+          OR m.payload->>'audioKey' = ${storageKey}
           OR EXISTS (
             SELECT 1
             FROM jsonb_array_elements(
               CASE
-                WHEN jsonb_typeof(payload->'items') = 'array' THEN payload->'items'
+                WHEN jsonb_typeof(m.payload->'items') = 'array' THEN m.payload->'items'
                 ELSE '[]'::jsonb
               END
             ) item
@@ -78,15 +82,15 @@ async function isLegacyMediaReferencedByUser(
             SELECT 1
             FROM jsonb_array_elements(
               CASE
-                WHEN jsonb_typeof(payload->'photos') = 'array' THEN payload->'photos'
+                WHEN jsonb_typeof(m.payload->'photos') = 'array' THEN m.payload->'photos'
                 ELSE '[]'::jsonb
               END
             ) photo
             WHERE photo->>'storageKey' = ${storageKey}
           )
-        )
+      )
     ) AS referenced
-  `)
+  `) as MediaReferenceRow[]
   return rows[0]?.referenced === true
 }
 
@@ -95,12 +99,11 @@ async function canReadStorageKey(userId: string, key: string): Promise<boolean> 
   if (slashIdx > 0) {
     const keyUserId = key.slice(0, slashIdx)
     if (keyUserId === userId) return true
-    if (keyUserId !== LEGACY_USER_ID) return false
-    return isLegacyMediaReferencedByUser(userId, key)
+    return isMediaReferencedByReadableMomento(userId, key)
   }
 
   if (userId === LEGACY_USER_ID) return true
-  return isLegacyMediaReferencedByUser(userId, key)
+  return isMediaReferencedByReadableMomento(userId, key)
 }
 
 export default withObservability(

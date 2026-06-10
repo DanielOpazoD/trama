@@ -15,6 +15,7 @@ import {
   MomentoPatchBody,
 } from './_lib/momento-schemas.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
+import { runWithSystemRls } from './_lib/user-rls.js'
 import {
   buildMomentosListResponse,
   groupMomentoEntityLinks,
@@ -53,8 +54,14 @@ type CurrentMomentoRow = {
   kind: MomentoKind
   payload: Record<string, unknown>
   note: string | null
+  user_id: string
+  access_role: 'owner' | 'viewer' | 'editor' | null
 }
 type DeletedMomentoRow = { id: string; deleted_at: string }
+
+function ownerIdFromRow(row: MomentoResponseRow | undefined, fallback: string): string {
+  return typeof row?.owner_user_id === 'string' ? row.owner_user_id : fallback
+}
 
 export default withObservability('momentos', async (req: Request, context: Context, { requestId }) => {
   const sql = getSql()
@@ -64,22 +71,36 @@ export default withObservability('momentos', async (req: Request, context: Conte
 
   // ---------------- GET one ----------------
   if (req.method === 'GET' && id) {
-    const rows = await sqlTyped<MomentoResponseRow>(sql`
-      SELECT id, kind, captured_at, payload, note, origin,
-             created_at, updated_at
-      FROM momentos
-      WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-    `)
+    const rows = await runWithSystemRls(() => sqlTyped<MomentoResponseRow>(sql`
+      SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
+             m.created_at, m.updated_at,
+             m.user_id AS owner_user_id,
+             owner.display_name AS owner_display_name,
+             owner.email AS owner_email,
+             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role,
+             (m.user_id <> ${userId}) AS shared
+      FROM momentos m
+      LEFT JOIN momento_access ma
+        ON ma.momento_id = m.id
+       AND ma.user_id = ${userId}
+       AND ma.deleted_at IS NULL
+      LEFT JOIN users owner ON owner.id = m.user_id
+      WHERE m.id = ${id}
+        AND m.deleted_at IS NULL
+        AND (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+    `))
     if (rows.length === 0) {
       return ApiErrors.notFound(requestId, 'Momento no encontrado')
     }
     // Traemos los entityIds linkeados también, para que el cliente no haga
     // un round-trip aparte.
-    const links = await sqlTyped<MomentoLinkIdRow>(sql`
+    const links = await runWithSystemRls(() => sqlTyped<MomentoLinkIdRow>(sql`
       SELECT entity_id
       FROM momento_entities
-      WHERE momento_id = ${id} AND user_id = ${userId} AND deleted_at IS NULL
-    `)
+      WHERE momento_id = ${id}
+        AND user_id = ${ownerIdFromRow(rows[0], userId)}
+        AND deleted_at IS NULL
+    `))
     return Response.json({
       ...rows[0],
       entity_ids: links.map((l) => l.entity_id),
@@ -93,46 +114,89 @@ export default withObservability('momentos', async (req: Request, context: Conte
 
     let rows: MomentoListRow[]
     if (cursorTs && cursorId && validKind) {
-      rows = await sqlTyped<MomentoListRow>(sql`
-        SELECT id, kind, captured_at, payload, note, origin,
-               created_at, updated_at
-        FROM momentos
-        WHERE deleted_at IS NULL
-          AND user_id = ${userId}
-          AND kind = ${validKind}
-          AND (captured_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
-        ORDER BY captured_at DESC, id DESC
+      rows = await runWithSystemRls(() => sqlTyped<MomentoListRow>(sql`
+        SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
+               m.created_at, m.updated_at,
+               m.user_id AS owner_user_id,
+               owner.display_name AS owner_display_name,
+               owner.email AS owner_email,
+               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role,
+               (m.user_id <> ${userId}) AS shared
+        FROM momentos m
+        LEFT JOIN momento_access ma
+          ON ma.momento_id = m.id
+         AND ma.user_id = ${userId}
+         AND ma.deleted_at IS NULL
+        LEFT JOIN users owner ON owner.id = m.user_id
+        WHERE m.deleted_at IS NULL
+          AND (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+          AND m.kind = ${validKind}
+          AND (m.captured_at, m.id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
+        ORDER BY m.captured_at DESC, m.id DESC
         LIMIT ${limit + 1}
-      `)
+      `))
     } else if (cursorTs && cursorId) {
-      rows = await sqlTyped<MomentoListRow>(sql`
-        SELECT id, kind, captured_at, payload, note, origin,
-               created_at, updated_at
-        FROM momentos
-        WHERE deleted_at IS NULL
-          AND user_id = ${userId}
-          AND (captured_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
-        ORDER BY captured_at DESC, id DESC
+      rows = await runWithSystemRls(() => sqlTyped<MomentoListRow>(sql`
+        SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
+               m.created_at, m.updated_at,
+               m.user_id AS owner_user_id,
+               owner.display_name AS owner_display_name,
+               owner.email AS owner_email,
+               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role,
+               (m.user_id <> ${userId}) AS shared
+        FROM momentos m
+        LEFT JOIN momento_access ma
+          ON ma.momento_id = m.id
+         AND ma.user_id = ${userId}
+         AND ma.deleted_at IS NULL
+        LEFT JOIN users owner ON owner.id = m.user_id
+        WHERE m.deleted_at IS NULL
+          AND (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+          AND (m.captured_at, m.id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
+        ORDER BY m.captured_at DESC, m.id DESC
         LIMIT ${limit + 1}
-      `)
+      `))
     } else if (validKind) {
-      rows = await sqlTyped<MomentoListRow>(sql`
-        SELECT id, kind, captured_at, payload, note, origin,
-               created_at, updated_at
-        FROM momentos
-        WHERE deleted_at IS NULL AND user_id = ${userId} AND kind = ${validKind}
-        ORDER BY captured_at DESC, id DESC
+      rows = await runWithSystemRls(() => sqlTyped<MomentoListRow>(sql`
+        SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
+               m.created_at, m.updated_at,
+               m.user_id AS owner_user_id,
+               owner.display_name AS owner_display_name,
+               owner.email AS owner_email,
+               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role,
+               (m.user_id <> ${userId}) AS shared
+        FROM momentos m
+        LEFT JOIN momento_access ma
+          ON ma.momento_id = m.id
+         AND ma.user_id = ${userId}
+         AND ma.deleted_at IS NULL
+        LEFT JOIN users owner ON owner.id = m.user_id
+        WHERE m.deleted_at IS NULL
+          AND (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+          AND m.kind = ${validKind}
+        ORDER BY m.captured_at DESC, m.id DESC
         LIMIT ${limit + 1}
-      `)
+      `))
     } else {
-      rows = await sqlTyped<MomentoListRow>(sql`
-        SELECT id, kind, captured_at, payload, note, origin,
-               created_at, updated_at
-        FROM momentos
-        WHERE deleted_at IS NULL AND user_id = ${userId}
-        ORDER BY captured_at DESC, id DESC
+      rows = await runWithSystemRls(() => sqlTyped<MomentoListRow>(sql`
+        SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
+               m.created_at, m.updated_at,
+               m.user_id AS owner_user_id,
+               owner.display_name AS owner_display_name,
+               owner.email AS owner_email,
+               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role,
+               (m.user_id <> ${userId}) AS shared
+        FROM momentos m
+        LEFT JOIN momento_access ma
+          ON ma.momento_id = m.id
+         AND ma.user_id = ${userId}
+         AND ma.deleted_at IS NULL
+        LEFT JOIN users owner ON owner.id = m.user_id
+        WHERE m.deleted_at IS NULL
+          AND (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+        ORDER BY m.captured_at DESC, m.id DESC
         LIMIT ${limit + 1}
-      `)
+      `))
     }
 
     const itemIds = rows.slice(0, limit).map((i) => i.id)
@@ -140,13 +204,14 @@ export default withObservability('momentos', async (req: Request, context: Conte
     // Bulk-fetch de links para los items de esta página, dedupe por momento_id.
     let linksByMomento = new Map<string, string[]>()
     if (itemIds.length > 0) {
-      const links = await sqlTyped<MomentoEntityLinkRow>(sql`
-        SELECT momento_id, entity_id
-        FROM momento_entities
-        WHERE momento_id = ANY(${itemIds}::uuid[])
-          AND user_id = ${userId}
-          AND deleted_at IS NULL
-      `)
+      const links = await runWithSystemRls(() => sqlTyped<MomentoEntityLinkRow>(sql`
+        SELECT me.momento_id, me.entity_id
+        FROM momento_entities me
+        JOIN momentos m ON m.id = me.momento_id
+        WHERE me.momento_id = ANY(${itemIds}::uuid[])
+          AND me.user_id = m.user_id
+          AND me.deleted_at IS NULL
+      `))
       linksByMomento = groupMomentoEntityLinks(links)
     }
 
@@ -247,15 +312,24 @@ export default withObservability('momentos', async (req: Request, context: Conte
 
     // Lookup actual para conocer kind + valores actuales (no permitimos
     // cambiar kind via PATCH — eso requeriría re-encoding del payload).
-    const current = await sqlTyped<CurrentMomentoRow>(sql`
-      SELECT kind, payload, note FROM momentos
-      WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-    `)
+    const current = await runWithSystemRls(() => sqlTyped<CurrentMomentoRow>(sql`
+      SELECT m.kind, m.payload, m.note, m.user_id,
+             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role
+      FROM momentos m
+      LEFT JOIN momento_access ma
+        ON ma.momento_id = m.id
+       AND ma.user_id = ${userId}
+       AND ma.deleted_at IS NULL
+      WHERE m.id = ${id}
+        AND m.deleted_at IS NULL
+        AND (m.user_id = ${userId} OR ma.user_id IS NOT NULL)
+    `))
     const currentRow = current[0]
-    if (!currentRow) {
+    if (!currentRow || currentRow.access_role === 'viewer') {
       return ApiErrors.notFound(requestId, 'Momento no encontrado')
     }
     const kind = currentRow.kind
+    const ownerUserId = currentRow.user_id
 
     // ξ-fix-3: detectamos qué cambia realmente para decidir si re-embedear.
     // Antes este PATCH gastaba una llamada a OpenAI en CADA update aunque
@@ -297,7 +371,7 @@ export default withObservability('momentos', async (req: Request, context: Conte
     // El UPDATE solo toca embedding cuando hubo cambio textual — si
     // shouldReembed=false, lo dejamos como estaba (no se incluye en SET).
     if (newCapturedAt && shouldReembed) {
-      await sql`
+      await runWithSystemRls(() => sql`
         UPDATE momentos
         SET payload = ${JSON.stringify(newPayload)}::jsonb,
             note = ${newNote},
@@ -306,18 +380,18 @@ export default withObservability('momentos', async (req: Request, context: Conte
             embedding_model = ${emb?.model ?? null},
             embedding_at = ${emb ? new Date().toISOString() : null}::timestamptz,
             updated_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      `
+        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${ownerUserId}
+      `)
     } else if (newCapturedAt) {
       // Solo captured_at + posiblemente entityIds — sin re-embed.
-      await sql`
+      await runWithSystemRls(() => sql`
         UPDATE momentos
         SET captured_at = ${newCapturedAt}::timestamptz,
             updated_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      `
+        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${ownerUserId}
+      `)
     } else if (shouldReembed) {
-      await sql`
+      await runWithSystemRls(() => sql`
         UPDATE momentos
         SET payload = ${JSON.stringify(newPayload)}::jsonb,
             note = ${newNote},
@@ -325,53 +399,63 @@ export default withObservability('momentos', async (req: Request, context: Conte
             embedding_model = ${emb?.model ?? null},
             embedding_at = ${emb ? new Date().toISOString() : null}::timestamptz,
             updated_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      `
+        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${ownerUserId}
+      `)
     }
 
     // Reemplazar set de entityIds si viene.
     if (Array.isArray(body.entity_ids)) {
       const entityIds = body.entity_ids.filter((x): x is string => typeof x === 'string')
       if (entityIds.length > 0) {
-        const entityRows = await sqlTyped<EntityIdRow>(sql`
+        const entityRows = await runWithSystemRls(() => sqlTyped<EntityIdRow>(sql`
           SELECT id
           FROM entities
           WHERE id = ANY(${entityIds}::uuid[])
             AND deleted_at IS NULL
-            AND user_id = ${userId}
-        `)
+            AND user_id = ${ownerUserId}
+        `))
         if (new Set(entityRows.map((row) => row.id)).size !== new Set(entityIds).size) {
           return ApiErrors.notFound(requestId, 'Una o más entidades no existen')
         }
       }
-      await sql`
+      await runWithSystemRls(() => sql`
         UPDATE momento_entities
         SET deleted_at = NOW()
-        WHERE momento_id = ${id} AND user_id = ${userId} AND deleted_at IS NULL
-      `
+        WHERE momento_id = ${id} AND user_id = ${ownerUserId} AND deleted_at IS NULL
+      `)
       if (entityIds.length > 0) {
-        await sql`
+        await runWithSystemRls(() => sql`
           INSERT INTO momento_entities (momento_id, entity_id, user_id)
-          SELECT ${id}::uuid, e_id, ${userId}
+          SELECT ${id}::uuid, e_id, ${ownerUserId}
           FROM unnest(${entityIds}::uuid[]) AS e_id
           ON CONFLICT (momento_id, entity_id) DO UPDATE
           SET user_id = EXCLUDED.user_id,
               deleted_at = NULL
-        `
+        `)
       }
     }
 
-    const updated = await sqlTyped<MomentoResponseRow>(sql`
-      SELECT id, kind, captured_at, payload, note, origin,
-             created_at, updated_at
-      FROM momentos
-      WHERE id = ${id} AND user_id = ${userId}
-    `)
-    const links = await sqlTyped<MomentoLinkIdRow>(sql`
+    const updated = await runWithSystemRls(() => sqlTyped<MomentoResponseRow>(sql`
+      SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
+             m.created_at, m.updated_at,
+             m.user_id AS owner_user_id,
+             owner.display_name AS owner_display_name,
+             owner.email AS owner_email,
+             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE ma.role END AS access_role,
+             (m.user_id <> ${userId}) AS shared
+      FROM momentos m
+      LEFT JOIN momento_access ma
+        ON ma.momento_id = m.id
+       AND ma.user_id = ${userId}
+       AND ma.deleted_at IS NULL
+      LEFT JOIN users owner ON owner.id = m.user_id
+      WHERE m.id = ${id}
+    `))
+    const links = await runWithSystemRls(() => sqlTyped<MomentoLinkIdRow>(sql`
       SELECT entity_id
       FROM momento_entities
-      WHERE momento_id = ${id} AND user_id = ${userId} AND deleted_at IS NULL
-    `)
+      WHERE momento_id = ${id} AND user_id = ${ownerUserId} AND deleted_at IS NULL
+    `))
     return Response.json({
       ...updated[0],
       entity_ids: links.map((l) => l.entity_id),

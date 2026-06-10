@@ -65,6 +65,14 @@ export type Momento = {
   origin: Origin
   /** Entidades vinculadas (extraídas por AI o marcadas manualmente). */
   entityIds: string[]
+  /** Dueño/subidor original. Presente cuando el backend puede resolverlo. */
+  ownerUserId?: string
+  ownerDisplayName?: string
+  ownerEmail?: string
+  /** Rol del usuario actual sobre este Momento. */
+  accessRole?: 'owner' | 'viewer' | 'editor'
+  /** True si el Momento no pertenece al usuario actual. */
+  shared?: boolean
   createdAt: string
   updatedAt: string
 }

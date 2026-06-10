@@ -112,7 +112,6 @@ describe('momentos-file endpoint', () => {
   it('sirve una key legacy a un usuario Clerk cuando su Momento la referencia', async () => {
     process.env['CLERK_SECRET_KEY'] = 'secret'
     verifyTokenMock.mockResolvedValue({ sub: 'user_actual' })
-    mockSqlResponses.push([{ set_config: 'user_actual' }])
     mockSqlResponses.push([{ referenced: true }])
 
     const res = await handler(
@@ -129,7 +128,7 @@ describe('momentos-file endpoint', () => {
     const referenceLookup = mockSqlState.calls.find((call) =>
       /FROM momentos/i.test(call.template),
     )
-    expect(mockSqlState.calls[0]?.template).toMatch(/set_config\('app\.current_user_id'/)
+    expect(referenceLookup?.template).toMatch(/LEFT JOIN\s+momento_access/i)
     expect(referenceLookup?.template).toMatch(/deleted_at IS NULL/)
     expect(referenceLookup?.values).toContain('user_actual')
     expect(referenceLookup?.values).toContain('legacy-single-user/voz.webm')
