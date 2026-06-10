@@ -189,7 +189,7 @@ export function Sidebar({
     items: group.items.filter(
       (item) =>
         (item.value !== 'sugerencias' || pendingSuggestions.length > 0) &&
-        sectionVis.isVisible(item.value),
+        (sectionVis.isVisible(item.value) || view === item.value),
     ),
   })).filter((group) => group.items.length > 0)
 

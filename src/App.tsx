@@ -42,7 +42,7 @@ import { SectionAccentBand } from './components/SectionAccentBand'
 import { MomentoNotificationsCenter } from './components/momentos/MomentoNotificationsCenter'
 import { NotasWorld } from './components/notas/NotasWorld'
 import { NOTAS_SECTIONS, type NotasSection } from './types/notas'
-import { useModuleVisibility } from './hooks/useModuleVisibility'
+
 import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
 
 // Overlays bajo demanda: solo se montan al abrirse (⌘K, ajustes, atajos, etc.),
@@ -643,17 +643,16 @@ function WorldShell() {
 
   // Revelar un módulo del mundo Notas desde el ⌘K del mundo principal: lo
   // des-oculta, agenda abrir esa sección, y cruza al mundo Notas.
-  const { reveal } = useModuleVisibility()
+
   const [pendingNotasSection, setPendingNotasSection] = useState<NotasSection | null>(
     () => (initialWorldFromUrl === 'notas' ? readNotasSectionDeepLink() : null),
   )
   const revealNotasModule = useCallback(
     (moduleId: NotasSection) => {
-      reveal(moduleId)
       setPendingNotasSection(moduleId)
       changeWorld('notas')
     },
-    [reveal, changeWorld],
+    [changeWorld],
   )
 
   // El conmutador de mundos vive en el logo (WorldSwitcher), dentro del header
