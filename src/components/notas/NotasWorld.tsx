@@ -40,13 +40,17 @@ export function NotasWorld({
 }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const { isVisible } = useModuleVisibility()
-  const visibleSections = SECTIONS.filter((s) => isVisible(s.id) || s.id === section)
   // La sección activa se clampa a Inicio si deja de ser visible (anti-trampa).
   const [section, setSection] = useClampedSection<NotasSection>(
     initialSection ?? 'inicio',
     'inicio',
     isVisible,
   )
+  // La activa se lista aunque esté oculta (navegar a ella no la revela, pero el
+  // nav debe mostrarla mientras estás parado ahí). OJO: `section` tiene que
+  // estar declarada ANTES de este filter — el callback corre síncrono y, con
+  // alguna sección oculta, evalúa `s.id === section` (TDZ si viene después).
+  const visibleSections = SECTIONS.filter((s) => isVisible(s.id) || s.id === section)
 
   useEffect(() => {
     if (!searchOpen) return

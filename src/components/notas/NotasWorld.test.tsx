@@ -61,6 +61,23 @@ describe('<NotasWorld />', () => {
     expect(screen.getAllByText('biblioteca reutilizable').length).toBeGreaterThan(0)
   })
 
+  it('monta con una sección oculta sin romper (regresión TDZ en producción)', () => {
+    // El espejo de prefs hidrata SÍNCRONO en el primer render: con un módulo
+    // oculto, el filter de secciones evalúa `s.id === section` en ese mismo
+    // render. Antes del fix, `section` se declaraba después del filter →
+    // ReferenceError ("Cannot access 'section' before initialization").
+    window.localStorage.setItem(
+      'trama:user-prefs',
+      JSON.stringify({ owner: null, prefs: { visibleModules: { claves: false } } }),
+    )
+    renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
+
+    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument()
+    // La sección oculta no aparece en el nav; el resto sí.
+    expect(screen.queryByRole('button', { name: 'Claves' })).toBeNull()
+    expect(screen.getAllByRole('button', { name: 'Notas' }).length).toBeGreaterThan(0)
+  })
+
   it('no muestra controles de modo cómodo ni compacto', () => {
     renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
 
