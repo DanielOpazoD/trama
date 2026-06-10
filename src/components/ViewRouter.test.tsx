@@ -4,6 +4,10 @@ import { describe, expect, it, vi } from 'vitest'
 import type { ExtractionProposal } from '../types'
 import { ViewRouter } from './ViewRouter'
 
+vi.mock('./SectionPinGate', () => ({
+  SectionPinGate: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
 vi.mock('./HomeView', () => ({
   HomeView: ({
     onNavigate,

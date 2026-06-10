@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { Spinner } from './Spinner'
 import { ErrorBoundary, type ErrorFallbackProps } from './ErrorBoundary'
 import { TramaMark } from './Icons'
+import { SectionPinGate } from './SectionPinGate'
 import type { ViewMode } from './Sidebar'
 import type { ExtractionProposal } from '../types'
 
@@ -174,24 +175,28 @@ export function ViewRouter({
 }) {
   if (view === 'grafo') {
     return (
-      <ViewSlot scope="view:grafo">
-        <GraphView
-          selectedId={selectedEntityId}
-          onSelect={onSelectEntity}
-          onProposal={onProposal}
-        />
-      </ViewSlot>
+      <SectionPinGate key={view} sectionId={view}>
+        <ViewSlot scope="view:grafo">
+          <GraphView
+            selectedId={selectedEntityId}
+            onSelect={onSelectEntity}
+            onProposal={onProposal}
+          />
+        </ViewSlot>
+      </SectionPinGate>
     )
   }
 
   if (view === 'chat') {
     return (
-      <ViewSlot scope="view:chat">
-        <ChatView
-          initialThreadId={pendingChatThreadId}
-          onConsumedInitialThread={onConsumedInitialThread}
-        />
-      </ViewSlot>
+      <SectionPinGate key={view} sectionId={view}>
+        <ViewSlot scope="view:chat">
+          <ChatView
+            initialThreadId={pendingChatThreadId}
+            onConsumedInitialThread={onConsumedInitialThread}
+          />
+        </ViewSlot>
+      </SectionPinGate>
     )
   }
 
@@ -201,67 +206,69 @@ export function ViewRouter({
   // cualquier parte del viewport, no sólo sobre el texto centrado.
   // El wrapper INTERIOR limita el ancho de lectura (max-w-3xl).
   return (
-    <div
-      id="main-scroll"
-      className="h-full overflow-y-auto"
-      tabIndex={0}
-      aria-label="Contenido principal"
-    >
-      <div className="px-8 py-10 pb-32 max-w-3xl mx-auto">
-        {view === 'inicio' && (
-          <ErrorBoundary
-            scope="view:inicio"
-            fallback={(p) => <ViewErrorFallback {...p} />}
-          >
-            <HomeView onNavigate={onChangeView} onSelectEntity={onSelectEntity} />
-          </ErrorBoundary>
-        )}
-        {view === 'entidades' && (
-          <ViewSlot scope="view:entidades">
-            <EntitiesWorkbench
-              onSelectEntity={onSelectEntity}
-              onProposal={onProposal}
-              tab={entitiesTab}
-              onTabChange={onEntitiesTabChange}
-            />
-          </ViewSlot>
-        )}
-        {view === 'citas' && (
-          <ViewSlot scope="view:citas">
-            <QuotesView onSelectEntity={onSelectEntity} />
-          </ViewSlot>
-        )}
-        {view === 'escuchas' && (
-          <ViewSlot scope="view:escuchas">
-            <ListeningView onSelectEntity={onSelectEntity} onProposal={onProposal} />
-          </ViewSlot>
-        )}
-        {view === 'twitter' && (
-          <ViewSlot scope="view:twitter">
-            <TwitterView onProposal={onProposal} />
-          </ViewSlot>
-        )}
-        {view === 'momentos' && (
-          <ViewSlot scope="view:momentos">
-            <MomentosView />
-          </ViewSlot>
-        )}
-        {view === 'cronologia' && (
-          <ViewSlot scope="view:cronologia">
-            <CronologiaView onSelectEntity={onSelectEntity} />
-          </ViewSlot>
-        )}
-        {view === 'atlas' && (
-          <ViewSlot scope="view:atlas">
-            <AtlasView onSelectEntity={onSelectEntity} />
-          </ViewSlot>
-        )}
-        {view === 'sugerencias' && (
-          <ViewSlot scope="view:sugerencias">
-            <ProactiveView />
-          </ViewSlot>
-        )}
+    <SectionPinGate key={view} sectionId={view}>
+      <div
+        id="main-scroll"
+        className="h-full overflow-y-auto"
+        tabIndex={0}
+        aria-label="Contenido principal"
+      >
+        <div className="px-8 py-10 pb-32 max-w-3xl mx-auto">
+          {view === 'inicio' && (
+            <ErrorBoundary
+              scope="view:inicio"
+              fallback={(p) => <ViewErrorFallback {...p} />}
+            >
+              <HomeView onNavigate={onChangeView} onSelectEntity={onSelectEntity} />
+            </ErrorBoundary>
+          )}
+          {view === 'entidades' && (
+            <ViewSlot scope="view:entidades">
+              <EntitiesWorkbench
+                onSelectEntity={onSelectEntity}
+                onProposal={onProposal}
+                tab={entitiesTab}
+                onTabChange={onEntitiesTabChange}
+              />
+            </ViewSlot>
+          )}
+          {view === 'citas' && (
+            <ViewSlot scope="view:citas">
+              <QuotesView onSelectEntity={onSelectEntity} />
+            </ViewSlot>
+          )}
+          {view === 'escuchas' && (
+            <ViewSlot scope="view:escuchas">
+              <ListeningView onSelectEntity={onSelectEntity} onProposal={onProposal} />
+            </ViewSlot>
+          )}
+          {view === 'twitter' && (
+            <ViewSlot scope="view:twitter">
+              <TwitterView onProposal={onProposal} />
+            </ViewSlot>
+          )}
+          {view === 'momentos' && (
+            <ViewSlot scope="view:momentos">
+              <MomentosView />
+            </ViewSlot>
+          )}
+          {view === 'cronologia' && (
+            <ViewSlot scope="view:cronologia">
+              <CronologiaView onSelectEntity={onSelectEntity} />
+            </ViewSlot>
+          )}
+          {view === 'atlas' && (
+            <ViewSlot scope="view:atlas">
+              <AtlasView onSelectEntity={onSelectEntity} />
+            </ViewSlot>
+          )}
+          {view === 'sugerencias' && (
+            <ViewSlot scope="view:sugerencias">
+              <ProactiveView />
+            </ViewSlot>
+          )}
+        </div>
       </div>
-    </div>
+    </SectionPinGate>
   )
 }

@@ -1,27 +1,23 @@
 import { useUserPrefs, useSaveUserPrefs } from '../state'
 import type { NotasSection } from '../types/notas'
 
-/** Inicio nunca se oculta: es el ancla siempre alcanzable (anti-trampa). */
-const NON_HIDEABLE: NotasSection = 'inicio'
-
 /**
  * Visibilidad por sección del mundo Notas, sincronizada por usuario (sobre
  * `useUserPrefs`). Default: todo visible (una sección está oculta solo si su
- * flag es explícitamente `false`). `inicio` no se puede ocultar.
+ * flag es explícitamente `false`). Todas las secciones son configurables.
  */
 export function useModuleVisibility() {
   const { data } = useUserPrefs()
   const save = useSaveUserPrefs()
   const visibleModules = data?.visibleModules ?? {}
 
-  /** ¿La sección se puede ocultar? (Inicio nunca.) Única fuente de esa regla. */
-  const isHideable = (id: NotasSection) => id !== NON_HIDEABLE
+  /** ¿La sección se puede ocultar? Siempre true — el usuario configuró que
+   *  todas sean configurables sin excepción. */
+  const isHideable = (_id: NotasSection) => true
 
-  const isVisible = (id: NotasSection) =>
-    isHideable(id) ? visibleModules[id] !== false : true
+  const isVisible = (id: NotasSection) => visibleModules[id] !== false
 
   const setVisible = (id: NotasSection, on: boolean) => {
-    if (!isHideable(id)) return
     save.mutate({ visibleModules: { ...visibleModules, [id]: on } })
   }
 

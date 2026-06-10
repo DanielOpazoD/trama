@@ -339,7 +339,9 @@ function ItemRow({ item, query }: { item: Item; query: string }) {
         <span className="text-ink-700">
           Abrir <HighlightedText text={item.label} query={query} />
         </span>
-        <span className="text-ink-300 text-xs ml-2 truncate">— mundo Notas</span>
+        <span className="text-ink-300 text-xs ml-2 truncate">
+          — mundo Notas{item.hint ? ` ${item.hint}` : ''}
+        </span>
       </>
     )
   }

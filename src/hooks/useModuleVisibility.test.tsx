@@ -22,21 +22,21 @@ describe('useModuleVisibility', () => {
     expect(result.current.isVisible('inicio')).toBe(true)
   })
 
-  it('un flag false oculta la sección; inicio es inmune', () => {
+  it('un flag false oculta la sección; todas son configurables', () => {
     mockData = { visibleModules: { claves: false, inicio: false } }
     const { result } = renderHook(() => useModuleVisibility())
     expect(result.current.isVisible('claves')).toBe(false)
-    expect(result.current.isVisible('inicio')).toBe(true)
+    expect(result.current.isVisible('inicio')).toBe(false)
   })
 
-  it('setVisible persiste el mapa completo y nunca oculta inicio', () => {
+  it('setVisible persiste el mapa completo para cualquier sección', () => {
     mockData = { visibleModules: {} }
     const { result } = renderHook(() => useModuleVisibility())
     result.current.setVisible('claves', false)
     expect(saveMock).toHaveBeenCalledWith({ visibleModules: { claves: false } })
     saveMock.mockClear()
-    result.current.setVisible('inicio', false) // no-op (anti-trampa)
-    expect(saveMock).not.toHaveBeenCalled()
+    result.current.setVisible('inicio', false)
+    expect(saveMock).toHaveBeenCalledWith({ visibleModules: { inicio: false } })
   })
 
   it('reveal solo actúa si estaba oculta', () => {

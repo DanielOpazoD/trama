@@ -6,6 +6,7 @@ import {
   useProactiveQuery,
 } from '../state'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useSectionVisibility } from '../hooks/useSectionVisibility'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -174,15 +175,21 @@ export function Sidebar({
         ? 'var(--accent-gold-soft)'
         : 'var(--accent-primary-soft)'
 
+  const sectionVis = useSectionVisibility()
+
   // ο2: Sugerencias auto-hide del nav cuando no hay propuestas pendientes.
   // El CommandPalette mantiene la entrada accesible siempre (para forzar
   // "pedir ronda"); el toast semanal κ2 sigue siendo el wake-up natural.
   // τ-IA: el filtro se aplica dentro de cada grupo y se descartan los grupos
   // que queden vacíos (hoy sólo afecta a "Diálogo", que conserva Chat).
+  // ρ-personal: también se filtran las secciones que el usuario ocultó
+  // desde Personalización (visibleSections en UserPrefs).
   const visibleGroups = NAV_GROUPS.map((group) => ({
     ...group,
     items: group.items.filter(
-      (item) => item.value !== 'sugerencias' || pendingSuggestions.length > 0,
+      (item) =>
+        (item.value !== 'sugerencias' || pendingSuggestions.length > 0) &&
+        sectionVis.isVisible(item.value),
     ),
   })).filter((group) => group.items.length > 0)
 

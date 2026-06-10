@@ -684,6 +684,14 @@ export const KeyIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Lock / candado — protección PIN por sección. */
+export const LockIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </svg>
+)
+
 /** Ordenar — barras decrecientes. Usado por el menú de orden de Tareas; antes
     era un SVG suelto a strokeWidth 2 (fuera de la house weight 1.6). */
 export const SortIcon = ({ size = 14, className }: Props) => (
