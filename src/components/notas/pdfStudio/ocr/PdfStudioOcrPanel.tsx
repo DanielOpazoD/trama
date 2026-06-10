@@ -1,6 +1,7 @@
 import type { PdfOcrLanguage } from '../../../../lib/pdfStudio/ocr/pdfOcr'
 import type { PdfDoc } from '../../../../lib/pdfStudio/model/model'
 import { assessPdfOcrDocument } from '../../../../lib/pdfStudio/ocr/pdfOcrLimits'
+import { WaitingVoice } from '../../../WaitingVoice'
 
 export function PdfStudioOcrPanel({
   disabled,
@@ -85,6 +86,19 @@ export function PdfStudioOcrPanel({
       )}
       {status && (
         <p role="status" aria-live="polite" className="mt-2 text-caption text-ink-600">
+          {running && (
+            <>
+              <WaitingVoice
+                phrases={[
+                  'leyendo la tinta…',
+                  'reconociendo letra por letra…',
+                  'cosiendo la capa de texto…',
+                ]}
+                className="text-caption"
+              />{' '}
+              ·{' '}
+            </>
+          )}
           {status}
         </p>
       )}

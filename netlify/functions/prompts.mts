@@ -6,6 +6,7 @@ import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { PromptCreateBody, PromptPatchBody } from './_lib/prompt-schemas.js'
+import { RestoreBody } from './_lib/restore-schema.js'
 import { parseTags } from './_lib/note-tags.js'
 import { extractPromptVariables } from './_lib/prompt-vars.js'
 
@@ -79,6 +80,33 @@ export default withObservability(
         ORDER BY favorite DESC, updated_at DESC, id DESC
       `)
       return Response.json(rows)
+    }
+
+    // Deshacer del DELETE: restaura el prompt + sus anexos que cayeron en la
+    // MISMA pasada (mismo deleted_at), en un único CTE atómico.
+    if (req.method === 'POST' && id && pathname.endsWith('/restore')) {
+      const parsed = await parseJsonBody(req, RestoreBody, requestId)
+      if (!parsed.ok) return parsed.response
+      const { deletedAt } = parsed.data
+      const rows = await sqlTyped<{ restored: boolean }>(sql`
+        WITH restore_prompt AS (
+          UPDATE prompts SET deleted_at = NULL, updated_at = NOW()
+          WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}
+          RETURNING 1
+        ),
+        restore_attachments AS (
+          UPDATE notas_attachments SET deleted_at = NULL, updated_at = NOW()
+          WHERE owner_type = 'prompt' AND owner_id = ${id}
+            AND deleted_at = ${deletedAt} AND user_id = ${userId}
+            AND EXISTS (SELECT 1 FROM restore_prompt)
+          RETURNING 1
+        )
+        SELECT EXISTS (SELECT 1 FROM restore_prompt) AS restored
+      `)
+      if (!rows[0]?.restored) {
+        return ApiErrors.notFound(requestId, 'Prompt no encontrado para restaurar')
+      }
+      return Response.json({ restored: true })
     }
 
     if (req.method === 'POST' && id && pathname.endsWith('/duplicate')) {
@@ -171,15 +199,25 @@ export default withObservability(
     }
 
     if (req.method === 'DELETE' && id) {
-      await sql`
-        UPDATE prompts SET deleted_at = NOW(), updated_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      `
-      await sql`
-        UPDATE notas_attachments SET deleted_at = NOW(), updated_at = NOW()
-        WHERE owner_type = 'prompt' AND owner_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      `
-      return Response.json({ ok: true })
+      // Un solo CTE: prompt y anexos comparten el MISMO deleted_at (antes eran
+      // dos UPDATEs con NOW() distintos). Devuelve el timestamp para Deshacer.
+      const rows = await sqlTyped<{ deleted_at: string }>(sql`
+        WITH del_prompt AS (
+          UPDATE prompts SET deleted_at = NOW(), updated_at = NOW()
+          WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+          RETURNING deleted_at
+        ),
+        del_attachments AS (
+          UPDATE notas_attachments
+          SET deleted_at = (SELECT deleted_at FROM del_prompt), updated_at = NOW()
+          WHERE owner_type = 'prompt' AND owner_id = ${id}
+            AND deleted_at IS NULL AND user_id = ${userId}
+            AND EXISTS (SELECT 1 FROM del_prompt)
+          RETURNING 1
+        )
+        SELECT deleted_at FROM del_prompt
+      `)
+      return Response.json({ ok: true, deletedAt: rows[0]?.deleted_at ?? null })
     }
 
     return ApiErrors.methodNotAllowed(requestId)
@@ -192,5 +230,6 @@ export const config: Config = {
     '/api/prompts/:id',
     '/api/prompts/:id/duplicate',
     '/api/prompts/:id/use',
+    '/api/prompts/:id/restore',
   ],
 }

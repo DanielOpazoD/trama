@@ -93,7 +93,19 @@ export const promptsApi = {
     const row = await request<PromptRow>(`/api/prompts/${id}/use`, { method: 'POST' })
     return promptFromRow(row)
   },
-  async remove(id: string): Promise<void> {
-    await request(`/api/prompts/${id}`, { method: 'DELETE' })
+  async remove(id: string): Promise<{ deletedAt: string | null }> {
+    const res = await request<{ ok: boolean; deletedAt?: string | null }>(
+      `/api/prompts/${id}`,
+      { method: 'DELETE' },
+    )
+    return { deletedAt: res.deletedAt ?? null }
+  },
+  /** Deshacer del remove: revive la fila (y sus anexos) cuyo deleted_at
+      coincide exactamente con el que devolvió el DELETE. */
+  async restore(id: string, deletedAt: string): Promise<void> {
+    await request<{ restored: boolean }>(`/api/prompts/${id}/restore`, {
+      method: 'POST',
+      body: JSON.stringify({ deletedAt }),
+    })
   },
 }

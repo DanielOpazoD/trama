@@ -195,9 +195,28 @@ describe('prompts endpoint — integration', () => {
     expect(
       mockSqlResponses.calls.some((c) => /DELETE FROM prompts/i.test(c.template)),
     ).toBe(false)
-    expect(mockSqlResponses.calls[0]?.template).toMatch(/UPDATE prompts SET deleted_at/i)
-    expect(mockSqlResponses.calls[1]?.template).toMatch(/UPDATE notas_attachments/i)
-    expect(mockSqlResponses.calls[1]?.template).toMatch(/owner_type = 'prompt'/i)
+    // Prompt + anexos caen en el MISMO CTE (mismo deleted_at — restaurable en bloque).
+    const cte = mockSqlResponses.calls[0]?.template ?? ''
+    expect(cte).toMatch(/UPDATE prompts SET deleted_at/i)
+    expect(cte).toMatch(/UPDATE notas_attachments/i)
+    expect(cte).toMatch(/owner_type = 'prompt'/i)
+    expect(cte).toMatch(/SELECT deleted_at FROM del_prompt/i)
+  })
+
+  it('POST /:id/restore revive prompt + anexos con el deleted_at exacto', async () => {
+    mockSqlResponses.push([{ restored: true }])
+    const res = await handler(
+      new Request('http://localhost/api/prompts/p1/restore', {
+        method: 'POST',
+        body: JSON.stringify({ deletedAt: '2026-06-10T12:00:00Z' }),
+      }),
+      mockContext({ id: 'p1' }),
+    )
+    expect(res.status).toBe(200)
+    expect((await res.json()).restored).toBe(true)
+    const cte = mockSqlResponses.calls[0]?.template ?? ''
+    expect(cte).toMatch(/UPDATE prompts SET deleted_at = NULL/i)
+    expect(cte).toMatch(/UPDATE notas_attachments SET deleted_at = NULL/i)
   })
 
   it('método no soportado devuelve 405', async () => {

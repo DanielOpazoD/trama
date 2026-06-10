@@ -182,21 +182,55 @@ describe('notes endpoint — integration', () => {
     expect(res.status).toBe(404)
   })
 
-  it('DELETE hace soft-delete (UPDATE, nunca DELETE FROM)', async () => {
+  it('DELETE hace soft-delete atómico (un CTE, nunca DELETE FROM) y devuelve deletedAt', async () => {
+    mockSqlResponses.push([{ deleted_at: '2026-06-10T12:00:00Z' }])
     const res = await handler(
       new Request('http://localhost/api/notes/n1', { method: 'DELETE' }),
       mockContext({ id: 'n1' }),
     )
     expect(res.status).toBe(200)
-    expect((await res.json()).ok).toBe(true)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    expect(body.deletedAt).toBe('2026-06-10T12:00:00Z')
     expect(
       mockSqlResponses.calls.some((c) => /DELETE FROM notes/i.test(c.template)),
     ).toBe(false)
-    expect(mockSqlResponses.calls[0]?.template).toMatch(/UPDATE notes SET deleted_at/i)
-    expect(mockSqlResponses.calls[0]?.template).toMatch(/user_id =/i)
-    expect(mockSqlResponses.calls[1]?.template).toMatch(/UPDATE notas_attachments/i)
-    expect(mockSqlResponses.calls[1]?.template).toMatch(/owner_type = 'note'/i)
-    expect(mockSqlResponses.calls[1]?.template).toMatch(/user_id =/i)
+    // Nota + anexos caen en el MISMO CTE (mismo deleted_at — restaurable en bloque).
+    const cte = mockSqlResponses.calls[0]?.template ?? ''
+    expect(cte).toMatch(/UPDATE notes SET deleted_at/i)
+    expect(cte).toMatch(/UPDATE notas_attachments/i)
+    expect(cte).toMatch(/owner_type = 'note'/i)
+    expect(cte).toMatch(/user_id =/i)
+    expect(cte).toMatch(/SELECT deleted_at FROM del_note/i)
+  })
+
+  it('POST /:id/restore revive nota + anexos con el deleted_at exacto', async () => {
+    mockSqlResponses.push([{ restored: true }])
+    const res = await handler(
+      new Request('http://localhost/api/notes/n1/restore', {
+        method: 'POST',
+        body: JSON.stringify({ deletedAt: '2026-06-10T12:00:00Z' }),
+      }),
+      mockContext({ id: 'n1' }),
+    )
+    expect(res.status).toBe(200)
+    expect((await res.json()).restored).toBe(true)
+    const cte = mockSqlResponses.calls[0]?.template ?? ''
+    expect(cte).toMatch(/UPDATE notes SET deleted_at = NULL/i)
+    expect(cte).toMatch(/UPDATE notas_attachments SET deleted_at = NULL/i)
+    expect(cte).toMatch(/deleted_at = \?/)
+  })
+
+  it('restore con deleted_at que ya no coincide devuelve 404', async () => {
+    mockSqlResponses.push([{ restored: false }])
+    const res = await handler(
+      new Request('http://localhost/api/notes/n1/restore', {
+        method: 'POST',
+        body: JSON.stringify({ deletedAt: '2020-01-01T00:00:00Z' }),
+      }),
+      mockContext({ id: 'n1' }),
+    )
+    expect(res.status).toBe(404)
   })
 
   it('promote: nota inexistente devuelve 404', async () => {

@@ -3,6 +3,7 @@ import type { AssembleOptions } from '../../../../lib/pdfStudio/assemble/assembl
 import type { DocSettings } from '../../../../lib/pdfStudio/model/model'
 import type { PdfTemplateMode } from '../planillas/design/PdfTemplateModeBanner'
 import { OverflowMenu, OverflowMenuItem } from '../../../OverflowMenu'
+import { WaitingVoice } from '../../../WaitingVoice'
 import {
   CloseIcon,
   FilePdfIcon,
@@ -183,7 +184,15 @@ export function PdfStudioDocumentToolbar({
         {exportStatus && (
           <div className="hidden items-center gap-1.5 sm:flex">
             <span role="status" aria-live="polite" className="text-micro text-ink-400">
-              {exportStatus}
+              <WaitingVoice
+                phrases={[
+                  'cosiendo el pliego…',
+                  'imponiendo las páginas…',
+                  'prensando la tinta…',
+                ]}
+                className="text-micro"
+              />{' '}
+              · {exportStatus}
             </span>
             <button
               type="button"

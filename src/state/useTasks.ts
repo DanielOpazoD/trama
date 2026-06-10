@@ -21,6 +21,7 @@ import {
 import { api } from '../api'
 import type { Task, TaskCreate, TaskPatch } from '../api'
 import { queryKeys } from './queryClient'
+import { useToast } from './toast'
 
 const TASKS_KEY = queryKeys.tasks
 
@@ -108,6 +109,7 @@ export function useUpdateTask() {
 
 export function useDeleteTask() {
   const qc = useQueryClient()
+  const toast = useToast()
   return useMutation({
     mutationFn: (id: string) => api.tasks.remove(id),
     onMutate: async (id: string) => {
@@ -120,6 +122,22 @@ export function useDeleteTask() {
     },
     onError: (_err, _id, context) => {
       for (const [key, data] of context?.previous ?? []) qc.setQueryData(key, data)
+    },
+    onSuccess: ({ deletedAt }, id) => {
+      // Deshacer: revive tarea + fotos con ese deleted_at exacto.
+      if (deletedAt) {
+        toast.show({
+          message: 'Tarea eliminada',
+          durationMs: 10_000,
+          action: {
+            label: 'Deshacer',
+            onAction: async () => {
+              await api.tasks.restore(id, deletedAt)
+              invalidateTasks(qc)
+            },
+          },
+        })
+      }
     },
     onSettled: () => invalidateTasks(qc),
   })

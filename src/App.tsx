@@ -526,8 +526,6 @@ function Shell({
         }}
       />
 
-      <ToastHost />
-
       <RightPanel
         isMobile={isMobile}
         pendingProposal={pendingProposal}
@@ -674,6 +672,10 @@ function WorldShell() {
           initialSection={pendingNotasSection ?? undefined}
         />
       )}
+      {/* Los toasts son globales A AMBOS mundos: vivía dentro de Shell (solo
+          Trama) y los toasts del mundo Notas — incluido el Deshacer de la ola
+          transversal — no se renderizaban nunca. */}
+      <ToastHost />
     </div>
   )
 }

@@ -28,6 +28,14 @@ export type EspejoComposition = {
   mostConnected: { id: string; name: string; degree: number }[]
   aiEntities: number
   resonance: { marked: number; avg: number | null }
+  /** Ola transversal 2026-06 — "estado del archivo": el ritmo de captura.
+      Cuándo empezó la trama y en qué franja/día sueles tejerla. */
+  ritmo: {
+    firstEntryAt: string | null
+    daysWeaving: number | null
+    band: string | null
+    weekday: string | null
+  }
 }
 
 function typeLabel(type: string): string {
@@ -126,6 +134,50 @@ export function composeEspejo(
     ? Math.round((resonant.reduce((s, q) => s + q.resonance, 0) / marked) * 10) / 10
     : null
 
+  // El ritmo se lee de los createdAt de entidades + citas (los gestos de
+  // captura del usuario). Franja horaria y día de la semana más frecuentes,
+  // y la primera entrada del archivo.
+  const stamps = [...entities, ...quotes]
+    .map((item) => new Date(item.createdAt))
+    .filter((d) => !Number.isNaN(d.getTime()))
+  const bandOf = (h: number) =>
+    h < 6
+      ? 'de madrugada'
+      : h < 12
+        ? 'por la mañana'
+        : h < 19
+          ? 'por la tarde'
+          : 'de noche'
+  const bandCount = new Map<string, number>()
+  const dayCount = new Map<number, number>()
+  for (const d of stamps) {
+    const band = bandOf(d.getHours())
+    bandCount.set(band, (bandCount.get(band) ?? 0) + 1)
+    dayCount.set(d.getDay(), (dayCount.get(d.getDay()) ?? 0) + 1)
+  }
+  const WEEKDAYS = [
+    'domingo',
+    'lunes',
+    'martes',
+    'miércoles',
+    'jueves',
+    'viernes',
+    'sábado',
+  ]
+  const topBand = [...bandCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+  const topDay = [...dayCount.entries()].sort((a, b) => b[1] - a[1])[0]
+  const firstStamp = stamps.length
+    ? stamps.reduce((min, d) => (d < min ? d : min), stamps[0]!)
+    : null
+  const ritmo = {
+    firstEntryAt: firstStamp ? firstStamp.toISOString() : null,
+    daysWeaving: firstStamp
+      ? Math.max(1, Math.floor((Date.now() - firstStamp.getTime()) / 86_400_000) + 1)
+      : null,
+    band: topBand,
+    weekday: topDay ? (WEEKDAYS[topDay[0]] ?? null) : null,
+  }
+
   return {
     totals: {
       entities: totalEntities,
@@ -139,6 +191,7 @@ export function composeEspejo(
     mostConnected,
     aiEntities,
     resonance: { marked, avg },
+    ritmo,
   }
 }
 
@@ -252,6 +305,35 @@ export function Espejo({ open, onClose }: { open: boolean; onClose: () => void }
                 Marcaste {data.resonance.marked}{' '}
                 {data.resonance.marked === 1 ? 'cita' : 'citas'} con resonancia; en
                 promedio, {data.resonance.avg} sobre 5.
+              </p>
+            )}
+
+            {data.ritmo.firstEntryAt && data.ritmo.daysWeaving && (
+              <p>
+                Empezaste a tejer el{' '}
+                {new Date(data.ritmo.firstEntryAt).toLocaleDateString('es', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+                {data.ritmo.daysWeaving > 1 && (
+                  <>
+                    {' '}
+                    — llevas{' '}
+                    <strong className="font-medium text-ink-800">
+                      {data.ritmo.daysWeaving} días
+                    </strong>{' '}
+                    con este archivo
+                  </>
+                )}
+                .
+                {data.ritmo.band && (
+                  <>
+                    {' '}
+                    Sueles capturar {data.ritmo.band}
+                    {data.ritmo.weekday && <>, sobre todo los {data.ritmo.weekday}</>}.
+                  </>
+                )}
               </p>
             )}
 

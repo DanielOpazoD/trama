@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import type { PromptCreate, PromptPatch } from '../api'
 import { queryKeys } from './queryClient'
+import { useToast } from './toast'
 
 const PROMPTS_KEY = queryKeys.prompts
 
@@ -47,8 +48,25 @@ export function useMarkPromptUsed() {
 
 export function useDeletePrompt() {
   const qc = useQueryClient()
+  const toast = useToast()
   return useMutation({
     mutationFn: (id: string) => api.prompts.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: PROMPTS_KEY }),
+    onSuccess: ({ deletedAt }, id) => {
+      qc.invalidateQueries({ queryKey: PROMPTS_KEY })
+      // Deshacer: revive prompt + anexos con ese deleted_at exacto.
+      if (deletedAt) {
+        toast.show({
+          message: 'Prompt eliminado',
+          durationMs: 10_000,
+          action: {
+            label: 'Deshacer',
+            onAction: async () => {
+              await api.prompts.restore(id, deletedAt)
+              qc.invalidateQueries({ queryKey: PROMPTS_KEY })
+            },
+          },
+        })
+      }
+    },
   })
 }

@@ -6,6 +6,7 @@ import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { NoteCreateBody, NotePatchBody } from './_lib/note-schemas.js'
+import { RestoreBody } from './_lib/restore-schema.js'
 import { parseTags } from './_lib/note-tags.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
 import { momentoEmbedText } from './_lib/momento-embed.js'
@@ -96,6 +97,33 @@ export default withObservability(
       return Response.json({ momentoId }, { status: 201 })
     }
 
+    // Deshacer del DELETE: restaura la nota + los anexos que cayeron en la
+    // MISMA pasada (mismo deleted_at), en un único CTE atómico.
+    if (req.method === 'POST' && id && new URL(req.url).pathname.endsWith('/restore')) {
+      const parsed = await parseJsonBody(req, RestoreBody, requestId)
+      if (!parsed.ok) return parsed.response
+      const { deletedAt } = parsed.data
+      const rows = await sqlTyped<{ restored: boolean }>(sql`
+        WITH restore_note AS (
+          UPDATE notes SET deleted_at = NULL, updated_at = NOW()
+          WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}
+          RETURNING 1
+        ),
+        restore_attachments AS (
+          UPDATE notas_attachments SET deleted_at = NULL, updated_at = NOW()
+          WHERE owner_type = 'note' AND owner_id = ${id}
+            AND deleted_at = ${deletedAt} AND user_id = ${userId}
+            AND EXISTS (SELECT 1 FROM restore_note)
+          RETURNING 1
+        )
+        SELECT EXISTS (SELECT 1 FROM restore_note) AS restored
+      `)
+      if (!rows[0]?.restored) {
+        return ApiErrors.notFound(requestId, 'Nota no encontrada para restaurar')
+      }
+      return Response.json({ restored: true })
+    }
+
     if (req.method === 'GET') {
       const url = new URL(req.url)
       const q = url.searchParams.get('q')?.trim()
@@ -173,15 +201,26 @@ export default withObservability(
     }
 
     if (req.method === 'DELETE' && id) {
-      await sql`
-        UPDATE notes SET deleted_at = NOW(), updated_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      `
-      await sql`
-        UPDATE notas_attachments SET deleted_at = NOW(), updated_at = NOW()
-        WHERE owner_type = 'note' AND owner_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      `
-      return Response.json({ ok: true })
+      // Un solo CTE: la nota y sus anexos comparten el MISMO deleted_at (antes
+      // eran dos UPDATEs con NOW() distintos — ni atómico ni restaurable en
+      // bloque). Devuelve el timestamp para que el cliente ofrezca Deshacer.
+      const rows = await sqlTyped<{ deleted_at: string }>(sql`
+        WITH del_note AS (
+          UPDATE notes SET deleted_at = NOW(), updated_at = NOW()
+          WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+          RETURNING deleted_at
+        ),
+        del_attachments AS (
+          UPDATE notas_attachments
+          SET deleted_at = (SELECT deleted_at FROM del_note), updated_at = NOW()
+          WHERE owner_type = 'note' AND owner_id = ${id}
+            AND deleted_at IS NULL AND user_id = ${userId}
+            AND EXISTS (SELECT 1 FROM del_note)
+          RETURNING 1
+        )
+        SELECT deleted_at FROM del_note
+      `)
+      return Response.json({ ok: true, deletedAt: rows[0]?.deleted_at ?? null })
     }
 
     return ApiErrors.methodNotAllowed(requestId)
@@ -189,5 +228,10 @@ export default withObservability(
 )
 
 export const config: Config = {
-  path: ['/api/notes', '/api/notes/:id', '/api/notes/:id/promote'],
+  path: [
+    '/api/notes',
+    '/api/notes/:id',
+    '/api/notes/:id/promote',
+    '/api/notes/:id/restore',
+  ],
 }

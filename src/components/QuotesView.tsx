@@ -19,6 +19,9 @@ import { QuoteItem } from './quotes/QuoteItem'
 import { CopyImportPromptButton } from './quotes/CopyImportPromptButton'
 import { useQuotesFilters } from './quotes/useQuotesFilters'
 import { QuotesFiltersBar } from './quotes/QuotesFiltersBar'
+import { PrintObject } from './print/PrintObject'
+import { QuotesPrintSheet } from './print/PrintSheets'
+import { PrinterIcon } from './Icons'
 import { DensityToggle } from './DensityToggle'
 import { useDensity } from '../hooks/useDensity'
 
@@ -90,6 +93,19 @@ export function QuotesView({
   const deleteQuote = useDeleteQuote()
 
   const [showForm, setShowForm] = useState(false)
+  // Imprimir como objeto: ⌘P (o el botón del header) produce un pliego
+  // tipografiado con las citas visibles, no un screenshot del DOM.
+  const [printOpen, setPrintOpen] = useState(false)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+        e.preventDefault()
+        setPrintOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   // P0-densidad: modo compacto para escanear cientos de citas sin perder la
   // versión cómoda para leer pocas. measureElement corrige la altura real, así
   // que sólo bajamos el estimate inicial para que el salto sea mínimo.
@@ -131,6 +147,17 @@ export function QuotesView({
         subtitle="Fragmentos textuales que atribuyes a una entidad. Una frase de un libro, algo que dijo una persona, un verso de una canción."
         action={
           <div className="flex items-center gap-4">
+            {quotes.length > 0 && (
+              <button
+                onClick={() => setPrintOpen(true)}
+                title="Imprimir pliego de citas (⌘P)"
+                aria-label="Imprimir pliego de citas"
+                className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors inline-flex items-center gap-1.5"
+              >
+                <PrinterIcon size={12} />
+                Pliego
+              </button>
+            )}
             <CopyImportPromptButton />
             {entities.length > 0 && (
               <button
@@ -292,6 +319,29 @@ export function QuotesView({
             total={quotes.length}
           />
         </>
+      )}
+      {printOpen && (
+        <PrintObject onDone={() => setPrintOpen(false)}>
+          <QuotesPrintSheet
+            quotes={quotes}
+            entityName={(q) =>
+              entities.find((e) => e.id === q.entityId)?.name ?? 'desconocida'
+            }
+            authorName={(q) => {
+              const ent = entities.find((e) => e.id === q.entityId)
+              return ent && !PERSON_TYPES.has(ent.type)
+                ? authorOf(ent.id)?.name
+                : undefined
+            }}
+            filterLabel={
+              favoritesOnly
+                ? 'favoritas'
+                : typeFilter && typeFilter !== 'all'
+                  ? typeFilter
+                  : undefined
+            }
+          />
+        </PrintObject>
       )}
     </>
   )
