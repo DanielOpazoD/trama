@@ -28,13 +28,11 @@ describe('<WaitingVoice />', () => {
   it('con prefers-reduced-motion no rota: la primera frase, quieta', () => {
     vi.stubGlobal(
       'matchMedia',
-      vi
-        .fn()
-        .mockReturnValue({
-          matches: true,
-          addListener: vi.fn(),
-          removeListener: vi.fn(),
-        }),
+      vi.fn().mockReturnValue({
+        matches: true,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+      }),
     )
     render(<WaitingVoice phrases={['una…', 'otra…']} intervalMs={500} />)
     act(() => {
