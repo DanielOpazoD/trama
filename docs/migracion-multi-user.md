@@ -1,5 +1,9 @@
 # Migración a multi-user
 
+> **El procedimiento de cutover (switch + smoke + rollback) vive en
+> [runbook-multiusuario.md](runbook-multiusuario.md).** Este documento es el
+> contexto de fondo y la referencia histórica del plan.
+
 > **Estado (junio 2026): implementado en código, pendiente de validación operativa final.**
 > La autenticación con Clerk ya está en el repo (`netlify/functions/_lib/auth.ts` verifica el
 > Bearer token con `@clerk/backend`), `AuthGate`/`UserButton` cubren login y

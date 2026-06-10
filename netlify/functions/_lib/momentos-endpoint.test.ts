@@ -79,6 +79,50 @@ describe('momentos endpoint — integration (mock SQL)', () => {
     expect(body.items[0].entity_ids).toEqual(['e1', 'e2'])
   })
 
+  it('los reads de links excluyen entidades soft-borradas (P0 auditoría 2026-06)', async () => {
+    // GET list: el bulk-fetch de links debe JOINear entities filtrando deleted_at.
+    mockSqlResponses.push([
+      {
+        id: 'm1',
+        kind: 'nota',
+        captured_at: '2026-05-24T12:00:00Z',
+        payload: {},
+        note: null,
+        origin: { kind: 'manual' },
+        created_at: '2026-05-24T12:00:00Z',
+        updated_at: '2026-05-24T12:00:00Z',
+      },
+    ])
+    mockSqlResponses.push([])
+    await handler(new Request('http://localhost/api/momentos'), mockContext())
+    const bulkLinks = mockSqlResponses.calls[1]?.template ?? ''
+    expect(bulkLinks).toMatch(/JOIN entities e ON e\.id = me\.entity_id/i)
+    expect(bulkLinks).toMatch(/e\.deleted_at IS NULL/i)
+
+    // GET :id: misma regla en la query de links del momento individual.
+    mockSqlResponses.reset()
+    mockSqlResponses.push([
+      {
+        id: 'm1',
+        kind: 'nota',
+        captured_at: '2026-05-24T12:00:00Z',
+        payload: {},
+        note: null,
+        origin: { kind: 'manual' },
+        created_at: '2026-05-24T12:00:00Z',
+        updated_at: '2026-05-24T12:00:00Z',
+      },
+    ])
+    mockSqlResponses.push([])
+    await handler(
+      new Request('http://localhost/api/momentos/m1'),
+      mockContext({ id: 'm1' }),
+    )
+    const oneLinks = mockSqlResponses.calls[1]?.template ?? ''
+    expect(oneLinks).toMatch(/JOIN entities e ON e\.id = me\.entity_id/i)
+    expect(oneLinks).toMatch(/e\.deleted_at IS NULL/i)
+  })
+
   it('GET list incluye momentos propios y compartidos aceptados', async () => {
     mockSqlResponses.push([])
 
