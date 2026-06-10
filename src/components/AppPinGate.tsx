@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { PinPad } from './PinPad'
 
 /**
  * Bloqueo por PIN para TODA la app. Opcional — se controla con un
@@ -93,79 +94,18 @@ export function AppPinGate({ children }: { children: React.ReactNode }) {
 }
 
 function PinScreen({ onUnlock }: { onUnlock: () => void }) {
-  const [pin, setPin] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (pin === PIN) {
-      setError(null)
-      onUnlock()
-      return
-    }
-    setError('PIN incorrecto')
-    setPin('')
-    inputRef.current?.focus()
-  }
-
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 animate-fade-up"
+      className="min-h-screen flex items-center justify-center px-4"
       style={{ backgroundColor: 'rgb(var(--paper-50))' }}
     >
-      <form
-        onSubmit={handleSubmit}
-        className="card-paper-soft w-full max-w-sm p-7 space-y-5"
-      >
-        <div className="text-center space-y-2">
-          <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
-            trama protegida
-          </p>
-          <h2 className="font-serif text-3xl text-ink-700 leading-tight">
-            Ingresa el PIN
-          </h2>
-          <p className="text-caption italic text-ink-400 max-w-xs mx-auto">
-            Esta trama está bloqueada. Confirma con tu clave para entrar.
-          </p>
-        </div>
-        <div className="space-y-1">
-          <input
-            ref={inputRef}
-            type="password"
-            inputMode="numeric"
-            autoComplete="off"
-            value={pin}
-            onChange={(e) => {
-              setPin(e.target.value)
-              if (error) setError(null)
-            }}
-            placeholder="••••••"
-            className="input-paper w-full text-center text-lg tracking-widest tabular-nums"
-            aria-label="PIN"
-            aria-invalid={error ? 'true' : undefined}
-          />
-          {error && (
-            <p
-              className="text-caption text-[color:var(--accent-clay)] text-center"
-              role="alert"
-            >
-              {error}
-            </p>
-          )}
-        </div>
-        <button
-          type="submit"
-          disabled={pin.length === 0}
-          className="btn-accent w-full text-xs"
-        >
-          desbloquear
-        </button>
-      </form>
+      <PinPad
+        eyebrow="trama protegida"
+        title="Ingresa el PIN"
+        subtitle="Esta trama está bloqueada. Confirma con tu clave para entrar."
+        correctPin={PIN}
+        onUnlock={onUnlock}
+      />
     </div>
   )
 }

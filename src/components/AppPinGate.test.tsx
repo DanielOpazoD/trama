@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { AppPinGate, isPinEnabled, setPinEnabled } from './AppPinGate'
 
 const ENABLED_KEY = 'trama:pin-enabled'
@@ -9,6 +9,11 @@ beforeEach(() => {
   // Reset storage entre tests
   window.localStorage.clear()
   window.sessionStorage.clear()
+  vi.useFakeTimers()
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('<AppPinGate />', () => {
@@ -32,16 +37,38 @@ describe('<AppPinGate />', () => {
     expect(screen.getByText(/Ingresa el PIN/i)).toBeInTheDocument()
   })
 
-  it('unlocks on correct PIN (151219) and reveals children', () => {
+  it('unlocks on correct PIN (151219) via PinPad buttons', () => {
     setPinEnabled(true)
     render(
       <AppPinGate>
         <div data-testid="app-content">trama dentro</div>
       </AppPinGate>,
     )
-    const input = screen.getByLabelText('PIN') as HTMLInputElement
-    fireEvent.change(input, { target: { value: '151219' } })
-    fireEvent.click(screen.getByRole('button', { name: /desbloquear/i }))
+    // Simula clic en cada dígito del PIN: 1-5-1-2-1-9
+    for (const digit of ['1', '5', '1', '2', '1', '9']) {
+      fireEvent.click(screen.getByRole('button', { name: digit }))
+    }
+    // PinPad auto-submits después de un timeout de 200ms
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+    expect(screen.getByTestId('app-content')).toBeInTheDocument()
+  })
+
+  it('unlocks on correct PIN via keyboard', () => {
+    setPinEnabled(true)
+    render(
+      <AppPinGate>
+        <div data-testid="app-content">trama dentro</div>
+      </AppPinGate>,
+    )
+    const hiddenInput = screen.getByLabelText('PIN')
+    for (const key of ['1', '5', '1', '2', '1', '9']) {
+      fireEvent.keyDown(hiddenInput, { key })
+    }
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
     expect(screen.getByTestId('app-content')).toBeInTheDocument()
   })
 
@@ -52,10 +79,17 @@ describe('<AppPinGate />', () => {
         <div data-testid="app-content">trama dentro</div>
       </AppPinGate>,
     )
-    fireEvent.change(screen.getByLabelText('PIN'), { target: { value: '000000' } })
-    fireEvent.click(screen.getByRole('button', { name: /desbloquear/i }))
+    // Ingresa un PIN incorrecto: 000000
+    for (const digit of ['0', '0', '0', '0', '0', '0']) {
+      fireEvent.click(screen.getByRole('button', { name: digit }))
+    }
+    // Error se muestra antes del reset (600ms)
     expect(screen.queryByTestId('app-content')).not.toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent(/incorrecto/i)
+    // Después de 600ms los dots se limpian
+    act(() => {
+      vi.advanceTimersByTime(700)
+    })
   })
 
   it('skips lock screen when sessionStorage already has unlock flag', () => {

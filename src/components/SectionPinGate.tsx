@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useSectionPin } from '../hooks/useSectionPin'
 import { LockIcon } from './Icons'
+import { PinPad } from './PinPad'
 
 /**
  * PIN hardcoded — idéntico al de AppPinGate.tsx. Mecanismo transitorio de
@@ -61,80 +62,15 @@ function PinPromptOrContent({ children }: { children: React.ReactNode }) {
     )
   }
 
-  return <PinPrompt onUnlock={() => setUnlocked(true)} />
-}
-
-function PinPrompt({ onUnlock }: { onUnlock: () => void }) {
-  const [pin, setPin] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (pin === PIN) {
-      setError(null)
-      onUnlock()
-      return
-    }
-    setError('PIN incorrecto')
-    setPin('')
-    inputRef.current?.focus()
-  }
-
   return (
-    <div className="flex-1 flex items-center justify-center p-8 animate-fade-up">
-      <form
-        onSubmit={handleSubmit}
-        className="card-paper-soft w-full max-w-sm p-7 space-y-5"
-      >
-        <div className="text-center space-y-2">
-          <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
-            sección protegida
-          </p>
-          <h2 className="font-serif text-2xl text-ink-700 leading-tight">
-            Ingresa el PIN
-          </h2>
-          <p className="text-caption italic text-ink-400 max-w-xs mx-auto">
-            Esta sección requiere verificación. Confirma con tu clave para continuar.
-          </p>
-        </div>
-        <div className="space-y-1">
-          <input
-            ref={inputRef}
-            type="password"
-            inputMode="numeric"
-            autoComplete="off"
-            value={pin}
-            onChange={(e) => {
-              setPin(e.target.value)
-              if (error) setError(null)
-            }}
-            placeholder="••••••"
-            className="input-paper w-full text-center text-lg tracking-widest tabular-nums"
-            aria-label="PIN"
-            aria-invalid={error ? 'true' : undefined}
-          />
-          {error && (
-            <p
-              className="text-caption text-[color:var(--accent-clay)] text-center"
-              role="alert"
-            >
-              {error}
-            </p>
-          )}
-        </div>
-        <button
-          type="submit"
-          disabled={pin.length === 0}
-          className="btn-accent w-full text-xs"
-        >
-          desbloquear
-        </button>
-      </form>
+    <div className="flex-1 flex items-center justify-center p-8">
+      <PinPad
+        eyebrow="sección protegida"
+        title="Ingresa el PIN"
+        subtitle="Esta sección requiere verificación. Confirma con tu clave para continuar."
+        correctPin={PIN}
+        onUnlock={() => setUnlocked(true)}
+      />
     </div>
   )
 }
