@@ -63,4 +63,12 @@ describe('<MomentoShareModal />', () => {
 
     await waitFor(() => expect(revoke).toHaveBeenCalledWith('user-papa'))
   })
+
+  it('tolera respuestas legacy sin items para la lista de accesos', async () => {
+    vi.spyOn(api, 'listMomentoShareAccess').mockResolvedValue([] as never)
+
+    renderWithProviders(<MomentoShareModal onClose={vi.fn()} />)
+
+    expect(await screen.findByText(/Sin accesos aceptados todavía/i)).toBeInTheDocument()
+  })
 })

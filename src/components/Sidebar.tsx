@@ -117,7 +117,7 @@ export function Sidebar({
 }) {
   const { data: pendingSuggestions = [] } = useProactiveQuery()
   const { data: shareInvitations } = useMomentoShareInvitationsQuery()
-  const pendingShareInvitations = shareInvitations?.items.length ?? 0
+  const pendingShareInvitations = shareInvitations?.items?.length ?? 0
   // Counts vienen del endpoint agregado — el Sidebar ya no carga la lista
   // completa de entidades. A 100k+ es la única opción viable.
   const { data: totals } = useCountsQuery()

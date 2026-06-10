@@ -51,7 +51,7 @@ export function MobileBottomNav({
 }) {
   const { data: totals } = useCountsQuery()
   const { data: shareInvitations } = useMomentoShareInvitationsQuery()
-  const pendingShareInvitations = shareInvitations?.items.length ?? 0
+  const pendingShareInvitations = shareInvitations?.items?.length ?? 0
 
   return (
     <nav

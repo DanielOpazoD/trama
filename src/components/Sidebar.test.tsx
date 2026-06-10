@@ -157,4 +157,12 @@ describe('<Sidebar />', () => {
       screen.getByRole('button', { name: /Momentos 4 2 invitaciones/i }),
     ).toBeInTheDocument()
   })
+
+  it('tolera respuestas legacy sin items para invitaciones compartidas', () => {
+    stateMocks.useMomentoShareInvitationsQuery.mockReturnValue({ data: [] })
+
+    renderSidebar({ view: 'inicio' })
+
+    expect(screen.getByRole('button', { name: 'Momentos 4' })).toBeInTheDocument()
+  })
 })

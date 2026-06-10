@@ -86,4 +86,24 @@ describe('<MobileBottomNav />', () => {
       await screen.findByRole('button', { name: /Momentos 1 invitación/i }),
     ).toBeInTheDocument()
   })
+
+  it('tolera respuestas legacy sin items para invitaciones compartidas', async () => {
+    vi.mocked(fetch).mockImplementation(async (input: string | Request | URL) => {
+      const url = String(input)
+      if (url.includes('/api/momentos-share-invitations')) {
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(
+        JSON.stringify({ entities: 0, quotes: 0, momentos: 0, relationships: 0 }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    })
+
+    renderWithProviders(<MobileBottomNav view="inicio" onChangeView={() => {}} />)
+
+    expect(await screen.findByRole('button', { name: 'Momentos' })).toBeInTheDocument()
+  })
 })

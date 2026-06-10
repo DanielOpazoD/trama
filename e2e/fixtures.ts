@@ -292,6 +292,14 @@ export async function mockBackend(page: Page, state: MockState) {
     })
   })
 
+  // /api/momentos-share-* (contrato global de compartir Momentos)
+  await page.route(apiPath('momentos-share-invitations', { prefix: true }), (route) =>
+    jsonResp(route, { items: [] }),
+  )
+  await page.route(apiPath('momentos-share-access', { prefix: true }), (route) =>
+    jsonResp(route, { items: [] }),
+  )
+
   // /api/notes y /api/tasks
   await page.route(apiPath('notes', { prefix: true }), (route) =>
     jsonResp(route, state.notes),

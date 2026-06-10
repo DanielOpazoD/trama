@@ -15,6 +15,7 @@ export function MomentoShareModal({ onClose }: { onClose: () => void }) {
   const accessQuery = useMomentoShareAccessQuery()
   const revoke = useRevokeMomentoShareAccess()
   const toast = useToast()
+  const acceptedAccess = accessQuery.data?.items ?? []
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -111,9 +112,9 @@ export function MomentoShareModal({ onClose }: { onClose: () => void }) {
           </p>
           {accessQuery.isLoading ? (
             <p className="text-sm text-ink-400">Cargando...</p>
-          ) : accessQuery.data?.items.length ? (
+          ) : acceptedAccess.length ? (
             <ul className="space-y-2">
-              {accessQuery.data.items.map((item) => {
+              {acceptedAccess.map((item) => {
                 const label = item.displayName || item.email || item.userId
                 return (
                   <li
