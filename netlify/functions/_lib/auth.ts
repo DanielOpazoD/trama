@@ -10,7 +10,7 @@
  *     ALLOW_LEGACY_FALLBACK=true para que requests sin token caigan a
  *     `legacy-single-user` en lugar de 401 (cutover gradual).
  */
-import { verifyToken } from '@clerk/backend'
+import { createClerkClient, verifyToken } from '@clerk/backend'
 import { setCurrentRlsUser } from './user-rls'
 
 /** Lee una env var de forma segura tanto en Netlify runtime como en tests. */
@@ -49,6 +49,32 @@ function emailFromJwtPayload(payload: unknown): string | undefined {
     if (first) return first.toLowerCase()
   }
   return undefined
+}
+
+/**
+ * Fetch the user's primary email from Clerk's Backend API.
+ * Called when the JWT payload doesn't include an email claim (common with
+ * default Clerk session token config). Results are cached per cold-start
+ * to avoid repeated API calls.
+ */
+const emailCache = new Map<string, string | null>()
+
+async function fetchEmailFromClerk(sub: string): Promise<string | undefined> {
+  const cached = emailCache.get(sub)
+  if (cached !== undefined) return cached ?? undefined
+  try {
+    const secretKey = readEnv('CLERK_SECRET_KEY')
+    if (!secretKey) return undefined
+    const clerk = createClerkClient({ secretKey })
+    const user = await clerk.users.getUser(sub)
+    const primary = user.emailAddresses.find((e) => e.id === user.primaryEmailAddressId)
+    const email = primary?.emailAddress?.toLowerCase() ?? null
+    emailCache.set(sub, email)
+    return email ?? undefined
+  } catch {
+    emailCache.set(sub, null)
+    return undefined
+  }
 }
 
 /**
@@ -101,11 +127,15 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
       // definitiva, sobre las llaves de producción finales.
       const ownerSub = readEnv('LEGACY_OWNER_CLERK_ID')
       if (ownerSub && payload.sub === ownerSub) {
-        const user = { id: 'legacy-single-user', email: emailFromJwtPayload(payload) }
+        const email =
+          emailFromJwtPayload(payload) ?? (await fetchEmailFromClerk(payload.sub))
+        const user = { id: 'legacy-single-user', email }
         setCurrentRlsUser(user.id)
         return user
       }
-      const user = { id: payload.sub, email: emailFromJwtPayload(payload) }
+      const email =
+        emailFromJwtPayload(payload) ?? (await fetchEmailFromClerk(payload.sub))
+      const user = { id: payload.sub, email }
       setCurrentRlsUser(user.id)
       return user
     } catch {

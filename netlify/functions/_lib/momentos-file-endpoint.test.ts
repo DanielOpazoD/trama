@@ -6,6 +6,9 @@ vi.mock('./db.js', () => setupMockSql())
 const verifyTokenMock = vi.hoisted(() => vi.fn())
 vi.mock('@clerk/backend', () => ({
   verifyToken: verifyTokenMock,
+  createClerkClient: () => ({
+    users: { getUser: vi.fn().mockRejectedValue(new Error('not found')) },
+  }),
 }))
 
 const { getWithMetadata } = vi.hoisted(() => ({

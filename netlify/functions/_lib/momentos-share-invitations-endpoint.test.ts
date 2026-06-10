@@ -6,6 +6,9 @@ vi.mock('./db.js', () => setupMockSql())
 const verifyTokenMock = vi.hoisted(() => vi.fn())
 vi.mock('@clerk/backend', () => ({
   verifyToken: verifyTokenMock,
+  createClerkClient: () => ({
+    users: { getUser: vi.fn().mockRejectedValue(new Error('not found')) },
+  }),
 }))
 
 process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
@@ -34,6 +37,7 @@ describe('momentos-share-invitations endpoint', () => {
   })
 
   it('GET lista invitaciones pendientes para el correo autenticado', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([
       {
         id: 'inv-1',
@@ -67,6 +71,7 @@ describe('momentos-share-invitations endpoint', () => {
 
   it('GET resuelve el correo desde users si Clerk no lo incluye en el token', async () => {
     verifyTokenMock.mockResolvedValue({ sub: 'user_invitee' })
+    mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ email: 'mama@example.com' }])
     mockSqlResponses.push([
       {
@@ -92,8 +97,8 @@ describe('momentos-share-invitations endpoint', () => {
     expect(res.status).toBe(200)
     const body = (await res.json()) as { items: Array<{ id: string }> }
     expect(body.items).toEqual([expect.objectContaining({ id: 'inv-1' })])
-    expect(mockSqlResponses.calls[0]?.template).toMatch(/SELECT email\s+FROM users/i)
-    expect(mockSqlResponses.calls[0]?.values).toContain('user_invitee')
+    expect(mockSqlResponses.calls[1]?.template).toMatch(/SELECT email\s+FROM users/i)
+    expect(mockSqlResponses.calls[1]?.values).toContain('user_invitee')
   })
 
   it('POST crea invitación global al espacio de Momentos y devuelve invitador', async () => {

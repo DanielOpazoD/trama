@@ -8,6 +8,9 @@ const clerkMocks = vi.hoisted(() => ({
 }))
 vi.mock('@clerk/backend', () => ({
   verifyToken: clerkMocks.verifyToken,
+  createClerkClient: () => ({
+    users: { getUser: vi.fn().mockRejectedValue(new Error('not found')) },
+  }),
 }))
 
 const blobMocks = vi.hoisted(() => ({

@@ -18,8 +18,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // `verifyToken` es un export standalone de @clerk/backend (no un método
 // de ClerkClient), así que lo mockeamos directamente.
 const verifyTokenMock = vi.fn()
+const getUserMock = vi.fn()
 vi.mock('@clerk/backend', () => ({
   verifyToken: verifyTokenMock,
+  createClerkClient: () => ({
+    users: { getUser: getUserMock },
+  }),
 }))
 
 // Helper para construir un Request con o sin Authorization header.
@@ -32,6 +36,8 @@ function makeRequest(authHeader?: string): Request {
 describe('getAuthedUser', () => {
   beforeEach(() => {
     verifyTokenMock.mockReset()
+    getUserMock.mockReset()
+    getUserMock.mockRejectedValue(new Error('not found'))
     // Reset módulo para reimportar auth.js limpio en cada test.
     vi.resetModules()
     // Limpiamos env vars que afectan el flujo. cada test setea las
@@ -137,5 +143,46 @@ describe('getAuthedUser', () => {
     expect(alice.id).toBe('user_alice')
     expect(bob.id).toBe('user_bob')
     expect(alice.id).not.toBe(bob.id)
+  })
+
+  it('cuando JWT no incluye email → busca el email desde Clerk Backend API', async () => {
+    process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
+    // JWT sin claim de email
+    verifyTokenMock.mockResolvedValue({ sub: 'user_invitee' })
+    // Clerk API devuelve el email
+    getUserMock.mockResolvedValue({
+      primaryEmailAddressId: 'ea_1',
+      emailAddresses: [{ id: 'ea_1', emailAddress: 'Invitee@Example.com' }],
+    })
+
+    const { getAuthedUser } = await import('./auth.js')
+    const user = await getAuthedUser(makeRequest('Bearer token'))
+    expect(user.email).toBe('invitee@example.com')
+    expect(getUserMock).toHaveBeenCalledWith('user_invitee')
+  })
+
+  it('email del JWT tiene prioridad sobre Clerk API', async () => {
+    process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
+    verifyTokenMock.mockResolvedValue({
+      sub: 'user_invitee',
+      email: 'fromjwt@example.com',
+    })
+
+    const { getAuthedUser } = await import('./auth.js')
+    const user = await getAuthedUser(makeRequest('Bearer token'))
+    expect(user.email).toBe('fromjwt@example.com')
+    // No debió llamar a la API porque el JWT ya tenía email
+    expect(getUserMock).not.toHaveBeenCalled()
+  })
+
+  it('si Clerk API falla → email queda undefined sin romper la autenticación', async () => {
+    process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
+    verifyTokenMock.mockResolvedValue({ sub: 'user_invitee' })
+    getUserMock.mockRejectedValue(new Error('Clerk API down'))
+
+    const { getAuthedUser } = await import('./auth.js')
+    const user = await getAuthedUser(makeRequest('Bearer token'))
+    expect(user.id).toBe('user_invitee')
+    expect(user.email).toBeUndefined()
   })
 })
