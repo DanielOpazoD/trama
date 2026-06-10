@@ -557,7 +557,9 @@ function WorldShell() {
     return def === 'notas' || def === 'trama' ? def : DEFAULT_WORLD
   })
   const changeWorld = useCallback((w: World) => {
-    setWorld(w)
+    // Cambiar de mundo es la navegación más grande de la app: cruza con la
+    // misma transición suave que el cambio de vista.
+    startViewTransition(() => setWorld(w))
     try {
       window.localStorage.setItem(WORLD_STORAGE_KEY, w)
     } catch {
