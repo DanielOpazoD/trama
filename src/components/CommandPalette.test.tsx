@@ -94,7 +94,11 @@ describe('<CommandPalette />', () => {
     expect(screen.getByRole('dialog', { name: /buscar/i })).toBeInTheDocument()
     expect(screen.getByPlaceholderText(/buscar/i)).toBeInTheDocument()
     // Las 8 vistas aparecen en la lista inicial
-    expect(screen.getByText('Inicio')).toBeInTheDocument()
+    // 'Inicio' aparece en la fila Y en el peek del resultado resaltado.
+    expect(screen.getAllByText('Inicio').length).toBeGreaterThan(0)
+    expect(
+      screen.getByRole('complementary', { name: /vista previa/i }),
+    ).toBeInTheDocument()
     expect(screen.getByText('Grafo')).toBeInTheDocument()
     expect(screen.getByText('Citas')).toBeInTheDocument()
   })

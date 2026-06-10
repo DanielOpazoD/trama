@@ -8,6 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { queryKeys } from './queryClient'
+import { useToast } from './toast'
 
 export function useNotesQuery() {
   return useQuery({
@@ -41,9 +42,26 @@ export function useUpdateNote() {
 
 export function useDeleteNote() {
   const qc = useQueryClient()
+  const toast = useToast()
   return useMutation({
     mutationFn: (id: string) => api.notes.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notes }),
+    onSuccess: ({ deletedAt }, id) => {
+      qc.invalidateQueries({ queryKey: queryKeys.notes })
+      // Deshacer: el restore revive nota + anexos con ese deleted_at exacto.
+      if (deletedAt) {
+        toast.show({
+          message: 'Nota eliminada',
+          durationMs: 10_000,
+          action: {
+            label: 'Deshacer',
+            onAction: async () => {
+              await api.notes.restore(id, deletedAt)
+              qc.invalidateQueries({ queryKey: queryKeys.notes })
+            },
+          },
+        })
+      }
+    },
   })
 }
 

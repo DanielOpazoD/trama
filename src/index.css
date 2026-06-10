@@ -1651,3 +1651,106 @@ html.dark .paper-grain::before {
     box-shadow: none !important;
   }
 }
+
+/* ── Imprimir como objeto (ola transversal 2026-06) ─────────────────────────
+   <PrintObject> monta .print-object en un portal fuera de #root y marca
+   html.print-object-active. En pantalla la hoja no existe; al imprimir, la
+   app entera se oculta y solo sale la hoja tipografiada. */
+.print-object {
+  display: none;
+}
+@media print {
+  html.print-object-active body > #root {
+    display: none !important;
+  }
+  html.print-object-active .print-object {
+    display: block !important;
+  }
+  /* La hoja: márgenes de libro, serif, tinta sobre blanco. */
+  .print-sheet {
+    max-width: 15cm;
+    margin: 0 auto;
+    padding: 1cm 0;
+    font-family: Inter, system-ui, sans-serif;
+    color: rgb(24 24 27);
+  }
+  .print-sheet h1 {
+    font-family: Spectral, Georgia, serif;
+    font-size: 28pt;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0.2cm 0 0;
+    text-wrap: balance;
+  }
+  .print-sheet-eyebrow,
+  .print-sheet-section {
+    font-family: Spectral, Georgia, serif;
+    font-variant-caps: small-caps;
+    text-transform: lowercase;
+    letter-spacing: 0.08em;
+    font-size: 10pt;
+    color: rgb(100 100 100);
+    margin: 0;
+  }
+  .print-sheet-section {
+    margin-top: 1cm;
+    page-break-after: avoid;
+  }
+  .print-sheet-rule {
+    width: 1cm;
+    height: 2pt;
+    background: rgb(24 24 27);
+    opacity: 0.75;
+    margin: 0.3cm 0;
+    border-radius: 2pt;
+  }
+  .print-sheet-meta {
+    font-size: 9pt;
+    color: rgb(100 100 100);
+    margin: 0 0 0.8cm;
+  }
+  .print-sheet-quote {
+    margin: 0 0 0.7cm;
+    padding-left: 0.4cm;
+    border-left: 1.5pt solid rgb(200 200 200);
+    page-break-inside: avoid;
+  }
+  .print-sheet-quote p {
+    font-family: Spectral, Georgia, serif;
+    font-style: italic;
+    font-size: 12pt;
+    line-height: 1.6;
+    margin: 0;
+    hanging-punctuation: first last;
+    text-wrap: pretty;
+  }
+  .print-sheet-quote cite {
+    display: block;
+    font-style: normal;
+    font-size: 9pt;
+    color: rgb(80 80 80);
+    margin-top: 0.15cm;
+  }
+  .print-sheet-prose {
+    font-size: 10.5pt;
+    line-height: 1.7;
+    margin: 0 0 0.5cm;
+    text-wrap: pretty;
+  }
+  .print-sheet-colofon {
+    margin-top: 1.2cm;
+    text-align: center;
+    color: rgb(140 140 140);
+    page-break-inside: avoid;
+  }
+  .print-sheet-colofon span {
+    letter-spacing: 0.6em;
+    font-size: 10pt;
+  }
+  .print-sheet-colofon p {
+    font-family: Spectral, Georgia, serif;
+    font-style: italic;
+    font-size: 8.5pt;
+    margin: 0.2cm 0 0;
+  }
+}

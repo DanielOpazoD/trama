@@ -11,6 +11,7 @@
 --   netlify/functions/entities-merge.mts
 --   netlify/functions/entities.mts        (DELETE + restore)
 --   netlify/functions/momentos.mts        (POST)
+--   netlify/functions/notes.mts           (DELETE + restore — patrón compartido con tasks/prompts)
 --
 -- Las tablas son throwaway con los nombres/contraint reales que importan (FK a
 -- users, PK compuesta de momento_entities para el ON CONFLICT, NOT NULL de
@@ -173,6 +174,89 @@ BEGIN
   IF mid IS NULL THEN RAISE EXCEPTION 'momento-post: el momento no se creó'; END IF;
   IF (SELECT count(*) FROM momento_entities WHERE momento_id=mid AND deleted_at IS NULL) <> 2 THEN RAISE EXCEPTION 'momento-post: no se crearon los 2 links'; END IF;
   RAISE NOTICE 'OK momento POST (momento + 2 links atómicos)';
+END $$;
+
+
+-- ============================================================================
+-- 4) notes.mts (≡ tasks.mts / prompts.mts) — DELETE con cascade de anexos en un
+--    solo CTE (mismo deleted_at para fila + anexos) y su restore simétrico.
+--    Los tres handlers comparten el patrón letra por letra (cambia la tabla y
+--    el owner_type); validar uno valida la forma de los tres.
+-- ============================================================================
+CREATE TABLE notes (
+  id uuid PRIMARY KEY, content text, updated_at timestamptz DEFAULT now(),
+  deleted_at timestamptz, user_id text NOT NULL REFERENCES users(id));
+CREATE TABLE notas_attachments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner_type text, owner_id text,
+  updated_at timestamptz DEFAULT now(), deleted_at timestamptz,
+  user_id text NOT NULL REFERENCES users(id));
+
+INSERT INTO notes (id, content, user_id)
+VALUES ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'nota con anexos', 'u1');
+INSERT INTO notas_attachments (owner_type, owner_id, user_id) VALUES
+  ('note', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'u1'),
+  ('note', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'u1');
+
+-- DELETE (copiado de notes.mts):
+WITH del_note AS (
+  UPDATE notes SET deleted_at = NOW(), updated_at = NOW()
+  WHERE id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' AND deleted_at IS NULL AND user_id = 'u1'
+  RETURNING deleted_at
+),
+del_attachments AS (
+  UPDATE notas_attachments
+  SET deleted_at = (SELECT deleted_at FROM del_note), updated_at = NOW()
+  WHERE owner_type = 'note' AND owner_id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+    AND deleted_at IS NULL AND user_id = 'u1'
+    AND EXISTS (SELECT 1 FROM del_note)
+  RETURNING 1
+)
+SELECT deleted_at FROM del_note;
+
+DO $$
+DECLARE note_deleted timestamptz;
+BEGIN
+  SELECT deleted_at INTO note_deleted FROM notes WHERE id='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  IF note_deleted IS NULL THEN RAISE EXCEPTION 'note-delete: la nota no se borró'; END IF;
+  IF (SELECT count(*) FROM notas_attachments WHERE owner_id='dddddddd-dddd-4ddd-8ddd-dddddddddddd' AND deleted_at = note_deleted) <> 2 THEN
+    RAISE EXCEPTION 'note-delete: los anexos no comparten el deleted_at de la nota';
+  END IF;
+  RAISE NOTICE 'OK note DELETE (fila + anexos, mismo deleted_at)';
+END $$;
+
+-- restore (copiado de notes.mts) — usa el deleted_at exacto del DELETE; el
+-- handler interpola ${deletedAt}, acá lo emulamos con una variable plpgsql:
+DO $$
+DECLARE
+  note_deleted timestamptz;
+  restored boolean;
+BEGIN
+  SELECT deleted_at INTO note_deleted FROM notes WHERE id='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  WITH restore_note AS (
+    UPDATE notes SET deleted_at = NULL, updated_at = NOW()
+    WHERE id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' AND deleted_at = note_deleted AND user_id = 'u1'
+    RETURNING 1
+  ),
+  restore_attachments AS (
+    UPDATE notas_attachments SET deleted_at = NULL, updated_at = NOW()
+    WHERE owner_type = 'note' AND owner_id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+      AND deleted_at = note_deleted AND user_id = 'u1'
+      AND EXISTS (SELECT 1 FROM restore_note)
+    RETURNING 1
+  )
+  SELECT EXISTS (SELECT 1 FROM restore_note) INTO restored;
+  IF NOT restored THEN RAISE EXCEPTION 'note-restore: el CTE no restauró nada'; END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF (SELECT deleted_at FROM notes WHERE id='dddddddd-dddd-4ddd-8ddd-dddddddddddd') IS NOT NULL THEN
+    RAISE EXCEPTION 'note-restore: la nota no se restauró';
+  END IF;
+  IF (SELECT count(*) FROM notas_attachments WHERE owner_id='dddddddd-dddd-4ddd-8ddd-dddddddddddd' AND deleted_at IS NULL) <> 2 THEN
+    RAISE EXCEPTION 'note-restore: los anexos no se restauraron';
+  END IF;
+  RAISE NOTICE 'OK note restore (mismo deleted_at revertido, anexos incluidos)';
 END $$;
 
 SELECT 'TODOS LOS CTE OK' AS resultado;

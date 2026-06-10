@@ -225,10 +225,28 @@ describe('tasks endpoint — integration', () => {
     expect(
       mockSqlResponses.calls.some((c) => /DELETE FROM tasks/i.test(c.template)),
     ).toBe(false)
-    expect(mockSqlResponses.calls[0]?.template).toMatch(/user_id =/i)
-    expect(mockSqlResponses.calls[1]?.template).toMatch(/UPDATE notas_attachments/i)
-    expect(mockSqlResponses.calls[1]?.template).toMatch(/owner_type = 'task'/i)
-    expect(mockSqlResponses.calls[1]?.template).toMatch(/user_id =/i)
+    // Tarea + fotos caen en el MISMO CTE (mismo deleted_at — restaurable en bloque).
+    const cte = mockSqlResponses.calls[0]?.template ?? ''
+    expect(cte).toMatch(/user_id =/i)
+    expect(cte).toMatch(/UPDATE notas_attachments/i)
+    expect(cte).toMatch(/owner_type = 'task'/i)
+    expect(cte).toMatch(/SELECT deleted_at FROM del_task/i)
+  })
+
+  it('POST /:id/restore revive tarea + fotos con el deleted_at exacto', async () => {
+    mockSqlResponses.push([{ restored: true }])
+    const res = await handler(
+      new Request('http://localhost/api/tasks/t1/restore', {
+        method: 'POST',
+        body: JSON.stringify({ deletedAt: '2026-06-10T12:00:00Z' }),
+      }),
+      mockContext({ id: 't1' }),
+    )
+    expect(res.status).toBe(200)
+    expect((await res.json()).restored).toBe(true)
+    const cte = mockSqlResponses.calls[0]?.template ?? ''
+    expect(cte).toMatch(/UPDATE tasks SET deleted_at = NULL/i)
+    expect(cte).toMatch(/UPDATE notas_attachments SET deleted_at = NULL/i)
   })
 
   it('método no soportado devuelve 405', async () => {

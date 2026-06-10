@@ -6,6 +6,7 @@ import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { TaskCreateBody, TaskPatchBody } from './_lib/task-schemas.js'
+import { RestoreBody } from './_lib/restore-schema.js'
 import { parseTags } from './_lib/note-tags.js'
 
 /**
@@ -117,6 +118,33 @@ export default withObservability(
       return Response.json(rows)
     }
 
+    // Deshacer del DELETE: restaura la tarea + sus fotos que cayeron en la
+    // MISMA pasada (mismo deleted_at), en un único CTE atómico.
+    if (req.method === 'POST' && id && new URL(req.url).pathname.endsWith('/restore')) {
+      const parsed = await parseJsonBody(req, RestoreBody, requestId)
+      if (!parsed.ok) return parsed.response
+      const { deletedAt } = parsed.data
+      const rows = await sqlTyped<{ restored: boolean }>(sql`
+        WITH restore_task AS (
+          UPDATE tasks SET deleted_at = NULL, updated_at = NOW()
+          WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}
+          RETURNING 1
+        ),
+        restore_attachments AS (
+          UPDATE notas_attachments SET deleted_at = NULL, updated_at = NOW()
+          WHERE owner_type = 'task' AND owner_id = ${id}
+            AND deleted_at = ${deletedAt} AND user_id = ${userId}
+            AND EXISTS (SELECT 1 FROM restore_task)
+          RETURNING 1
+        )
+        SELECT EXISTS (SELECT 1 FROM restore_task) AS restored
+      `)
+      if (!rows[0]?.restored) {
+        return ApiErrors.notFound(requestId, 'Tarea no encontrada para restaurar')
+      }
+      return Response.json({ restored: true })
+    }
+
     if (req.method === 'POST') {
       await ensureUserRow(sql, authedUser)
       const parsed = await parseJsonBody(req, TaskCreateBody, requestId)
@@ -190,15 +218,25 @@ export default withObservability(
     }
 
     if (req.method === 'DELETE' && id) {
-      await sql`
-        UPDATE tasks SET deleted_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      `
-      await sql`
-        UPDATE notas_attachments SET deleted_at = NOW(), updated_at = NOW()
-        WHERE owner_type = 'task' AND owner_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      `
-      return Response.json({ ok: true })
+      // Un solo CTE: tarea y fotos comparten el MISMO deleted_at (antes eran
+      // dos UPDATEs con NOW() distintos). Devuelve el timestamp para Deshacer.
+      const rows = await sqlTyped<{ deleted_at: string }>(sql`
+        WITH del_task AS (
+          UPDATE tasks SET deleted_at = NOW(), updated_at = NOW()
+          WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+          RETURNING deleted_at
+        ),
+        del_attachments AS (
+          UPDATE notas_attachments
+          SET deleted_at = (SELECT deleted_at FROM del_task), updated_at = NOW()
+          WHERE owner_type = 'task' AND owner_id = ${id}
+            AND deleted_at IS NULL AND user_id = ${userId}
+            AND EXISTS (SELECT 1 FROM del_task)
+          RETURNING 1
+        )
+        SELECT deleted_at FROM del_task
+      `)
+      return Response.json({ ok: true, deletedAt: rows[0]?.deleted_at ?? null })
     }
 
     return ApiErrors.methodNotAllowed(requestId)
@@ -206,5 +244,5 @@ export default withObservability(
 )
 
 export const config: Config = {
-  path: ['/api/tasks', '/api/tasks/:id'],
+  path: ['/api/tasks', '/api/tasks/:id', '/api/tasks/:id/restore'],
 }

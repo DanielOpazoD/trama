@@ -6,6 +6,7 @@ import { ErrorState } from './ErrorState'
 import { SkeletonList, TimelineRowSkeleton } from './Skeleton'
 import { RefreshIcon } from './Icons'
 import { AISourceTag } from './AISourceTag'
+import { WaitingVoice } from './WaitingVoice'
 import { Tooltip } from './Tooltip'
 import type { AtlasConstellation } from '../api'
 
@@ -95,9 +96,21 @@ export function AtlasView({ onSelectEntity }: { onSelectEntity: (id: string) => 
             </>
           }
           action={
-            <button onClick={trazar} disabled={generate.isPending} className="btn-accent">
-              {generate.isPending ? 'Trazando el atlas…' : 'Trazar el atlas'}
-            </button>
+            generate.isPending ? (
+              <span role="status" className="inline-flex items-center gap-2 py-2">
+                <WaitingVoice
+                  phrases={[
+                    'trazando el cielo…',
+                    'midiendo afinidades…',
+                    'nombrando constelaciones…',
+                  ]}
+                />
+              </span>
+            ) : (
+              <button onClick={trazar} className="btn-accent">
+                Trazar el atlas
+              </button>
+            )
           }
         />
       ) : (

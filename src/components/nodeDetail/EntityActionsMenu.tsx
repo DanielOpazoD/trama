@@ -1,9 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useDeleteEntity } from '../../state'
+import { useDeleteEntity, useQuotesQuery } from '../../state'
 import { useChatThreadsQuery, useCreateChatThread } from '../../state/useChat'
 import type { Entity } from '../../types'
-import { ChatIcon, PencilIcon, TrashIcon } from '../Icons'
+import { ChatIcon, PencilIcon, PrinterIcon, TrashIcon } from '../Icons'
+import { PrintObject } from '../print/PrintObject'
+import { EntityPrintSheet } from '../print/PrintSheets'
 
 /**
  * Menú "⋯" del header del panel de entidad. Agrupa las acciones secundarias
@@ -29,6 +31,9 @@ export function EntityActionsMenu({
 
   const [open, setOpen] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  // Imprimir como objeto: la ficha de catálogo de la entidad + sus citas.
+  const [printOpen, setPrintOpen] = useState(false)
+  const { data: allQuotes = [] } = useQuotesQuery()
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -172,6 +177,17 @@ export function EntityActionsMenu({
                     {createChatThread.isPending ? 'Abriendo…' : 'Hablar con la entidad'}
                   </button>
                 )}
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setOpen(false)
+                    setPrintOpen(true)
+                  }}
+                  className={`${ROW} text-ink-600 hover:text-ink-800 hover:bg-ink-100/60`}
+                >
+                  <PrinterIcon size={12} />
+                  Imprimir ficha
+                </button>
                 <div className="h-px bg-ink-100 my-1" />
                 <button
                   role="menuitem"
@@ -186,6 +202,14 @@ export function EntityActionsMenu({
           </div>,
           document.body,
         )}
+      {printOpen && (
+        <PrintObject onDone={() => setPrintOpen(false)}>
+          <EntityPrintSheet
+            entity={entity}
+            quotes={allQuotes.filter((q) => q.entityId === entity.id)}
+          />
+        </PrintObject>
+      )}
     </>
   )
 }

@@ -806,14 +806,17 @@ function route(
         r.deleted_at = nowIso()
         save(store)
       }
-      // notes/tasks devuelven {ok:true}; el resto {deletedAt}.
-      return resource === 'notes' ||
-        resource === 'tasks' ||
-        resource === 'prompts' ||
-        resource === 'secrets' ||
-        resource === 'notas-attachments'
-        ? { ok: true }
-        : { deletedAt: nowIso() }
+      // El deletedAt REAL de la fila (no un timestamp nuevo): es el token que
+      // el toast de Deshacer manda de vuelta al restore. notes/tasks/prompts
+      // lo devuelven junto al {ok} (espejo del backend post-undo-global);
+      // secrets/attachments siguen sin undo (sensibles / sin restore).
+      if (resource === 'secrets' || resource === 'notas-attachments') {
+        return { ok: true }
+      }
+      if (resource === 'notes' || resource === 'tasks' || resource === 'prompts') {
+        return { ok: true, deletedAt: r?.deleted_at ?? null }
+      }
+      return { deletedAt: r?.deleted_at ?? nowIso() }
     }
   }
 

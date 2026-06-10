@@ -126,7 +126,19 @@ export const tasksApi = {
     })
     return taskFromRow(row)
   },
-  async remove(id: string): Promise<void> {
-    await request(`/api/tasks/${id}`, { method: 'DELETE' })
+  async remove(id: string): Promise<{ deletedAt: string | null }> {
+    const res = await request<{ ok: boolean; deletedAt?: string | null }>(
+      `/api/tasks/${id}`,
+      { method: 'DELETE' },
+    )
+    return { deletedAt: res.deletedAt ?? null }
+  },
+  /** Deshacer del remove: revive la fila (y sus anexos) cuyo deleted_at
+      coincide exactamente con el que devolvió el DELETE. */
+  async restore(id: string, deletedAt: string): Promise<void> {
+    await request<{ restored: boolean }>(`/api/tasks/${id}/restore`, {
+      method: 'POST',
+      body: JSON.stringify({ deletedAt }),
+    })
   },
 }

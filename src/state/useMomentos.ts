@@ -8,6 +8,7 @@ import { api } from '../api'
 import type { MomentoShareRole } from '../api/momentos'
 import type { Momento, MomentoKind, MomentoPayload } from '../types'
 import { queryKeys } from './queryClient'
+import { useToast } from './toast'
 
 /**
  * ξ — hooks de TanStack Query para Momentos.
@@ -81,13 +82,32 @@ export function useUpdateMomento() {
 
 export function useDeleteMomento() {
   const queryClient = useQueryClient()
+  const toast = useToast()
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
+    queryClient.invalidateQueries({ queryKey: queryKeys.home })
+    queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+    queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
+  }
   return useMutation({
     mutationFn: (id: string) => api.deleteMomento(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
+    onSuccess: ({ deletedAt }, id) => {
+      invalidate()
+      // Deshacer: restoreMomento revive el momento + sus links de entidades
+      // cuyo deleted_at coincide (mismo contrato que entidades/citas).
+      if (deletedAt) {
+        toast.show({
+          message: 'Momento eliminado',
+          durationMs: 10_000,
+          action: {
+            label: 'Deshacer',
+            onAction: async () => {
+              await api.restoreMomento(id, deletedAt)
+              invalidate()
+            },
+          },
+        })
+      }
     },
   })
 }
