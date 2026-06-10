@@ -20,6 +20,9 @@ import { parseJsonBody } from './_lib/zod-body.js'
 const UserPrefsBody = z
   .object({
     visibleModules: z.record(z.string(), z.boolean()).optional(),
+    visibleSections: z.record(z.string(), z.boolean()).optional(),
+    pinnedSections: z.record(z.string(), z.boolean()).optional(),
+    sectionAliases: z.record(z.string(), z.string()).optional(),
     defaultWorld: z.enum(['trama', 'notas']).optional(),
   })
   .strict()
