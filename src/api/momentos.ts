@@ -36,6 +36,14 @@ export type MomentoShareInvitation = {
   updatedAt: string
 }
 
+export type MomentoShareAccess = {
+  userId: string
+  displayName?: string
+  email?: string
+  role: MomentoShareRole
+  acceptedAt: string
+}
+
 export const momentosApi = {
   async listMomentos(opts?: {
     cursor?: string | null
@@ -241,6 +249,16 @@ export const momentosApi = {
     return request(`/api/momentos-share-invitations/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ action }),
+    })
+  },
+
+  async listMomentoShareAccess(): Promise<{ items: MomentoShareAccess[] }> {
+    return request('/api/momentos-share-access')
+  },
+
+  async revokeMomentoShareAccess(userId: string): Promise<{ revoked: boolean }> {
+    return request(`/api/momentos-share-access/${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
     })
   },
 }

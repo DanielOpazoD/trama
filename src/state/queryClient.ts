@@ -28,6 +28,7 @@ export const queryKeys = {
   cronologiaInfinite: ['cronologia', 'infinite'] as const,
   momentosInfinite: ['momentos', 'infinite'] as const,
   momentoShareInvitations: ['momentos', 'share-invitations'] as const,
+  momentoShareAccess: ['momentos', 'share-access'] as const,
   notes: ['notes'] as const,
   // ['tasks'] es el prefijo de TODOS los queries de tareas (completo, por rango,
   // pendientes); invalidar este prefijo refresca cualquier variante en cache.

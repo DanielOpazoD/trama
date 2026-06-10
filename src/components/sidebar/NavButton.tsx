@@ -28,6 +28,7 @@ export function NavButton({
   item,
   active,
   count,
+  noticeCount = 0,
   mode,
   badgeTone = 'default',
   accentColor,
@@ -37,6 +38,7 @@ export function NavButton({
   active: boolean
   /** null = no count (oculta badge). number = mostrar (animado con NumberTicker). */
   count: number | null
+  noticeCount?: number
   mode: 'expanded' | 'collapsed'
   badgeTone?: 'default' | 'accent'
   /** λ4: color de la barra lateral activa + del icono activo. Si se omite,
@@ -51,8 +53,14 @@ export function NavButton({
   // "Entidades 63" (label + badge), en collapsed solo el icono. Para
   // ambos casos generamos un aria-label que matcheé el texto visible
   // sin agregar parens ni comas.
-  const ariaLabel = count !== null && count > 0 ? `${item.label} ${count}` : item.label
+  const noticeLabel =
+    noticeCount > 0
+      ? `${noticeCount} ${noticeCount === 1 ? 'invitación' : 'invitaciones'}`
+      : ''
+  const countLabel = count !== null && count > 0 ? String(count) : ''
+  const ariaLabel = [item.label, countLabel, noticeLabel].filter(Boolean).join(' ')
   const showCount = count !== null && count > 0
+  const showNotice = noticeCount > 0
 
   if (mode === 'collapsed') {
     // Icono solo, con badge dot arriba a la derecha si hay count. La
@@ -81,6 +89,13 @@ export function NavButton({
             <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-ink-700 text-paper-50 text-micro font-medium flex items-center justify-center">
               <NumberTicker value={count!} />
             </span>
+          )}
+          {showNotice && !showCount && (
+            <span
+              aria-hidden
+              className="absolute top-1 right-1 size-2 rounded-full"
+              style={{ backgroundColor: 'var(--accent-gold)' }}
+            />
           )}
         </button>
       </Tooltip>
@@ -147,6 +162,15 @@ export function NavButton({
           }
         >
           <NumberTicker value={count!} />
+        </span>
+      )}
+      {showNotice && (
+        <span
+          aria-hidden
+          className="min-w-[18px] rounded-full px-1.5 py-px text-center text-micro font-medium text-paper-50"
+          style={{ backgroundColor: 'var(--accent-gold)' }}
+        >
+          <NumberTicker value={noticeCount} />
         </span>
       )}
     </button>

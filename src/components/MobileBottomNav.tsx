@@ -1,4 +1,4 @@
-import { useCountsQuery } from '../state'
+import { useCountsQuery, useMomentoShareInvitationsQuery } from '../state'
 import {
   ChatIcon,
   EntitiesIcon,
@@ -50,6 +50,8 @@ export function MobileBottomNav({
   onChangeView: (v: ViewMode) => void
 }) {
   const { data: totals } = useCountsQuery()
+  const { data: shareInvitations } = useMomentoShareInvitationsQuery()
+  const pendingShareInvitations = shareInvitations?.items.length ?? 0
 
   return (
     <nav
@@ -62,6 +64,7 @@ export function MobileBottomNav({
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon
           const active = view === item.value
+          const noticeCount = item.value === 'momentos' ? pendingShareInvitations : 0
           const count =
             item.value === 'entidades'
               ? totals?.entities
@@ -75,7 +78,13 @@ export function MobileBottomNav({
             <li key={item.value} className="flex-1 min-w-0">
               <button
                 onClick={() => onChangeView(item.value)}
-                aria-label={item.label}
+                aria-label={
+                  noticeCount > 0
+                    ? `${item.label} ${noticeCount} ${
+                        noticeCount === 1 ? 'invitación' : 'invitaciones'
+                      }`
+                    : item.label
+                }
                 aria-current={active ? 'page' : undefined}
                 className="touch-target w-full h-full flex flex-col items-center justify-center gap-0.5 py-1 relative transition-colors"
                 style={{
@@ -84,6 +93,15 @@ export function MobileBottomNav({
               >
                 <span className="relative">
                   <Icon size={18} />
+                  {noticeCount > 0 && (
+                    <span
+                      aria-hidden
+                      className="absolute -right-1 -top-1 min-w-[14px] rounded-full px-1 text-center text-[9px] leading-[14px] text-paper-50"
+                      style={{ backgroundColor: 'var(--accent-gold)' }}
+                    >
+                      {noticeCount}
+                    </span>
+                  )}
                 </span>
                 <span
                   className="text-micro leading-tight tracking-tight font-medium truncate max-w-full px-1"

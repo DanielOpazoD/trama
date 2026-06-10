@@ -8,6 +8,7 @@ const stateMocks = vi.hoisted(() => ({
   acknowledgeHealthAlerts: vi.fn(),
   useCountsQuery: vi.fn(),
   useHealthAlerts: vi.fn(),
+  useMomentoShareInvitationsQuery: vi.fn(),
   useProactiveQuery: vi.fn(),
   useIsMobile: vi.fn(),
 }))
@@ -16,6 +17,7 @@ vi.mock('../state', () => ({
   acknowledgeHealthAlerts: stateMocks.acknowledgeHealthAlerts,
   useCountsQuery: stateMocks.useCountsQuery,
   useHealthAlerts: stateMocks.useHealthAlerts,
+  useMomentoShareInvitationsQuery: stateMocks.useMomentoShareInvitationsQuery,
   useProactiveQuery: stateMocks.useProactiveQuery,
 }))
 
@@ -72,6 +74,7 @@ describe('<Sidebar />', () => {
     stateMocks.acknowledgeHealthAlerts.mockReset()
     stateMocks.useCountsQuery.mockReset()
     stateMocks.useHealthAlerts.mockReset()
+    stateMocks.useMomentoShareInvitationsQuery.mockReset()
     stateMocks.useProactiveQuery.mockReset()
     stateMocks.useIsMobile.mockReset()
 
@@ -83,6 +86,7 @@ describe('<Sidebar />', () => {
       count: 1,
       maxSeverity: 'warn',
     })
+    stateMocks.useMomentoShareInvitationsQuery.mockReturnValue({ data: { items: [] } })
     stateMocks.useProactiveQuery.mockReturnValue({ data: [] })
     stateMocks.useIsMobile.mockReturnValue(false)
   })
@@ -140,5 +144,17 @@ describe('<Sidebar />', () => {
     await user.click(screen.getByRole('button', { name: /mundo trama expandido/i }))
 
     expect(props.onChangeWorld).toHaveBeenCalledWith('notas')
+  })
+
+  it('muestra badge de invitaciones pendientes en Momentos', () => {
+    stateMocks.useMomentoShareInvitationsQuery.mockReturnValue({
+      data: { items: [{ id: 'inv1' }, { id: 'inv2' }] },
+    })
+
+    renderSidebar({ view: 'inicio' })
+
+    expect(
+      screen.getByRole('button', { name: /Momentos 4 2 invitaciones/i }),
+    ).toBeInTheDocument()
   })
 })

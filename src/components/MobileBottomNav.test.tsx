@@ -9,14 +9,19 @@ beforeEach(() => {
   // y pending suggestions para decorar el chrome.
   vi.stubGlobal(
     'fetch',
-    vi
-      .fn()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({ entities: 0, quotes: 0, momentos: 0, relationships: 0 }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        ),
-      ),
+    vi.fn().mockImplementation(async (input: string | Request | URL) => {
+      const url = String(input)
+      if (url.includes('/api/momentos-share-invitations')) {
+        return new Response(JSON.stringify({ items: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(
+        JSON.stringify({ entities: 0, quotes: 0, momentos: 0, relationships: 0 }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    }),
   )
 })
 
@@ -57,6 +62,28 @@ describe('<MobileBottomNav />', () => {
     renderWithProviders(<MobileBottomNav view="inicio" onChangeView={() => {}} />)
     expect(
       screen.getByRole('navigation', { name: /Navegación principal/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('muestra invitaciones pendientes en el botón Momentos', async () => {
+    vi.mocked(fetch).mockImplementation(async (input: string | Request | URL) => {
+      const url = String(input)
+      if (url.includes('/api/momentos-share-invitations')) {
+        return new Response(JSON.stringify({ items: [{ id: 'inv1' }] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(
+        JSON.stringify({ entities: 0, quotes: 0, momentos: 0, relationships: 0 }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    })
+
+    renderWithProviders(<MobileBottomNav view="inicio" onChangeView={() => {}} />)
+
+    expect(
+      await screen.findByRole('button', { name: /Momentos 1 invitación/i }),
     ).toBeInTheDocument()
   })
 })

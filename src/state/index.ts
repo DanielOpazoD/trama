@@ -43,7 +43,9 @@ export {
   useDeleteMomento,
   useMergeMomentos,
   useMomentoShareInvitationsQuery,
+  useMomentoShareAccessQuery,
   useCreateMomentoShareInvitation,
+  useRevokeMomentoShareAccess,
   useRespondMomentoShareInvitation,
 } from './useMomentos'
 export {

@@ -147,4 +147,8 @@ export type {
 
 export type { NeighborsResponse, NeighborWithHop } from './graph'
 
-export type { MomentoUrlPreview } from './momentos'
+export type {
+  MomentoShareAccess,
+  MomentoShareInvitation,
+  MomentoUrlPreview,
+} from './momentos'

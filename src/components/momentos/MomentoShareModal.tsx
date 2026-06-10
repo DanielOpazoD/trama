@@ -1,12 +1,19 @@
 import { useState } from 'react'
 import type { MomentoShareRole } from '../../api/momentos'
-import { useCreateMomentoShareInvitation, useToast } from '../../state'
+import {
+  useCreateMomentoShareInvitation,
+  useMomentoShareAccessQuery,
+  useRevokeMomentoShareAccess,
+  useToast,
+} from '../../state'
 import { CloseIcon } from '../Icons'
 
 export function MomentoShareModal({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<MomentoShareRole>('viewer')
   const invite = useCreateMomentoShareInvitation()
+  const accessQuery = useMomentoShareAccessQuery()
+  const revoke = useRevokeMomentoShareAccess()
   const toast = useToast()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -20,6 +27,18 @@ export function MomentoShareModal({ onClose }: { onClose: () => void }) {
     } catch (err) {
       toast.show({
         message: err instanceof Error ? err.message : 'No se pudo compartir',
+        tone: 'error',
+      })
+    }
+  }
+
+  async function handleRevoke(userId: string) {
+    try {
+      await revoke.mutateAsync(userId)
+      toast.show({ message: 'Acceso revocado.', tone: 'success' })
+    } catch (err) {
+      toast.show({
+        message: err instanceof Error ? err.message : 'No se pudo revocar',
         tone: 'error',
       })
     }
@@ -42,6 +61,9 @@ export function MomentoShareModal({ onClose }: { onClose: () => void }) {
             <CloseIcon size={14} />
           </button>
         </div>
+        <p className="mb-3 text-sm text-ink-500">
+          Compartir todos mis Momentos con este correo.
+        </p>
         <label className="block text-micro uppercase tracking-eyebrow text-ink-400">
           correo
           <input
@@ -82,6 +104,48 @@ export function MomentoShareModal({ onClose }: { onClose: () => void }) {
         >
           {invite.isPending ? 'Enviando...' : 'Invitar'}
         </button>
+
+        <div className="mt-5 border-t border-ink-100 pt-3">
+          <p className="mb-2 text-micro uppercase tracking-eyebrow text-ink-400">
+            personas con acceso
+          </p>
+          {accessQuery.isLoading ? (
+            <p className="text-sm text-ink-400">Cargando...</p>
+          ) : accessQuery.data?.items.length ? (
+            <ul className="space-y-2">
+              {accessQuery.data.items.map((item) => {
+                const label = item.displayName || item.email || item.userId
+                return (
+                  <li
+                    key={item.userId}
+                    className="flex items-center justify-between gap-3 rounded-md border border-ink-100 bg-paper-100/50 px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-ink-700">{label}</p>
+                      {item.email && item.email !== label && (
+                        <p className="truncate text-caption text-ink-400">{item.email}</p>
+                      )}
+                      <p className="text-caption text-ink-400">
+                        {item.role === 'editor' ? 'puede editar' : 'solo lectura'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={revoke.isPending}
+                      onClick={() => handleRevoke(item.userId)}
+                      className="rounded-md border border-ink-100 px-2.5 py-1.5 text-sm text-ink-500 hover:text-ink-700 disabled:opacity-50"
+                      aria-label={`Revocar acceso a ${label}`}
+                    >
+                      Revocar
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-ink-400">Sin accesos aceptados todavía.</p>
+          )}
+        </div>
       </form>
     </div>
   )

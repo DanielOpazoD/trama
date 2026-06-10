@@ -2,6 +2,7 @@ import {
   acknowledgeHealthAlerts,
   useCountsQuery,
   useHealthAlerts,
+  useMomentoShareInvitationsQuery,
   useProactiveQuery,
 } from '../state'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -115,6 +116,8 @@ export function Sidebar({
   onOpenPalette: () => void
 }) {
   const { data: pendingSuggestions = [] } = useProactiveQuery()
+  const { data: shareInvitations } = useMomentoShareInvitationsQuery()
+  const pendingShareInvitations = shareInvitations?.items.length ?? 0
   // Counts vienen del endpoint agregado — el Sidebar ya no carga la lista
   // completa de entidades. A 100k+ es la única opción viable.
   const { data: totals } = useCountsQuery()
@@ -224,6 +227,7 @@ export function Sidebar({
                   item={item}
                   active={view === item.value}
                   count={counts[item.value]}
+                  noticeCount={item.value === 'momentos' ? pendingShareInvitations : 0}
                   mode="collapsed"
                   accentColor={SECTION_ACCENT[item.value]}
                   onClick={() => onChangeView(item.value)}
@@ -358,6 +362,7 @@ export function Sidebar({
                     item={item}
                     active={view === item.value}
                     count={counts[item.value]}
+                    noticeCount={item.value === 'momentos' ? pendingShareInvitations : 0}
                     mode="expanded"
                     badgeTone={item.value === 'sugerencias' ? 'accent' : 'default'}
                     accentColor={SECTION_ACCENT[item.value]}

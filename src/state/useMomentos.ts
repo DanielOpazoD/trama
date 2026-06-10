@@ -123,9 +123,33 @@ export function useMomentoShareInvitationsQuery() {
 }
 
 export function useCreateMomentoShareInvitation() {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (input: { email: string; role: MomentoShareRole }) =>
       api.createMomentoShareInvitation(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.momentoShareInvitations })
+    },
+  })
+}
+
+export function useMomentoShareAccessQuery() {
+  return useQuery({
+    queryKey: queryKeys.momentoShareAccess,
+    queryFn: () => api.listMomentoShareAccess(),
+  })
+}
+
+export function useRevokeMomentoShareAccess() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (userId: string) => api.revokeMomentoShareAccess(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.momentoShareAccess })
+      queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+    },
   })
 }
 
@@ -136,6 +160,7 @@ export function useRespondMomentoShareInvitation() {
       api.respondMomentoShareInvitation(id, action),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.momentoShareInvitations })
+      queryClient.invalidateQueries({ queryKey: queryKeys.momentoShareAccess })
       queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
       queryClient.invalidateQueries({ queryKey: queryKeys.home })
       queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
