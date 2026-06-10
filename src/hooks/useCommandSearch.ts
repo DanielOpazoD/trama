@@ -3,8 +3,14 @@ import { useEntitiesQuery, useQuotesQuery } from '../state'
 import { api } from '../api'
 import type { SearchResponse } from '../api'
 import type { ViewMode } from '../types/view'
-import { matchModuleAlias } from '../components/notas/moduleAliases'
 import type { NotasSection } from '../types/notas'
+import { useSectionVisibility } from './useSectionVisibility'
+import { useSectionPin } from './useSectionPin'
+import { useSectionAlias } from './useSectionAlias'
+import { useModuleVisibility } from './useModuleVisibility'
+import { isPinEnabled } from '../components/AppPinGate'
+import { SECTIONS } from '../components/notas/NotasWorldChrome'
+import { MODULE_ALIASES } from '../components/notas/moduleAliases'
 
 /**
  * Lógica de búsqueda del command palette (Cmd+K), extraída de
@@ -33,7 +39,7 @@ export type CommandAction =
 export type Item =
   | { kind: 'view'; view: ViewMode; label: string; hint?: string }
   | { kind: 'action'; action: CommandAction; label: string; hint?: string }
-  | { kind: 'reveal'; moduleId: NotasSection; label: string }
+  | { kind: 'reveal'; moduleId: NotasSection; label: string; hint?: string }
   | { kind: 'entity'; id: string; name: string; type: string }
   | { kind: 'quote'; id: string; entityId: string; text: string; entityName: string }
   | { kind: 'momento'; id: string; momentoKind: string; text: string }
@@ -104,6 +110,11 @@ export function useCommandSearch({
 } {
   const { data: entities = [] } = useEntitiesQuery()
   const { data: quotes = [] } = useQuotesQuery()
+  const sectionVis = useSectionVisibility()
+  const moduleVis = useModuleVisibility()
+  const { isPinRequired } = useSectionPin()
+  const { sectionAliases } = useSectionAlias()
+  const pinActive = isPinEnabled()
   const [query, setQuery] = useState('')
   // N5: useDeferredValue mantiene el input snappy mientras la lista
   // filtrada se re-computa con un tick de retraso. Crítico con tramas
@@ -160,9 +171,34 @@ export function useCommandSearch({
 
   const items: Item[] = useMemo(() => {
     const q = deferredQuery.trim().toLowerCase()
-    const matchesView = VIEWS.filter(
-      (v) => !q || v.label.toLowerCase().includes(q) || v.hint.toLowerCase().includes(q),
-    ).map<Item>((v) => ({ kind: 'view', view: v.view, label: v.label, hint: v.hint }))
+    const matchesView = VIEWS.filter((v) => {
+      if (!q) return true
+      if (v.label.toLowerCase().includes(q) || v.hint.toLowerCase().includes(q))
+        return true
+
+      const customAlias = (sectionAliases[v.view] ?? '').trim().toLowerCase()
+      if (customAlias) {
+        const cleanQ = q.startsWith('#') ? q.slice(1) : q
+        const cleanAlias = customAlias.startsWith('#')
+          ? customAlias.slice(1)
+          : customAlias
+        if (cleanAlias === cleanQ || cleanAlias.includes(cleanQ)) return true
+      }
+      return false
+    }).map<Item>((v) => {
+      // Annotate hidden/protected Trama sections for discoverability.
+      const hidden = !sectionVis.isVisible(v.view)
+      const pinned = pinActive && isPinRequired(v.view)
+      const suffix =
+        hidden && pinned
+          ? ' (oculta · protegida 🔒)'
+          : hidden
+            ? ' (oculta)'
+            : pinned
+              ? ' (protegida 🔒)'
+              : ''
+      return { kind: 'view', view: v.view, label: v.label, hint: v.hint + suffix }
+    })
 
     const matchesAction = actionsEnabled
       ? ACTIONS.filter(
@@ -255,12 +291,50 @@ export function useCommandSearch({
         }))
       : []
 
-    // Comando para revelar/abrir un módulo del mundo Notas (p. ej. "#pass" →
-    // Claves), cruzando de mundo. Va primero por ser una acción directa.
-    const aliasMatch = matchModuleAlias(deferredQuery)
-    const revealItems: Item[] = aliasMatch
-      ? [{ kind: 'reveal', moduleId: aliasMatch.moduleId, label: aliasMatch.label }]
-      : []
+    // Comando o alias para revelar/abrir un módulo del mundo Notas,
+    // cruzando de mundo. Se busca por label, alias por defecto, o alias personalizado.
+    const revealItems: Item[] = SECTIONS.filter((s) => {
+      if (!q) return false
+
+      // Match label
+      if (s.label.toLowerCase().includes(q)) return true
+
+      // Match default alias (token or with prefix)
+      const hasDefaultAlias = MODULE_ALIASES.some(
+        (a) =>
+          a.moduleId === s.id && (a.token.includes(q) || ('#' + a.token).includes(q)),
+      )
+      if (hasDefaultAlias) return true
+
+      // Match custom alias
+      const customAlias = (sectionAliases[`notas:${s.id}`] ?? '').trim().toLowerCase()
+      if (customAlias) {
+        const cleanQ = q.startsWith('#') ? q.slice(1) : q
+        const cleanAlias = customAlias.startsWith('#')
+          ? customAlias.slice(1)
+          : customAlias
+        if (cleanAlias === cleanQ || cleanAlias.includes(cleanQ)) return true
+      }
+      return false
+    }).map<Item>((s) => {
+      // Annotate hidden/protected Notas sections for discoverability.
+      const hidden = !moduleVis.isVisible(s.id)
+      const pinned = pinActive && isPinRequired(`notas:${s.id}`)
+      const suffix =
+        hidden && pinned
+          ? ' (oculta · protegida 🔒)'
+          : hidden
+            ? ' (oculta)'
+            : pinned
+              ? ' (protegida 🔒)'
+              : ''
+      return {
+        kind: 'reveal',
+        moduleId: s.id,
+        label: s.label,
+        hint: suffix || undefined,
+      }
+    })
 
     return [
       ...revealItems,
@@ -274,7 +348,18 @@ export function useCommandSearch({
       ...cronicaItems,
       ...chatItems,
     ]
-  }, [deferredQuery, entities, quotes, actionsEnabled, serverResults])
+  }, [
+    deferredQuery,
+    entities,
+    quotes,
+    actionsEnabled,
+    serverResults,
+    sectionVis,
+    moduleVis,
+    isPinRequired,
+    sectionAliases,
+    pinActive,
+  ])
 
   return { query, setQuery, items, searching }
 }

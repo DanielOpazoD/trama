@@ -9,6 +9,7 @@ import { TareasView } from './TareasView'
 import { useModuleVisibility } from '../../hooks/useModuleVisibility'
 import { useClampedSection } from '../../hooks/useClampedSection'
 import { LoadingHint } from '../LoadingHint'
+import { SectionPinGate } from '../SectionPinGate'
 import type { World } from '../../types/world'
 import type { NotasSection } from '../../types/notas'
 
@@ -81,41 +82,43 @@ export function NotasWorld({
         {/* Imprenta/Planillas son layouts tipo app de ANCHO COMPLETO: reciben el
             topbar como prop y lo montan DENTRO del área de trabajo, para que su
             panel lateral llegue hasta el borde superior. */}
-        {section === 'pdf' || section === 'planillas' ? (
-          <Suspense
-            fallback={
-              <div className="py-10 flex justify-center">
-                <LoadingHint
-                  text={
-                    section === 'planillas' ? 'cargando Planillas' : 'cargando Imprenta'
-                  }
-                  size="sm"
-                />
+        <SectionPinGate key={section} sectionId={`notas:${section}`}>
+          {section === 'pdf' || section === 'planillas' ? (
+            <Suspense
+              fallback={
+                <div className="py-10 flex justify-center">
+                  <LoadingHint
+                    text={
+                      section === 'planillas' ? 'cargando Planillas' : 'cargando Imprenta'
+                    }
+                    size="sm"
+                  />
+                </div>
+              }
+            >
+              <PdfStudioView
+                topBar={<NotasTopBar section={section} />}
+                studioMode={section === 'planillas' ? 'templates' : 'editor'}
+              />
+            </Suspense>
+          ) : (
+            <>
+              <NotasTopBar section={section} />
+              <div className="h-full overflow-y-auto">
+                <div
+                  data-testid="notas-world-content"
+                  className="px-5 md:px-8 pb-24 mx-auto py-8 md:py-10 max-w-5xl"
+                >
+                  {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
+                  {section === 'notas' && <NotasView />}
+                  {section === 'tareas' && <TareasView />}
+                  {section === 'prompts' && <PromptsView />}
+                  {section === 'claves' && <ClavesView />}
+                </div>
               </div>
-            }
-          >
-            <PdfStudioView
-              topBar={<NotasTopBar section={section} />}
-              studioMode={section === 'planillas' ? 'templates' : 'editor'}
-            />
-          </Suspense>
-        ) : (
-          <>
-            <NotasTopBar section={section} />
-            <div className="h-full overflow-y-auto">
-              <div
-                data-testid="notas-world-content"
-                className="px-5 md:px-8 pb-24 mx-auto py-8 md:py-10 max-w-5xl"
-              >
-                {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
-                {section === 'notas' && <NotasView />}
-                {section === 'tareas' && <TareasView />}
-                {section === 'prompts' && <PromptsView />}
-                {section === 'claves' && <ClavesView />}
-              </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </SectionPinGate>
       </main>
 
       {/* Buscador global — overlay abierto desde el chrome. */}

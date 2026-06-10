@@ -25,6 +25,15 @@ vi.mock('../hooks/useIsMobile', () => ({
   useIsMobile: stateMocks.useIsMobile,
 }))
 
+vi.mock('../hooks/useSectionVisibility', () => ({
+  useSectionVisibility: () => ({
+    isVisible: () => true,
+    setVisible: () => {},
+    showAll: () => {},
+    visibleSections: {},
+  }),
+}))
+
 vi.mock('./AIModeToggle', () => ({
   AIModeToggle: ({ collapsed }: { collapsed?: boolean }) => (
     <button type="button">modo IA {collapsed ? 'colapsado' : 'expandido'}</button>
