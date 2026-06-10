@@ -68,6 +68,38 @@ describe('user-prefs endpoint — integration', () => {
     expect(res.status).toBe(400)
   })
 
+  it('PUT acepta correctamente propiedades de personalización nuevas', async () => {
+    mockSqlResponses.push(
+      [], // ensureUserRow
+      [
+        {
+          prefs: {
+            visibleSections: { index: true },
+            pinnedSections: { notas: true },
+            sectionAliases: { index: 'mi alias' },
+          },
+        },
+      ],
+    )
+    const res = await handler(
+      new Request('http://localhost/api/user-prefs', {
+        method: 'PUT',
+        body: JSON.stringify({
+          visibleSections: { index: true },
+          pinnedSections: { notas: true },
+          sectionAliases: { index: 'mi alias' },
+        }),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      visibleSections: { index: true },
+      pinnedSections: { notas: true },
+      sectionAliases: { index: 'mi alias' },
+    })
+  })
+
   it('método no soportado devuelve 405', async () => {
     const res = await handler(
       new Request('http://localhost/api/user-prefs', { method: 'DELETE' }),
