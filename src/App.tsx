@@ -10,9 +10,12 @@ import {
   readUserPrefsMirror,
   clearUserPrefsMirror,
   useEntitiesQuery,
+  useMomentoShareInvitationsQuery,
   useOffline,
   useQuotesQuery,
   useRelationshipsQuery,
+  useRespondMomentoShareInvitation,
+  useToast,
 } from './state'
 import { useCurrentClientUserId } from './lib/clientIdentity'
 import { useTheme } from './hooks/useTheme'
@@ -36,6 +39,7 @@ import { AuthGate } from './components/AuthGate'
 import { AppPinGate } from './components/AppPinGate'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { SectionAccentBand } from './components/SectionAccentBand'
+import { MomentoNotificationsCenter } from './components/momentos/MomentoNotificationsCenter'
 import { NotasWorld } from './components/notas/NotasWorld'
 import { NOTAS_SECTIONS, type NotasSection } from './types/notas'
 import { useModuleVisibility } from './hooks/useModuleVisibility'
@@ -88,6 +92,9 @@ function Shell({
   const entitiesQuery = useEntitiesQuery()
   const relationshipsQuery = useRelationshipsQuery()
   const quotesQuery = useQuotesQuery()
+  const shareInvitationsQuery = useMomentoShareInvitationsQuery()
+  const respondShareInvitation = useRespondMomentoShareInvitation()
+  const toast = useToast()
   const { offline } = useOffline()
   const { theme, setTheme } = useTheme()
   // δ6: shift sutil del --accent-gold según hora local. La app se siente
@@ -205,6 +212,25 @@ function Shell({
   // citas) — no es exclusivo del grafo.
   const showDetail = !showProposal && selectedEntityId !== null
   const rightPanelOpen = showProposal || showDetail
+  const shareInvitations = shareInvitationsQuery.data?.items ?? []
+
+  async function handleShareInvitationResponse(id: string, action: 'accept' | 'reject') {
+    try {
+      await respondShareInvitation.mutateAsync({ id, action })
+      toast.show({
+        message:
+          action === 'accept'
+            ? 'Momentos compartidos agregados.'
+            : 'Invitación rechazada.',
+        tone: action === 'accept' ? 'success' : 'default',
+      })
+    } catch (err) {
+      toast.show({
+        message: err instanceof Error ? err.message : 'No se pudo responder',
+        tone: 'error',
+      })
+    }
+  }
 
   return (
     // τ-worlds: el Shell del mundo Trama llena su columna dentro de WorldShell
@@ -247,6 +273,13 @@ function Shell({
               world={world}
               onChangeWorld={onChangeWorld}
               onSortes={() => setSortesOpen(true)}
+              actions={
+                <MomentoNotificationsCenter
+                  invitations={shareInvitations}
+                  pending={respondShareInvitation.isPending}
+                  onRespond={handleShareInvitationResponse}
+                />
+              }
               breadcrumb={
                 // Si hay una entidad seleccionada y existe en cache,
                 // muestra "View › Nombre" — orientación visual estilo

@@ -57,8 +57,12 @@ describe('<MomentoShareModal />', () => {
 
     renderWithProviders(<MomentoShareModal onClose={vi.fn()} />)
 
+    expect(await screen.findByText(/Espacio compartido/i)).toBeInTheDocument()
     expect(await screen.findByText('Papá')).toBeInTheDocument()
+    expect(screen.getAllByText(/1 persona con acceso/i).length).toBeGreaterThan(0)
     expect(screen.getByText('papa@example.com')).toBeInTheDocument()
+    expect(screen.getAllByText(/Acceso activo/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Aceptado/i)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /revocar acceso/i }))
 
     await waitFor(() => expect(revoke).toHaveBeenCalledWith('user-papa'))

@@ -10,9 +10,12 @@ import type { World } from './types/world'
 const appMocks = vi.hoisted(() => ({
   useIsMobile: vi.fn(),
   useEntitiesQuery: vi.fn(),
+  useMomentoShareInvitationsQuery: vi.fn(),
   useRelationshipsQuery: vi.fn(),
+  useRespondMomentoShareInvitation: vi.fn(),
   useQuotesQuery: vi.fn(),
   useOffline: vi.fn(),
+  useToast: vi.fn(),
   useTheme: vi.fn(),
   useAchievements: vi.fn(),
   useWeeklyProactiveNudge: vi.fn(),
@@ -33,9 +36,12 @@ vi.mock('./state', () => ({
     <div data-testid="provider">{children}</div>
   ),
   useEntitiesQuery: appMocks.useEntitiesQuery,
+  useMomentoShareInvitationsQuery: appMocks.useMomentoShareInvitationsQuery,
   useRelationshipsQuery: appMocks.useRelationshipsQuery,
+  useRespondMomentoShareInvitation: appMocks.useRespondMomentoShareInvitation,
   useQuotesQuery: appMocks.useQuotesQuery,
   useOffline: appMocks.useOffline,
+  useToast: appMocks.useToast,
   readUserPrefsMirror: () => ({}),
   useUserPrefs: () => ({ data: {} }),
   useSaveUserPrefs: () => ({ mutate: () => {} }),
@@ -455,6 +461,13 @@ function installDefaultQueries({
     isLoading: loading,
     error: null,
   })
+  appMocks.useMomentoShareInvitationsQuery.mockReturnValue({
+    data: { items: [] },
+  })
+  appMocks.useRespondMomentoShareInvitation.mockReturnValue({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  })
 }
 
 describe('<App />', () => {
@@ -467,6 +480,7 @@ describe('<App />', () => {
     appMocks.useIsMobile.mockReturnValue(false)
     appMocks.useOffline.mockReturnValue({ offline: false })
     appMocks.useTheme.mockReturnValue({ theme: 'paper', setTheme: vi.fn() })
+    appMocks.useToast.mockReturnValue({ show: vi.fn() })
     installDefaultQueries()
   })
 

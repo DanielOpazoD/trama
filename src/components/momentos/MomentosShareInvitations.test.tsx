@@ -26,7 +26,7 @@ describe('<MomentosShareInvitations />', () => {
     )
 
     expect(screen.getByText(/Papá compartió sus Momentos contigo/i)).toBeInTheDocument()
-    expect(screen.getByText(/puedes editar/i)).toBeInTheDocument()
+    expect(screen.getByText(/puede editar/i)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /aceptar/i }))
     fireEvent.click(screen.getByRole('button', { name: /rechazar/i }))
