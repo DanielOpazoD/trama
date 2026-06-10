@@ -187,6 +187,8 @@ export default tseslint.config(
       globals: {
         console: 'readonly',
         process: 'readonly',
+        // Node 18+: fetch global (lo usa smoke-isolation.mjs contra el deploy).
+        fetch: 'readonly',
       },
     },
     rules: {

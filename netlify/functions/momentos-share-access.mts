@@ -4,7 +4,10 @@ import { ApiErrors } from './_lib/api-error.js'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
-import { runWithSystemRls } from './_lib/user-rls.js'
+
+// Corre BAJO el contexto RLS del usuario (entrado por getAuthedUser y aplicado
+// por el cliente scopeado de db.ts): las policies de momento_space_access ya
+// permiten owner/member, y `users` es catálogo compartido sin RLS. Sin bypass.
 
 type AccessRow = {
   user_id: string
@@ -35,8 +38,7 @@ export default withObservability(
     const otherUserId = context.params.userId
 
     if (req.method === 'GET' && !otherUserId) {
-      const rows = await runWithSystemRls(() =>
-        sqlTyped<AccessRow>(sql`
+      const rows = await sqlTyped<AccessRow>(sql`
         SELECT DISTINCT ON (other_user.id)
                other_user.id AS user_id,
                other_user.display_name,
@@ -52,8 +54,7 @@ export default withObservability(
         WHERE a.deleted_at IS NULL
           AND (a.owner_user_id = ${userId} OR a.member_user_id = ${userId})
         ORDER BY other_user.id, a.accepted_at DESC
-      `),
-      )
+      `)
       return Response.json({ items: rows.map(accessFromRow) })
     }
 
@@ -62,8 +63,7 @@ export default withObservability(
         return ApiErrors.validation(requestId, 'No puedes revocar tu propio acceso')
       }
       await ensureUserRow(sql, authedUser)
-      const rows = await runWithSystemRls(() =>
-        sqlTyped<RevokeRow>(sql`
+      const rows = await sqlTyped<RevokeRow>(sql`
         WITH revoked AS (
           UPDATE momento_space_access
           SET deleted_at = NOW(),
@@ -76,8 +76,7 @@ export default withObservability(
           RETURNING 1
         )
         SELECT EXISTS (SELECT 1 FROM revoked) AS revoked
-      `),
-      )
+      `)
       if (!rows[0]?.revoked) {
         return ApiErrors.notFound(requestId, 'Acceso compartido no encontrado')
       }

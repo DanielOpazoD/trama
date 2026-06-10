@@ -93,13 +93,15 @@ export default withObservability('momentos', async (req: Request, context: Conte
       return ApiErrors.notFound(requestId, 'Momento no encontrado')
     }
     // Traemos los entityIds linkeados también, para que el cliente no haga
-    // un round-trip aparte.
+    // un round-trip aparte. El JOIN a entities excluye entidades soft-borradas:
+    // el link sobrevive (restaurar la entidad lo revive), pero no se lista.
     const links = await runWithSystemRls(() => sqlTyped<MomentoLinkIdRow>(sql`
-      SELECT entity_id
-      FROM momento_entities
-      WHERE momento_id = ${id}
-        AND user_id = ${ownerIdFromRow(rows[0], userId)}
-        AND deleted_at IS NULL
+      SELECT me.entity_id
+      FROM momento_entities me
+      JOIN entities e ON e.id = me.entity_id AND e.deleted_at IS NULL
+      WHERE me.momento_id = ${id}
+        AND me.user_id = ${ownerIdFromRow(rows[0], userId)}
+        AND me.deleted_at IS NULL
     `))
     return Response.json({
       ...rows[0],
@@ -202,12 +204,15 @@ export default withObservability('momentos', async (req: Request, context: Conte
     const itemIds = rows.slice(0, limit).map((i) => i.id)
 
     // Bulk-fetch de links para los items de esta página, dedupe por momento_id.
+    // El JOIN a entities excluye entidades soft-borradas (mismo criterio que
+    // el GET individual): el link queda latente hasta un eventual restore.
     let linksByMomento = new Map<string, string[]>()
     if (itemIds.length > 0) {
       const links = await runWithSystemRls(() => sqlTyped<MomentoEntityLinkRow>(sql`
         SELECT me.momento_id, me.entity_id
         FROM momento_entities me
         JOIN momentos m ON m.id = me.momento_id
+        JOIN entities e ON e.id = me.entity_id AND e.deleted_at IS NULL
         WHERE me.momento_id = ANY(${itemIds}::uuid[])
           AND me.user_id = m.user_id
           AND me.deleted_at IS NULL
