@@ -30,6 +30,7 @@ import { useFreshIds } from '../hooks/useFreshIds'
 import { GraphToolbar, type GraphMode } from './graph/GraphToolbar'
 import { GraphMinimap } from './graph/GraphMinimap'
 import { GraphTypeLegend } from './graph/GraphTypeLegend'
+import { GraphSearch } from './graph/GraphSearch'
 import { GraphExploreHint } from './graph/GraphExploreHint'
 import { GraphSuggestStatusBanner } from './graph/GraphSuggestStatusBanner'
 import { GraphSvgCanvas } from './graph/GraphSvgCanvas'
@@ -412,6 +413,9 @@ export default function GraphView({
 
       {/* Leyenda de tipos — qué color es qué voz, plegada por default. */}
       <GraphTypeLegend entities={entities} />
+
+      {/* Buscar y saltar a un nodo — «/» enfoca; la selección viaja sola. */}
+      <GraphSearch entities={entities} onSelect={(id) => onSelect(id)} />
 
       {/* Voz de espera mientras el worker teje un layout grande — sin
           esto, miles de nodos significan segundos de blanco silencioso. */}
