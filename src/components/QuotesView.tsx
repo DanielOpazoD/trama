@@ -21,7 +21,7 @@ import { useQuotesFilters } from './quotes/useQuotesFilters'
 import { QuotesFiltersBar } from './quotes/QuotesFiltersBar'
 import { PrintObject } from './print/PrintObject'
 import { QuotesPrintSheet } from './print/PrintSheets'
-import { DiceIcon, PrinterIcon, QuoteIcon, ReadingIcon } from './Icons'
+import { PrinterIcon, QuoteIcon, ReadingIcon } from './Icons'
 import { LibroModal } from './quotes/LibroModal'
 import { DensityToggle } from './DensityToggle'
 import { useDensity } from '../hooks/useDensity'
@@ -100,6 +100,7 @@ export function QuotesView({
   // tipografiado con las citas visibles, no un screenshot del DOM.
   const [printOpen, setPrintOpen] = useState(false)
   const [libroOpen, setLibroOpen] = useState(false)
+  const [printMenuOpen, setPrintMenuOpen] = useState(false)
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
@@ -152,26 +153,50 @@ export function QuotesView({
         action={
           <div className="flex items-center gap-4">
             {quotes.length > 0 && (
-              <button
-                onClick={() => setPrintOpen(true)}
-                title="Imprimir pliego de citas (⌘P)"
-                aria-label="Imprimir pliego de citas"
-                className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors inline-flex items-center gap-1.5"
-              >
-                <PrinterIcon size={12} />
-                Pliego
-              </button>
-            )}
-            {quotes.length > 0 && (
-              <button
-                onClick={() => setLibroOpen(true)}
-                title="Componer el florilegio como libro PDF"
-                aria-label="Componer mi libro"
-                className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors inline-flex items-center gap-1.5"
-              >
-                <ReadingIcon size={12} />
-                Libro
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setPrintMenuOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={printMenuOpen}
+                  className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors inline-flex items-center gap-1.5"
+                >
+                  <PrinterIcon size={12} />
+                  Imprenta
+                  <span aria-hidden>⌄</span>
+                </button>
+                {printMenuOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-7 z-30 w-40 rounded-xl border border-ink-100 bg-paper-50 p-1.5 shadow-xl shadow-ink-900/15"
+                  >
+                    <PrintMenuItem
+                      icon={PrinterIcon}
+                      label="Pliego"
+                      onClick={() => {
+                        setPrintMenuOpen(false)
+                        setPrintOpen(true)
+                      }}
+                    />
+                    <PrintMenuItem
+                      icon={ReadingIcon}
+                      label="Libro"
+                      onClick={() => {
+                        setPrintMenuOpen(false)
+                        setLibroOpen(true)
+                      }}
+                    />
+                    <PrintMenuItem
+                      icon={QuoteIcon}
+                      label="Careo"
+                      onClick={() => {
+                        setPrintMenuOpen(false)
+                        onOpenCareo?.()
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
             )}
             <CopyImportPromptButton />
             {entities.length > 0 && (
@@ -185,52 +210,6 @@ export function QuotesView({
           </div>
         }
       />
-
-      {allLoadedQuotes.length > 0 && (
-        <section
-          aria-label="Taller de imprenta"
-          className="mb-5 rounded-xl border border-ink-100/70 bg-paper-100/45 px-4 py-3"
-        >
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-micro uppercase tracking-eyebrow text-ink-300">
-                taller de imprenta
-              </p>
-              <p className="mt-1 font-serif text-xl text-ink-700">
-                {allLoadedQuotes.length}{' '}
-                {allLoadedQuotes.length === 1 ? 'cita cargada' : 'citas cargadas'}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[28rem]">
-              <PrintWorkshopTool
-                icon={DiceIcon}
-                label="Atril"
-                description="en el buscador"
-              />
-              <PrintWorkshopTool
-                icon={PrinterIcon}
-                label="Lámina"
-                description="desde ⋯ de cada cita"
-              />
-              <PrintWorkshopTool
-                icon={ReadingIcon}
-                label="Libro"
-                description="composición PDF"
-                onClick={() => setLibroOpen(true)}
-              />
-              <PrintWorkshopTool
-                icon={QuoteIcon}
-                label="Careo"
-                description="abrir contrapunto"
-                onClick={onOpenCareo}
-              />
-            </div>
-          </div>
-          <p className="mt-3 text-caption text-ink-400">
-            Lámina vive en el menú ⋯ de cada cita; Careo abre dos voces frente a frente.
-          </p>
-        </section>
-      )}
 
       {quotesPaged.isLoading ? (
         // Paridad con Entidades/Momentos/Inicio: skeleton en la carga
@@ -409,56 +388,24 @@ export function QuotesView({
   )
 }
 
-function PrintWorkshopTool({
+function PrintMenuItem({
   icon: Icon,
   label,
-  description,
   onClick,
 }: {
   icon: React.ComponentType<{ size?: number; className?: string }>
   label: string
-  description: string
-  onClick?: () => void
-}) {
-  const className =
-    'rounded-lg border border-ink-100/70 bg-paper-50/70 px-3 py-2 text-left transition-colors'
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={`${className} hover:border-ink-200 hover:bg-paper-50`}
-      >
-        <PrintWorkshopToolContent icon={Icon} label={label} description={description} />
-      </button>
-    )
-  }
-
-  return (
-    <div className={className}>
-      <PrintWorkshopToolContent icon={Icon} label={label} description={description} />
-    </div>
-  )
-}
-
-function PrintWorkshopToolContent({
-  icon: Icon,
-  label,
-  description,
-}: {
-  icon: React.ComponentType<{ size?: number; className?: string }>
-  label: string
-  description: string
+  onClick: () => void
 }) {
   return (
-    <>
-      <div className="flex items-center gap-1.5 text-xs font-medium text-ink-700">
-        <Icon size={13} className="text-ink-400" />
-        {label}
-      </div>
-      <p className="mt-1 text-micro uppercase tracking-[0.16em] text-ink-300">
-        {description}
-      </p>
-    </>
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-ink-600 hover:bg-ink-100/60 hover:text-ink-800"
+    >
+      <Icon size={12} className="text-ink-400" />
+      {label}
+    </button>
   )
 }

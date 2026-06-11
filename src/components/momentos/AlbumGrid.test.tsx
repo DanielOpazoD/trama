@@ -7,6 +7,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Entity, Momento } from '../../types'
 import { AlbumGrid } from './AlbumGrid'
 
+vi.mock('./MomentoEditModal', () => ({
+  MomentoEditModal: ({
+    open,
+    onClose,
+  }: {
+    momento: Momento
+    open: boolean
+    onClose: () => void
+  }) =>
+    open ? (
+      <div role="dialog" aria-label="Editar foto">
+        <button type="button" onClick={onClose}>
+          cerrar
+        </button>
+      </div>
+    ) : null,
+}))
+
 const entity = {
   id: 'e1',
   name: 'Valparaíso',
@@ -87,7 +105,7 @@ describe('<AlbumGrid />', () => {
     expect(screen.getByText('No hay fotos todavía')).toBeInTheDocument()
   })
 
-  it('renderiza fotos, ignora otros kinds y permite eliminar', async () => {
+  it('renderiza fotos, ignora otros kinds y permite eliminar desde el menú', async () => {
     const onDelete = vi.fn()
     const user = userEvent.setup()
 
@@ -104,9 +122,27 @@ describe('<AlbumGrid />', () => {
     expect(screen.getByText('+1')).toBeInTheDocument()
     expect(screen.queryByText('no soy foto')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /eliminar foto/i }))
+    await user.click(screen.getByRole('button', { name: /opciones de foto/i }))
+    await user.click(screen.getByRole('menuitem', { name: /eliminar/i }))
 
     expect(onDelete).toHaveBeenCalledWith('foto-1')
+  })
+
+  it('permite editar una foto desde el menú', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <AlbumGrid
+        items={[photoMomento]}
+        entitiesById={new Map([['e1', entity]])}
+        onDelete={() => {}}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /opciones de foto/i }))
+    await user.click(screen.getByRole('menuitem', { name: /editar/i }))
+
+    expect(screen.getByRole('dialog', { name: /editar foto/i })).toBeInTheDocument()
   })
 
   it('renderiza fotos persistidas con payload photos legado', async () => {

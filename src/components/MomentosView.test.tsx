@@ -77,6 +77,14 @@ describe('<MomentosView />', () => {
     expect(screen.queryByLabelText('Modos de memoria')).not.toBeInTheDocument()
   })
 
+  it('no ofrece escribir hoja suelta y arranca con Álbum como vista activa', async () => {
+    renderWithProviders(<MomentosView />)
+
+    await screen.findByRole('button', { name: /compartir momentos/i })
+    expect(screen.queryByRole('button', { name: /escribir una hoja suelta/i })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Álbum' })).toHaveClass('bg-paper-100')
+  })
+
   it('abre el control general para compartir todos los Momentos', async () => {
     renderWithProviders(<MomentosView />)
 

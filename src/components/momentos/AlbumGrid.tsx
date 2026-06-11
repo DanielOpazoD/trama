@@ -1,10 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useLocalStorageState } from '../../hooks/useLocalStorageState'
 import type { Entity, Momento } from '../../types'
 import { EmptyMessage } from '../EmptyMessage'
-import { TrashIcon } from '../Icons'
+import { PencilIcon, TrashIcon } from '../Icons'
 import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 import { formatMonthLabel, getMomentoPhotoItems, groupByMonth } from './helpers'
+import { MomentoEditModal } from './MomentoEditModal'
 
 /**
  * Vista alternativa de Momentos: grid de fotos agrupado por mes-año
@@ -242,6 +243,8 @@ function AlbumTile({
   const linkedEntities = momento.entityIds
     .map((id) => entitiesById.get(id))
     .filter((e): e is Entity => Boolean(e))
+  const [actionsOpen, setActionsOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   if (!storageKey) return null
   const d = new Date(momento.capturedAt)
   const dateLabel = !Number.isNaN(d.getTime())
@@ -254,6 +257,8 @@ function AlbumTile({
   // entidades vinculadas debajo.
   const showOverlay = size !== 'small'
   const showLinked = size === 'large'
+  const canEdit = momento.accessRole !== 'viewer'
+  const canDelete = !momento.shared
 
   return (
     <li className="group relative">
@@ -290,14 +295,62 @@ function AlbumTile({
           {linkedEntities.map((e) => e.name).join(' · ')}
         </p>
       )}
-      <button
-        onClick={onDelete}
-        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-paper-50/80 backdrop-blur-sm rounded text-ink-500 hover:text-[color:var(--accent-clay)]"
-        aria-label="Eliminar foto"
-        title="Eliminar"
-      >
-        <TrashIcon size={12} />
-      </button>
+      {(canEdit || canDelete) && (
+        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={() => setActionsOpen((v) => !v)}
+            className="rounded bg-paper-50/85 px-1.5 pb-1 pt-0 text-ink-500 backdrop-blur-sm hover:text-ink-800"
+            aria-label="Opciones de foto"
+            aria-expanded={actionsOpen}
+            title="Opciones"
+          >
+            <span aria-hidden className="text-base leading-none">
+              ⋯
+            </span>
+          </button>
+          {actionsOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-7 z-20 w-32 rounded-xl border border-ink-100 bg-paper-50 p-1.5 shadow-xl shadow-ink-900/15"
+            >
+              {canEdit && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setActionsOpen(false)
+                    setEditOpen(true)
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-ink-600 hover:bg-ink-100/60 hover:text-ink-800"
+                >
+                  <PencilIcon size={12} />
+                  Editar
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setActionsOpen(false)
+                    onDelete()
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[color:var(--accent-clay)] hover:bg-[color:var(--accent-clay-soft)]"
+                >
+                  <TrashIcon size={12} />
+                  Eliminar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      <MomentoEditModal
+        momento={momento}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+      />
     </li>
   )
 }

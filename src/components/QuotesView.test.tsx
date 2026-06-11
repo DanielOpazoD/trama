@@ -94,25 +94,28 @@ describe('<QuotesView />', () => {
     expect(screen.getByRole('button', { name: /persona/i })).toBeInTheDocument()
   })
 
-  it('presenta Atril, Lámina, Libro y Careo como familia editorial de imprenta', () => {
+  it('agrupa Pliego, Libro y Careo en un botón superior de Imprenta', async () => {
+    const user = userEvent.setup()
     setupCache([ENTITY_LIBRO, ENTITY_PERSONA], [QUOTE_LIBRO, QUOTE_PERSONA])
 
-    const imprenta = screen.getByLabelText('Taller de imprenta')
-    expect(imprenta).toHaveTextContent(/Atril/i)
-    expect(imprenta).toHaveTextContent(/Lámina/i)
-    expect(imprenta).toHaveTextContent(/Libro/i)
-    expect(imprenta).toHaveTextContent(/Careo/i)
-    expect(imprenta).toHaveTextContent(/2 citas cargadas/i)
+    expect(screen.queryByLabelText('Taller de imprenta')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: /Imprenta/i }))
+
+    expect(screen.getByRole('menuitem', { name: /Pliego/i })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /Libro/i })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /Careo/i })).toBeInTheDocument()
   })
 
-  it('abre Careo desde el Taller de imprenta', async () => {
+  it('abre Careo desde el menú Imprenta', async () => {
     const user = userEvent.setup()
     const onOpenCareo = vi.fn()
     setupCache([ENTITY_LIBRO, ENTITY_PERSONA], [QUOTE_LIBRO, QUOTE_PERSONA], [], {
       onOpenCareo,
     })
 
-    await user.click(screen.getByRole('button', { name: /Careo/i }))
+    await user.click(screen.getByRole('button', { name: /Imprenta/i }))
+    await user.click(screen.getByRole('menuitem', { name: /Careo/i }))
 
     expect(onOpenCareo).toHaveBeenCalledOnce()
   })
