@@ -1062,6 +1062,19 @@ function route(
       return { items: [] }
     case 'error-log':
       return []
+    case 'api-tokens':
+      // Panel "Conectar extensión" en demo: token de mentira, solo para
+      // ver el flujo. No persiste ni autentica nada.
+      if (method === 'POST')
+        return {
+          id: uid(),
+          label: 'extensión de Chrome',
+          created_at: nowIso(),
+          last_used_at: null,
+          token: 'trama_pat_demo_no_sirve_fuera_del_modo_prueba',
+        }
+      if (method === 'DELETE') return { ok: true }
+      return []
     case 'chat':
       // /api/chat/threads  |  /api/chat/threads/:id/messages
       return []
