@@ -23,7 +23,7 @@ export function MomentosFilters({
   const canShowAlbum = filterKind === 'foto' || filterKind === null
 
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-3 rounded-xl border border-ink-100/70 bg-paper-100/45 px-3 py-2">
+    <div className="flex w-full max-w-3xl flex-wrap items-end justify-between gap-x-8 gap-y-3 rounded-xl border border-ink-100/70 bg-paper-100/45 px-3 py-2">
       <div>
         <p className="mb-1 text-micro uppercase tracking-eyebrow text-ink-300">
           contenido

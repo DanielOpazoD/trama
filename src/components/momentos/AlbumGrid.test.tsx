@@ -163,7 +163,21 @@ describe('<AlbumGrid />', () => {
     expect(screen.getByText('+1')).toBeInTheDocument()
   })
 
-  it('persiste tamaño y modo cronológico', async () => {
+  it('usa agrupación cronológica por defecto sin mostrar configuración de agrupar', async () => {
+    render(
+      <AlbumGrid
+        items={[photoMomento]}
+        entitiesById={new Map([['e1', entity]])}
+        onDelete={() => {}}
+      />,
+    )
+
+    expect(screen.queryByText('agrupar')).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'mensual' })).not.toBeInTheDocument()
+    expect(screen.getByText('2026')).toBeInTheDocument()
+  })
+
+  it('permite cambiar el tamaño desde un menú compacto y lo persiste', async () => {
     const user = userEvent.setup()
 
     render(
@@ -174,12 +188,10 @@ describe('<AlbumGrid />', () => {
       />,
     )
 
-    await user.click(screen.getByRole('tab', { name: 'cronológico' }))
-    await user.click(screen.getByRole('tab', { name: 'grande' }))
+    await user.click(screen.getByRole('button', { name: /tamaño: medio/i }))
+    await user.click(screen.getByRole('menuitem', { name: 'grande' }))
 
-    expect(window.localStorage.getItem('trama:album-mode')).toBe('yearly')
     expect(window.localStorage.getItem('trama:album-size')).toBe('large')
-    expect(screen.getByText('2026')).toBeInTheDocument()
     expect(screen.getByText('Valparaíso')).toBeInTheDocument()
   })
 

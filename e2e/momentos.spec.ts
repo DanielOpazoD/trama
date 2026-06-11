@@ -62,10 +62,7 @@ test('momentos: modo prueba muestra foto y nota de voz en timeline y album', asy
   await page.goto('/?view=momentos')
 
   await expect(page.getByRole('heading', { name: 'Momentos', level: 2 })).toBeVisible()
-  await expect(page.getByRole('tab', { name: 'medio' })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  )
+  await expect(page.getByRole('button', { name: /tamaño: medio/i })).toBeVisible()
   await expect(page.getByRole('img', { name: 'Cuaderno abierto' })).toBeVisible()
   await expect(page.getByText('1 foto')).toBeVisible()
 
