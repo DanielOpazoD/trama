@@ -7,7 +7,7 @@ import {
   makePdfFormFieldDraft,
   type ImageAsset,
 } from '../../../../lib/pdfStudio/model/model'
-import type { SavedDoc } from '../../../../lib/pdfStudio/render/persistence'
+import type { SavedDoc, SavedFolder } from '../../../../lib/pdfStudio/render/persistence'
 import { WorkspacePanel } from './WorkspacePanel'
 
 vi.mock('../../../../lib/pdfStudio/render/pdfRender', () => ({
@@ -51,12 +51,14 @@ function setup(overrides: Partial<Parameters<typeof WorkspacePanel>[0]> = {}) {
       savedAt: 900,
     },
   ]
+  const folders: SavedFolder[] = []
   const props = {
     library: [] as ImageAsset[],
     onAddImage: vi.fn(),
     onRemoveImage: vi.fn(),
     onDownloadImage: vi.fn(),
     saved,
+    folders,
     canSave: true,
     canSaveTemplate: true,
     onSaveCreation: vi.fn(),
@@ -67,6 +69,8 @@ function setup(overrides: Partial<Parameters<typeof WorkspacePanel>[0]> = {}) {
     onRenameSaved: vi.fn(),
     onDeleteSaved: vi.fn(),
     onDownloadSaved: vi.fn(),
+    onCreateFolder: vi.fn(),
+    onMoveSavedToFolder: vi.fn(),
     onExportTemplatePackage: vi.fn(),
     collapsed: false,
     onToggleCollapsed: vi.fn(),
@@ -227,5 +231,75 @@ describe('<WorkspacePanel /> · planillas', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar planilla' }))
 
     expect(props.onSaveTemplate).toHaveBeenCalledWith('Control HTA')
+  })
+
+  it('crea carpetas con nombre y color dentro de PDFs y copias', () => {
+    const props = setup()
+
+    fireEvent.click(screen.getByRole('button', { name: /Nueva carpeta/i }))
+    fireEvent.change(screen.getByPlaceholderText(/Nombre de la carpeta/i), {
+      target: { value: 'Protocolos' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Color azul/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear carpeta' }))
+
+    expect(props.onCreateFolder).toHaveBeenCalledWith({
+      name: 'Protocolos',
+      color: 'blue',
+    })
+  })
+
+  it('filtra por carpeta y permite volver a Todas', () => {
+    setup({
+      folders: [{ id: 'folder-1', name: 'Protocolos', color: 'blue', createdAt: 100 }],
+      saved: [
+        {
+          id: 'doc-1',
+          name: 'Consentimiento',
+          doc: addPdfSource(emptyDoc(), pdf(), 1),
+          savedAt: 1000,
+          folderId: 'folder-1',
+        },
+        {
+          id: 'doc-2',
+          name: 'Alta',
+          doc: addPdfSource(emptyDoc(), pdf(), 1),
+          savedAt: 900,
+        },
+      ],
+    })
+
+    expect(screen.getByText('Consentimiento')).toBeInTheDocument()
+    expect(screen.getByText('Alta')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Abrir carpeta Protocolos/i }))
+
+    expect(screen.getByText('Consentimiento')).toBeInTheDocument()
+    expect(screen.queryByText('Alta')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Mostrar todas las copias/i }))
+
+    expect(screen.getByText('Consentimiento')).toBeInTheDocument()
+    expect(screen.getByText('Alta')).toBeInTheDocument()
+  })
+
+  it('permite mover una copia guardada a una carpeta', () => {
+    const props = setup({
+      folders: [{ id: 'folder-1', name: 'Protocolos', color: 'green', createdAt: 100 }],
+      saved: [
+        {
+          id: 'doc-1',
+          name: 'Consentimiento',
+          doc: addPdfSource(emptyDoc(), pdf(), 1),
+          savedAt: 1000,
+        },
+      ],
+    })
+
+    fireEvent.change(screen.getByLabelText(/Mover Consentimiento a carpeta/i), {
+      target: { value: 'folder-1' },
+    })
+
+    expect(props.onMoveSavedToFolder).toHaveBeenCalledWith('doc-1', 'folder-1')
   })
 })

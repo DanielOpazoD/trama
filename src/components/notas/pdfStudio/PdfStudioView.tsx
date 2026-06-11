@@ -96,10 +96,13 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   const {
     addAssets,
     addLibraryToDoc,
+    createFolder,
     downloadLibrary,
     duplicateSaved,
     exportTemplatePackage,
+    folders,
     library,
+    moveSavedToFolder,
     openTemplate,
     openSaved,
     panelCollapsed,
@@ -248,6 +251,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
       <PdfStudioWorkspacePanelHost
         show={showPanel}
         library={library}
+        folders={folders}
         saved={saved}
         templatesEnabled={templatesEnabled}
         canSave={!empty}
@@ -257,6 +261,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
         onAddImage={addLibraryToDoc}
         onRemoveImage={removeFromLibrary}
         onDownloadImage={downloadLibrary}
+        onCreateFolder={createFolder}
         onSaveCreation={saveCreation}
         onSaveTemplate={saveTemplateWithMode}
         saveTemplateSignal={saveTemplateSignal}
@@ -270,6 +275,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
           setTextPage(0)
         }}
         onRenameSaved={renameSaved}
+        onMoveSavedToFolder={moveSavedToFolder}
         onDeleteSaved={removeSaved}
         onDownloadSaved={downloadSaved}
         onDuplicateSaved={duplicateSaved}

@@ -15,11 +15,15 @@ import {
 } from '../../../../lib/pdfStudio/model/model'
 import {
   deleteSavedDoc,
+  listSavedFolders,
   listSavedDocs,
+  putSavedFolder,
   loadDraft,
   putSavedDoc,
   saveDraft,
   type SavedDoc,
+  type SavedFolder,
+  type SavedFolderColor,
 } from '../../../../lib/pdfStudio/render/persistence'
 import { useCurrentClientUserId } from '../../../../lib/clientIdentity'
 import { downloadBlob } from '../../../../lib/downloadBlob'
@@ -41,6 +45,7 @@ export function usePdfStudioWorkspace({
   const [loaded, setLoaded] = useState(false)
   const [library, setLibrary] = useState<ImageAsset[]>([])
   const [saved, setSaved] = useState<SavedDoc[]>([])
+  const [folders, setFolders] = useState<SavedFolder[]>([])
   const [panelCollapsed, setPanelCollapsed] = useState(true)
   const toastRef = useRef(toast)
   const draftSanitizerRef = useRef<(draft: PdfDoc) => PdfDoc>((draft) => draft)
@@ -66,6 +71,11 @@ export function usePdfStudioWorkspace({
     void listSavedDocs(userKey).then((list) => {
       if (!alive) return
       setSaved(list)
+      if (list.length > 0) setPanelCollapsed(false)
+    })
+    void listSavedFolders(userKey).then((list) => {
+      if (!alive) return
+      setFolders(list)
       if (list.length > 0) setPanelCollapsed(false)
     })
     return () => {
@@ -205,6 +215,28 @@ export function usePdfStudioWorkspace({
     })
   }
 
+  function createFolder(input: { name: string; color: SavedFolderColor }) {
+    const folder: SavedFolder = {
+      id: crypto.randomUUID(),
+      name: input.name.trim(),
+      color: input.color,
+      createdAt: Date.now(),
+    }
+    if (!folder.name) return
+    setFolders((list) => [...list, folder])
+    void putSavedFolder(userKey, folder)
+    toast.show({ message: `Carpeta "${folder.name}" creada.`, tone: 'success' })
+  }
+
+  function moveSavedToFolder(id: string, folderId: string | null) {
+    setSaved((list) => {
+      const next = list.map((s) => (s.id === id ? { ...s, folderId } : s))
+      const target = next.find((s) => s.id === id)
+      if (target) void putSavedDoc(userKey, target)
+      return next
+    })
+  }
+
   function removeSaved(id: string) {
     setSaved((list) => list.filter((s) => s.id !== id))
     void deleteSavedDoc(userKey, id)
@@ -217,12 +249,15 @@ export function usePdfStudioWorkspace({
     library,
     duplicateSaved,
     exportTemplatePackage,
+    createFolder,
+    folders,
     openSaved,
     openTemplate,
     panelCollapsed,
     removeFromLibrary,
     removeSaved,
     renameSaved,
+    moveSavedToFolder,
     saveCreation,
     saveFilledCopy,
     saveTemplate,

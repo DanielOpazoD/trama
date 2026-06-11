@@ -24,7 +24,9 @@ const mocks = vi.hoisted(() => ({
   saveDraft: vi.fn(),
   clearDraft: vi.fn(),
   listSavedDocs: vi.fn(),
+  listSavedFolders: vi.fn(),
   putSavedDoc: vi.fn(),
+  putSavedFolder: vi.fn(),
   deleteSavedDoc: vi.fn(),
 }))
 vi.mock('../../../lib/pdfStudio/render/pdfRender', () => ({
@@ -56,7 +58,9 @@ vi.mock('../../../lib/pdfStudio/render/persistence', () => ({
   saveDraft: mocks.saveDraft,
   clearDraft: mocks.clearDraft,
   listSavedDocs: mocks.listSavedDocs,
+  listSavedFolders: mocks.listSavedFolders,
   putSavedDoc: mocks.putSavedDoc,
+  putSavedFolder: mocks.putSavedFolder,
   deleteSavedDoc: mocks.deleteSavedDoc,
   isSavedTemplate: (saved: { kind?: string; doc: { formFields?: unknown[] } }) =>
     (saved.kind ??
@@ -140,7 +144,9 @@ beforeEach(() => {
   mocks.saveDraft.mockResolvedValue(undefined)
   mocks.clearDraft.mockResolvedValue(undefined)
   mocks.listSavedDocs.mockResolvedValue([]) // sin guardados por defecto
+  mocks.listSavedFolders.mockResolvedValue([])
   mocks.putSavedDoc.mockResolvedValue(undefined)
+  mocks.putSavedFolder.mockResolvedValue(undefined)
   mocks.deleteSavedDoc.mockResolvedValue(undefined)
 })
 
