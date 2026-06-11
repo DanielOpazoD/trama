@@ -222,7 +222,25 @@ export default tseslint.config(
         window: 'readonly',
         fetch: 'readonly',
         setTimeout: 'readonly',
+        URL: 'readonly',
       },
+    },
+  },
+  // Helpers de build de la extensión (Node CommonJS, no se empaquetan).
+  {
+    files: ['extension/**/*.cjs'],
+    languageOptions: {
+      globals: {
+        require: 'readonly',
+        module: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   // Prettier al final — desactiva las rules que peleen con prettier.

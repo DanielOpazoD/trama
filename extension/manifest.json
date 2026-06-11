@@ -1,14 +1,33 @@
 {
   "manifest_version": 3,
   "name": "Trama — Recortes",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Guarda texto de cualquier página directo en la bandeja de Recortes de Trama. Nada entra a tu trama sin tu curaduría.",
-  "permissions": ["activeTab", "contextMenus", "storage", "scripting"],
+  "permissions": ["activeTab", "contextMenus", "storage", "scripting", "alarms"],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Guardar en Trama"
+    "default_title": "Guardar en Trama",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "save-selection": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Guardar la selección en Trama"
+    }
   }
 }
