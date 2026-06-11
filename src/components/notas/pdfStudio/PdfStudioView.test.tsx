@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
   putSavedFolder: vi.fn(),
   deleteSavedDoc: vi.fn(),
   uploadPdfStudioSavedPdf: vi.fn(),
+  editImage: vi.fn(),
 }))
 vi.mock('../../../lib/pdfStudio/render/pdfRender', () => ({
   getPdfPageCount: mocks.getPdfPageCount,
@@ -71,6 +72,7 @@ vi.mock('../../../lib/pdfStudio/render/persistence', () => ({
 vi.mock('../../../api/pdfStudioSavedPdfs', () => ({
   uploadPdfStudioSavedPdf: mocks.uploadPdfStudioSavedPdf,
 }))
+vi.mock('../../../lib/imageEditor', () => ({ editImage: mocks.editImage }))
 
 import { PdfStudioView } from './PdfStudioView'
 import {
@@ -82,6 +84,7 @@ import {
 
 const pdfFile = (name = 'doc.pdf') =>
   new File(['%PDF-1.4'], name, { type: 'application/pdf' })
+const imageFile = (name = 'foto.png') => new File(['img'], name, { type: 'image/png' })
 
 function templateDoc() {
   const doc = addPdfSource(emptyDoc(), pdfFile('planilla.pdf'), 1)
@@ -163,6 +166,7 @@ beforeEach(() => {
     createdAt: '2026-06-11T00:00:00.000Z',
     updatedAt: '2026-06-11T00:00:00.000Z',
   })
+  mocks.editImage.mockImplementation(async (file: File) => file)
 })
 
 describe('<PdfStudioView />', () => {
@@ -1271,6 +1275,31 @@ describe('<PdfStudioView />', () => {
     expect(
       await screen.findByRole('dialog', { name: /Editar página 1/i }),
     ).toBeInTheDocument()
+  })
+
+  it('permite recortar una sola hoja de imagen desde la barra de miniaturas', async () => {
+    const user = userEvent.setup()
+    const original = imageFile('original.png')
+    const edited = imageFile('recortada.webp')
+    mocks.editImage.mockResolvedValueOnce(edited)
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), original)
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    const crop = screen.getByRole('button', { name: /Recortar imagen/i })
+    expect(crop).toBeEnabled()
+
+    await user.click(crop)
+
+    await waitFor(() =>
+      expect(mocks.editImage).toHaveBeenCalledWith(original, expect.any(Object)),
+    )
+    await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
+    await waitFor(() => expect(mocks.assemblePdfInWorker).toHaveBeenCalled())
+    const calls = mocks.assemblePdfInWorker.mock.calls
+    const exportedDoc = calls[calls.length - 1]?.[0]
+    expect(exportedDoc.sources[0].file).toBe(edited)
   })
 
   it('arrastra las páginas marcadas como bloque al soltar una miniatura seleccionada', async () => {

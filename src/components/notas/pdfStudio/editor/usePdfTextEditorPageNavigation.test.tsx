@@ -22,7 +22,7 @@ function addPage(container: HTMLElement, index: number, top: number, height = 50
     getBoundingClientRect: () => DOMRect
   }
   page.dataset.pdfEditorPage = String(index)
-  page.getBoundingClientRect = () => rect(top, height)
+  page.getBoundingClientRect = () => rect(top - container.scrollTop, height)
   container.append(page)
 }
 
@@ -161,6 +161,32 @@ describe('usePdfTextEditorPageNavigation', () => {
     })
 
     expect(target.scrollTop).toBe(520)
+    vi.useRealTimers()
+    target.remove()
+  })
+
+  it('mantiene el scroll inicial durante los cambios de layout de la página destino', () => {
+    vi.useFakeTimers()
+    const target = makeScrollContainer()
+    addPage(target, 0, 0)
+    let top = 520
+    addDynamicPage(target, 1, () => rect(top - target.scrollTop, 500))
+    document.body.append(target)
+
+    render(<TestNavigation target={target} initialPage={1} />)
+
+    act(() => {
+      screen.getByRole('button', { name: 'initial' }).click()
+      vi.runOnlyPendingTimers()
+    })
+    expect(target.scrollTop).toBe(520)
+
+    top = 1320
+    act(() => {
+      vi.runOnlyPendingTimers()
+    })
+
+    expect(target.scrollTop).toBe(1320)
     vi.useRealTimers()
     target.remove()
   })

@@ -2,15 +2,18 @@ import {
   deletePages,
   duplicatePages,
   emptyDoc,
+  getSource,
   movePage,
   movePageByDelta,
   movePages,
   pageThumbKey,
+  replacePageWithImage,
   rotatePages,
   subsetDoc,
   type PdfDoc,
 } from '../../../../lib/pdfStudio/model/model'
 import { forgetThumb } from '../../../../lib/pdfStudio/render/pdfRender'
+import { editImage } from '../../../../lib/imageEditor'
 
 export function usePdfStudioPageActions({
   clearDraft,
@@ -56,12 +59,37 @@ export function usePdfStudioPageActions({
     void clearDraft(userKey)
   }
 
+  async function cropSelectedImage() {
+    if (selectedCount !== 1) return
+    const index = selectedIndices[0]
+    if (index == null) return
+    const page = doc.pages[index]
+    if (!page || page.kind !== 'image') return
+    const source = getSource(doc, page.sourceId)
+    if (!source || source.kind !== 'image') return
+    const edited = await editImage(source.file, {
+      outputType: 'image/webp',
+      title: 'Imagen de Imprenta',
+    })
+    if (!edited || edited === source.file) return
+    forgetThumb(pageThumbKey(page))
+    commit((d) => replacePageWithImage(d, index, edited))
+    clearSelection()
+  }
+
+  const selectedImagePage =
+    selectedCount === 1 && selectedIndices[0] != null
+      ? doc.pages[selectedIndices[0]]
+      : null
+
   return {
     bulkDelete,
     bulkDuplicate: () =>
       selectedCount > 0 && commit((d) => duplicatePages(d, selectedIndices)),
     bulkRotate: (delta: -1 | 1) =>
       selectedCount > 0 && commit((d) => rotatePages(d, selectedIndices, delta)),
+    canCropSelectedImage: selectedImagePage?.kind === 'image',
+    cropSelectedImage,
     exportMarked: () =>
       selectedIndices.length > 0 &&
       void exportPdf(subsetDoc(doc, selectedIndices), 'seleccion'),
