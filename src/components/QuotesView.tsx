@@ -21,7 +21,7 @@ import { useQuotesFilters } from './quotes/useQuotesFilters'
 import { QuotesFiltersBar } from './quotes/QuotesFiltersBar'
 import { PrintObject } from './print/PrintObject'
 import { QuotesPrintSheet } from './print/PrintSheets'
-import { PrinterIcon, ReadingIcon } from './Icons'
+import { DiceIcon, PrinterIcon, QuoteIcon, ReadingIcon } from './Icons'
 import { LibroModal } from './quotes/LibroModal'
 import { DensityToggle } from './DensityToggle'
 import { useDensity } from '../hooks/useDensity'
@@ -183,6 +183,45 @@ export function QuotesView({
           </div>
         }
       />
+
+      {allLoadedQuotes.length > 0 && (
+        <section
+          aria-label="Taller de imprenta"
+          className="mb-5 grid gap-3 rounded-xl border border-ink-100/70 bg-paper-100/45 px-4 py-3 md:grid-cols-[1fr_auto]"
+        >
+          <div>
+            <p className="text-micro uppercase tracking-eyebrow text-ink-300">
+              taller de imprenta
+            </p>
+            <p className="mt-1 font-serif text-xl text-ink-700">
+              {allLoadedQuotes.length}{' '}
+              {allLoadedQuotes.length === 1 ? 'cita cargada' : 'citas cargadas'}
+            </p>
+            <p className="mt-1 max-w-2xl text-caption text-ink-400">
+              Una misma mesa editorial para releer, laminar, componer libro o poner dos
+              citas en careo.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:min-w-[29rem]">
+            <PrintWorkshopTool
+              icon={DiceIcon}
+              label="Atril"
+              description="relectura breve"
+            />
+            <PrintWorkshopTool
+              icon={PrinterIcon}
+              label="Lámina"
+              description="desde cada cita"
+            />
+            <PrintWorkshopTool
+              icon={ReadingIcon}
+              label="Libro"
+              description="composición PDF"
+            />
+            <PrintWorkshopTool icon={QuoteIcon} label="Careo" description="contrapunto" />
+          </div>
+        </section>
+      )}
 
       {quotesPaged.isLoading ? (
         // Paridad con Entidades/Momentos/Inicio: skeleton en la carga
@@ -358,5 +397,27 @@ export function QuotesView({
       )}
       {libroOpen && <LibroModal onClose={() => setLibroOpen(false)} />}
     </>
+  )
+}
+
+function PrintWorkshopTool({
+  icon: Icon,
+  label,
+  description,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>
+  label: string
+  description: string
+}) {
+  return (
+    <div className="rounded-lg border border-ink-100/70 bg-paper-50/70 px-3 py-2">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-ink-700">
+        <Icon size={13} className="text-ink-400" />
+        {label}
+      </div>
+      <p className="mt-1 text-micro uppercase tracking-[0.16em] text-ink-300">
+        {description}
+      </p>
+    </div>
   )
 }

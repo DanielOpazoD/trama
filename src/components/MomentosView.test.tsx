@@ -70,6 +70,16 @@ describe('<MomentosView />', () => {
     })
   })
 
+  it('distingue el diario cronológico del álbum visual', async () => {
+    renderWithProviders(<MomentosView />)
+
+    const modos = await screen.findByLabelText('Modos de memoria')
+    expect(modos).toHaveTextContent(/Diario/i)
+    expect(modos).toHaveTextContent(/Álbum/i)
+    expect(modos).toHaveTextContent(/íntimo y fechado/i)
+    expect(modos).toHaveTextContent(/visual y navegable/i)
+  })
+
   it('abre el control general para compartir todos los Momentos', async () => {
     renderWithProviders(<MomentosView />)
 

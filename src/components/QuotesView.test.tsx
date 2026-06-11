@@ -92,6 +92,17 @@ describe('<QuotesView />', () => {
     expect(screen.getByRole('button', { name: /persona/i })).toBeInTheDocument()
   })
 
+  it('presenta Atril, Lámina, Libro y Careo como familia editorial de imprenta', () => {
+    setupCache([ENTITY_LIBRO, ENTITY_PERSONA], [QUOTE_LIBRO, QUOTE_PERSONA])
+
+    const imprenta = screen.getByLabelText('Taller de imprenta')
+    expect(imprenta).toHaveTextContent(/Atril/i)
+    expect(imprenta).toHaveTextContent(/Lámina/i)
+    expect(imprenta).toHaveTextContent(/Libro/i)
+    expect(imprenta).toHaveTextContent(/Careo/i)
+    expect(imprenta).toHaveTextContent(/2 citas cargadas/i)
+  })
+
   it('NO muestra chips de filtro cuando hay un solo tipo', () => {
     // Solo entidades libro → un solo tipo → barra oculta.
     setupCache([ENTITY_LIBRO], [QUOTE_LIBRO])
