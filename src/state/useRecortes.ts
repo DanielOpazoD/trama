@@ -10,6 +10,13 @@ import { api, type RecorteTarget } from '../api'
 import { queryKeys } from './queryClient'
 import { useToast } from './toast'
 
+/** Pide a la IA una sugerencia de curaduría para un recorte (no muta). */
+export function useSuggestRecorte() {
+  return useMutation({
+    mutationFn: (id: string) => api.suggestRecorte(id),
+  })
+}
+
 export function useRecortesQuery() {
   return useQuery({
     queryKey: queryKeys.recortes,

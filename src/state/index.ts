@@ -92,6 +92,7 @@ export {
   useUpdateRecorte,
   useDeleteRecorte,
   usePromoteRecorte,
+  useSuggestRecorte,
 } from './useRecortes'
 export {
   useTasksQuery,

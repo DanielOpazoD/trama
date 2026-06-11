@@ -9,6 +9,17 @@ import { request } from './request'
 export type RecorteStatus = 'pending' | 'promoted' | 'archived'
 export type RecorteTarget = 'quote' | 'entity' | 'momento'
 
+/** Sugerencia de curaduría de la IA para un recorte (advisory). */
+export type RecorteSuggestion = {
+  target: RecorteTarget
+  title: string
+  rationale: string
+  relatedEntityIds: string[]
+  suggestedEntityName: string | null
+  suggestedEntityType: string | null
+  relatedEntities: { id: string; name: string; type: string }[]
+}
+
 export type Recorte = {
   id: string
   text: string
@@ -138,6 +149,10 @@ export const recortesApi = {
       body: JSON.stringify({ target, promotedId }),
     })
     return recorteFromRow(row)
+  },
+  /** Pide a la IA una sugerencia de curaduría (no muta el recorte). */
+  async suggestRecorte(id: string): Promise<RecorteSuggestion> {
+    return request<RecorteSuggestion>(`/api/recortes/${id}/suggest`, { method: 'POST' })
   },
 
   async listApiTokens(): Promise<ApiToken[]> {

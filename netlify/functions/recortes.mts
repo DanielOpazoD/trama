@@ -12,6 +12,14 @@ import {
 } from './_lib/recorte-schemas.js'
 import { RestoreBody } from './_lib/restore-schema.js'
 import { extensionPreflight, withExtensionCors } from './_lib/extension-cors.js'
+import { askLLMForJson } from './_lib/llm.js'
+import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
+import { checkMonthlyBudget } from './_lib/cost-cap.js'
+import {
+  buildRecorteSuggestPrompt,
+  sanitizeSuggestion,
+  type EntityLite,
+} from './_lib/recorte-suggest-prompt.js'
 
 /**
  * Recortes — bandeja de entrada de capturas web (extensión de Chrome).
@@ -67,6 +75,71 @@ export default withObservability(
         return ApiErrors.notFound(requestId, 'Recorte no encontrado para restaurar')
       }
       return Response.json({ restored: true })
+    }
+
+    // Sugerencia de curaduría con IA (advisory, no muta el recorte): la IA
+    // mira el texto + la fuente + tus entidades y propone destino, título y
+    // conexiones. Reusa la infra de IA (modo/budget). Degrada a aiOff.
+    if (req.method === 'POST' && id && new URL(req.url).pathname.endsWith('/suggest')) {
+      const recRows = await sqlTyped<{
+        text: string
+        source_url: string | null
+        source_title: string | null
+        source_author: string | null
+      }>(sql`
+        SELECT text, source_url, source_title, source_author
+        FROM recortes
+        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+      `)
+      const rec = recRows[0]
+      if (!rec) return ApiErrors.notFound(requestId, 'Recorte no encontrado')
+
+      const budgetExceeded = await checkMonthlyBudget(userId, requestId)
+      if (budgetExceeded) return budgetExceeded
+
+      const invocation = await resolveAIInvocation(req, 'classify', userId)
+      if (invocation.kind === 'off') return aiOffResponse(requestId)
+
+      const [typeRows, entityRows] = await Promise.all([
+        sqlTyped<{ slug: string }>(
+          sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`,
+        ),
+        sqlTyped<EntityLite>(sql`
+          SELECT id, name, type FROM entities
+          WHERE deleted_at IS NULL AND user_id = ${userId}
+          ORDER BY created_at DESC LIMIT 200
+        `),
+      ])
+      const entityTypes = typeRows.map((r) => r.slug)
+      const messages = buildRecorteSuggestPrompt(
+        rec.text,
+        {
+          title: rec.source_title,
+          url: rec.source_url,
+          author: rec.source_author,
+        },
+        entityRows,
+        entityTypes,
+      )
+      try {
+        const { content } = await askLLMForJson(messages, {
+          provider: invocation.provider,
+          model: invocation.model,
+        })
+        const suggestion = sanitizeSuggestion(
+          content,
+          new Set(entityRows.map((e) => e.id)),
+          new Set(entityTypes),
+        )
+        return Response.json({
+          ...suggestion,
+          relatedEntities: entityRows.filter((e) =>
+            suggestion.relatedEntityIds.includes(e.id),
+          ),
+        })
+      } catch {
+        return ApiErrors.internal(requestId, 'La IA no pudo sugerir ahora')
+      }
     }
 
     // Promoción: el cliente ya creó el objeto destino (cita/entidad/momento)
@@ -177,5 +250,6 @@ export const config: Config = {
     '/api/recortes/:id',
     '/api/recortes/:id/promote',
     '/api/recortes/:id/restore',
+    '/api/recortes/:id/suggest',
   ],
 }

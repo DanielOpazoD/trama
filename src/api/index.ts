@@ -83,7 +83,13 @@ export type {
 } from './entities'
 
 export type { XStatus, XBookmark, XCronica } from './x'
-export type { Recorte, RecorteStatus, RecorteTarget, ApiToken } from './recortes'
+export type {
+  Recorte,
+  RecorteStatus,
+  RecorteTarget,
+  RecorteSuggestion,
+  ApiToken,
+} from './recortes'
 
 export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
 

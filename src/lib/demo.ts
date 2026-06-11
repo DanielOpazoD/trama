@@ -777,6 +777,9 @@ function route(
       save(store)
       return { momentoId }
     }
+    if (resource === 'recortes' && id && action === 'suggest' && method === 'POST') {
+      aiOff()
+    }
     if (resource === 'recortes' && id && action === 'promote' && method === 'POST') {
       const r = findLive(store.recortes, id)
       if (!r) throw new Error('Recorte no encontrado')
