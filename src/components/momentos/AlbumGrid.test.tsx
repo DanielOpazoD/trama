@@ -25,6 +25,12 @@ vi.mock('./MomentoEditModal', () => ({
     ) : null,
 }))
 
+vi.mock('./MomentoFeedback', () => ({
+  MomentoFeedback: ({ momentoId }: { momentoId: string }) => (
+    <div data-testid={`album-feedback-${momentoId}`} />
+  ),
+}))
+
 const entity = {
   id: 'e1',
   name: 'Valparaíso',

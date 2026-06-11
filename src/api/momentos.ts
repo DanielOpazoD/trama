@@ -44,6 +44,29 @@ export type MomentoShareAccess = {
   acceptedAt: string
 }
 
+export type MomentoComment = {
+  id: string
+  momentoId: string
+  authorUserId: string
+  authorDisplayName?: string
+  authorEmail?: string
+  body: string
+  canDelete?: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type MomentoReaction = {
+  reaction: 'heart'
+  count: number
+  reactedByMe: boolean
+}
+
+export type MomentoFeedback = {
+  comments: MomentoComment[]
+  reactions: MomentoReaction[]
+}
+
 export const momentosApi = {
   async listMomentos(opts?: {
     cursor?: string | null
@@ -260,5 +283,60 @@ export const momentosApi = {
     return request(`/api/momentos-share-access/${encodeURIComponent(userId)}`, {
       method: 'DELETE',
     })
+  },
+
+  async updateMomentoShareAccessRole(
+    userId: string,
+    role: MomentoShareRole,
+  ): Promise<MomentoShareAccess> {
+    return request(`/api/momentos-share-access/${encodeURIComponent(userId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    })
+  },
+
+  async getMomentoFeedback(momentoId: string): Promise<MomentoFeedback> {
+    return request(`/api/momentos-feedback/${encodeURIComponent(momentoId)}`)
+  },
+
+  async createMomentoComment(input: {
+    momentoId: string
+    body: string
+  }): Promise<{ comment: MomentoComment }> {
+    return request(`/api/momentos-feedback/${encodeURIComponent(input.momentoId)}`, {
+      method: 'POST',
+      body: JSON.stringify({ body: input.body }),
+    })
+  },
+
+  async setMomentoReaction(input: {
+    momentoId: string
+    reaction?: 'heart'
+  }): Promise<{ reaction: MomentoReaction }> {
+    return request(`/api/momentos-feedback/${encodeURIComponent(input.momentoId)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ reaction: input.reaction ?? 'heart' }),
+    })
+  },
+
+  async deleteMomentoReaction(input: {
+    momentoId: string
+    reaction?: 'heart'
+  }): Promise<{ reaction: { reaction: 'heart'; reactedByMe: boolean } }> {
+    const reaction = input.reaction ?? 'heart'
+    return request(
+      `/api/momentos-feedback/${encodeURIComponent(input.momentoId)}?reaction=${reaction}`,
+      { method: 'DELETE' },
+    )
+  },
+
+  async deleteMomentoComment(input: {
+    momentoId: string
+    commentId: string
+  }): Promise<{ deleted: boolean }> {
+    return request(
+      `/api/momentos-feedback/${encodeURIComponent(input.momentoId)}?commentId=${encodeURIComponent(input.commentId)}`,
+      { method: 'DELETE' },
+    )
   },
 }

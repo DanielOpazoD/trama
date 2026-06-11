@@ -92,4 +92,40 @@ describe('momentos-share-access endpoint', () => {
     expect(query).toMatch(/member_user_id = \? AND owner_user_id = \?/i)
     expect(query).toMatch(/deleted_at = NOW\(\)/i)
   })
+
+  it('PATCH modifica el permiso que el usuario actual otorga a otra persona', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([
+      {
+        user_id: 'user_papa',
+        display_name: 'Papá',
+        email: 'papa@example.com',
+        role: 'editor',
+        accepted_at: '2026-06-10T00:00:00Z',
+      },
+    ])
+
+    const res = await handler(
+      authedRequest('http://localhost/api/momentos-share-access/user_papa', {
+        method: 'PATCH',
+        body: JSON.stringify({ role: 'editor' }),
+      }),
+      mockContext({ userId: 'user_papa' }),
+    )
+
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { role: string; userId: string }
+    expect(body).toEqual(
+      expect.objectContaining({
+        userId: 'user_papa',
+        role: 'editor',
+      }),
+    )
+    const query =
+      mockSqlResponses.calls.find((c) => /UPDATE momento_space_access/i.test(c.template))
+        ?.template ?? ''
+    expect(query).toMatch(/owner_user_id = \?/)
+    expect(query).toMatch(/member_user_id = \?/)
+    expect(query).toMatch(/SET role = \?/)
+  })
 })

@@ -6,6 +6,7 @@ import { PencilIcon, TrashIcon } from '../Icons'
 import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 import { formatMonthLabel, getMomentoPhotoItems, groupByMonth } from './helpers'
 import { MomentoEditModal } from './MomentoEditModal'
+import { MomentoFeedback } from './MomentoFeedback'
 
 /**
  * Vista alternativa de Momentos: grid de fotos en cronología año → mes.
@@ -221,6 +222,9 @@ function AlbumTile({
             +{extraCount}
           </span>
         )}
+        <div className="absolute left-1.5 bottom-1.5">
+          <MomentoFeedback momentoId={momento.id} compact />
+        </div>
       </div>
       {showOverlay && (
         <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-ink-900/70 to-transparent rounded-b-md opacity-0 group-hover:opacity-100 transition-opacity">

@@ -68,6 +68,36 @@ describe('<MomentoShareModal />', () => {
     await waitFor(() => expect(revoke).toHaveBeenCalledWith('user-papa'))
   })
 
+  it('permite modificar el permiso de una persona con acceso', async () => {
+    vi.spyOn(api, 'listMomentoShareAccess').mockResolvedValue({
+      items: [
+        {
+          userId: 'user-papa',
+          displayName: 'Papá',
+          email: 'papa@example.com',
+          role: 'viewer',
+          acceptedAt: '2026-06-10T12:00:00.000Z',
+        },
+      ],
+    })
+    const updateRole = vi
+      .spyOn(api, 'updateMomentoShareAccessRole')
+      .mockResolvedValueOnce({
+        userId: 'user-papa',
+        displayName: 'Papá',
+        email: 'papa@example.com',
+        role: 'editor',
+        acceptedAt: '2026-06-10T12:00:00.000Z',
+      })
+
+    renderWithProviders(<MomentoShareModal onClose={vi.fn()} />)
+
+    expect(await screen.findByText('Papá')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /permitir editar a papá/i }))
+
+    await waitFor(() => expect(updateRole).toHaveBeenCalledWith('user-papa', 'editor'))
+  })
+
   it('tolera respuestas legacy sin items para la lista de accesos', async () => {
     vi.spyOn(api, 'listMomentoShareAccess').mockResolvedValue([] as never)
 

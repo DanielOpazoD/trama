@@ -109,6 +109,8 @@ type Store = {
   prompts: Row[]
   secrets: Row[]
   notas_attachments: Row[]
+  momento_comments: Row[]
+  momento_reactions: Row[]
   month_notes: Row[]
   user_prefs: Record<string, unknown>
 }
@@ -443,6 +445,8 @@ function buildSeed(): Store {
     prompts: [],
     secrets: [],
     notas_attachments: [],
+    momento_comments: [],
+    momento_reactions: [],
     month_notes: [],
     user_prefs: {},
   }
@@ -463,6 +467,8 @@ function load(): Store {
         prompts: parsed.prompts ?? [],
         secrets: parsed.secrets ?? [],
         notas_attachments: parsed.notas_attachments ?? [],
+        momento_comments: parsed.momento_comments ?? [],
+        momento_reactions: parsed.momento_reactions ?? [],
         month_notes: parsed.month_notes ?? [],
         user_prefs: parsed.user_prefs ?? {},
       }
@@ -603,6 +609,114 @@ function route(
     'notas-attachments': store.notas_attachments,
   }
   const rows = collections[resource]
+
+  if (resource === 'momentos-feedback' && id) {
+    const readable = live(store.momentos).some((m) => m.id === id)
+    if (!readable) return { comments: [], reactions: [] }
+
+    const summarizeHeart = () => {
+      const active = live(store.momento_reactions).filter(
+        (r) => r.momento_id === id && r.reaction === 'heart',
+      )
+      return active.length > 0
+        ? [{ reaction: 'heart', count: active.length, reactedByMe: true }]
+        : []
+    }
+    const commentsForMomento = () =>
+      live(store.momento_comments)
+        .filter((c) => c.momento_id === id)
+        .map((c) => ({
+          id: c.id,
+          momentoId: c.momento_id,
+          authorUserId: c.user_id ?? 'legacy-single-user',
+          authorDisplayName: c.author_display_name ?? 'Modo prueba',
+          authorEmail: c.author_email ?? undefined,
+          body: c.body,
+          canDelete: true,
+          createdAt: c.created_at,
+          updatedAt: c.updated_at,
+        }))
+
+    if (method === 'GET') {
+      return { comments: commentsForMomento(), reactions: summarizeHeart() }
+    }
+    if (method === 'POST') {
+      const text = String(body.body ?? '')
+        .trim()
+        .slice(0, 500)
+      if (!text) return { comment: null }
+      const row: Row = {
+        id: uid(),
+        momento_id: id,
+        user_id: 'legacy-single-user',
+        author_display_name: 'Modo prueba',
+        body: text,
+        created_at: nowIso(),
+        updated_at: nowIso(),
+        deleted_at: null,
+      }
+      store.momento_comments.push(row)
+      save(store)
+      return { comment: commentsForMomento().find((c) => c.id === row.id) }
+    }
+    if (method === 'PUT') {
+      const existing = store.momento_reactions.find(
+        (r) =>
+          r.momento_id === id &&
+          r.user_id === 'legacy-single-user' &&
+          r.reaction === 'heart',
+      )
+      if (existing) {
+        existing.deleted_at = null
+        existing.updated_at = nowIso()
+      } else {
+        store.momento_reactions.push({
+          id: uid(),
+          momento_id: id,
+          user_id: 'legacy-single-user',
+          reaction: 'heart',
+          created_at: nowIso(),
+          updated_at: nowIso(),
+          deleted_at: null,
+        })
+      }
+      save(store)
+      return {
+        reaction: summarizeHeart()[0] ?? {
+          reaction: 'heart',
+          count: 0,
+          reactedByMe: true,
+        },
+      }
+    }
+    if (method === 'DELETE') {
+      const commentId = params.get('commentId')
+      if (params.get('reaction') === 'heart') {
+        for (const r of store.momento_reactions) {
+          if (
+            r.momento_id === id &&
+            r.user_id === 'legacy-single-user' &&
+            r.reaction === 'heart' &&
+            !r.deleted_at
+          ) {
+            r.deleted_at = nowIso()
+            r.updated_at = nowIso()
+          }
+        }
+        save(store)
+        return { reaction: { reaction: 'heart', reactedByMe: false } }
+      }
+      if (commentId) {
+        const comment = store.momento_comments.find((c) => c.id === commentId)
+        if (comment) {
+          comment.deleted_at = nowIso()
+          comment.updated_at = nowIso()
+          save(store)
+        }
+        return { deleted: Boolean(comment) }
+      }
+    }
+  }
 
   if (rows) {
     // Sub-acciones especiales
@@ -934,6 +1048,8 @@ function route(
         relationships: live(store.relationships),
         quotes: live(store.quotes),
         momentos: live(store.momentos),
+        momento_comments: live(store.momento_comments),
+        momento_reactions: live(store.momento_reactions),
       }
     default:
       // Mutaciones desconocidas → ok; lecturas desconocidas → lista vacía.
