@@ -4,6 +4,8 @@ import { ApiErrors } from './_lib/api-error.js'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
+import { parseJsonBody } from './_lib/zod-body.js'
+import { z } from 'zod'
 
 // Corre BAJO el contexto RLS del usuario (entrado por getAuthedUser y aplicado
 // por el cliente scopeado de db.ts): las policies de momento_space_access ya
@@ -18,6 +20,10 @@ type AccessRow = {
 }
 
 type RevokeRow = { revoked: boolean }
+
+const UpdateAccessRoleBody = z.object({
+  role: z.enum(['viewer', 'editor']),
+})
 
 function accessFromRow(row: AccessRow) {
   return {
@@ -56,6 +62,38 @@ export default withObservability(
         ORDER BY other_user.id, a.accepted_at DESC
       `)
       return Response.json({ items: rows.map(accessFromRow) })
+    }
+
+    if (req.method === 'PATCH' && otherUserId) {
+      if (otherUserId === userId) {
+        return ApiErrors.validation(requestId, 'No puedes cambiar tu propio acceso')
+      }
+      const parsed = await parseJsonBody(req, UpdateAccessRoleBody, requestId)
+      if (!parsed.ok) return parsed.response
+      await ensureUserRow(sql, authedUser)
+      const rows = await sqlTyped<AccessRow>(sql`
+        WITH updated AS (
+          UPDATE momento_space_access
+          SET role = ${parsed.data.role},
+              updated_at = NOW()
+          WHERE owner_user_id = ${userId}
+            AND member_user_id = ${otherUserId}
+            AND deleted_at IS NULL
+          RETURNING member_user_id, role, accepted_at
+        )
+        SELECT other_user.id AS user_id,
+               other_user.display_name,
+               other_user.email,
+               updated.role,
+               updated.accepted_at
+        FROM updated
+        JOIN users other_user ON other_user.id = updated.member_user_id
+      `)
+      const row = rows[0]
+      if (!row) {
+        return ApiErrors.notFound(requestId, 'Acceso compartido no encontrado')
+      }
+      return Response.json(accessFromRow(row))
     }
 
     if (req.method === 'DELETE' && otherUserId) {

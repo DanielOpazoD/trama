@@ -176,4 +176,19 @@ describe('momentosApi', () => {
     expect(requestMock.mock.calls[1]?.[1].body).toBeInstanceOf(FormData)
     expect((requestMock.mock.calls[1]?.[1].body as FormData).get('file')).toBe(audio)
   })
+
+  it('actualiza el permiso de un acceso compartido', async () => {
+    requestMock.mockResolvedValue({
+      userId: 'user-papa',
+      role: 'editor',
+      acceptedAt: '2026-06-10T12:00:00.000Z',
+    })
+
+    await momentosApi.updateMomentoShareAccessRole('user-papa', 'editor')
+
+    expect(requestMock).toHaveBeenCalledWith('/api/momentos-share-access/user-papa', {
+      method: 'PATCH',
+      body: JSON.stringify({ role: 'editor' }),
+    })
+  })
 })

@@ -9,6 +9,7 @@ import { PhotoLightbox } from './PhotoLightbox'
 import { AudioNote } from './AudioNote'
 import { Tooltip } from '../Tooltip'
 import { MomentoOwnerMark } from './MomentoOwnerMark'
+import { MomentoFeedback } from './MomentoFeedback'
 
 /**
  * Una entrada del timeline de Momentos. Despacha al renderer correcto
@@ -64,6 +65,7 @@ function MomentoEntryInternal({
         )}
 
         <MomentoOwnerMark momento={momento} />
+        <MomentoFeedback momentoId={momento.id} />
 
         {linkedEntities.length > 0 && <LinkedEntities entities={linkedEntities} />}
       </div>

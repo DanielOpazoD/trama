@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import { api } from '../api'
-import type { MomentoShareRole } from '../api/momentos'
+import type { MomentoFeedback, MomentoReaction, MomentoShareRole } from '../api/momentos'
 import type { Momento, MomentoKind, MomentoPayload } from '../types'
 import { queryKeys } from './queryClient'
 import { useToast } from './toast'
@@ -173,6 +173,20 @@ export function useRevokeMomentoShareAccess() {
   })
 }
 
+export function useUpdateMomentoShareAccessRole() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: MomentoShareRole }) =>
+      api.updateMomentoShareAccessRole(userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.momentoShareAccess })
+      queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
+      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+    },
+  })
+}
+
 export function useRespondMomentoShareInvitation() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -184,6 +198,101 @@ export function useRespondMomentoShareInvitation() {
       queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
       queryClient.invalidateQueries({ queryKey: queryKeys.home })
       queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+    },
+  })
+}
+
+export function useMomentoFeedbackQuery(momentoId: string) {
+  return useQuery({
+    queryKey: queryKeys.momentoFeedback(momentoId),
+    queryFn: () => api.getMomentoFeedback(momentoId),
+  })
+}
+
+function mergeReaction(
+  current: MomentoFeedback | undefined,
+  reaction: MomentoReaction,
+): MomentoFeedback | undefined {
+  if (!current) return current
+  const without = current.reactions.filter((r) => r.reaction !== reaction.reaction)
+  return { ...current, reactions: [...without, reaction] }
+}
+
+export function useCreateMomentoComment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { momentoId: string; body: string }) =>
+      api.createMomentoComment(input),
+    onSuccess: ({ comment }, { momentoId }) => {
+      queryClient.setQueryData<MomentoFeedback>(
+        queryKeys.momentoFeedback(momentoId),
+        (current) => ({
+          comments: [...(current?.comments ?? []), comment],
+          reactions: current?.reactions ?? [],
+        }),
+      )
+      queryClient.invalidateQueries({ queryKey: queryKeys.momentoFeedback(momentoId) })
+    },
+  })
+}
+
+export function useSetMomentoReaction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { momentoId: string; reaction?: 'heart' }) =>
+      api.setMomentoReaction(input),
+    onSuccess: ({ reaction }, { momentoId }) => {
+      queryClient.setQueryData<MomentoFeedback>(
+        queryKeys.momentoFeedback(momentoId),
+        (current) => mergeReaction(current, reaction),
+      )
+      queryClient.invalidateQueries({ queryKey: queryKeys.momentoFeedback(momentoId) })
+    },
+  })
+}
+
+export function useDeleteMomentoReaction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { momentoId: string; reaction?: 'heart' }) =>
+      api.deleteMomentoReaction(input),
+    onSuccess: (_, { momentoId, reaction = 'heart' }) => {
+      queryClient.setQueryData<MomentoFeedback>(
+        queryKeys.momentoFeedback(momentoId),
+        (current) => {
+          if (!current) return current
+          return {
+            ...current,
+            reactions: current.reactions.map((r) =>
+              r.reaction === reaction
+                ? { ...r, count: Math.max(0, r.count - 1), reactedByMe: false }
+                : r,
+            ),
+          }
+        },
+      )
+      queryClient.invalidateQueries({ queryKey: queryKeys.momentoFeedback(momentoId) })
+    },
+  })
+}
+
+export function useDeleteMomentoComment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { momentoId: string; commentId: string }) =>
+      api.deleteMomentoComment(input),
+    onSuccess: (_, { momentoId, commentId }) => {
+      queryClient.setQueryData<MomentoFeedback>(
+        queryKeys.momentoFeedback(momentoId),
+        (current) => {
+          if (!current) return current
+          return {
+            ...current,
+            comments: current.comments.filter((comment) => comment.id !== commentId),
+          }
+        },
+      )
+      queryClient.invalidateQueries({ queryKey: queryKeys.momentoFeedback(momentoId) })
     },
   })
 }

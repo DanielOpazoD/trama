@@ -5,6 +5,7 @@ import {
   useMomentoShareAccessQuery,
   useRevokeMomentoShareAccess,
   useToast,
+  useUpdateMomentoShareAccessRole,
 } from '../../state'
 import { CloseIcon } from '../Icons'
 import { personInitial, personLabel, shareRoleLabel } from './sharePresentation'
@@ -15,6 +16,7 @@ export function MomentoShareModal({ onClose }: { onClose: () => void }) {
   const invite = useCreateMomentoShareInvitation()
   const accessQuery = useMomentoShareAccessQuery()
   const revoke = useRevokeMomentoShareAccess()
+  const updateRole = useUpdateMomentoShareAccessRole()
   const toast = useToast()
   const acceptedAccess = accessQuery.data?.items ?? []
   const accessSummary = accessQuery.isLoading
@@ -46,6 +48,28 @@ export function MomentoShareModal({ onClose }: { onClose: () => void }) {
     } catch (err) {
       toast.show({
         message: err instanceof Error ? err.message : 'No se pudo revocar',
+        tone: 'error',
+      })
+    }
+  }
+
+  async function handleRoleChange(
+    userId: string,
+    nextRole: MomentoShareRole,
+    label: string,
+  ) {
+    try {
+      await updateRole.mutateAsync({ userId, role: nextRole })
+      toast.show({
+        message:
+          nextRole === 'editor'
+            ? `${label} ahora puede editar.`
+            : `${label} queda en solo lectura.`,
+        tone: 'success',
+      })
+    } catch (err) {
+      toast.show({
+        message: err instanceof Error ? err.message : 'No se pudo cambiar el permiso',
         tone: 'error',
       })
     }
@@ -188,15 +212,42 @@ export function MomentoShareModal({ onClose }: { onClose: () => void }) {
                         </p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      disabled={revoke.isPending}
-                      onClick={() => handleRevoke(item.userId)}
-                      className="rounded-md border border-ink-100 bg-paper-50 px-2.5 py-1.5 text-sm text-ink-500 transition-colors hover:border-ink-200 hover:text-ink-700 disabled:opacity-50"
-                      aria-label={`Revocar acceso a ${label}`}
-                    >
-                      Revocar
-                    </button>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <div
+                        className="grid grid-cols-2 rounded-md border border-ink-100 bg-paper-50 p-0.5"
+                        aria-label={`Permiso de ${label}`}
+                      >
+                        {(['viewer', 'editor'] as const).map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            disabled={updateRole.isPending || item.role === value}
+                            onClick={() => handleRoleChange(item.userId, value, label)}
+                            aria-label={
+                              value === 'editor'
+                                ? `Permitir editar a ${label}`
+                                : `Dejar solo lectura a ${label}`
+                            }
+                            className={`rounded px-2 py-1 text-caption transition-colors disabled:cursor-default ${
+                              item.role === value
+                                ? 'bg-ink-900 text-paper-50'
+                                : 'text-ink-500 hover:bg-ink-100/70 hover:text-ink-800'
+                            }`}
+                          >
+                            {value === 'viewer' ? 'Ver' : 'Editar'}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={revoke.isPending}
+                        onClick={() => handleRevoke(item.userId)}
+                        className="rounded-md border border-ink-100 bg-paper-50 px-2.5 py-1.5 text-sm text-ink-500 transition-colors hover:border-ink-200 hover:text-ink-700 disabled:opacity-50"
+                        aria-label={`Revocar acceso a ${label}`}
+                      >
+                        Revocar
+                      </button>
+                    </div>
                   </li>
                 )
               })}

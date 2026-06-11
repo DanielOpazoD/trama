@@ -46,7 +46,13 @@ export {
   useMomentoShareAccessQuery,
   useCreateMomentoShareInvitation,
   useRevokeMomentoShareAccess,
+  useUpdateMomentoShareAccessRole,
   useRespondMomentoShareInvitation,
+  useMomentoFeedbackQuery,
+  useCreateMomentoComment,
+  useSetMomentoReaction,
+  useDeleteMomentoReaction,
+  useDeleteMomentoComment,
 } from './useMomentos'
 export {
   useChatThreadsQuery,

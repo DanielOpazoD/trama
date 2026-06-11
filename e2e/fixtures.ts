@@ -299,6 +299,9 @@ export async function mockBackend(page: Page, state: MockState) {
   await page.route(apiPath('momentos-share-access', { prefix: true }), (route) =>
     jsonResp(route, { items: [] }),
   )
+  await page.route(apiPath('momentos-feedback', { prefix: true }), (route) =>
+    jsonResp(route, { comments: [], reactions: [] }),
+  )
 
   // /api/notes y /api/tasks
   await page.route(apiPath('notes', { prefix: true }), (route) =>
