@@ -60,7 +60,7 @@ export function PageGrid({
   interactionMode?: PageInteractionMode
   selectedIds: Set<string>
   onToggleSelect: (index: number, shift: boolean) => void
-  onReorder: (from: number, to: number) => void
+  onReorder: (from: number, to: number, movingIndices?: number[]) => void
   onNudge: (index: number, delta: -1 | 1) => void
   onOpenText: (index: number) => void
   onDropFiles: (e: DragEvent) => void
@@ -70,6 +70,7 @@ export function PageGrid({
 }) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const dragGroupIndicesRef = useRef<number[]>([])
   const total = doc.pages.length
   const listRef = useRef<HTMLUListElement>(null)
   useFlipPages(listRef, doc.pages)
@@ -77,6 +78,7 @@ export function PageGrid({
   const endDrag = () => {
     setDragIndex(null)
     setDragOverIndex(null)
+    dragGroupIndicesRef.current = []
   }
 
   return (
@@ -100,11 +102,21 @@ export function PageGrid({
             dragIndex !== null && dragOverIndex === index && dragIndex !== index
           }
           onToggleSelect={(shift) => onToggleSelect(index, shift)}
-          onDragStart={() => setDragIndex(index)}
+          onDragStart={() => {
+            setDragIndex(index)
+            const moving = selectedIds.has(page.id)
+              ? doc.pages.reduce<number[]>((acc, candidate, candidateIndex) => {
+                  if (selectedIds.has(candidate.id)) acc.push(candidateIndex)
+                  return acc
+                }, [])
+              : [index]
+            dragGroupIndicesRef.current = moving
+          }}
           onDragEnterCard={() => setDragOverIndex(index)}
           onDragEnd={endDrag}
           onDropOn={() => {
-            if (dragIndex !== null) onReorder(dragIndex, index)
+            if (dragIndex !== null)
+              onReorder(dragIndex, index, dragGroupIndicesRef.current)
             endDrag()
           }}
           onNudge={onNudge}

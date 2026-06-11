@@ -332,6 +332,7 @@ export function PdfTextEditor({
     setCurrentPage,
     setEditingId,
     setSelectedId,
+    scrollInitialPage: true,
     total,
   })
   const { status: formSuggestionStatus, suggestCurrentPage } =

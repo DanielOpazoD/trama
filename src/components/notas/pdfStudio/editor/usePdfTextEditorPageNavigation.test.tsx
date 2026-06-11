@@ -40,26 +40,32 @@ function makeScrollContainer(): HTMLElement {
 }
 
 function TestNavigation({
+  initialPage = 0,
   onClear,
   target,
 }: {
+  initialPage?: number
   onClear?: () => void
   target: HTMLElement
 }) {
-  const [page, setPage] = useState(0)
-  const { syncPageFromScroll } = usePdfTextEditorPageNavigation({
-    currentPage: page,
-    setActivePageLayout: () => onClear?.(),
-    setCurrentPage: setPage,
-    setEditingId: () => onClear?.(),
-    setSelectedId: () => onClear?.(),
-    total: 3,
-  })
+  const [page, setPage] = useState(initialPage)
+  const { scrollInitialPageIntoView, syncPageFromScroll } =
+    usePdfTextEditorPageNavigation({
+      currentPage: page,
+      setActivePageLayout: () => onClear?.(),
+      setCurrentPage: setPage,
+      setEditingId: () => onClear?.(),
+      setSelectedId: () => onClear?.(),
+      total: 3,
+    })
   return (
     <>
       <output aria-label="Página actual">{page + 1}</output>
       <button type="button" onClick={() => syncPageFromScroll(target)}>
         sync
+      </button>
+      <button type="button" onClick={() => scrollInitialPageIntoView()}>
+        initial
       </button>
     </>
   )
@@ -100,6 +106,25 @@ describe('usePdfTextEditorPageNavigation', () => {
 
     expect(screen.getByLabelText('Página actual')).toHaveTextContent('2')
     expect(onClear).not.toHaveBeenCalled()
+    target.remove()
+  })
+
+  it('puede llevar al viewport la página inicial pedida por la miniatura', () => {
+    vi.useFakeTimers()
+    const target = makeScrollContainer()
+    addPage(target, 0, 0)
+    addPage(target, 1, 520)
+    document.body.append(target)
+
+    render(<TestNavigation target={target} initialPage={1} />)
+
+    act(() => {
+      screen.getByRole('button', { name: 'initial' }).click()
+      vi.runAllTimers()
+    })
+
+    expect(target.scrollTop).toBe(520)
+    vi.useRealTimers()
     target.remove()
   })
 })

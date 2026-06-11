@@ -11,6 +11,7 @@ import {
   TrashIcon,
 } from '../../../Icons'
 import { OverflowMenu, OverflowMenuItem } from '../../../OverflowMenu'
+import { folderColorClass } from './WorkspaceArchiveControls'
 
 const rowBtn =
   'touch-target inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
@@ -81,6 +82,9 @@ export function WorkspaceSavedDocItem({
   onDelete: () => void
   onMoveToFolder: (folderId: string | null) => void
 }) {
+  const folder = saved.folderId
+    ? folders.find((candidate) => candidate.id === saved.folderId)
+    : null
   return (
     <li
       aria-label={saved.name}
@@ -111,7 +115,14 @@ export function WorkspaceSavedDocItem({
             aria-label={savedDocActionLabel(saved)}
             className="flex-1 min-w-0 text-left"
           >
-            <SavedDocKindChip saved={saved} />
+            <span className="mb-1 flex flex-wrap gap-1">
+              <SavedDocKindChip saved={saved} />
+              {folder ? (
+                <span className={`${kindChip} ${folderColorClass(folder.color)}`}>
+                  {folder.name}
+                </span>
+              ) : null}
+            </span>
             <span className="block truncate text-caption text-ink-700">{saved.name}</span>
             <span className="block text-micro tabular-nums text-ink-400">
               {savedDocSubtitle(saved)}

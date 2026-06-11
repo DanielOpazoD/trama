@@ -5,10 +5,13 @@ import type {
   SavedFolderColor,
 } from '../../../../lib/pdfStudio/render/persistence'
 import { CheckIcon, CloseIcon, FilePdfIcon, PlusIcon } from '../../../Icons'
+import {
+  WorkspaceArchiveControls,
+  WorkspaceArchiveFolderHeader,
+} from './WorkspaceArchiveControls'
 import { WorkspaceFoldersBar } from './WorkspaceFoldersBar'
 import { WorkspaceSavedDocItem } from './WorkspaceSavedDocItem'
-
-const ACCENT = 'var(--accent-sage)'
+import { useWorkspaceSavedArchive } from './useWorkspaceSavedArchive'
 
 const rowBtn =
   'touch-target inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
@@ -32,7 +35,6 @@ export function WorkspaceSavedDocsSection({
   creations: SavedDoc[]
   canSave: boolean
   folders: SavedFolder[]
-  /** Prefill del nombre al guardar (el título del documento, si lo tiene). */
   suggestedName?: string
   onCreateFolder: (input: { name: string; color: SavedFolderColor }) => void
   onRenameFolder: (id: string, name: string) => void
@@ -47,11 +49,13 @@ export function WorkspaceSavedDocsSection({
 }) {
   const [newName, setNewName] = useState<string | null>(null)
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
-  const [folderDraft, setFolderDraft] = useState<{
-    name: string
-    color: SavedFolderColor
-  } | null>(null)
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  const archive = useWorkspaceSavedArchive({
+    creations,
+    folders,
+    onCreateFolder,
+    onDeleteFolder,
+    onMoveSavedToFolder,
+  })
   const skipBlurConfirmRef = useRef(false)
 
   const confirmNew = () => {
@@ -67,24 +71,6 @@ export function WorkspaceSavedDocsSection({
     }
     setRenaming(null)
   }
-  const folderCounts = new Map<string, number>()
-  folderCounts.set('all', creations.length)
-  for (const folder of folders) folderCounts.set(folder.id, 0)
-  for (const item of creations) {
-    if (item.folderId)
-      folderCounts.set(item.folderId, (folderCounts.get(item.folderId) ?? 0) + 1)
-  }
-  const visibleCreations = selectedFolderId
-    ? creations.filter((s) => s.folderId === selectedFolderId)
-    : creations
-
-  const confirmFolder = () => {
-    const name = folderDraft?.name.trim() ?? ''
-    if (!folderDraft || !name) return
-    onCreateFolder({ name, color: folderDraft.color })
-    setFolderDraft(null)
-  }
-
   return (
     <section className="pb-2">
       <div className="flex items-center justify-between gap-2 px-2.5 pt-2 pb-0.5">
@@ -122,8 +108,7 @@ export function WorkspaceSavedDocsSection({
             type="button"
             onClick={confirmNew}
             aria-label="Guardar"
-            className={rowBtn}
-            style={{ color: ACCENT }}
+            className={`${rowBtn} text-[color:var(--accent-sage)]`}
           >
             <CheckIcon size={14} />
           </button>
@@ -139,25 +124,48 @@ export function WorkspaceSavedDocsSection({
       )}
 
       <WorkspaceFoldersBar
-        counts={folderCounts}
-        draft={folderDraft}
+        counts={archive.folderCounts}
+        draft={archive.folderDraft}
         folders={folders}
-        selectedFolderId={selectedFolderId}
-        onCancelDraft={() => setFolderDraft(null)}
-        onChangeDraft={setFolderDraft}
-        onCreateFolder={confirmFolder}
+        selectedFolderId={archive.selectedFolderId}
+        onCancelDraft={() => archive.setFolderDraft(null)}
+        onChangeDraft={archive.setFolderDraft}
+        onCreateFolder={archive.confirmFolder}
         onRenameFolder={onRenameFolder}
         onUpdateFolderColor={onUpdateFolderColor}
-        onDeleteFolder={(id) => {
-          if (selectedFolderId === id) setSelectedFolderId(null)
-          onDeleteFolder(id)
-        }}
-        onDropSavedToFolder={onMoveSavedToFolder}
-        onSelectFolder={setSelectedFolderId}
-        onStartDraft={() => setFolderDraft({ name: '', color: 'blue' })}
+        onDeleteFolder={archive.deleteFolder}
+        onDropSavedToFolder={archive.moveSaved}
+        onSelectFolder={archive.setSelectedFolderId}
+        onStartDraft={() => archive.setFolderDraft({ name: '', color: 'blue' })}
       />
 
-      {visibleCreations.length === 0 ? (
+      {archive.selectedFolder ? (
+        <WorkspaceArchiveFolderHeader
+          count={archive.selectedFolderCreations.length}
+          folder={archive.selectedFolder}
+          latestSavedAt={archive.latestSavedAt}
+        />
+      ) : null}
+
+      {creations.length > 0 ? (
+        <WorkspaceArchiveControls
+          query={archive.query}
+          sort={archive.sort}
+          onQueryChange={archive.setQuery}
+          onSortChange={archive.setSort}
+        />
+      ) : null}
+
+      {archive.moveNotice ? (
+        <p
+          role="status"
+          className="px-2.5 pt-1 text-micro text-[color:var(--accent-sage)]"
+        >
+          {archive.moveNotice}
+        </p>
+      ) : null}
+
+      {archive.visibleCreations.length === 0 ? (
         <p className="px-2.5 text-micro text-ink-400">
           {creations.length === 0
             ? 'Guarda PDFs y copias para reabrirlas.'
@@ -165,7 +173,7 @@ export function WorkspaceSavedDocsSection({
         </p>
       ) : (
         <ul className="flex flex-col gap-1 px-2 pt-1">
-          {visibleCreations.map((s) => (
+          {archive.visibleCreations.map((s) => (
             <WorkspaceSavedDocItem
               key={s.id}
               saved={s}
@@ -189,7 +197,7 @@ export function WorkspaceSavedDocsSection({
               onDownload={() => onDownloadSaved(s)}
               onStartRename={() => setRenaming({ id: s.id, value: s.name })}
               onDelete={() => onDeleteSaved(s.id)}
-              onMoveToFolder={(folderId) => onMoveSavedToFolder(s.id, folderId)}
+              onMoveToFolder={(folderId) => archive.moveSaved(s.id, folderId)}
             />
           ))}
         </ul>

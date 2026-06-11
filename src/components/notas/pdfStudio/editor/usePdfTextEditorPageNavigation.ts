@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useEffect, useRef, type Dispatch, type SetStateAction } from 'react'
 import type { PageLayout } from '../../../../lib/pdfStudio/model/editorGeometry'
 import { findMostVisiblePdfEditorPage } from './pdfEditorZoomScroll'
 
@@ -24,6 +24,7 @@ export function usePdfTextEditorPageNavigation({
   setCurrentPage,
   setEditingId,
   setSelectedId,
+  scrollInitialPage = false,
   total,
 }: {
   currentPage: number
@@ -31,8 +32,10 @@ export function usePdfTextEditorPageNavigation({
   setCurrentPage: Dispatch<SetStateAction<number>>
   setEditingId: (id: string | null) => void
   setSelectedId: (id: string | null) => void
+  scrollInitialPage?: boolean
   total: number
 }) {
+  const initialPageScrolledRef = useRef(false)
   const clearPageState = useCallback(() => {
     setSelectedId(null)
     setEditingId(null)
@@ -50,6 +53,17 @@ export function usePdfTextEditorPageNavigation({
     },
     [clearPageState, currentPage, setCurrentPage, total],
   )
+
+  const scrollInitialPageIntoView = useCallback(() => {
+    window.setTimeout(() => {
+      scrollEditorPageIntoView(currentPage)
+    }, 0)
+  }, [currentPage])
+  useEffect(() => {
+    if (!scrollInitialPage || initialPageScrolledRef.current) return
+    initialPageScrolledRef.current = true
+    scrollInitialPageIntoView()
+  }, [scrollInitialPage, scrollInitialPageIntoView])
 
   const activatePage = useCallback(
     (i: number) => {
@@ -71,5 +85,5 @@ export function usePdfTextEditorPageNavigation({
     [currentPage, setCurrentPage, total],
   )
 
-  return { activatePage, goToPage, syncPageFromScroll }
+  return { activatePage, goToPage, scrollInitialPageIntoView, syncPageFromScroll }
 }
