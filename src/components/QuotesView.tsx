@@ -21,7 +21,8 @@ import { useQuotesFilters } from './quotes/useQuotesFilters'
 import { QuotesFiltersBar } from './quotes/QuotesFiltersBar'
 import { PrintObject } from './print/PrintObject'
 import { QuotesPrintSheet } from './print/PrintSheets'
-import { PrinterIcon } from './Icons'
+import { PrinterIcon, ReadingIcon } from './Icons'
+import { LibroModal } from './quotes/LibroModal'
 import { DensityToggle } from './DensityToggle'
 import { useDensity } from '../hooks/useDensity'
 
@@ -96,6 +97,7 @@ export function QuotesView({
   // Imprimir como objeto: ⌘P (o el botón del header) produce un pliego
   // tipografiado con las citas visibles, no un screenshot del DOM.
   const [printOpen, setPrintOpen] = useState(false)
+  const [libroOpen, setLibroOpen] = useState(false)
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
@@ -156,6 +158,17 @@ export function QuotesView({
               >
                 <PrinterIcon size={12} />
                 Pliego
+              </button>
+            )}
+            {quotes.length > 0 && (
+              <button
+                onClick={() => setLibroOpen(true)}
+                title="Componer el florilegio como libro PDF"
+                aria-label="Componer mi libro"
+                className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors inline-flex items-center gap-1.5"
+              >
+                <ReadingIcon size={12} />
+                Libro
               </button>
             )}
             <CopyImportPromptButton />
@@ -343,6 +356,7 @@ export function QuotesView({
           />
         </PrintObject>
       )}
+      {libroOpen && <LibroModal onClose={() => setLibroOpen(false)} />}
     </>
   )
 }

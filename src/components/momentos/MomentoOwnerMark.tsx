@@ -4,19 +4,17 @@ import { personInitial, personLabel, shareRoleLabel } from './sharePresentation'
 export function MomentoOwnerMark({ momento }: { momento: Momento }) {
   const isOwn = momento.accessRole === 'owner'
   if (!momento.shared && !isOwn) return null
-  const label = isOwn
-    ? 'Tú'
-    : personLabel({
-        displayName: momento.ownerDisplayName,
-        email: momento.ownerEmail,
-      })
-  const ariaLabel = isOwn ? 'ti' : label
+  const label = personLabel({
+    displayName: momento.ownerDisplayName,
+    email: momento.ownerEmail,
+    fallback: isOwn ? 'propietario' : undefined,
+  })
   const role = shareRoleLabel(momento.accessRole)
   return (
     <span
       className="mt-2 inline-flex items-center gap-2 rounded-full border border-ink-100/70 bg-paper-100/55 py-1 pl-1 pr-2.5 text-caption text-ink-500"
-      aria-label={`Subido por ${ariaLabel}`}
-      title={`Subido por ${ariaLabel}`}
+      aria-label={`Subido por ${label}`}
+      title={`Subido por ${label}`}
     >
       <span
         className="grid size-5 place-items-center rounded-full text-micro font-medium text-paper-50"

@@ -7,7 +7,7 @@ import { AISourceTag } from '../AISourceTag'
 import { QuoteEditModal } from '../QuoteEditModal'
 import { ResonanceDots } from './ResonanceDots'
 import { QuoteActionsMenu } from './QuoteActionsMenu'
-import { downloadPostal } from '../../lib/postal'
+import { LaminaModal } from './LaminaModal'
 
 /** Format an ISO date as "20 may 2026" — short, ink-on-paper style. */
 function formatDate(iso: string): string {
@@ -85,18 +85,9 @@ function QuoteItemInternal({
     }
   }
 
-  async function handlePostal() {
-    try {
-      await downloadPostal({
-        text: quote.text,
-        attribution: entity?.name ?? 'Anónimo',
-        source: quote.source ?? null,
-      })
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'No se pudo generar la postal'
-      toast.show({ message: msg, tone: 'error' })
-    }
-  }
+  // Lámina (evolución de la Postal): modal con vista previa, tres fondos
+  // y marginalia opcional, en vez de descarga directa a ciegas.
+  const [laminaOpen, setLaminaOpen] = useState(false)
 
   async function handleTogglePin() {
     try {
@@ -250,7 +241,7 @@ function QuoteItemInternal({
           </button>
           <QuoteActionsMenu
             onEdit={() => setEditOpen(true)}
-            onPostal={handlePostal}
+            onPostal={() => setLaminaOpen(true)}
             onReflect={handleReflect}
             onDelete={onDelete}
             reflectPending={reflect.isPending}
@@ -260,6 +251,18 @@ function QuoteItemInternal({
       </div>
 
       <QuoteEditModal quote={quote} open={editOpen} onClose={() => setEditOpen(false)} />
+
+      {laminaOpen && (
+        <LaminaModal
+          input={{
+            text: quote.text,
+            attribution: entity?.name ?? 'Anónimo',
+            source: quote.source ?? null,
+            marginalia: quote.userReflection ?? null,
+          }}
+          onClose={() => setLaminaOpen(false)}
+        />
+      )}
 
       {quote.userReflection && (
         <div className={compact ? 'mt-2 pl-4' : 'mt-3 pl-5'}>

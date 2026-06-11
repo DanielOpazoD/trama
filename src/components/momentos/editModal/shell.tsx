@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 
 /**
@@ -42,15 +43,15 @@ export function ModalShell({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  return (
-    <>
+  return createPortal(
+    <div data-momento-modal-root="">
       <button
         onClick={onClose}
         aria-label="Cerrar"
-        className="fixed inset-0 z-40 bg-ink-900/40 backdrop-blur-sm cursor-default animate-fade-up"
+        className="fixed inset-0 z-[120] bg-ink-900/40 backdrop-blur-sm cursor-default animate-fade-up"
         tabIndex={-1}
       />
-      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none animate-fade-up">
+      <div className="fixed inset-0 z-[130] flex items-center justify-center px-4 pointer-events-none">
         <div
           ref={dialogRef}
           role="dialog"
@@ -70,7 +71,8 @@ export function ModalShell({
           {children}
         </div>
       </div>
-    </>
+    </div>,
+    document.body,
   )
 }
 

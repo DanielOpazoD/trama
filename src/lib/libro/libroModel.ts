@@ -1,0 +1,188 @@
+import type { Entity, Quote } from '../../types'
+
+/**
+ * Libro — modelo puro del florilegio como edición. Acá vive todo lo que
+ * se puede decidir sin tocar pdf-lib: qué capítulos hay, en qué orden,
+ * qué citas lleva cada uno, el texto del colofón y el partido de líneas.
+ * `buildLibro.ts` solo tipografía esto sobre el PDF.
+ *
+ * Decisiones editoriales:
+ *  - Un capítulo por entidad, ordenados por cuántas citas aportan (la
+ *    voz más presente abre el libro). Dentro del capítulo, cronológico:
+ *    el orden en que esas citas entraron a tu vida.
+ *  - El colofón dice la verdad del objeto: cuántas citas, entre qué años
+ *    se reunieron. Como la página legal de una edición real.
+ */
+
+export type LibroQuote = {
+  text: string
+  source: string | null
+  /** Tu reflexión — sale en Caveat como marginalia, si se pidió. */
+  marginalia: string | null
+  /** Favorita (★): lleva un rombo dorado en la edición. */
+  pinned: boolean
+}
+
+export type LibroChapter = {
+  title: string
+  /** «escritor · 1899» — tipo y año de la entidad, si los hay. */
+  subtitle: string | null
+  quotes: LibroQuote[]
+}
+
+export type LibroOptions = {
+  title: string
+  author: string | null
+  includeMarginalia: boolean
+  /** Edición breve: solo las citas marcadas como favoritas (★). */
+  onlyFavorites: boolean
+}
+
+export type LibroImprintSummary = {
+  quoteCount: number
+  voiceCount: number
+  sourceCount: number
+  favoriteCount: number
+  editionLabel: string
+  yearRangeLabel: string
+  composedAtLabel: string
+  exportStateLabel: string
+}
+
+function libroQuotePool(quotes: Quote[], onlyFavorites: boolean): Quote[] {
+  return onlyFavorites ? quotes.filter((q) => q.pinnedAt) : quotes
+}
+
+export function buildChapters(
+  entities: Entity[],
+  quotes: Quote[],
+  includeMarginalia: boolean,
+  onlyFavorites = false,
+): LibroChapter[] {
+  const pool = libroQuotePool(quotes, onlyFavorites)
+  const byEntity = new Map<string, Quote[]>()
+  for (const q of pool) {
+    const list = byEntity.get(q.entityId) ?? []
+    list.push(q)
+    byEntity.set(q.entityId, list)
+  }
+  const chapters: LibroChapter[] = []
+  for (const e of entities) {
+    const list = byEntity.get(e.id)
+    if (!list || list.length === 0) continue
+    chapters.push({
+      title: e.name,
+      subtitle:
+        [e.type, e.year ? String(e.year) : null].filter(Boolean).join(' · ') || null,
+      quotes: [...list]
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        .map((q) => ({
+          text: q.text,
+          source: q.source ?? null,
+          marginalia: includeMarginalia ? (q.userReflection ?? null) : null,
+          pinned: Boolean(q.pinnedAt),
+        })),
+    })
+  }
+  // La voz más presente abre el libro; a igual peso, alfabético.
+  return chapters.sort(
+    (a, b) => b.quotes.length - a.quotes.length || a.title.localeCompare(b.title),
+  )
+}
+
+export function libroImprintSummary(
+  entities: Entity[],
+  quotes: Quote[],
+  opts: { onlyFavorites: boolean; now?: Date },
+): LibroImprintSummary {
+  const pool = libroQuotePool(quotes, opts.onlyFavorites)
+  const voiceIds = new Set(pool.map((q) => q.entityId))
+  const knownVoiceCount = entities.filter((entity) => voiceIds.has(entity.id)).length
+  const years = pool
+    .map((q) => new Date(q.createdAt).getFullYear())
+    .filter((year) => !Number.isNaN(year))
+  const first = years.length ? Math.min(...years) : null
+  const last = years.length ? Math.max(...years) : null
+  const yearRangeLabel =
+    first === null ? 'sin fecha' : first === last ? String(first) : `${first}-${last}`
+  const sources = new Set(
+    pool
+      .map((q) => q.source?.trim())
+      .filter((source): source is string => Boolean(source)),
+  )
+  const now = opts.now ?? new Date()
+  return {
+    quoteCount: pool.length,
+    voiceCount: knownVoiceCount || voiceIds.size,
+    sourceCount: sources.size,
+    favoriteCount: pool.filter((q) => q.pinnedAt).length,
+    editionLabel: opts.onlyFavorites ? 'edición breve' : 'edición completa',
+    yearRangeLabel,
+    composedAtLabel: new Intl.DateTimeFormat('es-CL', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(now),
+    exportStateLabel: pool.length > 0 ? 'lista para imprenta' : 'sin citas para componer',
+  }
+}
+
+/** Texto del colofón — la página legal de la edición: cuántas citas,
+ *  entre qué años, quién las reunió, y el carácter privado del objeto. */
+export function colophonLines(
+  quotes: Quote[],
+  opts: { author?: string | null; now?: Date } = {},
+): string[] {
+  const now = opts.now ?? new Date()
+  const years = quotes
+    .map((q) => new Date(q.createdAt).getFullYear())
+    .filter((y) => !Number.isNaN(y))
+  const first = years.length ? Math.min(...years) : null
+  const last = years.length ? Math.max(...years) : null
+  const n = quotes.length
+  const span =
+    first === null
+      ? ''
+      : first === last
+        ? ` durante ${first}`
+        : ` entre ${first} y ${last}`
+  return [
+    `Esta edición se compuso con las ${n} citas`,
+    opts.author ? `reunidas${span} por ${opts.author}.` : `reunidas${span}.`,
+    '',
+    'Edición personal, de circulación privada,',
+    'sin fines comerciales. Cada cita pertenece',
+    'a su autor y a su fuente.',
+    '',
+    `Trama · ${now.getFullYear()}`,
+  ]
+}
+
+/**
+ * Parte `text` en líneas que entren en `maxWidth`, midiendo con la
+ * función provista (en el PDF real: widthOfTextAtSize de la fuente).
+ * Respeta saltos de línea explícitos.
+ */
+export function wrapLines(
+  measure: (s: string) => number,
+  text: string,
+  maxWidth: number,
+): string[] {
+  const paragraphs = text.split(/\n+/)
+  const lines: string[] = []
+  for (const paragraph of paragraphs) {
+    const words = paragraph.split(/\s+/).filter(Boolean)
+    let current = ''
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word
+      if (measure(candidate) > maxWidth && current) {
+        lines.push(current)
+        current = word
+      } else {
+        current = candidate
+      }
+    }
+    if (current) lines.push(current)
+  }
+  return lines
+}

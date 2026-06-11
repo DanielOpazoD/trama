@@ -86,7 +86,9 @@ describe('<QuotesView />', () => {
     // Los chips muestran "Todas" + un chip por tipo presente. Los chips
     // viven fuera del virtualizer, así que jsdom los renderiza directo.
     expect(screen.getByRole('button', { name: /todas/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /libro/i })).toBeInTheDocument()
+    // /libro/ a secas también matchearía el botón "Componer mi libro" del
+    // header — el chip de tipo lleva su count, eso lo distingue.
+    expect(screen.getByRole('button', { name: /libro 1/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /persona/i })).toBeInTheDocument()
   })
 

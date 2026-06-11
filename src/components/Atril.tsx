@@ -8,6 +8,7 @@ import {
   DiceIcon,
   ReadingIcon,
 } from './Icons'
+import { LaminaModal } from './quotes/LaminaModal'
 
 /**
  * Atril — el archivo en el atril de lectura. Absorbe Sortes ("segunda
@@ -72,6 +73,7 @@ export function Atril({ open, onClose }: { open: boolean; onClose: () => void })
   const { data: quotes = [] } = useQuotesQuery()
   const { data: entities = [] } = useEntitiesQuery()
   const [currentId, setCurrentId] = useState<string | null>(null)
+  const [laminaOpen, setLaminaOpen] = useState(false)
 
   // El orden de hojeo: el archivo como se fue escribiendo (cronológico).
   const ordered = useMemo(
@@ -241,7 +243,26 @@ export function Atril({ open, onClose }: { open: boolean; onClose: () => void })
             <DiceIcon size={12} />
             al azar
           </button>
+          <button
+            onClick={() => setLaminaOpen(true)}
+            aria-label="Exportar como lámina"
+            className="section-eyebrow hover:text-ink-700 transition-colors"
+          >
+            lámina
+          </button>
         </div>
+      )}
+
+      {laminaOpen && quote && (
+        <LaminaModal
+          input={{
+            text: quote.text,
+            attribution: entity?.name ?? 'Anónimo',
+            source: quote.source ?? null,
+            marginalia: quote.userReflection ?? null,
+          }}
+          onClose={() => setLaminaOpen(false)}
+        />
       )}
     </div>
   )

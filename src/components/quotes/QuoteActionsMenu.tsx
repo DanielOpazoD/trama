@@ -4,7 +4,7 @@ import { SparkleIcon, TrashIcon } from '../Icons'
 
 /**
  * ρ-citas: menú "⋯" que agrupa las acciones secundarias de una cita
- * (Editar, Postal, Reflexionar con IA, Eliminar) en un solo control.
+ * (Editar, Lámina, Reflexionar con IA, Eliminar) en un solo control.
  *
  * El popover se renderiza con `createPortal` a `document.body` y se posiciona
  * con coordenadas `fixed` calculadas desde el botón — así flota libre y NO se
@@ -110,7 +110,7 @@ export function QuoteActionsMenu({
               onClick={() => run(onPostal)}
               className={`${ROW} text-ink-600 hover:text-ink-800 hover:bg-ink-100/60`}
             >
-              Postal
+              Lámina
             </button>
             {canReflect && (
               <button

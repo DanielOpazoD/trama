@@ -294,6 +294,7 @@ test.describe('Imprenta · editor PDF', () => {
     page,
   }) => {
     await openPdfEditor(page)
+    await waitForEditableSheetReady(page)
 
     const metrics = await toolbarMetrics(page)
     expect(metrics.className).toContain('flex-nowrap')
