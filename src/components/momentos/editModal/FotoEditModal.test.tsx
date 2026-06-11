@@ -87,6 +87,22 @@ describe('<FotoEditModal />', () => {
     expect(screen.getByDisplayValue('una nota')).toBeInTheDocument()
   })
 
+  it('porta la shell del modal a body para quedar sobre las fotos del timeline', () => {
+    const qc = makeQueryClient()
+    render(
+      <div data-testid="timeline-entry">
+        <FotoEditModal momento={FOTO_MOMENTO} onClose={() => {}} />
+      </div>,
+      { wrapper: wrap(qc) },
+    )
+
+    const modalRoot = screen
+      .getByRole('dialog', { name: /editar momento/i })
+      .closest('[data-momento-modal-root]')
+    expect(modalRoot).not.toBeNull()
+    expect(modalRoot?.parentElement).toBe(document.body)
+  })
+
   it('botón "Cancelar" llama onClose', async () => {
     const onClose = vi.fn()
     const qc = makeQueryClient()

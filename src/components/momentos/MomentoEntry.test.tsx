@@ -119,14 +119,13 @@ describe('<MomentoEntry />', () => {
     expect(screen.getByText('puede editar')).toBeInTheDocument()
   })
 
-  it('marca los momentos propios como subidos por ti cuando el backend entrega dueño', () => {
+  it('marca los momentos propios con el nombre asociado al correo', () => {
     render(
       <MomentoEntry
         momento={{
           ...baseMomento('nota', { bodyText: 'Mi propia nota.' }),
           ownerUserId: 'user-current',
-          ownerDisplayName: 'Daniel',
-          ownerEmail: 'daniel@example.com',
+          ownerEmail: 'daniel.opazo@example.com',
           accessRole: 'owner',
           shared: false,
         }}
@@ -135,8 +134,11 @@ describe('<MomentoEntry />', () => {
       />,
     )
 
-    expect(screen.getByLabelText(/subido por ti/i)).toBeInTheDocument()
-    expect(screen.getByText('Tú')).toBeInTheDocument()
+    expect(screen.getByLabelText(/subido por daniel opazo/i)).toBeInTheDocument()
+    expect(screen.getByText('Daniel Opazo')).toBeInTheDocument()
+    expect(screen.getByText('propietario')).toBeInTheDocument()
+    expect(screen.queryByText('Tú')).toBeNull()
+    expect(screen.queryByText('tuyo')).toBeNull()
   })
 
   it('renderiza un recorte con autor, fuente, enlace, cita y nota', () => {

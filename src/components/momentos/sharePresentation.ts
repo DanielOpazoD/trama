@@ -5,7 +5,26 @@ export function personLabel(input: {
   email?: string
   fallback?: string
 }): string {
-  return input.displayName || input.email || input.fallback || 'otro usuario'
+  const displayName = input.displayName?.trim()
+  if (displayName) return displayName
+  const emailName = nameFromEmail(input.email)
+  if (emailName) return emailName
+  const fallback = input.fallback?.trim()
+  return fallback || 'otro usuario'
+}
+
+function nameFromEmail(email?: string): string | undefined {
+  const localPart = email?.split('@')[0]?.trim()
+  if (!localPart) return undefined
+  const words = localPart
+    .replace(/[._-]+/g, ' ')
+    .split(/\s+/)
+    .map((word) => {
+      const lower = word.toLocaleLowerCase('es')
+      return lower.charAt(0).toLocaleUpperCase('es') + lower.slice(1)
+    })
+    .filter(Boolean)
+  return words.length ? words.join(' ') : undefined
 }
 
 export function personInitial(label: string): string {
@@ -16,6 +35,6 @@ export function personInitial(label: string): string {
 export function shareRoleLabel(role?: MomentoShareRole | 'owner'): string {
   if (role === 'editor') return 'puede editar'
   if (role === 'viewer') return 'solo lectura'
-  if (role === 'owner') return 'tuyo'
+  if (role === 'owner') return 'propietario'
   return 'compartido'
 }
