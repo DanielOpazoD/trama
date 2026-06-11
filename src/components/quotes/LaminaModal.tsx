@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   generateLaminaBlob,
   generateLaminaPreview,
@@ -104,7 +105,7 @@ export function LaminaModal({
     }
   }
 
-  return (
+  const content = (
     <>
       <button
         onClick={onClose}
@@ -115,7 +116,7 @@ export function LaminaModal({
       <div
         role="dialog"
         aria-label="Lámina"
-        className="fixed inset-x-4 top-10 bottom-10 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[520px] z-50 flex flex-col rounded-xl border border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 overflow-hidden animate-slide-up"
+        className="fixed inset-x-4 top-10 bottom-10 z-50 flex flex-col overflow-hidden rounded-xl border border-ink-100/50 bg-paper-50/95 shadow-lg shadow-ink-900/10 backdrop-blur-md md:left-1/2 md:right-auto md:w-[520px] md:-ml-[260px]"
       >
         <header className="px-5 py-3.5 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
           <div>
@@ -206,4 +207,6 @@ export function LaminaModal({
       </div>
     </>
   )
+
+  return createPortal(content, document.body)
 }

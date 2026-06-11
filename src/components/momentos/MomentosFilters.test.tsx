@@ -41,19 +41,4 @@ describe('<MomentosFilters />', () => {
 
     expect(screen.queryByRole('button', { name: 'Álbum' })).not.toBeInTheDocument()
   })
-
-  it('permite delegar el cambio de modo a una superficie superior', () => {
-    render(
-      <MomentosFilters
-        filterKind={null}
-        onChangeFilterKind={() => {}}
-        viewMode="timeline"
-        onChangeViewMode={() => {}}
-        showViewToggle={false}
-      />,
-    )
-
-    expect(screen.getByRole('button', { name: 'Todos' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Álbum' })).not.toBeInTheDocument()
-  })
 })

@@ -53,8 +53,10 @@ const PERSON_TYPES = new Set([
 
 export function QuotesView({
   onSelectEntity,
+  onOpenCareo,
 }: {
   onSelectEntity?: (id: string) => void
+  onOpenCareo?: () => void
 }) {
   const { data: entities = [] } = useEntitiesQuery()
   const quotesPaged = useInfiniteQuotesQuery()
@@ -187,39 +189,46 @@ export function QuotesView({
       {allLoadedQuotes.length > 0 && (
         <section
           aria-label="Taller de imprenta"
-          className="mb-5 grid gap-3 rounded-xl border border-ink-100/70 bg-paper-100/45 px-4 py-3 md:grid-cols-[1fr_auto]"
+          className="mb-5 rounded-xl border border-ink-100/70 bg-paper-100/45 px-4 py-3"
         >
-          <div>
-            <p className="text-micro uppercase tracking-eyebrow text-ink-300">
-              taller de imprenta
-            </p>
-            <p className="mt-1 font-serif text-xl text-ink-700">
-              {allLoadedQuotes.length}{' '}
-              {allLoadedQuotes.length === 1 ? 'cita cargada' : 'citas cargadas'}
-            </p>
-            <p className="mt-1 max-w-2xl text-caption text-ink-400">
-              Una misma mesa editorial para releer, laminar, componer libro o poner dos
-              citas en careo.
-            </p>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-micro uppercase tracking-eyebrow text-ink-300">
+                taller de imprenta
+              </p>
+              <p className="mt-1 font-serif text-xl text-ink-700">
+                {allLoadedQuotes.length}{' '}
+                {allLoadedQuotes.length === 1 ? 'cita cargada' : 'citas cargadas'}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[28rem]">
+              <PrintWorkshopTool
+                icon={DiceIcon}
+                label="Atril"
+                description="en el buscador"
+              />
+              <PrintWorkshopTool
+                icon={PrinterIcon}
+                label="Lámina"
+                description="desde ⋯ de cada cita"
+              />
+              <PrintWorkshopTool
+                icon={ReadingIcon}
+                label="Libro"
+                description="composición PDF"
+                onClick={() => setLibroOpen(true)}
+              />
+              <PrintWorkshopTool
+                icon={QuoteIcon}
+                label="Careo"
+                description="abrir contrapunto"
+                onClick={onOpenCareo}
+              />
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:min-w-[29rem]">
-            <PrintWorkshopTool
-              icon={DiceIcon}
-              label="Atril"
-              description="relectura breve"
-            />
-            <PrintWorkshopTool
-              icon={PrinterIcon}
-              label="Lámina"
-              description="desde cada cita"
-            />
-            <PrintWorkshopTool
-              icon={ReadingIcon}
-              label="Libro"
-              description="composición PDF"
-            />
-            <PrintWorkshopTool icon={QuoteIcon} label="Careo" description="contrapunto" />
-          </div>
+          <p className="mt-3 text-caption text-ink-400">
+            Lámina vive en el menú ⋯ de cada cita; Careo abre dos voces frente a frente.
+          </p>
         </section>
       )}
 
@@ -404,13 +413,45 @@ function PrintWorkshopTool({
   icon: Icon,
   label,
   description,
+  onClick,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>
+  label: string
+  description: string
+  onClick?: () => void
+}) {
+  const className =
+    'rounded-lg border border-ink-100/70 bg-paper-50/70 px-3 py-2 text-left transition-colors'
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${className} hover:border-ink-200 hover:bg-paper-50`}
+      >
+        <PrintWorkshopToolContent icon={Icon} label={label} description={description} />
+      </button>
+    )
+  }
+
+  return (
+    <div className={className}>
+      <PrintWorkshopToolContent icon={Icon} label={label} description={description} />
+    </div>
+  )
+}
+
+function PrintWorkshopToolContent({
+  icon: Icon,
+  label,
+  description,
 }: {
   icon: React.ComponentType<{ size?: number; className?: string }>
   label: string
   description: string
 }) {
   return (
-    <div className="rounded-lg border border-ink-100/70 bg-paper-50/70 px-3 py-2">
+    <>
       <div className="flex items-center gap-1.5 text-xs font-medium text-ink-700">
         <Icon size={13} className="text-ink-400" />
         {label}
@@ -418,6 +459,6 @@ function PrintWorkshopTool({
       <p className="mt-1 text-micro uppercase tracking-[0.16em] text-ink-300">
         {description}
       </p>
-    </div>
+    </>
   )
 }

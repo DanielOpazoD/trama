@@ -186,24 +186,6 @@ export function MomentosView() {
         }}
       />
 
-      <section
-        aria-label="Modos de memoria"
-        className="mb-5 grid gap-2 rounded-xl border border-ink-100/70 bg-paper-100/45 p-2 sm:grid-cols-2"
-      >
-        <MemoryModeButton
-          active={viewMode === 'timeline'}
-          label="Diario"
-          description="íntimo y fechado"
-          onClick={() => setViewMode('timeline')}
-        />
-        <MemoryModeButton
-          active={viewMode === 'album'}
-          label="Álbum"
-          description="visual y navegable"
-          onClick={() => setViewMode('album')}
-        />
-      </section>
-
       {/* V-4 Hojas sueltas: superficie de escritura que enlaza el archivo
           (@ entidad, > cita). Guarda como nota. Colapsada por default. */}
       <div className="mb-6 flex flex-wrap items-center gap-4">
@@ -254,7 +236,6 @@ export function MomentosView() {
           onChangeFilterKind={setFilterKind}
           viewMode={viewMode}
           onChangeViewMode={setViewMode}
-          showViewToggle={false}
         />
         {/* EE: toggle del modo selección. Solo aparece cuando hay >1 item
             cargado Y la vista es timeline — AlbumGrid no soporta selección
@@ -470,34 +451,4 @@ function clearDayFilter() {
   url.searchParams.delete('day')
   window.history.pushState({}, '', url.toString())
   window.dispatchEvent(new PopStateEvent('popstate'))
-}
-
-function MemoryModeButton({
-  active,
-  label,
-  description,
-  onClick,
-}: {
-  active: boolean
-  label: string
-  description: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={`rounded-lg border px-3 py-2 text-left transition-colors ${
-        active
-          ? 'border-ink-300 bg-paper-50 text-ink-700 shadow-sm'
-          : 'border-transparent text-ink-400 hover:border-ink-100 hover:text-ink-700'
-      }`}
-    >
-      <span className="block font-serif text-lg leading-tight">{label}</span>
-      <span className="mt-0.5 block text-micro uppercase tracking-[0.18em]">
-        {description}
-      </span>
-    </button>
-  )
 }

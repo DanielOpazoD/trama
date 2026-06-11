@@ -14,13 +14,11 @@ export function MomentosFilters({
   onChangeFilterKind,
   viewMode,
   onChangeViewMode,
-  showViewToggle = true,
 }: {
   filterKind: MomentoKind | null
   onChangeFilterKind: (k: MomentoKind | null) => void
   viewMode: 'timeline' | 'album'
   onChangeViewMode: (v: 'timeline' | 'album') => void
-  showViewToggle?: boolean
 }) {
   return (
     <div className="mb-6 flex items-center gap-3 flex-wrap">
@@ -57,7 +55,7 @@ export function MomentosFilters({
           internamente a kind=foto — el usuario sigue viendo solo fotos
           en grid, pero sin tener que pasar primero por la pestaña Fotos.
           Para 'nota' y 'recorte' no tiene sentido un grid de tiles. */}
-      {showViewToggle && (filterKind === 'foto' || filterKind === null) && (
+      {(filterKind === 'foto' || filterKind === null) && (
         <div className="ml-auto flex gap-1 p-0.5 bg-paper-100/60 rounded-md border border-ink-100/50">
           <button
             onClick={() => onChangeViewMode('timeline')}

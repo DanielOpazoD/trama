@@ -158,6 +158,7 @@ export function ViewRouter({
   onEntitiesTabChange,
   onSelectEntity,
   onChangeView,
+  onOpenCareo,
   onProposal,
   onConsumedInitialThread,
 }: {
@@ -170,6 +171,7 @@ export function ViewRouter({
   onEntitiesTabChange: (tab: 'listado' | 'vinculos') => void
   onSelectEntity: (id: string | null) => void
   onChangeView: (v: ViewMode) => void
+  onOpenCareo?: () => void
   onProposal: (text: string, proposal: ExtractionProposal) => void
   onConsumedInitialThread: () => void
 }) {
@@ -234,7 +236,7 @@ export function ViewRouter({
           )}
           {view === 'citas' && (
             <ViewSlot scope="view:citas">
-              <QuotesView onSelectEntity={onSelectEntity} />
+              <QuotesView onSelectEntity={onSelectEntity} onOpenCareo={onOpenCareo} />
             </ViewSlot>
           )}
           {view === 'escuchas' && (

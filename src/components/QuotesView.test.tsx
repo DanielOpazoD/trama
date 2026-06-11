@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type { ComponentProps } from 'react'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QuotesView } from './QuotesView'
@@ -56,6 +57,7 @@ function setupCache(
   entities: Entity[],
   quotes: Quote[],
   relationships: Relationship[] = [],
+  props: Partial<ComponentProps<typeof QuotesView>> = {},
 ) {
   const qc = makeQueryClient()
   qc.setQueryData(queryKeys.entities, entities)
@@ -65,7 +67,7 @@ function setupCache(
     pages: [{ items: quotes, nextCursor: null }],
     pageParams: [null],
   })
-  return renderWithProviders(<QuotesView onSelectEntity={vi.fn()} />, {
+  return renderWithProviders(<QuotesView onSelectEntity={vi.fn()} {...props} />, {
     queryClient: qc,
   })
 }
@@ -101,6 +103,18 @@ describe('<QuotesView />', () => {
     expect(imprenta).toHaveTextContent(/Libro/i)
     expect(imprenta).toHaveTextContent(/Careo/i)
     expect(imprenta).toHaveTextContent(/2 citas cargadas/i)
+  })
+
+  it('abre Careo desde el Taller de imprenta', async () => {
+    const user = userEvent.setup()
+    const onOpenCareo = vi.fn()
+    setupCache([ENTITY_LIBRO, ENTITY_PERSONA], [QUOTE_LIBRO, QUOTE_PERSONA], [], {
+      onOpenCareo,
+    })
+
+    await user.click(screen.getByRole('button', { name: /Careo/i }))
+
+    expect(onOpenCareo).toHaveBeenCalledOnce()
   })
 
   it('NO muestra chips de filtro cuando hay un solo tipo', () => {
