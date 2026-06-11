@@ -36,11 +36,56 @@ export function NotasHomeView({
         .slice(0, 4),
     [prompts],
   )
+  const criticalTasks = useMemo(
+    () => pendingTasks.filter((task) => task.priority === 'alta'),
+    [pendingTasks],
+  )
+  const pinnedNotes = useMemo(
+    () => notes.filter((note) => note.pinned).slice(0, 3),
+    [notes],
+  )
   const hasAnything = notes.length + tasks.length + prompts.length > 0
 
   return (
     <>
       <ViewHeader title="Hoy" eyebrow="mundo notas" accent={ACCENT} spacing="wide" />
+
+      <section
+        aria-label="Turno del día"
+        className="mb-4 rounded-xl border border-ink-100/70 bg-paper-100/45 px-4 py-3"
+      >
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-micro uppercase tracking-eyebrow text-ink-300">
+              turno del día
+            </p>
+            <p className="mt-1 font-serif text-xl text-ink-700">
+              {pendingTasks.length}{' '}
+              {pendingTasks.length === 1 ? 'pendiente' : 'pendientes'} ·{' '}
+              {criticalTasks.length} {criticalTasks.length === 1 ? 'crítico' : 'críticos'}
+            </p>
+            <p className="mt-1 text-caption text-ink-400">
+              {pinnedNotes.length > 0
+                ? `${pinnedNotes.length} notas fijadas sostienen el foco.`
+                : 'Sin notas fijadas: captura una señal antes de ordenar el día.'}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 md:w-72">
+            <QuickAction
+              icon={NotesIcon}
+              label="nota"
+              verb="capturar"
+              onClick={() => onNavigate('notas')}
+            />
+            <QuickAction
+              icon={TasksIcon}
+              label="tarea"
+              verb="capturar"
+              onClick={() => onNavigate('tareas')}
+            />
+          </div>
+        </div>
+      </section>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-5">
         <QuickAction icon={NotesIcon} label="nota" onClick={() => onNavigate('notas')} />
@@ -104,7 +149,7 @@ export function NotasHomeView({
               ))
             )}
           </HubCard>
-          <HubCard title="Notas vivas" count={topNotes.length}>
+          <HubCard title="Notas vivas" count={topNotes.length} ariaLabel="Notas fijadas">
             {topNotes.map((n) => (
               <button
                 key={n.id}
@@ -151,10 +196,12 @@ export function NotasHomeView({
 function QuickAction({
   icon: Icon,
   label,
+  verb = 'nueva',
   onClick,
 }: {
   icon: React.ComponentType<{ size?: number; className?: string }>
   label: string
+  verb?: 'nueva' | 'capturar'
   onClick: () => void
 }) {
   return (
@@ -166,7 +213,7 @@ function QuickAction({
         <span className="inline-flex" style={{ color: ACCENT }}>
           <Icon size={14} />
         </span>
-        nueva {label}
+        {verb} {label}
       </span>
       <PlusIcon size={12} className="text-ink-300" />
     </button>
@@ -176,14 +223,19 @@ function QuickAction({
 function HubCard({
   title,
   count,
+  ariaLabel,
   children,
 }: {
   title: string
   count: number
+  ariaLabel?: string
   children: React.ReactNode
 }) {
   return (
-    <section className="card-paper-soft rounded-xl border border-ink-100/70 p-4">
+    <section
+      aria-label={ariaLabel}
+      className="card-paper-soft rounded-xl border border-ink-100/70 p-4"
+    >
       <div className="flex items-center justify-between gap-2 mb-2">
         <h3 className="section-eyebrow text-ink-400">{title}</h3>
         <span className="text-micro tabular-nums text-ink-300">{count}</span>

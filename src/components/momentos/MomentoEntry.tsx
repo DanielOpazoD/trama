@@ -34,6 +34,7 @@ function MomentoEntryInternal({
   // Estado del modal de edición. Aplica a los 3 kinds (nota, recorte,
   // foto) — el modal despacha al sub-renderer correcto según kind.
   const [editOpen, setEditOpen] = useState(false)
+  const [actionsOpen, setActionsOpen] = useState(false)
   const canEdit = momento.accessRole !== 'viewer'
   const canDelete = !momento.shared
 
@@ -66,31 +67,59 @@ function MomentoEntryInternal({
 
         {linkedEntities.length > 0 && <LinkedEntities entities={linkedEntities} />}
       </div>
-      {/* Toolbar contextual al hover — editar (todos los kinds) + eliminar. */}
-      <div className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-        {canEdit && (
-          <Tooltip content="Editar contenido y fecha">
+      {/* Menú contextual compacto — evita llenar la esquina de iconos sueltos. */}
+      {(canEdit || canDelete) && (
+        <div className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <Tooltip content="Más opciones">
             <button
-              onClick={() => setEditOpen(true)}
+              type="button"
+              onClick={() => setActionsOpen((v) => !v)}
               className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors"
-              aria-label="Editar momento"
+              aria-label="Opciones del momento"
+              aria-expanded={actionsOpen}
             >
-              <PencilIcon size={12} />
+              <span aria-hidden className="block text-base leading-none -mt-1">
+                ⋯
+              </span>
             </button>
           </Tooltip>
-        )}
-        {canDelete && (
-          <Tooltip content="Eliminar momento">
-            <button
-              onClick={onDelete}
-              className="p-1.5 text-ink-400 hover:text-[color:var(--accent-clay)] hover:bg-ink-100 rounded transition-colors"
-              aria-label="Eliminar momento"
+          {actionsOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-8 z-20 w-36 rounded-xl border border-ink-100 bg-paper-50 p-1.5 shadow-xl shadow-ink-900/15"
             >
-              <TrashIcon size={12} />
-            </button>
-          </Tooltip>
-        )}
-      </div>
+              {canEdit && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setActionsOpen(false)
+                    setEditOpen(true)
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-ink-600 hover:bg-ink-100/60 hover:text-ink-800"
+                >
+                  <PencilIcon size={12} />
+                  Editar
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setActionsOpen(false)
+                    onDelete()
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[color:var(--accent-clay)] hover:bg-[color:var(--accent-clay-soft)]"
+                >
+                  <TrashIcon size={12} />
+                  Eliminar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       <MomentoEditModal
         momento={momento}
         open={editOpen}

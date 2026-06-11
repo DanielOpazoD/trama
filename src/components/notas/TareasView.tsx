@@ -95,6 +95,10 @@ export function TareasView() {
 
   const todayWeek = weekStartLocal()
   const weekKeys = useMemo(() => mondaysOfMonth(navYear, navMonth), [navYear, navMonth])
+  const orderedWeekKeys = useMemo(() => {
+    if (!weekKeys.includes(todayWeek)) return weekKeys
+    return [todayWeek, ...weekKeys.filter((week) => week !== todayWeek)]
+  }, [todayWeek, weekKeys])
   const isCurrentMonth = navYear === now.getFullYear() && navMonth === now.getMonth()
   const weekFrom = weekKeys[0] ?? todayWeek
   const weekTo = weekKeys[weekKeys.length - 1] ?? todayWeek
@@ -316,7 +320,7 @@ export function TareasView() {
           <LoadingHint text="cargando recordatorios" size="sm" />
         </div>
       ) : (
-        <div className="space-y-4">{weekKeys.map(renderWeek)}</div>
+        <div className="space-y-4">{orderedWeekKeys.map(renderWeek)}</div>
       )}
     </>
   )

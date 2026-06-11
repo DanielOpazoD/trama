@@ -136,6 +136,18 @@ describe('<LaminaModal />', () => {
     expect(screen.getByRole('radio', { name: 'Vela' })).toBeChecked()
   })
 
+  it('se monta en body para no quedar atrapada por contenedores transformados', () => {
+    renderWithProviders(
+      <div style={{ transform: 'translateY(10px)' }}>
+        <LaminaModal input={INPUT} onClose={() => {}} />
+      </div>,
+    )
+
+    expect(screen.getByRole('dialog', { name: 'Lámina' }).parentElement).toBe(
+      document.body,
+    )
+  })
+
   it('cierra con Escape', () => {
     const onClose = vi.fn()
     renderWithProviders(<LaminaModal input={INPUT} onClose={onClose} />)

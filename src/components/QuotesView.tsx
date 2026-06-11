@@ -21,7 +21,7 @@ import { useQuotesFilters } from './quotes/useQuotesFilters'
 import { QuotesFiltersBar } from './quotes/QuotesFiltersBar'
 import { PrintObject } from './print/PrintObject'
 import { QuotesPrintSheet } from './print/PrintSheets'
-import { PrinterIcon, ReadingIcon } from './Icons'
+import { PrinterIcon, QuoteIcon, ReadingIcon } from './Icons'
 import { LibroModal } from './quotes/LibroModal'
 import { DensityToggle } from './DensityToggle'
 import { useDensity } from '../hooks/useDensity'
@@ -53,8 +53,10 @@ const PERSON_TYPES = new Set([
 
 export function QuotesView({
   onSelectEntity,
+  onOpenCareo,
 }: {
   onSelectEntity?: (id: string) => void
+  onOpenCareo?: () => void
 }) {
   const { data: entities = [] } = useEntitiesQuery()
   const quotesPaged = useInfiniteQuotesQuery()
@@ -98,6 +100,7 @@ export function QuotesView({
   // tipografiado con las citas visibles, no un screenshot del DOM.
   const [printOpen, setPrintOpen] = useState(false)
   const [libroOpen, setLibroOpen] = useState(false)
+  const [printMenuOpen, setPrintMenuOpen] = useState(false)
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
@@ -150,26 +153,50 @@ export function QuotesView({
         action={
           <div className="flex items-center gap-4">
             {quotes.length > 0 && (
-              <button
-                onClick={() => setPrintOpen(true)}
-                title="Imprimir pliego de citas (⌘P)"
-                aria-label="Imprimir pliego de citas"
-                className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors inline-flex items-center gap-1.5"
-              >
-                <PrinterIcon size={12} />
-                Pliego
-              </button>
-            )}
-            {quotes.length > 0 && (
-              <button
-                onClick={() => setLibroOpen(true)}
-                title="Componer el florilegio como libro PDF"
-                aria-label="Componer mi libro"
-                className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors inline-flex items-center gap-1.5"
-              >
-                <ReadingIcon size={12} />
-                Libro
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setPrintMenuOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={printMenuOpen}
+                  className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors inline-flex items-center gap-1.5"
+                >
+                  <PrinterIcon size={12} />
+                  Imprenta
+                  <span aria-hidden>⌄</span>
+                </button>
+                {printMenuOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-7 z-30 w-40 rounded-xl border border-ink-100 bg-paper-50 p-1.5 shadow-xl shadow-ink-900/15"
+                  >
+                    <PrintMenuItem
+                      icon={PrinterIcon}
+                      label="Pliego"
+                      onClick={() => {
+                        setPrintMenuOpen(false)
+                        setPrintOpen(true)
+                      }}
+                    />
+                    <PrintMenuItem
+                      icon={ReadingIcon}
+                      label="Libro"
+                      onClick={() => {
+                        setPrintMenuOpen(false)
+                        setLibroOpen(true)
+                      }}
+                    />
+                    <PrintMenuItem
+                      icon={QuoteIcon}
+                      label="Careo"
+                      onClick={() => {
+                        setPrintMenuOpen(false)
+                        onOpenCareo?.()
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
             )}
             <CopyImportPromptButton />
             {entities.length > 0 && (
@@ -358,5 +385,27 @@ export function QuotesView({
       )}
       {libroOpen && <LibroModal onClose={() => setLibroOpen(false)} />}
     </>
+  )
+}
+
+function PrintMenuItem({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-ink-600 hover:bg-ink-100/60 hover:text-ink-800"
+    >
+      <Icon size={12} className="text-ink-400" />
+      {label}
+    </button>
   )
 }

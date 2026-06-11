@@ -1,12 +1,16 @@
 import type { Momento } from '../../types'
+import { useCurrentClientUserProfile } from '../../lib/clientIdentity'
 import { personInitial, personLabel, shareRoleLabel } from './sharePresentation'
 
 export function MomentoOwnerMark({ momento }: { momento: Momento }) {
+  const currentUser = useCurrentClientUserProfile()
   const isOwn = momento.accessRole === 'owner'
   if (!momento.shared && !isOwn) return null
+  const ownerDisplayName =
+    momento.ownerDisplayName === 'Trama (legacy)' ? undefined : momento.ownerDisplayName
   const label = personLabel({
-    displayName: momento.ownerDisplayName,
-    email: momento.ownerEmail,
+    displayName: isOwn ? currentUser.label || ownerDisplayName : ownerDisplayName,
+    email: isOwn ? currentUser.email || momento.ownerEmail : momento.ownerEmail,
     fallback: isOwn ? 'propietario' : undefined,
   })
   const role = shareRoleLabel(momento.accessRole)

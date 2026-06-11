@@ -8,7 +8,14 @@ const clerkAuth = vi.hoisted(() => ({
 }))
 
 vi.mock('@clerk/react', () => ({
-  useAuth: () => ({ getToken: clerkAuth.getToken }),
+  useAuth: () => ({ getToken: clerkAuth.getToken, userId: 'user-1' }),
+  useUser: () => ({
+    user: {
+      fullName: 'Daniel Opazo',
+      username: null,
+      primaryEmailAddress: { emailAddress: 'daniel@example.com' },
+    },
+  }),
 }))
 
 describe('ApiAuthBridge', () => {

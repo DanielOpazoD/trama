@@ -69,6 +69,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 describe('<TareasView />', () => {
@@ -96,6 +97,19 @@ describe('<TareasView />', () => {
     expect(composer).not.toBeNull()
     expect(composer?.className).toContain('min-h-[44px]')
     expect(within(composer as HTMLElement).getByText('Nueva')).toBeInTheDocument()
+  })
+
+  it('ordena la semana actual antes que las pasadas y futuras del mes', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-06-10T12:00:00.000Z'))
+
+    renderWithProviders(<TareasView />)
+
+    const firstInput = (await screen.findAllByPlaceholderText(/Agregar recordatorio/))[0]
+    const firstWeek = firstInput?.closest('article')
+
+    expect(firstWeek).not.toBeNull()
+    expect(within(firstWeek as HTMLElement).getByText('Esta semana')).toBeInTheDocument()
   })
 
   it('cada cuadro semanal tiene pestañas Trabajo / Personal (Trabajo por defecto)', async () => {
