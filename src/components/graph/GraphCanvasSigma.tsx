@@ -45,11 +45,14 @@ function resolveTypeColors(types: Iterable<string>): Map<string, string> {
 }
 
 /** Lee los tokens del tema activo para tinta/labels del canvas WebGL. */
-function readThemeInk(): { label: string; dimAlpha: string } {
-  if (typeof window === 'undefined') return { label: '#3a3429', dimAlpha: '0.06' }
+function readThemeInk(): { label: string; edge: string } {
+  const fallback = { label: '#3a3429', edge: 'rgba(80, 80, 80, 0.18)' }
+  if (typeof window === 'undefined') return fallback
   const styles = getComputedStyle(document.documentElement)
-  const ink = styles.getPropertyValue('--graph-label-ink').trim()
-  return { label: ink || '#3a3429', dimAlpha: '0.06' }
+  return {
+    label: styles.getPropertyValue('--graph-label-ink').trim() || fallback.label,
+    edge: styles.getPropertyValue('--graph-edge-ink').trim() || fallback.edge,
+  }
 }
 export function GraphCanvasSigma({
   entities,
@@ -121,7 +124,6 @@ export function GraphCanvasSigma({
           data: {
             type: 'arrow',
             size: 1,
-            color: 'rgba(80, 80, 80, 0.18)',
             relType: r.type,
           },
         },
@@ -187,7 +189,7 @@ export function GraphCanvasSigma({
       labelSize: 11,
       labelWeight: '400',
       labelFont: 'Inter, ui-sans-serif, system-ui, sans-serif',
-      defaultEdgeColor: 'rgba(80, 80, 80, 0.18)',
+      defaultEdgeColor: ink.edge,
       defaultNodeColor: '#7a6748',
       // Reducers permiten estilo dinámico (selected/hovered) sin reconstruir
       // el grafo. Se evalúan en cada frame; deben ser baratos.

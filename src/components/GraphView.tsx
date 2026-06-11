@@ -29,6 +29,7 @@ import {
 import { useFreshIds } from '../hooks/useFreshIds'
 import { GraphToolbar, type GraphMode } from './graph/GraphToolbar'
 import { GraphMinimap } from './graph/GraphMinimap'
+import { GraphTypeLegend } from './graph/GraphTypeLegend'
 import { GraphExploreHint } from './graph/GraphExploreHint'
 import { GraphSuggestStatusBanner } from './graph/GraphSuggestStatusBanner'
 import { GraphSvgCanvas } from './graph/GraphSvgCanvas'
@@ -408,6 +409,9 @@ export default function GraphView({
           }}
         />
       )}
+
+      {/* Leyenda de tipos — qué color es qué voz, plegada por default. */}
+      <GraphTypeLegend entities={entities} />
 
       {/* Voz de espera mientras el worker teje un layout grande — sin
           esto, miles de nodos significan segundos de blanco silencioso. */}
