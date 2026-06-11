@@ -32,6 +32,7 @@ export type CommandAction =
   | 'open-shortcuts'
   | 'open-sortes'
   | 'open-espejo'
+  | 'open-careo'
   | 'new-entity'
   | 'new-quote'
   | 'new-momento'
@@ -85,6 +86,11 @@ const ACTIONS: Array<{ action: CommandAction; label: string; hint: string }> = [
     action: 'open-espejo',
     label: 'Espejo',
     hint: 'la composición de tu trama · tipos, épocas, lo más cruzado',
+  },
+  {
+    action: 'open-careo',
+    label: 'Careo',
+    hint: 'dos voces frente a frente · citas en doble página',
   },
   {
     action: 'open-settings',

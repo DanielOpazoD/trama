@@ -59,6 +59,7 @@ const Atril = lazy(() => import('./components/Atril').then((m) => ({ default: m.
 const Espejo = lazy(() =>
   import('./components/Espejo').then((m) => ({ default: m.Espejo })),
 )
+const Careo = lazy(() => import('./components/Careo').then((m) => ({ default: m.Careo })))
 const Settings = lazy(() =>
   import('./components/Settings').then((m) => ({ default: m.Settings })),
 )
@@ -159,6 +160,7 @@ function Shell({
   const [readingOpen, setReadingOpen] = useState(false)
   const [sortesOpen, setSortesOpen] = useState(false)
   const [espejoOpen, setEspejoOpen] = useState(false)
+  const [careoOpen, setCareoOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   // Focus mode — esconde sidebar, topbar y askbar. Solo queda el
@@ -473,6 +475,9 @@ function Shell({
                 case 'open-espejo':
                   setEspejoOpen(true)
                   break
+                case 'open-careo':
+                  setCareoOpen(true)
+                  break
                 case 'new-entity':
                   setView('entidades')
                   break
@@ -507,6 +512,13 @@ function Shell({
       {espejoOpen && (
         <Suspense fallback={null}>
           <Espejo open={espejoOpen} onClose={() => setEspejoOpen(false)} />
+        </Suspense>
+      )}
+
+      {/* Careo — dos entidades frente a frente, sus citas en doble página. */}
+      {careoOpen && (
+        <Suspense fallback={null}>
+          <Careo open={careoOpen} onClose={() => setCareoOpen(false)} />
         </Suspense>
       )}
 

@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
-import { generatePostalBlob } from './postal'
+import { generateLaminaBlob, laminaFilename } from './lamina'
 
 /**
- * Smoke tests para postal.ts. La generación real usa Canvas API y
+ * Smoke tests para lamina.ts. La generación real usa Canvas API y
  * fuentes externas (Spectral via Google Fonts) — el ambiente jsdom no
  * tiene fonts ni renderer real, así que solo testeamos que la función
  * intenta dibujar y devuelve un Blob (vía toBlob mockeado).
  */
-describe('generatePostalBlob', () => {
+describe('generateLaminaBlob', () => {
   it('genera un Blob PNG con el contenido provisto', async () => {
     // Mock canvas → context con métodos no-op
     const fillRect = vi.fn()
@@ -21,6 +21,10 @@ describe('generatePostalBlob', () => {
       fillRect,
       fillText,
       measureText,
+      save: vi.fn(),
+      restore: vi.fn(),
+      translate: vi.fn(),
+      rotate: vi.fn(),
       fillStyle: '',
       font: '',
       textAlign: '',
@@ -41,11 +45,15 @@ describe('generatePostalBlob', () => {
       return {} as HTMLElement
     }) as typeof document.createElement)
 
-    const blob = await generatePostalBlob({
-      text: 'todo enunciado es proceso.',
-      attribution: 'Borges',
-      source: 'Otras inquisiciones',
-    })
+    const blob = await generateLaminaBlob(
+      {
+        text: 'todo enunciado es proceso.',
+        attribution: 'Borges',
+        source: 'Otras inquisiciones',
+        marginalia: 'me persigue hace meses',
+      },
+      'vela',
+    )
 
     expect(blob).toBeInstanceOf(Blob)
     expect(blob.type).toBe('image/png')
@@ -63,7 +71,16 @@ describe('generatePostalBlob', () => {
     )
 
     await expect(
-      generatePostalBlob({ text: 't', attribution: 'A', source: null }),
+      generateLaminaBlob({ text: 't', attribution: 'A', source: null }),
     ).rejects.toThrow(/Canvas 2D no disponible/)
+  })
+})
+
+describe('laminaFilename', () => {
+  it('slugifica la atribución', () => {
+    expect(laminaFilename('María Luisa Bombal')).toBe('lamina-maria-luisa-bombal.png')
+  })
+  it('cae a "cita" si no queda nada', () => {
+    expect(laminaFilename('—')).toBe('lamina-cita.png')
   })
 })
