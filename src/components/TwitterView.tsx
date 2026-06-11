@@ -521,9 +521,17 @@ export function TwitterView({
             </p>
           )}
 
+          {/* Recortes de prensa: cada bookmark como clipping de diario —
+              doble filete arriba, byline serif, fecha como sello y el texto
+              en tipografía de columna. El gesto: lo guardado en X entra al
+              archivo como recorte, no como feed. */}
           <ul className="space-y-4">
             {filtered.map((b) => (
-              <li key={b.id} className="group relative card-paper-soft p-4">
+              <li key={b.id} className="group relative card-paper-soft p-4 pt-3">
+                <div aria-hidden className="mb-2.5">
+                  <div className="border-t-2 border-ink-700/60" />
+                  <div className="mt-0.5 border-t border-ink-200" />
+                </div>
                 <button
                   onClick={() => handleDelete(b)}
                   disabled={del.isPending}
@@ -534,14 +542,18 @@ export function TwitterView({
                   <CloseIcon size={12} />
                 </button>
                 <div className="flex items-baseline justify-between gap-3 pr-6">
-                  <span className="min-w-0 truncate text-sm text-ink-700">
+                  <span className="min-w-0 truncate font-serif text-sm font-medium text-ink-700">
                     {b.authorName ?? 'desconocido'}
                     {b.authorUsername && (
-                      <span className="text-ink-400"> @{b.authorUsername}</span>
+                      <span className="font-sans font-normal text-ink-400">
+                        {' '}
+                        @{b.authorUsername}
+                      </span>
                     )}
                   </span>
                   {b.tweetCreatedAt && (
-                    <span className="shrink-0 text-micro text-ink-300 tabular-nums">
+                    // Fecha-sello: como el timbre de hemeroteca en el recorte.
+                    <span className="shrink-0 -rotate-2 rounded-sm border border-ink-200 px-1.5 py-0.5 text-micro uppercase tracking-wider text-ink-400 tabular-nums">
                       {new Date(b.tweetCreatedAt).toLocaleDateString('es', {
                         day: 'numeric',
                         month: 'short',
@@ -550,7 +562,7 @@ export function TwitterView({
                     </span>
                   )}
                 </div>
-                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink-600">
+                <p className="mt-1.5 whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700">
                   {b.text}
                 </p>
                 <div className="mt-2 flex items-center gap-3">

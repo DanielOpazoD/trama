@@ -1,26 +1,33 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useEntitiesQuery, useQuotesQuery } from '../state'
 import type { Quote } from '../types'
-import { CloseIcon, ReadingIcon } from './Icons'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CloseIcon,
+  DiceIcon,
+  ReadingIcon,
+} from './Icons'
 
 /**
- * Sortes — "segunda lectura".
+ * Atril — el archivo en el atril de lectura. Absorbe Sortes ("segunda
+ * lectura"): la página se abre por suerte y lo que aparece, aparece.
  *
- * Abre el archivo al azar y muestra una sola cita, a pantalla completa,
- * fuera de la lista. Sortes virgilianae sobre tu propia trama: la página
- * se abre por suerte y lo que aparece, aparece. La idea es reencontrarte
- * con algo que guardaste y ya no recordabas.
- *
- *  - "del día": estable. La primera vez que abrís en el día se sortea una
- *    cita y se guarda en localStorage; reabrir muestra la misma hasta que
- *    pidas otra.
- *  - "otra": vuelve a sortear (evitando repetir la actual) y reemplaza la
+ *  - "del día": estable. La primera vez del día se sortea una cita y se
+ *    guarda en localStorage; reabrir muestra la misma hasta sortear otra.
+ *  - flechas (← →): hojear el archivo en orden cronológico desde la cita
+ *    actual. Hojear es lectura, no suerte — NO pisa la cita del día.
+ *  - dado: vuelve a sortear (sin repetir la actual) y esa pasa a ser la
  *    cita del día.
+ *  - marginalia: si la cita tiene reflexión del usuario, aparece como nota
+ *    manuscrita al margen (Caveat) — tu voz junto al texto, no debajo como
+ *    prosa del catálogo.
  *
  * Lectura pura — no muta nada. Cliente-only: lee las citas ya cacheadas
  * por useQuotesQuery, sin endpoint propio.
  */
 
+// Misma key que el viejo Sortes: la cita del día sobrevive al rename.
 const STORAGE_KEY = 'trama:sortes'
 
 function today(): string {
@@ -29,7 +36,7 @@ function today(): string {
 
 /**
  * Elige una cita al azar. Si `excludeId` está y hay más de una, nunca
- * devuelve la excluida — así "otra" siempre cambia de cita.
+ * devuelve la excluida — así el dado siempre cambia de cita.
  */
 export function pickRandom(quotes: Quote[], excludeId?: string): Quote | null {
   const pool =
@@ -61,10 +68,19 @@ function writeStored(quoteId: string): void {
   }
 }
 
-export function Sortes({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function Atril({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { data: quotes = [] } = useQuotesQuery()
   const { data: entities = [] } = useEntitiesQuery()
   const [currentId, setCurrentId] = useState<string | null>(null)
+
+  // El orden de hojeo: el archivo como se fue escribiendo (cronológico).
+  const ordered = useMemo(
+    () =>
+      [...quotes].sort(
+        (a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id),
+      ),
+    [quotes],
+  )
 
   // Al abrir: si hay una cita "del día" válida (misma fecha y todavía
   // existe), mostrarla; si no, sortear una nueva y persistirla.
@@ -90,22 +106,22 @@ export function Sortes({ open, onClose }: { open: boolean; onClose: () => void }
     }
   }, [open, quotes])
 
-  useEffect(() => {
-    if (!open) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-
-  const quote = useMemo(
-    () => quotes.find((q) => q.id === currentId) ?? null,
-    [quotes, currentId],
+  const index = useMemo(
+    () => ordered.findIndex((q) => q.id === currentId),
+    [ordered, currentId],
   )
+  const quote = index >= 0 ? (ordered[index] ?? null) : null
   const entity = quote ? (entities.find((e) => e.id === quote.entityId) ?? null) : null
+  const hasPrev = index > 0
+  const hasNext = index >= 0 && index < ordered.length - 1
 
-  function drawAnother() {
+  function goPrev() {
+    if (index > 0) setCurrentId(ordered[index - 1]!.id)
+  }
+  function goNext() {
+    if (index >= 0 && index < ordered.length - 1) setCurrentId(ordered[index + 1]!.id)
+  }
+  function rollDice() {
     const picked = pickRandom(quotes, currentId ?? undefined)
     if (picked) {
       setCurrentId(picked.id)
@@ -113,12 +129,23 @@ export function Sortes({ open, onClose }: { open: boolean; onClose: () => void }
     }
   }
 
+  useEffect(() => {
+    if (!open) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowLeft') goPrev()
+      if (e.key === 'ArrowRight') goNext()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
   if (!open) return null
 
   return (
     <div
       role="dialog"
-      aria-label="Sortes"
+      aria-label="Atril"
       className="fixed inset-0 z-50 flex flex-col bg-paper-50 animate-fade-up"
     >
       <button
@@ -129,14 +156,36 @@ export function Sortes({ open, onClose }: { open: boolean; onClose: () => void }
         <CloseIcon />
       </button>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+      {/* Flechas laterales — hojear el archivo sin salir del atril. */}
+      {quote && (
+        <>
+          <button
+            onClick={goPrev}
+            disabled={!hasPrev}
+            aria-label="Cita anterior"
+            className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 p-3 text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-0 disabled:pointer-events-none"
+          >
+            <ChevronLeftIcon size={22} />
+          </button>
+          <button
+            onClick={goNext}
+            disabled={!hasNext}
+            aria-label="Cita siguiente"
+            className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 p-3 text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-0 disabled:pointer-events-none"
+          >
+            <ChevronRightIcon size={22} />
+          </button>
+        </>
+      )}
+
+      <div className="flex-1 flex flex-col items-center justify-center px-12 md:px-6 text-center">
         <p className="text-micro uppercase tracking-shout text-ink-300 flex items-center gap-2 mb-10">
           <ReadingIcon size={12} />
-          sortes
+          atril
         </p>
 
         {quote ? (
-          <article className="max-w-2xl">
+          <article className="relative max-w-2xl">
             <blockquote className="font-serif italic text-h1 leading-snug text-ink-700">
               «{quote.text}»
             </blockquote>
@@ -159,6 +208,17 @@ export function Sortes({ open, onClose }: { open: boolean; onClose: () => void }
                 )}
               </footer>
             )}
+            {/* Marginalia — tu reflexión, manuscrita al margen. En pantallas
+                anchas vive literalmente en el margen derecho de la cita; en
+                angostas baja como hoja pegada debajo. */}
+            {quote.userReflection && (
+              <aside
+                aria-label="Tu reflexión"
+                className="marginalia-script mt-10 mx-auto max-w-xs text-left -rotate-1 lg:mt-0 lg:mx-0 lg:absolute lg:left-full lg:top-4 lg:ml-12 lg:w-52"
+              >
+                {quote.userReflection}
+              </aside>
+            )}
           </article>
         ) : (
           <p className="font-serif italic text-lead text-ink-400 max-w-md leading-relaxed">
@@ -169,12 +229,17 @@ export function Sortes({ open, onClose }: { open: boolean; onClose: () => void }
       </div>
 
       {quote && (
-        <div className="pb-10 flex items-center justify-center">
+        <div className="pb-10 flex items-center justify-center gap-6">
+          <span className="text-micro tabular-nums text-ink-300" aria-hidden>
+            {index + 1} / {ordered.length}
+          </span>
           <button
-            onClick={drawAnother}
-            className="section-eyebrow hover:text-ink-700 transition-colors"
+            onClick={rollDice}
+            aria-label="Sortear otra cita"
+            className="section-eyebrow flex items-center gap-1.5 hover:text-ink-700 transition-colors"
           >
-            otra
+            <DiceIcon size={12} />
+            al azar
           </button>
         </div>
       )}

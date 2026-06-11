@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { api, type SpotifyPlayGroup } from '../api'
 import { useAddEntity, useExtract } from '../state'
-import { SparkleIcon, SpotifyIcon } from './Icons'
+import { CheckIcon, SparkleIcon, SpotifyIcon } from './Icons'
 import { MusicPaletteCard } from './MusicPaletteCard'
 import { PlaysTiming } from './listening/PlaysTiming'
 import { SuggestArtists } from './listening/SuggestArtists'
@@ -80,6 +80,17 @@ export function ListeningView({
   // Tracking de qué item está siendo enriquecido por la IA, para mostrar
   // un spinner por fila en vez de un loading global.
   const [enrichingKey, setEnrichingKey] = useState<string | null>(null)
+  // Vitrola: feedback de aceptación en el lugar — un check que hace pop
+  // y se va. El conteo del sidebar tickea solo (NumberTicker); acá no
+  // vuela ninguna tarjeta.
+  const [acceptedKey, setAcceptedKey] = useState<string | null>(null)
+
+  function flashAccepted(key: string) {
+    setAcceptedKey(key)
+    window.setTimeout(() => {
+      setAcceptedKey((prev) => (prev === key ? null : prev))
+    }, 1400)
+  }
 
   async function handleImportPlaylist(e: FormEvent) {
     e.preventDefault()
@@ -152,6 +163,7 @@ export function ListeningView({
         proposal.entities[0]!.spotifyUrl = spotifyUrl
       }
       onProposal?.(item.key, proposal)
+      flashAccepted(item.key)
     } catch {
       // Fallback al flujo manual sin IA.
       const origin: Origin = {
@@ -166,6 +178,7 @@ export function ListeningView({
         origin,
       })
       if (created) {
+        flashAccepted(item.key)
         onSelectEntity?.(created.id)
       }
     } finally {
@@ -303,12 +316,14 @@ export function ListeningView({
           ) : (
             <ul className="space-y-2">
               {playsQuery.data.items.map((item, idx) => (
+                // Vitrola: cada escucha en marco papel — passe-partout fino
+                // alrededor, como funda de disco en la repisa.
                 <li
                   key={`${item.key}-${idx}`}
-                  className="group card-paper-hover p-3 hover:shadow-ink-900/5 animate-fade-up"
+                  className="group card-paper-hover p-1.5 hover:shadow-ink-900/5 animate-fade-up"
                   style={{ animationDelay: `${Math.min(idx * 30, 240)}ms` }}
                 >
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center justify-between gap-4 rounded-md border border-ink-100/70 px-3 py-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-3 flex-wrap">
                         {item.spotifyId ? (
@@ -345,7 +360,18 @@ export function ListeningView({
                         </span>
                       </div>
                     </div>
-                    {item.existingEntityId ? (
+                    {acceptedKey === item.key ? (
+                      <span
+                        className="text-xs px-2.5 py-1 flex items-center gap-1.5"
+                        style={{ color: 'var(--accent-sage)' }}
+                        role="status"
+                      >
+                        <span className="animate-check-pop inline-flex">
+                          <CheckIcon size={13} />
+                        </span>
+                        propuesta lista
+                      </span>
+                    ) : item.existingEntityId ? (
                       <button
                         onClick={() => onSelectEntity?.(item.existingEntityId!)}
                         className="text-xs px-2.5 py-1 text-ink-400 hover:text-ink-700 transition-colors flex items-center gap-1"

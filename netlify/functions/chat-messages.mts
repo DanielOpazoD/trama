@@ -1,13 +1,13 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql, sqlTyped } from './_lib/db.js'
-import { askLLMForText, askLLMForTextStreaming } from './_lib/llm.js'
+import { askLLMForTextStreaming } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ChatMessageSendBody } from './_lib/chat-body-schemas.js'
 import {
   buildChatPrompt,
-  buildChatTitlePrompt,
+  deriveThreadTitle,
   type ChatTurn,
 } from './_lib/chat-prompt.js'
 import {
@@ -152,6 +152,16 @@ export default withObservability(
     `)
     const history: ChatTurn[] = historyRows.map((r) => ({ role: r.role, content: r.content }))
 
+    // Auto-título en el primer intercambio: la primera pregunta, recortada
+    // tipográficamente. Va ANTES del stream — el rail muestra el título
+    // apenas el hilo nace, y no depende de que el LLM responda.
+    if (!thread.title && historyRows.length <= 1) {
+      const autoTitle = deriveThreadTitle(userText)
+      if (autoTitle) {
+        await sql`UPDATE chat_threads SET title = ${autoTitle} WHERE id = ${threadId} AND user_id = ${userId}`
+      }
+    }
+
     // S4: la lógica de carga de contexto vive en `_lib/chat-context.ts`.
     // Dos branches según el thread:
     //   - focusEntity:  carga la entidad + vecinos directos + citas (local).
@@ -260,21 +270,6 @@ export default withObservability(
         }
 
         await sql`UPDATE chat_threads SET updated_at = NOW() WHERE id = ${threadId} AND user_id = ${userId}`
-
-        // Best-effort thread title autogenneration on first exchange.
-        if (!thread.title && historyRows.length <= 1) {
-          try {
-            const titleMessages = buildChatTitlePrompt(userText)
-            const titleResp = await askLLMForText(titleMessages, chatOverride)
-            const rawTitle = typeof titleResp.content === 'string' ? titleResp.content : ''
-            const cleanTitle = rawTitle.trim().replace(/^["']|["']$/g, '').slice(0, 80)
-            if (cleanTitle) {
-              await sql`UPDATE chat_threads SET title = ${cleanTitle} WHERE id = ${threadId} AND user_id = ${userId}`
-            }
-          } catch {
-            // ignore
-          }
-        }
 
         logEvent({
           event: 'chat_message_completed',

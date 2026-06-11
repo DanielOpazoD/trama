@@ -53,8 +53,9 @@ export function TopBar({
       WorldSwitcher vive en el Sidebar); permite cambiar de mundo sin sidebar. */
   world?: World
   onChangeWorld?: (w: World) => void
-  /** Abre Sortes (segunda lectura — una cita al azar). Si se omite, el
-      botón no se muestra. */
+  /** Abre el Atril (la cita del día + hojear el archivo). El nombre del
+      handler conserva el de Sortes, su antecesor. Si se omite, el botón
+      no se muestra. */
   onSortes?: () => void
   /** Segundo nivel del breadcrumb — se muestra como "View › crumb"
       cuando hay un detalle abierto. Si está, reemplaza el subtitle. */
@@ -122,8 +123,8 @@ export function TopBar({
         {onSortes && (
           <button
             onClick={onSortes}
-            aria-label="Sortes — una cita al azar para releer"
-            title="Sortes — una cita al azar para releer"
+            aria-label="Atril — releer el archivo: la cita del día"
+            title="Atril — releer el archivo: la cita del día"
             className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
           >
             <ReadingIcon size={14} />

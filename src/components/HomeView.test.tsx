@@ -163,9 +163,9 @@ describe('<HomeView />', () => {
     const onSelectEntity = vi.fn()
     setupCache([ENTITY_2, ENTITY], [], [], { onSelectEntity })
     const user = userEvent.setup()
-    // ENTITY_2 ("El extranjero") solo aparece en el timeline (no hay
-    // citas que lo atribuyan), así es unique.
-    await user.click(screen.getByText('El extranjero'))
+    // ENTITY_2 ("El extranjero") aparece en el timeline Y en "hilos
+    // sueltos" (no tiene relaciones) — cualquiera de los dos navega.
+    await user.click(screen.getAllByText('El extranjero')[0]!)
     expect(onSelectEntity).toHaveBeenCalledWith('e2')
   })
 

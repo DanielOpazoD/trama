@@ -12,6 +12,8 @@ import { RecentTimeline, buildTimeline } from './home/RecentTimeline'
 import { FirstMomentPreview } from './home/FirstMomentPreview'
 import { CronicasSection } from './home/CronicasSection'
 import { XCronicaSection } from './home/XCronicaSection'
+import { Efemerides } from './home/Efemerides'
+import { HilosSueltos } from './home/HilosSueltos'
 
 /**
  * Home is the first thing the user sees. It's not the graph (intimidating
@@ -153,6 +155,14 @@ export function HomeView({
             </div>
           )}
 
+          {/* Efemérides — «tal día como hoy»: aniversarios de la propia
+              trama. Solo aparece los días que hay algo que recordar. */}
+          <Efemerides
+            entities={entities}
+            quotes={quotes}
+            onSelectEntity={onSelectEntity}
+          />
+
           {/* Pulso de la semana — solo aparece si hubo actividad en
               los últimos 7 días. Si no, no contamina la portada. */}
           <WeeklyActivity
@@ -179,6 +189,14 @@ export function HomeView({
             entities={entities}
             onSelectEntity={onSelectEntity}
             onNavigateToGraph={() => onNavigate('grafo')}
+          />
+
+          {/* Hilos sueltos — entidades sin relaciones, como invitación a
+              tejer. Desaparece cuando todo está conectado. */}
+          <HilosSueltos
+            entities={entities}
+            relationships={relationships}
+            onSelectEntity={onSelectEntity}
           />
 
           {/* U-4: Crónicas del mes — sección editorial al final. Aparece

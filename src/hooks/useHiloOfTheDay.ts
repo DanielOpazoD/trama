@@ -25,7 +25,10 @@ function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function isAnniversary(createdAt: string, today: Date): { yearsAgo: number } | null {
+export function isAnniversary(
+  createdAt: string,
+  today: Date,
+): { yearsAgo: number } | null {
   // Anniversary = mismo mes/día, al menos 1 año más viejo. Si hoy es
   // 23 de mayo y la entidad fue creada el 23 de mayo del año pasado,
   // es aniversario. Si fue creada hoy, NO (sería de hoy, no de antes).
@@ -38,7 +41,7 @@ function isAnniversary(createdAt: string, today: Date): { yearsAgo: number } | n
   return { yearsAgo }
 }
 
-function describeYears(n: number): string {
+export function describeYears(n: number): string {
   if (n === 1) return 'hace exactamente un año'
   if (n === 2) return 'hace dos años'
   if (n === 3) return 'hace tres años'
