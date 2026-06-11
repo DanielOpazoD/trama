@@ -1,17 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { ImageAsset } from '../../../../lib/pdfStudio/model/model'
-import {
-  CameraIcon,
-  ChevronDownIcon,
-  DownloadIcon,
-  PlusIcon,
-  TrashIcon,
-} from '../../../Icons'
+import { CameraIcon, ChevronDownIcon, PlusIcon } from '../../../Icons'
+import { WorkspaceImageActions } from './WorkspaceImageActions'
 
 const ACCENT = 'var(--accent-sage)'
-
-const iconBtn =
-  'touch-target inline-flex h-5 w-5 items-center justify-center rounded bg-ink-900/65 text-paper-50 hover:bg-ink-900/90 transition-colors'
 
 function LibraryThumb({ file }: { file: File }) {
   const [url, setUrl] = useState<string | null>(null)
@@ -34,11 +26,13 @@ export function WorkspaceImagesSection({
   onAddImage,
   onRemoveImage,
   onDownloadImage,
+  onEditImage,
 }: {
   library: ImageAsset[]
   onAddImage: (asset: ImageAsset) => void
   onRemoveImage: (id: string) => void
   onDownloadImage: (asset: ImageAsset) => void
+  onEditImage: (asset: ImageAsset) => void
 }) {
   // Colapsada por defecto: la galería de miniaturas empujaba "PDFs y copias" fuera de vista.
   const [collapsed, setCollapsed] = useState(true)
@@ -90,26 +84,12 @@ export function WorkspaceImagesSection({
               >
                 <PlusIcon size={12} />
               </span>
-              <div className="absolute top-0.5 right-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  type="button"
-                  onClick={() => onDownloadImage(a)}
-                  aria-label="Descargar imagen"
-                  title="Descargar"
-                  className={iconBtn}
-                >
-                  <DownloadIcon size={11} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRemoveImage(a.id)}
-                  aria-label="Quitar imagen de la lista"
-                  title="Quitar de la lista"
-                  className={`${iconBtn} hover:!bg-[color:var(--accent-clay)]`}
-                >
-                  <TrashIcon size={11} />
-                </button>
-              </div>
+              <WorkspaceImageActions
+                asset={a}
+                onDownloadImage={onDownloadImage}
+                onEditImage={onEditImage}
+                onRemoveImage={onRemoveImage}
+              />
             </li>
           ))}
         </ul>

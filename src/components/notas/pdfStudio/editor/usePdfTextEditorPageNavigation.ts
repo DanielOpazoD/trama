@@ -2,20 +2,32 @@ import { useCallback, useEffect, useRef, type Dispatch, type SetStateAction } fr
 import type { PageLayout } from '../../../../lib/pdfStudio/model/editorGeometry'
 import { findMostVisiblePdfEditorPage } from './pdfEditorZoomScroll'
 
-function scrollEditorPageIntoView(pageIndex: number) {
+function scrollEditorPageIntoView(pageIndex: number): boolean {
   const target = document.querySelector<HTMLElement>(
     `[data-pdf-editor-page="${pageIndex}"]`,
   )
   const container = document.querySelector<HTMLElement>('[data-pdf-editor-scroll]')
-  if (!target || !container) return
+  if (!target || !container) return false
   const containerRect = container.getBoundingClientRect()
   const targetRect = target.getBoundingClientRect()
+  if (targetRect.height <= 1 || containerRect.height <= 1) return false
   const top =
     container.scrollTop +
     targetRect.top -
     containerRect.top -
     Math.max(0, (container.clientHeight - targetRect.height) / 2)
   container.scrollTop = top
+  return true
+}
+
+function scheduleScrollEditorPageIntoView(pageIndex: number, attempt = 0) {
+  window.setTimeout(
+    () => {
+      const ready = scrollEditorPageIntoView(pageIndex)
+      if (!ready && attempt < 8) scheduleScrollEditorPageIntoView(pageIndex, attempt + 1)
+    },
+    attempt === 0 ? 0 : 50,
+  )
 }
 
 export function usePdfTextEditorPageNavigation({
@@ -47,17 +59,13 @@ export function usePdfTextEditorPageNavigation({
       if (i < 0 || i >= total || i === currentPage) return
       clearPageState()
       setCurrentPage(i)
-      window.setTimeout(() => {
-        scrollEditorPageIntoView(i)
-      }, 0)
+      scheduleScrollEditorPageIntoView(i)
     },
     [clearPageState, currentPage, setCurrentPage, total],
   )
 
   const scrollInitialPageIntoView = useCallback(() => {
-    window.setTimeout(() => {
-      scrollEditorPageIntoView(currentPage)
-    }, 0)
+    scheduleScrollEditorPageIntoView(currentPage)
   }, [currentPage])
   useEffect(() => {
     if (!scrollInitialPage || initialPageScrolledRef.current) return

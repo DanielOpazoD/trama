@@ -38,6 +38,7 @@ import { usePdfStudioImport } from './shell/usePdfStudioImport'
 import { usePdfStudioForms } from './planillas/usePdfStudioForms'
 import { usePdfStudioPageKeyboard } from './shell/usePdfStudioPageKeyboard'
 import { usePdfStudioPageActions } from './shell/usePdfStudioPageActions'
+import { usePdfStudioSavedPdfUpload } from './shell/usePdfStudioSavedPdfUpload'
 import { usePdfStudioOcr } from './ocr/usePdfStudioOcr'
 import { usePdfStudioFilledTemplateActions } from './planillas/fill/usePdfStudioFilledTemplateActions'
 import { usePdfStudioDraftSanitizer } from './workspace/usePdfStudioDraftSanitizer'
@@ -74,7 +75,9 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     },
     [preparePdf],
   )
+  const uploadSavedPdf = usePdfStudioSavedPdfUpload({ preparePdf })
   const [textPage, setTextPage] = useState<number | null>(null)
+  const [editorSessionZoom, setEditorSessionZoom] = useState(1)
   const [saveTemplateSignal, setSaveTemplateSignal] = useState(0)
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null)
   const pageClipboardRef = useRef<PdfDoc | null>(null)
@@ -93,7 +96,13 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
       return pushHistory(h, value)
     })
   }, [])
-  const workspace = usePdfStudioWorkspace({ clearSelection, commit, doc, setHistory })
+  const workspace = usePdfStudioWorkspace({
+    clearSelection,
+    commit,
+    doc,
+    setHistory,
+    uploadSavedPdf,
+  })
   const {
     effectiveTemplateMode,
     activeTemplateName,
@@ -239,6 +248,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
         suggestedSaveName={doc.title}
         collapsed={workspace.panelCollapsed}
         onAddImage={workspace.addLibraryToDoc}
+        onEditImage={workspace.editLibraryImage}
         onRemoveImage={workspace.removeFromLibrary}
         onDownloadImage={workspace.downloadLibrary}
         onCreateFolder={workspace.createFolder}
@@ -386,9 +396,11 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
           onFormValueChange={updateFormValue}
           onInspectForms={templatesEnabled ? () => void inspectForms() : undefined}
           onClose={closeTextEditor}
+          onDisplayZoomChange={setEditorSessionZoom}
           onPrint={printFilledTemplate}
           onMailMerge={templatesEnabled ? printMailMergeTemplate : undefined}
           onSaveCopy={templatesEnabled ? saveFilledTemplateCopy : undefined}
+          sessionZoom={editorSessionZoom}
         />
       )}
       {previewState && (
