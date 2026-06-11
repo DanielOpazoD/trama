@@ -151,8 +151,8 @@ async function mintTokenWithBrowserSignIn({
     throw wrapClerkError(`createSignInToken para ${userLabel}`, error)
   }
 
-  if (!signInToken?.url) {
-    throw new Error(`Clerk no devolvio URL de sign-in token para ${userLabel}.`)
+  if (!signInToken?.token) {
+    throw new Error(`Clerk no devolvio token de sign-in para ${userLabel}.`)
   }
 
   const { chromium } = await import('playwright')
@@ -162,34 +162,36 @@ async function mintTokenWithBrowserSignIn({
     const context = await browser.newContext({ baseURL: baseUrl })
     const page = await context.newPage()
 
-    await page.goto(signInToken.url, {
+    await page.goto(baseUrl, {
       waitUntil: 'domcontentloaded',
       timeout: 45_000,
     })
     await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {})
-
-    if (!page.url().startsWith(baseUrl)) {
-      await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 45_000 })
-      await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {})
-    }
 
     await page.waitForFunction(
       async () => {
         const clerk = globalThis.Clerk ?? globalThis.__clerk
         if (!clerk) return false
         if (typeof clerk.load === 'function') await clerk.load()
-        return Boolean(clerk.session?.getToken)
+        return Boolean(clerk.client?.signIn?.create && clerk.setActive)
       },
       null,
       { timeout: 45_000 },
     )
 
-    const jwt = await page.evaluate(async () => {
+    const jwt = await page.evaluate(async (ticket) => {
       const clerk = globalThis.Clerk ?? globalThis.__clerk
       if (!clerk) return null
       if (typeof clerk.load === 'function') await clerk.load()
+      const signInAttempt = await clerk.client.signIn.create({
+        strategy: 'ticket',
+        ticket,
+      })
+      if (signInAttempt?.status === 'complete' && signInAttempt.createdSessionId) {
+        await clerk.setActive({ session: signInAttempt.createdSessionId })
+      }
       return (await clerk.session?.getToken?.()) ?? null
-    })
+    }, signInToken.token)
 
     if (!jwt) {
       throw new Error(`Clerk no devolvio JWT de navegador para ${userLabel}.`)
