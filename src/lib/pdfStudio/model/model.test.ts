@@ -26,6 +26,7 @@ import {
   makeTextAnnotation,
   movePage,
   movePageByDelta,
+  movePages,
   normalizeDoc,
   pageHasAnnotations,
   pageThumbKey,
@@ -95,6 +96,16 @@ describe('pdfStudio/model', () => {
     const ids = d.pages.map((p) => p.id)
     d = movePageByDelta(d, 2, -1) // sube la última
     expect(d.pages.map((p) => p.id)).toEqual([ids[0], ids[2], ids[1]])
+  })
+
+  it('movePages mueve varias páginas como bloque preservando su orden', () => {
+    const d = addPdfSource(emptyDoc(), pdf(), 5) // p0,p1,p2,p3,p4
+    const ids = d.pages.map((p) => p.id)
+    const out = movePages(d, [1, 3], 4)
+
+    expect(out.pages.map((p) => p.id)).toEqual([ids[0], ids[2], ids[4], ids[1], ids[3]])
+    expect(movePages(d, [], 2)).toBe(d)
+    expect(movePages(d, [1, 3], 1)).toBe(d)
   })
 
   it('deletePage quita la página y descarta el source huérfano', () => {

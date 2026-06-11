@@ -60,6 +60,7 @@ export {
   setPdfFormFieldValue,
   translatePdfFormField,
 } from './modelForms'
+export { movePages } from './modelPages'
 import { clonePdfFormField, pruneFormFields } from './modelForms'
 import { nextId, reseedIdCounter } from './modelIds'
 

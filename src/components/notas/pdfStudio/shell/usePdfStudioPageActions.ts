@@ -4,6 +4,7 @@ import {
   emptyDoc,
   movePage,
   movePageByDelta,
+  movePages,
   pageThumbKey,
   rotatePages,
   subsetDoc,
@@ -67,6 +68,11 @@ export function usePdfStudioPageActions({
     newDoc,
     nudge: (index: number, delta: -1 | 1) =>
       commit((d) => movePageByDelta(d, index, delta)),
-    reorder: (from: number, to: number) => commit((d) => movePage(d, from, to)),
+    reorder: (from: number, to: number, movingIndices?: number[]) =>
+      commit((d) =>
+        movingIndices && movingIndices.length > 1
+          ? movePages(d, movingIndices, to)
+          : movePage(d, from, to),
+      ),
   }
 }

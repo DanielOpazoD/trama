@@ -1232,6 +1232,34 @@ describe('<PdfStudioView />', () => {
     ).toBeInTheDocument()
   })
 
+  it('arrastra las páginas marcadas como bloque al soltar una miniatura seleccionada', async () => {
+    const user = userEvent.setup()
+    mocks.getPdfPageCount.mockResolvedValueOnce(4)
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 4')
+
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 2/i }))
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 3/i }))
+
+    const cards = () =>
+      screen.getAllByRole('listitem').filter((item) => item.getAttribute('data-page-id'))
+    const idsBefore = cards().map((item) => item.getAttribute('data-page-id'))
+    const selectedCard = cards()[1]!
+    const dropTarget = cards()[3]!
+
+    fireEvent.dragStart(selectedCard, { dataTransfer: { effectAllowed: 'move' } })
+    fireEvent.dragEnter(dropTarget)
+    fireEvent.drop(dropTarget)
+
+    expect(cards().map((item) => item.getAttribute('data-page-id'))).toEqual([
+      idsBefore[0],
+      idsBefore[3],
+      idsBefore[1],
+      idsBefore[2],
+    ])
+  })
+
   it('la barra del editor agrupa las herramientas de estilo en el menú Texto', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
