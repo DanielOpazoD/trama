@@ -26,6 +26,15 @@ function addPage(container: HTMLElement, index: number, top: number, height = 50
   container.append(page)
 }
 
+function addDynamicPage(container: HTMLElement, index: number, readRect: () => DOMRect) {
+  const page = document.createElement('section') as HTMLElement & {
+    getBoundingClientRect: () => DOMRect
+  }
+  page.dataset.pdfEditorPage = String(index)
+  page.getBoundingClientRect = readRect
+  container.append(page)
+}
+
 function makeScrollContainer(): HTMLElement {
   const container = document.createElement('div') as HTMLElement & {
     getBoundingClientRect: () => DOMRect
@@ -121,6 +130,34 @@ describe('usePdfTextEditorPageNavigation', () => {
     act(() => {
       screen.getByRole('button', { name: 'initial' }).click()
       vi.runAllTimers()
+    })
+
+    expect(target.scrollTop).toBe(520)
+    vi.useRealTimers()
+    target.remove()
+  })
+
+  it('reintenta el scroll inicial si la página aún no tiene altura estable', () => {
+    vi.useFakeTimers()
+    let pageReady = false
+    const target = makeScrollContainer()
+    addPage(target, 0, 0)
+    addDynamicPage(target, 1, () =>
+      pageReady ? rect(520 - target.scrollTop, 500) : rect(520, 0),
+    )
+    document.body.append(target)
+
+    render(<TestNavigation target={target} initialPage={1} />)
+
+    act(() => {
+      screen.getByRole('button', { name: 'initial' }).click()
+      vi.runOnlyPendingTimers()
+    })
+    expect(target.scrollTop).toBe(0)
+
+    pageReady = true
+    act(() => {
+      vi.runOnlyPendingTimers()
     })
 
     expect(target.scrollTop).toBe(520)

@@ -10,8 +10,17 @@ export function displayZoomToPageZoom(displayZoom: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, displayZoom))
 }
 
-export function usePdfTextEditorViewport(currentPage: number) {
-  const [displayZoom, setDisplayZoom] = useState(1)
+export function usePdfTextEditorViewport(
+  currentPage: number,
+  options: {
+    initialDisplayZoom?: number
+    onDisplayZoomChange?: (zoom: number) => void
+  } = {},
+) {
+  const { initialDisplayZoom = 1, onDisplayZoomChange } = options
+  const [displayZoom, setDisplayZoom] = useState(
+    displayZoomToPageZoom(initialDisplayZoom),
+  )
   const {
     centerPageHorizontally,
     changeZoom: changePageZoom,
@@ -39,10 +48,12 @@ export function usePdfTextEditorViewport(currentPage: number) {
   const changeDisplayZoom = useCallback(
     (nextDisplayZoom: number) => {
       prepareZoomAnchor()
-      setDisplayZoom(nextDisplayZoom)
-      changePageZoom(displayZoomToPageZoom(nextDisplayZoom))
+      const normalized = displayZoomToPageZoom(nextDisplayZoom)
+      setDisplayZoom(normalized)
+      onDisplayZoomChange?.(normalized)
+      changePageZoom(normalized)
     },
-    [changePageZoom, prepareZoomAnchor],
+    [changePageZoom, onDisplayZoomChange, prepareZoomAnchor],
   )
 
   const stepZoom = useCallback(

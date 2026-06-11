@@ -22,6 +22,7 @@ export function PdfStudioWorkspacePanelHost({
   onCreateFolder,
   onDeleteFolder,
   onDuplicateSaved,
+  onEditImage,
   onExportTemplatePackage,
   onOpenSaved,
   onRemoveImage,
@@ -51,6 +52,7 @@ export function PdfStudioWorkspacePanelHost({
   onCreateFolder: (input: { name: string; color: SavedFolderColor }) => void
   onDeleteFolder: (id: string) => void
   onDuplicateSaved: (saved: SavedDoc) => void
+  onEditImage: (asset: ImageAsset) => void
   onExportTemplatePackage: (saved: SavedDoc, format: 'json' | 'csv') => void
   onOpenSaved: (saved: SavedDoc) => void
   onRemoveImage: (id: string) => void
@@ -90,6 +92,7 @@ export function PdfStudioWorkspacePanelHost({
           onAddImage={onAddImage}
           onRemoveImage={onRemoveImage}
           onDownloadImage={onDownloadImage}
+          onEditImage={onEditImage}
           saved={saved}
           folders={folders}
           templatesEnabled={templatesEnabled}
