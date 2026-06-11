@@ -23,8 +23,8 @@ function scrollEditorPageIntoView(pageIndex: number): boolean {
 function scheduleScrollEditorPageIntoView(pageIndex: number, attempt = 0) {
   window.setTimeout(
     () => {
-      const ready = scrollEditorPageIntoView(pageIndex)
-      if (!ready && attempt < 8) scheduleScrollEditorPageIntoView(pageIndex, attempt + 1)
+      scrollEditorPageIntoView(pageIndex)
+      if (attempt < 8) scheduleScrollEditorPageIntoView(pageIndex, attempt + 1)
     },
     attempt === 0 ? 0 : 50,
   )

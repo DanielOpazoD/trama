@@ -161,18 +161,17 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
       openPreview,
       saveFilledCopy: workspace.saveFilledCopy,
     })
-  const { bulkDelete, bulkDuplicate, bulkRotate, exportMarked, newDoc, nudge, reorder } =
-    usePdfStudioPageActions({
-      clearDraft,
-      clearSelection,
-      commit,
-      doc,
-      exportPdf,
-      resetTemplateMode,
-      selectedCount,
-      selectedIndices,
-      userKey: workspace.userKey,
-    })
+  const pageActions = usePdfStudioPageActions({
+    clearDraft,
+    clearSelection,
+    commit,
+    doc,
+    exportPdf,
+    resetTemplateMode,
+    selectedCount,
+    selectedIndices,
+    userKey: workspace.userKey,
+  })
   useEffect(() => () => disposePdfStudio(), [])
   usePdfStudioPageKeyboard({
     textPage,
@@ -218,10 +217,15 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
       context={templatesEnabled ? 'templates' : 'editor'}
       count={selectedCount}
       total={total}
-      onRotate={bulkRotate}
-      onDuplicate={bulkDuplicate}
-      onDelete={bulkDelete}
-      onExport={exportMarked}
+      onRotate={pageActions.bulkRotate}
+      onDuplicate={pageActions.bulkDuplicate}
+      onDelete={pageActions.bulkDelete}
+      onCropImage={
+        pageActions.canCropSelectedImage
+          ? () => void pageActions.cropSelectedImage()
+          : undefined
+      }
+      onExport={pageActions.exportMarked}
       onSelectAll={selectAll}
       onClear={clearSelection}
     />
@@ -310,7 +314,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
               // (gesto fresco) — el mismo camino seguro que ya usa "Guardar PDF".
               onDownloadFillable={() => void openPreview(doc, 'rellenable')}
               onCancelExport={cancelExport}
-              onNewDoc={newDoc}
+              onNewDoc={pageActions.newDoc}
               onOpenOcr={() => setOcrOpen(true)}
               onInspectForms={() => void inspectForms()}
               onPrintTemplate={() =>
@@ -377,10 +381,10 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
               scrollRoot={scrollRoot}
               selectedIds={selectedIds}
               onDropFiles={onDropFiles}
-              onNudge={nudge}
+              onNudge={pageActions.nudge}
               onOpenText={setTextPage}
               onPickFiles={() => fileInputRef.current?.click()}
-              onReorder={reorder}
+              onReorder={pageActions.reorder}
               onToggleSelect={toggleSelect}
             />
           </div>
