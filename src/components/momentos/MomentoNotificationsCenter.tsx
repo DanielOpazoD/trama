@@ -47,7 +47,7 @@ export function MomentoNotificationsCenter({
         <div
           role="dialog"
           aria-label="Centro de notificaciones"
-          className="absolute right-0 top-full z-50 mt-2 w-[min(360px,calc(100vw-2rem))] rounded-lg border border-ink-100 bg-paper-50 p-3 shadow-xl"
+          className="fixed left-3 right-3 top-[calc(env(safe-area-inset-top)+4.75rem)] z-50 max-h-[min(70vh,34rem)] overflow-y-auto rounded-lg border border-ink-100 bg-paper-50 p-3 shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-[min(70vh,34rem)] sm:w-[min(360px,calc(100vw-2rem))]"
         >
           <div className="mb-3 flex items-baseline justify-between gap-3">
             <h2 className="font-serif text-base text-ink-800">

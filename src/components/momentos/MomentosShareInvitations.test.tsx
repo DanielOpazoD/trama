@@ -34,4 +34,24 @@ describe('<MomentosShareInvitations />', () => {
     expect(onRespond).toHaveBeenNthCalledWith(1, 'inv1', 'accept')
     expect(onRespond).toHaveBeenNthCalledWith(2, 'inv1', 'reject')
   })
+
+  it('usa acciones apilables y contraste estable en móvil', () => {
+    render(
+      <MomentosShareInvitations
+        items={[invitation]}
+        pending={false}
+        onRespond={vi.fn()}
+      />,
+    )
+
+    const accept = screen.getByRole('button', { name: /aceptar/i })
+    const reject = screen.getByRole('button', { name: /rechazar/i })
+    const actions = accept.parentElement
+
+    expect(actions).toHaveClass('flex-col')
+    expect(actions).toHaveClass('sm:flex-row')
+    expect(accept).toHaveClass('w-full')
+    expect(reject).toHaveClass('w-full')
+    expect(accept).toHaveClass('text-white')
+  })
 })

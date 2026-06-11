@@ -57,4 +57,26 @@ describe('<MomentoNotificationsCenter />', () => {
       screen.getByText(/Cuando alguien comparta Momentos contigo/i),
     ).toBeInTheDocument()
   })
+
+  it('usa un panel fijo y legible en navegación móvil', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <MomentoNotificationsCenter
+        invitations={[invitation]}
+        pending={false}
+        onRespond={vi.fn()}
+      />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: /notificaciones.*1 invitación/i }),
+    )
+
+    const dialog = screen.getByRole('dialog', { name: /centro de notificaciones/i })
+    expect(dialog).toHaveClass('fixed')
+    expect(dialog).toHaveClass('left-3')
+    expect(dialog).toHaveClass('right-3')
+    expect(dialog).toHaveClass('sm:absolute')
+  })
 })
