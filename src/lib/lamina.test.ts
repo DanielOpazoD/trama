@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { generateLaminaBlob, laminaFilename } from './lamina'
+import { generateCareoLaminaBlob, generateLaminaBlob, laminaFilename } from './lamina'
 
 /**
  * Smoke tests para lamina.ts. La generación real usa Canvas API y
@@ -82,5 +82,57 @@ describe('laminaFilename', () => {
   })
   it('cae a "cita" si no queda nada', () => {
     expect(laminaFilename('—')).toBe('lamina-cita.png')
+  })
+})
+
+describe('generateCareoLaminaBlob', () => {
+  it('dibuja las dos voces y devuelve un Blob PNG', async () => {
+    const fillRect = vi.fn()
+    const fillText = vi.fn()
+    const toBlob = vi.fn((cb: (b: Blob | null) => void) => {
+      cb(new Blob([new Uint8Array([1])], { type: 'image/png' }))
+    })
+    const mockCtx = {
+      fillRect,
+      fillText,
+      measureText: vi.fn(() => ({ width: 100 }) as TextMetrics),
+      save: vi.fn(),
+      restore: vi.fn(),
+      translate: vi.fn(),
+      rotate: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      stroke: vi.fn(),
+      fillStyle: '',
+      strokeStyle: '',
+      font: '',
+      textAlign: '',
+      globalAlpha: 1,
+    } as unknown as CanvasRenderingContext2D
+    vi.spyOn(document, 'createElement').mockImplementation(((tag: string) => {
+      if (tag === 'canvas') {
+        return {
+          width: 0,
+          height: 0,
+          getContext: () => mockCtx,
+          toBlob,
+        } as unknown as HTMLCanvasElement
+      }
+      return {} as HTMLElement
+    }) as typeof document.createElement)
+
+    const blob = await generateCareoLaminaBlob(
+      {
+        left: { name: 'Borges', text: 'el sur' },
+        right: { name: 'Cortázar', text: 'la rayuela' },
+        relation: 'influye en',
+      },
+      'night',
+    )
+    expect(blob.type).toBe('image/png')
+    const drawn = fillText.mock.calls.map((c) => String(c[0]))
+    expect(drawn.some((t) => t.includes('B O R G E S'.replace(/ /g, ' ')))).toBe(true)
+    expect(drawn.some((t) => t.includes('influye en'))).toBe(true)
   })
 })
