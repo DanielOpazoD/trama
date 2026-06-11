@@ -29,21 +29,24 @@
 Deploy de producción después de cambiar variables (las functions las leen en
 runtime, pero el front necesita rebuild por la `VITE_*`).
 
-## Verificación: smoke de aislamiento
+## Verificación: smoke multiusuario real
 
 Con el deploy arriba y dos sesiones Clerk reales (usuario A y usuario B):
 
 ```bash
-SMOKE_BASE_URL=https://<sitio>.netlify.app \
-SMOKE_TOKEN_A=<jwt de A> \
-SMOKE_TOKEN_B=<jwt de B> \
-node scripts/smoke-isolation.mjs
+E2E_BASE_URL=https://<sitio>.netlify.app \
+CLERK_SECRET_KEY=sk_live_... \
+E2E_USER_A_ID=user_... \
+E2E_USER_B_ID=user_... \
+npm run e2e:multiuser -- --project=chromium
 ```
 
-Los JWT se sacan de la app logueada (DevTools → Network → cualquier request a
-`/api/*` → header `Authorization`). Expiran rápido: copiar y correr enseguida.
+El script crea sesiones efímeras en Clerk, obtiene JWTs para A/B, resuelve el
+correo de B para aceptar invitaciones y revoca las sesiones al terminar. También
+se puede lanzar desde GitHub Actions con `workflow_dispatch` del workflow
+`test`, activando `run_multiuser_smoke`.
 
-El script verifica, creando y soft-borrando sus propias fixtures:
+El smoke verifica, creando y soft-borrando sus propias fixtures:
 
 1. **Sin token → 401** (el fallback legacy quedó realmente apagado).
 2. **Entidades**: lo que crea A no aparece en la lista de B ni se puede abrir
@@ -51,6 +54,10 @@ El script verifica, creando y soft-borrando sus propias fixtures:
 3. **Notas**: ídem.
 4. **Momentos**: ídem — cubre además que B, sin invitación aceptada, no ve el
    espacio de A aunque el endpoint contemple compartidos.
+5. **Momentos compartidos**: A sube foto privada, B no puede leer el blob antes
+   de aceptar invitación, sí puede después, `editor` edita, `viewer` no edita
+   pero comenta/reacciona, el dueño borra comentarios y al revocar el acceso el
+   blob vuelve a 404.
 
 Cualquier ✗ → **no seguir**: revertir el paso 4 (volver a `true`) deja todo
 como estaba mientras se investiga.

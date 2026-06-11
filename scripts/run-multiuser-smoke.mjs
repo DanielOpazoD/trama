@@ -14,6 +14,11 @@ try {
 if (smokeEnv.mode === 'minted-clerk-tokens') {
   console.info('multi-user smoke: usando tokens efimeros generados con Clerk.')
 }
+if (smokeEnv.mode === 'minted-clerk-browser-tokens') {
+  console.info(
+    'multi-user smoke: usando tokens efimeros de Clerk via navegador headless.',
+  )
+}
 
 const result = spawnSync(
   process.execPath,
@@ -21,6 +26,7 @@ const result = spawnSync(
     'node_modules/.bin/playwright',
     'test',
     'e2e/multi-user-isolation.spec.ts',
+    'e2e/momentos-shared-space.spec.ts',
     ...process.argv.slice(2),
   ],
   { stdio: 'inherit', env: smokeEnv.env },
