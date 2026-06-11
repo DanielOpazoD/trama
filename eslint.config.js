@@ -212,6 +212,19 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
+  // Extensión de Chrome (MV3): JS plano de browser con la API chrome.*.
+  {
+    files: ['extension/**/*.js'],
+    languageOptions: {
+      globals: {
+        chrome: 'readonly',
+        document: 'readonly',
+        window: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+      },
+    },
+  },
   // Prettier al final — desactiva las rules que peleen con prettier.
   prettierConfig,
 )

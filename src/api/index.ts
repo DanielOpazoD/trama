@@ -24,6 +24,7 @@ import { healthApi } from './health'
 import { homeApi } from './home'
 import { momentosApi } from './momentos'
 import { notesApi } from './notes'
+import { recortesApi } from './recortes'
 import { notasAttachmentsApi } from './notas-attachments'
 import { promptsApi } from './prompts'
 import { quotesApi } from './quotes'
@@ -45,6 +46,7 @@ export const api = {
   ...chatApi,
   cronicas: cronicasApi,
   notes: notesApi,
+  ...recortesApi,
   tasks: tasksApi,
   prompts: promptsApi,
   secrets: secretsApi,
@@ -81,6 +83,7 @@ export type {
 } from './entities'
 
 export type { XStatus, XBookmark, XCronica } from './x'
+export type { Recorte, RecorteStatus, RecorteTarget, ApiToken } from './recortes'
 
 export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
 

@@ -37,6 +37,15 @@ export const ChevronRightIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Tijeras — Recortes (capturas web que esperan curaduría). */
+export const ScissorsIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <circle cx="6" cy="6" r="2.6" />
+    <circle cx="6" cy="18" r="2.6" />
+    <path d="M8.2 7.6 20 19M8.2 16.4 20 5" />
+  </svg>
+)
+
 export const CloseIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
     <path d="M18 6L6 18M6 6l12 12" />

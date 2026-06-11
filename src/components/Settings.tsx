@@ -4,6 +4,7 @@ import { CloseIcon, TramaMark } from './Icons'
 import { AppearancePanel } from './settings/AppearancePanel'
 import { PrivacyPanel } from './settings/PrivacyPanel'
 import { SpotifyPanel } from './settings/SpotifyPanel'
+import { ExtensionPanel } from './settings/ExtensionPanel'
 import { XPanel } from './settings/XPanel'
 import { AIPanel } from './settings/AIPanel'
 import { SearchPanel } from './settings/SearchPanel'
@@ -37,6 +38,7 @@ type SectionId =
   | 'personalization'
   | 'privacy'
   | 'spotify'
+  | 'extension'
   | 'x'
   | 'ai'
   | 'search'
@@ -53,6 +55,7 @@ const SECTIONS: Array<{ id: SectionId; label: string; hint: string }> = [
   },
   { id: 'privacy', label: 'Privacidad', hint: 'bloqueo por PIN' },
   { id: 'spotify', label: 'Spotify', hint: 'sincronización' },
+  { id: 'extension', label: 'Extensión', hint: 'recortes desde Chrome' },
   { id: 'x', label: 'X (Twitter)', hint: 'bookmarks' },
   { id: 'ai', label: 'IA por tarea', hint: 'modelo por flujo' },
   { id: 'search', label: 'Búsqueda', hint: 'embeddings + reindexado' },
@@ -171,6 +174,7 @@ export function Settings({
                   oauthReturn={oauthReturn?.provider === 'spotify' ? oauthReturn : null}
                 />
               )}
+              {section === 'extension' && <ExtensionPanel />}
               {section === 'x' && (
                 <XPanel
                   oauthReturn={oauthReturn?.provider === 'x' ? oauthReturn : null}

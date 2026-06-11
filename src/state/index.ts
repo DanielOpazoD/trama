@@ -88,6 +88,12 @@ export {
   usePromoteNote,
 } from './useNotes'
 export {
+  useRecortesQuery,
+  useUpdateRecorte,
+  useDeleteRecorte,
+  usePromoteRecorte,
+} from './useRecortes'
+export {
   useTasksQuery,
   useTasksRange,
   usePendingTasks,
