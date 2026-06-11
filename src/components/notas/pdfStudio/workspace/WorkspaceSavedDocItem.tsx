@@ -3,12 +3,20 @@ import {
   type SavedDoc,
   type SavedFolder,
 } from '../../../../lib/pdfStudio/render/persistence'
-import { DownloadIcon, PencilIcon, TrashIcon } from '../../../Icons'
+import {
+  ArrowRightIcon,
+  DownloadIcon,
+  FilePdfIcon,
+  PencilIcon,
+  TrashIcon,
+} from '../../../Icons'
+import { OverflowMenu, OverflowMenuItem } from '../../../OverflowMenu'
 
 const rowBtn =
   'touch-target inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
 const kindChip =
   'inline-flex h-4 items-center rounded px-1.5 text-[9px] font-medium leading-none'
+const SAVED_DOC_DRAG_TYPE = 'application/x-trama-saved-doc-id'
 
 function dateLabel(ms: number): string {
   const d = new Date(ms)
@@ -74,7 +82,15 @@ export function WorkspaceSavedDocItem({
   onMoveToFolder: (folderId: string | null) => void
 }) {
   return (
-    <li className="group rounded-md px-1.5 py-1 transition-colors hover:bg-ink-100/40">
+    <li
+      aria-label={saved.name}
+      draggable={!isRenaming}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData(SAVED_DOC_DRAG_TYPE, saved.id)
+      }}
+      className="group rounded-md border border-transparent px-1.5 py-1 transition-colors hover:border-ink-100 hover:bg-ink-100/40 active:cursor-grabbing"
+    >
       <div className="flex items-center gap-1">
         {isRenaming ? (
           <input
@@ -108,49 +124,85 @@ export function WorkspaceSavedDocItem({
           </button>
         )}
         {!isRenaming ? (
-          <div className="flex shrink-0 opacity-0 transition-opacity group-hover:opacity-100">
-            <button
-              type="button"
-              onClick={onDownload}
-              aria-label={`Descargar ${saved.name}`}
-              className={rowBtn}
-            >
-              <DownloadIcon size={12} />
-            </button>
-            <button
-              type="button"
-              onClick={onStartRename}
-              aria-label={`Renombrar ${saved.name}`}
-              className={rowBtn}
-            >
-              <PencilIcon size={12} />
-            </button>
-            <button
-              type="button"
-              onClick={onDelete}
-              aria-label={`Eliminar ${saved.name}`}
-              className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
-            >
-              <TrashIcon size={12} />
-            </button>
-          </div>
+          <OverflowMenu
+            label={`Más acciones de ${saved.name}`}
+            width="w-52"
+            triggerClassName={`${rowBtn} shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100`}
+          >
+            {(close) => (
+              <>
+                <OverflowMenuItem
+                  onClick={() => {
+                    close()
+                    onOpen()
+                  }}
+                >
+                  <FilePdfIcon size={14} />
+                  Abrir
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  onClick={() => {
+                    close()
+                    onDownload()
+                  }}
+                >
+                  <DownloadIcon size={14} />
+                  Descargar
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  onClick={() => {
+                    close()
+                    onStartRename()
+                  }}
+                >
+                  <PencilIcon size={14} />
+                  Renombrar
+                </OverflowMenuItem>
+                {folders.length > 0 ? (
+                  <>
+                    <div className="my-1 border-t border-ink-100" />
+                    {saved.folderId ? (
+                      <OverflowMenuItem
+                        onClick={() => {
+                          close()
+                          onMoveToFolder(null)
+                        }}
+                      >
+                        <ArrowRightIcon size={14} />
+                        Sacar de carpeta
+                      </OverflowMenuItem>
+                    ) : null}
+                    {folders.map((folder) => (
+                      <OverflowMenuItem
+                        key={folder.id}
+                        disabled={saved.folderId === folder.id}
+                        onClick={() => {
+                          close()
+                          onMoveToFolder(folder.id)
+                        }}
+                      >
+                        <ArrowRightIcon size={14} />
+                        Mover a {folder.name}
+                      </OverflowMenuItem>
+                    ))}
+                  </>
+                ) : null}
+                <div className="my-1 border-t border-ink-100" />
+                <OverflowMenuItem
+                  danger
+                  onClick={() => {
+                    close()
+                    onDelete()
+                  }}
+                >
+                  <TrashIcon size={14} />
+                  Eliminar
+                </OverflowMenuItem>
+              </>
+            )}
+          </OverflowMenu>
         ) : null}
       </div>
-      {!isRenaming && folders.length > 0 ? (
-        <select
-          aria-label={`Mover ${saved.name} a carpeta`}
-          value={saved.folderId ?? ''}
-          onChange={(e) => onMoveToFolder(e.target.value || null)}
-          className="mt-1 w-full rounded border border-ink-100 bg-paper-50 px-1.5 py-0.5 text-micro text-ink-500 outline-none transition-colors hover:border-ink-200 focus:border-ink-300"
-        >
-          <option value="">Sin carpeta</option>
-          {folders.map((folder) => (
-            <option key={folder.id} value={folder.id}>
-              {folder.name}
-            </option>
-          ))}
-        </select>
-      ) : null}
     </li>
   )
 }

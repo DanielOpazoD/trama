@@ -70,6 +70,9 @@ function setup(overrides: Partial<Parameters<typeof WorkspacePanel>[0]> = {}) {
     onDeleteSaved: vi.fn(),
     onDownloadSaved: vi.fn(),
     onCreateFolder: vi.fn(),
+    onRenameFolder: vi.fn(),
+    onUpdateFolderColor: vi.fn(),
+    onDeleteFolder: vi.fn(),
     onMoveSavedToFolder: vi.fn(),
     onExportTemplatePackage: vi.fn(),
     collapsed: false,
@@ -283,7 +286,43 @@ describe('<WorkspacePanel /> · planillas', () => {
     expect(screen.getByText('Alta')).toBeInTheDocument()
   })
 
-  it('permite mover una copia guardada a una carpeta', () => {
+  it('colapsa y despliega el contenido de una carpeta con un clic', () => {
+    setup({
+      folders: [{ id: 'folder-1', name: 'Protocolos', color: 'blue', createdAt: 100 }],
+      saved: [
+        {
+          id: 'doc-1',
+          name: 'Consentimiento',
+          doc: addPdfSource(emptyDoc(), pdf(), 1),
+          savedAt: 1000,
+          folderId: 'folder-1',
+        },
+        {
+          id: 'doc-2',
+          name: 'Alta',
+          doc: addPdfSource(emptyDoc(), pdf(), 1),
+          savedAt: 900,
+        },
+      ],
+    })
+
+    const folder = screen.getByRole('button', { name: /Abrir carpeta Protocolos/i })
+
+    expect(folder).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(folder)
+
+    expect(folder).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('Consentimiento')).toBeInTheDocument()
+    expect(screen.queryByText('Alta')).not.toBeInTheDocument()
+
+    fireEvent.click(folder)
+
+    expect(folder).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByText('Consentimiento')).toBeInTheDocument()
+    expect(screen.getByText('Alta')).toBeInTheDocument()
+  })
+
+  it('arrastra una copia guardada hacia una carpeta con feedback visual', () => {
     const props = setup({
       folders: [{ id: 'folder-1', name: 'Protocolos', color: 'green', createdAt: 100 }],
       saved: [
@@ -296,10 +335,102 @@ describe('<WorkspacePanel /> · planillas', () => {
       ],
     })
 
-    fireEvent.change(screen.getByLabelText(/Mover Consentimiento a carpeta/i), {
-      target: { value: 'folder-1' },
-    })
+    const dataTransfer = {
+      data: {} as Record<string, string>,
+      types: ['application/x-trama-saved-doc-id'],
+      effectAllowed: '',
+      dropEffect: '',
+      setData(type: string, value: string) {
+        this.data[type] = value
+      },
+      getData(type: string) {
+        return this.data[type] ?? ''
+      },
+    }
+    const row = screen.getByRole('listitem', { name: /Consentimiento/i })
+    const folder = screen.getByRole('button', { name: /Abrir carpeta Protocolos/i })
+
+    fireEvent.dragStart(row, { dataTransfer })
+    fireEvent.dragEnter(folder, { dataTransfer })
+
+    expect(folder).toHaveAttribute('data-drop-active', 'true')
+
+    fireEvent.drop(folder, { dataTransfer })
 
     expect(props.onMoveSavedToFolder).toHaveBeenCalledWith('doc-1', 'folder-1')
+  })
+
+  it('oculta el selector de carpeta y deja las acciones de archivo detrás de menú', () => {
+    const props = setup({
+      folders: [{ id: 'folder-1', name: 'Protocolos', color: 'green', createdAt: 100 }],
+      saved: [
+        {
+          id: 'doc-1',
+          name: 'Consentimiento',
+          doc: addPdfSource(emptyDoc(), pdf(), 1),
+          savedAt: 1000,
+        },
+      ],
+    })
+
+    expect(
+      screen.queryByLabelText(/Mover Consentimiento a carpeta/i),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Más acciones de Consentimiento/i }),
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: /Descargar/i }))
+    expect(props.onDownloadSaved).toHaveBeenCalledWith(props.saved[0])
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Más acciones de Consentimiento/i }),
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: /Mover a Protocolos/i }))
+    expect(props.onMoveSavedToFolder).toHaveBeenCalledWith('doc-1', 'folder-1')
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Más acciones de Consentimiento/i }),
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: /Eliminar/i }))
+    expect(props.onDeleteSaved).toHaveBeenCalledWith('doc-1')
+  })
+
+  it('permite administrar una carpeta sin borrar sus documentos', () => {
+    const props = setup({
+      folders: [{ id: 'folder-1', name: 'Protocolos', color: 'green', createdAt: 100 }],
+      saved: [
+        {
+          id: 'doc-1',
+          name: 'Consentimiento',
+          doc: addPdfSource(emptyDoc(), pdf(), 1),
+          savedAt: 1000,
+          folderId: 'folder-1',
+        },
+      ],
+    })
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Más acciones de carpeta Protocolos/i }),
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: /Cambiar a naranja/i }))
+    expect(props.onUpdateFolderColor).toHaveBeenCalledWith('folder-1', 'orange')
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Más acciones de carpeta Protocolos/i }),
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: /Renombrar/i }))
+    fireEvent.change(screen.getByPlaceholderText(/Nombre de la carpeta/i), {
+      target: { value: 'Protocolos 2026' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Guardar nombre de carpeta/i }))
+    expect(props.onRenameFolder).toHaveBeenCalledWith('folder-1', 'Protocolos 2026')
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Más acciones de carpeta Protocolos/i }),
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: /Eliminar carpeta/i }))
+    expect(props.onDeleteFolder).toHaveBeenCalledWith('folder-1')
+    expect(props.onDeleteSaved).not.toHaveBeenCalled()
   })
 })

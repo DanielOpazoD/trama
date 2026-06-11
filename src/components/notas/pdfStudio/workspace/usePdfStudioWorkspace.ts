@@ -15,6 +15,7 @@ import {
 } from '../../../../lib/pdfStudio/model/model'
 import {
   deleteSavedDoc,
+  deleteSavedFolder,
   listSavedFolders,
   listSavedDocs,
   putSavedFolder,
@@ -228,6 +229,47 @@ export function usePdfStudioWorkspace({
     toast.show({ message: `Carpeta "${folder.name}" creada.`, tone: 'success' })
   }
 
+  function renameFolder(id: string, name: string) {
+    const cleanName = name.trim()
+    if (!cleanName) return
+    setFolders((list) => {
+      const next = list.map((folder) =>
+        folder.id === id ? { ...folder, name: cleanName } : folder,
+      )
+      const target = next.find((folder) => folder.id === id)
+      if (target) void putSavedFolder(userKey, target)
+      return next
+    })
+  }
+
+  function updateFolderColor(id: string, color: SavedFolderColor) {
+    setFolders((list) => {
+      const next = list.map((folder) =>
+        folder.id === id ? { ...folder, color } : folder,
+      )
+      const target = next.find((folder) => folder.id === id)
+      if (target) void putSavedFolder(userKey, target)
+      return next
+    })
+  }
+
+  function removeFolder(id: string) {
+    setFolders((list) => list.filter((folder) => folder.id !== id))
+    setSaved((list) => {
+      const next = list.map((s) => (s.folderId === id ? { ...s, folderId: null } : s))
+      for (const item of next) {
+        if (
+          item.folderId === null &&
+          list.find((s) => s.id === item.id)?.folderId === id
+        ) {
+          void putSavedDoc(userKey, item)
+        }
+      }
+      return next
+    })
+    void deleteSavedFolder(userKey, id)
+  }
+
   function moveSavedToFolder(id: string, folderId: string | null) {
     setSaved((list) => {
       const next = list.map((s) => (s.id === id ? { ...s, folderId } : s))
@@ -250,6 +292,9 @@ export function usePdfStudioWorkspace({
     duplicateSaved,
     exportTemplatePackage,
     createFolder,
+    renameFolder,
+    updateFolderColor,
+    removeFolder,
     folders,
     openSaved,
     openTemplate,
