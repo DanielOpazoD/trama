@@ -63,12 +63,48 @@ function primaryEmailFromClerkUser(user) {
     : null
 }
 
+function clerkErrorDetails(error) {
+  const status =
+    typeof error?.status === 'number'
+      ? error.status
+      : typeof error?.statusCode === 'number'
+        ? error.statusCode
+        : typeof error?.response?.status === 'number'
+          ? error.response.status
+          : null
+  const code =
+    typeof error?.code === 'string'
+      ? error.code
+      : typeof error?.errors?.[0]?.code === 'string'
+        ? error.errors[0].code
+        : null
+  const message =
+    typeof error?.message === 'string' && error.message
+      ? error.message
+      : 'error desconocido'
+
+  return [status ? `status ${status}` : null, code ? `code ${code}` : null].filter(
+    Boolean,
+  ).length > 0
+    ? `(${[status ? `status ${status}` : null, code ? `code ${code}` : null].filter(Boolean).join(', ')}): ${message}`
+    : `: ${message}`
+}
+
+function wrapClerkError(stage, error) {
+  return new Error(`Clerk rechazo ${stage} ${clerkErrorDetails(error)}`)
+}
+
 async function resolveClerkUserEmail(clerkClient, userId) {
-  const user = await clerkClient.users.getUser(userId)
+  let user
+  try {
+    user = await clerkClient.users.getUser(userId)
+  } catch (error) {
+    throw wrapClerkError('getUser para E2E_USER_B_ID', error)
+  }
   const email = primaryEmailFromClerkUser(user)
   if (!email) {
     throw new Error(
-      `No se pudo resolver E2E_USER_B_EMAIL desde Clerk para ${userId}. ` +
+      'No se pudo resolver E2E_USER_B_EMAIL desde Clerk para E2E_USER_B_ID. ' +
         'Configuralo manualmente para ejecutar el smoke de Momentos compartidos.',
     )
   }
@@ -84,23 +120,30 @@ async function revokeCreatedSessions(clerkClient, sessions) {
 async function mintTokenForUser(
   clerkClient,
   userId,
+  userLabel,
   expiresInSeconds,
   createdSessionIds,
 ) {
-  const session = await clerkClient.sessions.createSession({ userId })
+  let session
+  try {
+    session = await clerkClient.sessions.createSession({ userId })
+  } catch (error) {
+    throw wrapClerkError(`createSession para ${userLabel}`, error)
+  }
   if (!session?.id) {
-    throw new Error(`Clerk no devolvio id de sesion para ${userId}.`)
+    throw new Error(`Clerk no devolvio id de sesion para ${userLabel}.`)
   }
 
   createdSessionIds.push(session.id)
-  const token = await clerkClient.sessions.getToken(
-    session.id,
-    undefined,
-    expiresInSeconds,
-  )
+  let token
+  try {
+    token = await clerkClient.sessions.getToken(session.id, undefined, expiresInSeconds)
+  } catch (error) {
+    throw wrapClerkError(`getToken para ${userLabel}`, error)
+  }
 
   if (!token?.jwt) {
-    throw new Error(`Clerk no devolvio JWT para la sesion ${session.id}.`)
+    throw new Error(`Clerk no devolvio JWT para ${userLabel}.`)
   }
 
   return token.jwt
@@ -138,12 +181,14 @@ export async function resolveMultiuserSmokeEnv({
     const userAToken = await mintTokenForUser(
       clerkClient,
       env.E2E_USER_A_ID,
+      'E2E_USER_A_ID',
       expiresInSeconds,
       createdSessionIds,
     )
     const userBToken = await mintTokenForUser(
       clerkClient,
       env.E2E_USER_B_ID,
+      'E2E_USER_B_ID',
       expiresInSeconds,
       createdSessionIds,
     )

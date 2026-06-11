@@ -115,4 +115,45 @@ describe('multiuser smoke env', () => {
       }),
     ).rejects.toThrow('E2E_USER_B_EMAIL')
   })
+
+  test('agrega contexto seguro cuando Clerk rechaza una operacion', async () => {
+    const clerkClient = {
+      sessions: {
+        createSession: vi.fn(async () => {
+          const error = new Error('Bad Request')
+          error.status = 400
+          error.clerkError = true
+          throw error
+        }),
+        getToken: vi.fn(),
+        revokeSession: vi.fn(),
+      },
+      users: {
+        getUser: vi.fn(async (userId) => ({
+          id: userId,
+          primaryEmailAddressId: `email-${userId}`,
+          emailAddresses: [
+            {
+              id: `email-${userId}`,
+              emailAddress: `${userId}@example.com`,
+            },
+          ],
+        })),
+      },
+    }
+
+    await expect(
+      resolveMultiuserSmokeEnv({
+        env: {
+          E2E_BASE_URL: 'https://trama.example',
+          CLERK_SECRET_KEY: 'sk_test_real_secret',
+          E2E_USER_A_ID: 'user_a',
+          E2E_USER_B_ID: 'user_b',
+        },
+        createClerkClient: vi.fn(() => clerkClient),
+      }),
+    ).rejects.toThrow(
+      'Clerk rechazo createSession para E2E_USER_A_ID (status 400): Bad Request',
+    )
+  })
 })
