@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      /* Registro editorial de Trama: papel, tinta, serif para el texto. */
+      :root {
+        --paper: #ffffff;
+        --paper-2: #fafafa;
+        --ink: #18181b;
+        --ink-muted: #63636b;
+        --ink-faint: #a1a1aa;
+        --border: #e4e4e7;
+        --accent: #1f4d6b;
+        --gold: #a07900;
+      }
+      body {
+        width: 340px;
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          13px/1.5 Inter,
+          system-ui,
+          sans-serif;
+      }
+      header {
+        padding: 12px 14px 10px;
+        border-bottom: 1px solid var(--border);
+      }
+      .eyebrow {
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+      h1 {
+        margin: 2px 0 0;
+        font:
+          600 15px/1.3 Georgia,
+          'Times New Roman',
+          serif;
+      }
+      main {
+        padding: 12px 14px;
+        display: grid;
+        gap: 10px;
+      }
+      textarea,
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--paper-2);
+        color: var(--ink);
+        padding: 7px 9px;
+        font: inherit;
+      }
+      #texto {
+        font-family: Georgia, 'Times New Roman', serif;
+        min-height: 88px;
+        resize: vertical;
+      }
+      label {
+        display: grid;
+        gap: 4px;
+        font-size: 11px;
+        color: var(--ink-muted);
+      }
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font:
+          600 12px Inter,
+          system-ui,
+          sans-serif;
+        cursor: pointer;
+      }
+      #guardar {
+        background: var(--ink);
+        color: var(--paper);
+      }
+      #guardar:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      #estado {
+        font:
+          italic 12px Georgia,
+          serif;
+        color: var(--ink-muted);
+        min-height: 1em;
+      }
+      details {
+        border-top: 1px solid var(--border);
+        padding: 10px 14px 12px;
+        color: var(--ink-muted);
+      }
+      summary {
+        cursor: pointer;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+      }
+      details main {
+        padding: 10px 0 0;
+      }
+      .hint {
+        font-size: 11px;
+        color: var(--ink-faint);
+      }
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="eyebrow">trama · recortes</div>
+      <h1>Guardar en la bandeja</h1>
+    </header>
+    <main>
+      <label>
+        Texto
+        <textarea
+          id="texto"
+          placeholder="Selecciona texto en la página o pégalo aquí…"
+        ></textarea>
+      </label>
+      <label>
+        Nota (opcional)
+        <input id="nota" placeholder="por qué te llegó…" />
+      </label>
+      <div class="row">
+        <span id="estado"></span>
+        <button id="guardar">Guardar en Recortes</button>
+      </div>
+    </main>
+    <details id="config">
+      <summary>conexión</summary>
+      <main>
+        <label>
+          Token personal
+          <input id="token" type="password" placeholder="trama_pat_…" />
+        </label>
+        <label>
+          Servidor
+          <input id="baseUrl" placeholder="https://tramahub.app" />
+        </label>
+        <p class="hint">
+          El token se genera en Trama → Configuración → Conectar extensión, y vive solo en
+          este navegador.
+        </p>
+        <div class="row">
+          <span></span>
+          <button id="guardarConfig">Guardar conexión</button>
+        </div>
+      </main>
+    </details>
+    <script src="popup.js"></script>
+  </body>
+</html>

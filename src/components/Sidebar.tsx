@@ -17,6 +17,7 @@ import {
   GraphIcon,
   HomeIcon,
   MomentosIcon,
+  ScissorsIcon,
   MusicIcon,
   QuoteIcon,
   SearchIcon,
@@ -66,6 +67,7 @@ const NAV_GROUPS: NavGroup[] = [
       { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
       { value: 'citas', label: 'Citas', icon: QuoteIcon },
       { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
+      { value: 'recortes', label: 'Recortes', icon: ScissorsIcon },
       { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
       { value: 'twitter', label: 'Twitter', icon: TwitterIcon },
     ],
@@ -150,6 +152,7 @@ export function Sidebar({
     // badge faltaba y Momentos era el único item del sidebar sin
     // número. Coherencia con las demás secciones.
     momentos: totals?.momentos ?? null,
+    recortes: null,
     escuchas: null,
     // Los bookmarks guardados no vienen en el endpoint de counts; sin badge.
     twitter: null,

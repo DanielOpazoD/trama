@@ -29,6 +29,7 @@ const VALID_VIEWS: ReadonlyArray<ViewMode> = [
   'escuchas',
   'twitter',
   'momentos',
+  'recortes',
   'cronologia',
   'atlas',
   'chat',
