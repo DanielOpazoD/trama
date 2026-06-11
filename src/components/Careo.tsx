@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useEntitiesQuery, useQuotesQuery, useRelationshipsQuery } from '../state'
 import type { Entity, Quote, Relationship } from '../types'
 import { CloseIcon, EndMark } from './Icons'
+import { generateCareoLaminaBlob } from '../lib/lamina'
+import { downloadBlob } from '../lib/downloadBlob'
+import { useToast } from '../state/toast'
 
 /**
  * Careo — dos voces frente a frente. Eliges dos entidades y sus citas se
@@ -81,6 +84,8 @@ export function Careo({ open, onClose }: { open: boolean; onClose: () => void })
   const { data: entities = [] } = useEntitiesQuery()
   const { data: quotes = [] } = useQuotesQuery()
   const { data: relationships = [] } = useRelationshipsQuery()
+  const toast = useToast()
+  const [exporting, setExporting] = useState(false)
 
   const candidates = useMemo(
     () => entitiesWithQuotes(entities, quotes),
@@ -121,6 +126,27 @@ export function Careo({ open, onClose }: { open: boolean; onClose: () => void })
     : []
   const relation =
     left && right ? findDirectRelation(relationships, left.id, right.id) : null
+
+  // Lámina del careo: la primera cita de cada lado, frente a frente.
+  async function handleLamina() {
+    if (!left || !right || exporting) return
+    const lq = leftQuotes[0]
+    const rq = rightQuotes[0]
+    if (!lq || !rq) return
+    setExporting(true)
+    try {
+      const blob = await generateCareoLaminaBlob({
+        left: { name: left.name, text: lq.text },
+        right: { name: right.name, text: rq.text },
+        relation: relation ? relation.type.replace(/_/g, ' ') : null,
+      })
+      downloadBlob(blob, 'careo.png')
+    } catch {
+      toast.show({ message: 'No se pudo generar la lámina', tone: 'error' })
+    } finally {
+      setExporting(false)
+    }
+  }
 
   if (!open) return null
 
@@ -179,6 +205,15 @@ export function Careo({ open, onClose }: { open: boolean; onClose: () => void })
               ))}
             </select>
           </div>
+        )}
+        {left && right && leftQuotes[0] && rightQuotes[0] && (
+          <button
+            onClick={handleLamina}
+            disabled={exporting}
+            className="mt-4 section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-40"
+          >
+            {exporting ? 'generando…' : 'lámina del careo'}
+          </button>
         )}
         {/* Si la trama ya los conecta, el careo se declara con motivo. */}
         {relation && (

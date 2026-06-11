@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useEntitiesQuery, useQuotesQuery } from '../../state'
 import { useToast } from '../../state/toast'
 import { downloadBlob } from '../../lib/downloadBlob'
@@ -20,8 +20,13 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState('Florilegio')
   const [author, setAuthor] = useState('')
   const [includeMarginalia, setIncludeMarginalia] = useState(true)
+  const [onlyFavorites, setOnlyFavorites] = useState(false)
   const [busy, setBusy] = useState(false)
   const [step, setStep] = useState<string | null>(null)
+  // Vista previa: páginas de la edición recién compuesta. Los bytes se
+  // cachean por opciones — descargar tras previsualizar no recompone.
+  const [previewPages, setPreviewPages] = useState<string[] | null>(null)
+  const cacheRef = useRef<{ key: string; bytes: Uint8Array } | null>(null)
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -31,23 +36,57 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, busy])
 
-  const voices = new Set(quotes.map((q) => q.entityId)).size
+  const favoriteCount = quotes.filter((q) => q.pinnedAt).length
+  const effectiveQuotes = onlyFavorites ? quotes.filter((q) => q.pinnedAt) : quotes
+  const voices = new Set(effectiveQuotes.map((q) => q.entityId)).size
 
-  async function handleCompose() {
-    if (busy || quotes.length === 0) return
+  const optionsKey = JSON.stringify({ title, author, includeMarginalia, onlyFavorites })
+  useEffect(() => {
+    // Cambió cualquier opción → la previa y el cache quedan viejos.
+    setPreviewPages(null)
+    cacheRef.current = null
+  }, [optionsKey])
+
+  async function composeBytes(): Promise<Uint8Array> {
+    if (cacheRef.current?.key === optionsKey) return cacheRef.current.bytes
+    const { buildLibroPdf } = await import('../../lib/libro/buildLibro')
+    const bytes = await buildLibroPdf(
+      entities,
+      quotes,
+      {
+        title: title.trim() || 'Florilegio',
+        author: author.trim() || null,
+        includeMarginalia,
+        onlyFavorites,
+      },
+      setStep,
+    )
+    cacheRef.current = { key: optionsKey, bytes }
+    return bytes
+  }
+
+  async function handlePreview() {
+    if (busy || effectiveQuotes.length === 0) return
     setBusy(true)
     try {
-      const { buildLibroPdf } = await import('../../lib/libro/buildLibro')
-      const bytes = await buildLibroPdf(
-        entities,
-        quotes,
-        {
-          title: title.trim() || 'Florilegio',
-          author: author.trim() || null,
-          includeMarginalia,
-        },
-        setStep,
-      )
+      const bytes = await composeBytes()
+      setStep('hojeando la edición…')
+      const { renderPdfPreviewPages } = await import('../../lib/libro/libroPreview')
+      setPreviewPages(await renderPdfPreviewPages(bytes, 4))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No se pudo previsualizar'
+      toast.show({ message: msg, tone: 'error' })
+    } finally {
+      setBusy(false)
+      setStep(null)
+    }
+  }
+
+  async function handleCompose() {
+    if (busy || effectiveQuotes.length === 0) return
+    setBusy(true)
+    try {
+      const bytes = await composeBytes()
       const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' })
       const slug = (title.trim() || 'florilegio')
         .toLowerCase()
@@ -136,6 +175,35 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
             />
             incluir mis reflexiones como marginalia manuscrita
           </label>
+          {favoriteCount > 0 && (
+            <label className="flex items-center gap-2 text-caption text-ink-500">
+              <input
+                type="checkbox"
+                checked={onlyFavorites}
+                onChange={(e) => setOnlyFavorites(e.target.checked)}
+                disabled={busy}
+                className="accent-[var(--accent-primary)]"
+              />
+              edición breve: solo favoritas ★ ({favoriteCount})
+            </label>
+          )}
+
+          {/* Vista previa — las primeras páginas de la edición, hojeables. */}
+          {previewPages && (
+            <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Vista previa">
+              {previewPages.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt={`Página ${i + 1}`}
+                  className="h-44 w-auto shrink-0 rounded-sm border border-ink-100 shadow-sm shadow-ink-900/10"
+                />
+              ))}
+              <span className="self-end pb-1 font-serif italic text-micro text-ink-300">
+                …
+              </span>
+            </div>
+          )}
         </div>
 
         <footer className="px-5 py-4 border-t border-ink-100/60 flex items-center justify-between gap-3">
@@ -151,8 +219,15 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
             )}
           </span>
           <button
+            onClick={handlePreview}
+            disabled={busy || effectiveQuotes.length === 0}
+            className="text-xs uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-40"
+          >
+            previsualizar
+          </button>
+          <button
             onClick={handleCompose}
-            disabled={busy || quotes.length === 0}
+            disabled={busy || effectiveQuotes.length === 0}
             className="btn-accent text-xs"
           >
             {busy ? 'componiendo…' : 'componer libro'}

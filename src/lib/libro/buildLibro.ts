@@ -49,7 +49,7 @@ export async function buildLibroPdf(
   onProgress?: LibroProgress,
 ): Promise<Uint8Array> {
   onProgress?.('cargando tipografías…')
-  const { PDFDocument, rgb } = await import('pdf-lib')
+  const { PDFDocument, rgb, degrees } = await import('pdf-lib')
   const fk = await import('@pdf-lib/fontkit')
 
   const doc = await PDFDocument.create()
@@ -68,7 +68,13 @@ export async function buildLibroPdf(
   const muted = rgb(INK_MUTED.r, INK_MUTED.g, INK_MUTED.b)
   const gold = rgb(GOLD.r, GOLD.g, GOLD.b)
 
-  const chapters = buildChapters(entities, quotes, options.includeMarginalia)
+  const chapters = buildChapters(
+    entities,
+    quotes,
+    options.includeMarginalia,
+    options.onlyFavorites,
+  )
+  const colophonPool = options.onlyFavorites ? quotes.filter((q) => q.pinnedAt) : quotes
 
   // ---------- portada ----------
   onProgress?.('componiendo la portada…')
@@ -116,7 +122,7 @@ export async function buildLibroPdf(
 
   // ---------- colofón ----------
   const colophon = doc.addPage([PAGE_W, PAGE_H])
-  const lines = colophonLines(quotes)
+  const lines = colophonLines(colophonPool, { author: options.author })
   lines.forEach((line, i) => {
     if (!line) return
     colophon.drawText(line, {
@@ -158,10 +164,46 @@ export async function buildLibroPdf(
     if (y - height < MARGIN_BOTTOM) newPage()
   }
 
-  const drawChapter = (chapter: LibroChapter, isFirst: boolean) => {
+  const ROMAN: [number, string][] = [
+    [1000, 'M'],
+    [900, 'CM'],
+    [500, 'D'],
+    [400, 'CD'],
+    [100, 'C'],
+    [90, 'XC'],
+    [50, 'L'],
+    [40, 'XL'],
+    [10, 'X'],
+    [9, 'IX'],
+    [5, 'V'],
+    [4, 'IV'],
+    [1, 'I'],
+  ]
+  const roman = (n: number) => {
+    let out = ''
+    for (const [v, sym] of ROMAN)
+      while (n >= v) {
+        out += sym
+        n -= v
+      }
+    return out
+  }
+
+  const drawChapter = (chapter: LibroChapter, index: number, isFirst: boolean) => {
     // Cada capítulo abre en página nueva (salvo el primero, que ya la tiene).
     if (!isFirst) newPage()
     chapterStartPages.set(chapter.title, folio)
+
+    // Portadilla: numeral romano discreto sobre el nombre de la voz.
+    const numeral = `· ${roman(index + 1)} ·`
+    y -= 18
+    page.drawText(numeral, {
+      x: (PAGE_W - serif.widthOfTextAtSize(numeral, 9)) / 2,
+      y,
+      size: 9,
+      font: serif,
+      color: muted,
+    })
 
     const heading = chapter.title.toUpperCase().split('').join(' ')
     const headingLines = wrapLines((s) => sans.widthOfTextAtSize(s, 9), heading, TEXT_W)
@@ -222,6 +264,18 @@ export async function buildLibroPdf(
       // si es más largo que una página, fluye partido (sin viudas raras).
       if (blockH <= PAGE_H - MARGIN_TOP - MARGIN_BOTTOM) ensure(blockH)
 
+      // Favorita: un rombo dorado al margen, como el EndMark de la app.
+      if (q.pinned) {
+        page.drawSquare({
+          x: MARGIN_X - 14,
+          y: y + 2,
+          size: 4.4,
+          rotate: degrees(45),
+          color: gold,
+          opacity: 0.85,
+        })
+      }
+
       for (const line of quoteLines) {
         ensure(QUOTE_LEADING)
         page.drawText(line, {
@@ -266,7 +320,7 @@ export async function buildLibroPdf(
   }
 
   onProgress?.('componiendo los capítulos…')
-  chapters.forEach((chapter, i) => drawChapter(chapter, i === 0))
+  chapters.forEach((chapter, i) => drawChapter(chapter, i, i === 0))
 
   // ---------- índice onomástico ----------
   onProgress?.('cerrando con el índice…')

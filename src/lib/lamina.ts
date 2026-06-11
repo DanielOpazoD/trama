@@ -227,6 +227,89 @@ function spreadLetters(text: string): string {
   return text.split('').join(' ')
 }
 
+export type CareoLaminaInput = {
+  left: { name: string; text: string }
+  right: { name: string; text: string }
+  /** Relación declarada entre ambos (si la trama la registró). */
+  relation?: string | null
+}
+
+/**
+ * Lámina del CAREO: dos voces frente a frente en una sola imagen —
+ * columna izquierda y derecha con nombre en versalitas y una cita cada
+ * una, separadas por una canaleta con filete y rombo, como la doble
+ * página del careo en la app.
+ */
+export async function generateCareoLaminaBlob(
+  input: CareoLaminaInput,
+  theme: LaminaTheme = 'paper',
+): Promise<Blob> {
+  await loadFonts()
+  const canvas = document.createElement('canvas')
+  canvas.width = LAMINA_W
+  canvas.height = LAMINA_H
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas 2D no disponible en este browser')
+  const pal = PALETTES[theme]
+
+  ctx.fillStyle = pal.paper
+  ctx.fillRect(0, 0, LAMINA_W, LAMINA_H)
+
+  ctx.textAlign = 'center'
+  ctx.fillStyle = pal.gold
+  ctx.font = '500 18px Inter, sans-serif'
+  ctx.fillText(spreadLetters('CAREO'), LAMINA_W / 2, 130)
+
+  if (input.relation) {
+    ctx.fillStyle = pal.inkMuted
+    ctx.font = '400 20px "Spectral", Georgia, serif'
+    ctx.fillText(input.relation, LAMINA_W / 2, 175)
+  }
+
+  // Canaleta central: filete + rombo, el pliegue de la doble página.
+  ctx.strokeStyle = pal.inkMuted
+  ctx.globalAlpha = 0.3
+  ctx.beginPath()
+  ctx.moveTo(LAMINA_W / 2, 240)
+  ctx.lineTo(LAMINA_W / 2, LAMINA_H - 160)
+  ctx.stroke()
+  ctx.globalAlpha = 0.8
+  ctx.save()
+  ctx.translate(LAMINA_W / 2, LAMINA_H / 2)
+  ctx.rotate(Math.PI / 4)
+  ctx.fillStyle = pal.gold
+  ctx.fillRect(-5, -5, 10, 10)
+  ctx.restore()
+  ctx.globalAlpha = 1
+
+  const COL_W = 380
+  const drawSide = (side: { name: string; text: string }, centerX: number) => {
+    ctx.fillStyle = pal.inkMuted
+    ctx.font = '500 20px Inter, sans-serif'
+    ctx.fillText(spreadLetters(side.name.toUpperCase()).slice(0, 60), centerX, 280)
+
+    ctx.fillStyle = pal.ink
+    ctx.font = 'italic 400 38px "Spectral", "Iowan Old Style", Palatino, Georgia, serif'
+    const lines = wrapText(ctx, `«${side.text}»`, COL_W)
+    const MAX = 12
+    const visible = lines.slice(0, MAX)
+    if (lines.length > MAX) {
+      visible[MAX - 1] = (visible[MAX - 1] ?? '').replace(/[.,;:]?\s*$/, '') + '…»'
+    }
+    const startY = Math.max(360, (LAMINA_H - visible.length * 52) / 2)
+    visible.forEach((line, i) => ctx.fillText(line, centerX, startY + i * 52))
+  }
+  drawSide(input.left, LAMINA_W / 4 + 20)
+  drawSide(input.right, (LAMINA_W * 3) / 4 - 20)
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob)
+      else reject(new Error('No se pudo generar la imagen'))
+    }, 'image/png')
+  })
+}
+
 /** slug para nombre de archivo. */
 export function laminaFilename(attribution: string): string {
   const slug = attribution

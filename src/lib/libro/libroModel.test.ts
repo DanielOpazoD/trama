@@ -73,15 +73,19 @@ describe('colophonLines', () => {
       quote('q1', 'a', 'x', { createdAt: '2024-05-01T12:00:00.000Z' }),
       quote('q2', 'a', 'y', { createdAt: '2026-02-01T12:00:00.000Z' }),
     ]
-    const lines = colophonLines(qs, new Date('2026-06-10T12:00:00'))
+    const lines = colophonLines(qs, {
+      author: 'Daniel',
+      now: new Date('2026-06-10T12:00:00'),
+    })
     expect(lines[0]).toBe('Esta edición se compuso con las 2 citas')
-    expect(lines[1]).toBe('reunidas entre 2024 y 2026.')
-    expect(lines[3]).toBe('Trama · 2026')
+    expect(lines[1]).toBe('reunidas entre 2024 y 2026 por Daniel.')
+    expect(lines.some((l) => /sin fines comerciales/.test(l))).toBe(true)
+    expect(lines[lines.length - 1]).toBe('Trama · 2026')
   })
 
   it('usa "durante" cuando todo es del mismo año', () => {
     const qs = [quote('q1', 'a', 'x', { createdAt: '2026-02-01T12:00:00.000Z' })]
-    expect(colophonLines(qs, new Date('2026-06-10T12:00:00'))[1]).toBe(
+    expect(colophonLines(qs, { now: new Date('2026-06-10T12:00:00') })[1]).toBe(
       'reunidas durante 2026.',
     )
   })
@@ -108,5 +112,19 @@ describe('wrapLines', () => {
       'superlarguísima',
       'va',
     ])
+  })
+})
+
+describe('buildChapters onlyFavorites', () => {
+  it('la edición breve solo lleva las citas con estrella', () => {
+    const ents = [entity('a', 'Borges')]
+    const qs = [
+      { ...quote('q1', 'a', 'común'), pinnedAt: undefined },
+      { ...quote('q2', 'a', 'favorita'), pinnedAt: '2026-01-01T00:00:00.000Z' },
+    ]
+    const chapters = buildChapters(ents, qs, false, true)
+    expect(chapters).toHaveLength(1)
+    expect(chapters[0]!.quotes.map((q) => q.text)).toEqual(['favorita'])
+    expect(chapters[0]!.quotes[0]!.pinned).toBe(true)
   })
 })

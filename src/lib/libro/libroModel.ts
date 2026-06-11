@@ -19,6 +19,8 @@ export type LibroQuote = {
   source: string | null
   /** Tu reflexión — sale en Caveat como marginalia, si se pidió. */
   marginalia: string | null
+  /** Favorita (★): lleva un rombo dorado en la edición. */
+  pinned: boolean
 }
 
 export type LibroChapter = {
@@ -32,15 +34,19 @@ export type LibroOptions = {
   title: string
   author: string | null
   includeMarginalia: boolean
+  /** Edición breve: solo las citas marcadas como favoritas (★). */
+  onlyFavorites: boolean
 }
 
 export function buildChapters(
   entities: Entity[],
   quotes: Quote[],
   includeMarginalia: boolean,
+  onlyFavorites = false,
 ): LibroChapter[] {
+  const pool = onlyFavorites ? quotes.filter((q) => q.pinnedAt) : quotes
   const byEntity = new Map<string, Quote[]>()
-  for (const q of quotes) {
+  for (const q of pool) {
     const list = byEntity.get(q.entityId) ?? []
     list.push(q)
     byEntity.set(q.entityId, list)
@@ -59,6 +65,7 @@ export function buildChapters(
           text: q.text,
           source: q.source ?? null,
           marginalia: includeMarginalia ? (q.userReflection ?? null) : null,
+          pinned: Boolean(q.pinnedAt),
         })),
     })
   }
@@ -68,8 +75,13 @@ export function buildChapters(
   )
 }
 
-/** Texto del colofón — la página legal de la edición. */
-export function colophonLines(quotes: Quote[], now: Date = new Date()): string[] {
+/** Texto del colofón — la página legal de la edición: cuántas citas,
+ *  entre qué años, quién las reunió, y el carácter privado del objeto. */
+export function colophonLines(
+  quotes: Quote[],
+  opts: { author?: string | null; now?: Date } = {},
+): string[] {
+  const now = opts.now ?? new Date()
   const years = quotes
     .map((q) => new Date(q.createdAt).getFullYear())
     .filter((y) => !Number.isNaN(y))
@@ -84,7 +96,11 @@ export function colophonLines(quotes: Quote[], now: Date = new Date()): string[]
         : ` entre ${first} y ${last}`
   return [
     `Esta edición se compuso con las ${n} citas`,
-    `reunidas${span}.`,
+    opts.author ? `reunidas${span} por ${opts.author}.` : `reunidas${span}.`,
+    '',
+    'Edición personal, de circulación privada,',
+    'sin fines comerciales. Cada cita pertenece',
+    'a su autor y a su fuente.',
     '',
     `Trama · ${now.getFullYear()}`,
   ]

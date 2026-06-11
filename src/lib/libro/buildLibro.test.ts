@@ -85,7 +85,12 @@ describe('buildLibroPdf', () => {
     const bytes = await buildLibroPdf(
       entities,
       quotes,
-      { title: 'Florilegio de prueba', author: 'Daniel', includeMarginalia: true },
+      {
+        title: 'Florilegio de prueba',
+        author: 'Daniel',
+        includeMarginalia: true,
+        onlyFavorites: false,
+      },
       (s) => steps.push(s),
     )
 
@@ -118,6 +123,7 @@ describe('buildLibroPdf', () => {
       title: 'Edición larga',
       author: null,
       includeMarginalia: false,
+      onlyFavorites: false,
     })
     const { PDFDocument } = await import('pdf-lib')
     const reopened = await PDFDocument.load(bytes)
