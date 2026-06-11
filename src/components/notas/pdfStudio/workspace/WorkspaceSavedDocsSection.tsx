@@ -19,6 +19,9 @@ export function WorkspaceSavedDocsSection({
   folders,
   suggestedName,
   onCreateFolder,
+  onRenameFolder,
+  onUpdateFolderColor,
+  onDeleteFolder,
   onSaveCreation,
   onOpenSaved,
   onRenameSaved,
@@ -32,6 +35,9 @@ export function WorkspaceSavedDocsSection({
   /** Prefill del nombre al guardar (el título del documento, si lo tiene). */
   suggestedName?: string
   onCreateFolder: (input: { name: string; color: SavedFolderColor }) => void
+  onRenameFolder: (id: string, name: string) => void
+  onUpdateFolderColor: (id: string, color: SavedFolderColor) => void
+  onDeleteFolder: (id: string) => void
   onSaveCreation: (name: string) => void
   onOpenSaved: (s: SavedDoc) => void
   onRenameSaved: (id: string, name: string) => void
@@ -140,6 +146,13 @@ export function WorkspaceSavedDocsSection({
         onCancelDraft={() => setFolderDraft(null)}
         onChangeDraft={setFolderDraft}
         onCreateFolder={confirmFolder}
+        onRenameFolder={onRenameFolder}
+        onUpdateFolderColor={onUpdateFolderColor}
+        onDeleteFolder={(id) => {
+          if (selectedFolderId === id) setSelectedFolderId(null)
+          onDeleteFolder(id)
+        }}
+        onDropSavedToFolder={onMoveSavedToFolder}
         onSelectFolder={setSelectedFolderId}
         onStartDraft={() => setFolderDraft({ name: '', color: 'blue' })}
       />

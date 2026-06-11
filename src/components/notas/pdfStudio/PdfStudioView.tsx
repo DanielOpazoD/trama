@@ -93,30 +93,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
       return pushHistory(h, value)
     })
   }, [])
-  const {
-    addAssets,
-    addLibraryToDoc,
-    createFolder,
-    downloadLibrary,
-    duplicateSaved,
-    exportTemplatePackage,
-    folders,
-    library,
-    moveSavedToFolder,
-    openTemplate,
-    openSaved,
-    panelCollapsed,
-    removeFromLibrary,
-    removeSaved,
-    renameSaved,
-    saveCreation,
-    saveFilledCopy,
-    saveTemplate,
-    saved,
-    setDraftSanitizer,
-    setPanelCollapsed,
-    userKey,
-  } = usePdfStudioWorkspace({ clearSelection, commit, doc, setHistory })
+  const workspace = usePdfStudioWorkspace({ clearSelection, commit, doc, setHistory })
   const {
     effectiveTemplateMode,
     activeTemplateName,
@@ -129,11 +106,14 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     doc,
     enabled: templatesEnabled,
     openPreview,
-    openSaved,
-    openTemplate,
-    saveTemplate,
+    openSaved: workspace.openSaved,
+    openTemplate: workspace.openTemplate,
+    saveTemplate: workspace.saveTemplate,
   })
-  usePdfStudioDraftSanitizer({ mode: effectiveTemplateMode, setDraftSanitizer })
+  usePdfStudioDraftSanitizer({
+    mode: effectiveTemplateMode,
+    setDraftSanitizer: workspace.setDraftSanitizer,
+  })
   const selectedIndicesRef = useRef(selectedIndices)
   selectedIndicesRef.current = selectedIndices
   const docRef = useRef(doc)
@@ -151,7 +131,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   const { addFiles, busy } = usePdfStudioImport({
     commit,
     doc,
-    onImageAssets: addAssets,
+    onImageAssets: workspace.addAssets,
   })
   const { applyForms, clearForms, formSummary, forms, inspectForms, updateFormValue } =
     usePdfStudioForms(doc, commit)
@@ -170,7 +150,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
       activeTemplateName,
       doc,
       openPreview,
-      saveFilledCopy,
+      saveFilledCopy: workspace.saveFilledCopy,
     })
   const { bulkDelete, bulkDuplicate, bulkRotate, exportMarked, newDoc, nudge, reorder } =
     usePdfStudioPageActions({
@@ -182,7 +162,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
       resetTemplateMode,
       selectedCount,
       selectedIndices,
-      userKey,
+      userKey: workspace.userKey,
     })
   useEffect(() => () => disposePdfStudio(), [])
   usePdfStudioPageKeyboard({
@@ -213,7 +193,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   function startTemplateSave() {
     if (!templatesEnabled || empty) return
     if (!isPdfTemplate(doc)) return setTextPage(0)
-    setPanelCollapsed(false)
+    workspace.setPanelCollapsed(false)
     setSaveTemplateSignal((signal) => signal + 1)
   }
   const total = doc.pages.length
@@ -221,9 +201,9 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   const undoable = canUndo(history)
   const redoable = canRedo(history)
   const hasVisibleSaved = templatesEnabled
-    ? saved.length > 0
-    : saved.some((s) => !isPdfTemplate(s.doc))
-  const showPanel = !empty || library.length > 0 || hasVisibleSaved
+    ? workspace.saved.length > 0
+    : workspace.saved.some((s) => !isPdfTemplate(s.doc))
+  const showPanel = !empty || workspace.library.length > 0 || hasVisibleSaved
   const editBar = !empty && effectiveTemplateMode !== 'fill' && (
     <BulkBar
       context={templatesEnabled ? 'templates' : 'editor'}
@@ -250,19 +230,22 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     <section className="pdf-studio flex min-h-0 flex-1" aria-hidden={textPage !== null}>
       <PdfStudioWorkspacePanelHost
         show={showPanel}
-        library={library}
-        folders={folders}
-        saved={saved}
+        library={workspace.library}
+        folders={workspace.folders}
+        saved={workspace.saved}
         templatesEnabled={templatesEnabled}
         canSave={!empty}
         canSaveTemplate={templatesEnabled && !empty && isPdfTemplate(doc)}
         suggestedSaveName={doc.title}
-        collapsed={panelCollapsed}
-        onAddImage={addLibraryToDoc}
-        onRemoveImage={removeFromLibrary}
-        onDownloadImage={downloadLibrary}
-        onCreateFolder={createFolder}
-        onSaveCreation={saveCreation}
+        collapsed={workspace.panelCollapsed}
+        onAddImage={workspace.addLibraryToDoc}
+        onRemoveImage={workspace.removeFromLibrary}
+        onDownloadImage={workspace.downloadLibrary}
+        onCreateFolder={workspace.createFolder}
+        onRenameFolder={workspace.renameFolder}
+        onUpdateFolderColor={workspace.updateFolderColor}
+        onDeleteFolder={workspace.removeFolder}
+        onSaveCreation={workspace.saveCreation}
         onSaveTemplate={saveTemplateWithMode}
         saveTemplateSignal={saveTemplateSignal}
         onOpenSaved={(saved) => {
@@ -274,13 +257,13 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
           openTemplateWithFillMode(saved)
           setTextPage(0)
         }}
-        onRenameSaved={renameSaved}
-        onMoveSavedToFolder={moveSavedToFolder}
-        onDeleteSaved={removeSaved}
+        onRenameSaved={workspace.renameSaved}
+        onMoveSavedToFolder={workspace.moveSavedToFolder}
+        onDeleteSaved={workspace.removeSaved}
         onDownloadSaved={downloadSaved}
-        onDuplicateSaved={duplicateSaved}
-        onExportTemplatePackage={exportTemplatePackage}
-        onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
+        onDuplicateSaved={workspace.duplicateSaved}
+        onExportTemplatePackage={workspace.exportTemplatePackage}
+        onToggleCollapsed={() => workspace.setPanelCollapsed((c) => !c)}
       />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {topBar}

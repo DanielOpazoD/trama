@@ -1,10 +1,4 @@
-import { type ImageAsset } from '../../../../lib/pdfStudio/model/model'
-import {
-  isSavedTemplate,
-  type SavedDoc,
-  type SavedFolder,
-  type SavedFolderColor,
-} from '../../../../lib/pdfStudio/render/persistence'
+import { isSavedTemplate } from '../../../../lib/pdfStudio/render/persistence'
 import {
   CameraIcon,
   ChevronLeftIcon,
@@ -12,6 +6,7 @@ import {
   FilePdfIcon,
 } from '../../../Icons'
 import { WorkspaceImagesSection } from './WorkspaceImagesSection'
+import type { WorkspacePanelProps } from './WorkspacePanelProps'
 import { WorkspaceSavedDocsSection } from './WorkspaceSavedDocsSection'
 import { WorkspaceTemplatesSection } from './WorkspaceTemplatesSection'
 
@@ -28,6 +23,9 @@ export function WorkspacePanel({
   canSaveTemplate,
   onSaveCreation,
   onCreateFolder,
+  onRenameFolder,
+  onUpdateFolderColor,
+  onDeleteFolder,
   onSaveTemplate,
   saveTemplateSignal = 0,
   suggestedSaveName,
@@ -41,32 +39,7 @@ export function WorkspacePanel({
   onExportTemplatePackage,
   collapsed,
   onToggleCollapsed,
-}: {
-  library: ImageAsset[]
-  onAddImage: (asset: ImageAsset) => void
-  onRemoveImage: (id: string) => void
-  onDownloadImage: (asset: ImageAsset) => void
-  saved: SavedDoc[]
-  folders: SavedFolder[]
-  templatesEnabled?: boolean
-  canSave: boolean
-  canSaveTemplate: boolean
-  onSaveCreation: (name: string) => void
-  onCreateFolder: (input: { name: string; color: SavedFolderColor }) => void
-  onSaveTemplate: (name: string) => void
-  saveTemplateSignal?: number
-  suggestedSaveName?: string
-  onOpenSaved: (s: SavedDoc) => void
-  onUseTemplate: (s: SavedDoc) => void
-  onDuplicateSaved: (s: SavedDoc) => void
-  onRenameSaved: (id: string, name: string) => void
-  onMoveSavedToFolder: (id: string, folderId: string | null) => void
-  onDeleteSaved: (id: string) => void
-  onDownloadSaved: (s: SavedDoc) => void
-  onExportTemplatePackage: (s: SavedDoc, format: 'json' | 'csv') => void
-  collapsed: boolean
-  onToggleCollapsed: () => void
-}) {
+}: WorkspacePanelProps) {
   const templates = saved.filter(isSavedTemplate)
   const creations = saved.filter((s) => !isSavedTemplate(s))
   const savedCount = templatesEnabled ? saved.length : creations.length
@@ -146,6 +119,9 @@ export function WorkspacePanel({
           folders={folders}
           suggestedName={suggestedSaveName}
           onCreateFolder={onCreateFolder}
+          onRenameFolder={onRenameFolder}
+          onUpdateFolderColor={onUpdateFolderColor}
+          onDeleteFolder={onDeleteFolder}
           onSaveCreation={onSaveCreation}
           onOpenSaved={onOpenSaved}
           onRenameSaved={onRenameSaved}

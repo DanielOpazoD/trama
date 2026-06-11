@@ -203,6 +203,22 @@ export async function putSavedFolder(
   }
 }
 
+/** Borra una carpeta guardada. No borra documentos; la limpieza de folderId vive en el hook. */
+export async function deleteSavedFolder(userKey: string, id: string): Promise<void> {
+  try {
+    const db = await openDb()
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(FOLDERS_STORE, 'readwrite')
+      tx.objectStore(FOLDERS_STORE).delete(`${userKey}:${id}`)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+    db.close()
+  } catch {
+    // no-op
+  }
+}
+
 /** Borra una creación guardada de la lista. Best-effort. */
 export async function deleteSavedDoc(userKey: string, id: string): Promise<void> {
   try {

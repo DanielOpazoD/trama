@@ -20,16 +20,19 @@ export function PdfStudioWorkspacePanelHost({
   onDownloadImage,
   onDownloadSaved,
   onCreateFolder,
+  onDeleteFolder,
   onDuplicateSaved,
   onExportTemplatePackage,
   onOpenSaved,
   onRemoveImage,
+  onRenameFolder,
   onRenameSaved,
   onMoveSavedToFolder,
   onSaveCreation,
   onSaveTemplate,
   saveTemplateSignal,
   suggestedSaveName,
+  onUpdateFolderColor,
   onToggleCollapsed,
   onUseTemplate,
 }: {
@@ -46,10 +49,12 @@ export function PdfStudioWorkspacePanelHost({
   onDownloadImage: (asset: ImageAsset) => void
   onDownloadSaved: (saved: SavedDoc) => void
   onCreateFolder: (input: { name: string; color: SavedFolderColor }) => void
+  onDeleteFolder: (id: string) => void
   onDuplicateSaved: (saved: SavedDoc) => void
   onExportTemplatePackage: (saved: SavedDoc, format: 'json' | 'csv') => void
   onOpenSaved: (saved: SavedDoc) => void
   onRemoveImage: (id: string) => void
+  onRenameFolder: (id: string, name: string) => void
   onRenameSaved: (id: string, name: string) => void
   onMoveSavedToFolder: (id: string, folderId: string | null) => void
   onSaveCreation: (name: string) => void
@@ -57,6 +62,7 @@ export function PdfStudioWorkspacePanelHost({
   saveTemplateSignal?: number
   /** Nombre sugerido al guardar una creación (el título del documento). */
   suggestedSaveName?: string
+  onUpdateFolderColor: (id: string, color: SavedFolderColor) => void
   onToggleCollapsed: () => void
   onUseTemplate: (saved: SavedDoc) => void
 }) {
@@ -91,6 +97,9 @@ export function PdfStudioWorkspacePanelHost({
           canSaveTemplate={canSaveTemplate}
           onSaveCreation={onSaveCreation}
           onCreateFolder={onCreateFolder}
+          onRenameFolder={onRenameFolder}
+          onUpdateFolderColor={onUpdateFolderColor}
+          onDeleteFolder={onDeleteFolder}
           onSaveTemplate={onSaveTemplate}
           saveTemplateSignal={saveTemplateSignal}
           suggestedSaveName={suggestedSaveName}
