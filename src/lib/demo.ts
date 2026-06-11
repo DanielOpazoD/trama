@@ -585,9 +585,15 @@ function route(
   }
 
   // ---- recursos manuales con CRUD ----
+  // Banco de pruebas del grafo: con `trama-demo-graph-bench = N` en
+  // localStorage, entidades y relaciones se sirven SINTÉTICAS (N nodos,
+  // ~2.5N aristas con hubs realistas) para ejercitar el renderer WebGL
+  // y el layout en worker a miles de conexiones. Solo lectura del grafo;
+  // el resto de la demo sigue con el store normal.
+  const bench = graphBenchData()
   const collections: Record<string, Row[] | undefined> = {
-    entities: store.entities,
-    relationships: store.relationships,
+    entities: bench?.entities ?? store.entities,
+    relationships: bench?.relationships ?? store.relationships,
     quotes: store.quotes,
     momentos: store.momentos,
     notes: store.notes,
@@ -933,6 +939,58 @@ function route(
       // Mutaciones desconocidas → ok; lecturas desconocidas → lista vacía.
       return method === 'GET' ? [] : { ok: true }
   }
+}
+
+let benchCache: { n: number; entities: Row[]; relationships: Row[] } | null = null
+
+function graphBenchData(): { entities: Row[]; relationships: Row[] } | null {
+  let n = 0
+  try {
+    n = Number(window.localStorage.getItem('trama-demo-graph-bench') ?? 0)
+  } catch {
+    return null
+  }
+  if (!Number.isFinite(n) || n < 10) return null
+  if (benchCache?.n === n) return benchCache
+  const TYPES = ['escritor', 'libro', 'concepto', 'musico', 'cancion', 'persona']
+  const now = new Date().toISOString()
+  // PRNG determinístico (mulberry32): el banco es reproducible.
+  let seed = 0x9e3779b9 ^ n
+  const rand = () => {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+  const entities: Row[] = Array.from({ length: n }, (_, i) => ({
+    id: `bench-${i}`,
+    type: TYPES[i % TYPES.length]!,
+    name: `Nodo ${i + 1}`,
+    origin: { kind: 'manual' },
+    created_at: now,
+    updated_at: now,
+  }))
+  const relationships: Row[] = []
+  const m = Math.floor(n * 2.5)
+  for (let i = 0; i < m; i += 1) {
+    // Preferencia por hubs: cola larga realista (potencia de rand sesga
+    // hacia índices bajos — los primeros nodos acumulan grado).
+    const a = Math.floor(Math.pow(rand(), 2.2) * n)
+    const b = Math.floor(rand() * n)
+    if (a === b) continue
+    relationships.push({
+      id: `bench-r-${i}`,
+      from_id: `bench-${a}`,
+      to_id: `bench-${b}`,
+      type: 'asociado_con',
+      origin: { kind: 'manual' },
+      created_at: now,
+      updated_at: now,
+    })
+  }
+  benchCache = { n, entities, relationships }
+  return benchCache
 }
 
 export async function demoRequest<T>(url: string, init?: RequestInit): Promise<T> {

@@ -32,7 +32,7 @@
        0px donde no aplica. */
     --safe-bottom: env(safe-area-inset-bottom, 0px);
 
-    --paper-50:  255 255 255; /* #ffffff — main background, blanco puro */
+    --paper-50: 255 255 255; /* #ffffff — main background, blanco puro */
     --paper-100: 250 250 250; /* #fafafa — sutil elevación */
     --paper-200: 244 244 245; /* #f4f4f5 — sidebar gris (estilo ChatGPT) */
     --paper-300: 228 228 231; /* #e4e4e7 — borders definidos */
@@ -40,26 +40,26 @@
     /* "ink" scale — del más sutil (100) al más contrastado (800).
        Mapea ~ a la escala "zinc" de Tailwind, alineada a estándares
        modernos de UI. */
-    --ink-50:  244 244 245; /* #f4f4f5 — superficie suave */
+    --ink-50: 244 244 245; /* #f4f4f5 — superficie suave */
     --ink-100: 228 228 231; /* #e4e4e7 — border principal */
     --ink-200: 212 212 216; /* #d4d4d8 — border sutil */
-    --ink-300: 99 99 107;   /* #63636b — muted text. Bajado de 113→99
+    --ink-300: 99 99 107; /* #63636b — muted text. Bajado de 113→99
                                para pasar WCAG AA 4.5:1 en text-micro
                                (10px). Lo viejo daba 4.43; este da ~5.1.
                                Detectado por axe-core en ε5. */
-    --ink-400: 82  82  91;  /* #52525b — secondary text */
-    --ink-500: 63  63  70;  /* #3f3f46 — semi-strong */
-    --ink-600: 39  39  42;  /* #27272a — strong text */
-    --ink-700: 24  24  27;  /* #18181b — body principal (casi negro) */
-    --ink-800: 9   9   11;  /* #09090b — headings */
+    --ink-400: 82 82 91; /* #52525b — secondary text */
+    --ink-500: 63 63 70; /* #3f3f46 — semi-strong */
+    --ink-600: 39 39 42; /* #27272a — strong text */
+    --ink-700: 24 24 27; /* #18181b — body principal (casi negro) */
+    --ink-800: 9 9 11; /* #09090b — headings */
     /* Tinta de OVERLAY (scrims de modal, sombras, badges oscuros): negro
        CONSTANTE en TODOS los temas — a diferencia del resto de la escala ink-*
        (que invierte light↔dark), ink-900 no es "texto", es "oscurecer". Para el
        texto más oscuro usá ink-800 (que sí invierte). */
-    --ink-900: 0   0   0;
+    --ink-900: 0 0 0;
 
     /* Direct-use (non-Tailwind) values for SVG and inline styles */
-    --bg-card: #FFFFFF;
+    --bg-card: #ffffff;
     --dot: #d4d4d8;
     --ink: #18181b;
     --ink-2: #3f3f46;
@@ -67,41 +67,42 @@
 
     /* Surface tokens nuevos — para diferenciar el sidebar del main. */
     --surface-sidebar: #f7f7f8; /* gris muy claro, casi blanco */
-    --surface-topbar:  #ffffff;
-    --border-subtle:   #e5e7eb;
-    --border-strong:   #d4d4d8;
+    --surface-topbar: #ffffff;
+    --border-subtle: #e5e7eb;
+    --border-strong: #d4d4d8;
 
     /* Editorial accent palette — applied with discipline (one main accent
        across the app, two specialized helpers). These are NOT tied to entity
        types; they belong to UI state and meaning. */
-    --accent-primary:      #1f4d6b;  /* deep prussian — quiet but legible */
-    --accent-primary-soft: rgb(31 77 107 / 0.10);
+    --accent-primary: #1f4d6b; /* deep prussian — quiet but legible */
+    --accent-primary-soft: rgb(31 77 107 / 0.1);
     --accent-primary-ring: rgb(31 77 107 / 0.25);
-    --accent-sage:         #4a7c3a;  /* sage moderno — para ✓ confirmaciones */
-    --accent-sage-soft:    rgb(74 124 58 / 0.10);
-    --accent-sage-ring:    rgb(74 124 58 / 0.25);
-    --accent-gold:         #a07900;  /* dorado contrastado para IA / featured */
-    --accent-gold-soft:    rgb(160 121 0 / 0.10);
-    --accent-clay:         #b91c1c;  /* rojo nítido — destructivo */
-    --accent-clay-soft:    rgb(185 28 28 / 0.10);
-    --accent-warn:         #b45309;  /* ámbar — atención / offline / costo */
-    --accent-warn-soft:    rgb(180 83 9 / 0.12);
+    --accent-sage: #4a7c3a; /* sage moderno — para ✓ confirmaciones */
+    --accent-sage-soft: rgb(74 124 58 / 0.1);
+    --accent-sage-ring: rgb(74 124 58 / 0.25);
+    --accent-gold: #a07900; /* dorado contrastado para IA / featured */
+    --graph-label-ink: #3a3429; /* tinta de labels del grafo WebGL */
+    --accent-gold-soft: rgb(160 121 0 / 0.1);
+    --accent-clay: #b91c1c; /* rojo nítido — destructivo */
+    --accent-clay-soft: rgb(185 28 28 / 0.1);
+    --accent-warn: #b45309; /* ámbar — atención / offline / costo */
+    --accent-warn-soft: rgb(180 83 9 / 0.12);
 
     /* Prioridad de recordatorios (Tareas): alta = naranjo, media = amarillo,
        baja = gris claro (neutro, es la prioridad por defecto). */
-    --priority-alta:       #e0641c;  /* naranjo */
-    --priority-alta-soft:  rgb(224 100 28 / 0.14);
-    --priority-media:      #d6a400;  /* amarillo */
+    --priority-alta: #e0641c; /* naranjo */
+    --priority-alta-soft: rgb(224 100 28 / 0.14);
+    --priority-media: #d6a400; /* amarillo */
     --priority-media-soft: rgb(214 164 0 / 0.16);
-    --priority-baja:       #a8a8b2;  /* gris claro */
-    --priority-baja-soft:  rgb(168 168 178 / 0.18);
+    --priority-baja: #a8a8b2; /* gris claro */
+    --priority-baja-soft: rgb(168 168 178 / 0.18);
 
     /* ν1: sombras tintadas — antes box-shadow usaba rgb(0 0 0) puro. Le
        agregamos un componente cálido del accent-gold (~12% del gold sobre
        una base mayormente negra) para que las cards floten en "habitación
        con luz cálida" en vez de "estudio fotográfico". Las dos variables
        cubren los dos pesos canónicos (1px lift y 4px hover). */
-    --card-shadow:       0 1px 2px rgb(70 50 20 / 0.10), 0 0 0 0 transparent;
+    --card-shadow: 0 1px 2px rgb(70 50 20 / 0.1), 0 0 0 0 transparent;
     --card-shadow-hover: 0 4px 14px rgb(70 50 20 / 0.16), 0 1px 3px rgb(70 50 20 / 0.08);
 
     /* Entity-type accent colors — light theme. Used by GraphNode.
@@ -111,31 +112,31 @@
        caían bajo 3:1 vs paper-50 y se "perdían" en cards. Bajados a
        tonos más saturados que sobrepasan 4:1 sin abandonar el registro
        cromático cálido del tema. */
-    --type-persona:     #8E5A2C;
-    --type-escritor:    #7A4E2A;
-    --type-filosofo:    #5C4628;
-    --type-musico:      #8B3B36;
-    --type-banda:       #92433E;
-    --type-director:    #7E4F62;
-    --type-artista:     #8B5E3C;
-    --type-cientifico:  #3F5E4D;
-    --type-libro:       #3D3528;
-    --type-ensayo:      #4C4030;
-    --type-poema:       #6E4F3E;
-    --type-articulo:    #5E5040;
-    --type-cancion:     #8B3B36;
-    --type-podcast:     #7B5648;
-    --type-album:       #5E3B6A;
-    --type-disco:       #503560;
-    --type-pelicula:    #3E5374;
-    --type-serie:       #455D7E;
-    --type-documental:  #3F6172;
-    --type-obra:        #5E682F;
-    --type-concepto:    #8E6B33;
-    --type-idea:        #9C5934;
-    --type-lugar:       #4F664B;
-    --type-evento:      #7C5E3A;
-    --type-default:     #6A5638;
+    --type-persona: #8e5a2c;
+    --type-escritor: #7a4e2a;
+    --type-filosofo: #5c4628;
+    --type-musico: #8b3b36;
+    --type-banda: #92433e;
+    --type-director: #7e4f62;
+    --type-artista: #8b5e3c;
+    --type-cientifico: #3f5e4d;
+    --type-libro: #3d3528;
+    --type-ensayo: #4c4030;
+    --type-poema: #6e4f3e;
+    --type-articulo: #5e5040;
+    --type-cancion: #8b3b36;
+    --type-podcast: #7b5648;
+    --type-album: #5e3b6a;
+    --type-disco: #503560;
+    --type-pelicula: #3e5374;
+    --type-serie: #455d7e;
+    --type-documental: #3f6172;
+    --type-obra: #5e682f;
+    --type-concepto: #8e6b33;
+    --type-idea: #9c5934;
+    --type-lugar: #4f664b;
+    --type-evento: #7c5e3a;
+    --type-default: #6a5638;
 
     /* ─────────────────────────────────────────────────────────────────────
        Vertical rhythm — derivado del lineHeight del body (14px × 1.55 ≈
@@ -153,14 +154,14 @@
        de Tailwind (px-2, gap-4, etc.). El rhythm es vertical solamente.
        ───────────────────────────────────────────────────────────────────── */
     --rhythm-unit: 22px;
-    --space-1:  calc(var(--rhythm-unit) * 0.25);  /*  5.5px  */
-    --space-2:  calc(var(--rhythm-unit) * 0.5);   /* 11px    */
-    --space-3:  calc(var(--rhythm-unit) * 0.75);  /* 16.5px  */
-    --space-4:  var(--rhythm-unit);               /* 22px    */
-    --space-5:  calc(var(--rhythm-unit) * 1.5);   /* 33px    */
-    --space-6:  calc(var(--rhythm-unit) * 2);     /* 44px    */
-    --space-8:  calc(var(--rhythm-unit) * 3);     /* 66px    */
-    --space-12: calc(var(--rhythm-unit) * 4.5);   /* 99px    */
+    --space-1: calc(var(--rhythm-unit) * 0.25); /*  5.5px  */
+    --space-2: calc(var(--rhythm-unit) * 0.5); /* 11px    */
+    --space-3: calc(var(--rhythm-unit) * 0.75); /* 16.5px  */
+    --space-4: var(--rhythm-unit); /* 22px    */
+    --space-5: calc(var(--rhythm-unit) * 1.5); /* 33px    */
+    --space-6: calc(var(--rhythm-unit) * 2); /* 44px    */
+    --space-8: calc(var(--rhythm-unit) * 3); /* 66px    */
+    --space-12: calc(var(--rhythm-unit) * 4.5); /* 99px    */
   }
 
   /* P2-mobile: en pantallas chicas la generosidad editorial (header de vista
@@ -170,34 +171,34 @@
      así el ritmo se siente proporcional, no aplastado. */
   @media (max-width: 640px) {
     :root {
-      --space-6:  calc(var(--rhythm-unit) * 1.5);  /* 44 → 33px */
-      --space-8:  calc(var(--rhythm-unit) * 2);    /* 66 → 44px */
-      --space-12: calc(var(--rhythm-unit) * 3);    /* 99 → 66px */
+      --space-6: calc(var(--rhythm-unit) * 1.5); /* 44 → 33px */
+      --space-8: calc(var(--rhythm-unit) * 2); /* 66 → 44px */
+      --space-12: calc(var(--rhythm-unit) * 3); /* 99 → 66px */
     }
   }
 
   /* Night mode — neutro oscuro moderno, alto contraste */
   html.dark {
-    --paper-50:  9   9   11;   /* #09090b — main background */
-    --paper-100: 24  24  27;   /* #18181b — sutil elevación */
-    --paper-200: 39  39  42;   /* #27272a — cards / sidebar */
-    --paper-300: 63  63  70;   /* #3f3f46 */
+    --paper-50: 9 9 11; /* #09090b — main background */
+    --paper-100: 24 24 27; /* #18181b — sutil elevación */
+    --paper-200: 39 39 42; /* #27272a — cards / sidebar */
+    --paper-300: 63 63 70; /* #3f3f46 */
 
-    --ink-50:  39  39  42;     /* #27272a */
-    --ink-100: 63  63  70;     /* #3f3f46 — border principal */
-    --ink-200: 82  82  91;     /* #52525b */
-    --ink-300: 161 161 170;    /* #a1a1aa — muted text */
-    --ink-400: 212 212 216;    /* #d4d4d8 */
-    --ink-500: 228 228 231;    /* #e4e4e7 */
-    --ink-600: 244 244 245;    /* #f4f4f5 */
-    --ink-700: 250 250 250;    /* #fafafa — body */
-    --ink-800: 255 255 255;    /* #ffffff — headings */
-    --ink-900: 0   0   0;      /* overlay: negro constante (ver :root) */
+    --ink-50: 39 39 42; /* #27272a */
+    --ink-100: 63 63 70; /* #3f3f46 — border principal */
+    --ink-200: 82 82 91; /* #52525b */
+    --ink-300: 161 161 170; /* #a1a1aa — muted text */
+    --ink-400: 212 212 216; /* #d4d4d8 */
+    --ink-500: 228 228 231; /* #e4e4e7 */
+    --ink-600: 244 244 245; /* #f4f4f5 */
+    --ink-700: 250 250 250; /* #fafafa — body */
+    --ink-800: 255 255 255; /* #ffffff — headings */
+    --ink-900: 0 0 0; /* overlay: negro constante (ver :root) */
 
     --surface-sidebar: #18181b;
-    --surface-topbar:  #09090b;
-    --border-subtle:   #27272a;
-    --border-strong:   #3f3f46;
+    --surface-topbar: #09090b;
+    --border-subtle: #27272a;
+    --border-strong: #3f3f46;
 
     --bg-card: #2a2520;
     --dot: #4a3f37;
@@ -207,53 +208,54 @@
 
     /* Editorial accents — dark theme. Same hues raised so they sit on the
        coffee paper instead of disappearing into it. */
-    --accent-primary:      #8db8d6;
+    --accent-primary: #8db8d6;
     --accent-primary-soft: rgb(141 184 214 / 0.12);
     --accent-primary-ring: rgb(141 184 214 / 0.25);
-    --accent-sage:         #a3bd96;
-    --accent-sage-soft:    rgb(163 189 150 / 0.14);
-    --accent-sage-ring:    rgb(163 189 150 / 0.25);
-    --accent-gold:         #c9a763;
-    --accent-gold-soft:    rgb(201 167 99 / 0.14);
-    --accent-clay:         #d18667;
-    --accent-clay-soft:    rgb(209 134 103 / 0.16);
-    --accent-warn:         #e0a55c;
-    --accent-warn-soft:    rgb(224 165 92 / 0.16);
+    --accent-sage: #a3bd96;
+    --accent-sage-soft: rgb(163 189 150 / 0.14);
+    --accent-sage-ring: rgb(163 189 150 / 0.25);
+    --accent-gold: #c9a763;
+    --graph-label-ink: #d6d2c8;
+    --accent-gold-soft: rgb(201 167 99 / 0.14);
+    --accent-clay: #d18667;
+    --accent-clay-soft: rgb(209 134 103 / 0.16);
+    --accent-warn: #e0a55c;
+    --accent-warn-soft: rgb(224 165 92 / 0.16);
 
     /* ν1: sombras dark — en oscuro las cards no flotan sobre paper claro
        sino sobre noche; las sombras se vuelven sutiles pero conservan el
        tinte cálido (importante: NO usar pure black que se traga el contraste,
        ni pure ink-900 que se ve "techy"). */
-    --card-shadow:       0 1px 2px rgb(0 0 0 / 0.30), 0 0 0 0 transparent;
-    --card-shadow-hover: 0 4px 14px rgb(0 0 0 / 0.45), 0 1px 3px rgb(60 40 10 / 0.20);
+    --card-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 0 0 0 transparent;
+    --card-shadow-hover: 0 4px 14px rgb(0 0 0 / 0.45), 0 1px 3px rgb(60 40 10 / 0.2);
 
     /* Entity-type accents — dark theme. Same hue, raised lightness so they
        sit comfortably on the coffee-toned paper. */
-    --type-persona:     #c79568;
-    --type-escritor:    #c19062;
-    --type-filosofo:    #a98864;
-    --type-musico:      #d28a86;
-    --type-banda:       #d68b85;
-    --type-director:    #bb8da0;
-    --type-artista:     #c89b75;
-    --type-cientifico:  #88b59c;
-    --type-libro:       #b5a187;
-    --type-ensayo:      #b8a48a;
-    --type-poema:       #b8907d;
-    --type-articulo:    #aa9b87;
-    --type-cancion:     #d28a86;
-    --type-podcast:     #c79b88;
-    --type-album:       #a98ab8;
-    --type-disco:       #9d80a8;
-    --type-pelicula:    #8aa3c2;
-    --type-serie:       #92add0;
-    --type-documental:  #88b0c2;
-    --type-obra:        #aab87f;
-    --type-concepto:    #ccae72;
-    --type-idea:        #d4936c;
-    --type-lugar:       #9ab394;
-    --type-evento:      #bb9c75;
-    --type-default:     #b8a47e;
+    --type-persona: #c79568;
+    --type-escritor: #c19062;
+    --type-filosofo: #a98864;
+    --type-musico: #d28a86;
+    --type-banda: #d68b85;
+    --type-director: #bb8da0;
+    --type-artista: #c89b75;
+    --type-cientifico: #88b59c;
+    --type-libro: #b5a187;
+    --type-ensayo: #b8a48a;
+    --type-poema: #b8907d;
+    --type-articulo: #aa9b87;
+    --type-cancion: #d28a86;
+    --type-podcast: #c79b88;
+    --type-album: #a98ab8;
+    --type-disco: #9d80a8;
+    --type-pelicula: #8aa3c2;
+    --type-serie: #92add0;
+    --type-documental: #88b0c2;
+    --type-obra: #aab87f;
+    --type-concepto: #ccae72;
+    --type-idea: #d4936c;
+    --type-lugar: #9ab394;
+    --type-evento: #bb9c75;
+    --type-default: #b8a47e;
   }
 
   /* ν3: Modo Vela — opt-in dark cálido. La estructura es "dark" + estos
@@ -264,81 +266,82 @@
        - accents: gold y clay vivos, primary y sage atenuados
      Para uso nocturno con LED bajo, la pantalla pesa MENOS para los ojos. */
   html.dark.theme-vela {
-    --paper-50:  26  20  14;   /* #1A140E — café profundo casi negro */
-    --paper-100: 38  29  20;   /* #261D14 — elevación tibia */
-    --paper-200: 54  41  29;   /* #36291D — cards */
-    --paper-300: 80  62  44;   /* #503E2C */
+    --paper-50: 26 20 14; /* #1A140E — café profundo casi negro */
+    --paper-100: 38 29 20; /* #261D14 — elevación tibia */
+    --paper-200: 54 41 29; /* #36291D — cards */
+    --paper-300: 80 62 44; /* #503E2C */
 
-    --ink-50:  54  41  29;     /* matches paper-200 */
-    --ink-100: 80  62  44;     /* border principal */
-    --ink-200: 108 87  62;     /* #6C573E */
-    --ink-300: 178 159 130;    /* #B29F82 — muted */
-    --ink-400: 211 195 168;    /* #D3C3A8 */
-    --ink-500: 224 211 187;    /* #E0D3BB */
-    --ink-600: 236 224 203;    /* #ECE0CB */
-    --ink-700: 247 238 220;    /* #F7EEDC — body */
-    --ink-800: 255 248 230;    /* #FFF8E6 — headings */
-    --ink-900: 0   0   0;      /* overlay: negro constante (ver :root) */
+    --ink-50: 54 41 29; /* matches paper-200 */
+    --ink-100: 80 62 44; /* border principal */
+    --ink-200: 108 87 62; /* #6C573E */
+    --ink-300: 178 159 130; /* #B29F82 — muted */
+    --ink-400: 211 195 168; /* #D3C3A8 */
+    --ink-500: 224 211 187; /* #E0D3BB */
+    --ink-600: 236 224 203; /* #ECE0CB */
+    --ink-700: 247 238 220; /* #F7EEDC — body */
+    --ink-800: 255 248 230; /* #FFF8E6 — headings */
+    --ink-900: 0 0 0; /* overlay: negro constante (ver :root) */
 
-    --surface-sidebar: #1F1810;
-    --surface-topbar:  #1A140E;
-    --border-subtle:   #36291D;
-    --border-strong:   #503E2C;
+    --surface-sidebar: #1f1810;
+    --surface-topbar: #1a140e;
+    --border-subtle: #36291d;
+    --border-strong: #503e2c;
 
-    --bg-card: #2A1F15;
-    --dot: #503E2C;
-    --ink: #F7EEDC;
-    --ink-2: #D3C3A8;
-    --ink-dim: #B29F82;
+    --bg-card: #2a1f15;
+    --dot: #503e2c;
+    --ink: #f7eedc;
+    --ink-2: #d3c3a8;
+    --ink-dim: #b29f82;
 
     /* Accents — gold y clay protagonistas; primary y sage atenuados
        porque el tema completo respira ámbar. */
-    --accent-primary:      #b8a070;   /* whisky atenuado, no azul */
+    --accent-primary: #b8a070; /* whisky atenuado, no azul */
     --accent-primary-soft: rgb(184 160 112 / 0.14);
     --accent-primary-ring: rgb(184 160 112 / 0.28);
-    --accent-sage:         #8a9b6f;
-    --accent-sage-soft:    rgb(138 155 111 / 0.14);
-    --accent-sage-ring:    rgb(138 155 111 / 0.28);
-    --accent-gold:         #e0b863;
-    --accent-gold-soft:    rgb(224 184 99 / 0.16);
-    --accent-clay:         #d8836c;
-    --accent-clay-soft:    rgb(216 131 108 / 0.16);
-    --accent-warn:         #d99a4e;
-    --accent-warn-soft:    rgb(217 154 78 / 0.16);
+    --accent-sage: #8a9b6f;
+    --accent-sage-soft: rgb(138 155 111 / 0.14);
+    --accent-sage-ring: rgb(138 155 111 / 0.28);
+    --accent-gold: #e0b863;
+    --graph-label-ink: #e4d8bd;
+    --accent-gold-soft: rgb(224 184 99 / 0.16);
+    --accent-clay: #d8836c;
+    --accent-clay-soft: rgb(216 131 108 / 0.16);
+    --accent-warn: #d99a4e;
+    --accent-warn-soft: rgb(217 154 78 / 0.16);
 
     /* Sombras: más profundas porque el papel es muy oscuro y necesitan
        contraste para dar lift. Tinte cobre evidente. */
-    --card-shadow:       0 1px 2px rgb(0 0 0 / 0.45), 0 0 0 0 transparent;
-    --card-shadow-hover: 0 6px 18px rgb(0 0 0 / 0.55), 0 1px 3px rgb(80 50 20 / 0.30);
+    --card-shadow: 0 1px 2px rgb(0 0 0 / 0.45), 0 0 0 0 transparent;
+    --card-shadow-hover: 0 6px 18px rgb(0 0 0 / 0.55), 0 1px 3px rgb(80 50 20 / 0.3);
 
     /* Entity-type accents reajustados para sentarse bien sobre sepia
        — todos hacia los cálidos amarillos/cobres, sin azules ni verdes
        fríos. */
-    --type-persona:     #d6a570;
-    --type-escritor:    #cda06a;
-    --type-filosofo:    #ba8e60;
-    --type-musico:      #de8c7d;
-    --type-banda:       #e08e7c;
-    --type-director:    #c89094;
-    --type-artista:     #d6a47b;
-    --type-cientifico:  #a8b58e;
-    --type-libro:       #c2ad8c;
-    --type-ensayo:      #c4b08e;
-    --type-poema:       #c89880;
-    --type-articulo:    #b8a890;
-    --type-cancion:     #de8c7d;
-    --type-podcast:     #d4a285;
-    --type-album:       #c0a2c8;
-    --type-disco:       #b294b8;
-    --type-pelicula:    #b5b0a8;
-    --type-serie:       #beb6a4;
-    --type-documental:  #b8b09c;
-    --type-obra:        #bfc090;
-    --type-concepto:    #dab57a;
-    --type-idea:        #e29c70;
-    --type-lugar:       #b3c0a0;
-    --type-evento:      #c8a778;
-    --type-default:     #c5ae84;
+    --type-persona: #d6a570;
+    --type-escritor: #cda06a;
+    --type-filosofo: #ba8e60;
+    --type-musico: #de8c7d;
+    --type-banda: #e08e7c;
+    --type-director: #c89094;
+    --type-artista: #d6a47b;
+    --type-cientifico: #a8b58e;
+    --type-libro: #c2ad8c;
+    --type-ensayo: #c4b08e;
+    --type-poema: #c89880;
+    --type-articulo: #b8a890;
+    --type-cancion: #de8c7d;
+    --type-podcast: #d4a285;
+    --type-album: #c0a2c8;
+    --type-disco: #b294b8;
+    --type-pelicula: #b5b0a8;
+    --type-serie: #beb6a4;
+    --type-documental: #b8b09c;
+    --type-obra: #bfc090;
+    --type-concepto: #dab57a;
+    --type-idea: #e29c70;
+    --type-lugar: #b3c0a0;
+    --type-evento: #c8a778;
+    --type-default: #c5ae84;
   }
 
   /*
@@ -391,7 +394,9 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 220ms ease, color 220ms ease;
+    transition:
+      background-color 220ms ease,
+      color 220ms ease;
   }
 
   /* Spectral serif para títulos editoriales — habilita estilísticas
@@ -504,8 +509,12 @@
 
   /* Sidebar / topbar usan el surface-* en lugar de paper-* para que se
      distingan del main content visualmente sin depender de la opacity. */
-  .surface-sidebar { background-color: var(--surface-sidebar); }
-  .surface-topbar  { background-color: var(--surface-topbar); }
+  .surface-sidebar {
+    background-color: var(--surface-sidebar);
+  }
+  .surface-topbar {
+    background-color: var(--surface-topbar);
+  }
 
   /* Focus visible global — keyboard nav debe ser obvio en cualquier
      elemento focusable. Usa outline (no box-shadow) para que no se
@@ -578,8 +587,13 @@ html.dark .paper-grain::before {
 
 /* Editorial ornament colors used by OrnamentBreak / EndMark. Defaults to
    the soft ink — sits like a printed mark without competing with text. */
-.ornament { color: rgb(var(--ink-300)); }
-.ornament-accent { color: var(--accent-primary); opacity: 0.7; }
+.ornament {
+  color: rgb(var(--ink-300));
+}
+.ornament-accent {
+  color: var(--accent-primary);
+  opacity: 0.7;
+}
 
 @layer utilities {
   /* En el editor de PDF (sección + sus modales, marcados con `.pdf-studio`) el
@@ -633,26 +647,48 @@ html.dark .paper-grain::before {
   }
 
   @keyframes node-spring-in {
-    0%   { opacity: 0; transform: scale(0.4); }
-    60%  { opacity: 1; transform: scale(1.08); }
-    100% { opacity: 1; transform: scale(1); }
+    0% {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
   .animate-node-in {
     animation: node-spring-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
 
   @keyframes edge-fade-in {
-    from { stroke-opacity: 0; }
-    to   { stroke-opacity: var(--final-opacity, 0.4); }
+    from {
+      stroke-opacity: 0;
+    }
+    to {
+      stroke-opacity: var(--final-opacity, 0.4);
+    }
   }
   .animate-edge-in {
     animation: edge-fade-in 600ms ease-out 200ms both;
   }
 
   @keyframes slide-in-right {
-    0%   { opacity: 0; transform: translateX(40px) scale(0.97); }
-    60%  { opacity: 1; transform: translateX(-4px) scale(1.005); }
-    100% { opacity: 1; transform: translateX(0) scale(1); }
+    0% {
+      opacity: 0;
+      transform: translateX(40px) scale(0.97);
+    }
+    60% {
+      opacity: 1;
+      transform: translateX(-4px) scale(1.005);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
   }
   .animate-slide-in-right {
     animation: slide-in-right 380ms cubic-bezier(0.34, 1.4, 0.5, 1) both;
@@ -661,9 +697,18 @@ html.dark .paper-grain::before {
   /* Mobile bottom-sheet entrance. Slides up from below the viewport with a
      small overshoot so it lands with a touch of weight. */
   @keyframes slide-up {
-    0%   { opacity: 0; transform: translateY(100%); }
-    60%  { opacity: 1; transform: translateY(-6px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(-6px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   .animate-slide-up {
     animation: slide-up 360ms cubic-bezier(0.34, 1.3, 0.5, 1) both;
@@ -671,8 +716,14 @@ html.dark .paper-grain::before {
 
   /* Soft scale-in for cards / lists arriving on screen */
   @keyframes fade-up {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   .animate-fade-up {
     animation: fade-up 320ms cubic-bezier(0.25, 1, 0.5, 1) both;
@@ -687,8 +738,15 @@ html.dark .paper-grain::before {
 
      Reduce motion lo desactiva — el grafo se queda quieto. */
   @keyframes node-breathe {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%      { opacity: 0.96; transform: scale(1.005); }
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.96;
+      transform: scale(1.005);
+    }
   }
   .animate-node-breathe {
     animation: node-breathe 4.2s ease-in-out infinite;
@@ -697,16 +755,30 @@ html.dark .paper-grain::before {
     transform-box: fill-box;
   }
   @media (prefers-reduced-motion: reduce) {
-    .animate-node-breathe { animation: none; }
+    .animate-node-breathe {
+      animation: none;
+    }
   }
 
   /* Distinctive "constellation" arrival for AI proposals — a brief sky-blue
      glow rises and fades, while the content scales in from below. Visible
      enough to feel like "the AI just answered" without being noisy. */
   @keyframes ai-arrive {
-    0%   { opacity: 0; transform: translateY(10px) scale(0.985); box-shadow: 0 0 0 0 rgba(124, 167, 199, 0); }
-    35%  { opacity: 1; transform: translateY(0) scale(1); box-shadow: 0 0 32px 4px rgba(124, 167, 199, 0.28); }
-    100% { opacity: 1; transform: translateY(0) scale(1); box-shadow: 0 0 0 0 rgba(124, 167, 199, 0); }
+    0% {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+      box-shadow: 0 0 0 0 rgba(124, 167, 199, 0);
+    }
+    35% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      box-shadow: 0 0 32px 4px rgba(124, 167, 199, 0.28);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      box-shadow: 0 0 0 0 rgba(124, 167, 199, 0);
+    }
   }
   .animate-ai-arrive {
     animation: ai-arrive 900ms cubic-bezier(0.2, 0.85, 0.4, 1) both;
@@ -740,8 +812,12 @@ html.dark .paper-grain::before {
      no sabemos el total. Va de left:-33% a left:100% loop. Más sutil
      que un spinner. */
   @keyframes progress-indeterminate {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(400%); }
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(400%);
+    }
   }
   .progress-indeterminate {
     animation: progress-indeterminate 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
@@ -759,9 +835,18 @@ html.dark .paper-grain::before {
      diferencia entre "se grabó" silencioso y "se grabó" satisfactorio.
      Respeta prefers-reduced-motion. */
   @keyframes check-pop {
-    0%   { opacity: 0; transform: scale(0.4); }
-    60%  { opacity: 1; transform: scale(1.15); }
-    100% { opacity: 1; transform: scale(1); }
+    0% {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.15);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
   .animate-check-pop {
     animation: check-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -771,8 +856,14 @@ html.dark .paper-grain::before {
      expande y desaparece. Una sola vez, ~600ms. Refuerza la sensación
      de "se grabó" sin ser pulso continuo. */
   @keyframes saved-ripple {
-    0%   { opacity: 0.55; transform: scale(0.6); }
-    100% { opacity: 0;    transform: scale(2.4); }
+    0% {
+      opacity: 0.55;
+      transform: scale(0.6);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(2.4);
+    }
   }
   .animate-saved-ripple {
     animation: saved-ripple 620ms ease-out both;
@@ -787,8 +878,15 @@ html.dark .paper-grain::before {
 
   /* Pulse halo for selected nodes — opacity only (r animation is finicky cross-browser) */
   @keyframes halo-pulse {
-    0%, 100% { opacity: 0.55; transform: scale(1); }
-    50%      { opacity: 0.20; transform: scale(1.18); }
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.2;
+      transform: scale(1.18);
+    }
   }
   .animate-halo-pulse {
     animation: halo-pulse 2.6s ease-in-out infinite;
@@ -798,7 +896,9 @@ html.dark .paper-grain::before {
 
   /* Subtle dash flow on highlighted edges */
   @keyframes dash-flow {
-    to { stroke-dashoffset: -20; }
+    to {
+      stroke-dashoffset: -20;
+    }
   }
   .animate-dash-flow {
     stroke-dasharray: 5 4;
@@ -807,16 +907,28 @@ html.dark .paper-grain::before {
 
   /* Trama monogram weaves itself in: crossbar draws, then vertical, then threads */
   @keyframes mark-draw-crossbar {
-    from { stroke-dashoffset: 14; }
-    to   { stroke-dashoffset: 0; }
+    from {
+      stroke-dashoffset: 14;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
   }
   @keyframes mark-draw-vertical {
-    from { stroke-dashoffset: 14; }
-    to   { stroke-dashoffset: 0; }
+    from {
+      stroke-dashoffset: 14;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
   }
   @keyframes mark-thread-in {
-    from { opacity: 0; }
-    to   { opacity: 0.55; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 0.55;
+    }
   }
   .mark-crossbar {
     stroke-dasharray: 14;
@@ -833,8 +945,16 @@ html.dark .paper-grain::before {
 
   /* Splash overlay fades out after the wordmark draws */
   @keyframes splash-out {
-    0%, 70% { opacity: 1; pointer-events: auto; }
-    100%    { opacity: 0; pointer-events: none; visibility: hidden; }
+    0%,
+    70% {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    100% {
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+    }
   }
   .animate-splash-out {
     animation: splash-out 1.8s ease-out forwards;
@@ -854,16 +974,34 @@ html.dark .paper-grain::before {
      porque el splash usa fade-out con scale, así que se solapan
      suavemente en lugar de cortar bruscamente. */
   @keyframes shell-rise {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
   @keyframes shell-sidebar-in {
-    from { opacity: 0; transform: translateX(-8px); }
-    to   { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translateX(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
   @keyframes shell-topbar-in {
-    from { opacity: 0; transform: translateY(-4px); }
-    to   { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
   .animate-shell-sidebar {
     animation: shell-sidebar-in 500ms cubic-bezier(0.25, 1, 0.5, 1) 0.95s both;
@@ -878,12 +1016,24 @@ html.dark .paper-grain::before {
   /* Slow ambient drift for graph nodes — each node uses its own delay so the
      ensemble breathes rather than oscillating in unison. */
   @keyframes node-drift {
-    0%   { transform: translate(0px, 0px); }
-    20%  { transform: translate(1.5px, -1.2px); }
-    40%  { transform: translate(2.4px, 0.6px); }
-    60%  { transform: translate(0.8px, 2px); }
-    80%  { transform: translate(-1.8px, 0.4px); }
-    100% { transform: translate(0px, 0px); }
+    0% {
+      transform: translate(0px, 0px);
+    }
+    20% {
+      transform: translate(1.5px, -1.2px);
+    }
+    40% {
+      transform: translate(2.4px, 0.6px);
+    }
+    60% {
+      transform: translate(0.8px, 2px);
+    }
+    80% {
+      transform: translate(-1.8px, 0.4px);
+    }
+    100% {
+      transform: translate(0px, 0px);
+    }
   }
   .animate-node-drift {
     animation: node-drift 14s ease-in-out infinite;
@@ -892,10 +1042,16 @@ html.dark .paper-grain::before {
   }
 
   @keyframes view-fade {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
-  .animate-view-fade { animation: view-fade 180ms ease-out; }
+  .animate-view-fade {
+    animation: view-fade 180ms ease-out;
+  }
 }
 
 @layer components {
@@ -917,7 +1073,9 @@ html.dark .paper-grain::before {
       hover:bg-ink-600 active:scale-[0.97]
       transition-all duration-150 ease-out
       disabled:bg-ink-200 disabled:cursor-not-allowed disabled:active:scale-100;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 0 transparent;
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.08),
+      0 0 0 0 transparent;
   }
   .btn-ink:hover:not(:disabled) {
     box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
@@ -1098,8 +1256,12 @@ html.dark .paper-grain::before {
     }
   }
   @keyframes shimmer {
-    0%   { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
   }
 
   /* G3: .pressable + .focus-ring removidos — definidos como utilities pero
@@ -1246,19 +1408,36 @@ html.dark .paper-grain::before {
 
   /* Shake para PIN incorrecto */
   @keyframes pin-pad-shake {
-    0%, 100% { transform: translateX(0); }
-    10%      { transform: translateX(-6px); }
-    30%      { transform: translateX(5px); }
-    50%      { transform: translateX(-4px); }
-    70%      { transform: translateX(3px); }
-    90%      { transform: translateX(-2px); }
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    10% {
+      transform: translateX(-6px);
+    }
+    30% {
+      transform: translateX(5px);
+    }
+    50% {
+      transform: translateX(-4px);
+    }
+    70% {
+      transform: translateX(3px);
+    }
+    90% {
+      transform: translateX(-2px);
+    }
   }
   .pin-pad-shake {
     animation: pin-pad-shake 500ms ease-out;
   }
   @media (prefers-reduced-motion: reduce) {
-    .pin-pad-shake { animation: none; }
-    .pin-pad-dot[data-filled] { transform: none; }
+    .pin-pad-shake {
+      animation: none;
+    }
+    .pin-pad-dot[data-filled] {
+      transform: none;
+    }
   }
 
   /* Botón circular de número */
@@ -1359,15 +1538,23 @@ html.dark .paper-grain::before {
      0.9s ease-in-out. Reduce motion lo apaga (los puntos quedan visibles
      pero estáticos a 0.6). */
   @keyframes dots-pulse {
-    0%, 100% { opacity: 0.2; }
-    50%      { opacity: 1; }
+    0%,
+    100% {
+      opacity: 0.2;
+    }
+    50% {
+      opacity: 1;
+    }
   }
   .dots-dot {
     display: inline-block;
     animation: dots-pulse 0.9s ease-in-out infinite;
   }
   @media (prefers-reduced-motion: reduce) {
-    .dots-dot { animation: none; opacity: 0.6; }
+    .dots-dot {
+      animation: none;
+      opacity: 0.6;
+    }
   }
 
   /* ζ10: marco editorial para el InlineProposal. Cuatro corner brackets
@@ -1515,7 +1702,9 @@ html.dark .paper-grain::before {
   }
   .trama-mark-interactive svg path:nth-child(3),
   .trama-mark-interactive svg path:nth-child(4) {
-    transition: stroke-opacity 600ms ease, transform 600ms ease;
+    transition:
+      stroke-opacity 600ms ease,
+      transform 600ms ease;
     transform-box: fill-box;
     transform-origin: center;
   }
@@ -1545,24 +1734,41 @@ html.dark .paper-grain::before {
      ───────────────────────────────────────────────────────────────────── */
   /* G3: solo .stack-2 y .stack-3 están en uso. El resto se agrega cuando
      se necesite — el sistema de --space-N sigue documentado en design.md. */
-  .stack-2 > * + * { margin-top: var(--space-2); }
-  .stack-3 > * + * { margin-top: var(--space-3); }
+  .stack-2 > * + * {
+    margin-top: var(--space-2);
+  }
+  .stack-3 > * + * {
+    margin-top: var(--space-3);
+  }
 
   /* G3: solo definimos los steps en uso (4, 5, 8). Si necesitás 3 o 6
      o cualquier otro step del sistema --space-N, agregalo cuando lo uses. */
-  .pad-block-4 { padding-block: var(--space-4); }
-  .pad-block-5 { padding-block: var(--space-5); }
-  .pad-block-8 { padding-block: var(--space-8); }
+  .pad-block-4 {
+    padding-block: var(--space-4);
+  }
+  .pad-block-5 {
+    padding-block: var(--space-5);
+  }
+  .pad-block-8 {
+    padding-block: var(--space-8);
+  }
 
   /* Acciones de fila reveladas al hover en escritorio, pero SIEMPRE visibles en
      dispositivos sin hover (táctil) — donde el patrón "aparece al pasar el
      mouse" dejaría los controles inalcanzables. El ancestro con `.group` define
      el hover. */
-  .hover-actions { opacity: 1; transition: opacity 150ms ease; }
+  .hover-actions {
+    opacity: 1;
+    transition: opacity 150ms ease;
+  }
   @media (hover: hover) {
-    .hover-actions { opacity: 0; }
+    .hover-actions {
+      opacity: 0;
+    }
     .group:hover .hover-actions,
-    .hover-actions:focus-within { opacity: 1; }
+    .hover-actions:focus-within {
+      opacity: 1;
+    }
   }
 }
 
@@ -1580,15 +1786,15 @@ html.dark .paper-grain::before {
   :root,
   html.dark,
   html.dark.theme-vela {
-    --paper-50:  255 255 255;
+    --paper-50: 255 255 255;
     --paper-100: 250 250 250;
-    --ink-300:   100 100 100;
-    --ink-400:    80  80  80;
-    --ink-500:    60  60  60;
-    --ink-600:    40  40  40;
-    --ink-700:    20  20  20;
-    --ink-800:     0   0   0;
-    --ink-900:     0   0   0;
+    --ink-300: 100 100 100;
+    --ink-400: 80 80 80;
+    --ink-500: 60 60 60;
+    --ink-600: 40 40 40;
+    --ink-700: 20 20 20;
+    --ink-800: 0 0 0;
+    --ink-900: 0 0 0;
   }
 
   html,
@@ -1599,13 +1805,13 @@ html.dark .paper-grain::before {
 
   /* Ocultar todo lo que es chrome o interactivo. Los selectores cubren
      componentes que el usuario no necesita ver en papel. */
-  nav[aria-label="Navegación principal"],
+  nav[aria-label='Navegación principal'],
   .surface-topbar,
   .surface-sidebar,
   [data-print-hide],
   button,
-  [role="dialog"],
-  [role="alertdialog"] {
+  [role='dialog'],
+  [role='alertdialog'] {
     display: none !important;
   }
 
@@ -1626,25 +1832,33 @@ html.dark .paper-grain::before {
     font-size: 11pt;
     line-height: 1.65;
   }
-  h1, h2, h3, h4,
-  blockquote, .quote-block {
+  h1,
+  h2,
+  h3,
+  h4,
+  blockquote,
+  .quote-block {
     page-break-inside: avoid;
     break-inside: avoid;
   }
-  h2, h3, h4 {
+  h2,
+  h3,
+  h4 {
     page-break-after: avoid;
     break-after: avoid;
   }
 
   /* Mostrar URLs después de los links así no se pierden al imprimir. */
-  a[href]:not([href^="#"]):after {
+  a[href]:not([href^='#']):after {
     content: ' (' attr(href) ')';
     font-size: 9pt;
     color: #555;
   }
 
   /* Cancelar animaciones y backdrop-blur — innecesarios en papel. */
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation: none !important;
     transition: none !important;
     backdrop-filter: none !important;

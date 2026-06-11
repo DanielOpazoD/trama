@@ -33,6 +33,10 @@ const sigmaMocks = vi.hoisted(() => {
       const found = this.edges.get(edge)
       return found ? [found.source, found.target] : ['', '']
     }
+
+    areNeighbors(a: string, b: string) {
+      return this.hasEdge(a, b) || this.hasEdge(b, a)
+    }
   }
 
   class MockSigma {
@@ -44,6 +48,20 @@ const sigmaMocks = vi.hoisted(() => {
     handlers = new Map<string, (event?: unknown) => void>()
     refresh = vi.fn()
     kill = vi.fn()
+    camera = { animate: vi.fn() }
+
+    getGraph() {
+      return this.graph
+    }
+
+    getCamera() {
+      return this.camera
+    }
+
+    getNodeDisplayData(id: string) {
+      const data = this.graph.nodes.get(id)
+      return data ? { x: data.x as number, y: data.y as number } : undefined
+    }
 
     constructor(
       graph: MockGraph,
@@ -203,8 +221,8 @@ describe('<GraphCanvasSigma />', () => {
       data: Record<string, unknown>,
     ) => Record<string, unknown>
     expect(nodeReducer('a', { size: 6, color: '#aaa' })).toMatchObject({
-      size: 9.600000000000001,
-      color: '#1A1812',
+      size: 9,
+      highlighted: true,
       zIndex: 2,
     })
 
@@ -238,7 +256,10 @@ describe('<GraphCanvasSigma />', () => {
       />,
     )
 
-    expect(sigmaMocks.MockSigma.instances[0]!.config.renderLabels).toBe(false)
+    // LOD: labels siempre activos; sobre el umbral visual sube el tamaño
+    // renderizado mínimo para rotular (los nombres aparecen al acercarse).
+    expect(sigmaMocks.MockSigma.instances[0]!.config.renderLabels).toBe(true)
+    expect(sigmaMocks.MockSigma.instances[0]!.config.labelRenderedSizeThreshold).toBe(9)
   })
 
   it('reconstruye Sigma cuando cambian posiciones con la misma cantidad de nodos', () => {
