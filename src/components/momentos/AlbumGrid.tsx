@@ -1,15 +1,15 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useLocalStorageState } from '../../hooks/useLocalStorageState'
 import type { Entity, Momento } from '../../types'
 import { EmptyMessage } from '../EmptyMessage'
-import { TrashIcon } from '../Icons'
+import { PencilIcon, TrashIcon } from '../Icons'
 import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 import { formatMonthLabel, getMomentoPhotoItems, groupByMonth } from './helpers'
+import { MomentoEditModal } from './MomentoEditModal'
 
 /**
- * Vista alternativa de Momentos: grid de fotos agrupado por mes-año
- * (o por año-y-mes en modo cronología). Toggle de tamaño de tile
- * (miniaturas / pequeño / mediano) y de modo (mensual / cronológico).
+ * Vista alternativa de Momentos: grid de fotos en cronología año → mes.
+ * El único ajuste visible es el tamaño de tile, guardado como preferencia.
  *
  * Solo se usa cuando filtras por kind=foto y eliges "Álbum" en el
  * toggle global. Filtra implícitamente cualquier no-foto que se cuele
@@ -17,12 +17,15 @@ import { formatMonthLabel, getMomentoPhotoItems, groupByMonth } from './helpers'
  */
 
 type TileSize = 'small' | 'medium' | 'large'
-type ViewMode = 'monthly' | 'yearly'
 
 const SIZE_STORAGE_KEY = 'trama:album-size'
-const MODE_STORAGE_KEY = 'trama:album-mode'
 const TILE_SIZES: readonly TileSize[] = ['small', 'medium', 'large']
-const VIEW_MODES: readonly ViewMode[] = ['monthly', 'yearly']
+
+const SIZE_LABELS: Record<TileSize, string> = {
+  small: 'mini',
+  medium: 'medio',
+  large: 'grande',
+}
 
 const SIZE_GRID_CLASS: Record<TileSize, string> = {
   // ψ-photos-rich: 3 tamaños de tile. Pequeño = miniaturas tipo grilla
@@ -49,16 +52,8 @@ export function AlbumGrid({
     'medium',
     (raw): raw is TileSize => TILE_SIZES.includes(raw as TileSize),
   )
-  const [mode, setMode] = useLocalStorageState<ViewMode>(
-    MODE_STORAGE_KEY,
-    'monthly',
-    (raw): raw is ViewMode => VIEW_MODES.includes(raw as ViewMode),
-  )
-
-  // Para modo mensual: cada grupo es un mes-año. Para modo cronológico:
-  // cada grupo es un AÑO, y dentro sub-agrupamos por mes — el ojo
-  // recorre años primero, mes secundario.
-  const monthlyGroups = useMemo(() => groupByMonth(photoItems), [photoItems])
+  // Cronología fija: año primero, mes secundario. Evita otro control visible
+  // en una pantalla que ya tiene filtros de contenido y vista.
   const yearlyGroups = useMemo(() => groupByYearThenMonth(photoItems), [photoItems])
 
   if (photoItems.length === 0) {
@@ -73,153 +68,103 @@ export function AlbumGrid({
 
   return (
     <div className="space-y-6">
-      {/* ψ-photos-rich: toolbar — tamaño + modo de agrupación.
-          Estilo: chips uppercase tracking-eyebrow para coherencia con
-          los filtros de tipo. Toggle group sutil. */}
-      <div className="flex flex-wrap items-center justify-between gap-3 -mt-2">
-        <SegmentedToggle
-          label="agrupar"
-          options={[
-            { value: 'monthly', label: 'mensual' },
-            { value: 'yearly', label: 'cronológico' },
-          ]}
-          value={mode}
-          onChange={(v) => setMode(v as ViewMode)}
-        />
-        <SegmentedToggle
-          label="tamaño"
-          options={[
-            { value: 'small', label: 'mini' },
-            { value: 'medium', label: 'medio' },
-            { value: 'large', label: 'grande' },
-          ]}
-          value={size}
-          onChange={(v) => setSize(v as TileSize)}
-        />
+      <div className="-mt-2 flex justify-end">
+        <SizeMenu value={size} onChange={setSize} />
       </div>
 
-      {mode === 'monthly' ? (
-        <div className="space-y-10">
-          {monthlyGroups.map(({ monthKey, entries }) => (
-            <section key={monthKey} className="animate-fade-up">
-              <GroupHeader title={formatMonthLabel(monthKey)} count={entries.length} />
-              <ul className={SIZE_GRID_CLASS[size]}>
-                {entries.map((p) => (
-                  <AlbumTile
-                    key={p.id}
-                    momento={p}
-                    entitiesById={entitiesById}
-                    onDelete={() => onDelete(p.id)}
-                    size={size}
-                  />
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-12">
-          {yearlyGroups.map(({ year, months }) => (
-            <section key={year} className="animate-fade-up">
-              <header className="mb-4 flex items-baseline gap-4">
-                <h2
-                  className="font-serif text-3xl text-ink-700 leading-none tracking-tight"
-                  style={{ color: 'var(--accent-gold)' }}
-                >
-                  {year}
-                </h2>
-                <span className="flex-1 h-px bg-ink-100/40 mb-1.5" />
-                <span className="text-caption text-ink-300 tabular-nums">
-                  {months.reduce((acc, m) => acc + m.entries.length, 0)}{' '}
-                  {months.reduce((acc, m) => acc + m.entries.length, 0) === 1
-                    ? 'foto'
-                    : 'fotos'}
-                </span>
-              </header>
-              <div className="space-y-6">
-                {months.map(({ monthKey, entries }) => (
-                  <div key={monthKey}>
-                    <p className="section-eyebrow mb-2">
-                      {formatMonthLabel(monthKey).replace(/\s+\d{4}$/, '')}{' '}
-                      <span className="text-ink-300 tabular-nums ml-1">
-                        · {entries.length}
-                      </span>
-                    </p>
-                    <ul className={SIZE_GRID_CLASS[size]}>
-                      {entries.map((p) => (
-                        <AlbumTile
-                          key={p.id}
-                          momento={p}
-                          entitiesById={entitiesById}
-                          onDelete={() => onDelete(p.id)}
-                          size={size}
-                        />
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
+      <div className="space-y-12">
+        {yearlyGroups.map(({ year, months }) => (
+          <section key={year} className="animate-fade-up">
+            <header className="mb-4 flex items-baseline gap-4">
+              <h2
+                className="font-serif text-3xl text-ink-700 leading-none tracking-tight"
+                style={{ color: 'var(--accent-gold)' }}
+              >
+                {year}
+              </h2>
+              <span className="flex-1 h-px bg-ink-100/40 mb-1.5" />
+              <span className="text-caption text-ink-300 tabular-nums">
+                {months.reduce((acc, m) => acc + m.entries.length, 0)}{' '}
+                {months.reduce((acc, m) => acc + m.entries.length, 0) === 1
+                  ? 'foto'
+                  : 'fotos'}
+              </span>
+            </header>
+            <div className="space-y-6">
+              {months.map(({ monthKey, entries }) => (
+                <div key={monthKey}>
+                  <p className="section-eyebrow mb-2">
+                    {formatMonthLabel(monthKey).replace(/\s+\d{4}$/, '')}{' '}
+                    <span className="text-ink-300 tabular-nums ml-1">
+                      · {entries.length}
+                    </span>
+                  </p>
+                  <ul className={SIZE_GRID_CLASS[size]}>
+                    {entries.map((p) => (
+                      <AlbumTile
+                        key={p.id}
+                        momento={p}
+                        entitiesById={entitiesById}
+                        onDelete={() => onDelete(p.id)}
+                        size={size}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
     </div>
   )
 }
 
-function GroupHeader({ title, count }: { title: string; count: number }) {
-  return (
-    <div className="mb-3 flex items-baseline gap-3">
-      <h3 className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
-        {title}
-      </h3>
-      <span className="flex-1 h-px bg-ink-100/40" />
-      <span className="text-caption text-ink-300 tabular-nums">
-        {count} {count === 1 ? 'foto' : 'fotos'}
-      </span>
-    </div>
-  )
-}
-
-function SegmentedToggle({
-  label,
-  options,
+function SizeMenu({
   value,
   onChange,
 }: {
-  label: string
-  options: Array<{ value: string; label: string }>
-  value: string
-  onChange: (v: string) => void
+  value: TileSize
+  onChange: (v: TileSize) => void
 }) {
+  const [open, setOpen] = useState(false)
+
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-micro uppercase tracking-eyebrow text-ink-300">{label}</span>
-      <div
-        className="flex gap-0.5 p-0.5 bg-paper-100/60 rounded-md border border-ink-100/50"
-        role="tablist"
-        aria-label={label}
+    <div className="relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1.5 rounded-full border border-ink-100/70 bg-paper-50/80 px-3 py-1.5 text-caption text-ink-500 shadow-sm hover:text-ink-800"
       >
-        {options.map((opt) => {
-          const active = opt.value === value
-          return (
+        Tamaño: {SIZE_LABELS[value]}
+        <span aria-hidden>⌄</span>
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-9 z-20 w-32 rounded-xl border border-ink-100 bg-paper-50 p-1.5 shadow-xl shadow-ink-900/15"
+        >
+          {TILE_SIZES.map((size) => (
             <button
-              key={opt.value}
+              key={size}
               type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => onChange(opt.value)}
-              className={`px-2 py-0.5 rounded text-caption transition-colors ${
-                active
-                  ? 'bg-paper-50 text-ink-700 shadow-sm'
-                  : 'text-ink-400 hover:text-ink-700'
-              }`}
+              role="menuitem"
+              onClick={() => {
+                onChange(size)
+                setOpen(false)
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-ink-600 hover:bg-ink-100/60 hover:text-ink-800"
             >
-              {opt.label}
+              <span className="inline-flex w-3 justify-center text-ink-500">
+                {size === value ? '·' : ''}
+              </span>
+              {SIZE_LABELS[size]}
             </button>
-          )
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -242,6 +187,8 @@ function AlbumTile({
   const linkedEntities = momento.entityIds
     .map((id) => entitiesById.get(id))
     .filter((e): e is Entity => Boolean(e))
+  const [actionsOpen, setActionsOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   if (!storageKey) return null
   const d = new Date(momento.capturedAt)
   const dateLabel = !Number.isNaN(d.getTime())
@@ -254,6 +201,8 @@ function AlbumTile({
   // entidades vinculadas debajo.
   const showOverlay = size !== 'small'
   const showLinked = size === 'large'
+  const canEdit = momento.accessRole !== 'viewer'
+  const canDelete = !momento.shared
 
   return (
     <li className="group relative">
@@ -290,14 +239,62 @@ function AlbumTile({
           {linkedEntities.map((e) => e.name).join(' · ')}
         </p>
       )}
-      <button
-        onClick={onDelete}
-        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-paper-50/80 backdrop-blur-sm rounded text-ink-500 hover:text-[color:var(--accent-clay)]"
-        aria-label="Eliminar foto"
-        title="Eliminar"
-      >
-        <TrashIcon size={12} />
-      </button>
+      {(canEdit || canDelete) && (
+        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={() => setActionsOpen((v) => !v)}
+            className="rounded bg-paper-50/85 px-1.5 pb-1 pt-0 text-ink-500 backdrop-blur-sm hover:text-ink-800"
+            aria-label="Opciones de foto"
+            aria-expanded={actionsOpen}
+            title="Opciones"
+          >
+            <span aria-hidden className="text-base leading-none">
+              ⋯
+            </span>
+          </button>
+          {actionsOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-7 z-20 w-32 rounded-xl border border-ink-100 bg-paper-50 p-1.5 shadow-xl shadow-ink-900/15"
+            >
+              {canEdit && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setActionsOpen(false)
+                    setEditOpen(true)
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-ink-600 hover:bg-ink-100/60 hover:text-ink-800"
+                >
+                  <PencilIcon size={12} />
+                  Editar
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setActionsOpen(false)
+                    onDelete()
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[color:var(--accent-clay)] hover:bg-[color:var(--accent-clay-soft)]"
+                >
+                  <TrashIcon size={12} />
+                  Eliminar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      <MomentoEditModal
+        momento={momento}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+      />
     </li>
   )
 }

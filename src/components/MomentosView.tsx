@@ -12,13 +12,12 @@ import { Paginator } from './Paginator'
 import { EmptyMessage } from './EmptyMessage'
 import { ErrorState } from './ErrorState'
 import { AlbumGrid } from './momentos/AlbumGrid'
-import { HojaEditor } from './momentos/HojaEditor'
 import { MomentoComposer } from './momentos/MomentoComposer'
 import { MomentosFilters } from './momentos/MomentosFilters'
 import { MergeMomentosBar } from './momentos/MergeMomentosBar'
 import { SelectableMomento } from './momentos/SelectableMomento'
 import { ConfirmDestroy } from './ConfirmDestroy'
-import { QuoteIcon, ShareIcon } from './Icons'
+import { ShareIcon } from './Icons'
 import { MomentoSkeleton, SkeletonList } from './Skeleton'
 import { formatDateHeading, groupByDay } from './momentos/helpers'
 import { useMomentoComposer } from './momentos/useMomentoComposer'
@@ -43,11 +42,7 @@ export function MomentosView() {
   // Filtros y modo de vista. null = todos. La queryKey de useInfiniteMomentosQuery
   // cambia con `filterKind`, así cada filtro tiene su cache + paginación.
   const [filterKind, setFilterKind] = useState<MomentoKind | null>(null)
-  const [viewMode, setViewMode] = useState<'timeline' | 'album'>('timeline')
-  // V-4: la "hoja suelta" es una superficie de escritura aparte del composer
-  // rápido. Toggle en vez de siempre-visible para no cargar la vista — quien
-  // sólo quiere pegar una foto no la ve.
-  const [hojaOpen, setHojaOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<'timeline' | 'album'>('album')
   const [shareOpen, setShareOpen] = useState(false)
 
   const momentosQuery = useInfiniteMomentosQuery(
@@ -186,31 +181,6 @@ export function MomentosView() {
         }}
       />
 
-      {/* V-4 Hojas sueltas: superficie de escritura que enlaza el archivo
-          (@ entidad, > cita). Guarda como nota. Colapsada por default. */}
-      <div className="mb-6 flex flex-wrap items-center gap-4">
-        {!hojaOpen && (
-          <button
-            type="button"
-            onClick={() => setHojaOpen(true)}
-            className="inline-flex items-center gap-1.5 section-eyebrow hover:text-ink-700 transition-colors"
-          >
-            <QuoteIcon size={12} />
-            escribir una hoja suelta
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setShareOpen(true)}
-          className="inline-flex items-center gap-1.5 section-eyebrow hover:text-ink-700 transition-colors"
-        >
-          <ShareIcon size={12} />
-          compartir Momentos
-        </button>
-      </div>
-
-      {hojaOpen && <HojaEditor onClose={() => setHojaOpen(false)} />}
-
       {/* ω-D: banner del filtro por día cuando viene del heatmap. */}
       {dayFilter && (
         <div className="mb-4 flex items-center justify-between gap-3 px-4 py-2 bg-paper-100/50 border border-ink-100/60 rounded-lg">
@@ -230,13 +200,22 @@ export function MomentosView() {
         </div>
       )}
 
-      <div className="flex items-baseline justify-between gap-3 mb-2">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <MomentosFilters
           filterKind={filterKind}
           onChangeFilterKind={setFilterKind}
           viewMode={viewMode}
           onChangeViewMode={setViewMode}
         />
+        <button
+          type="button"
+          aria-label="compartir momentos"
+          onClick={() => setShareOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full border border-ink-100/70 bg-paper-50/80 px-3 py-2 text-caption uppercase tracking-eyebrow text-ink-400 shadow-sm transition-colors hover:text-ink-700"
+        >
+          <ShareIcon size={13} />
+          compartir
+        </button>
         {/* EE: toggle del modo selección. Solo aparece cuando hay >1 item
             cargado Y la vista es timeline — AlbumGrid no soporta selección
             todavía (TODO: si hay demanda, hacer el wrapping ahí también).

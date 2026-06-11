@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setApiAuthTokenProvider } from '../../api/request'
+import { setCurrentClientUser } from '../../lib/clientIdentity'
 import type { Entity, Momento } from '../../types'
 import { MomentoEntry } from './MomentoEntry'
 
@@ -51,6 +52,7 @@ beforeEach(() => {
 
 afterEach(() => {
   setApiAuthTokenProvider(null)
+  setCurrentClientUser({ userId: null })
   vi.unstubAllGlobals()
 })
 
@@ -86,12 +88,14 @@ describe('<MomentoEntry />', () => {
     expect(screen.getByText('Borges')).toBeInTheDocument()
     expect(screen.getByTitle(/origen ia/i)).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /editar momento/i }))
+    fireEvent.click(screen.getByRole('button', { name: /opciones del momento/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /editar/i }))
     expect(screen.getByRole('dialog', { name: /editar nota/i })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /^cerrar$/i }))
     expect(screen.queryByRole('dialog', { name: /editar nota/i })).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: /eliminar momento/i }))
+    fireEvent.click(screen.getByRole('button', { name: /opciones del momento/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /eliminar/i }))
     expect(onDelete).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('button', { name: /compartir momento/i })).toBeNull()
   })
@@ -139,6 +143,33 @@ describe('<MomentoEntry />', () => {
     expect(screen.getByText('propietario')).toBeInTheDocument()
     expect(screen.queryByText('Tú')).toBeNull()
     expect(screen.queryByText('tuyo')).toBeNull()
+  })
+
+  it('prefiere el perfil Clerk actual sobre el dueño legacy en momentos propios', () => {
+    setCurrentClientUser({
+      userId: 'user-current',
+      label: null,
+      email: 'daniel.opazo@hospitalhangaroa.cl',
+    })
+
+    render(
+      <MomentoEntry
+        momento={{
+          ...baseMomento('foto', {
+            caption: 'foto propia',
+            items: [{ storageKey: 'foto-propia.jpg' }],
+          }),
+          ownerUserId: 'legacy-single-user',
+          ownerDisplayName: 'Trama (legacy)',
+          accessRole: 'owner',
+        }}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByLabelText(/subido por daniel opazo/i)).toBeInTheDocument()
+    expect(screen.queryByText('Trama (legacy)')).toBeNull()
   })
 
   it('renderiza un recorte con autor, fuente, enlace, cita y nota', () => {

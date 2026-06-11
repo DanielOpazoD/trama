@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type { ComponentProps } from 'react'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QuotesView } from './QuotesView'
@@ -56,6 +57,7 @@ function setupCache(
   entities: Entity[],
   quotes: Quote[],
   relationships: Relationship[] = [],
+  props: Partial<ComponentProps<typeof QuotesView>> = {},
 ) {
   const qc = makeQueryClient()
   qc.setQueryData(queryKeys.entities, entities)
@@ -65,7 +67,7 @@ function setupCache(
     pages: [{ items: quotes, nextCursor: null }],
     pageParams: [null],
   })
-  return renderWithProviders(<QuotesView onSelectEntity={vi.fn()} />, {
+  return renderWithProviders(<QuotesView onSelectEntity={vi.fn()} {...props} />, {
     queryClient: qc,
   })
 }
@@ -90,6 +92,32 @@ describe('<QuotesView />', () => {
     // header — el chip de tipo lleva su count, eso lo distingue.
     expect(screen.getByRole('button', { name: /libro 1/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /persona/i })).toBeInTheDocument()
+  })
+
+  it('agrupa Pliego, Libro y Careo en un botón superior de Imprenta', async () => {
+    const user = userEvent.setup()
+    setupCache([ENTITY_LIBRO, ENTITY_PERSONA], [QUOTE_LIBRO, QUOTE_PERSONA])
+
+    expect(screen.queryByLabelText('Taller de imprenta')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: /Imprenta/i }))
+
+    expect(screen.getByRole('menuitem', { name: /Pliego/i })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /Libro/i })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /Careo/i })).toBeInTheDocument()
+  })
+
+  it('abre Careo desde el menú Imprenta', async () => {
+    const user = userEvent.setup()
+    const onOpenCareo = vi.fn()
+    setupCache([ENTITY_LIBRO, ENTITY_PERSONA], [QUOTE_LIBRO, QUOTE_PERSONA], [], {
+      onOpenCareo,
+    })
+
+    await user.click(screen.getByRole('button', { name: /Imprenta/i }))
+    await user.click(screen.getByRole('menuitem', { name: /Careo/i }))
+
+    expect(onOpenCareo).toHaveBeenCalledOnce()
   })
 
   it('NO muestra chips de filtro cuando hay un solo tipo', () => {

@@ -27,6 +27,9 @@ describe('<NotasWorld />', () => {
     renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
 
     expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Inicio' }).closest('.animate-shell-topbar'),
+    ).toBeNull()
     expect(screen.getAllByText('mundo notas').length).toBeGreaterThan(0)
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Prompts' })[0]!)

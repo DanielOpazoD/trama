@@ -122,6 +122,22 @@ describe('<NotasHomeView />', () => {
     expect(onNavigate).toHaveBeenNthCalledWith(4, 'claves')
   })
 
+  it('prioriza un primer viewport operativo con captura, foco crítico y notas fijadas', async () => {
+    const onNavigate = vi.fn()
+
+    renderWithProviders(<NotasHomeView onNavigate={onNavigate} />)
+
+    await screen.findByText('Pendiente alta')
+
+    expect(screen.getByLabelText('Turno del día')).toHaveTextContent(/2 pendientes/i)
+    expect(screen.getByLabelText('Turno del día')).toHaveTextContent(/1 crítico/i)
+    expect(screen.getByRole('button', { name: /capturar nota/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /capturar tarea/i })).toBeInTheDocument()
+    expect(screen.getByLabelText('Notas fijadas')).toHaveTextContent(
+      /Nota fijada del día/i,
+    )
+  })
+
   it('en estado inicial ofrece entradas directas y acciones cómodas en mobile', async () => {
     vi.stubGlobal(
       'fetch',

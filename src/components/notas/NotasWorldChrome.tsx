@@ -49,7 +49,7 @@ const SECTION_META: Record<NotasSection, { title: string; subtitle: string }> = 
 
 export function NotasTopBar({ section }: { section: NotasSection }) {
   return (
-    <div className="animate-shell-topbar">
+    <div>
       <TopBar view="inicio" titleOverride={SECTION_META[section]} />
       <div
         aria-hidden

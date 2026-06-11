@@ -356,6 +356,7 @@ function Shell({
                 onEntitiesTabChange={setEntitiesTab}
                 onSelectEntity={setSelectedEntityId}
                 onChangeView={setView}
+                onOpenCareo={() => setCareoOpen(true)}
                 onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
                 onConsumedInitialThread={() => setPendingChatThreadId(null)}
               />

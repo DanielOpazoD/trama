@@ -29,7 +29,24 @@ describe('<MomentosFilters />', () => {
     expect(onChangeFilterKind).toHaveBeenNthCalledWith(3, 'foto')
   })
 
-  it('oculta el toggle de álbum cuando el filtro no es foto ni todos', () => {
+  it('organiza tipo de contenido y vista en grupos visibles', () => {
+    render(
+      <MomentosFilters
+        filterKind={null}
+        onChangeFilterKind={() => {}}
+        viewMode="album"
+        onChangeViewMode={() => {}}
+      />,
+    )
+
+    expect(screen.getByText('contenido')).toBeInTheDocument()
+    expect(screen.getByText('vista')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Todos' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Línea' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Álbum' })).toBeEnabled()
+  })
+
+  it('mantiene Álbum visible pero deshabilitado si el filtro no permite fotos', () => {
     render(
       <MomentosFilters
         filterKind="recorte"
@@ -39,6 +56,6 @@ describe('<MomentosFilters />', () => {
       />,
     )
 
-    expect(screen.queryByRole('button', { name: 'Álbum' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Álbum' })).toBeDisabled()
   })
 })
