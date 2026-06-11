@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { buildChapters, colophonLines, wrapLines } from './libroModel'
+import {
+  buildChapters,
+  colophonLines,
+  libroImprintSummary,
+  wrapLines,
+} from './libroModel'
 import type { Entity, Quote } from '../../types'
 
 function entity(
@@ -88,6 +93,61 @@ describe('colophonLines', () => {
     expect(colophonLines(qs, { now: new Date('2026-06-10T12:00:00') })[1]).toBe(
       'reunidas durante 2026.',
     )
+  })
+})
+
+describe('libroImprintSummary', () => {
+  it('resume el cierre de imprenta para la edición completa', () => {
+    const ents = [entity('a', 'Borges'), entity('b', 'Cortázar')]
+    const qs = [
+      quote('q1', 'a', 'x', {
+        source: 'El Aleph',
+        createdAt: '2024-05-01T12:00:00.000Z',
+      }),
+      quote('q2', 'b', 'y', {
+        source: 'Rayuela',
+        createdAt: '2026-02-01T12:00:00.000Z',
+      }),
+      { ...quote('q3', 'a', 'z'), pinnedAt: '2026-03-01T12:00:00.000Z' },
+    ]
+
+    const summary = libroImprintSummary(ents, qs, {
+      onlyFavorites: false,
+      now: new Date('2026-06-10T12:00:00'),
+    })
+
+    expect(summary.quoteCount).toBe(3)
+    expect(summary.voiceCount).toBe(2)
+    expect(summary.sourceCount).toBe(2)
+    expect(summary.favoriteCount).toBe(1)
+    expect(summary.editionLabel).toBe('edición completa')
+    expect(summary.yearRangeLabel).toBe('2024-2026')
+    expect(summary.composedAtLabel).toBe('10 de junio de 2026')
+    expect(summary.exportStateLabel).toBe('lista para imprenta')
+  })
+
+  it('resume una edición breve solo con favoritas', () => {
+    const ents = [entity('a', 'Borges'), entity('b', 'Cortázar')]
+    const qs = [
+      quote('q1', 'a', 'común', { source: 'El Aleph' }),
+      {
+        ...quote('q2', 'b', 'favorita', {
+          source: 'Rayuela',
+          createdAt: '2026-02-01T12:00:00.000Z',
+        }),
+        pinnedAt: '2026-03-01T12:00:00.000Z',
+      },
+    ]
+
+    const summary = libroImprintSummary(ents, qs, {
+      onlyFavorites: true,
+      now: new Date('2026-06-10T12:00:00'),
+    })
+
+    expect(summary.quoteCount).toBe(1)
+    expect(summary.voiceCount).toBe(1)
+    expect(summary.sourceCount).toBe(1)
+    expect(summary.editionLabel).toBe('edición breve')
   })
 })
 

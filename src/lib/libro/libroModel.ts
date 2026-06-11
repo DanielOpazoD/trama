@@ -38,13 +38,28 @@ export type LibroOptions = {
   onlyFavorites: boolean
 }
 
+export type LibroImprintSummary = {
+  quoteCount: number
+  voiceCount: number
+  sourceCount: number
+  favoriteCount: number
+  editionLabel: string
+  yearRangeLabel: string
+  composedAtLabel: string
+  exportStateLabel: string
+}
+
+function libroQuotePool(quotes: Quote[], onlyFavorites: boolean): Quote[] {
+  return onlyFavorites ? quotes.filter((q) => q.pinnedAt) : quotes
+}
+
 export function buildChapters(
   entities: Entity[],
   quotes: Quote[],
   includeMarginalia: boolean,
   onlyFavorites = false,
 ): LibroChapter[] {
-  const pool = onlyFavorites ? quotes.filter((q) => q.pinnedAt) : quotes
+  const pool = libroQuotePool(quotes, onlyFavorites)
   const byEntity = new Map<string, Quote[]>()
   for (const q of pool) {
     const list = byEntity.get(q.entityId) ?? []
@@ -73,6 +88,43 @@ export function buildChapters(
   return chapters.sort(
     (a, b) => b.quotes.length - a.quotes.length || a.title.localeCompare(b.title),
   )
+}
+
+export function libroImprintSummary(
+  entities: Entity[],
+  quotes: Quote[],
+  opts: { onlyFavorites: boolean; now?: Date },
+): LibroImprintSummary {
+  const pool = libroQuotePool(quotes, opts.onlyFavorites)
+  const voiceIds = new Set(pool.map((q) => q.entityId))
+  const knownVoiceCount = entities.filter((entity) => voiceIds.has(entity.id)).length
+  const years = pool
+    .map((q) => new Date(q.createdAt).getFullYear())
+    .filter((year) => !Number.isNaN(year))
+  const first = years.length ? Math.min(...years) : null
+  const last = years.length ? Math.max(...years) : null
+  const yearRangeLabel =
+    first === null ? 'sin fecha' : first === last ? String(first) : `${first}-${last}`
+  const sources = new Set(
+    pool
+      .map((q) => q.source?.trim())
+      .filter((source): source is string => Boolean(source)),
+  )
+  const now = opts.now ?? new Date()
+  return {
+    quoteCount: pool.length,
+    voiceCount: knownVoiceCount || voiceIds.size,
+    sourceCount: sources.size,
+    favoriteCount: pool.filter((q) => q.pinnedAt).length,
+    editionLabel: opts.onlyFavorites ? 'edición breve' : 'edición completa',
+    yearRangeLabel,
+    composedAtLabel: new Intl.DateTimeFormat('es-CL', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(now),
+    exportStateLabel: pool.length > 0 ? 'lista para imprenta' : 'sin citas para componer',
+  }
 }
 
 /** Texto del colofón — la página legal de la edición: cuántas citas,
