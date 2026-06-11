@@ -6,7 +6,6 @@ import {
   translateAnnotation,
   type Annotation,
   type ImageAnnotation,
-  type PdfDoc,
   type TextAnnotation,
 } from '../../../../lib/pdfStudio/model/model'
 import {
@@ -28,7 +27,6 @@ import { defaultEditorTextStyle, resolveActiveEditorStyle } from './pdfEditorSty
 import { type TextStyle, type Tool } from './editorStyle'
 import { createImageStampAnnotation, STAMP_ACCEPT } from './pdfImageStamp'
 import { PdfTextEditorPageSurface } from './PdfTextEditorPageSurface'
-import { type DetectedPdfFormForCanvas } from '../planillas/pdfFormVisualMapping'
 import { usePdfTextEditorPageNavigation } from './usePdfTextEditorPageNavigation'
 import { usePdfTextEditorViewport } from './usePdfTextEditorViewport'
 import { PdfTextEditorFloatingFormTools } from './PdfTextEditorFloatingFormTools'
@@ -38,21 +36,15 @@ import { PdfTextEditorAuxiliaryControls } from './PdfTextEditorAuxiliaryControls
 import { PdfTextEditorScrollArea } from './PdfTextEditorScrollArea'
 import { pdfTextEditorDialogLabel } from './pdfTextEditorDialogMode'
 import { pdfTextEditorBodyClass } from './pdfTextEditorLayoutClasses'
-import type { PdfTextEditorResult } from './pdfTextEditorResult'
 import { formFieldTextStyle } from '../planillas/pdfFormFieldStyle'
 import { fillProgressForTemplateFields } from '../planillas/fill/pdfTemplateFillProgress'
 import { usePdfTextEditorFillFocus } from '../planillas/fill/usePdfTextEditorFillFocus'
 import { usePdfTextEditorFillSidebarProps } from '../planillas/fill/usePdfTextEditorFillSidebarProps'
-import type { TemplateFillImportValues } from '../planillas/fill/pdfTemplateFillImport'
 import { usePdfTextEditorHeaderProps } from './usePdfTextEditorHeaderProps'
 import { usePdfTextEditorXMarks } from './usePdfTextEditorXMarks'
+import type { PdfTextEditorProps } from './PdfTextEditorProps'
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 type PdfTextEditorHistory = History<Record<number, Annotation[]>>
-type PdfFormValueHandler = (
-  sourceId: string,
-  fieldName: string,
-  value: string | boolean,
-) => void
 export function PdfTextEditor({
   doc,
   pageIndex,
@@ -62,23 +54,12 @@ export function PdfTextEditor({
   onFormValueChange = () => undefined,
   onInspectForms,
   onClose,
+  onDisplayZoomChange,
   onMailMerge,
   onPrint,
   onSaveCopy,
-}: {
-  doc: PdfDoc
-  pageIndex: number
-  detectedForms?: DetectedPdfFormForCanvas[]
-  mode?: 'edit' | 'fill'
-  templateToolsEnabled?: boolean
-  onFormValueChange?: PdfFormValueHandler
-  onInspectForms?: () => void
-  onClose: (edits: PdfTextEditorResult | null) => void
-  /** Lote: N filas → N copias rellenadas en un solo PDF (vista previa). */
-  onMailMerge?: (edits: PdfTextEditorResult, rows: TemplateFillImportValues[]) => void
-  onPrint?: (edits: PdfTextEditorResult) => void
-  onSaveCopy?: (edits: PdfTextEditorResult) => void
-}) {
+  sessionZoom,
+}: PdfTextEditorProps) {
   const total = doc.pages.length
   const fillMode = mode === 'fill'
   const designMode = !fillMode && templateToolsEnabled
@@ -110,7 +91,10 @@ export function PdfTextEditor({
     zoom,
     zoomInDisabled,
     zoomOutDisabled,
-  } = usePdfTextEditorViewport(currentPage)
+  } = usePdfTextEditorViewport(currentPage, {
+    initialDisplayZoom: sessionZoom,
+    onDisplayZoomChange,
+  })
   // Marcas X: tamaño/grosor GLOBALES, toggle y redimensionado — fuera de este
   // archivo para mantenerlo acotado (ver usePdfTextEditorXMarks).
   const {

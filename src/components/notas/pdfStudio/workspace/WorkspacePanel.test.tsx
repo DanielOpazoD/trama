@@ -57,6 +57,7 @@ function setup(overrides: Partial<Parameters<typeof WorkspacePanel>[0]> = {}) {
     onAddImage: vi.fn(),
     onRemoveImage: vi.fn(),
     onDownloadImage: vi.fn(),
+    onEditImage: vi.fn(),
     saved,
     folders,
     canSave: true,
@@ -84,6 +85,19 @@ function setup(overrides: Partial<Parameters<typeof WorkspacePanel>[0]> = {}) {
 }
 
 describe('<WorkspacePanel /> · planillas', () => {
+  it('permite editar/recortar una imagen adjunta desde la biblioteca', () => {
+    const asset: ImageAsset = {
+      id: 'img-1',
+      file: new File(['png'], 'foto.png', { type: 'image/png' }),
+    }
+    const props = setup({ library: [asset] })
+
+    fireEvent.click(screen.getByRole('button', { name: /Imágenes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Editar imagen/i }))
+
+    expect(props.onEditImage).toHaveBeenCalledWith(asset)
+  })
+
   it('puede ocultar planillas cuando el módulo es sólo editor PDF', () => {
     setup({ templatesEnabled: false })
 

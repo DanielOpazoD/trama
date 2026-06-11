@@ -37,6 +37,11 @@ export type SavedDoc = {
   savedAt: number
   kind?: SavedDocKind
   folderId?: string | null
+  serverPdf?: {
+    id: string
+    uploadedAt: string
+    byteSize?: number
+  }
 }
 type SavedRecord = SavedDoc & { userKey: string }
 export type SavedFolderColor = 'blue' | 'green' | 'orange' | 'purple' | 'slate'

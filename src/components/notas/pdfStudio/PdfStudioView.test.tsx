@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { act, fireEvent, screen, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '../../../test-utils'
 
@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   putSavedDoc: vi.fn(),
   putSavedFolder: vi.fn(),
   deleteSavedDoc: vi.fn(),
+  uploadPdfStudioSavedPdf: vi.fn(),
 }))
 vi.mock('../../../lib/pdfStudio/render/pdfRender', () => ({
   getPdfPageCount: mocks.getPdfPageCount,
@@ -66,6 +67,9 @@ vi.mock('../../../lib/pdfStudio/render/persistence', () => ({
     (saved.kind ??
       ((saved.doc.formFields?.length ?? 0) > 0 ? 'template' : 'creation')) === 'template',
   isSavedFilledTemplate: (saved: { kind?: string }) => saved.kind === 'filled-template',
+}))
+vi.mock('../../../api/pdfStudioSavedPdfs', () => ({
+  uploadPdfStudioSavedPdf: mocks.uploadPdfStudioSavedPdf,
 }))
 
 import { PdfStudioView } from './PdfStudioView'
@@ -148,6 +152,17 @@ beforeEach(() => {
   mocks.putSavedDoc.mockResolvedValue(undefined)
   mocks.putSavedFolder.mockResolvedValue(undefined)
   mocks.deleteSavedDoc.mockResolvedValue(undefined)
+  mocks.uploadPdfStudioSavedPdf.mockResolvedValue({
+    id: 'remote-pdf-1',
+    savedDocId: 'saved-1',
+    name: 'Mi receta',
+    kind: 'creation',
+    mimeType: 'application/pdf',
+    byteSize: 3,
+    storageKey: 'user/remote-pdf-1.pdf',
+    createdAt: '2026-06-11T00:00:00.000Z',
+    updatedAt: '2026-06-11T00:00:00.000Z',
+  })
 })
 
 describe('<PdfStudioView />', () => {
@@ -923,7 +938,33 @@ describe('<PdfStudioView />', () => {
     const input = screen.getByPlaceholderText(/Nombre de la creación/i)
     await user.type(input, 'Mi receta{Enter}')
 
-    expect(mocks.putSavedDoc).toHaveBeenCalledTimes(1)
+    expect(mocks.putSavedDoc).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ name: 'Mi receta', kind: 'creation' }),
+    )
+    await waitFor(() =>
+      expect(mocks.uploadPdfStudioSavedPdf).toHaveBeenCalledWith(
+        expect.objectContaining({
+          blob: expect.any(Blob),
+          savedDocId: expect.any(String),
+          name: 'Mi receta',
+          kind: 'creation',
+        }),
+      ),
+    )
+    await waitFor(() =>
+      expect(mocks.putSavedDoc).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          name: 'Mi receta',
+          serverPdf: {
+            id: 'remote-pdf-1',
+            uploadedAt: '2026-06-11T00:00:00.000Z',
+            byteSize: 3,
+          },
+        }),
+      ),
+    )
     // La creación aparece en la lista, re-abrible.
     expect(
       screen.getByRole('button', { name: /Abrir Mi receta para editar/i }),
@@ -1294,6 +1335,26 @@ describe('<PdfStudioView />', () => {
     // Avanza → ahora el diálogo es la página 2.
     await user.click(next)
     expect(screen.getByRole('dialog', { name: /Editar página 2/i })).toBeInTheDocument()
+  })
+
+  it('hereda el último zoom usado al abrir otra miniatura', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.dblClick(screen.getByAltText('Página 1'))
+    await screen.findByRole('dialog', { name: /Editar página 1/i })
+    await user.click(screen.getByLabelText('Zoom del documento: aumentar'))
+    expect(screen.getByLabelText('Porcentaje de zoom')).toHaveValue('110')
+    await user.click(screen.getByRole('button', { name: /^Listo$/i }))
+
+    await user.dblClick(screen.getByAltText('Página 2'))
+
+    expect(
+      await screen.findByRole('dialog', { name: /Editar página 2/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Porcentaje de zoom')).toHaveValue('110')
   })
 
   it('elimina las páginas marcadas con la tecla Suprimir', async () => {

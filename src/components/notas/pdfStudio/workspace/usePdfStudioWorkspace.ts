@@ -28,6 +28,7 @@ import {
 } from '../../../../lib/pdfStudio/render/persistence'
 import { useCurrentClientUserId } from '../../../../lib/clientIdentity'
 import { downloadBlob } from '../../../../lib/downloadBlob'
+import { editImage } from '../../../../lib/imageEditor'
 import { useToast } from '../../../../state'
 
 export function usePdfStudioWorkspace({
@@ -35,11 +36,13 @@ export function usePdfStudioWorkspace({
   commit,
   doc,
   setHistory,
+  uploadSavedPdf,
 }: {
   clearSelection: () => void
   commit: (next: PdfDoc | ((prev: PdfDoc) => PdfDoc)) => void
   doc: PdfDoc
   setHistory: Dispatch<SetStateAction<History<PdfDoc>>>
+  uploadSavedPdf?: (saved: SavedDoc) => Promise<NonNullable<SavedDoc['serverPdf']>>
 }) {
   const toast = useToast()
   const userKey = useCurrentClientUserId() ?? 'anon'
@@ -111,8 +114,36 @@ export function usePdfStudioWorkspace({
     setLibrary((lib) => lib.filter((a) => a.id !== id))
   }
 
+  async function editLibraryImage(asset: ImageAsset) {
+    const edited = await editImage(asset.file, {
+      outputType: 'image/webp',
+      title: 'Imagen de Imprenta',
+    })
+    if (!edited) return
+    setLibrary((lib) =>
+      lib.map((item) => (item.id === asset.id ? { ...item, file: edited } : item)),
+    )
+    toast.show({ message: 'Imagen editada.', tone: 'success' })
+  }
+
   function downloadLibrary(asset: ImageAsset) {
     downloadBlob(asset.file, asset.file.name || 'imagen')
+  }
+
+  async function syncSavedPdf(savedDoc: SavedDoc) {
+    if (!uploadSavedPdf) return
+    try {
+      const serverPdf = await uploadSavedPdf(savedDoc)
+      const synced = { ...savedDoc, serverPdf }
+      setSaved((list) => list.map((item) => (item.id === savedDoc.id ? synced : item)))
+      await putSavedDoc(userKey, synced)
+    } catch {
+      toastRef.current.show({
+        message:
+          'PDF guardado localmente. Se subirá al servidor cuando la conexión esté disponible.',
+        tone: 'default',
+      })
+    }
   }
 
   function saveCreation(name: string) {
@@ -125,6 +156,7 @@ export function usePdfStudioWorkspace({
     }
     setSaved((list) => [s, ...list])
     void putSavedDoc(userKey, s)
+    void syncSavedPdf(s)
     toast.show({ message: `Guardado "${name}".`, tone: 'success' })
   }
 
@@ -139,6 +171,7 @@ export function usePdfStudioWorkspace({
     }
     setSaved((list) => [s, ...list])
     void putSavedDoc(userKey, s)
+    void syncSavedPdf(s)
     toast.show({ message: `Planilla "${name}" guardada.`, tone: 'success' })
   }
 
@@ -152,6 +185,7 @@ export function usePdfStudioWorkspace({
     }
     setSaved((list) => [s, ...list])
     void putSavedDoc(userKey, s)
+    void syncSavedPdf(s)
     toast.show({ message: `Copia con datos "${s.name}" guardada.`, tone: 'success' })
   }
 
@@ -288,6 +322,7 @@ export function usePdfStudioWorkspace({
     addAssets,
     addLibraryToDoc,
     downloadLibrary,
+    editLibraryImage,
     library,
     duplicateSaved,
     exportTemplatePackage,

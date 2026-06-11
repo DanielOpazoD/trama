@@ -16,6 +16,7 @@ export function WorkspacePanel({
   onAddImage,
   onRemoveImage,
   onDownloadImage,
+  onEditImage,
   saved,
   folders,
   templatesEnabled = true,
@@ -89,6 +90,7 @@ export function WorkspacePanel({
           onAddImage={onAddImage}
           onRemoveImage={onRemoveImage}
           onDownloadImage={onDownloadImage}
+          onEditImage={onEditImage}
         />
 
         <div className="mx-2.5 border-t border-ink-100/70" />

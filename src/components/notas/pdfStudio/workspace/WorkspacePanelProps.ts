@@ -10,6 +10,7 @@ export type WorkspacePanelProps = {
   onAddImage: (asset: ImageAsset) => void
   onRemoveImage: (id: string) => void
   onDownloadImage: (asset: ImageAsset) => void
+  onEditImage: (asset: ImageAsset) => void
   saved: SavedDoc[]
   folders: SavedFolder[]
   templatesEnabled?: boolean
