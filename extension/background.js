@@ -74,7 +74,8 @@ async function saveRecorte({ text, tab, note }) {
       }),
     })
     if (!res.ok) {
-      const detail = res.status === 401 ? 'token inválido o revocado' : `HTTP ${res.status}`
+      const detail =
+        res.status === 401 ? 'token inválido o revocado' : `HTTP ${res.status}`
       return { ok: false, error: `No se pudo guardar (${detail}).` }
     }
     return { ok: true }
