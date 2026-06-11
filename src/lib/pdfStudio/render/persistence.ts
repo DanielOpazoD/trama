@@ -11,9 +11,10 @@ import { isPdfTemplate, type ImageAsset, type PdfDoc } from '../model/model'
 const DB_NAME = 'trama-pdf-studio'
 const STORE = 'drafts'
 const SAVED_STORE = 'saved'
+const FOLDERS_STORE = 'folders'
 // Versión del ESQUEMA de IndexedDB (sube al agregar stores). Distinta del formato
 // del record del borrador (`DATA_VERSION`), para no invalidar borradores viejos.
-const DB_VERSION = 2
+const DB_VERSION = 3
 const DATA_VERSION = 1
 
 type DraftRecord = {
@@ -35,8 +36,17 @@ export type SavedDoc = {
   doc: PdfDoc
   savedAt: number
   kind?: SavedDocKind
+  folderId?: string | null
 }
 type SavedRecord = SavedDoc & { userKey: string }
+export type SavedFolderColor = 'blue' | 'green' | 'orange' | 'purple' | 'slate'
+export type SavedFolder = {
+  id: string
+  name: string
+  color: SavedFolderColor
+  createdAt: number
+}
+type SavedFolderRecord = SavedFolder & { userKey: string }
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -45,6 +55,9 @@ function openDb(): Promise<IDBDatabase> {
       const db = req.result
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE)
       if (!db.objectStoreNames.contains(SAVED_STORE)) db.createObjectStore(SAVED_STORE)
+      if (!db.objectStoreNames.contains(FOLDERS_STORE)) {
+        db.createObjectStore(FOLDERS_STORE)
+      }
     }
     req.onsuccess = () => resolve(req.result)
     req.onerror = () => reject(req.error)
@@ -146,6 +159,47 @@ export async function putSavedDoc(userKey: string, saved: SavedDoc): Promise<voi
     db.close()
   } catch {
     // best-effort: la creación no se persiste, pero el editor sigue.
+  }
+}
+
+/** Lista carpetas del archivo de PDFs/copias del usuario. Best-effort. */
+export async function listSavedFolders(userKey: string): Promise<SavedFolder[]> {
+  try {
+    const db = await openDb()
+    const recs = await new Promise<SavedFolderRecord[]>((resolve, reject) => {
+      const tx = db.transaction(FOLDERS_STORE, 'readonly')
+      const r = tx.objectStore(FOLDERS_STORE).getAll()
+      r.onsuccess = () => resolve((r.result as SavedFolderRecord[]) ?? [])
+      r.onerror = () => reject(r.error)
+    })
+    db.close()
+    return recs
+      .filter((r) => r.userKey === userKey)
+      .sort((a, b) => a.createdAt - b.createdAt)
+      .map(({ userKey: _u, ...folder }) => folder)
+  } catch {
+    return []
+  }
+}
+
+/** Guarda o actualiza una carpeta del archivo local. Best-effort. */
+export async function putSavedFolder(
+  userKey: string,
+  folder: SavedFolder,
+): Promise<void> {
+  try {
+    const db = await openDb()
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(FOLDERS_STORE, 'readwrite')
+      const rec: SavedFolderRecord = { ...folder, userKey }
+      tx.objectStore(FOLDERS_STORE).put(rec, `${userKey}:${folder.id}`)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+      tx.onabort = () => reject(tx.error)
+    })
+    db.close()
+  } catch {
+    // best-effort: la carpeta queda solo en memoria si IndexedDB falla.
   }
 }
 

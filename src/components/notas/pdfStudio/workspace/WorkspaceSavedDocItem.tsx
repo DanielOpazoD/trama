@@ -1,6 +1,7 @@
 import {
   isSavedFilledTemplate,
   type SavedDoc,
+  type SavedFolder,
 } from '../../../../lib/pdfStudio/render/persistence'
 import { DownloadIcon, PencilIcon, TrashIcon } from '../../../Icons'
 
@@ -45,6 +46,7 @@ function SavedDocKindChip({ saved }: { saved: SavedDoc }) {
 
 export function WorkspaceSavedDocItem({
   saved,
+  folders,
   isRenaming,
   renameValue,
   onRenameValueChange,
@@ -55,8 +57,10 @@ export function WorkspaceSavedDocItem({
   onDownload,
   onStartRename,
   onDelete,
+  onMoveToFolder,
 }: {
   saved: SavedDoc
+  folders: SavedFolder[]
   isRenaming: boolean
   renameValue: string
   onRenameValueChange: (value: string) => void
@@ -67,67 +71,85 @@ export function WorkspaceSavedDocItem({
   onDownload: () => void
   onStartRename: () => void
   onDelete: () => void
+  onMoveToFolder: (folderId: string | null) => void
 }) {
   return (
-    <li className="group flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-ink-100/40">
-      {isRenaming ? (
-        <input
-          autoFocus
-          value={renameValue}
-          onChange={(e) => onRenameValueChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') onConfirmRename()
-            else if (e.key === 'Escape') onCancelRename()
-          }}
-          onBlur={onRenameBlur}
-          className="input-paper flex-1 min-w-0 rounded border border-ink-200 px-1.5 py-0.5 text-caption"
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={onOpen}
-          aria-label={savedDocActionLabel(saved)}
-          className="flex-1 min-w-0 text-left"
-        >
-          <SavedDocKindChip saved={saved} />
-          <span className="block truncate text-caption text-ink-700">{saved.name}</span>
-          <span className="block text-micro tabular-nums text-ink-400">
-            {savedDocSubtitle(saved)}
-          </span>
-          {isSavedFilledTemplate(saved) ? (
-            <span className="mt-0.5 block text-micro font-medium text-[color:var(--accent-sage)]">
-              Abrir relleno
+    <li className="group rounded-md px-1.5 py-1 transition-colors hover:bg-ink-100/40">
+      <div className="flex items-center gap-1">
+        {isRenaming ? (
+          <input
+            autoFocus
+            value={renameValue}
+            onChange={(e) => onRenameValueChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onConfirmRename()
+              else if (e.key === 'Escape') onCancelRename()
+            }}
+            onBlur={onRenameBlur}
+            className="input-paper flex-1 min-w-0 rounded border border-ink-200 px-1.5 py-0.5 text-caption"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={onOpen}
+            aria-label={savedDocActionLabel(saved)}
+            className="flex-1 min-w-0 text-left"
+          >
+            <SavedDocKindChip saved={saved} />
+            <span className="block truncate text-caption text-ink-700">{saved.name}</span>
+            <span className="block text-micro tabular-nums text-ink-400">
+              {savedDocSubtitle(saved)}
             </span>
-          ) : null}
-        </button>
-      )}
-      {!isRenaming ? (
-        <div className="flex shrink-0 opacity-0 transition-opacity group-hover:opacity-100">
-          <button
-            type="button"
-            onClick={onDownload}
-            aria-label={`Descargar ${saved.name}`}
-            className={rowBtn}
-          >
-            <DownloadIcon size={12} />
+            {isSavedFilledTemplate(saved) ? (
+              <span className="mt-0.5 block text-micro font-medium text-[color:var(--accent-sage)]">
+                Abrir relleno
+              </span>
+            ) : null}
           </button>
-          <button
-            type="button"
-            onClick={onStartRename}
-            aria-label={`Renombrar ${saved.name}`}
-            className={rowBtn}
-          >
-            <PencilIcon size={12} />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            aria-label={`Eliminar ${saved.name}`}
-            className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
-          >
-            <TrashIcon size={12} />
-          </button>
-        </div>
+        )}
+        {!isRenaming ? (
+          <div className="flex shrink-0 opacity-0 transition-opacity group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={onDownload}
+              aria-label={`Descargar ${saved.name}`}
+              className={rowBtn}
+            >
+              <DownloadIcon size={12} />
+            </button>
+            <button
+              type="button"
+              onClick={onStartRename}
+              aria-label={`Renombrar ${saved.name}`}
+              className={rowBtn}
+            >
+              <PencilIcon size={12} />
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label={`Eliminar ${saved.name}`}
+              className={`${rowBtn} hover:!text-[color:var(--accent-clay)]`}
+            >
+              <TrashIcon size={12} />
+            </button>
+          </div>
+        ) : null}
+      </div>
+      {!isRenaming && folders.length > 0 ? (
+        <select
+          aria-label={`Mover ${saved.name} a carpeta`}
+          value={saved.folderId ?? ''}
+          onChange={(e) => onMoveToFolder(e.target.value || null)}
+          className="mt-1 w-full rounded border border-ink-100 bg-paper-50 px-1.5 py-0.5 text-micro text-ink-500 outline-none transition-colors hover:border-ink-200 focus:border-ink-300"
+        >
+          <option value="">Sin carpeta</option>
+          {folders.map((folder) => (
+            <option key={folder.id} value={folder.id}>
+              {folder.name}
+            </option>
+          ))}
+        </select>
       ) : null}
     </li>
   )

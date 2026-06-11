@@ -1,5 +1,9 @@
 import type { ImageAsset } from '../../../../lib/pdfStudio/model/model'
-import type { SavedDoc } from '../../../../lib/pdfStudio/render/persistence'
+import type {
+  SavedDoc,
+  SavedFolder,
+  SavedFolderColor,
+} from '../../../../lib/pdfStudio/render/persistence'
 import { WorkspacePanel } from '../workspace/WorkspacePanel'
 
 export function PdfStudioWorkspacePanelHost({
@@ -7,6 +11,7 @@ export function PdfStudioWorkspacePanelHost({
   canSaveTemplate,
   collapsed,
   library,
+  folders,
   saved,
   show,
   templatesEnabled,
@@ -14,11 +19,13 @@ export function PdfStudioWorkspacePanelHost({
   onDeleteSaved,
   onDownloadImage,
   onDownloadSaved,
+  onCreateFolder,
   onDuplicateSaved,
   onExportTemplatePackage,
   onOpenSaved,
   onRemoveImage,
   onRenameSaved,
+  onMoveSavedToFolder,
   onSaveCreation,
   onSaveTemplate,
   saveTemplateSignal,
@@ -30,6 +37,7 @@ export function PdfStudioWorkspacePanelHost({
   canSaveTemplate: boolean
   collapsed: boolean
   library: ImageAsset[]
+  folders: SavedFolder[]
   saved: SavedDoc[]
   show: boolean
   templatesEnabled?: boolean
@@ -37,11 +45,13 @@ export function PdfStudioWorkspacePanelHost({
   onDeleteSaved: (id: string) => void
   onDownloadImage: (asset: ImageAsset) => void
   onDownloadSaved: (saved: SavedDoc) => void
+  onCreateFolder: (input: { name: string; color: SavedFolderColor }) => void
   onDuplicateSaved: (saved: SavedDoc) => void
   onExportTemplatePackage: (saved: SavedDoc, format: 'json' | 'csv') => void
   onOpenSaved: (saved: SavedDoc) => void
   onRemoveImage: (id: string) => void
   onRenameSaved: (id: string, name: string) => void
+  onMoveSavedToFolder: (id: string, folderId: string | null) => void
   onSaveCreation: (name: string) => void
   onSaveTemplate: (name: string) => void
   saveTemplateSignal?: number
@@ -75,10 +85,12 @@ export function PdfStudioWorkspacePanelHost({
           onRemoveImage={onRemoveImage}
           onDownloadImage={onDownloadImage}
           saved={saved}
+          folders={folders}
           templatesEnabled={templatesEnabled}
           canSave={canSave}
           canSaveTemplate={canSaveTemplate}
           onSaveCreation={onSaveCreation}
+          onCreateFolder={onCreateFolder}
           onSaveTemplate={onSaveTemplate}
           saveTemplateSignal={saveTemplateSignal}
           suggestedSaveName={suggestedSaveName}
@@ -86,6 +98,7 @@ export function PdfStudioWorkspacePanelHost({
           onUseTemplate={onUseTemplate}
           onDuplicateSaved={onDuplicateSaved}
           onRenameSaved={onRenameSaved}
+          onMoveSavedToFolder={onMoveSavedToFolder}
           onDeleteSaved={onDeleteSaved}
           onDownloadSaved={onDownloadSaved}
           onExportTemplatePackage={onExportTemplatePackage}

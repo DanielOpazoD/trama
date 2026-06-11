@@ -1,6 +1,11 @@
 import { useRef, useState } from 'react'
-import type { SavedDoc } from '../../../../lib/pdfStudio/render/persistence'
+import type {
+  SavedDoc,
+  SavedFolder,
+  SavedFolderColor,
+} from '../../../../lib/pdfStudio/render/persistence'
 import { CheckIcon, CloseIcon, FilePdfIcon, PlusIcon } from '../../../Icons'
+import { WorkspaceFoldersBar } from './WorkspaceFoldersBar'
 import { WorkspaceSavedDocItem } from './WorkspaceSavedDocItem'
 
 const ACCENT = 'var(--accent-sage)'
@@ -11,25 +16,36 @@ const rowBtn =
 export function WorkspaceSavedDocsSection({
   creations,
   canSave,
+  folders,
   suggestedName,
+  onCreateFolder,
   onSaveCreation,
   onOpenSaved,
   onRenameSaved,
   onDeleteSaved,
   onDownloadSaved,
+  onMoveSavedToFolder,
 }: {
   creations: SavedDoc[]
   canSave: boolean
+  folders: SavedFolder[]
   /** Prefill del nombre al guardar (el título del documento, si lo tiene). */
   suggestedName?: string
+  onCreateFolder: (input: { name: string; color: SavedFolderColor }) => void
   onSaveCreation: (name: string) => void
   onOpenSaved: (s: SavedDoc) => void
   onRenameSaved: (id: string, name: string) => void
   onDeleteSaved: (id: string) => void
   onDownloadSaved: (s: SavedDoc) => void
+  onMoveSavedToFolder: (id: string, folderId: string | null) => void
 }) {
   const [newName, setNewName] = useState<string | null>(null)
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
+  const [folderDraft, setFolderDraft] = useState<{
+    name: string
+    color: SavedFolderColor
+  } | null>(null)
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const skipBlurConfirmRef = useRef(false)
 
   const confirmNew = () => {
@@ -44,6 +60,23 @@ export function WorkspaceSavedDocsSection({
       if (name) onRenameSaved(renaming.id, name)
     }
     setRenaming(null)
+  }
+  const folderCounts = new Map<string, number>()
+  folderCounts.set('all', creations.length)
+  for (const folder of folders) folderCounts.set(folder.id, 0)
+  for (const item of creations) {
+    if (item.folderId)
+      folderCounts.set(item.folderId, (folderCounts.get(item.folderId) ?? 0) + 1)
+  }
+  const visibleCreations = selectedFolderId
+    ? creations.filter((s) => s.folderId === selectedFolderId)
+    : creations
+
+  const confirmFolder = () => {
+    const name = folderDraft?.name.trim() ?? ''
+    if (!folderDraft || !name) return
+    onCreateFolder({ name, color: folderDraft.color })
+    setFolderDraft(null)
   }
 
   return (
@@ -99,16 +132,31 @@ export function WorkspaceSavedDocsSection({
         </div>
       )}
 
-      {creations.length === 0 ? (
+      <WorkspaceFoldersBar
+        counts={folderCounts}
+        draft={folderDraft}
+        folders={folders}
+        selectedFolderId={selectedFolderId}
+        onCancelDraft={() => setFolderDraft(null)}
+        onChangeDraft={setFolderDraft}
+        onCreateFolder={confirmFolder}
+        onSelectFolder={setSelectedFolderId}
+        onStartDraft={() => setFolderDraft({ name: '', color: 'blue' })}
+      />
+
+      {visibleCreations.length === 0 ? (
         <p className="px-2.5 text-micro text-ink-400">
-          Guarda PDFs y copias para reabrirlas.
+          {creations.length === 0
+            ? 'Guarda PDFs y copias para reabrirlas.'
+            : 'Esa carpeta todavía está vacía.'}
         </p>
       ) : (
         <ul className="flex flex-col gap-1 px-2 pt-1">
-          {creations.map((s) => (
+          {visibleCreations.map((s) => (
             <WorkspaceSavedDocItem
               key={s.id}
               saved={s}
+              folders={folders}
               isRenaming={renaming?.id === s.id}
               renameValue={renaming?.id === s.id ? renaming.value : ''}
               onRenameValueChange={(value) => setRenaming({ id: s.id, value })}
@@ -128,6 +176,7 @@ export function WorkspaceSavedDocsSection({
               onDownload={() => onDownloadSaved(s)}
               onStartRename={() => setRenaming({ id: s.id, value: s.name })}
               onDelete={() => onDeleteSaved(s.id)}
+              onMoveToFolder={(folderId) => onMoveSavedToFolder(s.id, folderId)}
             />
           ))}
         </ul>

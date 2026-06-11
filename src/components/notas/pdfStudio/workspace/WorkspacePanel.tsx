@@ -2,6 +2,8 @@ import { type ImageAsset } from '../../../../lib/pdfStudio/model/model'
 import {
   isSavedTemplate,
   type SavedDoc,
+  type SavedFolder,
+  type SavedFolderColor,
 } from '../../../../lib/pdfStudio/render/persistence'
 import {
   CameraIcon,
@@ -14,22 +16,18 @@ import { WorkspaceSavedDocsSection } from './WorkspaceSavedDocsSection'
 import { WorkspaceTemplatesSection } from './WorkspaceTemplatesSection'
 
 const ACCENT = 'var(--accent-sage)'
-
-/**
- * Panel lateral del workspace con imágenes, planillas reutilizables y creaciones
- * sueltas. Colapsable a un riel finito. Presentacional: el estado y las mutaciones
- * viven en `PdfStudioView`.
- */
 export function WorkspacePanel({
   library,
   onAddImage,
   onRemoveImage,
   onDownloadImage,
   saved,
+  folders,
   templatesEnabled = true,
   canSave,
   canSaveTemplate,
   onSaveCreation,
+  onCreateFolder,
   onSaveTemplate,
   saveTemplateSignal = 0,
   suggestedSaveName,
@@ -37,6 +35,7 @@ export function WorkspacePanel({
   onUseTemplate,
   onDuplicateSaved,
   onRenameSaved,
+  onMoveSavedToFolder,
   onDeleteSaved,
   onDownloadSaved,
   onExportTemplatePackage,
@@ -48,19 +47,20 @@ export function WorkspacePanel({
   onRemoveImage: (id: string) => void
   onDownloadImage: (asset: ImageAsset) => void
   saved: SavedDoc[]
+  folders: SavedFolder[]
   templatesEnabled?: boolean
-  /** Hay algo (hojas) para guardar como creación. */
   canSave: boolean
   canSaveTemplate: boolean
   onSaveCreation: (name: string) => void
+  onCreateFolder: (input: { name: string; color: SavedFolderColor }) => void
   onSaveTemplate: (name: string) => void
   saveTemplateSignal?: number
-  /** Nombre sugerido al guardar una creación (el título del documento). */
   suggestedSaveName?: string
   onOpenSaved: (s: SavedDoc) => void
   onUseTemplate: (s: SavedDoc) => void
   onDuplicateSaved: (s: SavedDoc) => void
   onRenameSaved: (id: string, name: string) => void
+  onMoveSavedToFolder: (id: string, folderId: string | null) => void
   onDeleteSaved: (id: string) => void
   onDownloadSaved: (s: SavedDoc) => void
   onExportTemplatePackage: (s: SavedDoc, format: 'json' | 'csv') => void
@@ -143,12 +143,15 @@ export function WorkspacePanel({
         <WorkspaceSavedDocsSection
           creations={creations}
           canSave={canSave}
+          folders={folders}
           suggestedName={suggestedSaveName}
+          onCreateFolder={onCreateFolder}
           onSaveCreation={onSaveCreation}
           onOpenSaved={onOpenSaved}
           onRenameSaved={onRenameSaved}
           onDeleteSaved={onDeleteSaved}
           onDownloadSaved={onDownloadSaved}
+          onMoveSavedToFolder={onMoveSavedToFolder}
         />
       </div>
     </aside>
