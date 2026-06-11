@@ -151,9 +151,73 @@ describe('multiuser smoke env', () => {
           E2E_USER_B_ID: 'user_b',
         },
         createClerkClient: vi.fn(() => clerkClient),
+        allowBrowserTokenFallback: false,
       }),
     ).rejects.toThrow(
       'Clerk rechazo createSession para E2E_USER_A_ID (status 400): Bad Request',
     )
+  })
+
+  test('usa sign-in token en navegador cuando Clerk rechaza createSession', async () => {
+    const clerkClient = {
+      sessions: {
+        createSession: vi.fn(async () => {
+          const error = new Error('Bad Request')
+          error.status = 400
+          throw error
+        }),
+        getToken: vi.fn(),
+        revokeSession: vi.fn(),
+      },
+      users: {
+        getUser: vi.fn(async (userId) => ({
+          id: userId,
+          primaryEmailAddressId: `email-${userId}`,
+          emailAddresses: [
+            {
+              id: `email-${userId}`,
+              emailAddress: `${userId}@example.com`,
+            },
+          ],
+        })),
+      },
+    }
+    const browserTokenProvider = vi.fn(async ({ userId, userLabel, baseUrl }) => ({
+      jwt: `browser-jwt-${userId}-${userLabel}-${baseUrl}`,
+    }))
+
+    const result = await resolveMultiuserSmokeEnv({
+      env: {
+        E2E_BASE_URL: 'https://trama.example',
+        CLERK_SECRET_KEY: 'sk_test_real_secret',
+        E2E_USER_A_ID: 'user_a',
+        E2E_USER_B_ID: 'user_b',
+      },
+      createClerkClient: vi.fn(() => clerkClient),
+      browserTokenProvider,
+    })
+
+    expect(result.mode).toBe('minted-clerk-browser-tokens')
+    expect(result.env.E2E_USER_A_TOKEN).toBe(
+      'browser-jwt-user_a-E2E_USER_A_ID-https://trama.example',
+    )
+    expect(result.env.E2E_USER_B_TOKEN).toBe(
+      'browser-jwt-user_b-E2E_USER_B_ID-https://trama.example',
+    )
+    expect(browserTokenProvider).toHaveBeenCalledWith({
+      clerkClient,
+      userId: 'user_a',
+      userLabel: 'E2E_USER_A_ID',
+      baseUrl: 'https://trama.example',
+      expiresInSeconds: 600,
+    })
+    expect(browserTokenProvider).toHaveBeenCalledWith({
+      clerkClient,
+      userId: 'user_b',
+      userLabel: 'E2E_USER_B_ID',
+      baseUrl: 'https://trama.example',
+      expiresInSeconds: 600,
+    })
+    await expect(result.cleanup()).resolves.toBeUndefined()
   })
 })

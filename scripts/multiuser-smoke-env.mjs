@@ -125,17 +125,117 @@ async function revokeCreatedSessions(clerkClient, sessions) {
   )
 }
 
+async function revokeSignInToken(clerkClient, signInToken) {
+  if (!signInToken?.id || !clerkClient.signInTokens?.revokeSignInToken) return
+  await clerkClient.signInTokens.revokeSignInToken(signInToken.id)
+}
+
+function errorMessage(error) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+async function mintTokenWithBrowserSignIn({
+  clerkClient,
+  userId,
+  userLabel,
+  baseUrl,
+  expiresInSeconds,
+}) {
+  let signInToken
+  try {
+    signInToken = await clerkClient.signInTokens.createSignInToken({
+      userId,
+      expiresInSeconds,
+    })
+  } catch (error) {
+    throw wrapClerkError(`createSignInToken para ${userLabel}`, error)
+  }
+
+  if (!signInToken?.url) {
+    throw new Error(`Clerk no devolvio URL de sign-in token para ${userLabel}.`)
+  }
+
+  const { chromium } = await import('playwright')
+  const browser = await chromium.launch({ headless: true })
+
+  try {
+    const context = await browser.newContext({ baseURL: baseUrl })
+    const page = await context.newPage()
+
+    await page.goto(signInToken.url, {
+      waitUntil: 'domcontentloaded',
+      timeout: 45_000,
+    })
+    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {})
+
+    if (!page.url().startsWith(baseUrl)) {
+      await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 45_000 })
+      await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {})
+    }
+
+    await page.waitForFunction(
+      async () => {
+        const clerk = globalThis.Clerk ?? globalThis.__clerk
+        if (!clerk) return false
+        if (typeof clerk.load === 'function') await clerk.load()
+        return Boolean(clerk.session?.getToken)
+      },
+      null,
+      { timeout: 45_000 },
+    )
+
+    const jwt = await page.evaluate(async () => {
+      const clerk = globalThis.Clerk ?? globalThis.__clerk
+      if (!clerk) return null
+      if (typeof clerk.load === 'function') await clerk.load()
+      return (await clerk.session?.getToken?.()) ?? null
+    })
+
+    if (!jwt) {
+      throw new Error(`Clerk no devolvio JWT de navegador para ${userLabel}.`)
+    }
+
+    return { jwt }
+  } catch (error) {
+    await revokeSignInToken(clerkClient, signInToken).catch(() => undefined)
+    throw new Error(
+      `No se pudo obtener JWT de navegador para ${userLabel}: ${errorMessage(error)}`,
+      { cause: error },
+    )
+  } finally {
+    await browser.close()
+  }
+}
+
 async function mintTokenForUser(
   clerkClient,
   userId,
   userLabel,
   expiresInSeconds,
   createdSessionIds,
+  { allowBrowserTokenFallback, browserTokenProvider, baseUrl, fallbackState },
 ) {
   let session
   try {
     session = await clerkClient.sessions.createSession({ userId })
   } catch (error) {
+    if (allowBrowserTokenFallback) {
+      const provider = browserTokenProvider ?? mintTokenWithBrowserSignIn
+      const token = await provider({
+        clerkClient,
+        userId,
+        userLabel,
+        baseUrl,
+        expiresInSeconds,
+      })
+      if (!token?.jwt) {
+        throw new Error(`Clerk no devolvio JWT de fallback para ${userLabel}.`, {
+          cause: error,
+        })
+      }
+      fallbackState.used = true
+      return token.jwt
+    }
     throw wrapClerkError(`createSession para ${userLabel}`, error)
   }
   if (!session?.id) {
@@ -160,6 +260,8 @@ async function mintTokenForUser(
 export async function resolveMultiuserSmokeEnv({
   env = process.env,
   createClerkClient,
+  browserTokenProvider,
+  allowBrowserTokenFallback = true,
 } = {}) {
   const hasBase = missingKeys(env, BASE_ENV).length === 0
   const hasManualTokens =
@@ -180,6 +282,7 @@ export async function resolveMultiuserSmokeEnv({
   const factory = createClerkClient ?? (await loadCreateClerkClient())
   const clerkClient = factory({ secretKey: env.CLERK_SECRET_KEY })
   const createdSessionIds = []
+  const fallbackState = { used: false }
   const expiresInSeconds = getTokenTtlSeconds(env)
 
   try {
@@ -197,6 +300,12 @@ export async function resolveMultiuserSmokeEnv({
       'E2E_USER_A_ID',
       expiresInSeconds,
       createdSessionIds,
+      {
+        allowBrowserTokenFallback,
+        browserTokenProvider,
+        baseUrl: env.E2E_BASE_URL,
+        fallbackState,
+      },
     )
     const userBToken = await mintTokenForUser(
       clerkClient,
@@ -204,10 +313,16 @@ export async function resolveMultiuserSmokeEnv({
       'E2E_USER_B_ID',
       expiresInSeconds,
       createdSessionIds,
+      {
+        allowBrowserTokenFallback,
+        browserTokenProvider,
+        baseUrl: env.E2E_BASE_URL,
+        fallbackState,
+      },
     )
 
     return {
-      mode: 'minted-clerk-tokens',
+      mode: fallbackState.used ? 'minted-clerk-browser-tokens' : 'minted-clerk-tokens',
       env: {
         ...process.env,
         ...env,
