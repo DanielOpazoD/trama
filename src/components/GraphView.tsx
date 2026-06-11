@@ -67,7 +67,7 @@ const EXPLORE_HINT_THRESHOLD = 2000
 // Sobre este número, el renderer cambia automáticamente a WebGL (sigma.js).
 // El SVG es rico (drop shadows, drift, etc.) pero al cruzar 1k nodos
 // el render se vuelve perceptiblemente lento. WebGL pinta 10k+ sin sudar.
-const WEBGL_THRESHOLD = 1000
+const WEBGL_THRESHOLD = 600
 
 export default function GraphView({
   selectedId,
@@ -184,7 +184,7 @@ export default function GraphView({
     return () => observer.disconnect()
   }, [])
 
-  const { positions, setPosition, reorganize } = useGraphLayout({
+  const { positions, setPosition, reorganize, computing } = useGraphLayout({
     mode,
     nodes: entities,
     edges: relationships,
@@ -407,6 +407,19 @@ export default function GraphView({
             if (suggest.error) suggest.reset()
           }}
         />
+      )}
+
+      {/* Voz de espera mientras el worker teje un layout grande — sin
+          esto, miles de nodos significan segundos de blanco silencioso. */}
+      {computing && (
+        <div
+          role="status"
+          className="pointer-events-none absolute inset-x-0 top-16 z-10 flex justify-center"
+        >
+          <span className="rounded-full border border-ink-100/70 bg-paper-50/90 px-3 py-1 text-caption font-serif italic text-ink-400 shadow-sm backdrop-blur-sm">
+            tejiendo el grafo…
+          </span>
+        </div>
       )}
 
       {/* Renderer switch: WebGL via sigma cuando entidades ≥ 1000 en modo

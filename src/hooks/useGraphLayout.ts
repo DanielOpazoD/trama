@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Entity, Relationship } from '../types'
-import { byDegreeLayout } from './layouts/byDegree'
-import { byTypeLayout } from './layouts/byType'
-import { byYearLayout } from './layouts/byYear'
-import { organicLayout } from './layouts/organic'
+import {
+  computeLayout,
+  type LayoutComputeRequest,
+  type LayoutComputeResponse,
+} from './layouts/layoutCompute'
 import type { LayoutEdge, LayoutMode, LayoutNode, Position } from './layouts/types'
+
+// Umbral para mandar el layout al Worker: por debajo, el cálculo síncrono
+// es más barato que el round-trip de postMessage. Por encima (cientos de
+// nodos con simulación de fuerzas), el worker evita congelar la UI.
+const WORKER_THRESHOLD_NODES = 250
 import {
   graphHashToSignature,
   hashGraphPart,
@@ -67,6 +73,10 @@ export function useGraphLayout({ mode, nodes, edges }: Options) {
   const [positions, setPositions] = useState<Map<string, Position>>(new Map())
   // Forces a recompute when the user hits "reorganizar".
   const [reseed, setReseed] = useState(0)
+  const workerRef = useRef<Worker | null>(null)
+  const seqRef = useRef(0)
+  // true mientras el worker teje un layout grande (la UI puede decirlo).
+  const [computing, setComputing] = useState(false)
 
   const layoutNodes: LayoutNode[] = nodes.map((n) => ({
     id: n.id,
@@ -89,37 +99,81 @@ export function useGraphLayout({ mode, nodes, edges }: Options) {
       return
     }
 
-    let result: Map<string, Position>
-
+    const seedEntries: [string, Position][] = []
     if (input.mode === 'organic') {
-      const seed = new Map<string, Position>()
       for (const n of input.nodes) {
         if (n.positionX !== undefined && n.positionY !== undefined) {
-          seed.set(n.id, { x: n.positionX, y: n.positionY })
+          seedEntries.push([n.id, { x: n.positionX, y: n.positionY }])
         } else if (input.reseed === 0) {
           const cached = cacheRef.current.get(n.id)
-          if (cached) seed.set(n.id, cached)
+          if (cached) seedEntries.push([n.id, cached])
         }
       }
-      result = organicLayout(input.layoutNodes, input.layoutEdges, {
-        seed,
-        // When the user explicitly hit reorganizar (reseed > 0), throw the
-        // persisted positions away and treat them as warm seeds only.
-        fixSeeded: input.reseed === 0,
-      })
-    } else if (input.mode === 'by-type') {
-      result = byTypeLayout(input.layoutNodes, input.layoutEdges, input.reseed)
-    } else if (input.mode === 'by-year') {
-      result = byYearLayout(input.layoutNodes, input.reseed)
-    } else {
-      result = byDegreeLayout(input.layoutNodes, input.layoutEdges, input.reseed)
+    }
+    const req: LayoutComputeRequest = {
+      mode: input.mode,
+      layoutNodes: input.layoutNodes,
+      layoutEdges: input.layoutEdges,
+      reseed: input.reseed,
+      seedEntries,
+      // When the user explicitly hit reorganizar (reseed > 0), throw the
+      // persisted positions away and treat them as warm seeds only.
+      fixSeeded: input.reseed === 0,
     }
 
-    if (input.mode === 'organic') {
-      for (const [id, p] of result) cacheRef.current.set(id, p)
+    const apply = (entries: LayoutComputeResponse) => {
+      const result = new Map(entries)
+      if (input.mode === 'organic') {
+        for (const [id, p] of result) cacheRef.current.set(id, p)
+      }
+      setComputing(false)
+      setPositions(result)
     }
-    setPositions(result)
+
+    // Grafos grandes → Worker (la simulación de fuerzas no congela la UI).
+    // Grafos chicos o entorno sin Worker (tests) → cálculo síncrono.
+    if (
+      input.layoutNodes.length >= WORKER_THRESHOLD_NODES &&
+      typeof Worker !== 'undefined'
+    ) {
+      const seq = ++seqRef.current
+      try {
+        if (!workerRef.current) {
+          workerRef.current = new Worker(
+            new URL('./layouts/layout.worker.ts', import.meta.url),
+            { type: 'module' },
+          )
+        }
+        const worker = workerRef.current
+        worker.onmessage = (
+          event: MessageEvent<{ seq: number; entries: LayoutComputeResponse }>,
+        ) => {
+          // Respuestas viejas (otro layout pedido mientras tanto) se descartan.
+          if (event.data.seq !== seqRef.current) return
+          apply(event.data.entries)
+        }
+        worker.onerror = () => {
+          // Worker roto (CSP, build exótico): degradar a síncrono.
+          if (seq !== seqRef.current) return
+          apply(computeLayout(req))
+        }
+        setComputing(true)
+        worker.postMessage({ seq, req })
+        return
+      } catch {
+        /* new Worker falló — síncrono */
+      }
+    }
+    apply(computeLayout(req))
   }, [layoutSignature])
+
+  // El worker vive lo que vive el componente.
+  useEffect(() => {
+    return () => {
+      workerRef.current?.terminate()
+      workerRef.current = null
+    }
+  }, [])
 
   const setPosition = useCallback((id: string, x: number, y: number) => {
     cacheRef.current.set(id, { x, y })
@@ -134,5 +188,5 @@ export function useGraphLayout({ mode, nodes, edges }: Options) {
     setReseed((n) => n + 1)
   }, [])
 
-  return { positions, setPosition, reorganize }
+  return { positions, setPosition, reorganize, computing }
 }
