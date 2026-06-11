@@ -12,6 +12,7 @@
  */
 import { createClerkClient, verifyToken } from '@clerk/backend'
 import { setCurrentRlsUser } from './user-rls'
+import { isPersonalToken, resolvePersonalToken } from './personal-tokens'
 
 /** Lee una env var de forma segura tanto en Netlify runtime como en tests. */
 function readEnv(key: string): string | undefined {
@@ -103,6 +104,18 @@ async function fetchEmailFromClerk(sub: string): Promise<string | undefined> {
  */
 export async function getAuthedUser(request: Request): Promise<AuthedUser> {
   const clerkConfigured = Boolean(readEnv('CLERK_SECRET_KEY'))
+  const bearer = request.headers.get('authorization')?.replace('Bearer ', '').trim()
+
+  // Token personal (extensión de Chrome): `trama_pat_*` se resuelve por
+  // hash contra api_tokens — vale CON o SIN Clerk configurado. Un PAT
+  // inválido NO cae al fallback legacy (sería escalar a otra cuenta).
+  if (bearer && isPersonalToken(bearer)) {
+    const ownerId = await resolvePersonalToken(bearer)
+    if (!ownerId) throw new UnauthenticatedError()
+    const user = { id: ownerId }
+    setCurrentRlsUser(user.id)
+    return user
+  }
 
   // Sin Clerk: la app funciona como single-user. No hace falta opt-in.
   if (!clerkConfigured) {
@@ -111,7 +124,7 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
     return user
   }
 
-  const token = request.headers.get('authorization')?.replace('Bearer ', '').trim()
+  const token = bearer
 
   if (token) {
     try {
