@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { MomentosView } from './MomentosView'
-import { renderWithProviders } from '../test-utils'
+import { makeQueryClient, renderWithProviders } from '../test-utils'
+import { queryKeys } from '../state/queryClient'
 
 /**
  * Smoke tests para MomentosView. Verifica el render del shell (header,
@@ -95,5 +96,31 @@ describe('<MomentosView />', () => {
       screen.getByRole('heading', { name: /compartir momentos/i }),
     ).toBeInTheDocument()
     expect(screen.getByLabelText(/correo/i)).toBeInTheDocument()
+  })
+
+  it('no duplica invitaciones pendientes en el cuerpo de Momentos', async () => {
+    const queryClient = makeQueryClient()
+    queryClient.setQueryData(queryKeys.momentoShareInvitations, {
+      items: [
+        {
+          id: 'inv1',
+          inviterUserId: 'user-papa',
+          inviterDisplayName: 'Papá',
+          inviteeEmail: 'mama@example.com',
+          role: 'editor',
+          status: 'pending',
+          createdAt: '2026-06-10T12:00:00.000Z',
+          updatedAt: '2026-06-10T12:00:00.000Z',
+        },
+      ],
+    })
+
+    renderWithProviders(<MomentosView />, { queryClient })
+
+    await screen.findByRole('button', { name: /compartir momentos/i })
+    expect(
+      screen.queryByText(/Papá compartió sus Momentos contigo/i),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Invitaciones de momentos/i)).not.toBeInTheDocument()
   })
 })

@@ -39,12 +39,12 @@ export function MomentoShareInvitationCard({
           </p>
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-end gap-2">
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         <button
           type="button"
           disabled={pending}
           onClick={() => onRespond(invitation.id, 'reject')}
-          className="rounded-md border border-ink-100 px-2.5 py-1.5 text-sm text-ink-500 transition-colors hover:border-ink-200 hover:text-ink-700 disabled:opacity-50"
+          className="w-full rounded-md border border-ink-100 px-3 py-2 text-sm text-ink-500 transition-colors hover:border-ink-200 hover:text-ink-700 disabled:opacity-50 sm:w-auto"
           aria-label={`Rechazar invitación de ${inviter}`}
         >
           Rechazar
@@ -53,7 +53,7 @@ export function MomentoShareInvitationCard({
           type="button"
           disabled={pending}
           onClick={() => onRespond(invitation.id, 'accept')}
-          className="rounded-md bg-ink-900 px-2.5 py-1.5 text-sm text-paper-50 transition-opacity disabled:opacity-50"
+          className="w-full rounded-md bg-ink-900 px-3 py-2 text-sm text-white transition-opacity disabled:opacity-50 sm:w-auto"
           aria-label={`Aceptar invitación de ${inviter}`}
         >
           Aceptar

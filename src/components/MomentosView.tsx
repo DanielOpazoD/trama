@@ -3,8 +3,6 @@ import {
   useInfiniteMomentosQuery,
   useDeleteMomento,
   useEntitiesQuery,
-  useMomentoShareInvitationsQuery,
-  useRespondMomentoShareInvitation,
   useToast,
 } from '../state'
 import type { Entity, MomentoKind } from '../types'
@@ -22,7 +20,6 @@ import { MomentoSkeleton, SkeletonList } from './Skeleton'
 import { formatDateHeading, groupByDay } from './momentos/helpers'
 import { useMomentoComposer } from './momentos/useMomentoComposer'
 import { ViewHeader } from './ViewHeader'
-import { MomentosShareInvitations } from './momentos/MomentosShareInvitations'
 import { MomentoShareModal } from './momentos/MomentoShareModal'
 
 /**
@@ -51,8 +48,6 @@ export function MomentosView() {
   const deleteMomento = useDeleteMomento()
   const { data: entities = [] } = useEntitiesQuery()
   const toast = useToast()
-  const invitationsQuery = useMomentoShareInvitationsQuery()
-  const respondInvitation = useRespondMomentoShareInvitation()
 
   // τ-mobile-bridge: kind inicial controlado por `?compose=`. Al
   // escanear el QR de Momentos desde el celular, la URL viene con
@@ -158,28 +153,6 @@ export function MomentosView() {
       {/* Si se llega por `?compose=` (QR/celular), el composer arranca expandido;
           en la vista normal arranca colapsado para no dominar el alto. */}
       <MomentoComposer composer={composer} defaultExpanded={initialKind !== undefined} />
-
-      <MomentosShareInvitations
-        items={invitationsQuery.data?.items ?? []}
-        pending={respondInvitation.isPending}
-        onRespond={async (id, action) => {
-          try {
-            await respondInvitation.mutateAsync({ id, action })
-            toast.show({
-              message:
-                action === 'accept'
-                  ? 'Momentos compartidos agregados.'
-                  : 'Invitación rechazada.',
-              tone: action === 'accept' ? 'success' : 'default',
-            })
-          } catch (err) {
-            toast.show({
-              message: err instanceof Error ? err.message : 'No se pudo responder',
-              tone: 'error',
-            })
-          }
-        }}
-      />
 
       {/* ω-D: banner del filtro por día cuando viene del heatmap. */}
       {dayFilter && (
