@@ -43,7 +43,8 @@ npm run e2e:multiuser -- --project=chromium
 
 El script crea sesiones efímeras en Clerk, obtiene JWTs para A/B, resuelve el
 correo de B para aceptar invitaciones y revoca las sesiones al terminar. También
-se puede lanzar desde GitHub Actions con el workflow manual `multiuser-smoke`.
+se puede lanzar desde GitHub Actions con `workflow_dispatch` del workflow
+`test`, activando `run_multiuser_smoke`.
 
 El smoke verifica, creando y soft-borrando sus propias fixtures:
 

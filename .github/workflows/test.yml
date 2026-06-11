@@ -5,6 +5,22 @@ on:
     branches: [main]
   pull_request:
     branches: [main, 'codex/trama-pr*']
+  workflow_dispatch:
+    inputs:
+      run_standard_ci:
+        description: 'Correr lint/unit/e2e/secrets/migrations además del smoke manual'
+        required: false
+        type: boolean
+        default: false
+      run_multiuser_smoke:
+        description: 'Correr smoke real multiusuario con usuarios Clerk A/B'
+        required: false
+        type: boolean
+        default: true
+      base_url:
+        description: 'URL real a probar (si queda vacio usa vars.E2E_BASE_URL)'
+        required: false
+        type: string
 
 # R1: el workflow se dividió en jobs paralelos:
 #
@@ -22,6 +38,7 @@ on:
 
 jobs:
   lint:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_standard_ci }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -57,6 +74,7 @@ jobs:
         run: npm run check:migration-duplicates
 
   unit:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_standard_ci }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -101,6 +119,7 @@ jobs:
         run: node scripts/check-bundle-size.mjs
 
   e2e:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_standard_ci }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -129,12 +148,46 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  multiuser-smoke:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_multiuser_smoke }}
+    runs-on: ubuntu-latest
+    env:
+      E2E_BASE_URL: ${{ inputs.base_url || vars.E2E_BASE_URL }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      E2E_USER_A_ID: ${{ secrets.E2E_USER_A_ID }}
+      E2E_USER_B_ID: ${{ secrets.E2E_USER_B_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Check required multiuser smoke config
+        run: |
+          missing=0
+          for key in E2E_BASE_URL CLERK_SECRET_KEY E2E_USER_A_ID E2E_USER_B_ID; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Falta $key para correr el smoke multiusuario real"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run real multiuser smoke
+        run: npm run e2e:multiuser -- --project=chromium
+
   # D4: secret scanning. gitleaks escanea TODO el historial de git
   # (fetch-depth: 0) contra el ruleset por defecto + la allowlist de
   # .gitleaks.toml. Si encuentra una clave commiteada, falla el merge.
   # Bajamos un binario pinneado en vez de la action oficial para evitar
   # el chequeo de licencia de org y mantener el job determinístico.
   secrets:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_standard_ci }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -160,6 +213,7 @@ jobs:
   # Usa la MISMA imagen que docker-compose.yml (pgvector/pgvector:pg16) para
   # que "pasa en CI" implique "anda con db:up local".
   migrations:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_standard_ci }}
     runs-on: ubuntu-latest
     services:
       postgres:

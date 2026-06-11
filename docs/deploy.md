@@ -103,10 +103,11 @@ Antes de abrir PR, confirmar:
   smoke pueda aceptar la invitación de Momentos. Opcionalmente, ajustar la vida
   de esos tokens con `E2E_CLERK_TOKEN_TTL_SECONDS` (default: 600 segundos).
 
-  También existe un workflow manual (`multiuser-smoke`) para correrlo desde
-  GitHub Actions contra un deploy real. Requiere `vars.E2E_BASE_URL` o el input
-  `base_url`, más los secrets `CLERK_SECRET_KEY`, `E2E_USER_A_ID` y
-  `E2E_USER_B_ID`.
+  También se puede correr desde GitHub Actions usando `workflow_dispatch` del
+  workflow `test`: dejar `run_multiuser_smoke=true`, pasar `base_url` o definir
+  `vars.E2E_BASE_URL`, y configurar los secrets `CLERK_SECRET_KEY`,
+  `E2E_USER_A_ID` y `E2E_USER_B_ID`. En una rama stacked se puede disparar con
+  `gh workflow run test.yml --ref <rama> -f run_multiuser_smoke=true -f base_url=https://...`.
 
 - Alternativa manual, útil para una prueba local puntual después de iniciar
   sesión en el navegador:
