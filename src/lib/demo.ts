@@ -109,6 +109,7 @@ type Store = {
   prompts: Row[]
   secrets: Row[]
   notas_attachments: Row[]
+  recortes: Row[]
   momento_comments: Row[]
   momento_reactions: Row[]
   month_notes: Row[]
@@ -435,6 +436,39 @@ function buildSeed(): Store {
     }),
   ]
 
+  const recortes: Row[] = [
+    {
+      id: uid(),
+      text: 'La memoria no es un archivo sino un taller: cada recuerdo se reescribe al ser convocado.',
+      source_url: 'https://example.com/ensayo-memoria',
+      source_title: 'El taller de la memoria',
+      source_author: 'Revista Otra Parte',
+      note: 'conecta con lo de Borges y el olvido',
+      image_url: null,
+      status: 'pending',
+      promoted_target: null,
+      promoted_id: null,
+      captured_at: daysAgo(1),
+      created_at: daysAgo(1),
+      updated_at: daysAgo(1),
+    },
+    {
+      id: uid(),
+      text: 'Leer es siempre releer, incluso la primera vez.',
+      source_url: 'https://example.com/sobre-releer',
+      source_title: 'Sobre releer',
+      source_author: null,
+      note: null,
+      image_url: null,
+      status: 'pending',
+      promoted_target: null,
+      promoted_id: null,
+      captured_at: daysAgo(3),
+      created_at: daysAgo(3),
+      updated_at: daysAgo(3),
+    },
+  ]
+
   return {
     entities,
     relationships,
@@ -445,6 +479,7 @@ function buildSeed(): Store {
     prompts: [],
     secrets: [],
     notas_attachments: [],
+    recortes,
     momento_comments: [],
     momento_reactions: [],
     month_notes: [],
@@ -467,6 +502,7 @@ function load(): Store {
         prompts: parsed.prompts ?? [],
         secrets: parsed.secrets ?? [],
         notas_attachments: parsed.notas_attachments ?? [],
+        recortes: parsed.recortes ?? [],
         momento_comments: parsed.momento_comments ?? [],
         momento_reactions: parsed.momento_reactions ?? [],
         month_notes: parsed.month_notes ?? [],
@@ -607,6 +643,7 @@ function route(
     prompts: store.prompts,
     secrets: store.secrets,
     'notas-attachments': store.notas_attachments,
+    recortes: store.recortes,
   }
   const rows = collections[resource]
 
@@ -739,6 +776,16 @@ function route(
       n.updated_at = nowIso()
       save(store)
       return { momentoId }
+    }
+    if (resource === 'recortes' && id && action === 'promote' && method === 'POST') {
+      const r = findLive(store.recortes, id)
+      if (!r) throw new Error('Recorte no encontrado')
+      r.status = 'promoted'
+      r.promoted_target = (body as { target?: string }).target ?? null
+      r.promoted_id = (body as { promotedId?: string }).promotedId ?? null
+      r.updated_at = nowIso()
+      save(store)
+      return r
     }
     if (resource === 'quotes' && id && action === 'reflect') aiOff()
     if (resource === 'quotes' && id && action === 'echoes') return []

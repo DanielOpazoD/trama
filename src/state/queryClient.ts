@@ -31,6 +31,8 @@ export const queryKeys = {
   momentoShareAccess: ['momentos', 'share-access'] as const,
   momentoFeedback: (momentoId: string) => ['momentos', 'feedback', momentoId] as const,
   notes: ['notes'] as const,
+  recortes: ['recortes'] as const,
+  apiTokens: ['api-tokens'] as const,
   // ['tasks'] es el prefijo de TODOS los queries de tareas (completo, por rango,
   // pendientes); invalidar este prefijo refresca cualquier variante en cache.
   tasks: ['tasks'] as const,
