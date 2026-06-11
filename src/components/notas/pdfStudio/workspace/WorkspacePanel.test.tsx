@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
   addPdfFormField,
@@ -432,5 +432,93 @@ describe('<WorkspacePanel /> · planillas', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /Eliminar carpeta/i }))
     expect(props.onDeleteFolder).toHaveBeenCalledWith('folder-1')
     expect(props.onDeleteSaved).not.toHaveBeenCalled()
+  })
+
+  it('muestra una cabecera editorial al abrir una carpeta', () => {
+    setup({
+      folders: [{ id: 'folder-1', name: 'Protocolos', color: 'orange', createdAt: 100 }],
+      saved: [
+        {
+          id: 'doc-1',
+          name: 'Consentimiento',
+          doc: addPdfSource(emptyDoc(), pdf(), 1),
+          savedAt: new Date('2026-06-11T10:30:00').getTime(),
+          folderId: 'folder-1',
+        },
+      ],
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Abrir carpeta Protocolos/i }))
+
+    const header = screen.getByRole('group', { name: /Carpeta Protocolos/i })
+    expect(header).toHaveTextContent('Protocolos')
+    expect(header).toHaveTextContent('1 documento')
+    expect(header).toHaveTextContent(/Última actualización/i)
+  })
+
+  it('busca y ordena PDFs y copias dentro del archivo', () => {
+    setup({
+      saved: [
+        {
+          id: 'doc-1',
+          name: 'Zeta alta',
+          doc: addPdfSource(emptyDoc(), pdf(), 1),
+          savedAt: 1000,
+        },
+        {
+          id: 'doc-2',
+          name: 'Anexo gastro',
+          doc: addPdfSource(emptyDoc(), pdf(), 1),
+          savedAt: 2000,
+        },
+      ],
+    })
+
+    fireEvent.change(screen.getByRole('searchbox', { name: /Buscar PDFs y copias/i }), {
+      target: { value: 'gastro' },
+    })
+
+    expect(screen.getByText('Anexo gastro')).toBeInTheDocument()
+    expect(screen.queryByText('Zeta alta')).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('searchbox', { name: /Buscar PDFs y copias/i }), {
+      target: { value: '' },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: /Ordenar PDFs y copias/i }), {
+      target: { value: 'name' },
+    })
+
+    const items = screen.getAllByRole('listitem').map((item) => item.textContent ?? '')
+    expect(items[0]).toContain('Anexo gastro')
+    expect(items[1]).toContain('Zeta alta')
+  })
+
+  it('muestra chips discretos de carpeta y confirma el movimiento', () => {
+    const props = setup({
+      folders: [{ id: 'folder-1', name: 'Protocolos', color: 'green', createdAt: 100 }],
+      saved: [
+        {
+          id: 'doc-1',
+          name: 'Consentimiento',
+          doc: addPdfSource(emptyDoc(), pdf(), 1),
+          savedAt: 1000,
+          folderId: 'folder-1',
+        },
+      ],
+    })
+
+    expect(
+      within(screen.getByRole('listitem', { name: /Consentimiento/i })).getByText(
+        'Protocolos',
+      ),
+    ).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Más acciones de Consentimiento/i }),
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: /Sacar de carpeta/i }))
+
+    expect(props.onMoveSavedToFolder).toHaveBeenCalledWith('doc-1', null)
+    expect(screen.getByRole('status')).toHaveTextContent('Movido a Todas')
   })
 })
