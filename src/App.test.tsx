@@ -348,8 +348,8 @@ vi.mock('./components/ShortcutsModal', () => ({
     ) : null,
 }))
 
-vi.mock('./components/Sortes', () => ({
-  Sortes: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
+vi.mock('./components/Atril', () => ({
+  Atril: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
     open ? (
       <div>
         sortes open

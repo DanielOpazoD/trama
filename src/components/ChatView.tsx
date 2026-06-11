@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useDeferredValue,
   useEffect,
   useLayoutEffect,
@@ -21,6 +22,7 @@ import { MessageBubble } from './chat/MessageBubble'
 import { EmptyChatHint } from './chat/EmptyChatHint'
 import { FilterChip } from './chat/FilterChip'
 import { defaultTitleFor, threadSubtitle } from './chat/threadLabels'
+import { sessionBreakLabel } from './chat/sessionBreaks'
 
 export function ChatView({
   initialThreadId,
@@ -310,9 +312,28 @@ export function ChatView({
             <EmptyChatHint />
           ) : (
             <ul className="space-y-5 max-w-2xl mx-auto">
-              {deferredMessages.map((m) => (
-                <MessageBubble key={m.id} message={m} />
-              ))}
+              {deferredMessages.map((m, i) => {
+                // Separador de sesión: el hilo retomado otro día se marca
+                // como capítulo, no como continuación silenciosa.
+                const breakLabel = sessionBreakLabel(
+                  deferredMessages[i - 1]?.createdAt,
+                  m.createdAt,
+                )
+                return (
+                  <Fragment key={m.id}>
+                    {breakLabel && (
+                      <li className="flex items-center gap-3 py-1" role="separator">
+                        <span aria-hidden className="flex-1 h-px bg-ink-100/70" />
+                        <span className="font-serif text-micro uppercase tracking-eyebrow text-ink-300">
+                          · {breakLabel} ·
+                        </span>
+                        <span aria-hidden className="flex-1 h-px bg-ink-100/70" />
+                      </li>
+                    )}
+                    <MessageBubble message={m} threadTitle={activeThread?.title} />
+                  </Fragment>
+                )
+              })}
               {sendPending &&
                 deferredMessages[deferredMessages.length - 1]?.role !== 'assistant' && (
                   // ζ11: indicador "pensando" en lenguaje editorial. En vez

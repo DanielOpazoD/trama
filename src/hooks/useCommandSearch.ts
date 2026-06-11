@@ -78,8 +78,8 @@ const ACTIONS: Array<{ action: CommandAction; label: string; hint: string }> = [
   { action: 'new-momento', label: 'Nuevo momento', hint: 'nota, recorte o foto del día' },
   {
     action: 'open-sortes',
-    label: 'Sortes',
-    hint: 'una cita al azar para releer · suerte del día',
+    label: 'Atril',
+    hint: 'releer el archivo · cita del día · sortes · al azar',
   },
   {
     action: 'open-espejo',

@@ -55,9 +55,7 @@ const CommandPalette = lazy(() =>
 const ShortcutsModal = lazy(() =>
   import('./components/ShortcutsModal').then((m) => ({ default: m.ShortcutsModal })),
 )
-const Sortes = lazy(() =>
-  import('./components/Sortes').then((m) => ({ default: m.Sortes })),
-)
+const Atril = lazy(() => import('./components/Atril').then((m) => ({ default: m.Atril })))
 const Espejo = lazy(() =>
   import('./components/Espejo').then((m) => ({ default: m.Espejo })),
 )
@@ -496,11 +494,12 @@ function Shell({
         </Suspense>
       )}
 
-      {/* Sortes — segunda lectura: una cita al azar del propio archivo, a
-          pantalla completa. Se abre desde el TopBar o el command palette. */}
+      {/* Atril — el archivo en el atril: cita del día, hojear con flechas,
+          dado para volver a sortear. Se abre desde el TopBar o el palette.
+          (Absorbió a Sortes; la acción sigue siendo 'open-sortes'.) */}
       {sortesOpen && (
         <Suspense fallback={null}>
-          <Sortes open={sortesOpen} onClose={() => setSortesOpen(false)} />
+          <Atril open={sortesOpen} onClose={() => setSortesOpen(false)} />
         </Suspense>
       )}
 

@@ -183,16 +183,18 @@ ${quotesBlock}`
 }
 
 /**
- * Build a prompt that asks the LLM for a short title for a thread, given the
- * first user message. Used to label threads in the sidebar.
+ * Título de hilo derivado de la primera pregunta — truncado TIPOGRÁFICO,
+ * sin llamada al LLM. La pregunta del usuario ya es el mejor título; un
+ * resumen generado agrega latencia, costo y una voz que no es la suya.
+ * Corta en límite de palabra (~56 chars) y cierra con elipsis.
  */
-export function buildChatTitlePrompt(firstUserMessage: string): LLMMessage[] {
-  return [
-    {
-      role: 'system',
-      content:
-        'Genera un título MUY corto (máximo 6 palabras, sin comillas, sin punto final) en español que resuma el tema de este mensaje. Devuelve SOLO el título, sin nada más.',
-    },
-    { role: 'user', content: firstUserMessage },
-  ]
+export function deriveThreadTitle(firstUserMessage: string): string {
+  const MAX = 56
+  const flat = firstUserMessage.replace(/\s+/g, ' ').trim()
+  if (flat.length <= MAX) return flat
+  const cut = flat.slice(0, MAX + 1)
+  const lastSpace = cut.lastIndexOf(' ')
+  // Si la última palabra es interminable (sin espacios útiles), corte duro.
+  const head = lastSpace > 24 ? cut.slice(0, lastSpace) : cut.slice(0, MAX)
+  return `${head.replace(/[\s,.;:¡!¿?—–-]+$/, '')}…`
 }

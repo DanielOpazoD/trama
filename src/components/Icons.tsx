@@ -43,6 +43,18 @@ export const CloseIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Dado de cinco — el azar del Atril (volver a sortear el archivo). */
+export const DiceIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <rect x="4" y="4" width="16" height="16" rx="3" />
+    <circle cx="8.5" cy="8.5" r="0.9" fill="currentColor" stroke="none" />
+    <circle cx="15.5" cy="8.5" r="0.9" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none" />
+    <circle cx="8.5" cy="15.5" r="0.9" fill="currentColor" stroke="none" />
+    <circle cx="15.5" cy="15.5" r="0.9" fill="currentColor" stroke="none" />
+  </svg>
+)
+
 export const SearchIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
     <circle cx="11" cy="11" r="7" />

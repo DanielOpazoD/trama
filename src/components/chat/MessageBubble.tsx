@@ -1,6 +1,12 @@
+import { useState } from 'react'
 import type { ChatMessage } from '../../api'
 import { AISourceTag } from '../AISourceTag'
+import { EssayOverlay } from './EssayOverlay'
 import { InlineProposal } from './InlineProposal'
+
+/** Largo desde el cual una respuesta deja de ser "mensaje" y pide página
+ *  propia. ~700 chars ≈ tres párrafos — donde el bubble empieza a pesar. */
+const ESSAY_THRESHOLD = 700
 
 /**
  * Un mensaje del chat: user (sans, ink-on-paper) o assistant (Spectral
@@ -16,9 +22,19 @@ import { InlineProposal } from './InlineProposal'
  * Si el assistant trae `proposal`, lo renderizamos como InlineProposal
  * adjunto al final del bubble.
  */
-export function MessageBubble({ message }: { message: ChatMessage }) {
+export function MessageBubble({
+  message,
+  threadTitle,
+}: {
+  message: ChatMessage
+  /** Cabecera del ensayo al abrir una respuesta larga como página. */
+  threadTitle?: string | null
+}) {
   const isUser = message.role === 'user'
   const ts = formatTimestamp(message.createdAt)
+  const [essayOpen, setEssayOpen] = useState(false)
+  // `content` defensivo: durante streaming el placeholder puede venir vacío.
+  const essayable = !isUser && (message.content?.length ?? 0) >= ESSAY_THRESHOLD
   return (
     <li className={isUser ? 'flex flex-col items-end' : 'flex flex-col items-start'}>
       <div
@@ -31,6 +47,21 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
         <div className="whitespace-pre-wrap">{message.content}</div>
         {!isUser && message.proposal && <InlineProposal proposal={message.proposal} />}
       </div>
+      {essayable && (
+        <button
+          onClick={() => setEssayOpen(true)}
+          className="mt-1 ml-1 self-start text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+        >
+          abrir como ensayo
+        </button>
+      )}
+      {essayOpen && (
+        <EssayOverlay
+          content={message.content}
+          title={threadTitle}
+          onClose={() => setEssayOpen(false)}
+        />
+      )}
       {(ts || (!isUser && message.model)) && (
         <span
           className={`mt-1 inline-flex items-center gap-1.5 text-micro tracking-normal text-ink-300/80 font-serif italic ${
