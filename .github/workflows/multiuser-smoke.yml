@@ -1,0 +1,42 @@
+name: multiuser-smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'URL real a probar (si queda vacio usa vars.E2E_BASE_URL)'
+        required: false
+        type: string
+
+jobs:
+  momentos:
+    runs-on: ubuntu-latest
+    env:
+      E2E_BASE_URL: ${{ inputs.base_url || vars.E2E_BASE_URL }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      E2E_USER_A_ID: ${{ secrets.E2E_USER_A_ID }}
+      E2E_USER_B_ID: ${{ secrets.E2E_USER_B_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Check required multiuser smoke config
+        run: |
+          missing=0
+          for key in E2E_BASE_URL CLERK_SECRET_KEY E2E_USER_A_ID E2E_USER_B_ID; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Falta $key para correr el smoke multiusuario real"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run real multiuser smoke
+        run: npm run e2e:multiuser -- --project=chromium

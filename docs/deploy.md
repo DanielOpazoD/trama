@@ -99,8 +99,14 @@ Antes de abrir PR, confirmar:
   ```
 
   El script crea sesiones temporales, obtiene JWTs para Playwright y revoca las
-  sesiones al terminar. Opcionalmente, ajustar la vida de esos tokens con
-  `E2E_CLERK_TOKEN_TTL_SECONDS` (default: 600 segundos).
+  sesiones al terminar. También resuelve el correo de B desde Clerk para que el
+  smoke pueda aceptar la invitación de Momentos. Opcionalmente, ajustar la vida
+  de esos tokens con `E2E_CLERK_TOKEN_TTL_SECONDS` (default: 600 segundos).
+
+  También existe un workflow manual (`multiuser-smoke`) para correrlo desde
+  GitHub Actions contra un deploy real. Requiere `vars.E2E_BASE_URL` o el input
+  `base_url`, más los secrets `CLERK_SECRET_KEY`, `E2E_USER_A_ID` y
+  `E2E_USER_B_ID`.
 
 - Alternativa manual, útil para una prueba local puntual después de iniciar
   sesión en el navegador:
@@ -109,6 +115,7 @@ Antes de abrir PR, confirmar:
   E2E_BASE_URL=https://tramadaod.netlify.app \
   E2E_USER_A_TOKEN=... \
   E2E_USER_B_TOKEN=... \
+  E2E_USER_B_EMAIL=usuario-b@example.com \
   npm run e2e:multiuser -- --project=chromium
   ```
 
