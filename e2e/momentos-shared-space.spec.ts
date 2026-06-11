@@ -148,13 +148,13 @@ test.describe('momentos shared space smoke', () => {
       expect(bFileAfterShare.status()).toBe(200)
 
       const aSeenByB = await findMomento(userB, aMomentoId)
-      expect(aSeenByB).toMatchObject({ shared: true, accessRole: 'editor' })
-      expect(aSeenByB.ownerUserId).toBeTruthy()
-      expect(aSeenByB.ownerUserId).toBe(inviterUserId)
+      expect(aSeenByB).toMatchObject({ shared: true, access_role: 'editor' })
+      expect(aSeenByB.owner_user_id).toBeTruthy()
+      expect(aSeenByB.owner_user_id).toBe(inviterUserId)
 
       const bSeenByA = await findMomento(userA, bMomentoId)
-      expect(bSeenByA).toMatchObject({ shared: true, accessRole: 'editor' })
-      expect(bSeenByA.ownerUserId).toBeTruthy()
+      expect(bSeenByA).toMatchObject({ shared: true, access_role: 'editor' })
+      expect(bSeenByA.owner_user_id).toBeTruthy()
 
       const editAsEditor = await userB.patch(`/api/momentos/${aMomentoId}`, {
         data: { note: `${marker} edited by B as editor` },
@@ -181,7 +181,7 @@ test.describe('momentos shared space smoke', () => {
       const aSeenByBAfterRoleChange = await findMomento(userB, aMomentoId)
       expect(aSeenByBAfterRoleChange).toMatchObject({
         shared: true,
-        accessRole: 'viewer',
+        access_role: 'viewer',
       })
 
       const editAsViewer = await userB.patch(`/api/momentos/${aMomentoId}`, {
