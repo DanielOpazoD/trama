@@ -94,17 +94,25 @@ function wrapClerkError(stage, error) {
   return new Error(`Clerk rechazo ${stage} ${clerkErrorDetails(error)}`)
 }
 
-async function resolveClerkUserEmail(clerkClient, userId) {
-  let user
+async function getClerkUser(clerkClient, userId, userLabel) {
   try {
-    user = await clerkClient.users.getUser(userId)
+    return await clerkClient.users.getUser(userId)
   } catch (error) {
-    throw wrapClerkError('getUser para E2E_USER_B_ID', error)
+    throw wrapClerkError(`getUser para ${userLabel}`, error)
   }
+}
+
+function assertDifferentSmokeUsers(userAId, userBId) {
+  if (userAId === userBId) {
+    throw new Error('E2E_USER_A_ID y E2E_USER_B_ID deben ser usuarios distintos.')
+  }
+}
+
+function resolveEmailFromClerkUser(user, userLabel) {
   const email = primaryEmailFromClerkUser(user)
   if (!email) {
     throw new Error(
-      'No se pudo resolver E2E_USER_B_EMAIL desde Clerk para E2E_USER_B_ID. ' +
+      `No se pudo resolver email desde Clerk para ${userLabel}. ` +
         'Configuralo manualmente para ejecutar el smoke de Momentos compartidos.',
     )
   }
@@ -175,9 +183,14 @@ export async function resolveMultiuserSmokeEnv({
   const expiresInSeconds = getTokenTtlSeconds(env)
 
   try {
+    assertDifferentSmokeUsers(env.E2E_USER_A_ID, env.E2E_USER_B_ID)
+    await getClerkUser(clerkClient, env.E2E_USER_A_ID, 'E2E_USER_A_ID')
+    const userB =
+      env.E2E_USER_B_EMAIL === undefined
+        ? await getClerkUser(clerkClient, env.E2E_USER_B_ID, 'E2E_USER_B_ID')
+        : null
     const userBEmail =
-      env.E2E_USER_B_EMAIL ??
-      (await resolveClerkUserEmail(clerkClient, env.E2E_USER_B_ID))
+      env.E2E_USER_B_EMAIL ?? resolveEmailFromClerkUser(userB, 'E2E_USER_B_ID')
     const userAToken = await mintTokenForUser(
       clerkClient,
       env.E2E_USER_A_ID,
