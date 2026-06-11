@@ -24,6 +24,13 @@ function mediaPath(storageKey: string): string {
     .join('/')}`
 }
 
+function cacheControlDirectives(header: string | undefined): string[] {
+  return (header ?? '')
+    .split(',')
+    .map((directive) => directive.trim().toLowerCase())
+    .filter(Boolean)
+}
+
 async function findMomento(
   userContext: Awaited<ReturnType<typeof request.newContext>>,
   id: string,
@@ -105,7 +112,9 @@ test.describe('momentos shared space smoke', () => {
 
       const aFileBeforeShare = await userA.get(mediaPath(storageKey))
       expect(aFileBeforeShare.status()).toBe(200)
-      expect(aFileBeforeShare.headers()['cache-control']).toContain('private, no-store')
+      expect(cacheControlDirectives(aFileBeforeShare.headers()['cache-control'])).toEqual(
+        expect.arrayContaining(['private', 'no-store']),
+      )
       expect(aFileBeforeShare.headers().vary).toContain('Authorization')
 
       const bFileBeforeShare = await userB.get(mediaPath(storageKey))
