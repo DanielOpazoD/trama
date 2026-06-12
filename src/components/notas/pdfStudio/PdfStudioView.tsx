@@ -98,7 +98,6 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   }, [])
   const workspace = usePdfStudioWorkspace({
     clearSelection,
-    commit,
     doc,
     setHistory,
     uploadSavedPdf,
@@ -161,18 +160,26 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
       openPreview,
       saveFilledCopy: workspace.saveFilledCopy,
     })
-  const { bulkDelete, bulkDuplicate, bulkRotate, exportMarked, newDoc, nudge, reorder } =
-    usePdfStudioPageActions({
-      clearDraft,
-      clearSelection,
-      commit,
-      doc,
-      exportPdf,
-      resetTemplateMode,
-      selectedCount,
-      selectedIndices,
-      userKey: workspace.userKey,
-    })
+  const {
+    bulkDelete,
+    bulkDuplicate,
+    bulkRotate,
+    cropSelectedPage,
+    exportMarked,
+    newDoc,
+    nudge,
+    reorder,
+  } = usePdfStudioPageActions({
+    clearDraft,
+    clearSelection,
+    commit,
+    doc,
+    exportPdf,
+    resetTemplateMode,
+    selectedCount,
+    selectedIndices,
+    userKey: workspace.userKey,
+  })
   useEffect(() => () => disposePdfStudio(), [])
   usePdfStudioPageKeyboard({
     textPage,
@@ -212,7 +219,9 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   const hasVisibleSaved = templatesEnabled
     ? workspace.saved.length > 0
     : workspace.saved.some((s) => !isPdfTemplate(s.doc))
-  const showPanel = !empty || workspace.library.length > 0 || hasVisibleSaved
+  const canCropSelectedPage =
+    selectedCount === 1 && selectedIndices[0] != null && !!doc.pages[selectedIndices[0]]
+  const showPanel = !empty || hasVisibleSaved
   const editBar = !empty && effectiveTemplateMode !== 'fill' && (
     <BulkBar
       context={templatesEnabled ? 'templates' : 'editor'}
@@ -222,6 +231,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
       onDuplicate={bulkDuplicate}
       onDelete={bulkDelete}
       onExport={exportMarked}
+      onCrop={canCropSelectedPage ? () => void cropSelectedPage() : undefined}
       onSelectAll={selectAll}
       onClear={clearSelection}
     />
@@ -239,7 +249,6 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     <section className="pdf-studio flex min-h-0 flex-1" aria-hidden={textPage !== null}>
       <PdfStudioWorkspacePanelHost
         show={showPanel}
-        library={workspace.library}
         folders={workspace.folders}
         saved={workspace.saved}
         templatesEnabled={templatesEnabled}
@@ -247,10 +256,6 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
         canSaveTemplate={templatesEnabled && !empty && isPdfTemplate(doc)}
         suggestedSaveName={doc.title}
         collapsed={workspace.panelCollapsed}
-        onAddImage={workspace.addLibraryToDoc}
-        onEditImage={workspace.editLibraryImage}
-        onRemoveImage={workspace.removeFromLibrary}
-        onDownloadImage={workspace.downloadLibrary}
         onCreateFolder={workspace.createFolder}
         onRenameFolder={workspace.renameFolder}
         onUpdateFolderColor={workspace.updateFolderColor}

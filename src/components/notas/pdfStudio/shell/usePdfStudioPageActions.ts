@@ -2,15 +2,18 @@ import {
   deletePages,
   duplicatePages,
   emptyDoc,
+  getSource,
   movePage,
   movePageByDelta,
   movePages,
   pageThumbKey,
+  replacePageWithImage,
   rotatePages,
   subsetDoc,
   type PdfDoc,
 } from '../../../../lib/pdfStudio/model/model'
-import { forgetThumb } from '../../../../lib/pdfStudio/render/pdfRender'
+import { editImage } from '../../../../lib/imageEditor'
+import { forgetThumb, renderPageBitmap } from '../../../../lib/pdfStudio/render/pdfRender'
 
 export function usePdfStudioPageActions({
   clearDraft,
@@ -56,6 +59,41 @@ export function usePdfStudioPageActions({
     void clearDraft(userKey)
   }
 
+  async function cropSelectedPage() {
+    if (selectedCount !== 1) return
+    const index = selectedIndices[0]
+    if (index == null) return
+    const page = doc.pages[index]
+    if (!page) return
+    const source = getSource(doc, page.sourceId)
+    if (!source) return
+
+    let input: File | null = null
+    if (page.kind === 'image') {
+      input = source.file
+    } else if (source.kind === 'pdf') {
+      const bitmap = await renderPageBitmap(source.file, page.pageIndex, 1600)
+      try {
+        const blob = await fetch(bitmap.url).then((response) => response.blob())
+        input = new File([blob], `pagina-${index + 1}.jpg`, {
+          type: blob.type || 'image/jpeg',
+        })
+      } finally {
+        URL.revokeObjectURL(bitmap.url)
+      }
+    }
+    if (!input) return
+
+    const edited = await editImage(input, {
+      outputType: 'image/webp',
+      title: 'Imagen de Imprenta',
+    })
+    if (!edited || edited === input) return
+    forgetRemovedThumbs([index])
+    commit((d) => replacePageWithImage(d, index, edited))
+    clearSelection()
+  }
+
   return {
     bulkDelete,
     bulkDuplicate: () =>
@@ -65,6 +103,7 @@ export function usePdfStudioPageActions({
     exportMarked: () =>
       selectedIndices.length > 0 &&
       void exportPdf(subsetDoc(doc, selectedIndices), 'seleccion'),
+    cropSelectedPage,
     newDoc,
     nudge: (index: number, delta: -1 | 1) =>
       commit((d) => movePageByDelta(d, index, delta)),

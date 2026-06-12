@@ -5,7 +5,6 @@ import {
   type History,
 } from '../../../../lib/pdfStudio/model/history'
 import {
-  addImageSource,
   clearPdfFormFieldValues,
   normalizeDoc,
   reseedIds,
@@ -28,18 +27,15 @@ import {
 } from '../../../../lib/pdfStudio/render/persistence'
 import { useCurrentClientUserId } from '../../../../lib/clientIdentity'
 import { downloadBlob } from '../../../../lib/downloadBlob'
-import { editImage } from '../../../../lib/imageEditor'
 import { useToast } from '../../../../state'
 
 export function usePdfStudioWorkspace({
   clearSelection,
-  commit,
   doc,
   setHistory,
   uploadSavedPdf,
 }: {
   clearSelection: () => void
-  commit: (next: PdfDoc | ((prev: PdfDoc) => PdfDoc)) => void
   doc: PdfDoc
   setHistory: Dispatch<SetStateAction<History<PdfDoc>>>
   uploadSavedPdf?: (saved: SavedDoc) => Promise<NonNullable<SavedDoc['serverPdf']>>
@@ -47,7 +43,6 @@ export function usePdfStudioWorkspace({
   const toast = useToast()
   const userKey = useCurrentClientUserId() ?? 'anon'
   const [loaded, setLoaded] = useState(false)
-  const [library, setLibrary] = useState<ImageAsset[]>([])
   const [saved, setSaved] = useState<SavedDoc[]>([])
   const [folders, setFolders] = useState<SavedFolder[]>([])
   const [panelCollapsed, setPanelCollapsed] = useState(true)
@@ -59,12 +54,10 @@ export function usePdfStudioWorkspace({
     let alive = true
     void loadDraft(userKey).then((draft) => {
       if (!alive) return
-      if (draft && (draft.doc.pages.length > 0 || draft.library.length > 0)) {
+      if (draft && draft.doc.pages.length > 0) {
         const restored = normalizeDoc(draft.doc)
         reseedIds(restored)
         setHistory(initHistory(restored))
-        setLibrary(draft.library)
-        if (draft.library.length > 0) setPanelCollapsed(false)
         toastRef.current.show({
           message: 'Borrador del editor restaurado.',
           tone: 'success',
@@ -90,44 +83,18 @@ export function usePdfStudioWorkspace({
   useEffect(() => {
     if (!loaded) return
     const t = window.setTimeout(
-      () => void saveDraft(userKey, draftSanitizerRef.current(doc), library),
+      () => void saveDraft(userKey, draftSanitizerRef.current(doc), []),
       600,
     )
     return () => window.clearTimeout(t)
-  }, [doc, library, loaded, userKey])
+  }, [doc, loaded, userKey])
 
   function setDraftSanitizer(sanitize: (draft: PdfDoc) => PdfDoc) {
     draftSanitizerRef.current = sanitize
   }
 
-  function addAssets(assets: ImageAsset[]) {
-    if (assets.length === 0) return
-    setLibrary((lib) => [...lib, ...assets])
-    setPanelCollapsed(false)
-  }
-
-  function addLibraryToDoc(asset: ImageAsset) {
-    commit((d) => addImageSource(d, asset.file))
-  }
-
-  function removeFromLibrary(id: string) {
-    setLibrary((lib) => lib.filter((a) => a.id !== id))
-  }
-
-  async function editLibraryImage(asset: ImageAsset) {
-    const edited = await editImage(asset.file, {
-      outputType: 'image/webp',
-      title: 'Imagen de Imprenta',
-    })
-    if (!edited) return
-    setLibrary((lib) =>
-      lib.map((item) => (item.id === asset.id ? { ...item, file: edited } : item)),
-    )
-    toast.show({ message: 'Imagen editada.', tone: 'success' })
-  }
-
-  function downloadLibrary(asset: ImageAsset) {
-    downloadBlob(asset.file, asset.file.name || 'imagen')
+  function addAssets(_assets: ImageAsset[]) {
+    void _assets
   }
 
   async function syncSavedPdf(savedDoc: SavedDoc) {
@@ -320,10 +287,6 @@ export function usePdfStudioWorkspace({
 
   return {
     addAssets,
-    addLibraryToDoc,
-    downloadLibrary,
-    editLibraryImage,
-    library,
     duplicateSaved,
     exportTemplatePackage,
     createFolder,
@@ -334,7 +297,6 @@ export function usePdfStudioWorkspace({
     openSaved,
     openTemplate,
     panelCollapsed,
-    removeFromLibrary,
     removeSaved,
     renameSaved,
     moveSavedToFolder,

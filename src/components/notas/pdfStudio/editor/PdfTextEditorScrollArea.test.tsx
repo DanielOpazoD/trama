@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { createRef } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { PdfTextEditorScrollArea } from './PdfTextEditorScrollArea'
 
 describe('<PdfTextEditorScrollArea />', () => {
@@ -32,5 +32,24 @@ describe('<PdfTextEditorScrollArea />', () => {
     expect(
       screen.getByRole('main', { name: 'Área de relleno de planilla' }),
     ).toBeInTheDocument()
+  })
+
+  it('notifica el scroll para sincronizar el contador de página', () => {
+    const onScroll = vi.fn()
+    render(
+      <PdfTextEditorScrollArea
+        fillMode={false}
+        scrollContainerRef={createRef()}
+        onScroll={onScroll}
+      >
+        <div>Documento</div>
+      </PdfTextEditorScrollArea>,
+    )
+
+    screen
+      .getByText('Documento')
+      .parentElement!.dispatchEvent(new Event('scroll', { bubbles: true }))
+
+    expect(onScroll).toHaveBeenCalledTimes(1)
   })
 })

@@ -310,8 +310,9 @@ export function PdfTextEditor({
     applyStyle(patch)
     applyDraftFieldStyle(patch)
   }
-  const { activatePage, goToPage } = usePdfTextEditorPageNavigation({
+  const { activatePage, goToPage, syncPageFromScroll } = usePdfTextEditorPageNavigation({
     currentPage,
+    scrollContainerRef,
     setActivePageLayout,
     setCurrentPage,
     setEditingId,
@@ -499,6 +500,7 @@ export function PdfTextEditor({
           {fillMode ? <PdfTextEditorFillSidebar {...fillSidebarProps} /> : null}
           <PdfTextEditorScrollArea
             fillMode={fillMode}
+            onScroll={(event) => syncPageFromScroll(event.currentTarget)}
             scrollContainerRef={scrollContainerRef}
           >
             <div className="mx-auto flex min-w-full flex-col items-center gap-4">
