@@ -23,13 +23,36 @@ Trama. Nada entra a tu trama sin tu curaduría: todo aterriza como
   deja agregar una nota y guardar.
 - El badge del icono confirma: ✓ guardado · número = capturas en cola.
 
-## Capturar más que una selección (Bloque B)
+## Modos de captura (selector del popup)
 
-- **Artículo completo**: clic derecho en la página → «Guardar artículo en
-  Trama», o el botón «artículo completo» del popup. Extrae el texto
-  principal del long-read (heurística readability-lite, sin dependencias).
-- **Imagen**: clic derecho sobre una imagen → «Guardar imagen en Trama».
-  El recorte guarda la imagen (se ve en la bandeja).
+El popup tiene un selector segmentado con tres modos; el botón «Guardar»
+se adapta al modo elegido:
+
+- **Cita**: el texto seleccionado (o pegado en el cuadro). Es el gesto por
+  defecto, también disponible con clic derecho y con el atajo de teclado.
+- **Artículo**: extrae el texto principal del long-read como un solo objeto
+  (heurística readability-lite, sin dependencias). También por clic derecho
+  → «Guardar artículo en Trama».
+- **Página**: guarda la página entera como **Markdown**, conservando su
+  estructura (encabezados, listas, citas, enlaces, énfasis). Útil cuando el
+  recorte se promueve a una nota. También por clic derecho → «Guardar
+  página como Markdown en Trama».
+
+## Capturar imágenes
+
+- **Capturar región** (botón del popup): atenúa la página y deja arrastrar
+  un recuadro sobre lo que quieras; la zona seleccionada se ve nítida y una
+  etiqueta muestra sus dimensiones en vivo. Al soltar, recorta el área
+  visible, la comprime a WebP y la guarda como recorte. `Esc` cancela.
+  Requiere conexión (la imagen no se encola).
+- **Guardar imagen**: clic derecho sobre una imagen → «Guardar imagen en
+  Trama». El recorte guarda la URL de esa imagen.
+- **OCR a pedido**: en la app, los recortes con imagen tienen un botón
+  «extraer texto» que reconoce el texto de la imagen (worker local) y lo
+  incorpora al recorte para hacerlo citable.
+
+## Más gestos de texto
+
 - **Colección (varios resaltados → un recorte)**: «Añadir a la colección
   de Trama» (clic derecho o el botón del popup) va sumando fragmentos; el
   popup muestra la cuenta y permite «guardar colección» (todos juntos como
@@ -52,8 +75,10 @@ El service worker de Manifest V3 es efímero y la red puede fallar. Por eso:
 ## Permisos y privacidad
 
 - `activeTab` + `scripting`: leer la selección y los meta tags (título,
-  autor) de la pestaña activa **solo cuando actúas** (clic derecho, atajo
-  o popup). No hay lectura pasiva ni en segundo plano de tu navegación.
+  autor) de la pestaña activa, inyectar el recuadro de región y capturar el
+  área visible (`captureVisibleTab`) **solo cuando actúas** (clic derecho,
+  atajo o popup). No hay lectura pasiva ni en segundo plano de tu
+  navegación, y la captura de pantalla solo ocurre tras tu gesto.
 - `contextMenus`: la entrada del clic derecho.
 - `storage`: token, URL del servidor y la cola de reintento, en
   `chrome.storage.local` de tu navegador. No viajan a ningún lado salvo a

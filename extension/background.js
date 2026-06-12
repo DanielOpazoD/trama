@@ -714,26 +714,44 @@ async function uploadImage(blob, filename) {
  * usuario arrastrar un rectángulo. Al soltar, esconde el velo y manda el
  * rect (en px CSS de viewport) + devicePixelRatio al SW, que recorta la
  * captura. Escape cancela. Autocontenida (se serializa a la página).
+ *
+ * Foco real: el velo solo oscurece ANTES de arrastrar (estado "armado");
+ * al empezar a arrastrar se vuelve transparente y el dim queda a cargo de la
+ * sombra envolvente del recuadro — así la zona seleccionada queda NÍTIDA (ves
+ * exactamente lo que vas a capturar) y el resto, atenuado. Una etiqueta sigue
+ * al recuadro con sus dimensiones en vivo. Usa Pointer Events con captura para
+ * que soltar fuera de la ventana no deje el overlay colgado.
  */
 function regionOverlay() {
   // Evita dobles overlays si se invoca dos veces.
   if (document.getElementById('trama-region-overlay')) return
+  const ARMED_BG = 'rgba(20,17,12,0.30)'
   const veil = document.createElement('div')
   veil.id = 'trama-region-overlay'
   veil.style.cssText =
     'position:fixed;inset:0;z-index:2147483647;cursor:crosshair;' +
-    'background:rgba(20,17,12,0.32);'
+    'background:' +
+    ARMED_BG +
+    ';transition:background 0.1s ease;'
   const box = document.createElement('div')
+  // Sin relleno: la sombra envolvente (0.46) oscurece TODO menos el recuadro,
+  // que queda transparente → la selección se ve crujiente.
   box.style.cssText =
-    'position:fixed;border:1.5px solid #d4b36a;background:rgba(212,179,106,0.14);' +
-    'box-shadow:0 0 0 9999px rgba(20,17,12,0.32);pointer-events:none;display:none;'
+    'position:fixed;border:1.5px solid #d4b36a;border-radius:2px;' +
+    'box-shadow:0 0 0 9999px rgba(20,17,12,0.46);pointer-events:none;display:none;'
+  const dims = document.createElement('div')
+  dims.style.cssText =
+    'position:fixed;z-index:2147483647;pointer-events:none;display:none;' +
+    'background:#1a1812;color:#f3ead6;border-radius:6px;padding:4px 7px;' +
+    'font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;'
   const hint = document.createElement('div')
   hint.textContent = 'Arrastra para recortar · Esc para cancelar'
   hint.style.cssText =
-    'position:fixed;top:14px;left:50%;transform:translateX(-50%);' +
+    'position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:2147483647;' +
     'background:#1a1812;color:#f3ead6;font:600 12px Inter,system-ui,sans-serif;' +
     'padding:6px 12px;border-radius:999px;pointer-events:none;'
   veil.appendChild(box)
+  veil.appendChild(dims)
   veil.appendChild(hint)
   document.documentElement.appendChild(veil)
 
@@ -748,6 +766,25 @@ function regionOverlay() {
     const h = Math.abs(ev.clientY - startY)
     return { x, y, w, h }
   }
+  function paintBox(r) {
+    box.style.left = r.x + 'px'
+    box.style.top = r.y + 'px'
+    box.style.width = r.w + 'px'
+    box.style.height = r.h + 'px'
+    dims.textContent = Math.round(r.w) + ' × ' + Math.round(r.h)
+    // Debajo del recuadro si entra; si no, encima del borde superior.
+    const below = r.y + r.h + 8
+    dims.style.left = r.x + 'px'
+    dims.style.top =
+      (below + 22 < window.innerHeight ? below : Math.max(8, r.y - 26)) + 'px'
+  }
+  function disarm() {
+    dragging = false
+    veil.style.background = ARMED_BG
+    box.style.display = 'none'
+    dims.style.display = 'none'
+    hint.style.display = 'block'
+  }
   function cleanup() {
     veil.remove()
     window.removeEventListener('keydown', onKey, true)
@@ -758,35 +795,32 @@ function regionOverlay() {
       cleanup()
     }
   }
-  veil.addEventListener('mousedown', (ev) => {
+  veil.addEventListener('pointerdown', (ev) => {
     if (ev.button !== 0) return
     dragging = true
     startX = ev.clientX
     startY = ev.clientY
+    veil.setPointerCapture?.(ev.pointerId)
+    // El dim pasa a la sombra del recuadro → la selección queda nítida.
+    veil.style.background = 'transparent'
     box.style.display = 'block'
-    box.style.left = startX + 'px'
-    box.style.top = startY + 'px'
-    box.style.width = '0px'
-    box.style.height = '0px'
+    dims.style.display = 'block'
     hint.style.display = 'none'
+    paintBox(rectFrom(ev))
   })
-  veil.addEventListener('mousemove', (ev) => {
+  veil.addEventListener('pointermove', (ev) => {
+    if (dragging) paintBox(rectFrom(ev))
+  })
+  veil.addEventListener('pointerup', (ev) => {
     if (!dragging) return
     const r = rectFrom(ev)
-    box.style.left = r.x + 'px'
-    box.style.top = r.y + 'px'
-    box.style.width = r.w + 'px'
-    box.style.height = r.h + 'px'
-  })
-  veil.addEventListener('mouseup', (ev) => {
-    if (!dragging) return
-    dragging = false
-    const r = rectFrom(ev)
+    // Clic accidental o recuadro mínimo: vuelve al estado armado, no aborta.
     if (r.w < 8 || r.h < 8) {
-      cleanup()
+      disarm()
       return
     }
-    // Esconde el velo ANTES de la captura para que no salga en el screenshot.
+    dragging = false
+    // Esconde el overlay ANTES de la captura para que no salga en el screenshot.
     veil.style.display = 'none'
     const payload = {
       kind: 'trama-region-rect',
@@ -795,7 +829,7 @@ function regionOverlay() {
       url: location.href,
       title: document.title,
     }
-    // Un frame para asegurar que el repintado quitó el velo, luego avisamos.
+    // Dos frames para asegurar que el repintado quitó el velo, luego avisamos.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         chrome.runtime.sendMessage(payload)
@@ -925,8 +959,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg?.kind === 'trama-region-rect') {
     // Llega desde el overlay inyectado: sender.tab tiene id/url/title/windowId.
-    // El popup ya está cerrado durante el arrastre → el badge es el feedback.
-    cropAndSaveRegion(msg.rect, msg.dpr, sender.tab).then((r) => flashBadge(r.ok))
+    // El popup ya está cerrado durante el arrastre → el badge confirma, y en
+    // caso de error el título del icono explica el motivo (hover sobre el !).
+    cropAndSaveRegion(msg.rect, msg.dpr, sender.tab).then((r) => {
+      flashBadge(r.ok)
+      if (!r.ok && r.error) chrome.action.setTitle({ title: `Trama · ${r.error}` })
+    })
     return false
   }
   if (msg?.kind === 'trama-test') {
