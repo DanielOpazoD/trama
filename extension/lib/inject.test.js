@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
-  pageExtractArticle,
   pageExtractHTML,
   pageExtractStructured,
+  pageSelectionLink,
   readPageMeta,
 } from './inject.js'
 
@@ -44,26 +44,37 @@ describe('readPageMeta', () => {
   })
 })
 
-describe('pageExtractArticle', () => {
-  it('junta la prosa del <article> y toma el byline del meta', () => {
-    document.head.innerHTML = `<meta name="author" content="Otra Parte" />`
-    const body = 'La memoria es un taller. '.repeat(20)
-    document.body.innerHTML = `
-      <article>
-        <h1>El taller de la memoria</h1>
-        <p>${body}</p>
-        <p>${body}</p>
-      </article>`
-    const res = pageExtractArticle()
-    expect(res).not.toBeNull()
-    expect(res.text).toContain('El taller de la memoria')
-    expect(res.text).toContain('La memoria es un taller')
-    expect(res.byline).toBe('Otra Parte')
+describe('pageSelectionLink', () => {
+  function selectNode(el) {
+    const range = document.createRange()
+    range.selectNodeContents(el)
+    const sel = window.getSelection()
+    sel.removeAllRanges()
+    sel.addRange(range)
+  }
+
+  it('devuelve el href del <a> que envuelve la selección (titular enlazado)', () => {
+    document.body.innerHTML = `<h2><a href="https://diario.cl/nota/123">Gran titular</a></h2>`
+    selectNode(document.querySelector('a'))
+    expect(pageSelectionLink()).toBe('https://diario.cl/nota/123')
   })
 
-  it('devuelve null si no hay suficiente texto (no es un artículo)', () => {
-    document.body.innerHTML = `<article><p>Corto.</p></article>`
-    expect(pageExtractArticle()).toBeNull()
+  it('encuentra un <a> DENTRO de la selección', () => {
+    document.body.innerHTML = `<p>Leé <a href="https://diario.cl/x">la nota</a> ahora.</p>`
+    selectNode(document.querySelector('p'))
+    expect(pageSelectionLink()).toBe('https://diario.cl/x')
+  })
+
+  it('null si la selección no toca ningún enlace', () => {
+    document.body.innerHTML = `<p>Texto sin enlaces.</p>`
+    selectNode(document.querySelector('p'))
+    expect(pageSelectionLink()).toBeNull()
+  })
+
+  it('ignora enlaces javascript:', () => {
+    document.body.innerHTML = `<p><a href="javascript:void(0)">acción</a></p>`
+    selectNode(document.querySelector('a'))
+    expect(pageSelectionLink()).toBeNull()
   })
 })
 

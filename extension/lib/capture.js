@@ -1,12 +1,12 @@
 // @ts-check
-/** Orquestación de las capturas de texto (selección, artículo, página) + utilidades. */
+/** Orquestación de las capturas de texto (selección, artículo) + utilidades. */
 import { getConfig } from './config.js'
 import { saveRecorte } from './recorte.js'
 import {
-  pageExtractArticle,
   pageExtractHTML,
   pageExtractStructured,
   pageFlashHighlight,
+  pageSelectionLink,
   pageToast,
 } from './inject.js'
 
@@ -60,7 +60,26 @@ export async function tryStructured(tab) {
   }
 }
 
-/** Guarda una selección, prefiriendo la captura estructurada (X/Reddit). */
+/** Lee el href del enlace que envuelve/contiene la selección (best-effort). */
+async function trySelectionLink(tab) {
+  if (tab?.id == null) return null
+  try {
+    const [res] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: pageSelectionLink,
+    })
+    return res?.result || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Guarda una selección. Prioriza la captura estructurada (X/Reddit). Si no, y
+ * la selección está sobre un enlace (p.ej. un titular que linkea al artículo),
+ * usa ESE enlace como fuente — así el recorte apunta a la noticia subyacente,
+ * no a la portada donde estabas.
+ */
 export async function saveSelection(rawText, tab) {
   const structured = await tryStructured(tab)
   if (structured && structured.text) {
@@ -74,38 +93,22 @@ export async function saveSelection(rawText, tab) {
       },
     })
   }
+  const link = await trySelectionLink(tab)
+  if (link) {
+    return saveRecorte({
+      text: rawText,
+      tab,
+      override: { sourceUrl: link, sourceTitle: tab?.title ?? null, sourceAuthor: null },
+    })
+  }
   return saveRecorte({ text: rawText, tab })
 }
 
-/** Guarda el artículo principal de la página (readability-lite). */
+/**
+ * Guarda el artículo principal de la página conservando su ESTRUCTURA como
+ * Markdown (encabezados, listas, citas, enlaces, énfasis) — no texto plano.
+ */
 export async function saveArticle(tab, note) {
-  if (tab?.id == null) return { ok: false, error: 'Sin pestaña.' }
-  let article = null
-  try {
-    const [res] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: pageExtractArticle,
-    })
-    article = res?.result || null
-  } catch {
-    /* página restringida */
-  }
-  if (!article) return { ok: false, error: 'No se encontró un artículo en esta página.' }
-  return saveRecorte({
-    text: article.text,
-    tab,
-    note,
-    captureMode: 'article',
-    override: {
-      sourceUrl: tab.url,
-      sourceTitle: article.title,
-      sourceAuthor: article.byline,
-    },
-  })
-}
-
-/** Guarda la página como Markdown (estructura preservada). */
-export async function saveHtml(tab, note) {
   if (tab?.id == null) return { ok: false, error: 'Sin pestaña.' }
   let doc = null
   try {
@@ -117,12 +120,12 @@ export async function saveHtml(tab, note) {
   } catch {
     /* página restringida */
   }
-  if (!doc) return { ok: false, error: 'No se pudo extraer la página.' }
+  if (!doc) return { ok: false, error: 'No se encontró un artículo en esta página.' }
   return saveRecorte({
     text: doc.text,
     tab,
     note,
-    captureMode: 'html',
+    captureMode: 'article',
     override: {
       sourceUrl: tab.url,
       sourceTitle: doc.title,

@@ -28,49 +28,31 @@ export function readSelection() {
 }
 
 /**
- * Extracción "readability-lite" del artículo principal, sin dependencias.
- * Elige el mejor contenedor (article > main > el bloque con más texto de
- * párrafos) y junta su prosa en orden. Devuelve { text, title, byline } o null.
+ * Devuelve el href del enlace asociado a la selección, o null. Primero busca un
+ * <a> ANCESTRO (el caso del titular que linkea al artículo); si no, un <a>
+ * DENTRO de la selección. Útil para que el recorte apunte a la noticia
+ * subyacente y no a la portada.
  */
-export function pageExtractArticle() {
-  function paragraphScore(el) {
-    let score = 0
-    const ps = el.querySelectorAll('p')
-    for (let i = 0; i < ps.length; i++) {
-      const len = (ps[i].innerText || '').trim().length
-      if (len > 40) score += len
+export function pageSelectionLink() {
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null
+  const range = sel.getRangeAt(0)
+  let node = range.commonAncestorContainer
+  node = node.nodeType === 1 ? node : node.parentElement
+  while (node && node !== document.body) {
+    if (node.tagName === 'A' && node.href && !node.href.startsWith('javascript:')) {
+      return node.href
     }
-    return score
+    node = node.parentElement
   }
-  let container = document.querySelector('article')
-  if (!container) container = document.querySelector('main')
-  if (!container) {
-    const candidates = document.querySelectorAll('div, section')
-    let best = null
-    let bestScore = 0
-    for (let i = 0; i < candidates.length; i++) {
-      const s = paragraphScore(candidates[i])
-      if (s > bestScore) {
-        bestScore = s
-        best = candidates[i]
-      }
-    }
-    container = best
+  try {
+    const frag = range.cloneContents()
+    const a = frag.querySelector('a[href]')
+    if (a && a.href && !a.href.startsWith('javascript:')) return a.href
+  } catch {
+    /* sin coincidencia */
   }
-  if (!container) return null
-  const blocks = container.querySelectorAll('h1, h2, h3, p, li, blockquote')
-  const parts = []
-  for (let i = 0; i < blocks.length; i++) {
-    const t = (blocks[i].innerText || '').trim()
-    if (t.length > 1) parts.push(t)
-  }
-  const text = parts.join('\n\n').slice(0, 20000)
-  if (text.length < 200) return null // probablemente no es un artículo
-  const byline =
-    document
-      .querySelector('meta[name="author"], meta[property="article:author"]')
-      ?.getAttribute('content') || null
-  return { text, title: document.title || null, byline }
+  return null
 }
 
 /**

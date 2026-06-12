@@ -17,20 +17,19 @@ const $ = (id) => document.getElementById(id)
 
 let currentTab = null
 // Modo de captura activo: 'citation' (texto seleccionado) | 'article'
-// (artículo como objeto) | 'html' (página como Markdown) | 'region' (recorte
-// visual). 'citation' usa el textarea; los demás ocultan el textarea — y
-// 'region' además cierra el popup para arrastrar el recuadro en la página.
+// (artículo con estructura) | 'region' (recorte visual). 'citation' usa el
+// textarea; los demás lo ocultan — y 'region' además cierra el popup para
+// arrastrar el recuadro en la página.
 let currentMode = 'citation'
 
 const MODE_HINT = {
-  article: 'Captura el artículo principal de la página como un solo objeto.',
-  html: 'Guarda la página entera como Markdown, conservando su estructura.',
+  article:
+    'Captura el artículo principal conservando su estructura (títulos, listas, enlaces).',
   region: 'Arrastra un recuadro sobre la página para recortarlo como imagen.',
 }
 const MODE_BUTTON = {
   citation: 'Guardar en Recortes',
   article: 'Guardar artículo',
-  html: 'Guardar página',
   region: 'Capturar región',
 }
 
@@ -292,22 +291,16 @@ async function refreshRecent() {
   $('recent').hidden = false
 }
 
-/** Captura de página (artículo/HTML): delega al SW, que lee la pestaña. */
+/** Captura de artículo: delega al SW, que lee y extrae la pestaña. */
 async function savePageMode() {
-  setEstado(currentMode === 'article' ? 'leyendo el artículo...' : 'leyendo la página...')
-  const kind = currentMode === 'article' ? 'trama-article' : 'trama-html'
-  const res = await chrome.runtime.sendMessage({ kind })
+  setEstado('leyendo el artículo...')
+  const res = await chrome.runtime.sendMessage({ kind: 'trama-article' })
   if (res?.ok) {
-    setEstado(
-      currentMode === 'article'
-        ? 'artículo guardado en Recortes'
-        : 'página guardada en Recortes',
-      'ok',
-    )
+    setEstado('artículo guardado en Recortes', 'ok')
     refreshRecent()
     refreshQueue()
   } else {
-    setEstado(res?.error ?? 'no se pudo capturar la página', 'err')
+    setEstado(res?.error ?? 'no se pudo capturar el artículo', 'err')
   }
 }
 

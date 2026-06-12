@@ -81,10 +81,10 @@ describe('<RecortesView />', () => {
     expect(img).toBeInTheDocument()
   })
 
-  it('limpia el Markdown crudo en la tarjeta de un recorte de página (html)', () => {
+  it('limpia el Markdown crudo en la tarjeta de un artículo', () => {
     setup([
       recorte({
-        captureMode: 'html',
+        captureMode: 'article',
         text: '## El cuaderno\n\n- uno\n\nLeé [esto](https://x.test) con **calma**.',
       }),
     ])
