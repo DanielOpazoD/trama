@@ -6,8 +6,10 @@ import {
   NotesIcon,
   PromptIcon,
   SearchIcon,
+  SettingsIcon,
   TasksIcon,
 } from '../Icons'
+import { AIModeToggle } from '../AIModeToggle'
 import { TopBar } from '../TopBar'
 import { WorldSwitcher } from '../WorldSwitcher'
 import type { World } from '../../types/world'
@@ -69,6 +71,7 @@ export function NotasSidebar({
   onChangeWorld,
   onChangeSection,
   onOpenSearch,
+  onOpenSettings,
 }: {
   world: World
   section: NotasSection
@@ -77,6 +80,8 @@ export function NotasSidebar({
   onChangeWorld: (w: World) => void
   onChangeSection: (section: NotasSection) => void
   onOpenSearch: () => void
+  /** Abre el panel de Configuración (mismo que el mundo principal). */
+  onOpenSettings: () => void
 }) {
   return (
     <aside className="surface-sidebar w-60 shrink-0 border-r border-ink-100 hidden md:flex flex-col">
@@ -124,9 +129,21 @@ export function NotasSidebar({
         })}
       </nav>
       <div className="flex-1" />
-      <p className="text-micro uppercase tracking-wider text-ink-300 text-center pb-3">
-        trama · notas
-      </p>
+      {/* Pie con los mismos controles que el mundo principal: activación de
+          IA + acceso a Configuración. Antes el mundo Notas no los exponía. */}
+      <div className="px-2 pt-2 pb-2 border-t border-ink-100 space-y-px">
+        <AIModeToggle />
+        <button
+          onClick={onOpenSettings}
+          className="touch-target w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-body text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
+        >
+          <SettingsIcon size={14} className="text-ink-400" />
+          <span className="flex-1 text-left">Configuración</span>
+        </button>
+        <p className="text-micro uppercase tracking-wider text-ink-300 text-center pt-2 pb-0.5">
+          trama · notas
+        </p>
+      </div>
     </aside>
   )
 }
@@ -138,6 +155,7 @@ export function NotasMobileTabs({
   onChangeWorld,
   onChangeSection,
   onOpenSearch,
+  onOpenSettings,
 }: {
   world: World
   section: NotasSection
@@ -145,6 +163,7 @@ export function NotasMobileTabs({
   onChangeWorld: (w: World) => void
   onChangeSection: (section: NotasSection) => void
   onOpenSearch: () => void
+  onOpenSettings: () => void
 }) {
   return (
     <div className="md:hidden border-b border-ink-100 flex items-center gap-2 px-3 py-2 surface-sidebar">
@@ -175,6 +194,13 @@ export function NotasMobileTabs({
         className="touch-target shrink-0 p-1.5 rounded-md text-ink-400 hover:text-ink-700 transition-colors"
       >
         <SearchIcon size={14} />
+      </button>
+      <button
+        onClick={onOpenSettings}
+        aria-label="Configuración"
+        className="touch-target shrink-0 p-1.5 rounded-md text-ink-400 hover:text-ink-700 transition-colors"
+      >
+        <SettingsIcon size={14} />
       </button>
     </div>
   )

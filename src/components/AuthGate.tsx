@@ -15,6 +15,7 @@
 import { Show, SignIn } from '@clerk/react'
 import { enterDemoMode, exitDemoMode, isDemoMode } from '../lib/demo'
 import { shouldUseClerk } from '../lib/clerkRuntime'
+import { EyeIcon } from './Icons'
 
 const clerkAppearance = {
   variables: {
@@ -41,26 +42,22 @@ const clerkAppearance = {
   },
 }
 
-/** Banner discreto que recuerda que se está en modo prueba + salida. */
+/** Banner discreto que recuerda que se está en modo prueba + salida. El
+ *  detalle ("datos solo en este navegador") vive en el tooltip para que el
+ *  píldora quede a un icono sutil + texto brevísimo. */
 function DemoBanner() {
   return (
     <div
       // En mobile vive ABAJO, por encima de la barra de captura (con top-14
       // tapaba la fila de tabs); en desktop pegado al borde inferior. El
       // margen suma el inset del home indicator en iPhones con notch.
-      className="fixed left-3 bottom-28 md:bottom-3 z-50 flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-paper-50/95 backdrop-blur border border-ink-100 shadow-lg shadow-ink-900/10"
+      className="fixed left-3 bottom-28 md:bottom-3 z-50 flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-paper-50/95 backdrop-blur border border-ink-100 shadow-lg shadow-ink-900/10"
       style={{ marginBottom: 'var(--safe-bottom)' }}
+      title="Modo prueba · los datos viven solo en este navegador"
     >
-      <span
-        className="size-1.5 rounded-full"
-        style={{ backgroundColor: 'var(--accent-gold)' }}
-        aria-hidden
-      />
+      <EyeIcon size={12} className="text-ink-400 shrink-0" />
       <span className="text-micro uppercase tracking-eyebrow text-ink-500">
         modo prueba
-      </span>
-      <span className="text-micro text-ink-300 hidden sm:inline">
-        · datos solo en este navegador
       </span>
       <button
         onClick={() => {
@@ -106,35 +103,30 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           }}
         >
           <div className="w-full max-w-sm animate-fade-up">
-            <header className="text-center mb-8">
-              <p
-                className="section-eyebrow-serif mb-1.5"
-                style={{ color: 'var(--accent-gold)' }}
-              >
-                tu catálogo personal
-              </p>
-              <h1 className="font-serif text-5xl text-ink-700 tracking-tight leading-none">
+            <header className="text-center mb-9">
+              <h1 className="font-serif text-6xl text-ink-700 tracking-tight leading-none">
                 Trama
               </h1>
-              <span className="accent-rule mx-auto mt-4" />
-              <p className="mt-5 text-sm text-ink-400 leading-relaxed max-w-[17rem] mx-auto">
-                Un mapa de tus lecturas, citas y afinidades. Entra para retomar el hilo.
+              <p className="mt-4 text-micro uppercase tracking-eyebrow text-ink-400">
+                tu catálogo personal
               </p>
             </header>
             <SignIn routing="hash" appearance={clerkAppearance} />
-            <div className="mt-6 text-center">
+            <div className="mt-6 flex justify-center">
               <button
                 onClick={() => {
                   enterDemoMode()
                   window.location.reload()
                 }}
-                className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+                title="Sin cuenta · los datos viven solo en este navegador"
+                className="group inline-flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-600 transition-colors"
               >
-                explorar en modo prueba
+                <EyeIcon
+                  size={12}
+                  className="opacity-70 transition-opacity group-hover:opacity-100"
+                />
+                explorar sin cuenta
               </button>
-              <p className="mt-1.5 text-micro text-ink-300/80">
-                sin cuenta · datos solo en este navegador
-              </p>
             </div>
           </div>
         </div>

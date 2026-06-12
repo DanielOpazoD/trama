@@ -8,6 +8,7 @@ import { PromptsView } from './PromptsView'
 import { TareasView } from './TareasView'
 import { useModuleVisibility } from '../../hooks/useModuleVisibility'
 import { useClampedSection } from '../../hooks/useClampedSection'
+import { useTheme } from '../../hooks/useTheme'
 import { LoadingHint } from '../LoadingHint'
 import { SectionPinGate } from '../SectionPinGate'
 import type { World } from '../../types/world'
@@ -17,6 +18,10 @@ import type { NotasSection } from '../../types/notas'
 const PdfStudioView = lazy(() =>
   import('./pdfStudio/PdfStudioView').then((m) => ({ default: m.PdfStudioView })),
 )
+
+// Lazy: el panel de Configuración es el mismo del mundo principal. Antes el
+// mundo Notas no lo montaba, así que su chrome no podía abrir Configuración.
+const Settings = lazy(() => import('../Settings').then((m) => ({ default: m.Settings })))
 
 /**
  * τ-worlds: el mundo "Trama Notas" — un workspace de productividad liviana
@@ -39,6 +44,8 @@ export function NotasWorld({
   initialSection?: NotasSection
 }) {
   const [searchOpen, setSearchOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
   const { isVisible } = useModuleVisibility()
   // La sección activa se clampa a Inicio si deja de ser visible (anti-trampa).
   const [section, setSection] = useClampedSection<NotasSection>(
@@ -70,6 +77,7 @@ export function NotasWorld({
         onChangeWorld={onChangeWorld}
         onChangeSection={setSection}
         onOpenSearch={() => setSearchOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       <NotasMobileTabs
@@ -79,6 +87,7 @@ export function NotasWorld({
         onChangeWorld={onChangeWorld}
         onChangeSection={setSection}
         onOpenSearch={() => setSearchOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       {/* Contenido */}
@@ -147,6 +156,19 @@ export function NotasWorld({
             />
           </div>
         </div>
+      )}
+
+      {/* Configuración — el mismo panel del mundo principal, abierto desde el
+          chrome de Notas (sidebar en escritorio, fila de tabs en móvil). */}
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <Settings
+            open={settingsOpen}
+            onClose={() => setSettingsOpen(false)}
+            theme={theme}
+            onSetTheme={setTheme}
+          />
+        </Suspense>
       )}
     </div>
   )

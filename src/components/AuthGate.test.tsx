@@ -48,7 +48,7 @@ describe('AuthGate', () => {
 
     expect(screen.getByTestId('clerk-sign-in')).toHaveAttribute('data-routing', 'hash')
     expect(screen.getByText('Trama')).toBeInTheDocument()
-    expect(screen.getByText('explorar en modo prueba')).toBeInTheDocument()
+    expect(screen.getByText('explorar sin cuenta')).toBeInTheDocument()
     expect(screen.queryByTestId('app-shell')).not.toBeInTheDocument()
   })
 
