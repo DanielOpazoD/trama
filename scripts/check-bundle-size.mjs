@@ -29,7 +29,7 @@ const BUDGETS = {
   browser: 15,
   // Imprenta/PDF: chunks lazy pesados. No impactan el inicio, pero sí pueden
   // crecer sin ruido si entran nuevas dependencias de edición/export.
-  PdfStudioView: 80,
+  PdfStudioView: 70,
   pdf: 140,
   'jspdf.es.min': 135,
   'html2canvas.esm': 55,

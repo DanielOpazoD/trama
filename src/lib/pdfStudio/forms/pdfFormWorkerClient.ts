@@ -1,19 +1,15 @@
 import { runPdfHeavyOperation } from '../export/heavyOperationClient'
-import {
-  fillPdfForm,
-  inspectPdfForm,
-  writePdfFormFields,
-  type PdfFormFillOptions,
-  type PdfFormFillResult,
-  type PdfFormFillValues,
-  type PdfFormInspection,
-} from './pdfForms'
 import type { PdfFormFieldDraft } from '../model/model'
 import {
   PDF_FORM_OPERATION_KIND,
   type PdfFormWorkerPayload,
   type PdfFormWorkerProgress,
 } from './pdfFormWorkerContract'
+
+type PdfFormFillOptions = import('./pdfForms').PdfFormFillOptions
+type PdfFormFillResult = import('./pdfForms').PdfFormFillResult
+type PdfFormFillValues = import('./pdfForms').PdfFormFillValues
+type PdfFormInspection = import('./pdfForms').PdfFormInspection
 
 function createPdfFormWorker(): Worker {
   if (typeof Worker === 'undefined') {
@@ -42,7 +38,8 @@ export function inspectPdfFormInWorker(
     createWorker: createPdfFormWorker,
     signal: options.signal,
     onProgress: options.onProgress,
-    fallback: () => inspectPdfForm(file),
+    fallback: () =>
+      import('./pdfForms').then(({ inspectPdfForm }) => inspectPdfForm(file)),
   })
 }
 
@@ -70,7 +67,10 @@ export function fillPdfFormInWorker(
     createWorker: createPdfFormWorker,
     signal: options.signal,
     onProgress: options.onProgress,
-    fallback: () => fillPdfForm(file, values, fillOptions),
+    fallback: () =>
+      import('./pdfForms').then(({ fillPdfForm }) =>
+        fillPdfForm(file, values, fillOptions),
+      ),
   })
 }
 
@@ -100,6 +100,9 @@ export function writePdfFormFieldsInWorker(
     createWorker: createPdfFormWorker,
     signal: options.signal,
     onProgress: options.onProgress,
-    fallback: () => writePdfFormFields(file, fields, pageIds, fillOptions),
+    fallback: () =>
+      import('./pdfForms').then(({ writePdfFormFields }) =>
+        writePdfFormFields(file, fields, pageIds, fillOptions),
+      ),
   })
 }

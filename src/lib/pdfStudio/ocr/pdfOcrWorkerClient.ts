@@ -1,11 +1,12 @@
 import { runPdfHeavyOperation } from '../export/heavyOperationClient'
-import { createSearchablePdf, type PdfOcrOptions, type PdfOcrResult } from './pdfOcr'
-import { createClientPdfOcrAdapter } from './pdfOcrBackendAdapter'
 import {
   PDF_OCR_OPERATION_KIND,
   type PdfOcrWorkerPayload,
   type PdfOcrWorkerProgress,
 } from './pdfOcrWorkerContract'
+
+type PdfOcrOptions = import('./pdfOcr').PdfOcrOptions
+type PdfOcrResult = import('./pdfOcr').PdfOcrResult
 
 function createPdfOcrWorker(): Worker {
   if (typeof Worker === 'undefined') {
@@ -16,8 +17,6 @@ function createPdfOcrWorker(): Worker {
     name: 'pdf-ocr-worker',
   })
 }
-
-const clientPdfOcrAdapter = createClientPdfOcrAdapter(createSearchablePdf)
 
 export function createSearchablePdfInWorker(
   file: File,
@@ -34,6 +33,9 @@ export function createSearchablePdfInWorker(
     createWorker: createPdfOcrWorker,
     signal: options.signal,
     onProgress: options.onProgress,
-    fallback: () => clientPdfOcrAdapter.run(file, options),
+    fallback: () =>
+      import('./pdfOcr').then(({ createSearchablePdf }) =>
+        createSearchablePdf(file, options),
+      ),
   })
 }
