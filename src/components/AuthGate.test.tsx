@@ -20,6 +20,7 @@ vi.mock('@clerk/react', () => ({
 describe('AuthGate', () => {
   beforeEach(() => {
     clerkState.signedIn = false
+    vi.stubEnv('VITE_TRAMA_E2E_BYPASS_CLERK', '')
     localStorage.clear()
   })
 
@@ -49,6 +50,20 @@ describe('AuthGate', () => {
     expect(screen.getByText('Trama')).toBeInTheDocument()
     expect(screen.getByText('explorar en modo prueba')).toBeInTheDocument()
     expect(screen.queryByTestId('app-shell')).not.toBeInTheDocument()
+  })
+
+  it('renders the app directly when the E2E Clerk bypass is enabled', () => {
+    vi.stubEnv('VITE_CLERK_PUBLISHABLE_KEY', 'pk_test_trama')
+    vi.stubEnv('VITE_TRAMA_E2E_BYPASS_CLERK', '1')
+
+    render(
+      <AuthGate>
+        <div data-testid="app-shell">Trama app</div>
+      </AuthGate>,
+    )
+
+    expect(screen.getByTestId('app-shell')).toBeInTheDocument()
+    expect(screen.queryByTestId('clerk-sign-in')).not.toBeInTheDocument()
   })
 
   it('renders the app when Clerk is configured and the user is signed in', () => {
