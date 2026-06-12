@@ -201,8 +201,81 @@ function readSelection() {
   return window.getSelection()?.toString() ?? ''
 }
 
+/**
+ * Inyectado EN la página: pinta la selección con un barrido dorado de
+ * marcador que se desvanece. Confirmación visual de QUÉ se capturó, justo
+ * donde pasó. No muta el DOM — una capa de overlays sobre los rects de la
+ * selección, así sirve en cualquier markup. Respeta reduced-motion.
+ * Debe ser autocontenida (se serializa hacia el contexto de la página).
+ */
+function pageFlashHighlight() {
+  const sel = window.getSelection()
+  if (!sel || sel.isCollapsed || sel.rangeCount === 0) return
+  const rects = []
+  for (let i = 0; i < sel.rangeCount; i++) {
+    const list = sel.getRangeAt(i).getClientRects()
+    for (let j = 0; j < list.length; j++) {
+      const r = list[j]
+      if (r.width > 0 && r.height > 0) rects.push(r)
+    }
+  }
+  if (rects.length === 0) return
+  const reduce =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const layer = document.createElement('div')
+  layer.setAttribute('data-trama-highlight', '')
+  layer.style.cssText =
+    'position:fixed;inset:0;margin:0;padding:0;z-index:2147483647;pointer-events:none;'
+  rects.forEach((rect, i) => {
+    const m = document.createElement('div')
+    m.style.cssText =
+      'position:absolute;background:rgba(160,121,0,0.34);border-radius:2px;' +
+      'left:' +
+      rect.left +
+      'px;top:' +
+      rect.top +
+      'px;width:' +
+      rect.width +
+      'px;height:' +
+      rect.height +
+      'px;'
+    if (!reduce && typeof m.animate === 'function') {
+      m.style.clipPath = 'inset(0 100% 0 0)'
+      m.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], {
+        duration: 240,
+        delay: i * 45,
+        easing: 'cubic-bezier(0.25,1,0.5,1)',
+        fill: 'forwards',
+      })
+    }
+    layer.appendChild(m)
+  })
+  document.documentElement.appendChild(layer)
+  const hold = reduce ? 350 : 650
+  setTimeout(() => {
+    if (typeof layer.animate === 'function') {
+      layer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 420, fill: 'forwards' })
+      setTimeout(() => layer.remove(), 440)
+    } else {
+      layer.remove()
+    }
+  }, hold)
+}
+
+/** Dispara el barrido dorado en la pestaña (best-effort, páginas normales). */
+async function flashHighlight(tabId) {
+  if (tabId == null) return
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, func: pageFlashHighlight })
+  } catch {
+    /* página restringida (chrome://, store): sin resaltado, el badge confirma */
+  }
+}
+
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== MENU_ID || !info.selectionText) return
+  if (tab?.id != null) void flashHighlight(tab.id)
   await saveRecorte({ text: info.selectionText, tab })
 })
 
@@ -216,7 +289,9 @@ chrome.commands?.onCommand.addListener(async (command) => {
       target: { tabId: tab.id },
       func: readSelection,
     })
-    await saveRecorte({ text: res?.result ?? '', tab })
+    const text = res?.result ?? ''
+    if (text.trim()) void flashHighlight(tab.id)
+    await saveRecorte({ text, tab })
   } catch {
     flashBadge(false)
   }
