@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Popup de Trama - Recortes. Precarga la seleccion de la pestana activa
  * (solo al abrirse: gesto explicito del usuario), muestra la fuente
@@ -6,27 +7,39 @@
  * "conexion" guarda token y servidor, y permite probar la conexion.
  */
 
+/**
+ * Acceso a elementos del popup. Devuelve `any` a propósito: el HTML es fijo y
+ * conocido, así que evitamos castear `.value`/`.hidden`/`.src` en cada uso.
+ * @param {string} id
+ * @returns {any}
+ */
 const $ = (id) => document.getElementById(id)
 
 let currentTab = null
 // Modo de captura activo: 'citation' (texto seleccionado) | 'article'
-// (artículo como objeto) | 'html' (página como Markdown). 'citation' usa el
-// textarea; los otros dos capturan la página entera y el textarea se oculta.
+// (artículo como objeto) | 'html' (página como Markdown) | 'region' (recorte
+// visual). 'citation' usa el textarea; los demás ocultan el textarea — y
+// 'region' además cierra el popup para arrastrar el recuadro en la página.
 let currentMode = 'citation'
 
 const MODE_HINT = {
   article: 'Captura el artículo principal de la página como un solo objeto.',
   html: 'Guarda la página entera como Markdown, conservando su estructura.',
+  region: 'Arrastra un recuadro sobre la página para recortarlo como imagen.',
 }
 const MODE_BUTTON = {
   citation: 'Guardar en Recortes',
   article: 'Guardar artículo',
   html: 'Guardar página',
+  region: 'Capturar región',
 }
 
 function setMode(mode) {
   currentMode = mode
-  for (const btn of document.querySelectorAll('.mode-opt')) {
+  const opts = /** @type {NodeListOf<HTMLElement>} */ (
+    document.querySelectorAll('.mode-opt')
+  )
+  for (const btn of opts) {
     btn.setAttribute('aria-pressed', btn.dataset.mode === mode ? 'true' : 'false')
   }
   const isPage = mode !== 'citation'
@@ -118,6 +131,23 @@ async function loadConfig() {
   if (!tramaToken) $('config').open = true
 }
 
+/** Estado de conexión automático al abrir: el punto de «conexión» se pone
+ *  verde si el servidor responde con el token, rojo si falla, gris si aún no
+ *  hay token. Así no hace falta pulsar «Probar conexión» para saber si está
+ *  sincronizado. */
+async function refreshConnStatus() {
+  if (!$('token').value.trim()) {
+    $('connDot').className = 'conn-dot'
+    return
+  }
+  try {
+    const res = await chrome.runtime.sendMessage({ kind: 'trama-test' })
+    $('connDot').className = res?.ok ? 'conn-dot ok' : 'conn-dot err'
+  } catch {
+    $('connDot').className = 'conn-dot err'
+  }
+}
+
 /** Tema del popup: auto (sigue al sistema) o forzado papel/noche/vela —
  *  los tres temas de la casa. Persistido en chrome.storage.local. */
 function applyTheme(theme) {
@@ -126,7 +156,10 @@ function applyTheme(theme) {
   } else {
     document.documentElement.dataset.theme = theme
   }
-  for (const btn of document.querySelectorAll('.theme-opt')) {
+  const opts = /** @type {NodeListOf<HTMLElement>} */ (
+    document.querySelectorAll('.theme-opt')
+  )
+  for (const btn of opts) {
     btn.setAttribute(
       'aria-pressed',
       btn.dataset.theme === (theme || 'auto') ? 'true' : 'false',
@@ -261,10 +294,9 @@ async function refreshRecent() {
 
 /** Captura de página (artículo/HTML): delega al SW, que lee la pestaña. */
 async function savePageMode() {
-  const note = $('nota').value.trim()
   setEstado(currentMode === 'article' ? 'leyendo el artículo...' : 'leyendo la página...')
   const kind = currentMode === 'article' ? 'trama-article' : 'trama-html'
-  const res = await chrome.runtime.sendMessage({ kind, note })
+  const res = await chrome.runtime.sendMessage({ kind })
   if (res?.ok) {
     setEstado(
       currentMode === 'article'
@@ -272,7 +304,6 @@ async function savePageMode() {
         : 'página guardada en Recortes',
       'ok',
     )
-    $('nota').value = ''
     refreshRecent()
     refreshQueue()
   } else {
@@ -281,6 +312,15 @@ async function savePageMode() {
 }
 
 $('guardar').addEventListener('click', async () => {
+  if (currentMode === 'region') {
+    // Arranca el overlay de arrastre en la página y cierra el popup para no
+    // tapar la pantalla. El recorte se guarda al soltar; el badge + toast
+    // confirman.
+    const res = await chrome.runtime.sendMessage({ kind: 'trama-region-start' })
+    if (res?.ok) window.close()
+    else setEstado(res?.error ?? 'no se puede capturar aquí', 'err')
+    return
+  }
   $('guardar').disabled = true
   if (currentMode !== 'citation') {
     await savePageMode()
@@ -297,20 +337,17 @@ $('guardar').addEventListener('click', async () => {
   const result = await chrome.runtime.sendMessage({
     kind: 'trama-save',
     text,
-    note: $('nota').value.trim(),
     captureMode: 'citation',
     tab: tab ? { id: tab.id, url: tab.url, title: tab.title } : null,
   })
   if (result?.ok && !result.queued) {
     setEstado('guardado en Recortes', 'ok')
     $('texto').value = ''
-    $('nota').value = ''
     updateCount()
     refreshRecent()
   } else if (result?.queued) {
     setEstado('sin señal — lo guardo y lo llevo después', 'ok')
     $('texto').value = ''
-    $('nota').value = ''
     updateCount()
     refreshQueue()
   } else {
@@ -335,17 +372,6 @@ async function refreshCollection() {
     $('collectionNote').hidden = true
   }
 }
-
-$('captureRegion').addEventListener('click', async () => {
-  // Arranca el overlay de arrastre en la página y cierra el popup para no
-  // tapar la pantalla. El recorte se guarda al soltar; el badge confirma.
-  const res = await chrome.runtime.sendMessage({ kind: 'trama-region-start' })
-  if (res?.ok) {
-    window.close()
-  } else {
-    setEstado(res?.error ?? 'no se puede capturar aquí', 'err')
-  }
-})
 
 $('addCollect').addEventListener('click', async () => {
   const text = $('texto').value.trim()
@@ -385,10 +411,11 @@ $('clearCollection').addEventListener('click', async () => {
 ;(async () => {
   await loadTheme()
   setMode('citation')
-  await showSource()
+  // loadConfig primero: deja el token disponible para el estado de conexión.
+  await Promise.all([loadConfig(), showSource()])
   await Promise.all([
     preloadSelection(),
-    loadConfig(),
+    refreshConnStatus(),
     refreshQueue(),
     refreshRecent(),
     refreshCollection(),

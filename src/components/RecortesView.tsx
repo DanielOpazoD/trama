@@ -17,6 +17,7 @@ import { ViewHeader } from './ViewHeader'
 import { EmptyMessage } from './EmptyMessage'
 import { LoadingHint } from './LoadingHint'
 import { CloseIcon, EndMark, ScissorsIcon, SparkleIcon } from './Icons'
+import { markdownToPreview } from './recortes/recorteMarkdownPreview'
 import {
   RecortesFilterChips,
   type RecortesFilter as Filter,
@@ -515,7 +516,7 @@ function RecorteCard({
       <RecorteImage recorte={r} />
 
       <p className="mt-1.5 whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700">
-        «{r.text}»
+        {r.captureMode === 'html' ? markdownToPreview(r.text) : `«${r.text}»`}
       </p>
 
       {r.note && <p className="mt-2 marginalia-script">{r.note}</p>}

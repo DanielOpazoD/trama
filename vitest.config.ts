@@ -17,6 +17,8 @@ export default defineConfig({
       'src/**/*.test.tsx',
       'netlify/**/*.test.ts',
       'scripts/**/*.test.mjs',
+      // Extensión de Chrome (JS plano): extractores puros + lógica de cola.
+      'extension/**/*.test.js',
     ],
     coverage: {
       provider: 'v8',
