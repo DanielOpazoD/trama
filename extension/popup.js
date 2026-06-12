@@ -131,6 +131,23 @@ async function loadConfig() {
   if (!tramaToken) $('config').open = true
 }
 
+/** Estado de conexión automático al abrir: el punto de «conexión» se pone
+ *  verde si el servidor responde con el token, rojo si falla, gris si aún no
+ *  hay token. Así no hace falta pulsar «Probar conexión» para saber si está
+ *  sincronizado. */
+async function refreshConnStatus() {
+  if (!$('token').value.trim()) {
+    $('connDot').className = 'conn-dot'
+    return
+  }
+  try {
+    const res = await chrome.runtime.sendMessage({ kind: 'trama-test' })
+    $('connDot').className = res?.ok ? 'conn-dot ok' : 'conn-dot err'
+  } catch {
+    $('connDot').className = 'conn-dot err'
+  }
+}
+
 /** Tema del popup: auto (sigue al sistema) o forzado papel/noche/vela —
  *  los tres temas de la casa. Persistido en chrome.storage.local. */
 function applyTheme(theme) {
@@ -277,10 +294,9 @@ async function refreshRecent() {
 
 /** Captura de página (artículo/HTML): delega al SW, que lee la pestaña. */
 async function savePageMode() {
-  const note = $('nota').value.trim()
   setEstado(currentMode === 'article' ? 'leyendo el artículo...' : 'leyendo la página...')
   const kind = currentMode === 'article' ? 'trama-article' : 'trama-html'
-  const res = await chrome.runtime.sendMessage({ kind, note })
+  const res = await chrome.runtime.sendMessage({ kind })
   if (res?.ok) {
     setEstado(
       currentMode === 'article'
@@ -288,7 +304,6 @@ async function savePageMode() {
         : 'página guardada en Recortes',
       'ok',
     )
-    $('nota').value = ''
     refreshRecent()
     refreshQueue()
   } else {
@@ -322,20 +337,17 @@ $('guardar').addEventListener('click', async () => {
   const result = await chrome.runtime.sendMessage({
     kind: 'trama-save',
     text,
-    note: $('nota').value.trim(),
     captureMode: 'citation',
     tab: tab ? { id: tab.id, url: tab.url, title: tab.title } : null,
   })
   if (result?.ok && !result.queued) {
     setEstado('guardado en Recortes', 'ok')
     $('texto').value = ''
-    $('nota').value = ''
     updateCount()
     refreshRecent()
   } else if (result?.queued) {
     setEstado('sin señal — lo guardo y lo llevo después', 'ok')
     $('texto').value = ''
-    $('nota').value = ''
     updateCount()
     refreshQueue()
   } else {
@@ -399,10 +411,11 @@ $('clearCollection').addEventListener('click', async () => {
 ;(async () => {
   await loadTheme()
   setMode('citation')
-  await showSource()
+  // loadConfig primero: deja el token disponible para el estado de conexión.
+  await Promise.all([loadConfig(), showSource()])
   await Promise.all([
     preloadSelection(),
-    loadConfig(),
+    refreshConnStatus(),
     refreshQueue(),
     refreshRecent(),
     refreshCollection(),

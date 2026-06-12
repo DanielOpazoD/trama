@@ -511,22 +511,24 @@
           placeholder="Selecciona texto en la pagina o pegalo aqui&hellip;"
         ></textarea>
       </label>
-      <label>
-        Nota (opcional)
-        <input id="nota" placeholder="por que te llego&hellip;" />
-      </label>
       <div class="row">
         <span id="estado"></span>
         <button id="guardar">Guardar en Recortes</button>
       </div>
       <div class="more-actions" id="moreActions">
-        <button class="link-btn" id="addCollect">+ a la colección</button>
+        <button
+          class="link-btn"
+          id="addCollect"
+          title="Junta varios fragmentos de distintos lugares en un solo recorte"
+        >
+          + juntar fragmento
+        </button>
       </div>
       <div class="collection-note" id="collectionNote" hidden>
         <span id="collectionCount"></span>
         <span class="coll-actions">
-          <button class="link-btn" id="saveCollection">guardar colección</button>
-          <button class="link-btn muted" id="clearCollection">vaciar</button>
+          <button class="link-btn" id="saveCollection">guardar como un recorte</button>
+          <button class="link-btn muted" id="clearCollection">descartar</button>
         </span>
       </div>
       <p class="queue-note" id="queueNote" hidden></p>
