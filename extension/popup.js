@@ -127,11 +127,72 @@ $('probar').addEventListener('click', async () => {
   }
 })
 
+function relativeDate(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const diff = Date.now() - d.getTime()
+  const day = 86400000
+  if (diff < day) return 'hoy'
+  if (diff < 2 * day) return 'ayer'
+  if (diff < 7 * day) return `hace ${Math.floor(diff / day)} días`
+  return d.toLocaleDateString('es', { day: 'numeric', month: 'short' })
+}
+
+/** Mini-bandeja: los últimos recortes pendientes, traídos del servidor. */
+async function refreshRecent() {
+  let res
+  try {
+    res = await chrome.runtime.sendMessage({ kind: 'trama-recent' })
+  } catch {
+    return
+  }
+  const baseUrl = res?.baseUrl || 'https://tramahub.app'
+  $('openTray').href = `${baseUrl.replace(/\/+$/, '')}/?view=recortes`
+  if (!res?.ok) return // sin token o sin conexión: la sección queda oculta
+  const list = $('recentList')
+  list.textContent = ''
+  if (res.items.length === 0) {
+    const p = document.createElement('p')
+    p.className = 'recent-empty'
+    p.textContent = 'Todavía sin recortes pendientes.'
+    list.appendChild(p)
+  } else {
+    for (const it of res.items) {
+      const host = hostOf(it.sourceUrl)
+      const a = document.createElement('a')
+      a.className = 'recent-item'
+      a.href = it.sourceUrl || $('openTray').href
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      const img = document.createElement('img')
+      img.alt = ''
+      img.src = host ? `https://www.google.com/s2/favicons?domain=${host}&sz=32` : ''
+      const body = document.createElement('div')
+      body.className = 'ri-body'
+      const txt = document.createElement('div')
+      txt.className = 'ri-text'
+      txt.textContent = `«${it.text}»`
+      const meta = document.createElement('div')
+      meta.className = 'ri-meta'
+      meta.textContent = [it.sourceTitle || host, relativeDate(it.capturedAt)]
+        .filter(Boolean)
+        .join(' · ')
+      body.appendChild(txt)
+      body.appendChild(meta)
+      a.appendChild(img)
+      a.appendChild(body)
+      list.appendChild(a)
+    }
+  }
+  $('recent').hidden = false
+}
+
 $('guardar').addEventListener('click', async () => {
   const text = $('texto').value.trim()
   if (!text) return
   $('guardar').disabled = true
-  setEstado('guardando...')
+  setEstado('prensando el recorte...')
   const tab = currentTab ?? (await activeTab())
   const result = await chrome.runtime.sendMessage({
     kind: 'trama-save',
@@ -144,6 +205,7 @@ $('guardar').addEventListener('click', async () => {
     $('texto').value = ''
     $('nota').value = ''
     updateCount()
+    refreshRecent()
   } else if (result?.queued) {
     setEstado('sin conexion - en cola, se reintenta', 'ok')
     $('texto').value = ''
@@ -158,6 +220,6 @@ $('guardar').addEventListener('click', async () => {
 })
 ;(async () => {
   await showSource()
-  await Promise.all([preloadSelection(), loadConfig(), refreshQueue()])
+  await Promise.all([preloadSelection(), loadConfig(), refreshQueue(), refreshRecent()])
   updateCount()
 })()

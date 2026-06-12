@@ -267,6 +267,72 @@
         color: var(--gold);
         font-style: italic;
       }
+      /* Mini-bandeja: los últimos recortes pendientes, leídos del servidor. */
+      .recent {
+        border-top: 1px solid var(--border);
+        padding: 11px 16px 13px;
+      }
+      .recent-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 7px;
+      }
+      .recent-head .label {
+        font-size: 9.5px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+      }
+      .recent-head a {
+        font-size: 10.5px;
+        text-decoration: none;
+      }
+      .recent-head a:hover {
+        text-decoration: underline;
+      }
+      .recent-item {
+        display: flex;
+        gap: 8px;
+        padding: 6px 0;
+        border-top: 1px solid var(--border);
+        text-decoration: none;
+        color: inherit;
+      }
+      .recent-item:first-of-type {
+        border-top: 0;
+      }
+      .recent-item img {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        margin-top: 2px;
+        flex: none;
+      }
+      .recent-item .ri-body {
+        min-width: 0;
+      }
+      .recent-item .ri-text {
+        font:
+          italic 12px/1.4 Georgia,
+          serif;
+        color: var(--ink);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .recent-item .ri-meta {
+        font-size: 9.5px;
+        color: var(--ink-faint);
+        margin-top: 1px;
+      }
+      .recent-empty {
+        font:
+          italic 11.5px Georgia,
+          serif;
+        color: var(--ink-faint);
+      }
     </style>
   </head>
   <body>
@@ -309,6 +375,13 @@
       </div>
       <p class="queue-note" id="queueNote" hidden></p>
     </main>
+    <section class="recent" id="recent" hidden>
+      <div class="recent-head">
+        <span class="label">en tu bandeja</span>
+        <a id="openTray" href="#">ver bandeja &rarr;</a>
+      </div>
+      <div id="recentList"></div>
+    </section>
     <details id="config">
       <summary>
         <span class="conn-dot" id="connDot"></span>

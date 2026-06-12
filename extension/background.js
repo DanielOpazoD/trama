@@ -311,8 +311,34 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     getQueue().then((q) => sendResponse({ pending: q.length }))
     return true
   }
+  if (msg?.kind === 'trama-recent') {
+    getRecent().then(sendResponse)
+    return true
+  }
   return undefined
 })
+
+/** Trae los últimos recortes pendientes para la mini-bandeja del popup. */
+async function getRecent() {
+  const { token, baseUrl } = await getConfig()
+  if (!token) return { ok: false, items: [], baseUrl }
+  try {
+    const res = await fetch(`${baseUrl}/api/recortes?status=pending`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return { ok: false, items: [], baseUrl }
+    const all = await res.json()
+    const items = (Array.isArray(all) ? all : []).slice(0, 4).map((r) => ({
+      text: r.text,
+      sourceUrl: r.source_url,
+      sourceTitle: r.source_title,
+      capturedAt: r.captured_at || r.created_at,
+    }))
+    return { ok: true, items, baseUrl }
+  } catch {
+    return { ok: false, items: [], baseUrl }
+  }
+}
 
 /** Probar conexión: pide la lista de recortes (GET liviano) con el token. */
 async function testConnection() {
