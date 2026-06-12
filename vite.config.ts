@@ -2,32 +2,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
 import pkg from './package.json'
+import { manualVendorChunks } from './scripts/vite-manual-chunks'
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url))
 const projectPathNeedsRelaxedFs = projectRoot.includes(':')
-
-function manualVendorChunks(id: string) {
-  if (!id.includes('node_modules')) return undefined
-  if (id.includes('react-dom') || id.match(/[\\/]react[\\/]/)) {
-    return 'vendor-react'
-  }
-  if (id.includes('@tanstack')) {
-    return 'vendor-query'
-  }
-  // sigma y graphology van juntas — y ya están en su lazy chunk
-  // GraphCanvasSigma (cargado solo al entrar al grafo grande).
-  // Si Vite vuelve a meterlas en el principal, las separamos acá.
-  if (id.includes('sigma') || id.includes('graphology')) {
-    return 'vendor-graph'
-  }
-  // pdf-lib (editor de PDF, lazy): su entry es `index.js`, así que sin
-  // esto Vite nombra el chunk `index-*.js` y colisiona con el budget del
-  // bundle principal `index`. Nombrarlo lo deja como chunk lazy propio.
-  if (id.includes('pdf-lib') || id.includes('@pdf-lib')) {
-    return 'vendor-pdf-lib'
-  }
-  return undefined
-}
 
 export default defineConfig({
   plugins: [react()],
