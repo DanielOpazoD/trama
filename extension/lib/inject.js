@@ -425,6 +425,59 @@ export function regionOverlay() {
 }
 
 /**
+ * Inyectado: obtiene los BYTES de una imagen DESDE EL CONTEXTO DE LA PÁGINA,
+ * donde ya está cargada y se cuenta con sus cookies/referer. Dos intentos:
+ *   1) fetch de la página (mismo origen o con CORS) → data URL de los bytes.
+ *   2) la imagen ya pintada → canvas → WebP (si no está "tainted").
+ * Devuelve una data URL o null. Sirve para sitios (p.ej. diarios) que rechazan
+ * el fetch directo del service worker. Autocontenida.
+ * @param {string} srcUrl
+ * @returns {Promise<string | null>}
+ */
+export async function pageGrabImage(srcUrl) {
+  function blobToDataUrl(blob) {
+    return new Promise((resolve) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(String(fr.result))
+      fr.onerror = () => resolve(null)
+      fr.readAsDataURL(blob)
+    })
+  }
+  // 1) fetch en el contexto de la página (incluye cookies/referer del sitio).
+  try {
+    const res = await fetch(srcUrl, { credentials: 'include' })
+    if (res.ok) {
+      const blob = await res.blob()
+      if (/^image\//.test(blob.type)) return await blobToDataUrl(blob)
+    }
+  } catch {
+    /* CORS / red: probamos el canvas */
+  }
+  // 2) La imagen ya decodificada en el DOM → canvas (falla si está tainted).
+  try {
+    const imgs = document.querySelectorAll('img')
+    let target = null
+    for (let i = 0; i < imgs.length; i++) {
+      const im = imgs[i]
+      if (im.currentSrc === srcUrl || im.src === srcUrl) {
+        target = im
+        break
+      }
+    }
+    if (target && target.naturalWidth > 0) {
+      const canvas = document.createElement('canvas')
+      canvas.width = target.naturalWidth
+      canvas.height = target.naturalHeight
+      canvas.getContext('2d').drawImage(target, 0, 0)
+      return canvas.toDataURL('image/webp', 0.85)
+    }
+  } catch {
+    /* imagen de otro origen sin CORS: el canvas queda tainted */
+  }
+  return null
+}
+
+/**
  * Toast editorial efímero abajo a la derecha. Confirmación VISIBLE cuando el
  * popup ya está cerrado (clic derecho, atajo, región) — el badge del icono es
  * discreto. `tone`: 'ok' (salvia) | 'err' (arcilla) | otro (tinta). Respeta

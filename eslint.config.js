@@ -229,6 +229,7 @@ export default tseslint.config(
         setTimeout: 'readonly',
         URL: 'readonly',
         Blob: 'readonly',
+        FileReader: 'readonly',
         // Captura de región (service worker + overlay inyectado).
         FormData: 'readonly',
         createImageBitmap: 'readonly',

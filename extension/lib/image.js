@@ -2,14 +2,21 @@
 /**
  * Guardado de imágenes de la web (clic derecho → «Guardar imagen en Trama»).
  *
- * Idea: DESCARGAR los bytes a tu almacenamiento (la imagen sobrevive aunque la
- * fuente la borre) conservando el link de la página de origen (sourceUrl).
- * Descargar de otro dominio requiere permiso de host; se pide por-dominio y
- * on-demand (optional_host_permissions) la primera vez, en respuesta al clic.
- * Si el permiso se deniega o la descarga falla, cae a guardar la URL externa
- * de la imagen (comportamiento histórico) — nunca se pierde la captura.
+ * Objetivo: DESCARGAR los bytes a tu almacenamiento (la imagen sobrevive aunque
+ * la fuente la borre) conservando el link de la página de origen (sourceUrl).
+ * Conseguir los bytes de otro dominio es lo difícil; se intenta en cascada:
+ *
+ *   1. data: URL → se lee directo (sin permisos).
+ *   2. Permiso de host por-dominio (optional_host_permissions, on-demand): se
+ *      pide PRIMERO, sincrónico dentro del clic, para no perder el "gesto de
+ *      usuario". Con permiso, el service worker descarga sin CORS.
+ *   3. Desde la PÁGINA (content script): fetch con cookies/referer del sitio o
+ *      canvas sobre la imagen ya cargada. Salva los casos en que el server
+ *      rechaza el fetch del SW (diarios con hotlink protection).
+ *   4. Fallback: guardar la URL externa — nunca se pierde la captura.
  */
 import { saveRecorte, uploadImage } from './recorte.js'
+import { pageGrabImage } from './inject.js'
 
 const ALLOWED_MIME = /^image\/(jpeg|png|webp|gif)$/
 
@@ -24,38 +31,66 @@ export function imageOriginPattern(url) {
   return null
 }
 
-/** ¿Tenemos —o conseguimos— permiso de host para descargar de ese origen? */
-async function ensureOriginAccess(pattern) {
+/** fetch + Blob, validando que sea una imagen soportada. null si no. */
+async function imageBlobFromFetch(url) {
   try {
-    if (await chrome.permissions.contains({ origins: [pattern] })) return true
-    return await chrome.permissions.request({ origins: [pattern] })
-  } catch {
-    return false
-  }
-}
-
-/** Descarga los bytes de la imagen como Blob (o null si no se puede / no es imagen). */
-async function downloadImageBlob(srcUrl) {
-  // data: URL → legible sin permiso de host.
-  if (srcUrl.startsWith('data:')) {
-    try {
-      const b = await (await fetch(srcUrl)).blob()
-      return ALLOWED_MIME.test(b.type) ? b : null
-    } catch {
-      return null
-    }
-  }
-  const pattern = imageOriginPattern(srcUrl)
-  if (!pattern) return null // blob:, chrome:, etc. — no descargable desde el SW
-  if (!(await ensureOriginAccess(pattern))) return null
-  try {
-    const res = await fetch(srcUrl)
+    const res = await fetch(url)
     if (!res.ok) return null
     const b = await res.blob()
     return ALLOWED_MIME.test(b.type) ? b : null
   } catch {
     return null
   }
+}
+
+/** Pide al content script los bytes de la imagen (cookies/referer o canvas). */
+async function grabViaPage(srcUrl, tabId) {
+  if (tabId == null) return null
+  let dataUrl
+  try {
+    const [res] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: pageGrabImage,
+      args: [srcUrl],
+    })
+    dataUrl = res?.result
+  } catch {
+    return null
+  }
+  if (!dataUrl || !dataUrl.startsWith('data:image/')) return null
+  return imageBlobFromFetch(dataUrl)
+}
+
+/**
+ * Consigue el Blob de la imagen. El permiso se pide PRIMERO (gesto intacto).
+ * @param {string} srcUrl
+ * @param {number|undefined|null} tabId
+ * @returns {Promise<Blob | null>}
+ */
+async function downloadImageBlob(srcUrl, tabId) {
+  if (srcUrl.startsWith('data:')) return imageBlobFromFetch(srcUrl)
+
+  // Pedir el permiso del dominio PRIMERO: es el primer await de la cadena, así
+  // el gesto del clic sigue vigente (request() lo exige). Ya concedido → true
+  // sin volver a preguntar; denegado → seguimos con el camino de la página.
+  const pattern = imageOriginPattern(srcUrl)
+  let granted = false
+  if (pattern) {
+    try {
+      granted = await chrome.permissions.request({ origins: [pattern] })
+    } catch {
+      granted = false
+    }
+  }
+
+  // Con permiso: el SW descarga sin CORS (limpio, sin ruido en la consola).
+  if (granted) {
+    const b = await imageBlobFromFetch(srcUrl)
+    if (b) return b
+  }
+  // Desde la página: sirve sin permiso (same-origin) o cuando el server bloquea
+  // el fetch del SW pero la imagen ya está cargada en la pestaña.
+  return grabViaPage(srcUrl, tabId)
 }
 
 /**
@@ -67,7 +102,7 @@ async function downloadImageBlob(srcUrl) {
  */
 export async function saveImage(srcUrl, tab) {
   const text = tab?.title || 'Imagen guardada'
-  const blob = await downloadImageBlob(srcUrl)
+  const blob = await downloadImageBlob(srcUrl, tab?.id)
   if (blob) {
     const up = await uploadImage(blob, 'imagen')
     if (up.ok) {
