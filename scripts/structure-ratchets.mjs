@@ -26,8 +26,13 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-large-surfaces',
-    maxLines: 700,
+    maxLines: 430,
     files: ['netlify/functions/import.mts'],
+  },
+  {
+    group: 'server-import-payload',
+    maxLines: 360,
+    files: ['netlify/functions/_lib/import-payload.ts'],
   },
   {
     group: 'server-large-surfaces',
