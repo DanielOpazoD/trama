@@ -33,6 +33,19 @@ const BUDGETS = {
   'jspdf.es.min': 135,
   'html2canvas.esm': 55,
   'vendor-pdf-lib': 575,
+  // Rutas principales lazy: mantenerlas con headroom chico evita que una vista
+  // arrastre dependencias pesadas sin aparecer en el bundle inicial.
+  ChatView: 10,
+  CommandPalette: 8,
+  EntitiesWorkbench: 14,
+  GraphView: 18,
+  ListeningView: 10,
+  MomentosView: 25,
+  QuotesView: 16,
+  RecortesView: 8,
+  Settings: 18,
+  'index.es': 60,
+  'purify.es': 12,
   // Bundle principal — el que más crece con features. Headroom mínimo.
   index: 110,
 }
