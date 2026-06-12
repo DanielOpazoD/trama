@@ -454,10 +454,10 @@ describe('guardrail: convenciones arquitectónicas absolutas', () => {
       .filter((file) => {
         const src = uncommentedSource(file)
         return (
-          /(?:\b\w+\.origin\b|\borigin\b)\s*(?:={2,3}|!={1,2})\s*['"](?:ai|manual)['"]/.test(
+          /(?:\b\w+\.origin\b|\borigin\b)\s*(?:={2,3}|!={1,2})\s*['"](?:ai|manual|imported)['"]/.test(
             src,
           ) ||
-          /['"](?:ai|manual)['"]\s*(?:={2,3}|!={1,2})\s*(?:\b\w+\.origin\b|\borigin\b)/.test(
+          /['"](?:ai|manual|imported)['"]\s*(?:={2,3}|!={1,2})\s*(?:\b\w+\.origin\b|\borigin\b)/.test(
             src,
           )
         )
