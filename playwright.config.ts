@@ -46,7 +46,8 @@ export default defineConfig({
       // .env.local puede traer Clerk real; E2E usa backend mockeado.
       VITE_TRAMA_E2E_BYPASS_CLERK: '1',
     },
-    reuseExistingServer: !process.env.CI,
+    // Opt-in only: reusing a local Vite server can leak stale .env.local/Clerk state into E2E.
+    reuseExistingServer: !process.env.CI && process.env.PLAYWRIGHT_REUSE_SERVER === '1',
     timeout: 60_000,
   },
 })
