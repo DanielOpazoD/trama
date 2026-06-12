@@ -6,7 +6,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 720,
+    maxLines: 710,
     files: ['src/components/RecortesView.tsx', 'src/App.tsx'],
   },
   {
