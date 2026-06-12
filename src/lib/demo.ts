@@ -12,13 +12,12 @@
  * `src/api/` corren después, igual que con el backend real.
  */
 import type { Row, Store } from './demoTypes'
-import { buildSeed } from './demoSeed'
+import { clearDemoStore, loadDemoStore as load, saveDemoStore as save } from './demoStore'
 import { extractPromptVariables, parseTags, weekStartAgo } from './demoUtils'
 
 export { demoMediaResponse } from './demoMedia'
 
 const FLAG_KEY = 'trama-demo'
-const STORE_KEY = 'trama-demo-store'
 
 export function isDemoMode(): boolean {
   if (typeof window === 'undefined') return false
@@ -29,7 +28,7 @@ export function enterDemoMode(): void {
 }
 export function exitDemoMode(): void {
   window.localStorage.removeItem(FLAG_KEY)
-  window.localStorage.removeItem(STORE_KEY)
+  clearDemoStore()
 }
 
 // ---------- Store ----------
@@ -40,39 +39,6 @@ function uid(): string {
 function nowIso(): string {
   return new Date().toISOString()
 }
-function load(): Store {
-  try {
-    const raw = window.localStorage.getItem(STORE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<Store>
-      return {
-        entities: parsed.entities ?? [],
-        relationships: parsed.relationships ?? [],
-        quotes: parsed.quotes ?? [],
-        momentos: parsed.momentos ?? [],
-        notes: parsed.notes ?? [],
-        tasks: parsed.tasks ?? [],
-        prompts: parsed.prompts ?? [],
-        secrets: parsed.secrets ?? [],
-        notas_attachments: parsed.notas_attachments ?? [],
-        recortes: parsed.recortes ?? [],
-        momento_comments: parsed.momento_comments ?? [],
-        momento_reactions: parsed.momento_reactions ?? [],
-        month_notes: parsed.month_notes ?? [],
-        user_prefs: parsed.user_prefs ?? {},
-      }
-    }
-  } catch {
-    /* corrupto → re-sembramos */
-  }
-  const seed = buildSeed()
-  save(seed)
-  return seed
-}
-function save(store: Store): void {
-  window.localStorage.setItem(STORE_KEY, JSON.stringify(store))
-}
-
 // ---------- Router ----------
 
 const live = (rows: Row[]): Row[] => rows.filter((r) => !r.deleted_at)
