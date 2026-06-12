@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { PDFDocument } from 'pdf-lib'
-import { emptyState, mockBackend } from './fixtures'
+import { emptyState, enableDemoMode, mockBackend } from './fixtures'
 
 const runVisual = process.env.PDF_STUDIO_VISUAL === '1' && process.platform === 'darwin'
 
@@ -13,11 +13,7 @@ async function makePdfBuffer(): Promise<Buffer> {
 async function openPdfEditor(page: Page, viewport = { width: 1280, height: 800 }) {
   await mockBackend(page, emptyState())
   await page.setViewportSize(viewport)
-  await page.addInitScript(() => {
-    window.localStorage.setItem('trama-demo', '1')
-    window.localStorage.setItem('trama:world', 'notas')
-    window.localStorage.removeItem('trama-demo-store')
-  })
+  await enableDemoMode(page, { world: 'notas' })
   await page.goto('/?world=notas&section=pdf')
   await expect(page.getByRole('heading', { name: 'Imprenta' })).toBeVisible()
 

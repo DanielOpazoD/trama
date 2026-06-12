@@ -1,4 +1,3 @@
-import { assemble, type AssembleOptions, type AssembleResult } from '../assemble/assemble'
 import { runPdfHeavyOperation } from './heavyOperationClient'
 import {
   PDF_EXPORT_OPERATION_KIND,
@@ -6,6 +5,9 @@ import {
   type PdfExportWorkerProgress,
 } from './exportWorkerContract'
 import type { PdfDoc } from '../model/model'
+
+type AssembleOptions = import('../assemble/assemble').AssembleOptions
+type AssembleResult = import('../assemble/assemble').AssembleResult
 
 function createPdfExportWorker(): Worker {
   if (typeof Worker === 'undefined') {
@@ -45,6 +47,6 @@ export function assemblePdfInWorker(
     // siempre tiene canvas, así que reensamblamos ahí. No reintentamos si el
     // usuario canceló la exportación.
     if (options.signal?.aborted) throw err
-    return assemble(doc, options)
+    return import('../assemble/assemble').then(({ assemble }) => assemble(doc, options))
   })
 }

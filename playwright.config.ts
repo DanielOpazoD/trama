@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { shouldReusePlaywrightServer } from './src/lib/playwrightServerReuse'
 
 // Playwright forces color in worker output; the user's shell may export
 // NO_COLOR globally. Node warns when both are present, so keep E2E logs clean
@@ -43,8 +44,14 @@ export default defineConfig({
     url: 'http://localhost:5173',
     env: {
       VITE_CLERK_PUBLISHABLE_KEY: '',
+      // .env.local puede traer Clerk real; E2E usa backend mockeado.
+      VITE_TRAMA_E2E_BYPASS_CLERK: '1',
     },
-    reuseExistingServer: !process.env.CI,
+    // Opt-in only: reusing a local Vite server can leak stale .env.local/Clerk state into E2E.
+    reuseExistingServer: shouldReusePlaywrightServer({
+      ci: process.env.CI,
+      reuseServer: process.env.PLAYWRIGHT_REUSE_SERVER,
+    }),
     timeout: 60_000,
   },
 })

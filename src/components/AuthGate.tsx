@@ -14,6 +14,7 @@
  */
 import { Show, SignIn } from '@clerk/react'
 import { enterDemoMode, exitDemoMode, isDemoMode } from '../lib/demo'
+import { shouldUseClerk } from '../lib/clerkRuntime'
 
 const clerkAppearance = {
   variables: {
@@ -85,7 +86,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     )
   }
 
-  const hasClerk = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
+  const hasClerk = shouldUseClerk({
+    e2eBypass: import.meta.env.VITE_TRAMA_E2E_BYPASS_CLERK,
+    publishableKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+  })
   // (2) Sin Clerk configurado.
   if (!hasClerk) return <>{children}</>
 

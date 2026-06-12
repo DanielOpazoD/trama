@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { emptyState, mockBackend } from './fixtures'
+import { emptyState, enableDemoMode, mockBackend } from './fixtures'
 
 /**
  * MomentosView — navegación y estado vacío.
@@ -54,10 +54,7 @@ test('momentos: estado vacío muestra mensaje "Todavía no hay momentos"', async
 test('momentos: modo prueba muestra foto y nota de voz en timeline y album', async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('trama-demo', '1')
-    window.localStorage.removeItem('trama-demo-store')
-  })
+  await enableDemoMode(page)
 
   await page.goto('/?view=momentos')
 

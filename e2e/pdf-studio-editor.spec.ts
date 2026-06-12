@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { PDFDocument } from 'pdf-lib'
-import { emptyState, mockBackend } from './fixtures'
+import { emptyState, enableDemoMode, mockBackend } from './fixtures'
 
 const shortcutMod = process.platform === 'darwin' ? 'Meta' : 'Control'
 const samplePng = Buffer.from(
@@ -17,11 +17,7 @@ async function makePdfBuffer(pageCount = 1): Promise<Buffer> {
 async function openPdfEditor(page: Page) {
   await mockBackend(page, emptyState())
   await page.setViewportSize({ width: 1280, height: 800 })
-  await page.addInitScript(() => {
-    window.localStorage.setItem('trama-demo', '1')
-    window.localStorage.setItem('trama:world', 'notas')
-    window.localStorage.removeItem('trama-demo-store')
-  })
+  await enableDemoMode(page, { world: 'notas' })
   await page.goto('/?world=notas&section=pdf')
   await expect(page.getByRole('heading', { name: 'Imprenta' })).toBeVisible()
 
@@ -202,6 +198,19 @@ async function sheetViewportTop(page: Page, pageIndex: number) {
   }, pageIndex)
 }
 
+async function waitForStableSheetViewportTop(page: Page, pageIndex: number) {
+  await expect
+    .poll(async () => {
+      const before = await sheetViewportTop(page, pageIndex)
+      await page.waitForTimeout(100)
+      const after = await sheetViewportTop(page, pageIndex)
+      if (before == null || after == null) return Number.POSITIVE_INFINITY
+      return Math.abs(after - before)
+    })
+    .toBeLessThan(2)
+  return sheetViewportTop(page, pageIndex)
+}
+
 async function expectZoomKeepsSheetCenter(page: Page) {
   await waitForEditableSheetReady(page)
   const before = await visibleSheetAnchor(page)
@@ -278,11 +287,7 @@ async function sheetWidth(page: Page) {
 async function openTemplateFillEditor(page: Page) {
   await mockBackend(page, emptyState())
   await page.setViewportSize({ width: 1280, height: 800 })
-  await page.addInitScript(() => {
-    window.localStorage.setItem('trama-demo', '1')
-    window.localStorage.setItem('trama:world', 'notas')
-    window.localStorage.removeItem('trama-demo-store')
-  })
+  await enableDemoMode(page, { world: 'notas' })
   await page.goto('/?world=notas&section=planillas')
   await expect(page.getByRole('heading', { name: 'Planillas' })).toBeVisible()
   await page.locator('input[type="file"]').setInputFiles({
@@ -388,11 +393,7 @@ test.describe('Imprenta · editor PDF', () => {
   }) => {
     await mockBackend(page, emptyState())
     await page.setViewportSize({ width: 1280, height: 800 })
-    await page.addInitScript(() => {
-      window.localStorage.setItem('trama-demo', '1')
-      window.localStorage.setItem('trama:world', 'notas')
-      window.localStorage.removeItem('trama-demo-store')
-    })
+    await enableDemoMode(page, { world: 'notas' })
     await page.goto('/?world=notas&section=pdf')
     await page.locator('input[type="file"]').setInputFiles({
       name: 'qa-continuo.pdf',
@@ -428,11 +429,7 @@ test.describe('Imprenta · editor PDF', () => {
   }) => {
     await mockBackend(page, emptyState())
     await page.setViewportSize({ width: 1280, height: 800 })
-    await page.addInitScript(() => {
-      window.localStorage.setItem('trama-demo', '1')
-      window.localStorage.setItem('trama:world', 'notas')
-      window.localStorage.removeItem('trama-demo-store')
-    })
+    await enableDemoMode(page, { world: 'notas' })
     await page.goto('/?world=notas&section=pdf')
     await page.locator('input[type="file"]').setInputFiles({
       name: 'qa-ocho-paginas.pdf',
@@ -452,7 +449,7 @@ test.describe('Imprenta · editor PDF', () => {
     // La invariante es VISUAL: la hoja 8 no se mueve del viewport aunque el
     // scrollTop interno se compense (anclaje) cuando una hoja de arriba
     // re-renderiza más alta después de liberar.
-    const initialSheetTop = await sheetViewportTop(page, 7)
+    const initialSheetTop = await waitForStableSheetViewportTop(page, 7)
     expect(initialSheetTop).not.toBeNull()
     await page.waitForTimeout(500)
     const settledSheetTop = await sheetViewportTop(page, 7)

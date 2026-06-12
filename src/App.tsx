@@ -39,6 +39,7 @@ import { AuthGate } from './components/AuthGate'
 import { AppPinGate } from './components/AppPinGate'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { SectionAccentBand } from './components/SectionAccentBand'
+import { FocusModeExitButton } from './components/FocusModeExitButton'
 import { MomentoNotificationsCenter } from './components/momentos/MomentoNotificationsCenter'
 import { NotasWorld } from './components/notas/NotasWorld'
 import { NOTAS_SECTIONS, type NotasSection } from './types/notas'
@@ -199,6 +200,14 @@ function Shell({
       }
       return next
     })
+  }, [])
+  const exitFocusMode = useCallback(() => {
+    setFocusMode(false)
+    try {
+      window.localStorage.setItem('trama:focus-mode', '0')
+    } catch {
+      /* storage disabled */
+    }
   }, [])
   useGlobalShortcuts({
     onTogglePalette: () => setPaletteOpen((open) => !open),
@@ -409,26 +418,7 @@ function Shell({
         {/* Pill flotante de salida de focus mode — sin esto el usuario
             podría no saber cómo volver al shell completo. Discreto en
             la esquina superior derecha; click o tecla `\` para salir. */}
-        {focusMode && (
-          <button
-            onClick={() => {
-              setFocusMode(false)
-              try {
-                window.localStorage.setItem('trama:focus-mode', '0')
-              } catch {
-                /* storage disabled */
-              }
-            }}
-            aria-label="Salir del modo focus"
-            title="Salir del modo focus (\)"
-            className="fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 section-eyebrow hover:text-ink-700 bg-paper-50/90 hover:bg-paper-50 border border-ink-100/60 hover:border-ink-200 rounded-md backdrop-blur transition-colors animate-fade-up"
-          >
-            <span>focus</span>
-            <kbd className="font-mono text-micro px-1.5 py-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-500 leading-none">
-              \
-            </kbd>
-          </button>
-        )}
+        {focusMode && <FocusModeExitButton onExit={exitFocusMode} />}
       </main>
 
       {settingsOpen && (

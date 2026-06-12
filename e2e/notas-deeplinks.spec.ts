@@ -1,12 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
-import { emptyState, mockBackend } from './fixtures'
+import { emptyState, enableDemoMode, mockBackend } from './fixtures'
 
 async function setupNotasDeepLink(page: Page) {
   await mockBackend(page, emptyState())
-  await page.addInitScript(() => {
-    window.localStorage.setItem('trama-demo', '1')
-    window.localStorage.removeItem('trama-demo-store')
-  })
+  await enableDemoMode(page)
 }
 
 async function expectNotasSection(page: Page, label: string, heading: string) {

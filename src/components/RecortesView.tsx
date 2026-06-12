@@ -17,6 +17,10 @@ import { ViewHeader } from './ViewHeader'
 import { EmptyMessage } from './EmptyMessage'
 import { LoadingHint } from './LoadingHint'
 import { CloseIcon, EndMark, ScissorsIcon, SparkleIcon } from './Icons'
+import {
+  RecortesFilterChips,
+  type RecortesFilter as Filter,
+} from './recortes/RecortesFilterChips'
 
 /** Semilla opcional de la IA para pre-llenar el modal de promoción. */
 type PromoteSeed = {
@@ -51,8 +55,6 @@ function hostOf(url: string | null): string | null {
     return null
   }
 }
-
-type Filter = 'pending' | 'archived' | 'promoted'
 
 const TARGET_LABEL: Record<RecorteTarget, string> = {
   quote: 'cita',
@@ -620,22 +622,6 @@ export default function RecortesView({
   }, [recortes])
   const visible = recortes.filter((r) => r.status === filter)
 
-  const chip = (f: Filter, label: string) => (
-    <button
-      key={f}
-      onClick={() => setFilter(f)}
-      aria-pressed={filter === f}
-      className={`shrink-0 rounded-full px-2.5 py-1 text-xs transition-colors ${
-        filter === f
-          ? 'bg-ink-800 text-paper-50'
-          : 'text-ink-400 hover:text-ink-700 hover:bg-ink-100/60'
-      }`}
-    >
-      {label}
-      <span className="ml-1 text-micro tabular-nums opacity-70">{counts[f]}</span>
-    </button>
-  )
-
   return (
     <>
       <ViewHeader
@@ -647,11 +633,7 @@ export default function RecortesView({
         subtitle="Lo que guardas desde la web con la extensión de Chrome aterriza aquí. Nada entra a la trama solo: tú decides qué se vuelve cita, entidad o momento."
       />
 
-      <div className="mb-5 flex flex-wrap items-center gap-1.5">
-        {chip('pending', 'pendientes')}
-        {chip('archived', 'archivados')}
-        {chip('promoted', 'promovidos')}
-      </div>
+      <RecortesFilterChips filter={filter} counts={counts} onChangeFilter={setFilter} />
 
       {isLoading ? (
         <LoadingHint text="cargando" />

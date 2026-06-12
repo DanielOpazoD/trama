@@ -17,6 +17,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { gzipSync } from 'node:zlib'
 import { join } from 'node:path'
+import { chunkBaseName, classifyBundleEntry } from './bundle-budget.mjs'
 
 // Budgets en KB (gzip). Ajustables, pero pedí justificación.
 const BUDGETS = {
@@ -26,25 +27,33 @@ const BUDGETS = {
   'vendor-query': 25,
   'vendor-graph': 50,
   browser: 15,
+  // Imprenta/PDF: chunks lazy pesados. No impactan el inicio, pero sí pueden
+  // crecer sin ruido si entran nuevas dependencias de edición/export.
+  PdfStudioView: 70,
+  pdf: 140,
+  'jspdf.es.min': 135,
+  'html2canvas.esm': 55,
+  'vendor-pdf-lib': 575,
+  // Rutas principales lazy: mantenerlas con headroom chico evita que una vista
+  // arrastre dependencias pesadas sin aparecer en el bundle inicial.
+  ChatView: 10,
+  CommandPalette: 8,
+  EntitiesWorkbench: 14,
+  GraphView: 18,
+  ListeningView: 10,
+  MomentosView: 25,
+  QuotesView: 16,
+  RecortesView: 8,
+  Settings: 18,
+  'index.es': 60,
+  'purify.es': 12,
   // Bundle principal — el que más crece con features. Headroom mínimo.
   index: 110,
 }
 
 const DIST = 'dist/assets'
+const MAX_UNBUDGETED_KB = 10
 const reportOnly = process.argv.includes('--report')
-
-function chunkBaseName(file) {
-  // index-AB12cd.js → index, vendor-react-XY.js → vendor-react
-  //
-  // Vite emite el hash con caracteres base64-url-safe que pueden incluir
-  // dashes internos y trailing dash (e.g. `index-DZkgaF-k.js`,
-  // `MomentosView-D9Z41wa-.js`). El truco es fijar el LARGO del hash:
-  // Vite default es 8 chars, configurable [6..12]. Usamos greedy `.+`
-  // que backtrackea hasta encontrar exactamente N chars hash al final.
-  // Sin esto, hashes con dashes internos contaminaban el match.
-  const m = file.match(/^(.+)-[A-Za-z0-9_-]{6,12}\.js$/)
-  return m ? m[1] : file.replace(/\.js$/, '')
-}
 
 let stat
 try {
@@ -73,16 +82,17 @@ for (const file of files) {
   const gzKb = Math.round(gzipSync(buf).length / 1024)
   const base = chunkBaseName(file)
   const budget = BUDGETS[base]
+  const entry = classifyBundleEntry({
+    base,
+    budget,
+    gzKb,
+    maxUnbudgetedKb: MAX_UNBUDGETED_KB,
+  })
 
-  if (budget === undefined) {
-    // Chunk sin budget — solo reportar.
-    passes.push({ file: base, gzKb, status: 'no-budget' })
-    continue
-  }
-  if (gzKb > budget) {
-    failures.push({ file: base, gzKb, budget })
+  if (entry.status === 'missing-budget' || entry.status === 'over-budget') {
+    failures.push(entry)
   } else {
-    passes.push({ file: base, gzKb, budget, status: 'ok' })
+    passes.push(entry)
   }
 }
 
@@ -94,16 +104,17 @@ for (const p of passes) {
   console.log(`  ${p.file.padEnd(20)} ${String(p.gzKb).padStart(4)} KB${tag}`)
 }
 for (const f of failures) {
+  const label = f.status === 'missing-budget' ? 'SIN budget >' : 'EXCEDE budget'
   console.log(
-    `  ${f.file.padEnd(20)} ${String(f.gzKb).padStart(4)} KB   ❌ EXCEDE budget ${f.budget} KB`,
+    `  ${f.file.padEnd(20)} ${String(f.gzKb).padStart(4)} KB   ❌ ${label} ${f.budget} KB`,
   )
 }
 console.log('─'.repeat(50))
 
 if (failures.length > 0 && !reportOnly) {
   console.error(
-    `\n${failures.length} chunk(s) exceden su budget.\n` +
-      `Entendé por qué crecieron antes de subir el budget en scripts/check-bundle-size.mjs.\n`,
+    `\n${failures.length} chunk(s) exceden su budget o necesitan budget explícito.\n` +
+      `Entendé por qué crecieron antes de tocar scripts/check-bundle-size.mjs.\n`,
   )
   process.exit(1)
 }
