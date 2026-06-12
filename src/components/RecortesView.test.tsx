@@ -71,6 +71,12 @@ describe('<RecortesView />', () => {
     expect(screen.getByRole('button', { name: '→ momento' })).toBeInTheDocument()
   })
 
+  it('renderiza la imagen del recorte cuando la hay (captura de imagen)', () => {
+    setup([recorte({ imageUrl: 'https://example.com/foto.jpg' })])
+    const img = document.querySelector('img[src="https://example.com/foto.jpg"]')
+    expect(img).toBeInTheDocument()
+  })
+
   it('empty state invita a instalar la extensión', () => {
     setup([])
     expect(screen.getByText(/su primer recorte/)).toBeInTheDocument()

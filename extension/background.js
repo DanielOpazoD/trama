@@ -17,14 +17,35 @@
  */
 
 const MENU_ID = 'trama-save-selection'
+const MENU_COLLECT = 'trama-collect'
+const MENU_IMAGE = 'trama-save-image'
+const MENU_PAGE = 'trama-save-page'
 const QUEUE_KEY = 'tramaQueue'
+const COLLECTION_KEY = 'tramaCollection'
 const ALARM_FLUSH = 'trama-flush'
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: MENU_ID,
-    title: 'Guardar selección en Trama',
-    contexts: ['selection'],
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: MENU_ID,
+      title: 'Guardar selección en Trama',
+      contexts: ['selection'],
+    })
+    chrome.contextMenus.create({
+      id: MENU_COLLECT,
+      title: 'Añadir a la colección de Trama',
+      contexts: ['selection'],
+    })
+    chrome.contextMenus.create({
+      id: MENU_IMAGE,
+      title: 'Guardar imagen en Trama',
+      contexts: ['image'],
+    })
+    chrome.contextMenus.create({
+      id: MENU_PAGE,
+      title: 'Guardar artículo en Trama',
+      contexts: ['page'],
+    })
   })
 })
 
@@ -54,10 +75,12 @@ function readPageMeta() {
   }
 }
 
-/** Arma el payload definitivo (resuelve meta AHORA, no al reintentar). */
-async function buildPayload({ text, tab, note }) {
+/** Arma el payload definitivo (resuelve meta AHORA, no al reintentar).
+ *  `override` permite forzar autor/fuente/imagen (captura estructurada,
+ *  imagen, artículo) sin re-leer los meta de la página. */
+async function buildPayload({ text, tab, note, imageUrl, override }) {
   let meta = { author: null, title: tab?.title ?? null }
-  if (tab?.id != null) {
+  if (!override && tab?.id != null) {
     try {
       const [result] = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
@@ -73,9 +96,10 @@ async function buildPayload({ text, tab, note }) {
   const clean = String(text).slice(0, 20000)
   return {
     text: clean,
-    sourceUrl: tab?.url ?? null,
-    sourceTitle: meta.title ?? tab?.title ?? null,
-    sourceAuthor: meta.author,
+    sourceUrl: override?.sourceUrl ?? tab?.url ?? null,
+    sourceTitle: override?.sourceTitle ?? meta.title ?? tab?.title ?? null,
+    sourceAuthor: override?.sourceAuthor ?? meta.author,
+    imageUrl: imageUrl ?? null,
     note: note || null,
     capturedAt: new Date().toISOString(),
   }
@@ -173,10 +197,10 @@ function flashBadge(ok) {
  * reintentable, encola y devuelve `queued`. Solo el 400 (payload inválido)
  * es un fracaso duro.
  */
-async function saveRecorte({ text, tab, note }) {
+async function saveRecorte({ text, tab, note, imageUrl, override }) {
   const trimmed = String(text ?? '').trim()
   if (!trimmed) return { ok: false, error: 'No hay texto que guardar.' }
-  const payload = await buildPayload({ text: trimmed, tab, note })
+  const payload = await buildPayload({ text: trimmed, tab, note, imageUrl, override })
   const r = await sendPayload(payload)
   if (r.ok) {
     flashBadge(true)
@@ -199,6 +223,169 @@ async function activeTab() {
 
 function readSelection() {
   return window.getSelection()?.toString() ?? ''
+}
+
+/**
+ * Inyectado: extracción "readability-lite" del artículo principal, sin
+ * dependencias. Elige el mejor contenedor (article > main > el bloque con
+ * más texto de párrafos) y junta su prosa (encabezados, párrafos, listas,
+ * citas) en orden. Devuelve { text, title, byline }.
+ */
+function pageExtractArticle() {
+  function paragraphScore(el) {
+    let score = 0
+    const ps = el.querySelectorAll('p')
+    for (let i = 0; i < ps.length; i++) {
+      const len = (ps[i].innerText || '').trim().length
+      if (len > 40) score += len
+    }
+    return score
+  }
+  let container = document.querySelector('article')
+  if (!container) container = document.querySelector('main')
+  if (!container) {
+    // Mejor bloque por densidad de párrafos.
+    const candidates = document.querySelectorAll('div, section')
+    let best = null
+    let bestScore = 0
+    for (let i = 0; i < candidates.length; i++) {
+      const s = paragraphScore(candidates[i])
+      if (s > bestScore) {
+        bestScore = s
+        best = candidates[i]
+      }
+    }
+    container = best
+  }
+  if (!container) return null
+  const blocks = container.querySelectorAll('h1, h2, h3, p, li, blockquote')
+  const parts = []
+  for (let i = 0; i < blocks.length; i++) {
+    const t = (blocks[i].innerText || '').trim()
+    if (t.length > 1) parts.push(t)
+  }
+  const text = parts.join('\n\n').slice(0, 20000)
+  if (text.length < 200) return null // probablemente no es un artículo
+  const byline =
+    document
+      .querySelector('meta[name="author"], meta[property="article:author"]')
+      ?.getAttribute('content') || null
+  return { text, title: document.title || null, byline }
+}
+
+/**
+ * Inyectado: captura estructurada en X/Twitter y Reddit. Usa el nodo de la
+ * selección para encontrar el tweet/post que la contiene; si no hay
+ * selección, toma el primero. Devuelve { text, author, url } o null —
+ * siempre best-effort: ante cualquier cambio de DOM, devuelve null y el
+ * flujo cae a la selección cruda.
+ */
+function pageExtractStructured() {
+  const host = location.hostname.replace(/^www\./, '')
+  const sel = window.getSelection()
+  const anchor = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).startContainer : null
+  const fromAnchor = (selector) => {
+    let node = anchor && anchor.nodeType === 1 ? anchor : anchor?.parentElement
+    while (node && node !== document.body) {
+      if (node.matches && node.matches(selector)) return node
+      node = node.parentElement
+    }
+    return document.querySelector(selector)
+  }
+  try {
+    if (host === 'x.com' || host === 'twitter.com' || host === 'mobile.twitter.com') {
+      const article = fromAnchor('article[data-testid="tweet"]')
+      if (!article) return null
+      const textEl = article.querySelector('[data-testid="tweetText"]')
+      const text = textEl ? textEl.innerText.trim() : ''
+      if (!text) return null
+      const nameEl = article.querySelector('[data-testid="User-Name"]')
+      const author = nameEl ? nameEl.innerText.split('\n')[0].trim() : null
+      const timeLink = article.querySelector('a[href*="/status/"] time')
+      const url = timeLink ? timeLink.parentElement.href : location.href
+      return { text, author, url, title: author ? `${author} en X` : 'X' }
+    }
+    if (host.endsWith('reddit.com')) {
+      const post = fromAnchor('shreddit-post, [data-testid="post-container"]')
+      if (!post) return null
+      const title =
+        post.getAttribute('post-title') ||
+        post.querySelector('h1, [slot="title"]')?.innerText?.trim() ||
+        document.title
+      const bodyEl = post.querySelector(
+        '[slot="text-body"], [data-post-click-location="text-body"]',
+      )
+      const body = bodyEl ? bodyEl.innerText.trim() : ''
+      const author = post.getAttribute('author') || null
+      const permalink = post.getAttribute('permalink')
+      const url = permalink ? location.origin + permalink : location.href
+      const text = [title, body].filter(Boolean).join('\n\n').trim()
+      if (!text) return null
+      return { text, author: author ? `u/${author}` : null, url, title }
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+/** Lee el subgrafo estructurado de la pestaña (best-effort). */
+async function tryStructured(tab) {
+  if (tab?.id == null) return null
+  try {
+    const [res] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: pageExtractStructured,
+    })
+    return res?.result || null
+  } catch {
+    return null
+  }
+}
+
+// ---- Colección (varios resaltados → un solo recorte) --------------------
+
+async function getCollection() {
+  const { [COLLECTION_KEY]: c } = await chrome.storage.local.get(COLLECTION_KEY)
+  return c && Array.isArray(c.fragments) ? c : null
+}
+
+async function addToCollection(text, tab) {
+  const trimmed = String(text ?? '').trim()
+  if (!trimmed) return { count: 0 }
+  let c = await getCollection()
+  if (!c) {
+    c = { sourceUrl: tab?.url ?? null, sourceTitle: tab?.title ?? null, fragments: [] }
+  }
+  c.fragments.push(trimmed.slice(0, 5000))
+  await chrome.storage.local.set({ [COLLECTION_KEY]: c })
+  // Badge naranja con la cuenta de la colección.
+  chrome.action.setBadgeText({ text: String(c.fragments.length) })
+  chrome.action.setBadgeBackgroundColor({ color: '#b8804a' })
+  chrome.action.setTitle({
+    title: `Trama · ${c.fragments.length} fragmento(s) en la colección`,
+  })
+  return { count: c.fragments.length }
+}
+
+async function clearCollection() {
+  await chrome.storage.local.remove(COLLECTION_KEY)
+  void getQueue().then((q) => paintBadge(q.length))
+}
+
+/** Junta los fragmentos en un solo recorte (cada uno como párrafo). */
+async function saveCollection() {
+  const c = await getCollection()
+  if (!c || c.fragments.length === 0)
+    return { ok: false, error: 'La colección está vacía.' }
+  const text = c.fragments.join('\n\n— · —\n\n')
+  const r = await saveRecorte({
+    text,
+    tab: null,
+    override: { sourceUrl: c.sourceUrl, sourceTitle: c.sourceTitle, sourceAuthor: null },
+  })
+  if (r.ok) await clearCollection()
+  return r
 }
 
 /**
@@ -273,10 +460,66 @@ async function flashHighlight(tabId) {
   }
 }
 
+/** Guarda una selección, prefiriendo la captura estructurada (X/Reddit). */
+async function saveSelection(rawText, tab) {
+  const structured = await tryStructured(tab)
+  if (structured && structured.text) {
+    return saveRecorte({
+      text: structured.text,
+      tab,
+      override: {
+        sourceUrl: structured.url,
+        sourceTitle: structured.title,
+        sourceAuthor: structured.author,
+      },
+    })
+  }
+  return saveRecorte({ text: rawText, tab })
+}
+
+/** Guarda el artículo principal de la página (readability-lite). */
+async function saveArticle(tab) {
+  if (tab?.id == null) return { ok: false, error: 'Sin pestaña.' }
+  let article = null
+  try {
+    const [res] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: pageExtractArticle,
+    })
+    article = res?.result || null
+  } catch {
+    /* página restringida */
+  }
+  if (!article) return { ok: false, error: 'No se encontró un artículo en esta página.' }
+  return saveRecorte({
+    text: article.text,
+    tab,
+    override: {
+      sourceUrl: tab.url,
+      sourceTitle: article.title,
+      sourceAuthor: article.byline,
+    },
+  })
+}
+
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId !== MENU_ID || !info.selectionText) return
-  if (tab?.id != null) void flashHighlight(tab.id)
-  await saveRecorte({ text: info.selectionText, tab })
+  if (info.menuItemId === MENU_ID && info.selectionText) {
+    if (tab?.id != null) void flashHighlight(tab.id)
+    await saveSelection(info.selectionText, tab)
+  } else if (info.menuItemId === MENU_COLLECT && info.selectionText) {
+    if (tab?.id != null) void flashHighlight(tab.id)
+    await addToCollection(info.selectionText, tab)
+  } else if (info.menuItemId === MENU_IMAGE && info.srcUrl) {
+    // El recorte exige texto; usamos el título de la página como pie.
+    await saveRecorte({
+      text: tab?.title || 'Imagen guardada',
+      tab,
+      imageUrl: info.srcUrl,
+    })
+  } else if (info.menuItemId === MENU_PAGE) {
+    const r = await saveArticle(tab)
+    flashBadge(r.ok)
+  }
 })
 
 // Atajo de teclado: lee la selección de la pestaña activa y la guarda.
@@ -291,7 +534,7 @@ chrome.commands?.onCommand.addListener(async (command) => {
     })
     const text = res?.result ?? ''
     if (text.trim()) void flashHighlight(tab.id)
-    await saveRecorte({ text, tab })
+    await saveSelection(text, tab)
   } catch {
     flashBadge(false)
   }
@@ -313,6 +556,26 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg?.kind === 'trama-recent') {
     getRecent().then(sendResponse)
+    return true
+  }
+  if (msg?.kind === 'trama-article') {
+    activeTab().then((tab) => saveArticle(tab).then(sendResponse))
+    return true
+  }
+  if (msg?.kind === 'trama-collection') {
+    getCollection().then((c) => sendResponse({ count: c ? c.fragments.length : 0 }))
+    return true
+  }
+  if (msg?.kind === 'trama-collection-add') {
+    addToCollection(msg.text, msg.tab).then(sendResponse)
+    return true
+  }
+  if (msg?.kind === 'trama-collection-save') {
+    saveCollection().then(sendResponse)
+    return true
+  }
+  if (msg?.kind === 'trama-collection-clear') {
+    clearCollection().then(() => sendResponse({ ok: true }))
     return true
   }
   return undefined

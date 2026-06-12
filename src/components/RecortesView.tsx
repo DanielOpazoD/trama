@@ -386,6 +386,22 @@ function RecorteCard({
         </span>
       </div>
 
+      {r.imageUrl && (
+        <a
+          href={r.sourceUrl ?? r.imageUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 block overflow-hidden rounded-md border border-ink-100"
+        >
+          <img
+            src={r.imageUrl}
+            alt=""
+            loading="lazy"
+            className="block max-h-56 w-full object-cover"
+          />
+        </a>
+      )}
+
       <p className="mt-1.5 whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700">
         «{r.text}»
       </p>

@@ -220,6 +220,7 @@ export default tseslint.config(
         chrome: 'readonly',
         document: 'readonly',
         window: 'readonly',
+        location: 'readonly',
         fetch: 'readonly',
         setTimeout: 'readonly',
         URL: 'readonly',

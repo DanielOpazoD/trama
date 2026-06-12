@@ -247,9 +247,80 @@ $('guardar').addEventListener('click', async () => {
     if (/token/i.test($('estado').textContent)) $('config').open = true
   }
 })
+/** Refresca el indicador de la colección (varios fragmentos → un recorte). */
+async function refreshCollection() {
+  let res
+  try {
+    res = await chrome.runtime.sendMessage({ kind: 'trama-collection' })
+  } catch {
+    return
+  }
+  const count = res?.count ?? 0
+  if (count > 0) {
+    $('collectionCount').textContent = `colección: ${count} fragmento(s)`
+    $('collectionNote').hidden = false
+  } else {
+    $('collectionNote').hidden = true
+  }
+}
+
+$('captureArticle').addEventListener('click', async () => {
+  $('captureArticle').disabled = true
+  setEstado('leyendo el artículo...')
+  const res = await chrome.runtime.sendMessage({ kind: 'trama-article' })
+  $('captureArticle').disabled = false
+  if (res?.ok) {
+    setEstado('artículo guardado en Recortes', 'ok')
+    refreshRecent()
+  } else {
+    setEstado(res?.error ?? 'no se encontró artículo', 'err')
+  }
+})
+
+$('addCollect').addEventListener('click', async () => {
+  const text = $('texto').value.trim()
+  if (!text) {
+    setEstado('selecciona o pega un fragmento primero', 'err')
+    return
+  }
+  const tab = currentTab ?? (await activeTab())
+  await chrome.runtime.sendMessage({
+    kind: 'trama-collection-add',
+    text,
+    tab: tab ? { url: tab.url, title: tab.title } : null,
+  })
+  $('texto').value = ''
+  updateCount()
+  setEstado('sumado a la colección', 'ok')
+  refreshCollection()
+})
+
+$('saveCollection').addEventListener('click', async () => {
+  setEstado('uniendo los fragmentos...')
+  const res = await chrome.runtime.sendMessage({ kind: 'trama-collection-save' })
+  if (res?.ok) {
+    setEstado('colección guardada como un recorte', 'ok')
+    refreshCollection()
+    refreshRecent()
+  } else {
+    setEstado(res?.error ?? 'no se pudo guardar la colección', 'err')
+  }
+})
+
+$('clearCollection').addEventListener('click', async () => {
+  await chrome.runtime.sendMessage({ kind: 'trama-collection-clear' })
+  setEstado('colección vaciada', 'ok')
+  refreshCollection()
+})
 ;(async () => {
   await loadTheme()
   await showSource()
-  await Promise.all([preloadSelection(), loadConfig(), refreshQueue(), refreshRecent()])
+  await Promise.all([
+    preloadSelection(),
+    loadConfig(),
+    refreshQueue(),
+    refreshRecent(),
+    refreshCollection(),
+  ])
   updateCount()
 })()
