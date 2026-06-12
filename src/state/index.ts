@@ -94,6 +94,7 @@ export {
   usePromoteRecorte,
   useSuggestRecorte,
 } from './useRecortes'
+export { useFavoritosQuery, useUpdateFavorito, useDeleteFavorito } from './useFavoritos'
 export {
   useTasksQuery,
   useTasksRange,

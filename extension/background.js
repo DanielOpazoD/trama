@@ -27,11 +27,13 @@ import {
 } from './lib/collection.js'
 import { cropAndSaveRegion, startRegionCapture } from './lib/region.js'
 import { saveImage } from './lib/image.js'
+import { saveFavorito } from './lib/favorito.js'
 
 const MENU_ID = 'trama-save-selection'
 const MENU_COLLECT = 'trama-collect'
 const MENU_IMAGE = 'trama-save-image'
 const MENU_PAGE = 'trama-save-page'
+const MENU_FAVORITE = 'trama-save-favorite'
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.removeAll(() => {
@@ -53,6 +55,11 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
       id: MENU_PAGE,
       title: 'Guardar artículo en Trama',
+      contexts: ['page'],
+    })
+    chrome.contextMenus.create({
+      id: MENU_FAVORITE,
+      title: 'Guardar esta página como favorito en Trama',
       contexts: ['page'],
     })
   })
@@ -106,6 +113,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     flashBadge(r.ok)
     const t = toastForResult(r)
     void showPageToast(tabId, t.msg, t.tone)
+  } else if (info.menuItemId === MENU_FAVORITE) {
+    const r = await saveFavorito(tab)
+    flashBadge(r.ok)
+    void showPageToast(
+      tabId,
+      r.ok ? 'Página guardada en Favoritos' : r.error || 'No se pudo guardar',
+      r.ok ? 'ok' : 'err',
+    )
   }
 })
 
@@ -164,6 +179,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg?.kind === 'trama-article') {
     activeTab().then((tab) => saveArticle(tab, msg.note).then(sendResponse))
+    return true
+  }
+  if (msg?.kind === 'trama-favorite') {
+    activeTab().then((tab) => saveFavorito(tab).then(sendResponse))
     return true
   }
   if (msg?.kind === 'trama-collection') {

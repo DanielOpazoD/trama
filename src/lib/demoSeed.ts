@@ -339,6 +339,25 @@ export function buildSeed(): Store {
     },
   ]
 
+  const favoritos: Row[] = [
+    {
+      id: uid(),
+      url: 'https://www.gutenberg.org/',
+      title: 'Project Gutenberg — biblioteca de dominio público',
+      note: 'para buscar ediciones viejas',
+      created_at: daysAgo(2),
+      updated_at: daysAgo(2),
+    },
+    {
+      id: uid(),
+      url: 'https://example.com/ensayo-largo-pendiente',
+      title: 'Un ensayo largo que dejé a medias',
+      note: null,
+      created_at: daysAgo(5),
+      updated_at: daysAgo(5),
+    },
+  ]
+
   return {
     entities,
     relationships,
@@ -350,6 +369,7 @@ export function buildSeed(): Store {
     secrets: [],
     notas_attachments: [],
     recortes,
+    favoritos,
     momento_comments: [],
     momento_reactions: [],
     month_notes: [],

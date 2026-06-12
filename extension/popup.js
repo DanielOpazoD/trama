@@ -366,6 +366,13 @@ async function refreshCollection() {
   }
 }
 
+$('saveFavorite').addEventListener('click', async () => {
+  setEstado('marcando como favorito...')
+  const res = await chrome.runtime.sendMessage({ kind: 'trama-favorite' })
+  if (res?.ok) setEstado('página guardada en Favoritos', 'ok')
+  else setEstado(res?.error ?? 'no se pudo guardar', 'err')
+})
+
 $('addCollect').addEventListener('click', async () => {
   const text = $('texto').value.trim()
   if (!text) {

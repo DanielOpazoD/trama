@@ -132,6 +132,7 @@ export function routeDemoRequest(
     secrets: store.secrets,
     'notas-attachments': store.notas_attachments,
     recortes: store.recortes,
+    favoritos: store.favoritos,
   }
   const rows = collections[resource]
 
