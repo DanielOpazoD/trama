@@ -189,11 +189,17 @@ async function centeredEditorPageNumber(page: Page) {
   })
 }
 
-async function editorScrollTop(page: Page) {
-  return page.evaluate(() => {
+/** Posición de la hoja relativa al viewport del editor (estable aunque el
+ *  scrollTop interno se compense por inflación de hojas anteriores). */
+async function sheetViewportTop(page: Page, pageIndex: number) {
+  return page.evaluate((index) => {
     const container = document.querySelector<HTMLElement>('[data-pdf-editor-scroll]')
-    return container?.scrollTop ?? null
-  })
+    const sheet = document.querySelector<HTMLElement>(
+      `[data-pdf-editor-sheet="${index}"]`,
+    )
+    if (!container || !sheet) return null
+    return sheet.getBoundingClientRect().top - container.getBoundingClientRect().top
+  }, pageIndex)
 }
 
 async function expectZoomKeepsSheetCenter(page: Page) {
@@ -443,12 +449,16 @@ test.describe('Imprenta · editor PDF', () => {
     const scrollArea = page.locator('[data-pdf-editor-scroll]')
     await expect(scrollArea).toHaveAttribute('data-pdf-editor-positioning', 'settled')
     expect(await centeredEditorPageNumber(page)).toBe(8)
-    const initialScrollTop = await editorScrollTop(page)
-    expect(initialScrollTop).not.toBeNull()
+    // La invariante es VISUAL: la hoja 8 no se mueve del viewport aunque el
+    // scrollTop interno se compense (anclaje) cuando una hoja de arriba
+    // re-renderiza más alta después de liberar.
+    const initialSheetTop = await sheetViewportTop(page, 7)
+    expect(initialSheetTop).not.toBeNull()
     await page.waitForTimeout(500)
-    const settledScrollTop = await editorScrollTop(page)
-    expect(settledScrollTop).not.toBeNull()
-    expect(Math.abs((settledScrollTop ?? 0) - (initialScrollTop ?? 0))).toBeLessThan(2)
+    const settledSheetTop = await sheetViewportTop(page, 7)
+    expect(settledSheetTop).not.toBeNull()
+    expect(Math.abs((settledSheetTop ?? 0) - (initialSheetTop ?? 0))).toBeLessThan(2)
+    expect(await centeredEditorPageNumber(page)).toBe(8)
 
     await page.getByRole('button', { name: 'Página anterior' }).click()
     await expect(page.getByRole('dialog', { name: 'Editar página 7' })).toBeVisible()
