@@ -85,7 +85,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     )
   }
 
-  const hasClerk = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
+  const hasClerk =
+    Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) &&
+    import.meta.env.VITE_TRAMA_E2E_BYPASS_CLERK !== '1'
   // (2) Sin Clerk configurado.
   if (!hasClerk) return <>{children}</>
 

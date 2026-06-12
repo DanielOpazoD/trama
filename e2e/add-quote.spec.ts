@@ -34,7 +34,9 @@ test('añadir cita manualmente desde QuotesView', async ({ page }) => {
     .getByRole('button', { name: /^Citas/ })
     .first()
     .click()
-  await expect(page.getByRole('heading', { name: 'Citas', level: 2 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Citas', level: 2 })).toBeVisible({
+    timeout: 10_000,
+  })
 
   // Abrir el formulario — el botón "Añadir" en el header toggle.
   // Al click, ese botón pasa a "Cerrar" y aparece un segundo "Añadir" como

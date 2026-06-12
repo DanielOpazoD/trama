@@ -43,6 +43,8 @@ export default defineConfig({
     url: 'http://localhost:5173',
     env: {
       VITE_CLERK_PUBLISHABLE_KEY: '',
+      // .env.local puede traer Clerk real; E2E usa backend mockeado.
+      VITE_TRAMA_E2E_BYPASS_CLERK: '1',
     },
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,

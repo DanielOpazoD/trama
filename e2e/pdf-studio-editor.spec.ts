@@ -202,6 +202,19 @@ async function sheetViewportTop(page: Page, pageIndex: number) {
   }, pageIndex)
 }
 
+async function waitForStableSheetViewportTop(page: Page, pageIndex: number) {
+  await expect
+    .poll(async () => {
+      const before = await sheetViewportTop(page, pageIndex)
+      await page.waitForTimeout(100)
+      const after = await sheetViewportTop(page, pageIndex)
+      if (before == null || after == null) return Number.POSITIVE_INFINITY
+      return Math.abs(after - before)
+    })
+    .toBeLessThan(2)
+  return sheetViewportTop(page, pageIndex)
+}
+
 async function expectZoomKeepsSheetCenter(page: Page) {
   await waitForEditableSheetReady(page)
   const before = await visibleSheetAnchor(page)
@@ -452,7 +465,7 @@ test.describe('Imprenta · editor PDF', () => {
     // La invariante es VISUAL: la hoja 8 no se mueve del viewport aunque el
     // scrollTop interno se compense (anclaje) cuando una hoja de arriba
     // re-renderiza más alta después de liberar.
-    const initialSheetTop = await sheetViewportTop(page, 7)
+    const initialSheetTop = await waitForStableSheetViewportTop(page, 7)
     expect(initialSheetTop).not.toBeNull()
     await page.waitForTimeout(500)
     const settledSheetTop = await sheetViewportTop(page, 7)

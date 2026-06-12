@@ -17,6 +17,7 @@ installClientErrorTracking()
 initWebVitals()
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const E2E_BYPASS_CLERK = import.meta.env.VITE_TRAMA_E2E_BYPASS_CLERK === '1'
 
 const root = createRoot(document.getElementById('root')!)
 
@@ -25,7 +26,7 @@ const root = createRoot(document.getElementById('root')!)
 // pero la app sigue funcionando (antes de enforcement).
 root.render(
   <StrictMode>
-    {PUBLISHABLE_KEY ? (
+    {PUBLISHABLE_KEY && !E2E_BYPASS_CLERK ? (
       <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
         <ApiAuthBridge />
         <App />
