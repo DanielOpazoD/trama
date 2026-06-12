@@ -320,6 +320,7 @@ export function PdfTextEditor({
       setSelectedId,
       scrollInitialPage: true,
       total,
+      zoom,
     })
   const { status: formSuggestionStatus, suggestCurrentPage } =
     usePdfTextEditorFormSuggestions({
