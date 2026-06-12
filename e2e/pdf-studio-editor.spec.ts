@@ -165,6 +165,30 @@ async function visibleSheetAnchor(page: Page, pageIndex = 0) {
   }, pageIndex)
 }
 
+async function centeredEditorPageNumber(page: Page) {
+  return page.evaluate(() => {
+    const container = document.querySelector<HTMLElement>('[data-pdf-editor-scroll]')
+    if (!container) return null
+    const containerRect = container.getBoundingClientRect()
+    const centerY = containerRect.top + container.clientHeight / 2
+    let best: { page: number; distance: number } | null = null
+    for (const pageEl of Array.from(
+      container.querySelectorAll<HTMLElement>('[data-pdf-editor-page]'),
+    )) {
+      const rect = pageEl.getBoundingClientRect()
+      if (rect.height <= 1) continue
+      const nearestY = Math.min(rect.bottom, Math.max(rect.top, centerY))
+      const distance = Math.abs(centerY - nearestY)
+      const pageIndex = Number(pageEl.dataset.pdfEditorPage)
+      if (!Number.isFinite(pageIndex)) continue
+      if (!best || distance < best.distance) {
+        best = { page: pageIndex + 1, distance }
+      }
+    }
+    return best?.page ?? null
+  })
+}
+
 async function expectZoomKeepsSheetCenter(page: Page) {
   await waitForEditableSheetReady(page)
   const before = await visibleSheetAnchor(page)
@@ -384,6 +408,40 @@ test.describe('Imprenta · editor PDF', () => {
         return box?.y ?? Number.POSITIVE_INFINITY
       })
       .toBeLessThan(page2Before.y - 100)
+  })
+
+  test('abre exactamente la miniatura 8 y mantiene el contador al navegar', async ({
+    page,
+  }) => {
+    await mockBackend(page, emptyState())
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.addInitScript(() => {
+      window.localStorage.setItem('trama-demo', '1')
+      window.localStorage.setItem('trama:world', 'notas')
+      window.localStorage.removeItem('trama-demo-store')
+    })
+    await page.goto('/?world=notas&section=pdf')
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'qa-ocho-paginas.pdf',
+      mimeType: 'application/pdf',
+      buffer: await makePdfBuffer(8),
+    })
+
+    const thumb8 = page.getByAltText('Página 8')
+    await expect(thumb8).toBeVisible()
+    await thumb8.scrollIntoViewIfNeeded()
+    await thumb8.dblclick()
+
+    await expect(page.getByRole('dialog', { name: 'Editar página 8' })).toBeVisible()
+    await expect.poll(() => centeredEditorPageNumber(page)).toBe(8)
+
+    await page.getByRole('button', { name: 'Página anterior' }).click()
+    await expect(page.getByRole('dialog', { name: 'Editar página 7' })).toBeVisible()
+    await expect.poll(() => centeredEditorPageNumber(page)).toBe(7)
+
+    await page.getByRole('button', { name: 'Página siguiente' }).click()
+    await expect(page.getByRole('dialog', { name: 'Editar página 8' })).toBeVisible()
+    await expect.poll(() => centeredEditorPageNumber(page)).toBe(8)
   })
 
   test('mantiene foco atrapado, visible y navegable dentro del editor', async ({
