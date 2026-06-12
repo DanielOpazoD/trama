@@ -26,6 +26,13 @@ const BUDGETS = {
   'vendor-query': 25,
   'vendor-graph': 50,
   browser: 15,
+  // Imprenta/PDF: chunks lazy pesados. No impactan el inicio, pero sí pueden
+  // crecer sin ruido si entran nuevas dependencias de edición/export.
+  PdfStudioView: 80,
+  pdf: 140,
+  'jspdf.es.min': 135,
+  'html2canvas.esm': 55,
+  'vendor-pdf-lib': 575,
   // Bundle principal — el que más crece con features. Headroom mínimo.
   index: 110,
 }
