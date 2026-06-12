@@ -516,7 +516,9 @@ function RecorteCard({
       <RecorteImage recorte={r} />
 
       <p className="mt-1.5 whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700">
-        {r.captureMode === 'html' ? markdownToPreview(r.text) : `«${r.text}»`}
+        {r.captureMode === 'html' || r.captureMode === 'article'
+          ? markdownToPreview(r.text)
+          : `«${r.text}»`}
       </p>
 
       {r.note && <p className="mt-2 marginalia-script">{r.note}</p>}
