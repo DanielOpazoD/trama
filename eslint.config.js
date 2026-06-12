@@ -224,6 +224,11 @@ export default tseslint.config(
         fetch: 'readonly',
         setTimeout: 'readonly',
         URL: 'readonly',
+        // Captura de región (service worker + overlay inyectado).
+        FormData: 'readonly',
+        createImageBitmap: 'readonly',
+        OffscreenCanvas: 'readonly',
+        requestAnimationFrame: 'readonly',
       },
     },
   },

@@ -10,13 +10,20 @@ const trimmedText = z
 
 const optionalShort = z.string().trim().max(500).nullish()
 
+/** Cómo se capturó el recorte (Bloque B+). 'citation' = selección. */
+export const CaptureMode = z.enum(['citation', 'article', 'html', 'region', 'image'])
+
 export const RecorteCreateBody = z.object({
   text: trimmedText,
   sourceUrl: z.string().trim().url('URL de origen inválida').max(2000).nullish(),
   sourceTitle: optionalShort,
   sourceAuthor: optionalShort,
   note: z.string().trim().max(2000).nullish(),
+  /** Imagen externa: la URL http real del <img> (menú "Guardar imagen"). */
   imageUrl: z.string().trim().url().max(2000).nullish(),
+  /** Imagen interna: blob authed del store recortes-media (región/screenshot). */
+  imageKey: z.string().trim().max(200).nullish(),
+  captureMode: CaptureMode.nullish(),
   /** Cuándo se capturó en el browser (la extensión lo manda). */
   capturedAt: z.string().datetime({ offset: true }).nullish(),
 })

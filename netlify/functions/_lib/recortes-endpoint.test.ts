@@ -36,6 +36,8 @@ const ROW = {
   source_author: null,
   note: null,
   image_url: null,
+  image_key: null,
+  capture_mode: 'citation',
   status: 'pending',
   promoted_target: null,
   promoted_id: null,
@@ -77,6 +79,46 @@ describe('recortes endpoint', () => {
     )
     expect(res.status).toBe(201)
     expect((await res.json()).source_title).toBe('El taller')
+  })
+
+  it('POST persiste captureMode e imageKey en el INSERT (Bloque B+)', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ ...ROW, capture_mode: 'region', image_key: 'u/abc.webp' }])
+    const res = await recortesHandler(
+      new Request('http://localhost/api/recortes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: 'Recorte visual de la página',
+          captureMode: 'region',
+          imageKey: 'u/abc.webp',
+        }),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.capture_mode).toBe('region')
+    expect(body.image_key).toBe('u/abc.webp')
+    // El INSERT debe llevar ambos valores interpolados (no NULL silencioso).
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO recortes/.test(c.template),
+    )
+    expect(insert).toBeTruthy()
+    expect(insert?.values).toContain('region')
+    expect(insert?.values).toContain('u/abc.webp')
+  })
+
+  it('POST rechaza captureMode fuera del enum (Zod)', async () => {
+    const res = await recortesHandler(
+      new Request('http://localhost/api/recortes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'x', captureMode: 'inventado' }),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(400)
   })
 
   it('CORS: preflight 204 y headers solo para orígenes de extensión', () => {

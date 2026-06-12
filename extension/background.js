@@ -20,6 +20,7 @@ const MENU_ID = 'trama-save-selection'
 const MENU_COLLECT = 'trama-collect'
 const MENU_IMAGE = 'trama-save-image'
 const MENU_PAGE = 'trama-save-page'
+const MENU_HTML = 'trama-save-html'
 const QUEUE_KEY = 'tramaQueue'
 const COLLECTION_KEY = 'tramaCollection'
 const ALARM_FLUSH = 'trama-flush'
@@ -44,6 +45,11 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
       id: MENU_PAGE,
       title: 'Guardar artículo en Trama',
+      contexts: ['page'],
+    })
+    chrome.contextMenus.create({
+      id: MENU_HTML,
+      title: 'Guardar página como Markdown en Trama',
       contexts: ['page'],
     })
   })
@@ -77,8 +83,19 @@ function readPageMeta() {
 
 /** Arma el payload definitivo (resuelve meta AHORA, no al reintentar).
  *  `override` permite forzar autor/fuente/imagen (captura estructurada,
- *  imagen, artículo) sin re-leer los meta de la página. */
-async function buildPayload({ text, tab, note, imageUrl, override }) {
+ *  imagen, artículo) sin re-leer los meta de la página.
+ *  `captureMode` etiqueta cómo se capturó (cita/artículo/html/región/imagen);
+ *  default 'citation', el gesto histórico. `imageKey` es el blob interno
+ *  authed (región/screenshot subido), distinto de `imageUrl` (URL externa). */
+async function buildPayload({
+  text,
+  tab,
+  note,
+  imageUrl,
+  imageKey,
+  captureMode,
+  override,
+}) {
   let meta = { author: null, title: tab?.title ?? null }
   if (!override && tab?.id != null) {
     try {
@@ -100,6 +117,8 @@ async function buildPayload({ text, tab, note, imageUrl, override }) {
     sourceTitle: override?.sourceTitle ?? meta.title ?? tab?.title ?? null,
     sourceAuthor: override?.sourceAuthor ?? meta.author,
     imageUrl: imageUrl ?? null,
+    imageKey: imageKey ?? null,
+    captureMode: captureMode ?? 'citation',
     note: note || null,
     capturedAt: new Date().toISOString(),
   }
@@ -197,10 +216,26 @@ function flashBadge(ok) {
  * reintentable, encola y devuelve `queued`. Solo el 400 (payload inválido)
  * es un fracaso duro.
  */
-async function saveRecorte({ text, tab, note, imageUrl, override }) {
+async function saveRecorte({
+  text,
+  tab,
+  note,
+  imageUrl,
+  imageKey,
+  captureMode,
+  override,
+}) {
   const trimmed = String(text ?? '').trim()
   if (!trimmed) return { ok: false, error: 'No hay texto que guardar.' }
-  const payload = await buildPayload({ text: trimmed, tab, note, imageUrl, override })
+  const payload = await buildPayload({
+    text: trimmed,
+    tab,
+    note,
+    imageUrl,
+    imageKey,
+    captureMode,
+    override,
+  })
   const r = await sendPayload(payload)
   if (r.ok) {
     flashBadge(true)
@@ -478,7 +513,7 @@ async function saveSelection(rawText, tab) {
 }
 
 /** Guarda el artículo principal de la página (readability-lite). */
-async function saveArticle(tab) {
+async function saveArticle(tab, note) {
   if (tab?.id == null) return { ok: false, error: 'Sin pestaña.' }
   let article = null
   try {
@@ -494,10 +529,344 @@ async function saveArticle(tab) {
   return saveRecorte({
     text: article.text,
     tab,
+    note,
+    captureMode: 'article',
     override: {
       sourceUrl: tab.url,
       sourceTitle: article.title,
       sourceAuthor: article.byline,
+    },
+  })
+}
+
+/**
+ * Inyectado: convierte el contenedor principal de la página a Markdown
+ * conservador, preservando estructura (encabezados, listas, citas, enlaces,
+ * énfasis) sin librerías. A diferencia de pageExtractArticle —que aplana
+ * a prosa— acá el texto guardado conserva la jerarquía, útil cuando el
+ * recorte se promueve a una nota. Best-effort: ante un DOM raro devuelve la
+ * mejor aproximación. Debe ser autocontenida (se serializa hacia la página).
+ */
+function pageExtractHTML() {
+  function pickContainer() {
+    function paragraphScore(el) {
+      let score = 0
+      const ps = el.querySelectorAll('p')
+      for (let i = 0; i < ps.length; i++) {
+        const len = (ps[i].innerText || '').trim().length
+        if (len > 40) score += len
+      }
+      return score
+    }
+    let c = document.querySelector('article') || document.querySelector('main')
+    if (c) return c
+    const candidates = document.querySelectorAll('div, section')
+    let best = null
+    let bestScore = 0
+    for (let i = 0; i < candidates.length; i++) {
+      const s = paragraphScore(candidates[i])
+      if (s > bestScore) {
+        bestScore = s
+        best = candidates[i]
+      }
+    }
+    return best
+  }
+
+  const container = pickContainer()
+  if (!container) return null
+
+  const SKIP = new Set([
+    'SCRIPT',
+    'STYLE',
+    'NOSCRIPT',
+    'NAV',
+    'ASIDE',
+    'FORM',
+    'BUTTON',
+    'SVG',
+    'IFRAME',
+  ])
+
+  // Recorre inline para texto con énfasis/enlaces; ignora lo no semántico.
+  function inline(node) {
+    let out = ''
+    for (let i = 0; i < node.childNodes.length; i++) {
+      const child = node.childNodes[i]
+      if (child.nodeType === 3) {
+        out += child.nodeValue.replace(/\s+/g, ' ')
+      } else if (child.nodeType === 1) {
+        const tag = child.tagName
+        if (SKIP.has(tag)) continue
+        const inner = inline(child)
+        if (tag === 'A') {
+          const href = child.getAttribute('href') || ''
+          out += href && !href.startsWith('javascript:') ? `[${inner}](${href})` : inner
+        } else if (tag === 'STRONG' || tag === 'B') {
+          out += inner.trim() ? `**${inner}**` : inner
+        } else if (tag === 'EM' || tag === 'I') {
+          out += inner.trim() ? `*${inner}*` : inner
+        } else if (tag === 'CODE') {
+          out += inner.trim() ? '`' + inner + '`' : inner
+        } else if (tag === 'BR') {
+          out += '\n'
+        } else {
+          out += inner
+        }
+      }
+    }
+    return out
+  }
+
+  const lines = []
+  const blocks = container.querySelectorAll('h1, h2, h3, h4, p, li, blockquote, pre')
+  for (let i = 0; i < blocks.length; i++) {
+    const el = blocks[i]
+    // Evita duplicar bloques anidados dentro de un <li> ya recorrido.
+    if (el.closest('nav, aside, form')) continue
+    const tag = el.tagName
+    if (tag === 'PRE') {
+      const code = (el.innerText || '').replace(/\s+$/, '')
+      if (code.trim()) lines.push('```\n' + code + '\n```')
+      continue
+    }
+    const txt = inline(el)
+      .replace(/[ \t]+/g, ' ')
+      .trim()
+    if (!txt) continue
+    if (tag === 'H1') lines.push('# ' + txt)
+    else if (tag === 'H2') lines.push('## ' + txt)
+    else if (tag === 'H3') lines.push('### ' + txt)
+    else if (tag === 'H4') lines.push('#### ' + txt)
+    else if (tag === 'LI') lines.push('- ' + txt)
+    else if (tag === 'BLOCKQUOTE') lines.push('> ' + txt.replace(/\n/g, '\n> '))
+    else lines.push(txt)
+  }
+
+  const md = lines
+    .join('\n\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .slice(0, 20000)
+  if (md.trim().length < 80) return null
+  const byline =
+    document
+      .querySelector('meta[name="author"], meta[property="article:author"]')
+      ?.getAttribute('content') || null
+  return { text: md, title: document.title || null, byline }
+}
+
+/** Guarda la página como Markdown (estructura preservada). */
+async function saveHtml(tab, note) {
+  if (tab?.id == null) return { ok: false, error: 'Sin pestaña.' }
+  let doc = null
+  try {
+    const [res] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: pageExtractHTML,
+    })
+    doc = res?.result || null
+  } catch {
+    /* página restringida */
+  }
+  if (!doc) return { ok: false, error: 'No se pudo extraer la página.' }
+  return saveRecorte({
+    text: doc.text,
+    tab,
+    note,
+    captureMode: 'html',
+    override: {
+      sourceUrl: tab.url,
+      sourceTitle: doc.title,
+      sourceAuthor: doc.byline,
+    },
+  })
+}
+
+// ---- Captura de región visual -------------------------------------------
+
+/**
+ * Sube una imagen (Blob) al store interno y devuelve su imageKey. A
+ * diferencia de un recorte de texto, la imagen no se encola: pesa y la
+ * región solo tiene sentido con conexión. Si falla, el llamador avisa.
+ */
+async function uploadImage(blob, filename) {
+  const { token, baseUrl } = await getConfig()
+  if (!token) return { ok: false, reason: 'sin token' }
+  try {
+    const fd = new FormData()
+    fd.append('file', blob, filename || 'region.webp')
+    const res = await fetch(`${baseUrl}/api/recortes-image-upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd,
+    })
+    if (!res.ok) return { ok: false, reason: `HTTP ${res.status}` }
+    const j = await res.json()
+    if (!j?.imageKey) return { ok: false, reason: 'respuesta sin imageKey' }
+    return { ok: true, imageKey: j.imageKey }
+  } catch {
+    return { ok: false, reason: 'sin conexión' }
+  }
+}
+
+/**
+ * Inyectado EN la página: superpone un velo con cursor de cruz y deja al
+ * usuario arrastrar un rectángulo. Al soltar, esconde el velo y manda el
+ * rect (en px CSS de viewport) + devicePixelRatio al SW, que recorta la
+ * captura. Escape cancela. Autocontenida (se serializa a la página).
+ */
+function regionOverlay() {
+  // Evita dobles overlays si se invoca dos veces.
+  if (document.getElementById('trama-region-overlay')) return
+  const veil = document.createElement('div')
+  veil.id = 'trama-region-overlay'
+  veil.style.cssText =
+    'position:fixed;inset:0;z-index:2147483647;cursor:crosshair;' +
+    'background:rgba(20,17,12,0.32);'
+  const box = document.createElement('div')
+  box.style.cssText =
+    'position:fixed;border:1.5px solid #d4b36a;background:rgba(212,179,106,0.14);' +
+    'box-shadow:0 0 0 9999px rgba(20,17,12,0.32);pointer-events:none;display:none;'
+  const hint = document.createElement('div')
+  hint.textContent = 'Arrastra para recortar · Esc para cancelar'
+  hint.style.cssText =
+    'position:fixed;top:14px;left:50%;transform:translateX(-50%);' +
+    'background:#1a1812;color:#f3ead6;font:600 12px Inter,system-ui,sans-serif;' +
+    'padding:6px 12px;border-radius:999px;pointer-events:none;'
+  veil.appendChild(box)
+  veil.appendChild(hint)
+  document.documentElement.appendChild(veil)
+
+  let startX = 0
+  let startY = 0
+  let dragging = false
+
+  function rectFrom(ev) {
+    const x = Math.min(startX, ev.clientX)
+    const y = Math.min(startY, ev.clientY)
+    const w = Math.abs(ev.clientX - startX)
+    const h = Math.abs(ev.clientY - startY)
+    return { x, y, w, h }
+  }
+  function cleanup() {
+    veil.remove()
+    window.removeEventListener('keydown', onKey, true)
+  }
+  function onKey(ev) {
+    if (ev.key === 'Escape') {
+      ev.preventDefault()
+      cleanup()
+    }
+  }
+  veil.addEventListener('mousedown', (ev) => {
+    if (ev.button !== 0) return
+    dragging = true
+    startX = ev.clientX
+    startY = ev.clientY
+    box.style.display = 'block'
+    box.style.left = startX + 'px'
+    box.style.top = startY + 'px'
+    box.style.width = '0px'
+    box.style.height = '0px'
+    hint.style.display = 'none'
+  })
+  veil.addEventListener('mousemove', (ev) => {
+    if (!dragging) return
+    const r = rectFrom(ev)
+    box.style.left = r.x + 'px'
+    box.style.top = r.y + 'px'
+    box.style.width = r.w + 'px'
+    box.style.height = r.h + 'px'
+  })
+  veil.addEventListener('mouseup', (ev) => {
+    if (!dragging) return
+    dragging = false
+    const r = rectFrom(ev)
+    if (r.w < 8 || r.h < 8) {
+      cleanup()
+      return
+    }
+    // Esconde el velo ANTES de la captura para que no salga en el screenshot.
+    veil.style.display = 'none'
+    const payload = {
+      kind: 'trama-region-rect',
+      rect: r,
+      dpr: window.devicePixelRatio || 1,
+      url: location.href,
+      title: document.title,
+    }
+    // Un frame para asegurar que el repintado quitó el velo, luego avisamos.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        chrome.runtime.sendMessage(payload)
+        cleanup()
+      })
+    })
+  })
+  window.addEventListener('keydown', onKey, true)
+}
+
+/** Inyecta el overlay de región en la pestaña activa. */
+async function startRegionCapture(tab) {
+  if (tab?.id == null) return { ok: false, error: 'Sin pestaña.' }
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: regionOverlay,
+    })
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'No se puede capturar en esta página.' }
+  }
+}
+
+/**
+ * Recibe el rect del overlay: captura el viewport visible, recorta a la
+ * región (en px de dispositivo) vía OffscreenCanvas, comprime a WebP, sube
+ * el blob y guarda un recorte 'region' con su imageKey.
+ */
+async function cropAndSaveRegion(rect, dpr, tab) {
+  if (tab?.id == null) return { ok: false, error: 'Sin pestaña.' }
+  let dataUrl
+  try {
+    dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' })
+  } catch {
+    return { ok: false, error: 'No se pudo capturar la pantalla.' }
+  }
+  if (!dataUrl) return { ok: false, error: 'Captura vacía.' }
+  let webp
+  try {
+    const full = await (await fetch(dataUrl)).blob()
+    const bitmap = await createImageBitmap(full)
+    const ratio = dpr || 1
+    let sx = Math.round(rect.x * ratio)
+    let sy = Math.round(rect.y * ratio)
+    let sw = Math.round(rect.w * ratio)
+    let sh = Math.round(rect.h * ratio)
+    // Clamp a los límites reales del bitmap (evita drawImage fuera de rango).
+    sx = Math.max(0, Math.min(sx, bitmap.width - 1))
+    sy = Math.max(0, Math.min(sy, bitmap.height - 1))
+    sw = Math.max(1, Math.min(sw, bitmap.width - sx))
+    sh = Math.max(1, Math.min(sh, bitmap.height - sy))
+    const canvas = new OffscreenCanvas(sw, sh)
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, sw, sh)
+    bitmap.close?.()
+    webp = await canvas.convertToBlob({ type: 'image/webp', quality: 0.85 })
+  } catch {
+    return { ok: false, error: 'No se pudo recortar la imagen.' }
+  }
+  const up = await uploadImage(webp, 'region.webp')
+  if (!up.ok) return { ok: false, error: `No se pudo subir la imagen (${up.reason}).` }
+  return saveRecorte({
+    text: tab.title || 'Recorte visual de la página',
+    tab: { id: tab.id, url: tab.url, title: tab.title },
+    imageKey: up.imageKey,
+    captureMode: 'region',
+    override: {
+      sourceUrl: tab.url ?? null,
+      sourceTitle: tab.title ?? null,
+      sourceAuthor: null,
     },
   })
 }
@@ -515,9 +884,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       text: tab?.title || 'Imagen guardada',
       tab,
       imageUrl: info.srcUrl,
+      captureMode: 'image',
     })
   } else if (info.menuItemId === MENU_PAGE) {
     const r = await saveArticle(tab)
+    flashBadge(r.ok)
+  } else if (info.menuItemId === MENU_HTML) {
+    const r = await saveHtml(tab)
     flashBadge(r.ok)
   }
 })
@@ -541,10 +914,20 @@ chrome.commands?.onCommand.addListener(async (command) => {
 })
 
 // El popup delega acá: guardar, probar conexión y leer el estado de la cola.
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.kind === 'trama-save') {
     saveRecorte(msg).then(sendResponse)
     return true
+  }
+  if (msg?.kind === 'trama-region-start') {
+    activeTab().then((tab) => startRegionCapture(tab).then(sendResponse))
+    return true
+  }
+  if (msg?.kind === 'trama-region-rect') {
+    // Llega desde el overlay inyectado: sender.tab tiene id/url/title/windowId.
+    // El popup ya está cerrado durante el arrastre → el badge es el feedback.
+    cropAndSaveRegion(msg.rect, msg.dpr, sender.tab).then((r) => flashBadge(r.ok))
+    return false
   }
   if (msg?.kind === 'trama-test') {
     testConnection().then(sendResponse)
@@ -559,7 +942,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true
   }
   if (msg?.kind === 'trama-article') {
-    activeTab().then((tab) => saveArticle(tab).then(sendResponse))
+    activeTab().then((tab) => saveArticle(tab, msg.note).then(sendResponse))
+    return true
+  }
+  if (msg?.kind === 'trama-html') {
+    activeTab().then((tab) => saveHtml(tab, msg.note).then(sendResponse))
     return true
   }
   if (msg?.kind === 'trama-collection') {

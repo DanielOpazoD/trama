@@ -9,6 +9,9 @@ import {
 } from '../state'
 import { useToast } from '../state/toast'
 import { api, type Recorte, type RecorteSuggestion, type RecorteTarget } from '../api'
+import { recorteImageUrl } from '../api/recortes'
+import { apiFetch } from '../api/request'
+import { useAuthenticatedMediaState } from './momentos/AuthenticatedMedia'
 import { ENTITY_TYPES } from '../types'
 import { ViewHeader } from './ViewHeader'
 import { EmptyMessage } from './EmptyMessage'
@@ -55,6 +58,83 @@ const TARGET_LABEL: Record<RecorteTarget, string> = {
   quote: 'cita',
   entity: 'entidad',
   momento: 'momento',
+}
+
+/** Etiqueta del modo de captura (chip). 'citation' es la norma → sin chip. */
+const CAPTURE_MODE_LABEL: Record<NonNullable<Recorte['captureMode']>, string> = {
+  citation: 'cita',
+  article: 'artículo',
+  html: 'página',
+  region: 'región',
+  image: 'imagen',
+}
+
+/**
+ * Imagen del recorte. Prefiere `imageKey` (blob interno authed, servido vía
+ * AuthenticatedMedia con Bearer) sobre `imageUrl` (URL http externa directa).
+ * Sin imagen → no renderiza nada.
+ */
+function RecorteImage({ recorte: r }: { recorte: Recorte }) {
+  const authedSrc = r.imageKey ? recorteImageUrl(r.imageKey) : null
+  const { src, status } = useAuthenticatedMediaState(authedSrc)
+  const shown = authedSrc ? src : r.imageUrl
+  if (!authedSrc && !r.imageUrl) return null
+
+  const href = r.sourceUrl ?? r.imageUrl ?? undefined
+  const inner = (
+    <img
+      src={shown ?? TRANSPARENT_PX}
+      alt=""
+      loading="lazy"
+      className={`block max-h-56 w-full object-cover ${
+        status === 'loading' ? 'animate-pulse-subtle' : ''
+      }`.trim()}
+      style={shown ? undefined : { backgroundColor: 'rgb(var(--paper-100) / 0.6)' }}
+    />
+  )
+  const frame = 'mt-2 block overflow-hidden rounded-md border border-ink-100'
+  // imageKey interno: no es navegable como URL pública → caja sin enlace.
+  return href && !r.imageKey ? (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={frame}>
+      {inner}
+    </a>
+  ) : (
+    <div className={frame}>{inner}</div>
+  )
+}
+
+// Pixel transparente mientras el blob authed viaja (evita el icono roto).
+const TRANSPARENT_PX =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+
+/**
+ * Baja la imagen del recorte como File para pasarla al OCR. Prefiere el blob
+ * interno authed (imageKey, vía apiFetch con Bearer); si no, la URL externa.
+ */
+async function fetchRecorteImageFile(r: Recorte): Promise<File> {
+  if (r.imageKey) {
+    const res = await apiFetch(recorteImageUrl(r.imageKey))
+    if (!res.ok) throw new Error('No se pudo leer la imagen del recorte')
+    const blob = await res.blob()
+    return new File([blob], 'recorte', { type: blob.type || 'image/webp' })
+  }
+  if (r.imageUrl) {
+    const res = await fetch(r.imageUrl)
+    if (!res.ok) throw new Error('No se pudo leer la imagen externa')
+    const blob = await res.blob()
+    return new File([blob], 'recorte', { type: blob.type || 'image/jpeg' })
+  }
+  throw new Error('El recorte no tiene imagen')
+}
+
+/** ¿El texto es solo un pie de foto autogenerado (título/“Imagen guardada”)?
+ *  Si lo es, el OCR lo reemplaza; si no, se anexa para no perder lo escrito. */
+function looksLikePlaceholder(text: string, r: Recorte): boolean {
+  const t = text.trim().toLowerCase()
+  if (!t) return true
+  if (t === 'imagen guardada' || t === 'recorte visual de la página') return true
+  if (r.sourceTitle && t === r.sourceTitle.trim().toLowerCase()) return true
+  return false
 }
 
 /** Modal de promoción: revisar y editar ANTES de crear el objeto destino. */
@@ -339,8 +419,11 @@ function RecorteCard({
 }) {
   const host = hostOf(r.sourceUrl)
   const suggest = useSuggestRecorte()
+  const update = useUpdateRecorte()
   const toast = useToast()
   const [suggestion, setSuggestion] = useState<RecorteSuggestion | null>(null)
+  const [ocrBusy, setOcrBusy] = useState(false)
+  const hasImage = !!(r.imageKey || r.imageUrl)
 
   async function handleSuggest() {
     try {
@@ -348,6 +431,40 @@ function RecorteCard({
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'La IA no está disponible'
       toast.show({ message: msg, tone: 'error' })
+    }
+  }
+
+  /** OCR on-demand: baja la imagen, reconoce su texto (worker tesseract,
+   *  cargado perezosamente) y lo incorpora al recorte para hacerlo citable. */
+  async function handleOcr() {
+    if (ocrBusy) return
+    setOcrBusy(true)
+    try {
+      const file = await fetchRecorteImageFile(r)
+      const [{ renderOcrInputPages }, { recognizeOcrPages }] = await Promise.all([
+        import('../lib/pdfStudio/ocr/pdfOcrInput'),
+        import('../lib/pdfStudio/ocr/pdfOcrRecognition'),
+      ])
+      const rendered = await renderOcrInputPages(file, { language: 'spa+eng' })
+      const pages = await recognizeOcrPages(rendered, { language: 'spa+eng' })
+      const ocrText = pages
+        .map((p) => p.text)
+        .join('\n\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+      if (!ocrText) {
+        toast.show({ message: 'No se reconoció texto en la imagen', tone: 'error' })
+        return
+      }
+      const base = r.text.trim()
+      const merged = looksLikePlaceholder(base, r) ? ocrText : `${base}\n\n${ocrText}`
+      await update.mutateAsync({ id: r.id, patch: { text: merged.slice(0, 20000) } })
+      toast.show({ message: 'Texto extraído de la imagen', tone: 'success' })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No se pudo extraer el texto'
+      toast.show({ message: msg, tone: 'error' })
+    } finally {
+      setOcrBusy(false)
     }
   }
 
@@ -381,26 +498,19 @@ function RecorteCard({
             </span>
           )}
         </span>
-        <span className="shrink-0 -rotate-2 rounded-sm border border-ink-200 px-1.5 py-0.5 text-micro uppercase tracking-wider text-ink-400 tabular-nums">
-          {formatStamp(r.capturedAt ?? r.createdAt)}
+        <span className="flex shrink-0 items-center gap-1.5">
+          {r.captureMode && r.captureMode !== 'citation' && (
+            <span className="rounded-sm bg-ink-700/5 px-1.5 py-0.5 text-micro uppercase tracking-wider text-ink-400">
+              {CAPTURE_MODE_LABEL[r.captureMode]}
+            </span>
+          )}
+          <span className="-rotate-2 rounded-sm border border-ink-200 px-1.5 py-0.5 text-micro uppercase tracking-wider text-ink-400 tabular-nums">
+            {formatStamp(r.capturedAt ?? r.createdAt)}
+          </span>
         </span>
       </div>
 
-      {r.imageUrl && (
-        <a
-          href={r.sourceUrl ?? r.imageUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 block overflow-hidden rounded-md border border-ink-100"
-        >
-          <img
-            src={r.imageUrl}
-            alt=""
-            loading="lazy"
-            className="block max-h-56 w-full object-cover"
-          />
-        </a>
-      )}
+      <RecorteImage recorte={r} />
 
       <p className="mt-1.5 whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700">
         «{r.text}»
@@ -439,6 +549,16 @@ function RecorteCard({
                 >
                   <SparkleIcon size={11} />
                   {suggest.isPending ? 'pensando…' : 'sugerir'}
+                </button>
+              )}
+              {hasImage && (
+                <button
+                  onClick={handleOcr}
+                  disabled={ocrBusy}
+                  className="text-micro text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-50"
+                  title="Reconocer el texto de la imagen"
+                >
+                  {ocrBusy ? 'leyendo…' : 'extraer texto'}
                 </button>
               )}
               {(['quote', 'entity', 'momento'] as const).map((t) => (

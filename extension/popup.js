@@ -9,6 +9,42 @@
 const $ = (id) => document.getElementById(id)
 
 let currentTab = null
+// Modo de captura activo: 'citation' (texto seleccionado) | 'article'
+// (artículo como objeto) | 'html' (página como Markdown). 'citation' usa el
+// textarea; los otros dos capturan la página entera y el textarea se oculta.
+let currentMode = 'citation'
+
+const MODE_HINT = {
+  article: 'Captura el artículo principal de la página como un solo objeto.',
+  html: 'Guarda la página entera como Markdown, conservando su estructura.',
+}
+const MODE_BUTTON = {
+  citation: 'Guardar en Recortes',
+  article: 'Guardar artículo',
+  html: 'Guardar página',
+}
+
+function setMode(mode) {
+  currentMode = mode
+  for (const btn of document.querySelectorAll('.mode-opt')) {
+    btn.setAttribute('aria-pressed', btn.dataset.mode === mode ? 'true' : 'false')
+  }
+  const isPage = mode !== 'citation'
+  // En modos de página el textarea no aplica (se captura todo) → se oculta y
+  // el botón queda siempre habilitado; en cita vuelve la cuenta de caracteres.
+  // La colección solo aplica a fragmentos de texto; la captura de región
+  // queda disponible en cualquier modo.
+  $('textoLabel').hidden = isPage
+  $('addCollect').hidden = isPage
+  $('modeHint').hidden = !isPage
+  $('modeHint').textContent = isPage ? MODE_HINT[mode] : ''
+  $('guardar').textContent = MODE_BUTTON[mode]
+  if (isPage) {
+    $('guardar').disabled = false
+  } else {
+    updateCount()
+  }
+}
 
 async function activeTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -127,6 +163,12 @@ async function refreshQueue() {
   }
 }
 
+$('modes').addEventListener('click', (e) => {
+  const btn = e.target.closest('.mode-opt')
+  if (!btn) return
+  setMode(btn.dataset.mode)
+})
+
 $('texto').addEventListener('input', updateCount)
 
 $('guardarConfig').addEventListener('click', async () => {
@@ -217,16 +259,46 @@ async function refreshRecent() {
   $('recent').hidden = false
 }
 
+/** Captura de página (artículo/HTML): delega al SW, que lee la pestaña. */
+async function savePageMode() {
+  const note = $('nota').value.trim()
+  setEstado(currentMode === 'article' ? 'leyendo el artículo...' : 'leyendo la página...')
+  const kind = currentMode === 'article' ? 'trama-article' : 'trama-html'
+  const res = await chrome.runtime.sendMessage({ kind, note })
+  if (res?.ok) {
+    setEstado(
+      currentMode === 'article'
+        ? 'artículo guardado en Recortes'
+        : 'página guardada en Recortes',
+      'ok',
+    )
+    $('nota').value = ''
+    refreshRecent()
+    refreshQueue()
+  } else {
+    setEstado(res?.error ?? 'no se pudo capturar la página', 'err')
+  }
+}
+
 $('guardar').addEventListener('click', async () => {
-  const text = $('texto').value.trim()
-  if (!text) return
   $('guardar').disabled = true
+  if (currentMode !== 'citation') {
+    await savePageMode()
+    $('guardar').disabled = false
+    return
+  }
+  const text = $('texto').value.trim()
+  if (!text) {
+    $('guardar').disabled = false
+    return
+  }
   setEstado('prensando el recorte...')
   const tab = currentTab ?? (await activeTab())
   const result = await chrome.runtime.sendMessage({
     kind: 'trama-save',
     text,
     note: $('nota').value.trim(),
+    captureMode: 'citation',
     tab: tab ? { id: tab.id, url: tab.url, title: tab.title } : null,
   })
   if (result?.ok && !result.queued) {
@@ -264,16 +336,14 @@ async function refreshCollection() {
   }
 }
 
-$('captureArticle').addEventListener('click', async () => {
-  $('captureArticle').disabled = true
-  setEstado('leyendo el artículo...')
-  const res = await chrome.runtime.sendMessage({ kind: 'trama-article' })
-  $('captureArticle').disabled = false
+$('captureRegion').addEventListener('click', async () => {
+  // Arranca el overlay de arrastre en la página y cierra el popup para no
+  // tapar la pantalla. El recorte se guarda al soltar; el badge confirma.
+  const res = await chrome.runtime.sendMessage({ kind: 'trama-region-start' })
   if (res?.ok) {
-    setEstado('artículo guardado en Recortes', 'ok')
-    refreshRecent()
+    window.close()
   } else {
-    setEstado(res?.error ?? 'no se encontró artículo', 'err')
+    setEstado(res?.error ?? 'no se puede capturar aquí', 'err')
   }
 })
 
@@ -314,6 +384,7 @@ $('clearCollection').addEventListener('click', async () => {
 })
 ;(async () => {
   await loadTheme()
+  setMode('citation')
   await showSource()
   await Promise.all([
     preloadSelection(),

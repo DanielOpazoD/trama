@@ -178,6 +178,42 @@
         font-size: 10.5px;
         color: var(--ink-faint);
       }
+      /* Selector de modo de captura (segmented control). */
+      .modes {
+        display: flex;
+        gap: 3px;
+        padding: 3px;
+        background: var(--paper-3);
+        border-radius: 999px;
+      }
+      .mode-opt {
+        flex: 1;
+        border: 0;
+        background: transparent;
+        color: var(--ink-muted);
+        border-radius: 999px;
+        padding: 6px 6px;
+        font:
+          600 11px Inter,
+          system-ui,
+          sans-serif;
+        cursor: pointer;
+        transition:
+          background 0.14s ease,
+          color 0.14s ease;
+      }
+      .mode-opt[aria-pressed='true'] {
+        background: var(--paper);
+        color: var(--ink);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      }
+      .mode-hint {
+        font:
+          italic 11.5px/1.45 Georgia,
+          serif;
+        color: var(--ink-faint);
+        padding: 2px 2px 0;
+      }
       label {
         display: grid;
         gap: 4px;
@@ -455,7 +491,15 @@
           <div class="host" id="srcHost"></div>
         </div>
       </div>
-      <label>
+      <div class="modes" id="modes" role="group" aria-label="Modo de captura">
+        <button class="mode-opt" data-mode="citation" aria-pressed="true">Cita</button>
+        <button class="mode-opt" data-mode="article" aria-pressed="false">
+          Artículo
+        </button>
+        <button class="mode-opt" data-mode="html" aria-pressed="false">Página</button>
+      </div>
+      <p class="mode-hint" id="modeHint" hidden></p>
+      <label id="textoLabel">
         <div class="label-row">
           <span>Texto</span>
           <span class="count" id="count">0</span>
@@ -473,8 +517,8 @@
         <span id="estado"></span>
         <button id="guardar">Guardar en Recortes</button>
       </div>
-      <div class="more-actions">
-        <button class="link-btn" id="captureArticle">&#9783; artículo completo</button>
+      <div class="more-actions" id="moreActions">
+        <button class="link-btn" id="captureRegion">&#9974; capturar región</button>
         <button class="link-btn" id="addCollect">+ a la colección</button>
       </div>
       <div class="collection-note" id="collectionNote" hidden>
