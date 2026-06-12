@@ -75,7 +75,7 @@ function TestNavigation({
 }) {
   const [page, setPage] = useState(initialPage)
   const scrollContainerRef = useRef<HTMLElement | null>(target)
-  const { scrollInitialPageIntoView, syncPageFromScroll } =
+  const { isInitialPagePositioning, scrollInitialPageIntoView, syncPageFromScroll } =
     usePdfTextEditorPageNavigation({
       currentPage: page,
       scrollContainerRef,
@@ -89,6 +89,9 @@ function TestNavigation({
   return (
     <>
       <output aria-label="Página actual">{page + 1}</output>
+      <output aria-label="Posicionando página inicial">
+        {isInitialPagePositioning ? 'sí' : 'no'}
+      </output>
       <button type="button" onClick={() => syncPageFromScroll(target)}>
         sync
       </button>
@@ -324,6 +327,44 @@ describe('usePdfTextEditorPageNavigation', () => {
     })
 
     expect(target.scrollTop).toBe(520)
+    vi.useRealTimers()
+    target.remove()
+  })
+
+  it('posiciona la página inicial antes de que corran timers visibles', () => {
+    vi.useFakeTimers()
+    const target = makeScrollContainer()
+    addPage(target, 0, 0)
+    addPage(target, 7, 3640)
+    document.body.append(target)
+
+    render(<TestNavigation target={target} initialPage={7} scrollInitialPage total={8} />)
+
+    expect(target.scrollTop).toBe(3640)
+    vi.useRealTimers()
+    target.remove()
+  })
+
+  it('mantiene oculta la apertura inicial hasta que la hoja pedida esté estable', () => {
+    vi.useFakeTimers()
+    let requestedReady = false
+    const target = makeScrollContainer()
+    addPage(target, 0, 0)
+    addDynamicPage(target, 7, () =>
+      requestedReady ? rect(3640 - target.scrollTop, 500) : rect(3640, 0),
+    )
+    document.body.append(target)
+
+    render(<TestNavigation target={target} initialPage={7} scrollInitialPage total={8} />)
+
+    expect(screen.getByLabelText('Posicionando página inicial')).toHaveTextContent('sí')
+
+    requestedReady = true
+    act(() => {
+      vi.advanceTimersByTime(150)
+    })
+
+    expect(screen.getByLabelText('Posicionando página inicial')).toHaveTextContent('no')
     vi.useRealTimers()
     target.remove()
   })
