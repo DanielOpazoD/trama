@@ -8,6 +8,7 @@ import { request } from './request'
 
 export type RecorteStatus = 'pending' | 'promoted' | 'archived'
 export type RecorteTarget = 'quote' | 'entity' | 'momento'
+export type CaptureMode = 'citation' | 'article' | 'html' | 'region' | 'image'
 
 /** Sugerencia de curaduría de la IA para un recorte (advisory). */
 export type RecorteSuggestion = {
@@ -28,6 +29,9 @@ export type Recorte = {
   sourceAuthor: string | null
   note: string | null
   imageUrl: string | null
+  /** Imagen interna (blob authed del store recortes-media). */
+  imageKey: string | null
+  captureMode: CaptureMode | null
   status: RecorteStatus
   promotedTarget: RecorteTarget | null
   promotedId: string | null
@@ -44,12 +48,28 @@ export type RecorteRow = {
   source_author: string | null
   note: string | null
   image_url: string | null
+  image_key: string | null
+  capture_mode: CaptureMode | null
   status: RecorteStatus
   promoted_target: RecorteTarget | null
   promoted_id: string | null
   captured_at: string | null
   created_at: string
   updated_at: string
+}
+
+/**
+ * URL del endpoint authed que sirve una imagen interna de un recorte
+ * (store recortes-media). Cada segmento se codifica por separado para que
+ * `userId/blob.ext` siga siendo un path de dos segmentos real (sin depender
+ * de `%2F`, que algunos routers tratan distinto). Se baja con Bearer vía
+ * AuthenticatedMedia — un `<img src>` directo daría 401.
+ */
+export function recorteImageUrl(imageKey: string): string {
+  return `/api/recortes-image/${imageKey
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')}`
 }
 
 export function recorteFromRow(r: RecorteRow): Recorte {
@@ -61,6 +81,8 @@ export function recorteFromRow(r: RecorteRow): Recorte {
     sourceAuthor: r.source_author,
     note: r.note,
     imageUrl: r.image_url,
+    imageKey: r.image_key ?? null,
+    captureMode: r.capture_mode ?? null,
     status: r.status,
     promotedTarget: r.promoted_target,
     promotedId: r.promoted_id,
