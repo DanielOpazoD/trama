@@ -4,6 +4,7 @@ import { ClerkProvider } from '@clerk/react'
 import App from './App'
 import { ApiAuthBridge } from './components/ApiAuthBridge'
 import './index.css'
+import { shouldUseClerk } from './lib/clerkRuntime'
 import { installClientErrorTracking } from './lib/clientErrorTracking'
 import { initWebVitals } from './lib/webVitals'
 
@@ -17,7 +18,10 @@ installClientErrorTracking()
 initWebVitals()
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
-const E2E_BYPASS_CLERK = import.meta.env.VITE_TRAMA_E2E_BYPASS_CLERK === '1'
+const USE_CLERK = shouldUseClerk({
+  e2eBypass: import.meta.env.VITE_TRAMA_E2E_BYPASS_CLERK,
+  publishableKey: PUBLISHABLE_KEY,
+})
 
 const root = createRoot(document.getElementById('root')!)
 
@@ -26,7 +30,7 @@ const root = createRoot(document.getElementById('root')!)
 // pero la app sigue funcionando (antes de enforcement).
 root.render(
   <StrictMode>
-    {PUBLISHABLE_KEY && !E2E_BYPASS_CLERK ? (
+    {USE_CLERK ? (
       <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
         <ApiAuthBridge />
         <App />
