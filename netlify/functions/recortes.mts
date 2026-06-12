@@ -39,6 +39,8 @@ type RecorteRow = {
   source_author: string | null
   note: string | null
   image_url: string | null
+  image_key: string | null
+  capture_mode: 'citation' | 'article' | 'html' | 'region' | 'image' | null
   status: 'pending' | 'promoted' | 'archived'
   promoted_target: 'quote' | 'entity' | 'momento' | null
   promoted_id: string | null
@@ -158,8 +160,8 @@ export default withObservability(
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
           AND status <> 'promoted'
         RETURNING id, text, source_url, source_title, source_author, note,
-          image_url, status, promoted_target, promoted_id, captured_at,
-          created_at, updated_at
+          image_url, image_key, capture_mode, status, promoted_target,
+          promoted_id, captured_at, created_at, updated_at
       `)
       if (rows.length === 0) {
         return ApiErrors.notFound(requestId, 'Recorte no encontrado o ya promovido')
@@ -176,8 +178,8 @@ export default withObservability(
           : null
       const rows = await sqlTyped<RecorteRow>(sql`
         SELECT id, text, source_url, source_title, source_author, note,
-          image_url, status, promoted_target, promoted_id, captured_at,
-          created_at, updated_at
+          image_url, image_key, capture_mode, status, promoted_target,
+          promoted_id, captured_at, created_at, updated_at
         FROM recortes
         WHERE deleted_at IS NULL AND user_id = ${userId}
           AND (${statusFilter}::text IS NULL OR status = ${statusFilter})
@@ -195,15 +197,16 @@ export default withObservability(
       const rows = await sqlTyped<RecorteRow>(sql`
         INSERT INTO recortes (
           text, source_url, source_title, source_author, note, image_url,
-          captured_at, user_id
+          image_key, capture_mode, captured_at, user_id
         ) VALUES (
           ${b.text}, ${b.sourceUrl ?? null}, ${b.sourceTitle ?? null},
           ${b.sourceAuthor ?? null}, ${b.note ?? null}, ${b.imageUrl ?? null},
+          ${b.imageKey ?? null}, ${b.captureMode ?? null},
           ${b.capturedAt ?? null}::timestamptz, ${userId}
         )
         RETURNING id, text, source_url, source_title, source_author, note,
-          image_url, status, promoted_target, promoted_id, captured_at,
-          created_at, updated_at
+          image_url, image_key, capture_mode, status, promoted_target,
+          promoted_id, captured_at, created_at, updated_at
       `)
       return cors(Response.json(rows[0], { status: 201 }))
     }
@@ -224,8 +227,8 @@ export default withObservability(
             updated_at = NOW()
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
         RETURNING id, text, source_url, source_title, source_author, note,
-          image_url, status, promoted_target, promoted_id, captured_at,
-          created_at, updated_at
+          image_url, image_key, capture_mode, status, promoted_target,
+          promoted_id, captured_at, created_at, updated_at
       `)
       if (rows.length === 0) return ApiErrors.notFound(requestId, 'Recorte no encontrado')
       return Response.json(rows[0])

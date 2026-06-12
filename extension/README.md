@@ -23,6 +23,21 @@ Trama. Nada entra a tu trama sin tu curaduría: todo aterriza como
   deja agregar una nota y guardar.
 - El badge del icono confirma: ✓ guardado · número = capturas en cola.
 
+## Capturar más que una selección (Bloque B)
+
+- **Artículo completo**: clic derecho en la página → «Guardar artículo en
+  Trama», o el botón «artículo completo» del popup. Extrae el texto
+  principal del long-read (heurística readability-lite, sin dependencias).
+- **Imagen**: clic derecho sobre una imagen → «Guardar imagen en Trama».
+  El recorte guarda la imagen (se ve en la bandeja).
+- **Colección (varios resaltados → un recorte)**: «Añadir a la colección
+  de Trama» (clic derecho o el botón del popup) va sumando fragmentos; el
+  popup muestra la cuenta y permite «guardar colección» (todos juntos como
+  un solo recorte) o «vaciar». El badge naranja lleva la cuenta.
+- **Captura estructurada de X y Reddit**: al guardar en x.com o reddit.com,
+  la extensión extrae autor + texto + permalink limpios del tweet/post que
+  contiene tu selección (best-effort; si el DOM cambió, cae a la selección).
+
 ## Robustez — ninguna captura se pierde
 
 El service worker de Manifest V3 es efímero y la red puede fallar. Por eso:

@@ -9,6 +9,42 @@
 const $ = (id) => document.getElementById(id)
 
 let currentTab = null
+// Modo de captura activo: 'citation' (texto seleccionado) | 'article'
+// (artículo como objeto) | 'html' (página como Markdown). 'citation' usa el
+// textarea; los otros dos capturan la página entera y el textarea se oculta.
+let currentMode = 'citation'
+
+const MODE_HINT = {
+  article: 'Captura el artículo principal de la página como un solo objeto.',
+  html: 'Guarda la página entera como Markdown, conservando su estructura.',
+}
+const MODE_BUTTON = {
+  citation: 'Guardar en Recortes',
+  article: 'Guardar artículo',
+  html: 'Guardar página',
+}
+
+function setMode(mode) {
+  currentMode = mode
+  for (const btn of document.querySelectorAll('.mode-opt')) {
+    btn.setAttribute('aria-pressed', btn.dataset.mode === mode ? 'true' : 'false')
+  }
+  const isPage = mode !== 'citation'
+  // En modos de página el textarea no aplica (se captura todo) → se oculta y
+  // el botón queda siempre habilitado; en cita vuelve la cuenta de caracteres.
+  // La colección solo aplica a fragmentos de texto; la captura de región
+  // queda disponible en cualquier modo.
+  $('textoLabel').hidden = isPage
+  $('addCollect').hidden = isPage
+  $('modeHint').hidden = !isPage
+  $('modeHint').textContent = isPage ? MODE_HINT[mode] : ''
+  $('guardar').textContent = MODE_BUTTON[mode]
+  if (isPage) {
+    $('guardar').disabled = false
+  } else {
+    updateCount()
+  }
+}
 
 async function activeTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -82,6 +118,35 @@ async function loadConfig() {
   if (!tramaToken) $('config').open = true
 }
 
+/** Tema del popup: auto (sigue al sistema) o forzado papel/noche/vela —
+ *  los tres temas de la casa. Persistido en chrome.storage.local. */
+function applyTheme(theme) {
+  if (!theme || theme === 'auto') {
+    delete document.documentElement.dataset.theme
+  } else {
+    document.documentElement.dataset.theme = theme
+  }
+  for (const btn of document.querySelectorAll('.theme-opt')) {
+    btn.setAttribute(
+      'aria-pressed',
+      btn.dataset.theme === (theme || 'auto') ? 'true' : 'false',
+    )
+  }
+}
+
+async function loadTheme() {
+  const { tramaTheme } = await chrome.storage.local.get('tramaTheme')
+  applyTheme(tramaTheme || 'auto')
+}
+
+$('themeOpts').addEventListener('click', (e) => {
+  const btn = e.target.closest('.theme-opt')
+  if (!btn) return
+  const theme = btn.dataset.theme
+  applyTheme(theme)
+  chrome.storage.local.set({ tramaTheme: theme })
+})
+
 async function refreshQueue() {
   try {
     const res = await chrome.runtime.sendMessage({ kind: 'trama-queue' })
@@ -97,6 +162,12 @@ async function refreshQueue() {
     /* SW dormido: sin novedad */
   }
 }
+
+$('modes').addEventListener('click', (e) => {
+  const btn = e.target.closest('.mode-opt')
+  if (!btn) return
+  setMode(btn.dataset.mode)
+})
 
 $('texto').addEventListener('input', updateCount)
 
@@ -127,16 +198,107 @@ $('probar').addEventListener('click', async () => {
   }
 })
 
+function relativeDate(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const diff = Date.now() - d.getTime()
+  const day = 86400000
+  if (diff < day) return 'hoy'
+  if (diff < 2 * day) return 'ayer'
+  if (diff < 7 * day) return `hace ${Math.floor(diff / day)} días`
+  return d.toLocaleDateString('es', { day: 'numeric', month: 'short' })
+}
+
+/** Mini-bandeja: los últimos recortes pendientes, traídos del servidor. */
+async function refreshRecent() {
+  let res
+  try {
+    res = await chrome.runtime.sendMessage({ kind: 'trama-recent' })
+  } catch {
+    return
+  }
+  const baseUrl = res?.baseUrl || 'https://tramahub.app'
+  $('openTray').href = `${baseUrl.replace(/\/+$/, '')}/?view=recortes`
+  if (!res?.ok) return // sin token o sin conexión: la sección queda oculta
+  const list = $('recentList')
+  list.textContent = ''
+  if (res.items.length === 0) {
+    const p = document.createElement('p')
+    p.className = 'recent-empty'
+    p.textContent = 'Todavía sin recortes pendientes.'
+    list.appendChild(p)
+  } else {
+    for (const it of res.items) {
+      const host = hostOf(it.sourceUrl)
+      const a = document.createElement('a')
+      a.className = 'recent-item'
+      a.href = it.sourceUrl || $('openTray').href
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      const img = document.createElement('img')
+      img.alt = ''
+      img.src = host ? `https://www.google.com/s2/favicons?domain=${host}&sz=32` : ''
+      const body = document.createElement('div')
+      body.className = 'ri-body'
+      const txt = document.createElement('div')
+      txt.className = 'ri-text'
+      txt.textContent = `«${it.text}»`
+      const meta = document.createElement('div')
+      meta.className = 'ri-meta'
+      meta.textContent = [it.sourceTitle || host, relativeDate(it.capturedAt)]
+        .filter(Boolean)
+        .join(' · ')
+      body.appendChild(txt)
+      body.appendChild(meta)
+      a.appendChild(img)
+      a.appendChild(body)
+      list.appendChild(a)
+    }
+  }
+  $('recent').hidden = false
+}
+
+/** Captura de página (artículo/HTML): delega al SW, que lee la pestaña. */
+async function savePageMode() {
+  const note = $('nota').value.trim()
+  setEstado(currentMode === 'article' ? 'leyendo el artículo...' : 'leyendo la página...')
+  const kind = currentMode === 'article' ? 'trama-article' : 'trama-html'
+  const res = await chrome.runtime.sendMessage({ kind, note })
+  if (res?.ok) {
+    setEstado(
+      currentMode === 'article'
+        ? 'artículo guardado en Recortes'
+        : 'página guardada en Recortes',
+      'ok',
+    )
+    $('nota').value = ''
+    refreshRecent()
+    refreshQueue()
+  } else {
+    setEstado(res?.error ?? 'no se pudo capturar la página', 'err')
+  }
+}
+
 $('guardar').addEventListener('click', async () => {
-  const text = $('texto').value.trim()
-  if (!text) return
   $('guardar').disabled = true
-  setEstado('guardando...')
+  if (currentMode !== 'citation') {
+    await savePageMode()
+    $('guardar').disabled = false
+    return
+  }
+  const text = $('texto').value.trim()
+  if (!text) {
+    $('guardar').disabled = false
+    return
+  }
+  setEstado('prensando el recorte...')
   const tab = currentTab ?? (await activeTab())
   const result = await chrome.runtime.sendMessage({
     kind: 'trama-save',
     text,
     note: $('nota').value.trim(),
+    captureMode: 'citation',
     tab: tab ? { id: tab.id, url: tab.url, title: tab.title } : null,
   })
   if (result?.ok && !result.queued) {
@@ -144,8 +306,9 @@ $('guardar').addEventListener('click', async () => {
     $('texto').value = ''
     $('nota').value = ''
     updateCount()
+    refreshRecent()
   } else if (result?.queued) {
-    setEstado('sin conexion - en cola, se reintenta', 'ok')
+    setEstado('sin señal — lo guardo y lo llevo después', 'ok')
     $('texto').value = ''
     $('nota').value = ''
     updateCount()
@@ -156,8 +319,79 @@ $('guardar').addEventListener('click', async () => {
     if (/token/i.test($('estado').textContent)) $('config').open = true
   }
 })
+/** Refresca el indicador de la colección (varios fragmentos → un recorte). */
+async function refreshCollection() {
+  let res
+  try {
+    res = await chrome.runtime.sendMessage({ kind: 'trama-collection' })
+  } catch {
+    return
+  }
+  const count = res?.count ?? 0
+  if (count > 0) {
+    $('collectionCount').textContent = `colección: ${count} fragmento(s)`
+    $('collectionNote').hidden = false
+  } else {
+    $('collectionNote').hidden = true
+  }
+}
+
+$('captureRegion').addEventListener('click', async () => {
+  // Arranca el overlay de arrastre en la página y cierra el popup para no
+  // tapar la pantalla. El recorte se guarda al soltar; el badge confirma.
+  const res = await chrome.runtime.sendMessage({ kind: 'trama-region-start' })
+  if (res?.ok) {
+    window.close()
+  } else {
+    setEstado(res?.error ?? 'no se puede capturar aquí', 'err')
+  }
+})
+
+$('addCollect').addEventListener('click', async () => {
+  const text = $('texto').value.trim()
+  if (!text) {
+    setEstado('selecciona o pega un fragmento primero', 'err')
+    return
+  }
+  const tab = currentTab ?? (await activeTab())
+  await chrome.runtime.sendMessage({
+    kind: 'trama-collection-add',
+    text,
+    tab: tab ? { url: tab.url, title: tab.title } : null,
+  })
+  $('texto').value = ''
+  updateCount()
+  setEstado('sumado a la colección', 'ok')
+  refreshCollection()
+})
+
+$('saveCollection').addEventListener('click', async () => {
+  setEstado('uniendo los fragmentos...')
+  const res = await chrome.runtime.sendMessage({ kind: 'trama-collection-save' })
+  if (res?.ok) {
+    setEstado('colección guardada como un recorte', 'ok')
+    refreshCollection()
+    refreshRecent()
+  } else {
+    setEstado(res?.error ?? 'no se pudo guardar la colección', 'err')
+  }
+})
+
+$('clearCollection').addEventListener('click', async () => {
+  await chrome.runtime.sendMessage({ kind: 'trama-collection-clear' })
+  setEstado('colección vaciada', 'ok')
+  refreshCollection()
+})
 ;(async () => {
+  await loadTheme()
+  setMode('citation')
   await showSource()
-  await Promise.all([preloadSelection(), loadConfig(), refreshQueue()])
+  await Promise.all([
+    preloadSelection(),
+    loadConfig(),
+    refreshQueue(),
+    refreshRecent(),
+    refreshCollection(),
+  ])
   updateCount()
 })()
