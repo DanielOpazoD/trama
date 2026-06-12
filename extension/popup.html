@@ -18,8 +18,10 @@
         --sage: #4a6b4f;
         --clay: #8a3b2e;
       }
+      /* Tema noche (frío) — automático con el sistema, o forzado con
+         data-theme="night". */
       @media (prefers-color-scheme: dark) {
-        :root {
+        :root:not([data-theme]) {
           --paper: #14110c;
           --paper-2: #1c1813;
           --paper-3: #26201a;
@@ -32,6 +34,73 @@
           --sage: #8fb094;
           --clay: #cf7a5f;
         }
+      }
+      html[data-theme='night'] {
+        --paper: #14110c;
+        --paper-2: #1c1813;
+        --paper-3: #26201a;
+        --ink: #f3ead6;
+        --ink-muted: #b3a98f;
+        --ink-faint: #6f6757;
+        --border: #2f2820;
+        --accent: #8db8d6;
+        --gold: #d4b36a;
+        --sage: #8fb094;
+        --clay: #cf7a5f;
+      }
+      /* Tema vela (cálido) — el sepia de lectura nocturna de la casa. */
+      html[data-theme='vela'] {
+        --paper: #1a140e;
+        --paper-2: #241a12;
+        --paper-3: #2e2218;
+        --ink: #f7eedc;
+        --ink-muted: #b3a285;
+        --ink-faint: #7d7058;
+        --border: #3a2e1f;
+        --accent: #b8a070;
+        --gold: #e0b863;
+        --sage: #8fb094;
+        --clay: #cf7a5f;
+      }
+      /* Tema papel forzado (claro aunque el sistema esté oscuro). */
+      html[data-theme='paper'] {
+        --paper: #ffffff;
+        --paper-2: #faf8f3;
+        --paper-3: #f1ece2;
+        --ink: #1a1812;
+        --ink-muted: #5c574c;
+        --ink-faint: #9b9486;
+        --border: #e6e0d4;
+        --accent: #1f4d6b;
+        --gold: #a07900;
+        --sage: #4a6b4f;
+        --clay: #8a3b2e;
+      }
+      /* Selector de tema. */
+      .theme-row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 10.5px;
+        color: var(--ink-muted);
+        margin-top: 2px;
+      }
+      .theme-row .opts {
+        display: flex;
+        gap: 4px;
+      }
+      .theme-opt {
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--ink-faint);
+        border-radius: 999px;
+        padding: 3px 9px;
+        font-size: 10px;
+        cursor: pointer;
+      }
+      .theme-opt[aria-pressed='true'] {
+        border-color: var(--accent);
+        color: var(--ink);
       }
       * {
         box-sizing: border-box;
@@ -400,6 +469,15 @@
           El token se genera en Trama &rarr; Configuracion &rarr; Conectar extension, y
           vive solo en este navegador.
         </p>
+        <div class="theme-row">
+          <span>Tema</span>
+          <div class="opts" id="themeOpts">
+            <button class="theme-opt" data-theme="auto">auto</button>
+            <button class="theme-opt" data-theme="paper">papel</button>
+            <button class="theme-opt" data-theme="night">noche</button>
+            <button class="theme-opt" data-theme="vela">vela</button>
+          </div>
+        </div>
         <div class="row">
           <button class="secondary" id="probar">Probar conexion</button>
           <button id="guardarConfig">Guardar conexion</button>

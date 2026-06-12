@@ -82,6 +82,35 @@ async function loadConfig() {
   if (!tramaToken) $('config').open = true
 }
 
+/** Tema del popup: auto (sigue al sistema) o forzado papel/noche/vela —
+ *  los tres temas de la casa. Persistido en chrome.storage.local. */
+function applyTheme(theme) {
+  if (!theme || theme === 'auto') {
+    delete document.documentElement.dataset.theme
+  } else {
+    document.documentElement.dataset.theme = theme
+  }
+  for (const btn of document.querySelectorAll('.theme-opt')) {
+    btn.setAttribute(
+      'aria-pressed',
+      btn.dataset.theme === (theme || 'auto') ? 'true' : 'false',
+    )
+  }
+}
+
+async function loadTheme() {
+  const { tramaTheme } = await chrome.storage.local.get('tramaTheme')
+  applyTheme(tramaTheme || 'auto')
+}
+
+$('themeOpts').addEventListener('click', (e) => {
+  const btn = e.target.closest('.theme-opt')
+  if (!btn) return
+  const theme = btn.dataset.theme
+  applyTheme(theme)
+  chrome.storage.local.set({ tramaTheme: theme })
+})
+
 async function refreshQueue() {
   try {
     const res = await chrome.runtime.sendMessage({ kind: 'trama-queue' })
@@ -207,7 +236,7 @@ $('guardar').addEventListener('click', async () => {
     updateCount()
     refreshRecent()
   } else if (result?.queued) {
-    setEstado('sin conexion - en cola, se reintenta', 'ok')
+    setEstado('sin señal — lo guardo y lo llevo después', 'ok')
     $('texto').value = ''
     $('nota').value = ''
     updateCount()
@@ -219,6 +248,7 @@ $('guardar').addEventListener('click', async () => {
   }
 })
 ;(async () => {
+  await loadTheme()
   await showSource()
   await Promise.all([preloadSelection(), loadConfig(), refreshQueue(), refreshRecent()])
   updateCount()
