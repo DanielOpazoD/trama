@@ -113,4 +113,58 @@ describe('<RecortesView />', () => {
     await waitFor(() => expect(fetchSpy).toHaveBeenCalled())
     vi.unstubAllGlobals()
   })
+
+  it('sugerir muestra el banner de la IA y "usar sugerencia" pre-llena el modal', async () => {
+    const suggestion = {
+      target: 'quote',
+      title: 'Sobre la memoria',
+      rationale: 'Es una frase citable.',
+      relatedEntityIds: ['e1'],
+      suggestedEntityName: null,
+      suggestedEntityType: null,
+      relatedEntities: [{ id: 'e1', name: 'Borges', type: 'escritor' }],
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | Request | URL) => {
+        const url = String(input)
+        if (url.includes('/suggest')) {
+          return new Response(JSON.stringify(suggestion), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        return new Response('[]', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }),
+    )
+    // Entidad existente para que el seed de la cita encuentre a Borges.
+    const qc = makeQueryClient()
+    qc.setQueryData(queryKeys.recortes, [recorte()])
+    qc.setQueryData(queryKeys.entities, [
+      {
+        id: 'e1',
+        name: 'Borges',
+        type: 'escritor',
+        origin: { kind: 'manual' },
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ])
+    renderWithProviders(<RecortesView />, { queryClient: qc })
+
+    fireEvent.click(screen.getByRole('button', { name: /sugerir/ }))
+    expect(await screen.findByText(/la IA sugiere/i)).toBeInTheDocument()
+    expect(screen.getByText(/Sobre la memoria/)).toBeInTheDocument()
+    expect(screen.getByText(/Es una frase citable/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /usar sugerencia/ }))
+    // El modal abre en "cita" y Borges queda pre-seleccionado.
+    expect(screen.getByRole('dialog', { name: 'Promover a cita' })).toBeInTheDocument()
+    const select = screen.getByLabelText('Atribuida a') as HTMLSelectElement
+    expect(select.value).toBe('e1')
+    vi.unstubAllGlobals()
+  })
 })

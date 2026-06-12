@@ -4,15 +4,24 @@ import {
   useEntitiesQuery,
   usePromoteRecorte,
   useRecortesQuery,
+  useSuggestRecorte,
   useUpdateRecorte,
 } from '../state'
 import { useToast } from '../state/toast'
-import { api, type Recorte, type RecorteTarget } from '../api'
+import { api, type Recorte, type RecorteSuggestion, type RecorteTarget } from '../api'
 import { ENTITY_TYPES } from '../types'
 import { ViewHeader } from './ViewHeader'
 import { EmptyMessage } from './EmptyMessage'
 import { LoadingHint } from './LoadingHint'
-import { CloseIcon, EndMark, ScissorsIcon } from './Icons'
+import { CloseIcon, EndMark, ScissorsIcon, SparkleIcon } from './Icons'
+
+/** Semilla opcional de la IA para pre-llenar el modal de promoción. */
+type PromoteSeed = {
+  title?: string
+  entityId?: string
+  entityName?: string
+  entityType?: string
+}
 
 /**
  * Recortes — la bandeja de entrada de capturas web. Lo que la extensión
@@ -52,21 +61,23 @@ const TARGET_LABEL: Record<RecorteTarget, string> = {
 function PromoteModal({
   recorte,
   target,
+  seed,
   onClose,
 }: {
   recorte: Recorte
   target: RecorteTarget
+  seed?: PromoteSeed
   onClose: () => void
 }) {
   const { data: entities = [] } = useEntitiesQuery()
   const promote = usePromoteRecorte()
   const toast = useToast()
   const [text, setText] = useState(recorte.text)
-  const [entityId, setEntityId] = useState<string>('')
+  const [entityId, setEntityId] = useState<string>(seed?.entityId ?? '')
   const [entityName, setEntityName] = useState(
-    recorte.sourceAuthor ?? recorte.sourceTitle ?? '',
+    seed?.entityName ?? recorte.sourceAuthor ?? recorte.sourceTitle ?? '',
   )
-  const [entityType, setEntityType] = useState('concepto')
+  const [entityType, setEntityType] = useState(seed?.entityType ?? 'concepto')
   const [source, setSource] = useState(
     [recorte.sourceTitle, recorte.sourceAuthor].filter(Boolean).join(' · '),
   )
@@ -274,6 +285,183 @@ function PromoteModal({
   )
 }
 
+/** Banner de la sugerencia de la IA: destino propuesto, por qué, título y
+ *  entidades conectadas, con un clic para promover ya pre-llenado. */
+function SuggestionBanner({
+  suggestion,
+  onUse,
+}: {
+  suggestion: RecorteSuggestion
+  onUse: () => void
+}) {
+  return (
+    <div className="mt-2.5 rounded-md border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)] px-3 py-2">
+      <div className="flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-[color:var(--accent-gold)]">
+        <SparkleIcon size={11} />
+        la IA sugiere
+      </div>
+      <p className="mt-1 font-serif text-sm text-ink-700">
+        → {TARGET_LABEL[suggestion.target]}
+        {suggestion.title && (
+          <span className="text-ink-500"> · «{suggestion.title}»</span>
+        )}
+      </p>
+      {suggestion.rationale && (
+        <p className="mt-0.5 text-caption text-ink-500">{suggestion.rationale}</p>
+      )}
+      {suggestion.relatedEntities.length > 0 && (
+        <p className="mt-1 text-micro text-ink-400">
+          conecta con {suggestion.relatedEntities.map((e) => e.name).join(', ')}
+        </p>
+      )}
+      <button
+        onClick={onUse}
+        className="mt-2 text-micro uppercase tracking-eyebrow text-ink-600 hover:text-ink-900 transition-colors"
+      >
+        usar sugerencia →
+      </button>
+    </div>
+  )
+}
+
+function RecorteCard({
+  recorte: r,
+  onPromote,
+  onArchive,
+  onRestore,
+  onDelete,
+}: {
+  recorte: Recorte
+  onPromote: (recorte: Recorte, target: RecorteTarget, seed?: PromoteSeed) => void
+  onArchive: () => void
+  onRestore: () => void
+  onDelete: () => void
+}) {
+  const host = hostOf(r.sourceUrl)
+  const suggest = useSuggestRecorte()
+  const toast = useToast()
+  const [suggestion, setSuggestion] = useState<RecorteSuggestion | null>(null)
+
+  async function handleSuggest() {
+    try {
+      setSuggestion(await suggest.mutateAsync(r.id))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'La IA no está disponible'
+      toast.show({ message: msg, tone: 'error' })
+    }
+  }
+
+  function useSuggestion() {
+    if (!suggestion) return
+    const seed: PromoteSeed = { title: suggestion.title }
+    if (suggestion.target === 'quote' && suggestion.relatedEntities[0]) {
+      seed.entityId = suggestion.relatedEntities[0].id
+    }
+    if (suggestion.target === 'entity') {
+      seed.entityName = suggestion.suggestedEntityName ?? undefined
+      seed.entityType = suggestion.suggestedEntityType ?? undefined
+    }
+    onPromote(r, suggestion.target, seed)
+  }
+
+  return (
+    <li className="group relative card-paper-soft p-4 pt-3">
+      <div aria-hidden className="mb-2.5">
+        <div className="border-t-2 border-ink-700/60" />
+        <div className="mt-0.5 border-t border-ink-200" />
+      </div>
+
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="min-w-0 truncate font-serif text-sm font-medium text-ink-700">
+          {r.sourceTitle ?? host ?? 'recorte'}
+          {r.sourceAuthor && (
+            <span className="font-sans font-normal text-ink-400">
+              {' '}
+              — {r.sourceAuthor}
+            </span>
+          )}
+        </span>
+        <span className="shrink-0 -rotate-2 rounded-sm border border-ink-200 px-1.5 py-0.5 text-micro uppercase tracking-wider text-ink-400 tabular-nums">
+          {formatStamp(r.capturedAt ?? r.createdAt)}
+        </span>
+      </div>
+
+      <p className="mt-1.5 whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700">
+        «{r.text}»
+      </p>
+
+      {r.note && <p className="mt-2 marginalia-script">{r.note}</p>}
+
+      {suggestion && <SuggestionBanner suggestion={suggestion} onUse={useSuggestion} />}
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-3">
+        {r.sourceUrl && (
+          <a
+            href={r.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-micro hover:underline"
+            style={{ color: 'var(--accent-primary)' }}
+          >
+            ver original{host ? ` · ${host}` : ''}
+          </a>
+        )}
+        {r.status === 'promoted' && r.promotedTarget && (
+          <span className="text-micro uppercase tracking-eyebrow text-ink-300">
+            → {TARGET_LABEL[r.promotedTarget]}
+          </span>
+        )}
+
+        <span className="ml-auto flex items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          {r.status === 'pending' && (
+            <>
+              {!suggestion && (
+                <button
+                  onClick={handleSuggest}
+                  disabled={suggest.isPending}
+                  className="inline-flex items-center gap-1 text-micro text-[color:var(--accent-gold)] hover:text-ink-700 transition-colors disabled:opacity-50"
+                >
+                  <SparkleIcon size={11} />
+                  {suggest.isPending ? 'pensando…' : 'sugerir'}
+                </button>
+              )}
+              {(['quote', 'entity', 'momento'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => onPromote(r, t)}
+                  className="text-micro text-ink-400 hover:text-ink-700 transition-colors"
+                >
+                  → {TARGET_LABEL[t]}
+                </button>
+              ))}
+              <button
+                onClick={onArchive}
+                className="text-micro text-ink-400 hover:text-ink-700 transition-colors"
+              >
+                archivar
+              </button>
+            </>
+          )}
+          {r.status === 'archived' && (
+            <button
+              onClick={onRestore}
+              className="text-micro text-ink-400 hover:text-ink-700 transition-colors"
+            >
+              volver a pendientes
+            </button>
+          )}
+          <button
+            onClick={onDelete}
+            className="text-micro text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors"
+          >
+            eliminar
+          </button>
+        </span>
+      </div>
+    </li>
+  )
+}
+
 export default function RecortesView({
   onSelectEntity: _onSelectEntity,
 }: {
@@ -286,6 +474,7 @@ export default function RecortesView({
   const [promoting, setPromoting] = useState<{
     recorte: Recorte
     target: RecorteTarget
+    seed?: PromoteSeed
   } | null>(null)
 
   const counts = useMemo(() => {
@@ -355,101 +544,22 @@ export default function RecortesView({
         </p>
       ) : (
         <ul className="space-y-4 max-w-3xl">
-          {visible.map((r) => {
-            const host = hostOf(r.sourceUrl)
-            return (
-              <li key={r.id} className="group relative card-paper-soft p-4 pt-3">
-                {/* Doble filete de prensa — el mismo gesto de los bookmarks de X. */}
-                <div aria-hidden className="mb-2.5">
-                  <div className="border-t-2 border-ink-700/60" />
-                  <div className="mt-0.5 border-t border-ink-200" />
-                </div>
-
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="min-w-0 truncate font-serif text-sm font-medium text-ink-700">
-                    {r.sourceTitle ?? host ?? 'recorte'}
-                    {r.sourceAuthor && (
-                      <span className="font-sans font-normal text-ink-400">
-                        {' '}
-                        — {r.sourceAuthor}
-                      </span>
-                    )}
-                  </span>
-                  <span className="shrink-0 -rotate-2 rounded-sm border border-ink-200 px-1.5 py-0.5 text-micro uppercase tracking-wider text-ink-400 tabular-nums">
-                    {formatStamp(r.capturedAt ?? r.createdAt)}
-                  </span>
-                </div>
-
-                <p className="mt-1.5 whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700">
-                  «{r.text}»
-                </p>
-
-                {r.note && <p className="mt-2 marginalia-script">{r.note}</p>}
-
-                <div className="mt-2.5 flex flex-wrap items-center gap-3">
-                  {r.sourceUrl && (
-                    <a
-                      href={r.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-micro hover:underline"
-                      style={{ color: 'var(--accent-primary)' }}
-                    >
-                      ver original{host ? ` · ${host}` : ''}
-                    </a>
-                  )}
-                  {r.status === 'promoted' && r.promotedTarget && (
-                    <span className="text-micro uppercase tracking-eyebrow text-ink-300">
-                      → {TARGET_LABEL[r.promotedTarget]}
-                    </span>
-                  )}
-
-                  <span className="ml-auto flex items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                    {r.status === 'pending' && (
-                      <>
-                        {(['quote', 'entity', 'momento'] as const).map((t) => (
-                          <button
-                            key={t}
-                            onClick={() => setPromoting({ recorte: r, target: t })}
-                            className="text-micro text-ink-400 hover:text-ink-700 transition-colors"
-                          >
-                            → {TARGET_LABEL[t]}
-                          </button>
-                        ))}
-                        <button
-                          onClick={() =>
-                            updateRecorte.mutate({
-                              id: r.id,
-                              patch: { status: 'archived' },
-                            })
-                          }
-                          className="text-micro text-ink-400 hover:text-ink-700 transition-colors"
-                        >
-                          archivar
-                        </button>
-                      </>
-                    )}
-                    {r.status === 'archived' && (
-                      <button
-                        onClick={() =>
-                          updateRecorte.mutate({ id: r.id, patch: { status: 'pending' } })
-                        }
-                        className="text-micro text-ink-400 hover:text-ink-700 transition-colors"
-                      >
-                        volver a pendientes
-                      </button>
-                    )}
-                    <button
-                      onClick={() => deleteRecorte.mutate(r.id)}
-                      className="text-micro text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors"
-                    >
-                      eliminar
-                    </button>
-                  </span>
-                </div>
-              </li>
-            )
-          })}
+          {visible.map((r) => (
+            <RecorteCard
+              key={r.id}
+              recorte={r}
+              onPromote={(recorte, target, seed) =>
+                setPromoting({ recorte, target, seed })
+              }
+              onArchive={() =>
+                updateRecorte.mutate({ id: r.id, patch: { status: 'archived' } })
+              }
+              onRestore={() =>
+                updateRecorte.mutate({ id: r.id, patch: { status: 'pending' } })
+              }
+              onDelete={() => deleteRecorte.mutate(r.id)}
+            />
+          ))}
         </ul>
       )}
 
@@ -463,6 +573,7 @@ export default function RecortesView({
         <PromoteModal
           recorte={promoting.recorte}
           target={promoting.target}
+          seed={promoting.seed}
           onClose={() => setPromoting(null)}
         />
       )}
