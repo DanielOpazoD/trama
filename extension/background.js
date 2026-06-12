@@ -15,7 +15,6 @@ import {
   flashHighlight,
   getRecent,
   saveArticle,
-  saveHtml,
   saveSelection,
   showPageToast,
   testConnection,
@@ -33,7 +32,6 @@ const MENU_ID = 'trama-save-selection'
 const MENU_COLLECT = 'trama-collect'
 const MENU_IMAGE = 'trama-save-image'
 const MENU_PAGE = 'trama-save-page'
-const MENU_HTML = 'trama-save-html'
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.removeAll(() => {
@@ -55,11 +53,6 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
       id: MENU_PAGE,
       title: 'Guardar artículo en Trama',
-      contexts: ['page'],
-    })
-    chrome.contextMenus.create({
-      id: MENU_HTML,
-      title: 'Guardar página como Markdown en Trama',
       contexts: ['page'],
     })
   })
@@ -110,11 +103,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     void showPageToast(tabId, msg, r.ok ? 'ok' : 'err')
   } else if (info.menuItemId === MENU_PAGE) {
     const r = await saveArticle(tab)
-    flashBadge(r.ok)
-    const t = toastForResult(r)
-    void showPageToast(tabId, t.msg, t.tone)
-  } else if (info.menuItemId === MENU_HTML) {
-    const r = await saveHtml(tab)
     flashBadge(r.ok)
     const t = toastForResult(r)
     void showPageToast(tabId, t.msg, t.tone)
@@ -176,10 +164,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg?.kind === 'trama-article') {
     activeTab().then((tab) => saveArticle(tab, msg.note).then(sendResponse))
-    return true
-  }
-  if (msg?.kind === 'trama-html') {
-    activeTab().then((tab) => saveHtml(tab, msg.note).then(sendResponse))
     return true
   }
   if (msg?.kind === 'trama-collection') {

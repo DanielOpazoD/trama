@@ -29,14 +29,14 @@ El popup tiene un selector segmentado con tres modos; el botón «Guardar»
 se adapta al modo elegido:
 
 - **Cita**: el texto seleccionado (o pegado en el cuadro). Es el gesto por
-  defecto, también disponible con clic derecho y con el atajo de teclado.
-- **Artículo**: extrae el texto principal del long-read como un solo objeto
-  (heurística readability-lite, sin dependencias). También por clic derecho
-  → «Guardar artículo en Trama».
-- **Página**: guarda la página entera como **Markdown**, conservando su
-  estructura (encabezados, listas, citas, enlaces, énfasis). Útil cuando el
-  recorte se promueve a una nota. También por clic derecho → «Guardar
-  página como Markdown en Trama».
+  defecto, también disponible con clic derecho y con el atajo de teclado. Si
+  la selección está sobre un **enlace** (p.ej. un titular que linkea a la
+  nota), el recorte usa ESE enlace como fuente — apunta al artículo
+  subyacente, no a la portada.
+- **Artículo**: extrae el contenido principal conservando su **estructura**
+  como Markdown (encabezados, listas, citas, enlaces, énfasis), no texto
+  plano. También por clic derecho → «Guardar artículo en Trama».
+- **Región**: ver más abajo (recorte visual de pantalla).
 
 ## Capturar imágenes
 
