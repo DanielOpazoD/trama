@@ -22,7 +22,7 @@ function addPage(container: HTMLElement, index: number, top: number, height = 50
     getBoundingClientRect: () => DOMRect
   }
   page.dataset.pdfEditorPage = String(index)
-  page.getBoundingClientRect = () => rect(top, height)
+  page.getBoundingClientRect = () => rect(top - container.scrollTop, height)
   container.append(page)
 }
 
@@ -52,10 +52,12 @@ function TestNavigation({
   initialPage = 0,
   onClear,
   target,
+  total = 3,
 }: {
   initialPage?: number
   onClear?: () => void
   target: HTMLElement
+  total?: number
 }) {
   const [page, setPage] = useState(initialPage)
   const scrollContainerRef = useRef<HTMLElement | null>(target)
@@ -67,7 +69,7 @@ function TestNavigation({
       setCurrentPage: setPage,
       setEditingId: () => onClear?.(),
       setSelectedId: () => onClear?.(),
-      total: 3,
+      total,
     })
   return (
     <>
@@ -187,6 +189,41 @@ describe('usePdfTextEditorPageNavigation', () => {
     })
 
     expect(target.scrollTop).toBe(520)
+    vi.useRealTimers()
+    target.remove()
+  })
+
+  it('no deja que el scroll visible sobrescriba la página pedida mientras abre', () => {
+    vi.useFakeTimers()
+    let requestedReady = false
+    const target = makeScrollContainer()
+    addPage(target, 2, 40)
+    addDynamicPage(target, 7, () =>
+      requestedReady ? rect(3640 - target.scrollTop, 500) : rect(3640, 0),
+    )
+    document.body.append(target)
+
+    render(<TestNavigation target={target} initialPage={7} total={8} />)
+
+    act(() => {
+      screen.getByRole('button', { name: 'initial' }).click()
+      vi.runOnlyPendingTimers()
+    })
+    act(() => {
+      screen.getByRole('button', { name: 'sync' }).click()
+    })
+
+    expect(screen.getByLabelText('Página actual')).toHaveTextContent('8')
+
+    requestedReady = true
+    act(() => {
+      vi.runAllTimers()
+    })
+    act(() => {
+      screen.getByRole('button', { name: 'sync' }).click()
+    })
+
+    expect(screen.getByLabelText('Página actual')).toHaveTextContent('8')
     vi.useRealTimers()
     target.remove()
   })

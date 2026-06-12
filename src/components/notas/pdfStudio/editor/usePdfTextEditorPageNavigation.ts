@@ -9,6 +9,9 @@ import {
 import type { PageLayout } from '../../../../lib/pdfStudio/model/editorGeometry'
 import { findMostVisiblePdfEditorPage } from './pdfEditorZoomScroll'
 
+const PROGRAMMATIC_SCROLL_RETRIES = 14
+const PROGRAMMATIC_SCROLL_RETRY_MS = 75
+
 function scrollEditorPageIntoView(
   container: HTMLElement | null,
   pageIndex: number,
@@ -33,14 +36,18 @@ function scheduleScrollEditorPageIntoView(
   getContainer: () => HTMLElement | null,
   pageIndex: number,
   attempt = 0,
+  onDone?: () => void,
 ) {
   window.setTimeout(
     () => {
-      const ready = scrollEditorPageIntoView(getContainer(), pageIndex)
-      if (!ready && attempt < 8)
-        scheduleScrollEditorPageIntoView(getContainer, pageIndex, attempt + 1)
+      scrollEditorPageIntoView(getContainer(), pageIndex)
+      if (attempt < PROGRAMMATIC_SCROLL_RETRIES) {
+        scheduleScrollEditorPageIntoView(getContainer, pageIndex, attempt + 1, onDone)
+      } else {
+        onDone?.()
+      }
     },
-    attempt === 0 ? 0 : 50,
+    attempt === 0 ? 0 : PROGRAMMATIC_SCROLL_RETRY_MS,
   )
 }
 
@@ -64,6 +71,8 @@ export function usePdfTextEditorPageNavigation({
   total: number
 }) {
   const initialPageScrolledRef = useRef(false)
+  const programmaticPageRef = useRef<number | null>(null)
+  const programmaticRunRef = useRef(0)
   const getScrollContainer = useCallback(
     () =>
       scrollContainerRef.current ??
@@ -71,6 +80,22 @@ export function usePdfTextEditorPageNavigation({
         ? null
         : document.querySelector<HTMLElement>('[data-pdf-editor-scroll]')),
     [scrollContainerRef],
+  )
+  const scrollPageIntoViewProgrammatically = useCallback(
+    (pageIndex: number) => {
+      const run = programmaticRunRef.current + 1
+      programmaticRunRef.current = run
+      programmaticPageRef.current = pageIndex
+      scheduleScrollEditorPageIntoView(getScrollContainer, pageIndex, 0, () => {
+        if (
+          programmaticRunRef.current === run &&
+          programmaticPageRef.current === pageIndex
+        ) {
+          programmaticPageRef.current = null
+        }
+      })
+    },
+    [getScrollContainer],
   )
   const clearPageState = useCallback(() => {
     setSelectedId(null)
@@ -83,14 +108,20 @@ export function usePdfTextEditorPageNavigation({
       if (i < 0 || i >= total || i === currentPage) return
       clearPageState()
       setCurrentPage(i)
-      scheduleScrollEditorPageIntoView(getScrollContainer, i)
+      scrollPageIntoViewProgrammatically(i)
     },
-    [clearPageState, currentPage, getScrollContainer, setCurrentPage, total],
+    [
+      clearPageState,
+      currentPage,
+      scrollPageIntoViewProgrammatically,
+      setCurrentPage,
+      total,
+    ],
   )
 
   const scrollInitialPageIntoView = useCallback(() => {
-    scheduleScrollEditorPageIntoView(getScrollContainer, currentPage)
-  }, [currentPage, getScrollContainer])
+    scrollPageIntoViewProgrammatically(currentPage)
+  }, [currentPage, scrollPageIntoViewProgrammatically])
   useEffect(() => {
     if (!scrollInitialPage || initialPageScrolledRef.current) return
     initialPageScrolledRef.current = true
@@ -100,6 +131,7 @@ export function usePdfTextEditorPageNavigation({
   const activatePage = useCallback(
     (i: number) => {
       if (i < 0 || i >= total || i === currentPage) return
+      programmaticPageRef.current = null
       clearPageState()
       setCurrentPage(i)
     },
@@ -110,6 +142,8 @@ export function usePdfTextEditorPageNavigation({
     (container?: HTMLElement | null) => {
       const next = findMostVisiblePdfEditorPage(container ?? getScrollContainer())
       if (next == null || next < 0 || next >= total || next === currentPage) return
+      const programmaticPage = programmaticPageRef.current
+      if (programmaticPage != null && next !== programmaticPage) return
       setCurrentPage(next)
     },
     [currentPage, getScrollContainer, setCurrentPage, total],
