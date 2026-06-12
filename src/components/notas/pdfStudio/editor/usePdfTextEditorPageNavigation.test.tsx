@@ -1,5 +1,5 @@
 import { act, render, screen } from '@testing-library/react'
-import { useRef, useState } from 'react'
+import { StrictMode, useRef, useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { usePdfTextEditorPageNavigation } from './usePdfTextEditorPageNavigation'
 
@@ -22,6 +22,7 @@ function addPage(container: HTMLElement, index: number, top: number, height = 50
     getBoundingClientRect: () => DOMRect
   }
   page.dataset.pdfEditorPage = String(index)
+  page.dataset.pdfEditorSheet = String(index)
   page.getBoundingClientRect = () => rect(top - container.scrollTop, height)
   container.append(page)
 }
@@ -31,8 +32,19 @@ function addDynamicPage(container: HTMLElement, index: number, readRect: () => D
     getBoundingClientRect: () => DOMRect
   }
   page.dataset.pdfEditorPage = String(index)
+  page.dataset.pdfEditorSheet = String(index)
   page.getBoundingClientRect = readRect
   container.append(page)
+}
+
+function addPageShell(container: HTMLElement, index: number, top: number, height = 500) {
+  const page = document.createElement('section') as HTMLElement & {
+    getBoundingClientRect: () => DOMRect
+  }
+  page.dataset.pdfEditorPage = String(index)
+  page.getBoundingClientRect = () => rect(top - container.scrollTop, height)
+  container.append(page)
+  return page
 }
 
 function makeScrollContainer(): HTMLElement {
@@ -51,11 +63,13 @@ function makeScrollContainer(): HTMLElement {
 function TestNavigation({
   initialPage = 0,
   onClear,
+  scrollInitialPage = false,
   target,
   total = 3,
 }: {
   initialPage?: number
   onClear?: () => void
+  scrollInitialPage?: boolean
   target: HTMLElement
   total?: number
 }) {
@@ -69,6 +83,7 @@ function TestNavigation({
       setCurrentPage: setPage,
       setEditingId: () => onClear?.(),
       setSelectedId: () => onClear?.(),
+      scrollInitialPage,
       total,
     })
   return (
@@ -224,6 +239,91 @@ describe('usePdfTextEditorPageNavigation', () => {
     })
 
     expect(screen.getByLabelText('Página actual')).toHaveTextContent('8')
+    vi.useRealTimers()
+    target.remove()
+  })
+
+  it('mantiene la página pedida aunque tarde más que la ventana inicial anterior', () => {
+    vi.useFakeTimers()
+    let requestedReady = false
+    const target = makeScrollContainer()
+    addPage(target, 2, 40)
+    addDynamicPage(target, 7, () =>
+      requestedReady ? rect(3640 - target.scrollTop, 500) : rect(3640, 0),
+    )
+    document.body.append(target)
+
+    render(<TestNavigation target={target} initialPage={7} total={8} />)
+
+    act(() => {
+      screen.getByRole('button', { name: 'initial' }).click()
+      vi.advanceTimersByTime(2000)
+    })
+    act(() => {
+      screen.getByRole('button', { name: 'sync' }).click()
+    })
+
+    expect(screen.getByLabelText('Página actual')).toHaveTextContent('8')
+
+    requestedReady = true
+    act(() => {
+      vi.advanceTimersByTime(150)
+    })
+    act(() => {
+      screen.getByRole('button', { name: 'sync' }).click()
+    })
+
+    expect(target.scrollTop).toBe(3640)
+    expect(screen.getByLabelText('Página actual')).toHaveTextContent('8')
+    vi.useRealTimers()
+    target.remove()
+  })
+
+  it('acerca la página pedida aunque la hoja renderizada aparezca después', () => {
+    vi.useFakeTimers()
+    const target = makeScrollContainer()
+    addPage(target, 0, 0)
+    const delayedPage = addPageShell(target, 7, 3640)
+    document.body.append(target)
+
+    render(<TestNavigation target={target} initialPage={7} total={8} />)
+
+    act(() => {
+      screen.getByRole('button', { name: 'initial' }).click()
+      vi.runOnlyPendingTimers()
+    })
+
+    expect(target.scrollTop).toBe(3640)
+    expect(screen.getByLabelText('Página actual')).toHaveTextContent('8')
+
+    delayedPage.dataset.pdfEditorSheet = '7'
+    act(() => {
+      vi.advanceTimersByTime(150)
+    })
+
+    expect(target.scrollTop).toBe(3640)
+    vi.useRealTimers()
+    target.remove()
+  })
+
+  it('mantiene el scroll inicial bajo StrictMode aunque React limpie el primer timer', () => {
+    vi.useFakeTimers()
+    const target = makeScrollContainer()
+    addPage(target, 0, 0)
+    addPage(target, 1, 520)
+    document.body.append(target)
+
+    render(
+      <StrictMode>
+        <TestNavigation target={target} initialPage={1} scrollInitialPage />
+      </StrictMode>,
+    )
+
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    expect(target.scrollTop).toBe(520)
     vi.useRealTimers()
     target.remove()
   })

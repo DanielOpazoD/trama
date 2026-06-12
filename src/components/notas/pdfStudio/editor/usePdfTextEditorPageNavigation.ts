@@ -9,16 +9,20 @@ import {
 import type { PageLayout } from '../../../../lib/pdfStudio/model/editorGeometry'
 import { findMostVisiblePdfEditorPage } from './pdfEditorZoomScroll'
 
-const PROGRAMMATIC_SCROLL_RETRIES = 14
 const PROGRAMMATIC_SCROLL_RETRY_MS = 75
+const PROGRAMMATIC_SCROLL_STABLE_HITS = 2
 
 function scrollEditorPageIntoView(
   container: HTMLElement | null,
   pageIndex: number,
 ): boolean {
-  const target = container?.querySelector<HTMLElement>(
-    `[data-pdf-editor-page="${pageIndex}"]`,
+  const sheet = container?.querySelector<HTMLElement>(
+    `[data-pdf-editor-sheet="${pageIndex}"]`,
   )
+  const pageShell =
+    sheet ??
+    container?.querySelector<HTMLElement>(`[data-pdf-editor-page="${pageIndex}"]`)
+  const target = sheet ?? pageShell
   if (!target || !container) return false
   const containerRect = container.getBoundingClientRect()
   const targetRect = target.getBoundingClientRect()
@@ -29,26 +33,7 @@ function scrollEditorPageIntoView(
     containerRect.top -
     Math.max(0, (container.clientHeight - targetRect.height) / 2)
   container.scrollTop = top
-  return true
-}
-
-function scheduleScrollEditorPageIntoView(
-  getContainer: () => HTMLElement | null,
-  pageIndex: number,
-  attempt = 0,
-  onDone?: () => void,
-) {
-  window.setTimeout(
-    () => {
-      scrollEditorPageIntoView(getContainer(), pageIndex)
-      if (attempt < PROGRAMMATIC_SCROLL_RETRIES) {
-        scheduleScrollEditorPageIntoView(getContainer, pageIndex, attempt + 1, onDone)
-      } else {
-        onDone?.()
-      }
-    },
-    attempt === 0 ? 0 : PROGRAMMATIC_SCROLL_RETRY_MS,
-  )
+  return Boolean(sheet) && findMostVisiblePdfEditorPage(container) === pageIndex
 }
 
 export function usePdfTextEditorPageNavigation({
@@ -73,6 +58,7 @@ export function usePdfTextEditorPageNavigation({
   const initialPageScrolledRef = useRef(false)
   const programmaticPageRef = useRef<number | null>(null)
   const programmaticRunRef = useRef(0)
+  const programmaticTimerRef = useRef<number | null>(null)
   const getScrollContainer = useCallback(
     () =>
       scrollContainerRef.current ??
@@ -81,21 +67,53 @@ export function usePdfTextEditorPageNavigation({
         : document.querySelector<HTMLElement>('[data-pdf-editor-scroll]')),
     [scrollContainerRef],
   )
+
+  const clearProgrammaticTimer = useCallback(() => {
+    if (programmaticTimerRef.current == null) return
+    window.clearTimeout(programmaticTimerRef.current)
+    programmaticTimerRef.current = null
+  }, [])
+
+  const continueProgrammaticScroll = useCallback(
+    (pageIndex: number, run: number, stableHits = 0, delay = 0) => {
+      programmaticTimerRef.current = window.setTimeout(() => {
+        programmaticTimerRef.current = null
+        if (
+          programmaticRunRef.current !== run ||
+          programmaticPageRef.current !== pageIndex
+        ) {
+          return
+        }
+
+        const ready = scrollEditorPageIntoView(getScrollContainer(), pageIndex)
+        const nextStableHits = ready ? stableHits + 1 : 0
+        if (nextStableHits >= PROGRAMMATIC_SCROLL_STABLE_HITS) {
+          programmaticPageRef.current = null
+          return
+        }
+
+        continueProgrammaticScroll(
+          pageIndex,
+          run,
+          nextStableHits,
+          PROGRAMMATIC_SCROLL_RETRY_MS,
+        )
+      }, delay)
+    },
+    [getScrollContainer],
+  )
+
+  useEffect(() => clearProgrammaticTimer, [clearProgrammaticTimer])
+
   const scrollPageIntoViewProgrammatically = useCallback(
     (pageIndex: number) => {
+      clearProgrammaticTimer()
       const run = programmaticRunRef.current + 1
       programmaticRunRef.current = run
       programmaticPageRef.current = pageIndex
-      scheduleScrollEditorPageIntoView(getScrollContainer, pageIndex, 0, () => {
-        if (
-          programmaticRunRef.current === run &&
-          programmaticPageRef.current === pageIndex
-        ) {
-          programmaticPageRef.current = null
-        }
-      })
+      continueProgrammaticScroll(pageIndex, run)
     },
-    [getScrollContainer],
+    [clearProgrammaticTimer, continueProgrammaticScroll],
   )
   const clearPageState = useCallback(() => {
     setSelectedId(null)
@@ -126,27 +144,43 @@ export function usePdfTextEditorPageNavigation({
     if (!scrollInitialPage || initialPageScrolledRef.current) return
     initialPageScrolledRef.current = true
     scrollInitialPageIntoView()
+    return () => {
+      if (programmaticPageRef.current != null) {
+        initialPageScrolledRef.current = false
+      }
+    }
   }, [scrollInitialPage, scrollInitialPageIntoView])
 
   const activatePage = useCallback(
     (i: number) => {
       if (i < 0 || i >= total || i === currentPage) return
+      clearProgrammaticTimer()
       programmaticPageRef.current = null
       clearPageState()
       setCurrentPage(i)
     },
-    [clearPageState, currentPage, setCurrentPage, total],
+    [clearPageState, clearProgrammaticTimer, currentPage, setCurrentPage, total],
   )
 
   const syncPageFromScroll = useCallback(
     (container?: HTMLElement | null) => {
-      const next = findMostVisiblePdfEditorPage(container ?? getScrollContainer())
-      if (next == null || next < 0 || next >= total || next === currentPage) return
+      const scrollContainer = container ?? getScrollContainer()
+      const next = findMostVisiblePdfEditorPage(scrollContainer)
+      if (next == null || next < 0 || next >= total) return
       const programmaticPage = programmaticPageRef.current
-      if (programmaticPage != null && next !== programmaticPage) return
+      if (programmaticPage != null) {
+        if (next !== programmaticPage) return
+        const targetSheet = scrollContainer?.querySelector<HTMLElement>(
+          `[data-pdf-editor-sheet="${programmaticPage}"]`,
+        )
+        if (!targetSheet) return
+        clearProgrammaticTimer()
+        programmaticPageRef.current = null
+      }
+      if (next === currentPage) return
       setCurrentPage(next)
     },
-    [currentPage, getScrollContainer, setCurrentPage, total],
+    [clearProgrammaticTimer, currentPage, getScrollContainer, setCurrentPage, total],
   )
 
   return { activatePage, goToPage, scrollInitialPageIntoView, syncPageFromScroll }
