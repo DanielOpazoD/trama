@@ -16,6 +16,7 @@ export type Store = {
   secrets: Row[]
   notas_attachments: Row[]
   recortes: Row[]
+  favoritos: Row[]
   momento_comments: Row[]
   momento_reactions: Row[]
   month_notes: Row[]

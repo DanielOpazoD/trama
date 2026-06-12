@@ -44,7 +44,7 @@ const ListeningView = lazy(() =>
 const TwitterView = lazy(() =>
   import('./TwitterView').then((m) => ({ default: m.TwitterView })),
 )
-const RecortesView = lazy(() => import('./RecortesView'))
+const RecortesArea = lazy(() => import('./RecortesArea'))
 const MomentosView = lazy(() =>
   import('./MomentosView').then((m) => ({ default: m.MomentosView })),
 )
@@ -257,7 +257,7 @@ export function ViewRouter({
           )}
           {view === 'recortes' && (
             <ViewSlot scope="view:recortes">
-              <RecortesView onSelectEntity={onSelectEntity} />
+              <RecortesArea onSelectEntity={onSelectEntity} />
             </ViewSlot>
           )}
           {view === 'cronologia' && (
