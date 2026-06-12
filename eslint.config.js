@@ -212,24 +212,44 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
-  // Extensión de Chrome (MV3): JS plano de browser con la API chrome.*.
+  // Extensión de Chrome (MV3): ES modules de browser con la API chrome.*.
+  // El SW usa `"type": "module"` y los módulos viven en extension/lib/.
   {
     files: ['extension/**/*.js'],
     languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
       globals: {
         chrome: 'readonly',
         document: 'readonly',
         window: 'readonly',
         location: 'readonly',
         fetch: 'readonly',
+        Response: 'readonly',
         setTimeout: 'readonly',
         URL: 'readonly',
+        Blob: 'readonly',
         // Captura de región (service worker + overlay inyectado).
         FormData: 'readonly',
         createImageBitmap: 'readonly',
         OffscreenCanvas: 'readonly',
         requestAnimationFrame: 'readonly',
       },
+    },
+  },
+  // Tests de la extensión: vitest con globals explícitos (config con globals:false).
+  {
+    files: ['extension/**/*.test.js'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  // inject.js corre en el contexto de la PÁGINA (DOM duck-typed): se marca
+  // @ts-nocheck a propósito (ver el archivo). Permitimos ese pragma solo aquí.
+  {
+    files: ['extension/lib/inject.js'],
+    rules: {
+      '@typescript-eslint/ban-ts-comment': 'off',
     },
   },
   // Helpers de build de la extensión (Node CommonJS, no se empaquetan).

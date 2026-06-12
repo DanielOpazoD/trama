@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Trama — Recortes",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Guarda texto de cualquier página directo en la bandeja de Recortes de Trama. Nada entra a tu trama sin tu curaduría.",
   "permissions": ["activeTab", "contextMenus", "storage", "scripting", "alarms"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "popup.html",

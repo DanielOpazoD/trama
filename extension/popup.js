@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Popup de Trama - Recortes. Precarga la seleccion de la pestana activa
  * (solo al abrirse: gesto explicito del usuario), muestra la fuente
@@ -6,6 +7,12 @@
  * "conexion" guarda token y servidor, y permite probar la conexion.
  */
 
+/**
+ * Acceso a elementos del popup. Devuelve `any` a propósito: el HTML es fijo y
+ * conocido, así que evitamos castear `.value`/`.hidden`/`.src` en cada uso.
+ * @param {string} id
+ * @returns {any}
+ */
 const $ = (id) => document.getElementById(id)
 
 let currentTab = null
@@ -26,7 +33,10 @@ const MODE_BUTTON = {
 
 function setMode(mode) {
   currentMode = mode
-  for (const btn of document.querySelectorAll('.mode-opt')) {
+  const opts = /** @type {NodeListOf<HTMLElement>} */ (
+    document.querySelectorAll('.mode-opt')
+  )
+  for (const btn of opts) {
     btn.setAttribute('aria-pressed', btn.dataset.mode === mode ? 'true' : 'false')
   }
   const isPage = mode !== 'citation'
@@ -126,7 +136,10 @@ function applyTheme(theme) {
   } else {
     document.documentElement.dataset.theme = theme
   }
-  for (const btn of document.querySelectorAll('.theme-opt')) {
+  const opts = /** @type {NodeListOf<HTMLElement>} */ (
+    document.querySelectorAll('.theme-opt')
+  )
+  for (const btn of opts) {
     btn.setAttribute(
       'aria-pressed',
       btn.dataset.theme === (theme || 'auto') ? 'true' : 'false',

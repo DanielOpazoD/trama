@@ -90,6 +90,34 @@ El service worker de Manifest V3 es efímero y la red puede fallar. Por eso:
 
 Revocar acceso: Trama → Configuración → Conectar extensión → revocar token.
 
+## Confirmación al capturar
+
+Cuando capturás con el popup ya cerrado (clic derecho, atajo o región),
+además del badge del icono aparece un **toast editorial** abajo a la
+derecha de la página confirmando «Guardado en Recortes» (o el motivo si
+falló / quedó en cola). En páginas restringidas (chrome://) cae al badge.
+
+## Arquitectura y desarrollo
+
+El service worker es un punto de entrada delgado (`background.js`) que solo
+cablea eventos de Chrome; la lógica vive en **ES modules** bajo `lib/`:
+
+- `config.js` — token + servidor.
+- `queue.js` — badge + cola offline + clasificación de respuestas.
+- `recorte.js` — armado del payload + camino único de guardado.
+- `inject.js` — funciones que se **inyectan en la página** (extractores,
+  resaltado, overlay de región, toast); autocontenidas y duck-typed.
+- `region.js` / `collection.js` / `capture.js` — orquestación por gesto.
+
+Calidad (sin paso de build):
+
+- **Type-check**: `npm run check:extension-types` (y dentro de `typecheck`).
+  `extension/tsconfig.json` con `checkJs`; `chrome` queda laxo, se verifica
+  NUESTRA lógica. `inject.js` va `@ts-nocheck` (corre en la página).
+- **Tests**: `extension/lib/*.test.js` (vitest + happy-dom) cubren los
+  extractores (artículo, Markdown, X/Reddit) y la cola/reintento.
+- **Lint/format**: parte de `eslint .` y Prettier del repo.
+
 ## Iconos
 
 Los PNG de `icons/` se generan con `node extension/icons/generate.cjs`
