@@ -310,16 +310,17 @@ export function PdfTextEditor({
     applyStyle(patch)
     applyDraftFieldStyle(patch)
   }
-  const { activatePage, goToPage, syncPageFromScroll } = usePdfTextEditorPageNavigation({
-    currentPage,
-    scrollContainerRef,
-    setActivePageLayout,
-    setCurrentPage,
-    setEditingId,
-    setSelectedId,
-    scrollInitialPage: true,
-    total,
-  })
+  const { activatePage, goToPage, isInitialPagePositioning, syncPageFromScroll } =
+    usePdfTextEditorPageNavigation({
+      currentPage,
+      scrollContainerRef,
+      setActivePageLayout,
+      setCurrentPage,
+      setEditingId,
+      setSelectedId,
+      scrollInitialPage: true,
+      total,
+    })
   const { status: formSuggestionStatus, suggestCurrentPage } =
     usePdfTextEditorFormSuggestions({
       currentPage,
@@ -501,6 +502,7 @@ export function PdfTextEditor({
           <PdfTextEditorScrollArea
             fillMode={fillMode}
             onScroll={(event) => syncPageFromScroll(event.currentTarget)}
+            positioning={isInitialPagePositioning}
             scrollContainerRef={scrollContainerRef}
           >
             <div className="mx-auto flex min-w-full flex-col items-center gap-4">

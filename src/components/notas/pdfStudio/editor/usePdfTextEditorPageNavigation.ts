@@ -1,7 +1,9 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
+  useState,
   type Dispatch,
   type RefObject,
   type SetStateAction,
@@ -55,8 +57,12 @@ export function usePdfTextEditorPageNavigation({
   scrollInitialPage?: boolean
   total: number
 }) {
+  const [isInitialPagePositioning, setIsInitialPagePositioning] = useState(
+    () => scrollInitialPage && currentPage > 0,
+  )
   const initialPageScrolledRef = useRef(false)
   const programmaticPageRef = useRef<number | null>(null)
+  const initialProgrammaticRunRef = useRef<number | null>(null)
   const programmaticRunRef = useRef(0)
   const programmaticTimerRef = useRef<number | null>(null)
   const getScrollContainer = useCallback(
@@ -74,6 +80,14 @@ export function usePdfTextEditorPageNavigation({
     programmaticTimerRef.current = null
   }, [])
 
+  const finishProgrammaticScroll = useCallback((run: number) => {
+    programmaticPageRef.current = null
+    if (initialProgrammaticRunRef.current === run) {
+      initialProgrammaticRunRef.current = null
+      setIsInitialPagePositioning(false)
+    }
+  }, [])
+
   const continueProgrammaticScroll = useCallback(
     (pageIndex: number, run: number, stableHits = 0, delay = 0) => {
       programmaticTimerRef.current = window.setTimeout(() => {
@@ -88,7 +102,7 @@ export function usePdfTextEditorPageNavigation({
         const ready = scrollEditorPageIntoView(getScrollContainer(), pageIndex)
         const nextStableHits = ready ? stableHits + 1 : 0
         if (nextStableHits >= PROGRAMMATIC_SCROLL_STABLE_HITS) {
-          programmaticPageRef.current = null
+          finishProgrammaticScroll(run)
           return
         }
 
@@ -100,20 +114,30 @@ export function usePdfTextEditorPageNavigation({
         )
       }, delay)
     },
-    [getScrollContainer],
+    [finishProgrammaticScroll, getScrollContainer],
   )
 
   useEffect(() => clearProgrammaticTimer, [clearProgrammaticTimer])
 
   const scrollPageIntoViewProgrammatically = useCallback(
-    (pageIndex: number) => {
+    (pageIndex: number, initial = false) => {
       clearProgrammaticTimer()
       const run = programmaticRunRef.current + 1
       programmaticRunRef.current = run
       programmaticPageRef.current = pageIndex
-      continueProgrammaticScroll(pageIndex, run)
+      if (initial) {
+        initialProgrammaticRunRef.current = run
+        setIsInitialPagePositioning(pageIndex > 0)
+      }
+      const ready = scrollEditorPageIntoView(getScrollContainer(), pageIndex)
+      continueProgrammaticScroll(
+        pageIndex,
+        run,
+        ready ? 1 : 0,
+        PROGRAMMATIC_SCROLL_RETRY_MS,
+      )
     },
-    [clearProgrammaticTimer, continueProgrammaticScroll],
+    [clearProgrammaticTimer, continueProgrammaticScroll, getScrollContainer],
   )
   const clearPageState = useCallback(() => {
     setSelectedId(null)
@@ -138,9 +162,9 @@ export function usePdfTextEditorPageNavigation({
   )
 
   const scrollInitialPageIntoView = useCallback(() => {
-    scrollPageIntoViewProgrammatically(currentPage)
+    scrollPageIntoViewProgrammatically(currentPage, true)
   }, [currentPage, scrollPageIntoViewProgrammatically])
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!scrollInitialPage || initialPageScrolledRef.current) return
     initialPageScrolledRef.current = true
     scrollInitialPageIntoView()
@@ -156,6 +180,8 @@ export function usePdfTextEditorPageNavigation({
       if (i < 0 || i >= total || i === currentPage) return
       clearProgrammaticTimer()
       programmaticPageRef.current = null
+      initialProgrammaticRunRef.current = null
+      setIsInitialPagePositioning(false)
       clearPageState()
       setCurrentPage(i)
     },
@@ -175,13 +201,26 @@ export function usePdfTextEditorPageNavigation({
         )
         if (!targetSheet) return
         clearProgrammaticTimer()
-        programmaticPageRef.current = null
+        finishProgrammaticScroll(programmaticRunRef.current)
       }
       if (next === currentPage) return
       setCurrentPage(next)
     },
-    [clearProgrammaticTimer, currentPage, getScrollContainer, setCurrentPage, total],
+    [
+      clearProgrammaticTimer,
+      currentPage,
+      finishProgrammaticScroll,
+      getScrollContainer,
+      setCurrentPage,
+      total,
+    ],
   )
 
-  return { activatePage, goToPage, scrollInitialPageIntoView, syncPageFromScroll }
+  return {
+    activatePage,
+    goToPage,
+    isInitialPagePositioning,
+    scrollInitialPageIntoView,
+    syncPageFromScroll,
+  }
 }

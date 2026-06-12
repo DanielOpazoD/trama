@@ -189,6 +189,13 @@ async function centeredEditorPageNumber(page: Page) {
   })
 }
 
+async function editorScrollTop(page: Page) {
+  return page.evaluate(() => {
+    const container = document.querySelector<HTMLElement>('[data-pdf-editor-scroll]')
+    return container?.scrollTop ?? null
+  })
+}
+
 async function expectZoomKeepsSheetCenter(page: Page) {
   await waitForEditableSheetReady(page)
   const before = await visibleSheetAnchor(page)
@@ -433,7 +440,15 @@ test.describe('Imprenta · editor PDF', () => {
     await thumb8.dblclick()
 
     await expect(page.getByRole('dialog', { name: 'Editar página 8' })).toBeVisible()
-    await expect.poll(() => centeredEditorPageNumber(page)).toBe(8)
+    const scrollArea = page.locator('[data-pdf-editor-scroll]')
+    await expect(scrollArea).toHaveAttribute('data-pdf-editor-positioning', 'settled')
+    expect(await centeredEditorPageNumber(page)).toBe(8)
+    const initialScrollTop = await editorScrollTop(page)
+    expect(initialScrollTop).not.toBeNull()
+    await page.waitForTimeout(500)
+    const settledScrollTop = await editorScrollTop(page)
+    expect(settledScrollTop).not.toBeNull()
+    expect(Math.abs((settledScrollTop ?? 0) - (initialScrollTop ?? 0))).toBeLessThan(2)
 
     await page.getByRole('button', { name: 'Página anterior' }).click()
     await expect(page.getByRole('dialog', { name: 'Editar página 7' })).toBeVisible()
