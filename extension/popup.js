@@ -17,18 +17,21 @@ const $ = (id) => document.getElementById(id)
 
 let currentTab = null
 // Modo de captura activo: 'citation' (texto seleccionado) | 'article'
-// (artículo como objeto) | 'html' (página como Markdown). 'citation' usa el
-// textarea; los otros dos capturan la página entera y el textarea se oculta.
+// (artículo como objeto) | 'html' (página como Markdown) | 'region' (recorte
+// visual). 'citation' usa el textarea; los demás ocultan el textarea — y
+// 'region' además cierra el popup para arrastrar el recuadro en la página.
 let currentMode = 'citation'
 
 const MODE_HINT = {
   article: 'Captura el artículo principal de la página como un solo objeto.',
   html: 'Guarda la página entera como Markdown, conservando su estructura.',
+  region: 'Arrastra un recuadro sobre la página para recortarlo como imagen.',
 }
 const MODE_BUTTON = {
   citation: 'Guardar en Recortes',
   article: 'Guardar artículo',
   html: 'Guardar página',
+  region: 'Capturar región',
 }
 
 function setMode(mode) {
@@ -294,6 +297,15 @@ async function savePageMode() {
 }
 
 $('guardar').addEventListener('click', async () => {
+  if (currentMode === 'region') {
+    // Arranca el overlay de arrastre en la página y cierra el popup para no
+    // tapar la pantalla. El recorte se guarda al soltar; el badge + toast
+    // confirman.
+    const res = await chrome.runtime.sendMessage({ kind: 'trama-region-start' })
+    if (res?.ok) window.close()
+    else setEstado(res?.error ?? 'no se puede capturar aquí', 'err')
+    return
+  }
   $('guardar').disabled = true
   if (currentMode !== 'citation') {
     await savePageMode()
@@ -348,17 +360,6 @@ async function refreshCollection() {
     $('collectionNote').hidden = true
   }
 }
-
-$('captureRegion').addEventListener('click', async () => {
-  // Arranca el overlay de arrastre en la página y cierra el popup para no
-  // tapar la pantalla. El recorte se guarda al soltar; el badge confirma.
-  const res = await chrome.runtime.sendMessage({ kind: 'trama-region-start' })
-  if (res?.ok) {
-    window.close()
-  } else {
-    setEstado(res?.error ?? 'no se puede capturar aquí', 'err')
-  }
-})
 
 $('addCollect').addEventListener('click', async () => {
   const text = $('texto').value.trim()

@@ -81,6 +81,21 @@ describe('<RecortesView />', () => {
     expect(img).toBeInTheDocument()
   })
 
+  it('limpia el Markdown crudo en la tarjeta de un recorte de página (html)', () => {
+    setup([
+      recorte({
+        captureMode: 'html',
+        text: '## El cuaderno\n\n- uno\n\nLeé [esto](https://x.test) con **calma**.',
+      }),
+    ])
+    // El encabezado se ve sin "##", la lista como viñeta, el enlace sin URL y
+    // sin las comillas « » (es una página, no una cita).
+    expect(screen.getByText(/El cuaderno/)).toBeInTheDocument()
+    expect(screen.queryByText(/##/)).toBeNull()
+    expect(screen.getByText(/Leé esto con calma/)).toBeInTheDocument()
+    expect(screen.getByText(/• uno/)).toBeInTheDocument()
+  })
+
   it('empty state invita a instalar la extensión', () => {
     setup([])
     expect(screen.getByText(/su primer recorte/)).toBeInTheDocument()
