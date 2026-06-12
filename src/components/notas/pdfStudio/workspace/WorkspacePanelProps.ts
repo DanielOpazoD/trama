@@ -1,4 +1,3 @@
-import type { ImageAsset } from '../../../../lib/pdfStudio/model/model'
 import type {
   SavedDoc,
   SavedFolder,
@@ -6,11 +5,6 @@ import type {
 } from '../../../../lib/pdfStudio/render/persistence'
 
 export type WorkspacePanelProps = {
-  library: ImageAsset[]
-  onAddImage: (asset: ImageAsset) => void
-  onRemoveImage: (id: string) => void
-  onDownloadImage: (asset: ImageAsset) => void
-  onEditImage: (asset: ImageAsset) => void
   saved: SavedDoc[]
   folders: SavedFolder[]
   templatesEnabled?: boolean

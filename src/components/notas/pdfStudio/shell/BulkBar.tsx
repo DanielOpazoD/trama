@@ -1,6 +1,7 @@
 import {
   CheckIcon,
   CloseIcon,
+  CropIcon,
   DuplicateIcon,
   PrinterIcon,
   RotateIcon,
@@ -23,6 +24,7 @@ export function BulkBar({
   onDuplicate,
   onDelete,
   onExport,
+  onCrop,
   onSelectAll,
   onClear,
 }: {
@@ -34,6 +36,7 @@ export function BulkBar({
   onDelete: () => void
   /** Exporta SÓLO las hojas marcadas a PDF (abre el visor). */
   onExport: () => void
+  onCrop?: () => void
   onSelectAll: () => void
   onClear: () => void
 }) {
@@ -88,6 +91,17 @@ export function BulkBar({
       >
         <TrashIcon size={14} /> Eliminar
       </button>
+      {onCrop ? (
+        <button
+          type="button"
+          onClick={onCrop}
+          aria-label="Recortar imagen"
+          title="Recortar la hoja marcada como imagen"
+          className={barBtn}
+        >
+          <CropIcon size={14} /> Recortar
+        </button>
+      ) : null}
       <span className="mx-1 h-4 w-px bg-ink-200/60" aria-hidden />
       <button
         type="button"

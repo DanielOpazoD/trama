@@ -1,4 +1,3 @@
-import type { ImageAsset } from '../../../../lib/pdfStudio/model/model'
 import type {
   SavedDoc,
   SavedFolder,
@@ -10,22 +9,17 @@ export function PdfStudioWorkspacePanelHost({
   canSave,
   canSaveTemplate,
   collapsed,
-  library,
   folders,
   saved,
   show,
   templatesEnabled,
-  onAddImage,
   onDeleteSaved,
-  onDownloadImage,
   onDownloadSaved,
   onCreateFolder,
   onDeleteFolder,
   onDuplicateSaved,
-  onEditImage,
   onExportTemplatePackage,
   onOpenSaved,
-  onRemoveImage,
   onRenameFolder,
   onRenameSaved,
   onMoveSavedToFolder,
@@ -40,22 +34,17 @@ export function PdfStudioWorkspacePanelHost({
   canSave: boolean
   canSaveTemplate: boolean
   collapsed: boolean
-  library: ImageAsset[]
   folders: SavedFolder[]
   saved: SavedDoc[]
   show: boolean
   templatesEnabled?: boolean
-  onAddImage: (asset: ImageAsset) => void
   onDeleteSaved: (id: string) => void
-  onDownloadImage: (asset: ImageAsset) => void
   onDownloadSaved: (saved: SavedDoc) => void
   onCreateFolder: (input: { name: string; color: SavedFolderColor }) => void
   onDeleteFolder: (id: string) => void
   onDuplicateSaved: (saved: SavedDoc) => void
-  onEditImage: (asset: ImageAsset) => void
   onExportTemplatePackage: (saved: SavedDoc, format: 'json' | 'csv') => void
   onOpenSaved: (saved: SavedDoc) => void
-  onRemoveImage: (id: string) => void
   onRenameFolder: (id: string, name: string) => void
   onRenameSaved: (id: string, name: string) => void
   onMoveSavedToFolder: (id: string, folderId: string | null) => void
@@ -88,11 +77,6 @@ export function PdfStudioWorkspacePanelHost({
         }`}
       >
         <WorkspacePanel
-          library={library}
-          onAddImage={onAddImage}
-          onRemoveImage={onRemoveImage}
-          onDownloadImage={onDownloadImage}
-          onEditImage={onEditImage}
           saved={saved}
           folders={folders}
           templatesEnabled={templatesEnabled}

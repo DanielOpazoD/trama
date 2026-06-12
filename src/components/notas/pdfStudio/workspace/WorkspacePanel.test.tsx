@@ -5,7 +5,6 @@ import {
   addPdfSource,
   emptyDoc,
   makePdfFormFieldDraft,
-  type ImageAsset,
 } from '../../../../lib/pdfStudio/model/model'
 import type { SavedDoc, SavedFolder } from '../../../../lib/pdfStudio/render/persistence'
 import { WorkspacePanel } from './WorkspacePanel'
@@ -53,11 +52,6 @@ function setup(overrides: Partial<Parameters<typeof WorkspacePanel>[0]> = {}) {
   ]
   const folders: SavedFolder[] = []
   const props = {
-    library: [] as ImageAsset[],
-    onAddImage: vi.fn(),
-    onRemoveImage: vi.fn(),
-    onDownloadImage: vi.fn(),
-    onEditImage: vi.fn(),
     saved,
     folders,
     canSave: true,
@@ -85,17 +79,13 @@ function setup(overrides: Partial<Parameters<typeof WorkspacePanel>[0]> = {}) {
 }
 
 describe('<WorkspacePanel /> · planillas', () => {
-  it('permite editar/recortar una imagen adjunta desde la biblioteca', () => {
-    const asset: ImageAsset = {
-      id: 'img-1',
-      file: new File(['png'], 'foto.png', { type: 'image/png' }),
-    }
-    const props = setup({ library: [asset] })
+  it('no muestra una biblioteca lateral de imágenes en el panel', () => {
+    setup()
 
-    fireEvent.click(screen.getByRole('button', { name: /Imágenes/i }))
-    fireEvent.click(screen.getByRole('button', { name: /Editar imagen/i }))
-
-    expect(props.onEditImage).toHaveBeenCalledWith(asset)
+    expect(screen.queryByRole('button', { name: /Imágenes/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Editar imagen/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('puede ocultar planillas cuando el módulo es sólo editor PDF', () => {

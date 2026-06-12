@@ -1,5 +1,5 @@
 import { act, render, screen } from '@testing-library/react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { usePdfTextEditorPageNavigation } from './usePdfTextEditorPageNavigation'
 
@@ -58,9 +58,11 @@ function TestNavigation({
   target: HTMLElement
 }) {
   const [page, setPage] = useState(initialPage)
+  const scrollContainerRef = useRef<HTMLElement | null>(target)
   const { scrollInitialPageIntoView, syncPageFromScroll } =
     usePdfTextEditorPageNavigation({
       currentPage: page,
+      scrollContainerRef,
       setActivePageLayout: () => onClear?.(),
       setCurrentPage: setPage,
       setEditingId: () => onClear?.(),
@@ -134,6 +136,30 @@ describe('usePdfTextEditorPageNavigation', () => {
 
     expect(target.scrollTop).toBe(520)
     vi.useRealTimers()
+    target.remove()
+  })
+
+  it('lleva la página inicial al contenedor del modal aunque exista otro scroll antes', () => {
+    vi.useFakeTimers()
+    const stale = makeScrollContainer()
+    const target = makeScrollContainer()
+    addPage(stale, 0, 0)
+    addPage(stale, 1, 520)
+    addPage(target, 0, 0)
+    addPage(target, 1, 520)
+    document.body.append(stale, target)
+
+    render(<TestNavigation target={target} initialPage={1} />)
+
+    act(() => {
+      screen.getByRole('button', { name: 'initial' }).click()
+      vi.runAllTimers()
+    })
+
+    expect(stale.scrollTop).toBe(0)
+    expect(target.scrollTop).toBe(520)
+    vi.useRealTimers()
+    stale.remove()
     target.remove()
   })
 

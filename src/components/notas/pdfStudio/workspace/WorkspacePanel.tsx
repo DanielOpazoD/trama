@@ -1,22 +1,11 @@
 import { isSavedTemplate } from '../../../../lib/pdfStudio/render/persistence'
-import {
-  CameraIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  FilePdfIcon,
-} from '../../../Icons'
-import { WorkspaceImagesSection } from './WorkspaceImagesSection'
+import { ChevronLeftIcon, ChevronRightIcon, FilePdfIcon } from '../../../Icons'
 import type { WorkspacePanelProps } from './WorkspacePanelProps'
 import { WorkspaceSavedDocsSection } from './WorkspaceSavedDocsSection'
 import { WorkspaceTemplatesSection } from './WorkspaceTemplatesSection'
 
 const ACCENT = 'var(--accent-sage)'
 export function WorkspacePanel({
-  library,
-  onAddImage,
-  onRemoveImage,
-  onDownloadImage,
-  onEditImage,
   saved,
   folders,
   templatesEnabled = true,
@@ -50,15 +39,11 @@ export function WorkspacePanel({
       <button
         type="button"
         onClick={onToggleCollapsed}
-        aria-label="Mostrar el panel de imágenes y guardados"
-        title="Mostrar panel"
+        aria-label="Mostrar el panel de PDFs guardados"
+        title="Mostrar guardados"
         className="surface-sidebar flex h-full w-full flex-col items-center gap-2 border-r border-ink-100 px-1.5 py-3 text-ink-400 hover:bg-ink-100/30 hover:text-ink-700 transition-colors"
       >
         <ChevronRightIcon size={14} />
-        <CameraIcon size={14} />
-        <span className="text-micro tabular-nums" style={{ color: ACCENT }}>
-          {library.length}
-        </span>
         <FilePdfIcon size={14} />
         <span className="text-micro tabular-nums" style={{ color: ACCENT }}>
           {savedCount}
@@ -85,16 +70,6 @@ export function WorkspacePanel({
       </header>
 
       <div className="flex-1 min-h-0 overflow-auto">
-        <WorkspaceImagesSection
-          library={library}
-          onAddImage={onAddImage}
-          onRemoveImage={onRemoveImage}
-          onDownloadImage={onDownloadImage}
-          onEditImage={onEditImage}
-        />
-
-        <div className="mx-2.5 border-t border-ink-100/70" />
-
         {templatesEnabled && (
           <>
             <WorkspaceTemplatesSection

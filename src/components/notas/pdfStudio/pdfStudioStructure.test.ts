@@ -20,9 +20,10 @@ describe('pdfStudio · estructura incremental', () => {
     // imports) para imprimir/descargar dentro de la app.
     // 412 → 428: título de documento (updateTitle + input + nombre del export)
     // y cableado del relleno en lote.
+    // 428 → 429: recorte de hoja desde la barra blanca de acciones.
     expect(
       fileLineCount('src/components/notas/pdfStudio/PdfStudioView.tsx'),
-    ).toBeLessThanOrEqual(428)
+    ).toBeLessThanOrEqual(429)
   })
 
   it('mantiene assemble como orquestador del pipeline', () => {
@@ -84,13 +85,6 @@ describe('pdfStudio · estructura incremental', () => {
     expect(
       fileLineCount('src/components/notas/pdfStudio/workspace/WorkspacePanel.tsx'),
     ).toBeLessThanOrEqual(160)
-    expect(
-      // 110 → 120: la sección de imágenes ahora colapsa (botón disclosure +
-      // estado), colapsada por defecto.
-      fileLineCount(
-        'src/components/notas/pdfStudio/workspace/WorkspaceImagesSection.tsx',
-      ),
-    ).toBeLessThanOrEqual(120)
     expect(
       fileLineCount(
         'src/components/notas/pdfStudio/workspace/WorkspaceTemplatesSection.tsx',

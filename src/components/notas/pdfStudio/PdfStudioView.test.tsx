@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
   putSavedFolder: vi.fn(),
   deleteSavedDoc: vi.fn(),
   uploadPdfStudioSavedPdf: vi.fn(),
+  editImage: vi.fn(),
 }))
 vi.mock('../../../lib/pdfStudio/render/pdfRender', () => ({
   getPdfPageCount: mocks.getPdfPageCount,
@@ -71,6 +72,7 @@ vi.mock('../../../lib/pdfStudio/render/persistence', () => ({
 vi.mock('../../../api/pdfStudioSavedPdfs', () => ({
   uploadPdfStudioSavedPdf: mocks.uploadPdfStudioSavedPdf,
 }))
+vi.mock('../../../lib/imageEditor', () => ({ editImage: mocks.editImage }))
 
 import { PdfStudioView } from './PdfStudioView'
 import {
@@ -82,6 +84,7 @@ import {
 
 const pdfFile = (name = 'doc.pdf') =>
   new File(['%PDF-1.4'], name, { type: 'application/pdf' })
+const imageFile = (name = 'scan.png') => new File(['scan'], name, { type: 'image/png' })
 
 function templateDoc() {
   const doc = addPdfSource(emptyDoc(), pdfFile('planilla.pdf'), 1)
@@ -163,6 +166,7 @@ beforeEach(() => {
     createdAt: '2026-06-11T00:00:00.000Z',
     updatedAt: '2026-06-11T00:00:00.000Z',
   })
+  mocks.editImage.mockResolvedValue(imageFile('scan-recortada.webp'))
 })
 
 describe('<PdfStudioView />', () => {
@@ -313,6 +317,53 @@ describe('<PdfStudioView />', () => {
     expect(
       screen.queryByRole('button', { name: /Imprimir planilla/i }),
     ).not.toBeInTheDocument()
+  })
+
+  it('mueve Recortar a la barra de hojas y elimina la galería lateral de imágenes', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+
+    await user.upload(fileInput(), imageFile())
+    await screen.findByAltText('Página 1')
+
+    expect(screen.queryByText(/^Imágenes$/i)).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Mostrar el panel de imágenes/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Recortar imagen/i })).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.click(screen.getByRole('button', { name: /Recortar imagen/i }))
+
+    expect(mocks.editImage).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'scan.png' }),
+      expect.objectContaining({ outputType: 'image/webp' }),
+    )
+  })
+
+  it('permite recortar una hoja PDF marcada rasterizándola como imagen', async () => {
+    const user = userEvent.setup()
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(new Blob(['jpg'], { type: 'image/jpeg' })))
+    renderWithProviders(<PdfStudioView />)
+
+    await user.upload(fileInput(), pdfFile('laboratorio.pdf'))
+    await screen.findByAltText('Página 1')
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.click(screen.getByRole('button', { name: /Recortar imagen/i }))
+
+    expect(mocks.renderPageBitmap).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'laboratorio.pdf' }),
+      0,
+      1600,
+    )
+    expect(fetchSpy).toHaveBeenCalledWith('blob:bg')
+    expect(mocks.editImage).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'pagina-1.jpg' }),
+      expect.objectContaining({ outputType: 'image/webp' }),
+    )
+    fetchSpy.mockRestore()
   })
 
   it('limpia el modo rellenar al pasar desde Planillas a Imprenta', async () => {
@@ -909,21 +960,17 @@ describe('<PdfStudioView />', () => {
     expect(mocks.loadDraft).toHaveBeenCalled()
   })
 
-  it('subir una imagen la guarda en la biblioteca lateral', async () => {
+  it('subir una imagen la agrega como hoja sin biblioteca lateral paralela', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
     const img = new File(['x'], 'foto.png', { type: 'image/png' })
     await user.upload(fileInput(), img)
-    // La imagen entra como página y además aparece el panel (con la biblioteca).
+
     expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Ocultar el panel/i })).toBeInTheDocument()
-    // La sección "Imágenes" arranca colapsada; la abrimos para reutilizar.
-    await user.click(screen.getByRole('button', { name: /Imágenes/i }))
-    // Y se puede agregar otra vez al documento desde la biblioteca.
-    await user.click(
-      screen.getByRole('button', { name: /Agregar esta imagen al documento/i }),
-    )
-    expect(await screen.findByAltText('Página 2')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Imágenes/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Agregar esta imagen al documento/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('guarda una creación con nombre y la lista persiste', async () => {
