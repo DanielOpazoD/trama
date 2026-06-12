@@ -1,36 +1,7 @@
 // @ts-check
 /** Captura de región visual: overlay de arrastre → recorte → WebP → subida. */
-import { getConfig } from './config.js'
-import { saveRecorte } from './recorte.js'
+import { saveRecorte, uploadImage } from './recorte.js'
 import { regionOverlay } from './inject.js'
-
-/**
- * Sube una imagen (Blob) al store interno y devuelve su imageKey. A diferencia
- * de un recorte de texto, la imagen no se encola: pesa y la región solo tiene
- * sentido con conexión. Si falla, el llamador avisa.
- * @param {Blob} blob
- * @param {string} [filename]
- * @returns {Promise<{ ok: boolean, imageKey?: string, reason?: string }>}
- */
-export async function uploadImage(blob, filename) {
-  const { token, baseUrl } = await getConfig()
-  if (!token) return { ok: false, reason: 'sin token' }
-  try {
-    const fd = new FormData()
-    fd.append('file', blob, filename || 'region.webp')
-    const res = await fetch(`${baseUrl}/api/recortes-image-upload`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: fd,
-    })
-    if (!res.ok) return { ok: false, reason: `HTTP ${res.status}` }
-    const j = await res.json()
-    if (!j?.imageKey) return { ok: false, reason: 'respuesta sin imageKey' }
-    return { ok: true, imageKey: j.imageKey }
-  } catch {
-    return { ok: false, reason: 'sin conexión' }
-  }
-}
 
 /** Inyecta el overlay de región en la pestaña activa. */
 export async function startRegionCapture(tab) {

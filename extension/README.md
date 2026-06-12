@@ -46,7 +46,12 @@ se adapta al modo elegido:
   visible, la comprime a WebP y la guarda como recorte. `Esc` cancela.
   Requiere conexión (la imagen no se encola).
 - **Guardar imagen**: clic derecho sobre una imagen → «Guardar imagen en
-  Trama». El recorte guarda la URL de esa imagen.
+  Trama». **Descarga los bytes** a tu almacenamiento (la imagen sobrevive
+  aunque la fuente la borre) y conserva el **link de la página** de origen.
+  La primera vez que guardás una imagen de un sitio, Chrome pide permiso solo
+  para **ese dominio** (`optional_host_permissions`, on-demand). Si lo denegás
+  o la descarga falla, cae a guardar la URL externa de la imagen — nunca se
+  pierde la captura.
 - **OCR a pedido**: en la app, los recortes con imagen tienen un botón
   «extraer texto» que reconoce el texto de la imagen (worker local) y lo
   incorpora al recorte para hacerlo citable.
@@ -84,6 +89,10 @@ El service worker de Manifest V3 es efímero y la red puede fallar. Por eso:
   `chrome.storage.local` de tu navegador. No viajan a ningún lado salvo a
   TU servidor de Trama.
 - `alarms`: el reintento periódico de la cola.
+- `optional_host_permissions` (`*://*/*`): NO se concede de entrada. Solo se
+  pide —por dominio, en respuesta a tu clic— cuando guardás una imagen, para
+  poder descargar sus bytes a tu almacenamiento. Podés revocarlo cuando
+  quieras en `chrome://extensions`. Sin esto, la imagen se guarda como enlace.
 - La extensión solo habla con el servidor que configures. El favicon de la
   fuente se pide al servicio público de Google (solo el dominio, sin datos
   tuyos). Sin analytics, sin terceros.

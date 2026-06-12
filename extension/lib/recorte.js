@@ -1,7 +1,36 @@
 // @ts-check
-/** Armado del payload y camino único de guardado de un recorte. */
+/** Armado del payload, camino de guardado y subida de imágenes internas. */
+import { getConfig } from './config.js'
 import { enqueue, flashBadge, sendPayload } from './queue.js'
 import { readPageMeta } from './inject.js'
+
+/**
+ * Sube una imagen (Blob) al store interno y devuelve su imageKey. A diferencia
+ * de un recorte de texto, la imagen no se encola: pesa y solo tiene sentido con
+ * conexión. La usan la captura de región y el guardado de imágenes de la web.
+ * @param {Blob} blob
+ * @param {string} [filename]
+ * @returns {Promise<{ ok: boolean, imageKey?: string, reason?: string }>}
+ */
+export async function uploadImage(blob, filename) {
+  const { token, baseUrl } = await getConfig()
+  if (!token) return { ok: false, reason: 'sin token' }
+  try {
+    const fd = new FormData()
+    fd.append('file', blob, filename || 'imagen.webp')
+    const res = await fetch(`${baseUrl}/api/recortes-image-upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd,
+    })
+    if (!res.ok) return { ok: false, reason: `HTTP ${res.status}` }
+    const j = await res.json()
+    if (!j?.imageKey) return { ok: false, reason: 'respuesta sin imageKey' }
+    return { ok: true, imageKey: j.imageKey }
+  } catch {
+    return { ok: false, reason: 'sin conexión' }
+  }
+}
 
 /**
  * Arma el payload definitivo (resuelve meta AHORA, no al reintentar).

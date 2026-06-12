@@ -27,6 +27,7 @@ import {
   saveCollection,
 } from './lib/collection.js'
 import { cropAndSaveRegion, startRegionCapture } from './lib/region.js'
+import { saveImage } from './lib/image.js'
 
 const MENU_ID = 'trama-save-selection'
 const MENU_COLLECT = 'trama-collect'
@@ -95,15 +96,18 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const { count } = await addToCollection(info.selectionText, tab)
     void showPageToast(tabId, `Sumado a la colección · ${count}`, 'ok')
   } else if (info.menuItemId === MENU_IMAGE && info.srcUrl) {
-    // El recorte exige texto; usamos el título de la página como pie.
-    const r = await saveRecorte({
-      text: tab?.title || 'Imagen guardada',
-      tab,
-      imageUrl: info.srcUrl,
-      captureMode: 'image',
-    })
-    const t = toastForResult(r)
-    void showPageToast(tabId, t.msg, t.tone)
+    // Descarga los bytes a tu almacenamiento (pide permiso del dominio la
+    // primera vez); si se deniega o falla, guarda la URL externa.
+    const r = await saveImage(info.srcUrl, tab)
+    flashBadge(r.ok)
+    const msg = !r.ok
+      ? r.error || 'No se pudo guardar la imagen'
+      : r.queued
+        ? 'Sin conexión — guardada en cola'
+        : r.stored === 'link'
+          ? 'Imagen guardada (enlace)'
+          : 'Imagen guardada en Recortes'
+    void showPageToast(tabId, msg, r.ok ? 'ok' : 'err')
   } else if (info.menuItemId === MENU_PAGE) {
     const r = await saveArticle(tab)
     flashBadge(r.ok)
