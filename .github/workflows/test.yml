@@ -56,6 +56,9 @@ jobs:
       - name: Migration duplicate-prefix check
         run: npm run check:migration-duplicates
 
+      - name: Structure ratchets check
+        run: npm run check:structure-ratchets
+
   unit:
     runs-on: ubuntu-latest
     steps:
