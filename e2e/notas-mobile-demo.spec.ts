@@ -1,14 +1,11 @@
 import { expect, test } from '@playwright/test'
+import { enableDemoMode } from './fixtures'
 
 test('mundo notas mobile demo: inicio, nota y tarea inicial no generan overflow', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.addInitScript(() => {
-    window.localStorage.setItem('trama-demo', '1')
-    window.localStorage.setItem('trama:world', 'notas')
-    window.localStorage.removeItem('trama-demo-store')
-  })
+  await enableDemoMode(page, { world: 'notas' })
 
   await page.goto('/?world=notas')
 

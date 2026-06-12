@@ -1,5 +1,7 @@
 import type { Page, Route } from '@playwright/test'
 
+type DemoWorld = 'trama' | 'notas'
+
 /**
  * Mock state que comparte la simulación del backend a través de un test.
  * Cada test puede modificar el estado entre acciones (e.g., agregar una
@@ -110,6 +112,23 @@ export function emptyState(): MockState {
     chatThreads: [],
     chatMessages: {},
   }
+}
+
+export async function enableDemoMode(
+  page: Page,
+  opts: { world?: DemoWorld; resetStore?: boolean } = {},
+) {
+  await page.addInitScript(
+    ({ resetStore, world }) => {
+      window.localStorage.setItem('trama-demo', '1')
+      if (world) window.localStorage.setItem('trama:world', world)
+      if (resetStore) window.localStorage.removeItem('trama-demo-store')
+    },
+    {
+      resetStore: opts.resetStore ?? true,
+      world: opts.world,
+    },
+  )
 }
 
 function jsonResp(route: Route, body: unknown, status = 200) {

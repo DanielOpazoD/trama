@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { PDFDocument } from 'pdf-lib'
-import { emptyState, mockBackend } from './fixtures'
+import { emptyState, enableDemoMode, mockBackend } from './fixtures'
 
 const shortcutMod = process.platform === 'darwin' ? 'Meta' : 'Control'
 const samplePng = Buffer.from(
@@ -17,11 +17,7 @@ async function makePdfBuffer(pageCount = 1): Promise<Buffer> {
 async function openPdfEditor(page: Page) {
   await mockBackend(page, emptyState())
   await page.setViewportSize({ width: 1280, height: 800 })
-  await page.addInitScript(() => {
-    window.localStorage.setItem('trama-demo', '1')
-    window.localStorage.setItem('trama:world', 'notas')
-    window.localStorage.removeItem('trama-demo-store')
-  })
+  await enableDemoMode(page, { world: 'notas' })
   await page.goto('/?world=notas&section=pdf')
   await expect(page.getByRole('heading', { name: 'Imprenta' })).toBeVisible()
 
@@ -291,11 +287,7 @@ async function sheetWidth(page: Page) {
 async function openTemplateFillEditor(page: Page) {
   await mockBackend(page, emptyState())
   await page.setViewportSize({ width: 1280, height: 800 })
-  await page.addInitScript(() => {
-    window.localStorage.setItem('trama-demo', '1')
-    window.localStorage.setItem('trama:world', 'notas')
-    window.localStorage.removeItem('trama-demo-store')
-  })
+  await enableDemoMode(page, { world: 'notas' })
   await page.goto('/?world=notas&section=planillas')
   await expect(page.getByRole('heading', { name: 'Planillas' })).toBeVisible()
   await page.locator('input[type="file"]').setInputFiles({
@@ -401,11 +393,7 @@ test.describe('Imprenta · editor PDF', () => {
   }) => {
     await mockBackend(page, emptyState())
     await page.setViewportSize({ width: 1280, height: 800 })
-    await page.addInitScript(() => {
-      window.localStorage.setItem('trama-demo', '1')
-      window.localStorage.setItem('trama:world', 'notas')
-      window.localStorage.removeItem('trama-demo-store')
-    })
+    await enableDemoMode(page, { world: 'notas' })
     await page.goto('/?world=notas&section=pdf')
     await page.locator('input[type="file"]').setInputFiles({
       name: 'qa-continuo.pdf',
@@ -441,11 +429,7 @@ test.describe('Imprenta · editor PDF', () => {
   }) => {
     await mockBackend(page, emptyState())
     await page.setViewportSize({ width: 1280, height: 800 })
-    await page.addInitScript(() => {
-      window.localStorage.setItem('trama-demo', '1')
-      window.localStorage.setItem('trama:world', 'notas')
-      window.localStorage.removeItem('trama-demo-store')
-    })
+    await enableDemoMode(page, { world: 'notas' })
     await page.goto('/?world=notas&section=pdf')
     await page.locator('input[type="file"]').setInputFiles({
       name: 'qa-ocho-paginas.pdf',
