@@ -2,15 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { imageOriginPattern, saveImage } from './image.js'
 
 /**
- * Guardado de imágenes de la web: descarga con permiso por-dominio on-demand y
- * fallback a la URL externa. chrome.permissions, chrome.storage y fetch (las
- * tres rutas: imagen, subida, recorte) mockeados.
+ * Guardado de imágenes: permiso por-dominio (primero, gesto intacto), descarga
+ * del SW, y page-grab desde el content script como respaldo. chrome.permissions,
+ * chrome.scripting, chrome.storage y fetch (rutas: imagen, subida, recorte)
+ * mockeados.
  */
 
 /** @type {any} */
 let lastRecorteBody = null
 
-function installChrome({ contains = false, request = true } = {}) {
+function installChrome({ request = true, pageGrab = null } = {}) {
   lastRecorteBody = null
   globalThis.chrome = {
     storage: {
@@ -28,37 +29,43 @@ function installChrome({ contains = false, request = true } = {}) {
       setTitle: vi.fn(),
     },
     alarms: { create: vi.fn(), clear: vi.fn() },
-    permissions: {
-      contains: vi.fn(async () => contains),
-      request: vi.fn(async () => request),
-    },
+    permissions: { request: vi.fn(async () => request) },
+    scripting: { executeScript: vi.fn(async () => [{ result: pageGrab }]) },
   }
 }
 
-/** Router de fetch: subida → imageKey; recorte → 200; cualquier otra (la
- *  imagen o data:) → un Blob del tipo pedido. */
+/** Router de fetch: subida → imageKey; recorte → 200; cualquier otra (imagen,
+ *  data: o page-grab) → un Blob del tipo pedido. */
 function mockFetch(imageType = 'image/png') {
-  const fn = vi.fn(async (url, init) => {
-    const u = String(url)
-    if (u.includes('/api/recortes-image-upload')) {
-      return new Response(JSON.stringify({ imageKey: 'legacy/abc.webp' }), {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url, init) => {
+      const u = String(url)
+      if (u.includes('/api/recortes-image-upload')) {
+        return new Response(JSON.stringify({ imageKey: 'legacy/abc.webp' }), {
+          status: 200,
+        })
+      }
+      if (u.includes('/api/recortes')) {
+        lastRecorteBody = JSON.parse(init.body)
+        return new Response('{}', { status: 200 })
+      }
+      return new Response(new Blob([new Uint8Array([1, 2, 3])], { type: imageType }), {
         status: 200,
       })
-    }
-    if (u.includes('/api/recortes')) {
-      lastRecorteBody = JSON.parse(init.body)
-      return new Response('{}', { status: 200 })
-    }
-    return new Response(new Blob([new Uint8Array([1, 2, 3])], { type: imageType }), {
-      status: 200,
-    })
-  })
-  vi.stubGlobal('fetch', fn)
-  return fn
+    }),
+  )
 }
 
 beforeEach(() => installChrome())
 afterEach(() => vi.unstubAllGlobals())
+
+/** Cuántas veces se inyectó el extractor de imagen (no el de meta). */
+function pageGrabCalls() {
+  return chrome.scripting.executeScript.mock.calls.filter(
+    (c) => c[0]?.func?.name === 'pageGrabImage',
+  ).length
+}
 
 describe('imageOriginPattern', () => {
   it('da el patrón de origen para http/https', () => {
@@ -77,8 +84,8 @@ describe('imageOriginPattern', () => {
 describe('saveImage', () => {
   const tab = { id: 1, url: 'https://blog.site/post', title: 'Un post' }
 
-  it('con permiso concedido descarga los bytes y guarda con imageKey', async () => {
-    installChrome({ contains: false, request: true })
+  it('pide permiso PRIMERO y, concedido, descarga con el SW (sin page-grab)', async () => {
+    installChrome({ request: true })
     mockFetch('image/png')
     const r = await saveImage('https://cdn.site/foto.png', tab)
     expect(r.ok).toBe(true)
@@ -86,38 +93,41 @@ describe('saveImage', () => {
     expect(chrome.permissions.request).toHaveBeenCalledWith({
       origins: ['https://cdn.site/*'],
     })
-    // El recorte guardado lleva imageKey (no la URL externa) y el link de página.
+    // SW fetch alcanzó: no hizo falta el page-grab del content script.
+    expect(pageGrabCalls()).toBe(0)
     expect(lastRecorteBody.imageKey).toBe('legacy/abc.webp')
     expect(lastRecorteBody.imageUrl).toBeNull()
     expect(lastRecorteBody.sourceUrl).toBe('https://blog.site/post')
     expect(lastRecorteBody.captureMode).toBe('image')
   })
 
-  it('si el permiso se deniega, cae a guardar la URL externa', async () => {
-    installChrome({ contains: false, request: false })
+  it('si el permiso se deniega, recupera la imagen desde la página (page-grab)', async () => {
+    installChrome({ request: false, pageGrab: 'data:image/webp;base64,UklGR' })
+    mockFetch('image/webp')
+    const r = await saveImage('https://diario.cl/foto.jpg', tab)
+    expect(r.stored).toBe('blob') // la consiguió igual, sin permiso
+    expect(pageGrabCalls()).toBeGreaterThan(0)
+    expect(lastRecorteBody.imageKey).toBe('legacy/abc.webp')
+    expect(lastRecorteBody.sourceUrl).toBe('https://blog.site/post')
+  })
+
+  it('si ni el SW ni la página consiguen los bytes, cae a guardar el enlace', async () => {
+    installChrome({ request: false, pageGrab: null })
     mockFetch('image/png')
-    const r = await saveImage('https://cdn.site/foto.png', tab)
-    expect(r.ok).toBe(true)
+    const r = await saveImage('https://diario.cl/foto.jpg', tab)
     expect(r.stored).toBe('link')
-    expect(lastRecorteBody.imageUrl).toBe('https://cdn.site/foto.png')
+    expect(lastRecorteBody.imageUrl).toBe('https://diario.cl/foto.jpg')
     expect(lastRecorteBody.imageKey).toBeNull()
     expect(lastRecorteBody.sourceUrl).toBe('https://blog.site/post')
   })
 
-  it('data: URL se descarga sin pedir permiso de host', async () => {
+  it('data: URL se descarga directo, sin permiso ni content script', async () => {
     installChrome()
     mockFetch('image/png')
     const r = await saveImage('data:image/png;base64,iVBOR', tab)
     expect(r.stored).toBe('blob')
     expect(chrome.permissions.request).not.toHaveBeenCalled()
+    expect(pageGrabCalls()).toBe(0)
     expect(lastRecorteBody.imageKey).toBe('legacy/abc.webp')
-  })
-
-  it('si el recurso no es imagen soportada, cae al fallback de enlace', async () => {
-    installChrome({ contains: true, request: true })
-    mockFetch('text/html')
-    const r = await saveImage('https://cdn.site/x', tab)
-    expect(r.stored).toBe('link')
-    expect(lastRecorteBody.imageUrl).toBe('https://cdn.site/x')
   })
 })
