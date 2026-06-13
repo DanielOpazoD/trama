@@ -342,6 +342,14 @@ export function buildSeed(): Store {
   const favoritos: Row[] = [
     {
       id: uid(),
+      url: 'https://www.youtube.com/watch?v=jNQXAC9k7QE',
+      title: 'Me at the zoo — el primer video de YouTube',
+      note: 'la miniatura se asocia sola',
+      created_at: daysAgo(1),
+      updated_at: daysAgo(1),
+    },
+    {
+      id: uid(),
       url: 'https://www.gutenberg.org/',
       title: 'Project Gutenberg — biblioteca de dominio público',
       note: 'para buscar ediciones viejas',
