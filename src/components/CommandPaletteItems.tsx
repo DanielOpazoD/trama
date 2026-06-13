@@ -76,6 +76,8 @@ function ViewIcon({ view }: { view: ViewMode }) {
       return <AtlasIcon {...props} />
     case 'chat':
       return <ChatIcon {...props} />
+    case 'flujo':
+      return <SparkleIcon {...props} />
     case 'sugerencias':
       return <SparkleIcon {...props} />
   }

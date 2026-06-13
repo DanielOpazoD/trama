@@ -36,6 +36,7 @@ const TITLES: Record<ViewMode, { title: string; subtitle?: string }> = {
   cronologia: { title: 'Cronología', subtitle: 'hojear el tiempo, por estaciones' },
   atlas: { title: 'Atlas', subtitle: 'constelaciones de tu trama' },
   chat: { title: 'Chat', subtitle: 'conversa con tu trama' },
+  flujo: { title: 'Flujo', subtitle: 'de materiales pendientes a borrador' },
   sugerencias: { title: 'Sugerencias', subtitle: 'propuestas de la IA' },
 }
 

@@ -33,5 +33,6 @@ export const SECTION_ACCENT: Record<ViewMode, string> = {
   cronologia: 'var(--accent-sage)',
   atlas: 'var(--type-idea)',
   chat: 'var(--accent-primary)',
+  flujo: 'var(--accent-sage)',
   sugerencias: 'var(--accent-primary)',
 }
