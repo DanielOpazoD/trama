@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { KnowledgeInboxItem } from './knowledgeWorkflow'
-import { buildNarrativeProposal } from './editorialDraft'
+import { buildEditorialMarkdown, buildNarrativeProposal } from './editorialDraft'
 
 const ITEMS: KnowledgeInboxItem[] = [
   {
@@ -54,5 +54,18 @@ describe('editorial draft proposal', () => {
       outline: [],
       gaps: ['Añadir materiales a la mesa de lectura.'],
     })
+  })
+
+  it('exporta un borrador Markdown con tesis, estructura, materiales y huecos', () => {
+    const markdown = buildEditorialMarkdown(ITEMS)
+
+    expect(markdown).toContain('# Borrador desde Trama')
+    expect(markdown).toContain('## Tesis provisional')
+    expect(markdown).toContain('## Estructura')
+    expect(markdown).toContain('- **recorte · El taller de la memoria**')
+    expect(markdown).toContain('> La memoria no guarda: recompone con cada lectura.')
+    expect(markdown).toContain('Fuente: https://example.com/memoria')
+    expect(markdown).toContain('## Huecos a revisar')
+    expect(markdown).toContain('- Confirmar las entidades centrales antes de exportar.')
   })
 })

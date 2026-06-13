@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from '../test-utils'
 import { KnowledgeWorkflowView } from './KnowledgeWorkflowView'
@@ -68,9 +68,16 @@ function installData({
 }
 
 describe('<KnowledgeWorkflowView />', () => {
+  let clipboardWriteText: ReturnType<typeof vi.fn>
+
   beforeEach(() => {
     vi.clearAllMocks()
     window.localStorage.clear()
+    clipboardWriteText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: clipboardWriteText },
+    })
     installData()
   })
 
@@ -124,5 +131,22 @@ describe('<KnowledgeWorkflowView />', () => {
       screen.getByText(/Explorar cómo Relación sugerida: Borges → Ficciones/i),
     ).toBeInTheDocument()
     expect(screen.getByText('Huecos a revisar')).toBeInTheDocument()
+  })
+
+  it('copia un borrador Markdown desde la propuesta editorial', async () => {
+    renderWithProviders(<KnowledgeWorkflowView />)
+
+    const addButtons = screen.getAllByRole('button', { name: /añadir a mesa/i })
+    fireEvent.click(addButtons[0])
+    fireEvent.click(addButtons[1])
+    fireEvent.click(screen.getByRole('button', { name: /copiar Markdown/i }))
+
+    await waitFor(() => {
+      expect(clipboardWriteText).toHaveBeenCalledWith(
+        expect.stringContaining('# Borrador desde Trama'),
+      )
+    })
+    expect(clipboardWriteText.mock.calls[0]?.[0]).toContain('El taller')
+    expect(screen.getByText('Markdown copiado')).toBeInTheDocument()
   })
 })

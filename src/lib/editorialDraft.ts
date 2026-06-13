@@ -53,6 +53,50 @@ export function buildNarrativeProposal(items: KnowledgeInboxItem[]): NarrativePr
   }
 }
 
+export function buildEditorialMarkdown(
+  items: KnowledgeInboxItem[],
+  proposal = buildNarrativeProposal(items),
+): string {
+  const lines = [
+    '# Borrador desde Trama',
+    '',
+    '## Tesis provisional',
+    proposal.thesis,
+    '',
+    '## Estructura',
+  ]
+
+  if (proposal.outline.length === 0) {
+    lines.push('- Definir una estructura a partir de materiales seleccionados.')
+  } else {
+    for (const section of proposal.outline) {
+      lines.push(`- **${section.title}**: ${section.prompt}`)
+    }
+  }
+
+  lines.push('', '## Materiales')
+  if (items.length === 0) {
+    lines.push('- Sin materiales seleccionados.')
+  } else {
+    for (const item of items) {
+      lines.push(`- **${sourceLabel(item.source)} · ${item.title}**`)
+      if (item.excerpt) {
+        lines.push(`  > ${cleanExcerpt(item.excerpt)}`)
+      }
+      if (item.href) {
+        lines.push(`  Fuente: ${item.href}`)
+      }
+    }
+  }
+
+  lines.push('', '## Huecos a revisar')
+  for (const gap of proposal.gaps) {
+    lines.push(`- ${gap}`)
+  }
+
+  return lines.join('\n')
+}
+
 function proposalGaps(items: KnowledgeInboxItem[]): string[] {
   const gaps: string[] = []
   if (!items.some((item) => item.source === 'recorte')) {
@@ -70,4 +114,11 @@ function proposalGaps(items: KnowledgeInboxItem[]): string[] {
 
 function cleanExcerpt(text: string): string {
   return text.replace(/\s+/g, ' ').trim().slice(0, 140)
+}
+
+function sourceLabel(source: KnowledgeInboxItem['source']): string {
+  if (source === 'recorte') return 'recorte'
+  if (source === 'suggestion') return 'sugerencia'
+  if (source === 'task') return 'tarea'
+  return 'nota'
 }

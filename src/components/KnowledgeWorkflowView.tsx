@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   useNotesQuery,
   usePendingTasks,
@@ -9,13 +10,14 @@ import {
   knowledgeInboxCounts,
   type KnowledgeInboxItem,
 } from '../lib/knowledgeWorkflow'
-import { buildNarrativeProposal } from '../lib/editorialDraft'
+import { buildEditorialMarkdown, buildNarrativeProposal } from '../lib/editorialDraft'
 import { useKnowledgeWorkbench } from '../hooks/useKnowledgeWorkbench'
 import { EmptyMessage } from './EmptyMessage'
 import { SparkleIcon } from './Icons'
 import { ViewHeader } from './ViewHeader'
 
 export function KnowledgeWorkflowView() {
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const recortes = useRecortesQuery()
   const suggestions = useProactiveQuery()
   const notes = useNotesQuery()
@@ -35,6 +37,14 @@ export function KnowledgeWorkflowView() {
     .map((id) => inbox.find((item) => item.id === id))
     .filter((item): item is KnowledgeInboxItem => Boolean(item))
   const proposal = buildNarrativeProposal(selectedItems)
+  const copyMarkdown = async () => {
+    try {
+      await navigator.clipboard.writeText(buildEditorialMarkdown(selectedItems, proposal))
+      setCopyStatus('copied')
+    } catch {
+      setCopyStatus('error')
+    }
+  }
 
   return (
     <>
@@ -151,10 +161,31 @@ export function KnowledgeWorkflowView() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-serif text-xl text-ink-700">Propuesta narrativa</h3>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <h3 className="font-serif text-xl text-ink-700">
+                      Propuesta narrativa
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={copyMarkdown}
+                      className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-800 transition-colors"
+                    >
+                      copiar Markdown
+                    </button>
+                  </div>
                   <p className="mt-2 text-micro uppercase tracking-eyebrow text-ink-300">
                     Tesis provisional
                   </p>
+                  {copyStatus === 'copied' && (
+                    <p className="mt-1 text-xs text-[color:var(--accent-primary)]">
+                      Markdown copiado
+                    </p>
+                  )}
+                  {copyStatus === 'error' && (
+                    <p className="mt-1 text-xs text-red-700">
+                      No se pudo copiar el Markdown
+                    </p>
+                  )}
                   <p className="mt-1 text-sm text-ink-600 leading-relaxed">
                     {proposal.thesis}
                   </p>
