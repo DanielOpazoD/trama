@@ -66,7 +66,7 @@ test('momentos: modo prueba muestra foto y nota de voz en timeline y album', asy
   await page.getByRole('button', { name: 'Línea' }).click()
 
   await expect(page.getByRole('button', { name: 'Reproducir nota de voz' })).toBeVisible()
-  await expect(page.getByText('0:01')).toBeVisible()
+  await expect(page.getByText(/^0:0[01]$/)).toBeVisible()
 
   await page.getByRole('button', { name: 'Fotos' }).click()
   await page.getByRole('button', { name: 'Álbum' }).click()

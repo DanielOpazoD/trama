@@ -73,6 +73,24 @@ const SAMPLE_QUOTE = {
   updated_at: new Date().toISOString(),
 }
 
+const SAMPLE_RECORTE = {
+  id: 'r-test',
+  text: 'La memoria es un taller con luz propia.',
+  source_url: 'https://example.com/taller',
+  source_title: 'El taller de la memoria',
+  source_author: 'Otra Parte',
+  note: 'conecta con Borges',
+  image_url: null,
+  image_key: null,
+  capture_mode: 'citation',
+  status: 'pending',
+  promoted_target: null,
+  promoted_id: null,
+  captured_at: new Date().toISOString(),
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+}
+
 test('a11y: HomeView (Inicio) sin violaciones', async ({ page }) => {
   const state = emptyState()
   state.entities.push(SAMPLE_ENTITY)
@@ -130,6 +148,96 @@ test('a11y: EntitiesView sin violaciones', async ({ page }) => {
     .analyze()
   if (results.violations.length > 0) {
     console.log('Violaciones en EntitiesView:')
+    for (const v of results.violations) {
+      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
+    }
+  }
+  expect(results.violations).toEqual([])
+})
+
+test('a11y: RecortesView con guía de curaduría sin violaciones', async ({ page }) => {
+  await skipSplash(page)
+  await mockBackend(page, emptyState())
+  await page.route(
+    (url) => url.pathname === '/api/recortes',
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([SAMPLE_RECORTE]),
+      }),
+  )
+  await page.goto('/')
+  await page.getByRole('button', { name: /^Recortes/ }).click()
+  await page
+    .getByRole('heading', { name: 'Recortes', level: 2 })
+    .waitFor({ timeout: 10_000 })
+  await page.getByLabel('Siguiente curaduría').waitFor({ timeout: 10_000 })
+  await page.waitForTimeout(400)
+
+  const results = await new AxeBuilder({ page })
+    .include('main')
+    .withTags(A11Y_TAGS)
+    .analyze()
+  if (results.violations.length > 0) {
+    console.log('Violaciones en RecortesView:')
+    for (const v of results.violations) {
+      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
+    }
+  }
+  expect(results.violations).toEqual([])
+})
+
+test('a11y: Settings Estado sin violaciones', async ({ page }) => {
+  const state = emptyState()
+  state.entities.push(SAMPLE_ENTITY)
+  state.quotes.push(SAMPLE_QUOTE)
+  await skipSplash(page)
+  await mockBackend(page, state)
+  await page.route(
+    (url) => url.pathname === '/api/health',
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          counts: { entities: 1, quotes: 1, relationships: 0 },
+          month: { calls: 4, tokensIn: 1200, tokensOut: 420, costCents: 95 },
+          budget: { limitCents: 5000, remainingCents: 4905, pct: 0.019 },
+          auth: {
+            clerkConfigured: true,
+            legacyFallbackAllowed: false,
+            legacyOwnerMapped: true,
+            mode: 'clerk',
+          },
+          embeddings: { pendingEntities: 0, pendingQuotes: 0 },
+          alerts: [],
+          dailyCost: [{ day: '2026-06-13', costCents: 95, calls: 4 }],
+          byProvider: [
+            { provider: 'openai', model: 'gpt-test', calls: 4, costCents: 95 },
+          ],
+          recentErrors: [],
+        }),
+      }),
+  )
+  await page.goto('/')
+  await page.locator('main h2').first().waitFor({ timeout: 10_000 })
+  await page
+    .getByRole('button', { name: /Configuración/ })
+    .first()
+    .click()
+  await page.getByRole('dialog', { name: 'Configuración' }).waitFor()
+  await page
+    .getByRole('heading', { name: 'Estado del sistema' })
+    .waitFor({ timeout: 10_000 })
+  await page.waitForTimeout(400)
+
+  const results = await new AxeBuilder({ page })
+    .include('[role="dialog"][aria-label="Configuración"]')
+    .withTags(A11Y_TAGS)
+    .analyze()
+  if (results.violations.length > 0) {
+    console.log('Violaciones en Settings Estado:')
     for (const v of results.violations) {
       console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
     }

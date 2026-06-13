@@ -160,7 +160,7 @@ export function Settings({
           </nav>
 
           {/* Panel de contenido — scrollable */}
-          <main className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10">
+          <div className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10">
             <div className="max-w-2xl mx-auto animate-fade-up">
               {section === 'health' && <HealthPanel />}
               {section === 'logs' && <LogsPanel />}
@@ -199,7 +199,7 @@ export function Settings({
                 </p>
               </footer>
             </div>
-          </main>
+          </div>
         </div>
       </div>
     </>
