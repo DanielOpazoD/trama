@@ -77,6 +77,32 @@ describe('<MomentoNotificationsCenter />', () => {
     expect(dialog).toHaveClass('fixed')
     expect(dialog).toHaveClass('left-3')
     expect(dialog).toHaveClass('right-3')
-    expect(dialog).toHaveClass('sm:absolute')
+    expect(dialog).toHaveClass('sm:top-14')
+  })
+
+  it('monta el panel fuera del TopBar para evitar bugs de transform en mobile', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <div style={{ transform: 'translateY(0)' }}>
+        <MomentoNotificationsCenter
+          invitations={[invitation]}
+          pending={false}
+          onRespond={vi.fn()}
+        />
+      </div>,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: /notificaciones.*1 invitación/i }),
+    )
+
+    const layer = screen.getByTestId('momento-notifications-layer')
+    expect(layer.parentElement).toBe(document.body)
+    expect(layer).toHaveClass('fixed')
+    expect(layer).toHaveClass('z-[80]')
+    expect(
+      screen.getByRole('button', { name: /aceptar invitación de mamá/i }),
+    ).toBeEnabled()
   })
 })
