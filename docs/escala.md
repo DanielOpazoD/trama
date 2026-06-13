@@ -60,7 +60,18 @@ entidades solo para resolver nombres.
 
 ## Búsqueda en la sidebar
 
-Ya server-only (commit J). A cualquier escala, una búsqueda son ~2 queries SQL con índices. Sub-segundo.
+La paleta de búsqueda (`⌘K` / sidebar) usa dos caminos:
+
+- **Local instantáneo** cuando `entities + quotes <= 1000`: filtra vistas, acciones,
+  entidades y citas ya cacheadas para que el input responda sin red.
+- **Servidor lexical** para queries de 2+ caracteres: agrega momentos, crónicas,
+  chat y matches que el filtro local no ve. Cuando el dataset supera 1000 items,
+  se evita descargar entidades/citas completas solo por abrir la paleta y el
+  servidor pasa a ser el camino principal.
+
+En ambos casos el endpoint `/api/search?mode=lexical` usa índices y no paga IA.
+Para búsquedas profundas, el modo híbrido/semántico sigue disponible desde los
+flujos que lo piden explícitamente.
 
 Si va lento:
 

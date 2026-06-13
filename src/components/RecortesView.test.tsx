@@ -75,6 +75,16 @@ describe('<RecortesView />', () => {
     expect(screen.getByRole('button', { name: '→ momento' })).toBeInTheDocument()
   })
 
+  it('mantiene visibles las acciones de la tarjeta en mobile/touch', () => {
+    setup([recorte()])
+    const actions = screen.getByRole('button', { name: 'archivar' }).parentElement
+
+    expect(actions).toHaveClass('opacity-100')
+    expect(actions).toHaveClass('sm:opacity-0')
+    expect(actions).toHaveClass('sm:group-hover:opacity-100')
+    expect(actions).toHaveClass('sm:focus-within:opacity-100')
+  })
+
   it('renderiza la imagen del recorte cuando la hay (captura de imagen)', () => {
     setup([recorte({ imageUrl: 'https://example.com/foto.jpg' })])
     const img = document.querySelector('img[src="https://example.com/foto.jpg"]')

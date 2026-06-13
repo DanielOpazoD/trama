@@ -287,7 +287,7 @@ export function RecorteCard({
           </span>
         )}
 
-        <span className="ml-auto flex items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        <span className="ml-auto flex items-center gap-3 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
           {r.status === 'pending' && (
             <>
               {!suggestion && (
