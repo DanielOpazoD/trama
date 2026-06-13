@@ -256,7 +256,9 @@ async function refreshRecent() {
     return
   }
   const baseUrl = res?.baseUrl || 'https://tramahub.app'
-  $('openTray').href = `${baseUrl.replace(/\/+$/, '')}/?view=recortes`
+  const root = baseUrl.replace(/\/+$/, '')
+  $('openTray').href = `${root}/?view=recortes`
+  $('openFavorites').href = `${root}/?view=recortes&tab=favoritos`
   if (!res?.ok) return // sin token o sin conexión: la sección queda oculta
   const list = $('recentList')
   list.textContent = ''
@@ -354,13 +356,30 @@ $('guardar').addEventListener('click', async () => {
     if (/token/i.test($('estado').textContent)) $('config').open = true
   }
 })
+/** Pinta el botón como ya guardado: estrella dorada y rellena, y lo deshabilita
+ *  para no duplicar el marcador. */
+function markFavoriteSaved() {
+  $('saveFavorite').classList.add('saved')
+  $('saveFavorite').disabled = true
+  $('saveFavorite').title = 'Ya está en tus Favoritos'
+  $('favStar').textContent = '★'
+}
+
+/** Al abrir: ¿la página ya es favorita? Si sí, abre con la estrella dorada. */
+async function checkFavorite() {
+  try {
+    const res = await chrome.runtime.sendMessage({ kind: 'trama-favorite-status' })
+    if (res?.ok && res.exists) markFavoriteSaved()
+  } catch {
+    /* sin token/conexión: el botón queda en su estado normal */
+  }
+}
+
 $('saveFavorite').addEventListener('click', async () => {
   setEstado('marcando como favorito...')
   const res = await chrome.runtime.sendMessage({ kind: 'trama-favorite' })
   if (res?.ok) {
-    // Estrella dorada y rellena: confirma a la vista que quedó guardada.
-    $('saveFavorite').classList.add('saved')
-    $('favStar').textContent = '★'
+    markFavoriteSaved()
     setEstado('página guardada en Favoritos', 'ok')
   } else {
     setEstado(res?.error ?? 'no se pudo guardar', 'err')
@@ -377,6 +396,7 @@ $('saveFavorite').addEventListener('click', async () => {
     refreshConnStatus(),
     refreshQueue(),
     refreshRecent(),
+    checkFavorite(),
   ])
   updateCount()
   // Foco en el textarea para pegar de inmediato (solo en modo cita).

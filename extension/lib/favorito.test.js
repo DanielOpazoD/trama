@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { saveFavorito } from './favorito.js'
+import { favoritoStatus, saveFavorito } from './favorito.js'
 
 /** Guardado de favoritos: POST a /api/favoritos con token. chrome.storage y
  *  fetch mockeados. */
@@ -68,5 +68,46 @@ describe('saveFavorito', () => {
     )
     const r = await saveFavorito({ url: 'https://x.cl' })
     expect(r.ok).toBe(false)
+  })
+})
+
+describe('favoritoStatus', () => {
+  it('consulta por url y devuelve exists=true si el backend trae favorito', async () => {
+    let calledUrl = ''
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        calledUrl = url
+        return new Response(JSON.stringify({ favorito: { id: 'f1' } }), { status: 200 })
+      }),
+    )
+    const r = await favoritoStatus({ url: 'https://diario.cl/nota?x=1' })
+    expect(r).toEqual({ ok: true, exists: true })
+    expect(calledUrl).toContain('/api/favoritos?url=')
+    expect(calledUrl).toContain(encodeURIComponent('https://diario.cl/nota?x=1'))
+  })
+
+  it('exists=false cuando el backend devuelve favorito null', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () => new Response(JSON.stringify({ favorito: null }), { status: 200 }),
+      ),
+    )
+    expect(await favoritoStatus({ url: 'https://x.cl' })).toEqual({
+      ok: true,
+      exists: false,
+    })
+  })
+
+  it('sin token no le pega a la red', async () => {
+    installChrome('')
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    expect(await favoritoStatus({ url: 'https://x.cl' })).toEqual({
+      ok: false,
+      exists: false,
+    })
+    expect(fetchSpy).not.toHaveBeenCalled()
   })
 })

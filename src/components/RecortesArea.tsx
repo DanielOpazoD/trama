@@ -9,12 +9,20 @@ import { FavoritosPanel } from './recortes/FavoritosPanel'
  */
 type Tab = 'recortes' | 'favoritos'
 
+/** Deep-link: la extensión enlaza «ver favoritos →» con ?tab=favoritos. */
+function initialTab(): Tab {
+  if (typeof window === 'undefined') return 'recortes'
+  return new URLSearchParams(window.location.search).get('tab') === 'favoritos'
+    ? 'favoritos'
+    : 'recortes'
+}
+
 export default function RecortesArea({
   onSelectEntity,
 }: {
   onSelectEntity?: (id: string) => void
 }) {
-  const [tab, setTab] = useState<Tab>('recortes')
+  const [tab, setTab] = useState<Tab>(initialTab)
 
   const pill = (value: Tab, label: string) => (
     <button

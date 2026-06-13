@@ -347,7 +347,18 @@
       }
       .more-actions {
         display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 10px;
+      }
+      .tray-link {
+        font-size: 10.5px;
+        color: var(--accent);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .tray-link:hover {
+        text-decoration: underline;
       }
       /* Favorito: acción evidente, con estrella que se dora al guardar. */
       .fav-btn {
@@ -390,6 +401,10 @@
       .fav-btn.saved .star {
         color: var(--gold);
         transform: scale(1.2);
+      }
+      .fav-btn:disabled {
+        cursor: default;
+        opacity: 1;
       }
       /* Mini-bandeja: los últimos recortes pendientes, leídos del servidor. */
       .recent {
@@ -535,6 +550,14 @@
         >
           <span class="star" id="favStar">&#9734;</span> Favorito
         </button>
+        <a
+          class="tray-link"
+          id="openFavorites"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          >ver favoritos &rarr;</a
+        >
       </div>
       <p class="queue-note" id="queueNote" hidden></p>
     </main>
