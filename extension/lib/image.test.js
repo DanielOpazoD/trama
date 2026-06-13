@@ -99,6 +99,16 @@ describe('saveImage', () => {
     expect(lastRecorteBody.imageUrl).toBeNull()
     expect(lastRecorteBody.sourceUrl).toBe('https://blog.site/post')
     expect(lastRecorteBody.captureMode).toBe('image')
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      tramaHostPermissionEvents: [
+        expect.objectContaining({
+          origin: 'https://cdn.site',
+          pattern: 'https://cdn.site/*',
+          granted: true,
+          surface: 'image',
+        }),
+      ],
+    })
   })
 
   it('si el permiso se deniega, recupera la imagen desde la página (page-grab)', async () => {
@@ -109,6 +119,16 @@ describe('saveImage', () => {
     expect(pageGrabCalls()).toBeGreaterThan(0)
     expect(lastRecorteBody.imageKey).toBe('legacy/abc.webp')
     expect(lastRecorteBody.sourceUrl).toBe('https://blog.site/post')
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      tramaHostPermissionEvents: [
+        expect.objectContaining({
+          origin: 'https://diario.cl',
+          pattern: 'https://diario.cl/*',
+          granted: false,
+          surface: 'image',
+        }),
+      ],
+    })
   })
 
   it('si ni el SW ni la página consiguen los bytes, cae a guardar el enlace', async () => {

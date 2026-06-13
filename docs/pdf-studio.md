@@ -249,8 +249,12 @@ Tambien revisar line-count ratchets en
 Snapshots visuales opt-in para macOS:
 
 ```bash
-PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chromium
+npm run e2e:pdf-visual
 ```
+
+Cadencia: `.github/workflows/pdf-visual.yml` corre semanalmente en `macos-latest`
+y tambien queda disponible con `workflow_dispatch` antes de PRs grandes de
+Imprenta.
 
 ## Matriz de Capacidades
 
@@ -276,7 +280,8 @@ PDF_STUDIO_VISUAL=1 npm run e2e -- e2e/pdf-studio-visual.spec.ts --project=chrom
   aunque cargan de forma perezosa y ya no bloquean la UI durante la exportacion
   normal.
 - Los snapshots visuales son opt-in y macOS-only para evitar ruido por diferencias
-  de fuentes/render en Linux CI.
+  de fuentes/render en Linux CI; la cadencia automatica vive en el workflow
+  `pdf-visual`.
 - Los fixtures reales cubren multipagina, rotado, escaneado, corrupto, fuente no
   usual y una exportacion de estres pequena medida; falta una carpeta curada de PDFs
   grandes de usuario para pruebas de memoria extrema.

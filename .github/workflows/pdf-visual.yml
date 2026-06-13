@@ -1,0 +1,37 @@
+name: pdf-visual
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Martes temprano UTC: cadencia semanal fuera del camino crítico de PR.
+    - cron: '17 7 * * 2'
+
+jobs:
+  pdf-visual:
+    runs-on: macos-latest
+    env:
+      PDF_STUDIO_VISUAL: '1'
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright Chromium
+        run: node_modules/.bin/playwright install chromium
+
+      - name: Run PDF visual snapshots
+        run: npm run e2e:pdf-visual
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdf-visual-playwright-report
+          path: playwright-report/
+          retention-days: 14
