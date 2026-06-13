@@ -50,4 +50,35 @@ describe('<PhotoLightbox />', () => {
     fireEvent.click(screen.getByLabelText('Cerrar visor'))
     expect(onClose).toHaveBeenCalledTimes(2)
   })
+
+  it('monta el visor fuera de contenedores transformados', () => {
+    render(
+      <div style={{ transform: 'translateY(0)' }}>
+        <PhotoLightbox photos={photos} open onClose={() => {}} />
+      </div>,
+    )
+
+    expect(screen.getByRole('dialog', { name: /visor de fotos/i }).parentElement).toBe(
+      document.body,
+    )
+  })
+
+  it('bloquea el scroll del fondo mientras está abierto y lo restaura al cerrar', () => {
+    document.body.style.overflow = 'auto'
+
+    const { rerender, unmount } = render(
+      <PhotoLightbox photos={photos} open onClose={() => {}} />,
+    )
+
+    expect(document.body.style.overflow).toBe('hidden')
+
+    rerender(<PhotoLightbox photos={photos} open={false} onClose={() => {}} />)
+    expect(document.body.style.overflow).toBe('auto')
+
+    rerender(<PhotoLightbox photos={photos} open onClose={() => {}} />)
+    expect(document.body.style.overflow).toBe('hidden')
+
+    unmount()
+    expect(document.body.style.overflow).toBe('auto')
+  })
 })

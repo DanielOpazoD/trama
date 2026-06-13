@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { MomentoShareInvitation } from '../../api/momentos'
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { BellIcon } from '../Icons'
 import { MomentoShareInvitationCard } from './MomentoShareInvitationCard'
 
@@ -14,7 +16,21 @@ export function MomentoNotificationsCenter({
   onRespond: (id: string, action: 'accept' | 'reject') => void
 }) {
   const [open, setOpen] = useState(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const count = invitations.length
+
+  useFocusTrap(dialogRef, open)
+  useBodyScrollLock(open)
+
+  useEffect(() => {
+    if (!open) return
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [open])
+
   const panel =
     open && typeof document !== 'undefined'
       ? createPortal(
@@ -26,7 +42,9 @@ export function MomentoNotificationsCenter({
               className="absolute inset-0 cursor-default bg-ink-900/10 backdrop-blur-[1px] sm:bg-transparent sm:backdrop-blur-0"
             />
             <div
+              ref={dialogRef}
               role="dialog"
+              aria-modal="true"
               aria-label="Centro de notificaciones"
               className="fixed left-3 right-3 top-[calc(env(safe-area-inset-top)+7.25rem)] z-[81] max-h-[min(68vh,34rem)] overflow-y-auto rounded-lg border border-ink-100 bg-paper-50 p-3 shadow-xl shadow-ink-900/25 sm:left-auto sm:right-4 sm:top-14 sm:w-[min(360px,calc(100vw-2rem))] sm:max-h-[min(70vh,34rem)]"
             >
