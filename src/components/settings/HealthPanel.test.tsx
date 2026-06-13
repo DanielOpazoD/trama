@@ -130,4 +130,26 @@ describe('<HealthPanel />', () => {
     expect(await screen.findByText('Fallback legacy activo')).toBeInTheDocument()
     expect(screen.getByText(/requests sin token Clerk/i)).toBeInTheDocument()
   })
+
+  it('copia un diagnóstico operativo al clipboard', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    vi.spyOn(api, 'getHealth').mockResolvedValue(HEALTH_FIXTURE)
+
+    renderWithProviders(<HealthPanel />)
+
+    await screen.findByText('Presupuesto cerca del límite')
+    await userEvent.click(screen.getByRole('button', { name: /copiar diagnóstico/i }))
+
+    expect(writeText).toHaveBeenCalledTimes(1)
+    expect(writeText.mock.calls[0]?.[0]).toContain('Trama health diagnostic')
+    expect(writeText.mock.calls[0]?.[0]).toContain('auth=clerk')
+    expect(writeText.mock.calls[0]?.[0]).toContain(
+      'counts=12 entities, 34 quotes, 5 relationships',
+    )
+    expect(await screen.findByText(/diagnóstico copiado/i)).toBeInTheDocument()
+  })
 })

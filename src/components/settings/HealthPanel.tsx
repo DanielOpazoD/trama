@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '../../api'
+import { api, type HealthResponse } from '../../api'
 import { Sparkline } from '../Sparkline'
 import { PanelHeader } from './_shared'
 
@@ -12,6 +13,7 @@ import { PanelHeader } from './_shared'
  * más profundo, hay un panel dedicado en LogsPanel.
  */
 export function HealthPanel() {
+  const [copiedDiagnostic, setCopiedDiagnostic] = useState(false)
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['health'],
     queryFn: () => api.getHealth(),
@@ -63,12 +65,45 @@ export function HealthPanel() {
         ? { bg: 'var(--accent-gold-soft)', fg: 'var(--accent-gold)' }
         : { bg: 'rgb(239 68 68 / 0.10)', fg: 'rgb(185 28 28)' }
 
+  async function copyDiagnostic() {
+    if (!data) return
+    try {
+      await navigator.clipboard.writeText(buildHealthDiagnostic(data))
+      setCopiedDiagnostic(true)
+    } catch {
+      setCopiedDiagnostic(false)
+    }
+  }
+
   return (
     <section className="space-y-6">
       <PanelHeader
         title="Estado del sistema"
         hint="Gasto IA del mes, conteos, errores recientes. Si algo va raro, mira aquí antes que en cualquier otro lado."
       />
+
+      <div className="card-paper-soft flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div>
+          <p className="section-eyebrow">diagnóstico operativo</p>
+          <p className="mt-1 text-xs text-ink-400 leading-relaxed">
+            Snapshot compacto para pegar en un issue, PR o incidente.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {copiedDiagnostic && (
+            <span role="status" className="text-micro text-[color:var(--accent-sage)]">
+              diagnóstico copiado
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={copyDiagnostic}
+            className="text-micro uppercase tracking-eyebrow text-ink-500 hover:text-ink-800 transition-colors"
+          >
+            copiar diagnóstico
+          </button>
+        </div>
+      </div>
 
       {/* Alertas activas — banners arriba para que sean lo primero que
           se ve cuando hay algo que mirar. Si el array está vacío, no
@@ -250,6 +285,25 @@ export function HealthPanel() {
       </div>
     </section>
   )
+}
+
+export function buildHealthDiagnostic(data: HealthResponse): string {
+  const latestError = data.recentErrors[0]
+  return [
+    'Trama health diagnostic',
+    `generatedAt=${new Date().toISOString()}`,
+    `auth=${data.auth.mode}`,
+    `clerkConfigured=${data.auth.clerkConfigured}`,
+    `legacyFallbackAllowed=${data.auth.legacyFallbackAllowed}`,
+    `counts=${data.counts.entities} entities, ${data.counts.quotes} quotes, ${data.counts.relationships} relationships`,
+    `aiMonth=${data.month.calls} calls, ${data.month.tokensIn} in, ${data.month.tokensOut} out, ${data.month.costCents} cents`,
+    `budget=${Math.round(data.budget.pct * 100)}% (${data.budget.remainingCents}/${data.budget.limitCents} cents remaining)`,
+    `embeddingsPending=${data.embeddings.pendingEntities} entities, ${data.embeddings.pendingQuotes} quotes`,
+    `alerts=${data.alerts.map((a) => `${a.severity}:${a.code}`).join(',') || 'none'}`,
+    latestError
+      ? `latestError=${latestError.functionName} ${latestError.statusCode ?? 'NA'} ${latestError.message.slice(0, 160)}`
+      : 'latestError=none',
+  ].join('\n')
 }
 
 /**
