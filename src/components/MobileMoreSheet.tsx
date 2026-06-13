@@ -66,10 +66,7 @@ export function MobileMoreSheet({
         style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
       >
         {/* Asa — afordancia de hoja arrastrable (decorativa). */}
-        <div
-          aria-hidden
-          className="mx-auto mb-3 h-1 w-9 rounded-full bg-ink-200/80"
-        />
+        <div aria-hidden className="mx-auto mb-3 h-1 w-9 rounded-full bg-ink-200/80" />
 
         <div className="mb-3 flex items-baseline justify-between">
           <div>

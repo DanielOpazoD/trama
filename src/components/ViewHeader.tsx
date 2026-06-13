@@ -72,9 +72,16 @@ export function ViewHeader({
   // Wash radial sutil del color del section accent. Da identidad
   // cromática a la vista sin gritar. Se desactiva cuando sticky=true.
   const useWash = !noWash && !sticky
+  // En móvil el header apila: título a todo el ancho y las acciones DEBAJO.
+  // Antes era `flex ... justify-between` siempre, así que el slot de acciones
+  // (Imprenta, Añadir…) le robaba ~la mitad del ancho al título y el subtítulo
+  // quedaba envuelto a una palabra por línea. De sm hacia arriba vuelve a la
+  // fila con las acciones a la derecha.
+  const layoutClass =
+    'flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6'
   const baseClass = useWash
-    ? 'flex items-baseline justify-between gap-6 px-3 -mx-3 py-2 -my-2 rounded-lg'
-    : 'flex items-baseline justify-between gap-6'
+    ? `${layoutClass} px-3 -mx-3 py-2 -my-2 rounded-lg`
+    : layoutClass
 
   const finalEyebrowColor = eyebrowColor ?? accent
 
@@ -89,7 +96,12 @@ export function ViewHeader({
         </p>
         <div className="flex items-center gap-2.5">
           {icon && <span className="shrink-0 text-ink-700">{icon}</span>}
-          <h2 className="font-serif text-4xl text-ink-700 leading-none">{title}</h2>
+          {/* Título fluido: 30px en móvil (menos ceremonial en pantallas
+              chicas), 36px de sm hacia arriba — donde antes era text-4xl fijo
+              y se sentía sobredimensionado al abrir una vista en el teléfono. */}
+          <h2 className="font-serif text-3xl sm:text-4xl text-ink-700 leading-none">
+            {title}
+          </h2>
         </div>
         <div className="accent-rule mt-3 mb-2" />
         {subtitle && (
