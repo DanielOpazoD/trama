@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FavoritosPanel, youtubeThumb } from './FavoritosPanel'
 import { favoritoFromRow, type FavoritoRow } from '../../api/favoritos'
@@ -45,6 +45,14 @@ describe('<FavoritosPanel />', () => {
     expect(screen.getByDisplayValue('para ediciones viejas')).toBeInTheDocument()
   })
 
+  it('usa un fallback editorial cuando el favorito no tiene miniatura', () => {
+    setup([favoritoFromRow(ROW)])
+
+    const fallback = screen.getByTestId('link-media-fallback')
+    expect(fallback).toHaveTextContent('gutenberg.org')
+    expect(fallback).toHaveClass('bg-paper-100/50')
+  })
+
   it('mantiene la opción de nota vacía como icono, sin texto visible', async () => {
     const user = userEvent.setup()
     setup([favoritoFromRow({ ...ROW, note: null })])
@@ -74,6 +82,23 @@ describe('<FavoritosPanel />', () => {
     ])
     const img = document.querySelector('img[src*="ytimg.com"]')
     expect(img).toHaveAttribute('src', 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg')
+  })
+
+  it('cambia a fallback si falla la miniatura del favorito', () => {
+    setup([
+      favoritoFromRow({
+        ...ROW,
+        id: 'yt',
+        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        title: 'The Cure - Primavera Sound',
+      }),
+    ])
+    const img = document.querySelector('img[src*="ytimg.com"]')
+    expect(img).toBeInTheDocument()
+
+    fireEvent.error(img!)
+
+    expect(screen.getByTestId('link-media-fallback')).toHaveTextContent('youtube.com')
   })
 })
 

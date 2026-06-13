@@ -5,20 +5,13 @@ import { ViewHeader } from '../ViewHeader'
 import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
 import { PencilIcon, PinIcon } from '../Icons'
+import { hostOf, LinkMediaPreview } from './LinkMediaPreview'
 
 /**
  * Favoritos — páginas marcadas para volver. Entidad propia, separada de la
  * bandeja de recortes: acá no se cura nada al grafo, solo se guardan
  * marcadores (favicon + título + enlace + nota). Pestaña hermana de Recortes.
  */
-
-function hostOf(url: string): string | null {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    return null
-  }
-}
 
 /**
  * Si la URL es un video de YouTube, devuelve su miniatura. Trama no guarda la
@@ -77,7 +70,6 @@ function FavoritoCard({ favorito: f }: { favorito: Favorito }) {
   const thumb = youtubeThumb(f.url)
   const [note, setNote] = useState(f.note ?? '')
   const [editingNote, setEditingNote] = useState(Boolean(f.note))
-  const [faviconBroken, setFaviconBroken] = useState(false)
 
   function commitNote() {
     const next = note.trim()
@@ -87,59 +79,29 @@ function FavoritoCard({ favorito: f }: { favorito: Favorito }) {
   }
 
   return (
-    <li className="group relative card-paper-soft p-4 pt-3">
+    <li className="group relative card-paper-soft p-4 pt-3 transition-shadow hover:shadow-sm">
       <div aria-hidden className="mb-2.5">
         <div className="border-t-2 border-ink-700/60" />
         <div className="mt-0.5 border-t border-ink-200" />
       </div>
 
-      {thumb && (
+      <LinkMediaPreview
+        href={f.url}
+        host={host}
+        dateLabel={formatStamp(f.createdAt)}
+        imageUrl={thumb}
+        ariaLabel={`Abrir ${f.title || host || 'favorito'}`}
+      />
+
+      <div className="min-w-0">
         <a
           href={f.url}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`Ver ${f.title || host || 'el video'} en YouTube`}
-          className="mb-2.5 block overflow-hidden rounded-md border border-ink-100"
+          className="block font-serif text-xl leading-tight text-ink-700 hover:underline"
         >
-          <img
-            src={thumb}
-            alt=""
-            loading="lazy"
-            style={{ aspectRatio: '16 / 9' }}
-            className="w-full bg-ink-100 object-cover"
-            onError={(e) => {
-              // Video privado/borrado → sin miniatura: ocultamos el banner y
-              // queda el favicon + título de siempre.
-              e.currentTarget.parentElement?.style.setProperty('display', 'none')
-            }}
-          />
+          {f.title || host || f.url}
         </a>
-      )}
-
-      <div className="flex items-start gap-2.5">
-        {host && !faviconBroken && (
-          <img
-            src={`https://www.google.com/s2/favicons?domain=${host}&sz=64`}
-            alt=""
-            className="mt-0.5 h-4 w-4 shrink-0 rounded-sm"
-            onError={() => setFaviconBroken(true)}
-          />
-        )}
-        <div className="min-w-0 flex-1">
-          <a
-            href={f.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block font-serif text-lead leading-snug text-ink-700 hover:underline"
-          >
-            {f.title || host || f.url}
-          </a>
-          <span className="text-micro text-ink-300">
-            {host}
-            {' · '}
-            {formatStamp(f.createdAt)}
-          </span>
-        </div>
       </div>
 
       {editingNote || note.trim() ? (
