@@ -7,6 +7,7 @@ const BENCHMARK_USER_ID = 'trama-benchmark-search'
 const KEEP_FIXTURES = process.env.SEARCH_BENCHMARK_KEEP_FIXTURES === '1'
 const QUERY = process.env.SEARCH_BENCHMARK_QUERY || 'oraculo benchmark 4242'
 const RAW_SIZES = process.env.SEARCH_BENCHMARK_SIZES || '10000,50000'
+const SCHEMA_MODE = process.env.SEARCH_BENCHMARK_SCHEMA || 'app'
 
 function parseSizes(raw) {
   const sizes = raw
@@ -23,18 +24,76 @@ function sqlString(value) {
   return `'${String(value).replaceAll("'", "''")}'`
 }
 
-function buildBenchmarkSql({ sizes, query, keepFixtures }) {
-  const targetRuns = sizes
-    .map(
-      (size) => `
-\\echo ''
-\\echo '== search benchmark: ${size} entities + ${size} quotes =='
+function buildPortableSchemaSql() {
+  return `
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-DELETE FROM quotes WHERE user_id = ${sqlString(BENCHMARK_USER_ID)};
-DELETE FROM entities WHERE user_id = ${sqlString(BENCHMARK_USER_ID)};
+CREATE TEMP TABLE entities (
+  id uuid PRIMARY KEY,
+  user_id text NOT NULL,
+  type text NOT NULL,
+  name text NOT NULL,
+  year integer,
+  description text,
+  origin jsonb NOT NULL DEFAULT '{"kind":"manual"}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz,
+  search_vector tsvector GENERATED ALWAYS AS (
+    setweight(to_tsvector('simple', coalesce(name, '')), 'A') ||
+    setweight(to_tsvector('simple', coalesce(description, '')), 'B')
+  ) STORED
+);
 
-INSERT INTO entities (user_id, type, name, description, origin)
+CREATE TEMP TABLE quotes (
+  id uuid PRIMARY KEY,
+  user_id text NOT NULL,
+  entity_id uuid NOT NULL REFERENCES entities(id),
+  text text NOT NULL,
+  source text,
+  context text,
+  origin jsonb NOT NULL DEFAULT '{"kind":"manual"}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz,
+  search_vector tsvector GENERATED ALWAYS AS (
+    setweight(to_tsvector('simple', coalesce(text, '')), 'A') ||
+    setweight(to_tsvector('simple', coalesce(context, '')), 'B') ||
+    setweight(to_tsvector('simple', coalesce(source, '')), 'C')
+  ) STORED
+);
+
+CREATE INDEX idx_benchmark_entities_search
+  ON entities USING GIN(search_vector) WHERE deleted_at IS NULL;
+CREATE INDEX idx_benchmark_entities_name_trgm
+  ON entities USING GIN(name gin_trgm_ops) WHERE deleted_at IS NULL;
+CREATE INDEX idx_benchmark_quotes_search
+  ON quotes USING GIN(search_vector) WHERE deleted_at IS NULL;
+`
+}
+
+function buildAppSchemaSql() {
+  return `
+SELECT set_config('app.rls_bypass', 'system', true);
+
+INSERT INTO users (id, display_name)
+VALUES (${sqlString(BENCHMARK_USER_ID)}, 'Search scale benchmark')
+ON CONFLICT (id) DO NOTHING;
+`
+}
+
+function buildEntityInsertSql({ size, query, schemaMode }) {
+  const idExpr =
+    schemaMode === 'portable'
+      ? `('00000000-0000-0000-0000-' || lpad(gs::text, 12, '0'))::uuid,`
+      : ''
+  const columns =
+    schemaMode === 'portable'
+      ? '(id, user_id, type, name, description, origin)'
+      : '(user_id, type, name, description, origin)'
+
+  return `
+INSERT INTO entities ${columns}
 SELECT
+  ${idExpr}
   ${sqlString(BENCHMARK_USER_ID)},
   'concepto',
   'trama-benchmark-search entity ' || gs::text,
@@ -44,9 +103,20 @@ SELECT
   END,
   '{"kind":"manual"}'::jsonb
 FROM generate_series(1, ${size}) AS gs;
+`
+}
 
-INSERT INTO quotes (user_id, entity_id, text, source, context, origin)
+function buildQuoteInsertSql({ query, schemaMode }) {
+  const idColumn = schemaMode === 'portable' ? 'id, ' : ''
+  const idExpr =
+    schemaMode === 'portable'
+      ? `('10000000-0000-0000-0000-' || lpad(row_number() OVER (ORDER BY e.created_at, e.id)::text, 12, '0'))::uuid,`
+      : ''
+
+  return `
+INSERT INTO quotes (${idColumn}user_id, entity_id, text, source, context, origin)
 SELECT
+  ${idExpr}
   ${sqlString(BENCHMARK_USER_ID)},
   e.id,
   CASE
@@ -60,6 +130,22 @@ SELECT
 FROM entities e
 WHERE e.user_id = ${sqlString(BENCHMARK_USER_ID)}
   AND e.deleted_at IS NULL;
+`
+}
+
+function buildBenchmarkSql({ sizes, query, keepFixtures, schemaMode = 'app' }) {
+  const targetRuns = sizes
+    .map(
+      (size) => `
+\\echo ''
+\\echo '== search benchmark: ${size} entities + ${size} quotes =='
+
+DELETE FROM quotes WHERE user_id = ${sqlString(BENCHMARK_USER_ID)};
+DELETE FROM entities WHERE user_id = ${sqlString(BENCHMARK_USER_ID)};
+
+${buildEntityInsertSql({ size, query, schemaMode })}
+
+${buildQuoteInsertSql({ query, schemaMode })}
 
 ANALYZE entities;
 ANALYZE quotes;
@@ -99,11 +185,7 @@ LIMIT 30;
 \\timing on
 
 BEGIN;
-SELECT set_config('app.rls_bypass', 'system', true);
-
-INSERT INTO users (id, display_name)
-VALUES (${sqlString(BENCHMARK_USER_ID)}, 'Search scale benchmark')
-ON CONFLICT (id) DO NOTHING;
+${schemaMode === 'portable' ? buildPortableSchemaSql() : buildAppSchemaSql()}
 
 ${targetRuns}
 
@@ -115,7 +197,12 @@ ${keepFixtures ? 'COMMIT;' : 'ROLLBACK;'}
 
 function run() {
   const sizes = parseSizes(RAW_SIZES)
-  const sql = buildBenchmarkSql({ sizes, query: QUERY, keepFixtures: KEEP_FIXTURES })
+  const sql = buildBenchmarkSql({
+    sizes,
+    query: QUERY,
+    keepFixtures: KEEP_FIXTURES,
+    schemaMode: SCHEMA_MODE,
+  })
   const result = spawnSync('psql', [DB_URL], {
     input: sql,
     stdio: ['pipe', 'inherit', 'inherit'],

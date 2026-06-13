@@ -88,6 +88,16 @@ npm run db:up
 npm run bench:search-scale
 ```
 
+Si estás en una máquina sin Docker/pgvector pero sí tienes `psql` y un Postgres
+local accesible, usa el modo portable. Crea tablas temporales `entities` y
+`quotes` con los mismos `search_vector` e índices lexicales que usa
+`/api/search?mode=lexical`, ejecuta el benchmark dentro de una transacción y hace
+`ROLLBACK`:
+
+```bash
+DATABASE_URL=postgresql://localhost:5432/postgres npm run bench:search-scale:portable
+```
+
 Por defecto mide 10k y 50k entidades/citas sintéticas bajo
 `user_id = trama-benchmark-search`, ejecuta `EXPLAIN ANALYZE` de las ramas
 léxicas de `/api/search` y termina con `ROLLBACK`, sin dejar fixtures. Para

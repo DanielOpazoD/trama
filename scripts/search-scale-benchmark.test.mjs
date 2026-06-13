@@ -10,6 +10,9 @@ describe('search scale benchmark script', () => {
     expect(pkg.scripts['bench:search-scale']).toBe(
       'node scripts/search-scale-benchmark.mjs',
     )
+    expect(pkg.scripts['bench:search-scale:portable']).toBe(
+      'SEARCH_BENCHMARK_SCHEMA=portable node scripts/search-scale-benchmark.mjs',
+    )
     expect(existsSync(scriptPath)).toBe(true)
 
     const source = readFileSync(scriptPath, 'utf8')
@@ -17,5 +20,20 @@ describe('search scale benchmark script', () => {
     expect(source).toContain('trama-benchmark-search')
     expect(source).toContain('EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)')
     expect(source).toContain('SEARCH_BENCHMARK_KEEP_FIXTURES')
+  })
+
+  it('ofrece un modo portable que crea schema temporal lexical sin DB migrada', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'scripts/search-scale-benchmark.mjs'),
+      'utf8',
+    )
+
+    expect(source).toContain('SEARCH_BENCHMARK_SCHEMA')
+    expect(source).toContain('portable')
+    expect(source).toContain('CREATE TEMP TABLE entities')
+    expect(source).toContain('CREATE TEMP TABLE quotes')
+    expect(source).toContain('search_vector tsvector GENERATED ALWAYS AS')
+    expect(source).toContain('idx_benchmark_entities_search')
+    expect(source).toContain('idx_benchmark_quotes_search')
   })
 })

@@ -14,6 +14,7 @@
     "check:cte-regression": "bash scripts/check-cte-regression.sh",
     "pr-stack:check": "node scripts/verify-pr-stack.mjs",
     "bench:search-scale": "node scripts/search-scale-benchmark.mjs",
+    "bench:search-scale:portable": "SEARCH_BENCHMARK_SCHEMA=portable node scripts/search-scale-benchmark.mjs",
     "bundle:check": "node scripts/check-bundle-size.mjs",
     "bundle:report": "node scripts/check-bundle-size.mjs --report",
     "preview": "node_modules/.bin/vite preview",
