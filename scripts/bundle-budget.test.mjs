@@ -9,6 +9,13 @@ describe('bundle budget helpers', () => {
     expect(chunkBaseName('QuotesView-t-HhUjo4.js')).toBe('QuotesView')
   })
 
+  it('usa budgets conocidos para hashes vite ambiguos con guion interno', () => {
+    expect(chunkBaseName('GraphView-B-e06fBp.js', ['GraphView'])).toBe('GraphView')
+    expect(chunkBaseName('vendor-pdf-lib-C3zzWZyr.js', ['vendor-pdf-lib'])).toBe(
+      'vendor-pdf-lib',
+    )
+  })
+
   it('permite chunks chicos sin budget explicito', () => {
     expect(
       classifyBundleEntry({

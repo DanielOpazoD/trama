@@ -80,7 +80,7 @@ for (const file of files) {
   const path = join(DIST, file)
   const buf = readFileSync(path)
   const gzKb = Math.round(gzipSync(buf).length / 1024)
-  const base = chunkBaseName(file)
+  const base = chunkBaseName(file, Object.keys(BUDGETS))
   const budget = BUDGETS[base]
   const entry = classifyBundleEntry({
     base,
