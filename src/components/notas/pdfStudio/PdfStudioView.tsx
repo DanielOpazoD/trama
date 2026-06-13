@@ -39,6 +39,7 @@ import { usePdfStudioForms } from './planillas/usePdfStudioForms'
 import { usePdfStudioPageKeyboard } from './shell/usePdfStudioPageKeyboard'
 import { usePdfStudioPageActions } from './shell/usePdfStudioPageActions'
 import { usePdfStudioSavedPdfUpload } from './shell/usePdfStudioSavedPdfUpload'
+import { usePdfStudioPreview } from './shell/usePdfStudioPreview'
 import { usePdfStudioOcr } from './ocr/usePdfStudioOcr'
 import { usePdfStudioFilledTemplateActions } from './planillas/fill/usePdfStudioFilledTemplateActions'
 import { usePdfStudioDraftSanitizer } from './workspace/usePdfStudioDraftSanitizer'
@@ -46,10 +47,6 @@ import { usePdfStudioTemplateMode } from './planillas/design/usePdfStudioTemplat
 import { usePdfStudioWorkspace } from './workspace/usePdfStudioWorkspace'
 import { pdfStudioPageInteractionMode as pageMode } from './shell/pdfStudioPageInteractionMode'
 import { useToast } from '../../../state'
-import { PdfPreviewModal } from './editor/PdfPreviewModal'
-import { printPdfBlob } from '../../../lib/pdfStudio/export/printPdf'
-import { downloadBlob } from '../../../lib/downloadBlob'
-import { exportPdfName } from './shell/pdfStudioFileUtils'
 const ACCEPT = 'application/pdf,image/*'
 export type PdfStudioMode = 'editor' | 'templates'
 type PdfStudioViewProps = { topBar?: ReactNode; studioMode?: PdfStudioMode }
@@ -62,19 +59,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   const doc = history.present
   const { cancelExport, downloadSaved, exportPdf, preparePdf, exportStatus, saving } =
     usePdfStudioExport({ compression: exportCompression })
-  // Vista previa en modal del PDF ensamblado (con botón Imprimir + Descargar).
-  const [previewState, setPreviewState] = useState<{
-    blob: Blob
-    kind?: string
-    title?: string
-  } | null>(null)
-  const openPreview = useCallback(
-    async (target: PdfDoc, kind?: string, options?: { flattenFormFields?: boolean }) => {
-      const blob = await preparePdf(target, options)
-      if (blob) setPreviewState({ blob, kind, title: target.title })
-    },
-    [preparePdf],
-  )
+  const { openPreview, previewModal } = usePdfStudioPreview({ preparePdf })
   const uploadSavedPdf = usePdfStudioSavedPdfUpload({ preparePdf })
   const [textPage, setTextPage] = useState<number | null>(null)
   const [editorSessionZoom, setEditorSessionZoom] = useState(1)
@@ -408,20 +393,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
           sessionZoom={editorSessionZoom}
         />
       )}
-      {previewState && (
-        <PdfPreviewModal
-          blob={previewState.blob}
-          onClose={() => setPreviewState(null)}
-          onPrint={(blob) => printPdfBlob(blob)}
-          onDownload={(blob) => {
-            downloadBlob(
-              blob,
-              exportPdfName(undefined, previewState.kind, previewState.title),
-            )
-            toast.show({ message: 'PDF descargado.', tone: 'success' })
-          }}
-        />
-      )}
+      {previewModal}
     </section>
   )
 }

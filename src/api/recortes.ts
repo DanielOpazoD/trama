@@ -1,8 +1,7 @@
 /**
  * Recortes — cliente de la bandeja de capturas web. Transforma snake→camel
  * en la frontera (como el resto de src/api). La promoción registra en el
- * recorte el objeto destino YA creado (el destino se crea con su endpoint
- * propio, reusando validaciones y optimistic updates existentes).
+ * recorte el objeto destino creado por el servidor en la misma operación.
  */
 import { request } from './request'
 
@@ -57,6 +56,42 @@ export type RecorteRow = {
   created_at: string
   updated_at: string
 }
+
+export type PromoteRecorteInput =
+  | {
+      target: 'quote'
+      quote: {
+        entityId: string
+        text: string
+        source?: string | null
+        context?: string | null
+        link?: string | null
+        userReflection?: string | null
+      }
+    }
+  | {
+      target: 'entity'
+      entity: {
+        type: string
+        name: string
+        year?: number | null
+        description?: string | null
+      }
+    }
+  | {
+      target: 'momento'
+      momento: {
+        kind: 'recorte'
+        payload: {
+          bodyText?: string
+          url?: string
+          title?: string
+          author?: string
+        }
+        note?: string | null
+        capturedAt?: string | null
+      }
+    }
 
 /**
  * URL del endpoint authed que sirve una imagen interna de un recorte
@@ -160,15 +195,11 @@ export const recortesApi = {
       body: JSON.stringify({ deletedAt }),
     })
   },
-  /** Marca el recorte como promovido al objeto YA creado. */
-  async promoteRecorte(
-    id: string,
-    target: RecorteTarget,
-    promotedId: string,
-  ): Promise<Recorte> {
+  /** Crea el destino y marca el recorte en una operación server-side. */
+  async promoteRecorte(id: string, input: PromoteRecorteInput): Promise<Recorte> {
     const row = await request<RecorteRow>(`/api/recortes/${id}/promote`, {
       method: 'POST',
-      body: JSON.stringify({ target, promotedId }),
+      body: JSON.stringify(input),
     })
     return recorteFromRow(row)
   },

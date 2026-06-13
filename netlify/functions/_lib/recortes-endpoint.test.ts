@@ -161,29 +161,111 @@ describe('recortes endpoint', () => {
     expect(res.status).toBe(400)
   })
 
-  it('promote marca el recorte y 404 si ya estaba promovido', async () => {
+  it('promote quote crea la cita y marca el recorte en un CTE idempotente', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ ...ROW, status: 'promoted', promoted_target: 'quote' }])
     const ok = await recortesHandler(
       new Request(`http://localhost/api/recortes/${ROW.id}/promote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: 'quote', promotedId: ROW.id }),
+        body: JSON.stringify({
+          target: 'quote',
+          quote: {
+            entityId: '11111111-1111-4111-8111-111111111111',
+            text: ROW.text,
+            source: 'El taller',
+            link: ROW.source_url,
+          },
+        }),
       }),
       mockContext({ id: ROW.id }),
     )
     expect(ok.status).toBe(200)
     expect((await ok.json()).status).toBe('promoted')
+    const promoteCte = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO quotes/i.test(c.template),
+    )
+    expect(promoteCte?.template).toMatch(/UPDATE recortes/i)
+    expect(promoteCte?.values).toContain(ROW.text)
 
-    mockSqlResponses.push([]) // segunda vez: el UPDATE no matchea
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([
+      {
+        ...ROW,
+        status: 'promoted',
+        promoted_target: 'quote',
+        promoted_id: '22222222-2222-4222-8222-222222222222',
+      },
+    ])
     const dup = await recortesHandler(
       new Request(`http://localhost/api/recortes/${ROW.id}/promote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: 'quote', promotedId: ROW.id }),
+        body: JSON.stringify({
+          target: 'quote',
+          quote: {
+            entityId: '11111111-1111-4111-8111-111111111111',
+            text: ROW.text,
+          },
+        }),
       }),
       mockContext({ id: ROW.id }),
     )
-    expect(dup.status).toBe(404)
+    expect(dup.status).toBe(200)
+    expect((await dup.json()).promoted_id).toBe('22222222-2222-4222-8222-222222222222')
+  })
+
+  it('promote entity y momento crean destino dentro del CTE de promoción', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ ...ROW, status: 'promoted', promoted_target: 'entity' }])
+    const entity = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}/promote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target: 'entity',
+          entity: {
+            type: 'concepto',
+            name: 'Memoria',
+            description: 'La memoria es un taller.',
+          },
+        }),
+      }),
+      mockContext({ id: ROW.id }),
+    )
+    expect(entity.status).toBe(200)
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /INSERT INTO entities/i.test(c.template) && /UPDATE recortes/i.test(c.template),
+      ),
+    ).toBe(true)
+
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ ...ROW, status: 'promoted', promoted_target: 'momento' }])
+    const momento = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}/promote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target: 'momento',
+          momento: {
+            kind: 'recorte',
+            payload: { bodyText: ROW.text, url: ROW.source_url },
+            note: ROW.note,
+            capturedAt: ROW.captured_at,
+          },
+        }),
+      }),
+      mockContext({ id: ROW.id }),
+    )
+    expect(momento.status).toBe(200)
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /INSERT INTO momentos/i.test(c.template) && /UPDATE recortes/i.test(c.template),
+      ),
+    ).toBe(true)
   })
 
   it('DELETE devuelve el deletedAt para Deshacer y restore lo consume', async () => {

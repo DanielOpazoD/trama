@@ -22,7 +22,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // La app E2E comparte un Vite dev server y mocks por test. En paralelo,
+  // el arranque local puede agotar el evento de carga y producir timeouts
+  // falsos en page.goto('/'). CI ya era serial; local debe serlo también.
+  workers: 1,
   reporter: process.env.CI ? 'github' : 'list',
   timeout: 30_000,
 

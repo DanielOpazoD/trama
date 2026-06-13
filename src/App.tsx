@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useSearchParamState } from './hooks/useSearchParamState'
 import { useInitialView } from './hooks/useInitialView'
@@ -9,11 +9,9 @@ import {
   Provider,
   readUserPrefsMirror,
   clearUserPrefsMirror,
-  useEntitiesQuery,
+  useCountsQuery,
   useMomentoShareInvitationsQuery,
   useOffline,
-  useQuotesQuery,
-  useRelationshipsQuery,
   useRespondMomentoShareInvitation,
   useToast,
 } from './state'
@@ -31,7 +29,6 @@ import { PreviewBanner } from './components/PreviewBanner'
 import { AskBar } from './components/AskBar'
 import { ReadingMode } from './components/ReadingMode'
 import { Splash } from './components/Splash'
-import { HomeSkeleton } from './components/HomeSkeleton'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { RightPanel, type PendingProposal } from './components/RightPanel'
 import { ViewRouter } from './components/ViewRouter'
@@ -40,30 +37,13 @@ import { AppPinGate } from './components/AppPinGate'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { SectionAccentBand } from './components/SectionAccentBand'
 import { FocusModeExitButton } from './components/FocusModeExitButton'
+import { ShellOverlays } from './components/ShellOverlays'
 import { MomentoNotificationsCenter } from './components/momentos/MomentoNotificationsCenter'
 import { NotasWorld } from './components/notas/NotasWorld'
 import { NOTAS_SECTIONS, type NotasSection } from './types/notas'
+import type { CommandAction } from './components/CommandPalette'
 
 import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
-
-// Overlays bajo demanda: solo se montan al abrirse (⌘K, ajustes, atajos, etc.),
-// así su código sale del bundle inicial y se baja en el primer uso. Todos hacen
-// `if (!open) return null` sin animación de salida, por eso montarlos
-// condicionalmente equivale a tenerlos siempre montados renderizando null.
-const CommandPalette = lazy(() =>
-  import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })),
-)
-const ShortcutsModal = lazy(() =>
-  import('./components/ShortcutsModal').then((m) => ({ default: m.ShortcutsModal })),
-)
-const Atril = lazy(() => import('./components/Atril').then((m) => ({ default: m.Atril })))
-const Espejo = lazy(() =>
-  import('./components/Espejo').then((m) => ({ default: m.Espejo })),
-)
-const Careo = lazy(() => import('./components/Careo').then((m) => ({ default: m.Careo })))
-const Settings = lazy(() =>
-  import('./components/Settings').then((m) => ({ default: m.Settings })),
-)
 
 // GlobalProgressBar removido por feedback del usuario — la barra fina
 // que latía con cada query se percibía como molesta. Si en el futuro
@@ -89,9 +69,7 @@ function Shell({
   /** Revelar/abrir un módulo del mundo Notas desde el ⌘K (cruza de mundo). */
   onRevealNotasModule: (moduleId: NotasSection) => void
 }) {
-  const entitiesQuery = useEntitiesQuery()
-  const relationshipsQuery = useRelationshipsQuery()
-  const quotesQuery = useQuotesQuery()
+  const countsQuery = useCountsQuery()
   const shareInvitationsQuery = useMomentoShareInvitationsQuery()
   const respondShareInvitation = useRespondMomentoShareInvitation()
   const toast = useToast()
@@ -101,21 +79,13 @@ function Shell({
   // distinta según cuándo entres — sin que el usuario tenga que pensarlo.
   useTimeOfDayAccent()
   // δ7: achievement moments — un toast efímero cuando cruzás un umbral
-  // (10, 25, 50, 100, 250… entidades/citas/relaciones). Lee de las
-  // queries cacheadas; las llamadas que ya están arriba alimentan esto.
+  // (10, 25, 50, 100, 250… entidades/citas/relaciones). Usa /api/counts
+  // para no cargar listas completas en el shell.
   useAchievements({
-    entities: entitiesQuery.data?.length ?? 0,
-    quotes: quotesQuery.data?.length ?? 0,
-    relationships: relationshipsQuery.data?.length ?? 0,
+    entities: countsQuery.data?.entities ?? 0,
+    quotes: countsQuery.data?.quotes ?? 0,
+    relationships: countsQuery.data?.relationships ?? 0,
   })
-
-  const loading =
-    entitiesQuery.isLoading || relationshipsQuery.isLoading || quotesQuery.isLoading
-  const error =
-    entitiesQuery.error?.message ??
-    relationshipsQuery.error?.message ??
-    quotesQuery.error?.message ??
-    null
 
   const isMobile = useIsMobile()
   // τ-mobile-bridge: vive en useInitialView — lee `?view=` al primer
@@ -240,6 +210,40 @@ function Shell({
       })
     }
   }
+  const handlePaletteAction = useCallback(
+    (action: CommandAction) => {
+      // Las acciones rápidas del palette se traducen en navigations
+      // + modal openings. "Nueva X" navega a la vista correspondiente;
+      // el form se abrirá manualmente o vía un futuro hint.
+      switch (action) {
+        case 'open-settings':
+          setSettingsOpen(true)
+          break
+        case 'open-shortcuts':
+          setShortcutsOpen(true)
+          break
+        case 'open-sortes':
+          setSortesOpen(true)
+          break
+        case 'open-espejo':
+          setEspejoOpen(true)
+          break
+        case 'open-careo':
+          setCareoOpen(true)
+          break
+        case 'new-entity':
+          setView('entidades')
+          break
+        case 'new-quote':
+          setView('citas')
+          break
+        case 'new-momento':
+          setView('momentos')
+          break
+      }
+    },
+    [setView],
+  )
 
   return (
     // τ-worlds: el Shell del mundo Trama llena su columna dentro de WorldShell
@@ -295,9 +299,7 @@ function Shell({
                 // Codex (path-style) en lugar de solo el título de vista.
                 showDetail && selectedEntityId
                   ? {
-                      label:
-                        entitiesQuery.data?.find((e) => e.id === selectedEntityId)
-                          ?.name ?? 'entidad',
+                      label: 'entidad',
                       onClickRoot: () => setSelectedEntityId(null),
                     }
                   : null
@@ -336,41 +338,20 @@ function Shell({
           />
         )}
         <div className="flex-1 relative overflow-hidden animate-shell-main">
-          {error && (
-            <div className="alert-error absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 text-sm shadow-md z-10">
-              {error}
-            </div>
-          )}
-
-          {loading ? (
-            // ω-C: skeleton específico para la vista Inicio. Para otras
-            // vistas (entidades / citas / etc.) mantenemos el placeholder
-            // genérico — cada una tiene su propio loading inline en su
-            // primer render. Solo Inicio se beneficia de un skeleton
-            // dedicado porque su hero define el carácter editorial.
-            view === 'inicio' ? (
-              <HomeSkeleton />
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-ink-300 italic">cargando…</p>
-              </div>
-            )
-          ) : (
-            <div key={view} className="animate-view-fade h-full">
-              <ViewRouter
-                view={view}
-                selectedEntityId={selectedEntityId}
-                pendingChatThreadId={pendingChatThreadId}
-                entitiesTab={entitiesTab}
-                onEntitiesTabChange={setEntitiesTab}
-                onSelectEntity={setSelectedEntityId}
-                onChangeView={setView}
-                onOpenCareo={() => setCareoOpen(true)}
-                onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
-                onConsumedInitialThread={() => setPendingChatThreadId(null)}
-              />
-            </div>
-          )}
+          <div key={view} className="animate-view-fade h-full">
+            <ViewRouter
+              view={view}
+              selectedEntityId={selectedEntityId}
+              pendingChatThreadId={pendingChatThreadId}
+              entitiesTab={entitiesTab}
+              onEntitiesTabChange={setEntitiesTab}
+              onSelectEntity={setSelectedEntityId}
+              onChangeView={setView}
+              onOpenCareo={() => setCareoOpen(true)}
+              onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
+              onConsumedInitialThread={() => setPendingChatThreadId(null)}
+            />
+          </div>
 
           {/* Fade mask debajo del scroll — desvanece el contenido a
               paper-50 antes de llegar al AskBar. Sin esto el texto que
@@ -421,107 +402,44 @@ function Shell({
         {focusMode && <FocusModeExitButton onExit={exitFocusMode} />}
       </main>
 
-      {settingsOpen && (
-        <Suspense fallback={null}>
-          <Settings
-            open={settingsOpen}
-            onClose={() => {
-              setSettingsOpen(false)
-              setOauthReturn(null)
-            }}
-            theme={theme}
-            onSetTheme={setTheme}
-            initialSection={oauthReturn?.provider}
-            oauthReturn={oauthReturn}
-          />
-        </Suspense>
-      )}
-
-      {paletteOpen && (
-        <Suspense fallback={null}>
-          <CommandPalette
-            open={paletteOpen}
-            onClose={() => setPaletteOpen(false)}
-            onNavigate={(v) => setView(v)}
-            onSelectEntity={(id) => setSelectedEntityId(id)}
-            onOpenThread={(threadId) => {
-              setPendingChatThreadId(threadId)
-              setView('chat')
-            }}
-            onRevealNotasModule={onRevealNotasModule}
-            onAction={(action) => {
-              // Las acciones rápidas del palette se traducen en navigations
-              // + modal openings. "Nueva X" navega a la vista correspondiente;
-              // el form se abrirá manualmente o vía un futuro hint.
-              switch (action) {
-                case 'open-settings':
-                  setSettingsOpen(true)
-                  break
-                case 'open-shortcuts':
-                  setShortcutsOpen(true)
-                  break
-                case 'open-sortes':
-                  setSortesOpen(true)
-                  break
-                case 'open-espejo':
-                  setEspejoOpen(true)
-                  break
-                case 'open-careo':
-                  setCareoOpen(true)
-                  break
-                case 'new-entity':
-                  setView('entidades')
-                  break
-                case 'new-quote':
-                  setView('citas')
-                  break
-                case 'new-momento':
-                  setView('momentos')
-                  break
-              }
-            }}
-          />
-        </Suspense>
-      )}
-
-      {shortcutsOpen && (
-        <Suspense fallback={null}>
-          <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
-        </Suspense>
-      )}
-
-      {/* Atril — el archivo en el atril: cita del día, hojear con flechas,
-          dado para volver a sortear. Se abre desde el TopBar o el palette.
-          (Absorbió a Sortes; la acción sigue siendo 'open-sortes'.) */}
-      {sortesOpen && (
-        <Suspense fallback={null}>
-          <Atril open={sortesOpen} onClose={() => setSortesOpen(false)} />
-        </Suspense>
-      )}
-
-      {/* Espejo — la composición de la trama como un retrato, no un panel. */}
-      {espejoOpen && (
-        <Suspense fallback={null}>
-          <Espejo open={espejoOpen} onClose={() => setEspejoOpen(false)} />
-        </Suspense>
-      )}
-
-      {/* Careo — dos entidades frente a frente, sus citas en doble página. */}
-      {careoOpen && (
-        <Suspense fallback={null}>
-          <Careo open={careoOpen} onClose={() => setCareoOpen(false)} />
-        </Suspense>
-      )}
+      <ShellOverlays
+        settingsOpen={settingsOpen}
+        onCloseSettings={() => {
+          setSettingsOpen(false)
+          setOauthReturn(null)
+        }}
+        theme={theme}
+        onSetTheme={setTheme}
+        oauthReturn={oauthReturn}
+        paletteOpen={paletteOpen}
+        onClosePalette={() => setPaletteOpen(false)}
+        onNavigate={(v) => setView(v)}
+        onSelectEntity={(id) => setSelectedEntityId(id)}
+        onOpenThread={(threadId) => {
+          setPendingChatThreadId(threadId)
+          setView('chat')
+        }}
+        onRevealNotasModule={onRevealNotasModule}
+        onPaletteAction={handlePaletteAction}
+        shortcutsOpen={shortcutsOpen}
+        onCloseShortcuts={() => setShortcutsOpen(false)}
+        sortesOpen={sortesOpen}
+        onCloseSortes={() => setSortesOpen(false)}
+        espejoOpen={espejoOpen}
+        onCloseEspejo={() => setEspejoOpen(false)}
+        careoOpen={careoOpen}
+        onCloseCareo={() => setCareoOpen(false)}
+      />
 
       {/* Onboarding — solo aparece la primera vez, cuando la trama
           está literalmente vacía. El propio componente checa
           localStorage y se cierra si ya lo vio. */}
       <Onboarding
         enabled={
-          !loading &&
-          entitiesQuery.data?.length === 0 &&
-          quotesQuery.data?.length === 0 &&
-          relationshipsQuery.data?.length === 0
+          !countsQuery.isLoading &&
+          countsQuery.data?.entities === 0 &&
+          countsQuery.data?.quotes === 0 &&
+          countsQuery.data?.relationships === 0
         }
         onComplete={() => {
           /* Persistencia y close manejados dentro del componente. */

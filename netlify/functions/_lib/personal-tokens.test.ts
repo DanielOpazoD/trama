@@ -39,14 +39,20 @@ describe('recorte schemas', () => {
     ).toBe(false)
   })
 
-  it('la promoción exige target válido y uuid', () => {
+  it('la promoción exige target válido y payload del destino', () => {
     expect(
-      RecortePromoteBody.safeParse({ target: 'quote', promotedId: 'no-uuid' }).success,
+      RecortePromoteBody.safeParse({
+        target: 'quote',
+        quote: { entityId: 'no-uuid', text: 'x' },
+      }).success,
     ).toBe(false)
     expect(
       RecortePromoteBody.safeParse({
-        target: 'momento',
-        promotedId: '6f9619ff-8b86-4d01-b42d-00cf4fc964ff',
+        target: 'quote',
+        quote: {
+          entityId: '6f9619ff-8b86-4d01-b42d-00cf4fc964ff',
+          text: 'Un párrafo que me llegó.',
+        },
       }).success,
     ).toBe(true)
   })

@@ -5,6 +5,8 @@ import { join, relative, sep } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath, URL } from 'node:url'
 
+import { buildVitestArgs } from './vitest-runner-args.mjs'
+
 const projectRoot = fileURLToPath(new URL('..', import.meta.url))
 const key = createHash('sha1').update(projectRoot).digest('hex').slice(0, 10)
 const safeRoot = join(tmpdir(), `trama-vitest-${key}-${process.pid}`)
@@ -49,11 +51,15 @@ function ensureSafeRoot() {
 ensureSafeRoot()
 
 const vitestBin = join(safeRoot, 'node_modules', 'vitest', 'vitest.mjs')
-const result = spawnSync(process.execPath, [vitestBin, ...process.argv.slice(2)], {
-  cwd: safeRoot,
-  env: { ...process.env, PWD: safeRoot },
-  stdio: 'inherit',
-})
+const result = spawnSync(
+  process.execPath,
+  [vitestBin, ...buildVitestArgs(process.argv.slice(2))],
+  {
+    cwd: safeRoot,
+    env: { ...process.env, PWD: safeRoot },
+    stdio: 'inherit',
+  },
+)
 
 if (result.error) {
   console.error(result.error)
