@@ -98,6 +98,9 @@ local accesible, usa el modo portable. Crea tablas temporales `entities` y
 DATABASE_URL=postgresql://localhost:5432/postgres npm run bench:search-scale:portable
 ```
 
+Ultima medicion local registrada:
+[`docs/benchmarks/search-scale-portable-2026-06-12.md`](benchmarks/search-scale-portable-2026-06-12.md).
+
 Por defecto mide 10k y 50k entidades/citas sintéticas bajo
 `user_id = trama-benchmark-search`, ejecuta `EXPLAIN ANALYZE` de las ramas
 léxicas de `/api/search` y termina con `ROLLBACK`, sin dejar fixtures. Para
