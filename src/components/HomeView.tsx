@@ -14,6 +14,7 @@ import { CronicasSection } from './home/CronicasSection'
 import { XCronicaSection } from './home/XCronicaSection'
 import { Efemerides } from './home/Efemerides'
 import { HilosSueltos } from './home/HilosSueltos'
+import { HomeProjects } from './HomeProjects'
 
 /**
  * Home is the first thing the user sees. It's not the graph (intimidating
@@ -112,6 +113,8 @@ export function HomeView({
         pendingCount={pendingCount}
         onNavigateToSuggestions={() => onNavigate('sugerencias')}
       />
+
+      <HomeProjects />
 
       {totalEntities === 0 ? (
         <>

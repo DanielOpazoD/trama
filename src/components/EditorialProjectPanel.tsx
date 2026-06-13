@@ -3,6 +3,8 @@ import { useAddMomento, useUpdateReadingTable } from '../state'
 import { useToast } from '../state/toast'
 import type { ReadingTable, ReadingTableStatus } from '../api'
 import { EditorialReader } from './EditorialReader'
+import { PrintObject } from './print/PrintObject'
+import { renderMarkdown } from './notas/markdown'
 
 const STATUSES: ReadingTableStatus[] = ['borrador', 'redactando', 'revisando', 'cerrado']
 
@@ -24,6 +26,7 @@ export function EditorialProjectPanel({
   const toast = useToast()
   const [draft, setDraft] = useState(project.draftMarkdown ?? '')
   const [readingOpen, setReadingOpen] = useState(false)
+  const [printing, setPrinting] = useState(false)
 
   // Al cambiar de proyecto (o al llegar cambios remotos del borrador), resync.
   useEffect(() => {
@@ -113,6 +116,13 @@ export function EditorialProjectPanel({
         </button>
         <button
           type="button"
+          onClick={() => setPrinting(true)}
+          className="text-micro uppercase tracking-eyebrow text-ink-400 transition-colors hover:text-[color:var(--accent-primary)]"
+        >
+          exportar PDF
+        </button>
+        <button
+          type="button"
           onClick={publish}
           disabled={addMomento.isPending}
           className="text-micro uppercase tracking-eyebrow text-ink-400 transition-colors hover:text-[color:var(--accent-gold)] disabled:opacity-40"
@@ -127,6 +137,16 @@ export function EditorialProjectPanel({
         title={project.title}
         markdown={draft}
       />
+
+      {printing && (
+        <PrintObject onDone={() => setPrinting(false)}>
+          <div className="print-sheet">
+            <p className="print-sheet-eyebrow">Trama · proyecto editorial</p>
+            <h1>{project.title}</h1>
+            <div className="print-sheet-section">{renderMarkdown(draft)}</div>
+          </div>
+        </PrintObject>
+      )}
     </section>
   )
 }
