@@ -42,6 +42,15 @@ const CAPTURE_MODE_LABEL: Record<NonNullable<Recorte['captureMode']>, string> = 
   image: 'imagen',
 }
 
+function curationCueFor(r: Recorte): string {
+  if (r.imageKey || r.imageUrl)
+    return 'extrae texto si hace falta, o promuévelo como momento'
+  if (r.captureMode === 'article' || r.captureMode === 'html') {
+    return 'revisa la página y decide si queda como cita o momento'
+  }
+  return 'elige si será cita, entidad o momento'
+}
+
 // Pixel transparente mientras el blob authed viaja (evita el icono roto).
 const TRANSPARENT_PX =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
@@ -269,6 +278,18 @@ export function RecorteCard({
       </p>
 
       {r.note && <p className="mt-2 marginalia-script">{r.note}</p>}
+
+      {r.status === 'pending' && (
+        <div
+          aria-label="Siguiente curaduría"
+          className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-md border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)]/45 px-3 py-2"
+        >
+          <span className="text-micro uppercase tracking-eyebrow text-[color:var(--accent-gold)]">
+            pendiente de curaduría
+          </span>
+          <span className="text-caption text-ink-500">{curationCueFor(r)}</span>
+        </div>
+      )}
 
       {suggestion && <SuggestionBanner suggestion={suggestion} onUse={useSuggestion} />}
 
