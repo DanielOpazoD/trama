@@ -14,6 +14,7 @@ import {
 } from '../state'
 import { useToast } from '../state/toast'
 import type { ReadingTable } from '../api'
+import { EditorialReader } from './EditorialReader'
 import {
   buildKnowledgeInbox,
   knowledgeInboxCounts,
@@ -59,6 +60,7 @@ export function KnowledgeWorkflowView() {
   const createProject = useCreateReadingTable()
   const deleteProject = useDeleteReadingTable()
   const [projectTitle, setProjectTitle] = useState('')
+  const [readingOpen, setReadingOpen] = useState(false)
   const saveProject = async () => {
     const title =
       projectTitle.trim() || proposal.thesis.slice(0, 80) || 'Proyecto sin título'
@@ -236,13 +238,22 @@ export function KnowledgeWorkflowView() {
                     <h3 className="font-serif text-xl text-ink-700">
                       Propuesta narrativa
                     </h3>
-                    <button
-                      type="button"
-                      onClick={copyMarkdown}
-                      className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-800 transition-colors"
-                    >
-                      copiar Markdown
-                    </button>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setReadingOpen(true)}
+                        className="text-micro uppercase tracking-eyebrow text-ink-400 transition-colors hover:text-[color:var(--accent-primary)]"
+                      >
+                        leer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={copyMarkdown}
+                        className="text-micro uppercase tracking-eyebrow text-ink-400 transition-colors hover:text-ink-800"
+                      >
+                        copiar Markdown
+                      </button>
+                    </div>
                   </div>
                   <p className="mt-2 text-micro uppercase tracking-eyebrow text-ink-300">
                     Tesis provisional
@@ -315,6 +326,12 @@ export function KnowledgeWorkflowView() {
           </section>
         </aside>
       </div>
+      <EditorialReader
+        open={readingOpen}
+        onClose={() => setReadingOpen(false)}
+        title="Borrador editorial"
+        markdown={buildEditorialMarkdown(selectedItems, proposal)}
+      />
     </>
   )
 }
