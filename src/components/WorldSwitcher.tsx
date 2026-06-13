@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { TramaMark, NotesIcon, ChevronDownIcon, CheckIcon } from './Icons'
 import type { World } from '../types/world'
 
@@ -9,8 +10,16 @@ import type { World } from '../types/world'
  * escala cuando se sumen más mundos. Va en el header de CADA mundo para que
  * el cambio esté siempre a mano.
  *
- * `collapsed`: variante solo-marca (sidebar contraído de la Trama); el menú
- * se abre a la derecha en vez de abajo.
+ * `collapsed`: variante solo-marca (sidebar contraído de la Trama / TopBar
+ * móvil). El menú es idéntico en ambos casos.
+ *
+ * El menú se renderiza con un PORTAL al `document.body` y se ancla por
+ * coordenadas al trigger. Razón: si vive como hijo del TopBar, queda atrapado
+ * en el stacking context de esa barra (z-auto) y la navegación móvil —un flex
+ * item con `z-nav`— lo pinta por encima. Portalearlo lo saca a la raíz, donde
+ * `z-dropdown` (40) sí gana sobre `z-nav` (30). Antes, además, el dropdown
+ * `absolute` se volvía `relative` por `.paper-grain` y empujaba la barra; eso
+ * se arregló en index.css, pero el portal es lo que garantiza el apilamiento.
  */
 type WorldDef = {
   id: World
@@ -37,6 +46,9 @@ const WORLDS: WorldDef[] = [
   },
 ]
 
+const MENU_WIDTH = 240 // px — coincide con w-60; usado para clampear al viewport
+const VIEWPORT_MARGIN = 12 // px de aire contra los bordes
+
 export function WorldSwitcher({
   world,
   onChangeWorld,
@@ -47,15 +59,46 @@ export function WorldSwitcher({
   collapsed?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement | null>(null)
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
 
+  // Posiciona el menú bajo el trigger, clampeado al viewport para que no se
+  // salga por el borde derecho en móvil. Se recalcula en resize/scroll.
+  useLayoutEffect(() => {
+    if (!open) return
+    function place() {
+      const btn = triggerRef.current
+      if (!btn) return
+      const r = btn.getBoundingClientRect()
+      const maxLeft = window.innerWidth - MENU_WIDTH - VIEWPORT_MARGIN
+      const left = Math.max(VIEWPORT_MARGIN, Math.min(r.left, maxLeft))
+      setCoords({ top: r.bottom + 6, left })
+    }
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [open])
+
+  // Cerrar al clic afuera o con Escape. El menú vive en un portal, así que
+  // "afuera" = ni el trigger ni el propio menú.
   useEffect(() => {
     if (!open) return
     function onDown(e: MouseEvent) {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      if (triggerRef.current?.contains(t)) return
+      if (menuRef.current?.contains(t)) return
+      setOpen(false)
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') {
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
     }
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
@@ -68,8 +111,9 @@ export function WorldSwitcher({
   const current = WORLDS.find((w) => w.id === world) ?? WORLDS[0]!
 
   return (
-    <div ref={ref} className="relative min-w-0">
+    <div className="min-w-0">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
@@ -95,54 +139,60 @@ export function WorldSwitcher({
         )}
       </button>
 
-      {open && (
-        <div
-          role="menu"
-          // Siempre abajo-izquierda y acotado al viewport, para que no se salga
-          // de pantalla en móvil (donde el trigger vive en el borde superior).
-          className="absolute z-50 left-0 top-full mt-1.5 w-60 max-w-[calc(100vw-1.5rem)] paper-grain rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 p-1.5"
-        >
-          <p className="px-2 pt-1 pb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
-            Mundos
-          </p>
-          {WORLDS.map((w) => {
-            const Icon = w.icon
-            const active = w.id === world
-            return (
-              <button
-                key={w.id}
-                type="button"
-                role="menuitemradio"
-                aria-checked={active}
-                onClick={() => {
-                  onChangeWorld(w.id)
-                  setOpen(false)
-                }}
-                className={`w-full flex items-start gap-2.5 px-2 py-1.5 rounded-md text-left transition-colors ${
-                  active ? 'bg-ink-100/70' : 'hover:bg-ink-100/50'
-                }`}
-              >
-                <span className="mt-0.5 inline-flex shrink-0" style={{ color: w.accent }}>
-                  <Icon size={14} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5">
-                    <span
-                      className={`text-sm ${active ? 'text-ink-800 font-medium' : 'text-ink-700'}`}
-                    >
-                      {w.label}
+      {open &&
+        coords &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            style={{ top: coords.top, left: coords.left }}
+            className="fixed z-dropdown w-60 max-w-[calc(100vw-1.5rem)] paper-grain rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 p-1.5 animate-fade-up origin-top motion-reduce:animate-none"
+          >
+            <p className="px-2 pt-1 pb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
+              Mundos
+            </p>
+            {WORLDS.map((w) => {
+              const Icon = w.icon
+              const active = w.id === world
+              return (
+                <button
+                  key={w.id}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={active}
+                  onClick={() => {
+                    onChangeWorld(w.id)
+                    setOpen(false)
+                  }}
+                  className={`w-full flex items-start gap-2.5 px-2 py-1.5 rounded-md text-left transition-colors ${
+                    active ? 'bg-ink-100/70' : 'hover:bg-ink-100/50'
+                  }`}
+                >
+                  <span
+                    className="mt-0.5 inline-flex shrink-0"
+                    style={{ color: w.accent }}
+                  >
+                    <Icon size={14} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className={`text-sm ${active ? 'text-ink-800 font-medium' : 'text-ink-700'}`}
+                      >
+                        {w.label}
+                      </span>
+                      {active && <CheckIcon size={12} className="text-ink-500" />}
                     </span>
-                    {active && <CheckIcon size={12} className="text-ink-500" />}
+                    <span className="block text-micro text-ink-400 leading-tight">
+                      {w.hint}
+                    </span>
                   </span>
-                  <span className="block text-micro text-ink-400 leading-tight">
-                    {w.hint}
-                  </span>
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      )}
+                </button>
+              )
+            })}
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }
