@@ -56,6 +56,18 @@ export default withObservability(
     }
 
     if (req.method === 'GET') {
+      // ?url= → chequeo de existencia para la extensión (¿ya es favorita?).
+      const probeUrl = new URL(req.url).searchParams.get('url')
+      if (probeUrl) {
+        const found = await sqlTyped<FavoritoRow>(sql`
+          SELECT id, url, title, note, created_at, updated_at
+          FROM favoritos
+          WHERE deleted_at IS NULL AND user_id = ${userId} AND url = ${probeUrl}
+          ORDER BY created_at DESC
+          LIMIT 1
+        `)
+        return cors(Response.json({ favorito: found[0] ?? null }))
+      }
       const rows = await sqlTyped<FavoritoRow>(sql`
         SELECT id, url, title, note, created_at, updated_at
         FROM favoritos
@@ -71,12 +83,30 @@ export default withObservability(
       const parsed = await parseJsonBody(req, FavoritoCreateBody, requestId)
       if (!parsed.ok) return cors(parsed.response)
       const b = parsed.data
-      const rows = await sqlTyped<FavoritoRow>(sql`
-        INSERT INTO favoritos (url, title, note, user_id)
-        VALUES (${b.url}, ${b.title ?? null}, ${b.note ?? null}, ${userId})
-        RETURNING id, url, title, note, created_at, updated_at
+      // Idempotente por URL: si la página ya es favorita (no borrada), devuelve
+      // la existente (200) en lugar de duplicarla; si no, la inserta (201).
+      const rows = await sqlTyped<FavoritoRow & { inserted: boolean }>(sql`
+        WITH existing AS (
+          SELECT id, url, title, note, created_at, updated_at
+          FROM favoritos
+          WHERE user_id = ${userId} AND url = ${b.url} AND deleted_at IS NULL
+          LIMIT 1
+        ),
+        ins AS (
+          INSERT INTO favoritos (url, title, note, user_id)
+          SELECT ${b.url}, ${b.title ?? null}, ${b.note ?? null}, ${userId}
+          WHERE NOT EXISTS (SELECT 1 FROM existing)
+          RETURNING id, url, title, note, created_at, updated_at
+        )
+        SELECT id, url, title, note, created_at, updated_at, true AS inserted FROM ins
+        UNION ALL
+        SELECT id, url, title, note, created_at, updated_at, false AS inserted FROM existing
       `)
-      return cors(Response.json(rows[0], { status: 201 }))
+      const row = rows[0]
+      if (!row)
+        return cors(Response.json({ error: 'No se pudo guardar' }, { status: 500 }))
+      const { inserted, ...favorito } = row
+      return cors(Response.json(favorito, { status: inserted ? 201 : 200 }))
     }
 
     if (req.method === 'PATCH' && id) {

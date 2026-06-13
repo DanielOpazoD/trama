@@ -28,3 +28,26 @@ export async function saveFavorito(tab) {
     return { ok: false, error: 'Sin conexión con el servidor.' }
   }
 }
+
+/**
+ * ¿La página ya está en Favoritos? Consulta liviana por URL exacta — para que
+ * el popup abra con la estrella dorada y no se dupliquen marcadores.
+ * @param {{ url?: string } | null | undefined} tab
+ * @returns {Promise<{ ok: boolean, exists: boolean }>}
+ */
+export async function favoritoStatus(tab) {
+  const url = tab?.url
+  if (!url || !/^https?:/.test(url)) return { ok: false, exists: false }
+  const { token, baseUrl } = await getConfig()
+  if (!token) return { ok: false, exists: false }
+  try {
+    const res = await fetch(`${baseUrl}/api/favoritos?url=${encodeURIComponent(url)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return { ok: false, exists: false }
+    const data = await res.json()
+    return { ok: true, exists: Boolean(data?.favorito) }
+  } catch {
+    return { ok: false, exists: false }
+  }
+}

@@ -21,7 +21,7 @@ import {
 } from './lib/capture.js'
 import { cropAndSaveRegion, startRegionCapture } from './lib/region.js'
 import { saveImage } from './lib/image.js'
-import { saveFavorito } from './lib/favorito.js'
+import { favoritoStatus, saveFavorito } from './lib/favorito.js'
 
 const MENU_ID = 'trama-save-selection'
 const MENU_IMAGE = 'trama-save-image'
@@ -167,6 +167,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg?.kind === 'trama-favorite') {
     activeTab().then((tab) => saveFavorito(tab).then(sendResponse))
+    return true
+  }
+  if (msg?.kind === 'trama-favorite-status') {
+    activeTab().then((tab) => favoritoStatus(tab).then(sendResponse))
     return true
   }
   return undefined
