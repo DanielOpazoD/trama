@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useEntitiesQuery } from '../state'
 import { EntitySigil } from './EntitySigil'
 import { ENTITY_TYPES } from '../types'
 import type { ViewMode } from './Sidebar'
@@ -81,13 +80,10 @@ export function CommandPalette({
       "#pass" → Claves desde el ⌘K del mundo principal. */
   onRevealNotasModule?: (moduleId: NotasSection) => void
 }) {
-  const { query, setQuery, items, searching } = useCommandSearch({
+  const { query, setQuery, items, searching, entitiesForPeek } = useCommandSearch({
     open,
     actionsEnabled: Boolean(onAction),
   })
-  // Para el peek de entidades: lee la query YA cacheada (no dispara red extra
-  // — el palette solo se monta abierto y las entidades viven en caché).
-  const entities = useEntitiesQuery().data
   const [focusIdx, setFocusIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -239,7 +235,7 @@ export function CommandPalette({
                   aria-label="Vista previa del resultado"
                   className="hidden md:block w-72 shrink-0 border-l border-ink-100/60 bg-paper-100/30 max-h-[50vh] overflow-y-auto"
                 >
-                  <PeekPanel item={items[focusIdx]} entities={entities} />
+                  <PeekPanel item={items[focusIdx]} entities={entitiesForPeek} />
                 </aside>
               )}
             </div>

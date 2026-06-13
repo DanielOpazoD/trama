@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useEntitiesQuery, usePromoteRecorte } from '../../state'
 import { useToast } from '../../state/toast'
 import { ENTITY_TYPES } from '../../types'
 import type { Recorte, RecorteTarget } from '../../api'
 import { CloseIcon } from '../Icons'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 export type PromoteSeed = {
   title?: string
@@ -43,6 +44,13 @@ export function PromoteModal({
     [recorte.sourceTitle, recorte.sourceAuthor].filter(Boolean).join(' · '),
   )
   const [busy, setBusy] = useState(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const textRef = useRef<HTMLTextAreaElement>(null)
+  useFocusTrap(dialogRef, true)
+
+  useEffect(() => {
+    textRef.current?.focus()
+  }, [])
 
   const sortedEntities = useMemo(
     () => [...entities].sort((a, b) => a.name.localeCompare(b.name)),
@@ -130,7 +138,9 @@ export function PromoteModal({
         tabIndex={-1}
       />
       <div
+        ref={dialogRef}
         role="dialog"
+        aria-modal="true"
         aria-label={`Promover a ${TARGET_LABEL[target]}`}
         className="fixed inset-x-4 top-16 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[480px] z-50 flex flex-col rounded-xl border border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 overflow-hidden animate-slide-up"
       >
@@ -159,6 +169,7 @@ export function PromoteModal({
           <label className="block text-caption text-ink-700">
             Texto
             <textarea
+              ref={textRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
               disabled={busy}

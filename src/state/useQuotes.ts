@@ -36,10 +36,11 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
-export function useQuotesQuery() {
+export function useQuotesQuery(options: { enabled?: boolean } = {}) {
   const { setOffline, offline } = useOffline()
   return useQuery({
     queryKey: queryKeys.quotes,
+    enabled: options.enabled ?? true,
     queryFn: async () => {
       try {
         const result = await api.listQuotes()

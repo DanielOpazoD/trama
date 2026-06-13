@@ -123,6 +123,19 @@ describe('<RecortesView />', () => {
     expect(screen.getByRole('button', { name: 'crear momento' })).toBeEnabled()
   })
 
+  it('promover atrapa el foco dentro del modal y lo restaura al cerrar', async () => {
+    setup([recorte()])
+    const trigger = screen.getByRole('button', { name: '→ momento' })
+    trigger.focus()
+    fireEvent.click(trigger)
+
+    const textArea = screen.getByLabelText('Texto')
+    await waitFor(() => expect(textArea).toHaveFocus())
+
+    fireEvent.click(screen.getByRole('button', { name: 'cancelar' }))
+    await waitFor(() => expect(trigger).toHaveFocus())
+  })
+
   it('archivar dispara el PATCH de estado', async () => {
     const fetchSpy = vi.fn(
       async () =>

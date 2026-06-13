@@ -2,9 +2,21 @@ import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
 
 vi.mock('./db.js', () => setupMockSql())
+vi.mock('./embeddings.js', () => ({
+  embedSafe: vi.fn(async () => ({ vector: [0.1, 0.2], model: 'test-embed' })),
+  entityEmbeddingText: vi.fn((input) => `entity:${input.name}`),
+  quoteEmbeddingText: vi.fn((input) => `quote:${input.text}:${input.entityName ?? ''}`),
+  toPgVector: vi.fn((vector) => `[${vector.join(',')}]`),
+}))
 
 import recortesHandler from '../recortes'
 import tokensHandler from '../api-tokens'
+import {
+  embedSafe,
+  entityEmbeddingText,
+  quoteEmbeddingText,
+  toPgVector,
+} from './embeddings'
 import {
   extensionCorsHeaders,
   extensionPreflight,
@@ -46,7 +58,13 @@ const ROW = {
   updated_at: '2026-06-10T12:00:00.000Z',
 }
 
-beforeEach(() => mockSqlResponses.reset())
+beforeEach(() => {
+  mockSqlResponses.reset()
+  vi.mocked(embedSafe).mockClear()
+  vi.mocked(entityEmbeddingText).mockClear()
+  vi.mocked(quoteEmbeddingText).mockClear()
+  vi.mocked(toPgVector).mockClear()
+})
 
 describe('recortes endpoint', () => {
   it('GET lista los recortes del usuario', async () => {
@@ -163,6 +181,7 @@ describe('recortes endpoint', () => {
 
   it('promote quote crea la cita y marca el recorte en un CTE idempotente', async () => {
     mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ name: 'Borges' }]) // entity name for embedding context
     mockSqlResponses.push([{ ...ROW, status: 'promoted', promoted_target: 'quote' }])
     const ok = await recortesHandler(
       new Request(`http://localhost/api/recortes/${ROW.id}/promote`, {
@@ -186,9 +205,18 @@ describe('recortes endpoint', () => {
       /INSERT INTO quotes/i.test(c.template),
     )
     expect(promoteCte?.template).toMatch(/UPDATE recortes/i)
+    expect(promoteCte?.template).toMatch(/embedding, embedding_model, embedding_at/i)
     expect(promoteCte?.values).toContain(ROW.text)
+    expect(quoteEmbeddingText).toHaveBeenCalledWith({
+      text: ROW.text,
+      entityName: 'Borges',
+      source: 'El taller',
+      context: null,
+    })
+    expect(toPgVector).toHaveBeenCalledWith([0.1, 0.2])
 
     mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([]) // entity name unavailable, idempotent CTE still returns existing
     mockSqlResponses.push([
       {
         ...ROW,
@@ -237,9 +265,17 @@ describe('recortes endpoint', () => {
     expect(
       mockSqlResponses.calls.some(
         (c) =>
-          /INSERT INTO entities/i.test(c.template) && /UPDATE recortes/i.test(c.template),
+          /INSERT INTO entities/i.test(c.template) &&
+          /embedding, embedding_model, embedding_at/i.test(c.template) &&
+          /UPDATE recortes/i.test(c.template),
       ),
     ).toBe(true)
+    expect(entityEmbeddingText).toHaveBeenCalledWith({
+      name: 'Memoria',
+      type: 'concepto',
+      year: null,
+      description: 'La memoria es un taller.',
+    })
 
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ ...ROW, status: 'promoted', promoted_target: 'momento' }])
@@ -263,7 +299,9 @@ describe('recortes endpoint', () => {
     expect(
       mockSqlResponses.calls.some(
         (c) =>
-          /INSERT INTO momentos/i.test(c.template) && /UPDATE recortes/i.test(c.template),
+          /INSERT INTO momentos/i.test(c.template) &&
+          /embedding, embedding_model, embedding_at/i.test(c.template) &&
+          /UPDATE recortes/i.test(c.template),
       ),
     ).toBe(true)
   })
