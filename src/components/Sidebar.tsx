@@ -7,26 +7,10 @@ import {
 } from '../state'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useSectionVisibility } from '../hooks/useSectionVisibility'
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChatIcon,
-  AtlasIcon,
-  CronologiaIcon,
-  EntitiesIcon,
-  GraphIcon,
-  HomeIcon,
-  MomentosIcon,
-  ScissorsIcon,
-  MusicIcon,
-  QuoteIcon,
-  SearchIcon,
-  SettingsIcon,
-  SparkleIcon,
-  TwitterIcon,
-} from './Icons'
+import { ChevronLeftIcon, ChevronRightIcon, SearchIcon, SettingsIcon } from './Icons'
 import { AIModeToggle } from './AIModeToggle'
-import { NavButton, type NavItem } from './sidebar/NavButton'
+import { NavButton } from './sidebar/NavButton'
+import { NAV_GROUPS } from '../lib/navigation'
 import { Tooltip } from './Tooltip'
 import { SECTION_ACCENT } from '../lib/sectionAccent'
 import { WorldSwitcher } from './WorldSwitcher'
@@ -48,46 +32,10 @@ const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 import type { ViewMode } from '../types/view'
 export type { ViewMode }
 
-// τ-IA: las 10 vistas top-level ya no son una lista plana — se agrupan por
-// su naturaleza para descomprimir la barra (antes 10 ítems sin jerarquía):
-//   · Mi trama — lo que acumulás (colecciones)
-//   · Miradas  — lentes sobre el conjunto entero (Grafo/Cronología/Atlas no
-//                son destinos sueltos, son tres formas de ver lo mismo)
-//   · Diálogo  — superficies de IA
-// 'Inicio' queda suelto arriba como punto de entrada. El orden de los grupos
-// es el orden de lectura: primero tu material, después las miradas, al final
-// la conversación.
-type NavGroup = { label: string | null; items: NavItem[] }
-
-const NAV_GROUPS: NavGroup[] = [
-  { label: null, items: [{ value: 'inicio', label: 'Inicio', icon: HomeIcon }] },
-  {
-    label: 'Mi trama',
-    items: [
-      { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
-      { value: 'citas', label: 'Citas', icon: QuoteIcon },
-      { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
-      { value: 'recortes', label: 'Recortes', icon: ScissorsIcon },
-      { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
-      { value: 'twitter', label: 'Twitter', icon: TwitterIcon },
-    ],
-  },
-  {
-    label: 'Miradas',
-    items: [
-      { value: 'grafo', label: 'Grafo', icon: GraphIcon },
-      { value: 'cronologia', label: 'Cronología', icon: CronologiaIcon },
-      { value: 'atlas', label: 'Atlas', icon: AtlasIcon },
-    ],
-  },
-  {
-    label: 'Diálogo',
-    items: [
-      { value: 'chat', label: 'Chat', icon: ChatIcon },
-      { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
-    ],
-  },
-]
+// τ-IA: las vistas top-level se agrupan por naturaleza (Mi trama / Miradas /
+// Diálogo) para descomprimir la barra. La lista —antes definida acá— vive
+// ahora en src/lib/navigation.ts como fuente de verdad compartida con la
+// MobileBottomNav y la hoja "Más". Editar las vistas se hace allí.
 
 // λ4: la firma cromática por vista vive en src/lib/sectionAccent.ts —
 // fuente de verdad compartida entre Sidebar, MobileBottomNav y
