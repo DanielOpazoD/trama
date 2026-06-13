@@ -27,6 +27,12 @@ function health(alerts: HealthAlert[]): HealthResponse {
     counts: { entities: 1, quotes: 2, relationships: 3 },
     month: { calls: 0, tokensIn: 0, tokensOut: 0, costCents: 0 },
     budget: { limitCents: 1000, remainingCents: 1000, pct: 0 },
+    auth: {
+      clerkConfigured: false,
+      legacyFallbackAllowed: false,
+      legacyOwnerMapped: false,
+      mode: 'legacy-single-user',
+    },
     byProvider: [],
     recentErrors: [],
     alerts,

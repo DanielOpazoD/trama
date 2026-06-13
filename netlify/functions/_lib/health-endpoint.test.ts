@@ -35,6 +35,9 @@ describe('health endpoint — aislamiento por user_id', () => {
   })
   afterEach(() => {
     delete process.env['AI_MONTHLY_BUDGET_CENTS']
+    delete process.env['CLERK_SECRET_KEY']
+    delete process.env['ALLOW_LEGACY_FALLBACK']
+    delete process.env['LEGACY_OWNER_CLERK_ID']
     resetEnvCache()
     vi.unstubAllGlobals()
   })
@@ -91,6 +94,32 @@ describe('health endpoint — aislamiento por user_id', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.budget.limitCents).toBe(5000)
+  })
+
+  it('expone el estado de cutover auth y alerta si el fallback legacy sigue activo', async () => {
+    process.env['CLERK_SECRET_KEY'] = 'sk_test_health'
+    process.env['ALLOW_LEGACY_FALLBACK'] = 'true'
+    process.env['LEGACY_OWNER_CLERK_ID'] = 'user_owner'
+    resetEnvCache()
+
+    const res = await handler(new Request('http://localhost/api/health'), mockContext())
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.auth).toEqual({
+      clerkConfigured: true,
+      legacyFallbackAllowed: true,
+      legacyOwnerMapped: true,
+      mode: 'clerk-with-legacy-fallback',
+    })
+    expect(body.alerts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'auth_legacy_fallback',
+          severity: 'warn',
+        }),
+      ]),
+    )
   })
 
   it('interpola el id del usuario autenticado en las queries', async () => {

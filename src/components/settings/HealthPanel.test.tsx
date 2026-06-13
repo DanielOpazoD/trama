@@ -47,6 +47,12 @@ const HEALTH_FIXTURE: HealthResponse = {
       hint: 'Revisa los costos de IA antes de seguir.',
     },
   ],
+  auth: {
+    clerkConfigured: true,
+    legacyFallbackAllowed: false,
+    legacyOwnerMapped: true,
+    mode: 'clerk',
+  },
   embeddings: { pendingEntities: 0, pendingQuotes: 0 },
   dailyCost: [
     { day: '2026-05-30', costCents: 0, calls: 0 },
@@ -98,5 +104,30 @@ describe('<HealthPanel />', () => {
       expect(getHealth).toHaveBeenCalledTimes(2)
     })
     expect(await screen.findByText(/sin errores/i)).toBeInTheDocument()
+  })
+
+  it('muestra alerta operativa cuando Clerk permite fallback legacy', async () => {
+    vi.spyOn(api, 'getHealth').mockResolvedValue({
+      ...HEALTH_FIXTURE,
+      auth: {
+        clerkConfigured: true,
+        legacyFallbackAllowed: true,
+        legacyOwnerMapped: true,
+        mode: 'clerk-with-legacy-fallback',
+      },
+      alerts: [
+        {
+          severity: 'warn',
+          code: 'auth_legacy_fallback',
+          label: 'Fallback legacy activo',
+          hint: 'Producción no debería aceptar requests sin token Clerk.',
+        },
+      ],
+    })
+
+    renderWithProviders(<HealthPanel />)
+
+    expect(await screen.findByText('Fallback legacy activo')).toBeInTheDocument()
+    expect(screen.getByText(/requests sin token Clerk/i)).toBeInTheDocument()
   })
 })
