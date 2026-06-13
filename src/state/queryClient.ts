@@ -35,6 +35,7 @@ export const queryKeys = {
   favoritos: ['favoritos'] as const,
   readingTables: ['reading-tables'] as const,
   apiTokens: ['api-tokens'] as const,
+  whatsappLinks: ['whatsapp-links'] as const,
   // ['tasks'] es el prefijo de TODOS los queries de tareas (completo, por rango,
   // pendientes); invalidar este prefijo refresca cualquier variante en cache.
   tasks: ['tasks'] as const,
