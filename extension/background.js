@@ -19,18 +19,11 @@ import {
   showPageToast,
   testConnection,
 } from './lib/capture.js'
-import {
-  addToCollection,
-  clearCollection,
-  getCollection,
-  saveCollection,
-} from './lib/collection.js'
 import { cropAndSaveRegion, startRegionCapture } from './lib/region.js'
 import { saveImage } from './lib/image.js'
-import { saveFavorito } from './lib/favorito.js'
+import { favoritoStatus, saveFavorito } from './lib/favorito.js'
 
 const MENU_ID = 'trama-save-selection'
-const MENU_COLLECT = 'trama-collect'
 const MENU_IMAGE = 'trama-save-image'
 const MENU_PAGE = 'trama-save-page'
 const MENU_FAVORITE = 'trama-save-favorite'
@@ -40,11 +33,6 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
       id: MENU_ID,
       title: 'Guardar selección en Trama',
-      contexts: ['selection'],
-    })
-    chrome.contextMenus.create({
-      id: MENU_COLLECT,
-      title: 'Añadir a la colección de Trama',
       contexts: ['selection'],
     })
     chrome.contextMenus.create({
@@ -91,10 +79,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const r = await saveSelection(info.selectionText, tab)
     const t = toastForResult(r)
     void showPageToast(tabId, t.msg, t.tone)
-  } else if (info.menuItemId === MENU_COLLECT && info.selectionText) {
-    if (tabId != null) void flashHighlight(tabId)
-    const { count } = await addToCollection(info.selectionText, tab)
-    void showPageToast(tabId, `Sumado a la colección · ${count}`, 'ok')
   } else if (info.menuItemId === MENU_IMAGE && info.srcUrl) {
     // Descarga los bytes a tu almacenamiento (pide permiso del dominio la
     // primera vez); si se deniega o falla, guarda la URL externa.
@@ -185,20 +169,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     activeTab().then((tab) => saveFavorito(tab).then(sendResponse))
     return true
   }
-  if (msg?.kind === 'trama-collection') {
-    getCollection().then((c) => sendResponse({ count: c ? c.fragments.length : 0 }))
-    return true
-  }
-  if (msg?.kind === 'trama-collection-add') {
-    addToCollection(msg.text, msg.tab).then(sendResponse)
-    return true
-  }
-  if (msg?.kind === 'trama-collection-save') {
-    saveCollection().then(sendResponse)
-    return true
-  }
-  if (msg?.kind === 'trama-collection-clear') {
-    clearCollection().then(() => sendResponse({ ok: true }))
+  if (msg?.kind === 'trama-favorite-status') {
+    activeTab().then((tab) => favoritoStatus(tab).then(sendResponse))
     return true
   }
   return undefined

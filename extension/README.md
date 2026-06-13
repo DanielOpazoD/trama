@@ -58,10 +58,6 @@ se adapta al modo elegido:
 
 ## Más gestos de texto
 
-- **Colección (varios resaltados → un recorte)**: «Añadir a la colección
-  de Trama» (clic derecho o el botón del popup) va sumando fragmentos; el
-  popup muestra la cuenta y permite «guardar colección» (todos juntos como
-  un solo recorte) o «vaciar». El badge naranja lleva la cuenta.
 - **Captura estructurada de X y Reddit**: al guardar en x.com o reddit.com,
   la extensión extrae autor + texto + permalink limpios del tweet/post que
   contiene tu selección (best-effort; si el DOM cambió, cae a la selección).
@@ -116,7 +112,7 @@ cablea eventos de Chrome; la lógica vive en **ES modules** bajo `lib/`:
 - `recorte.js` — armado del payload + camino único de guardado.
 - `inject.js` — funciones que se **inyectan en la página** (extractores,
   resaltado, overlay de región, toast); autocontenidas y duck-typed.
-- `region.js` / `collection.js` / `capture.js` — orquestación por gesto.
+- `region.js` / `capture.js` — orquestación por gesto.
 
 Calidad (sin paso de build):
 

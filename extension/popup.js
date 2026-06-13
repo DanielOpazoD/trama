@@ -1,10 +1,10 @@
 // @ts-check
 /**
  * Popup de Trama - Recortes. Precarga la seleccion de la pestana activa
- * (solo al abrirse: gesto explicito del usuario), muestra la fuente
- * (favicon + dominio), deja anotar, y delega el guardado al service
- * worker (un solo camino al backend, con cola offline). La pestana
- * "conexion" guarda token y servidor, y permite probar la conexion.
+ * (solo al abrirse: gesto explicito del usuario), deja anotar, y delega el
+ * guardado al service worker (un solo camino al backend, con cola offline).
+ * El estado de "conexion" vive arriba; ahi se guarda token y servidor y se
+ * prueba la conexion.
  */
 
 /**
@@ -44,10 +44,7 @@ function setMode(mode) {
   const isPage = mode !== 'citation'
   // En modos de página el textarea no aplica (se captura todo) → se oculta y
   // el botón queda siempre habilitado; en cita vuelve la cuenta de caracteres.
-  // La colección solo aplica a fragmentos de texto; la captura de región
-  // queda disponible en cualquier modo.
   $('textoLabel').hidden = isPage
-  $('addCollect').hidden = isPage
   $('modeHint').hidden = !isPage
   $('modeHint').textContent = isPage ? MODE_HINT[mode] : ''
   $('guardar').textContent = MODE_BUTTON[mode]
@@ -71,16 +68,9 @@ function hostOf(url) {
   }
 }
 
-async function showSource() {
+/** Carga la pestaña activa: la necesitan el favorito y la precarga de cita. */
+async function loadTab() {
   currentTab = await activeTab()
-  if (!currentTab?.url) return
-  const host = hostOf(currentTab.url)
-  if (!host) return
-  $('srcTitle').textContent = currentTab.title || host
-  $('srcHost').textContent = host
-  // Favicon via el servicio de Google (no requiere permisos de host).
-  $('favicon').src = `https://www.google.com/s2/favicons?domain=${host}&sz=32`
-  $('source').hidden = false
 }
 
 async function preloadSelection() {
@@ -134,16 +124,24 @@ async function loadConfig() {
  *  verde si el servidor responde con el token, rojo si falla, gris si aún no
  *  hay token. Así no hace falta pulsar «Probar conexión» para saber si está
  *  sincronizado. */
+/** Refleja el estado en el indicador del tope (punto + etiqueta):
+ *  '' = sin token (gris), 'ok' = conectado (verde), 'err' = sin conexión (rojo). */
+function setConn(state) {
+  $('connDot').className = state ? `conn-dot ${state}` : 'conn-dot'
+  $('connLabel').textContent =
+    state === 'ok' ? 'conectado' : state === 'err' ? 'sin conexión' : 'conexión'
+}
+
 async function refreshConnStatus() {
   if (!$('token').value.trim()) {
-    $('connDot').className = 'conn-dot'
+    setConn('')
     return
   }
   try {
     const res = await chrome.runtime.sendMessage({ kind: 'trama-test' })
-    $('connDot').className = res?.ok ? 'conn-dot ok' : 'conn-dot err'
+    setConn(res?.ok ? 'ok' : 'err')
   } catch {
-    $('connDot').className = 'conn-dot err'
+    setConn('err')
   }
 }
 
@@ -202,6 +200,13 @@ $('modes').addEventListener('click', (e) => {
 })
 
 $('texto').addEventListener('input', updateCount)
+// ⌘/Ctrl + Enter guarda sin levantar la mano del teclado.
+$('texto').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault()
+    $('guardar').click()
+  }
+})
 
 $('guardarConfig').addEventListener('click', async () => {
   await chrome.storage.local.set({
@@ -218,14 +223,14 @@ $('probar').addEventListener('click', async () => {
     tramaBaseUrl: $('baseUrl').value.trim() || 'https://tramahub.app',
   })
   $('probar').disabled = true
-  $('connDot').className = 'conn-dot'
+  setConn('')
   const res = await chrome.runtime.sendMessage({ kind: 'trama-test' })
   $('probar').disabled = false
   if (res?.ok) {
-    $('connDot').className = 'conn-dot ok'
+    setConn('ok')
     setEstado('conexion verificada', 'ok')
   } else {
-    $('connDot').className = 'conn-dot err'
+    setConn('err')
     setEstado(res?.reason ?? 'no se pudo conectar', 'err')
   }
 })
@@ -251,7 +256,9 @@ async function refreshRecent() {
     return
   }
   const baseUrl = res?.baseUrl || 'https://tramahub.app'
-  $('openTray').href = `${baseUrl.replace(/\/+$/, '')}/?view=recortes`
+  const root = baseUrl.replace(/\/+$/, '')
+  $('openTray').href = `${root}/?view=recortes`
+  $('openFavorites').href = `${root}/?view=recortes&tab=favoritos`
   if (!res?.ok) return // sin token o sin conexión: la sección queda oculta
   const list = $('recentList')
   list.textContent = ''
@@ -349,76 +356,49 @@ $('guardar').addEventListener('click', async () => {
     if (/token/i.test($('estado').textContent)) $('config').open = true
   }
 })
-/** Refresca el indicador de la colección (varios fragmentos → un recorte). */
-async function refreshCollection() {
-  let res
+/** Pinta el botón como ya guardado: estrella dorada y rellena, y lo deshabilita
+ *  para no duplicar el marcador. */
+function markFavoriteSaved() {
+  $('saveFavorite').classList.add('saved')
+  $('saveFavorite').disabled = true
+  $('saveFavorite').title = 'Ya está en tus Favoritos'
+  $('favStar').textContent = '★'
+}
+
+/** Al abrir: ¿la página ya es favorita? Si sí, abre con la estrella dorada. */
+async function checkFavorite() {
   try {
-    res = await chrome.runtime.sendMessage({ kind: 'trama-collection' })
+    const res = await chrome.runtime.sendMessage({ kind: 'trama-favorite-status' })
+    if (res?.ok && res.exists) markFavoriteSaved()
   } catch {
-    return
-  }
-  const count = res?.count ?? 0
-  if (count > 0) {
-    $('collectionCount').textContent = `colección: ${count} fragmento(s)`
-    $('collectionNote').hidden = false
-  } else {
-    $('collectionNote').hidden = true
+    /* sin token/conexión: el botón queda en su estado normal */
   }
 }
 
 $('saveFavorite').addEventListener('click', async () => {
   setEstado('marcando como favorito...')
   const res = await chrome.runtime.sendMessage({ kind: 'trama-favorite' })
-  if (res?.ok) setEstado('página guardada en Favoritos', 'ok')
-  else setEstado(res?.error ?? 'no se pudo guardar', 'err')
-})
-
-$('addCollect').addEventListener('click', async () => {
-  const text = $('texto').value.trim()
-  if (!text) {
-    setEstado('selecciona o pega un fragmento primero', 'err')
-    return
-  }
-  const tab = currentTab ?? (await activeTab())
-  await chrome.runtime.sendMessage({
-    kind: 'trama-collection-add',
-    text,
-    tab: tab ? { url: tab.url, title: tab.title } : null,
-  })
-  $('texto').value = ''
-  updateCount()
-  setEstado('sumado a la colección', 'ok')
-  refreshCollection()
-})
-
-$('saveCollection').addEventListener('click', async () => {
-  setEstado('uniendo los fragmentos...')
-  const res = await chrome.runtime.sendMessage({ kind: 'trama-collection-save' })
   if (res?.ok) {
-    setEstado('colección guardada como un recorte', 'ok')
-    refreshCollection()
-    refreshRecent()
+    markFavoriteSaved()
+    setEstado('página guardada en Favoritos', 'ok')
   } else {
-    setEstado(res?.error ?? 'no se pudo guardar la colección', 'err')
+    setEstado(res?.error ?? 'no se pudo guardar', 'err')
   }
-})
-
-$('clearCollection').addEventListener('click', async () => {
-  await chrome.runtime.sendMessage({ kind: 'trama-collection-clear' })
-  setEstado('colección vaciada', 'ok')
-  refreshCollection()
 })
 ;(async () => {
   await loadTheme()
   setMode('citation')
-  // loadConfig primero: deja el token disponible para el estado de conexión.
-  await Promise.all([loadConfig(), showSource()])
+  // loadConfig + loadTab primero: token listo para el estado de conexión y
+  // pestaña activa lista para precargar la selección.
+  await Promise.all([loadConfig(), loadTab()])
   await Promise.all([
     preloadSelection(),
     refreshConnStatus(),
     refreshQueue(),
     refreshRecent(),
-    refreshCollection(),
+    checkFavorite(),
   ])
   updateCount()
+  // Foco en el textarea para pegar de inmediato (solo en modo cita).
+  if (currentMode === 'citation') $('texto').focus()
 })()

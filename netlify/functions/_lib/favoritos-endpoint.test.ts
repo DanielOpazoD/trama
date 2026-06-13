@@ -37,7 +37,7 @@ describe('favoritos endpoint', () => {
 
   it('POST crea un favorito (201 con la fila creada)', async () => {
     mockSqlResponses.push([]) // ensureUserRow
-    mockSqlResponses.push([ROW]) // insert
+    mockSqlResponses.push([{ ...ROW, inserted: true }]) // CTE insert
     const res = await favoritosHandler(
       new Request('http://localhost/api/favoritos', {
         method: 'POST',
@@ -47,7 +47,40 @@ describe('favoritos endpoint', () => {
       mockContext(),
     )
     expect(res.status).toBe(201)
-    expect((await res.json()).url).toBe('https://example.com/x')
+    const body = await res.json()
+    expect(body.url).toBe('https://example.com/x')
+    expect(body.inserted).toBeUndefined() // bandera interna, no se filtra
+  })
+
+  it('POST es idempotente: 200 si la URL ya es favorita', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ ...ROW, inserted: false }]) // fila existente
+    const res = await favoritosHandler(
+      new Request('http://localhost/api/favoritos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: 'https://example.com/x' }),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect((await res.json()).id).toBe(ROW.id)
+  })
+
+  it('GET ?url= responde si la página ya es favorita', async () => {
+    mockSqlResponses.push([ROW])
+    const hit = await favoritosHandler(
+      new Request(`http://localhost/api/favoritos?url=${encodeURIComponent(ROW.url)}`),
+      mockContext(),
+    )
+    expect((await hit.json()).favorito.id).toBe(ROW.id)
+
+    mockSqlResponses.push([]) // sin coincidencia
+    const miss = await favoritosHandler(
+      new Request('http://localhost/api/favoritos?url=https%3A%2F%2Fnope.test%2F'),
+      mockContext(),
+    )
+    expect((await miss.json()).favorito).toBeNull()
   })
 
   it('POST rechaza una URL inválida (Zod)', async () => {
