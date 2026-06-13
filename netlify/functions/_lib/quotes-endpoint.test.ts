@@ -1,9 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
 
+const embeddingMocks = vi.hoisted(() => ({
+  embedSafe: vi.fn(),
+  quoteEmbeddingText: vi.fn((input: unknown) => JSON.stringify(input)),
+  toPgVector: vi.fn((vector: number[]) => `[${vector.join(',')}]`),
+}))
+
+const observabilityMocks = vi.hoisted(() => ({
+  logErrorEvent: vi.fn(),
+}))
+
 // Test vive en _lib/ por restricciones de naming de Netlify Functions.
 // Handler en `../`, mock del db en `./db.js`.
 vi.mock('./db.js', () => setupMockSql())
+vi.mock('./embeddings.js', () => ({
+  embedSafe: embeddingMocks.embedSafe,
+  quoteEmbeddingText: embeddingMocks.quoteEmbeddingText,
+  toPgVector: embeddingMocks.toPgVector,
+}))
+vi.mock('./observability.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./observability.js')>()),
+  logErrorEvent: observabilityMocks.logErrorEvent,
+}))
 vi.stubGlobal(
   'fetch',
   vi.fn().mockResolvedValue({
@@ -19,6 +38,9 @@ import handler from '../quotes'
 describe('quotes endpoint — integration', () => {
   beforeEach(() => {
     mockSqlResponses.reset()
+    for (const mock of Object.values(embeddingMocks)) mock.mockClear()
+    observabilityMocks.logErrorEvent.mockClear()
+    embeddingMocks.embedSafe.mockResolvedValue(null)
   })
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -119,6 +141,62 @@ describe('quotes endpoint — integration', () => {
     expect(mockSqlResponses.calls.some((c) => /SET embedding =/i.test(c.template))).toBe(
       false,
     )
+  })
+
+  it('PATCH registra fallos del re-embed best-effort', async () => {
+    embeddingMocks.embedSafe.mockRejectedValueOnce(new Error('embedding caído'))
+    mockSqlResponses.push(
+      [], // ensureUserRow
+      [
+        {
+          text: 'cita vieja',
+          source: null,
+          context: null,
+          entity_id: 'e1',
+        },
+      ],
+      [
+        {
+          id: 'q1',
+          entity_id: 'e1',
+          text: 'cita nueva',
+          source: null,
+          context: null,
+          link: null,
+          user_reflection: null,
+          ai_reflection: null,
+          ai_reflection_provider: null,
+          ai_reflection_model: null,
+          ai_reflection_at: null,
+          linked_quote_ids: [],
+          pinned_at: null,
+          resonance: null,
+          origin: { kind: 'manual' },
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+        },
+      ],
+      [{ name: 'Borges' }], // lookup de nombre para el embedding async
+    )
+
+    const res = await handler(
+      new Request('http://localhost/api/quotes/q1', {
+        method: 'PATCH',
+        body: JSON.stringify({ text: 'cita nueva' }),
+      }),
+      mockContext({ id: 'q1' }),
+    )
+
+    expect(res.status).toBe(200)
+    await vi.waitFor(() => {
+      expect(observabilityMocks.logErrorEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'quote_embedding_update_failed',
+          quoteId: 'q1',
+          message: 'embedding caído',
+        }),
+      )
+    })
   })
 
   it('PATCH rechaza linked_quote_ids que se vinculan a la misma cita', async () => {
