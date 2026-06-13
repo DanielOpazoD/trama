@@ -21,6 +21,7 @@ import { useWorldThemeClass } from './hooks/useWorldThemeClass'
 import { useTimeOfDayAccent } from './hooks/useTimeOfDayAccent'
 import { useAchievements } from './hooks/useAchievements'
 import { useWeeklyProactiveNudge } from './hooks/useWeeklyProactiveNudge'
+import { useAppModals } from './hooks/useAppModals'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { Onboarding } from './components/Onboarding'
@@ -121,19 +122,14 @@ function Shell({
   // pueda exponerlo como tabs contextuales. Antes era state local de
   // EntitiesWorkbench; ahora controlado desde acá.
   const [entitiesTab, setEntitiesTab] = useState<'listado' | 'vinculos'>('listado')
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const modals = useAppModals()
+  const { openModal } = modals
   // Retorno de un OAuth (X / Spotify): el callback redirige acá con
   // `?x=connected` o `?x_error=...`. Lo leemos una vez al montar, abrimos
   // Settings en el panel correcto y limpiamos la URL. Antes esto era invisible.
   const [oauthReturn, setOauthReturn] = useState<OAuthReturn | null>(() =>
     readOAuthReturn(),
   )
-  const [readingOpen, setReadingOpen] = useState(false)
-  const [sortesOpen, setSortesOpen] = useState(false)
-  const [espejoOpen, setEspejoOpen] = useState(false)
-  const [careoOpen, setCareoOpen] = useState(false)
-  const [paletteOpen, setPaletteOpen] = useState(false)
-  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   // Focus mode — esconde sidebar, topbar y askbar. Solo queda el
   // contenido. Persiste en localStorage para que el usuario que
   // prefiere modo zen no tenga que activarlo cada sesión.
@@ -155,10 +151,10 @@ function Shell({
   // muestra el detalle (y el código de error si falló). Corre una sola vez.
   useEffect(() => {
     if (oauthReturn) {
-      setSettingsOpen(true)
+      openModal('settings')
       clearOAuthReturn()
     }
-  }, [oauthReturn])
+  }, [oauthReturn, openModal])
 
   const toggleFocusMode = useCallback(() => {
     setFocusMode((on) => {
@@ -180,9 +176,9 @@ function Shell({
     }
   }, [])
   useGlobalShortcuts({
-    onTogglePalette: () => setPaletteOpen((open) => !open),
-    onOpenPalette: () => setPaletteOpen(true),
-    onToggleShortcuts: () => setShortcutsOpen((open) => !open),
+    onTogglePalette: () => modals.toggleModal('palette'),
+    onOpenPalette: () => modals.openModal('palette'),
+    onToggleShortcuts: () => modals.toggleModal('shortcuts'),
     onToggleFocusMode: toggleFocusMode,
   })
 
@@ -217,19 +213,19 @@ function Shell({
       // el form se abrirá manualmente o vía un futuro hint.
       switch (action) {
         case 'open-settings':
-          setSettingsOpen(true)
+          modals.openModal('settings')
           break
         case 'open-shortcuts':
-          setShortcutsOpen(true)
+          modals.openModal('shortcuts')
           break
         case 'open-sortes':
-          setSortesOpen(true)
+          modals.openModal('sortes')
           break
         case 'open-espejo':
-          setEspejoOpen(true)
+          modals.openModal('espejo')
           break
         case 'open-careo':
-          setCareoOpen(true)
+          modals.openModal('careo')
           break
         case 'new-entity':
           setView('entidades')
@@ -242,7 +238,7 @@ function Shell({
           break
       }
     },
-    [setView],
+    [modals, setView],
   )
 
   return (
@@ -272,8 +268,8 @@ function Shell({
             collapsed={sidebarCollapsed}
             onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
             offline={offline}
-            onOpenSettings={() => setSettingsOpen(true)}
-            onOpenPalette={() => setPaletteOpen(true)}
+            onOpenSettings={() => modals.openModal('settings')}
+            onOpenPalette={() => modals.openModal('palette')}
           />
         </div>
       )}
@@ -285,7 +281,7 @@ function Shell({
               view={view}
               world={world}
               onChangeWorld={onChangeWorld}
-              onSortes={() => setSortesOpen(true)}
+              onSortes={() => modals.openModal('sortes')}
               actions={
                 <MomentoNotificationsCenter
                   invitations={shareInvitations}
@@ -347,7 +343,7 @@ function Shell({
               onEntitiesTabChange={setEntitiesTab}
               onSelectEntity={setSelectedEntityId}
               onChangeView={setView}
-              onOpenCareo={() => setCareoOpen(true)}
+              onOpenCareo={() => modals.openModal('careo')}
               onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
               onConsumedInitialThread={() => setPendingChatThreadId(null)}
             />
@@ -385,13 +381,13 @@ function Shell({
                   setPendingChatThreadId(threadId)
                   setView('chat')
                 }}
-                onOpenReading={() => setReadingOpen(true)}
+                onOpenReading={() => modals.openModal('reading')}
               />
             )}
 
           <ReadingMode
-            open={readingOpen}
-            onClose={() => setReadingOpen(false)}
+            open={modals.reading}
+            onClose={() => modals.closeModal('reading')}
             onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
           />
         </div>
@@ -403,16 +399,16 @@ function Shell({
       </main>
 
       <ShellOverlays
-        settingsOpen={settingsOpen}
+        settingsOpen={modals.settings}
         onCloseSettings={() => {
-          setSettingsOpen(false)
+          modals.closeModal('settings')
           setOauthReturn(null)
         }}
         theme={theme}
         onSetTheme={setTheme}
         oauthReturn={oauthReturn}
-        paletteOpen={paletteOpen}
-        onClosePalette={() => setPaletteOpen(false)}
+        paletteOpen={modals.palette}
+        onClosePalette={() => modals.closeModal('palette')}
         onNavigate={(v) => setView(v)}
         onSelectEntity={(id) => setSelectedEntityId(id)}
         onOpenThread={(threadId) => {
@@ -421,14 +417,14 @@ function Shell({
         }}
         onRevealNotasModule={onRevealNotasModule}
         onPaletteAction={handlePaletteAction}
-        shortcutsOpen={shortcutsOpen}
-        onCloseShortcuts={() => setShortcutsOpen(false)}
-        sortesOpen={sortesOpen}
-        onCloseSortes={() => setSortesOpen(false)}
-        espejoOpen={espejoOpen}
-        onCloseEspejo={() => setEspejoOpen(false)}
-        careoOpen={careoOpen}
-        onCloseCareo={() => setCareoOpen(false)}
+        shortcutsOpen={modals.shortcuts}
+        onCloseShortcuts={() => modals.closeModal('shortcuts')}
+        sortesOpen={modals.sortes}
+        onCloseSortes={() => modals.closeModal('sortes')}
+        espejoOpen={modals.espejo}
+        onCloseEspejo={() => modals.closeModal('espejo')}
+        careoOpen={modals.careo}
+        onCloseCareo={() => modals.closeModal('careo')}
       />
 
       {/* Onboarding — solo aparece la primera vez, cuando la trama
