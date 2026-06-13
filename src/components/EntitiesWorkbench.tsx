@@ -1,6 +1,7 @@
 import { EntitiesView } from './EntitiesView'
 import { RelationshipsView } from './RelationshipsView'
 import type { ExtractionProposal } from '../types'
+import { EditorialProjectsContextStrip } from './editorial/EditorialProjectsContextStrip'
 
 /**
  * ο1 + ρ-struct: Wrapper de Entidades.
@@ -32,6 +33,7 @@ export function EntitiesWorkbench({
   void _onTabChange
   return (
     <>
+      <EditorialProjectsContextStrip className="mb-6" />
       {tab === 'listado' && <EntitiesView onSelectEntity={onSelectEntity} />}
       {tab === 'vinculos' && (
         <RelationshipsView onSelectEntity={onSelectEntity} onProposal={onProposal} />

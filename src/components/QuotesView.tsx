@@ -25,6 +25,7 @@ import { PrinterIcon, QuoteIcon, ReadingIcon } from './Icons'
 import { LibroModal } from './quotes/LibroModal'
 import { DensityToggle } from './DensityToggle'
 import { useDensity } from '../hooks/useDensity'
+import { EditorialProjectsContextStrip } from './editorial/EditorialProjectsContextStrip'
 
 const WORK_TYPES = new Set([
   'libro',
@@ -210,6 +211,8 @@ export function QuotesView({
           </div>
         }
       />
+
+      <EditorialProjectsContextStrip className="mb-6" />
 
       {quotesPaged.isLoading ? (
         // Paridad con Entidades/Momentos/Inicio: skeleton en la carga

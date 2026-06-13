@@ -1,7 +1,11 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import RecortesView from './RecortesView'
 import { FavoritosPanel } from './recortes/FavoritosPanel'
-import { KnowledgeWorkflowView } from './KnowledgeWorkflowView'
+import { LoadingHint } from './LoadingHint'
+
+const KnowledgeWorkflowView = lazy(() =>
+  import('./KnowledgeWorkflowView').then((m) => ({ default: m.KnowledgeWorkflowView })),
+)
 
 /**
  * Área de Recortes con tres pestañas hermanas: captura, favoritos y mesa
@@ -49,7 +53,11 @@ export default function RecortesArea({
       </div>
       {tab === 'recortes' && <RecortesView onSelectEntity={onSelectEntity} />}
       {tab === 'favoritos' && <FavoritosPanel />}
-      {tab === 'mesa' && <KnowledgeWorkflowView />}
+      {tab === 'mesa' && (
+        <Suspense fallback={<LoadingHint text="cargando mesa" />}>
+          <KnowledgeWorkflowView />
+        </Suspense>
+      )}
     </>
   )
 }
