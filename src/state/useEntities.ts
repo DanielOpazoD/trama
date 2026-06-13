@@ -55,10 +55,11 @@ export function useEntityRefsCountQuery() {
   })
 }
 
-export function useEntitiesQuery() {
+export function useEntitiesQuery(options: { enabled?: boolean } = {}) {
   const { offline, setOffline } = useOffline()
   return useQuery({
     queryKey: queryKeys.entities,
+    enabled: options.enabled ?? true,
     queryFn: async () => {
       try {
         const result = await api.listEntities()

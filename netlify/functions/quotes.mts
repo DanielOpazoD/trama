@@ -4,6 +4,7 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/zod-body.js'
+import { logErrorEvent } from './_lib/observability.js'
 import {
   QuoteCreateBody,
   QuotePatchBody,
@@ -335,7 +336,13 @@ export default withObservability('quotes', async (req: Request, context: Context
               embedding_at = NOW()
           WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
         `
-      })().catch(() => {})
+      })().catch((err) => {
+        logErrorEvent({
+          event: 'quote_embedding_update_failed',
+          quoteId: id,
+          message: err instanceof Error ? err.message : String(err),
+        })
+      })
     }
 
     return Response.json(rows[0])

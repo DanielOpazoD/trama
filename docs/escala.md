@@ -60,12 +60,61 @@ entidades solo para resolver nombres.
 
 ## Búsqueda en la sidebar
 
-Ya server-only (commit J). A cualquier escala, una búsqueda son ~2 queries SQL con índices. Sub-segundo.
+La paleta de búsqueda (`⌘K` / sidebar) usa dos caminos:
+
+- **Local instantáneo** cuando `entities + quotes <= 1000`: filtra vistas, acciones,
+  entidades y citas ya cacheadas para que el input responda sin red.
+- **Servidor lexical** para queries de 2+ caracteres: agrega momentos, crónicas,
+  chat y matches que el filtro local no ve. Cuando el dataset supera 1000 items,
+  se evita descargar entidades/citas completas solo por abrir la paleta y el
+  servidor pasa a ser el camino principal.
+
+En ambos casos el endpoint `/api/search?mode=lexical` usa índices y no paga IA.
+Para búsquedas profundas, el modo híbrido/semántico sigue disponible desde los
+flujos que lo piden explícitamente.
 
 Si va lento:
 
 1. ¿Tenés muchas entidades sin embedding? Settings → "Indexar lo pendiente".
 2. ¿La query es muy específica + cero matches lexicales? Debería degradar limpio. Ver consola del browser por errores.
+
+### Benchmark local 10k/50k
+
+Para medir el punto real de quiebre antes de agregar índices vectoriales o subir
+budgets, corre el benchmark lexical sobre una DB local migrada:
+
+```bash
+npm run db:up
+npm run bench:search-scale
+```
+
+Si estás en una máquina sin Docker/pgvector pero sí tienes `psql` y un Postgres
+local accesible, usa el modo portable. Crea tablas temporales `entities` y
+`quotes` con los mismos `search_vector` e índices lexicales que usa
+`/api/search?mode=lexical`, ejecuta el benchmark dentro de una transacción y hace
+`ROLLBACK`:
+
+```bash
+DATABASE_URL=postgresql://localhost:5432/postgres npm run bench:search-scale:portable
+```
+
+Ultima medicion local registrada:
+[`docs/benchmarks/search-scale-portable-2026-06-12.md`](benchmarks/search-scale-portable-2026-06-12.md).
+
+Por defecto mide 10k y 50k entidades/citas sintéticas bajo
+`user_id = trama-benchmark-search`, ejecuta `EXPLAIN ANALYZE` de las ramas
+léxicas de `/api/search` y termina con `ROLLBACK`, sin dejar fixtures. Para
+tamaños específicos:
+
+```bash
+SEARCH_BENCHMARK_SIZES=1000,10000 npm run bench:search-scale
+```
+
+Solo conserva fixtures si necesitas inspección manual:
+
+```bash
+SEARCH_BENCHMARK_KEEP_FIXTURES=1 npm run bench:search-scale
+```
 
 ## Chat / ask: ventana de contexto
 

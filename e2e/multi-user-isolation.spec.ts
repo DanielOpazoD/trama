@@ -12,6 +12,19 @@ test.describe('multi-user isolation smoke', () => {
     'requires E2E_BASE_URL, E2E_USER_A_TOKEN and E2E_USER_B_TOKEN',
   )
 
+  test('anonymous requests cannot use the legacy fallback', async () => {
+    const anon = await request.newContext({
+      baseURL: process.env.E2E_BASE_URL!,
+    })
+
+    try {
+      const response = await anon.get('/api/entities')
+      expect(response.status()).toBe(401)
+    } finally {
+      await anon.dispose()
+    }
+  })
+
   test('user B cannot discover user A entity through list or search APIs', async () => {
     const baseURL = process.env.E2E_BASE_URL!
     const userA = await request.newContext({

@@ -1,22 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
-  emptyDoc,
   isPdfTemplate,
-  setDocSettings,
-  setDocTitle,
   type DocSettings,
   type PdfDoc,
 } from '../../../lib/pdfStudio/model/model'
 import type { AssembleOptions } from '../../../lib/pdfStudio/assemble/assemble'
-import {
-  canRedo,
-  canUndo,
-  initHistory,
-  pushHistory,
-  redo,
-  undo,
-  type History,
-} from '../../../lib/pdfStudio/model/history'
+import { canRedo, canUndo, redo, undo } from '../../../lib/pdfStudio/model/history'
 import { disposePdfStudio } from '../../../lib/pdfStudio/render/pdfRender'
 import { clearDraft } from '../../../lib/pdfStudio/render/persistence'
 import { BulkBar } from './shell/BulkBar'
@@ -39,17 +28,15 @@ import { usePdfStudioForms } from './planillas/usePdfStudioForms'
 import { usePdfStudioPageKeyboard } from './shell/usePdfStudioPageKeyboard'
 import { usePdfStudioPageActions } from './shell/usePdfStudioPageActions'
 import { usePdfStudioSavedPdfUpload } from './shell/usePdfStudioSavedPdfUpload'
+import { usePdfStudioPreview } from './shell/usePdfStudioPreview'
 import { usePdfStudioOcr } from './ocr/usePdfStudioOcr'
 import { usePdfStudioFilledTemplateActions } from './planillas/fill/usePdfStudioFilledTemplateActions'
 import { usePdfStudioDraftSanitizer } from './workspace/usePdfStudioDraftSanitizer'
 import { usePdfStudioTemplateMode } from './planillas/design/usePdfStudioTemplateMode'
 import { usePdfStudioWorkspace } from './workspace/usePdfStudioWorkspace'
 import { pdfStudioPageInteractionMode as pageMode } from './shell/pdfStudioPageInteractionMode'
+import { usePdfStudioDocumentHistory } from './shell/usePdfStudioDocumentHistory'
 import { useToast } from '../../../state'
-import { PdfPreviewModal } from './editor/PdfPreviewModal'
-import { printPdfBlob } from '../../../lib/pdfStudio/export/printPdf'
-import { downloadBlob } from '../../../lib/downloadBlob'
-import { exportPdfName } from './shell/pdfStudioFileUtils'
 const ACCEPT = 'application/pdf,image/*'
 export type PdfStudioMode = 'editor' | 'templates'
 type PdfStudioViewProps = { topBar?: ReactNode; studioMode?: PdfStudioMode }
@@ -58,23 +45,11 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   const templatesEnabled = studioMode === 'templates'
   const [exportCompression, setExportCompression] =
     useState<AssembleOptions['compression']>('balanced')
-  const [history, setHistory] = useState<History<PdfDoc>>(() => initHistory(emptyDoc()))
-  const doc = history.present
+  const { history, setHistory, doc, commit, updateSettings, updateTitle } =
+    usePdfStudioDocumentHistory()
   const { cancelExport, downloadSaved, exportPdf, preparePdf, exportStatus, saving } =
     usePdfStudioExport({ compression: exportCompression })
-  // Vista previa en modal del PDF ensamblado (con botón Imprimir + Descargar).
-  const [previewState, setPreviewState] = useState<{
-    blob: Blob
-    kind?: string
-    title?: string
-  } | null>(null)
-  const openPreview = useCallback(
-    async (target: PdfDoc, kind?: string, options?: { flattenFormFields?: boolean }) => {
-      const blob = await preparePdf(target, options)
-      if (blob) setPreviewState({ blob, kind, title: target.title })
-    },
-    [preparePdf],
-  )
+  const { openPreview, previewModal } = usePdfStudioPreview({ preparePdf })
   const uploadSavedPdf = usePdfStudioSavedPdfUpload({ preparePdf })
   const [textPage, setTextPage] = useState<number | null>(null)
   const [editorSessionZoom, setEditorSessionZoom] = useState(1)
@@ -90,12 +65,6 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     selectAll,
   } = usePageSelection(doc.pages)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const commit = useCallback((next: PdfDoc | ((prev: PdfDoc) => PdfDoc)) => {
-    setHistory((h) => {
-      const value = typeof next === 'function' ? next(h.present) : next
-      return pushHistory(h, value)
-    })
-  }, [])
   const workspace = usePdfStudioWorkspace({
     clearSelection,
     doc,
@@ -128,14 +97,6 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   docRef.current = doc
   const selectAllRef = useRef(selectAll)
   selectAllRef.current = selectAll
-  const updateSettings = useCallback((settings: DocSettings) => {
-    setHistory((h) => ({ ...h, present: setDocSettings(h.present, settings) }))
-  }, [])
-  // El renombre no pasa por el historial (como los settings): renombrar no es
-  // un paso de edición que se deshaga con ⌘Z.
-  const updateTitle = useCallback((title: string) => {
-    setHistory((h) => ({ ...h, present: setDocTitle(h.present, title) }))
-  }, [])
   const { addFiles, busy } = usePdfStudioImport({
     commit,
     doc,
@@ -408,20 +369,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
           sessionZoom={editorSessionZoom}
         />
       )}
-      {previewState && (
-        <PdfPreviewModal
-          blob={previewState.blob}
-          onClose={() => setPreviewState(null)}
-          onPrint={(blob) => printPdfBlob(blob)}
-          onDownload={(blob) => {
-            downloadBlob(
-              blob,
-              exportPdfName(undefined, previewState.kind, previewState.title),
-            )
-            toast.show({ message: 'PDF descargado.', tone: 'success' })
-          }}
-        />
-      )}
+      {previewModal}
     </section>
   )
 }

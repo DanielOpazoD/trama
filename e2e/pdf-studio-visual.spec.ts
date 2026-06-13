@@ -56,8 +56,14 @@ test.describe('Imprenta · PDF visual regression', () => {
     await openPdfEditor(page, { width: 1280, height: 800 })
 
     // El color se consolidó dentro del menú "Texto" (fuente, tamaño, color, etc.).
-    await page.getByRole('button', { name: 'Texto', exact: true }).click()
-    await expect(page.getByRole('menu')).toHaveScreenshot('pdf-studio-text-menu.png', {
+    const toolbar = page.getByRole('toolbar', {
+      name: 'Barra de herramientas de edición del PDF',
+    })
+    const trigger = toolbar.getByRole('button', { name: 'Texto', exact: true })
+    await expect(trigger).toBeVisible()
+    await trigger.dispatchEvent('click')
+    await expect(page.getByRole('menu')).toBeVisible()
+    await expect(page).toHaveScreenshot('pdf-studio-text-menu.png', {
       animations: 'disabled',
       maxDiffPixelRatio: 0.01,
     })
@@ -66,8 +72,14 @@ test.describe('Imprenta · PDF visual regression', () => {
   test('menú de formas queda delante y estable', async ({ page }) => {
     await openPdfEditor(page, { width: 1280, height: 800 })
 
-    await page.getByRole('button', { name: 'Formas', exact: true }).click()
-    await expect(page.getByRole('menu')).toHaveScreenshot('pdf-studio-shapes-menu.png', {
+    const toolbar = page.getByRole('toolbar', {
+      name: 'Barra de herramientas de edición del PDF',
+    })
+    const trigger = toolbar.getByRole('button', { name: 'Formas', exact: true })
+    await expect(trigger).toBeVisible()
+    await trigger.dispatchEvent('click')
+    await expect(page.getByRole('menu')).toBeVisible()
+    await expect(page).toHaveScreenshot('pdf-studio-shapes-menu.png', {
       animations: 'disabled',
       maxDiffPixelRatio: 0.01,
     })

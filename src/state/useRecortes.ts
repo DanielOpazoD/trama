@@ -6,7 +6,7 @@
  * aparezca sin recargar.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, type RecorteTarget } from '../api'
+import { api, type PromoteRecorteInput } from '../api'
 import { queryKeys } from './queryClient'
 import { useToast } from './toast'
 
@@ -62,21 +62,15 @@ export function useDeleteRecorte() {
   })
 }
 
-/** Registra la promoción (el objeto destino ya fue creado por el caller)
- *  e invalida recortes + la colección destino. */
+/** Crea el destino y registra la promoción en el servidor.
+ *  Invalida recortes + la colección destino. */
 export function usePromoteRecorte() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({
-      id,
-      target,
-      promotedId,
-    }: {
-      id: string
-      target: RecorteTarget
-      promotedId: string
-    }) => api.promoteRecorte(id, target, promotedId),
-    onSuccess: (_data, { target }) => {
+    mutationFn: ({ id, input }: { id: string; input: PromoteRecorteInput }) =>
+      api.promoteRecorte(id, input),
+    onSuccess: (_data, { input }) => {
+      const { target } = input
       qc.invalidateQueries({ queryKey: queryKeys.recortes })
       if (target === 'quote') {
         qc.invalidateQueries({ queryKey: queryKeys.quotes })

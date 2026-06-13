@@ -15,6 +15,14 @@ import { extensionPreflight, withExtensionCors } from './_lib/extension-cors.js'
 import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
+import { momentoEmbedText, validatePayloadForKind } from './_lib/momento-embed.js'
+import { normalizeOrigin } from './_lib/origin.js'
+import {
+  embedSafe,
+  entityEmbeddingText,
+  quoteEmbeddingText,
+  toPgVector,
+} from './_lib/embeddings.js'
 import {
   buildRecorteSuggestPrompt,
   sanitizeSuggestion,
@@ -144,27 +152,227 @@ export default withObservability(
       }
     }
 
-    // Promoción: el cliente ya creó el objeto destino (cita/entidad/momento)
-    // con su endpoint propio; acá el recorte queda marcado y trazado. Guard:
-    // un recorte promovido no se promueve dos veces.
+    // Promoción transaccional: el servidor crea el destino y marca el recorte
+    // en un CTE. Si el recorte ya estaba promovido, devuelve la fila existente
+    // sin crear otro objeto destino (idempotencia por recorte).
     if (req.method === 'POST' && id && new URL(req.url).pathname.endsWith('/promote')) {
       const parsed = await parseJsonBody(req, RecortePromoteBody, requestId)
       if (!parsed.ok) return parsed.response
-      const { target, promotedId } = parsed.data
-      const rows = await sqlTyped<RecorteRow>(sql`
-        UPDATE recortes
-        SET status = 'promoted',
-            promoted_target = ${target},
-            promoted_id = ${promotedId},
-            updated_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-          AND status <> 'promoted'
-        RETURNING id, text, source_url, source_title, source_author, note,
-          image_url, image_key, capture_mode, status, promoted_target,
-          promoted_id, captured_at, created_at, updated_at
-      `)
+      await ensureUserRow(sql, authedUser)
+      const origin = JSON.stringify(
+        normalizeOrigin({ kind: 'manual', importedFrom: 'recorte' }),
+      )
+      let rows: RecorteRow[]
+
+      if (parsed.data.target === 'quote') {
+        const quote = parsed.data.quote
+        const entityNameRows = await sqlTyped<{ name: string }>(sql`
+          SELECT name
+          FROM entities
+          WHERE id = ${quote.entityId}::uuid
+            AND deleted_at IS NULL
+            AND user_id = ${userId}
+        `)
+        const quoteEmb = await embedSafe(
+          quoteEmbeddingText({
+            text: quote.text,
+            entityName: entityNameRows[0]?.name ?? null,
+            source: quote.source ?? null,
+            context: quote.context ?? null,
+          }),
+        )
+        const quoteEmbVector = quoteEmb ? toPgVector(quoteEmb.vector) : null
+        const quoteEmbAt = quoteEmb ? new Date().toISOString() : null
+        rows = await sqlTyped<RecorteRow>(sql`
+          WITH current_recorte AS (
+            SELECT id, status
+            FROM recortes
+            WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+          ),
+          inserted AS (
+            INSERT INTO quotes (
+              entity_id, text, source, context, link, user_reflection,
+              linked_quote_ids, origin, embedding, embedding_model, embedding_at, user_id
+            )
+            SELECT
+              ${quote.entityId}::uuid,
+              ${quote.text},
+              ${quote.source ?? null},
+              ${quote.context ?? null},
+              ${quote.link ?? null},
+              ${quote.userReflection ?? null},
+              '{}'::uuid[],
+              ${origin}::jsonb,
+              ${quoteEmbVector}::vector,
+              ${quoteEmb?.model ?? null},
+              ${quoteEmbAt}::timestamptz,
+              ${userId}
+            FROM current_recorte cr
+            JOIN entities e
+              ON e.id = ${quote.entityId}::uuid
+             AND e.deleted_at IS NULL
+             AND e.user_id = ${userId}
+            WHERE cr.status <> 'promoted'
+            RETURNING id
+          ),
+          marked AS (
+            UPDATE recortes r
+            SET status = 'promoted',
+                promoted_target = 'quote',
+                promoted_id = (SELECT id FROM inserted),
+                updated_at = NOW()
+            WHERE r.id = (SELECT id FROM current_recorte)
+              AND r.status <> 'promoted'
+              AND EXISTS (SELECT 1 FROM inserted)
+            RETURNING r.id, r.text, r.source_url, r.source_title, r.source_author,
+              r.note, r.image_url, r.image_key, r.capture_mode, r.status,
+              r.promoted_target, r.promoted_id, r.captured_at, r.created_at, r.updated_at
+          )
+          SELECT id, text, source_url, source_title, source_author, note,
+            image_url, image_key, capture_mode, status, promoted_target,
+            promoted_id, captured_at, created_at, updated_at
+          FROM marked
+          UNION ALL
+          SELECT r.id, r.text, r.source_url, r.source_title, r.source_author, r.note,
+            r.image_url, r.image_key, r.capture_mode, r.status, r.promoted_target,
+            r.promoted_id, r.captured_at, r.created_at, r.updated_at
+          FROM recortes r
+          JOIN current_recorte cr ON cr.id = r.id
+          WHERE cr.status = 'promoted'
+          LIMIT 1
+        `)
+      } else if (parsed.data.target === 'entity') {
+        const entity = parsed.data.entity
+        const entityEmb = await embedSafe(
+          entityEmbeddingText({
+            name: entity.name,
+            type: entity.type,
+            year: entity.year ?? null,
+            description: entity.description ?? null,
+          }),
+        )
+        const entityEmbVector = entityEmb ? toPgVector(entityEmb.vector) : null
+        const entityEmbAt = entityEmb ? new Date().toISOString() : null
+        rows = await sqlTyped<RecorteRow>(sql`
+          WITH current_recorte AS (
+            SELECT id, status
+            FROM recortes
+            WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+          ),
+          inserted AS (
+            INSERT INTO entities (
+              type, name, description, origin, embedding, embedding_model, embedding_at, user_id
+            )
+            SELECT
+              ${entity.type},
+              ${entity.name},
+              ${entity.description ?? null},
+              ${origin}::jsonb,
+              ${entityEmbVector}::vector,
+              ${entityEmb?.model ?? null},
+              ${entityEmbAt}::timestamptz,
+              ${userId}
+            FROM current_recorte cr
+            WHERE cr.status <> 'promoted'
+            RETURNING id
+          ),
+          marked AS (
+            UPDATE recortes r
+            SET status = 'promoted',
+                promoted_target = 'entity',
+                promoted_id = (SELECT id FROM inserted),
+                updated_at = NOW()
+            WHERE r.id = (SELECT id FROM current_recorte)
+              AND r.status <> 'promoted'
+              AND EXISTS (SELECT 1 FROM inserted)
+            RETURNING r.id, r.text, r.source_url, r.source_title, r.source_author,
+              r.note, r.image_url, r.image_key, r.capture_mode, r.status,
+              r.promoted_target, r.promoted_id, r.captured_at, r.created_at, r.updated_at
+          )
+          SELECT id, text, source_url, source_title, source_author, note,
+            image_url, image_key, capture_mode, status, promoted_target,
+            promoted_id, captured_at, created_at, updated_at
+          FROM marked
+          UNION ALL
+          SELECT r.id, r.text, r.source_url, r.source_title, r.source_author, r.note,
+            r.image_url, r.image_key, r.capture_mode, r.status, r.promoted_target,
+            r.promoted_id, r.captured_at, r.created_at, r.updated_at
+          FROM recortes r
+          JOIN current_recorte cr ON cr.id = r.id
+          WHERE cr.status = 'promoted'
+          LIMIT 1
+        `)
+      } else {
+        const momento = parsed.data.momento
+        const payloadError = validatePayloadForKind(momento.kind, momento.payload)
+        if (payloadError) return ApiErrors.validation(requestId, payloadError)
+        const momentoEmbSource = momentoEmbedText(
+          momento.kind,
+          momento.payload,
+          momento.note ?? null,
+        )
+        const momentoEmb =
+          momentoEmbSource.length > 0 ? await embedSafe(momentoEmbSource) : null
+        const momentoEmbVector = momentoEmb ? toPgVector(momentoEmb.vector) : null
+        const momentoEmbAt = momentoEmb ? new Date().toISOString() : null
+        rows = await sqlTyped<RecorteRow>(sql`
+          WITH current_recorte AS (
+            SELECT id, status
+            FROM recortes
+            WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+          ),
+          inserted AS (
+            INSERT INTO momentos (
+              kind, captured_at, payload, note, origin,
+              embedding, embedding_model, embedding_at, user_id
+            )
+            SELECT
+              ${momento.kind},
+              ${momento.capturedAt ?? new Date().toISOString()}::timestamptz,
+              ${JSON.stringify(momento.payload)}::jsonb,
+              ${momento.note ?? null},
+              ${origin}::jsonb,
+              ${momentoEmbVector}::vector,
+              ${momentoEmb?.model ?? null},
+              ${momentoEmbAt}::timestamptz,
+              ${userId}
+            FROM current_recorte cr
+            WHERE cr.status <> 'promoted'
+            RETURNING id
+          ),
+          marked AS (
+            UPDATE recortes r
+            SET status = 'promoted',
+                promoted_target = 'momento',
+                promoted_id = (SELECT id FROM inserted),
+                updated_at = NOW()
+            WHERE r.id = (SELECT id FROM current_recorte)
+              AND r.status <> 'promoted'
+              AND EXISTS (SELECT 1 FROM inserted)
+            RETURNING r.id, r.text, r.source_url, r.source_title, r.source_author,
+              r.note, r.image_url, r.image_key, r.capture_mode, r.status,
+              r.promoted_target, r.promoted_id, r.captured_at, r.created_at, r.updated_at
+          )
+          SELECT id, text, source_url, source_title, source_author, note,
+            image_url, image_key, capture_mode, status, promoted_target,
+            promoted_id, captured_at, created_at, updated_at
+          FROM marked
+          UNION ALL
+          SELECT r.id, r.text, r.source_url, r.source_title, r.source_author, r.note,
+            r.image_url, r.image_key, r.capture_mode, r.status, r.promoted_target,
+            r.promoted_id, r.captured_at, r.created_at, r.updated_at
+          FROM recortes r
+          JOIN current_recorte cr ON cr.id = r.id
+          WHERE cr.status = 'promoted'
+          LIMIT 1
+        `)
+      }
+
       if (rows.length === 0) {
-        return ApiErrors.notFound(requestId, 'Recorte no encontrado o ya promovido')
+        return ApiErrors.notFound(
+          requestId,
+          'Recorte no encontrado o no se pudo promover',
+        )
       }
       return Response.json(rows[0])
     }

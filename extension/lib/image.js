@@ -19,6 +19,8 @@ import { saveRecorte, uploadImage } from './recorte.js'
 import { pageGrabImage } from './inject.js'
 
 const ALLOWED_MIME = /^image\/(jpeg|png|webp|gif)$/
+const HOST_PERMISSION_EVENTS_KEY = 'tramaHostPermissionEvents'
+const HOST_PERMISSION_EVENTS_LIMIT = 20
 
 /** Patrón de origen para chrome.permissions (solo http/https). null si no aplica. */
 export function imageOriginPattern(url) {
@@ -29,6 +31,40 @@ export function imageOriginPattern(url) {
     /* URL inválida */
   }
   return null
+}
+
+function imageOrigin(url) {
+  try {
+    const u = new URL(url)
+    if (u.protocol === 'http:' || u.protocol === 'https:') return u.origin
+  } catch {
+    /* URL inválida */
+  }
+  return null
+}
+
+async function recordHostPermissionDecision({ srcUrl, pattern, granted }) {
+  const origin = imageOrigin(srcUrl)
+  if (!origin) return
+  try {
+    const stored = await chrome.storage.local.get(HOST_PERMISSION_EVENTS_KEY)
+    const current = Array.isArray(stored?.[HOST_PERMISSION_EVENTS_KEY])
+      ? stored[HOST_PERMISSION_EVENTS_KEY]
+      : []
+    const next = [
+      {
+        at: new Date().toISOString(),
+        origin,
+        pattern,
+        granted,
+        surface: 'image',
+      },
+      ...current,
+    ].slice(0, HOST_PERMISSION_EVENTS_LIMIT)
+    await chrome.storage.local.set({ [HOST_PERMISSION_EVENTS_KEY]: next })
+  } catch {
+    // La telemetría local no debe bloquear una captura.
+  }
 }
 
 /** fetch + Blob, validando que sea una imagen soportada. null si no. */
@@ -81,6 +117,7 @@ async function downloadImageBlob(srcUrl, tabId) {
     } catch {
       granted = false
     }
+    await recordHostPermissionDecision({ srcUrl, pattern, granted })
   }
 
   // Con permiso: el SW descarga sin CORS (limpio, sin ruido en la consola).

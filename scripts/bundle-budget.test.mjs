@@ -6,6 +6,14 @@ describe('bundle budget helpers', () => {
   it('normaliza nombres de chunks con hashes vite que contienen guiones', () => {
     expect(chunkBaseName('MomentosView-D9Z41wa-.js')).toBe('MomentosView')
     expect(chunkBaseName('vendor-react-UUNBh1e2.js')).toBe('vendor-react')
+    expect(chunkBaseName('QuotesView-t-HhUjo4.js')).toBe('QuotesView')
+  })
+
+  it('usa budgets conocidos para hashes vite ambiguos con guion interno', () => {
+    expect(chunkBaseName('GraphView-B-e06fBp.js', ['GraphView'])).toBe('GraphView')
+    expect(chunkBaseName('vendor-pdf-lib-C3zzWZyr.js', ['vendor-pdf-lib'])).toBe(
+      'vendor-pdf-lib',
+    )
   })
 
   it('permite chunks chicos sin budget explicito', () => {

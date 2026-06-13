@@ -33,11 +33,17 @@ const EMPTY_SEARCH: SearchResponse = {
 }
 
 /** Mock de fetch con una entidad local y una respuesta de /api/search dada. */
-function stubFetch(search: SearchResponse = EMPTY_SEARCH) {
+function stubFetch(
+  search: SearchResponse = EMPTY_SEARCH,
+  counts = { entities: 1, quotes: 0, relationships: 0, momentos: 0 },
+) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: string | Request | URL) => {
       const url = String(input)
+      if (url.includes('/api/counts')) {
+        return jsonResp(counts)
+      }
       if (url.includes('/api/search')) {
         return jsonResp(search)
       }
@@ -297,5 +303,47 @@ describe('<CommandPalette />', () => {
     fireEvent.click(chatButton)
     expect(onOpenThread).toHaveBeenCalledWith('t-9')
     expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('usa búsqueda server-first sin descargar entidades/citas cuando counts supera el umbral local', async () => {
+    stubFetch(
+      {
+        ...EMPTY_SEARCH,
+        entities: [
+          {
+            id: 'e-server',
+            name: 'Borges remoto',
+            type: 'escritor',
+            year: null,
+            description: 'resultado desde search',
+            lexical: 1,
+            semantic: 0,
+            score: 1,
+          },
+        ],
+      },
+      { entities: 2500, quotes: 8000, relationships: 0, momentos: 0 },
+    )
+    const { container } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+
+    fireEvent.change(screen.getByPlaceholderText(/buscar/i), {
+      target: { value: 'borges' },
+    })
+
+    await waitFor(() =>
+      expect(container.querySelector('ul')!.textContent).toMatch(/Borges remoto/),
+    )
+    const fetchMock = vi.mocked(fetch)
+    const urls = fetchMock.mock.calls.map((call) => String(call[0]))
+    expect(urls.some((url) => url.includes('/api/search'))).toBe(true)
+    expect(urls.some((url) => url.includes('/api/entities'))).toBe(false)
+    expect(urls.some((url) => url.includes('/api/quotes'))).toBe(false)
   })
 })

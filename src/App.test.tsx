@@ -9,6 +9,7 @@ import type { World } from './types/world'
 
 const appMocks = vi.hoisted(() => ({
   useIsMobile: vi.fn(),
+  useCountsQuery: vi.fn(),
   useEntitiesQuery: vi.fn(),
   useMomentoShareInvitationsQuery: vi.fn(),
   useRelationshipsQuery: vi.fn(),
@@ -35,6 +36,7 @@ vi.mock('./state', () => ({
   Provider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="provider">{children}</div>
   ),
+  useCountsQuery: appMocks.useCountsQuery,
   useEntitiesQuery: appMocks.useEntitiesQuery,
   useMomentoShareInvitationsQuery: appMocks.useMomentoShareInvitationsQuery,
   useRelationshipsQuery: appMocks.useRelationshipsQuery,
@@ -446,6 +448,13 @@ function installDefaultQueries({
   empty = false,
   error = null as Error | null,
 } = {}) {
+  appMocks.useCountsQuery.mockReturnValue({
+    data: empty
+      ? { entities: 0, quotes: 0, relationships: 0 }
+      : { entities: 1, quotes: 1, relationships: 1 },
+    isLoading: loading,
+    error,
+  })
   appMocks.useEntitiesQuery.mockReturnValue({
     data: empty ? [] : [{ id: 'e1', name: 'Borges' }],
     isLoading: loading,
@@ -522,7 +531,7 @@ describe('<App />', () => {
     await user.click(screen.getByRole('button', { name: 'palette entity' }))
     expect(appMocks.startViewTransition).toHaveBeenCalled()
     expect(screen.getByText(/right desktop no-proposal e1/i)).toBeInTheDocument()
-    expect(screen.getByText(/topbar inicio Borges/i)).toBeInTheDocument()
+    expect(screen.getByText(/topbar inicio entidad/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'detail thread' }))
     expect(screen.getByText(/view:chat/i)).toBeInTheDocument()
@@ -562,14 +571,13 @@ describe('<App />', () => {
     expect(window.localStorage.getItem('trama:focus-mode')).toBe('1')
   })
 
-  it('muestra loading/error, onboarding vacío y retorno OAuth', () => {
+  it('usa counts livianos para onboarding y maneja retorno OAuth', () => {
     appMocks.oauthReturn = { provider: 'spotify', ok: true }
-    installDefaultQueries({ loading: true, empty: true, error: new Error('falló data') })
+    installDefaultQueries({ empty: true })
 
     render(<App />)
 
-    expect(screen.getByText('falló data')).toBeInTheDocument()
-    expect(screen.getByText('home skeleton')).toBeInTheDocument()
+    expect(screen.getByText('onboarding enabled')).toBeInTheDocument()
     expect(screen.getByText(/settings paper spotify oauth/i)).toBeInTheDocument()
     expect(appMocks.clearOAuthReturn).toHaveBeenCalledOnce()
   })

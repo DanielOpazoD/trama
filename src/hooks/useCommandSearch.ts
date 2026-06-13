@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
-import { useEntitiesQuery, useQuotesQuery } from '../state'
+import { useCountsQuery, useEntitiesQuery, useQuotesQuery } from '../state'
 import { api } from '../api'
 import type { SearchResponse } from '../api'
 import type { ViewMode } from '../types/view'
@@ -105,6 +105,8 @@ const ACTIONS: Array<{ action: CommandAction; label: string; hint: string }> = [
   { action: 'open-shortcuts', label: 'Atajos de teclado', hint: 'lista de shortcuts' },
 ]
 
+const LOCAL_SEARCH_MAX_ITEMS = 1000
+
 export function useCommandSearch({
   open,
   actionsEnabled,
@@ -118,9 +120,21 @@ export function useCommandSearch({
   setQuery: (q: string) => void
   items: Item[]
   searching: boolean
+  entitiesForPeek:
+    | {
+        id: string
+        name: string
+        type: string
+        year?: number | null
+        description?: string | null
+      }[]
+    | undefined
 } {
-  const { data: entities = [] } = useEntitiesQuery()
-  const { data: quotes = [] } = useQuotesQuery()
+  const { data: counts } = useCountsQuery()
+  const localSearchEnabled =
+    open && !!counts && counts.entities + counts.quotes <= LOCAL_SEARCH_MAX_ITEMS
+  const { data: entities = [] } = useEntitiesQuery({ enabled: localSearchEnabled })
+  const { data: quotes = [] } = useQuotesQuery({ enabled: localSearchEnabled })
   const sectionVis = useSectionVisibility()
   const moduleVis = useModuleVisibility()
   const { isPinRequired } = useSectionPin()
@@ -224,19 +238,24 @@ export function useCommandSearch({
       : []
 
     // Local: filtro substring sobre lo ya cargado en memoria (instantáneo).
-    const localEntities = entities
-      .filter((e) => {
-        if (!q) return true
-        return (
-          e.name.toLowerCase().includes(q) ||
-          (e.description ?? '').toLowerCase().includes(q) ||
-          e.type.toLowerCase().includes(q)
-        )
-      })
-      .slice(0, 20)
-    const localQuotes = q
-      ? quotes.filter((qt) => qt.text.toLowerCase().includes(q)).slice(0, 12)
+    // Se desactiva cuando counts supera el umbral: ahí el palette usa
+    // /api/search para no descargar entidades/citas completas solo por abrir ⌘K.
+    const localEntities = localSearchEnabled
+      ? entities
+          .filter((e) => {
+            if (!q) return true
+            return (
+              e.name.toLowerCase().includes(q) ||
+              (e.description ?? '').toLowerCase().includes(q) ||
+              e.type.toLowerCase().includes(q)
+            )
+          })
+          .slice(0, 20)
       : []
+    const localQuotes =
+      q && localSearchEnabled
+        ? quotes.filter((qt) => qt.text.toLowerCase().includes(q)).slice(0, 12)
+        : []
 
     const entityItems = localEntities.map<Item>((e) => ({
       kind: 'entity',
@@ -362,6 +381,7 @@ export function useCommandSearch({
   }, [
     deferredQuery,
     entities,
+    localSearchEnabled,
     quotes,
     actionsEnabled,
     serverResults,
@@ -372,5 +392,5 @@ export function useCommandSearch({
     pinActive,
   ])
 
-  return { query, setQuery, items, searching }
+  return { query, setQuery, items, searching, entitiesForPeek: entities }
 }

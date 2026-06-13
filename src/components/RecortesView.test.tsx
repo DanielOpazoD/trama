@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import RecortesView from './RecortesView'
 import { makeQueryClient, renderWithProviders } from '../test-utils'
 import { queryKeys } from '../state/queryClient'
@@ -64,6 +66,15 @@ describe('recorteFromRow', () => {
 })
 
 describe('<RecortesView />', () => {
+  it('no carga entidades wholesale al abrir el modal de promoción', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/components/recortes/PromoteModal.tsx'),
+      'utf8',
+    )
+
+    expect(source).not.toMatch(/\buseEntitiesQuery\b/)
+  })
+
   it('muestra la tarjeta de prensa con fuente, marginalia y acciones', () => {
     setup([recorte()])
     expect(screen.getByRole('heading', { name: 'Recortes' })).toBeInTheDocument()
@@ -73,6 +84,16 @@ describe('<RecortesView />', () => {
     expect(screen.getByRole('button', { name: '→ cita' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '→ entidad' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '→ momento' })).toBeInTheDocument()
+  })
+
+  it('mantiene visibles las acciones de la tarjeta en mobile/touch', () => {
+    setup([recorte()])
+    const actions = screen.getByRole('button', { name: 'archivar' }).parentElement
+
+    expect(actions).toHaveClass('opacity-100')
+    expect(actions).toHaveClass('sm:opacity-0')
+    expect(actions).toHaveClass('sm:group-hover:opacity-100')
+    expect(actions).toHaveClass('sm:focus-within:opacity-100')
   })
 
   it('renderiza la imagen del recorte cuando la hay (captura de imagen)', () => {
@@ -121,6 +142,19 @@ describe('<RecortesView />', () => {
     expect(dialog).toBeInTheDocument()
     expect(screen.getByDisplayValue('La memoria es un taller.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'crear momento' })).toBeEnabled()
+  })
+
+  it('promover atrapa el foco dentro del modal y lo restaura al cerrar', async () => {
+    setup([recorte()])
+    const trigger = screen.getByRole('button', { name: '→ momento' })
+    trigger.focus()
+    fireEvent.click(trigger)
+
+    const textArea = screen.getByLabelText('Texto')
+    await waitFor(() => expect(textArea).toHaveFocus())
+
+    fireEvent.click(screen.getByRole('button', { name: 'cancelar' }))
+    await waitFor(() => expect(trigger).toHaveFocus())
   })
 
   it('archivar dispara el PATCH de estado', async () => {
@@ -188,8 +222,8 @@ describe('<RecortesView />', () => {
     fireEvent.click(screen.getByRole('button', { name: /usar sugerencia/ }))
     // El modal abre en "cita" y Borges queda pre-seleccionado.
     expect(screen.getByRole('dialog', { name: 'Promover a cita' })).toBeInTheDocument()
-    const select = screen.getByLabelText('Atribuida a') as HTMLSelectElement
-    expect(select.value).toBe('e1')
+    expect(screen.getByText('Borges')).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: /atribuida/i })).toBeNull()
     vi.unstubAllGlobals()
   })
 })

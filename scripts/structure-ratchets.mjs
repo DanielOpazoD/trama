@@ -16,7 +16,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 550,
+    maxLines: 500,
     files: ['src/components/CommandPalette.tsx'],
   },
   {
@@ -51,12 +51,12 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-core',
-    maxLines: 429,
+    maxLines: 390,
     files: ['src/components/notas/pdfStudio/PdfStudioView.tsx'],
   },
   {
     group: 'pdf-studio-core',
-    maxLines: 300,
+    maxLines: 225,
     files: ['src/lib/pdfStudio/assemble/assemble.ts'],
   },
   {
@@ -117,7 +117,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-workspace',
-    maxLines: 210,
+    maxLines: 180,
     files: ['src/components/notas/pdfStudio/workspace/WorkspaceSavedDocsSection.tsx'],
   },
   {

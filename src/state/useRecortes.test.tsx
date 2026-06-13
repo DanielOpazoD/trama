@@ -50,7 +50,7 @@ function jsonResp(body: unknown) {
   })
 }
 
-const calls: Array<{ url: string; method: string }> = []
+const calls: Array<{ url: string; method: string; body?: unknown }> = []
 
 beforeEach(() => {
   calls.length = 0
@@ -59,7 +59,11 @@ beforeEach(() => {
     vi.fn(async (input: string | Request | URL, init?: RequestInit) => {
       const url = String(input)
       const method = init?.method ?? 'GET'
-      calls.push({ url, method })
+      calls.push({
+        url,
+        method,
+        body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
+      })
       if (url.includes('/restore')) return jsonResp({ restored: true })
       if (url.includes('/promote')) {
         return jsonResp({ ...ROW, status: 'promoted', promoted_target: 'quote' })
@@ -106,20 +110,30 @@ describe('useRecortes', () => {
     })
   })
 
-  it('promote postea target y promotedId', async () => {
+  it('promote postea el payload del destino para creación server-side', async () => {
     const { result } = renderHook(() => usePromoteRecorte(), {
       wrapper: makeWrapper(),
     })
     await act(async () => {
       const res = await result.current.mutateAsync({
         id: 'r1',
-        target: 'quote',
-        promotedId: '6f9619ff-8b86-4d01-b42d-00cf4fc964ff',
+        input: {
+          target: 'quote',
+          quote: {
+            entityId: '6f9619ff-8b86-4d01-b42d-00cf4fc964ff',
+            text: 'recorte',
+          },
+        },
       })
       expect(res.status).toBe('promoted')
     })
-    expect(calls.some((c) => c.url.includes('/promote') && c.method === 'POST')).toBe(
-      true,
-    )
+    const promote = calls.find((c) => c.url.includes('/promote') && c.method === 'POST')
+    expect(promote?.body).toEqual({
+      target: 'quote',
+      quote: {
+        entityId: '6f9619ff-8b86-4d01-b42d-00cf4fc964ff',
+        text: 'recorte',
+      },
+    })
   })
 })

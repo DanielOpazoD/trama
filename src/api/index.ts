@@ -90,6 +90,7 @@ export type {
   RecorteStatus,
   RecorteTarget,
   RecorteSuggestion,
+  PromoteRecorteInput,
   ApiToken,
 } from './recortes'
 
