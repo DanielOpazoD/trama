@@ -5,9 +5,14 @@ import {
   useNotesQuery,
   usePendingTasks,
   useProactiveQuery,
+  usePromoteNote,
   useReadingTablesQuery,
   useRecortesQuery,
+  useResolveProactive,
+  useUpdateRecorte,
+  useUpdateTask,
 } from '../state'
+import { useToast } from '../state/toast'
 import type { ReadingTable } from '../api'
 import {
   buildKnowledgeInbox,
@@ -65,6 +70,34 @@ export function KnowledgeWorkflowView() {
     setProjectTitle('')
   }
 
+  const updateRecorte = useUpdateRecorte()
+  const resolveSuggestion = useResolveProactive()
+  const promoteNote = usePromoteNote()
+  const updateTask = useUpdateTask()
+  const toast = useToast()
+  /** Cierra el ciclo desde el inbox reusando las mutaciones que ya existen:
+   *  cada acción saca el material de pendientes (y por ende del inbox). */
+  const actOnItem = (item: KnowledgeInboxItem) => {
+    switch (item.source) {
+      case 'recorte':
+        updateRecorte.mutate({ id: item.sourceId, patch: { status: 'archived' } })
+        toast.show({ message: 'Recorte archivado', tone: 'success' })
+        break
+      case 'suggestion':
+        resolveSuggestion.mutate({ id: item.sourceId, status: 'dismissed' })
+        toast.show({ message: 'Sugerencia descartada' })
+        break
+      case 'note':
+        promoteNote.mutate(item.sourceId)
+        toast.show({ message: 'Nota promovida a Momento', tone: 'success' })
+        break
+      case 'task':
+        updateTask.mutate({ id: item.sourceId, patch: { done: true } })
+        toast.show({ message: 'Tarea completada', tone: 'success' })
+        break
+    }
+  }
+
   return (
     <>
       <ViewHeader
@@ -114,6 +147,8 @@ export function KnowledgeWorkflowView() {
                   item={item}
                   selected={workbench.isSelected(item.id)}
                   onAdd={() => workbench.toggleItem(item.id)}
+                  onAct={() => actOnItem(item)}
+                  actionLabel={inboxActionLabel(item.source)}
                 />
               ))}
             </ul>
@@ -284,14 +319,25 @@ export function KnowledgeWorkflowView() {
   )
 }
 
+function inboxActionLabel(source: KnowledgeInboxItem['source']): string {
+  if (source === 'recorte') return 'archivar'
+  if (source === 'suggestion') return 'descartar'
+  if (source === 'task') return 'completar'
+  return 'a momento'
+}
+
 function KnowledgeInboxCard({
   item,
   selected,
   onAdd,
+  onAct,
+  actionLabel,
 }: {
   item: KnowledgeInboxItem
   selected: boolean
   onAdd: () => void
+  onAct: () => void
+  actionLabel: string
 }) {
   return (
     <li className="card-paper-soft p-4">
@@ -313,14 +359,23 @@ function KnowledgeInboxCard({
           </p>
           {item.meta && <p className="mt-2 text-micro text-ink-300">{item.meta}</p>}
         </div>
-        <button
-          type="button"
-          onClick={onAdd}
-          disabled={selected}
-          className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-800 transition-colors"
-        >
-          {selected ? 'añadido' : 'añadir a mesa'}
-        </button>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <button
+            type="button"
+            onClick={onAdd}
+            disabled={selected}
+            className="text-micro uppercase tracking-eyebrow text-ink-400 transition-colors hover:text-ink-800 disabled:text-ink-300"
+          >
+            {selected ? 'añadido' : 'añadir a mesa'}
+          </button>
+          <button
+            type="button"
+            onClick={onAct}
+            className="text-micro uppercase tracking-eyebrow text-ink-300 transition-colors hover:text-[color:var(--accent-primary)]"
+          >
+            {actionLabel}
+          </button>
+        </div>
       </div>
     </li>
   )

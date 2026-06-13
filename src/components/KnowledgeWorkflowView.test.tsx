@@ -9,6 +9,7 @@ const stateMocks = vi.hoisted(() => ({
   useNotesQuery: vi.fn(),
   usePendingTasks: vi.fn(),
   createProjectMutate: vi.fn().mockResolvedValue(undefined),
+  recorteMutate: vi.fn(),
   projects: [] as unknown[],
 }))
 
@@ -26,6 +27,7 @@ vi.mock('../state', async () => {
       isPending: false,
     }),
     useDeleteReadingTable: () => ({ mutate: vi.fn() }),
+    useUpdateRecorte: () => ({ mutate: stateMocks.recorteMutate }),
   }
 })
 
@@ -82,6 +84,7 @@ describe('<KnowledgeWorkflowView />', () => {
     vi.clearAllMocks()
     window.localStorage.clear()
     stateMocks.createProjectMutate.mockClear()
+    stateMocks.recorteMutate.mockClear()
     stateMocks.projects = []
     clipboardWriteText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', {
@@ -172,5 +175,14 @@ describe('<KnowledgeWorkflowView />', () => {
         expect.objectContaining({ title: 'Mi ensayo' }),
       ),
     )
+  })
+
+  it('archiva un recorte desde el inbox', () => {
+    renderWithProviders(<KnowledgeWorkflowView />)
+    fireEvent.click(screen.getByRole('button', { name: /^archivar$/i }))
+    expect(stateMocks.recorteMutate).toHaveBeenCalledWith({
+      id: 'r1',
+      patch: { status: 'archived' },
+    })
   })
 })
