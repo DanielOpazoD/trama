@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { join, resolve } from 'node:path'
 
 const checks = [
   {
@@ -25,14 +27,58 @@ const checks = [
   },
 ]
 
-const failures = checks.filter(({ file, pattern }) =>
-  pattern.test(readFileSync(file, 'utf8')),
-)
-
-if (failures.length > 0) {
-  console.error('Documentation drift checks failed:')
-  for (const failure of failures) console.error(`  - ${failure.message}`)
-  process.exit(1)
+function readProjectFile(root, file) {
+  return readFileSync(join(root, file), 'utf8')
 }
 
-console.log('docs drift ok')
+function countFunctionEndpoints(root) {
+  return readdirSync(join(root, 'netlify/functions'), { withFileTypes: true }).filter(
+    (entry) => entry.isFile() && entry.name.endsWith('.mts'),
+  ).length
+}
+
+function checkDocumentedFunctionCount(root) {
+  const readme = readProjectFile(root, 'README.md')
+  const match = readme.match(/functions\/\s+#\s+(\d+)\s+endpoints `\.mts`/)
+  if (!match) {
+    return {
+      file: 'README.md',
+      message: 'README.md no longer exposes the documented Netlify endpoint count.',
+    }
+  }
+
+  const documented = Number(match[1])
+  const actual = countFunctionEndpoints(root)
+  if (documented === actual) return null
+
+  return {
+    file: 'README.md',
+    message: `README.md documents ${documented} Netlify endpoints, but netlify/functions has ${actual} \`.mts\` files.`,
+  }
+}
+
+export function checkDocsDrift(root = process.cwd()) {
+  const projectRoot = resolve(root)
+  const failures = checks.filter(({ file, pattern }) =>
+    pattern.test(readProjectFile(projectRoot, file)),
+  )
+  const functionCountFailure = checkDocumentedFunctionCount(projectRoot)
+  if (functionCountFailure) failures.push(functionCountFailure)
+
+  return { ok: failures.length === 0, failures }
+}
+
+function main() {
+  const result = checkDocsDrift()
+
+  if (!result.ok) {
+    console.error('Documentation drift checks failed:')
+    for (const failure of result.failures) console.error(`  - ${failure.message}`)
+    process.exit(1)
+  }
+
+  console.log('docs drift ok')
+}
+
+const isMain = process.argv[1] === fileURLToPath(import.meta.url)
+if (isMain) main()

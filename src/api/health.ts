@@ -25,6 +25,12 @@ export type HealthResponse = {
     remainingCents: number
     pct: number
   }
+  auth: {
+    clerkConfigured: boolean
+    legacyFallbackAllowed: boolean
+    legacyOwnerMapped: boolean
+    mode: 'legacy-single-user' | 'clerk-with-legacy-fallback' | 'clerk'
+  }
   byProvider: Array<{
     provider: string
     model: string

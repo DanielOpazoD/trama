@@ -153,7 +153,8 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
 
   // Health debe mostrar el mismo cap que aplica cost-cap.ts:
   // users.monthly_budget_cents si existe, fallback a AI_MONTHLY_BUDGET_CENTS.
-  const envBudgetCents = getEnv().AI_MONTHLY_BUDGET_CENTS ?? 5000
+  const env = getEnv()
+  const envBudgetCents = env.AI_MONTHLY_BUDGET_CENTS ?? 5000
   const userBudgetCents = userBudgetRows[0]?.cap
   const budgetCents =
     typeof userBudgetCents === 'number' && userBudgetCents > 0
@@ -161,6 +162,16 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       : envBudgetCents
   const monthCostCents = Number(monthTotalsRows[0]?.cost_cents ?? 0)
   const budgetPct = budgetCents > 0 ? Math.min(1, monthCostCents / budgetCents) : 0
+  const auth = {
+    clerkConfigured: Boolean(env.CLERK_SECRET_KEY),
+    legacyFallbackAllowed: env.ALLOW_LEGACY_FALLBACK,
+    legacyOwnerMapped: Boolean(env.LEGACY_OWNER_CLERK_ID),
+    mode: !env.CLERK_SECRET_KEY
+      ? 'legacy-single-user'
+      : env.ALLOW_LEGACY_FALLBACK
+        ? 'clerk-with-legacy-fallback'
+        : 'clerk',
+  }
 
   // ── Alertas calculadas en runtime ──────────────────────────────
   // Cada alerta es algo que el usuario debería mirar. Tres severidades:
@@ -192,6 +203,15 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       code: 'budget_high',
       label: `Gasto IA al ${Math.round(budgetPct * 100)}% del cap`,
       hint: 'Vas por encima del 70% del presupuesto mensual. Mira el breakdown por provider abajo.',
+    })
+  }
+
+  if (auth.clerkConfigured && auth.legacyFallbackAllowed) {
+    alerts.push({
+      severity: 'warn',
+      code: 'auth_legacy_fallback',
+      label: 'Fallback legacy activo',
+      hint: 'Clerk está configurado, pero requests sin token aún caen a legacy-single-user. Producción debería ir con ALLOW_LEGACY_FALLBACK=false antes de abrir multi-user.',
     })
   }
 
@@ -270,6 +290,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       remainingCents: Math.max(0, budgetCents - monthCostCents),
       pct: budgetPct,
     },
+    auth,
     alerts,
     embeddings: {
       pendingEntities,

@@ -40,6 +40,7 @@ import {
   computePositionBounds,
   selectGraphDataset,
 } from './graph/graphViewModel'
+import { useGraphHoverPreview } from './graph/useGraphHoverPreview'
 import { LoadingHint } from './LoadingHint'
 
 // Lazy-load del renderer WebGL: sigma + graphology pesan ~165KB extra
@@ -101,24 +102,7 @@ export default function GraphView({
   )
   const [suggestEmpty, setSuggestEmpty] = useState(false)
 
-  // ζ5: hover preview — al hover prolongado sobre un nodo (~600ms) mostramos
-  // una card flotante con sus stats. Estado: id de la entidad hovered + un
-  // timer para el delay. Si el cursor se va antes del delay, cancelamos.
-  const [hoveredEntityId, setHoveredEntityId] = useState<string | null>(null)
-  const hoverTimerRef = useRef<number | null>(null)
-  function scheduleHover(id: string) {
-    if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current)
-    hoverTimerRef.current = window.setTimeout(() => {
-      setHoveredEntityId(id)
-    }, 600)
-  }
-  function cancelHover() {
-    if (hoverTimerRef.current) {
-      window.clearTimeout(hoverTimerRef.current)
-      hoverTimerRef.current = null
-    }
-    setHoveredEntityId(null)
-  }
+  const { hoveredEntityId, scheduleHover, cancelHover } = useGraphHoverPreview()
 
   // Graph mode + focus + explore-hint, todos persistidos. El modo y el
   // nodo focal sobreviven recargas/navegación; el dismiss del hint se

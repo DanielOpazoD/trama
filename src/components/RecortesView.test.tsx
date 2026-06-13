@@ -86,6 +86,22 @@ describe('<RecortesView />', () => {
     expect(screen.getByRole('button', { name: '→ momento' })).toBeInTheDocument()
   })
 
+  it('orienta la curaduría solo en recortes pendientes', () => {
+    setup([
+      recorte(),
+      recorte({ id: 'r2', status: 'promoted', promotedTarget: 'quote', text: 'otro' }),
+    ])
+
+    expect(screen.getByLabelText('Siguiente curaduría')).toHaveTextContent(
+      /pendiente de curaduría/i,
+    )
+    expect(screen.getByText(/elige si será cita, entidad o momento/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /promovidos/ }))
+
+    expect(screen.queryByLabelText('Siguiente curaduría')).toBeNull()
+  })
+
   it('mantiene visibles las acciones de la tarjeta en mobile/touch', () => {
     setup([recorte()])
     const actions = screen.getByRole('button', { name: 'archivar' }).parentElement
