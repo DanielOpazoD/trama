@@ -23,7 +23,10 @@ export function useKnowledgeWorkbench() {
 
   const isSelected = useCallback((id: string) => selectedIds.includes(id), [selectedIds])
 
-  return { selectedIds, toggleItem, removeItem, clear, isSelected }
+  /** Reemplaza la selección completa — usado al abrir un proyecto guardado. */
+  const setSelected = useCallback((ids: string[]) => setSelectedIds([...ids]), [])
+
+  return { selectedIds, toggleItem, removeItem, clear, isSelected, setSelected }
 }
 
 function readSelectedIds(): string[] {

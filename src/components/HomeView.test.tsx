@@ -82,6 +82,7 @@ function setupCache(
   qc.setQueryData(['proactive', 'pending'], [])
   qc.setQueryData(queryKeys.cronicas, [])
   qc.setQueryData(queryKeys.xCronica, { cronica: null })
+  qc.setQueryData(queryKeys.readingTables, [])
   return renderWithProviders(
     <HomeView
       onNavigate={callbacks.onNavigate ?? vi.fn()}
