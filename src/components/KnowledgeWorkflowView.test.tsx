@@ -110,4 +110,19 @@ describe('<KnowledgeWorkflowView />', () => {
     fireEvent.click(within(workbench).getByRole('button', { name: /vaciar mesa/i }))
     expect(within(workbench).getByText(/Selecciona materiales/i)).toBeInTheDocument()
   })
+
+  it('genera una propuesta narrativa desde los materiales seleccionados', () => {
+    renderWithProviders(<KnowledgeWorkflowView />)
+
+    const addButtons = screen.getAllByRole('button', { name: /añadir a mesa/i })
+    fireEvent.click(addButtons[0])
+    fireEvent.click(addButtons[1])
+
+    expect(screen.getByText('Propuesta narrativa')).toBeInTheDocument()
+    expect(screen.getByText('Tesis provisional')).toBeInTheDocument()
+    expect(
+      screen.getByText(/Explorar cómo Relación sugerida: Borges → Ficciones/i),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Huecos a revisar')).toBeInTheDocument()
+  })
 })

@@ -9,6 +9,7 @@ import {
   knowledgeInboxCounts,
   type KnowledgeInboxItem,
 } from '../lib/knowledgeWorkflow'
+import { buildNarrativeProposal } from '../lib/editorialDraft'
 import { useKnowledgeWorkbench } from '../hooks/useKnowledgeWorkbench'
 import { EmptyMessage } from './EmptyMessage'
 import { SparkleIcon } from './Icons'
@@ -33,6 +34,7 @@ export function KnowledgeWorkflowView() {
   const selectedItems = workbench.selectedIds
     .map((id) => inbox.find((item) => item.id === id))
     .filter((item): item is KnowledgeInboxItem => Boolean(item))
+  const proposal = buildNarrativeProposal(selectedItems)
 
   return (
     <>
@@ -142,9 +144,46 @@ export function KnowledgeWorkflowView() {
 
           <section className="card-paper p-4 space-y-2">
             <p className="section-eyebrow">borrador editorial</p>
-            <p className="text-sm text-ink-400 leading-relaxed">
-              La propuesta narrativa aparecerá cuando la mesa tenga materiales.
-            </p>
+            {selectedItems.length === 0 ? (
+              <p className="text-sm text-ink-400 leading-relaxed">
+                La propuesta narrativa aparecerá cuando la mesa tenga materiales.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-serif text-xl text-ink-700">Propuesta narrativa</h3>
+                  <p className="mt-2 text-micro uppercase tracking-eyebrow text-ink-300">
+                    Tesis provisional
+                  </p>
+                  <p className="mt-1 text-sm text-ink-600 leading-relaxed">
+                    {proposal.thesis}
+                  </p>
+                </div>
+                <div>
+                  <p className="section-eyebrow">estructura</p>
+                  <ol className="mt-2 space-y-2">
+                    {proposal.outline.map((section) => (
+                      <li key={section.title}>
+                        <p className="font-serif text-sm text-ink-700">{section.title}</p>
+                        <p className="text-xs text-ink-400 leading-relaxed">
+                          {section.prompt}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                <div>
+                  <p className="section-eyebrow">Huecos a revisar</p>
+                  <ul className="mt-2 space-y-1">
+                    {proposal.gaps.map((gap) => (
+                      <li key={gap} className="text-xs text-ink-400 leading-relaxed">
+                        {gap}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
           </section>
         </aside>
       </div>
