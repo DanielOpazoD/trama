@@ -9,7 +9,10 @@ import {
 } from '../model/model'
 import type { PDFFont, PDFPage } from 'pdf-lib'
 import { applyPdfAnnotations } from './assembleAnnotations'
+import { applyDocumentSettings } from './assembleDocumentSettings'
+import { embeddableFontUrl, fetchFontBytes } from './assembleFonts'
 import { addImagePage, readPngSize } from './assembleImages'
+import { countImages, emitLifecycle } from './assembleProgress'
 import {
   addRedactedRasterPage,
   annotationsWithoutRedactions,
@@ -22,7 +25,6 @@ import {
   PdfExportPipelineError,
   throwIfAborted,
   type AssembleOptions,
-  type PdfExportProgressEvent,
   type PdfExportWarning,
   type SkippedSource,
 } from './assemblePipeline'
@@ -40,52 +42,10 @@ export type {
   SkippedSource,
 } from './assemblePipeline'
 
-import interRegularUrl from '../fonts/inter-latin-400-normal.woff?url'
-import interBoldUrl from '../fonts/inter-latin-700-normal.woff?url'
-import spectralRegularUrl from '../fonts/spectral-latin-400-normal.woff?url'
-import spectralBoldUrl from '../fonts/spectral-latin-700-normal.woff?url'
-import caveatRegularUrl from '../fonts/caveat-latin-400-normal.woff?url'
-import caveatBoldUrl from '../fonts/caveat-latin-700-normal.woff?url'
-
 export type AssembleResult = {
   blob: Blob
   skipped: SkippedSource[]
   warnings: PdfExportWarning[]
-}
-
-function embeddableFontUrl(font: PdfFontKind, bold: boolean): string | null {
-  if (font === 'sans') return bold ? interBoldUrl : interRegularUrl
-  if (font === 'serif') return bold ? spectralBoldUrl : spectralRegularUrl
-  if (font === 'script') return bold ? caveatBoldUrl : caveatRegularUrl
-  return null
-}
-
-async function fetchFontBytes(url: string): Promise<Uint8Array> {
-  const r = await fetch(url)
-  if (!r.ok) throw new Error(`no se pudo cargar la fuente (${r.status})`)
-  return new Uint8Array(await r.arrayBuffer())
-}
-
-function countImages(doc: PdfDoc): number {
-  return (
-    doc.sources.filter((source) => source.kind === 'image').length +
-    doc.pages.reduce(
-      (count, page) =>
-        count +
-        page.annotations.filter((annotation) => annotation.kind === 'image').length,
-      0,
-    )
-  )
-}
-
-function emitLifecycle(
-  emit: (event: PdfExportProgressEvent) => void,
-  phase: PdfExportProgressEvent['phase'],
-  status: PdfExportProgressEvent['status'],
-  current?: number,
-  total?: number,
-) {
-  emit({ phase, status, current, total })
 }
 
 /**
@@ -253,46 +213,4 @@ export async function assemble(
   emitLifecycle(emit, 'save', 'complete')
   const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' })
   return { blob, skipped, warnings }
-}
-
-async function applyDocumentSettings(
-  out: Awaited<ReturnType<(typeof import('pdf-lib'))['PDFDocument']['create']>>,
-  rgb: (typeof import('pdf-lib'))['rgb'],
-  degrees: (typeof import('pdf-lib'))['degrees'],
-  doc: PdfDoc,
-) {
-  const settings = doc.settings
-  const wmText = settings?.watermark?.text?.trim()
-  if (!settings?.pageNumbers && !wmText) return
-
-  const outPages = out.getPages()
-  const helv = await out.embedFont('Helvetica')
-  const total = outPages.length
-  outPages.forEach((p, i) => {
-    const w = p.getWidth()
-    const h = p.getHeight()
-    if (settings?.pageNumbers) {
-      const label = `${i + 1} / ${total}`
-      const size = Math.max(8, Math.min(w, h) * 0.018)
-      const tw = helv.widthOfTextAtSize(label, size)
-      const margin = Math.max(18, Math.min(w, h) * 0.04)
-      const pos = settings.pageNumbers.position
-      const x = pos === 'left' ? margin : pos === 'right' ? w - margin - tw : (w - tw) / 2
-      p.drawText(label, { x, y: margin, size, font: helv, color: rgb(0.35, 0.35, 0.4) })
-    }
-    if (wmText) {
-      const size = Math.min(w, h) * 0.13
-      const tw = helv.widthOfTextAtSize(wmText, size)
-      const d = (tw / 2) * Math.SQRT1_2
-      p.drawText(wmText, {
-        x: w / 2 - d,
-        y: h / 2 - d,
-        size,
-        font: helv,
-        color: rgb(0.6, 0.6, 0.62),
-        opacity: 0.12,
-        rotate: degrees(45),
-      })
-    }
-  })
 }

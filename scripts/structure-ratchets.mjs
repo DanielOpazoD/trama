@@ -56,7 +56,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-core',
-    maxLines: 300,
+    maxLines: 225,
     files: ['src/lib/pdfStudio/assemble/assemble.ts'],
   },
   {
@@ -117,7 +117,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-workspace',
-    maxLines: 210,
+    maxLines: 180,
     files: ['src/components/notas/pdfStudio/workspace/WorkspaceSavedDocsSection.tsx'],
   },
   {

@@ -6,6 +6,7 @@ describe('bundle budget helpers', () => {
   it('normaliza nombres de chunks con hashes vite que contienen guiones', () => {
     expect(chunkBaseName('MomentosView-D9Z41wa-.js')).toBe('MomentosView')
     expect(chunkBaseName('vendor-react-UUNBh1e2.js')).toBe('vendor-react')
+    expect(chunkBaseName('QuotesView-t-HhUjo4.js')).toBe('QuotesView')
   })
 
   it('permite chunks chicos sin budget explicito', () => {

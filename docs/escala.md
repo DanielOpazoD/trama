@@ -67,6 +67,31 @@ Si va lento:
 1. ¿Tenés muchas entidades sin embedding? Settings → "Indexar lo pendiente".
 2. ¿La query es muy específica + cero matches lexicales? Debería degradar limpio. Ver consola del browser por errores.
 
+### Benchmark local 10k/50k
+
+Para medir el punto real de quiebre antes de agregar índices vectoriales o subir
+budgets, corre el benchmark lexical sobre una DB local migrada:
+
+```bash
+npm run db:up
+npm run bench:search-scale
+```
+
+Por defecto mide 10k y 50k entidades/citas sintéticas bajo
+`user_id = trama-benchmark-search`, ejecuta `EXPLAIN ANALYZE` de las ramas
+léxicas de `/api/search` y termina con `ROLLBACK`, sin dejar fixtures. Para
+tamaños específicos:
+
+```bash
+SEARCH_BENCHMARK_SIZES=1000,10000 npm run bench:search-scale
+```
+
+Solo conserva fixtures si necesitas inspección manual:
+
+```bash
+SEARCH_BENCHMARK_KEEP_FIXTURES=1 npm run bench:search-scale
+```
+
 ## Chat / ask: ventana de contexto
 
 Los prompts de `ask` (barra universal) y `chat` inyectan un volcado de la trama

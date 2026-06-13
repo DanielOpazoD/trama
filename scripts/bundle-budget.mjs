@@ -1,6 +1,7 @@
 export function chunkBaseName(file) {
   const m = file.match(/^(.+)-[A-Za-z0-9_-]{6,12}\.js$/)
-  return m ? m[1] : file.replace(/\.js$/, '')
+  const base = m ? m[1] : file.replace(/\.js$/, '')
+  return base.replace(/-(?:t|tsx|jsx)$/, '')
 }
 
 export function classifyBundleEntry({ base, budget, gzKb, maxUnbudgetedKb }) {

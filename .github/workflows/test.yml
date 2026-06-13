@@ -44,6 +44,12 @@ jobs:
       - name: Documentation drift check
         run: npm run check:docs-drift
 
+      # Guard de cutover multiusuario: producción nunca puede deployar sin Clerk
+      # completo ni con ALLOW_LEGACY_FALLBACK=true. Netlify lo corre en build;
+      # PR también debe bloquearlo antes de llegar a deploy.
+      - name: Legacy fallback production guard
+        run: npm run check:legacy-fallback
+
       # Gate de soft-delete: bloquea `DELETE FROM` nuevos fuera del allowlist
       # (los hard-deletes legítimos están enumerados en el script). Antes el
       # script existía pero no corría en ningún job.

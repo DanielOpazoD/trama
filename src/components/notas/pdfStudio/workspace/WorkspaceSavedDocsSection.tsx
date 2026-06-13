@@ -4,17 +4,15 @@ import type {
   SavedFolder,
   SavedFolderColor,
 } from '../../../../lib/pdfStudio/render/persistence'
-import { CheckIcon, CloseIcon, FilePdfIcon, PlusIcon } from '../../../Icons'
 import {
   WorkspaceArchiveControls,
   WorkspaceArchiveFolderHeader,
 } from './WorkspaceArchiveControls'
 import { WorkspaceFoldersBar } from './WorkspaceFoldersBar'
+import { WorkspaceSaveCreationRow } from './WorkspaceSaveCreationRow'
+import { WorkspaceSavedDocsHeader } from './WorkspaceSavedDocsHeader'
 import { WorkspaceSavedDocItem } from './WorkspaceSavedDocItem'
 import { useWorkspaceSavedArchive } from './useWorkspaceSavedArchive'
-
-const rowBtn =
-  'touch-target inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
 
 export function WorkspaceSavedDocsSection({
   creations,
@@ -73,54 +71,19 @@ export function WorkspaceSavedDocsSection({
   }
   return (
     <section className="pb-2">
-      <div className="flex items-center justify-between gap-2 px-2.5 pt-2 pb-0.5">
-        <h3 className="section-eyebrow-serif flex items-center gap-1.5 text-ink-400">
-          <FilePdfIcon size={12} />
-          PDFs y copias
-          <span className="text-ink-300 tabular-nums">({creations.length})</span>
-        </h3>
-        {newName === null && (
-          <button
-            type="button"
-            onClick={() => setNewName(suggestedName ?? '')}
-            disabled={!canSave}
-            className="btn-ghost text-micro inline-flex items-center gap-1 disabled:opacity-40"
-          >
-            <PlusIcon size={11} /> Guardar
-          </button>
-        )}
-      </div>
+      <WorkspaceSavedDocsHeader
+        canSave={canSave}
+        count={creations.length}
+        onStartSave={newName === null ? () => setNewName(suggestedName ?? '') : undefined}
+      />
 
       {newName !== null && (
-        <div className="flex items-center gap-1 px-2.5 pb-2">
-          <input
-            autoFocus
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') confirmNew()
-              else if (e.key === 'Escape') setNewName(null)
-            }}
-            placeholder="Nombre de la creación"
-            className="input-paper flex-1 min-w-0 text-caption px-2 py-1 rounded-md border border-ink-200"
-          />
-          <button
-            type="button"
-            onClick={confirmNew}
-            aria-label="Guardar"
-            className={`${rowBtn} text-[color:var(--accent-sage)]`}
-          >
-            <CheckIcon size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setNewName(null)}
-            aria-label="Cancelar"
-            className={rowBtn}
-          >
-            <CloseIcon size={14} />
-          </button>
-        </div>
+        <WorkspaceSaveCreationRow
+          name={newName}
+          onCancel={() => setNewName(null)}
+          onChangeName={setNewName}
+          onConfirm={confirmNew}
+        />
       )}
 
       <WorkspaceFoldersBar
