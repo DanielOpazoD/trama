@@ -146,38 +146,6 @@
         display: grid;
         gap: 11px;
       }
-      .source {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 7px 9px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--paper-2);
-        min-width: 0;
-      }
-      .source img {
-        width: 16px;
-        height: 16px;
-        border-radius: 3px;
-        flex: none;
-      }
-      .source .meta {
-        min-width: 0;
-      }
-      .source .title {
-        font:
-          500 12px/1.3 Georgia,
-          serif;
-        color: var(--ink);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .source .host {
-        font-size: 10.5px;
-        color: var(--ink-faint);
-      }
       /* Selector de modo de captura (segmented control). */
       .modes {
         display: flex;
@@ -322,9 +290,13 @@
         }
       }
       details {
-        border-top: 1px solid var(--border);
-        padding: 11px 16px 13px;
+        border-bottom: 1px solid var(--border);
+        padding: 9px 16px 11px;
         background: var(--paper-2);
+      }
+      #connLabel {
+        text-transform: none;
+        letter-spacing: 0.14em;
       }
       summary {
         cursor: pointer;
@@ -375,34 +347,49 @@
       }
       .more-actions {
         display: flex;
-        gap: 14px;
+        gap: 10px;
       }
-      .link-btn {
+      /* Favorito: acción evidente, con estrella que se dora al guardar. */
+      .fav-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
         background: transparent;
-        border: 0;
-        padding: 0;
-        font-size: 10.5px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 7px 14px;
+        font:
+          600 12px Inter,
+          system-ui,
+          sans-serif;
         color: var(--ink-muted);
         cursor: pointer;
+        transition:
+          border-color 0.14s ease,
+          color 0.14s ease;
       }
-      .link-btn:hover {
+      .fav-btn:hover {
+        border-color: var(--gold);
         color: var(--ink);
       }
-      .link-btn.muted {
+      .fav-btn .star {
+        font-size: 16px;
+        line-height: 1;
         color: var(--ink-faint);
+        transition:
+          color 0.14s ease,
+          transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
-      .collection-note {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 8px;
-        font-size: 10.5px;
+      .fav-btn:hover .star {
         color: var(--gold);
-        font-style: italic;
       }
-      .coll-actions {
-        display: flex;
-        gap: 10px;
+      .fav-btn.saved {
+        border-color: var(--gold);
+        color: var(--gold);
+      }
+      .fav-btn.saved .star {
+        color: var(--gold);
+        transform: scale(1.2);
       }
       /* Mini-bandeja: los últimos recortes pendientes, leídos del servidor. */
       .recent {
@@ -484,72 +471,10 @@
       </div>
       <h1>Guardar en la bandeja</h1>
     </header>
-    <main>
-      <div class="source" id="source" hidden>
-        <img id="favicon" alt="" />
-        <div class="meta">
-          <div class="title" id="srcTitle"></div>
-          <div class="host" id="srcHost"></div>
-        </div>
-      </div>
-      <div class="modes" id="modes" role="group" aria-label="Modo de captura">
-        <button class="mode-opt" data-mode="citation" aria-pressed="true">Cita</button>
-        <button class="mode-opt" data-mode="article" aria-pressed="false">
-          Artículo
-        </button>
-        <button class="mode-opt" data-mode="region" aria-pressed="false">Región</button>
-      </div>
-      <p class="mode-hint" id="modeHint" hidden></p>
-      <label id="textoLabel">
-        <div class="label-row">
-          <span>Texto</span>
-          <span class="count" id="count">0</span>
-        </div>
-        <textarea
-          id="texto"
-          placeholder="Selecciona texto en la pagina o pegalo aqui&hellip;"
-        ></textarea>
-      </label>
-      <div class="row">
-        <span id="estado"></span>
-        <button id="guardar">Guardar en Recortes</button>
-      </div>
-      <div class="more-actions" id="moreActions">
-        <button
-          class="link-btn"
-          id="saveFavorite"
-          title="Marca esta página como favorita para volver"
-        >
-          &#9733; favorito
-        </button>
-        <button
-          class="link-btn"
-          id="addCollect"
-          title="Junta varios fragmentos de distintos lugares en un solo recorte"
-        >
-          + juntar fragmento
-        </button>
-      </div>
-      <div class="collection-note" id="collectionNote" hidden>
-        <span id="collectionCount"></span>
-        <span class="coll-actions">
-          <button class="link-btn" id="saveCollection">guardar como un recorte</button>
-          <button class="link-btn muted" id="clearCollection">descartar</button>
-        </span>
-      </div>
-      <p class="queue-note" id="queueNote" hidden></p>
-    </main>
-    <section class="recent" id="recent" hidden>
-      <div class="recent-head">
-        <span class="label">en tu bandeja</span>
-        <a id="openTray" href="#">ver bandeja &rarr;</a>
-      </div>
-      <div id="recentList"></div>
-    </section>
     <details id="config">
       <summary>
         <span class="conn-dot" id="connDot"></span>
-        conexion
+        <span id="connLabel">conexión</span>
       </summary>
       <main>
         <label>
@@ -579,6 +504,47 @@
         </div>
       </main>
     </details>
+    <main>
+      <div class="modes" id="modes" role="group" aria-label="Modo de captura">
+        <button class="mode-opt" data-mode="citation" aria-pressed="true">Cita</button>
+        <button class="mode-opt" data-mode="article" aria-pressed="false">
+          Artículo
+        </button>
+        <button class="mode-opt" data-mode="region" aria-pressed="false">Región</button>
+      </div>
+      <p class="mode-hint" id="modeHint" hidden></p>
+      <label id="textoLabel">
+        <div class="label-row">
+          <span>Texto</span>
+          <span class="count" id="count">0</span>
+        </div>
+        <textarea
+          id="texto"
+          placeholder="Selecciona texto en la pagina o pegalo aqui&hellip;"
+        ></textarea>
+      </label>
+      <div class="row">
+        <span id="estado"></span>
+        <button id="guardar">Guardar en Recortes</button>
+      </div>
+      <div class="more-actions" id="moreActions">
+        <button
+          class="fav-btn"
+          id="saveFavorite"
+          title="Guarda esta página en tus Favoritos para volver"
+        >
+          <span class="star" id="favStar">&#9734;</span> Favorito
+        </button>
+      </div>
+      <p class="queue-note" id="queueNote" hidden></p>
+    </main>
+    <section class="recent" id="recent" hidden>
+      <div class="recent-head">
+        <span class="label">en tu bandeja</span>
+        <a id="openTray" href="#">ver bandeja &rarr;</a>
+      </div>
+      <div id="recentList"></div>
+    </section>
     <script src="popup.js"></script>
   </body>
 </html>

@@ -20,6 +20,31 @@ function hostOf(url: string): string | null {
   }
 }
 
+/**
+ * Si la URL es un video de YouTube, devuelve su miniatura. Trama no guarda la
+ * imagen: la deriva del id del video, así funciona retroactivamente con los
+ * favoritos ya marcados. Soporta watch, youtu.be, shorts y embed.
+ */
+export function youtubeThumb(url: string): string | null {
+  try {
+    const u = new URL(url)
+    const host = u.hostname.replace(/^www\./, '')
+    let id: string | null = null
+    if (host === 'youtu.be') id = u.pathname.slice(1)
+    else if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (u.pathname === '/watch') id = u.searchParams.get('v')
+      else if (u.pathname.startsWith('/shorts/')) id = u.pathname.split('/')[2] ?? null
+      else if (u.pathname.startsWith('/embed/')) id = u.pathname.split('/')[2] ?? null
+    }
+    if (!id || !/^[\w-]{11}$/.test(id)) return null
+    // hqdefault siempre existe (480×360, hasta para videos viejos); object-cover
+    // recorta las barras del letterbox y la deja en 16:9 limpio.
+    return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`
+  } catch {
+    return null
+  }
+}
+
 function formatStamp(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
@@ -32,6 +57,7 @@ function FavoritoCard({ favorito: f }: { favorito: Favorito }) {
   const update = useUpdateFavorito()
   const remove = useDeleteFavorito()
   const host = hostOf(f.url)
+  const thumb = youtubeThumb(f.url)
   const [note, setNote] = useState(f.note ?? '')
 
   function commitNote() {
@@ -46,6 +72,29 @@ function FavoritoCard({ favorito: f }: { favorito: Favorito }) {
         <div className="border-t-2 border-ink-700/60" />
         <div className="mt-0.5 border-t border-ink-200" />
       </div>
+
+      {thumb && (
+        <a
+          href={f.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Ver ${f.title || host || 'el video'} en YouTube`}
+          className="mb-2.5 block overflow-hidden rounded-md border border-ink-100"
+        >
+          <img
+            src={thumb}
+            alt=""
+            loading="lazy"
+            style={{ aspectRatio: '16 / 9' }}
+            className="w-full bg-ink-100 object-cover"
+            onError={(e) => {
+              // Video privado/borrado → sin miniatura: ocultamos el banner y
+              // queda el favicon + título de siempre.
+              e.currentTarget.parentElement?.style.setProperty('display', 'none')
+            }}
+          />
+        </a>
+      )}
 
       <div className="flex items-start gap-2.5">
         {host && (

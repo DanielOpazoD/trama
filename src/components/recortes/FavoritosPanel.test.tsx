@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { screen } from '@testing-library/react'
-import { FavoritosPanel } from './FavoritosPanel'
+import { FavoritosPanel, youtubeThumb } from './FavoritosPanel'
 import { favoritoFromRow, type FavoritoRow } from '../../api/favoritos'
 import { makeQueryClient, renderWithProviders } from '../../test-utils'
 import { queryKeys } from '../../state/queryClient'
@@ -48,5 +48,37 @@ describe('<FavoritosPanel />', () => {
     setup([])
     expect(screen.getByText(/Todavía no marcaste/)).toBeInTheDocument()
     expect(screen.getByText(/Guardar como/)).toBeInTheDocument()
+  })
+
+  it('muestra la miniatura de YouTube cuando el favorito es un video', () => {
+    setup([
+      favoritoFromRow({
+        ...ROW,
+        id: 'yt',
+        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        title: 'The Cure - Primavera Sound',
+      }),
+    ])
+    const img = document.querySelector('img[src*="ytimg.com"]')
+    expect(img).toHaveAttribute('src', 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg')
+  })
+})
+
+describe('youtubeThumb', () => {
+  it('extrae el id de las formas de URL de YouTube', () => {
+    const thumb = (id: string) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`
+    expect(youtubeThumb('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(
+      thumb('dQw4w9WgXcQ'),
+    )
+    expect(youtubeThumb('https://youtu.be/dQw4w9WgXcQ')).toBe(thumb('dQw4w9WgXcQ'))
+    expect(youtubeThumb('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe(
+      thumb('dQw4w9WgXcQ'),
+    )
+  })
+
+  it('devuelve null para páginas que no son videos', () => {
+    expect(youtubeThumb('https://www.gutenberg.org/')).toBeNull()
+    expect(youtubeThumb('https://www.youtube.com/feed/subscriptions')).toBeNull()
+    expect(youtubeThumb('no es una url')).toBeNull()
   })
 })
