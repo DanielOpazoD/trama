@@ -92,12 +92,22 @@ describe('<KnowledgeWorkflowView />', () => {
     expect(screen.getByText(/Nada urgente para procesar/i)).toBeInTheDocument()
   })
 
-  it('reserva la mesa de lectura para los próximos bloques', () => {
+  it('añade materiales a la mesa de lectura y permite quitarlos', () => {
     renderWithProviders(<KnowledgeWorkflowView />)
 
     const workbench = screen.getByLabelText('Mesa de lectura')
     expect(within(workbench).getByText(/Selecciona materiales/i)).toBeInTheDocument()
     fireEvent.click(screen.getAllByRole('button', { name: /añadir a mesa/i })[0])
+    expect(
+      within(workbench).getByText(/Relación sugerida: Borges → Ficciones/i),
+    ).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /añadido/i })[0]).toBeDisabled()
+
+    fireEvent.click(within(workbench).getByRole('button', { name: /quitar/i }))
+    expect(within(workbench).getByText(/Selecciona materiales/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByRole('button', { name: /añadir a mesa/i })[0])
+    fireEvent.click(within(workbench).getByRole('button', { name: /vaciar mesa/i }))
     expect(within(workbench).getByText(/Selecciona materiales/i)).toBeInTheDocument()
   })
 })

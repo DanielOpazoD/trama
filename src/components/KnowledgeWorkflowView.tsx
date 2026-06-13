@@ -9,6 +9,7 @@ import {
   knowledgeInboxCounts,
   type KnowledgeInboxItem,
 } from '../lib/knowledgeWorkflow'
+import { useKnowledgeWorkbench } from '../hooks/useKnowledgeWorkbench'
 import { EmptyMessage } from './EmptyMessage'
 import { SparkleIcon } from './Icons'
 import { ViewHeader } from './ViewHeader'
@@ -28,6 +29,10 @@ export function KnowledgeWorkflowView() {
   const counts = knowledgeInboxCounts(inbox)
   const loading =
     recortes.isLoading || suggestions.isLoading || notes.isLoading || tasks.isLoading
+  const workbench = useKnowledgeWorkbench()
+  const selectedItems = workbench.selectedIds
+    .map((id) => inbox.find((item) => item.id === id))
+    .filter((item): item is KnowledgeInboxItem => Boolean(item))
 
   return (
     <>
@@ -73,7 +78,12 @@ export function KnowledgeWorkflowView() {
           ) : (
             <ul className="space-y-3">
               {inbox.map((item) => (
-                <KnowledgeInboxCard key={item.id} item={item} />
+                <KnowledgeInboxCard
+                  key={item.id}
+                  item={item}
+                  selected={workbench.isSelected(item.id)}
+                  onAdd={() => workbench.toggleItem(item.id)}
+                />
               ))}
             </ul>
           )}
@@ -87,10 +97,47 @@ export function KnowledgeWorkflowView() {
                 Materiales elegidos
               </h3>
             </div>
-            <p className="text-sm text-ink-400 leading-relaxed">
-              Selecciona materiales del inbox para armar una mesa temporal. En el
-              siguiente bloque esta selección persistirá y alimentará el borrador.
-            </p>
+            {selectedItems.length === 0 ? (
+              <p className="text-sm text-ink-400 leading-relaxed">
+                Selecciona materiales del inbox para armar una mesa temporal.
+              </p>
+            ) : (
+              <>
+                <ul className="space-y-2">
+                  {selectedItems.map((item) => (
+                    <li
+                      key={item.id}
+                      className="rounded-md border border-ink-100/70 bg-paper-50/60 px-3 py-2"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-micro uppercase tracking-eyebrow text-ink-300">
+                            {sourceLabel(item.source)}
+                          </p>
+                          <p className="mt-0.5 font-serif text-sm text-ink-700 leading-tight">
+                            {item.title}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => workbench.removeItem(item.id)}
+                          className="text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors"
+                        >
+                          quitar
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={workbench.clear}
+                  className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-800 transition-colors"
+                >
+                  vaciar mesa
+                </button>
+              </>
+            )}
           </section>
 
           <section className="card-paper p-4 space-y-2">
@@ -105,7 +152,15 @@ export function KnowledgeWorkflowView() {
   )
 }
 
-function KnowledgeInboxCard({ item }: { item: KnowledgeInboxItem }) {
+function KnowledgeInboxCard({
+  item,
+  selected,
+  onAdd,
+}: {
+  item: KnowledgeInboxItem
+  selected: boolean
+  onAdd: () => void
+}) {
   return (
     <li className="card-paper-soft p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -128,9 +183,11 @@ function KnowledgeInboxCard({ item }: { item: KnowledgeInboxItem }) {
         </div>
         <button
           type="button"
+          onClick={onAdd}
+          disabled={selected}
           className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-800 transition-colors"
         >
-          añadir a mesa
+          {selected ? 'añadido' : 'añadir a mesa'}
         </button>
       </div>
     </li>
