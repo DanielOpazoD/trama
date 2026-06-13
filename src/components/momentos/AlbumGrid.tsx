@@ -7,6 +7,7 @@ import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 import { formatMonthLabel, getMomentoPhotoItems, groupByMonth } from './helpers'
 import { MomentoEditModal } from './MomentoEditModal'
 import { MomentoFeedback } from './MomentoFeedback'
+import { PhotoLightbox } from './PhotoLightbox'
 
 /**
  * Vista alternativa de Momentos: grid de fotos en cronología año → mes.
@@ -190,6 +191,7 @@ function AlbumTile({
     .filter((e): e is Entity => Boolean(e))
   const [actionsOpen, setActionsOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
   if (!storageKey) return null
   const d = new Date(momento.capturedAt)
   const dateLabel = !Number.isNaN(d.getTime())
@@ -208,12 +210,21 @@ function AlbumTile({
   return (
     <li className="group relative">
       <div className="aspect-square overflow-hidden rounded-md border border-ink-100/60 bg-paper-100/40 relative">
-        <AuthenticatedMomentoImage
-          storageKey={storageKey}
-          alt={caption ?? 'momento'}
-          loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-        />
+        <button
+          type="button"
+          onClick={() => setLightboxOpen(true)}
+          aria-label={
+            photos.length === 1 ? 'Abrir foto' : `Abrir visor de ${photos.length} fotos`
+          }
+          className="block h-full w-full cursor-zoom-in overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-paper-50/80"
+        >
+          <AuthenticatedMomentoImage
+            storageKey={storageKey}
+            alt={caption ?? 'momento'}
+            loading="lazy"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        </button>
         {extraCount > 0 && (
           <span
             className="absolute top-1.5 right-1.5 text-micro tabular-nums bg-ink-900/65 text-paper-50 px-1.5 py-0.5 rounded leading-none"
@@ -222,7 +233,7 @@ function AlbumTile({
             +{extraCount}
           </span>
         )}
-        <div className="absolute left-1.5 bottom-1.5">
+        <div className="pointer-events-none absolute left-1.5 bottom-1.5">
           <MomentoFeedback momentoId={momento.id} compact />
         </div>
       </div>
@@ -298,6 +309,12 @@ function AlbumTile({
         momento={momento}
         open={editOpen}
         onClose={() => setEditOpen(false)}
+      />
+      <PhotoLightbox
+        photos={photos}
+        caption={caption}
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
       />
     </li>
   )
