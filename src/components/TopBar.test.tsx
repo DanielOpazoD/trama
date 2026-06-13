@@ -20,6 +20,7 @@ describe('<TopBar />', () => {
     ['momentos', 'Momentos'],
     ['escuchas', 'Escuchas'],
     ['chat', 'Chat'],
+    ['flujo', 'Flujo'],
     ['sugerencias', 'Sugerencias'],
   ])('cada ViewMode tiene su título: %s → %s', (view, expectedTitle) => {
     renderWithProviders(<TopBar view={view as never} />)

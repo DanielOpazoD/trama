@@ -33,6 +33,7 @@ const VALID_VIEWS: ReadonlyArray<ViewMode> = [
   'cronologia',
   'atlas',
   'chat',
+  'flujo',
   'sugerencias',
 ]
 

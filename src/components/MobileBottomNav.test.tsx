@@ -32,7 +32,15 @@ afterEach(() => {
 describe('<MobileBottomNav />', () => {
   it('renders all nav items with their accessible labels', () => {
     renderWithProviders(<MobileBottomNav view="inicio" onChangeView={() => {}} />)
-    const expectedLabels = ['Inicio', 'Entidades', 'Citas', 'Momentos', 'Grafo', 'Chat']
+    const expectedLabels = [
+      'Inicio',
+      'Entidades',
+      'Citas',
+      'Momentos',
+      'Grafo',
+      'Flujo',
+      'Chat',
+    ]
     for (const label of expectedLabels) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
     }

@@ -6,6 +6,7 @@ import {
   HomeIcon,
   MomentosIcon,
   QuoteIcon,
+  SparkleIcon,
 } from './Icons'
 import type { ViewMode } from './Sidebar'
 import { SECTION_ACCENT } from '../lib/sectionAccent'
@@ -39,6 +40,7 @@ const NAV_ITEMS: Array<{
   { value: 'citas', label: 'Citas', icon: QuoteIcon },
   { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
   { value: 'grafo', label: 'Grafo', icon: GraphIcon },
+  { value: 'flujo', label: 'Flujo', icon: SparkleIcon },
   { value: 'chat', label: 'Chat', icon: ChatIcon },
 ]
 

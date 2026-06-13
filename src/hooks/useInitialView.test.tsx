@@ -47,6 +47,12 @@ describe('useInitialView', () => {
     expect(result.current[0]).toBe('chat')
   })
 
+  it('lee ?view=flujo del query string', () => {
+    window.location.search = '?view=flujo'
+    const { result } = renderHook(() => useInitialView())
+    expect(result.current[0]).toBe('flujo')
+  })
+
   it('ignora un view inválido y cae a "inicio"', () => {
     window.location.search = '?view=hackerville'
     const { result } = renderHook(() => useInitialView())
@@ -61,6 +67,7 @@ describe('useInitialView', () => {
       'citas',
       'escuchas',
       'momentos',
+      'flujo',
       'chat',
       'sugerencias',
     ]
