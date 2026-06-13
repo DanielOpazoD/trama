@@ -36,4 +36,14 @@ describe('search scale benchmark script', () => {
     expect(source).toContain('idx_benchmark_entities_search')
     expect(source).toContain('idx_benchmark_quotes_search')
   })
+
+  it('no hard-deletea tablas con deleted_at al limpiar fixtures', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'scripts/search-scale-benchmark.mjs'),
+      'utf8',
+    )
+
+    expect(source).not.toMatch(/\bDELETE\s+FROM\s+quotes\b/i)
+    expect(source).not.toMatch(/\bDELETE\s+FROM\s+entities\b/i)
+  })
 })

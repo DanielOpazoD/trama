@@ -133,6 +133,25 @@ WHERE e.user_id = ${sqlString(BENCHMARK_USER_ID)}
 `
 }
 
+function buildCleanupSql(schemaMode) {
+  if (schemaMode === 'portable') {
+    return `
+TRUNCATE TABLE quotes, entities;
+`
+  }
+  return `
+UPDATE quotes
+SET deleted_at = NOW()
+WHERE user_id = ${sqlString(BENCHMARK_USER_ID)}
+  AND deleted_at IS NULL;
+
+UPDATE entities
+SET deleted_at = NOW()
+WHERE user_id = ${sqlString(BENCHMARK_USER_ID)}
+  AND deleted_at IS NULL;
+`
+}
+
 function buildBenchmarkSql({ sizes, query, keepFixtures, schemaMode = 'app' }) {
   const targetRuns = sizes
     .map(
@@ -140,8 +159,7 @@ function buildBenchmarkSql({ sizes, query, keepFixtures, schemaMode = 'app' }) {
 \\echo ''
 \\echo '== search benchmark: ${size} entities + ${size} quotes =='
 
-DELETE FROM quotes WHERE user_id = ${sqlString(BENCHMARK_USER_ID)};
-DELETE FROM entities WHERE user_id = ${sqlString(BENCHMARK_USER_ID)};
+${buildCleanupSql(schemaMode)}
 
 ${buildEntityInsertSql({ size, query, schemaMode })}
 
