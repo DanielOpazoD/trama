@@ -366,6 +366,19 @@ export function buildSeed(): Store {
     },
   ]
 
+  const readingTables: Row[] = [
+    {
+      id: uid(),
+      title: 'Ensayo sobre la memoria y el olvido',
+      material_ids: [],
+      draft_markdown:
+        '# La memoria como construcción\n\nUna tesis provisional sobre cómo lo que olvidamos también nos define.',
+      status: 'borrador',
+      created_at: daysAgo(1),
+      updated_at: daysAgo(1),
+    },
+  ]
+
   return {
     entities,
     relationships,
@@ -378,6 +391,7 @@ export function buildSeed(): Store {
     notas_attachments: [],
     recortes,
     favoritos,
+    'reading-tables': readingTables,
     momento_comments: [],
     momento_reactions: [],
     month_notes: [],

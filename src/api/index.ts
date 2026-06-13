@@ -26,6 +26,7 @@ import { momentosApi } from './momentos'
 import { notesApi } from './notes'
 import { recortesApi } from './recortes'
 import { favoritosApi } from './favoritos'
+import { readingTablesApi } from './readingTables'
 import { notasAttachmentsApi } from './notas-attachments'
 import { promptsApi } from './prompts'
 import { quotesApi } from './quotes'
@@ -49,6 +50,7 @@ export const api = {
   notes: notesApi,
   ...recortesApi,
   ...favoritosApi,
+  ...readingTablesApi,
   tasks: tasksApi,
   prompts: promptsApi,
   secrets: secretsApi,
@@ -95,6 +97,8 @@ export type {
 } from './recortes'
 
 export type { Favorito } from './favoritos'
+
+export type { ReadingTable, ReadingTableStatus } from './readingTables'
 
 export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
 

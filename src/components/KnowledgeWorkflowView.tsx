@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import {
+  useCreateReadingTable,
+  useDeleteReadingTable,
   useNotesQuery,
   usePendingTasks,
   useProactiveQuery,
+  useReadingTablesQuery,
   useRecortesQuery,
 } from '../state'
+import type { ReadingTable } from '../api'
 import {
   buildKnowledgeInbox,
   knowledgeInboxCounts,
@@ -44,6 +48,21 @@ export function KnowledgeWorkflowView() {
     } catch {
       setCopyStatus('error')
     }
+  }
+
+  const projects = useReadingTablesQuery()
+  const createProject = useCreateReadingTable()
+  const deleteProject = useDeleteReadingTable()
+  const [projectTitle, setProjectTitle] = useState('')
+  const saveProject = async () => {
+    const title =
+      projectTitle.trim() || proposal.thesis.slice(0, 80) || 'Proyecto sin título'
+    await createProject.mutateAsync({
+      title,
+      materialIds: workbench.selectedIds,
+      draftMarkdown: buildEditorialMarkdown(selectedItems, proposal),
+    })
+    setProjectTitle('')
   }
 
   return (
@@ -141,6 +160,23 @@ export function KnowledgeWorkflowView() {
                     </li>
                   ))}
                 </ul>
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    value={projectTitle}
+                    onChange={(e) => setProjectTitle(e.target.value)}
+                    placeholder="Título del proyecto…"
+                    aria-label="Título del proyecto"
+                    className="min-w-0 flex-1 rounded-md border border-ink-100 bg-paper-50 px-2.5 py-1.5 text-sm text-ink-700 placeholder:text-ink-300 focus:border-[color:var(--accent-primary)] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={saveProject}
+                    disabled={createProject.isPending}
+                    className="shrink-0 rounded-full bg-ink-800 px-3 py-1.5 text-xs font-medium text-paper-50 transition-opacity hover:opacity-90 disabled:opacity-40"
+                  >
+                    Guardar proyecto
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={workbench.clear}
@@ -216,6 +252,32 @@ export function KnowledgeWorkflowView() {
               </div>
             )}
           </section>
+
+          <section
+            aria-label="Proyectos guardados"
+            className="card-paper-soft p-4 space-y-3"
+          >
+            <div>
+              <p className="section-eyebrow">proyectos</p>
+              <h3 className="mt-1 font-serif text-xl text-ink-700">Guardados</h3>
+            </div>
+            {(projects.data ?? []).length === 0 ? (
+              <p className="text-sm text-ink-400 leading-relaxed">
+                Guarda una mesa como proyecto para volver a ella cuando quieras.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {(projects.data ?? []).map((project) => (
+                  <ProjectRow
+                    key={project.id}
+                    project={project}
+                    onOpen={() => workbench.setSelected(project.materialIds)}
+                    onDelete={() => deleteProject.mutate(project.id)}
+                  />
+                ))}
+              </ul>
+            )}
+          </section>
         </aside>
       </div>
     </>
@@ -258,6 +320,39 @@ function KnowledgeInboxCard({
           className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-800 transition-colors"
         >
           {selected ? 'añadido' : 'añadir a mesa'}
+        </button>
+      </div>
+    </li>
+  )
+}
+
+function ProjectRow({
+  project,
+  onOpen,
+  onDelete,
+}: {
+  project: ReadingTable
+  onOpen: () => void
+  onDelete: () => void
+}) {
+  const n = project.materialIds.length
+  return (
+    <li className="rounded-md border border-ink-100/70 bg-paper-50/60 px-3 py-2">
+      <div className="flex items-start justify-between gap-3">
+        <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+          <p className="font-serif text-sm text-ink-700 leading-tight hover:underline">
+            {project.title}
+          </p>
+          <p className="mt-0.5 text-micro text-ink-300">
+            {n} material{n === 1 ? '' : 'es'} · abrir
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="text-micro uppercase tracking-eyebrow text-ink-300 transition-colors hover:text-[color:var(--accent-clay)]"
+        >
+          eliminar
         </button>
       </div>
     </li>

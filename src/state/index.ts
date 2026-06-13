@@ -96,6 +96,12 @@ export {
 } from './useRecortes'
 export { useFavoritosQuery, useUpdateFavorito, useDeleteFavorito } from './useFavoritos'
 export {
+  useReadingTablesQuery,
+  useCreateReadingTable,
+  useUpdateReadingTable,
+  useDeleteReadingTable,
+} from './useReadingTables'
+export {
   useTasksQuery,
   useTasksRange,
   usePendingTasks,

@@ -8,6 +8,8 @@ const stateMocks = vi.hoisted(() => ({
   useProactiveQuery: vi.fn(),
   useNotesQuery: vi.fn(),
   usePendingTasks: vi.fn(),
+  createProjectMutate: vi.fn().mockResolvedValue(undefined),
+  projects: [] as unknown[],
 }))
 
 vi.mock('../state', async () => {
@@ -18,6 +20,12 @@ vi.mock('../state', async () => {
     useProactiveQuery: stateMocks.useProactiveQuery,
     useNotesQuery: stateMocks.useNotesQuery,
     usePendingTasks: stateMocks.usePendingTasks,
+    useReadingTablesQuery: () => ({ data: stateMocks.projects }),
+    useCreateReadingTable: () => ({
+      mutateAsync: stateMocks.createProjectMutate,
+      isPending: false,
+    }),
+    useDeleteReadingTable: () => ({ mutate: vi.fn() }),
   }
 })
 
@@ -73,6 +81,8 @@ describe('<KnowledgeWorkflowView />', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     window.localStorage.clear()
+    stateMocks.createProjectMutate.mockClear()
+    stateMocks.projects = []
     clipboardWriteText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
@@ -148,5 +158,19 @@ describe('<KnowledgeWorkflowView />', () => {
     })
     expect(clipboardWriteText.mock.calls[0]?.[0]).toContain('El taller')
     expect(screen.getByText('Markdown copiado')).toBeInTheDocument()
+  })
+
+  it('guarda la mesa como proyecto editorial', async () => {
+    renderWithProviders(<KnowledgeWorkflowView />)
+    fireEvent.click(screen.getAllByRole('button', { name: /añadir a mesa/i })[0]!)
+    fireEvent.change(screen.getByLabelText('Título del proyecto'), {
+      target: { value: 'Mi ensayo' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /guardar proyecto/i }))
+    await waitFor(() =>
+      expect(stateMocks.createProjectMutate).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Mi ensayo' }),
+      ),
+    )
   })
 })

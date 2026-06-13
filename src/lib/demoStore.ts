@@ -16,6 +16,7 @@ function normalizeStore(parsed: Partial<Store>): Store {
     notas_attachments: parsed.notas_attachments ?? [],
     recortes: parsed.recortes ?? [],
     favoritos: parsed.favoritos ?? [],
+    'reading-tables': parsed['reading-tables'] ?? [],
     momento_comments: parsed.momento_comments ?? [],
     momento_reactions: parsed.momento_reactions ?? [],
     month_notes: parsed.month_notes ?? [],

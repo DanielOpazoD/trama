@@ -133,6 +133,7 @@ export function routeDemoRequest(
     'notas-attachments': store.notas_attachments,
     recortes: store.recortes,
     favoritos: store.favoritos,
+    'reading-tables': store['reading-tables'],
   }
   const rows = collections[resource]
 
@@ -415,6 +416,15 @@ export function routeDemoRequest(
               category: (body.category as string) ?? 'trabajo',
             }
           : {}),
+        ...(resource === 'reading-tables'
+          ? {
+              material_ids: Array.isArray(body.materialIds) ? body.materialIds : [],
+              draft_markdown: (body.draftMarkdown as string) ?? null,
+              status: (body.status as string) ?? 'borrador',
+              materialIds: undefined,
+              draftMarkdown: undefined,
+            }
+          : {}),
       }
       rows.push(row)
       save(store)
@@ -424,6 +434,14 @@ export function routeDemoRequest(
       const r = findLive(rows, id)
       if (!r) throw new Error('No encontrado')
       Object.assign(r, body)
+      if (resource === 'reading-tables') {
+        if (body.materialIds !== undefined)
+          r.material_ids = Array.isArray(body.materialIds) ? body.materialIds : []
+        if (body.draftMarkdown !== undefined)
+          r.draft_markdown = body.draftMarkdown ?? null
+        delete r.materialIds
+        delete r.draftMarkdown
+      }
       // Re-derivar tags y completed_at como el servidor.
       if (resource === 'notes' && typeof body.content === 'string') {
         r.tags = parseTags(body.content)

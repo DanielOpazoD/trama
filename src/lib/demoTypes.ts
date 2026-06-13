@@ -17,6 +17,7 @@ export type Store = {
   notas_attachments: Row[]
   recortes: Row[]
   favoritos: Row[]
+  'reading-tables': Row[]
   momento_comments: Row[]
   momento_reactions: Row[]
   month_notes: Row[]
