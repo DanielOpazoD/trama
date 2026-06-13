@@ -28,7 +28,7 @@ async function installClipboardCapture(page: Page) {
   })
 }
 
-test('flujo: convierte materiales pendientes en propuesta y Markdown', async ({
+test('mesa editorial: convierte materiales pendientes en propuesta y Markdown', async ({
   page,
 }) => {
   await skipSplash(page)
@@ -81,9 +81,12 @@ test('flujo: convierte materiales pendientes en propuesta y Markdown', async ({
   )
 
   await page.goto('/')
-  await page.getByRole('button', { name: 'Flujo' }).click()
+  await page.getByRole('button', { name: 'Recortes' }).click()
+  await page.getByRole('button', { name: 'Mesa' }).click()
 
-  await expect(page.getByRole('heading', { name: 'Flujo', level: 2 })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Mesa editorial', level: 2 }),
+  ).toBeVisible()
   await expect(page.getByText('Inbox de conocimiento')).toBeVisible()
   await expect(page.getByText('El taller de la memoria')).toBeVisible()
   await expect(page.getByText(/Relación sugerida: Borges/)).toBeVisible()

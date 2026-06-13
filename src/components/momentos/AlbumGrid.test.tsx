@@ -151,6 +151,25 @@ describe('<AlbumGrid />', () => {
     expect(screen.getByRole('dialog', { name: /editar foto/i })).toBeInTheDocument()
   })
 
+  it('abre el visor de fotos al hacer clic en la imagen del álbum', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <AlbumGrid
+        items={[photoMomento]}
+        entitiesById={new Map([['e1', entity]])}
+        onDelete={() => {}}
+      />,
+    )
+
+    const image = screen.getByRole('img', { name: 'Puerto al atardecer' })
+    await waitFor(() => expect(image).toHaveAttribute('src', 'blob:album-1'))
+
+    await user.click(image)
+
+    expect(screen.getByRole('dialog', { name: /visor de fotos/i })).toBeInTheDocument()
+  })
+
   it('renderiza fotos persistidas con payload photos legado', async () => {
     render(
       <AlbumGrid

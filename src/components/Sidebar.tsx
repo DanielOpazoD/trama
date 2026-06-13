@@ -84,7 +84,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Diálogo',
     items: [
       { value: 'chat', label: 'Chat', icon: ChatIcon },
-      { value: 'flujo', label: 'Flujo', icon: SparkleIcon },
       { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
     ],
   },
@@ -164,7 +163,6 @@ export function Sidebar({
     // count que tenga sentido como badge.
     atlas: null,
     chat: null,
-    flujo: null,
     sugerencias: pendingSuggestions.length > 0 ? pendingSuggestions.length : null,
   }
   const healthTone =

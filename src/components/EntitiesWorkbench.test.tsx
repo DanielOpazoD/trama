@@ -1,5 +1,8 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { makeQueryClient, renderWithProviders } from '../test-utils'
+import { queryKeys } from '../state/queryClient'
 import { EntitiesWorkbench } from './EntitiesWorkbench'
 
 const viewMocks = vi.hoisted(() => ({
@@ -27,16 +30,20 @@ describe('<EntitiesWorkbench />', () => {
     viewMocks.relationshipsView.mockClear()
   })
 
+  function renderWorkbench(props: ComponentProps<typeof EntitiesWorkbench>) {
+    const qc = makeQueryClient()
+    qc.setQueryData(queryKeys.readingTables, [])
+    return renderWithProviders(<EntitiesWorkbench {...props} />, { queryClient: qc })
+  }
+
   it('renderiza la vista de listado y propaga onSelectEntity', () => {
     const onSelectEntity = vi.fn()
 
-    render(
-      <EntitiesWorkbench
-        tab="listado"
-        onTabChange={vi.fn()}
-        onSelectEntity={onSelectEntity}
-      />,
-    )
+    renderWorkbench({
+      tab: 'listado',
+      onTabChange: vi.fn(),
+      onSelectEntity,
+    })
 
     expect(screen.getByText('vista listado')).toBeInTheDocument()
     expect(screen.queryByText('vista vínculos')).not.toBeInTheDocument()
@@ -48,14 +55,12 @@ describe('<EntitiesWorkbench />', () => {
     const onSelectEntity = vi.fn()
     const onProposal = vi.fn()
 
-    render(
-      <EntitiesWorkbench
-        tab="vinculos"
-        onTabChange={vi.fn()}
-        onSelectEntity={onSelectEntity}
-        onProposal={onProposal}
-      />,
-    )
+    renderWorkbench({
+      tab: 'vinculos',
+      onTabChange: vi.fn(),
+      onSelectEntity,
+      onProposal,
+    })
 
     expect(screen.getByText('vista vínculos')).toBeInTheDocument()
     expect(screen.queryByText('vista listado')).not.toBeInTheDocument()

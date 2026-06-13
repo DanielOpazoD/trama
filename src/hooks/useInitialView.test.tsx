@@ -47,10 +47,10 @@ describe('useInitialView', () => {
     expect(result.current[0]).toBe('chat')
   })
 
-  it('lee ?view=flujo del query string', () => {
+  it('ignora ?view=flujo porque ya no es una vista top-level', () => {
     window.location.search = '?view=flujo'
     const { result } = renderHook(() => useInitialView())
-    expect(result.current[0]).toBe('flujo')
+    expect(result.current[0]).toBe('inicio')
   })
 
   it('ignora un view inválido y cae a "inicio"', () => {
@@ -59,7 +59,7 @@ describe('useInitialView', () => {
     expect(result.current[0]).toBe('inicio')
   })
 
-  it('acepta cada uno de los 8 valores válidos', () => {
+  it('acepta cada uno de los valores válidos', () => {
     const valid = [
       'inicio',
       'grafo',
@@ -67,7 +67,7 @@ describe('useInitialView', () => {
       'citas',
       'escuchas',
       'momentos',
-      'flujo',
+      'recortes',
       'chat',
       'sugerencias',
     ]

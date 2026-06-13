@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from '../Icons'
 import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
@@ -36,7 +38,9 @@ export function PhotoLightbox({
   const [active, setActive] = useState(initialIndex)
   const [zoomed, setZoomed] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(dialogRef, open)
+  const visible = open && photos.length > 0
+  useFocusTrap(dialogRef, visible)
+  useBodyScrollLock(visible)
 
   // Navegar siempre resetea el zoom — ver una foto nueva ampliada al azar
   // desorienta.
@@ -63,7 +67,7 @@ export function PhotoLightbox({
 
   // Atajos teclado.
   useEffect(() => {
-    if (!open) return
+    if (!visible) return
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
       else if (e.key === 'ArrowLeft') prev()
@@ -71,14 +75,14 @@ export function PhotoLightbox({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, prev, next, onClose])
+  }, [visible, prev, next, onClose])
 
-  if (!open || photos.length === 0) return null
+  if (!visible || typeof document === 'undefined') return null
   const current = photos[active]
   if (!current) return null
   const multi = photos.length > 1
 
-  return (
+  return createPortal(
     <>
       {/* Fondo: negro casi total + viñeta radial para dar profundidad. Clic
           cierra. */}
@@ -197,6 +201,7 @@ export function PhotoLightbox({
           </div>
         )}
       </div>
-    </>
+    </>,
+    document.body,
   )
 }

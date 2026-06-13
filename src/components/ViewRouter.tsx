@@ -57,9 +57,6 @@ const AtlasView = lazy(() =>
 const ProactiveView = lazy(() =>
   import('./ProactiveView').then((m) => ({ default: m.ProactiveView })),
 )
-const KnowledgeWorkflowView = lazy(() =>
-  import('./KnowledgeWorkflowView').then((m) => ({ default: m.KnowledgeWorkflowView })),
-)
 
 /** Fallback minimal para Suspense — un LoadingHint centrado mientras
  *  la vista se descarga. La mayoría de las vistas tardan <150ms, así
@@ -276,11 +273,6 @@ export function ViewRouter({
           {view === 'sugerencias' && (
             <ViewSlot scope="view:sugerencias">
               <ProactiveView />
-            </ViewSlot>
-          )}
-          {view === 'flujo' && (
-            <ViewSlot scope="view:flujo">
-              <KnowledgeWorkflowView />
             </ViewSlot>
           )}
         </div>

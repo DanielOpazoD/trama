@@ -38,14 +38,21 @@ describe('<MobileBottomNav />', () => {
       'Citas',
       'Momentos',
       'Grafo',
-      'Flujo',
+      'Recortes',
       'Chat',
     ]
     for (const label of expectedLabels) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
     }
     // Las secciones retiradas del nav ya no aparecen.
-    for (const gone of ['Escuchas', 'Twitter', 'Cronología', 'Atlas', 'Sugerencias']) {
+    for (const gone of [
+      'Escuchas',
+      'Twitter',
+      'Cronología',
+      'Atlas',
+      'Sugerencias',
+      'Flujo',
+    ]) {
       expect(screen.queryByRole('button', { name: gone })).not.toBeInTheDocument()
     }
   })

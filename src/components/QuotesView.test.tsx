@@ -67,6 +67,7 @@ function setupCache(
     pages: [{ items: quotes, nextCursor: null }],
     pageParams: [null],
   })
+  qc.setQueryData(queryKeys.readingTables, [])
   return renderWithProviders(<QuotesView onSelectEntity={vi.fn()} {...props} />, {
     queryClient: qc,
   })

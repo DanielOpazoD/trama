@@ -6,6 +6,7 @@ import { useSuggestRecorte, useUpdateRecorte } from '../../state'
 import { useToast } from '../../state/toast'
 import { SparkleIcon } from '../Icons'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
+import { hostOf, LinkMediaPreview } from './LinkMediaPreview'
 import type { PromoteSeed } from './PromoteModal'
 import { markdownToPreview } from './recorteMarkdownPreview'
 
@@ -16,15 +17,6 @@ function formatStamp(iso: string | null): string {
   return d
     .toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
     .replace(/\./g, '')
-}
-
-function hostOf(url: string | null): string | null {
-  if (!url) return null
-  try {
-    return new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    return null
-  }
 }
 
 const TARGET_LABEL: Record<RecorteTarget, string> = {
@@ -55,37 +47,26 @@ function curationCueFor(r: Recorte): string {
 const TRANSPARENT_PX =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 
-/**
- * Imagen del recorte. Prefiere `imageKey` (blob interno authed, servido vía
- * AuthenticatedMedia con Bearer) sobre `imageUrl` (URL http externa directa).
- * Sin imagen -> no renderiza nada.
- */
-function RecorteImage({ recorte: r }: { recorte: Recorte }) {
+function RecorteMediaPreview({
+  recorte: r,
+  host,
+}: {
+  recorte: Recorte
+  host: string | null
+}) {
   const authedSrc = r.imageKey ? recorteImageUrl(r.imageKey) : null
   const { src, status } = useAuthenticatedMediaState(authedSrc)
   const shown = authedSrc ? src : r.imageUrl
-  if (!authedSrc && !r.imageUrl) return null
 
-  const href = r.sourceUrl ?? r.imageUrl ?? undefined
-  const inner = (
-    <img
-      src={shown ?? TRANSPARENT_PX}
-      alt=""
-      loading="lazy"
-      className={`block max-h-56 w-full object-cover ${
-        status === 'loading' ? 'animate-pulse-subtle' : ''
-      }`.trim()}
-      style={shown ? undefined : { backgroundColor: 'rgb(var(--paper-100) / 0.6)' }}
+  return (
+    <LinkMediaPreview
+      href={r.imageKey ? null : (r.sourceUrl ?? r.imageUrl)}
+      host={host}
+      dateLabel={formatStamp(r.capturedAt ?? r.createdAt)}
+      imageUrl={shown ?? (authedSrc ? TRANSPARENT_PX : r.imageUrl)}
+      imageLoading={status === 'loading'}
+      ariaLabel={r.sourceTitle ? `Abrir ${r.sourceTitle}` : undefined}
     />
-  )
-  const frame = 'mt-2 block overflow-hidden rounded-md border border-ink-100'
-  // imageKey interno: no es navegable como URL pública -> caja sin enlace.
-  return href && !r.imageKey ? (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={frame}>
-      {inner}
-    </a>
-  ) : (
-    <div className={frame}>{inner}</div>
   )
 }
 
@@ -241,35 +222,30 @@ export function RecorteCard({
   }
 
   return (
-    <li className="group relative card-paper-soft p-4 pt-3">
+    <li className="group relative card-paper-soft p-4 pt-3 transition-shadow hover:shadow-sm">
       <div aria-hidden className="mb-2.5">
         <div className="border-t-2 border-ink-700/60" />
         <div className="mt-0.5 border-t border-ink-200" />
       </div>
 
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="min-w-0 truncate font-serif text-sm font-medium text-ink-700">
+      <RecorteMediaPreview recorte={r} host={host} />
+
+      <div className="flex items-start justify-between gap-3">
+        <span className="min-w-0 font-serif text-xl font-medium leading-tight text-ink-700">
           {r.sourceTitle ?? host ?? 'recorte'}
           {r.sourceAuthor && (
-            <span className="font-sans font-normal text-ink-400">
+            <span className="font-sans text-sm font-normal text-ink-400">
               {' '}
               — {r.sourceAuthor}
             </span>
           )}
         </span>
-        <span className="flex shrink-0 items-center gap-1.5">
-          {r.captureMode && r.captureMode !== 'citation' && (
-            <span className="rounded-sm bg-ink-700/5 px-1.5 py-0.5 text-micro uppercase tracking-wider text-ink-400">
-              {CAPTURE_MODE_LABEL[r.captureMode]}
-            </span>
-          )}
-          <span className="-rotate-2 rounded-sm border border-ink-200 px-1.5 py-0.5 text-micro uppercase tracking-wider text-ink-400 tabular-nums">
-            {formatStamp(r.capturedAt ?? r.createdAt)}
+        {r.captureMode && r.captureMode !== 'citation' && (
+          <span className="shrink-0 rounded-sm bg-ink-700/5 px-1.5 py-0.5 text-micro uppercase tracking-wider text-ink-400">
+            {CAPTURE_MODE_LABEL[r.captureMode]}
           </span>
-        </span>
+        )}
       </div>
-
-      <RecorteImage recorte={r} />
 
       <p className="mt-1.5 whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700">
         {r.captureMode === 'html' || r.captureMode === 'article'

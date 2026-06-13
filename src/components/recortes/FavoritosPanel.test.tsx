@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { FavoritosPanel, youtubeThumb } from './FavoritosPanel'
 import { favoritoFromRow, type FavoritoRow } from '../../api/favoritos'
 import { makeQueryClient, renderWithProviders } from '../../test-utils'
@@ -44,6 +45,26 @@ describe('<FavoritosPanel />', () => {
     expect(screen.getByDisplayValue('para ediciones viejas')).toBeInTheDocument()
   })
 
+  it('usa un fallback editorial cuando el favorito no tiene miniatura', () => {
+    setup([favoritoFromRow(ROW)])
+
+    const fallback = screen.getByTestId('link-media-fallback')
+    expect(fallback).toHaveTextContent('gutenberg.org')
+    expect(fallback).toHaveClass('bg-paper-100/50')
+  })
+
+  it('mantiene la opción de nota vacía como icono, sin texto visible', async () => {
+    const user = userEvent.setup()
+    setup([favoritoFromRow({ ...ROW, note: null })])
+
+    expect(screen.queryByText(/añade una nota/i)).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText(/nota/i)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /añadir nota/i }))
+
+    expect(screen.getByLabelText('Nota del favorito')).toBeInTheDocument()
+  })
+
   it('estado vacío invita a marcar desde la extensión', () => {
     setup([])
     expect(screen.getByText(/Todavía no marcaste/)).toBeInTheDocument()
@@ -62,6 +83,23 @@ describe('<FavoritosPanel />', () => {
     const img = document.querySelector('img[src*="ytimg.com"]')
     expect(img).toHaveAttribute('src', 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg')
   })
+
+  it('cambia a fallback si falla la miniatura del favorito', () => {
+    setup([
+      favoritoFromRow({
+        ...ROW,
+        id: 'yt',
+        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        title: 'The Cure - Primavera Sound',
+      }),
+    ])
+    const img = document.querySelector('img[src*="ytimg.com"]')
+    expect(img).toBeInTheDocument()
+
+    fireEvent.error(img!)
+
+    expect(screen.getByTestId('link-media-fallback')).toHaveTextContent('youtube.com')
+  })
 })
 
 describe('youtubeThumb', () => {
@@ -74,6 +112,20 @@ describe('youtubeThumb', () => {
     expect(youtubeThumb('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe(
       thumb('dQw4w9WgXcQ'),
     )
+    expect(youtubeThumb('https://music.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(
+      thumb('dQw4w9WgXcQ'),
+    )
+    expect(youtubeThumb('https://www.youtube.com/live/dQw4w9WgXcQ')).toBe(
+      thumb('dQw4w9WgXcQ'),
+    )
+    expect(youtubeThumb('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')).toBe(
+      thumb('dQw4w9WgXcQ'),
+    )
+    expect(
+      youtubeThumb(
+        'https://www.youtube.com/attribution_link?u=%2Fwatch%3Fv%3DdQw4w9WgXcQ',
+      ),
+    ).toBe(thumb('dQw4w9WgXcQ'))
   })
 
   it('devuelve null para páginas que no son videos', () => {

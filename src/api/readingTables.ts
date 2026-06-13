@@ -1,7 +1,7 @@
 /**
- * Mesas / proyectos editoriales — cliente. Persisten la mesa de Flujo (título +
- * materiales elegidos + borrador Markdown + estado). Transforma snake→camel en
- * la frontera, como el resto de src/api.
+ * Mesas / proyectos editoriales — cliente. Persisten título, materiales
+ * elegidos, borrador Markdown y estado. Transforma snake→camel en la frontera,
+ * como el resto de src/api.
  */
 import { request } from './request'
 

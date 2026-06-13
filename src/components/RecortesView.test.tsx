@@ -86,6 +86,14 @@ describe('<RecortesView />', () => {
     expect(screen.getByRole('button', { name: '→ momento' })).toBeInTheDocument()
   })
 
+  it('muestra un fallback editorial cuando el recorte no trae imagen', () => {
+    setup([recorte()])
+
+    const fallback = screen.getByTestId('link-media-fallback')
+    expect(fallback).toHaveTextContent('example.com')
+    expect(fallback).toHaveClass('bg-paper-100/50')
+  })
+
   it('orienta la curaduría solo en recortes pendientes', () => {
     setup([
       recorte(),
@@ -116,6 +124,11 @@ describe('<RecortesView />', () => {
     setup([recorte({ imageUrl: 'https://example.com/foto.jpg' })])
     const img = document.querySelector('img[src="https://example.com/foto.jpg"]')
     expect(img).toBeInTheDocument()
+    expect(screen.getByTestId('link-media-skeleton')).toBeInTheDocument()
+
+    fireEvent.load(img!)
+
+    expect(screen.queryByTestId('link-media-skeleton')).not.toBeInTheDocument()
   })
 
   it('limpia el Markdown crudo en la tarjeta de un artículo', () => {

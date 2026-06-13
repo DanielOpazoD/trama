@@ -107,6 +107,7 @@ describe('<CommandPalette />', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Grafo')).toBeInTheDocument()
     expect(screen.getByText('Citas')).toBeInTheDocument()
+    expect(screen.queryByText('Flujo')).not.toBeInTheDocument()
   })
 
   it('filters by query — typing "entid" shrinks results', () => {
