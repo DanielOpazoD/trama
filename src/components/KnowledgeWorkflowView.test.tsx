@@ -104,16 +104,16 @@ describe('<KnowledgeWorkflowView />', () => {
 
     const workbench = screen.getByLabelText('Mesa de lectura')
     expect(within(workbench).getByText(/Selecciona materiales/i)).toBeInTheDocument()
-    fireEvent.click(screen.getAllByRole('button', { name: /añadir a mesa/i })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: /añadir a mesa/i })[0]!)
     expect(
       within(workbench).getByText(/Relación sugerida: Borges → Ficciones/i),
     ).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /añadido/i })[0]).toBeDisabled()
+    expect(screen.getAllByRole('button', { name: /añadido/i })[0]!).toBeDisabled()
 
     fireEvent.click(within(workbench).getByRole('button', { name: /quitar/i }))
     expect(within(workbench).getByText(/Selecciona materiales/i)).toBeInTheDocument()
 
-    fireEvent.click(screen.getAllByRole('button', { name: /añadir a mesa/i })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: /añadir a mesa/i })[0]!)
     fireEvent.click(within(workbench).getByRole('button', { name: /vaciar mesa/i }))
     expect(within(workbench).getByText(/Selecciona materiales/i)).toBeInTheDocument()
   })
@@ -122,8 +122,8 @@ describe('<KnowledgeWorkflowView />', () => {
     renderWithProviders(<KnowledgeWorkflowView />)
 
     const addButtons = screen.getAllByRole('button', { name: /añadir a mesa/i })
-    fireEvent.click(addButtons[0])
-    fireEvent.click(addButtons[1])
+    fireEvent.click(addButtons[0]!)
+    fireEvent.click(addButtons[1]!)
 
     expect(screen.getByText('Propuesta narrativa')).toBeInTheDocument()
     expect(screen.getByText('Tesis provisional')).toBeInTheDocument()
@@ -137,8 +137,8 @@ describe('<KnowledgeWorkflowView />', () => {
     renderWithProviders(<KnowledgeWorkflowView />)
 
     const addButtons = screen.getAllByRole('button', { name: /añadir a mesa/i })
-    fireEvent.click(addButtons[0])
-    fireEvent.click(addButtons[1])
+    fireEvent.click(addButtons[0]!)
+    fireEvent.click(addButtons[1]!)
     fireEvent.click(screen.getByRole('button', { name: /copiar Markdown/i }))
 
     await waitFor(() => {

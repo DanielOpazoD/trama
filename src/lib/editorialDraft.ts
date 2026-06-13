@@ -22,8 +22,8 @@ export function buildNarrativeProposal(items: KnowledgeInboxItem[]): NarrativePr
   }
 
   const strongest = [...items].sort((a, b) => b.score - a.score)
-  const first = strongest[0]
-  const second = strongest[1] ?? strongest[0]
+  const first = strongest[0]!
+  const second = strongest[1] ?? first
   const titlePair =
     first.id === second.id ? first.title : `${first.title} y ${second.title}`
 
