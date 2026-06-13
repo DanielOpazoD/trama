@@ -27,7 +27,7 @@ import { EmptyMessage } from './EmptyMessage'
 import { SparkleIcon } from './Icons'
 import { ViewHeader } from './ViewHeader'
 
-/** Deep-link de proyecto: ?project=<id> abre ese proyecto directo en Flujo. */
+/** Deep-link de proyecto: ?project=<id> abre ese proyecto directo en la mesa. */
 function initialProjectId(): string | null {
   if (typeof window === 'undefined') return null
   return new URLSearchParams(window.location.search).get('project')
@@ -130,12 +130,12 @@ export function KnowledgeWorkflowView() {
   return (
     <>
       <ViewHeader
-        title="Flujo"
+        title="Mesa editorial"
         eyebrow="del material al borrador"
         accent="var(--accent-primary)"
         eyebrowColor="var(--accent-gold)"
         spacing="wide"
-        subtitle="Una superficie para procesar lo pendiente: recortes, sugerencias, notas fijadas y tareas que pueden convertirse en una mesa de lectura."
+        subtitle="Una capa de trabajo dentro de Recortes: procesar pendientes, armar mesas de lectura, guardar proyectos y leer borradores sin sumar otra sección al producto."
         icon={<SparkleIcon size={22} />}
       />
 
@@ -160,7 +160,7 @@ export function KnowledgeWorkflowView() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-ink-300 italic">cargando flujo…</p>
+            <p className="text-sm text-ink-300 italic">cargando mesa…</p>
           ) : inbox.length === 0 ? (
             <EmptyMessage
               variant="plain"

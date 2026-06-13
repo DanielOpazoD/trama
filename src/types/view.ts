@@ -23,5 +23,4 @@ export type ViewMode =
   | 'cronologia'
   | 'atlas'
   | 'chat'
-  | 'flujo'
   | 'sugerencias'

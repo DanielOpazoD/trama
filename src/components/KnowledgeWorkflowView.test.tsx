@@ -97,7 +97,7 @@ describe('<KnowledgeWorkflowView />', () => {
   it('muestra el inbox de conocimiento con recortes y sugerencias pendientes', () => {
     renderWithProviders(<KnowledgeWorkflowView />)
 
-    expect(screen.getByRole('heading', { name: 'Flujo' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Mesa editorial' })).toBeInTheDocument()
     expect(screen.getByText('Inbox de conocimiento')).toBeInTheDocument()
     expect(screen.getByText('El taller')).toBeInTheDocument()
     expect(screen.getByText(/Relación sugerida: Borges → Ficciones/i)).toBeInTheDocument()

@@ -1,20 +1,21 @@
 import { useState } from 'react'
 import RecortesView from './RecortesView'
 import { FavoritosPanel } from './recortes/FavoritosPanel'
+import { KnowledgeWorkflowView } from './KnowledgeWorkflowView'
 
 /**
- * Área de Recortes con dos pestañas hermanas: la bandeja de captura (Recortes)
- * y los marcadores de página (Favoritos). El toggle vive acá para no engordar
- * RecortesView; cada panel conserva su propio encabezado.
+ * Área de Recortes con tres pestañas hermanas: captura, favoritos y mesa
+ * editorial. Así el flujo de escribir desde materiales vive cerca de la
+ * captura/curaduría sin convertirse en una sección top-level.
  */
-type Tab = 'recortes' | 'favoritos'
+type Tab = 'recortes' | 'favoritos' | 'mesa'
 
-/** Deep-link: la extensión enlaza «ver favoritos →» con ?tab=favoritos. */
+/** Deep-link: ?tab=favoritos o ?tab=mesa abren el subcontexto exacto. */
 function initialTab(): Tab {
   if (typeof window === 'undefined') return 'recortes'
-  return new URLSearchParams(window.location.search).get('tab') === 'favoritos'
-    ? 'favoritos'
-    : 'recortes'
+  const tab = new URLSearchParams(window.location.search).get('tab')
+  if (tab === 'favoritos' || tab === 'mesa') return tab
+  return 'recortes'
 }
 
 export default function RecortesArea({
@@ -44,12 +45,11 @@ export default function RecortesArea({
       <div className="mb-4 flex gap-1.5">
         {pill('recortes', 'Recortes')}
         {pill('favoritos', 'Favoritos')}
+        {pill('mesa', 'Mesa')}
       </div>
-      {tab === 'recortes' ? (
-        <RecortesView onSelectEntity={onSelectEntity} />
-      ) : (
-        <FavoritosPanel />
-      )}
+      {tab === 'recortes' && <RecortesView onSelectEntity={onSelectEntity} />}
+      {tab === 'favoritos' && <FavoritosPanel />}
+      {tab === 'mesa' && <KnowledgeWorkflowView />}
     </>
   )
 }

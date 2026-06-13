@@ -4,7 +4,7 @@ import { renderMarkdown } from './notas/markdown'
 
 /**
  * Lectura editorial — superficie compartida para LEER textos largos (borrador
- * de Flujo, citas extensas, ensayos del chat), distinta del `ReadingMode` de
+ * editorial, citas extensas, ensayos del chat), distinta del `ReadingMode` de
  * extracción por IA. Columna serif de medida controlada (~65ch), respiración
  * vertical, sin cromos de gestión. Cierra con Esc o el botón; respeta
  * `prefers-reduced-motion`.

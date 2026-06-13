@@ -104,9 +104,6 @@ vi.mock('./AtlasView', () => ({
 vi.mock('./ProactiveView', () => ({
   ProactiveView: () => <section>sugerencias mock</section>,
 }))
-vi.mock('./KnowledgeWorkflowView', () => ({
-  KnowledgeWorkflowView: () => <section>flujo mock</section>,
-}))
 function renderRouter(
   view: Parameters<typeof ViewRouter>[0]['view'],
   overrides: Partial<Parameters<typeof ViewRouter>[0]> = {},
@@ -181,10 +178,8 @@ describe('<ViewRouter />', () => {
     expect(props.onSelectEntity).toHaveBeenCalledWith('e-entities')
   })
 
-  it('renderiza Flujo dentro del contenedor principal', async () => {
-    renderRouter('flujo' as never)
-
-    expect(screen.getByLabelText('Contenido principal')).toBeInTheDocument()
-    expect(await screen.findByText(/flujo mock/i)).toBeInTheDocument()
+  it('no registra Flujo como ruta top-level', () => {
+    renderRouter('recortes')
+    expect(screen.queryByText(/flujo mock/i)).not.toBeInTheDocument()
   })
 })
