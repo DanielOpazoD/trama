@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useEntitiesQuery, usePromoteRecorte } from '../../state'
+import { useEffect, useRef, useState } from 'react'
+import { usePromoteRecorte } from '../../state'
 import { useToast } from '../../state/toast'
 import { ENTITY_TYPES } from '../../types'
+import type { Entity } from '../../types'
 import type { Recorte, RecorteTarget } from '../../api'
 import { CloseIcon } from '../Icons'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { EntityCombobox } from '../EntityCombobox'
 
 export type PromoteSeed = {
   title?: string
@@ -31,11 +33,11 @@ export function PromoteModal({
   seed?: PromoteSeed
   onClose: () => void
 }) {
-  const { data: entities = [] } = useEntitiesQuery()
   const promote = usePromoteRecorte()
   const toast = useToast()
   const [text, setText] = useState(recorte.text)
   const [entityId, setEntityId] = useState<string>(seed?.entityId ?? '')
+  const [selectedEntityName, setSelectedEntityName] = useState(seed?.entityName ?? '')
   const [entityName, setEntityName] = useState(
     seed?.entityName ?? recorte.sourceAuthor ?? recorte.sourceTitle ?? '',
   )
@@ -52,10 +54,10 @@ export function PromoteModal({
     textRef.current?.focus()
   }, [])
 
-  const sortedEntities = useMemo(
-    () => [...entities].sort((a, b) => a.name.localeCompare(b.name)),
-    [entities],
-  )
+  function handleQuoteEntityChange(entity: Entity | null) {
+    setEntityId(entity?.id ?? '')
+    setSelectedEntityName(entity?.name ?? '')
+  }
 
   async function handleConfirm() {
     if (busy) return
@@ -182,19 +184,14 @@ export function PromoteModal({
             <>
               <label className="block text-caption text-ink-700">
                 Atribuida a
-                <select
-                  value={entityId}
-                  onChange={(e) => setEntityId(e.target.value)}
-                  disabled={busy}
-                  className="input-paper mt-1 block h-9 w-full rounded-md border border-ink-200 px-2 text-sm"
-                >
-                  <option value="">elegir entidad…</option>
-                  {sortedEntities.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.name} ({e.type})
-                    </option>
-                  ))}
-                </select>
+                <div className="mt-1">
+                  <EntityCombobox
+                    value={entityId || null}
+                    onChange={handleQuoteEntityChange}
+                    selectedName={selectedEntityName || null}
+                    placeholder="buscar entidad…"
+                  />
+                </div>
               </label>
               <label className="block text-caption text-ink-700">
                 Fuente

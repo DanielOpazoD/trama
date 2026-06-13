@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import RecortesView from './RecortesView'
 import { makeQueryClient, renderWithProviders } from '../test-utils'
 import { queryKeys } from '../state/queryClient'
@@ -64,6 +66,15 @@ describe('recorteFromRow', () => {
 })
 
 describe('<RecortesView />', () => {
+  it('no carga entidades wholesale al abrir el modal de promoción', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/components/recortes/PromoteModal.tsx'),
+      'utf8',
+    )
+
+    expect(source).not.toMatch(/\buseEntitiesQuery\b/)
+  })
+
   it('muestra la tarjeta de prensa con fuente, marginalia y acciones', () => {
     setup([recorte()])
     expect(screen.getByRole('heading', { name: 'Recortes' })).toBeInTheDocument()
@@ -211,8 +222,8 @@ describe('<RecortesView />', () => {
     fireEvent.click(screen.getByRole('button', { name: /usar sugerencia/ }))
     // El modal abre en "cita" y Borges queda pre-seleccionado.
     expect(screen.getByRole('dialog', { name: 'Promover a cita' })).toBeInTheDocument()
-    const select = screen.getByLabelText('Atribuida a') as HTMLSelectElement
-    expect(select.value).toBe('e1')
+    expect(screen.getByText('Borges')).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: /atribuida/i })).toBeNull()
     vi.unstubAllGlobals()
   })
 })

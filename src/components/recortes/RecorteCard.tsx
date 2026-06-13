@@ -219,7 +219,10 @@ export function RecorteCard({
     if (!suggestion) return
     const seed: PromoteSeed = { title: suggestion.title }
     if (suggestion.target === 'quote' && suggestion.relatedEntities[0]) {
-      seed.entityId = suggestion.relatedEntities[0].id
+      const entity = suggestion.relatedEntities[0]
+      seed.entityId = entity.id
+      seed.entityName = entity.name
+      seed.entityType = entity.type
     }
     if (suggestion.target === 'entity') {
       seed.entityName = suggestion.suggestedEntityName ?? undefined
