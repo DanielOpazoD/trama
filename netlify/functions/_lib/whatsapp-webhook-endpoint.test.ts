@@ -16,9 +16,16 @@ vi.mock('./ai-mode.js', () => ({
 }))
 const askLLMForJson = vi.fn()
 const askLLMForVision = vi.fn()
+const askLLMForText = vi.fn()
 vi.mock('./llm.js', () => ({
   askLLMForJson: (...args: unknown[]) => askLLMForJson(...args),
   askLLMForVision: (...args: unknown[]) => askLLMForVision(...args),
+  askLLMForText: (...args: unknown[]) => askLLMForText(...args),
+}))
+// RAG mockeado: el recall no toca embeddings/DB real en este test.
+const buildRagContext = vi.fn()
+vi.mock('./rag-context.js', () => ({
+  buildRagContext: (...args: unknown[]) => buildRagContext(...args),
 }))
 // Blobs mockeado: el upload de media no toca red real.
 vi.mock('@netlify/blobs', () => ({
@@ -48,6 +55,8 @@ beforeEach(() => {
   mockSqlResponses.reset()
   askLLMForJson.mockReset()
   askLLMForVision.mockReset()
+  askLLMForText.mockReset()
+  buildRagContext.mockReset()
 })
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -305,6 +314,58 @@ describe('whatsapp-webhook', () => {
     const xml = await res.text()
     expect(xml).toContain('Notas')
     expect(xml).toContain('world=notas')
+  })
+
+  it('query (buscar:) → recall con RAG compone respuesta', async () => {
+    buildRagContext.mockResolvedValue({
+      entities: [
+        { id: 'e1', name: 'Borges', type: 'escritor', year: null, description: null },
+      ],
+      relationships: [],
+      quotes: [],
+      usedRag: true,
+    })
+    askLLMForText.mockResolvedValue({
+      content: 'Tenés a Borges guardado como escritor.',
+      usage: {
+        provider: 'deepseek',
+        model: 'x',
+        tokensIn: 10,
+        tokensOut: 5,
+        costCents: 1,
+        durationMs: 100,
+      },
+      fromCache: false,
+    })
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'buscar: borges' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(buildRagContext).toHaveBeenCalledOnce()
+    expect(askLLMForText).toHaveBeenCalledOnce()
+    const xml = await res.text()
+    expect(xml).toContain('Borges')
+    expect(xml).toContain('view=entidades')
+  })
+
+  it('query sin resultados avisa amablemente', async () => {
+    buildRagContext.mockResolvedValue({
+      entities: [],
+      relationships: [],
+      quotes: [],
+      usedRag: false,
+    })
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: '? algo que no existe' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('No encontré nada')
   })
 
   it('estado → resumen del vínculo', async () => {

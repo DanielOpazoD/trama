@@ -104,6 +104,23 @@ presupuesto.
 `whatsapp_media_retry` (observabilidad); el fallo final emite
 `whatsapp_media_failed`.
 
+## Recall — "preguntale a tu Trama"
+
+`buscar: <tema>` o `? <pregunta>` consultan tu segundo cerebro desde WhatsApp
+(el puente deja de ser solo-escritura). El webhook arma contexto con
+`buildRagContext` (entidades + citas + relaciones, retrieval semántico + HyDE) y:
+
+- con IA disponible → compone una respuesta breve con `askLLMForText` anclada
+  **solo** en ese contexto (prompt anti-alucinación) + deep links;
+- sin IA (off / sin presupuesto / falla) → lista los mejores resultados con
+  deep links, sin LLM.
+
+Prompt y formateadores puros en `_lib/whatsapp/recall.ts`. Es de solo lectura
+(va antes del claim de idempotencia; las llamadas LLM están cacheadas, así que
+un reintento de Twilio no re-cobra). Cubre entidades y citas (lo que indexa el
+RAG hoy); notas/momentos quedan para cuando el RAG los incluya. Observabilidad:
+`whatsapp_recall` / `whatsapp_recall_failed`.
+
 ## Comando `estado`
 
 `estado` (o `status`) devuelve un resumen desde el teléfono: si el vínculo está

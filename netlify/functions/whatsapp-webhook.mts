@@ -7,7 +7,8 @@ import { setCurrentRlsUser, runWithSystemRls } from './_lib/user-rls.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { resolveAIInvocation } from './_lib/ai-mode.js'
-import { askLLMForJson, askLLMForVision } from './_lib/llm.js'
+import { askLLMForJson, askLLMForVision, askLLMForText } from './_lib/llm.js'
+import { buildRagContext } from './_lib/rag-context.js'
 import { validateTwilioSignature } from './_lib/whatsapp/twilio-signature.js'
 import { normalizePhone } from './_lib/whatsapp/phone.js'
 import { parseInboundMessage } from './_lib/whatsapp/parse-command.js'
@@ -30,6 +31,12 @@ import {
 import { buildPhotoPrompt, validatePhotoExtraction } from './_lib/whatsapp/vision.js'
 import type { PhotoMode } from './_lib/whatsapp/vision.js'
 import { formatStatus } from './_lib/whatsapp/status.js'
+import {
+  buildRecallPrompt,
+  formatRecallAnswer,
+  formatRecallFallback,
+  recallHasResults,
+} from './_lib/whatsapp/recall.js'
 import { storeMedia } from './_lib/whatsapp/media-store.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
@@ -64,7 +71,8 @@ const HELP = [
   '• entidad: <nombre> (tipo)',
   '• momento: <qué pasó>',
   'O mandá texto libre y lo clasifico solo.',
-  'También: foto/imagen → Recorte (o "momento: ..." → Momento).',
+  'Fotos: imagen → Recorte; "cita:"/"nota:" + foto → leo el texto (OCR).',
+  'Preguntá: "buscar: <tema>" o "? <pregunta>" para consultar tu Trama.',
   'Para borrar lo último: deshacer. Para ver tu resumen: estado.',
 ].join('\n')
 
@@ -440,6 +448,51 @@ async function buildStatusReply(
   })
 }
 
+/**
+ * Recall ("preguntale a tu Trama"): arma contexto con RAG (entidades + citas +
+ * relaciones) y compone una respuesta anclada en lo que el usuario ya guardó.
+ * Si la IA está off / sin presupuesto / falla, cae a un listado con deep links.
+ * Corre bajo el RLS del dueño.
+ */
+async function handleQuery(
+  req: Request,
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  requestId: string,
+  query: string,
+  origin: string,
+): Promise<string> {
+  const overBudget = await checkMonthlyBudget(userId, requestId)
+  const invocation = overBudget
+    ? ({ kind: 'off' } as const)
+    : await resolveAIInvocation(req, 'chat', userId)
+  const aiOn = invocation.kind === 'ready'
+
+  // HyDE solo si vamos a usar IA igual (sino agrega latencia/costo sin sentido).
+  const ctx = await buildRagContext(sql, query, userId, {
+    hyde: aiOn,
+    requestId,
+  })
+  if (!recallHasResults(ctx)) {
+    return 'No encontré nada sobre eso todavía. Probá con otras palabras, o guardá algo nuevo y volvé a preguntar.'
+  }
+  if (!aiOn) return formatRecallFallback(ctx, origin)
+  try {
+    const { content } = await askLLMForText(buildRecallPrompt(query, ctx), {
+      provider: invocation.provider,
+      model: invocation.model,
+    })
+    logEvent({ event: 'whatsapp_recall', usedRag: ctx.usedRag, usedHyde: ctx.usedHyde })
+    return formatRecallAnswer(content, ctx, origin)
+  } catch (err) {
+    logEvent({
+      event: 'whatsapp_recall_failed',
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return formatRecallFallback(ctx, origin)
+  }
+}
+
 /** Texto libre → CaptureIntent vía LLM, con fallback a nota si algo falla. */
 async function classifyFreeform(
   req: Request,
@@ -539,6 +592,19 @@ export default withObservability(
 
     if (parsed.kind === 'status' && media.length === 0) {
       return twimlResponse(await buildStatusReply(sql, userId, phone))
+    }
+
+    if (parsed.kind === 'query' && media.length === 0) {
+      return twimlResponse(
+        await handleQuery(
+          req,
+          sql,
+          userId,
+          requestId,
+          parsed.text,
+          new URL(req.url).origin,
+        ),
+      )
     }
 
     // Idempotencia: si Twilio reintenta este mensaje (latencia/5xx), no lo

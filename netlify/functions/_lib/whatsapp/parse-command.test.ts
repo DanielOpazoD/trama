@@ -32,6 +32,20 @@ describe('parseInboundMessage — comandos de control', () => {
     expect(parseInboundMessage('status').kind).toBe('status')
   })
 
+  it('query: buscar / ? consultan tu Trama', () => {
+    expect(parseInboundMessage('buscar: estoicismo')).toEqual({
+      kind: 'query',
+      text: 'estoicismo',
+    })
+    expect(parseInboundMessage('buscá Borges')).toEqual({ kind: 'query', text: 'Borges' })
+    expect(parseInboundMessage('? qué guardé sobre el tiempo')).toEqual({
+      kind: 'query',
+      text: 'qué guardé sobre el tiempo',
+    })
+    // "?" solo sigue siendo ayuda (no query vacía)
+    expect(parseInboundMessage('?').kind).toBe('help')
+  })
+
   it('mensaje vacío', () => {
     expect(parseInboundMessage('   ').kind).toBe('empty')
   })

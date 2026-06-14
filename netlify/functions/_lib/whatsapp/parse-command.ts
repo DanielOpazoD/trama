@@ -15,6 +15,7 @@ export type ParsedInbound =
   | { kind: 'help' }
   | { kind: 'undo' }
   | { kind: 'status' }
+  | { kind: 'query'; text: string }
   | { kind: 'link'; rawCode: string }
   | { kind: 'intent'; intent: CaptureIntent }
   | { kind: 'freeform'; text: string }
@@ -95,6 +96,15 @@ export function parseInboundMessage(raw: string): ParsedInbound {
   }
   if (firstWord === 'estado' || firstWord === 'status') {
     return { kind: 'status' }
+  }
+
+  // Recall ("preguntale a tu Trama"): "buscar: ..." o "? ..." (con texto).
+  const query = /^\/?(buscar|busca|buscá)\s*:?\s*([\s\S]+)$/i.exec(text)
+  if (query && query[2]!.trim()) {
+    return { kind: 'query', text: query[2]!.trim() }
+  }
+  if (text.startsWith('?') && text.slice(1).trim()) {
+    return { kind: 'query', text: text.slice(1).trim() }
   }
 
   // Prefijo con dos puntos: "nota: ...", "/cita ...".
