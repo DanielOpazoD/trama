@@ -202,7 +202,7 @@ trama/
 │   └── *.spec.ts                         # add-entity · add-quote · chat-send · momentos · …
 └── netlify/
     ├── database/migrations/              # SQL versionado, aplicado en deploy
-    └── functions/                        # 85 endpoints `.mts`
+    └── functions/                        # 87 endpoints `.mts`
         ├── _lib/                         # lógica compartida
         │   ├── db.ts                     # getSql() singleton
         │   ├── auth.ts                   # Clerk verifyToken + ALLOW_LEGACY_FALLBACK
@@ -224,7 +224,8 @@ trama/
         │   ├── entities.mts · quotes.mts · relationships.mts · momentos.mts
         │   └── *-restore (cascade soft-undelete)
         ├── Búsqueda y agregaciones
-        │   ├── search.mts (lexical + semantic)
+        │   ├── search.mts (lexical + semantic) · query.mts (motor de queries)
+        │   ├── object-properties.mts (propiedades + tags de objetos)
         │   ├── counts.mts · entities-lookup.mts · entities-refs-count.mts
         │   └── graph-neighbors.mts
         ├── IA

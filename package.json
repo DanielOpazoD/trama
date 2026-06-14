@@ -14,6 +14,7 @@
     "check:cte-regression": "bash scripts/check-cte-regression.sh",
     "check:whatsapp-schema": "node scripts/check-whatsapp-schema.mjs",
     "test:whatsapp-it": "node scripts/run-vitest.mjs run netlify/functions/_lib/whatsapp-persist.integration.test.ts",
+    "test:query-it": "node scripts/run-vitest.mjs run netlify/functions/_lib/query.integration.test.ts",
     "pr-stack:check": "node scripts/verify-pr-stack.mjs",
     "bench:search-scale": "node scripts/search-scale-benchmark.mjs",
     "bench:search-scale:portable": "SEARCH_BENCHMARK_SCHEMA=portable node scripts/search-scale-benchmark.mjs",
