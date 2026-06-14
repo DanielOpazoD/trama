@@ -141,6 +141,10 @@ describe('query-nl endpoint', () => {
     const body = (await res.json()) as { source: string }
     expect(body.source).toBe('fallback')
     expect(askLLMForJson).not.toHaveBeenCalled()
+    // El catálogo (entity_types) sólo se consulta si vamos a invocar al LLM.
+    expect(mockSqlResponses.calls.some((c) => c.template.includes('entity_types'))).toBe(
+      false,
+    )
     expect(
       mockSqlResponses.calls.some((c) => c.template.includes('extraction_log')),
     ).toBe(false)
