@@ -4,7 +4,7 @@ import { useReadingTablesQuery } from '../state'
  * "Retomar el hilo": acceso desde Inicio a los proyectos editoriales en curso
  * (no cerrados). Refuerza la persistencia de la mesa editorial — el usuario
  * vuelve a su trabajo sin reconstruirlo. Se oculta del todo si no hay proyectos
- * abiertos. El enlace entra por Recortes > Mesa con ?project=<id>.
+ * abiertos. El enlace entra por Notas > Bandeja > Mesa con ?project=<id>.
  */
 export function HomeProjects() {
   const { data: projects = [] } = useReadingTablesQuery()

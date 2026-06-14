@@ -33,7 +33,7 @@ describe('<EditorialProjectsContextStrip />', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('enlaza proyectos abiertos hacia Recortes > Mesa', () => {
+  it('enlaza proyectos abiertos hacia Notas > Bandeja > Mesa', () => {
     mocks.projects = [
       project('p1', 'Ensayo abierto', 'borrador'),
       project('p2', 'Proyecto cerrado', 'cerrado'),

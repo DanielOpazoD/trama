@@ -70,7 +70,7 @@ export function NotasFeedView() {
     [segment, search, activeTag],
   )
 
-  const { items, isLoading } = useNotasFeed(filter)
+  const { items, isLoading, isError } = useNotasFeed(filter)
 
   // El universo de tags se calcula sobre el feed SIN filtrar por etiqueta (para
   // que elegir una etiqueta no haga desaparecer las demás del chip-bar). Reusa
@@ -302,6 +302,12 @@ export function NotasFeedView() {
         <div className="py-10 flex justify-center">
           <LoadingHint text="cargando" size="sm" />
         </div>
+      ) : isError ? (
+        <EmptyMessage
+          illustration="thread"
+          title="No pudimos cargar tus notas y capturas."
+          body={<>Vuelve a intentarlo en unos segundos.</>}
+        />
       ) : everythingEmpty ? (
         <EmptyMessage
           illustration="thread"

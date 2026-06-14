@@ -57,6 +57,19 @@ describe('buildNotasFeed', () => {
     expect(items[1]!.type).toBe('recorte')
   })
 
+  it('ante el mismo createdAt, ordena la nota antes que el recorte (desempate determinista)', () => {
+    const ts = '2026-06-12T00:00:00.000Z'
+    const items = buildNotasFeed(
+      [makeNote({ id: 'n-same', createdAt: ts })],
+      [makeRecorte({ id: 'r-same', createdAt: ts })],
+      ALL,
+    )
+    expect(items.map((i) => `${i.type}:${i.id}`)).toEqual([
+      'note:n-same',
+      'recorte:r-same',
+    ])
+  })
+
   it("segmento 'escritas' deja solo notas", () => {
     const items = buildNotasFeed([makeNote()], [makeRecorte()], { segment: 'escritas' })
     expect(items).toHaveLength(1)

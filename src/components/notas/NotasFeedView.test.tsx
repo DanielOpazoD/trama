@@ -51,7 +51,7 @@ function stubFeedFetch() {
     if (url.startsWith('/api/notes') && method === 'GET') return jsonResponse(noteRows)
     if (url.startsWith('/api/recortes') && method === 'GET')
       return jsonResponse(recorteRows)
-    return jsonResponse([])
+    throw new Error(`Fetch inesperado en NotasFeedView.test: ${method} ${url}`)
   })
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
