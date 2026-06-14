@@ -37,6 +37,13 @@ export const ChevronRightIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Burbuja de mensaje — procedencia "vía WhatsApp" (capturado por mensaje). */
+export const ChatBubbleIcon = ({ size = 12, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 17 .5z" />
+  </svg>
+)
+
 /** Tijeras — Recortes (capturas web que esperan curaduría). */
 export const ScissorsIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

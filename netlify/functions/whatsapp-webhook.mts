@@ -7,20 +7,36 @@ import { setCurrentRlsUser, runWithSystemRls } from './_lib/user-rls.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { resolveAIInvocation } from './_lib/ai-mode.js'
-import { askLLMForJson } from './_lib/llm.js'
+import { askLLMForJson, askLLMForVision, askLLMForText } from './_lib/llm.js'
+import { buildRagContext } from './_lib/rag-context.js'
 import { validateTwilioSignature } from './_lib/whatsapp/twilio-signature.js'
 import { normalizePhone } from './_lib/whatsapp/phone.js'
 import { parseInboundMessage } from './_lib/whatsapp/parse-command.js'
 import { normalizeLinkCode } from './_lib/whatsapp/link-code.js'
 import { buildClassifyPrompt, validateClassification } from './_lib/whatsapp/interpret.js'
 import { persistCapture } from './_lib/whatsapp/persist.js'
-import { persistImageRecorte, persistImageMomento } from './_lib/whatsapp/persist-media.js'
+import {
+  persistImageRecorte,
+  persistImageMomento,
+} from './_lib/whatsapp/persist-media.js'
 import {
   parseInboundMedia,
   mediaCategory,
-  mediaTarget,
+  mediaRoute,
+  isVisionRoute,
   downloadTwilioMedia,
+  isAllowedImageMime,
+  MEDIA_TOO_LARGE,
 } from './_lib/whatsapp/media.js'
+import { buildPhotoPrompt, validatePhotoExtraction } from './_lib/whatsapp/vision.js'
+import type { PhotoMode } from './_lib/whatsapp/vision.js'
+import { formatStatus } from './_lib/whatsapp/status.js'
+import {
+  buildRecallPrompt,
+  formatRecallAnswer,
+  formatRecallFallback,
+  recallHasResults,
+} from './_lib/whatsapp/recall.js'
 import { storeMedia } from './_lib/whatsapp/media-store.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
@@ -55,7 +71,9 @@ const HELP = [
   '• entidad: <nombre> (tipo)',
   '• momento: <qué pasó>',
   'O mandá texto libre y lo clasifico solo.',
-  'Para borrar lo último: deshacer.',
+  'Fotos: imagen → Recorte; "cita:"/"nota:" + foto → leo el texto (OCR).',
+  'Preguntá: "buscar: <tema>" o "? <pregunta>" para consultar tu Trama.',
+  'Para borrar lo último: deshacer. Para ver tu resumen: estado.',
 ].join('\n')
 
 const NOT_LINKED = [
@@ -232,7 +250,44 @@ async function recordLastCapture(
  * `momento:`). Audio/video se reconocen y se avisan (próximo incremento).
  * Devuelve el texto de confirmación.
  */
+/**
+ * Pasa una imagen por el LLM de visión y devuelve la `CaptureIntent` extraída
+ * (cita o nota), o `null` si no se puede usar IA (off / sin presupuesto / falla
+ * del modelo) para que el caller caiga a guardar la imagen como Recorte.
+ */
+async function extractPhotoIntent(
+  req: Request,
+  userId: string,
+  requestId: string,
+  buffer: ArrayBuffer,
+  mimeType: string,
+  mode: PhotoMode,
+  caption: string,
+): Promise<CaptureIntent | null> {
+  const overBudget = await checkMonthlyBudget(userId, requestId)
+  if (overBudget) return null
+  const invocation = await resolveAIInvocation(req, 'extract-image', userId)
+  if (invocation.kind === 'off') return null
+  try {
+    const { system, user } = buildPhotoPrompt(mode)
+    const imageBase64 = Buffer.from(buffer).toString('base64')
+    const { content } = await askLLMForVision(system, user, imageBase64, mimeType, {
+      provider: invocation.provider,
+      model: invocation.model,
+    })
+    return validatePhotoExtraction(content, mode, caption)
+  } catch (err) {
+    logEvent({
+      event: 'whatsapp_vision_failed',
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return null
+  }
+}
+
 async function handleInboundMedia(
+  req: Request,
+  requestId: string,
   sql: ReturnType<typeof getSql>,
   userId: string,
   phone: string,
@@ -242,7 +297,7 @@ async function handleInboundMedia(
 ): Promise<string> {
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
-  const { target, caption } = mediaTarget(params.Body ?? params.body ?? '')
+  const { route, caption } = mediaRoute(params.Body ?? params.body ?? '')
   let saved = 0
   let lastId: string | null = null
   let lastKind = ''
@@ -254,13 +309,53 @@ async function handleInboundMedia(
       skipped.add(cat)
       continue
     }
+    if (!isAllowedImageMime(item.contentType)) {
+      skipped.add('format')
+      continue
+    }
     if (!accountSid || !authToken) {
       skipped.add('config')
       continue
     }
     try {
-      const { buffer, contentType } = await downloadTwilioMedia(item.url, accountSid, authToken)
-      if (target === 'momento') {
+      const { buffer, contentType } = await downloadTwilioMedia(
+        item.url,
+        accountSid,
+        authToken,
+        {
+          onRetry: (attempt, reason) =>
+            logEvent({ event: 'whatsapp_media_retry', attempt, reason }),
+        },
+      )
+
+      // Rutas de visión (cita:/nota:/texto:/ocr:): la imagen pasa por el LLM
+      // de visión y se persiste lo EXTRAÍDO (cita o nota). Si la IA está off,
+      // sin presupuesto o falla, caemos a guardar la imagen como Recorte —
+      // nunca se pierde lo que mandó el usuario.
+      if (isVisionRoute(route)) {
+        const mode: PhotoMode = route === 'quote' ? 'quote' : 'text'
+        const intent = await extractPhotoIntent(
+          req,
+          userId,
+          requestId,
+          buffer,
+          contentType,
+          mode,
+          caption,
+        )
+        if (intent) {
+          const r = await persistCapture(sql, userId, intent)
+          lastId = r.id
+          lastKind = intent.kind
+          saved += 1
+          logEvent({ event: 'whatsapp_vision', mode, kind: intent.kind })
+          continue
+        }
+        skipped.add('vision')
+        // fallback ↓ guarda la imagen como recorte
+      }
+
+      if (route === 'momento') {
         const key = await storeMedia('momentos-media', userId, buffer, contentType)
         const r = await persistImageMomento(sql, userId, key, caption)
         lastId = r.id
@@ -273,11 +368,9 @@ async function handleInboundMedia(
       }
       saved += 1
     } catch (err) {
-      skipped.add('error')
-      logEvent({
-        event: 'whatsapp_media_failed',
-        message: err instanceof Error ? err.message : String(err),
-      })
+      const msg = err instanceof Error ? err.message : String(err)
+      skipped.add(msg === MEDIA_TOO_LARGE ? 'toolarge' : 'error')
+      logEvent({ event: 'whatsapp_media_failed', message: msg })
     }
   }
 
@@ -286,19 +379,30 @@ async function handleInboundMedia(
     logEvent({ event: 'whatsapp_capture', kind: lastKind, media: true, count: saved })
   }
 
+  const DEST_BY_KIND: Record<string, string> = {
+    momento: 'Momentos',
+    recorte: 'Recortes',
+    quote: 'Citas',
+    note: 'Notas',
+  }
   const lines: string[] = []
   if (saved > 0) {
-    const dest = target === 'momento' ? 'Momentos' : 'Recortes'
-    lines.push(
-      saved === 1
-        ? `📷 Imagen guardada en ${dest}.`
-        : `📷 ${saved} imágenes guardadas en ${dest}.`,
-    )
+    const dest = DEST_BY_KIND[lastKind] ?? 'Trama'
+    lines.push(saved === 1 ? `✅ Guardado en ${dest}.` : `✅ ${saved} ítems guardados.`)
+    if (skipped.has('vision')) {
+      lines.push('(No pude leer el texto, así que guardé la imagen tal cual.)')
+    }
     lines.push(`🔗 ${captureDeepLink(origin, lastKind)}`)
     lines.push('↩️ ¿Mal? Respondé: deshacer')
   }
   if (skipped.has('audio') || skipped.has('video')) {
     lines.push('🎧🎬 Audio y video todavía no los proceso — pronto.')
+  }
+  if (skipped.has('format')) {
+    lines.push('🖼️ Ese formato de imagen no lo soporto (mandá JPG, PNG, WEBP o GIF).')
+  }
+  if (skipped.has('toolarge')) {
+    lines.push('📦 La imagen es muy pesada (máx. 16 MB). Mandala más liviana.')
   }
   if (skipped.has('config')) {
     lines.push(
@@ -310,6 +414,87 @@ async function handleInboundMedia(
   }
   if (lines.length === 0) lines.push('Recibí el archivo pero no pude procesarlo.')
   return lines.join('\n')
+}
+
+/**
+ * Comando `estado`: lee el vínculo + un conteo de mensajes de este mes y arma
+ * el resumen (formato puro en status.ts). Corre bajo el RLS del dueño.
+ */
+async function buildStatusReply(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  phone: string,
+): Promise<string> {
+  const linkRows = await sqlTyped<{
+    verified_at: string | null
+    last_capture_kind: string | null
+    last_capture_at: string | null
+  }>(sql`
+    SELECT verified_at, last_capture_kind, last_capture_at
+    FROM whatsapp_links
+    WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
+    LIMIT 1
+  `)
+  const countRows = await sqlTyped<{ n: number }>(sql`
+    SELECT COUNT(*)::int AS n FROM whatsapp_processed_messages
+    WHERE user_id = ${userId} AND created_at >= date_trunc('month', NOW())
+  `)
+  const link = linkRows[0]
+  return formatStatus({
+    verifiedAt: link?.verified_at ?? null,
+    lastCaptureKind: link?.last_capture_kind ?? null,
+    lastCaptureAt: link?.last_capture_at ?? null,
+    monthCount: countRows[0]?.n ?? 0,
+  })
+}
+
+/**
+ * Recall ("preguntale a tu Trama"): arma contexto con RAG (entidades + citas +
+ * relaciones) y compone una respuesta anclada en lo que el usuario ya guardó.
+ * Si la IA está off / sin presupuesto / falla, cae a un listado con deep links.
+ * Corre bajo el RLS del dueño.
+ */
+async function handleQuery(
+  req: Request,
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  requestId: string,
+  query: string,
+  origin: string,
+): Promise<string> {
+  const overBudget = await checkMonthlyBudget(userId, requestId)
+  const invocation = overBudget
+    ? ({ kind: 'off' } as const)
+    : await resolveAIInvocation(req, 'chat', userId)
+  const aiOn = invocation.kind === 'ready'
+
+  // HyDE solo si vamos a usar IA igual (sino agrega latencia/costo sin sentido).
+  const ctx = await buildRagContext(sql, query, userId, {
+    hyde: aiOn,
+    requestId,
+  })
+  if (!recallHasResults(ctx)) {
+    return 'No encontré nada sobre eso todavía. Probá con otras palabras, o guardá algo nuevo y volvé a preguntar.'
+  }
+  if (!aiOn) return formatRecallFallback(ctx, origin)
+  try {
+    const { content } = await askLLMForText(buildRecallPrompt(query, ctx), {
+      provider: invocation.provider,
+      model: invocation.model,
+    })
+    // askLLMForText tipa `content` como unknown (shape compartido con el modo
+    // JSON); en modo texto es string. Si no lo es, caemos al listado.
+    const answer = typeof content === 'string' ? content.trim() : ''
+    if (!answer) return formatRecallFallback(ctx, origin)
+    logEvent({ event: 'whatsapp_recall', usedRag: ctx.usedRag, usedHyde: ctx.usedHyde })
+    return formatRecallAnswer(answer, ctx, origin)
+  } catch (err) {
+    logEvent({
+      event: 'whatsapp_recall_failed',
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return formatRecallFallback(ctx, origin)
+  }
 }
 
 /** Texto libre → CaptureIntent vía LLM, con fallback a nota si algo falla. */
@@ -405,12 +590,10 @@ export default withObservability(
     // pero lo aseguramos antes de escribir para no chocar con la FK users(id).
     await ensureUserRow(sql, { id: userId })
 
-    if (parsed.kind === 'undo' && media.length === 0) {
-      return twimlResponse(await undoLastCapture(sql, userId, phone))
-    }
-
     // Idempotencia: si Twilio reintenta este mensaje (latencia/5xx), no lo
-    // reprocesamos ni volvemos a pagar el LLM. El claim va ANTES de clasificar.
+    // reprocesamos. El claim va ANTES de TODO comando (undo/status/query) y de
+    // la captura, así un reintento no re-corre RAG/LLM ni re-deshace ni
+    // distorsiona el conteo mensual.
     const messageSid = params.MessageSid ?? params.SmsMessageSid ?? params.SmsSid
     if (messageSid) {
       const claimed = await claimInboundMessage(sql, messageSid, userId)
@@ -422,11 +605,41 @@ export default withObservability(
       WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
     `.catch(() => {})
 
+    if (parsed.kind === 'undo' && media.length === 0) {
+      return twimlResponse(await undoLastCapture(sql, userId, phone))
+    }
+
+    if (parsed.kind === 'status' && media.length === 0) {
+      return twimlResponse(await buildStatusReply(sql, userId, phone))
+    }
+
+    if (parsed.kind === 'query' && media.length === 0) {
+      return twimlResponse(
+        await handleQuery(
+          req,
+          sql,
+          userId,
+          requestId,
+          parsed.text,
+          new URL(req.url).origin,
+        ),
+      )
+    }
+
     // Adjuntos (foto): se procesan antes que el texto. El caption decide
     // destino (default Recortes; `momento:` → Momentos).
     if (media.length > 0) {
       return twimlResponse(
-        await handleInboundMedia(sql, userId, phone, params, media, new URL(req.url).origin),
+        await handleInboundMedia(
+          req,
+          requestId,
+          sql,
+          userId,
+          phone,
+          params,
+          media,
+          new URL(req.url).origin,
+        ),
       )
     }
 

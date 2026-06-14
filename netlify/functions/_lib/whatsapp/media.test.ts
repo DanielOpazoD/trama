@@ -4,8 +4,11 @@ import {
   isTwilioMediaUrl,
   mediaCategory,
   extFromMime,
-  mediaTarget,
+  mediaRoute,
+  isVisionRoute,
   downloadTwilioMedia,
+  isAllowedImageMime,
+  MEDIA_TOO_LARGE,
 } from './media'
 
 describe('parseInboundMedia', () => {
@@ -54,24 +57,54 @@ describe('mediaCategory / extFromMime', () => {
   })
 })
 
-describe('mediaTarget', () => {
+describe('mediaRoute', () => {
   it('default Recortes', () => {
-    expect(mediaTarget('mirá esta foto')).toEqual({
-      target: 'recorte',
+    expect(mediaRoute('mirá esta foto')).toEqual({
+      route: 'recorte',
       caption: 'mirá esta foto',
     })
   })
   it('override momento:', () => {
-    expect(mediaTarget('momento: cumple de la abuela')).toEqual({
-      target: 'momento',
+    expect(mediaRoute('momento: cumple de la abuela')).toEqual({
+      route: 'momento',
       caption: 'cumple de la abuela',
     })
   })
   it('recorte: explícito', () => {
-    expect(mediaTarget('recorte: para leer')).toEqual({
-      target: 'recorte',
+    expect(mediaRoute('recorte: para leer')).toEqual({
+      route: 'recorte',
       caption: 'para leer',
     })
+  })
+  it('cita: → ruta de visión quote', () => {
+    expect(mediaRoute('cita: sobre el tiempo')).toEqual({
+      route: 'quote',
+      caption: 'sobre el tiempo',
+    })
+  })
+  it('nota:/texto:/ocr: → ruta de visión note', () => {
+    expect(mediaRoute('nota: apuntes').route).toBe('note')
+    expect(mediaRoute('texto:').route).toBe('note')
+    expect(mediaRoute('ocr: la pizarra').route).toBe('note')
+  })
+})
+
+describe('isVisionRoute', () => {
+  it('quote y note requieren visión; momento y recorte no', () => {
+    expect(isVisionRoute('quote')).toBe(true)
+    expect(isVisionRoute('note')).toBe(true)
+    expect(isVisionRoute('momento')).toBe(false)
+    expect(isVisionRoute('recorte')).toBe(false)
+  })
+})
+
+describe('isAllowedImageMime', () => {
+  it('acepta los formatos soportados, rechaza el resto', () => {
+    expect(isAllowedImageMime('image/jpeg')).toBe(true)
+    expect(isAllowedImageMime('image/png; charset=binary')).toBe(true)
+    expect(isAllowedImageMime('IMAGE/WEBP')).toBe(true)
+    expect(isAllowedImageMime('image/heic')).toBe(false)
+    expect(isAllowedImageMime('application/pdf')).toBe(false)
   })
 })
 
@@ -82,6 +115,85 @@ describe('downloadTwilioMedia', () => {
     await expect(downloadTwilioMedia('https://evil.com/x', 'AC', 'tok')).rejects.toThrow(
       /Twilio/,
     )
+  })
+
+  it('aborta por Content-Length declarado mayor al tope', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: {
+          get: (k: string) => (k === 'content-length' ? '99999999' : 'image/jpeg'),
+        },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    await expect(
+      downloadTwilioMedia('https://api.twilio.com/x', 'AC', 'tok', { maxBytes: 1024 }),
+    ).rejects.toThrow(MEDIA_TOO_LARGE)
+  })
+
+  it('aborta si el buffer real supera el tope (sin Content-Length)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => new ArrayBuffer(2048),
+      }),
+    )
+    await expect(
+      downloadTwilioMedia('https://api.twilio.com/x', 'AC', 'tok', { maxBytes: 1024 }),
+    ).rejects.toThrow(MEDIA_TOO_LARGE)
+  })
+
+  it('reintenta en 5xx y termina bajando (con backoff inyectado)', async () => {
+    const onRetry = vi.fn()
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 503, headers: { get: () => null } })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+    const { buffer } = await downloadTwilioMedia(
+      'https://api.twilio.com/x',
+      'AC',
+      'tok',
+      {
+        retryDelaysMs: [0, 0],
+        onRetry,
+      },
+    )
+    expect(buffer.byteLength).toBe(8)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(onRetry).toHaveBeenCalledOnce()
+  })
+
+  it('reintenta ante error de red y se rinde tras agotar intentos', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('network down'))
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(
+      downloadTwilioMedia('https://api.twilio.com/x', 'AC', 'tok', {
+        retryDelaysMs: [0, 0],
+      }),
+    ).rejects.toThrow(/network down/)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('NO reintenta en 4xx (permanente)', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: false, status: 404, headers: { get: () => null } })
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(
+      downloadTwilioMedia('https://api.twilio.com/x', 'AC', 'tok', {
+        retryDelaysMs: [0, 0],
+      }),
+    ).rejects.toThrow(/404/)
+    expect(fetchMock).toHaveBeenCalledOnce()
   })
 
   it('baja con auth básica y devuelve buffer + contentType', async () => {

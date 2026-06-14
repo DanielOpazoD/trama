@@ -9,6 +9,25 @@
 export type InboundMedia = { url: string; contentType: string }
 export type MediaCategory = 'image' | 'audio' | 'video' | 'other'
 
+/**
+ * Tope de tamaño para media entrante. WhatsApp/Twilio ya limita el envío
+ * (~16 MB), pero lo reforzamos del lado nuestro: evita que un adjunto enorme
+ * agote memoria del function o llene Blobs. Si se excede, abortamos la
+ * descarga con `MEDIA_TOO_LARGE` y el webhook avisa con un mensaje claro.
+ */
+export const MAX_MEDIA_BYTES = 16 * 1024 * 1024
+
+/** Sentinel de error (no clase, para sobrevivir al bundling). */
+export const MEDIA_TOO_LARGE = 'media-too-large'
+
+/** MIME de imagen que sabemos guardar y renderizar (los que mapea extFromMime). */
+const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+
+/** ¿Es un tipo de imagen soportado? (HEIC/TIFF/etc. quedan fuera por ahora). */
+export function isAllowedImageMime(contentType: string): boolean {
+  return ALLOWED_IMAGE_MIME.has(contentType.split(';')[0]!.trim().toLowerCase())
+}
+
 /** Lee la lista de adjuntos del body form-encoded de Twilio. */
 export function parseInboundMedia(params: Record<string, string>): InboundMedia[] {
   const n = Number.parseInt(params.NumMedia ?? '0', 10)
@@ -53,34 +72,131 @@ export function extFromMime(mime: string): string {
 }
 
 /**
- * Caption de un mensaje con media → destino + texto limpio. Default Recortes
- * (decisión del producto: la bandeja es el inbox natural de media cruda); el
- * usuario fuerza Momentos con `momento:`.
+ * Destino de una foto según su caption:
+ * - sin prefijo o `recorte:` → Recorte (inbox natural de media cruda).
+ * - `momento:` → Momento foto.
+ * - `cita:` → visión/OCR extrae cita + autor → Cita.
+ * - `nota:` / `texto:` / `ocr:` → visión/OCR transcribe → Nota.
+ *
+ * Los dos últimos son "rutas de visión" (llaman LLM); los dos primeros no.
  */
-export function mediaTarget(body: string): {
-  target: 'momento' | 'recorte'
-  caption: string
-} {
-  const m = /^\/?(momento|recorte)\s*:?\s*([\s\S]*)$/i.exec(body.trim())
+export type MediaRoute = 'momento' | 'recorte' | 'quote' | 'note'
+
+export function mediaRoute(body: string): { route: MediaRoute; caption: string } {
+  const m = /^\/?(momento|recorte|cita|nota|texto|ocr)\s*:?\s*([\s\S]*)$/i.exec(
+    body.trim(),
+  )
   if (m) {
-    return { target: m[1]!.toLowerCase() as 'momento' | 'recorte', caption: m[2]!.trim() }
+    const kw = m[1]!.toLowerCase()
+    const route: MediaRoute =
+      kw === 'momento'
+        ? 'momento'
+        : kw === 'cita'
+          ? 'quote'
+          : kw === 'nota' || kw === 'texto' || kw === 'ocr'
+            ? 'note'
+            : 'recorte'
+    return { route, caption: m[2]!.trim() }
   }
-  return { target: 'recorte', caption: body.trim() }
+  return { route: 'recorte', caption: body.trim() }
 }
 
-/** Baja un archivo de media de Twilio (auth básica). Valida el host primero. */
+/** ¿Esta ruta requiere pasar la imagen por el LLM de visión? */
+export function isVisionRoute(route: MediaRoute): boolean {
+  return route === 'quote' || route === 'note'
+}
+
+/** Timeout por intento de descarga (la function tiene presupuesto acotado). */
+export const TWILIO_FETCH_TIMEOUT_MS = 15000
+
+/** Backoff por defecto: 3 intentos (inmediato, +0.5 s, +1.5 s). */
+const DEFAULT_RETRY_DELAYS_MS = [0, 500, 1500]
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** fetch con AbortController para no quedar colgados si Twilio no responde. */
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal })
+  } finally {
+    clearTimeout(t)
+  }
+}
+
+export type DownloadOptions = {
+  maxBytes?: number
+  /** Delays entre intentos (longitud = nº de intentos). Default 3 intentos. */
+  retryDelaysMs?: number[]
+  timeoutMs?: number
+  /** Notifica reintentos (observabilidad); el caller decide qué loguear. */
+  onRetry?: (attempt: number, reason: string) => void
+}
+
+/**
+ * Baja un archivo de media de Twilio (auth básica) con resiliencia:
+ *
+ * - Valida el host (SSRF) antes de cualquier request.
+ * - Timeout por intento + reintentos con backoff SOLO en fallas transitorias
+ *   (red, timeout, 5xx, 429). Los 4xx (auth/URL mala) y `MEDIA_TOO_LARGE` son
+ *   permanentes: cortan sin reintentar (reintentar no ayuda y enmascara bugs).
+ * - Tope de tamaño: mira `Content-Length` (corta sin transferir) y revalida el
+ *   buffer real. Lanza `Error(MEDIA_TOO_LARGE)` para que el webhook distinga
+ *   "muy grande" de un fallo de red.
+ */
 export async function downloadTwilioMedia(
   url: string,
   accountSid: string,
   authToken: string,
+  opts: DownloadOptions = {},
 ): Promise<{ buffer: ArrayBuffer; contentType: string }> {
   if (!isTwilioMediaUrl(url)) {
     throw new Error('URL de media no pertenece a Twilio')
   }
+  const maxBytes = opts.maxBytes ?? MAX_MEDIA_BYTES
+  const delays = opts.retryDelaysMs ?? DEFAULT_RETRY_DELAYS_MS
+  const timeoutMs = opts.timeoutMs ?? TWILIO_FETCH_TIMEOUT_MS
   const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
-  const res = await fetch(url, { headers: { Authorization: `Basic ${auth}` } })
-  if (!res.ok) throw new Error(`Twilio media respondió ${res.status}`)
-  const contentType = res.headers.get('content-type') ?? ''
-  const buffer = await res.arrayBuffer()
-  return { buffer, contentType }
+  const init: RequestInit = { headers: { Authorization: `Basic ${auth}` } }
+
+  let lastError: unknown = null
+  for (let attempt = 0; attempt < delays.length; attempt++) {
+    if (attempt > 0) {
+      opts.onRetry?.(attempt, lastError instanceof Error ? lastError.message : 'retry')
+    }
+    const delay = delays[attempt] ?? 0
+    if (delay > 0) await sleep(delay)
+    let res: Response
+    try {
+      res = await fetchWithTimeout(url, init, timeoutMs)
+    } catch (err) {
+      lastError = err // red/timeout (abort) → transitorio, reintentar
+      continue
+    }
+    if (res.ok) {
+      const declared = Number.parseInt(res.headers.get('content-length') ?? '', 10)
+      if (Number.isFinite(declared) && declared > maxBytes) {
+        throw new Error(MEDIA_TOO_LARGE)
+      }
+      const contentType = res.headers.get('content-type') ?? ''
+      const buffer = await res.arrayBuffer()
+      if (buffer.byteLength > maxBytes) throw new Error(MEDIA_TOO_LARGE)
+      return { buffer, contentType }
+    }
+    if (res.status >= 500 || res.status === 429) {
+      lastError = new Error(`Twilio media respondió ${res.status}`) // transitorio
+      continue
+    }
+    throw new Error(`Twilio media respondió ${res.status}`) // 4xx → permanente
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('Twilio media: fallo tras reintentos')
 }

@@ -201,6 +201,30 @@ jobs:
           DATABASE_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
         run: scripts/apply-migrations.sh
 
+      # Contrato de esquema del puente WhatsApp: contra la DB recién migrada,
+      # verifica que cada columna que el código de WhatsApp referencia exista.
+      # Atrapa la clase de bug del PR #208 (columna usada pero nunca creada),
+      # que los tests con SQL mockeado no pueden ver.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install deps (for schema checks)
+        run: npm ci --legacy-peer-deps
+      - name: WhatsApp schema contract
+        env:
+          DATABASE_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
+        run: npm run check:whatsapp-schema
+
+      # Integración de comportamiento: corre el código REAL de persistencia
+      # (persistCapture/persist-media) contra la DB migrada, validando RLS entre
+      # usuarios, el CTE atómico de citas, casts y procedencia — lo que el SQL
+      # mockeado de los tests unitarios no puede ver.
+      - name: WhatsApp persist integration (real Postgres)
+        env:
+          WHATSAPP_IT_DB_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
+        run: npm run test:whatsapp-it
+
       # Idempotencia: re-correr no debe aplicar ninguna migración nueva
       # (todas quedaron registradas en _migrations). Esto valida que el
       # tracking incremental — el mismo modelo que usa Netlify — funciona.

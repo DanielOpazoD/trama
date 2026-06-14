@@ -15,8 +15,17 @@ vi.mock('./ai-mode.js', () => ({
   }),
 }))
 const askLLMForJson = vi.fn()
+const askLLMForVision = vi.fn()
+const askLLMForText = vi.fn()
 vi.mock('./llm.js', () => ({
   askLLMForJson: (...args: unknown[]) => askLLMForJson(...args),
+  askLLMForVision: (...args: unknown[]) => askLLMForVision(...args),
+  askLLMForText: (...args: unknown[]) => askLLMForText(...args),
+}))
+// RAG mockeado: el recall no toca embeddings/DB real en este test.
+const buildRagContext = vi.fn()
+vi.mock('./rag-context.js', () => ({
+  buildRagContext: (...args: unknown[]) => buildRagContext(...args),
 }))
 // Blobs mockeado: el upload de media no toca red real.
 vi.mock('@netlify/blobs', () => ({
@@ -45,6 +54,9 @@ function twilioRequest(fields: Record<string, string>): Request {
 beforeEach(() => {
   mockSqlResponses.reset()
   askLLMForJson.mockReset()
+  askLLMForVision.mockReset()
+  askLLMForText.mockReset()
+  buildRagContext.mockReset()
 })
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -114,6 +126,8 @@ describe('whatsapp-webhook', () => {
   it('deshacer → soft-deletea la última captura', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim (antes del comando)
+    mockSqlResponses.push([]) // UPDATE last_message_at (fire-and-forget)
     mockSqlResponses.push([{ kind: 'note', cap_id: 'n1' }]) // SELECT last_capture
     mockSqlResponses.push([{ id: 'n1' }]) // UPDATE notes (soft-delete) RETURNING id
     mockSqlResponses.push([]) // UPDATE clear last_capture (fire-and-forget)
@@ -128,6 +142,8 @@ describe('whatsapp-webhook', () => {
   it('deshacer sin captura previa avisa que no hay nada', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
     mockSqlResponses.push([]) // SELECT last_capture → vacío
     const res = await webhookHandler(
       twilioRequest({ From: 'whatsapp:+56912345678', Body: 'deshacer' }),
@@ -242,6 +258,210 @@ describe('whatsapp-webhook', () => {
     const xml = await res.text()
     expect(xml).toContain('Recortes')
     expect(xml).toContain('view=recortes')
+  })
+
+  it('foto con "nota:" → visión transcribe y guarda Nota', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    askLLMForVision.mockResolvedValue({
+      content: { text: 'apuntes de la reunión' },
+      usage: {
+        provider: 'openai',
+        model: 'gpt',
+        tokensIn: 5,
+        tokensOut: 5,
+        costCents: 1,
+        durationMs: 100,
+      },
+      fromCache: false,
+    })
+    const fields = {
+      MessageSid: 'SMocr',
+      From: 'whatsapp:+56912345678',
+      Body: 'nota:',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/ocr',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMocr' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes RETURNING id
+    mockSqlResponses.push([]) // recordLastCapture
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(askLLMForVision).toHaveBeenCalledOnce()
+    const xml = await res.text()
+    expect(xml).toContain('Notas')
+    expect(xml).toContain('world=notas')
+  })
+
+  it('query (buscar:) → recall con RAG compone respuesta', async () => {
+    buildRagContext.mockResolvedValue({
+      entities: [
+        { id: 'e1', name: 'Borges', type: 'escritor', year: null, description: null },
+      ],
+      relationships: [],
+      quotes: [],
+      usedRag: true,
+    })
+    askLLMForText.mockResolvedValue({
+      content: 'Tenés a Borges guardado como escritor.',
+      usage: {
+        provider: 'deepseek',
+        model: 'x',
+        tokensIn: 10,
+        tokensOut: 5,
+        costCents: 1,
+        durationMs: 100,
+      },
+      fromCache: false,
+    })
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'buscar: borges' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(buildRagContext).toHaveBeenCalledOnce()
+    expect(askLLMForText).toHaveBeenCalledOnce()
+    const xml = await res.text()
+    expect(xml).toContain('Borges')
+    expect(xml).toContain('view=entidades')
+  })
+
+  it('query sin resultados avisa amablemente', async () => {
+    buildRagContext.mockResolvedValue({
+      entities: [],
+      relationships: [],
+      quotes: [],
+      usedRag: false,
+    })
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: '? algo que no existe' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('No encontré nada')
+  })
+
+  it('estado → resumen del vínculo', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([
+      {
+        verified_at: '2026-06-01T00:00:00Z',
+        last_capture_kind: 'note',
+        last_capture_at: '2026-06-14T11:00:00Z',
+      },
+    ]) // SELECT whatsapp_links
+    mockSqlResponses.push([{ n: 4 }]) // COUNT processed_messages
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'estado' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('Estado de tu Trama')
+    expect(xml).toContain('Mensajes este mes: 4')
+  })
+
+  it('foto con formato no soportado (heic) → avisa sin descargar', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMheic' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    const res = await webhookHandler(
+      twilioRequest({
+        MessageSid: 'SMheic',
+        From: 'whatsapp:+56912345678',
+        Body: '',
+        NumMedia: '1',
+        MediaUrl0: 'https://api.twilio.com/Media/heic',
+        MediaContentType0: 'image/heic',
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('formato de imagen no lo soporto')
+  })
+
+  it('foto demasiado pesada → avisa el límite', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: {
+          get: (k: string) => (k === 'content-length' ? '99999999' : 'image/jpeg'),
+        },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMbig',
+      From: 'whatsapp:+56912345678',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/big',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMbig' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('muy pesada')
   })
 
   it('firma inválida cuando TWILIO_AUTH_TOKEN está configurado → 401', async () => {

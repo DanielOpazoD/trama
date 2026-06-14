@@ -66,8 +66,21 @@ texto. Hoy: **imágenes**.
   'image'); el caption es el texto del recorte.
 - Con caption `momento:` → **Momento foto** (`payload.storageKey` en
   `momentos-media`).
+- Con caption `cita:` → **visión/OCR**: el LLM extrae cita + autor de la foto
+  (página de libro, pantalla) y se guarda una **Cita**.
+- Con caption `nota:` / `texto:` / `ocr:` → **visión/OCR**: transcribe el texto
+  visible y guarda una **Nota**.
 - Varias imágenes en un mensaje → una fila por imagen (la última queda como
   "deshacer").
+
+**Visión (cita:/nota:/texto:/ocr:).** Estas rutas pasan la imagen por
+`askLLMForVision` (OpenAI/Gemini, mismos guards que `extract-from-image`:
+`checkMonthlyBudget` + `resolveAIInvocation('extract-image')`). El prompt y el
+validador son puros (`_lib/whatsapp/vision.ts`): `quote` exige texto **y** autor
+(si falta autor, cae a Nota — nunca pedimos autor por una foto); `text`
+transcribe. Si la IA está off, sin presupuesto o falla, **se cae a guardar la
+imagen como Recorte** (nunca se pierde lo enviado) y se avisa. Emite
+`whatsapp_vision` / `whatsapp_vision_failed`.
 
 Las URLs de media de Twilio son privadas: se bajan con auth básica
 (`TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN`), validando que el host sea de
@@ -76,13 +89,62 @@ download, routing) + `media-store.ts` (subida a Blobs) + `persist-media.ts`
 (inserts). **Audio y video** se reconocen y se avisan; su persistencia
 (transcripción opcional, modelo de video) es el próximo incremento.
 
+**Límites (robustez):** solo se aceptan imágenes `image/jpeg|png|webp|gif`
+(otro formato → aviso "mandá JPG/PNG/WEBP/GIF"); el tope de tamaño es
+`MAX_MEDIA_BYTES` = 16 MB, chequeado por `Content-Length` (corta sin transferir)
+y revalidado contra el buffer real. Pasarse → aviso "imagen muy pesada". No hay
+rate-limit por IP/número a propósito (regla de `AGENTS.md`: el cost-cap mensual
+del LLM es el límite). El camino de media **por defecto** (Recorte/Momento) no
+llama al LLM, así que no consume presupuesto; las **rutas de visión**
+(`cita:`/`nota:`/`texto:`/`ocr:`) sí invocan al LLM y respetan los mismos guards
+de presupuesto (`checkMonthlyBudget` + `resolveAIInvocation`).
+
+**Resiliencia de descarga:** `downloadTwilioMedia` tiene timeout por intento
+(`TWILIO_FETCH_TIMEOUT_MS` = 15 s vía `AbortController`) y reintenta con backoff
+(3 intentos) SOLO en fallas transitorias (red, timeout, 5xx, 429). Los 4xx y
+`MEDIA_TOO_LARGE` son permanentes y cortan sin reintentar. Cada reintento emite
+`whatsapp_media_retry` (observabilidad); el fallo final emite
+`whatsapp_media_failed`.
+
+## Recall — "preguntale a tu Trama"
+
+`buscar: <tema>` o `? <pregunta>` consultan tu segundo cerebro desde WhatsApp
+(el puente deja de ser solo-escritura). El webhook arma contexto con
+`buildRagContext` (entidades + citas + relaciones, retrieval semántico + HyDE) y:
+
+- con IA disponible → compone una respuesta breve con `askLLMForText` anclada
+  **solo** en ese contexto (prompt anti-alucinación) + deep links;
+- sin IA (off / sin presupuesto / falla) → lista los mejores resultados con
+  deep links, sin LLM.
+
+Prompt y formateadores puros en `_lib/whatsapp/recall.ts`. Es de solo lectura
+(va antes del claim de idempotencia; las llamadas LLM están cacheadas, así que
+un reintento de Twilio no re-cobra). Cubre entidades y citas (lo que indexa el
+RAG hoy); notas/momentos quedan para cuando el RAG los incluya. Observabilidad:
+`whatsapp_recall` / `whatsapp_recall_failed`.
+
+## Comando `estado`
+
+`estado` (o `status`) devuelve un resumen desde el teléfono: si el vínculo está
+activo, cuál fue la última captura (con tiempo relativo) y cuántos mensajes se
+procesaron este mes. Es de solo lectura (no reclama `MessageSid` ni cuenta como
+captura). Formato puro en `_lib/whatsapp/status.ts`; el webhook solo le pasa los
+datos leídos de `whatsapp_links` + `whatsapp_processed_messages`.
+
 ## Procedencia ("vía WhatsApp")
 
 Toda captura que entra por WhatsApp queda marcada: las tablas con `origin`
 JSONB (momentos, entities, quotes) llevan `origin.importedFrom = 'whatsapp'`;
 recortes y notes llevan una columna `source = 'whatsapp'` (migración
-`20260614030000_whatsapp_media_source`). Habilita el iconito "vía WhatsApp" y
-un filtro por procedencia en la UI.
+`20260614030000_whatsapp_media_source`).
+
+En la UI, `<WhatsAppSourceTag>` (`src/components/WhatsAppSourceTag.tsx`) pinta
+un iconito discreto de burbuja (tooltip "Capturado desde WhatsApp") cuando el
+ítem viene de ese medio. Acepta `origin` o `source`, así que se reusa en
+cualquier card. Ya está cableado en Citas (`QuoteItem`), Entidades (`EntityRow`)
+y Momentos (`MomentoEntry`); notas y recortes lo mostrarán cuando sus transforms
+de `src/api/` expongan la columna `source` al cliente (pendiente). Un filtro por
+procedencia en las vistas es el siguiente paso.
 
 ## Confirmación accionable (deep link + deshacer)
 
@@ -97,6 +159,16 @@ El webhook recuerda la última captura por número en las columnas
 (o `undo`), soft-deletea esa última captura y limpia el puntero — naturalmente
 idempotente: un segundo `deshacer` ya no encuentra nada. No deep-linkeamos el
 item exacto porque la app aún no rutea por id.
+
+## Contrato de esquema (tests de integración)
+
+Los tests del webhook mockean SQL, así que no ven si una columna referenciada
+falta en el esquema real — eso rompió producción una vez (`whatsapp_links.label`,
+PR #208). `scripts/check-whatsapp-schema.mjs` (`npm run check:whatsapp-schema`)
+conecta a la DB **migrada de verdad** (vía `pg`) y verifica que cada columna que
+el código de WhatsApp toca exista. Corre en el job `migrations` de CI (después
+de aplicar migraciones) y localmente con `npm run db:up` levantado. Si agregás
+una columna al flujo, sumala a `REQUIRED` en el script Y creá su migración.
 
 ## Seguridad
 

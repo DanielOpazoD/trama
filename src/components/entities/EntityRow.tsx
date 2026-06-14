@@ -2,6 +2,7 @@ import { memo } from 'react'
 import { ENTITY_TYPES, type Entity } from '../../types'
 import { ChevronRightIcon, SparkleIcon } from '../Icons'
 import { typeAccent } from '../graph/GraphNode'
+import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 
 /**
  * Fila clickable en EntitiesView. Muestra nombre + año + chip de tipo
@@ -65,6 +66,7 @@ function EntityRowInternal({
               <SparkleIcon size={10} />
             </span>
           )}
+          <WhatsAppSourceTag origin={entity.origin} />
         </div>
         {/* Chevron estático: señala que la tarjeta abre el panel lateral. */}
         <ChevronRightIcon
