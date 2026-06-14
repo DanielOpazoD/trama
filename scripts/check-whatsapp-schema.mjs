@@ -98,6 +98,21 @@ async function main() {
     }
   }
 
+  // El shape de `origin` es parser-sensible (AGENTS.md). No basta con que la
+  // columna exista: una migración que la cambie de jsonb a text rompería los
+  // parsers en runtime sin que este check lo note. Validamos el tipo.
+  for (const table of ['entities', 'momentos', 'quotes']) {
+    const { rows } = await client.query(
+      `SELECT data_type FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = $1 AND column_name = 'origin'`,
+      [table],
+    )
+    const dataType = rows[0]?.data_type
+    if (dataType && dataType !== 'jsonb') {
+      problems.push(`${table}.origin: tipo ${dataType} (esperado jsonb)`)
+    }
+  }
+
   if (problems.length > 0) {
     console.error('❌ Contrato de esquema WhatsApp roto:')
     for (const p of problems) console.error(`   - ${p}`)

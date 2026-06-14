@@ -590,6 +590,21 @@ export default withObservability(
     // pero lo aseguramos antes de escribir para no chocar con la FK users(id).
     await ensureUserRow(sql, { id: userId })
 
+    // Idempotencia: si Twilio reintenta este mensaje (latencia/5xx), no lo
+    // reprocesamos. El claim va ANTES de TODO comando (undo/status/query) y de
+    // la captura, así un reintento no re-corre RAG/LLM ni re-deshace ni
+    // distorsiona el conteo mensual.
+    const messageSid = params.MessageSid ?? params.SmsMessageSid ?? params.SmsSid
+    if (messageSid) {
+      const claimed = await claimInboundMessage(sql, messageSid, userId)
+      if (!claimed) return emptyTwimlResponse()
+    }
+
+    sql`
+      UPDATE whatsapp_links SET last_message_at = NOW()
+      WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
+    `.catch(() => {})
+
     if (parsed.kind === 'undo' && media.length === 0) {
       return twimlResponse(await undoLastCapture(sql, userId, phone))
     }
@@ -610,19 +625,6 @@ export default withObservability(
         ),
       )
     }
-
-    // Idempotencia: si Twilio reintenta este mensaje (latencia/5xx), no lo
-    // reprocesamos ni volvemos a pagar el LLM. El claim va ANTES de clasificar.
-    const messageSid = params.MessageSid ?? params.SmsMessageSid ?? params.SmsSid
-    if (messageSid) {
-      const claimed = await claimInboundMessage(sql, messageSid, userId)
-      if (!claimed) return emptyTwimlResponse()
-    }
-
-    sql`
-      UPDATE whatsapp_links SET last_message_at = NOW()
-      WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
-    `.catch(() => {})
 
     // Adjuntos (foto): se procesan antes que el texto. El caption decide
     // destino (default Recortes; `momento:` → Momentos).

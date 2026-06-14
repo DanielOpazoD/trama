@@ -89,17 +89,24 @@ describe.skipIf(!DB_URL)('whatsapp persist (integración Postgres real)', () => 
     for (const u of [USER_A, USER_B]) {
       await admin(`INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING`, [u])
     }
+    // Soft-delete (regla de AGENTS.md: nunca hard delete en tablas con
+    // deleted_at). Las asserts filtran `deleted_at IS NULL`, así que esto deja
+    // la base limpia para el run sin violar el contrato de borrado.
     for (const t of ['quotes', 'entities', 'notes', 'recortes', 'momentos']) {
-      await admin(`DELETE FROM ${t} WHERE user_id = ANY($1)`, [[USER_A, USER_B]])
+      await admin(
+        `UPDATE ${t} SET deleted_at = NOW() WHERE user_id = ANY($1) AND deleted_at IS NULL`,
+        [[USER_A, USER_B]],
+      )
     }
   })
 
   afterAll(async () => {
     if (pool) {
       for (const t of ['quotes', 'entities', 'notes', 'recortes', 'momentos']) {
-        await admin(`DELETE FROM ${t} WHERE user_id = ANY($1)`, [[USER_A, USER_B]]).catch(
-          () => {},
-        )
+        await admin(
+          `UPDATE ${t} SET deleted_at = NOW() WHERE user_id = ANY($1) AND deleted_at IS NULL`,
+          [[USER_A, USER_B]],
+        ).catch(() => {})
       }
       await pool.end()
     }
@@ -113,19 +120,19 @@ describe.skipIf(!DB_URL)('whatsapp persist (integración Postgres real)', () => 
     expect(r.id).toBeTruthy()
 
     const [row] = await admin<{ source: string; user_id: string; content: string }>(
-      'SELECT source, user_id, content FROM notes WHERE id = $1',
+      'SELECT source, user_id, content FROM notes WHERE id = $1 AND deleted_at IS NULL',
       [r.id],
     )
     expect(row.source).toBe('whatsapp')
     expect(row.user_id).toBe(USER_A)
 
     // RLS: el dueño la ve, otro usuario NO.
-    const asOwner = (await sqlFor(USER_A)`SELECT id FROM notes WHERE id = ${r.id}`) as {
-      id: string
-    }[]
-    const asOther = (await sqlFor(USER_B)`SELECT id FROM notes WHERE id = ${r.id}`) as {
-      id: string
-    }[]
+    const asOwner = (await sqlFor(USER_A)`
+      SELECT id FROM notes WHERE id = ${r.id} AND deleted_at IS NULL
+    `) as { id: string }[]
+    const asOther = (await sqlFor(USER_B)`
+      SELECT id FROM notes WHERE id = ${r.id} AND deleted_at IS NULL
+    `) as { id: string }[]
     expect(asOwner).toHaveLength(1)
     expect(asOther).toHaveLength(0)
   })
@@ -168,7 +175,8 @@ describe.skipIf(!DB_URL)('whatsapp persist (integración Postgres real)', () => 
       description: null,
     })
     const [row] = await admin<{ imported_from: string }>(
-      `SELECT origin->>'importedFrom' AS imported_from FROM entities WHERE id = $1`,
+      `SELECT origin->>'importedFrom' AS imported_from FROM entities
+       WHERE id = $1 AND deleted_at IS NULL`,
       [r.id],
     )
     expect(row.imported_from).toBe('whatsapp')
@@ -185,7 +193,10 @@ describe.skipIf(!DB_URL)('whatsapp persist (integración Postgres real)', () => 
       source: string
       capture_mode: string
       image_key: string
-    }>('SELECT source, capture_mode, image_key FROM recortes WHERE id = $1', [r.id])
+    }>(
+      'SELECT source, capture_mode, image_key FROM recortes WHERE id = $1 AND deleted_at IS NULL',
+      [r.id],
+    )
     expect(row.source).toBe('whatsapp')
     expect(row.capture_mode).toBe('image')
     expect(row.image_key).toBe(`${USER_A}/foto.jpg`)

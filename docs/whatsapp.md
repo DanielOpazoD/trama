@@ -94,8 +94,10 @@ download, routing) + `media-store.ts` (subida a Blobs) + `persist-media.ts`
 `MAX_MEDIA_BYTES` = 16 MB, chequeado por `Content-Length` (corta sin transferir)
 y revalidado contra el buffer real. Pasarse → aviso "imagen muy pesada". No hay
 rate-limit por IP/número a propósito (regla de `AGENTS.md`: el cost-cap mensual
-del LLM es el límite); el camino de media no llama LLM, así que no consume
-presupuesto.
+del LLM es el límite). El camino de media **por defecto** (Recorte/Momento) no
+llama al LLM, así que no consume presupuesto; las **rutas de visión**
+(`cita:`/`nota:`/`texto:`/`ocr:`) sí invocan al LLM y respetan los mismos guards
+de presupuesto (`checkMonthlyBudget` + `resolveAIInvocation`).
 
 **Resiliencia de descarga:** `downloadTwilioMedia` tiene timeout por intento
 (`TWILIO_FETCH_TIMEOUT_MS` = 15 s vía `AbortController`) y reintenta con backoff

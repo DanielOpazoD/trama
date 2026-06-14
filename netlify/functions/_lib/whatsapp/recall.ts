@@ -20,9 +20,9 @@ function truncate(s: string, max: number): string {
   return t.length > max ? `${t.slice(0, max - 1)}…` : t
 }
 
-/** ¿El contexto trae algo accionable? */
+/** ¿El contexto trae algo accionable? (entidades, citas o relaciones) */
 export function recallHasResults(ctx: RagContext): boolean {
-  return ctx.entities.length > 0 || ctx.quotes.length > 0
+  return ctx.entities.length > 0 || ctx.quotes.length > 0 || ctx.relationships.length > 0
 }
 
 /** Prompt para componer una respuesta anclada SOLO en el contexto del usuario. */

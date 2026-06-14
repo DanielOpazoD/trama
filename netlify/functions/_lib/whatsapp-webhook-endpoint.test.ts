@@ -126,6 +126,8 @@ describe('whatsapp-webhook', () => {
   it('deshacer → soft-deletea la última captura', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim (antes del comando)
+    mockSqlResponses.push([]) // UPDATE last_message_at (fire-and-forget)
     mockSqlResponses.push([{ kind: 'note', cap_id: 'n1' }]) // SELECT last_capture
     mockSqlResponses.push([{ id: 'n1' }]) // UPDATE notes (soft-delete) RETURNING id
     mockSqlResponses.push([]) // UPDATE clear last_capture (fire-and-forget)
@@ -140,6 +142,8 @@ describe('whatsapp-webhook', () => {
   it('deshacer sin captura previa avisa que no hay nada', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
     mockSqlResponses.push([]) // SELECT last_capture → vacío
     const res = await webhookHandler(
       twilioRequest({ From: 'whatsapp:+56912345678', Body: 'deshacer' }),
@@ -339,6 +343,8 @@ describe('whatsapp-webhook', () => {
     })
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
     const res = await webhookHandler(
       twilioRequest({ From: 'whatsapp:+56912345678', Body: 'buscar: borges' }),
       mockContext(),
@@ -360,6 +366,8 @@ describe('whatsapp-webhook', () => {
     })
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
     const res = await webhookHandler(
       twilioRequest({ From: 'whatsapp:+56912345678', Body: '? algo que no existe' }),
       mockContext(),
@@ -371,6 +379,8 @@ describe('whatsapp-webhook', () => {
   it('estado → resumen del vínculo', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
     mockSqlResponses.push([
       {
         verified_at: '2026-06-01T00:00:00Z',

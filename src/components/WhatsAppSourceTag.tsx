@@ -13,7 +13,7 @@ import { ChatBubbleIcon } from './Icons'
  * El componente acepta ambas para reusarse en todos los renderers.
  */
 export function isWhatsAppOrigin(origin?: Origin | null): boolean {
-  return origin?.importedFrom === 'whatsapp'
+  return origin?.importedFrom?.trim().toLowerCase() === 'whatsapp'
 }
 
 export function isFromWhatsApp({

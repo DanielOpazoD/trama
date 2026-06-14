@@ -32,6 +32,24 @@ describe('recallHasResults', () => {
     ).toBe(true)
     expect(recallHasResults(ctx({}))).toBe(false)
   })
+
+  it('true si solo hay relaciones (sin entidades/citas)', () => {
+    expect(
+      recallHasResults(
+        ctx({
+          relationships: [
+            {
+              id: 'r1',
+              from_name: 'Borges',
+              to_name: 'Bioy Casares',
+              type: 'influye_en',
+              notes: null,
+            },
+          ],
+        }),
+      ),
+    ).toBe(true)
+  })
 })
 
 describe('buildRecallPrompt', () => {
