@@ -57,6 +57,33 @@ nada**.
 Una cita necesita autor (la entidad a la que cuelga). Si no viene, el webhook
 pide reenviarla con `cita: <texto> — <autor>`.
 
+## Media entrante (fotos)
+
+Si el mensaje trae adjuntos (`NumMedia`/`MediaUrl{i}`), se procesan antes que el
+texto. Hoy: **imágenes**.
+
+- Default → **Recorte** (`image_key` en store `recortes-media`, `capture_mode`
+  'image'); el caption es el texto del recorte.
+- Con caption `momento:` → **Momento foto** (`payload.storageKey` en
+  `momentos-media`).
+- Varias imágenes en un mensaje → una fila por imagen (la última queda como
+  "deshacer").
+
+Las URLs de media de Twilio son privadas: se bajan con auth básica
+(`TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN`), validando que el host sea de
+Twilio (guard SSRF) antes de seguir. `_lib/whatsapp/media.ts` (parse, guard,
+download, routing) + `media-store.ts` (subida a Blobs) + `persist-media.ts`
+(inserts). **Audio y video** se reconocen y se avisan; su persistencia
+(transcripción opcional, modelo de video) es el próximo incremento.
+
+## Procedencia ("vía WhatsApp")
+
+Toda captura que entra por WhatsApp queda marcada: las tablas con `origin`
+JSONB (momentos, entities, quotes) llevan `origin.importedFrom = 'whatsapp'`;
+recortes y notes llevan una columna `source = 'whatsapp'` (migración
+`20260614030000_whatsapp_media_source`). Habilita el iconito "vía WhatsApp" y
+un filtro por procedencia en la UI.
+
 ## Confirmación accionable (deep link + deshacer)
 
 Cada captura responde con: la confirmación, un **deep link** a la vista de la

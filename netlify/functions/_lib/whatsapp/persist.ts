@@ -56,8 +56,8 @@ async function persistNote(
 ): Promise<CaptureResult> {
   const tags = parseTags(content)
   const rows = await sqlTyped<{ id: string }>(sql`
-    INSERT INTO notes (content, title, tags, pinned, user_id)
-    VALUES (${content}, ${null}, ${tags}::text[], ${false}, ${userId})
+    INSERT INTO notes (content, title, tags, pinned, source, user_id)
+    VALUES (${content}, ${null}, ${tags}::text[], ${false}, 'whatsapp', ${userId})
     RETURNING id
   `)
   return { message: '📝 Nota guardada en Trama.', id: rows[0]?.id ?? null }
@@ -80,7 +80,7 @@ async function persistMomento(
       NOW(),
       ${JSON.stringify(payload)}::jsonb,
       ${null},
-      ${JSON.stringify({ kind: 'manual' })}::jsonb,
+      ${JSON.stringify({ kind: 'manual', importedFrom: 'whatsapp' })}::jsonb,
       ${emb ? toPgVector(emb.vector) : null}::vector,
       ${emb?.model ?? null},
       ${emb ? new Date().toISOString() : null}::timestamptz,
@@ -113,7 +113,7 @@ async function persistEntity(
       ${name},
       ${null},
       ${description},
-      ${JSON.stringify({ kind: 'manual' })}::jsonb,
+      ${JSON.stringify({ kind: 'manual', importedFrom: 'whatsapp' })}::jsonb,
       ${emb ? toPgVector(emb.vector) : null}::vector,
       ${emb?.model ?? null},
       ${emb ? new Date().toISOString() : null}::timestamptz,
@@ -139,7 +139,7 @@ async function persistQuote(
   // NOTA: este CTE usa `::vector`, así que no se replica en
   // scripts/check-cte-regression.sql (ese harness es sin pgvector a
   // propósito). Queda cubierto por whatsapp-persist.test.ts (SQL mockeado).
-  const origin = JSON.stringify({ kind: 'manual' })
+  const origin = JSON.stringify({ kind: 'manual', importedFrom: 'whatsapp' })
   const entEmb = await embedSafe(
     entityEmbeddingText({ name: author, type: 'persona', year: null, description: null }),
   )

@@ -14,6 +14,14 @@ import { parseInboundMessage } from './_lib/whatsapp/parse-command.js'
 import { normalizeLinkCode } from './_lib/whatsapp/link-code.js'
 import { buildClassifyPrompt, validateClassification } from './_lib/whatsapp/interpret.js'
 import { persistCapture } from './_lib/whatsapp/persist.js'
+import { persistImageRecorte, persistImageMomento } from './_lib/whatsapp/persist-media.js'
+import {
+  parseInboundMedia,
+  mediaCategory,
+  mediaTarget,
+  downloadTwilioMedia,
+} from './_lib/whatsapp/media.js'
+import { storeMedia } from './_lib/whatsapp/media-store.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
 import type { CaptureIntent, CaptureKind } from './_lib/whatsapp/types.js'
@@ -123,11 +131,12 @@ async function claimInboundMessage(
 }
 
 /** Sustantivo legible por kind, para las confirmaciones. */
-const NOUN_BY_KIND: Record<CaptureKind, string> = {
+const NOUN_BY_KIND: Record<string, string> = {
   note: 'La nota',
   quote: 'La cita',
   entity: 'La entidad',
   momento: 'El momento',
+  recorte: 'El recorte',
 }
 
 /** Soft-delete de la última captura según su kind. Devuelve si borró algo. */
@@ -150,6 +159,9 @@ async function softDeleteCapture(
       WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
   } else if (kind === 'quote') {
     rows = await del(sql`UPDATE quotes SET deleted_at = NOW()
+      WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
+  } else if (kind === 'recorte') {
+    rows = await del(sql`UPDATE recortes SET deleted_at = NOW(), updated_at = NOW()
       WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
   }
   return rows.length > 0
@@ -185,6 +197,106 @@ async function undoLastCapture(
   return deleted
     ? `↩️ Listo, deshecho. ${noun} se borró.`
     : 'Eso ya no estaba (quizá lo borraste desde la app).'
+}
+
+/** Recuerda la última captura del número para que "deshacer" sepa qué borrar. */
+function recordLastCapture(
+  sql: ReturnType<typeof getSql>,
+  phone: string,
+  userId: string,
+  kind: string,
+  id: string,
+): void {
+  sql`
+    UPDATE whatsapp_links
+    SET last_capture_kind = ${kind}, last_capture_id = ${id}::uuid,
+        last_capture_at = NOW(), updated_at = NOW()
+    WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
+  `.catch(() => {})
+}
+
+/**
+ * Procesa los adjuntos de un mensaje. Hoy solo imágenes: las baja de Twilio,
+ * las sube al store y crea Recorte (default) o Momento foto (caption
+ * `momento:`). Audio/video se reconocen y se avisan (próximo incremento).
+ * Devuelve el texto de confirmación.
+ */
+async function handleInboundMedia(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  phone: string,
+  params: Record<string, string>,
+  media: ReturnType<typeof parseInboundMedia>,
+  origin: string,
+): Promise<string> {
+  const accountSid = readEnv('TWILIO_ACCOUNT_SID')
+  const authToken = readEnv('TWILIO_AUTH_TOKEN')
+  const { target, caption } = mediaTarget(params.Body ?? params.body ?? '')
+  let saved = 0
+  let lastId: string | null = null
+  let lastKind = ''
+  const skipped = new Set<string>()
+
+  for (const item of media) {
+    const cat = mediaCategory(item.contentType)
+    if (cat !== 'image') {
+      skipped.add(cat)
+      continue
+    }
+    if (!accountSid || !authToken) {
+      skipped.add('config')
+      continue
+    }
+    try {
+      const { buffer, contentType } = await downloadTwilioMedia(item.url, accountSid, authToken)
+      if (target === 'momento') {
+        const key = await storeMedia('momentos-media', userId, buffer, contentType)
+        const r = await persistImageMomento(sql, userId, key, caption)
+        lastId = r.id
+        lastKind = 'momento'
+      } else {
+        const key = await storeMedia('recortes-media', userId, buffer, contentType)
+        const r = await persistImageRecorte(sql, userId, key, caption)
+        lastId = r.id
+        lastKind = 'recorte'
+      }
+      saved += 1
+    } catch (err) {
+      skipped.add('error')
+      logEvent({
+        event: 'whatsapp_media_failed',
+        message: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  if (saved > 0 && lastId) {
+    recordLastCapture(sql, phone, userId, lastKind, lastId)
+    logEvent({ event: 'whatsapp_capture', kind: lastKind, media: true, count: saved })
+  }
+
+  const lines: string[] = []
+  if (saved > 0) {
+    const dest = target === 'momento' ? 'Momentos' : 'Recortes'
+    lines.push(
+      saved === 1
+        ? `📷 Imagen guardada en ${dest}.`
+        : `📷 ${saved} imágenes guardadas en ${dest}.`,
+    )
+    lines.push(`🔗 ${captureDeepLink(origin, lastKind)}`)
+    lines.push('↩️ ¿Mal? Respondé: deshacer')
+  }
+  if (skipped.has('audio') || skipped.has('video')) {
+    lines.push('🎧🎬 Audio y video todavía no los proceso — pronto.')
+  }
+  if (skipped.has('config')) {
+    lines.push('Para procesar imágenes falta configurar TWILIO_ACCOUNT_SID en el servidor.')
+  }
+  if (saved === 0 && skipped.has('error')) {
+    lines.push('No pude bajar la imagen. Probá de nuevo en un momento.')
+  }
+  if (lines.length === 0) lines.push('Recibí el archivo pero no pude procesarlo.')
+  return lines.join('\n')
 }
 
 /** Texto libre → CaptureIntent vía LLM, con fallback a nota si algo falla. */
@@ -246,9 +358,13 @@ export default withObservability(
     if (!phone) return emptyTwimlResponse()
 
     const parsed = parseInboundMessage(params.Body ?? params.body ?? '')
+    const media = parseInboundMedia(params)
 
-    if (parsed.kind === 'empty') return twimlResponse(HELP)
-    if (parsed.kind === 'help') return twimlResponse(HELP)
+    // Sin adjuntos, un mensaje vacío o "ayuda" muestra el menú. (Con media,
+    // el Body suele ser el caption, así que no cortamos acá.)
+    if (media.length === 0 && (parsed.kind === 'empty' || parsed.kind === 'help')) {
+      return twimlResponse(HELP)
+    }
 
     if (parsed.kind === 'link') {
       const code = normalizeLinkCode(parsed.rawCode)
@@ -276,7 +392,7 @@ export default withObservability(
     // pero lo aseguramos antes de escribir para no chocar con la FK users(id).
     await ensureUserRow(sql, { id: userId })
 
-    if (parsed.kind === 'undo') {
+    if (parsed.kind === 'undo' && media.length === 0) {
       return twimlResponse(await undoLastCapture(sql, userId, phone))
     }
 
@@ -293,10 +409,23 @@ export default withObservability(
       WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
     `.catch(() => {})
 
-    const intent =
+    // Adjuntos (foto): se procesan antes que el texto. El caption decide
+    // destino (default Recortes; `momento:` → Momentos).
+    if (media.length > 0) {
+      return twimlResponse(
+        await handleInboundMedia(sql, userId, phone, params, media, new URL(req.url).origin),
+      )
+    }
+
+    // Acá ya no hay media (se devolvió arriba) y empty/help/link/undo también
+    // se resolvieron: solo quedan intent | freeform.
+    const intent: CaptureIntent | null =
       parsed.kind === 'intent'
         ? parsed.intent
-        : await classifyFreeform(req, userId, parsed.text, requestId)
+        : parsed.kind === 'freeform'
+          ? await classifyFreeform(req, userId, parsed.text, requestId)
+          : null
+    if (!intent) return emptyTwimlResponse()
 
     if (intent.kind === 'quote' && !intent.author.trim()) {
       return twimlResponse(
@@ -307,14 +436,7 @@ export default withObservability(
     try {
       const { message, id } = await persistCapture(sql, userId, intent)
       // Recordamos la última captura para que "deshacer" sepa qué borrar.
-      if (id) {
-        sql`
-          UPDATE whatsapp_links
-          SET last_capture_kind = ${intent.kind}, last_capture_id = ${id}::uuid,
-              last_capture_at = NOW(), updated_at = NOW()
-          WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
-        `.catch(() => {})
-      }
+      if (id) recordLastCapture(sql, phone, userId, intent.kind, id)
       logEvent({
         event: 'whatsapp_capture',
         kind: intent.kind,
