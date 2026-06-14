@@ -80,8 +80,7 @@ test('mesa editorial: convierte materiales pendientes en propuesta y Markdown', 
       ]),
   )
 
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Recortes' }).click()
+  await page.goto('/?world=notas&section=bandeja')
   await page.getByRole('button', { name: 'Mesa' }).click()
 
   await expect(

@@ -83,12 +83,11 @@ describe('<MobileBottomNav />', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Más vistas' }))
 
-    // La hoja (portal) lista las 8 vistas no-primarias — incluyendo las 5 que
-    // antes eran inalcanzables en móvil.
+    // La hoja (portal) lista las vistas no-primarias. Recortes ya no figura:
+    // se mudó al mundo Notas como la sección "bandeja".
     const dialog = screen.getByRole('dialog', { name: /Más vistas/i })
     expect(dialog).toBeInTheDocument()
     for (const v of [
-      'Recortes',
       'Escuchas',
       'Twitter',
       'Grafo',
@@ -99,6 +98,8 @@ describe('<MobileBottomNav />', () => {
     ]) {
       expect(screen.getByRole('button', { name: v })).toBeInTheDocument()
     }
+    // Recortes ya no es una vista (ni primaria ni en la hoja).
+    expect(screen.queryByRole('button', { name: 'Recortes' })).not.toBeInTheDocument()
   })
 
   it('elegir una vista en la hoja llama onChangeView y la cierra', () => {

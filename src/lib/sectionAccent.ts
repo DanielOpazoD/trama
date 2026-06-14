@@ -26,7 +26,6 @@ export const SECTION_ACCENT: Record<ViewMode, string> = {
   entidades: 'var(--type-persona)',
   citas: 'var(--accent-gold)',
   momentos: 'var(--type-evento)',
-  recortes: 'var(--accent-gold)',
   escuchas: 'var(--type-musico)',
   // Twitter/X — azul prusia del primary, sobrio, no compite con musico.
   twitter: 'var(--accent-primary)',

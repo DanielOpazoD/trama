@@ -89,12 +89,22 @@ export {
 } from './useNotes'
 export {
   useRecortesQuery,
+  useCreateRecorte,
   useUpdateRecorte,
   useDeleteRecorte,
   usePromoteRecorte,
+  useUnpromoteRecorte,
   useSuggestRecorte,
+  type CaptureInput,
 } from './useRecortes'
 export { useFavoritosQuery, useUpdateFavorito, useDeleteFavorito } from './useFavoritos'
+export {
+  useNotasFeed,
+  buildNotasFeed,
+  type CaptureItem,
+  type NotasFeedFilter,
+  type NotasFeedSegment,
+} from './useNotasFeed'
 export {
   useReadingTablesQuery,
   useCreateReadingTable,

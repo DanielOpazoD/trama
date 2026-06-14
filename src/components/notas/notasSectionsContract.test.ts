@@ -8,6 +8,7 @@ describe('Notas sections contract', () => {
     expect(NOTAS_SECTIONS).toEqual([
       'inicio',
       'notas',
+      'bandeja',
       'tareas',
       'prompts',
       'claves',

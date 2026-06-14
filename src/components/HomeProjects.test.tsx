@@ -34,7 +34,10 @@ describe('<HomeProjects />', () => {
     ]
     renderWithProviders(<HomeProjects />)
     const link = screen.getByRole('link', { name: /Ensayo abierto/i })
-    expect(link).toHaveAttribute('href', '/?view=recortes&tab=mesa&project=p1')
+    expect(link).toHaveAttribute(
+      'href',
+      '/?world=notas&section=bandeja&tab=mesa&project=p1',
+    )
     expect(screen.queryByText('Ya cerrado')).not.toBeInTheDocument()
   })
 })

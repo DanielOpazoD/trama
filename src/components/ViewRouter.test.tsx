@@ -178,8 +178,12 @@ describe('<ViewRouter />', () => {
     expect(props.onSelectEntity).toHaveBeenCalledWith('e-entities')
   })
 
-  it('no registra Flujo como ruta top-level', () => {
-    renderRouter('recortes')
+  it('no registra Recortes/Flujo como ruta top-level', () => {
+    // Recortes dejó de ser una vista top-level: ahora vive como la sección
+    // `bandeja` del mundo Notas. El router no debe tener una rama para ella.
+    // (`recortes` ya no es un ViewMode válido; el cast simula un deep-link viejo.)
+    renderRouter('recortes' as Parameters<typeof renderRouter>[0])
+    expect(screen.queryByText(/recortes mock/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/flujo mock/i)).not.toBeInTheDocument()
   })
 })

@@ -10,6 +10,27 @@ import { api, type PromoteRecorteInput } from '../api'
 import { queryKeys } from './queryClient'
 import { useToast } from './toast'
 
+/**
+ * Reversa de la promoción (Deshacer del triage de 1 toque): soft-borra el
+ * objeto destino y devuelve el recorte a 'pending'. Como no sabemos a priori
+ * qué colección tocó la promoción, invalidamos todas las afectadas.
+ */
+export function useUnpromoteRecorte() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.unpromoteRecorte(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.quotes })
+      qc.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
+      qc.invalidateQueries({ queryKey: queryKeys.entities })
+      qc.invalidateQueries({ queryKey: queryKeys.momentosInfinite })
+      qc.invalidateQueries({ queryKey: queryKeys.counts })
+      qc.invalidateQueries({ queryKey: queryKeys.home })
+    },
+  })
+}
+
 /** Pide a la IA una sugerencia de curaduría para un recorte (no muta). */
 export function useSuggestRecorte() {
   return useMutation({
@@ -21,6 +42,78 @@ export function useRecortesQuery() {
   return useQuery({
     queryKey: queryKeys.recortes,
     queryFn: () => api.listRecortes(),
+  })
+}
+
+/**
+ * Captura unificada desde el composer de Notas. Acepta dos formas:
+ *   - `{ kind: 'link', url }`  → recorte web (text = url, sourceUrl, modo 'html').
+ *   - `{ kind: 'image', file }` → sube la imagen a recortes-media y crea un
+ *     recorte de imagen (modo 'image') con la imageKey resultante.
+ * Invalida la bandeja + contadores + Inicio para que aparezca sin recargar.
+ */
+export type CaptureInput =
+  | { kind: 'link'; url: string; title?: string | null }
+  | { kind: 'image'; file: File; note?: string | null }
+
+/**
+ * Enriquecimiento diferido de un recorte-enlace: pide los metadatos OG y, si
+ * trae algo útil, parchea el recorte. Best-effort — si falla, queda el enlace
+ * pelado. Reusa el endpoint server-side endurecido contra SSRF.
+ */
+async function enrichLinkRecorte(
+  qc: ReturnType<typeof useQueryClient>,
+  id: string,
+  url: string,
+) {
+  try {
+    const preview = await api.momentoUrlPreview(url)
+    if (!preview.title && !preview.description && !preview.author && !preview.image) {
+      return
+    }
+    await api.updateRecorte(id, {
+      text: preview.description || preview.title || undefined,
+      sourceTitle: preview.title ?? undefined,
+      sourceAuthor: preview.author ?? undefined,
+      imageUrl: preview.image ?? undefined,
+    })
+    qc.invalidateQueries({ queryKey: queryKeys.recortes })
+  } catch {
+    /* enriquecimiento opcional; el enlace pelado ya quedó guardado */
+  }
+}
+
+export function useCreateRecorte() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: CaptureInput) => {
+      if (input.kind === 'link') {
+        // Optimista: creamos el recorte ya (enlace pelado) para que la tarjeta
+        // aparezca al instante; los metadatos OG llegan después y se parchean
+        // en segundo plano (ver onSuccess). Antes esto esperaba hasta 5s al
+        // fetch antes de mostrar nada.
+        return api.createRecorte({
+          text: input.url,
+          sourceUrl: input.url,
+          sourceTitle: input.title ?? null,
+          captureMode: 'html',
+        })
+      }
+      const { imageKey } = await api.uploadRecorteImage(input.file)
+      return api.createRecorte({
+        text: 'Imagen guardada',
+        imageKey,
+        note: input.note ?? null,
+        captureMode: 'image',
+      })
+    },
+    onSuccess: (recorte, input) => {
+      qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.counts })
+      qc.invalidateQueries({ queryKey: queryKeys.home })
+      // El enriquecimiento corre tras mostrar la tarjeta, sin bloquear.
+      if (input.kind === 'link') void enrichLinkRecorte(qc, recorte.id, input.url)
+    },
   })
 }
 

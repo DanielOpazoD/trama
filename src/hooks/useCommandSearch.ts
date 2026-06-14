@@ -59,11 +59,6 @@ const VIEWS: Array<{ view: ViewMode; label: string; hint: string }> = [
   { view: 'entidades', label: 'Entidades', hint: 'personas, libros, vínculos' },
   { view: 'citas', label: 'Citas', hint: 'fragmentos guardados' },
   { view: 'momentos', label: 'Momentos', hint: 'la dimensión temporal de la trama' },
-  {
-    view: 'recortes',
-    label: 'Recortes',
-    hint: 'capturas web esperando curaduría · extensión de Chrome',
-  },
   { view: 'escuchas', label: 'Escuchas', hint: 'tu música reciente' },
   { view: 'twitter', label: 'Twitter', hint: 'tus tweets marcados (bookmarks)' },
   { view: 'cronologia', label: 'Cronología', hint: 'hojear el tiempo, por estaciones' },

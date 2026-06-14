@@ -2,8 +2,14 @@ import { useState } from 'react'
 import { type Recorte, type RecorteSuggestion, type RecorteTarget } from '../../api'
 import { recorteImageUrl } from '../../api/recortes'
 import { apiFetch } from '../../api/request'
-import { useSuggestRecorte, useUpdateRecorte } from '../../state'
+import {
+  usePromoteRecorte,
+  useUnpromoteRecorte,
+  useSuggestRecorte,
+  useUpdateRecorte,
+} from '../../state'
 import { useToast } from '../../state/toast'
+import { useLocalStorageState } from '../../hooks/useLocalStorageState'
 import { SparkleIcon } from '../Icons'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
@@ -159,11 +165,27 @@ export function RecorteCard({
 }) {
   const host = hostOf(r.sourceUrl)
   const suggest = useSuggestRecorte()
+  const promote = usePromoteRecorte()
+  const unpromote = useUnpromoteRecorte()
   const update = useUpdateRecorte()
   const toast = useToast()
   const [suggestion, setSuggestion] = useState<RecorteSuggestion | null>(null)
   const [ocrBusy, setOcrBusy] = useState(false)
+  const [curating, setCurating] = useState(false)
+  // Confirmación de primer uso del 1-toque (la IA crea el objeto). Una vez
+  // aceptada queda recordada y «curar» vuelve a ser de verdad un toque.
+  const [curarConfirmed, setCurarConfirmed] = useLocalStorageState<'no' | 'yes'>(
+    'trama.curar.confirmed',
+    'no',
+    (raw): raw is 'no' | 'yes' => raw === 'no' || raw === 'yes',
+  )
+  const [confirming, setConfirming] = useState(false)
   const hasImage = !!(r.imageKey || r.imageUrl)
+
+  function onCurarClick() {
+    if (curarConfirmed === 'yes') void handleOneTap()
+    else setConfirming(true)
+  }
 
   async function handleSuggest() {
     try {
@@ -206,20 +228,128 @@ export function RecorteCard({
     }
   }
 
-  function useSuggestion() {
-    if (!suggestion) return
-    const seed: PromoteSeed = { title: suggestion.title }
-    if (suggestion.target === 'quote' && suggestion.relatedEntities[0]) {
-      const entity = suggestion.relatedEntities[0]
+  function seedFromSuggestion(s: RecorteSuggestion): PromoteSeed {
+    const seed: PromoteSeed = { title: s.title }
+    if (s.target === 'quote' && s.relatedEntities[0]) {
+      const entity = s.relatedEntities[0]
       seed.entityId = entity.id
       seed.entityName = entity.name
       seed.entityType = entity.type
     }
-    if (suggestion.target === 'entity') {
-      seed.entityName = suggestion.suggestedEntityName ?? undefined
-      seed.entityType = suggestion.suggestedEntityType ?? undefined
+    if (s.target === 'entity') {
+      seed.entityName = s.suggestedEntityName ?? undefined
+      seed.entityType = s.suggestedEntityType ?? undefined
     }
-    onPromote(r, suggestion.target, seed)
+    return seed
+  }
+
+  function useSuggestion() {
+    if (!suggestion) return
+    onPromote(r, suggestion.target, seedFromSuggestion(suggestion))
+  }
+
+  /** Toast de promoción exitosa con Deshacer: revierte el objeto recién
+   *  creado y devuelve el recorte a pendientes. Hace que el 1 toque sea
+   *  confiable — crear sin red de seguridad asusta. */
+  function showCuratedToast(message: string) {
+    toast.show({
+      message,
+      tone: 'success',
+      durationMs: 10_000,
+      action: {
+        label: 'Deshacer',
+        onAction: async () => {
+          try {
+            await unpromote.mutateAsync(r.id)
+            toast.show({ message: 'Promoción deshecha.', tone: 'success' })
+          } catch (err) {
+            toast.show({
+              message: err instanceof Error ? err.message : 'No se pudo deshacer',
+              tone: 'error',
+            })
+          }
+        },
+      },
+    })
+  }
+
+  /**
+   * Triage de 1 toque: pide la sugerencia (si no la hay) y promueve directo
+   * cuando no faltan datos — momento siempre, entidad con nombre propuesto,
+   * cita con una entidad relacionada. Si la cita necesita atribución manual,
+   * abre el modal ya prellenado (un toque más, no se pierde el trabajo).
+   */
+  async function handleOneTap() {
+    if (curating || promote.isPending) return
+    setCurating(true)
+    try {
+      const s = suggestion ?? (await suggest.mutateAsync(r.id))
+      setSuggestion(s)
+
+      if (s.target === 'momento') {
+        await promote.mutateAsync({
+          id: r.id,
+          input: {
+            target: 'momento',
+            momento: {
+              kind: 'recorte',
+              payload: {
+                bodyText: r.text,
+                url: r.sourceUrl ?? undefined,
+                title: r.sourceTitle ?? undefined,
+                author: r.sourceAuthor ?? undefined,
+              },
+              note: r.note,
+              capturedAt: r.capturedAt ?? r.createdAt,
+            },
+          },
+        })
+        showCuratedToast(`Curado como momento: «${s.title}»`)
+        return
+      }
+
+      if (s.target === 'entity' && s.suggestedEntityName) {
+        await promote.mutateAsync({
+          id: r.id,
+          input: {
+            target: 'entity',
+            entity: {
+              type: s.suggestedEntityType ?? 'concepto',
+              name: s.suggestedEntityName,
+              description: r.text.trim().slice(0, 280) || null,
+            },
+          },
+        })
+        showCuratedToast(`Curado como entidad: «${s.suggestedEntityName}»`)
+        return
+      }
+
+      if (s.target === 'quote' && s.relatedEntities[0]) {
+        const entity = s.relatedEntities[0]
+        await promote.mutateAsync({
+          id: r.id,
+          input: {
+            target: 'quote',
+            quote: {
+              entityId: entity.id,
+              text: r.text.trim(),
+              source: [r.sourceTitle, r.sourceAuthor].filter(Boolean).join(' · ') || null,
+              link: r.sourceUrl,
+            },
+          },
+        })
+        showCuratedToast(`Curado como cita de ${entity.name}`)
+        return
+      }
+
+      // La cita necesita que elijas a quién atribuirla → modal prellenado.
+      onPromote(r, s.target, seedFromSuggestion(s))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No se pudo curar el recorte'
+      toast.show({ message: msg, tone: 'error' })
+    } finally {
+      setCurating(false)
+    }
   }
 
   return (
@@ -269,6 +399,32 @@ export function RecorteCard({
         </div>
       )}
 
+      {confirming && (
+        <div className="mt-2.5 rounded-md border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)] px-3 py-2">
+          <p className="text-caption text-ink-600">
+            La IA elegirá el destino y creará el objeto por ti. Siempre podrás deshacerlo.
+          </p>
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              onClick={() => {
+                setCurarConfirmed('yes')
+                setConfirming(false)
+                void handleOneTap()
+              }}
+              className="text-micro uppercase tracking-eyebrow text-ink-700 hover:text-ink-900 transition-colors"
+            >
+              Sí, curar
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
       {suggestion && <SuggestionBanner suggestion={suggestion} onUse={useSuggestion} />}
 
       <div className="mt-2.5 flex flex-wrap items-center gap-3">
@@ -292,13 +448,21 @@ export function RecorteCard({
         <span className="ml-auto flex items-center gap-3 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
           {r.status === 'pending' && (
             <>
+              <button
+                onClick={onCurarClick}
+                disabled={curating || promote.isPending}
+                className="inline-flex items-center gap-1 rounded-full border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)] px-2 py-0.5 text-micro font-medium text-[color:var(--accent-gold)] transition-colors hover:text-ink-700 disabled:opacity-50"
+                title="Deja que la IA elija el destino y lo cure en un toque"
+              >
+                <SparkleIcon size={11} />
+                {curating || promote.isPending ? 'curando…' : 'curar'}
+              </button>
               {!suggestion && (
                 <button
                   onClick={handleSuggest}
                   disabled={suggest.isPending}
-                  className="inline-flex items-center gap-1 text-micro text-[color:var(--accent-gold)] hover:text-ink-700 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1 text-micro text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-50"
                 >
-                  <SparkleIcon size={11} />
                   {suggest.isPending ? 'pensando…' : 'sugerir'}
                 </button>
               )}

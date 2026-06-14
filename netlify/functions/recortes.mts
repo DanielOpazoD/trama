@@ -377,6 +377,67 @@ export default withObservability(
       return Response.json(rows[0])
     }
 
+    // Reversa transaccional de /promote (Deshacer del triage de 1 toque):
+    // soft-borra el objeto destino que la promoción creó y devuelve el recorte
+    // a 'pending', limpiando promoted_target/promoted_id en el mismo CTE. Cada
+    // rama de borrado se condiciona al target real para tocar una sola tabla.
+    if (req.method === 'POST' && id && new URL(req.url).pathname.endsWith('/unpromote')) {
+      const rows = await sqlTyped<RecorteRow>(sql`
+        WITH current_recorte AS (
+          SELECT id, promoted_target, promoted_id
+          FROM recortes
+          WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+            AND status = 'promoted'
+        ),
+        del_quote AS (
+          UPDATE quotes SET deleted_at = NOW()
+          WHERE id = (SELECT promoted_id FROM current_recorte)
+            AND (SELECT promoted_target FROM current_recorte) = 'quote'
+            AND deleted_at IS NULL
+            AND user_id = ${userId}
+          RETURNING id
+        ),
+        del_entity AS (
+          UPDATE entities SET deleted_at = NOW()
+          WHERE id = (SELECT promoted_id FROM current_recorte)
+            AND (SELECT promoted_target FROM current_recorte) = 'entity'
+            AND deleted_at IS NULL
+            AND user_id = ${userId}
+          RETURNING id
+        ),
+        del_momento AS (
+          UPDATE momentos SET deleted_at = NOW(), updated_at = NOW()
+          WHERE id = (SELECT promoted_id FROM current_recorte)
+            AND (SELECT promoted_target FROM current_recorte) = 'momento'
+            AND deleted_at IS NULL
+            AND user_id = ${userId}
+          RETURNING id
+        ),
+        reset AS (
+          UPDATE recortes r
+          SET status = 'pending',
+              promoted_target = NULL,
+              promoted_id = NULL,
+              updated_at = NOW()
+          WHERE r.id = (SELECT id FROM current_recorte)
+          RETURNING r.id, r.text, r.source_url, r.source_title, r.source_author,
+            r.note, r.image_url, r.image_key, r.capture_mode, r.status,
+            r.promoted_target, r.promoted_id, r.captured_at, r.created_at, r.updated_at
+        )
+        SELECT id, text, source_url, source_title, source_author, note,
+          image_url, image_key, capture_mode, status, promoted_target,
+          promoted_id, captured_at, created_at, updated_at
+        FROM reset
+      `)
+      if (rows.length === 0) {
+        return ApiErrors.notFound(
+          requestId,
+          'Recorte no encontrado o no estaba promovido',
+        )
+      }
+      return Response.json(rows[0])
+    }
+
     if (req.method === 'GET') {
       const url = new URL(req.url)
       const status = url.searchParams.get('status')?.trim()
@@ -426,6 +487,9 @@ export default withObservability(
       const rows = await sqlTyped<RecorteRow>(sql`
         UPDATE recortes
         SET text = COALESCE(${b.text ?? null}, text),
+            source_title = COALESCE(${b.sourceTitle ?? null}, source_title),
+            source_author = COALESCE(${b.sourceAuthor ?? null}, source_author),
+            image_url = COALESCE(${b.imageUrl ?? null}, image_url),
             note = CASE WHEN ${b.note !== undefined} THEN ${b.note ?? null} ELSE note END,
             status = CASE
                        WHEN ${b.status === 'archived'} THEN 'archived'
@@ -460,6 +524,7 @@ export const config: Config = {
     '/api/recortes',
     '/api/recortes/:id',
     '/api/recortes/:id/promote',
+    '/api/recortes/:id/unpromote',
     '/api/recortes/:id/restore',
     '/api/recortes/:id/suggest',
   ],

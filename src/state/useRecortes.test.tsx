@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import {
+  useCreateRecorte,
   useDeleteRecorte,
   usePromoteRecorte,
+  useUnpromoteRecorte,
   useRecortesQuery,
   useUpdateRecorte,
 } from './useRecortes'
@@ -65,13 +67,32 @@ beforeEach(() => {
         body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
       })
       if (url.includes('/restore')) return jsonResp({ restored: true })
+      if (url.includes('/unpromote')) {
+        return jsonResp({ ...ROW, status: 'pending', promoted_target: null })
+      }
       if (url.includes('/promote')) {
         return jsonResp({ ...ROW, status: 'promoted', promoted_target: 'quote' })
+      }
+      if (url.includes('recortes-image-upload')) {
+        return jsonResp({ imageKey: 'user-1/abc.webp', mime: 'image/webp', size: 10 })
+      }
+      if (url.includes('momentos-url-preview')) {
+        return jsonResp({
+          url: 'https://example.com/x',
+          title: 'Título OG',
+          description: 'Descripción OG',
+          source: 'example.com',
+          author: 'Autora OG',
+          image: 'https://example.com/img.jpg',
+          fetched: true,
+        })
       }
       if (method === 'DELETE') {
         return jsonResp({ ok: true, deletedAt: '2026-06-11T10:00:00.000Z' })
       }
       if (method === 'PATCH') return jsonResp({ ...ROW, status: 'archived' })
+      // POST a /api/recortes (create) devuelve una fila única, no un arreglo.
+      if (method === 'POST' && url.endsWith('/api/recortes')) return jsonResp(ROW)
       return jsonResp([ROW])
     }),
   )
@@ -108,6 +129,66 @@ describe('useRecortes', () => {
       const res = await result.current.mutateAsync('r1')
       expect(res.deletedAt).toBe('2026-06-11T10:00:00.000Z')
     })
+  })
+
+  it('captura un enlace de forma optimista (enlace pelado) y enriquece después', async () => {
+    const { result } = renderHook(() => useCreateRecorte(), { wrapper: makeWrapper() })
+    await act(async () => {
+      await result.current.mutateAsync({ kind: 'link', url: 'https://example.com/x' })
+    })
+    // El create es inmediato y pelado (sin esperar metadatos OG).
+    const post = calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/recortes'))
+    expect(post?.body).toMatchObject({
+      text: 'https://example.com/x',
+      sourceUrl: 'https://example.com/x',
+      captureMode: 'html',
+    })
+    expect(post?.body).not.toHaveProperty('imageUrl')
+
+    // En segundo plano: pide los metadatos y parchea el recorte.
+    await waitFor(() =>
+      expect(calls.some((c) => c.url.includes('momentos-url-preview'))).toBe(true),
+    )
+    await waitFor(() =>
+      expect(
+        calls.some((c) => c.method === 'PATCH' && c.url.endsWith('/api/recortes/r1')),
+      ).toBe(true),
+    )
+    const patch = calls.find(
+      (c) => c.method === 'PATCH' && c.url.endsWith('/api/recortes/r1'),
+    )
+    expect(patch?.body).toMatchObject({
+      text: 'Descripción OG',
+      sourceTitle: 'Título OG',
+      sourceAuthor: 'Autora OG',
+      imageUrl: 'https://example.com/img.jpg',
+    })
+  })
+
+  it('captura una imagen: la sube y crea un recorte de imagen con la imageKey', async () => {
+    const file = new File(['x'], 'shot.webp', { type: 'image/webp' })
+    const { result } = renderHook(() => useCreateRecorte(), { wrapper: makeWrapper() })
+    await act(async () => {
+      await result.current.mutateAsync({ kind: 'image', file })
+    })
+    expect(calls.some((c) => c.url.includes('recortes-image-upload'))).toBe(true)
+    const post = calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/recortes'))
+    expect(post?.body).toMatchObject({
+      imageKey: 'user-1/abc.webp',
+      captureMode: 'image',
+    })
+  })
+
+  it('unpromote revierte: postea a /unpromote y devuelve el recorte a pending', async () => {
+    const { result } = renderHook(() => useUnpromoteRecorte(), { wrapper: makeWrapper() })
+    await act(async () => {
+      const res = await result.current.mutateAsync('r1')
+      expect(res.status).toBe('pending')
+      expect(res.promotedTarget).toBeNull()
+    })
+    expect(calls.some((c) => c.method === 'POST' && c.url.includes('/unpromote'))).toBe(
+      true,
+    )
   })
 
   it('promote postea el payload del destino para creación server-side', async () => {

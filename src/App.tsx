@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useSearchParamState } from './hooks/useSearchParamState'
 import { useInitialView } from './hooks/useInitialView'
@@ -40,8 +40,14 @@ import { SectionAccentBand } from './components/SectionAccentBand'
 import { FocusModeExitButton } from './components/FocusModeExitButton'
 import { ShellOverlays } from './components/ShellOverlays'
 import { MomentoNotificationsCenter } from './components/momentos/MomentoNotificationsCenter'
-import { NotasWorld } from './components/notas/NotasWorld'
+// NotasWorld es un mundo entero (feed unificado, Bandeja, PDF Studio, ajustes):
+// se carga con lazy para no inflar el bundle `index` del mundo Trama, que es la
+// primera pantalla. El usuario sólo lo descarga al conmutar al mundo Notas.
+const NotasWorld = lazy(() =>
+  import('./components/notas/NotasWorld').then((m) => ({ default: m.NotasWorld })),
+)
 import { NOTAS_SECTIONS, type NotasSection } from './types/notas'
+import { resolveRecortesRedirect } from './lib/recortesRedirect'
 import type { CommandAction } from './components/CommandPalette'
 
 import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
@@ -491,7 +497,33 @@ function readNotasSectionDeepLink(): NotasSection | null {
   }
 }
 
+/**
+ * τ-recortes-merge: los enlaces viejos `?view=recortes` apuntaban a la vista
+ * top-level Recortes (ya removida). Antes de resolver mundo/sección iniciales,
+ * reescribimos la URL a `?world=notas&section=bandeja` (preservando tab/project)
+ * para que el resto del arranque lea los params nuevos — sin flash del mundo
+ * trama. Corre UNA sola vez (guard de módulo): el redirect depende solo de la
+ * URL de arranque, así que no debe re-evaluarse en cada render de WorldShell.
+ */
+let recortesRedirectApplied = false
+function applyRecortesRedirectOnce() {
+  if (recortesRedirectApplied || typeof window === 'undefined') return
+  recortesRedirectApplied = true
+  const redirect = resolveRecortesRedirect(window.location.search)
+  if (!redirect) return
+  try {
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}${redirect.search}${window.location.hash}`,
+    )
+  } catch {
+    /* replaceState no disponible (entorno raro) — el deep-link viejo no rompe nada */
+  }
+}
+
 function WorldShell() {
+  applyRecortesRedirectOnce()
   const initialWorldFromUrl = readWorldDeepLink()
   const [world, setWorld] = useState<World>(() => {
     if (typeof window === 'undefined') return DEFAULT_WORLD
@@ -581,11 +613,13 @@ function WorldShell() {
           onRevealNotasModule={revealNotasModule}
         />
       ) : (
-        <NotasWorld
-          world={world}
-          onChangeWorld={changeWorld}
-          initialSection={pendingNotasSection ?? undefined}
-        />
+        <Suspense fallback={<div className="h-screen w-screen bg-paper-50" />}>
+          <NotasWorld
+            world={world}
+            onChangeWorld={changeWorld}
+            initialSection={pendingNotasSection ?? undefined}
+          />
+        </Suspense>
       )}
       {/* Los toasts son globales A AMBOS mundos: vivía dentro de Shell (solo
           Trama) y los toasts del mundo Notas — incluido el Deshacer de la ola

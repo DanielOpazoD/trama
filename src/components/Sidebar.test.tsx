@@ -108,14 +108,15 @@ describe('<Sidebar />', () => {
     expect(screen.getByRole('button', { name: 'Entidades 12' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Citas 7' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Flujo' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Recortes' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Sugerencias/i })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Buscar (Ctrl K)' }))
-    await user.click(screen.getByRole('button', { name: 'Recortes' }))
+    await user.click(screen.getByRole('button', { name: 'Twitter' }))
     await user.click(screen.getByRole('button', { name: /Configuración/i }))
 
     expect(props.onOpenPalette).toHaveBeenCalledOnce()
-    expect(props.onChangeView).toHaveBeenCalledWith('recortes')
+    expect(props.onChangeView).toHaveBeenCalledWith('twitter')
     expect(stateMocks.acknowledgeHealthAlerts).toHaveBeenCalledWith(['budget-high'])
     expect(props.onOpenSettings).toHaveBeenCalledOnce()
   })
