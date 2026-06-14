@@ -53,6 +53,12 @@ describe('useInitialView', () => {
     expect(result.current[0]).toBe('inicio')
   })
 
+  it('ignora ?view=recortes porque ya no es una vista top-level (mudada a Notas/bandeja)', () => {
+    window.location.search = '?view=recortes'
+    const { result } = renderHook(() => useInitialView())
+    expect(result.current[0]).toBe('inicio')
+  })
+
   it('ignora un view inválido y cae a "inicio"', () => {
     window.location.search = '?view=hackerville'
     const { result } = renderHook(() => useInitialView())
@@ -67,7 +73,6 @@ describe('useInitialView', () => {
       'citas',
       'escuchas',
       'momentos',
-      'recortes',
       'chat',
       'sugerencias',
     ]

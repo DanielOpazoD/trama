@@ -19,7 +19,6 @@ export type ViewMode =
   | 'escuchas'
   | 'twitter'
   | 'momentos'
-  | 'recortes'
   | 'cronologia'
   | 'atlas'
   | 'chat'

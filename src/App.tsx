@@ -42,6 +42,7 @@ import { ShellOverlays } from './components/ShellOverlays'
 import { MomentoNotificationsCenter } from './components/momentos/MomentoNotificationsCenter'
 import { NotasWorld } from './components/notas/NotasWorld'
 import { NOTAS_SECTIONS, type NotasSection } from './types/notas'
+import { resolveRecortesRedirect } from './lib/recortesRedirect'
 import type { CommandAction } from './components/CommandPalette'
 
 import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
@@ -491,7 +492,31 @@ function readNotasSectionDeepLink(): NotasSection | null {
   }
 }
 
+/**
+ * τ-recortes-merge: los enlaces viejos `?view=recortes` apuntaban a la vista
+ * top-level Recortes (ya removida). Antes de resolver mundo/sección iniciales,
+ * reescribimos la URL a `?world=notas&section=bandeja` (preservando tab/project)
+ * para que el resto del arranque lea los params nuevos — sin flash del mundo
+ * trama. Se ejecuta una sola vez al cargar el módulo (idempotente: tras el
+ * replace ya no hay `view=recortes`).
+ */
+function applyRecortesRedirectOnce() {
+  if (typeof window === 'undefined') return
+  const redirect = resolveRecortesRedirect(window.location.search)
+  if (!redirect) return
+  try {
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}${redirect.search}${window.location.hash}`,
+    )
+  } catch {
+    /* replaceState no disponible (entorno raro) — el deep-link viejo no rompe nada */
+  }
+}
+
 function WorldShell() {
+  applyRecortesRedirectOnce()
   const initialWorldFromUrl = readWorldDeepLink()
   const [world, setWorld] = useState<World>(() => {
     if (typeof window === 'undefined') return DEFAULT_WORLD

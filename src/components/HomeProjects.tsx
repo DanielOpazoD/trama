@@ -20,7 +20,7 @@ export function HomeProjects() {
         {active.map((p) => (
           <li key={p.id}>
             <a
-              href={`/?view=recortes&tab=mesa&project=${p.id}`}
+              href={`/?world=notas&section=bandeja&tab=mesa&project=${p.id}`}
               className="group flex items-baseline justify-between gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-ink-100/40"
             >
               <span className="min-w-0 truncate font-serif text-lead text-ink-700 group-hover:underline">

@@ -100,7 +100,6 @@ export function Sidebar({
     // badge faltaba y Momentos era el único item del sidebar sin
     // número. Coherencia con las demás secciones.
     momentos: totals?.momentos ?? null,
-    recortes: null,
     escuchas: null,
     // Los bookmarks guardados no vienen en el endpoint de counts; sin badge.
     twitter: null,

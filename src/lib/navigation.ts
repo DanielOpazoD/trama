@@ -11,7 +11,6 @@ import {
   MomentosIcon,
   MusicIcon,
   QuoteIcon,
-  ScissorsIcon,
   SparkleIcon,
   TwitterIcon,
 } from '../components/Icons'
@@ -42,7 +41,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
       { value: 'citas', label: 'Citas', icon: QuoteIcon },
       { value: 'momentos', label: 'Momentos', icon: MomentosIcon },
-      { value: 'recortes', label: 'Recortes', icon: ScissorsIcon },
       { value: 'escuchas', label: 'Escuchas', icon: MusicIcon },
       { value: 'twitter', label: 'Twitter', icon: TwitterIcon },
     ],
