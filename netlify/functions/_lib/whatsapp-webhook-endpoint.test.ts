@@ -7,14 +7,12 @@ vi.mock('./db.js', () => setupMockSql())
 // ejercitar ese flujo sin red ni presupuesto real.
 vi.mock('./cost-cap.js', () => ({ checkMonthlyBudget: vi.fn().mockResolvedValue(null) }))
 vi.mock('./ai-mode.js', () => ({
-  resolveAIInvocation: vi
-    .fn()
-    .mockResolvedValue({
-      kind: 'ready',
-      provider: 'deepseek',
-      model: null,
-      verifyWith: null,
-    }),
+  resolveAIInvocation: vi.fn().mockResolvedValue({
+    kind: 'ready',
+    provider: 'deepseek',
+    model: null,
+    verifyWith: null,
+  }),
 }))
 const askLLMForJson = vi.fn()
 vi.mock('./llm.js', () => ({
