@@ -167,8 +167,7 @@ test('a11y: RecortesView con guía de curaduría sin violaciones', async ({ page
         body: JSON.stringify([SAMPLE_RECORTE]),
       }),
   )
-  await page.goto('/')
-  await page.getByRole('button', { name: /^Recortes/ }).click()
+  await page.goto('/?world=notas&section=bandeja')
   await page
     .getByRole('heading', { name: 'Recortes', level: 2 })
     .waitFor({ timeout: 10_000 })
