@@ -482,8 +482,12 @@ async function handleQuery(
       provider: invocation.provider,
       model: invocation.model,
     })
+    // askLLMForText tipa `content` como unknown (shape compartido con el modo
+    // JSON); en modo texto es string. Si no lo es, caemos al listado.
+    const answer = typeof content === 'string' ? content.trim() : ''
+    if (!answer) return formatRecallFallback(ctx, origin)
     logEvent({ event: 'whatsapp_recall', usedRag: ctx.usedRag, usedHyde: ctx.usedHyde })
-    return formatRecallAnswer(content, ctx, origin)
+    return formatRecallAnswer(answer, ctx, origin)
   } catch (err) {
     logEvent({
       event: 'whatsapp_recall_failed',
