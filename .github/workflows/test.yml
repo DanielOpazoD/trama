@@ -216,6 +216,15 @@ jobs:
           DATABASE_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
         run: npm run check:whatsapp-schema
 
+      # Integración de comportamiento: corre el código REAL de persistencia
+      # (persistCapture/persist-media) contra la DB migrada, validando RLS entre
+      # usuarios, el CTE atómico de citas, casts y procedencia — lo que el SQL
+      # mockeado de los tests unitarios no puede ver.
+      - name: WhatsApp persist integration (real Postgres)
+        env:
+          WHATSAPP_IT_DB_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
+        run: npm run test:whatsapp-it
+
       # Idempotencia: re-correr no debe aplicar ninguna migración nueva
       # (todas quedaron registradas en _migrations). Esto valida que el
       # tracking incremental — el mismo modelo que usa Netlify — funciona.
