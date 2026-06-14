@@ -96,6 +96,13 @@ export {
 } from './useRecortes'
 export { useFavoritosQuery, useUpdateFavorito, useDeleteFavorito } from './useFavoritos'
 export {
+  useNotasFeed,
+  buildNotasFeed,
+  type CaptureItem,
+  type NotasFeedFilter,
+  type NotasFeedSegment,
+} from './useNotasFeed'
+export {
   useReadingTablesQuery,
   useCreateReadingTable,
   useUpdateReadingTable,

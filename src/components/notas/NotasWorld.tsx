@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { ClavesView } from './ClavesView'
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
-import { NotasView } from './NotasView'
+import { NotasFeedView } from './NotasFeedView'
 import { NotasMobileTabs, NotasSidebar, NotasTopBar, SECTIONS } from './NotasWorldChrome'
 import { PromptsView } from './PromptsView'
 import { TareasView } from './TareasView'
@@ -124,7 +124,7 @@ export function NotasWorld({
                   className="px-5 md:px-8 pb-24 mx-auto py-8 md:py-10 max-w-5xl"
                 >
                   {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
-                  {section === 'notas' && <NotasView />}
+                  {section === 'notas' && <NotasFeedView />}
                   {section === 'bandeja' && <RecortesArea />}
                   {section === 'tareas' && <TareasView />}
                   {section === 'prompts' && <PromptsView />}
