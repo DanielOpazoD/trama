@@ -244,6 +244,92 @@ describe('whatsapp-webhook', () => {
     expect(xml).toContain('view=recortes')
   })
 
+  it('estado → resumen del vínculo', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([
+      {
+        verified_at: '2026-06-01T00:00:00Z',
+        last_capture_kind: 'note',
+        last_capture_at: '2026-06-14T11:00:00Z',
+      },
+    ]) // SELECT whatsapp_links
+    mockSqlResponses.push([{ n: 4 }]) // COUNT processed_messages
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'estado' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('Estado de tu Trama')
+    expect(xml).toContain('Mensajes este mes: 4')
+  })
+
+  it('foto con formato no soportado (heic) → avisa sin descargar', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMheic' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    const res = await webhookHandler(
+      twilioRequest({
+        MessageSid: 'SMheic',
+        From: 'whatsapp:+56912345678',
+        Body: '',
+        NumMedia: '1',
+        MediaUrl0: 'https://api.twilio.com/Media/heic',
+        MediaContentType0: 'image/heic',
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('formato de imagen no lo soporto')
+  })
+
+  it('foto demasiado pesada → avisa el límite', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: {
+          get: (k: string) => (k === 'content-length' ? '99999999' : 'image/jpeg'),
+        },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMbig',
+      From: 'whatsapp:+56912345678',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/big',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMbig' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('muy pesada')
+  })
+
   it('firma inválida cuando TWILIO_AUTH_TOKEN está configurado → 401', async () => {
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
     const res = await webhookHandler(

@@ -14,13 +14,19 @@ import { parseInboundMessage } from './_lib/whatsapp/parse-command.js'
 import { normalizeLinkCode } from './_lib/whatsapp/link-code.js'
 import { buildClassifyPrompt, validateClassification } from './_lib/whatsapp/interpret.js'
 import { persistCapture } from './_lib/whatsapp/persist.js'
-import { persistImageRecorte, persistImageMomento } from './_lib/whatsapp/persist-media.js'
+import {
+  persistImageRecorte,
+  persistImageMomento,
+} from './_lib/whatsapp/persist-media.js'
 import {
   parseInboundMedia,
   mediaCategory,
   mediaTarget,
   downloadTwilioMedia,
+  isAllowedImageMime,
+  MEDIA_TOO_LARGE,
 } from './_lib/whatsapp/media.js'
+import { formatStatus } from './_lib/whatsapp/status.js'
 import { storeMedia } from './_lib/whatsapp/media-store.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
@@ -55,7 +61,8 @@ const HELP = [
   '• entidad: <nombre> (tipo)',
   '• momento: <qué pasó>',
   'O mandá texto libre y lo clasifico solo.',
-  'Para borrar lo último: deshacer.',
+  'También: foto/imagen → Recorte (o "momento: ..." → Momento).',
+  'Para borrar lo último: deshacer. Para ver tu resumen: estado.',
 ].join('\n')
 
 const NOT_LINKED = [
@@ -254,12 +261,20 @@ async function handleInboundMedia(
       skipped.add(cat)
       continue
     }
+    if (!isAllowedImageMime(item.contentType)) {
+      skipped.add('format')
+      continue
+    }
     if (!accountSid || !authToken) {
       skipped.add('config')
       continue
     }
     try {
-      const { buffer, contentType } = await downloadTwilioMedia(item.url, accountSid, authToken)
+      const { buffer, contentType } = await downloadTwilioMedia(
+        item.url,
+        accountSid,
+        authToken,
+      )
       if (target === 'momento') {
         const key = await storeMedia('momentos-media', userId, buffer, contentType)
         const r = await persistImageMomento(sql, userId, key, caption)
@@ -273,11 +288,9 @@ async function handleInboundMedia(
       }
       saved += 1
     } catch (err) {
-      skipped.add('error')
-      logEvent({
-        event: 'whatsapp_media_failed',
-        message: err instanceof Error ? err.message : String(err),
-      })
+      const msg = err instanceof Error ? err.message : String(err)
+      skipped.add(msg === MEDIA_TOO_LARGE ? 'toolarge' : 'error')
+      logEvent({ event: 'whatsapp_media_failed', message: msg })
     }
   }
 
@@ -300,6 +313,12 @@ async function handleInboundMedia(
   if (skipped.has('audio') || skipped.has('video')) {
     lines.push('🎧🎬 Audio y video todavía no los proceso — pronto.')
   }
+  if (skipped.has('format')) {
+    lines.push('🖼️ Ese formato de imagen no lo soporto (mandá JPG, PNG, WEBP o GIF).')
+  }
+  if (skipped.has('toolarge')) {
+    lines.push('📦 La imagen es muy pesada (máx. 16 MB). Mandala más liviana.')
+  }
   if (skipped.has('config')) {
     lines.push(
       'Para procesar imágenes falta configurar TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN en el servidor.',
@@ -310,6 +329,38 @@ async function handleInboundMedia(
   }
   if (lines.length === 0) lines.push('Recibí el archivo pero no pude procesarlo.')
   return lines.join('\n')
+}
+
+/**
+ * Comando `estado`: lee el vínculo + un conteo de mensajes de este mes y arma
+ * el resumen (formato puro en status.ts). Corre bajo el RLS del dueño.
+ */
+async function buildStatusReply(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  phone: string,
+): Promise<string> {
+  const linkRows = await sqlTyped<{
+    verified_at: string | null
+    last_capture_kind: string | null
+    last_capture_at: string | null
+  }>(sql`
+    SELECT verified_at, last_capture_kind, last_capture_at
+    FROM whatsapp_links
+    WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
+    LIMIT 1
+  `)
+  const countRows = await sqlTyped<{ n: number }>(sql`
+    SELECT COUNT(*)::int AS n FROM whatsapp_processed_messages
+    WHERE user_id = ${userId} AND created_at >= date_trunc('month', NOW())
+  `)
+  const link = linkRows[0]
+  return formatStatus({
+    verifiedAt: link?.verified_at ?? null,
+    lastCaptureKind: link?.last_capture_kind ?? null,
+    lastCaptureAt: link?.last_capture_at ?? null,
+    monthCount: countRows[0]?.n ?? 0,
+  })
 }
 
 /** Texto libre → CaptureIntent vía LLM, con fallback a nota si algo falla. */
@@ -409,6 +460,10 @@ export default withObservability(
       return twimlResponse(await undoLastCapture(sql, userId, phone))
     }
 
+    if (parsed.kind === 'status' && media.length === 0) {
+      return twimlResponse(await buildStatusReply(sql, userId, phone))
+    }
+
     // Idempotencia: si Twilio reintenta este mensaje (latencia/5xx), no lo
     // reprocesamos ni volvemos a pagar el LLM. El claim va ANTES de clasificar.
     const messageSid = params.MessageSid ?? params.SmsMessageSid ?? params.SmsSid
@@ -426,7 +481,14 @@ export default withObservability(
     // destino (default Recortes; `momento:` → Momentos).
     if (media.length > 0) {
       return twimlResponse(
-        await handleInboundMedia(sql, userId, phone, params, media, new URL(req.url).origin),
+        await handleInboundMedia(
+          sql,
+          userId,
+          phone,
+          params,
+          media,
+          new URL(req.url).origin,
+        ),
       )
     }
 

@@ -76,6 +76,22 @@ download, routing) + `media-store.ts` (subida a Blobs) + `persist-media.ts`
 (inserts). **Audio y video** se reconocen y se avisan; su persistencia
 (transcripción opcional, modelo de video) es el próximo incremento.
 
+**Límites (robustez):** solo se aceptan imágenes `image/jpeg|png|webp|gif`
+(otro formato → aviso "mandá JPG/PNG/WEBP/GIF"); el tope de tamaño es
+`MAX_MEDIA_BYTES` = 16 MB, chequeado por `Content-Length` (corta sin transferir)
+y revalidado contra el buffer real. Pasarse → aviso "imagen muy pesada". No hay
+rate-limit por IP/número a propósito (regla de `AGENTS.md`: el cost-cap mensual
+del LLM es el límite); el camino de media no llama LLM, así que no consume
+presupuesto.
+
+## Comando `estado`
+
+`estado` (o `status`) devuelve un resumen desde el teléfono: si el vínculo está
+activo, cuál fue la última captura (con tiempo relativo) y cuántos mensajes se
+procesaron este mes. Es de solo lectura (no reclama `MessageSid` ni cuenta como
+captura). Formato puro en `_lib/whatsapp/status.ts`; el webhook solo le pasa los
+datos leídos de `whatsapp_links` + `whatsapp_processed_messages`.
+
 ## Procedencia ("vía WhatsApp")
 
 Toda captura que entra por WhatsApp queda marcada: las tablas con `origin`

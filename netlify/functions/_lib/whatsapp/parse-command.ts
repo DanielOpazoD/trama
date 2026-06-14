@@ -14,6 +14,7 @@ export type ParsedInbound =
   | { kind: 'empty' }
   | { kind: 'help' }
   | { kind: 'undo' }
+  | { kind: 'status' }
   | { kind: 'link'; rawCode: string }
   | { kind: 'intent'; intent: CaptureIntent }
   | { kind: 'freeform'; text: string }
@@ -91,6 +92,9 @@ export function parseInboundMessage(raw: string): ParsedInbound {
   }
   if (firstWord === 'deshacer' || firstWord === 'undo') {
     return { kind: 'undo' }
+  }
+  if (firstWord === 'estado' || firstWord === 'status') {
+    return { kind: 'status' }
   }
 
   // Prefijo con dos puntos: "nota: ...", "/cita ...".

@@ -6,6 +6,8 @@ import {
   extFromMime,
   mediaTarget,
   downloadTwilioMedia,
+  isAllowedImageMime,
+  MEDIA_TOO_LARGE,
 } from './media'
 
 describe('parseInboundMedia', () => {
@@ -75,6 +77,16 @@ describe('mediaTarget', () => {
   })
 })
 
+describe('isAllowedImageMime', () => {
+  it('acepta los formatos soportados, rechaza el resto', () => {
+    expect(isAllowedImageMime('image/jpeg')).toBe(true)
+    expect(isAllowedImageMime('image/png; charset=binary')).toBe(true)
+    expect(isAllowedImageMime('IMAGE/WEBP')).toBe(true)
+    expect(isAllowedImageMime('image/heic')).toBe(false)
+    expect(isAllowedImageMime('application/pdf')).toBe(false)
+  })
+})
+
 describe('downloadTwilioMedia', () => {
   afterEach(() => vi.unstubAllGlobals())
 
@@ -82,6 +94,36 @@ describe('downloadTwilioMedia', () => {
     await expect(downloadTwilioMedia('https://evil.com/x', 'AC', 'tok')).rejects.toThrow(
       /Twilio/,
     )
+  })
+
+  it('aborta por Content-Length declarado mayor al tope', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: {
+          get: (k: string) => (k === 'content-length' ? '99999999' : 'image/jpeg'),
+        },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    await expect(
+      downloadTwilioMedia('https://api.twilio.com/x', 'AC', 'tok', 1024),
+    ).rejects.toThrow(MEDIA_TOO_LARGE)
+  })
+
+  it('aborta si el buffer real supera el tope (sin Content-Length)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => new ArrayBuffer(2048),
+      }),
+    )
+    await expect(
+      downloadTwilioMedia('https://api.twilio.com/x', 'AC', 'tok', 1024),
+    ).rejects.toThrow(MEDIA_TOO_LARGE)
   })
 
   it('baja con auth básica y devuelve buffer + contentType', async () => {

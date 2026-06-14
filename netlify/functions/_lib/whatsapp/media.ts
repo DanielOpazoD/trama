@@ -9,6 +9,25 @@
 export type InboundMedia = { url: string; contentType: string }
 export type MediaCategory = 'image' | 'audio' | 'video' | 'other'
 
+/**
+ * Tope de tamaño para media entrante. WhatsApp/Twilio ya limita el envío
+ * (~16 MB), pero lo reforzamos del lado nuestro: evita que un adjunto enorme
+ * agote memoria del function o llene Blobs. Si se excede, abortamos la
+ * descarga con `MEDIA_TOO_LARGE` y el webhook avisa con un mensaje claro.
+ */
+export const MAX_MEDIA_BYTES = 16 * 1024 * 1024
+
+/** Sentinel de error (no clase, para sobrevivir al bundling). */
+export const MEDIA_TOO_LARGE = 'media-too-large'
+
+/** MIME de imagen que sabemos guardar y renderizar (los que mapea extFromMime). */
+const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+
+/** ¿Es un tipo de imagen soportado? (HEIC/TIFF/etc. quedan fuera por ahora). */
+export function isAllowedImageMime(contentType: string): boolean {
+  return ALLOWED_IMAGE_MIME.has(contentType.split(';')[0]!.trim().toLowerCase())
+}
+
 /** Lee la lista de adjuntos del body form-encoded de Twilio. */
 export function parseInboundMedia(params: Record<string, string>): InboundMedia[] {
   const n = Number.parseInt(params.NumMedia ?? '0', 10)
@@ -68,11 +87,18 @@ export function mediaTarget(body: string): {
   return { target: 'recorte', caption: body.trim() }
 }
 
-/** Baja un archivo de media de Twilio (auth básica). Valida el host primero. */
+/**
+ * Baja un archivo de media de Twilio (auth básica). Valida el host primero
+ * (SSRF) y aborta si el archivo supera `maxBytes`: primero mira el
+ * `Content-Length` (corta sin transferir) y, por las dudas, revalida el
+ * tamaño real del buffer. Lanza `Error(MEDIA_TOO_LARGE)` para que el webhook
+ * distinga "muy grande" de un fallo de red genérico.
+ */
 export async function downloadTwilioMedia(
   url: string,
   accountSid: string,
   authToken: string,
+  maxBytes: number = MAX_MEDIA_BYTES,
 ): Promise<{ buffer: ArrayBuffer; contentType: string }> {
   if (!isTwilioMediaUrl(url)) {
     throw new Error('URL de media no pertenece a Twilio')
@@ -80,7 +106,10 @@ export async function downloadTwilioMedia(
   const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
   const res = await fetch(url, { headers: { Authorization: `Basic ${auth}` } })
   if (!res.ok) throw new Error(`Twilio media respondió ${res.status}`)
+  const declared = Number.parseInt(res.headers.get('content-length') ?? '', 10)
+  if (Number.isFinite(declared) && declared > maxBytes) throw new Error(MEDIA_TOO_LARGE)
   const contentType = res.headers.get('content-type') ?? ''
   const buffer = await res.arrayBuffer()
+  if (buffer.byteLength > maxBytes) throw new Error(MEDIA_TOO_LARGE)
   return { buffer, contentType }
 }

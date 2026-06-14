@@ -26,6 +26,12 @@ describe('parseInboundMessage — comandos de control', () => {
     expect(parseInboundMessage('undo').kind).toBe('undo')
   })
 
+  it('estado / status', () => {
+    expect(parseInboundMessage('estado').kind).toBe('status')
+    expect(parseInboundMessage('Estado').kind).toBe('status')
+    expect(parseInboundMessage('status').kind).toBe('status')
+  })
+
   it('mensaje vacío', () => {
     expect(parseInboundMessage('   ').kind).toBe('empty')
   })
