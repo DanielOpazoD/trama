@@ -65,19 +65,25 @@ export default withObservability(
       const { provider, model } = invocation
       const ask = async (messages: Parameters<typeof askLLMForJson>[0]) => {
         const r = await askLLMForJson(messages, { provider, model })
-        // Contabilizar el gasto para el cost-cap mensual (best-effort): el
-        // budget suma extraction_log.cost_cents. Un cache hit cuesta 0.
-        sql`
-          INSERT INTO extraction_log (
-            input_text, proposal, provider, model,
-            tokens_in, tokens_out, cost_cents, duration_ms, user_id
-          ) VALUES (
-            ${`nl-query: ${q}`}, ${JSON.stringify(r.content ?? {})}::jsonb,
-            ${r.usage.provider}, ${r.usage.model}, ${r.usage.tokensIn},
-            ${r.usage.tokensOut}, ${r.fromCache ? 0 : r.usage.costCents},
-            ${r.usage.durationMs}, ${userId}
-          )
-        `.catch(() => {})
+        // Contabilizar el gasto para el cost-cap mensual: el budget suma
+        // extraction_log.cost_cents. Un cache hit cuesta 0. Esperamos la
+        // escritura y, si falla, lo dejamos registrado (no la silenciamos):
+        // tragarse el error subcontabilizaría el presupuesto del usuario.
+        try {
+          await sql`
+            INSERT INTO extraction_log (
+              input_text, proposal, provider, model,
+              tokens_in, tokens_out, cost_cents, duration_ms, user_id
+            ) VALUES (
+              ${`nl-query: ${q}`}, ${JSON.stringify(r.content ?? {})}::jsonb,
+              ${r.usage.provider}, ${r.usage.model}, ${r.usage.tokensIn},
+              ${r.usage.tokensOut}, ${r.fromCache ? 0 : r.usage.costCents},
+              ${r.usage.durationMs}, ${userId}
+            )
+          `
+        } catch {
+          logEvent({ event: 'query_nl_extraction_log_failed', requestId, source: 'llm' })
+        }
         return { content: r.content }
       }
       const translated = await translateNl(q, ctx, ask)

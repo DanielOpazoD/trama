@@ -1,6 +1,7 @@
 import type { LLMMessage } from '../llm.js'
 import { QueryBody, OBJECT_KINDS, type QueryInput } from './ast.js'
 import { FIELDS, KIND_META } from './field-registry.js'
+import { compileQuery, QueryCompileError } from './compile.js'
 
 /**
  * Traductor de lenguaje natural → AST de query (Fase 3 del motor de queries).
@@ -94,12 +95,24 @@ export function validateNlQuery(
   content: unknown,
 ): { ok: true; query: QueryInput } | { ok: false; error: string } {
   const parsed = QueryBody.safeParse(content)
-  if (parsed.success) return { ok: true, query: parsed.data }
-  const error = parsed.error.issues
-    .slice(0, 5)
-    .map((i) => `${i.path.join('.') || '(raíz)'}: ${i.message}`)
-    .join('; ')
-  return { ok: false, error }
+  if (!parsed.success) {
+    const error = parsed.error.issues
+      .slice(0, 5)
+      .map((i) => `${i.path.join('.') || '(raíz)'}: ${i.message}`)
+      .join('; ')
+    return { ok: false, error }
+  }
+  // Zod garantiza la forma, pero no que el AST sea compilable (p.ej. un op no
+  // permitido para el tipo del campo: {field:'type',op:'lt'}). Hacemos un
+  // dry-run del compilador para no dejar pasar un AST que tiraría 500 en
+  // runQuery; si no compila, lo tratamos como inválido (→ reparación/fallback).
+  try {
+    compileQuery(parsed.data)
+  } catch (err) {
+    if (err instanceof QueryCompileError) return { ok: false, error: err.message }
+    throw err
+  }
+  return { ok: true, query: parsed.data }
 }
 
 /** Fallback sin IA / ante fallo: búsqueda de texto libre sobre todos los tipos. */

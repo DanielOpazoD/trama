@@ -52,6 +52,16 @@ describe('validateNlQuery', () => {
     expect(validateNlQuery('no soy json estructurado').ok).toBe(false)
     expect(validateNlQuery(null).ok).toBe(false)
   })
+  it('rechaza un AST válido para Zod pero no compilable (op inválido para el campo)', () => {
+    // `type` es un campo de texto (no admite `lt`): pasa Zod pero el
+    // compilador lo rechaza → no debe llegar a runQuery.
+    const r = validateNlQuery({
+      from: ['entity'],
+      where: { field: 'type', op: 'lt', value: 'x' },
+    })
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error.length).toBeGreaterThan(0)
+  })
 })
 
 describe('fallbackQuery', () => {
