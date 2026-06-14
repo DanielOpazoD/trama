@@ -25,6 +25,7 @@ import { RecorteCard } from '../recortes/RecorteCard'
 import { PromoteModal, type PromoteSeed } from '../recortes/PromoteModal'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { PendingAttachmentsInput } from './PendingAttachmentsInput'
+import { compressImage } from '../momentos/helpers'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -173,12 +174,15 @@ export function NotasFeedView() {
     )
   }
 
-  /** Sube y captura una o varias imágenes como recortes de imagen. */
-  function captureImageFiles(files: File[]) {
+  /** Sube y captura una o varias imágenes como recortes de imagen.
+   *  Las comprime client-side (downscale + JPEG) antes de subir, igual que el
+   *  composer de Momentos — evita subir un screenshot de 8 MB tal cual. */
+  async function captureImageFiles(files: File[]) {
     const images = files.filter((f) => f.type.startsWith('image/'))
     if (images.length === 0) return
     let done = 0
-    for (const file of images) {
+    for (const original of images) {
+      const file = await compressImage(original).catch(() => original)
       createRecorte.mutate(
         { kind: 'image', file },
         {
@@ -342,6 +346,7 @@ export function NotasFeedView() {
           onPaste={onComposerPaste}
           rows={3}
           placeholder="Escribe una nota, pega un enlace o suelta una imagen… usa #etiquetas"
+          aria-label="Captura: escribe una nota, pega un enlace o pega/suelta una imagen"
           className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
         />
         <PendingAttachmentsInput

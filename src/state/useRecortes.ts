@@ -40,10 +40,21 @@ export function useCreateRecorte() {
   return useMutation({
     mutationFn: async (input: CaptureInput) => {
       if (input.kind === 'link') {
+        // Enriquecemos el enlace con metadatos OG (título, autor, descripción,
+        // imagen) reusando el endpoint server-side ya endurecido contra SSRF.
+        // Nunca bloquea la captura: si no consigue nada, cae al enlace pelado.
+        let preview: Awaited<ReturnType<typeof api.momentoUrlPreview>> | null = null
+        try {
+          preview = await api.momentoUrlPreview(input.url)
+        } catch {
+          preview = null
+        }
         return api.createRecorte({
-          text: input.url,
+          text: preview?.description || preview?.title || input.url,
           sourceUrl: input.url,
-          sourceTitle: input.title ?? null,
+          sourceTitle: preview?.title ?? input.title ?? null,
+          sourceAuthor: preview?.author ?? null,
+          imageUrl: preview?.image ?? null,
           captureMode: 'html',
         })
       }

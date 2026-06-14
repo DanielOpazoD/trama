@@ -72,6 +72,17 @@ beforeEach(() => {
       if (url.includes('recortes-image-upload')) {
         return jsonResp({ imageKey: 'user-1/abc.webp', mime: 'image/webp', size: 10 })
       }
+      if (url.includes('momentos-url-preview')) {
+        return jsonResp({
+          url: 'https://example.com/x',
+          title: 'Título OG',
+          description: 'Descripción OG',
+          source: 'example.com',
+          author: 'Autora OG',
+          image: 'https://example.com/img.jpg',
+          fetched: true,
+        })
+      }
       if (method === 'DELETE') {
         return jsonResp({ ok: true, deletedAt: '2026-06-11T10:00:00.000Z' })
       }
@@ -116,15 +127,19 @@ describe('useRecortes', () => {
     })
   })
 
-  it('captura un enlace como recorte web (text = url, sourceUrl, modo html)', async () => {
+  it('captura un enlace y lo enriquece con metadatos OG (título, autor, imagen)', async () => {
     const { result } = renderHook(() => useCreateRecorte(), { wrapper: makeWrapper() })
     await act(async () => {
       await result.current.mutateAsync({ kind: 'link', url: 'https://example.com/x' })
     })
+    expect(calls.some((c) => c.url.includes('momentos-url-preview'))).toBe(true)
     const post = calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/recortes'))
     expect(post?.body).toMatchObject({
-      text: 'https://example.com/x',
+      text: 'Descripción OG',
       sourceUrl: 'https://example.com/x',
+      sourceTitle: 'Título OG',
+      sourceAuthor: 'Autora OG',
+      imageUrl: 'https://example.com/img.jpg',
       captureMode: 'html',
     })
   })
