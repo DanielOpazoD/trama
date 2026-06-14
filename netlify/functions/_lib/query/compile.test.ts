@@ -165,3 +165,74 @@ describe('compileQuery — validación y seguridad', () => {
     ).toThrow(/numérico/)
   })
 })
+
+describe('compileQuery — Fase 2: propiedades, contains, exists, linked_to', () => {
+  it('prop:<key> eq → properties ->> $key = $value (clave y valor parametrizados)', () => {
+    const { text, values } = compile({
+      from: ['entity'],
+      where: { field: 'prop:team', op: 'eq', value: 'marketing' },
+    })
+    expect(text).toContain('properties ->> $1 = $2')
+    expect(values).toEqual(['team', 'marketing', 26])
+  })
+
+  it('prop in expande valores', () => {
+    const { text } = compile({
+      from: ['note'],
+      where: { field: 'prop:status', op: 'in', value: ['a', 'b'] },
+    })
+    expect(text).toContain('properties ->> $1 IN ($2, $3)')
+  })
+
+  it('prop exists → jsonb_exists con clave parametrizada', () => {
+    const { text, values } = compile({
+      from: ['entity'],
+      where: { field: 'prop:team', op: 'exists' },
+    })
+    expect(text).toContain('jsonb_exists(properties, $1)')
+    expect(values[0]).toBe('team')
+  })
+
+  it('clave de propiedad inválida lanza error', () => {
+    expect(() =>
+      compile({
+        from: ['entity'],
+        where: { field: 'prop:bad key!', op: 'eq', value: 'x' },
+      }),
+    ).toThrow(/clave de propiedad/)
+  })
+
+  it('contains en campo de texto → ILIKE parametrizado', () => {
+    const { text, values } = compile({
+      from: ['entity'],
+      where: { field: 'name', op: 'contains', value: 'bor' },
+    })
+    expect(text).toContain('name ILIKE $1')
+    expect(values[0]).toBe('%bor%')
+  })
+
+  it('tags has_any ahora aplica a entity (no FALSE)', () => {
+    const { text } = compile({
+      from: ['entity'],
+      where: { field: 'tags', op: 'has_any', value: ['x'] },
+    })
+    expect(text).toContain('tags && $1::text[]')
+    expect(text).not.toContain('FALSE')
+  })
+
+  it('linked_to compila distinto por kind', () => {
+    const id = '00000000-0000-0000-0000-000000000001'
+    expect(compile({ from: ['quote'], where: { op: 'linked_to', id } }).text).toContain(
+      'entity_id = $1::uuid',
+    )
+    expect(compile({ from: ['momento'], where: { op: 'linked_to', id } }).text).toContain(
+      'momento_entities',
+    )
+    expect(compile({ from: ['entity'], where: { op: 'linked_to', id } }).text).toContain(
+      'relationships',
+    )
+    expect(compile({ from: ['note'], where: { op: 'linked_to', id } }).text).toContain(
+      'FALSE',
+    )
+  })
+})

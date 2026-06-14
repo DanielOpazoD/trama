@@ -7,13 +7,25 @@ import type { ObjectKind } from './ast.js'
  * lo que no esté acá no se puede consultar. Los valores siempre van como
  * parámetros; de acá sólo salen identificadores SQL de confianza (constantes).
  *
- * Si un campo no aplica a un kind (p.ej. `year` en `note`), el compilador
- * resuelve ese predicado a FALSE para ese kind — así una query cross-tipo con
- * OR sigue siendo intuitiva.
+ * Las propiedades de usuario (`prop:<key>`) NO viven acá: son dinámicas
+ * (cualquier clave en la columna `properties` JSONB), y el compilador las
+ * maneja aparte validando el formato de la clave y parametrizándola.
+ *
+ * Si un campo no aplica a un kind, el compilador resuelve ese predicado a FALSE
+ * para ese kind — así una query cross-tipo con OR sigue siendo intuitiva.
  */
 
 export type FieldType = 'text' | 'number' | 'date' | 'bool'
-export type CompareOp = 'eq' | 'neq' | 'lt' | 'lte' | 'gt' | 'gte' | 'between' | 'in'
+export type CompareOp =
+  | 'eq'
+  | 'neq'
+  | 'lt'
+  | 'lte'
+  | 'gt'
+  | 'gte'
+  | 'between'
+  | 'in'
+  | 'contains'
 
 export type FieldDef = {
   /** Expresión SQL de confianza (constante, nunca input). */
@@ -25,7 +37,7 @@ export type FieldDef = {
 }
 
 const ALL_COMPARE: CompareOp[] = ['eq', 'neq', 'lt', 'lte', 'gt', 'gte', 'between', 'in']
-const EQ_IN: CompareOp[] = ['eq', 'neq', 'in']
+const TEXT_OPS: CompareOp[] = ['eq', 'neq', 'in', 'contains']
 
 /** Campos presentes en todos los kinds. */
 const COMMON: Record<string, FieldDef> = {
@@ -35,10 +47,10 @@ const COMMON: Record<string, FieldDef> = {
 export const FIELDS: Record<ObjectKind, Record<string, FieldDef>> = {
   entity: {
     ...COMMON,
-    type: { sql: 'type', type: 'text', ops: EQ_IN },
-    name: { sql: 'name', type: 'text', ops: EQ_IN },
+    type: { sql: 'type', type: 'text', ops: TEXT_OPS },
+    name: { sql: 'name', type: 'text', ops: TEXT_OPS },
     year: { sql: 'year', type: 'number', ops: ALL_COMPARE },
-    origin_kind: { sql: "origin->>'kind'", type: 'text', ops: EQ_IN },
+    origin_kind: { sql: "origin->>'kind'", type: 'text', ops: TEXT_OPS },
   },
   quote: {
     ...COMMON,
@@ -49,13 +61,13 @@ export const FIELDS: Record<ObjectKind, Record<string, FieldDef>> = {
       cast: '::uuid',
     },
     pinned: { sql: 'pinned', type: 'bool', ops: ['eq'] },
-    origin_kind: { sql: "origin->>'kind'", type: 'text', ops: EQ_IN },
+    origin_kind: { sql: "origin->>'kind'", type: 'text', ops: TEXT_OPS },
   },
   momento: {
     ...COMMON,
-    kind: { sql: 'kind', type: 'text', ops: EQ_IN },
+    kind: { sql: 'kind', type: 'text', ops: TEXT_OPS },
     captured_at: { sql: 'captured_at', type: 'date', ops: ALL_COMPARE },
-    origin_kind: { sql: "origin->>'kind'", type: 'text', ops: EQ_IN },
+    origin_kind: { sql: "origin->>'kind'", type: 'text', ops: TEXT_OPS },
   },
   note: {
     ...COMMON,
@@ -65,20 +77,17 @@ export const FIELDS: Record<ObjectKind, Record<string, FieldDef>> = {
 
 export type KindMeta = {
   table: string
-  /** Expresión SQL para el título del resultado. */
   title: string
-  /** Expresión SQL para el snippet/preview. */
   snippet: string
-  /** Columna/expresión de "cuándo ocurrió" (para sort=occurred_at). */
   occurredAt: string
-  /** Expresión SQL que produce text[] de tags ('{}'::text[] si no tiene). */
+  /** Expresión SQL que produce text[] de tags. */
   tags: string
-  /** Columna search_vector para FTS, o null si el kind no la tiene. */
   fts: string | null
-  /** Columna de texto para ILIKE cuando no hay FTS (p.ej. notes.content). */
   ftsFallback: string | null
-  /** ¿El kind tiene columna tags consultable? */
+  /** ¿El kind tiene columna tags consultable? (todos tras la migración Fase 2) */
   hasTags: boolean
+  /** Cómo se vincula este kind a una entidad, para el predicado `linked_to`. */
+  linkToEntity: 'relationships' | 'entity_id' | 'momento_entities' | null
 }
 
 export const KIND_META: Record<ObjectKind, KindMeta> = {
@@ -87,30 +96,33 @@ export const KIND_META: Record<ObjectKind, KindMeta> = {
     title: 'name',
     snippet: 'description',
     occurredAt: 'created_at',
-    tags: "'{}'::text[]",
+    tags: 'tags',
     fts: 'search_vector',
     ftsFallback: null,
-    hasTags: false,
+    hasTags: true,
+    linkToEntity: 'relationships',
   },
   quote: {
     table: 'quotes',
     title: 'left(text, 80)',
     snippet: 'text',
     occurredAt: 'created_at',
-    tags: "'{}'::text[]",
+    tags: 'tags',
     fts: 'search_vector',
     ftsFallback: null,
-    hasTags: false,
+    hasTags: true,
+    linkToEntity: 'entity_id',
   },
   momento: {
     table: 'momentos',
     title: "coalesce(payload->>'title', payload->>'bodyText', note, kind)",
     snippet: "coalesce(payload->>'bodyText', note, '')",
     occurredAt: 'captured_at',
-    tags: "'{}'::text[]",
+    tags: 'tags',
     fts: 'search_vector',
     ftsFallback: null,
-    hasTags: false,
+    hasTags: true,
+    linkToEntity: 'momento_entities',
   },
   note: {
     table: 'notes',
@@ -121,5 +133,6 @@ export const KIND_META: Record<ObjectKind, KindMeta> = {
     fts: null,
     ftsFallback: 'content',
     hasTags: true,
+    linkToEntity: null,
   },
 }

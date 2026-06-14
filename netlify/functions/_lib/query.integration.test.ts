@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import pg from 'pg'
 import type { SqlClient } from './db'
 import { runQuery } from './query/execute'
+import { applyObjectProperties } from './object-properties'
 
 /**
  * Test de INTEGRACIÓN del motor de queries contra Postgres REAL (no mocks).
@@ -78,7 +79,7 @@ describe.skipIf(!DB_URL)('query engine (integración Postgres real)', () => {
       await admin(`INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING`, [u])
     }
     // Soft-delete de datos previos (contrato AGENTS.md).
-    for (const t of ['notes', 'entities']) {
+    for (const t of ['notes', 'entities', 'quotes', 'relationships']) {
       await admin(
         `UPDATE ${t} SET deleted_at = NOW() WHERE user_id = ANY($1) AND deleted_at IS NULL`,
         [[USER_A, USER_B]],
@@ -101,7 +102,7 @@ describe.skipIf(!DB_URL)('query engine (integración Postgres real)', () => {
 
   afterAll(async () => {
     if (pool) {
-      for (const t of ['notes', 'entities']) {
+      for (const t of ['notes', 'entities', 'quotes', 'relationships']) {
         await admin(
           `UPDATE ${t} SET deleted_at = NOW() WHERE user_id = ANY($1) AND deleted_at IS NULL`,
           [[USER_A, USER_B]],
@@ -152,5 +153,70 @@ describe.skipIf(!DB_URL)('query engine (integración Postgres real)', () => {
     const names = items.map((i) => i.title)
     expect(names).toContain('Otro de B')
     expect(names).not.toContain('BorgesQIT Unico') // de USER_A
+  })
+
+  async function entityId(name: string): Promise<string> {
+    const [row] = await admin<{ id: string }>(
+      'SELECT id FROM entities WHERE user_id = $1 AND name = $2 AND deleted_at IS NULL',
+      [USER_A, name],
+    )
+    if (!row) throw new Error(`setup: no se encontró la entidad ${name}`)
+    return row.id
+  }
+
+  it('propiedades: set vía applyObjectProperties y filtrar por prop:<key>', async () => {
+    const id = await entityId('BorgesQIT Unico')
+    await applyObjectProperties(sqlFor(USER_A), {
+      kind: 'entity',
+      id,
+      setProps: { team: 'marketing' },
+    })
+    const { items } = await runQuery(sqlFor(USER_A), {
+      from: ['entity'],
+      where: { field: 'prop:team', op: 'eq', value: 'marketing' },
+    })
+    expect(items.map((i) => i.id)).toContain(id)
+  })
+
+  it('tags unificados cross-tipo: entidad + nota por tag', async () => {
+    const id = await entityId('BorgesQIT Unico')
+    await applyObjectProperties(sqlFor(USER_A), {
+      kind: 'entity',
+      id,
+      setTags: ['qit-shared'],
+    })
+    const { items } = await runQuery(sqlFor(USER_A), {
+      from: ['entity', 'note'],
+      where: { field: 'tags', op: 'has_any', value: ['qit-shared', 'qit-work'] },
+    })
+    const kinds = new Set(items.map((i) => i.kind))
+    expect(kinds.has('entity')).toBe(true)
+    expect(kinds.has('note')).toBe(true)
+  })
+
+  it('linked_to: citas (entity_id) y entidades (relationships) vinculadas', async () => {
+    const borges = await entityId('BorgesQIT Unico')
+    const tomo = await entityId('Tomo Viejo QIT')
+    await admin(`INSERT INTO quotes (user_id, entity_id, text) VALUES ($1,$2,$3)`, [
+      USER_A,
+      borges,
+      'cita qit',
+    ])
+    await admin(
+      `INSERT INTO relationships (user_id, from_id, to_id, type) VALUES ($1,$2,$3,$4)`,
+      [USER_A, borges, tomo, 'qit-rel'],
+    )
+
+    const quotes = await runQuery(sqlFor(USER_A), {
+      from: ['quote'],
+      where: { op: 'linked_to', id: borges },
+    })
+    expect(quotes.items.some((i) => i.snippet === 'cita qit')).toBe(true)
+
+    const ents = await runQuery(sqlFor(USER_A), {
+      from: ['entity'],
+      where: { op: 'linked_to', id: borges },
+    })
+    expect(ents.items.map((i) => i.title)).toContain('Tomo Viejo QIT')
   })
 })

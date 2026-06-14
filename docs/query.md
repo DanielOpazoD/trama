@@ -54,14 +54,52 @@ registry), `tags has_any`/`has_all`, y `matches` (texto libre: FTS por
 (p.ej. `year` en `note`), así una query con `or` sobre varios tipos es
 intuitiva.
 
-## Campos por tipo (Fase 1)
+## Campos por tipo
 
-| Kind    | Campos consultables                                 | Texto (`matches`) | tags |
-| ------- | --------------------------------------------------- | ----------------- | ---- |
-| entity  | `type`, `name`, `year`, `origin_kind`, `created_at` | search_vector     | —    |
-| quote   | `entity_id`, `pinned`, `origin_kind`, `created_at`  | search_vector     | —    |
-| momento | `kind`, `captured_at`, `origin_kind`, `created_at`  | search_vector     | —    |
-| note    | `pinned`, `created_at`                              | content (ILIKE)   | sí   |
+| Kind    | Campos consultables                                 | Texto (`matches`) | tags | props |
+| ------- | --------------------------------------------------- | ----------------- | ---- | ----- |
+| entity  | `type`, `name`, `year`, `origin_kind`, `created_at` | search_vector     | sí   | sí    |
+| quote   | `entity_id`, `pinned`, `origin_kind`, `created_at`  | search_vector     | sí   | sí    |
+| momento | `kind`, `captured_at`, `origin_kind`, `created_at`  | search_vector     | sí   | sí    |
+| note    | `pinned`, `created_at`                              | content (ILIKE)   | sí   | sí    |
+
+Campos de texto admiten además `contains` (ILIKE).
+
+## Fase 2 — propiedades, tags unificados y `linked_to`
+
+Migración `20260614040000_object_properties_tags`: agrega `properties JSONB` +
+`tags TEXT[]` (con índices GIN) a `entities`/`quotes`/`momentos` (notes ya tenía
+tags). Esto habilita:
+
+- **Propiedades de usuario** (`prop:<key>`): filtrar por claves arbitrarias de
+  `properties`. La clave se valida por formato (`[a-z0-9_]`) y va como parámetro
+  (`properties ->> $key`); ops `eq`/`neq`/`in`/`contains` + `exists`
+  (`jsonb_exists`). Ej: `{ "field": "prop:team", "op": "eq", "value": "marketing" }`.
+- **Tags unificados**: `tags has_any`/`has_all` ahora aplica a todos los kinds.
+- **`linked_to`**: objetos vinculados a una entidad —
+  `{ "op": "linked_to", "id": "<uuid>" }`. Por kind: quote→`entity_id`,
+  momento→`momento_entities`, entity→`relationships` (en ambas direcciones);
+  note no se vincula → FALSE.
+
+### Escritura: `PATCH /api/object-properties`
+
+```jsonc
+{
+  "kind": "entity",
+  "id": "<uuid>",
+  "setProps": { "team": "marketing" }, // merge
+  "unsetProps": ["old"], // borra claves
+  "setTags": ["a", "b"],
+} // reemplaza tags
+```
+
+Parametrizado y bajo RLS (sólo afecta filas del propio usuario). Las claves se
+validan por formato en el schema Zod (`_lib/object-properties.ts`).
+
+> **Diferido a Fase 2.5:** registro `property_defs` (catálogo tipado de
+> propiedades por tipo de objeto) para alimentar la UI y el traductor
+> lenguaje-natural→AST. El motor ya consulta cualquier clave; el registro es
+> sólo catálogo.
 
 ## Seguridad
 
@@ -86,10 +124,13 @@ El compilador es la superficie crítica:
   **aislamiento RLS** entre usuarios. Guarded por `QUERY_IT_DB_URL` (job
   `migrations` de CI / `npm run db:up`). `npm run test:query-it`.
 
-## Roadmap (siguientes fases)
+## Roadmap
 
-- Fase 2: read-model `objects` + propiedades de usuario + tags unificados +
-  relaciones cross-tipo (`linked_to`).
+- **Fase 1 (hecha):** AST + compilador + endpoint + filtros tipo/fecha/tags/texto.
+- **Fase 2 (hecha):** propiedades de usuario (`prop:<key>`), tags unificados,
+  `linked_to`, escritura vía `/api/object-properties`.
+- Fase 2.5: registro `property_defs` (catálogo tipado) + read-model `objects`
+  (proyección denormalizada) para escala.
 - Fase 3: traductor lenguaje-natural→AST (LLM con guardas) + preview en vivo.
 - Fase 4: queries guardadas (`saved_queries`) + bloques embebibles.
 - Fase 1.5: predicado semántico `near` (pgvector) integrado al motor.

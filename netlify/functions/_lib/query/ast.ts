@@ -23,7 +23,7 @@ const FieldName = z.string().min(1).max(40)
 
 const ComparePredicate = z.object({
   field: FieldName,
-  op: z.enum(['eq', 'neq', 'lt', 'lte', 'gt', 'gte']),
+  op: z.enum(['eq', 'neq', 'lt', 'lte', 'gt', 'gte', 'contains']),
   value: ScalarValue,
 })
 const BetweenPredicate = z.object({
@@ -46,6 +46,16 @@ const MatchesPredicate = z.object({
   op: z.literal('matches'),
   value: z.string().min(1).max(200),
 })
+/** ¿Existe la propiedad/campo? (`prop:<key>` → jsonb_exists; columna → IS NOT NULL). */
+const ExistsPredicate = z.object({
+  field: FieldName,
+  op: z.literal('exists'),
+})
+/** El objeto está vinculado a una entidad (cita→entidad, momento→junction, relación). */
+const LinkedToPredicate = z.object({
+  op: z.literal('linked_to'),
+  id: z.string().uuid(),
+})
 
 export const Predicate = z.union([
   ComparePredicate,
@@ -53,6 +63,8 @@ export const Predicate = z.union([
   InPredicate,
   TagsPredicate,
   MatchesPredicate,
+  ExistsPredicate,
+  LinkedToPredicate,
 ])
 export type Predicate = z.infer<typeof Predicate>
 

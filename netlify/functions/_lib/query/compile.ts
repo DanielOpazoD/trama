@@ -1,11 +1,13 @@
 import type { Condition, ObjectKind, Predicate, QueryInput, Sort } from './ast.js'
-import { FIELDS, KIND_META, type CompareOp, type FieldDef } from './field-registry.js'
+import { FIELDS, KIND_META, type FieldDef } from './field-registry.js'
 import { SqlBuilder } from './builder.js'
 
 /**
  * Compilador AST → SQL parametrizado (puro, sin DB). Reglas de seguridad:
  * - Los nombres de tabla/columna/op salen SOLO del whitelist (`field-registry`).
- * - Todo valor del usuario va como parámetro (`builder.param`), nunca interpolado.
+ * - Las propiedades de usuario (`prop:<key>`) se validan por formato y la clave
+ *   va como parámetro (`properties ->> $key`), nunca interpolada.
+ * - Todo valor del usuario va como parámetro, nunca interpolado.
  * - Un campo que no aplica a un kind compila a FALSE (no rompe queries cross-tipo).
  * - Profundidad acotada (anti-DoS).
  *
@@ -22,6 +24,7 @@ export class QueryCompileError extends Error {
 const MAX_DEPTH = 6
 const DEFAULT_LIMIT = 25
 const DEFAULT_SORT: Sort = { field: 'created_at', dir: 'desc' }
+const PROP_PREFIX = 'prop:'
 
 export type CompiledQuery = { builder: SqlBuilder; limit: number; sort: Sort }
 type Cursor = { v: string; id: string }
@@ -73,6 +76,90 @@ function castFor(def: FieldDef): string {
   return ''
 }
 
+function isPropField(field: string): boolean {
+  return field.startsWith(PROP_PREFIX)
+}
+function propKey(field: string): string {
+  const key = field.slice(PROP_PREFIX.length)
+  if (!/^[a-z0-9_]{1,40}$/i.test(key)) {
+    throw new QueryCompileError(`clave de propiedad inválida: ${key}`)
+  }
+  return key
+}
+
+/** `prop:<key>` → operaciones de texto sobre `properties ->> key` (clave parametrizada). */
+function compileProp(
+  b: SqlBuilder,
+  pred: Extract<Predicate, { field: string; value: unknown }>,
+): void {
+  const key = propKey(pred.field)
+  switch (pred.op) {
+    case 'eq':
+      b.raw('properties ->> ').param(key).raw(' = ').param(String(pred.value))
+      return
+    case 'neq':
+      b.raw('properties ->> ').param(key).raw(' <> ').param(String(pred.value))
+      return
+    case 'contains':
+      b.raw('properties ->> ')
+        .param(key)
+        .raw(' ILIKE ')
+        .param(`%${String(pred.value)}%`)
+      return
+    case 'in':
+      b.raw('properties ->> ').param(key).raw(' IN (')
+      pred.value.forEach((v, i) => {
+        if (i > 0) b.raw(', ')
+        b.param(String(v))
+      })
+      b.raw(')')
+      return
+    default:
+      throw new QueryCompileError(`op '${pred.op}' no soportado en propiedad`)
+  }
+}
+
+function compileExists(b: SqlBuilder, kind: ObjectKind, field: string): void {
+  if (isPropField(field)) {
+    b.raw('jsonb_exists(properties, ').param(propKey(field)).raw(')')
+    return
+  }
+  const def = FIELDS[kind][field]
+  if (!def) {
+    b.raw('FALSE')
+    return
+  }
+  b.raw(`${def.sql} IS NOT NULL`)
+}
+
+/** `linked_to` → EXISTS según cómo cada kind se vincula a una entidad. */
+function compileLinkedTo(b: SqlBuilder, kind: ObjectKind, id: string): void {
+  switch (KIND_META[kind].linkToEntity) {
+    case 'entity_id':
+      b.raw('entity_id = ').param(id).raw('::uuid')
+      return
+    case 'relationships':
+      b.raw(
+        'EXISTS (SELECT 1 FROM relationships r WHERE r.deleted_at IS NULL AND ' +
+          '((r.from_id = entities.id AND r.to_id = ',
+      )
+        .param(id)
+        .raw('::uuid) OR (r.to_id = entities.id AND r.from_id = ')
+        .param(id)
+        .raw('::uuid)))')
+      return
+    case 'momento_entities':
+      b.raw(
+        'EXISTS (SELECT 1 FROM momento_entities me WHERE me.momento_id = momentos.id AND me.entity_id = ',
+      )
+        .param(id)
+        .raw('::uuid)')
+      return
+    default:
+      b.raw('FALSE')
+  }
+}
+
 function compilePredicate(b: SqlBuilder, kind: ObjectKind, pred: Predicate): void {
   const meta = KIND_META[kind]
 
@@ -87,6 +174,11 @@ function compilePredicate(b: SqlBuilder, kind: ObjectKind, pred: Predicate): voi
     return
   }
 
+  if (pred.op === 'linked_to') {
+    compileLinkedTo(b, kind, pred.id)
+    return
+  }
+
   if (pred.op === 'has_any' || pred.op === 'has_all') {
     if (!meta.hasTags) {
       b.raw('FALSE')
@@ -97,13 +189,22 @@ function compilePredicate(b: SqlBuilder, kind: ObjectKind, pred: Predicate): voi
     return
   }
 
-  // Predicado de comparación sobre un campo nombrado.
+  if (pred.op === 'exists') {
+    compileExists(b, kind, pred.field)
+    return
+  }
+
+  // Compare | Between | In — todos con `field` + `value`.
+  if (isPropField(pred.field)) {
+    compileProp(b, pred)
+    return
+  }
   const def = FIELDS[kind][pred.field]
   if (!def) {
     b.raw('FALSE') // campo no aplica a este kind
     return
   }
-  if (!def.ops.includes(pred.op as CompareOp)) {
+  if (!def.ops.includes(pred.op)) {
     throw new QueryCompileError(`op '${pred.op}' no permitido para campo '${pred.field}'`)
   }
   const col = def.sql
@@ -127,6 +228,9 @@ function compilePredicate(b: SqlBuilder, kind: ObjectKind, pred: Predicate): voi
       return
     case 'gte':
       b.raw(`${col} >= `).param(coerce(def, pred.value)).raw(cast)
+      return
+    case 'contains':
+      b.raw(`${col} ILIKE `).param(`%${String(pred.value)}%`)
       return
     case 'between': {
       const [lo, hi] = pred.value
