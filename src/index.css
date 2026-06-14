@@ -562,7 +562,15 @@
    y baseFrequency más alto, el patrón queda imperceptible al observar
    un punto, pero presente al barrer el ojo por la página. Se compone con
    mix-blend-mode multiply para que oscurezca apenas, no añada ruido HSV. */
-.paper-grain {
+/* paper-grain establece un contexto de apilamiento para anclar su ::before.
+   Pero si el elemento YA está posicionado (un overlay con .absolute/.fixed/
+   .sticky), pisar su position con `relative` lo devuelve al flujo normal y
+   empuja el layout — ese era el bug del WorldSwitcher en móvil: el dropdown
+   `absolute` se volvía `relative` y corría la barra superior hacia abajo. El
+   `:not()` excluye esos casos (un elemento absolute/fixed ya es contenedor de
+   su ::before) y, de paso, sube la especificidad por encima de la utilidad
+   `.absolute` de Tailwind. */
+.paper-grain:not(.absolute):not(.fixed):not(.sticky) {
   position: relative;
 }
 .paper-grain::before {

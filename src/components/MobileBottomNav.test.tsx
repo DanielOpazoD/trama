@@ -3,24 +3,28 @@ import { screen, fireEvent } from '@testing-library/react'
 import { MobileBottomNav } from './MobileBottomNav'
 import { renderWithProviders } from '../test-utils'
 
+function jsonResponse(body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
 beforeEach(() => {
   // Mockear los endpoints que el bottom nav consulta vía TanStack Query.
-  // Devolvemos respuestas vacías estables — el componente solo lee counts
-  // y pending suggestions para decorar el chrome.
+  // Respuestas vacías estables — el componente solo lee counts, invitaciones
+  // y sugerencias pendientes para decorar el chrome.
   vi.stubGlobal(
     'fetch',
     vi.fn().mockImplementation(async (input: string | Request | URL) => {
       const url = String(input)
       if (url.includes('/api/momentos-share-invitations')) {
-        return new Response(JSON.stringify({ items: [] }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        })
+        return jsonResponse({ items: [] })
       }
-      return new Response(
-        JSON.stringify({ entities: 0, quotes: 0, momentos: 0, relationships: 0 }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      )
+      if (url.includes('/api/proactive-suggestions')) {
+        return jsonResponse([])
+      }
+      return jsonResponse({ entities: 0, quotes: 0, momentos: 0, relationships: 0 })
     }),
   )
 })
@@ -30,22 +34,19 @@ afterEach(() => {
 })
 
 describe('<MobileBottomNav />', () => {
-  it('renders all nav items with their accessible labels', () => {
+  it('muestra 4 vistas primarias + el botón "Más" (5 slots)', () => {
     renderWithProviders(<MobileBottomNav view="inicio" onChangeView={() => {}} />)
-    const expectedLabels = [
-      'Inicio',
-      'Entidades',
-      'Citas',
-      'Momentos',
+    for (const label of ['Inicio', 'Entidades', 'Citas', 'Momentos']) {
+      expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
+    }
+    expect(screen.getByRole('button', { name: 'Más vistas' })).toBeInTheDocument()
+
+    // Las vistas no-primarias NO están en la barra cuando la hoja está cerrada
+    // (viven dentro de "Más"). Antes Grafo/Recortes/Chat sí estaban sueltos.
+    for (const hidden of [
       'Grafo',
       'Recortes',
       'Chat',
-    ]
-    for (const label of expectedLabels) {
-      expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
-    }
-    // Las secciones retiradas del nav ya no aparecen.
-    for (const gone of [
       'Escuchas',
       'Twitter',
       'Cronología',
@@ -53,27 +54,81 @@ describe('<MobileBottomNav />', () => {
       'Sugerencias',
       'Flujo',
     ]) {
-      expect(screen.queryByRole('button', { name: gone })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: hidden })).not.toBeInTheDocument()
     }
   })
 
-  it('marks the active view with aria-current="page"', () => {
+  it('marca la vista activa con aria-current="page"', () => {
     renderWithProviders(<MobileBottomNav view="citas" onChangeView={() => {}} />)
-    const citasBtn = screen.getByRole('button', { name: 'Citas' })
-    expect(citasBtn).toHaveAttribute('aria-current', 'page')
-
-    const grafoBtn = screen.getByRole('button', { name: 'Grafo' })
-    expect(grafoBtn).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('button', { name: 'Citas' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(screen.getByRole('button', { name: 'Inicio' })).not.toHaveAttribute(
+      'aria-current',
+    )
   })
 
-  it('calls onChangeView with the clicked view value', () => {
+  it('llama onChangeView con la vista primaria clickeada', () => {
     const onChange = vi.fn()
     renderWithProviders(<MobileBottomNav view="inicio" onChangeView={onChange} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Chat' }))
-    expect(onChange).toHaveBeenCalledWith('chat')
+    fireEvent.click(screen.getByRole('button', { name: 'Entidades' }))
+    expect(onChange).toHaveBeenCalledWith('entidades')
   })
 
-  it('uses aria-label "Navegación principal" on the nav landmark', () => {
+  it('"Más" abre la hoja con TODAS las vistas no-primarias', () => {
+    renderWithProviders(<MobileBottomNav view="inicio" onChangeView={() => {}} />)
+    // Antes de abrir, ninguna vista oculta está en el DOM.
+    expect(screen.queryByRole('button', { name: 'Escuchas' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Más vistas' }))
+
+    // La hoja (portal) lista las 8 vistas no-primarias — incluyendo las 5 que
+    // antes eran inalcanzables en móvil.
+    const dialog = screen.getByRole('dialog', { name: /Más vistas/i })
+    expect(dialog).toBeInTheDocument()
+    for (const v of [
+      'Recortes',
+      'Escuchas',
+      'Twitter',
+      'Grafo',
+      'Cronología',
+      'Atlas',
+      'Chat',
+      'Sugerencias',
+    ]) {
+      expect(screen.getByRole('button', { name: v })).toBeInTheDocument()
+    }
+  })
+
+  it('elegir una vista en la hoja llama onChangeView y la cierra', () => {
+    const onChange = vi.fn()
+    renderWithProviders(<MobileBottomNav view="inicio" onChangeView={onChange} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Más vistas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Escuchas' }))
+    expect(onChange).toHaveBeenCalledWith('escuchas')
+    // La hoja se cierra al elegir.
+    expect(screen.queryByRole('dialog', { name: /Más vistas/i })).not.toBeInTheDocument()
+  })
+
+  it('"Más" queda marcado como actual cuando la vista activa vive en la hoja', () => {
+    renderWithProviders(<MobileBottomNav view="grafo" onChangeView={() => {}} />)
+    // Grafo no es primaria → su slot es "Más", que toma el aria-current.
+    expect(screen.getByRole('button', { name: 'Más vistas' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+  })
+
+  it('cierra la hoja con la tecla Escape', () => {
+    renderWithProviders(<MobileBottomNav view="inicio" onChangeView={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Más vistas' }))
+    expect(screen.getByRole('dialog', { name: /Más vistas/i })).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: /Más vistas/i })).not.toBeInTheDocument()
+  })
+
+  it('usa aria-label "Navegación principal" en el landmark', () => {
     renderWithProviders(<MobileBottomNav view="inicio" onChangeView={() => {}} />)
     expect(
       screen.getByRole('navigation', { name: /Navegación principal/i }),
@@ -84,15 +139,12 @@ describe('<MobileBottomNav />', () => {
     vi.mocked(fetch).mockImplementation(async (input: string | Request | URL) => {
       const url = String(input)
       if (url.includes('/api/momentos-share-invitations')) {
-        return new Response(JSON.stringify({ items: [{ id: 'inv1' }] }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        })
+        return jsonResponse({ items: [{ id: 'inv1' }] })
       }
-      return new Response(
-        JSON.stringify({ entities: 0, quotes: 0, momentos: 0, relationships: 0 }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      )
+      if (url.includes('/api/proactive-suggestions')) {
+        return jsonResponse([])
+      }
+      return jsonResponse({ entities: 0, quotes: 0, momentos: 0, relationships: 0 })
     })
 
     renderWithProviders(<MobileBottomNav view="inicio" onChangeView={() => {}} />)
@@ -106,15 +158,12 @@ describe('<MobileBottomNav />', () => {
     vi.mocked(fetch).mockImplementation(async (input: string | Request | URL) => {
       const url = String(input)
       if (url.includes('/api/momentos-share-invitations')) {
-        return new Response(JSON.stringify([]), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        })
+        return jsonResponse([])
       }
-      return new Response(
-        JSON.stringify({ entities: 0, quotes: 0, momentos: 0, relationships: 0 }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      )
+      if (url.includes('/api/proactive-suggestions')) {
+        return jsonResponse([])
+      }
+      return jsonResponse({ entities: 0, quotes: 0, momentos: 0, relationships: 0 })
     })
 
     renderWithProviders(<MobileBottomNav view="inicio" onChangeView={() => {}} />)

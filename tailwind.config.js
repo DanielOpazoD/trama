@@ -95,6 +95,35 @@ export default {
         // larga que 150ms. Para color-only seguimos con ease (default).
         'out-quart': 'cubic-bezier(0.25, 1, 0.5, 1)',
       },
+      // Escala de capas semántica — una sola fuente de verdad para el
+      // apilamiento de overlays. Antes había `z-50` ×31 + escaladas mágicas
+      // (`z-[60]`, `z-[80]`, `z-[120]`, `z-[130]`) donde cada quien "ganaba"
+      // su pelea local. Usar SIEMPRE estos nombres en cualquier elemento que
+      // flote sobre el contenido; el orden ES el contrato:
+      //   raised   contenido elevado dentro de una vista (chips, dots)
+      //   sticky   headers sticky de vista
+      //   nav      navegación (sidebar, bottom nav móvil)
+      //   dropdown popovers anclados (WorldSwitcher, menús contextuales)
+      //   overlay  backdrops de hojas/sheets
+      //   modal    diálogos modales centrados
+      //   lightbox visor de imágenes a pantalla completa
+      //   toast    notificaciones efímeras (sobre todo lo navegable)
+      //   tooltip  tooltips (nunca tapados)
+      //   max      reservado para debug / overlays de captura
+      // Los aliases numéricos (z-0…z-50) siguen disponibles para apilamiento
+      // local dentro de un componente.
+      zIndex: {
+        raised: '10',
+        sticky: '20',
+        nav: '30',
+        dropdown: '40',
+        overlay: '50',
+        modal: '60',
+        lightbox: '70',
+        toast: '80',
+        tooltip: '90',
+        max: '100',
+      },
     },
   },
   plugins: [],
