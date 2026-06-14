@@ -13,6 +13,7 @@ import { slugifyEntityType } from './entity-type.js'
 export type ParsedInbound =
   | { kind: 'empty' }
   | { kind: 'help' }
+  | { kind: 'undo' }
   | { kind: 'link'; rawCode: string }
   | { kind: 'intent'; intent: CaptureIntent }
   | { kind: 'freeform'; text: string }
@@ -87,6 +88,9 @@ export function parseInboundMessage(raw: string): ParsedInbound {
   }
   if (firstWord === 'ayuda' || firstWord === 'help' || text === '?') {
     return { kind: 'help' }
+  }
+  if (firstWord === 'deshacer' || firstWord === 'undo') {
+    return { kind: 'undo' }
   }
 
   // Prefijo con dos puntos: "nota: ...", "/cita ...".

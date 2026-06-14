@@ -10,10 +10,16 @@ import { momentoEmbedText } from '../momento-embed.js'
 import type { CaptureIntent } from './types.js'
 
 /**
+ * Resultado de una captura: el texto de confirmación que se contesta por
+ * WhatsApp + el id de la fila creada (o null si no se creó nada). El webhook
+ * usa el id para el deep link y para recordar la "última captura" (deshacer).
+ */
+export type CaptureResult = { message: string; id: string | null }
+
+/**
  * Escribe una CaptureIntent en su dominio reusando los mismos helpers que los
  * endpoints CRUD (tags, embeddings). Asume que el contexto RLS ya apunta al
- * usuario dueño (el webhook llama setCurrentRlsUser antes). Devuelve el texto
- * de confirmación que se le contesta al usuario por WhatsApp.
+ * usuario dueño (el webhook llama setCurrentRlsUser antes).
  *
  * No reimplementa la lógica de negocio fina (dup-detection de entidades,
  * re-embed condicional): es un camino de CAPTURA rápida. Lo que crea queda
@@ -24,7 +30,7 @@ export async function persistCapture(
   sql: SqlClient,
   userId: string,
   intent: CaptureIntent,
-): Promise<string> {
+): Promise<CaptureResult> {
   switch (intent.kind) {
     case 'note':
       return persistNote(sql, userId, intent.content)
@@ -47,24 +53,25 @@ async function persistNote(
   sql: SqlClient,
   userId: string,
   content: string,
-): Promise<string> {
+): Promise<CaptureResult> {
   const tags = parseTags(content)
-  await sql`
+  const rows = await sqlTyped<{ id: string }>(sql`
     INSERT INTO notes (content, title, tags, pinned, user_id)
     VALUES (${content}, ${null}, ${tags}::text[], ${false}, ${userId})
-  `
-  return '📝 Nota guardada en Trama.'
+    RETURNING id
+  `)
+  return { message: '📝 Nota guardada en Trama.', id: rows[0]?.id ?? null }
 }
 
 async function persistMomento(
   sql: SqlClient,
   userId: string,
   bodyText: string,
-): Promise<string> {
+): Promise<CaptureResult> {
   const payload = { bodyText }
   const embedSource = momentoEmbedText('nota', payload, null)
   const emb = embedSource.length > 0 ? await embedSafe(embedSource) : null
-  await sql`
+  const rows = await sqlTyped<{ id: string }>(sql`
     INSERT INTO momentos (
       kind, captured_at, payload, note, origin,
       embedding, embedding_model, embedding_at, user_id
@@ -79,8 +86,12 @@ async function persistMomento(
       ${emb ? new Date().toISOString() : null}::timestamptz,
       ${userId}
     )
-  `
-  return '🕰️ Momento guardado en tu línea de tiempo.'
+    RETURNING id
+  `)
+  return {
+    message: '🕰️ Momento guardado en tu línea de tiempo.',
+    id: rows[0]?.id ?? null,
+  }
 }
 
 async function persistEntity(
@@ -89,11 +100,11 @@ async function persistEntity(
   name: string,
   entityType: string,
   description: string | null,
-): Promise<string> {
+): Promise<CaptureResult> {
   const emb = await embedSafe(
     entityEmbeddingText({ name, type: entityType, year: null, description }),
   )
-  await sql`
+  const rows = await sqlTyped<{ id: string }>(sql`
     INSERT INTO entities (
       type, name, year, description, origin,
       embedding, embedding_model, embedding_at, user_id
@@ -108,8 +119,9 @@ async function persistEntity(
       ${emb ? new Date().toISOString() : null}::timestamptz,
       ${userId}
     )
-  `
-  return `🔭 Entidad «${name}» agregada al grafo.`
+    RETURNING id
+  `)
+  return { message: `🔭 Entidad «${name}» agregada al grafo.`, id: rows[0]?.id ?? null }
 }
 
 async function persistQuote(
@@ -117,7 +129,7 @@ async function persistQuote(
   userId: string,
   text: string,
   author: string,
-): Promise<string> {
+): Promise<CaptureResult> {
   // Una cita necesita una entidad (la del autor). Calculamos los embeddings en
   // JS y resolvemos find-or-create + INSERT de la cita en UN SOLO CTE atómico
   // (regla de dominios.md: multi-write → un WITH). Match por nombre exacto o,
@@ -138,7 +150,7 @@ async function persistQuote(
   const quoteVec = quoteEmb ? toPgVector(quoteEmb.vector) : null
   const now = new Date().toISOString()
 
-  const rows = await sqlTyped<{ entity_id: string }>(sql`
+  const rows = await sqlTyped<{ id: string }>(sql`
     WITH existing AS (
       SELECT id FROM entities
       WHERE deleted_at IS NULL AND user_id = ${userId}
@@ -177,10 +189,10 @@ async function persistQuote(
       ${quoteVec}::vector, ${quoteEmb?.model ?? null}, ${quoteEmb ? now : null}::timestamptz,
       ${userId}
     FROM target
-    RETURNING entity_id
+    RETURNING id
   `)
   if (rows.length === 0) {
-    return 'No pude guardar la cita. Probá de nuevo.'
+    return { message: 'No pude guardar la cita. Probá de nuevo.', id: null }
   }
-  return `❝ Cita de ${author} guardada.`
+  return { message: `❝ Cita de ${author} guardada.`, id: rows[0]!.id }
 }

@@ -14,8 +14,9 @@ import { parseInboundMessage } from './_lib/whatsapp/parse-command.js'
 import { normalizeLinkCode } from './_lib/whatsapp/link-code.js'
 import { buildClassifyPrompt, validateClassification } from './_lib/whatsapp/interpret.js'
 import { persistCapture } from './_lib/whatsapp/persist.js'
+import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
-import type { CaptureIntent } from './_lib/whatsapp/types.js'
+import type { CaptureIntent, CaptureKind } from './_lib/whatsapp/types.js'
 
 /**
  * Webhook entrante de WhatsApp vía Twilio. Captura rápida desde el bolsillo:
@@ -46,6 +47,7 @@ const HELP = [
   '• entidad: <nombre> (tipo)',
   '• momento: <qué pasó>',
   'O mandá texto libre y lo clasifico solo.',
+  'Para borrar lo último: deshacer.',
 ].join('\n')
 
 const NOT_LINKED = [
@@ -118,6 +120,71 @@ async function claimInboundMessage(
     RETURNING message_sid
   `)
   return rows.length > 0
+}
+
+/** Sustantivo legible por kind, para las confirmaciones. */
+const NOUN_BY_KIND: Record<CaptureKind, string> = {
+  note: 'La nota',
+  quote: 'La cita',
+  entity: 'La entidad',
+  momento: 'El momento',
+}
+
+/** Soft-delete de la última captura según su kind. Devuelve si borró algo. */
+async function softDeleteCapture(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  kind: string,
+  id: string,
+): Promise<boolean> {
+  const del = (q: Promise<unknown>) => sqlTyped<{ id: string }>(q)
+  let rows: { id: string }[] = []
+  if (kind === 'note') {
+    rows = await del(sql`UPDATE notes SET deleted_at = NOW(), updated_at = NOW()
+      WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
+  } else if (kind === 'momento') {
+    rows = await del(sql`UPDATE momentos SET deleted_at = NOW(), updated_at = NOW()
+      WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
+  } else if (kind === 'entity') {
+    rows = await del(sql`UPDATE entities SET deleted_at = NOW()
+      WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
+  } else if (kind === 'quote') {
+    rows = await del(sql`UPDATE quotes SET deleted_at = NOW()
+      WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
+  }
+  return rows.length > 0
+}
+
+/**
+ * Deshace la última captura del número: lee last_capture_*, la soft-deletea y
+ * limpia el puntero (naturalmente idempotente — un segundo "deshacer" ya no
+ * encuentra nada). Corre bajo el RLS del dueño (ya seteado).
+ */
+async function undoLastCapture(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  phone: string,
+): Promise<string> {
+  const rows = await sqlTyped<{ kind: string | null; cap_id: string | null }>(sql`
+    SELECT last_capture_kind AS kind, last_capture_id AS cap_id
+    FROM whatsapp_links
+    WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
+    LIMIT 1
+  `)
+  const last = rows[0]
+  if (!last?.kind || !last.cap_id) {
+    return 'No hay nada reciente para deshacer.'
+  }
+  const deleted = await softDeleteCapture(sql, userId, last.kind, last.cap_id)
+  sql`
+    UPDATE whatsapp_links
+    SET last_capture_kind = NULL, last_capture_id = NULL, updated_at = NOW()
+    WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
+  `.catch(() => {})
+  const noun = NOUN_BY_KIND[last.kind as CaptureKind] ?? 'La última captura'
+  return deleted
+    ? `↩️ Listo, deshecho. ${noun} se borró.`
+    : 'Eso ya no estaba (quizá lo borraste desde la app).'
 }
 
 /** Texto libre → CaptureIntent vía LLM, con fallback a nota si algo falla. */
@@ -198,7 +265,7 @@ export default withObservability(
       )
     }
 
-    // parsed.kind === 'intent' | 'freeform' → necesita usuario vinculado.
+    // parsed.kind === 'intent' | 'freeform' | 'undo' → necesita usuario vinculado.
     const userId = await resolveUserByPhone(phone)
     if (!userId) return twimlResponse(NOT_LINKED)
 
@@ -208,6 +275,10 @@ export default withObservability(
     // Provisioning defensivo: el row de users ya existe (se creó al vincular),
     // pero lo aseguramos antes de escribir para no chocar con la FK users(id).
     await ensureUserRow(sql, { id: userId })
+
+    if (parsed.kind === 'undo') {
+      return twimlResponse(await undoLastCapture(sql, userId, phone))
+    }
 
     // Idempotencia: si Twilio reintenta este mensaje (latencia/5xx), no lo
     // reprocesamos ni volvemos a pagar el LLM. El claim va ANTES de clasificar.
@@ -234,9 +305,25 @@ export default withObservability(
     }
 
     try {
-      const message = await persistCapture(sql, userId, intent)
-      logEvent({ event: 'whatsapp_capture', kind: intent.kind, viaLLM: parsed.kind === 'freeform' })
-      return twimlResponse(message)
+      const { message, id } = await persistCapture(sql, userId, intent)
+      // Recordamos la última captura para que "deshacer" sepa qué borrar.
+      if (id) {
+        sql`
+          UPDATE whatsapp_links
+          SET last_capture_kind = ${intent.kind}, last_capture_id = ${id}::uuid,
+              last_capture_at = NOW(), updated_at = NOW()
+          WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
+        `.catch(() => {})
+      }
+      logEvent({
+        event: 'whatsapp_capture',
+        kind: intent.kind,
+        viaLLM: parsed.kind === 'freeform',
+      })
+      // Reply accionable: confirmación + deep link a la vista + cómo deshacer.
+      const link = captureDeepLink(new URL(req.url).origin, intent.kind)
+      const reply = id ? `${message}\n🔗 ${link}\n↩️ ¿Mal? Respondé: deshacer` : message
+      return twimlResponse(reply)
     } catch (err) {
       logEvent({
         event: 'whatsapp_capture_failed',

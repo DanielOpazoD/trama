@@ -20,6 +20,12 @@ describe('parseInboundMessage — comandos de control', () => {
     expect(parseInboundMessage('?').kind).toBe('help')
   })
 
+  it('deshacer / undo', () => {
+    expect(parseInboundMessage('deshacer').kind).toBe('undo')
+    expect(parseInboundMessage('Deshacer').kind).toBe('undo')
+    expect(parseInboundMessage('undo').kind).toBe('undo')
+  })
+
   it('mensaje vacío', () => {
     expect(parseInboundMessage('   ').kind).toBe('empty')
   })

@@ -56,12 +56,13 @@ describe('whatsapp-webhook', () => {
     expect(xml).toContain('no está vinculado')
   })
 
-  it('captura por prefijo nota: cuando el número está vinculado', async () => {
+  it('captura por prefijo nota: confirma con deep link y opción de deshacer', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim (reclamado)
     mockSqlResponses.push([]) // UPDATE last_message_at (fire-and-forget)
-    mockSqlResponses.push([]) // INSERT notes
+    mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes RETURNING id
+    mockSqlResponses.push([]) // UPDATE last_capture (fire-and-forget)
     const res = await webhookHandler(
       twilioRequest({ From: 'whatsapp:+56912345678', Body: 'nota: comprar pan' }),
       mockContext(),
@@ -69,6 +70,8 @@ describe('whatsapp-webhook', () => {
     expect(res.status).toBe(200)
     const xml = await res.text()
     expect(xml).toContain('Nota guardada')
+    expect(xml).toContain('world=notas') // deep link a la vista
+    expect(xml).toContain('deshacer') // affordance de undo
   })
 
   it('captura freeform → el LLM clasifica y se persiste', async () => {
@@ -89,7 +92,8 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
     mockSqlResponses.push([]) // extraction_log (fire-and-forget)
-    mockSqlResponses.push([]) // INSERT notes
+    mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes RETURNING id
+    mockSqlResponses.push([]) // UPDATE last_capture (fire-and-forget)
     const res = await webhookHandler(
       twilioRequest({ From: 'whatsapp:+56912345678', Body: 'me acordé de algo' }),
       mockContext(),
@@ -97,6 +101,32 @@ describe('whatsapp-webhook', () => {
     expect(res.status).toBe(200)
     expect(askLLMForJson).toHaveBeenCalledOnce()
     expect(await res.text()).toContain('Nota guardada')
+  })
+
+  it('deshacer → soft-deletea la última captura', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ kind: 'note', cap_id: 'n1' }]) // SELECT last_capture
+    mockSqlResponses.push([{ id: 'n1' }]) // UPDATE notes (soft-delete) RETURNING id
+    mockSqlResponses.push([]) // UPDATE clear last_capture (fire-and-forget)
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'deshacer' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('deshecho')
+  })
+
+  it('deshacer sin captura previa avisa que no hay nada', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([]) // SELECT last_capture → vacío
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'deshacer' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('nada reciente')
   })
 
   it('idempotencia: un MessageSid ya procesado no re-escribe (TwiML vacío)', async () => {

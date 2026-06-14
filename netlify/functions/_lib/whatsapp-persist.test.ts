@@ -13,7 +13,7 @@ import { persistCapture } from './whatsapp/persist'
 /**
  * Fake sql tagged-template: devuelve en orden FIFO las respuestas precargadas
  * e ignora los argumentos. Suficiente para ejercitar las ramas de persist
- * (qué confirma, cuántas queries, find-or-create de la entidad de la cita).
+ * (qué confirma, qué id devuelve, cuántas queries, find-or-create de la cita).
  */
 function fakeSql(responses: unknown[][]): { sql: SqlClient; calls: number } {
   const state = { calls: 0 }
@@ -31,51 +31,55 @@ function fakeSql(responses: unknown[][]): { sql: SqlClient; calls: number } {
 }
 
 describe('persistCapture', () => {
-  it('note → inserta y confirma', async () => {
-    const { sql } = fakeSql([[]])
-    const msg = await persistCapture(sql, 'u1', { kind: 'note', content: 'comprar pan' })
-    expect(msg).toContain('Nota guardada')
+  it('note → inserta, confirma y devuelve el id', async () => {
+    const r = await persistCapture(fakeSql([[{ id: 'n1' }]]).sql, 'u1', {
+      kind: 'note',
+      content: 'comprar pan',
+    })
+    expect(r.message).toContain('Nota guardada')
+    expect(r.id).toBe('n1')
   })
 
-  it('momento → inserta y confirma', async () => {
-    const { sql } = fakeSql([[]])
-    const msg = await persistCapture(sql, 'u1', {
+  it('momento → inserta y devuelve el id', async () => {
+    const r = await persistCapture(fakeSql([[{ id: 'm1' }]]).sql, 'u1', {
       kind: 'momento',
       bodyText: 'hoy llovió',
     })
-    expect(msg).toContain('Momento guardado')
+    expect(r.message).toContain('Momento guardado')
+    expect(r.id).toBe('m1')
   })
 
-  it('entity → inserta con el nombre en la confirmación', async () => {
-    const { sql } = fakeSql([[]])
-    const msg = await persistCapture(sql, 'u1', {
+  it('entity → inserta con el nombre y devuelve el id', async () => {
+    const r = await persistCapture(fakeSql([[{ id: 'e1' }]]).sql, 'u1', {
       kind: 'entity',
       name: 'Rayuela',
       entityType: 'libro',
       description: null,
     })
-    expect(msg).toContain('Rayuela')
+    expect(r.message).toContain('Rayuela')
+    expect(r.id).toBe('e1')
   })
 
-  it('quote → CTE atómico find-or-create + insert, confirma con el autor', async () => {
-    // Un solo CTE: devuelve la fila con entity_id (sea existente o nueva).
-    const fake = fakeSql([[{ entity_id: 'e1' }]])
-    const msg = await persistCapture(fake.sql, 'u1', {
+  it('quote → CTE atómico find-or-create + insert, devuelve el id de la cita', async () => {
+    // Un solo CTE: devuelve la fila con el id de la cita (entidad existente o nueva).
+    const fake = fakeSql([[{ id: 'q1' }]])
+    const r = await persistCapture(fake.sql, 'u1', {
       kind: 'quote',
       text: 'el tiempo es una trama',
       author: 'Borges',
     })
-    expect(msg).toContain('Borges')
+    expect(r.message).toContain('Borges')
+    expect(r.id).toBe('q1')
     expect(fake.calls).toBe(1) // multi-write en una sola sentencia
   })
 
-  it('quote → si el CTE no devuelve fila, mensaje de error sin romper', async () => {
-    const { sql } = fakeSql([[]])
-    const msg = await persistCapture(sql, 'u1', {
+  it('quote → si el CTE no devuelve fila, mensaje de error e id null', async () => {
+    const r = await persistCapture(fakeSql([[]]).sql, 'u1', {
       kind: 'quote',
       text: 'x',
       author: 'Z',
     })
-    expect(msg).toContain('No pude guardar la cita')
+    expect(r.message).toContain('No pude guardar la cita')
+    expect(r.id).toBeNull()
   })
 })

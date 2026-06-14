@@ -57,6 +57,20 @@ nada**.
 Una cita necesita autor (la entidad a la que cuelga). Si no viene, el webhook
 pide reenviarla con `cita: <texto> — <autor>`.
 
+## Confirmación accionable (deep link + deshacer)
+
+Cada captura responde con: la confirmación, un **deep link** a la vista de la
+app que contiene el item (`?view=citas|entidades|momentos`, `?world=notas` —
+la app lee esos params al primer render vía `useInitialView`/`readWorldDeepLink`;
+helper puro en `_lib/whatsapp/deep-link.ts`), y la opción de **deshacer**.
+
+El webhook recuerda la última captura por número en las columnas
+`last_capture_kind/id` de `whatsapp_links` (migración
+`20260614010000_whatsapp_last_capture`). Si el usuario responde **`deshacer`**
+(o `undo`), soft-deletea esa última captura y limpia el puntero — naturalmente
+idempotente: un segundo `deshacer` ya no encuentra nada. No deep-linkeamos el
+item exacto porque la app aún no rutea por id.
+
 ## Seguridad
 
 - **Firma obligatoria en producción.** Si `TWILIO_AUTH_TOKEN` está seteado, un
@@ -114,3 +128,41 @@ Ver la sección "paso a paso" en la conversación de implementación, resumida:
 
 > El sandbox de Twilio caduca la sesión cada 24-72 h (hay que reenviar el
 > `join`). Para uso permanente, registrar un número de WhatsApp Business.
+
+## Troubleshooting (no me llegan / no responde)
+
+Síntoma → qué revisar, en orden:
+
+1. **El bot no responde nada.**
+   - ¿El webhook de Twilio apunta a `https://<dominio>/api/whatsapp-webhook` con
+     método **POST**? (Messaging → Sandbox/Sender settings → "When a message
+     comes in".)
+   - **Sandbox:** ¿enviaste el `join <palabras>` en las últimas 24-72 h? Caduca;
+     reenvialo.
+   - Revisá los logs de la función en Netlify y el "Debugger" de Twilio
+     (Monitor → Logs → Errors).
+
+2. **Responde "Firma de Twilio inválida" / 401.**
+   - `TWILIO_AUTH_TOKEN` en Netlify no coincide con el Auth Token actual de
+     Twilio (¿rotaste el token? ¿copiaste el de otra subcuenta?).
+   - La URL firmada no coincide: si hay proxy/redirect, seteá `TWILIO_WEBHOOK_URL`
+     con la URL **exacta** configurada en Twilio.
+   - Tras cambiar env vars, **redeploy** (las funciones las leen en build/boot).
+
+3. **Responde "Tu número no está vinculado".**
+   - Generá un código en Configuración → WhatsApp y enviá `vincular <código>`
+     (vence en 15 min). El número remitente debe ser el mismo que vinculaste.
+
+4. **Texto libre cae siempre a nota (no clasifica).**
+   - La IA está en modo **Off** o se agotó el **cost-cap mensual** → fallback a
+     nota a propósito (la captura nunca se bloquea). Revisá Configuración → IA y
+     el gasto en Estado.
+
+5. **Se duplicó una nota/cita.**
+   - No debería: el webhook deduplica por `MessageSid`
+     (`whatsapp_processed_messages`). Si pasó, confirmá que la migración
+     `20260614003000_whatsapp_processed_messages` está aplicada en ese entorno.
+
+6. **El QR / botón "Abrir WhatsApp" no aparece.**
+   - Falta `VITE_WHATSAPP_NUMBER` (es público, se inyecta en build → redeploy).
+     Sin él, el panel cae a copiar/pegar `vincular <código>`.
