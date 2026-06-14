@@ -24,3 +24,4 @@ export type ViewMode =
   | 'atlas'
   | 'chat'
   | 'sugerencias'
+  | 'consultas'

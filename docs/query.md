@@ -124,13 +124,63 @@ El compilador es la superficie crítica:
   **aislamiento RLS** entre usuarios. Guarded por `QUERY_IT_DB_URL` (job
   `migrations` de CI / `npm run db:up`). `npm run test:query-it`.
 
+## Fase 3 — lenguaje natural → AST ("pregúntale a tu Trama")
+
+`POST /api/query/nl { q }` traduce una pregunta en lenguaje natural a un AST y
+lo ejecuta. Devuelve `{ query, items, nextCursor, source }` — incluye el **AST
+interpretado** para que la UI lo muestre/edite (la "live update view").
+
+- **Catálogo data-driven** (`_lib/query/nl.ts` → `buildCatalogText`): al LLM se
+  le pasa la lista de kinds/campos/ops/`prop:`/`linked_to` derivada del
+  field-registry + los `entity_types` + la fecha de hoy (para rangos relativos
+  como "el mes pasado"). Así el modelo sólo referencia campos que el compilador
+  acepta.
+- **Validación + reparación:** la salida del LLM se valida con el mismo
+  `QueryBody` (Zod); si falla, hay **un intento de reparación** (re-prompt con el
+  error). Si vuelve a fallar, o si la IA está off / sin presupuesto, **cae a una
+  búsqueda de texto libre** (`matches` sobre todos los tipos) — el usuario
+  siempre recibe resultados.
+- Mismos guards que el resto: `checkMonthlyBudget` + `resolveAIInvocation`
+  (tarea `classify`). El traductor (`translateNl`) recibe el `ask` inyectado →
+  testeable con LLM mockeado y contra Postgres real.
+- **Degradación elegante (no 429):** a diferencia de los endpoints que generan
+  contenido, sin presupuesto/IA off este endpoint **no** corta con 429 —
+  degrada a la búsqueda de texto libre para que el usuario siempre reciba
+  resultados. El catálogo (`entity_types`) sólo se consulta cuando se va a
+  invocar al LLM (se evita el round-trip en el camino de fallback). Cada llamada
+  real al LLM se asienta en `extraction_log` (un cache hit factura 0).
+- **Validación en dos capas:** Zod (`QueryBody`) garantiza la forma; un dry-run
+  de `compileQuery` descarta ASTs Zod-válidos pero no compilables (p.ej. un op
+  no permitido para el tipo del campo) antes de que lleguen a `runQuery`.
+
+## Fase 4 — consultas guardadas, UI y bloques embebibles
+
+Tres piezas sobre el mismo AST serializable:
+
+- **Consultas guardadas** (`saved_queries`): migración con tabla propia, RLS por
+  usuario y soft-delete. CRUD vía `/api/saved-queries` (GET/POST/PATCH/DELETE).
+  El AST guardado se valida con el **mismo `QueryBody`** del motor — una consulta
+  guardada nunca puede contener algo que el compilador rechace. `_lib/saved-
+queries.ts` aísla schemas + mapeo row→DTO (puro/testeable).
+- **UI con preview en vivo** (vista `Consultas`, grupo Diálogo): un cuadro de
+  texto en lenguaje natural → `queryApi.ask`; muestra la **fuente** (IA /
+  fallback), el **AST interpretado** (colapsable) y los resultados. Permite
+  **guardar** la consulta y **correr** las guardadas (`queryApi.run`).
+- **Bloques embebibles**: una valla markdown ` ```trama-query ` cuyo cuerpo es el
+  AST JSON se renderiza como un `<QueryBlock>` que ejecuta la consulta en vivo
+  dentro de una nota. Es self-contained (el AST viaja en el bloque) y defensivo
+  (JSON inválido / sin `from` → aviso, no rompe la nota). El botón "Copiar bloque
+  embebible" de la vista genera ese snippet desde cualquier resultado.
+
 ## Roadmap
 
 - **Fase 1 (hecha):** AST + compilador + endpoint + filtros tipo/fecha/tags/texto.
 - **Fase 2 (hecha):** propiedades de usuario (`prop:<key>`), tags unificados,
   `linked_to`, escritura vía `/api/object-properties`.
+- **Fase 3 (hecha):** traductor lenguaje-natural→AST (`/api/query/nl`) con
+  catálogo data-driven, reparación y fallback de texto libre.
+- **Fase 4 (hecha):** consultas guardadas (`saved_queries`) + vista `Consultas`
+  con preview en vivo + bloques embebibles (` ```trama-query `).
 - Fase 2.5: registro `property_defs` (catálogo tipado) + read-model `objects`
   (proyección denormalizada) para escala.
-- Fase 3: traductor lenguaje-natural→AST (LLM con guardas) + preview en vivo.
-- Fase 4: queries guardadas (`saved_queries`) + bloques embebibles.
 - Fase 1.5: predicado semántico `near` (pgvector) integrado al motor.

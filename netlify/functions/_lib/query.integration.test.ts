@@ -3,6 +3,7 @@ import pg from 'pg'
 import type { SqlClient } from './db'
 import { runQuery } from './query/execute'
 import { applyObjectProperties } from './object-properties'
+import { translateNl, type NlContext } from './query/nl'
 
 /**
  * Test de INTEGRACIÓN del motor de queries contra Postgres REAL (no mocks).
@@ -238,5 +239,46 @@ describe.skipIf(!DB_URL)('query engine (integración Postgres real)', () => {
     })
     expect(page2.items).toHaveLength(1)
     expect(page2.items[0].id).not.toBe(page1.items[0].id)
+  })
+
+  it('NL→AST→SQL→PG: el AST traducido se ejecuta contra Postgres real', async () => {
+    const ctx: NlContext = { today: '2026-06-14', entityTypes: ['qit-persona'] }
+    // Stub del LLM: devuelve un AST de matches (la parte NL está unit-tested;
+    // acá probamos que el AST traducido compila y corre contra PG real).
+    const ask = () =>
+      Promise.resolve({
+        content: { from: ['entity'], where: { op: 'matches', value: 'BorgesQIT' } },
+      })
+    const { query, source } = await translateNl('algo de borges', ctx, ask)
+    expect(source).toBe('llm')
+    const { items } = await runQuery(sqlFor(USER_A), query)
+    expect(items.some((i) => i.title === 'BorgesQIT Unico')).toBe(true)
+  })
+
+  it('saved_queries: aislamiento RLS + soft-delete entre usuarios', async () => {
+    const ast = JSON.stringify({ from: ['entity'], where: { op: 'matches', value: 'x' } })
+    const inserted = (await sqlFor(USER_A)`
+      INSERT INTO saved_queries (user_id, name, query)
+      VALUES (${USER_A}, ${'Mi consulta QIT'}, ${ast}::jsonb)
+      RETURNING id
+    `) as unknown as Array<{ id: string }>
+    const id = inserted[0]!.id
+
+    // A la ve; B no (RLS).
+    const seenByA = (await sqlFor(USER_A)`
+      SELECT id FROM saved_queries WHERE id = ${id} AND deleted_at IS NULL
+    `) as unknown as unknown[]
+    expect(seenByA).toHaveLength(1)
+    const seenByB = (await sqlFor(USER_B)`
+      SELECT id FROM saved_queries WHERE id = ${id} AND deleted_at IS NULL
+    `) as unknown as unknown[]
+    expect(seenByB).toHaveLength(0)
+
+    // Soft-delete por A → deja de verla.
+    await sqlFor(USER_A)`UPDATE saved_queries SET deleted_at = NOW() WHERE id = ${id}`
+    const afterDelete = (await sqlFor(USER_A)`
+      SELECT id FROM saved_queries WHERE id = ${id} AND deleted_at IS NULL
+    `) as unknown as unknown[]
+    expect(afterDelete).toHaveLength(0)
   })
 })

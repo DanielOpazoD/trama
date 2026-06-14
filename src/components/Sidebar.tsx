@@ -112,6 +112,7 @@ export function Sidebar({
     atlas: null,
     chat: null,
     sugerencias: pendingSuggestions.length > 0 ? pendingSuggestions.length : null,
+    consultas: null,
   }
   const healthTone =
     healthAlerts.maxSeverity === 'error'
