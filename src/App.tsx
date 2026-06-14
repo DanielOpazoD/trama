@@ -497,11 +497,13 @@ function readNotasSectionDeepLink(): NotasSection | null {
  * top-level Recortes (ya removida). Antes de resolver mundo/sección iniciales,
  * reescribimos la URL a `?world=notas&section=bandeja` (preservando tab/project)
  * para que el resto del arranque lea los params nuevos — sin flash del mundo
- * trama. Se ejecuta una sola vez al cargar el módulo (idempotente: tras el
- * replace ya no hay `view=recortes`).
+ * trama. Corre UNA sola vez (guard de módulo): el redirect depende solo de la
+ * URL de arranque, así que no debe re-evaluarse en cada render de WorldShell.
  */
+let recortesRedirectApplied = false
 function applyRecortesRedirectOnce() {
-  if (typeof window === 'undefined') return
+  if (recortesRedirectApplied || typeof window === 'undefined') return
+  recortesRedirectApplied = true
   const redirect = resolveRecortesRedirect(window.location.search)
   if (!redirect) return
   try {
