@@ -127,3 +127,67 @@ describe('parseInboundMessage — texto libre', () => {
     })
   })
 })
+
+describe('parseInboundMessage — edición rápida y multidispositivo', () => {
+  it('vincular con etiqueta de dispositivo', () => {
+    expect(parseInboundMessage('vincular ABC123 trabajo')).toEqual({
+      kind: 'link',
+      rawCode: 'ABC123',
+      label: 'trabajo',
+    })
+    expect(parseInboundMessage('vincular ABC123 mi celular')).toEqual({
+      kind: 'link',
+      rawCode: 'ABC123',
+      label: 'mi celular',
+    })
+  })
+
+  it('vincular sin etiqueta no incluye label', () => {
+    expect(parseInboundMessage('vincular ABC123')).toEqual({
+      kind: 'link',
+      rawCode: 'ABC123',
+    })
+  })
+
+  it('título <texto> (con y sin dos puntos, con tilde)', () => {
+    expect(parseInboundMessage('título Mi gran idea')).toEqual({
+      kind: 'retitle',
+      title: 'Mi gran idea',
+    })
+    expect(parseInboundMessage('titulo: otra cosa')).toEqual({
+      kind: 'retitle',
+      title: 'otra cosa',
+    })
+  })
+
+  it('etiqueta / tag <palabras>', () => {
+    expect(parseInboundMessage('etiqueta trabajo, ideas')).toEqual({
+      kind: 'tag',
+      tags: 'trabajo, ideas',
+    })
+    expect(parseInboundMessage('tag urgente')).toEqual({ kind: 'tag', tags: 'urgente' })
+  })
+
+  it('palabra suelta reclasifica (nota / momento / entidad)', () => {
+    expect(parseInboundMessage('nota')).toEqual({ kind: 'recategorize', toKind: 'note' })
+    expect(parseInboundMessage('momento')).toEqual({
+      kind: 'recategorize',
+      toKind: 'momento',
+    })
+    expect(parseInboundMessage('Entidad')).toEqual({
+      kind: 'recategorize',
+      toKind: 'entity',
+    })
+  })
+
+  it('palabra suelta "cita" NO reclasifica (necesita autor) → freeform', () => {
+    expect(parseInboundMessage('cita')).toEqual({ kind: 'freeform', text: 'cita' })
+  })
+
+  it('un prefijo con contenido NO se confunde con reclasificación', () => {
+    expect(parseInboundMessage('nota: comprar pan')).toMatchObject({
+      kind: 'intent',
+      intent: { kind: 'note' },
+    })
+  })
+})

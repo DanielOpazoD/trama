@@ -45,7 +45,7 @@ describe('persistCapture', () => {
       kind: 'momento',
       bodyText: 'hoy llovió',
     })
-    expect(r.message).toContain('Momento guardado')
+    expect(r.message).toContain('Momento añadido')
     expect(r.id).toBe('m1')
   })
 

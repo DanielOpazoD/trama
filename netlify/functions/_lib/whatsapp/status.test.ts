@@ -26,7 +26,7 @@ describe('formatStatus', () => {
       },
       NOW,
     )
-    expect(s).toContain('Vínculo: activo ✅')
+    expect(s).toContain('Conexión: activa ✅')
     expect(s).toContain('Última captura: nota (hace 5 min)')
     expect(s).toContain('deshacer')
     expect(s).toContain('Mensajes este mes: 7')
@@ -52,5 +52,19 @@ describe('formatStatus', () => {
       NOW,
     )
     expect(s).toContain('pendiente')
+  })
+
+  it('muestra la etiqueta del dispositivo cuando existe', () => {
+    const s = formatStatus(
+      {
+        verifiedAt: '2026-06-01T00:00:00Z',
+        deviceLabel: 'trabajo',
+        lastCaptureKind: null,
+        lastCaptureAt: null,
+        monthCount: 0,
+      },
+      NOW,
+    )
+    expect(s).toContain('Dispositivo: «trabajo»')
   })
 })

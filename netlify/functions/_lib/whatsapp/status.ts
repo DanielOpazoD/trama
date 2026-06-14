@@ -8,6 +8,8 @@
 export type StatusData = {
   /** verified_at del vínculo (null = no verificado, no debería pasar acá). */
   verifiedAt: string | null
+  /** Etiqueta del dispositivo (multidispositivo), o null. */
+  deviceLabel?: string | null
   /** Última captura recordada (para "deshacer"), o null si no hay. */
   lastCaptureKind: string | null
   lastCaptureAt: string | null
@@ -38,19 +40,22 @@ export function relativeTime(fromISO: string, now: Date = new Date()): string {
 }
 
 export function formatStatus(d: StatusData, now: Date = new Date()): string {
-  const lines: string[] = ['📊 Estado de tu Trama por WhatsApp']
-  lines.push(d.verifiedAt ? '• Vínculo: activo ✅' : '• Vínculo: pendiente ⏳')
+  const lines: string[] = ['📊 Tu Trama por WhatsApp']
+  lines.push(d.verifiedAt ? '• Conexión: activa ✅' : '• Conexión: pendiente ⏳')
+  if (d.deviceLabel && d.deviceLabel.trim()) {
+    lines.push(`• Dispositivo: «${d.deviceLabel.trim()}»`)
+  }
 
   if (d.lastCaptureKind && d.lastCaptureAt) {
     const noun = NOUN_BY_KIND[d.lastCaptureKind] ?? 'captura'
     const when = relativeTime(d.lastCaptureAt, now)
     lines.push(`• Última captura: ${noun}${when ? ` (${when})` : ''}`)
-    lines.push('• Podés deshacerla respondiendo: deshacer')
+    lines.push('   ↩️ Puedes revertirla respondiendo «deshacer».')
   } else {
     lines.push('• Última captura: todavía nada')
   }
 
   lines.push(`• Mensajes este mes: ${d.monthCount}`)
-  lines.push('Escribí "ayuda" para ver los comandos.')
+  lines.push('Escribe «ayuda» para ver todos los comandos.')
   return lines.join('\n')
 }

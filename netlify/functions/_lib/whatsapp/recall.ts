@@ -56,10 +56,10 @@ export function buildRecallPrompt(query: string, ctx: RagContext): LLMMessage[] 
     {
       role: 'system',
       content: [
-        'Sos el asistente de "Trama", el segundo cerebro del usuario.',
-        'Respondé la pregunta usando SOLO el contexto provisto (lo que el usuario ya guardó).',
-        'No inventes datos que no estén en el contexto. Si el contexto no alcanza, decilo brevemente.',
-        'Respuesta concisa (máx ~60 palabras), en español, tono cercano. Sin markdown ni viñetas.',
+        'Eres el asistente de "Trama", el segundo cerebro del usuario.',
+        'Responde la pregunta usando SOLO el contexto provisto (lo que el usuario ya guardó).',
+        'No inventes datos que no estén en el contexto. Si el contexto no alcanza, dilo brevemente.',
+        'Respuesta concisa (máx ~60 palabras), en español neutro, tono cercano. Sin markdown ni viñetas.',
       ].join('\n'),
     },
     {

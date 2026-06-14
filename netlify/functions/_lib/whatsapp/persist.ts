@@ -101,7 +101,7 @@ async function persistMomento(
     RETURNING id
   `)
   return {
-    message: '🕰️ Momento guardado en tu línea de tiempo.',
+    message: '🕰️ Momento añadido a tu línea de tiempo.',
     id: rows[0]?.id ?? null,
   }
 }
@@ -133,7 +133,7 @@ async function persistEntity(
     )
     RETURNING id
   `)
-  return { message: `🔭 Entidad «${name}» agregada al grafo.`, id: rows[0]?.id ?? null }
+  return { message: `🔭 «${name}» ya forma parte de tu grafo.`, id: rows[0]?.id ?? null }
 }
 
 async function persistQuote(
@@ -204,7 +204,7 @@ async function persistQuote(
     RETURNING id
   `)
   if (rows.length === 0) {
-    return { message: 'No pude guardar la cita. Probá de nuevo.', id: null }
+    return { message: 'No pude guardar la cita. Vuelve a intentarlo.', id: null }
   }
-  return { message: `❝ Cita de ${author} guardada.`, id: rows[0]!.id }
+  return { message: `❝ Guardé la cita de ${author}.`, id: rows[0]!.id }
 }

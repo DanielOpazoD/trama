@@ -73,7 +73,7 @@ describe('whatsapp-webhook', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toContain('text/xml')
     const xml = await res.text()
-    expect(xml).toContain('no está vinculado')
+    expect(xml).toContain('no está conectado')
   })
 
   it('captura por prefijo nota: confirma con deep link y opción de deshacer', async () => {
@@ -136,7 +136,7 @@ describe('whatsapp-webhook', () => {
       mockContext(),
     )
     expect(res.status).toBe(200)
-    expect(await res.text()).toContain('deshecho')
+    expect(await res.text()).toContain('se eliminó')
   })
 
   it('deshacer sin captura previa avisa que no hay nada', async () => {
@@ -151,6 +151,62 @@ describe('whatsapp-webhook', () => {
     )
     expect(res.status).toBe(200)
     expect(await res.text()).toContain('nada reciente')
+  })
+
+  it('vincular con etiqueta de dispositivo → bienvenida con la etiqueta', async () => {
+    mockSqlResponses.push([{ id: 'link-1' }]) // redeemLinkCode CTE → 1 fila
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'vincular ABC234 trabajo' }),
+      mockContext(),
+    )
+    const xml = await res.text()
+    expect(xml).toContain('trabajo')
+    expect(xml).toContain('Pruébalo')
+  })
+
+  it('título <texto> → renombra la última captura (nota)', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'note', cap_id: 'n1' }]) // readLastPointer
+    mockSqlResponses.push([{ id: 'n1' }]) // UPDATE notes SET title RETURNING
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'título Mi gran idea' }),
+      mockContext(),
+    )
+    expect(await res.text()).toContain('Título actualizado')
+  })
+
+  it('etiqueta <palabras> → agrega tags a la última captura (nota)', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'note', cap_id: 'n1' }]) // readLastPointer
+    mockSqlResponses.push([{ id: 'n1' }]) // UPDATE notes SET tags RETURNING
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'etiqueta trabajo, ideas' }),
+      mockContext(),
+    )
+    expect(await res.text()).toContain('Etiquetas agregadas')
+  })
+
+  it('palabra suelta "momento" → reclasifica la última nota', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'note', cap_id: 'n1' }]) // readLastPointer
+    mockSqlResponses.push([{ t: 'comprar pan' }]) // readCaptureText (content)
+    mockSqlResponses.push([{ id: 'm1' }]) // persistMomento INSERT RETURNING
+    mockSqlResponses.push([{ id: 'n1' }]) // softDelete nota RETURNING
+    mockSqlResponses.push([]) // recordLastCapture UPDATE
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'momento' }),
+      mockContext(),
+    )
+    expect(await res.text()).toContain('Reclasificado')
   })
 
   it('idempotencia: un MessageSid ya procesado no re-escribe (TwiML vacío)', async () => {
@@ -172,7 +228,7 @@ describe('whatsapp-webhook', () => {
       mockContext(),
     )
     const xml = await res.text()
-    expect(xml).toContain('vinculado')
+    expect(xml).toContain('conectado')
   })
 
   it('vincular con código vencido avisa', async () => {
@@ -182,7 +238,7 @@ describe('whatsapp-webhook', () => {
       mockContext(),
     )
     const xml = await res.text()
-    expect(xml).toContain('vencido')
+    expect(xml).toContain('venció')
   })
 
   it('ayuda devuelve el menú', async () => {
@@ -373,7 +429,7 @@ describe('whatsapp-webhook', () => {
       mockContext(),
     )
     expect(res.status).toBe(200)
-    expect(await res.text()).toContain('No encontré nada')
+    expect(await res.text()).toContain('Todavía no encontré nada')
   })
 
   it('estado → resumen del vínculo', async () => {
@@ -395,7 +451,7 @@ describe('whatsapp-webhook', () => {
     )
     expect(res.status).toBe(200)
     const xml = await res.text()
-    expect(xml).toContain('Estado de tu Trama')
+    expect(xml).toContain('Tu Trama por WhatsApp')
     expect(xml).toContain('Mensajes este mes: 4')
   })
 
@@ -416,7 +472,7 @@ describe('whatsapp-webhook', () => {
       mockContext(),
     )
     expect(res.status).toBe(200)
-    expect(await res.text()).toContain('formato de imagen no lo soporto')
+    expect(await res.text()).toContain('formato no lo soporto')
   })
 
   it('foto demasiado pesada → avisa el límite', async () => {
@@ -461,7 +517,7 @@ describe('whatsapp-webhook', () => {
       mockContext(),
     )
     expect(res.status).toBe(200)
-    expect(await res.text()).toContain('muy pesada')
+    expect(await res.text()).toContain('pesa demasiado')
   })
 
   it('firma inválida cuando TWILIO_AUTH_TOKEN está configurado → 401', async () => {

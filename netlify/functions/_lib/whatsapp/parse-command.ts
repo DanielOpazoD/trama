@@ -1,14 +1,17 @@
-import type { CaptureIntent } from './types.js'
+import type { CaptureIntent, CaptureKind } from './types.js'
 import { slugifyEntityType } from './entity-type.js'
 
 /**
  * Parser híbrido de mensajes entrantes (camino SIN LLM).
  *
- * Reconoce comandos de control (`vincular <código>`, `ayuda`) y prefijos
- * explícitos (`nota:`, `cita:`, `entidad:`, `momento:`). Si el mensaje no
- * trae prefijo, devuelve `{ kind: 'freeform' }` y el webhook lo manda al
- * clasificador IA. Así el usuario elige: prefijo = instantáneo y gratis;
- * texto libre = magia (cuesta tokens).
+ * Reconoce comandos de control (`vincular <código> [etiqueta]`, `ayuda`,
+ * `deshacer`, `estado`), edición rápida de la última captura (`título …`,
+ * `etiqueta …`), reclasificación (palabra suelta: `nota` / `momento` /
+ * `entidad`), consultas (`buscar:` / `?`) y prefijos explícitos (`nota:`,
+ * `cita:`, `entidad:`, `momento:`). Si el mensaje no encaja, devuelve
+ * `{ kind: 'freeform' }` y el webhook lo manda al clasificador IA. Así el
+ * usuario elige: prefijo = instantáneo y gratis; texto libre = magia (cuesta
+ * tokens).
  */
 export type ParsedInbound =
   | { kind: 'empty' }
@@ -16,7 +19,10 @@ export type ParsedInbound =
   | { kind: 'undo' }
   | { kind: 'status' }
   | { kind: 'query'; text: string }
-  | { kind: 'link'; rawCode: string }
+  | { kind: 'link'; rawCode: string; label?: string }
+  | { kind: 'recategorize'; toKind: 'note' | 'momento' | 'entity' }
+  | { kind: 'retitle'; title: string }
+  | { kind: 'tag'; tags: string }
   | { kind: 'intent'; intent: CaptureIntent }
   | { kind: 'freeform'; text: string }
 
@@ -65,7 +71,7 @@ function parseEntity(rest: string): CaptureIntent {
   return { kind: 'entity', name: rest.trim(), entityType: 'concepto', description: null }
 }
 
-const KEYWORDS: Record<string, CaptureIntent['kind']> = {
+const KEYWORDS: Record<string, CaptureKind> = {
   nota: 'note',
   note: 'note',
   cita: 'quote',
@@ -77,28 +83,65 @@ const KEYWORDS: Record<string, CaptureIntent['kind']> = {
   moment: 'momento',
 }
 
+/** Palabras sueltas que reclasifican la última captura. Cita queda fuera:
+ *  necesita autor, así que para convertir a cita se usa el prefijo `cita:`. */
+const RECATEGORIZE: Record<string, 'note' | 'momento' | 'entity'> = {
+  nota: 'note',
+  note: 'note',
+  momento: 'momento',
+  moment: 'momento',
+  entidad: 'entity',
+  entity: 'entity',
+}
+
 export function parseInboundMessage(raw: string): ParsedInbound {
   const text = raw.trim()
   if (!text) return { kind: 'empty' }
 
-  // Primer token (sin barra inicial opcional estilo /comando).
-  const firstWord = fold(text.split(/\s+/, 1)[0]!.replace(/^\//, ''))
+  const tokens = text.split(/\s+/)
+  // Primer token sin barra inicial (estilo /comando) ni dos puntos finales.
+  const cmd = fold(tokens[0]!.replace(/^\//, '')).replace(/:$/, '')
+  // Resto del mensaje tras el primer token (limpiando ":" o espacios sobrantes).
+  const rest = text
+    .slice(tokens[0]!.length)
+    .replace(/^\s*:?\s*/, '')
+    .trim()
+  const single = tokens.length === 1
 
-  if (firstWord === 'vincular' || firstWord === 'link') {
-    const rest = text.replace(/^\/?\S+\s*/, '').trim()
-    return { kind: 'link', rawCode: rest }
+  if (cmd === 'vincular' || cmd === 'link') {
+    // "vincular ABC123 trabajo" → código + etiqueta opcional del dispositivo.
+    const codeTokens = rest.split(/\s+/)
+    const rawCode = codeTokens[0] ?? ''
+    const label = codeTokens.slice(1).join(' ').trim()
+    return label ? { kind: 'link', rawCode, label } : { kind: 'link', rawCode }
   }
-  if (firstWord === 'ayuda' || firstWord === 'help' || text === '?') {
+  if (cmd === 'ayuda' || cmd === 'help' || text === '?') {
     return { kind: 'help' }
   }
-  if (firstWord === 'deshacer' || firstWord === 'undo') {
+  if (cmd === 'deshacer' || cmd === 'undo') {
     return { kind: 'undo' }
   }
-  if (firstWord === 'estado' || firstWord === 'status') {
+  if (cmd === 'estado' || cmd === 'status') {
     return { kind: 'status' }
   }
 
-  // Recall ("preguntale a tu Trama"): "buscar: ..." o "? ..." (con texto).
+  // Edición rápida de la última captura.
+  if ((cmd === 'titulo' || cmd === 'title') && rest) {
+    return { kind: 'retitle', title: rest }
+  }
+  if (
+    (cmd === 'etiqueta' || cmd === 'etiquetas' || cmd === 'tag' || cmd === 'tags') &&
+    rest
+  ) {
+    return { kind: 'tag', tags: rest }
+  }
+
+  // Reclasificar: una palabra suelta que nombra un tipo.
+  if (single && RECATEGORIZE[cmd]) {
+    return { kind: 'recategorize', toKind: RECATEGORIZE[cmd] }
+  }
+
+  // Recall ("pregúntale a tu Trama"): "buscar: ..." o "? ..." (con texto).
   const query = /^\/?(buscar|busca|buscá)\s*:?\s*([\s\S]+)$/i.exec(text)
   if (query && query[2]!.trim()) {
     return { kind: 'query', text: query[2]!.trim() }
@@ -108,24 +151,23 @@ export function parseInboundMessage(raw: string): ParsedInbound {
   }
 
   // Prefijo con dos puntos: "nota: ...", "/cita ...".
-  // Aceptamos "palabra:" o "/palabra " como marcador.
   const colon = /^\/?([a-záéíóúñ]+)\s*:\s*([\s\S]+)$/i.exec(text)
   const slash = /^\/([a-záéíóúñ]+)\s+([\s\S]+)$/i.exec(text)
   const match = colon ?? slash
   if (match) {
     const kw = fold(match[1]!)
     const kind = KEYWORDS[kw]
-    const rest = match[2]!.trim()
-    if (kind && rest) {
+    const body = match[2]!.trim()
+    if (kind && body) {
       switch (kind) {
         case 'note':
-          return { kind: 'intent', intent: { kind: 'note', content: rest } }
+          return { kind: 'intent', intent: { kind: 'note', content: body } }
         case 'quote':
-          return { kind: 'intent', intent: parseQuote(rest) }
+          return { kind: 'intent', intent: parseQuote(body) }
         case 'entity':
-          return { kind: 'intent', intent: parseEntity(rest) }
+          return { kind: 'intent', intent: parseEntity(body) }
         case 'momento':
-          return { kind: 'intent', intent: { kind: 'momento', bodyText: rest } }
+          return { kind: 'intent', intent: { kind: 'momento', bodyText: body } }
       }
     }
   }

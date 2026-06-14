@@ -98,7 +98,7 @@ export function WhatsAppPanel() {
     <section>
       <PanelHeader
         title="Conectar WhatsApp"
-        hint="Mandá notas, citas, entidades y momentos desde WhatsApp. Generá un código y vinculá tu número con un toque. Después escribí «nota: …», «cita: … — autor», «entidad: nombre (tipo)», «momento: …» o texto libre (lo clasifico solo)."
+        hint="Captura notas, citas, entidades y momentos desde WhatsApp. Genera un código y conecta tu número con un toque. Después escribe «nota: …», «cita: … — autor», «entidad: nombre (tipo)», «momento: …» o texto libre (lo clasifico solo). Tras guardar puedes responder «título …», «etiqueta …» o reclasificar con «nota»/«momento»/«entidad»."
       />
 
       <div className="max-w-md space-y-4">
@@ -115,7 +115,7 @@ export function WhatsAppPanel() {
             {deepLink ? (
               <div className="flex flex-col items-center gap-3">
                 <p className="text-micro uppercase tracking-eyebrow text-ink-300 self-start">
-                  vinculá tu número — vence en {fresh.ttlMinutes} min
+                  conecta tu número — vence en {fresh.ttlMinutes} min
                 </p>
 
                 {/* QR: escanear desde OTRO celular (estás en desktop). */}
@@ -144,8 +144,8 @@ export function WhatsAppPanel() {
                 </a>
 
                 <p className="text-micro text-ink-400 leading-relaxed text-center">
-                  Escaneá el QR desde el celular donde tenés WhatsApp, o tocá el botón si
-                  ya estás en él. Se abre con el mensaje listo — solo enviá.
+                  Escanea el QR desde el teléfono donde tienes WhatsApp, o toca el botón
+                  si ya estás en él. Se abre con el mensaje listo — solo envíalo.
                 </p>
 
                 <button
@@ -159,7 +159,7 @@ export function WhatsAppPanel() {
               // Sin número configurado: copiar/pegar manual.
               <>
                 <p className="text-micro uppercase tracking-eyebrow text-ink-300">
-                  enviá esto por WhatsApp — vence en {fresh.ttlMinutes} min
+                  envía esto por WhatsApp — vence en {fresh.ttlMinutes} min
                 </p>
                 <code className="mt-1.5 block break-all rounded bg-paper-50 border border-ink-100/70 px-2 py-1.5 text-caption text-ink-700">
                   vincular {fresh.code}
