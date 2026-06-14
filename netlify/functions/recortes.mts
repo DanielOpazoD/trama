@@ -387,7 +387,7 @@ export default withObservability(
       const rows = await sqlTyped<RecorteRow>(sql`
         SELECT id, text, source_url, source_title, source_author, note,
           image_url, image_key, capture_mode, status, promoted_target,
-          promoted_id, captured_at, created_at, updated_at
+          promoted_id, source, captured_at, created_at, updated_at
         FROM recortes
         WHERE deleted_at IS NULL AND user_id = ${userId}
           AND (${statusFilter}::text IS NULL OR status = ${statusFilter})

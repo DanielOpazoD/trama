@@ -51,5 +51,5 @@ export async function persistImageMomento(
   `)
   const id = rows[0]?.id
   if (!id) throw new Error('persistImageMomento: INSERT no devolvió id')
-  return { message: '📷 Foto guardada en Momentos.', id }
+  return { message: '📷 Foto añadida a Momentos.', id }
 }

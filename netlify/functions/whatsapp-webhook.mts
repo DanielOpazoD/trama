@@ -65,22 +65,48 @@ function readEnv(key: string): string | undefined {
 }
 
 const HELP = [
-  'Trama 📚 — capturá desde WhatsApp:',
+  'Trama 📚 — tu segundo cerebro, ahora desde WhatsApp.',
+  '',
+  'Captura al instante:',
   '• nota: <texto>',
   '• cita: <frase> — <autor>',
   '• entidad: <nombre> (tipo)',
   '• momento: <qué pasó>',
-  'O mandá texto libre y lo clasifico solo.',
-  'Fotos: imagen → Recorte; "cita:"/"nota:" + foto → leo el texto (OCR).',
-  'Preguntá: "buscar: <tema>" o "? <pregunta>" para consultar tu Trama.',
-  'Para borrar lo último: deshacer. Para ver tu resumen: estado.',
+  'O escribe libremente y yo lo clasifico por ti.',
+  '',
+  '📷 Fotos: la imagen va a Recortes. Con «cita:» o «nota:» leo el texto (OCR).',
+  '🔎 Pregunta: «buscar: <tema>» o «? <pregunta>» para consultar tu Trama.',
+  '',
+  'Después de guardar puedes responder:',
+  '• «título <texto>» para nombrarlo',
+  '• «etiqueta <palabras>» para clasificarlo',
+  '• «nota», «momento» o «entidad» para reclasificarlo',
+  '',
+  'Atajos: «deshacer» revierte lo último · «estado» muestra tu resumen.',
 ].join('\n')
 
 const NOT_LINKED = [
-  'Tu número no está vinculado a Trama.',
-  'Entrá a Trama → Configuración → WhatsApp, generá un código y enviámelo así:',
+  'Tu número todavía no está conectado a Trama.',
+  'Abre Trama → Configuración → WhatsApp, genera un código y envíalo así:',
   'vincular ABC123',
 ].join('\n')
+
+/** Bienvenida tras conectar: confirma + invita a probar (onboarding). */
+function welcomeMessage(label?: string): string {
+  const head = label
+    ? `✅ ¡Listo! Conecté este dispositivo como «${label}».`
+    : '✅ ¡Listo! Tu número quedó conectado a Trama.'
+  return [
+    head,
+    '',
+    'Pruébalo ahora mismo:',
+    '• nota: comprar pan',
+    '• cita: el tiempo es relativo — Einstein',
+    '• momento: hoy empecé algo nuevo',
+    '',
+    'Escribe «ayuda» cuando quieras ver todo lo que puedo hacer.',
+  ].join('\n')
+}
 
 /** Resuelve el dueño del número (bypass de RLS: aún no hay usuario en contexto). */
 async function resolveUserByPhone(phone: string): Promise<string | null> {
@@ -95,8 +121,13 @@ async function resolveUserByPhone(phone: string): Promise<string | null> {
   })
 }
 
-/** Canjea un código pendiente y lo ata al número, en un CTE atómico. */
-async function redeemLinkCode(phone: string, code: string): Promise<boolean> {
+/** Canjea un código pendiente y lo ata al número, en un CTE atómico. La
+ *  etiqueta opcional nombra el dispositivo (multidispositivo). */
+async function redeemLinkCode(
+  phone: string,
+  code: string,
+  label?: string,
+): Promise<boolean> {
   return runWithSystemRls(async () => {
     const sql = getSql()
     const rows = await sqlTyped<{ id: string }>(sql`
@@ -120,6 +151,7 @@ async function redeemLinkCode(phone: string, code: string): Promise<boolean> {
           verified_at = NOW(),
           link_code = NULL,
           link_code_expires_at = NULL,
+          label = COALESCE(${label ?? null}, label),
           updated_at = NOW()
       WHERE id = (SELECT id FROM pending)
       RETURNING id
@@ -213,8 +245,8 @@ async function undoLastCapture(
   `.catch(() => {})
   const noun = NOUN_BY_KIND[last.kind as CaptureKind] ?? 'La última captura'
   return deleted
-    ? `↩️ Listo, deshecho. ${noun} se borró.`
-    : 'Eso ya no estaba (quizá lo borraste desde la app).'
+    ? `↩️ Hecho. ${noun} se eliminó.`
+    : 'Eso ya no estaba (quizá lo eliminaste desde la app).'
 }
 
 /**
@@ -242,6 +274,160 @@ async function recordLastCapture(
   } catch {
     // best-effort: si falla, "deshacer" no tendrá target pero la captura quedó.
   }
+}
+
+/** Puntero a la última captura del número (kind + id), o null. */
+async function readLastPointer(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  phone: string,
+): Promise<{ kind: string; id: string } | null> {
+  const rows = await sqlTyped<{ kind: string | null; cap_id: string | null }>(sql`
+    SELECT last_capture_kind AS kind, last_capture_id AS cap_id
+    FROM whatsapp_links
+    WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
+    LIMIT 1
+  `)
+  const r = rows[0]
+  return r?.kind && r.cap_id ? { kind: r.kind, id: r.cap_id } : null
+}
+
+/** Lee el texto fuente de una captura para poder reclasificarla. */
+async function readCaptureText(
+  sql: ReturnType<typeof getSql>,
+  kind: string,
+  id: string,
+  userId: string,
+): Promise<string | null> {
+  const one = (q: Promise<unknown>) => sqlTyped<{ t: string | null }>(q)
+  let rows: { t: string | null }[] = []
+  if (kind === 'note') {
+    rows = await one(sql`SELECT content AS t FROM notes
+      WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL LIMIT 1`)
+  } else if (kind === 'momento') {
+    rows = await one(sql`SELECT payload->>'bodyText' AS t FROM momentos
+      WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL LIMIT 1`)
+  } else if (kind === 'entity') {
+    rows = await one(sql`SELECT name AS t FROM entities
+      WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL LIMIT 1`)
+  } else if (kind === 'quote') {
+    rows = await one(sql`SELECT text AS t FROM quotes
+      WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL LIMIT 1`)
+  } else if (kind === 'recorte') {
+    rows = await one(sql`SELECT text AS t FROM recortes
+      WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL LIMIT 1`)
+  }
+  const t = rows[0]?.t
+  return t && t.trim() ? t.trim() : null
+}
+
+/** "trabajo, ideas" / "#a #b" → ['trabajo','ideas'] (sin #, sin vacíos, máx 10). */
+function parseInlineTags(raw: string): string[] {
+  return [
+    ...new Set(
+      raw
+        .split(/[,\n]+|\s+/)
+        .map((t) => t.trim().replace(/^#/, '').slice(0, 40))
+        .filter((t) => t.length > 0),
+    ),
+  ].slice(0, 10)
+}
+
+/** Comando `título <texto>`: nombra la última captura (notas/entidades). */
+async function retitleLast(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  phone: string,
+  title: string,
+): Promise<string> {
+  const last = await readLastPointer(sql, userId, phone)
+  if (!last) return 'No hay nada reciente para titular.'
+  const clean = title.trim().slice(0, 200)
+  let rows: { id: string }[] = []
+  if (last.kind === 'note') {
+    rows = await sqlTyped<{
+      id: string
+    }>(sql`UPDATE notes SET title = ${clean}, updated_at = NOW()
+      WHERE id = ${last.id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
+  } else if (last.kind === 'entity') {
+    rows = await sqlTyped<{ id: string }>(sql`UPDATE entities SET name = ${clean}
+      WHERE id = ${last.id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
+  } else {
+    return 'Ese tipo de captura no lleva título. Puedes ajustarlo desde la app.'
+  }
+  return rows.length
+    ? `🏷️ Título actualizado: «${clean}».`
+    : 'No encontré esa captura (quizá la eliminaste desde la app).'
+}
+
+/** Comando `etiqueta <palabras>`: agrega tags (dedup) a la última captura. */
+async function tagLast(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  phone: string,
+  tagsRaw: string,
+): Promise<string> {
+  const tags = parseInlineTags(tagsRaw)
+  if (tags.length === 0) {
+    return 'Dime qué etiquetas agregar. Por ejemplo: etiqueta trabajo, ideas'
+  }
+  const last = await readLastPointer(sql, userId, phone)
+  if (!last) return 'No hay nada reciente para etiquetar.'
+  let rows: { id: string }[] = []
+  if (last.kind === 'note') {
+    rows = await sqlTyped<{ id: string }>(sql`UPDATE notes
+      SET tags = ARRAY(SELECT DISTINCT unnest(tags || ${tags}::text[])), updated_at = NOW()
+      WHERE id = ${last.id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
+  } else if (last.kind === 'quote') {
+    rows = await sqlTyped<{ id: string }>(sql`UPDATE quotes
+      SET tags = ARRAY(SELECT DISTINCT unnest(tags || ${tags}::text[]))
+      WHERE id = ${last.id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
+  } else if (last.kind === 'entity') {
+    rows = await sqlTyped<{ id: string }>(sql`UPDATE entities
+      SET tags = ARRAY(SELECT DISTINCT unnest(tags || ${tags}::text[]))
+      WHERE id = ${last.id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
+  } else if (last.kind === 'momento') {
+    rows = await sqlTyped<{ id: string }>(sql`UPDATE momentos
+      SET tags = ARRAY(SELECT DISTINCT unnest(tags || ${tags}::text[])), updated_at = NOW()
+      WHERE id = ${last.id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
+  } else {
+    return 'Ese tipo de captura todavía no admite etiquetas por aquí.'
+  }
+  return rows.length
+    ? `🏷️ Etiquetas agregadas: ${tags.join(', ')}.`
+    : 'No encontré esa captura (quizá la eliminaste desde la app).'
+}
+
+/** Comando de reclasificación (palabra suelta): re-archiva la última captura
+ *  como otro tipo reusando su texto fuente. */
+async function recategorizeLast(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  phone: string,
+  toKind: 'note' | 'momento' | 'entity',
+  origin: string,
+): Promise<string> {
+  const last = await readLastPointer(sql, userId, phone)
+  if (!last) return 'No hay nada reciente para reclasificar.'
+  if (last.kind === toKind) {
+    return `Eso ya está guardado como ${NOUN_BY_KIND[toKind] ?? 'esa categoría'}.`
+  }
+  const text = await readCaptureText(sql, last.kind, last.id, userId)
+  if (!text) {
+    return 'No pude leer esa captura para reclasificarla. Puedes recrearla con el prefijo correcto.'
+  }
+  const intent: CaptureIntent =
+    toKind === 'note'
+      ? { kind: 'note', content: text }
+      : toKind === 'momento'
+        ? { kind: 'momento', bodyText: text }
+        : { kind: 'entity', name: text, entityType: 'concepto', description: null }
+  const { message, id } = await persistCapture(sql, userId, intent)
+  if (!id) return 'No pude reclasificarla en este momento. Vuelve a intentarlo.'
+  await softDeleteCapture(sql, userId, last.kind, last.id)
+  await recordLastCapture(sql, phone, userId, intent.kind, id)
+  const link = captureDeepLink(origin, intent.kind)
+  return `🔄 Reclasificado. ${message}\n🔗 Ábrelo en Trama: ${link}\n↩️ ¿No era así? Responde «deshacer».`
 }
 
 /**
@@ -388,21 +574,23 @@ async function handleInboundMedia(
   const lines: string[] = []
   if (saved > 0) {
     const dest = DEST_BY_KIND[lastKind] ?? 'Trama'
-    lines.push(saved === 1 ? `✅ Guardado en ${dest}.` : `✅ ${saved} ítems guardados.`)
+    lines.push(
+      saved === 1 ? `✅ Guardado en ${dest}.` : `✅ ${saved} elementos guardados.`,
+    )
     if (skipped.has('vision')) {
       lines.push('(No pude leer el texto, así que guardé la imagen tal cual.)')
     }
-    lines.push(`🔗 ${captureDeepLink(origin, lastKind)}`)
-    lines.push('↩️ ¿Mal? Respondé: deshacer')
+    lines.push(`🔗 Ábrelo en Trama: ${captureDeepLink(origin, lastKind)}`)
+    lines.push('↩️ ¿No era así? Responde «deshacer».')
   }
   if (skipped.has('audio') || skipped.has('video')) {
-    lines.push('🎧🎬 Audio y video todavía no los proceso — pronto.')
+    lines.push('🎧🎬 Audio y video todavía no los proceso, pero muy pronto.')
   }
   if (skipped.has('format')) {
-    lines.push('🖼️ Ese formato de imagen no lo soporto (mandá JPG, PNG, WEBP o GIF).')
+    lines.push('🖼️ Ese formato no lo soporto aún. Envía JPG, PNG, WEBP o GIF.')
   }
   if (skipped.has('toolarge')) {
-    lines.push('📦 La imagen es muy pesada (máx. 16 MB). Mandala más liviana.')
+    lines.push('📦 La imagen pesa demasiado (máximo 16 MB). Envíala más liviana.')
   }
   if (skipped.has('config')) {
     lines.push(
@@ -410,9 +598,9 @@ async function handleInboundMedia(
     )
   }
   if (saved === 0 && skipped.has('error')) {
-    lines.push('No pude bajar la imagen. Probá de nuevo en un momento.')
+    lines.push('No pude descargar la imagen. Vuelve a intentarlo en un momento.')
   }
-  if (lines.length === 0) lines.push('Recibí el archivo pero no pude procesarlo.')
+  if (lines.length === 0) lines.push('Recibí el archivo, pero no pude procesarlo.')
   return lines.join('\n')
 }
 
@@ -427,10 +615,11 @@ async function buildStatusReply(
 ): Promise<string> {
   const linkRows = await sqlTyped<{
     verified_at: string | null
+    label: string | null
     last_capture_kind: string | null
     last_capture_at: string | null
   }>(sql`
-    SELECT verified_at, last_capture_kind, last_capture_at
+    SELECT verified_at, label, last_capture_kind, last_capture_at
     FROM whatsapp_links
     WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
     LIMIT 1
@@ -442,6 +631,7 @@ async function buildStatusReply(
   const link = linkRows[0]
   return formatStatus({
     verifiedAt: link?.verified_at ?? null,
+    deviceLabel: link?.label ?? null,
     lastCaptureKind: link?.last_capture_kind ?? null,
     lastCaptureAt: link?.last_capture_at ?? null,
     monthCount: countRows[0]?.n ?? 0,
@@ -474,7 +664,7 @@ async function handleQuery(
     requestId,
   })
   if (!recallHasResults(ctx)) {
-    return 'No encontré nada sobre eso todavía. Probá con otras palabras, o guardá algo nuevo y volvé a preguntar.'
+    return 'Todavía no encontré nada sobre eso. Prueba con otras palabras o guarda algo nuevo y vuelve a preguntar.'
   }
   if (!aiOn) return formatRecallFallback(ctx, origin)
   try {
@@ -568,14 +758,15 @@ export default withObservability(
       const code = normalizeLinkCode(parsed.rawCode)
       if (!code) {
         return twimlResponse(
-          'Código inválido. Generá uno en Trama → Configuración → WhatsApp y reenvialo: vincular ABC123',
+          'No reconozco ese código. Genéralo en Trama → Configuración → WhatsApp y reenvíalo así: vincular ABC123',
         )
       }
-      const redeemed = await redeemLinkCode(phone, code)
+      const label = parsed.label?.slice(0, 40)
+      const redeemed = await redeemLinkCode(phone, code, label)
       return twimlResponse(
         redeemed
-          ? '✅ Número vinculado. Ya podés mandarme notas, citas, entidades y momentos.'
-          : 'Código vencido o inválido. Generá uno nuevo en Trama → Configuración → WhatsApp.',
+          ? welcomeMessage(label)
+          : 'Ese código venció o no es válido. Genera uno nuevo en Trama → Configuración → WhatsApp.',
       )
     }
 
@@ -626,6 +817,26 @@ export default withObservability(
       )
     }
 
+    if (parsed.kind === 'recategorize' && media.length === 0) {
+      return twimlResponse(
+        await recategorizeLast(
+          sql,
+          userId,
+          phone,
+          parsed.toKind,
+          new URL(req.url).origin,
+        ),
+      )
+    }
+
+    if (parsed.kind === 'retitle' && media.length === 0) {
+      return twimlResponse(await retitleLast(sql, userId, phone, parsed.title))
+    }
+
+    if (parsed.kind === 'tag' && media.length === 0) {
+      return twimlResponse(await tagLast(sql, userId, phone, parsed.tags))
+    }
+
     // Adjuntos (foto): se procesan antes que el texto. El caption decide
     // destino (default Recortes; `momento:` → Momentos).
     if (media.length > 0) {
@@ -655,30 +866,33 @@ export default withObservability(
 
     if (intent.kind === 'quote' && !intent.author.trim()) {
       return twimlResponse(
-        'Una cita necesita autor. Mandá: cita: <texto> — <autor>  (ej: cita: el tiempo es relativo — Einstein)',
+        'Una cita necesita su autor. Envíala así: cita: <texto> — <autor>  (ejemplo: cita: el tiempo es relativo — Einstein)',
       )
     }
 
+    const viaLLM = parsed.kind === 'freeform'
     try {
       const { message, id } = await persistCapture(sql, userId, intent)
       // Recordamos la última captura para que "deshacer" sepa qué borrar.
       if (id) await recordLastCapture(sql, phone, userId, intent.kind, id)
-      logEvent({
-        event: 'whatsapp_capture',
-        kind: intent.kind,
-        viaLLM: parsed.kind === 'freeform',
-      })
-      // Reply accionable: confirmación + deep link a la vista + cómo deshacer.
+      logEvent({ event: 'whatsapp_capture', kind: intent.kind, viaLLM })
+      if (!id) return twimlResponse(message)
+      // Reply accionable: confirmación + deep link + cómo corregir. Cuando lo
+      // clasificó la IA (texto libre), ofrecemos reclasificar en un toque.
       const link = captureDeepLink(new URL(req.url).origin, intent.kind)
-      const reply = id ? `${message}\n🔗 ${link}\n↩️ ¿Mal? Respondé: deshacer` : message
-      return twimlResponse(reply)
+      const fix = viaLLM
+        ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · entidad.'
+        : '↩️ ¿No era así? Responde «deshacer».'
+      return twimlResponse(`${message}\n🔗 Ábrelo en Trama: ${link}\n${fix}`)
     } catch (err) {
       logEvent({
         event: 'whatsapp_capture_failed',
         kind: intent.kind,
         message: err instanceof Error ? err.message : String(err),
       })
-      return twimlResponse('Ups, no pude guardarlo. Probá de nuevo en un momento.')
+      return twimlResponse(
+        'No pude guardarlo en este momento. Vuelve a intentarlo en unos segundos.',
+      )
     }
   },
 )

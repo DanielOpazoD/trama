@@ -34,6 +34,8 @@ export type Recorte = {
   status: RecorteStatus
   promotedTarget: RecorteTarget | null
   promotedId: string | null
+  /** Medio de captura ('whatsapp' marca el iconito de procedencia), o null. */
+  captureSource: string | null
   capturedAt: string | null
   createdAt: string
   updatedAt: string
@@ -52,6 +54,7 @@ export type RecorteRow = {
   status: RecorteStatus
   promoted_target: RecorteTarget | null
   promoted_id: string | null
+  source?: string | null
   captured_at: string | null
   created_at: string
   updated_at: string
@@ -121,6 +124,7 @@ export function recorteFromRow(r: RecorteRow): Recorte {
     status: r.status,
     promotedTarget: r.promoted_target,
     promotedId: r.promoted_id,
+    captureSource: r.source ?? null,
     capturedAt: r.captured_at,
     createdAt: r.created_at,
     updatedAt: r.updated_at,

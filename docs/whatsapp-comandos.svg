@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="1508" viewBox="0 0 1040 1508" font-family="'Inter','Helvetica Neue','Arial',sans-serif">
+<defs>
+  <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="6" stdDeviation="14" flood-color="#1F3A5F" flood-opacity="0.08"/>
+  </filter>
+</defs>
+<rect width="1040" height="1508" fill="#FBF8F1"/>
+<rect x="0" y="0" width="1040" height="8" fill="#1F3A5F"/>
+<text x="64" y="78" font-family="'Iowan Old Style','Palatino Linotype','Georgia',serif" font-size="46" fill="#2B2B2B" font-weight="600">Trama</text>
+<text x="64" y="112" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#B8893A" letter-spacing="3">GUÍA DE COMANDOS · WHATSAPP</text>
+<text x="64" y="150" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="17" fill="#7A7367">Tu segundo cerebro, ahora desde el bolsillo. No importan mayúsculas ni tildes.</text>
+<line x1="64" y1="170" x2="976" y2="170" stroke="#ECE6DA" stroke-width="2"/>
+<text x="82" y="192" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="15" fill="#1F3A5F" letter-spacing="2" font-weight="700">LO QUE ESCRIBES</text>
+<text x="562" y="192" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="15" fill="#B8893A" letter-spacing="2" font-weight="700">LO QUE TRAMA RESPONDE</text>
+<text x="64" y="264" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="16" fill="#2B2B2B" letter-spacing="2.5" font-weight="700">CAPTURAR</text>
+<text x="174" y="264" font-family="'Iowan Old Style','Palatino Linotype','Georgia',serif" font-size="15" fill="#7A7367" font-style="italic">instantáneo y gratis</text>
+<rect x="64" y="284" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="314" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">nota: &lt;texto&gt;</text>
+<text x="520" y="315" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="284" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="316" font-size="24">📝</text>
+<text x="600" y="314" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Nota guardada en Trama</text>
+<rect x="64" y="342" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="372" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">cita: &lt;frase&gt; — &lt;autor&gt;</text>
+<text x="520" y="373" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="342" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="374" font-size="24">❝</text>
+<text x="600" y="372" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Cita guardada con su autor</text>
+<rect x="64" y="400" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="430" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">entidad: &lt;nombre&gt; (tipo)</text>
+<text x="520" y="431" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="400" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="432" font-size="24">🔭</text>
+<text x="600" y="430" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Se añade a tu grafo</text>
+<rect x="64" y="458" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="488" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">momento: &lt;qué pasó&gt;</text>
+<text x="520" y="489" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="458" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="490" font-size="24">🕰️</text>
+<text x="600" y="488" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Va a tu línea de tiempo</text>
+<rect x="64" y="516" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="546" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">(texto libre)</text>
+<text x="520" y="547" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="516" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="548" font-size="24">✨</text>
+<text x="600" y="546" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">La IA lo clasifica por ti</text>
+<text x="64" y="618" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="16" fill="#2B2B2B" letter-spacing="2.5" font-weight="700">FOTOS</text>
+<rect x="64" y="638" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="668" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">una imagen</text>
+<text x="520" y="669" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="638" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="670" font-size="24">📷</text>
+<text x="600" y="668" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Se guarda en Recortes</text>
+<rect x="64" y="696" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="726" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">nota: / cita: + foto</text>
+<text x="520" y="727" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="696" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="728" font-size="24">🔎</text>
+<text x="600" y="726" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Lee el texto (OCR)</text>
+<text x="64" y="798" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="16" fill="#2B2B2B" letter-spacing="2.5" font-weight="700">PREGUNTAR</text>
+<text x="185" y="798" font-family="'Iowan Old Style','Palatino Linotype','Georgia',serif" font-size="15" fill="#7A7367" font-style="italic">consulta tu Trama</text>
+<rect x="64" y="818" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="848" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">buscar: &lt;tema&gt;</text>
+<text x="520" y="849" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="818" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="850" font-size="24">🔎</text>
+<text x="600" y="848" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Respuesta desde lo tuyo</text>
+<rect x="64" y="876" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="906" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">? &lt;pregunta&gt;</text>
+<text x="520" y="907" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="876" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="908" font-size="24">🔎</text>
+<text x="600" y="906" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Respuesta desde lo tuyo</text>
+<text x="64" y="978" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="16" fill="#2B2B2B" letter-spacing="2.5" font-weight="700">AJUSTAR LO ÚLTIMO</text>
+<text x="273" y="978" font-family="'Iowan Old Style','Palatino Linotype','Georgia',serif" font-size="15" fill="#7A7367" font-style="italic">responde después de guardar</text>
+<rect x="64" y="998" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="1028" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">título &lt;texto&gt;</text>
+<text x="520" y="1029" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="998" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="1030" font-size="24">🏷️</text>
+<text x="600" y="1028" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Lo nombra</text>
+<rect x="64" y="1056" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="1086" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">etiqueta &lt;palabras&gt;</text>
+<text x="520" y="1087" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="1056" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="1088" font-size="24">🏷️</text>
+<text x="600" y="1086" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Le agrega etiquetas</text>
+<rect x="64" y="1114" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="1144" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">nota · momento · entidad</text>
+<text x="520" y="1145" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="1114" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="1146" font-size="24">🔄</text>
+<text x="600" y="1144" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Lo reclasifica</text>
+<rect x="64" y="1172" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="1202" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">deshacer</text>
+<text x="520" y="1203" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="1172" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="1204" font-size="24">↩️</text>
+<text x="600" y="1202" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Revierte lo último</text>
+<text x="64" y="1274" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="16" fill="#2B2B2B" letter-spacing="2.5" font-weight="700">CUENTA</text>
+<rect x="64" y="1294" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="1324" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">vincular &lt;código&gt;</text>
+<text x="520" y="1325" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="1294" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="1326" font-size="24">🔗</text>
+<text x="600" y="1324" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Conecta tu número</text>
+<rect x="64" y="1352" width="432" height="46" rx="12" fill="#F4EFE4" stroke="#ECE6DA" stroke-width="1.5"/>
+<text x="82" y="1382" font-family="'SFMono-Regular','Menlo','Consolas',monospace" font-size="21" fill="#2B2B2B">estado</text>
+<text x="520" y="1383" text-anchor="middle" font-size="24" fill="#1F3A5F">→</text>
+<rect x="544" y="1352" width="432" height="46" rx="12" fill="#FFFFFF" stroke="#ECE6DA" stroke-width="1.5" filter="url(#soft)"/>
+<text x="562" y="1384" font-size="24">📊</text>
+<text x="600" y="1382" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="20" fill="#2B2B2B">Tu resumen</text>
+<line x1="64" y1="1436" x2="976" y2="1436" stroke="#ECE6DA" stroke-width="2"/>
+<text x="64" y="1470" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="16" fill="#7A7367">Conecta tu número en Trama → Configuración → WhatsApp y envía:  <tspan font-family="'SFMono-Regular','Menlo','Consolas',monospace" fill="#2B2B2B">vincular &lt;código&gt;</tspan></text>
+<text x="64" y="1494" font-family="'Inter','Helvetica Neue','Arial',sans-serif" font-size="14" fill="#7A7367">También funciona con «/» (ej. /nota …). El prefijo es instantáneo; el texto libre usa IA.</text>
+</svg>

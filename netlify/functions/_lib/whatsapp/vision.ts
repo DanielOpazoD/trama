@@ -18,22 +18,22 @@ export function buildPhotoPrompt(mode: PhotoMode): { system: string; user: strin
   if (mode === 'quote') {
     return {
       system: [
-        'Sos un extractor de citas a partir de una foto (página de libro, pantalla, cartel).',
-        'Devolvé SOLO un objeto JSON: {"text": string, "author": string}.',
+        'Eres un extractor de citas a partir de una foto (página de libro, pantalla, cartel).',
+        'Devuelve SOLO un objeto JSON: {"text": string, "author": string}.',
         '- "text": la cita textual, transcrita fielmente, sin comillas envolventes.',
         '- "author": el autor si es deducible (firma, nombre en la página); si no, "".',
-        'No inventes autor. Si no hay una cita clara, poné en "text" el texto principal y "author": "".',
+        'No inventes autor. Si no hay una cita clara, pon en "text" el texto principal y "author": "".',
       ].join('\n'),
-      user: 'Extraé la cita y su autor de esta imagen.',
+      user: 'Extrae la cita y su autor de esta imagen.',
     }
   }
   return {
     system: [
-      'Transcribí el texto visible en la imagen (OCR).',
-      'Devolvé SOLO un objeto JSON: {"text": string} con el texto limpio y ordenado,',
+      'Transcribe el texto visible en la imagen (OCR).',
+      'Devuelve SOLO un objeto JSON: {"text": string} con el texto limpio y ordenado,',
       'respetando saltos de párrafo, sin comentarios ni descripciones de la imagen.',
     ].join('\n'),
-    user: 'Transcribí el texto de esta imagen.',
+    user: 'Transcribe el texto de esta imagen.',
   }
 }
 
