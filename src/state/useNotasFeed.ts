@@ -27,8 +27,8 @@ export type CaptureItem =
   | { type: 'note'; id: string; createdAt: string; note: Note }
   | { type: 'recorte'; id: string; createdAt: string; recorte: Recorte }
 
-/** Segmento del control segmentado: todo / solo notas / solo recortes. */
-export type NotasFeedSegment = 'todo' | 'escritas' | 'capturas'
+/** Segmento del control segmentado: todo / solo notas / solo recortes / favoritos. */
+export type NotasFeedSegment = 'todo' | 'escritas' | 'capturas' | 'favoritos'
 
 export type NotasFeedFilter = {
   segment: NotasFeedSegment

@@ -23,6 +23,7 @@ import { NoteCard } from './NoteCard'
 import { ActivityCalendar, localDayKey } from './ActivityCalendar'
 import { RecorteCard } from '../recortes/RecorteCard'
 import { PromoteModal, type PromoteSeed } from '../recortes/PromoteModal'
+import { FavoritosPanel } from '../recortes/FavoritosPanel'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { PendingAttachmentsInput } from './PendingAttachmentsInput'
 import { compressImage } from '../momentos/helpers'
@@ -33,6 +34,7 @@ const SEGMENTS: Array<{ value: NotasFeedSegment; label: string }> = [
   { value: 'todo', label: 'Todo' },
   { value: 'escritas', label: 'Escritas' },
   { value: 'capturas', label: 'Capturas' },
+  { value: 'favoritos', label: 'Favoritos' },
 ]
 
 /**
@@ -295,113 +297,116 @@ export function NotasFeedView() {
         subtitle="Tus apuntes y tus recortes en un solo hilo. Escribe una nota o filtra por lo que buscas."
       />
 
-      {/* Calendario de actividad (heatmap) — siempre arriba del feed, en todos
-          los segmentos. Cuenta solo notas; el clic en un día filtra el feed
-          unificado (notas y recortes) por esa fecha. */}
-      <ActivityCalendar
-        dayKeys={calendarDays}
-        stats={calendarStats}
-        selectedDay={selectedDay}
-        onSelectDay={setSelectedDay}
-      />
+      {/* Calendario de actividad (heatmap) — se oculta en la pestaña Favoritos.
+          Cuenta solo notas; el clic en un día filtra el feed unificado. */}
+      {segment !== 'favoritos' && (
+        <ActivityCalendar
+          dayKeys={calendarDays}
+          stats={calendarStats}
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
+        />
+      )}
 
       {/* Composer (captura unificada: nota · enlace · imagen). Pegar o soltar
           una imagen la guarda como recorte; pegar solo un enlace ofrece
           guardarlo como recorte web. El texto plano sigue siendo una nota. */}
-      <div
-        onDragOver={(e) => {
-          if (e.dataTransfer.types.includes('Files')) {
-            e.preventDefault()
-            setDragging(true)
-          }
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={onComposerDrop}
-        className={`card-paper-soft rounded-xl border p-3 mb-5 transition-colors ${
-          dragging ? 'border-dashed' : 'border-ink-100/70'
-        }`}
-        style={
-          dragging
-            ? { borderColor: ACCENT, background: 'var(--accent-sage-soft)' }
-            : undefined
-        }
-      >
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => {
-            // Enter en el título salta al cuerpo; ⌘↵ guarda (vía onComposerKey).
-            if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
+      {segment !== 'favoritos' && (
+        <div
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes('Files')) {
               e.preventDefault()
-              composerRef.current?.focus()
-              return
+              setDragging(true)
             }
-            onComposerKey(e)
           }}
-          maxLength={200}
-          placeholder="Título (opcional)"
-          aria-label="Título de la nota (opcional)"
-          className="w-full bg-transparent font-serif text-lead text-ink-800 placeholder:font-sans placeholder:not-italic placeholder:text-ink-300 mb-1"
-        />
-        <textarea
-          ref={composerRef}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={onComposerKey}
-          onPaste={onComposerPaste}
-          rows={3}
-          placeholder="Escribe una nota, pega un enlace o suelta una imagen… usa #etiquetas"
-          aria-label="Captura: escribe una nota, pega un enlace o pega/suelta una imagen"
-          className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
-        />
-        <PendingAttachmentsInput
-          files={pendingFiles}
-          onChange={setPendingFiles}
-          busy={createNote.isPending || uploadAttachment.isPending}
-        />
+          onDragLeave={() => setDragging(false)}
+          onDrop={onComposerDrop}
+          className={`card-paper-soft rounded-xl border p-3 mb-5 transition-colors ${
+            dragging ? 'border-dashed' : 'border-ink-100/70'
+          }`}
+          style={
+            dragging
+              ? { borderColor: ACCENT, background: 'var(--accent-sage-soft)' }
+              : undefined
+          }
+        >
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter en el título salta al cuerpo; ⌘↵ guarda (vía onComposerKey).
+              if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
+                e.preventDefault()
+                composerRef.current?.focus()
+                return
+              }
+              onComposerKey(e)
+            }}
+            maxLength={200}
+            placeholder="Título (opcional)"
+            aria-label="Título de la nota (opcional)"
+            className="w-full bg-transparent font-serif text-lead text-ink-800 placeholder:font-sans placeholder:not-italic placeholder:text-ink-300 mb-1"
+          />
+          <textarea
+            ref={composerRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={onComposerKey}
+            onPaste={onComposerPaste}
+            rows={3}
+            placeholder="Escribe una nota, pega un enlace o suelta una imagen… usa #etiquetas"
+            aria-label="Captura: escribe una nota, pega un enlace o pega/suelta una imagen"
+            className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
+          />
+          <PendingAttachmentsInput
+            files={pendingFiles}
+            onChange={setPendingFiles}
+            busy={createNote.isPending || uploadAttachment.isPending}
+          />
 
-        {/* Cuando el borrador es un enlace, anunciamos que se guardará como
-            recorte y dejamos volver a nota con un toque. */}
-        {isLinkDraft && (
-          <p className="mt-2 flex flex-wrap items-center gap-1.5 text-micro text-ink-400">
-            <ScissorsIcon size={11} className="text-[color:var(--accent-sage)]" />
-            Detectamos un enlace — se guardará como recorte en tu Bandeja.
+          {/* Cuando el borrador es un enlace, anunciamos que se guardará como
+              recorte y dejamos volver a nota con un toque. */}
+          {isLinkDraft && (
+            <p className="mt-2 flex flex-wrap items-center gap-1.5 text-micro text-ink-400">
+              <ScissorsIcon size={11} className="text-[color:var(--accent-sage)]" />
+              Detectamos un enlace — se guardará como recorte en tu Bandeja.
+              <button
+                type="button"
+                onClick={() => setForceNote(true)}
+                className="underline hover:text-ink-700 transition-colors"
+              >
+                guardar como nota
+              </button>
+            </p>
+          )}
+
+          <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60">
+            <span className="flex items-center gap-1.5 text-micro text-ink-300">
+              <CameraIcon size={11} />
+              pega o suelta una imagen para capturarla
+            </span>
             <button
-              type="button"
-              onClick={() => setForceNote(true)}
-              className="underline hover:text-ink-700 transition-colors"
+              onClick={save}
+              disabled={
+                (!draft.trim() && !isLinkDraft) ||
+                createNote.isPending ||
+                createRecorte.isPending
+              }
+              className="btn-ink text-xs disabled:opacity-40"
             >
-              guardar como nota
-            </button>
-          </p>
-        )}
-
-        <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60">
-          <span className="flex items-center gap-1.5 text-micro text-ink-300">
-            <CameraIcon size={11} />
-            pega o suelta una imagen para capturarla
-          </span>
-          <button
-            onClick={save}
-            disabled={
-              (!draft.trim() && !isLinkDraft) ||
-              createNote.isPending ||
-              createRecorte.isPending
-            }
-            className="btn-ink text-xs disabled:opacity-40"
-          >
-            {createRecorte.isPending
-              ? 'Guardando…'
-              : createNote.isPending
+              {createRecorte.isPending
                 ? 'Guardando…'
-                : isLinkDraft
-                  ? 'Guardar enlace'
-                  : 'Guardar nota'}
-          </button>
+                : createNote.isPending
+                  ? 'Guardando…'
+                  : isLinkDraft
+                    ? 'Guardar enlace'
+                    : 'Guardar nota'}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Control segmentado: Todo · Escritas · Capturas */}
+      {/* Control segmentado: Todo · Escritas · Capturas · Favoritos */}
       <div
         role="tablist"
         aria-label="Filtrar el feed"
@@ -427,175 +432,185 @@ export function NotasFeedView() {
         })}
       </div>
 
-      {/* Buscador + chips de etiqueta */}
-      <div className="mb-5 space-y-2.5">
-        <div className="flex items-center gap-2 px-2.5 py-1.5 bg-paper-50 border border-ink-100/60 rounded-md">
-          <SearchIcon size={12} className="text-ink-300 shrink-0" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar en notas y capturas…"
-            aria-label="Buscar en notas y capturas"
-            className="flex-1 bg-transparent text-caption text-ink-700 placeholder:text-ink-300"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              aria-label="Limpiar búsqueda"
-              className="text-ink-300 hover:text-ink-700 text-caption"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-        {tagCounts.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              onClick={() => setActiveTag(null)}
-              className={`text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border transition-colors ${
-                activeTag === null
-                  ? 'border-ink-200 text-ink-700 bg-ink-100/50'
-                  : 'border-ink-100 text-ink-400 hover:text-ink-700'
-              }`}
-            >
-              todas
-            </button>
-            {tagCounts.map(([t, count]) => {
-              const on = activeTag === t
-              return (
-                <button
-                  key={t}
-                  onClick={() => setActiveTag(on ? null : t)}
-                  className="text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border transition-colors"
-                  style={
-                    on
-                      ? {
-                          borderColor: ACCENT,
-                          color: ACCENT,
-                          background: 'var(--accent-sage-soft, transparent)',
-                        }
-                      : undefined
-                  }
-                >
-                  #{t} <span className="tabular-nums opacity-60">{count}</span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Tarjetas «subiendo…» mientras la captura de imagen viaja al servidor.
-          Dan feedback inmediato; al terminar, la imagen real toma su lugar. */}
-      {uploadingImages > 0 && (
-        <ul className="mb-2.5 space-y-2.5" aria-live="polite">
-          {Array.from({ length: uploadingImages }).map((_, i) => (
-            <li
-              key={i}
-              className="card-paper-soft flex items-center gap-2 p-4 text-caption text-ink-400"
-            >
-              <LoadingHint text="subiendo imagen" size="sm" />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {/* Feed / estados */}
-      {isLoading ? (
-        <div className="py-10 flex justify-center">
-          <LoadingHint text="cargando" size="sm" />
-        </div>
-      ) : isError ? (
-        <EmptyMessage
-          illustration="thread"
-          title="No pudimos cargar tus notas y capturas."
-          body={<>Vuelve a intentarlo en unos segundos.</>}
-        />
-      ) : everythingEmpty ? (
-        <EmptyMessage
-          illustration="thread"
-          title="Tu primer apunte, todavía sin escribir."
-          body={<>Un apunte breve alcanza. Tus recortes también aparecerán aquí.</>}
-          action={
-            <button
-              type="button"
-              onClick={() => composerRef.current?.focus()}
-              className="btn-ink min-h-[44px] px-4 text-xs"
-            >
-              Escribir primera nota
-            </button>
-          }
-        />
-      ) : items.length === 0 ? (
-        <EmptyMessage
-          illustration="thread"
-          title="Nada coincide con eso."
-          body={<>Prueba con otra palabra, otra etiqueta u otro segmento.</>}
-          hint={
-            hasContentFilter ? (
-              <button
-                onClick={clearFilters}
-                className="underline hover:text-ink-700 transition-colors"
-              >
-                Ver todo
-              </button>
-            ) : undefined
-          }
-        />
+      {segment === 'favoritos' ? (
+        <FavoritosPanel />
       ) : (
-        <div className="space-y-2.5">
-          {items.map((item) =>
-            item.type === 'note' ? (
-              <NoteCard
-                key={`note-${item.id}`}
-                note={item.note}
-                busy={updateNote.isPending || deleteNote.isPending}
-                promoting={promoteNote.isPending && promoteNote.variables === item.id}
-                onTogglePin={() =>
-                  updateNote.mutate({
-                    id: item.id,
-                    patch: { pinned: !item.note.pinned },
-                  })
-                }
-                onEdit={(patch) => updateNote.mutate({ id: item.id, patch })}
-                onDelete={() => deleteNote.mutate(item.id)}
-                onPromote={() =>
-                  promoteNote.mutate(item.id, {
-                    onSuccess: () =>
-                      toast.show({
-                        message: 'Nota promovida a Momento.',
-                        tone: 'success',
-                      }),
-                    onError: (e) =>
-                      toast.show({
-                        message: e instanceof Error ? e.message : 'No se pudo promover',
-                        tone: 'error',
-                      }),
-                  })
-                }
+        <>
+          {/* Buscador + chips de etiqueta */}
+          <div className="mb-5 space-y-2.5">
+            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-paper-50 border border-ink-100/60 rounded-md">
+              <SearchIcon size={12} className="text-ink-300 shrink-0" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar en notas y capturas…"
+                aria-label="Buscar en notas y capturas"
+                className="flex-1 bg-transparent text-caption text-ink-700 placeholder:text-ink-300"
               />
-            ) : (
-              <ul key={`recorte-${item.id}`} className="contents">
-                <RecorteCard
-                  recorte={item.recorte}
-                  onPromote={(recorte, target, seed) =>
-                    setPromoting({ recorte, target, seed })
-                  }
-                  onArchive={() =>
-                    updateRecorte.mutate({
-                      id: item.id,
-                      patch: { status: 'archived' },
-                    })
-                  }
-                  onRestore={() =>
-                    updateRecorte.mutate({ id: item.id, patch: { status: 'pending' } })
-                  }
-                  onDelete={() => deleteRecorte.mutate(item.id)}
-                />
-              </ul>
-            ),
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  aria-label="Limpiar búsqueda"
+                  className="text-ink-300 hover:text-ink-700 text-caption"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {tagCounts.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => setActiveTag(null)}
+                  className={`text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border transition-colors ${
+                    activeTag === null
+                      ? 'border-ink-200 text-ink-700 bg-ink-100/50'
+                      : 'border-ink-100 text-ink-400 hover:text-ink-700'
+                  }`}
+                >
+                  todas
+                </button>
+                {tagCounts.map(([t, count]) => {
+                  const on = activeTag === t
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setActiveTag(on ? null : t)}
+                      className="text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border transition-colors"
+                      style={
+                        on
+                          ? {
+                              borderColor: ACCENT,
+                              color: ACCENT,
+                              background: 'var(--accent-sage-soft, transparent)',
+                            }
+                          : undefined
+                      }
+                    >
+                      #{t} <span className="tabular-nums opacity-60">{count}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Tarjetas «subiendo…» mientras la captura de imagen viaja al servidor.
+              Dan feedback inmediato; al terminar, la imagen real toma su lugar. */}
+          {uploadingImages > 0 && (
+            <ul className="mb-2.5 space-y-2.5" aria-live="polite">
+              {Array.from({ length: uploadingImages }).map((_, i) => (
+                <li
+                  key={i}
+                  className="card-paper-soft flex items-center gap-2 p-4 text-caption text-ink-400"
+                >
+                  <LoadingHint text="subiendo imagen" size="sm" />
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
+
+          {/* Feed / estados */}
+          {isLoading ? (
+            <div className="py-10 flex justify-center">
+              <LoadingHint text="cargando" size="sm" />
+            </div>
+          ) : isError ? (
+            <EmptyMessage
+              illustration="thread"
+              title="No pudimos cargar tus notas y capturas."
+              body={<>Vuelve a intentarlo en unos segundos.</>}
+            />
+          ) : everythingEmpty ? (
+            <EmptyMessage
+              illustration="thread"
+              title="Tu primer apunte, todavía sin escribir."
+              body={<>Un apunte breve alcanza. Tus recortes también aparecerán aquí.</>}
+              action={
+                <button
+                  type="button"
+                  onClick={() => composerRef.current?.focus()}
+                  className="btn-ink min-h-[44px] px-4 text-xs"
+                >
+                  Escribir primera nota
+                </button>
+              }
+            />
+          ) : items.length === 0 ? (
+            <EmptyMessage
+              illustration="thread"
+              title="Nada coincide con eso."
+              body={<>Prueba con otra palabra, otra etiqueta u otro segmento.</>}
+              hint={
+                hasContentFilter ? (
+                  <button
+                    onClick={clearFilters}
+                    className="underline hover:text-ink-700 transition-colors"
+                  >
+                    Ver todo
+                  </button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div className="space-y-2.5">
+              {items.map((item) =>
+                item.type === 'note' ? (
+                  <NoteCard
+                    key={`note-${item.id}`}
+                    note={item.note}
+                    busy={updateNote.isPending || deleteNote.isPending}
+                    promoting={promoteNote.isPending && promoteNote.variables === item.id}
+                    onTogglePin={() =>
+                      updateNote.mutate({
+                        id: item.id,
+                        patch: { pinned: !item.note.pinned },
+                      })
+                    }
+                    onEdit={(patch) => updateNote.mutate({ id: item.id, patch })}
+                    onDelete={() => deleteNote.mutate(item.id)}
+                    onPromote={() =>
+                      promoteNote.mutate(item.id, {
+                        onSuccess: () =>
+                          toast.show({
+                            message: 'Nota promovida a Momento.',
+                            tone: 'success',
+                          }),
+                        onError: (e) =>
+                          toast.show({
+                            message:
+                              e instanceof Error ? e.message : 'No se pudo promover',
+                            tone: 'error',
+                          }),
+                      })
+                    }
+                  />
+                ) : (
+                  <ul key={`recorte-${item.id}`} className="contents">
+                    <RecorteCard
+                      recorte={item.recorte}
+                      onPromote={(recorte, target, seed) =>
+                        setPromoting({ recorte, target, seed })
+                      }
+                      onArchive={() =>
+                        updateRecorte.mutate({
+                          id: item.id,
+                          patch: { status: 'archived' },
+                        })
+                      }
+                      onRestore={() =>
+                        updateRecorte.mutate({
+                          id: item.id,
+                          patch: { status: 'pending' },
+                        })
+                      }
+                      onDelete={() => deleteRecorte.mutate(item.id)}
+                    />
+                  </ul>
+                ),
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {/* Modal de promoción de recorte (triage completa) */}
