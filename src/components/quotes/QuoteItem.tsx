@@ -4,6 +4,7 @@ import type { Entity, Quote } from '../../types'
 import { SparkleIcon, ChevronDownIcon } from '../Icons'
 import { typeAccent } from '../graph/GraphNode'
 import { AISourceTag } from '../AISourceTag'
+import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { QuoteEditModal } from '../QuoteEditModal'
 import { ResonanceDots } from './ResonanceDots'
 import { QuoteActionsMenu } from './QuoteActionsMenu'
@@ -174,6 +175,7 @@ function QuoteItemInternal({
               <SparkleIcon size={10} />
             </span>
           )}
+          <WhatsAppSourceTag origin={quote.origin} />
           <span
             className="ml-3 text-caption text-ink-300 tabular-nums"
             title={`Añadida el ${new Date(quote.createdAt).toLocaleString('es')}`}

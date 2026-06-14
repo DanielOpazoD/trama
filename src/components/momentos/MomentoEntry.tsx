@@ -2,6 +2,7 @@ import { memo, useState } from 'react'
 import { typeAccent } from '../../lib/typeAccents'
 import type { Entity, Momento } from '../../types'
 import { PencilIcon, SparkleIcon, TrashIcon } from '../Icons'
+import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { formatTime, getMomentoPhotoItems, momentoMediaUrl } from './helpers'
 import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 import { MomentoEditModal } from './MomentoEditModal'
@@ -63,6 +64,8 @@ function MomentoEntryInternal({
             <SparkleIcon size={10} />
           </span>
         )}
+
+        <WhatsAppSourceTag origin={momento.origin} />
 
         <MomentoOwnerMark momento={momento} />
         <MomentoFeedback momentoId={momento.id} />

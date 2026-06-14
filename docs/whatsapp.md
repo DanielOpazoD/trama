@@ -134,8 +134,15 @@ datos leídos de `whatsapp_links` + `whatsapp_processed_messages`.
 Toda captura que entra por WhatsApp queda marcada: las tablas con `origin`
 JSONB (momentos, entities, quotes) llevan `origin.importedFrom = 'whatsapp'`;
 recortes y notes llevan una columna `source = 'whatsapp'` (migración
-`20260614030000_whatsapp_media_source`). Habilita el iconito "vía WhatsApp" y
-un filtro por procedencia en la UI.
+`20260614030000_whatsapp_media_source`).
+
+En la UI, `<WhatsAppSourceTag>` (`src/components/WhatsAppSourceTag.tsx`) pinta
+un iconito discreto de burbuja (tooltip "Capturado desde WhatsApp") cuando el
+ítem viene de ese medio. Acepta `origin` o `source`, así que se reusa en
+cualquier card. Ya está cableado en Citas (`QuoteItem`), Entidades (`EntityRow`)
+y Momentos (`MomentoEntry`); notas y recortes lo mostrarán cuando sus transforms
+de `src/api/` expongan la columna `source` al cliente (pendiente). Un filtro por
+procedencia en las vistas es el siguiente paso.
 
 ## Confirmación accionable (deep link + deshacer)
 
