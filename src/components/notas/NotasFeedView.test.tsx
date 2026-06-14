@@ -1,8 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '../../test-utils'
 import { NotasFeedView } from './NotasFeedView'
+
+// compressImage usa canvas/Image, que happy-dom no implementa; lo neutralizamos
+// para probar el cableado de captura por pegado sin colgar en la carga de Image.
+vi.mock('../momentos/helpers', async (importActual) => {
+  const actual = await importActual<typeof import('../momentos/helpers')>()
+  return { ...actual, compressImage: vi.fn(async (f: File) => f) }
+})
 
 const noteRows = [
   {
@@ -51,6 +58,10 @@ function stubFeedFetch() {
     if (url.startsWith('/api/notes') && method === 'GET') return jsonResponse(noteRows)
     if (url.startsWith('/api/recortes') && method === 'GET')
       return jsonResponse(recorteRows)
+    if (url.includes('recortes-image-upload') && method === 'POST')
+      return jsonResponse({ imageKey: 'u/shot.webp', mime: 'image/webp', size: 99 })
+    if (url === '/api/recortes' && method === 'POST')
+      return jsonResponse({ ...recorteRows[0], id: 'nuevo', capture_mode: 'image' }, 201)
     throw new Error(`Fetch inesperado en NotasFeedView.test: ${method} ${url}`)
   })
   vi.stubGlobal('fetch', fetchMock)
@@ -91,6 +102,31 @@ describe('<NotasFeedView />', () => {
     // "guardar como nota" anula la heurística y vuelve al flujo de nota.
     await user.click(screen.getByRole('button', { name: 'guardar como nota' }))
     expect(screen.getByRole('button', { name: 'Guardar nota' })).toBeInTheDocument()
+  })
+
+  it('al pegar una imagen, la captura como recorte (sube y crea)', async () => {
+    const fetchMock = stubFeedFetch()
+    renderWithProviders(<NotasFeedView />)
+
+    const composer = screen.getByPlaceholderText(/Escribe una nota/)
+    const file = new File(['x'], 'shot.png', { type: 'image/png' })
+    fireEvent.paste(composer, {
+      clipboardData: { files: [file], getData: () => '' },
+    })
+
+    // Sube la imagen y luego crea el recorte con la imageKey resultante.
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([u]) => String(u).includes('recortes-image-upload')),
+      ).toBe(true),
+    )
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([u, init]) => String(u) === '/api/recortes' && init?.method === 'POST',
+        ),
+      ).toBe(true),
+    )
   })
 
   it("el segmento 'Escritas' oculta los recortes", async () => {
