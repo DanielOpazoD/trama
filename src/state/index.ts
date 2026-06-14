@@ -89,10 +89,12 @@ export {
 } from './useNotes'
 export {
   useRecortesQuery,
+  useCreateRecorte,
   useUpdateRecorte,
   useDeleteRecorte,
   usePromoteRecorte,
   useSuggestRecorte,
+  type CaptureInput,
 } from './useRecortes'
 export { useFavoritosQuery, useUpdateFavorito, useDeleteFavorito } from './useFavoritos'
 export {

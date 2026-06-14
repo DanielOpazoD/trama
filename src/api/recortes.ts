@@ -168,13 +168,35 @@ export const recortesApi = {
     text: string
     sourceUrl?: string | null
     sourceTitle?: string | null
+    sourceAuthor?: string | null
     note?: string | null
+    /** Imagen interna (blob authed de recortes-media); ver uploadRecorteImage. */
+    imageKey?: string | null
+    /** Imagen externa (URL http directa). */
+    imageUrl?: string | null
+    captureMode?: CaptureMode | null
   }): Promise<Recorte> {
     const row = await request<RecorteRow>('/api/recortes', {
       method: 'POST',
       body: JSON.stringify(input),
     })
     return recorteFromRow(row)
+  },
+  /**
+   * Sube una imagen al store privado `recortes-media` y devuelve la `imageKey`
+   * que luego se pasa a `createRecorte` para crear un recorte de imagen desde
+   * la web (la captura unificada del composer de Notas). Gemelo del endpoint
+   * que usa la extensión de Chrome; multipart con field "file", máx 10 MB.
+   */
+  async uploadRecorteImage(
+    file: File,
+  ): Promise<{ imageKey: string; mime: string; size: number }> {
+    const form = new FormData()
+    form.append('file', file)
+    return request<{ imageKey: string; mime: string; size: number }>(
+      '/api/recortes-image-upload',
+      { method: 'POST', body: form },
+    )
   },
   async updateRecorte(
     id: string,

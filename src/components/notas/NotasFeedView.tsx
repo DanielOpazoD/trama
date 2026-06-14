@@ -7,15 +7,17 @@ import {
   useDeleteNote,
   usePromoteNote,
   useUploadNotasAttachment,
+  useCreateRecorte,
   useUpdateRecorte,
   useDeleteRecorte,
   useToast,
   type NotasFeedSegment,
 } from '../../state'
 import type { Recorte, RecorteTarget } from '../../api'
+import { extractUrl, hostLabel } from '../../lib/captureIntent'
 import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
-import { SearchIcon } from '../Icons'
+import { ScissorsIcon, CameraIcon, SearchIcon } from '../Icons'
 import { ViewHeader } from '../ViewHeader'
 import { NoteCard } from './NoteCard'
 import { ActivityCalendar, localDayKey } from './ActivityCalendar'
@@ -48,15 +50,25 @@ const SEGMENTS: Array<{ value: NotasFeedSegment; label: string }> = [
  * patrón de RecortesView (mutaciones + PromoteModal).
  */
 export function NotasFeedView() {
-  // --- Composer (creación de notas, idéntico a NotasView) -----------------
+  // --- Composer (captura unificada: nota · enlace · imagen) ---------------
   const createNote = useCreateNote()
   const uploadAttachment = useUploadNotasAttachment()
+  const createRecorte = useCreateRecorte()
   const toast = useToast()
 
   const [draft, setDraft] = useState('')
   const [title, setTitle] = useState('')
   const composerRef = useAutosizeTextarea(draft, { minRows: 3, maxRows: 12 })
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  // El usuario pegó un enlace solo; el composer ofrece guardarlo como recorte.
+  // `forceNote` deja anular esa heurística y guardarlo igual como nota.
+  const [forceNote, setForceNote] = useState(false)
+  // Resalte del composer mientras se arrastra una imagen encima.
+  const [dragging, setDragging] = useState(false)
+
+  // El borrador es un enlace puro (y el usuario no eligió "guardar como nota").
+  const linkUrl = forceNote ? null : extractUrl(draft)
+  const isLinkDraft = linkUrl !== null
 
   // --- Filtro del feed ----------------------------------------------------
   const [segment, setSegment] = useState<NotasFeedSegment>('todo')
@@ -137,7 +149,89 @@ export function NotasFeedView() {
     setSelectedDay(null)
   }
 
+  /** Guarda el borrador-enlace como recorte web (captura de 1 paso). */
+  function saveLink(url: string) {
+    if (createRecorte.isPending) return
+    createRecorte.mutate(
+      { kind: 'link', url, title: title.trim() || hostLabel(url) },
+      {
+        onSuccess: () => {
+          setDraft('')
+          setTitle('')
+          setForceNote(false)
+          toast.show({
+            message: 'Enlace guardado en tu Bandeja para curar.',
+            tone: 'success',
+          })
+        },
+        onError: (e) =>
+          toast.show({
+            message: e instanceof Error ? e.message : 'No se pudo guardar el enlace',
+            tone: 'error',
+          }),
+      },
+    )
+  }
+
+  /** Sube y captura una o varias imágenes como recortes de imagen. */
+  function captureImageFiles(files: File[]) {
+    const images = files.filter((f) => f.type.startsWith('image/'))
+    if (images.length === 0) return
+    let done = 0
+    for (const file of images) {
+      createRecorte.mutate(
+        { kind: 'image', file },
+        {
+          onSuccess: () => {
+            done += 1
+            if (done === images.length) {
+              toast.show({
+                message:
+                  images.length === 1
+                    ? 'Imagen guardada en tu Bandeja.'
+                    : `${images.length} imágenes guardadas en tu Bandeja.`,
+                tone: 'success',
+              })
+            }
+          },
+          onError: (e) =>
+            toast.show({
+              message: e instanceof Error ? e.message : 'No se pudo guardar la imagen',
+              tone: 'error',
+            }),
+        },
+      )
+    }
+  }
+
+  /** Pegar una imagen (sin texto acompañante) la captura como recorte. */
+  function onComposerPaste(e: React.ClipboardEvent) {
+    const images = Array.from(e.clipboardData.files).filter((f) =>
+      f.type.startsWith('image/'),
+    )
+    if (images.length > 0 && e.clipboardData.getData('text').trim() === '') {
+      e.preventDefault()
+      captureImageFiles(images)
+    }
+  }
+
+  /** Soltar imágenes sobre el composer las captura como recortes. */
+  function onComposerDrop(e: React.DragEvent) {
+    const images = Array.from(e.dataTransfer.files).filter((f) =>
+      f.type.startsWith('image/'),
+    )
+    if (images.length > 0) {
+      e.preventDefault()
+      captureImageFiles(images)
+    }
+    setDragging(false)
+  }
+
   function save() {
+    if (isLinkDraft && linkUrl) {
+      saveLink(linkUrl)
+      return
+    }
     const content = draft.trim()
     if (!content || createNote.isPending) return
     const files = pendingFiles
@@ -147,6 +241,7 @@ export function NotasFeedView() {
         onSuccess: async (note) => {
           setDraft('')
           setTitle('')
+          setForceNote(false)
           setPendingFiles([])
           if (files.length === 0) return
           try {
@@ -201,8 +296,27 @@ export function NotasFeedView() {
         onSelectDay={setSelectedDay}
       />
 
-      {/* Composer (creación de notas) */}
-      <div className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5">
+      {/* Composer (captura unificada: nota · enlace · imagen). Pegar o soltar
+          una imagen la guarda como recorte; pegar solo un enlace ofrece
+          guardarlo como recorte web. El texto plano sigue siendo una nota. */}
+      <div
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault()
+            setDragging(true)
+          }
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onComposerDrop}
+        className={`card-paper-soft rounded-xl border p-3 mb-5 transition-colors ${
+          dragging ? 'border-dashed' : 'border-ink-100/70'
+        }`}
+        style={
+          dragging
+            ? { borderColor: ACCENT, background: 'var(--accent-sage-soft)' }
+            : undefined
+        }
+      >
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -225,8 +339,9 @@ export function NotasFeedView() {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onComposerKey}
+          onPaste={onComposerPaste}
           rows={3}
-          placeholder="Escribe una nota… usa #etiquetas para clasificarla"
+          placeholder="Escribe una nota, pega un enlace o suelta una imagen… usa #etiquetas"
           className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
         />
         <PendingAttachmentsInput
@@ -234,16 +349,44 @@ export function NotasFeedView() {
           onChange={setPendingFiles}
           busy={createNote.isPending || uploadAttachment.isPending}
         />
+
+        {/* Cuando el borrador es un enlace, anunciamos que se guardará como
+            recorte y dejamos volver a nota con un toque. */}
+        {isLinkDraft && (
+          <p className="mt-2 flex flex-wrap items-center gap-1.5 text-micro text-ink-400">
+            <ScissorsIcon size={11} className="text-[color:var(--accent-sage)]" />
+            Detectamos un enlace — se guardará como recorte en tu Bandeja.
+            <button
+              type="button"
+              onClick={() => setForceNote(true)}
+              className="underline hover:text-ink-700 transition-colors"
+            >
+              guardar como nota
+            </button>
+          </p>
+        )}
+
         <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60">
-          <span className="text-micro text-ink-300">
-            <kbd className="font-mono">⌘↵</kbd> para guardar
+          <span className="flex items-center gap-1.5 text-micro text-ink-300">
+            <CameraIcon size={11} />
+            pega o suelta una imagen para capturarla
           </span>
           <button
             onClick={save}
-            disabled={!draft.trim() || createNote.isPending}
+            disabled={
+              (!draft.trim() && !isLinkDraft) ||
+              createNote.isPending ||
+              createRecorte.isPending
+            }
             className="btn-ink text-xs disabled:opacity-40"
           >
-            {createNote.isPending ? 'Guardando…' : 'Guardar nota'}
+            {createRecorte.isPending
+              ? 'Guardando…'
+              : createNote.isPending
+                ? 'Guardando…'
+                : isLinkDraft
+                  ? 'Guardar enlace'
+                  : 'Guardar nota'}
           </button>
         </div>
       </div>

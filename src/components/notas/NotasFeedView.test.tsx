@@ -78,6 +78,21 @@ describe('<NotasFeedView />', () => {
     expect(screen.getByPlaceholderText(/Escribe una nota/)).toBeInTheDocument()
   })
 
+  it('al pegar un enlace solo, ofrece guardarlo como recorte', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<NotasFeedView />)
+
+    const composer = screen.getByPlaceholderText(/Escribe una nota/)
+    await user.type(composer, 'https://ejemplo.com/articulo')
+
+    expect(screen.getByText(/se guardará como recorte/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Guardar enlace' })).toBeInTheDocument()
+
+    // "guardar como nota" anula la heurística y vuelve al flujo de nota.
+    await user.click(screen.getByRole('button', { name: 'guardar como nota' }))
+    expect(screen.getByRole('button', { name: 'Guardar nota' })).toBeInTheDocument()
+  })
+
   it("el segmento 'Escritas' oculta los recortes", async () => {
     const user = userEvent.setup()
     renderWithProviders(<NotasFeedView />)

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import {
+  useCreateRecorte,
   useDeleteRecorte,
   usePromoteRecorte,
   useRecortesQuery,
@@ -68,10 +69,15 @@ beforeEach(() => {
       if (url.includes('/promote')) {
         return jsonResp({ ...ROW, status: 'promoted', promoted_target: 'quote' })
       }
+      if (url.includes('recortes-image-upload')) {
+        return jsonResp({ imageKey: 'user-1/abc.webp', mime: 'image/webp', size: 10 })
+      }
       if (method === 'DELETE') {
         return jsonResp({ ok: true, deletedAt: '2026-06-11T10:00:00.000Z' })
       }
       if (method === 'PATCH') return jsonResp({ ...ROW, status: 'archived' })
+      // POST a /api/recortes (create) devuelve una fila única, no un arreglo.
+      if (method === 'POST' && url.endsWith('/api/recortes')) return jsonResp(ROW)
       return jsonResp([ROW])
     }),
   )
@@ -107,6 +113,33 @@ describe('useRecortes', () => {
     await act(async () => {
       const res = await result.current.mutateAsync('r1')
       expect(res.deletedAt).toBe('2026-06-11T10:00:00.000Z')
+    })
+  })
+
+  it('captura un enlace como recorte web (text = url, sourceUrl, modo html)', async () => {
+    const { result } = renderHook(() => useCreateRecorte(), { wrapper: makeWrapper() })
+    await act(async () => {
+      await result.current.mutateAsync({ kind: 'link', url: 'https://example.com/x' })
+    })
+    const post = calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/recortes'))
+    expect(post?.body).toMatchObject({
+      text: 'https://example.com/x',
+      sourceUrl: 'https://example.com/x',
+      captureMode: 'html',
+    })
+  })
+
+  it('captura una imagen: la sube y crea un recorte de imagen con la imageKey', async () => {
+    const file = new File(['x'], 'shot.webp', { type: 'image/webp' })
+    const { result } = renderHook(() => useCreateRecorte(), { wrapper: makeWrapper() })
+    await act(async () => {
+      await result.current.mutateAsync({ kind: 'image', file })
+    })
+    expect(calls.some((c) => c.url.includes('recortes-image-upload'))).toBe(true)
+    const post = calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/recortes'))
+    expect(post?.body).toMatchObject({
+      imageKey: 'user-1/abc.webp',
+      captureMode: 'image',
     })
   })
 

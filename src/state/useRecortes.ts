@@ -24,6 +24,45 @@ export function useRecortesQuery() {
   })
 }
 
+/**
+ * Captura unificada desde el composer de Notas. Acepta dos formas:
+ *   - `{ kind: 'link', url }`  → recorte web (text = url, sourceUrl, modo 'html').
+ *   - `{ kind: 'image', file }` → sube la imagen a recortes-media y crea un
+ *     recorte de imagen (modo 'image') con la imageKey resultante.
+ * Invalida la bandeja + contadores + Inicio para que aparezca sin recargar.
+ */
+export type CaptureInput =
+  | { kind: 'link'; url: string; title?: string | null }
+  | { kind: 'image'; file: File; note?: string | null }
+
+export function useCreateRecorte() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: CaptureInput) => {
+      if (input.kind === 'link') {
+        return api.createRecorte({
+          text: input.url,
+          sourceUrl: input.url,
+          sourceTitle: input.title ?? null,
+          captureMode: 'html',
+        })
+      }
+      const { imageKey } = await api.uploadRecorteImage(input.file)
+      return api.createRecorte({
+        text: 'Imagen guardada',
+        imageKey,
+        note: input.note ?? null,
+        captureMode: 'image',
+      })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.counts })
+      qc.invalidateQueries({ queryKey: queryKeys.home })
+    },
+  })
+}
+
 export function useUpdateRecorte() {
   const qc = useQueryClient()
   return useMutation({
