@@ -67,10 +67,21 @@ pide reenviarla con `cita: <texto> — <autor>`.
 
 ## Variables de entorno
 
-| Var                  | Para qué                                                         |
-| -------------------- | ---------------------------------------------------------------- |
-| `TWILIO_AUTH_TOKEN`  | Verificar la firma de los webhooks entrantes (consola Twilio).   |
-| `TWILIO_WEBHOOK_URL` | Opcional. URL exacta configurada en Twilio si difiere del proxy. |
+| Var                    | Para qué                                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TWILIO_AUTH_TOKEN`    | Verificar la firma de los webhooks entrantes (consola Twilio).                                                                                    |
+| `TWILIO_WEBHOOK_URL`   | Opcional. URL exacta configurada en Twilio si difiere del proxy.                                                                                  |
+| `VITE_WHATSAPP_NUMBER` | Número del bot (E164). Habilita el QR + botón "Abrir WhatsApp". Público (va al cliente). Sin él, el panel cae a copiar/pegar `vincular <código>`. |
+
+## Onboarding de un toque (QR + deep link)
+
+Si `VITE_WHATSAPP_NUMBER` está configurado, el panel Configuración → WhatsApp
+genera, junto al código, un **QR** y un botón **"Abrir WhatsApp"** que apuntan
+a `https://wa.me/<número>?text=vincular%20<código>`. El usuario escanea (desde
+otro celular) o toca el botón (si ya está en el teléfono) → WhatsApp abre con
+el mensaje `vincular <código>` ya escrito → solo aprieta enviar. Cero copiar y
+pegar. El helper puro vive en `src/lib/whatsappLink.ts` (testeado); el QR usa
+`qrcode` con import perezoso, igual que `MomentoQRModal`.
 
 ## Setup externo (lo que hace el usuario)
 
