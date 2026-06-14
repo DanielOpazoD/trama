@@ -99,6 +99,7 @@ export function QueriesView() {
             if (e.key === 'Enter' && !e.shiftKey) submitAsk(e)
           }}
           rows={2}
+          aria-label="Pregunta en lenguaje natural"
           placeholder="¿filósofos anteriores a 1900? · notas con #trabajo · citas de Borges…"
           className="flex-1 resize-none rounded-lg border border-ink-200 bg-paper-50 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-300 focus:border-ink-400 focus:outline-none"
         />
@@ -203,7 +204,7 @@ export function QueriesView() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => del.mutate(sq.id)}
+                  onClick={() => del.mutate(sq)}
                   className="shrink-0 text-xs uppercase tracking-eyebrow text-ink-400 hover:text-ink-700"
                 >
                   Eliminar

@@ -14,7 +14,9 @@ import {
   type QueryInput,
   type QueryResult,
 } from '../api/query'
+import type { SavedQuery } from '../api/savedQueries'
 import { queryKeys } from './queryClient'
+import { useToast } from './toast'
 
 export function useSavedQueries() {
   return useQuery({
@@ -25,18 +27,43 @@ export function useSavedQueries() {
 
 export function useSaveQuery() {
   const qc = useQueryClient()
+  const toast = useToast()
   return useMutation({
     mutationFn: (input: { name: string; query: QueryInput; description?: string }) =>
       api.createSavedQuery(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.savedQueries }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.savedQueries })
+      toast.show({ message: 'Consulta guardada', tone: 'success' })
+    },
   })
 }
 
 export function useDeleteSavedQuery() {
   const qc = useQueryClient()
+  const toast = useToast()
   return useMutation({
-    mutationFn: (id: string) => api.deleteSavedQuery(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.savedQueries }),
+    mutationFn: (sq: SavedQuery) => api.deleteSavedQuery(sq.id),
+    onSuccess: (_void, sq) => {
+      qc.invalidateQueries({ queryKey: queryKeys.savedQueries })
+      // Soft-delete → ofrecemos Deshacer recreando la consulta (nuevo id; los
+      // bloques embebibles llevan el AST inline, así que no dependen del id).
+      toast.show({
+        message: 'Consulta eliminada',
+        tone: 'success',
+        durationMs: 10_000,
+        action: {
+          label: 'Deshacer',
+          onAction: async () => {
+            await api.createSavedQuery({
+              name: sq.name,
+              query: sq.query,
+              description: sq.description ?? undefined,
+            })
+            qc.invalidateQueries({ queryKey: queryKeys.savedQueries })
+          },
+        },
+      })
+    },
   })
 }
 

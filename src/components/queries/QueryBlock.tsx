@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { queryApi, type QueryInput } from '../../api/query'
+import { queryKeys } from '../../state/queryClient'
 import { QueryResultList } from './QueryResultList'
 
 /**
@@ -51,7 +52,7 @@ function Shell({ children }: { children: ReactNode }) {
 export function QueryBlock({ source }: { source: string }) {
   const parsed = useMemo(() => parseSpec(source), [source])
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['query-block', source],
+    queryKey: queryKeys.queryBlock(source),
     queryFn: () => queryApi.run((parsed as { query: QueryInput }).query),
     enabled: parsed.ok,
     staleTime: 60_000,

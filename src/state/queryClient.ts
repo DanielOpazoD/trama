@@ -59,4 +59,6 @@ export const queryKeys = {
   quoteEchoes: (quoteId: string) => ['quotes', 'echoes', quoteId] as const,
   /** Fase 4: consultas guardadas del usuario. */
   savedQueries: ['saved-queries'] as const,
+  /** Fase 4: resultados de un bloque embebible, cacheados por su AST. */
+  queryBlock: (source: string) => ['query-block', source] as const,
 }
