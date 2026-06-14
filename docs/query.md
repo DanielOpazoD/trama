@@ -153,6 +153,25 @@ interpretado** para que la UI lo muestre/edite (la "live update view").
   de `compileQuery` descarta ASTs Zod-válidos pero no compilables (p.ej. un op
   no permitido para el tipo del campo) antes de que lleguen a `runQuery`.
 
+## Fase 4 — consultas guardadas, UI y bloques embebibles
+
+Tres piezas sobre el mismo AST serializable:
+
+- **Consultas guardadas** (`saved_queries`): migración con tabla propia, RLS por
+  usuario y soft-delete. CRUD vía `/api/saved-queries` (GET/POST/PATCH/DELETE).
+  El AST guardado se valida con el **mismo `QueryBody`** del motor — una consulta
+  guardada nunca puede contener algo que el compilador rechace. `_lib/saved-
+queries.ts` aísla schemas + mapeo row→DTO (puro/testeable).
+- **UI con preview en vivo** (vista `Consultas`, grupo Diálogo): un cuadro de
+  texto en lenguaje natural → `queryApi.ask`; muestra la **fuente** (IA /
+  fallback), el **AST interpretado** (colapsable) y los resultados. Permite
+  **guardar** la consulta y **correr** las guardadas (`queryApi.run`).
+- **Bloques embebibles**: una valla markdown ` ```trama-query ` cuyo cuerpo es el
+  AST JSON se renderiza como un `<QueryBlock>` que ejecuta la consulta en vivo
+  dentro de una nota. Es self-contained (el AST viaja en el bloque) y defensivo
+  (JSON inválido / sin `from` → aviso, no rompe la nota). El botón "Copiar bloque
+  embebible" de la vista genera ese snippet desde cualquier resultado.
+
 ## Roadmap
 
 - **Fase 1 (hecha):** AST + compilador + endpoint + filtros tipo/fecha/tags/texto.
@@ -160,8 +179,8 @@ interpretado** para que la UI lo muestre/edite (la "live update view").
   `linked_to`, escritura vía `/api/object-properties`.
 - **Fase 3 (hecha):** traductor lenguaje-natural→AST (`/api/query/nl`) con
   catálogo data-driven, reparación y fallback de texto libre.
+- **Fase 4 (hecha):** consultas guardadas (`saved_queries`) + vista `Consultas`
+  con preview en vivo + bloques embebibles (` ```trama-query `).
 - Fase 2.5: registro `property_defs` (catálogo tipado) + read-model `objects`
   (proyección denormalizada) para escala.
-- Fase 4: queries guardadas (`saved_queries`) + bloques embebibles + UI con
-  preview en vivo.
 - Fase 1.5: predicado semántico `near` (pgvector) integrado al motor.

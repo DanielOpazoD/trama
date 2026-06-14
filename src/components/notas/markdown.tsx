@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from 'react'
+import { QueryBlock } from '../queries/QueryBlock'
 
 /**
  * Render de markdown liviano para las notas — SIN dependencias y SIN
@@ -164,12 +165,19 @@ export function renderMarkdown(src: string): ReactNode[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!
 
-    // Bloque de código ```
-    if (/^```/.test(line)) {
+    // Bloque de código ``` — el "info string" tras la valla decide el render.
+    const fence = /^```(\S*)/.exec(line)
+    if (fence) {
       flushPara()
+      const lang = fence[1]
       const code: string[] = []
       i++
       while (i < lines.length && !/^```/.test(lines[i]!)) code.push(lines[i++]!)
+      // ```trama-query → bloque embebible que ejecuta el AST en vivo.
+      if (lang === 'trama-query') {
+        blocks.push(<QueryBlock key={`q-block-${key++}`} source={code.join('\n')} />)
+        continue
+      }
       blocks.push(
         <pre
           key={`code-${key++}`}

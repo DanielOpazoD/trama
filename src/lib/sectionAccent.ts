@@ -34,4 +34,6 @@ export const SECTION_ACCENT: Record<ViewMode, string> = {
   atlas: 'var(--type-idea)',
   chat: 'var(--accent-primary)',
   sugerencias: 'var(--accent-primary)',
+  // Consultas — primary: superficie de IA (pregúntale a tu trama).
+  consultas: 'var(--accent-primary)',
 }

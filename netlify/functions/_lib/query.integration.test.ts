@@ -254,4 +254,31 @@ describe.skipIf(!DB_URL)('query engine (integración Postgres real)', () => {
     const { items } = await runQuery(sqlFor(USER_A), query)
     expect(items.some((i) => i.title === 'BorgesQIT Unico')).toBe(true)
   })
+
+  it('saved_queries: aislamiento RLS + soft-delete entre usuarios', async () => {
+    const ast = JSON.stringify({ from: ['entity'], where: { op: 'matches', value: 'x' } })
+    const inserted = (await sqlFor(USER_A)`
+      INSERT INTO saved_queries (user_id, name, query)
+      VALUES (${USER_A}, ${'Mi consulta QIT'}, ${ast}::jsonb)
+      RETURNING id
+    `) as unknown as Array<{ id: string }>
+    const id = inserted[0]!.id
+
+    // A la ve; B no (RLS).
+    const seenByA = (await sqlFor(USER_A)`
+      SELECT id FROM saved_queries WHERE id = ${id} AND deleted_at IS NULL
+    `) as unknown as unknown[]
+    expect(seenByA).toHaveLength(1)
+    const seenByB = (await sqlFor(USER_B)`
+      SELECT id FROM saved_queries WHERE id = ${id} AND deleted_at IS NULL
+    `) as unknown as unknown[]
+    expect(seenByB).toHaveLength(0)
+
+    // Soft-delete por A → deja de verla.
+    await sqlFor(USER_A)`UPDATE saved_queries SET deleted_at = NOW() WHERE id = ${id}`
+    const afterDelete = (await sqlFor(USER_A)`
+      SELECT id FROM saved_queries WHERE id = ${id} AND deleted_at IS NULL
+    `) as unknown as unknown[]
+    expect(afterDelete).toHaveLength(0)
+  })
 })

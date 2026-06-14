@@ -3,6 +3,7 @@ import type { NavItem } from '../components/sidebar/NavButton'
 import {
   AtlasIcon,
   ChatIcon,
+  ConsultasIcon,
   CronologiaIcon,
   EntitiesIcon,
   GraphIcon,
@@ -57,6 +58,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Diálogo',
     items: [
+      { value: 'consultas', label: 'Consultas', icon: ConsultasIcon },
       { value: 'chat', label: 'Chat', icon: ChatIcon },
       { value: 'sugerencias', label: 'Sugerencias', icon: SparkleIcon },
     ],

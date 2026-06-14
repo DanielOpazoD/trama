@@ -78,6 +78,15 @@ export const SearchIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+// Consultas / "pregúntale a tu trama": lupa con una chispa — buscar + IA.
+export const ConsultasIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <circle cx="10" cy="10" r="6" />
+    <path d="m20 20-3.8-3.8" />
+    <path d="M19 3.5v3M17.5 5h3" />
+  </svg>
+)
+
 export const EyeIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />

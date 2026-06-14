@@ -31,6 +31,7 @@ import { notasAttachmentsApi } from './notas-attachments'
 import { promptsApi } from './prompts'
 import { quotesApi } from './quotes'
 import { relationshipsApi } from './relationships'
+import { savedQueriesApi } from './savedQueries'
 import { searchApi } from './search'
 import { secretsApi } from './secrets'
 import { spotifyApi } from './spotify'
@@ -71,6 +72,7 @@ export const api = {
   ...typeTablesApi,
   ...exportImportApi,
   ...whatsappApi,
+  ...savedQueriesApi,
 }
 
 // ---------- Re-exports públicos ----------
@@ -107,6 +109,8 @@ export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
 export type { Cronica, GeneratedCronica } from './cronicas'
 
 export type { Note } from './notes'
+
+export type { SavedQuery, SavedQueryCreate, SavedQueryPatch } from './savedQueries'
 
 export type { Task, TaskCreate, TaskPatch, TaskPriority, TaskCategory } from './tasks'
 
