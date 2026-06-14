@@ -118,62 +118,69 @@ async function persistQuote(
   text: string,
   author: string,
 ): Promise<string> {
-  // Una cita necesita una entidad. Buscamos por nombre (case-insensitive) y,
-  // si no existe, creamos una entidad mínima (tipo persona) con el autor.
-  const existing = await sqlTyped<{ id: string; name: string }>(sql`
-    SELECT id, name FROM entities
-    WHERE deleted_at IS NULL AND user_id = ${userId}
-      AND lower(name) = lower(${author})
-    ORDER BY created_at ASC
-    LIMIT 1
-  `)
-  let entityId = existing[0]?.id
-  if (!entityId) {
-    const entEmb = await embedSafe(
-      entityEmbeddingText({
-        name: author,
-        type: 'persona',
-        year: null,
-        description: null,
-      }),
-    )
-    const created = await sqlTyped<{ id: string }>(sql`
-      INSERT INTO entities (
-        type, name, origin,
-        embedding, embedding_model, embedding_at, user_id
-      ) VALUES (
-        'persona',
-        ${author},
-        ${JSON.stringify({ kind: 'manual' })}::jsonb,
-        ${entEmb ? toPgVector(entEmb.vector) : null}::vector,
-        ${entEmb?.model ?? null},
-        ${entEmb ? new Date().toISOString() : null}::timestamptz,
-        ${userId}
-      )
-      RETURNING id
-    `)
-    entityId = created[0]?.id
-  }
-  if (!entityId) {
-    return 'No pude guardar la cita (no se pudo crear la entidad del autor). Probá de nuevo.'
-  }
-
-  const emb = await embedSafe(
+  // Una cita necesita una entidad (la del autor). Calculamos los embeddings en
+  // JS y resolvemos find-or-create + INSERT de la cita en UN SOLO CTE atómico
+  // (regla de dominios.md: multi-write → un WITH). Match por nombre exacto o,
+  // si hay embedding, por vecindad vectorial (mismo umbral 0.20 que
+  // entities.mts) para no duplicar "Borges" por variantes de tipeo.
+  //
+  // NOTA: este CTE usa `::vector`, así que no se replica en
+  // scripts/check-cte-regression.sql (ese harness es sin pgvector a
+  // propósito). Queda cubierto por whatsapp-persist.test.ts (SQL mockeado).
+  const origin = JSON.stringify({ kind: 'manual' })
+  const entEmb = await embedSafe(
+    entityEmbeddingText({ name: author, type: 'persona', year: null, description: null }),
+  )
+  const quoteEmb = await embedSafe(
     quoteEmbeddingText({ text, entityName: author, source: null, context: null }),
   )
-  await sql`
-    INSERT INTO quotes (
-      entity_id, text, origin,
-      embedding, embedding_model, embedding_at, user_id
-    ) VALUES (
-      ${entityId},
-      ${text},
-      ${JSON.stringify({ kind: 'manual' })}::jsonb,
-      ${emb ? toPgVector(emb.vector) : null}::vector,
-      ${emb?.model ?? null},
-      ${emb ? new Date().toISOString() : null}::timestamptz,
-      ${userId}
+  const entVec = entEmb ? toPgVector(entEmb.vector) : null
+  const quoteVec = quoteEmb ? toPgVector(quoteEmb.vector) : null
+  const now = new Date().toISOString()
+
+  const rows = await sqlTyped<{ entity_id: string }>(sql`
+    WITH existing AS (
+      SELECT id FROM entities
+      WHERE deleted_at IS NULL AND user_id = ${userId}
+        AND (
+          lower(name) = lower(${author})
+          OR (
+            ${entVec}::vector IS NOT NULL
+            AND embedding IS NOT NULL
+            AND embedding <=> ${entVec}::vector < 0.20
+          )
+        )
+      ORDER BY (lower(name) = lower(${author})) DESC, created_at ASC
+      LIMIT 1
+    ),
+    new_entity AS (
+      INSERT INTO entities (
+        type, name, origin, embedding, embedding_model, embedding_at, user_id
+      )
+      SELECT
+        'persona', ${author}, ${origin}::jsonb,
+        ${entVec}::vector, ${entEmb?.model ?? null}, ${entEmb ? now : null}::timestamptz,
+        ${userId}
+      WHERE NOT EXISTS (SELECT 1 FROM existing)
+      RETURNING id
+    ),
+    target AS (
+      SELECT id FROM existing
+      UNION ALL
+      SELECT id FROM new_entity
     )
-  `
+    INSERT INTO quotes (
+      entity_id, text, origin, embedding, embedding_model, embedding_at, user_id
+    )
+    SELECT
+      id, ${text}, ${origin}::jsonb,
+      ${quoteVec}::vector, ${quoteEmb?.model ?? null}, ${quoteEmb ? now : null}::timestamptz,
+      ${userId}
+    FROM target
+    RETURNING entity_id
+  `)
+  if (rows.length === 0) {
+    return 'No pude guardar la cita. Probá de nuevo.'
+  }
   return `❝ Cita de ${author} guardada.`
 }

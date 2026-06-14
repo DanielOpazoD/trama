@@ -100,6 +100,26 @@ async function redeemLinkCode(phone: string, code: string): Promise<boolean> {
   })
 }
 
+/**
+ * Reclama un MessageSid como procesado (idempotencia). INSERT ... ON CONFLICT
+ * DO NOTHING: si ya estaba, devuelve false y el webhook corta sin re-escribir
+ * — así un reintento de Twilio (por latencia/5xx) no duplica la captura ni
+ * vuelve a pagar el LLM. Corre bajo el RLS del dueño (ya seteado).
+ */
+async function claimInboundMessage(
+  sql: ReturnType<typeof getSql>,
+  messageSid: string,
+  userId: string,
+): Promise<boolean> {
+  const rows = await sqlTyped<{ message_sid: string }>(sql`
+    INSERT INTO whatsapp_processed_messages (message_sid, user_id)
+    VALUES (${messageSid}, ${userId})
+    ON CONFLICT (message_sid) DO NOTHING
+    RETURNING message_sid
+  `)
+  return rows.length > 0
+}
+
 /** Texto libre → CaptureIntent vía LLM, con fallback a nota si algo falla. */
 async function classifyFreeform(
   req: Request,
@@ -188,6 +208,15 @@ export default withObservability(
     // Provisioning defensivo: el row de users ya existe (se creó al vincular),
     // pero lo aseguramos antes de escribir para no chocar con la FK users(id).
     await ensureUserRow(sql, { id: userId })
+
+    // Idempotencia: si Twilio reintenta este mensaje (latencia/5xx), no lo
+    // reprocesamos ni volvemos a pagar el LLM. El claim va ANTES de clasificar.
+    const messageSid = params.MessageSid ?? params.SmsMessageSid ?? params.SmsSid
+    if (messageSid) {
+      const claimed = await claimInboundMessage(sql, messageSid, userId)
+      if (!claimed) return emptyTwimlResponse()
+    }
+
     sql`
       UPDATE whatsapp_links SET last_message_at = NOW()
       WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL

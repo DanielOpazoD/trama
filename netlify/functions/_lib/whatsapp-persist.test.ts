@@ -57,31 +57,20 @@ describe('persistCapture', () => {
     expect(msg).toContain('Rayuela')
   })
 
-  it('quote con entidad existente → no crea entidad', async () => {
-    // SELECT entidad → existe; INSERT quote.
-    const { sql } = fakeSql([[{ id: 'e1', name: 'Borges' }], []])
-    const msg = await persistCapture(sql, 'u1', {
+  it('quote → CTE atómico find-or-create + insert, confirma con el autor', async () => {
+    // Un solo CTE: devuelve la fila con entity_id (sea existente o nueva).
+    const fake = fakeSql([[{ entity_id: 'e1' }]])
+    const msg = await persistCapture(fake.sql, 'u1', {
       kind: 'quote',
       text: 'el tiempo es una trama',
       author: 'Borges',
     })
     expect(msg).toContain('Borges')
+    expect(fake.calls).toBe(1) // multi-write en una sola sentencia
   })
 
-  it('quote sin entidad → crea la entidad del autor y luego la cita', async () => {
-    // SELECT entidad → vacío; INSERT entidad → id; INSERT quote.
-    const { sql } = fakeSql([[], [{ id: 'e-new' }], []])
-    const msg = await persistCapture(sql, 'u1', {
-      kind: 'quote',
-      text: 'frase nueva',
-      author: 'Autor Nuevo',
-    })
-    expect(msg).toContain('Autor Nuevo')
-  })
-
-  it('quote sin entidad y sin poder crearla → mensaje de error sin romper', async () => {
-    // SELECT vacío; INSERT entidad no devuelve id.
-    const { sql } = fakeSql([[], []])
+  it('quote → si el CTE no devuelve fila, mensaje de error sin romper', async () => {
+    const { sql } = fakeSql([[]])
     const msg = await persistCapture(sql, 'u1', {
       kind: 'quote',
       text: 'x',

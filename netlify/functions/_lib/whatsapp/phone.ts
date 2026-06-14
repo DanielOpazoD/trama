@@ -18,11 +18,3 @@ export function normalizePhone(raw: string | null | undefined): string | null {
   if (!E164.test(s)) return null
   return s
 }
-
-/** Enmascara para mostrar en la UI: `+56912345678` → `+569·····5678`. */
-export function maskPhone(e164: string): string {
-  if (e164.length <= 8) return e164
-  const head = e164.slice(0, 4)
-  const tail = e164.slice(-4)
-  return `${head}${'·'.repeat(Math.max(2, e164.length - 8))}${tail}`
-}

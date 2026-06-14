@@ -65,6 +65,17 @@ pide reenviarla con `cita: <texto> — <autor>`.
 - El webhook resuelve el usuario por número; solo números **verificados**
   escriben, y siempre bajo el RLS del dueño.
 
+## Idempotencia
+
+Twilio reintenta el webhook si no recibe un 200 a tiempo (~15s) o ante un 5xx.
+Como la captura hace embeddings y, en texto libre, una llamada LLM **antes** de
+responder, un reintento podía duplicar la nota/cita y volver a pagar el LLM. El
+webhook **reclama el `MessageSid`** en la tabla `whatsapp_processed_messages`
+(`INSERT ... ON CONFLICT DO NOTHING`) **antes** de clasificar/persistir: si el
+SID ya estaba, corta con TwiML vacío sin re-escribir. Es un ledger append-only
+(sin `deleted_at`), RLS por usuario. Migración
+`20260614003000_whatsapp_processed_messages`.
+
 ## Variables de entorno
 
 | Var                    | Para qué                                                                                                                                          |

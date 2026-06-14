@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizePhone, maskPhone } from './phone'
+import { normalizePhone } from './phone'
 import { generateLinkCode, normalizeLinkCode } from './link-code'
 import { buildTwiml } from './twiml'
 
@@ -14,15 +14,6 @@ describe('normalizePhone', () => {
     expect(normalizePhone('hola')).toBeNull()
     expect(normalizePhone('12345')).toBeNull()
     expect(normalizePhone(null)).toBeNull()
-  })
-})
-
-describe('maskPhone', () => {
-  it('enmascara el medio', () => {
-    const m = maskPhone('+56912345678')
-    expect(m.startsWith('+569')).toBe(true)
-    expect(m.endsWith('5678')).toBe(true)
-    expect(m).toContain('·')
   })
 })
 
