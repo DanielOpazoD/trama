@@ -87,29 +87,97 @@ export function mediaTarget(body: string): {
   return { target: 'recorte', caption: body.trim() }
 }
 
+/** Timeout por intento de descarga (la function tiene presupuesto acotado). */
+export const TWILIO_FETCH_TIMEOUT_MS = 15000
+
+/** Backoff por defecto: 3 intentos (inmediato, +0.5 s, +1.5 s). */
+const DEFAULT_RETRY_DELAYS_MS = [0, 500, 1500]
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** fetch con AbortController para no quedar colgados si Twilio no responde. */
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal })
+  } finally {
+    clearTimeout(t)
+  }
+}
+
+export type DownloadOptions = {
+  maxBytes?: number
+  /** Delays entre intentos (longitud = nº de intentos). Default 3 intentos. */
+  retryDelaysMs?: number[]
+  timeoutMs?: number
+  /** Notifica reintentos (observabilidad); el caller decide qué loguear. */
+  onRetry?: (attempt: number, reason: string) => void
+}
+
 /**
- * Baja un archivo de media de Twilio (auth básica). Valida el host primero
- * (SSRF) y aborta si el archivo supera `maxBytes`: primero mira el
- * `Content-Length` (corta sin transferir) y, por las dudas, revalida el
- * tamaño real del buffer. Lanza `Error(MEDIA_TOO_LARGE)` para que el webhook
- * distinga "muy grande" de un fallo de red genérico.
+ * Baja un archivo de media de Twilio (auth básica) con resiliencia:
+ *
+ * - Valida el host (SSRF) antes de cualquier request.
+ * - Timeout por intento + reintentos con backoff SOLO en fallas transitorias
+ *   (red, timeout, 5xx, 429). Los 4xx (auth/URL mala) y `MEDIA_TOO_LARGE` son
+ *   permanentes: cortan sin reintentar (reintentar no ayuda y enmascara bugs).
+ * - Tope de tamaño: mira `Content-Length` (corta sin transferir) y revalida el
+ *   buffer real. Lanza `Error(MEDIA_TOO_LARGE)` para que el webhook distinga
+ *   "muy grande" de un fallo de red.
  */
 export async function downloadTwilioMedia(
   url: string,
   accountSid: string,
   authToken: string,
-  maxBytes: number = MAX_MEDIA_BYTES,
+  opts: DownloadOptions = {},
 ): Promise<{ buffer: ArrayBuffer; contentType: string }> {
   if (!isTwilioMediaUrl(url)) {
     throw new Error('URL de media no pertenece a Twilio')
   }
+  const maxBytes = opts.maxBytes ?? MAX_MEDIA_BYTES
+  const delays = opts.retryDelaysMs ?? DEFAULT_RETRY_DELAYS_MS
+  const timeoutMs = opts.timeoutMs ?? TWILIO_FETCH_TIMEOUT_MS
   const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
-  const res = await fetch(url, { headers: { Authorization: `Basic ${auth}` } })
-  if (!res.ok) throw new Error(`Twilio media respondió ${res.status}`)
-  const declared = Number.parseInt(res.headers.get('content-length') ?? '', 10)
-  if (Number.isFinite(declared) && declared > maxBytes) throw new Error(MEDIA_TOO_LARGE)
-  const contentType = res.headers.get('content-type') ?? ''
-  const buffer = await res.arrayBuffer()
-  if (buffer.byteLength > maxBytes) throw new Error(MEDIA_TOO_LARGE)
-  return { buffer, contentType }
+  const init: RequestInit = { headers: { Authorization: `Basic ${auth}` } }
+
+  let lastError: unknown = null
+  for (let attempt = 0; attempt < delays.length; attempt++) {
+    if (attempt > 0) {
+      opts.onRetry?.(attempt, lastError instanceof Error ? lastError.message : 'retry')
+    }
+    const delay = delays[attempt] ?? 0
+    if (delay > 0) await sleep(delay)
+    let res: Response
+    try {
+      res = await fetchWithTimeout(url, init, timeoutMs)
+    } catch (err) {
+      lastError = err // red/timeout (abort) → transitorio, reintentar
+      continue
+    }
+    if (res.ok) {
+      const declared = Number.parseInt(res.headers.get('content-length') ?? '', 10)
+      if (Number.isFinite(declared) && declared > maxBytes) {
+        throw new Error(MEDIA_TOO_LARGE)
+      }
+      const contentType = res.headers.get('content-type') ?? ''
+      const buffer = await res.arrayBuffer()
+      if (buffer.byteLength > maxBytes) throw new Error(MEDIA_TOO_LARGE)
+      return { buffer, contentType }
+    }
+    if (res.status >= 500 || res.status === 429) {
+      lastError = new Error(`Twilio media respondió ${res.status}`) // transitorio
+      continue
+    }
+    throw new Error(`Twilio media respondió ${res.status}`) // 4xx → permanente
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('Twilio media: fallo tras reintentos')
 }

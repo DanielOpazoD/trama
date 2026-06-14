@@ -274,6 +274,10 @@ async function handleInboundMedia(
         item.url,
         accountSid,
         authToken,
+        {
+          onRetry: (attempt, reason) =>
+            logEvent({ event: 'whatsapp_media_retry', attempt, reason }),
+        },
       )
       if (target === 'momento') {
         const key = await storeMedia('momentos-media', userId, buffer, contentType)

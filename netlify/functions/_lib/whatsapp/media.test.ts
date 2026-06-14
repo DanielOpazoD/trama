@@ -108,7 +108,7 @@ describe('downloadTwilioMedia', () => {
       }),
     )
     await expect(
-      downloadTwilioMedia('https://api.twilio.com/x', 'AC', 'tok', 1024),
+      downloadTwilioMedia('https://api.twilio.com/x', 'AC', 'tok', { maxBytes: 1024 }),
     ).rejects.toThrow(MEDIA_TOO_LARGE)
   })
 
@@ -122,8 +122,57 @@ describe('downloadTwilioMedia', () => {
       }),
     )
     await expect(
-      downloadTwilioMedia('https://api.twilio.com/x', 'AC', 'tok', 1024),
+      downloadTwilioMedia('https://api.twilio.com/x', 'AC', 'tok', { maxBytes: 1024 }),
     ).rejects.toThrow(MEDIA_TOO_LARGE)
+  })
+
+  it('reintenta en 5xx y termina bajando (con backoff inyectado)', async () => {
+    const onRetry = vi.fn()
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 503, headers: { get: () => null } })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+    const { buffer } = await downloadTwilioMedia(
+      'https://api.twilio.com/x',
+      'AC',
+      'tok',
+      {
+        retryDelaysMs: [0, 0],
+        onRetry,
+      },
+    )
+    expect(buffer.byteLength).toBe(8)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(onRetry).toHaveBeenCalledOnce()
+  })
+
+  it('reintenta ante error de red y se rinde tras agotar intentos', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('network down'))
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(
+      downloadTwilioMedia('https://api.twilio.com/x', 'AC', 'tok', {
+        retryDelaysMs: [0, 0],
+      }),
+    ).rejects.toThrow(/network down/)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('NO reintenta en 4xx (permanente)', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: false, status: 404, headers: { get: () => null } })
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(
+      downloadTwilioMedia('https://api.twilio.com/x', 'AC', 'tok', {
+        retryDelaysMs: [0, 0],
+      }),
+    ).rejects.toThrow(/404/)
+    expect(fetchMock).toHaveBeenCalledOnce()
   })
 
   it('baja con auth básica y devuelve buffer + contentType', async () => {

@@ -84,6 +84,13 @@ rate-limit por IP/número a propósito (regla de `AGENTS.md`: el cost-cap mensua
 del LLM es el límite); el camino de media no llama LLM, así que no consume
 presupuesto.
 
+**Resiliencia de descarga:** `downloadTwilioMedia` tiene timeout por intento
+(`TWILIO_FETCH_TIMEOUT_MS` = 15 s vía `AbortController`) y reintenta con backoff
+(3 intentos) SOLO en fallas transitorias (red, timeout, 5xx, 429). Los 4xx y
+`MEDIA_TOO_LARGE` son permanentes y cortan sin reintentar. Cada reintento emite
+`whatsapp_media_retry` (observabilidad); el fallo final emite
+`whatsapp_media_failed`.
+
 ## Comando `estado`
 
 `estado` (o `status`) devuelve un resumen desde el teléfono: si el vínculo está
