@@ -15,8 +15,10 @@ vi.mock('./ai-mode.js', () => ({
   }),
 }))
 const askLLMForJson = vi.fn()
+const askLLMForVision = vi.fn()
 vi.mock('./llm.js', () => ({
   askLLMForJson: (...args: unknown[]) => askLLMForJson(...args),
+  askLLMForVision: (...args: unknown[]) => askLLMForVision(...args),
 }))
 // Blobs mockeado: el upload de media no toca red real.
 vi.mock('@netlify/blobs', () => ({
@@ -45,6 +47,7 @@ function twilioRequest(fields: Record<string, string>): Request {
 beforeEach(() => {
   mockSqlResponses.reset()
   askLLMForJson.mockReset()
+  askLLMForVision.mockReset()
 })
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -242,6 +245,66 @@ describe('whatsapp-webhook', () => {
     const xml = await res.text()
     expect(xml).toContain('Recortes')
     expect(xml).toContain('view=recortes')
+  })
+
+  it('foto con "nota:" → visión transcribe y guarda Nota', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    askLLMForVision.mockResolvedValue({
+      content: { text: 'apuntes de la reunión' },
+      usage: {
+        provider: 'openai',
+        model: 'gpt',
+        tokensIn: 5,
+        tokensOut: 5,
+        costCents: 1,
+        durationMs: 100,
+      },
+      fromCache: false,
+    })
+    const fields = {
+      MessageSid: 'SMocr',
+      From: 'whatsapp:+56912345678',
+      Body: 'nota:',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/ocr',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMocr' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes RETURNING id
+    mockSqlResponses.push([]) // recordLastCapture
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(askLLMForVision).toHaveBeenCalledOnce()
+    const xml = await res.text()
+    expect(xml).toContain('Notas')
+    expect(xml).toContain('world=notas')
   })
 
   it('estado → resumen del vínculo', async () => {

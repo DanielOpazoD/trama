@@ -7,7 +7,7 @@ import { setCurrentRlsUser, runWithSystemRls } from './_lib/user-rls.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { resolveAIInvocation } from './_lib/ai-mode.js'
-import { askLLMForJson } from './_lib/llm.js'
+import { askLLMForJson, askLLMForVision } from './_lib/llm.js'
 import { validateTwilioSignature } from './_lib/whatsapp/twilio-signature.js'
 import { normalizePhone } from './_lib/whatsapp/phone.js'
 import { parseInboundMessage } from './_lib/whatsapp/parse-command.js'
@@ -21,11 +21,14 @@ import {
 import {
   parseInboundMedia,
   mediaCategory,
-  mediaTarget,
+  mediaRoute,
+  isVisionRoute,
   downloadTwilioMedia,
   isAllowedImageMime,
   MEDIA_TOO_LARGE,
 } from './_lib/whatsapp/media.js'
+import { buildPhotoPrompt, validatePhotoExtraction } from './_lib/whatsapp/vision.js'
+import type { PhotoMode } from './_lib/whatsapp/vision.js'
 import { formatStatus } from './_lib/whatsapp/status.js'
 import { storeMedia } from './_lib/whatsapp/media-store.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
@@ -239,7 +242,44 @@ async function recordLastCapture(
  * `momento:`). Audio/video se reconocen y se avisan (próximo incremento).
  * Devuelve el texto de confirmación.
  */
+/**
+ * Pasa una imagen por el LLM de visión y devuelve la `CaptureIntent` extraída
+ * (cita o nota), o `null` si no se puede usar IA (off / sin presupuesto / falla
+ * del modelo) para que el caller caiga a guardar la imagen como Recorte.
+ */
+async function extractPhotoIntent(
+  req: Request,
+  userId: string,
+  requestId: string,
+  buffer: ArrayBuffer,
+  mimeType: string,
+  mode: PhotoMode,
+  caption: string,
+): Promise<CaptureIntent | null> {
+  const overBudget = await checkMonthlyBudget(userId, requestId)
+  if (overBudget) return null
+  const invocation = await resolveAIInvocation(req, 'extract-image', userId)
+  if (invocation.kind === 'off') return null
+  try {
+    const { system, user } = buildPhotoPrompt(mode)
+    const imageBase64 = Buffer.from(buffer).toString('base64')
+    const { content } = await askLLMForVision(system, user, imageBase64, mimeType, {
+      provider: invocation.provider,
+      model: invocation.model,
+    })
+    return validatePhotoExtraction(content, mode, caption)
+  } catch (err) {
+    logEvent({
+      event: 'whatsapp_vision_failed',
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return null
+  }
+}
+
 async function handleInboundMedia(
+  req: Request,
+  requestId: string,
   sql: ReturnType<typeof getSql>,
   userId: string,
   phone: string,
@@ -249,7 +289,7 @@ async function handleInboundMedia(
 ): Promise<string> {
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
-  const { target, caption } = mediaTarget(params.Body ?? params.body ?? '')
+  const { route, caption } = mediaRoute(params.Body ?? params.body ?? '')
   let saved = 0
   let lastId: string | null = null
   let lastKind = ''
@@ -279,7 +319,35 @@ async function handleInboundMedia(
             logEvent({ event: 'whatsapp_media_retry', attempt, reason }),
         },
       )
-      if (target === 'momento') {
+
+      // Rutas de visión (cita:/nota:/texto:/ocr:): la imagen pasa por el LLM
+      // de visión y se persiste lo EXTRAÍDO (cita o nota). Si la IA está off,
+      // sin presupuesto o falla, caemos a guardar la imagen como Recorte —
+      // nunca se pierde lo que mandó el usuario.
+      if (isVisionRoute(route)) {
+        const mode: PhotoMode = route === 'quote' ? 'quote' : 'text'
+        const intent = await extractPhotoIntent(
+          req,
+          userId,
+          requestId,
+          buffer,
+          contentType,
+          mode,
+          caption,
+        )
+        if (intent) {
+          const r = await persistCapture(sql, userId, intent)
+          lastId = r.id
+          lastKind = intent.kind
+          saved += 1
+          logEvent({ event: 'whatsapp_vision', mode, kind: intent.kind })
+          continue
+        }
+        skipped.add('vision')
+        // fallback ↓ guarda la imagen como recorte
+      }
+
+      if (route === 'momento') {
         const key = await storeMedia('momentos-media', userId, buffer, contentType)
         const r = await persistImageMomento(sql, userId, key, caption)
         lastId = r.id
@@ -303,14 +371,19 @@ async function handleInboundMedia(
     logEvent({ event: 'whatsapp_capture', kind: lastKind, media: true, count: saved })
   }
 
+  const DEST_BY_KIND: Record<string, string> = {
+    momento: 'Momentos',
+    recorte: 'Recortes',
+    quote: 'Citas',
+    note: 'Notas',
+  }
   const lines: string[] = []
   if (saved > 0) {
-    const dest = target === 'momento' ? 'Momentos' : 'Recortes'
-    lines.push(
-      saved === 1
-        ? `📷 Imagen guardada en ${dest}.`
-        : `📷 ${saved} imágenes guardadas en ${dest}.`,
-    )
+    const dest = DEST_BY_KIND[lastKind] ?? 'Trama'
+    lines.push(saved === 1 ? `✅ Guardado en ${dest}.` : `✅ ${saved} ítems guardados.`)
+    if (skipped.has('vision')) {
+      lines.push('(No pude leer el texto, así que guardé la imagen tal cual.)')
+    }
     lines.push(`🔗 ${captureDeepLink(origin, lastKind)}`)
     lines.push('↩️ ¿Mal? Respondé: deshacer')
   }
@@ -486,6 +559,8 @@ export default withObservability(
     if (media.length > 0) {
       return twimlResponse(
         await handleInboundMedia(
+          req,
+          requestId,
           sql,
           userId,
           phone,

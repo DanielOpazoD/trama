@@ -72,19 +72,38 @@ export function extFromMime(mime: string): string {
 }
 
 /**
- * Caption de un mensaje con media → destino + texto limpio. Default Recortes
- * (decisión del producto: la bandeja es el inbox natural de media cruda); el
- * usuario fuerza Momentos con `momento:`.
+ * Destino de una foto según su caption:
+ * - sin prefijo o `recorte:` → Recorte (inbox natural de media cruda).
+ * - `momento:` → Momento foto.
+ * - `cita:` → visión/OCR extrae cita + autor → Cita.
+ * - `nota:` / `texto:` / `ocr:` → visión/OCR transcribe → Nota.
+ *
+ * Los dos últimos son "rutas de visión" (llaman LLM); los dos primeros no.
  */
-export function mediaTarget(body: string): {
-  target: 'momento' | 'recorte'
-  caption: string
-} {
-  const m = /^\/?(momento|recorte)\s*:?\s*([\s\S]*)$/i.exec(body.trim())
+export type MediaRoute = 'momento' | 'recorte' | 'quote' | 'note'
+
+export function mediaRoute(body: string): { route: MediaRoute; caption: string } {
+  const m = /^\/?(momento|recorte|cita|nota|texto|ocr)\s*:?\s*([\s\S]*)$/i.exec(
+    body.trim(),
+  )
   if (m) {
-    return { target: m[1]!.toLowerCase() as 'momento' | 'recorte', caption: m[2]!.trim() }
+    const kw = m[1]!.toLowerCase()
+    const route: MediaRoute =
+      kw === 'momento'
+        ? 'momento'
+        : kw === 'cita'
+          ? 'quote'
+          : kw === 'nota' || kw === 'texto' || kw === 'ocr'
+            ? 'note'
+            : 'recorte'
+    return { route, caption: m[2]!.trim() }
   }
-  return { target: 'recorte', caption: body.trim() }
+  return { route: 'recorte', caption: body.trim() }
+}
+
+/** ¿Esta ruta requiere pasar la imagen por el LLM de visión? */
+export function isVisionRoute(route: MediaRoute): boolean {
+  return route === 'quote' || route === 'note'
 }
 
 /** Timeout por intento de descarga (la function tiene presupuesto acotado). */

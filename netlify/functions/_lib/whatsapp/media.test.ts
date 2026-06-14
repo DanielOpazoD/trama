@@ -4,7 +4,8 @@ import {
   isTwilioMediaUrl,
   mediaCategory,
   extFromMime,
-  mediaTarget,
+  mediaRoute,
+  isVisionRoute,
   downloadTwilioMedia,
   isAllowedImageMime,
   MEDIA_TOO_LARGE,
@@ -56,24 +57,44 @@ describe('mediaCategory / extFromMime', () => {
   })
 })
 
-describe('mediaTarget', () => {
+describe('mediaRoute', () => {
   it('default Recortes', () => {
-    expect(mediaTarget('mirá esta foto')).toEqual({
-      target: 'recorte',
+    expect(mediaRoute('mirá esta foto')).toEqual({
+      route: 'recorte',
       caption: 'mirá esta foto',
     })
   })
   it('override momento:', () => {
-    expect(mediaTarget('momento: cumple de la abuela')).toEqual({
-      target: 'momento',
+    expect(mediaRoute('momento: cumple de la abuela')).toEqual({
+      route: 'momento',
       caption: 'cumple de la abuela',
     })
   })
   it('recorte: explícito', () => {
-    expect(mediaTarget('recorte: para leer')).toEqual({
-      target: 'recorte',
+    expect(mediaRoute('recorte: para leer')).toEqual({
+      route: 'recorte',
       caption: 'para leer',
     })
+  })
+  it('cita: → ruta de visión quote', () => {
+    expect(mediaRoute('cita: sobre el tiempo')).toEqual({
+      route: 'quote',
+      caption: 'sobre el tiempo',
+    })
+  })
+  it('nota:/texto:/ocr: → ruta de visión note', () => {
+    expect(mediaRoute('nota: apuntes').route).toBe('note')
+    expect(mediaRoute('texto:').route).toBe('note')
+    expect(mediaRoute('ocr: la pizarra').route).toBe('note')
+  })
+})
+
+describe('isVisionRoute', () => {
+  it('quote y note requieren visión; momento y recorte no', () => {
+    expect(isVisionRoute('quote')).toBe(true)
+    expect(isVisionRoute('note')).toBe(true)
+    expect(isVisionRoute('momento')).toBe(false)
+    expect(isVisionRoute('recorte')).toBe(false)
   })
 })
 

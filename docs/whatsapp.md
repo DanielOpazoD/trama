@@ -66,8 +66,21 @@ texto. Hoy: **imágenes**.
   'image'); el caption es el texto del recorte.
 - Con caption `momento:` → **Momento foto** (`payload.storageKey` en
   `momentos-media`).
+- Con caption `cita:` → **visión/OCR**: el LLM extrae cita + autor de la foto
+  (página de libro, pantalla) y se guarda una **Cita**.
+- Con caption `nota:` / `texto:` / `ocr:` → **visión/OCR**: transcribe el texto
+  visible y guarda una **Nota**.
 - Varias imágenes en un mensaje → una fila por imagen (la última queda como
   "deshacer").
+
+**Visión (cita:/nota:/texto:/ocr:).** Estas rutas pasan la imagen por
+`askLLMForVision` (OpenAI/Gemini, mismos guards que `extract-from-image`:
+`checkMonthlyBudget` + `resolveAIInvocation('extract-image')`). El prompt y el
+validador son puros (`_lib/whatsapp/vision.ts`): `quote` exige texto **y** autor
+(si falta autor, cae a Nota — nunca pedimos autor por una foto); `text`
+transcribe. Si la IA está off, sin presupuesto o falla, **se cae a guardar la
+imagen como Recorte** (nunca se pierde lo enviado) y se avisa. Emite
+`whatsapp_vision` / `whatsapp_vision_failed`.
 
 Las URLs de media de Twilio son privadas: se bajan con auth básica
 (`TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN`), validando que el host sea de
