@@ -229,6 +229,14 @@ export const recortesApi = {
     })
     return recorteFromRow(row)
   },
+  /** Reversa de promoteRecorte: soft-borra el objeto destino y devuelve el
+   *  recorte a 'pending' (Deshacer del triage de 1 toque). */
+  async unpromoteRecorte(id: string): Promise<Recorte> {
+    const row = await request<RecorteRow>(`/api/recortes/${id}/unpromote`, {
+      method: 'POST',
+    })
+    return recorteFromRow(row)
+  },
   /** Pide a la IA una sugerencia de curaduría (no muta el recorte). */
   async suggestRecorte(id: string): Promise<RecorteSuggestion> {
     return request<RecorteSuggestion>(`/api/recortes/${id}/suggest`, { method: 'POST' })

@@ -2,7 +2,12 @@ import { useState } from 'react'
 import { type Recorte, type RecorteSuggestion, type RecorteTarget } from '../../api'
 import { recorteImageUrl } from '../../api/recortes'
 import { apiFetch } from '../../api/request'
-import { usePromoteRecorte, useSuggestRecorte, useUpdateRecorte } from '../../state'
+import {
+  usePromoteRecorte,
+  useUnpromoteRecorte,
+  useSuggestRecorte,
+  useUpdateRecorte,
+} from '../../state'
 import { useToast } from '../../state/toast'
 import { SparkleIcon } from '../Icons'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
@@ -160,6 +165,7 @@ export function RecorteCard({
   const host = hostOf(r.sourceUrl)
   const suggest = useSuggestRecorte()
   const promote = usePromoteRecorte()
+  const unpromote = useUnpromoteRecorte()
   const update = useUpdateRecorte()
   const toast = useToast()
   const [suggestion, setSuggestion] = useState<RecorteSuggestion | null>(null)
@@ -228,6 +234,31 @@ export function RecorteCard({
     onPromote(r, suggestion.target, seedFromSuggestion(suggestion))
   }
 
+  /** Toast de promoción exitosa con Deshacer: revierte el objeto recién
+   *  creado y devuelve el recorte a pendientes. Hace que el 1 toque sea
+   *  confiable — crear sin red de seguridad asusta. */
+  function showCuratedToast(message: string) {
+    toast.show({
+      message,
+      tone: 'success',
+      durationMs: 10_000,
+      action: {
+        label: 'Deshacer',
+        onAction: async () => {
+          try {
+            await unpromote.mutateAsync(r.id)
+            toast.show({ message: 'Promoción deshecha.', tone: 'success' })
+          } catch (err) {
+            toast.show({
+              message: err instanceof Error ? err.message : 'No se pudo deshacer',
+              tone: 'error',
+            })
+          }
+        },
+      },
+    })
+  }
+
   /**
    * Triage de 1 toque: pide la sugerencia (si no la hay) y promueve directo
    * cuando no faltan datos — momento siempre, entidad con nombre propuesto,
@@ -259,7 +290,7 @@ export function RecorteCard({
             },
           },
         })
-        toast.show({ message: `Curado como momento: «${s.title}»`, tone: 'success' })
+        showCuratedToast(`Curado como momento: «${s.title}»`)
         return
       }
 
@@ -275,10 +306,7 @@ export function RecorteCard({
             },
           },
         })
-        toast.show({
-          message: `Curado como entidad: «${s.suggestedEntityName}»`,
-          tone: 'success',
-        })
+        showCuratedToast(`Curado como entidad: «${s.suggestedEntityName}»`)
         return
       }
 
@@ -296,7 +324,7 @@ export function RecorteCard({
             },
           },
         })
-        toast.show({ message: `Curado como cita de ${entity.name}`, tone: 'success' })
+        showCuratedToast(`Curado como cita de ${entity.name}`)
         return
       }
 

@@ -93,6 +93,7 @@ export {
   useUpdateRecorte,
   useDeleteRecorte,
   usePromoteRecorte,
+  useUnpromoteRecorte,
   useSuggestRecorte,
   type CaptureInput,
 } from './useRecortes'

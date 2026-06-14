@@ -306,6 +306,26 @@ describe('recortes endpoint', () => {
     ).toBe(true)
   })
 
+  it('unpromote revierte: soft-borra el destino y devuelve el recorte a pending', async () => {
+    mockSqlResponses.push([
+      { ...ROW, status: 'pending', promoted_target: null, promoted_id: null },
+    ])
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}/unpromote`, {
+        method: 'POST',
+      }),
+      mockContext({ id: ROW.id }),
+    )
+    expect(res.status).toBe(200)
+    expect((await res.json()).status).toBe('pending')
+    const cte = mockSqlResponses.calls.find((c) => /UPDATE recortes/i.test(c.template))
+    // El CTE condiciona el borrado por target a una sola tabla y resetea el recorte.
+    expect(cte?.template).toMatch(/UPDATE quotes SET deleted_at/i)
+    expect(cte?.template).toMatch(/UPDATE entities SET deleted_at/i)
+    expect(cte?.template).toMatch(/UPDATE momentos SET deleted_at/i)
+    expect(cte?.template).toMatch(/promoted_target = NULL/i)
+  })
+
   it('DELETE devuelve el deletedAt para Deshacer y restore lo consume', async () => {
     mockSqlResponses.push([{ deleted_at: '2026-06-11T10:00:00.000Z' }])
     const del = await recortesHandler(

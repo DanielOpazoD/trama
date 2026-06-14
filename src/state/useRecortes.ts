@@ -10,6 +10,27 @@ import { api, type PromoteRecorteInput } from '../api'
 import { queryKeys } from './queryClient'
 import { useToast } from './toast'
 
+/**
+ * Reversa de la promoción (Deshacer del triage de 1 toque): soft-borra el
+ * objeto destino y devuelve el recorte a 'pending'. Como no sabemos a priori
+ * qué colección tocó la promoción, invalidamos todas las afectadas.
+ */
+export function useUnpromoteRecorte() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.unpromoteRecorte(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.quotes })
+      qc.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
+      qc.invalidateQueries({ queryKey: queryKeys.entities })
+      qc.invalidateQueries({ queryKey: queryKeys.momentosInfinite })
+      qc.invalidateQueries({ queryKey: queryKeys.counts })
+      qc.invalidateQueries({ queryKey: queryKeys.home })
+    },
+  })
+}
+
 /** Pide a la IA una sugerencia de curaduría para un recorte (no muta). */
 export function useSuggestRecorte() {
   return useMutation({

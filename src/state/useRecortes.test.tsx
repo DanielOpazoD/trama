@@ -4,6 +4,7 @@ import {
   useCreateRecorte,
   useDeleteRecorte,
   usePromoteRecorte,
+  useUnpromoteRecorte,
   useRecortesQuery,
   useUpdateRecorte,
 } from './useRecortes'
@@ -66,6 +67,9 @@ beforeEach(() => {
         body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
       })
       if (url.includes('/restore')) return jsonResp({ restored: true })
+      if (url.includes('/unpromote')) {
+        return jsonResp({ ...ROW, status: 'pending', promoted_target: null })
+      }
       if (url.includes('/promote')) {
         return jsonResp({ ...ROW, status: 'promoted', promoted_target: 'quote' })
       }
@@ -156,6 +160,18 @@ describe('useRecortes', () => {
       imageKey: 'user-1/abc.webp',
       captureMode: 'image',
     })
+  })
+
+  it('unpromote revierte: postea a /unpromote y devuelve el recorte a pending', async () => {
+    const { result } = renderHook(() => useUnpromoteRecorte(), { wrapper: makeWrapper() })
+    await act(async () => {
+      const res = await result.current.mutateAsync('r1')
+      expect(res.status).toBe('pending')
+      expect(res.promotedTarget).toBeNull()
+    })
+    expect(calls.some((c) => c.method === 'POST' && c.url.includes('/unpromote'))).toBe(
+      true,
+    )
   })
 
   it('promote postea el payload del destino para creación server-side', async () => {
