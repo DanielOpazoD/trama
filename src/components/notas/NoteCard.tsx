@@ -3,6 +3,7 @@ import type { Note } from '../../api'
 import { renderMarkdown } from './markdown'
 import {
   CameraIcon,
+  ChevronDownIcon,
   FileIcon,
   MomentosIcon,
   PencilIcon,
@@ -202,13 +203,21 @@ export function NoteCard({
       </div>
 
       {overflowing && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-1 text-micro uppercase tracking-eyebrow text-ink-400 transition-colors hover:text-ink-700"
-        >
-          {expanded ? 'leer menos' : 'leer más'}
-        </button>
+        <div className="mt-1.5 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Mostrar menos' : 'Leer la nota completa'}
+            title={expanded ? 'Mostrar menos' : 'Leer completa'}
+            className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700"
+          >
+            <ChevronDownIcon
+              size={16}
+              className={`transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+            />
+          </button>
+        </div>
       )}
 
       {/* Fila de afordancia: estado (fijada/fotos) + acciones rápidas al hover + menú. */}

@@ -43,6 +43,11 @@ function setup(recortes: Recorte[]) {
   return renderWithProviders(<RecortesView />, { queryClient: qc })
 }
 
+// La triage del recorte (→ cita/entidad/momento, sugerir, archivar, eliminar)
+// vive tras un menú ⋯ para no recargar la cara de la tarjeta.
+const openRecorteMenu = () =>
+  fireEvent.click(screen.getByRole('button', { name: /acciones del recorte/i }))
+
 describe('recorteFromRow', () => {
   it('transforma snake_case → camelCase completo', () => {
     expect(recorteFromRow(ROW)).toEqual({
@@ -82,9 +87,11 @@ describe('<RecortesView />', () => {
     expect(screen.getByText(/La memoria es un taller/)).toBeInTheDocument()
     expect(screen.getByText('conecta con Borges')).toBeInTheDocument()
     expect(screen.getByText(/ver original/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '→ cita' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '→ entidad' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '→ momento' })).toBeInTheDocument()
+    // La triage vive tras el menú ⋯; al abrirlo aparecen los tres destinos.
+    openRecorteMenu()
+    expect(screen.getByRole('menuitem', { name: /→ cita/ })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /→ entidad/ })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: /→ momento/ })).toBeInTheDocument()
   })
 
   it('muestra un fallback editorial cuando el recorte no trae imagen', () => {
@@ -95,30 +102,28 @@ describe('<RecortesView />', () => {
     expect(fallback).toHaveClass('bg-paper-100/50')
   })
 
-  it('orienta la curaduría solo en recortes pendientes', () => {
+  it('ofrece curar solo en recortes pendientes', () => {
     setup([
       recorte(),
       recorte({ id: 'r2', status: 'promoted', promotedTarget: 'quote', text: 'otro' }),
     ])
 
-    expect(screen.getByLabelText('Siguiente curaduría')).toHaveTextContent(
-      /pendiente de curaduría/i,
-    )
-    expect(screen.getByText(/elige si será cita, entidad o momento/i)).toBeInTheDocument()
+    // El pendiente ofrece la acción «curar»; al pasar a promovidos desaparece.
+    expect(screen.getByRole('button', { name: 'curar' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /promovidos/ }))
 
-    expect(screen.queryByLabelText('Siguiente curaduría')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'curar' })).toBeNull()
   })
 
-  it('mantiene visibles las acciones de la tarjeta en mobile/touch', () => {
+  it('mantiene accesibles las acciones en mobile/touch', () => {
     setup([recorte()])
-    const actions = screen.getByRole('button', { name: 'archivar' }).parentElement
-
-    expect(actions).toHaveClass('opacity-100')
-    expect(actions).toHaveClass('sm:opacity-0')
-    expect(actions).toHaveClass('sm:group-hover:opacity-100')
-    expect(actions).toHaveClass('sm:focus-within:opacity-100')
+    // En touch no hay hover: la acción principal (curar) y el menú ⋯ están
+    // siempre presentes, sin depender de group-hover.
+    expect(screen.getByRole('button', { name: 'curar' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /acciones del recorte/i }),
+    ).toBeInTheDocument()
   })
 
   it('renderiza la imagen del recorte cuando la hay (captura de imagen)', () => {
@@ -167,24 +172,26 @@ describe('<RecortesView />', () => {
 
   it('promover abre el modal de revisión con el texto editable', () => {
     setup([recorte()])
-    fireEvent.click(screen.getByRole('button', { name: '→ momento' }))
+    openRecorteMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: /→ momento/ }))
     const dialog = screen.getByRole('dialog', { name: 'Promover a momento' })
     expect(dialog).toBeInTheDocument()
     expect(screen.getByDisplayValue('La memoria es un taller.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'crear momento' })).toBeEnabled()
   })
 
-  it('promover atrapa el foco dentro del modal y lo restaura al cerrar', async () => {
+  it('promover atrapa el foco dentro del modal y cierra al cancelar', async () => {
     setup([recorte()])
-    const trigger = screen.getByRole('button', { name: '→ momento' })
-    trigger.focus()
-    fireEvent.click(trigger)
+    openRecorteMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: /→ momento/ }))
 
     const textArea = screen.getByLabelText('Texto')
     await waitFor(() => expect(textArea).toHaveFocus())
 
     fireEvent.click(screen.getByRole('button', { name: 'cancelar' }))
-    await waitFor(() => expect(trigger).toHaveFocus())
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Promover a momento' })).toBeNull(),
+    )
   })
 
   it('archivar dispara el PATCH de estado', async () => {
@@ -197,7 +204,8 @@ describe('<RecortesView />', () => {
     )
     vi.stubGlobal('fetch', fetchSpy)
     setup([recorte()])
-    fireEvent.click(screen.getByRole('button', { name: 'archivar' }))
+    openRecorteMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Archivar' }))
     // La mutación postea en un microtask — esperar el fetch real.
     await waitFor(() => expect(fetchSpy).toHaveBeenCalled())
     vi.unstubAllGlobals()
@@ -244,7 +252,8 @@ describe('<RecortesView />', () => {
     ])
     renderWithProviders(<RecortesView />, { queryClient: qc })
 
-    fireEvent.click(screen.getByRole('button', { name: /sugerir/ }))
+    openRecorteMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: /sugerir destino/ }))
     expect(await screen.findByText(/la IA sugiere/i)).toBeInTheDocument()
     expect(screen.getByText(/Sobre la memoria/)).toBeInTheDocument()
     expect(screen.getByText(/Es una frase citable/)).toBeInTheDocument()

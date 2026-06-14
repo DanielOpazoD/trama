@@ -171,7 +171,7 @@ test('a11y: RecortesView con guía de curaduría sin violaciones', async ({ page
   await page
     .getByRole('heading', { name: 'Recortes', level: 2 })
     .waitFor({ timeout: 10_000 })
-  await page.getByLabel('Siguiente curaduría').waitFor({ timeout: 10_000 })
+  await page.getByRole('button', { name: 'curar' }).waitFor({ timeout: 10_000 })
   await page.waitForTimeout(400)
 
   const results = await new AxeBuilder({ page })
