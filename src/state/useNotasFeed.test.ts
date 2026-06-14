@@ -114,6 +114,32 @@ describe('buildNotasFeed', () => {
     expect(items.map((i) => i.id)).toEqual(['tagged'])
   })
 
+  it('filtra por día (localDayKey): deja los ítems de ese día, excluye los demás', () => {
+    // Mediodía UTC evita que el desfase de zona corra la fecha local.
+    const notes = [
+      makeNote({ id: 'n-mismo-dia', createdAt: '2026-06-10T12:00:00.000Z' }),
+      makeNote({ id: 'n-otro-dia', createdAt: '2026-06-11T12:00:00.000Z' }),
+    ]
+    const recortes = [
+      makeRecorte({ id: 'r-mismo-dia', createdAt: '2026-06-10T12:00:00.000Z' }),
+      makeRecorte({ id: 'r-otro-dia', createdAt: '2026-06-09T12:00:00.000Z' }),
+    ]
+
+    const items = buildNotasFeed(notes, recortes, { segment: 'todo', day: '2026-06-10' })
+
+    // El filtro aplica a notas y recortes por igual (feed mixto coherente).
+    expect(items.map((i) => i.id).sort()).toEqual(['n-mismo-dia', 'r-mismo-dia'].sort())
+  })
+
+  it('day = null no filtra por día', () => {
+    const notes = [
+      makeNote({ id: 'a', createdAt: '2026-06-10T12:00:00.000Z' }),
+      makeNote({ id: 'b', createdAt: '2026-06-11T12:00:00.000Z' }),
+    ]
+    const items = buildNotasFeed(notes, [], { segment: 'todo', day: null })
+    expect(items.map((i) => i.id).sort()).toEqual(['a', 'b'])
+  })
+
   it('devuelve vacío cuando no hay datos', () => {
     expect(buildNotasFeed([], [], ALL)).toEqual([])
   })

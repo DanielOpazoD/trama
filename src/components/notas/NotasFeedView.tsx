@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   useNotasFeed,
+  useNotesQuery,
   useCreateNote,
   useUpdateNote,
   useDeleteNote,
@@ -17,6 +18,7 @@ import { LoadingHint } from '../LoadingHint'
 import { SearchIcon } from '../Icons'
 import { ViewHeader } from '../ViewHeader'
 import { NoteCard } from './NoteCard'
+import { ActivityCalendar, localDayKey } from './ActivityCalendar'
 import { RecorteCard } from '../recortes/RecorteCard'
 import { PromoteModal, type PromoteSeed } from '../recortes/PromoteModal'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
@@ -60,17 +62,38 @@ export function NotasFeedView() {
   const [segment, setSegment] = useState<NotasFeedSegment>('todo')
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState<string | null>(null)
+  // Día seleccionado en el calendario de actividad ('YYYY-MM-DD'), o null.
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   const filter = useMemo(
     () => ({
       segment,
       query: search.trim() || undefined,
       tag: activeTag ?? undefined,
+      day: selectedDay,
     }),
-    [segment, search, activeTag],
+    [segment, search, activeTag, selectedDay],
   )
 
   const { items, isLoading, isError } = useNotasFeed(filter)
+
+  // --- Calendario de actividad (heatmap) ----------------------------------
+  // El heatmap cuenta SOLO notas (los recortes no contribuyen), así que lee la
+  // query cruda de notas en vez del feed mixto de la costura. El feed de la
+  // lista sigue fluyendo por `useNotasFeed`.
+  const notesQuery = useNotesQuery()
+  const notes = useMemo(() => notesQuery.data ?? [], [notesQuery.data])
+  const calendarDays = useMemo(() => notes.map((n) => localDayKey(n.createdAt)), [notes])
+  const calendarStats = useMemo(() => {
+    const days = new Set(calendarDays).size
+    const tagSet = new Set<string>()
+    for (const n of notes) for (const t of n.tags) tagSet.add(t)
+    return [
+      { n: notes.length, label: notes.length === 1 ? 'nota' : 'notas' },
+      { n: days, label: days === 1 ? 'día con notas' : 'días con notas' },
+      { n: tagSet.size, label: tagSet.size === 1 ? 'etiqueta' : 'etiquetas' },
+    ]
+  }, [notes, calendarDays])
 
   // El universo de tags se calcula sobre el feed SIN filtrar por etiqueta (para
   // que elegir una etiqueta no haga desaparecer las demás del chip-bar). Reusa
@@ -88,7 +111,8 @@ export function NotasFeedView() {
   }, [tagUniverse.items])
 
   // ¿Hay algún filtro activo (más allá del segmento)?
-  const hasContentFilter = search.trim() !== '' || activeTag !== null
+  const hasContentFilter =
+    search.trim() !== '' || activeTag !== null || selectedDay !== null
   // ¿El feed está realmente vacío de datos, o solo filtrado a cero?
   const everythingEmpty =
     !isLoading && tagUniverse.items.length === 0 && !hasContentFilter
@@ -110,6 +134,7 @@ export function NotasFeedView() {
   function clearFilters() {
     setSearch('')
     setActiveTag(null)
+    setSelectedDay(null)
   }
 
   function save() {
@@ -164,6 +189,16 @@ export function NotasFeedView() {
         eyebrow="notas y capturas"
         accent={ACCENT}
         subtitle="Tus apuntes y tus recortes en un solo hilo. Escribe una nota o filtra por lo que buscas."
+      />
+
+      {/* Calendario de actividad (heatmap) — siempre arriba del feed, en todos
+          los segmentos. Cuenta solo notas; el clic en un día filtra el feed
+          unificado (notas y recortes) por esa fecha. */}
+      <ActivityCalendar
+        dayKeys={calendarDays}
+        stats={calendarStats}
+        selectedDay={selectedDay}
+        onSelectDay={setSelectedDay}
       />
 
       {/* Composer (creación de notas) */}

@@ -14,6 +14,7 @@
  */
 import { useMemo } from 'react'
 import type { Note, Recorte } from '../api'
+import { localDayKey } from '../components/notas/ActivityCalendar'
 import { useNotesQuery } from './useNotes'
 import { useRecortesQuery } from './useRecortes'
 
@@ -35,6 +36,12 @@ export type NotasFeedFilter = {
   query?: string
   /** Etiqueta exacta (chips de tags). */
   tag?: string
+  /**
+   * Día seleccionado en el calendario de actividad (`localDayKey`, 'YYYY-MM-DD').
+   * Si está presente, solo entran los ítems cuyo `createdAt` cae ese día local.
+   * Aplica tanto a notas como a recortes (coherente en un feed mixto).
+   */
+  day?: string | null
 }
 
 /** Texto buscable de una nota: contenido + título. */
@@ -72,12 +79,14 @@ export function buildNotasFeed(
 ): CaptureItem[] {
   const q = filter.query?.trim().toLowerCase() ?? ''
   const tag = filter.tag ?? null
+  const day = filter.day ?? null
 
   const items: CaptureItem[] = []
 
   if (filter.segment === 'todo' || filter.segment === 'escritas') {
     for (const note of notes) {
       if (tag && !note.tags.includes(tag)) continue
+      if (day && localDayKey(note.createdAt) !== day) continue
       if (q && !noteHaystack(note).includes(q)) continue
       items.push({ type: 'note', id: note.id, createdAt: note.createdAt, note })
     }
@@ -86,6 +95,7 @@ export function buildNotasFeed(
   if (filter.segment === 'todo' || filter.segment === 'capturas') {
     for (const recorte of recortes) {
       if (tag && !recorteTags(recorte).includes(tag)) continue
+      if (day && localDayKey(recorte.createdAt) !== day) continue
       if (q && !recorteHaystack(recorte).includes(q)) continue
       items.push({
         type: 'recorte',
