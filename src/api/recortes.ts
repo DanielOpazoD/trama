@@ -200,7 +200,14 @@ export const recortesApi = {
   },
   async updateRecorte(
     id: string,
-    patch: { text?: string; note?: string | null; status?: 'pending' | 'archived' },
+    patch: {
+      text?: string
+      note?: string | null
+      status?: 'pending' | 'archived'
+      sourceTitle?: string | null
+      sourceAuthor?: string | null
+      imageUrl?: string | null
+    },
   ): Promise<Recorte> {
     const row = await request<RecorteRow>(`/api/recortes/${id}`, {
       method: 'PATCH',

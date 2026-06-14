@@ -487,6 +487,9 @@ export default withObservability(
       const rows = await sqlTyped<RecorteRow>(sql`
         UPDATE recortes
         SET text = COALESCE(${b.text ?? null}, text),
+            source_title = COALESCE(${b.sourceTitle ?? null}, source_title),
+            source_author = COALESCE(${b.sourceAuthor ?? null}, source_author),
+            image_url = COALESCE(${b.imageUrl ?? null}, image_url),
             note = CASE WHEN ${b.note !== undefined} THEN ${b.note ?? null} ELSE note END,
             status = CASE
                        WHEN ${b.status === 'archived'} THEN 'archived'

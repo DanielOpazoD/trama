@@ -56,26 +56,46 @@ export type CaptureInput =
   | { kind: 'link'; url: string; title?: string | null }
   | { kind: 'image'; file: File; note?: string | null }
 
+/**
+ * Enriquecimiento diferido de un recorte-enlace: pide los metadatos OG y, si
+ * trae algo útil, parchea el recorte. Best-effort — si falla, queda el enlace
+ * pelado. Reusa el endpoint server-side endurecido contra SSRF.
+ */
+async function enrichLinkRecorte(
+  qc: ReturnType<typeof useQueryClient>,
+  id: string,
+  url: string,
+) {
+  try {
+    const preview = await api.momentoUrlPreview(url)
+    if (!preview.title && !preview.description && !preview.author && !preview.image) {
+      return
+    }
+    await api.updateRecorte(id, {
+      text: preview.description || preview.title || undefined,
+      sourceTitle: preview.title ?? undefined,
+      sourceAuthor: preview.author ?? undefined,
+      imageUrl: preview.image ?? undefined,
+    })
+    qc.invalidateQueries({ queryKey: queryKeys.recortes })
+  } catch {
+    /* enriquecimiento opcional; el enlace pelado ya quedó guardado */
+  }
+}
+
 export function useCreateRecorte() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (input: CaptureInput) => {
       if (input.kind === 'link') {
-        // Enriquecemos el enlace con metadatos OG (título, autor, descripción,
-        // imagen) reusando el endpoint server-side ya endurecido contra SSRF.
-        // Nunca bloquea la captura: si no consigue nada, cae al enlace pelado.
-        let preview: Awaited<ReturnType<typeof api.momentoUrlPreview>> | null = null
-        try {
-          preview = await api.momentoUrlPreview(input.url)
-        } catch {
-          preview = null
-        }
+        // Optimista: creamos el recorte ya (enlace pelado) para que la tarjeta
+        // aparezca al instante; los metadatos OG llegan después y se parchean
+        // en segundo plano (ver onSuccess). Antes esto esperaba hasta 5s al
+        // fetch antes de mostrar nada.
         return api.createRecorte({
-          text: preview?.description || preview?.title || input.url,
+          text: input.url,
           sourceUrl: input.url,
-          sourceTitle: preview?.title ?? input.title ?? null,
-          sourceAuthor: preview?.author ?? null,
-          imageUrl: preview?.image ?? null,
+          sourceTitle: input.title ?? null,
           captureMode: 'html',
         })
       }
@@ -87,10 +107,12 @@ export function useCreateRecorte() {
         captureMode: 'image',
       })
     },
-    onSuccess: () => {
+    onSuccess: (recorte, input) => {
       qc.invalidateQueries({ queryKey: queryKeys.recortes })
       qc.invalidateQueries({ queryKey: queryKeys.counts })
       qc.invalidateQueries({ queryKey: queryKeys.home })
+      // El enriquecimiento corre tras mostrar la tarjeta, sin bloquear.
+      if (input.kind === 'link') void enrichLinkRecorte(qc, recorte.id, input.url)
     },
   })
 }

@@ -32,6 +32,11 @@ export const RecortePatchBody = z.object({
   text: trimmedText.optional(),
   note: z.string().trim().max(2000).nullish().optional(),
   status: z.enum(['pending', 'archived']).optional(),
+  /** Enriquecimiento diferido del enlace (metadatos OG que llegan tras crear
+   *  el recorte de forma optimista). Solo se aplican si vienen presentes. */
+  sourceTitle: optionalShort,
+  sourceAuthor: optionalShort,
+  imageUrl: z.string().trim().url().max(2000).nullish(),
 })
 
 const PromoteQuoteBody = z.object({

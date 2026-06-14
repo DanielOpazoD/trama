@@ -326,6 +326,35 @@ describe('recortes endpoint', () => {
     expect(cte?.template).toMatch(/promoted_target = NULL/i)
   })
 
+  it('PATCH aplica el enriquecimiento OG (source_title/author/image vía COALESCE)', async () => {
+    mockSqlResponses.push([
+      {
+        ...ROW,
+        source_title: 'OG',
+        source_author: 'Autor',
+        image_url: 'https://i/x.jpg',
+      },
+    ])
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceTitle: 'OG',
+          sourceAuthor: 'Autor',
+          imageUrl: 'https://i/x.jpg',
+        }),
+      }),
+      mockContext({ id: ROW.id }),
+    )
+    expect(res.status).toBe(200)
+    const patch = mockSqlResponses.calls.find((c) => /UPDATE recortes/i.test(c.template))
+    expect(patch?.template).toMatch(/source_title = COALESCE/i)
+    expect(patch?.template).toMatch(/source_author = COALESCE/i)
+    expect(patch?.template).toMatch(/image_url = COALESCE/i)
+    expect(patch?.values).toContain('OG')
+  })
+
   it('DELETE devuelve el deletedAt para Deshacer y restore lo consume', async () => {
     mockSqlResponses.push([{ deleted_at: '2026-06-11T10:00:00.000Z' }])
     const del = await recortesHandler(

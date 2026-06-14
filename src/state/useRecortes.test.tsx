@@ -131,20 +131,37 @@ describe('useRecortes', () => {
     })
   })
 
-  it('captura un enlace y lo enriquece con metadatos OG (título, autor, imagen)', async () => {
+  it('captura un enlace de forma optimista (enlace pelado) y enriquece después', async () => {
     const { result } = renderHook(() => useCreateRecorte(), { wrapper: makeWrapper() })
     await act(async () => {
       await result.current.mutateAsync({ kind: 'link', url: 'https://example.com/x' })
     })
-    expect(calls.some((c) => c.url.includes('momentos-url-preview'))).toBe(true)
+    // El create es inmediato y pelado (sin esperar metadatos OG).
     const post = calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/recortes'))
     expect(post?.body).toMatchObject({
-      text: 'Descripción OG',
+      text: 'https://example.com/x',
       sourceUrl: 'https://example.com/x',
+      captureMode: 'html',
+    })
+    expect(post?.body).not.toHaveProperty('imageUrl')
+
+    // En segundo plano: pide los metadatos y parchea el recorte.
+    await waitFor(() =>
+      expect(calls.some((c) => c.url.includes('momentos-url-preview'))).toBe(true),
+    )
+    await waitFor(() =>
+      expect(
+        calls.some((c) => c.method === 'PATCH' && c.url.endsWith('/api/recortes/r1')),
+      ).toBe(true),
+    )
+    const patch = calls.find(
+      (c) => c.method === 'PATCH' && c.url.endsWith('/api/recortes/r1'),
+    )
+    expect(patch?.body).toMatchObject({
+      text: 'Descripción OG',
       sourceTitle: 'Título OG',
       sourceAuthor: 'Autora OG',
       imageUrl: 'https://example.com/img.jpg',
-      captureMode: 'html',
     })
   })
 
