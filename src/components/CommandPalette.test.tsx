@@ -32,10 +32,29 @@ const EMPTY_SEARCH: SearchResponse = {
   mode: 'lexical',
 }
 
+/** Respuesta de /api/query/nl (preguntar a tu trama). Se sobreescribe en
+    el test del flujo de preguntar. */
+const NL_RESPONSE = {
+  query: { from: ['entity'], where: { field: 'type', op: 'eq', value: 'persona' } },
+  items: [
+    {
+      kind: 'entity',
+      id: 'e-nl',
+      title: 'Sócrates',
+      snippet: 'filósofo',
+      createdAt: '2024-01-01',
+      tags: [],
+    },
+  ],
+  nextCursor: null,
+  source: 'llm',
+}
+
 /** Mock de fetch con una entidad local y una respuesta de /api/search dada. */
 function stubFetch(
   search: SearchResponse = EMPTY_SEARCH,
   counts = { entities: 1, quotes: 0, relationships: 0, momentos: 0 },
+  opts: { savedQueries?: unknown[]; nl?: unknown } = {},
 ) {
   vi.stubGlobal(
     'fetch',
@@ -43,6 +62,12 @@ function stubFetch(
       const url = String(input)
       if (url.includes('/api/counts')) {
         return jsonResp(counts)
+      }
+      if (url.includes('/api/saved-queries')) {
+        return jsonResp({ items: opts.savedQueries ?? [] })
+      }
+      if (url.includes('/api/query/nl')) {
+        return jsonResp(opts.nl ?? NL_RESPONSE)
       }
       if (url.includes('/api/search')) {
         return jsonResp(search)
@@ -346,5 +371,94 @@ describe('<CommandPalette />', () => {
     expect(urls.some((url) => url.includes('/api/search'))).toBe(true)
     expect(urls.some((url) => url.includes('/api/entities'))).toBe(false)
     expect(urls.some((url) => url.includes('/api/quotes'))).toBe(false)
+  })
+
+  it('preguntar → corre la consulta, muestra resultados y navega al hit', async () => {
+    const onSelectEntity = vi.fn()
+    const onClose = vi.fn()
+    const { container } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={onClose}
+        onNavigate={() => {}}
+        onSelectEntity={onSelectEntity}
+      />,
+    )
+    fireEvent.change(screen.getByPlaceholderText(/buscar o preguntar/i), {
+      target: { value: 'filósofos' },
+    })
+    // El item "Preguntar a tu trama" aparece (query ≥3).
+    const askButton = await waitFor(() => {
+      const b = [...container.querySelectorAll('button')].find((btn) =>
+        btn.textContent?.includes('Preguntar a tu trama'),
+      )
+      if (!b) throw new Error('ask item not found')
+      return b
+    })
+    fireEvent.click(askButton)
+
+    // Modo resultados: aparece el hit de la consulta NL y el affordance volver.
+    expect(await screen.findByText('Sócrates')).toBeInTheDocument()
+    expect(screen.getByText(/volver a buscar/i)).toBeInTheDocument()
+
+    // Seleccionar el hit entity llama onSelectEntity y cierra.
+    fireEvent.click(screen.getByText('Sócrates'))
+    expect(onSelectEntity).toHaveBeenCalledWith('e-nl')
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('Escape en modo resultados vuelve a búsqueda sin cerrar', async () => {
+    const onClose = vi.fn()
+    const { container } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={onClose}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+    fireEvent.change(screen.getByPlaceholderText(/buscar o preguntar/i), {
+      target: { value: 'filósofos' },
+    })
+    const askButton = await waitFor(() => {
+      const b = [...container.querySelectorAll('button')].find((btn) =>
+        btn.textContent?.includes('Preguntar a tu trama'),
+      )
+      if (!b) throw new Error('ask item not found')
+      return b
+    })
+    fireEvent.click(askButton)
+    expect(await screen.findByText('Sócrates')).toBeInTheDocument()
+
+    // Escape vuelve a búsqueda: el palette sigue abierto (onClose no llamado).
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByText('Sócrates')).not.toBeInTheDocument())
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('expone consultas guardadas y las corre', async () => {
+    stubFetch(EMPTY_SEARCH, undefined, {
+      savedQueries: [
+        {
+          id: 'sq-1',
+          name: 'Mis filósofos',
+          description: null,
+          query: { from: ['entity'] },
+          pinned: false,
+          createdAt: '2026-01-01',
+          updatedAt: '2026-01-01',
+        },
+      ],
+    })
+    renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+    expect(await screen.findByText('Mis filósofos')).toBeInTheDocument()
   })
 })

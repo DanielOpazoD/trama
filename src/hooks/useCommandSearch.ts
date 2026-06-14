@@ -1,7 +1,9 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useCountsQuery, useEntitiesQuery, useQuotesQuery } from '../state'
+import { useSavedQueries } from '../state/useSavedQueries'
 import { api } from '../api'
 import type { SearchResponse } from '../api'
+import type { QueryInput } from '../api/query'
 import type { ViewMode } from '../types/view'
 import type { NotasSection } from '../types/notas'
 import { useSectionVisibility } from './useSectionVisibility'
@@ -41,6 +43,8 @@ export type Item =
   | { kind: 'view'; view: ViewMode; label: string; hint?: string }
   | { kind: 'action'; action: CommandAction; label: string; hint?: string }
   | { kind: 'reveal'; moduleId: NotasSection; label: string; hint?: string }
+  | { kind: 'ask'; q: string }
+  | { kind: 'savedQuery'; id: string; name: string; query: QueryInput }
   | { kind: 'entity'; id: string; name: string; type: string }
   | { kind: 'quote'; id: string; entityId: string; text: string; entityName: string }
   | { kind: 'momento'; id: string; momentoKind: string; text: string }
@@ -130,6 +134,7 @@ export function useCommandSearch({
     open && !!counts && counts.entities + counts.quotes <= LOCAL_SEARCH_MAX_ITEMS
   const { data: entities = [] } = useEntitiesQuery({ enabled: localSearchEnabled })
   const { data: quotes = [] } = useQuotesQuery({ enabled: localSearchEnabled })
+  const { data: savedQueriesData } = useSavedQueries()
   const sectionVis = useSectionVisibility()
   const moduleVis = useModuleVisibility()
   const { isPinRequired } = useSectionPin()
@@ -361,10 +366,32 @@ export function useCommandSearch({
       }
     })
 
+    // Consultas guardadas: con query vacía actúan como acceso rápido (top 6);
+    // con texto, filtran por substring del nombre. Se ubican cerca del tope
+    // (tras reveal/view/action) para que sean fáciles de alcanzar, antes de
+    // los resultados de entidad/cita.
+    const savedQueries = savedQueriesData?.items ?? []
+    const savedQueryItems: Item[] = (
+      q
+        ? savedQueries.filter((sq) => sq.name.toLowerCase().includes(q))
+        : savedQueries.slice(0, 6)
+    ).map<Item>((sq) => ({
+      kind: 'savedQuery',
+      id: sq.id,
+      name: sq.name,
+      query: sq.query,
+    }))
+
+    // "Preguntar a tu trama": un único item al final que interpreta lenguaje
+    // natural. Solo cuando hay al menos 3 caracteres tipeados.
+    const rawQ = deferredQuery.trim()
+    const askItems: Item[] = rawQ.length >= 3 ? [{ kind: 'ask', q: rawQ }] : []
+
     return [
       ...revealItems,
       ...matchesView,
       ...matchesAction,
+      ...savedQueryItems,
       ...entityItems,
       ...serverEntityItems,
       ...quoteItems,
@@ -372,6 +399,7 @@ export function useCommandSearch({
       ...momentoItems,
       ...cronicaItems,
       ...chatItems,
+      ...askItems,
     ]
   }, [
     deferredQuery,
@@ -380,6 +408,7 @@ export function useCommandSearch({
     quotes,
     actionsEnabled,
     serverResults,
+    savedQueriesData,
     sectionVis,
     moduleVis,
     isPinRequired,

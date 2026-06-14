@@ -1,12 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { ViewMode } from './Sidebar'
 import {
   useCommandSearch,
   type CommandAction,
   type Item,
 } from '../hooks/useCommandSearch'
+import { useAskQuery, useRunQuery, useSaveQuery } from '../state/useSavedQueries'
+import { useToast } from '../state/toast'
+import type { QueryHit, QueryInput } from '../api/query'
 import type { NotasSection } from '../types/notas'
 import { ItemRow, PeekPanel } from './CommandPaletteItems'
+
+// El modo "resultados" (motor de consultas) se carga on-demand: el camino
+// común buscar/navegar no necesita su código, así el bundle del palette no
+// crece para todos.
+const CommandPaletteResults = lazy(() =>
+  import('./CommandPaletteResults').then((m) => ({ default: m.CommandPaletteResults })),
+)
 
 // `CommandAction` se define en useCommandSearch; lo re-exportamos acá para no
 // romper imports existentes que lo toman desde este módulo.
@@ -57,6 +67,33 @@ export function CommandPalette({
   const [focusIdx, setFocusIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // δ-unificado: segundo modo del palette. 'search' es el comportamiento
+  // clásico (find/navigate). 'results' muestra los hits del motor de consultas
+  // tras un "Preguntar" o correr una consulta guardada.
+  const [mode, setMode] = useState<'search' | 'results'>('search')
+  const [results, setResults] = useState<{
+    hits: QueryHit[]
+    ast: QueryInput | null
+    source?: 'llm' | 'fallback'
+    heading: string
+  } | null>(null)
+  const [running, setRunning] = useState(false)
+
+  const ask = useAskQuery()
+  const run = useRunQuery()
+  const saveQuery = useSaveQuery()
+  const toast = useToast()
+
+  // Reset a modo búsqueda al abrir el palette o cuando la query cambia: nunca
+  // arrastramos resultados de una sesión previa.
+  useEffect(() => {
+    if (open) {
+      setMode('search')
+      setResults(null)
+      setRunning(false)
+    }
+  }, [open])
+
   // Foco del input + reset del índice resaltado al abrir. La query y los
   // resultados de servidor los resetea useCommandSearch.
   useEffect(() => {
@@ -70,7 +107,72 @@ export function CommandPalette({
 
   useEffect(() => {
     setFocusIdx(0)
+    // Cambiar la query con intención vuelve a modo búsqueda.
+    setMode('search')
+    setResults(null)
   }, [query])
+
+  const runAst = useCallback(
+    (queryInput: QueryInput, heading: string) => {
+      setRunning(true)
+      run
+        .mutateAsync(queryInput)
+        .then((res) => {
+          setResults({ hits: res.items, ast: queryInput, heading })
+          setMode('results')
+          setFocusIdx(0)
+        })
+        .catch(() => {
+          toast.show({ message: 'No se pudo ejecutar la consulta.', tone: 'error' })
+        })
+        .finally(() => setRunning(false))
+    },
+    [run, toast],
+  )
+
+  const runAsk = useCallback(
+    (q: string) => {
+      setRunning(true)
+      ask
+        .mutateAsync(q)
+        .then((res) => {
+          setResults({
+            hits: res.items,
+            ast: res.query,
+            source: res.source,
+            heading: `«${q}»`,
+          })
+          setMode('results')
+          setFocusIdx(0)
+        })
+        .catch(() => {
+          toast.show({ message: 'No se pudo interpretar la pregunta.', tone: 'error' })
+        })
+        .finally(() => setRunning(false))
+    },
+    [ask, toast],
+  )
+
+  const selectHit = useCallback(
+    (hit: QueryHit) => {
+      switch (hit.kind) {
+        case 'entity':
+          onSelectEntity(hit.id)
+          break
+        case 'quote':
+          onNavigate('citas')
+          break
+        case 'momento':
+          onNavigate('momentos')
+          break
+        case 'note':
+          onRevealNotasModule?.('notas')
+          break
+      }
+      onClose()
+    },
+    [onClose, onNavigate, onSelectEntity, onRevealNotasModule],
+  )
 
   const selectItem = useCallback(
     (item: Item) => {
@@ -104,33 +206,64 @@ export function CommandPalette({
         case 'reveal':
           onRevealNotasModule?.(item.moduleId)
           break
+        case 'ask':
+          // No cerramos: pasamos a modo resultados dentro del mismo palette.
+          runAsk(item.q)
+          return
+        case 'savedQuery':
+          runAst(item.query, item.name)
+          return
       }
       onClose()
     },
-    [onAction, onClose, onNavigate, onOpenThread, onRevealNotasModule, onSelectEntity],
+    [
+      onAction,
+      onClose,
+      onNavigate,
+      onOpenThread,
+      onRevealNotasModule,
+      onSelectEntity,
+      runAsk,
+      runAst,
+    ],
   )
 
   useEffect(() => {
     if (!open) return
+    // La lista activa para arrows/Enter depende del modo: items de búsqueda o
+    // hits de resultados.
+    const activeLen = mode === 'results' ? (results?.hits.length ?? 0) : items.length
     function handler(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.preventDefault()
-        onClose()
+        if (mode === 'results') {
+          // Escape en resultados vuelve a búsqueda; no cierra el palette.
+          setMode('search')
+          setResults(null)
+          setFocusIdx(0)
+        } else {
+          onClose()
+        }
       } else if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setFocusIdx((i) => Math.min(items.length - 1, i + 1))
+        setFocusIdx((i) => Math.min(activeLen - 1, i + 1))
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
         setFocusIdx((i) => Math.max(0, i - 1))
       } else if (e.key === 'Enter') {
         e.preventDefault()
-        const item = items[focusIdx]
-        if (item) selectItem(item)
+        if (mode === 'results') {
+          const hit = results?.hits[focusIdx]
+          if (hit) selectHit(hit)
+        } else {
+          const item = items[focusIdx]
+          if (item) selectItem(item)
+        }
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [open, items, focusIdx, onClose, selectItem])
+  }, [open, items, focusIdx, onClose, selectItem, mode, results, selectHit])
 
   if (!open) return null
 
@@ -166,7 +299,7 @@ export function CommandPalette({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar…"
+                placeholder="Buscar o preguntar…"
                 className="w-full px-5 py-4 pr-16 bg-transparent text-ink-700 placeholder:text-ink-300 font-serif text-lg leading-none border-b border-ink-100/60"
                 autoComplete="off"
               />
@@ -177,42 +310,83 @@ export function CommandPalette({
                 {SHORTCUT_KEY} K
               </kbd>
             </div>
-            <div className="flex">
-              <ul className="max-h-[50vh] overflow-y-auto flex-1 min-w-0">
-                {items.length === 0 && (
-                  <li className="px-5 py-6 text-ink-400 italic text-sm text-center">
-                    {searching ? 'buscando…' : 'nada coincide'}
-                  </li>
-                )}
-                {items.map((item, idx) => (
-                  <li key={`${item.kind}-${itemKey(item)}`}>
-                    <button
-                      onClick={() => selectItem(item)}
-                      onMouseEnter={() => setFocusIdx(idx)}
-                      className={`w-full text-left px-5 py-2.5 flex items-baseline gap-3 transition-colors ${
-                        idx === focusIdx ? 'bg-paper-100/70' : 'hover:bg-paper-100/40'
-                      }`}
-                    >
-                      <ItemRow item={item} query={query} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {/* Peek: ficha del resultado resaltado (solo desktop). Navegar
-                  con ↑↓ hojea las fichas sin abrir nada. */}
-              {items[focusIdx] && (
-                <aside
-                  aria-label="Vista previa del resultado"
-                  className="hidden md:block w-72 shrink-0 border-l border-ink-100/60 bg-paper-100/30 max-h-[50vh] overflow-y-auto"
+            {mode === 'results' && results ? (
+              <>
+                <Suspense
+                  fallback={
+                    <p className="px-5 py-6 text-ink-400 italic text-sm text-center">
+                      cargando resultados…
+                    </p>
+                  }
                 >
-                  <PeekPanel item={items[focusIdx]} entities={entitiesForPeek} />
-                </aside>
-              )}
-            </div>
-            <div className="px-5 py-2 border-t border-ink-100/60 text-micro uppercase tracking-eyebrow text-ink-300 flex justify-between">
-              <span>↑↓ navegar · enter abrir · esc cerrar</span>
-              <span>{items.length} resultados</span>
-            </div>
+                  <CommandPaletteResults
+                    hits={results.hits}
+                    ast={results.ast}
+                    source={results.source}
+                    heading={results.heading}
+                    focusIdx={focusIdx}
+                    onFocusIdx={setFocusIdx}
+                    onSelectHit={selectHit}
+                    onBack={() => {
+                      setMode('search')
+                      setResults(null)
+                      setFocusIdx(0)
+                    }}
+                    onSave={(name) => {
+                      if (results.ast) saveQuery.mutate({ name, query: results.ast })
+                    }}
+                    saving={saveQuery.isPending}
+                  />
+                </Suspense>
+                <div className="px-5 py-2 border-t border-ink-100/60 text-micro uppercase tracking-eyebrow text-ink-300 flex justify-between">
+                  <span>↑↓ navegar · enter abrir · esc volver</span>
+                  <span>{results.hits.length} resultados</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex">
+                  <ul className="max-h-[50vh] overflow-y-auto flex-1 min-w-0">
+                    {items.length === 0 && (
+                      <li className="px-5 py-6 text-ink-400 italic text-sm text-center">
+                        {running
+                          ? 'consultando…'
+                          : searching
+                            ? 'buscando…'
+                            : 'nada coincide'}
+                      </li>
+                    )}
+                    {items.map((item, idx) => (
+                      <li key={`${item.kind}-${itemKey(item)}`}>
+                        <button
+                          onClick={() => selectItem(item)}
+                          onMouseEnter={() => setFocusIdx(idx)}
+                          className={`w-full text-left px-5 py-2.5 flex items-baseline gap-3 transition-colors ${
+                            idx === focusIdx ? 'bg-paper-100/70' : 'hover:bg-paper-100/40'
+                          }`}
+                        >
+                          <ItemRow item={item} query={query} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {/* Peek: ficha del resultado resaltado (solo desktop). Navegar
+                      con ↑↓ hojea las fichas sin abrir nada. */}
+                  {items[focusIdx] && (
+                    <aside
+                      aria-label="Vista previa del resultado"
+                      className="hidden md:block w-72 shrink-0 border-l border-ink-100/60 bg-paper-100/30 max-h-[50vh] overflow-y-auto"
+                    >
+                      <PeekPanel item={items[focusIdx]} entities={entitiesForPeek} />
+                    </aside>
+                  )}
+                </div>
+                <div className="px-5 py-2 border-t border-ink-100/60 text-micro uppercase tracking-eyebrow text-ink-300 flex justify-between">
+                  <span>↑↓ navegar · enter abrir · esc cerrar</span>
+                  <span>{items.length} resultados</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -224,6 +398,8 @@ function itemKey(item: Item): string {
   if (item.kind === 'view') return item.view
   if (item.kind === 'action') return item.action
   if (item.kind === 'reveal') return `reveal-${item.moduleId}`
+  if (item.kind === 'ask') return 'ask'
+  if (item.kind === 'savedQuery') return `saved-${item.id}`
   if (item.kind === 'entity') return item.id
   return item.id
 }
