@@ -71,6 +71,8 @@ const PUBLIC_AUTH_EXEMPT: Record<string, string> = {
   'spotify-scheduled-sync.mts': 'scheduled function Netlify; itera tokens por user_id',
   'x-callback.mts': 'callback OAuth; valida cookie/state del flujo iniciado autenticado',
   'x-scheduled-sync.mts': 'scheduled function Netlify; itera tokens por user_id',
+  'whatsapp-webhook.mts':
+    'webhook entrante firmado por Twilio (X-Twilio-Signature); resuelve el usuario por el número del remitente (whatsapp_links) y escribe bajo su RLS',
 }
 
 function tableRegex(table: string): RegExp {
@@ -293,6 +295,7 @@ describe('guardrail: endpoints públicos declaran contexto RLS explícito', () =
     'spotify-scheduled-sync.mts': /runWithSystemRls/,
     'x-callback.mts': /setCurrentRlsUser/,
     'x-scheduled-sync.mts': /runWithSystemRls/,
+    'whatsapp-webhook.mts': /setCurrentRlsUser/,
   }
 
   for (const [file, expected] of Object.entries(contextByFile)) {

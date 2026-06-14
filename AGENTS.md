@@ -45,15 +45,16 @@ Este archivo lo lee Codex automáticamente al entrar al proyecto. Acá viven sol
 
 ## Runbooks operacionales (docs/)
 
-| Doc                            | Cubre                                              |
-| ------------------------------ | -------------------------------------------------- |
-| `docs/ai.md`                   | LLM providers, caching, fallbacks                  |
-| `docs/datos.md`                | Backup, recovery, migraciones                      |
-| `docs/deploy.md`               | Netlify setup, env vars, domain                    |
-| `docs/escala.md`               | Limits (1k nodos → WebGL, chat RAG context window) |
-| `docs/incidentes.md`           | Troubleshooting, métricas críticas                 |
-| `docs/migracion-multi-user.md` | Plan futuro (no implementado)                      |
-| `docs/migraciones.md`          | Database workflow                                  |
+| Doc                            | Cubre                                                  |
+| ------------------------------ | ------------------------------------------------------ |
+| `docs/ai.md`                   | LLM providers, caching, fallbacks                      |
+| `docs/datos.md`                | Backup, recovery, migraciones                          |
+| `docs/deploy.md`               | Netlify setup, env vars, domain                        |
+| `docs/escala.md`               | Limits (1k nodos → WebGL, chat RAG context window)     |
+| `docs/incidentes.md`           | Troubleshooting, métricas críticas                     |
+| `docs/migracion-multi-user.md` | Plan futuro (no implementado)                          |
+| `docs/migraciones.md`          | Database workflow                                      |
+| `docs/whatsapp.md`             | Captura por WhatsApp (Twilio): webhook, vínculo, firma |
 
 ## Cómo agregar contexto nuevo a AGENTS.md
 

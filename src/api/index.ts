@@ -38,6 +38,7 @@ import { tasksApi } from './tasks'
 import { monthNotesApi } from './month-notes'
 import { userPrefsApi } from './user-prefs'
 import { typeTablesApi } from './type-tables'
+import { whatsappApi } from './whatsapp'
 import { xApi } from './x'
 
 export const api = {
@@ -69,6 +70,7 @@ export const api = {
   ...graphApi,
   ...typeTablesApi,
   ...exportImportApi,
+  ...whatsappApi,
 }
 
 // ---------- Re-exports públicos ----------
@@ -164,6 +166,8 @@ export type {
 } from './search'
 
 export type { NeighborsResponse, NeighborWithHop } from './graph'
+
+export type { WhatsAppLink, WhatsAppLinkCode } from './whatsapp'
 
 export type {
   MomentoComment,
