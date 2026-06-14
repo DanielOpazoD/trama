@@ -127,6 +127,13 @@ describe('<NotasFeedView />', () => {
         ),
       ).toBe(true),
     )
+
+    // El imageKey que devolvió la subida viaja en el body del create.
+    const createCall = fetchMock.mock.calls.find(
+      ([u, init]) => String(u) === '/api/recortes' && init?.method === 'POST',
+    )
+    const body = JSON.parse(createCall?.[1]?.body as string)
+    expect(body).toMatchObject({ imageKey: 'u/shot.webp', captureMode: 'image' })
   })
 
   it("el segmento 'Escritas' oculta los recortes", async () => {

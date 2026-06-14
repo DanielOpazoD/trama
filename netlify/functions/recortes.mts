@@ -393,6 +393,7 @@ export default withObservability(
           UPDATE quotes SET deleted_at = NOW()
           WHERE id = (SELECT promoted_id FROM current_recorte)
             AND (SELECT promoted_target FROM current_recorte) = 'quote'
+            AND deleted_at IS NULL
             AND user_id = ${userId}
           RETURNING id
         ),
@@ -400,6 +401,7 @@ export default withObservability(
           UPDATE entities SET deleted_at = NOW()
           WHERE id = (SELECT promoted_id FROM current_recorte)
             AND (SELECT promoted_target FROM current_recorte) = 'entity'
+            AND deleted_at IS NULL
             AND user_id = ${userId}
           RETURNING id
         ),
@@ -407,6 +409,7 @@ export default withObservability(
           UPDATE momentos SET deleted_at = NOW(), updated_at = NOW()
           WHERE id = (SELECT promoted_id FROM current_recorte)
             AND (SELECT promoted_target FROM current_recorte) = 'momento'
+            AND deleted_at IS NULL
             AND user_id = ${userId}
           RETURNING id
         ),
