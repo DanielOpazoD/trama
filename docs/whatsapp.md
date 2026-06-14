@@ -151,6 +151,16 @@ El webhook recuerda la última captura por número en las columnas
 idempotente: un segundo `deshacer` ya no encuentra nada. No deep-linkeamos el
 item exacto porque la app aún no rutea por id.
 
+## Contrato de esquema (tests de integración)
+
+Los tests del webhook mockean SQL, así que no ven si una columna referenciada
+falta en el esquema real — eso rompió producción una vez (`whatsapp_links.label`,
+PR #208). `scripts/check-whatsapp-schema.mjs` (`npm run check:whatsapp-schema`)
+conecta a la DB **migrada de verdad** (vía `pg`) y verifica que cada columna que
+el código de WhatsApp toca exista. Corre en el job `migrations` de CI (después
+de aplicar migraciones) y localmente con `npm run db:up` levantado. Si agregás
+una columna al flujo, sumala a `REQUIRED` en el script Y creá su migración.
+
 ## Seguridad
 
 - **Firma obligatoria en producción.** Si `TWILIO_AUTH_TOKEN` está seteado, un
