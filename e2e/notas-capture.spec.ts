@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
-import { emptyState, enableDemoMode, mockBackend } from './fixtures'
+import { emptyState, mockBackend } from './fixtures'
 
 /**
  * Lazo completo de la captura unificada en el mundo Notas:
@@ -40,11 +40,14 @@ function jsonResp(route: Route, body: unknown, status = 200) {
 async function setupCapture(page: Page) {
   const recortes: RecorteRow[] = []
 
+  // Patrón de a11y.spec: API mockeada (sin modo demo, que usaría un store
+  // local y se saltaría estos mocks). Saltamos el splash y pre-aceptamos la
+  // confirmación de primer uso del 1-toque para ejercitar el toque directo.
+  await page.addInitScript(() => {
+    window.sessionStorage.setItem('trama:splash-seen', '1')
+    window.localStorage.setItem('trama.curar.confirmed', 'yes')
+  })
   await mockBackend(page, emptyState())
-  await enableDemoMode(page, { world: 'notas' })
-  await page.addInitScript(() =>
-    window.localStorage.setItem('trama.curar.confirmed', 'yes'),
-  )
 
   // Metadatos OG del enlace (enriquecimiento diferido).
   await page.route(
