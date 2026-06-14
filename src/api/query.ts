@@ -50,11 +50,26 @@ export type QueryHit = {
 
 export type QueryResult = { items: QueryHit[]; nextCursor: string | null }
 
+/** Respuesta de NL→query: incluye el AST interpretado (para mostrar/editar). */
+export type NlQueryResult = QueryResult & {
+  query: QueryInput
+  /** 'llm' si el modelo tradujo; 'fallback' si cayó a búsqueda de texto libre. */
+  source: 'llm' | 'fallback'
+}
+
 export const queryApi = {
   run(input: QueryInput): Promise<QueryResult> {
     return request<QueryResult>('/api/query', {
       method: 'POST',
       body: JSON.stringify(input),
+    })
+  },
+
+  /** "Pregúntale a tu Trama": lenguaje natural → AST → resultados. */
+  ask(q: string): Promise<NlQueryResult> {
+    return request<NlQueryResult>('/api/query/nl', {
+      method: 'POST',
+      body: JSON.stringify({ q }),
     })
   },
 }
