@@ -143,6 +143,15 @@ interpretado** para que la UI lo muestre/edite (la "live update view").
 - Mismos guards que el resto: `checkMonthlyBudget` + `resolveAIInvocation`
   (tarea `classify`). El traductor (`translateNl`) recibe el `ask` inyectado →
   testeable con LLM mockeado y contra Postgres real.
+- **Degradación elegante (no 429):** a diferencia de los endpoints que generan
+  contenido, sin presupuesto/IA off este endpoint **no** corta con 429 —
+  degrada a la búsqueda de texto libre para que el usuario siempre reciba
+  resultados. El catálogo (`entity_types`) sólo se consulta cuando se va a
+  invocar al LLM (se evita el round-trip en el camino de fallback). Cada llamada
+  real al LLM se asienta en `extraction_log` (un cache hit factura 0).
+- **Validación en dos capas:** Zod (`QueryBody`) garantiza la forma; un dry-run
+  de `compileQuery` descarta ASTs Zod-válidos pero no compilables (p.ej. un op
+  no permitido para el tipo del campo) antes de que lleguen a `runQuery`.
 
 ## Roadmap
 

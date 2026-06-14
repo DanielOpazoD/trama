@@ -115,7 +115,12 @@ export function validateNlQuery(
   return { ok: true, query: parsed.data }
 }
 
-/** Fallback sin IA / ante fallo: búsqueda de texto libre sobre todos los tipos. */
+/**
+ * Fallback sin IA / ante fallo: búsqueda de texto libre sobre todos los tipos.
+ * Truncamos a 200 porque el predicado `matches` del AST está capado en 200
+ * chars (ast.ts); `NlBody` admite hasta 500 para la pregunta, pero al fallback
+ * sólo le hacen falta las palabras clave.
+ */
 export function fallbackQuery(q: string): QueryInput {
   return { from: [...OBJECT_KINDS], where: { op: 'matches', value: q.slice(0, 200) } }
 }

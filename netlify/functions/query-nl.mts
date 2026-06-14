@@ -11,6 +11,7 @@ import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { resolveAIInvocation } from './_lib/ai-mode.js'
 import { askLLMForJson } from './_lib/llm.js'
 import { fallbackQuery, translateNl, type NlContext } from './_lib/query/nl.js'
+import type { QueryInput } from './_lib/query/ast.js'
 import { runQuery } from './_lib/query/execute.js'
 
 /**
@@ -41,27 +42,30 @@ export default withObservability(
     if (!parsed.ok) return parsed.response
     const q = parsed.data.q
 
-    // Catálogo data-driven para anclar al modelo en campos/tipos reales.
-    const typeRows = await sqlTyped<{ slug: string }>(
-      sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`,
-    )
-    const ctx: NlContext = {
-      today: new Date().toISOString().slice(0, 10),
-      entityTypes: typeRows.map((r) => r.slug),
-    }
-
-    // Guards de IA. Si off / sin presupuesto → fallback de texto libre sin LLM.
+    // Guards de IA. Degradación elegante A PROPÓSITO: si la IA está off o sin
+    // presupuesto NO devolvemos el 429 de checkMonthlyBudget; caemos a una
+    // búsqueda de texto libre para que "pregúntale a tu Trama" SIEMPRE dé
+    // resultados (ver docs/query.md). Por eso descartamos ese Response.
     const overBudget = await checkMonthlyBudget(userId, requestId)
     const invocation = overBudget
       ? ({ kind: 'off' } as const)
       : await resolveAIInvocation(req, 'classify', userId)
 
-    let query
+    let query: QueryInput
     let source: 'llm' | 'fallback'
     if (invocation.kind !== 'ready') {
       query = fallbackQuery(q)
       source = 'fallback'
     } else {
+      // Catálogo data-driven (sólo si vamos a invocar al LLM): ancla al modelo
+      // a los campos/tipos reales que el compilador acepta.
+      const typeRows = await sqlTyped<{ slug: string }>(
+        sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`,
+      )
+      const ctx: NlContext = {
+        today: new Date().toISOString().slice(0, 10),
+        entityTypes: typeRows.map((r) => r.slug),
+      }
       const { provider, model } = invocation
       const ask = async (messages: Parameters<typeof askLLMForJson>[0]) => {
         const r = await askLLMForJson(messages, { provider, model })
