@@ -18,8 +18,13 @@ const askLLMForJson = vi.fn()
 vi.mock('./llm.js', () => ({
   askLLMForJson: (...args: unknown[]) => askLLMForJson(...args),
 }))
+// Blobs mockeado: el upload de media no toca red real.
+vi.mock('@netlify/blobs', () => ({
+  getStore: () => ({ set: vi.fn().mockResolvedValue(undefined) }),
+}))
 
 import webhookHandler from '../whatsapp-webhook'
+import { expectedTwilioSignature } from './whatsapp/twilio-signature'
 
 /**
  * Endpoint whatsapp-webhook (entrante de Twilio). SQL mockeado. Cubre:
@@ -41,7 +46,10 @@ beforeEach(() => {
   mockSqlResponses.reset()
   askLLMForJson.mockReset()
 })
-afterEach(() => vi.unstubAllEnvs())
+afterEach(() => {
+  vi.unstubAllEnvs()
+  vi.unstubAllGlobals()
+})
 
 describe('whatsapp-webhook', () => {
   it('número no vinculado → instrucciones de vinculación', async () => {
@@ -185,6 +193,55 @@ describe('whatsapp-webhook', () => {
       mockContext(),
     )
     expect(res.status).toBe(405)
+  })
+
+  it('foto sin prefijo → Recorte (descarga, sube y persiste)', async () => {
+    // Para procesar media se necesita TWILIO_AUTH_TOKEN, lo que activa la
+    // verificación de firma: la calculamos para que el request sea válido.
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMmedia',
+      From: 'whatsapp:+56912345678',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/abc',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMmedia' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte RETURNING id
+    mockSqlResponses.push([]) // recordLastCapture (fire-and-forget)
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('Recortes')
+    expect(xml).toContain('view=recortes')
   })
 
   it('firma inválida cuando TWILIO_AUTH_TOKEN está configurado → 401', async () => {
