@@ -36,6 +36,20 @@ describe('validateClassification', () => {
     })
   })
 
+  it('entity normaliza el tipo a slug (igual que el parser de prefijos)', () => {
+    expect(
+      validateClassification({
+        kind: 'entity',
+        entity: { name: 'Kant', type: 'Persona Pública' },
+      }),
+    ).toEqual({
+      kind: 'entity',
+      name: 'Kant',
+      entityType: 'persona_publica',
+      description: null,
+    })
+  })
+
   it('momento', () => {
     expect(
       validateClassification({

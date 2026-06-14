@@ -1,4 +1,5 @@
 import type { CaptureIntent } from './types.js'
+import { slugifyEntityType } from './entity-type.js'
 
 /**
  * Parser híbrido de mensajes entrantes (camino SIN LLM).
@@ -45,7 +46,7 @@ function parseEntity(rest: string): CaptureIntent {
     return {
       kind: 'entity',
       name: paren[1]!.trim(),
-      entityType: fold(paren[2]!.trim()).replace(/\s+/g, '_') || 'concepto',
+      entityType: slugifyEntityType(paren[2]),
       description: null,
     }
   }
@@ -54,8 +55,7 @@ function parseEntity(rest: string): CaptureIntent {
     return {
       kind: 'entity',
       name: rest.slice(0, m.index).trim(),
-      entityType:
-        fold(rest.slice(m.index + m[0].length).trim()).replace(/\s+/g, '_') || 'concepto',
+      entityType: slugifyEntityType(rest.slice(m.index + m[0].length)),
       description: null,
     }
   }

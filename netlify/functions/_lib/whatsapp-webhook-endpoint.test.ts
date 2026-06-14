@@ -36,6 +36,7 @@ describe('whatsapp-webhook', () => {
 
   it('captura por prefijo nota: cuando el número está vinculado', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([]) // UPDATE last_message_at (fire-and-forget)
     mockSqlResponses.push([]) // INSERT notes
     const res = await webhookHandler(

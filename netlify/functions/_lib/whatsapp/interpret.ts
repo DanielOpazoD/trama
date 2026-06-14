@@ -1,5 +1,6 @@
 import type { LLMMessage } from '../llm.js'
 import type { CaptureIntent } from './types.js'
+import { slugifyEntityType } from './entity-type.js'
 
 /**
  * Camino LLM del híbrido: cuando el mensaje NO trae prefijo, le pedimos al
@@ -61,7 +62,7 @@ export function validateClassification(raw: unknown): CaptureIntent | null {
   if (kind === 'entity') {
     const e = (obj.entity as Record<string, unknown>) ?? {}
     const name = asString(e.name)
-    const type = asString(e.type) || 'concepto'
+    const type = slugifyEntityType(asString(e.type))
     const description = asString(e.description) || null
     return name ? { kind: 'entity', name, entityType: type, description } : null
   }
