@@ -3,6 +3,7 @@ import { screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '../../test-utils'
 import { NotasFeedView } from './NotasFeedView'
+import { ToastHost } from '../ToastHost'
 
 // compressImage usa canvas/Image, que happy-dom no implementa; lo neutralizamos
 // para probar el cableado de captura por pegado sin colgar en la carga de Image.
@@ -55,6 +56,25 @@ function stubFeedFetch() {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
     const method = init?.method ?? 'GET'
+    if (url.includes('/suggest') && method === 'POST')
+      return jsonResponse({
+        target: 'momento',
+        title: 'Momento sugerido',
+        rationale: '',
+        relatedEntityIds: [],
+        suggestedEntityName: null,
+        suggestedEntityType: null,
+        relatedEntities: [],
+      })
+    if (url.includes('/unpromote') && method === 'POST')
+      return jsonResponse({ ...recorteRows[0], status: 'pending', promoted_target: null })
+    if (url.includes('/promote') && method === 'POST')
+      return jsonResponse({
+        ...recorteRows[0],
+        status: 'promoted',
+        promoted_target: 'momento',
+        promoted_id: 'm1',
+      })
     if (url.startsWith('/api/notes') && method === 'GET') return jsonResponse(noteRows)
     if (url.startsWith('/api/recortes') && method === 'GET')
       return jsonResponse(recorteRows)
@@ -62,6 +82,9 @@ function stubFeedFetch() {
       return jsonResponse({ imageKey: 'u/shot.webp', mime: 'image/webp', size: 99 })
     if (url === '/api/recortes' && method === 'POST')
       return jsonResponse({ ...recorteRows[0], id: 'nuevo', capture_mode: 'image' }, 201)
+    // counts/home invalidations refetch tras promover/curar.
+    if (url.startsWith('/api/counts') || url.startsWith('/api/home'))
+      return jsonResponse({})
     throw new Error(`Fetch inesperado en NotasFeedView.test: ${method} ${url}`)
   })
   vi.stubGlobal('fetch', fetchMock)
@@ -134,6 +157,50 @@ describe('<NotasFeedView />', () => {
     )
     const body = JSON.parse(createCall?.[1]?.body as string)
     expect(body).toMatchObject({ imageKey: 'u/shot.webp', captureMode: 'image' })
+  })
+
+  it('lazo completo: curar (con confirmación de primer uso) promueve y Deshacer revierte', async () => {
+    localStorage.clear()
+    const user = userEvent.setup()
+    const fetchMock = stubFeedFetch()
+    renderWithProviders(
+      <>
+        <NotasFeedView />
+        <ToastHost />
+      </>,
+    )
+
+    await screen.findByText(/Una cita capturada de la web/)
+
+    // Primer uso de «curar»: pide confirmación antes de crear.
+    await user.click(screen.getByRole('button', { name: 'curar' }))
+    await user.click(screen.getByRole('button', { name: 'Sí, curar' }))
+
+    // Pide la sugerencia y promueve directo (target momento, no requiere datos).
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([u, i]) => String(u).includes('/suggest') && i?.method === 'POST',
+        ),
+      ).toBe(true),
+    )
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([u, i]) => String(u).includes('/promote') && i?.method === 'POST',
+        ),
+      ).toBe(true),
+    )
+
+    // El toast de éxito ofrece Deshacer, que revierte vía /unpromote.
+    await user.click(await screen.findByRole('button', { name: 'Deshacer' }))
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([u, i]) => String(u).includes('/unpromote') && i?.method === 'POST',
+        ),
+      ).toBe(true),
+    )
   })
 
   it("el segmento 'Escritas' oculta los recortes", async () => {

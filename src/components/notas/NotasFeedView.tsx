@@ -66,6 +66,8 @@ export function NotasFeedView() {
   const [forceNote, setForceNote] = useState(false)
   // Resalte del composer mientras se arrastra una imagen encima.
   const [dragging, setDragging] = useState(false)
+  // Cuántas imágenes se están subiendo ahora (para tarjetas «subiendo…»).
+  const [uploadingImages, setUploadingImages] = useState(0)
 
   // El borrador es un enlace puro (y el usuario no eligió "guardar como nota").
   const linkUrl = forceNote ? null : extractUrl(draft)
@@ -180,6 +182,8 @@ export function NotasFeedView() {
   async function captureImageFiles(files: File[]) {
     const images = files.filter((f) => f.type.startsWith('image/'))
     if (images.length === 0) return
+    // Mostramos las tarjetas «subiendo…» desde ya (incluye la compresión).
+    setUploadingImages((n) => n + images.length)
     let done = 0
     for (const original of images) {
       const file = await compressImage(original).catch(() => original)
@@ -203,6 +207,7 @@ export function NotasFeedView() {
               message: e instanceof Error ? e.message : 'No se pudo guardar la imagen',
               tone: 'error',
             }),
+          onSettled: () => setUploadingImages((n) => Math.max(0, n - 1)),
         },
       )
     }
@@ -479,6 +484,21 @@ export function NotasFeedView() {
           </div>
         )}
       </div>
+
+      {/* Tarjetas «subiendo…» mientras la captura de imagen viaja al servidor.
+          Dan feedback inmediato; al terminar, la imagen real toma su lugar. */}
+      {uploadingImages > 0 && (
+        <ul className="mb-2.5 space-y-2.5" aria-live="polite">
+          {Array.from({ length: uploadingImages }).map((_, i) => (
+            <li
+              key={i}
+              className="card-paper-soft flex items-center gap-2 p-4 text-caption text-ink-400"
+            >
+              <LoadingHint text="subiendo imagen" size="sm" />
+            </li>
+          ))}
+        </ul>
+      )}
 
       {/* Feed / estados */}
       {isLoading ? (

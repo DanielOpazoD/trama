@@ -9,6 +9,7 @@ import {
   useUpdateRecorte,
 } from '../../state'
 import { useToast } from '../../state/toast'
+import { useLocalStorageState } from '../../hooks/useLocalStorageState'
 import { SparkleIcon } from '../Icons'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
@@ -171,7 +172,20 @@ export function RecorteCard({
   const [suggestion, setSuggestion] = useState<RecorteSuggestion | null>(null)
   const [ocrBusy, setOcrBusy] = useState(false)
   const [curating, setCurating] = useState(false)
+  // Confirmación de primer uso del 1-toque (la IA crea el objeto). Una vez
+  // aceptada queda recordada y «curar» vuelve a ser de verdad un toque.
+  const [curarConfirmed, setCurarConfirmed] = useLocalStorageState<'no' | 'yes'>(
+    'trama.curar.confirmed',
+    'no',
+    (raw): raw is 'no' | 'yes' => raw === 'no' || raw === 'yes',
+  )
+  const [confirming, setConfirming] = useState(false)
   const hasImage = !!(r.imageKey || r.imageUrl)
+
+  function onCurarClick() {
+    if (curarConfirmed === 'yes') void handleOneTap()
+    else setConfirming(true)
+  }
 
   async function handleSuggest() {
     try {
@@ -385,6 +399,32 @@ export function RecorteCard({
         </div>
       )}
 
+      {confirming && (
+        <div className="mt-2.5 rounded-md border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)] px-3 py-2">
+          <p className="text-caption text-ink-600">
+            La IA elegirá el destino y creará el objeto por ti. Siempre podrás deshacerlo.
+          </p>
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              onClick={() => {
+                setCurarConfirmed('yes')
+                setConfirming(false)
+                void handleOneTap()
+              }}
+              className="text-micro uppercase tracking-eyebrow text-ink-700 hover:text-ink-900 transition-colors"
+            >
+              Sí, curar
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
       {suggestion && <SuggestionBanner suggestion={suggestion} onUse={useSuggestion} />}
 
       <div className="mt-2.5 flex flex-wrap items-center gap-3">
@@ -409,7 +449,7 @@ export function RecorteCard({
           {r.status === 'pending' && (
             <>
               <button
-                onClick={handleOneTap}
+                onClick={onCurarClick}
                 disabled={curating || promote.isPending}
                 className="inline-flex items-center gap-1 rounded-full border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)] px-2 py-0.5 text-micro font-medium text-[color:var(--accent-gold)] transition-colors hover:text-ink-700 disabled:opacity-50"
                 title="Deja que la IA elija el destino y lo cure en un toque"
