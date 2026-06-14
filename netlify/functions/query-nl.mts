@@ -4,6 +4,7 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
 import { logEvent } from './_lib/observability.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
@@ -32,6 +33,9 @@ export default withObservability(
     }
     const { id: userId } = await getAuthedUser(req)
     const sql = getSql()
+    // Escribimos extraction_log (cost-cap) con user_id → aseguramos la fila de
+    // users antes (FK users(id)) por si es el primer login real.
+    await ensureUserRow(sql, { id: userId })
 
     const parsed = await parseJsonBody(req, NlBody, requestId)
     if (!parsed.ok) return parsed.response
@@ -58,11 +62,24 @@ export default withObservability(
       query = fallbackQuery(q)
       source = 'fallback'
     } else {
-      const ask = (messages: Parameters<typeof askLLMForJson>[0]) =>
-        askLLMForJson(messages, {
-          provider: invocation.provider,
-          model: invocation.model,
-        }).then((r) => ({ content: r.content }))
+      const { provider, model } = invocation
+      const ask = async (messages: Parameters<typeof askLLMForJson>[0]) => {
+        const r = await askLLMForJson(messages, { provider, model })
+        // Contabilizar el gasto para el cost-cap mensual (best-effort): el
+        // budget suma extraction_log.cost_cents. Un cache hit cuesta 0.
+        sql`
+          INSERT INTO extraction_log (
+            input_text, proposal, provider, model,
+            tokens_in, tokens_out, cost_cents, duration_ms, user_id
+          ) VALUES (
+            ${`nl-query: ${q}`}, ${JSON.stringify(r.content ?? {})}::jsonb,
+            ${r.usage.provider}, ${r.usage.model}, ${r.usage.tokensIn},
+            ${r.usage.tokensOut}, ${r.fromCache ? 0 : r.usage.costCents},
+            ${r.usage.durationMs}, ${userId}
+          )
+        `.catch(() => {})
+        return { content: r.content }
+      }
       const translated = await translateNl(q, ctx, ask)
       query = translated.query
       source = translated.source

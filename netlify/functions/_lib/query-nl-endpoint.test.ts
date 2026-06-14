@@ -65,7 +65,9 @@ describe('query-nl endpoint', () => {
       },
       fromCache: false,
     })
+    mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ slug: 'persona' }, { slug: 'filosofo' }]) // entity_types
+    mockSqlResponses.push([]) // extraction_log (cost accounting, fire-and-forget)
     mockSqlResponses.push([ENTITY_ROW]) // runQuery
     const res = await queryNlHandler(jsonRequest({ q: 'personas' }), mockContext())
     expect(res.status).toBe(200)
@@ -78,6 +80,10 @@ describe('query-nl endpoint', () => {
     expect(body.items).toHaveLength(1)
     expect(body.query).toMatchObject({ from: ['entity'] })
     expect(askLLMForJson).toHaveBeenCalledOnce()
+    // El gasto se contabiliza en extraction_log (cost-cap mensual).
+    expect(
+      mockSqlResponses.calls.some((c) => c.template.includes('extraction_log')),
+    ).toBe(true)
   })
 
   it('LLM devuelve basura → cae a fallback de texto libre (source fallback)', async () => {
@@ -93,7 +99,10 @@ describe('query-nl endpoint', () => {
       },
       fromCache: false,
     })
+    mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ slug: 'persona' }]) // entity_types
+    mockSqlResponses.push([]) // extraction_log (1er intento)
+    mockSqlResponses.push([]) // extraction_log (reparación)
     mockSqlResponses.push([ENTITY_ROW]) // runQuery (fallback matches)
     const res = await queryNlHandler(jsonRequest({ q: 'estoicismo' }), mockContext())
     expect(res.status).toBe(200)
@@ -104,6 +113,7 @@ describe('query-nl endpoint', () => {
 
   it('IA off → fallback sin llamar al LLM', async () => {
     resolveAIInvocation.mockResolvedValue({ kind: 'off' })
+    mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ slug: 'persona' }]) // entity_types
     mockSqlResponses.push([ENTITY_ROW]) // runQuery
     const res = await queryNlHandler(jsonRequest({ q: 'estoicismo' }), mockContext())
