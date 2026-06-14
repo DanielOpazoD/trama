@@ -219,4 +219,24 @@ describe.skipIf(!DB_URL)('query engine (integración Postgres real)', () => {
     })
     expect(ents.items.map((i) => i.title)).toContain('Tomo Viejo QIT')
   })
+
+  it('paginación keyset: cursor avanza sin repetir ni saltear', async () => {
+    const where = {
+      field: 'type',
+      op: 'in' as const,
+      value: ['qit-persona', 'qit-libro'],
+    }
+    const page1 = await runQuery(sqlFor(USER_A), { from: ['entity'], where, limit: 1 })
+    expect(page1.items).toHaveLength(1)
+    expect(page1.nextCursor).toBeTruthy()
+
+    const page2 = await runQuery(sqlFor(USER_A), {
+      from: ['entity'],
+      where,
+      limit: 1,
+      cursor: page1.nextCursor ?? undefined,
+    })
+    expect(page2.items).toHaveLength(1)
+    expect(page2.items[0].id).not.toBe(page1.items[0].id)
+  })
 })

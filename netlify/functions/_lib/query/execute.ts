@@ -26,9 +26,10 @@ type Row = {
   id: string
   title: string | null
   snippet: string | null
-  sort_val: string
   created_at: string
   tags: string[] | null
+  /** Valor de orden en texto round-trippable (microsegundos + UTC) para el cursor. */
+  cursor_val: string
 }
 
 export async function runQuery(sql: SqlClient, input: QueryInput): Promise<QueryResult> {
@@ -48,11 +49,14 @@ export async function runQuery(sql: SqlClient, input: QueryInput): Promise<Query
     id: r.id,
     title: r.title,
     snippet: r.snippet,
-    createdAt: r.created_at,
+    createdAt:
+      typeof r.created_at === 'string'
+        ? r.created_at
+        : new Date(r.created_at).toISOString(),
     tags: r.tags ?? [],
   }))
   const last = page[page.length - 1]
   const nextCursor =
-    hasMore && last ? encodeCursor({ v: last.sort_val, id: last.id }) : null
+    hasMore && last ? encodeCursor({ v: last.cursor_val, id: last.id }) : null
   return { items, nextCursor }
 }

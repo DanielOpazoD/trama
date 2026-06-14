@@ -235,4 +235,41 @@ describe('compileQuery — Fase 2: propiedades, contains, exists, linked_to', ()
       'FALSE',
     )
   })
+
+  it('contains escapa los comodines de LIKE (% _ \\) → texto literal', () => {
+    const { values } = compile({
+      from: ['entity'],
+      where: { field: 'name', op: 'contains', value: '50%_x' },
+    })
+    expect(values[0]).toBe('%50\\%\\_x%')
+  })
+
+  it('op no soportada en propiedad (gt) lanza error', () => {
+    expect(() =>
+      compile({ from: ['entity'], where: { field: 'prop:price', op: 'gt', value: 100 } }),
+    ).toThrow(/no soportado en propiedad/)
+  })
+})
+
+describe('compileQuery — sort y ops adicionales', () => {
+  it('sort occurred_at usa la columna temporal de cada kind', () => {
+    const { text } = compile({
+      from: ['momento'],
+      sort: { field: 'occurred_at', dir: 'desc' },
+    })
+    expect(text).toContain('(captured_at) AS sort_val')
+  })
+
+  it('neq / lte / gt compilan con su operador', () => {
+    expect(
+      compile({ from: ['entity'], where: { field: 'type', op: 'neq', value: 'x' } }).text,
+    ).toContain('type <> $1')
+    expect(
+      compile({ from: ['entity'], where: { field: 'year', op: 'lte', value: 1900 } })
+        .text,
+    ).toContain('year <= $1')
+    expect(
+      compile({ from: ['entity'], where: { field: 'year', op: 'gt', value: 1900 } }).text,
+    ).toContain('year > $1')
+  })
 })

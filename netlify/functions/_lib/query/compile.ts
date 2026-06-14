@@ -76,6 +76,16 @@ function castFor(def: FieldDef): string {
   return ''
 }
 
+/**
+ * Patrón ILIKE para "contiene": escapa los comodines de LIKE (`%` `_` `\`) para
+ * que el texto del usuario se trate literal (buscar "50%" no debe ser comodín).
+ * Postgres usa `\` como escape por defecto en LIKE/ILIKE.
+ */
+function likeContains(value: string): string {
+  const escaped = value.replace(/[\\%_]/g, (c) => `\\${c}`)
+  return `%${escaped}%`
+}
+
 function isPropField(field: string): boolean {
   return field.startsWith(PROP_PREFIX)
 }
@@ -104,7 +114,7 @@ function compileProp(
       b.raw('properties ->> ')
         .param(key)
         .raw(' ILIKE ')
-        .param(`%${String(pred.value)}%`)
+        .param(likeContains(String(pred.value)))
       return
     case 'in':
       b.raw('properties ->> ').param(key).raw(' IN (')
@@ -167,7 +177,7 @@ function compilePredicate(b: SqlBuilder, kind: ObjectKind, pred: Predicate): voi
     if (meta.fts) {
       b.raw(`${meta.fts} @@ websearch_to_tsquery('simple', `).param(pred.value).raw(')')
     } else if (meta.ftsFallback) {
-      b.raw(`${meta.ftsFallback} ILIKE `).param(`%${pred.value}%`)
+      b.raw(`${meta.ftsFallback} ILIKE `).param(likeContains(pred.value))
     } else {
       b.raw('FALSE')
     }
@@ -230,7 +240,7 @@ function compilePredicate(b: SqlBuilder, kind: ObjectKind, pred: Predicate): voi
       b.raw(`${col} >= `).param(coerce(def, pred.value)).raw(cast)
       return
     case 'contains':
-      b.raw(`${col} ILIKE `).param(`%${String(pred.value)}%`)
+      b.raw(`${col} ILIKE `).param(likeContains(String(pred.value)))
       return
     case 'between': {
       const [lo, hi] = pred.value
@@ -292,7 +302,14 @@ export function compileQuery(input: QueryInput): CompiledQuery {
   const cursor = input.cursor ? decodeCursor(input.cursor) : null
 
   const b = new SqlBuilder()
-  b.raw('SELECT kind, id, title, snippet, sort_val, created_at, tags FROM (')
+  // `cursor_val`: el valor de orden renderizado a texto con precisión de
+  // microsegundos + offset UTC, para que el cursor round-tripee EXACTO
+  // (`$v::timestamptz`) y el keyset no rompa ante empates de timestamp.
+  b.raw(
+    'SELECT kind, id, title, snippet, created_at, tags, ' +
+      'to_char(q.sort_val AT TIME ZONE \'UTC\', \'YYYY-MM-DD"T"HH24:MI:SS.US"+00"\') ' +
+      'AS cursor_val FROM (',
+  )
 
   kinds.forEach((kind, i) => {
     if (i > 0) b.raw(' UNION ALL ')
