@@ -5,6 +5,7 @@ import { apiFetch } from '../../api/request'
 import { useSuggestRecorte, useUpdateRecorte } from '../../state'
 import { useToast } from '../../state/toast'
 import { SparkleIcon } from '../Icons'
+import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 import { hostOf, LinkMediaPreview } from './LinkMediaPreview'
 import type { PromoteSeed } from './PromoteModal'
@@ -239,6 +240,7 @@ export function RecorteCard({
               — {r.sourceAuthor}
             </span>
           )}
+          <WhatsAppSourceTag source={r.captureSource} />
         </span>
         {r.captureMode && r.captureMode !== 'citation' && (
           <span className="shrink-0 rounded-sm bg-ink-700/5 px-1.5 py-0.5 text-micro uppercase tracking-wider text-ink-400">

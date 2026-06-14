@@ -11,6 +11,7 @@ const BASE: Note = {
   tags: [],
   pinned: false,
   promotedMomentoId: null,
+  source: null,
   createdAt: '2026-05-29T10:00:00.000Z',
   updatedAt: '2026-05-29T10:00:00.000Z',
   hasImages: false,

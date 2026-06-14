@@ -10,6 +10,7 @@ import {
   TrashIcon,
 } from '../Icons'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
+import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { AttachmentsPanel } from './AttachmentsPanel'
 import { AttachmentPhotos } from './AttachmentPhotos'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
@@ -212,6 +213,7 @@ export function NoteCard({
 
       {/* Fila de afordancia: estado (fijada/fotos) + acciones rápidas al hover + menú. */}
       <div className="mt-2 flex items-center justify-end gap-1.5">
+        <WhatsAppSourceTag source={note.source} />
         {note.pinned && (
           <>
             <span

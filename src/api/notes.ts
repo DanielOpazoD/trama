@@ -13,6 +13,8 @@ export type Note = {
   pinned: boolean
   /** id del Momento al que se promovió esta nota (Fase 4), o null. */
   promotedMomentoId: string | null
+  /** Medio de captura: 'whatsapp' marca el iconito de procedencia. */
+  source: string | null
   createdAt: string
   updatedAt: string
   /** ¿Tiene imágenes adjuntas? Derivado server-side (EXISTS) para evitar una
@@ -27,6 +29,7 @@ type NoteRow = {
   tags: string[] | null
   pinned: boolean
   promoted_momento_id: string | null
+  source?: string | null
   created_at: string
   updated_at: string
   has_images?: boolean | null
@@ -40,6 +43,7 @@ function noteFromRow(r: NoteRow): Note {
     tags: r.tags ?? [],
     pinned: r.pinned,
     promotedMomentoId: r.promoted_momento_id,
+    source: r.source ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     hasImages: r.has_images ?? false,
