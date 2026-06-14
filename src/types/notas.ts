@@ -6,7 +6,6 @@
 export const NOTAS_SECTIONS = [
   'inicio',
   'notas',
-  'bandeja',
   'tareas',
   'prompts',
   'claves',

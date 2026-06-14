@@ -53,7 +53,7 @@ describe('useInitialView', () => {
     expect(result.current[0]).toBe('inicio')
   })
 
-  it('ignora ?view=recortes porque ya no es una vista top-level (mudada a Notas/bandeja)', () => {
+  it('ignora ?view=recortes porque ya no es una vista top-level (mudada a Notas)', () => {
     window.location.search = '?view=recortes'
     const { result } = renderHook(() => useInitialView())
     expect(result.current[0]).toBe('inicio')

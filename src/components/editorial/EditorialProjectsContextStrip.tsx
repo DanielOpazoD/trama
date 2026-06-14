@@ -28,14 +28,14 @@ export function EditorialProjectsContextStrip({
           {active.map((project) => (
             <li key={project.id}>
               <a
-                href={`/?world=notas&section=bandeja&tab=mesa&project=${project.id}`}
+                href="/?world=notas&section=notas"
                 className="group flex items-baseline justify-between gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-ink-100/40"
               >
                 <span className="min-w-0 truncate font-serif text-sm text-ink-700 group-hover:underline">
                   {project.title}
                 </span>
                 <span className="shrink-0 text-micro uppercase tracking-eyebrow text-ink-300">
-                  abrir mesa
+                  abrir en notas
                 </span>
               </a>
             </li>

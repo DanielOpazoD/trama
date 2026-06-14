@@ -143,4 +143,66 @@ describe('buildNotasFeed', () => {
   it('devuelve vacío cuando no hay datos', () => {
     expect(buildNotasFeed([], [], ALL)).toEqual([])
   })
+
+  describe('triage de recortes (recorteStatus)', () => {
+    const recortes = [
+      makeRecorte({ id: 'r-pending', status: 'pending' }),
+      makeRecorte({ id: 'r-promoted', status: 'promoted' }),
+      makeRecorte({ id: 'r-archived', status: 'archived' }),
+    ]
+
+    it('por defecto (sin recorteStatus) oculta los archivados', () => {
+      const items = buildNotasFeed([], recortes, { segment: 'capturas' })
+      expect(items.map((i) => i.id).sort()).toEqual(['r-pending', 'r-promoted'])
+    })
+
+    it('por defecto en el segmento todo también oculta los archivados', () => {
+      const items = buildNotasFeed([makeNote({ id: 'n' })], recortes, { segment: 'todo' })
+      expect(items.map((i) => i.id).sort()).toEqual(['n', 'r-pending', 'r-promoted'])
+    })
+
+    it("recorteStatus 'all' incluye también los archivados", () => {
+      const items = buildNotasFeed([], recortes, {
+        segment: 'capturas',
+        recorteStatus: 'all',
+      })
+      expect(items.map((i) => i.id).sort()).toEqual([
+        'r-archived',
+        'r-pending',
+        'r-promoted',
+      ])
+    })
+
+    it("recorteStatus 'pending' deja solo pendientes", () => {
+      const items = buildNotasFeed([], recortes, {
+        segment: 'capturas',
+        recorteStatus: 'pending',
+      })
+      expect(items.map((i) => i.id)).toEqual(['r-pending'])
+    })
+
+    it("recorteStatus 'promoted' deja solo curados", () => {
+      const items = buildNotasFeed([], recortes, {
+        segment: 'capturas',
+        recorteStatus: 'promoted',
+      })
+      expect(items.map((i) => i.id)).toEqual(['r-promoted'])
+    })
+
+    it("recorteStatus 'archived' deja solo archivados", () => {
+      const items = buildNotasFeed([], recortes, {
+        segment: 'capturas',
+        recorteStatus: 'archived',
+      })
+      expect(items.map((i) => i.id)).toEqual(['r-archived'])
+    })
+
+    it('no afecta a las notas', () => {
+      const items = buildNotasFeed([makeNote({ id: 'n' })], [], {
+        segment: 'escritas',
+        recorteStatus: 'archived',
+      })
+      expect(items.map((i) => i.id)).toEqual(['n'])
+    })
+  })
 })

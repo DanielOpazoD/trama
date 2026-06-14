@@ -4,18 +4,20 @@ import type { NotasSection } from '../types/notas'
 /**
  * Redirección de enlaces viejos de Recortes hacia su nuevo hogar.
  *
- * Recortes dejó de ser una vista top-level del mundo `trama` y pasó a ser
- * la sección `bandeja` dentro del mundo `notas`. Los deep-links históricos
- * (`?view=recortes`, opcionalmente con `&tab=...&project=...`) deben seguir
- * funcionando: los traducimos a `?world=notas&section=bandeja` preservando
- * `tab`/`project` para que RecortesArea abra el subcontexto correcto.
+ * Recortes dejó de ser una vista top-level del mundo `trama` y sus capturas
+ * viven ahora en el feed unificado de Notas (sección `notas`, con su control
+ * segmentado Todo · Escritas · Capturas · Favoritos). Los deep-links históricos
+ * (`?view=recortes`, opcionalmente con `&tab=...`) deben seguir funcionando: los
+ * traducimos a `?world=notas&section=notas`. El viejo `tab=favoritos` se mapea al
+ * segmento `favoritos` del feed (`&segment=favoritos`). El resto de los params
+ * (incluido `tab=mesa` y `project`, de la Mesa editorial ya removida) se descarta.
  *
  * Función pura sobre el `search` string para poder testearla sin DOM. Si la
  * URL no apunta a `view=recortes`, devuelve `null` (no hay redirección).
  */
 export type RecortesRedirect = {
   world: Extract<World, 'notas'>
-  section: Extract<NotasSection, 'bandeja'>
+  section: Extract<NotasSection, 'notas'>
   /** Nuevo `location.search` (incluye el `?` inicial) listo para replaceState. */
   search: string
 }
@@ -31,16 +33,13 @@ export function resolveRecortesRedirect(search: string): RecortesRedirect | null
 
   const next = new URLSearchParams()
   next.set('world', 'notas')
-  next.set('section', 'bandeja')
-  // Preserva los params que RecortesArea sabe leer (tab/project).
-  const tab = params.get('tab')
-  if (tab) next.set('tab', tab)
-  const project = params.get('project')
-  if (project) next.set('project', project)
+  next.set('section', 'notas')
+  // El viejo tab=favoritos abre el segmento Favoritos del feed unificado.
+  if (params.get('tab') === 'favoritos') next.set('segment', 'favoritos')
 
   return {
     world: 'notas',
-    section: 'bandeja',
+    section: 'notas',
     search: `?${next.toString()}`,
   }
 }

@@ -30,6 +30,15 @@ export type CaptureItem =
 /** Segmento del control segmentado: todo / solo notas / solo recortes / favoritos. */
 export type NotasFeedSegment = 'todo' | 'escritas' | 'capturas' | 'favoritos'
 
+/**
+ * Filtro de estado para la triage de recortes (absorbe el triage que vivía en la
+ * antigua RecortesView). Solo afecta a recortes; las notas son indiferentes.
+ *  - `'all'` → incluye los tres estados (pendientes + curados + archivados).
+ *  - `'pending'`/`'promoted'`/`'archived'` → solo ese estado.
+ *  - `null`/`undefined` (default) → pendientes + curados, OCULTA archivados.
+ */
+export type RecorteStatusFilter = 'all' | 'pending' | 'promoted' | 'archived'
+
 export type NotasFeedFilter = {
   segment: NotasFeedSegment
   /** Texto libre, case-insensitive, sobre el contenido de cada ítem. */
@@ -42,6 +51,12 @@ export type NotasFeedFilter = {
    * Aplica tanto a notas como a recortes (coherente en un feed mixto).
    */
   day?: string | null
+  /**
+   * Estado de los recortes a incluir (triage). Si es null/undefined, el feed
+   * oculta los archivados por defecto (muestra pendientes + curados). No afecta
+   * a las notas.
+   */
+  recorteStatus?: RecorteStatusFilter | null
 }
 
 /** Texto buscable de una nota: contenido + título. */
@@ -80,6 +95,7 @@ export function buildNotasFeed(
   const q = filter.query?.trim().toLowerCase() ?? ''
   const tag = filter.tag ?? null
   const day = filter.day ?? null
+  const recorteStatus = filter.recorteStatus ?? null
 
   const items: CaptureItem[] = []
 
@@ -94,6 +110,15 @@ export function buildNotasFeed(
 
   if (filter.segment === 'todo' || filter.segment === 'capturas') {
     for (const recorte of recortes) {
+      // Triage: un estado explícito filtra a ese estado; sin estado (default)
+      // se ocultan los archivados (se ven pendientes + curados). 'all' no filtra.
+      if (recorteStatus === 'all') {
+        // sin filtro de estado
+      } else if (recorteStatus) {
+        if (recorte.status !== recorteStatus) continue
+      } else if (recorte.status === 'archived') {
+        continue
+      }
       if (tag && !recorteTags(recorte).includes(tag)) continue
       if (day && localDayKey(recorte.createdAt) !== day) continue
       if (q && !recorteHaystack(recorte).includes(q)) continue

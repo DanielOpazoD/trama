@@ -12,6 +12,7 @@ import {
   useDeleteRecorte,
   useToast,
   type NotasFeedSegment,
+  type RecorteStatusFilter,
 } from '../../state'
 import type { Recorte, RecorteTarget } from '../../api'
 import { extractUrl, hostLabel } from '../../lib/captureIntent'
@@ -38,19 +39,43 @@ const SEGMENTS: Array<{ value: NotasFeedSegment; label: string }> = [
 ]
 
 /**
- * Feed unificado de capturas (PR-2 de la fusión Notas + Recortes). La sección
- * "notas" del mundo Notas dejó de ser solo notas: muestra notas y recortes
- * juntos, ordenados por fecha, con un control segmentado (Todo / Escritas /
- * Capturas), buscador y filtro por etiqueta.
+ * Filtro de estado (triage) que solo aparece en el segmento Capturas. Absorbe el
+ * triage que vivía en la antigua RecortesView (pendientes / curados / archivados).
+ * "Todas" incluye también los archivados; el resto filtra a su estado.
+ */
+const CAPTURA_STATUS_OPTIONS: Array<{ value: RecorteStatusFilter; label: string }> = [
+  { value: 'all', label: 'Todas' },
+  { value: 'pending', label: 'Pendientes' },
+  { value: 'promoted', label: 'Curadas' },
+  { value: 'archived', label: 'Archivadas' },
+]
+
+/**
+ * Segmento inicial. Los enlaces viejos de Favoritos (`?view=recortes&tab=favoritos`)
+ * se reescriben a `?world=notas&section=notas&segment=favoritos`: si el param está
+ * presente y es válido, el feed abre en ese segmento.
+ */
+function initialSegment(): NotasFeedSegment {
+  if (typeof window === 'undefined') return 'todo'
+  const raw = new URLSearchParams(window.location.search).get('segment')
+  return SEGMENTS.some((s) => s.value === raw) ? (raw as NotasFeedSegment) : 'todo'
+}
+
+/**
+ * Feed unificado de capturas (fusión Notas + Recortes). La sección "notas" del
+ * mundo Notas dejó de ser solo notas: muestra notas escritas, recortes (texto ·
+ * imagen · enlace) y favoritos juntos, con un control segmentado (Todo · Escritas
+ * · Capturas · Favoritos), buscador y filtro por etiqueta. En el segmento Capturas
+ * se suma una fila secundaria de triage (Todas · Pendientes · Curadas · Archivadas).
  *
  * La vista depende SOLO de la costura `useNotasFeed` (nunca de los dos hooks de
  * query crudos por separado): así la UI nunca ramifica nota-vs-recorte ad hoc.
  * Cada ítem del feed es un `CaptureItem` discriminado por `type`, y según el
  * tipo se renderiza `<NoteCard>` o `<RecorteCard>` con sus handlers existentes.
  *
- * La creación de notas (composer) se conserva igual que antes. La triage de
- * recortes (promover / archivar / eliminar) se cablea completa reusando el
- * patrón de RecortesView (mutaciones + PromoteModal).
+ * La creación de notas (composer) se conserva igual que antes. El triage de
+ * recortes (promover / archivar / eliminar) se cablea completo con sus mutaciones
+ * propias + PromoteModal (no reusa la vieja RecortesView, ya removida).
  */
 export function NotasFeedView() {
   // --- Composer (captura unificada: nota · enlace · imagen) ---------------
@@ -76,11 +101,14 @@ export function NotasFeedView() {
   const isLinkDraft = linkUrl !== null
 
   // --- Filtro del feed ----------------------------------------------------
-  const [segment, setSegment] = useState<NotasFeedSegment>('todo')
+  const [segment, setSegment] = useState<NotasFeedSegment>(initialSegment)
   const [search, setSearch] = useState('')
   const [activeTag, setActiveTag] = useState<string | null>(null)
   // Día seleccionado en el calendario de actividad ('YYYY-MM-DD'), o null.
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  // Triage de recortes (solo activo en el segmento Capturas). Por defecto
+  // muestra las pendientes — el primer estado que pide atención del usuario.
+  const [capturaStatus, setCapturaStatus] = useState<RecorteStatusFilter>('pending')
 
   const filter = useMemo(
     () => ({
@@ -88,8 +116,11 @@ export function NotasFeedView() {
       query: search.trim() || undefined,
       tag: activeTag ?? undefined,
       day: selectedDay,
+      // El filtro de estado solo aplica en Capturas; en el resto se deja sin
+      // estado (default = pendientes + curados, oculta archivados).
+      recorteStatus: segment === 'capturas' ? capturaStatus : null,
     }),
-    [segment, search, activeTag, selectedDay],
+    [segment, search, activeTag, selectedDay, capturaStatus],
   )
 
   const { items, isLoading, isError } = useNotasFeed(filter)
@@ -134,7 +165,7 @@ export function NotasFeedView() {
   const everythingEmpty =
     !isLoading && tagUniverse.items.length === 0 && !hasContentFilter
 
-  // --- Triage de recortes (reusa el patrón de RecortesView) ---------------
+  // --- Triage de recortes (mutaciones propias + PromoteModal) -------------
   const updateRecorte = useUpdateRecorte()
   const deleteRecorte = useDeleteRecorte()
   const [promoting, setPromoting] = useState<{
@@ -165,7 +196,7 @@ export function NotasFeedView() {
           setTitle('')
           setForceNote(false)
           toast.show({
-            message: 'Enlace guardado en tu Bandeja para curar.',
+            message: 'Enlace guardado en tus capturas para curar.',
             tone: 'success',
           })
         },
@@ -198,8 +229,8 @@ export function NotasFeedView() {
               toast.show({
                 message:
                   images.length === 1
-                    ? 'Imagen guardada en tu Bandeja.'
-                    : `${images.length} imágenes guardadas en tu Bandeja.`,
+                    ? 'Imagen guardada en tus capturas.'
+                    : `${images.length} imágenes guardadas en tus capturas.`,
                 tone: 'success',
               })
             }
@@ -369,7 +400,7 @@ export function NotasFeedView() {
           {isLinkDraft && (
             <p className="mt-2 flex flex-wrap items-center gap-1.5 text-micro text-ink-400">
               <ScissorsIcon size={11} className="text-[color:var(--accent-sage)]" />
-              Detectamos un enlace — se guardará como recorte en tu Bandeja.
+              Detectamos un enlace — se guardará como recorte en tus capturas.
               <button
                 type="button"
                 onClick={() => setForceNote(true)}
@@ -431,6 +462,36 @@ export function NotasFeedView() {
           )
         })}
       </div>
+
+      {/* Triage de recortes: fila secundaria de estado, solo en Capturas.
+          Absorbe el triage de la antigua RecortesView (pendientes / curados /
+          archivados). Por defecto muestra las pendientes. */}
+      {segment === 'capturas' && (
+        <div
+          role="tablist"
+          aria-label="Filtrar capturas por estado"
+          className="card-segment mb-4"
+        >
+          {CAPTURA_STATUS_OPTIONS.map(({ value, label }) => {
+            const on = capturaStatus === value
+            return (
+              <button
+                key={value}
+                role="tab"
+                aria-selected={on}
+                onClick={() => setCapturaStatus(value)}
+                className={`rounded-md px-3 py-1 text-xs transition-colors ${
+                  on
+                    ? 'bg-ink-800 text-paper-50'
+                    : 'text-ink-400 hover:text-ink-700 hover:bg-ink-100/60'
+                }`}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {segment === 'favoritos' ? (
         <FavoritosPanel />

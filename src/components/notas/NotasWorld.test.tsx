@@ -64,20 +64,19 @@ describe('<NotasWorld />', () => {
     expect(screen.getAllByText('biblioteca reutilizable').length).toBeGreaterThan(0)
   })
 
-  it('monta RecortesArea (con sus sub-pestañas) en la sección Bandeja', async () => {
+  it('monta el feed unificado (con su control segmentado) en la sección Notas', async () => {
     renderWithProviders(
-      <NotasWorld world="notas" initialSection="bandeja" onChangeWorld={() => {}} />,
+      <NotasWorld world="notas" initialSection="notas" onChangeWorld={() => {}} />,
     )
 
-    expect(screen.getAllByRole('button', { name: 'Bandeja' })[0]).toHaveAttribute(
+    expect(screen.getAllByRole('button', { name: 'Notas' })[0]).toHaveAttribute(
       'aria-current',
       'page',
     )
-    expect(screen.getAllByText('capturas esperando curaduría').length).toBeGreaterThan(0)
 
-    // RecortesArea conserva sus tres sub-pestañas hermanas (recortes/favoritos/mesa).
-    expect(await screen.findByRole('button', { name: 'Favoritos' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Mesa' })).toBeInTheDocument()
+    // El feed expone el control segmentado Todo · Escritas · Capturas · Favoritos.
+    expect(await screen.findByRole('tab', { name: 'Capturas' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Favoritos' })).toBeInTheDocument()
   })
 
   it('monta con una sección oculta sin romper (regresión TDZ en producción)', () => {

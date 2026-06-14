@@ -43,10 +43,9 @@ const BUDGETS = {
   ListeningView: 10,
   MomentosView: 25,
   QuotesView: 16,
-  RecortesView: 8,
-  // Mundo Notas completo (lazy desde App): feed unificado notas+recortes,
-  // Bandeja/triage (RecorteCard + PromoteModal), calendario de actividad y
-  // NoteCard. Salió del bundle `index` al hacerse lazy; vive en su propio chunk.
+  // Mundo Notas completo (lazy desde App): feed unificado notas+recortes con su
+  // triage (RecorteCard + PromoteModal), calendario de actividad y NoteCard.
+  // Salió del bundle `index` al hacerse lazy; vive en su propio chunk.
   NotasWorld: 42,
   Settings: 18,
   'index.es': 60,
