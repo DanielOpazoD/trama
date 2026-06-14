@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useSearchParamState } from './hooks/useSearchParamState'
 import { useInitialView } from './hooks/useInitialView'
@@ -40,7 +40,12 @@ import { SectionAccentBand } from './components/SectionAccentBand'
 import { FocusModeExitButton } from './components/FocusModeExitButton'
 import { ShellOverlays } from './components/ShellOverlays'
 import { MomentoNotificationsCenter } from './components/momentos/MomentoNotificationsCenter'
-import { NotasWorld } from './components/notas/NotasWorld'
+// NotasWorld es un mundo entero (feed unificado, Bandeja, PDF Studio, ajustes):
+// se carga con lazy para no inflar el bundle `index` del mundo Trama, que es la
+// primera pantalla. El usuario sólo lo descarga al conmutar al mundo Notas.
+const NotasWorld = lazy(() =>
+  import('./components/notas/NotasWorld').then((m) => ({ default: m.NotasWorld })),
+)
 import { NOTAS_SECTIONS, type NotasSection } from './types/notas'
 import { resolveRecortesRedirect } from './lib/recortesRedirect'
 import type { CommandAction } from './components/CommandPalette'
@@ -608,11 +613,13 @@ function WorldShell() {
           onRevealNotasModule={revealNotasModule}
         />
       ) : (
-        <NotasWorld
-          world={world}
-          onChangeWorld={changeWorld}
-          initialSection={pendingNotasSection ?? undefined}
-        />
+        <Suspense fallback={<div className="h-screen w-screen bg-paper-50" />}>
+          <NotasWorld
+            world={world}
+            onChangeWorld={changeWorld}
+            initialSection={pendingNotasSection ?? undefined}
+          />
+        </Suspense>
       )}
       {/* Los toasts son globales A AMBOS mundos: vivía dentro de Shell (solo
           Trama) y los toasts del mundo Notas — incluido el Deshacer de la ola
