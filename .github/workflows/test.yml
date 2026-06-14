@@ -225,6 +225,14 @@ jobs:
           WHATSAPP_IT_DB_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
         run: npm run test:whatsapp-it
 
+      # Motor de queries (Fase 1): compila el AST a SQL parametrizado y lo corre
+      # contra la DB migrada — valida rango/cross-tipo/FTS y aislamiento RLS, que
+      # el SQL mockeado de los tests unitarios no puede ver.
+      - name: Query engine integration (real Postgres)
+        env:
+          QUERY_IT_DB_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
+        run: npm run test:query-it
+
       # Idempotencia: re-correr no debe aplicar ninguna migración nueva
       # (todas quedaron registradas en _migrations). Esto valida que el
       # tracking incremental — el mismo modelo que usa Netlify — funciona.
