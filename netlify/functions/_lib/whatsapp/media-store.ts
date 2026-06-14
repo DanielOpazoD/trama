@@ -13,8 +13,11 @@ function randomHex(): string {
   return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
+/** Stores de Blobs válidos para media entrante (mismos que usa la app). */
+export type MediaStoreName = 'momentos-media' | 'recortes-media'
+
 export async function storeMedia(
-  storeName: string,
+  storeName: MediaStoreName,
   userId: string,
   buffer: ArrayBuffer,
   mime: string,

@@ -46,7 +46,10 @@ beforeEach(() => {
   mockSqlResponses.reset()
   askLLMForJson.mockReset()
 })
-afterEach(() => vi.unstubAllEnvs())
+afterEach(() => {
+  vi.unstubAllEnvs()
+  vi.unstubAllGlobals()
+})
 
 describe('whatsapp-webhook', () => {
   it('número no vinculado → instrucciones de vinculación', async () => {
@@ -239,7 +242,6 @@ describe('whatsapp-webhook', () => {
     const xml = await res.text()
     expect(xml).toContain('Recortes')
     expect(xml).toContain('view=recortes')
-    vi.unstubAllGlobals()
   })
 
   it('firma inválida cuando TWILIO_AUTH_TOKEN está configurado → 401', async () => {

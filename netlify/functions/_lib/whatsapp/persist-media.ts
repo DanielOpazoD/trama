@@ -1,5 +1,5 @@
 import { sqlTyped, type SqlClient } from '../db.js'
-import type { CaptureResult } from './persist.js'
+import { WHATSAPP_ORIGIN, type CaptureResult } from './persist.js'
 
 /**
  * Persistencia de media de WhatsApp. Las imágenes ya tienen casa:
@@ -12,8 +12,6 @@ import type { CaptureResult } from './persist.js'
  * para el iconito de la UI. El blob ya fue subido por el webhook; acá solo
  * insertamos la fila.
  */
-
-const WHATSAPP_ORIGIN = JSON.stringify({ kind: 'manual', importedFrom: 'whatsapp' })
 
 export async function persistImageRecorte(
   sql: SqlClient,
@@ -29,7 +27,11 @@ export async function persistImageRecorte(
     VALUES (${text}, ${imageKey}, 'image', NOW(), 'pending', 'whatsapp', ${userId})
     RETURNING id
   `)
-  return { message: '📷 Imagen guardada en Recortes.', id: rows[0]?.id ?? null }
+  const id = rows[0]?.id
+  // El blob ya está subido: si el INSERT no devuelve id algo salió mal y NO
+  // debemos reportar éxito (dejaría un blob huérfano y un "deshacer" roto).
+  if (!id) throw new Error('persistImageRecorte: INSERT no devolvió id')
+  return { message: '📷 Imagen guardada en Recortes.', id }
 }
 
 export async function persistImageMomento(
@@ -47,5 +49,7 @@ export async function persistImageMomento(
     )
     RETURNING id
   `)
-  return { message: '📷 Foto guardada en Momentos.', id: rows[0]?.id ?? null }
+  const id = rows[0]?.id
+  if (!id) throw new Error('persistImageMomento: INSERT no devolvió id')
+  return { message: '📷 Foto guardada en Momentos.', id }
 }

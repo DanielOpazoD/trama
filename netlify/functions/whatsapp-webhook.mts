@@ -199,20 +199,31 @@ async function undoLastCapture(
     : 'Eso ya no estaba (quizá lo borraste desde la app).'
 }
 
-/** Recuerda la última captura del número para que "deshacer" sepa qué borrar. */
-function recordLastCapture(
+/**
+ * Recuerda la última captura del número para que "deshacer" sepa qué borrar.
+ * Se AWAITea (no fire-and-forget): en serverless la función puede terminar
+ * antes de que una promesa suelta complete su escritura, y si eso pasa el
+ * "deshacer" del usuario apuntaría a la captura anterior (o a nada). Es
+ * best-effort igual: si el UPDATE falla, "deshacer" simplemente no tendrá
+ * target, pero la captura ya quedó guardada.
+ */
+async function recordLastCapture(
   sql: ReturnType<typeof getSql>,
   phone: string,
   userId: string,
   kind: string,
   id: string,
-): void {
-  sql`
-    UPDATE whatsapp_links
-    SET last_capture_kind = ${kind}, last_capture_id = ${id}::uuid,
-        last_capture_at = NOW(), updated_at = NOW()
-    WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
-  `.catch(() => {})
+): Promise<void> {
+  try {
+    await sql`
+      UPDATE whatsapp_links
+      SET last_capture_kind = ${kind}, last_capture_id = ${id}::uuid,
+          last_capture_at = NOW(), updated_at = NOW()
+      WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
+    `
+  } catch {
+    // best-effort: si falla, "deshacer" no tendrá target pero la captura quedó.
+  }
 }
 
 /**
@@ -271,7 +282,7 @@ async function handleInboundMedia(
   }
 
   if (saved > 0 && lastId) {
-    recordLastCapture(sql, phone, userId, lastKind, lastId)
+    await recordLastCapture(sql, phone, userId, lastKind, lastId)
     logEvent({ event: 'whatsapp_capture', kind: lastKind, media: true, count: saved })
   }
 
@@ -290,7 +301,9 @@ async function handleInboundMedia(
     lines.push('🎧🎬 Audio y video todavía no los proceso — pronto.')
   }
   if (skipped.has('config')) {
-    lines.push('Para procesar imágenes falta configurar TWILIO_ACCOUNT_SID en el servidor.')
+    lines.push(
+      'Para procesar imágenes falta configurar TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN en el servidor.',
+    )
   }
   if (saved === 0 && skipped.has('error')) {
     lines.push('No pude bajar la imagen. Probá de nuevo en un momento.')
@@ -436,7 +449,7 @@ export default withObservability(
     try {
       const { message, id } = await persistCapture(sql, userId, intent)
       // Recordamos la última captura para que "deshacer" sepa qué borrar.
-      if (id) recordLastCapture(sql, phone, userId, intent.kind, id)
+      if (id) await recordLastCapture(sql, phone, userId, intent.kind, id)
       logEvent({
         event: 'whatsapp_capture',
         kind: intent.kind,

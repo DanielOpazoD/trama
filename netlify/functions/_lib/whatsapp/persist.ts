@@ -17,6 +17,18 @@ import type { CaptureIntent } from './types.js'
 export type CaptureResult = { message: string; id: string | null }
 
 /**
+ * Marcador de procedencia para todo lo capturado vía WhatsApp. Se escribe en
+ * la columna `origin` (jsonb) de momentos/entidades/citas; las notas y recortes
+ * usan su propia columna `source = 'whatsapp'`. La UI lee `importedFrom` para
+ * pintar el iconito de "vino desde WhatsApp". Centralizado acá para no
+ * desincronizar la forma del objeto entre los distintos INSERT.
+ */
+export const WHATSAPP_ORIGIN = JSON.stringify({
+  kind: 'manual',
+  importedFrom: 'whatsapp',
+})
+
+/**
  * Escribe una CaptureIntent en su dominio reusando los mismos helpers que los
  * endpoints CRUD (tags, embeddings). Asume que el contexto RLS ya apunta al
  * usuario dueño (el webhook llama setCurrentRlsUser antes).
@@ -80,7 +92,7 @@ async function persistMomento(
       NOW(),
       ${JSON.stringify(payload)}::jsonb,
       ${null},
-      ${JSON.stringify({ kind: 'manual', importedFrom: 'whatsapp' })}::jsonb,
+      ${WHATSAPP_ORIGIN}::jsonb,
       ${emb ? toPgVector(emb.vector) : null}::vector,
       ${emb?.model ?? null},
       ${emb ? new Date().toISOString() : null}::timestamptz,
@@ -113,7 +125,7 @@ async function persistEntity(
       ${name},
       ${null},
       ${description},
-      ${JSON.stringify({ kind: 'manual', importedFrom: 'whatsapp' })}::jsonb,
+      ${WHATSAPP_ORIGIN}::jsonb,
       ${emb ? toPgVector(emb.vector) : null}::vector,
       ${emb?.model ?? null},
       ${emb ? new Date().toISOString() : null}::timestamptz,
@@ -139,7 +151,7 @@ async function persistQuote(
   // NOTA: este CTE usa `::vector`, así que no se replica en
   // scripts/check-cte-regression.sql (ese harness es sin pgvector a
   // propósito). Queda cubierto por whatsapp-persist.test.ts (SQL mockeado).
-  const origin = JSON.stringify({ kind: 'manual', importedFrom: 'whatsapp' })
+  const origin = WHATSAPP_ORIGIN
   const entEmb = await embedSafe(
     entityEmbeddingText({ name: author, type: 'persona', year: null, description: null }),
   )

@@ -122,6 +122,7 @@ SID ya estaba, corta con TwiML vacío sin re-escribir. Es un ledger append-only
 | Var                    | Para qué                                                                                                                                          |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `TWILIO_AUTH_TOKEN`    | Verificar la firma de los webhooks entrantes (consola Twilio).                                                                                    |
+| `TWILIO_ACCOUNT_SID`   | Bajar la media entrante (fotos) de la URL privada de Twilio vía auth básica. Sin él, las imágenes no se procesan.                                 |
 | `TWILIO_WEBHOOK_URL`   | Opcional. URL exacta configurada en Twilio si difiere del proxy.                                                                                  |
 | `VITE_WHATSAPP_NUMBER` | Número del bot (E164). Habilita el QR + botón "Abrir WhatsApp". Público (va al cliente). Sin él, el panel cae a copiar/pegar `vincular <código>`. |
 
