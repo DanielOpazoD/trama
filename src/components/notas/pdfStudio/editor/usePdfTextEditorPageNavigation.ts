@@ -17,12 +17,12 @@ import {
   placePdfEditorPage,
   type PdfEditorHeightBaseline,
 } from './pdfEditorOpeningGeometry'
-
-const OPENING_RETRY_MS = 75
-const OPENING_STABLE_HITS = 2
-// Válvula de seguridad: ~4s de reintentos. Un documento enorme o una página
-// que nunca termina de renderizar no pueden dejar el editor clavado/oculto.
-const OPENING_MAX_TICKS = 53
+import {
+  beginPdfEditorOpening,
+  PDF_EDITOR_OPENING_RETRY_MS,
+  recordPdfEditorOpeningPlacement,
+  type PdfEditorOpeningState,
+} from './pdfEditorOpeningState'
 
 /**
  * Navegación de páginas del editor: la apertura es una TRANSICIÓN CONTROLADA.
@@ -36,7 +36,7 @@ const OPENING_MAX_TICKS = 53
  *
  * El modelo nuevo tiene una sola fuente de verdad por fase:
  *
- *  1. ABRIENDO (openingPageRef != null): manda la página pedida. Cada cambio
+ *  1. ABRIENDO (openingRef != null): manda la página pedida. Cada cambio
  *     de geometría (ResizeObserver + reintentos) re-centra la hoja pedida y el
  *     scroll NO puede escribir currentPage. Se revela el viewport apenas la
  *     hoja real queda colocada (sin esperar al documento entero) y se libera
@@ -74,12 +74,9 @@ export function usePdfTextEditorPageNavigation({
     () => scrollInitialPage && currentPage > 0,
   )
   const initialPageScrolledRef = useRef(false)
-  const openingPageRef = useRef<number | null>(null)
+  const openingRef = useRef<PdfEditorOpeningState | null>(null)
   const openingRunRef = useRef(0)
   const openingIsInitialRef = useRef(false)
-  const openingTicksRef = useRef(0)
-  const openingStableHitsRef = useRef(0)
-  const openingSignatureRef = useRef<string | null>(null)
   const timerRef = useRef<number | null>(null)
   const baselineRef = useRef<PdfEditorHeightBaseline | null>(null)
   const zoomRef = useRef(zoom)
@@ -110,15 +107,13 @@ export function usePdfTextEditorPageNavigation({
    *  por estabilidad/timeout); un abort por gesto del usuario NO recoloca. */
   const stopOpening = useCallback(
     (finalPlace: boolean) => {
-      const pageIndex = openingPageRef.current
-      if (pageIndex == null) return
-      openingPageRef.current = null
-      openingSignatureRef.current = null
-      openingStableHitsRef.current = 0
+      const opening = openingRef.current
+      if (!opening) return
+      openingRef.current = null
       clearTimer()
       revealInitial()
       const container = getScrollContainer()
-      if (finalPlace) placePdfEditorPage(container, pageIndex)
+      if (finalPlace) placePdfEditorPage(container, opening.pageIndex)
       baselineRef.current = capturePdfEditorHeightBaseline(container, zoomRef.current)
     },
     [clearTimer, getScrollContainer, revealInitial],
@@ -136,47 +131,41 @@ export function usePdfTextEditorPageNavigation({
 
   tickRef.current = (run: number) => {
     if (openingRunRef.current !== run) return
-    const pageIndex = openingPageRef.current
-    if (pageIndex == null) return
-    openingTicksRef.current += 1
+    const opening = openingRef.current
+    if (!opening) return
     const container = getScrollContainer()
-    const { placed, sheetReady } = placePdfEditorPage(container, pageIndex)
+    const { placed, sheetReady } = placePdfEditorPage(container, opening.pageIndex)
     if (placed && sheetReady) revealInitial()
-    const signature = pdfEditorGeometrySignature(container, pageIndex)
-    const stable =
-      placed &&
-      sheetReady &&
-      signature != null &&
-      signature === openingSignatureRef.current
-    openingSignatureRef.current = signature
-    openingStableHitsRef.current = stable ? openingStableHitsRef.current + 1 : 0
-    if (
-      openingStableHitsRef.current >= OPENING_STABLE_HITS ||
-      openingTicksRef.current >= OPENING_MAX_TICKS
-    ) {
+    openingRef.current = recordPdfEditorOpeningPlacement(opening, {
+      placed,
+      sheetReady,
+      signature: pdfEditorGeometrySignature(container, opening.pageIndex),
+    })
+    if (openingRef.current.finished) {
       stopOpening(true)
       return
     }
-    schedule(run, OPENING_RETRY_MS)
+    schedule(run, PDF_EDITOR_OPENING_RETRY_MS)
   }
 
   const startOpening = useCallback(
     (pageIndex: number, initial = false) => {
       clearTimer()
       const run = (openingRunRef.current += 1)
-      openingPageRef.current = pageIndex
-      openingTicksRef.current = 0
-      openingStableHitsRef.current = 0
+      openingRef.current = beginPdfEditorOpening(pageIndex)
       if (initial) openingIsInitialRef.current = true
       const container = getScrollContainer()
       const { placed, sheetReady } = placePdfEditorPage(container, pageIndex)
-      openingSignatureRef.current = pdfEditorGeometrySignature(container, pageIndex)
+      openingRef.current = {
+        ...openingRef.current,
+        lastSignature: pdfEditorGeometrySignature(container, pageIndex),
+      }
       if (initial) {
         // Si la hoja ya está lista (segunda apertura, render cacheado) no hay
         // nada que ocultar; si no, se oculta hasta la primera colocación real.
         setIsInitialPagePositioning(pageIndex > 0 && !(placed && sheetReady))
       }
-      schedule(run, OPENING_RETRY_MS)
+      schedule(run, PDF_EDITOR_OPENING_RETRY_MS)
     },
     [clearTimer, getScrollContainer, schedule],
   )
@@ -192,12 +181,15 @@ export function usePdfTextEditorPageNavigation({
   const syncGeometry = useCallback(() => {
     const container = getScrollContainer()
     if (!container) return
-    const pageIndex = openingPageRef.current
-    if (pageIndex != null) {
-      const { placed, sheetReady } = placePdfEditorPage(container, pageIndex)
+    const opening = openingRef.current
+    if (opening) {
+      const { placed, sheetReady } = placePdfEditorPage(container, opening.pageIndex)
       if (placed && sheetReady) revealInitial()
-      openingSignatureRef.current = pdfEditorGeometrySignature(container, pageIndex)
-      openingStableHitsRef.current = 0
+      openingRef.current = {
+        ...opening,
+        stableHits: 0,
+        lastSignature: pdfEditorGeometrySignature(container, opening.pageIndex),
+      }
       return
     }
     baselineRef.current = compensatePdfEditorInflation(
@@ -258,7 +250,7 @@ export function usePdfTextEditorPageNavigation({
     return () => {
       // StrictMode desmonta y vuelve a montar: si la transición seguía viva,
       // permitir que el segundo montaje la reinicie.
-      if (openingPageRef.current != null) {
+      if (openingRef.current) {
         initialPageScrolledRef.current = false
       }
     }
@@ -280,7 +272,7 @@ export function usePdfTextEditorPageNavigation({
     (container?: HTMLElement | null) => {
       // Mientras la apertura está activa, lo "visible" es transitorio por
       // definición: el scroll no puede escribir la página lógica.
-      if (openingPageRef.current != null) return
+      if (openingRef.current) return
       const scrollContainer = container ?? getScrollContainer()
       const next = findMostVisiblePdfEditorPage(scrollContainer)
       if (next == null || next < 0 || next >= total || next === currentPage) return

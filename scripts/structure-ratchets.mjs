@@ -71,8 +71,28 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-core',
-    maxLines: 495,
+    maxLines: 110,
     files: ['src/lib/pdfStudio/model/model.ts'],
+  },
+  {
+    group: 'pdf-studio-model-boundaries',
+    maxLines: 220,
+    files: ['src/lib/pdfStudio/model/modelDocument.ts'],
+  },
+  {
+    group: 'pdf-studio-model-boundaries',
+    maxLines: 170,
+    files: ['src/lib/pdfStudio/model/modelPages.ts'],
+  },
+  {
+    group: 'pdf-studio-model-boundaries',
+    maxLines: 140,
+    files: ['src/lib/pdfStudio/model/modelAnnotations.ts'],
+  },
+  {
+    group: 'pdf-studio-model-boundaries',
+    maxLines: 90,
+    files: ['src/lib/pdfStudio/model/pageCommands.ts'],
   },
   {
     group: 'pdf-studio-forms',

@@ -13,8 +13,18 @@ se suben al backend.
 
 ## Mapa de Modulos
 
-- `src/lib/pdfStudio/model/model.ts`: fachada publica del modelo puro. Re-exporta tipos
-  y helpers tipograficos, y conserva operaciones de documento/paginas/anotaciones.
+- `docs/pdf-studio-contract.md`: contrato corto de fronteras entre modelo puro,
+  comandos, rendering, workspace y export/import.
+- `src/lib/pdfStudio/model/model.ts`: fachada publica compatible del modelo puro.
+  Re-exporta tipos y helpers desde modulos enfocados.
+- `src/lib/pdfStudio/model/modelDocument.ts`: documento, sources, importaciones
+  in-memory, normalizacion, titulo/settings y pruning de sources.
+- `src/lib/pdfStudio/model/modelPages.ts`: operaciones de paginas ordenadas:
+  mover, borrar, rotar, duplicar y repetir bloques.
+- `src/lib/pdfStudio/model/modelAnnotations.ts`: factories, clonado, traslado y
+  aplicacion de anotaciones por pagina.
+- `src/lib/pdfStudio/model/pageCommands.ts`: reducer puro de comandos de pagina
+  usado por la UI para mantener testeable la intencion de edicion.
 - `src/lib/pdfStudio/model/modelTypes.ts`: tipos canonicos del documento, paginas,
   sources, anotaciones, ajustes y biblioteca de imagenes.
 - `src/lib/pdfStudio/model/modelText.ts`: mapeo de fuentes, line-height, baseline y
@@ -224,7 +234,8 @@ rasterizar.
 ## Agregar una Anotacion Nueva
 
 1. Agregar tipo discriminado en `modelTypes.ts`.
-2. Agregar factory/clonado/traslado en `model.ts`.
+2. Agregar factory/clonado/traslado en `modelAnnotations.ts` y re-exportar desde
+   `model.ts` si la UI existente lo necesita.
 3. Agregar geometria en `pdfAnnotationArrange.ts` y resize si aplica.
 4. Pintar preview en `AnnotationLayer.tsx` o un subcomponente.
 5. Exportar en `assembleAnnotations.ts`.
