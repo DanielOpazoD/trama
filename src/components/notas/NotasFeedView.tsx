@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import {
   useNotasFeed,
   useNotesQuery,
@@ -27,7 +27,13 @@ import { PromoteModal, type PromoteSeed } from '../recortes/PromoteModal'
 import { FavoritosPanel } from '../recortes/FavoritosPanel'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { PendingAttachmentsInput } from './PendingAttachmentsInput'
+import { MarkdownField } from './MarkdownField'
 import { compressImage } from '../momentos/helpers'
+
+// Lazy: la escritura enfocada (overlay fullscreen) se baja solo al abrirla.
+const FocusedWriting = lazy(() =>
+  import('./FocusedWriting').then((m) => ({ default: m.FocusedWriting })),
+)
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -95,6 +101,8 @@ export function NotasFeedView() {
   const [dragging, setDragging] = useState(false)
   // Cuántas imágenes se están subiendo ahora (para tarjetas «subiendo…»).
   const [uploadingImages, setUploadingImages] = useState(0)
+  // Escritura enfocada del cuerpo del composer (overlay fullscreen).
+  const [focusMode, setFocusMode] = useState(false)
 
   // El borrador es un enlace puro (y el usuario no eligió "guardar como nota").
   const linkUrl = forceNote ? null : extractUrl(draft)
@@ -378,16 +386,17 @@ export function NotasFeedView() {
             aria-label="Título de la nota (opcional)"
             className="w-full bg-transparent font-serif text-lead text-ink-800 placeholder:font-sans placeholder:not-italic placeholder:text-ink-300 mb-1"
           />
-          <textarea
-            ref={composerRef}
+          <MarkdownField
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={setDraft}
+            textareaRef={composerRef}
             onKeyDown={onComposerKey}
             onPaste={onComposerPaste}
             rows={3}
             placeholder="Escribe una nota, pega un enlace o suelta una imagen… usa #etiquetas"
             aria-label="Captura: escribe una nota, pega un enlace o pega/suelta una imagen"
-            className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
+            onRequestFocusMode={() => setFocusMode(true)}
+            className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed pr-8"
           />
           <PendingAttachmentsInput
             files={pendingFiles}
@@ -682,6 +691,20 @@ export function NotasFeedView() {
           seed={promoting.seed}
           onClose={() => setPromoting(null)}
         />
+      )}
+
+      {/* Escritura enfocada del composer: edita el MISMO borrador (draft/title). */}
+      {focusMode && (
+        <Suspense fallback={null}>
+          <FocusedWriting
+            value={draft}
+            onChange={setDraft}
+            title={title}
+            onTitleChange={setTitle}
+            bodyPlaceholder="Escribe tu nota sin distracciones… usa #etiquetas"
+            onClose={() => setFocusMode(false)}
+          />
+        </Suspense>
       )}
     </>
   )
