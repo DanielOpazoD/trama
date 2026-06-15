@@ -84,12 +84,17 @@ export type PromoteRecorteInput =
   | {
       target: 'momento'
       momento: {
-        kind: 'recorte'
+        /** 'foto' cuando la captura tiene imagen propia: el servidor copia el
+         *  blob a momentos-media y adjunta el storageKey. 'recorte' para el
+         *  resto (texto/enlace). */
+        kind: 'recorte' | 'foto'
         payload: {
           bodyText?: string
           url?: string
           title?: string
           author?: string
+          /** Pie de la foto (solo kind:'foto'). */
+          caption?: string
         }
         note?: string | null
         capturedAt?: string | null

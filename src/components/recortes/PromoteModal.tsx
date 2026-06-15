@@ -21,6 +21,21 @@ const TARGET_LABEL: Record<RecorteTarget, string> = {
   momento: 'momento',
 }
 
+/** Pies de foto autogenerados que NO vale la pena arrastrar como caption. */
+const IMAGE_PLACEHOLDERS = new Set([
+  '📷 imagen desde whatsapp',
+  'imagen guardada',
+  'recorte visual de la página',
+])
+
+/** Caption limpio para un momento foto: el texto del recorte salvo que sea un
+ *  pie autogenerado (en ese caso, sin caption). */
+function captionFromText(text: string): string | undefined {
+  const t = text.trim()
+  if (!t || IMAGE_PLACEHOLDERS.has(t.toLowerCase())) return undefined
+  return t
+}
+
 /** Modal de promoción: revisar y editar ANTES de crear el objeto destino. */
 export function PromoteModal({
   recorte,
@@ -46,6 +61,10 @@ export function PromoteModal({
     [recorte.sourceTitle, recorte.sourceAuthor].filter(Boolean).join(' · '),
   )
   const [busy, setBusy] = useState(false)
+  // Una captura con imagen propia se promueve a un Momento FOTO (no a un
+  // momento de texto): el servidor copia el blob y la imagen aparece en el
+  // álbum. El resto sigue siendo un momento «recorte» de texto/enlace.
+  const isImageCaptura = !!recorte.imageKey
   const dialogRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
   useFocusTrap(dialogRef, true)
@@ -93,6 +112,24 @@ export function PromoteModal({
             },
           },
         })
+      } else if (isImageCaptura) {
+        // Captura con imagen → Momento FOTO. El servidor copia el blob de
+        // recortes-media a momentos-media y arma el payload con su storageKey;
+        // acá solo mandamos el pie (caption). El texto editado es el caption.
+        await promote.mutateAsync({
+          id: recorte.id,
+          input: {
+            target: 'momento',
+            momento: {
+              kind: 'foto',
+              payload: {
+                caption: captionFromText(text),
+              },
+              note: recorte.note,
+              capturedAt: recorte.capturedAt ?? recorte.createdAt,
+            },
+          },
+        })
       } else {
         await promote.mutateAsync({
           id: recorte.id,
@@ -125,9 +162,12 @@ export function PromoteModal({
     }
   }
 
+  // Una foto del día puede ir sin pie: no exigimos texto cuando es una captura
+  // de imagen promovida a momento. El resto sí requiere texto.
+  const requiresText = !(target === 'momento' && isImageCaptura)
   const confirmDisabled =
     busy ||
-    text.trim().length === 0 ||
+    (requiresText && text.trim().length === 0) ||
     (target === 'quote' && !entityId) ||
     (target === 'entity' && entityName.trim().length === 0)
 
@@ -154,7 +194,8 @@ export function PromoteModal({
             <h2 className="font-serif text-lg text-ink-700 mt-0.5">
               {target === 'quote' && 'Como cita del archivo'}
               {target === 'entity' && 'Como entidad de la trama'}
-              {target === 'momento' && 'Como momento del día'}
+              {target === 'momento' &&
+                (isImageCaptura ? 'Como foto del día' : 'Como momento del día')}
             </h2>
           </div>
           <button
@@ -169,7 +210,7 @@ export function PromoteModal({
 
         <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
           <label className="block text-caption text-ink-700">
-            Texto
+            {target === 'momento' && isImageCaptura ? 'Pie de foto (opcional)' : 'Texto'}
             <textarea
               ref={textRef}
               value={text}
@@ -239,7 +280,9 @@ export function PromoteModal({
 
           {target === 'momento' && (
             <p className="text-micro text-ink-400 leading-relaxed">
-              Se crea un momento «recorte» con la fuente y la fecha de captura.
+              {isImageCaptura
+                ? 'Se crea una foto del día con la imagen de la captura; aparecerá en el álbum de Momentos.'
+                : 'Se crea un momento «recorte» con la fuente y la fecha de captura.'}
             </p>
           )}
         </div>
