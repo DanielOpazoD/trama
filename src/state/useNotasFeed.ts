@@ -142,6 +142,24 @@ function isServerSegment(
   return segment === 'todo' || segment === 'escritas' || segment === 'capturas'
 }
 
+/**
+ * Bordes de un día LOCAL ('YYYY-MM-DD', como `localDayKey`) convertidos a
+ * instantes UTC (ISO). Usa el constructor `Date` en hora local, así respeta la
+ * zona real del navegador (incluido DST). El endpoint filtra `created_at` en
+ * `[start, end)`, coincidiendo exacto con `localDayKey(createdAt) === day` —sin
+ * que el servidor tenga que adivinar la zona.
+ */
+export function localDayToUtcRange(day: string): { start: string; end: string } | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day)
+  if (!m) return null
+  const y = Number(m[1])
+  const mo = Number(m[2])
+  const d = Number(m[3])
+  const start = new Date(y, mo - 1, d, 0, 0, 0, 0)
+  const end = new Date(y, mo - 1, d + 1, 0, 0, 0, 0)
+  return { start: start.toISOString(), end: end.toISOString() }
+}
+
 /** Clave estable de cache para una combinación de filtros. */
 function feedCacheKey(filter: NotasFeedFilter): string {
   return JSON.stringify({
@@ -174,6 +192,8 @@ export function useNotasFeed(filter: NotasFeedFilter): UseNotasFeedResult {
     : 'todo'
   // El triage solo aplica en recortes; lo mandamos siempre que esté seteado.
   const status = filter.recorteStatus ?? undefined
+  // El día se manda como bordes UTC del día local (zona real del navegador).
+  const dayRange = filter.day ? localDayToUtcRange(filter.day) : null
 
   const query = useInfiniteQuery({
     queryKey: queryKeys.notasFeedFiltered(feedCacheKey(filter)),
@@ -184,7 +204,8 @@ export function useNotasFeed(filter: NotasFeedFilter): UseNotasFeedResult {
         segment,
         status,
         tag: filter.tag ?? undefined,
-        day: filter.day ?? undefined,
+        dayStart: dayRange?.start,
+        dayEnd: dayRange?.end,
         q: filter.query?.trim() || undefined,
         cursor: pageParam as string | null,
         limit: 30,

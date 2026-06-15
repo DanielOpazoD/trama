@@ -81,9 +81,6 @@ export default withObservability(
     const plan = buildFeedPlan(parsed.data)
     if (!plan) return ApiErrors.validation(requestId, 'cursor inválido')
 
-    const includeNotes = plan.kinds.includes('note')
-    const includeRecortes = plan.kinds.includes('recorte')
-
     // --- Página de (kind, id) sobre la vista `objects`, por keyset. ---------
     //
     // El `cursor_val` se renderiza a texto con microsegundos + offset UTC para
@@ -102,7 +99,7 @@ export default withObservability(
         to_char(o.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"+00"') AS cursor_val
       FROM objects o
       WHERE o.user_id = ${userId}
-        AND o.kind IN (${includeNotes ? 'note' : '__none__'}, ${includeRecortes ? 'recorte' : '__none__'})
+        AND o.kind = ANY(${plan.kinds}::text[])
         -- Triage de recortes (no afecta a notas): replica RecorteStatusFilter.
         --   'default' (sin status) → oculta archivados
         --   'all'                  → incluye los tres

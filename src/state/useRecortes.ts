@@ -8,6 +8,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type PromoteRecorteInput, type Recorte } from '../api'
 import { queryKeys } from './queryClient'
+import {
+  applyRecorteStatusInFeed,
+  patchRecorteInFeed,
+  restoreNotasFeed,
+  snapshotNotasFeed,
+} from './notasFeedCache'
 import { useToast } from './toast'
 
 /**
@@ -152,9 +158,11 @@ export function useUpdateRecorte() {
       patch: { text?: string; note?: string | null; status?: 'pending' | 'archived' }
     }) => api.updateRecorte(id, patch),
     // Optimista: archivar/restaurar mueve la captura de bucket al instante (sin
-    // parpadeo entre filtros de estado); rollback al snapshot previo si falla.
+    // parpadeo entre filtros de estado), tanto en la lista cruda como en el feed
+    // paginado; rollback a ambos snapshots si falla.
     onMutate: async ({ id, patch }) => {
       await qc.cancelQueries({ queryKey: queryKeys.recortes })
+      await qc.cancelQueries({ queryKey: queryKeys.notasFeed })
       const prev = qc.getQueryData<Recorte[]>(queryKeys.recortes)
       if (prev) {
         qc.setQueryData<Recorte[]>(
@@ -162,10 +170,15 @@ export function useUpdateRecorte() {
           prev.map((r) => (r.id === id ? { ...r, ...patch } : r)),
         )
       }
-      return { prev }
+      const feedSnap = snapshotNotasFeed(qc)
+      // Si cambia el estado, recalculamos membresía por cache; si no, en sitio.
+      if (patch.status) applyRecorteStatusInFeed(qc, id, patch.status)
+      else patchRecorteInFeed(qc, id, patch)
+      return { prev, feedSnap }
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(queryKeys.recortes, ctx.prev)
+      if (ctx?.feedSnap) restoreNotasFeed(qc, ctx.feedSnap)
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: queryKeys.recortes })
@@ -211,6 +224,7 @@ export function usePromoteRecorte() {
     // sale de Pendientes y muestra «→ destino» sin esperar al servidor.
     onMutate: async ({ id, input }) => {
       await qc.cancelQueries({ queryKey: queryKeys.recortes })
+      await qc.cancelQueries({ queryKey: queryKeys.notasFeed })
       const prev = qc.getQueryData<Recorte[]>(queryKeys.recortes)
       if (prev) {
         qc.setQueryData<Recorte[]>(
@@ -220,10 +234,13 @@ export function usePromoteRecorte() {
           ),
         )
       }
-      return { prev }
+      const feedSnap = snapshotNotasFeed(qc)
+      applyRecorteStatusInFeed(qc, id, 'promoted', input.target)
+      return { prev, feedSnap }
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(queryKeys.recortes, ctx.prev)
+      if (ctx?.feedSnap) restoreNotasFeed(qc, ctx.feedSnap)
     },
     onSuccess: (_data, { input }) => {
       const { target } = input

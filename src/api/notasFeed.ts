@@ -29,7 +29,9 @@ export type FetchNotasFeedParams = {
   segment: NotasFeedServerSegment
   status?: NotasFeedServerStatus
   tag?: string
-  day?: string | null
+  /** Bordes del día local (ISO UTC) que el cliente calcula desde su zona. */
+  dayStart?: string | null
+  dayEnd?: string | null
   q?: string
   cursor?: string | null
   limit?: number
@@ -53,7 +55,10 @@ export const notasFeedApi = {
     qs.set('segment', params.segment)
     if (params.status) qs.set('status', params.status)
     if (params.tag) qs.set('tag', params.tag)
-    if (params.day) qs.set('day', params.day)
+    if (params.dayStart && params.dayEnd) {
+      qs.set('dayStart', params.dayStart)
+      qs.set('dayEnd', params.dayEnd)
+    }
     if (params.q) qs.set('q', params.q)
     if (params.cursor) qs.set('cursor', params.cursor)
     if (params.limit) qs.set('limit', String(params.limit))

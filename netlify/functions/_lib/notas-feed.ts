@@ -43,31 +43,6 @@ export function decodeFeedCursor(raw: string): FeedCursor | null {
   return null
 }
 
-/**
- * Día local 'YYYY-MM-DD' → rango UTC [from, to) sobre created_at.
- *
- * `localDayKey` (cliente) deriva el día desde la zona horaria del navegador.
- * El servidor no conoce esa zona, así que NO podemos reproducirlo exacto. La
- * aproximación documentada: tomamos el día calendario UTC del string. Para
- * timestamps cerca de medianoche en zonas alejadas de UTC, un ítem puede caer
- * en un día adyacente respecto del filtro client-side previo. Es una
- * aproximación deliberada (ver GOAL); el feed sigue siendo coherente porque el
- * mismo criterio se aplica a notas y recortes.
- *
- * Devuelve límites ISO (`from` inclusive, `to` exclusivo). Lanza si el formato
- * del día es inválido (el caller ya validó con Zod, esto es defensa en
- * profundidad).
- */
-export function dayToUtcRange(day: string): { from: string; to: string } {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day)
-  if (!m) throw new Error(`día inválido: ${day}`)
-  const from = `${day}T00:00:00.000Z`
-  // Día siguiente (medianoche UTC) como cota superior exclusiva.
-  const start = new Date(from)
-  const next = new Date(start.getTime() + 24 * 60 * 60 * 1000)
-  return { from, to: next.toISOString() }
-}
-
 /** Qué `kind`s incluye cada segmento (favoritos no se sirve por acá). */
 export function kindsForSegment(segment: FeedSegment): FeedKind[] {
   switch (segment) {
@@ -96,15 +71,18 @@ export const MAX_FEED_LIMIT = 100
  * (los `URLSearchParams` que la UI no setea llegan como null; los que setea
  * vacíos, como ''). El triage de recortes (`status`) replica la semántica de
  * `RecorteStatusFilter`: ausente → oculta archivados; 'all' → los tres.
+ *
+ * El día se filtra por `dayStart`/`dayEnd`: instantes UTC (ISO) que el CLIENTE
+ * calcula desde su zona horaria real (los bordes del día local), así el filtro
+ * coincide exacto con `localDayKey` —incluido DST— sin que el servidor adivine
+ * la zona. Se usan juntos o no se usan.
  */
 export const NotasFeedQuery = z.object({
   segment: z.enum(FEED_SEGMENTS).default('todo'),
   status: z.enum(FEED_STATUS).optional(),
   tag: z.string().trim().min(1).max(120).optional(),
-  day: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'día debe ser YYYY-MM-DD')
-    .optional(),
+  dayStart: z.string().datetime().optional(),
+  dayEnd: z.string().datetime().optional(),
   q: z.string().trim().min(1).max(200).optional(),
   cursor: z.string().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(MAX_FEED_LIMIT).default(DEFAULT_FEED_LIMIT),
@@ -120,7 +98,16 @@ export function parseFeedParams(
   searchParams: URLSearchParams,
 ): ReturnType<typeof NotasFeedQuery.safeParse> {
   const raw: Record<string, string> = {}
-  for (const key of ['segment', 'status', 'tag', 'day', 'q', 'cursor', 'limit']) {
+  for (const key of [
+    'segment',
+    'status',
+    'tag',
+    'dayStart',
+    'dayEnd',
+    'q',
+    'cursor',
+    'limit',
+  ]) {
     const v = searchParams.get(key)
     if (v !== null && v.trim() !== '') raw[key] = v
   }
@@ -164,7 +151,11 @@ export function buildFeedPlan(params: NotasFeedParams): FeedPlan | null {
   return {
     kinds: kindsForSegment(params.segment),
     cursor,
-    dayRange: params.day ? dayToUtcRange(params.day) : null,
+    // El cliente manda los bordes del día local ya convertidos a UTC (juntos).
+    dayRange:
+      params.dayStart && params.dayEnd
+        ? { from: params.dayStart, to: params.dayEnd }
+        : null,
     qLike: params.q ? likeContains(params.q) : null,
     tag: params.tag ?? null,
     recorteStatus: params.status ?? 'default',
