@@ -117,7 +117,10 @@ export function NotasWorld({
           ) : (
             <>
               <NotasTopBar section={section} />
-              <div className="h-full overflow-y-auto">
+              {/* id="main-scroll": el feed virtualizado (useMainScrollVirtualizer)
+                  se ata a este contenedor. El mundo trama y el mundo notas son
+                  mutuamente excluyentes, así que solo existe un #main-scroll. */}
+              <div id="main-scroll" className="h-full overflow-y-auto">
                 <div
                   data-testid="notas-world-content"
                   className="px-5 md:px-8 pb-24 mx-auto py-8 md:py-10 max-w-5xl"
