@@ -12,6 +12,32 @@ vi.mock('../momentos/helpers', async (importActual) => {
   return { ...actual, compressImage: vi.fn(async (f: File) => f) }
 })
 
+// La lista del feed está virtualizada (TanStack Virtual atado a #main-scroll).
+// happy-dom reporta tamaños en 0, así que el virtualizer no montaría ninguna
+// tarjeta y los tests de comportamiento (qué se renderiza, segmentos, búsqueda)
+// no podrían afirmar sobre el DOM. Mockeamos el wrapper con un passthrough que
+// "monta todo": la virtualización real se verifica en producción (mismo hook
+// que Citas/Entidades) y en su propio test unitario; acá probamos el cableado
+// del feed sin pelear con la medición de layout de happy-dom.
+vi.mock('../../hooks/useMainScrollVirtualizer', () => ({
+  useMainScrollVirtualizer: ({ count }: { count: number }) => ({
+    listRef: { current: null },
+    virtualizer: {
+      getTotalSize: () => count * 200,
+      getVirtualItems: () =>
+        Array.from({ length: count }, (_, index) => ({
+          key: index,
+          index,
+          start: index * 200,
+          size: 200,
+        })),
+      measureElement: () => {},
+      scrollToIndex: () => {},
+      options: { scrollMargin: 0 },
+    },
+  }),
+}))
+
 const noteRows = [
   {
     id: 'note-1',
@@ -52,6 +78,52 @@ function jsonResponse(body: unknown, status = 200) {
   })
 }
 
+/**
+ * Construye la respuesta del endpoint `/api/notas-feed` a partir de las filas
+ * de prueba, replicando server-side los filtros que la vista ejerce en los
+ * tests (segmento, búsqueda lexical). Devuelve la forma `{ items, nextCursor }`
+ * con los ítems ya discriminados por `type` (igual que el servidor real).
+ */
+function buildFeedResponse(params: URLSearchParams) {
+  const segment = params.get('segment') ?? 'todo'
+  const q = (params.get('q') ?? '').trim().toLowerCase()
+
+  const noteItems =
+    segment === 'capturas'
+      ? []
+      : noteRows
+          .filter((n) => (q ? `${n.content}\n`.toLowerCase().includes(q) : true))
+          .map((note) => ({
+            type: 'note' as const,
+            id: note.id,
+            createdAt: note.created_at,
+            note,
+          }))
+
+  const recorteItems =
+    segment === 'escritas'
+      ? []
+      : recorteRows
+          .filter((r) =>
+            q
+              ? `${r.text}\n${r.source_title ?? ''}\n${r.source_author ?? ''}`
+                  .toLowerCase()
+                  .includes(q)
+              : true,
+          )
+          .map((recorte) => ({
+            type: 'recorte' as const,
+            id: recorte.id,
+            createdAt: recorte.created_at,
+            recorte,
+          }))
+
+  const items = [...noteItems, ...recorteItems].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
+  )
+  return { items, nextCursor: null }
+}
+
 function stubFeedFetch() {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
@@ -75,6 +147,12 @@ function stubFeedFetch() {
         promoted_target: 'momento',
         promoted_id: 'm1',
       })
+    // Feed unificado paginado server-side (el seam useNotasFeed lo consume).
+    if (url.startsWith('/api/notas-feed') && method === 'GET') {
+      const qs = new URL(url, 'http://localhost').searchParams
+      return jsonResponse(buildFeedResponse(qs))
+    }
+    // El calendario y el universo de tags siguen leyendo todas las notas.
     if (url.startsWith('/api/notes') && method === 'GET') return jsonResponse(noteRows)
     if (url.startsWith('/api/recortes') && method === 'GET')
       return jsonResponse(recorteRows)

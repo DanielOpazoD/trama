@@ -29,6 +29,7 @@ import { FavoritosPanel } from '../recortes/FavoritosPanel'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { useFeedKeyboardNav } from '../../hooks/useFeedKeyboardNav'
+import { useMainScrollVirtualizer } from '../../hooks/useMainScrollVirtualizer'
 import { PendingAttachmentsInput } from './PendingAttachmentsInput'
 import { MarkdownField } from './MarkdownField'
 import { compressImage } from '../momentos/helpers'
@@ -169,7 +170,8 @@ export function NotasFeedView() {
     [segment, search, activeTag, selectedDay, capturaStatus],
   )
 
-  const { items, isLoading, isError } = useNotasFeed(filter)
+  const { items, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useNotasFeed(filter)
 
   // --- Calendario de actividad (heatmap) ----------------------------------
   // El heatmap cuenta SOLO notas (los recortes no contribuyen), así que lee la
@@ -189,20 +191,22 @@ export function NotasFeedView() {
     ]
   }, [notes, calendarDays])
 
-  // El universo de tags se calcula sobre el feed SIN filtrar por etiqueta (para
-  // que elegir una etiqueta no haga desaparecer las demás de la lista sugerida).
-  // Reusa el feed de la costura para no tocar los hooks crudos.
-  const tagUniverse = useNotasFeed(
-    useMemo(() => ({ segment, query: search.trim() || undefined }), [segment, search]),
-  )
+  // El universo de tags se calcula sobre TODAS las notas (bounded, client-side)
+  // SIN filtrar por etiqueta — así elegir una etiqueta no hace desaparecer las
+  // demás de la lista sugerida. Antes esto disparaba un segundo feed infinito;
+  // ahora deriva de `useNotesQuery` (la fuente del calendario), que ya es la
+  // colección completa de notas. Las etiquetas solo existen en notas, así que
+  // el segmento "capturas" no aporta tags.
   const tagCounts = useMemo(() => {
+    if (!segmentHasTags(segment)) return []
+    const q = search.trim().toLowerCase()
     const m = new Map<string, number>()
-    for (const it of tagUniverse.items) {
-      if (it.type !== 'note') continue
-      for (const t of it.note.tags) m.set(t, (m.get(t) ?? 0) + 1)
+    for (const n of notes) {
+      if (q && !`${n.content}\n${n.title ?? ''}`.toLowerCase().includes(q)) continue
+      for (const t of n.tags) m.set(t, (m.get(t) ?? 0) + 1)
     }
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-  }, [tagUniverse.items])
+  }, [notes, segment, search])
   // Lista plana de etiquetas para el autocompletar `#` del composer (todo el
   // universo de notas, no el filtrado por segmento/búsqueda).
   const allNoteTags = useMemo(() => {
@@ -214,9 +218,15 @@ export function NotasFeedView() {
   // ¿Hay algún filtro activo (más allá del segmento)?
   const hasContentFilter =
     search.trim() !== '' || activeTag !== null || selectedDay !== null
-  // ¿El feed está realmente vacío de datos, o solo filtrado a cero?
+  // ¿El feed está realmente vacío de datos, o solo filtrado a cero? Con el feed
+  // paginado server-side, "vacío de verdad" = sin filtros activos, sin estado
+  // de triage restringido y la primera página llegó vacía sin más por traer.
   const everythingEmpty =
-    !isLoading && tagUniverse.items.length === 0 && !hasContentFilter
+    !isLoading &&
+    !hasContentFilter &&
+    items.length === 0 &&
+    !hasNextPage &&
+    (segment !== 'capturas' || capturaStatus === 'all')
 
   // --- Triage de recortes (mutaciones propias + PromoteModal) -------------
   const updateRecorte = useUpdateRecorte()
@@ -266,15 +276,44 @@ export function NotasFeedView() {
     onOpenSearch: openSearch,
   })
 
-  // Scroll la tarjeta seleccionada a la vista al moverse con j/k.
-  const cardRefs = useRef<Array<HTMLDivElement | null>>([])
+  // --- Virtualización de la lista -----------------------------------------
+  // El feed puede ser largo (notas + recortes de meses) y ahora pagina
+  // server-side: montamos solo la ventana visible + overscan. `measureElement`
+  // corrige la altura real de cada tarjeta (las notas se expanden, los recortes
+  // varían). Las tarjetas viven en el scroller principal (#main-scroll), así
+  // que usamos el virtualizer atado a él (mismo patrón que Citas/Entidades).
+  // El estimate inicial es generoso (tarjeta típica ~200px) para que el salto
+  // al medir sea mínimo.
+  const { listRef, virtualizer } = useMainScrollVirtualizer({
+    count: items.length,
+    estimateSize: 200,
+    overscan: 6,
+    deps: [segment, searchOpen, calendarOpen, capturaStatus, items.length],
+  })
+  const virtualItems = virtualizer.getVirtualItems()
+
+  // Carga incremental: cuando la ventana visible llega a los últimos ítems,
+  // pedimos la próxima página. Leemos el índice virtual más alto (atado al
+  // estado del virtualizer) en vez de un sentinel suelto.
+  const lastVisibleIndex =
+    virtualItems.length > 0 ? virtualItems[virtualItems.length - 1]!.index : 0
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage) return
+    if (items.length === 0) return
+    if (lastVisibleIndex >= items.length - 5) fetchNextPage()
+  }, [lastVisibleIndex, items.length, hasNextPage, isFetchingNextPage, fetchNextPage])
+
+  // Scroll la tarjeta seleccionada a la vista al moverse con j/k. Con la lista
+  // virtualizada, la tarjeta puede no estar montada: pedimos al virtualizer que
+  // la traiga a la ventana (monta + scrollea) en lugar de un scrollIntoView que
+  // fallaría sobre un ref nulo.
   useEffect(() => {
     if (selected === null) return
-    cardRefs.current[selected]?.scrollIntoView({
-      block: 'nearest',
+    virtualizer.scrollToIndex(selected, {
+      align: 'auto',
       behavior: reducedMotion ? 'auto' : 'smooth',
     })
-  }, [selected, reducedMotion])
+  }, [selected, reducedMotion, virtualizer])
 
   useEffect(() => {
     return () => {
@@ -795,87 +834,120 @@ export function NotasFeedView() {
               }
             />
           ) : (
-            <div className="space-y-2.5">
-              {items.map((item, i) => {
-                const isSelected = selected === i
-                // Entrada escalonada (capeada). Bajo reduce-motion: sin delay
-                // (y la clase fade-up ya se neutraliza por el @media en CSS).
-                const delay =
-                  reducedMotion || i >= STAGGER_CAP
-                    ? undefined
-                    : `${i * STAGGER_STEP_MS}ms`
-                // Resalte de la selección por teclado (anillo salvia sutil).
-                const selStyle = isSelected
-                  ? { boxShadow: `0 0 0 2px ${ACCENT}`, borderRadius: '0.75rem' }
-                  : undefined
-                return (
-                  <div
-                    key={item.type === 'note' ? `note-${item.id}` : `recorte-${item.id}`}
-                    ref={(el) => {
-                      cardRefs.current[i] = el
-                    }}
-                    onMouseDown={() => setSelected(i)}
-                    className={reducedMotion ? undefined : 'animate-fade-up'}
-                    style={{ ...selStyle, animationDelay: delay }}
-                  >
-                    {item.type === 'note' ? (
-                      <NoteCard
-                        note={item.note}
-                        busy={updateNote.isPending || deleteNote.isPending}
-                        promoting={
-                          promoteNote.isPending && promoteNote.variables === item.id
-                        }
-                        onTogglePin={() =>
-                          updateNote.mutate({
-                            id: item.id,
-                            patch: { pinned: !item.note.pinned },
-                          })
-                        }
-                        onEdit={(patch) => updateNote.mutate({ id: item.id, patch })}
-                        onDelete={() => deleteNote.mutate(item.id)}
-                        onPromote={() =>
-                          promoteNote.mutate(item.id, {
-                            onSuccess: () =>
-                              toast.show({
-                                message: 'Nota promovida a Momento.',
-                                tone: 'success',
-                              }),
-                            onError: (e) =>
-                              toast.show({
-                                message:
-                                  e instanceof Error ? e.message : 'No se pudo promover',
-                                tone: 'error',
-                              }),
-                          })
-                        }
-                      />
-                    ) : (
-                      <ul className="contents">
-                        <RecorteCard
-                          recorte={item.recorte}
-                          onPromote={(recorte, target, seed) =>
-                            setPromoting({ recorte, target, seed })
-                          }
-                          onArchive={() =>
-                            updateRecorte.mutate({
-                              id: item.id,
-                              patch: { status: 'archived' },
-                            })
-                          }
-                          onRestore={() =>
-                            updateRecorte.mutate({
-                              id: item.id,
-                              patch: { status: 'pending' },
-                            })
-                          }
-                          onDelete={() => deleteRecorte.mutate(item.id)}
-                        />
-                      </ul>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+            <>
+              {/* Lista virtualizada: solo se monta la ventana visible + overscan.
+                  El wrapper reserva la altura total; cada fila se posiciona en
+                  absoluto y se mide con measureElement (alturas variables). */}
+              <div
+                ref={listRef}
+                style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
+              >
+                {virtualItems.map((virtualRow) => {
+                  const item = items[virtualRow.index]
+                  if (!item) return null
+                  const i = virtualRow.index
+                  const isSelected = selected === i
+                  // Entrada escalonada (capeada). Bajo reduce-motion: sin delay
+                  // (y la clase fade-up ya se neutraliza por el @media en CSS).
+                  const delay =
+                    reducedMotion || i >= STAGGER_CAP
+                      ? undefined
+                      : `${i * STAGGER_STEP_MS}ms`
+                  // Resalte de la selección por teclado (anillo salvia sutil).
+                  const selStyle = isSelected
+                    ? { boxShadow: `0 0 0 2px ${ACCENT}`, borderRadius: '0.75rem' }
+                    : undefined
+                  return (
+                    <div
+                      key={
+                        item.type === 'note' ? `note-${item.id}` : `recorte-${item.id}`
+                      }
+                      data-index={i}
+                      ref={virtualizer.measureElement}
+                      onMouseDown={() => setSelected(i)}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
+                        // ρ-micro: separación entre tarjetas (antes space-y-2.5).
+                        paddingBottom: '0.625rem',
+                      }}
+                    >
+                      <div
+                        className={reducedMotion ? undefined : 'animate-fade-up'}
+                        style={{ ...selStyle, animationDelay: delay }}
+                      >
+                        {item.type === 'note' ? (
+                          <NoteCard
+                            note={item.note}
+                            busy={updateNote.isPending || deleteNote.isPending}
+                            promoting={
+                              promoteNote.isPending && promoteNote.variables === item.id
+                            }
+                            onTogglePin={() =>
+                              updateNote.mutate({
+                                id: item.id,
+                                patch: { pinned: !item.note.pinned },
+                              })
+                            }
+                            onEdit={(patch) => updateNote.mutate({ id: item.id, patch })}
+                            onDelete={() => deleteNote.mutate(item.id)}
+                            onPromote={() =>
+                              promoteNote.mutate(item.id, {
+                                onSuccess: () =>
+                                  toast.show({
+                                    message: 'Nota promovida a Momento.',
+                                    tone: 'success',
+                                  }),
+                                onError: (e) =>
+                                  toast.show({
+                                    message:
+                                      e instanceof Error
+                                        ? e.message
+                                        : 'No se pudo promover',
+                                    tone: 'error',
+                                  }),
+                              })
+                            }
+                          />
+                        ) : (
+                          <ul className="contents">
+                            <RecorteCard
+                              recorte={item.recorte}
+                              onPromote={(recorte, target, seed) =>
+                                setPromoting({ recorte, target, seed })
+                              }
+                              onArchive={() =>
+                                updateRecorte.mutate({
+                                  id: item.id,
+                                  patch: { status: 'archived' },
+                                })
+                              }
+                              onRestore={() =>
+                                updateRecorte.mutate({
+                                  id: item.id,
+                                  patch: { status: 'pending' },
+                                })
+                              }
+                              onDelete={() => deleteRecorte.mutate(item.id)}
+                            />
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Afordancia sutil de carga incremental. */}
+              {isFetchingNextPage && (
+                <p className="mt-4 text-center text-xs uppercase tracking-eyebrow text-ink-300">
+                  cargando más…
+                </p>
+              )}
+            </>
           )}
         </>
       )}

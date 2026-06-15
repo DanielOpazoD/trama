@@ -22,7 +22,7 @@ export type Note = {
   hasImages: boolean
 }
 
-type NoteRow = {
+export type NoteRow = {
   id: string
   content: string
   title?: string | null
@@ -35,7 +35,7 @@ type NoteRow = {
   has_images?: boolean | null
 }
 
-function noteFromRow(r: NoteRow): Note {
+export function noteFromRow(r: NoteRow): Note {
   return {
     id: r.id,
     content: r.content,

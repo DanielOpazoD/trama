@@ -24,6 +24,7 @@ import { healthApi } from './health'
 import { homeApi } from './home'
 import { momentosApi } from './momentos'
 import { notesApi } from './notes'
+import { notasFeedApi } from './notasFeed'
 import { recortesApi } from './recortes'
 import { favoritosApi } from './favoritos'
 import { readingTablesApi } from './readingTables'
@@ -50,6 +51,7 @@ export const api = {
   ...chatApi,
   cronicas: cronicasApi,
   notes: notesApi,
+  ...notasFeedApi,
   ...recortesApi,
   ...favoritosApi,
   ...readingTablesApi,
@@ -109,6 +111,14 @@ export type { AskResponse, ChatMessage, ChatProposal, ChatThread } from './chat'
 export type { Cronica, GeneratedCronica } from './cronicas'
 
 export type { Note } from './notes'
+
+export type {
+  CaptureItem,
+  NotasFeedPage,
+  FetchNotasFeedParams,
+  NotasFeedServerSegment,
+  NotasFeedServerStatus,
+} from './notasFeed'
 
 export type { SavedQuery, SavedQueryCreate, SavedQueryPatch } from './savedQueries'
 

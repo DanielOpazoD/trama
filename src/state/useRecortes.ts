@@ -21,6 +21,7 @@ export function useUnpromoteRecorte() {
     mutationFn: (id: string) => api.unpromoteRecorte(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
       qc.invalidateQueries({ queryKey: queryKeys.quotes })
       qc.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
       qc.invalidateQueries({ queryKey: queryKeys.entities })
@@ -78,6 +79,7 @@ async function enrichLinkRecorte(
       imageUrl: preview.image ?? undefined,
     })
     qc.invalidateQueries({ queryKey: queryKeys.recortes })
+    qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
   } catch {
     /* enriquecimiento opcional; el enlace pelado ya quedó guardado */
   }
@@ -109,6 +111,7 @@ export function useCreateRecorte() {
     },
     onSuccess: (recorte, input) => {
       qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
       qc.invalidateQueries({ queryKey: queryKeys.counts })
       qc.invalidateQueries({ queryKey: queryKeys.home })
       // El enriquecimiento corre tras mostrar la tarjeta, sin bloquear.
@@ -143,7 +146,10 @@ export function useUpdateRecorte() {
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(queryKeys.recortes, ctx.prev)
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.recortes }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+    },
   })
 }
 
@@ -154,6 +160,7 @@ export function useDeleteRecorte() {
     mutationFn: (id: string) => api.removeRecorte(id),
     onSuccess: ({ deletedAt }, id) => {
       qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
       if (deletedAt) {
         toast.show({
           message: 'Recorte eliminado',
@@ -163,6 +170,7 @@ export function useDeleteRecorte() {
             onAction: async () => {
               await api.restoreRecorte(id, deletedAt)
               qc.invalidateQueries({ queryKey: queryKeys.recortes })
+              qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
             },
           },
         })
@@ -199,6 +207,7 @@ export function usePromoteRecorte() {
     onSuccess: (_data, { input }) => {
       const { target } = input
       qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
       if (target === 'quote') {
         qc.invalidateQueries({ queryKey: queryKeys.quotes })
         qc.invalidateQueries({ queryKey: queryKeys.quotesInfinite })

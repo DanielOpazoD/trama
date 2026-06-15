@@ -22,7 +22,10 @@ export function useCreateNote() {
   return useMutation({
     mutationFn: (input: { content: string; title?: string | null }) =>
       api.notes.create(input.content, { title: input.title }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notes }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.notes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+    },
   })
 }
 
@@ -52,7 +55,10 @@ export function useUpdateNote() {
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(queryKeys.notes, ctx.prev)
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.notes }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.notes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+    },
   })
 }
 
@@ -63,6 +69,7 @@ export function useDeleteNote() {
     mutationFn: (id: string) => api.notes.remove(id),
     onSuccess: ({ deletedAt }, id) => {
       qc.invalidateQueries({ queryKey: queryKeys.notes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
       // Deshacer: el restore revive nota + anexos con ese deleted_at exacto.
       if (deletedAt) {
         toast.show({
@@ -73,6 +80,7 @@ export function useDeleteNote() {
             onAction: async () => {
               await api.notes.restore(id, deletedAt)
               qc.invalidateQueries({ queryKey: queryKeys.notes })
+              qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
             },
           },
         })
@@ -92,6 +100,7 @@ export function usePromoteNote() {
     mutationFn: (id: string) => api.notes.promote(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.notes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
       qc.invalidateQueries({ queryKey: queryKeys.momentosInfinite })
       qc.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
       qc.invalidateQueries({ queryKey: queryKeys.home })
