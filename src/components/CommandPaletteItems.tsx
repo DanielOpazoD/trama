@@ -5,6 +5,7 @@ import type { Item } from '../hooks/useCommandSearch'
 import {
   ChatIcon,
   AtlasIcon,
+  ConsultasIcon,
   CronologiaIcon,
   EntitiesIcon,
   GraphIcon,
@@ -125,6 +126,34 @@ export function ItemRow({ item, query }: { item: Item; query: string }) {
         </span>
         <span className="text-ink-300 text-xs ml-2 truncate">
           — mundo Notas{item.hint ? ` ${item.hint}` : ''}
+        </span>
+      </>
+    )
+  }
+  if (item.kind === 'savedQuery') {
+    return (
+      <>
+        <ConsultasIcon size={14} className="text-ink-400 shrink-0" />
+        <span className="text-ink-700">
+          <HighlightedText text={item.name} query={query} />
+        </span>
+        <span className="text-micro uppercase tracking-eyebrow text-ink-300 ml-2 shrink-0">
+          consulta guardada
+        </span>
+      </>
+    )
+  }
+  if (item.kind === 'ask') {
+    return (
+      <>
+        <span className="shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden>
+          <ConsultasIcon size={14} />
+        </span>
+        <span className="text-ink-700 truncate flex-1">
+          Preguntar a tu trama: «{item.q}»
+        </span>
+        <span className="text-ink-300 text-xs ml-2 shrink-0 truncate max-w-[45%]">
+          — interpreta lenguaje natural y filtros
         </span>
       </>
     )
@@ -292,6 +321,34 @@ export function PeekPanel({
         <p className="text-caption text-ink-600 leading-relaxed line-clamp-[8]">
           {item.text}
         </p>
+      </div>
+    )
+  }
+  if (item.kind === 'savedQuery') {
+    return (
+      <div className="p-4 stack-2">
+        <p className="text-micro uppercase tracking-eyebrow text-ink-400">
+          consulta guardada
+        </p>
+        <p className="font-serif text-h2 text-ink-800 leading-tight">{item.name}</p>
+        <p className="text-micro text-ink-300 pt-1">enter ejecuta la consulta</p>
+      </div>
+    )
+  }
+  if (item.kind === 'ask') {
+    return (
+      <div className="p-4 stack-2">
+        <p className="text-micro uppercase tracking-eyebrow text-ink-400">
+          preguntar a tu trama
+        </p>
+        <p className="font-serif italic text-body text-ink-700 leading-relaxed">
+          «{item.q}»
+        </p>
+        <p className="text-caption text-ink-500 leading-relaxed">
+          La IA interpreta tu pregunta como una consulta (tipos, fechas, etiquetas) y
+          responde con resultados de toda tu trama.
+        </p>
+        <p className="text-micro text-ink-300 pt-1">enter interpreta y busca</p>
       </div>
     )
   }

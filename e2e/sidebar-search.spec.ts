@@ -56,8 +56,8 @@ test('palette ⌘K muestra resultados y permite abrir una entidad', async ({ pag
   const palette = page.getByRole('dialog', { name: 'Buscar' })
   await expect(palette).toBeVisible()
 
-  // El input del palette tiene el placeholder "Buscar…".
-  await palette.getByPlaceholder('Buscar…').fill('borges')
+  // El input del palette tiene el placeholder "Buscar o preguntar…".
+  await palette.getByPlaceholder('Buscar o preguntar…').fill('borges')
 
   // El resultado de Borges aparece como botón en la lista.
   await expect(palette.getByRole('button', { name: /Jorge Luis Borges/ })).toBeVisible()

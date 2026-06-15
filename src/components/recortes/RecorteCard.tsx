@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { type Recorte, type RecorteSuggestion, type RecorteTarget } from '../../api'
 import { recorteImageUrl } from '../../api/recortes'
 import { apiFetch } from '../../api/request'
@@ -10,7 +10,17 @@ import {
 } from '../../state'
 import { useToast } from '../../state/toast'
 import { useLocalStorageState } from '../../hooks/useLocalStorageState'
-import { SparkleIcon } from '../Icons'
+import {
+  ArrowRightIcon,
+  ChevronDownIcon,
+  EntitiesIcon,
+  MomentosIcon,
+  QuoteIcon,
+  SparkleIcon,
+  TextIcon,
+  TrashIcon,
+} from '../Icons'
+import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 import { hostOf, LinkMediaPreview } from './LinkMediaPreview'
@@ -41,14 +51,10 @@ const CAPTURE_MODE_LABEL: Record<NonNullable<Recorte['captureMode']>, string> = 
   image: 'imagen',
 }
 
-function curationCueFor(r: Recorte): string {
-  if (r.imageKey || r.imageUrl)
-    return 'extrae texto si hace falta, o promuévelo como momento'
-  if (r.captureMode === 'article' || r.captureMode === 'html') {
-    return 'revisa la página y decide si queda como cita o momento'
-  }
-  return 'elige si será cita, entidad o momento'
-}
+// Alto (px) a partir del cual el texto de una captura se colapsa con un botón
+// sin palabras. Más corto que la nota (~6-7 líneas): una captura no debe
+// dominar la lista; lo extenso se promueve, no se lee entero acá.
+const COLLAPSED_MAX_PX = 168
 
 // Pixel transparente mientras el blob authed viaja (evita el icono roto).
 const TRANSPARENT_PX =
@@ -180,7 +186,19 @@ export function RecorteCard({
     (raw): raw is 'no' | 'yes' => raw === 'no' || raw === 'yes',
   )
   const [confirming, setConfirming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const hasImage = !!(r.imageKey || r.imageUrl)
+
+  // Colapso del cuerpo: igual que NoteCard, las capturas largas se recortan a
+  // unas pocas líneas y se abren con un botón sin palabras (chevron).
+  const [expanded, setExpanded] = useState(false)
+  const [overflowing, setOverflowing] = useState(false)
+  const bodyRef = useRef<HTMLParagraphElement>(null)
+  useLayoutEffect(() => {
+    const el = bodyRef.current
+    if (!el) return
+    setOverflowing(el.scrollHeight > COLLAPSED_MAX_PX + 12)
+  }, [r.text, r.captureMode])
 
   function onCurarClick() {
     if (curarConfirmed === 'yes') void handleOneTap()
@@ -353,12 +371,7 @@ export function RecorteCard({
   }
 
   return (
-    <li className="group relative card-paper-soft p-4 pt-3 transition-shadow hover:shadow-sm">
-      <div aria-hidden className="mb-2.5">
-        <div className="border-t-2 border-ink-700/60" />
-        <div className="mt-0.5 border-t border-ink-200" />
-      </div>
-
+    <li className="group relative card-paper-soft rounded-xl border border-ink-100/70 p-3.5 transition-shadow hover:shadow-sm">
       <RecorteMediaPreview recorte={r} host={host} />
 
       <div className="flex items-start justify-between gap-3">
@@ -379,25 +392,43 @@ export function RecorteCard({
         )}
       </div>
 
-      <p className="mt-1.5 whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700">
-        {r.captureMode === 'html' || r.captureMode === 'article'
-          ? markdownToPreview(r.text)
-          : `«${r.text}»`}
-      </p>
-
-      {r.note && <p className="mt-2 marginalia-script">{r.note}</p>}
-
-      {r.status === 'pending' && (
-        <div
-          aria-label="Siguiente curaduría"
-          className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-md border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)]/45 px-3 py-2"
+      <div className="relative">
+        <p
+          ref={bodyRef}
+          className="mt-1.5 overflow-hidden whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700"
+          style={overflowing && !expanded ? { maxHeight: COLLAPSED_MAX_PX } : undefined}
         >
-          <span className="text-micro uppercase tracking-eyebrow text-[color:var(--accent-gold)]">
-            pendiente de curaduría
-          </span>
-          <span className="text-caption text-ink-500">{curationCueFor(r)}</span>
+          {r.captureMode === 'html' || r.captureMode === 'article'
+            ? markdownToPreview(r.text)
+            : `«${r.text}»`}
+        </p>
+        {overflowing && !expanded && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-b from-transparent to-paper-100"
+          />
+        )}
+      </div>
+
+      {overflowing && (
+        <div className="mt-1 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Mostrar menos' : 'Leer la captura completa'}
+            title={expanded ? 'Mostrar menos' : 'Leer completa'}
+            className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700"
+          >
+            <ChevronDownIcon
+              size={16}
+              className={`transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+            />
+          </button>
         </div>
       )}
+
+      {r.note && <p className="mt-2 marginalia-script">{r.note}</p>}
 
       {confirming && (
         <div className="mt-2.5 rounded-md border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)] px-3 py-2">
@@ -427,16 +458,19 @@ export function RecorteCard({
 
       {suggestion && <SuggestionBanner suggestion={suggestion} onUse={useSuggestion} />}
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-3">
+      {/* Pie: enlace al original + acción principal (curar) y un menú ⋯ con el
+          resto de la triage. La cara queda tranquila; nada de fila de verbos. */}
+      <div className="mt-3 flex items-center gap-3">
         {r.sourceUrl && (
           <a
             href={r.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-micro hover:underline"
+            className="inline-flex items-center gap-1 text-micro hover:underline"
             style={{ color: 'var(--accent-primary)' }}
           >
-            ver original{host ? ` · ${host}` : ''}
+            ver original
+            <ArrowRightIcon size={10} className="-rotate-45" />
           </a>
         )}
         {r.status === 'promoted' && r.promotedTarget && (
@@ -445,53 +479,17 @@ export function RecorteCard({
           </span>
         )}
 
-        <span className="ml-auto flex items-center gap-3 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+        <div className="ml-auto flex items-center gap-1.5">
           {r.status === 'pending' && (
-            <>
-              <button
-                onClick={onCurarClick}
-                disabled={curating || promote.isPending}
-                className="inline-flex items-center gap-1 rounded-full border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)] px-2 py-0.5 text-micro font-medium text-[color:var(--accent-gold)] transition-colors hover:text-ink-700 disabled:opacity-50"
-                title="Deja que la IA elija el destino y lo cure en un toque"
-              >
-                <SparkleIcon size={11} />
-                {curating || promote.isPending ? 'curando…' : 'curar'}
-              </button>
-              {!suggestion && (
-                <button
-                  onClick={handleSuggest}
-                  disabled={suggest.isPending}
-                  className="inline-flex items-center gap-1 text-micro text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-50"
-                >
-                  {suggest.isPending ? 'pensando…' : 'sugerir'}
-                </button>
-              )}
-              {hasImage && (
-                <button
-                  onClick={handleOcr}
-                  disabled={ocrBusy}
-                  className="text-micro text-ink-400 hover:text-ink-700 transition-colors disabled:opacity-50"
-                  title="Reconocer el texto de la imagen"
-                >
-                  {ocrBusy ? 'leyendo…' : 'extraer texto'}
-                </button>
-              )}
-              {(['quote', 'entity', 'momento'] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => onPromote(r, t)}
-                  className="text-micro text-ink-400 hover:text-ink-700 transition-colors"
-                >
-                  → {TARGET_LABEL[t]}
-                </button>
-              ))}
-              <button
-                onClick={onArchive}
-                className="text-micro text-ink-400 hover:text-ink-700 transition-colors"
-              >
-                archivar
-              </button>
-            </>
+            <button
+              onClick={onCurarClick}
+              disabled={curating || promote.isPending}
+              className="inline-flex items-center gap-1 rounded-full border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)] px-2.5 py-0.5 text-micro font-medium text-[color:var(--accent-gold)] transition-colors hover:text-ink-700 disabled:opacity-50"
+              title="Deja que la IA elija el destino y lo cure en un toque"
+            >
+              <SparkleIcon size={11} />
+              {curating || promote.isPending ? 'curando…' : 'curar'}
+            </button>
           )}
           {r.status === 'archived' && (
             <button
@@ -501,13 +499,98 @@ export function RecorteCard({
               volver a pendientes
             </button>
           )}
-          <button
-            onClick={onDelete}
-            className="text-micro text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors"
+
+          <OverflowMenu
+            label="Acciones del recorte"
+            width="w-52"
+            triggerClassName="touch-target rounded p-1 text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700"
           >
-            eliminar
-          </button>
-        </span>
+            {(close) => (
+              <>
+                {r.status === 'pending' && (
+                  <>
+                    <OverflowMenuItem
+                      onClick={() => {
+                        onPromote(r, 'quote')
+                        close()
+                      }}
+                    >
+                      <QuoteIcon size={13} /> → cita
+                    </OverflowMenuItem>
+                    <OverflowMenuItem
+                      onClick={() => {
+                        onPromote(r, 'entity')
+                        close()
+                      }}
+                    >
+                      <EntitiesIcon size={13} /> → entidad
+                    </OverflowMenuItem>
+                    <OverflowMenuItem
+                      onClick={() => {
+                        onPromote(r, 'momento')
+                        close()
+                      }}
+                    >
+                      <MomentosIcon size={13} /> → momento
+                    </OverflowMenuItem>
+                    {!suggestion && (
+                      <OverflowMenuItem
+                        onClick={() => {
+                          void handleSuggest()
+                          close()
+                        }}
+                        disabled={suggest.isPending}
+                      >
+                        <SparkleIcon size={13} />{' '}
+                        {suggest.isPending ? 'pensando…' : 'sugerir destino'}
+                      </OverflowMenuItem>
+                    )}
+                    {hasImage && (
+                      <OverflowMenuItem
+                        onClick={() => {
+                          void handleOcr()
+                          close()
+                        }}
+                        disabled={ocrBusy}
+                      >
+                        <TextIcon size={13} /> {ocrBusy ? 'leyendo…' : 'extraer texto'}
+                      </OverflowMenuItem>
+                    )}
+                    <OverflowMenuItem
+                      onClick={() => {
+                        onArchive()
+                        close()
+                      }}
+                    >
+                      Archivar
+                    </OverflowMenuItem>
+                  </>
+                )}
+
+                {deleting ? (
+                  <>
+                    <OverflowMenuItem
+                      danger
+                      onClick={() => {
+                        onDelete()
+                        close()
+                      }}
+                    >
+                      <TrashIcon size={13} /> Sí, eliminar
+                    </OverflowMenuItem>
+                    <OverflowMenuItem onClick={() => setDeleting(false)}>
+                      Cancelar
+                    </OverflowMenuItem>
+                  </>
+                ) : (
+                  <OverflowMenuItem danger onClick={() => setDeleting(true)}>
+                    <TrashIcon size={13} /> Eliminar
+                  </OverflowMenuItem>
+                )}
+              </>
+            )}
+          </OverflowMenu>
+        </div>
       </div>
     </li>
   )

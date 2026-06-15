@@ -6,7 +6,6 @@ import { NotasFeedView } from './NotasFeedView'
 import { NotasMobileTabs, NotasSidebar, NotasTopBar, SECTIONS } from './NotasWorldChrome'
 import { PromptsView } from './PromptsView'
 import { TareasView } from './TareasView'
-import RecortesArea from '../RecortesArea'
 import { useModuleVisibility } from '../../hooks/useModuleVisibility'
 import { useClampedSection } from '../../hooks/useClampedSection'
 import { useTheme } from '../../hooks/useTheme'
@@ -125,7 +124,6 @@ export function NotasWorld({
                 >
                   {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
                   {section === 'notas' && <NotasFeedView />}
-                  {section === 'bandeja' && <RecortesArea />}
                   {section === 'tareas' && <TareasView />}
                   {section === 'prompts' && <PromptsView />}
                   {section === 'claves' && <ClavesView />}

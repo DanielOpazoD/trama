@@ -84,7 +84,7 @@ describe('<MobileBottomNav />', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Más vistas' }))
 
     // La hoja (portal) lista las vistas no-primarias. Recortes ya no figura:
-    // se mudó al mundo Notas como la sección "bandeja".
+    // sus capturas se mudaron al feed unificado del mundo Notas.
     const dialog = screen.getByRole('dialog', { name: /Más vistas/i })
     expect(dialog).toBeInTheDocument()
     for (const v of [

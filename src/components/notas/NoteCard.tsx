@@ -1,8 +1,10 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useLayoutEffect, useRef, useState } from 'react'
 import type { Note } from '../../api'
 import { renderMarkdown } from './markdown'
+import { MarkdownField } from './MarkdownField'
 import {
   CameraIcon,
+  ChevronDownIcon,
   FileIcon,
   MomentosIcon,
   PencilIcon,
@@ -16,6 +18,12 @@ import { AttachmentPhotos } from './AttachmentPhotos'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { useToast, useUploadNotasAttachment } from '../../state'
 import { compressImage } from '../../lib/imageCompression'
+
+// Lazy: la superficie de escritura enfocada (overlay fullscreen + serif) solo
+// se descarga cuando el usuario la abre, así no infla el chunk de NotasWorld.
+const FocusedWriting = lazy(() =>
+  import('./FocusedWriting').then((m) => ({ default: m.FocusedWriting })),
+)
 
 // Tono único del mundo Notas: el primario (--accent-primary), remapeado a
 // salvia por world-notas. No hardcodear el salvia (un solo sistema de tono).
@@ -67,6 +75,7 @@ export function NoteCard({
   const [showFiles, setShowFiles] = useState(false)
   const [draft, setDraft] = useState(note.content)
   const [titleDraft, setTitleDraft] = useState(note.title ?? '')
+  const [focusMode, setFocusMode] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [overflowing, setOverflowing] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -151,15 +160,16 @@ export function NoteCard({
           aria-label="Título de la nota (opcional)"
           className="w-full bg-transparent font-serif text-lead text-ink-800 placeholder:font-sans placeholder:not-italic placeholder:text-ink-300 mb-1.5"
         />
-        <textarea
-          ref={editRef}
+        <MarkdownField
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={setDraft}
+          textareaRef={editRef}
           onKeyDown={onEditKey}
           rows={4}
           autoFocus
           aria-label="Contenido de la nota"
-          className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed"
+          onRequestFocusMode={() => setFocusMode(true)}
+          className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed pr-8"
         />
         <div className="mt-2 flex items-center justify-end gap-2">
           <button onClick={() => setEditing(false)} className="btn-ghost text-xs">
@@ -173,6 +183,18 @@ export function NoteCard({
             guardar
           </button>
         </div>
+
+        {focusMode && (
+          <Suspense fallback={null}>
+            <FocusedWriting
+              value={draft}
+              onChange={setDraft}
+              title={titleDraft}
+              onTitleChange={setTitleDraft}
+              onClose={() => setFocusMode(false)}
+            />
+          </Suspense>
+        )}
       </article>
     )
   }
@@ -202,13 +224,21 @@ export function NoteCard({
       </div>
 
       {overflowing && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-1 text-micro uppercase tracking-eyebrow text-ink-400 transition-colors hover:text-ink-700"
-        >
-          {expanded ? 'leer menos' : 'leer más'}
-        </button>
+        <div className="mt-1.5 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Mostrar menos' : 'Leer la nota completa'}
+            title={expanded ? 'Mostrar menos' : 'Leer completa'}
+            className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700"
+          >
+            <ChevronDownIcon
+              size={16}
+              className={`transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+            />
+          </button>
+        </div>
       )}
 
       {/* Fila de afordancia: estado (fijada/fotos) + acciones rápidas al hover + menú. */}

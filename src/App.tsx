@@ -40,7 +40,7 @@ import { SectionAccentBand } from './components/SectionAccentBand'
 import { FocusModeExitButton } from './components/FocusModeExitButton'
 import { ShellOverlays } from './components/ShellOverlays'
 import { MomentoNotificationsCenter } from './components/momentos/MomentoNotificationsCenter'
-// NotasWorld es un mundo entero (feed unificado, Bandeja, PDF Studio, ajustes):
+// NotasWorld es un mundo entero (feed unificado, PDF Studio, ajustes):
 // se carga con lazy para no inflar el bundle `index` del mundo Trama, que es la
 // primera pantalla. El usuario sólo lo descarga al conmutar al mundo Notas.
 const NotasWorld = lazy(() =>
@@ -500,8 +500,9 @@ function readNotasSectionDeepLink(): NotasSection | null {
 /**
  * τ-recortes-merge: los enlaces viejos `?view=recortes` apuntaban a la vista
  * top-level Recortes (ya removida). Antes de resolver mundo/sección iniciales,
- * reescribimos la URL a `?world=notas&section=bandeja` (preservando tab/project)
- * para que el resto del arranque lea los params nuevos — sin flash del mundo
+ * reescribimos la URL al feed unificado `?world=notas&section=notas` (mapeando
+ * tab=favoritos → segment=favoritos) para que el resto del arranque lea los
+ * params nuevos — sin flash del mundo
  * trama. Corre UNA sola vez (guard de módulo): el redirect depende solo de la
  * URL de arranque, así que no debe re-evaluarse en cada render de WorldShell.
  */

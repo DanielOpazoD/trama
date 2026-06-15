@@ -155,7 +155,7 @@ test('a11y: EntitiesView sin violaciones', async ({ page }) => {
   expect(results.violations).toEqual([])
 })
 
-test('a11y: RecortesView con guía de curaduría sin violaciones', async ({ page }) => {
+test('a11y: recorte en el feed de Notas sin violaciones', async ({ page }) => {
   await skipSplash(page)
   await mockBackend(page, emptyState())
   await page.route(
@@ -167,11 +167,12 @@ test('a11y: RecortesView con guía de curaduría sin violaciones', async ({ page
         body: JSON.stringify([SAMPLE_RECORTE]),
       }),
   )
-  await page.goto('/?world=notas&section=bandeja')
+  await page.goto('/?world=notas&section=notas')
   await page
-    .getByRole('heading', { name: 'Recortes', level: 2 })
+    .getByRole('heading', { name: 'Notas', level: 2 })
     .waitFor({ timeout: 10_000 })
-  await page.getByLabel('Siguiente curaduría').waitFor({ timeout: 10_000 })
+  // El recorte pendiente se renderiza en el feed con su acción de curaduría.
+  await page.getByRole('button', { name: 'curar' }).waitFor({ timeout: 10_000 })
   await page.waitForTimeout(400)
 
   const results = await new AxeBuilder({ page })
@@ -179,7 +180,7 @@ test('a11y: RecortesView con guía de curaduría sin violaciones', async ({ page
     .withTags(A11Y_TAGS)
     .analyze()
   if (results.violations.length > 0) {
-    console.log('Violaciones en RecortesView:')
+    console.log('Violaciones en el feed de Notas (recorte):')
     for (const v of results.violations) {
       console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
     }

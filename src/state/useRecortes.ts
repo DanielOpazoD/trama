@@ -6,7 +6,7 @@
  * aparezca sin recargar.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, type PromoteRecorteInput } from '../api'
+import { api, type PromoteRecorteInput, type Recorte } from '../api'
 import { queryKeys } from './queryClient'
 import { useToast } from './toast'
 
@@ -127,7 +127,23 @@ export function useUpdateRecorte() {
       id: string
       patch: { text?: string; note?: string | null; status?: 'pending' | 'archived' }
     }) => api.updateRecorte(id, patch),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.recortes }),
+    // Optimista: archivar/restaurar mueve la captura de bucket al instante (sin
+    // parpadeo entre filtros de estado); rollback al snapshot previo si falla.
+    onMutate: async ({ id, patch }) => {
+      await qc.cancelQueries({ queryKey: queryKeys.recortes })
+      const prev = qc.getQueryData<Recorte[]>(queryKeys.recortes)
+      if (prev) {
+        qc.setQueryData<Recorte[]>(
+          queryKeys.recortes,
+          prev.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+        )
+      }
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(queryKeys.recortes, ctx.prev)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.recortes }),
   })
 }
 
@@ -162,6 +178,24 @@ export function usePromoteRecorte() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: PromoteRecorteInput }) =>
       api.promoteRecorte(id, input),
+    // Optimista: la captura pasa a 'promoted' con su destino al instante, así
+    // sale de Pendientes y muestra «→ destino» sin esperar al servidor.
+    onMutate: async ({ id, input }) => {
+      await qc.cancelQueries({ queryKey: queryKeys.recortes })
+      const prev = qc.getQueryData<Recorte[]>(queryKeys.recortes)
+      if (prev) {
+        qc.setQueryData<Recorte[]>(
+          queryKeys.recortes,
+          prev.map((r) =>
+            r.id === id ? { ...r, status: 'promoted', promotedTarget: input.target } : r,
+          ),
+        )
+      }
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(queryKeys.recortes, ctx.prev)
+    },
     onSuccess: (_data, { input }) => {
       const { target } = input
       qc.invalidateQueries({ queryKey: queryKeys.recortes })

@@ -104,6 +104,7 @@ export {
   type CaptureItem,
   type NotasFeedFilter,
   type NotasFeedSegment,
+  type RecorteStatusFilter,
 } from './useNotasFeed'
 export {
   useReadingTablesQuery,

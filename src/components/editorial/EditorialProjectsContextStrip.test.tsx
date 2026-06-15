@@ -33,7 +33,7 @@ describe('<EditorialProjectsContextStrip />', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('enlaza proyectos abiertos hacia Notas > Bandeja > Mesa', () => {
+  it('enlaza proyectos abiertos hacia el feed de Notas', () => {
     mocks.projects = [
       project('p1', 'Ensayo abierto', 'borrador'),
       project('p2', 'Proyecto cerrado', 'cerrado'),
@@ -43,10 +43,7 @@ describe('<EditorialProjectsContextStrip />', () => {
 
     expect(screen.getByText('Materiales relacionados')).toBeInTheDocument()
     const link = screen.getByRole('link', { name: /Ensayo abierto/i })
-    expect(link).toHaveAttribute(
-      'href',
-      '/?world=notas&section=bandeja&tab=mesa&project=p1',
-    )
+    expect(link).toHaveAttribute('href', '/?world=notas&section=notas')
     expect(screen.queryByText('Proyecto cerrado')).not.toBeInTheDocument()
   })
 })

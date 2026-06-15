@@ -291,6 +291,29 @@ export const BoldIcon = ({ size = 12, className }: Props) => (
   </svg>
 )
 
+/* "I" inclinada — cursiva. */
+export const ItalicIcon = ({ size = 12, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M19 5h-6M11 19H5M15 5L9 19" />
+  </svg>
+)
+
+/* Eslabón de cadena — insertar enlace. */
+export const LinkIcon = ({ size = 12, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1" />
+    <path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1" />
+  </svg>
+)
+
+/* Flechas a las cuatro esquinas — expandir a pantalla completa (escritura
+   enfocada). Sigue la "house weight" 1.6 como el resto de los icons UI. */
+export const ExpandIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4" />
+  </svg>
+)
+
 /* Flecha circular — acción "regenerar / actualizar". */
 export const RefreshIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

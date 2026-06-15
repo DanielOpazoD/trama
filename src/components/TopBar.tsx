@@ -33,7 +33,6 @@ const TITLES: Record<ViewMode, { title: string; subtitle?: string }> = {
   atlas: { title: 'Atlas', subtitle: 'constelaciones de tu trama' },
   chat: { title: 'Chat', subtitle: 'conversa con tu trama' },
   sugerencias: { title: 'Sugerencias', subtitle: 'propuestas de la IA' },
-  consultas: { title: 'Consultas', subtitle: 'pregúntale a tu trama' },
 }
 
 export type TopBarTab = { value: string; label: string }
