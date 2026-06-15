@@ -23,6 +23,7 @@ import { persistCapture } from './_lib/whatsapp/persist.js'
 import {
   persistImageRecorte,
   persistImageMomentoEpisode,
+  persistVoiceNoteAttachment,
 } from './_lib/whatsapp/persist-media.js'
 import {
   parseInboundMedia,
@@ -572,6 +573,24 @@ async function handleInboundMedia(
         )
         if (intent) {
           const r = await persistCapture(sql, userId, intent)
+          // Conservamos el audio como anexo de la nota para poder re-escucharlo.
+          // Best-effort: si falla, la nota transcrita ya quedó guardada.
+          if (r.id) {
+            try {
+              await persistVoiceNoteAttachment(
+                sql,
+                userId,
+                r.id,
+                buffer,
+                contentType || item.contentType,
+              )
+            } catch (audioErr) {
+              logEvent({
+                event: 'whatsapp_voice_audio_failed',
+                message: audioErr instanceof Error ? audioErr.message : String(audioErr),
+              })
+            }
+          }
           lastId = r.id
           lastKind = intent.kind
           saved += 1

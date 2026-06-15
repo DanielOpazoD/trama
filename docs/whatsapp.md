@@ -97,7 +97,11 @@ imagen como Recorte** (nunca se pierde lo enviado) y se avisa. Emite
 
 **Audio (notas de voz).** Si el adjunto es audio (`audio/ogg` opus de WhatsApp,
 mp3, m4a, etc. — los formatos que acepta Whisper; `amr`/`3gpp` quedan fuera y se
-avisa), se **transcribe** y se guarda como **Nota**. La transcripción es
+avisa), se **transcribe** y se guarda como **Nota**. El audio original se
+**conserva** como anexo de esa nota (`notas_attachments`, store
+`notas-attachments`, vía `persistVoiceNoteAttachment`), así se puede
+**re-escuchar** desde la tarjeta (la nota trae `hasAudio`, espejo de `hasImages`,
+y `NoteCard` monta un reproductor `AttachmentAudio`). La transcripción es
 **OpenAI-only** (Whisper, `/audio/transcriptions`): `askLLMForTranscription`
 (`_lib/llm/`) resuelve la key de OpenAI (con fallback a `AI_API_KEY`); si no hay
 key, sin presupuesto (`checkMonthlyBudget`) o la transcripción falla, **no se

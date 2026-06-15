@@ -15,6 +15,7 @@ import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { AttachmentsPanel } from './AttachmentsPanel'
 import { AttachmentPhotos } from './AttachmentPhotos'
+import { AttachmentAudio } from './AttachmentAudio'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { useToast, useUploadNotasAttachment } from '../../state'
 import { compressImage } from '../../lib/imageCompression'
@@ -240,6 +241,8 @@ export function NoteCard({
           </button>
         </div>
       )}
+
+      {note.hasAudio && <AttachmentAudio ownerType="note" ownerId={note.id} />}
 
       {/* Fila de afordancia: estado (fijada/fotos) + acciones rápidas al hover + menú. */}
       <div className="mt-2 flex items-center justify-end gap-1.5">

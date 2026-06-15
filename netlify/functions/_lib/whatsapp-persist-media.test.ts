@@ -1,9 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { SqlClient } from './db'
+
+const { blobStore } = vi.hoisted(() => ({ blobStore: { set: vi.fn() } }))
+vi.mock('@netlify/blobs', () => ({ getStore: vi.fn(() => blobStore) }))
+
 import {
   persistImageRecorte,
   persistImageMomento,
   persistImageMomentoEpisode,
+  persistVoiceNoteAttachment,
 } from './whatsapp/persist-media'
 
 /**
@@ -113,5 +118,25 @@ describe('persistImageMomentoEpisode', () => {
     await expect(persistImageMomentoEpisode(sql, 'u1', ['u1/x.jpg'], '')).rejects.toThrow(
       /id/,
     )
+  })
+})
+
+describe('persistVoiceNoteAttachment', () => {
+  it('sube el audio y lo inserta como anexo de audio de la nota', async () => {
+    blobStore.set.mockClear()
+    const { sql, calls } = fakeSql([])
+    await persistVoiceNoteAttachment(
+      sql,
+      'u1',
+      'note-9',
+      new ArrayBuffer(120),
+      'audio/ogg',
+    )
+    expect(blobStore.set).toHaveBeenCalledTimes(1)
+    // Valores interpolados: id de la nota, mime de audio, tamaño y userId.
+    expect(calls[0]).toContain('note-9')
+    expect(calls[0]).toContain('audio/ogg')
+    expect(calls[0]).toContain(120)
+    expect(calls[0]).toContain('u1')
   })
 })

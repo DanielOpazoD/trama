@@ -51,9 +51,15 @@ export function demoMediaResponse(url: string): Response | null {
       headers: { 'Content-Type': 'audio/wav' },
     })
   }
-  // Anexos de Notas/Tareas en modo prueba: cualquier key sirve el placeholder
-  // (no hay blobs reales), así la tira de fotos se ve en vez de quedar rota.
+  // Anexos de Notas/Tareas en modo prueba: cualquier key sirve un placeholder.
+  // Si la key parece audio (nota de voz), servimos un WAV silencioso para que el
+  // reproductor funcione; si no, el SVG de foto.
   if (path.startsWith('/api/notas-attachments-file/')) {
+    if (/\.(wav|ogg|oga|mp3|m4a|aac|webm|flac)$/i.test(path)) {
+      return new Response(silentWav().buffer as ArrayBuffer, {
+        headers: { 'Content-Type': 'audio/wav' },
+      })
+    }
     return new Response(DEMO_PHOTO_SVG, {
       headers: { 'Content-Type': 'image/svg+xml' },
     })

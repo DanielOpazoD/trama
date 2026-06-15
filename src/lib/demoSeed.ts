@@ -229,7 +229,20 @@ export function buildSeed(): Store {
     origin: manual,
     ...ts(d),
   })
+  // Nota de voz transcrita por WhatsApp: trae su audio adjunto re-escuchable.
+  const voiceNoteId = uid()
+  const voiceNote: Row = {
+    id: voiceNoteId,
+    content: 'Acordarme de comprar pan y leche camino a casa.',
+    tags: parseTags('Acordarme de comprar pan y leche camino a casa.'),
+    pinned: false,
+    promoted_momento_id: null,
+    origin: manual,
+    source: 'whatsapp',
+    ...ts(0),
+  }
   const notes: Row[] = [
+    voiceNote,
     note('Idea para el ensayo sobre #memoria y olvido en Borges.', 1, true),
     note('Releer el final de #Rayuela — el tablero y los puentes.', 2),
     note('Comprar la edición anotada de #Ficciones.', 4),
@@ -409,7 +422,18 @@ export function buildSeed(): Store {
     tasks,
     prompts: [],
     secrets: [],
-    notas_attachments: [],
+    notas_attachments: [
+      {
+        id: uid(),
+        owner_type: 'note',
+        owner_id: voiceNoteId,
+        file_name: 'nota-de-voz.wav',
+        mime_type: 'audio/ogg',
+        byte_size: 12000,
+        storage_key: 'demo/voz.wav',
+        ...ts(0),
+      },
+    ],
     recortes,
     favoritos,
     'reading-tables': readingTables,

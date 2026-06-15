@@ -42,6 +42,7 @@ type NoteRow = {
   created_at: string
   updated_at: string
   has_images: boolean
+  has_audio: boolean
 }
 
 type RecorteRow = {
@@ -150,7 +151,15 @@ export default withObservability(
                   AND na.owner_id = notes.id::text
                   AND na.mime_type LIKE 'image/%'
                   AND na.deleted_at IS NULL
-              ) AS has_images
+              ) AS has_images,
+              EXISTS(
+                SELECT 1 FROM notas_attachments na
+                WHERE na.user_id = notes.user_id
+                  AND na.owner_type = 'note'
+                  AND na.owner_id = notes.id::text
+                  AND na.mime_type LIKE 'audio/%'
+                  AND na.deleted_at IS NULL
+              ) AS has_audio
             FROM notes
             WHERE deleted_at IS NULL AND user_id = ${userId}
               AND id = ANY(${noteIds}::uuid[])

@@ -25,6 +25,19 @@ function findLive(rows: Row[], id: string): Row | undefined {
   return rows.find((r) => r.id === id && !r.deleted_at)
 }
 
+/** Espejo de los EXISTS del backend: ¿la nota tiene anexos de imagen / audio? */
+function noteAttachmentFlags(
+  store: Store,
+  noteId: string,
+): { has_images: boolean; has_audio: boolean } {
+  const own = store.notas_attachments.filter(
+    (a) => a.owner_type === 'note' && a.owner_id === noteId && !a.deleted_at,
+  )
+  const mimeStarts = (prefix: string) =>
+    own.some((a) => typeof a.mime_type === 'string' && a.mime_type.startsWith(prefix))
+  return { has_images: mimeStarts('image/'), has_audio: mimeStarts('audio/') }
+}
+
 function aiOff(): never {
   throw new Error('La IA está desactivada en el modo prueba.')
 }
@@ -342,19 +355,23 @@ export function routeDemoRequest(
       }))
     }
 
-    // Notas: enriquecer con has_images (espejo del EXISTS image/% del backend).
+    // Notas: enriquecer con has_images/has_audio (espejo de los EXISTS del backend).
     if (resource === 'notes' && method === 'GET' && !id) {
       return live(rows).map((n) => ({
         ...n,
-        has_images: store.notas_attachments.some(
-          (a) =>
-            a.owner_type === 'note' &&
-            a.owner_id === n.id &&
-            typeof a.mime_type === 'string' &&
-            a.mime_type.startsWith('image/') &&
-            !a.deleted_at,
-        ),
+        ...noteAttachmentFlags(store, String(n.id)),
       }))
+    }
+
+    // Anexos: el endpoint real filtra por owner; el listOrPage genérico no, así
+    // que filtramos acá para que cada nota/tarea vea solo sus anexos.
+    if (resource === 'notas-attachments' && method === 'GET' && !id) {
+      const ownerType = params.get('ownerType')
+      const ownerId = params.get('ownerId')
+      const filtered = live(store.notas_attachments).filter(
+        (a) => a.owner_type === ownerType && a.owner_id === ownerId,
+      )
+      return listOrPage(filtered, params)
     }
 
     // CRUD estándar
@@ -556,7 +573,7 @@ export function routeDemoRequest(
             id: String(n.id),
             createdAt: created,
             sort: created,
-            note: n,
+            note: { ...n, ...noteAttachmentFlags(store, String(n.id)) },
           })
         }
       }

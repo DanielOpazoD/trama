@@ -58,6 +58,17 @@ const REQUIRED = {
   ],
   notes: ['id', 'content', 'title', 'tags', 'pinned', 'source', 'user_id', 'deleted_at'],
   tasks: ['id', 'title', 'detail', 'tags', 'origin', 'user_id', 'deleted_at'],
+  // Las notas de voz se guardan como anexo de la nota (re-escuchable).
+  notas_attachments: [
+    'owner_type',
+    'owner_id',
+    'file_name',
+    'mime_type',
+    'byte_size',
+    'storage_key',
+    'user_id',
+    'deleted_at',
+  ],
   momentos: ['id', 'kind', 'payload', 'note', 'origin', 'user_id', 'deleted_at'],
   entities: [
     'id',

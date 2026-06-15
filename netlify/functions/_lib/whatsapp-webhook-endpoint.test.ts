@@ -152,6 +152,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // UPDATE last_message_at
     mockSqlResponses.push([]) // INSERT extraction_log (registro de costo)
     mockSqlResponses.push([{ id: 'n9' }]) // INSERT notes RETURNING id
+    mockSqlResponses.push([]) // INSERT notas_attachments (audio re-escuchable)
     mockSqlResponses.push([]) // recordLastCapture
 
     const res = await webhookHandler(
@@ -168,6 +169,12 @@ describe('whatsapp-webhook', () => {
 
     expect(res.status).toBe(200)
     expect(askLLMForTranscription).toHaveBeenCalledTimes(1)
+    // El audio se conserva como anexo de la nota (re-escuchable).
+    expect(
+      mockSqlResponses.calls.some((c) =>
+        /INSERT INTO notas_attachments/i.test(c.template),
+      ),
+    ).toBe(true)
     const xml = await res.text()
     expect(xml).toContain('Notas') // guardado en Notas
     expect(xml).toContain('world=notas') // deep link

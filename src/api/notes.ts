@@ -20,6 +20,8 @@ export type Note = {
   /** ¿Tiene imágenes adjuntas? Derivado server-side (EXISTS) para evitar una
    *  consulta de anexos por nota al pintar la lista. */
   hasImages: boolean
+  /** ¿Tiene audio adjunto (nota de voz)? Mismo patrón EXISTS que hasImages. */
+  hasAudio: boolean
 }
 
 export type NoteRow = {
@@ -33,6 +35,7 @@ export type NoteRow = {
   created_at: string
   updated_at: string
   has_images?: boolean | null
+  has_audio?: boolean | null
 }
 
 export function noteFromRow(r: NoteRow): Note {
@@ -47,6 +50,7 @@ export function noteFromRow(r: NoteRow): Note {
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     hasImages: r.has_images ?? false,
+    hasAudio: r.has_audio ?? false,
   }
 }
 

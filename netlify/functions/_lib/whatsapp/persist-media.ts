@@ -1,5 +1,7 @@
+import { getStore } from '@netlify/blobs'
 import { sqlTyped, type SqlClient } from '../db.js'
 import { WHATSAPP_ORIGIN, type CaptureResult } from './persist.js'
+import { audioExtFromMime } from './media.js'
 
 /**
  * Persistencia de media de WhatsApp. Las imágenes ya tienen casa:
@@ -85,4 +87,43 @@ export async function persistImageMomentoEpisode(
       n === 1 ? '📷 Foto añadida a Momentos.' : `📷 ${n} fotos añadidas a Momentos.`,
     id,
   }
+}
+
+function randomHex(): string {
+  const arr = new Uint8Array(16)
+  crypto.getRandomValues(arr)
+  return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * Guarda el audio de una nota de voz como ANEXO de la nota recién transcrita
+ * (tabla `notas_attachments`, store `notas-attachments`), para poder
+ * re-escucharlo desde la tarjeta. A diferencia de las fotos —donde el webhook
+ * ya subió el blob—, acá subimos el blob y guardamos la fila en un paso, porque
+ * el anexo cuelga del id de la nota (que recién existe tras persistir la nota).
+ *
+ * Best-effort por diseño: el caller lo envuelve en try/catch — si falla, la
+ * nota transcrita ya quedó guardada; solo se pierde el audio re-escuchable.
+ */
+export async function persistVoiceNoteAttachment(
+  sql: SqlClient,
+  userId: string,
+  noteId: string,
+  audio: ArrayBuffer,
+  mime: string,
+): Promise<void> {
+  const ext = audioExtFromMime(mime)
+  const fileName = `nota-de-voz.${ext}`
+  const storageKey = `${userId}/${randomHex()}.${ext}`
+  await getStore('notas-attachments').set(storageKey, audio, {
+    metadata: { mime, size: String(audio.byteLength), name: fileName },
+  })
+  await sqlTyped(sql`
+    INSERT INTO notas_attachments (
+      owner_type, owner_id, file_name, mime_type, byte_size, storage_key, user_id
+    )
+    VALUES (
+      'note', ${noteId}, ${fileName}, ${mime}, ${audio.byteLength}, ${storageKey}, ${userId}
+    )
+  `)
 }
