@@ -171,8 +171,11 @@ test('a11y: recorte en el feed de Notas sin violaciones', async ({ page }) => {
   await page
     .getByRole('heading', { name: 'Notas', level: 2 })
     .waitFor({ timeout: 10_000 })
-  // El recorte pendiente se renderiza en el feed con su acción de curaduría.
-  await page.getByRole('button', { name: 'curar' }).waitFor({ timeout: 10_000 })
+  // El recorte pendiente se renderiza en el feed con su menú de acciones ⋯.
+  await page
+    .getByRole('button', { name: 'Acciones del recorte' })
+    .first()
+    .waitFor({ timeout: 10_000 })
   await page.waitForTimeout(400)
 
   const results = await new AxeBuilder({ page })

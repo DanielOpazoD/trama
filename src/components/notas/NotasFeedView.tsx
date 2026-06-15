@@ -267,14 +267,16 @@ export function NotasFeedView() {
     }
   }
 
-  /** Pegar una imagen (sin texto acompañante) la captura como recorte. */
+  /** Pegar imagen(es) las adjunta a la nota en curso (anexos pendientes), no
+   *  las captura como recorte suelto — el pegado acompaña lo que se escribe.
+   *  (Soltar una imagen sí crea un recorte; ver onComposerDrop.) */
   function onComposerPaste(e: React.ClipboardEvent) {
     const images = Array.from(e.clipboardData.files).filter((f) =>
       f.type.startsWith('image/'),
     )
-    if (images.length > 0 && e.clipboardData.getData('text').trim() === '') {
+    if (images.length > 0) {
       e.preventDefault()
-      captureImageFiles(images)
+      setPendingFiles((prev) => [...prev, ...images])
     }
   }
 

@@ -127,8 +127,7 @@ describe('<NotasFeedView />', () => {
     expect(screen.getByRole('button', { name: 'Guardar nota' })).toBeInTheDocument()
   })
 
-  it('al pegar una imagen, la captura como recorte (sube y crea)', async () => {
-    const fetchMock = stubFeedFetch()
+  it('al pegar una imagen, la adjunta a la nota (anexo pendiente, no recorte)', async () => {
     renderWithProviders(<NotasFeedView />)
 
     const composer = screen.getByPlaceholderText(/Escribe una nota/)
@@ -137,32 +136,15 @@ describe('<NotasFeedView />', () => {
       clipboardData: { files: [file], getData: () => '' },
     })
 
-    // Sube la imagen y luego crea el recorte con la imageKey resultante.
-    await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.some(([u]) => String(u).includes('recortes-image-upload')),
-      ).toBe(true),
-    )
-    await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.some(
-          ([u, init]) => String(u) === '/api/recortes' && init?.method === 'POST',
-        ),
-      ).toBe(true),
-    )
-
-    // El imageKey que devolvió la subida viaja en el body del create.
-    const createCall = fetchMock.mock.calls.find(
-      ([u, init]) => String(u) === '/api/recortes' && init?.method === 'POST',
-    )
-    const body = JSON.parse(createCall?.[1]?.body as string)
-    expect(body).toMatchObject({ imageKey: 'u/shot.webp', captureMode: 'image' })
+    // La imagen aparece como anexo pendiente de la nota, no como recorte suelto.
+    expect(await screen.findByText('shot.png')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Quitar anexo pendiente' }),
+    ).toBeInTheDocument()
   })
 
-  it('lazo completo: curar (con confirmación de primer uso) promueve y Deshacer revierte', async () => {
-    localStorage.clear()
+  it('triage por menú ⋯: «→ momento» abre el modal de promoción prellenado', async () => {
     const user = userEvent.setup()
-    const fetchMock = stubFeedFetch()
     renderWithProviders(
       <>
         <NotasFeedView />
@@ -172,35 +154,16 @@ describe('<NotasFeedView />', () => {
 
     await screen.findByText(/Una cita capturada de la web/)
 
-    // Primer uso de «curar»: pide confirmación antes de crear.
-    await user.click(screen.getByRole('button', { name: 'curar' }))
-    await user.click(screen.getByRole('button', { name: 'Sí, curar' }))
+    // La curaduría vive en el menú ⋯ (ya no hay botón «curar»).
+    expect(screen.queryByRole('button', { name: 'curar' })).not.toBeInTheDocument()
 
-    // Pide la sugerencia y promueve directo (target momento, no requiere datos).
-    await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.some(
-          ([u, i]) => String(u).includes('/suggest') && i?.method === 'POST',
-        ),
-      ).toBe(true),
-    )
-    await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.some(
-          ([u, i]) => String(u).includes('/promote') && i?.method === 'POST',
-        ),
-      ).toBe(true),
-    )
+    await user.click(screen.getByRole('button', { name: 'Acciones del recorte' }))
+    await user.click(screen.getByRole('menuitem', { name: /→ momento/ }))
 
-    // El toast de éxito ofrece Deshacer, que revierte vía /unpromote.
-    await user.click(await screen.findByRole('button', { name: 'Deshacer' }))
-    await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.some(
-          ([u, i]) => String(u).includes('/unpromote') && i?.method === 'POST',
-        ),
-      ).toBe(true),
-    )
+    // Se abre el modal de promoción (no promueve directo: el usuario confirma).
+    expect(
+      await screen.findByRole('dialog', { name: 'Promover a momento' }),
+    ).toBeInTheDocument()
   })
 
   it("el segmento 'Escritas' oculta los recortes", async () => {

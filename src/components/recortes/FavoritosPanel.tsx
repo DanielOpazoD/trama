@@ -1,59 +1,20 @@
 import { useState } from 'react'
 import { useDeleteFavorito, useFavoritosQuery, useUpdateFavorito } from '../../state'
 import type { Favorito } from '../../api'
-import { ViewHeader } from '../ViewHeader'
 import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
-import { PencilIcon, PinIcon } from '../Icons'
+import { PencilIcon } from '../Icons'
 import { hostOf, LinkMediaPreview } from './LinkMediaPreview'
+import { youtubeThumb } from '../../lib/youtubeThumb'
 
 /**
  * Favoritos — páginas marcadas para volver. Entidad propia, separada de la
  * bandeja de recortes: acá no se cura nada al grafo, solo se guardan
- * marcadores (favicon + título + enlace + nota). Pestaña hermana de Recortes.
+ * marcadores (título + enlace + nota, y miniatura si es un video).
+ *
+ * Se renderiza SIEMPRE embebido dentro del feed de Notas (segmento Favoritos),
+ * así que no trae su propio ViewHeader — el título de la vista «Notas» manda.
  */
-
-/**
- * Si la URL es un video de YouTube, devuelve su miniatura. Trama no guarda la
- * imagen: la deriva del id del video, así funciona retroactivamente con los
- * favoritos ya marcados. Soporta watch, youtu.be, shorts, live, embed y links
- * intermedios de YouTube.
- */
-export function youtubeThumb(url: string): string | null {
-  try {
-    const u = new URL(url)
-    const host = u.hostname.replace(/^www\./, '')
-    let id: string | null = null
-    if (host === 'youtu.be') id = u.pathname.slice(1)
-    else if (
-      host === 'youtube.com' ||
-      host === 'm.youtube.com' ||
-      host === 'music.youtube.com' ||
-      host === 'youtube-nocookie.com'
-    ) {
-      if (u.pathname === '/attribution_link') {
-        const nested = u.searchParams.get('u')
-        if (nested)
-          return youtubeThumb(new URL(nested, 'https://www.youtube.com').toString())
-      }
-      id = u.searchParams.get('v')
-      if (!id) {
-        const parts = u.pathname.split('/').filter(Boolean)
-        const videoPrefix = parts.findIndex((part) =>
-          ['shorts', 'live', 'embed', 'v'].includes(part),
-        )
-        if (videoPrefix >= 0) id = parts[videoPrefix + 1] ?? null
-      }
-    }
-    const cleanId = id?.match(/[\w-]{11}/)?.[0]
-    if (!cleanId) return null
-    // hqdefault siempre existe (480×360, hasta para videos viejos); object-cover
-    // recorta las barras del letterbox y la deja en 16:9 limpio.
-    return `https://i.ytimg.com/vi/${cleanId}/hqdefault.jpg`
-  } catch {
-    return null
-  }
-}
 
 function formatStamp(iso: string): string {
   const d = new Date(iso)
@@ -67,7 +28,12 @@ function FavoritoCard({ favorito: f }: { favorito: Favorito }) {
   const update = useUpdateFavorito()
   const remove = useDeleteFavorito()
   const host = hostOf(f.url)
-  const thumb = youtubeThumb(f.url)
+  const dateLabel = formatStamp(f.createdAt)
+  // Único origen de imagen del favorito hoy: la miniatura de YouTube derivada
+  // del id del video. Si falla la carga, caemos al eyebrow discreto.
+  // TODO: cachear la miniatura server-side (descargar + guardar en blobs) para
+  // no depender de i.ytimg.com — fuera de alcance de este pase.
+  const [thumb, setThumb] = useState<string | null>(() => youtubeThumb(f.url))
   const [note, setNote] = useState(f.note ?? '')
   const [editingNote, setEditingNote] = useState(Boolean(f.note))
 
@@ -79,19 +45,25 @@ function FavoritoCard({ favorito: f }: { favorito: Favorito }) {
   }
 
   return (
-    <li className="group relative card-paper-soft p-4 pt-3 transition-shadow hover:shadow-sm">
-      <div aria-hidden className="mb-2.5">
-        <div className="border-t-2 border-ink-700/60" />
-        <div className="mt-0.5 border-t border-ink-200" />
-      </div>
-
-      <LinkMediaPreview
-        href={f.url}
-        host={host}
-        dateLabel={formatStamp(f.createdAt)}
-        imageUrl={thumb}
-        ariaLabel={`Abrir ${f.title || host || 'favorito'}`}
-      />
+    <li className="group relative card-paper-soft rounded-xl border border-ink-100/70 p-3.5 transition-shadow hover:shadow-sm">
+      {thumb ? (
+        <LinkMediaPreview
+          href={f.url}
+          host={host}
+          dateLabel={dateLabel}
+          imageUrl={thumb}
+          ariaLabel={`Abrir ${f.title || host || 'favorito'}`}
+          onImageError={() => setThumb(null)}
+        />
+      ) : (
+        (host || dateLabel) && (
+          <p className="mb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
+            {host}
+            {host && dateLabel && ' · '}
+            {dateLabel && <span className="tabular-nums">{dateLabel}</span>}
+          </p>
+        )
+      )}
 
       <div className="min-w-0">
         <a
@@ -140,38 +112,29 @@ function FavoritoCard({ favorito: f }: { favorito: Favorito }) {
 export function FavoritosPanel() {
   const { data: favoritos = [], isLoading } = useFavoritosQuery()
 
-  return (
-    <>
-      <ViewHeader
-        title="Favoritos"
-        icon={<PinIcon size={22} />}
-        eyebrow="páginas para volver"
-        accent="var(--accent-gold)"
-        spacing="tight"
-        subtitle="Páginas que marcaste como favoritas desde la extensión. Un marcador para volver: nada se cura al grafo desde aquí."
-      />
+  if (isLoading) return <LoadingHint text="cargando" />
 
-      {isLoading ? (
-        <LoadingHint text="cargando" />
-      ) : favoritos.length === 0 ? (
-        <EmptyMessage
-          illustration="weave"
-          title="Todavía no marcaste ninguna página."
-          body={
-            <>
-              Desde la extensión de Trama, clic derecho sobre una página → «Guardar como
-              favorito», o el botón «favorito» del popup. Aparecerán aquí para volver
-              cuando quieras.
-            </>
-          }
-        />
-      ) : (
-        <ul className="grid gap-3">
-          {favoritos.map((f) => (
-            <FavoritoCard key={f.id} favorito={f} />
-          ))}
-        </ul>
-      )}
-    </>
+  if (favoritos.length === 0) {
+    return (
+      <EmptyMessage
+        illustration="weave"
+        title="Todavía no marcaste ninguna página."
+        body={
+          <>
+            Desde la extensión de Trama, clic derecho sobre una página → «Guardar como
+            favorito», o el botón «favorito» del popup. Aparecerán aquí para volver cuando
+            quieras.
+          </>
+        }
+      />
+    )
+  }
+
+  return (
+    <ul className="grid gap-3">
+      {favoritos.map((f) => (
+        <FavoritoCard key={f.id} favorito={f} />
+      ))}
+    </ul>
   )
 }

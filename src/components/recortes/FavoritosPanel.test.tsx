@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { FavoritosPanel, youtubeThumb } from './FavoritosPanel'
+import { FavoritosPanel } from './FavoritosPanel'
 import { favoritoFromRow, type FavoritoRow } from '../../api/favoritos'
 import { makeQueryClient, renderWithProviders } from '../../test-utils'
 import { queryKeys } from '../../state/queryClient'
@@ -38,19 +38,22 @@ describe('favoritoFromRow', () => {
 describe('<FavoritosPanel />', () => {
   it('muestra la tarjeta de favorito con título, dominio y nota', () => {
     setup([favoritoFromRow(ROW)])
-    expect(screen.getByRole('heading', { name: 'Favoritos' })).toBeInTheDocument()
     const link = screen.getByRole('link', { name: 'Project Gutenberg' })
     expect(link).toHaveAttribute('href', 'https://www.gutenberg.org/')
     expect(screen.getByText(/gutenberg\.org/)).toBeInTheDocument()
     expect(screen.getByDisplayValue('para ediciones viejas')).toBeInTheDocument()
   })
 
-  it('usa un fallback editorial cuando el favorito no tiene miniatura', () => {
+  it('sin miniatura, muestra el origen como eyebrow discreto (sin marco)', () => {
     setup([favoritoFromRow(ROW)])
 
-    const fallback = screen.getByTestId('link-media-fallback')
-    expect(fallback).toHaveTextContent('gutenberg.org')
-    expect(fallback).toHaveClass('bg-paper-100/50')
+    expect(screen.queryByTestId('link-media-image')).not.toBeInTheDocument()
+    expect(screen.getByText(/gutenberg\.org/)).toBeInTheDocument()
+  })
+
+  it('no renderiza el ViewHeader dorado (vive embebido en Notas)', () => {
+    setup([favoritoFromRow(ROW)])
+    expect(screen.queryByRole('heading', { name: 'Favoritos' })).not.toBeInTheDocument()
   })
 
   it('mantiene la opción de nota vacía como icono, sin texto visible', async () => {
@@ -84,7 +87,7 @@ describe('<FavoritosPanel />', () => {
     expect(img).toHaveAttribute('src', 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg')
   })
 
-  it('cambia a fallback si falla la miniatura del favorito', () => {
+  it('cae al eyebrow discreto si falla la miniatura del favorito', () => {
     setup([
       favoritoFromRow({
         ...ROW,
@@ -98,39 +101,7 @@ describe('<FavoritosPanel />', () => {
 
     fireEvent.error(img!)
 
-    expect(screen.getByTestId('link-media-fallback')).toHaveTextContent('youtube.com')
-  })
-})
-
-describe('youtubeThumb', () => {
-  it('extrae el id de las formas de URL de YouTube', () => {
-    const thumb = (id: string) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`
-    expect(youtubeThumb('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(
-      thumb('dQw4w9WgXcQ'),
-    )
-    expect(youtubeThumb('https://youtu.be/dQw4w9WgXcQ')).toBe(thumb('dQw4w9WgXcQ'))
-    expect(youtubeThumb('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toBe(
-      thumb('dQw4w9WgXcQ'),
-    )
-    expect(youtubeThumb('https://music.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(
-      thumb('dQw4w9WgXcQ'),
-    )
-    expect(youtubeThumb('https://www.youtube.com/live/dQw4w9WgXcQ')).toBe(
-      thumb('dQw4w9WgXcQ'),
-    )
-    expect(youtubeThumb('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')).toBe(
-      thumb('dQw4w9WgXcQ'),
-    )
-    expect(
-      youtubeThumb(
-        'https://www.youtube.com/attribution_link?u=%2Fwatch%3Fv%3DdQw4w9WgXcQ',
-      ),
-    ).toBe(thumb('dQw4w9WgXcQ'))
-  })
-
-  it('devuelve null para páginas que no son videos', () => {
-    expect(youtubeThumb('https://www.gutenberg.org/')).toBeNull()
-    expect(youtubeThumb('https://www.youtube.com/feed/subscriptions')).toBeNull()
-    expect(youtubeThumb('no es una url')).toBeNull()
+    expect(screen.queryByTestId('link-media-image')).not.toBeInTheDocument()
+    expect(screen.getByText(/youtube\.com/)).toBeInTheDocument()
   })
 })

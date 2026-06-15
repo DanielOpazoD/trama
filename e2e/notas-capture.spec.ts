@@ -2,9 +2,9 @@ import { expect, test, type Page, type Route } from '@playwright/test'
 import { emptyState, mockBackend } from './fixtures'
 
 /**
- * Lazo completo de la captura unificada en el mundo Notas:
+ * Lazo de la captura unificada en el mundo Notas:
  *   pegar un enlace → recorte que se enriquece con metadatos OG →
- *   curar de 1 toque (promueve a momento) → Deshacer (revierte).
+ *   abrir el modal de promoción desde el menú ⋯ (→ momento).
  *
  * Backend mockeado con estado mutable en memoria: el create empuja el recorte,
  * el PATCH lo enriquece, promote/unpromote cambian su estado. Las rutas se
@@ -41,11 +41,9 @@ async function setupCapture(page: Page) {
   const recortes: RecorteRow[] = []
 
   // Patrón de a11y.spec: API mockeada (sin modo demo, que usaría un store
-  // local y se saltaría estos mocks). Saltamos el splash y pre-aceptamos la
-  // confirmación de primer uso del 1-toque para ejercitar el toque directo.
+  // local y se saltaría estos mocks). Saltamos el splash.
   await page.addInitScript(() => {
     window.sessionStorage.setItem('trama:splash-seen', '1')
-    window.localStorage.setItem('trama.curar.confirmed', 'yes')
   })
   await mockBackend(page, emptyState())
 
@@ -144,7 +142,9 @@ async function setupCapture(page: Page) {
 }
 
 test.describe('captura unificada en Notas', () => {
-  test('pega un enlace, lo enriquece, lo cura de 1 toque y deshace', async ({ page }) => {
+  test('pega un enlace, lo enriquece y abre el modal de promoción desde el menú ⋯', async ({
+    page,
+  }) => {
     await setupCapture(page)
     await page.goto('/?world=notas&section=notas')
 
@@ -156,15 +156,13 @@ test.describe('captura unificada en Notas', () => {
     // La tarjeta aparece y, tras el enriquecimiento OG, muestra el título.
     await expect(page.getByText(/Artículo de ejemplo/).first()).toBeVisible()
 
-    // Curar de 1 toque (confirmación pre-aceptada) → promueve a momento.
-    await page.getByRole('button', { name: 'curar' }).click()
+    // La curaduría vive en el menú ⋯: «→ momento» abre el modal de promoción.
+    await page.getByRole('button', { name: 'Acciones del recorte' }).first().click()
+    await page.getByRole('menuitem', { name: /→ momento/ }).click()
+    await expect(page.getByRole('dialog', { name: 'Promover a momento' })).toBeVisible()
 
-    // El toast de éxito ofrece Deshacer, que revierte la promoción.
-    const deshacer = page.getByRole('button', { name: 'Deshacer' })
-    await expect(deshacer).toBeVisible()
-    await deshacer.click()
-
-    // El recorte sigue presente (vuelto a pendiente); el enlace no se perdió.
+    // Cerrar el modal deja el recorte presente; el enlace no se perdió.
+    await page.getByRole('button', { name: 'Cerrar' }).first().click()
     await expect(page.getByText(/Artículo de ejemplo/).first()).toBeVisible()
   })
 })
