@@ -74,8 +74,9 @@ El frontend tiene 5 capas, cada una con responsabilidad clara:
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  components/                                            │
-│  Vista — JSX + Tailwind. Sin fetch, sin state global.  │
-│  Recibe data + callbacks por props.                     │
+│  Vistas y piezas UI — JSX + Tailwind. Las vistas pueden │
+│  orquestar hooks de state/api; los leaf components y    │
+│  view models deben recibir data/callbacks por props.    │
 └─────────────────────────────────────────────────────────┘
                        │
 ┌─────────────────────────────────────────────────────────┐
@@ -105,8 +106,12 @@ El frontend tiene 5 capas, cada una con responsabilidad clara:
 ```
 
 **Regla de cruce:** una capa solo importa de las que están debajo.
-`components/` jamás llama `fetch()`; `state/` jamás importa de
-`components/`; etc.
+`components/` jamás llama `fetch()` directo; si necesita datos, usa hooks de
+`state/` o helpers de `api/` ya existentes. Para que la UI no vuelva a
+mezclar render con cálculo, los `*ViewModel.ts` bajo `src/components/` son
+puros: sin React, sin `state/` y sin imports runtime de `api/` (solo
+`import type` para contratos). Ese contrato lo verifica
+`npm run check:frontend-boundaries`.
 
 ---
 

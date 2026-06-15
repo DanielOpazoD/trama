@@ -252,10 +252,13 @@ trama/
 
 ## Tests
 
-Vitest co-localizado + Playwright para E2E. CI corre tipos + tests + build + bundle budget + E2E en cada push (`.github/workflows/test.yml`).
+Vitest co-localizado + Playwright para E2E. CI corre lint/format, guardrails
+custom, typecheck, tests, coverage con thresholds, build, bundle budget, audit,
+E2E + axe y gitleaks en cada push/PR (`.github/workflows/test.yml`).
 
 ```bash
 npm test               # unit/integration (Vitest) — una corrida
+npm run test:coverage  # coverage con thresholds calibrados en vitest.config.ts
 npm run test:watch     # modo watch
 npm run e2e            # Playwright — requiere build previo
 ```
@@ -297,8 +300,9 @@ Si querés tirar un PR o reportar algo, los flujos esperados son:
 
 1. **Issues:** abrí uno antes de tirar PRs grandes. Si es un fix chico, podés ir directo al PR.
 2. **Convenciones:** leer [CLAUDE.md](CLAUDE.md) y los docs de [`docs/conventions/`](docs/conventions/). Las reglas en CLAUDE.md son inmutables (migraciones SQL no se editan, soft delete obligatorio, snake_case ↔ camelCase en la frontera, etc.).
-3. **Tests:** todo PR debe pasar `npm test` + `npm run typecheck` + `npm run build`. CI los corre automáticamente.
-4. **Bundle:** si el tamaño crece más allá del budget de `scripts/check-bundle-size.mjs`, entendé por qué antes de subir el budget. Es un termómetro, no un check de papel.
-5. **Estilo de commits:** breves en imperativo (`fix: …`, `chore: …`, `feat: …`). Si tu cambio explica el “por qué”, mejor.
+3. **Tests:** todo PR debe pasar `npm test` + `npm run typecheck` + `npm run build`; CI suma coverage, E2E y guardrails.
+4. **Fronteras:** los `*ViewModel.ts` de componentes deben mantenerse puros. `npm run check:frontend-boundaries` bloquea imports de React/state/API runtime.
+5. **Bundle:** si el tamaño crece más allá del budget de `scripts/check-bundle-size.mjs`, entendé por qué antes de subir el budget. Es un termómetro, no un check de papel.
+6. **Estilo de commits:** breves en imperativo (`fix: …`, `chore: …`, `feat: …`). Si tu cambio explica el “por qué”, mejor.
 
 Para preguntas concretas sobre algún subsistema, los docs de [`docs/`](docs/) cubren operacionales (deploy, datos, incidentes, AI) y los de [`docs/conventions/`](docs/conventions/) cubren patrones de diseño y arquitectura.
