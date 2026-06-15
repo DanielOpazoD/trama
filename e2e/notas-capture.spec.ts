@@ -201,8 +201,10 @@ test.describe('captura unificada en Notas', () => {
     await page.getByRole('menuitem', { name: /→ momento/ }).click()
     await expect(page.getByRole('dialog', { name: 'Promover a momento' })).toBeVisible()
 
-    // Cerrar el modal deja el recorte presente; el enlace no se perdió.
-    await page.getByRole('button', { name: 'Cerrar' }).first().click()
+    // Cerrar el modal (cancelar) deja el recorte presente; el enlace no se perdió.
+    // (No usamos el botón «Cerrar» del backdrop: cubre toda la pantalla y el
+    // diálogo intercepta el clic en su centro.)
+    await page.getByRole('button', { name: 'cancelar' }).click()
     await expect(page.getByText(/Artículo de ejemplo/).first()).toBeVisible()
   })
 })
