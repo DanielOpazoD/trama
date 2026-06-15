@@ -17,7 +17,11 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { gzipSync } from 'node:zlib'
 import { join } from 'node:path'
-import { chunkBaseName, classifyBundleEntry } from './bundle-budget.mjs'
+import {
+  chunkBaseName,
+  classifyBundleEntry,
+  summarizeBundleEntries,
+} from './bundle-budget.mjs'
 
 // Budgets en KB (gzip). Ajustables, pero pedí justificación.
 const BUDGETS = {
@@ -30,10 +34,12 @@ const BUDGETS = {
   // Imprenta/PDF: chunks lazy pesados. No impactan el inicio, pero sí pueden
   // crecer sin ruido si entran nuevas dependencias de edición/export.
   PdfStudioView: 70,
-  pdf: 140,
+  'pdf.worker.min': 380,
+  'vendor-pdfjs': 140,
   'jspdf.es.min': 135,
   'html2canvas.esm': 55,
   'vendor-pdf-lib': 575,
+  'vendor-ocr': 55,
   // Rutas principales lazy: mantenerlas con headroom chico evita que una vista
   // arrastre dependencias pesadas sin aparecer en el bundle inicial.
   ChatView: 10,
@@ -44,15 +50,46 @@ const BUDGETS = {
   MomentosView: 25,
   QuotesView: 16,
   // Mundo Notas completo (lazy desde App): feed unificado notas+recortes con su
-  // triage (RecorteCard + PromoteModal), calendario de actividad y NoteCard.
+  // triage (RecorteCard + PromoteModal), calendario de actividad, NoteCard y
+  // prefetch por intención hacia PDF Studio.
   // Salió del bundle `index` al hacerse lazy; vive en su propio chunk.
-  NotasWorld: 42,
+  NotasWorld: 44,
   Settings: 18,
   'index.es': 60,
   'purify.es': 12,
   // Bundle principal — el que más crece con features. Headroom mínimo.
   index: 110,
 }
+
+const AGGREGATE_BUDGETS = [
+  {
+    name: 'PDF lazy payload total',
+    // Suma gzip de los chunks/worker PDF lazy. No mide initial path; sí evita
+    // que PDF Studio/Imprenta crezcan por duplicación silenciosa entre workers.
+    budget: 2450,
+    bases: [
+      'PdfStudioView',
+      'assemble',
+      'assembleImages',
+      'buildLibro',
+      'html2canvas.esm',
+      'jspdf.es.min',
+      'libroPreview',
+      'pdf.worker.min',
+      'pdfExport.worker',
+      'pdfForm.worker',
+      'pdfForms',
+      'pdfOcr',
+      'pdfOcr.worker',
+      'pdfOcrInput',
+      'pdfOcrProgress',
+      'pdfOcrRecognition',
+      'vendor-pdf-lib',
+      'vendor-pdfjs',
+      'vendor-ocr',
+    ],
+  },
+]
 
 const DIST = 'dist/assets'
 const MAX_UNBUDGETED_KB = 10
@@ -70,9 +107,9 @@ if (!stat.isDirectory()) {
   process.exit(1)
 }
 
-const files = readdirSync(DIST).filter((f) => f.endsWith('.js'))
+const files = readdirSync(DIST).filter((f) => /\.(?:js|mjs)$/.test(f))
 if (files.length === 0) {
-  console.error('No hay .js en dist/assets — build incompleto.')
+  console.error('No hay .js/.mjs en dist/assets — build incompleto.')
   process.exit(1)
 }
 
@@ -99,6 +136,18 @@ for (const file of files) {
   }
 }
 
+const summary = summarizeBundleEntries([...passes, ...failures], AGGREGATE_BUDGETS)
+for (const family of summary.families) {
+  if (family.status === 'over-budget') {
+    failures.push({
+      file: family.name,
+      gzKb: family.gzKb,
+      budget: family.budget,
+      status: 'over-budget',
+    })
+  }
+}
+
 // Tabla resumen.
 console.log('\nBundle size report (gzip):')
 console.log('─'.repeat(50))
@@ -114,6 +163,36 @@ for (const f of failures) {
 }
 console.log('─'.repeat(50))
 
+console.log('\nFamilias principales:')
+for (const family of summary.families) {
+  const marker = family.status === 'over-budget' ? ' ❌' : ''
+  console.log(
+    `  ${family.name.padEnd(24)} ${String(family.gzKb).padStart(4)} KB   (budget: ${family.budget} KB)${marker}`,
+  )
+  for (const offender of family.offenders) {
+    console.log(
+      `    - ${offender.file.padEnd(20)} ${String(offender.gzKb).padStart(4)} KB`,
+    )
+  }
+}
+
+if (summary.duplicates.length > 0) {
+  console.log('\nDuplicaciones por nombre base:')
+  for (const duplicate of summary.duplicates.slice(0, 8)) {
+    console.log(
+      `  ${duplicate.file.padEnd(20)} x${duplicate.count}   ${String(duplicate.gzKb).padStart(4)} KB total`,
+    )
+  }
+}
+
+console.log('\nTop offenders:')
+for (const entry of [...passes, ...failures]
+  .filter((entry) => !AGGREGATE_BUDGETS.some((family) => family.name === entry.file))
+  .sort((a, b) => b.gzKb - a.gzKb || a.file.localeCompare(b.file))
+  .slice(0, 10)) {
+  console.log(`  ${entry.file.padEnd(20)} ${String(entry.gzKb).padStart(4)} KB`)
+}
+
 if (failures.length > 0 && !reportOnly) {
   console.error(
     `\n${failures.length} chunk(s) exceden su budget o necesitan budget explícito.\n` +
@@ -122,4 +201,8 @@ if (failures.length > 0 && !reportOnly) {
   process.exit(1)
 }
 
-console.log('\n✅ Todos los chunks dentro del budget.\n')
+if (failures.length > 0) {
+  console.log('\nReporte generado en modo solo lectura; hay budgets excedidos.\n')
+} else {
+  console.log('\n✅ Todos los chunks dentro del budget.\n')
+}

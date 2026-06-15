@@ -1,5 +1,5 @@
 export function chunkBaseName(file, knownBases = []) {
-  const withoutExtension = file.replace(/\.js$/, '')
+  const withoutExtension = file.replace(/\.(?:js|mjs)$/, '')
   const known = [...knownBases].sort((a, b) => b.length - a.length)
   for (const base of known) {
     if (!withoutExtension.startsWith(`${base}-`)) continue
@@ -7,7 +7,7 @@ export function chunkBaseName(file, knownBases = []) {
     if (/^[A-Za-z0-9_-]{6,12}$/.test(suffix)) return base
   }
 
-  const m = file.match(/^(.+)-[A-Za-z0-9_-]{6,12}\.js$/)
+  const m = file.match(/^(.+?)-[A-Za-z0-9_-]{6,12}\.(?:js|mjs)$/)
   const base = m ? m[1] : withoutExtension
   return base.replace(/-(?:t|tsx|jsx)$/, '')
 }
@@ -25,4 +25,40 @@ export function classifyBundleEntry({ base, budget, gzKb, maxUnbudgetedKb }) {
   }
 
   return { file: base, gzKb, budget, status: 'ok' }
+}
+
+export function summarizeBundleEntries(entries, familyBudgets = []) {
+  const byFile = new Map()
+  for (const entry of entries) {
+    const current = byFile.get(entry.file) ?? { file: entry.file, count: 0, gzKb: 0 }
+    current.count += 1
+    current.gzKb += entry.gzKb
+    byFile.set(entry.file, current)
+  }
+
+  const duplicates = [...byFile.values()]
+    .filter((entry) => entry.count > 1)
+    .sort((a, b) => b.gzKb - a.gzKb || a.file.localeCompare(b.file))
+
+  const families = familyBudgets.map((family) => {
+    const bases = new Set(family.bases)
+    const familyEntries = entries.filter((entry) => bases.has(entry.file))
+    const byFamilyFile = new Map()
+    for (const entry of familyEntries) {
+      byFamilyFile.set(entry.file, (byFamilyFile.get(entry.file) ?? 0) + entry.gzKb)
+    }
+    const allOffenders = [...byFamilyFile.entries()]
+      .map(([file, gzKb]) => ({ file, gzKb }))
+      .sort((a, b) => b.gzKb - a.gzKb || a.file.localeCompare(b.file))
+    const gzKb = allOffenders.reduce((sum, entry) => sum + entry.gzKb, 0)
+    return {
+      name: family.name,
+      gzKb,
+      budget: family.budget,
+      status: gzKb > family.budget ? 'over-budget' : 'ok',
+      offenders: allOffenders.slice(0, 6),
+    }
+  })
+
+  return { duplicates, families }
 }

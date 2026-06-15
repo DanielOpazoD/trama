@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
-import { chunkBaseName, classifyBundleEntry } from './bundle-budget.mjs'
+import {
+  chunkBaseName,
+  classifyBundleEntry,
+  summarizeBundleEntries,
+} from './bundle-budget.mjs'
 
 describe('bundle budget helpers', () => {
   it('normaliza nombres de chunks con hashes vite que contienen guiones', () => {
     expect(chunkBaseName('MomentosView-D9Z41wa-.js')).toBe('MomentosView')
     expect(chunkBaseName('vendor-react-UUNBh1e2.js')).toBe('vendor-react')
     expect(chunkBaseName('QuotesView-t-HhUjo4.js')).toBe('QuotesView')
+    expect(chunkBaseName('useNotes--DH_LZ2u.js')).toBe('useNotes')
+    expect(chunkBaseName('pdf.worker.min-CrMmvqMo.mjs')).toBe('pdf.worker.min')
   })
 
   it('usa budgets conocidos para hashes vite ambiguos con guion interno', () => {
@@ -52,5 +58,40 @@ describe('bundle budget helpers', () => {
         maxUnbudgetedKb: 10,
       }),
     ).toEqual({ file: 'GraphView', gzKb: 19, budget: 18, status: 'over-budget' })
+  })
+
+  it('resume familias y duplicaciones para el reporte accionable', () => {
+    const entries = [
+      { file: 'PdfStudioView', gzKb: 64, status: 'ok' },
+      { file: 'pdf.worker.min', gzKb: 361, status: 'ok' },
+      { file: 'vendor-pdf-lib', gzKb: 542, status: 'ok' },
+      { file: 'vendor-pdf-lib', gzKb: 203, status: 'ok' },
+      { file: 'GraphView', gzKb: 13, status: 'ok' },
+    ]
+
+    expect(
+      summarizeBundleEntries(entries, [
+        {
+          name: 'PDF lazy payload total',
+          budget: 1300,
+          bases: ['PdfStudioView', 'pdf.worker.min', 'vendor-pdf-lib'],
+        },
+      ]),
+    ).toEqual({
+      duplicates: [{ file: 'vendor-pdf-lib', count: 2, gzKb: 745 }],
+      families: [
+        {
+          name: 'PDF lazy payload total',
+          gzKb: 1170,
+          budget: 1300,
+          status: 'ok',
+          offenders: [
+            { file: 'vendor-pdf-lib', gzKb: 745 },
+            { file: 'pdf.worker.min', gzKb: 361 },
+            { file: 'PdfStudioView', gzKb: 64 },
+          ],
+        },
+      ],
+    })
   })
 })
