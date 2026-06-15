@@ -49,6 +49,18 @@ describe('persistCapture', () => {
     expect(r.id).toBe('m1')
   })
 
+  it('task → inserta la tarea en pendientes y devuelve el id', async () => {
+    const fake = fakeSql([[{ id: 't1' }]])
+    const r = await persistCapture(fake.sql, 'u1', {
+      kind: 'task',
+      title: 'comprar pan',
+      detail: 'antes del viernes',
+    })
+    expect(r.message).toContain('Tarea')
+    expect(r.id).toBe('t1')
+    expect(fake.calls).toBe(1)
+  })
+
   it('entity → inserta con el nombre y devuelve el id', async () => {
     const r = await persistCapture(fakeSql([[{ id: 'e1' }]]).sql, 'u1', {
       kind: 'entity',

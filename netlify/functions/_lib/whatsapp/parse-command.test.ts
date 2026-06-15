@@ -72,6 +72,28 @@ describe('parseInboundMessage — prefijos explícitos', () => {
     })
   })
 
+  it('tarea: sin detalle', () => {
+    expect(parseInboundMessage('tarea: comprar pan')).toEqual({
+      kind: 'intent',
+      intent: { kind: 'task', title: 'comprar pan', detail: null },
+    })
+  })
+
+  it('tarea: con detalle separado por em-dash', () => {
+    expect(parseInboundMessage('tarea: llamar al banco — antes del viernes')).toEqual({
+      kind: 'intent',
+      intent: { kind: 'task', title: 'llamar al banco', detail: 'antes del viernes' },
+    })
+  })
+
+  it('sinónimos de tarea (task / pendiente) también capturan tarea', () => {
+    expect(parseInboundMessage('task: review PR').intent).toMatchObject({ kind: 'task' })
+    expect(parseInboundMessage('pendiente: regar las plantas').intent).toMatchObject({
+      kind: 'task',
+      title: 'regar las plantas',
+    })
+  })
+
   it('cita con autor separado por em-dash', () => {
     expect(parseInboundMessage('cita: el tiempo es relativo — Einstein')).toEqual({
       kind: 'intent',

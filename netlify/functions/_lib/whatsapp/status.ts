@@ -23,6 +23,7 @@ const NOUN_BY_KIND: Record<string, string> = {
   entity: 'entidad',
   momento: 'momento',
   recorte: 'recorte',
+  task: 'tarea',
 }
 
 /** Distancia humana entre dos fechas: "recién", "hace 5 min", "hace 3 h", "hace 2 d". */

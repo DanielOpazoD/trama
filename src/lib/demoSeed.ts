@@ -229,7 +229,20 @@ export function buildSeed(): Store {
     origin: manual,
     ...ts(d),
   })
+  // Nota de voz transcrita por WhatsApp: trae su audio adjunto re-escuchable.
+  const voiceNoteId = uid()
+  const voiceNote: Row = {
+    id: voiceNoteId,
+    content: 'Acordarme de comprar pan y leche camino a casa.',
+    tags: parseTags('Acordarme de comprar pan y leche camino a casa.'),
+    pinned: false,
+    promoted_momento_id: null,
+    origin: manual,
+    source: 'whatsapp',
+    ...ts(0),
+  }
   const notes: Row[] = [
+    voiceNote,
     note('Idea para el ensayo sobre #memoria y olvido en Borges.', 1, true),
     note('Releer el final de #Rayuela — el tablero y los puentes.', 2),
     note('Comprar la edición anotada de #Ficciones.', 4),
@@ -285,7 +298,28 @@ export function buildSeed(): Store {
     }),
   ]
 
+  const imageRecorte = (text: string, d: number): Row => ({
+    id: uid(),
+    text,
+    source_url: null,
+    source_title: null,
+    source_author: null,
+    note: null,
+    image_url: null,
+    image_key: 'demo/captura.svg',
+    capture_mode: 'image',
+    status: 'pending',
+    promoted_target: null,
+    promoted_id: null,
+    source: 'whatsapp',
+    captured_at: daysAgo(d),
+    created_at: daysAgo(d),
+    updated_at: daysAgo(d),
+  })
   const recortes: Row[] = [
+    imageRecorte('El dibujo del gato sobre la mesa', 0),
+    imageRecorte('Boceto de la terraza', 1),
+    imageRecorte('Página del cuaderno de viaje', 2),
     {
       id: uid(),
       text: 'La memoria no es un archivo sino un taller: cada recuerdo se reescribe al ser convocado.',
@@ -388,7 +422,18 @@ export function buildSeed(): Store {
     tasks,
     prompts: [],
     secrets: [],
-    notas_attachments: [],
+    notas_attachments: [
+      {
+        id: uid(),
+        owner_type: 'note',
+        owner_id: voiceNoteId,
+        file_name: 'nota-de-voz.wav',
+        mime_type: 'audio/ogg',
+        byte_size: 12000,
+        storage_key: 'demo/voz.wav',
+        ...ts(0),
+      },
+    ],
     recortes,
     favoritos,
     'reading-tables': readingTables,

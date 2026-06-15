@@ -28,6 +28,7 @@ type NoteRow = {
   created_at: string
   updated_at: string
   has_images: boolean
+  has_audio: boolean
 }
 
 /** Título corto opcional: recorta espacios y vacío → null. */
@@ -132,7 +133,7 @@ export default withObservability(
 
       if (q) {
         const rows = await sqlTyped<NoteRow>(sql`
-          SELECT id, content, title, tags, pinned, promoted_momento_id, source, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
+          SELECT id, content, title, tags, pinned, promoted_momento_id, source, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'audio/%' AND na.deleted_at IS NULL) AS has_audio
           FROM notes
           WHERE deleted_at IS NULL AND user_id = ${userId}
             AND (content ILIKE ${'%' + q + '%'} OR title ILIKE ${'%' + q + '%'})
@@ -142,7 +143,7 @@ export default withObservability(
       }
       if (tag) {
         const rows = await sqlTyped<NoteRow>(sql`
-          SELECT id, content, title, tags, pinned, promoted_momento_id, source, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
+          SELECT id, content, title, tags, pinned, promoted_momento_id, source, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'audio/%' AND na.deleted_at IS NULL) AS has_audio
           FROM notes
           WHERE deleted_at IS NULL AND user_id = ${userId}
             AND ${tag} = ANY(tags)
@@ -151,7 +152,7 @@ export default withObservability(
         return Response.json(rows)
       }
       const rows = await sqlTyped<NoteRow>(sql`
-        SELECT id, content, title, tags, pinned, promoted_momento_id, source, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
+        SELECT id, content, title, tags, pinned, promoted_momento_id, source, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'audio/%' AND na.deleted_at IS NULL) AS has_audio
         FROM notes
         WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY pinned DESC, created_at DESC, id DESC
@@ -169,7 +170,7 @@ export default withObservability(
       const rows = await sqlTyped<NoteRow>(sql`
         INSERT INTO notes (content, title, tags, pinned, user_id)
         VALUES (${content}, ${title}, ${tags}::text[], ${pinned ?? false}, ${userId})
-        RETURNING id, content, title, tags, pinned, promoted_momento_id, source, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
+        RETURNING id, content, title, tags, pinned, promoted_momento_id, source, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'audio/%' AND na.deleted_at IS NULL) AS has_audio
       `)
       return Response.json(rows[0], { status: 201 })
     }
@@ -195,7 +196,7 @@ export default withObservability(
                      END,
             updated_at = NOW()
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-        RETURNING id, content, title, tags, pinned, promoted_momento_id, source, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images
+        RETURNING id, content, title, tags, pinned, promoted_momento_id, source, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'image/%' AND na.deleted_at IS NULL) AS has_images, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = notes.user_id AND na.owner_type = 'note' AND na.owner_id = notes.id::text AND na.mime_type LIKE 'audio/%' AND na.deleted_at IS NULL) AS has_audio
       `)
       if (rows.length === 0) return ApiErrors.notFound(requestId, 'Nota no encontrada')
       return Response.json(rows[0])

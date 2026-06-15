@@ -17,10 +17,12 @@ vi.mock('./ai-mode.js', () => ({
 const askLLMForJson = vi.fn()
 const askLLMForVision = vi.fn()
 const askLLMForText = vi.fn()
+const askLLMForTranscription = vi.fn()
 vi.mock('./llm.js', () => ({
   askLLMForJson: (...args: unknown[]) => askLLMForJson(...args),
   askLLMForVision: (...args: unknown[]) => askLLMForVision(...args),
   askLLMForText: (...args: unknown[]) => askLLMForText(...args),
+  askLLMForTranscription: (...args: unknown[]) => askLLMForTranscription(...args),
 }))
 // RAG mockeado: el recall no toca embeddings/DB real en este test.
 const buildRagContext = vi.fn()
@@ -56,6 +58,7 @@ beforeEach(() => {
   askLLMForJson.mockReset()
   askLLMForVision.mockReset()
   askLLMForText.mockReset()
+  askLLMForTranscription.mockReset()
   buildRagContext.mockReset()
 })
 afterEach(() => {
@@ -92,6 +95,89 @@ describe('whatsapp-webhook', () => {
     expect(xml).toContain('Nota guardada')
     expect(xml).toContain('world=notas') // deep link a la vista
     expect(xml).toContain('deshacer') // affordance de undo
+  })
+
+  it('captura por prefijo tarea: inserta la tarea y deep-linkea a Tareas', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim (reclamado)
+    mockSqlResponses.push([]) // UPDATE last_message_at (fire-and-forget)
+    mockSqlResponses.push([{ id: 't1' }]) // INSERT tasks RETURNING id
+    mockSqlResponses.push([]) // UPDATE last_capture (fire-and-forget)
+    const res = await webhookHandler(
+      twilioRequest({
+        From: 'whatsapp:+56912345678',
+        Body: 'tarea: llamar al banco — antes del viernes',
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('Tarea')
+    expect(xml).toContain('section=tareas') // deep link a la sección Tareas
+    expect(xml).toContain('deshacer')
+  })
+
+  it('nota de voz → la transcribe (Whisper) y la guarda como Nota', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'audio/ogg' },
+        arrayBuffer: async () => new ArrayBuffer(200),
+      }),
+    )
+    askLLMForTranscription.mockResolvedValue({
+      text: 'acordarme de comprar pan',
+      usage: { provider: 'openai', model: 'whisper-1', costCents: 0.2, durationMs: 50 },
+    })
+    const fields = {
+      MessageSid: 'SMaudio',
+      From: 'whatsapp:+56912345678',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/voz.ogg',
+      MediaContentType0: 'audio/ogg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMaudio' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // INSERT extraction_log (registro de costo)
+    mockSqlResponses.push([{ id: 'n9' }]) // INSERT notes RETURNING id
+    mockSqlResponses.push([]) // INSERT notas_attachments (audio re-escuchable)
+    mockSqlResponses.push([]) // recordLastCapture
+
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    expect(askLLMForTranscription).toHaveBeenCalledTimes(1)
+    // El audio se conserva como anexo de la nota (re-escuchable).
+    expect(
+      mockSqlResponses.calls.some((c) =>
+        /INSERT INTO notas_attachments/i.test(c.template),
+      ),
+    ).toBe(true)
+    const xml = await res.text()
+    expect(xml).toContain('Notas') // guardado en Notas
+    expect(xml).toContain('world=notas') // deep link
   })
 
   it('captura freeform → el LLM clasifica y se persiste', async () => {

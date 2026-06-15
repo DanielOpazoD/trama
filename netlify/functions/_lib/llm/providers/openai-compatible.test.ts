@@ -3,6 +3,7 @@ import {
   embedOpenAI,
   isNewOpenAIModel,
   openOpenAICompatibleStream,
+  transcribeOpenAI,
 } from './openai-compatible'
 
 afterEach(() => {
@@ -72,6 +73,54 @@ describe('embedOpenAI', () => {
         }),
       }),
     )
+  })
+})
+
+describe('transcribeOpenAI', () => {
+  it('postea multipart al endpoint de audio SIN Content-Type manual', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ text: 'comprar pan' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const audio = new TextEncoder().encode('fake-audio').buffer
+    const result = await transcribeOpenAI(
+      'sk-test',
+      { baseUrl: 'https://api.openai.com/v1' },
+      audio,
+      'audio/ogg',
+      'whisper-1',
+      'voz.ogg',
+    )
+
+    expect(result).toEqual({ text: 'comprar pan' })
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('https://api.openai.com/v1/audio/transcriptions')
+    expect(init.method).toBe('POST')
+    // Solo Authorization: el boundary de multipart lo pone fetch a partir del
+    // FormData; setear Content-Type a mano lo rompería.
+    expect(init.headers).toEqual({ Authorization: 'Bearer sk-test' })
+    expect(init.body).toBeInstanceOf(FormData)
+    expect((init.body as FormData).get('model')).toBe('whisper-1')
+  })
+
+  it('lanza si la respuesta no trae texto', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }),
+    )
+    await expect(
+      transcribeOpenAI(
+        'sk-test',
+        { baseUrl: 'https://api.openai.com/v1' },
+        new ArrayBuffer(4),
+        'audio/ogg',
+        'whisper-1',
+        'voz.ogg',
+      ),
+    ).rejects.toThrow(/sin texto/i)
   })
 })
 

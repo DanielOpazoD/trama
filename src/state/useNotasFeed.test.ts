@@ -15,6 +15,7 @@ function makeNote(over: Partial<Note> = {}): Note {
     createdAt: '2026-06-10T12:00:00.000Z',
     updatedAt: '2026-06-10T12:00:00.000Z',
     hasImages: false,
+    hasAudio: false,
     ...over,
   }
 }

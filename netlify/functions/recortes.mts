@@ -16,6 +16,7 @@ import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { momentoEmbedText, validatePayloadForKind } from './_lib/momento-embed.js'
+import { copyRecorteImageToMomentos } from './_lib/recorte-to-momento.js'
 import { normalizeOrigin } from './_lib/origin.js'
 import {
   embedSafe,
@@ -304,13 +305,63 @@ export default withObservability(
         `)
       } else {
         const momento = parsed.data.momento
-        const payloadError = validatePayloadForKind(momento.kind, momento.payload)
+        const kind = momento.kind
+        let payload: Record<string, unknown> = momento.payload
+
+        // Captura con imagen propia → Momento FOTO. El cliente pide kind:'foto'
+        // y acá copiamos el blob de recortes-media a momentos-media (server-side;
+        // el cliente no toca Blobs — AGENTS.md), adjuntando la storageKey
+        // resultante para que /api/momentos-file pueda servir la foto.
+        if (kind === 'foto') {
+          const recRows = await sqlTyped<{
+            status: string
+            image_key: string | null
+          }>(sql`
+            SELECT status, image_key
+            FROM recortes
+            WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+          `)
+          const rec = recRows[0]
+          if (!rec) {
+            return ApiErrors.notFound(
+              requestId,
+              'Recorte no encontrado o no se pudo promover',
+            )
+          }
+          if (rec.status === 'promoted') {
+            // Idempotente: ya se promovió antes. Devolvemos la fila tal cual,
+            // sin copiar otro blob ni insertar un momento duplicado.
+            const existing = await sqlTyped<RecorteRow>(sql`
+              SELECT id, text, source_url, source_title, source_author, note,
+                image_url, image_key, capture_mode, status, promoted_target,
+                promoted_id, captured_at, created_at, updated_at
+              FROM recortes
+              WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+            `)
+            if (existing.length === 0) {
+              return ApiErrors.notFound(requestId, 'Recorte no encontrado')
+            }
+            return Response.json(existing[0])
+          }
+          if (!rec.image_key) {
+            return ApiErrors.validation(
+              requestId,
+              'La captura no tiene una imagen propia para promover como foto',
+            )
+          }
+          const copied = await copyRecorteImageToMomentos(rec.image_key, userId)
+          if (!copied) {
+            return ApiErrors.validation(
+              requestId,
+              'No se pudo leer la imagen de la captura',
+            )
+          }
+          payload = { ...payload, storageKey: copied.storageKey }
+        }
+
+        const payloadError = validatePayloadForKind(kind, payload)
         if (payloadError) return ApiErrors.validation(requestId, payloadError)
-        const momentoEmbSource = momentoEmbedText(
-          momento.kind,
-          momento.payload,
-          momento.note ?? null,
-        )
+        const momentoEmbSource = momentoEmbedText(kind, payload, momento.note ?? null)
         const momentoEmb =
           momentoEmbSource.length > 0 ? await embedSafe(momentoEmbSource) : null
         const momentoEmbVector = momentoEmb ? toPgVector(momentoEmb.vector) : null
@@ -327,9 +378,9 @@ export default withObservability(
               embedding, embedding_model, embedding_at, user_id
             )
             SELECT
-              ${momento.kind},
+              ${kind},
               ${momento.capturedAt ?? new Date().toISOString()}::timestamptz,
-              ${JSON.stringify(momento.payload)}::jsonb,
+              ${JSON.stringify(payload)}::jsonb,
               ${momento.note ?? null},
               ${origin}::jsonb,
               ${momentoEmbVector}::vector,

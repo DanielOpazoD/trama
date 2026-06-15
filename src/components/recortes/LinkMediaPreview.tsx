@@ -9,6 +9,16 @@ export function hostOf(url: string | null | undefined): string | null {
   }
 }
 
+/** Tamaño de la miniatura. 'grande' = comportamiento histórico (ancho completo,
+ *  16:9); los demás acotan el ancho para una miniatura más discreta. */
+export type LinkMediaSize = 'pequena' | 'mediana' | 'grande'
+
+const SIZE_FRAME: Record<LinkMediaSize, string> = {
+  grande: '',
+  mediana: 'max-w-[260px]',
+  pequena: 'max-w-[150px]',
+}
+
 type LinkMediaPreviewProps = {
   href?: string | null
   host?: string | null
@@ -18,6 +28,11 @@ type LinkMediaPreviewProps = {
   imageLoading?: boolean
   ariaLabel?: string
   className?: string
+  /** Tamaño de la miniatura (default 'grande' = ancho completo). */
+  size?: LinkMediaSize
+  /** Si se pasa (y NO hay href), la miniatura abre el visor: doble clic con el
+   *  mouse, Enter/Espacio con teclado. Para imágenes propias de la captura. */
+  onOpenImage?: () => void
   /** Avisa cuando la imagen no carga, para que el caller pueda ocultarla. */
   onImageError?: () => void
 }
@@ -37,6 +52,8 @@ export function LinkMediaPreview({
   imageLoading = false,
   ariaLabel,
   className = '',
+  size = 'grande',
+  onOpenImage,
   onImageError,
 }: LinkMediaPreviewProps) {
   const [imageLoaded, setImageLoaded] = useState(false)
@@ -73,19 +90,47 @@ export function LinkMediaPreview({
   )
 
   const frameClass =
-    `mb-3 block overflow-hidden rounded-md border border-ink-100/70 transition-colors hover:border-ink-200 ${className}`.trim()
+    `mb-3 block overflow-hidden rounded-md border border-ink-100/70 transition-colors hover:border-ink-200 ${SIZE_FRAME[size]} ${className}`.trim()
 
-  return href ? (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={ariaLabel ?? `Abrir ${host ?? 'enlace'}`}
-      className={frameClass}
-    >
-      {content}
-    </a>
-  ) : (
+  if (href) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={ariaLabel ?? `Abrir ${host ?? 'enlace'}`}
+        className={frameClass}
+      >
+        {content}
+      </a>
+    )
+  }
+
+  // Imagen propia con visor: doble clic (mouse) o Enter/Espacio (teclado) abren
+  // el lightbox. Sin gesto de un solo clic para no abrirlo sin querer al
+  // interactuar con la tarjeta.
+  if (onOpenImage) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={ariaLabel ?? 'Ampliar imagen'}
+        title="Doble clic para ampliar"
+        onDoubleClick={onOpenImage}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onOpenImage()
+          }
+        }}
+        className={`${frameClass} cursor-zoom-in`}
+      >
+        {content}
+      </div>
+    )
+  }
+
+  return (
     <div aria-label={ariaLabel} className={frameClass}>
       {content}
     </div>

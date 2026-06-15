@@ -15,6 +15,7 @@ const BASE: Note = {
   createdAt: '2026-05-29T10:00:00.000Z',
   updatedAt: '2026-05-29T10:00:00.000Z',
   hasImages: false,
+  hasAudio: false,
 }
 
 const noop = () => {}

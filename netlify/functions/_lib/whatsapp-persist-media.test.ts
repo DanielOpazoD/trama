@@ -1,6 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { SqlClient } from './db'
-import { persistImageRecorte, persistImageMomento } from './whatsapp/persist-media'
+
+const { blobStore } = vi.hoisted(() => ({ blobStore: { set: vi.fn() } }))
+vi.mock('@netlify/blobs', () => ({ getStore: vi.fn(() => blobStore) }))
+
+import {
+  persistImageRecorte,
+  persistImageMomento,
+  persistImageMomentoEpisode,
+  persistVoiceNoteAttachment,
+} from './whatsapp/persist-media'
 
 /**
  * fakeSql que devuelve `rows` y captura los valores interpolados del template
@@ -67,5 +76,67 @@ describe('persistImageMomento', () => {
   it('si el INSERT no devuelve id, lanza', async () => {
     const { sql } = fakeSql([])
     await expect(persistImageMomento(sql, 'u1', 'u1/x.jpg', '')).rejects.toThrow(/id/)
+  })
+})
+
+describe('persistImageMomentoEpisode', () => {
+  it('agrupa varias fotos en un solo momento con payload.items[]', async () => {
+    const { sql, calls } = fakeSql([{ id: 'm9' }])
+    const r = await persistImageMomentoEpisode(
+      sql,
+      'u1',
+      ['u1/a.jpg', 'u1/b.jpg'],
+      'viaje',
+    )
+    expect(r.id).toBe('m9')
+    expect(r.message).toContain('2 fotos')
+    const payload = calls[0].find(
+      (v): v is string => typeof v === 'string' && v.includes('items'),
+    )
+    expect(JSON.parse(payload!)).toMatchObject({
+      items: [{ storageKey: 'u1/a.jpg' }, { storageKey: 'u1/b.jpg' }],
+      caption: 'viaje',
+    })
+    const origin = calls[0].find(
+      (v): v is string => typeof v === 'string' && v.includes('importedFrom'),
+    )
+    expect(JSON.parse(origin!)).toMatchObject({ importedFrom: 'whatsapp' })
+  })
+
+  it('una sola foto: items de largo 1 y mensaje singular', async () => {
+    const { sql, calls } = fakeSql([{ id: 'm1' }])
+    const r = await persistImageMomentoEpisode(sql, 'u1', ['u1/solo.jpg'], '')
+    expect(r.message).toBe('📷 Foto añadida a Momentos.')
+    const payload = calls[0].find(
+      (v): v is string => typeof v === 'string' && v.includes('items'),
+    )
+    expect(JSON.parse(payload!)).toEqual({ items: [{ storageKey: 'u1/solo.jpg' }] })
+  })
+
+  it('si el INSERT no devuelve id, lanza', async () => {
+    const { sql } = fakeSql([])
+    await expect(persistImageMomentoEpisode(sql, 'u1', ['u1/x.jpg'], '')).rejects.toThrow(
+      /id/,
+    )
+  })
+})
+
+describe('persistVoiceNoteAttachment', () => {
+  it('sube el audio y lo inserta como anexo de audio de la nota', async () => {
+    blobStore.set.mockClear()
+    const { sql, calls } = fakeSql([])
+    await persistVoiceNoteAttachment(
+      sql,
+      'u1',
+      'note-9',
+      new ArrayBuffer(120),
+      'audio/ogg',
+    )
+    expect(blobStore.set).toHaveBeenCalledTimes(1)
+    // Valores interpolados: id de la nota, mime de audio, tamaño y userId.
+    expect(calls[0]).toContain('note-9')
+    expect(calls[0]).toContain('audio/ogg')
+    expect(calls[0]).toContain(120)
+    expect(calls[0]).toContain('u1')
   })
 })

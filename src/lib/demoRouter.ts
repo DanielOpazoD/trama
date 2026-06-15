@@ -25,6 +25,19 @@ function findLive(rows: Row[], id: string): Row | undefined {
   return rows.find((r) => r.id === id && !r.deleted_at)
 }
 
+/** Espejo de los EXISTS del backend: ¿la nota tiene anexos de imagen / audio? */
+function noteAttachmentFlags(
+  store: Store,
+  noteId: string,
+): { has_images: boolean; has_audio: boolean } {
+  const own = store.notas_attachments.filter(
+    (a) => a.owner_type === 'note' && a.owner_id === noteId && !a.deleted_at,
+  )
+  const mimeStarts = (prefix: string) =>
+    own.some((a) => typeof a.mime_type === 'string' && a.mime_type.startsWith(prefix))
+  return { has_images: mimeStarts('image/'), has_audio: mimeStarts('audio/') }
+}
+
 function aiOff(): never {
   throw new Error('La IA está desactivada en el modo prueba.')
 }
@@ -342,19 +355,23 @@ export function routeDemoRequest(
       }))
     }
 
-    // Notas: enriquecer con has_images (espejo del EXISTS image/% del backend).
+    // Notas: enriquecer con has_images/has_audio (espejo de los EXISTS del backend).
     if (resource === 'notes' && method === 'GET' && !id) {
       return live(rows).map((n) => ({
         ...n,
-        has_images: store.notas_attachments.some(
-          (a) =>
-            a.owner_type === 'note' &&
-            a.owner_id === n.id &&
-            typeof a.mime_type === 'string' &&
-            a.mime_type.startsWith('image/') &&
-            !a.deleted_at,
-        ),
+        ...noteAttachmentFlags(store, String(n.id)),
       }))
+    }
+
+    // Anexos: el endpoint real filtra por owner; el listOrPage genérico no, así
+    // que filtramos acá para que cada nota/tarea vea solo sus anexos.
+    if (resource === 'notas-attachments' && method === 'GET' && !id) {
+      const ownerType = params.get('ownerType')
+      const ownerId = params.get('ownerId')
+      const filtered = live(store.notas_attachments).filter(
+        (a) => a.owner_type === ownerType && a.owner_id === ownerId,
+      )
+      return listOrPage(filtered, params)
     }
 
     // CRUD estándar
@@ -514,6 +531,96 @@ export function routeDemoRequest(
 
   // ---- lecturas auxiliares (canned, para que las vistas rendericen) ----
   switch (resource) {
+    case 'notas-feed': {
+      // Feed unificado de Notas (notas + recortes) — el endpoint real lo
+      // pagina server-side; acá mezclamos y filtramos el store para que la
+      // vista de Notas (y sus capturas) rendericen en modo prueba.
+      const segment = params.get('segment') ?? 'todo'
+      const status = params.get('status') // all|pending|promoted|archived
+      const q = (params.get('q') ?? '').trim().toLowerCase()
+      const tag = params.get('tag')
+      const dayStart = params.get('dayStart')
+      const dayEnd = params.get('dayEnd')
+      const limit = Number.parseInt(params.get('limit') ?? '40', 10) || 40
+
+      const inDay = (iso: unknown): boolean => {
+        if (!dayStart || !dayEnd || typeof iso !== 'string') return true
+        return iso >= dayStart && iso < dayEnd
+      }
+
+      const items: Array<
+        { type: string; id: string; createdAt: string; sort: string } & Record<
+          string,
+          unknown
+        >
+      > = []
+
+      if (segment === 'todo' || segment === 'escritas') {
+        for (const n of live(store.notes)) {
+          const created = String(n.created_at ?? '')
+          if (!inDay(n.created_at)) continue
+          if (tag && !(Array.isArray(n.tags) && (n.tags as string[]).includes(tag)))
+            continue
+          if (
+            q &&
+            !`${String(n.content ?? '')} ${String(n.title ?? '')}`
+              .toLowerCase()
+              .includes(q)
+          )
+            continue
+          items.push({
+            type: 'note',
+            id: String(n.id),
+            createdAt: created,
+            sort: created,
+            note: { ...n, ...noteAttachmentFlags(store, String(n.id)) },
+          })
+        }
+      }
+
+      if (segment === 'todo' || segment === 'capturas') {
+        for (const r of live(store.recortes)) {
+          const created = String(r.created_at ?? '')
+          const st = String(r.status ?? 'pending')
+          if (status === 'all') {
+            /* incluye todos */
+          } else if (status) {
+            if (st !== status) continue
+          } else if (st === 'archived') {
+            continue
+          }
+          if (!inDay(r.created_at)) continue
+          if (
+            q &&
+            !`${String(r.text ?? '')} ${String(r.source_title ?? '')} ${String(
+              r.source_author ?? '',
+            )}`
+              .toLowerCase()
+              .includes(q)
+          )
+            continue
+          items.push({
+            type: 'recorte',
+            id: String(r.id),
+            createdAt: created,
+            sort: created,
+            recorte: r,
+          })
+        }
+      }
+
+      // Orden por fecha desc; ante empate, notas antes que recortes.
+      items.sort((a, b) => {
+        if (a.sort !== b.sort) return a.sort < b.sort ? 1 : -1
+        if (a.type === b.type) return 0
+        return a.type === 'note' ? -1 : 1
+      })
+
+      return {
+        items: items.slice(0, limit).map(({ sort: _sort, ...rest }) => rest),
+        nextCursor: null,
+      }
+    }
     case 'cronologia':
       return { entradas: [], nextCursor: null }
     case 'atlas':

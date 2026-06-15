@@ -9,6 +9,18 @@ vi.mock('./embeddings.js', () => ({
   toPgVector: vi.fn((vector) => `[${vector.join(',')}]`),
 }))
 
+// Blobs: la promoción de una captura de imagen a Momento foto copia el blob de
+// recortes-media a momentos-media. Mockeamos el store para inspeccionar la copia.
+const { blobStore } = vi.hoisted(() => ({
+  blobStore: {
+    getWithMetadata: vi.fn(),
+    set: vi.fn(),
+  },
+}))
+vi.mock('@netlify/blobs', () => ({
+  getStore: vi.fn(() => blobStore),
+}))
+
 import recortesHandler from '../recortes'
 import tokensHandler from '../api-tokens'
 import {
@@ -64,6 +76,8 @@ beforeEach(() => {
   vi.mocked(entityEmbeddingText).mockClear()
   vi.mocked(quoteEmbeddingText).mockClear()
   vi.mocked(toPgVector).mockClear()
+  blobStore.getWithMetadata.mockReset()
+  blobStore.set.mockReset()
 })
 
 describe('recortes endpoint', () => {
@@ -304,6 +318,71 @@ describe('recortes endpoint', () => {
           /UPDATE recortes/i.test(c.template),
       ),
     ).toBe(true)
+  })
+
+  it('promote momento de una captura de imagen → kind:foto copiando el blob a momentos-media', async () => {
+    const imageRow = { ...ROW, capture_mode: 'image', image_key: 'u/origen.webp' }
+    blobStore.getWithMetadata.mockResolvedValue({
+      data: new ArrayBuffer(8),
+      metadata: { mime: 'image/webp', size: '8' },
+    })
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ status: 'pending', image_key: 'u/origen.webp' }]) // SELECT status,image_key
+    mockSqlResponses.push([
+      { ...imageRow, status: 'promoted', promoted_target: 'momento' },
+    ]) // CTE insert momentos
+
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}/promote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target: 'momento',
+          momento: { kind: 'foto', payload: { caption: 'mi gato' } },
+        }),
+      }),
+      mockContext({ id: ROW.id }),
+    )
+
+    expect(res.status).toBe(200)
+    // Leyó el blob de recortes-media y lo escribió en momentos-media.
+    expect(blobStore.getWithMetadata).toHaveBeenCalledWith(
+      'u/origen.webp',
+      expect.anything(),
+    )
+    expect(blobStore.set).toHaveBeenCalledTimes(1)
+    // El INSERT del momento usa kind 'foto' y un payload con storageKey nuevo.
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO momentos/i.test(c.template),
+    )
+    expect(insert?.values).toContain('foto')
+    const payloadValue = insert?.values.find(
+      (v): v is string => typeof v === 'string' && v.includes('"storageKey"'),
+    )
+    expect(payloadValue).toBeTruthy()
+    expect(payloadValue).toContain('"caption":"mi gato"')
+    // El storageKey copiado NO es la image_key del recorte (vive en otro store).
+    expect(payloadValue).not.toContain('u/origen.webp')
+  })
+
+  it('promote momento foto sin imagen propia → 400 (no se puede armar la foto)', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ status: 'pending', image_key: null }]) // SELECT status,image_key
+
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}/promote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target: 'momento',
+          momento: { kind: 'foto', payload: {} },
+        }),
+      }),
+      mockContext({ id: ROW.id }),
+    )
+
+    expect(res.status).toBe(400)
+    expect(blobStore.set).not.toHaveBeenCalled()
   })
 
   it('unpromote revierte: soft-borra el destino y devuelve el recorte a pending', async () => {

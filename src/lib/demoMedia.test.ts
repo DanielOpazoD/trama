@@ -25,4 +25,10 @@ describe('demoMediaResponse', () => {
     expect(attachment?.headers.get('Content-Type')).toBe('image/svg+xml')
     expect(demoMediaResponse('/api/entities')).toBeNull()
   })
+
+  it('sirve placeholder SVG para la imagen de una captura (recorte) demo', async () => {
+    const image = demoMediaResponse('/api/recortes-image/demo/captura.svg')
+
+    expect(image?.headers.get('Content-Type')).toBe('image/svg+xml')
+  })
 })

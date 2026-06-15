@@ -48,6 +48,19 @@ function parseQuote(rest: string): CaptureIntent {
   return { kind: 'quote', text: rest.trim(), author: '' }
 }
 
+/** Tarea: "título — detalle". Sin separador, el detalle queda vacío. */
+function parseTask(rest: string): CaptureIntent {
+  const m = SEP_RE.exec(rest)
+  if (m && m.index > 0) {
+    return {
+      kind: 'task',
+      title: rest.slice(0, m.index).trim(),
+      detail: rest.slice(m.index + m[0].length).trim() || null,
+    }
+  }
+  return { kind: 'task', title: rest.trim(), detail: null }
+}
+
 /** Entidad: "nombre (tipo)" o "nombre — tipo". Tipo default: concepto. */
 function parseEntity(rest: string): CaptureIntent {
   const paren = /^(.*)\(([^)]+)\)\s*$/.exec(rest.trim())
@@ -81,6 +94,10 @@ const KEYWORDS: Record<string, CaptureKind> = {
   entity: 'entity',
   momento: 'momento',
   moment: 'momento',
+  tarea: 'task',
+  tareas: 'task',
+  task: 'task',
+  pendiente: 'task',
 }
 
 /** Palabras sueltas que reclasifican la última captura. Cita queda fuera:
@@ -168,6 +185,8 @@ export function parseInboundMessage(raw: string): ParsedInbound {
           return { kind: 'intent', intent: parseEntity(body) }
         case 'momento':
           return { kind: 'intent', intent: { kind: 'momento', bodyText: body } }
+        case 'task':
+          return { kind: 'intent', intent: parseTask(body) }
       }
     }
   }

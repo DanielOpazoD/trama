@@ -11,6 +11,7 @@ export {
   askLLMForJson,
   askLLMForText,
   askLLMForTextStreaming,
+  askLLMForTranscription,
   askLLMForVision,
   clearLLMCache,
 } from './llm/index.js'

@@ -13,6 +13,7 @@
  *     anthropic.ts          → Claude
  *     gemini.ts             → Google Gemini (+ vision)
  *   dispatch.ts     → resolveProvider + askLLMForJson/Text/TextStreaming/Vision
+ *   transcription.ts → askLLMForTranscription (Whisper, OpenAI-only)
  */
 
 export { clearLLMCache } from './cache.js'
@@ -22,6 +23,7 @@ export {
   askLLMForTextStreaming,
   askLLMForVision,
 } from './dispatch.js'
+export { askLLMForTranscription } from './transcription.js'
 export type {
   LLMMessage,
   LLMOverride,
