@@ -1,6 +1,13 @@
 import { useCallback, useId, useRef, useState, type RefObject } from 'react'
 import { bold, italic, link, quote, type FormatResult } from '../../lib/markdownFormat'
 import { BoldIcon, ItalicIcon, LinkIcon, QuoteIcon, ExpandIcon } from '../Icons'
+import {
+  applyTag,
+  findActiveTag,
+  matchTags,
+  type ActiveTagToken,
+} from '../../lib/tagMatch'
+import { TagAutocomplete } from './TagAutocomplete'
 
 type Transform = (value: string, selStart: number, selEnd: number) => FormatResult
 
@@ -44,6 +51,7 @@ export function MarkdownField({
   onKeyDown,
   onPaste,
   onRequestFocusMode,
+  tagUniverse,
   className = 'w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed',
   'aria-label': ariaLabel,
 }: {
@@ -57,6 +65,8 @@ export function MarkdownField({
   onPaste?: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void
   /** Si se pasa, se muestra el disparador de escritura enfocada. */
   onRequestFocusMode?: () => void
+  /** Universo de etiquetas existentes para el autocompletar `#`. */
+  tagUniverse?: string[]
   className?: string
   'aria-label'?: string
 }) {
@@ -69,11 +79,51 @@ export function MarkdownField({
   // (que dispara blur en el textarea) alcance a ejecutarse antes de ocultarla.
   const blurTimer = useRef<number | null>(null)
 
+  // --- Autocompletar de etiquetas `#` ------------------------------------
+  // Token de etiqueta en curso bajo el caret (o null) + ítem activo del popover.
+  const tagsEnabled = Array.isArray(tagUniverse) && tagUniverse.length > 0
+  const [activeTag, setActiveTag] = useState<ActiveTagToken | null>(null)
+  const [tagIndex, setTagIndex] = useState(0)
+  const suggestions =
+    tagsEnabled && activeTag ? matchTags(tagUniverse, activeTag.query) : []
+  const tagOpen = suggestions.length > 0
+
+  /** Recalcula el token de etiqueta a partir del texto + caret actuales. */
+  const syncActiveTag = useCallback(() => {
+    if (!tagsEnabled) return
+    const el = ref.current
+    if (!el || el.selectionStart !== el.selectionEnd) {
+      setActiveTag(null)
+      return
+    }
+    const token = findActiveTag(el.value, el.selectionStart)
+    setActiveTag(token)
+    setTagIndex(0)
+  }, [ref, tagsEnabled])
+
+  /** Inserta la etiqueta elegida y cierra el popover. */
+  const pickTag = useCallback(
+    (tag: string) => {
+      if (!activeTag) return
+      const { value: next, caret } = applyTag(value, activeTag, tag)
+      onChange(next)
+      setActiveTag(null)
+      requestAnimationFrame(() => {
+        const t = ref.current
+        if (!t) return
+        t.focus()
+        t.setSelectionRange(caret, caret)
+      })
+    },
+    [activeTag, value, onChange, ref],
+  )
+
   const syncSelection = useCallback(() => {
     const el = ref.current
     if (!el) return
     setHasSelection(el.selectionStart !== el.selectionEnd)
-  }, [ref])
+    syncActiveTag()
+  }, [ref, syncActiveTag])
 
   /** Aplica una transform al rango seleccionado y reposiciona el caret. */
   const apply = useCallback(
@@ -99,6 +149,32 @@ export function MarkdownField({
   )
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    // Autocompletar de etiquetas: si el popover está abierto, ↑/↓ navegan,
+    // Enter/Tab elige, Esc cierra — y NO dejamos pasar el evento al caller
+    // (para que Enter no guarde la nota mientras se elige una etiqueta).
+    if (tagOpen && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setTagIndex((i) => (i + 1) % suggestions.length)
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setTagIndex((i) => (i - 1 + suggestions.length) % suggestions.length)
+        return
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault()
+        const choice = suggestions[tagIndex]
+        if (choice) pickTag(choice)
+        return
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setActiveTag(null)
+        return
+      }
+    }
     // ⌘/Ctrl+B y ⌘/Ctrl+I aplican negrita/cursiva sin romper ⌘↵ (save) ni el
     // onKeyDown del caller, que corre después.
     if ((e.metaKey || e.ctrlKey) && !e.altKey) {
@@ -119,7 +195,10 @@ export function MarkdownField({
 
   function handleBlur() {
     if (blurTimer.current) window.clearTimeout(blurTimer.current)
-    blurTimer.current = window.setTimeout(() => setHasSelection(false), 120)
+    blurTimer.current = window.setTimeout(() => {
+      setHasSelection(false)
+      setActiveTag(null)
+    }, 120)
   }
 
   function cancelBlurClose() {
@@ -167,7 +246,12 @@ export function MarkdownField({
       <textarea
         ref={ref}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onChange(e.target.value)
+          // El caret ya está donde quedó tras escribir; recalculamos el token de
+          // etiqueta tras el commit del valor (rAF para leer el caret final).
+          requestAnimationFrame(syncActiveTag)
+        }}
         onKeyDown={handleKeyDown}
         onPaste={onPaste}
         onSelect={syncSelection}
@@ -181,6 +265,17 @@ export function MarkdownField({
         aria-controls={hasSelection ? toolbarId : undefined}
         className={className}
       />
+
+      {/* Autocompletar de etiquetas: aparece bajo el campo cuando se escribe
+          `#…` y hay etiquetas que matchean. Teclado en handleKeyDown. */}
+      {tagOpen && (
+        <TagAutocomplete
+          suggestions={suggestions}
+          activeIndex={tagIndex}
+          onPick={pickTag}
+          onHover={setTagIndex}
+        />
+      )}
 
       {/* Disparador de escritura enfocada — botón sin palabras, mismo idioma que
           el chevron de NoteCard. Discreto, abajo a la derecha del campo. */}

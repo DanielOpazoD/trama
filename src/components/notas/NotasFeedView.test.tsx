@@ -194,4 +194,75 @@ describe('<NotasFeedView />', () => {
       expect(screen.queryByText(/Idea matriz sobre memoria/)).not.toBeInTheDocument(),
     )
   })
+
+  it('el buscador es on-demand: la lupa lo expande y filtra el feed', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<NotasFeedView />)
+
+    await screen.findByText(/Idea matriz sobre memoria/)
+
+    // En reposo el feed NO muestra una barra de búsqueda permanente.
+    expect(
+      screen.queryByPlaceholderText(/Buscar en notas y capturas/),
+    ).not.toBeInTheDocument()
+
+    // La lupa expande el input.
+    await user.click(screen.getByRole('button', { name: 'Buscar en notas y capturas' }))
+    const input = await screen.findByPlaceholderText(/Buscar en notas y capturas/)
+
+    // Buscar algo que solo matchea la nota oculta el recorte.
+    await user.type(input, 'memoria')
+    await waitFor(() =>
+      expect(screen.queryByText(/Una cita capturada de la web/)).not.toBeInTheDocument(),
+    )
+    expect(screen.getByText(/Idea matriz sobre memoria/)).toBeInTheDocument()
+
+    // Cerrar el buscador desmonta el input y limpia la búsqueda.
+    await user.click(screen.getByRole('button', { name: 'Cerrar búsqueda' }))
+    await waitFor(() =>
+      expect(
+        screen.queryByPlaceholderText(/Buscar en notas y capturas/),
+      ).not.toBeInTheDocument(),
+    )
+    expect(await screen.findByText(/Una cita capturada de la web/)).toBeInTheDocument()
+  })
+
+  it('el calendario de actividad está oculto por defecto y aparece tras el toggle', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<NotasFeedView />)
+
+    await screen.findByText(/Idea matriz sobre memoria/)
+
+    // No hay heatmap permanente en el tope.
+    expect(screen.queryByRole('button', { name: 'Mes anterior' })).not.toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Mostrar calendario de actividad' }),
+    )
+    expect(
+      await screen.findByRole('button', { name: 'Mes anterior' }),
+    ).toBeInTheDocument()
+  })
+
+  it('el filtro de estado de Capturas solo aparece en ese segmento', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<NotasFeedView />)
+
+    await screen.findByText(/Idea matriz sobre memoria/)
+
+    // En Todo no hay control de estado.
+    expect(
+      screen.queryByRole('tablist', { name: 'Filtrar capturas por estado' }),
+    ).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: 'Capturas' }))
+    expect(
+      await screen.findByRole('tablist', { name: 'Filtrar capturas por estado' }),
+    ).toBeInTheDocument()
+    // Default: Pendientes seleccionado.
+    expect(screen.getByRole('tab', { name: 'Pendientes' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+  })
 })

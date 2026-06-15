@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   useNotasFeed,
   useNotesQuery,
@@ -18,14 +18,17 @@ import type { Recorte, RecorteTarget } from '../../api'
 import { extractUrl, hostLabel } from '../../lib/captureIntent'
 import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
-import { ScissorsIcon, CameraIcon, SearchIcon } from '../Icons'
+import { ScissorsIcon, CameraIcon, SearchIcon, CalendarIcon, CloseIcon } from '../Icons'
 import { ViewHeader } from '../ViewHeader'
 import { NoteCard } from './NoteCard'
 import { ActivityCalendar, localDayKey } from './ActivityCalendar'
+import { FeedSkeleton } from './FeedSkeleton'
 import { RecorteCard } from '../recortes/RecorteCard'
 import { PromoteModal, type PromoteSeed } from '../recortes/PromoteModal'
 import { FavoritosPanel } from '../recortes/FavoritosPanel'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
+import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
+import { useFeedKeyboardNav } from '../../hooks/useFeedKeyboardNav'
 import { PendingAttachmentsInput } from './PendingAttachmentsInput'
 import { MarkdownField } from './MarkdownField'
 import { compressImage } from '../momentos/helpers'
@@ -36,6 +39,11 @@ const FocusedWriting = lazy(() =>
 )
 
 const ACCENT = 'var(--accent-sage)'
+
+// Cap del delay escalonado de entrada: hasta este índice cada ítem entra con un
+// pequeño retraso incremental; a partir de ahí, 0 (no escalonamos una lista larga).
+const STAGGER_CAP = 6
+const STAGGER_STEP_MS = 45
 
 const SEGMENTS: Array<{ value: NotasFeedSegment; label: string }> = [
   { value: 'todo', label: 'Todo' },
@@ -67,21 +75,27 @@ function initialSegment(): NotasFeedSegment {
   return SEGMENTS.some((s) => s.value === raw) ? (raw as NotasFeedSegment) : 'todo'
 }
 
+/** Las etiquetas solo tienen sentido en segmentos con notas (Todo · Escritas). */
+function segmentHasTags(segment: NotasFeedSegment): boolean {
+  return segment === 'todo' || segment === 'escritas'
+}
+
 /**
  * Feed unificado de capturas (fusión Notas + Recortes). La sección "notas" del
- * mundo Notas dejó de ser solo notas: muestra notas escritas, recortes (texto ·
- * imagen · enlace) y favoritos juntos, con un control segmentado (Todo · Escritas
- * · Capturas · Favoritos), buscador y filtro por etiqueta. En el segmento Capturas
- * se suma una fila secundaria de triage (Todas · Pendientes · Curadas · Archivadas).
+ * mundo Notas muestra notas escritas, recortes (texto · imagen · enlace) y
+ * favoritos juntos. El chrome es deliberadamente compacto: header → composer →
+ * una sola fila de tabs (con lupa + calendario como íconos a la derecha) →
+ * contenido. Todo lo demás es on-demand:
+ *   - el buscador se expande desde el ícono de lupa (con etiquetas sugeridas);
+ *   - el calendario de actividad se muestra/oculta con el ícono de calendario;
+ *   - el filtro de estado de Capturas es un control secundario discreto.
  *
  * La vista depende SOLO de la costura `useNotasFeed` (nunca de los dos hooks de
  * query crudos por separado): así la UI nunca ramifica nota-vs-recorte ad hoc.
- * Cada ítem del feed es un `CaptureItem` discriminado por `type`, y según el
- * tipo se renderiza `<NoteCard>` o `<RecorteCard>` con sus handlers existentes.
  *
- * La creación de notas (composer) se conserva igual que antes. El triage de
- * recortes (promover / archivar / eliminar) se cablea completo con sus mutaciones
- * propias + PromoteModal (no reusa la vieja RecortesView, ya removida).
+ * La creación de notas (composer) se conserva igual. El triage de recortes
+ * (promover / archivar / eliminar) se cablea completo con sus mutaciones propias
+ * + PromoteModal.
  */
 export function NotasFeedView() {
   // --- Composer (captura unificada: nota · enlace · imagen) ---------------
@@ -106,6 +120,12 @@ export function NotasFeedView() {
   const [composerFocused, setComposerFocused] = useState(false)
   // Escritura enfocada del cuerpo del composer (overlay fullscreen).
   const [focusMode, setFocusMode] = useState(false)
+  // Micro-confirmación al guardar una nota: una onda + ✓ silenciosos sobre el
+  // botón guardar (check-pop + saved-ripple). La app no celebra; hace lugar.
+  const [justSaved, setJustSaved] = useState(false)
+  const savedTimer = useRef<number | null>(null)
+
+  const reducedMotion = usePrefersReducedMotion()
 
   // El borrador es un enlace puro (y el usuario no eligió "guardar como nota").
   const linkUrl = forceNote ? null : extractUrl(draft)
@@ -124,9 +144,14 @@ export function NotasFeedView() {
   // --- Filtro del feed ----------------------------------------------------
   const [segment, setSegment] = useState<NotasFeedSegment>(initialSegment)
   const [search, setSearch] = useState('')
+  // El buscador es on-demand: arranca cerrado y se expande desde la lupa.
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
   const [activeTag, setActiveTag] = useState<string | null>(null)
   // Día seleccionado en el calendario de actividad ('YYYY-MM-DD'), o null.
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  // El calendario de actividad (heatmap) es on-demand: oculto por defecto.
+  const [calendarOpen, setCalendarOpen] = useState(false)
   // Triage de recortes (solo activo en el segmento Capturas). Por defecto
   // muestra las pendientes — el primer estado que pide atención del usuario.
   const [capturaStatus, setCapturaStatus] = useState<RecorteStatusFilter>('pending')
@@ -165,8 +190,8 @@ export function NotasFeedView() {
   }, [notes, calendarDays])
 
   // El universo de tags se calcula sobre el feed SIN filtrar por etiqueta (para
-  // que elegir una etiqueta no haga desaparecer las demás del chip-bar). Reusa
-  // el feed de la costura para no tocar los hooks crudos.
+  // que elegir una etiqueta no haga desaparecer las demás de la lista sugerida).
+  // Reusa el feed de la costura para no tocar los hooks crudos.
   const tagUniverse = useNotasFeed(
     useMemo(() => ({ segment, query: search.trim() || undefined }), [segment, search]),
   )
@@ -178,6 +203,13 @@ export function NotasFeedView() {
     }
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]))
   }, [tagUniverse.items])
+  // Lista plana de etiquetas para el autocompletar `#` del composer (todo el
+  // universo de notas, no el filtrado por segmento/búsqueda).
+  const allNoteTags = useMemo(() => {
+    const s = new Set<string>()
+    for (const n of notes) for (const t of n.tags) s.add(t)
+    return [...s].sort((a, b) => a.localeCompare(b))
+  }, [notes])
 
   // ¿Hay algún filtro activo (más allá del segmento)?
   const hasContentFilter =
@@ -206,6 +238,58 @@ export function NotasFeedView() {
     setSelectedDay(null)
   }
 
+  /** Abre el buscador y enfoca el input (afordancia on-demand de la lupa / `/`). */
+  const openSearch = useCallback(() => {
+    setSearchOpen(true)
+    // El input se monta en este render; lo enfocamos tras el commit.
+    requestAnimationFrame(() => searchRef.current?.focus())
+  }, [])
+
+  /** Cierra el buscador y limpia la búsqueda y el filtro de etiqueta. */
+  function closeSearch() {
+    setSearchOpen(false)
+    setSearch('')
+    setActiveTag(null)
+  }
+
+  /** Foco al composer (afordancia de teclado `n` + empty state). */
+  const focusComposer = useCallback(() => composerRef.current?.focus(), [composerRef])
+
+  // --- Navegación por teclado scopeada al feed ----------------------------
+  // n → composer · / → buscador · j/k → seleccionar tarjeta · Enter → activar.
+  // El feed solo está "activo" fuera de Favoritos (que es otro panel).
+  const navEnabled = segment !== 'favoritos'
+  const { selected, setSelected } = useFeedKeyboardNav({
+    enabled: navEnabled,
+    itemCount: items.length,
+    onFocusComposer: focusComposer,
+    onOpenSearch: openSearch,
+  })
+
+  // Scroll la tarjeta seleccionada a la vista al moverse con j/k.
+  const cardRefs = useRef<Array<HTMLDivElement | null>>([])
+  useEffect(() => {
+    if (selected === null) return
+    cardRefs.current[selected]?.scrollIntoView({
+      block: 'nearest',
+      behavior: reducedMotion ? 'auto' : 'smooth',
+    })
+  }, [selected, reducedMotion])
+
+  useEffect(() => {
+    return () => {
+      if (savedTimer.current) window.clearTimeout(savedTimer.current)
+    }
+  }, [])
+
+  /** Dispara la micro-confirmación de guardado (callada). */
+  function flashSaved() {
+    if (reducedMotion) return
+    setJustSaved(true)
+    if (savedTimer.current) window.clearTimeout(savedTimer.current)
+    savedTimer.current = window.setTimeout(() => setJustSaved(false), 700)
+  }
+
   /** Guarda el borrador-enlace como recorte web (captura de 1 paso). */
   function saveLink(url: string) {
     if (createRecorte.isPending) return
@@ -216,6 +300,7 @@ export function NotasFeedView() {
           setDraft('')
           setTitle('')
           setForceNote(false)
+          flashSaved()
           toast.show({
             message: 'Enlace guardado en tus capturas para curar.',
             tone: 'success',
@@ -308,6 +393,7 @@ export function NotasFeedView() {
           setTitle('')
           setForceNote(false)
           setPendingFiles([])
+          flashSaved()
           if (files.length === 0) return
           try {
             await Promise.all(
@@ -342,6 +428,8 @@ export function NotasFeedView() {
     }
   }
 
+  const showTags = segmentHasTags(segment)
+
   return (
     <>
       <ViewHeader
@@ -350,17 +438,6 @@ export function NotasFeedView() {
         accent={ACCENT}
         subtitle="Tus apuntes y tus recortes en un solo hilo. Escribe una nota o filtra por lo que buscas."
       />
-
-      {/* Calendario de actividad (heatmap) — se oculta en la pestaña Favoritos.
-          Cuenta solo notas; el clic en un día filtra el feed unificado. */}
-      {segment !== 'favoritos' && (
-        <ActivityCalendar
-          dayKeys={calendarDays}
-          stats={calendarStats}
-          selectedDay={selectedDay}
-          onSelectDay={setSelectedDay}
-        />
-      )}
 
       {/* Composer (captura unificada: nota · enlace · imagen). Pegar o soltar
           una imagen la guarda como recorte; pegar solo un enlace ofrece
@@ -377,7 +454,7 @@ export function NotasFeedView() {
           }}
           onDragLeave={() => setDragging(false)}
           onDrop={onComposerDrop}
-          className={`card-paper-soft rounded-xl border p-3 mb-5 transition ${
+          className={`card-paper-soft rounded-xl border p-3 mb-4 transition ${
             dragging ? 'border-dashed' : 'border-ink-100/70'
           }`}
           // Foco editorial: borde sage + anillo tintado suave (no el outline
@@ -419,6 +496,7 @@ export function NotasFeedView() {
             placeholder="Escribe una nota, pega un enlace o suelta una imagen… usa #etiquetas"
             aria-label="Captura: escribe una nota, pega un enlace o pega/suelta una imagen"
             onRequestFocusMode={() => setFocusMode(true)}
+            tagUniverse={allNoteTags}
             className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed pr-8"
           />
           <PendingAttachmentsInput
@@ -449,63 +527,196 @@ export function NotasFeedView() {
                 <CameraIcon size={11} />
                 pega o suelta una imagen para capturarla
               </span>
-              <button
-                onClick={save}
-                disabled={
-                  (!draft.trim() && !isLinkDraft) ||
-                  createNote.isPending ||
-                  createRecorte.isPending
-                }
-                className="btn-ink text-xs disabled:opacity-40"
-              >
-                {createRecorte.isPending
-                  ? 'Guardando…'
-                  : createNote.isPending
+              <div className="relative">
+                <button
+                  onClick={save}
+                  disabled={
+                    (!draft.trim() && !isLinkDraft) ||
+                    createNote.isPending ||
+                    createRecorte.isPending
+                  }
+                  className="btn-ink text-xs disabled:opacity-40"
+                >
+                  {createRecorte.isPending
                     ? 'Guardando…'
-                    : isLinkDraft
-                      ? 'Guardar enlace'
-                      : 'Guardar nota'}
-              </button>
+                    : createNote.isPending
+                      ? 'Guardando…'
+                      : isLinkDraft
+                        ? 'Guardar enlace'
+                        : 'Guardar nota'}
+                </button>
+                {/* Micro-confirmación callada: onda concéntrica salvia al guardar. */}
+                {justSaved && (
+                  <span
+                    aria-hidden
+                    className="animate-saved-ripple pointer-events-none absolute inset-0 rounded-md"
+                    style={{ boxShadow: `0 0 0 2px ${ACCENT}` }}
+                  />
+                )}
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Control segmentado: Todo · Escritas · Capturas · Favoritos */}
-      <div
-        role="tablist"
-        aria-label="Filtrar el feed"
-        className="mb-4 inline-flex rounded-lg border border-ink-100/70 bg-paper-50 p-0.5"
-      >
-        {SEGMENTS.map(({ value, label }) => {
-          const on = segment === value
-          return (
+      {/* Fila única de control: tabs de segmento + lupa/calendario a la derecha.
+          Toda la demás afordancia (buscador, etiquetas, calendario, estado) es
+          on-demand desde acá. */}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div
+          role="tablist"
+          aria-label="Filtrar el feed"
+          className="inline-flex rounded-lg border border-ink-100/70 bg-paper-50 p-0.5"
+        >
+          {SEGMENTS.map(({ value, label }) => {
+            const on = segment === value
+            return (
+              <button
+                key={value}
+                role="tab"
+                aria-selected={on}
+                onClick={() => setSegment(value)}
+                className={`rounded-md px-3 py-1 text-xs transition-colors ${
+                  on
+                    ? 'bg-ink-800 text-paper-50'
+                    : 'text-ink-400 hover:text-ink-700 hover:bg-ink-100/60'
+                }`}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Acciones on-demand del feed: lupa (buscar) + calendario (heatmap).
+            En Favoritos no hay buscador ni heatmap (es otro panel). */}
+        {segment !== 'favoritos' && (
+          <div className="flex items-center gap-1">
             <button
-              key={value}
-              role="tab"
-              aria-selected={on}
-              onClick={() => setSegment(value)}
-              className={`rounded-md px-3 py-1 text-xs transition-colors ${
-                on
-                  ? 'bg-ink-800 text-paper-50'
-                  : 'text-ink-400 hover:text-ink-700 hover:bg-ink-100/60'
+              type="button"
+              onClick={() => (searchOpen ? closeSearch() : openSearch())}
+              aria-label="Buscar en notas y capturas"
+              aria-expanded={searchOpen}
+              title="Buscar"
+              className={`touch-target rounded-md p-1.5 transition-colors ${
+                searchOpen || search
+                  ? 'bg-ink-100/70 text-ink-700'
+                  : 'text-ink-300 hover:bg-ink-100/60 hover:text-ink-700'
               }`}
             >
-              {label}
+              <SearchIcon size={14} />
             </button>
-          )
-        })}
+            <button
+              type="button"
+              onClick={() => setCalendarOpen((v) => !v)}
+              aria-label={
+                calendarOpen
+                  ? 'Ocultar calendario de actividad'
+                  : 'Mostrar calendario de actividad'
+              }
+              aria-pressed={calendarOpen}
+              title="Calendario de actividad"
+              className={`touch-target rounded-md p-1.5 transition-colors ${
+                calendarOpen || selectedDay
+                  ? 'bg-ink-100/70 text-ink-700'
+                  : 'text-ink-300 hover:bg-ink-100/60 hover:text-ink-700'
+              }`}
+            >
+              <CalendarIcon size={14} />
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Triage de recortes: fila secundaria de estado, solo en Capturas.
-          Absorbe el triage de la antigua RecortesView (pendientes / curados /
-          archivados). Por defecto muestra las pendientes. */}
+      {/* Buscador on-demand: se expande al activar la lupa. Incluye, debajo, las
+          etiquetas sugeridas (solo en segmentos con notas) — el filtro por
+          etiqueta vive acá, no como tira permanente. */}
+      {segment !== 'favoritos' && searchOpen && (
+        <div className="mb-4 animate-fade-up space-y-2.5">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 bg-paper-50 border border-ink-100/60 rounded-md">
+            <SearchIcon size={12} className="text-ink-300 shrink-0" />
+            <input
+              ref={searchRef}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') closeSearch()
+              }}
+              placeholder="Buscar en notas y capturas…"
+              aria-label="Buscar en notas y capturas"
+              className="flex-1 bg-transparent text-caption text-ink-700 placeholder:text-ink-300"
+            />
+            <button
+              onClick={closeSearch}
+              aria-label="Cerrar búsqueda"
+              className="text-ink-300 hover:text-ink-700 transition-colors"
+            >
+              <CloseIcon size={12} />
+            </button>
+          </div>
+          {showTags && tagCounts.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setActiveTag(null)}
+                className={`text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border transition-colors ${
+                  activeTag === null
+                    ? 'border-ink-200 text-ink-700 bg-ink-100/50'
+                    : 'border-ink-100 text-ink-400 hover:text-ink-700'
+                }`}
+              >
+                todas
+              </button>
+              {tagCounts.map(([t, count]) => {
+                const on = activeTag === t
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setActiveTag(on ? null : t)}
+                    className="text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border transition-colors"
+                    style={
+                      on
+                        ? {
+                            borderColor: ACCENT,
+                            color: ACCENT,
+                            background: 'var(--accent-sage-soft, transparent)',
+                          }
+                        : undefined
+                    }
+                  >
+                    #{t} <span className="tabular-nums opacity-60">{count}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Calendario de actividad (heatmap), on-demand. Cuenta solo notas; el clic
+          en un día filtra el feed unificado. Oculto por defecto. */}
+      {segment !== 'favoritos' && calendarOpen && (
+        <div className="animate-fade-up">
+          <ActivityCalendar
+            dayKeys={calendarDays}
+            stats={calendarStats}
+            selectedDay={selectedDay}
+            onSelectDay={setSelectedDay}
+          />
+        </div>
+      )}
+
+      {/* Triage de recortes: control SECUNDARIO de estado, solo en Capturas.
+          Texto-links discretos (no otra tira de pills) para que se lea como
+          subordinado a los tabs. Por defecto muestra las pendientes. */}
       {segment === 'capturas' && (
         <div
           role="tablist"
           aria-label="Filtrar capturas por estado"
-          className="card-segment mb-4"
+          className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 pl-0.5 text-caption text-ink-300"
         >
+          <span className="text-micro uppercase tracking-eyebrow text-ink-300">
+            estado
+          </span>
           {CAPTURA_STATUS_OPTIONS.map(({ value, label }) => {
             const on = capturaStatus === value
             return (
@@ -514,11 +725,8 @@ export function NotasFeedView() {
                 role="tab"
                 aria-selected={on}
                 onClick={() => setCapturaStatus(value)}
-                className={`rounded-md px-3 py-1 text-xs transition-colors ${
-                  on
-                    ? 'bg-ink-800 text-paper-50'
-                    : 'text-ink-400 hover:text-ink-700 hover:bg-ink-100/60'
-                }`}
+                className="transition-colors hover:text-ink-700"
+                style={on ? { color: ACCENT } : undefined}
               >
                 {label}
               </button>
@@ -531,64 +739,6 @@ export function NotasFeedView() {
         <FavoritosPanel />
       ) : (
         <>
-          {/* Buscador + chips de etiqueta */}
-          <div className="mb-5 space-y-2.5">
-            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-paper-50 border border-ink-100/60 rounded-md">
-              <SearchIcon size={12} className="text-ink-300 shrink-0" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar en notas y capturas…"
-                aria-label="Buscar en notas y capturas"
-                className="flex-1 bg-transparent text-caption text-ink-700 placeholder:text-ink-300"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  aria-label="Limpiar búsqueda"
-                  className="text-ink-300 hover:text-ink-700 text-caption"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            {tagCounts.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => setActiveTag(null)}
-                  className={`text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border transition-colors ${
-                    activeTag === null
-                      ? 'border-ink-200 text-ink-700 bg-ink-100/50'
-                      : 'border-ink-100 text-ink-400 hover:text-ink-700'
-                  }`}
-                >
-                  todas
-                </button>
-                {tagCounts.map(([t, count]) => {
-                  const on = activeTag === t
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => setActiveTag(on ? null : t)}
-                      className="text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border transition-colors"
-                      style={
-                        on
-                          ? {
-                              borderColor: ACCENT,
-                              color: ACCENT,
-                              background: 'var(--accent-sage-soft, transparent)',
-                            }
-                          : undefined
-                      }
-                    >
-                      #{t} <span className="tabular-nums opacity-60">{count}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
           {/* Tarjetas «subiendo…» mientras la captura de imagen viaja al servidor.
               Dan feedback inmediato; al terminar, la imagen real toma su lugar. */}
           {uploadingImages > 0 && (
@@ -606,9 +756,7 @@ export function NotasFeedView() {
 
           {/* Feed / estados */}
           {isLoading ? (
-            <div className="py-10 flex justify-center">
-              <LoadingHint text="cargando" size="sm" />
-            </div>
+            <FeedSkeleton />
           ) : isError ? (
             <EmptyMessage
               illustration="thread"
@@ -623,7 +771,7 @@ export function NotasFeedView() {
               action={
                 <button
                   type="button"
-                  onClick={() => composerRef.current?.focus()}
+                  onClick={focusComposer}
                   className="btn-ink min-h-[44px] px-4 text-xs"
                 >
                   Escribir primera nota
@@ -648,61 +796,85 @@ export function NotasFeedView() {
             />
           ) : (
             <div className="space-y-2.5">
-              {items.map((item) =>
-                item.type === 'note' ? (
-                  <NoteCard
-                    key={`note-${item.id}`}
-                    note={item.note}
-                    busy={updateNote.isPending || deleteNote.isPending}
-                    promoting={promoteNote.isPending && promoteNote.variables === item.id}
-                    onTogglePin={() =>
-                      updateNote.mutate({
-                        id: item.id,
-                        patch: { pinned: !item.note.pinned },
-                      })
-                    }
-                    onEdit={(patch) => updateNote.mutate({ id: item.id, patch })}
-                    onDelete={() => deleteNote.mutate(item.id)}
-                    onPromote={() =>
-                      promoteNote.mutate(item.id, {
-                        onSuccess: () =>
-                          toast.show({
-                            message: 'Nota promovida a Momento.',
-                            tone: 'success',
-                          }),
-                        onError: (e) =>
-                          toast.show({
-                            message:
-                              e instanceof Error ? e.message : 'No se pudo promover',
-                            tone: 'error',
-                          }),
-                      })
-                    }
-                  />
-                ) : (
-                  <ul key={`recorte-${item.id}`} className="contents">
-                    <RecorteCard
-                      recorte={item.recorte}
-                      onPromote={(recorte, target, seed) =>
-                        setPromoting({ recorte, target, seed })
-                      }
-                      onArchive={() =>
-                        updateRecorte.mutate({
-                          id: item.id,
-                          patch: { status: 'archived' },
-                        })
-                      }
-                      onRestore={() =>
-                        updateRecorte.mutate({
-                          id: item.id,
-                          patch: { status: 'pending' },
-                        })
-                      }
-                      onDelete={() => deleteRecorte.mutate(item.id)}
-                    />
-                  </ul>
-                ),
-              )}
+              {items.map((item, i) => {
+                const isSelected = selected === i
+                // Entrada escalonada (capeada). Bajo reduce-motion: sin delay
+                // (y la clase fade-up ya se neutraliza por el @media en CSS).
+                const delay =
+                  reducedMotion || i >= STAGGER_CAP
+                    ? undefined
+                    : `${i * STAGGER_STEP_MS}ms`
+                // Resalte de la selección por teclado (anillo salvia sutil).
+                const selStyle = isSelected
+                  ? { boxShadow: `0 0 0 2px ${ACCENT}`, borderRadius: '0.75rem' }
+                  : undefined
+                return (
+                  <div
+                    key={item.type === 'note' ? `note-${item.id}` : `recorte-${item.id}`}
+                    ref={(el) => {
+                      cardRefs.current[i] = el
+                    }}
+                    onMouseDown={() => setSelected(i)}
+                    className={reducedMotion ? undefined : 'animate-fade-up'}
+                    style={{ ...selStyle, animationDelay: delay }}
+                  >
+                    {item.type === 'note' ? (
+                      <NoteCard
+                        note={item.note}
+                        busy={updateNote.isPending || deleteNote.isPending}
+                        promoting={
+                          promoteNote.isPending && promoteNote.variables === item.id
+                        }
+                        onTogglePin={() =>
+                          updateNote.mutate({
+                            id: item.id,
+                            patch: { pinned: !item.note.pinned },
+                          })
+                        }
+                        onEdit={(patch) => updateNote.mutate({ id: item.id, patch })}
+                        onDelete={() => deleteNote.mutate(item.id)}
+                        onPromote={() =>
+                          promoteNote.mutate(item.id, {
+                            onSuccess: () =>
+                              toast.show({
+                                message: 'Nota promovida a Momento.',
+                                tone: 'success',
+                              }),
+                            onError: (e) =>
+                              toast.show({
+                                message:
+                                  e instanceof Error ? e.message : 'No se pudo promover',
+                                tone: 'error',
+                              }),
+                          })
+                        }
+                      />
+                    ) : (
+                      <ul className="contents">
+                        <RecorteCard
+                          recorte={item.recorte}
+                          onPromote={(recorte, target, seed) =>
+                            setPromoting({ recorte, target, seed })
+                          }
+                          onArchive={() =>
+                            updateRecorte.mutate({
+                              id: item.id,
+                              patch: { status: 'archived' },
+                            })
+                          }
+                          onRestore={() =>
+                            updateRecorte.mutate({
+                              id: item.id,
+                              patch: { status: 'pending' },
+                            })
+                          }
+                          onDelete={() => deleteRecorte.mutate(item.id)}
+                        />
+                      </ul>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </>
