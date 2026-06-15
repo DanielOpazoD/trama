@@ -38,4 +38,27 @@ describe('checkFrontendBoundaries', () => {
 
     expect(checkFrontendBoundaries(root)).toEqual({ ok: true, failures: [] })
   })
+
+  it('detecta imports prohibidos aunque sean multilinea o subpaths de React', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'trama-frontend-boundaries-'))
+    mkdirSync(join(root, 'src/components'), { recursive: true })
+    writeFileSync(
+      join(root, 'src/components/exampleViewModel.ts'),
+      [
+        "import { jsx } from 'react/jsx-runtime'",
+        'import {',
+        '  api,',
+        "} from '../api'",
+        'export const value = jsx',
+      ].join('\n'),
+    )
+
+    const result = checkFrontendBoundaries(root)
+
+    expect(result.ok).toBe(false)
+    expect(result.failures.map((failure) => failure.message)).toEqual([
+      'src/components/exampleViewModel.ts imports react/jsx-runtime; component view models must stay pure.',
+      'src/components/exampleViewModel.ts imports ../api; component view models may only use API contracts via import type.',
+    ])
+  })
 })

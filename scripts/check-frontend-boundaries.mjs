@@ -4,7 +4,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const importRe = /^\s*import\s+(type\s+)?(?:.+?\s+from\s+)?['"]([^'"]+)['"]/gm
+const importFromRe = /^\s*import\s+(type\s+)?[\s\S]*?\s+from\s+['"]([^'"]+)['"]/gm
+const sideEffectImportRe = /^\s*import\s+['"]([^'"]+)['"]/gm
 
 function walk(dir, files = []) {
   for (const entry of readdirSync(dir)) {
@@ -21,8 +22,8 @@ function isComponentViewModel(file) {
 }
 
 function classifyForbiddenImport(specifier, typeOnly) {
-  if (specifier === 'react') {
-    return 'imports react; component view models must stay pure.'
+  if (specifier === 'react' || specifier.startsWith('react/')) {
+    return `imports ${specifier}; component view models must stay pure.`
   }
   if (/\/state$|\/state\//.test(specifier) || specifier === '../state') {
     return `imports ${specifier}; component view models must not consume app state.`
@@ -33,6 +34,17 @@ function classifyForbiddenImport(specifier, typeOnly) {
   return null
 }
 
+function readStaticImports(source) {
+  const imports = []
+  for (const match of source.matchAll(importFromRe)) {
+    imports.push({ typeOnly: Boolean(match[1]), specifier: match[2] })
+  }
+  for (const match of source.matchAll(sideEffectImportRe)) {
+    imports.push({ typeOnly: false, specifier: match[1] })
+  }
+  return imports
+}
+
 export function checkFrontendBoundaries(root = process.cwd()) {
   const projectRoot = resolve(root)
   const componentsRoot = join(projectRoot, 'src/components')
@@ -41,9 +53,7 @@ export function checkFrontendBoundaries(root = process.cwd()) {
   for (const file of walk(componentsRoot).filter(isComponentViewModel)) {
     const rel = relative(projectRoot, file)
     const source = readFileSync(file, 'utf8')
-    for (const match of source.matchAll(importRe)) {
-      const typeOnly = Boolean(match[1])
-      const specifier = match[2]
+    for (const { typeOnly, specifier } of readStaticImports(source)) {
       const message = classifyForbiddenImport(specifier, typeOnly)
       if (message) failures.push({ file: rel, message: `${rel} ${message}` })
     }
