@@ -6,7 +6,7 @@
  * invalidan la cache de notas para mantener la lista fresca.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from '../api'
+import { api, type Note } from '../api'
 import { queryKeys } from './queryClient'
 import { useToast } from './toast'
 
@@ -36,7 +36,23 @@ export function useUpdateNote() {
       id: string
       patch: { content?: string; title?: string | null; pinned?: boolean }
     }) => api.notes.update(id, patch),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notes }),
+    // Optimista: aplicamos el patch en cache al instante (fijar/editar no
+    // parpadea ni espera al servidor); si falla, restauramos el snapshot previo.
+    onMutate: async ({ id, patch }) => {
+      await qc.cancelQueries({ queryKey: queryKeys.notes })
+      const prev = qc.getQueryData<Note[]>(queryKeys.notes)
+      if (prev) {
+        qc.setQueryData<Note[]>(
+          queryKeys.notes,
+          prev.map((n) => (n.id === id ? { ...n, ...patch } : n)),
+        )
+      }
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(queryKeys.notes, ctx.prev)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.notes }),
   })
 }
 

@@ -101,12 +101,25 @@ export function NotasFeedView() {
   const [dragging, setDragging] = useState(false)
   // Cuántas imágenes se están subiendo ahora (para tarjetas «subiendo…»).
   const [uploadingImages, setUploadingImages] = useState(0)
+  // Foco editorial del composer: ilumina el borde + anillo tintado mientras se
+  // escribe, y revela las afordancias del pie (no están siempre a la vista).
+  const [composerFocused, setComposerFocused] = useState(false)
   // Escritura enfocada del cuerpo del composer (overlay fullscreen).
   const [focusMode, setFocusMode] = useState(false)
 
   // El borrador es un enlace puro (y el usuario no eligió "guardar como nota").
   const linkUrl = forceNote ? null : extractUrl(draft)
   const isLinkDraft = linkUrl !== null
+
+  // El composer está "activo" si tiene foco o algún contenido. Las afordancias
+  // del pie (tip de imagen + guardar) solo aparecen entonces — en reposo el
+  // composer es una hoja limpia. Con contenido sigue visible aunque pierda el
+  // foco, así el click en «guardar» nunca se desmonta antes de registrar.
+  const composerActive =
+    composerFocused ||
+    draft.trim() !== '' ||
+    title.trim() !== '' ||
+    pendingFiles.length > 0
 
   // --- Filtro del feed ----------------------------------------------------
   const [segment, setSegment] = useState<NotasFeedSegment>(initialSegment)
@@ -352,6 +365,8 @@ export function NotasFeedView() {
           guardarlo como recorte web. El texto plano sigue siendo una nota. */}
       {segment !== 'favoritos' && (
         <div
+          onFocusCapture={() => setComposerFocused(true)}
+          onBlurCapture={() => setComposerFocused(false)}
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes('Files')) {
               e.preventDefault()
@@ -360,13 +375,19 @@ export function NotasFeedView() {
           }}
           onDragLeave={() => setDragging(false)}
           onDrop={onComposerDrop}
-          className={`card-paper-soft rounded-xl border p-3 mb-5 transition-colors ${
+          className={`card-paper-soft rounded-xl border p-3 mb-5 transition ${
             dragging ? 'border-dashed' : 'border-ink-100/70'
           }`}
+          // Foco editorial: borde sage + anillo tintado suave (no el outline
+          // genérico del navegador). Mientras se arrastra una imagen, borde sage
+          // punteado con fondo tenue. El anillo usa box-shadow para no mover el
+          // layout (a diferencia de un border que cambia de ancho).
           style={
             dragging
               ? { borderColor: ACCENT, background: 'var(--accent-sage-soft)' }
-              : undefined
+              : composerFocused
+                ? { borderColor: ACCENT, boxShadow: '0 0 0 3px var(--accent-sage-soft)' }
+                : undefined
           }
         >
           <input
@@ -420,29 +441,31 @@ export function NotasFeedView() {
             </p>
           )}
 
-          <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60">
-            <span className="flex items-center gap-1.5 text-micro text-ink-300">
-              <CameraIcon size={11} />
-              pega o suelta una imagen para capturarla
-            </span>
-            <button
-              onClick={save}
-              disabled={
-                (!draft.trim() && !isLinkDraft) ||
-                createNote.isPending ||
-                createRecorte.isPending
-              }
-              className="btn-ink text-xs disabled:opacity-40"
-            >
-              {createRecorte.isPending
-                ? 'Guardando…'
-                : createNote.isPending
+          {composerActive && (
+            <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60 animate-fade-up">
+              <span className="flex items-center gap-1.5 text-micro text-ink-300">
+                <CameraIcon size={11} />
+                pega o suelta una imagen para capturarla
+              </span>
+              <button
+                onClick={save}
+                disabled={
+                  (!draft.trim() && !isLinkDraft) ||
+                  createNote.isPending ||
+                  createRecorte.isPending
+                }
+                className="btn-ink text-xs disabled:opacity-40"
+              >
+                {createRecorte.isPending
                   ? 'Guardando…'
-                  : isLinkDraft
-                    ? 'Guardar enlace'
-                    : 'Guardar nota'}
-            </button>
-          </div>
+                  : createNote.isPending
+                    ? 'Guardando…'
+                    : isLinkDraft
+                      ? 'Guardar enlace'
+                      : 'Guardar nota'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
