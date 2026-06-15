@@ -80,18 +80,26 @@ describe('<CapturasGalleryGrid />', () => {
 
   it('calcula columnas responsive por tamaño de miniatura', () => {
     expect(getCapturasGalleryColumnCount('pequena', 390)).toBe(3)
+    expect(getCapturasGalleryColumnCount('pequena', 640)).toBe(5)
     expect(getCapturasGalleryColumnCount('pequena', 700)).toBe(5)
+    expect(getCapturasGalleryColumnCount('pequena', 768)).toBe(6)
     expect(getCapturasGalleryColumnCount('pequena', 900)).toBe(6)
     expect(getCapturasGalleryColumnCount('mediana', 390)).toBe(2)
+    expect(getCapturasGalleryColumnCount('mediana', 640)).toBe(3)
     expect(getCapturasGalleryColumnCount('mediana', 700)).toBe(3)
+    expect(getCapturasGalleryColumnCount('mediana', 768)).toBe(4)
     expect(getCapturasGalleryColumnCount('mediana', 900)).toBe(4)
     expect(getCapturasGalleryColumnCount('grande', 390)).toBe(1)
+    expect(getCapturasGalleryColumnCount('grande', 640)).toBe(2)
     expect(getCapturasGalleryColumnCount('grande', 700)).toBe(2)
+    expect(getCapturasGalleryColumnCount('grande', 768)).toBe(3)
     expect(getCapturasGalleryColumnCount('grande', 900)).toBe(3)
   })
 
   it('parte la galería en filas para virtualizar sin perder orden', () => {
     expect(chunkCapturasGalleryRows([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]])
+    expect(chunkCapturasGalleryRows([1, 2, 3], 0)).toEqual([[1], [2], [3]])
+    expect(chunkCapturasGalleryRows([1, 2, 3], -2)).toEqual([[1], [2], [3]])
   })
 
   it('muestra solo las capturas con imagen (excluye notas y texto)', () => {
