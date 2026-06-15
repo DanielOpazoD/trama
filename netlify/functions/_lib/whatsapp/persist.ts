@@ -58,7 +58,26 @@ export async function persistCapture(
       )
     case 'quote':
       return persistQuote(sql, userId, intent.text, intent.author)
+    case 'task':
+      return persistTask(sql, userId, intent.title, intent.detail)
   }
+}
+
+async function persistTask(
+  sql: SqlClient,
+  userId: string,
+  title: string,
+  detail: string | null,
+): Promise<CaptureResult> {
+  const tags = parseTags(`${title}\n${detail ?? ''}`)
+  // Las demás columnas (priority/week_start/category/done) usan sus defaults de
+  // la tabla: prioridad media, semana actual, categoría trabajo, sin hacer.
+  const rows = await sqlTyped<{ id: string }>(sql`
+    INSERT INTO tasks (title, detail, tags, origin, user_id)
+    VALUES (${title}, ${detail}, ${tags}::text[], ${WHATSAPP_ORIGIN}::jsonb, ${userId})
+    RETURNING id
+  `)
+  return { message: '✅ Tarea añadida a tus pendientes.', id: rows[0]?.id ?? null }
 }
 
 async function persistNote(

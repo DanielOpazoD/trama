@@ -53,3 +53,36 @@ export async function persistImageMomento(
   if (!id) throw new Error('persistImageMomento: INSERT no devolvió id')
   return { message: '📷 Foto añadida a Momentos.', id }
 }
+
+/**
+ * Varias fotos de un MISMO mensaje de WhatsApp → un solo Momento foto
+ * (un "episodio"), usando el array `payload.items[]` (formato υ-multi del
+ * dominio). Modela "estas fotos son un mismo momento" en vez de N momentos
+ * sueltos. Sirve también para una sola foto (items de largo 1, válido por
+ * MomentoFotoPayloadSchema). El blob de cada foto ya fue subido por el webhook.
+ */
+export async function persistImageMomentoEpisode(
+  sql: SqlClient,
+  userId: string,
+  storageKeys: string[],
+  caption: string,
+): Promise<CaptureResult> {
+  const items = storageKeys.map((storageKey) => ({ storageKey }))
+  const payload =
+    caption.trim().length > 0 ? { items, caption: caption.trim() } : { items }
+  const rows = await sqlTyped<{ id: string }>(sql`
+    INSERT INTO momentos (kind, captured_at, payload, note, origin, user_id)
+    VALUES (
+      'foto', NOW(), ${JSON.stringify(payload)}::jsonb, ${null}, ${WHATSAPP_ORIGIN}::jsonb, ${userId}
+    )
+    RETURNING id
+  `)
+  const id = rows[0]?.id
+  if (!id) throw new Error('persistImageMomentoEpisode: INSERT no devolvió id')
+  const n = storageKeys.length
+  return {
+    message:
+      n === 1 ? '📷 Foto añadida a Momentos.' : `📷 ${n} fotos añadidas a Momentos.`,
+    id,
+  }
+}

@@ -11,6 +11,7 @@ const TARGET_BY_KIND: Record<string, string> = {
   entity: '?view=entidades',
   momento: '?view=momentos',
   recorte: '?view=recortes',
+  task: '?world=notas&section=tareas',
 }
 
 export function captureDeepLink(origin: string, kind: string): string {

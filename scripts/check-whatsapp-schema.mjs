@@ -57,6 +57,7 @@ const REQUIRED = {
     'deleted_at',
   ],
   notes: ['id', 'content', 'title', 'tags', 'pinned', 'source', 'user_id', 'deleted_at'],
+  tasks: ['id', 'title', 'detail', 'tags', 'origin', 'user_id', 'deleted_at'],
   momentos: ['id', 'kind', 'payload', 'note', 'origin', 'user_id', 'deleted_at'],
   entities: [
     'id',
@@ -101,7 +102,7 @@ async function main() {
   // El shape de `origin` es parser-sensible (AGENTS.md). No basta con que la
   // columna exista: una migración que la cambie de jsonb a text rompería los
   // parsers en runtime sin que este check lo note. Validamos el tipo.
-  for (const table of ['entities', 'momentos', 'quotes']) {
+  for (const table of ['entities', 'momentos', 'quotes', 'tasks']) {
     const { rows } = await client.query(
       `SELECT data_type FROM information_schema.columns
        WHERE table_schema = 'public' AND table_name = $1 AND column_name = 'origin'`,

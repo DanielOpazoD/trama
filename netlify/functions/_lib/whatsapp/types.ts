@@ -6,7 +6,7 @@
  * tiene un solo camino de escritura.
  */
 
-export type CaptureKind = 'note' | 'quote' | 'entity' | 'momento'
+export type CaptureKind = 'note' | 'quote' | 'entity' | 'momento' | 'task'
 
 export type CaptureIntent =
   | { kind: 'note'; content: string }
@@ -15,3 +15,5 @@ export type CaptureIntent =
   | { kind: 'quote'; text: string; author: string }
   | { kind: 'entity'; name: string; entityType: string; description: string | null }
   | { kind: 'momento'; bodyText: string }
+  /** Tarea (pendiente) del mundo Notas. `detail` opcional tras un separador. */
+  | { kind: 'task'; title: string; detail: string | null }

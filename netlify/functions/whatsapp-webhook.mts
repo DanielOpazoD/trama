@@ -7,7 +7,12 @@ import { setCurrentRlsUser, runWithSystemRls } from './_lib/user-rls.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { resolveAIInvocation } from './_lib/ai-mode.js'
-import { askLLMForJson, askLLMForVision, askLLMForText } from './_lib/llm.js'
+import {
+  askLLMForJson,
+  askLLMForVision,
+  askLLMForText,
+  askLLMForTranscription,
+} from './_lib/llm.js'
 import { buildRagContext } from './_lib/rag-context.js'
 import { validateTwilioSignature } from './_lib/whatsapp/twilio-signature.js'
 import { normalizePhone } from './_lib/whatsapp/phone.js'
@@ -17,7 +22,7 @@ import { buildClassifyPrompt, validateClassification } from './_lib/whatsapp/int
 import { persistCapture } from './_lib/whatsapp/persist.js'
 import {
   persistImageRecorte,
-  persistImageMomento,
+  persistImageMomentoEpisode,
 } from './_lib/whatsapp/persist-media.js'
 import {
   parseInboundMedia,
@@ -26,10 +31,13 @@ import {
   isVisionRoute,
   downloadTwilioMedia,
   isAllowedImageMime,
+  isTranscribableAudioMime,
+  audioExtFromMime,
   MEDIA_TOO_LARGE,
 } from './_lib/whatsapp/media.js'
 import { buildPhotoPrompt, validatePhotoExtraction } from './_lib/whatsapp/vision.js'
 import type { PhotoMode } from './_lib/whatsapp/vision.js'
+import { transcriptionToIntent } from './_lib/whatsapp/transcribe.js'
 import { formatStatus } from './_lib/whatsapp/status.js'
 import {
   buildRecallPrompt,
@@ -72,9 +80,11 @@ const HELP = [
   '• cita: <frase> — <autor>',
   '• entidad: <nombre> (tipo)',
   '• momento: <qué pasó>',
+  '• tarea: <qué hacer> — <detalle>',
   'O escribe libremente y yo lo clasifico por ti.',
   '',
   '📷 Fotos: la imagen va a Recortes. Con «cita:» o «nota:» leo el texto (OCR).',
+  '🎤 Notas de voz: las transcribo y las guardo como Nota.',
   '🔎 Pregunta: «buscar: <tema>» o «? <pregunta>» para consultar tu Trama.',
   '',
   'Después de guardar puedes responder:',
@@ -187,6 +197,7 @@ const NOUN_BY_KIND: Record<string, string> = {
   entity: 'La entidad',
   momento: 'El momento',
   recorte: 'El recorte',
+  task: 'La tarea',
 }
 
 /** Soft-delete de la última captura según su kind. Devuelve si borró algo. */
@@ -212,6 +223,9 @@ async function softDeleteCapture(
       WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
   } else if (kind === 'recorte') {
     rows = await del(sql`UPDATE recortes SET deleted_at = NOW(), updated_at = NOW()
+      WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
+  } else if (kind === 'task') {
+    rows = await del(sql`UPDATE tasks SET deleted_at = NOW(), updated_at = NOW()
       WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL RETURNING id`)
   }
   return rows.length > 0
@@ -471,6 +485,40 @@ async function extractPhotoIntent(
   }
 }
 
+/**
+ * Transcribe una nota de voz a texto (Whisper) y la convierte en una Nota.
+ * Devuelve `null` si no se puede transcribir —sin presupuesto, sin key de
+ * OpenAI, o falla del modelo— para que el caller avise. Registra el costo
+ * estimado en `extraction_log` para que el cost-cap mensual lo cuente.
+ */
+async function transcribeAudioIntent(
+  userId: string,
+  requestId: string,
+  sql: ReturnType<typeof getSql>,
+  buffer: ArrayBuffer,
+  mimeType: string,
+): Promise<CaptureIntent | null> {
+  const overBudget = await checkMonthlyBudget(userId, requestId)
+  if (overBudget) return null
+  try {
+    const fileName = `voz.${audioExtFromMime(mimeType)}`
+    const { text, usage } = await askLLMForTranscription(buffer, mimeType, fileName)
+    // Registro best-effort del costo (Whisper cobra por minuto, estimado).
+    sql`
+      INSERT INTO extraction_log (input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id)
+      VALUES (${'[nota de voz]'}, ${JSON.stringify({ transcribed: true })}::jsonb, ${usage.provider}, ${usage.model}, ${0}, ${0}, ${usage.costCents}, ${usage.durationMs}, ${userId})
+    `.catch(() => {})
+    logEvent({ event: 'whatsapp_transcription', chars: text.trim().length })
+    return transcriptionToIntent(text)
+  } catch (err) {
+    logEvent({
+      event: 'whatsapp_transcription_failed',
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return null
+  }
+}
+
 async function handleInboundMedia(
   req: Request,
   requestId: string,
@@ -488,9 +536,56 @@ async function handleInboundMedia(
   let lastId: string | null = null
   let lastKind = ''
   const skipped = new Set<string>()
+  // Fotos del route 'momento': se acumulan y se persisten como UN solo momento
+  // foto (episodio) tras el loop, en vez de N momentos sueltos.
+  const momentoKeys: string[] = []
 
   for (const item of media) {
     const cat = mediaCategory(item.contentType)
+
+    // Audio → nota de voz: se baja y se transcribe (Whisper) a una Nota.
+    if (cat === 'audio') {
+      if (!isTranscribableAudioMime(item.contentType)) {
+        skipped.add('audio_format')
+        continue
+      }
+      if (!accountSid || !authToken) {
+        skipped.add('config')
+        continue
+      }
+      try {
+        const { buffer, contentType } = await downloadTwilioMedia(
+          item.url,
+          accountSid,
+          authToken,
+          {
+            onRetry: (attempt, reason) =>
+              logEvent({ event: 'whatsapp_media_retry', attempt, reason }),
+          },
+        )
+        const intent = await transcribeAudioIntent(
+          userId,
+          requestId,
+          sql,
+          buffer,
+          contentType || item.contentType,
+        )
+        if (intent) {
+          const r = await persistCapture(sql, userId, intent)
+          lastId = r.id
+          lastKind = intent.kind
+          saved += 1
+          continue
+        }
+        skipped.add('audio_ai')
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        skipped.add(msg === MEDIA_TOO_LARGE ? 'toolarge' : 'error')
+        logEvent({ event: 'whatsapp_media_failed', message: msg })
+      }
+      continue
+    }
+
     if (cat !== 'image') {
       skipped.add(cat)
       continue
@@ -542,20 +637,33 @@ async function handleInboundMedia(
       }
 
       if (route === 'momento') {
+        // No persistimos aún: juntamos las keys y creamos un solo episodio.
         const key = await storeMedia('momentos-media', userId, buffer, contentType)
-        const r = await persistImageMomento(sql, userId, key, caption)
-        lastId = r.id
-        lastKind = 'momento'
+        momentoKeys.push(key)
       } else {
         const key = await storeMedia('recortes-media', userId, buffer, contentType)
         const r = await persistImageRecorte(sql, userId, key, caption)
         lastId = r.id
         lastKind = 'recorte'
+        saved += 1
       }
-      saved += 1
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       skipped.add(msg === MEDIA_TOO_LARGE ? 'toolarge' : 'error')
+      logEvent({ event: 'whatsapp_media_failed', message: msg })
+    }
+  }
+
+  // Episodio foto: todas las fotos del route 'momento' en un solo momento.
+  if (momentoKeys.length > 0) {
+    try {
+      const r = await persistImageMomentoEpisode(sql, userId, momentoKeys, caption)
+      lastId = r.id
+      lastKind = 'momento'
+      saved += momentoKeys.length
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      skipped.add('error')
       logEvent({ event: 'whatsapp_media_failed', message: msg })
     }
   }
@@ -574,8 +682,15 @@ async function handleInboundMedia(
   const lines: string[] = []
   if (saved > 0) {
     const dest = DEST_BY_KIND[lastKind] ?? 'Trama'
+    // Episodio foto: varias fotos en un SOLO momento (no N elementos sueltos).
+    const isPhotoEpisode =
+      lastKind === 'momento' && momentoKeys.length > 1 && saved === momentoKeys.length
     lines.push(
-      saved === 1 ? `✅ Guardado en ${dest}.` : `✅ ${saved} elementos guardados.`,
+      saved === 1
+        ? `✅ Guardado en ${dest}.`
+        : isPhotoEpisode
+          ? `✅ ${saved} fotos guardadas en un momento.`
+          : `✅ ${saved} elementos guardados.`,
     )
     if (skipped.has('vision')) {
       lines.push('(No pude leer el texto, así que guardé la imagen tal cual.)')
@@ -583,8 +698,18 @@ async function handleInboundMedia(
     lines.push(`🔗 Ábrelo en Trama: ${captureDeepLink(origin, lastKind)}`)
     lines.push('↩️ ¿No era así? Responde «deshacer».')
   }
-  if (skipped.has('audio') || skipped.has('video')) {
-    lines.push('🎧🎬 Audio y video todavía no los proceso, pero muy pronto.')
+  if (skipped.has('video')) {
+    lines.push('🎬 El video todavía no lo proceso, pero muy pronto.')
+  }
+  if (skipped.has('audio_format')) {
+    lines.push(
+      '🎤 Ese formato de audio no lo puedo transcribir (mandá una nota de voz normal).',
+    )
+  }
+  if (skipped.has('audio_ai')) {
+    lines.push(
+      '🎤 No pude transcribir la nota de voz ahora (quizá se agotó el presupuesto de IA).',
+    )
   }
   if (skipped.has('format')) {
     lines.push('🖼️ Ese formato no lo soporto aún. Envía JPG, PNG, WEBP o GIF.')
@@ -598,7 +723,7 @@ async function handleInboundMedia(
     )
   }
   if (saved === 0 && skipped.has('error')) {
-    lines.push('No pude descargar la imagen. Vuelve a intentarlo en un momento.')
+    lines.push('No pude descargar el archivo. Vuelve a intentarlo en un momento.')
   }
   if (lines.length === 0) lines.push('Recibí el archivo, pero no pude procesarlo.')
   return lines.join('\n')

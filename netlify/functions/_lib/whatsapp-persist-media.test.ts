@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { SqlClient } from './db'
-import { persistImageRecorte, persistImageMomento } from './whatsapp/persist-media'
+import {
+  persistImageRecorte,
+  persistImageMomento,
+  persistImageMomentoEpisode,
+} from './whatsapp/persist-media'
 
 /**
  * fakeSql que devuelve `rows` y captura los valores interpolados del template
@@ -67,5 +71,47 @@ describe('persistImageMomento', () => {
   it('si el INSERT no devuelve id, lanza', async () => {
     const { sql } = fakeSql([])
     await expect(persistImageMomento(sql, 'u1', 'u1/x.jpg', '')).rejects.toThrow(/id/)
+  })
+})
+
+describe('persistImageMomentoEpisode', () => {
+  it('agrupa varias fotos en un solo momento con payload.items[]', async () => {
+    const { sql, calls } = fakeSql([{ id: 'm9' }])
+    const r = await persistImageMomentoEpisode(
+      sql,
+      'u1',
+      ['u1/a.jpg', 'u1/b.jpg'],
+      'viaje',
+    )
+    expect(r.id).toBe('m9')
+    expect(r.message).toContain('2 fotos')
+    const payload = calls[0].find(
+      (v): v is string => typeof v === 'string' && v.includes('items'),
+    )
+    expect(JSON.parse(payload!)).toMatchObject({
+      items: [{ storageKey: 'u1/a.jpg' }, { storageKey: 'u1/b.jpg' }],
+      caption: 'viaje',
+    })
+    const origin = calls[0].find(
+      (v): v is string => typeof v === 'string' && v.includes('importedFrom'),
+    )
+    expect(JSON.parse(origin!)).toMatchObject({ importedFrom: 'whatsapp' })
+  })
+
+  it('una sola foto: items de largo 1 y mensaje singular', async () => {
+    const { sql, calls } = fakeSql([{ id: 'm1' }])
+    const r = await persistImageMomentoEpisode(sql, 'u1', ['u1/solo.jpg'], '')
+    expect(r.message).toBe('📷 Foto añadida a Momentos.')
+    const payload = calls[0].find(
+      (v): v is string => typeof v === 'string' && v.includes('items'),
+    )
+    expect(JSON.parse(payload!)).toEqual({ items: [{ storageKey: 'u1/solo.jpg' }] })
+  })
+
+  it('si el INSERT no devuelve id, lanza', async () => {
+    const { sql } = fakeSql([])
+    await expect(persistImageMomentoEpisode(sql, 'u1', ['u1/x.jpg'], '')).rejects.toThrow(
+      /id/,
+    )
   })
 })
