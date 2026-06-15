@@ -248,6 +248,20 @@ export const recortesApi = {
   async suggestRecorte(id: string): Promise<RecorteSuggestion> {
     return request<RecorteSuggestion>(`/api/recortes/${id}/suggest`, { method: 'POST' })
   },
+  /**
+   * Pide al servidor que descargue la miniatura del recorte (og:image o la
+   * derivada de YouTube) y la guarde en nuestro blob propio, devolviendo la
+   * `imageKey`. Best-effort: el servidor responde 200 con `cached:false` si no
+   * había miniatura o la descarga falló — la tarjeta sigue con la externa.
+   */
+  async cacheRecorteThumbnail(
+    id: string,
+  ): Promise<{ cached: boolean; imageKey?: string; reason?: string }> {
+    return request<{ cached: boolean; imageKey?: string; reason?: string }>(
+      `/api/recortes/${id}/cache-thumbnail`,
+      { method: 'POST' },
+    )
+  },
 
   async listApiTokens(): Promise<ApiToken[]> {
     const rows = await request<ApiTokenRow[]>('/api/api-tokens')

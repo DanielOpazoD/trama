@@ -69,19 +69,40 @@ async function enrichLinkRecorte(
 ) {
   try {
     const preview = await api.momentoUrlPreview(url)
-    if (!preview.title && !preview.description && !preview.author && !preview.image) {
-      return
+    if (preview.title || preview.description || preview.author || preview.image) {
+      await api.updateRecorte(id, {
+        text: preview.description || preview.title || undefined,
+        sourceTitle: preview.title ?? undefined,
+        sourceAuthor: preview.author ?? undefined,
+        imageUrl: preview.image ?? undefined,
+      })
+      qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
     }
-    await api.updateRecorte(id, {
-      text: preview.description || preview.title || undefined,
-      sourceTitle: preview.title ?? undefined,
-      sourceAuthor: preview.author ?? undefined,
-      imageUrl: preview.image ?? undefined,
-    })
-    qc.invalidateQueries({ queryKey: queryKeys.recortes })
-    qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
   } catch {
     /* enriquecimiento opcional; el enlace pelado ya quedó guardado */
+  }
+  // Tras el enriquecimiento (que pudo dejar la image_url del og:image), pedimos
+  // al servidor que cachee la miniatura en nuestro blob propio. Corre también
+  // para videos de YouTube aunque el preview no haya traído nada (la miniatura
+  // se deriva del id server-side). Best-effort: si no cachea, queda la externa.
+  await cacheRecorteThumbnail(qc, id)
+}
+
+/**
+ * Dispara la caché server-side de la miniatura del recorte y, si el servidor la
+ * guardó en nuestro blob, invalida la bandeja + el feed para que la tarjeta
+ * pase a renderizar desde el blob propio (`image_key`). Best-effort y silencioso.
+ */
+async function cacheRecorteThumbnail(qc: ReturnType<typeof useQueryClient>, id: string) {
+  try {
+    const result = await api.cacheRecorteThumbnail(id)
+    if (result.cached) {
+      qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+    }
+  } catch {
+    /* caché opcional; la tarjeta sigue con la miniatura externa/derivada */
   }
 }
 

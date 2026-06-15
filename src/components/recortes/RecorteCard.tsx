@@ -61,8 +61,11 @@ const TRANSPARENT_PX =
  * si el origen es un video de YouTube. Sin imagen no se renderiza nada: el
  * origen aparece como un eyebrow discreto sobre el título (ver RecorteCard).
  *
- * TODO: cachear la miniatura de YouTube server-side (descargar + guardar en
- * blobs propios) para no depender de i.ytimg.com — fuera de alcance de este pase.
+ * Prefiere SIEMPRE el blob propio (`imageKey`) cuando existe: tras crear un
+ * recorte-enlace, el servidor descarga la miniatura (og:image o la derivada de
+ * YouTube) a nuestro blob (ver useRecortes → cacheRecorteThumbnail). La
+ * miniatura derivada de i.ytimg.com queda solo como fallback instantáneo
+ * mientras la caché server-side aún no corrió.
  */
 function RecorteMediaPreview({
   recorte: r,

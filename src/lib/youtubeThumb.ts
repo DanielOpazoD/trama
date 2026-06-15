@@ -13,14 +13,27 @@ export function youtubeThumb(url: string): string | null {
   if (!id) return null
   // hqdefault siempre existe (480×360, hasta para videos viejos); object-cover
   // recorta las barras del letterbox y la deja en 16:9 limpio.
+  return youtubeThumbUrl(id)
+}
+
+/**
+ * Construye la URL de la miniatura `hqdefault` de un id ya validado. Pura: la
+ * comparte el servidor (`recortes-thumbnail-cache`) con el cliente para que
+ * ambos deriven la MISMA URL de miniatura antes de descargarla a nuestro blob.
+ */
+export function youtubeThumbUrl(id: string): string {
   return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`
 }
 
 const VIDEO_ID_RE = /^[\w-]{11}$/
 const PATH_SEGMENT_KEYS = ['shorts', 'live', 'embed', 'v']
 
-/** Extrae el id de 11 caracteres de un video de YouTube, o null. */
-function youtubeVideoId(url: string, depth = 0): string | null {
+/**
+ * Extrae el id de 11 caracteres de un video de YouTube, o null. Exportada para
+ * que el servidor (caché de miniaturas) reuse exactamente la misma lógica de
+ * extracción que el cliente — una sola fuente de verdad para qué es "un video".
+ */
+export function youtubeVideoId(url: string, depth = 0): string | null {
   if (depth > 2) return null
   let u: URL
   try {
