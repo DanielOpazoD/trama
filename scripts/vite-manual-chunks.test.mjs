@@ -26,6 +26,12 @@ describe('manualVendorChunks', () => {
     expect(manualVendorChunks('/repo/node_modules/@pdf-lib/fontkit/index.js')).toBe(
       'vendor-pdf-lib',
     )
+    expect(manualVendorChunks('/repo/node_modules/pdfjs-dist/build/pdf.mjs')).toBe(
+      'vendor-pdfjs',
+    )
+    expect(manualVendorChunks('/repo/node_modules/tesseract.js/src/index.js')).toBe(
+      'vendor-ocr',
+    )
   })
 
   it('no fuerza chunks manuales para codigo de aplicacion', () => {

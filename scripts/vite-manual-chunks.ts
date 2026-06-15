@@ -16,5 +16,11 @@ export function manualVendorChunks(id: string) {
   if (id.includes('pdf-lib') || id.includes('@pdf-lib')) {
     return 'vendor-pdf-lib'
   }
+  if (id.includes('pdfjs-dist')) {
+    return 'vendor-pdfjs'
+  }
+  if (id.includes('tesseract.js')) {
+    return 'vendor-ocr'
+  }
   return undefined
 }

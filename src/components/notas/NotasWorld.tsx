@@ -15,9 +15,18 @@ import type { World } from '../../types/world'
 import type { NotasSection } from '../../types/notas'
 
 // Lazy: pdf.js (~1MB) y pdf-lib sólo se bajan al entrar a la sección PDF.
-const PdfStudioView = lazy(() =>
-  import('./pdfStudio/PdfStudioView').then((m) => ({ default: m.PdfStudioView })),
-)
+const loadPdfStudioView = () =>
+  import('./pdfStudio/PdfStudioView').then((m) => ({ default: m.PdfStudioView }))
+
+export function preloadPdfStudioView(): void {
+  void loadPdfStudioView()
+}
+
+const PdfStudioView = lazy(loadPdfStudioView)
+
+function preloadNotasSection(section: NotasSection): void {
+  if (section === 'pdf' || section === 'planillas') preloadPdfStudioView()
+}
 
 // Lazy: el panel de Configuración es el mismo del mundo principal. Antes el
 // mundo Notas no lo montaba, así que su chrome no podía abrir Configuración.
@@ -76,6 +85,7 @@ export function NotasWorld({
         sections={visibleSections}
         onChangeWorld={onChangeWorld}
         onChangeSection={setSection}
+        onSectionIntent={preloadNotasSection}
         onOpenSearch={() => setSearchOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
       />
@@ -86,6 +96,7 @@ export function NotasWorld({
         sections={visibleSections}
         onChangeWorld={onChangeWorld}
         onChangeSection={setSection}
+        onSectionIntent={preloadNotasSection}
         onOpenSearch={() => setSearchOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
       />

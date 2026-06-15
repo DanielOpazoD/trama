@@ -1,9 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '../../test-utils'
 import { NotasWorld } from './NotasWorld'
 
+const pdfStudioModule = vi.hoisted(() => ({
+  loaded: vi.fn(),
+}))
+
+vi.mock('./pdfStudio/PdfStudioView', () => {
+  pdfStudioModule.loaded()
+  return { PdfStudioView: () => <div>PDF Studio mock</div> }
+})
+
 beforeEach(() => {
+  pdfStudioModule.loaded.mockClear()
   window.localStorage.clear()
   // Notas y Tareas piden sus listas al montar; devolvemos [] (vacío).
   vi.stubGlobal(
@@ -102,5 +112,14 @@ describe('<NotasWorld />', () => {
     expect(screen.queryByRole('button', { name: 'Modo cómodo' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Modo compacto' })).toBeNull()
     expect(screen.getByTestId('notas-world-content')).toHaveClass('max-w-5xl')
+  })
+
+  it('precarga PDF Studio por intención sobre Imprenta sin montarlo al iniciar', async () => {
+    renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
+
+    expect(pdfStudioModule.loaded).not.toHaveBeenCalled()
+    fireEvent.mouseEnter(screen.getAllByRole('button', { name: 'Imprenta' })[0]!)
+
+    await waitFor(() => expect(pdfStudioModule.loaded).toHaveBeenCalled())
   })
 })

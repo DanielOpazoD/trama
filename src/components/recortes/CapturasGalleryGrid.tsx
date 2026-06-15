@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { CaptureItem, Recorte } from '../../api'
 import { recorteImageUrl } from '../../api/recortes'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 import type { RecorteThumbSize } from '../../hooks/useRecorteThumbSize'
+import { useMainScrollVirtualizer } from '../../hooks/useMainScrollVirtualizer'
 import { EmptyMessage } from '../EmptyMessage'
 import { RecorteLightbox } from './RecorteLightbox'
 
@@ -14,8 +15,60 @@ const GRID_CLASS: Record<RecorteThumbSize, string> = {
   grande: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5',
 }
 
+const ESTIMATED_ROW_HEIGHT: Record<RecorteThumbSize, number> = {
+  pequena: 150,
+  mediana: 260,
+  grande: 420,
+}
+
 const TRANSPARENT_PX =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+
+export function getCapturasGalleryColumnCount(
+  size: RecorteThumbSize,
+  viewportWidth: number,
+): number {
+  if (size === 'pequena') {
+    if (viewportWidth >= 768) return 6
+    if (viewportWidth >= 640) return 5
+    return 3
+  }
+  if (size === 'mediana') {
+    if (viewportWidth >= 768) return 4
+    if (viewportWidth >= 640) return 3
+    return 2
+  }
+  if (viewportWidth >= 768) return 3
+  if (viewportWidth >= 640) return 2
+  return 1
+}
+
+export function chunkCapturasGalleryRows<T>(items: T[], columns: number): T[][] {
+  const safeColumns = Math.max(1, columns)
+  const rows: T[][] = []
+  for (let i = 0; i < items.length; i += safeColumns) {
+    rows.push(items.slice(i, i + safeColumns))
+  }
+  return rows
+}
+
+function readViewportWidth(): number {
+  if (typeof window === 'undefined') return 1024
+  return window.innerWidth || 1024
+}
+
+function useGalleryColumns(size: RecorteThumbSize): number {
+  const [viewportWidth, setViewportWidth] = useState(readViewportWidth)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onResize = () => setViewportWidth(readViewportWidth())
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  return getCapturasGalleryColumnCount(size, viewportWidth)
+}
 
 /** Celda de la galería: la imagen (authed o externa) recortada a un cuadrado. */
 function GalleryCell({ recorte: r }: { recorte: Recorte }) {
@@ -82,6 +135,36 @@ export function CapturasGalleryGrid({
     [images],
   )
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+  const columns = useGalleryColumns(size)
+  const rows = useMemo(() => chunkCapturasGalleryRows(images, columns), [images, columns])
+  const { listRef, virtualizer } = useMainScrollVirtualizer<HTMLDivElement>({
+    count: rows.length,
+    estimateSize: ESTIMATED_ROW_HEIGHT[size],
+    overscan: 3,
+    deps: [size, columns, rows.length],
+  })
+  const estimatedRowHeight = ESTIMATED_ROW_HEIGHT[size]
+  const virtualRows = virtualizer.getVirtualItems()
+  const totalHeight = Math.max(
+    virtualizer.getTotalSize(),
+    rows.length * estimatedRowHeight,
+  )
+  const visibleRows =
+    virtualRows.length > 0
+      ? virtualRows
+      : rows.length > 0 &&
+          typeof document !== 'undefined' &&
+          document.getElementById('main-scroll')
+        ? Array.from({ length: Math.min(rows.length, 8) }, (_, index) => ({
+            key: index,
+            index,
+            start: index * estimatedRowHeight,
+          }))
+        : rows.map((_, index) => ({
+            key: index,
+            index,
+            start: index * estimatedRowHeight,
+          }))
 
   if (images.length === 0) {
     return (
@@ -94,20 +177,43 @@ export function CapturasGalleryGrid({
 
   return (
     <>
-      <ul className={GRID_CLASS[size]}>
-        {images.map((r, i) => (
-          <li key={r.id}>
-            <button
-              type="button"
-              onClick={() => setViewerIndex(i)}
-              aria-label={`Ampliar ${r.sourceTitle ?? 'imagen'}`}
-              className="block w-full overflow-hidden rounded-md border border-ink-100/70 transition-colors hover:border-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+      <div ref={listRef} style={{ height: totalHeight, position: 'relative' }}>
+        {visibleRows.map((virtualRow) => {
+          const row = rows[virtualRow.index]
+          if (!row) return null
+          return (
+            <ul
+              key={virtualRow.key}
+              data-index={virtualRow.index}
+              ref={virtualizer.measureElement}
+              className={GRID_CLASS[size]}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
+              }}
             >
-              <GalleryCell recorte={r} />
-            </button>
-          </li>
-        ))}
-      </ul>
+              {row.map((r, offset) => {
+                const imageIndex = virtualRow.index * columns + offset
+                return (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      onClick={() => setViewerIndex(imageIndex)}
+                      aria-label={`Ampliar ${r.sourceTitle ?? 'imagen'}`}
+                      className="block w-full overflow-hidden rounded-md border border-ink-100/70 transition-colors hover:border-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+                    >
+                      <GalleryCell recorte={r} />
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )
+        })}
+      </div>
 
       {hasNextPage && (
         <div className="mt-5 flex justify-center">

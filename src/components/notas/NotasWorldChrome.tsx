@@ -70,6 +70,7 @@ export function NotasSidebar({
   sections,
   onChangeWorld,
   onChangeSection,
+  onSectionIntent,
   onOpenSearch,
   onOpenSettings,
 }: {
@@ -79,6 +80,7 @@ export function NotasSidebar({
   sections: NotasSectionMeta[]
   onChangeWorld: (w: World) => void
   onChangeSection: (section: NotasSection) => void
+  onSectionIntent?: (section: NotasSection) => void
   onOpenSearch: () => void
   /** Abre el panel de Configuración (mismo que el mundo principal). */
   onOpenSettings: () => void
@@ -102,6 +104,8 @@ export function NotasSidebar({
           return (
             <button
               key={s.id}
+              onFocus={() => onSectionIntent?.(s.id)}
+              onMouseEnter={() => onSectionIntent?.(s.id)}
               onClick={() => onChangeSection(s.id)}
               aria-current={active ? 'page' : undefined}
               className={`group relative flex items-center gap-2.5 pl-3 pr-2.5 py-1.5 rounded-md text-body transition-colors ${
@@ -154,6 +158,7 @@ export function NotasMobileTabs({
   sections,
   onChangeWorld,
   onChangeSection,
+  onSectionIntent,
   onOpenSearch,
   onOpenSettings,
 }: {
@@ -162,6 +167,7 @@ export function NotasMobileTabs({
   sections: NotasSectionMeta[]
   onChangeWorld: (w: World) => void
   onChangeSection: (section: NotasSection) => void
+  onSectionIntent?: (section: NotasSection) => void
   onOpenSearch: () => void
   onOpenSettings: () => void
 }) {
@@ -175,6 +181,8 @@ export function NotasMobileTabs({
           return (
             <button
               key={s.id}
+              onFocus={() => onSectionIntent?.(s.id)}
+              onMouseEnter={() => onSectionIntent?.(s.id)}
               onClick={() => onChangeSection(s.id)}
               aria-current={active ? 'page' : undefined}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors whitespace-nowrap ${

@@ -1,7 +1,16 @@
 import { describe, it, expect, vi } from 'vitest'
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '../test-utils'
 import { WorldSwitcher } from './WorldSwitcher'
+
+const notasWorldModule = vi.hoisted(() => ({
+  loaded: vi.fn(),
+}))
+
+vi.mock('./notas/NotasWorld', () => {
+  notasWorldModule.loaded()
+  return { NotasWorld: () => null }
+})
 
 describe('<WorldSwitcher />', () => {
   it('muestra el mundo actual y abre el menú con los mundos', () => {
@@ -21,5 +30,15 @@ describe('<WorldSwitcher />', () => {
     fireEvent.click(screen.getByRole('button', { name: /Mundo actual/ }))
     fireEvent.click(screen.getByRole('menuitemradio', { name: /Notas/ }))
     expect(onChange).toHaveBeenCalledWith('notas')
+  })
+
+  it('precarga Notas por intención antes del click', async () => {
+    renderWithProviders(<WorldSwitcher world="trama" onChangeWorld={() => {}} />)
+
+    expect(notasWorldModule.loaded).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /Mundo actual/ }))
+    fireEvent.mouseEnter(screen.getByRole('menuitemradio', { name: /Notas/ }))
+
+    await waitFor(() => expect(notasWorldModule.loaded).toHaveBeenCalled())
   })
 })

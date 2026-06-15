@@ -2,7 +2,11 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { CaptureItem, Note, Recorte } from '../../api'
-import { CapturasGalleryGrid } from './CapturasGalleryGrid'
+import {
+  CapturasGalleryGrid,
+  chunkCapturasGalleryRows,
+  getCapturasGalleryColumnCount,
+} from './CapturasGalleryGrid'
 
 function recorte(over: Partial<Recorte> = {}): Recorte {
   return {
@@ -74,6 +78,22 @@ const items: CaptureItem[] = [
 describe('<CapturasGalleryGrid />', () => {
   const noop = () => {}
 
+  it('calcula columnas responsive por tamaño de miniatura', () => {
+    expect(getCapturasGalleryColumnCount('pequena', 390)).toBe(3)
+    expect(getCapturasGalleryColumnCount('pequena', 700)).toBe(5)
+    expect(getCapturasGalleryColumnCount('pequena', 900)).toBe(6)
+    expect(getCapturasGalleryColumnCount('mediana', 390)).toBe(2)
+    expect(getCapturasGalleryColumnCount('mediana', 700)).toBe(3)
+    expect(getCapturasGalleryColumnCount('mediana', 900)).toBe(4)
+    expect(getCapturasGalleryColumnCount('grande', 390)).toBe(1)
+    expect(getCapturasGalleryColumnCount('grande', 700)).toBe(2)
+    expect(getCapturasGalleryColumnCount('grande', 900)).toBe(3)
+  })
+
+  it('parte la galería en filas para virtualizar sin perder orden', () => {
+    expect(chunkCapturasGalleryRows([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]])
+  })
+
   it('muestra solo las capturas con imagen (excluye notas y texto)', () => {
     render(
       <CapturasGalleryGrid
@@ -132,5 +152,32 @@ describe('<CapturasGalleryGrid />', () => {
     )
     await userEvent.click(screen.getByRole('button', { name: /cargar más/i }))
     expect(onLoadMore).toHaveBeenCalled()
+  })
+
+  it('monta solo una ventana de filas cuando hay muchas capturas', () => {
+    const manyItems: CaptureItem[] = Array.from({ length: 120 }, (_, i) => ({
+      type: 'recorte',
+      id: `img-${i}`,
+      createdAt: '2026-06-14T12:00:00.000Z',
+      recorte: recorte({
+        id: `img-${i}`,
+        imageUrl: `https://x/${i}.jpg`,
+        sourceTitle: `Foto ${i}`,
+      }),
+    }))
+
+    render(
+      <div id="main-scroll" style={{ height: 600, overflowY: 'auto' }}>
+        <CapturasGalleryGrid
+          items={manyItems}
+          size="mediana"
+          hasNextPage={false}
+          isFetchingNextPage={false}
+          onLoadMore={noop}
+        />
+      </div>,
+    )
+
+    expect(screen.getAllByRole('button', { name: /^ampliar/i }).length).toBeLessThan(120)
   })
 })
