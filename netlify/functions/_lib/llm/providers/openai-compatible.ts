@@ -147,6 +147,44 @@ export async function openOpenAICompatibleStream(
   )
 }
 
+/**
+ * Transcripción de audio (Whisper / gpt-4o-transcribe). Endpoint
+ * `/audio/transcriptions`, multipart/form-data (NO JSON): el `file` viaja como
+ * Blob y el `model` como campo. Crucial: NO seteamos Content-Type a mano —
+ * `fetch` le pone el boundary correcto al pasar un FormData. Solo OpenAI; otros
+ * providers tienen APIs de audio distintas (no las cableamos).
+ */
+export async function transcribeOpenAI(
+  apiKey: string,
+  config: Pick<ProviderConfig, 'baseUrl'>,
+  audio: ArrayBuffer,
+  mimeType: string,
+  model: string,
+  fileName: string,
+): Promise<{ text: string }> {
+  const form = new FormData()
+  form.append('file', new Blob([audio], { type: mimeType }), fileName)
+  form.append('model', model)
+  const response = await fetchWithRetry(() =>
+    fetch(`${config.baseUrl}/audio/transcriptions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: form,
+    }),
+  )
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(
+      `OpenAI transcription error ${response.status}: ${errorText.slice(0, 200)}`,
+    )
+  }
+  const data = (await response.json()) as { text?: unknown }
+  if (typeof data.text !== 'string') {
+    throw new Error('Transcripción de OpenAI sin texto.')
+  }
+  return { text: data.text }
+}
+
 export async function embedOpenAI(
   apiKey: string,
   config: Pick<ProviderConfig, 'baseUrl' | 'model'>,
