@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { buildNotasFeed, type NotasFeedFilter } from './useNotasFeed'
+import { buildNotasFeed, localDayToUtcRange, type NotasFeedFilter } from './useNotasFeed'
+import { localDayKey } from '../components/notas/ActivityCalendar'
 import type { Note, Recorte } from '../api'
 
 function makeNote(over: Partial<Note> = {}): Note {
@@ -204,5 +205,22 @@ describe('buildNotasFeed', () => {
       })
       expect(items.map((i) => i.id)).toEqual(['n'])
     })
+  })
+})
+
+describe('localDayToUtcRange', () => {
+  it('los bordes del día local mapean al mismo día (inverso de localDayKey)', () => {
+    const range = localDayToUtcRange('2026-06-10')
+    expect(range).not.toBeNull()
+    // El inicio cae en el día; el instante justo antes del fin, también.
+    expect(localDayKey(range!.start)).toBe('2026-06-10')
+    const justBeforeEnd = new Date(new Date(range!.end).getTime() - 1).toISOString()
+    expect(localDayKey(justBeforeEnd)).toBe('2026-06-10')
+    // El fin ya es el día siguiente (cota superior exclusiva).
+    expect(localDayKey(range!.end)).toBe('2026-06-11')
+  })
+
+  it('devuelve null ante un formato inválido', () => {
+    expect(localDayToUtcRange('10/06/2026')).toBeNull()
   })
 })

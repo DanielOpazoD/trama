@@ -8,6 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Note } from '../api'
 import { queryKeys } from './queryClient'
+import { patchNoteInFeed, restoreNotasFeed, snapshotNotasFeed } from './notasFeedCache'
 import { useToast } from './toast'
 
 export function useNotesQuery() {
@@ -22,7 +23,10 @@ export function useCreateNote() {
   return useMutation({
     mutationFn: (input: { content: string; title?: string | null }) =>
       api.notes.create(input.content, { title: input.title }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.notes }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.notes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+    },
   })
 }
 
@@ -37,9 +41,11 @@ export function useUpdateNote() {
       patch: { content?: string; title?: string | null; pinned?: boolean }
     }) => api.notes.update(id, patch),
     // Optimista: aplicamos el patch en cache al instante (fijar/editar no
-    // parpadea ni espera al servidor); si falla, restauramos el snapshot previo.
+    // parpadea ni espera al servidor) — tanto en la lista cruda de notas como en
+    // el feed paginado; si falla, restauramos ambos snapshots.
     onMutate: async ({ id, patch }) => {
       await qc.cancelQueries({ queryKey: queryKeys.notes })
+      await qc.cancelQueries({ queryKey: queryKeys.notasFeed })
       const prev = qc.getQueryData<Note[]>(queryKeys.notes)
       if (prev) {
         qc.setQueryData<Note[]>(
@@ -47,12 +53,18 @@ export function useUpdateNote() {
           prev.map((n) => (n.id === id ? { ...n, ...patch } : n)),
         )
       }
-      return { prev }
+      const feedSnap = snapshotNotasFeed(qc)
+      patchNoteInFeed(qc, id, patch)
+      return { prev, feedSnap }
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(queryKeys.notes, ctx.prev)
+      if (ctx?.feedSnap) restoreNotasFeed(qc, ctx.feedSnap)
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.notes }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.notes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+    },
   })
 }
 
@@ -63,6 +75,7 @@ export function useDeleteNote() {
     mutationFn: (id: string) => api.notes.remove(id),
     onSuccess: ({ deletedAt }, id) => {
       qc.invalidateQueries({ queryKey: queryKeys.notes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
       // Deshacer: el restore revive nota + anexos con ese deleted_at exacto.
       if (deletedAt) {
         toast.show({
@@ -73,6 +86,7 @@ export function useDeleteNote() {
             onAction: async () => {
               await api.notes.restore(id, deletedAt)
               qc.invalidateQueries({ queryKey: queryKeys.notes })
+              qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
             },
           },
         })
@@ -92,6 +106,7 @@ export function usePromoteNote() {
     mutationFn: (id: string) => api.notes.promote(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.notes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
       qc.invalidateQueries({ queryKey: queryKeys.momentosInfinite })
       qc.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
       qc.invalidateQueries({ queryKey: queryKeys.home })

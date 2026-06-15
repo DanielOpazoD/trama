@@ -696,6 +696,14 @@ export const CameraIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Calendario — toggle del heatmap de actividad en el feed de Notas. */
+export const CalendarIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <rect x="3" y="4" width="18" height="17" rx="2" />
+    <path d="M3 9h18M8 2v4M16 2v4" />
+  </svg>
+)
+
 /** Documento con marca "PDF" implícita (hoja con esquina doblada + renglones). */
 export const FilePdfIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

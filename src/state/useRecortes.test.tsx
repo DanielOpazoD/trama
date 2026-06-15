@@ -66,6 +66,7 @@ beforeEach(() => {
         method,
         body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
       })
+      if (url.includes('/cache-thumbnail')) return jsonResp({ cached: false })
       if (url.includes('/restore')) return jsonResp({ restored: true })
       if (url.includes('/unpromote')) {
         return jsonResp({ ...ROW, status: 'pending', promoted_target: null })
@@ -163,6 +164,61 @@ describe('useRecortes', () => {
       sourceAuthor: 'Autora OG',
       imageUrl: 'https://example.com/img.jpg',
     })
+
+    // Tras el enriquecimiento, pide al servidor cachear la miniatura en blob propio.
+    await waitFor(() =>
+      expect(
+        calls.some(
+          (c) =>
+            c.method === 'POST' && c.url.endsWith('/api/recortes/r1/cache-thumbnail'),
+        ),
+      ).toBe(true),
+    )
+  })
+
+  it('la caché de miniatura es best-effort: un fallo no rompe la captura', async () => {
+    // El endpoint de caché tira 500; la mutación de creación igual resuelve ok.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | Request | URL, init?: RequestInit) => {
+        const url = String(input)
+        const method = init?.method ?? 'GET'
+        calls.push({
+          url,
+          method,
+          body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
+        })
+        if (url.includes('/cache-thumbnail')) {
+          return new Response(JSON.stringify({ error: { message: 'boom' } }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        if (url.includes('momentos-url-preview')) {
+          return jsonResp({
+            url: 'https://example.com/x',
+            title: null,
+            description: null,
+            source: 'example.com',
+            author: null,
+            image: null,
+            fetched: false,
+          })
+        }
+        if (method === 'POST' && url.endsWith('/api/recortes')) return jsonResp(ROW)
+        return jsonResp([ROW])
+      }),
+    )
+    const { result } = renderHook(() => useCreateRecorte(), { wrapper: makeWrapper() })
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({ kind: 'link', url: 'https://example.com/x' }),
+      ).resolves.toBeTruthy()
+    })
+    // Aunque la caché falle, se intentó (best-effort) y no propagó el error.
+    await waitFor(() =>
+      expect(calls.some((c) => c.url.includes('/cache-thumbnail'))).toBe(true),
+    )
   })
 
   it('captura una imagen: la sube y crea un recorte de imagen con la imageKey', async () => {

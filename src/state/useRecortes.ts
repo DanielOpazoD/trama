@@ -8,6 +8,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type PromoteRecorteInput, type Recorte } from '../api'
 import { queryKeys } from './queryClient'
+import {
+  applyRecorteStatusInFeed,
+  patchRecorteInFeed,
+  restoreNotasFeed,
+  snapshotNotasFeed,
+} from './notasFeedCache'
 import { useToast } from './toast'
 
 /**
@@ -21,6 +27,7 @@ export function useUnpromoteRecorte() {
     mutationFn: (id: string) => api.unpromoteRecorte(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
       qc.invalidateQueries({ queryKey: queryKeys.quotes })
       qc.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
       qc.invalidateQueries({ queryKey: queryKeys.entities })
@@ -68,18 +75,40 @@ async function enrichLinkRecorte(
 ) {
   try {
     const preview = await api.momentoUrlPreview(url)
-    if (!preview.title && !preview.description && !preview.author && !preview.image) {
-      return
+    if (preview.title || preview.description || preview.author || preview.image) {
+      await api.updateRecorte(id, {
+        text: preview.description || preview.title || undefined,
+        sourceTitle: preview.title ?? undefined,
+        sourceAuthor: preview.author ?? undefined,
+        imageUrl: preview.image ?? undefined,
+      })
+      qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
     }
-    await api.updateRecorte(id, {
-      text: preview.description || preview.title || undefined,
-      sourceTitle: preview.title ?? undefined,
-      sourceAuthor: preview.author ?? undefined,
-      imageUrl: preview.image ?? undefined,
-    })
-    qc.invalidateQueries({ queryKey: queryKeys.recortes })
   } catch {
     /* enriquecimiento opcional; el enlace pelado ya quedó guardado */
+  }
+  // Tras el enriquecimiento (que pudo dejar la image_url del og:image), pedimos
+  // al servidor que cachee la miniatura en nuestro blob propio. Corre también
+  // para videos de YouTube aunque el preview no haya traído nada (la miniatura
+  // se deriva del id server-side). Best-effort: si no cachea, queda la externa.
+  await cacheRecorteThumbnail(qc, id)
+}
+
+/**
+ * Dispara la caché server-side de la miniatura del recorte y, si el servidor la
+ * guardó en nuestro blob, invalida la bandeja + el feed para que la tarjeta
+ * pase a renderizar desde el blob propio (`image_key`). Best-effort y silencioso.
+ */
+async function cacheRecorteThumbnail(qc: ReturnType<typeof useQueryClient>, id: string) {
+  try {
+    const result = await api.cacheRecorteThumbnail(id)
+    if (result.cached) {
+      qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+    }
+  } catch {
+    /* caché opcional; la tarjeta sigue con la miniatura externa/derivada */
   }
 }
 
@@ -109,6 +138,7 @@ export function useCreateRecorte() {
     },
     onSuccess: (recorte, input) => {
       qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
       qc.invalidateQueries({ queryKey: queryKeys.counts })
       qc.invalidateQueries({ queryKey: queryKeys.home })
       // El enriquecimiento corre tras mostrar la tarjeta, sin bloquear.
@@ -128,9 +158,11 @@ export function useUpdateRecorte() {
       patch: { text?: string; note?: string | null; status?: 'pending' | 'archived' }
     }) => api.updateRecorte(id, patch),
     // Optimista: archivar/restaurar mueve la captura de bucket al instante (sin
-    // parpadeo entre filtros de estado); rollback al snapshot previo si falla.
+    // parpadeo entre filtros de estado), tanto en la lista cruda como en el feed
+    // paginado; rollback a ambos snapshots si falla.
     onMutate: async ({ id, patch }) => {
       await qc.cancelQueries({ queryKey: queryKeys.recortes })
+      await qc.cancelQueries({ queryKey: queryKeys.notasFeed })
       const prev = qc.getQueryData<Recorte[]>(queryKeys.recortes)
       if (prev) {
         qc.setQueryData<Recorte[]>(
@@ -138,12 +170,20 @@ export function useUpdateRecorte() {
           prev.map((r) => (r.id === id ? { ...r, ...patch } : r)),
         )
       }
-      return { prev }
+      const feedSnap = snapshotNotasFeed(qc)
+      // Si cambia el estado, recalculamos membresía por cache; si no, en sitio.
+      if (patch.status) applyRecorteStatusInFeed(qc, id, patch.status)
+      else patchRecorteInFeed(qc, id, patch)
+      return { prev, feedSnap }
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(queryKeys.recortes, ctx.prev)
+      if (ctx?.feedSnap) restoreNotasFeed(qc, ctx.feedSnap)
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.recortes }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+    },
   })
 }
 
@@ -154,6 +194,7 @@ export function useDeleteRecorte() {
     mutationFn: (id: string) => api.removeRecorte(id),
     onSuccess: ({ deletedAt }, id) => {
       qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
       if (deletedAt) {
         toast.show({
           message: 'Recorte eliminado',
@@ -163,6 +204,7 @@ export function useDeleteRecorte() {
             onAction: async () => {
               await api.restoreRecorte(id, deletedAt)
               qc.invalidateQueries({ queryKey: queryKeys.recortes })
+              qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
             },
           },
         })
@@ -182,6 +224,7 @@ export function usePromoteRecorte() {
     // sale de Pendientes y muestra «→ destino» sin esperar al servidor.
     onMutate: async ({ id, input }) => {
       await qc.cancelQueries({ queryKey: queryKeys.recortes })
+      await qc.cancelQueries({ queryKey: queryKeys.notasFeed })
       const prev = qc.getQueryData<Recorte[]>(queryKeys.recortes)
       if (prev) {
         qc.setQueryData<Recorte[]>(
@@ -191,14 +234,18 @@ export function usePromoteRecorte() {
           ),
         )
       }
-      return { prev }
+      const feedSnap = snapshotNotasFeed(qc)
+      applyRecorteStatusInFeed(qc, id, 'promoted', input.target)
+      return { prev, feedSnap }
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(queryKeys.recortes, ctx.prev)
+      if (ctx?.feedSnap) restoreNotasFeed(qc, ctx.feedSnap)
     },
     onSuccess: (_data, { input }) => {
       const { target } = input
       qc.invalidateQueries({ queryKey: queryKeys.recortes })
+      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
       if (target === 'quote') {
         qc.invalidateQueries({ queryKey: queryKeys.quotes })
         qc.invalidateQueries({ queryKey: queryKeys.quotesInfinite })

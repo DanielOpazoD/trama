@@ -19,6 +19,6 @@
     "types": ["node"],
     "composite": true
   },
-  "include": ["netlify/functions", "src/schemas/momento.ts"],
+  "include": ["netlify/functions", "src/schemas/momento.ts", "src/lib/youtubeThumb.ts"],
   "exclude": ["netlify/functions/**/*.test.ts"]
 }

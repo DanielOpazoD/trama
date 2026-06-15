@@ -2,9 +2,9 @@ import { expect, test, type Page, type Route } from '@playwright/test'
 import { emptyState, mockBackend } from './fixtures'
 
 /**
- * Lazo completo de la captura unificada en el mundo Notas:
+ * Lazo de la captura unificada en el mundo Notas:
  *   pegar un enlace → recorte que se enriquece con metadatos OG →
- *   curar de 1 toque (promueve a momento) → Deshacer (revierte).
+ *   abrir el modal de promoción desde el menú ⋯ (→ momento).
  *
  * Backend mockeado con estado mutable en memoria: el create empuja el recorte,
  * el PATCH lo enriquece, promote/unpromote cambian su estado. Las rutas se
@@ -41,11 +41,9 @@ async function setupCapture(page: Page) {
   const recortes: RecorteRow[] = []
 
   // Patrón de a11y.spec: API mockeada (sin modo demo, que usaría un store
-  // local y se saltaría estos mocks). Saltamos el splash y pre-aceptamos la
-  // confirmación de primer uso del 1-toque para ejercitar el toque directo.
+  // local y se saltaría estos mocks). Saltamos el splash.
   await page.addInitScript(() => {
     window.sessionStorage.setItem('trama:splash-seen', '1')
-    window.localStorage.setItem('trama.curar.confirmed', 'yes')
   })
   await mockBackend(page, emptyState())
 
@@ -141,10 +139,49 @@ async function setupCapture(page: Page) {
       return jsonResp(route, recortes)
     },
   )
+
+  // El feed unificado se sirve por SQL (read-model); acá lo reflejamos desde el
+  // array mutable de recortes para que la tarjeta aparezca y muestre el título
+  // ya enriquecido. Sembramos una nota previa para que la lista (virtualizada)
+  // esté montada antes de crear — el caso real (un feed con contenido) y evita
+  // la transición lista-vacía→1 ítem del virtualizer. Se registra después de
+  // mockBackend → gana el match.
+  const seedNote = {
+    id: 'seed-note',
+    content: 'Nota previa del feed',
+    tags: [] as string[],
+    pinned: false,
+    promoted_momento_id: null,
+    created_at: '2026-06-13T00:00:00.000Z',
+    updated_at: '2026-06-13T00:00:00.000Z',
+  }
+  await page.route(
+    (url) => url.pathname === '/api/notas-feed',
+    (route) =>
+      jsonResp(route, {
+        items: [
+          ...recortes.map((r) => ({
+            type: 'recorte',
+            id: r.id,
+            createdAt: r.created_at,
+            recorte: r,
+          })),
+          {
+            type: 'note',
+            id: seedNote.id,
+            createdAt: seedNote.created_at,
+            note: seedNote,
+          },
+        ],
+        nextCursor: null,
+      }),
+  )
 }
 
 test.describe('captura unificada en Notas', () => {
-  test('pega un enlace, lo enriquece, lo cura de 1 toque y deshace', async ({ page }) => {
+  test('pega un enlace, lo enriquece y abre el modal de promoción desde el menú ⋯', async ({
+    page,
+  }) => {
     await setupCapture(page)
     await page.goto('/?world=notas&section=notas')
 
@@ -153,18 +190,21 @@ test.describe('captura unificada en Notas', () => {
     await composer.fill('https://example.com/x')
     await page.getByRole('button', { name: 'Guardar enlace' }).click()
 
-    // La tarjeta aparece y, tras el enriquecimiento OG, muestra el título.
-    await expect(page.getByText(/Artículo de ejemplo/).first()).toBeVisible()
+    // La tarjeta aparece y, tras el enriquecimiento OG (preview → PATCH →
+    // refetch del feed), muestra el título. Damos margen al doble round-trip.
+    await expect(page.getByText(/Artículo de ejemplo/).first()).toBeVisible({
+      timeout: 15_000,
+    })
 
-    // Curar de 1 toque (confirmación pre-aceptada) → promueve a momento.
-    await page.getByRole('button', { name: 'curar' }).click()
+    // La curaduría vive en el menú ⋯: «→ momento» abre el modal de promoción.
+    await page.getByRole('button', { name: 'Acciones del recorte' }).first().click()
+    await page.getByRole('menuitem', { name: /→ momento/ }).click()
+    await expect(page.getByRole('dialog', { name: 'Promover a momento' })).toBeVisible()
 
-    // El toast de éxito ofrece Deshacer, que revierte la promoción.
-    const deshacer = page.getByRole('button', { name: 'Deshacer' })
-    await expect(deshacer).toBeVisible()
-    await deshacer.click()
-
-    // El recorte sigue presente (vuelto a pendiente); el enlace no se perdió.
+    // Cerrar el modal (cancelar) deja el recorte presente; el enlace no se perdió.
+    // (No usamos el botón «Cerrar» del backdrop: cubre toda la pantalla y el
+    // diálogo intercepta el clic en su centro.)
+    await page.getByRole('button', { name: 'cancelar' }).click()
     await expect(page.getByText(/Artículo de ejemplo/).first()).toBeVisible()
   })
 })

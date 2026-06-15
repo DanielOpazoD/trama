@@ -43,12 +43,18 @@ describe('momentos-url-preview SSRF guard', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('usa request con DNS pinned en vez de fetch con re-resolución libre', () => {
+  it('delega en el fetch SSRF-safe compartido (DNS pinned) en vez de fetch libre', () => {
     const src = readFileSync(join(functionsRoot, 'momentos-url-preview.mts'), 'utf8')
 
-    expect(src).toContain('createPinnedLookup')
-    expect(src).toContain('lookup: createPinnedLookup')
+    // La implementación con DNS pinning vive ahora en el helper compartido
+    // ssrf-fetch.ts; el endpoint la consume por su API pública.
+    expect(src).toContain('safeFetchFollowingRedirects')
+    expect(src).toContain("from './_lib/ssrf-fetch.js'")
     expect(src).not.toContain('fetch(current.toString()')
+
+    const helperSrc = readFileSync(join(functionsRoot, '_lib', 'ssrf-fetch.ts'), 'utf8')
+    expect(helperSrc).toContain('createPinnedLookup')
+    expect(helperSrc).toContain('lookup: createPinnedLookup')
   })
 
   it('clasifica rangos privados y loopback como bloqueados', () => {

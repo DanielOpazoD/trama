@@ -2,14 +2,9 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { type Recorte, type RecorteSuggestion, type RecorteTarget } from '../../api'
 import { recorteImageUrl } from '../../api/recortes'
 import { apiFetch } from '../../api/request'
-import {
-  usePromoteRecorte,
-  useUnpromoteRecorte,
-  useSuggestRecorte,
-  useUpdateRecorte,
-} from '../../state'
+import { useSuggestRecorte, useUpdateRecorte } from '../../state'
 import { useToast } from '../../state/toast'
-import { useLocalStorageState } from '../../hooks/useLocalStorageState'
+import { youtubeThumb } from '../../lib/youtubeThumb'
 import {
   ArrowRightIcon,
   ChevronDownIcon,
@@ -60,6 +55,18 @@ const COLLAPSED_MAX_PX = 168
 const TRANSPARENT_PX =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 
+/**
+ * Marco de medios del recorte: SOLO se monta cuando hay una imagen real que
+ * mostrar — imagen propia del recorte (imageKey/imageUrl), o miniatura derivada
+ * si el origen es un video de YouTube. Sin imagen no se renderiza nada: el
+ * origen aparece como un eyebrow discreto sobre el título (ver RecorteCard).
+ *
+ * Prefiere SIEMPRE el blob propio (`imageKey`) cuando existe: tras crear un
+ * recorte-enlace, el servidor descarga la miniatura (og:image o la derivada de
+ * YouTube) a nuestro blob (ver useRecortes → cacheRecorteThumbnail). La
+ * miniatura derivada de i.ytimg.com queda solo como fallback instantáneo
+ * mientras la caché server-side aún no corrió.
+ */
 function RecorteMediaPreview({
   recorte: r,
   host,
@@ -69,16 +76,25 @@ function RecorteMediaPreview({
 }) {
   const authedSrc = r.imageKey ? recorteImageUrl(r.imageKey) : null
   const { src, status } = useAuthenticatedMediaState(authedSrc)
-  const shown = authedSrc ? src : r.imageUrl
+  // Miniatura derivada de YouTube si el recorte no trae imagen propia.
+  const derivedThumb = !r.imageKey && !r.imageUrl ? youtubeThumb(r.sourceUrl ?? '') : null
+  const [thumbFailed, setThumbFailed] = useState(false)
+  const shown = authedSrc ? src : (r.imageUrl ?? derivedThumb)
+
+  // Sin imagen real (ni propia ni derivada que cargue) → no se monta el marco.
+  if (!authedSrc && !r.imageUrl && (!derivedThumb || thumbFailed)) return null
 
   return (
     <LinkMediaPreview
       href={r.imageKey ? null : (r.sourceUrl ?? r.imageUrl)}
       host={host}
       dateLabel={formatStamp(r.capturedAt ?? r.createdAt)}
-      imageUrl={shown ?? (authedSrc ? TRANSPARENT_PX : r.imageUrl)}
+      imageUrl={
+        shown ?? (authedSrc ? TRANSPARENT_PX : (r.imageUrl ?? derivedThumb ?? ''))
+      }
       imageLoading={status === 'loading'}
       ariaLabel={r.sourceTitle ? `Abrir ${r.sourceTitle}` : undefined}
+      onImageError={derivedThumb ? () => setThumbFailed(true) : undefined}
     />
   )
 }
@@ -171,23 +187,16 @@ export function RecorteCard({
 }) {
   const host = hostOf(r.sourceUrl)
   const suggest = useSuggestRecorte()
-  const promote = usePromoteRecorte()
-  const unpromote = useUnpromoteRecorte()
   const update = useUpdateRecorte()
   const toast = useToast()
   const [suggestion, setSuggestion] = useState<RecorteSuggestion | null>(null)
   const [ocrBusy, setOcrBusy] = useState(false)
-  const [curating, setCurating] = useState(false)
-  // Confirmación de primer uso del 1-toque (la IA crea el objeto). Una vez
-  // aceptada queda recordada y «curar» vuelve a ser de verdad un toque.
-  const [curarConfirmed, setCurarConfirmed] = useLocalStorageState<'no' | 'yes'>(
-    'trama.curar.confirmed',
-    'no',
-    (raw): raw is 'no' | 'yes' => raw === 'no' || raw === 'yes',
-  )
-  const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const hasImage = !!(r.imageKey || r.imageUrl)
+  // ¿Hay alguna imagen (propia o derivada de YouTube) que muestre el marco?
+  // Si no, el origen se anuncia como eyebrow discreto sobre el título.
+  const hasPreview = hasImage || youtubeThumb(r.sourceUrl ?? '') !== null
+  const dateLabel = formatStamp(r.capturedAt ?? r.createdAt)
 
   // Colapso del cuerpo: igual que NoteCard, las capturas largas se recortan a
   // unas pocas líneas y se abren con un botón sin palabras (chevron).
@@ -199,11 +208,6 @@ export function RecorteCard({
     if (!el) return
     setOverflowing(el.scrollHeight > COLLAPSED_MAX_PX + 12)
   }, [r.text, r.captureMode])
-
-  function onCurarClick() {
-    if (curarConfirmed === 'yes') void handleOneTap()
-    else setConfirming(true)
-  }
 
   async function handleSuggest() {
     try {
@@ -266,113 +270,19 @@ export function RecorteCard({
     onPromote(r, suggestion.target, seedFromSuggestion(suggestion))
   }
 
-  /** Toast de promoción exitosa con Deshacer: revierte el objeto recién
-   *  creado y devuelve el recorte a pendientes. Hace que el 1 toque sea
-   *  confiable — crear sin red de seguridad asusta. */
-  function showCuratedToast(message: string) {
-    toast.show({
-      message,
-      tone: 'success',
-      durationMs: 10_000,
-      action: {
-        label: 'Deshacer',
-        onAction: async () => {
-          try {
-            await unpromote.mutateAsync(r.id)
-            toast.show({ message: 'Promoción deshecha.', tone: 'success' })
-          } catch (err) {
-            toast.show({
-              message: err instanceof Error ? err.message : 'No se pudo deshacer',
-              tone: 'error',
-            })
-          }
-        },
-      },
-    })
-  }
-
-  /**
-   * Triage de 1 toque: pide la sugerencia (si no la hay) y promueve directo
-   * cuando no faltan datos — momento siempre, entidad con nombre propuesto,
-   * cita con una entidad relacionada. Si la cita necesita atribución manual,
-   * abre el modal ya prellenado (un toque más, no se pierde el trabajo).
-   */
-  async function handleOneTap() {
-    if (curating || promote.isPending) return
-    setCurating(true)
-    try {
-      const s = suggestion ?? (await suggest.mutateAsync(r.id))
-      setSuggestion(s)
-
-      if (s.target === 'momento') {
-        await promote.mutateAsync({
-          id: r.id,
-          input: {
-            target: 'momento',
-            momento: {
-              kind: 'recorte',
-              payload: {
-                bodyText: r.text,
-                url: r.sourceUrl ?? undefined,
-                title: r.sourceTitle ?? undefined,
-                author: r.sourceAuthor ?? undefined,
-              },
-              note: r.note,
-              capturedAt: r.capturedAt ?? r.createdAt,
-            },
-          },
-        })
-        showCuratedToast(`Curado como momento: «${s.title}»`)
-        return
-      }
-
-      if (s.target === 'entity' && s.suggestedEntityName) {
-        await promote.mutateAsync({
-          id: r.id,
-          input: {
-            target: 'entity',
-            entity: {
-              type: s.suggestedEntityType ?? 'concepto',
-              name: s.suggestedEntityName,
-              description: r.text.trim().slice(0, 280) || null,
-            },
-          },
-        })
-        showCuratedToast(`Curado como entidad: «${s.suggestedEntityName}»`)
-        return
-      }
-
-      if (s.target === 'quote' && s.relatedEntities[0]) {
-        const entity = s.relatedEntities[0]
-        await promote.mutateAsync({
-          id: r.id,
-          input: {
-            target: 'quote',
-            quote: {
-              entityId: entity.id,
-              text: r.text.trim(),
-              source: [r.sourceTitle, r.sourceAuthor].filter(Boolean).join(' · ') || null,
-              link: r.sourceUrl,
-            },
-          },
-        })
-        showCuratedToast(`Curado como cita de ${entity.name}`)
-        return
-      }
-
-      // La cita necesita que elijas a quién atribuirla → modal prellenado.
-      onPromote(r, s.target, seedFromSuggestion(s))
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'No se pudo curar el recorte'
-      toast.show({ message: msg, tone: 'error' })
-    } finally {
-      setCurating(false)
-    }
-  }
-
   return (
     <li className="group relative card-paper-soft rounded-xl border border-ink-100/70 p-3.5 transition-shadow hover:shadow-sm">
-      <RecorteMediaPreview recorte={r} host={host} />
+      {hasPreview ? (
+        <RecorteMediaPreview recorte={r} host={host} />
+      ) : (
+        (host || dateLabel) && (
+          <p className="mb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
+            {host}
+            {host && dateLabel && ' · '}
+            {dateLabel && <span className="tabular-nums">{dateLabel}</span>}
+          </p>
+        )
+      )}
 
       <div className="flex items-start justify-between gap-3">
         <span className="min-w-0 font-serif text-xl font-medium leading-tight text-ink-700">
@@ -430,36 +340,11 @@ export function RecorteCard({
 
       {r.note && <p className="mt-2 marginalia-script">{r.note}</p>}
 
-      {confirming && (
-        <div className="mt-2.5 rounded-md border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)] px-3 py-2">
-          <p className="text-caption text-ink-600">
-            La IA elegirá el destino y creará el objeto por ti. Siempre podrás deshacerlo.
-          </p>
-          <div className="mt-2 flex items-center gap-3">
-            <button
-              onClick={() => {
-                setCurarConfirmed('yes')
-                setConfirming(false)
-                void handleOneTap()
-              }}
-              className="text-micro uppercase tracking-eyebrow text-ink-700 hover:text-ink-900 transition-colors"
-            >
-              Sí, curar
-            </button>
-            <button
-              onClick={() => setConfirming(false)}
-              className="text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors"
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
-
       {suggestion && <SuggestionBanner suggestion={suggestion} onUse={useSuggestion} />}
 
-      {/* Pie: enlace al original + acción principal (curar) y un menú ⋯ con el
-          resto de la triage. La cara queda tranquila; nada de fila de verbos. */}
+      {/* Pie: enlace al original a la izquierda + menú ⋯ a la derecha con toda
+          la triage (→ cita / → entidad / → momento, sugerir, extraer, archivar,
+          eliminar). La cara queda tranquila; nada de fila de verbos. */}
       <div className="mt-3 flex items-center gap-3">
         {r.sourceUrl && (
           <a
@@ -480,17 +365,6 @@ export function RecorteCard({
         )}
 
         <div className="ml-auto flex items-center gap-1.5">
-          {r.status === 'pending' && (
-            <button
-              onClick={onCurarClick}
-              disabled={curating || promote.isPending}
-              className="inline-flex items-center gap-1 rounded-full border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)] px-2.5 py-0.5 text-micro font-medium text-[color:var(--accent-gold)] transition-colors hover:text-ink-700 disabled:opacity-50"
-              title="Deja que la IA elija el destino y lo cure en un toque"
-            >
-              <SparkleIcon size={11} />
-              {curating || promote.isPending ? 'curando…' : 'curar'}
-            </button>
-          )}
           {r.status === 'archived' && (
             <button
               onClick={onRestore}

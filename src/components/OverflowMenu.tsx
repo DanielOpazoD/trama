@@ -36,14 +36,27 @@ export function OverflowMenu({
   triggerContent?: ReactNode
 }) {
   const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
+  const [pos, setPos] = useState<{ top?: number; bottom?: number; right: number } | null>(
+    null,
+  )
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   useLayoutEffect(() => {
     if (!open) return
     const r = triggerRef.current?.getBoundingClientRect()
-    if (r) setPos({ top: r.bottom + 6, right: window.innerWidth - r.right })
+    if (!r) return
+    const right = window.innerWidth - r.right
+    // Si hay poco espacio debajo del trigger (está bajo en el viewport), abrimos
+    // el menú HACIA ARRIBA anclando su base sobre el trigger, para que no se
+    // salga por el borde inferior (y quede inalcanzable). Umbral ~ alto típico
+    // del menú más largo.
+    const spaceBelow = window.innerHeight - r.bottom
+    if (spaceBelow < 260) {
+      setPos({ bottom: window.innerHeight - r.top + 6, right })
+    } else {
+      setPos({ top: r.bottom + 6, right })
+    }
   }, [open])
 
   useEffect(() => {
@@ -102,7 +115,11 @@ export function OverflowMenu({
             style={{
               position: 'fixed',
               top: pos.top,
+              bottom: pos.bottom,
               right: pos.right,
+              // Si el viewport es muy bajo, el menú no debe desbordar: scrollea.
+              maxHeight: '80vh',
+              overflowY: 'auto',
               zIndex: zIndexFromClassName(menuLayerClassName),
             }}
             className={`${menuLayerClassName} ${width} paper-grain rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/15 p-1.5 animate-fade-up`}

@@ -32,6 +32,10 @@ export const queryKeys = {
   momentoFeedback: (momentoId: string) => ['momentos', 'feedback', momentoId] as const,
   notes: ['notes'] as const,
   recortes: ['recortes'] as const,
+  /** Feed unificado de Notas (notas + recortes) paginado server-side. El
+   *  prefijo invalida todas las variantes de filtro de una sola pasada. */
+  notasFeed: ['notas-feed'] as const,
+  notasFeedFiltered: (key: string) => ['notas-feed', key] as const,
   favoritos: ['favoritos'] as const,
   readingTables: ['reading-tables'] as const,
   apiTokens: ['api-tokens'] as const,

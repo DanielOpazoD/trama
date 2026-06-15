@@ -1,9 +1,9 @@
 import type { Config } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { extensionPreflight, withExtensionCors } from './_lib/extension-cors.js'
+import { RECORTE_IMAGE_MIMES, storeRecorteImage } from './_lib/recortes-media.js'
 
 /**
  * POST /api/recortes-image-upload
@@ -23,13 +23,6 @@ import { extensionPreflight, withExtensionCors } from './_lib/extension-cors.js'
  */
 
 const MAX_BYTES = 10 * 1024 * 1024
-const ALLOWED_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
-
-function randomKey(): string {
-  const arr = new Uint8Array(16)
-  crypto.getRandomValues(arr)
-  return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('')
-}
 
 export default withObservability(
   'recortes-image-upload',
@@ -64,7 +57,7 @@ export default withObservability(
       return cors(ApiErrors.validation(requestId, 'Falta el field "file"'))
     }
 
-    if (!ALLOWED_MIMES.has(file.type)) {
+    if (!(file.type in RECORTE_IMAGE_MIMES)) {
       return cors(
         ApiErrors.unsupportedMediaType(
           requestId,
@@ -76,21 +69,10 @@ export default withObservability(
       return cors(ApiErrors.payloadTooLarge(requestId, 'Archivo > 10 MB'))
     }
 
-    const ext =
-      file.type === 'image/jpeg'
-        ? 'jpg'
-        : file.type === 'image/png'
-          ? 'png'
-          : file.type === 'image/webp'
-            ? 'webp'
-            : 'gif'
-    const key = `${userId}/${randomKey()}.${ext}`
-
-    const store = getStore('recortes-media')
+    // Mismo store + esquema de key que la caché de miniaturas (storeRecorteImage):
+    // un solo camino de escritura de blobs de recorte, sin copias que deriven.
     const buf = await file.arrayBuffer()
-    await store.set(key, buf, {
-      metadata: { mime: file.type, size: String(buf.byteLength) },
-    })
+    const key = await storeRecorteImage(userId, buf, file.type)
 
     return cors(
       Response.json({
