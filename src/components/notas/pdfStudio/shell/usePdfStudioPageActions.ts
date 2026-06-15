@@ -1,17 +1,11 @@
 import {
-  deletePages,
-  duplicatePages,
   emptyDoc,
   getSource,
-  movePage,
-  movePageByDelta,
-  movePages,
   pageThumbKey,
   replacePageWithImage,
-  rotatePages,
-  subsetDoc,
   type PdfDoc,
 } from '../../../../lib/pdfStudio/model/model'
+import { reducePdfPageCommand } from '../../../../lib/pdfStudio/model/pageCommands'
 import { editImage } from '../../../../lib/imageEditor'
 import { forgetThumb, renderPageBitmap } from '../../../../lib/pdfStudio/render/pdfRender'
 
@@ -48,7 +42,9 @@ export function usePdfStudioPageActions({
   function bulkDelete() {
     if (selectedCount === 0) return
     forgetRemovedThumbs(selectedIndices)
-    commit((d) => deletePages(d, selectedIndices))
+    commit((d) =>
+      reducePdfPageCommand(d, { type: 'deletePages', indices: selectedIndices }),
+    )
     clearSelection()
   }
 
@@ -97,21 +93,30 @@ export function usePdfStudioPageActions({
   return {
     bulkDelete,
     bulkDuplicate: () =>
-      selectedCount > 0 && commit((d) => duplicatePages(d, selectedIndices)),
+      selectedCount > 0 &&
+      commit((d) =>
+        reducePdfPageCommand(d, { type: 'duplicatePages', indices: selectedIndices }),
+      ),
     bulkRotate: (delta: -1 | 1) =>
-      selectedCount > 0 && commit((d) => rotatePages(d, selectedIndices, delta)),
+      selectedCount > 0 &&
+      commit((d) =>
+        reducePdfPageCommand(d, { type: 'rotatePages', indices: selectedIndices, delta }),
+      ),
     exportMarked: () =>
       selectedIndices.length > 0 &&
-      void exportPdf(subsetDoc(doc, selectedIndices), 'seleccion'),
+      void exportPdf(
+        reducePdfPageCommand(doc, { type: 'subsetDoc', indices: selectedIndices }),
+        'seleccion',
+      ),
     cropSelectedPage,
     newDoc,
     nudge: (index: number, delta: -1 | 1) =>
-      commit((d) => movePageByDelta(d, index, delta)),
+      commit((d) => reducePdfPageCommand(d, { type: 'movePageByDelta', index, delta })),
     reorder: (from: number, to: number, movingIndices?: number[]) =>
       commit((d) =>
         movingIndices && movingIndices.length > 1
-          ? movePages(d, movingIndices, to)
-          : movePage(d, from, to),
+          ? reducePdfPageCommand(d, { type: 'movePages', indices: movingIndices, to })
+          : reducePdfPageCommand(d, { type: 'movePage', from, to }),
       ),
   }
 }
