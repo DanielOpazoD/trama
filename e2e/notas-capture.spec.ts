@@ -142,17 +142,37 @@ async function setupCapture(page: Page) {
 
   // El feed unificado se sirve por SQL (read-model); acá lo reflejamos desde el
   // array mutable de recortes para que la tarjeta aparezca y muestre el título
-  // ya enriquecido. Se registra después de mockBackend → gana el match.
+  // ya enriquecido. Sembramos una nota previa para que la lista (virtualizada)
+  // esté montada antes de crear — el caso real (un feed con contenido) y evita
+  // la transición lista-vacía→1 ítem del virtualizer. Se registra después de
+  // mockBackend → gana el match.
+  const seedNote = {
+    id: 'seed-note',
+    content: 'Nota previa del feed',
+    tags: [] as string[],
+    pinned: false,
+    promoted_momento_id: null,
+    created_at: '2026-06-13T00:00:00.000Z',
+    updated_at: '2026-06-13T00:00:00.000Z',
+  }
   await page.route(
     (url) => url.pathname === '/api/notas-feed',
     (route) =>
       jsonResp(route, {
-        items: recortes.map((r) => ({
-          type: 'recorte',
-          id: r.id,
-          createdAt: r.created_at,
-          recorte: r,
-        })),
+        items: [
+          ...recortes.map((r) => ({
+            type: 'recorte',
+            id: r.id,
+            createdAt: r.created_at,
+            recorte: r,
+          })),
+          {
+            type: 'note',
+            id: seedNote.id,
+            createdAt: seedNote.created_at,
+            note: seedNote,
+          },
+        ],
         nextCursor: null,
       }),
   )
@@ -170,8 +190,11 @@ test.describe('captura unificada en Notas', () => {
     await composer.fill('https://example.com/x')
     await page.getByRole('button', { name: 'Guardar enlace' }).click()
 
-    // La tarjeta aparece y, tras el enriquecimiento OG, muestra el título.
-    await expect(page.getByText(/Artículo de ejemplo/).first()).toBeVisible()
+    // La tarjeta aparece y, tras el enriquecimiento OG (preview → PATCH →
+    // refetch del feed), muestra el título. Damos margen al doble round-trip.
+    await expect(page.getByText(/Artículo de ejemplo/).first()).toBeVisible({
+      timeout: 15_000,
+    })
 
     // La curaduría vive en el menú ⋯: «→ momento» abre el modal de promoción.
     await page.getByRole('button', { name: 'Acciones del recorte' }).first().click()

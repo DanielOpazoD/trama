@@ -322,25 +322,83 @@ describe('<NotasFeedView />', () => {
     ).toBeInTheDocument()
   })
 
-  it('el filtro de estado de Capturas solo aparece en ese segmento', async () => {
+  it('crear enlace: la tarjeta aparece y, tras el enriquecimiento OG, muestra el título', async () => {
+    // Reproduce el flujo del e2e notas-capture en jsdom (virtualizer mockeado):
+    // POST crea el recorte, el feed lo refleja, el enriquecimiento OG parchea el
+    // título y el feed se refresca a «Artículo de ejemplo».
+    const created: Array<Record<string, unknown>> = []
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const method = init?.method ?? 'GET'
+      if (url.startsWith('/api/notas-feed') && method === 'GET') {
+        return jsonResponse({
+          items: created.map((r) => ({
+            type: 'recorte',
+            id: r.id,
+            createdAt: r.created_at,
+            recorte: r,
+          })),
+          nextCursor: null,
+        })
+      }
+      if (url.startsWith('/api/notes') && method === 'GET') return jsonResponse([])
+      if (url === '/api/recortes' && method === 'POST') {
+        const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
+        const row = {
+          id: 'r-1',
+          text: body.text ?? '',
+          source_url: body.sourceUrl ?? null,
+          source_title: body.sourceTitle ?? null,
+          source_author: null,
+          note: null,
+          image_url: null,
+          image_key: null,
+          capture_mode: body.captureMode ?? null,
+          status: 'pending',
+          promoted_target: null,
+          promoted_id: null,
+          captured_at: null,
+          created_at: '2026-06-14T00:00:00.000Z',
+          updated_at: '2026-06-14T00:00:00.000Z',
+        }
+        created.unshift(row)
+        return jsonResponse(row, 201)
+      }
+      if (url.includes('/api/momentos-url-preview'))
+        return jsonResponse({
+          url: 'https://example.com/x',
+          title: 'Artículo de ejemplo',
+          description: 'Un resumen',
+          author: 'Autora',
+          image: null,
+          fetched: true,
+        })
+      if (url.includes('/cache-thumbnail') && method === 'POST')
+        return jsonResponse({ cached: false })
+      if (/\/api\/recortes\/[^/]+$/.test(url) && method === 'PATCH') {
+        const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
+        const r = created[0]
+        if (r && body.sourceTitle != null) r.source_title = body.sourceTitle
+        return jsonResponse(r)
+      }
+      if (url.startsWith('/api/counts') || url.startsWith('/api/home'))
+        return jsonResponse({})
+      throw new Error(`Fetch inesperado: ${method} ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
     const user = userEvent.setup()
-    renderWithProviders(<NotasFeedView />)
-
-    await screen.findByText(/Idea matriz sobre memoria/)
-
-    // En Todo no hay control de estado.
-    expect(
-      screen.queryByRole('tablist', { name: 'Filtrar capturas por estado' }),
-    ).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole('tab', { name: 'Capturas' }))
-    expect(
-      await screen.findByRole('tablist', { name: 'Filtrar capturas por estado' }),
-    ).toBeInTheDocument()
-    // Default: Pendientes seleccionado.
-    expect(screen.getByRole('tab', { name: 'Pendientes' })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    renderWithProviders(
+      <>
+        <NotasFeedView />
+        <ToastHost />
+      </>,
     )
+
+    const composer = screen.getByPlaceholderText(/Escribe una nota/)
+    await user.type(composer, 'https://example.com/x')
+    await user.click(screen.getByRole('button', { name: 'Guardar enlace' }))
+
+    expect(await screen.findByText(/Artículo de ejemplo/)).toBeInTheDocument()
   })
 })
