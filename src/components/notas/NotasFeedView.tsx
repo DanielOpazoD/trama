@@ -18,12 +18,31 @@ import type { Recorte, RecorteTarget } from '../../api'
 import { extractUrl, hostLabel } from '../../lib/captureIntent'
 import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
-import { ScissorsIcon, CameraIcon, SearchIcon, CalendarIcon, CloseIcon } from '../Icons'
+import {
+  ScissorsIcon,
+  CameraIcon,
+  SearchIcon,
+  CalendarIcon,
+  CloseIcon,
+  GalleryIcon,
+  ListIcon,
+  ThumbSizeIcon,
+  CheckSquareIcon,
+} from '../Icons'
+import { OverflowMenu } from '../OverflowMenu'
+import {
+  useRecorteThumbSize,
+  type RecorteThumbSize,
+} from '../../hooks/useRecorteThumbSize'
+import { useRecorteFeedView } from '../../hooks/useRecorteFeedView'
 import { ViewHeader } from '../ViewHeader'
 import { NoteCard } from './NoteCard'
 import { ActivityCalendar, localDayKey } from './ActivityCalendar'
 import { FeedSkeleton } from './FeedSkeleton'
 import { RecorteCard } from '../recortes/RecorteCard'
+import { SelectableRecorte } from '../recortes/SelectableRecorte'
+import { RecorteSelectionBar } from '../recortes/RecorteSelectionBar'
+import { CapturasGalleryGrid } from '../recortes/CapturasGalleryGrid'
 import { PromoteModal, type PromoteSeed } from '../recortes/PromoteModal'
 import { FavoritosPanel } from '../recortes/FavoritosPanel'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
@@ -51,6 +70,13 @@ const SEGMENTS: Array<{ value: NotasFeedSegment; label: string }> = [
   { value: 'escritas', label: 'Escritas' },
   { value: 'capturas', label: 'Capturas' },
   { value: 'favoritos', label: 'Favoritos' },
+]
+
+/** Opciones del control de tamaño de las miniaturas de imagen del feed. */
+const THUMB_SIZES: Array<{ value: RecorteThumbSize; label: string }> = [
+  { value: 'pequena', label: 'Pequeña' },
+  { value: 'mediana', label: 'Mediana' },
+  { value: 'grande', label: 'Grande' },
 ]
 
 /**
@@ -156,6 +182,13 @@ export function NotasFeedView() {
   // Triage de recortes (solo activo en el segmento Capturas). Por defecto
   // muestra las pendientes — el primer estado que pide atención del usuario.
   const [capturaStatus, setCapturaStatus] = useState<RecorteStatusFilter>('pending')
+  // Tamaño de las miniaturas de imagen de las capturas, persistido.
+  const [recorteThumb, setRecorteThumb] = useRecorteThumbSize()
+  // Modo de vista del feed: lista (hilo) o galería (grilla de imágenes).
+  const [feedView, setFeedView] = useRecorteFeedView()
+  // Triage en lote: modo selección + ids elegidos (solo en el segmento Capturas).
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const filter = useMemo(
     () => ({
@@ -172,6 +205,39 @@ export function NotasFeedView() {
 
   const { items, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useNotasFeed(filter)
+
+  // --- Triage en lote -----------------------------------------------------
+  // Las capturas elegidas, resueltas desde los ítems cargados del feed.
+  const selectedRecortes = useMemo(
+    () =>
+      items
+        .filter((it) => it.type === 'recorte' && selectedIds.has(it.id))
+        .map((it) => (it as Extract<typeof it, { type: 'recorte' }>).recorte),
+    [items, selectedIds],
+  )
+  const exitSelection = useCallback(() => {
+    setSelectionMode(false)
+    setSelectedIds(new Set())
+  }, [])
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+  // Salir del modo selección al cambiar de segmento (solo vive en Capturas).
+  useEffect(() => {
+    if (segment !== 'capturas') exitSelection()
+  }, [segment, exitSelection])
+  // Galería: grilla de imágenes en Todo/Capturas. La selección (triage) es una
+  // afordancia de la lista, así que al pasar a galería se sale de selección.
+  const galleryMode =
+    feedView === 'galeria' && (segment === 'todo' || segment === 'capturas')
+  useEffect(() => {
+    if (galleryMode) exitSelection()
+  }, [galleryMode, exitSelection])
 
   // --- Calendario de actividad (heatmap) ----------------------------------
   // El heatmap cuenta SOLO notas (los recortes no contribuyen), así que lee la
@@ -288,7 +354,7 @@ export function NotasFeedView() {
     count: items.length,
     estimateSize: 200,
     overscan: 6,
-    deps: [segment, searchOpen, calendarOpen, capturaStatus, items.length],
+    deps: [segment, searchOpen, calendarOpen, capturaStatus, recorteThumb, items.length],
   })
   const virtualItems = virtualizer.getVirtualItems()
 
@@ -663,6 +729,69 @@ export function NotasFeedView() {
             >
               <CalendarIcon size={14} />
             </button>
+            {/* Tamaño de las miniaturas de imagen. Solo donde hay capturas a la
+                vista (Todo · Capturas); en Escritas no hay imágenes. */}
+            {(segment === 'todo' || segment === 'capturas') && (
+              <OverflowMenu
+                label="Tamaño de las miniaturas"
+                width="w-40"
+                triggerContent={<ThumbSizeIcon size={14} />}
+                triggerClassName={`touch-target rounded-md p-1.5 transition-colors ${
+                  recorteThumb !== 'mediana'
+                    ? 'bg-ink-100/70 text-ink-700'
+                    : 'text-ink-300 hover:bg-ink-100/60 hover:text-ink-700'
+                }`}
+              >
+                {(close) => (
+                  <div role="group" aria-label="Tamaño de las miniaturas">
+                    <p className="px-2.5 pb-1 pt-0.5 text-micro uppercase tracking-eyebrow text-ink-300">
+                      Miniaturas
+                    </p>
+                    {THUMB_SIZES.map(({ value, label }) => (
+                      <button
+                        key={value}
+                        role="menuitemradio"
+                        aria-checked={recorteThumb === value}
+                        onClick={() => {
+                          setRecorteThumb(value)
+                          close()
+                        }}
+                        className={`w-full rounded-md px-2.5 py-1.5 text-left text-sm transition-colors ${
+                          recorteThumb === value
+                            ? 'bg-ink-100/70 text-ink-800'
+                            : 'text-ink-600 hover:bg-ink-100/60 hover:text-ink-800'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </OverflowMenu>
+            )}
+            {/* Alternar lista ↔ galería (grilla de imágenes). */}
+            {(segment === 'todo' || segment === 'capturas') && (
+              <button
+                type="button"
+                onClick={() => setFeedView(feedView === 'galeria' ? 'list' : 'galeria')}
+                aria-pressed={feedView === 'galeria'}
+                aria-label={
+                  feedView === 'galeria' ? 'Ver como lista' : 'Ver como galería'
+                }
+                title={feedView === 'galeria' ? 'Ver como lista' : 'Ver como galería'}
+                className={`touch-target rounded-md p-1.5 transition-colors ${
+                  feedView === 'galeria'
+                    ? 'bg-ink-100/70 text-ink-700'
+                    : 'text-ink-300 hover:bg-ink-100/60 hover:text-ink-700'
+                }`}
+              >
+                {feedView === 'galeria' ? (
+                  <ListIcon size={14} />
+                ) : (
+                  <GalleryIcon size={14} />
+                )}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -748,29 +877,44 @@ export function NotasFeedView() {
           Texto-links discretos (no otra tira de pills) para que se lea como
           subordinado a los tabs. Por defecto muestra las pendientes. */}
       {segment === 'capturas' && (
-        <div
-          role="tablist"
-          aria-label="Filtrar capturas por estado"
-          className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 pl-0.5 text-caption text-ink-300"
-        >
-          <span className="text-micro uppercase tracking-eyebrow text-ink-300">
-            estado
-          </span>
-          {CAPTURA_STATUS_OPTIONS.map(({ value, label }) => {
-            const on = capturaStatus === value
-            return (
-              <button
-                key={value}
-                role="tab"
-                aria-selected={on}
-                onClick={() => setCapturaStatus(value)}
-                className="transition-colors hover:text-ink-700"
-                style={on ? { color: ACCENT } : undefined}
-              >
-                {label}
-              </button>
-            )
-          })}
+        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 pl-0.5 text-caption text-ink-300">
+          <div
+            role="tablist"
+            aria-label="Filtrar capturas por estado"
+            className="flex flex-wrap items-center gap-x-3 gap-y-1"
+          >
+            <span className="text-micro uppercase tracking-eyebrow text-ink-300">
+              estado
+            </span>
+            {CAPTURA_STATUS_OPTIONS.map(({ value, label }) => {
+              const on = capturaStatus === value
+              return (
+                <button
+                  key={value}
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => setCapturaStatus(value)}
+                  className="transition-colors hover:text-ink-700"
+                  style={on ? { color: ACCENT } : undefined}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+          {/* Triage en lote: entrar/salir del modo selección (solo en lista). */}
+          {items.length > 0 && !galleryMode && (
+            <button
+              type="button"
+              onClick={() => (selectionMode ? exitSelection() : setSelectionMode(true))}
+              aria-pressed={selectionMode}
+              className="ml-auto inline-flex items-center gap-1.5 transition-colors hover:text-ink-700"
+              style={selectionMode ? { color: ACCENT } : undefined}
+            >
+              <CheckSquareIcon size={13} />
+              {selectionMode ? 'salir selección' : 'seleccionar'}
+            </button>
+          )}
         </div>
       )}
 
@@ -832,6 +976,17 @@ export function NotasFeedView() {
                   </button>
                 ) : undefined
               }
+            />
+          ) : galleryMode ? (
+            /* Galería: grilla de las capturas con imagen (omite notas y recortes
+               de solo texto). Evita el virtualizador, así que gestiona su propia
+               carga incremental sobre las páginas ya traídas del feed. */
+            <CapturasGalleryGrid
+              items={items}
+              size={recorteThumb}
+              hasNextPage={!!hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              onLoadMore={() => fetchNextPage()}
             />
           ) : (
             <>
@@ -913,27 +1068,37 @@ export function NotasFeedView() {
                             }
                           />
                         ) : (
-                          <ul className="contents">
-                            <RecorteCard
-                              recorte={item.recorte}
-                              onPromote={(recorte, target, seed) =>
-                                setPromoting({ recorte, target, seed })
-                              }
-                              onArchive={() =>
-                                updateRecorte.mutate({
-                                  id: item.id,
-                                  patch: { status: 'archived' },
-                                })
-                              }
-                              onRestore={() =>
-                                updateRecorte.mutate({
-                                  id: item.id,
-                                  patch: { status: 'pending' },
-                                })
-                              }
-                              onDelete={() => deleteRecorte.mutate(item.id)}
-                            />
-                          </ul>
+                          <SelectableRecorte
+                            selectionMode={selectionMode}
+                            selected={selectedIds.has(item.id)}
+                            onToggleSelect={() => toggleSelect(item.id)}
+                            label={`Seleccionar captura: ${
+                              item.recorte.sourceTitle ?? item.recorte.text.slice(0, 40)
+                            }`}
+                          >
+                            <ul className="contents">
+                              <RecorteCard
+                                recorte={item.recorte}
+                                thumbSize={recorteThumb}
+                                onPromote={(recorte, target, seed) =>
+                                  setPromoting({ recorte, target, seed })
+                                }
+                                onArchive={() =>
+                                  updateRecorte.mutate({
+                                    id: item.id,
+                                    patch: { status: 'archived' },
+                                  })
+                                }
+                                onRestore={() =>
+                                  updateRecorte.mutate({
+                                    id: item.id,
+                                    patch: { status: 'pending' },
+                                  })
+                                }
+                                onDelete={() => deleteRecorte.mutate(item.id)}
+                              />
+                            </ul>
+                          </SelectableRecorte>
                         )}
                       </div>
                     </div>
@@ -959,6 +1124,14 @@ export function NotasFeedView() {
           target={promoting.target}
           seed={promoting.seed}
           onClose={() => setPromoting(null)}
+        />
+      )}
+
+      {segment === 'capturas' && selectionMode && (
+        <RecorteSelectionBar
+          selected={selectedRecortes}
+          onClear={exitSelection}
+          onDone={exitSelection}
         />
       )}
 

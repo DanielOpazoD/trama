@@ -285,7 +285,28 @@ export function buildSeed(): Store {
     }),
   ]
 
+  const imageRecorte = (text: string, d: number): Row => ({
+    id: uid(),
+    text,
+    source_url: null,
+    source_title: null,
+    source_author: null,
+    note: null,
+    image_url: null,
+    image_key: 'demo/captura.svg',
+    capture_mode: 'image',
+    status: 'pending',
+    promoted_target: null,
+    promoted_id: null,
+    source: 'whatsapp',
+    captured_at: daysAgo(d),
+    created_at: daysAgo(d),
+    updated_at: daysAgo(d),
+  })
   const recortes: Row[] = [
+    imageRecorte('El dibujo del gato sobre la mesa', 0),
+    imageRecorte('Boceto de la terraza', 1),
+    imageRecorte('Página del cuaderno de viaje', 2),
     {
       id: uid(),
       text: 'La memoria no es un archivo sino un taller: cada recuerdo se reescribe al ser convocado.',

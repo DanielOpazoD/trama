@@ -514,6 +514,96 @@ export function routeDemoRequest(
 
   // ---- lecturas auxiliares (canned, para que las vistas rendericen) ----
   switch (resource) {
+    case 'notas-feed': {
+      // Feed unificado de Notas (notas + recortes) — el endpoint real lo
+      // pagina server-side; acá mezclamos y filtramos el store para que la
+      // vista de Notas (y sus capturas) rendericen en modo prueba.
+      const segment = params.get('segment') ?? 'todo'
+      const status = params.get('status') // all|pending|promoted|archived
+      const q = (params.get('q') ?? '').trim().toLowerCase()
+      const tag = params.get('tag')
+      const dayStart = params.get('dayStart')
+      const dayEnd = params.get('dayEnd')
+      const limit = Number.parseInt(params.get('limit') ?? '40', 10) || 40
+
+      const inDay = (iso: unknown): boolean => {
+        if (!dayStart || !dayEnd || typeof iso !== 'string') return true
+        return iso >= dayStart && iso < dayEnd
+      }
+
+      const items: Array<
+        { type: string; id: string; createdAt: string; sort: string } & Record<
+          string,
+          unknown
+        >
+      > = []
+
+      if (segment === 'todo' || segment === 'escritas') {
+        for (const n of live(store.notes)) {
+          const created = String(n.created_at ?? '')
+          if (!inDay(n.created_at)) continue
+          if (tag && !(Array.isArray(n.tags) && (n.tags as string[]).includes(tag)))
+            continue
+          if (
+            q &&
+            !`${String(n.content ?? '')} ${String(n.title ?? '')}`
+              .toLowerCase()
+              .includes(q)
+          )
+            continue
+          items.push({
+            type: 'note',
+            id: String(n.id),
+            createdAt: created,
+            sort: created,
+            note: n,
+          })
+        }
+      }
+
+      if (segment === 'todo' || segment === 'capturas') {
+        for (const r of live(store.recortes)) {
+          const created = String(r.created_at ?? '')
+          const st = String(r.status ?? 'pending')
+          if (status === 'all') {
+            /* incluye todos */
+          } else if (status) {
+            if (st !== status) continue
+          } else if (st === 'archived') {
+            continue
+          }
+          if (!inDay(r.created_at)) continue
+          if (
+            q &&
+            !`${String(r.text ?? '')} ${String(r.source_title ?? '')} ${String(
+              r.source_author ?? '',
+            )}`
+              .toLowerCase()
+              .includes(q)
+          )
+            continue
+          items.push({
+            type: 'recorte',
+            id: String(r.id),
+            createdAt: created,
+            sort: created,
+            recorte: r,
+          })
+        }
+      }
+
+      // Orden por fecha desc; ante empate, notas antes que recortes.
+      items.sort((a, b) => {
+        if (a.sort !== b.sort) return a.sort < b.sort ? 1 : -1
+        if (a.type === b.type) return 0
+        return a.type === 'note' ? -1 : 1
+      })
+
+      return {
+        items: items.slice(0, limit).map(({ sort: _sort, ...rest }) => rest),
+        nextCursor: null,
+      }
+    }
     case 'cronologia':
       return { entradas: [], nextCursor: null }
     case 'atlas':

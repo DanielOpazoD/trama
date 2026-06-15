@@ -74,6 +74,29 @@ describe('demo — seed + lecturas', () => {
     expect(health.counts.entities).toBe(6)
     expect(health.counts.quotes).toBeGreaterThan(0)
   })
+
+  it('GET /api/notas-feed mezcla notas y capturas (con una captura de imagen)', async () => {
+    type Item =
+      | { type: 'note'; note: Record<string, unknown> }
+      | { type: 'recorte'; recorte: Record<string, unknown> }
+    const todo = await demoRequest<{ items: Item[]; nextCursor: null }>(
+      '/api/notas-feed?segment=todo&limit=50',
+    )
+    expect(todo.nextCursor).toBeNull()
+    expect(todo.items.some((it) => it.type === 'note')).toBe(true)
+    expect(todo.items.some((it) => it.type === 'recorte')).toBe(true)
+
+    // El segmento Capturas trae solo recortes, incluida la captura de imagen.
+    const capturas = await demoRequest<{ items: Item[] }>(
+      '/api/notas-feed?segment=capturas&status=pending&limit=50',
+    )
+    expect(capturas.items.every((it) => it.type === 'recorte')).toBe(true)
+    const conImagen = capturas.items.find(
+      (it): it is Extract<Item, { type: 'recorte' }> =>
+        it.type === 'recorte' && it.recorte.capture_mode === 'image',
+    )
+    expect(conImagen?.recorte.image_key).toBeTruthy()
+  })
 })
 
 describe('demo — CRUD con soft-delete', () => {

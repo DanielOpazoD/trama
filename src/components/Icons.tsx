@@ -167,6 +167,22 @@ export const TrashIcon = ({ size = 12, className }: Props) => (
   </svg>
 )
 
+/* Caja de archivo — acción "archivar". */
+export const ArchiveIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <rect x="3" y="4" width="18" height="4" rx="1" />
+    <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4" />
+  </svg>
+)
+
+/* Checkbox marcado — entrar/salir del modo selección (triage en lote). */
+export const CheckSquareIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M9 11l3 3L22 4" />
+    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+  </svg>
+)
+
 /* Lápiz inclinado — acción "editar" (reemplaza los textos "editar" sueltos). */
 export const PencilIcon = ({ size = 12, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
@@ -311,6 +327,34 @@ export const LinkIcon = ({ size = 12, className }: Props) => (
 export const ExpandIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
     <path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4" />
+  </svg>
+)
+
+/* Cuadrícula 2×2 — vista de galería (grilla tipo álbum). */
+export const GalleryIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <rect x="3.5" y="3.5" width="7" height="7" rx="1.4" />
+    <rect x="13.5" y="3.5" width="7" height="7" rx="1.4" />
+    <rect x="3.5" y="13.5" width="7" height="7" rx="1.4" />
+    <rect x="13.5" y="13.5" width="7" height="7" rx="1.4" />
+  </svg>
+)
+
+/* Filas con viñeta — vista de lista (el hilo unificado). */
+export const ListIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M8 6h12M8 12h12M8 18h12" />
+    <circle cx="4" cy="6" r="1" fill="currentColor" />
+    <circle cx="4" cy="12" r="1" fill="currentColor" />
+    <circle cx="4" cy="18" r="1" fill="currentColor" />
+  </svg>
+)
+
+/* Dos cuadros de distinto tamaño — tamaño de las miniaturas. */
+export const ThumbSizeIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <rect x="3.5" y="9.5" width="6" height="6" rx="1.2" />
+    <rect x="12" y="4.5" width="8.5" height="8.5" rx="1.4" />
   </svg>
 )
 
