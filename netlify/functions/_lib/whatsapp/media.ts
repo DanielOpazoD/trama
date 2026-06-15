@@ -28,6 +28,49 @@ export function isAllowedImageMime(contentType: string): boolean {
   return ALLOWED_IMAGE_MIME.has(contentType.split(';')[0]!.trim().toLowerCase())
 }
 
+/**
+ * Formatos de audio que Whisper transcribe. WhatsApp manda ogg/opus; otros
+ * (amr, 3gpp) NO los acepta OpenAI, así que quedan fuera (se avisa al usuario).
+ */
+const TRANSCRIBABLE_AUDIO_MIME = new Set([
+  'audio/ogg',
+  'audio/oga',
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/mp4',
+  'audio/m4a',
+  'audio/x-m4a',
+  'audio/aac',
+  'audio/wav',
+  'audio/x-wav',
+  'audio/webm',
+  'audio/flac',
+])
+
+/** ¿Este audio lo sabe transcribir Whisper? */
+export function isTranscribableAudioMime(contentType: string): boolean {
+  return TRANSCRIBABLE_AUDIO_MIME.has(contentType.split(';')[0]!.trim().toLowerCase())
+}
+
+/** Extensión de archivo de audio por MIME (OpenAI olfatea por nombre). */
+export function audioExtFromMime(mime: string): string {
+  const map: Record<string, string> = {
+    'audio/ogg': 'ogg',
+    'audio/oga': 'ogg',
+    'audio/mpeg': 'mp3',
+    'audio/mp3': 'mp3',
+    'audio/mp4': 'mp4',
+    'audio/m4a': 'm4a',
+    'audio/x-m4a': 'm4a',
+    'audio/aac': 'aac',
+    'audio/wav': 'wav',
+    'audio/x-wav': 'wav',
+    'audio/webm': 'webm',
+    'audio/flac': 'flac',
+  }
+  return map[mime.split(';')[0]!.trim().toLowerCase()] ?? 'ogg'
+}
+
 /** Lee la lista de adjuntos del body form-encoded de Twilio. */
 export function parseInboundMedia(params: Record<string, string>): InboundMedia[] {
   const n = Number.parseInt(params.NumMedia ?? '0', 10)
@@ -82,8 +125,41 @@ export function extFromMime(mime: string): string {
  */
 export type MediaRoute = 'momento' | 'recorte' | 'quote' | 'note'
 
+/**
+ * Normaliza un caption para comparaciones tolerantes: quita acentos (NFD +
+ * strip de diacríticos), pasa a minúsculas y recorta. Mismo criterio que el
+ * `fold()` de `parse-command.ts` para los mensajes de texto.
+ */
+function foldCaption(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+/**
+ * Intención en lenguaje natural de mandar la foto a Momentos, sin el prefijo
+ * `momento:`. Cubre frases tipo «subir a momentos», «a momentos», «guardar en
+ * momentos» o el escueto «momentos». Anclada al caption COMPLETO (`^…$`) a
+ * propósito: un caption descriptivo que apenas menciona la palabra (p. ej.
+ * «momentos felices del viaje») NO debe enrutar a Momento — cae al Recorte por
+ * defecto. La comparación corre sobre el caption "folded" (sin acentos).
+ */
+const MOMENTO_INTENT =
+  /^(?:(?:subir?|subila|subilo|sube|subela|subelo|guardar?|guarda|guardala|guardalo|mover|muevela|muevelo|mandar?|manda|mandala|mandalo|enviar?|envia|enviala|envialo|poner?|pon|ponla|ponlo|anadir?|anade|agregar?|agrega|llevar?|lleva)\b\s*)?(?:(?:a|al|en|para|hacia)\s+)?(?:(?:la|el|los|las|mi|mis)\s+)?(?:seccion\s+(?:de\s+)?)?momentos?$/
+
+/** ¿El caption (en lenguaje natural) pide mandar la foto a Momentos? */
+export function isMomentoCaption(body: string): boolean {
+  return MOMENTO_INTENT.test(foldCaption(body))
+}
+
 export function mediaRoute(body: string): { route: MediaRoute; caption: string } {
-  const m = /^\/?(momento|recorte|cita|nota|texto|ocr)\s*:?\s*([\s\S]*)$/i.exec(
+  // 1) Prefijo explícito: `momento:`, `recorte:`, `cita:`, `nota:`, `texto:`,
+  //    `ocr:`. El `\b` exige que el keyword sea una palabra completa, así
+  //    «momentos felices» ya no matchea «momento» como prefijo (caía a un
+  //    caption basura "s felices"); pasa al detector de lenguaje natural.
+  const m = /^\/?(momento|recorte|cita|nota|texto|ocr)\b\s*:?\s*([\s\S]*)$/i.exec(
     body.trim(),
   )
   if (m) {
@@ -98,6 +174,12 @@ export function mediaRoute(body: string): { route: MediaRoute; caption: string }
             : 'recorte'
     return { route, caption: m[2]!.trim() }
   }
+  // 2) Lenguaje natural: «subir a momentos», «a momentos», «momentos»… El
+  //    caption queda vacío porque la frase es una instrucción, no contenido.
+  if (isMomentoCaption(body)) {
+    return { route: 'momento', caption: '' }
+  }
+  // 3) Default: Recorte (inbox natural de media cruda).
   return { route: 'recorte', caption: body.trim() }
 }
 

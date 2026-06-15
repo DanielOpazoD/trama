@@ -49,6 +49,9 @@ nada**.
   - `cita: <frase> — <autor>` → Cita (busca/crea la entidad del autor).
   - `entidad: <nombre> (tipo)` → Entidad (tipo default `concepto`).
   - `momento: <qué pasó>` → Momento (`kind=nota`, fechado hoy).
+  - `tarea: <qué hacer> — <detalle>` → Tarea del mundo Notas (también
+    `task:`/`pendiente:`). Hereda los defaults de la tabla (prioridad media,
+    semana actual, categoría trabajo, sin hacer); `#etiquetas` salen del texto.
 - **Sin prefijo (texto libre)** → un LLM clasifica en una de las cuatro y
   extrae los campos (`classify`, mismo cost-cap mensual que `extract`). Ante
   la duda cae a **nota**. Si el presupuesto está agotado o la IA está en modo
@@ -66,12 +69,22 @@ texto. Hoy: **imágenes**.
   'image'); el caption es el texto del recorte.
 - Con caption `momento:` → **Momento foto** (`payload.storageKey` en
   `momentos-media`).
+- Con caption en **lenguaje natural** que pide Momentos —«subir a momentos»,
+  «a momentos», «guardar en momentos», o el escueto «momentos»— → también
+  **Momento foto**. `mediaRoute()` (`_lib/whatsapp/media.ts`) detecta la
+  intención con `isMomentoCaption()` (acentos foldeados, regex anclada al
+  caption completo para no confundir un pie descriptivo que solo mencione la
+  palabra, p. ej. «momentos felices del viaje» → sigue siendo Recorte). El
+  prefijo explícito (`recorte:`/`cita:`/…) siempre gana primero.
 - Con caption `cita:` → **visión/OCR**: el LLM extrae cita + autor de la foto
   (página de libro, pantalla) y se guarda una **Cita**.
 - Con caption `nota:` / `texto:` / `ocr:` → **visión/OCR**: transcribe el texto
   visible y guarda una **Nota**.
-- Varias imágenes en un mensaje → una fila por imagen (la última queda como
-  "deshacer").
+- Varias imágenes en un mensaje → una fila por imagen para Recortes/visión (la
+  última queda como "deshacer"). **Excepción**: en la ruta **Momento** (prefijo
+  `momento:` o lenguaje natural «a momentos»), todas las fotos del mismo mensaje
+  se agrupan en **un solo Momento foto** (un "episodio", `payload.items[]`), no
+  en N momentos sueltos — `deshacer` quita el episodio completo.
 
 **Visión (cita:/nota:/texto:/ocr:).** Estas rutas pasan la imagen por
 `askLLMForVision` (OpenAI/Gemini, mismos guards que `extract-from-image`:
@@ -82,12 +95,24 @@ transcribe. Si la IA está off, sin presupuesto o falla, **se cae a guardar la
 imagen como Recorte** (nunca se pierde lo enviado) y se avisa. Emite
 `whatsapp_vision` / `whatsapp_vision_failed`.
 
+**Audio (notas de voz).** Si el adjunto es audio (`audio/ogg` opus de WhatsApp,
+mp3, m4a, etc. — los formatos que acepta Whisper; `amr`/`3gpp` quedan fuera y se
+avisa), se **transcribe** y se guarda como **Nota**. La transcripción es
+**OpenAI-only** (Whisper, `/audio/transcriptions`): `askLLMForTranscription`
+(`_lib/llm/`) resuelve la key de OpenAI (con fallback a `AI_API_KEY`); si no hay
+key, sin presupuesto (`checkMonthlyBudget`) o la transcripción falla, **no se
+inventa nada**: se avisa que no se pudo transcribir. El costo (Whisper cobra por
+minuto, estimado del tamaño) se registra en `extraction_log` para que el
+cost-cap mensual lo cuente. Helper puro `_lib/whatsapp/transcribe.ts`
+(`transcriptionToIntent`). Emite `whatsapp_transcription` /
+`whatsapp_transcription_failed`. **Video** todavía se reconoce y se avisa (su
+persistencia es el próximo incremento).
+
 Las URLs de media de Twilio son privadas: se bajan con auth básica
 (`TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN`), validando que el host sea de
 Twilio (guard SSRF) antes de seguir. `_lib/whatsapp/media.ts` (parse, guard,
 download, routing) + `media-store.ts` (subida a Blobs) + `persist-media.ts`
-(inserts). **Audio y video** se reconocen y se avisan; su persistencia
-(transcripción opcional, modelo de video) es el próximo incremento.
+(inserts).
 
 **Límites (robustez):** solo se aceptan imágenes `image/jpeg|png|webp|gif`
 (otro formato → aviso "mandá JPG/PNG/WEBP/GIF"); el tope de tamaño es

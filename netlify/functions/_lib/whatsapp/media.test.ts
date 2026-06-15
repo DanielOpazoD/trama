@@ -5,9 +5,12 @@ import {
   mediaCategory,
   extFromMime,
   mediaRoute,
+  isMomentoCaption,
   isVisionRoute,
   downloadTwilioMedia,
   isAllowedImageMime,
+  isTranscribableAudioMime,
+  audioExtFromMime,
   MEDIA_TOO_LARGE,
 } from './media'
 
@@ -87,6 +90,60 @@ describe('mediaRoute', () => {
     expect(mediaRoute('texto:').route).toBe('note')
     expect(mediaRoute('ocr: la pizarra').route).toBe('note')
   })
+
+  it('lenguaje natural "subir a momentos" → Momento (sin caption)', () => {
+    expect(mediaRoute('Subir a momentos')).toEqual({ route: 'momento', caption: '' })
+  })
+
+  it('otras frases naturales de Momentos enrutan a momento', () => {
+    for (const phrase of [
+      'a momentos',
+      'guardar en momentos',
+      'guárdala en momentos',
+      'mandar a momentos',
+      'súbela a momentos',
+      'para momentos',
+      'en momentos',
+      'momentos',
+      'momento',
+    ]) {
+      expect(mediaRoute(phrase).route).toBe('momento')
+    }
+  })
+
+  it('caption descriptivo que solo menciona la palabra queda en Recorte', () => {
+    expect(mediaRoute('momentos felices del viaje').route).toBe('recorte')
+    expect(mediaRoute('un momento inolvidable').route).toBe('recorte')
+    expect(mediaRoute('mirá esta foto').route).toBe('recorte')
+  })
+
+  it('el prefijo explícito gana sobre el lenguaje natural', () => {
+    // `recorte:` fuerza Recorte aunque el texto diga "a momentos".
+    expect(mediaRoute('recorte: a momentos')).toEqual({
+      route: 'recorte',
+      caption: 'a momentos',
+    })
+    // `momento:` conserva su caption descriptivo.
+    expect(mediaRoute('momento: cumple')).toEqual({
+      route: 'momento',
+      caption: 'cumple',
+    })
+  })
+})
+
+describe('isMomentoCaption', () => {
+  it('detecta intención de Momentos en lenguaje natural (tolerante a acentos)', () => {
+    expect(isMomentoCaption('Subir a Momentos')).toBe(true)
+    expect(isMomentoCaption('guardar en momentos')).toBe(true)
+    expect(isMomentoCaption('a momentos')).toBe(true)
+    expect(isMomentoCaption('momentos')).toBe(true)
+  })
+
+  it('no matchea captions descriptivos', () => {
+    expect(isMomentoCaption('momentos felices')).toBe(false)
+    expect(isMomentoCaption('mirá esta foto')).toBe(false)
+    expect(isMomentoCaption('')).toBe(false)
+  })
 })
 
 describe('isVisionRoute', () => {
@@ -95,6 +152,23 @@ describe('isVisionRoute', () => {
     expect(isVisionRoute('note')).toBe(true)
     expect(isVisionRoute('momento')).toBe(false)
     expect(isVisionRoute('recorte')).toBe(false)
+  })
+})
+
+describe('audio transcribible', () => {
+  it('acepta los formatos que Whisper transcribe (ogg/opus de WhatsApp, etc.)', () => {
+    expect(isTranscribableAudioMime('audio/ogg; codecs=opus')).toBe(true)
+    expect(isTranscribableAudioMime('audio/mpeg')).toBe(true)
+    expect(isTranscribableAudioMime('audio/mp4')).toBe(true)
+    // AMR/3gpp NO los acepta OpenAI → fuera.
+    expect(isTranscribableAudioMime('audio/amr')).toBe(false)
+    expect(isTranscribableAudioMime('audio/3gpp')).toBe(false)
+  })
+
+  it('mapea el MIME a una extensión que OpenAI olfatea', () => {
+    expect(audioExtFromMime('audio/ogg; codecs=opus')).toBe('ogg')
+    expect(audioExtFromMime('audio/mpeg')).toBe('mp3')
+    expect(audioExtFromMime('audio/desconocido')).toBe('ogg')
   })
 })
 
