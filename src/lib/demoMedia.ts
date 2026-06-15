@@ -58,5 +58,13 @@ export function demoMediaResponse(url: string): Response | null {
       headers: { 'Content-Type': 'image/svg+xml' },
     })
   }
+  // Imágenes propias de las capturas (recortes): igual que los anexos, en modo
+  // prueba cualquier key sirve el placeholder para que la miniatura y el visor
+  // se vean en vez de quedar rotos.
+  if (path.startsWith('/api/recortes-image/')) {
+    return new Response(DEMO_PHOTO_SVG, {
+      headers: { 'Content-Type': 'image/svg+xml' },
+    })
+  }
   return null
 }

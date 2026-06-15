@@ -18,7 +18,8 @@ import {
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
-import { hostOf, LinkMediaPreview } from './LinkMediaPreview'
+import { hostOf, LinkMediaPreview, type LinkMediaSize } from './LinkMediaPreview'
+import { RecorteLightbox } from './RecorteLightbox'
 import type { PromoteSeed } from './PromoteModal'
 import { markdownToPreview } from './recorteMarkdownPreview'
 
@@ -70,9 +71,14 @@ const TRANSPARENT_PX =
 function RecorteMediaPreview({
   recorte: r,
   host,
+  size,
+  onOpenImage,
 }: {
   recorte: Recorte
   host: string | null
+  size: LinkMediaSize
+  /** Abre el visor (solo se cablea cuando la captura tiene imagen propia). */
+  onOpenImage?: () => void
 }) {
   const authedSrc = r.imageKey ? recorteImageUrl(r.imageKey) : null
   const { src, status } = useAuthenticatedMediaState(authedSrc)
@@ -89,6 +95,10 @@ function RecorteMediaPreview({
       href={r.imageKey ? null : (r.sourceUrl ?? r.imageUrl)}
       host={host}
       dateLabel={formatStamp(r.capturedAt ?? r.createdAt)}
+      size={size}
+      // El visor solo aplica a la imagen propia (sin href). Para enlaces/OG el
+      // clic sigue abriendo el original.
+      onOpenImage={r.imageKey ? onOpenImage : undefined}
       imageUrl={
         shown ?? (authedSrc ? TRANSPARENT_PX : (r.imageUrl ?? derivedThumb ?? ''))
       }
@@ -174,18 +184,25 @@ function SuggestionBanner({
 
 export function RecorteCard({
   recorte: r,
+  thumbSize = 'mediana',
   onPromote,
   onArchive,
   onRestore,
   onDelete,
 }: {
   recorte: Recorte
+  /** Tamaño de la miniatura de imagen (preferencia del feed). */
+  thumbSize?: LinkMediaSize
   onPromote: (recorte: Recorte, target: RecorteTarget, seed?: PromoteSeed) => void
   onArchive: () => void
   onRestore: () => void
   onDelete: () => void
 }) {
   const host = hostOf(r.sourceUrl)
+  // Visor de la imagen propia (doble clic en la miniatura) — misma sala oscura
+  // que Momentos. Solo aplica a capturas con imagen interna o externa.
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const viewerUrl = r.imageKey ? recorteImageUrl(r.imageKey) : r.imageUrl
   const suggest = useSuggestRecorte()
   const update = useUpdateRecorte()
   const toast = useToast()
@@ -273,7 +290,12 @@ export function RecorteCard({
   return (
     <li className="group relative card-paper-soft rounded-xl border border-ink-100/70 p-3.5 transition-shadow hover:shadow-sm">
       {hasPreview ? (
-        <RecorteMediaPreview recorte={r} host={host} />
+        <RecorteMediaPreview
+          recorte={r}
+          host={host}
+          size={thumbSize}
+          onOpenImage={viewerUrl ? () => setViewerOpen(true) : undefined}
+        />
       ) : (
         (host || dateLabel) && (
           <p className="mb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
@@ -466,6 +488,16 @@ export function RecorteCard({
           </OverflowMenu>
         </div>
       </div>
+
+      {viewerUrl && (
+        <RecorteLightbox
+          entries={[{ url: viewerUrl, caption: r.sourceTitle ?? r.text }]}
+          index={0}
+          onIndexChange={() => {}}
+          open={viewerOpen}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
     </li>
   )
 }
