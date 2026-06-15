@@ -1,0 +1,17 @@
+-- Endurecimiento multiusuario del read-model `objects`.
+--
+-- La vista `objects` (notas + recortes) la consume el feed de Notas
+-- (`/api/notas-feed`). Por defecto una vista corre con los privilegios y el
+-- contexto RLS de su DUEÑO (equivale a SECURITY DEFINER), lo que puede SALTARSE
+-- la RLS de las tablas base según el rol dueño. `notes` y `recortes` están bajo
+-- FORCE ROW LEVEL SECURITY con policies basadas en `app.current_user_id`, así
+-- que forzamos `security_invoker = true` (PG15+) para que la vista se evalúe con
+-- el rol y el contexto del que CONSULTA: la RLS de las tablas base se aplica
+-- también a través de la vista.
+--
+-- Defensa en profundidad: el endpoint ya filtra explícitamente por `user_id`;
+-- esto evita una fuga si una consulta futura contra `objects` olvidara el
+-- filtro. El rol de la app ya tiene SELECT directo sobre `notes`/`recortes`
+-- (los endpoints las consultan), así que invocar como el rol consultante no
+-- agrega problemas de permisos.
+ALTER VIEW objects SET (security_invoker = true);
