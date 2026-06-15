@@ -26,6 +26,12 @@ import { api, type XBookmark } from '../api'
 import type { ExtractionProposal } from '../types'
 import { formatRelative } from './settings/_shared'
 import { queryKeys } from '../state/queryClient'
+import {
+  UNCLASSIFIED_TOPIC,
+  buildTwitterFacets,
+  filterTwitterBookmarks,
+  monthName,
+} from './twitterViewModel'
 
 /**
  * Vista Twitter — los tweets que marcaste como bookmark en X. Espejo de
@@ -34,12 +40,6 @@ import { queryKeys } from '../state/queryClient'
  * (soft-delete, no toca X). El agrupado/filtro se hace client-side: a escala
  * personal traer todo es lo más simple.
  */
-const UNCLASSIFIED = '__none__'
-
-function monthName(m: number): string {
-  return new Date(2000, m, 1).toLocaleDateString('es', { month: 'long' })
-}
-
 export function TwitterView({
   onProposal,
 }: {
@@ -72,71 +72,13 @@ export function TwitterView({
   const connected = data?.connected === true
   const lastSyncedAt = data && data.connected ? data.lastSyncedAt : null
 
-  // Facetas año → meses (con conteo), derivadas de la fecha del tweet.
-  const byYear = useMemo(() => {
-    const map = new Map<number, { count: number; months: Map<number, number> }>()
-    for (const b of items) {
-      if (!b.tweetCreatedAt) continue
-      const d = new Date(b.tweetCreatedAt)
-      const y = d.getFullYear()
-      const m = d.getMonth()
-      const entry = map.get(y) ?? { count: 0, months: new Map<number, number>() }
-      entry.count += 1
-      entry.months.set(m, (entry.months.get(m) ?? 0) + 1)
-      map.set(y, entry)
-    }
-    return map
-  }, [items])
-  const years = useMemo(() => [...byYear.keys()].sort((a, b) => b - a), [byYear])
-  const months = useMemo(() => {
-    if (year == null) return []
-    const ms = byYear.get(year)?.months
-    if (!ms) return []
-    return [...ms.keys()].sort((a, b) => b - a)
-  }, [byYear, year])
-
-  // Facetas por tema + cuántos quedan sin clasificar.
-  const topicCounts = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const b of items) {
-      if (b.topic) map.set(b.topic, (map.get(b.topic) ?? 0) + 1)
-    }
-    return [...map.entries()].sort((a, b) => b[1] - a[1])
-  }, [items])
-  const unclassified = useMemo(() => items.filter((b) => !b.topic).length, [items])
-
-  // #5 Constelación de autores: a quién marcás más (top, filtrable al click).
-  const authors = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const b of items) {
-      if (b.authorUsername)
-        map.set(b.authorUsername, (map.get(b.authorUsername) ?? 0) + 1)
-    }
-    return [...map.entries()].sort((a, b) => b[1] - a[1])
-  }, [items])
+  const facets = useMemo(() => buildTwitterFacets(items), [items])
+  const years = facets.years
+  const months = useMemo(() => facets.monthsForYear(year), [facets, year])
+  const { byYear, topicCounts, unclassified, authors } = facets
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return items.filter((b) => {
-      if (year != null) {
-        if (!b.tweetCreatedAt) return false
-        const d = new Date(b.tweetCreatedAt)
-        if (d.getFullYear() !== year) return false
-        if (month != null && d.getMonth() !== month) return false
-      }
-      if (topic != null) {
-        if (topic === UNCLASSIFIED) {
-          if (b.topic) return false
-        } else if (b.topic !== topic) return false
-      }
-      if (author != null && b.authorUsername !== author) return false
-      if (q) {
-        const hay =
-          `${b.text} ${b.authorName ?? ''} ${b.authorUsername ?? ''}`.toLowerCase()
-        if (!hay.includes(q)) return false
-      }
-      return true
-    })
+    return filterTwitterBookmarks(items, { year, month, topic, author, query })
   }, [items, year, month, topic, author, query])
 
   function selectYear(y: number | null) {
@@ -450,9 +392,11 @@ export function TwitterView({
             {unclassified > 0 && (
               <button
                 onClick={() =>
-                  setTopic((prev) => (prev === UNCLASSIFIED ? null : UNCLASSIFIED))
+                  setTopic((prev) =>
+                    prev === UNCLASSIFIED_TOPIC ? null : UNCLASSIFIED_TOPIC,
+                  )
                 }
-                className={chip(topic === UNCLASSIFIED)}
+                className={chip(topic === UNCLASSIFIED_TOPIC)}
               >
                 sin clasificar
                 <span className="ml-1 text-micro text-ink-300 tabular-nums">

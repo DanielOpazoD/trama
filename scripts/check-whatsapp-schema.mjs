@@ -17,6 +17,7 @@
  */
 
 import pg from 'pg'
+import { pathToFileURL } from 'node:url'
 
 // Mismo default que scripts/apply-migrations.sh (docker-compose: host 5433).
 const DB_URL =
@@ -83,9 +84,7 @@ const REQUIRED = {
   quotes: ['id', 'entity_id', 'text', 'origin', 'user_id', 'deleted_at'],
 }
 
-const client = new pg.Client({ connectionString: DB_URL })
-
-async function actualColumns(table) {
+async function actualColumns(client, table) {
   const { rows } = await client.query(
     `SELECT column_name FROM information_schema.columns
      WHERE table_schema = 'public' AND table_name = $1`,
@@ -94,57 +93,95 @@ async function actualColumns(table) {
   return new Set(rows.map((r) => r.column_name))
 }
 
-async function main() {
-  await client.connect()
-  const problems = []
+export function formatSchemaCheckError(err, dbUrl = DB_URL) {
+  const code = err?.code ? ` (${err.code})` : ''
+  const message =
+    err?.message && String(err.message).trim().length > 0
+      ? String(err.message).trim()
+      : `sin detalle del driver pg${code}`
 
-  for (const [table, columns] of Object.entries(REQUIRED)) {
-    const present = await actualColumns(table)
-    if (present.size === 0) {
-      problems.push(`tabla faltante: ${table}`)
-      continue
-    }
-    const missing = columns.filter((c) => !present.has(c))
-    if (missing.length > 0) {
-      problems.push(`${table}: faltan columnas → ${missing.join(', ')}`)
-    }
+  if (
+    err?.code === 'ECONNREFUSED' ||
+    err?.code === 'ENOTFOUND' ||
+    /ECONNREFUSED|ENOTFOUND|connect/i.test(message)
+  ) {
+    return [
+      `No pude conectar a Postgres${code}: ${message}`,
+      `DB usada: ${dbUrl}`,
+      'Para correr este contrato localmente, levanta la base con `npm run db:up` o define `DATABASE_URL` / `NETLIFY_DB_URL` apuntando a una DB migrada.',
+    ].join('\n')
   }
 
-  // El shape de `origin` es parser-sensible (AGENTS.md). No basta con que la
-  // columna exista: una migración que la cambie de jsonb a text rompería los
-  // parsers en runtime sin que este check lo note. Validamos el tipo.
-  for (const table of ['entities', 'momentos', 'quotes', 'tasks']) {
-    const { rows } = await client.query(
-      `SELECT data_type FROM information_schema.columns
-       WHERE table_schema = 'public' AND table_name = $1 AND column_name = 'origin'`,
-      [table],
-    )
-    const dataType = rows[0]?.data_type
-    if (dataType && dataType !== 'jsonb') {
-      problems.push(`${table}.origin: tipo ${dataType} (esperado jsonb)`)
-    }
-  }
-
-  if (problems.length > 0) {
-    console.error('❌ Contrato de esquema WhatsApp roto:')
-    for (const p of problems) console.error(`   - ${p}`)
-    console.error(
-      '\nEl código de WhatsApp referencia columnas que no existen en la DB migrada.',
-    )
-    console.error('Creá la migración faltante (esto es exactamente el bug del PR #208).')
-    process.exitCode = 1
-    return
-  }
-
-  const total = Object.values(REQUIRED).reduce((n, c) => n + c.length, 0)
-  console.log(
-    `✅ Contrato de esquema WhatsApp ok — ${total} columnas en ${Object.keys(REQUIRED).length} tablas.`,
-  )
+  return `Error verificando el esquema${code}: ${message}`
 }
 
-main()
-  .catch((err) => {
-    console.error('Error verificando el esquema:', err.message)
+export async function checkWhatsAppSchema(dbUrl = DB_URL) {
+  const client = new pg.Client({ connectionString: dbUrl })
+  await client.connect()
+  try {
+    const problems = []
+
+    for (const [table, columns] of Object.entries(REQUIRED)) {
+      const present = await actualColumns(client, table)
+      if (present.size === 0) {
+        problems.push(`tabla faltante: ${table}`)
+        continue
+      }
+      const missing = columns.filter((c) => !present.has(c))
+      if (missing.length > 0) {
+        problems.push(`${table}: faltan columnas → ${missing.join(', ')}`)
+      }
+    }
+
+    // El shape de `origin` es parser-sensible (AGENTS.md). No basta con que la
+    // columna exista: una migración que la cambie de jsonb a text rompería los
+    // parsers en runtime sin que este check lo note. Validamos el tipo.
+    for (const table of ['entities', 'momentos', 'quotes', 'tasks']) {
+      const { rows } = await client.query(
+        `SELECT data_type FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = $1 AND column_name = 'origin'`,
+        [table],
+      )
+      const dataType = rows[0]?.data_type
+      if (dataType && dataType !== 'jsonb') {
+        problems.push(`${table}.origin: tipo ${dataType} (esperado jsonb)`)
+      }
+    }
+
+    if (problems.length > 0) return { ok: false, problems }
+
+    const total = Object.values(REQUIRED).reduce((n, c) => n + c.length, 0)
+    return { ok: true, total, tables: Object.keys(REQUIRED).length }
+  } finally {
+    await client.end()
+  }
+}
+
+async function main() {
+  try {
+    const result = await checkWhatsAppSchema()
+    if (!result.ok) {
+      console.error('❌ Contrato de esquema WhatsApp roto:')
+      for (const p of result.problems) console.error(`   - ${p}`)
+      console.error(
+        '\nEl código de WhatsApp referencia columnas que no existen en la DB migrada.',
+      )
+      console.error(
+        'Creá la migración faltante (esto es exactamente el bug del PR #208).',
+      )
+      process.exitCode = 1
+      return
+    }
+
+    console.log(
+      `✅ Contrato de esquema WhatsApp ok — ${result.total} columnas en ${result.tables} tablas.`,
+    )
+  } catch (err) {
+    console.error(formatSchemaCheckError(err))
     process.exitCode = 1
-  })
-  .finally(() => client.end())
+  }
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await main()
+}

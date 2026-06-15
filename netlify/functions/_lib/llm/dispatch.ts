@@ -42,6 +42,7 @@ import type {
   RawResult,
   StreamFrame,
 } from './types.js'
+import { parseOpenAICompatibleSseBlock } from './streaming.js'
 
 /**
  * Resuelve (provider, apiKey, config) desde override o env. Override.provider
@@ -295,27 +296,13 @@ export async function* askLLMForTextStreaming(
       const eventBlock = buffer.slice(0, sepIdx).trim()
       buffer = buffer.slice(sepIdx + 2)
       if (!eventBlock) continue
-      for (const line of eventBlock.split('\n')) {
-        if (!line.startsWith('data:')) continue
-        const payload = line.slice(5).trim()
-        if (payload === '[DONE]') continue
-        let parsed: {
-          choices?: Array<{ delta?: { content?: string } }>
-          usage?: { prompt_tokens?: number; completion_tokens?: number }
-        }
-        try {
-          parsed = JSON.parse(payload)
-        } catch {
-          continue
-        }
-        const delta = parsed.choices?.[0]?.delta?.content
-        if (typeof delta === 'string' && delta.length > 0) {
-          assembled += delta
-          yield { type: 'chunk', content: delta }
-        }
-        if (parsed.usage) {
-          tokensIn = parsed.usage.prompt_tokens ?? tokensIn
-          tokensOut = parsed.usage.completion_tokens ?? tokensOut
+      for (const frame of parseOpenAICompatibleSseBlock(eventBlock)) {
+        if (typeof frame.content === 'string') {
+          assembled += frame.content
+          yield { type: 'chunk', content: frame.content }
+        } else {
+          tokensIn = frame.tokensIn ?? tokensIn
+          tokensOut = frame.tokensOut ?? tokensOut
         }
       }
     }

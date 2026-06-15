@@ -11,7 +11,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 620,
+    maxLines: 575,
     files: ['src/components/TwitterView.tsx'],
   },
   {
@@ -41,7 +41,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-large-surfaces',
-    maxLines: 480,
+    maxLines: 465,
     files: ['netlify/functions/_lib/llm/dispatch.ts'],
   },
   {
