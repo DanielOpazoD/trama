@@ -139,6 +139,23 @@ async function setupCapture(page: Page) {
       return jsonResp(route, recortes)
     },
   )
+
+  // El feed unificado se sirve por SQL (read-model); acá lo reflejamos desde el
+  // array mutable de recortes para que la tarjeta aparezca y muestre el título
+  // ya enriquecido. Se registra después de mockBackend → gana el match.
+  await page.route(
+    (url) => url.pathname === '/api/notas-feed',
+    (route) =>
+      jsonResp(route, {
+        items: recortes.map((r) => ({
+          type: 'recorte',
+          id: r.id,
+          createdAt: r.created_at,
+          recorte: r,
+        })),
+        nextCursor: null,
+      }),
+  )
 }
 
 test.describe('captura unificada en Notas', () => {

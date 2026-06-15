@@ -167,6 +167,27 @@ test('a11y: recorte en el feed de Notas sin violaciones', async ({ page }) => {
         body: JSON.stringify([SAMPLE_RECORTE]),
       }),
   )
+  // El feed unificado se sirve por SQL (read-model); servimos el recorte como
+  // ítem del feed para que la tarjeta se renderice en `?section=notas`.
+  await page.route(
+    (url) => url.pathname === '/api/notas-feed',
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [
+            {
+              type: 'recorte',
+              id: SAMPLE_RECORTE.id,
+              createdAt: SAMPLE_RECORTE.created_at,
+              recorte: SAMPLE_RECORTE,
+            },
+          ],
+          nextCursor: null,
+        }),
+      }),
+  )
   await page.goto('/?world=notas&section=notas')
   await page
     .getByRole('heading', { name: 'Notas', level: 2 })

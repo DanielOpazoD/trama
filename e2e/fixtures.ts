@@ -330,6 +330,23 @@ export async function mockBackend(page: Page, state: MockState) {
     jsonResp(route, state.tasks),
   )
 
+  // /api/notas-feed (read-model server-side): el feed unificado se sirve por
+  // SQL en producción; acá lo sintetizamos desde `state.notes` para que no
+  // explote el `.map` del cliente. Los tests que inyectan recortes sobreescriben
+  // esta ruta (se registra después → gana en el LIFO de Playwright).
+  await page.route(apiPath('notas-feed'), (route) => {
+    const url = new URL(route.request().url())
+    const segment = url.searchParams.get('segment') ?? 'todo'
+    const q = (url.searchParams.get('q') ?? '').toLowerCase()
+    const includeNotes = segment === 'todo' || segment === 'escritas'
+    const items = includeNotes
+      ? state.notes
+          .filter((n) => !q || n.content.toLowerCase().includes(q))
+          .map((n) => ({ type: 'note', id: n.id, createdAt: n.created_at, note: n }))
+      : []
+    return jsonResp(route, { items, nextCursor: null })
+  })
+
   // /api/momentos-orphaned-blobs
   await page.route(apiPath('momentos-orphaned-blobs', { prefix: true }), (route) =>
     jsonResp(route, { orphans: [], totalInStore: 0, referenced: 0 }),
