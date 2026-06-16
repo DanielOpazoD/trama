@@ -61,6 +61,7 @@ import { copyRecorteImageToStore, removeBlob } from './_lib/recorte-to-momento.j
 import {
   setAwaitingDescription,
   consumeAwaitingDescription,
+  applyDescription,
 } from './_lib/whatsapp/description.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
@@ -68,6 +69,7 @@ import {
   readInteractiveConfig,
   pickCaptureContentSid,
   captureContentVariables,
+  type CaptureReplyVariant,
 } from './_lib/whatsapp/interactive.js'
 import { sendWhatsAppContent } from './_lib/whatsapp/send.js'
 import type { CaptureIntent, CaptureKind } from './_lib/whatsapp/types.js'
@@ -105,9 +107,9 @@ function readEnv(key: string): string | undefined {
 async function replyWithCapture(
   params: Record<string, string>,
   body: string,
-  ambiguous: boolean,
+  variant: CaptureReplyVariant,
 ): Promise<Response> {
-  const contentSid = pickCaptureContentSid(readInteractiveConfig(), ambiguous)
+  const contentSid = pickCaptureContentSid(readInteractiveConfig(), variant)
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
   const from = params.To ?? params.to // número del bot (whatsapp:+…)
@@ -122,14 +124,72 @@ async function replyWithCapture(
       contentVariables: captureContentVariables(body),
     })
     if (ok) {
-      logEvent({ event: 'whatsapp_interactive_sent', ambiguous })
+      logEvent({ event: 'whatsapp_interactive_sent', variant })
       return emptyTwimlResponse()
     }
   }
-  const fix = ambiguous
-    ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · entidad.'
-    : '↩️ ¿No era así? Responde «deshacer».'
+  const fix =
+    variant === 'foto'
+      ? '↩️ Respondé con una descripción, o «deshacer» · «momento» · «nota».'
+      : variant === 'ambiguous'
+        ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · entidad.'
+        : '↩️ ¿No era así? Responde «deshacer».'
   return twimlResponse(`${body}\n${fix}`)
+}
+
+/**
+ * Comando/botón [Descripción]: describe la última foto del número. Con texto en
+ * el mismo mensaje («descripción una tarde») lo aplica directo; sin texto (el
+ * botón solo manda "Descripción") deja el estado conversacional y pide el texto
+ * — que el siguiente mensaje libre consume (flujo de PR3).
+ */
+async function describeLast(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  phone: string,
+  text: string,
+  origin: string,
+): Promise<string> {
+  const last = await readLastPointer(sql, userId, phone)
+  if (!last || (last.kind !== 'recorte' && last.kind !== 'momento')) {
+    return 'No hay ninguna foto reciente para describir. Mandá una foto y después su descripción.'
+  }
+  if (text.trim()) {
+    const ok = await applyDescription(sql, userId, last.kind, last.id, text)
+    if (!ok) return 'No pude agregar la descripción (¿la borraste desde la app?).'
+    return `✍️ Descripción agregada.\n🔗 Ábrelo en Trama: ${captureDeepLink(origin, last.kind)}`
+  }
+  await setAwaitingDescription(sql, phone, userId, last.kind, last.id)
+  return '✍️ Perfecto, mandame la descripción y se la agrego.'
+}
+
+/**
+ * Menú interactivo (list picker de acciones frecuentes) si está configurado
+ * `TWILIO_CONTENT_SID_MENU`; si no, el texto de ayuda de siempre. Cada fila de la
+ * lista (en Twilio) tiene por título un comando que el parser ya entiende
+ * (Estado, Ayuda, Buscar…), así el toque vuelve como ese comando.
+ */
+async function replyWithMenu(params: Record<string, string>): Promise<Response> {
+  const { menuSid } = readInteractiveConfig()
+  const accountSid = readEnv('TWILIO_ACCOUNT_SID')
+  const authToken = readEnv('TWILIO_AUTH_TOKEN')
+  const from = params.To ?? params.to
+  const to = params.From ?? params.from
+  if (menuSid && accountSid && authToken && from && to) {
+    const ok = await sendWhatsAppContent({
+      accountSid,
+      authToken,
+      from,
+      to,
+      contentSid: menuSid,
+      contentVariables: captureContentVariables('¿Qué querés hacer?'),
+    })
+    if (ok) {
+      logEvent({ event: 'whatsapp_interactive_sent', variant: 'menu' })
+      return emptyTwimlResponse()
+    }
+  }
+  return twimlResponse(HELP)
 }
 
 const HELP = [
@@ -619,7 +679,12 @@ async function handleInboundMedia(
   params: Record<string, string>,
   media: ReturnType<typeof parseInboundMedia>,
   origin: string,
-): Promise<{ message: string; saved: number; offerDestino: boolean }> {
+): Promise<{
+  message: string
+  saved: number
+  offerDestino: boolean
+  offerDescription: boolean
+}> {
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
   const { route, caption } = mediaRoute(params.Body ?? params.body ?? '')
@@ -988,7 +1053,13 @@ async function handleInboundMedia(
   // pérdida a Momento o Nota con sus imágenes: ofrecemos esos botones de destino
   // (además de Deshacer). Las fotos que ya fueron a Momentos no necesitan botón.
   const offerDestino = saved > 0 && lastKind === 'recorte'
-  return { message: lines.join('\n'), saved, offerDestino }
+  // Foto sin pie → ofrecemos el botón [Descripción] (dispara el flujo de PR3).
+  return {
+    message: lines.join('\n'),
+    saved,
+    offerDestino,
+    offerDescription: wantsDescription,
+  }
 }
 
 /**
@@ -1229,6 +1300,17 @@ export default withObservability(
       return twimlResponse(await tagLast(sql, userId, phone, parsed.tags))
     }
 
+    // Botón [Descripción] (vuelve como "Descripción") → describe la última foto.
+    if (parsed.kind === 'describe' && media.length === 0) {
+      return twimlResponse(
+        await describeLast(sql, userId, phone, parsed.text, new URL(req.url).origin),
+      )
+    }
+
+    if (parsed.kind === 'menu' && media.length === 0) {
+      return replyWithMenu(params)
+    }
+
     // Adjuntos (foto): se procesan antes que el texto. El caption decide
     // destino (default Recortes; `momento:` → Momentos).
     // ¿Es la descripción que pedimos para la última foto sin pie? Un texto libre
@@ -1243,7 +1325,7 @@ export default withObservability(
     }
 
     if (media.length > 0) {
-      const { message, saved, offerDestino } = await handleInboundMedia(
+      const { message, saved, offerDestino, offerDescription } = await handleInboundMedia(
         req,
         requestId,
         sql,
@@ -1253,11 +1335,16 @@ export default withObservability(
         media,
         new URL(req.url).origin,
       )
-      // Con captura guardada ofrecemos Deshacer (botón si hay plantilla, o
-      // texto). Si fue a Recortes, además ofrecemos redirigir a Momento / Nota
-      // con sus imágenes (botones de destino). Sin nada guardado, solo el aviso.
+      // Botones según el caso: foto sin pie → [Descripción · Momento · Nota];
+      // recorte con pie → [Deshacer · Momento · Nota]; resto → [Deshacer]. Si no
+      // hay plantillas configuradas, cae a texto con la misma afordancia.
+      const variant: CaptureReplyVariant = offerDescription
+        ? 'foto'
+        : offerDestino
+          ? 'ambiguous'
+          : 'simple'
       return saved > 0
-        ? replyWithCapture(params, message, offerDestino)
+        ? replyWithCapture(params, message, variant)
         : twimlResponse(message)
     }
 
@@ -1288,7 +1375,11 @@ export default withObservability(
       // Cuando lo clasificó la IA (texto libre = ambiguo), ofrecemos elegir el
       // destino (Momento/Nota) además de Deshacer.
       const link = captureDeepLink(new URL(req.url).origin, intent.kind)
-      return replyWithCapture(params, `${message}\n🔗 Ábrelo en Trama: ${link}`, viaLLM)
+      return replyWithCapture(
+        params,
+        `${message}\n🔗 Ábrelo en Trama: ${link}`,
+        viaLLM ? 'ambiguous' : 'simple',
+      )
     } catch (err) {
       logEvent({
         event: 'whatsapp_capture_failed',

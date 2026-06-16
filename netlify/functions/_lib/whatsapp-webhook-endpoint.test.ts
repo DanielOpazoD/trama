@@ -1009,6 +1009,61 @@ describe('whatsapp-webhook', () => {
     ).toBe(false)
   })
 
+  it('botón [Descripción] (texto "Descripción") tras una foto → pide la descripción', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'recorte', cap_id: 'r1' }]) // readLastPointer (describeLast)
+    mockSqlResponses.push([]) // setAwaitingDescription
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'Descripción' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('mandame la descripción')
+    // Dejó el estado conversacional listo para el próximo texto.
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /UPDATE whatsapp_links/i.test(c.template) &&
+          /awaiting_desc_kind/i.test(c.template),
+      ),
+    ).toBe(true)
+  })
+
+  it('«descripción <texto>» tras una foto → la aplica directo', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'recorte', cap_id: 'r1' }]) // readLastPointer
+    mockSqlResponses.push([{ id: 'r1' }]) // applyDescription UPDATE recortes
+    const res = await webhookHandler(
+      twilioRequest({
+        From: 'whatsapp:+56912345678',
+        Body: 'descripción una tarde de lluvia',
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('Descripción agregada')
+  })
+
+  it('«menú» sin plantilla de menú → cae al texto de ayuda', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'menú' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('nota:') // el menú de ayuda en texto
+  })
+
   it('foto con "nota:" → visión transcribe y guarda Nota', async () => {
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
     vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')

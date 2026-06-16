@@ -52,7 +52,7 @@ async function clearAwaitingDescription(
 /** Aplica `text` como descripción de la captura. Devuelve si afectó una fila
  *  (false si la captura ya no existe). Recorte → su `text`; Momento foto →
  *  `payload.caption`. */
-async function applyDescription(
+export async function applyDescription(
   sql: SqlClient,
   userId: string,
   kind: string,
