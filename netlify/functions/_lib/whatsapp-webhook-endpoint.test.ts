@@ -874,6 +874,69 @@ describe('whatsapp-webhook', () => {
     expect(body.get('ContentVariables')).toContain('Recortes')
   })
 
+  it('foto sin pie + List Picker configurado → manda la lista «Acciones» (ContentSid actions)', async () => {
+    // Prueba de cableado de extremo a extremo del UX-2: con la plantilla List
+    // Picker encendida (env var), una foto sin pie hace que Trama MANDE la lista
+    // «⚡ Acciones» por la Content API (con la confirmación como {{1}}) en vez de
+    // los 3 botones o el texto. El List Picker se renderiza en WhatsApp; acá
+    // verificamos lo único verificable en local: que se elige y se manda bien.
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubEnv('TWILIO_CONTENT_SID_CAPTURE_ACTIONS', 'HXacts')
+    // El mismo mock baja la media (arrayBuffer) y acepta el envío del Content API.
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      headers: { get: () => 'image/jpeg' },
+      arrayBuffer: async () => new ArrayBuffer(8),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const fields = {
+      MessageSid: 'SMlist1',
+      From: 'whatsapp:+56912345678',
+      To: 'whatsapp:+14155238886',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/z',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMlist1' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
+    mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte
+    mockSqlResponses.push([]) // recordLastCapture
+    mockSqlResponses.push([]) // setAwaitingDescription
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    // Respondió TwiML vacío: la confirmación real va por el Content API, no texto.
+    const xml = await res.text()
+    expect(xml).not.toContain('Responde con una descripción')
+    // El último fetch es el envío del List Picker «Acciones».
+    const sendCall = fetchMock.mock.calls.at(-1)!
+    expect(String(sendCall[0])).toContain('/Messages.json') // Twilio Content API
+    const body = new URLSearchParams(sendCall[1].body)
+    expect(body.get('ContentSid')).toBe('HXacts') // ← la lista, NO los 3 botones
+    // {{1}} de la plantilla = la confirmación de la captura.
+    expect(body.get('ContentVariables')).toContain('Recortes')
+  })
+
   it('álbum partido: foto sin caption tras un recorte reciente → se ANEXA al evento', async () => {
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
     vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
