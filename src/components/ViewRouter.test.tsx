@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { ExtractionProposal } from '../types'
-import { ViewRouter } from './ViewRouter'
+import { ViewFallback, ViewRouter } from './ViewRouter'
 
 vi.mock('./SectionPinGate', () => ({
   SectionPinGate: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -125,6 +125,15 @@ function renderRouter(
 }
 
 describe('<ViewRouter />', () => {
+  it('usa un fallback de vista con identidad Trama mientras carga un chunk', () => {
+    render(<ViewFallback />)
+    const status = screen.getByRole('status', { name: 'hilando vista' })
+
+    expect(status).toHaveTextContent('hilando vista…')
+    expect(screen.getByTestId('trama-spinner')).toHaveClass('trama-spinner--data')
+    expect(status.querySelector('.view-fallback__thread')).toBeInTheDocument()
+  })
+
   it('renderiza inicio dentro del contenedor principal y propaga navegación', async () => {
     const user = userEvent.setup()
     const props = renderRouter('inicio')

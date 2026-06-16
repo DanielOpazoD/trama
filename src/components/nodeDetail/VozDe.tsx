@@ -3,6 +3,7 @@ import { useQuotesQuery, useVoiceOfEntity, useToast } from '../../state'
 import type { Entity } from '../../types'
 import { SparkleIcon } from '../Icons'
 import { AISourceTag } from '../AISourceTag'
+import { AIThinkingLabel } from '../AIThinkingLabel'
 
 /**
  * V-3 "Voz de…": para una entidad con al menos 5 citas reunidas, ofrece una
@@ -91,9 +92,9 @@ export function VozDe({ entity }: { entity: Entity }) {
         <button
           onClick={handleAsk}
           disabled={voice.isPending || !question.trim()}
-          className="btn-ink text-xs disabled:opacity-50"
+          className="btn-ink inline-flex items-center gap-1.5 text-xs disabled:opacity-50"
         >
-          {voice.isPending ? 'pensando…' : 'preguntar'}
+          {voice.isPending ? <AIThinkingLabel tone="inverse" /> : 'preguntar'}
         </button>
       </div>
 
@@ -115,9 +116,9 @@ export function VozDe({ entity }: { entity: Entity }) {
             <button
               onClick={handleAsk}
               disabled={voice.isPending}
-              className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60"
+              className="section-eyebrow inline-flex items-center gap-1.5 hover:text-ink-700 transition-colors disabled:opacity-60"
             >
-              {voice.isPending ? 'pensando…' : 'otra'}
+              {voice.isPending ? <AIThinkingLabel /> : 'otra'}
             </button>
           </div>
         </div>

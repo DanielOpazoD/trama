@@ -15,6 +15,7 @@ import { EmptyMessage } from './EmptyMessage'
 import { AISourceTag } from './AISourceTag'
 import { ViewHeader } from './ViewHeader'
 import { ProactiveSuggestionSkeleton, SkeletonList } from './Skeleton'
+import { AIThinkingLabel } from './AIThinkingLabel'
 
 /**
  * Inbox of proactive AI suggestions. The AI does a sweep over the trama and
@@ -96,18 +97,10 @@ export function ProactiveView() {
             onClick={() => generate.mutate()}
             disabled={generate.isPending || offline}
             className="ai-cta"
+            aria-busy={generate.isPending}
           >
             {generate.isPending ? (
-              <>
-                <span
-                  className="size-3 border-2 rounded-full animate-spin"
-                  style={{
-                    borderColor: `var(--accent-primary-ring)`,
-                    borderTopColor: `var(--accent-primary)`,
-                  }}
-                />
-                pensando…
-              </>
+              <AIThinkingLabel />
             ) : (
               <>
                 <SparkleIcon size={12} />

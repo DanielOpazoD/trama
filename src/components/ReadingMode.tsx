@@ -3,6 +3,7 @@ import { api } from '../api'
 import type { ExtractionProposal } from '../types'
 import { CloseIcon, SparkleIcon } from './Icons'
 import { ProgressBar } from './ProgressBar'
+import { AIThinkingLabel } from './AIThinkingLabel'
 
 /**
  * Modo lectura: el usuario pega un texto largo (un capítulo, una entrevista,
@@ -282,9 +283,13 @@ export function ReadingMode({
             <button
               onClick={handleStart}
               disabled={!text.trim() || processing}
-              className="btn-accent text-xs"
+              className="btn-accent inline-flex items-center gap-1.5 text-xs"
             >
-              {processing ? 'leyendo…' : 'leer y proponer'}
+              {processing ? (
+                <AIThinkingLabel tone="inverse" text="leyendo" />
+              ) : (
+                'leer y proponer'
+              )}
             </button>
           </div>
         </footer>

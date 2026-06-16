@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { SparkleIcon } from '../Icons'
+import { AIThinkingLabel } from '../AIThinkingLabel'
 
 /**
  * Menú desplegable de acciones IA para el header de Entidades.
@@ -58,18 +59,10 @@ export function AIMenu({
         aria-label="Acciones con IA"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-busy={pending}
       >
         {pending ? (
-          <>
-            <span
-              className="size-3 border-2 rounded-full animate-spin"
-              style={{
-                borderColor: 'var(--accent-primary-ring)',
-                borderTopColor: 'var(--accent-primary)',
-              }}
-            />
-            revisando…
-          </>
+          <AIThinkingLabel text="revisando" />
         ) : (
           <>
             <SparkleIcon size={12} />

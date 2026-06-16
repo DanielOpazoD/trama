@@ -1,31 +1,47 @@
-/**
- * Spinner canónico de Trama — un anillo que gira. Mismo lenguaje que el
- * botón "pensando…" del grafo: anillo tenue (`--accent-primary-ring`) con
- * un arco activo (`--accent-primary`). Para estados de carga donde un
- * skeleton no encaja (carga de vista, blob de imagen en vuelo).
- *
- * Tamaño en px (default 16). El grosor del anillo escala con el tamaño.
- */
+import type { CSSProperties } from 'react'
+
+type SpinnerVariant = 'data' | 'ai'
+type SpinnerTone = 'default' | 'inverse'
+
 export function Spinner({
   size = 16,
+  variant = 'data',
+  tone = 'default',
+  label = 'cargando',
+  decorative = false,
+  active = true,
   className = '',
 }: {
   size?: number
+  variant?: SpinnerVariant
+  tone?: SpinnerTone
+  label?: string
+  decorative?: boolean
+  active?: boolean
   className?: string
 }) {
+  const a11yProps = decorative
+    ? { 'aria-hidden': true }
+    : { role: 'status' as const, 'aria-label': label }
+
   return (
     <span
-      role="status"
-      aria-label="cargando"
-      className={`inline-block shrink-0 rounded-full animate-spin ${className}`}
-      style={{
-        width: size,
-        height: size,
-        borderWidth: Math.max(2, Math.round(size / 8)),
-        borderStyle: 'solid',
-        borderColor: 'var(--accent-primary-ring)',
-        borderTopColor: 'var(--accent-primary)',
-      }}
-    />
+      {...a11yProps}
+      data-testid="trama-spinner"
+      className={`trama-spinner trama-spinner--${variant} trama-spinner--${tone} ${
+        active ? '' : 'trama-spinner--idle'
+      } ${className}`.trim()}
+      style={
+        {
+          '--trama-spinner-size': `${size}px`,
+        } as CSSProperties
+      }
+    >
+      <span className="trama-spinner__ring" />
+      <span className="trama-spinner__thread" />
+      <span className="trama-spinner__core" />
+      <span className="trama-spinner__spark trama-spinner__spark--one" />
+      <span className="trama-spinner__spark trama-spinner__spark--two" />
+    </span>
   )
 }

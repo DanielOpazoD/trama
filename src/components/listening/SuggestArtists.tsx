@@ -4,6 +4,7 @@ import { api, type SpotifyArtistSuggestion } from '../../api'
 import { useAddEntity, useToast } from '../../state'
 import { SparkleIcon } from '../Icons'
 import { AISourceTag } from '../AISourceTag'
+import { AIThinkingLabel } from '../AIThinkingLabel'
 
 /**
  * π5: card "podrían resonarte" — la IA mira tu perfil musical en Spotify
@@ -100,18 +101,10 @@ export function SuggestArtists() {
           disabled={suggest.isPending}
           className="ai-cta"
           title="Pedir nuevas sugerencias — usa tu top artists de Spotify long-term"
+          aria-busy={suggest.isPending}
         >
           {suggest.isPending ? (
-            <>
-              <span
-                className="size-3 border-2 rounded-full animate-spin"
-                style={{
-                  borderColor: 'var(--accent-primary-ring)',
-                  borderTopColor: 'var(--accent-primary)',
-                }}
-              />
-              buscando…
-            </>
+            <AIThinkingLabel text="buscando" />
           ) : suggestions.length > 0 ? (
             <>
               <SparkleIcon size={12} />

@@ -24,6 +24,7 @@ import { RecorteLightbox } from './RecorteLightbox'
 import { recorteToLightboxEntries } from './recorteViewer'
 import type { PromoteSeed } from './PromoteModal'
 import { markdownToPreview } from './recorteMarkdownPreview'
+import { AIThinkingLabel } from '../AIThinkingLabel'
 
 function formatStamp(iso: string | null): string {
   if (!iso) return ''
@@ -465,8 +466,13 @@ export function RecorteCard({
                         }}
                         disabled={suggest.isPending}
                       >
-                        <SparkleIcon size={13} />{' '}
-                        {suggest.isPending ? 'pensando…' : 'sugerir destino'}
+                        {suggest.isPending ? (
+                          <AIThinkingLabel />
+                        ) : (
+                          <>
+                            <SparkleIcon size={13} /> sugerir destino
+                          </>
+                        )}
                       </OverflowMenuItem>
                     )}
                     {hasImage && (
@@ -477,7 +483,13 @@ export function RecorteCard({
                         }}
                         disabled={ocrBusy}
                       >
-                        <TextIcon size={13} /> {ocrBusy ? 'leyendo…' : 'extraer texto'}
+                        {ocrBusy ? (
+                          <AIThinkingLabel text="leyendo" />
+                        ) : (
+                          <>
+                            <TextIcon size={13} /> extraer texto
+                          </>
+                        )}
                       </OverflowMenuItem>
                     )}
                     <OverflowMenuItem

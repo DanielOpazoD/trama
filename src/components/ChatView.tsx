@@ -21,6 +21,7 @@ import { LoadingHint } from './LoadingHint'
 import { MessageBubble } from './chat/MessageBubble'
 import { EmptyChatHint } from './chat/EmptyChatHint'
 import { FilterChip } from './chat/FilterChip'
+import { AIThinkingLabel } from './AIThinkingLabel'
 import { defaultTitleFor, threadSubtitle } from './chat/threadLabels'
 import { sessionBreakLabel } from './chat/sessionBreaks'
 
@@ -336,24 +337,12 @@ export function ChatView({
               })}
               {sendPending &&
                 deferredMessages[deferredMessages.length - 1]?.role !== 'assistant' && (
-                  // ζ11: indicador "pensando" en lenguaje editorial. En vez
-                  // del spinner técnico, una elipsis serif que late en
-                  // sentido literal: cada punto fade-in escalonado. Más en
-                  // sintonía con el resto de la app que se construye sobre
-                  // typography más que sobre iconography.
-                  <li className="text-ink-400 italic text-sm font-serif flex items-baseline gap-1.5">
-                    <span>pensando</span>
-                    <span aria-hidden className="inline-flex items-baseline gap-[2px]">
-                      <span className="dots-dot" style={{ animationDelay: '0ms' }}>
-                        ·
-                      </span>
-                      <span className="dots-dot" style={{ animationDelay: '180ms' }}>
-                        ·
-                      </span>
-                      <span className="dots-dot" style={{ animationDelay: '360ms' }}>
-                        ·
-                      </span>
-                    </span>
+                  <li
+                    className="text-ink-400 italic text-sm font-serif flex items-center gap-1.5"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <AIThinkingLabel />
                   </li>
                 )}
               {sendError && (

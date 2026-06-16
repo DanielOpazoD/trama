@@ -5,6 +5,7 @@ import {
   type PdfPreview,
 } from '../../../../lib/pdfStudio/render/pdfRender'
 import { LoadingHint } from '../../../LoadingHint'
+import { Spinner } from '../../../Spinner'
 import { CloseIcon, DownloadIcon, PrinterIcon } from '../../../Icons'
 import { useFocusTrap } from '../../../../hooks/useFocusTrap'
 import { useInViewport } from './useInViewport'
@@ -50,7 +51,7 @@ function PreviewPage({
         />
       ) : (
         <div className="absolute inset-0 grid place-items-center">
-          <span className="h-6 w-6 rounded-full border-2 border-ink-100 border-t-ink-300 animate-spin" />
+          <Spinner size={24} decorative />
         </div>
       )}
       <span className="absolute bottom-1 right-1 rounded bg-ink-900/55 px-1.5 py-0.5 text-micro tabular-nums text-paper-50">

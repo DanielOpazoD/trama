@@ -57,13 +57,22 @@ const ProactiveView = lazy(() =>
   import('./ProactiveView').then((m) => ({ default: m.ProactiveView })),
 )
 
-/** Fallback minimal para Suspense — un LoadingHint centrado mientras
- *  la vista se descarga. La mayoría de las vistas tardan <150ms, así
- *  que el flash es apenas perceptible. */
-function ViewFallback() {
+/** Fallback editorial para Suspense mientras la vista se descarga. */
+export function ViewFallback() {
   return (
-    <div className="flex items-center justify-center h-full">
-      <Spinner size={22} />
+    <div
+      className="view-fallback"
+      role="status"
+      aria-live="polite"
+      aria-label="hilando vista"
+    >
+      <span className="view-fallback__loom" aria-hidden>
+        <span className="view-fallback__thread view-fallback__thread--one" />
+        <span className="view-fallback__thread view-fallback__thread--two" />
+        <span className="view-fallback__thread view-fallback__thread--three" />
+        <Spinner size={24} decorative />
+      </span>
+      <span className="font-serif italic text-sm text-ink-400">hilando vista…</span>
     </div>
   )
 }

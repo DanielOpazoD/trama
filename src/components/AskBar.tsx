@@ -5,6 +5,7 @@ import { useThreadIdForView } from '../hooks/useThreadIdForView'
 import { ArrowRightIcon, CameraIcon, ReadingIcon } from './Icons'
 import { Tooltip } from './Tooltip'
 import { AISourceTag } from './AISourceTag'
+import { Spinner } from './Spinner'
 
 /** Convert a File to a base64 string (without the data URL prefix). */
 async function fileToBase64(file: File): Promise<string> {
@@ -242,11 +243,7 @@ export function AskBar({
               aria-label="Extraer desde imagen"
               className="self-end mb-1 ml-1 size-9 rounded-full text-ink-400 hover:text-ink-700 hover:bg-ink-50 disabled:text-ink-200 disabled:cursor-not-allowed transition-all duration-150 ease-out flex items-center justify-center"
             >
-              {imageBusy ? (
-                <span className="size-3.5 border-2 border-ink-200 border-t-ink-500 rounded-full animate-spin" />
-              ) : (
-                <CameraIcon size={14} />
-              )}
+              {imageBusy ? <Spinner size={15} decorative /> : <CameraIcon size={14} />}
             </button>
           </Tooltip>
           {onOpenReading && (
@@ -294,7 +291,7 @@ export function AskBar({
             title="Enviar (⌘/Ctrl+Enter)"
           >
             {ask.isPending ? (
-              <span className="size-3.5 border-2 border-paper-50/40 border-t-paper-50 rounded-full animate-spin" />
+              <Spinner size={15} variant="ai" tone="inverse" decorative />
             ) : (
               <ArrowRightIcon size={14} />
             )}

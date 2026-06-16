@@ -5,6 +5,7 @@ import { AudioPicker } from './AudioPicker'
 import { MomentoKindTabs } from './MomentoKindTabs'
 import { editImage } from '../../lib/imageEditor'
 import { PencilIcon } from '../Icons'
+import { InlineLoadingLabel } from '../InlineLoadingLabel'
 
 type Composer = ReturnType<typeof useMomentoComposer>
 
@@ -158,7 +159,7 @@ function RecorteFields({ composer }: { composer: Composer }) {
           className="text-micro uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 disabled:opacity-50 px-2"
           title="Buscar título y descripción de la URL"
         >
-          {composer.previewing ? 'leyendo…' : '↻ leer'}
+          {composer.previewing ? <InlineLoadingLabel text="leyendo" /> : '↻ leer'}
         </button>
       </div>
       <input

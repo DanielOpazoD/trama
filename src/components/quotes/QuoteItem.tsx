@@ -9,6 +9,7 @@ import { QuoteEditModal } from '../QuoteEditModal'
 import { ResonanceDots } from './ResonanceDots'
 import { QuoteActionsMenu } from './QuoteActionsMenu'
 import { LaminaModal } from './LaminaModal'
+import { AIThinkingLabel } from '../AIThinkingLabel'
 
 /** Format an ISO date as "20 may 2026" — short, ink-on-paper style. */
 function formatDate(iso: string): string {
@@ -336,7 +337,7 @@ function QuoteItemInternal({
               disabled={reflect.isPending}
               className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60"
             >
-              {reflect.isPending ? 'releyendo…' : 'otra lectura'}
+              {reflect.isPending ? <AIThinkingLabel text="releyendo" /> : 'otra lectura'}
             </button>
             <button
               onClick={() => setDraftReflection(null)}
