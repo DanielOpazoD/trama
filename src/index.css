@@ -1064,16 +1064,27 @@ html.dark .paper-grain::before {
 
 @layer components {
   .input-paper {
-    @apply px-3 py-2 bg-paper-50/70 border border-ink-100 rounded-lg
+    @apply px-3 py-2 border border-ink-100 rounded-lg
       transition-all duration-200
       text-ink-700 placeholder:text-ink-200;
+    background:
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.82), rgb(var(--paper-100) / 0.52)),
+      radial-gradient(circle at 0% 0%, var(--accent-gold-soft), transparent 46%);
+    box-shadow:
+      0 1px 0 rgb(var(--paper-50) / 0.68) inset,
+      0 1px 2px rgb(var(--ink-900) / 0.035);
     /* Focus ring uses the editorial primary accent — prussian on cream,
        lights up to ~3px without shifting layout. */
   }
   .input-paper:focus {
     outline: none;
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px var(--accent-primary-ring);
+    background:
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.94), rgb(var(--paper-50) / 0.72)),
+      radial-gradient(circle at 0% 0%, var(--accent-gold-soft), transparent 44%);
+    box-shadow:
+      0 0 0 3px var(--accent-primary-ring),
+      0 10px 24px rgb(var(--ink-900) / 0.06);
   }
 
   .btn-ink {
@@ -1083,10 +1094,13 @@ html.dark .paper-grain::before {
       disabled:bg-ink-200 disabled:cursor-not-allowed disabled:active:scale-100;
     box-shadow:
       0 1px 2px rgb(0 0 0 / 0.08),
+      0 1px 0 rgb(var(--paper-50) / 0.08) inset,
       0 0 0 0 transparent;
   }
   .btn-ink:hover:not(:disabled) {
-    box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+    box-shadow:
+      0 8px 22px rgb(var(--ink-900) / 0.16),
+      0 1px 0 rgb(var(--paper-50) / 0.12) inset;
   }
 
   /* Secondary "primary" — uses the editorial accent instead of ink. For
@@ -1098,11 +1112,15 @@ html.dark .paper-grain::before {
       disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
     background-color: var(--accent-primary);
     color: rgb(var(--paper-50));
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.08),
+      0 1px 0 rgb(var(--paper-50) / 0.16) inset;
   }
   .btn-accent:hover:not(:disabled) {
     filter: brightness(1.08);
-    box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+    box-shadow:
+      0 9px 24px var(--accent-primary-ring),
+      0 1px 0 rgb(var(--paper-50) / 0.18) inset;
   }
 
   .btn-ghost {
@@ -1397,7 +1415,10 @@ html.dark .paper-grain::before {
        .card-paper-hover      añade hover state con shadow + bg shift
        .card-paper-elevated   panels más prominentes (mayor opacity) */
   .card-paper {
-    @apply bg-paper-50/40 border border-ink-100/50 rounded-xl;
+    @apply border border-ink-100/50 rounded-xl;
+    background:
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.48), rgb(var(--paper-100) / 0.26)),
+      radial-gradient(circle at 0% 0%, rgb(var(--paper-50) / 0.68), transparent 42%);
   }
   .card-paper-hover {
     @apply card-paper transition-all duration-200
@@ -1414,17 +1435,38 @@ html.dark .paper-grain::before {
     will-change: transform;
   }
   .card-paper-hover:hover {
+    border-color: rgb(var(--ink-100) / 0.82);
+    background:
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.76), rgb(var(--paper-100) / 0.38)),
+      radial-gradient(circle at 0% 0%, var(--accent-gold-soft), transparent 42%);
     box-shadow: var(--card-shadow-hover);
     transform: perspective(800px) rotateX(-0.4deg) translateY(-1px);
   }
+  .card-paper-hover:focus-within {
+    border-color: var(--accent-primary-ring);
+    box-shadow:
+      var(--card-shadow-hover),
+      0 0 0 3px var(--accent-primary-ring);
+  }
   @media (prefers-reduced-motion: reduce) {
     .card-paper-hover,
-    .card-paper-hover:hover {
+    .card-paper-hover:hover,
+    .card-paper-hover:focus-within {
+      transform: none;
+    }
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .card-paper-hover,
+    .card-paper-hover:hover,
+    .card-paper-hover:focus-within {
       transform: none;
     }
   }
   .card-paper-elevated {
-    @apply bg-paper-50/70 border border-ink-100/60 rounded-xl;
+    @apply border border-ink-100/60 rounded-xl;
+    background:
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.82), rgb(var(--paper-100) / 0.48)),
+      radial-gradient(circle at 8% 0%, var(--accent-gold-soft), transparent 38%);
     /* ν1: cards elevadas (WeeklyActivity hero, panels) usan la sombra
        cálida estática — no necesitan hover state pero sí "lift". */
     box-shadow: var(--card-shadow-hover);
@@ -1443,7 +1485,10 @@ html.dark .paper-grain::before {
        - .card-paper-soft   → panel inline, ni row ni elevado (bg-paper-100/60)
    */
   .card-paper-soft {
-    @apply bg-paper-100/60 border border-ink-100/60 rounded-xl;
+    @apply border border-ink-100/60 rounded-xl;
+    background:
+      linear-gradient(180deg, rgb(var(--paper-100) / 0.62), rgb(var(--paper-50) / 0.42)),
+      radial-gradient(circle at 100% 0%, var(--accent-gold-soft), transparent 36%);
   }
 
   /* ────────────────────────────────────────────────────────────────────
