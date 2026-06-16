@@ -49,6 +49,9 @@ describe('AuthGate', () => {
     expect(screen.getByTestId('clerk-sign-in')).toHaveAttribute('data-routing', 'hash')
     expect(screen.getByText('Trama')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Mascota de Trama' })).toBeInTheDocument()
+    expect(screen.getByTestId('login-mascot-seal')).toContainElement(
+      screen.getByRole('img', { name: 'Mascota de Trama' }),
+    )
     expect(screen.getByText('tu archivo vivo')).toBeInTheDocument()
     expect(screen.getByTestId('login-thread-field')).toHaveAttribute(
       'aria-hidden',

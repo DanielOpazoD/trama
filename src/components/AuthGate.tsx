@@ -129,7 +129,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
               </svg>
               <div className="trama-login-titleRow">
                 <h1 className="trama-login-title font-serif text-ink-700">Trama</h1>
-                <TramaMascot className="trama-mascot--wordmark" />
+                <span className="trama-login-mascotSeal" data-testid="login-mascot-seal">
+                  <TramaMascot className="trama-mascot--wordmark" />
+                </span>
               </div>
               <p className="trama-login-subtitle text-micro uppercase tracking-eyebrow">
                 tu archivo vivo
