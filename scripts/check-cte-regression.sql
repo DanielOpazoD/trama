@@ -14,6 +14,7 @@
 --   netlify/functions/notes.mts           (DELETE + restore — patrón compartido con tasks/prompts)
 --   netlify/functions/_lib/whatsapp/persist-media.ts (persistImageRecorteEvent)
 --   netlify/functions/_lib/whatsapp/album.ts          (appendImagesToRecorteEvent)
+--   netlify/functions/_lib/whatsapp/description.ts    (consumeAwaitingDescription)
 --
 -- Las tablas son throwaway con los nombres/contraint reales que importan (FK a
 -- users, PK compuesta de momento_entities para el ON CONFLICT, NOT NULL de
@@ -397,6 +398,81 @@ BEGIN
     RAISE EXCEPTION 'album-append: el anexado posterior no quedó en la posición 3';
   END IF;
   RAISE NOTICE 'OK album-append (promoción de 1→evento en pos 0, anexado posterior sin huecos)';
+END $$;
+
+-- ============================================================================
+-- 7) description.ts — consumeAwaitingDescription: reclama-y-limpia el puntero
+--    awaiting_desc en UN solo statement. `FOR UPDATE` serializa consumidores
+--    concurrentes; la CTE captura los valores VIEJOS antes de limpiarlos y
+--    RETURNING los devuelve. Valida: (a) el claim devuelve el puntero viejo y lo
+--    deja en NULL atómicamente; (b) un segundo claim ya no encuentra nada (el
+--    "perdedor" trata su texto como captura nueva, no pisa la descripción).
+-- ============================================================================
+CREATE TABLE whatsapp_links (
+  phone_e164 text NOT NULL, user_id text NOT NULL REFERENCES users(id),
+  awaiting_desc_kind text, awaiting_desc_id uuid, awaiting_desc_at timestamptz,
+  updated_at timestamptz DEFAULT now(), deleted_at timestamptz,
+  PRIMARY KEY (phone_e164, user_id));
+
+INSERT INTO whatsapp_links (phone_e164, user_id, awaiting_desc_kind, awaiting_desc_id, awaiting_desc_at)
+VALUES ('+56900000000', 'u1', 'recorte', '88888888-8888-4888-8888-888888888888', NOW());
+
+-- Las filas del RETURNING (transitorias; el handler las lee del driver) se
+-- persisten en una tabla throwaway para aseverar después desde un DO block.
+CREATE TABLE desc_claim_out (attempt int, kind text, id uuid);
+
+-- Primer claim (CTE copiado de consumeAwaitingDescription): debe devolver el
+-- puntero VIEJO (la CTE lo captura antes de que el UPDATE lo limpie).
+WITH claimed AS (
+  SELECT awaiting_desc_kind AS kind, awaiting_desc_id AS id
+  FROM whatsapp_links
+  WHERE phone_e164 = '+56900000000' AND user_id = 'u1' AND deleted_at IS NULL
+    AND awaiting_desc_id IS NOT NULL
+    AND awaiting_desc_at > NOW() - (300 || ' seconds')::interval
+  FOR UPDATE
+),
+upd AS (
+  UPDATE whatsapp_links w
+  SET awaiting_desc_kind = NULL, awaiting_desc_id = NULL,
+      awaiting_desc_at = NULL, updated_at = NOW()
+  FROM claimed
+  WHERE w.phone_e164 = '+56900000000' AND w.user_id = 'u1' AND w.deleted_at IS NULL
+  RETURNING claimed.kind AS kind, claimed.id AS id
+)
+INSERT INTO desc_claim_out (attempt, kind, id) SELECT 1, kind, id FROM upd;
+
+-- Segundo claim, ya sin puntero (el "perdedor"): no debe devolver/insertar nada.
+WITH claimed AS (
+  SELECT awaiting_desc_kind AS kind, awaiting_desc_id AS id
+  FROM whatsapp_links
+  WHERE phone_e164 = '+56900000000' AND user_id = 'u1' AND deleted_at IS NULL
+    AND awaiting_desc_id IS NOT NULL
+    AND awaiting_desc_at > NOW() - (300 || ' seconds')::interval
+  FOR UPDATE
+),
+upd AS (
+  UPDATE whatsapp_links w
+  SET awaiting_desc_kind = NULL, awaiting_desc_id = NULL,
+      awaiting_desc_at = NULL, updated_at = NOW()
+  FROM claimed
+  WHERE w.phone_e164 = '+56900000000' AND w.user_id = 'u1' AND w.deleted_at IS NULL
+  RETURNING claimed.kind AS kind, claimed.id AS id
+)
+INSERT INTO desc_claim_out (attempt, kind, id) SELECT 2, kind, id FROM upd;
+
+DO $$
+BEGIN
+  IF (SELECT count(*) FROM desc_claim_out WHERE attempt = 1) <> 1
+     OR (SELECT kind FROM desc_claim_out WHERE attempt = 1 LIMIT 1) <> 'recorte' THEN
+    RAISE EXCEPTION 'desc-claim: el primer claim no devolvió el puntero viejo (kind=recorte)';
+  END IF;
+  IF (SELECT awaiting_desc_id FROM whatsapp_links WHERE phone_e164='+56900000000' AND user_id='u1') IS NOT NULL THEN
+    RAISE EXCEPTION 'desc-claim: el puntero no se limpió atómicamente en el mismo statement';
+  END IF;
+  IF (SELECT count(*) FROM desc_claim_out WHERE attempt = 2) <> 0 THEN
+    RAISE EXCEPTION 'desc-claim: el segundo claim devolvió filas (dos textos ganarían el mismo puntero)';
+  END IF;
+  RAISE NOTICE 'OK desc-claim (reclama+limpia atómico; el segundo consumidor no encuentra nada)';
 END $$;
 
 SELECT 'TODOS LOS CTE OK' AS resultado;

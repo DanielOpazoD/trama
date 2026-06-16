@@ -1055,9 +1055,8 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
-    mockSqlResponses.push([{ kind: 'recorte', id: 'r1' }]) // consumeAwaitingDescription: SELECT awaiting
-    mockSqlResponses.push([{ id: 'r1' }]) // UPDATE recortes (aplica la descripción)
-    mockSqlResponses.push([]) // clearAwaitingDescription
+    mockSqlResponses.push([{ kind: 'recorte', id: 'r1' }]) // consumeAwaitingDescription: claim atómico (UPDATE...RETURNING)
+    mockSqlResponses.push([{ id: 'r1' }]) // applyDescription: UPDATE recortes
     const res = await webhookHandler(
       twilioRequest({ From: 'whatsapp:+56912345678', Body: 'una tarde de lluvia' }),
       mockContext(),
