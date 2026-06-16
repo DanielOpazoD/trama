@@ -484,7 +484,7 @@ export function RecorteCard({
                         disabled={ocrBusy}
                       >
                         {ocrBusy ? (
-                          <AIThinkingLabel text="leyendo" />
+                          <AIThinkingLabel state="reading" />
                         ) : (
                           <>
                             <TextIcon size={13} /> extraer texto

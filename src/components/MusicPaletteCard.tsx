@@ -120,7 +120,7 @@ export function MusicPaletteCard() {
             className="btn-accent inline-flex items-center gap-1.5 text-xs shrink-0"
           >
             {generate.isPending ? (
-              <AIThinkingLabel tone="inverse" text="leyendo" />
+              <AIThinkingLabel state="reading" tone="inverse" />
             ) : (
               'generar paleta'
             )}
@@ -169,7 +169,11 @@ export function MusicPaletteCard() {
             disabled={generate.isPending}
             className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60"
           >
-            {generate.isPending ? <AIThinkingLabel text="releyendo" /> : 'actualizar'}
+            {generate.isPending ? (
+              <AIThinkingLabel state="reading" text="releyendo" />
+            ) : (
+              'actualizar'
+            )}
           </button>
           {/* σ-followup: eliminar la paleta — vuelve al empty state con
               el botón "generar paleta". Útil cuando el retrato ya no

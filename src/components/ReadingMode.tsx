@@ -286,7 +286,7 @@ export function ReadingMode({
               className="btn-accent inline-flex items-center gap-1.5 text-xs"
             >
               {processing ? (
-                <AIThinkingLabel tone="inverse" text="leyendo" />
+                <AIThinkingLabel state="reading" tone="inverse" />
               ) : (
                 'leer y proponer'
               )}

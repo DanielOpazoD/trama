@@ -15,4 +15,18 @@ describe('<AIThinkingLabel />', () => {
     expect(screen.getByText('revisando…')).toBeInTheDocument()
     expect(screen.getByTestId('trama-spinner')).toHaveClass('trama-spinner--inverse')
   })
+
+  it('maps semantic AI states to Trama copy', () => {
+    const { container } = render(<AIThinkingLabel state="synthesizing" />)
+    expect(screen.getByText('sintetizando…')).toBeInTheDocument()
+    expect(container.querySelector('.ai-thinking-label')).toHaveAttribute(
+      'data-ai-state',
+      'synthesizing',
+    )
+  })
+
+  it('lets explicit copy override the semantic state', () => {
+    render(<AIThinkingLabel state="proposing" text="afinando" />)
+    expect(screen.getByText('afinando…')).toBeInTheDocument()
+  })
 })

@@ -62,7 +62,7 @@ export function AIMenu({
         aria-busy={pending}
       >
         {pending ? (
-          <AIThinkingLabel text="revisando" />
+          <AIThinkingLabel state="reviewing" />
         ) : (
           <>
             <SparkleIcon size={12} />

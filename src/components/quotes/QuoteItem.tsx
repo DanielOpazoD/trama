@@ -337,7 +337,11 @@ function QuoteItemInternal({
               disabled={reflect.isPending}
               className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60"
             >
-              {reflect.isPending ? <AIThinkingLabel text="releyendo" /> : 'otra lectura'}
+              {reflect.isPending ? (
+                <AIThinkingLabel state="reading" text="releyendo" />
+              ) : (
+                'otra lectura'
+              )}
             </button>
             <button
               onClick={() => setDraftReflection(null)}

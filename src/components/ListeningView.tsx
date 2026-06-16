@@ -389,7 +389,7 @@ export function ListeningView({
                         title="La IA propondrá descripción, año y posibles conexiones"
                       >
                         {enrichingKey === item.key ? (
-                          <AIThinkingLabel text="preparando" />
+                          <AIThinkingLabel state="weaving" text="preparando" />
                         ) : (
                           <>
                             <SparkleIcon size={12} />
