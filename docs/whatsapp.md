@@ -184,6 +184,18 @@ un reintento de Twilio no re-cobra). Cubre entidades y citas (lo que indexa el
 RAG hoy); notas/momentos quedan para cuando el RAG los incluya. Observabilidad:
 `whatsapp_recall` / `whatsapp_recall_failed`.
 
+## Observabilidad (panel en la app)
+
+Los `logEvent({ event: 'whatsapp_*' })` van a stdout de Netlify (no consultables).
+Para un **panel** de "capturas por ruta + tasa de fallas", el webhook además
+**persiste** un evento por resultado de captura en la tabla `whatsapp_events`
+(`_lib/whatsapp/events.ts`, `persistWhatsAppEvent`, best-effort: nunca tumba la
+captura). El endpoint authed **`GET /api/whatsapp-metrics?days=30`** agrega bajo
+el RLS del usuario (capturas por `kind`, éxitos/fallas por categoría, actividad
+diaria, feed reciente) y `WhatsAppMetricsCard` lo muestra en Configuración →
+WhatsApp (se oculta si todavía no hay actividad). En modo prueba, `demoRouter`
+siembra métricas para que el panel se vea sin backend.
+
 ## Comando `estado`
 
 `estado` (o `status`) devuelve un resumen desde el teléfono: si el vínculo está

@@ -63,6 +63,7 @@ import {
   consumeAwaitingDescription,
   applyDescription,
 } from './_lib/whatsapp/description.js'
+import { persistWhatsAppEvent } from './_lib/whatsapp/events.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
 import {
@@ -1053,6 +1054,14 @@ async function handleInboundMedia(
   // pérdida a Momento o Nota con sus imágenes: ofrecemos esos botones de destino
   // (además de Deshacer). Las fotos que ya fueron a Momentos no necesitan botón.
   const offerDestino = saved > 0 && lastKind === 'recorte'
+  // Observabilidad: un evento de captura por mensaje de media (ok si guardó algo;
+  // si no, la razón). Best-effort — nunca tumba la captura.
+  await persistWhatsAppEvent(sql, userId, {
+    event: 'capture',
+    kind: saved > 0 ? lastKind : null,
+    ok: saved > 0,
+    detail: saved > 0 ? null : [...skipped].join(',') || 'sin_resultado',
+  })
   // Foto sin pie → ofrecemos el botón [Descripción] (dispara el flujo de PR3).
   return {
     message: lines.join('\n'),
@@ -1370,6 +1379,11 @@ export default withObservability(
       // Recordamos la última captura para que "deshacer" sepa qué borrar.
       if (id) await recordLastCapture(sql, phone, userId, intent.kind, id)
       logEvent({ event: 'whatsapp_capture', kind: intent.kind, viaLLM })
+      await persistWhatsAppEvent(sql, userId, {
+        event: 'capture',
+        kind: intent.kind,
+        ok: true,
+      })
       if (!id) return twimlResponse(message)
       // Reply accionable: confirmación + deep link + botón/atajo para corregir.
       // Cuando lo clasificó la IA (texto libre = ambiguo), ofrecemos elegir el
@@ -1381,10 +1395,13 @@ export default withObservability(
         viaLLM ? 'ambiguous' : 'simple',
       )
     } catch (err) {
-      logEvent({
-        event: 'whatsapp_capture_failed',
+      const detail = err instanceof Error ? err.message : String(err)
+      logEvent({ event: 'whatsapp_capture_failed', kind: intent.kind, message: detail })
+      await persistWhatsAppEvent(sql, userId, {
+        event: 'capture',
         kind: intent.kind,
-        message: err instanceof Error ? err.message : String(err),
+        ok: false,
+        detail,
       })
       return twimlResponse(
         'No pude guardarlo en este momento. Vuelve a intentarlo en unos segundos.',
