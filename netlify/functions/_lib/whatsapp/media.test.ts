@@ -111,6 +111,13 @@ describe('mediaRoute', () => {
     }
   })
 
+  it('directiva con texto descriptivo después también enruta a momento', () => {
+    // El caso del screenshot: «A momentos ambas imágenes» debe ir a Momentos.
+    expect(mediaRoute('A momentos ambas imágenes').route).toBe('momento')
+    expect(mediaRoute('subir a momentos las del torneo').route).toBe('momento')
+    expect(mediaRoute('guardar en momentos esto').route).toBe('momento')
+  })
+
   it('caption descriptivo que solo menciona la palabra queda en Recorte', () => {
     expect(mediaRoute('momentos felices del viaje').route).toBe('recorte')
     expect(mediaRoute('un momento inolvidable').route).toBe('recorte')
@@ -139,8 +146,14 @@ describe('isMomentoCaption', () => {
     expect(isMomentoCaption('momentos')).toBe(true)
   })
 
+  it('acepta texto después de la directiva', () => {
+    expect(isMomentoCaption('a momentos ambas imágenes')).toBe(true)
+    expect(isMomentoCaption('subir a momentos las fotos')).toBe(true)
+  })
+
   it('no matchea captions descriptivos', () => {
     expect(isMomentoCaption('momentos felices')).toBe(false)
+    expect(isMomentoCaption('momentos felices del viaje')).toBe(false)
     expect(isMomentoCaption('mirá esta foto')).toBe(false)
     expect(isMomentoCaption('')).toBe(false)
   })

@@ -141,17 +141,30 @@ function foldCaption(s: string): string {
 /**
  * Intención en lenguaje natural de mandar la foto a Momentos, sin el prefijo
  * `momento:`. Cubre frases tipo «subir a momentos», «a momentos», «guardar en
- * momentos» o el escueto «momentos». Anclada al caption COMPLETO (`^…$`) a
- * propósito: un caption descriptivo que apenas menciona la palabra (p. ej.
- * «momentos felices del viaje») NO debe enrutar a Momento — cae al Recorte por
- * defecto. La comparación corre sobre el caption "folded" (sin acentos).
+ * momentos» o el escueto «momentos», y ADEMÁS acepta texto descriptivo después
+ * de la directiva («a momentos ambas imágenes», «subir a momentos las del
+ * torneo») — ese texto es solo aclaración, no cambia el destino.
+ *
+ * La clave para no confundir un pie meramente descriptivo (p. ej. «momentos
+ * felices del viaje» → debe quedar en Recorte) es exigir una **preposición de
+ * dirección** (a/al/en/para/hacia) antes de «momentos» cuando hay más texto: esa
+ * preposición es la señal de "mandar A momentos". El escueto «momento(s)» (sin
+ * nada más) también vale. Corre sobre el caption "folded" (sin acentos).
  */
-const MOMENTO_INTENT =
-  /^(?:(?:subir?|subila|subilo|sube|subela|subelo|guardar?|guarda|guardala|guardalo|mover|muevela|muevelo|mandar?|manda|mandala|mandalo|enviar?|envia|enviala|envialo|poner?|pon|ponla|ponlo|anadir?|anade|agregar?|agrega|llevar?|lleva)\b\s*)?(?:(?:a|al|en|para|hacia)\s+)?(?:(?:la|el|los|las|mi|mis)\s+)?(?:seccion\s+(?:de\s+)?)?momentos?$/
+const VERBS =
+  'subir?|subila|subilo|sube|subela|subelo|guardar?|guarda|guardala|guardalo|mover|muevela|muevelo|mandar?|manda|mandala|mandalo|enviar?|envia|enviala|envialo|poner?|pon|ponla|ponlo|anadir?|anade|agregar?|agrega|llevar?|lleva'
+const ARTICLES = '(?:(?:la|el|los|las|mi|mis)\\s+)?(?:seccion\\s+(?:de\\s+)?)?'
+// Directiva con preposición obligatoria → permite texto descriptivo después.
+const MOMENTO_DIRECTIVE = new RegExp(
+  `^(?:(?:${VERBS})\\b\\s+)?(?:a|al|en|para|hacia)\\s+${ARTICLES}momentos?\\b`,
+)
+// El escueto «momento»/«momentos» (sin nada más).
+const MOMENTO_BARE = /^momentos?$/
 
 /** ¿El caption (en lenguaje natural) pide mandar la foto a Momentos? */
 export function isMomentoCaption(body: string): boolean {
-  return MOMENTO_INTENT.test(foldCaption(body))
+  const folded = foldCaption(body)
+  return MOMENTO_BARE.test(folded) || MOMENTO_DIRECTIVE.test(folded)
 }
 
 export function mediaRoute(body: string): { route: MediaRoute; caption: string } {
