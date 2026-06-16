@@ -219,6 +219,23 @@ describe('parseInboundMessage — edición rápida y multidispositivo', () => {
     })
   })
 
+  it('palabra suelta "tarea" reclasifica a Tarea (también "Tarea"/"pendiente")', () => {
+    expect(parseInboundMessage('tarea')).toEqual({ kind: 'recategorize', toKind: 'task' })
+    // El toque de la fila «Tarea» del List Picker vuelve con mayúscula: igual cae.
+    expect(parseInboundMessage('Tarea')).toEqual({ kind: 'recategorize', toKind: 'task' })
+    expect(parseInboundMessage('pendiente')).toEqual({
+      kind: 'recategorize',
+      toKind: 'task',
+    })
+  })
+
+  it('"tarea: <texto>" sigue creando una tarea (no se confunde con reclasificar)', () => {
+    expect(parseInboundMessage('tarea: comprar pan')).toMatchObject({
+      kind: 'intent',
+      intent: { kind: 'task', title: 'comprar pan' },
+    })
+  })
+
   it('palabra suelta "cita" NO reclasifica (necesita autor) → freeform', () => {
     expect(parseInboundMessage('cita')).toEqual({ kind: 'freeform', text: 'cita' })
   })

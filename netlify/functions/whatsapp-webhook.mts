@@ -173,7 +173,7 @@ async function replyWithCapture(
     variant === 'foto'
       ? '↩️ Responde con una descripción, o «deshacer» · «momento» · «nota».'
       : variant === 'ambiguous'
-        ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · entidad.'
+        ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · tarea · entidad.'
         : '↩️ ¿No era así? Responde «deshacer».'
   return twimlResponse(`${bodyWithLink}\n${fix}`)
 }
@@ -579,7 +579,7 @@ async function recategorizeLast(
   sql: ReturnType<typeof getSql>,
   userId: string,
   phone: string,
-  toKind: 'note' | 'momento' | 'entity',
+  toKind: 'note' | 'momento' | 'entity' | 'task',
   origin: string,
 ): Promise<string> {
   const last = await readLastPointer(sql, userId, phone)
@@ -618,6 +618,13 @@ async function recategorizeLast(
     // de texto de abajo (ahí sí reusar el texto es correcto).
   }
 
+  // Una tarea es texto/acción: no lleva imagen. Si la última captura es un
+  // recorte (foto), no la convertimos en tarea —perdería la imagen—; el menú
+  // «Tarea» vive en las capturas de texto, no en las fotos.
+  if (last.kind === 'recorte' && toKind === 'task') {
+    return 'Una foto no se vuelve tarea (perdería la imagen). Déjala en Recortes, pásala a Nota o Momento, o manda la tarea aparte con «tarea: …».'
+  }
+
   const text = await readCaptureText(sql, last.kind, last.id, userId)
   if (!text) {
     return 'No pude leer esa captura para reclasificarla. Puedes recrearla con el prefijo correcto.'
@@ -627,7 +634,9 @@ async function recategorizeLast(
       ? { kind: 'note', content: text }
       : toKind === 'momento'
         ? { kind: 'momento', bodyText: text }
-        : { kind: 'entity', name: text, entityType: 'concepto', description: null }
+        : toKind === 'task'
+          ? { kind: 'task', title: text, detail: null }
+          : { kind: 'entity', name: text, entityType: 'concepto', description: null }
   const { message, id } = await persistCapture(sql, userId, intent)
   if (!id) return 'No pude reclasificarla en este momento. Vuelve a intentarlo.'
   await softDeleteCapture(sql, userId, last.kind, last.id)

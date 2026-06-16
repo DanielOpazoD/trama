@@ -487,6 +487,51 @@ describe('whatsapp-webhook', () => {
     expect(await res.text()).toContain('Reclasificado')
   })
 
+  it('palabra suelta "tarea" → reclasifica la última nota a Tarea', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'note', cap_id: 'n1' }]) // readLastPointer
+    mockSqlResponses.push([{ t: 'comprar pan' }]) // readCaptureText (content)
+    mockSqlResponses.push([{ id: 't1' }]) // persistTask INSERT INTO tasks RETURNING
+    mockSqlResponses.push([{ id: 'n1' }]) // softDelete nota RETURNING
+    mockSqlResponses.push([]) // recordLastCapture UPDATE
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'tarea' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('Reclasificado')
+    // Creó la tarea y borró la nota original (reclasificación, no duplicado).
+    expect(mockSqlResponses.calls.some((c) => /INSERT INTO tasks/i.test(c.template))).toBe(
+      true,
+    )
+    expect(
+      mockSqlResponses.calls.some(
+        (c) => /UPDATE notes/i.test(c.template) && /deleted_at/i.test(c.template),
+      ),
+    ).toBe(true)
+  })
+
+  it('"tarea" tras una FOTO no la convierte (evita perder la imagen)', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'recorte', cap_id: 'r1' }]) // readLastPointer → foto
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'tarea' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('no se vuelve tarea')
+    // No insertó ninguna tarea (la foto sigue intacta como Recorte).
+    expect(mockSqlResponses.calls.some((c) => /INSERT INTO tasks/i.test(c.template))).toBe(
+      false,
+    )
+  })
+
   it('palabra "momento" sobre un recorte con imágenes → reclasifica SIN perder fotos', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
