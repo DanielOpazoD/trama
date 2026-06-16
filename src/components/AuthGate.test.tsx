@@ -89,6 +89,13 @@ describe('AuthGate', () => {
     )
     expect(screen.getByText('Trama')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Mascota de Trama' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Mascota de Trama' })).toHaveAttribute(
+      'tabindex',
+      '0',
+    )
+    expect(screen.getByRole('img', { name: 'Mascota de Trama' })).toHaveClass(
+      'trama-mascot--loginAwake',
+    )
     expect(screen.getByTestId('login-mascot-seal')).toContainElement(
       screen.getByRole('img', { name: 'Mascota de Trama' }),
     )

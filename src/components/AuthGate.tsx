@@ -158,7 +158,10 @@ function AuthScreen() {
           <div className="trama-login-titleRow">
             <h1 className="trama-login-title font-serif text-ink-700">Trama</h1>
             <span className="trama-login-mascotSeal" data-testid="login-mascot-seal">
-              <TramaMascot className="trama-mascot--wordmark" />
+              <TramaMascot
+                className="trama-mascot--wordmark trama-mascot--loginAwake"
+                tabIndex={0}
+              />
             </span>
           </div>
           <p className="trama-login-subtitle text-micro uppercase tracking-eyebrow">
