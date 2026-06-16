@@ -1746,6 +1746,24 @@ html.dark .paper-grain::before {
       opacity: 0.42;
     }
   }
+  @keyframes view-transition-enter {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .view-transition {
+    min-height: 100%;
+    animation: view-transition-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: opacity, transform;
+  }
+  .view-transition--canvas {
+    height: 100%;
+  }
   .trama-spinner {
     --trama-spinner-size: 16px;
     --trama-spinner-primary: var(--accent-primary);
@@ -1909,6 +1927,10 @@ html.dark .paper-grain::before {
       animation: none;
       opacity: 0.28;
       transform: scaleX(0.82);
+    }
+    .view-transition {
+      animation: none;
+      transform: none;
     }
   }
 

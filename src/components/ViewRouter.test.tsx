@@ -139,6 +139,10 @@ describe('<ViewRouter />', () => {
     const props = renderRouter('inicio')
 
     expect(screen.getByLabelText('Contenido principal')).toBeInTheDocument()
+    expect(screen.getByTestId('view-transition')).toHaveAttribute(
+      'data-view-transition',
+      'inicio',
+    )
     expect(screen.getByText(/home mock/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'ir citas' }))
@@ -153,6 +157,10 @@ describe('<ViewRouter />', () => {
     const props = renderRouter('grafo', { selectedEntityId: 'e1' })
 
     expect(screen.queryByLabelText('Contenido principal')).not.toBeInTheDocument()
+    expect(screen.getByTestId('view-transition')).toHaveAttribute(
+      'data-view-transition',
+      'grafo',
+    )
     expect(await screen.findByText(/grafo mock e1/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'seleccionar grafo' }))

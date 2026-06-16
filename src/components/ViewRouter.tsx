@@ -159,6 +159,27 @@ function ViewSlot({ scope, children }: { scope: string; children: ReactNode }) {
   )
 }
 
+function ViewTransition({
+  view,
+  layout = 'scroll',
+  children,
+}: {
+  view: ViewMode
+  layout?: 'scroll' | 'canvas'
+  children: ReactNode
+}) {
+  return (
+    <div
+      className={`view-transition view-transition--${layout}`}
+      data-testid="view-transition"
+      data-view-transition={view}
+      key={view}
+    >
+      {children}
+    </div>
+  )
+}
+
 export function ViewRouter({
   view,
   selectedEntityId,
@@ -187,13 +208,15 @@ export function ViewRouter({
   if (view === 'grafo') {
     return (
       <SectionPinGate key={view} sectionId={view}>
-        <ViewSlot scope="view:grafo">
-          <GraphView
-            selectedId={selectedEntityId}
-            onSelect={onSelectEntity}
-            onProposal={onProposal}
-          />
-        </ViewSlot>
+        <ViewTransition view={view} layout="canvas">
+          <ViewSlot scope="view:grafo">
+            <GraphView
+              selectedId={selectedEntityId}
+              onSelect={onSelectEntity}
+              onProposal={onProposal}
+            />
+          </ViewSlot>
+        </ViewTransition>
       </SectionPinGate>
     )
   }
@@ -201,12 +224,14 @@ export function ViewRouter({
   if (view === 'chat') {
     return (
       <SectionPinGate key={view} sectionId={view}>
-        <ViewSlot scope="view:chat">
-          <ChatView
-            initialThreadId={pendingChatThreadId}
-            onConsumedInitialThread={onConsumedInitialThread}
-          />
-        </ViewSlot>
+        <ViewTransition view={view} layout="canvas">
+          <ViewSlot scope="view:chat">
+            <ChatView
+              initialThreadId={pendingChatThreadId}
+              onConsumedInitialThread={onConsumedInitialThread}
+            />
+          </ViewSlot>
+        </ViewTransition>
       </SectionPinGate>
     )
   }
@@ -224,61 +249,63 @@ export function ViewRouter({
         tabIndex={0}
         aria-label="Contenido principal"
       >
-        <div className="px-8 py-10 pb-32 max-w-3xl mx-auto">
-          {view === 'inicio' && (
-            <ErrorBoundary
-              scope="view:inicio"
-              fallback={(p) => <ViewErrorFallback {...p} />}
-            >
-              <HomeView onNavigate={onChangeView} onSelectEntity={onSelectEntity} />
-            </ErrorBoundary>
-          )}
-          {view === 'entidades' && (
-            <ViewSlot scope="view:entidades">
-              <EntitiesWorkbench
-                onSelectEntity={onSelectEntity}
-                onProposal={onProposal}
-                tab={entitiesTab}
-                onTabChange={onEntitiesTabChange}
-              />
-            </ViewSlot>
-          )}
-          {view === 'citas' && (
-            <ViewSlot scope="view:citas">
-              <QuotesView onSelectEntity={onSelectEntity} onOpenCareo={onOpenCareo} />
-            </ViewSlot>
-          )}
-          {view === 'escuchas' && (
-            <ViewSlot scope="view:escuchas">
-              <ListeningView onSelectEntity={onSelectEntity} onProposal={onProposal} />
-            </ViewSlot>
-          )}
-          {view === 'twitter' && (
-            <ViewSlot scope="view:twitter">
-              <TwitterView onProposal={onProposal} />
-            </ViewSlot>
-          )}
-          {view === 'momentos' && (
-            <ViewSlot scope="view:momentos">
-              <MomentosView />
-            </ViewSlot>
-          )}
-          {view === 'cronologia' && (
-            <ViewSlot scope="view:cronologia">
-              <CronologiaView onSelectEntity={onSelectEntity} />
-            </ViewSlot>
-          )}
-          {view === 'atlas' && (
-            <ViewSlot scope="view:atlas">
-              <AtlasView onSelectEntity={onSelectEntity} />
-            </ViewSlot>
-          )}
-          {view === 'sugerencias' && (
-            <ViewSlot scope="view:sugerencias">
-              <ProactiveView />
-            </ViewSlot>
-          )}
-        </div>
+        <ViewTransition view={view}>
+          <div className="px-8 py-10 pb-32 max-w-3xl mx-auto">
+            {view === 'inicio' && (
+              <ErrorBoundary
+                scope="view:inicio"
+                fallback={(p) => <ViewErrorFallback {...p} />}
+              >
+                <HomeView onNavigate={onChangeView} onSelectEntity={onSelectEntity} />
+              </ErrorBoundary>
+            )}
+            {view === 'entidades' && (
+              <ViewSlot scope="view:entidades">
+                <EntitiesWorkbench
+                  onSelectEntity={onSelectEntity}
+                  onProposal={onProposal}
+                  tab={entitiesTab}
+                  onTabChange={onEntitiesTabChange}
+                />
+              </ViewSlot>
+            )}
+            {view === 'citas' && (
+              <ViewSlot scope="view:citas">
+                <QuotesView onSelectEntity={onSelectEntity} onOpenCareo={onOpenCareo} />
+              </ViewSlot>
+            )}
+            {view === 'escuchas' && (
+              <ViewSlot scope="view:escuchas">
+                <ListeningView onSelectEntity={onSelectEntity} onProposal={onProposal} />
+              </ViewSlot>
+            )}
+            {view === 'twitter' && (
+              <ViewSlot scope="view:twitter">
+                <TwitterView onProposal={onProposal} />
+              </ViewSlot>
+            )}
+            {view === 'momentos' && (
+              <ViewSlot scope="view:momentos">
+                <MomentosView />
+              </ViewSlot>
+            )}
+            {view === 'cronologia' && (
+              <ViewSlot scope="view:cronologia">
+                <CronologiaView onSelectEntity={onSelectEntity} />
+              </ViewSlot>
+            )}
+            {view === 'atlas' && (
+              <ViewSlot scope="view:atlas">
+                <AtlasView onSelectEntity={onSelectEntity} />
+              </ViewSlot>
+            )}
+            {view === 'sugerencias' && (
+              <ViewSlot scope="view:sugerencias">
+                <ProactiveView />
+              </ViewSlot>
+            )}
+          </div>
+        </ViewTransition>
       </div>
     </SectionPinGate>
   )
