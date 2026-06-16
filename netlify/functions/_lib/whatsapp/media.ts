@@ -6,6 +6,8 @@
  * Este módulo es la base de ingest que reusan foto, audio y video.
  */
 
+import { fetchWithTimeout, TWILIO_FETCH_TIMEOUT_MS } from './fetch-timeout.js'
+
 export type InboundMedia = { url: string; contentType: string }
 export type MediaCategory = 'image' | 'audio' | 'video' | 'other'
 
@@ -202,28 +204,11 @@ export function isVisionRoute(route: MediaRoute): boolean {
 }
 
 /** Timeout por intento de descarga (la function tiene presupuesto acotado). */
-export const TWILIO_FETCH_TIMEOUT_MS = 15000
-
 /** Backoff por defecto: 3 intentos (inmediato, +0.5 s, +1.5 s). */
 const DEFAULT_RETRY_DELAYS_MS = [0, 500, 1500]
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-/** fetch con AbortController para no quedar colgados si Twilio no responde. */
-async function fetchWithTimeout(
-  url: string,
-  init: RequestInit,
-  timeoutMs: number,
-): Promise<Response> {
-  const ctrl = new AbortController()
-  const t = setTimeout(() => ctrl.abort(), timeoutMs)
-  try {
-    return await fetch(url, { ...init, signal: ctrl.signal })
-  } finally {
-    clearTimeout(t)
-  }
 }
 
 export type DownloadOptions = {

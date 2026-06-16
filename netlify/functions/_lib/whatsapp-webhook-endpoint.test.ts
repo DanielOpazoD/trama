@@ -277,6 +277,64 @@ describe('whatsapp-webhook', () => {
     expect(await res.text()).not.toContain('Nota guardada')
   })
 
+  it('si Twilio rechaza el envío de botones (4xx) → degrada a TwiML con la confirmación', async () => {
+    // Garantía central: un fallo del Content API NUNCA deja al usuario sin
+    // confirmación. El envío devuelve ok:false → el webhook cae a TwiML de texto.
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubEnv('TWILIO_CONTENT_SID_CAPTURE_DESTINO', 'HXdest')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 400, text: async () => 'err' }),
+    )
+    askLLMForJson.mockResolvedValue({
+      content: { kind: 'note', note: { content: 'me acordé de algo' } },
+      usage: {
+        provider: 'deepseek',
+        model: 'x',
+        tokensIn: 1,
+        tokensOut: 1,
+        costCents: 1,
+        durationMs: 1,
+      },
+      fromCache: false,
+    })
+    const fields = {
+      MessageSid: 'SMbtnfail',
+      From: 'whatsapp:+56912345678',
+      To: 'whatsapp:+14155238886',
+      Body: 'me acordé de algo',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMbtnfail' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // extraction_log
+    mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes
+    mockSqlResponses.push([]) // recordLastCapture
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    // La confirmación + la afordancia de corregir viajan por TwiML (no se perdió).
+    expect(xml).toContain('Nota guardada')
+    expect(xml).toContain('deshacer')
+  })
+
   it('deshacer → soft-deletea la última captura', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
@@ -389,6 +447,36 @@ describe('whatsapp-webhook', () => {
       (v): v is string => typeof v === 'string' && v.includes('"items"'),
     )
     expect((payload?.match(/"storageKey"/g) ?? []).length).toBe(2)
+  })
+
+  it('palabra "momento" sobre un recorte de SOLO TEXTO → cae al camino de texto', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'recorte', cap_id: 'r1' }]) // readLastPointer
+    mockSqlResponses.push([{ t: 'una cita sin imagen' }]) // readCaptureText (caption del branch)
+    mockSqlResponses.push([]) // readRecorteImageKeys: recorte_images vacío
+    mockSqlResponses.push([{ image_key: null }]) // readRecorteImageKeys: image_key null → no-images
+    mockSqlResponses.push([{ t: 'una cita sin imagen' }]) // readCaptureText (camino de texto)
+    mockSqlResponses.push([{ id: 'm9' }]) // persistMomento (texto) INSERT
+    mockSqlResponses.push([{ id: 'r1' }]) // softDelete recorte
+    mockSqlResponses.push([]) // recordLastCapture
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'momento' }),
+      mockContext(),
+    )
+    const xml = await res.text()
+    expect(xml).toContain('Reclasificado')
+    // Camino de texto: NO promete imágenes (el recorte no tenía).
+    expect(xml).not.toContain('con sus imágenes')
+    // El momento se creó por texto (kind 'nota'), no como episodio foto (items[]).
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO momentos/i.test(c.template),
+    )
+    expect(
+      insert?.values.some((v) => typeof v === 'string' && v.includes('"items"')),
+    ).toBe(false)
   })
 
   it('idempotencia: un MessageSid ya procesado no re-escribe (TwiML vacío)', async () => {

@@ -5,6 +5,7 @@ import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 import type { RecorteThumbSize } from '../../hooks/useRecorteThumbSize'
 import { useMainScrollVirtualizer } from '../../hooks/useMainScrollVirtualizer'
 import { EmptyMessage } from '../EmptyMessage'
+import { GalleryIcon } from '../Icons'
 import { RecorteLightbox } from './RecorteLightbox'
 
 // Densidad de la grilla según el tamaño elegido (mismo control que las
@@ -106,6 +107,9 @@ export function flattenRecorteImages(items: CaptureItem[]): GalleryImage[] {
 function GalleryCell({ cell }: { cell: GalleryImage }) {
   const authedSrc = cell.storageKey ? recorteImageUrl(cell.storageKey) : null
   const { src, status } = useAuthenticatedMediaState(authedSrc)
+  const [extError, setExtError] = useState(false)
+  // Imagen rota: blob authed que falló (status 'error') o externa con onError.
+  const failed = authedSrc ? status === 'error' : extError
   const shown = authedSrc ? (src ?? TRANSPARENT_PX) : (cell.imageUrl ?? TRANSPARENT_PX)
   const loading = authedSrc ? status === 'loading' : false
   return (
@@ -116,12 +120,24 @@ function GalleryCell({ cell }: { cell: GalleryImage }) {
           aria-hidden
         />
       )}
-      <img
-        src={shown}
-        alt={cell.alt}
-        loading="lazy"
-        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04]"
-      />
+      {failed ? (
+        // Placeholder visible (no un píxel transparente que parece celda vacía).
+        <div
+          className="flex h-full w-full items-center justify-center bg-ink-100/50 text-ink-300"
+          title="No se pudo cargar la imagen"
+        >
+          <GalleryIcon size={22} />
+          <span className="sr-only">No se pudo cargar la imagen</span>
+        </div>
+      ) : (
+        <img
+          src={shown}
+          alt={cell.alt}
+          loading="lazy"
+          onError={() => setExtError(true)}
+          className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04]"
+        />
+      )}
     </div>
   )
 }
@@ -227,7 +243,7 @@ export function CapturasGalleryGrid({
                       type="button"
                       onClick={() => setViewerIndex(imageIndex)}
                       aria-label={`Ampliar ${cell.alt || 'imagen'}`}
-                      className="block w-full overflow-hidden rounded-md border border-ink-100/70 transition-colors hover:border-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+                      className="block w-full overflow-hidden rounded-md border border-ink-100/70 transition-colors hover:border-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-primary)] focus-visible:ring-offset-1"
                     >
                       <GalleryCell cell={cell} />
                     </button>

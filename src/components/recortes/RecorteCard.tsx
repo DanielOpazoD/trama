@@ -8,6 +8,7 @@ import { youtubeThumb } from '../../lib/youtubeThumb'
 import {
   ArrowRightIcon,
   ChevronDownIcon,
+  DuplicateIcon,
   EntitiesIcon,
   MomentosIcon,
   QuoteIcon,
@@ -20,6 +21,7 @@ import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 import { hostOf, LinkMediaPreview, type LinkMediaSize } from './LinkMediaPreview'
 import { RecorteLightbox } from './RecorteLightbox'
+import { recorteToLightboxEntries } from './recorteViewer'
 import type { PromoteSeed } from './PromoteModal'
 import { markdownToPreview } from './recorteMarkdownPreview'
 
@@ -96,8 +98,16 @@ function RecorteMediaPreview({
       host={host}
       dateLabel={formatStamp(r.capturedAt ?? r.createdAt)}
       size={size}
-      // Recorte-evento: insignia con la cantidad de imágenes.
-      badge={r.images.length > 1 ? `▦ ${r.images.length}` : undefined}
+      // Recorte-evento: insignia con ícono de «pila» + cantidad de imágenes.
+      // Decorativa: la cuenta se anuncia en el ariaLabel del visor.
+      badge={
+        r.images.length > 1 ? (
+          <>
+            <DuplicateIcon size={11} />
+            {r.images.length}
+          </>
+        ) : undefined
+      }
       // El visor solo aplica a la imagen propia (sin href). Para enlaces/OG el
       // clic sigue abriendo el original.
       onOpenImage={r.imageKey ? onOpenImage : undefined}
@@ -105,7 +115,15 @@ function RecorteMediaPreview({
         shown ?? (authedSrc ? TRANSPARENT_PX : (r.imageUrl ?? derivedThumb ?? ''))
       }
       imageLoading={status === 'loading'}
-      ariaLabel={r.sourceTitle ? `Abrir ${r.sourceTitle}` : undefined}
+      ariaLabel={
+        r.imageKey
+          ? r.images.length > 1
+            ? `Ampliar — ${r.images.length} imágenes`
+            : 'Ampliar imagen'
+          : r.sourceTitle
+            ? `Abrir ${r.sourceTitle}`
+            : undefined
+      }
       onImageError={derivedThumb ? () => setThumbFailed(true) : undefined}
     />
   )
@@ -205,15 +223,7 @@ export function RecorteCard({
   // sala oscura que Momentos. Un recorte-evento abre TODAS sus imágenes.
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewerIndex, setViewerIndex] = useState(0)
-  const viewerEntries =
-    r.images.length > 0
-      ? r.images.map((img) => ({
-          url: recorteImageUrl(img.storageKey),
-          caption: r.sourceTitle ?? r.text,
-        }))
-      : r.imageUrl
-        ? [{ url: r.imageUrl, caption: r.sourceTitle ?? r.text }]
-        : []
+  const viewerEntries = recorteToLightboxEntries(r)
   const suggest = useSuggestRecorte()
   const update = useUpdateRecorte()
   const toast = useToast()
