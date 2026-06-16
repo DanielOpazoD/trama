@@ -105,7 +105,7 @@ export async function readWhatsAppMetrics(
   }>(sql`
     SELECT event, kind, ok, detail, created_at
     FROM whatsapp_events
-    WHERE user_id = ${userId}
+    WHERE user_id = ${userId} AND created_at > NOW() - ${since}::interval
     ORDER BY created_at DESC
     LIMIT 15
   `)
