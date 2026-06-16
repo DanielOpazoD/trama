@@ -280,6 +280,8 @@ export function buildSeed(): Store {
     task('Ordenar las #notas de la semana', 2, {
       priority: 'media',
       week_start: thisWeek,
+      // Capturada "tarea: …" desde WhatsApp → muestra el iconito de procedencia.
+      origin: { kind: 'manual', importedFrom: 'whatsapp' },
     }),
     task('Comprar tinta para la #pluma', 2, {
       priority: 'baja',

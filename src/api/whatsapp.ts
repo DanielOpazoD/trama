@@ -41,6 +41,25 @@ function linkFromRow(r: WhatsAppLinkRow): WhatsAppLink {
   }
 }
 
+/** Métricas de observabilidad del módulo (capturas por ruta + tasa de fallas).
+ *  El endpoint ya devuelve camelCase; se consume tal cual. */
+export type WhatsAppMetrics = {
+  days: number
+  total: number
+  ok: number
+  failed: number
+  byKind: { kind: string; count: number }[]
+  byEvent: { event: string; ok: number; failed: number }[]
+  daily: { day: string; count: number; failed: number }[]
+  recent: {
+    event: string
+    kind: string | null
+    ok: boolean
+    detail: string | null
+    createdAt: string
+  }[]
+}
+
 export const whatsappApi = {
   async listWhatsAppLinks(): Promise<WhatsAppLink[]> {
     const rows = await request<WhatsAppLinkRow[]>('/api/whatsapp-link')
@@ -54,5 +73,8 @@ export const whatsappApi = {
   },
   async removeWhatsAppLink(id: string): Promise<void> {
     await request<{ ok: boolean }>(`/api/whatsapp-link/${id}`, { method: 'DELETE' })
+  },
+  async getWhatsAppMetrics(days = 30): Promise<WhatsAppMetrics> {
+    return request<WhatsAppMetrics>(`/api/whatsapp-metrics?days=${days}`)
   },
 }

@@ -32,6 +32,23 @@ describe('parseInboundMessage — comandos de control', () => {
     expect(parseInboundMessage('status').kind).toBe('status')
   })
 
+  it('botón [Descripción] (y «descripción …») → describe', () => {
+    // El botón manda solo "Descripción" → sin texto (pide la descripción).
+    expect(parseInboundMessage('Descripción')).toEqual({ kind: 'describe', text: '' })
+    expect(parseInboundMessage('descripcion')).toEqual({ kind: 'describe', text: '' })
+    // Con texto en el mismo mensaje → se aplica directo.
+    expect(parseInboundMessage('descripción una tarde de lluvia')).toEqual({
+      kind: 'describe',
+      text: 'una tarde de lluvia',
+    })
+  })
+
+  it('menú / menu (tolerante a tildes) → menu', () => {
+    expect(parseInboundMessage('menú').kind).toBe('menu')
+    expect(parseInboundMessage('menu').kind).toBe('menu')
+    expect(parseInboundMessage('Menu').kind).toBe('menu')
+  })
+
   it('query: buscar / ? consultan tu Trama', () => {
     expect(parseInboundMessage('buscar: estoicismo')).toEqual({
       kind: 'query',

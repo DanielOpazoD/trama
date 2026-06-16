@@ -23,6 +23,11 @@ export type ParsedInbound =
   | { kind: 'recategorize'; toKind: 'note' | 'momento' | 'entity' }
   | { kind: 'retitle'; title: string }
   | { kind: 'tag'; tags: string }
+  // Botón [Descripción] (o «descripción …»): describe la última foto. Con texto
+  // lo aplica directo; sin texto, pide la descripción (estado conversacional).
+  | { kind: 'describe'; text: string }
+  // «menú» / botón de ayuda interactiva.
+  | { kind: 'menu' }
   | { kind: 'intent'; intent: CaptureIntent }
   | { kind: 'freeform'; text: string }
 
@@ -140,6 +145,14 @@ export function parseInboundMessage(raw: string): ParsedInbound {
   }
   if (cmd === 'estado' || cmd === 'status') {
     return { kind: 'status' }
+  }
+  // Botón [Descripción] (vuelve como "Descripción") o «descripción <texto>».
+  if (cmd === 'descripcion' || cmd === 'describir' || cmd === 'description') {
+    return { kind: 'describe', text: rest }
+  }
+  if (single && cmd === 'menu') {
+    // `cmd` viene "folded" (sin tildes), así «menú» también cae acá.
+    return { kind: 'menu' }
   }
 
   // Edición rápida de la última captura.

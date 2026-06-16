@@ -15,6 +15,7 @@ const baseTask: Task = {
   category: 'trabajo',
   completedAt: null,
   hasPhotos: false,
+  origin: null,
   tags: ['archivo', 'caja_1'],
   createdAt: '2026-05-29T10:00:00.000Z',
   updatedAt: '2026-05-29T10:00:00.000Z',

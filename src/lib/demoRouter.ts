@@ -79,6 +79,44 @@ export function routeDemoRequest(
     return row
   }
 
+  // Observabilidad de WhatsApp en modo prueba: métricas sembradas para que el
+  // panel se vea (capturas por ruta + tasa de fallas + actividad reciente).
+  if (resource === 'whatsapp-metrics' && method === 'GET') {
+    const mins = (n: number) => new Date(Date.now() - n * 60000).toISOString()
+    return {
+      days: 30,
+      total: 18,
+      ok: 16,
+      failed: 2,
+      byKind: [
+        { kind: 'recorte', count: 7 },
+        { kind: 'momento', count: 5 },
+        { kind: 'note', count: 3 },
+        { kind: 'task', count: 1 },
+      ],
+      byEvent: [{ event: 'capture', ok: 16, failed: 2 }],
+      daily: [],
+      recent: [
+        { event: 'capture', kind: 'momento', ok: true, detail: null, createdAt: mins(8) },
+        {
+          event: 'capture',
+          kind: 'recorte',
+          ok: true,
+          detail: null,
+          createdAt: mins(45),
+        },
+        {
+          event: 'capture',
+          kind: null,
+          ok: false,
+          detail: 'toolarge',
+          createdAt: mins(180),
+        },
+        { event: 'capture', kind: 'note', ok: true, detail: null, createdAt: mins(320) },
+      ],
+    }
+  }
+
   if (resource === 'user-prefs') {
     if (method === 'GET') return store.user_prefs ?? {}
     if (method === 'PUT') {

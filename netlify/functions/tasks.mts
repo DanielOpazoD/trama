@@ -27,6 +27,9 @@ type TaskRow = {
   category: string
   completed_at: string | null
   tags: string[]
+  /** Procedencia JSONB (parser del driver → objeto). La UI lee importedFrom
+   *  para el iconito "vía WhatsApp". */
+  origin: { kind?: string; importedFrom?: string } | null
   created_at: string
   updated_at: string
   has_photos: boolean
@@ -58,7 +61,7 @@ export default withObservability(
       if (pending) {
         // Solo pendientes (para vistas tipo "Pendientes" del inicio), priorizados.
         const rows = await sqlTyped<TaskRow>(sql`
-          SELECT id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
+          SELECT id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, origin, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
           FROM tasks
           WHERE deleted_at IS NULL AND user_id = ${userId} AND done = false
           ORDER BY CASE priority WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END ASC, created_at DESC, id DESC
@@ -77,7 +80,7 @@ export default withObservability(
           return ApiErrors.validation(requestId, 'carryBefore debe ser YYYY-MM-DD')
         }
         const rows = await sqlTyped<TaskRow>(sql`
-          SELECT id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
+          SELECT id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, origin, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
           FROM tasks
           WHERE deleted_at IS NULL AND user_id = ${userId}
             AND (
@@ -91,7 +94,7 @@ export default withObservability(
 
       if (q) {
         const rows = await sqlTyped<TaskRow>(sql`
-          SELECT id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
+          SELECT id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, origin, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
           FROM tasks
           WHERE deleted_at IS NULL AND user_id = ${userId}
             AND (title ILIKE ${'%' + q + '%'} OR detail ILIKE ${'%' + q + '%'})
@@ -101,7 +104,7 @@ export default withObservability(
       }
       if (tag) {
         const rows = await sqlTyped<TaskRow>(sql`
-          SELECT id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
+          SELECT id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, origin, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
           FROM tasks
           WHERE deleted_at IS NULL AND user_id = ${userId}
             AND ${tag} = ANY(tags)
@@ -110,7 +113,7 @@ export default withObservability(
         return Response.json(rows)
       }
       const rows = await sqlTyped<TaskRow>(sql`
-        SELECT id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
+        SELECT id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, origin, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
         FROM tasks
         WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY week_start DESC, done ASC, CASE priority WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END ASC, created_at DESC, id DESC
@@ -163,7 +166,7 @@ export default withObservability(
           ${tags}::text[],
           ${userId}
         )
-        RETURNING id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
+        RETURNING id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, origin, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
       `)
       return Response.json(rows[0], { status: 201 })
     }
@@ -211,7 +214,7 @@ export default withObservability(
             tags = CASE WHEN ${newTags !== null} THEN ${newTags ?? []}::text[] ELSE tags END,
             updated_at = NOW()
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-        RETURNING id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
+        RETURNING id, title, detail, done, to_char(due_date, 'YYYY-MM-DD') AS due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, category, completed_at, tags, origin, created_at, updated_at, EXISTS(SELECT 1 FROM notas_attachments na WHERE na.user_id = tasks.user_id AND na.owner_type = 'task' AND na.owner_id = tasks.id::text AND na.deleted_at IS NULL) AS has_photos
       `)
       if (rows.length === 0) return ApiErrors.notFound(requestId, 'Tarea no encontrada')
       return Response.json(rows[0])

@@ -92,6 +92,32 @@ texto. Hoy: **imágenes**.
   - Una sola imagen sigue el camino simple de siempre (`image_key` /
     `payload.storageKey`).
 
+**Álbum partido (fotos en mensajes separados).** WhatsApp/Twilio a veces parte un
+envío de varias fotos en **mensajes separados** (un webhook por foto, y solo el
+primero con caption). Para que todas compartan destino, las fotos de media cruda
+(route momento/recorte) que llegan del mismo número dentro de una **ventana corta**
+(`ALBUM_APPEND_WINDOW_SECONDS`, 60 s) se **anexan a la captura reciente** en vez de
+crear otra (anexado reactivo, `_lib/whatsapp/album.ts`):
+
+- Foto sin caption tras un recorte reciente → se suma al **recorte-evento**
+  (un recorte de 1 imagen se promueve a evento: su portada pasa a `position 0`).
+- Foto sin caption tras un momento reciente → se copia a `momentos-media` y se
+  suma al **episodio** (`payload.items[]`).
+- Foto «a momento» tras un recorte reciente → **sube todo el álbum a Momento**
+  (reclasifica el recorte y anexa). Las rutas de visión (`cita:`/`nota:`) NO
+  continúan álbum (son intención por foto). La confirmación de un anexado es
+  suave («📸 +1 foto · tu momento ahora tiene 3»), y `recordLastCapture` extiende
+  la ventana para la próxima foto del mismo álbum.
+
+**Pedir descripción (estado conversacional).** Cuando una foto queda SIN pie
+(recorte/momento), el bot ofrece agregar una descripción («✍️ Respondé con una
+descripción y se la agrego»). El siguiente **texto libre** (sin prefijo) del
+número, dentro de `AWAITING_DESC_WINDOW_SECONDS` (5 min), se aplica a ESA captura
+(recorte → su `text`; momento foto → `payload.caption`) en vez de clasificarse
+como captura nueva. El puntero vive en `whatsapp_links.awaiting_desc_*`: lo setea
+la captura sin pie, lo consume/limpia el texto siguiente, y vence por ventana
+(`_lib/whatsapp/description.ts`). Un prefijo (`nota:`…) o media NO lo consumen.
+
 **Visión (cita:/nota:/texto:/ocr:).** Estas rutas pasan la imagen por
 `askLLMForVision` (OpenAI/Gemini, mismos guards que `extract-from-image`:
 `checkMonthlyBudget` + `resolveAIInvocation('extract-image')`). El prompt y el
@@ -157,6 +183,18 @@ Prompt y formateadores puros en `_lib/whatsapp/recall.ts`. Es de solo lectura
 un reintento de Twilio no re-cobra). Cubre entidades y citas (lo que indexa el
 RAG hoy); notas/momentos quedan para cuando el RAG los incluya. Observabilidad:
 `whatsapp_recall` / `whatsapp_recall_failed`.
+
+## Observabilidad (panel en la app)
+
+Los `logEvent({ event: 'whatsapp_*' })` van a stdout de Netlify (no consultables).
+Para un **panel** de "capturas por ruta + tasa de fallas", el webhook además
+**persiste** un evento por resultado de captura en la tabla `whatsapp_events`
+(`_lib/whatsapp/events.ts`, `persistWhatsAppEvent`, best-effort: nunca tumba la
+captura). El endpoint authed **`GET /api/whatsapp-metrics?days=30`** agrega bajo
+el RLS del usuario (capturas por `kind`, éxitos/fallas por categoría, actividad
+diaria, feed reciente) y `WhatsAppMetricsCard` lo muestra en Configuración →
+WhatsApp (se oculta si todavía no hay actividad). En modo prueba, `demoRouter`
+siembra métricas para que el panel se vea sin backend.
 
 ## Comando `estado`
 
@@ -226,14 +264,16 @@ SID ya estaba, corta con TwiML vacío sin re-escribir. Es un ledger append-only
 
 ## Variables de entorno
 
-| Var                                  | Para qué                                                                                                                                          |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TWILIO_AUTH_TOKEN`                  | Verificar la firma de los webhooks entrantes (consola Twilio).                                                                                    |
-| `TWILIO_ACCOUNT_SID`                 | Bajar la media entrante (fotos) de la URL privada de Twilio vía auth básica. Sin él, las imágenes no se procesan.                                 |
-| `TWILIO_WEBHOOK_URL`                 | Opcional. URL exacta configurada en Twilio si difiere del proxy.                                                                                  |
-| `VITE_WHATSAPP_NUMBER`               | Número del bot (E164). Habilita el QR + botón "Abrir WhatsApp". Público (va al cliente). Sin él, el panel cae a copiar/pegar `vincular <código>`. |
-| `TWILIO_CONTENT_SID_CAPTURE`         | Opcional. `ContentSid` de la plantilla con botón **[Deshacer]** (ver "Botones interactivos").                                                     |
-| `TWILIO_CONTENT_SID_CAPTURE_DESTINO` | Opcional. `ContentSid` de la plantilla con botones **[Deshacer · Momento · Nota]** para capturas ambiguas.                                        |
+| Var                                  | Para qué                                                                                                                                                                    |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TWILIO_AUTH_TOKEN`                  | Verificar la firma de los webhooks entrantes (consola Twilio).                                                                                                              |
+| `TWILIO_ACCOUNT_SID`                 | Bajar la media entrante (fotos) de la URL privada de Twilio vía auth básica. Sin él, las imágenes no se procesan.                                                           |
+| `TWILIO_WEBHOOK_URL`                 | Opcional. URL exacta configurada en Twilio si difiere del proxy.                                                                                                            |
+| `VITE_WHATSAPP_NUMBER`               | Número del bot (E164). Habilita el QR + botón "Abrir WhatsApp". Público (va al cliente). Sin él, el panel cae a copiar/pegar `vincular <código>`.                           |
+| `TWILIO_CONTENT_SID_CAPTURE`         | Opcional. `ContentSid` de la plantilla con botón **[Deshacer]** (ver "Botones interactivos").                                                                               |
+| `TWILIO_CONTENT_SID_CAPTURE_DESTINO` | Opcional. `ContentSid` de la plantilla con botones **[Deshacer · Momento · Nota]** para capturas ambiguas.                                                                  |
+| `TWILIO_CONTENT_SID_CAPTURE_FOTO`    | Opcional. Plantilla con botones **[Descripción · Momento · Nota]** para fotos sin pie (el botón Descripción dispara el flujo de descripción). Cae a la de destino si falta. |
+| `TWILIO_CONTENT_SID_MENU`            | Opcional. `ContentSid` de un **list picker** de acciones frecuentes para «menú»/«ayuda». Cae al texto de ayuda si falta.                                                    |
 
 ## Botones interactivos (opt-in)
 
@@ -246,17 +286,21 @@ plantillas no están configuradas, todo sigue como texto.
 
 Setup:
 
-1. En la consola de Twilio → **Messaging → Content Template Builder**, crear dos
-   plantillas tipo **Quick Reply**, ambas con el cuerpo variable `{{1}}`:
-   - una con un botón cuyo **título sea exactamente `Deshacer`**;
-   - otra con tres botones: **`Deshacer`, `Momento`, `Nota`**.
-2. Copiar el `ContentSid` (`HX…`) de cada una a `TWILIO_CONTENT_SID_CAPTURE` y
-   `TWILIO_CONTENT_SID_CAPTURE_DESTINO` en Netlify, y **redeploy**.
+1. En la consola de Twilio → **Messaging → Content Template Builder**, crear las
+   plantillas tipo **Quick Reply**, todas con el cuerpo variable `{{1}}`:
+   - `TWILIO_CONTENT_SID_CAPTURE`: un botón **`Deshacer`**.
+   - `TWILIO_CONTENT_SID_CAPTURE_DESTINO`: tres botones **`Deshacer`, `Momento`, `Nota`**.
+   - `TWILIO_CONTENT_SID_CAPTURE_FOTO` (fotos sin pie): tres botones
+     **`Descripción`, `Momento`, `Nota`**.
+   - `TWILIO_CONTENT_SID_MENU` (opcional): un **List Picker** «¿Qué querés hacer?»
+     con filas cuyos títulos sean comandos que el parser entiende (p. ej.
+     `Estado`, `Ayuda`, `Buscar`).
+2. Copiar el `ContentSid` (`HX…`) de cada una a su env var en Netlify, y **redeploy**.
 
 Por qué esos títulos: cuando el usuario toca un botón, Twilio reenvía el título
-como un mensaje entrante normal, así `Deshacer` cae en el camino de `deshacer`
-(undo) y `Momento`/`Nota` en la **reclasificación** de la última captura —sin
-agregar un parser nuevo—.
+como un mensaje entrante normal, así `Deshacer` cae en `deshacer` (undo),
+`Momento`/`Nota` en la **reclasificación**, y `Descripción` en el flujo de
+**pedir descripción** de la última foto —sin agregar parsers nuevos—.
 
 **Reclasificación NO destructiva de fotos.** Cuando la última captura es un
 recorte **con imágenes** (una foto o un recorte-evento), tocar `Momento` / `Nota`

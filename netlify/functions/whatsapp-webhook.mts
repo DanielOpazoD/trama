@@ -52,12 +52,25 @@ import {
   reclassifyRecorteToMomento,
   reclassifyRecorteToNote,
 } from './_lib/whatsapp/reclassify-media.js'
+import {
+  readRecentMediaCapture,
+  appendImagesToMomento,
+  appendImagesToRecorteEvent,
+} from './_lib/whatsapp/album.js'
+import { copyRecorteImageToStore, removeBlob } from './_lib/recorte-to-momento.js'
+import {
+  setAwaitingDescription,
+  consumeAwaitingDescription,
+  applyDescription,
+} from './_lib/whatsapp/description.js'
+import { persistWhatsAppEvent } from './_lib/whatsapp/events.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
 import {
   readInteractiveConfig,
   pickCaptureContentSid,
   captureContentVariables,
+  type CaptureReplyVariant,
 } from './_lib/whatsapp/interactive.js'
 import { sendWhatsAppContent } from './_lib/whatsapp/send.js'
 import type { CaptureIntent, CaptureKind } from './_lib/whatsapp/types.js'
@@ -95,9 +108,9 @@ function readEnv(key: string): string | undefined {
 async function replyWithCapture(
   params: Record<string, string>,
   body: string,
-  ambiguous: boolean,
+  variant: CaptureReplyVariant,
 ): Promise<Response> {
-  const contentSid = pickCaptureContentSid(readInteractiveConfig(), ambiguous)
+  const contentSid = pickCaptureContentSid(readInteractiveConfig(), variant)
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
   const from = params.To ?? params.to // número del bot (whatsapp:+…)
@@ -112,14 +125,72 @@ async function replyWithCapture(
       contentVariables: captureContentVariables(body),
     })
     if (ok) {
-      logEvent({ event: 'whatsapp_interactive_sent', ambiguous })
+      logEvent({ event: 'whatsapp_interactive_sent', variant })
       return emptyTwimlResponse()
     }
   }
-  const fix = ambiguous
-    ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · entidad.'
-    : '↩️ ¿No era así? Responde «deshacer».'
+  const fix =
+    variant === 'foto'
+      ? '↩️ Respondé con una descripción, o «deshacer» · «momento» · «nota».'
+      : variant === 'ambiguous'
+        ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · entidad.'
+        : '↩️ ¿No era así? Responde «deshacer».'
   return twimlResponse(`${body}\n${fix}`)
+}
+
+/**
+ * Comando/botón [Descripción]: describe la última foto del número. Con texto en
+ * el mismo mensaje («descripción una tarde») lo aplica directo; sin texto (el
+ * botón solo manda "Descripción") deja el estado conversacional y pide el texto
+ * — que el siguiente mensaje libre consume (flujo de PR3).
+ */
+async function describeLast(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+  phone: string,
+  text: string,
+  origin: string,
+): Promise<string> {
+  const last = await readLastPointer(sql, userId, phone)
+  if (!last || (last.kind !== 'recorte' && last.kind !== 'momento')) {
+    return 'No hay ninguna foto reciente para describir. Mandá una foto y después su descripción.'
+  }
+  if (text.trim()) {
+    const ok = await applyDescription(sql, userId, last.kind, last.id, text)
+    if (!ok) return 'No pude agregar la descripción (¿la borraste desde la app?).'
+    return `✍️ Descripción agregada.\n🔗 Ábrelo en Trama: ${captureDeepLink(origin, last.kind)}`
+  }
+  await setAwaitingDescription(sql, phone, userId, last.kind, last.id)
+  return '✍️ Perfecto, mandame la descripción y se la agrego.'
+}
+
+/**
+ * Menú interactivo (list picker de acciones frecuentes) si está configurado
+ * `TWILIO_CONTENT_SID_MENU`; si no, el texto de ayuda de siempre. Cada fila de la
+ * lista (en Twilio) tiene por título un comando que el parser ya entiende
+ * (Estado, Ayuda, Buscar…), así el toque vuelve como ese comando.
+ */
+async function replyWithMenu(params: Record<string, string>): Promise<Response> {
+  const { menuSid } = readInteractiveConfig()
+  const accountSid = readEnv('TWILIO_ACCOUNT_SID')
+  const authToken = readEnv('TWILIO_AUTH_TOKEN')
+  const from = params.To ?? params.to
+  const to = params.From ?? params.from
+  if (menuSid && accountSid && authToken && from && to) {
+    const ok = await sendWhatsAppContent({
+      accountSid,
+      authToken,
+      from,
+      to,
+      contentSid: menuSid,
+      contentVariables: captureContentVariables('¿Qué querés hacer?'),
+    })
+    if (ok) {
+      logEvent({ event: 'whatsapp_interactive_sent', variant: 'menu' })
+      return emptyTwimlResponse()
+    }
+  }
+  return twimlResponse(HELP)
 }
 
 const HELP = [
@@ -609,7 +680,12 @@ async function handleInboundMedia(
   params: Record<string, string>,
   media: ReturnType<typeof parseInboundMedia>,
   origin: string,
-): Promise<{ message: string; saved: number; offerDestino: boolean }> {
+): Promise<{
+  message: string
+  saved: number
+  offerDestino: boolean
+  offerDescription: boolean
+}> {
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
   const { route, caption } = mediaRoute(params.Body ?? params.body ?? '')
@@ -755,6 +831,104 @@ async function handleInboundMedia(
     }
   }
 
+  // --- Álbum partido: ¿esta foto continúa el álbum recién capturado? ----------
+  // Si llegó media "cruda" (route momento/recorte) y el número tuvo una captura
+  // de media hace pocos segundos, la anexamos a esa captura en vez de crear otra
+  // — así las fotos que WhatsApp parte en mensajes separados comparten destino.
+  // Las rutas de visión (cita:/nota:) NO continúan álbum (son intención por foto).
+  let appendedTotal: number | null = null
+  const newImageCount = momentoKeys.length + recorteKeys.length
+  const isRawMediaRoute = route === 'momento' || route === 'recorte'
+  if (newImageCount > 0 && isRawMediaRoute) {
+    const recent = await readRecentMediaCapture(sql, userId, phone)
+    if (recent) {
+      try {
+        if (route === 'momento') {
+          // Fotos nuevas ya en momentos-media (momentoKeys).
+          if (recent.kind === 'momento') {
+            appendedTotal = await appendImagesToMomento(
+              sql,
+              userId,
+              recent.id,
+              momentoKeys,
+            )
+            if (appendedTotal !== null) {
+              lastId = recent.id
+              lastKind = 'momento'
+            }
+          } else {
+            // El lote reciente era un recorte y esta foto dice "a momento":
+            // subimos TODO el álbum a un momento (reclasificación) y anexamos.
+            const res = await reclassifyRecorteToMomento(sql, userId, recent.id, '')
+            if (res.status === 'ok') {
+              await softDeleteCapture(sql, userId, 'recorte', recent.id)
+              appendedTotal = await appendImagesToMomento(
+                sql,
+                userId,
+                res.id,
+                momentoKeys,
+              )
+              if (appendedTotal !== null) {
+                lastId = res.id
+                lastKind = 'momento'
+              }
+            }
+          }
+        } else {
+          // route 'recorte' (sin caption de destino). Fotos en recortes-media.
+          if (recent.kind === 'recorte') {
+            appendedTotal = await appendImagesToRecorteEvent(
+              sql,
+              userId,
+              recent.id,
+              recorteKeys,
+            )
+            if (appendedTotal !== null) {
+              lastId = recent.id
+              lastKind = 'recorte'
+            }
+          } else {
+            // El lote reciente era un momento: una foto sin caption se une a él.
+            // Copiamos los blobs a momentos-media y limpiamos los de recortes.
+            const copied: string[] = []
+            for (const rk of recorteKeys) {
+              const c = await copyRecorteImageToStore('momentos-media', rk.key, userId)
+              if (c) {
+                copied.push(c.storageKey)
+                await removeBlob('recortes-media', rk.key)
+              }
+            }
+            if (copied.length > 0) {
+              appendedTotal = await appendImagesToMomento(sql, userId, recent.id, copied)
+              if (appendedTotal !== null) {
+                lastId = recent.id
+                lastKind = 'momento'
+              }
+            }
+          }
+        }
+      } catch (err) {
+        logEvent({
+          event: 'whatsapp_media_failed',
+          message: err instanceof Error ? err.message : String(err),
+        })
+        appendedTotal = null
+      }
+      if (appendedTotal !== null) {
+        saved += newImageCount
+        // Anexado: vaciamos las keys para que NO se cree además una captura nueva.
+        momentoKeys.length = 0
+        recorteKeys.length = 0
+        logEvent({
+          event: 'whatsapp_album_append',
+          kind: lastKind,
+          count: newImageCount,
+          total: appendedTotal,
+        })
+      }
+    }
+  }
+
   // Episodio foto: todas las fotos del route 'momento' en un solo momento.
   if (momentoKeys.length > 0) {
     try {
@@ -791,6 +965,18 @@ async function handleInboundMedia(
     logEvent({ event: 'whatsapp_capture', kind: lastKind, media: true, count: saved })
   }
 
+  // Si la foto quedó SIN pie, ofrecemos agregarle una descripción: el siguiente
+  // texto libre del número se aplicará a ESTA captura (estado conversacional).
+  // Solo cuando falta contexto (no preguntamos si ya vino un caption).
+  const wantsDescription =
+    saved > 0 &&
+    !!lastId &&
+    caption.trim() === '' &&
+    (lastKind === 'recorte' || lastKind === 'momento')
+  if (wantsDescription && lastId) {
+    await setAwaitingDescription(sql, phone, userId, lastKind, lastId)
+  }
+
   const DEST_BY_KIND: Record<string, string> = {
     momento: 'Momentos',
     recorte: 'Recortes',
@@ -800,25 +986,39 @@ async function handleInboundMedia(
   const lines: string[] = []
   if (saved > 0) {
     const dest = DEST_BY_KIND[lastKind] ?? 'Trama'
-    // Eventos: varias fotos en un SOLO momento, o varias imágenes en un solo
-    // recorte — no N elementos sueltos.
-    const isPhotoEpisode =
-      lastKind === 'momento' && momentoKeys.length > 1 && saved === momentoKeys.length
-    const isRecorteEvent =
-      lastKind === 'recorte' && recorteKeys.length > 1 && saved === recorteKeys.length
-    lines.push(
-      saved === 1
-        ? `✅ Guardado en ${dest}.`
-        : isPhotoEpisode
-          ? `✅ ${saved} fotos guardadas en un momento.`
-          : isRecorteEvent
-            ? `✅ ${saved} imágenes guardadas como un evento en Recortes.`
-            : `✅ ${saved} elementos guardados.`,
-    )
+    if (appendedTotal !== null) {
+      // Continuación de álbum: anexamos a la captura reciente (confirmación
+      // suave, sin "guardado" de nuevo — es el mismo evento que crece).
+      const noun = lastKind === 'momento' ? 'tu momento' : 'tu evento en Recortes'
+      lines.push(
+        newImageCount === 1
+          ? `📸 +1 foto · ${noun} ahora tiene ${appendedTotal}.`
+          : `📸 +${newImageCount} fotos · ${noun} ahora tiene ${appendedTotal}.`,
+      )
+    } else {
+      // Eventos: varias fotos en un SOLO momento, o varias imágenes en un solo
+      // recorte — no N elementos sueltos.
+      const isPhotoEpisode =
+        lastKind === 'momento' && momentoKeys.length > 1 && saved === momentoKeys.length
+      const isRecorteEvent =
+        lastKind === 'recorte' && recorteKeys.length > 1 && saved === recorteKeys.length
+      lines.push(
+        saved === 1
+          ? `✅ Guardado en ${dest}.`
+          : isPhotoEpisode
+            ? `✅ ${saved} fotos guardadas en un momento.`
+            : isRecorteEvent
+              ? `✅ ${saved} imágenes guardadas como un evento en Recortes.`
+              : `✅ ${saved} elementos guardados.`,
+      )
+    }
     if (skipped.has('vision')) {
       lines.push('(No pude leer el texto, así que guardé la imagen tal cual.)')
     }
     lines.push(`🔗 Ábrelo en Trama: ${captureDeepLink(origin, lastKind)}`)
+    if (wantsDescription) {
+      lines.push('✍️ Respondé con una descripción y se la agrego.')
+    }
     // La afordancia de deshacer (botón o texto) la agrega el caller según haya
     // captura guardada (saved > 0) o no.
   }
@@ -854,7 +1054,21 @@ async function handleInboundMedia(
   // pérdida a Momento o Nota con sus imágenes: ofrecemos esos botones de destino
   // (además de Deshacer). Las fotos que ya fueron a Momentos no necesitan botón.
   const offerDestino = saved > 0 && lastKind === 'recorte'
-  return { message: lines.join('\n'), saved, offerDestino }
+  // Observabilidad: un evento de captura por mensaje de media (ok si guardó algo;
+  // si no, la razón). Best-effort — nunca tumba la captura.
+  await persistWhatsAppEvent(sql, userId, {
+    event: 'capture',
+    kind: saved > 0 ? lastKind : null,
+    ok: saved > 0,
+    detail: saved > 0 ? null : [...skipped].join(',') || 'sin_resultado',
+  })
+  // Foto sin pie → ofrecemos el botón [Descripción] (dispara el flujo de PR3).
+  return {
+    message: lines.join('\n'),
+    saved,
+    offerDestino,
+    offerDescription: wantsDescription,
+  }
 }
 
 /**
@@ -1095,10 +1309,32 @@ export default withObservability(
       return twimlResponse(await tagLast(sql, userId, phone, parsed.tags))
     }
 
+    // Botón [Descripción] (vuelve como "Descripción") → describe la última foto.
+    if (parsed.kind === 'describe' && media.length === 0) {
+      return twimlResponse(
+        await describeLast(sql, userId, phone, parsed.text, new URL(req.url).origin),
+      )
+    }
+
+    if (parsed.kind === 'menu' && media.length === 0) {
+      return replyWithMenu(params)
+    }
+
     // Adjuntos (foto): se procesan antes que el texto. El caption decide
     // destino (default Recortes; `momento:` → Momentos).
+    // ¿Es la descripción que pedimos para la última foto sin pie? Un texto libre
+    // (sin prefijo) que llega poco después de una captura sin descripción se
+    // aplica a esa captura, en vez de clasificarse como una captura nueva.
+    if (parsed.kind === 'freeform' && media.length === 0) {
+      const desc = await consumeAwaitingDescription(sql, userId, phone, parsed.text)
+      if (desc) {
+        const link = captureDeepLink(new URL(req.url).origin, desc.kind)
+        return twimlResponse(`✍️ Descripción agregada.\n🔗 Ábrelo en Trama: ${link}`)
+      }
+    }
+
     if (media.length > 0) {
-      const { message, saved, offerDestino } = await handleInboundMedia(
+      const { message, saved, offerDestino, offerDescription } = await handleInboundMedia(
         req,
         requestId,
         sql,
@@ -1108,11 +1344,16 @@ export default withObservability(
         media,
         new URL(req.url).origin,
       )
-      // Con captura guardada ofrecemos Deshacer (botón si hay plantilla, o
-      // texto). Si fue a Recortes, además ofrecemos redirigir a Momento / Nota
-      // con sus imágenes (botones de destino). Sin nada guardado, solo el aviso.
+      // Botones según el caso: foto sin pie → [Descripción · Momento · Nota];
+      // recorte con pie → [Deshacer · Momento · Nota]; resto → [Deshacer]. Si no
+      // hay plantillas configuradas, cae a texto con la misma afordancia.
+      const variant: CaptureReplyVariant = offerDescription
+        ? 'foto'
+        : offerDestino
+          ? 'ambiguous'
+          : 'simple'
       return saved > 0
-        ? replyWithCapture(params, message, offerDestino)
+        ? replyWithCapture(params, message, variant)
         : twimlResponse(message)
     }
 
@@ -1138,17 +1379,29 @@ export default withObservability(
       // Recordamos la última captura para que "deshacer" sepa qué borrar.
       if (id) await recordLastCapture(sql, phone, userId, intent.kind, id)
       logEvent({ event: 'whatsapp_capture', kind: intent.kind, viaLLM })
+      await persistWhatsAppEvent(sql, userId, {
+        event: 'capture',
+        kind: intent.kind,
+        ok: true,
+      })
       if (!id) return twimlResponse(message)
       // Reply accionable: confirmación + deep link + botón/atajo para corregir.
       // Cuando lo clasificó la IA (texto libre = ambiguo), ofrecemos elegir el
       // destino (Momento/Nota) además de Deshacer.
       const link = captureDeepLink(new URL(req.url).origin, intent.kind)
-      return replyWithCapture(params, `${message}\n🔗 Ábrelo en Trama: ${link}`, viaLLM)
+      return replyWithCapture(
+        params,
+        `${message}\n🔗 Ábrelo en Trama: ${link}`,
+        viaLLM ? 'ambiguous' : 'simple',
+      )
     } catch (err) {
-      logEvent({
-        event: 'whatsapp_capture_failed',
+      const detail = err instanceof Error ? err.message : String(err)
+      logEvent({ event: 'whatsapp_capture_failed', kind: intent.kind, message: detail })
+      await persistWhatsAppEvent(sql, userId, {
+        event: 'capture',
         kind: intent.kind,
-        message: err instanceof Error ? err.message : String(err),
+        ok: false,
+        detail,
       })
       return twimlResponse(
         'No pude guardarlo en este momento. Vuelve a intentarlo en unos segundos.',

@@ -23,6 +23,10 @@
 export type InteractiveConfig = {
   captureSid: string | null
   destinoSid: string | null
+  /** Plantilla para fotos SIN pie: botones [Descripción · Momento · Nota]. */
+  fotoSid: string | null
+  /** Menú de ayuda interactivo (list picker con acciones frecuentes). */
+  menuSid: string | null
 }
 
 type EnvReader = (key: string) => string | undefined
@@ -41,19 +45,30 @@ export function readInteractiveConfig(
   return {
     captureSid: read('TWILIO_CONTENT_SID_CAPTURE') || null,
     destinoSid: read('TWILIO_CONTENT_SID_CAPTURE_DESTINO') || null,
+    fotoSid: read('TWILIO_CONTENT_SID_CAPTURE_FOTO') || null,
+    menuSid: read('TWILIO_CONTENT_SID_MENU') || null,
   }
 }
 
+/** Variante de respuesta a una captura, en orden de especificidad. */
+export type CaptureReplyVariant = 'foto' | 'ambiguous' | 'simple'
+
 /**
- * Plantilla a usar según si la captura fue ambigua. Devuelve `null` si no hay
- * plantilla aplicable → el webhook cae a TwiML. Una captura explícita NO usa la
- * plantilla con botones de destino (sería ruido: el usuario ya eligió).
+ * Plantilla a usar según la variante de la captura. Degrada con elegancia: si la
+ * plantilla específica no está configurada, cae a una más genérica y, en última
+ * instancia, a `null` → el webhook responde TwiML de texto.
+ *   - `foto`      → [Descripción · Momento · Nota] (foto sin pie); cae a destino.
+ *   - `ambiguous` → [Deshacer · Momento · Nota] (texto libre clasificado por IA).
+ *   - `simple`    → [Deshacer] (captura explícita).
  */
 export function pickCaptureContentSid(
   cfg: InteractiveConfig,
-  ambiguous: boolean,
+  variant: CaptureReplyVariant,
 ): string | null {
-  if (ambiguous) return cfg.destinoSid ?? cfg.captureSid ?? null
+  if (variant === 'foto') {
+    return cfg.fotoSid ?? cfg.destinoSid ?? cfg.captureSid ?? null
+  }
+  if (variant === 'ambiguous') return cfg.destinoSid ?? cfg.captureSid ?? null
   return cfg.captureSid ?? null
 }
 

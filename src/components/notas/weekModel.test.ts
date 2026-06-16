@@ -27,6 +27,7 @@ function makeTask(over: Partial<Task> & { id: string }): Task {
     category: over.category ?? 'trabajo',
     completedAt: over.completedAt ?? null,
     hasPhotos: over.hasPhotos ?? false,
+    origin: over.origin ?? null,
     tags: over.tags ?? [],
     createdAt: over.createdAt ?? '2026-06-01T10:00:00.000Z',
     updatedAt: over.updatedAt ?? '2026-06-01T10:00:00.000Z',

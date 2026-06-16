@@ -43,6 +43,9 @@ const REQUIRED = {
     'last_capture_id',
     'last_capture_at',
     'last_message_at',
+    'awaiting_desc_kind',
+    'awaiting_desc_id',
+    'awaiting_desc_at',
     'created_at',
     'updated_at',
   ],
@@ -60,6 +63,8 @@ const REQUIRED = {
   // Recorte-evento: varias imágenes de un mismo mensaje viven como filas hijas
   // (el webhook inserta una por imagen al recibir 2+ fotos sin destino Momentos).
   recorte_images: ['id', 'recorte_id', 'user_id', 'storage_key', 'mime', 'position'],
+  // Observabilidad: el webhook persiste un evento por resultado de captura.
+  whatsapp_events: ['id', 'user_id', 'event', 'kind', 'ok', 'detail', 'created_at'],
   notes: ['id', 'content', 'title', 'tags', 'pinned', 'source', 'user_id', 'deleted_at'],
   tasks: ['id', 'title', 'detail', 'tags', 'origin', 'user_id', 'deleted_at'],
   // Las notas de voz se guardan como anexo de la nota (re-escuchable).

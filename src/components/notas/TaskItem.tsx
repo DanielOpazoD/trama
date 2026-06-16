@@ -12,6 +12,7 @@ import {
   TrashIcon,
 } from '../Icons'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
+import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { AttachmentPhotos } from './AttachmentPhotos'
 import { PriorityDots, PriorityMenu } from './PriorityDots'
 import { formatWeekRange, relativeWeekLabel, shiftWeeks } from './notasUtils'
@@ -284,6 +285,7 @@ export function TaskItem({
           }`}
         >
           {renderWithTags(task.title)}
+          <WhatsAppSourceTag origin={task.origin} />
         </p>
         {carriedFrom && (
           <span className="inline-flex items-center gap-0.5 text-micro text-ink-300 mt-0.5">

@@ -6,6 +6,7 @@ import { queryKeys } from '../../state/queryClient'
 import { useToast } from '../../state/toast'
 import { buildWhatsAppDeepLink } from '../../lib/whatsappLink'
 import { PanelHeader } from './_shared'
+import { WhatsAppMetricsCard } from './WhatsAppMetricsCard'
 
 /**
  * Conectar WhatsApp — vincular un número para capturar notas, citas,
@@ -217,6 +218,10 @@ export function WhatsAppPanel() {
           El número se conecta vía Twilio. Solo los números vinculados pueden escribir, y
           cada mensaje queda bajo tu cuenta. Podés desvincular cuando quieras.
         </p>
+
+        {/* Observabilidad: capturas por ruta + tasa de fallas (se oculta si aún
+            no hay actividad). */}
+        <WhatsAppMetricsCard />
       </div>
     </section>
   )
