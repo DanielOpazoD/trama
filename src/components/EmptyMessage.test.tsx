@@ -26,11 +26,20 @@ describe('<EmptyMessage />', () => {
 
   it('uses the soft variant by default', () => {
     const { container } = render(<EmptyMessage title="x" />)
-    expect(container.querySelector('.border-dashed')).not.toBeNull()
+    const empty = container.querySelector('.empty-message')
+
+    expect(empty).toHaveClass('empty-message--soft')
+    expect(screen.getByTestId('empty-message-thread-motif')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    )
   })
 
   it("strips the soft card with variant='plain'", () => {
     const { container } = render(<EmptyMessage title="x" variant="plain" />)
-    expect(container.querySelector('.border-dashed')).toBeNull()
+    const empty = container.querySelector('.empty-message')
+
+    expect(empty).toHaveClass('empty-message--plain')
+    expect(empty).not.toHaveClass('empty-message--soft')
   })
 })

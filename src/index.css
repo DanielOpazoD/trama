@@ -1644,6 +1644,72 @@ html.dark .paper-grain::before {
     background-color: rgb(var(--paper-100) / 0.7);
   }
 
+  @keyframes empty-message-thread-pulse {
+    0%,
+    100% {
+      opacity: 0.18;
+      transform: scaleX(0.72);
+    }
+    50% {
+      opacity: 0.42;
+      transform: scaleX(1);
+    }
+  }
+  .empty-message {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .empty-message--soft {
+    border: 1px solid rgb(var(--ink-100) / 0.58);
+    border-radius: 1rem;
+    background:
+      radial-gradient(circle at 18% 0%, var(--accent-gold-soft), transparent 36%),
+      radial-gradient(circle at 86% 20%, var(--accent-sage-soft), transparent 30%),
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.7), rgb(var(--paper-50) / 0.36));
+    box-shadow:
+      0 22px 54px rgb(var(--ink-900) / 0.055),
+      0 1px 0 rgb(var(--paper-50) / 0.76) inset;
+    backdrop-filter: blur(12px);
+  }
+  .empty-message--plain {
+    overflow: visible;
+  }
+  .empty-message__threadMotif {
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    top: 1rem;
+    z-index: -1;
+    height: 2.1rem;
+    pointer-events: none;
+    color: var(--accent-gold);
+  }
+  .empty-message--plain .empty-message__threadMotif {
+    left: 20%;
+    right: 20%;
+    top: 0.4rem;
+  }
+  .empty-message__thread {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, currentColor, transparent);
+    opacity: 0.24;
+    transform-origin: center;
+    animation: empty-message-thread-pulse 2.4s ease-in-out infinite;
+  }
+  .empty-message__thread--one {
+    top: 0.45rem;
+  }
+  .empty-message__thread--two {
+    top: 1.45rem;
+    color: var(--accent-primary);
+    animation-delay: 260ms;
+  }
+
   @keyframes trama-spinner-thread {
     to {
       transform: rotate(360deg);
@@ -1781,6 +1847,11 @@ html.dark .paper-grain::before {
     opacity: 0.42;
   }
   @media (prefers-reduced-motion: reduce) {
+    .empty-message__thread {
+      animation: none;
+      opacity: 0.28;
+      transform: scaleX(0.84);
+    }
     .trama-spinner__thread,
     .trama-spinner__core,
     .trama-spinner__spark {
