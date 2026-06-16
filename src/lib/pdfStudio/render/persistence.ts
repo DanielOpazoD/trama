@@ -74,7 +74,7 @@ export async function saveDraft(
   userKey: string,
   doc: PdfDoc,
   library: ImageAsset[],
-): Promise<void> {
+): Promise<boolean> {
   try {
     const db = await openDb()
     await new Promise<void>((resolve, reject) => {
@@ -86,8 +86,10 @@ export async function saveDraft(
       tx.onabort = () => reject(tx.error)
     })
     db.close()
+    return true
   } catch {
     // best-effort: el editor sigue sin autoguardado.
+    return false
   }
 }
 

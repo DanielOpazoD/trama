@@ -8,9 +8,11 @@ import type { AssembleOptions } from '../../../lib/pdfStudio/assemble/assemble'
 import { canRedo, canUndo, redo, undo } from '../../../lib/pdfStudio/model/history'
 import { disposePdfStudio } from '../../../lib/pdfStudio/render/pdfRender'
 import { clearDraft } from '../../../lib/pdfStudio/render/persistence'
+import { buildPdfStudioPreflight } from '../../../lib/pdfStudio/preflight/pdfStudioPreflight'
 import { BulkBar } from './shell/BulkBar'
 import { PdfDocTitleInput } from './shell/PdfDocTitleInput'
 import { PdfStudioDocumentToolbar } from './shell/PdfStudioDocumentToolbar'
+import { PdfStudioOperationalStatus } from './shell/PdfStudioOperationalStatus'
 import { PdfStudioFormPanel } from './planillas/PdfStudioFormPanel'
 import { PdfStudioMainPane } from './shell/PdfStudioMainPane'
 import { PdfStudioOcrPanel } from './ocr/PdfStudioOcrPanel'
@@ -175,6 +177,7 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   }
   const total = doc.pages.length
   const empty = total === 0
+  const preflightReport = buildPdfStudioPreflight(doc, { action: 'export' })
   const undoable = canUndo(history)
   const redoable = canRedo(history)
   const hasVisibleSaved = templatesEnabled
@@ -287,6 +290,12 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
               onSetPageNumbers={setPageNumbers}
               onSetWatermark={setWatermark}
             />
+            {(!empty || workspace.autosaveState.kind !== 'idle') && (
+              <PdfStudioOperationalStatus
+                autosaveState={workspace.autosaveState}
+                preflightReport={preflightReport}
+              />
+            )}
             <input
               ref={fileInputRef}
               type="file"

@@ -28,6 +28,12 @@ import {
 import { useCurrentClientUserId } from '../../../../lib/clientIdentity'
 import { downloadBlob } from '../../../../lib/downloadBlob'
 import { useToast } from '../../../../state'
+import {
+  createAutosaveFailedState,
+  createAutosaveRestoredState,
+  createAutosaveSavingState,
+  type PdfStudioAutosaveState,
+} from './pdfStudioAutosaveState'
 
 export function usePdfStudioWorkspace({
   clearSelection,
@@ -46,6 +52,10 @@ export function usePdfStudioWorkspace({
   const [saved, setSaved] = useState<SavedDoc[]>([])
   const [folders, setFolders] = useState<SavedFolder[]>([])
   const [panelCollapsed, setPanelCollapsed] = useState(true)
+  const [autosaveState, setAutosaveState] = useState<PdfStudioAutosaveState>({
+    kind: 'idle',
+    pages: 0,
+  })
   const toastRef = useRef(toast)
   const draftSanitizerRef = useRef<(draft: PdfDoc) => PdfDoc>((draft) => draft)
   toastRef.current = toast
@@ -58,10 +68,13 @@ export function usePdfStudioWorkspace({
         const restored = normalizeDoc(draft.doc)
         reseedIds(restored)
         setHistory(initHistory(restored))
+        setAutosaveState(createAutosaveRestoredState(restored.pages.length))
         toastRef.current.show({
           message: 'Borrador del editor restaurado.',
           tone: 'success',
         })
+      } else {
+        setAutosaveState({ kind: 'idle', pages: 0 })
       }
       setLoaded(true)
     })
@@ -83,7 +96,17 @@ export function usePdfStudioWorkspace({
   useEffect(() => {
     if (!loaded) return
     const t = window.setTimeout(
-      () => void saveDraft(userKey, draftSanitizerRef.current(doc), []),
+      () =>
+        void (async () => {
+          const sanitized = draftSanitizerRef.current(doc)
+          setAutosaveState(createAutosaveSavingState(sanitized.pages.length))
+          const savedOk = await saveDraft(userKey, sanitized, [])
+          setAutosaveState(
+            savedOk === false
+              ? createAutosaveFailedState(sanitized.pages.length)
+              : { kind: 'saved', pages: sanitized.pages.length, savedAt: Date.now() },
+          )
+        })(),
       600,
     )
     return () => window.clearTimeout(t)
@@ -287,6 +310,7 @@ export function usePdfStudioWorkspace({
 
   return {
     addAssets,
+    autosaveState,
     duplicateSaved,
     exportTemplatePackage,
     createFolder,
