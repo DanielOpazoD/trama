@@ -171,7 +171,7 @@ async function replyWithCapture(
   }
   const fix =
     variant === 'foto'
-      ? '↩️ Respondé con una descripción, o «deshacer» · «momento» · «nota».'
+      ? '↩️ Responde con una descripción, o «deshacer» · «momento» · «nota».'
       : variant === 'ambiguous'
         ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · entidad.'
         : '↩️ ¿No era así? Responde «deshacer».'
@@ -193,7 +193,7 @@ async function describeLast(
 ): Promise<string> {
   const last = await readLastPointer(sql, userId, phone)
   if (!last || (last.kind !== 'recorte' && last.kind !== 'momento')) {
-    return 'No hay ninguna foto reciente para describir. Mandá una foto y después su descripción.'
+    return 'No hay ninguna foto reciente para describir. Manda una foto y después su descripción.'
   }
   if (text.trim()) {
     const ok = await applyDescription(sql, userId, last.kind, last.id, text)
@@ -201,7 +201,7 @@ async function describeLast(
     return `✍️ Descripción agregada.\n${openInTramaLine(origin, last.kind)}`
   }
   await setAwaitingDescription(sql, phone, userId, last.kind, last.id)
-  return '✍️ Perfecto, mandame la descripción y se la agrego.'
+  return '✍️ Perfecto, mándame la descripción y se la agrego.'
 }
 
 /**
@@ -223,7 +223,7 @@ async function replyWithMenu(params: Record<string, string>): Promise<Response> 
       from,
       to,
       contentSid: menuSid,
-      contentVariables: captureContentVariables('¿Qué querés hacer?'),
+      contentVariables: captureContentVariables('¿Qué quieres hacer?'),
     })
     if (ok) {
       logEvent({ event: 'whatsapp_interactive_sent', variant: 'menu' })
@@ -1057,7 +1057,7 @@ async function handleInboundMedia(
       lines.push('(No pude leer el texto; guardé la imagen igual.)')
     }
     if (wantsDescription) {
-      lines.push('✍️ Respondé con una descripción y se la agrego.')
+      lines.push('✍️ Responde con una descripción y se la agrego.')
     }
     // El deep link (texto o botón [Abrir en Trama]) y el deshacer los agrega el
     // caller (replyWithCapture) según haya plantillas/captura.
@@ -1067,7 +1067,7 @@ async function handleInboundMedia(
   }
   if (skipped.has('audio_format')) {
     lines.push(
-      '🎤 Ese formato de audio no lo puedo transcribir (mandá una nota de voz normal).',
+      '🎤 Ese formato de audio no lo puedo transcribir (manda una nota de voz normal).',
     )
   }
   if (skipped.has('audio_ai')) {
@@ -1086,7 +1086,7 @@ async function handleInboundMedia(
     lines.push('No puedo procesar imágenes en este momento.')
   }
   if (saved === 0 && skipped.has('error')) {
-    lines.push('No pude descargar el archivo. Probá de nuevo en un momento.')
+    lines.push('No pude descargar el archivo. Prueba de nuevo en un momento.')
   }
   if (lines.length === 0) lines.push('Recibí el archivo, pero no pude procesarlo.')
   // Una captura de imagen guardada como Recorte (default) puede redirigirse sin

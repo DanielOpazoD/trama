@@ -1022,7 +1022,7 @@ describe('whatsapp-webhook', () => {
     )
     expect(res.status).toBe(200)
     const xml = await res.text()
-    expect(xml).toContain('Respondé con una descripción')
+    expect(xml).toContain('Responde con una descripción')
     // Marcó el estado conversacional para el próximo texto.
     expect(
       mockSqlResponses.calls.some(
@@ -1067,7 +1067,7 @@ describe('whatsapp-webhook', () => {
     )
     expect(res.status).toBe(200)
     const xml = await res.text()
-    expect(xml).toContain('mandame la descripción')
+    expect(xml).toContain('mándame la descripción')
     // Dejó el estado conversacional listo para el próximo texto.
     expect(
       mockSqlResponses.calls.some(
@@ -1179,7 +1179,7 @@ describe('whatsapp-webhook', () => {
       usedRag: true,
     })
     askLLMForText.mockResolvedValue({
-      content: 'Tenés a Borges guardado como escritor.',
+      content: 'Tienes a Borges guardado como escritor.',
       usage: {
         provider: 'deepseek',
         model: 'x',
