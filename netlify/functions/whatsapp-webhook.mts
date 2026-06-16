@@ -98,6 +98,15 @@ function readEnv(key: string): string | undefined {
 }
 
 /**
+ * Línea de "abrir en Trama" de una confirmación. Centralizada porque se repite y
+ * porque en el camino de botones (Card) este enlace se vuelve un botón [Abrir en
+ * Trama] en vez de texto — un solo lugar para decidirlo.
+ */
+function openInTramaLine(origin: string, kind: string): string {
+  return `🔗 Ábrelo en Trama: ${captureDeepLink(origin, kind)}`
+}
+
+/**
  * Responde la confirmación de una captura. Si hay plantillas de Content API
  * configuradas (env vars) y credenciales de Twilio, manda un mensaje SALIENTE
  * con botones (Deshacer; y Momento/Nota cuando la captura fue ambigua) y
@@ -158,7 +167,7 @@ async function describeLast(
   if (text.trim()) {
     const ok = await applyDescription(sql, userId, last.kind, last.id, text)
     if (!ok) return 'No pude agregar la descripción (¿la borraste desde la app?).'
-    return `✍️ Descripción agregada.\n🔗 Ábrelo en Trama: ${captureDeepLink(origin, last.kind)}`
+    return `✍️ Descripción agregada.\n${openInTramaLine(origin, last.kind)}`
   }
   await setAwaitingDescription(sql, phone, userId, last.kind, last.id)
   return '✍️ Perfecto, mandame la descripción y se la agrego.'
@@ -1013,9 +1022,9 @@ async function handleInboundMedia(
       )
     }
     if (skipped.has('vision')) {
-      lines.push('(No pude leer el texto, así que guardé la imagen tal cual.)')
+      lines.push('(No pude leer el texto; guardé la imagen igual.)')
     }
-    lines.push(`🔗 Ábrelo en Trama: ${captureDeepLink(origin, lastKind)}`)
+    lines.push(openInTramaLine(origin, lastKind))
     if (wantsDescription) {
       lines.push('✍️ Respondé con una descripción y se la agrego.')
     }
@@ -1042,12 +1051,11 @@ async function handleInboundMedia(
     lines.push('📦 La imagen pesa demasiado (máximo 16 MB). Envíala más liviana.')
   }
   if (skipped.has('config')) {
-    lines.push(
-      'Para procesar imágenes falta configurar TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN en el servidor.',
-    )
+    // Falta config del servidor: no filtramos nombres de env vars al usuario.
+    lines.push('No puedo procesar imágenes en este momento.')
   }
   if (saved === 0 && skipped.has('error')) {
-    lines.push('No pude descargar el archivo. Vuelve a intentarlo en un momento.')
+    lines.push('No pude descargar el archivo. Probá de nuevo en un momento.')
   }
   if (lines.length === 0) lines.push('Recibí el archivo, pero no pude procesarlo.')
   // Una captura de imagen guardada como Recorte (default) puede redirigirse sin
