@@ -152,7 +152,7 @@ beforeEach(() => {
     dispose: vi.fn(),
   })
   mocks.loadDraft.mockResolvedValue(null) // sin borrador por defecto
-  mocks.saveDraft.mockResolvedValue(undefined)
+  mocks.saveDraft.mockResolvedValue(true)
   mocks.clearDraft.mockResolvedValue(undefined)
   mocks.listSavedDocs.mockResolvedValue([]) // sin guardados por defecto
   mocks.listSavedFolders.mockResolvedValue([])

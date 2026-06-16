@@ -38,21 +38,21 @@ export function describePdfStudioAutosaveState(
     return {
       tone: 'working',
       label: 'Autoguardando',
-      detail: `${pageLabel(state.pages)} protegidas en este dispositivo.`,
+      detail: `${pageLabel(state.pages)} ${agree(state.pages, 'protegida', 'protegidas')} en este dispositivo.`,
     }
   }
   if (state.kind === 'saved') {
     return {
       tone: 'safe',
       label: 'Autoguardado',
-      detail: `${pageLabel(state.pages)} guardadas ${relativeTime(now - state.savedAt)}.`,
+      detail: `${pageLabel(state.pages)} ${agree(state.pages, 'guardada', 'guardadas')} ${relativeTime(now - state.savedAt)}.`,
     }
   }
   if (state.kind === 'restored') {
     return {
       tone: 'restored',
       label: 'Borrador recuperado',
-      detail: `${pageLabel(state.pages)} restauradas desde este dispositivo.`,
+      detail: `${pageLabel(state.pages)} ${agree(state.pages, 'restaurada', 'restauradas')} desde este dispositivo.`,
     }
   }
   if (state.kind === 'failed') {
@@ -71,6 +71,10 @@ export function describePdfStudioAutosaveState(
 
 function pageLabel(pages: number): string {
   return `${pages} ${pages === 1 ? 'página' : 'páginas'}`
+}
+
+function agree(pages: number, singular: string, plural: string): string {
+  return pages === 1 ? singular : plural
 }
 
 function relativeTime(ms: number): string {

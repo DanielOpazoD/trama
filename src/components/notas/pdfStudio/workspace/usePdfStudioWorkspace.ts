@@ -58,6 +58,7 @@ export function usePdfStudioWorkspace({
   })
   const toastRef = useRef(toast)
   const draftSanitizerRef = useRef<(draft: PdfDoc) => PdfDoc>((draft) => draft)
+  const autosaveRunRef = useRef(0)
   toastRef.current = toast
 
   useEffect(() => {
@@ -95,12 +96,21 @@ export function usePdfStudioWorkspace({
 
   useEffect(() => {
     if (!loaded) return
+    let cancelled = false
     const t = window.setTimeout(
       () =>
         void (async () => {
+          const runId = ++autosaveRunRef.current
           const sanitized = draftSanitizerRef.current(doc)
+          if (sanitized.pages.length === 0) {
+            if (!cancelled && autosaveRunRef.current === runId) {
+              setAutosaveState({ kind: 'idle', pages: 0 })
+            }
+            return
+          }
           setAutosaveState(createAutosaveSavingState(sanitized.pages.length))
           const savedOk = await saveDraft(userKey, sanitized, [])
+          if (cancelled || autosaveRunRef.current !== runId) return
           setAutosaveState(
             savedOk === false
               ? createAutosaveFailedState(sanitized.pages.length)
@@ -109,7 +119,10 @@ export function usePdfStudioWorkspace({
         })(),
       600,
     )
-    return () => window.clearTimeout(t)
+    return () => {
+      cancelled = true
+      window.clearTimeout(t)
+    }
   }, [doc, loaded, userKey])
 
   function setDraftSanitizer(sanitize: (draft: PdfDoc) => PdfDoc) {
