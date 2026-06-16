@@ -19,6 +19,16 @@ describe('<PlaysTiming />', () => {
     expect(timingSpy).not.toHaveBeenCalled()
   })
 
+  it('usa el loading editorial mientras calcula el patrón temporal', () => {
+    vi.spyOn(api, 'spotifyTiming').mockReturnValue(new Promise(() => {}))
+
+    renderWithProviders(<PlaysTiming since="2026-05-01T00:00:00.000Z" enabled />)
+
+    expect(screen.getByText('cargando patrón temporal…').closest('[role="status"]')).toBe(
+      screen.getByRole('status'),
+    )
+  })
+
   it('renderiza heatmap y tendencia cuando hay plays', async () => {
     vi.spyOn(api, 'spotifyTiming').mockResolvedValue({
       since: '2026-05-01T00:00:00.000Z',

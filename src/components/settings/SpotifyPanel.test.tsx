@@ -14,6 +14,16 @@ describe('<SpotifyPanel />', () => {
     vi.restoreAllMocks()
   })
 
+  it('usa el loading editorial mientras consulta Spotify', () => {
+    vi.spyOn(api, 'spotifyStatus').mockReturnValue(new Promise(() => {}))
+
+    renderWithProviders(<SpotifyPanel />)
+
+    expect(screen.getByText('cargando…').closest('[role="status"]')).toBe(
+      screen.getByRole('status'),
+    )
+  })
+
   it('muestra cuenta conectada y sincroniza manualmente', async () => {
     const statusSpy = vi.spyOn(api, 'spotifyStatus').mockResolvedValue({
       connected: true,

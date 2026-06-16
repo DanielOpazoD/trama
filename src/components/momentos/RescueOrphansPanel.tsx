@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
+import { LoadingHint } from '../LoadingHint'
 import { useToast } from '../../state'
 import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 
@@ -80,7 +81,7 @@ export function RescueOrphansPanel() {
   }
 
   if (loading) {
-    return <p className="text-xs text-ink-300 italic">buscando fotos huérfanas…</p>
+    return <LoadingHint text="buscando fotos huérfanas" />
   }
 
   if (error) {

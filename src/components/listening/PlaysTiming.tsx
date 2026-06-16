@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
+import { LoadingHint } from '../LoadingHint'
 import { buildTimingBuckets } from './timing-helpers'
 
 /**
@@ -42,9 +43,7 @@ export function PlaysTiming({ since, enabled }: { since: string; enabled: boolea
   }, [timingQuery.data])
 
   if (timingQuery.isLoading) {
-    return (
-      <p className="text-caption text-ink-300 italic mb-6">cargando patrón temporal…</p>
-    )
+    return <LoadingHint text="cargando patrón temporal" />
   }
   if (!data) return null
 

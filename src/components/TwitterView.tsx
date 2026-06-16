@@ -11,6 +11,7 @@ import {
 } from './Icons'
 import { AISourceTag } from './AISourceTag'
 import { EmptyMessage } from './EmptyMessage'
+import { LoadingHint } from './LoadingHint'
 import {
   useClassifyBookmarks,
   useCreateNote,
@@ -230,7 +231,7 @@ export function TwitterView({
       )}
 
       {status.isLoading || bookmarks.isLoading ? (
-        <p className="text-xs text-ink-300 italic">cargando…</p>
+        <LoadingHint text="cargando" />
       ) : !connected ? (
         <EmptyMessage
           illustration="thread"

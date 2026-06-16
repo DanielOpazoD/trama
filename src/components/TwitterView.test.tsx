@@ -121,6 +121,17 @@ describe('<TwitterView />', () => {
     expect(screen.getByText(/Configuración → X/i)).toBeInTheDocument()
   })
 
+  it('usa el loading editorial al cargar estado o bookmarks', () => {
+    setTwitterMocks()
+    stateMocks.status.mockReturnValue({ isLoading: true, data: undefined })
+
+    renderWithProviders(<TwitterView />)
+
+    expect(screen.getByText('cargando…').closest('[role="status"]')).toBe(
+      screen.getByRole('status'),
+    )
+  })
+
   it('renderiza bookmarks y permite filtrar por autor, tema, año y búsqueda', async () => {
     const user = userEvent.setup()
     setTwitterMocks()
