@@ -49,6 +49,12 @@ import {
 import { storeMedia } from './_lib/whatsapp/media-store.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
+import {
+  readInteractiveConfig,
+  pickCaptureContentSid,
+  captureContentVariables,
+} from './_lib/whatsapp/interactive.js'
+import { sendWhatsAppContent } from './_lib/whatsapp/send.js'
 import type { CaptureIntent, CaptureKind } from './_lib/whatsapp/types.js'
 
 /**
@@ -71,6 +77,44 @@ function readEnv(key: string): string | undefined {
   } catch {
     return process.env[key]
   }
+}
+
+/**
+ * Responde la confirmación de una captura. Si hay plantillas de Content API
+ * configuradas (env vars) y credenciales de Twilio, manda un mensaje SALIENTE
+ * con botones (Deshacer; y Momento/Nota cuando la captura fue ambigua) y
+ * contesta TwiML vacío. Si no, o si el envío falla, cae a la respuesta de texto
+ * de siempre con la afordancia "responde deshacer". `body` NO debe incluir la
+ * línea de deshacer: la agrega acá el camino de TwiML (en botones, sobra).
+ */
+async function replyWithCapture(
+  params: Record<string, string>,
+  body: string,
+  ambiguous: boolean,
+): Promise<Response> {
+  const contentSid = pickCaptureContentSid(readInteractiveConfig(), ambiguous)
+  const accountSid = readEnv('TWILIO_ACCOUNT_SID')
+  const authToken = readEnv('TWILIO_AUTH_TOKEN')
+  const from = params.To ?? params.to // número del bot (whatsapp:+…)
+  const to = params.From ?? params.from // número del usuario
+  if (contentSid && accountSid && authToken && from && to) {
+    const ok = await sendWhatsAppContent({
+      accountSid,
+      authToken,
+      from,
+      to,
+      contentSid,
+      contentVariables: captureContentVariables(body),
+    })
+    if (ok) {
+      logEvent({ event: 'whatsapp_interactive_sent', ambiguous })
+      return emptyTwimlResponse()
+    }
+  }
+  const fix = ambiguous
+    ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · entidad.'
+    : '↩️ ¿No era así? Responde «deshacer».'
+  return twimlResponse(`${body}\n${fix}`)
 }
 
 const HELP = [
@@ -529,7 +573,7 @@ async function handleInboundMedia(
   params: Record<string, string>,
   media: ReturnType<typeof parseInboundMedia>,
   origin: string,
-): Promise<string> {
+): Promise<{ message: string; saved: number }> {
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
   const { route, caption } = mediaRoute(params.Body ?? params.body ?? '')
@@ -715,7 +759,8 @@ async function handleInboundMedia(
       lines.push('(No pude leer el texto, así que guardé la imagen tal cual.)')
     }
     lines.push(`🔗 Ábrelo en Trama: ${captureDeepLink(origin, lastKind)}`)
-    lines.push('↩️ ¿No era así? Responde «deshacer».')
+    // La afordancia de deshacer (botón o texto) la agrega el caller según haya
+    // captura guardada (saved > 0) o no.
   }
   if (skipped.has('video')) {
     lines.push('🎬 El video todavía no lo proceso, pero muy pronto.')
@@ -745,7 +790,7 @@ async function handleInboundMedia(
     lines.push('No pude descargar el archivo. Vuelve a intentarlo en un momento.')
   }
   if (lines.length === 0) lines.push('Recibí el archivo, pero no pude procesarlo.')
-  return lines.join('\n')
+  return { message: lines.join('\n'), saved }
 }
 
 /**
@@ -889,7 +934,12 @@ export default withObservability(
     const phone = normalizePhone(params.From ?? params.from)
     if (!phone) return emptyTwimlResponse()
 
-    const parsed = parseInboundMessage(params.Body ?? params.body ?? '')
+    // Un toque en un botón de respuesta rápida vuelve como un mensaje normal:
+    // Twilio pone el título del botón en `Body` (y en `ButtonText`). Preferimos
+    // `ButtonText` para que «Deshacer»/«Momento»/«Nota» se parseen igual que si
+    // el usuario los hubiera escrito (undo / reclasificar) — sin camino nuevo.
+    const inboundText = params.ButtonText ?? params.Body ?? params.body ?? ''
+    const parsed = parseInboundMessage(inboundText)
     const media = parseInboundMedia(params)
 
     // Sin adjuntos, un mensaje vacío o "ayuda" muestra el menú. (Con media,
@@ -984,18 +1034,19 @@ export default withObservability(
     // Adjuntos (foto): se procesan antes que el texto. El caption decide
     // destino (default Recortes; `momento:` → Momentos).
     if (media.length > 0) {
-      return twimlResponse(
-        await handleInboundMedia(
-          req,
-          requestId,
-          sql,
-          userId,
-          phone,
-          params,
-          media,
-          new URL(req.url).origin,
-        ),
+      const { message, saved } = await handleInboundMedia(
+        req,
+        requestId,
+        sql,
+        userId,
+        phone,
+        params,
+        media,
+        new URL(req.url).origin,
       )
+      // Con captura guardada, ofrecemos Deshacer (botón si hay plantilla, o
+      // texto). Sin nada guardado (todo descartado), solo el aviso, sin botón.
+      return saved > 0 ? replyWithCapture(params, message, false) : twimlResponse(message)
     }
 
     // Acá ya no hay media (se devolvió arriba) y empty/help/link/undo también
@@ -1021,13 +1072,11 @@ export default withObservability(
       if (id) await recordLastCapture(sql, phone, userId, intent.kind, id)
       logEvent({ event: 'whatsapp_capture', kind: intent.kind, viaLLM })
       if (!id) return twimlResponse(message)
-      // Reply accionable: confirmación + deep link + cómo corregir. Cuando lo
-      // clasificó la IA (texto libre), ofrecemos reclasificar en un toque.
+      // Reply accionable: confirmación + deep link + botón/atajo para corregir.
+      // Cuando lo clasificó la IA (texto libre = ambiguo), ofrecemos elegir el
+      // destino (Momento/Nota) además de Deshacer.
       const link = captureDeepLink(new URL(req.url).origin, intent.kind)
-      const fix = viaLLM
-        ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · entidad.'
-        : '↩️ ¿No era así? Responde «deshacer».'
-      return twimlResponse(`${message}\n🔗 Ábrelo en Trama: ${link}\n${fix}`)
+      return replyWithCapture(params, `${message}\n🔗 Ábrelo en Trama: ${link}`, viaLLM)
     } catch (err) {
       logEvent({
         event: 'whatsapp_capture_failed',
