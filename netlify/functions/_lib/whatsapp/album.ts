@@ -76,21 +76,32 @@ export async function appendImagesToMomento(
   return rows[0]?.total ?? null
 }
 
+/** ¿El error es una violación de UNIQUE (SQLSTATE 23505)? El driver Neon expone
+ *  el SQLSTATE de Postgres en `err.code`. */
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: unknown }).code === '23505'
+  )
+}
+
 /**
- * Anexa imágenes a un recorte-evento existente. Si el recorte era de UNA sola
- * imagen (legacy: solo `image_key`, sin filas en `recorte_images`), primero lo
- * "promueve" a evento insertando su portada como posición 0, y luego agrega las
- * nuevas. Todo en un CTE para que las posiciones queden consistentes. Devuelve
- * el nuevo total de imágenes, o `null` si el recorte no existe.
+ * Una sola corrida del CTE de anexado a un recorte-evento. Si el recorte era de
+ * UNA sola imagen (legacy: solo `image_key`, sin filas en `recorte_images`),
+ * primero lo "promueve" a evento insertando su portada como posición 0, y luego
+ * agrega las nuevas. Todo en un CTE para que las posiciones queden consistentes.
+ * Devuelve el nuevo total, o `null` si el recorte no existe. Puede lanzar 23505
+ * si choca con un append concurrente del mismo álbum (lo resuelve el reintento).
  */
-export async function appendImagesToRecorteEvent(
+async function runRecorteAppend(
   sql: SqlClient,
   userId: string,
   recorteId: string,
-  images: Array<{ key: string; mime: string }>,
+  keys: string[],
+  mimes: string[],
 ): Promise<number | null> {
-  const keys = images.map((i) => i.key)
-  const mimes = images.map((i) => i.mime)
   const rows = await sqlTyped<{
     found: boolean
     existing_n: number
@@ -139,6 +150,35 @@ export async function appendImagesToRecorteEvent(
   if (!r?.found) return null
   const base = r.existing_n === 0 ? (r.had_cover ? 1 : 0) : r.existing_n
   return base + keys.length
+}
+
+/**
+ * Anexa imágenes a un recorte-evento, a prueba de concurrencia. Dos partes del
+ * MISMO álbum llegan casi simultáneas y pueden correr el anexado en paralelo:
+ * ambas leerían el mismo `MAX(position)` —o ambas intentarían la portada en
+ * position 0— y chocarían contra `UNIQUE(recorte_id, position)`. Ante esa
+ * colisión (23505) reintentamos: cada corrida nueva toma un snapshot fresco, ve
+ * las filas ya commiteadas y recomputa posiciones sin pisar. Si no converge en
+ * `MAX_ATTEMPTS`, propaga → el caller cae a un recorte aparte (degradación,
+ * nunca pérdida de la foto). Devuelve el nuevo total, o `null` si no existe.
+ */
+export async function appendImagesToRecorteEvent(
+  sql: SqlClient,
+  userId: string,
+  recorteId: string,
+  images: Array<{ key: string; mime: string }>,
+): Promise<number | null> {
+  const keys = images.map((i) => i.key)
+  const mimes = images.map((i) => i.mime)
+  const MAX_ATTEMPTS = 5
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await runRecorteAppend(sql, userId, recorteId, keys, mimes)
+    } catch (err) {
+      if (attempt < MAX_ATTEMPTS && isUniqueViolation(err)) continue
+      throw err
+    }
+  }
 }
 
 /**
