@@ -56,8 +56,8 @@ import {
   readRecentMediaCapture,
   appendImagesToMomento,
   appendImagesToRecorteEvent,
+  joinRecortePhotosToMomento,
 } from './_lib/whatsapp/album.js'
-import { copyRecorteImageToStore, removeBlob } from './_lib/recorte-to-momento.js'
 import {
   setAwaitingDescription,
   consumeAwaitingDescription,
@@ -930,21 +930,18 @@ async function handleInboundMedia(
             }
           } else {
             // El lote reciente era un momento: una foto sin caption se une a él.
-            // Copiamos los blobs a momentos-media y limpiamos los de recortes.
-            const copied: string[] = []
-            for (const rk of recorteKeys) {
-              const c = await copyRecorteImageToStore('momentos-media', rk.key, userId)
-              if (c) {
-                copied.push(c.storageKey)
-                await removeBlob('recortes-media', rk.key)
-              }
-            }
-            if (copied.length > 0) {
-              appendedTotal = await appendImagesToMomento(sql, userId, recent.id, copied)
-              if (appendedTotal !== null) {
-                lastId = recent.id
-                lastKind = 'momento'
-              }
+            // La danza cross-store (copy→append→remove, con rollback si el
+            // anexado falla) vive en el helper: atómica de cara al usuario y
+            // testeable. Sin borrar originales antes de confirmar el anexado.
+            appendedTotal = await joinRecortePhotosToMomento(
+              sql,
+              userId,
+              recent.id,
+              recorteKeys,
+            )
+            if (appendedTotal !== null) {
+              lastId = recent.id
+              lastKind = 'momento'
             }
           }
         }

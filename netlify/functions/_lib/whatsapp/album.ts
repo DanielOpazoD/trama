@@ -1,4 +1,5 @@
 import { sqlTyped, type SqlClient } from '../db.js'
+import { copyRecorteImageToStore, removeBlob } from '../recorte-to-momento.js'
 
 /**
  * Álbum partido: WhatsApp/Twilio a veces parte un envío de varias fotos en
@@ -138,4 +139,64 @@ export async function appendImagesToRecorteEvent(
   if (!r?.found) return null
   const base = r.existing_n === 0 ? (r.had_cover ? 1 : 0) : r.existing_n
   return base + keys.length
+}
+
+/**
+ * Operaciones de blobs que necesita {@link joinRecortePhotosToMomento},
+ * inyectables para test. Por defecto, las reales sobre Netlify Blobs.
+ */
+export type AlbumBlobOps = {
+  copy: (
+    destStore: string,
+    key: string,
+    userId: string,
+  ) => Promise<{ storageKey: string } | null>
+  remove: (store: string, key: string) => Promise<void>
+}
+
+const realBlobOps: AlbumBlobOps = { copy: copyRecorteImageToStore, remove: removeBlob }
+
+/**
+ * Une fotos sueltas —que venían como recorte (en `recortes-media`)— a un Momento
+ * foto reciente. La danza cross-store es DELICADA y antes perdía datos, así que
+ * el orden es estricto: **copy → append → remove**.
+ *
+ *  1. Copia TODOS los blobs a `momentos-media` (sin borrar nada todavía).
+ *  2. Anexa las copias al momento.
+ *  3a. Si el anexado CONFIRMA, recién entonces borra los originales en
+ *      `recortes-media` (ya están a salvo en su nuevo store).
+ *  3b. Si el anexado FALLA (el momento se borró entre medio → `null`), revierte
+ *      las copias huérfanas en `momentos-media` y NO toca los originales: el
+ *      caller crea un recorte de respaldo con esos blobs intactos.
+ *
+ * Nunca borra antes de confirmar: así no quedan recortes apuntando a blobs
+ * inexistentes (404) ni basura acumulada en `momentos-media`. Devuelve el nuevo
+ * total de fotos del momento, o `null` si no se anexó nada.
+ */
+export async function joinRecortePhotosToMomento(
+  sql: SqlClient,
+  userId: string,
+  momentoId: string,
+  recorteKeys: Array<{ key: string }>,
+  ops: AlbumBlobOps = realBlobOps,
+): Promise<number | null> {
+  const copied: Array<{ storageKey: string; originalKey: string }> = []
+  for (const rk of recorteKeys) {
+    const c = await ops.copy('momentos-media', rk.key, userId)
+    if (c) copied.push({ storageKey: c.storageKey, originalKey: rk.key })
+  }
+  if (copied.length === 0) return null
+
+  const total = await appendImagesToMomento(
+    sql,
+    userId,
+    momentoId,
+    copied.map((c) => c.storageKey),
+  )
+  if (total !== null) {
+    for (const c of copied) await ops.remove('recortes-media', c.originalKey)
+  } else {
+    for (const c of copied) await ops.remove('momentos-media', c.storageKey)
+  }
+  return total
 }

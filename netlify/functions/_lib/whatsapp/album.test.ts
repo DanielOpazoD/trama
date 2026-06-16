@@ -8,6 +8,7 @@ import {
   readRecentMediaCapture,
   appendImagesToMomento,
   appendImagesToRecorteEvent,
+  joinRecortePhotosToMomento,
 } from './album'
 
 beforeEach(() => mockSqlResponses.reset())
@@ -82,5 +83,66 @@ describe('appendImagesToRecorteEvent', () => {
         { key: 'a', mime: 'image/jpeg' },
       ]),
     ).toBeNull()
+  })
+})
+
+describe('joinRecortePhotosToMomento (orden copy→append→remove)', () => {
+  const okCopy = () =>
+    vi.fn(async (_store: string, key: string) => ({ storageKey: `m-${key}` }))
+
+  it('éxito: copia, anexa y SOLO entonces borra los originales de recortes-media', async () => {
+    const ops = { copy: okCopy(), remove: vi.fn(async () => {}) }
+    mockSqlResponses.push([{ total: 3 }]) // appendImagesToMomento → confirma
+    const total = await joinRecortePhotosToMomento(
+      getSql(),
+      'u1',
+      'm1',
+      [{ key: 'a' }, { key: 'b' }],
+      ops,
+    )
+    expect(total).toBe(3)
+    // Copió ambos blobs al store de momentos.
+    expect(ops.copy).toHaveBeenCalledWith('momentos-media', 'a', 'u1')
+    expect(ops.copy).toHaveBeenCalledWith('momentos-media', 'b', 'u1')
+    // Con el anexado confirmado, borró los ORIGINALES en recortes-media…
+    expect(ops.remove).toHaveBeenCalledWith('recortes-media', 'a')
+    expect(ops.remove).toHaveBeenCalledWith('recortes-media', 'b')
+    // …y nunca las copias recién hechas en momentos-media.
+    expect(ops.remove).not.toHaveBeenCalledWith('momentos-media', expect.anything())
+  })
+
+  it('anexado falla (momento borrado): revierte copias huérfanas y NO toca los originales', async () => {
+    const ops = { copy: okCopy(), remove: vi.fn(async () => {}) }
+    mockSqlResponses.push([]) // appendImagesToMomento → null (el momento ya no existe)
+    const total = await joinRecortePhotosToMomento(
+      getSql(),
+      'u1',
+      'm1',
+      [{ key: 'a' }, { key: 'b' }],
+      ops,
+    )
+    expect(total).toBeNull()
+    // Revirtió las copias huérfanas en momentos-media…
+    expect(ops.remove).toHaveBeenCalledWith('momentos-media', 'm-a')
+    expect(ops.remove).toHaveBeenCalledWith('momentos-media', 'm-b')
+    // …y JAMÁS borró los originales: el recorte de respaldo los reutiliza intactos
+    // (esta es la regresión que el fix evita: recortes apuntando a blobs 404).
+    expect(ops.remove).not.toHaveBeenCalledWith('recortes-media', expect.anything())
+  })
+
+  it('ninguna copia posible (blobs origen ausentes) → null sin anexar ni borrar', async () => {
+    const ops = { copy: vi.fn(async () => null), remove: vi.fn(async () => {}) }
+    const total = await joinRecortePhotosToMomento(
+      getSql(),
+      'u1',
+      'm1',
+      [{ key: 'a' }],
+      ops,
+    )
+    expect(total).toBeNull()
+    expect(ops.remove).not.toHaveBeenCalled()
+    expect(mockSqlResponses.calls.some((c) => /UPDATE momentos/i.test(c.template))).toBe(
+      false,
+    )
   })
 })
