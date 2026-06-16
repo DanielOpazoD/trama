@@ -158,6 +158,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([{ message_sid: 'SMaudio' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
     mockSqlResponses.push([]) // INSERT extraction_log (registro de costo)
+    mockSqlResponses.push([]) // persistWhatsAppEvent: transcription ok (observabilidad)
     mockSqlResponses.push([{ id: 'n9' }]) // INSERT notes RETURNING id
     mockSqlResponses.push([]) // INSERT notas_attachments (audio re-escuchable)
     mockSqlResponses.push([]) // recordLastCapture
@@ -1166,6 +1167,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([{ message_sid: 'SMocr' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
     mockSqlResponses.push([]) // extractPhotoIntent: extraction_log (costo de visión al cost-cap)
+    mockSqlResponses.push([]) // persistWhatsAppEvent: vision ok (observabilidad)
     mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes RETURNING id
     mockSqlResponses.push([]) // recordLastCapture
     const res = await webhookHandler(
@@ -1187,6 +1189,13 @@ describe('whatsapp-webhook', () => {
         (c) =>
           /INSERT INTO extraction_log/i.test(c.template) &&
           c.values.some((v) => typeof v === 'string' && v.includes('"vision":true')),
+      ),
+    ).toBe(true)
+    // Y su evento de observabilidad (visión ok) cuenta a la tasa de fallas honesta.
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /INSERT INTO whatsapp_events/i.test(c.template) && c.values.includes('vision'),
       ),
     ).toBe(true)
     const xml = await res.text()
@@ -1226,6 +1235,14 @@ describe('whatsapp-webhook', () => {
     expect(res.status).toBe(200)
     expect(buildRagContext).toHaveBeenCalledOnce()
     expect(askLLMForText).toHaveBeenCalledOnce()
+    // Observabilidad honesta: el recall por IA registra su evento (cuenta a la
+    // tasa de fallas del panel, no solo las capturas).
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /INSERT INTO whatsapp_events/i.test(c.template) && c.values.includes('recall'),
+      ),
+    ).toBe(true)
     const xml = await res.text()
     expect(xml).toContain('Borges')
     expect(xml).toContain('view=entidades')

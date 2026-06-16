@@ -678,12 +678,14 @@ async function extractPhotoIntent(
       INSERT INTO extraction_log (input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id)
       VALUES (${'[imagen]'}, ${JSON.stringify({ vision: true, mode })}::jsonb, ${usage.provider}, ${usage.model}, ${usage.tokensIn}, ${usage.tokensOut}, ${fromCache ? 0 : usage.costCents}, ${usage.durationMs}, ${userId})
     `.catch(() => {})
+    // Observabilidad: la visión SÍ se intentó y salió bien (cuenta a la tasa de
+    // fallas honesta del panel, no solo las capturas).
+    await persistWhatsAppEvent(getSql(), userId, { event: 'vision', ok: true })
     return validatePhotoExtraction(content, mode, caption)
   } catch (err) {
-    logEvent({
-      event: 'whatsapp_vision_failed',
-      message: err instanceof Error ? err.message : String(err),
-    })
+    const detail = err instanceof Error ? err.message : String(err)
+    logEvent({ event: 'whatsapp_vision_failed', message: detail })
+    await persistWhatsAppEvent(getSql(), userId, { event: 'vision', ok: false, detail })
     return null
   }
 }
@@ -714,12 +716,12 @@ async function transcribeAudioIntent(
       VALUES (${'[nota de voz]'}, ${JSON.stringify({ transcribed: true })}::jsonb, ${usage.provider}, ${usage.model}, ${0}, ${0}, ${usage.costCents}, ${usage.durationMs}, ${userId})
     `.catch(() => {})
     logEvent({ event: 'whatsapp_transcription', chars: text.trim().length })
+    await persistWhatsAppEvent(sql, userId, { event: 'transcription', ok: true })
     return transcriptionToIntent(text)
   } catch (err) {
-    logEvent({
-      event: 'whatsapp_transcription_failed',
-      message: err instanceof Error ? err.message : String(err),
-    })
+    const detail = err instanceof Error ? err.message : String(err)
+    logEvent({ event: 'whatsapp_transcription_failed', message: detail })
+    await persistWhatsAppEvent(sql, userId, { event: 'transcription', ok: false, detail })
     return null
   }
 }
@@ -1194,12 +1196,12 @@ async function handleQuery(
     const answer = typeof content === 'string' ? content.trim() : ''
     if (!answer) return formatRecallFallback(ctx, origin)
     logEvent({ event: 'whatsapp_recall', usedRag: ctx.usedRag, usedHyde: ctx.usedHyde })
+    await persistWhatsAppEvent(sql, userId, { event: 'recall', ok: true })
     return formatRecallAnswer(answer, ctx, origin)
   } catch (err) {
-    logEvent({
-      event: 'whatsapp_recall_failed',
-      message: err instanceof Error ? err.message : String(err),
-    })
+    const detail = err instanceof Error ? err.message : String(err)
+    logEvent({ event: 'whatsapp_recall_failed', message: detail })
+    await persistWhatsAppEvent(sql, userId, { event: 'recall', ok: false, detail })
     return formatRecallFallback(ctx, origin)
   }
 }
