@@ -3,6 +3,7 @@ import type { AssembleOptions } from '../../../../lib/pdfStudio/assemble/assembl
 import { assemblePdfInWorker } from '../../../../lib/pdfStudio/export/exportWorkerClient'
 import { canExport, type PdfDoc } from '../../../../lib/pdfStudio/model/model'
 import { writePdfFormFieldsInWorker } from '../../../../lib/pdfStudio/forms/pdfFormWorkerClient'
+import { buildPdfStudioPreflight } from '../../../../lib/pdfStudio/preflight/pdfStudioPreflight'
 import { downloadBlob } from '../../../../lib/downloadBlob'
 import { useToast } from '../../../../state'
 import { type SavedDoc } from '../../../../lib/pdfStudio/render/persistence'
@@ -88,7 +89,29 @@ export function usePdfStudioExport({
     target: PdfDoc,
     options: { flattenFormFields?: boolean } = {},
   ): Promise<Blob | null> {
-    if (!canExport(target) || saving) return null
+    if (saving) return null
+    const preflight = buildPdfStudioPreflight(target, { action: 'export' })
+    if (!preflight.canProceed) {
+      const blocker = preflight.blockers[0]
+      toast.show({
+        message: blocker?.detail
+          ? `${blocker.message} ${blocker.detail}`
+          : (blocker?.message ?? 'No se puede exportar este PDF.'),
+        tone: 'error',
+      })
+      return null
+    }
+    if (!canExport(target)) return null
+    if (preflight.warnings.length > 0) {
+      toast.show({
+        message: `Preflight de exportación: ${preflight.warnings
+          .map((warning) =>
+            warning.detail ? `${warning.message} ${warning.detail}` : warning.message,
+          )
+          .join(' ')}`,
+        tone: 'default',
+      })
+    }
     setSaving(true)
     try {
       return await assembleOrToast(target, options)

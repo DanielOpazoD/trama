@@ -74,20 +74,25 @@ export async function saveDraft(
   userKey: string,
   doc: PdfDoc,
   library: ImageAsset[],
-): Promise<void> {
+): Promise<boolean> {
+  let db: IDBDatabase | null = null
   try {
-    const db = await openDb()
+    db = await openDb()
+    const activeDb = db
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite')
+      const tx = activeDb.transaction(STORE, 'readwrite')
       const rec: DraftRecord = { doc, library, savedAt: Date.now(), v: DATA_VERSION }
       tx.objectStore(STORE).put(rec, userKey)
       tx.oncomplete = () => resolve()
       tx.onerror = () => reject(tx.error)
       tx.onabort = () => reject(tx.error)
     })
-    db.close()
+    return true
   } catch {
     // best-effort: el editor sigue sin autoguardado.
+    return false
+  } finally {
+    db?.close()
   }
 }
 

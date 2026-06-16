@@ -115,6 +115,10 @@ function fileInput(): HTMLInputElement {
   return document.querySelector('input[type="file"]') as HTMLInputElement
 }
 
+function expectAtLeastOneText(text: RegExp | string) {
+  expect(screen.getAllByText(text).length).toBeGreaterThan(0)
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.getPdfPageCount.mockResolvedValue(2)
@@ -148,7 +152,7 @@ beforeEach(() => {
     dispose: vi.fn(),
   })
   mocks.loadDraft.mockResolvedValue(null) // sin borrador por defecto
-  mocks.saveDraft.mockResolvedValue(undefined)
+  mocks.saveDraft.mockResolvedValue(true)
   mocks.clearDraft.mockResolvedValue(undefined)
   mocks.listSavedDocs.mockResolvedValue([]) // sin guardados por defecto
   mocks.listSavedFolders.mockResolvedValue([])
@@ -910,7 +914,7 @@ describe('<PdfStudioView />', () => {
       library: [],
     })
     renderWithProviders(<PdfStudioView />)
-    await screen.findByText(/55 páginas/i)
+    await waitFor(() => expectAtLeastOneText(/55 páginas/i))
 
     await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
     await user.click(screen.getByRole('menuitem', { name: /OCR buscable/i }))
@@ -956,8 +960,50 @@ describe('<PdfStudioView />', () => {
     renderWithProviders(<PdfStudioView />)
     // Sin subir nada, las páginas del borrador aparecen.
     expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
-    expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
+    expectAtLeastOneText(/2 páginas/)
     expect(mocks.loadDraft).toHaveBeenCalled()
+  })
+
+  it('muestra recuperación y estado operativo del borrador', async () => {
+    mocks.loadDraft.mockResolvedValue({
+      doc: addPdfSource(emptyDoc(), pdfFile(), 2),
+      library: [],
+    })
+
+    renderWithProviders(<PdfStudioView />)
+
+    expect(await screen.findByText('Borrador recuperado')).toBeInTheDocument()
+    expect(
+      screen.getByText(/2 páginas restauradas desde este dispositivo/i),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/2 páginas · listo para exportar/i)).toBeInTheDocument()
+  })
+
+  it('muestra advertencias de preflight para planillas incompletas', async () => {
+    const base = templateDoc()
+    mocks.loadDraft.mockResolvedValue({
+      doc: addPdfFormField(
+        base,
+        makePdfFormFieldDraft({
+          fieldKind: 'text',
+          pageId: base.pages[0]!.id,
+          name: 'rut',
+          value: '',
+          required: true,
+          xRatio: 0.2,
+          yRatio: 0.35,
+          wRatio: 0.3,
+          hRatio: 0.05,
+        }),
+      ),
+      library: [],
+    })
+
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    expect((await screen.findAllByText(/advertencia/i)).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Hay campos requeridos sin completar/i)).toBeInTheDocument()
+    expect(screen.getByText(/rut/i)).toBeInTheDocument()
   })
 
   it('subir una imagen la agrega como hoja sin biblioteca lateral paralela', async () => {
@@ -1027,14 +1073,14 @@ describe('<PdfStudioView />', () => {
     // numPages=2 → dos miniaturas.
     expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
     expect(screen.getByAltText('Página 2')).toBeInTheDocument()
-    expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
+    expectAtLeastOneText(/2 páginas/)
     expect(mocks.getPdfPageCount).toHaveBeenCalledTimes(1)
 
     // Marcar la primera y eliminarla desde la barra de edición → queda una.
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: 'Eliminar' }))
     expect(screen.queryByAltText('Página 2')).not.toBeInTheDocument()
-    expect(screen.getByText(/1 página/)).toBeInTheDocument()
+    expectAtLeastOneText(/1 página/)
     expect(mocks.forgetThumb).toHaveBeenCalled()
 
     // Guardar → ensambla + abre la vista previa en modal (no descarga directa).
@@ -1053,7 +1099,7 @@ describe('<PdfStudioView />', () => {
     renderWithProviders(<PdfStudioView />)
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
-    expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
+    expectAtLeastOneText(/2 páginas/)
 
     await user.click(screen.getByRole('button', { name: /Deshacer/i }))
     expect(screen.getByText(/Trae un PDF o unas imágenes/)).toBeInTheDocument()
@@ -1061,7 +1107,7 @@ describe('<PdfStudioView />', () => {
 
     await user.click(screen.getByRole('button', { name: /Rehacer/i }))
     expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
-    expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
+    expectAtLeastOneText(/2 páginas/)
   })
 
   it('rota una página sin romper la grilla', async () => {
@@ -1138,7 +1184,7 @@ describe('<PdfStudioView />', () => {
     renderWithProviders(<PdfStudioView />)
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
-    expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
+    expectAtLeastOneText(/2 páginas/)
 
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 2/i }))
@@ -1163,7 +1209,7 @@ describe('<PdfStudioView />', () => {
 
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: 'Duplicar' }))
-    expect(screen.getByText(/3 páginas/)).toBeInTheDocument()
+    expectAtLeastOneText(/3 páginas/)
   })
 
   it('la barra de edición de hojas no mezcla acciones de texto', async () => {
@@ -1423,12 +1469,12 @@ describe('<PdfStudioView />', () => {
     renderWithProviders(<PdfStudioView />)
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
-    expect(screen.getByText(/2 páginas/)).toBeInTheDocument()
+    expectAtLeastOneText(/2 páginas/)
 
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.keyboard('{Meta>}c{/Meta}')
     await user.keyboard('{Meta>}v{/Meta}')
 
-    expect(screen.getByText(/3 páginas/)).toBeInTheDocument()
+    expectAtLeastOneText(/3 páginas/)
   })
 })

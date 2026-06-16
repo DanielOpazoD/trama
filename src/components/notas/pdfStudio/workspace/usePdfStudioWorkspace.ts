@@ -28,6 +28,12 @@ import {
 import { useCurrentClientUserId } from '../../../../lib/clientIdentity'
 import { downloadBlob } from '../../../../lib/downloadBlob'
 import { useToast } from '../../../../state'
+import {
+  createAutosaveFailedState,
+  createAutosaveRestoredState,
+  createAutosaveSavingState,
+  type PdfStudioAutosaveState,
+} from './pdfStudioAutosaveState'
 
 export function usePdfStudioWorkspace({
   clearSelection,
@@ -46,8 +52,13 @@ export function usePdfStudioWorkspace({
   const [saved, setSaved] = useState<SavedDoc[]>([])
   const [folders, setFolders] = useState<SavedFolder[]>([])
   const [panelCollapsed, setPanelCollapsed] = useState(true)
+  const [autosaveState, setAutosaveState] = useState<PdfStudioAutosaveState>({
+    kind: 'idle',
+    pages: 0,
+  })
   const toastRef = useRef(toast)
   const draftSanitizerRef = useRef<(draft: PdfDoc) => PdfDoc>((draft) => draft)
+  const autosaveRunRef = useRef(0)
   toastRef.current = toast
 
   useEffect(() => {
@@ -58,10 +69,13 @@ export function usePdfStudioWorkspace({
         const restored = normalizeDoc(draft.doc)
         reseedIds(restored)
         setHistory(initHistory(restored))
+        setAutosaveState(createAutosaveRestoredState(restored.pages.length))
         toastRef.current.show({
           message: 'Borrador del editor restaurado.',
           tone: 'success',
         })
+      } else {
+        setAutosaveState({ kind: 'idle', pages: 0 })
       }
       setLoaded(true)
     })
@@ -82,11 +96,33 @@ export function usePdfStudioWorkspace({
 
   useEffect(() => {
     if (!loaded) return
+    let cancelled = false
     const t = window.setTimeout(
-      () => void saveDraft(userKey, draftSanitizerRef.current(doc), []),
+      () =>
+        void (async () => {
+          const runId = ++autosaveRunRef.current
+          const sanitized = draftSanitizerRef.current(doc)
+          if (sanitized.pages.length === 0) {
+            if (!cancelled && autosaveRunRef.current === runId) {
+              setAutosaveState({ kind: 'idle', pages: 0 })
+            }
+            return
+          }
+          setAutosaveState(createAutosaveSavingState(sanitized.pages.length))
+          const savedOk = await saveDraft(userKey, sanitized, [])
+          if (cancelled || autosaveRunRef.current !== runId) return
+          setAutosaveState(
+            savedOk === false
+              ? createAutosaveFailedState(sanitized.pages.length)
+              : { kind: 'saved', pages: sanitized.pages.length, savedAt: Date.now() },
+          )
+        })(),
       600,
     )
-    return () => window.clearTimeout(t)
+    return () => {
+      cancelled = true
+      window.clearTimeout(t)
+    }
   }, [doc, loaded, userKey])
 
   function setDraftSanitizer(sanitize: (draft: PdfDoc) => PdfDoc) {
@@ -287,6 +323,7 @@ export function usePdfStudioWorkspace({
 
   return {
     addAssets,
+    autosaveState,
     duplicateSaved,
     exportTemplatePackage,
     createFolder,
