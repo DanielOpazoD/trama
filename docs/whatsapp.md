@@ -92,6 +92,23 @@ texto. Hoy: **imágenes**.
   - Una sola imagen sigue el camino simple de siempre (`image_key` /
     `payload.storageKey`).
 
+**Álbum partido (fotos en mensajes separados).** WhatsApp/Twilio a veces parte un
+envío de varias fotos en **mensajes separados** (un webhook por foto, y solo el
+primero con caption). Para que todas compartan destino, las fotos de media cruda
+(route momento/recorte) que llegan del mismo número dentro de una **ventana corta**
+(`ALBUM_APPEND_WINDOW_SECONDS`, 60 s) se **anexan a la captura reciente** en vez de
+crear otra (anexado reactivo, `_lib/whatsapp/album.ts`):
+
+- Foto sin caption tras un recorte reciente → se suma al **recorte-evento**
+  (un recorte de 1 imagen se promueve a evento: su portada pasa a `position 0`).
+- Foto sin caption tras un momento reciente → se copia a `momentos-media` y se
+  suma al **episodio** (`payload.items[]`).
+- Foto «a momento» tras un recorte reciente → **sube todo el álbum a Momento**
+  (reclasifica el recorte y anexa). Las rutas de visión (`cita:`/`nota:`) NO
+  continúan álbum (son intención por foto). La confirmación de un anexado es
+  suave («📸 +1 foto · tu momento ahora tiene 3»), y `recordLastCapture` extiende
+  la ventana para la próxima foto del mismo álbum.
+
 **Visión (cita:/nota:/texto:/ocr:).** Estas rutas pasan la imagen por
 `askLLMForVision` (OpenAI/Gemini, mismos guards que `extract-from-image`:
 `checkMonthlyBudget` + `resolveAIInvocation('extract-image')`). El prompt y el

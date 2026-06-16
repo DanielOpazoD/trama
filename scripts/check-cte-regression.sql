@@ -13,6 +13,7 @@
 --   netlify/functions/momentos.mts        (POST)
 --   netlify/functions/notes.mts           (DELETE + restore — patrón compartido con tasks/prompts)
 --   netlify/functions/_lib/whatsapp/persist-media.ts (persistImageRecorteEvent)
+--   netlify/functions/_lib/whatsapp/album.ts          (appendImagesToRecorteEvent)
 --
 -- Las tablas son throwaway con los nombres/contraint reales que importan (FK a
 -- users, PK compuesta de momento_entities para el ON CONFLICT, NOT NULL de
@@ -315,6 +316,87 @@ BEGIN
     RAISE EXCEPTION 'recorte-event: el emparejado key↔mime se desalineó';
   END IF;
   RAISE NOTICE 'OK recorte-event (recorte + 3 imágenes, position 0..2 por ordinalidad, key↔mime alineado)';
+END $$;
+
+-- ============================================================================
+-- 6) album.ts — appendImagesToRecorteEvent: anexa fotos a un recorte-evento
+--    (álbum partido). (a) promueve un recorte de 1 imagen insertando su portada
+--    como posición 0 y luego las nuevas; (b) anexa tras la última posición.
+--    Los CTE corren top-level (como en producción, vía el driver), con un id
+--    literal; las aserciones van aparte. Valida el cálculo de posición.
+-- ============================================================================
+INSERT INTO recortes (id, text, image_key, capture_mode, captured_at, status, source, user_id)
+VALUES ('77777777-7777-4777-8777-777777777777', 'foto suelta', 'u1/cover.png', 'image', NOW(), 'pending', 'whatsapp', 'u1');
+
+-- (a) Recorte LEGACY de una imagen → anexar 2 (la portada debe entrar en pos 0):
+WITH rec AS (
+  SELECT id, image_key, user_id FROM recortes
+  WHERE id = '77777777-7777-4777-8777-777777777777' AND user_id = 'u1' AND deleted_at IS NULL
+),
+existing AS (
+  SELECT COALESCE(MAX(position), -1) AS maxpos, COUNT(*)::int AS n
+  FROM recorte_images WHERE recorte_id = '77777777-7777-4777-8777-777777777777'
+),
+cover AS (
+  INSERT INTO recorte_images (recorte_id, user_id, storage_key, mime, position)
+  SELECT rec.id, rec.user_id, rec.image_key,
+    CASE WHEN rec.image_key ILIKE '%.png' THEN 'image/png' WHEN rec.image_key ILIKE '%.webp' THEN 'image/webp'
+         WHEN rec.image_key ILIKE '%.gif' THEN 'image/gif' ELSE 'image/jpeg' END,
+    0
+  FROM rec, existing WHERE existing.n = 0 AND rec.image_key IS NOT NULL
+  RETURNING 1
+),
+appended AS (
+  INSERT INTO recorte_images (recorte_id, user_id, storage_key, mime, position)
+  SELECT rec.id, rec.user_id, x.key, x.mime,
+    (CASE WHEN existing.n = 0 AND rec.image_key IS NOT NULL THEN 1 WHEN existing.n = 0 THEN 0 ELSE existing.maxpos + 1 END) + (x.ord - 1)::int
+  FROM rec, existing,
+    unnest(ARRAY['u1/p1.jpg','u1/p2.webp']::text[], ARRAY['image/jpeg','image/webp']::text[]) WITH ORDINALITY AS x(key, mime, ord)
+  RETURNING 1
+)
+SELECT EXISTS(SELECT 1 FROM rec) AS found, (SELECT n FROM existing) AS existing_n;
+
+-- (b) Anexar 1 más al mismo evento (ya tiene 3 → nueva en posición 3):
+WITH rec AS (
+  SELECT id, image_key, user_id FROM recortes
+  WHERE id = '77777777-7777-4777-8777-777777777777' AND user_id = 'u1' AND deleted_at IS NULL
+),
+existing AS (
+  SELECT COALESCE(MAX(position), -1) AS maxpos, COUNT(*)::int AS n
+  FROM recorte_images WHERE recorte_id = '77777777-7777-4777-8777-777777777777'
+),
+cover AS (
+  INSERT INTO recorte_images (recorte_id, user_id, storage_key, mime, position)
+  SELECT rec.id, rec.user_id, rec.image_key, 'image/png', 0
+  FROM rec, existing WHERE existing.n = 0 AND rec.image_key IS NOT NULL
+  RETURNING 1
+),
+appended AS (
+  INSERT INTO recorte_images (recorte_id, user_id, storage_key, mime, position)
+  SELECT rec.id, rec.user_id, x.key, x.mime,
+    (CASE WHEN existing.n = 0 AND rec.image_key IS NOT NULL THEN 1 WHEN existing.n = 0 THEN 0 ELSE existing.maxpos + 1 END) + (x.ord - 1)::int
+  FROM rec, existing,
+    unnest(ARRAY['u1/p3.jpg']::text[], ARRAY['image/jpeg']::text[]) WITH ORDINALITY AS x(key, mime, ord)
+  RETURNING 1
+)
+SELECT EXISTS(SELECT 1 FROM rec) AS found;
+
+DO $$
+DECLARE rid uuid := '77777777-7777-4777-8777-777777777777';
+BEGIN
+  IF (SELECT array_agg(position ORDER BY position) FROM recorte_images WHERE recorte_id = rid) <> ARRAY[0,1,2,3] THEN
+    RAISE EXCEPTION 'album-append: posiciones esperadas 0,1,2,3 (portada + 3 anexadas)';
+  END IF;
+  IF (SELECT storage_key FROM recorte_images WHERE recorte_id = rid AND position = 0) <> 'u1/cover.png' THEN
+    RAISE EXCEPTION 'album-append: la portada legacy no quedó en posición 0';
+  END IF;
+  IF (SELECT mime FROM recorte_images WHERE recorte_id = rid AND position = 0) <> 'image/png' THEN
+    RAISE EXCEPTION 'album-append: el mime de la portada no se derivó de la extensión';
+  END IF;
+  IF (SELECT storage_key FROM recorte_images WHERE recorte_id = rid AND position = 3) <> 'u1/p3.jpg' THEN
+    RAISE EXCEPTION 'album-append: el anexado posterior no quedó en la posición 3';
+  END IF;
+  RAISE NOTICE 'OK album-append (promoción de 1→evento en pos 0, anexado posterior sin huecos)';
 END $$;
 
 SELECT 'TODOS LOS CTE OK' AS resultado;

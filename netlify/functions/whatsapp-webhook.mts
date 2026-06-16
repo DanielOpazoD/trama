@@ -52,6 +52,12 @@ import {
   reclassifyRecorteToMomento,
   reclassifyRecorteToNote,
 } from './_lib/whatsapp/reclassify-media.js'
+import {
+  readRecentMediaCapture,
+  appendImagesToMomento,
+  appendImagesToRecorteEvent,
+} from './_lib/whatsapp/album.js'
+import { copyRecorteImageToStore, removeBlob } from './_lib/recorte-to-momento.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
 import {
@@ -755,6 +761,104 @@ async function handleInboundMedia(
     }
   }
 
+  // --- Álbum partido: ¿esta foto continúa el álbum recién capturado? ----------
+  // Si llegó media "cruda" (route momento/recorte) y el número tuvo una captura
+  // de media hace pocos segundos, la anexamos a esa captura en vez de crear otra
+  // — así las fotos que WhatsApp parte en mensajes separados comparten destino.
+  // Las rutas de visión (cita:/nota:) NO continúan álbum (son intención por foto).
+  let appendedTotal: number | null = null
+  const newImageCount = momentoKeys.length + recorteKeys.length
+  const isRawMediaRoute = route === 'momento' || route === 'recorte'
+  if (newImageCount > 0 && isRawMediaRoute) {
+    const recent = await readRecentMediaCapture(sql, userId, phone)
+    if (recent) {
+      try {
+        if (route === 'momento') {
+          // Fotos nuevas ya en momentos-media (momentoKeys).
+          if (recent.kind === 'momento') {
+            appendedTotal = await appendImagesToMomento(
+              sql,
+              userId,
+              recent.id,
+              momentoKeys,
+            )
+            if (appendedTotal !== null) {
+              lastId = recent.id
+              lastKind = 'momento'
+            }
+          } else {
+            // El lote reciente era un recorte y esta foto dice "a momento":
+            // subimos TODO el álbum a un momento (reclasificación) y anexamos.
+            const res = await reclassifyRecorteToMomento(sql, userId, recent.id, '')
+            if (res.status === 'ok') {
+              await softDeleteCapture(sql, userId, 'recorte', recent.id)
+              appendedTotal = await appendImagesToMomento(
+                sql,
+                userId,
+                res.id,
+                momentoKeys,
+              )
+              if (appendedTotal !== null) {
+                lastId = res.id
+                lastKind = 'momento'
+              }
+            }
+          }
+        } else {
+          // route 'recorte' (sin caption de destino). Fotos en recortes-media.
+          if (recent.kind === 'recorte') {
+            appendedTotal = await appendImagesToRecorteEvent(
+              sql,
+              userId,
+              recent.id,
+              recorteKeys,
+            )
+            if (appendedTotal !== null) {
+              lastId = recent.id
+              lastKind = 'recorte'
+            }
+          } else {
+            // El lote reciente era un momento: una foto sin caption se une a él.
+            // Copiamos los blobs a momentos-media y limpiamos los de recortes.
+            const copied: string[] = []
+            for (const rk of recorteKeys) {
+              const c = await copyRecorteImageToStore('momentos-media', rk.key, userId)
+              if (c) {
+                copied.push(c.storageKey)
+                await removeBlob('recortes-media', rk.key)
+              }
+            }
+            if (copied.length > 0) {
+              appendedTotal = await appendImagesToMomento(sql, userId, recent.id, copied)
+              if (appendedTotal !== null) {
+                lastId = recent.id
+                lastKind = 'momento'
+              }
+            }
+          }
+        }
+      } catch (err) {
+        logEvent({
+          event: 'whatsapp_media_failed',
+          message: err instanceof Error ? err.message : String(err),
+        })
+        appendedTotal = null
+      }
+      if (appendedTotal !== null) {
+        saved += newImageCount
+        // Anexado: vaciamos las keys para que NO se cree además una captura nueva.
+        momentoKeys.length = 0
+        recorteKeys.length = 0
+        logEvent({
+          event: 'whatsapp_album_append',
+          kind: lastKind,
+          count: newImageCount,
+          total: appendedTotal,
+        })
+      }
+    }
+  }
+
   // Episodio foto: todas las fotos del route 'momento' en un solo momento.
   if (momentoKeys.length > 0) {
     try {
@@ -800,21 +904,32 @@ async function handleInboundMedia(
   const lines: string[] = []
   if (saved > 0) {
     const dest = DEST_BY_KIND[lastKind] ?? 'Trama'
-    // Eventos: varias fotos en un SOLO momento, o varias imágenes en un solo
-    // recorte — no N elementos sueltos.
-    const isPhotoEpisode =
-      lastKind === 'momento' && momentoKeys.length > 1 && saved === momentoKeys.length
-    const isRecorteEvent =
-      lastKind === 'recorte' && recorteKeys.length > 1 && saved === recorteKeys.length
-    lines.push(
-      saved === 1
-        ? `✅ Guardado en ${dest}.`
-        : isPhotoEpisode
-          ? `✅ ${saved} fotos guardadas en un momento.`
-          : isRecorteEvent
-            ? `✅ ${saved} imágenes guardadas como un evento en Recortes.`
-            : `✅ ${saved} elementos guardados.`,
-    )
+    if (appendedTotal !== null) {
+      // Continuación de álbum: anexamos a la captura reciente (confirmación
+      // suave, sin "guardado" de nuevo — es el mismo evento que crece).
+      const noun = lastKind === 'momento' ? 'tu momento' : 'tu evento en Recortes'
+      lines.push(
+        newImageCount === 1
+          ? `📸 +1 foto · ${noun} ahora tiene ${appendedTotal}.`
+          : `📸 +${newImageCount} fotos · ${noun} ahora tiene ${appendedTotal}.`,
+      )
+    } else {
+      // Eventos: varias fotos en un SOLO momento, o varias imágenes en un solo
+      // recorte — no N elementos sueltos.
+      const isPhotoEpisode =
+        lastKind === 'momento' && momentoKeys.length > 1 && saved === momentoKeys.length
+      const isRecorteEvent =
+        lastKind === 'recorte' && recorteKeys.length > 1 && saved === recorteKeys.length
+      lines.push(
+        saved === 1
+          ? `✅ Guardado en ${dest}.`
+          : isPhotoEpisode
+            ? `✅ ${saved} fotos guardadas en un momento.`
+            : isRecorteEvent
+              ? `✅ ${saved} imágenes guardadas como un evento en Recortes.`
+              : `✅ ${saved} elementos guardados.`,
+      )
+    }
     if (skipped.has('vision')) {
       lines.push('(No pude leer el texto, así que guardé la imagen tal cual.)')
     }

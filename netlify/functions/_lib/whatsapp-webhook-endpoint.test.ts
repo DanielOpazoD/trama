@@ -567,6 +567,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMmedia' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
     mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte RETURNING id
     mockSqlResponses.push([]) // recordLastCapture (fire-and-forget)
     const res = await webhookHandler(
@@ -616,6 +617,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMmedia2' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
     mockSqlResponses.push([{ id: 'r1' }]) // CTE: INSERT recorte + recorte_images RETURNING id
     mockSqlResponses.push([]) // recordLastCapture (fire-and-forget)
     const res = await webhookHandler(
@@ -666,6 +668,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMmomento2' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
     mockSqlResponses.push([{ id: 'm1' }]) // persistImageMomentoEpisode INSERT
     mockSqlResponses.push([]) // recordLastCapture
     const res = await webhookHandler(
@@ -724,6 +727,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMnat2' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
     mockSqlResponses.push([{ id: 'm2' }]) // persistImageMomentoEpisode INSERT
     mockSqlResponses.push([]) // recordLastCapture
     const res = await webhookHandler(
@@ -782,6 +786,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMmediabtn' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
     mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte
     mockSqlResponses.push([]) // recordLastCapture
     const res = await webhookHandler(
@@ -801,6 +806,127 @@ describe('whatsapp-webhook', () => {
     const body = new URLSearchParams(sendCall[1].body)
     expect(body.get('ContentSid')).toBe('HXdest')
     expect(body.get('ContentVariables')).toContain('Recortes')
+  })
+
+  it('álbum partido: foto sin caption tras un recorte reciente → se ANEXA al evento', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMcont1',
+      From: 'whatsapp:+56912345678',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/x',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMcont1' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'recorte', id: 'r1' }]) // readRecentMediaCapture (en ventana)
+    mockSqlResponses.push([{ found: true, existing_n: 0, had_cover: true }]) // appendImagesToRecorteEvent
+    mockSqlResponses.push([]) // recordLastCapture
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    // Confirmación de anexado (no "Guardado" de nuevo): el evento crece a 2.
+    expect(xml).toContain('+1 foto')
+    expect(xml).toContain('evento en Recortes')
+    expect(xml).toContain('ahora tiene 2')
+    // Anexó a recorte_images; NO creó un recorte nuevo.
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO recorte_images/i.test(c.template)),
+    ).toBe(true)
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /INSERT INTO recortes\b/i.test(c.template) &&
+          !/recorte_images/i.test(c.template),
+      ),
+    ).toBe(false)
+  })
+
+  it('álbum partido: foto "a momento" tras un recorte reciente → sube el álbum a Momento', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMcont2',
+      From: 'whatsapp:+56912345678',
+      Body: 'a momento',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/y',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMcont2' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'recorte', id: 'r1' }]) // readRecentMediaCapture
+    mockSqlResponses.push([{ storage_key: 'u1/old.jpg' }]) // reclassify → readRecorteImageKeys
+    mockSqlResponses.push([{ id: 'm1' }]) // reclassify → persistImageMomentoEpisode INSERT
+    mockSqlResponses.push([{ id: 'r1' }]) // softDeleteCapture recorte
+    mockSqlResponses.push([{ total: 2 }]) // appendImagesToMomento UPDATE
+    mockSqlResponses.push([]) // recordLastCapture
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('tu momento')
+    expect(xml).toContain('ahora tiene 2')
+    // El recorte original se subió a momento (reclasificación) y se soft-borró.
+    expect(
+      mockSqlResponses.calls.some(
+        (c) => /UPDATE recortes/i.test(c.template) && /deleted_at/i.test(c.template),
+      ),
+    ).toBe(true)
+    expect(mockSqlResponses.calls.some((c) => /UPDATE momentos/i.test(c.template))).toBe(
+      true,
+    )
   })
 
   it('foto con "nota:" → visión transcribe y guarda Nota', async () => {
