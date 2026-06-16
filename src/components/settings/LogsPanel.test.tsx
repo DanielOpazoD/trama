@@ -38,6 +38,16 @@ beforeEach(() => vi.restoreAllMocks())
 afterEach(() => vi.restoreAllMocks())
 
 describe('<LogsPanel />', () => {
+  it('usa el loading editorial mientras carga errores', () => {
+    vi.spyOn(apiModule.api, 'errorLog').mockReturnValue(new Promise(() => {}))
+    const qc = makeQueryClient()
+    render(<LogsPanel />, { wrapper: wrap(qc) })
+
+    expect(screen.getByText('cargando…').closest('[role="status"]')).toBe(
+      screen.getByRole('status'),
+    )
+  })
+
   it('renderiza el header y las dos sub-tabs', () => {
     vi.spyOn(apiModule.api, 'errorLog').mockResolvedValue([])
     vi.spyOn(apiModule.api, 'extractionLog').mockResolvedValue({

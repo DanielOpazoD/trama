@@ -26,6 +26,7 @@ import { LibroModal } from './quotes/LibroModal'
 import { DensityToggle } from './DensityToggle'
 import { useDensity } from '../hooks/useDensity'
 import { EditorialProjectsContextStrip } from './editorial/EditorialProjectsContextStrip'
+import { InlineLoadingLabel } from './InlineLoadingLabel'
 
 const WORK_TYPES = new Set([
   'libro',
@@ -348,7 +349,7 @@ export function QuotesView({
           )}
           {quotesPaged.isFetchingNextPage && (
             <p className="mt-4 text-center text-xs uppercase tracking-eyebrow text-ink-300">
-              cargando más…
+              <InlineLoadingLabel text="cargando más" />
             </p>
           )}
           {!quotesPaged.hasNextPage && !quotesPaged.isLoading && quotes.length >= 5 && (

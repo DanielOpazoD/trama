@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { SparkleIcon } from '../Icons'
+import { InlineLoadingLabel } from '../InlineLoadingLabel'
 
 /**
  * Importador de playlist Spotify, colapsable.
@@ -71,9 +72,13 @@ export function PlaylistImporter({
             <button
               type="submit"
               disabled={!value.trim() || isPending}
-              className="btn-accent text-xs"
+              className="btn-accent inline-flex items-center gap-1.5 text-xs"
             >
-              {isPending ? 'leyendo…' : 'importar'}
+              {isPending ? (
+                <InlineLoadingLabel text="leyendo" tone="inverse" />
+              ) : (
+                'importar'
+              )}
             </button>
           </div>
           {hasError && (

@@ -1,4 +1,5 @@
 import { OrnamentBreak, EndMark } from './Icons'
+import { InlineLoadingLabel } from './InlineLoadingLabel'
 
 /**
  * Paginator editorial — barra de paginación para listas con
@@ -39,7 +40,7 @@ export function Paginator({
           disabled={loading}
           className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {loading ? 'cargando más…' : 'más atrás ↓'}
+          {loading ? <InlineLoadingLabel text="cargando más" /> : 'más atrás ↓'}
         </button>
       </div>
     )

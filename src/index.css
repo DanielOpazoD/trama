@@ -1064,16 +1064,27 @@ html.dark .paper-grain::before {
 
 @layer components {
   .input-paper {
-    @apply px-3 py-2 bg-paper-50/70 border border-ink-100 rounded-lg
+    @apply px-3 py-2 border border-ink-100 rounded-lg
       transition-all duration-200
       text-ink-700 placeholder:text-ink-200;
+    background:
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.82), rgb(var(--paper-100) / 0.52)),
+      radial-gradient(circle at 0% 0%, var(--accent-gold-soft), transparent 46%);
+    box-shadow:
+      0 1px 0 rgb(var(--paper-50) / 0.68) inset,
+      0 1px 2px rgb(var(--ink-900) / 0.035);
     /* Focus ring uses the editorial primary accent — prussian on cream,
        lights up to ~3px without shifting layout. */
   }
   .input-paper:focus {
     outline: none;
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px var(--accent-primary-ring);
+    background:
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.94), rgb(var(--paper-50) / 0.72)),
+      radial-gradient(circle at 0% 0%, var(--accent-gold-soft), transparent 44%);
+    box-shadow:
+      0 0 0 3px var(--accent-primary-ring),
+      0 10px 24px rgb(var(--ink-900) / 0.06);
   }
 
   .btn-ink {
@@ -1083,10 +1094,13 @@ html.dark .paper-grain::before {
       disabled:bg-ink-200 disabled:cursor-not-allowed disabled:active:scale-100;
     box-shadow:
       0 1px 2px rgb(0 0 0 / 0.08),
+      0 1px 0 rgb(var(--paper-50) / 0.08) inset,
       0 0 0 0 transparent;
   }
   .btn-ink:hover:not(:disabled) {
-    box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+    box-shadow:
+      0 8px 22px rgb(var(--ink-900) / 0.16),
+      0 1px 0 rgb(var(--paper-50) / 0.12) inset;
   }
 
   /* Secondary "primary" — uses the editorial accent instead of ink. For
@@ -1098,11 +1112,15 @@ html.dark .paper-grain::before {
       disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
     background-color: var(--accent-primary);
     color: rgb(var(--paper-50));
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.08),
+      0 1px 0 rgb(var(--paper-50) / 0.16) inset;
   }
   .btn-accent:hover:not(:disabled) {
     filter: brightness(1.08);
-    box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
+    box-shadow:
+      0 9px 24px var(--accent-primary-ring),
+      0 1px 0 rgb(var(--paper-50) / 0.18) inset;
   }
 
   .btn-ghost {
@@ -1190,9 +1208,24 @@ html.dark .paper-grain::before {
     @apply inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.18em]
       transition-colors disabled:cursor-not-allowed;
     color: var(--accent-primary);
+    position: relative;
   }
   .ai-cta:hover:not(:disabled) {
     filter: brightness(0.85);
+  }
+  .ai-cta[aria-busy='true'] {
+    color: var(--accent-gold);
+  }
+  .ai-cta[aria-busy='true']::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 1px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+    opacity: 0.5;
   }
   .ai-cta:disabled {
     @apply text-ink-200;
@@ -1208,8 +1241,23 @@ html.dark .paper-grain::before {
     border-color: var(--accent-primary-ring);
     box-shadow: 0 2px 8px var(--accent-primary-ring);
   }
+  .ai-cta-pill[aria-busy='true'] {
+    color: var(--accent-gold);
+    border-color: rgb(160 121 0 / 0.26);
+    background:
+      linear-gradient(90deg, rgb(160 121 0 / 0.08), transparent 42%),
+      rgb(var(--paper-50) / 0.9);
+  }
   .ai-cta-pill:disabled {
     @apply text-ink-200;
+  }
+
+  .ai-thinking-label {
+    @apply inline-flex items-center gap-1.5;
+  }
+
+  .inline-loading-label {
+    @apply inline-flex items-center gap-1.5;
   }
 
   /* Drop cap editorial — para la primera letra de la cita destacada
@@ -1245,12 +1293,40 @@ html.dark .paper-grain::before {
      Si el usuario tiene prefers-reduced-motion, paramos la animación
      y dejamos el color base — el shimmer no es esencial para entender
      que algo está cargando. */
+  .skeleton-surface {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgb(var(--ink-100) / 0.42);
+    border-radius: 0.75rem;
+    background:
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.54), rgb(var(--paper-100) / 0.32)),
+      radial-gradient(circle at 12% 0%, var(--accent-gold-soft), transparent 36%);
+  }
+  .skeleton-surface::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, transparent, rgb(var(--ink-700) / 0.026), transparent),
+      linear-gradient(180deg, transparent, rgb(var(--paper-50) / 0.34));
+    opacity: 0.66;
+  }
+  .skeleton-line {
+    border-radius: 0.32rem;
+    background-color: rgb(var(--ink-100) / 0.5);
+    box-shadow: 0 1px 0 rgb(var(--paper-50) / 0.34) inset;
+  }
+  .skeleton-static {
+    background-color: rgb(var(--ink-100) / 0.46);
+  }
   .skeleton-shimmer {
-    background-color: rgb(var(--ink-100) / 0.6);
+    background-color: rgb(var(--ink-100) / 0.48);
     background-image: linear-gradient(
       90deg,
       transparent 0%,
-      rgb(var(--paper-50) / 0.6) 50%,
+      rgb(var(--paper-50) / 0.72) 44%,
+      var(--accent-gold-soft) 52%,
       transparent 100%
     );
     background-size: 200% 100%;
@@ -1339,7 +1415,10 @@ html.dark .paper-grain::before {
        .card-paper-hover      añade hover state con shadow + bg shift
        .card-paper-elevated   panels más prominentes (mayor opacity) */
   .card-paper {
-    @apply bg-paper-50/40 border border-ink-100/50 rounded-xl;
+    @apply border border-ink-100/50 rounded-xl;
+    background:
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.48), rgb(var(--paper-100) / 0.26)),
+      radial-gradient(circle at 0% 0%, rgb(var(--paper-50) / 0.68), transparent 42%);
   }
   .card-paper-hover {
     @apply card-paper transition-all duration-200
@@ -1356,17 +1435,38 @@ html.dark .paper-grain::before {
     will-change: transform;
   }
   .card-paper-hover:hover {
+    border-color: rgb(var(--ink-100) / 0.82);
+    background:
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.76), rgb(var(--paper-100) / 0.38)),
+      radial-gradient(circle at 0% 0%, var(--accent-gold-soft), transparent 42%);
     box-shadow: var(--card-shadow-hover);
     transform: perspective(800px) rotateX(-0.4deg) translateY(-1px);
   }
+  .card-paper-hover:focus-within {
+    border-color: var(--accent-primary-ring);
+    box-shadow:
+      var(--card-shadow-hover),
+      0 0 0 3px var(--accent-primary-ring);
+  }
   @media (prefers-reduced-motion: reduce) {
     .card-paper-hover,
-    .card-paper-hover:hover {
+    .card-paper-hover:hover,
+    .card-paper-hover:focus-within {
+      transform: none;
+    }
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .card-paper-hover,
+    .card-paper-hover:hover,
+    .card-paper-hover:focus-within {
       transform: none;
     }
   }
   .card-paper-elevated {
-    @apply bg-paper-50/70 border border-ink-100/60 rounded-xl;
+    @apply border border-ink-100/60 rounded-xl;
+    background:
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.82), rgb(var(--paper-100) / 0.48)),
+      radial-gradient(circle at 8% 0%, var(--accent-gold-soft), transparent 38%);
     /* ν1: cards elevadas (WeeklyActivity hero, panels) usan la sombra
        cálida estática — no necesitan hover state pero sí "lift". */
     box-shadow: var(--card-shadow-hover);
@@ -1385,7 +1485,10 @@ html.dark .paper-grain::before {
        - .card-paper-soft   → panel inline, ni row ni elevado (bg-paper-100/60)
    */
   .card-paper-soft {
-    @apply bg-paper-100/60 border border-ink-100/60 rounded-xl;
+    @apply border border-ink-100/60 rounded-xl;
+    background:
+      linear-gradient(180deg, rgb(var(--paper-100) / 0.62), rgb(var(--paper-50) / 0.42)),
+      radial-gradient(circle at 100% 0%, var(--accent-gold-soft), transparent 36%);
   }
 
   /* ────────────────────────────────────────────────────────────────────
@@ -1541,27 +1644,293 @@ html.dark .paper-grain::before {
     background-color: rgb(var(--paper-100) / 0.7);
   }
 
-  /* ζ11: indicador "pensando · · ·" — cada punto late escalonado (delay
-     prop'd inline). Subtle, editorial: cada punto fade de 0.2 a 1.0 en
-     0.9s ease-in-out. Reduce motion lo apaga (los puntos quedan visibles
-     pero estáticos a 0.6). */
-  @keyframes dots-pulse {
+  @keyframes empty-message-thread-pulse {
     0%,
     100% {
-      opacity: 0.2;
+      opacity: 0.18;
+      transform: scaleX(0.72);
     }
     50% {
+      opacity: 0.42;
+      transform: scaleX(1);
+    }
+  }
+  .empty-message {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .empty-message--soft {
+    border: 1px solid rgb(var(--ink-100) / 0.58);
+    border-radius: 1rem;
+    background:
+      radial-gradient(circle at 18% 0%, var(--accent-gold-soft), transparent 36%),
+      radial-gradient(circle at 86% 20%, var(--accent-sage-soft), transparent 30%),
+      linear-gradient(180deg, rgb(var(--paper-50) / 0.7), rgb(var(--paper-50) / 0.36));
+    box-shadow:
+      0 22px 54px rgb(var(--ink-900) / 0.055),
+      0 1px 0 rgb(var(--paper-50) / 0.76) inset;
+    backdrop-filter: blur(12px);
+  }
+  .empty-message--plain {
+    overflow: visible;
+  }
+  .empty-message__threadMotif {
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    top: 1rem;
+    z-index: -1;
+    height: 2.1rem;
+    pointer-events: none;
+    color: var(--accent-gold);
+  }
+  .empty-message--plain .empty-message__threadMotif {
+    left: 20%;
+    right: 20%;
+    top: 0.4rem;
+  }
+  .empty-message__thread {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, currentColor, transparent);
+    opacity: 0.24;
+    transform-origin: center;
+    animation: empty-message-thread-pulse 2.4s ease-in-out infinite;
+  }
+  .empty-message__thread--one {
+    top: 0.45rem;
+  }
+  .empty-message__thread--two {
+    top: 1.45rem;
+    color: var(--accent-primary);
+    animation-delay: 260ms;
+  }
+
+  @keyframes trama-spinner-thread {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes trama-spinner-ai {
+    0%,
+    100% {
+      transform: scale(0.82);
+      opacity: 0.55;
+    }
+    50% {
+      transform: scale(1.12);
       opacity: 1;
     }
   }
-  .dots-dot {
+  @keyframes trama-spinner-breathe {
+    0%,
+    100% {
+      opacity: 0.52;
+    }
+    50% {
+      opacity: 0.9;
+    }
+  }
+  @keyframes view-fallback-thread {
+    0%,
+    100% {
+      transform: scaleX(0.58);
+      opacity: 0.16;
+    }
+    50% {
+      transform: scaleX(1);
+      opacity: 0.42;
+    }
+  }
+  @keyframes view-transition-enter {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .view-transition {
+    min-height: 100%;
+    animation: view-transition-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: opacity, transform;
+  }
+  .view-transition--canvas {
+    height: 100%;
+  }
+  .trama-spinner {
+    --trama-spinner-size: 16px;
+    --trama-spinner-primary: var(--accent-primary);
+    --trama-spinner-ring: var(--accent-primary-ring);
+    --trama-spinner-spark: var(--accent-sage);
+    position: relative;
     display: inline-block;
-    animation: dots-pulse 0.9s ease-in-out infinite;
+    width: var(--trama-spinner-size);
+    height: var(--trama-spinner-size);
+    flex: none;
+    vertical-align: -0.16em;
+  }
+  .trama-spinner--inverse {
+    --trama-spinner-primary: rgb(var(--paper-50));
+    --trama-spinner-ring: rgb(var(--paper-50) / 0.34);
+    --trama-spinner-spark: var(--accent-gold);
+  }
+  .trama-spinner--ai {
+    --trama-spinner-primary: var(--accent-gold);
+    --trama-spinner-ring: rgb(160 121 0 / 0.24);
+    --trama-spinner-spark: var(--accent-primary);
+  }
+  .trama-spinner--ai.trama-spinner--inverse {
+    --trama-spinner-primary: rgb(var(--paper-50));
+    --trama-spinner-ring: rgb(var(--paper-50) / 0.32);
+    --trama-spinner-spark: var(--accent-gold);
+  }
+  .trama-spinner__ring,
+  .trama-spinner__thread,
+  .trama-spinner__core,
+  .trama-spinner__spark {
+    position: absolute;
+    pointer-events: none;
+  }
+  .trama-spinner__ring {
+    inset: 8%;
+    border: 1px solid var(--trama-spinner-ring);
+    border-radius: 999px;
+    opacity: 0.9;
+  }
+  .trama-spinner__thread {
+    inset: 0;
+    border-radius: 999px;
+    animation: trama-spinner-thread 1.15s linear infinite;
+  }
+  .trama-spinner__thread::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 34%;
+    height: 34%;
+    border-top: 1.5px solid var(--trama-spinner-primary);
+    border-right: 1.5px solid var(--trama-spinner-primary);
+    border-radius: 1px 999px 1px 1px;
+    transform: translateX(-8%);
+  }
+  .trama-spinner__core {
+    inset: 38%;
+    border-radius: 999px;
+    background: var(--trama-spinner-primary);
+    opacity: 0.72;
+    animation: trama-spinner-breathe 1.4s ease-in-out infinite;
+  }
+  .trama-spinner__spark {
+    width: 14%;
+    height: 14%;
+    border-radius: 999px;
+    background: var(--trama-spinner-spark);
+    opacity: 0.82;
+  }
+  .trama-spinner__spark--one {
+    right: 9%;
+    top: 22%;
+  }
+  .trama-spinner__spark--two {
+    left: 17%;
+    bottom: 11%;
+    opacity: 0.46;
+  }
+  .trama-spinner--ai .trama-spinner__thread {
+    animation-duration: 1.65s;
+  }
+  .trama-spinner--ai .trama-spinner__core {
+    animation: trama-spinner-ai 1.05s ease-in-out infinite;
+  }
+  .trama-spinner--ai .trama-spinner__spark {
+    animation: trama-spinner-ai 1.05s ease-in-out infinite;
+  }
+  .trama-spinner--ai .trama-spinner__spark--two {
+    animation-delay: 180ms;
+  }
+  .trama-spinner--idle .trama-spinner__thread,
+  .trama-spinner--idle .trama-spinner__core,
+  .trama-spinner--idle .trama-spinner__spark {
+    animation: none;
+  }
+  .trama-spinner--idle .trama-spinner__core {
+    opacity: 0.42;
   }
   @media (prefers-reduced-motion: reduce) {
-    .dots-dot {
+    .empty-message__thread {
       animation: none;
-      opacity: 0.6;
+      opacity: 0.28;
+      transform: scaleX(0.84);
+    }
+    .trama-spinner__thread,
+    .trama-spinner__core,
+    .trama-spinner__spark {
+      animation: none;
+    }
+    .trama-spinner__core {
+      opacity: 0.72;
+    }
+  }
+  .view-fallback {
+    display: flex;
+    min-height: 220px;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .view-fallback__loom {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 42px;
+  }
+  .view-fallback__thread {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--accent-primary-ring),
+      var(--accent-gold),
+      transparent
+    );
+    transform-origin: center;
+    animation: view-fallback-thread 1.8s ease-in-out infinite;
+  }
+  .view-fallback__thread--one {
+    top: 9px;
+  }
+  .view-fallback__thread--two {
+    top: 20px;
+    animation-delay: 180ms;
+  }
+  .view-fallback__thread--three {
+    top: 31px;
+    animation-delay: 360ms;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .view-fallback__thread {
+      animation: none;
+      opacity: 0.28;
+      transform: scaleX(0.82);
+    }
+    .view-transition {
+      animation: none;
+      transform: none;
     }
   }
 

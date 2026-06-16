@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { api, type SpotifyLibrarySnapshot } from '../api'
 import { SparkleIcon } from './Icons'
 import { AISourceTag } from './AISourceTag'
+import { AIThinkingLabel } from './AIThinkingLabel'
 
 /**
  * κ-spotify: Card "tu paleta musical" — retrato sintético de los gustos del
@@ -116,9 +117,13 @@ export function MusicPaletteCard() {
           <button
             onClick={() => generate.mutate()}
             disabled={generate.isPending}
-            className="btn-accent text-xs shrink-0"
+            className="btn-accent inline-flex items-center gap-1.5 text-xs shrink-0"
           >
-            {generate.isPending ? 'leyendo…' : 'generar paleta'}
+            {generate.isPending ? (
+              <AIThinkingLabel state="reading" tone="inverse" />
+            ) : (
+              'generar paleta'
+            )}
           </button>
         </div>
         {generate.error && (
@@ -164,7 +169,11 @@ export function MusicPaletteCard() {
             disabled={generate.isPending}
             className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60"
           >
-            {generate.isPending ? 'releyendo…' : 'actualizar'}
+            {generate.isPending ? (
+              <AIThinkingLabel state="reading" text="releyendo" />
+            ) : (
+              'actualizar'
+            )}
           </button>
           {/* σ-followup: eliminar la paleta — vuelve al empty state con
               el botón "generar paleta". Útil cuando el retrato ya no

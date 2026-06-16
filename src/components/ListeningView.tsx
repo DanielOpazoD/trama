@@ -11,6 +11,7 @@ import { PlaylistImporter } from './listening/PlaylistImporter'
 import { ViewHeader } from './ViewHeader'
 import { LoadingHint } from './LoadingHint'
 import type { EntityType, ExtractionProposal, Origin } from '../types'
+import { AIThinkingLabel } from './AIThinkingLabel'
 
 type Group = 'artist' | 'album' | 'track'
 
@@ -388,16 +389,7 @@ export function ListeningView({
                         title="La IA propondrá descripción, año y posibles conexiones"
                       >
                         {enrichingKey === item.key ? (
-                          <>
-                            <span
-                              className="size-3 border-2 rounded-full animate-spin"
-                              style={{
-                                borderColor: 'var(--accent-primary-ring)',
-                                borderTopColor: 'var(--accent-primary)',
-                              }}
-                            />
-                            preparando…
-                          </>
+                          <AIThinkingLabel state="weaving" text="preparando" />
                         ) : (
                           <>
                             <SparkleIcon size={12} />

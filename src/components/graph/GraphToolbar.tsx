@@ -1,4 +1,5 @@
 import { SparkleIcon } from '../Icons'
+import { AIThinkingLabel } from '../AIThinkingLabel'
 import type { LayoutMode } from '../../hooks/layouts/types'
 
 export type GraphMode = 'completo' | 'exploratorio'
@@ -131,18 +132,10 @@ export function GraphToolbar({
             disabled={suggestPending || suggestDisabled}
             className="ai-cta-pill"
             title="Propón relaciones nuevas con IA entre las entidades existentes"
+            aria-busy={suggestPending}
           >
             {suggestPending ? (
-              <>
-                <span
-                  className="size-3 border-2 rounded-full animate-spin"
-                  style={{
-                    borderColor: `var(--accent-primary-ring)`,
-                    borderTopColor: `var(--accent-primary)`,
-                  }}
-                />
-                pensando…
-              </>
+              <AIThinkingLabel />
             ) : (
               <>
                 <SparkleIcon size={12} />

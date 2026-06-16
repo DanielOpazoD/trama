@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api, type ErrorLogEntry, type ExtractionLogEntry } from '../../api'
+import { LoadingHint } from '../LoadingHint'
 import { PanelHeader } from './_shared'
 
 /**
@@ -76,7 +77,7 @@ function ErrorList() {
   const grouped = useMemo(() => dedupErrorEntries(data ?? []), [data])
 
   if (isLoading) {
-    return <p className="text-xs text-ink-300 italic">cargando…</p>
+    return <LoadingHint text="cargando" />
   }
   if (error || !data) {
     return (
@@ -270,7 +271,7 @@ function ExtractionList() {
   })
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  if (isLoading) return <p className="text-xs text-ink-300 italic">cargando…</p>
+  if (isLoading) return <LoadingHint text="cargando" />
   if (error || !data) {
     return (
       <div className="space-y-2">

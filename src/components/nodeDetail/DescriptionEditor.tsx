@@ -3,6 +3,8 @@ import { api } from '../../api'
 import { useAsk, useUpdateEntity } from '../../state'
 import type { Entity } from '../../types'
 import { SparkleIcon } from '../Icons'
+import { Spinner } from '../Spinner'
+import { InlineLoadingLabel } from '../InlineLoadingLabel'
 
 // Tipos donde un link de Spotify tiene sentido (banda, músico, álbum, etc.).
 // Si la entidad no es de estos tipos, el input de URL se oculta.
@@ -159,7 +161,11 @@ export function DescriptionEditor({
             className="btn-ghost shrink-0 whitespace-nowrap text-xs disabled:opacity-50"
             title="Buscar el artículo de Wikipedia para esta entidad"
           >
-            {wikiSearching ? 'buscando…' : 'buscar en Wikipedia'}
+            {wikiSearching ? (
+              <InlineLoadingLabel text="buscando" />
+            ) : (
+              'buscar en Wikipedia'
+            )}
           </button>
         </div>
         {wikiMatch && <p className="text-micro text-ink-400">→ {wikiMatch}</p>}
@@ -200,13 +206,7 @@ export function DescriptionEditor({
           title="Generar descripción con IA"
         >
           {askLLM.isPending ? (
-            <span
-              className="size-3.5 border-2 rounded-full animate-spin"
-              style={{
-                borderColor: 'var(--accent-primary-ring)',
-                borderTopColor: 'var(--accent-primary)',
-              }}
-            />
+            <Spinner size={14} variant="ai" decorative />
           ) : (
             <SparkleIcon size={14} />
           )}

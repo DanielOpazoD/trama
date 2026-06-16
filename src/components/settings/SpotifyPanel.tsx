@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api'
 import { describeOAuthReturn, type OAuthReturn } from '../../lib/oauthReturn'
+import { LoadingHint } from '../LoadingHint'
 import { PanelHeader, formatRelative } from './_shared'
 import { SpotifyIcon } from '../Icons'
 
@@ -102,7 +103,7 @@ export function SpotifyPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null
         </p>
       )}
       {spotifyStatus.isLoading ? (
-        <p className="text-xs text-ink-300 italic">cargando…</p>
+        <LoadingHint text="cargando" />
       ) : spotify && spotify.connected ? (
         <div className="space-y-3 p-4 bg-paper-100/40 rounded-lg border border-ink-100/50">
           <div className="flex items-baseline justify-between gap-3">

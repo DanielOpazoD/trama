@@ -21,6 +21,8 @@ import { ErrorState } from './ErrorState'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import { EntityCombobox } from './EntityCombobox'
 import { RelationshipRow } from './relationships/RelationshipRow'
+import { AIThinkingLabel } from './AIThinkingLabel'
+import { InlineLoadingLabel } from './InlineLoadingLabel'
 
 export function RelationshipsView({
   onSelectEntity,
@@ -172,18 +174,10 @@ export function RelationshipsView({
                 disabled={suggest.isPending || offline}
                 className="ai-cta"
                 title="Sugerir relaciones nuevas entre entidades ya existentes"
+                aria-busy={suggest.isPending}
               >
                 {suggest.isPending ? (
-                  <>
-                    <span
-                      className="size-3 border-2 rounded-full animate-spin"
-                      style={{
-                        borderColor: 'var(--accent-primary-ring)',
-                        borderTopColor: 'var(--accent-primary)',
-                      }}
-                    />
-                    pensando…
-                  </>
+                  <AIThinkingLabel />
                 ) : (
                   <>
                     <SparkleIcon size={12} />
@@ -351,7 +345,7 @@ export function RelationshipsView({
           )}
           {relsPaged.isFetchingNextPage && (
             <p className="mt-4 text-center text-xs uppercase tracking-eyebrow text-ink-300">
-              cargando más…
+              <InlineLoadingLabel text="cargando más" />
             </p>
           )}
           {!relsPaged.hasNextPage &&

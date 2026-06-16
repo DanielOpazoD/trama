@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import type { Entity } from '../types'
 import { ENTITY_TYPES } from '../types'
+import { InlineLoadingLabel } from './InlineLoadingLabel'
 
 /**
  * Autocomplete de entidades sobre /api/entities-lookup.
@@ -148,7 +149,9 @@ export function EntityCombobox({
           className="absolute left-0 right-0 top-full mt-1 z-30 max-h-64 overflow-y-auto rounded-lg border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-xl shadow-ink-900/15"
         >
           {loading && input.trim() ? (
-            <p className="px-3 py-2 text-xs text-ink-300 italic">buscando…</p>
+            <p className="px-3 py-2 text-xs text-ink-300 italic">
+              <InlineLoadingLabel text="buscando" />
+            </p>
           ) : input.trim() === '' ? (
             <p className="px-3 py-2 text-xs text-ink-300 italic">escribe para buscar…</p>
           ) : results.length === 0 ? (

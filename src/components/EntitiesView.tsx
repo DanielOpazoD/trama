@@ -28,6 +28,7 @@ import { EntitiesFiltersBar } from './entities/EntitiesFiltersBar'
 import { EntityRow } from './entities/EntityRow'
 import { DensityToggle } from './DensityToggle'
 import { useDensity } from '../hooks/useDensity'
+import { InlineLoadingLabel } from './InlineLoadingLabel'
 import { AIMenu } from './entities/AIMenu'
 
 export function EntitiesView({
@@ -346,7 +347,7 @@ export function EntitiesView({
       )}
       {entitiesPaged.isFetchingNextPage && (
         <p className="mt-4 text-center text-xs uppercase tracking-eyebrow text-ink-300">
-          cargando más…
+          <InlineLoadingLabel text="cargando más" />
         </p>
       )}
       {!entitiesPaged.hasNextPage && !entitiesPaged.isLoading && entities.length >= 5 && (

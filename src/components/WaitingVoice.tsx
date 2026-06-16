@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Spinner } from './Spinner'
 
 /**
  * Ola transversal 2026-06: frase de espera con voz editorial para operaciones
@@ -44,11 +45,12 @@ export function WaitingVoice({
   const phrase = phrases[index % Math.max(phrases.length, 1)] ?? ''
   return (
     <span
-      className={`font-serif italic text-ink-400 transition-opacity duration-200 ${
+      className={`inline-flex items-center gap-1.5 font-serif italic text-ink-400 transition-opacity duration-200 ${
         visible ? 'opacity-100' : 'opacity-0'
       } ${className}`}
     >
-      {phrase}
+      <Spinner size={14} variant="ai" decorative />
+      <span>{phrase}</span>
     </span>
   )
 }

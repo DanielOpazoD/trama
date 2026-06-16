@@ -18,6 +18,7 @@ import type { Recorte, RecorteTarget } from '../../api'
 import { extractUrl, hostLabel } from '../../lib/captureIntent'
 import { EmptyMessage } from '../EmptyMessage'
 import { LoadingHint } from '../LoadingHint'
+import { InlineLoadingLabel } from '../InlineLoadingLabel'
 import {
   ScissorsIcon,
   CameraIcon,
@@ -1109,7 +1110,7 @@ export function NotasFeedView() {
               {/* Afordancia sutil de carga incremental. */}
               {isFetchingNextPage && (
                 <p className="mt-4 text-center text-xs uppercase tracking-eyebrow text-ink-300">
-                  cargando más…
+                  <InlineLoadingLabel text="cargando más" />
                 </p>
               )}
             </>

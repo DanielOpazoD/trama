@@ -40,6 +40,16 @@ afterEach(() => {
 })
 
 describe('RescueOrphansPanel', () => {
+  it('usa el loading editorial mientras busca huérfanos', () => {
+    vi.spyOn(apiModule.api, 'listOrphanedBlobs').mockReturnValue(new Promise(() => {}))
+
+    renderWithProviders(<RescueOrphansPanel />)
+
+    expect(screen.getByText('buscando fotos huérfanas…').closest('[role="status"]')).toBe(
+      screen.getByRole('status'),
+    )
+  })
+
   it('muestra mensaje cuando no hay huérfanos', async () => {
     vi.spyOn(apiModule.api, 'listOrphanedBlobs').mockResolvedValue({
       orphans: [],

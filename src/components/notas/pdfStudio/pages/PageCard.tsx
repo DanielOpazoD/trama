@@ -9,6 +9,7 @@ import {
 import { renderPageThumb } from '../../../../lib/pdfStudio/render/pdfRender'
 import { useInViewport } from '../editor/useInViewport'
 import { CheckIcon, FileIcon, FilePdfIcon, TextIcon } from '../../../Icons'
+import { Spinner } from '../../../Spinner'
 import type { PageInteractionMode } from '../shell/pdfStudioPageInteractionMode'
 
 const ACCENT = 'var(--accent-sage)'
@@ -171,12 +172,7 @@ export function PageCard({
           />
         ) : (
           // Sólo gira mientras renderiza (en viewport); fuera, anillo estático.
-          <span
-            aria-label={inView ? 'cargando' : undefined}
-            className={`h-6 w-6 rounded-full border-2 border-ink-100 ${
-              inView ? 'border-t-ink-300 animate-spin' : ''
-            }`}
-          />
+          <Spinner size={24} active={inView} decorative={!inView} label="cargando" />
         )}
         {/* Info (no interactiva): tipo + nº de hoja (+ texto si tiene). */}
         <span className="absolute top-1 left-1 inline-flex items-center gap-1 rounded bg-ink-900/60 px-1.5 py-0.5 text-micro tabular-nums text-paper-50">

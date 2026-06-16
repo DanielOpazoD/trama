@@ -8,6 +8,7 @@ import { RefreshIcon } from './Icons'
 import { AISourceTag } from './AISourceTag'
 import { WaitingVoice } from './WaitingVoice'
 import { Tooltip } from './Tooltip'
+import { Spinner } from './Spinner'
 import type { AtlasConstellation } from '../api'
 
 /**
@@ -62,10 +63,11 @@ export function AtlasView({ onSelectEntity }: { onSelectEntity: (id: string) => 
                 aria-label="Regenerar atlas"
                 className="p-1.5 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors disabled:opacity-50"
               >
-                <RefreshIcon
-                  size={14}
-                  className={generate.isPending ? 'animate-spin' : undefined}
-                />
+                {generate.isPending ? (
+                  <Spinner size={14} variant="ai" decorative />
+                ) : (
+                  <RefreshIcon size={14} />
+                )}
               </button>
             </Tooltip>
           ) : undefined

@@ -25,7 +25,7 @@ export function Skeleton({ className = '', shimmer = true }: SkeletonProps) {
   return (
     <div
       aria-hidden
-      className={`rounded-md ${shimmer ? 'skeleton-shimmer' : 'bg-ink-100/60'} ${className}`}
+      className={`skeleton-line ${shimmer ? 'skeleton-shimmer' : 'skeleton-static'} ${className}`}
     />
   )
 }
@@ -37,7 +37,7 @@ export function Skeleton({ className = '', shimmer = true }: SkeletonProps) {
 export function EntityCardSkeleton({ animationDelay = 0 }: { animationDelay?: number }) {
   return (
     <div
-      className="p-4 card-paper animate-fade-up"
+      className="p-4 skeleton-surface animate-fade-up"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       <div className="flex items-baseline justify-between gap-3">
@@ -74,7 +74,7 @@ export function QuoteSkeleton({ animationDelay = 0 }: { animationDelay?: number 
 export function TimelineRowSkeleton({ animationDelay = 0 }: { animationDelay?: number }) {
   return (
     <div
-      className="p-3 card-paper animate-fade-up"
+      className="p-3 skeleton-surface animate-fade-up"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       <div className="flex items-baseline justify-between gap-3">
@@ -140,7 +140,7 @@ export function RelationshipSkeleton({
 }) {
   return (
     <div
-      className="card-paper p-3 animate-fade-up"
+      className="skeleton-surface p-3 animate-fade-up"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       <div className="flex items-baseline gap-3 text-sm">
@@ -163,7 +163,7 @@ export function ProactiveSuggestionSkeleton({
 }) {
   return (
     <div
-      className="card-paper p-4 space-y-3 animate-fade-up"
+      className="skeleton-surface p-4 space-y-3 animate-fade-up"
       style={{ animationDelay: `${animationDelay}ms` }}
     >
       <div className="space-y-2">

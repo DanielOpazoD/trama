@@ -36,13 +36,24 @@ export function EmptyMessage({
   action?: ReactNode
   variant?: 'soft' | 'plain'
 }) {
-  const wrapper =
+  const wrapper = [
+    'empty-message',
+    `empty-message--${variant}`,
     variant === 'soft'
-      ? 'mt-8 px-8 py-10 border border-dashed border-ink-100/60 rounded-xl bg-paper-50/30 max-w-xl mx-auto text-center animate-fade-up'
-      : 'mt-8 px-2 py-6 max-w-xl mx-auto text-center animate-fade-up'
+      ? 'mt-8 px-8 py-10 max-w-xl mx-auto text-center animate-fade-up'
+      : 'mt-8 px-2 py-6 max-w-xl mx-auto text-center animate-fade-up',
+  ].join(' ')
 
   return (
     <div className={wrapper}>
+      <div
+        aria-hidden="true"
+        className="empty-message__threadMotif"
+        data-testid="empty-message-thread-motif"
+      >
+        <span className="empty-message__thread empty-message__thread--one" />
+        <span className="empty-message__thread empty-message__thread--two" />
+      </div>
       {illustration ? (
         <div className="text-ink-300 flex justify-center mb-5">
           <EmptyIllustration kind={illustration} size={120} />

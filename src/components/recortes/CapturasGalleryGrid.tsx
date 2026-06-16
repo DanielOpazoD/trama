@@ -7,6 +7,7 @@ import { useMainScrollVirtualizer } from '../../hooks/useMainScrollVirtualizer'
 import { EmptyMessage } from '../EmptyMessage'
 import { GalleryIcon } from '../Icons'
 import { RecorteLightbox } from './RecorteLightbox'
+import { InlineLoadingLabel } from '../InlineLoadingLabel'
 
 // Densidad de la grilla según el tamaño elegido (mismo control que las
 // miniaturas de la lista). Mismo criterio que AlbumGrid de Momentos.
@@ -263,7 +264,11 @@ export function CapturasGalleryGrid({
             disabled={isFetchingNextPage}
             className="text-xs uppercase tracking-eyebrow text-ink-400 transition-colors hover:text-ink-700 disabled:opacity-60"
           >
-            {isFetchingNextPage ? 'cargando más…' : 'cargar más'}
+            {isFetchingNextPage ? (
+              <InlineLoadingLabel text="cargando más" />
+            ) : (
+              'cargar más'
+            )}
           </button>
         </div>
       )}
