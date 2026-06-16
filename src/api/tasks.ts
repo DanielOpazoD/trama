@@ -4,6 +4,7 @@
  * título+detalle.
  */
 import { request } from './request'
+import type { Origin } from '../types/origin'
 
 /** Prioridad de un recordatorio — da el color (alta · media · baja). */
 export type TaskPriority = 'alta' | 'media' | 'baja'
@@ -28,6 +29,9 @@ export type Task = {
   completedAt: string | null
   /** Si la tarea tiene ≥1 foto adjunta (derivado en el server). */
   hasPhotos: boolean
+  /** Procedencia (manual/ai/imported). La UI lee `importedFrom` para el
+   *  iconito "vía WhatsApp". */
+  origin: Origin | null
   tags: string[]
   createdAt: string
   updatedAt: string
@@ -44,6 +48,7 @@ type TaskRow = {
   category: string
   completed_at: string | null
   has_photos: boolean | null
+  origin: Origin | null
   tags: string[] | null
   created_at: string
   updated_at: string
@@ -61,6 +66,7 @@ function taskFromRow(r: TaskRow): Task {
     category: (r.category as TaskCategory) ?? 'trabajo',
     completedAt: r.completed_at,
     hasPhotos: r.has_photos ?? false,
+    origin: r.origin ?? null,
     tags: r.tags ?? [],
     createdAt: r.created_at,
     updatedAt: r.updated_at,

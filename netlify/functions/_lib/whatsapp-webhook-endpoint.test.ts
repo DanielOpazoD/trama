@@ -636,6 +636,121 @@ describe('whatsapp-webhook', () => {
     expect(xml).toContain('evento')
   })
 
+  it('dos fotos con prefijo "momento:" → un solo Momento foto episódico (items[])', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMmomento2',
+      From: 'whatsapp:+56912345678',
+      Body: 'momento: tarde en el taller',
+      NumMedia: '2',
+      MediaUrl0: 'https://api.twilio.com/Media/a',
+      MediaContentType0: 'image/jpeg',
+      MediaUrl1: 'https://api.twilio.com/Media/b',
+      MediaContentType1: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMmomento2' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ id: 'm1' }]) // persistImageMomentoEpisode INSERT
+    mockSqlResponses.push([]) // recordLastCapture
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    // Un solo momento con las dos fotos (no dos momentos sueltos).
+    expect(xml).toContain('2 fotos')
+    // El INSERT usa payload.items[] con dos storageKey y el caption del prefijo.
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO momentos/i.test(c.template),
+    )
+    const payload = insert?.values.find(
+      (v): v is string => typeof v === 'string' && v.includes('"items"'),
+    )
+    expect((payload?.match(/"storageKey"/g) ?? []).length).toBe(2)
+    expect(payload).toContain('tarde en el taller')
+  })
+
+  it('dos fotos con caption natural "a momentos" → también un episodio foto', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMnat2',
+      From: 'whatsapp:+56912345678',
+      Body: 'a momentos las dos',
+      NumMedia: '2',
+      MediaUrl0: 'https://api.twilio.com/Media/a',
+      MediaContentType0: 'image/jpeg',
+      MediaUrl1: 'https://api.twilio.com/Media/b',
+      MediaContentType1: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMnat2' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ id: 'm2' }]) // persistImageMomentoEpisode INSERT
+    mockSqlResponses.push([]) // recordLastCapture
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('2 fotos')
+    // La frase-directiva es instrucción, no pie de foto: NO viaja como caption.
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO momentos/i.test(c.template),
+    )
+    const payload = insert?.values.find(
+      (v): v is string => typeof v === 'string' && v.includes('"items"'),
+    )
+    expect((payload?.match(/"storageKey"/g) ?? []).length).toBe(2)
+    expect(payload).not.toContain('"caption"')
+  })
+
   it('foto → Recorte con plantilla de destino → ofrece botones Momento/Nota', async () => {
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
     vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
