@@ -23,6 +23,10 @@
 export type InteractiveConfig = {
   captureSid: string | null
   destinoSid: string | null
+  /** List Picker para capturas de TEXTO ambiguas (clasificadas por la IA):
+   *  filas Deshacer · Momento · Nota · Tarea. Caben 4 acciones, a diferencia de
+   *  los 3 botones de `destinoSid`. Preferido sobre `destinoSid` cuando está. */
+  destinoListSid: string | null
   /** Plantilla para fotos SIN pie: botones [Descripción · Momento · Nota]. */
   fotoSid: string | null
   /** List Picker post-captura: «⚡ Acciones» con filas Deshacer · Descripción ·
@@ -53,6 +57,7 @@ export function readInteractiveConfig(
   return {
     captureSid: read('TWILIO_CONTENT_SID_CAPTURE') || null,
     destinoSid: read('TWILIO_CONTENT_SID_CAPTURE_DESTINO') || null,
+    destinoListSid: read('TWILIO_CONTENT_SID_CAPTURE_DESTINO_LIST') || null,
     fotoSid: read('TWILIO_CONTENT_SID_CAPTURE_FOTO') || null,
     actionsSid: read('TWILIO_CONTENT_SID_CAPTURE_ACTIONS') || null,
     cardSid: read('TWILIO_CONTENT_SID_CAPTURE_CARD') || null,
@@ -69,7 +74,9 @@ export type CaptureReplyVariant = 'foto' | 'ambiguous' | 'simple'
  * instancia, a `null` → el webhook responde TwiML de texto.
  *   - `foto`      → List Picker «⚡ Acciones» (Deshacer · Descripción · Momento ·
  *                  Nota); cae a la quick-reply de foto, luego a destino/Deshacer.
- *   - `ambiguous` → [Deshacer · Momento · Nota] (texto libre clasificado por IA).
+ *   - `ambiguous` → List Picker [Deshacer · Momento · Nota · Tarea] (texto libre
+ *                  clasificado por IA); cae a la quick-reply de destino, luego a
+ *                  Deshacer.
  *   - `simple`    → [Deshacer] (captura explícita).
  */
 export function pickCaptureContentSid(
@@ -79,7 +86,9 @@ export function pickCaptureContentSid(
   if (variant === 'foto') {
     return cfg.actionsSid ?? cfg.fotoSid ?? cfg.destinoSid ?? cfg.captureSid ?? null
   }
-  if (variant === 'ambiguous') return cfg.destinoSid ?? cfg.captureSid ?? null
+  if (variant === 'ambiguous') {
+    return cfg.destinoListSid ?? cfg.destinoSid ?? cfg.captureSid ?? null
+  }
   return cfg.captureSid ?? null
 }
 

@@ -12,6 +12,7 @@ describe('readInteractiveConfig', () => {
     const env: Record<string, string> = {
       TWILIO_CONTENT_SID_CAPTURE: 'HXcap',
       TWILIO_CONTENT_SID_CAPTURE_DESTINO: 'HXdest',
+      TWILIO_CONTENT_SID_CAPTURE_DESTINO_LIST: 'HXdestlist',
       TWILIO_CONTENT_SID_CAPTURE_FOTO: 'HXfoto',
       TWILIO_CONTENT_SID_CAPTURE_ACTIONS: 'HXacts',
       TWILIO_CONTENT_SID_CAPTURE_CARD: 'HXcard',
@@ -20,6 +21,7 @@ describe('readInteractiveConfig', () => {
     expect(readInteractiveConfig((k) => env[k])).toEqual({
       captureSid: 'HXcap',
       destinoSid: 'HXdest',
+      destinoListSid: 'HXdestlist',
       fotoSid: 'HXfoto',
       actionsSid: 'HXacts',
       cardSid: 'HXcard',
@@ -31,6 +33,7 @@ describe('readInteractiveConfig', () => {
     expect(readInteractiveConfig(() => undefined)).toEqual({
       captureSid: null,
       destinoSid: null,
+      destinoListSid: null,
       fotoSid: null,
       actionsSid: null,
       cardSid: null,
@@ -43,6 +46,7 @@ describe('pickCaptureContentSid', () => {
   const all = {
     captureSid: 'HXcap',
     destinoSid: 'HXdest',
+    destinoListSid: 'HXdestlist',
     fotoSid: 'HXfoto',
     actionsSid: 'HXacts',
     cardSid: 'HXcard',
@@ -57,8 +61,14 @@ describe('pickCaptureContentSid', () => {
     expect(pickCaptureContentSid({ ...all, actionsSid: null }, 'foto')).toBe('HXfoto')
   })
 
-  it('ambiguo → plantilla con botones de destino', () => {
-    expect(pickCaptureContentSid(all, 'ambiguous')).toBe('HXdest')
+  it('ambiguo → prefiere el List Picker de destino (con Tarea)', () => {
+    expect(pickCaptureContentSid(all, 'ambiguous')).toBe('HXdestlist')
+  })
+
+  it('ambiguo sin List Picker → cae a la quick-reply de destino', () => {
+    expect(pickCaptureContentSid({ ...all, destinoListSid: null }, 'ambiguous')).toBe(
+      'HXdest',
+    )
   })
 
   it('simple → plantilla de solo Deshacer', () => {
@@ -77,8 +87,10 @@ describe('pickCaptureContentSid', () => {
     ).toBe('HXcap')
   })
 
-  it('ambiguo sin destino → cae a la de Deshacer', () => {
-    expect(pickCaptureContentSid({ ...all, destinoSid: null }, 'ambiguous')).toBe('HXcap')
+  it('ambiguo sin lista ni destino → cae a la de Deshacer', () => {
+    expect(
+      pickCaptureContentSid({ ...all, destinoListSid: null, destinoSid: null }, 'ambiguous'),
+    ).toBe('HXcap')
   })
 
   it('simple sin captura → null (no usa la de destino para algo explícito)', () => {
@@ -91,6 +103,7 @@ describe('pickCaptureContentSid', () => {
         {
           captureSid: null,
           destinoSid: null,
+          destinoListSid: null,
           fotoSid: null,
           actionsSid: null,
           cardSid: null,

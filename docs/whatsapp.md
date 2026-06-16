@@ -272,6 +272,7 @@ SID ya estaba, corta con TwiML vacío sin re-escribir. Es un ledger append-only
 | `VITE_WHATSAPP_NUMBER`               | Número del bot (E164). Habilita el QR + botón "Abrir WhatsApp". Público (va al cliente). Sin él, el panel cae a copiar/pegar `vincular <código>`.                                                                                 |
 | `TWILIO_CONTENT_SID_CAPTURE`         | Opcional. `ContentSid` de la plantilla con botón **[Deshacer]** (ver "Botones interactivos").                                                                                                                                     |
 | `TWILIO_CONTENT_SID_CAPTURE_DESTINO` | Opcional. `ContentSid` de la plantilla con botones **[Deshacer · Momento · Nota]** para capturas ambiguas.                                                                                                                        |
+| `TWILIO_CONTENT_SID_CAPTURE_DESTINO_LIST` | Opcional. **List Picker** para capturas de texto ambiguas: filas **[Deshacer · Momento · Nota · Tarea]**. **Preferido** sobre `_CAPTURE_DESTINO` (cabe la 4ª acción, Tarea, que Quick Reply no admite). Cae a la quick-reply de destino si falta. |
 | `TWILIO_CONTENT_SID_CAPTURE_FOTO`    | Opcional. Plantilla con botones **[Descripción · Momento · Nota]** para fotos sin pie (el botón Descripción dispara el flujo de descripción). Cae a la de destino si falta.                                                       |
 | `TWILIO_CONTENT_SID_CAPTURE_ACTIONS` | Opcional. **List Picker** «⚡ Acciones» (filas Deshacer · Descripción · Momento · Nota) para fotos sin pie. **Preferido** sobre la quick-reply de foto: más prolijo cuando hay >3 acciones. Cae a `_FOTO` si falta.               |
 | `TWILIO_CONTENT_SID_CAPTURE_CARD`    | Opcional. **Card** para capturas explícitas (`nota:`/`momento:`/…): cuerpo `{{1}}` + botón URL **[Abrir en Trama]** (base = dominio de Trama, sufijo `{{2}}`) + [Deshacer]. El deep link deja de ser texto. Cae a texto si falta. |
@@ -292,6 +293,11 @@ Setup:
    plantillas tipo **Quick Reply**, todas con el cuerpo variable `{{1}}`:
    - `TWILIO_CONTENT_SID_CAPTURE`: un botón **`Deshacer`**.
    - `TWILIO_CONTENT_SID_CAPTURE_DESTINO`: tres botones **`Deshacer`, `Momento`, `Nota`**.
+   - `TWILIO_CONTENT_SID_CAPTURE_DESTINO_LIST` (opcional): un **List Picker** para
+     las capturas de texto ambiguas, con filas cuyos **títulos** sean exactamente
+     `Deshacer`, `Momento`, `Nota`, `Tarea` (descripción de cada fila libre).
+     Preferido sobre `_CAPTURE_DESTINO` porque cabe la 4ª acción (`Tarea`), que
+     Quick Reply no admite. El título vuelve como comando, igual que un botón.
    - `TWILIO_CONTENT_SID_CAPTURE_FOTO` (fotos sin pie): tres botones
      **`Descripción`, `Momento`, `Nota`**.
    - `TWILIO_CONTENT_SID_CAPTURE_ACTIONS` (opcional): un **List Picker** «⚡
@@ -303,15 +309,15 @@ Setup:
      explícitas, con cuerpo `{{1}}` y dos botones: un **URL** con título `Abrir en
 Trama` y URL `https://<tu-dominio>/{{2}}` (dinámica: base fija + variable de
      sufijo), y un **Quick Reply** `Deshacer`. Trama pasa `{{2}}` = el path+query
-     del deep link; la base (dominio) la fijás vos en la plantilla.
-   - `TWILIO_CONTENT_SID_MENU` (opcional): un **List Picker** «¿Qué querés hacer?»
+     del deep link; la base (dominio) la fijas tú en la plantilla.
+   - `TWILIO_CONTENT_SID_MENU` (opcional): un **List Picker** «¿Qué quieres hacer?»
      con filas cuyos títulos sean comandos que el parser entiende (p. ej.
      `Estado`, `Ayuda`, `Buscar`).
 2. Copiar el `ContentSid` (`HX…`) de cada una a su env var en Netlify, y **redeploy**.
 
 Por qué esos títulos: cuando el usuario toca un botón, Twilio reenvía el título
 como un mensaje entrante normal, así `Deshacer` cae en `deshacer` (undo),
-`Momento`/`Nota` en la **reclasificación**, y `Descripción` en el flujo de
+`Momento`/`Nota`/`Tarea` en la **reclasificación**, y `Descripción` en el flujo de
 **pedir descripción** de la última foto —sin agregar parsers nuevos—.
 
 **Reclasificación NO destructiva de fotos.** Cuando la última captura es un
