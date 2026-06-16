@@ -413,6 +413,23 @@ describe('whatsapp-webhook', () => {
     expect(await res.text()).toContain('nada reciente')
   })
 
+  it('comando que falla (hipo de DB) → 200 con disculpa, nunca deja al usuario sin respuesta', async () => {
+    // El MessageSid ya se reclamó: si el handler lanzara y propagáramos, el 500
+    // haría que Twilio reintente y el claim deduplicaría el reintento → silencio.
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.pushError(new Error('db hipo')) // undoLastCapture: la query falla
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'deshacer' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200) // no 500
+    expect(res.headers.get('content-type')).toContain('text/xml')
+    expect(await res.text()).toContain('No pude completar esa acción')
+  })
+
   it('vincular con etiqueta de dispositivo → bienvenida con la etiqueta', async () => {
     mockSqlResponses.push([{ id: 'link-1' }]) // redeemLinkCode CTE → 1 fila
     const res = await webhookHandler(

@@ -1221,6 +1221,32 @@ async function classifyFreeform(
   }
 }
 
+/**
+ * Ejecuta un handler de comando y SIEMPRE devuelve un TwiML. El MessageSid ya
+ * fue reclamado (idempotencia), así que si el handler lanza —un hipo de DB, por
+ * ejemplo— y dejáramos propagar, withObservability respondería un 500: Twilio
+ * reintentaría, el claim deduplicaría el reintento y el usuario quedaría sin
+ * respuesta para siempre. En cambio respondemos una disculpa amable (200) y
+ * dejamos rastro en el log.
+ */
+async function commandReply(
+  command: string,
+  produce: () => Promise<string>,
+): Promise<Response> {
+  try {
+    return twimlResponse(await produce())
+  } catch (err) {
+    logEvent({
+      event: 'whatsapp_command_failed',
+      command,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return twimlResponse(
+      'No pude completar esa acción ahora. Vuelve a intentarlo en unos segundos.',
+    )
+  }
+}
+
 export default withObservability(
   'whatsapp-webhook',
   async (req: Request, _context: Context, { requestId }) => {
@@ -1306,50 +1332,42 @@ export default withObservability(
     `.catch(() => {})
 
     if (parsed.kind === 'undo' && media.length === 0) {
-      return twimlResponse(await undoLastCapture(sql, userId, phone))
+      return commandReply('undo', () => undoLastCapture(sql, userId, phone))
     }
 
     if (parsed.kind === 'status' && media.length === 0) {
-      return twimlResponse(await buildStatusReply(sql, userId, phone))
+      return commandReply('status', () => buildStatusReply(sql, userId, phone))
     }
 
     if (parsed.kind === 'query' && media.length === 0) {
-      return twimlResponse(
-        await handleQuery(
-          req,
-          sql,
-          userId,
-          requestId,
-          parsed.text,
-          new URL(req.url).origin,
-        ),
+      const { text } = parsed
+      return commandReply('query', () =>
+        handleQuery(req, sql, userId, requestId, text, new URL(req.url).origin),
       )
     }
 
     if (parsed.kind === 'recategorize' && media.length === 0) {
-      return twimlResponse(
-        await recategorizeLast(
-          sql,
-          userId,
-          phone,
-          parsed.toKind,
-          new URL(req.url).origin,
-        ),
+      const { toKind } = parsed
+      return commandReply('recategorize', () =>
+        recategorizeLast(sql, userId, phone, toKind, new URL(req.url).origin),
       )
     }
 
     if (parsed.kind === 'retitle' && media.length === 0) {
-      return twimlResponse(await retitleLast(sql, userId, phone, parsed.title))
+      const { title } = parsed
+      return commandReply('retitle', () => retitleLast(sql, userId, phone, title))
     }
 
     if (parsed.kind === 'tag' && media.length === 0) {
-      return twimlResponse(await tagLast(sql, userId, phone, parsed.tags))
+      const { tags } = parsed
+      return commandReply('tag', () => tagLast(sql, userId, phone, tags))
     }
 
     // Botón [Descripción] (vuelve como "Descripción") → describe la última foto.
     if (parsed.kind === 'describe' && media.length === 0) {
-      return twimlResponse(
-        await describeLast(sql, userId, phone, parsed.text, new URL(req.url).origin),
+      const { text } = parsed
+      return commandReply('describe', () =>
+        describeLast(sql, userId, phone, text, new URL(req.url).origin),
       )
     }
 
