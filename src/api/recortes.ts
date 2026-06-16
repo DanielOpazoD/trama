@@ -28,8 +28,13 @@ export type Recorte = {
   sourceAuthor: string | null
   note: string | null
   imageUrl: string | null
-  /** Imagen interna (blob authed del store recortes-media). */
+  /** Imagen interna (blob authed del store recortes-media). Portada cuando el
+   *  recorte tiene varias imágenes (ver `images`). */
   imageKey: string | null
+  /** Imágenes del recorte (1..N). Un recorte-evento (varias fotos en una
+   *  entrada) las trae todas; uno de una sola imagen trae `[imageKey]`. Vacío
+   *  si el recorte no tiene imagen propia. */
+  images: { storageKey: string }[]
   captureMode: CaptureMode | null
   status: RecorteStatus
   promotedTarget: RecorteTarget | null
@@ -58,6 +63,7 @@ export type RecorteRow = {
   captured_at: string | null
   created_at: string
   updated_at: string
+  images?: Array<{ storage_key: string }> | null
 }
 
 export type PromoteRecorteInput =
@@ -116,6 +122,11 @@ export function recorteImageUrl(imageKey: string): string {
 }
 
 export function recorteFromRow(r: RecorteRow): Recorte {
+  // Imágenes del recorte: las filas de `recorte_images` si las hay (evento
+  // multi-imagen); si no, la `image_key` legacy (una sola); si tampoco, vacío.
+  const fromRows = (r.images ?? []).map((i) => ({ storageKey: i.storage_key }))
+  const images =
+    fromRows.length > 0 ? fromRows : r.image_key ? [{ storageKey: r.image_key }] : []
   return {
     id: r.id,
     text: r.text,
@@ -125,6 +136,7 @@ export function recorteFromRow(r: RecorteRow): Recorte {
     note: r.note,
     imageUrl: r.image_url,
     imageKey: r.image_key ?? null,
+    images,
     captureMode: r.capture_mode ?? null,
     status: r.status,
     promotedTarget: r.promoted_target,

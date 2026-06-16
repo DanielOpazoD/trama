@@ -33,6 +33,8 @@ type LinkMediaPreviewProps = {
   /** Si se pasa (y NO hay href), la miniatura abre el visor: doble clic con el
    *  mouse, Enter/Espacio con teclado. Para imágenes propias de la captura. */
   onOpenImage?: () => void
+  /** Insignia arriba a la derecha (ej. "▦ 3" para un recorte multi-imagen). */
+  badge?: string
   /** Avisa cuando la imagen no carga, para que el caller pueda ocultarla. */
   onImageError?: () => void
 }
@@ -54,6 +56,7 @@ export function LinkMediaPreview({
   className = '',
   size = 'grande',
   onOpenImage,
+  badge,
   onImageError,
 }: LinkMediaPreviewProps) {
   const [imageLoaded, setImageLoaded] = useState(false)
@@ -85,6 +88,11 @@ export function LinkMediaPreview({
           <span className="truncate">{host}</span>
           {dateLabel && <span className="shrink-0 tabular-nums">{dateLabel}</span>}
         </div>
+      )}
+      {badge && (
+        <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-ink-900/70 px-2 py-0.5 text-micro font-medium text-paper-50/95 tabular-nums">
+          {badge}
+        </span>
       )}
     </div>
   )

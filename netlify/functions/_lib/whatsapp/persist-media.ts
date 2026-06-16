@@ -36,6 +36,43 @@ export async function persistImageRecorte(
   return { message: '📷 Imagen guardada en Recortes.', id }
 }
 
+/**
+ * Varias imágenes de un MISMO mensaje → UN recorte-evento con todas. La primera
+ * queda como `image_key` (portada, para lectores de una sola imagen) y TODAS
+ * van a `recorte_images`. Así "deshacer" borra el evento entero (una fila) y la
+ * tarjeta puede mostrar portada + contador + visor. Los blobs ya los subió el
+ * webhook al store `recortes-media`.
+ */
+export async function persistImageRecorteEvent(
+  sql: SqlClient,
+  userId: string,
+  images: Array<{ key: string; mime: string }>,
+  caption: string,
+): Promise<CaptureResult> {
+  const text =
+    caption.trim().length > 0
+      ? caption.trim()
+      : `📸 ${images.length} imágenes desde WhatsApp`
+  const cover = images[0]!.key
+  const rows = await sqlTyped<{ id: string }>(sql`
+    INSERT INTO recortes (text, image_key, capture_mode, captured_at, status, source, user_id)
+    VALUES (${text}, ${cover}, 'image', NOW(), 'pending', 'whatsapp', ${userId})
+    RETURNING id
+  `)
+  const id = rows[0]?.id
+  if (!id) throw new Error('persistImageRecorteEvent: INSERT no devolvió id')
+  for (let i = 0; i < images.length; i++) {
+    await sqlTyped(sql`
+      INSERT INTO recorte_images (recorte_id, user_id, storage_key, mime, position)
+      VALUES (${id}, ${userId}, ${images[i]!.key}, ${images[i]!.mime}, ${i})
+    `)
+  }
+  return {
+    message: `📸 ${images.length} imágenes guardadas como un evento en Recortes.`,
+    id,
+  }
+}
+
 export async function persistImageMomento(
   sql: SqlClient,
   userId: string,

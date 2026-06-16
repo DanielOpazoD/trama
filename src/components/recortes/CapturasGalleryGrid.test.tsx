@@ -5,6 +5,7 @@ import type { CaptureItem, Note, Recorte } from '../../api'
 import {
   CapturasGalleryGrid,
   chunkCapturasGalleryRows,
+  flattenRecorteImages,
   getCapturasGalleryColumnCount,
 } from './CapturasGalleryGrid'
 
@@ -18,6 +19,7 @@ function recorte(over: Partial<Recorte> = {}): Recorte {
     note: null,
     imageUrl: null,
     imageKey: null,
+    images: [],
     captureMode: 'image',
     status: 'pending',
     promotedTarget: null,
@@ -94,6 +96,25 @@ describe('<CapturasGalleryGrid />', () => {
     expect(getCapturasGalleryColumnCount('grande', 700)).toBe(2)
     expect(getCapturasGalleryColumnCount('grande', 768)).toBe(3)
     expect(getCapturasGalleryColumnCount('grande', 900)).toBe(3)
+  })
+
+  it('un recorte-evento aporta una celda por imagen (aplana images[])', () => {
+    const evento: CaptureItem = {
+      type: 'recorte',
+      id: 'evt',
+      createdAt: '2026-06-14T12:00:00.000Z',
+      recorte: recorte({
+        id: 'evt',
+        imageKey: 'k0',
+        images: [{ storageKey: 'k0' }, { storageKey: 'k1' }, { storageKey: 'k2' }],
+        sourceTitle: 'Evento',
+      }),
+    }
+    const cells = flattenRecorteImages([evento])
+    expect(cells).toHaveLength(3)
+    expect(cells.map((c) => c.storageKey)).toEqual(['k0', 'k1', 'k2'])
+    // Sin solapamiento de keys entre celdas del mismo recorte.
+    expect(new Set(cells.map((c) => c.key)).size).toBe(3)
   })
 
   it('parte la galería en filas para virtualizar sin perder orden', () => {

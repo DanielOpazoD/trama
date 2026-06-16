@@ -96,6 +96,8 @@ function RecorteMediaPreview({
       host={host}
       dateLabel={formatStamp(r.capturedAt ?? r.createdAt)}
       size={size}
+      // Recorte-evento: insignia con la cantidad de imágenes.
+      badge={r.images.length > 1 ? `▦ ${r.images.length}` : undefined}
       // El visor solo aplica a la imagen propia (sin href). Para enlaces/OG el
       // clic sigue abriendo el original.
       onOpenImage={r.imageKey ? onOpenImage : undefined}
@@ -199,10 +201,19 @@ export function RecorteCard({
   onDelete: () => void
 }) {
   const host = hostOf(r.sourceUrl)
-  // Visor de la imagen propia (doble clic en la miniatura) — misma sala oscura
-  // que Momentos. Solo aplica a capturas con imagen interna o externa.
+  // Visor de la(s) imagen(es) propia(s) (doble clic en la miniatura) — misma
+  // sala oscura que Momentos. Un recorte-evento abre TODAS sus imágenes.
   const [viewerOpen, setViewerOpen] = useState(false)
-  const viewerUrl = r.imageKey ? recorteImageUrl(r.imageKey) : r.imageUrl
+  const [viewerIndex, setViewerIndex] = useState(0)
+  const viewerEntries =
+    r.images.length > 0
+      ? r.images.map((img) => ({
+          url: recorteImageUrl(img.storageKey),
+          caption: r.sourceTitle ?? r.text,
+        }))
+      : r.imageUrl
+        ? [{ url: r.imageUrl, caption: r.sourceTitle ?? r.text }]
+        : []
   const suggest = useSuggestRecorte()
   const update = useUpdateRecorte()
   const toast = useToast()
@@ -294,7 +305,14 @@ export function RecorteCard({
           recorte={r}
           host={host}
           size={thumbSize}
-          onOpenImage={viewerUrl ? () => setViewerOpen(true) : undefined}
+          onOpenImage={
+            viewerEntries.length > 0
+              ? () => {
+                  setViewerIndex(0)
+                  setViewerOpen(true)
+                }
+              : undefined
+          }
         />
       ) : (
         (host || dateLabel) && (
@@ -489,11 +507,11 @@ export function RecorteCard({
         </div>
       </div>
 
-      {viewerUrl && (
+      {viewerEntries.length > 0 && (
         <RecorteLightbox
-          entries={[{ url: viewerUrl, caption: r.sourceTitle ?? r.text }]}
-          index={0}
-          onIndexChange={() => {}}
+          entries={viewerEntries}
+          index={viewerIndex}
+          onIndexChange={setViewerIndex}
           open={viewerOpen}
           onClose={() => setViewerOpen(false)}
         />

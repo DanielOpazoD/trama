@@ -463,6 +463,58 @@ describe('whatsapp-webhook', () => {
     expect(xml).toContain('view=recortes')
   })
 
+  it('dos fotos sin prefijo → un solo recorte-evento (image_key + recorte_images)', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMmedia2',
+      From: 'whatsapp:+56912345678',
+      Body: '',
+      NumMedia: '2',
+      MediaUrl0: 'https://api.twilio.com/Media/abc',
+      MediaContentType0: 'image/jpeg',
+      MediaUrl1: 'https://api.twilio.com/Media/def',
+      MediaContentType1: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMmedia2' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte (portada) RETURNING id
+    mockSqlResponses.push([]) // INSERT recorte_images #0
+    mockSqlResponses.push([]) // INSERT recorte_images #1
+    mockSqlResponses.push([]) // recordLastCapture (fire-and-forget)
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    // Una sola entrada-evento: confirma "2 imágenes" como un evento, no 2 sueltas.
+    expect(xml).toContain('2 imágenes')
+    expect(xml).toContain('evento')
+  })
+
   it('foto con "nota:" → visión transcribe y guarda Nota', async () => {
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
     vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')

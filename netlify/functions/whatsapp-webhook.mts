@@ -22,6 +22,7 @@ import { buildClassifyPrompt, validateClassification } from './_lib/whatsapp/int
 import { persistCapture } from './_lib/whatsapp/persist.js'
 import {
   persistImageRecorte,
+  persistImageRecorteEvent,
   persistImageMomentoEpisode,
   persistVoiceNoteAttachment,
 } from './_lib/whatsapp/persist-media.js'
@@ -584,6 +585,9 @@ async function handleInboundMedia(
   // Fotos del route 'momento': se acumulan y se persisten como UN solo momento
   // foto (episodio) tras el loop, en vez de N momentos sueltos.
   const momentoKeys: string[] = []
+  // Imágenes del route 'recorte' (default): se acumulan y, si son 2+, se
+  // guardan como UN recorte-evento (varias imágenes en una entrada).
+  const recorteKeys: Array<{ key: string; mime: string }> = []
 
   for (const item of media) {
     const cat = mediaCategory(item.contentType)
@@ -704,11 +708,10 @@ async function handleInboundMedia(
         const key = await storeMedia('momentos-media', userId, buffer, contentType)
         momentoKeys.push(key)
       } else {
+        // Tampoco persistimos aún: juntamos las imágenes y, tras el loop,
+        // creamos un recorte único (1 imagen) o un recorte-evento (2+).
         const key = await storeMedia('recortes-media', userId, buffer, contentType)
-        const r = await persistImageRecorte(sql, userId, key, caption)
-        lastId = r.id
-        lastKind = 'recorte'
-        saved += 1
+        recorteKeys.push({ key, mime: contentType })
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -731,6 +734,23 @@ async function handleInboundMedia(
     }
   }
 
+  // Recorte: una imagen → un recorte; varias → un recorte-evento.
+  if (recorteKeys.length > 0) {
+    try {
+      const r =
+        recorteKeys.length === 1
+          ? await persistImageRecorte(sql, userId, recorteKeys[0]!.key, caption)
+          : await persistImageRecorteEvent(sql, userId, recorteKeys, caption)
+      lastId = r.id
+      lastKind = 'recorte'
+      saved += recorteKeys.length
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      skipped.add('error')
+      logEvent({ event: 'whatsapp_media_failed', message: msg })
+    }
+  }
+
   if (saved > 0 && lastId) {
     await recordLastCapture(sql, phone, userId, lastKind, lastId)
     logEvent({ event: 'whatsapp_capture', kind: lastKind, media: true, count: saved })
@@ -745,15 +765,20 @@ async function handleInboundMedia(
   const lines: string[] = []
   if (saved > 0) {
     const dest = DEST_BY_KIND[lastKind] ?? 'Trama'
-    // Episodio foto: varias fotos en un SOLO momento (no N elementos sueltos).
+    // Eventos: varias fotos en un SOLO momento, o varias imágenes en un solo
+    // recorte — no N elementos sueltos.
     const isPhotoEpisode =
       lastKind === 'momento' && momentoKeys.length > 1 && saved === momentoKeys.length
+    const isRecorteEvent =
+      lastKind === 'recorte' && recorteKeys.length > 1 && saved === recorteKeys.length
     lines.push(
       saved === 1
         ? `✅ Guardado en ${dest}.`
         : isPhotoEpisode
           ? `✅ ${saved} fotos guardadas en un momento.`
-          : `✅ ${saved} elementos guardados.`,
+          : isRecorteEvent
+            ? `✅ ${saved} imágenes guardadas como un evento en Recortes.`
+            : `✅ ${saved} elementos guardados.`,
     )
     if (skipped.has('vision')) {
       lines.push('(No pude leer el texto, así que guardé la imagen tal cual.)')

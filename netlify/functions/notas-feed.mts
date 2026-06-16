@@ -62,6 +62,7 @@ type RecorteRow = {
   captured_at: string | null
   created_at: string
   updated_at: string
+  images?: Array<{ storage_key: string }> | null
 }
 
 export default withObservability(
@@ -169,7 +170,12 @@ export default withObservability(
         ? sqlTyped<RecorteRow>(sql`
             SELECT id, text, source_url, source_title, source_author, note,
               image_url, image_key, capture_mode, status, promoted_target,
-              promoted_id, source, captured_at, created_at, updated_at
+              promoted_id, source, captured_at, created_at, updated_at,
+              COALESCE((
+                SELECT jsonb_agg(jsonb_build_object('storage_key', ri.storage_key) ORDER BY ri.position)
+                FROM recorte_images ri
+                WHERE ri.recorte_id = recortes.id
+              ), '[]'::jsonb) AS images
             FROM recortes
             WHERE deleted_at IS NULL AND user_id = ${userId}
               AND id = ANY(${recorteIds}::uuid[])
