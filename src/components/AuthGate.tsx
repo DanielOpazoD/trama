@@ -12,7 +12,8 @@
  * El widget de Clerk se tema con los tokens del sistema (CSS vars) para que
  * respete día / noche / vela sin hardcodear colores.
  */
-import { Show, SignIn } from '@clerk/react'
+import { Show, SignIn, SignUp } from '@clerk/react'
+import { useEffect, useState } from 'react'
 import { enterDemoMode, exitDemoMode, isDemoMode } from '../lib/demo'
 import { shouldUseClerk } from '../lib/clerkRuntime'
 import { EyeIcon } from './Icons'
@@ -49,6 +50,25 @@ const clerkAppearance = {
   },
 }
 
+type AuthScreenMode = 'sign-in' | 'sign-up'
+
+function readAuthScreenMode(): AuthScreenMode {
+  if (typeof window === 'undefined') return 'sign-in'
+  return window.location.hash.includes('sign-up') ? 'sign-up' : 'sign-in'
+}
+
+function useAuthScreenMode() {
+  const [mode, setMode] = useState<AuthScreenMode>(() => readAuthScreenMode())
+
+  useEffect(() => {
+    const updateMode = () => setMode(readAuthScreenMode())
+    window.addEventListener('hashchange', updateMode)
+    return () => window.removeEventListener('hashchange', updateMode)
+  }, [])
+
+  return mode
+}
+
 /** Banner discreto que recuerda que se está en modo prueba + salida. El
  *  detalle ("datos solo en este navegador") vive en el tooltip para que el
  *  píldora quede a un icono sutil + texto brevísimo. */
@@ -79,6 +99,73 @@ function DemoBanner() {
   )
 }
 
+function AuthScreen() {
+  const mode = useAuthScreenMode()
+
+  return (
+    <div className="trama-login-shell">
+      <LoginThreadField />
+      <div className="trama-login-content">
+        <header className="trama-login-brand">
+          <svg
+            aria-hidden="true"
+            className="trama-login-brandTrace"
+            fill="none"
+            viewBox="0 0 420 130"
+          >
+            <path
+              d="M18 75C72 22 112 111 164 64C214 20 246 104 303 58C340 28 370 39 402 23"
+              pathLength="1"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.1"
+            />
+            <path
+              d="M78 104C134 74 182 94 229 82C279 70 324 104 374 77"
+              pathLength="1"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="0.8"
+            />
+          </svg>
+          <div className="trama-login-titleRow">
+            <h1 className="trama-login-title font-serif text-ink-700">Trama</h1>
+            <span className="trama-login-mascotSeal" data-testid="login-mascot-seal">
+              <TramaMascot className="trama-mascot--wordmark" />
+            </span>
+          </div>
+          <p className="trama-login-subtitle text-micro uppercase tracking-eyebrow">
+            tu archivo vivo
+          </p>
+        </header>
+        <div className="trama-login-panel">
+          {mode === 'sign-up' ? (
+            <SignUp routing="hash" signInUrl="/#sign-in" appearance={clerkAppearance} />
+          ) : (
+            <SignIn routing="hash" signUpUrl="/#sign-up" appearance={clerkAppearance} />
+          )}
+        </div>
+        <div className="trama-login-demoAction flex justify-center">
+          <button
+            onClick={() => {
+              enterDemoMode()
+              window.location.reload()
+            }}
+            title="Sin cuenta · los datos viven solo en este navegador"
+            className="group inline-flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-600 transition-colors"
+          >
+            <EyeIcon
+              size={12}
+              className="opacity-70 transition-opacity group-hover:opacity-100"
+            />
+            explorar sin cuenta
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
   // (1) Modo prueba: entra directo, sin Clerk, con banner.
   if (isDemoMode()) {
@@ -99,67 +186,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   // (3) Pantalla de inicio de sesión editorial.
   return (
-    <Show
-      when="signed-in"
-      fallback={
-        <div className="trama-login-shell">
-          <LoginThreadField />
-          <div className="trama-login-content">
-            <header className="trama-login-brand">
-              <svg
-                aria-hidden="true"
-                className="trama-login-brandTrace"
-                fill="none"
-                viewBox="0 0 420 130"
-              >
-                <path
-                  d="M18 75C72 22 112 111 164 64C214 20 246 104 303 58C340 28 370 39 402 23"
-                  pathLength="1"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeWidth="1.1"
-                />
-                <path
-                  d="M78 104C134 74 182 94 229 82C279 70 324 104 374 77"
-                  pathLength="1"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeWidth="0.8"
-                />
-              </svg>
-              <div className="trama-login-titleRow">
-                <h1 className="trama-login-title font-serif text-ink-700">Trama</h1>
-                <span className="trama-login-mascotSeal" data-testid="login-mascot-seal">
-                  <TramaMascot className="trama-mascot--wordmark" />
-                </span>
-              </div>
-              <p className="trama-login-subtitle text-micro uppercase tracking-eyebrow">
-                tu archivo vivo
-              </p>
-            </header>
-            <div className="trama-login-panel">
-              <SignIn routing="hash" appearance={clerkAppearance} />
-            </div>
-            <div className="trama-login-demoAction flex justify-center">
-              <button
-                onClick={() => {
-                  enterDemoMode()
-                  window.location.reload()
-                }}
-                title="Sin cuenta · los datos viven solo en este navegador"
-                className="group inline-flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-600 transition-colors"
-              >
-                <EyeIcon
-                  size={12}
-                  className="opacity-70 transition-opacity group-hover:opacity-100"
-                />
-                explorar sin cuenta
-              </button>
-            </div>
-          </div>
-        </div>
-      }
-    >
+    <Show when="signed-in" fallback={<AuthScreen />}>
       {children}
     </Show>
   )

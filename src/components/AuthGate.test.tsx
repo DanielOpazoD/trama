@@ -12,8 +12,19 @@ vi.mock('@clerk/react', () => ({
     children: React.ReactNode
     fallback?: React.ReactNode
   }) => (clerkState.signedIn ? <>{children}</> : <>{fallback}</>),
-  SignIn: ({ routing }: { routing?: string }) => (
-    <div data-testid="clerk-sign-in" data-routing={routing} />
+  SignIn: ({ routing, signUpUrl }: { routing?: string; signUpUrl?: string }) => (
+    <div
+      data-testid="clerk-sign-in"
+      data-routing={routing}
+      data-sign-up-url={signUpUrl}
+    />
+  ),
+  SignUp: ({ routing, signInUrl }: { routing?: string; signInUrl?: string }) => (
+    <div
+      data-testid="clerk-sign-up"
+      data-routing={routing}
+      data-sign-in-url={signInUrl}
+    />
   ),
 }))
 
@@ -21,6 +32,7 @@ describe('AuthGate', () => {
   beforeEach(() => {
     clerkState.signedIn = false
     vi.stubEnv('VITE_TRAMA_E2E_BYPASS_CLERK', '')
+    window.location.hash = ''
     localStorage.clear()
   })
 
@@ -47,6 +59,10 @@ describe('AuthGate', () => {
     )
 
     expect(screen.getByTestId('clerk-sign-in')).toHaveAttribute('data-routing', 'hash')
+    expect(screen.getByTestId('clerk-sign-in')).toHaveAttribute(
+      'data-sign-up-url',
+      '/#sign-up',
+    )
     expect(screen.getByText('Trama')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Mascota de Trama' })).toBeInTheDocument()
     expect(screen.getByTestId('login-mascot-seal')).toContainElement(
@@ -59,6 +75,25 @@ describe('AuthGate', () => {
     )
     expect(screen.getByText('explorar sin cuenta')).toBeInTheDocument()
     expect(screen.queryByTestId('app-shell')).not.toBeInTheDocument()
+  })
+
+  it('renders embedded Clerk sign-up when the auth hash requests registration', () => {
+    vi.stubEnv('VITE_CLERK_PUBLISHABLE_KEY', 'pk_test_trama')
+    window.location.hash = '#sign-up'
+
+    render(
+      <AuthGate>
+        <div data-testid="app-shell">Trama app</div>
+      </AuthGate>,
+    )
+
+    expect(screen.getByTestId('clerk-sign-up')).toHaveAttribute('data-routing', 'hash')
+    expect(screen.getByTestId('clerk-sign-up')).toHaveAttribute(
+      'data-sign-in-url',
+      '/#sign-in',
+    )
+    expect(screen.queryByTestId('clerk-sign-in')).not.toBeInTheDocument()
+    expect(screen.getByText('Trama')).toBeInTheDocument()
   })
 
   it('renders the app directly when the E2E Clerk bypass is enabled', () => {
