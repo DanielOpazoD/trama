@@ -663,10 +663,21 @@ async function extractPhotoIntent(
   try {
     const { system, user } = buildPhotoPrompt(mode)
     const imageBase64 = Buffer.from(buffer).toString('base64')
-    const { content } = await askLLMForVision(system, user, imageBase64, mimeType, {
-      provider: invocation.provider,
-      model: invocation.model,
-    })
+    const { content, usage, fromCache } = await askLLMForVision(
+      system,
+      user,
+      imageBase64,
+      mimeType,
+      { provider: invocation.provider, model: invocation.model },
+    )
+    // Costo de la visión al cost-cap mensual. Antes NO se registraba → la visión
+    // por WhatsApp no contaba contra el presupuesto (hueco de costo: el usuario
+    // podía gastar sin tope). Awaited: en serverless un floating promise puede no
+    // alcanzar a escribir antes de que se congele la instancia.
+    await getSql()`
+      INSERT INTO extraction_log (input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id)
+      VALUES (${'[imagen]'}, ${JSON.stringify({ vision: true, mode })}::jsonb, ${usage.provider}, ${usage.model}, ${usage.tokensIn}, ${usage.tokensOut}, ${fromCache ? 0 : usage.costCents}, ${usage.durationMs}, ${userId})
+    `.catch(() => {})
     return validatePhotoExtraction(content, mode, caption)
   } catch (err) {
     logEvent({
@@ -695,8 +706,10 @@ async function transcribeAudioIntent(
   try {
     const fileName = `voz.${audioExtFromMime(mimeType)}`
     const { text, usage } = await askLLMForTranscription(buffer, mimeType, fileName)
-    // Registro best-effort del costo (Whisper cobra por minuto, estimado).
-    sql`
+    // Costo de la transcripción al cost-cap (Whisper cobra por minuto, estimado).
+    // Awaited para que quede registrado antes de responder (la instancia se
+    // congela tras el return y un floating promise podría no escribir).
+    await sql`
       INSERT INTO extraction_log (input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id)
       VALUES (${'[nota de voz]'}, ${JSON.stringify({ transcribed: true })}::jsonb, ${usage.provider}, ${usage.model}, ${0}, ${0}, ${usage.costCents}, ${usage.durationMs}, ${userId})
     `.catch(() => {})
@@ -1209,9 +1222,10 @@ async function classifyFreeform(
       model: invocation.model,
     })
     const classified = validateClassification(content)
-    // Registro best-effort en extraction_log para que el cost-cap mensual
-    // contabilice el gasto (un cache hit no cobra: cost_cents = 0).
-    getSql()`
+    // Registro en extraction_log para que el cost-cap mensual contabilice el
+    // gasto (un cache hit no cobra: cost_cents = 0). Awaited para que quede
+    // escrito antes de responder (la instancia se congela tras el return).
+    await getSql()`
       INSERT INTO extraction_log (input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id)
       VALUES (${text}, ${JSON.stringify(classified ?? {})}::jsonb, ${usage.provider}, ${usage.model}, ${usage.tokensIn}, ${usage.tokensOut}, ${fromCache ? 0 : usage.costCents}, ${usage.durationMs}, ${userId})
     `.catch(() => {})

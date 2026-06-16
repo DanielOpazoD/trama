@@ -1165,6 +1165,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMocr' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // extractPhotoIntent: extraction_log (costo de visión al cost-cap)
     mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes RETURNING id
     mockSqlResponses.push([]) // recordLastCapture
     const res = await webhookHandler(
@@ -1180,6 +1181,14 @@ describe('whatsapp-webhook', () => {
     )
     expect(res.status).toBe(200)
     expect(askLLMForVision).toHaveBeenCalledOnce()
+    // El costo de la visión se registra en extraction_log (cuenta al cost-cap).
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /INSERT INTO extraction_log/i.test(c.template) &&
+          c.values.some((v) => typeof v === 'string' && v.includes('"vision":true')),
+      ),
+    ).toBe(true)
     const xml = await res.text()
     expect(xml).toContain('Notas')
     expect(xml).toContain('world=notas')
