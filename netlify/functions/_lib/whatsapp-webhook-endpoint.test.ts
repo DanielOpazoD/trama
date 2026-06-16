@@ -528,9 +528,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMmedia2' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
-    mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte (portada) RETURNING id
-    mockSqlResponses.push([]) // INSERT recorte_images #0
-    mockSqlResponses.push([]) // INSERT recorte_images #1
+    mockSqlResponses.push([{ id: 'r1' }]) // CTE: INSERT recorte + recorte_images RETURNING id
     mockSqlResponses.push([]) // recordLastCapture (fire-and-forget)
     const res = await webhookHandler(
       new Request('http://localhost/api/whatsapp-webhook', {

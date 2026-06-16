@@ -483,13 +483,14 @@ async function recategorizeLast(
   // helper devuelve null y caemos al camino de texto de abajo.
   if (last.kind === 'recorte' && (toKind === 'momento' || toKind === 'note')) {
     const caption = (await readCaptureText(sql, 'recorte', last.id, userId)) ?? ''
-    const newId =
+    const result =
       toKind === 'momento'
         ? await reclassifyRecorteToMomento(sql, userId, last.id, caption)
         : await reclassifyRecorteToNote(sql, userId, last.id, caption)
-    if (newId) {
+    if (result.status === 'ok') {
+      // El destino quedó con TODAS las imágenes: recién ahora borramos el recorte.
       await softDeleteCapture(sql, userId, last.kind, last.id)
-      await recordLastCapture(sql, phone, userId, toKind, newId)
+      await recordLastCapture(sql, phone, userId, toKind, result.id)
       const link = captureDeepLink(origin, toKind)
       const msg =
         toKind === 'momento'
@@ -497,7 +498,13 @@ async function recategorizeLast(
           : '🔄 Reclasificado como Nota con sus imágenes.'
       return `${msg}\n🔗 Ábrelo en Trama: ${link}\n↩️ ¿No era así? Responde «deshacer».`
     }
-    // newId === null → recorte sin imágenes: sigue al camino de texto.
+    if (result.status === 'failed') {
+      // La copia falló a medias: el recorte sigue intacto con sus fotos, no lo
+      // borramos. No caemos al camino de texto (perdería las imágenes).
+      return 'No pude mover las imágenes ahora mismo. Tu recorte sigue en Recortes con sus fotos; vuelve a intentarlo en un momento.'
+    }
+    // result.status === 'no-images' → recorte de texto/enlace: sigue al camino
+    // de texto de abajo (ahí sí reusar el texto es correcto).
   }
 
   const text = await readCaptureText(sql, last.kind, last.id, userId)

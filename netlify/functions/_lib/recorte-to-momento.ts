@@ -32,6 +32,20 @@ function randomKey(): string {
 }
 
 /**
+ * Borra un blob de un store (best-effort, traga el error). Se usa para limpiar
+ * copias huérfanas cuando una reclasificación/promoción de varias imágenes falla
+ * a media tanda: las que ya se copiaron no deben quedar como basura en el store
+ * destino si el conjunto no se completó.
+ */
+export async function removeBlob(storeName: string, key: string): Promise<void> {
+  try {
+    await getStore(storeName).delete(key)
+  } catch {
+    // best-effort: si la limpieza falla, queda un huérfano (no rompe el flujo).
+  }
+}
+
+/**
  * Copia el blob de la imagen de un recorte (`recortes-media`) a OTRO store,
  * devolviendo la nueva storageKey con namespace por usuario
  * (`${userId}/${random}.${ext}`), el mime preservado y el tamaño en bytes.

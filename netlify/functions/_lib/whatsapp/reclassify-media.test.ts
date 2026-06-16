@@ -9,9 +9,10 @@ vi.mock('../embeddings.js', () => ({
   toPgVector: vi.fn((v) => `[${v.join(',')}]`),
 }))
 
-// Copia de blobs entre stores (recortes-media → momentos-media / notas-attachments).
+// Copia de blobs entre stores (recortes-media → momentos-media / notas-attachments)
+// + delete para limpiar copias huérfanas cuando una tanda falla a medias.
 const { blobStore } = vi.hoisted(() => ({
-  blobStore: { getWithMetadata: vi.fn(), set: vi.fn() },
+  blobStore: { getWithMetadata: vi.fn(), set: vi.fn(), delete: vi.fn() },
 }))
 vi.mock('@netlify/blobs', () => ({ getStore: vi.fn(() => blobStore) }))
 
@@ -22,33 +23,33 @@ import {
   reclassifyRecorteToNote,
 } from './reclassify-media'
 
+const blob = { data: new ArrayBuffer(8), metadata: { mime: 'image/webp', size: '8' } }
+
 beforeEach(() => {
   mockSqlResponses.reset()
   blobStore.getWithMetadata.mockReset()
   blobStore.set.mockReset()
-  blobStore.getWithMetadata.mockResolvedValue({
-    data: new ArrayBuffer(8),
-    metadata: { mime: 'image/webp', size: '8' },
-  })
+  blobStore.delete.mockReset()
+  blobStore.getWithMetadata.mockResolvedValue(blob)
 })
 
 describe('readRecorteImageKeys', () => {
   it('devuelve las storage_key del evento por posición (recorte_images)', async () => {
-    mockSqlResponses.push([{ storage_key: 'u/a.webp' }, { storage_key: 'u/b.webp' }]) // SELECT recorte_images
+    mockSqlResponses.push([{ storage_key: 'u/a.webp' }, { storage_key: 'u/b.webp' }])
     const keys = await readRecorteImageKeys(getSql(), 'u1', 'r1')
     expect(keys).toEqual(['u/a.webp', 'u/b.webp'])
   })
 
   it('cae a [image_key] cuando no hay recorte_images (recorte legacy)', async () => {
-    mockSqlResponses.push([]) // SELECT recorte_images (vacío)
-    mockSqlResponses.push([{ image_key: 'u/sola.webp' }]) // SELECT image_key
+    mockSqlResponses.push([]) // recorte_images vacío
+    mockSqlResponses.push([{ image_key: 'u/sola.webp' }]) // image_key
     const keys = await readRecorteImageKeys(getSql(), 'u1', 'r1')
     expect(keys).toEqual(['u/sola.webp'])
   })
 
   it('vacío cuando el recorte no tiene imagen propia (texto/enlace)', async () => {
-    mockSqlResponses.push([]) // SELECT recorte_images
-    mockSqlResponses.push([{ image_key: null }]) // SELECT image_key
+    mockSqlResponses.push([]) // recorte_images
+    mockSqlResponses.push([{ image_key: null }]) // image_key
     const keys = await readRecorteImageKeys(getSql(), 'u1', 'r1')
     expect(keys).toEqual([])
   })
@@ -63,11 +64,10 @@ describe('reclassifyRecorteToMomento', () => {
     ]) // recorte_images
     mockSqlResponses.push([{ id: 'm1' }]) // INSERT momentos RETURNING id
 
-    const id = await reclassifyRecorteToMomento(getSql(), 'u1', 'r1', 'mi gato')
-    expect(id).toBe('m1')
+    const result = await reclassifyRecorteToMomento(getSql(), 'u1', 'r1', 'mi gato')
+    expect(result).toEqual({ status: 'ok', id: 'm1' })
     expect(blobStore.getWithMetadata).toHaveBeenCalledTimes(3)
     expect(blobStore.set).toHaveBeenCalledTimes(3)
-    // El INSERT usa kind 'foto' y payload con items[] (no storageKey suelto).
     const insert = mockSqlResponses.calls.find((c) =>
       /INSERT INTO momentos/i.test(c.template),
     )
@@ -79,12 +79,41 @@ describe('reclassifyRecorteToMomento', () => {
     expect((payload?.match(/"storageKey"/g) ?? []).length).toBe(3)
   })
 
-  it('devuelve null cuando el recorte no tiene imágenes (→ camino de texto)', async () => {
+  it('status no-images cuando el recorte no tiene imágenes (→ camino de texto)', async () => {
     mockSqlResponses.push([]) // recorte_images vacío
     mockSqlResponses.push([{ image_key: null }]) // image_key null
-    const id = await reclassifyRecorteToMomento(getSql(), 'u1', 'r1', '')
-    expect(id).toBeNull()
+    const result = await reclassifyRecorteToMomento(getSql(), 'u1', 'r1', '')
+    expect(result).toEqual({ status: 'no-images' })
     expect(blobStore.set).not.toHaveBeenCalled()
+  })
+
+  it('copia parcial → status failed, NO crea el momento y limpia los huérfanos', async () => {
+    mockSqlResponses.push([{ storage_key: 'u/a.webp' }, { storage_key: 'u/b.webp' }]) // recorte_images
+    // La 1.ª copia tiene blob; la 2.ª no existe (getWithMetadata → null).
+    blobStore.getWithMetadata.mockReset()
+    blobStore.getWithMetadata.mockResolvedValueOnce(blob).mockResolvedValueOnce(null)
+
+    const result = await reclassifyRecorteToMomento(getSql(), 'u1', 'r1', 'x')
+    expect(result).toEqual({ status: 'failed' })
+    // No se insertó ningún momento (no se pierde a medias).
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO momentos/i.test(c.template)),
+    ).toBe(false)
+    // La 1.ª copia (huérfana) se limpió del store destino.
+    expect(blobStore.delete).toHaveBeenCalledTimes(1)
+  })
+
+  it('caption sintético "📸 N imágenes desde WhatsApp" no viaja como caption', async () => {
+    mockSqlResponses.push([{ storage_key: 'u/a.webp' }]) // recorte_images
+    mockSqlResponses.push([{ id: 'm1' }]) // INSERT momentos
+    await reclassifyRecorteToMomento(getSql(), 'u1', 'r1', '📸 3 imágenes desde WhatsApp')
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO momentos/i.test(c.template),
+    )
+    const payload = insert?.values.find(
+      (v): v is string => typeof v === 'string' && v.includes('"items"'),
+    )
+    expect(payload).not.toContain('caption')
   })
 })
 
@@ -95,10 +124,9 @@ describe('reclassifyRecorteToNote', () => {
     mockSqlResponses.push([]) // INSERT notas_attachments #0
     mockSqlResponses.push([]) // INSERT notas_attachments #1
 
-    const id = await reclassifyRecorteToNote(getSql(), 'u1', 'r1', 'apuntes')
-    expect(id).toBe('n1')
+    const result = await reclassifyRecorteToNote(getSql(), 'u1', 'r1', 'apuntes')
+    expect(result).toEqual({ status: 'ok', id: 'n1' })
     expect(blobStore.set).toHaveBeenCalledTimes(2)
-    // Dos INSERT a notas_attachments con owner_type 'note' y el id de la nota.
     const attachInserts = mockSqlResponses.calls.filter((c) =>
       /INSERT INTO notas_attachments/i.test(c.template),
     )
@@ -106,18 +134,43 @@ describe('reclassifyRecorteToNote', () => {
     // owner_type 'note' es literal en el SQL; el owner_id (n1) es parámetro.
     expect(attachInserts[0]?.template).toMatch(/'note'/)
     expect(attachInserts[0]?.values).toContain('n1')
-    // El contenido de la nota es el texto del recorte.
     const noteInsert = mockSqlResponses.calls.find((c) =>
       /INSERT INTO notes/i.test(c.template),
     )
     expect(noteInsert?.values).toContain('apuntes')
   })
 
-  it('devuelve null cuando el recorte no tiene imágenes', async () => {
+  it('status no-images cuando el recorte no tiene imágenes', async () => {
     mockSqlResponses.push([]) // recorte_images vacío
     mockSqlResponses.push([{ image_key: null }]) // image_key null
-    const id = await reclassifyRecorteToNote(getSql(), 'u1', 'r1', 'x')
-    expect(id).toBeNull()
+    const result = await reclassifyRecorteToNote(getSql(), 'u1', 'r1', 'x')
+    expect(result).toEqual({ status: 'no-images' })
     expect(blobStore.set).not.toHaveBeenCalled()
+  })
+
+  it('copia fallida → status failed y NO crea la nota (no la deja sin fotos)', async () => {
+    mockSqlResponses.push([{ storage_key: 'u/a.webp' }]) // recorte_images
+    blobStore.getWithMetadata.mockReset()
+    blobStore.getWithMetadata.mockResolvedValue(null) // el blob ya no existe
+
+    const result = await reclassifyRecorteToNote(getSql(), 'u1', 'r1', 'x')
+    expect(result).toEqual({ status: 'failed' })
+    // No se creó ninguna nota: el recorte original (lo decide el caller) queda vivo.
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO notes/i.test(c.template)),
+    ).toBe(false)
+  })
+
+  it('caption sintético no termina como cuerpo de la nota', async () => {
+    mockSqlResponses.push([{ storage_key: 'u/a.webp' }]) // recorte_images
+    mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes
+    mockSqlResponses.push([]) // INSERT notas_attachments
+    await reclassifyRecorteToNote(getSql(), 'u1', 'r1', '📷 Imagen desde WhatsApp')
+    const noteInsert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO notes/i.test(c.template),
+    )
+    // El cuerpo cae al placeholder neutro, no al rótulo con conteo.
+    expect(noteInsert?.values).toContain('Imágenes desde WhatsApp')
+    expect(noteInsert?.values).not.toContain('📷 Imagen desde WhatsApp')
   })
 })

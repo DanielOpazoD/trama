@@ -23,13 +23,17 @@ CREATE TABLE IF NOT EXISTS recorte_images (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   -- Blob authed en el store `recortes-media` (formato `${userId}/${hash}.${ext}`).
   storage_key TEXT NOT NULL,
-  mime TEXT,
-  -- Orden dentro del evento (0-based).
-  position INT NOT NULL DEFAULT 0,
+  -- El productor (persistImageRecorteEvent) siempre inserta un mime real.
+  mime TEXT NOT NULL,
+  -- Orden dentro del evento (0-based, asignado por ordinalidad en el CTE).
+  position INT NOT NULL DEFAULT 0 CHECK (position >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS recorte_images_recorte_idx
+-- Único por (recorte, posición): el invariante de orden vive en el esquema, no
+-- solo en el código. Cubre además el patrón de lectura `WHERE recorte_id ORDER
+-- BY position`.
+CREATE UNIQUE INDEX IF NOT EXISTS recorte_images_recorte_pos_uidx
   ON recorte_images (recorte_id, position);
 
 ALTER TABLE recorte_images ENABLE ROW LEVEL SECURITY;

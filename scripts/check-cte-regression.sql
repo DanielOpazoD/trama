@@ -12,6 +12,7 @@
 --   netlify/functions/entities.mts        (DELETE + restore)
 --   netlify/functions/momentos.mts        (POST)
 --   netlify/functions/notes.mts           (DELETE + restore — patrón compartido con tasks/prompts)
+--   netlify/functions/_lib/whatsapp/persist-media.ts (persistImageRecorteEvent)
 --
 -- Las tablas son throwaway con los nombres/contraint reales que importan (FK a
 -- users, PK compuesta de momento_entities para el ON CONFLICT, NOT NULL de
@@ -257,6 +258,63 @@ BEGIN
     RAISE EXCEPTION 'note-restore: los anexos no se restauraron';
   END IF;
   RAISE NOTICE 'OK note restore (mismo deleted_at revertido, anexos incluidos)';
+END $$;
+
+-- ============================================================================
+-- 5) persist-media.ts — persistImageRecorteEvent: recorte (portada) + N imágenes
+--    en un solo CTE con `unnest(keys, mimes) WITH ORDINALITY` (position 0-based).
+--    Valida la atomicidad del evento multi-imagen, el emparejado key↔mime por
+--    ordinalidad y la compatibilidad con el índice único (recorte_id, position).
+-- ============================================================================
+CREATE TABLE recortes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), text text NOT NULL,
+  image_key text, capture_mode text, captured_at timestamptz,
+  status text, source text, deleted_at timestamptz,
+  user_id text NOT NULL REFERENCES users(id));
+CREATE TABLE recorte_images (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  recorte_id uuid NOT NULL REFERENCES recortes(id) ON DELETE CASCADE,
+  user_id text NOT NULL REFERENCES users(id),
+  storage_key text NOT NULL, mime text NOT NULL,
+  position int NOT NULL DEFAULT 0 CHECK (position >= 0));
+CREATE UNIQUE INDEX recorte_images_recorte_pos_uidx ON recorte_images (recorte_id, position);
+
+-- CTE copiado de persistImageRecorteEvent (los ARRAY[...] emulan ${keys}/${mimes}):
+WITH new_recorte AS (
+  INSERT INTO recortes (text, image_key, capture_mode, captured_at, status, source, user_id)
+  VALUES ('📸 3 imágenes desde WhatsApp', 'u1/a.webp', 'image', NOW(), 'pending', 'whatsapp', 'u1')
+  RETURNING id
+),
+imgs AS (
+  INSERT INTO recorte_images (recorte_id, user_id, storage_key, mime, position)
+  SELECT r.id, 'u1', x.key, x.mime, (x.ord - 1)::int
+  FROM new_recorte r,
+    unnest(
+      ARRAY['u1/a.webp','u1/b.webp','u1/c.webp']::text[],
+      ARRAY['image/webp','image/webp','image/jpeg']::text[]
+    ) WITH ORDINALITY AS x(key, mime, ord)
+  RETURNING 1
+)
+SELECT id FROM new_recorte;
+
+DO $$
+DECLARE rid uuid;
+BEGIN
+  SELECT id INTO rid FROM recortes WHERE source='whatsapp' AND deleted_at IS NULL LIMIT 1;
+  IF rid IS NULL THEN RAISE EXCEPTION 'recorte-event: no se creó el recorte'; END IF;
+  IF (SELECT count(*) FROM recorte_images WHERE recorte_id = rid) <> 3 THEN
+    RAISE EXCEPTION 'recorte-event: no se insertaron las 3 imágenes (atomicidad rota)';
+  END IF;
+  IF (SELECT array_agg(position ORDER BY position) FROM recorte_images WHERE recorte_id = rid) <> ARRAY[0,1,2] THEN
+    RAISE EXCEPTION 'recorte-event: las posiciones no son 0,1,2 por ordinalidad';
+  END IF;
+  IF (SELECT storage_key FROM recorte_images WHERE recorte_id = rid AND position = 1) <> 'u1/b.webp' THEN
+    RAISE EXCEPTION 'recorte-event: el emparejado key↔position no respeta el orden';
+  END IF;
+  IF (SELECT mime FROM recorte_images WHERE recorte_id = rid AND position = 2) <> 'image/jpeg' THEN
+    RAISE EXCEPTION 'recorte-event: el emparejado key↔mime se desalineó';
+  END IF;
+  RAISE NOTICE 'OK recorte-event (recorte + 3 imágenes, position 0..2 por ordinalidad, key↔mime alineado)';
 END $$;
 
 SELECT 'TODOS LOS CTE OK' AS resultado;

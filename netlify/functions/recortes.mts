@@ -16,7 +16,7 @@ import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { momentoEmbedText, validatePayloadForKind } from './_lib/momento-embed.js'
-import { copyRecorteImageToMomentos } from './_lib/recorte-to-momento.js'
+import { copyRecorteImageToMomentos, removeBlob } from './_lib/recorte-to-momento.js'
 import { normalizeOrigin } from './_lib/origin.js'
 import {
   embedSafe,
@@ -367,6 +367,9 @@ export default withObservability(
           for (const key of sourceKeys) {
             const copied = await copyRecorteImageToMomentos(key, userId)
             if (!copied) {
+              // Copia a media tanda: limpiamos las ya copiadas para no dejar
+              // blobs huérfanos en momentos-media y abortamos sin promover.
+              await Promise.all(copiedKeys.map((k) => removeBlob('momentos-media', k)))
               return ApiErrors.validation(
                 requestId,
                 'No se pudo leer la imagen de la captura',
@@ -526,7 +529,7 @@ export default withObservability(
           COALESCE((
             SELECT jsonb_agg(jsonb_build_object('storage_key', ri.storage_key) ORDER BY ri.position)
             FROM recorte_images ri
-            WHERE ri.recorte_id = recortes.id
+            WHERE ri.recorte_id = recortes.id AND ri.user_id = ${userId}
           ), '[]'::jsonb) AS images
         FROM recortes
         WHERE deleted_at IS NULL AND user_id = ${userId}
