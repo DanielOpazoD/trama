@@ -220,12 +220,41 @@ SID ya estaba, corta con TwiML vacío sin re-escribir. Es un ledger append-only
 
 ## Variables de entorno
 
-| Var                    | Para qué                                                                                                                                          |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TWILIO_AUTH_TOKEN`    | Verificar la firma de los webhooks entrantes (consola Twilio).                                                                                    |
-| `TWILIO_ACCOUNT_SID`   | Bajar la media entrante (fotos) de la URL privada de Twilio vía auth básica. Sin él, las imágenes no se procesan.                                 |
-| `TWILIO_WEBHOOK_URL`   | Opcional. URL exacta configurada en Twilio si difiere del proxy.                                                                                  |
-| `VITE_WHATSAPP_NUMBER` | Número del bot (E164). Habilita el QR + botón "Abrir WhatsApp". Público (va al cliente). Sin él, el panel cae a copiar/pegar `vincular <código>`. |
+| Var                                  | Para qué                                                                                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TWILIO_AUTH_TOKEN`                  | Verificar la firma de los webhooks entrantes (consola Twilio).                                                                                    |
+| `TWILIO_ACCOUNT_SID`                 | Bajar la media entrante (fotos) de la URL privada de Twilio vía auth básica. Sin él, las imágenes no se procesan.                                 |
+| `TWILIO_WEBHOOK_URL`                 | Opcional. URL exacta configurada en Twilio si difiere del proxy.                                                                                  |
+| `VITE_WHATSAPP_NUMBER`               | Número del bot (E164). Habilita el QR + botón "Abrir WhatsApp". Público (va al cliente). Sin él, el panel cae a copiar/pegar `vincular <código>`. |
+| `TWILIO_CONTENT_SID_CAPTURE`         | Opcional. `ContentSid` de la plantilla con botón **[Deshacer]** (ver "Botones interactivos").                                                     |
+| `TWILIO_CONTENT_SID_CAPTURE_DESTINO` | Opcional. `ContentSid` de la plantilla con botones **[Deshacer · Momento · Nota]** para capturas ambiguas.                                        |
+
+## Botones interactivos (opt-in)
+
+Por defecto el webhook contesta con **TwiML** (texto + media; sin botones). Para
+mostrar **botones de respuesta rápida** —**Deshacer** en cada captura, y
+**Momento / Nota** cuando la captura fue ambigua (texto libre clasificado por la
+IA)— hay que mandar un mensaje **saliente** con un _Content Template_ de Twilio,
+porque TwiML no soporta botones. Es **opt-in con degradación elegante**: si las
+plantillas no están configuradas, todo sigue como texto.
+
+Setup:
+
+1. En la consola de Twilio → **Messaging → Content Template Builder**, crear dos
+   plantillas tipo **Quick Reply**, ambas con el cuerpo variable `{{1}}`:
+   - una con un botón cuyo **título sea exactamente `Deshacer`**;
+   - otra con tres botones: **`Deshacer`, `Momento`, `Nota`**.
+2. Copiar el `ContentSid` (`HX…`) de cada una a `TWILIO_CONTENT_SID_CAPTURE` y
+   `TWILIO_CONTENT_SID_CAPTURE_DESTINO` en Netlify, y **redeploy**.
+
+Por qué esos títulos: cuando el usuario toca un botón, Twilio reenvía el título
+como un mensaje entrante normal, así `Deshacer` cae en el camino de `deshacer`
+(undo) y `Momento`/`Nota` en la **reclasificación** de la última captura —sin
+agregar un parser nuevo—. El envío saliente reusa `TWILIO_ACCOUNT_SID` +
+`TWILIO_AUTH_TOKEN`; vive en `_lib/whatsapp/send.ts` (REST) + `interactive.ts`
+(elección de plantilla, puro). Si el envío falla, se cae a TwiML de texto: el
+usuario nunca se queda sin confirmación. Cada mensaje interactivo es un mensaje
+de WhatsApp facturado por Twilio/Meta (el cost-cap de Trama es solo de IA).
 
 ## Onboarding de un toque (QR + deep link)
 

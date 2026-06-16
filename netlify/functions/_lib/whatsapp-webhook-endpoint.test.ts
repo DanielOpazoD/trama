@@ -209,6 +209,67 @@ describe('whatsapp-webhook', () => {
     expect(await res.text()).toContain('Nota guardada')
   })
 
+  it('con plantillas configuradas → manda botones (Content API) y TwiML vacío', async () => {
+    // Captura ambigua (texto libre) con la plantilla de destino configurada.
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubEnv('TWILIO_CONTENT_SID_CAPTURE_DESTINO', 'HXdest')
+    const sendMock = vi.fn().mockResolvedValue({ ok: true, status: 201 })
+    vi.stubGlobal('fetch', sendMock)
+    askLLMForJson.mockResolvedValue({
+      content: { kind: 'note', note: { content: 'me acordé de algo' } },
+      usage: {
+        provider: 'x',
+        model: 'x',
+        tokensIn: 1,
+        tokensOut: 1,
+        costCents: 1,
+        durationMs: 1,
+      },
+      fromCache: false,
+    })
+    const fields = {
+      MessageSid: 'SMbtn',
+      From: 'whatsapp:+56912345678',
+      To: 'whatsapp:+14155238886',
+      Body: 'me acordé de algo',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMbtn' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // extraction_log
+    mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes
+    mockSqlResponses.push([]) // recordLastCapture
+
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    // Se mandó el mensaje saliente con botones (plantilla de destino).
+    expect(sendMock).toHaveBeenCalledTimes(1)
+    const init = sendMock.mock.calls[0][1]
+    const body = new URLSearchParams(init.body)
+    expect(body.get('ContentSid')).toBe('HXdest')
+    expect(body.get('ContentVariables')).toContain('Nota guardada')
+    // La respuesta TwiML va vacía (la confirmación viajó por la API, no por XML).
+    expect(await res.text()).not.toContain('Nota guardada')
+  })
+
   it('deshacer → soft-deletea la última captura', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
